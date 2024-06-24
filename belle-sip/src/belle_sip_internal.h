@@ -462,7 +462,7 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 	antlr3StringStreamNew((pANTLR3_UINT8)value, ANTLR3_ENC_8BIT, (ANTLR3_UINT32)length, (pANTLR3_UINT8) #object_type)
 
 #define BELLE_PARSE(parser_name, object_type_prefix, object_type)                                                      \
-	object_type_prefix##object_type##_t *object_type_prefix##object_type##_parse(const char *value) {                  \
+	object_type_prefix##object_type##_t *object_type_prefix##try_##object_type##_parse(const char *value) {            \
 		pANTLR3_INPUT_STREAM input;                                                                                    \
 		pbelle_sip_messageLexer lex;                                                                                   \
 		pANTLR3_COMMON_TOKEN_STREAM tokens;                                                                            \
@@ -477,6 +477,10 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 		tokens->free(tokens);                                                                                          \
 		lex->free(lex);                                                                                                \
 		input->close(input);                                                                                           \
+		return l_parsed_object;                                                                                        \
+	}                                                                                                                  \
+	object_type_prefix##object_type##_t *object_type_prefix##object_type##_parse(const char *value) {                  \
+		object_type_prefix##object_type##_t *l_parsed_object = object_type_prefix##try_##object_type##_parse(value);   \
 		if (l_parsed_object == NULL) belle_sip_error(#object_type " parser error for [%s]", value);                    \
 		return l_parsed_object;                                                                                        \
 	}

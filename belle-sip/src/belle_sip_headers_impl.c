@@ -365,6 +365,7 @@ int belle_sip_header_address_equals(const belle_sip_header_address_t *addr_a,
 /*fast header address implemenation*/
 typedef belle_sip_header_address_t belle_sip_fast_header_address_t;
 #define belle_sip_fast_header_address_parse belle_sip_header_address_fast_parse
+#define belle_sip_try_fast_header_address_parse belle_sip_header_address_try_fast_parse
 BELLE_SIP_PARSE(fast_header_address)
 
 /******************************
