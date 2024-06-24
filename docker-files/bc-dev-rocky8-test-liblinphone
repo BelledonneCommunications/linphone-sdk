@@ -6,7 +6,7 @@ ARG FROM_IMAGE_TAG=20230914_gdb_toolset_12_sdk
 
 FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:$FROM_IMAGE_TAG
 
-MAINTAINER Mickaël Turnel <mickael.turnel@belledonne-communications.com>
+LABEL org.opencontainers.image.authors="Mickaël Turnel <mickael.turnel@belledonne-communications.com>"
 
 # Install mediastreamer test dependencies
 RUN sudo dnf -y install alsa-utils pulseaudio
@@ -16,7 +16,8 @@ RUN sudo dnf -y install Xvfb
 #failing, need to find a workaround
 #RUN modprobe snd-dummy
 
-#installing debuginfo
-RUN sudo dnf -y install alsa-lib-debuginfo dbus-libs-debuginfo elfutils-debuginfod flac-libs-debuginfo gsm-debuginfo libICE-debuginfo libSM-debuginfo libX11-debuginfo libXau-debuginfo libXext-debuginfo libXi-debuginfo libXtst-debuginfo libXv-debuginfo libasyncns-debuginfo libgcc-debuginfo libglvnd-debuginfo libglvnd-glx-debuginfo libjpeg-turbo-debuginfo libogg-debuginfo libsndfile-debuginfo libstdc++-debuginfo libv4l-debuginfo libvorbis-debuginfo libxcb-debuginfo mesa-libGLU-debuginfo pulseaudio-libs-debuginfo
+COPY --chmod=0755 link-audio-group-docker.sh /usr/local/sbin/
 
-CMD bash
+ENTRYPOINT ["/usr/local/sbin/link-audio-group-docker.sh"]
+
+SHELL ["/bin/bash", "-c"]
