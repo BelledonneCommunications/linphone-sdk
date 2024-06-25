@@ -278,7 +278,10 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	// Check the audio volume of the received packet. If the packet indicates that it is muted,
 	// then notify the audiostream, populate the audiostream volumes and then return.
 	// There is no need to create a new branch if no audio is received.
-	if (packet_contains_muted_volume(stream, mp) == TRUE) return;
+	if (packet_contains_muted_volume(stream, mp) == TRUE) {
+		bctbx_free(sMid);
+		return;
+	}
 
 	int free_mixer_input_pin = audio_stream_get_free_mixer_input_pin(stream);
 	if (free_mixer_input_pin == 0) {
