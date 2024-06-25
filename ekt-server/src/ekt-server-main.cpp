@@ -81,11 +81,11 @@ void EktServerPlugin::EktServerMain::onConferenceStateChanged(const shared_ptr<C
                                                               const shared_ptr<Conference> &conference,
                                                               Conference::State state) {
 	try {
-		shared_ptr<ServerEktManager> sem = conference->getData<shared_ptr<ServerEktManager>>(kDataKey);
+		auto &sem = conference->getData<ServerEktManager>(kDataKey);
 		switch (state) {
 			case Conference::State::TerminationPending:
-				if (sem) {
-					conference->removeListener(sem);
+				if (sem.shared_from_this()) {
+					conference->removeListener(sem.shared_from_this());
 					mConferenceByAddress.erase(conference->getConferenceAddress());
 				}
 				break;
@@ -114,7 +114,8 @@ void EktServerPlugin::EktServerMain::onNetworkReachable(const std::shared_ptr<li
 
 void EktServerPlugin::EktServerMain::clear(const std::shared_ptr<linphone::Core> &core) {
 	for (auto [conferenceAddress, conference] : mConferenceByAddress) {
-		conference->removeListener(conference->getData<shared_ptr<ServerEktManager>>(kDataKey));
+		auto &sem = conference->getData<ServerEktManager>(kDataKey);
+		conference->removeListener(sem.shared_from_this());
 	}
 	mConferenceByAddress.clear();
 	core->removeListener(this->shared_from_this());
