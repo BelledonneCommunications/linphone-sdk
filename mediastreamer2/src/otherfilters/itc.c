@@ -79,8 +79,17 @@ static void itc_connect(MSFilter *sink, MSFilter *source) {
 	SharedState *s;
 
 	// Sink cannot be NULL
-	if (!sink || (sink->desc->id != MS_ITC_SINK_ID)) ms_fatal("itc_connect(): bad sink filter");
-	if (source && (source->desc->id != MS_ITC_SOURCE_ID)) ms_fatal("itc_connect(): bad source filter");
+	if (!sink || (sink->desc->id != MS_ITC_SINK_ID)) {
+		ms_fatal(
+		    "itc_connect(): bad sink filter: sink %p must not be a NULL pointer and it must a a MsItcSink (got %s)",
+		    sink, (sink ? sink->desc->name : "unknown"));
+	}
+
+	if (source && (source->desc->id != MS_ITC_SOURCE_ID)) {
+		ms_fatal(
+		    "itc_connect(): bad source filter: source %p must be either NULL or it must be a MsItcSource (goit %s)",
+		    source, (source ? source->desc->name : "unknown"));
+	}
 
 	s = (SharedState *)sink->data;
 	if (!s) {
