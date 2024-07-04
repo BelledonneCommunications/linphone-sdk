@@ -42,6 +42,7 @@ add_custom_target(gradle-clean ALL
     "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}"
     "-DLINPHONESDK_BRANCH=${LINPHONESDK_BRANCH}"
     "-DLINPHONESDK_FIRST_ARCH=${_FIRST_ARCH}"
+    "-DENABLE_VIDEO=${ENABLE_VIDEO}"
     "-P" "${PROJECT_SOURCE_DIR}/cmake/Android/GradleClean.cmake"
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   COMMENT "Generating gradle build scripts and performing gradle clean"

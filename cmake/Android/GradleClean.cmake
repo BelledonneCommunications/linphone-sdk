@@ -23,7 +23,14 @@
 configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/build.gradle.cmake" "build.gradle" @ONLY)
 configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/upload.gradle.cmake" "upload.gradle" @ONLY)
 configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/gradle.properties.cmake" "gradle.properties" @ONLY)
-configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/LinphoneSdkManifest.xml.cmake" "LinphoneSdkManifest.xml" @ONLY)
+
+if(ENABLE_VIDEO)
+	message(STATUS "Build with video, keeping CAMERA and FOREGROUND_SERVICE_CAMERA permissions in Android Manifest")
+	configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/LinphoneSdkManifest.xml.cmake" "LinphoneSdkManifest.xml" @ONLY)
+else()
+	message(STATUS "Build without video, removing CAMERA and FOREGROUND_SERVICE_CAMERA permissions from Android Manifest")
+	configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/LinphoneSdkManifestNoVideo.xml.cmake" "LinphoneSdkManifest.xml" @ONLY)
+endif()
 
 execute_process(
 	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "clean"
