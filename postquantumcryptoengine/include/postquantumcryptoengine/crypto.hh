@@ -172,9 +172,9 @@ public:
 class HQC128 : public KEM {
 public:
 	HQC128() = default;
-	constexpr static size_t skSize = 2289;
+	constexpr static size_t skSize = 2305;
 	constexpr static size_t pkSize = 2249;
-	constexpr static size_t ctSize = 4481;
+	constexpr static size_t ctSize = 4433;
 	constexpr static size_t ssSize = 64;
 
 	size_t get_skSize() const noexcept override;
@@ -194,9 +194,9 @@ public:
 class HQC192 : public KEM {
 public:
 	HQC192() = default;
-	constexpr static size_t skSize = 4562;
+	constexpr static size_t skSize = 4586;
 	constexpr static size_t pkSize = 4522;
-	constexpr static size_t ctSize = 9026;
+	constexpr static size_t ctSize = 8978;
 	constexpr static size_t ssSize = 64;
 
 	size_t get_skSize() const noexcept override;
@@ -216,9 +216,9 @@ public:
 class HQC256 : public KEM {
 public:
 	HQC256() = default;
-	constexpr static size_t skSize = 7285;
+	constexpr static size_t skSize = 7317;
 	constexpr static size_t pkSize = 7245;
-	constexpr static size_t ctSize = 14469;
+	constexpr static size_t ctSize = 14421;
 	constexpr static size_t ssSize = 64;
 
 	size_t get_skSize() const noexcept override;
