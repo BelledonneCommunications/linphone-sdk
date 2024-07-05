@@ -917,14 +917,15 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 			return ZRTP_KEYAGREEMENT_KYB2;
 		} else if (memcmp(algoType, "KYB3", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_KYB3;
-		// Current HQC integrated is 2020 submission for round3, which is not compatible with round4 submission
-		// temporary use of HQB<x> as id, switch to HQC<x> when we have a final version
-		// This apply too to X/Kyber/Hqc hybrid identified as XKQ<x> instead of XKH<x>
-		} else if (memcmp(algoType, "HQB1", 4) == 0) {
+		// HQC implementation used to be the round 3 submission (2020/10/11)
+		// -> it advertised itself as HQB<X> (and XKQ<x> for the X/Kyber/HQC hybrids
+		// Current HQC implementation is the one from round 4 submission (2024/02/23), incompatible with the previous one
+		// -> it advertises itself as HQD<x> and XKR<x> for the X/Kyber/HQC hybrids)
+		} else if (memcmp(algoType, "HQD1", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_HQC1;
-		} else if (memcmp(algoType, "HQB2", 4) == 0) {
+		} else if (memcmp(algoType, "HQD2", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_HQC2;
-		} else if (memcmp(algoType, "HQB3", 4) == 0) {
+		} else if (memcmp(algoType, "HQD3", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_HQC3;
 		} else if (memcmp(algoType, "X1K1", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_K255_KYB512;
@@ -934,9 +935,9 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 			return ZRTP_KEYAGREEMENT_K448_KYB1024;
 		} else if (memcmp(algoType, "X3H3", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_K448_HQC256;
-		} else if (memcmp(algoType, "XKQ1", 4) == 0) {
+		} else if (memcmp(algoType, "XKR1", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_K255_KYB512_HQC128;
-		} else if (memcmp(algoType, "XKQ3", 4) == 0) {
+		} else if (memcmp(algoType, "XKR3", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256;
 		} else if (memcmp(algoType, "Prsh", 4) == 0) {
 			return ZRTP_KEYAGREEMENT_Prsh;
@@ -1054,17 +1055,18 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 	case ZRTP_KEYAGREEMENT_KYB3:
 		memcpy(algoTypeString, "KYB3", 4);
 		break;
-	// Current HQC integrated is 2020 submission for round3, which is not compatible with round4 submission
-	// temporary use of HQB<x> as id, switch to HQC<x> when we have a final version
-	// This apply too to X/Kyber/Hqc hybrid identified as XKQ<x> instead of XKH<x>
+	// HQC implementation used to be the round 3 submission (2020/10/11)
+	// -> it advertised itself as HQB<X> (and XKQ<x> for the X/Kyber/HQC hybrids
+	// Current HQC implementation is the one from round 4 submission (2024/02/23), incompatible with the previous one
+	// -> it advertises itself as HQD<x> and XKR<x> for the X/Kyber/HQC hybrids)
 	case ZRTP_KEYAGREEMENT_HQC1:
-		memcpy(algoTypeString, "HQB1", 4);
+		memcpy(algoTypeString, "HQD1", 4);
 		break;
 	case ZRTP_KEYAGREEMENT_HQC2:
-		memcpy(algoTypeString, "HQB2", 4);
+		memcpy(algoTypeString, "HQD2", 4);
 		break;
 	case ZRTP_KEYAGREEMENT_HQC3:
-		memcpy(algoTypeString, "HQB3", 4);
+		memcpy(algoTypeString, "HQD3", 4);
 		break;
 	case ZRTP_KEYAGREEMENT_K255_KYB512:
 		memcpy(algoTypeString, "X1K1", 4);
@@ -1079,10 +1081,10 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 		memcpy(algoTypeString, "X3H3", 4);
 		break;
 	case ZRTP_KEYAGREEMENT_K255_KYB512_HQC128:
-		memcpy(algoTypeString, "XKQ1", 4);
+		memcpy(algoTypeString, "XKR1", 4);
 		break;
 	case ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256:
-		memcpy(algoTypeString, "XKQ3", 4);
+		memcpy(algoTypeString, "XKR3", 4);
 		break;
 	case ZRTP_KEYAGREEMENT_Prsh:
 		memcpy(algoTypeString, "Prsh", 4);
