@@ -204,8 +204,7 @@ belle_sip_stack_t *belle_sip_stack_new(const char *properties) {
 	stack->use_dns_service = TRUE;
 #endif /* HAVE_DNS_SERVICE */
 	belle_sip_stack_set_digest_authentication_policy(stack, belle_sip_digest_authentication_policy_new());
-	stack->user_host_entries = NULL;
-	;
+	stack->ai_family_preference = AF_INET6;
 	return stack;
 }
 
@@ -389,6 +388,15 @@ const char *belle_sip_stack_get_dns_resolv_conf_file(const belle_sip_stack_t *st
 void belle_sip_stack_set_dns_resolv_conf_file(belle_sip_stack_t *stack, const char *resolv_conf_file) {
 	if (stack->dns_resolv_conf) belle_sip_free(stack->dns_resolv_conf);
 	stack->dns_resolv_conf = resolv_conf_file ? belle_sip_strdup(resolv_conf_file) : NULL;
+}
+
+void belle_sip_stack_set_ip_version_preference(belle_sip_stack_t *stack, int family) {
+	belle_sip_message("belle_sip_stack_set_ip_version_preference(): %s", family == AF_INET ? "AF_INET" : "AF_INET6");
+	stack->ai_family_preference = family;
+}
+
+int belle_sip_stack_get_ip_version_preference(const belle_sip_stack_t *stack) {
+	return stack->ai_family_preference;
 }
 
 void belle_sip_stack_set_dns_servers(belle_sip_stack_t *stack, const belle_sip_list_t *servers) {

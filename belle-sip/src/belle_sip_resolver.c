@@ -655,7 +655,11 @@ static void dual_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(obj);
 	struct addrinfo *results = ctx->aaaa_results;
 	belle_sip_resolver_results_t *result_obj;
-	results = ai_list_append(results, ctx->a_results);
+	if (obj->stack->ai_family_preference == AF_INET6) {
+		results = ai_list_append(results, ctx->a_results);
+	} else {
+		results = ai_list_append(ctx->a_results, results);
+	}
 	ctx->a_results = NULL;
 	ctx->aaaa_results = NULL;
 	result_obj = belle_sip_resolver_results_create(ctx->name, results, NULL, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
@@ -2096,7 +2100,7 @@ int belle_sip_get_src_addr_for(
 
 	belle_sip_close_socket(sock);
 	return ret;
-fail: {
+fail : {
 	struct addrinfo *res =
 	    bctbx_ip_address_to_addrinfo(af_type, SOCK_STREAM, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
 	if (res != NULL) {

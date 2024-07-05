@@ -151,6 +151,18 @@ BELLESIP_EXPORT void belle_sip_stack_set_dns_user_hosts_file(belle_sip_stack_t *
 BELLESIP_EXPORT const char *belle_sip_stack_get_dns_resolv_conf_file(const belle_sip_stack_t *stack);
 
 /**
+ * Set whether ipv6 or ipv4 is to be tried first when doing an outgoing connection to a hostname.
+ * @param family AF_INET or AF_INET6
+ */
+BELLESIP_EXPORT void belle_sip_stack_set_ip_version_preference(belle_sip_stack_t *stack, int family);
+
+/**
+ * Get whether ipv6 or ipv4 is to be tried first when doing an outgoing connection to a hostname.
+ * Default value is AF_INET6.
+ * @return AF_INET or AF_INET6
+ */
+BELLESIP_EXPORT int belle_sip_stack_get_ip_version_preference(const belle_sip_stack_t *stack);
+/**
  * Can be used to load an overriding DNS resolv.conf file for tests.
  * @param stack
  * @param hosts_file The path to the overriding DNS resolv.conf file to load.
