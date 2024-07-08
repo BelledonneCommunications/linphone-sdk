@@ -310,6 +310,15 @@ void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *lstats) 
 	} else memset(lstats, 0, sizeof(rtp_stats_t));
 }
 
+void media_stream_get_local_fec_stats(MediaStream *stream, fec_stats *lstats) {
+	if (stream->sessions.rtp_session->fec_stream == NULL) {
+		memset(lstats, 0, sizeof(fec_stats));
+		return;
+	}
+	const fec_stats *stats = fec_stream_get_stats(stream->sessions.rtp_session->fec_stream);
+	memcpy(lstats, stats, sizeof(*stats));
+}
+
 int media_stream_set_dscp(MediaStream *stream, int dscp) {
 	ms_message("Setting DSCP to %i for %s stream.", dscp, media_stream_type_str(stream));
 	return rtp_session_set_dscp(stream->sessions.rtp_session, dscp);

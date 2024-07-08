@@ -192,6 +192,8 @@ MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const cha
 
 MS2_PUBLIC void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *stats);
 
+MS2_PUBLIC void media_stream_get_local_fec_stats(MediaStream *stream, fec_stats *stats);
+
 MS2_PUBLIC int media_stream_set_dscp(MediaStream *stream, int dscp);
 
 MS2_PUBLIC void media_stream_enable_adaptive_bitrate_control(MediaStream *stream, bool_t enabled);
