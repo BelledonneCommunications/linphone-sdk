@@ -1375,6 +1375,8 @@ static void init_fec_videostreams(int payload_type) {
 	rtp_session_stats2 = rtp_session_get_stats(margaux->vs->ms.sessions.rtp_session);
 
 	/* repair packets: consistency between packets counted in fec stream and packets counted in fec session */
+	BC_ASSERT_TRUE(fec_stats1->packets_recovered > 0);
+	BC_ASSERT_TRUE(fec_stats2->packets_recovered > 0);
 	BC_ASSERT_TRUE(fec_stats1->col_repair_sent + fec_stats1->row_repair_sent == fec_session_stats1->packet_sent);
 	BC_ASSERT_TRUE(fec_stats2->col_repair_sent + fec_stats2->row_repair_sent == fec_session_stats2->packet_sent);
 	BC_ASSERT_TRUE(is_slightly_lower(fec_stats1->col_repair_received + fec_stats1->row_repair_received,
