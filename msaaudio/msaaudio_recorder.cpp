@@ -538,31 +538,68 @@ static void android_snd_read_change_microphone_according_to_speaker(MSFilter *ob
 	}
 }
 
+static bool sound_cards_have_same_name(MSSndCard *card1, MSSndCard *card2) {
+	return card1->name != nullptr && card2->name != nullptr && strcmp(card1->name, card2->name) == 0;
+}
+
+static MSSndCard* android_snd_read_find_sound_card_with_same_name(MSFilter *obj, MSSndCard *playback_card, bool force_mic) {
+	MSSndCardManager *manager = ms_factory_get_snd_card_manager(obj->factory);
+	const bctbx_list_t *list = ms_snd_card_manager_get_list(manager);
+
+	for (const bctbx_list_t *it = list; it != nullptr; it = bctbx_list_next(it)) {
+		MSSndCard *card = static_cast<MSSndCard *>(bctbx_list_get_data(it));
+		if ((card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE && sound_cards_have_same_name(playback_card, card)) {
+			if (!force_mic || card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE) {
+				return card;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 static int android_snd_read_playback_device_changed(MSFilter *obj, void *data) {
 	MSSndCard *playback_card = (MSSndCard *)data;
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
 	ms_message("[AAudio Recorder] Playback sound card is being changed to ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", playback_card->id, playback_card->name, playback_card->internal_id, ms_snd_card_device_type_to_string(playback_card->device_type), playback_card->capabilities);
 
-	if (playback_card->name != nullptr && ictx->soundCard->name != nullptr && strcmp(playback_card->name, ictx->soundCard->name) == 0) {
-		ms_message("[AAudio Recorder] New playback device [%s] has the same name as the current recorder device [%s], keeping current recorder device (but checking if alternative mic ID should be used)", playback_card->name, ictx->soundCard->name);
-		android_snd_read_change_microphone_according_to_speaker(obj, playback_card);
-	} else {
-		bool found = false;
-		ms_message("[AAudio Recorder] New playback device [%s] doesn't have the same name as the current recorder device [%s], trying to find a recorder soundcard with the same name to use", playback_card->name, ictx->soundCard->name);
-		MSSndCardManager *manager = ms_factory_get_snd_card_manager(obj->factory);
-		const bctbx_list_t *list = ms_snd_card_manager_get_list(manager);
-		for (const bctbx_list_t *it = list; it != nullptr; it = bctbx_list_next(it)) {
-			MSSndCard *card = static_cast<MSSndCard *>(bctbx_list_get_data(it));
-			if ((card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE && card->name != nullptr && strcmp(card->name, playback_card->name) == 0) {
-				ms_message("[AAudio Recorder] Found a sound card matching playback device name and with CAPTURE capability, using it");
-				found = true;
-				android_snd_read_set_device_id(obj, card);
+	if (sound_cards_have_same_name(playback_card, ictx->soundCard)) {
+		if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER || playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
+			// Force using device's microphone when using speaker or earpiece
+			ms_message("[AAudio Recorder] New playback device [%s] has the same name as the current recorder device [%s], using device microphone (but checking if alternative mic ID should be used)", playback_card->name, ictx->soundCard->name);
+			
+			MSSndCard *found = android_snd_read_find_sound_card_with_same_name(obj, playback_card, true);
+			if (found) {
+				ms_message("[AAudio Recorder] Found a microphone on the device [%s], using it", found->name);
+				android_snd_read_set_device_id(obj, found);
 				android_snd_read_change_microphone_according_to_speaker(obj, playback_card);
-				break;
+			} else {
+				ms_warning("[AAudio Recorder] Failed to find a microphone recorder on the device, keeping current recorder device (but checking if alternative mic ID should be used)");
+				android_snd_read_change_microphone_according_to_speaker(obj, playback_card);
+			}
+		} else {
+			// Try to find a recorder device with the same type as the playback one (bluetooth, headphones, etc...)
+			// https://github.com/BelledonneCommunications/linphone-android/issues/2197
+			ms_message("[AAudio Recorder] New playback device [%s] has the same name as the current recorder device [%s] but isn't speaker or earpiece, checking if we can find a recording device that matches the playback device type [%i]", playback_card->device_type);
+
+			MSSndCard *found = android_snd_read_find_sound_card_with_same_name(obj, playback_card, false);
+			if (found) {
+				ms_message("[AAudio Recorder] Found a sound card matching playback device type and with CAPTURE capability [%s], using it", found->name);
+				android_snd_read_set_device_id(obj, found);
+				android_snd_read_change_microphone_according_to_speaker(obj, playback_card);
+			} else {
+				ms_warning("[AAudio Recorder] Failed to find a recorder device with the same type as the newly set playback device, keeping current recorder device");
 			}
 		}
+	} else {
+		ms_message("[AAudio Recorder] New playback device [%s] doesn't have the same name as the current recorder device [%s], trying to find a recorder soundcard with the same name to use", playback_card->name, ictx->soundCard->name);
 
-		if (!found) {
+		MSSndCard *found = android_snd_read_find_sound_card_with_same_name(obj, playback_card, false);
+		if (found) {
+			ms_message("[AAudio Recorder] Found a sound card matching playback device name and with CAPTURE capability [%s], using it", found->name);
+			android_snd_read_set_device_id(obj, found);
+			android_snd_read_change_microphone_according_to_speaker(obj, playback_card);
+		} else {
 			ms_warning("[AAudio Recorder] Failed to find a recorder device with the same name as the newly set playback device, keeping current recorder device");
 		}
 	}
