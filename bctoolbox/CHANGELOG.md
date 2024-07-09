@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Crypto: remove polarssl support
 
 
+## [5.3.68] - 2024-07-10
+
+## Added
+- Use locale encoding from setlocale() on Windows and fallback to CP_APC if not found.
+
 ## [5.2.0] - 2022-11-14
 
 ## Added

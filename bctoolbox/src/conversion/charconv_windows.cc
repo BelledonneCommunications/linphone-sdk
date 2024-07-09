@@ -48,7 +48,8 @@ static std::unordered_map<std::string, UINT> windowsCharset{
     {"ISO-8859-8", 28598},  {"ISO-8859-9", 28599},  {"ISO-8859-13", 28603}, {"ISO-8859-15", 28605},
     {"ISO-2022-JP", 50222}, {"CSISO2022JP", 50221}, {"ISO-2022-KR", 50225}, {"EUC-JP", 51932},
     {"EUC-CN", 51936},      {"EUC-KR", 51949},      {"GB18030", 54936},     {"UTF-7", 65000},
-    {"UTF-8", 65001}};
+    {"UTF-8", 65001},       {"UTF7", 65000},        {"UTF8", 65001},        {"UTF16", 1200},
+    {"UTF32", 12000},       {"UTF32BE", 12001}};
 
 static std::string stringToUpper(const std::string &str) {
 	std::string result(str.size(), ' ');
@@ -67,8 +68,8 @@ static char *convertFromTo(const char *str, const char *from, const char *to) {
 	UINT rFrom, rTo;
 
 	try {
-		rFrom = windowsCharset.at(stringToUpper(std::string(from)));
-		rTo = windowsCharset.at(stringToUpper(std::string(to)));
+		rFrom = bctbx_get_code_page(from);
+		rTo = bctbx_get_code_page(to);
 	} catch (const std::out_of_range &) {
 		bctbx_error("Error while converting a string from '%s' to '%s': unknown charset", from, to);
 		return NULL;
@@ -140,10 +141,17 @@ wchar_t *bctbx_string_to_wide_string(const char *str) {
 unsigned int bctbx_get_code_page(const char *encoding) {
 	unsigned int codePage = CP_ACP;
 	std::string encodingStr;
-	if (!encoding || encoding[0] == '\0') encodingStr = bctbx_get_default_encoding();
-	else encodingStr = encoding;
+	if (!encoding || encoding[0] == '\0') encodingStr = stringToUpper(bctbx_get_default_encoding());
+	else encodingStr = stringToUpper(encoding);
+	if (encodingStr == "LOCALE") {
+		char *locale = setlocale(LC_CTYPE, NULL);
+		if (strstr(locale, ".") != NULL) {
+			// return codeset (last block of chars preceeded by a dot)
+			encodingStr = stringToUpper(strrchr(locale, '.') + 1);
+		}
+	}
 	try {
-		codePage = windowsCharset.at(stringToUpper(encodingStr));
+		codePage = windowsCharset.at(encodingStr);
 	} catch (const std::out_of_range &) {
 		bctbx_error("No code page found for '%s'. Using Locale.", encodingStr.c_str());
 		return CP_ACP;

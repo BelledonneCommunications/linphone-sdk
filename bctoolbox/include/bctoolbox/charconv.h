@@ -29,9 +29,11 @@ extern "C" {
 /**
  * @brief Set the default encoding for the application.
  *
+ * @deprecated 2024/07/09: use setLocale() from <locale.h> to set the locale. On Windows, CP_APC will be used as
+ * default.
  * @param[in] encoding default encoding, "locale" to set it to the system's locale
  */
-BCTBX_PUBLIC void bctbx_set_default_encoding(const char *encoding);
+BCTBX_DEPRECATED BCTBX_PUBLIC void bctbx_set_default_encoding(const char *encoding);
 
 /**
  * @brief Return the default encoding for the application.
