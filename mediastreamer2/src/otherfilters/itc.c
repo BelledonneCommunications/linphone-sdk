@@ -86,9 +86,8 @@ static void itc_connect(MSFilter *sink, MSFilter *source) {
 	}
 
 	if (source && (source->desc->id != MS_ITC_SOURCE_ID)) {
-		ms_fatal(
-		    "itc_connect(): bad source filter: source %p must be either NULL or it must be a MsItcSource (goit %s)",
-		    source, (source ? source->desc->name : "unknown"));
+		ms_fatal("itc_connect(): bad source filter: source %p must be either NULL or it must be a MsItcSource (got %s)",
+		         source, (source ? source->desc->name : "unknown"));
 	}
 
 	s = (SharedState *)sink->data;
