@@ -149,7 +149,7 @@ int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt,
 			buf->strides[0] = w * 4;
 			break;
 		default:
-			ms_fatal("FIXME: unsupported format %i", fmt);
+			ms_error("Unsupported format %i with %dx%d", fmt, w, h);
 			return -1;
 	}
 	return 0;
@@ -442,9 +442,9 @@ void rgb24_vertical_mirror(uint8_t *left_top, int w, int h, int linesize) {
 	uint8_t p;
 	int i, j;
 	int end = w * 3;
-	uint8_t *left_bottom = left_top + ((h - 1) * linesize);// First element of the last line.
+	uint8_t *left_bottom = left_top + ((h - 1) * linesize); // First element of the last line.
 	for (i = 0; i < h / 2; ++i) {
-		for (j = 0; j < end ; ++j) {
+		for (j = 0; j < end; ++j) {
 			p = left_top[j];
 			left_top[j] = left_bottom[j];
 			left_bottom[j] = p;
@@ -457,14 +457,14 @@ void rgb24_vertical_mirror(uint8_t *left_top, int w, int h, int linesize) {
 void rgb24_revert(uint8_t *buf, int w, int h, int linesize) {
 	uint8_t *p, *pe;
 	int i, j;
-	uint8_t *end = buf + h * linesize;// We go to the end ...
+	uint8_t *end = buf + h * linesize; // We go to the end ...
 	uint8_t exch;
 	p = buf;
-	pe = end - 1;// ... and go to the last element.
+	pe = end - 1; // ... and go to the last element.
 	for (i = 0; i < h / 2; ++i) {
 		for (j = 0; j < w * 3; ++j) {
 			exch = p[i];
-			p[i] = pe[-i];	// Reverse walking
+			p[i] = pe[-i]; // Reverse walking
 			pe[-i] = exch;
 		}
 		p += linesize;
@@ -565,7 +565,7 @@ static int yuv_scale(MSScalerContext *ctx, uint8_t *src[], int src_strides[], ui
 			break;
 		case MS_RGB24_REV:
 			err = RAWToI420(src[0], src_strides[0], dst[0], dst_strides[0], dst[1], dst_strides[1], dst[2],
-							  dst_strides[2], fctx->target.width, fctx->target.height);
+			                dst_strides[2], fctx->target.width, fctx->target.height);
 			break;
 		case MS_RGBA32_REV: // BGRAToI420, ABGRToI420
 			err = ARGBToI420(src[0], src_strides[0], dst[0], dst_strides[0], dst[1], dst_strides[1], dst[2],
