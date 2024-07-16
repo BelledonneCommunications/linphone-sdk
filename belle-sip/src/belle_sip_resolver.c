@@ -2003,7 +2003,8 @@ belle_sip_resolver_context_t *belle_sip_stack_resolve_srv(belle_sip_stack_t *sta
 	return (belle_sip_resolver_context_t *)resolver_start_query(ctx);
 }
 
-void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
+int belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
+	int ret = -1;
 #ifdef HAVE_DNS_SERVICE
 	bctbx_mutex_t *notify_mutex = NULL;
 	if ((obj->use_dns_service == TRUE) &&
@@ -2021,6 +2022,7 @@ void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 		}
 #endif /* HAVE_DNS_SERVICE */
 		belle_sip_object_unref(obj);
+		ret = 0;
 	}
 #ifdef HAVE_DNS_SERVICE
 	else {
@@ -2029,6 +2031,7 @@ void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 		}
 	}
 #endif /* HAVE_DNS_SERVICE */
+	return ret;
 }
 
 void belle_sip_resolver_context_notify(belle_sip_resolver_context_t *obj) {

@@ -129,11 +129,11 @@ BELLESIP_EXPORT belle_sip_resolver_context_t *belle_sip_stack_resolve_srv(belle_
                                                                           void *data);
 
 /**
- * Cancel a pending asynchronous DNS query. The context is unref'd automatically, as a result the context shall no
- *longer be used after this call. If the query is already performed, cancellation has no effect, but context is unref'd
- *anyway.
+ * Cancel a pending asynchronous DNS query. If successful, the context is unref'd automatically, as a result the context
+ *shall no longer be used after this call and zero is returned. If the resolution is already cancelled, or already
+ *notified, it is a no-op and -1 is returned.
  **/
-BELLESIP_EXPORT void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *ctx);
+BELLESIP_EXPORT int belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *ctx);
 
 /**
  * Lookups the source address from local interface that can be used to connect to a destination address.
