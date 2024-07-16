@@ -51,6 +51,12 @@ set(ANDROID_CPP_FEATURES "rtti exceptions")
 set(ANDROID_STL "c++_shared")
 
 
+# Add support for 16KiB page size.
+if(CMAKE_ANDROID_NDK_VERSION EQUAL 27)
+	set(ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES "ON")
+endif()
+
+
 #IF ANDROID_PLATFORM != the default one (official toolchain , cached values, or default values)
 #: delete the -D__ANDROID_API__ and replace it in the cached CFLAGS flags
 
