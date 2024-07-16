@@ -22,6 +22,8 @@
 #include "belle-sip/parameters.h"
 #include "belle_sip_internal.h"
 
+#include <ctype.h>
+
 void belle_sip_parameters_init(belle_sip_parameters_t *obj) {
 }
 
@@ -136,14 +138,59 @@ void belle_sip_parameters_set(belle_sip_parameters_t *parameters, const char *pa
 			}
 			if (equal && equal < end_of_param) {
 				*equal = '\0';
-				belle_sip_parameters_set_parameter(parameters, current, equal + 1);
+				current = belle_sip_trim_whitespaces(current);
+				equal = belle_sip_trim_whitespaces(equal + 1);
+				belle_sip_parameters_set_parameter(parameters, current, equal);
 			} else {
-				belle_sip_parameters_set_parameter(parameters, current, NULL);
+				current = belle_sip_trim_whitespaces(current);
+				if (strlen(current) > 0) {
+					belle_sip_parameters_set_parameter(parameters, current, NULL);
+				}
 			}
 			current = next;
 		} while (*current != '\0');
 		belle_sip_free(tmp);
 	}
+}
+
+static void belle_sip_parameters_add_internal(belle_sip_parameters_t *parameters, const char *param, bool_t escaped) {
+	char *tmp = belle_sip_strdup(param);
+	char *current = tmp;
+	char *equal = strchr(current, '=');
+	if (equal) {
+		*equal = '\0';
+		current = belle_sip_trim_whitespaces(current);
+		equal = belle_sip_trim_whitespaces(equal + 1);
+		if (escaped) {
+			current = belle_sip_to_unescaped_string(current);
+			equal = belle_sip_to_unescaped_string(equal);
+		}
+		belle_sip_parameters_set_parameter(parameters, current, equal);
+		if (escaped) {
+			belle_sip_free(current);
+			belle_sip_free(equal);
+		}
+	} else {
+		current = belle_sip_trim_whitespaces(current);
+		if (strlen(current) > 0) {
+			if (escaped) {
+				current = belle_sip_to_unescaped_string(current);
+			}
+			belle_sip_parameters_set_parameter(parameters, current, NULL);
+			if (escaped) {
+				belle_sip_free(current);
+			}
+		}
+	}
+	belle_sip_free(tmp);
+}
+
+void belle_sip_parameters_add(belle_sip_parameters_t *parameters, const char *param) {
+	belle_sip_parameters_add_internal(parameters, param, FALSE);
+}
+
+void belle_sip_parameters_add_escaped(belle_sip_parameters_t *parameters, const char *param) {
+	belle_sip_parameters_add_internal(parameters, param, TRUE);
 }
 
 const belle_sip_list_t *belle_sip_parameters_get_parameter_names(const belle_sip_parameters_t *params) {

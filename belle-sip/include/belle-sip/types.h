@@ -96,8 +96,9 @@ BELLE_SIP_TYPE_ID(belle_sip_stack_t), BELLE_SIP_TYPE_ID(belle_sip_hop_t), BELLE_
     BELLE_SIP_TYPE_ID(belle_sip_header_accept_t), BELLE_SIP_TYPE_ID(belle_sip_header_reason_t),
     BELLE_SIP_TYPE_ID(belle_sip_header_authentication_info_t), BELLE_SIP_TYPE_ID(belle_sip_mdns_register_t),
     BELLE_SIP_TYPE_ID(belle_sip_resolver_results_t), BELLE_SIP_TYPE_ID(belle_sip_cpp_object_t),
-    BELLE_SIP_TYPE_ID(belle_sip_header_retry_after_t),
-    BELLE_SIP_TYPE_ID(belle_sip_digest_authentication_policy_t) BELLE_SIP_DECLARE_TYPES_END
+    BELLE_SIP_TYPE_ID(belle_sip_header_retry_after_t), BELLE_SIP_TYPE_ID(belle_sip_digest_authentication_policy_t),
+    BELLE_SIP_TYPE_ID(belle_sip_parser_context_t),
+    BELLE_SIP_TYPE_ID(belle_sip_qop_options_t) BELLE_SIP_DECLARE_TYPES_END
 
     enum belle_sip_interface_ids {
 	    belle_sip_interface_id_first = 1,

@@ -39,6 +39,13 @@ BELLESIP_EXPORT belle_sip_message_t *belle_sip_message_parse(const char *raw);
 BELLESIP_EXPORT belle_sip_message_t *
 belle_sip_message_parse_raw(const char *buff, size_t buff_length, size_t *message_length);
 
+/**
+ * Parse a fragmented sip message.
+ * @param [in] value buffer to be parsed
+ * @return parsed message
+ */
+BELLESIP_EXPORT belle_sip_message_t *belle_sip_message_parse_sipfrag(const char *value);
+
 BELLESIP_EXPORT int belle_sip_message_is_request(belle_sip_message_t *msg);
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_request_new(void);
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_request_parse(const char *raw);

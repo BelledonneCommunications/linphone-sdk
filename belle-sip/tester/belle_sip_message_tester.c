@@ -64,7 +64,7 @@ static void testRegisterMessage(void) {
 	                          "User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"
 	                          "Expires: 3600\r\n"
 	                          "Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", "
-	                          "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"
+	                          "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz\""
 	                          ", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", "
 	                          "algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
 	                          "l: 0\r\n\r\n";
@@ -337,7 +337,7 @@ static void test_extract_source(void) {
 static void test_sipfrag(void) {
 	const char *raw_message = "SIP/2.0 100 Trying\r\n";
 	belle_sip_response_t *response;
-	belle_sip_message_t *message = belle_sip_message_parse(raw_message);
+	belle_sip_message_t *message = belle_sip_message_parse_sipfrag(raw_message);
 	response = BELLE_SIP_RESPONSE(message);
 	BC_ASSERT_EQUAL(belle_sip_response_get_status_code(response), 100, int, "%d");
 	BC_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response), "Trying");
@@ -386,7 +386,7 @@ static void testMalformedOptionnalHeaderInMessage(void) {
 	    "User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"
 	    "Expires: 3600\r\n"
 	    "Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", "
-	    "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"
+	    "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz\""
 	    ", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, "
 	    "cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
 	    "Content-Length: 0\r\n\r\n";
@@ -497,7 +497,7 @@ void channel_parser_tester_recovery_from_error(void) {
 	    "User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"
 	    "Expires: 3600\r\n"
 	    "Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", "
-	    "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"
+	    "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz\""
 	    ", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, "
 	    "cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
 	    "Content-Length: 0\r\n"
@@ -517,7 +517,7 @@ void channel_parser_malformed_start(void) {
 	                          "User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"
 	                          "Expires: 3600\r\n"
 	                          "Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", "
-	                          "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"
+	                          "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz\""
 	                          ", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", "
 	                          "algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
 	                          "Content-Length: 0\r\n"
@@ -538,7 +538,7 @@ void channel_parser_truncated_start(void) {
 	                          "User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"
 	                          "Expires: 3600\r\n"
 	                          "Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", "
-	                          "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"
+	                          "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz\""
 	                          ", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", "
 	                          "algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
 	                          "Content-Length: 0\r\n"
@@ -560,7 +560,7 @@ void channel_parser_truncated_start_with_garbage(void) {
 	                          "User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"
 	                          "Expires: 3600\r\n"
 	                          "Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", "
-	                          "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"
+	                          "nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz\""
 	                          ", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", "
 	                          "algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"
 	                          "Content-Length: 0\r\n"

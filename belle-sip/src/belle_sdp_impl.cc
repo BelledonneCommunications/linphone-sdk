@@ -19,8 +19,6 @@
 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
-#include "grammars/belle_sdpLexer.h"
-#include "grammars/belle_sdpParser.h"
 #include "sdp/parser.hh"
 
 struct _belle_sdp_mime_parameter {
@@ -104,7 +102,6 @@ belle_sdp_attribute_t *belle_sdp_attribute_create(const char *name, const char *
 }
 const char *belle_sdp_attribute_get_value(belle_sdp_attribute_t *attribute) {
 	char *ret;
-	char *end;
 
 	if (attribute->unparsed_value) {
 		belle_sip_free(attribute->unparsed_value);
@@ -231,7 +228,7 @@ belle_sip_error_code belle_sdp_label_attribute_marshal(belle_sdp_label_attribute
 }
 
 BELLE_SDP_NEW_WITH_CTR(label_attribute, belle_sdp_attribute)
-BELLE_SDP_BELR_PARSE(label_attribute)
+BELLE_SDP_PARSE(label_attribute)
 GET_SET_STRING(belle_sdp_label_attribute, pointer)
 
 /***************************************************************************************
@@ -287,7 +284,7 @@ static void belle_sdp_content_attribute_init(belle_sdp_content_attribute_t *attr
 }
 
 BELLE_SDP_NEW_WITH_CTR(content_attribute, belle_sdp_attribute)
-BELLE_SDP_BELR_PARSE(content_attribute)
+BELLE_SDP_PARSE(content_attribute)
 
 /***************************************************************************************
  * RFC5939 Attributes
@@ -339,7 +336,7 @@ static void belle_sdp_csup_attribute_init(belle_sdp_csup_attribute_t *attribute)
 }
 
 BELLE_SDP_NEW_WITH_CTR(csup_attribute, belle_sdp_attribute)
-BELLE_SDP_BELR_PARSE(csup_attribute)
+BELLE_SDP_PARSE(csup_attribute)
 
 // creq
 
@@ -386,7 +383,7 @@ static void belle_sdp_creq_attribute_init(belle_sdp_creq_attribute_t *attribute)
 }
 
 BELLE_SDP_NEW_WITH_CTR(creq_attribute, belle_sdp_attribute)
-BELLE_SDP_BELR_PARSE(creq_attribute)
+BELLE_SDP_PARSE(creq_attribute)
 
 // tcap
 
@@ -416,7 +413,6 @@ belle_sdp_tcap_attribute_marshal(belle_sdp_tcap_attribute_t *attribute, char *bu
 	belle_sip_error_code error = belle_sip_snprintf(buff, buff_size, offset, "a=tcap:%d", attribute->id);
 	if (error != BELLE_SIP_OK) return error;
 
-	int i = 0;
 	for (; protos != NULL; protos = protos->next) {
 		error = belle_sip_snprintf(buff, buff_size, offset, " %s", (const char *)protos->data);
 		if (error != BELLE_SIP_OK) return error;
@@ -434,7 +430,7 @@ belle_sip_list_t *belle_sdp_tcap_attribute_get_protos(belle_sdp_tcap_attribute_t
 }
 
 BELLE_SDP_NEW_WITH_CTR(tcap_attribute, belle_sdp_attribute)
-BELLE_SDP_BELR_PARSE(tcap_attribute)
+BELLE_SDP_PARSE(tcap_attribute)
 GET_SET_INT(belle_sdp_tcap_attribute, id, int)
 
 // acap
@@ -474,7 +470,7 @@ belle_sdp_acap_attribute_marshal(belle_sdp_acap_attribute_t *attribute, char *bu
 }
 
 BELLE_SDP_NEW_WITH_CTR(acap_attribute, belle_sdp_attribute)
-BELLE_SDP_BELR_PARSE(acap_attribute)
+BELLE_SDP_PARSE(acap_attribute)
 GET_SET_INT(belle_sdp_acap_attribute, id, int)
 GET_SET_STRING(belle_sdp_acap_attribute, name)
 GET_SET_STRING(belle_sdp_acap_attribute, value)
@@ -506,7 +502,6 @@ belle_sdp_acfg_attribute_marshal(belle_sdp_acfg_attribute_t *attribute, char *bu
 	belle_sip_error_code error = belle_sip_snprintf(buff, buff_size, offset, "a=acfg:%d", attribute->id);
 	if (error != BELLE_SIP_OK) return error;
 
-	int i = 0;
 	for (; configs != NULL; configs = configs->next) {
 		error = belle_sip_snprintf(buff, buff_size, offset, " %s", (const char *)configs->data);
 		if (error != BELLE_SIP_OK) return error;
@@ -524,7 +519,7 @@ belle_sip_list_t *belle_sdp_acfg_attribute_get_configs(const belle_sdp_acfg_attr
 }
 
 BELLE_SDP_NEW_WITH_CTR(acfg_attribute, belle_sdp_attribute)
-BELLE_SDP_BELR_PARSE(acfg_attribute)
+BELLE_SDP_PARSE(acfg_attribute)
 GET_SET_INT(belle_sdp_acfg_attribute, id, int)
 
 // pcfg
@@ -553,7 +548,6 @@ belle_sdp_pcfg_attribute_marshal(belle_sdp_pcfg_attribute_t *attribute, char *bu
 
 	belle_sip_error_code error = belle_sip_snprintf(buff, buff_size, offset, "a=pcfg:%d", attribute->id);
 
-	int i = 0;
 	for (; configs != NULL; configs = configs->next) {
 		error = belle_sip_snprintf(buff, buff_size, offset, " %s", (const char *)configs->data);
 		if (error != BELLE_SIP_OK) return error;
@@ -571,7 +565,7 @@ belle_sip_list_t *belle_sdp_pcfg_attribute_get_configs(const belle_sdp_pcfg_attr
 }
 
 BELLE_SDP_NEW_WITH_CTR(pcfg_attribute, belle_sdp_attribute)
-BELLE_SDP_BELR_PARSE(pcfg_attribute)
+BELLE_SDP_PARSE(pcfg_attribute)
 GET_SET_INT(belle_sdp_pcfg_attribute, id, int)
 
 /***************************************************************************************

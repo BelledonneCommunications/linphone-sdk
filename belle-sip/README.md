@@ -35,17 +35,8 @@ Features
 Dependencies
 ------------
 
-### Build-time dependencies
-
-These are required to generate a C sourcefile from SIP grammar using [antlr3](http://www.antlr3.org/) generator:
-
-* [Java SE](http://www.oracle.com/technetwork/java/javase/downloads/index.html) or OpenJDK
-* [antlr 3.4](https://github.com/antlr/website-antlr3/blob/gh-pages/download/antlr-3.4-complete.jar)
-
-
 ### Runtime dependencies
 
-- *libantlr3c* version 3.2 or 3.4 - but its source is included in belle-sip, no need to install it.
 - *bctoolbox* (git://git.linphone.org/bctoolbox.git or <https://gitlab.linphone.org/BC/public/bctoolbox>)
 
 
@@ -55,14 +46,6 @@ Building belle-sip with CMake
 	cmake .
 	make
 	make install
-
-Generating the grammar sources
-------------------------------
-
-If you edit the `.g` files in the grammars directory you'll need to regenerate the sources.
-
-    cd src/antlr3c
-    ./generate_grammar_sources.py
 
 Build options
 -------------

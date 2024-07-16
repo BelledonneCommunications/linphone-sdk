@@ -47,7 +47,7 @@ static void test_complex_contact_header(void) {
 	belle_sip_header_contact_t *L_contact;
 	belle_sip_uri_t *L_uri;
 	belle_sip_header_contact_t *L_tmp = belle_sip_header_contact_parse(
-	    "Contact: \"j\x8eremis\" <sip:sip.linphone.org>;expires=3600;q=0.7, sip:titi.com");
+	    "Contact: \"j\xc3\xa9remis\" <sip:sip.linphone.org>;expires=3600;q=0.7, sip:titi.com");
 	belle_sip_header_t *l_next;
 	belle_sip_header_contact_t *L_next_contact;
 	char *l_raw_header;
@@ -62,7 +62,7 @@ static void test_complex_contact_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.linphone.org");
 
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t *)L_contact),
-	                       "j\x8eremis");
+	                       "j\xc3\xa9remis");
 
 	BC_ASSERT_EQUAL(belle_sip_header_contact_get_expires(L_contact), 3600, int, "%d");
 	l_qvalue = belle_sip_header_contact_get_qvalue(L_contact);
@@ -649,11 +649,11 @@ static void test_authorization_header(void) {
 
 	if (!BC_ASSERT_PTR_NOT_NULL(L_authorization)) return;
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_scheme(L_authorization), "Basic");
-	const char *passord =
+	const char *password =
 	    (const char *)((belle_sip_param_pair_t *)bctbx_list_get_data(
 	                       belle_sip_parameters_get_parameters(BELLE_SIP_PARAMETERS(L_authorization))))
 	        ->name;
-	BC_ASSERT_NOT_EQUAL(passord, "dG90bzp0aXRpOnNlY3JldA==", const char *, "%s");
+	BC_ASSERT_NOT_EQUAL(password, "dG90bzp0aXRpOnNlY3JldA==", const char *, "%s");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
 
 #define JWT_TOKEN                                                                                                      \
@@ -675,10 +675,27 @@ static void test_authorization_header(void) {
 
 	if (!BC_ASSERT_PTR_NOT_NULL(L_authorization)) return;
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_scheme(L_authorization), "Bearer");
-	passord = (const char *)((belle_sip_param_pair_t *)bctbx_list_get_data(
-	                             belle_sip_parameters_get_parameters(BELLE_SIP_PARAMETERS(L_authorization))))
-	              ->name;
-	BC_ASSERT_NOT_EQUAL(passord, JWT_TOKEN, const char *, "%s");
+	password = (const char *)((belle_sip_param_pair_t *)bctbx_list_get_data(
+	                              belle_sip_parameters_get_parameters(BELLE_SIP_PARAMETERS(L_authorization))))
+	               ->name;
+	BC_ASSERT_NOT_EQUAL(password, JWT_TOKEN, const char *, "%s");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+
+	l_header = "Authorization: Bearer abcdefgh, realm=\"sip.example.com\"";
+	L_authorization = belle_sip_header_authorization_parse(l_header);
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_authorization));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+	L_tmp = belle_sip_header_authorization_parse(l_raw_header);
+	L_authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+
+	if (!BC_ASSERT_PTR_NOT_NULL(L_authorization)) return;
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_scheme(L_authorization), "Bearer");
+	password = (const char *)((belle_sip_param_pair_t *)bctbx_list_get_data(
+	                              belle_sip_parameters_get_parameters(BELLE_SIP_PARAMETERS(L_authorization))))
+	               ->name;
+	BC_ASSERT_NOT_EQUAL(password, "abcdefgh", const char *, "%s");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
 
 	BC_ASSERT_PTR_NULL(belle_sip_header_authorization_parse("nimportequoi"));
@@ -814,7 +831,6 @@ static void test_proxy_authenticate_header(void) {
 	    "nonce=\"c60f3082ee1212b402a21831ae\"";
 	belle_sip_header_proxy_authenticate_t *L_tmp;
 	belle_sip_header_proxy_authenticate_t *L_proxy_authenticate = belle_sip_header_proxy_authenticate_parse(l_header);
-	// belle_sip_list_t* qop;
 
 	char *l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_proxy_authenticate));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_proxy_authenticate));

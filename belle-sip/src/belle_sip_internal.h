@@ -272,6 +272,8 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_register_t);
 #endif
 BELLE_SIP_DECLARE_VPTR(belle_sip_resolver_results_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_digest_authentication_policy_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_parser_context_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_qop_options_t);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t, belle_sip_source_t)
 void (*cancel)(belle_sip_resolver_context_t *);
@@ -355,6 +357,38 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 		const char *previous_value = obj->attribute; /*preserve if same value re-asigned*/                             \
 		if (value) {                                                                                                   \
 			obj->attribute = belle_sip_strdup(value);                                                                  \
+		} else obj->attribute = NULL;                                                                                  \
+		if (previous_value != NULL) belle_sip_free((void *)previous_value);                                            \
+	}
+#define GET_SET_STRING_NO_ENCLOSING_BRACKETS(object_type, attribute)                                                   \
+	const char *object_type##_get_##attribute(const object_type##_t *obj) {                                            \
+		return obj->attribute;                                                                                         \
+	}                                                                                                                  \
+	void object_type##_set_##attribute(object_type##_t *obj, const char *value) {                                      \
+		const char *previous_value = obj->attribute;                                                                   \
+		if (value) {                                                                                                   \
+			if (value[0] == '[' && value[strlen(value) - 1] == ']') {                                                  \
+				obj->attribute = belle_sip_strdup(value + 1);                                                          \
+				obj->attribute[strlen(obj->attribute) - 1] = '\0';                                                     \
+			} else {                                                                                                   \
+				obj->attribute = belle_sip_strdup(value);                                                              \
+			}                                                                                                          \
+		} else obj->attribute = NULL;                                                                                  \
+		if (previous_value != NULL) belle_sip_free((void *)previous_value);                                            \
+	}
+#define SET_ESCAPED_STRING(object_type, attribute)                                                                     \
+	void object_type##_set_escaped_##attribute(object_type##_t *obj, const char *value) {                              \
+		const char *previous_value = obj->attribute;                                                                   \
+		if (value) {                                                                                                   \
+			obj->attribute = belle_sip_to_unescaped_string(value);                                                     \
+		} else obj->attribute = NULL;                                                                                  \
+		if (previous_value != NULL) belle_sip_free((void *)previous_value);                                            \
+	}
+#define SET_QUOTED_STRING(object_type, attribute)                                                                      \
+	void object_type##_set_quoted_##attribute(object_type##_t *obj, const char *value) {                               \
+		const char *previous_value = obj->attribute;                                                                   \
+		if (value) {                                                                                                   \
+			obj->attribute = belle_sip_unquote_strdup(value);                                                          \
 		} else obj->attribute = NULL;                                                                                  \
 		if (previous_value != NULL) belle_sip_free((void *)previous_value);                                            \
 	}
@@ -458,33 +492,84 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 		return obj->property_name;                                                                                     \
 	}
 
-#define ANTLR_STREAM_NEW(object_type, value, length)                                                                   \
-	antlr3StringStreamNew((pANTLR3_UINT8)value, ANTLR3_ENC_8BIT, (ANTLR3_UINT32)length, (pANTLR3_UINT8) #object_type)
-
-#define BELLE_PARSE(parser_name, object_type_prefix, object_type)                                                      \
+#define BELLE_PARSE(object_type_prefix, object_type, full_match)                                                       \
 	object_type_prefix##object_type##_t *object_type_prefix##try_##object_type##_parse(const char *value) {            \
-		pANTLR3_INPUT_STREAM input;                                                                                    \
-		pbelle_sip_messageLexer lex;                                                                                   \
-		pANTLR3_COMMON_TOKEN_STREAM tokens;                                                                            \
-		p##parser_name parser;                                                                                         \
-		object_type_prefix##object_type##_t *l_parsed_object;                                                          \
-		input = ANTLR_STREAM_NEW(object_type, value, strlen(value));                                                   \
-		lex = belle_sip_messageLexerNew(input);                                                                        \
-		tokens = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lex));                                 \
-		parser = parser_name##New(tokens);                                                                             \
-		l_parsed_object = parser->object_type(parser);                                                                 \
-		parser->free(parser);                                                                                          \
-		tokens->free(tokens);                                                                                          \
-		lex->free(lex);                                                                                                \
-		input->close(input);                                                                                           \
-		return l_parsed_object;                                                                                        \
+		auto parser = bellesip::SIP::Parser::getInstance();                                                            \
+		size_t parsedSize = 0;                                                                                         \
+		auto result = reinterpret_cast<object_type_prefix##object_type##_t *>(                                         \
+		    parser->parse(value, #object_type, &parsedSize, full_match));                                              \
+		return result;                                                                                                 \
 	}                                                                                                                  \
 	object_type_prefix##object_type##_t *object_type_prefix##object_type##_parse(const char *value) {                  \
 		object_type_prefix##object_type##_t *l_parsed_object = object_type_prefix##try_##object_type##_parse(value);   \
 		if (l_parsed_object == NULL) belle_sip_error(#object_type " parser error for [%s]", value);                    \
 		return l_parsed_object;                                                                                        \
 	}
-#define BELLE_SIP_PARSE(object_type) BELLE_PARSE(belle_sip_messageParser, belle_sip_, object_type)
+#define BELLE_SIP_PARSE(object_type) BELLE_PARSE(belle_sip_, object_type, false)
+#define BELLE_SIP_PARSE_FULL(object_type) BELLE_PARSE(belle_sip_, object_type, true)
+#define BELLE_SIP_PARSE_WITH_CONTEXT_AND_RULE(object_type, rule)                                                       \
+	belle_sip_##object_type##_t *belle_sip_try_##object_type##_parse(const char *value) {                              \
+		auto parser = bellesip::SIP::Parser::getInstance();                                                            \
+		size_t parsedSize = 0;                                                                                         \
+		auto result = reinterpret_cast<belle_sip_##object_type##_t *>(parser->parse(value, #rule, &parsedSize, true)); \
+		return result;                                                                                                 \
+	}                                                                                                                  \
+	belle_sip_##object_type##_t *belle_sip_##object_type##_parse(const char *value) {                                  \
+		belle_sip_##object_type##_t *l_parsed_object = belle_sip_try_##object_type##_parse(value);                     \
+		if (l_parsed_object == NULL) {                                                                                 \
+			belle_sip_error(#object_type " parser error for [%s]", value);                                             \
+			return NULL;                                                                                               \
+		} else {                                                                                                       \
+			auto context = BELLE_SIP_PARSER_CONTEXT(l_parsed_object);                                                  \
+			belle_sip_##object_type##_t *result = reinterpret_cast<belle_sip_##object_type##_t *>(context->obj);       \
+			belle_sip_object_unref(context);                                                                           \
+			return result;                                                                                             \
+		}                                                                                                              \
+	}
+#define BELLE_SIP_PARSE_WITH_CONTEXT(object_type) BELLE_SIP_PARSE_WITH_CONTEXT_AND_RULE(object_type, object_type)
+
+#define BELLE_SIP_ADDRESS_PARSE(object_type)                                                                           \
+	belle_sip_##object_type##_t *belle_sip_##try_##object_type##_parse(const char *value) {                            \
+		auto parser = bellesip::SIP::Parser::getInstance();                                                            \
+		size_t parsedSize = 0;                                                                                         \
+		belle_sip_##object_type##_t *l_parsed_object =                                                                 \
+		    reinterpret_cast<belle_sip_##object_type##_t *>(parser->parse(value, #object_type, &parsedSize, true));    \
+		if (l_parsed_object && (!belle_sip_header_address_get_uri(l_parsed_object) &&                                  \
+		                        !belle_sip_header_address_get_absolute_uri(l_parsed_object))) {                        \
+			belle_sip_object_unref(l_parsed_object);                                                                   \
+			return nullptr;                                                                                            \
+		}                                                                                                              \
+		return l_parsed_object;                                                                                        \
+	}                                                                                                                  \
+	belle_sip_##object_type##_t *belle_sip_##object_type##_parse(const char *value) {                                  \
+		belle_sip_##object_type##_t *l_parsed_object = belle_sip_##try_##object_type##_parse(value);                   \
+		if (!l_parsed_object) {                                                                                        \
+			belle_sip_error(#object_type " parser error for [%s]", value);                                             \
+		}                                                                                                              \
+		return l_parsed_object;                                                                                        \
+	}
+
+#define BELLE_SIP_PARSE_HEADER_WITH_URI_CHECK(object_type)                                                             \
+	belle_sip_##object_type##_t *belle_sip_##try_##object_type##_parse(const char *value) {                            \
+		auto parser = bellesip::SIP::Parser::getInstance();                                                            \
+		size_t parsedSize = 0;                                                                                         \
+		belle_sip_##object_type##_t *l_parsed_object =                                                                 \
+		    reinterpret_cast<belle_sip_##object_type##_t *>(parser->parse(value, #object_type, &parsedSize, true));    \
+		if (l_parsed_object &&                                                                                         \
+		    (!belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(l_parsed_object)) &&                           \
+		     !belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(l_parsed_object)))) {                 \
+			belle_sip_object_unref(l_parsed_object);                                                                   \
+			return nullptr;                                                                                            \
+		}                                                                                                              \
+		return l_parsed_object;                                                                                        \
+	}                                                                                                                  \
+	belle_sip_##object_type##_t *belle_sip_##object_type##_parse(const char *value) {                                  \
+		belle_sip_##object_type##_t *l_parsed_object = belle_sip_##try_##object_type##_parse(value);                   \
+		if (!l_parsed_object) {                                                                                        \
+			belle_sip_error(#object_type " parser error for [%s]", value);                                             \
+		}                                                                                                              \
+		return l_parsed_object;                                                                                        \
+	}
 
 #define BELLE_NEW(object_type, super_type)                                                                             \
 	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(object_type##_t);                                                      \
@@ -538,6 +623,7 @@ void belle_sip_util_copy_headers(belle_sip_message_t *orig,
                                  int multiple);
 
 void belle_sip_header_init(belle_sip_header_t *obj);
+void belle_sip_header_append(belle_sip_header_t *header, belle_sip_header_t *next);
 
 /*class parameters*/
 struct _belle_sip_parameters {
@@ -547,6 +633,51 @@ struct _belle_sip_parameters {
 };
 
 void belle_sip_parameters_init(belle_sip_parameters_t *obj);
+
+void belle_sip_parameters_add(belle_sip_parameters_t *parameters, const char *param);
+void belle_sip_parameters_add_escaped(belle_sip_parameters_t *parameters, const char *param);
+
+typedef struct {
+	belle_sip_object_t base;
+	belle_sip_list_t *list;
+} belle_sip_qop_options_t;
+
+belle_sip_qop_options_t *belle_sip_qop_options_new(void);
+void belle_sip_qop_options_append(belle_sip_qop_options_t *obj, const char *value);
+
+void belle_generic_uri_set_escaped_user(belle_generic_uri_t *obj, const char *value);
+void belle_generic_uri_set_escaped_user_password(belle_generic_uri_t *obj, const char *value);
+void belle_generic_uri_set_escaped_path(belle_generic_uri_t *obj, const char *value);
+void belle_generic_uri_set_escaped_query(belle_generic_uri_t *obj, const char *value);
+
+void belle_sip_uri_set_scheme(belle_sip_uri_t *obj, const char *value);
+void belle_sip_uri_set_escaped_user(belle_sip_uri_t *obj, const char *value);
+void belle_sip_uri_set_escaped_user_password(belle_sip_uri_t *obj, const char *value);
+void belle_sip_uri_add_escaped_header(belle_sip_uri_t *obj, const char *header);
+
+belle_sip_header_t *belle_sip_header_new_dummy(void);
+void belle_sip_header_set_unparsed_value(belle_sip_header_t *obj, const char *value);
+
+void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t *obj, const char *value);
+void belle_sip_header_address_set_quoted_displayname_with_slashes(belle_sip_header_address_t *address,
+                                                                  const char *value);
+void belle_sip_header_address_set_generic_uri(belle_sip_header_address_t *obj, belle_generic_uri_t *generic_uri);
+
+void belle_sip_header_authorization_set_quoted_nonce(belle_sip_header_authorization_t *obj, const char *value);
+void belle_sip_header_authorization_set_quoted_opaque(belle_sip_header_authorization_t *obj, const char *value);
+void belle_sip_header_authorization_set_quoted_realm(belle_sip_header_authorization_t *obj, const char *value);
+void belle_sip_header_authorization_set_quoted_response(belle_sip_header_authorization_t *obj, const char *value);
+void belle_sip_header_authorization_set_quoted_username(belle_sip_header_authorization_t *obj, const char *value);
+
+void belle_sip_header_contact_set_string_wildcard(belle_sip_header_contact_t *contact, const char *wildcard);
+
+void belle_sip_header_www_authenticate_set_quoted_domain(belle_sip_header_www_authenticate_t *obj, const char *value);
+void belle_sip_header_www_authenticate_set_quoted_nonce(belle_sip_header_www_authenticate_t *obj, const char *value);
+void belle_sip_header_www_authenticate_set_quoted_opaque(belle_sip_header_www_authenticate_t *obj, const char *value);
+void belle_sip_header_www_authenticate_set_quoted_realm(belle_sip_header_www_authenticate_t *obj, const char *value);
+void belle_sip_header_www_authenticate_set_string_stale(belle_sip_header_www_authenticate_t *obj, const char *value);
+void belle_sip_header_www_authenticate_set_qop_options(belle_sip_header_www_authenticate_t *obj,
+                                                       belle_sip_qop_options_t *options);
 
 /*
  * Listening points
@@ -971,43 +1102,13 @@ belle_sip_hop_t *belle_sip_response_get_return_hop(belle_sip_response_t *msg);
  * SDP
  */
 
-#define BELLE_SDP_USE_BELR 1
-
-#define BELLE_SDP_BELR_PARSE(object_type)                                                                              \
+#define BELLE_SDP_PARSE(object_type)                                                                                   \
 	belle_sdp_##object_type##_t *belle_sdp_##object_type##_parse(const char *value) {                                  \
 		auto parser = bellesip::SDP::Parser::getInstance();                                                            \
 		auto object = parser->parse(value, #object_type);                                                              \
 		if (object == NULL) belle_sip_error(#object_type " parser error for [%s]", value);                             \
 		return (belle_sdp_##object_type##_t *)object;                                                                  \
 	}
-
-#ifdef BELLE_SDP_USE_BELR
-
-#define BELLE_SDP_PARSE BELLE_SDP_BELR_PARSE
-
-#else
-
-#define BELLE_SDP_PARSE(object_type)                                                                                   \
-	belle_sdp_##object_type##_t *belle_sdp_##object_type##_parse(const char *value) {                                  \
-		pANTLR3_INPUT_STREAM input;                                                                                    \
-		pbelle_sdpLexer lex;                                                                                           \
-		pANTLR3_COMMON_TOKEN_STREAM tokens;                                                                            \
-		pbelle_sdpParser parser;                                                                                       \
-		belle_sdp_##object_type##_t *l_parsed_object;                                                                  \
-		input = ANTLR_STREAM_NEW(object_type, value, strlen(value));                                                   \
-		lex = belle_sdpLexerNew(input);                                                                                \
-		tokens = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lex));                                 \
-		parser = belle_sdpParserNew(tokens);                                                                           \
-		l_parsed_object = parser->object_type(parser).ret;                                                             \
-		parser->free(parser);                                                                                          \
-		tokens->free(tokens);                                                                                          \
-		lex->free(lex);                                                                                                \
-		input->close(input);                                                                                           \
-		if (l_parsed_object == NULL) belle_sip_error(#object_type " parser error for [%s]", value);                    \
-		return l_parsed_object;                                                                                        \
-	}
-
-#endif
 
 #define BELLE_SDP_NEW(object_type, super_type)                                                                         \
 	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sdp_##object_type##_t);                                          \

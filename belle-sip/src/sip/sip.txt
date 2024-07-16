@@ -1,0 +1,544 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3261 with IPv6Address fix from RFC 5954, changes from RFC 7235 and changes from RFC 8760 ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+alphanum  =  ALPHA / DIGIT
+
+reserved   = ";" / "/" / "?" / ":" / "@" / "&" / "=" / "+" / "$" / ","
+unreserved = alphanum / mark
+mark       = "-" / "_" / "." / "!" / "~" / "*" / "'" / "(" / ")"
+escaped    = "%" HEXDIG HEXDIG
+
+LWS = ( *WSP CRLF 1*WSP ) / 1*WSP ; linear whitespace
+SWS = [LWS] ; sep whitespace
+OWS = *( SP / HTAB / CRLF ) ; optional whitespace, modified to add CRLF
+BWS = OWS ; "bad" whitespace
+
+HCOLON = *( SP / HTAB ) ":" SWS
+
+TEXT-UTF8char = %x21-7E / UTF8-NONASCII
+UTF8-NONASCII = %xC0-DF 1UTF8-CONT
+                / %xE0-EF 2UTF8-CONT
+                / %xF0-F7 3UTF8-CONT
+                / %xF8-Fb 4UTF8-CONT
+                / %xFC-FD 5UTF8-CONT
+UTF8-CONT     = %x80-BF
+
+LHEX = DIGIT / %x61-66 ;lowercase a-f
+
+token    = 1*tchar ; Updated by RFC 7235
+tchar    = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA ; From RFC 7235
+token68  = 1*( ALPHA / DIGIT / "-" / "." / "_" / "~" / "+" / "/" ) *"=" ; From RFC 7235
+word     = 1*(alphanum / "-" / "." / "!" / "%" / "*" / "_" / "+" / "`" / "'" / "~" / "(" / ")" / "<" / ">" / ":" / "\" / DQUOTE / "/" / "[" / "]" / "?" / "{" / "}" )
+
+STAR   = SWS "*" SWS ; asterisk
+SLASH  = SWS "/" SWS ; slash
+EQUAL  = SWS "=" SWS ; equal
+LPAREN = SWS "(" SWS ; left parenthesis
+RPAREN = SWS ")" SWS ; right parenthesis
+RAQUOT = ">" SWS ; right angle quote
+LAQUOT = SWS "<"; left angle quote
+COMMA  = SWS "," SWS ; comma
+SEMI   = SWS ";" SWS ; semicolon
+COLON  = SWS ":" SWS ; colon
+LDQUOT = SWS DQUOTE; open double quotation mark
+RDQUOT = DQUOTE SWS ; close double quotation mark
+
+comment = "(" *( ctext / quoted-pair / comment ) ")" ; Updated by RFC 7235
+ctext   = HTAB / SP / %x21-27 / %x2A-5B / %x5D-7E / obs-text ; Updated by RFC 7235
+
+quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE ; Updated by RFC 7235
+qdtext        = HTAB / SP /%x21 / %x23-5B / %x5D-7E / obs-text ; Updated by RFC 7235
+obs-text      = %x80-FF ; From RFC 7235
+
+quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text ) ; Updated by RFC 7235
+
+user            = 1*( unreserved / escaped / user-unreserved )
+user-unreserved = "&" / "=" / "+" / "$" / "," / ";" / "?" / "/"
+password        = *( unreserved / escaped / "&" / "=" / "+" / "$" / "," )
+hostport        = host [ ":" port ]
+host            = hostname / IPv4address / IPv6reference
+hostname        = *( domainlabel "." ) toplabel [ "." ]
+IPv6reference   = "[" IPv6address "]"
+h16             = 1*4HEXDIG
+ls32            = ( h16 ":" h16 ) / IPv4address
+IPv4address     = dec-octet "." dec-octet "." dec-octet "." dec-octet
+dec-octet       = DIGIT                 ; 0-9
+                  / %x31-39 DIGIT         ; 10-99
+                  / "1" 2DIGIT            ; 100-199
+                  / "2" %x30-34 DIGIT     ; 200-249
+                  / "25" %x30-35          ; 250-255
+port            = 1*DIGIT
+
+other-transport  = token
+other-param      = pname [ "=" pvalue ]
+pname            = 1*paramchar
+pvalue           = 1*paramchar
+paramchar        = param-unreserved / unreserved / escaped
+param-unreserved = "[" / "]" / "/" / ":" / "&" / "+" / "$"
+
+headers        = "?" header *( "&" header )
+header         = hname "=" hvalue
+hname          = 1*( hnv-unreserved / unreserved / escaped )
+hvalue         = *( hnv-unreserved / unreserved / escaped )
+hnv-unreserved = "[" / "]" / "/" / "?" / ":" / "+" / "$"
+
+message = request / response / http-request / http-response
+
+request      = request-line *( message-header CRLF ) CRLF ; [ message-body ]
+request-line = method SP Request-URI SP SIP-Version CRLF
+Request-URI  = uri / generic-uri
+SIP-Version  = "SIP" "/" 1*DIGIT "." 1*DIGIT
+
+absoluteURI   = scheme ":" ( hier-part / opaque-part )
+hier-part     = ( net-path / abs-path ) [ "?" query ]
+net-path      = "//" authority [ abs-path ]
+abs-path      = "/" path-segments
+opaque-part   = uric-no-slash *uric
+uric          = reserved / unreserved / escaped
+uric-no-slash = unreserved / escaped / ";" / "?" / ":" / "@" / "&" / "=" / "+" / "$" / ","
+path-segments = segment *( "/" segment )
+segment       = *pchar *( ";" param )
+param         = *pchar
+pchar         = unreserved / escaped / ":" / "@" / "&" / "=" / "+" / "$" / ","
+scheme        = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+authority     = srvr / reg-name
+srvr          = [ [ userinfo ] hostport ]
+reg-name      = 1*( unreserved / escaped / "$" / "," / ";" / ":" / "@" / "&" / "=" / "+" )
+query         = *uric
+
+INVITEm          = %x49.4E.56.49.54.45 ; INVITE in caps
+ACKm             = %x41.43.4B ; ACK in caps
+OPTIONSm         = %x4F.50.54.49.4F.4E.53 ; OPTIONS in caps
+BYEm             = %x42.59.45 ; BYE in caps
+CANCELm          = %x43.41.4E.43.45.4C ; CANCEL in caps
+REGISTERm        = %x52.45.47.49.53.54.45.52 ; REGISTER in caps
+method           = extension-method ; INVITEm / ACKm / OPTIONSm / BYEm / CANCELm / REGISTERm
+extension-method = token
+
+response        = status-line *( message-header CRLF ) CRLF ; [ message-body ]
+status-line     = SIP-Version SP status-code SP reason-phrase CRLF
+status-code     = extension-code ; Informational / Redirection / Success / Client-Error / Server-Error / Global-Failure
+extension-code  = 3DIGIT
+reason-phrase   = *(reserved / unreserved / escaped / UTF8-NONASCII / UTF8-CONT / SP / HTAB)
+
+header-accept = "Accept" HCOLON [ accept-range *(COMMA accept-range) ]
+accept-range  = media-range *(SEMI accept-param)
+media-range   = ( m-type SLASH m-subtype )
+accept-param  = ("q" EQUAL qvalue) / generic-param
+qvalue        = ( "0" [ "." 0*3DIGIT ] ) / ( "1" [ "." 0*3("0") ] )
+generic-param = gen-key [ EQUAL gen-value ]
+gen-key       = token
+gen-value     = token / host / quoted-string
+
+header-allow = "Allow" HCOLON [method-list]
+method-list  = method *(COMMA method)
+
+header-authorization      = "Authorization" HCOLON credentials
+;credentials               = auth-scheme [ 1*SP ( [ ( "," / dig-resp ) *( OWS "," [ OWS dig-resp ] ) ] / token68 ) ] ; Updated by RFC 7235 and slightly modified
+credentials               = (digest-scheme LWS digest-response)
+                            / (basic-scheme LWS token68 *(COMMA auth-param))
+                            / (bearer-scheme LWS token68 *(COMMA auth-param))
+                            / other-response
+digest-scheme             = "Digest"
+basic-scheme              = "Basic"
+bearer-scheme             = "Bearer"
+digest-response           = dig-resp *(COMMA dig-resp)
+dig-resp                  = username / realm / nonce / digest-uri / dresponse / algorithm / cnonce / opaque / message-qop / nonce-count / auth-param
+username                  = "username" EQUAL username-value
+username-value            = quoted-string
+digest-uri                = "uri" EQUAL LDQUOT digest-uri-value RDQUOT
+digest-uri-value          = rquest-uri ; Normally equal to request-uri as specified by HTTP/1.1 but set to uri here
+message-qop               = "qop" EQUAL qop-value
+cnonce                    = "cnonce" EQUAL cnonce-quoted-value
+cnonce-quoted-value       = SWS DQUOTE cnonce-value DQUOTE
+cnonce-value              = *(qdtext / quoted-pair )
+nonce-count               = "nc" EQUAL nc-value
+nc-value                  = 8LHEX
+dresponse                 = "response" EQUAL request-digest
+request-digest            = LDQUOT *LHEX RDQUOT ; Updated by RFC 8760
+auth-param                = token BWS "=" BWS ( token / quoted-string ) ; Updated from RFC 7235
+other-response            =  auth-scheme LWS auth-param *(COMMA auth-param)
+auth-scheme               = token
+
+header-authentication-info = "Authentication-Info" HCOLON ainfo *(COMMA ainfo)
+ainfo                      = nextnonce / message-qop / response-auth / cnonce / nonce-count
+nextnonce                  = "nextnonce" EQUAL nextnonce-quoted-value
+nextnonce-quoted-value     = SWS DQUOTE nextnonce-value DQUOTE
+nextnonce-value            = *(qdtext / quoted-pair )
+response-auth              = "rspauth" EQUAL response-digest
+response-digest            = LDQUOT *LHEX RDQUOT
+
+header-call-id = ( "Call-ID" / "i" ) HCOLON callid
+callid         = word [ "@" word ]
+
+header-contact   = ("Contact" / "m" ) HCOLON ( contact-wildcard / (contact-param *(COMMA contact-param)))
+contact-wildcard = STAR
+contact-param    = (name-addr / paramless-addr-spec) *(SEMI contact-params)
+name-addr        = [ display-name ] LAQUOT addr-spec RAQUOT
+
+c-p-q             = "q" EQUAL qvalue
+c-p-expires       = "expires" EQUAL delta-seconds
+contact-extension = generic-param
+delta-seconds     = 1*DIGIT
+
+header-content-disposition = "Content-Disposition" HCOLON disp-type disp-params
+disp-type                  = "render" / "session" / "icon" / "alert" / disp-extension-token
+disp-params                = *( SEMI disp-param )
+disp-param                 = handling-param / generic-param
+handling-param             = "handling" EQUAL ( "optional" / "required" / other-handling )
+other-handling             = token
+disp-extension-token       = token
+
+header-content-length = ( "Content-Length" / "l" ) HCOLON content-length
+content-length        = 1*DIGIT
+header-content-type   = ( "Content-Type" / "c" ) HCOLON media-type
+media-type            = m-type SLASH m-subtype *(SEMI media-parameter)
+media-parameter       = type-param / m-parameter
+type-param            = "type" EQUAL m-type-param SLASH m-subtype-param
+m-type-param          = "*" / discrete-type / composite-type ; same as m-type for type-param
+m-subtype-param       = "*" / extension-token / iana-token ; same as m-subtype for type-param
+m-type                = "*" / discrete-type / composite-type
+discrete-type         = "text" / "image" / "audio" / "video" / "application" / extension-token
+composite-type        = "message" / "multipart" / extension-token
+extension-token       = ietf-token / x-token
+ietf-token            = token
+x-token               = "x-" token
+m-subtype             = "*" / extension-token / iana-token
+iana-token            = token
+m-parameter           = m-attribute EQUAL m-value
+m-attribute           = token
+m-value               = token / quoted-string
+
+header-cseq = "CSeq" HCOLON seq-number LWS method
+seq-number  = 1*DIGIT
+
+header-date  = "Date" HCOLON SIP-date
+SIP-date     = rfc1123-date
+rfc1123-date = wkday "," SP date1 SP time SP "GMT"
+date1        = 2DIGIT SP month SP 4DIGIT ; day month year (e.g., 02 Jun 1982)
+time         = 2DIGIT ":" 2DIGIT ":" 2DIGIT ; 00:00:00 - 23:59:59
+wkday        = "Mon" / "Tue" / "Wed" / "Thu" / "Fri" / "Sat" / "Sun"
+month        = "Jan" / "Feb" / "Mar" / "Apr" / "May" / "Jun" / "Jul" / "Aug" / "Sep" / "Oct" / "Nov" / "Dec"
+
+header-expires = "Expires" HCOLON delta-seconds
+
+header-from = ( "From" / "f" ) HCOLON from-spec
+from-spec   = ( name-addr-with-generic-uri / paramless-addr-spec-with-generic-uri ) *( SEMI from-param ) ; Initially ( name-addr / addr-spec ) *( SEMI from-param )
+from-param  = generic-param ; Removed tag-param
+tag-param   = "tag" EQUAL token
+
+header-max-forwards = "Max-Forwards" HCOLON max-forwards
+max-forwards        = 1*DIGIT
+
+header-proxy-authenticate      = "Proxy-Authenticate" HCOLON *( "," OWS ) proxy-authenticate-challenge *( OWS "," [ OWS proxy-authenticate-challenge ] ) *( OWS ",") ; Updated by RFC 7235 and slightly modified
+proxy-authenticate-challenge   = challenge
+challenge                      = auth-scheme [ 1*SP ( [ ( "," / digest-cln ) *( OWS "," OWS digest-cln ) ] / token68 ) ] ; Updated by RFC 7235 and slightly modified
+digest-cln                     = realm / domain / nonce / opaque / stale / algorithm / qop-options / auth-param
+realm                          = "realm" BWS "=" BWS realm-value
+realm-value                    = quoted-string
+nonce                          = "nonce" BWS "=" BWS nonce-value
+nonce-value                    = quoted-string
+opaque                         = "opaque" BWS "=" BWS opaque-value
+opaque-value                   = quoted-string
+stale                          = "stale" BWS "=" BWS stale-value
+stale-value                    = ( "true" / "false" )
+algorithm                      = "algorithm" BWS "=" BWS algorithm-value
+algorithm-value                = ( "MD5" / "MD5-sess" / "SHA-256" / "SHA-256-sess" / "SHA-512-256" / "SHA-512-256-sess" /token ) ; Updated by RFC 8760
+qop-options                    = "qop" BWS "=" BWS LDQUOT qop-value *("," qop-value) RDQUOT
+qop-value                      = "auth" / "auth-int" / token
+
+header-proxy-authorization = "Proxy-Authorization" HCOLON credentials
+
+option-tag = token
+
+header-record-route = "Record-Route" HCOLON rec-route *(COMMA rec-route)
+rec-route           = name-addr *( SEMI rr-param )
+rr-param            = generic-param
+
+header-require = "Require" HCOLON option-tag *(COMMA option-tag)
+
+header-retry-after = ( "Retry-After" / "r" ) HCOLON retry-after [ comment ] *( SEMI retry-param )
+retry-after        = delta-seconds
+retry-param        = ("duration" EQUAL delta-seconds) / generic-param
+
+header-route = "Route" HCOLON route-param *(COMMA route-param)
+route-param  = name-addr *( SEMI rr-param )
+
+server-val      = product / comment
+product         = token [SLASH product-version]
+product-version = token
+
+header-supported = ( "Supported" / "k" ) HCOLON [option-tag *(COMMA option-tag)]
+
+header-to = ( "To" / "t" ) HCOLON to-spec
+to-spec   = ( name-addr-with-generic-uri / paramless-addr-spec-with-generic-uri ) *( SEMI to-param) ; Initially ( name-addr / addr-spec ) *( SEMI to-param )
+to-param  = generic-param ; Remove tag-param
+
+header-user-agent = "User-Agent" HCOLON server-val *(LWS server-val)
+
+header-via                = ( "Via" / "v" ) HCOLON via-parm *(COMMA via-parm)
+via-parm                  = sent-protocol LWS sent-by *( SEMI via-params )
+via-params                = via-received / via-other-param
+via-other-param           = via-ttl / via-maddr / via-branch / via-extension
+via-ttl                   = "ttl" EQUAL ttl
+via-maddr                 = "maddr" EQUAL host-via-maddr
+host-via-maddr            = hostname / IPv4address / IPv6reference ; same as host for via-maddr
+via-received              = "received" EQUAL via-received-address
+via-received-address      = (IPv4address / IPv6address / IPv6reference)
+via-branch                = "branch" EQUAL token
+via-extension             = generic-param
+sent-protocol             = protocol-name-and-version SLASH transport
+protocol-name-and-version = protocol-name SLASH protocol-version
+protocol-name             = "SIP" / token
+protocol-version          = token
+transport                 = "UDP" / "TCP" / "TLS" / "SCTP" / other-transport
+sent-by                   = host [ COLON port ]
+ttl                       = 1*3DIGIT ; 0 to 255
+
+header-www-authenticate    = "WWW-Authenticate" HCOLON *( "," OWS ) www-authenticate-challenge *( OWS "," [ OWS www-authenticate-challenge ] ) *( OWS ",") ; Updated by RFC 7235 and slightly modified
+www-authenticate-challenge = challenge
+
+extension-header  =  header-name HCOLON header-value
+header-name       =  token
+header-value      =  *(TEXT-UTF8char / UTF8-CONT / LWS)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Rules for general header parsing ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+message-header = ( header-accept
+                 / header-allow
+                 / header-authorization
+                 / header-authentication-info
+                 / header-call-id
+                 / header-contact
+                 / header-content-disposition
+                 / header-content-length
+                 / header-content-type
+                 / header-cseq
+                 / header-date
+                 / header-expires
+                 / header-from
+                 / header-max-forwards
+                 / header-proxy-authenticate
+                 / header-proxy-authorization
+                 / header-record-route
+                 / header-require
+                 / header-retry-after
+                 / header-route
+                 / header-supported
+                 / header-to
+                 / header-user-agent
+                 / header-via
+                 / header-www-authenticate
+                 / header-event
+                 / header-subscription-state
+                 / header-privacy
+                 / header-p-preferred-identity
+                 / header-reason
+                 / header-refer-to
+                 / header-service-route
+                 / header-replaces
+                 / header-referred-by
+                 / header-session-expires
+                 / header-diversion
+                 / extension-header )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Rules for HTTP parsing ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+http-request      = http-request-line *( http-message-header CRLF ) CRLF ; [ message-body ]
+http-request-line = method SP generic-uri SP http-version CRLF
+http-version      = "HTTP" "/" 1*DIGIT "." 1*DIGIT
+
+http-response    = http-status-line *( http-message-header CRLF ) CRLF ; [ message-body ]
+http-status-line = http-version SP status-code SP reason-phrase CRLF
+
+http-message-header = ( header-accept
+                      / header-allow
+                      / header-authorization
+                      / header-content-length
+                      / header-content-type
+                      / header-date
+                      / header-max-forwards
+                      / header-proxy-authenticate
+                      / header-proxy-authorization
+                      / header-user-agent
+                      / header-www-authenticate
+                      / extension-header )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Rules for custom URI and address parsing ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+rquest-uri          = uri
+display-name        = ( token *(LWS token) ) / quoted-string
+quoted-display-name = quoted-string
+addr-spec           = uri
+paramless-addr-spec = paramless-uri
+contact-params      = contact-extension ; c-p-q / c-p-expires
+domain              = "domain" EQUAL domain-value
+domain-value        = quoted-string
+IPv6address         = 1*(HEXDIG / ":" / ".")
+
+uri            = sip-uri-scheme [ userinfo ] hostport uri-parameters [ headers ]
+sip-uri-scheme = sip-scheme / sips-scheme
+sip-scheme     = "sip:"
+sips-scheme    = "sips:"
+userinfo       = user [ ":" password ] "@"
+uri-parameters = *( (SEMI uri-parameter) / SEMI ) ; allow semi only even if not in the RFC
+uri-parameter  = other-param ; all parameters are considered as other
+domainlabel    = alphanum / (alphanum *( alphanum / ( *("-") alphanum) ) ) ; modified to avoid an ambiguity
+toplabel       = alphanum / (alphanum *( alphanum / (*("-") alphanum ) ) ) ; modified to avoid an ambiguity & to relax the restriction on the 1st character as stated in RFC 1123 2.1
+
+fast-uri      = sip-uri-scheme [ userinfo ] fast-hostport uri-parameters [ headers ]
+fast-hostport = fast-host [ ":" port ]
+fast-host     = fast-hostname / IPv6reference ; IPv4address not included because cannot discriminate quickly between 192.168.0.1 and 192.168.0.com
+fast-hostname = alphanum *( alphanum / "-" / "." )
+
+paramless-uri = sip-uri-scheme [ userinfo ] hostport [ headers ]
+
+generic-uri = hier-part / absoluteURI
+
+generic-uri-for-from-to-contact-addr-spec   = scheme ":" opaque-part-for-from-to-contact-addr-spec
+opaque-part-for-from-to-contact-addr-spec   = uric-no-slash-for-from-to-contact-addr-spec *uric-for-from-to-contact-addr-spec
+uric-no-slash-for-from-to-contact-addr-spec = unreserved / escaped / ":" / "@" / "&" / "=" / "+" / "$"
+uric-for-from-to-contact-addr-spec          = reserved-for-from-to-contact-addr-spec / unreserved / escaped
+reserved-for-from-to-contact-addr-spec      = ":" / "@" / "&" / "=" / "+" / "$" / "/"
+
+header-address-base = name-addr-with-generic-uri / addr-spec-with-generic-uri
+
+header-address                       = [ LWS ] ( ( name-addr-with-generic-uri *( SEMI generic-param ) )
+                                                 / paramless-name-addr-with-generic-uri
+                                                 / addr-spec-with-generic-uri )
+                                       [ LWS ]
+name-addr-with-generic-uri           = [ display-name ] LAQUOT addr-spec-with-generic-uri RAQUOT
+paramless-name-addr-with-generic-uri = [ quoted-display-name ] addr-spec-with-generic-uri
+addr-spec-with-generic-uri           = [ LWS ] ( uri / generic-uri ) [ LWS ]
+paramless-addr-spec-with-generic-uri = paramless-uri / generic-uri-for-from-to-contact-addr-spec
+
+fast-header-address                       = [ LWS ] ( ( fast-name-addr-with-generic-uri *( SEMI generic-param ) )
+                                                    / fast-paramless-name-addr-with-generic-uri
+                                                    / fast-addr-spec-with-generic-uri )
+                                            [ LWS ]
+fast-name-addr-with-generic-uri           = [ display-name ] LAQUOT fast-addr-spec-with-generic-uri RAQUOT
+fast-paramless-name-addr-with-generic-uri = [ quoted-display-name ] fast-addr-spec-with-generic-uri
+fast-addr-spec-with-generic-uri           = [ LWS ] ( fast-uri / generic-uri ) [ LWS ]
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3265 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-event   = ( "Event" / "o" ) HCOLON event-type *( SEMI event-param )
+event-type     = event-package *( "." event-template )
+event-package  = token-nodot
+event-template = token-nodot
+token-nodot    = 1*( alphanum / "-"  / "!" / "%" / "*" / "_" / "+" / "`" / "'" / "~" )
+event-param    = generic-param / ( "id" EQUAL token )
+
+header-subscription-state = "Subscription-State" HCOLON substate-value *( SEMI subexp-params )
+substate-value            = "active" / "pending" / "terminated" / extension-substate
+extension-substate        = token
+subexp-params             = ("reason" EQUAL event-reason-value)
+                            / ("expires" EQUAL delta-seconds)
+                            / ("retry-after" EQUAL delta-seconds)
+                            / generic-param
+event-reason-value        = "deactivated" / "probation" / "rejected" / "timeout" / "giveup" / "noresource" / event-reason-extension
+event-reason-extension    = token
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3323 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-privacy = "Privacy" HCOLON priv-value *(SEMI priv-value)
+priv-value     = "header" / "session" / "user" / "none" / "critical" / token
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3325 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-p-preferred-identity = "P-Preferred-Identity" HCOLON PPreferredID-value ; *(COMMA PPreferredID-value)
+PPreferredID-value = header-address-base ; Initially name-addr / addr-spec
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3326 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-reason    = "Reason" HCOLON reason-value *(COMMA reason-value)
+reason-value     = protocol *(SEMI reason-params)
+protocol         = "SIP" / "Q.850" / token
+reason-params    = protocol-cause / reason-text / reason-extension
+protocol-cause   = "cause" EQUAL cause
+cause            = 1*DIGIT
+reason-text      = "text" EQUAL quoted-string
+reason-extension = generic-param
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3420 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+sipfrag          = request-sipfrag / response-sipfrag
+request-sipfrag  = [ request-line ] *( message-header CRLF) [ CRLF ]
+response-sipfrag = [ status-line ] *(message-header CRLF) [ CRLF ]
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3515 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-refer-to = ("Refer-To" / "r") HCOLON refer-to-spec
+refer-to-spec   = ( name-addr / paramless-addr-spec ) *(SEMI generic-param) ; Initially ( name-addr / addr-spec ) *(SEMI generic-param)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3608 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-service-route = "Service-Route" HCOLON sr-value *( COMMA sr-value)
+sr-value             = name-addr *( SEMI rr-param )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3891 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-replaces = "Replaces" HCOLON callid *(SEMI replaces-param)
+replaces-param  = to-tag / from-tag / early-flag / generic-param
+to-tag          = "to-tag" EQUAL token
+from-tag        = "from-tag" EQUAL token
+early-flag      = "early-only"
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 3892 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-referred-by = ("Referred-By" / "b") HCOLON referred-by-spec
+referred-by-spec   = refer-to-spec ; Initially referrer-uri *( SEMI (referredby-id-param / generic-param) )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 4028 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-session-expires = ("Session-Expires" / "x") HCOLON delta-seconds *(SEMI se-params)
+se-params              = refresher-param / generic-param
+refresher-param        = "refresher" EQUAL ("uas" / "uac")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;
+; Rules from RFC 5806 ;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+header-diversion = "Diversion" ":" diversion-spec
+diversion-spec   = ( name-addr-with-generic-uri / paramless-addr-spec-with-generic-uri) *( SEMI diversion-params) ; Initially 1# (name-addr *( ";" diversion_params ))
+diversion-params = generic-param

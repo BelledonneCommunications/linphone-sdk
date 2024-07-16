@@ -187,6 +187,20 @@ elseif(NOT ANDROID)
 	endif()
 	target_link_libraries(belle-sip-http-get PRIVATE ${BCToolbox_TARGET} belle-sip)
 
+	if(NOT WIN32)
+		set(BENCH_SOURCES bench.cc)
+		add_executable(belle-sip-bench ${USE_BUNDLE} ${BENCH_SOURCES})
+		set_target_properties(belle-sip-bench PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17 CXX_STANDARD_REQUIRED TRUE)
+		if(APPLE_FRAMEWORKS)
+			target_link_libraries(belle-sip-bench PRIVATE ${APPLE_FRAMEWORKS})
+		endif()
+		target_link_libraries(belle-sip-bench PRIVATE ${BCToolbox_TARGET} belle-sip)
+		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+			target_compile_options(belle-sip-bench PRIVATE "-fbracket-depth=512")
+		endif()
+
+	endif()
+
 endif()
 
 install(FILES ${OTHER_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belle-sip-tester")

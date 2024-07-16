@@ -35,9 +35,13 @@ static BELLESIP_INLINE int belle_sip_strcasecmp(const char *a, const char *b) {
 #define STRCASECMP_HEADER_NAMED(name, compressed_name, value)                                                          \
 	(strcasecmp(compressed_name, (const char *)value) == 0 || strcasecmp(name, (const char *)value) == 0)
 
-#define ANTLR3_LOG_EXCEPTION()                                                                                         \
-	belle_sip_message("[\%s] reason [\%s] at line[\%u] position[\%d]", (const char *)EXCEPTION->name,                  \
-	                  (const char *)EXCEPTION->message, EXCEPTION->line, EXCEPTION->charPositionInLine);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+char *belle_sip_trim_whitespaces(char *str);
+
+void belle_sip_header_append(belle_sip_header_t *context, belle_sip_header_t *header);
 
 BELLESIP_EXPORT void belle_sip_header_set_next(belle_sip_header_t *header, belle_sip_header_t *next);
 
@@ -55,5 +59,9 @@ remove any \
  * */
 BELLESIP_EXPORT char *belle_sip_string_to_backslash_less_unescaped_string(const char *buff);
 BELLESIP_EXPORT char *belle_sip_display_name_to_backslashed_escaped_string(const char *buff);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
