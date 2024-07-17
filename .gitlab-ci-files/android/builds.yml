@@ -8,7 +8,7 @@ wait-cache-synchro-android:
 
 recache-android:
   extends: .recache-update-cache
-  image: !reference [.android_r25b_image_version, image]
+  image: !reference [.android_r27_image_version, image]
 
 .android:
 
@@ -71,11 +71,11 @@ recache-android:
 # Makefile
 #################################################
 
-android-ninja-r25b:
+android-ninja-r27:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
-  image: !reference [.android_r25b_image_version, image]
+  image: !reference [.android_r27_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -87,7 +87,7 @@ android-ninja-r25b:
   needs:
     - wait-cache-synchro-android
 
-android-makefile-r25b-g729-ldap-post-quantum:
+android-makefile-r27-g729-ldap-post-quantum:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
@@ -98,9 +98,9 @@ android-makefile-r25b-g729-ldap-post-quantum:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_NON_FREE_FEATURES=YES
-  extends: android-ninja-r25b
+  extends: android-ninja-r27
 
-android-ninja-r25b-minimal-size:
+android-ninja-r27-minimal-size:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_ANDROID != null
     - !reference [.rules-merge-request-manual, rules]
@@ -108,16 +108,16 @@ android-ninja-r25b-minimal-size:
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_VCARD=OFF -DENABLE_MKV=OFF -DENABLE_CAMERA2=OFF -DENABLE_ASSETS=OFF -DENABLE_LIME_X3DH=OFF -DENABLE_QRCODE=OFF -DENABLE_JPEG=OFF -DENABLE_ZLIB=OFF -DENABLE_SQLITE=OFF -DENABLE_XML2=OFF -DENABLE_ZRTP=OFF
-  extends: android-ninja-r25b
+  extends: android-ninja-r27
 
 
 #################################################
 # Ninja
 #################################################
 
-android-ninja-r25b-no-video:
+android-ninja-r27-no-video:
 
-  image: !reference [.android_r25b_image_version, image]
+  image: !reference [.android_r27_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
@@ -128,7 +128,7 @@ android-ninja-r25b-no-video:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: .android
 
-#android-ninja-r25b-macos:
+#android-ninja-r27-macos:
 #  tags: [ "macosx" ]
 # rules:
 #   - !reference [.rules-merge-request-manual, rules]
@@ -137,31 +137,31 @@ android-ninja-r25b-no-video:
 #    CMAKE_GENERATOR: Ninja
 #  extends: .android
 
-android-ninja-r25b-smallsdk:
+android-ninja-r27-smallsdk:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF
-  extends: android-ninja-r25b
+  extends: android-ninja-r27
 
-android-ninja-r25b-allcodecs:
+android-ninja-r27-allcodecs:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_G729=ON
-  extends: android-ninja-r25b
+  extends: android-ninja-r27
 
-#android-ninja-r25b-sanitizer:
+#android-ninja-r27-sanitizer:
 #  variables:
 #    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=ON
-#  extends: android-ninja-r25b
+#  extends: android-ninja-r27
 #
-android-ninja-r25b-pqc:
+android-ninja-r27-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
-  extends: android-ninja-r25b
+  extends: android-ninja-r27

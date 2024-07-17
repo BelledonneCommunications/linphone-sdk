@@ -5,7 +5,7 @@ xamarin-package:
     GIT_STRATEGY: fetch
   needs:
     - ios-xcode
-    - android-ninja-r25b
+    - android-ninja-r27
     - vs2017-win32-scheduled-windows
 
   rules:

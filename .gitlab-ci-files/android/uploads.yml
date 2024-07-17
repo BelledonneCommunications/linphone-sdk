@@ -1,7 +1,7 @@
 .android-upload-common:
   stage: deploy
   tags: [ "docker" ]
-  image: !reference [.android_r25b_image_version, image]
+  image: !reference [.android_r27_image_version, image]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_ANDROID != null
@@ -36,7 +36,7 @@
 android-doc-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: !reference [.android_r25b_image_version, image]
+  image: !reference [.android_r27_image_version, image]
 
   rules:
     - if: $DEPLOY_RUN_ANDROID != null
@@ -49,7 +49,7 @@ android-doc-upload:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   needs:
-    - android-ninja-r25b
+    - android-ninja-r27
 
   before_script:
     - eval $(ssh-agent -s)
@@ -92,7 +92,7 @@ android-upload:
   variables:
     MAVEN_REPO_URL: $ANDROID_MAVEN_URL
   needs:
-    - android-ninja-r25b
+    - android-ninja-r27
 
 android-upload-no-video:
   extends: .android-upload-common
@@ -101,7 +101,7 @@ android-upload-no-video:
     GRADLE_OPTIONS: -Pno-video -i
     MAVEN_REPO_PATH: no-video
   needs:
-    - android-ninja-r25b-no-video
+    - android-ninja-r27-no-video
 
 android-upload-minimal-size:
   extends: .android-upload-common
@@ -110,11 +110,11 @@ android-upload-minimal-size:
     GRADLE_OPTIONS: -Pminimal-size -i
     MAVEN_REPO_PATH: minimal
   needs:
-    - android-ninja-r25b-minimal-size
+    - android-ninja-r27-minimal-size
 
 android-upload-g729-ldap-post-quantum:
   extends: .android-upload-common
   variables:
     MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
   needs:
-    - android-makefile-r25b-g729-ldap-post-quantum
+    - android-makefile-r27-g729-ldap-post-quantum

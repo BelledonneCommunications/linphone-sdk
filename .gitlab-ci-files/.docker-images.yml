@@ -3,8 +3,8 @@
 ########################################################
 # We need to redefine images use here because they are used as fallback cache key. The cache fallback key don't work with defined variables in jobs. It needs static values, that we use here with !references
 
-.android_r25b_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25b:20230706_add_deps_for_av1
+.android_r27_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r27:20240717_update_ndk
 
 .archlinux_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20230706_add_deps_for_av1

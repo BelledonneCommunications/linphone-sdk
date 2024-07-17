@@ -2,13 +2,13 @@
 # Tests Android
 #################################################
 
-liblinphone-android-r25b-test:
+liblinphone-android-r27-test:
   tags: [ "docker-android-test" ]
   stage: test
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-test-r25b:$ANDROID_R25B_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-test-r27:$ANDROID_R27_IMAGE_VERSION
   allow_failure: true
   needs:
-    - android-ninja-r25b
+    - android-ninja-r27
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_ANDROID_TESTS != null
   script:

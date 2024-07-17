@@ -152,9 +152,9 @@ pass : fFVgA_5Mf-qn2WbvsKRL
 
 A simple login with your Gitlab account should work.
 To know what docker image to pull, first check [.gitlab-ci-files/android/builds.yml](https://gitlab.linphone.org/BC/public/linphone-sdk/-/blob/master/.gitlab-ci-files/android/builds.yml)
-Currently we are using `bc-dev-android-r25` image name.
+Currently we are using `bc-dev-android-r27` image name.
 
-You'll find the associated tag in [.gitlab-ci-files/.docker-images.yml](https://gitlab.linphone.org/BC/public/linphone-sdk/-/blob/master/.gitlab-ci-files/.docker-images.yml) (for Android R25 image it is currently `20230519_use_cmake_3.22`).
+You'll find the associated tag in [.gitlab-ci-files/.docker-images.yml](https://gitlab.linphone.org/BC/public/linphone-sdk/-/blob/master/.gitlab-ci-files/.docker-images.yml) (for Android R27 image it is currently `20240717_update_ndk`).
 
 Replace `<name>` and `<tag>` in the commands below by the value you found.
 

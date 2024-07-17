@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25b:20230706_add_deps_for_av1
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r27:20240717_update_ndk
 ###############################################################################
 
 FROM debian:11
@@ -20,7 +20,7 @@ ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 ENV SHELL=/bin/bash
 
 # Define environment
-ENV ANDROID_NDK r25b
+ENV ANDROID_NDK r27
 ENV ANDROID_HOME /opt/android-sdk-linux
 
 # Install common general tools
@@ -83,5 +83,5 @@ RUN useradd -ms /bin/bash bc && \
 
 USER bc
 WORKDIR /home/bc
-ENV PS1='\[\e[34m\]\u@bc-dev-android-r25b>\[\e[0m\] '
+ENV PS1='\[\e[34m\]\u@bc-dev-android-r27>\[\e[0m\] '
 CMD bash
