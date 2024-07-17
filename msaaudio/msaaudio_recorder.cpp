@@ -20,29 +20,37 @@
 #include <mediastreamer2/android_utils.h>
 #include <mediastreamer2/msjava.h>
 #include <mediastreamer2/msticker.h>
+#include <mediastreamer2/msasync.h>
 
 #include <msaaudio/msaaudio.h>
 
 struct AAudioInputContext {
 	AAudioInputContext(MSFilter *f) {
 		sound_utils = ms_factory_get_android_sound_utils(f->factory);
+		aaudio_context = nullptr;
+		stream = nullptr;
+		mFilter = f;
 		sample_rate = ms_android_sound_utils_get_preferred_sample_rate(sound_utils);
 		qinit(&q);
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
-		mTickerSynchronizer = NULL;
+		process_thread = ms_worker_thread_new("AAudio Recorder");
+		mTickerSynchronizer = nullptr;
 		mAvSkew = 0;
 		session_id = AAUDIO_SESSION_ID_NONE;
-		soundCard = NULL;
+		soundCard = nullptr;
 		deviceId = -1;
 		aec = NULL;
 		aecEnabled = true;
 		voiceRecognitionMode = false;
 		bluetoothScoStarted = false;
+		streamRunning = false;
+		task = nullptr;
 	}
 
 	~AAudioInputContext() {
 		flushq(&q,0);
+		ms_worker_thread_destroy(process_thread, TRUE);
 		ms_mutex_destroy(&mutex);
 		ms_mutex_destroy(&stream_mutex);
 	}
@@ -55,6 +63,7 @@ struct AAudioInputContext {
 	AAudioContext *aaudio_context;
 	AAudioStream *stream;
 	ms_mutex_t stream_mutex;
+	MSWorkerThread *process_thread;
 
 	queue_t q;
 	ms_mutex_t mutex;
@@ -71,6 +80,8 @@ struct AAudioInputContext {
 	bool aecEnabled;
 	bool voiceRecognitionMode;
 	bool bluetoothScoStarted;
+	bool streamRunning;
+	MSTask *task;
 };
 
 static AAudioInputContext* aaudio_input_context_init(MSFilter *f) {
@@ -90,6 +101,11 @@ static void android_snd_read_init(MSFilter *obj) {
 
 static aaudio_data_callback_result_t aaudio_recorder_callback(AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) {
 	AAudioInputContext *ictx = (AAudioInputContext *)userData;
+	if (!ictx || !ictx->stream) {
+		ms_error("[AAudio Recorder] aaudio_player_callback received when either no context or stream");
+		return AAUDIO_CALLBACK_RESULT_STOP;
+	}
+
 	ictx->read_samples += numFrames * ictx->samplesPerFrame;
 
 	if (numFrames <= 0) {
@@ -110,8 +126,11 @@ static aaudio_data_callback_result_t aaudio_recorder_callback(AAudioStream *stre
 
 static void aaudio_recorder_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error);
 
-static void aaudio_recorder_init(AAudioInputContext *ictx) {
+static bool_t aaudio_recorder_init(MSFilter *obj) {
+	AAudioInputContext *ictx = (AAudioInputContext*) obj->data;
 	AAudioStreamBuilder *builder;
+
+	ms_mutex_lock(&ictx->stream_mutex);
 
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
 	if (result != AAUDIO_OK && !builder) {
@@ -159,13 +178,15 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	}
 
 	ms_message("[AAudio Recorder] Record stream configured with samplerate %i and %i channels", ictx->sample_rate, ictx->aaudio_context->nchannels);
-	
+
 	result = AAudioStreamBuilder_openStream(builder, &(ictx->stream));
 	if (result != AAUDIO_OK && !ictx->stream) {
 		ms_error("[AAudio Recorder] Open stream for recorder failed: %i / %s", result, AAudio_convertResultToText(result));
 		AAudioStreamBuilder_delete(builder);
-		ictx->stream = NULL;
-		return;
+		ictx->streamRunning = false;
+		ictx->stream = nullptr;
+		ms_mutex_unlock(&ictx->stream_mutex);
+		return TRUE;
 	} else {
 		ms_message("[AAudio Recorder] Recorder stream opened");
 	}
@@ -177,6 +198,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 
 	result = AAudioStream_requestStart(ictx->stream);
 	if (result != AAUDIO_OK) {
+		ictx->streamRunning = false;
 		ms_error("[AAudio Recorder] Start stream for recorder failed: %i / %s", result, AAudio_convertResultToText(result));
 		result = AAudioStream_close(ictx->stream);
 		if (result != AAUDIO_OK) {
@@ -184,7 +206,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		} else {
 			ms_message("[AAudio Recorder] Recorder stream closed");
 		}
-		ictx->stream = NULL;
+		ictx->stream = nullptr;
 	} else {
 		ms_message("[AAudio Recorder] Recorder stream started");
 	}
@@ -197,7 +219,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 				ictx->aec = ms_android_sound_utils_create_hardware_echo_canceller(ictx->sound_utils, ictx->session_id);
 				ms_message("[AAudio Recorder] Hardware echo canceller enabled");
 			} else {
-				ms_error("[AAudio Recorder] Hardware echo canceller object already created and not released!");
+				ms_message("[AAudio Recorder] Using already existing found hardware echo canceller object");
 			}
 		} else {
 			ms_warning("[AAudio Recorder] Session ID is AAUDIO_SESSION_ID_NONE, can't enable hardware echo canceller");
@@ -205,11 +227,18 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	}
 
 	AAudioStreamBuilder_delete(builder);
+	ictx->streamRunning = true;
+	ms_mutex_unlock(&ictx->stream_mutex);
+	return TRUE;
 }
 
-static void aaudio_recorder_close(AAudioInputContext *ictx) {
+static bool_t aaudio_recorder_close(MSFilter *obj) {
+	AAudioInputContext *ictx = (AAudioInputContext*) obj->data;
+
 	ms_mutex_lock(&ictx->stream_mutex);
+
 	if (ictx->stream) {
+		ictx->streamRunning = false;
 		aaudio_result_t result = AAudioStream_requestStop(ictx->stream);
 		if (result != AAUDIO_OK) {
 			ms_error("[AAudio Recorder] Recorder stream stop failed: %i / %s", result, AAudio_convertResultToText(result));
@@ -229,9 +258,46 @@ static void aaudio_recorder_close(AAudioInputContext *ictx) {
 		} else {
 			ms_message("[AAudio Recorder] Recorder stream closed");
 		}
-		ictx->stream = NULL;
+		ictx->stream = nullptr;
+
+		// https://github.com/google/oboe/pull/970/
+		// Wait a bit (10 ms) to prevent a callback from being dispatched after stop
+		ms_usleep(10000);
 	}
+
 	ms_mutex_unlock(&ictx->stream_mutex);
+	return TRUE;
+}
+
+static bool_t aaudio_recorder_quick_close(MSFilter *obj) {
+	AAudioInputContext *ictx = (AAudioInputContext*) obj->data;
+
+	ms_mutex_lock(&ictx->stream_mutex);
+
+	if (ictx->stream) {
+		ictx->streamRunning = false;
+		aaudio_result_t result = AAudioStream_close(ictx->stream);
+		if (result != AAUDIO_OK) {
+			ms_error("[AAudio Recorder] Recorder stream close failed: %i / %s", result, AAudio_convertResultToText(result));
+		} else {
+			ms_message("[AAudio Recorder] Recorder stream closed");
+		}
+		ictx->stream = nullptr;
+	}
+
+	ms_mutex_unlock(&ictx->stream_mutex);
+	return TRUE;
+}
+
+static bool_t aaudio_recorder_restart(MSFilter *obj) {
+	AAudioInputContext *ictx = (AAudioInputContext*) obj->data;
+
+	ms_message("[AAudio Recorder] Restarting stream due to device ID that has changed");
+	aaudio_recorder_quick_close(obj);
+	aaudio_recorder_init(obj);
+	ms_message("[AAudio Recorder] Stream was restarted");
+
+	return TRUE;
 }
 
 static void aaudio_recorder_callback_error(AAudioStream *stream, void *userData, aaudio_result_t result) {
@@ -244,8 +310,6 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	ictx->mFilter = obj;
 	ictx->read_samples = 0;
 
-	ms_mutex_lock(&ictx->stream_mutex);
-
 	if (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
 		ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID)
 	{
@@ -254,31 +318,25 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 		ms_android_sound_utils_enable_bluetooth(ictx->sound_utils, ictx->bluetoothScoStarted);
 	}
 
-	aaudio_recorder_init(ictx);
+	ms_worker_thread_add_task(ictx->process_thread, (MSTaskFunc)aaudio_recorder_init, obj);
 
 	ms_mutex_lock(&ictx->mutex);
-	if (ictx->mTickerSynchronizer == NULL) {
+	if (!ictx->mTickerSynchronizer) {
 		MSFilter *obj = ictx->mFilter;
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 	}
 	ms_mutex_unlock(&ictx->mutex);
-
-	ms_mutex_unlock(&ictx->stream_mutex);
 }
 
 static void android_snd_read_process(MSFilter *obj) {
 	AAudioInputContext *ictx = (AAudioInputContext*) obj->data;
 	mblk_t *m;
 
-	ms_mutex_lock(&ictx->stream_mutex);
-
 	if (ictx->aaudio_context->device_changed) {
 		ms_warning("[AAudio Recorder] Device ID changed to %0d", ictx->deviceId);
-		if (ictx->stream) {
-			AAudioStream_close(ictx->stream);
-			ictx->stream = NULL;
-		}
+		ms_worker_thread_add_task(ictx->process_thread, (MSTaskFunc)aaudio_recorder_restart, obj);
+		
 		ms_mutex_lock(&ictx->mutex);
 		if (ictx->mTickerSynchronizer){
 			ms_ticker_synchronizer_resync(ictx->mTickerSynchronizer);
@@ -286,54 +344,45 @@ static void android_snd_read_process(MSFilter *obj) {
 		}
 		ms_mutex_unlock(&ictx->mutex);
 		ictx->aaudio_context->device_changed = false;
-	}
-
-
-	if (!ictx->stream) {
-		aaudio_recorder_init(ictx);
-	} else {
+	} else if (ictx->streamRunning && ictx->stream) {
 		aaudio_stream_state_t streamState = AAudioStream_getState(ictx->stream);
 		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
 			ms_warning("[AAudio Recorder] Recorder stream has disconnected");
-			if (ictx->stream) {
-				AAudioStream_close(ictx->stream);
-				ictx->stream = NULL;
+			ms_worker_thread_add_task(ictx->process_thread, (MSTaskFunc)aaudio_recorder_restart, obj);
+		} else {
+			int32_t xRunCount = AAudioStream_getXRunCount(ictx->stream);
+			if (xRunCount != 0) {
+				ms_warning("[AAudio Recorder] recorder xRunCount is %0d", xRunCount);
 			}
 		}
 	}
 
-	if (ictx->stream) {
-		int32_t xRunCount = AAudioStream_getXRunCount(ictx->stream);
-		if (xRunCount != 0) {
-			ms_warning("[AAudio Recorder] recorder xRunCount is %0d", xRunCount);
-		}
-	}
-	ms_mutex_unlock(&ictx->stream_mutex);
-
 	ms_mutex_lock(&ictx->mutex);
-	while ((m = getq(&ictx->q)) != NULL) {
+
+	while ((m = getq(&ictx->q)) != nullptr) {
 		ms_queue_put(obj->outputs[0], m);
 	}
-	if (ictx->mTickerSynchronizer != NULL) {
+	if (ictx->mTickerSynchronizer) {
 		ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->sample_rate);
 	}
 	if (obj->ticker->time % 5000 == 0) {
 		ms_message("[AAudio Recorder] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
 	}
+
 	ms_mutex_unlock(&ictx->mutex);
 }
 
 static void android_snd_read_postprocess(MSFilter *obj) {
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
 
-	aaudio_recorder_close(ictx);
+	ictx->task = ms_worker_thread_add_waitable_task(ictx->process_thread, (MSTaskFunc)aaudio_recorder_close, obj);
 
 	ms_mutex_lock(&ictx->mutex);
 
-	ms_ticker_set_synchronizer(obj->ticker, NULL);
-	if (ictx->mTickerSynchronizer != NULL) {
+	ms_ticker_set_synchronizer(obj->ticker, nullptr);
+	if (ictx->mTickerSynchronizer) {
 		ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
-		ictx->mTickerSynchronizer = NULL;
+		ictx->mTickerSynchronizer = nullptr;
 	}
 
 	if (ictx->bluetoothScoStarted) {
@@ -349,9 +398,19 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 static void android_snd_read_uninit(MSFilter *obj) {
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(obj->data);
 
+	if (ictx->task) {
+		ms_task_wait_completion(ictx->task);
+		ms_task_destroy(ictx->task);
+		ictx->task = nullptr;
+	}
+
+	// https://github.com/google/oboe/pull/970/
+	// Wait a bit (10 ms) to prevent a callback from being dispatched after stop
+	ms_usleep(10000);
+
 	if (ictx->soundCard) {
 		ms_snd_card_unref(ictx->soundCard);
-		ictx->soundCard = NULL;
+		ictx->soundCard = nullptr;
 	}
 
 	delete ictx;
@@ -406,11 +465,10 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 	ms_message("[AAudio Recorder] Sound card is being changed from ID [%s], device ID [%0d] to ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", ictx->soundCard->id, ictx->deviceId, card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 	// Change device ID only if the new value is different from the previous one
 	if (ictx->deviceId != card->internal_id) {
-		ms_mutex_lock(&ictx->stream_mutex);
 
 		if (ictx->soundCard) {
 			ms_snd_card_unref(ictx->soundCard);
-			ictx->soundCard = NULL;
+			ictx->soundCard = nullptr;
 		}
 		ictx->soundCard = ms_snd_card_ref(card);
 		android_snd_read_set_internal_device_id(ictx, ictx->soundCard->internal_id);
@@ -428,7 +486,6 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 			ictx->bluetoothScoStarted = bluetoothSoundDevice;
 		}
 
-		ms_mutex_unlock(&ictx->stream_mutex);
 	} else {
 		ms_warning("[AAudio Recorder] This device ID [%0d] is already in use", card->internal_id);
 	}
@@ -466,17 +523,13 @@ static void android_snd_read_change_microphone_according_to_speaker(MSFilter *ob
 	if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
 		if (ictx->soundCard->alternative_id != -1) {
 			ms_message("[AAudio Recorder] Speaker device is being used, switching to microphone at the back of the device [%0d]", ictx->soundCard->alternative_id);
-			ms_mutex_lock(&ictx->stream_mutex);
 			android_snd_read_set_internal_device_id(ictx, ictx->soundCard->alternative_id);
-			ms_mutex_unlock(&ictx->stream_mutex);
 		} else {
 			ms_warning("[AAudio Recorder] No alternative microphone ID found, doing nothing...");
 		}
 	} else if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
 		ms_message("[AAudio Recorder] Earpiece device is being used, switching to microphone at the bottom of the device [%0d]", ictx->soundCard->internal_id);
-		ms_mutex_lock(&ictx->stream_mutex);
 		android_snd_read_set_internal_device_id(ictx, ictx->soundCard->internal_id);
-		ms_mutex_unlock(&ictx->stream_mutex);
 	} else if ((playback_card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE) {
 		ms_message("[AAudio Recorder] Playback soundcard [%s] also has capture capability, switching microphone to it as well", playback_card->name);
 		android_snd_read_set_device_id(obj, playback_card);
@@ -490,7 +543,7 @@ static int android_snd_read_playback_device_changed(MSFilter *obj, void *data) {
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
 	ms_message("[AAudio Recorder] Playback sound card is being changed to ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", playback_card->id, playback_card->name, playback_card->internal_id, ms_snd_card_device_type_to_string(playback_card->device_type), playback_card->capabilities);
 
-	if (playback_card->name != NULL && ictx->soundCard->name != NULL && strcmp(playback_card->name, ictx->soundCard->name) == 0) {
+	if (playback_card->name != nullptr && ictx->soundCard->name != nullptr && strcmp(playback_card->name, ictx->soundCard->name) == 0) {
 		ms_message("[AAudio Recorder] New playback device [%s] has the same name as the current recorder device [%s], keeping current recorder device (but checking if alternative mic ID should be used)", playback_card->name, ictx->soundCard->name);
 		android_snd_read_change_microphone_according_to_speaker(obj, playback_card);
 	} else {
@@ -500,7 +553,7 @@ static int android_snd_read_playback_device_changed(MSFilter *obj, void *data) {
 		const bctbx_list_t *list = ms_snd_card_manager_get_list(manager);
 		for (const bctbx_list_t *it = list; it != nullptr; it = bctbx_list_next(it)) {
 			MSSndCard *card = static_cast<MSSndCard *>(bctbx_list_get_data(it));
-			if ((card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE && card->name != NULL && strcmp(card->name, playback_card->name) == 0) {
+			if ((card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE && card->name != nullptr && strcmp(card->name, playback_card->name) == 0) {
 				ms_message("[AAudio Recorder] Found a sound card matching playback device name and with CAPTURE capability, using it");
 				found = true;
 				android_snd_read_set_device_id(obj, card);
