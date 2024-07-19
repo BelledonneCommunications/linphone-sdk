@@ -278,6 +278,15 @@ These ON/OFF options control the enablement of important features of the SDK, wh
 - `ENABLE_MKV`: enablement of Matroska video file reader/writer.
 - `ENABLE_LDAP`: enablement of OpenLDAP.
 
+### Android permissions
+
+The SDK declares a bunch of permission it may or may not need depending on your usage.
+
+If you need to remove one or more of them, you can do it in your own app's AndroidManifest.xml file like this:
+```
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
+```
+
 <a name="licensing-gpl-third-parties-versus-non-gpl-third-parties"></a>
 ## Licensing: GPL third parties versus non GPL third parties
 
