@@ -119,13 +119,8 @@ time_t ms_time(time_t *t);
 #define ms_time time
 #endif
 
-#ifdef DEBUG
-static MS2_INLINE void ms_debug(const char *fmt, ...) {
-	va_list args;
-	va_start(args, fmt);
-	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG, fmt, args);
-	va_end(args);
-}
+#ifdef MS2_DEBUG_MODE
+#define ms_debug bctbx_debug
 #else
 #define ms_debug(fmt, ...)
 #endif
