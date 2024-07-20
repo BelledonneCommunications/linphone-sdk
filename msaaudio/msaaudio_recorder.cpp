@@ -530,9 +530,6 @@ static void android_snd_read_change_microphone_according_to_speaker(MSFilter *ob
 	} else if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
 		ms_message("[AAudio Recorder] Earpiece device is being used, switching to microphone at the bottom of the device [%0d]", ictx->soundCard->internal_id);
 		android_snd_read_set_internal_device_id(ictx, ictx->soundCard->internal_id);
-	} else if ((playback_card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE) {
-		ms_message("[AAudio Recorder] Playback soundcard [%s] also has capture capability, switching microphone to it as well", playback_card->name);
-		android_snd_read_set_device_id(obj, playback_card);
 	} else {
 		ms_message("[AAudio Recorder] New playback device isn't speaker or earpiece, nor it has playback capability, so not changing microphone ID");
 	}
@@ -563,7 +560,10 @@ static int android_snd_read_playback_device_changed(MSFilter *obj, void *data) {
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
 	ms_message("[AAudio Recorder] Playback sound card is being changed to ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", playback_card->id, playback_card->name, playback_card->internal_id, ms_snd_card_device_type_to_string(playback_card->device_type), playback_card->capabilities);
 
-	if (sound_cards_have_same_name(playback_card, ictx->soundCard)) {
+	if ((playback_card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE) {
+		ms_message("[AAudio Recorder] New playback device [%s] also has capture capability, switching microphone to it as well", playback_card->name);
+		android_snd_read_set_device_id(obj, playback_card);
+	} else if (sound_cards_have_same_name(playback_card, ictx->soundCard)) {
 		if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER || playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
 			// Force using device's microphone when using speaker or earpiece
 			ms_message("[AAudio Recorder] New playback device [%s] has the same name as the current recorder device [%s], using device microphone (but checking if alternative mic ID should be used)", playback_card->name, ictx->soundCard->name);
