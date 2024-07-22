@@ -103,7 +103,18 @@ static void retry_later_on_io_error(belle_sip_refresher_t *refresher) {
 }
 
 static void schedule_timer(belle_sip_refresher_t *refresher) {
-	schedule_timer_at(refresher, refresher->obtained_expires * 900, NORMAL_REFRESH);
+	// The refresh window is given as percentage
+	int min_value = 1000 * belle_sip_stack_get_min_refresh_window(refresher->transaction->base.provider->stack) / 100;
+	int max_value = 1000 * belle_sip_stack_get_max_refresh_window(refresher->transaction->base.provider->stack) / 100;
+	int weight = 900;
+	if (min_value < max_value) {
+		weight = (belle_sip_random() % (max_value - min_value)) + min_value;
+	} else if (min_value == max_value) {
+		weight = min_value;
+	}
+	belle_sip_message("%s - DEBUG DEBUG Refresher[%p]: min %0d max %0d weight %0d", __func__, refresher, min_value,
+	                  max_value, weight);
+	schedule_timer_at(refresher, refresher->obtained_expires * weight, NORMAL_REFRESH);
 }
 
 static void process_dialog_terminated(belle_sip_listener_t *user_ctx,

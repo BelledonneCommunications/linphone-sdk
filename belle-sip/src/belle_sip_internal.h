@@ -595,6 +595,9 @@ struct belle_sip_stack {
 	char *http_proxy_passwd;   /*for future use*/
 	belle_sip_digest_authentication_policy_t *digest_auth_policy;
 
+	int refresh_window_min; /*lower bound of the refresh window */
+	int refresh_window_max; /*upper bound of the refresh window */
+
 	unsigned char dns_srv_enabled;
 	unsigned char dns_search_enabled;
 	unsigned char reconnect_to_primary_asap;

@@ -114,6 +114,11 @@ BELLESIP_EXPORT unsigned char belle_sip_stack_dns_search_enabled(const belle_sip
 
 BELLESIP_EXPORT void belle_sip_stack_enable_dns_search(belle_sip_stack_t *stack, unsigned char enable);
 
+BELLESIP_EXPORT void
+belle_sip_stack_set_refresh_window(belle_sip_stack_t *stack, const int min_value, const int max_value);
+BELLESIP_EXPORT int belle_sip_stack_get_min_refresh_window(belle_sip_stack_t *stack);
+BELLESIP_EXPORT int belle_sip_stack_get_max_refresh_window(belle_sip_stack_t *stack);
+
 /**
  * Allow to add custom dns entry. Same usage as belle_sip_stack_get_dns_user_hosts_file but with a nique entry
  * @param stack the stack

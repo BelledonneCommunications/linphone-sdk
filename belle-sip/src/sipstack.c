@@ -507,3 +507,16 @@ int belle_sip_stack_check_digest_compatibility(const belle_sip_stack_t *stack,
 void belle_sip_stack_set_client_bind_port(belle_sip_stack_t *stack, int port) {
 	stack->test_bind_port = port;
 }
+
+void belle_sip_stack_set_refresh_window(belle_sip_stack_t *stack, const int min_value, const int max_value) {
+	stack->refresh_window_min = min_value;
+	stack->refresh_window_max = max_value;
+}
+
+int belle_sip_stack_get_min_refresh_window(belle_sip_stack_t *stack) {
+	return stack->refresh_window_min;
+}
+
+int belle_sip_stack_get_max_refresh_window(belle_sip_stack_t *stack) {
+	return stack->refresh_window_max;
+}

@@ -61,7 +61,7 @@ static int ist_on_timer_G(belle_sip_ist_t *obj) {
 
 		belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)base->last_response);
 		belle_sip_source_set_timeout_int64(obj->timer_G, MIN(2 * interval, cfg->T2));
-		return BELLE_SIP_CONTINUE;
+		return BELLE_SIP_CONTINUE_WITHOUT_CATCHUP;
 	}
 	return BELLE_SIP_STOP;
 }

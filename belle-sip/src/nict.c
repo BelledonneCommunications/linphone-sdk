@@ -122,7 +122,7 @@ static int nict_on_timer_E(belle_sip_nict_t *obj) {
 			return BELLE_SIP_STOP;
 			break;
 	}
-	return BELLE_SIP_CONTINUE;
+	return BELLE_SIP_CONTINUE_WITHOUT_CATCHUP;
 }
 
 static void nict_stop_retransmissions(belle_sip_nict_t *obj) {

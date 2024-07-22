@@ -163,8 +163,7 @@ static int ict_on_timer_A(belle_sip_ict_t *obj) {
 		default:
 			break;
 	}
-
-	return BELLE_SIP_CONTINUE;
+	return BELLE_SIP_CONTINUE_WITHOUT_CATCHUP;
 }
 
 /* Timer B: INVITE transaction timeout timer */
