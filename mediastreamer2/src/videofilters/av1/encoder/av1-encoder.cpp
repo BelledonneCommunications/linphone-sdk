@@ -107,7 +107,7 @@ void Av1Encoder::start() {
 	if (aom_codec_enc_init(&mCodec, mEncoder, &mConfig, 0)) {
 		ms_error("Av1Encoder: Failed to initialize encoder.");
 	} else {
-		aom_codec_control(&mCodec, AOME_SET_CPUUSED, 10);
+		aom_codec_control(&mCodec, AOME_SET_CPUUSED, 11);
 
 		mIsRunning = true;
 		mEncodeThread = std::thread(&Av1Encoder::encoderThread, this);
