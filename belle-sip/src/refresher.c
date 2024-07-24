@@ -112,8 +112,6 @@ static void schedule_timer(belle_sip_refresher_t *refresher) {
 	} else if (min_value == max_value) {
 		weight = min_value;
 	}
-	belle_sip_message("%s - DEBUG DEBUG Refresher[%p]: min %0d max %0d weight %0d", __func__, refresher, min_value,
-	                  max_value, weight);
 	schedule_timer_at(refresher, refresher->obtained_expires * weight, NORMAL_REFRESH);
 }
 
