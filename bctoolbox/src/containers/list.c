@@ -326,22 +326,32 @@ bctbx_list_t *bctbx_list_insert(bctbx_list_t *list, bctbx_list_t *before, void *
 	return list;
 }
 
-bctbx_list_t *bctbx_list_copy(const bctbx_list_t *list) {
+static bctbx_list_t *bctbx_list_copy_with_func(const bctbx_list_t *list, bctbx_list_copy_func copyfunc) {
 	bctbx_list_t *copy = NULL;
-	const bctbx_list_t *iter;
-	for (iter = list; iter != NULL; iter = bctbx_list_next(iter)) {
-		copy = bctbx_list_append(copy, iter->data);
+	bctbx_list_t *prev = NULL;
+
+	for (const bctbx_list_t *iter = list; iter != NULL; iter = bctbx_list_next(iter)) {
+		bctbx_list_t *item = bctbx_list_new(copyfunc ? copyfunc(iter->data) : iter->data);
+
+		if (copy == NULL) {
+			copy = item;
+		} else {
+			prev->next = item;
+			item->prev = prev;
+		}
+
+		prev = item;
 	}
+
 	return copy;
 }
 
+bctbx_list_t *bctbx_list_copy(const bctbx_list_t *list) {
+	return bctbx_list_copy_with_func(list, NULL);
+}
+
 bctbx_list_t *bctbx_list_copy_with_data(const bctbx_list_t *list, bctbx_list_copy_func copyfunc) {
-	bctbx_list_t *copy = NULL;
-	const bctbx_list_t *iter;
-	for (iter = list; iter != NULL; iter = bctbx_list_next(iter)) {
-		copy = bctbx_list_append(copy, copyfunc(iter->data));
-	}
-	return copy;
+	return bctbx_list_copy_with_func(list, copyfunc);
 }
 
 bctbx_list_t *bctbx_list_copy_reverse_with_data(const bctbx_list_t *list, bctbx_list_copy_func copyfunc) {
