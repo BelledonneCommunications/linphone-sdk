@@ -45,8 +45,16 @@ list(FIND _IOS_ARCHS "arm64-simulator" _ARM64_SIMULATOR_FOUND)
 
 if(ENABLE_SWIFT_DOC AND _ARM64_SIMULATOR_FOUND GREATER -1)
 	message("Generating doc for swift module, we need arch arm64 to generate doc!")
+	set(CONFIGURATION "RelWithDebInfo")
+	if (CMAKE_BUILD_TYPE)
+		set(CONFIGURATION "${CMAKE_BUILD_TYPE}")
+	elseif (CMAKE_CONFIGURATION_TYPES)
+		if (NOT "RelWithDebInfo" IN_LIST CMAKE_CONFIGURATION_TYPES)
+			list(GET CMAKE_CONFIGURATION_TYPES 0 CONFIGURATION)
+		endif()
+	endif()
 	execute_process(
-		COMMAND "xcodebuild" "docbuild" "-scheme" "linphonesw" "-destination" "platform=iOS Simulator,name=iPhone 13" "DOCC_HOSTING_BASE_PATH=${LINPHONESDK_SWIFT_DOC_HOSTING_PATH}"
+		COMMAND "xcodebuild" "docbuild" "-scheme" "linphonesw" "-configuration" "${CONFIGURATION}" "-destination" "platform=iOS Simulator,name=iPhone 13" "DOCC_HOSTING_BASE_PATH=${LINPHONESDK_SWIFT_DOC_HOSTING_PATH}"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/ios-arm64-simulator/liblinphone/"
 	)
 	execute_process(
