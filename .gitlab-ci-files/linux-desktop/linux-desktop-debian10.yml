@@ -35,6 +35,7 @@ debian10-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
+    CMAKE_OPTIONS: -DENABLE_AV1=OFF
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .linux-desktop
@@ -48,6 +49,7 @@ debian10-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
+    CMAKE_OPTIONS: -DENABLE_AV1=OFF
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .linux-desktop
@@ -66,7 +68,7 @@ debian10-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-    CMAKE_OPTIONS: -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON
+    CMAKE_OPTIONS: -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON -DENABLE_AV1=OFF
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-debian10
@@ -83,7 +85,7 @@ debian10-ninja-gcc-smallsdk:
 
 debian10-ninja-gcc-pqc:
   variables:
-    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF -DENABLE_AV1=OFF
   extends: debian10-ninja-gcc
 
 debian10-ninja-clang:
@@ -93,7 +95,7 @@ debian10-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-    CMAKE_OPTIONS: -DENABLE_LDAP=OFF
+    CMAKE_OPTIONS: -DENABLE_LDAP=OFF -DENABLE_AV1=OFF
   extends: .linux-desktop
 
 debian10-ninja-clang-sanitizer:
@@ -112,7 +114,7 @@ debian10-ninja-clang-novideo:
 
 debian10-ninja-clang-pqc:
   variables:
-    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF -DENABLE_AV1=OFF
   extends: debian10-ninja-clang
 
 #################################################
