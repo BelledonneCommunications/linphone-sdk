@@ -38,8 +38,8 @@ You can package 3 kinds of binaries : win32, uwp and win32 with Windows Store Co
 - uwp : this is a uwp x64 version of linphone-sdk. You will not be able to use OpenH264 and Lime X3DH. The framework is 'uap10.0'.
 - win32 Windows Store : this is the win32 version of linphone-sdk with the Windows Store Compatibility enabled for Windows Bridge. The framework is 'netcore'.
 
-In an another build folder (like build-nuget), set these options :
-- (Needed) `-DLINPHONESDK_PACKAGER=Nuget`
+In an another build folder (like build-nuget), run ```cmake .. ``` with these options :
+- (Needed) `--DLINPHONESDK_BUILD_TYPE=Packager -DLINPHONESDK_PACKAGER=Nuget`
 - (Optional) `-DLINPHONESDK_DESKTOP_ZIP_PATH=<path of the zip file containing the Desktop binaries>` (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86/linphone-sdk) 
 - (Optional) `-DLINPHONESDK_UWP_ZIP_PATH=<path of the zip file containing the UWP binaries>` (eg. C:/projects/desktop-uwp/linphone-sdk/builduwp/linphone-sdk)
 - (Optional) `-DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=<path of the zip file containing the Desktop binaries with Store compatibility enabled>` (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86_store/linphone-sdk)
