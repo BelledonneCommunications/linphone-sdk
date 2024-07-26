@@ -59,6 +59,4 @@ RUN sudo apt-get install -y python3-full python3-pip && sudo python3 -m venv /op
 
 ENV PATH=/opt/bc/pip-packages/bin:$PATH:/home/bc/.local/bin
 
-COPY --chown=bc rpmmacros /home/bc/.rpmmacros
-
 CMD bash
