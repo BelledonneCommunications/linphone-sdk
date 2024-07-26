@@ -134,13 +134,17 @@ static void wrapper(void *info, const char *domain, BctbxLogLevel lev, const cha
 	if (func) func(domain, lev, fmt, args);
 }
 
+static void bctbx_handler_uninit(bctbx_log_handler_t *handler);
+static void bctbx_handler_logv_file_uninit(bctbx_log_handler_t *handler);
+static void bctbx_handler_logv_file_destroy(bctbx_log_handler_t *handler);
+
 static bctbx_logger_t main_logger = {0};
 static bctbx_log_handler_t static_handler = {0};
 
 static void initialize_default_handler(void) {
 	main_logger.default_handler = &static_handler;
 	static_handler.func = wrapper;
-	static_handler.destroy = (BctbxLogHandlerDestroyFunc)bctbx_logv_out_destroy;
+	static_handler.destroy = (BctbxLogHandlerDestroyFunc)bctbx_handler_uninit;
 	static_handler.user_info = (void *)bctbx_logv_out;
 	bctbx_add_log_handler(&static_handler);
 }
@@ -236,7 +240,7 @@ bctbx_log_handler_t *bctbx_create_file_log_handler(uint64_t max_size, const char
 
 	handler = bctbx_new0(bctbx_log_handler_t, 1);
 	handler->func = bctbx_logv_file;
-	handler->destroy = bctbx_logv_file_destroy;
+	handler->destroy = bctbx_handler_logv_file_destroy;
 	handler->user_info = filehandler;
 
 end:
@@ -287,10 +291,10 @@ void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char *domain) {
 }
 
 void bctbx_set_log_file(FILE *f) {
-	static bctbx_file_log_handler_t filehandler;
-	static bctbx_log_handler_t handler;
+	static bctbx_file_log_handler_t filehandler = {0};
+	static bctbx_log_handler_t handler = {0};
 	handler.func = bctbx_logv_file;
-	handler.destroy = (BctbxLogHandlerDestroyFunc)bctbx_logv_file_destroy;
+	handler.destroy = (BctbxLogHandlerDestroyFunc)bctbx_handler_logv_file_uninit;
 	filehandler.max_size = -1;
 	filehandler.file = f;
 	handler.user_info = (void *)&filehandler;
@@ -655,7 +659,7 @@ void bctbx_logv_out_cb(
 	if (tags) bctbx_free(tags);
 }
 
-void bctbx_logv_out_destroy(bctbx_log_handler_t *handler) {
+static void bctbx_handler_uninit(bctbx_log_handler_t *handler) {
 	handler->user_info = NULL;
 }
 
@@ -830,12 +834,20 @@ end:
 	if (msg) bctbx_free(msg);
 }
 
-void bctbx_logv_file_destroy(bctbx_log_handler_t *handler) {
+static void bctbx_handler_logv_file_uninit(bctbx_log_handler_t *handler) {
 	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *)handler->user_info;
 	fclose(filehandler->file);
 	bctbx_free(filehandler->path);
 	bctbx_free(filehandler->name);
-	bctbx_logv_out_destroy(handler);
+	bctbx_handler_uninit(handler);
+}
+
+static void bctbx_handler_logv_file_destroy(bctbx_log_handler_t *handler) {
+	bctbx_file_log_handler_t *filehandler = (bctbx_file_log_handler_t *)handler->user_info;
+	bctbx_handler_logv_file_uninit(handler);
+	bctbx_free(filehandler);
+	bctbx_handler_uninit(handler);
+	bctbx_free(handler);
 }
 
 #ifndef _MSC_VER

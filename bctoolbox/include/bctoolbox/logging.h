@@ -74,13 +74,6 @@ BCTBX_PUBLIC void bctbx_init_logger(bool_t create);
 BCTBX_PUBLIC void bctbx_uninit_logger(void);
 
 /*
- Default functions to free log handlers
- @param[in] bctbx_log_handler_t* handler : the handler to free
-*/
-BCTBX_PUBLIC void bctbx_logv_out_destroy(bctbx_log_handler_t *handler);
-BCTBX_PUBLIC void bctbx_logv_file_destroy(bctbx_log_handler_t *handler);
-
-/*
  Function to create a log handler
  @param[in] BctbxLogHandlerFunc func : the function to call to handle a new line of log
  @param[in] BctbxLogHandlerDestroyFunc destroy : the function to call to free this handler particuler its user_info
