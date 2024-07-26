@@ -59,7 +59,7 @@ if(ENABLE_SWIFT_DOC AND _ARM64_SIMULATOR_FOUND GREATER -1)
 	)
 	execute_process(
 		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphonesw.doccarchive" "${LINPHONESDK_BUILD_DIR}/docs/linphonesw.doccarchive"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/ios-arm64-simulator/lib/Release/"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/ios-arm64-simulator/lib/${CONFIGURATION}/"
 	)
 
 	if(NOT ENABLE_SWIFT_WRAPPER_COMPILATION)
