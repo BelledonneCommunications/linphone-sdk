@@ -1,6 +1,6 @@
 # ###########################################################################
 # TasksWindows.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
 #
 # ###########################################################################
 #
@@ -78,15 +78,29 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 	list(APPEND _WINDOWS_TARGETS ${_TARGET})
 endforeach()
 
+############################################################################
+# Build CSharp wrapper for each selected architecture
+############################################################################
+
+foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
+	get_arch_builddir_name("${_WINDOWS_ARCH}" _WINDOWS_ARCH_BUILDDIR_NAME)
+	ExternalProject_add(cs-wrapper-${_WINDOWS_ARCH}
+		SOURCE_DIR "${PROJECT_SOURCE_DIR}/cmake/Windows/wrapper"
+		BINARY_DIR "${PROJECT_BINARY_DIR}/${_WINDOWS_ARCH_BUILDDIR_NAME}/CsWrapper"
+		CMAKE_ARGS "-DLINPHONESDK_DIR=${PROJECT_SOURCE_DIR}" "-DLINPHONESDK_INSTALL_DIR=${PROJECT_BINARY_DIR}/linphone-sdk/${_WINDOWS_ARCH_BUILDDIR_NAME}" "-DLINPHONE_PLATFORM=AnyCPU" "-DWINDOWS_VARIANT=" "-DBUILD_TYPE=$<IF:$<CONFIG:Debug>,Debug,Release>" ${_WINDOWS_CMAKE_ARGS}
+		DEPENDS ${_WINDOWS_TARGETS}
+		BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
+		INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
+	)
+endforeach()
+
 # ###########################################################################
 # Generate the SDK for each selected architecture
 # ###########################################################################
 foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 	if(ENABLE_MICROSOFT_STORE_APP)
-		set(_DEPENDS_TARGET win-store-${_WINDOWS_ARCH})
 		set(_NAME "Windows")
 	else()
-		set(_DEPENDS_TARGET win-${_WINDOWS_ARCH})
 		set(_NAME "Windows Store")
 	endif()
 
@@ -102,7 +116,7 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 		"-DLINPHONESDK_WINDOWS_ARCH=${_WINDOWS_ARCH_BUILDDIR_NAME}"
 		"-DENABLE_EMBEDDED_OPENH264=${ENABLE_EMBEDDED_OPENH264}"
 		"-P" "${PROJECT_SOURCE_DIR}/cmake/Windows/GenerateSDK.cmake"
-		DEPENDS ${_DEPENDS_TARGET}
+		DEPENDS cs-wrapper-${_WINDOWS_ARCH}
 		WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 		COMMENT "Generating the SDK (zip file) for ${_NAME} ${_WINDOWS_ARCH}"
 		USES_TERMINAL
