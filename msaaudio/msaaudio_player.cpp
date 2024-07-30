@@ -102,6 +102,7 @@ struct AAudioOutputContext {
 		framesPerBurst = 0;
 		bluetoothScoStarted = false;
 		streamRunning = false;
+		volumeHackRequired = false;
 		task = nullptr;
 		checkForDeviceChange = false;
 	}
@@ -173,6 +174,7 @@ struct AAudioOutputContext {
 	bool streamRunning;
 	MSTask *task;
 	bool checkForDeviceChange;
+	bool volumeHackRequired;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -370,6 +372,7 @@ static void _aaudio_player_init(MSFilter *obj, bool skip_update_stream_type) {
 	}
 
 	octx->streamRunning = true;
+	octx->volumeHackRequired = true;
 	ms_mutex_unlock(&octx->stream_mutex);
 	return;
 }
@@ -455,8 +458,6 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	}
 
 	ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_init, obj);
-	// TODO: wait for stream to be started?
-	anroid_snd_write_require_volume_hack_depending_on_stream(octx);
 }
 
 static bool_t android_snd_adjust_buffer_size(MSFilter *obj) {
@@ -480,6 +481,12 @@ static void android_snd_write_process(MSFilter *obj) {
 			ms_warning("[AAudio Player] Player stream has disconnected");
 			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, obj);
 		} else {
+			if (octx->volumeHackRequired) {
+				ms_message("[AAudio Player] Audio stream has been started, applying volume hack");
+				anroid_snd_write_require_volume_hack_depending_on_stream(octx);
+				octx->volumeHackRequired = false;
+			}
+
 			if (octx->checkForDeviceChange) {
 				int id = (int)AAudioStream_getDeviceId(octx->stream);
 				if (id != octx->soundCard->internal_id) {
