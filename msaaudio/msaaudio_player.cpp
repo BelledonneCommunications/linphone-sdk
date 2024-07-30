@@ -256,9 +256,7 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;	
 }
 
-static void _aaudio_player_init(MSFilter *obj, bool skip_update_stream_type) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-
+static void _aaudio_player_init(AAudioOutputContext *octx, bool skip_update_stream_type) {
 	ms_mutex_lock(&octx->stream_mutex);
 
 	AAudioStreamBuilder *builder;
@@ -377,19 +375,17 @@ static void _aaudio_player_init(MSFilter *obj, bool skip_update_stream_type) {
 	return;
 }
 
-static bool_t aaudio_player_init(MSFilter *obj) {
-	_aaudio_player_init(obj, FALSE);
+static bool_t aaudio_player_init(AAudioOutputContext *octx) {
+	_aaudio_player_init(octx, FALSE);
 	return TRUE;
 }
 
-static bool_t aaudio_player_init_skip_update_stream_type(MSFilter *obj) {
-	_aaudio_player_init(obj, TRUE);
+static bool_t aaudio_player_init_skip_update_stream_type(AAudioOutputContext *octx) {
+	_aaudio_player_init(octx, TRUE);
 	return TRUE;
 }
 
-static bool_t aaudio_player_close(MSFilter *obj) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-
+static bool_t aaudio_player_close(AAudioOutputContext *octx) {
 	ms_mutex_lock(&octx->stream_mutex);
 
 	if (octx->stream) {
@@ -415,12 +411,10 @@ static bool_t aaudio_player_close(MSFilter *obj) {
 	return TRUE;
 }
 
-static bool_t aaudio_player_restart(MSFilter *obj) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-
+static bool_t aaudio_player_restart(AAudioOutputContext *octx) {
 	ms_message("[AAudio Player] Restarting stream");
-	aaudio_player_close(obj);
-	_aaudio_player_init(obj, TRUE);
+	aaudio_player_close(octx);
+	_aaudio_player_init(octx, TRUE);
 	ms_message("[AAudio Player] Stream was restarted");
 
 	return TRUE;
@@ -457,11 +451,10 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 		ms_android_sound_utils_enable_bluetooth(octx->sound_utils, octx->bluetoothScoStarted);
 	}
 
-	ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_init, obj);
+	ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_init, octx);
 }
 
-static bool_t android_snd_adjust_buffer_size(MSFilter *obj) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
+static bool_t android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
 	// Ensure that stream has been created before adjusting buffer size
 	ms_mutex_lock(&octx->stream_mutex);
 	
@@ -479,7 +472,7 @@ static void android_snd_write_process(MSFilter *obj) {
 		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
 		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
 			ms_warning("[AAudio Player] Player stream has disconnected");
-			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, obj);
+			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 		} else {
 			if (octx->volumeHackRequired) {
 				ms_message("[AAudio Player] Audio stream has been started, applying volume hack");
@@ -491,7 +484,7 @@ static void android_snd_write_process(MSFilter *obj) {
 				int id = (int)AAudioStream_getDeviceId(octx->stream);
 				if (id != octx->soundCard->internal_id) {
 					ms_warning("[AAudio Player] Device has changed, restarting stream");
-					ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, obj);
+					ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 				}
 				octx->checkForDeviceChange = false;
 			} else {
@@ -512,7 +505,7 @@ static void android_snd_write_process(MSFilter *obj) {
 					octx->bufferSize = newBufferSize;
 					octx->prevXRunCount = xRunCount;
 
-					ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)android_snd_adjust_buffer_size, obj);
+					ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)android_snd_adjust_buffer_size, octx);
 				}
 			}
 		}
@@ -529,7 +522,7 @@ static void android_snd_write_process(MSFilter *obj) {
 static void android_snd_write_postprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
-	octx->task = ms_worker_thread_add_waitable_task(octx->process_thread, (MSTaskFunc)aaudio_player_close, obj);
+	octx->task = ms_worker_thread_add_waitable_task(octx->process_thread, (MSTaskFunc)aaudio_player_close, octx);
 	
 	if (octx->bluetoothScoStarted) {
 		ms_message("[AAudio Player] We previously started SCO in Android's AudioManager, stopping it now");
@@ -572,7 +565,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 
 		if (octx->streamRunning || octx->stream) {
 			ms_message("[AAudio Player] Requesting the stream to restart to apply new device ID");
-			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, obj);
+			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 		} else {
 			ms_warning("[AAudio Player] No stream, will check when stream will be running if device needs to be updated");
 			octx->checkForDeviceChange = true;
