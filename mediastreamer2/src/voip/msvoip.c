@@ -166,11 +166,11 @@ static MSSndCardDesc *ms_snd_card_descs[] = {
 //&android_native_snd_card_desc,
 //&msandroid_sound_card_desc,
 #ifdef ENABLE_OPENSLES
-    &android_native_snd_opensles_card_desc
+    &android_native_snd_opensles_card_desc,
 #endif
 #endif
 #endif /* MS2_FILTERS */
-        NULL};
+    NULL};
 
 #ifdef VIDEO_ENABLED
 

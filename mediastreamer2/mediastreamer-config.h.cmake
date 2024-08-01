@@ -53,6 +53,7 @@
 #cmakedefine __PULSEAUDIO_ENABLED__
 #cmakedefine __QSA_ENABLED__
 #cmakedefine HAVE_SPEEXDSP
+#cmakedefine ENABLE_OPENSLES
 #cmakedefine PACKAGE_PLUGINS_DIR "${PACKAGE_PLUGINS_DIR}"
 #cmakedefine PACKAGE_DATA_DIR "${PACKAGE_DATA_DIR}"
 #cmakedefine PLUGINS_EXT "${PLUGINS_EXT}"
