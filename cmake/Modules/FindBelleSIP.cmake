@@ -47,6 +47,11 @@ if(TARGET belle-sip)
 	set(BelleSIP_tester_TARGET libbelle-sip-tester)
 endif()
 
+if(TARGET libbelle-sip-tester)
+	set(BelleSIP_tester_TARGET libbelle-sip-tester)
+else()
+	message(STATUS "Target libbelle-sip-tester not found")
+endif()
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(BelleSIP
 	REQUIRED_VARS ${_BelleSIP_REQUIRED_VARS}
