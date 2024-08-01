@@ -126,7 +126,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		CONFIGURATIONS Debug RelWithDebInfo
 	)
 
-else()
+elseif(NOT ANDROID)
 
 	# foo.cpp is an empty file here just to request cmake to use the C++ compiler to link the executable
 	# since it depends on libraries written in C++.

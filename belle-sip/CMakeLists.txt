@@ -213,7 +213,7 @@ add_subdirectory(include)
 add_subdirectory(src)
 
 
-if(ENABLE_UNIT_TESTS AND NOT ANDROID)
+if(ENABLE_UNIT_TESTS)
 	enable_testing()
 	add_subdirectory(tester)
 endif()
