@@ -311,7 +311,8 @@ public:
 		installHandler(ret);
 		return ret;
 	}
-	_parserElementT parseInput(const std::string &rulename, const std::string &input, size_t *parsed_size);
+	_parserElementT
+	parseInput(const std::string &rulename, const std::string &input, size_t *parsed_size, bool full_match = false);
 
 private:
 	ParserHandlerBase<_parserElementT> *getHandler(unsigned int);
@@ -506,12 +507,12 @@ CollectorBase<_parserElementT> *ParserHandlerBase<_parserElementT>::getCollector
 template <typename _parserElementT>
 void ParserHandlerBase<_parserElementT>::releaseContext(const std::shared_ptr<HandlerContext<_parserElementT>> &ctx) {
 #if BELR_USE_ATOMIC
-	if (mCacheLocked.test_and_set(std::memory_order_relaxed) == false){
-	mCachedContext = ctx;
+	if (mCacheLocked.test_and_set(std::memory_order_relaxed) == false) {
+		mCachedContext = ctx;
 		mCacheLocked.clear(std::memory_order_relaxed);
 	}
 #else
-	mCachedContext=ctx;
+	mCachedContext = ctx;
 #endif
 }
 
@@ -519,8 +520,8 @@ template <typename _parserElementT>
 std::shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElementT>::createContext() {
 #if BELR_USE_ATOMIC
 	std::shared_ptr<HandlerContext<_parserElementT>> ret;
-	if (mCacheLocked.test_and_set(std::memory_order_relaxed) == false){
-		if (mCachedContext){
+	if (mCacheLocked.test_and_set(std::memory_order_relaxed) == false) {
+		if (mCachedContext) {
 			ret = mCachedContext;
 			mCachedContext.reset();
 		}
@@ -702,8 +703,10 @@ void Parser<_parserElementT>::installHandler(ParserHandlerBase<_parserElementT> 
 }
 
 template <typename _parserElementT>
-_parserElementT
-Parser<_parserElementT>::parseInput(const std::string &rulename, const std::string &input, size_t *parsed_size) {
+_parserElementT Parser<_parserElementT>::parseInput(const std::string &rulename,
+                                                    const std::string &input,
+                                                    size_t *parsed_size,
+                                                    bool full_match) {
 	size_t parsed;
 	std::shared_ptr<Recognizer> rec = mGrammar->getRule(rulename);
 	ParserContext<_parserElementT> pctx(*this);
@@ -721,6 +724,10 @@ Parser<_parserElementT>::parseInput(const std::string &rulename, const std::stri
 	// cout<<"Recognition done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()<<"
 	// milliseconds"<<std::endl;
 	if (parsed_size) *parsed_size = parsed;
+
+	// If a full match has been asked and all the input has not been consumed, this is an error.
+	if (full_match && (parsed != input.length())) return nullptr;
+
 	auto ret = pctx.createRootObject(input, parsed);
 	return ret;
 }
