@@ -239,6 +239,13 @@ public class MediastreamerAndroidContext {
 		Log.i("[Audio Manager] Lower & raise audio volume on stream [" + stream + "] to workaround no sound issue until volume has changed...");
 		try {
 			AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
+			if (stream == AudioManager.STREAM_RING) {
+				int ringerMode = audioManager.getRingerMode();
+				if (ringerMode == AudioManager.RINGER_MODE_SILENT || ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
+					Log.w("[Audio Manager] Device is either in silent or vibrate mode, do not apply volume hack on RING stream!");
+					return;
+				}
+			}
 
 			boolean isVolumeFixed = audioManager.isVolumeFixed();
 			if (isVolumeFixed) {
