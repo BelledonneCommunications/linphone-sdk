@@ -43,7 +43,6 @@ unset(PREVIOUS_ANDROID_PREFIX_PATH)
 unset(REQUIRED_ANDROID_PREFIX_PATH)
 unset(REQUIRED_NATIVE_API_LEVEL)
 
-
 project(MSAndroidCamera2 VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
@@ -58,6 +57,7 @@ endif()
 find_package(Mediastreamer2 5.3.0 REQUIRED)
 
 set(SOURCE_FILES android-camera2-capture.cpp)
+bc_apply_compile_flags(SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 if(BUILD_SHARED_LIBS)
 	add_library(msandroidcamera2 MODULE ${SOURCE_FILES})
