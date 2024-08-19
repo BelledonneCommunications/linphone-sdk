@@ -105,6 +105,7 @@ struct AAudioOutputContext {
 		volumeHackRequired = false;
 		task = nullptr;
 		checkForDeviceChange = false;
+		adjustingBufferSize = false;
 	}
 
 	~AAudioOutputContext() {
@@ -175,6 +176,7 @@ struct AAudioOutputContext {
 	MSTask *task;
 	bool checkForDeviceChange;
 	bool volumeHackRequired;
+	bool adjustingBufferSize;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -390,6 +392,7 @@ static bool_t aaudio_player_close(AAudioOutputContext *octx) {
 
 	if (octx->stream) {
 		octx->streamRunning = false;
+		octx->adjustingBufferSize = false;
 		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
 		ms_message("[AAudio Player] Closing player stream, current state is [%s]", AAudio_convertStreamStateToText(streamState));
 		// According to https://developer.android.com/ndk/guides/audio/aaudio/aaudio#state-transitions
@@ -458,11 +461,13 @@ static bool_t android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
 	// Ensure that stream has been created before adjusting buffer size
 	ms_mutex_lock(&octx->stream_mutex);
 	
-	if (octx->stream) {
+	if (octx->adjustingBufferSize && octx->streamRunning && octx->stream) {
 		AAudioStream_setBufferSizeInFrames(octx->stream, octx->bufferSize);
+		octx->adjustingBufferSize = false;
 	}
 
 	ms_mutex_unlock(&octx->stream_mutex);
+	return TRUE;
 }
 
 static void android_snd_write_process(MSFilter *obj) {
@@ -491,21 +496,25 @@ static void android_snd_write_process(MSFilter *obj) {
 				int32_t xRunCount = AAudioStream_getXRunCount(octx->stream);
 				// If underrunning is getting worse
 				if (xRunCount > octx->prevXRunCount) {
-					// New buffer size
-					int32_t newBufferSize = octx->bufferSize + octx->framesPerBurst;
+					if (!octx->adjustingBufferSize) {
+						// New buffer size
+						int32_t newBufferSize = octx->bufferSize + octx->framesPerBurst;
 
-					// Buffer size cannot be bigger than the buffer capacity and it must be larger than 0
-					if (octx->bufferCapacity < newBufferSize) {
-						newBufferSize = octx->bufferCapacity;
-					} else if (newBufferSize <= 0) {
-						newBufferSize = 1;
+						// Buffer size cannot be bigger than the buffer capacity and it must be larger than 0
+						if (octx->bufferCapacity < newBufferSize) {
+							newBufferSize = octx->bufferCapacity;
+						} else if (newBufferSize <= 0) {
+							newBufferSize = 1;
+						}
+
+						ms_message("[AAudio Player] xRunCount [%0d] - Changing buffer size from [%0d] to [%0d] frames (maximum capacity [%0d] frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
+						octx->bufferSize = newBufferSize;
+
+						octx->adjustingBufferSize = true;
+						ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)android_snd_adjust_buffer_size, octx);
 					}
 
-					ms_message("[AAudio Player] xRunCount [%0d] - Changing buffer size from [%0d] to [%0d] frames (maximum capacity [%0d] frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
-					octx->bufferSize = newBufferSize;
 					octx->prevXRunCount = xRunCount;
-
-					ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)android_snd_adjust_buffer_size, octx);
 				}
 			}
 		}
@@ -522,6 +531,7 @@ static void android_snd_write_process(MSFilter *obj) {
 static void android_snd_write_postprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
+	octx->adjustingBufferSize = false;
 	octx->task = ms_worker_thread_add_waitable_task(octx->process_thread, (MSTaskFunc)aaudio_player_close, octx);
 	
 	if (octx->bluetoothScoStarted) {

@@ -580,7 +580,7 @@ static int android_snd_read_playback_device_changed(MSFilter *obj, void *data) {
 		} else {
 			// Try to find a recorder device with the same type as the playback one (bluetooth, headphones, etc...)
 			// https://github.com/BelledonneCommunications/linphone-android/issues/2197
-			ms_message("[AAudio Recorder] New playback device [%s] has the same name as the current recorder device [%s] but isn't speaker or earpiece, checking if we can find a recording device that matches the playback device type [%i]", playback_card->device_type);
+			ms_message("[AAudio Recorder] New playback device has the same name as the current recorder device but isn't speaker or earpiece, checking if we can find a recording device that matches the playback device type [%i]", playback_card->device_type);
 
 			MSSndCard *found = android_snd_read_find_sound_card_with_same_name(obj, playback_card, false);
 			if (found) {
