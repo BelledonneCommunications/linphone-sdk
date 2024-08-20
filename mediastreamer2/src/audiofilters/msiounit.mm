@@ -28,6 +28,7 @@
 #import "mediastreamer2/msfilter.h"
 #import "mediastreamer2/msticker.h"
 #import "mediastreamer2/msqueue.h"
+#import "mediastreamer2/msasync.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -126,6 +127,7 @@ typedef enum _MSAudioUnitState{
 @property MSFilter* read_filter;
 @property MSFilter* write_filter;
 @property MSSndCard* ms_snd_card;
+@property MSWorkerThread* worker_thread;
 @property bool_t audio_session_configured;
 @property bool_t read_started;
 @property bool_t write_started;
@@ -139,6 +141,7 @@ typedef enum _MSAudioUnitState{
 @property bool_t interacted_with_bluetooth_since_last_devices_reload;
 @property std::string removedDevice;
 
+
 +(AudioUnitHolder *)sharedInstance;
 - (id)init;
 -(void)create_audio_unit;
@@ -151,6 +154,7 @@ typedef enum _MSAudioUnitState{
 -(void)mutex_unlock;
 
 -(void) check_audio_unit_is_up;
+-(void) check_audio_unit_is_up_async;
 -(void) configure_audio_session;
 -(void) onAudioRouteChange: (NSNotification *) notif;
 @end
@@ -562,6 +566,10 @@ ms_mutex_t mutex;
 }
 
 -(void)stop_audio_unit_with_param: (bool_t) isConfigured {
+	if (_worker_thread){
+		ms_worker_thread_destroy(_worker_thread, TRUE);
+		_worker_thread = nullptr;
+	}
 	if (_audio_unit_state == MSAudioUnitStarted || _audio_unit_state == MSAudioUnitConfigured) {
 		check_audiounit_call( AudioOutputUnitStop(_audio_unit) );
 		ms_message("AudioUnit stopped");
@@ -737,6 +745,17 @@ ms_mutex_t mutex;
 	}
 }
 
+static bool_t check_audio_unit_up_task(void *user_data){
+	AudioUnitHolder *au_holder = (AudioUnitHolder*) user_data;
+	[au_holder check_audio_unit_is_up];
+}
+
+-(void) check_audio_unit_is_up_async {
+	if (!_worker_thread){
+		_worker_thread = ms_worker_thread_new("AudioUnitHolder");
+	}
+	ms_worker_thread_add_task(_worker_thread, check_audio_unit_up_task, self);
+}
 
 - (void)onAudioRouteChange: (NSNotification *) notif {
 	ms_message("[IOS Audio Route Change] msiounit audio route change callback");
@@ -977,10 +996,7 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 			*/
 			handle_sample_rate_change(need_audio_session_reconfiguration);
 			/* The next is done on a separate thread because it is considerably slow, so don't block the application calling thread here. */
-			dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH,0), ^{
-					[[AudioUnitHolder sharedInstance] configure_audio_unit];
-					[[AudioUnitHolder sharedInstance] start_audio_unit:0];
-			});
+			[au_holder check_audio_unit_is_up_async];
 		}
 	}else if (!activated){
 		if ([au_holder audio_unit_state] == MSAudioUnitStarted) {
@@ -1251,14 +1267,8 @@ static void au_read_process(MSFilter *f){
 		if (d->read_samples_last_activity_check == d->read_samples && d->read_samples_last_activity_check != (uint64_t)-1 && au_holder.stalled == FALSE){
 			ms_error("Stalled AudioUnit detected, will restart it");
 			au_holder.stalled = TRUE;
-			dispatch_async(dispatch_get_main_queue(), ^{
-					if (au_holder.stalled){
-						ms_message("Stalled AudioUnit is now going to be recreated and restarted.");
-						[au_holder recreate_audio_unit];
-						[au_holder configure_audio_unit];
-						[au_holder start_audio_unit:0];
-					}
-			});
+			[au_holder recreate_audio_unit];
+			[au_holder check_audio_unit_is_up_async];
 		}else d->read_samples_last_activity_check = d->read_samples;
 	}
 }
