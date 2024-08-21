@@ -48,6 +48,11 @@ bool ObuKeyFrameIndicator::isKeyFrame(mblk_t *im) {
 			return false;
 		}
 
+		if (packetPos + obuSize > packetSize) {
+			ms_warning("ObuKeyFrameIndicator: possibly truncated obu.");
+			return false;
+		}
+
 		switch (obuType) {
 			case OBP_OBU_SEQUENCE_HEADER:
 				mSequenceHeaderSeen = true;
