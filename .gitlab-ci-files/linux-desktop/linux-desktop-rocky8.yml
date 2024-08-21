@@ -62,7 +62,7 @@ rocky8-ninja-gcc:
   needs:
     - wait-cache-synchro-rocky8
 
-rocky8-ninja-gcc-tunnel-pq-h264:
+rocky8-ninja-gcc-tunnel-pq-h264-ekt:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
   extends: rocky8-ninja-gcc
@@ -84,13 +84,13 @@ pqc-rocky8-test:
   extends: .test-pqc
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
   needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264
+    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
 
 # pqc-rocky8-test-mr:
 #  extends: .test-pqc-mr
 #  <<: *docker_image_needs_platform_runner_tag_dev_toolset
 #  needs:
-#    - rocky8-ninja-gcc-tunnel-pq-h264
+#    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
 
 belr-rocky8-test:
   extends: .test-belr
@@ -160,7 +160,7 @@ mediastreamer-rocky8-test-h264-mr:
   extends: .test-mediastreamer-mr
   image: !reference [.rocky8_test_libl_image_version, image]
   needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264
+    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
   variables:
     PLATFORM: linux-rocky8
 
@@ -176,12 +176,12 @@ liblinphone-rocky8-test:
   extends: .test-liblinphone
   <<: *docker_image_needs_platform_devtoolset_libl
 
-liblinphone-rocky8-test-tunnel-pq:
+liblinphone-rocky8-test-pq-h264-ekt:
   extends:
     - .test-liblinphone-tunnel-pq
   image: !reference [.rocky8_test_libl_image_version, image]
   needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264
+    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
   variables:
     PLATFORM: linux-rocky8
 
@@ -189,12 +189,12 @@ liblinphone-rocky8-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
 
-liblinphone-rocky8-test-mr-tunnel-pq:
+liblinphone-rocky8-test-mr-pq-h264-ekt:
   extends:
     - .test-liblinphone-tunnel-pq-mr
   image: !reference [.rocky8_test_libl_image_version, image]
   needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264
+    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
   variables:
     PLATFORM: linux-rocky8
 
