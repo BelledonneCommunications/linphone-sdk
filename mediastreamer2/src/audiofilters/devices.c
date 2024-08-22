@@ -276,7 +276,9 @@ static bctbx_list_t *sound_device_descriptions;
 
 static bool_t
 sound_device_match(SoundDeviceDescription *d, const char *manufacturer, const char *model, const char *platform) {
-	if (strcasecmp(d->manufacturer, manufacturer) == 0 && strcmp(d->model, model) == 0) {
+	if (!manufacturer || !model) return FALSE;
+
+	if (d->manufacturer && strcasecmp(d->manufacturer, manufacturer) == 0 && d->model && strcmp(d->model, model) == 0) {
 		if (platform) {
 			if (d->platform && strcmp(d->platform, platform) == 0) {
 				return TRUE;

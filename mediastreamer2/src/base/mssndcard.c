@@ -75,15 +75,15 @@ MSSndCard *ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id) {
 		// Exact search
 		if (id == NULL) return card;
 		const char *card_id = ms_snd_card_get_string_id(card);
-		if (strcmp(card_id, id) == 0) return card;
+		if (card_id && strcmp(card_id, id) == 0) return card;
 
 		char *legacy_id = ms_snd_card_get_legacy_string_id(card);
-		if (strcmp(legacy_id, id) == 0) {
+		if (legacy_id && strcmp(legacy_id, id) == 0) {
 			ms_message("Found match using legacy sound card id");
 			ms_free(legacy_id);
 			return card;
 		}
-		ms_free(legacy_id);
+		if (legacy_id) ms_free(legacy_id);
 		// Regex search on card id that will contains at least "Filter : Model"
 		if (bctbx_is_matching_regex_log(card_id, id, FALSE)) {
 			return card;
@@ -103,15 +103,15 @@ ms_snd_card_manager_get_card_with_capabilities(MSSndCardManager *m, const char *
 		// Exact search
 		if (id == NULL) return card;
 		const char *card_id = ms_snd_card_get_string_id(card);
-		if (strcmp(card_id, id) == 0) return card;
+		if (card_id && strcmp(card_id, id) == 0) return card;
 
 		char *legacy_id = ms_snd_card_get_legacy_string_id(card);
-		if (strcmp(legacy_id, id) == 0) {
+		if (legacy_id && strcmp(legacy_id, id) == 0) {
 			ms_message("Found match using legacy sound card id");
 			ms_free(legacy_id);
 			return card;
 		}
-		ms_free(legacy_id);
+		if (legacy_id) ms_free(legacy_id);
 		// Regex search on card id that will contains at least "Filter : Model"
 		if (bctbx_is_matching_regex_log(card_id, id, FALSE)) {
 			return card;
@@ -124,10 +124,13 @@ ms_snd_card_manager_get_card_with_capabilities(MSSndCardManager *m, const char *
 
 MSSndCard *
 ms_snd_card_manager_get_card_by_type(MSSndCardManager *m, const MSSndCardDeviceType type, const char *driver_type) {
+	if (!driver_type) return NULL;
 	bctbx_list_t *elem;
 	for (elem = m->cards; elem != NULL; elem = elem->next) {
 		MSSndCard *c = (MSSndCard *)elem->data;
-		if ((strcmp(c->desc->driver_type, driver_type) == 0) && (type == ms_snd_card_get_device_type(c))) return c;
+		if (c->desc->driver_type && (strcmp(c->desc->driver_type, driver_type) == 0) &&
+		    (type == ms_snd_card_get_device_type(c)))
+			return c;
 	}
 	return NULL;
 }
@@ -136,8 +139,8 @@ static MSSndCard *get_card_with_cap(MSSndCardManager *m, const char *id, unsigne
 	bctbx_list_t *elem;
 	for (elem = m->cards; elem != NULL; elem = elem->next) {
 		MSSndCard *card = (MSSndCard *)elem->data;
-		if ((id == NULL || strcmp(ms_snd_card_get_string_id(card), id) == 0) && (card->capabilities & caps) == caps)
-			return card;
+		const char *card_id = ms_snd_card_get_string_id(card);
+		if ((id == NULL || (card_id && strcmp(card_id, id) == 0 && (card->capabilities & caps) == caps))) return card;
 	}
 	return NULL;
 }
@@ -147,7 +150,8 @@ bctbx_list_t *ms_snd_card_manager_get_all_cards_with_name(MSSndCardManager *m, c
 	bctbx_list_t *elem;
 	for (elem = m->cards; elem != NULL; elem = elem->next) {
 		MSSndCard *card = (MSSndCard *)elem->data;
-		if (strcmp(ms_snd_card_get_name(card), name) == 0) {
+		const char *card_name = ms_snd_card_get_name(card);
+		if (card_name && strcmp(card_name, name) == 0) {
 			cards = bctbx_list_append(cards, ms_snd_card_ref(card));
 		}
 	}
@@ -228,10 +232,13 @@ bool_t ms_snd_card_manager_swap_cards(MSSndCardManager *m, MSSndCard *card0, MSS
 	for (elem = m->cards; elem != NULL; elem = elem->next) {
 		MSSndCard *card = (MSSndCard *)elem->data;
 		MSSndCard *c = NULL;
-		if (strcmp(ms_snd_card_get_string_id(card), ms_snd_card_get_string_id(card0)) == 0) {
+		const char *id = ms_snd_card_get_string_id(card);
+		const char *id0 = ms_snd_card_get_string_id(card0);
+		const char *id1 = ms_snd_card_get_string_id(card1);
+		if (id && id0 && strcmp(id, id0) == 0) {
 			card0_found = TRUE;
 			c = card1;
-		} else if (strcmp(ms_snd_card_get_string_id(card), ms_snd_card_get_string_id(card1)) == 0) {
+		} else if (id && id1 && strcmp(id, id1) == 0) {
 			card1_found = TRUE;
 			c = card0;
 		} else {
@@ -291,8 +298,10 @@ void ms_snd_card_manager_unregister_desc(MSSndCardManager *m, MSSndCardDesc *des
 }
 
 bool_t ms_snd_card_equals(const MSSndCard *c1, const MSSndCard *c2) {
-	if (strcmp(ms_snd_card_get_string_id(c1), ms_snd_card_get_string_id(c2)) == 0 &&
-	    c1->capabilities == c2->capabilities &&
+	const char *id1 = ms_snd_card_get_string_id(c1);
+	const char *id2 = ms_snd_card_get_string_id(c2);
+
+	if (id1 && id2 && strcmp(id1, id2) == 0 && c1->capabilities == c2->capabilities &&
 	    ms_sound_devices_description_equals(c1->device_description, c2->device_description)) {
 		return TRUE;
 	}
@@ -429,8 +438,9 @@ MS2_PUBLIC int ms_snd_card_get_minimal_latency(MSSndCard *obj) {
 const char *ms_snd_card_get_string_id(const MSSndCard *obj) {
 	MSSndCard *mutable_card = (MSSndCard *)obj;
 	if (obj->id == NULL) {
-		bool_t addExtraData = ((obj->device_type == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) &&
-		                       (strcmp(obj->desc->driver_type, "openSLES") != 0));
+		const char *driver_type = obj->desc->driver_type;
+		bool_t addExtraData = ((obj->device_type == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) && driver_type &&
+		                       (strcmp(driver_type, "openSLES") != 0));
 		if (obj->capabilities & MS_SND_CARD_CAP_FOLLOWS_SYSTEM_POLICY) {
 			mutable_card->id = ms_strdup_printf("%s: %s", obj->desc->driver_type, obj->name);
 		} else if (addExtraData == TRUE) {
@@ -605,10 +615,12 @@ MSSndCard *ms_snd_card_get_card_duplicate(MSSndCardManager *m, MSSndCard *card, 
 	// with same driver type and device_type has already been added to the sound card manager
 	bctbx_list_t *elem;
 	MSSndCard *duplicate = NULL;
+	const char *driver_type = card->desc->driver_type;
 	for (elem = cards; elem != NULL; elem = elem->next) {
 		MSSndCard *c = (MSSndCard *)elem->data;
 		unsigned int elem_caps = ms_snd_card_get_capabilities(c) & caps_mask;
-		if ((c->device_type == card->device_type) && (strcmp(c->desc->driver_type, card->desc->driver_type) == 0) &&
+		if ((c->device_type == card->device_type) &&
+		    (driver_type && c->desc->driver_type && strcmp(c->desc->driver_type, driver_type) == 0) &&
 		    ((checkCapabilities == FALSE) || (card_caps == elem_caps))) {
 			duplicate = ms_snd_card_ref(c);
 			break;
@@ -650,7 +662,7 @@ void ms_snd_card_sort(MSSndCardManager *m) {
 		// If current driver is the same as card driver, then search for earpiece and speaker device
 		// Note: This implemenetation assumes that all devices belonging to the same filter are grouped together in the
 		// sound card manager
-		if ((curr_driver == NULL) || (strcmp(c->desc->driver_type, curr_driver) != 0)) {
+		if ((curr_driver == NULL) || (c->desc->driver_type && strcmp(c->desc->driver_type, curr_driver) != 0)) {
 			// Update current driver
 			curr_driver = c->desc->driver_type;
 
