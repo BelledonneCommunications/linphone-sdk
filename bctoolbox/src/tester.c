@@ -100,6 +100,7 @@ static const char *xml_file = default_xml_file;
 static int xml_enabled = 0;
 static bctbx_list_t *suites_to_run = NULL;
 static bctbx_list_t *suites_to_exclude = NULL;
+static bctbx_list_t *tags_to_run = NULL;
 static char *test_name = NULL;
 static char *tag_name = NULL;
 static char *expected_res = NULL;
@@ -179,9 +180,9 @@ void bc_tester_printf(int level, const char *format, ...) {
 	va_end(args);
 }
 
-static bool_t test_enabled(const test_t *test, const char *tag) {
+static bool_t test_enabled(const test_t *test, const bctbx_list_t *tags) {
 	size_t j;
-	bool_t enabled = (!tag || tag[0] == '!') ? TRUE : FALSE;
+	bool_t enabled = (tags == NULL) ? TRUE : FALSE;
 	for (j = 0; j < (sizeof(test->tags) / sizeof(test->tags[0])); j++) {
 		if (test->tags[j] == NULL) break;
 		if (strcasecmp(test->tags[j], "skip") == 0 && !run_skipped_tests) {
@@ -189,29 +190,34 @@ static bool_t test_enabled(const test_t *test, const char *tag) {
 			enabled = FALSE;
 			break;
 		}
-		if (tag) {
-			if (tag[0] == '!') {
-				if (strcasecmp(test->tags[j], tag + 1) == 0) {
-					// test has a tag that we want to exclude.
-					enabled = FALSE;
-				}
-			} else {
-				if (strcasecmp(test->tags[j], tag) == 0) {
-					// test has the tag that we want.
-					enabled = TRUE;
+		const bctbx_list_t *it = tags;
+		while (it != NULL) {
+			const char *tag = bctbx_list_get_data(it);
+			if (tag) {
+				if (tag[0] == '!') {
+					if (strcasecmp(test->tags[j], tag + 1) == 0) {
+						// the test has a tag that we want to exclude.
+						return FALSE;
+					}
+				} else {
+					if (strcasecmp(test->tags[j], tag) == 0) {
+						// the test has a tag that we want.
+						return TRUE;
+					}
 				}
 			}
+			it = bctbx_list_next(it);
 		}
 	}
 	return enabled;
 }
 
-int bc_tester_register_suite(test_suite_t *suite, const char *tag_name) {
+int bc_tester_register_suite(test_suite_t *suite, const bctbx_list_t *tags) {
 	int i;
 	CU_pSuite pSuite = NULL;
 
 	for (i = 0; i < suite->nb_tests; i++) {
-		if (test_enabled(&suite->tests[i], tag_name)) {
+		if (test_enabled(&suite->tests[i], tags)) {
 			if (pSuite == NULL) {
 				pSuite = CU_add_suite_with_setup_and_teardown(suite->name, suite->before_all, suite->after_all,
 				                                              suite->before_each, suite->after_each);
@@ -1450,7 +1456,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid) {
 		suites_to_exclude = bctbx_list_append(suites_to_exclude, argv[i]);
 	} else if (strcmp(argv[i], "--tag") == 0) {
 		CHECK_ARG("--tag", ++i, argc);
-		tag_name = argv[i];
+		tags_to_run = bctbx_list_append(tags_to_run, argv[i]);
 	} else if (strcmp(argv[i], "--all") == 0) {
 		run_skipped_tests = 1;
 	} else if (strcmp(argv[i], "--list-suites") == 0) {
@@ -1527,7 +1533,7 @@ int bc_tester_register_suites(void) {
 				bc_tester_list_suites();
 				return -1;
 			}
-			bc_tester_register_suite(test_suite[suiteIdx], tag_name);
+			bc_tester_register_suite(test_suite[suiteIdx], tags_to_run);
 		}
 	} else {
 		int i;
@@ -1540,7 +1546,7 @@ int bc_tester_register_suites(void) {
 					excluded = TRUE;
 				}
 			}
-			if (!excluded) bc_tester_register_suite(test_suite[i], tag_name);
+			if (!excluded) bc_tester_register_suite(test_suite[i], tags_to_run);
 		}
 	}
 	return 0;
