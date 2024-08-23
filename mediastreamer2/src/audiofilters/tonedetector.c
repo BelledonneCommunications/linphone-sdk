@@ -136,6 +136,8 @@ static int detector_clear_scans(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 static int detector_set_rate(MSFilter *f, void *arg) {
 	DetectorState *s = (DetectorState *)f->data;
 	s->rate = *((int *)arg);
+	s->framesize = 2 * (s->frame_ms * s->rate) / 1000;
+	ms_message("Tone detector: set rate %d Hz, framesize is %d", s->rate, s->framesize);
 	return 0;
 }
 
