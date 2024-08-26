@@ -140,7 +140,7 @@ static MSSndCard *get_card_with_cap(MSSndCardManager *m, const char *id, unsigne
 	for (elem = m->cards; elem != NULL; elem = elem->next) {
 		MSSndCard *card = (MSSndCard *)elem->data;
 		const char *card_id = ms_snd_card_get_string_id(card);
-		if ((id == NULL || (card_id && strcmp(card_id, id) == 0 && (card->capabilities & caps) == caps))) return card;
+		if (((id == NULL || (card_id && strcmp(card_id, id) == 0)) && (card->capabilities & caps) == caps)) return card;
 	}
 	return NULL;
 }
