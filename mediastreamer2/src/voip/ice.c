@@ -1065,10 +1065,12 @@ static void ice_check_list_deallocate_turn_candidate(IceCheckList *cl,
 	char source_addr_str[64];
 	int source_port = 0;
 
-	if ((turn_context != NULL) &&
-	    (ms_turn_context_get_state(turn_context) >= MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED)) {
-		ms_turn_context_set_lifetime(turn_context, 0);
-		if (rtptp) {
+	if (!turn_context) return;
+
+	if (rtptp) {
+		if (ms_turn_context_get_state(turn_context) >= MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED) {
+			ms_turn_context_set_lifetime(turn_context, 0);
+
 			struct sockaddr *sa = (struct sockaddr *)&stream->loc_addr;
 			memset(source_addr_str, 0, sizeof(source_addr_str));
 			bctbx_sockaddr_to_ip_address(sa, stream->loc_addrlen, source_addr_str, sizeof(source_addr_str),
@@ -1080,10 +1082,10 @@ static void ice_check_list_deallocate_turn_candidate(IceCheckList *cl,
 			    ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
 			if (transaction != NULL) ice_stun_server_request_transaction_free(transaction);
 			ice_stun_server_request_free(request);
-			meta_rtp_transport_set_endpoint(rtptp, NULL); /*endpoint is later freed*/
-		} else {
-			ms_error("ice: no rtp socket found for session [%p]", cl->rtp_session);
 		}
+		meta_rtp_transport_set_endpoint(rtptp, NULL); /*endpoint is later freed*/
+	} else {
+		ms_error("ice: no rtp socket found for session [%p]", cl->rtp_session);
 	}
 }
 
