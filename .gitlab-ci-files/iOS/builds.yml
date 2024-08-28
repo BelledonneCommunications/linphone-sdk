@@ -110,7 +110,7 @@ ios-ninja-allcodecs:
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
-    CMAKE_OPTIONS: -DENABLE_CODEC2=ON -DENABLE_G729=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_GPL_THIRD_PARTIES=ON
+    CMAKE_OPTIONS: -DENABLE_CODEC2=ON -DENABLE_G729=ON -DENABLE_NON_FREE_FEATURES=ON
     CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
   extends: .ios
 
@@ -120,7 +120,7 @@ ios-ninja-g729:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
   variables:
-    CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON
+    CMAKE_OPTIONS: -DENABLE_G729=ON
   extends: ios-ninja
 
 
