@@ -58,7 +58,7 @@ The BSD license below is for the original work.
 #include <AudioUnit/AudioUnit.h>
 #include <CoreServices/CoreServices.h>
 
-//#include <CoreServices/CarbonCore/Debugging.h>
+// #include <CoreServices/CarbonCore/Debugging.h>
 
 #include "mediastreamer2/devices.h"
 #include "mediastreamer2/msfilter.h"
@@ -572,12 +572,36 @@ static int audio_unit_open(AUCommon *d, bool_t is_read) {
 
 	show_format(is_read ? "Input audio unit after configuration" : "Output audio unit after configuration", &asbd);
 
+	// Attempt to set the I/O buffer size
+	param = sizeof(UInt32);
+	UInt32 numFrames = 128;
+	CHECK_AURESULT(
+	    AudioUnitSetProperty(d->au, kAudioDevicePropertyBufferFrameSize, kAudioUnitScope_Global, 0, &numFrames, param));
+
 	// Get the number of frames in the IO buffer(s)
 	param = sizeof(UInt32);
-	UInt32 numFrames;
-	CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioDevicePropertyBufferFrameSize, kAudioUnitScope_Input, input_bus,
-	                                    &numFrames, &param));
-	ms_message("Number of frames per buffer = %" UINT32_PRINTF, numFrames);
+	CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioDevicePropertyBufferFrameSize,
+	                                    is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
+	                                    is_read ? input_bus : output_bus, &numFrames, &param));
+	ms_message("%s: number of frames per buffer = %" UINT32_PRINTF, is_read ? "Input AudioUnit" : "Output AudioUnit",
+	           numFrames);
+
+	if (!is_read) {
+		/* Latency is only provided for output AudioUnit */
+		param = sizeof(UInt32);
+		UInt32 latency = 0;
+		CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioDevicePropertyLatency,
+		                                    is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
+		                                    is_read ? input_bus : output_bus, &latency, &param));
+		ms_message("Latency = %" UINT32_PRINTF, latency);
+	}
+
+	param = sizeof(int);
+	int safetyOffset = 0;
+	CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioDevicePropertySafetyOffset,
+	                                    is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
+	                                    is_read ? input_bus : output_bus, &safetyOffset, &param));
+	ms_message("Safety offset = %i", safetyOffset);
 
 	AURenderCallbackStruct cbs;
 
