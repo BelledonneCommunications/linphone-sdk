@@ -6,7 +6,7 @@ xamarin-package:
   needs:
     - ios-xcode
     - android-ninja-r27
-    - vs2017-win32-scheduled-windows
+    - vs2022-win32-scheduled-windows
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
