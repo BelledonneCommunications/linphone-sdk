@@ -299,12 +299,31 @@ vs2017-ninja-win32-windows:
     - .vs-ninja-win32-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
+
+
+.vs-uwp-windows:
+  variables:
+    BUILD_DIR: build/uwp
+    CMAKE_PRESET: uwp-sdk
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF
+    OUTPUT_ZIP_FOLDER: uwp
+    MINGW_TYPE: mingw64
+
+
+vs2022-uwp-windows:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
+  extends:
+    - .windows-vs2022-msvc
+    - .vs-uwp-windows
 ######################################################
 # NIGHTLY
 ######################################################
 
 ##      ON SCHEDULE     ##
 .vs-uwp-scheduled-windows:
+  extends: .vs-uwp-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -319,12 +338,7 @@ vs2017-ninja-win32-windows:
         - .gitlab-ci-files/job-windows.yml
         - .gitlab-ci-files/job-packages.yml
         - cmake/NuGet/Windows/**/*
-  variables:
-    BUILD_DIR: build/uwp
-    CMAKE_PRESET: uwp-sdk
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF
-    OUTPUT_ZIP_FOLDER: uwp
-    MINGW_TYPE: mingw64
+
 
 .vs-uwp-scheduled-windows-pqc:
   extends: .vs-uwp-scheduled-windows
@@ -335,10 +349,7 @@ vs2017-ninja-win32-windows:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=OFF -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_EXAMPLE_PLUGIN=ON
 
 
-vs2022-uwp-scheduled-windows:
-  extends:
-    - .windows-vs2022-scheduled
-    - .vs-uwp-scheduled-windows
+
 
 vs2022-uwp-scheduled-windows-pqc:
   extends:

@@ -95,7 +95,7 @@ liblinphone-uwp-windows-test:
   tags: [ "windows-tests" ]
   allow_failure: true
   needs:
-    - vs2022-uwp-scheduled-windows
+    - vs2022-uwp-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_UWP_TESTS != null
