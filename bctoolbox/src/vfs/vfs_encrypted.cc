@@ -405,13 +405,13 @@ const std::vector<uint8_t> &VfsEncryption::rawHeaderGet() const noexcept {
  */
 void VfsEncryption::parseHeader() {
 	// check file exists
-	int64_t ret = bctbx_file_size(pFileStd); // bctbx_file_size return a signed value...
-	if (ret < baseFileHeaderSize) {          // this is not an EVFS file, assume it is plain
-		mFileSize = ret;                     // set file size so we know that the file exists and is plain
+	ssize_t ret = bctbx_file_size(pFileStd); // bctbx_file_size return a signed value...
+	if (ret < (ssize_t)baseFileHeaderSize) { // this is not an EVFS file, assume it is plain
+		mFileSize = (uint64_t)ret;           // set file size so we know that the file exists and is plain
 		m_module = nullptr;
 		return;
 	}
-	uint64_t fileSize = ret; // turn it into an unsigned one after checking it is >0.
+	uint64_t fileSize = (uint64_t)ret; // turn it into an unsigned one after checking it is >0.
 
 	// read the header
 	r_header = std::vector<uint8_t>(baseFileHeaderSize);
@@ -546,7 +546,7 @@ void VfsEncryption::writeHeader(bctbx_vfs_file_t *fp) {
 int64_t VfsEncryption::fileSizeGet() const noexcept {
 	// plain file?
 	if (m_module == nullptr) {
-		return bctbx_file_size(pFileStd);
+		return (int64_t)bctbx_file_size(pFileStd);
 	}
 	return mFileSize;
 }
@@ -892,11 +892,11 @@ static ssize_t bcWrite(bctbx_vfs_file_t *pFile, const void *buf, size_t count, o
  * @param pFile File handle pointer.
  * @return -errno if an error occurred, file size otherwise (can be 0).
  */
-static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
-	int ret = BCTBX_VFS_ERROR;
+static ssize_t bcFileSize(bctbx_vfs_file_t *pFile) {
+	ssize_t ret = BCTBX_VFS_ERROR;
 	if (pFile && pFile->pUserData) {
 		VfsEncryption *ctx = static_cast<VfsEncryption *>(pFile->pUserData);
-		return ctx->fileSizeGet();
+		return (ssize_t)ctx->fileSizeGet();
 	}
 	return ret;
 }

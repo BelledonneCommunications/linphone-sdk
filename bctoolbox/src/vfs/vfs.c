@@ -222,8 +222,8 @@ int bctbx_file_sync(bctbx_vfs_file_t *pFile) {
 	return ret;
 }
 
-int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
-	int64_t ret = BCTBX_VFS_ERROR;
+ssize_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
+	ssize_t ret = BCTBX_VFS_ERROR;
 	if (pFile) {
 		if (bctbx_file_flush(pFile) < 0) {
 			return BCTBX_VFS_ERROR;

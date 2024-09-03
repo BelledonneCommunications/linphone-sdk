@@ -155,7 +155,7 @@ static ssize_t bcWrite(bctbx_vfs_file_t *pFile, const void *buf, size_t count, o
  * @param pFile File handle pointer.
  * @return -errno if an error occurred, file size otherwise (can be 0).
  */
-static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
+static ssize_t bcFileSize(bctbx_vfs_file_t *pFile) {
 	int rc;            /* Return code from fstat() call */
 	struct stat sStat; /* Output of fstat() call */
 	if (pFile == NULL || pFile->pUserData == NULL) return BCTBX_VFS_ERROR;
@@ -165,7 +165,7 @@ static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
 	if (rc != 0) {
 		return -errno;
 	}
-	return sStat.st_size;
+	return (ssize_t)sStat.st_size;
 }
 
 /*

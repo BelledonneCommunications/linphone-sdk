@@ -93,7 +93,7 @@ struct bctbx_io_methods_t {
 	ssize_t (*pFuncRead)(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset);
 	ssize_t (*pFuncWrite)(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off_t offset);
 	int (*pFuncTruncate)(bctbx_vfs_file_t *pFile, int64_t size);
-	int64_t (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
+	ssize_t (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
 	int (*pFuncSync)(bctbx_vfs_file_t *pFile);
 	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile, char *s, int count);
 	bool_t (*pFuncIsEncrypted)(bctbx_vfs_file_t *pFile);
@@ -163,7 +163,7 @@ BCTBX_PUBLIC bctbx_vfs_file_t *bctbx_file_open2(bctbx_vfs_t *pVfs, const char *f
  * @param  pFile  bctbx_vfs_file_t File handle pointer.
  * @return       BCTBX_VFS_ERROR if an error occured, file size otherwise.
  */
-BCTBX_PUBLIC int64_t bctbx_file_size(bctbx_vfs_file_t *pFile);
+BCTBX_PUBLIC ssize_t bctbx_file_size(bctbx_vfs_file_t *pFile);
 
 /**
  * Truncates/ Extends a file.
