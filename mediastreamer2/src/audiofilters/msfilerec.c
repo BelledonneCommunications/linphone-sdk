@@ -125,7 +125,7 @@ static int rec_open(MSFilter *f, void *arg) {
 	RecState *s = (RecState *)f->data;
 	const char *filename = (const char *)arg;
 	int flags;
-	int64_t fsize;
+	ssize_t fsize;
 
 	if (s->fp) rec_close(f, NULL);
 

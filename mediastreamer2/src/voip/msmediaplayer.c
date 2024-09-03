@@ -255,7 +255,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 }
 
 bool_t ms_media_player_has_video_track(MSMediaPlayer *obj) {
-	if (obj->is_open && obj->format == MS_FILE_FORMAT_MATROSKA) {
+	if (obj->is_open && (obj->format == MS_FILE_FORMAT_MATROSKA || obj->format == MS_FILE_FORMAT_SMFF)) {
 		obj->video_pin_fmt.pin = 0;
 		ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &obj->video_pin_fmt);
 		return obj->video_pin_fmt.fmt != NULL;

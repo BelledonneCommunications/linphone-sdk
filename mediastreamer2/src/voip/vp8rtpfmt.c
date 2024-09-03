@@ -1043,7 +1043,7 @@ static void packer_process_frame_part(void *p, void *c) {
 	mblk_t *dm = NULL;
 	uint8_t *rptr;
 	uint8_t pdsize = 1;
-	int max_size = ctx->max_payload_size;
+	int max_size = (int)ctx->max_payload_size;
 	int dlen;
 	bool_t marker_info = mblk_get_marker_info(packet->m);
 

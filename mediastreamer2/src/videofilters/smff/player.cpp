@@ -47,6 +47,7 @@ public:
 
 #ifdef VIDEO_ENABLED
 
+#ifdef AV1_ENABLED
 class AV1Packer : public Packer {
 public:
 	AV1Packer(size_t maxPayloadSize) : mPackerImpl(maxPayloadSize) {
@@ -58,6 +59,7 @@ public:
 private:
 	ObuPacker mPackerImpl;
 };
+#endif
 
 template <typename _packerImpl>
 class H26xPacker : public Packer {
@@ -132,7 +134,9 @@ private:
 	};
 	std::map<std::string, std::function<std::unique_ptr<Packer>(size_t)>> mPackerRegistry = {
 #ifdef VIDEO_ENABLED
+#ifdef AV1_ENABLED
 	    {"av1", PackerBuilder<AV1Packer>()},
+#endif
 	    {"h264", PackerBuilder<H26xPacker<H264NalPacker>>()},
 	    {"h265", PackerBuilder<H26xPacker<H265NalPacker>>()},
 	    {"vp8", PackerBuilder<VP8Packer>()}

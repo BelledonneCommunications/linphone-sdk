@@ -76,11 +76,11 @@ static void write_and_read(void) {
 			ostr << "buffer-" << i;
 			rec.timestamp = i;
 			BC_ASSERT_TRUE(tr.read(rec));
-			BC_ASSERT_EQUAL(rec.size, ostr.str().size(), int, "%i");
+			BC_ASSERT_EQUAL((int)rec.size, (int)ostr.str().size(), int, "%i");
 			rec.data.outputBuffer = buffer;
 			rec.size = sizeof(buffer);
 			BC_ASSERT_TRUE(tr.read(rec));
-			BC_ASSERT_EQUAL(rec.size, ostr.str().size(), int, "%i");
+			BC_ASSERT_EQUAL((int)rec.size, (int)ostr.str().size(), int, "%i");
 			BC_ASSERT_TRUE(memcmp(rec.data.outputBuffer, ostr.str().c_str(), rec.size) == 0);
 			tr.next();
 		}
@@ -140,7 +140,7 @@ static void two_synchronized_tracks(void) {
 	SMFF::FileReader fr;
 	BC_ASSERT_TRUE(fr.open(fileName) == 0);
 	auto trackReaderList = fr.getTrackReaders();
-	BC_ASSERT_EQUAL(trackReaderList.size(), 2, int, "%i");
+	BC_ASSERT_EQUAL((int)trackReaderList.size(), 2, int, "%i");
 	if (trackReaderList.size() >= 2) {
 		TrackReaderInterface &tr1 = trackReaderList.front();
 		TrackReaderInterface &tr2 = trackReaderList.back();
@@ -157,14 +157,14 @@ static void two_synchronized_tracks(void) {
 		RecordInterface rec;
 		rec.timestamp = 0;
 		BC_ASSERT_TRUE(tr1.read(rec));
-		BC_ASSERT_EQUAL(rec.size, 4, int, "%i");
+		BC_ASSERT_EQUAL((int)rec.size, 4, int, "%i");
 		BC_ASSERT_TRUE(rec.timestamp == 0);
 		tr1.next();
 
 		rec = {};
 		rec.timestamp = 0;
 		BC_ASSERT_TRUE(tr2.read(rec));
-		BC_ASSERT_EQUAL(rec.size, 8, int, "%i");
+		BC_ASSERT_EQUAL((int)rec.size, 8, int, "%i");
 		BC_ASSERT_TRUE(rec.timestamp == 0);
 		tr2.next();
 
@@ -192,7 +192,7 @@ static void two_synchronized_tracks(void) {
 
 		rec.timestamp = 45000 + 9000;
 		BC_ASSERT_TRUE(tr2.read(rec));
-		BC_ASSERT_EQUAL(rec.size, 8, int, "%i");
+		BC_ASSERT_EQUAL((int)rec.size, 8, int, "%i");
 		BC_ASSERT_TRUE(rec.timestamp == 54000);
 		tr2.next();
 
@@ -202,7 +202,7 @@ static void two_synchronized_tracks(void) {
 
 		rec.timestamp = 64000;
 		BC_ASSERT_TRUE(tr2.read(rec));
-		BC_ASSERT_EQUAL(rec.size, 8, int, "%i");
+		BC_ASSERT_EQUAL((int)rec.size, 8, int, "%i");
 		BC_ASSERT_TRUE(rec.timestamp == 64000);
 	}
 	fr.close();
@@ -245,7 +245,7 @@ static void write_append_and_read(void) {
 		BC_ASSERT_EQUAL(tr.getClockRate(), 48000, int, "%i");
 		BC_ASSERT_EQUAL(tr.getChannels(), 2, int, "%i");
 		BC_ASSERT_TRUE(tr.getType() == TrackInterface::MediaType::Audio);
-		BC_ASSERT_EQUAL(dynamic_cast<SMFF::TrackReader &>(tr).getNumRecords(), numAudioRecords, int, "%i");
+		BC_ASSERT_EQUAL((int)dynamic_cast<SMFF::TrackReader &>(tr).getNumRecords(), numAudioRecords, int, "%i");
 
 		for (i = 0; i < numAudioRecords; ++i) {
 			RecordInterface rec;
@@ -254,11 +254,11 @@ static void write_append_and_read(void) {
 			ostr << "buffer-" << i;
 			rec.timestamp = i;
 			BC_ASSERT_TRUE(tr.read(rec));
-			BC_ASSERT_EQUAL(rec.size, ostr.str().size(), int, "%i");
+			BC_ASSERT_EQUAL((int)rec.size, (int)ostr.str().size(), int, "%i");
 			rec.data.outputBuffer = buffer;
 			rec.size = sizeof(buffer);
 			BC_ASSERT_TRUE(tr.read(rec));
-			BC_ASSERT_EQUAL(rec.size, ostr.str().size(), int, "%i");
+			BC_ASSERT_EQUAL((int)rec.size, (int)ostr.str().size(), int, "%i");
 			BC_ASSERT_TRUE(memcmp(rec.data.outputBuffer, ostr.str().c_str(), rec.size) == 0);
 			tr.next();
 		}

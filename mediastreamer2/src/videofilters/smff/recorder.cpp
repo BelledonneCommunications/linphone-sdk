@@ -54,6 +54,7 @@ public:
 
 #ifdef VIDEO_ENABLED
 
+#ifdef AV1_ENABLED
 class AV1Unpacker : public Unpacker {
 public:
 	Status unpack(mblk_t *im, MSQueue *output) override {
@@ -78,6 +79,7 @@ private:
 	ObuUnpacker mObuUnpacker;
 	ObuKeyFrameIndicator mObuKeyFrameIndicator;
 };
+#endif
 
 template <typename _unpackerImplT>
 class H26xUnpacker : public Unpacker {
@@ -152,7 +154,9 @@ private:
 	};
 	std::map<std::string, std::function<std::unique_ptr<Unpacker>()>> mUnpackerRegistry = {
 #ifdef VIDEO_ENABLED
+#ifdef AV1_ENABLED
 	    {"av1", UnpackerBuilder<AV1Unpacker>()},
+#endif
 	    {"h264", UnpackerBuilder<H26xUnpacker<H264NalUnpacker>>()},
 	    {"h265", UnpackerBuilder<H26xUnpacker<H265NalUnpacker>>()},
 	    {"vp8", UnpackerBuilder<VP8Unpacker>()}
@@ -172,6 +176,7 @@ struct InputContext {
 	const MSFmtDescriptor *fmt = nullptr;
 	unsigned trackID = (unsigned)-1;
 	std::unique_ptr<Unpacker> unpacker;
+	bool gotKeyFrame = false;
 };
 
 struct SMFFRecorder {
@@ -181,9 +186,9 @@ struct SMFFRecorder {
 	}
 	MSRecorderState mState = MSRecorderClosed;
 	std::unique_ptr<FileWriterInterface> mFileWriter;
-	InputContext mOutputCtxs[maxInputs]{};
+	InputContext mInputCtxs[maxInputs]{};
 	bool initializeTrack(int pin) {
-		const MSFmtDescriptor *fmt = mOutputCtxs[pin].fmt;
+		const MSFmtDescriptor *fmt = mInputCtxs[pin].fmt;
 		auto tw = mFileWriter->getMainTrack(fmt->type == MSAudio ? MediaType::Audio : MediaType::Video);
 		if (!tw) {
 			tw = mFileWriter->addTrack((unsigned)pin, fmt->encoding,
@@ -202,14 +207,19 @@ struct SMFFRecorder {
 			ms_error("Fail to add track.");
 			return false;
 		} else {
-			mOutputCtxs[pin].trackID = tw.value().get().getTrackID();
-			mOutputCtxs[pin].unpacker = UnpackerFactory::get().create(fmt->encoding);
+			mInputCtxs[pin].trackID = tw.value().get().getTrackID();
+			mInputCtxs[pin].unpacker = UnpackerFactory::get().create(fmt->encoding);
 			mFileWriter->synchronizeTracks();
-			if (fmt->type == MSVideo && mOutputCtxs[pin].unpacker == nullptr) {
+			if (fmt->type == MSVideo && mInputCtxs[pin].unpacker == nullptr) {
 				ms_warning("Track initialized, but no unpacker found for [%s]", fmt->encoding);
 			}
 		}
 		return true;
+	}
+	void onStart() {
+		for (auto &ictx : mInputCtxs) {
+			ictx.gotKeyFrame = false;
+		}
 	}
 };
 
@@ -243,7 +253,7 @@ static void recorder_initialize_tracks(MSFilter *f) {
 	bool trackAdded = false;
 
 	for (int pin = 0; pin < f->desc->ninputs; ++pin) {
-		InputContext &inputCtx = rec->mOutputCtxs[pin];
+		InputContext &inputCtx = rec->mInputCtxs[pin];
 		if (inputCtx.fmt != nullptr && inputCtx.trackID == (unsigned)-1) {
 			if (rec->initializeTrack(pin)) {
 				ms_message("%s: added track for pin [%i], format=[%s]", f->desc->name, pin,
@@ -265,7 +275,7 @@ static void recorder_process(MSFilter *f) {
 
 	for (int pin = 0; pin < f->desc->ninputs; ++pin) {
 		if (f->inputs[pin]) {
-			InputContext &inputCtx = rec->mOutputCtxs[pin];
+			InputContext &inputCtx = rec->mInputCtxs[pin];
 			if (rec->mState == MSRecorderRunning) {
 				if (inputCtx.trackID != (unsigned)-1) {
 					mblk_t *m;
@@ -275,6 +285,13 @@ static void recorder_process(MSFilter *f) {
 						while ((m = ms_queue_get(f->inputs[pin])) != nullptr) {
 							auto status = inputCtx.unpacker->unpack(m, &q);
 							if (status.frameAvailable && !status.frameCorrupted) {
+								if (!inputCtx.gotKeyFrame) {
+									if (status.isKeyFrame) {
+										inputCtx.gotKeyFrame = true;
+									} else {
+										ms_filter_notify_no_arg(f, MS_RECORDER_NEEDS_FIR);
+									}
+								}
 								writeBlocks(rec->mFileWriter->getTrackByID(inputCtx.trackID).value(), &q);
 							}
 							ms_queue_flush(&q);
@@ -307,6 +324,7 @@ static int recorder_start(MSFilter *f, BCTBX_UNUSED(void *data)) {
 		ms_error("%s: bad state in start command.", f->desc->name);
 		return -1;
 	}
+	rec->onStart();
 	rec->mState = MSRecorderRunning;
 	return 0;
 }
@@ -343,7 +361,7 @@ static int recorder_get_input_fmt(MSFilter *f, void *data) {
 	if (pf->pin >= f->desc->ninputs) {
 		return -1;
 	}
-	pf->fmt = getRecorder(f)->mOutputCtxs[pf->pin].fmt;
+	pf->fmt = getRecorder(f)->mInputCtxs[pf->pin].fmt;
 	return 0;
 }
 
@@ -357,7 +375,7 @@ static int recorder_set_input_fmt(MSFilter *f, void *data) {
 		ms_error("%s: cannot assign input formats while recording is in progress.", f->desc->name);
 		return -1;
 	}
-	rec->mOutputCtxs[pf->pin].fmt = pf->fmt;
+	rec->mInputCtxs[pf->pin].fmt = pf->fmt;
 	return 0;
 }
 

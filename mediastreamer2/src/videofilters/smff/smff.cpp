@@ -73,6 +73,7 @@ int FileWriter::open(const std::string &filepath, bool append) {
 		bctbx_error("FileWriter::open(): could not open(), there's already an open file.");
 		return -1;
 	}
+	mTrackPos = 0;
 	mDataStartPos = mWritePos = sizeof(SMFFRoot);
 	if (append && bctbx_file_exist(filepath.c_str()) == 0) {
 		FileReader reader;
@@ -192,7 +193,7 @@ bool FileWriter::write(const void *data, size_t size, const char *what) {
 
 bool FileWriter::_write(const void *data, size_t size, const char *what) {
 	if (write(data, size, mWritePos, what)) {
-		mWritePos += size;
+		mWritePos += (FilePos)size;
 		return true;
 	}
 	return false;
@@ -213,7 +214,7 @@ bool FileWriter::writeRecord(Record &record, uint32_t absoluteTimestamp) {
 	}
 	if (write(record.data.inputBuffer, record.size, mWritePos, "data")) {
 		record.pos = mWritePos;
-		mWritePos += record.size;
+		mWritePos += (FilePos)record.size;
 		return true;
 	}
 	return false;
@@ -255,6 +256,7 @@ int FileWriter::close() {
 	endCompression();
 	writeRoot();
 	bctbx_file_close(mFile);
+	mTrackWriters.clear();
 	mFile = nullptr;
 	return 0;
 }
@@ -289,6 +291,10 @@ void TrackWriter::addRecord(const RecordInterface &record) {
 	uint32_t absTimestamp = toAbsoluteTimestamp(copy.timestamp);
 	mFileWriter.writeRecord(copy, absTimestamp);
 	copy.data.inputBuffer = nullptr; /* don't point to user memory that is not retained. */
+	/*bctbx_message("TrackWriter[%p, type=%s]: adding record with raw-ts=[%u] adjusted-ts=[%u]; abs-ts=[%u]",
+	              this, (getType() == multimedia_container::TrackInterface::MediaType::Audio) ? "audio" : "video",
+	              record.timestamp, copy.timestamp, absTimestamp);
+	*/
 }
 
 bool TrackWriter::empty() const {
@@ -301,16 +307,16 @@ void TrackWriter::write() {
 	strncpy(trackDescriptor.codecName, getCodec().c_str(), sizeof(trackDescriptor.codecName) - 1);
 	trackDescriptor.channels = (uint8_t)getChannels();
 	trackDescriptor.clockrate = htonl(getClockRate());
-	trackDescriptor.trackID = 0; /*FIXME*/
+	trackDescriptor.trackID = getTrackID();
 	trackDescriptor.type = (uint8_t)getType();
-	trackDescriptor.recordsCount = htonl(mRecords.size());
+	trackDescriptor.recordsCount = htonl((unsigned int)mRecords.size());
 	mFileWriter.write(&trackDescriptor, sizeof(trackDescriptor), "track descriptor");
 
 	for (auto &record : mRecords) {
 		SMFFRecord smffrec{};
 		smffrec.position = htonl(record.pos - mFileWriter.mDataStartPos);
 		smffrec.timestamp = htonl(record.timestamp);
-		smffrec.size = htonl(record.size);
+		smffrec.size = htonl((unsigned int)record.size);
 		mFileWriter.write(&smffrec, sizeof(smffrec), "record descriptor");
 	}
 }
@@ -477,7 +483,7 @@ bool FileReader::read(void *data, size_t size, const char *what) {
 	if (mUncompress) {
 		int zret;
 		mZlibStream.next_out = (Bytef *)data;
-		mZlibStream.avail_out = size;
+		mZlibStream.avail_out = (uInt)size;
 		do {
 			if (mZlibStream.avail_in == 0) {
 				mZlibInputBuffer.resize(256);
@@ -487,7 +493,7 @@ bool FileReader::read(void *data, size_t size, const char *what) {
 				}
 				// bctbx_message("FileReader: got %i bytes of compressed data", (int)attemptToRead);
 				mZlibStream.next_in = (Bytef *)mZlibInputBuffer.data();
-				mZlibStream.avail_in = attemptToRead;
+				mZlibStream.avail_in = (uInt)attemptToRead;
 			}
 			zret = inflate(&mZlibStream, Z_SYNC_FLUSH);
 			if (zret == Z_OK || zret == Z_STREAM_END) {
@@ -547,17 +553,17 @@ bool FileReader::readRoot() {
 	}
 	fileSize = bctbx_file_size(mFile);
 	mDataStartPos = ntohl(root.dataPosition);
-	if (mDataStartPos > fileSize) {
+	if ((ssize_t)mDataStartPos > fileSize) {
 		bctbx_error("FileReader: data segment starts beyond the end of file.");
 		return false;
 	}
 	mTrackPos = ntohl(root.trackPosition);
-	if (mTrackPos > fileSize) {
+	if ((ssize_t)mTrackPos > fileSize) {
 		bctbx_error("FileReader: tracks segment starts beyond the end of file.");
 		return false;
 	}
 	mDataEndPos = mTrackPos;
-	mTrackEnd = fileSize;
+	mTrackEnd = (FilePos)fileSize;
 	// bctbx_message("FileReader: read root succesfully, mDataStartPos=%i, mTrackPos=%i", mDataStartPos, mTrackEnd);
 	return true;
 }
@@ -568,7 +574,7 @@ bool FileReader::readTrack() {
 		return false;
 	}
 	trackDescriptor.codecName[sizeof(trackDescriptor.codecName) - 1] = '\0';
-	auto trackReader = new TrackReader(*this, mTrackReaders.size(), trackDescriptor.codecName,
+	auto trackReader = new TrackReader(*this, trackDescriptor.trackID, trackDescriptor.codecName,
 	                                   (TrackInterface::MediaType)trackDescriptor.type,
 	                                   ntohl(trackDescriptor.clockrate), trackDescriptor.channels);
 	if (!trackReader->loadRecords(ntohl(trackDescriptor.recordsCount))) {
