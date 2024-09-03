@@ -832,7 +832,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_file_body_handler_t){
         void *data,
         belle_sip_direction_t direction) {
 	// Get file size if it exists
-	int64_t expected_size = BCTBX_VFS_ERROR;
+	ssize_t expected_size = BCTBX_VFS_ERROR;
 	struct stat statbuf;
 	if (direction == BELLE_SIP_DIRECTION_SEND && stat(filepath, &statbuf) == 0) {
 		bctbx_vfs_t *vfs = bctbx_vfs_get_default();
