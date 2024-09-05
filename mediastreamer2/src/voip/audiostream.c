@@ -328,8 +328,11 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 }
 
 static void audio_stream_free(AudioStream *stream) {
-	if (stream->ms.local_mix_conference == TRUE) {
+	if (stream->bundled_recv_branches != NULL) {
 		bctbx_list_free_with_data(stream->bundled_recv_branches, audio_stream_bundle_recv_branch_free);
+		stream->bundled_recv_branches = NULL;
+	}
+	if (stream->ms.local_mix_conference == TRUE) {
 		rtp_session_signal_disconnect_by_callback_and_user_data(
 		    stream->ms.sessions.rtp_session, "new_incoming_ssrc_found_in_bundle", on_incoming_ssrc_in_bundle, stream);
 	}
@@ -2396,7 +2399,7 @@ void audio_stream_stop(AudioStream *stream) {
 			ms_connection_helper_unlink(&h, stream->ms.rtpsend, 0, -1);
 
 			/*dismantle the receiving graph*/
-			if (stream->ms.local_mix_conference == TRUE) {
+			if (stream->bundled_recv_branches != NULL) {
 				bctbx_list_for_each(stream->bundled_recv_branches, audio_stream_dismantle_bundle_recv_branch);
 			}
 			ms_connection_helper_start(&h);
