@@ -228,7 +228,7 @@
               $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --parallel-max 32 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
            else
               EXIT_CRYPTO_BACKEND_TAG=0;
-              $PATH_TO_TESTER/$TESTER_BIN --verbose --tag "CRYPTO" $RESOURCES_DIR --log-file logLiblinphoneCryptoThIpv6.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
+              $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "CRYPTO" $RESOURCES_DIR --log-file logLiblinphoneCryptoThIpv6.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
            fi
         else
 
