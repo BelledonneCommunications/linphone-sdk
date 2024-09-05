@@ -1418,7 +1418,7 @@ namespace lime {
 		indicator ind;
 		int status; // retrieve an int from DB, turn it into a bool to store in object
 		int DHrStatus; // retrieve an int from DB, turn it into  bools to store in object
-		m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHrStatus,DHs,RK,CKs,CKr,AD,Status,X3DHInit,unixepoch(timeStamp) FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHrStatus), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), into(m_lastKEMRatchetEpoch), use(m_dbSessionId);
+		m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHrStatus,DHs,RK,CKs,CKr,AD,Status,X3DHInit,strftime('%s',timeStamp) FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHrStatus), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), into(m_lastKEMRatchetEpoch), use(m_dbSessionId);
 
 		if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
 			typename ARrKey<Curve>::serializedBuffer serializedDHr{};
