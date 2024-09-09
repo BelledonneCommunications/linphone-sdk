@@ -313,19 +313,6 @@ vs2017-ninja-win32-windows:
 vs2022-uwp-windows:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
-  extends:
-    - .windows-vs2022-msvc
-    - .vs-uwp-windows
-######################################################
-# NIGHTLY
-######################################################
-
-##      ON SCHEDULE     ##
-.vs-uwp-scheduled-windows:
-  extends: .vs-uwp-windows
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
     - &nuget_deploy_rule
@@ -338,13 +325,21 @@ vs2022-uwp-windows:
         - .gitlab-ci-files/job-windows.yml
         - .gitlab-ci-files/job-packages.yml
         - cmake/NuGet/Windows/**/*
+  extends:
+    - .windows-vs2022-msvc
+    - .vs-uwp-windows
+######################################################
+# NIGHTLY
+######################################################
 
+##      ON SCHEDULE     ##
 
 .vs-uwp-scheduled-windows-pqc:
-  extends: .vs-uwp-scheduled-windows
+  extends: .vs-uwp-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $ALL_WINDOWS_BUILDS != null
+    - *nuget_dev_rule
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=OFF -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_EXAMPLE_PLUGIN=ON
 
@@ -359,7 +354,7 @@ vs2022-uwp-scheduled-windows-pqc:
 vs2019-uwp-scheduled-windows:
   extends:
     - .windows-vs2019-scheduled
-    - .vs-uwp-scheduled-windows
+    - .vs-uwp-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
@@ -373,7 +368,7 @@ vs2019-uwp-scheduled-windows-pqc:
 vs2017-uwp-scheduled-windows:
   extends:
     - .windows-vs2017-scheduled
-    - .vs-uwp-scheduled-windows
+    - .vs-uwp-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
