@@ -153,6 +153,8 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 
 		realm = belle_sip_header_www_authenticate_get_realm(authenticate);
 
+		belle_sip_message("Processing authenticate header");
+
 		if (strcasecmp("Digest", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
 			if (requested_algorithm == NULL) { // default algorithm is MD5
 				requested_algorithm = "MD5";
@@ -189,6 +191,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 				belle_sip_auth_event_set_authz_server(ev,
 				                                      belle_sip_header_www_authenticate_get_authz_server(authenticate));
 			}
+			belle_sip_message("Invoking process_auth_requested");
 			BELLE_HTTP_REQUEST_INVOKE_LISTENER(req, process_auth_requested, ev);
 			username = ev->userid ? ev->userid : ev->username;
 			passwd = ev->passwd;

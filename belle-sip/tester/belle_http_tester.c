@@ -90,6 +90,13 @@ static void process_auth_requested(void *data, belle_sip_auth_event_t *event) {
 	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_BEARER) {
 		belle_sip_auth_event_set_bearer_token(
 		    event, belle_sip_bearer_token_new(HTTP_TESTER_ACCESS_TOKEN, 255 << sizeof(time_t), "not set yet "));
+	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
+		if (strcmp("SHA-256", belle_sip_auth_event_get_algorithm(event)) == 0) {
+			belle_sip_auth_event_set_username(event, "testuser");
+			belle_sip_auth_event_set_passwd(event, "secret");
+		} else {
+			belle_sip_warning("Digest auth asked with algorithm %s", belle_sip_auth_event_get_algorithm(event));
+		}
 	}
 }
 
@@ -173,8 +180,13 @@ static void one_http_get(void) {
 }
 
 static void http_get_empty_body(void) {
+	HttpServer http_server;
 	http_counters_t counters = {0};
-	if (one_get("http://smtp.linphone.org/marie_invalid", &counters, &counters.response_count) == 0) {
+	http_server.Get("/emptybody", [](const httplib::Request &req, httplib::Response &res) {
+		res.status = 200;
+		res.set_content("", "text/plain");
+	});
+	if (one_get(http_server.mRootUrl + "/emptybody", &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
@@ -191,7 +203,7 @@ static void http_get_io_error(void) {
 
 static void one_https_get(void) {
 	http_counters_t counters = {0};
-	if (one_get("https://smtp.linphone.org", &counters, &counters.response_count) == 0) {
+	if (one_get("https://gitlab.linphone.org", &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
@@ -201,28 +213,40 @@ static void one_https_get(void) {
 static void one_https_only_get(void) {
 	http_counters_t counters = {0};
 	// first perform one get on https using the https only provider, it shall work
-	if (one_get_prov("https://smtp.linphone.org", &counters, &counters.response_count, prov_https_only) == 0) {
+	if (one_get_prov("https://gitlab.linphone.org", &counters, &counters.response_count, prov_https_only) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
 	}
 	// then try to perform a http request using the same provider, it shall fail
-	BC_ASSERT_EQUAL(one_get_prov("http://smtp.linphone.org", &counters, &counters.response_count, prov_https_only), -1,
-	                int, "%d");
+	BC_ASSERT_EQUAL(one_get_prov("http://gitlab.linphone.org", &counters, &counters.response_count, prov_https_only),
+	                -1, int, "%d");
 }
 
 static void one_https_get_with_maddr(void) {
+	/* Test removed: the maddr parameter is not supported in http URIs */
+#if 0
+	char ipaddr[64];
 	http_counters_t counters = {0};
-	if (one_get("https://blabla.linphone.org;maddr=94.23.19.176/", &counters, &counters.response_count) == 0) {
+	struct addrinfo hints{};
+	struct addrinfo *ai = nullptr;
+	bctbx_getaddrinfo("gitlab.linphone.org", "80", &hints, &ai);
+	BC_ASSERT_PTR_NOT_NULL(ai);
+	if (!ai) return;
+	bctbx_addrinfo_to_ip_address(ai, ipaddr, sizeof(ipaddr), NULL);
+	bctbx_freeaddrinfo(ai);
+	std::string url = std::string("https://blabla.linphone.org;maddr=") + ipaddr + "/";
+	if (one_get(url.c_str(), &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.four_hundred, 1, int, "%d");
 	}
+#endif
 }
 
 static void https_get_long_body(void) {
 	http_counters_t counters = {0};
-	if (one_get("https://smtp.linphone.org/linphone.html", &counters, &counters.response_count) == 0) {
+	if (one_get("https://gitlab.linphone.org", &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
@@ -231,12 +255,56 @@ static void https_get_long_body(void) {
 
 static void http_digest_get(void) {
 	http_counters_t counters = {0};
-	if (one_get("http://testuser:secret@localhost/digest", &counters, &counters.response_count) == 0) {
+	HttpServer http_server;
+
+	http_server.Get("/digest", [](const httplib::Request &req, httplib::Response &res) {
+		if (req.has_header("Authorization")) {
+			// ok
+			res.set_content("Auth succesfull", "text/plain");
+		} else {
+			res.status = 401;
+			res.set_header("WWW-Authenticate", "Digest realm=\"linphone.org\", nonce=\"abcdefg\"");
+		}
+	});
+
+	std::ostringstream url;
+	url << "http://user:pass@localhost:" << http_server.mListeningPort << "/digest";
+
+	if (one_get(url.str().c_str(), &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
 	}
 }
+
+static void http_sha256_md5_digest_get(void) {
+	http_counters_t counters = {0};
+	HttpServer http_server;
+
+	http_server.Get("/digest", [](const httplib::Request &req, httplib::Response &res) {
+		if (req.has_header("Authorization")) {
+			// ok
+			res.set_content("Auth successful", "text/plain");
+			res.status = 200;
+		} else {
+			res.status = 401;
+			res.set_header("WWW-Authenticate",
+			               "Digest realm=\"linphone.org\", algorithm=MD5, nonce=\"abcdefg\", Digest "
+			               "realm=\"linphone.org\", algorithm=SHA-256, nonce=\"abcdefg\"");
+		}
+	});
+
+	std::ostringstream url;
+	url << "http://localhost:" << http_server.mListeningPort << "/digest";
+
+	if (one_get(url.str().c_str(), &counters, &counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
+	}
+	sleep(3);
+}
+
 static void http_basic_auth_get(void) {
 	http_counters_t counters = {0};
 	HttpServer http_server;
@@ -554,7 +622,7 @@ static void one_https_get_with_proxy(void) {
 	belle_sip_stack_set_http_proxy_host(http_stack, test_http_proxy_addr);
 	belle_sip_stack_set_http_proxy_port(http_stack, test_http_proxy_port);
 
-	if (one_get("https://smtp.linphone.org", &counters, &counters.response_count) == 0) {
+	if (one_get("https://gitlab.linphone.org", &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
@@ -569,8 +637,8 @@ static test_t http_tests[] = {
     TEST_NO_TAG("One https GET with http proxy", one_https_get_with_proxy),
     TEST_NO_TAG("http request with io error", http_get_io_error),
     TEST_NO_TAG("https GET with long body", https_get_long_body),
-    TEST_NO_TAG("http basic auth GET", http_basic_auth_get),
-    TEST_NO_TAG("http digest auth GET", http_digest_get), /*, FIXME, need a server for testing*/
+    TEST_NO_TAG("http basic auth GET", http_basic_auth_get), TEST_NO_TAG("http digest auth GET", http_digest_get),
+    TEST_NO_TAG("http digest md5/sha-256 GET", http_sha256_md5_digest_get),
     TEST_NO_TAG("http bearer auth GET", http_bearer_get),
     // TEST_NO_TAG("https with client certificate", https_client_cert_connection),
     TEST_NO_TAG("https POST with long body", https_post_long_body),

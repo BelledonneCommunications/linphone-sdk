@@ -36,9 +36,11 @@ const char *client_auth_outbound_proxy = "sips:sip.example.org:5063";
 const char *no_server_running_here = "sip:test.linphone.org:3;transport=tcp";
 const char *no_response_here = "sip:78.220.48.77:3;transport=%s";
 const char *belle_sip_auth_domain_tls_to_tcp = "sip:sip2.linphone.org:5060;transport=tls";
-const char *test_http_proxy_addr = "fs-test-3.linphone.org";
-const char *test_with_wrong_cname = "sips:rototo.com;maddr=91.121.209.194";
+
+const char *test_http_proxy_addr = "fs-test-8.linphone.org";
 int test_http_proxy_port = 3128;
+
+const char *test_with_wrong_cname = "sips:rototo.com;maddr=91.121.209.194";
 
 static int is_register_ok;
 static int number_of_challenge;
