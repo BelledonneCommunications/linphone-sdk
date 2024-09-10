@@ -36,6 +36,7 @@ set(BELLESIP_SO_VERSION 1) # set for 4.4.0 release.
 
 
 option(ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP." OFF)
+option(ENABLE_SIP_PARSER_BENCHMARK "Enable build of SIP parser benchmark." OFF)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_UNIT_TESTS "Enable compilation of tests" ON)

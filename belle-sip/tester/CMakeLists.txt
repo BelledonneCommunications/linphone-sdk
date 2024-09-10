@@ -187,7 +187,7 @@ elseif(NOT ANDROID)
 	endif()
 	target_link_libraries(belle-sip-http-get PRIVATE ${BCToolbox_TARGET} belle-sip)
 
-	if(NOT WIN32)
+	if(ENABLE_SIP_PARSER_BENCHMARK)
 		set(BENCH_SOURCES bench.cc)
 		add_executable(belle-sip-bench ${USE_BUNDLE} ${BENCH_SOURCES})
 		set_target_properties(belle-sip-bench PROPERTIES LINKER_LANGUAGE CXX CXX_STANDARD 17 CXX_STANDARD_REQUIRED TRUE)
