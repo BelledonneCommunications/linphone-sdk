@@ -77,6 +77,7 @@ struct _MSDtlsSrtpContext {
 	MSCryptoSuite rtp_agreed_srtp_protection_profile;             /**< agreed protection profile on rtp channel */
 	DtlsRawPacket *rtp_incoming_buffer; /**< buffer of incoming DTLS packet to be read by mbedtls callback */
 	uint64_t rtp_time_reference;        /**< an epoch in ms, used to manage retransmission when we are client */
+	bool retry_sending;                 /**< a flag to set a retry after failed packet sending */
 	std::mutex mtx;                     /**< lock any operation on this context */
 };
 
@@ -200,6 +201,13 @@ ms_dtls_srtp_bctbx_protection_profile_to_ms_crypto_suite(bctbx_dtls_srtp_profile
 
 void schedule_rtp(struct _RtpTransportModifier *t) {
 	MSDtlsSrtpContext *ctx = (MSDtlsSrtpContext *)t->data;
+	/* the retry sending flag is raised when a sending failed */
+	if (ctx->retry_sending) {
+		std::lock_guard<std::mutex> lock(ctx->mtx);
+		ctx->retry_sending = false;
+		bctbx_ssl_handshake(ctx->rtp_dtls_context->ssl);
+		return;
+	}
 	/* the retransmission timer increasing value is managed by the crypto lib
 	 * just poke it each 100ms */
 	if (ctx->rtp_time_reference > 0) { /* only when retransmission timer is armed */
@@ -500,9 +508,16 @@ int ms_dtls_srtp_rtp_sendData(void *ctx, const unsigned char *data, size_t lengt
 	msg = rtp_create_packet((uint8_t *)data, length);
 
 	ret = meta_rtp_transport_modifier_inject_packet_to_send(rtpt, context->rtp_modifier, msg, 0);
-
 	freemsg(msg);
-	return ret < 0 ? BCTBX_ERROR_NET_WANT_WRITE : ret;
+
+	/* sending failed - allow to retry at the next schedule tick */
+	if (ret < 0) {
+		ms_warning("DTLS Send RTP packet len %d sessions: %p rtp session %p failed returns %d", (int)length,
+		           context->stream_sessions, context->stream_sessions->rtp_session, ret);
+		context->retry_sending = true;
+		return BCTBX_ERROR_NET_WANT_WRITE;
+	}
+	return ret;
 }
 
 int ms_dtls_srtp_rtp_DTLSread(void *ctx, unsigned char *buf, BCTBX_UNUSED(size_t len)) {
@@ -848,6 +863,7 @@ extern "C" MSDtlsSrtpContext *ms_dtls_srtp_context_new(MSMediaStreamSessions *se
 	userData->role = params->role;
 	userData->mtu = params->mtu;
 	userData->rtp_time_reference = 0;
+	userData->retry_sending = false;
 
 	userData->stream_sessions = sessions;
 	userData->rtp_incoming_buffer = NULL;
