@@ -1068,13 +1068,15 @@ void media_stream_on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void
 		sMid = bctbx_malloc0(midSize + 1);
 		memcpy(sMid, mid, midSize);
 		/* Check the mid in packet matches the stream's session one */
-		const char *streamMid = rtp_bundle_get_session_mid(session->bundle, ms->sessions.rtp_session);
+		char *streamMid = rtp_bundle_get_session_mid(session->bundle, ms->sessions.rtp_session);
 		if ((strlen(streamMid) != midSize) || (memcmp(mid, streamMid, midSize) != 0)) {
 			ms_warning("New outgoing SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
 			           session, sMid, streamMid);
+			bctbx_free(streamMid);
 			bctbx_free(sMid);
 			return;
 		}
+		if (streamMid != NULL) bctbx_free(streamMid);
 	}
 
 	if (*newSession != NULL) {
@@ -1126,7 +1128,7 @@ void media_stream_create_or_update_fec_session(MediaStream *ms) {
 	const PayloadType *fec_payload_type = rtp_profile_get_payload_from_mime(profile, "flexfec");
 	if (fec_payload_type == NULL) return;
 
-	const char *mid = rtp_bundle_get_session_mid(ms->sessions.rtp_session->bundle, ms->sessions.rtp_session);
+	char *mid = rtp_bundle_get_session_mid(ms->sessions.rtp_session->bundle, ms->sessions.rtp_session);
 	if (mid == NULL) return;
 
 	if (ms->sessions.fec_session == NULL) {
@@ -1151,6 +1153,7 @@ void media_stream_create_or_update_fec_session(MediaStream *ms) {
 	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, ms->fec_parameters);
 	ms_message("create or update FEC session [%p] with new FEC stream [%p], related to rtp_session [%p] in bundle [%p]",
 	           ms->sessions.fec_session, ms->fec_stream, ms->sessions.rtp_session, ms->sessions.rtp_session->bundle);
+	bctbx_free(mid);
 }
 
 void media_stream_destroy_fec_stream(MediaStream *ms) {

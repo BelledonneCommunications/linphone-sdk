@@ -266,13 +266,15 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		sMid = bctbx_malloc0(midSize + 1);
 		memcpy(sMid, mid, midSize);
 		/* Check the mid in packet matches the stream's session one */
-		const char *streamMid = rtp_bundle_get_session_mid(session->bundle, stream->ms.sessions.rtp_session);
+		char *streamMid = rtp_bundle_get_session_mid(session->bundle, stream->ms.sessions.rtp_session);
 		if ((strlen(streamMid) != midSize) || (memcmp(mid, streamMid, midSize) != 0)) {
 			ms_warning("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
 			           session, sMid, streamMid);
+			bctbx_free(streamMid);
 			bctbx_free(sMid);
 			return;
 		}
+		if (streamMid != NULL) bctbx_free(streamMid);
 	}
 
 	// Check the audio volume of the received packet. If the packet indicates that it is muted,
