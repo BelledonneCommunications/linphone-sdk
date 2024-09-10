@@ -75,6 +75,7 @@ typedef struct WasapiSndCard {
 	std::vector<wchar_t> *id_vector;
 	LPWSTR id;
 	bool isDefault;
+	AUDIO_STREAM_CATEGORY streamCategory;
 } WasapiSndCard;
 
 class MSWasapi
@@ -88,6 +89,7 @@ class MSWasapi
 #endif
 	public:
 		IAudioClient2 *mAudioClient;
+		AUDIO_STREAM_CATEGORY mStreamCategory = AudioCategory_Communications;
 
 #ifdef MS2_WINDOWS_PHONE
 		LPCWSTR mDeviceId;

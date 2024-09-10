@@ -256,6 +256,7 @@ void MSWasapi::init(MSSndCard *card, MSFilter *f) {
 
 	mDeviceName = card->name;
 	mIsDefaultDevice = wasapicard->isDefault;
+	mStreamCategory = wasapicard->streamCategory;
 #if defined(MS2_WINDOWS_UNIVERSAL)
 	mDeviceId = ref new Platform::String(id);
 
@@ -286,7 +287,6 @@ void MSWasapi::init(MSSndCard *card, MSFilter *f) {
 		goto error;
 	}
 #endif
-
 	if (createAudioClient()) goto error;
 	useBestFormat = true;
 error:
@@ -553,6 +553,12 @@ HRESULT MSWasapi::ActivateCompleted(IActivateAudioInterfaceAsyncOperation *opera
 		if (mAudioClient == NULL) {
 			hr = E_FAIL;
 			goto exit;
+		}else{
+			if(mStreamCategory != AudioCategory_Other){
+				AudioClientProperties prop = {0};
+				prop.eCategory = mStreamCategory ;
+				mAudioClient->SetClientProperties(&prop);
+			}
 		}
 	} else
 		ms_error("mswasapi: Could not activate the MSWASAPI audio %s interface [%x]", mMediaDirectionStr.c_str(),
@@ -1044,7 +1050,7 @@ private:
 
 #else
 
-static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t capabilities, bool isDefault) {
+static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t capabilities, AUDIO_STREAM_CATEGORY streamCategory, bool isDefault) {
 	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
 	card->name = ms_strdup(name);
@@ -1054,11 +1060,12 @@ static MSSndCard *ms_wasapi_snd_card_new(LPWSTR id, const char *name, uint8_t ca
 	wcscpy_s(&wasapicard->id_vector->front(), wasapicard->id_vector->size(), id);
 	wasapicard->id = &wasapicard->id_vector->front();
 	wasapicard->isDefault = isDefault;
+	wasapicard->streamCategory = streamCategory;
 	return card;
 }
 
 static void add_or_update_card(
-    MSSndCardManager *m, bctbx_list_t **l, LPWSTR id, LPWSTR wname, EDataFlow data_flow, bool isDefault) {
+    MSSndCardManager *m, bctbx_list_t **l, LPWSTR id, LPWSTR wname, EDataFlow data_flow, AUDIO_STREAM_CATEGORY streamCategory, bool isDefault) {
 	MSSndCard *card;
 	const bctbx_list_t *elem = *l;
 	uint8_t capabilities = 0;
@@ -1088,7 +1095,8 @@ static void add_or_update_card(
 	}
 
 	if (isDefault) {
-		name = ms_strdup_printf("Default %s", (data_flow == eCapture ? "Capture" : "Playback"));
+		name = ms_strdup_printf("Default %s",
+		                        (data_flow == eCapture ? "Capture" : "Playback"));
 	} else name = ms_strdup(nameStr);
 	switch (data_flow) {
 		case eRender:
@@ -1115,7 +1123,7 @@ static void add_or_update_card(
 	}
 
 	/* Add a new card. */
-	*l = bctbx_list_append(*l, ms_wasapi_snd_card_new(id, name, capabilities, isDefault));
+	*l = bctbx_list_append(*l, ms_wasapi_snd_card_new(id, name, capabilities, streamCategory, isDefault));
 error:
 	if (nameStr) {
 		ms_free(nameStr);
@@ -1128,8 +1136,8 @@ error:
 	}
 }
 
-static void
-add_endpoint(MSSndCardManager *m, EDataFlow data_flow, bctbx_list_t **l, IMMDevice *pEndpoint, bool isDefault) {
+static void add_endpoint(
+	MSSndCardManager *m, EDataFlow data_flow, bctbx_list_t **l, IMMDevice *pEndpoint, AUDIO_STREAM_CATEGORY streamCategory, bool isDefault) {
 	IPropertyStore *pProps = NULL;
 	LPWSTR pwszID = NULL;
 	HRESULT result;
@@ -1144,7 +1152,7 @@ add_endpoint(MSSndCardManager *m, EDataFlow data_flow, bctbx_list_t **l, IMMDevi
 	PropVariantInit(&varName);
 	result = pProps->GetValue(PKEY_Device_FriendlyName, &varName);
 	REPORT_ERROR("mswasapi: Could not get friendly-name of audio endpoint", result);
-	add_or_update_card(m, l, pwszID, varName.pwszVal, data_flow, isDefault);
+	add_or_update_card(m, l, pwszID, varName.pwszVal, data_flow, streamCategory, isDefault);
 	CoTaskMemFree(pwszID);
 	pwszID = NULL;
 	PropVariantClear(&varName);
@@ -1173,7 +1181,7 @@ static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataF
 	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
 	result = pEnumerator->GetDefaultAudioEndpoint(data_flow, eCommunications, &pEndpoint);
 	if (result == S_OK) {
-		add_endpoint(m, data_flow, l, pEndpoint, true);
+		add_endpoint(m, data_flow, l, pEndpoint, AudioCategory_Communications, true);	// Follow communication stream for default devices
 		SAFE_RELEASE(pEndpoint);
 	}
 	result = pEnumerator->EnumAudioEndpoints(data_flow, DEVICE_STATE_ACTIVE, &pCollection);
@@ -1188,7 +1196,7 @@ static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataF
 	for (ULONG i = 0; i < count; i++) {
 		result = pCollection->Item(i, &pEndpoint);
 		REPORT_ERROR("mswasapi: Could not get pointer to audio endpoint", result);
-		add_endpoint(m, data_flow, l, pEndpoint, false);
+		add_endpoint(m, data_flow, l, pEndpoint, AudioCategory_Other, false);// AudioCategory_Other will not override stream category of the audio session for this end point
 		SAFE_RELEASE(pEndpoint);
 	}
 error:
