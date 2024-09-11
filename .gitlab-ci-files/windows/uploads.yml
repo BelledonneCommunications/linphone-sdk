@@ -82,4 +82,4 @@ nuget-upload-windows:
      - job: vs2022-nuget-windows-package
 
    script:
-     - nuget push "build-desktop/linphone-sdk/packages/*.nupkg" -Source gitlab
+     - nuget push "build/linphone-sdk/packages/*.nupkg" -Source gitlab
