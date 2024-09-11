@@ -302,7 +302,6 @@ static void http_sha256_md5_digest_get(void) {
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
 	}
-	sleep(3);
 }
 
 static void http_basic_auth_get(void) {

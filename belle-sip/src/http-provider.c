@@ -149,66 +149,71 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	    belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp), BELLE_SIP_WWW_AUTHENTICATE));
 	for (it = authenticate_lst; it != NULL; it = it->next) {
 		authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(it->data);
-		const char *requested_algorithm = belle_sip_header_www_authenticate_get_algorithm(authenticate);
+		do {
+			const char *requested_algorithm = belle_sip_header_www_authenticate_get_algorithm(authenticate);
 
-		realm = belle_sip_header_www_authenticate_get_realm(authenticate);
+			realm = belle_sip_header_www_authenticate_get_realm(authenticate);
 
-		belle_sip_message("Processing authenticate header");
+			belle_sip_message("Processing authenticate header");
 
-		if (strcasecmp("Digest", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
-			if (requested_algorithm == NULL) { // default algorithm is MD5
-				requested_algorithm = "MD5";
+			if (strcasecmp("Digest", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
+				if (requested_algorithm == NULL) { // default algorithm is MD5
+					requested_algorithm = "MD5";
+				}
+				auth_mode = BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
+				if (belle_sip_stack_check_digest_compatibility(ctx->provider->stack, authenticate) == -1) continue;
+
+			} else if (strcasecmp("Basic", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
+				auth_mode = BELLE_SIP_AUTH_MODE_HTTP_BASIC;
+				/* ok, Basic is supported*/
+			} else if (strcasecmp("Bearer", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
+				auth_mode = BELLE_SIP_AUTH_MODE_HTTP_BEARER;
+				/* ok, Bearer is supported*/
+			} else {
+				belle_sip_error("Unsupported auth scheme [%s] in response  [%p], cannot authenticate",
+				                belle_sip_header_www_authenticate_get_scheme(authenticate), resp);
+				belle_sip_list_free(authenticate_lst);
+				return -1;
 			}
-			auth_mode = BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
-			if (belle_sip_stack_check_digest_compatibility(ctx->provider->stack, authenticate) == -1) continue;
 
-		} else if (strcasecmp("Basic", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
-			auth_mode = BELLE_SIP_AUTH_MODE_HTTP_BASIC;
-			/* ok, Basic is supported*/
-		} else if (strcasecmp("Bearer", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
-			auth_mode = BELLE_SIP_AUTH_MODE_HTTP_BEARER;
-			/* ok, Bearer is supported*/
-		} else {
-			belle_sip_error("Unsupported auth scheme [%s] in response  [%p], cannot authenticate",
-			                belle_sip_header_www_authenticate_get_scheme(authenticate), resp);
-			belle_sip_list_free(authenticate_lst);
-			return -1;
-		}
-
-		if (header) {
-			belle_sip_header_address_t *from_address =
-			    belle_sip_header_address_parse(belle_sip_header_get_unparsed_value(header));
-			from_uri = belle_sip_header_address_get_uri(from_address);
-		} else if (username && !passwd) {
-			from_uri = belle_sip_uri_create(username, realm);
-		}
-
-		if ((!username || !passwd) && !access_token) {
-			ev = belle_sip_auth_event_create((belle_sip_object_t *)ctx->provider, realm, from_uri);
-			belle_sip_auth_event_set_algorithm(ev, requested_algorithm);
-			ev->mode = auth_mode;
-			if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_BEARER) {
-				belle_sip_auth_event_set_authz_server(ev,
-				                                      belle_sip_header_www_authenticate_get_authz_server(authenticate));
+			if (header) {
+				belle_sip_header_address_t *from_address =
+				    belle_sip_header_address_parse(belle_sip_header_get_unparsed_value(header));
+				from_uri = belle_sip_header_address_get_uri(from_address);
+			} else if (username && !passwd) {
+				from_uri = belle_sip_uri_create(username, realm);
 			}
-			belle_sip_message("Invoking process_auth_requested");
-			BELLE_HTTP_REQUEST_INVOKE_LISTENER(req, process_auth_requested, ev);
-			username = ev->userid ? ev->userid : ev->username;
-			passwd = ev->passwd;
-			ha1 = ev->ha1;
-			access_token = ev->bearer_token ? belle_sip_bearer_token_get_token(ev->bearer_token) : NULL;
-			algorithm = ev->algorithm;
-		}
-		if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_DIGEST && !ha1) {
-			if (username && passwd) {
-				belle_sip_auth_helper_compute_ha1_for_algorithm(username, realm, passwd, computed_ha1,
-				                                                belle_sip_auth_define_size(requested_algorithm),
-				                                                requested_algorithm);
-				ha1 = computed_ha1;
-				algorithm = requested_algorithm;
-				break;
+
+			if ((!username || !passwd) && !access_token) {
+				ev = belle_sip_auth_event_create((belle_sip_object_t *)ctx->provider, realm, from_uri);
+				belle_sip_auth_event_set_algorithm(ev, requested_algorithm);
+				ev->mode = auth_mode;
+				if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_BEARER) {
+					belle_sip_auth_event_set_authz_server(
+					    ev, belle_sip_header_www_authenticate_get_authz_server(authenticate));
+				}
+				belle_sip_message("Invoking process_auth_requested");
+				BELLE_HTTP_REQUEST_INVOKE_LISTENER(req, process_auth_requested, ev);
+				username = ev->userid ? ev->userid : ev->username;
+				passwd = ev->passwd;
+				ha1 = ev->ha1;
+				access_token = ev->bearer_token ? belle_sip_bearer_token_get_token(ev->bearer_token) : NULL;
+				algorithm = ev->algorithm;
 			}
-		}
+			if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
+				if (!ha1) {
+					if (username && passwd) {
+						belle_sip_auth_helper_compute_ha1_for_algorithm(username, realm, passwd, computed_ha1,
+						                                                belle_sip_auth_define_size(requested_algorithm),
+						                                                requested_algorithm);
+						ha1 = computed_ha1;
+						algorithm = requested_algorithm;
+					}
+				}
+				if (ha1) break;
+			}
+			authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_header_get_next(BELLE_SIP_HEADER(authenticate)));
+		} while (authenticate);
 	}
 	belle_sip_list_free(authenticate_lst);
 
