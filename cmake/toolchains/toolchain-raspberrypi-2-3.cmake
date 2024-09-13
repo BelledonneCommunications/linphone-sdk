@@ -23,10 +23,5 @@ include("${CMAKE_CURRENT_LIST_DIR}/toolchain-raspberrypi-common.cmake")
 
 set(CMAKE_SYSTEM_PROCESSOR "armv7")
 
-# Define the compiler flags
-# if(RASPBERRY_VERSION VERSION_GREATER 2) set(CMAKE_C_FLAGS "-mcpu=cortex-a53
-# -mfpu=neon-vfpv4 -mfloat-abi=hard" CACHE STRING "Flags for Raspberry PI 3")
-# set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI
-# 3") elseif(RASPBERRY_VERSION VERSION_GREATER 1)
-set(CMAKE_C_FLAGS "-march=armv7-a -mfloat-abi=hard -mfpu=neon-vfpv4" CACHE STRING "Flags for Raspberry PI 2 & 3 Model A/B")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI 2 & 3 Model A/B")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv7-a -mfloat-abi=hard -mfpu=neon-vfpv4")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv7-a -mfloat-abi=hard -mfpu=neon-vfpv4")

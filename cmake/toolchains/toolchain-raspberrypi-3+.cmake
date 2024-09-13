@@ -24,5 +24,5 @@ include("${CMAKE_CURRENT_LIST_DIR}/toolchain-raspberrypi-common.cmake")
 set(CMAKE_SYSTEM_PROCESSOR "armv8")
 
 # Define the compiler flags
-set(CMAKE_C_FLAGS "-march=armv8-a -mfloat-abi=hard -mfpu=neon-fp-armv8" CACHE STRING "Flags for Raspberry PI 3 & 4 Model A+/B+ & Compute 3/3-lite/3+ (32 bits)")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI 3 & 4 Model A+/B+ & Compute 3/3-lite/3+ (32 bits)")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv8-a+crypto -mfloat-abi=hard -mfpu=crypto-neon-fp-armv8")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -march=armv8-a+crypto -mfloat-abi=hard -mfpu=crypto-neon-fp-armv8")

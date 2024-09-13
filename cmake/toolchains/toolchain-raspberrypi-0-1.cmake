@@ -22,8 +22,7 @@
 set(CMAKE_SYSTEM_PROCESSOR "arm")
 
 # Define the compiler flags
-set(CMAKE_C_FLAGS "-march=armv6 -mfloat-abi=hard -mfpu=vfp" CACHE STRING "Flags for Raspberry PI Zero/W/WH & 1 Model A/B/A+/B+")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "Flags for Raspberry PI Zero/W/WH & 1 Model A/B/A+/B+")
-
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv6 -mfloat-abi=hard -mfpu=vfp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv6 -mfloat-abi=hard -mfpu=vfp")
 
 include("${CMAKE_CURRENT_LIST_DIR}/toolchain-raspberrypi-common.cmake")
