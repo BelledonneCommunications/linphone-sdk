@@ -55,9 +55,16 @@ if(TARGET mbedtls)
 	set(MbedTLS_TARGET mbedtls)
 	set(MbedX509_TARGET mbedx509)
 	set(MbedCrypto_TARGET mbedcrypto)
-	set(MbedTLS_VERSION 3)
-	# We are building mbedTLS, we have DTLS-SRTP support
-	set(DTLS_SRTP_AVAILABLE ON)
+
+	get_target_property(MbedTLS_VERSION mbedtls VERSION)
+	if (MbedTLS_VERSION EQUAL "MbedTLS_VERSION-NOTFOUND")
+		set(MbedTLS_VERSION 3)
+	else()
+		string(REPLACE "." ";" MbedTLS_VERSION "${MbedTLS_VERSION}")
+		list(GET MbedTLS_VERSION 0 MbedTLS_VERSION)
+		# We are building mbedTLS, we have DTLS-SRTP support
+		set(DTLS_SRTP_AVAILABLE ON)
+	endif()
 
 else()
 
