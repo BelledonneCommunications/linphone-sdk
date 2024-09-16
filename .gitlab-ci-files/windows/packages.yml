@@ -8,6 +8,7 @@
         - .gitlab-ci-files/windows/packages.yml
         - cmake/NuGet/Windows/**/*
     - if: $DEPLOY_RUN_NUGET != null
+    - !reference [.rules-merge-request-manual, rules]
   script:
     - cd build
 
@@ -23,7 +24,7 @@
     - echo $LastExitCode
 
     # We use Invoke-Expression to explain to powershell that we don't want it to touch to spaces in arguments
-    - Invoke-Expression "& cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLINPHONESDK_BUILD_TYPE=Packager -DLINPHONESDK_PACKAGER=Nuget -DLINPHONESDK_DESKTOP_ZIP_PATH=$OUTPUT_SDK_BUILD/win -DLINPHONESDK_UWP_ZIP_PATH=$OUTPUT_SDK_BUILD/uwp -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=$OUTPUT_SDK_BUILD/winstore -DLINPHONESDK_WINDOWS_ARCHS=x86 -DLINPHONESDK_WINDOWSSTORE_ARCHS=x86 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
+    - Invoke-Expression "& cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLINPHONESDK_BUILD_TYPE=Packager -DLINPHONESDK_PACKAGER=Nuget -DLINPHONESDK_DESKTOP_ZIP_PATH=$OUTPUT_SDK_BUILD/win -DLINPHONESDK_UWP_ZIP_PATH=$OUTPUT_SDK_BUILD/uwp -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=$OUTPUT_SDK_BUILD/winstore -DLINPHONESDK_WINDOWS_ARCHS=x64 -DLINPHONESDK_WINDOWSSTORE_ARCHS=x64 $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
 
     - echo $LastExitCode
     - 'if (-not ($LastExitCode -eq 0)) {throw "Error: Configure failed"}'
@@ -42,26 +43,27 @@ vs2022-nuget-windows-package:
   extends: .vs-nuget-windows-package
   tags: [ "windows-powershell-vs-17-2022" ]
   needs:
-  - vs2022-win32store-scheduled-windows
+  - vs2022-win64store-scheduled-windows
   - vs2022-uwp-windows
-  - vs2022-win32-scheduled-windows
+  - vs2022-win3264-scheduled-windows
+
 
 vs2019-nuget-windows-package:
   extends: .vs-nuget-windows-package
   tags: [ "windows-powershell-vs-16-2019" ]
+  needs:
+  - vs2019-win64store-scheduled-windows
+  - vs2019-uwp-scheduled-windows
+  - vs2019-win3264-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-  needs:
-  - vs2019-win32store-scheduled-windows
-  - vs2019-uwp-scheduled-windows
-  - vs2019-win32-scheduled-windows
 
 vs2017-nuget-windows-package:
   extends: .vs-nuget-windows-package
   tags: [ "windows-powershell-vs-15-2017" ]
+  needs:
+  - vs2017-win64store-scheduled-windows
+  - vs2017-uwp-scheduled-windows
+  - vs2017-win3264-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-  needs:
-  - vs2017-win32store-scheduled-windows
-  - vs2017-uwp-scheduled-windows
-  - vs2017-win32-scheduled-windows

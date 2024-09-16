@@ -6,11 +6,12 @@ xamarin-package:
   needs:
     - ios-xcode
     - android-ninja-r27
-    - vs2022-win32-scheduled-windows
+    - vs2022-win3264-scheduled-windows
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_XAMARIN != null
+    - !reference [.rules-merge-request-manual, rules]
 
 
   before_script:
