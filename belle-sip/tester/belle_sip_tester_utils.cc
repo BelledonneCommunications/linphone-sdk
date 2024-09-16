@@ -44,7 +44,7 @@ bool Module::onResponse(const belle_sip_response_event_t *BCTBX_UNUSED(event)) {
 
 BasicSipAgent::BasicSipAgent(string domain, string tranport) : mDomain(domain) {
 	mStack = belle_sip_stack_new(NULL);
-	mListeningPoint = belle_sip_stack_create_listening_point(mStack, "0.0.0.0", BELLE_SIP_LISTENING_POINT_RANDOM_PORT,
+	mListeningPoint = belle_sip_stack_create_listening_point(mStack, "127.0.0.1", BELLE_SIP_LISTENING_POINT_RANDOM_PORT,
 	                                                         tranport.c_str());
 	mProv = belle_sip_stack_create_provider(mStack, mListeningPoint);
 
@@ -66,9 +66,9 @@ BasicSipAgent::~BasicSipAgent() {
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(mStack));
 	belle_sip_main_loop_wake_up(belle_sip_stack_get_main_loop(mStack));
 	mSrvThread.join();
-	belle_sip_object_unref(mListener);
 	belle_sip_object_unref(mProv);
 	belle_sip_object_unref(mStack);
+	belle_sip_object_unref(mListener);
 }
 const belle_sip_uri_t *BasicSipAgent::getListeningUri() {
 	return belle_sip_listening_point_get_uri(mListeningPoint);

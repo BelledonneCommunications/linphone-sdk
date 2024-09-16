@@ -85,6 +85,52 @@ private:
 	std::thread mSrvThread;
 };
 
+class QuickSipAgent : public BasicSipAgent {
+public:
+	using RequestHandler = std::function<bool(QuickSipAgent &, const belle_sip_request_event_t *event)>;
+	using ResponseHandler = std::function<bool(QuickSipAgent &, const belle_sip_response_event_t *event)>;
+	QuickSipAgent(const std::string &domain, const std::string &transport = "UDP")
+	    : BasicSipAgent(domain, transport), mQuickModule(*this) {
+		addModule(&mQuickModule);
+	}
+	void setRequestHandler(const RequestHandler &h) {
+		mQuickModule.mOnRequest = h;
+	}
+	void setResponseHandler(const ResponseHandler &h) {
+		mQuickModule.mOnResponse = h;
+	}
+	void doLater(const std::string &name, const std::function<void()> &action, int milliseconds) {
+		belle_sip_source_t *bs = belle_sip_main_loop_create_cpp_timeout_2(
+		    belle_sip_stack_get_main_loop(getStack()),
+		    [action]() -> bool {
+			    action();
+			    return false;
+		    },
+		    milliseconds, name);
+		belle_sip_object_unref(bs);
+	}
+
+private:
+	class QuickModule : public Module {
+	public:
+		QuickModule(QuickSipAgent &agent) : mAgent(agent) {
+		}
+		virtual bool onRequest(const belle_sip_request_event_t *event) override {
+			return mOnRequest ? mOnRequest(mAgent, event) : true;
+		}
+		virtual bool onResponse(const belle_sip_response_event_t *event) override {
+			return mOnResponse ? mOnResponse(mAgent, event) : true;
+		}
+		virtual BasicSipAgent &getAgent() override {
+			return mAgent;
+		}
+		RequestHandler mOnRequest;
+		ResponseHandler mOnResponse;
+		QuickSipAgent &mAgent;
+	};
+	QuickModule mQuickModule;
+};
+
 /**
  * @brief Basic sip registrar server.
  *
