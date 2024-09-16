@@ -229,6 +229,10 @@ vs2022-ninja-win64-windows:
   extends:
     - .windows-vs2022-ninja
     - .vs-ninja-win64-windows
+  variables:
+    # Build C# wrapper and tester and use sdk preset instead of 64bits preset so we have the artefacts in the tester
+    CMAKE_PRESET: windows-ninja-sdk
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS="64bits" -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_CSHARP_WRAPPER=ON -DENABLE_CSHARP_WRAPPER_TESTER=ON
 
 vs2022-ninja-win64-windows-pqc :
   extends:
@@ -384,7 +388,7 @@ vs2017-uwp-scheduled-windows-pqc:
     - *nuget_dev_rule
   variables:
     CMAKE_PRESET: windows-sdk
-    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON
     OUTPUT_ZIP_FOLDER: win32
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
@@ -446,7 +450,7 @@ vs2017-win32-scheduled-windows-pqc:
   variables:
     BUILD_DIR: build/winstore
     CMAKE_PRESET: windows-store-sdk
-    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON
     OUTPUT_ZIP_FOLDER: win32store
 
 vs2022-win32store-scheduled-windows:

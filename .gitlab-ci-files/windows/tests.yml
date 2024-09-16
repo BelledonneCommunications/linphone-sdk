@@ -168,3 +168,26 @@ liblinphone-uwp-windows-test:
       junit:
         - results/LibLinphoneWindows10-Results.xml
     expire_in: 4 week
+
+liblinphone-cswrapper-windows-test:
+  extends: .windows-linphone-test
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
+  variables:
+    MINGW_TYPE: mingw64
+  needs:
+    - vs2022-ninja-win64-windows
+  script:
+    # Go to the dotnet project
+    - cd $Env:CI_PROJECT_DIR\build\win\linphone-sdk\win64\share\linphonecs\LinphoneWrapper.Tests
+
+    # Add build DLLs to PATH so the project can find them
+    - $Env:PATH += ";$Env:CI_PROJECT_DIR\build\win\linphone-sdk\win64\bin"
+
+    # Execute the tester
+    - dotnet test --arch x64
+  after_script:
+  artifacts:

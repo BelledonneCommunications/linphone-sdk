@@ -9,8 +9,7 @@ xamarin-package:
     - vs2022-win32-scheduled-windows
 
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_XAMARIN != null
+    - !reference [.rules-merge-request-manual, rules]
 
 
   before_script:
