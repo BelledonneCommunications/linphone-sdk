@@ -105,6 +105,7 @@ void mediastreamer2_tester_init(void (*ftester_printf)(int level, const char *fm
 	bc_tester_add_suite(&sound_card_test_suite);
 	bc_tester_add_suite(&adaptive_test_suite);
 	bc_tester_add_suite(&audio_stream_test_suite);
+	bc_tester_add_suite(&aec_test_suite);
 #ifdef VIDEO_ENABLED
 	bc_tester_add_suite(&video_stream_test_suite);
 	bc_tester_add_suite(&h26x_tools_test_suite);

@@ -53,6 +53,35 @@ MS2_PUBLIC int ms_audio_diff(const char *ref_file,
                              MSAudioDiffProgressNotify func,
                              void *user_data);
 
+/**
+ * Utility that compares two PCM 16 bits audio files from a given time after the begining and returns a similarity
+ *factor between 0 and 1.
+ * @param ref_file path to a wav file contaning the reference audio segment
+ * @param matched_file path to a wav file contaning the audio segment where the reference file is to be matched.
+ * @param ret the similarity factor, set in return
+ * @param max_shift_percent percentage of overlap between the two signals, used to restrict the cross correlation around
+ *t=0 in range [1 ; 100].
+ * @param func a callback called to show progress of the operation
+ * @param user_data a user data passed to the callback when invoked.
+ * @param start_time_ms time where to start the files comparison, in ms.
+ * @return -1 on error, 0 if succesful.
+ **/
+MS2_PUBLIC int ms_audio_diff_from_given_time(const char *ref_file,
+                                             const char *matched_file,
+                                             double *ret,
+                                             const MSAudioDiffParams *params,
+                                             MSAudioDiffProgressNotify func,
+                                             void *user_data,
+                                             const int start_time_ms);
+
+/**
+ * Utility that computes and returns the energy of a PCM 16 bits audio file.
+ * @param file path to a wav file containing the audio segment.
+ * @param energy the energy, set in return.
+ * @return -1 on error, 0 if succesful.
+ **/
+MS2_PUBLIC int ms_audio_energy(const char *ref_file, double *energy);
+
 #ifdef __cplusplus
 }
 #endif

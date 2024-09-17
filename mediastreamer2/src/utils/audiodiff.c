@@ -79,11 +79,12 @@ static FileInfo *file_info_new(const char *file) {
 	return fi;
 }
 
-static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_samples) {
+static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_samples, const double start_time_ms) {
 	int err;
-	int size = fi->nsamples * fi->nchannels * 2;
-	fi->buffer = ms_new0(int16_t, (fi->nsamples + 2 * zero_pad_samples + 2 * zero_pad_end_samples) * fi->nchannels);
-
+	int nsamples = fi->nsamples - (int)(start_time_ms / 1000. * (double)fi->rate);
+	int size = nsamples * fi->nchannels * 2;
+	fi->buffer = ms_new0(int16_t, (nsamples + 2 * zero_pad_samples + 2 * zero_pad_end_samples) * fi->nchannels);
+	fi->fp->offset += (int)(start_time_ms / 1000. * (double)fi->rate) * fi->nchannels * sizeof(int16_t);
 	err = (int)bctbx_file_read2(fi->fp, fi->buffer + (zero_pad_samples * fi->nchannels), size);
 	if (err == BCTBX_VFS_ERROR) {
 		ms_error("Could not read file: %s", strerror(errno));
@@ -93,6 +94,7 @@ static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_s
 			err = -1;
 		} else err = 0;
 	}
+	fi->nsamples = nsamples;
 	fi->nsamples += zero_pad_end_samples; /*consider that the end-padding zero samples are part of the audio*/
 	return err;
 }
@@ -327,6 +329,18 @@ int ms_audio_diff(const char *ref_file,
                   const MSAudioDiffParams *params,
                   MSAudioDiffProgressNotify func,
                   void *user_data) {
+
+	return ms_audio_diff_from_given_time(ref_file, matched_file, ret, params, func, user_data, 0);
+}
+
+int ms_audio_diff_from_given_time(const char *ref_file,
+                                  const char *matched_file,
+                                  double *ret,
+                                  const MSAudioDiffParams *params,
+                                  MSAudioDiffProgressNotify func,
+                                  void *user_data,
+                                  const int start_time_ms) {
+
 	FileInfo *fi1, *fi2;
 	int max_shift_samples;
 	int err = 0;
@@ -368,6 +382,16 @@ int ms_audio_diff(const char *ref_file,
 		err = -1;
 		goto end;
 	}
+	if ((double)start_time_ms >= (double)fi1->nsamples / (double)fi1->rate * 1000) {
+		ms_error("File duration is less than %d ms !", start_time_ms);
+		err = -1;
+		goto end;
+	}
+	if ((double)start_time_ms >= (double)fi2->nsamples / (double)fi2->rate * 1000) {
+		ms_error("File duration is less than %d ms !", start_time_ms);
+		err = -1;
+		goto end;
+	}
 
 	max_shift_samples = MIN(fi1->nsamples, fi2->nsamples) * MIN(MAX(1, params->max_shift_percent), 100) / 100;
 
@@ -375,15 +399,14 @@ int ms_audio_diff(const char *ref_file,
 		end_zero_pad_samples = fi1->nsamples - fi2->nsamples;
 	}
 	/*load the datas*/
-	if (file_info_read(fi1, 0, 0) == -1) {
+	if (file_info_read(fi1, 0, 0, (double)start_time_ms) == -1) {
 		err = -1;
 		goto end;
 	}
-	if (file_info_read(fi2, max_shift_samples, end_zero_pad_samples) == -1) {
+	if (file_info_read(fi2, max_shift_samples, end_zero_pad_samples, (double)start_time_ms) == -1) {
 		err = -1;
 		goto end;
 	}
-
 	if (params->chunk_size_ms == 0) {
 		maxpos = _ms_audio_diff_one_chunk(fi1->buffer, fi2->buffer, fi1->nsamples, max_shift_samples, fi1->nchannels,
 		                                  ret, NULL, &pctx);
@@ -395,5 +418,36 @@ int ms_audio_diff(const char *ref_file,
 end:
 	file_info_destroy(fi1);
 	file_info_destroy(fi2);
+	return err;
+}
+
+int ms_audio_energy(const char *ref_file, double *energy) {
+
+	FileInfo *fi;
+	int err = 0;
+
+	fi = file_info_new(ref_file);
+	if (fi == NULL) return 0;
+
+	if (fi->nsamples == 0) {
+		ms_error("File has no samples !");
+		err = -1;
+		goto end;
+	}
+	/*load the datas*/
+	if (file_info_read(fi, 0, 0, 0.) == -1) {
+		err = -1;
+		goto end;
+	}
+
+	double en = 0.;
+	double s = 0.;
+	for (int i = 0; i < fi->nsamples; i++) {
+		s = (double)fi->buffer[i] / 32768.;
+		en += s * s;
+	}
+	*energy = en;
+end:
+	file_info_destroy(fi);
 	return err;
 }
