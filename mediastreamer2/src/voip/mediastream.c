@@ -154,6 +154,7 @@ static void on_ssrc_changed(RtpSession *session) {
 RtpSession *ms_create_duplex_rtp_session(const char *local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
 	RtpSession *rtpr;
 	const int socket_buf_size = 2000000;
+	int rtcp_interval;
 
 	rtpr = rtp_session_new(RTP_SESSION_SENDRECV);
 	rtp_session_set_recv_buf_size(rtpr, MAX(mtu, MS_MINIMAL_MTU));
@@ -175,8 +176,13 @@ RtpSession *ms_create_duplex_rtp_session(const char *local_ip, int loc_rtp_port,
 	rtp_session_signal_connect(rtpr, "ssrc_changed", (RtpCallback)on_ssrc_changed, NULL);
 
 	rtp_session_set_ssrc_changed_threshold(rtpr, 0);
-	rtp_session_set_rtcp_report_interval(rtpr, 2500); /* At the beginning of the session send more reports. */
-	rtp_session_set_multicast_loopback(rtpr, TRUE);   /*very useful, specially for testing purposes*/
+	/* At the beginning of the session send more reports.
+	   The randomness part is for internal tests, to avoid simultaenous sending of RTCP
+	   report, which is unefficient for round trip delay computation.
+	*/
+	rtcp_interval = 2000 + (bctbx_random() % 1000);
+	rtp_session_set_rtcp_report_interval(rtpr, rtcp_interval);
+	rtp_session_set_multicast_loopback(rtpr, TRUE); /*very useful, specially for testing purposes*/
 	rtp_session_set_send_ts_offset(rtpr, (uint32_t)bctbx_random());
 	rtp_session_enable_avpf_feature(rtpr, ORTP_AVPF_FEATURE_TMMBR, TRUE);
 	disable_checksums(rtp_session_get_rtp_socket(rtpr));
