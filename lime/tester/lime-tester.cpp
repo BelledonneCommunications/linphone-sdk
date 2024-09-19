@@ -136,20 +136,17 @@ int main(int argc, char *argv[]) {
 		} else if (strcmp(argv[i],"--x3dh-server-name")==0){
 			CHECK_ARG("--x3dh-server-name", ++i, argc);
 			lime_tester::test_x3dh_server_url=std::string(argv[i]);
+			lime_tester::test_x3dh_default_server=std::string("https://").append(std::string(argv[i])).append(":").append(lime_tester::test_x3dh_default_server_port);
+			lime_tester::test_x3dh_stop_on_request_limit_server=std::string("https://").append(std::string(argv[i])).append(":").append(lime_tester::test_x3dh_stop_on_request_limit_server_port);
 #ifdef FFI_ENABLED
 			strncpy(ffi_test_x3dh_server_url, argv[i], sizeof(ffi_test_x3dh_server_url)-1);
 #endif
-		} else if (strcmp(argv[i],"--c255-x3dh-server-port")==0){
-			CHECK_ARG("--c255-x3dh-server-port", ++i, argc);
-			lime_tester::test_x3dh_c25519_server_port=std::string(argv[i]);
+		} else if (strcmp(argv[i],"--x3dh-default-server-port")==0){
+			CHECK_ARG("--x3dh-default-server-port", ++i, argc);
+			lime_tester::test_x3dh_default_server_port=std::string(argv[i]);
+			lime_tester::test_x3dh_default_server=std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(std::string(argv[i]));
 #ifdef FFI_ENABLED
 			strncpy(ffi_test_x3dh_c25519_server_port, argv[i], sizeof(ffi_test_x3dh_c25519_server_port)-1);
-#endif
-		} else if (strcmp(argv[i],"--c448-x3dh-server-port")==0){
-			CHECK_ARG("--c448-x3dh-server-port", ++i, argc);
-			lime_tester::test_x3dh_c448_server_port=std::string(argv[i]);
-#ifdef FFI_ENABLED
-			strncpy(ffi_test_x3dh_c448_server_port, argv[i], sizeof(ffi_test_x3dh_c448_server_port)-1);
 #endif
 		} else if (strcmp(argv[i],"--operation-timeout")==0){
 			CHECK_ARG("--operation-timeout", ++i, argc);

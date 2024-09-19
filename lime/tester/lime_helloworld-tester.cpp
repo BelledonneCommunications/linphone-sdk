@@ -169,10 +169,9 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
  *
  *   @param[in] curve		Lime can run with cryptographic operations based on curve25519 or curve448, set by this parameter in this test.
  *   				One X3DH server runs on one type of key and all clients must use the same
- *   @param[in]	dbBaseFilename	The local filename for users will be this base.<alice/bob>.<curve type>.sqlite3
- *   @param[x3dh_server_url]	The URL (including port) of the X3DH server
  */
-static void helloworld_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+static void helloworld_basic_test(const lime::CurveId curve) {
+	const std::string dbBaseFilename{"helloworld_basic"};
 	// users databases names: baseFilename.<alice/bob>.<curve id>.sqlite3
 	std::string dbFilenameAlice{dbBaseFilename};
 	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
@@ -220,13 +219,13 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		//      - In case of successful operation the return code is lime::CallbackReturn::success, and string is empty
 		//      - In case of failure, the return code is lime::CallbackReturn::fail and the string shall give details on the failure cause
 		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
-		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(tmp_aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
-		bobManager->create_user(tmp_bobDeviceId, x3dh_server_url, curve, callback);
+		bobManager->create_user(tmp_bobDeviceId, lime_tester::test_x3dh_default_server, curve, callback);
 		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
@@ -378,10 +377,9 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
  *
  *   @param[in] curve		Lime can run with cryptographic operations based on curve25519 or curve448, set by this parameter in this test.
  *   				One X3DH server runs on one type of key and all clients must use the same
- *   @param[in]	dbBaseFilename	The local filename for users will be this base.<alice/bob>.<curve type>.sqlite3
- *   @param[x3dh_server_url]	The URL (including port) of the X3DH server
  */
-static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
+	const std::string dbBaseFilename{"helloworld_identity"};
 	// users databases names: baseFilename.<alice/bob>.<curve id>.sqlite3
 	std::string dbFilenameAlice{dbBaseFilename};
 	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
@@ -429,13 +427,13 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		//      - In case of successfull operation the return code is lime::CallbackReturn::success, and string is empty
 		//      - In case of failure, the return code is lime::CallbackReturn::fail and the string shall give details on the failure cause
 		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
-		aliceManager->create_user(tmp_aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(tmp_aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
-		bobManager->create_user(tmp_bobDeviceId, x3dh_server_url, curve, callback);
+		bobManager->create_user(tmp_bobDeviceId, lime_tester::test_x3dh_default_server, curve, callback);
 		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
@@ -605,28 +603,26 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 }
 
 static void helloworld_basic(void) {
-	// run the test on Curve25519 and Curve448 based encryption if available
 #ifdef EC25519_ENABLED
-	helloworld_basic_test(lime::CurveId::c25519, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	helloworld_basic_test(lime::CurveId::c25519);
 #endif
 #ifdef EC448_ENABLED
-	helloworld_basic_test(lime::CurveId::c448, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	helloworld_basic_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
-	helloworld_basic_test(lime::CurveId::c25519k512, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	helloworld_basic_test(lime::CurveId::c25519k512);
 #endif
 }
 
 static void helloworld_verifyIdentity(void) {
-	// run the test on Curve25519 and Curve448 based encryption if available
 #ifdef EC25519_ENABLED
-	helloworld_verifyIdentity_test(lime::CurveId::c25519, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	helloworld_verifyIdentity_test(lime::CurveId::c25519);
 #endif
 #ifdef EC448_ENABLED
-	helloworld_verifyIdentity_test(lime::CurveId::c448, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	helloworld_verifyIdentity_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
-	helloworld_verifyIdentity_test(lime::CurveId::c25519k512, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	helloworld_verifyIdentity_test(lime::CurveId::c25519k512);
 #endif
 }
 

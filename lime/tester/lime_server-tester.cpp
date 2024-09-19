@@ -131,7 +131,8 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
  * - Add 100 OPks to alice -> it shall pass
  * - Add 100 OPks to alice -> is shall fail
  */
-static void lime_server_resource_limit_reached_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+static void lime_server_resource_limit_reached_test(const lime::CurveId curve) {
+	const std::string dbBaseFilename{"lime_server_resource_limit_reached"};
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
@@ -154,11 +155,11 @@ static void lime_server_resource_limit_reached_test(const lime::CurveId curve, c
 		// create Manager and device for alice
 		auto aliceManager = std::make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
-		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, 500, callback);
+		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, 500, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed, ++expected_failure,lime_tester::wait_for_timeout));
 
 		// Try again to create the device, with 100 OPks, it shall pass
-		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, 100, callback);
+		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, 100, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// call the update, set the serverLimit 200 and upload an other 100
@@ -210,13 +211,13 @@ static void lime_server_resource_limit_reached_test(const lime::CurveId curve, c
 
 static void lime_server_resource_limit_reached() {
 #ifdef EC25519_ENABLED
-	lime_server_resource_limit_reached_test(lime::CurveId::c25519, "lime_server_resource_limit_reached", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	lime_server_resource_limit_reached_test(lime::CurveId::c25519);
 #endif
 #ifdef EC448_ENABLED
-	lime_server_resource_limit_reached_test(lime::CurveId::c448, "lime_server_resource_limit_reached", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	lime_server_resource_limit_reached_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_server_resource_limit_reached_test(lime::CurveId::c25519k512, "lime_server_resource_limit_reached", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_server_resource_limit_reached_test(lime::CurveId::c25519k512);
 #endif
 }
 
@@ -350,29 +351,30 @@ static void lime_server_bundle_request_limit_reached_test(const lime::CurveId cu
 
 static void lime_server_bundle_request_limit_reached() {
 #ifdef EC25519_ENABLED
-	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519, "lime_server_bundle_request_limit_reached_keep", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
 #endif
 #ifdef EC448_ENABLED
-	lime_server_bundle_request_limit_reached_test(lime::CurveId::c448, "lime_server_bundle_request_limit_reached_keep", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c448, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519k512, "lime_server_bundle_request_limit_reached_keep", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519k512, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
 #endif
 }
 
 static void lime_server_bundle_request_limit_reached_stop_serving() {
 #ifdef EC25519_ENABLED
-	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519, "lime_server_bundle_request_limit_reached_stop", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_stop_on_request_limit_server_port).data(), false);
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519, "lime_server_bundle_request_limit_reached_stop", lime_tester::test_x3dh_stop_on_request_limit_server, false);
 #endif
 #ifdef EC448_ENABLED
-	lime_server_bundle_request_limit_reached_test(lime::CurveId::c448, "lime_server_bundle_request_limit_reached_stop", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_stop_on_request_limit_server_port).data(), false);
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c448, "lime_server_bundle_request_limit_reached_stop", lime_tester::test_x3dh_stop_on_request_limit_server, false);
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519k512, "lime_server_bundle_request_limit_reached_stop", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_stop_on_request_limit_server_port).data(), false);
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519k512, "lime_server_bundle_request_limit_reached_stop", lime_tester::test_x3dh_stop_on_request_limit_server, false);
 #endif
 }
 
-static void lime_server_bundle_request_limit_reached_multiple_users_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+static void lime_server_bundle_request_limit_reached_multiple_users_test(const lime::CurveId curve) {
+	const std::string dbBaseFilename{"lime_server_bundle_request_limit_reached_multiple_users"};	
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	std::string dbFilenameBob{dbBaseFilename};
@@ -407,12 +409,12 @@ static void lime_server_bundle_request_limit_reached_multiple_users_test(const l
 		auto aliceDeviceId2 = lime_tester::makeRandomDeviceName("alice.2.");
 		auto bobDeviceId2 = lime_tester::makeRandomDeviceName("bob.2.");
 		auto claireDeviceId2 = lime_tester::makeRandomDeviceName("claire.2.");
-		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, 10, callback);
-		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, 10, callback);
-		claireManager->create_user(*claireDeviceId, x3dh_server_url, curve, 10, callback);
-		aliceManager->create_user(*aliceDeviceId2, x3dh_server_url, curve, 10, callback);
-		bobManager->create_user(*bobDeviceId2, x3dh_server_url, curve, 10, callback);
-		claireManager->create_user(*claireDeviceId2, x3dh_server_url, curve, 10, callback);
+		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, 10, callback);
+		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, 10, callback);
+		claireManager->create_user(*claireDeviceId, lime_tester::test_x3dh_default_server, curve, 10, callback);
+		aliceManager->create_user(*aliceDeviceId2, lime_tester::test_x3dh_default_server, curve, 10, callback);
+		bobManager->create_user(*bobDeviceId2, lime_tester::test_x3dh_default_server, curve, 10, callback);
+		claireManager->create_user(*claireDeviceId2, lime_tester::test_x3dh_default_server, curve, 10, callback);
 		expected_success += 6;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_success<2) return; // skip the end of the test if we can't do this
@@ -576,13 +578,13 @@ static void lime_server_bundle_request_limit_reached_multiple_users_test(const l
 
 static void lime_server_bundle_request_limit_reached_multiple_users() {
 #ifdef EC25519_ENABLED
-	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c25519, "lime_server_bundle_request_limit_reached_keep", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c25519);
 #endif
 #ifdef EC448_ENABLED
-	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c448, "lime_server_bundle_request_limit_reached_keep", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c25519k512, "lime_server_bundle_request_limit_reached_keep", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c25519k512);
 #endif
 }
 

@@ -142,16 +142,13 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 //
 // Create users on their respective servers
 // Alice encrypts a message to bob
-static void lime_multidomains_simple() {
-// To avoid the configuration of too many servers, the multidomain is tested on Curve25519 only
-#ifdef EC25519_ENABLED
-	auto curve = lime::CurveId::c25519;
+static void lime_multidomains_simple_test(const lime::CurveId curve) {
 	// create DBs
 	std::string dbBaseFilename("multidomain");
 	std::string dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -199,9 +196,16 @@ static void lime_multidomains_simple() {
 		BC_FAIL("Multidomain test got an exception");
 		throw;
 	}
-
-#else
-	LIME_LOGE<<"Warning: Multidomain is not tested when curve25519 is not supported";
+}
+static void lime_multidomains_simple() {
+#ifdef EC25519_ENABLED
+	lime_multidomains_simple_test(lime::CurveId::c25519);
+#endif
+#ifdef EC448_ENABLED
+	lime_multidomains_simple_test(lime::CurveId::c448);
+#endif
+#ifdef HAVE_BCTBXPQ
+	lime_multidomains_simple_test(lime::CurveId::c25519k512);
 #endif
 }
 
@@ -214,20 +218,17 @@ static void lime_multidomains_simple() {
 //
 // Create users on their respective servers
 // Alice send message to all of them
-static void lime_multidomains_several_foreign() {
-// To avoid the configuration of too many servers, the multidomain is tested on Curve25519 only
-#ifdef EC25519_ENABLED
-	auto curve = lime::CurveId::c25519;
+static void lime_multidomains_several_foreign_test(const lime::CurveId curve) {
 	// create DBs
 	std::string dbBaseFilename("multidomain");
 	std::string dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameClaire = dbBaseFilename;
-	dbFilenameClaire.append(".claire.").append(".sqlite3");
+	dbFilenameClaire.append(".claire.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameDave = dbBaseFilename;
-	dbFilenameDave.append(".dave.").append(".sqlite3");
+	dbFilenameDave.append(".dave.").append(lime_tester::curveId(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -303,12 +304,19 @@ static void lime_multidomains_several_foreign() {
 		BC_FAIL("Multidomain test got an exception");
 		throw;
 	}
-
-#else
-	LIME_LOGE<<"Warning: Multidomain is not tested when curve25519 is not supported";
-#endif
 }
 
+static void lime_multidomains_several_foreign() {
+#ifdef EC25519_ENABLED
+	lime_multidomains_several_foreign_test(lime::CurveId::c25519);
+#endif
+#ifdef EC448_ENABLED
+	lime_multidomains_several_foreign_test(lime::CurveId::c448);
+#endif
+#ifdef HAVE_BCTBXPQ
+	lime_multidomains_several_foreign_test(lime::CurveId::c25519k512);
+#endif
+}
 // Scenario:
 // Alice has 2 devices Id sip:alice@domainA;gr=<...>;
 // Bob has 2 devices Id sip:bob@domainB;gr=<...>;
@@ -317,20 +325,17 @@ static void lime_multidomains_several_foreign() {
 //
 // Create users on their respective servers
 // Alice send message to all of them
-static void lime_multidomains_several_users_foreign() {
-// To avoid the configuration of too many servers, the multidomain is tested on Curve25519 only
-#ifdef EC25519_ENABLED
-	auto curve = lime::CurveId::c25519;
+static void lime_multidomains_several_users_foreign_test(const lime::CurveId curve) {
 	// create DBs
 	std::string dbBaseFilename("multidomain");
 	std::string dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameClaire = dbBaseFilename;
-	dbFilenameClaire.append(".claire.").append(".sqlite3");
+	dbFilenameClaire.append(".claire.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameDave = dbBaseFilename;
-	dbFilenameDave.append(".dave.").append(".sqlite3");
+	dbFilenameDave.append(".dave.").append(lime_tester::curveId(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -446,9 +451,16 @@ static void lime_multidomains_several_users_foreign() {
 		BC_FAIL("Multidomain test got an exception");
 		throw;
 	}
-
-#else
-	LIME_LOGE<<"Warning: Multidomain is not tested when curve25519 is not supported";
+}
+static void lime_multidomains_several_users_foreign() {
+#ifdef EC25519_ENABLED
+	lime_multidomains_several_users_foreign_test(lime::CurveId::c25519);
+#endif
+#ifdef EC448_ENABLED
+	lime_multidomains_several_users_foreign_test(lime::CurveId::c448);
+#endif
+#ifdef HAVE_BCTBXPQ
+	lime_multidomains_several_users_foreign_test(lime::CurveId::c25519k512);
 #endif
 }
 

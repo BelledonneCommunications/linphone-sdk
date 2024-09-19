@@ -39,15 +39,13 @@ namespace lime_tester {
 
 // default url and ports of X3DH servers
 std::string test_x3dh_server_url{"localhost"};
-std::string test_x3dh_c25519_server_port{"25519"};
-std::string test_x3dh_c448_server_port{"25520"};
+std::string test_x3dh_default_server_port{"25519"};
+std::string test_x3dh_default_server{"https://localhost:25519"};
+std::string test_x3dh_stop_on_request_limit_server_port{"25520"};
+std::string test_x3dh_stop_on_request_limit_server{"https://localhost:25520"};
 std::string test_x3dh_domainA_server_port{"25521"};
 std::string test_x3dh_domainB_server_port{"25522"};
 std::string test_x3dh_domainC_server_port{"25523"};
-std::string test_x3dh_c25519_stop_on_request_limit_server_port{"25524"};
-std::string test_x3dh_c448_stop_on_request_limit_server_port{"25525"};
-std::string test_x3dh_c25519k512_server_port{"25526"};
-std::string test_x3dh_c25519k512_stop_on_request_limit_server_port{"25527"};
 
 // for testing purpose RNG, no need to be a good one
 std::random_device rd;

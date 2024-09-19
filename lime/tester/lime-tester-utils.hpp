@@ -35,15 +35,13 @@ using namespace::lime;
 namespace lime_tester {
 // default url and ports of X3DH servers
 extern std::string test_x3dh_server_url;
-extern std::string test_x3dh_c25519_server_port;
-extern std::string test_x3dh_c448_server_port;
-extern std::string test_x3dh_c25519k512_server_port;
+extern std::string test_x3dh_default_server_port;
+extern std::string test_x3dh_default_server;
+extern std::string test_x3dh_stop_on_request_limit_server_port;
+extern std::string test_x3dh_stop_on_request_limit_server;
 extern std::string test_x3dh_domainA_server_port;
 extern std::string test_x3dh_domainB_server_port;
 extern std::string test_x3dh_domainC_server_port;
-extern std::string test_x3dh_c25519_stop_on_request_limit_server_port;
-extern std::string test_x3dh_c448_stop_on_request_limit_server_port;
-extern std::string test_x3dh_c25519k512_stop_on_request_limit_server_port;
 
 // messages pattern
 extern std::string shortMessage;
