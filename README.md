@@ -70,7 +70,7 @@ In this order, add `C:\msys64\mingw<N>\bin`, `C:\msys64\` and `C:\msys64\usr\bin
 Visual Studio must also be properly configured with addons. Under "Tools"->"Obtain tools and features", make sure that the following components are installed:
  - Tasks: Select Windows Universal Platform development, Desktop C++ Development, .NET Development
  
-For Visual Studio 2017 :
+For Visual Studio 2022 :
  - Under "Installation details". Go to "Desktop C++ Development" and add "SDK Windows 8.1 and SDK UCRT"
  - Individual component: Windows 8.1 SDK
 
@@ -207,6 +207,9 @@ As for the iOS build, you can alternatively build with Ninja instead of Xcode by
 
 ### Windows
 
+Requirement:
+ - Microsoft Visual Studio  >= 2022
+
 Configure the project with:
 
 `cmake --preset=windows-sdk -B build-windows`
@@ -221,6 +224,9 @@ However it may be convenient to build from Visual Studio, which you can do:
  - use `Build solution` to build.
 
 ### Windows UWP and Stores
+
+Requirement:
+ - Microsoft Visual Studio  >= 2022
 
 You can use linphone-sdk in your Windows UWP app with the UWP mode.
 Win32 application can use the Windows Store mode in order to be publishable in Windows Stores.
