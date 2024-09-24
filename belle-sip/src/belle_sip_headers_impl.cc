@@ -149,7 +149,7 @@ void belle_sip_header_set_next(belle_sip_header_t *header, belle_sip_header_t *n
 void belle_sip_header_append(belle_sip_header_t *header, belle_sip_header_t *next) {
 	auto current = header;
 	while (current->next)
-		current = header->next;
+		current = current->next;
 	belle_sip_header_set_next(current, next);
 }
 

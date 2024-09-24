@@ -41,8 +41,6 @@ extern "C" {
 
 char *belle_sip_trim_whitespaces(char *str);
 
-void belle_sip_header_append(belle_sip_header_t *context, belle_sip_header_t *header);
-
 BELLESIP_EXPORT void belle_sip_header_set_next(belle_sip_header_t *header, belle_sip_header_t *next);
 
 belle_sip_param_pair_t *belle_sip_param_pair_new(const char *name, const char *value);
