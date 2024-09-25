@@ -40,7 +40,6 @@
         "ENABLE_FLEXIAPI": "ON",
         "ENABLE_FLOAT_API": "OFF",
         "ENABLE_FIXED_POINT": "ON",
-        "ENABLE_ISAC": "ON",
         "ENABLE_JAVA_WRAPPER": "ON",
         "ENABLE_JNI": "OFF",
         "ENABLE_LDAP": "ON",
@@ -53,7 +52,7 @@
         "ENABLE_TOOLS": "OFF",
         "ENABLE_UNIT_TESTS": "OFF",
         "ENABLE_TESTS_COMPONENT": "OFF",
-        "ENABLE_WEBRTC_AECM": "ON",
+        "ENABLE_WEBRTC_AEC": "ON",
         "LINPHONESDK_PLATFORM": "Android"
       }
     },
@@ -216,7 +215,6 @@
         "ENABLE_FLEXIAPI": "ON",
         "ENABLE_FLOAT_API": "OFF",
         "ENABLE_FIXED_POINT": "ON",
-        "ENABLE_ISAC": "ON",
         "ENABLE_LDAP": "ON",
         "ENABLE_RELATIVE_PREFIX": "ON",
         "ENABLE_SCREENSHARING": "OFF",
@@ -432,8 +430,7 @@
         "ENABLE_FIXED_POINT": "ON",
         "ENABLE_SCREENSHARING": "OFF",
         "ENABLE_STRICT": "OFF",
-        "ENABLE_WEBRTC_AEC": "OFF",
-        "ENABLE_WEBRTC_AECM": "ON",
+        "ENABLE_WEBRTC_AEC": "ON",
         "LINPHONESDK_PLATFORM": "Raspberry",
         "OPUS_FIXED_POINT": "ON"
       }

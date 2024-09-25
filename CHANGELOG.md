@@ -11,6 +11,11 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
+## Unreleased
+
+### Removed
+- Dependency to WebRTC's repository.
+
 
 ## [5.4.0] 2025-03-11
 
