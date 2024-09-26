@@ -87,7 +87,7 @@ if(CMAKE_GENERATOR STREQUAL "Xcode")
 	set(CMAKE_MACOSX_BUNDLE NO)#if YES, cmake try_compile will not be able to test executable.app and then API info will fail.
 	set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED NO)
 	set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED NO)
-	set(CMAKE_XCODE_ATTRIBUTE_BITCODE_GENERATION_MODE "bitcode")
+#	set(CMAKE_XCODE_ATTRIBUTE_BITCODE_GENERATION_MODE "bitcode")
 endif()
 
 # Define the compiler

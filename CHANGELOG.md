@@ -11,14 +11,11 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
-## [5.3.68] - 2024-07-10
-
-## Added
-- Use locale encoding from setlocale() on Windows and fallback to CP_APC if not found.
 
 ## [5.4.0] unreleased
 ### Changed
 - Update macOS deployment target version to 10.15 and iOS deployment target version to iOS13
+- Removed deprecated bitcode compilation for iOS and Mac targets.
  
 
 ## [5.3.0] 2023-12-18
