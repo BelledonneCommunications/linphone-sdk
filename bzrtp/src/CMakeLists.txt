@@ -56,7 +56,7 @@ if(ENABLE_PQCRYPTO)
 endif()
 
 if(BUILD_SHARED_LIBS)
-	target_compile_definitions(bzrtp PRIVATE "-DBZRTP_EXPORTS")
+	target_compile_definitions(bzrtp PRIVATE "BZRTP_EXPORTS")
 	if(MSVC)
 		install(FILES $<TARGET_PDB_FILE:bzrtp>
 			DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -64,6 +64,9 @@ if(BUILD_SHARED_LIBS)
 			CONFIGURATIONS Debug RelWithDebInfo
 		)
 	endif()
+else()
+	target_compile_definitions(bzrtp PUBLIC "BZRTP_STATIC")
+	set_target_properties(bzrtp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 install(TARGETS bzrtp EXPORT ${PROJECT_NAME}Targets
