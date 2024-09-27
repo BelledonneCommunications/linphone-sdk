@@ -52,7 +52,6 @@ belle_sip_channel_t *_belle_sip_listening_point_get_channel_by_addrinfo(belle_si
 belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip,
                                                               const belle_sip_hop_t *hop);
 void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
-int belle_sip_listening_point_get_well_known_port(const char *transport);
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop);
 belle_sip_channel_t *belle_sip_listening_point_find_channel_by_local_uri(belle_sip_listening_point_t *lp,
                                                                          const belle_sip_uri_t *uri);

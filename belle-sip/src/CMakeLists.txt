@@ -189,6 +189,7 @@ if(APPLE_FRAMEWORKS)
 endif()
 
 if(BUILD_SHARED_LIBS)
+	target_compile_definitions(belle-sip PRIVATE "BELLESIP_EXPORTS")
 	if(APPLE)
 		set_target_properties(belle-sip PROPERTIES
 			FRAMEWORK TRUE
@@ -205,6 +206,9 @@ if(BUILD_SHARED_LIBS)
 			CONFIGURATIONS Debug RelWithDebInfo
 		)
 	endif()
+else()
+	target_compile_definitions(belle-sip PUBLIC "BELLESIP_STATIC")
+	set_target_properties(belle-sip PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 install(TARGETS belle-sip EXPORT ${PROJECT_NAME}Targets

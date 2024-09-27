@@ -81,7 +81,7 @@
 #include "dispatch/dispatch.h"
 #endif /* HAVE_DNS_SERVICE */
 
-#define SOCKET_NOT_SET ((belle_sip_socket_t)-1)
+#define SOCKET_NOT_SET ((belle_sip_socket_t) - 1)
 /*etc*/
 
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj, interface)                                                                \
@@ -1293,10 +1293,6 @@ typedef authorization_context_t belle_sip_authorization_t;
 BELLESIP_EXPORT void belle_sip_authorization_destroy(belle_sip_authorization_t *object);
 BELLESIP_EXPORT const char *belle_sip_authorization_get_algorithm(const belle_sip_authorization_t *object);
 
-/**
- * Generate a random unsigned int
- */
-uint32_t belle_sip_random(void);
 #ifdef __cplusplus
 }
 #endif

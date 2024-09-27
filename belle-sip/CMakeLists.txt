@@ -183,16 +183,6 @@ if(APPLE)
 	endif()
 endif()
 
-set(BELLESIP_CPPFLAGS )
-if(NOT BUILD_SHARED_LIBS)
-	list(APPEND BELLESIP_CPPFLAGS "-DBELLESIP_STATIC")
-endif()
-if(BELLESIP_CPPFLAGS)
-	list(REMOVE_DUPLICATES BELLESIP_CPPFLAGS)
-	add_definitions(${BELLESIP_CPPFLAGS})
-endif()
-add_definitions("-DBELLESIP_EXPORTS")
-
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	add_definitions(
 		-DHAVE_COMPILER_TLS

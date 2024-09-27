@@ -77,6 +77,7 @@ if (IOS)
 	set(USE_BUNDLE MACOSX_BUNDLE)
 endif()
 add_library(libbelle-sip-tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
+target_compile_definitions(libbelle-sip-tester PRIVATE "BELLESIP_EXPORTS")
 target_link_libraries(libbelle-sip-tester PRIVATE ${BCToolbox_tester_TARGET} belle-sip)
 target_link_libraries(libbelle-sip-tester PUBLIC httplib)
 target_include_directories(libbelle-sip-tester INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -98,6 +99,7 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_library(belle-sip-tester-static STATIC ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
 	target_link_libraries(belle-sip-tester-static PUBLIC ${BCToolbox_tester_TARGET} belle-sip httplib)
+	target_compile_definitions(belle-sip-tester-static PRIVATE "BELLESIP_EXPORTS")
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp
@@ -106,12 +108,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_library(belle-sip-tester-runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
 	target_link_libraries(belle-sip-tester-runtime belle-sip-tester-static)
 	target_link_options(belle-sip-tester-runtime PRIVATE "/WINMDFILE:BelledonneCommunications.BelleSip.Tester.winmd")
+	target_compile_definitions(belle-sip-tester-runtime PRIVATE "BELLESIP_EXPORTS")
 	set_target_properties(belle-sip-tester-runtime PROPERTIES LINKER_LANGUAGE CXX)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.BelleSip.Tester")
 	set_target_properties(belle-sip-tester-runtime PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES C_STANDARD 99)
-
 
 	install(TARGETS belle-sip-tester-runtime
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
