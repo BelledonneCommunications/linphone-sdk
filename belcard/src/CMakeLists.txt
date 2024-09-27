@@ -58,6 +58,7 @@ target_include_directories(belcard INTERFACE
 target_link_libraries(belcard PUBLIC ${Belr_TARGET} PRIVATE ${BCToolbox_TARGET})
 
 if(BUILD_SHARED_LIBS)
+	target_compile_definitions(belcard PRIVATE "BELCARD_EXPORTS")
 	if(APPLE)
 		set_target_properties(belcard PROPERTIES
 			FRAMEWORK TRUE
@@ -74,6 +75,9 @@ if(BUILD_SHARED_LIBS)
 			CONFIGURATIONS Debug RelWithDebInfo
 		)
 	endif()
+else()
+	target_compile_definitions(belcard PUBLIC "BELCARD_STATIC")
+	set_target_properties(belcard PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 install(TARGETS belcard EXPORT ${PROJECT_NAME}Targets
