@@ -47,6 +47,7 @@ target_compile_definitions(belr PRIVATE "BCTBX_LOG_DOMAIN=\"belr\"")
 target_link_libraries(belr PUBLIC ${BCToolbox_TARGET} PRIVATE ${LIBS})
 
 if(BUILD_SHARED_LIBS)
+	target_compile_definitions(belr PRIVATE "BELR_EXPORTS")
 	if(APPLE)
 		set_target_properties(belr PROPERTIES
 			FRAMEWORK TRUE
@@ -62,6 +63,9 @@ if(BUILD_SHARED_LIBS)
 			CONFIGURATIONS Debug RelWithDebInfo
 		)
 	endif()
+else()
+	target_compile_definitions(belr PUBLIC "BELR_STATIC")
+	set_target_properties(belr PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 install(TARGETS belr EXPORT ${PROJECT_NAME}Targets
