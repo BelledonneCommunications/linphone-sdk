@@ -26,7 +26,7 @@
 
 #include <msaaudio/msaaudio.h>
 
-static void android_snd_card_device_create(const AndroidSoundUtils *soundUtils, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m);
+static void android_snd_card_device_create(const AndroidSoundUtils *soundUtils, jobject deviceInfo, const char *deviceName, MSSndCardDeviceType type, SoundDeviceDescription *deviceDescription, MSSndCardManager *m);
 
 static void android_snd_card_detect(MSSndCardManager *m) {
 	JNIEnv *env = ms_get_jni_env();
@@ -38,14 +38,49 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	// extract required information from every device
 	jobjectArray deviceArray = (jobjectArray) devices;
 	jsize deviceNumber = (int) env->GetArrayLength(deviceArray);
-	ms_message("[AAudio] Create soundcards for %0d devices", deviceNumber);
+	ms_message("[AAudio] Create soundcards for [%0d] devices", deviceNumber);
 
 	MSDevicesInfo *devicesInfo = ms_factory_get_devices_info(m->factory);
 	SoundDeviceDescription *deviceDescription = ms_devices_info_get_sound_device_description(devicesInfo);
 
+	char *device_name = nullptr;
+	char *a2dp_device_name = nullptr;
 	for (int idx=0; idx < deviceNumber; idx++) {
 		jobject deviceInfo = env->GetObjectArrayElement(deviceArray, idx);
-		android_snd_card_device_create(soundUtils, deviceInfo, deviceDescription, m);
+		char *deviceName = ms_android_sound_utils_get_device_product_name(soundUtils, deviceInfo);
+		MSSndCardDeviceType type = ms_android_sound_utils_get_device_type(soundUtils, deviceInfo);
+		android_snd_card_device_create(soundUtils, deviceInfo, deviceName, type, deviceDescription, m);
+
+		if (device_name == nullptr &&
+			(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE 
+				|| type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER)) {
+			device_name = ms_strdup(deviceName);
+		} else if (a2dp_device_name == nullptr &&
+			type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP) {
+			a2dp_device_name = ms_strdup(deviceName);
+		}
+
+		ms_free(deviceName);
+	}
+
+	// Detect scenario where bluetooth SCO device name is not detected but A2DP is and rename the sound card using it
+	if (device_name != nullptr && a2dp_device_name != nullptr) {
+		const bctbx_list_t *cards = ms_snd_card_manager_get_list(m);
+		bctbx_list_t *elem;
+		for (elem = (bctbx_list_t *)cards; elem != NULL; elem = elem->next) {
+			MSSndCard *card = (MSSndCard *)elem->data;
+			if (card != nullptr && ms_snd_card_get_device_type(card) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH && strcmp(ms_snd_card_get_name(card), device_name) == 0) {
+				ms_warning("[AAudio] It seems bluetooth SCO device's name [%s] is the same as this device, updating it using A2DP device name [%s]", device_name, a2dp_device_name);
+				ms_snd_card_set_name(card, a2dp_device_name);
+			}
+		}
+	}
+	
+	if (device_name != nullptr) {
+		ms_free(device_name);
+	}
+	if (a2dp_device_name != nullptr) {
+		ms_free(a2dp_device_name);
 	}
 }
 
@@ -74,8 +109,7 @@ MSSndCardDesc android_native_snd_aaudio_card_desc = {
 	android_native_snd_card_uninit
 };
 
-static void android_snd_card_device_create(const AndroidSoundUtils *soundUtils, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m) {
-	MSSndCardDeviceType type = ms_android_sound_utils_get_device_type(soundUtils, deviceInfo);
+static void android_snd_card_device_create(const AndroidSoundUtils *soundUtils, jobject deviceInfo, const char *deviceName, MSSndCardDeviceType type, SoundDeviceDescription *deviceDescription, MSSndCardManager *m) {
 	if (
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) ||
@@ -89,7 +123,7 @@ static void android_snd_card_device_create(const AndroidSoundUtils *soundUtils, 
 		MSSndCard *card = ms_snd_card_new(&android_native_snd_aaudio_card_desc);
 		card = ms_snd_card_ref(card);
 
-		card->name = ms_android_sound_utils_get_device_product_name(soundUtils, deviceInfo);
+		ms_snd_card_set_name(card, deviceName);
 		card->internal_id = ms_android_sound_utils_get_device_id(soundUtils, deviceInfo);
 		card->device_type = type;
 		card->device_description = deviceDescription;
