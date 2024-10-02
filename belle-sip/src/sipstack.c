@@ -198,6 +198,8 @@ belle_sip_stack_t *belle_sip_stack_new(const char *properties) {
 	stack->pong_timeout = 10;                    /* 10 seconds*/
 	stack->inactive_http_transport_timeout = 50; /* 50 seconds*/
 	stack->unreliable_transport_timeout = 120;
+	stack->refresh_window_min = 90;
+	stack->refresh_window_max = 90;
 #ifdef HAVE_DNS_SERVICE
 	stack->dns_service_queue =
 	    dispatch_queue_create("com.belledonne_communications.belle_sip.dns_service_queue", DISPATCH_QUEUE_SERIAL);
