@@ -427,6 +427,16 @@ const char *ms_snd_card_get_name(const MSSndCard *obj) {
 	return obj->name;
 }
 
+void ms_snd_card_set_name(MSSndCard *obj, const char *new_name) {
+	if (obj->name) {
+		ms_free(obj->name);
+		obj->name = NULL;
+	}
+	if (new_name) {
+		obj->name = ms_strdup(new_name);
+	}
+}
+
 unsigned int ms_snd_card_get_capabilities(const MSSndCard *obj) {
 	return obj->capabilities;
 }

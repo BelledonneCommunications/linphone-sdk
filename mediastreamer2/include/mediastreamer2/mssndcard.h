@@ -563,6 +563,15 @@ MS2_PUBLIC const char *ms_snd_card_device_type_to_string(const MSSndCardDeviceTy
 MS2_PUBLIC const char *ms_snd_card_get_name(const MSSndCard *obj);
 
 /**
+ * Sets the sound card's name.
+ * Warning: only call this method while in the detect() method, not after!
+ *
+ * @param obj		A sound card object.
+ * @param new_name 	The new name for the soundcard
+ */
+MS2_PUBLIC void ms_snd_card_set_name(MSSndCard *obj, const char *new_name);
+
+/**
  * Retreive sound card's name ($driver_type: $name).
  *
  * @param obj    A sound card object.
