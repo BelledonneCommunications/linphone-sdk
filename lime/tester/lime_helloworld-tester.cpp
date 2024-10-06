@@ -174,9 +174,9 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 	const std::string dbBaseFilename{"helloworld_basic"};
 	// users databases names: baseFilename.<alice/bob>.<curve id>.sqlite3
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -198,6 +198,7 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		LIME_LOGI<<"Create alice and bob LimeManagers"<<endl;
 		// create Random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user (sip:uri) and device (gruu)
 		// From Lime perspective, only devices exists and they must be uniquely identifies on the X3DH server.
@@ -219,13 +220,13 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 		//      - In case of successful operation the return code is lime::CallbackReturn::success, and string is empty
 		//      - In case of failure, the return code is lime::CallbackReturn::fail and the string shall give details on the failure cause
 		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
-		aliceManager->create_user(tmp_aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(tmp_aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
-		bobManager->create_user(tmp_bobDeviceId, lime_tester::test_x3dh_default_server, curve, callback);
+		bobManager->create_user(tmp_bobDeviceId, algos, lime_tester::test_x3dh_default_server, callback);
 		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
@@ -261,7 +262,7 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 		//      - cipher message (this one must then be distributed to all recipients devices)
 		//      - a callback (prototype: void(lime::CallbackReturn, std::string))
 		{
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
 					// lambda to get the results, it captures :
 					// - counter : relative to the test, real application won't need this, it's local and used to wait for completion and can't be destroyed before the call to this closure
 					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding DRmessage.
@@ -341,8 +342,8 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 		//  - lower bound for One-time Pre-key available on server
 		//  - One-time Pre-key batch size to be generated and uploaded if lower limit on server is reached
 		//  If called more often than once a day, it just does nothing
-		aliceManager->update(*aliceDeviceId, callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
-		bobManager->update(*bobDeviceId, callback); // use default values for the limit and batch size
+		aliceManager->update(*aliceDeviceId, algos, callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
+		bobManager->update(*bobDeviceId, algos, callback); // use default values for the limit and batch size
 		expected_success+=2;
 		/******* end of Users maintenance ****************************/
 		// wait for updates to complete
@@ -350,8 +351,8 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 
 		// delete the users
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -382,9 +383,9 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 	const std::string dbBaseFilename{"helloworld_identity"};
 	// users databases names: baseFilename.<alice/bob>.<curve id>.sqlite3
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -406,6 +407,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		LIME_LOGI<<"Create alice and bob LimeManagers"<<endl;
 		// create random devices names (in case we use a shared test server, devices id shall be the GRUU, X3DH/Lime does not connect user (sip:uri) and device (gruu)
 		// From Lime perspective, only devices exists and they must be uniquely identifies on the X3DH server.
@@ -427,22 +429,26 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 		//      - In case of successfull operation the return code is lime::CallbackReturn::success, and string is empty
 		//      - In case of failure, the return code is lime::CallbackReturn::fail and the string shall give details on the failure cause
 		auto tmp_aliceDeviceId = *aliceDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
-		aliceManager->create_user(tmp_aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(tmp_aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		tmp_aliceDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		auto tmp_bobDeviceId = *bobDeviceId; // use a temporary variable as it may be a local variable which get out of scope right after call to create_user
-		bobManager->create_user(tmp_bobDeviceId, lime_tester::test_x3dh_default_server, curve, callback);
+		bobManager->create_user(tmp_bobDeviceId, algos, lime_tester::test_x3dh_default_server, callback);
 		tmp_bobDeviceId.clear(); // deviceId may go out of scope as soon as we come back from call
 		// wait for the operation to complete
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// [verify] Retrieve from Managers Bob and Alice device Identity Key
+		std::map<lime::CurveId, std::vector<uint8_t>> Iks{};
 		std::vector<uint8_t> aliceIk{};
-		aliceManager->get_selfIdentityKey(*aliceDeviceId, aliceIk);
+		aliceManager->get_selfIdentityKey(*aliceDeviceId, algos, Iks);
+		aliceIk = Iks[curve];
+		Iks.clear();
 		std::vector<uint8_t> bobIk{};
-		bobManager->get_selfIdentityKey(*bobDeviceId, bobIk);
+		bobManager->get_selfIdentityKey(*bobDeviceId, algos, Iks);
+		bobIk = Iks[curve];
 
 		// [verify] Set each others key as verified, this step is usually done via a secure exchange mechanism
 		// libsignal uses fingerprints, linphone inserts the key in SDP and then build a ZRTP auxiliary secret out of it
@@ -456,8 +462,8 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 		// This call can be performed before or after the beginning of a Lime conversation, if something is really bad happen, it will generate an exception.
 		// When calling it with true as trusted flag after a SAS validation confirms the peer identity key, if an exception is raised
 		// it MUST be reported to user as it means that all previously established Lime session with that device were actually compromised(or someone broke ZRTP)
-		aliceManager->set_peerDeviceStatus(*bobDeviceId, bobIk, lime::PeerDeviceStatus::trusted);
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, curve, bobIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
 
 		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
 		// The encryption generates:
@@ -493,7 +499,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 		//      - plain message
 		//      - cipher message (this one must then be distributed to all recipients devices)
 		//      - a callback (prototype: void(lime::CallbackReturn, std::string))
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
 					// lambda to get the results, it captures :
 					// - counter : relative to the test, real application won't need this, it's local and used to wait for completion and can't be destroyed before the call to this closure
 					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding DRmessage.
@@ -581,8 +587,8 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 		//
 		// Important : Avoid calling this function when connection to network is impossible
 		// try to first fetch any available message on server, process anything and then update
-		aliceManager->update(*aliceDeviceId, callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
-		bobManager->update(*bobDeviceId, callback); // use default values for the limit and batch size
+		aliceManager->update(*aliceDeviceId, algos, callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
+		bobManager->update(*bobDeviceId, algos, callback); // use default values for the limit and batch size
 		expected_success+=2;
 		/******* end of Users maintenance ****************************/
 		// wait for updates to complete
@@ -590,8 +596,8 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 
 		// delete the users
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout)); // we must get a callback saying all went well
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());

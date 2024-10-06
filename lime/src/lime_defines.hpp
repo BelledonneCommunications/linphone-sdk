@@ -21,8 +21,21 @@
 #define lime_defines_hpp
 
 #include <string>
+#include <functional>
+#include <vector>
+#include <memory>
 
 namespace lime {
+/**
+ * @brief define a callback function type used to get or set the random seed when performing multiple encryption (different algo) of the same message
+ *
+ * @param[in]	get		when true try to get the RandomSeed and cipherText, if false set the RandomSeed anf CipherText
+ * @param[out]	randomSeed	a buffer holding the randomSeed
+ *
+ * @return false on get when data was not set before
+ */
+using limeRandomSeedCallback = std::function<bool(const bool get, std::shared_ptr<std::vector<uint8_t>> randomSeed)>;
+
 /** @brief Hold constants definition used as settings in all components of the lime library
  *
  * in lime_setting.hpp: you can tweak the behavior of the library.
@@ -77,9 +90,9 @@ namespace settings {
 /******************************************************************************/
 	/** define a version number for the DB schema as an integer 0xMMmmpp
 	 *
-	 * current version is 0.2.0
+	 * current version is 0.3.0
 	 */
-	constexpr int DBuserVersion=0x000200;
+	constexpr int DBuserVersion=0x000300;
 	constexpr uint16_t DBInactiveUserBit = 0x0100;
 	constexpr uint16_t DBCurveIdByte = 0x00FF;
 	constexpr uint8_t DBInvalidIk = 0x00;

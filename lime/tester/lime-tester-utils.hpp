@@ -71,11 +71,6 @@ extern uint16_t OPkInitialBatchSize;
 void randomize(uint8_t *buffer, const size_t size);
 
 /**
- * @return a string describing the given curve
- */
-const std::string curveId(lime::CurveId curve);
-
-/**
  * @brief Create and initialise the two sessions given in parameter. Alice as sender session and Bob as receiver one
  *	Alice must then send the first message, once bob got it, sessions are fully initialised
  *	if fileName doesn't exists as a DB, it will be created, caller shall then delete it if needed
@@ -137,16 +132,16 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
 /* Open provided DB, look for DRSessions established between selfDevice and peerDevice, count the stored message keys in all these sessions
  * return 0 if no sessions found or no user found
  */
-unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId) noexcept;
+unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId, const lime::CurveId algo) noexcept;
 
 /* For the given deviceId, count the number of associated SPk and return the Id of the active one(if any)
  * return true if an active one was found
  */
-bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, size_t &count, uint32_t &activeId) noexcept;
+bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, const lime::CurveId algo, size_t &count, uint32_t &activeId) noexcept;
 
 /* For the given deviceId, count the number of associated OPk
  */
-size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId) noexcept;
+size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId, const lime::CurveId algo) noexcept;
 
 /* Move back in time all timeStamps by the given amout of days
  * DB holds timeStamps in DR_sessions and X3DH_SPK tables

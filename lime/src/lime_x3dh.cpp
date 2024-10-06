@@ -435,8 +435,10 @@ namespace lime {
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 				// check if the user is the DB
 				int Uid = 0;
-				int curveId = 0;
-				m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curveId), use(m_selfDeviceId);
+				// This user shall have an inactive curveId, fetch both just in case.
+				int curveIdActive = static_cast<uint8_t>(Curve::curveId());
+				int curveIdInactive = lime::settings::DBInactiveUserBit | curveIdActive;
+				m_localStorage->sql<<"SELECT Uid FROM lime_LocalUsers WHERE UserId = :userId AND (curveId = :curveIdActive OR curveId = :curveIdInactive) LIMIT 1;", into(Uid), use(m_selfDeviceId), use(curveIdActive), use(curveIdInactive);
 				if (!m_localStorage->sql.got_data()) {
 					throw BCTBX_EXCEPTION << "Lime user "<<m_selfDeviceId<<" cannot be activated, it is not present in local storage";
 				}
@@ -445,10 +447,7 @@ namespace lime {
 
 				// update in DB
 				try {
-					// Don't create stack variable in the method call directly
-					uint8_t curveId = static_cast<int8_t>(Curve::curveId());
-
-					m_localStorage->sql<<"UPDATE lime_LocalUsers SET curveId = :curveId WHERE Uid = :Uid;", use(curveId), use(Uid);
+					m_localStorage->sql<<"UPDATE lime_LocalUsers SET curveId = :curveId WHERE Uid = :Uid;", use(curveIdActive), use(Uid);
 				} catch (exception const &e) {
 					tr.rollback();
 					throw BCTBX_EXCEPTION << "Lime user activation failed. DB backend says: "<<e.what();
@@ -564,7 +563,7 @@ namespace lime {
 							// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
 							// We must not generate an exception here, so catch anything raising from encrypt
 							try {
-								limeObj->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback);
+								limeObj->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback, userData->randomSeedCallback);
 							} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
 								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
 								cleanUserData(limeObj, userData);
@@ -737,7 +736,7 @@ namespace lime {
 
 					// before going on, check if peer informations are ok, if the returned Id is 0, it means this peer was not in storage yet
 					// throw an exception in case of failure, just let it flow up
-					auto peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
+					auto peerDid = m_localStorage->check_peerDevice<Curve>(peerBundle.deviceId, peerBundle.Ik);
 
 					// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
 					// use sBuffer of size able to hold also DH4 even if we may not use it
@@ -834,7 +833,7 @@ namespace lime {
 
 					// before going on, check if peer informations are ok, if the returned Id is 0, it means this peer was not in storage yet
 					// throw an exception in case of failure, just let it flow up
-					auto peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
+					auto peerDid = m_localStorage->check_peerDevice<Curve>(peerBundle.deviceId, peerBundle.Ik);
 
 					// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
 					// The KEM augmented version will also encapsulate a secret for the given KEM PK in OPk - or SPk when no OPk is given
@@ -1153,10 +1152,12 @@ namespace lime {
 				if (Uid == 0) { // When the given user id is 0: we must create the user
 					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 					int dbUid;
-					int curve;
+					int curveIdActive = static_cast<uint8_t>(Curve::curveId());
+					int curveIdInactive = lime::settings::DBInactiveUserBit | curveIdActive;
+					int curve = 0;
 
 					// check if the user is not already in the DB
-					m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(dbUid), into(curve), use(selfDeviceId);
+					m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId AND (curveId = :curveIdActive OR curveId = :curveIdInactive) LIMIT 1;", into(dbUid), into(curve), use(selfDeviceId), use(curveIdActive), use(curveIdInactive);
 					if (m_localStorage->sql.got_data()) {
 						if (curve&lime::settings::DBInactiveUserBit) { // user is there but inactive, just return true, the insert_LimeUser will try to publish it again
 							m_db_Uid = dbUid;
@@ -1215,10 +1216,12 @@ namespace lime {
 				if (Uid == 0) { // When the given user id is 0: we must create the user
 					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 					int dbUid;
+					int curveIdActive = static_cast<uint8_t>(Curve::curveId());
+					int curveIdInactive = lime::settings::DBInactiveUserBit | curveIdActive;
 					int curve;
 
 					// check if the user is not already in the DB
-					m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(dbUid), into(curve), use(selfDeviceId);
+					m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId AND (curveId = :curveIdActive OR curveId = :curveIdInactive) LIMIT 1;", into(dbUid), into(curve), use(selfDeviceId), use(curveIdActive), use(curveIdInactive);
 					if (m_localStorage->sql.got_data()) {
 						if (curve&lime::settings::DBInactiveUserBit) { // user is there but inactive, just return true, the insert_LimeUser will try to publish it again
 							m_db_Uid = dbUid;
@@ -1287,7 +1290,9 @@ namespace lime {
 
 				// update in DB, do not check presence as we're called after a load_user who already ensure that
 				try {
-					m_localStorage->sql<<"UPDATE lime_LocalUsers SET server = :server WHERE UserId = :userId;", use(x3dhServerUrl), use(m_selfDeviceId);
+					const int curveIdActive = static_cast<uint8_t>(Curve::curveId());
+					const int curveIdInactive = lime::settings::DBInactiveUserBit | curveIdActive;
+					m_localStorage->sql<<"UPDATE lime_LocalUsers SET server = :server WHERE UserId = :userId AND (curveId = :curveIdActive OR curveId = :curveIdInactive);", use(x3dhServerUrl), use(m_selfDeviceId), use(curveIdActive), use(curveIdInactive);
 				} catch (exception const &e) {
 					tr.rollback();
 					throw BCTBX_EXCEPTION << "Cannot set the X3DH server url for user "<<m_selfDeviceId<<". DB backend says: "<<e.what();
@@ -1374,7 +1379,7 @@ namespace lime {
 				HMAC_KDF<SHA512>(salt.data(), salt.size(), AD_input.data(), AD_input.size(), lime::settings::X3DH_AD_info.data(), lime::settings::X3DH_AD_info.size(), AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
 
 				// check the new peer device Id in Storage, if it is not found, the DR session will add it when it saves itself after successful decryption
-				auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
+				auto peerDid = m_localStorage->check_peerDevice<Curve>(senderDeviceId, peerIk);
 				auto DRSession = make_DR_for_receiver<Curve>(m_localStorage, SK, AD, SPk, peerDid, senderDeviceId, OPk_id, peerIk, m_db_Uid, m_RNG);
 
 				return std::static_pointer_cast<DR>(DRSession);

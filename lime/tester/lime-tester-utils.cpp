@@ -176,23 +176,6 @@ std::vector<std::string> messages_pattern = {
 };
 
 /**
- * @return a string describing the given curve
- */
-const std::string curveId(lime::CurveId curve) {
-	switch (curve) {
-		case lime::CurveId::c25519 :
-			return "C255519";
-		case lime::CurveId::c448 :
-			return "C448";
-		case lime::CurveId::c25519k512 :
-			return "C25519K512";
-		default:
-			return "UNSET";
-	}
-	return "UNSET";
-}
-
-/**
  * @brief Simple RNG function, used to generate random values for testing purpose, they do not need to be real random
  * so use directly std::random_device
  */
@@ -547,11 +530,12 @@ long int get_DRsessionsId(const std::string &dbFilename, const std::string &self
 /* Open provided DB, look for DRSessions established between selfDevice and peerDevice, count the stored message keys in all these sessions
  * return 0 if no sessions found or no user found
  */
-unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId) noexcept{
+unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std::string &selfDeviceId, const std::string &peerDeviceId, const lime::CurveId algo) noexcept{
 	try {
 		soci::session sql("sqlite3", dbFilename); // open the DB
 		unsigned int mkCount=0;
-		sql<< "SELECT count(m.MK) FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid INNER JOIN DR_MSk_DHr as c on c.sessionId = s.sessionId INNER JOIN DR_MSk_Mk as m ON m.DHid=c.DHid WHERE u.UserId = :selfId AND d.DeviceId = :peerId ORDER BY s.Status DESC, s.Did;", into(mkCount), use(selfDeviceId), use(peerDeviceId);
+		int algoId = static_cast<uint8_t>(algo);
+		sql<< "SELECT count(m.MK) FROM DR_sessions as s INNER JOIN lime_PeerDevices as d on s.Did = d.Did INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid INNER JOIN DR_MSk_DHr as c on c.sessionId = s.sessionId INNER JOIN DR_MSk_Mk as m ON m.DHid=c.DHid WHERE u.UserId = :selfId AND u.curveId = :algoId1 AND d.DeviceId = :peerId AND d.curveId = :algoId2 ORDER BY s.Status DESC, s.Did;", into(mkCount), use(selfDeviceId), use(algoId), use(peerDeviceId), use(algoId);
 		if (sql.got_data()) {
 			return mkCount;
 		} else {
@@ -567,13 +551,14 @@ unsigned int get_StoredMessageKeyCount(const std::string &dbFilename, const std:
 /* For the given deviceId, count the number of associated SPk and return the Id of the active one(if any)
  * return true if an active one was found
  */
-bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, size_t &count, uint32_t &activeId) noexcept{
+bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, const lime::CurveId algo, size_t &count, uint32_t &activeId) noexcept{
 	try {
 		soci::session sql("sqlite3", dbFilename); // open the DB
 		count=0;
-		sql<< "SELECT count(SPKid) FROM X3DH_SPK as s INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId;", into(count), use(selfDeviceId);
+		int algoId = static_cast<uint8_t>(algo);
+		sql<< "SELECT count(SPKid) FROM X3DH_SPK as s INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId AND u.curveId = :algoId;", into(count), use(selfDeviceId), use(algoId);
 		if (sql.got_data()) {
-			sql<< "SELECT SPKid FROM X3DH_SPK as s INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId AND s.Status=1 LIMIT 1;", into(activeId), use(selfDeviceId);
+			sql<< "SELECT SPKid FROM X3DH_SPK as s INNER JOIN lime_LocalUsers as u on u.Uid = s.Uid WHERE u.UserId = :selfId AND u.curveId = :algoId AND s.Status=1 LIMIT 1;", into(activeId), use(selfDeviceId), use(algoId);
 			if (sql.got_data()) {
 				return true;
 			} else {
@@ -591,11 +576,12 @@ bool get_SPks(const std::string &dbFilename, const std::string &selfDeviceId, si
 
 /* For the given deviceId, count the number of associated OPk
  */
-size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId) noexcept {
+size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId, const lime::CurveId algo) noexcept {
 	try {
 		soci::session sql("sqlite3", dbFilename); // open the DB
 		auto count=0;
-		sql<< "SELECT count(OPKid) FROM X3DH_OPK as o INNER JOIN lime_LocalUsers as u on u.Uid = o.Uid WHERE u.UserId = :selfId;", into(count), use(selfDeviceId);
+		int algoId = static_cast<uint8_t>(algo);
+		sql<< "SELECT count(OPKid) FROM X3DH_OPK as o INNER JOIN lime_LocalUsers as u on u.Uid = o.Uid WHERE u.UserId = :selfId AND curveId = :algo;", into(count), use(selfDeviceId), use(algoId);
 		if (sql.got_data()) {
 			return count;
 		} else {

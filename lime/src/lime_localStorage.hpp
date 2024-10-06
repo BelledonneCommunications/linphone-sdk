@@ -49,22 +49,21 @@ namespace lime {
 		Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mutex);
 		~Db(){sql.close();};
 
-		void load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId &curveId, std::string &url, const bool allStatus=false);
-		void delete_LimeUser(const std::string &deviceId);
+		void load_LimeUser(const DeviceId &deviceId, long int &Uid, std::string &url, const bool allStatus=false);
+		void delete_LimeUser(const DeviceId &deviceId);
 		void clean_DRSessions();
 		void clean_SPk();
-		bool is_updateRequested(const std::string &deviceId);
-		void set_updateTs(const std::string &deviceId);
-		void set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
-		void set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status);
+		bool is_updateRequested(const DeviceId &deviceId);
+		void set_updateTs(const DeviceId &deviceId);
+		void set_peerDeviceStatus(const DeviceId &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
+		void set_peerDeviceStatus(const DeviceId &peerDeviceId, lime::PeerDeviceStatus status);
 		lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
 		lime::PeerDeviceStatus get_peerDeviceStatus(const std::list<std::string> &peerDeviceIds);
-		bool is_localUser(const std::string &deviceId);
 		void delete_peerDevice(const std::string &peerDeviceId);
 		template <typename Curve>
-		long int check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, const bool updateInvalid=false);
+		long int check_peerDevice(const std::string &peerDeviceId, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk, const bool updateInvalid=false);
 		template <typename Curve>
-		long int store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk);
+		long int store_peerDevice(const std::string &peerDeviceId, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk);
 		void start_transaction();
 		void commit_transaction();
 		void rollback_transaction();
@@ -79,6 +78,10 @@ namespace lime {
 #ifdef EC448_ENABLED
 	extern template long int Db::check_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik, const bool updateInvalid);
 	extern template long int Db::store_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
+#endif
+#ifdef HAVE_BCTBXPQ
+	extern template long int Db::check_peerDevice<C255K512>(const std::string &peerDeviceId, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const bool updateInvalid);
+	extern template long int Db::store_peerDevice<C255K512>(const std::string &peerDeviceId, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik);
 #endif
 
 }

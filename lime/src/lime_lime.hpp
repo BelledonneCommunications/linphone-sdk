@@ -20,12 +20,15 @@
 #ifndef lime_lime_hpp
 #define lime_lime_hpp
 
-#include <memory> // unique_ptr
+#include <memory>
 #include <unordered_map>
 #include <vector>
 #include <mutex>
 
+#include "lime_defines.hpp"
+
 namespace lime {
+
 	// forward declarations
 	class DR;
 	class X3DH;
@@ -72,11 +75,13 @@ namespace lime {
 		 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 		 * @param[out]		cipherMessage		points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
 		 * @param[in]		callback		This operation contact the X3DH server and is thus asynchronous, when server responds,
-		 * 					this callback will be called giving the exit status and an error message in case of failure.
-		 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
-		 * 					the output of encryption as it won't be part of the callback parameters.
+		 * 						this callback will be called giving the exit status and an error message in case of failure.
+		 * 						It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
+		 *	 					the output of encryption as it won't be part of the callback parameters.
+		 * @param[in]		randomSeedCallback	when provided and encryption policy ends to be cipherMessage, allow to set/get the random seed and cipher text tag
+		 * 						this is needed to encrypt the same message with differents lime users (for multi base algorithm purpose)
 		*/
-		virtual void encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
+		virtual void encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const limeRandomSeedCallback &randomSeedCallback = nullptr) = 0;
 
 		/**
 		 * @brief Decrypt the given message
@@ -208,10 +213,10 @@ namespace lime {
 
 	/* Lime Factory functions : return a pointer to the implementation using the specified elliptic curve. Two functions: one for creation, one for loading from local storage */
 
-	std::shared_ptr<LimeGeneric> insert_LimeUser(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
+	std::shared_ptr<LimeGeneric> insert_LimeUser(std::shared_ptr<lime::Db> localStorage, const DeviceId &deviceId, const std::string &url, const uint16_t OPkInitialBatchSize,
 			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback);
 
-	std::shared_ptr<LimeGeneric> load_LimeUser(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data, const bool allStatus=false);
+	std::shared_ptr<LimeGeneric> load_LimeUser(std::shared_ptr<lime::Db> localStorage, const DeviceId &deviceId, const limeX3DHServerPostData &X3DH_post_data, const bool allStatus=false);
 
 }
 #endif // lime_lime_hpp

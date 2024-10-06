@@ -144,11 +144,11 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 // Alice encrypts a message to bob
 static void lime_multidomains_simple_test(const lime::CurveId curve) {
 	// create DBs
-	std::string dbBaseFilename("multidomain");
+	std::string dbBaseFilename("lime_multidomain_simple_test");
 	std::string dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -165,16 +165,17 @@ static void lime_multidomains_simple_test(const lime::CurveId curve) {
 					}
 				});
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager and device for alice
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("sip:alice@domainA;gr=");
-		aliceManager->create_user(*aliceDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("sip:bob@domainB;gr=");
-		bobManager->create_user(*bobDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Alice encrypts a message to Bob  - keys are fetch from alice server forwarding the bundle request to friends domainB and domainC
@@ -183,7 +184,7 @@ static void lime_multidomains_simple_test(const lime::CurveId curve) {
 		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// bob decrypts
@@ -192,6 +193,15 @@ static void lime_multidomains_simple_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "foreign friends", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		if (cleanDatabase) {
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
+			expected_success += 2;
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
 	} catch (BctbxException &) {
 		BC_FAIL("Multidomain test got an exception");
 		throw;
@@ -220,15 +230,15 @@ static void lime_multidomains_simple() {
 // Alice send message to all of them
 static void lime_multidomains_several_foreign_test(const lime::CurveId curve) {
 	// create DBs
-	std::string dbBaseFilename("multidomain");
+	std::string dbBaseFilename("lime_multidomain_several_foreign");
 	std::string dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameClaire = dbBaseFilename;
-	dbFilenameClaire.append(".claire.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameClaire.append(".claire.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameDave = dbBaseFilename;
-	dbFilenameDave.append(".dave.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameDave.append(".dave.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -247,28 +257,29 @@ static void lime_multidomains_several_foreign_test(const lime::CurveId curve) {
 					}
 				});
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager and device for alice
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("sip:alice@domainA;gr=");
-		aliceManager->create_user(*aliceDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("sip:bob@domainB;gr=");
-		bobManager->create_user(*bobDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for claire
 		auto claireManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
 		auto claireDeviceId = lime_tester::makeRandomDeviceName("sip:claire@domainC;gr=");
-		claireManager->create_user(*claireDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainC_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		claireManager->create_user(*claireDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainC_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for dave
 		auto daveManager = make_unique<LimeManager>(dbFilenameDave, X3DHServerPost);
 		auto daveDeviceId = lime_tester::makeRandomDeviceName("sip:dave@domainA;gr=");
-		daveManager->create_user(*daveDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		daveManager->create_user(*daveDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Alice encrypts a message to Dave, Bob and Claire - keys are fetch from alice server forwarding the bundle request to friends domainB and domainC
@@ -279,7 +290,7 @@ static void lime_multidomains_several_foreign_test(const lime::CurveId curve) {
 		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// bob decrypts
@@ -300,6 +311,18 @@ static void lime_multidomains_several_foreign_test(const lime::CurveId curve) {
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
+		if (cleanDatabase) {
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
+			claireManager->delete_user(DeviceId(*claireDeviceId, curve), callback);
+			daveManager->delete_user(DeviceId(*daveDeviceId, curve), callback);
+			expected_success += 4;
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+			remove(dbFilenameClaire.data());
+			remove(dbFilenameDave.data());
+		}
 	} catch (BctbxException &) {
 		BC_FAIL("Multidomain test got an exception");
 		throw;
@@ -327,15 +350,15 @@ static void lime_multidomains_several_foreign() {
 // Alice send message to all of them
 static void lime_multidomains_several_users_foreign_test(const lime::CurveId curve) {
 	// create DBs
-	std::string dbBaseFilename("multidomain");
+	std::string dbBaseFilename("lime_multidomains_several_users_foreign");
 	std::string dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameClaire = dbBaseFilename;
-	dbFilenameClaire.append(".claire.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameClaire.append(".claire.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameDave = dbBaseFilename;
-	dbFilenameDave.append(".dave.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameDave.append(".dave.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -354,41 +377,42 @@ static void lime_multidomains_several_users_foreign_test(const lime::CurveId cur
 					}
 				});
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager and device for alice
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("sip:alice@domainA;gr=");
-		aliceManager->create_user(*aliceDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		auto aliceDeviceId2 = lime_tester::makeRandomDeviceName("sip:alice@domainA;gr=");
-		aliceManager->create_user(*aliceDeviceId2, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId2, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("sip:bob@domainB;gr=");
-		bobManager->create_user(*bobDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		auto bobDeviceId2 = lime_tester::makeRandomDeviceName("sip:bob@domainB;gr=");
-		bobManager->create_user(*bobDeviceId2, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId2, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for claire
 		auto claireManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
 		auto claireDeviceId = lime_tester::makeRandomDeviceName("sip:claire@domainC;gr=");
-		claireManager->create_user(*claireDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainC_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		claireManager->create_user(*claireDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainC_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		auto claireDeviceId2 = lime_tester::makeRandomDeviceName("sip:claire@domainC;gr=");
-		claireManager->create_user(*claireDeviceId2, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainC_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		claireManager->create_user(*claireDeviceId2, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainC_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for dave
 		auto daveManager = make_unique<LimeManager>(dbFilenameDave, X3DHServerPost);
 		auto daveDeviceId = lime_tester::makeRandomDeviceName("sip:dave@domainA;gr=");
-		daveManager->create_user(*daveDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		daveManager->create_user(*daveDeviceId, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		auto daveDeviceId2 = lime_tester::makeRandomDeviceName("sip:dave@domainA;gr=");
-		daveManager->create_user(*daveDeviceId2, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
+		daveManager->create_user(*daveDeviceId2, algos, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Alice encrypts a message to Dave, Bob and Claire - keys are fetch from alice server forwarding the bundle request to friends domainB and domainC
@@ -403,7 +427,7 @@ static void lime_multidomains_several_users_foreign_test(const lime::CurveId cur
 		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// bob decrypts
@@ -447,6 +471,24 @@ static void lime_multidomains_several_users_foreign_test(const lime::CurveId cur
 		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId2, "foreign friends", *aliceDeviceId, (*aliceRecipients)[6].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		if (cleanDatabase) {
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
+			claireManager->delete_user(DeviceId(*claireDeviceId, curve), callback);
+			daveManager->delete_user(DeviceId(*daveDeviceId, curve), callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId2, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId2, curve), callback);
+			claireManager->delete_user(DeviceId(*claireDeviceId2, curve), callback);
+			daveManager->delete_user(DeviceId(*daveDeviceId2, curve), callback);
+			expected_success += 8;
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+			remove(dbFilenameClaire.data());
+			remove(dbFilenameDave.data());
+		}
+
 	} catch (BctbxException &) {
 		BC_FAIL("Multidomain test got an exception");
 		throw;

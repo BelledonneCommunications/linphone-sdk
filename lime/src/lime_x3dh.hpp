@@ -27,7 +27,6 @@
 #include "lime_log.hpp"
 
 namespace lime {
-
 	/* The key type for Signed PreKey */
 	template <typename Curve, bool = std::is_base_of_v<genericKEM, Curve>>
 	struct SignedPreKey;

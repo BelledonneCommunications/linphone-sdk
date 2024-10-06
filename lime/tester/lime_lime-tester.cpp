@@ -191,6 +191,7 @@ static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<L
  */
 static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, std::unique_ptr<LimeManager> &aliceManager,
 				   std::shared_ptr<std::string> &bobDeviceId, std::unique_ptr<LimeManager> &bobManager,
+				   const std::vector<lime::CurveId> &algos,
 				   int batch_number, int batch_size) {
 
 
@@ -217,7 +218,7 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 				auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
 				auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 
-				bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+				bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 				// alice decrypt
@@ -237,7 +238,7 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 				auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
 				auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
 
-				aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+				aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 				// bob decrypt
@@ -260,14 +261,14 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 /**
  * Helper, create DB, alice and bob devices, and exchange a message
  */
-static void lime_session_establishment(const lime::CurveId curve, const std::string &dbBaseFilename,
+static void lime_session_establishment(const std::vector<lime::CurveId> &algos, const std::string &dbBaseFilename,
 					std::string &dbFilenameAlice, std::shared_ptr<std::string> &aliceDeviceId, std::unique_ptr<LimeManager> &aliceManager,
 					std::string &dbFilenameBob, std::shared_ptr<std::string> &bobDeviceId, std::unique_ptr<LimeManager> &bobManager) {
 	// create DB
 	dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(algos, "-")).append(".sqlite3");
 	dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(algos, "-")).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -287,16 +288,16 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
 		// create Manager and device for alice
 		aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
 		bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
-		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
-		lime_exchange_messages(aliceDeviceId, aliceManager, bobDeviceId, bobManager, 1, 1);
+		lime_exchange_messages(aliceDeviceId, aliceManager, bobDeviceId, bobManager, algos, 1, 1);
 
 	} catch (BctbxException &) {
 		BC_FAIL("Session establishment failed");
@@ -311,9 +312,9 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 		const std::string plainMessage, const lime::EncryptionPolicy setEncryptionPolicy) {
 	// create DB
 	std::string dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -330,16 +331,17 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 					}
 				});
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager and recipient(s) device for alice
 		std::unique_ptr<LimeManager> aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		std::shared_ptr<std::string> aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
 		std::unique_ptr<LimeManager> bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		std::shared_ptr<std::string> bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
-		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// bob encrypt a message to Alice device
@@ -348,7 +350,7 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 		auto bobMessage = make_shared<const std::vector<uint8_t>>(plainMessage.begin(), plainMessage.end());
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback, setEncryptionPolicy);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback, setEncryptionPolicy);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		bool is_directEncryptionType = lime_tester::DR_message_payloadDirectEncrypt((*bobRecipients)[0].DRmessage);
@@ -369,9 +371,10 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::fail);
 
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
+			expected_success += 2;
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 		}
@@ -403,54 +406,6 @@ static void lime_encryptionPolicyError() {
 }
 
 /**
- * Helper, create DB, alice with 2 devices and bob devices
- */
-static void lime_session_establishment(const lime::CurveId curve, const std::string &dbBaseFilename,
-					std::string &dbFilenameAlice, std::shared_ptr<std::string> &aliceDevice1Id, std::shared_ptr<std::string> &aliceDevice2Id, std::shared_ptr<LimeManager> &aliceManager,
-					std::string &dbFilenameBob, std::shared_ptr<std::string> &bobDeviceId, std::shared_ptr<LimeManager> &bobManager) {
-	// create DB
-	dbFilenameAlice = dbBaseFilename;
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameBob = dbBaseFilename;
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
-
-	remove(dbFilenameAlice.data()); // delete the database file if already exists
-	remove(dbFilenameBob.data()); // delete the database file if already exists
-
-	lime_tester::events_counters_t counters={};
-	int expected_success=0;
-
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
-					if (returnCode == lime::CallbackReturn::success) {
-						counters.operation_success++;
-					} else {
-						counters.operation_failed++;
-						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
-					}
-				});
-	try {
-		// create Manager and device for alice
-		aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
-		aliceDevice1Id = lime_tester::makeRandomDeviceName("alice.d1.");
-		aliceManager->create_user(*aliceDevice1Id, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-		aliceDevice2Id = lime_tester::makeRandomDeviceName("alice.d2.");
-		aliceManager->create_user(*aliceDevice2Id, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-
-		// Create manager and device for bob
-		bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
-		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
-		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-
-	} catch (BctbxException &) {
-		BC_FAIL("Session establishment failed");
-		throw;
-	}
-}
-
-/**
  * Scenario: Bob encrypt a message to Alice device 1 and 2 using given encryptionPolicy
  *
  * parameters allow to control:
@@ -459,7 +414,7 @@ static void lime_session_establishment(const lime::CurveId curve, const std::str
  *  - forced encryption policy(with a bool switch)
  *  - expected message type (must be DRMessage or cipherMessage)
  */
-static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager, std::shared_ptr<std::string> aliceDevice1Id, std::shared_ptr<std::string> aliceDevice2Id,
+static void lime_encryptionPolicy_test(const std::vector<lime::CurveId> &algos, std::shared_ptr<LimeManager> aliceManager, std::shared_ptr<std::string> aliceDevice1Id, std::shared_ptr<std::string> aliceDevice2Id,
 		std::shared_ptr<LimeManager> bobManager, std::shared_ptr<std::string> bobDeviceId,
 		const std::string plainMessage, const bool multipleRecipients,
 		const lime::EncryptionPolicy setEncryptionPolicy, bool forceEncryptionPolicy,
@@ -487,9 +442,9 @@ static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 
 		if (forceEncryptionPolicy) {
-			bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback, setEncryptionPolicy);
+			bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback, setEncryptionPolicy);
 		} else {
-			bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+			bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		}
 
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
@@ -527,19 +482,20 @@ static void lime_encryptionPolicy_test(std::shared_ptr<LimeManager> aliceManager
 		}
 
 
-	} catch (BctbxException &) {
-		BC_FAIL("Session establishment failed");
-		throw;
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 }
-static void lime_encryptionPolicy_suite(lime::CurveId curveId) {
-	std::string dbFilenameAlice;
-	std::shared_ptr<std::string> aliceDevice1Id;
-	std::shared_ptr<std::string> aliceDevice2Id;
-	std::shared_ptr<LimeManager> aliceManager;
-	std::string dbFilenameBob;
-	std::shared_ptr<std::string> bobDeviceId;
-	std::shared_ptr<LimeManager> bobManager;
+static void lime_encryptionPolicy_suite(const lime::CurveId curve) {
+	// create DB
+	std::string dbBaseFilename("lime_encryptionPolicy");
+	auto dbFilenameAlice = dbBaseFilename;
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
+	auto dbFilenameBob = dbBaseFilename;
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
@@ -553,148 +509,166 @@ static void lime_encryptionPolicy_suite(lime::CurveId curveId) {
 					}
 				});
 
-	// create 2 devices for alice and 1 for bob
-	lime_session_establishment(curveId, "lime_encryptionPolicy",
-				dbFilenameAlice, aliceDevice1Id, aliceDevice2Id, aliceManager,
-				dbFilenameBob, bobDeviceId, bobManager);
+		std::vector<lime::CurveId> algos{curve};
+	try {
+		// create 2 devices for alice and 1 for bob
+		// create Manager and device for alice
+		auto aliceManager = make_shared<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		auto aliceDevice1Id = lime_tester::makeRandomDeviceName("alice.d1.");
+		aliceManager->create_user(*aliceDevice1Id, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		auto aliceDevice2Id = lime_tester::makeRandomDeviceName("alice.d2.");
+		aliceManager->create_user(*aliceDevice2Id, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
-	// Bob encrypts to alice and we check result
-	/**** Short messages ****/
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
+		// Create manager and device for bob
+		auto bobManager = make_shared<LimeManager>(dbFilenameBob, X3DHServerPost);
+		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
+		bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, false, // single recipient
-			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, false, // single recipient
-			lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
-			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, true, //multiple recipient
-			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::shortMessage, true, //multiple recipient
-			lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
-			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
-
-	/**** Long or veryLong messages ****/
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, false, // single recipient
-			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, false, // single recipient
-			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, false, // single recipient
-			lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
-			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
-			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
-			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage (we need a very long message to switch to cipherMessage with that setting)
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::veryLongMessage, true, //multiple recipient
-			lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
-			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage (we need a very long message to switch to cipherMessage with that setting)
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, true, //multiple recipient
-			lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
-			lime::EncryptionPolicy::DRMessage); // -> DRMessage
-
-	lime_encryptionPolicy_test(aliceManager, aliceDevice1Id, aliceDevice2Id,
-			bobManager, bobDeviceId,
-			lime_tester::longMessage, true, //multiple recipient
-			lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
-			lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
-
-	if (cleanDatabase) {
-		aliceManager->delete_user(*aliceDevice1Id, callback);
-		aliceManager->delete_user(*aliceDevice2Id, callback);
-		bobManager->delete_user(*bobDeviceId, callback);
-		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+3,lime_tester::wait_for_timeout));
-		remove(dbFilenameAlice.data());
-		remove(dbFilenameBob.data());
+		// Bob encrypts to alice and we check result
+		/**** Short messages ****/
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, false, // single recipient
+				lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, false, // single recipient
+				lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, false, // single recipient
+				lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, false, // single recipient
+				lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, false, // single recipient
+				lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
+				lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, true, //multiple recipient
+				lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, true, //multiple recipient
+				lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, true, //multiple recipient
+				lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, true, //multiple recipient
+				lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::shortMessage, true, //multiple recipient
+				lime::EncryptionPolicy::cipherMessage, true, // force to DRMessage
+				lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+	
+		/**** Long or veryLong messages ****/
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, false, // single recipient
+				lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, false, // single recipient
+				lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, false, // single recipient
+				lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, false, // single recipient
+				lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, false, // single recipient
+				lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
+				lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, true, //multiple recipient
+				lime::EncryptionPolicy::optimizeUploadSize, false, // default policy(->optimizeUploadSize)
+				lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, true, //multiple recipient
+				lime::EncryptionPolicy::optimizeUploadSize, true, // force to optimizeUploadSize
+				lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, true, //multiple recipient
+				lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage (we need a very long message to switch to cipherMessage with that setting)
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::veryLongMessage, true, //multiple recipient
+				lime::EncryptionPolicy::optimizeGlobalBandwidth, true, // force to optimizeGlobalBandwidth
+				lime::EncryptionPolicy::cipherMessage); // -> cipherMessage (we need a very long message to switch to cipherMessage with that setting)
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, true, //multiple recipient
+				lime::EncryptionPolicy::DRMessage, true, // force to DRMessage
+				lime::EncryptionPolicy::DRMessage); // -> DRMessage
+	
+		lime_encryptionPolicy_test(algos, aliceManager, aliceDevice1Id, aliceDevice2Id,
+				bobManager, bobDeviceId,
+				lime_tester::longMessage, true, //multiple recipient
+				lime::EncryptionPolicy::cipherMessage, true, // force to cipherMessage
+				lime::EncryptionPolicy::cipherMessage); // -> cipherMessage
+	
+		if (cleanDatabase) {
+			aliceManager->delete_user(DeviceId(*aliceDevice1Id, curve), callback);
+			aliceManager->delete_user(DeviceId(*aliceDevice2Id, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
+			expected_success +=3;
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("");
 	}
 
 }
@@ -737,8 +711,8 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -764,20 +738,25 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 	std::vector<uint8_t> bobIk{};
 	std::vector<uint8_t> fakeIk{};
 
+	std::vector<lime::CurveId> algos{curve};
 	try {
 		// create Manager and device for alice and bob
 		aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d1.");
-		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		expected_success += 2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 
 		// retrieve their respective Ik
-		aliceManager->get_selfIdentityKey(*aliceDeviceId, aliceIk);
-		bobManager->get_selfIdentityKey(*bobDeviceId, bobIk);
+		std::map<lime::CurveId, std::vector<uint8_t>> Iks{};
+		aliceManager->get_selfIdentityKey(*aliceDeviceId, algos, Iks);
+		aliceIk = Iks[curve];
+		Iks.clear();
+		bobManager->get_selfIdentityKey(*bobDeviceId, algos, Iks);
+		bobIk = Iks[curve];
 		// build the fake alice Ik
 		fakeIk = aliceIk;
 		fakeIk[0] ^= 0xFF;
@@ -788,54 +767,54 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 
 		// set alice Id key as verified in Bob's Manager and check it worked
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 		// set it to unsafe and check it worked
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::unsafe);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
 
 		// reset it to untrusted and check it is still unsafe : we can escape unsafe only by setting to safe
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::untrusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
 
 		// set alice Id key as verified and check it this time it worked
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// set to untrusted without using alice Ik
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, lime::PeerDeviceStatus::untrusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, algos, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
 
 		// set to unsafe without using alice Ik
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, lime::PeerDeviceStatus::unsafe);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, algos, lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
 
 		// try to set it to trusted without giving the Ik, it shall be ignored
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, algos, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
 
 		// set it back to trusted and check it this time it worked
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// try to set it to unknown, it shall be ignored
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::unknown);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::unknown);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// try to set it to fail, it shall be ignored
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::fail);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::fail);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// try to set another key for alice in bob's context, setting it to untrusted, it shall be ok as the Ik is ignored when setting to untrusted
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::untrusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, fakeIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
 
 		// same goes for unsafe
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::unsafe);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, fakeIk, lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
 
 		// set it back to trusted with the real key, it shall be Ok as it is still the one present in local storage
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 	} catch (BctbxException &e) {
@@ -847,7 +826,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 
 	try {
 		// try to set another key for alice in bob's context, it shall generate an exception
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, fakeIk, lime::PeerDeviceStatus::trusted);
 	} catch (BctbxException &) {
 		BC_PASS("");
 		gotException = true;
@@ -862,17 +841,17 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 
 		// set the device with the fake Ik but to untrusted so it won't be actually stored and shall still be unknown
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::untrusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, fakeIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 
 		// set the device with the fake Ik but to unsafe so the key shall not be registered in base but the user will
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::unsafe);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, fakeIk, lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
 
 		// Set it to trusted, still using the fake Ik, it shall replace the invalid/empty Ik replacing it with the fake one
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, fakeIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, fakeIk, lime::PeerDeviceStatus::trusted); // do it twice so we're sure the store Ik is the fake one
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, fakeIk, lime::PeerDeviceStatus::trusted); // do it twice so we're sure the store Ik is the fake one
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -881,7 +860,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 
 	try {
 		// same than above but using the actual key : try to set it to trusted, it shall generate an exception as the Ik is the fake one in storage
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
 	} catch (BctbxException &) {
 		BC_PASS("");
 		gotException = true;
@@ -900,7 +879,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		bobRecipients->emplace_back(*aliceDeviceId);
 		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE((*bobRecipients)[0].peerStatus == lime::PeerDeviceStatus::unknown);
 
@@ -909,12 +888,12 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		bobRecipients->emplace_back(*aliceDeviceId);
 		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		bobCipherMessage = make_shared<std::vector<uint8_t>>();
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE((*bobRecipients)[0].peerStatus == lime::PeerDeviceStatus::untrusted);
 
 		// set again the key as verified in bob's context
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// Bob encrypts a message for Alice, alice device status shall now be : trusted
@@ -922,14 +901,14 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		bobRecipients->emplace_back(*aliceDeviceId);
 		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 		bobCipherMessage = make_shared<std::vector<uint8_t>>();
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE((*bobRecipients)[0].peerStatus == lime::PeerDeviceStatus::trusted);
 
 		// set a fake bob key in alice context(set is as trusted otherwise the request is just ignored)
 		fakeIk = bobIk;
 		fakeIk[0] ^= 0xFF;
-		aliceManager->set_peerDeviceStatus(*bobDeviceId, fakeIk, lime::PeerDeviceStatus::trusted);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, curve, fakeIk, lime::PeerDeviceStatus::trusted);
 
 		// alice decrypt but it will fail as the identity key in X3DH init packet is not matching the one we assert as verified
 		std::vector<uint8_t> receivedMessage{};
@@ -941,13 +920,13 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());
 		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed,++expected_failure,lime_tester::wait_for_timeout));
 
 		// delete bob's key from alice context and just set it to unsafe, he will get then no Ik in local storage
 		aliceManager->delete_peerDevice(*bobDeviceId);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::unknown);
-		aliceManager->set_peerDeviceStatus(*bobDeviceId, lime::PeerDeviceStatus::unsafe);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, algos, lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::unsafe);
 
 		// delete alice's key from Bob context, it will delete all session associated to Alice so when we encrypt a new message, it will fetch a new OPk as the previous one was deleted by alice
@@ -958,7 +937,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		bobRecipients->emplace_back(*aliceDeviceId);
 		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		bobCipherMessage = make_shared<std::vector<uint8_t>>();
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE((*bobRecipients)[0].peerStatus == lime::PeerDeviceStatus::unknown);
 
@@ -978,7 +957,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		bobRecipients->emplace_back(*aliceDeviceId);
 		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		bobCipherMessage = make_shared<std::vector<uint8_t>>();
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE((*bobRecipients)[0].peerStatus == lime::PeerDeviceStatus::unknown);
 
@@ -989,13 +968,14 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
 
 		// now set bob's to trusted in alice cache, it shall work as key retrieved from X3DH init message during decryption match the one we're giving
-		aliceManager->set_peerDeviceStatus(*bobDeviceId, bobIk, lime::PeerDeviceStatus::trusted);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, curve, bobIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
+			expected_success +=2;
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 		}
@@ -1044,10 +1024,10 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve) {
 	std::string dbFilenameCarol{dbBaseFilename};
 	std::string dbFilenameDave{dbBaseFilename};
 
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameCarol.append(".carol.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameDave.append(".dave.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
+	dbFilenameCarol.append(".carol.").append(CurveId2String(curve)).append(".sqlite3");
+	dbFilenameDave.append(".dave.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -1067,22 +1047,23 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve) {
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager and devices
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
-		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 
 		auto carolManager = make_unique<LimeManager>(dbFilenameCarol, X3DHServerPost);
 		auto carolDeviceId = lime_tester::makeRandomDeviceName("carol.");
-		carolManager->create_user(*carolDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		carolManager->create_user(*carolDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 
 		auto daveManager = make_unique<LimeManager>(dbFilenameDave, X3DHServerPost);
 		auto daveDeviceId = lime_tester::makeRandomDeviceName("dave.");
-		daveManager->create_user(*daveDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		daveManager->create_user(*daveDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 
 		// This is a list of all device's id to test getting status of a device list
 		std::list<std::string> allDevicesId{*aliceDeviceId, *bobDeviceId, *carolDeviceId, *daveDeviceId};
@@ -1095,32 +1076,40 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve) {
 		std::vector<uint8_t> bobIk{};
 		std::vector<uint8_t> carolIk{};
 		std::vector<uint8_t> daveIk{};
-		aliceManager->get_selfIdentityKey(*aliceDeviceId, aliceIk);
-		bobManager->get_selfIdentityKey(*bobDeviceId, bobIk);
-		carolManager->get_selfIdentityKey(*carolDeviceId, carolIk);
-		daveManager->get_selfIdentityKey(*daveDeviceId, daveIk);
+		std::map<lime::CurveId, std::vector<uint8_t>> Iks{};
+		aliceManager->get_selfIdentityKey(*aliceDeviceId, algos, Iks);
+		aliceIk = Iks[curve];
+		Iks.clear();
+		bobManager->get_selfIdentityKey(*bobDeviceId, algos, Iks);
+		bobIk = Iks[curve];
+		Iks.clear();
+		carolManager->get_selfIdentityKey(*carolDeviceId, algos, Iks);
+		carolIk = Iks[curve];
+		Iks.clear();
+		daveManager->get_selfIdentityKey(*daveDeviceId, algos, Iks);
+		daveIk = Iks[curve];
 
 		// set alice as untrusted in bob local storage, so it will store it with an invalid/empty Ik
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, lime::PeerDeviceStatus::unsafe);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, algos, lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
 
 		// exchange trust between alice and bob
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted); // this one will replace the invalid/empty Ik by the given one
-		aliceManager->set_peerDeviceStatus(*bobDeviceId, bobIk, lime::PeerDeviceStatus::trusted);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted); // this one will replace the invalid/empty Ik by the given one
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, curve, bobIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// alice and carol gets trust and back to not trust so the Ik gets registered in their local storage
-		carolManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::trusted);
-		aliceManager->set_peerDeviceStatus(*carolDeviceId, carolIk, lime::PeerDeviceStatus::trusted);
-		carolManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::untrusted);
-		aliceManager->set_peerDeviceStatus(*carolDeviceId, carolIk, lime::PeerDeviceStatus::untrusted);
+		carolManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
+		aliceManager->set_peerDeviceStatus(*carolDeviceId, curve, carolIk, lime::PeerDeviceStatus::trusted);
+		carolManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::untrusted);
+		aliceManager->set_peerDeviceStatus(*carolDeviceId, curve, carolIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(carolManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*carolDeviceId) == lime::PeerDeviceStatus::untrusted);
 
 		// alice and dave gets just an untrusted setting, as they do not know each other, it shall not affect their respective local storage and they would remain unknown
-		daveManager->set_peerDeviceStatus(*aliceDeviceId, aliceIk, lime::PeerDeviceStatus::untrusted);
-		aliceManager->set_peerDeviceStatus(*daveDeviceId, daveIk, lime::PeerDeviceStatus::untrusted);
+		daveManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::untrusted);
+		aliceManager->set_peerDeviceStatus(*daveDeviceId, curve, daveIk, lime::PeerDeviceStatus::untrusted);
 		BC_ASSERT_TRUE(daveManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*daveDeviceId) == lime::PeerDeviceStatus::unknown);
 
@@ -1136,7 +1125,7 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve) {
 
 		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("my friends group"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("my friends group"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		BC_ASSERT_TRUE((*aliceRecipients)[0].peerStatus == lime::PeerDeviceStatus::trusted); // recipient 0 is Bob: trusted
@@ -1176,7 +1165,7 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve) {
 
 		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		aliceCipherMessage->clear();
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("my friends group"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("my friends group"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		BC_ASSERT_TRUE((*aliceRecipients)[0].peerStatus == lime::PeerDeviceStatus::trusted); // recipient 0 is Bob: trusted
@@ -1206,15 +1195,15 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
 
 		// set Dave's status to trusted in Alice's cache and query the group status, it still shall be untrusted
-		aliceManager->set_peerDeviceStatus(*daveDeviceId, daveIk, lime::PeerDeviceStatus::trusted);
+		aliceManager->set_peerDeviceStatus(*daveDeviceId, curve, daveIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::untrusted);
 
 		// now also set Carol as trusted, the group status shall be trusted
-		aliceManager->set_peerDeviceStatus(*carolDeviceId, carolIk, lime::PeerDeviceStatus::trusted);
+		aliceManager->set_peerDeviceStatus(*carolDeviceId, curve, carolIk, lime::PeerDeviceStatus::trusted);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::trusted);
 
 		// Turn Dave to unsafe, the group status shall be unsafe
-		aliceManager->set_peerDeviceStatus(*daveDeviceId, daveIk, lime::PeerDeviceStatus::unsafe);
+		aliceManager->set_peerDeviceStatus(*daveDeviceId, curve, daveIk, lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::unsafe);
 		
 		// Remove Carol from Alice cache, Alice is unknown but the group is still unsafe
@@ -1225,11 +1214,12 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::unsafe);
 
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
-			carolManager->delete_user(*carolDeviceId, callback);
-			daveManager->delete_user(*daveDeviceId, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+4,lime_tester::wait_for_timeout));
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
+			carolManager->delete_user(DeviceId(*carolDeviceId, curve), callback);
+			daveManager->delete_user(DeviceId(*daveDeviceId, curve), callback);
+			expected_success +=4;
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 			remove(dbFilenameCarol.data());
@@ -1268,8 +1258,8 @@ static void lime_encryptToUnsafe_test(const lime::CurveId curve) {
 	std::string dbFilenameAlice{dbBaseFilename};
 	std::string dbFilenameBob{dbBaseFilename};
 
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -1287,21 +1277,22 @@ static void lime_encryptToUnsafe_test(const lime::CurveId curve) {
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager and devices
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
-		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 
 		expected_success += 2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 
 		// set each of them to unsafe for the other
-		bobManager->set_peerDeviceStatus(*aliceDeviceId, lime::PeerDeviceStatus::unsafe);
-		aliceManager->set_peerDeviceStatus(*bobDeviceId, lime::PeerDeviceStatus::unsafe);
+		bobManager->set_peerDeviceStatus(*aliceDeviceId, algos, lime::PeerDeviceStatus::unsafe);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, algos, lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unsafe);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::unsafe);
 
@@ -1311,7 +1302,7 @@ static void lime_encryptToUnsafe_test(const lime::CurveId curve) {
 
 		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("my friends group"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("my friends group"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		BC_ASSERT_TRUE((*aliceRecipients)[0].peerStatus == lime::PeerDeviceStatus::unsafe); // recipient 0 is Bob: unsafe
@@ -1324,8 +1315,8 @@ static void lime_encryptToUnsafe_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -1357,14 +1348,17 @@ static void lime_encryptToUnsafe() {
 static void lime_getSelfIk_test(const lime::CurveId curve, const std::string &dbFilename, const std::vector<uint8_t> &pattern) {
 	// retrieve the Ik and check it matches given pattern
 	std::unique_ptr<LimeManager> aliceManager = nullptr;
+	std::map<lime::CurveId, std::vector<uint8_t>> Iks{};
 	std::vector<uint8_t> Ik{};
 	try  {
 		// create Manager for alice
 		aliceManager = make_unique<LimeManager>(dbFilename, X3DHServerPost);
 		// retrieve alice identity key
-		aliceManager->get_selfIdentityKey("alice", Ik);
+		aliceManager->get_selfIdentityKey("alice", std::vector<lime::CurveId>{curve}, Iks);
+		Ik = Iks[curve];
 
 		BC_ASSERT_TRUE((Ik==pattern));
+		Iks.clear();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
 		BC_FAIL("");
@@ -1373,7 +1367,7 @@ static void lime_getSelfIk_test(const lime::CurveId curve, const std::string &db
 
 	// try to get the Ik of a user not in there, we shall get an exception
 	try {
-		aliceManager->get_selfIdentityKey("bob", Ik);
+		aliceManager->get_selfIdentityKey("bob", std::vector<lime::CurveId>{curve}, Iks);
 	} catch (BctbxException &) {
 		// just swallow it
 		BC_PASS("");
@@ -1465,15 +1459,11 @@ static void write_db_version(uint32_t version, std::string &dbFilename) {
 				Status INTEGER NOT NULL DEFAULT 1, \
 				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
 				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
-			// Insert a dummy row in the table modified by the migration as some operation are permitted over empty tables but not ones with data
-			sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server, curveId) VALUES ('sip:notauser', '0x1234556', 'http://notalimeserver.com', 1);";
-			sql<<"INSERT INTO lime_PeerDevices(DeviceId, Ik, Status) VALUES ('sip:notausertoo', '0x6543210', 1);";
-			sql<<"INSERT INTO DR_sessions(Did, Uid, Ns, Nr, PN, DHr, DHs, RK, CKs, CKr, AD, Status) VALUES (1, 1, 0, 0, 0, '0x123', '0x456', '0x789', '0xabc', '0xdef', 'AssociatedData', 1);";
 		}
 		break;
 		case 0x000100:
 		{
-			// CREATE OR IGNORE TABLE db_module_version(
+			// CREATE OR IGNORE TABLE db_module_version
 			sql<<"CREATE TABLE IF NOT EXISTS db_module_version("
 			"name VARCHAR(16) PRIMARY KEY,"
 			"version UNSIGNED INTEGER NOT NULL"
@@ -1535,20 +1525,94 @@ static void write_db_version(uint32_t version, std::string &dbFilename) {
 				Status INTEGER NOT NULL DEFAULT 1, \
 				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
 				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
-			// Insert a dummy row in the table modified by the migration as some operation are permitted over empty tables but not ones with data
-			sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server, curveId) VALUES ('sip:notauser', '0x1234556', 'http://notalimeserver.com', 1);";
-			sql<<"INSERT INTO lime_PeerDevices(DeviceId, Ik, Status) VALUES ('sip:notausertoo', '0x6543210', 1);";
-			sql<<"INSERT INTO DR_sessions(Did, Uid, Ns, Nr, PN, DHr, DHs, RK, CKs, CKr, AD, Status) VALUES (1, 1, 0, 0, 0, '0x123', '0x456', '0x789', '0xabc', '0xdef', 'AssociatedData', 1);";
+		}
+			break;
+		case 0x000200:
+		{
+			// CREATE OR IGNORE TABLE db_module_version
+			sql<<"CREATE TABLE IF NOT EXISTS db_module_version("
+			"name VARCHAR(16) PRIMARY KEY,"
+			"version UNSIGNED INTEGER NOT NULL"
+			")";
+			sql<<"INSERT INTO db_module_version(name,version) VALUES('lime',:DbVersion)", soci::use(version);
+			sql<<"CREATE TABLE DR_sessions( \
+				Did INTEGER NOT NULL DEFAULT 0, \
+				Uid INTEGER NOT NULL DEFAULT 0, \
+				sessionId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				Ns UNSIGNED INTEGER NOT NULL, \
+				Nr UNSIGNED INTEGER NOT NULL, \
+				PN UNSIGNED INTEGER NOT NULL, \
+				DHr BLOB NOT NULL, \
+				DHrStatus INTEGER NOT NULL DEFAULT 0, \
+				DHs BLOB NOT NULL, \
+				RK BLOB NOT NULL, \
+				CKs BLOB NOT NULL, \
+				CKr BLOB NOT NULL, \
+				AD BLOB NOT NULL, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				X3DHInit BLOB DEFAULT NULL, \
+				FOREIGN KEY(Did) REFERENCES lime_PeerDevices(Did) ON UPDATE CASCADE ON DELETE CASCADE, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+
+			sql<<"CREATE TABLE DR_MSk_DHr( \
+				DHid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				sessionId INTEGER NOT NULL DEFAULT 0, \
+				DHr BLOB NOT NULL, \
+				received UNSIGNED INTEGER NOT NULL DEFAULT 0, \
+				FOREIGN KEY(sessionId) REFERENCES DR_sessions(sessionId) ON UPDATE CASCADE ON DELETE CASCADE);";
+
+			sql<<"CREATE TABLE DR_MSk_MK( \
+				DHid INTEGER NOT NULL, \
+				Nr INTEGER NOT NULL, \
+				MK BLOB NOT NULL, \
+				PRIMARY KEY( DHid , Nr ), \
+				FOREIGN KEY(DHid) REFERENCES DR_MSk_DHr(DHid) ON UPDATE CASCADE ON DELETE CASCADE);";
+
+			sql<<"CREATE TABLE lime_LocalUsers( \
+				Uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				UserId TEXT NOT NULL, \
+				Ik BLOB NOT NULL, \
+				server TEXT NOT NULL, \
+				curveId INTEGER NOT NULL DEFAULT 0, \
+				updateTs DATETIME DEFAULT CURRENT_TIMESTAMP);";
+
+			sql<<"CREATE TABLE lime_PeerDevices( \
+				Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				DeviceId TEXT NOT NULL, \
+				Ik BLOB NOT NULL, \
+				Status UNSIGNED INTEGER DEFAULT 0);";
+
+			sql<<"CREATE TABLE X3DH_SPK( \
+				SPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
+				SPK BLOB NOT NULL, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				Uid INTEGER NOT NULL, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+
+			sql<<"CREATE TABLE X3DH_OPK( \
+				OPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
+				OPK BLOB NOT NULL, \
+				Uid INTEGER NOT NULL, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
 		}
 			break;
 	}
+
+	// Insert a dummy row in the table modified by the migration as some operation are permitted over empty tables but not ones with data
+	sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server, curveId) VALUES ('sip:notauser', '0x1234556', 'http://notalimeserver.com', 1);";
+	sql<<"INSERT INTO lime_PeerDevices(DeviceId, Ik, Status) VALUES ('sip:notausertoo', '0x6543210', 1);";
+	sql<<"INSERT INTO DR_sessions(Did, Uid, Ns, Nr, PN, DHr, DHs, RK, CKs, CKr, AD, Status) VALUES (1, 1, 0, 0, 0, '0x123', '0x456', '0x789', '0xabc', '0xdef', 'AssociatedData', 1);";
 
 	tr.commit(); // commit all the previous queries
 	sql.close();
 }
 
 static void lime_db_migration() {
-	// migrate from version 0x000001 to 0x000200
+	// migrate from version 0x000001 to 0x000300
 	std::string dbFilename("lime_db_migration-v000001.sqlite3");
 	remove(dbFilename.data());
 	soci::session	sql;
@@ -1568,6 +1632,10 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 0, int, "%d");
+		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		int haveCurveId=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
+		BC_ASSERT_EQUAL(haveCurveId, 0, int, "%d");
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1575,7 +1643,7 @@ static void lime_db_migration() {
 		return;
 	}
 
-	// Open a manager giving the same DB, it shall migrate the structure to version 0x000200
+	// Open a manager giving the same DB, it shall migrate the structure to version 0x000300
 	try  {
 		// create Manager
 		std::unique_ptr<LimeManager> manager = std::make_unique<LimeManager>(dbFilename, X3DHServerPost);
@@ -1589,7 +1657,7 @@ static void lime_db_migration() {
 		sql.open("sqlite3", dbFilename);
 		int userVersion=-1;
 		sql<<"SELECT version FROM db_module_version WHERE name='lime'", soci::into(userVersion);
-		BC_ASSERT_EQUAL(userVersion, 0x200, int, "%d");
+		BC_ASSERT_EQUAL(userVersion, 0x300, int, "%d");
 		// Version 0x000100 of db added a Timestamp
 		int haveTs=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_LocalUsers') WHERE name='updateTs'", soci::into(haveTs);
@@ -1598,6 +1666,10 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 1, int, "%d");
+		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		int haveCurveId=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
+		BC_ASSERT_EQUAL(haveCurveId, 1, int, "%d");
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1608,7 +1680,7 @@ static void lime_db_migration() {
 		remove(dbFilename.data());
 	}
 
-	// migrate from version 0x000100 to 0x000200
+	// migrate from version 0x000100 to 0x000300
 	dbFilename = std::string("lime_db_migration-v000100.sqlite3");
 	remove(dbFilename.data());
 	try{
@@ -1627,6 +1699,10 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 0, int, "%d");
+		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		int haveCurveId=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
+		BC_ASSERT_EQUAL(haveCurveId, 0, int, "%d");
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1634,7 +1710,7 @@ static void lime_db_migration() {
 		return;
 	}
 
-	// Open a manager giving the same DB, it shall migrate the structure to version 0x000200
+	// Open a manager giving the same DB, it shall migrate the structure to version 0x000300
 	try  {
 		// create Manager
 		std::unique_ptr<LimeManager> manager = std::make_unique<LimeManager>(dbFilename, X3DHServerPost);
@@ -1648,7 +1724,7 @@ static void lime_db_migration() {
 		sql.open("sqlite3", dbFilename);
 		int userVersion=-1;
 		sql<<"SELECT version FROM db_module_version WHERE name='lime'", soci::into(userVersion);
-		BC_ASSERT_EQUAL(userVersion, 0x200, int, "%d");
+		BC_ASSERT_EQUAL(userVersion, 0x300, int, "%d");
 		// Version 0x000100 of db added a Timestamp
 		int haveTs=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_LocalUsers') WHERE name='updateTs'", soci::into(haveTs);
@@ -1657,6 +1733,10 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 1, int, "%d");
+		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		int haveCurveId=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
+		BC_ASSERT_EQUAL(haveCurveId, 1, int, "%d");
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1667,7 +1747,73 @@ static void lime_db_migration() {
 		remove(dbFilename.data());
 	}
 
+	// migrate from version 0x000200 to 0x000300
+	dbFilename = std::string("lime_db_migration-v000200.sqlite3");
+	remove(dbFilename.data());
+	try{
+		// Write a db version 000200
+		write_db_version(0x000200, dbFilename);
+		// Check we have a version 0x000200 DB
+		sql.open("sqlite3", dbFilename);
+		int userVersion=-1;
+		sql<<"SELECT version FROM db_module_version WHERE name='lime'", soci::into(userVersion);
+		BC_ASSERT_EQUAL(userVersion, 0x000200, int, "%d");
+		// Version 0x000100 of db added a Timestamp
+		int haveTs=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_LocalUsers') WHERE name='updateTs'", soci::into(haveTs);
+		BC_ASSERT_EQUAL(haveTs, 1, int, "%d");
+		// Version 0x000200 of db an integer defaulted to 0 in the DR_sessions table
+		int haveDHrStatus=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
+		BC_ASSERT_EQUAL(haveDHrStatus, 1, int, "%d");
+		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		int haveCurveId=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
+		BC_ASSERT_EQUAL(haveCurveId, 0, int, "%d");
+		sql.close();
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("Can't create test version 1 DB");
+		return;
+	}
 
+	// Open a manager giving the same DB, it shall migrate the structure to version 0x000300
+	try  {
+		// create Manager
+		std::unique_ptr<LimeManager> manager = std::make_unique<LimeManager>(dbFilename, X3DHServerPost);
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("Can't open manager to perform DB migration");
+		return;
+	}
+
+	try  {
+		sql.open("sqlite3", dbFilename);
+		int userVersion=-1;
+		sql<<"SELECT version FROM db_module_version WHERE name='lime'", soci::into(userVersion);
+		BC_ASSERT_EQUAL(userVersion, 0x300, int, "%d");
+		// Version 0x000100 of db added a Timestamp
+		int haveTs=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_LocalUsers') WHERE name='updateTs'", soci::into(haveTs);
+		BC_ASSERT_EQUAL(haveTs, 1, int, "%d");
+		// Version 0x000200 of db an integer defaulted to 0 in the DR_sessions table
+		int haveDHrStatus=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
+		BC_ASSERT_EQUAL(haveDHrStatus, 1, int, "%d");
+		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		int haveCurveId=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
+		BC_ASSERT_EQUAL(haveCurveId, 1, int, "%d");
+		sql.close();
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("Can't check DB migration done");
+		return;
+	}
+
+	if (cleanDatabase) {
+		remove(dbFilename.data());
+	}
 }
 
 /**
@@ -1685,8 +1831,8 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -1703,20 +1849,21 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 					}
 				});
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager and device for alice
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// check we have the expected count of OPk in base : the initial batch
-		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, int, "%d");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId, curve), lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// call the update, set the serverLimit to initialBatch size and upload an other initial batch if needed
 		// As all the keys are still on server, it shall have no effect, check it then
-		aliceManager->update(*aliceDeviceId, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDeviceId, algos, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, int, "%d");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId, curve), lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// We will create a bob device and encrypt for each new epoch
 		std::vector<std::unique_ptr<LimeManager>> bobManagers{};
@@ -1729,7 +1876,7 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 		for (auto i=0; i<2; i++) {
 			bobManagers.push_back(make_unique<LimeManager>(dbFilenameBob, X3DHServerPost));
 			bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
-			bobManagers.back()->create_user(*(bobDeviceIds.back()), lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+			bobManagers.back()->create_user(*(bobDeviceIds.back()), algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 			bobRecipients.push_back(make_shared<std::vector<RecipientData>>());
@@ -1737,7 +1884,7 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 			auto plainMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
 			bobCipherMessages.push_back(make_shared<std::vector<uint8_t>>());
 
-			bobManagers.back()->encrypt(*(bobDeviceIds.back()), make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
+			bobManagers.back()->encrypt(*(bobDeviceIds.back()), algos, make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 			patternIndex++;
@@ -1745,15 +1892,15 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 		}
 
 		// check we have the expected count of OPk in base : we shall still have the initial batch
-		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, int, "%d");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId, curve), lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// call the update, set the serverLimit to initialBatch size and upload an other initial batch if needed
 		// As some keys were removed from server this time we shall generate and upload a new batch
 		lime_tester::forwardTime(dbFilenameAlice, 2); // Forward time by 2 days so the update actually do something
-		aliceManager->update(*aliceDeviceId, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDeviceId, algos, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// we uploaded a new batch but no key were removed from localStorage so we now have 2*batch size keys
-		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, int, "%d");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId, curve), 2*lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// forward time by OPK_limboTime_days
 		aliceManager=nullptr; // destroy manager before modifying DB
@@ -1761,7 +1908,7 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 		aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 
 		// check nothing has changed on our local OPk count
-		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, int, "%d");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId, curve), 2*lime_tester::OPkInitialBatchSize, int, "%d");
 
 		// decrypt Bob first message(he is then an unknown device)
 		std::vector<uint8_t> receivedMessage{};
@@ -1770,14 +1917,14 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
 		// check we have one less key
-		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 1, int, "%d");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId, curve), 2*lime_tester::OPkInitialBatchSize - 1, int, "%d");
 
 		// call the update, set the serverLimit to 0, we don't want to upload more keys, but too old unused local OPk dispatched by server long ago shall be deleted
-		aliceManager->update(*aliceDeviceId, callback, 0, 0);
+		aliceManager->update(*aliceDeviceId, algos, callback, 0, 0);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// check the local OPk missing on server for a long time has been deleted
-		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 2, int, "%d");
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId, curve), 2*lime_tester::OPkInitialBatchSize - 2, int, "%d");
 
 		// try to decrypt Bob's second message, it shall fail as we got rid of the OPk
 		receivedMessage.clear();
@@ -1786,10 +1933,10 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 		if (cleanDatabase) {
 			auto i=0;
 			for (auto &bobManager : bobManagers) {
-				bobManager->delete_user(*(bobDeviceIds[i]), callback);
+					bobManager->delete_user(DeviceId(*(bobDeviceIds[i]), curve), callback);
 				i++;
 			}
-			aliceManager->delete_user(*aliceDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 			expected_success += 1+(int)bobManagers.size();
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
@@ -1827,8 +1974,8 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -1845,6 +1992,7 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 					}
 				});
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// starting epoch nad number of SPk keys in localStorage
 		unsigned int epoch=0;
 		auto SPkExpectedCount=1;
@@ -1853,11 +2001,11 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 		// create Manager and device for alice
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		size_t SPkCount=0;
 		uint32_t activeSPkId=0;
-		BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
+		BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, curve, SPkCount, activeSPkId));
 		BC_ASSERT_EQUAL((int)SPkCount, (int)SPkExpectedCount, int, "%d");
 
 		// We will create a bob device and encrypt for each new epoch
@@ -1869,7 +2017,7 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 		// create a device for bob and encrypt to alice
 		bobManagers.push_back(make_unique<LimeManager>(dbFilenameBob, X3DHServerPost));
 		bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
-		bobManagers.back()->create_user(*(bobDeviceIds.back()), lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManagers.back()->create_user(*(bobDeviceIds.back()), algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		bobRecipients.push_back(make_shared<std::vector<RecipientData>>());
@@ -1877,7 +2025,7 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 		auto plainMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
 		bobCipherMessages.push_back(make_shared<std::vector<uint8_t>>());
 
-		bobManagers.back()->encrypt(*(bobDeviceIds.back()), make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
+		bobManagers.back()->encrypt(*(bobDeviceIds.back()), algos, make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		uint32_t SPkIdMessage=0;
 		// extract SPKid from bob's message, and check it matches the current one from Alice DB
@@ -1896,20 +2044,20 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 			aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 
 			// call the update, it shall create and upload a new SPk but keep the old ones
-			aliceManager->update(*aliceDeviceId, callback, 0, lime_tester::OPkInitialBatchSize);
+			aliceManager->update(*aliceDeviceId, algos, callback, 0, lime_tester::OPkInitialBatchSize);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 			SPkExpectedCount++;
 
 			// check we have the correct count of keys in local
 			SPkCount=0;
 			activeSPkId=0;
-			BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
+			BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, curve, SPkCount, activeSPkId));
 			BC_ASSERT_EQUAL((int)SPkCount, (int)SPkExpectedCount, int, "%d");
 
 			// create a device for bob and use it to encrypt
 			bobManagers.push_back(make_unique<LimeManager>(dbFilenameBob, X3DHServerPost));
 			bobDeviceIds.push_back(lime_tester::makeRandomDeviceName("bob.d"));
-			bobManagers.back()->create_user(*(bobDeviceIds.back()), lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+			bobManagers.back()->create_user(*(bobDeviceIds.back()), algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 			bobRecipients.push_back(make_shared<std::vector<RecipientData>>());
@@ -1917,7 +2065,7 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 			auto plainMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
 			bobCipherMessages.push_back(make_shared<std::vector<uint8_t>>());
 
-			bobManagers.back()->encrypt(*(bobDeviceIds.back()), make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
+			bobManagers.back()->encrypt(*(bobDeviceIds.back()), algos, make_shared<const std::string>("alice"), bobRecipients.back(), plainMessage, bobCipherMessages.back(), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 			// extract SPKid from bob's message, and check it matches the current one from Alice DB
@@ -1936,12 +2084,12 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 		aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 
 		// call the update, it shall create and upload a new SPk but keep the old ones and delete one
-		aliceManager->update(*aliceDeviceId, callback, 0, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDeviceId, algos, callback, 0, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// there shall not be any rise in the number of SPk keys found in DB, check that
 		SPkCount=0;
 		activeSPkId=0;
-		BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
+		BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, curve, SPkCount, activeSPkId));
 		BC_ASSERT_EQUAL((int)SPkCount, (int)SPkExpectedCount, int, "%d");
 
 		// Try to decrypt all message: the first message must fail to decrypt as we just deleted the SPk needed to create the session
@@ -1958,10 +2106,10 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 		if (cleanDatabase) {
 			auto i=0;
 			for (auto &bobManager : bobManagers) {
-				bobManager->delete_user(*(bobDeviceIds[i]), callback);
+				bobManager->delete_user(DeviceId(*(bobDeviceIds[i]), curve), callback);
 				i++;
 			}
-			aliceManager->delete_user(*aliceDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 			expected_success += 1+(int)bobManagers.size();
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
@@ -2018,7 +2166,8 @@ static void lime_update_clean_MK_test(const lime::CurveId curve) {
 				});
 
 	try {
-		lime_session_establishment(curve, dbBaseFilename,
+		std::vector<lime::CurveId> algos{curve};
+		lime_session_establishment(algos, dbBaseFilename,
 					dbFilenameAlice, aliceDeviceId, aliceManager,
 					dbFilenameBob, bobDeviceId, bobManager);
 
@@ -2032,16 +2181,16 @@ static void lime_update_clean_MK_test(const lime::CurveId curve) {
 		auto aliceMessage2 = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		auto aliceCipherMessage2 = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients1, aliceMessage1, aliceCipherMessage1, callback);
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients2, aliceMessage2, aliceCipherMessage2, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients1, aliceMessage1, aliceCipherMessage1, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients2, aliceMessage2, aliceCipherMessage2, callback);
 		expected_success+=2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout));
 
 		/* Alice and Bob exchange more than maxMessagesReceivedAfterSkip messages(do batches of 4 to be faster) */
-		lime_exchange_messages(aliceDeviceId, aliceManager, bobDeviceId, bobManager, lime::settings::maxMessagesReceivedAfterSkip/4+1, 4);
+		lime_exchange_messages(aliceDeviceId, aliceManager, bobDeviceId, bobManager, algos, lime::settings::maxMessagesReceivedAfterSkip/4+1, 4);
 
 		/* Check that bob got 2 message key in local Storage */
-		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId), 2, unsigned int, "%d");
+		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId, curve), 2, unsigned int, "%d");
 
 		/* decrypt held message 1, we know that device but no trust was ever established */
 		std::vector<uint8_t> receivedMessage{};
@@ -2050,27 +2199,28 @@ static void lime_update_clean_MK_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
 		/* Check that bob got 1 message key in local Storage */
-		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId), 1, unsigned int, "%d");
+		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId, curve), 1, unsigned int, "%d");
 
 		/* update belle-sip stack processing possible incoming messages from server */
 		belle_sip_stack_sleep(bc_stack,0);
 
 		/* call the update function, forwardtime by 2 days before or the update is skipped */
 		lime_tester::forwardTime(dbFilenameBob, 2);
-		bobManager->update(*bobDeviceId, callback, 0, lime_tester::OPkInitialBatchSize);
+		bobManager->update(*bobDeviceId, algos, callback, 0, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success, lime_tester::wait_for_timeout));
 
 		/* Check that bob got 0 message key in local Storage */
-		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId), 0, unsigned int, "%d");
+		BC_ASSERT_EQUAL(lime_tester::get_StoredMessageKeyCount(dbFilenameBob, *bobDeviceId, *aliceDeviceId, curve), 0, unsigned int, "%d");
 
 		/* try to decrypt message 2, it shall fail */
 		receivedMessage.clear();
 		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients2)[0].DRmessage, *aliceCipherMessage2, receivedMessage)  == lime::PeerDeviceStatus::fail);
 
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
-			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
+			expected_success +=2;
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 		}
@@ -2106,10 +2256,10 @@ static void lime_update_republish_test(const lime::CurveId curve) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	std::string dbFilenameAliceBackup{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
-	dbFilenameAliceBackup.append(".alice.backup.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
+	dbFilenameAliceBackup.append(".alice.backup.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameAliceBackup.data()); // delete the database file if already exists
@@ -2128,13 +2278,14 @@ static void lime_update_republish_test(const lime::CurveId curve) {
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Managers and devices for alice and Bob
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve,  lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
-		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve,  lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		expected_success += 2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 
@@ -2146,21 +2297,21 @@ static void lime_update_republish_test(const lime::CurveId curve) {
 		dst.close();
 
 		// Delete Alice user
-		aliceManager->delete_user(*aliceDeviceId, callback);
+		aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// Start a new manager using the backuped local base, so the user is present in local but no more on remote
 		aliceManager = nullptr;
 		lime_tester::forwardTime(dbFilenameAliceBackup, 2); // forward time otherwise the update won't do anything
 		aliceManager = make_unique<LimeManager>(dbFilenameAliceBackup, X3DHServerPost);
 		// Update: that shall set all current OPk as dispatched, create a new batch of default creation size and republish the user on server
-		aliceManager->update(*aliceDeviceId, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDeviceId, algos, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// Bob encrypt a message to Alice, it will fetch keys from server
 		auto bobRecipients = make_shared<std::vector<RecipientData>>();
 		bobRecipients->emplace_back(*aliceDeviceId);
 		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		// Alice decrypt
 		std::vector<uint8_t> receivedMessage{};
@@ -2169,8 +2320,8 @@ static void lime_update_republish_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
 
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameAliceBackup.data());
@@ -2204,9 +2355,9 @@ static void lime_update_republish() {
 static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &dbBaseFilename, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -2223,18 +2374,19 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 					}
 				});
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager and device for alice
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d1.");
 		auto aliceOPkInitialBatchSize = 3; // give it only 3 OPks as initial batch
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, aliceOPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, aliceOPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		for (auto i=0; i<aliceOPkInitialBatchSize+1; i++) {
 			// Create manager and device for bob
 			auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 			auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
-			bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+			bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 			// encrypt a message to Alice
@@ -2244,7 +2396,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 			auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[messagePatternIndex].begin(), lime_tester::messages_pattern[messagePatternIndex].end());
 			auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 
-			bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+			bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 			// alice decrypt
@@ -2261,7 +2413,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messagePatternIndex]);
 
 			if (cleanDatabase) {
-				bobManager->delete_user(*bobDeviceId, callback);
+				bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
 				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			}
 
@@ -2271,7 +2423,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 
 		// delete the users so the remote DB will be clean too
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -2305,9 +2457,9 @@ static void x3dh_without_OPk() {
 static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::string &dbBaseFilename, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -2324,6 +2476,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 					}
 				});
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
@@ -2333,8 +2486,8 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		auto bobDevice1 = lime_tester::makeRandomDeviceName("bob.d1.");
 
 		// create users alice.d1 and bob.d1
-		aliceManager->create_user(*aliceDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		bobManager->create_user(*bobDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		expected_success +=2; // we have two asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
@@ -2354,7 +2507,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 
 		// alice encrypt
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
@@ -2371,7 +2524,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
 		// bob encrypt
-		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDevice1, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
@@ -2389,7 +2542,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 			// alice encrypt
 			aliceMessage->assign(lime_tester::messages_pattern[i%lime_tester::messages_pattern.size()].begin(), lime_tester::messages_pattern[i%lime_tester::messages_pattern.size()].end());
 			aliceCipherMessage->clear();
-			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+			aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 			// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
@@ -2416,7 +2569,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 		// alice encrypt, we are over the maximum number, so Alice shall fetch a new key on server and start a new session
 		aliceMessage->assign(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		aliceCipherMessage->clear();
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// bob decrypt, it's not really needed here but...
@@ -2428,8 +2581,8 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 
 		// delete the users so the remote DB will be clean too
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDevice1, callback);
-			bobManager->delete_user(*bobDevice1, callback);
+			aliceManager->delete_user(DeviceId(*aliceDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice1, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -2466,9 +2619,9 @@ static void x3dh_sending_chain_limit() {
 static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::string &dbBaseFilename, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -2487,6 +2640,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
@@ -2496,8 +2650,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		auto bobDevice1 = lime_tester::makeRandomDeviceName("bob.d1.");
 
 		// create users alice.d1 and bob.d1
-		aliceManager->create_user(*aliceDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		bobManager->create_user(*bobDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		expected_success +=2; // we have two asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
@@ -2515,9 +2669,9 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDevice1, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		expected_success += 1;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
@@ -2567,7 +2721,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 		bobCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDevice1, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// destroy and reload the Managers(tests everything is correctly saved/load from local Storage)
@@ -2602,8 +2756,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		BC_ASSERT_EQUAL((int)bobSessionsId.size(), 2, int, "%d");
 
 		// run the update function
-		aliceManager->update(*aliceDevice1, callback, 0, lime_tester::OPkInitialBatchSize);
-		bobManager->update(*bobDevice1, callback, 0, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDevice1, algos, callback, 0, lime_tester::OPkInitialBatchSize);
+		bobManager->update(*bobDevice1, algos, callback, 0, lime_tester::OPkInitialBatchSize);
 		expected_success+=2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
@@ -2630,8 +2784,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 
 		// run the update function
-		aliceManager->update(*aliceDevice1, callback, 0, lime_tester::OPkInitialBatchSize);
-		bobManager->update(*bobDevice1, callback, 0, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDevice1, algos, callback, 0, lime_tester::OPkInitialBatchSize);
+		bobManager->update(*bobDevice1, algos, callback, 0, lime_tester::OPkInitialBatchSize);
 		expected_success+=2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
@@ -2648,8 +2802,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 
 		// delete the users so the remote DB will be clean too
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDevice1, callback);
-			bobManager->delete_user(*bobDevice1, callback);
+			aliceManager->delete_user(DeviceId(*aliceDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice1, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data()); // delete the database file if already exists
 			remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -2691,9 +2845,9 @@ static void x3dh_multiple_DRsessions(void) {
 static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const std::string &dbBaseFilename, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -2711,6 +2865,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
@@ -2723,11 +2878,11 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		auto bobDevice4 = lime_tester::makeRandomDeviceName("bob.d4.");
 
 		// create users alice.d1 and bob.d1,d2,d3,d4
-		aliceManager->create_user(*aliceDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		bobManager->create_user(*bobDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		bobManager->create_user(*bobDevice2, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		bobManager->create_user(*bobDevice3, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		bobManager->create_user(*bobDevice4, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice2, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice3, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice4, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		expected_success +=5; // we have five asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
@@ -2749,7 +2904,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		}
 
 		for (size_t i=0; i<messages.size(); i++) {
-			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
+			aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
 			expected_success++;
 		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
@@ -2801,7 +2956,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 		recipients[4]->emplace_back(*bobDevice4);
 
 		for (size_t i=0; i<messages.size(); i++) {
-			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
+			aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
 			expected_success++;
 		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
@@ -2858,11 +3013,11 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 
 		// delete the users and db
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDevice1, callback);
-			bobManager->delete_user(*bobDevice1, callback);
-			bobManager->delete_user(*bobDevice2, callback);
-			bobManager->delete_user(*bobDevice3, callback);
-			bobManager->delete_user(*bobDevice4, callback);
+			aliceManager->delete_user(DeviceId(*aliceDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice2, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice3, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice4, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+5,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -2900,9 +3055,9 @@ static void x3dh_multidev_operation_queue(void) {
 static void x3dh_operation_queue_test(const lime::CurveId curve, const std::string &dbBaseFilename, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -2920,6 +3075,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
@@ -2929,8 +3085,8 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		auto bobDevice1 = lime_tester::makeRandomDeviceName("bob.d1.");
 
 		// create users alice.d1 and bob.d1
-		aliceManager->create_user(*aliceDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		bobManager->create_user(*bobDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		expected_success +=2; // we have two asynchronous operation on going
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout)); // we must get callback saying all went well
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
@@ -2952,7 +3108,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		}
 
 		for (size_t i=0; i<messages.size(); i++) {
-			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
+			aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients[i], messages[i], cipherMessage[i], callback);
 			expected_success++;
 		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
@@ -2983,8 +3139,8 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 		if (cleanDatabase) {
 
 			// delete the users
-			aliceManager->delete_user(*aliceDevice1, callback);
-			bobManager->delete_user(*bobDevice1, callback);
+			aliceManager->delete_user(DeviceId(*aliceDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice1, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data()); // delete the database file if already exists
 			remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -3020,9 +3176,9 @@ static void lime_identity_theft_test(const lime::CurveId curve) {
 	const std::string dbBaseFilename{"lime_identity_theft"};
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -3040,6 +3196,7 @@ static void lime_identity_theft_test(const lime::CurveId curve) {
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		auto recipients = make_shared<std::vector<RecipientData>>();
 		auto cipherMessage = make_shared<std::vector<uint8_t>>();
 
@@ -3052,9 +3209,9 @@ static void lime_identity_theft_test(const lime::CurveId curve) {
 		auto bobDevice = lime_tester::makeRandomDeviceName("bob.");
 
 		// create users
-		aliceManager->create_user(*aliceDevice, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDevice, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->create_user(*bobDevice, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed > 0) return; // skip the end of the test if we can't do this
 
@@ -3062,14 +3219,14 @@ static void lime_identity_theft_test(const lime::CurveId curve) {
 		recipients->emplace_back(*bobDevice);
 		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 
-		aliceManager->encrypt(*aliceDevice, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// we don't need to decrypt, it only matters that Alice registered Bob's device Ik
 		// Bob deletes its user and create it again (with the same deviceId)
-		bobManager->delete_user(*bobDevice, callback);
+		bobManager->delete_user(DeviceId(*bobDevice, curve), callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->create_user(*bobDevice, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// cleaning
@@ -3081,7 +3238,7 @@ static void lime_identity_theft_test(const lime::CurveId curve) {
 		recipients->emplace_back(*aliceDevice);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 
-		bobManager->encrypt(*bobDevice, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
+		bobManager->encrypt(*bobDevice, algos, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// alice tries decrypt it, it shall fail as Bob changed Ik!
@@ -3098,7 +3255,7 @@ static void lime_identity_theft_test(const lime::CurveId curve) {
 			cipherMessage->clear();
 			recipients->clear();
 			recipients->emplace_back(*bobDevice);
-			aliceManager->encrypt(*aliceDevice, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+			aliceManager->encrypt(*aliceDevice, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			BC_ASSERT_TRUE((*recipients)[0].peerStatus == lime::PeerDeviceStatus::untrusted);
 		}
@@ -3109,13 +3266,13 @@ static void lime_identity_theft_test(const lime::CurveId curve) {
 		// now we've ran the maximum number of messages, Alice shall ask for a new key bundle for bob, but it will fail because it will come with a new Ik
 		recipients->clear();
 		recipients->emplace_back(*bobDevice);
-		aliceManager->encrypt(*aliceDevice, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed,1,lime_tester::wait_for_timeout));
 
 		// delete the users
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDevice, callback);
-			bobManager->delete_user(*bobDevice, callback);
+			aliceManager->delete_user(DeviceId(*aliceDevice, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -3154,9 +3311,9 @@ static void lime_identity_theft(void) {
 static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, bool continuousSession=true, bool useAD=false) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 	auto aliceUserId = std::make_shared<std::vector<uint8_t>>();
 	aliceUserId->assign({'\0','a','l','i','c','e'});
 	auto bobUserId = std::make_shared<std::vector<uint8_t>>();
@@ -3177,6 +3334,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
@@ -3187,11 +3345,11 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		auto bobDevice2 = lime_tester::makeRandomDeviceName("bob.d2.");
 
 		// create users
-		aliceManager->create_user(*aliceDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->create_user(*bobDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->create_user(*bobDevice2, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice2, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 
@@ -3206,9 +3364,9 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		auto cipherMessage = make_shared<std::vector<uint8_t>>();
 
 		if (useAD) {
-			aliceManager->encrypt(*aliceDevice1, bobUserId, recipients, message, cipherMessage, callback);
+			aliceManager->encrypt(*aliceDevice1, algos, bobUserId, recipients, message, cipherMessage, callback);
 		} else {
-			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+			aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
@@ -3233,9 +3391,9 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 
 		if (useAD) {
-			aliceManager->encrypt(*aliceDevice1, bobUserId, recipients, message, cipherMessage, callback);
+			aliceManager->encrypt(*aliceDevice1, algos, bobUserId, recipients, message, cipherMessage, callback);
 		} else {
-			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+			aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
@@ -3261,9 +3419,9 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 
 		if (useAD) {
-			bobManager->encrypt(*bobDevice1, aliceUserId, recipients, message, cipherMessage, callback);
+			bobManager->encrypt(*bobDevice1, algos, aliceUserId, recipients, message, cipherMessage, callback);
 		} else {
-			bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
+			bobManager->encrypt(*bobDevice1, algos, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
 		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
@@ -3299,7 +3457,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		recipients->emplace_back(*bobDevice1);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());
 
-		bobManager->encrypt(*bobDevice2, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
+		bobManager->encrypt(*bobDevice2, algos, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// decrypt it
@@ -3326,7 +3484,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		recipients->emplace_back(*bobDevice2);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[4].begin(), lime_tester::messages_pattern[4].end());
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -3346,9 +3504,9 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 
 		// delete the users
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDevice1, callback);
-			bobManager->delete_user(*bobDevice1, callback);
-			bobManager->delete_user(*bobDevice2, callback);
+			aliceManager->delete_user(DeviceId(*aliceDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice2, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+3,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -3391,9 +3549,9 @@ static void x3dh_basic(void) {
 static void x3dh_user_not_found_test(const lime::CurveId curve, const std::string &dbBaseFilename, bool continuousSession=true) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -3412,6 +3570,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create Manager
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
@@ -3423,11 +3582,11 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		auto bobDevice3 = lime_tester::makeRandomDeviceName("bob.d3."); // for this one we won't create the user nor register it on the X3DH server
 
 		// create users
-		aliceManager->create_user(*aliceDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->create_user(*bobDevice1, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice1, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-		bobManager->create_user(*bobDevice2, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDevice2, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 
@@ -3440,7 +3599,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto cipherMessage = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		// The encryption shall return an error: no recipient device could get a key
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed,++expected_fail,lime_tester::wait_for_timeout));
 		// but the status of the recipient disclose the failure on that one
@@ -3458,7 +3617,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		recipients->emplace_back(*bobDevice3);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -3487,7 +3646,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		recipients->emplace_back(*bobDevice1);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -3516,7 +3675,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		recipients->emplace_back(*bobDevice1);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -3551,7 +3710,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		recipients->emplace_back(*bobDevice3);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -3583,7 +3742,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		recipients->emplace_back(*bobDevice1);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -3615,7 +3774,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 		recipients->emplace_back(*bobDevice1);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		aliceManager->encrypt(*aliceDevice1, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -3640,9 +3799,9 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 
 		// delete the users
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDevice1, callback);
-			bobManager->delete_user(*bobDevice1, callback);
-			bobManager->delete_user(*bobDevice2, callback);
+			aliceManager->delete_user(DeviceId(*aliceDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice1, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice2, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+3,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -3688,12 +3847,13 @@ static void user_management_test(const lime::CurveId curve) {
 	const std::string dbBaseFilename{"lime_user_management"};
 
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
+	int expected_fail=0;
 
 	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
@@ -3707,74 +3867,52 @@ static void user_management_test(const lime::CurveId curve) {
 	auto Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 	auto aliceDeviceName = lime_tester::makeRandomDeviceName("alice.");
 
+	std::vector<lime::CurveId> algos{curve};
 	try {
 		/*Check if Alice exists in the database */
-		BC_ASSERT_FALSE(Manager->is_user(*aliceDeviceName));
+		BC_ASSERT_FALSE(Manager->is_user(*aliceDeviceName, algos));
 
 		/* create a user in a fresh database */
-		Manager->create_user(*aliceDeviceName, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceName, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
 
 		/*Check if Alice exists in the database, it will also load it */
-		BC_ASSERT_TRUE(Manager->is_user(*aliceDeviceName));
+		BC_ASSERT_TRUE(Manager->is_user(*aliceDeviceName, algos));
 
 		// Get alice x3dh server url
-		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(*aliceDeviceName) == lime_tester::test_x3dh_default_server);
+		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(DeviceId(*aliceDeviceName, curve)) == lime_tester::test_x3dh_default_server);
 
 		// Set the X3DH URL server to something else and check it worked
-		Manager->set_x3dhServerUrl(*aliceDeviceName, "https://testing.testing:12345");
-		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(*aliceDeviceName) == "https://testing.testing:12345");
+		Manager->set_x3dhServerUrl(*aliceDeviceName, algos, "https://testing.testing:12345");
+		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(DeviceId(*aliceDeviceName, curve)) == "https://testing.testing:12345");
 		// Force a reload of data from local storage just to be sure the modification was perform correctly
 		Manager = nullptr;
 		Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
-		BC_ASSERT_TRUE(Manager->is_user(*aliceDeviceName)); // Check again just after LimeManager reload that Alice is in local storage
-		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(*aliceDeviceName) == "https://testing.testing:12345");
+		BC_ASSERT_TRUE(Manager->is_user(*aliceDeviceName, algos)); // Check again just after LimeManager reload that Alice is in local storage
+		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(DeviceId(*aliceDeviceName, curve)) == "https://testing.testing:12345");
+		// Try to create the same user in the same data base, should fail
+		Manager->create_user(*aliceDeviceName, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_fail,lime_tester::wait_for_timeout));
+		// Check the second creation was ignored and that our user sticks to the old server
+		BC_ASSERT_TRUE(Manager->get_x3dhServerUrl(DeviceId(*aliceDeviceName, curve)) == "https://testing.testing:12345");
 		// Set it back to the regular one to be able to complete the test
-		Manager->set_x3dhServerUrl(*aliceDeviceName, lime_tester::test_x3dh_default_server);
-	} catch (BctbxException &e) {
-		LIME_LOGE << e;
-		BC_FAIL("");
-	}
-
-	bool gotExpectedException = false;
-	/* Try to create the same user in the same data base, it must fail with exception raised */
-	try {
-		Manager->create_user(*aliceDeviceName, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
-		/* no need to wait here, it must fail immediately */
-	} catch (BctbxException &) {
-		gotExpectedException = true;
-	}
-	if (!gotExpectedException) {
-		// we didn't got any exception on trying to insert alice again in DB
-		BC_FAIL("Insert twice the same userID in a DB without getting any exception");
-		return;
-	}
-
-	try {
-		/* Check a non existent user is not found */
-		BC_ASSERT_FALSE(Manager->is_user("bob"));
-	} catch (BctbxException &e) {
-		LIME_LOGE << e;
-		BC_FAIL("");
-		return;
-	}
-
-	/* Delete users from base */
-	try {
+		Manager->set_x3dhServerUrl(*aliceDeviceName, algos, lime_tester::test_x3dh_default_server);
+		// Check a non existent user is not found
+		BC_ASSERT_FALSE(Manager->is_user("bob", algos));
 		// delete Alice, wait for callback confirmation from x3dh server
-		Manager->delete_user(*aliceDeviceName, callback);
+		Manager->delete_user(DeviceId(*aliceDeviceName, curve), callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 	} catch (BctbxException &e) {
 		LIME_LOGE <<e;
 		BC_FAIL("Delete Lime user raised exception");
 		return;
 	}
-	gotExpectedException = false;
+	bool gotExpectedException = false;
 	auto savedCounters = counters;
 	try {
 		// delete bob which is not there, it shall raise an exception and never get to the callback
-		Manager->delete_user("bob", callback);
+		Manager->delete_user(DeviceId("bob", curve), callback);
 	} catch (BctbxException &) {
 		gotExpectedException = true;
 	}
@@ -3790,7 +3928,7 @@ static void user_management_test(const lime::CurveId curve) {
 
 	/* Create Alice again */
 	try {
-		Manager->create_user(*aliceDeviceName, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceName, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// create another manager with a fresh DB
@@ -3800,13 +3938,13 @@ static void user_management_test(const lime::CurveId curve) {
 		// create a manager and try to create alice again, it shall pass local creation(db is empty) but server shall reject it
 		auto ManagerTmp = make_unique<LimeManager>(dbFilenameAliceTmp, X3DHServerPost);
 
-		ManagerTmp->create_user(*aliceDeviceName, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		ManagerTmp->create_user(*aliceDeviceName, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed,counters.operation_failed+1,lime_tester::wait_for_timeout)); // wait on this one but we shall get a fail from server
 
 		/* Clean DB */
 		if (cleanDatabase) {
 			// delete Alice, wait for callback confirmation from server
-			Manager->delete_user(*aliceDeviceName, callback);
+			Manager->delete_user(DeviceId(*aliceDeviceName, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data()); // delete the database file
 			remove(dbFilenameAliceTmp.data()); // delete the database file
@@ -3847,7 +3985,7 @@ static void user_registration_failure_test(const lime::CurveId curve) {
 	const std::string dbBaseFilename{"lime_user_registration_failure"};
 
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	auto alice_db_mutex = make_shared<std::recursive_mutex>();
@@ -3869,11 +4007,12 @@ static void user_registration_failure_test(const lime::CurveId curve) {
 	// we need a LimeManager
 	auto Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost_Failing_Simulation);
 	auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
+	std::vector<lime::CurveId> algos{curve};
 
 	try {
 		/* create a user in a fresh database but discard the message to server */
 		httpLink = HttpLinkStatus::sending_fail;
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_FALSE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+1,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE(counters.operation_failed == expected_failed); // We shall have no failure either, the server never answer so the callback is never called (in a real situation the timeout on answer may be forwarded to the lime engine)
 		Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost_Failing_Simulation); // reload manager from db after the timeout
@@ -3890,79 +4029,79 @@ static void user_registration_failure_test(const lime::CurveId curve) {
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilenameAlice, alice_db_mutex));
 		auto curve = CurveId::unset;
 
-		localStorage->load_LimeUser(*aliceDeviceId, Uid, curve, lime_tester::test_x3dh_default_server); // this one will throw an exception if user is not found, just let it rise
+		localStorage->load_LimeUser(DeviceId(*aliceDeviceId, curve), Uid, lime_tester::test_x3dh_default_server); // this one will throw an exception if user is not found, just let it rise
 	} catch (BctbxException &) {
 		gotExpectedException = true;
 	}
-	BC_ASSERT(Uid == -1); // when user is not active, the db::load_LimeUser set the Uid to -1 before generating the exception
+	BC_ASSERT(Uid == 0); // when user is not active, the db::load_LimeUser set the Uid to -1 before generating the exception
 	BC_ASSERT(gotExpectedException == true);
 
 	try {
 		// Delete local user from base and create it letting it flow to the server
 		httpLink = HttpLinkStatus::sending_fail; // make sure our delete never reach the server
-		Manager->delete_user(*aliceDeviceId, callback);
+		Manager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 		BC_ASSERT_FALSE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+1,lime_tester::wait_for_timeout));
 		Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost_Failing_Simulation); // reload manager from db after the timeout
 		BC_ASSERT_TRUE(counters.operation_failed == expected_failed);
 		httpLink = HttpLinkStatus::ok; // restore htpp link
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback); // This one has different keys but the same user Id
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback); // This one has different keys but the same user Id
 		// if this userId was already registered on server(with the old Ik) we would have an error
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		// and delete it again
-		Manager->delete_user(*aliceDeviceId, callback);
+		Manager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 
 		// Start again but this time let the message flow to the server, just block the answer
 		httpLink = HttpLinkStatus::reception_fail;
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_FALSE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+1,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE(counters.operation_failed == expected_failed); // We shall have no failure either, the server never answer so the callback is never called (in a real situation the timeout on answer may be forwarded to the lime engine)
 		Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost_Failing_Simulation); // reload manager from db after the timeout
 
 		// Now we have the user inactive in local but set on server. Delete the local one
 		httpLink = HttpLinkStatus::sending_fail; // make sure our delete never reach the server
-		Manager->delete_user(*aliceDeviceId, callback);
+		Manager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 		BC_ASSERT_FALSE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+1,lime_tester::wait_for_timeout));
 		Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost_Failing_Simulation); // reload manager from db after the timeout
 		httpLink = HttpLinkStatus::ok; // restore htpp link
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback); // This one has different keys but the same user Id
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback); // This one has different keys but the same user Id
 		// this userId is already registered on server(with the old Ik) we shall have an error -> the error is deleted from local base
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed,++expected_failed,lime_tester::wait_for_timeout));
 		// Now the user is on the server but no more in local, to delete it from server, we must create it in local only and then delete
 		httpLink = HttpLinkStatus::sending_fail; // make sure our delete never reach the server
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_FALSE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+1,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE(counters.operation_failed == expected_failed); // We shall have no failure either, the server never answer so the callback is never called (in a real situation the timeout on answer may be forwarded to the lime engine)
 		Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost_Failing_Simulation); // reload manager from db after the timeout
 		httpLink = HttpLinkStatus::ok; // restore htpp link
-		Manager->delete_user(*aliceDeviceId, callback); // delete from local and remote
+		Manager->delete_user(DeviceId(*aliceDeviceId, curve), callback); // delete from local and remote
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// Create again on local only, and then call the create_user again with the same id, with restored connectivity to get an active user
 		httpLink = HttpLinkStatus::sending_fail; // make sure our delete never reach the server
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_FALSE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+1,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE(counters.operation_failed == expected_failed); // We shall have no failure either, the server never answer so the callback is never called (in a real situation the timeout on answer may be forwarded to the lime engine)
 		Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost_Failing_Simulation); // reload manager from db after the timeout
 		// create one more time, it shall this time publish on the server without error
 		httpLink = HttpLinkStatus::ok; // restore htpp link
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// Clean
-		Manager->delete_user(*aliceDeviceId, callback);
+		Manager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// Same than previous but this time we block the server answer and then call again create
 		httpLink = HttpLinkStatus::reception_fail; // make sure our delete never reach the server
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_FALSE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+1,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE(counters.operation_failed == expected_failed); // We shall have no failure either, the server never answer so the callback is never called (in a real situation the timeout on answer may be forwarded to the lime engine)
 		Manager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost_Failing_Simulation); // reload manager from db after the timeout
 		// create one more time, it shall this time publish on the server without error
 		httpLink = HttpLinkStatus::ok; // restore htpp link
-		Manager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		Manager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 	} catch (BctbxException &e) {
@@ -3974,7 +4113,7 @@ static void user_registration_failure_test(const lime::CurveId curve) {
 		if (cleanDatabase) {
 			// delete Alice, wait for callback confirmation from server
 			httpLink = HttpLinkStatus::ok; // restore http link functionality
-			Manager->delete_user(*aliceDeviceId, callback);
+			Manager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data()); // delete the database file
 		}
@@ -4113,6 +4252,7 @@ static void lime_multithread_encrypt_thread(manager_thread_arg thread_arg) {
 	std::uniform_int_distribution<> dis(1000, 20000);
 
 	try {
+		std::vector<lime::CurveId> algos{thread_arg.curve};
 		// loop on all patterns available
 		for (auto message=lime_tester::messages_pattern.cbegin(); message != lime_tester::messages_pattern.cbegin()+test_multithread_message_number; message++) {
 			// wait for a random period betwwen 1 and 20 ms
@@ -4130,7 +4270,7 @@ static void lime_multithread_encrypt_thread(manager_thread_arg thread_arg) {
 			auto localDeviceId = thread_arg.userlist[thread_arg.userIndex];
 			auto mailbox = thread_arg.mailbox;
 			// encrypt to all, use a generic "friends" id as recipient user id
-			thread_arg.manager->encrypt(localDeviceId, make_shared<const std::string>("friends"), recipients, messagePtr, cipherMessage,
+			thread_arg.manager->encrypt(localDeviceId, algos, make_shared<const std::string>("friends"), recipients, messagePtr, cipherMessage,
 					([&counters, message, localDeviceId, mailbox, recipients, cipherMessage](lime::CallbackReturn returnCode, std::string anythingToSay) {
 						if (returnCode == lime::CallbackReturn::success) {
 							// Post the messages
@@ -4179,9 +4319,10 @@ static void lime_multithread_create_thread(manager_thread_arg thread_arg) {
 	auto pool = belle_sip_object_pool_push();
 
 	try {
+		std::vector<lime::CurveId> algos{thread_arg.curve};
 		// Create the device
 		auto deviceId = thread_arg.userlist[thread_arg.userIndex];
-		thread_arg.manager->create_user(deviceId, lime_tester::test_x3dh_default_server, thread_arg.curve, lime_tester::OPkInitialBatchSize, callback);
+		thread_arg.manager->create_user(deviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for_mutex(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout, thread_arg.belle_sip_mutex));
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -4207,7 +4348,7 @@ static void lime_multithread_delete_thread(manager_thread_arg thread_arg) {
 
 	try {
 		// Delete the device
-		thread_arg.manager->delete_user(thread_arg.userlist[thread_arg.userIndex], callback);
+		thread_arg.manager->delete_user(DeviceId(thread_arg.userlist[thread_arg.userIndex], thread_arg.curve), callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for_mutex(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout, thread_arg.belle_sip_mutex));
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -4244,11 +4385,12 @@ static void lime_multithread_update_thread(manager_thread_arg thread_arg) {
 		uint16_t serverLimit = 2;
 		uint16_t batchSize = 2;
 
+		std::vector<lime::CurveId> algos{thread_arg.curve};
 		while (box->done() == false) { // use the mailbox to synchronise to the end of the decryption threads
 			// wait for a random period betwwen 25 and 100 ms
 			std::this_thread::sleep_for(std::chrono::milliseconds(dis(gen)));
 			// Update
-			thread_arg.manager->update(thread_arg.userlist[thread_arg.userIndex], callback, serverLimit, batchSize);
+			thread_arg.manager->update(thread_arg.userlist[thread_arg.userIndex], algos, callback, serverLimit, batchSize);
 			expected_success++;
 			serverLimit+=rnd_serverLimit(gen); // improver server limit by a random 0 to 4
 			// make sure we process possible message incoming from X3DH server
@@ -4278,9 +4420,9 @@ static void lime_multithread_test(const lime::CurveId curve) {
 	const std::string dbBaseFilename{"dbBaseFilename"};
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -4423,7 +4565,8 @@ static void lime_session_cancel_test(const lime::CurveId curve, const std::strin
 				});
 
 	try {
-		lime_session_establishment(curve, dbBaseFilename,
+		std::vector<lime::CurveId> algos{curve};
+		lime_session_establishment(algos, dbBaseFilename,
 					dbFilenameAlice, aliceDeviceId, aliceManager,
 					dbFilenameBob, bobDeviceId, bobManager);
 
@@ -4433,7 +4576,7 @@ static void lime_session_cancel_test(const lime::CurveId curve, const std::strin
 		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients)[0].DRmessage)); // no X3DH init as this session is fully establsihed
 
@@ -4441,7 +4584,7 @@ static void lime_session_cancel_test(const lime::CurveId curve, const std::strin
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
 		/* Alice stale session with Bob */
-		aliceManager->stale_sessions(*aliceDeviceId, *bobDeviceId);
+		aliceManager->stale_sessions(*aliceDeviceId, algos, *bobDeviceId);
 
 		/* Alice encrypts to Bob again */
 		auto aliceRecipients2 = make_shared<std::vector<RecipientData>>();
@@ -4449,7 +4592,7 @@ static void lime_session_cancel_test(const lime::CurveId curve, const std::strin
 		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		auto aliceCipherMessage2 = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients2, aliceMessage, aliceCipherMessage2, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients2, aliceMessage, aliceCipherMessage2, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients2)[0].DRmessage)); // X3DH init message in, it is a new session
 
@@ -4459,7 +4602,7 @@ static void lime_session_cancel_test(const lime::CurveId curve, const std::strin
 		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*bobRecipients)[0].DRmessage)); // no X3DH init as this session is fully establsihed
 
@@ -4481,8 +4624,8 @@ static void lime_session_cancel_test(const lime::CurveId curve, const std::strin
 
 		// cleaning
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -4545,11 +4688,12 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 				});
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		// create DB
 		dbFilenameAlice = dbBaseFilename;
-		dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+		dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 		dbFilenameBob = dbBaseFilename;
-		dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+		dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
 
 		remove(dbFilenameAlice.data()); // delete the database file if already exists
 		remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -4557,13 +4701,13 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		// create Manager and device for alice
 		aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d.");
-		aliceManager->create_user(*aliceDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		aliceManager->create_user(*aliceDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
 		bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
-		bobManager->create_user(*bobDeviceId, lime_tester::test_x3dh_default_server, curve, lime_tester::OPkInitialBatchSize, callback);
+		bobManager->create_user(*bobDeviceId, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
@@ -4573,7 +4717,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
 		aliceRecipients->emplace_back(*bobDeviceId);
 		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_TRUE(lime_tester::DR_message_holdsAsymmetricKeys((*aliceRecipients)[0].DRmessage))) return false;
@@ -4590,7 +4734,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 		bobRecipients->emplace_back(*aliceDeviceId);
 		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_TRUE(lime_tester::DR_message_holdsAsymmetricKeys((*bobRecipients)[0].DRmessage))) return false;
@@ -4612,7 +4756,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 			auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[patternIndex].begin(), lime_tester::messages_pattern[patternIndex].end());
 			aliceCipherMessage->clear();
 
-			aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+			aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 			expected_success++;
 			if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 			if (!BC_ASSERT_FALSE(lime_tester::DR_message_holdsAsymmetricKeys((*aliceRecipients)[0].DRmessage))) return false;
@@ -4629,7 +4773,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 			bobCipherMessage->clear();
 			bobRecipients->emplace_back(*aliceDeviceId);
 			bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[i+1].begin(), lime_tester::messages_pattern[i+1].end());
-			bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+			bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 			expected_success++;
 			if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 			if (!BC_ASSERT_FALSE(lime_tester::DR_message_holdsAsymmetricKeys((*bobRecipients)[0].DRmessage))) return false;
@@ -4647,7 +4791,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		aliceRecipients->emplace_back(*bobDeviceId);
 		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		aliceCipherMessage->clear();
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_TRUE(lime_tester::DR_message_holdsAsymmetricKeys((*aliceRecipients)[0].DRmessage))) return false;
@@ -4664,7 +4808,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		aliceRecipients->emplace_back(*bobDeviceId);
 		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		aliceCipherMessage->clear();
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_TRUE(lime_tester::DR_message_holdsAsymmetricKeys((*aliceRecipients)[0].DRmessage))) return false;
@@ -4681,7 +4825,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		bobCipherMessage->clear();
 		bobRecipients->emplace_back(*aliceDeviceId);
 		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_FALSE(lime_tester::DR_message_holdsAsymmetricKeys((*bobRecipients)[0].DRmessage))) return false;
@@ -4696,7 +4840,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		aliceRecipients->emplace_back(*bobDeviceId);
 		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		aliceCipherMessage->clear();
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_FALSE(lime_tester::DR_message_holdsAsymmetricKeys((*aliceRecipients)[0].DRmessage))) return false;
@@ -4720,7 +4864,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		auto bobSkippedCipherMessage = make_shared<std::vector<uint8_t>>();
 		bobSkippedRecipients->emplace_back(*aliceDeviceId);
 		auto bobSkippedMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobSkippedRecipients, bobSkippedMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobSkippedRecipients, bobSkippedMessage, bobCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_TRUE(lime_tester::DR_message_holdsAsymmetricKeys((*bobSkippedRecipients)[0].DRmessage))) return false;
@@ -4732,7 +4876,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		aliceRecipients->emplace_back(*bobDeviceId);
 		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		aliceCipherMessage->clear();
-		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_FALSE(lime_tester::DR_message_holdsAsymmetricKeys((*aliceRecipients)[0].DRmessage))) return false;
@@ -4750,7 +4894,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		bobCipherMessage->clear();
 		bobRecipients->emplace_back(*aliceDeviceId);
 		bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
-		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		bobManager->encrypt(*bobDeviceId, algos, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
 		if (!BC_ASSERT_TRUE(lime_tester::DR_message_holdsAsymmetricKeys((*bobRecipients)[0].DRmessage))) return false;
@@ -4768,8 +4912,8 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 		if (!BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[3])) return false;
 
 		if (cleanDatabase) {
-			aliceManager->delete_user(*aliceDeviceId, callback);
-			bobManager->delete_user(*bobDeviceId, callback);
+			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDeviceId, curve), callback);
 			if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout))) return false;
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());

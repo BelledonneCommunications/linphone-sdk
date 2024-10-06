@@ -81,7 +81,7 @@ namespace lime {
 			void update_SPk(const limeCallback &callback) override;
 			void update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) override;
 			void get_Ik(std::vector<uint8_t> &Ik) override;
-			void encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
+			void encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const limeRandomSeedCallback &randomSeedCallback) override;
 			lime::PeerDeviceStatus decrypt(const std::vector<uint8_t> &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
 			void set_x3dhServerUrl(const std::string &x3dhServerUrl) override;
 			std::string get_x3dhServerUrl() override;
@@ -101,6 +101,8 @@ namespace lime {
 		std::weak_ptr<LimeGeneric> limeObj;
 		/// is a lambda closure, not real idea of what is its lifetime but it seems ok to hold it this way
 		const limeCallback callback;
+		/// is a lambda closure, not real idea of what is its lifetime but it seems ok to hold it this way
+		const limeRandomSeedCallback randomSeedCallback;
 		/// Recipient username. Needed for encryption: get a shared ref to keep params alive
 		std::shared_ptr<const std::vector<uint8_t>> recipientUserId;
 		/// Recipient data vector. Needed for encryption: get a shared ref to keep params alive
@@ -118,22 +120,22 @@ namespace lime {
 
 		/// created at user create/delete and keys Post. EncryptionPolicy is not used, set it to the default value anyway
 		callbackUserData(std::weak_ptr<LimeGeneric> thiz, const limeCallback &callbackRef, uint16_t OPkInitialBatchSize=lime::settings::OPk_initialBatchSize)
-			: limeObj{thiz}, callback{callbackRef},
+			: limeObj{thiz}, callback{callbackRef}, randomSeedCallback{nullptr},
 			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr},
 			encryptionPolicy(lime::EncryptionPolicy::optimizeUploadSize), OPkServerLowLimit(0), OPkBatchSize(OPkInitialBatchSize) {};
 
 		/// created at update: getSelfOPks. EncryptionPolicy is not used, set it to the default value anyway
 		callbackUserData(std::weak_ptr<LimeGeneric> thiz, const limeCallback &callbackRef, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize)
-			: limeObj{thiz}, callback{callbackRef},
+			: limeObj{thiz}, callback{callbackRef}, randomSeedCallback{nullptr},
 			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr},
 			encryptionPolicy(lime::EncryptionPolicy::optimizeUploadSize), OPkServerLowLimit{OPkServerLowLimit}, OPkBatchSize{OPkBatchSize} {};
 
 		/// created at encrypt(getPeerBundle)
-		callbackUserData(std::weak_ptr<LimeGeneric> thiz, const limeCallback &callbackRef,
+		callbackUserData(std::weak_ptr<LimeGeneric> thiz, const limeCallback &callbackRef, const limeRandomSeedCallback &randomSeedCallbackRef,
 				std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients,
 				std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage,
 				lime::EncryptionPolicy policy)
-			: limeObj{thiz}, callback{callbackRef},
+			: limeObj{thiz}, callback{callbackRef}, randomSeedCallback{randomSeedCallbackRef},
 			recipientUserId{recipientUserId}, recipients{recipients}, plainMessage{plainMessage}, cipherMessage{cipherMessage}, // copy construct all shared_ptr
 			encryptionPolicy(policy), OPkServerLowLimit(0), OPkBatchSize(0) {};
 

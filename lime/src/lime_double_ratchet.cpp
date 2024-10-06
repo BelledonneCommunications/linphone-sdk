@@ -1212,7 +1212,7 @@ namespace lime {
 
 				// Check if we have a peer device already in storage
 				if (m_peerDid == 0) { // no : we must insert it(failure will result in exception being thrown, let it flow up then)
-					m_peerDid = m_localStorage->store_peerDevice(m_peerDeviceId, m_peerIk);
+					m_peerDid = m_localStorage->store_peerDevice<Curve>(m_peerDeviceId, m_peerIk);
 				} else {
 					// make sure we have no other session active with this pair local,peer DiD
 					m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
@@ -1567,8 +1567,10 @@ namespace lime {
 	 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key\n
 	 * 						default is optimized output size mode.
 	 * @param[in]		localStorage	pointer to the local storage, used to get lock and start transaction on all DR sessions at once
+	 * @param[in]		randomSeedCallback	when provided and encryption policy ends to be cipherMessage, allow to set/get the random seed and cipher text tag
+	 * 						this is needed to encrypt the same message with differents lime users (for multi base algorithm purpose)
 	 */
-	void encryptMessage(std::vector<RecipientInfos>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage) {
+	void encryptMessage(std::vector<RecipientInfos>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage, const limeRandomSeedCallback &randomSeedCallback) {
 		// Shall we set the payload in the DR message or in a separate cupher message buffer?
 		bool payloadDirectEncryption;
 		switch (encryptionPolicy) {
@@ -1618,40 +1620,50 @@ namespace lime {
 		std::vector<uint8_t> AD;
 
 		// used only when payload is not in the DR message
-		std::vector<uint8_t> randomSeed(lime::settings::DRrandomSeedSize); // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
+		std::shared_ptr<std::vector<uint8_t>> randomSeed = nullptr; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
+
 
 		if (!payloadDirectEncryption) { // Payload is encrypted in a separate cipher message buffer while the key used to encrypt it is in the DR message
-			// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
-			// generate the random seed
-			auto RNG_context = make_RNG();
-			RNG_context->randomize(randomSeed.data(), lime::settings::DRrandomSeedSize);
+			bool hasRandomSeed = false;
+			if (randomSeedCallback) { // check if we already have a random seed, in this case, it means the cipherMessage buffer is already holding the actual cipherMessage
+				hasRandomSeed = randomSeedCallback(true, randomSeed);
+			}
+			if (!hasRandomSeed) { // We must generate the random seed and ciphermessage
+				// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
+				// generate the random seed
+				randomSeed = make_shared<std::vector<uint8_t>>(lime::settings::DRrandomSeedSize);
+				auto RNG_context = make_RNG();
+				RNG_context->randomize(randomSeed->data(), lime::settings::DRrandomSeedSize);
 
-			// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
-			std::vector<uint8_t> emptySalt{};
-			lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey;
-			HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info.data(), lime::settings::hkdf_randomSeed_info.size(), randomKey.data(), randomKey.size());
+				// expansion of randomSeed to 48 bytes: 32 bytes random key + 16 bytes nonce, use HKDF with empty salt
+				std::vector<uint8_t> emptySalt{};
+				lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey;
+				HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed->data(), randomSeed->size(), lime::settings::hkdf_randomSeed_info.data(), lime::settings::hkdf_randomSeed_info.size(), randomKey.data(), randomKey.size());
 
-			// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
-			cipherMessage.resize(plaintext.size()+lime::settings::DRMessageAuthTagSize);
+				// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
+				cipherMessage.resize(plaintext.size()+lime::settings::DRMessageAuthTagSize);
 
-			// AD is source deviceId(gruu) || recipientUserId(sip uri)
-			AD.assign(sourceDeviceId.cbegin(),sourceDeviceId.cend());
-			AD.insert(AD.end(), recipientUserId.cbegin(), recipientUserId.cend());
+				// AD is source deviceId(gruu) || recipientUserId(sip uri)
+				AD.assign(sourceDeviceId.cbegin(),sourceDeviceId.cend());
+				AD.insert(AD.end(), recipientUserId.cbegin(), recipientUserId.cend());
 
-			// encrypt to cipherMessage buffer
-			AEAD_encrypt<AES256GCM>(randomKey.data(), lime::settings::DRMessageKeySize, // key buffer also hold the IV
-				randomKey.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
-				plaintext.data(), plaintext.size(),
-				AD.data(), AD.size(),
-				cipherMessage.data()+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
-				cipherMessage.data());
+				// encrypt to cipherMessage buffer
+				AEAD_encrypt<AES256GCM>(randomKey.data(), lime::settings::DRMessageKeySize, // key buffer also hold the IV
+					randomKey.data()+lime::settings::DRMessageKeySize, lime::settings::DRMessageIVSize, // IV is stored in the same buffer as key, after it
+					plaintext.data(), plaintext.size(),
+					AD.data(), AD.size(),
+					cipherMessage.data()+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
+					cipherMessage.data());
+				if (randomSeedCallback) { // Store the random seed, if possibly needed
+					randomSeedCallback(false, randomSeed);
+				}
+			}
 
 			// Associated Data to Double Ratchet encryption is: auth tag of cipherMessage AEAD || sourceDeviceId || recipient device Id(gruu)
 			// build the common part to AD given to DR Session encryption
 			AD.assign(cipherMessage.cbegin()+plaintext.size(), cipherMessage.cend());
 		} else { // Payload is directly encrypted in the DR message
 			AD.assign(recipientUserId.cbegin(), recipientUserId.cend());
-			cipherMessage.clear(); // be sure no cipherMessage is produced
 		}
 		/* complete AD, it now holds:
 		 * - Payload in the cipherMessage: auth tag from cipherMessage || source Device Id
@@ -1670,13 +1682,13 @@ namespace lime {
 				recipientAD.insert(recipientAD.end(), recipients[i].deviceId.cbegin(), recipients[i].deviceId.cend()); //insert recipient device id(gruu)
 
 				if (payloadDirectEncryption) {
-					recipients[i].DRSession->ratchetEncrypt(plaintext, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
+					recipients[i].DRSession->ratchetEncrypt(plaintext, std::move(recipientAD), recipients[i].DRmessage, true);
 				} else {
-					recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
+					recipients[i].DRSession->ratchetEncrypt(*randomSeed, std::move(recipientAD), recipients[i].DRmessage, false);
 				}
 			}
-			if (!payloadDirectEncryption) {
-				cleanBuffer(randomSeed.data(), lime::settings::DRrandomSeedSize);
+			if (!payloadDirectEncryption && !randomSeedCallback) {
+				cleanBuffer(randomSeed->data(), lime::settings::DRrandomSeedSize);
 			}
 		} catch (BctbxException const &e) {
 			localStorage->rollback_transaction();

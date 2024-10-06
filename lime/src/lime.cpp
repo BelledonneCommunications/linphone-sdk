@@ -178,7 +178,7 @@ namespace lime {
 	template <typename Curve>
 	void Lime<Curve>::delete_user(const limeCallback &callback) {
 		// delete user from local Storage
-		m_localStorage->delete_LimeUser(m_selfDeviceId);
+		m_localStorage->delete_LimeUser(DeviceId(m_selfDeviceId, Curve::curveId()));
 
 		// delete user from server
 		auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback);
@@ -218,8 +218,8 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
-		LIME_LOGI<<"encrypt from "<<m_selfDeviceId<<" to "<<recipients->size()<<" recipients";
+	void Lime<Curve>::encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const limeRandomSeedCallback &randomSeedCallback) {
+		LIME_LOGI<<"encrypt from "<<m_selfDeviceId<<" on "<<CurveId2String(Curve::curveId())<<" to "<<recipients->size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
@@ -253,7 +253,7 @@ namespace lime {
 		/* If we are still missing session we must ask the X3DH server for key bundles */
 		if (missing_devices.size()>0) {
 			// create a new callbackUserData, it shall be then deleted in callback, store in all shared_ptr to input/output values needed to call this encrypt function
-			auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, recipientUserId, recipients, plainMessage, cipherMessage, encryptionPolicy);
+			auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, randomSeedCallback, recipientUserId, recipients, plainMessage, cipherMessage, encryptionPolicy);
 			if (m_ongoing_encryption == nullptr) { // no ongoing asynchronous encryption process it
 				m_ongoing_encryption = userData;
 			} else { // some one else is expecting X3DH server response, enqueue this request
@@ -267,7 +267,7 @@ namespace lime {
 		}
 
 		// We have everyone: encrypt
-		encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy, m_localStorage);
+		encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy, m_localStorage, randomSeedCallback);
 
 		// move DR messages to the input/output structure, ignoring again the input with peerStatus set to fail
 		// so the index on the internal_recipients still matches the way we created it from recipients
@@ -293,7 +293,7 @@ namespace lime {
 			auto userData = m_encryption_queue.front();
 			m_encryption_queue.pop(); // remove it from queue and do it
 			lock.unlock(); // unlock before recursive call
-			encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback);
+			encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback, userData->randomSeedCallback);
 		}
 	}
 
@@ -377,7 +377,8 @@ namespace lime {
 
 		// update in DB, do not check presence as we're called after a load_user who already ensure that
 		try {
-			m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid AND Status = 1 AND Did = (SELECT Did FROM lime_PeerDevices WHERE DeviceId= :peerDeviceId LIMIT 1)", use(m_db_Uid), use(peerDeviceId);
+			int curveId = static_cast<uint8_t>(Curve::curveId());
+			m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid AND Status = 1 AND Did = (SELECT Did FROM lime_PeerDevices WHERE DeviceId= :peerDeviceId and curveId = :curveId LIMIT 1)", use(m_db_Uid), use(peerDeviceId), use(curveId);
 		} catch (exception const &e) {
 			tr.rollback();
 			throw BCTBX_EXCEPTION << "Cannot stale sessions between user "<<m_selfDeviceId<<" and user "<<peerDeviceId<<". DB backend says: "<<e.what();
@@ -392,7 +393,7 @@ namespace lime {
 		if (!m_encryption_queue.empty()) {
 			auto userData = m_encryption_queue.front();
 			m_encryption_queue.pop(); // remove it from queue and do it, as there is no more ongoing it shall be processed even if the queue still holds elements
-			encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback);
+			encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback, userData->randomSeedCallback);
 		}
 	}
 
@@ -429,42 +430,42 @@ namespace lime {
 	 *	Once created a user cannot be modified, insertion of existing deviceId will raise an exception.
 	 *
 	 * @param[in]	localStorage			Database access
-	 * @param[in]	deviceId				User to create in DB, deviceId shall be the GRUU
-	 * @param[in]	url						URL of X3DH key server to be used to publish our keys
-	 * @param[in]	curve					Which curve shall we use for this account, select the implemenation to instanciate when using this user
+	 * @param[in]	deviceId			User to lookup in DB, deviceId shall be the GRUU and a base algo
+	 * @param[in]	url				URL of X3DH key server to be used to publish our keys
 	 * @param[in]	OPkInitialBatchSize		Number of OPks in the first batch uploaded to X3DH server
 	 * @param[in]	X3DH_post_data			A function used to communicate with the X3DH server
-	 * @param[in]	callback				To provide caller the operation result
+	 * @param[in]	callback			To provide caller the operation result
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime_lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> insert_LimeUser(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const std::string &url, const lime::CurveId curve, const uint16_t OPkInitialBatchSize,
+	std::shared_ptr<LimeGeneric> insert_LimeUser(std::shared_ptr<lime::Db> localStorage, const DeviceId &deviceId, const std::string &url, const uint16_t OPkInitialBatchSize,
 			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback) {
-		LIME_LOGI<<"Create Lime user "<<deviceId;
+		LIME_LOGI<<"Create Lime user "<<static_cast<std::string>(deviceId);
+		auto algo = deviceId.getAlgo();
 		/* first check the requested curve is instanciable and return an exception if not */
 #ifndef EC25519_ENABLED
-		if (curve == lime::CurveId::c25519) {
+		if (algo == lime::CurveId::c25519) {
 			throw BCTBX_EXCEPTION << "Lime User creation asking to use Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 #ifndef EC448_ENABLED
-		if (curve == lime::CurveId::c448) {
+		if (algo == lime::CurveId::c448) {
 			throw BCTBX_EXCEPTION << "Lime User creation asking to use Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 #ifndef HAVE_BCTBXPQ
-		if (curve == lime::CurveId::c25519k512) {
+		if (algo == lime::CurveId::c25519k512) {
 			throw BCTBX_EXCEPTION << "Lime User creation asking to use Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 
 		//instanciate the correct Lime object
-		switch (curve) {
+		switch (algo) {
 			case lime::CurveId::c25519 :
 #ifdef EC25519_ENABLED
 			{
 				/* constructor will insert user in Db, if already present, raise an exception*/
-				auto lime_ptr = std::make_shared<Lime<C255>>(localStorage, deviceId, url, X3DH_post_data);
+				auto lime_ptr = std::make_shared<Lime<C255>>(localStorage, deviceId.getUsername(), url, X3DH_post_data);
 				lime_ptr->publish_user(callback, OPkInitialBatchSize);
 				return std::static_pointer_cast<LimeGeneric>(lime_ptr);
 			}
@@ -474,7 +475,7 @@ namespace lime {
 			case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
 			{
-				auto lime_ptr = std::make_shared<Lime<C448>>(localStorage, deviceId, url, X3DH_post_data);
+				auto lime_ptr = std::make_shared<Lime<C448>>(localStorage, deviceId.getUsername(), url, X3DH_post_data);
 				lime_ptr->publish_user(callback, OPkInitialBatchSize);
 				return std::static_pointer_cast<LimeGeneric>(lime_ptr);
 			}
@@ -484,7 +485,7 @@ namespace lime {
 			case lime::CurveId::c25519k512 :
 #ifdef HAVE_BCTBXPQ
 			{
-				auto lime_ptr = std::make_shared<Lime<C255K512>>(localStorage, deviceId, url, X3DH_post_data);
+				auto lime_ptr = std::make_shared<Lime<C255K512>>(localStorage, deviceId.getUsername(), url, X3DH_post_data);
 				lime_ptr->publish_user(callback, OPkInitialBatchSize);
 				return std::static_pointer_cast<LimeGeneric>(lime_ptr);
 			}
@@ -492,7 +493,7 @@ namespace lime {
 			break;
 			case lime::CurveId::unset :
 			default: // asking for an unsupported type
-				throw BCTBX_EXCEPTION << "Cannot create lime user "<<deviceId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
+				throw BCTBX_EXCEPTION << "Cannot create lime user "<<static_cast<std::string>(deviceId);
 				break;
 		}
 		return nullptr;
@@ -505,61 +506,59 @@ namespace lime {
 	 *	If allStatus flag is set to false (default value), raise an exception on inactive users otherwise load inactive user.
 	 *
 	 * @param[in]	localStorage		Database access
-	 * @param[in]	deviceId		User to lookup in DB, deviceId shall be the GRUU
+	 * @param[in]	deviceId		User to lookup in DB, deviceId shall be the GRUU and a base algo
 	 * @param[in]	X3DH_post_data		A function used to communicate with the X3DH server
 	 * @param[in]	allStatus		allow loading of inactive user if set to true
 	 *
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime_lime.hpp
 	 */
-	std::shared_ptr<LimeGeneric> load_LimeUser(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const limeX3DHServerPostData &X3DH_post_data, const bool allStatus) {
+	std::shared_ptr<LimeGeneric> load_LimeUser(std::shared_ptr<lime::Db> localStorage, const DeviceId &deviceId, const limeX3DHServerPostData &X3DH_post_data, const bool allStatus) {
 
-		/* load user */
-		auto curve = CurveId::unset;
-		long int Uid=0;
-		std::string x3dh_server_url;
-
-		localStorage->load_LimeUser(deviceId, Uid, curve, x3dh_server_url, allStatus); // this one will throw an exception if user is not found, just let it rise
-		LIME_LOGI<<"Load Lime user "<<deviceId;
-
-		/* check the curve id retrieved from DB is instanciable and return an exception if not */
+		/* check the curve id requested is instanciable and return an exception if not */
+		auto algo = deviceId.getAlgo();
 #ifndef EC25519_ENABLED
-		if (curve == lime::CurveId::c25519) {
-			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Curve 25519 but it's not supported - change lib lime compile option to enable it";
+		if (algo == lime::CurveId::c25519) {
+			throw BCTBX_EXCEPTION << "Lime load User "<<static_cast<std::string>(deviceId)<<" requests usage of Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 #ifndef EC448_ENABLED
-		if (curve == lime::CurveId::c448) {
-			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Curve 448 but it's not supported - change lib lime compile option to enable it";
+		if (algo == lime::CurveId::c448) {
+			throw BCTBX_EXCEPTION << "Lime load User "<<static_cast<std::string>(deviceId)<<" requests usage of Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 #ifndef HAVE_BCTBXPQ
-		if (curve == lime::CurveId::c25519k512) {
-			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
+		if (algo == lime::CurveId::c25519k512) {
+			throw BCTBX_EXCEPTION << "Lime load User "<<static_cast<std::string>(deviceId)<<" requests usage of Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
+		/* load user */
+		long int Uid=0;
+		std::string x3dh_server_url;
 
+		localStorage->load_LimeUser(deviceId, Uid, x3dh_server_url, allStatus); // this one will throw an exception if user is not found, just let it rise
+		LIME_LOGI<<"Load Lime user "<<static_cast<std::string>(deviceId);
 
-		switch (curve) {
+		switch (algo) {
 			case lime::CurveId::c25519 :
 #ifdef EC25519_ENABLED
-				return std::make_shared<Lime<C255>>(localStorage, deviceId, x3dh_server_url, X3DH_post_data, Uid);
+				return std::make_shared<Lime<C255>>(localStorage, deviceId.getUsername(), x3dh_server_url, X3DH_post_data, Uid);
 #endif
 			break;
 
 			case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
-				return std::make_shared<Lime<C448>>(localStorage, deviceId, x3dh_server_url, X3DH_post_data, Uid);
+				return std::make_shared<Lime<C448>>(localStorage, deviceId.getUsername(), x3dh_server_url, X3DH_post_data, Uid);
 #endif
 			break;
 			case lime::CurveId::c25519k512 :
 #ifdef HAVE_BCTBXPQ
-				return std::make_shared<Lime<C255K512>>(localStorage, deviceId, x3dh_server_url, X3DH_post_data, Uid);
+				return std::make_shared<Lime<C255K512>>(localStorage, deviceId.getUsername(), x3dh_server_url, X3DH_post_data, Uid);
 #endif
 			break;
 
 			case lime::CurveId::unset :
 			default: // asking for an unsupported type
-				throw BCTBX_EXCEPTION << "Cannot create load user "<<deviceId;
+				throw BCTBX_EXCEPTION << "Cannot create load user "<<static_cast<std::string>(deviceId);
 			break;
 		}
 		return nullptr;

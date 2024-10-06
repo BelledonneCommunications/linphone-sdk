@@ -21,6 +21,7 @@
 
 #include <memory> //smart ptrs
 #include <unordered_map>
+#include <map>
 #include <vector>
 #include <list>
 #include <functional>
@@ -120,32 +121,94 @@ namespace lime {
 	class LimeGeneric;
 	class Db;
 
+	/****************************************************************************/
+	/*                                                                          */
+	/* Lime Helpers functions                                                   */
+	/*                                                                          */
+	/****************************************************************************/
+
+	/**
+	 * convert a string to its curveId equivalent
+	 * @param[in] algo	the string to be converted. Valid inputs are c25519, c448, c25519k512
+	 * @return  the converted id, CurveId::unset on invalid input
+	 * */
+	lime::CurveId string2CurveId(const std::string &algo);
+	/**
+	 * convert a CurveId into a string
+	 * @param[in] algo	the CurveId to be converted
+	 * @return the matching string, "unset" if the CurveId is invalid
+	 */
+	const std::string CurveId2String(const lime::CurveId algo);
+	/**
+	 * convert a vector of CurveId into a comma separated string list
+	 * @param[in] algos		the vector of CurveId to be converted
+	 * @param[in] separator		when specified use this separator, comma is the default
+	 * @return a CSV list in a string
+	 */
+	const std::string CurveId2String(const std::vector<lime::CurveId> algos, const std::string separator=",");
+
+	/**
+	 * @return true when PQ algorithms (c25519/k512 for now) are available
+	 */
+	bool lime_is_PQ_available(void);
+
+	/** a class to identify properly a device based on its user Id and its base algorithm
+	 * from a lime perspective these are separate users. LimeManager deals with users allowing operations on several base algorithms
+	 */
+	class DeviceId {
+		private:
+			std::string username;
+			lime::CurveId baseAlgo;
+		public:
+			DeviceId(const std::string &username, const lime::CurveId baseAlgo) : username{username}, baseAlgo{baseAlgo} {};
+			const std::string &getUsername() const {return username;}
+			const lime::CurveId &getAlgo() const {return baseAlgo;}
+			const std::string getAlgoString() const {return CurveId2String(baseAlgo);}
+			explicit operator std::string() const { return std::string{username}.append(" on ").append(CurveId2String(baseAlgo));}
+			bool operator==(const DeviceId &other) const {
+				return (username==other.username && baseAlgo == other.baseAlgo);
+			}
+			static std::size_t hash(const lime::DeviceId& d) {
+				std::hash<std::string> username_hash;
+				std::hash<lime::CurveId> baseAlgo_hash;
+				// combine the hash
+				return username_hash(d.username) ^ (baseAlgo_hash(d.baseAlgo) << 1);
+			}
+	};
+
+	/****************************************************************************/
+	/*                                                                          */
+	/* Lime API: all interactions use LimeManager Class                         */
+	/*                                                                          */
+	/****************************************************************************/
+
 	/** @brief Manage several Lime objects(one is needed for each local user).
 	 *
 	 * 	LimeManager is mostly a cache of Lime users, any command get as first parameter the device Id (Lime manage devices only, the link user(sip:uri)<->device(GRUU) is provided by upper level)
 	 *	All interactions should take place through the LimeManager object, any endpoint shall have only one LimeManager object instanciated
 	 */
-
 	class LimeManager {
 		private :
-			std::unordered_map<std::string, std::shared_ptr<LimeGeneric>> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
+
+			std::unordered_map<lime::DeviceId, std::shared_ptr<LimeGeneric>, decltype(&lime::DeviceId::hash)> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
 			std::mutex m_users_mutex; // m_users_cache mutex
 			std::shared_ptr<lime::Db> m_localStorage; // DB access information forwarded to SOCI to correctly access database
 			limeX3DHServerPostData m_X3DH_post_data; // send data to the X3DH key server
-			void load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId, const bool allStatus=false); // helper function, get from m_users_cache of local Storage the requested Lime object
+			void load_user(std::shared_ptr<LimeGeneric> &user, const lime::DeviceId &localDeviceId, const bool allStatus=false); // helper function, get from m_users_cache or local Storage the requested Lime object
+			bool load_user_noexcept(std::shared_ptr<LimeGeneric> &user, const lime::DeviceId &localDeviceId) noexcept; // helper function, get from m_users_cache or local Storage the requested Lime object
 
 		public :
 
 			/**
 			 * @brief Create a user in local database and publish it on the given X3DH server
 			 *
-			 * 	The Lime user shall be created at the same time the account is created on the device, this function shall not be called again, attempt to re-create an already existing user will fail.
+			 * 	The Lime user shall be created at the same time the account is created on the device, this function shall not be called again. Attempt to re-create an already existing user fail (without exception.
 			 * 	A user is identified by its deviceId (shall be the GRUU) and must at creation select a base Elliptic curve to use, this setting cannot be changed later
 			 * 	A user is published on an X3DH key server who must run using the same elliptic curve selected for this user (creation will fail otherwise), the server url cannot be changed later
 			 *
 			 * @param[in]	localDeviceId		Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	algos			Choice of base algorithms used as base for cryptographic operation involved. An ordered list holding one or more of: CurveId::c25519, CurveId::c448, CurveId:c25519k512.
 			 * @param[in]	x3dhServerUrl		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
-			 * @param[in]	curve			Choice of elliptic curve used as base for ECDH and EdDSA operation involved. Can be CurveId::c25519 or CurveId::c448.
 			 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
 			 * @param[in]	callback		This operation contact the X3DH server and is thus asynchronous, when server responds,
 			 * 					this callback will be called giving the exit status and an error message in case of failure
@@ -153,31 +216,33 @@ namespace lime {
 			 * The OPkInitialBatchSize is optionnal, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const uint16_t OPkInitialBatchSize, const limeCallback &callback);
+			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const uint16_t OPkInitialBatchSize, const limeCallback &callback);
 			/**
-			 * @overload void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback)
+			 * @overload void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const std::vector<lime::CurveId> &algos, const limeCallback &callback)
 			 */
-			void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const lime::CurveId curve, const limeCallback &callback);
+			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const limeCallback &callback);
 
 			/**
 			 * @brief Delete a user from local database and from the X3DH server
 			 *
 			 * if specified localDeviceId is not found in local Storage, throw an exception
 			 *
-			 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	localDeviceId	Identify the local user acount to use, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU and the base algo
 			 * @param[in]	callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
 			 * 				this callback will be called giving the exit status and an error message in case of failure
 			 */
-			void delete_user(const std::string &localDeviceId, const limeCallback &callback);
+			void delete_user(const DeviceId &localDeviceId, const limeCallback &callback);
 
 			/**
 			 * @brief Check if a user is present and active in local storage
+			 * This function loads the user from DB if not already done
 			 *
 			 * @param[in]	localDeviceId	used to identify which local account looking up, shall be the GRUU
+			 * @param[in]	algos		an ordered list of algorithms supported by this user
 			 *
 			 * @return true if the user is active in the local storage, false otherwise
 			 */
-			bool is_user(const std::string &localDeviceId);
+			bool is_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos);
 
 			/**
 			 * @brief Encrypt a buffer (text or file) for a given list of recipient devices
@@ -205,6 +270,7 @@ namespace lime {
 			 * @note nearly all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
+			 * @param[in]		algos		Choice of base algorithms used as base for cryptographic operation involved. An ordered list holding one or more of: CurveId::c25519, CurveId::c448, CurveId:c25519k512.
 			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
 			 * @param[in,out]	recipients	a list of RecipientData holding:
 			 * 					- the recipient device Id(GRUU)
@@ -219,12 +285,12 @@ namespace lime {
 			 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 			 * 						default is optimized upload size mode.
 			 */
-			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
+			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
 			/**
 			 * @overload encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize)
 			 * in this variant the associatedData used in the DR session is not the recipientUserId but a uint8_t buffer
 			 */
-			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
+			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
 
 			/**
 			 * @brief Decrypt the given message
@@ -269,6 +335,7 @@ namespace lime {
 			 *  - remove old SPks, clean double ratchet sessions (remove staled, clean their stored keys for skipped messages)
 			 *
 			 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	algos			an ordered list of algorithms supported by this user
 			 * @param[in]	callback		This operation may contact the X3DH server and is thus asynchronous, when server responds,
 			 * 					this callback will be called giving the exit status and an error message in case of failure.
 			 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
@@ -278,11 +345,11 @@ namespace lime {
 			 * The last two parameters are optional, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void update(const std::string &localDeviceId, const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
 			/**
-			 * @overload void update(const limeCallback &callback)
+			 * @overload void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const limeCallback &callback)
 			 */
-			void update(const std::string &localDeviceId, const limeCallback &callback);
+			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const limeCallback &callback);
 
 			/**
 			 * @brief retrieve self Identity Key, an EdDSA formatted public key
@@ -291,14 +358,16 @@ namespace lime {
 			 *
 			 *
 			 * @param[in]	localDeviceId	used to identify which local account we're dealing with, shall be the GRUU
-			 * @param[out]	Ik		the EdDSA public identity key, formatted as in RFC8032
+			 * @param[in]	algos		an ordered list of algorithms supported by this user
+			 * @param[out]	Iks		a list of the EdDSA public identity key, formatted as in RFC8032, mapped to their base algorithm
 			 */
-			void get_selfIdentityKey(const std::string &localDeviceId, std::vector<uint8_t> &Ik);
+			void get_selfIdentityKey(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::map<lime::CurveId, std::vector<uint8_t>> &Iks);
 
 			/**
 			 * @brief set the peer device status flag in local storage: unsafe, trusted or untrusted.
 			 *
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+			 * @param[in]	algo		the algorithm matching the Ik given in parameter
 			 * @param[in]	Ik		the EdDSA peer public identity key, formatted as in RFC8032
 			 * @param[in]	status		value of flag to set: accepted values are trusted, untrusted, unsafe
 			 *
@@ -323,7 +392,7 @@ namespace lime {
 			 *       - ignore Ik
 			 *       - insert/update the status. If inserted, insert an invalid Ik
 			 */
-			void set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
+			void set_peerDeviceStatus(const std::string &peerDeviceId,  const lime::CurveId algo, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
 
 			/**
 			 * @brief set the peer device status flag in local storage: unsafe or untrusted.
@@ -331,6 +400,7 @@ namespace lime {
 			 * This variation allows to set a peer Device status to unsafe or untrusted only whithout providing its identity key Ik
 			 *
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+			 * @param[in]	algos		an ordered list of algorithms supported by this user
 			 * @param[in]	status		value of flag to set: accepted values are untrusted or unsafe
 			 *
 			 * if the status flag value is unexpected (not one of untrusted, unsafe), ignore the call
@@ -339,7 +409,7 @@ namespace lime {
 			 * if the status is untrusted but the current status in local storage is unsafe, ignore the call
 			 * Any call to the other form of the function with a status to unsafe or untrusted is rerouted to this function
 			 */
-			void set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status);
+			void set_peerDeviceStatus(const std::string &peerDeviceId,  const std::vector<lime::CurveId> &algos, lime::PeerDeviceStatus status);
 
 			/**
 			 * @brief get the status of a peer device: unknown, untrusted, trusted, unsafe
@@ -363,15 +433,6 @@ namespace lime {
 			lime::PeerDeviceStatus get_peerDeviceStatus(const std::list<std::string> &peerDeviceIds);
 
 			/**
-			 * @brief checks if a device iD exists in the local users
-			 *
-			 * @param[in]	deviceId	The device Id to check
-			 *
-			 * @return true if the device Id exists in the local users table, false otherwise
-			 */
-			bool is_localUser(const std::string &deviceId);
-
-			/**
 			 * @brief delete a peerDevice from local storage
 			 *
 			 * @param[in]	peerDeviceId	The device Id to be removed from local storage, shall be its GRUU
@@ -387,19 +448,21 @@ namespace lime {
 			 * If no session is active between the given device, this call has no effect
 			 *
 			 * @param[in]	localDeviceId	Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	algos		an ordered list of algorithms supported by this user
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
 			 */
-			void stale_sessions(const std::string &localDeviceId, const std::string &peerDeviceId);
+			void stale_sessions(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &peerDeviceId);
 
 			/**
 			 * @brief Set the X3DH key server URL for this identified user
 			 *
 			 * @param[in]	localDeviceId		Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	algos		an ordered list of algorithms supported by this user
 			 * @param[in]	x3dhServerUrl		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
 			 *
 			 * Throw an exception if the user is unknow or inactive
 			 */
-			void set_x3dhServerUrl(const std::string &localDeviceId, const std::string &x3dhServerUrl);
+			void set_x3dhServerUrl(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl);
 
 			/**
 			 * @brief Get the X3DH key server URL for this identified user
@@ -410,7 +473,7 @@ namespace lime {
 			 *
 			 * Throw an exception if the user is unknow or inactive
 			 */
-			std::string get_x3dhServerUrl(const std::string &localDeviceId);
+			std::string get_x3dhServerUrl(const DeviceId &localDeviceId);
 
 			LimeManager() = delete; // no manager without Database and http provider
 			LimeManager(const LimeManager&) = delete; // no copy constructor
@@ -432,9 +495,6 @@ namespace lime {
 			~LimeManager() = default;
 	};
 
-	/**
-	 * @return true when PQ algorithms (c25519/k512 for now) are available
-	 */
-	bool lime_is_PQ_available(void);
 } //namespace lime
+
 #endif /* lime_hpp */

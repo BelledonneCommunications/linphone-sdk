@@ -170,6 +170,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 	base_deviceId.append(".d");
 
 	try {
+		std::vector<lime::CurveId> algos{curve};
 		uint64_t start=0,span,startEncrypt=0;
 		if (bench) { // use LOGE for bench report to avoid being flooded by debug logs
 			LIME_LOGE<<"Running a group of "<<to_string(deviceNumber)<<" on curve"<<((curve==lime::CurveId::c25519)?"25519": ((curve==lime::CurveId::c448)?"448":"25519/Kyber 512"))<<endl;
@@ -191,7 +192,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			devicesId.push_back(make_shared<std::string>(deviceId));
 
 			// create user
-			manager->create_user(deviceId, lime_tester::test_x3dh_default_server, curve, std::min(lime_tester::OPkInitialBatchSize+i, 200), callback); // give them at least <index> OPk at creation, no more than 200 as the server as a limit on it
+			manager->create_user(deviceId, algos, lime_tester::test_x3dh_default_server, std::min(lime_tester::OPkInitialBatchSize+i, 200), callback); // give them at least <index> OPk at creation, no more than 200 as the server as a limit on it
 			expected_success++;
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		}
@@ -228,7 +229,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			manager = make_unique<LimeManager>(dbFilename[senderIndex], X3DHServerPost);
 			//encrypt
 			auto cipherMessage = make_shared<std::vector<uint8_t>>();
-			manager->encrypt(*(devicesId[senderIndex]), groupName, recipients, message, cipherMessage, callback);
+			manager->encrypt(*(devicesId[senderIndex]), algos, groupName, recipients, message, cipherMessage, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 			if (bench) {
@@ -286,7 +287,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			for (auto i=0; i<deviceNumber; i++) {
 				// get a manager for this device
 				manager = make_unique<LimeManager>(dbFilename[i], X3DHServerPost);
-				manager->delete_user(*(devicesId[i]), callback);
+				manager->delete_user(DeviceId(*(devicesId[i]), curve), callback);
 				expected_success++;
 				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			}
