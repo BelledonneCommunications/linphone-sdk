@@ -19,6 +19,7 @@
 #ifndef belcard_tester_hpp
 #define belcard_tester_hpp
 
+#include <bctoolbox/logging.h>
 #include <bctoolbox/tester.h>
 
 #include <string>
@@ -50,17 +51,25 @@ void belcard_tester_uninit(void);
 #endif
 
 template<typename T>
-void test_property(const std::string& input, bool v3 = false) {
+void test_property(const std::string& input, bool v3 = false, const std::string& allowedOutput = "") {
 	std::shared_ptr<T> ptr = T::parse(input, v3);
 	BC_ASSERT_TRUE(ptr!=NULL);
 	if (ptr == NULL) {
-		std::cout << "Couldn't parse " << input << std::endl;
+		bctbx_error("Couldn't parse [%s]", input.c_str());
 	} else {
 		std::string str = ptr->toString();
 		int compare = input.compare(str);
-		BC_ASSERT_EQUAL(compare, 0, int, "%d");
 		if (compare != 0) {
-			std::cout << "Expected " << input << " but got " << str << std::endl;
+			if (allowedOutput != "") {
+				compare = allowedOutput.compare(str);
+				BC_ASSERT_EQUAL(compare, 0, int, "%d");
+				if (compare != 0) {
+					std::cout << "Expected " << input << " but got " << str << std::endl;
+				}
+			} else {
+				BC_ASSERT_EQUAL(compare, 0, int, "%d");
+				bctbx_error("Expected [%s] but got [%s]", input.c_str(), str.c_str());
+			}
 		}
 	}
 }

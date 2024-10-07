@@ -17,6 +17,7 @@
 */
 
 #include "belcard/belcard.hpp"
+#include "belcard/belcard_utils.hpp"
 
 using namespace ::std;
 using namespace ::belr;
@@ -85,35 +86,35 @@ BelCardName::BelCardName(bool v3) : BelCardProperty(v3) {
 }
 
 void BelCardName::setFamilyName(const string &value) {
-	_family_name = value;
+	_family_name = belcard_unescape_string(value);
 }
 const string &BelCardName::getFamilyName() const {
 	return _family_name;
 }
 
 void BelCardName::setGivenName(const string &value) {
-	_given_name = value;
+	_given_name = belcard_unescape_string(value);
 }
 const string &BelCardName::getGivenName() const {
 	return _given_name;
 }
 
 void BelCardName::setAdditionalName(const string &value) {
-	_additional_name = value;
+	_additional_name = belcard_unescape_string(value);
 }
 const string &BelCardName::getAdditionalName() const {
 	return _additional_name;
 }
 
 void BelCardName::setPrefixes(const string &value) {
-	_prefixes = value;
+	_prefixes = belcard_unescape_string(value);
 }
 const string &BelCardName::getPrefixes() const {
 	return _prefixes;
 }
 
 void BelCardName::setSuffixes(const string &value) {
-	_suffixes = value;
+	_suffixes = belcard_unescape_string(value);
 }
 const string &BelCardName::getSuffixes() const {
 	return _suffixes;
@@ -128,10 +129,9 @@ void BelCardName::serialize(ostream &output) const {
 	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
 		output << ";" << (**it);
 	}
-	output << ":"
-	       << getFamilyName() + ";" + getGivenName() + ";" + getAdditionalName() + ";" + getPrefixes() + ";" +
-	              getSuffixes()
-	       << "\r\n";
+	output << ":" << belcard_escape_string(getFamilyName()) << ";" << belcard_escape_string(getGivenName()) << ";"
+	       << belcard_escape_string(getAdditionalName()) << ";" << belcard_escape_string(getPrefixes()) << ";"
+	       << belcard_escape_string(getSuffixes()) << "\r\n";
 }
 
 shared_ptr<BelCardNickname> BelCardNickname::parse(const string &input, bool v3) {

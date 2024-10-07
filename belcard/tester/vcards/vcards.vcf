@@ -4,8 +4,8 @@ KIND:individual
 FN:Sylvain Berfini
 N:Berfini;Sylvain;Pascal;;
 GENDER:M
-ADR;TYPE=work:;;34 avenue de l'Europe,le Trident bat D;GRENOBLE;;38100;FRA
- NCE
+ADR;TYPE=work:;;34 avenue de l'Europe\,le Trident bat D;GRENOBLE;;38100;FR
+ ANCE
 TEL;VALUE=uri;TYPE=work:tel:+33-9-52-63-65-05
 EMAIL;TYPE=work:sylvain.berfini@belledonne-communications.com
 IMPP;TYPE=work:sip:sylvain@sip.linphone.org

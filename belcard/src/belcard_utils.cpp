@@ -52,3 +52,32 @@ string belcard_read_file(const string &filename) {
 	istr.close();
 	return vcard;
 }
+
+static void replace_all(string &inout, const string &what, const string &with) {
+	for (string::size_type pos{}; inout.npos != (pos = inout.find(what.data(), pos, what.length()));
+	     pos += with.length()) {
+		inout.replace(pos, what.length(), with.data(), with.length());
+	}
+}
+
+string belcard_escape_string(const string &toEscape) {
+	string result = string(toEscape);
+	// Handle format starting by "data:*;base64,*" must not be escaped as URI grammar doesn't support it
+	// https://www.rfc-editor.org/errata/eid3845)
+	if (result.rfind("data:") == 0) {
+		return result;
+	}
+
+	replace_all(result, "\\", "\\\\");
+	replace_all(result, ",", "\\,");
+	replace_all(result, ";", "\\;");
+	return result;
+}
+
+string belcard_unescape_string(const string &toUnescape) {
+	string result = string(toUnescape);
+	replace_all(result, "\\\\", "\\");
+	replace_all(result, "\\,", ",");
+	replace_all(result, "\\;", ";");
+	return result;
+}

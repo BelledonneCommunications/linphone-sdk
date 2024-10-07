@@ -17,6 +17,7 @@
 */
 
 #include "belcard/belcard.hpp"
+#include "belcard/belcard_utils.hpp"
 
 using namespace ::std;
 using namespace ::belr;
@@ -62,49 +63,49 @@ BelCardAddress::BelCardAddress(bool v3) : BelCardProperty(v3) {
 }
 
 void BelCardAddress::setPostOfficeBox(const string &value) {
-	_po_box = value;
+	_po_box = belcard_unescape_string(value);
 }
 const string &BelCardAddress::getPostOfficeBox() const {
 	return _po_box;
 }
 
 void BelCardAddress::setExtendedAddress(const string &value) {
-	_extended_address = value;
+	_extended_address = belcard_unescape_string(value);
 }
 const string &BelCardAddress::getExtendedAddress() const {
 	return _extended_address;
 }
 
 void BelCardAddress::setStreet(const string &value) {
-	_street = value;
+	_street = belcard_unescape_string(value);
 }
 const string &BelCardAddress::getStreet() const {
 	return _street;
 }
 
 void BelCardAddress::setLocality(const string &value) {
-	_locality = value;
+	_locality = belcard_unescape_string(value);
 }
 const string &BelCardAddress::getLocality() const {
 	return _locality;
 }
 
 void BelCardAddress::setRegion(const string &value) {
-	_region = value;
+	_region = belcard_unescape_string(value);
 }
 const string &BelCardAddress::getRegion() const {
 	return _region;
 }
 
 void BelCardAddress::setPostalCode(const string &value) {
-	_postal_code = value;
+	_postal_code = belcard_unescape_string(value);
 }
 const string &BelCardAddress::getPostalCode() const {
 	return _postal_code;
 }
 
 void BelCardAddress::setCountry(const string &value) {
-	_country = value;
+	_country = belcard_unescape_string(value);
 }
 const string &BelCardAddress::getCountry() const {
 	return _country;
@@ -130,8 +131,10 @@ void BelCardAddress::serialize(ostream &output) const {
 	if (_v3) {
 		output << ":" << getValue() << "\r\n";
 	} else {
-		output << ":" << getPostOfficeBox() << ";" << getExtendedAddress() << ";" << getStreet() << ";" << getLocality()
-		       << ";" << getRegion() << ";" << getPostalCode() << ";" << getCountry() << "\r\n";
+		output << ":" << belcard_escape_string(getPostOfficeBox()) << ";" << belcard_escape_string(getExtendedAddress())
+		       << ";" << belcard_escape_string(getStreet()) << ";" << belcard_escape_string(getLocality()) << ";"
+		       << belcard_escape_string(getRegion()) << ";" << belcard_escape_string(getPostalCode()) << ";"
+		       << belcard_escape_string(getCountry()) << "\r\n";
 	}
 }
 

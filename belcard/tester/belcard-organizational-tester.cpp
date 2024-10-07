@@ -39,7 +39,7 @@ static void logo_property(void) {
 }
 
 static void org_property(void) {
-	test_property<BelCardOrganization>("ORG:ABC\\, Inc.;North American Division;Marketing\r\n");
+	test_property<BelCardOrganization>("ORG:ABC\\, Inc.\\;North American Division\\;Marketing\r\n");
 }
 
 static void member_property(void) {

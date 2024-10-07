@@ -60,7 +60,7 @@ void BelCardProperty::setValue(const string &value) {
 	s.erase(s.begin(), find_if(s.begin(), s.end(), [](const unsigned char &c) { return !isspace(c); }));
 	s.erase(find_if(s.rbegin(), s.rend(), [](const unsigned char &c) { return !isspace(c); }).base(), s.end());
 
-	_value = s;
+	_value = belcard_unescape_string(s);
 }
 const string &BelCardProperty::getValue() const {
 	return _value;
@@ -213,5 +213,5 @@ void BelCardProperty::serialize(ostream &output) const {
 	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
 		output << ";" << (**it);
 	}
-	output << ":" << getValue() << "\r\n";
+	output << ":" << belcard_escape_string(getValue()) << "\r\n";
 }

@@ -22,6 +22,7 @@
 #include "belcard/belcard_utils.hpp"
 #include <belr/belr.h>
 
+#include <bctoolbox/logging.h>
 #include <bctoolbox/tester.h>
 #include <fstream>
 #include <iostream>

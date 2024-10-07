@@ -82,12 +82,17 @@ public:
 };
 
 class BelCardClientProductIdMap : public BelCardProperty {
+private:
+	std::string _digit;
 public:
 	BELCARD_PUBLIC static std::shared_ptr<BelCardClientProductIdMap> parse(const std::string &input, bool v3);
 	BELCARD_PUBLIC static void setHandlerAndCollectors(belr::Parser<std::shared_ptr<BelCardGeneric>> *parser,
 	                                                   bool v3 = false);
 
 	BELCARD_PUBLIC BelCardClientProductIdMap(bool v3);
+	BELCARD_PUBLIC void setDigitValue(const std::string &digit);
+
+	BELCARD_PUBLIC void serialize(std::ostream &output) const override;
 };
 
 class BelCardURL : public BelCardProperty {

@@ -23,11 +23,11 @@ using namespace ::std;
 using namespace ::belcard;
 
 static void categories_property(void) {
-	test_property<BelCardCategories>("CATEGORIES:INTERNET,IETF,INDUSTRY,INFORMATION TECHNOLOGY\r\n");
+	test_property<BelCardCategories>("CATEGORIES:INTERNET\\,IETF\\,INDUSTRY\\,INFORMATION TECHNOLOGY\r\n");
 }
 
 static void note_property(void) {
-	test_property<BelCardNote>("NOTE:This fax number is operational 0800 to 1715\\n EST\\, Mon-Fri.\r\n");
+	test_property<BelCardNote>("NOTE:This fax number is operational 0800 to 1715\\\\n EST\\, Mon-Fri.\r\n");
 }
 
 static void prodid_property(void) {

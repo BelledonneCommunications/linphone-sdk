@@ -27,7 +27,7 @@ static void kind_property(void) {
 }
 
 static void source_property(void) {
-	test_property<BelCardSource>("SOURCE:ldap://ldap.example.com/cn=Babs%20Jensen,%20o=Babsco,%20c=US\r\n");
+	test_property<BelCardSource>("SOURCE:ldap://ldap.example.com/cn=Babs%20Jensen\\,%20o=Babsco\\,%20c=US\r\n");
 	test_property<BelCardSource>("SOURCE:http://directory.example.com/addressbooks/jdoe/Jean%20Dupont.vcf\r\n");
 
 	shared_ptr<BelCard> card = BelCardGeneric::create<BelCard>();

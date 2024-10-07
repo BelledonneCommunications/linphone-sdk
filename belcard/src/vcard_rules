@@ -173,9 +173,10 @@ UID = [group "."] "UID" *(";" UID-param) ":" UID-value
 UID-param = VALUE-param / any-param
 UID-value = URI / text
 
-CLIENTPIDMAP = [group "."] "CLIENTPIDMAP" *(";" CLIENTPIDMAP-param) ":" CLIENTPIDMAP-value
+CLIENTPIDMAP = [group "."] "CLIENTPIDMAP" *(";" CLIENTPIDMAP-param) ":" CLIENTPIDMAP-digit ";" CLIENTPIDMAP-value
 CLIENTPIDMAP-param = any-param
-CLIENTPIDMAP-value = 1*DIGIT ";" URI
+CLIENTPIDMAP-digit = 1*DIGIT
+CLIENTPIDMAP-value = URI
 
 URL = [group "."] "URL" *(";" URL-param) ":" URL-value
 URL-param = VALUE-param / PID-param / PREF-param / TYPE-param

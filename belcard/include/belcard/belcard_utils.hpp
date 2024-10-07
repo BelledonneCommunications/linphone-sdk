@@ -38,5 +38,7 @@
 BELCARD_PUBLIC std::string belcard_fold(const std::string &input);
 BELCARD_PUBLIC std::string belcard_unfold(const std::string &input);
 BELCARD_PUBLIC std::string belcard_read_file(const std::string &filename);
+BELCARD_PUBLIC std::string belcard_escape_string(const std::string &toEscape);
+BELCARD_PUBLIC std::string belcard_unescape_string(const std::string &toUnescape);
 
 #endif

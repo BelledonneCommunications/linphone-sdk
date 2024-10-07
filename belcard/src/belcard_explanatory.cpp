@@ -185,12 +185,33 @@ void BelCardClientProductIdMap::setHandlerAndCollectors(Parser<shared_ptr<BelCar
 		parser->setHandler("CLIENTPIDMAP", make_fn(BelCardGeneric::create<BelCardClientProductIdMap>))
 		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("CLIENTPIDMAP-digit", make_sfn(&BelCardClientProductIdMap::setDigitValue))
 		    ->setCollector("CLIENTPIDMAP-value", make_sfn(&BelCardProperty::setValue));
 	}
 }
 
 BelCardClientProductIdMap::BelCardClientProductIdMap(bool v3) : BelCardProperty(v3) {
 	setName("CLIENTPIDMAP");
+}
+
+void BelCardClientProductIdMap::setDigitValue(const std::string &digit) {
+	_digit = digit;
+}
+
+void BelCardClientProductIdMap::serialize(ostream &output) const {
+	if (getGroup().length() > 0) {
+		output << getGroup() << ".";
+	}
+
+	output << getName();
+	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
+		output << ";" << (**it);
+	}
+	output << ":";
+	if (!_digit.empty()) {
+		output << _digit << ";";
+	}
+	output << getValue() << "\r\n";
 }
 
 shared_ptr<BelCardURL> BelCardURL::parse(const string &input, bool v3) {

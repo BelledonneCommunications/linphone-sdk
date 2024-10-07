@@ -46,7 +46,7 @@ static void anniversary_property(void) {
 
 static void gender_property(void) {
 	test_property<BelCardGender>("GENDER:M\r\n");
-	test_property<BelCardGender>("GENDER:F;just kidding\r\n");
+	test_property<BelCardGender>("GENDER:F;just kidding\r\n", false, "GENDER:F\\;just kidding\r\n");
 }
 
 static void photo_property(void) {
