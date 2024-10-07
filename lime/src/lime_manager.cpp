@@ -186,7 +186,7 @@ namespace lime {
 			// - the random seed
 			// These must bet set/get via a callback
 			// Note: the cipherMessage is generated and stored in the cipherMessage buffer during the first call. It will then stay there untouched until we're done with all the algos
-			std::shared_ptr<std::vector<uint8_t>> randomSeedStore = nullptr;
+			auto randomSeedStore = make_shared<std::vector<uint8_t>>();
 			cipherMessage->clear(); // make sure the cipherMessage is empty so we know when it was already computed
 			auto thiz = this;
 			auto algosIndex = make_shared<size_t>(0); // Keep the current index on the algos vector
@@ -199,22 +199,24 @@ namespace lime {
 			if (encryptionPolicy == lime::EncryptionPolicy::DRMessage) {
 				managerRandomSeedCallback = nullptr;
 			} else {
-				*managerRandomSeedCallback = [randomSeedStore](const bool get, std::shared_ptr<std::vector<uint8_t>> randomSeed) {
+				*managerRandomSeedCallback = [randomSeedStore](const bool get, std::shared_ptr<std::vector<uint8_t>> &randomSeed) mutable {
 					if (get) {
-						if (randomSeedStore != nullptr) {
+						if (!randomSeedStore->empty()) {
+							// copy the seed store reference to the random seed
 							randomSeed = randomSeedStore;
 							return true;
 						}
 						return false;
 					} else {
-						*randomSeedStore = std::move(*randomSeed);
+						randomSeedStore = randomSeed;
 						return true;
 					}
 				};
 			}
 			// This one is called when we finish the encryption for one lime user
 			auto managerEncryptCallback = make_shared<limeCallback>(); // declare and define in two step so the lambda can capture itself to be used inside its own body
-			*managerEncryptCallback = [thiz, localDeviceId, algos, algosIndex, randomSeedStore, associatedData, recipients, plainMessage, encryptionPolicy, cipherMessage, callback, globalReturnStatus, globalReturnMessage, laterRoundRecipients, managerEncryptCallback, managerRandomSeedCallback](lime::CallbackReturn returnCode, std::string errorMessage) {
+			std::weak_ptr<limeCallback> managerEncryptCallbackWkptr(managerEncryptCallback); // we must capture a weak pointer otherwise the closure self references and is never destroyed. The shared_ptr is anyway copied in the userData internal structure if needed
+			*managerEncryptCallback = [thiz, localDeviceId, algos, algosIndex, randomSeedStore, associatedData, recipients, plainMessage, encryptionPolicy, cipherMessage, callback, globalReturnStatus, globalReturnMessage, laterRoundRecipients, managerEncryptCallbackWkptr, managerRandomSeedCallback](lime::CallbackReturn returnCode, std::string errorMessage) {
 					// retrieve status and message
 					// if at least one returns success, return success too
 					if ((*globalReturnStatus == lime::CallbackReturn::success) || (returnCode == lime::CallbackReturn::success)) {
@@ -245,7 +247,13 @@ namespace lime {
 							std::shared_ptr<LimeGeneric> user;
 							thiz->load_user(user, DeviceId(localDeviceId, algos[*algosIndex]));
 							// make a new call using the laterRoundRecipients (the one failed from first round)
-							user->encrypt(associatedData, laterRoundRecipients, plainMessage, encryptionPolicy, cipherMessage, managerEncryptCallback, managerRandomSeedCallback);
+							if (auto managerEncryptCallback = managerEncryptCallbackWkptr.lock()) {
+								user->encrypt(associatedData, laterRoundRecipients, plainMessage, encryptionPolicy, cipherMessage, managerEncryptCallback, managerRandomSeedCallback);
+							} else {
+								LIME_LOGE<<"encryption failed: trying to get a second round on device "<<static_cast<std::string>(DeviceId(localDeviceId, algos[*algosIndex]));
+								if (callback) (*callback)(lime::CallbackReturn::fail, "Fail to encrypt as we lost track of the manager encryption lambda closure");
+								return;
+							}
 						}
 					} else { // this is not the first call to the function
 						auto nextRoundRecipients = make_shared<std::vector<RecipientData>>();
@@ -284,7 +292,13 @@ namespace lime {
 							std::shared_ptr<LimeGeneric> user;
 							thiz->load_user(user, DeviceId(localDeviceId, algos[*algosIndex]));
 							// make a new call using the laterRoundRecipients (the one failed from first round)
-							user->encrypt(associatedData, laterRoundRecipients, plainMessage, encryptionPolicy, cipherMessage, managerEncryptCallback, managerRandomSeedCallback);
+							if (auto managerEncryptCallback = managerEncryptCallbackWkptr.lock()) {
+								user->encrypt(associatedData, laterRoundRecipients, plainMessage, encryptionPolicy, cipherMessage, managerEncryptCallback, managerRandomSeedCallback);
+							} else {
+								LIME_LOGE<<"encryption failed: trying to get a second round on device "<<static_cast<std::string>(DeviceId(localDeviceId, algos[*algosIndex]));
+								if (callback) (*callback)(lime::CallbackReturn::fail, "Fail to encrypt as we lost track of the manager encryption lambda closure");
+								return;
+							}
 						}
 
 					}

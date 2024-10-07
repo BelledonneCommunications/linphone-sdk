@@ -34,7 +34,7 @@ namespace lime {
  *
  * @return false on get when data was not set before
  */
-using limeRandomSeedCallback = std::function<bool(const bool get, std::shared_ptr<std::vector<uint8_t>> randomSeed)>;
+using limeRandomSeedCallback = std::function<bool(const bool get, std::shared_ptr<std::vector<uint8_t>> &randomSeed)>;
 
 /** @brief Hold constants definition used as settings in all components of the lime library
  *
