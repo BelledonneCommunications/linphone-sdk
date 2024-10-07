@@ -135,7 +135,7 @@ namespace lime {
 		void buildMessage_getSelfOPks(std::vector<uint8_t> &message) noexcept;
 
 		template <typename Curve>
-		bool parseMessage_getType(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		bool parseMessage_getType(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
 
 		template <typename Curve>
 		bool parseMessage_getPeerBundles(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<Curve>> &peersBundle) noexcept;
@@ -151,7 +151,7 @@ namespace lime {
 		extern template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C255>> &OPks) noexcept;
 		extern template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		extern template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
-		extern template bool parseMessage_getType<C255>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		extern template bool parseMessage_getType<C255>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
 		extern template bool parseMessage_getPeerBundles<C255>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C255>> &peersBundle) noexcept;
 		extern template bool parseMessage_selfOPks<C255>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
@@ -163,7 +163,7 @@ namespace lime {
 		extern template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C448>> &OPks) noexcept;
 		extern template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		extern template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;
-		extern template bool parseMessage_getType<C448>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		extern template bool parseMessage_getType<C448>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
 		extern template bool parseMessage_getPeerBundles<C448>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C448>> &peersBundle) noexcept;
 		extern template bool parseMessage_selfOPks<C448>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
@@ -175,7 +175,7 @@ namespace lime {
 		extern template void buildMessage_publishOPks<C255K512>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C255K512>> &OPks) noexcept;
 		extern template void buildMessage_getPeerBundles<C255K512>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		extern template void buildMessage_getSelfOPks<C255K512>(std::vector<uint8_t> &message) noexcept;
-		extern template bool parseMessage_getType<C255K512>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		extern template bool parseMessage_getType<C255K512>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
 		extern template bool parseMessage_getPeerBundles<C255K512>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C255K512>> &peersBundle) noexcept;
 		extern template bool parseMessage_selfOPks<C255K512>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif

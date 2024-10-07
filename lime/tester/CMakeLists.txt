@@ -37,6 +37,7 @@ set(SOURCE_FILES_CXX
 	lime_massive_group-tester.cpp
 	lime_multidomains-tester.cpp
 	lime_server-tester.cpp
+	lime_multialgos-tester.cpp
 )
 
 set(SOURCE_FILES_C

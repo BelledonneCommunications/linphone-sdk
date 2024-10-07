@@ -169,14 +169,14 @@ namespace lime {
 	/*                                                                          */
 	/****************************************************************************/
 	template <typename Curve>
-	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
+	void Lime<Curve>::publish_user(const std::shared_ptr<limeCallback> callback, const uint16_t OPkInitialBatchSize) {
 		auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, OPkInitialBatchSize);
 		// Publish the user
 		m_X3DH->publish_user(userData, OPkInitialBatchSize);
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::delete_user(const limeCallback &callback) {
+	void Lime<Curve>::delete_user(const std::shared_ptr<limeCallback> callback) {
 		// delete user from local Storage
 		m_localStorage->delete_LimeUser(DeviceId(m_selfDeviceId, Curve::curveId()));
 
@@ -191,7 +191,7 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::update_SPk(const limeCallback &callback) {
+	void Lime<Curve>::update_SPk(const std::shared_ptr<limeCallback> callback) {
 		// Do we need to update the SPk
 		if (!m_X3DH->is_currentSPk_valid()) {
 			LIME_LOGI<<"User "<<m_selfDeviceId<<" updates its SPk";
@@ -199,12 +199,12 @@ namespace lime {
 			// Update SPk locally and on server
 			m_X3DH->update_SPk(userData);
 		} else { // nothing to do but caller expect a callback
-			if (callback) callback(lime::CallbackReturn::success, "");
+			if (callback) (*callback)(lime::CallbackReturn::success, "");
 		}
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
+	void Lime<Curve>::update_OPk(const std::shared_ptr<limeCallback> callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
 		// Request Server for the count of our OPk it still holds
 		// OPk server low limit cannot be zero, it must be at least one as we test the userData on this to check the server request was a getSelfOPks
 		// and republish the user if not found
@@ -218,7 +218,7 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const limeRandomSeedCallback &randomSeedCallback) {
+	void Lime<Curve>::encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, const std::shared_ptr<limeRandomSeedCallback> randomSeedCallback) {
 		LIME_LOGI<<"encrypt from "<<m_selfDeviceId<<" on "<<CurveId2String(Curve::curveId())<<" to "<<recipients->size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 
@@ -284,9 +284,13 @@ namespace lime {
 			}
 		}
 
-		lock.unlock(); // unlock before calling external callbacks
-		if (callback) callback(callbackStatus, callbackMessage);
-		lock.lock();
+		if (callback) {
+			if (*callback) {
+				lock.unlock(); // unlock before calling external callbacks
+				(*callback)(callbackStatus, callbackMessage);
+				lock.lock();
+			}
+		}
 
 		// is there no one in an asynchronous encryption process and do we have something in encryption queue to process
 		if (m_ongoing_encryption == nullptr && !m_encryption_queue.empty()) { // may happend when an encryption was queued but session was created by a previously queued encryption request
@@ -439,7 +443,7 @@ namespace lime {
 	 * @return a pointer to the LimeGeneric class allowing access to API declared in lime_lime.hpp
 	 */
 	std::shared_ptr<LimeGeneric> insert_LimeUser(std::shared_ptr<lime::Db> localStorage, const DeviceId &deviceId, const std::string &url, const uint16_t OPkInitialBatchSize,
-			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback) {
+			const limeX3DHServerPostData &X3DH_post_data, const std::shared_ptr<limeCallback> callback) {
 		LIME_LOGI<<"Create Lime user "<<static_cast<std::string>(deviceId);
 		auto algo = deviceId.getAlgo();
 		/* first check the requested curve is instanciable and return an exception if not */

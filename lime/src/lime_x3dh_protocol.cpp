@@ -334,16 +334,17 @@ namespace lime {
 		 * @return	true if message is well formed(check performed mostly on header value, correct header but not well formed message body are not detected at this point)
 		 */
 		template <typename Curve>
-		bool parseMessage_getType(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept {
+		bool parseMessage_getType(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept {
 			// Trace incoming message parsing their content to display human readable trace
 			ostringstream message_trace;
 			message_trace << hex << setfill('0') << "Incoming X3DH message: "<<endl;
 			hexStr(message_trace, body.data(), body.size(), 7);
+			bool hasCallback = (callback != nullptr && *callback != nullptr);
 
 			// check message holds at leat a header before trying to read it
 			if (body.size()<X3DH_headerSize) {
 				LIME_LOGE<<"Got an invalid response from X3DH server"<<endl<< message_trace.str()<<endl<<"    Invalid Incoming X3DH message";
-				if (callback) callback(lime::CallbackReturn::fail, "Got an invalid response from X3DH server");
+				if (hasCallback) (*callback)(lime::CallbackReturn::fail, "Got an invalid response from X3DH server");
 				LIME_LOGE<<message_trace.str()<<endl;
 				return false;
 			}
@@ -351,7 +352,7 @@ namespace lime {
 			// check X3DH protocol version
 			if (body[0] != static_cast<uint8_t>(X3DH_protocolVersion)) {
 				LIME_LOGE<<"X3DH server runs an other version of X3DH protocol(server "<<static_cast<unsigned int>(body[0])<<" - local "<<static_cast<unsigned int>(X3DH_protocolVersion)<<")"<<endl<<message_trace.str()<<endl<<"    Invalid Incoming X3DH message";
-				if (callback) callback(lime::CallbackReturn::fail, "X3DH server and client protocol version mismatch");
+				if (hasCallback) (*callback)(lime::CallbackReturn::fail, "X3DH server and client protocol version mismatch");
 				LIME_LOGE<<message_trace.str()<<endl;
 				return false;
 			}
@@ -359,7 +360,7 @@ namespace lime {
 			// check curve id
 			if (body[2] != static_cast<uint8_t>(Curve::curveId())) {
 				LIME_LOGE<<"X3DH server runs curve Id "<<static_cast<unsigned int>(body[2])<<" while local is set to "<<static_cast<unsigned int>(Curve::curveId())<<" for this server)"<<endl<<message_trace.str()<<endl<<"    Invalid Incoming X3DH message";
-				if (callback) callback(lime::CallbackReturn::fail, "X3DH server and client curve Id mismatch");
+				if (hasCallback) (*callback)(lime::CallbackReturn::fail, "X3DH server and client curve Id mismatch");
 				return false;
 			}
 
@@ -638,7 +639,7 @@ namespace lime {
 		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C255>> &OPks) noexcept;
 		template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
-		template bool parseMessage_getType<C255>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		template bool parseMessage_getType<C255>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
 		template bool parseMessage_getPeerBundles<C255>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C255>> &peersBundle) noexcept;
 		template bool parseMessage_selfOPks<C255>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
@@ -650,7 +651,7 @@ namespace lime {
 		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C448>> &OPks) noexcept;
 		template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;
-		template bool parseMessage_getType<C448>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		template bool parseMessage_getType<C448>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
 		template bool parseMessage_getPeerBundles<C448>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C448>> &peersBundle) noexcept;
 		template bool parseMessage_selfOPks<C448>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
@@ -661,7 +662,7 @@ namespace lime {
 		template void buildMessage_publishOPks<C255K512>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C255K512>> &OPks) noexcept;
 		template void buildMessage_getPeerBundles<C255K512>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C255K512>(std::vector<uint8_t> &message) noexcept;
-		template bool parseMessage_getType<C255K512>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		template bool parseMessage_getType<C255K512>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
 		template bool parseMessage_getPeerBundles<C255K512>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C255K512>> &peersBundle) noexcept;
 		template bool parseMessage_selfOPks<C255K512>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif

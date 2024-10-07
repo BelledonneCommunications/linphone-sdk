@@ -188,7 +188,7 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 	// The counters part is for test synchronisation purpose
 	// The returnCode gives the status of command execution.
 	// Encryption make use of a lambda too but it's written directly in the call, see below
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -275,7 +275,7 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 					//
 					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
 					//             In normal operation, the shared_ptrs to recipients and cipherMessage given to encrypt function are internally owned at least until the callback is called.
-					[&counters,
+					make_shared<limeCallback>([&counters,
 					recipients, cipherMessage](lime::CallbackReturn returnCode, std::string errorMessage){
 						// counters is related to this test environment only, not to be considered for real usage
 						if (returnCode == lime::CallbackReturn::success) {
@@ -291,7 +291,7 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 							// The encryption failed.
 							LIME_LOGE<<"Lime operation failed : "<<errorMessage;
 						}
-					});
+					}));
 		}
 		LIME_LOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
 		// in real sending situation, the local instance of the shared pointer are destroyed by exiting the function where they've been declared
@@ -397,7 +397,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 	// The counters part is for test synchronisation purpose
 	// The returnCode gives the status of command execution.
 	// Encryption make use of a lambda too but it's written directly in the call, see below
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -512,7 +512,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 					//
 					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
 					//             In normal operation, the shared_ptrs to recipients and cipherMessage given to encrypt function are internally owned at least until the callback is called.
-					[&counters,
+					make_shared<limeCallback>([&counters,
 					recipients, cipherMessage](lime::CallbackReturn returnCode, std::string errorMessage){
 						// counters is related to this test environment only, not to be considered for real usage
 						if (returnCode == lime::CallbackReturn::success) {
@@ -530,7 +530,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 							// The encryption failed.
 							LIME_LOGE<<"Lime operation failed : "<<errorMessage;
 						}
-					});
+					}));
 
 		LIME_LOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
 		// in real sending situation, the local instance of the shared pointer are destroyed by exiting the function where they've been declared

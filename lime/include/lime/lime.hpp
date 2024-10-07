@@ -216,11 +216,11 @@ namespace lime {
 			 * The OPkInitialBatchSize is optionnal, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const uint16_t OPkInitialBatchSize, const limeCallback &callback);
+			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const uint16_t OPkInitialBatchSize, const std::shared_ptr<limeCallback> callback);
 			/**
-			 * @overload void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const std::vector<lime::CurveId> &algos, const limeCallback &callback)
+			 * @overload void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback)
 			 */
-			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const limeCallback &callback);
+			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const std::shared_ptr<limeCallback> callback);
 
 			/**
 			 * @brief Delete a user from local database and from the X3DH server
@@ -231,7 +231,7 @@ namespace lime {
 			 * @param[in]	callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
 			 * 				this callback will be called giving the exit status and an error message in case of failure
 			 */
-			void delete_user(const DeviceId &localDeviceId, const limeCallback &callback);
+			void delete_user(const DeviceId &localDeviceId, const std::shared_ptr<limeCallback> callback);
 
 			/**
 			 * @brief Check if a user is present and active in local storage
@@ -285,12 +285,12 @@ namespace lime {
 			 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
 			 * 						default is optimized upload size mode.
 			 */
-			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
+			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback>callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
 			/**
-			 * @overload encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize)
+			 * @overload encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize)
 			 * in this variant the associatedData used in the DR session is not the recipientUserId but a uint8_t buffer
 			 */
-			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
+			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
 
 			/**
 			 * @brief Decrypt the given message
@@ -345,11 +345,11 @@ namespace lime {
 			 * The last two parameters are optional, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
 			/**
-			 * @overload void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const limeCallback &callback)
+			 * @overload void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback)
 			 */
-			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const limeCallback &callback);
+			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback);
 
 			/**
 			 * @brief retrieve self Identity Key, an EdDSA formatted public key

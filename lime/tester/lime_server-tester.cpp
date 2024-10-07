@@ -143,7 +143,7 @@ static void lime_server_resource_limit_reached_test(const lime::CurveId curve) {
 	int expected_success=0;
 	int expected_failure=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -247,7 +247,7 @@ static void lime_server_bundle_request_limit_reached_test(const lime::CurveId cu
 	int expected_success=0;
 	int expected_failure=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -393,7 +393,7 @@ static void lime_server_bundle_request_limit_reached_multiple_users_test(const l
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {

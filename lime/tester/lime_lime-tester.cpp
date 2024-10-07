@@ -199,7 +199,7 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -276,7 +276,7 @@ static void lime_session_establishment(const std::vector<lime::CurveId> &algos, 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -322,7 +322,7 @@ static void lime_encryptionPolicyError_test(const lime::CurveId curve, const std
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -423,7 +423,7 @@ static void lime_encryptionPolicy_test(const std::vector<lime::CurveId> &algos, 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -500,7 +500,7 @@ static void lime_encryptionPolicy_suite(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -721,7 +721,7 @@ static void lime_identityVerifiedStatus_test(const lime::CurveId curve) {
 	int expected_success=0;
 	int expected_failure=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -1037,7 +1037,7 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -1267,7 +1267,7 @@ static void lime_encryptToUnsafe_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -1840,7 +1840,7 @@ static void lime_update_OPk_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -1983,7 +1983,7 @@ static void lime_update_SPk_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -2156,7 +2156,7 @@ static void lime_update_clean_MK_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -2268,7 +2268,7 @@ static void lime_update_republish_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -2365,7 +2365,7 @@ static void x3dh_without_OPk_test(const lime::CurveId curve, const std::string &
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -2467,7 +2467,7 @@ static void x3dh_sending_chain_limit_test(const lime::CurveId curve, const std::
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -2629,7 +2629,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						LIME_LOGI<<"Lime operation success : "<<anythingToSay;
 						counters.operation_success++;
@@ -2855,7 +2855,7 @@ static void x3dh_multidev_operation_queue_test(const lime::CurveId curve, const 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -3065,7 +3065,7 @@ static void x3dh_operation_queue_test(const lime::CurveId curve, const std::stri
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -3186,7 +3186,7 @@ static void lime_identity_theft_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -3324,7 +3324,7 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -3560,7 +3560,7 @@ static void x3dh_user_not_found_test(const lime::CurveId curve, const std::strin
 	int expected_success=0;
 	int expected_fail=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -3855,7 +3855,7 @@ static void user_management_test(const lime::CurveId curve) {
 	int expected_success=0;
 	int expected_fail=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -3996,7 +3996,7 @@ static void user_registration_failure_test(const lime::CurveId curve) {
 	// reset the global setting for Http Link
 	httpLink = HttpLinkStatus::ok;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -4236,7 +4236,7 @@ static void lime_multithread_decrypt_thread(manager_thread_arg thread_arg) {
 static void lime_multithread_encrypt_thread(manager_thread_arg thread_arg) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 		if (returnCode == lime::CallbackReturn::success) {
 			counters.operation_success++;
 		} else {
@@ -4271,7 +4271,7 @@ static void lime_multithread_encrypt_thread(manager_thread_arg thread_arg) {
 			auto mailbox = thread_arg.mailbox;
 			// encrypt to all, use a generic "friends" id as recipient user id
 			thread_arg.manager->encrypt(localDeviceId, algos, make_shared<const std::string>("friends"), recipients, messagePtr, cipherMessage,
-					([&counters, message, localDeviceId, mailbox, recipients, cipherMessage](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					make_shared<limeCallback>([&counters, message, localDeviceId, mailbox, recipients, cipherMessage](lime::CallbackReturn returnCode, std::string anythingToSay) {
 						if (returnCode == lime::CallbackReturn::success) {
 							// Post the messages
 							for (auto &recipient : *recipients) {
@@ -4307,7 +4307,7 @@ static void lime_multithread_encrypt_thread(manager_thread_arg thread_arg) {
 static void lime_multithread_create_thread(manager_thread_arg thread_arg) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 		if (returnCode == lime::CallbackReturn::success) {
 			counters.operation_success++;
 		} else {
@@ -4335,7 +4335,7 @@ static void lime_multithread_create_thread(manager_thread_arg thread_arg) {
 static void lime_multithread_delete_thread(manager_thread_arg thread_arg) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 		if (returnCode == lime::CallbackReturn::success) {
 			counters.operation_success++;
 		} else {
@@ -4369,7 +4369,7 @@ static void lime_multithread_update_thread(manager_thread_arg thread_arg) {
 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 		if (returnCode == lime::CallbackReturn::success) {
 			counters.operation_success++;
 		} else {
@@ -4555,7 +4555,7 @@ static void lime_session_cancel_test(const lime::CurveId curve, const std::strin
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -4678,7 +4678,7 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {

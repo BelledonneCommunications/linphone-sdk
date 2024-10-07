@@ -149,7 +149,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {

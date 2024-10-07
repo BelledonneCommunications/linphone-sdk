@@ -481,6 +481,7 @@ namespace lime {
 			*/
 			void process_response(std::shared_ptr<Lime<Curve>> limeObj, std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody) {
 				auto callback = userData->callback; // get callback
+				bool hasCallback = (callback != nullptr && *callback != nullptr);
 
 				if (responseCode == 200) { // HTTP server is happy with our packet
 					// check response from X3DH server: header shall be X3DH protocol version || message type || curveId
@@ -502,12 +503,12 @@ namespace lime {
 								activate_user();
 							} catch (BctbxException const &e) {
 								LIME_LOGE<<"Cannot activate user "<< m_selfDeviceId << ". Backend says: "<< e.str();
-								if (callback) callback(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.str()));
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.str()));
 								cleanUserData(limeObj, userData);
 								return;
 							} catch (exception const &e) { // catch all and let flow it up
 								LIME_LOGE<<"Cannot activate user "<< m_selfDeviceId << ". Backend says: "<< e.what();
-								if (callback) callback(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.what()));
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.what()));
 								cleanUserData(limeObj, userData);
 								return;
 							}
@@ -526,7 +527,7 @@ namespace lime {
 							std::vector<X3DH_peerBundle<Curve>> peersBundle;
 							if (!x3dh_protocol::parseMessage_getPeerBundles(responseBody, peersBundle)) { // parsing went wrong
 								LIME_LOGE<<"Got an invalid peerBundle packet from X3DH server";
-								if (callback) callback(lime::CallbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
 								cleanUserData(limeObj, userData);
 								return;
 							}
@@ -538,11 +539,11 @@ namespace lime {
 								// when message stop crossing themselves on the network
 								init_sender_session(limeObj, peersBundle);
 							} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
-								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
 								cleanUserData(limeObj, userData);
 								return;
 							} catch (exception const &e) {
-								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
 								cleanUserData(limeObj, userData);
 								return;
 							}
@@ -565,11 +566,11 @@ namespace lime {
 							try {
 								limeObj->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback, userData->randomSeedCallback);
 							} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
-								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
 								cleanUserData(limeObj, userData);
 								return;
 							} catch (exception const &e) {
-								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.what()));
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.what()));
 								cleanUserData(limeObj, userData);
 								return;
 							}
@@ -584,7 +585,7 @@ namespace lime {
 							std::vector<uint32_t> selfOPkIds{};
 							if (!x3dh_protocol::parseMessage_selfOPks<Curve>(responseBody, selfOPkIds)) { // parsing went wrong
 								LIME_LOGE<<"Got an invalid selfOPKs packet from X3DH server";
-								if (callback) callback(lime::CallbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
 								cleanUserData(limeObj, userData);
 								return;
 							}
@@ -602,7 +603,7 @@ namespace lime {
 								x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks);
 								postToX3DHServer(userData, X3DHmessage);
 							} else { /* nothing to do, just call the callback */
-								if (callback) callback(lime::CallbackReturn::success, "");
+								if (hasCallback) (*callback)(lime::CallbackReturn::success, "");
 								cleanUserData(limeObj, userData);
 							}
 						}
@@ -619,7 +620,7 @@ namespace lime {
 								publish_user(userData, userData->OPkServerLowLimit);
 								cleanUserData(limeObj, userData);
 							} else {
-								if (callback) callback(lime::CallbackReturn::fail, "X3DH server error");
+								if (hasCallback) (*callback)(lime::CallbackReturn::fail, "X3DH server error");
 								cleanUserData(limeObj, userData);
 							}
 						}
@@ -630,7 +631,7 @@ namespace lime {
 						case x3dh_protocol::x3dh_message_type::deprecated_registerUser:
 						case x3dh_protocol::x3dh_message_type::getPeerBundle:
 						case x3dh_protocol::x3dh_message_type::getSelfOPks: {
-							if (callback) callback(lime::CallbackReturn::fail, "X3DH unexpected message from server");
+							if (hasCallback) (*callback)(lime::CallbackReturn::fail, "X3DH unexpected message from server");
 							cleanUserData(limeObj, userData);
 						}
 						return;
@@ -638,12 +639,12 @@ namespace lime {
 					}
 
 					// we get here only if processing is over and response was the expected one
-					if (callback) callback(lime::CallbackReturn::success, "");
+					if (hasCallback) (*callback)(lime::CallbackReturn::success, "");
 					cleanUserData(limeObj, userData);
 					return;
 
 				} else { // response code is not 200Ok
-					if (callback) callback(lime::CallbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(responseCode)));
+					if (hasCallback) (*callback)(lime::CallbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(responseCode)));
 					cleanUserData(limeObj, userData);
 					return;
 				}

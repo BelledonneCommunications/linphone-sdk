@@ -1570,7 +1570,7 @@ namespace lime {
 	 * @param[in]		randomSeedCallback	when provided and encryption policy ends to be cipherMessage, allow to set/get the random seed and cipher text tag
 	 * 						this is needed to encrypt the same message with differents lime users (for multi base algorithm purpose)
 	 */
-	void encryptMessage(std::vector<RecipientInfos>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage, const limeRandomSeedCallback &randomSeedCallback) {
+	void encryptMessage(std::vector<RecipientInfos>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage, const std::shared_ptr<limeRandomSeedCallback> randomSeedCallback) {
 		// Shall we set the payload in the DR message or in a separate cupher message buffer?
 		bool payloadDirectEncryption;
 		switch (encryptionPolicy) {
@@ -1623,10 +1623,11 @@ namespace lime {
 		std::shared_ptr<std::vector<uint8_t>> randomSeed = nullptr; // this seed is sent in DR message and used to derivate random key + IV to encrypt the actual message
 
 
+		bool hasRandomSeedCallback = (randomSeedCallback && *randomSeedCallback);
 		if (!payloadDirectEncryption) { // Payload is encrypted in a separate cipher message buffer while the key used to encrypt it is in the DR message
 			bool hasRandomSeed = false;
-			if (randomSeedCallback) { // check if we already have a random seed, in this case, it means the cipherMessage buffer is already holding the actual cipherMessage
-				hasRandomSeed = randomSeedCallback(true, randomSeed);
+			if (hasRandomSeedCallback) { // check if we already have a random seed, in this case, it means the cipherMessage buffer is already holding the actual cipherMessage
+				hasRandomSeed = (*randomSeedCallback)(true, randomSeed);
 			}
 			if (!hasRandomSeed) { // We must generate the random seed and ciphermessage
 				// First generate a key and IV, use it to encrypt the given message, Associated Data are : sourceDeviceId || recipientUserId
@@ -1654,8 +1655,8 @@ namespace lime {
 					AD.data(), AD.size(),
 					cipherMessage.data()+plaintext.size(), lime::settings::DRMessageAuthTagSize, // directly store tag after cipher text in the output buffer
 					cipherMessage.data());
-				if (randomSeedCallback) { // Store the random seed, if possibly needed
-					randomSeedCallback(false, randomSeed);
+				if (hasRandomSeedCallback) { // Store the random seed, if possibly needed
+					(*randomSeedCallback)(false, randomSeed);
 				}
 			}
 
@@ -1687,7 +1688,7 @@ namespace lime {
 					recipients[i].DRSession->ratchetEncrypt(*randomSeed, std::move(recipientAD), recipients[i].DRmessage, false);
 				}
 			}
-			if (!payloadDirectEncryption && !randomSeedCallback) {
+			if (!payloadDirectEncryption && !hasRandomSeedCallback) {
 				cleanBuffer(randomSeed->data(), lime::settings::DRrandomSeedSize);
 			}
 		} catch (BctbxException const &e) {

@@ -156,7 +156,7 @@ static void lime_multidomains_simple_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -248,7 +248,7 @@ static void lime_multidomains_several_foreign_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
@@ -368,7 +368,7 @@ static void lime_multidomains_several_users_foreign_test(const lime::CurveId cur
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {

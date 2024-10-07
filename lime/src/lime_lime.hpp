@@ -81,7 +81,7 @@ namespace lime {
 		 * @param[in]		randomSeedCallback	when provided and encryption policy ends to be cipherMessage, allow to set/get the random seed and cipher text tag
 		 * 						this is needed to encrypt the same message with differents lime users (for multi base algorithm purpose)
 		*/
-		virtual void encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const limeRandomSeedCallback &randomSeedCallback = nullptr) = 0;
+		virtual void encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, const std::shared_ptr<limeRandomSeedCallback> randomSeedCallback = nullptr) = 0;
 
 		/**
 		 * @brief Decrypt the given message
@@ -140,14 +140,14 @@ namespace lime {
 		 * @param[in]	callback		call when completed
 		 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
 		*/
-		virtual void publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) = 0;
+		virtual void publish_user(const std::shared_ptr<limeCallback> callback, const uint16_t OPkInitialBatchSize) = 0;
 
 		/**
 		 * @brief Delete user from local Storage and from X3DH server
 		 *
 		 * @param[in]	callback		call when completed
 		 */
-		virtual void delete_user(const limeCallback &callback) = 0;
+		virtual void delete_user(const std::shared_ptr<limeCallback> callback) = 0;
 
 		/**
 		 * @brief Purge cached sessions for a given peer Device (used when a peer device is being deleted)
@@ -164,7 +164,7 @@ namespace lime {
 		 *
 		 * @param[in] callback 	Called with success or failure when operation is completed.
 		*/
-		virtual void update_SPk(const limeCallback &callback) = 0;
+		virtual void update_SPk(const std::shared_ptr<limeCallback> callback) = 0;
 
 		/**
 		 * @brief check if we shall upload more OPks on X3DH server
@@ -175,7 +175,7 @@ namespace lime {
 		 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
 		 * @param[in]	OPkBatchSize		Number of OPks in a batch uploaded to server
 		*/
-		virtual void update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) = 0;
+		virtual void update_OPk(const std::shared_ptr<limeCallback> callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) = 0;
 
 		/**
 		 * @brief Retrieve self public Identity key
@@ -214,7 +214,7 @@ namespace lime {
 	/* Lime Factory functions : return a pointer to the implementation using the specified elliptic curve. Two functions: one for creation, one for loading from local storage */
 
 	std::shared_ptr<LimeGeneric> insert_LimeUser(std::shared_ptr<lime::Db> localStorage, const DeviceId &deviceId, const std::string &url, const uint16_t OPkInitialBatchSize,
-			const limeX3DHServerPostData &X3DH_post_data, const limeCallback &callback);
+			const limeX3DHServerPostData &X3DH_post_data, const std::shared_ptr<limeCallback> callback);
 
 	std::shared_ptr<LimeGeneric> load_LimeUser(std::shared_ptr<lime::Db> localStorage, const DeviceId &deviceId, const limeX3DHServerPostData &X3DH_post_data, const bool allStatus=false);
 
