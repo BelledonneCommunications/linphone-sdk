@@ -87,12 +87,13 @@ task javadocsJar(type: Jar, dependsOn: javadoc) {
 
 task sourcesJar(type: Jar) {
     archiveClassifier = 'sources'
-    from sourceSets.main.java.srcDirs
+    from sourceSets.main.allJava
     finalizedBy javadocsJar
 }
 
 project.tasks['processResources'].dependsOn 'copyAssets'
 project.tasks['processResources'].dependsOn 'sourcesJar'
+project.tasks['sourcesJar'].dependsOn 'copyAssets'
 
 task sdkZip(type: Zip) {
     from('linphone-sdk/bin/libs')
