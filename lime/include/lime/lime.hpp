@@ -243,6 +243,10 @@ namespace lime {
 			 * @return true if the user is active in the local storage, false otherwise
 			 */
 			bool is_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos);
+			/**
+			 * @overload bool is_user(const DeviceId &localDeviceId);
+			 */
+			bool is_user(const DeviceId &localDeviceId);
 
 			/**
 			 * @brief Encrypt a buffer (text or file) for a given list of recipient devices

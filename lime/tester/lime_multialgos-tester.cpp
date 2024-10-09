@@ -255,7 +255,24 @@ static void multialgos_basic(void) {
 }
 
 
-static bool multialgos_three_users_test(const std::vector<lime::CurveId> aliceAlgos, const std::vector<lime::CurveId> bobAlgos, const std::vector<lime::CurveId> claireAlgos, lime::EncryptionPolicy policy) {
+const std::vector<lime::CurveId> allAlgos{lime::CurveId::c25519, lime::CurveId::c448, lime::CurveId::c25519k512};
+static bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &username, const std::shared_ptr<lime::limeCallback> callback, int &counter ) {
+	bool ret = true;
+	// loop on all possible algo and delete the user if it exists
+	for (const auto algo:allAlgos) {
+		if (Manager->is_user(DeviceId(username,algo))) {
+			Manager->delete_user(DeviceId(username, algo), callback);
+			ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counter,counter+1,lime_tester::wait_for_timeout));
+		}
+	}
+	return ret;
+}
+
+static bool multialgos_four_users_test(const std::vector<std::vector<lime::CurveId>> aliceAlgos,
+	       const std::vector<std::vector<lime::CurveId>> bobAlgos,
+	       const std::vector<std::vector<lime::CurveId>> claireAlgos,
+	       const std::vector<std::vector<lime::CurveId>> daveAlgos,
+	       lime::EncryptionPolicy policy) {
 	std::string dbBaseFilename("multialgos_three_users");
 	bool ret = true;
 	lime_tester::events_counters_t counters={};
@@ -273,94 +290,135 @@ static bool multialgos_three_users_test(const std::vector<lime::CurveId> aliceAl
 	try {
 		// create DB
 		auto dbFilenameAlice = dbBaseFilename;
-		dbFilenameAlice.append(".alice.").append(CurveId2String(aliceAlgos, "-")).append(".sqlite3");
+		dbFilenameAlice.append(".alice.").append(CurveId2String(aliceAlgos[0], "-")).append(".sqlite3");
 		auto dbFilenameBob = dbBaseFilename;
-		dbFilenameBob.append(".bob.").append(CurveId2String(bobAlgos, "-")).append(".sqlite3");
+		dbFilenameBob.append(".bob.").append(CurveId2String(bobAlgos[0], "-")).append(".sqlite3");
 		auto dbFilenameClaire = dbBaseFilename;
-		dbFilenameClaire.append(".claire.").append(CurveId2String(claireAlgos, "-")).append(".sqlite3");
+		dbFilenameClaire.append(".claire.").append(CurveId2String(claireAlgos[0], "-")).append(".sqlite3");
+		auto dbFilenameDave = dbBaseFilename;
+		dbFilenameDave.append(".dave.").append(CurveId2String(daveAlgos[0], "-")).append(".sqlite3");
 
 		remove(dbFilenameAlice.data()); // delete the database file if already exists
 		remove(dbFilenameBob.data()); // delete the database file if already exists
 		remove(dbFilenameClaire.data()); // delete the database file if already exists
+		remove(dbFilenameDave.data()); // delete the database file if already exists
 
-		// create Manager and device for alice
-		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		// create device Ids
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d.");
-		aliceManager->create_user(*aliceDeviceId, aliceAlgos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-
-		// Create manager and device for bob
-		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
-		bobManager->create_user(*bobDeviceId, bobAlgos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
-
-		// Create manager and device for claire
-		auto claireManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
 		auto claireDeviceId = lime_tester::makeRandomDeviceName("claire.d");
-		claireManager->create_user(*claireDeviceId, claireAlgos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		auto daveDeviceId = lime_tester::makeRandomDeviceName("dave.d");
 
-		// alice send a message to bob and claire
-		auto recipients = make_shared<std::vector<RecipientData>>();
-		recipients->emplace_back(*bobDeviceId);
-		recipients->emplace_back(*claireDeviceId);
-		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		auto cipherMessage = make_shared<std::vector<uint8_t>>();
+		// loop on all three algo support setting (they must all have the same size)
+		for (size_t i=0; i<aliceAlgos.size(); i++) {
+			LIME_LOGI<<"Test epoch :"<<i;
+			// create Manager and device for alice
+			auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+			if (!aliceManager->is_user(*aliceDeviceId, aliceAlgos[i])) {
+				aliceManager->create_user(*aliceDeviceId, aliceAlgos[i], lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+			}
 
-		aliceManager->encrypt(*aliceDeviceId, aliceAlgos, make_shared<const std::string>("friends"), recipients, message, cipherMessage, callback, policy);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			// Create manager and device for bob
+			auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
+			if (!bobManager->is_user(*bobDeviceId, bobAlgos[i])) {
+				bobManager->create_user(*bobDeviceId, bobAlgos[i], lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+			}
 
-		// decrypt with bob Manager
-		std::vector<uint8_t> receivedMessage{};
-		ret &= BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*recipients)[0].DRmessage)); // new sessions created, they must convey X3DH init message
-		ret &= BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "friends", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
-		ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+			// Create manager and device for claire
+			auto claireManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
+			if (!claireManager->is_user(*claireDeviceId, claireAlgos[i])) {
+				claireManager->create_user(*claireDeviceId, claireAlgos[i], lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+			}
+			// Create manager and device for dave
+			auto daveManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
+			if (!daveManager->is_user(*daveDeviceId, daveAlgos[i])) {
+				daveManager->create_user(*daveDeviceId, daveAlgos[i], lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+			}
 
-		// decrypt with claire Manager
-		receivedMessage.clear();
-		ret &= BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*recipients)[1].DRmessage)); // new sessions created, they must convey X3DH init message
-		ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *aliceDeviceId, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+			// alice send a message to bob, claire and dave
+			auto recipients = make_shared<std::vector<RecipientData>>();
+			recipients->emplace_back(*bobDeviceId);
+			recipients->emplace_back(*claireDeviceId);
+			recipients->emplace_back(*daveDeviceId);
+			auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+			auto cipherMessage = make_shared<std::vector<uint8_t>>();
 
-		// bob replies to alice and claire
-		recipients->clear();
-		recipients->emplace_back(*aliceDeviceId);
-		recipients->emplace_back(*claireDeviceId);
-		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
-		bobManager->encrypt(*bobDeviceId, bobAlgos, make_shared<const std::string>("friends"), recipients, message, cipherMessage, callback, policy);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			aliceManager->encrypt(*aliceDeviceId, aliceAlgos[i], make_shared<const std::string>("friends"), recipients, message, cipherMessage, callback, policy);
+			ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			if (policy == lime::EncryptionPolicy::cipherMessage) {
+				ret &= BC_ASSERT_TRUE(!cipherMessage->empty());
+			}
 
-		// decrypt it on alice
-		receivedMessage.clear();
-		ret &= BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "friends", *bobDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
-		// decrypt it on claire
-		receivedMessage.clear();
-		ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *bobDeviceId, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+			// decrypt with bob Manager
+			std::vector<uint8_t> receivedMessage{};
+			ret &= BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "friends", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+			// decrypt with claire Manager
+			receivedMessage.clear();
+			ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *aliceDeviceId, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+			// decrypt with dave Manager
+			receivedMessage.clear();
+			ret &= BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *aliceDeviceId, (*recipients)[2].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+			// bob replies to alice, claire and dave
+			cipherMessage->clear();
+			recipients->clear();
+			recipients->emplace_back(*aliceDeviceId);
+			recipients->emplace_back(*claireDeviceId);
+			recipients->emplace_back(*daveDeviceId);
+			message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
+			bobManager->encrypt(*bobDeviceId, bobAlgos[i], make_shared<const std::string>("friends"), recipients, message, cipherMessage, callback, policy);
+			ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			if (policy == lime::EncryptionPolicy::cipherMessage) {
+				ret &= BC_ASSERT_TRUE(!cipherMessage->empty());
+			}
+
+			// decrypt it on alice
+			receivedMessage.clear();
+			ret &= BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "friends", *bobDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+			// decrypt it on claire
+			receivedMessage.clear();
+			ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *bobDeviceId, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+			// decrypt it on dave
+			receivedMessage.clear();
+			ret &= BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *bobDeviceId, (*recipients)[2].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+			LIME_LOGI<<"Test epoch :"<<i<<" done";
+		}
 
 		// delete the users
 		if (cleanDatabase) {
-			for (const auto &algo:aliceAlgos) {
-				aliceManager->delete_user(DeviceId(*aliceDeviceId, algo), callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-			}
-			for (const auto &algo:bobAlgos) {
-				bobManager->delete_user(DeviceId(*bobDeviceId, algo), callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-			}
-			for (const auto &algo:claireAlgos) {
-				claireManager->delete_user(DeviceId(*claireDeviceId, algo), callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
-			}
+			auto aliceManager = make_shared<LimeManager>(dbFilenameAlice, X3DHServerPost);
+			ret &=BC_ASSERT_TRUE(delete_any_user(aliceManager, *aliceDeviceId, callback, counters.operation_success));
+			auto bobManager = make_shared<LimeManager>(dbFilenameBob, X3DHServerPost);
+			ret &=BC_ASSERT_TRUE(delete_any_user(bobManager, *bobDeviceId, callback, counters.operation_success));
+			auto claireManager = make_shared<LimeManager>(dbFilenameClaire, X3DHServerPost);
+			ret &=BC_ASSERT_TRUE(delete_any_user(claireManager, *claireDeviceId, callback, counters.operation_success));
+			auto daveManager = make_shared<LimeManager>(dbFilenameDave, X3DHServerPost);
+			ret &=BC_ASSERT_TRUE(delete_any_user(daveManager, *daveDeviceId, callback, counters.operation_success));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 			remove(dbFilenameClaire.data());
+			remove(dbFilenameDave.data());
 		}
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -370,34 +428,62 @@ static bool multialgos_three_users_test(const std::vector<lime::CurveId> aliceAl
 	return ret;
 }
 
-static void multialgos_three_users(void) {
+static void multialgos_four_users_basic(void) {
 #if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
-	BC_ASSERT_TRUE(multialgos_three_users_test(
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
+	// Simple tests with all the same algorithm or only claire with the second one so Alice encrypts in two passes
+	BC_ASSERT_TRUE(multialgos_four_users_test(
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
 			lime::EncryptionPolicy::DRMessage));
-	BC_ASSERT_TRUE(multialgos_three_users_test(
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
-			std::vector<lime::CurveId>{lime::CurveId::c25519},
+	BC_ASSERT_TRUE(multialgos_four_users_test(
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}},
 			lime::EncryptionPolicy::DRMessage));
-	BC_ASSERT_TRUE(multialgos_three_users_test(
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
+	// same but force the use of cipherMessage to test the randomSeed management
+	BC_ASSERT_TRUE(multialgos_four_users_test(
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
 			lime::EncryptionPolicy::cipherMessage));
-	BC_ASSERT_TRUE(multialgos_three_users_test(
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
-			std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519},
-			std::vector<lime::CurveId>{lime::CurveId::c25519},
+	BC_ASSERT_TRUE(multialgos_four_users_test(
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}},
+			lime::EncryptionPolicy::cipherMessage));
+	BC_ASSERT_TRUE(multialgos_four_users_test(
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c448, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519k512, lime::CurveId::c25519, lime::CurveId::c448}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c448}},
+			lime::EncryptionPolicy::cipherMessage));
+#endif
+}
+static void multialgos_four_users_migration(void) {
+#if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
+	// Dynamic algo support
+	BC_ASSERT_TRUE(multialgos_four_users_test(
+			// alice  uses: c25519 | c25519k512,c25519 | c25519k512,c25519 | c25519k512,c25519
+			// bob    uses: c25519 |    c25519         | c25519k512,c25519 | c25519k512,c25519
+			// claire uses: c25519 |    c25519         |      c25519       | c25519k512,c25519
+			// dave   uses: c25519 |    c25519         |      c25519       |      c25519
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}, {lime::CurveId::c25519k512, lime::CurveId::c25519}, {lime::CurveId::c25519k512, lime::CurveId::c25519}, {lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}, {lime::CurveId::c25519}, {lime::CurveId::c25519k512, lime::CurveId::c25519}, {lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}, {lime::CurveId::c25519}, {lime::CurveId::c25519}, {lime::CurveId::c25519k512, lime::CurveId::c25519}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}, {lime::CurveId::c25519}, {lime::CurveId::c25519}, {lime::CurveId::c25519}},
 			lime::EncryptionPolicy::cipherMessage));
 #endif
 }
 
 static test_t tests[] = {
 	TEST_NO_TAG("Basic", multialgos_basic),
-	TEST_NO_TAG("three users", multialgos_three_users)
+	TEST_NO_TAG("four users", multialgos_four_users_basic),
+	TEST_NO_TAG("four users migration", multialgos_four_users_migration)
 };
 
 test_suite_t lime_multialgos_test_suite = {

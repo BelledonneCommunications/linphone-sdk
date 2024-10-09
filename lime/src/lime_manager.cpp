@@ -161,12 +161,15 @@ namespace lime {
 		user->delete_user(managerDeleteCallback);
 	}
 
+	bool LimeManager::is_user(const DeviceId &localDeviceId) {
+		std::shared_ptr<LimeGeneric> user;
+		return LimeManager::load_user_noexcept(user, localDeviceId);
+	}
 	bool LimeManager::is_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos) {
 		bool globalReturn = true;
 		for (const auto algo:algos) {
 			// Load user object, if one of them returns false, the global return is false
-			std::shared_ptr<LimeGeneric> user;
-			globalReturn &= LimeManager::load_user_noexcept(user, DeviceId(localDeviceId, algo));
+			globalReturn &= LimeManager::is_user(DeviceId(localDeviceId, algo));
 		}
 		return globalReturn;
 	}
