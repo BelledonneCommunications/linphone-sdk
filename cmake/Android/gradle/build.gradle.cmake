@@ -184,6 +184,13 @@ task sdkZip(type: Zip) {
     archiveFileName = "linphone-sdk-android-@LINPHONESDK_VERSION@.zip"
 }
 
+task debugLibsZip(type: Zip) {
+    from 'libs-debug'
+    into 'libs-debug'
+    include '**/*.so'
+    archiveFileName = "linphone-sdk-android-libs-debug.zip"
+}
+
 task copyProguard(type: Copy, dependsOn: sourcesJar) {
     from rootSdk + '/share/linphonej/'
     into "${buildDir}"
@@ -215,6 +222,7 @@ task copyAssets(type: Sync) {
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
+project.tasks['preBuild'].dependsOn 'debugLibsZip'
 
 afterEvaluate {
     def debugFile = file("$buildDir/outputs/aar/linphone-sdk-android.aar")
@@ -227,5 +235,5 @@ afterEvaluate {
         doLast {
             debugFile.renameTo("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
         }
-    }
+    }    
 }
