@@ -507,7 +507,7 @@ namespace lime {
 			m_forceKEMRatchet{false}, m_peerKEMPkAvailable{false},  m_peerHasSelfKEMPk{false},
 			m_peerECPkAvailable{false}, m_KEMRatchetChainSize{0}, m_lastKEMRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
-			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
+			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{peerDeviceId},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 			{
 				// generate a new self key pair
@@ -526,9 +526,8 @@ namespace lime {
 				// derive the root key
 				KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret());
 
-				// If we have no peerDid, copy peer DeviceId and Ik in the session so we can use them to create the peer device in local storage when first saving the session
+				// If we have no peerDid, copy Ik in the session so we can use it to create the peer device in local storage when first saving the session
 				if (peerDid == 0) {
-					m_peerDeviceId = peerDeviceId;
 					m_peerIk = peerIk;
 				}
 			}
@@ -553,7 +552,7 @@ namespace lime {
 			m_forceKEMRatchet{false}, m_peerKEMPkAvailable{false},  m_peerHasSelfKEMPk{false},
 			m_peerECPkAvailable{false}, m_KEMRatchetChainSize{0}, m_lastKEMRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
-			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
+			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{peerDeviceId},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 			{
 				auto DH = make_keyExchange<typename Curve::EC>();
@@ -579,9 +578,8 @@ namespace lime {
 				KEMengine->createKeyPair(ARsKEMpair);
 				m_ARKeys.setDHs(ARsKey<Curve>(DH->get_selfPublic(), DH->get_secret(), ARsKEMpair.cpublicKey(), ARsKEMpair.cprivateKey(), KEMct));
 
-				// If we have no peerDid, copy peer DeviceId and Ik in the session so we can use them to create the peer device in local storage when first saving the session
+				// If we have no peerDid, copy Ik in the session so we can use it to create the peer device in local storage when first saving the session
 				if (peerDid == 0) {
-					m_peerDeviceId = peerDeviceId;
 					m_peerIk = peerIk;
 				}
 
@@ -605,12 +603,12 @@ namespace lime {
 			m_forceKEMRatchet{true}, m_peerKEMPkAvailable{true},  m_peerHasSelfKEMPk{false},
 			m_peerECPkAvailable{true}, m_KEMRatchetChainSize{0}, m_lastKEMRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
-			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{OPk_id}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
+			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{OPk_id}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{peerDeviceId},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{}
 			{
 				// If we have no peerDid, copy peer DeviceId and Ik in the session so we can use them to create the peer device in local storage when first saving the session
+				// If we have no peerDid, copy Ik in the session so we can use it to create the peer device in local storage when first saving the session
 				if (peerDid == 0) {
-					m_peerDeviceId = peerDeviceId;
 					m_peerIk = peerIk;
 				}
 			}
@@ -675,7 +673,7 @@ namespace lime {
 			std::shared_ptr<lime::Db> m_localStorage; // enable access to the database holding sessions and skipped message keys
 			DRSessionDbStatus m_dirty; // status of the object regarding its instance in local storage, could be: clean, dirty_encrypt, dirty_decrypt or dirty
 			long int m_peerDid; // used during session creation only to hold the peer device id in DB as we need it to insert the session in local Storage
-			std::string m_peerDeviceId; // used during session creation only, if the deviceId is not yet in local storage, to hold the peer device Id so we can insert it in DB when session is saved for the first time
+			std::string m_peerDeviceId; // if the deviceId is not yet in local storage, hold the peer device Id so we can insert it in DB when session is saved for the first time. Also used to ensure only one deviceId is active (when running on several base algorithms)
 			DSA<typename Curve::EC, lime::DSAtype::publicKey> m_peerIk; // used during session creation only, if the deviceId is not yet in local storage, to hold the peer device Ik so we can insert it in DB when session is saved for the first time
 			long int m_db_Uid; // used to link session to a local device Id
 			bool m_active_status; // current status of this session, true if it is the active one, false if it is stale
@@ -1139,7 +1137,7 @@ namespace lime {
 	 * is encrypting message or maxSendingChain if he is not.
 
 	 * Flags bitmap :
-	 * -- 0  force KEM ratchet ASAP (set when a session is create on receiver side to force KEM ratchet at first response)
+	 * -- 0  force KEM ratchet ASAP (set when a session is created on receiver side to force KEM ratchet at first response)
 	 * -- 1  KEM peer pk available locally
 	 * -- 2  KEM self pk known by peer
 	 * -- 3  EC peer pk available locally
@@ -1214,6 +1212,8 @@ namespace lime {
 				if (m_peerDid == 0) { // no : we must insert it(failure will result in exception being thrown, let it flow up then)
 					m_peerDid = m_localStorage->store_peerDevice<Curve>(m_peerDeviceId, m_peerIk);
 				} else {
+					// we use this session, make sure the associated peerDevice id is the active one
+					m_localStorage->sql<<"UPDATE lime_PeerDevices SET Active = 1 WHERE Did = :did;", use(m_peerDid);
 					// make sure we have no other session active with this pair local,peer DiD
 					m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 				}
@@ -1350,6 +1350,8 @@ namespace lime {
 						m_localStorage->sql<<"UPDATE DR_MSk_DHr SET received = received + 1 WHERE sessionId = :sessionId", use(m_dbSessionId);
 					}
 				}
+				// we use this session, make sure the associated peerDevice id is the active one
+				m_localStorage->sql<<"UPDATE lime_PeerDevices SET Active = 1 WHERE Did = :did;", use(m_peerDid);
 			}
 
 			// Shall we insert some skipped Message keys?
@@ -1384,6 +1386,9 @@ namespace lime {
 					m_localStorage->sql<<"DELETE from DR_MSk_DHr WHERE DHid = :DHid;", use(m_usedDHid);
 				}
 			}
+
+			// make sure no other peerDevice is set as active
+			m_localStorage->sql<<"UPDATE lime_PeerDevices SET Active = 0 WHERE DeviceId = :username AND Did <> :id;", use(m_peerDeviceId), use(m_peerDid);
 		} catch (exception const &e) {
 			if (commit) {
 				m_localStorage->rollback_transaction();
@@ -1418,7 +1423,7 @@ namespace lime {
 		indicator ind;
 		int status; // retrieve an int from DB, turn it into a bool to store in object
 		int DHrStatus; // retrieve an int from DB, turn it into  bools to store in object
-		m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHrStatus,DHs,RK,CKs,CKr,AD,Status,X3DHInit,strftime('%s',timeStamp) FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHrStatus), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), into(m_lastKEMRatchetEpoch), use(m_dbSessionId);
+		m_localStorage->sql<<"SELECT s.Did,s.Uid,s.Ns,s.Nr,s.PN,s.DHr,s.DHrStatus,s.DHs,s.RK,s.CKs,s.CKr,s.AD,s.Status,s.X3DHInit,strftime('%s',s.timeStamp),p.DeviceId FROM DR_sessions as s INNER JOIN lime_peerDevices as p ON p.Did = s.Did WHERE s.sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHrStatus), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), into(m_lastKEMRatchetEpoch), into(m_peerDeviceId), use(m_dbSessionId);
 
 		if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
 			typename ARrKey<Curve>::serializedBuffer serializedDHr{};

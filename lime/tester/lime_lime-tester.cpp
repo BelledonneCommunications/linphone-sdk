@@ -1603,7 +1603,7 @@ static void write_db_version(uint32_t version, std::string &dbFilename) {
 	}
 
 	// Insert a dummy row in the table modified by the migration as some operation are permitted over empty tables but not ones with data
-	sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server, curveId) VALUES ('sip:notauser', '0x1234556', 'http://notalimeserver.com', 1);";
+	sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server, curveId) VALUES ('sip:notauser', '0x1234556', 'http://notalimeserver.com', 2);";
 	sql<<"INSERT INTO lime_PeerDevices(DeviceId, Ik, Status) VALUES ('sip:notausertoo', '0x6543210', 1);";
 	sql<<"INSERT INTO DR_sessions(Did, Uid, Ns, Nr, PN, DHr, DHs, RK, CKs, CKr, AD, Status) VALUES (1, 1, 0, 0, 0, '0x123', '0x456', '0x789', '0xabc', '0xdef', 'AssociatedData', 1);";
 
@@ -1632,10 +1632,13 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 0, int, "%d");
-		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		// Version 0x000300 of db an integer defaulted to 0 table and an integer default to 1 in the lime_PeerDevices
 		int haveCurveId=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
 		BC_ASSERT_EQUAL(haveCurveId, 0, int, "%d");
+		int haveActive=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='Active'", soci::into(haveActive);
+		BC_ASSERT_EQUAL(haveActive, 0, int, "%d");
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1666,10 +1669,25 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 1, int, "%d");
-		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		// Version 0x000300 of db an integer defaulted to 0 table and an integer default to 1 in the lime_PeerDevices
 		int haveCurveId=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
 		BC_ASSERT_EQUAL(haveCurveId, 1, int, "%d");
+		if (haveCurveId == 1) {
+			int curveId = 0;
+			// Check the newly created curveId is set to 2 (copy from the lime_localUsers table)
+			sql<<"SELECT curveId FROM lime_PeerDevices LIMIT 1", soci::into(curveId);
+			BC_ASSERT_EQUAL(curveId, 2, int, "%d");
+		}
+		int haveActive=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='Active'", soci::into(haveActive);
+		BC_ASSERT_EQUAL(haveActive, 1, int, "%d");
+		if (haveActive == 1) {
+			int active = 0;
+			// Check the newly created Active is defaulted to 1
+			sql<<"SELECT Active FROM lime_PeerDevices LIMIT 1", soci::into(active);
+			BC_ASSERT_EQUAL(active, 1, int, "%d");
+		}
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1699,10 +1717,13 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 0, int, "%d");
-		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		// Version 0x000300 of db an integer defaulted to 0 table and an integer default to 1 in the lime_PeerDevices
 		int haveCurveId=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
 		BC_ASSERT_EQUAL(haveCurveId, 0, int, "%d");
+		int haveActive=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='Active'", soci::into(haveActive);
+		BC_ASSERT_EQUAL(haveActive, 0, int, "%d");
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1733,10 +1754,25 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 1, int, "%d");
-		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		// Version 0x000300 of db an integer defaulted to 0 table and an integer default to 1 in the lime_PeerDevices
 		int haveCurveId=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
 		BC_ASSERT_EQUAL(haveCurveId, 1, int, "%d");
+		if (haveCurveId == 1) {
+			int curveId = 0;
+			// Check the newly created curveId is set to 2 (copy from the lime_localUsers table)
+			sql<<"SELECT curveId FROM lime_PeerDevices LIMIT 1", soci::into(curveId);
+			BC_ASSERT_EQUAL(curveId, 2, int, "%d");
+		}
+		int haveActive=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='Active'", soci::into(haveActive);
+		BC_ASSERT_EQUAL(haveActive, 1, int, "%d");
+		if (haveActive == 1) {
+			int active = 0;
+			// Check the newly created Active is defaulted to 1
+			sql<<"SELECT Active FROM lime_PeerDevices LIMIT 1", soci::into(active);
+			BC_ASSERT_EQUAL(active, 1, int, "%d");
+		}
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1766,10 +1802,13 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 1, int, "%d");
-		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		// Version 0x000300 of db an integer defaulted to 0 table and an integer default to 1 in the lime_PeerDevices
 		int haveCurveId=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
 		BC_ASSERT_EQUAL(haveCurveId, 0, int, "%d");
+		int haveActive=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='Active'", soci::into(haveActive);
+		BC_ASSERT_EQUAL(haveActive, 0, int, "%d");
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;
@@ -1800,10 +1839,25 @@ static void lime_db_migration() {
 		int haveDHrStatus=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('DR_sessions') WHERE name='DHrStatus'", soci::into(haveDHrStatus);
 		BC_ASSERT_EQUAL(haveDHrStatus, 1, int, "%d");
-		// Version 0x000300 of db an integer defaulted to 0 in the lime_PeerDevices table
+		// Version 0x000300 of db an integer defaulted to 0 table and an integer default to 1 in the lime_PeerDevices
 		int haveCurveId=0;
 		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='curveId'", soci::into(haveCurveId);
 		BC_ASSERT_EQUAL(haveCurveId, 1, int, "%d");
+		if (haveCurveId == 1) {
+			int curveId = 0;
+			// Check the newly created curveId is set to 2 (copy from the lime_localUsers table)
+			sql<<"SELECT curveId FROM lime_PeerDevices LIMIT 1", soci::into(curveId);
+			BC_ASSERT_EQUAL(curveId, 2, int, "%d");
+		}
+		int haveActive=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_PeerDevices') WHERE name='Active'", soci::into(haveActive);
+		BC_ASSERT_EQUAL(haveActive, 1, int, "%d");
+		if (haveActive == 1) {
+			int active = 0;
+			// Check the newly created Active is defaulted to 1
+			sql<<"SELECT Active FROM lime_PeerDevices LIMIT 1", soci::into(active);
+			BC_ASSERT_EQUAL(active, 1, int, "%d");
+		}
 		sql.close();
 	} catch (BctbxException &e) {
 		LIME_LOGE << e;

@@ -87,6 +87,8 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 			if (userVersion <= 0x000200) { // From 00.02.00 to 00.03.00
 				// Add an algo Id to fully identify peer devices - GRUU is not enough anymore
 				sql<<"ALTER TABLE lime_PeerDevices ADD COLUMN curveId INTEGER NOT NULL DEFAULT 0";
+				// Now we need to know which device is the active one when given a GRUU
+				sql<<"ALTER TABLE lime_PeerDevices ADD COLUMN Active INTEGER NOT NULL DEFAULT 1";
 				// Now we must set this new column according to the curve this user was using until now
 				// retrieve it from its localUsers, only active ones (curveId < 256)
 				int curveId = 0;
@@ -200,6 +202,7 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 		* - Did : primary key, used to make link with DR_sessions table.
 		* - DeviceId: peer device id (shall be its GRUU)
 		* - curveId : identifies the curve used by this user - MUST be in sync with server.
+		* - Active: This peerDevice is active: only one peerDevice should be active for any unique deviceId
 		* - Ik : Peer device Identity public key, got it from X3DH server or X3DH init message
 		* - Status : a flag, 0 : untrusted, 1 : trusted, 2 : unsafe
 		*   		The mapping is done in lime.hpp by the PeerDeviceStatus enum class definition
@@ -214,6 +217,7 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 					Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
 					DeviceId TEXT NOT NULL, \
 					curveId INTEGER NOT NULL DEFAULT 0, \
+					Active INTEGER DEFAULT 1, \
 					Ik BLOB NOT NULL, \
 					Status UNSIGNED INTEGER DEFAULT 0);";
 	
@@ -379,26 +383,30 @@ void Db::set_peerDeviceStatus(const DeviceId &peerDeviceId, const std::vector<ui
 	long long id;
 	const std::string username = peerDeviceId.getUsername();
 	const int algo = static_cast<uint8_t>(peerDeviceId.getAlgo());
-	sql<<"SELECT Did, Ik FROM Lime_PeerDevices WHERE DeviceId = :username AND curveId =:algo LIMIT 1;", into(id), into(Ik_blob), use(username), use(algo);
-	if (sql.got_data()) { // Found it
+	sql<<"SELECT Did, Ik FROM lime_PeerDevices WHERE DeviceId = :username AND curveId =:algo LIMIT 1;", into(id), into(Ik_blob), use(username), use(algo);
+	if (sql.got_data()) { // Found it -> No influence of set on the active or not status of this peerDevice
 		auto IkSize = Ik_blob.get_len();
 		std::vector<uint8_t> storedIk;
 		storedIk.resize(IkSize);
 		Ik_blob.read(0, (char *)(storedIk.data()), IkSize); // Read the public key
 		if (storedIk == Ik) {
-			sql<<"UPDATE Lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
+			sql<<"UPDATE lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
 		} else if (IkSize == 1 && storedIk[0] == lime::settings::DBInvalidIk) { // If storedIk is the invalid_Ik, we got it from a setting to unsafe, just replace it with the given one
 			blob Ik_update_blob(sql);
 			Ik_update_blob.write(0, (char *)(Ik.data()), Ik.size());
-			sql<<"UPDATE Lime_PeerDevices SET Status = :Status, Ik = :Ik WHERE Did = :id;", use(statusInteger), use(Ik_update_blob), use(id);
+			sql<<"UPDATE lime_PeerDevices SET Status = :Status, Ik = :Ik WHERE Did = :id;", use(statusInteger), use(Ik_update_blob), use(id);
 			LIME_LOGW << "Set status trusted for peer device "<<static_cast<std::string>(peerDeviceId)<<" already present in base without Ik, updated the Ik with provided one";
 		} else { // Ik in local Storage differs than the one given... raise an exception
 			throw BCTBX_EXCEPTION << "Trying to insert an Identity key for peer device "<<static_cast<std::string>(peerDeviceId)<<" which differs from one already in local storage";
 		}
 	} else { // peer is not in local Storage, insert it
+		// First we need to check if another device with the same GRUU exists and if it is active
+		int alreadyActive = 0;
+		sql<<"SELECT count(*) FROM lime_PeerDevices WHERE Active = 1 AND DeviceId = :username;", into(alreadyActive), use(username);
+		alreadyActive = !alreadyActive; // when no one is active, we must insert with active flag On (1)
 		blob Ik_insert_blob(sql);
 		Ik_insert_blob.write(0, (char *)(Ik.data()), Ik.size());
-		sql<<"INSERT INTO Lime_PeerDevices(DeviceId, curveId, Ik, Status) VALUES(:username, :algo, :Ik, :Status);", use(username), use(algo), use(Ik_insert_blob), use(statusInteger);
+		sql<<"INSERT INTO lime_PeerDevices(DeviceId, curveId, Active, Ik, Status) VALUES(:username, :algo, :Active, :Ik, :Status);", use(username), use(algo), use(alreadyActive), use(Ik_insert_blob), use(statusInteger);
 	}
 }
 
@@ -425,7 +433,7 @@ void Db::set_peerDeviceStatus(const DeviceId &peerDeviceId,  lime::PeerDeviceSta
 	int currentStatus =  static_cast<uint8_t>(lime::PeerDeviceStatus::unsafe);
 	std::string username(peerDeviceId.getUsername());
 	int algo = static_cast<uint8_t>(peerDeviceId.getAlgo());
-	sql<<"SELECT Did, Status FROM Lime_PeerDevices WHERE DeviceId = :username AND curveId = :algo;", into(id), into(currentStatus), use(username), use(algo);
+	sql<<"SELECT Did, Status FROM lime_PeerDevices WHERE DeviceId = :username AND curveId = :algo;", into(id), into(currentStatus), use(username), use(algo);
 	inLocalStorage = sql.got_data();
 
 	// if status is untrusted
@@ -449,12 +457,16 @@ void Db::set_peerDeviceStatus(const DeviceId &peerDeviceId,  lime::PeerDeviceSta
 
 	// update or insert
 	if (inLocalStorage) {
-		sql<<"UPDATE Lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
+		sql<<"UPDATE lime_PeerDevices SET Status = :Status WHERE Did = :id;", use(statusInteger), use(id);
 	} else {
 		// the lime::settings::DBInvalidIk constant is set into lime_peerDevices table, Ik field when it is not provided by set_peerDeviceStatus as this field can't be set to NULL in older version of the database
+		int alreadyActive = 0;
+		sql<<"SELECT count(*) FROM lime_PeerDevices WHERE Active = 1 AND DeviceId = :username;", into(alreadyActive), use(username);
+		alreadyActive = !alreadyActive; // when no one is active, we must insert with active flag On (1)
+
 		blob Ik_insert_blob(sql);
 		Ik_insert_blob.write(0, (char *)(&lime::settings::DBInvalidIk), sizeof(lime::settings::DBInvalidIk));
-		sql<<"INSERT INTO Lime_PeerDevices(DeviceId, curveId, Ik, Status) VALUES(:username, :algo, :Ik, :Status);", use(username), use(algo), use(Ik_insert_blob), use(statusInteger);
+		sql<<"INSERT INTO lime_PeerDevices(DeviceId, curveId, Active, Ik, Status) VALUES(:username, :algo, :active, :Ik, :Status);", use(username), use(algo), use(alreadyActive), use(Ik_insert_blob), use(statusInteger);
 	}
 }
 
@@ -470,12 +482,13 @@ lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId)
 	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	// Check if the device is local -> return trusted
 	int count = 0;
-	sql<<"SELECT count(*) FROM Lime_LocalUsers WHERE UserId = :deviceId LIMIT 1;", into(count), use(peerDeviceId);
+	sql<<"SELECT count(*) FROM lime_LocalUsers WHERE UserId = :deviceId LIMIT 1;", into(count), use(peerDeviceId);
 	if (sql.got_data() && count > 0) {
 		return lime::PeerDeviceStatus::trusted;
 	}
 	int status;
-	sql<<"SELECT Status FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(status), use(peerDeviceId);
+	// Return the status of the active device
+	sql<<"SELECT Status FROM lime_PeerDevices WHERE DeviceId = :peerDeviceId AND Active = 1 LIMIT 1;", into(status), use(peerDeviceId);
 	if (sql.got_data()) { // Found it
 		switch (status) {
 			case static_cast<uint8_t>(lime::PeerDeviceStatus::untrusted) :
@@ -519,7 +532,7 @@ lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::list<std::string> &pe
 	sqlString_allDevicesId.pop_back(); // remove the last ','
 	// Get local devices among the list
 	rowset<std::string> rs_localDevices = (sql.prepare << "SELECT l.UserId FROM lime_LocalUsers as l WHERE l.UserId IN ("<<sqlString_allDevicesId<<");");
-	std::string sqlString_peerDeviceQuery{"SELECT d.Status FROM lime_PeerDevices as d WHERE d.DeviceId IN ("};
+	std::string sqlString_peerDeviceQuery{"SELECT d.Status FROM lime_PeerDevices as d WHERE d.Active = 1 AND d.DeviceId IN ("};
 
 	std::list<std::string> nolocalDevices = peerDeviceIds; // copy original list
 	// remove local users from the list: they are all considered as trusted
@@ -582,7 +595,7 @@ bool Db::is_updateRequested(const DeviceId &deviceId) {
 	int curveId = static_cast<uint8_t>(deviceId.getAlgo());
 	auto username = deviceId.getUsername();
 	int count = 0;
-	sql<<"SELECT count(*) FROM Lime_LocalUsers WHERE UserId = :deviceId AND curveId = :curveId AND updateTs < date('now', '-"<<lime::settings::OPk_updatePeriod<<" seconds') LIMIT 1;", into(count), use(username), use(curveId);
+	sql<<"SELECT count(*) FROM lime_LocalUsers WHERE UserId = :deviceId AND curveId = :curveId AND updateTs < date('now', '-"<<lime::settings::OPk_updatePeriod<<" seconds') LIMIT 1;", into(count), use(username), use(curveId);
 	return sql.got_data() && count > 0;
 }
 
@@ -599,7 +612,7 @@ void Db::set_updateTs(const DeviceId &deviceId) {
 	// The activation byte is 0 for active user and we update only active users
 	int curveId = static_cast<uint8_t>(deviceId.getAlgo());
 	auto username = deviceId.getUsername();
-	sql<<"UPDATE Lime_LocalUsers SET updateTs = CURRENT_TIMESTAMP WHERE UserId = :username AND curveId = :curveId;", use(username), use(curveId);
+	sql<<"UPDATE lime_LocalUsers SET updateTs = CURRENT_TIMESTAMP WHERE UserId = :username AND curveId = :curveId;", use(username), use(curveId);
 }
 
 
@@ -643,9 +656,10 @@ long int Db::check_peerDevice(const std::string &peerDeviceId, const DSA<typenam
 				Ik_blob.read(0, (char *)(&stored_Invalid_Ik), 1); // Read it
 				if (stored_Invalid_Ik == lime::settings::DBInvalidIk) { // we stored the invalid Ik
 					if (updateInvalid == true) { // We shall update the value with the given Ik and return the Did
+						// we arrive here from store_peerDevice only so set this peerDevice as active
 						blob Ik_update_blob(sql);
 						Ik_update_blob.write(0, (char *)(peerIk.data()), peerIk.size());
-						sql<<"UPDATE Lime_PeerDevices SET Ik = :Ik WHERE Did = :id;", use(Ik_update_blob), use(Did);
+						sql<<"UPDATE lime_PeerDevices SET Ik = :Ik, Active = 1 WHERE Did = :id;", use(Ik_update_blob), use(Did);
 						LIME_LOGW << "Check peer device status updated empty/invalid Ik for peer device "<<peerDeviceId;
 						return Did;
 					} else { // just proceed as the key were not in base
@@ -695,16 +709,18 @@ long int Db::store_peerDevice(const std::string &peerDeviceId, const DSA<typenam
 
 		// make sure this device wasn't already here, if it was, check they have the same Ik
 		Did = check_peerDevice<Curve>(peerDeviceId, peerIk, true); // perform checks on peer device and returns its Id if found in local storage already
-		if (Did != 0) {
-			return Did;
-		} else { // not found in local Storage
+		if (Did == 0) {// not found in local Storage
 			int curveId = static_cast<uint8_t>(Curve::curveId());
 			Ik_blob.write(0, (char *)(peerIk.data()), peerIk.size());
-			sql<<"INSERT INTO lime_PeerDevices(DeviceId,curveId,Ik) VALUES (:deviceId,:curveId,:Ik) ", use(peerDeviceId), use(curveId), use(Ik_blob);
+			// Insert this new device as Active
+			sql<<"INSERT INTO lime_PeerDevices(DeviceId,curveId,Active,Ik) VALUES (:deviceId,:curveId,1,:Ik) ", use(peerDeviceId), use(curveId), use(Ik_blob);
 			sql<<"select last_insert_rowid()",into(Did);
 			LIME_LOGD<<"store peerDevice "<<peerDeviceId<<" with device id "<<Did;
-			return Did;
 		}
+		// make sure no other peerDevice is active for this username
+		sql<<"UPDATE lime_PeerDevices SET Active = 0 WHERE DeviceId = :username AND Did <> :id;", use(peerDeviceId), use(Did);
+
+		return Did;
 	} catch (exception const &e) {
 		throw BCTBX_EXCEPTION << "Peer device "<<peerDeviceId<<" insertion failed: "<<e.what();
 	}

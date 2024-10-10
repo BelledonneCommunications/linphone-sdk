@@ -268,6 +268,12 @@ static bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &u
 	return ret;
 }
 
+// scenario
+// loop over 'epoch' using the parameters to set supported algorithm for each users.
+// Base algo supported differs at each epoch, but db is not deleted in order to simulate users migration
+//     create alice, bob, claire and dave users
+//     Alice encrypts to bob, claire and dave
+//     bob replies to alice, claire and dave
 static bool multialgos_four_users_test(const std::vector<std::vector<lime::CurveId>> aliceAlgos,
 	       const std::vector<std::vector<lime::CurveId>> bobAlgos,
 	       const std::vector<std::vector<lime::CurveId>> claireAlgos,
@@ -480,10 +486,193 @@ static void multialgos_four_users_migration(void) {
 #endif
 }
 
+/*
+ * Scenario:
+ * - create Bob and Alice using on curve 25519
+ * - check both alice and bob see each other as unknown
+ * - alice encrypts to Bob
+ * - check both alice and bob see each other as untrusted
+ * - set bob as trusted in alice db
+ * - check bob is trusted
+ * - now Alice migrates to c25519k512/c25519  
+ * - alice encrypts to Bob
+ * - check bob is still trusted
+ * - now Bob migrates to c25519k512/c25519  
+ * - alice encrypts to Bob (she will thus start a new session with a new bob peer device)
+ * - check bob is untrusted now (as we never trusted his new key)
+ * - alice change her mind and encrypt to bob using c25519 only session -> this force the active peer device for bob to be the c255519 one
+ * - check bob is now trusted
+ * - Bob encrypts to alice using the c25519k512 device -> alice decrypts, it forces back the active peerdevice to be the c25519k512 one
+ * - check bob is back to untrusted
+ */
+static void multialgos_peerStatus() {
+	std::string dbBaseFilename("multialgos_peerStatus");
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	const lime::EncryptionPolicy policy(lime::EncryptionPolicy::cipherMessage);
+
+	try {
+		// create DB
+		auto dbFilenameAlice = dbBaseFilename;
+		dbFilenameAlice.append(".alice").append(".sqlite3");
+		auto dbFilenameBob = dbBaseFilename;
+		dbFilenameBob.append(".bob").append(".sqlite3");
+
+		remove(dbFilenameAlice.data()); // delete the database file if already exists
+		remove(dbFilenameBob.data()); // delete the database file if already exists
+
+		std::vector<lime::CurveId> c25519only{lime::CurveId::c25519};
+		std::vector<lime::CurveId> c25519k512andc25519{lime::CurveId::c25519k512, lime::CurveId::c25519};
+
+		// create Manager and device for alice, use c25519 only
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d.");
+		aliceManager->create_user(*aliceDeviceId, c25519only, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// Create manager and device for bob, use c25519 only
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
+		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
+		bobManager->create_user(*bobDeviceId, c25519only, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// Check peerStatus: both are unknown
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::unknown);
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
+
+		// alice sends a message to bob
+		auto recipients = make_shared<std::vector<RecipientData>>();
+		recipients->emplace_back(*bobDeviceId);
+		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		auto cipherMessage = make_shared<std::vector<uint8_t>>();
+		aliceManager->encrypt(*aliceDeviceId, c25519only, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		// decrypt with bob Manager
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		// Check peerStatus: both are untrusted
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::untrusted);
+		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::untrusted);
+
+		// Get Bob Ik and set is a trusted for Alice
+		std::map<lime::CurveId, std::vector<uint8_t>> Iks{};
+		bobManager->get_selfIdentityKey(*bobDeviceId, c25519only, Iks);
+		aliceManager->set_peerDeviceStatus(*bobDeviceId, lime::CurveId::c25519, Iks[lime::CurveId::c25519], lime::PeerDeviceStatus::trusted);
+
+		// Check peerStatus
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
+
+		// now alice migrates to c25519k512, but still supports c25519
+		aliceManager->create_user(*aliceDeviceId, c25519k512andc25519, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// Check peerStatus, it is still trusted as there is no new peer Device for Bob
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
+
+		// alice sends a message to bob, she still uses the c25519only device for Bob as no c25519k512 can be found
+		recipients->clear();
+		recipients->emplace_back(*bobDeviceId);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
+		cipherMessage->clear();
+		aliceManager->encrypt(*aliceDeviceId, c25519k512andc25519, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		// decrypt with bob Manager
+		receivedMessage.clear();
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+		// Check peerStatus, it is still trusted as there is no new peer Device for Bob
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
+
+		// now bob migrates to c25519k512, but still supports c25519
+		bobManager->create_user(*bobDeviceId, c25519k512andc25519, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// alice sends a message to bob, she'll uses a new peerDevice for Bob
+		recipients->clear();
+		recipients->emplace_back(*bobDeviceId);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
+		cipherMessage->clear();
+		aliceManager->encrypt(*aliceDeviceId, c25519k512andc25519, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		// decrypt with bob Manager
+		receivedMessage.clear();
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[2]);
+
+		// Check peerStatus, it is now untrusted as there is a new peer Device for Bob
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::untrusted);
+
+		// alice changes her mind and encrypt to bo using specifically the c25519 only session
+		recipients->clear();
+		recipients->emplace_back(*bobDeviceId);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());
+		cipherMessage->clear();
+		aliceManager->encrypt(*aliceDeviceId, c25519only, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		// decrypt with bob Manager
+		receivedMessage.clear();
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[3]);
+
+		// Check peerStatus, the last encryption set the bob/c25519 peerDevice back to be the active one
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
+
+		// bob encrypt to alice using specifically the c25519k512 session
+		recipients->clear();
+		recipients->emplace_back(*aliceDeviceId);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[4].begin(), lime_tester::messages_pattern[4].end());
+		cipherMessage->clear();
+		bobManager->encrypt(*bobDeviceId, c25519k512andc25519, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback, policy);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		// decrypt with alice Manager
+		receivedMessage.clear();
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[4]);
+
+		// Check peerStatus, the last decryption set the bob/c25519k512 peerDevice back to be the active one -> untrusted
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::untrusted);
+
+		// delete the users
+		if (cleanDatabase) {
+			for (const auto &algo:c25519k512andc25519) {
+				aliceManager->delete_user(DeviceId(*aliceDeviceId, algo), callback);
+				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			}
+			for (const auto &algo:c25519k512andc25519) {
+				bobManager->delete_user(DeviceId(*bobDeviceId, algo), callback);
+				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			}
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("");
+	}
+}
+
 static test_t tests[] = {
 	TEST_NO_TAG("Basic", multialgos_basic),
 	TEST_NO_TAG("four users", multialgos_four_users_basic),
-	TEST_NO_TAG("four users migration", multialgos_four_users_migration)
+	TEST_NO_TAG("four users migration", multialgos_four_users_migration),
+	TEST_NO_TAG("Peer status", multialgos_peerStatus)
 };
 
 test_suite_t lime_multialgos_test_suite = {

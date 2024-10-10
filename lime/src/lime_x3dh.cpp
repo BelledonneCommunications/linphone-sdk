@@ -61,7 +61,7 @@ namespace lime {
 				if (m_Ik_loaded == false) {
 					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 					blob Ik_blob(m_localStorage->sql);
-					m_localStorage->sql<<"SELECT Ik FROM Lime_LocalUsers WHERE Uid = :UserId LIMIT 1;", into(Ik_blob), use(m_db_Uid);
+					m_localStorage->sql<<"SELECT Ik FROM lime_LocalUsers WHERE Uid = :UserId LIMIT 1;", into(Ik_blob), use(m_db_Uid);
 					if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
 						Ik_blob.read(0, (char *)(m_Ik.publicKey().data()), m_Ik.publicKey().size()); // Read the public key
 						Ik_blob.read(m_Ik.publicKey().size(), (char *)(m_Ik.privateKey().data()), m_Ik.privateKey().size()); // Read the private key
