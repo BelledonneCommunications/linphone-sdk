@@ -22,6 +22,7 @@
 
 configure_file("${LINPHONESDK_DIR}/cmake/Java/gradle/build.gradle.cmake" "build.gradle" @ONLY)
 configure_file("${LINPHONESDK_DIR}/cmake/Java/gradle/gradle.properties.cmake" "gradle.properties" @ONLY)
+configure_file("${LINPHONESDK_DIR}/cmake/Java/gradle/upload.gradle.cmake" "upload.gradle" @ONLY)
 
 set(GRADLEW_COMMAND "${LINPHONESDK_DIR}/cmake/Java/gradlew")
 if(WIN32)
