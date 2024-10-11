@@ -60,6 +60,11 @@ void EktServerPlugin::ServerEktManager::onParticipantDeviceStateChanged(
 				}
 			}
 			mParticipantDevices.erase(device);
+			if (mParticipantDevices.empty()) {
+				bctbx_message("ServerEktManager::onParticipantDeviceStateChanged : No participants found in the list. "
+				              "Clearing EKT data.");
+				clearData();
+			}
 			break;
 		default:
 			break;
