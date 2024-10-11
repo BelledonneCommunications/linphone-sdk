@@ -74,6 +74,7 @@ static char *convertFromTo(const char *str, const char *from, const char *to) {
 		bctbx_error("Error while converting a string from '%s' to '%s': unknown charset", from, to);
 		return NULL;
 	}
+	if (rFrom == rTo) return bctbx_strdup(str);
 
 	nChar = MultiByteToWideChar(rFrom, 0, str, -1, NULL, 0);
 	if (nChar == 0) return NULL;
@@ -83,6 +84,7 @@ static char *convertFromTo(const char *str, const char *from, const char *to) {
 	if (nChar == 0) {
 		bctbx_free(wideStr);
 		wideStr = 0;
+		return NULL;
 	}
 
 	nbByte = WideCharToMultiByte(rTo, 0, wideStr, -1, 0, 0, 0, 0);
@@ -126,16 +128,6 @@ char *bctbx_convert_string(const char *str, const char *from_encoding, const cha
 	if ((from_encoding && to_encoding && !strcmp(from_encoding, to_encoding)) || (!from_encoding && !to_encoding))
 		return bctbx_strdup(str);
 	return convertFromTo(str, (from_encoding ? from_encoding : "LOCALE"), (to_encoding ? to_encoding : "LOCALE"));
-}
-
-wchar_t *bctbx_string_to_wide_string(const char *str) {
-	std::string s(str);
-	int len;
-	int slength = (int)s.length() + 1;
-	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
-	wchar_t *buf = (wchar_t *)bctbx_malloc(len * sizeof(wchar_t));
-	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
-	return buf;
 }
 
 unsigned int bctbx_get_code_page(const char *encoding) {

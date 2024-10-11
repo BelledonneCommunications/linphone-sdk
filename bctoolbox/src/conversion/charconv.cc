@@ -117,12 +117,6 @@ char *bctbx_convert_string(const char *str, const char *from_encoding, const cha
 	return convert_from_to(str, (from_encoding ? from_encoding : "LOCALE"), (to_encoding ? to_encoding : "LOCALE"));
 }
 
-wchar_t *bctbx_string_to_wide_string(BCTBX_UNUSED(const char *str)) {
-	// TODO
-	bctbx_error("Conversion from string to wide string is not implemented");
-	return NULL;
-}
-
 unsigned int bctbx_get_code_page(BCTBX_UNUSED(const char *encoding)) {
 	bctbx_error("Getting code page is not implemented");
 	return 0;

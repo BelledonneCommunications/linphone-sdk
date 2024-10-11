@@ -52,12 +52,6 @@ bctbx_convert_string(const char *str, BCTBX_UNUSED(const char *from_encoding), B
 	return bctbx_strdup(str);
 }
 
-wchar_t *bctbx_string_to_wide_string(BCTBX_UNUSED(const char *str)) {
-	// TODO
-	bctbx_error("Conversion from string to wide string is not implemented");
-	return NULL;
-}
-
 unsigned int bctbx_get_code_page(BCTBX_UNUSED(const char *encoding)) {
 	bctbx_error("Getting code page is not implemented");
 	return 0;

@@ -107,7 +107,7 @@ BCTBX_PUBLIC char *bctbx_convert_utf8_to_any(const char *str, const char *encodi
 BCTBX_PUBLIC char *bctbx_convert_string(const char *str, const char *from_encoding, const char *to_encoding);
 
 /**
- * @brief Convert the char string to wide char string. Only available for Windows platform
+ * @brief Convert the char string to wide char string using current locale.
  *
  * @param[in] str string to convert
  *
@@ -115,6 +115,16 @@ BCTBX_PUBLIC char *bctbx_convert_string(const char *str, const char *from_encodi
  * by caller. NULL on failure.
  */
 BCTBX_PUBLIC wchar_t *bctbx_string_to_wide_string(const char *s);
+
+/**
+ * @brief Convert the wide char string to char string using current locale.
+ *
+ * @param[in] wstr wide string to convert
+ *
+ * @return a pointer to a null-terminated string containing the converted string. This buffer must then be freed
+ * by caller. NULL on failure.
+ */
+BCTBX_PUBLIC char *bctbx_wide_string_to_string(const wchar_t *wstr);
 
 /**
  * @brief Return the code page from the encoding. Only available for Windows platform

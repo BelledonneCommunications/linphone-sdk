@@ -29,6 +29,7 @@
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
 
+#include <cstdlib>
 #include <string>
 
 namespace {
@@ -50,4 +51,37 @@ const char *bctbx_get_default_encoding(void) {
 #else
 	return "locale";
 #endif
+}
+
+wchar_t *bctbx_string_to_wide_string(const char *str) {
+	wchar_t *wstr;
+	size_t sz = mbstowcs(NULL, str, 0);
+	if (sz == (size_t)-1) {
+		return NULL;
+	}
+	sz += 1;
+	wstr = (wchar_t *)bctbx_malloc(sz * sizeof(wchar_t));
+	sz = mbstowcs(wstr, str, sz);
+	if (sz == (size_t)-1) {
+		bctbx_free(wstr);
+		return NULL;
+	}
+	return wstr;
+}
+
+char *bctbx_wide_string_to_string(const wchar_t *wstr) {
+	size_t sz;
+	char *str;
+	sz = wcstombs(NULL, wstr, 0);
+	if (sz == (size_t)-1) {
+		return NULL;
+	}
+	sz += 1;
+	str = (char *)bctbx_malloc(sz);
+	sz = wcstombs(str, wstr, sz);
+	if (sz == (size_t)-1) {
+		bctbx_free(str);
+		return NULL;
+	}
+	return str;
 }
