@@ -208,11 +208,12 @@ static void two_synchronized_tracks(void) {
 	fr.close();
 }
 
-static void write_append_and_read(void) {
+static void _write_append_and_read(bool withEmptyTrack) {
 	string fileName = testerRandomFileName("append-", ".smff");
 	SMFF::FileWriter fw;
 	int i;
 	const int numAudioRecords = 10;
+	const int numAdditionalRecords = 20;
 
 	BC_ASSERT_TRUE(fw.open(fileName, false) == 0);
 
@@ -229,25 +230,54 @@ static void write_append_and_read(void) {
 		rec.size = tmp.size();
 		tw.addRecord(rec);
 	}
+	if (withEmptyTrack) {
+		auto otherTrack = fw.addTrack(1, "av1", TrackInterface::MediaType::Video, 90000, 1);
+		BC_ASSERT_TRUE(otherTrack.has_value());
+	}
 	fw.close();
 
+	/* Reopen with a FileWriter in append mode */
 	SMFF::FileWriter fw2;
 
 	BC_ASSERT_TRUE(fw2.open(fileName, true) == 0);
+	auto tw2 = fw2.getTrackByID(0);
+	if (BC_ASSERT_TRUE(tw2.has_value())) {
+		for (i = numAudioRecords; i < numAdditionalRecords; ++i) {
+			RecordInterface rec;
+			ostringstream ostr;
+			ostr << "buffer-" << i;
+			string tmp = ostr.str();
+			rec.timestamp = i;
+			rec.data.inputBuffer = (const uint8_t *)tmp.c_str();
+			rec.size = tmp.size();
+			tw2.value().get().addRecord(rec);
+		}
+	}
+	if (withEmptyTrack) {
+		/*empty track must still be present, and add something to it*/
+		auto tw2other = fw2.getTrackByID(1);
+		if (BC_ASSERT_TRUE(tw2other.has_value())) {
+			RecordInterface rec;
+			rec.timestamp = 0;
+			rec.data.inputBuffer = (const uint8_t *)"hello";
+			rec.size = 5;
+			tw2other.value().get().addRecord(rec);
+		}
+	}
 	fw2.close();
 
 	SMFF::FileReader fr;
 	BC_ASSERT_TRUE(fr.open(fileName) == 0);
 	auto trackReaderList = fr.getTrackReaders();
-	if (BC_ASSERT_TRUE(trackReaderList.size() == 1)) {
+	if (BC_ASSERT_TRUE(trackReaderList.size() == (withEmptyTrack ? 2 : 1))) {
 		TrackReaderInterface &tr = trackReaderList.front();
 		BC_ASSERT_STRING_EQUAL(tr.getCodec().c_str(), "opus");
 		BC_ASSERT_EQUAL(tr.getClockRate(), 48000, int, "%i");
 		BC_ASSERT_EQUAL(tr.getChannels(), 2, int, "%i");
 		BC_ASSERT_TRUE(tr.getType() == TrackInterface::MediaType::Audio);
-		BC_ASSERT_EQUAL((int)dynamic_cast<SMFF::TrackReader &>(tr).getNumRecords(), numAudioRecords, int, "%i");
+		BC_ASSERT_EQUAL((int)dynamic_cast<SMFF::TrackReader &>(tr).getNumRecords(), numAdditionalRecords, int, "%i");
 
-		for (i = 0; i < numAudioRecords; ++i) {
+		for (i = 0; i < numAdditionalRecords; ++i) {
 			RecordInterface rec;
 			uint8_t buffer[40];
 			ostringstream ostr;
@@ -262,13 +292,37 @@ static void write_append_and_read(void) {
 			BC_ASSERT_TRUE(memcmp(rec.data.outputBuffer, ostr.str().c_str(), rec.size) == 0);
 			tr.next();
 		}
+		if (withEmptyTrack) {
+			TrackReaderInterface &tr2 = trackReaderList.back();
+			BC_ASSERT_STRING_EQUAL(tr2.getCodec().c_str(), "av1");
+			BC_ASSERT_EQUAL(tr2.getClockRate(), 90000, int, "%i");
+			BC_ASSERT_EQUAL(tr2.getChannels(), 1, int, "%i");
+			BC_ASSERT_TRUE(tr2.getType() == TrackInterface::MediaType::Video);
+			RecordInterface rec;
+			uint8_t buffer[40];
+			rec.data.outputBuffer = buffer;
+			rec.size = sizeof(buffer);
+			if (BC_ASSERT_TRUE(tr2.read(rec))) {
+				BC_ASSERT_EQUAL((int)rec.size, 5, int, "%i");
+				BC_ASSERT_TRUE(memcmp(rec.data.outputBuffer, "hello", 5) == 0);
+			}
+		}
 	}
 	fr.close();
 }
 
+static void write_append_and_read(void) {
+	_write_append_and_read(false);
+}
+
+static void append_with_empty_track(void) {
+	_write_append_and_read(true);
+}
+
 static test_t tests[] = {TEST_NO_TAG("Write and read", write_and_read),
                          TEST_NO_TAG("With 2 synchronized tracks.", two_synchronized_tracks),
-                         TEST_NO_TAG("Write, append, and read", write_append_and_read)};
+                         TEST_NO_TAG("Write, append, and read", write_append_and_read),
+                         TEST_NO_TAG("Append with empty track", append_with_empty_track)};
 
 test_suite_t smff_test_suite = {"Simple Multimedia File Format",  NULL,  NULL, NULL, NULL,
                                 sizeof(tests) / sizeof(tests[0]), tests, 0};

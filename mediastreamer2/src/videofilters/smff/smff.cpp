@@ -115,9 +115,11 @@ void FileWriter::moveDataFromReader(FileReader &reader) {
 		if (writeTrack) {
 			TrackWriter &tw = dynamic_cast<TrackWriter &>(writeTrack.value().get());
 			tw.moveDataFromReader(dynamic_cast<TrackReader &>(track));
-			uint32_t absoluteTimestamp = tw.toAbsoluteTimestamp(tw.mRecords.back().timestamp);
-			if (absoluteTimestamp > mMostRecentAbsTimestamp) {
-				mMostRecentAbsTimestamp = absoluteTimestamp;
+			if (!tw.mRecords.empty()) {
+				uint32_t absoluteTimestamp = tw.toAbsoluteTimestamp(tw.mRecords.back().timestamp);
+				if (absoluteTimestamp > mMostRecentAbsTimestamp) {
+					mMostRecentAbsTimestamp = absoluteTimestamp;
+				}
 			}
 		}
 	}
