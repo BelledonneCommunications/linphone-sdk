@@ -166,7 +166,7 @@ namespace lime {
 		return LimeManager::load_user_noexcept(user, localDeviceId);
 	}
 	bool LimeManager::is_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos) {
-		bool globalReturn = true;
+		bool globalReturn = !algos.empty(); // return false when algos is empty
 		for (const auto algo:algos) {
 			// Load user object, if one of them returns false, the global return is false
 			globalReturn &= LimeManager::is_user(DeviceId(localDeviceId, algo));

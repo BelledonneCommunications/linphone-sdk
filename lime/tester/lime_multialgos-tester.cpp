@@ -135,14 +135,17 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 	belle_http_provider_send_request(prov,req,l);
 });
 
+#if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
+namespace {
 /* This function will destroy and recreate managers given in parameter, force deleting all internal cache and start back from what is in local Storage */
-static void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<LimeManager> &bob, std::string aliceDb, std::string bobDb) {
+void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<LimeManager> &bob, std::string aliceDb, std::string bobDb) {
 	alice = nullptr;
 	bob = nullptr;
 	alice = make_unique<LimeManager>(aliceDb, X3DHServerPost);
 	bob = make_unique<LimeManager>(bobDb, X3DHServerPost);
 	LIME_LOGI<<"Trash and reload alice and bob LimeManagers";
 }
+}//namespace
 
 
 static bool multialgos_basic_test(const std::vector<lime::CurveId> aliceAlgos, const std::vector<lime::CurveId>bobAlgos, lime::EncryptionPolicy policy, bool continuousSession=true) {
@@ -236,6 +239,7 @@ static bool multialgos_basic_test(const std::vector<lime::CurveId> aliceAlgos, c
 	}
 	return ret;
 }
+#endif //defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
 
 static void multialgos_basic(void) {
 #if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
@@ -255,8 +259,10 @@ static void multialgos_basic(void) {
 }
 
 
+#if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
+namespace {
 const std::vector<lime::CurveId> allAlgos{lime::CurveId::c25519, lime::CurveId::c448, lime::CurveId::c25519k512};
-static bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &username, const std::shared_ptr<lime::limeCallback> callback, int &counter ) {
+bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &username, const std::shared_ptr<lime::limeCallback> callback, int &counter ) {
 	bool ret = true;
 	// loop on all possible algo and delete the user if it exists
 	for (const auto algo:allAlgos) {
@@ -267,6 +273,7 @@ static bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &u
 	}
 	return ret;
 }
+} //namespace
 
 // scenario
 // loop over 'epoch' using the parameters to set supported algorithm for each users.
@@ -433,6 +440,7 @@ static bool multialgos_four_users_test(const std::vector<std::vector<lime::Curve
 	}
 	return ret;
 }
+#endif // defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
 
 static void multialgos_four_users_basic(void) {
 #if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
