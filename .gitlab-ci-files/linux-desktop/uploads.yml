@@ -170,8 +170,17 @@ rocky9-python-wheel-upload:
     - rocky9-python-wheel
 
   script:
+    #getting the version number to push the right version of the wheel
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+
+    - LIBLINPHONE_VERSION=$(echo $DESCRIBE| grep -o -E '^[0-9]+\.[0-9]+')
+
+    - echo $LIBLINPHONE_VERSION
+
     - !reference [.choose_upload_dir, script]
+
 
     # Create the directories if they do not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/linphone-python/linux-x86_64
-    - scp build/default/linphone-sdk/linphone*.whl $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/linphone-python/linux-x86_64/
+    - scp build/default/linphone-sdk/desktop/linphone*.whl $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/linphone-python/$LIBLINPHONE_VERSION/linux-x86_64/
