@@ -71,8 +71,25 @@ void EktServerPlugin::ServerEktManager::onParticipantDeviceStateChanged(
 	}
 }
 
+void EktServerPlugin::ServerEktManager::onAllowedParticipantListChanged(
+    const std::shared_ptr<linphone::Conference> &conference) {
+	bctbx_message("ServerEktManager::onAllowedParticipantListChanged : Allowed participant list for conference %s [%p] "
+	              "updated. Participants must regenerate EKT.",
+	              conference->getConferenceAddress()->asStringUriOnly().c_str(), conference.get());
+	clearData();
+	generateSSpi();
+	list<shared_ptr<const Address>> participantDeviceAddresses = {};
+	for (auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
+		participantDeviceCtx->setKnowsEkt(false);
+		participantDeviceAddresses.push_back(participantDevice->getAddress()); // Add the address of all participants
+	}
+	for (auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
+		sendNotifyWithParticipantDeviceList(participantDeviceCtx->getEventSubscribe(), participantDeviceAddresses);
+	}
+}
+
 int EktServerPlugin::ServerEktManager::subscribeReceived(const shared_ptr<Event> &ev,
-                                                         const shared_ptr<ParticipantDevice> device) {
+                                                         const shared_ptr<ParticipantDevice> &device) {
 	bool deviceFound = false;
 
 	if (ev->getName() != "ekt") {
