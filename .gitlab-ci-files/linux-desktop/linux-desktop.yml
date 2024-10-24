@@ -266,7 +266,7 @@
           EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=0;
 
-          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" $RESOURCES_DIR --log-file logLiblinphoneH264EKTOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
+          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" --max-failed 0 $RESOURCES_DIR --log-file logLiblinphoneH264EKTOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
 
          # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
 
@@ -366,7 +366,7 @@
     when: always
     reports:
       junit:
-        - ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml
+        - ${CI_PROJECT_DIR}/BCUnitAutomated*-Results.xml
     expire_in: 1 week
 
 .test-bctoolbox:
