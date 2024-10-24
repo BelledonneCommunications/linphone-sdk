@@ -112,7 +112,7 @@ sourceSets {
 java {
     toolchain {
         // Required for javadoc task...
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 

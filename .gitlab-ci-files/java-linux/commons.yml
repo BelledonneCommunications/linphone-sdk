@@ -1,0 +1,54 @@
+#############################################
+############### PACKAGE #####################
+#############################################
+
+.java-linux-package:
+  stage: package
+  tags: [ "docker" ]
+  extends: .linux-prepare
+  variables:
+    GIT_STRATEGY: fetch
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA_LINUX != null
+  script:
+   - mkdir -p build-java-wrapper
+   - cd build-java-wrapper
+   - cmake -GNinja --preset=java-sdk-linux -DENABLE_CCACHE=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON ..
+   - cmake --build .
+  artifacts:
+    paths:
+      # Needed of uploads
+      - build-java-wrapper/build.gradle
+      - build-java-wrapper/upload.gradle
+      - build-java-wrapper/gradle.properties
+      - build-java-wrapper/linphone-sdk/bin/libs/*
+    when: always
+    expire_in: 2 days
+
+#############################################
+############### UPLOAD #####################
+#############################################
+
+.java-linux-upload:
+  stage: deploy
+  tags: [ "docker" ]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA_LINUX != null
+  variables:
+    GIT_STRATEGY: fetch
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$DEPLOY_SERVER_HOST_KEY" >> ~/.ssh/known_hosts
+  script:
+    - cd build-java-wrapper
+    - mkdir -p maven_repository/org/linphone/
+    - echo $MAVEN_REPO_PATH
+    - rsync -avzP -e ssh --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/linphone-sdk maven_repository/org/linphone/
+    - echo $GRADLE_OPTIONS
+    - ../cmake/Java/gradlew -b upload.gradle publish $GRADLE_OPTIONS
+    - rsync -avzP -e ssh ./maven_repository/org/linphone/linphone-sdk $MAVEN_REPO_URL/org/linphone/
+  after_script:
+    - rm -rf ~/.ssh || true

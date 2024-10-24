@@ -1,26 +1,38 @@
-// Project information
-buildDir = 'linphone-sdk/bin/libs'
+plugins {
+    id "com.google.osdetector" version "1.7.3"
+    id "maven-publish"
+}
 
-buildscript {
-    repositories {
-        mavenCentral()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
+repositories {
+    mavenCentral()
+    maven {
+        url "https://plugins.gradle.org/m2/"
     }
 }
 
-apply plugin: 'maven-publish'
+// Define the output directory of the build (jars)
+def buildDir = 'linphone-sdk/bin/libs'
+def osClassifier = "${osdetector.release.id}.${osdetector.release.version}"
+println "Detected OS classifier for this upload : ${osClassifier}"
 
 publishing {
     publications {
         release(MavenPublication) {
-            groupId 'org.linphone'
-            artifactId 'linphone-sdk'
-            version "@LINPHONESDK_VERSION@"
-            artifact("$buildDir/linphone-sdk.jar")
-            artifact source: "$buildDir/linphone-sdk-sources.jar", classifier: 'sources', extension: 'jar'
-            artifact source: "$buildDir/linphone-sdk-javadoc.jar", classifier: 'javadoc', extension: 'jar'
+            groupId = 'org.linphone'
+            artifactId = 'linphone-sdk'
+            version = "@LINPHONESDK_VERSION@"
+            
+           artifact("${buildDir}/linphone-sdk.jar") {
+                classifier = osClassifier
+            }
+            artifact("${buildDir}/linphone-sdk-sources.jar") {
+                classifier = 'sources'
+                extension = 'jar'
+            }
+            artifact("${buildDir}/linphone-sdk-javadoc.jar") {
+                classifier = 'javadoc'
+                extension = 'jar'
+            }
 
             pom {
                 name = 'Linphone'
@@ -42,7 +54,7 @@ publishing {
     
     repositories {
         maven {
-            url "./maven_repository/"
+            url './maven_repository/'
         }
     }
 }

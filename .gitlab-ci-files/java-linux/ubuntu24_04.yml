@@ -1,0 +1,15 @@
+.java_linux_ubuntu24_04_image:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-lw-ubuntu24:20241024_sdk_upload
+
+
+java-linux-package_ubuntu24_04:
+  extends:
+    - .java-linux-package
+    - .java_linux_ubuntu24_04_image
+
+java-linux-upload_ubuntu24_04:
+  extends:
+   - .java-linux-upload
+   - .java_linux_ubuntu24_04_image
+  needs:
+   - java-linux-package_ubuntu24_04

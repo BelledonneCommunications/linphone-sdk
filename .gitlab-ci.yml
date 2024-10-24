@@ -53,8 +53,9 @@ include:
   - '.gitlab-ci-files/iOS/tests.yml'
   - '.gitlab-ci-files/iOS/uploads.yml'
 
-  - '.gitlab-ci-files/java-linux/package.yml'
-  - '.gitlab-ci-files/java-linux/upload.yml'
+  - '.gitlab-ci-files/java-linux/commons.yml'
+  - '.gitlab-ci-files/java-linux/ubuntu24_04.yml'
+  - '.gitlab-ci-files/java-linux/rocky9.yml'
 
   - '.gitlab-ci-files/linux-desktop/linux-desktop.yml'
   - '.gitlab-ci-files/linux-desktop/uploads.yml'

@@ -1,0 +1,15 @@
+.java_linux_rocky9_image:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-lw-rocky9:20241024_init
+
+
+java-linux-package_rocky9:
+  extends:
+    - .java-linux-package
+    - .java_linux_rocky9_image
+
+java-linux-upload_rocky9:
+  extends:
+   - .java-linux-upload
+   - .java_linux_rocky9_image
+  needs:
+   - java-linux-package_rocky9
