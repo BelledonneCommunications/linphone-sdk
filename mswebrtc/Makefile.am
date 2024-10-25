@@ -7,6 +7,7 @@ ISAC_FLAVOUR = fix
 ISAC_SRC_DIR = webrtc/webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
 ILBC_SRC_DIR = webrtc/webrtc/modules/audio_coding/codecs/ilbc
 AEC_SRC_DIR = webrtc/webrtc/modules/audio_processing/aecm
+AEC3_SRC_DIR = webrtc_for_aec3/api/audio/audio_processing
 WEBRTC_COMMON_DIR = webrtc/webrtc/common_audio
 WEBRTC_COMMON_SP_DIR = webrtc/webrtc/common_audio/signal_processing
 
@@ -110,6 +111,9 @@ AEC_BASE_SRCS = \
 
 AEC_BASE_SRCS += $(AEC_SRC_DIR)/aecm_core_c.c
 
+AEC3_BASE_SRCS = \
+	$(AEC3_SRC_DIR)/audio_processing.cc \
+
 ILBC_BASE_SRCS = \
 	$(ILBC_SRC_DIR)/abs_quant.c \
 	$(ILBC_SRC_DIR)/abs_quant_loop.c \
@@ -195,6 +199,10 @@ endif
 if BUILD_AEC
 libmswebrtc_la_SOURCES+= $(top_srcdir)/$(AEC_BASE_SRCS) aec.c \
 	$(top_srcdir)/$(AEC_SRC_DIR)/include/echo_control_mobile.h
+endif
+if BUILD_AEC3
+libmswebrtc_la_SOURCES+= $(top_srcdir)/$(AEC3_BASE_SRCS) aec3.cc \
+	$(top_srcdir)/$(AEC3_SRC_DIR)/audio_processing.h
 endif
 if BUILD_ILBC
 libmswebrtc_la_SOURCES+= ilbc.c $(top_srcdir)/$(ILBC_BASE_SRCS)\

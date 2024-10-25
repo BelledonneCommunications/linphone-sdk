@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2024  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -451,3 +451,6 @@ install(TARGETS mswebrtc
 
 add_subdirectory(build)
 
+if (ENABLE_AEC3)
+	add_subdirectory(webrtc_aec3)
+endif()

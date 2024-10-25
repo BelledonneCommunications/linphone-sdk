@@ -474,15 +474,9 @@ static int webrtc_aec_get_state(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int webrtc_aec_get_estimated_delay(MSFilter *f, void *arg) {
+static int webrtc_aec_get_delay(MSFilter *f, void *arg) {
 	WebRTCAECState *s = (WebRTCAECState *)f->data;
 	*(int *)arg = s->delay_median_ms;
-	return 0;
-}
-
-static int webrtc_aec_set_delay_estimation(MSFilter *f, void *arg) {
-	WebRTCAECState *s = (WebRTCAECState *)f->data;
-	s->enable_delay_logging = *(bool_t *)arg;
 	return 0;
 }
 
@@ -495,8 +489,7 @@ static MSFilterMethod webrtc_aec_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, webrtc
                                               {MS_ECHO_CANCELLER_GET_BYPASS_MODE, webrtc_aec_get_bypass_mode},
                                               {MS_ECHO_CANCELLER_GET_STATE_STRING, webrtc_aec_get_state},
                                               {MS_ECHO_CANCELLER_SET_STATE_STRING, webrtc_aec_set_state},
-                                              {MS_ECHO_CANCELLER_GET_ESTIMATED_DELAY, webrtc_aec_get_estimated_delay},
-                                              {MS_ECHO_CANCELLER_SET_DELAY_ESTIMATION, webrtc_aec_set_delay_estimation},
+                                              {MS_ECHO_CANCELLER_GET_DELAY, webrtc_aec_get_delay},
                                               {0, NULL}};
 
 #ifdef BUILD_AEC

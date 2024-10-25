@@ -30,11 +30,10 @@
 #include "ilbc.h"
 #endif
 
+#include "mediastreamer2/msfilter.h"
 #include "signal_processing_library.h"
 
-#include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mscodecutils.h"
-
 
 #ifdef BUILD_ISAC
 extern MSFilterDesc ms_isac_dec_desc;
@@ -64,7 +63,7 @@ extern MSFilterDesc ms_webrtc_vad_desc;
 #define MS_PLUGIN_DECLARE(type) type
 #endif
 
-MS_PLUGIN_DECLARE ( void ) libmswebrtc_init(MSFactory* factory) {
+MS_PLUGIN_DECLARE(void) libmswebrtc_init(MSFactory *factory) {
 #ifdef BUILD_ISAC
 	char isac_version[20] = "";
 #endif
@@ -96,18 +95,18 @@ MS_PLUGIN_DECLARE ( void ) libmswebrtc_init(MSFactory* factory) {
 
 	ms_message("libmswebrtc " VERSION " plugin loaded"
 #ifdef BUILD_ISAC
-	", iSAC codec version %s"
+	           ", iSAC codec version %s"
 #endif
 #ifdef BUILD_ILBC
-	", iLBC codec version %s"
+	           ", iLBC codec version %s"
 #endif
 #ifdef BUILD_ISAC
-	, isac_version
+	           ,
+	           isac_version
 #endif
 #ifdef BUILD_ILBC
-	, ilbc_version
+	           ,
+	           ilbc_version
 #endif
 	);
 }
-
-
