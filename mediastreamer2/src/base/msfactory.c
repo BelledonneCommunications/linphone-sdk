@@ -125,6 +125,15 @@ const char *ms_factory_get_echo_canceller_filter_name(const MSFactory *obj) {
 	return obj->echo_canceller_filtername;
 }
 
+void ms_factory_set_echo_canceller_3_filter_name(MSFactory *obj, const char *filtername) {
+	if (obj->echo_canceller_3_filtername != NULL) ms_free(obj->echo_canceller_3_filtername);
+	obj->echo_canceller_3_filtername = ms_strdup(filtername);
+}
+
+const char *ms_factory_get_echo_canceller_3_filter_name(const MSFactory *obj) {
+	return obj->echo_canceller_3_filtername;
+}
+
 unsigned int ms_factory_get_cpu_count(MSFactory *obj) {
 	return obj->cpu_count;
 }
@@ -243,6 +252,7 @@ void ms_factory_init(MSFactory *obj) {
 	ms_factory_add_platform_tag(obj, "desktop");
 #endif
 	obj->echo_canceller_filtername = ms_strdup("MSWebRTCAEC");
+	// obj->echo_canceller_3_filtername = ms_strdup("MSWebRTCAEC3");
 	tags = ms_factory_get_platform_tags_as_string(obj);
 	ms_message("ms_factory_init() done: platform_tags=%s", tags);
 	ms_free(tags);
@@ -1136,6 +1146,7 @@ void ms_factory_destroy(MSFactory *factory) {
 	bctbx_list_for_each(factory->platform_tags, ms_free);
 	factory->platform_tags = bctbx_list_free(factory->platform_tags);
 	if (factory->echo_canceller_filtername) ms_free(factory->echo_canceller_filtername);
+	if (factory->echo_canceller_3_filtername) ms_free(factory->echo_canceller_3_filtername);
 	if (factory->plugins_dir) ms_free(factory->plugins_dir);
 	if (factory->image_resources_dir) ms_free(factory->image_resources_dir);
 	if (factory->wbcmanager) ms_web_cam_manager_destroy(factory->wbcmanager);

@@ -79,12 +79,11 @@ static FileInfo *file_info_new(const char *file) {
 	return fi;
 }
 
-static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_samples, const double start_time_ms) {
+static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_samples) {
 	int err;
-	int nsamples = fi->nsamples - (int)(start_time_ms / 1000. * (double)fi->rate);
-	int size = nsamples * fi->nchannels * 2;
-	fi->buffer = ms_new0(int16_t, (nsamples + 2 * zero_pad_samples + 2 * zero_pad_end_samples) * fi->nchannels);
-	fi->fp->offset += (int)(start_time_ms / 1000. * (double)fi->rate) * fi->nchannels * sizeof(int16_t);
+	int size = fi->nsamples * fi->nchannels * 2;
+	fi->buffer = ms_new0(int16_t, (fi->nsamples + 2 * zero_pad_samples + 2 * zero_pad_end_samples) * fi->nchannels);
+
 	err = (int)bctbx_file_read2(fi->fp, fi->buffer + (zero_pad_samples * fi->nchannels), size);
 	if (err == BCTBX_VFS_ERROR) {
 		ms_error("Could not read file: %s", strerror(errno));
@@ -94,8 +93,28 @@ static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_s
 			err = -1;
 		} else err = 0;
 	}
-	fi->nsamples = nsamples;
 	fi->nsamples += zero_pad_end_samples; /*consider that the end-padding zero samples are part of the audio*/
+	return err;
+}
+
+/* This function reads the audio buffer from start_sample to start_sample + size_samples, with a 0 padding at the
+ *beginning of zero_pad_samples coefficients.
+ **/
+static int file_info_read_short(FileInfo *fi, int zero_pad_samples, int start_sample, int size_samples) {
+	int err;
+	int size = size_samples * fi->nchannels * 2;
+	fi->buffer = ms_new0(int16_t, (size_samples + 2 * zero_pad_samples) * fi->nchannels);
+	fi->fp->offset += start_sample * fi->nchannels * sizeof(int16_t);
+	err = (int)bctbx_file_read2(fi->fp, fi->buffer + (zero_pad_samples * fi->nchannels), size);
+	if (err == BCTBX_VFS_ERROR) {
+		ms_error("Could not read file: %s", strerror(errno));
+	} else {
+		if (err < size) {
+			ms_error("Partial read of %i bytes, expected %i", err, size);
+			err = -1;
+		} else err = 0;
+	}
+	fi->nsamples = size_samples;
 	return err;
 }
 
@@ -323,24 +342,249 @@ static int _ms_audio_diff_chunked(
 	return maxpos;
 }
 
+/* This function detects silence parts in reference audio segment s1 and measures the energy in these parts in audio
+ *segment s2. It returns the energu and the mask to apply to get teh silence parts in s1. The audio segments s1 and s2
+ *are supposed to have 1 channel.
+ **/
+static void ms_audio_compute_energy_in_silence(int16_t *s1, int16_t *s2, int nsamples, int *mask, double *energy) {
+
+	// normalize reference signal
+	double *s1_norm = ms_new0(double, nsamples);
+	for (int i = 0; i < nsamples; i++) {
+		s1_norm[i] = (double)abs(s1[i]) / 32768.;
+	}
+
+	// detect silence in reference audio segment
+	// warning: the filtering parameters have been tested for 16000 Hz only
+	double threshold = 0.001;
+	int half_window = 200;
+	for (int i = 0; i < nsamples; i++) {
+		int w0 = MAX(0, i - half_window);
+		int wn = MIN(nsamples, i + half_window + 1);
+		double sum = 0.;
+		double k = 0.;
+		for (int j = w0; j < wn; j++) {
+			sum += s1_norm[j];
+			k += 1;
+		}
+		if (sum / k < threshold) {
+			mask[i] = 1;
+		}
+	}
+	ms_free(s1_norm);
+	int *mask_tmp = ms_new0(int, nsamples);
+	int half_window_tmp = 1400;
+	for (int i = 0; i < nsamples; i++) {
+		int w0 = MAX(0, i - half_window_tmp);
+		int wn = MIN(nsamples, i + half_window_tmp + 1);
+		double sum = 0.;
+		double k = 0.;
+		for (int j = w0; j < wn; j++) {
+			sum += mask[j];
+			k += 1;
+		}
+		if (sum / k < 0.5) {
+			mask_tmp[i] = 0;
+		} else {
+			mask_tmp[i] = 1;
+		}
+	}
+	for (int i = 0; i < nsamples; i++) {
+		mask[i] = mask_tmp[i];
+	}
+	ms_free(mask_tmp);
+
+	// measure energy in silence of tested audio segment
+	double en = 0.;
+	double s = 0.;
+	for (int i = 0; i < nsamples; i++) {
+		if (mask[i] == 1) {
+			s = (double)s2[i] / 32768.;
+			en += s * s;
+		}
+	}
+	*energy = en;
+}
+
+/* This function computes the similarity between the audio segments generated from s1 and s2, where the parts given by
+ *the mask have been removed. The audio segments s1 and s2 are supposed to have the same size, 1 channel, and to be
+ *aligned.
+ **/
+static void ms_audio_compute_similarity_in_speech(
+    int16_t *s1, int16_t *s2, int nsamples, int *mask, double *ret, ProgressContext *pctx) {
+
+	int nsamples_silence = 0;
+	for (int i = 0; i < nsamples; i++) {
+		if (mask[i] == 1) {
+			nsamples_silence += 1;
+		}
+	}
+	int nsamples_speech = nsamples - nsamples_silence;
+	int max_shift_samples = (int)((double)nsamples_speech / 100.);
+
+	int16_t *s1_speech = ms_new0(int16_t, nsamples_speech);
+	int16_t *s2_speech = ms_new0(int16_t, nsamples_speech + 2 * max_shift_samples);
+	int j = 0;
+	for (int i = 0; i < nsamples; i++) {
+		if (mask[i] == 0) {
+			s1_speech[j] = s1[i];
+			s2_speech[j + max_shift_samples] = s2[i];
+			j += 1;
+		}
+	}
+	int maxpos = _ms_audio_diff_one_chunk(s1_speech, s2_speech, nsamples_speech, max_shift_samples, 1, ret, NULL, pctx);
+	ms_message("Max cross-correlation on speech parts obtained at position [%i], similarity factor=[%g]", maxpos, *ret);
+
+	ms_free(s1_speech);
+	ms_free(s2_speech);
+}
+
+int ms_audio_compare_silence_and_speech(const char *ref_file,
+                                        const char *matched_file,
+                                        double *ret,
+                                        double *energy,
+                                        const MSAudioDiffParams *params,
+                                        MSAudioDiffProgressNotify func,
+                                        void *user_data,
+                                        const int start_time_short_ms,
+                                        const int stop_time_short_ms,
+                                        const int start_time_ms) {
+
+	FileInfo *fi1, *fi2;
+	int max_shift_samples;
+	int err = 0;
+	ProgressContext pctx;
+	int maxpos;
+
+	progress_context_init(&pctx, func, user_data);
+
+	*ret = 0;
+
+	fi1 = file_info_new(ref_file);
+	if (fi1 == NULL) return 0;
+	fi2 = file_info_new(matched_file);
+	if (fi2 == NULL) {
+		file_info_destroy(fi1);
+		return -1;
+	}
+
+	FileInfo *fi1_short, *fi2_short;
+	fi1_short = file_info_new(ref_file);
+	if (fi1_short == NULL) return 0;
+	fi2_short = file_info_new(matched_file);
+	if (fi2_short == NULL) {
+		file_info_destroy(fi1_short);
+		return -1;
+	}
+
+	FileInfo *fi1_full, *fi2_full;
+	fi1_full = file_info_new(ref_file);
+	if (fi1_full == NULL) return 0;
+	fi2_full = file_info_new(matched_file);
+	if (fi2_full == NULL) {
+		file_info_destroy(fi1_full);
+		return -1;
+	}
+
+	if (fi1->rate != fi2->rate) {
+		ms_error("Comparing files of different sampling rates is not supported (%d vs %d)", fi1->rate, fi2->rate);
+		err = -1;
+		goto end;
+	}
+
+	if (fi1->nchannels != fi2->nchannels) {
+		ms_error("Comparing files with different number of channels is not supported (%d vs %d)", fi1->nchannels,
+		         fi2->nchannels);
+		err = -1;
+		goto end;
+	}
+	if (fi1->nsamples == 0) {
+		ms_error("Reference file has no samples !");
+		err = -1;
+		goto end;
+	}
+	if (fi2->nsamples == 0) {
+		ms_error("Matched file has no samples !");
+		err = -1;
+		goto end;
+	}
+
+	// align audio segments
+	int tested_time_short_ms = stop_time_short_ms - start_time_short_ms;
+	if ((double)tested_time_short_ms >= (double)fi1->nsamples / (double)fi1->rate * 1000) {
+		ms_error("File duration is less than %d ms !", tested_time_short_ms);
+		err = -1;
+		goto end;
+	}
+	if ((double)tested_time_short_ms >= (double)fi2->nsamples / (double)fi2->rate * 1000) {
+		ms_error("File duration is less than %d ms !", tested_time_short_ms);
+		err = -1;
+		goto end;
+	}
+	/*load the datas, reference file fi1 is shifted of max_shift_samples*/
+	max_shift_samples = tested_time_short_ms * fi1->rate / 1000 * MIN(MAX(1, params->max_shift_percent), 100) / 100;
+	int start_samples_short = (int)((double)start_time_short_ms / 1000. * (double)fi1->rate);
+	int size_samples_short = (int)((double)tested_time_short_ms / 1000. * (double)fi1->rate);
+	if (file_info_read_short(fi2, 0, start_samples_short, size_samples_short) == -1) {
+		err = -1;
+		goto end;
+	}
+	if (file_info_read_short(fi1, max_shift_samples, start_samples_short, size_samples_short) == -1) {
+		err = -1;
+		goto end;
+	}
+
+	if (params->chunk_size_ms == 0) {
+		maxpos = _ms_audio_diff_one_chunk(fi2->buffer, fi1->buffer, fi2->nsamples, max_shift_samples, fi1->nchannels,
+		                                  ret, NULL, &pctx);
+	} else {
+		int chunk_size_samples = params->chunk_size_ms * fi1->rate / 1000;
+		maxpos = _ms_audio_diff_chunked(fi2, fi1, ret, max_shift_samples, chunk_size_samples, &pctx);
+	}
+	ms_message("Max cross-correlation on short audio segment obtained at position [%i], similarity factor=[%g]", maxpos,
+	           *ret);
+
+	// synchronize full audio segments
+	int zero_pad_sample_fi1 = 0;
+	int zero_pad_sample_fi2 = maxpos;
+	if (maxpos < 0) {
+		zero_pad_sample_fi1 = -maxpos;
+		zero_pad_sample_fi2 = 0;
+	}
+	int start_sample = (int)(start_time_ms / 1000. * (double)fi1->rate);
+	int size_samples_1 = fi1_full->nsamples - (int)(start_time_ms / 1000. * (double)fi1->rate);
+	int size_samples_2 = fi2_full->nsamples - (int)(start_time_ms / 1000. * (double)fi2->rate);
+	file_info_read_short(fi1_full, zero_pad_sample_fi1, start_sample, size_samples_1);
+	file_info_read_short(fi2_full, zero_pad_sample_fi2, start_sample, size_samples_2);
+
+	// analyze silence
+	int nsamples = MIN(size_samples_1, size_samples_2);
+	int *mask = ms_new0(int, nsamples);
+	ms_audio_compute_energy_in_silence(fi1_full->buffer, fi2_full->buffer, nsamples, mask, energy);
+
+	// analyze speech
+	ms_audio_compute_similarity_in_speech(fi1_full->buffer, fi2_full->buffer, nsamples, mask, ret, &pctx);
+	ms_free(mask);
+
+	ms_message("Max cross-correlation obtained on speech parts, similarity factor=[%g]", *ret);
+	ms_message("Energy measured on silences=[%g]", *energy);
+
+end:
+	file_info_destroy(fi1);
+	file_info_destroy(fi2);
+	file_info_destroy(fi1_short);
+	file_info_destroy(fi2_short);
+	file_info_destroy(fi1_full);
+	file_info_destroy(fi2_full);
+	return err;
+}
+
 int ms_audio_diff(const char *ref_file,
                   const char *matched_file,
                   double *ret,
                   const MSAudioDiffParams *params,
                   MSAudioDiffProgressNotify func,
                   void *user_data) {
-
-	return ms_audio_diff_from_given_time(ref_file, matched_file, ret, params, func, user_data, 0);
-}
-
-int ms_audio_diff_from_given_time(const char *ref_file,
-                                  const char *matched_file,
-                                  double *ret,
-                                  const MSAudioDiffParams *params,
-                                  MSAudioDiffProgressNotify func,
-                                  void *user_data,
-                                  const int start_time_ms) {
-
 	FileInfo *fi1, *fi2;
 	int max_shift_samples;
 	int err = 0;
@@ -382,28 +626,17 @@ int ms_audio_diff_from_given_time(const char *ref_file,
 		err = -1;
 		goto end;
 	}
-	if ((double)start_time_ms >= (double)fi1->nsamples / (double)fi1->rate * 1000) {
-		ms_error("File duration is less than %d ms !", start_time_ms);
-		err = -1;
-		goto end;
-	}
-	if ((double)start_time_ms >= (double)fi2->nsamples / (double)fi2->rate * 1000) {
-		ms_error("File duration is less than %d ms !", start_time_ms);
-		err = -1;
-		goto end;
-	}
-
 	max_shift_samples = MIN(fi1->nsamples, fi2->nsamples) * MIN(MAX(1, params->max_shift_percent), 100) / 100;
 
 	if (fi1->nsamples > fi2->nsamples) {
 		end_zero_pad_samples = fi1->nsamples - fi2->nsamples;
 	}
 	/*load the datas*/
-	if (file_info_read(fi1, 0, 0, (double)start_time_ms) == -1) {
+	if (file_info_read(fi1, 0, 0) == -1) {
 		err = -1;
 		goto end;
 	}
-	if (file_info_read(fi2, max_shift_samples, end_zero_pad_samples, (double)start_time_ms) == -1) {
+	if (file_info_read(fi2, max_shift_samples, end_zero_pad_samples) == -1) {
 		err = -1;
 		goto end;
 	}
@@ -435,7 +668,7 @@ int ms_audio_energy(const char *ref_file, double *energy) {
 		goto end;
 	}
 	/*load the datas*/
-	if (file_info_read(fi, 0, 0, 0.) == -1) {
+	if (file_info_read(fi, 0, 0) == -1) {
 		err = -1;
 		goto end;
 	}

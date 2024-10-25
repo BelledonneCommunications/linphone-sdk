@@ -49,6 +49,7 @@ struct _MSFactory {
 	struct _AndroidSoundUtils *android_sound_utils;
 	char *image_resources_dir;
 	char *echo_canceller_filtername;
+	char *echo_canceller_3_filtername;
 	int expected_video_bandwidth;
 };
 
@@ -370,6 +371,20 @@ MS2_PUBLIC void ms_factory_set_echo_canceller_filter_name(MSFactory *obj, const 
  * @return The name of the echo canceller filter being used
  */
 MS2_PUBLIC const char *ms_factory_get_echo_canceller_filter_name(const MSFactory *obj);
+
+/**
+ * Set the name of the echo canceller filter to use.
+ * @param[in] obj MSFactory object
+ * @param[in] filtername The name of the echo canceller filter to use
+ */
+MS2_PUBLIC void ms_factory_set_echo_canceller_3_filter_name(MSFactory *obj, const char *filtername);
+
+/**
+ * Get the name of the echo canceller filter being used.
+ * @param[in] obj MSFactory object
+ * @return The name of the echo canceller filter being used
+ */
+MS2_PUBLIC const char *ms_factory_get_echo_canceller_3_filter_name(const MSFactory *obj);
 
 MS2_PUBLIC const struct _MSFmtDescriptor *
 ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp);

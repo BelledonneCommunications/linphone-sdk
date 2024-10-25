@@ -373,14 +373,9 @@ static int speex_ec_get_state(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int speex_ec_get_estimated_delay(BCTBX_UNUSED(MSFilter *f), void *arg) {
-	/* Return -1 because this is not used for the Speex echo canceller. */
-	*(int *)arg = -1;
-	return 0;
-}
-
-static int speex_ec_set_delay_estimation(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *arg)) {
-	/* Do nothing because this is not needed by the Speex echo canceller. */
+static int speex_ec_get_delay(BCTBX_UNUSED(MSFilter *f), void *arg) {
+	SpeexECState *s = (SpeexECState *)f->data;
+	*(int *)arg = s->delay_ms;
 	return 0;
 }
 
@@ -392,8 +387,7 @@ static MSFilterMethod speex_ec_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, speex_ec
                                             {MS_ECHO_CANCELLER_GET_BYPASS_MODE, speex_ec_get_bypass_mode},
                                             {MS_ECHO_CANCELLER_GET_STATE_STRING, speex_ec_get_state},
                                             {MS_ECHO_CANCELLER_SET_STATE_STRING, speex_ec_set_state},
-                                            {MS_ECHO_CANCELLER_GET_ESTIMATED_DELAY, speex_ec_get_estimated_delay},
-                                            {MS_ECHO_CANCELLER_SET_DELAY_ESTIMATION, speex_ec_set_delay_estimation},
+                                            {MS_ECHO_CANCELLER_GET_DELAY, speex_ec_get_delay},
                                             {0, 0}};
 
 #ifdef _MSC_VER

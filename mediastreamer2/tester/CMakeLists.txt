@@ -54,10 +54,11 @@ set(SOUND_FILES
 	sounds/arpeggio_8000_mono.wav
 	sounds/bird_44100_stereo.wav
 	sounds/chimes_48000_stereo.wav
-	sounds/echo_fileid_11.wav
-	sounds/echo_simple_talk_fileid_11.wav
-	sounds/farend_speech_fileid_11.wav
-	sounds/farend_speech_simple_talk_fileid_11.wav
+	sounds/echo_delay_change.wav	
+	sounds/echo_double_talk.wav
+	sounds/echo_simple_talk.wav
+	sounds/farend_double_talk.wav
+	sounds/farend_simple_talk.wav
 	sounds/hello8000.wav
 	sounds/hello8000-1s.wav
 	sounds/hello16000.wav
@@ -65,8 +66,8 @@ set(SOUND_FILES
 	sounds/hello_opus.mka
 	sounds/hello_pcmu.mka
 	sounds/laserrocket_16000_mono.wav
-	sounds/nearend_speech_fileid_11.wav
-	sounds/nearend_speech_simple_talk_fileid_11.wav
+	sounds/nearend_double_talk.wav
+	sounds/nearend_simple_talk.wav
 	sounds/nylon_48000_mono.wav
 	sounds/owl_44100_mono.wav
 	sounds/piano_8000_stereo.wav
@@ -124,7 +125,7 @@ set(IOS_RESOURCES_FILES
 
 set(SOURCE_FILES_C
 	mediastreamer2_adaptive_tester.c
-	mediastreamer2_aec_tester.c
+	mediastreamer2_aec3_tester.c
 	mediastreamer2_audio_stream_tester.c
 	mediastreamer2_basic_audio_tester.c
 	mediastreamer2_framework_tester.c
