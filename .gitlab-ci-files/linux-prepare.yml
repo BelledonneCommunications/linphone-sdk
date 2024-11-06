@@ -181,7 +181,7 @@ recache-get-from-branch:
     - export GRADLE_USER_HOME=`pwd`/.gradle
 
     #debug empty value on updated arch
-    - find $CI_PROJECT_DIR -name '.git' -exec bash -c 'git config --global --add safe.directory ${0%/.git}' {} \;
+    - find $CI_PROJECT_DIR -name '.git' -exec bash -c 'git config --global --add safe.directory ${0%/.git}' {} \; || true
     - git describe --debug || true
     - git -C liblinphone describe --debug || true
 
