@@ -33,7 +33,7 @@ execute_process(
 if(WIN32)
 file(GLOB_RECURSE _libs "linphone-sdk/java/bin/*.dll")
 else()
-	file(GLOB_RECURSE _libs "linphone-sdk/java/lib/*.so")
+	file(GLOB_RECURSE _libs "linphone-sdk/java/${CMAKE_INSTALL_LIBDIR}/*.so")
 endif()
 
 foreach(_lib ${_libs})
@@ -45,9 +45,9 @@ foreach(_lib ${_libs})
 endforeach()
 
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/java/lib/liblinphone" "libs/liblinphone"
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/java/lib/mediastreamer" "libs/mediastreamer"
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/java/lib/liblinphone" "libs-debug/liblinphone"
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/java/lib/mediastreamer" "libs-debug/mediastreamer"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/java/${CMAKE_INSTALL_LIBDIR}/liblinphone" "libs/liblinphone"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/java/${CMAKE_INSTALL_LIBDIR}/mediastreamer" "libs/mediastreamer"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/java/${CMAKE_INSTALL_LIBDIR}/liblinphone" "libs-debug/liblinphone"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/java/${CMAKE_INSTALL_LIBDIR}/mediastreamer" "libs-debug/mediastreamer"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )

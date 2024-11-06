@@ -20,6 +20,8 @@
 #
 # ###########################################################################
 
+include(GNUInstallDirs)
+
 # ###########################################################################
 # Run gradle clean and generate gradle build scripts
 # ###########################################################################
@@ -63,6 +65,7 @@ add_custom_target(copy-libs ALL
   "-DLINPHONESDK_DIR=${PROJECT_SOURCE_DIR}"
   "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}"
   "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+  "-DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}"
   "-P" "${PROJECT_SOURCE_DIR}/cmake/Java/CopyLibs.cmake"
   DEPENDS liblinphone-java
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
