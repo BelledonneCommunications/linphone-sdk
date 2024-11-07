@@ -24,6 +24,7 @@
 #include "lime_localStorage.hpp"
 #include "lime_settings.hpp"
 #include <mutex>
+#include <unordered_set>
 #include "bctoolbox/exception.hh"
 
 using namespace::std;
@@ -175,6 +176,17 @@ namespace lime {
 	}
 
 	void LimeManager::encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, const lime::EncryptionPolicy encryptionPolicy) {
+		// prevent duplicate entries to make a mess -> just tag the duplicate as fail so it is ignored
+		std::unordered_set<std::string> seenIds;
+		for (auto& recipient : *recipients) {
+		       if (seenIds.find(recipient.deviceId) != seenIds.end()) {
+			       recipient.peerStatus = lime::PeerDeviceStatus::fail;
+		       } else {
+			       seenIds.insert(recipient.deviceId);
+		       }
+		}
+		seenIds.clear();
+
 		if (algos.size() == 1) { // main case: there is only one base algorithm
 			// Load user object
 			std::shared_ptr<LimeGeneric> user;

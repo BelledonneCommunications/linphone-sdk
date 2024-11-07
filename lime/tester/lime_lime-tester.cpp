@@ -3589,6 +3589,129 @@ static void x3dh_basic(void) {
 #endif
 }
 
+/**
+ * alice encrypts to bob but she's given a recipient list holding twice the same device
+ */
+static void x3dh_double_recipient_test(const lime::CurveId curve) {
+	const std::string dbBaseFilename{"lime_double_recipient"};
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
+	std::string dbFilenameBob{dbBaseFilename};
+	dbFilenameBob.append(".bob.").append(CurveId2String(curve)).append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+	remove(dbFilenameBob.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+
+	try {
+		std::vector<lime::CurveId> algos{curve};
+		// create Manager
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
+
+		// create Random devices names
+		auto aliceDevice = lime_tester::makeRandomDeviceName("alice.d1.");
+		auto bobDevice = lime_tester::makeRandomDeviceName("bob.d1.");
+
+		// create users
+		aliceManager->create_user(*aliceDevice, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		bobManager->create_user(*bobDevice, algos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		if (counters.operation_failed == 1) return; // skip the end of the test if we can't do this
+
+		// alice send a message to bob, he is twice in the list
+		auto recipients = make_shared<std::vector<RecipientData>>();
+		recipients->emplace_back(*bobDevice);
+		recipients->emplace_back(*bobDevice);
+		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		auto cipherMessage = make_shared<std::vector<uint8_t>>();
+
+		aliceManager->encrypt(*aliceDevice, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// first recipient should hold a message, the second a failed status
+		BC_ASSERT_TRUE((*recipients)[1].peerStatus == lime::PeerDeviceStatus::fail);
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients)[0].deviceId, "bob", *aliceDevice, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		// Repeat the process now that Alice has a session with Bob in DB
+		recipients->clear();
+		cipherMessage->clear();
+		receivedMessage.clear();
+		recipients->emplace_back(*bobDevice);
+		recipients->emplace_back(*bobDevice);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
+
+		aliceManager->encrypt(*aliceDevice, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// first recipient should hold a message, the second a failed status
+		BC_ASSERT_TRUE((*recipients)[1].peerStatus == lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients)[0].deviceId, "bob", *aliceDevice, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+		// reset managers so the session is not in cache but in DB, and repeat
+		managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);
+		recipients->clear();
+		cipherMessage->clear();
+		receivedMessage.clear();
+		recipients->emplace_back(*bobDevice);
+		recipients->emplace_back(*bobDevice);
+		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
+
+		aliceManager->encrypt(*aliceDevice, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+
+		// first recipient should hold a message, the second a failed status
+		BC_ASSERT_TRUE((*recipients)[1].peerStatus == lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(bobManager->decrypt((*recipients)[0].deviceId, "bob", *aliceDevice, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[2]);
+
+
+		// delete the users
+		if (cleanDatabase) {
+			aliceManager->delete_user(DeviceId(*aliceDevice, curve), callback);
+			bobManager->delete_user(DeviceId(*bobDevice, curve), callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("");
+	}
+}
+static void x3dh_double_recipient(void) {
+#ifdef EC25519_ENABLED
+	x3dh_double_recipient_test(lime::CurveId::c25519);
+#endif
+#if 0
+#ifdef EC448_ENABLED
+	x3dh_double_recipient_test(lime::CurveId::c448);
+#endif
+#ifdef HAVE_BCTBXPQ
+	x3dh_double_recipient_test(lime::CurveId::c25519k512);
+#endif
+#endif
+}
+
  /* A simple test with alice having 1 device and bob 2
  * - Alice and Bob(d1 and d2) register themselves on X3DH server
  * - Alice send another message to Bob non existing device d3, it shall fail without exception
@@ -4992,6 +5115,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("User Management", user_management),
 	TEST_NO_TAG("User registration failure", user_registration_failure),
 	TEST_NO_TAG("User not found", x3dh_user_not_found),
+	TEST_NO_TAG("User twice in recipients", x3dh_double_recipient),
 	TEST_NO_TAG("Queued encryption", x3dh_operation_queue),
 	TEST_NO_TAG("Multi devices queued encryption", x3dh_multidev_operation_queue),
 	TEST_NO_TAG("Multiple sessions", x3dh_multiple_DRsessions),
