@@ -267,7 +267,8 @@
       "description": "Build Java SDK for Windows 64 bits using Visual Studio 2022",
       "architecture": "x64",
       "cacheVariables": {
-        "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo"
+        "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
+        "ENABLE_WINDOWS_TOOLS_CHECK": "OFF"
       }
     },
     {
