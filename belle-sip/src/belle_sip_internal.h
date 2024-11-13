@@ -81,7 +81,7 @@
 #include "dispatch/dispatch.h"
 #endif /* HAVE_DNS_SERVICE */
 
-#define SOCKET_NOT_SET ((belle_sip_socket_t) - 1)
+#define SOCKET_NOT_SET ((belle_sip_socket_t)-1)
 /*etc*/
 
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj, interface)                                                                \
@@ -1184,6 +1184,7 @@ struct belle_sip_auth_event {
 	belle_sip_bearer_token_t *bearer_token;
 	char *algorithm;    /* either MD5 ot SHA256*/
 	char *authz_server; /* OAUTH2 authorization server */
+	int try_count;      /* number of authentication tries for a given request */
 };
 
 belle_sip_auth_event_t *

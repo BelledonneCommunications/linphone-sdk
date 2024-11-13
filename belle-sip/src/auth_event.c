@@ -62,6 +62,10 @@ void belle_sip_auth_event_destroy(belle_sip_auth_event_t *event) {
 	belle_sip_free(event);
 }
 
+int belle_sip_auth_event_get_try_count(const belle_sip_auth_event_t *event) {
+	return event->try_count;
+}
+
 belle_sip_certificates_chain_t *
 belle_sip_auth_event_get_client_certificates_chain(const belle_sip_auth_event_t *event) {
 	return event->cert;

@@ -122,6 +122,8 @@ belle_sip_auth_event_get_bearer_token(const belle_sip_auth_event_t *event);
 BELLESIP_EXPORT void belle_sip_auth_event_set_bearer_token(belle_sip_auth_event_t *event,
                                                            belle_sip_bearer_token_t *bearer_token);
 
+BELLESIP_EXPORT int belle_sip_auth_event_get_try_count(const belle_sip_auth_event_t *event);
+
 /**
  * get the authentication mode requested by the server, can be either TLS client certificates of http digest
  * @param event
