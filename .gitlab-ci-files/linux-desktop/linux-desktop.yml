@@ -34,7 +34,7 @@
       - build/default/linphone-sdk/desktop/lib64/*
       - build/default/linphone-sdk/desktop/include/*
       - build/default/linphone-sdk/desktop/share/*
-    expire_in: 1 week
+    expire_in: 1 day
 
 .linux-desktop-python:
 
@@ -67,7 +67,7 @@
       - build/default/gitdescribe.txt
       - build/default/linphone-sdk/desktop/linphone*.whl
       - build/default/linphone-sdk/desktop/pylinphone.html
-    expire_in: 1 week
+    expire_in: 1 day
 
 .linux-desktop-java:
 
@@ -97,7 +97,7 @@
       - sanitizer_ignore.txt
       - build/java/gitdescribe.txt
       - build/java/linphone-sdk/bin/distributions/linphone-sdk-java-*.zip
-    expire_in: 1 week
+    expire_in: 1 day
 
 .linux-desktop-sequential:
 
@@ -193,7 +193,7 @@
       - build/linphone-sdk/desktop/lib/*
       - build/linphone-sdk/desktop/include/*
       - build/linphone-sdk/desktop/share/*
-    expire_in: 1 week
+    expire_in: 1 day
 
 
 #################################################
@@ -367,7 +367,7 @@
     reports:
       junit:
         - ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml
-    expire_in: 4 week
+    expire_in: 1 week
 
 .test-bctoolbox:
   extends: .test

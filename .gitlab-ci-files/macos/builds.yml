@@ -50,7 +50,7 @@
       - build/mac/linphone-sdk.podspec
       - liblinphone/tester/*
     when: always
-    expire_in: 1 week
+    expire_in: 1 day
 
 # Screen sharing not available on Xcode 12
 .macos-m1-multiarch-desktop:

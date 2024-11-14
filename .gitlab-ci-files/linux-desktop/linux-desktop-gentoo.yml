@@ -63,7 +63,7 @@ gentoo:
     paths:
       - build/default/gitdescribe.txt
       - binpkgs/*
-    expire_in: 1 week
+    expire_in: 1 day
 
 #################################################
 # Tests

@@ -34,7 +34,7 @@ recache-get-from-branch:
     paths:
       - source_branch.txt
       - force_remove_source_branch.txt
-    expire_in: 1 week
+    expire_in: 1 day
 
 # If a branch was recently merged into main branch, updates the non_protected cache for all cache keys (here docker images)
 # This way we keep the separation between non_protected and protected cache to ensure that main branch cache can't be polluted by malicious people

@@ -62,7 +62,7 @@
     reports:
       junit:
         - results/BCUnitAutomated-win*-Results.xml
-    expire_in: 4 week
+    expire_in: 1 week
 
 liblinphone-win32-msbuild-windows-test:
   extends: .windows-linphone-test
@@ -167,4 +167,4 @@ liblinphone-uwp-windows-test:
     reports:
       junit:
         - results/LibLinphoneWindows10-Results.xml
-    expire_in: 4 week
+    expire_in: 1 week

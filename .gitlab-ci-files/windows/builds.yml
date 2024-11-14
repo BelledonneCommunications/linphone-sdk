@@ -101,7 +101,7 @@
       - ninja_buildlog.txt
       - invertSearch.ps1
     when: always
-    expire_in: 1 week
+    expire_in: 1 day
 
 .windows-vs2022:
   extends: .windows-vs

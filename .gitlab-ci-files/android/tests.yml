@@ -60,4 +60,4 @@ liblinphone-android-r27-test:
       - results/*
 
     when: always
-    expire_in: 4 week
+    expire_in: 1 week

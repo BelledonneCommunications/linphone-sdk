@@ -46,7 +46,7 @@ recache-raspberrypi:
       - build/$CMAKE_PRESET/linphone-sdk/$CMAKE_PRESET/lib/*
       - build/$CMAKE_PRESET/linphone-sdk/$CMAKE_PRESET/include/*
       - build/$CMAKE_PRESET/linphone-sdk/$CMAKE_PRESET/share/*
-    expire_in: 1 week
+    expire_in: 1 day
   needs:
     - wait-cache-synchro-raspberrypi
 

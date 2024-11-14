@@ -76,4 +76,4 @@ liblinphone-iOS-test:
     reports:
       junit:
         - ${CI_PROJECT_DIR}/results/*.xml
-    expire_in: 4 week
+    expire_in: 1 week
