@@ -530,8 +530,9 @@ lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::list<std::string> &pe
 		sqlString_allDevicesId.append("'").append(peerDeviceId).append("',");
 	}
 	sqlString_allDevicesId.pop_back(); // remove the last ','
-	// Get local devices among the list
-	rowset<std::string> rs_localDevices = (sql.prepare << "SELECT l.UserId FROM lime_LocalUsers as l WHERE l.UserId IN ("<<sqlString_allDevicesId<<");");
+	// Get local devices among the list, group by user id as the same one may be present multiple times (with differents curveId)
+	// but we do not want to count it several times and we do not care about its curveId
+	rowset<std::string> rs_localDevices = (sql.prepare << "SELECT l.UserId FROM lime_LocalUsers as l WHERE l.UserId IN ("<<sqlString_allDevicesId<<") GROUP BY l.UserId;");
 	std::string sqlString_peerDeviceQuery{"SELECT d.Status FROM lime_PeerDevices as d WHERE d.Active = 1 AND d.DeviceId IN ("};
 
 	std::list<std::string> nolocalDevices = peerDeviceIds; // copy original list
