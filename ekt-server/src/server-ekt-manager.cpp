@@ -286,7 +286,7 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 			} else { // Other participants
 				bool ektFound = true;
 				if (ciphers) {
-					if (auto cipher = ciphers->getLinphoneBuffer(participantDeviceAddress->asStringUriOnly())) {
+					if (auto cipher = ciphers->getBuffer(participantDeviceAddress->asStringUriOnly())) {
 						auto evSub = participantDeviceCtx->getEventSubscribe();
 						if (evSub) {
 							sendNotify(evSub, from, cipher, {}); // Distribute the EKT to ParticipantDevices
@@ -314,7 +314,7 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 				senderCtx = participantDeviceCtx;
 			} else {
 				if (!participantDeviceCtx->knowsEkt()) {
-					if (auto cipher = ciphers->getLinphoneBuffer(participantDeviceAddress->asStringUriOnly())) {
+					if (auto cipher = ciphers->getBuffer(participantDeviceAddress->asStringUriOnly())) {
 						auto evSub = participantDeviceCtx->getEventSubscribe();
 						if (evSub) {
 							sendNotify(evSub, from, cipher, {}); // Distribute the EKT to ParticipantDevices
