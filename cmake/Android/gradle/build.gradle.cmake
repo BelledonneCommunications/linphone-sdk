@@ -76,7 +76,7 @@ android {
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 31
-        versionCode 5300
+        versionCode 5400
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
@@ -138,13 +138,6 @@ android {
         release {
             root = 'build-types/release'
             jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
-        }
-    }
-
-    java {
-        toolchain {
-            // Required for javadoc task...
-            languageVersion.set(JavaLanguageVersion.of(17))
         }
     }
 }
