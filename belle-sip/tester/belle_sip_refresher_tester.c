@@ -962,7 +962,7 @@ static void register_with_pingpong_pong_ok(void) {
 	destroy_endpoint(server);
 }
 
-static void register_with_pingpong_pong_nok(void) {
+static void register_with_pingpong_pong_nok_base(bool_t ping_pong_verification) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
 	endpoint_t *client, *server;
@@ -983,15 +983,21 @@ static void register_with_pingpong_pong_nok(void) {
 	server->enable_rfc5626 = 1;
 
 	belle_sip_stack_set_pong_timeout(client->stack, 4);
+	belle_sip_stack_enable_ping_pong_verification(client->stack, ping_pong_verification);
 
 	refresher = refresher_base_with_body2(client, server, "REGISTER", NULL, NULL, 1);
 
-	/* send a client keepalive (PING)*/
-	belle_sip_listening_point_send_keep_alive(client->lp);
-	wait_for(server->stack, client->stack, NULL, 0, 1000);
-	/* the server replies with PONG.*/
-	belle_sip_listening_point_send_pong(server->lp);
-	wait_for(server->stack, client->stack, NULL, 0, 1000);
+	/* The first PING-PONG is needed by belle-sip to know whether the other party supports RFC5626.
+	 * If property pong_support_confirmed is set to TRUE, there is no need of the first pong to simulate a broken
+	 * connection */
+	if (!!ping_pong_verification) {
+		/* send a client keepalive (PING)*/
+		belle_sip_listening_point_send_keep_alive(client->lp);
+		wait_for(server->stack, client->stack, NULL, 0, 1000);
+		/* the server replies with PONG.*/
+		belle_sip_listening_point_send_pong(server->lp);
+		wait_for(server->stack, client->stack, NULL, 0, 1000);
+	}
 
 	/* send another client keepalive (PING)*/
 	belle_sip_listening_point_send_keep_alive(client->lp);
@@ -1006,6 +1012,14 @@ static void register_with_pingpong_pong_nok(void) {
 	BC_ASSERT_EQUAL(client->stat.refreshKo, 1, int, "%d");
 	destroy_endpoint(client);
 	destroy_endpoint(server);
+}
+
+static void register_with_pingpong_pong_nok(void) {
+	register_with_pingpong_pong_nok_base(TRUE);
+}
+
+static void register_with_pingpong_without_pingpong_verification(void) {
+	register_with_pingpong_pong_nok_base(FALSE);
 }
 
 static void register_with_pingpong_not_supported(void) {
@@ -1498,6 +1512,8 @@ static test_t refresher_tests[] = {
     TEST_NO_TAG("REGISTER, digest auth with bad next nonce", register_digest_auth_with_bad_next_nonce),
     TEST_NO_TAG("REGISTER with RFC5626 ping pong ok", register_with_pingpong_pong_ok),
     TEST_NO_TAG("REGISTER with RFC5626 ping pong nok", register_with_pingpong_pong_nok),
+    TEST_NO_TAG("REGISTER with RFC5626 ping pong and without verification",
+                register_with_pingpong_without_pingpong_verification),
     TEST_NO_TAG("REGISTER with RFC5626 ping pong not supported server-side", register_with_pingpong_not_supported),
     TEST_NO_TAG("REGISTER with RFC5626 ping pong erroneously supported server-side",
                 register_with_pingpong_not_supported_2)};

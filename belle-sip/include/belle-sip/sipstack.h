@@ -215,6 +215,20 @@ BELLESIP_EXPORT void belle_sip_stack_set_pong_timeout(belle_sip_stack_t *stack, 
 BELLESIP_EXPORT int belle_sip_stack_get_pong_timeout(const belle_sip_stack_t *stack);
 
 /**
+ * Set whether there is the need to confirm RFC5626 PING PONG capabilities with the server
+ * If it is set to TRUE, then the RFC5626 support of the remote party will be confirmed by first PING PONG. If the PONG
+ * response is received within the timeout, then RFC5626 is supported by both parties. Otherwise it is assumed that it
+ * isn't If this property is set to FALSE, belle-sip assumes that the other party supports RFC5626 without many any
+ * prior verification
+ */
+BELLESIP_EXPORT void belle_sip_stack_enable_ping_pong_verification(belle_sip_stack_t *stack, bool_t verify);
+
+/*
+ * Returns whether there is the need to confirm RFC5626 PING PONG capabilities with the server
+ */
+BELLESIP_EXPORT bool_t belle_sip_stack_ping_pong_verification_enabled(const belle_sip_stack_t *stack);
+
+/**
  * Set the default dscp value to be used for all SIP sockets created and used in the stack.
  **/
 BELLESIP_EXPORT void belle_sip_stack_set_default_dscp(belle_sip_stack_t *stack, int dscp);

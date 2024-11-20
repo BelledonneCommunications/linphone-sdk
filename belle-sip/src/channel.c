@@ -363,6 +363,10 @@ int belle_sip_channel_send_keep_alive(belle_sip_channel_t *obj, int doubled) {
 
 void belle_sip_channel_enable_ping_pong(belle_sip_channel_t *obj, int enabled) {
 	obj->ping_pong_enabled = (unsigned char)enabled;
+	if (!!!belle_sip_stack_ping_pong_verification_enabled(obj->stack)) {
+		belle_sip_message("Channel[%p]: RFC5626 pong support is assumed to be supported by the server without performing any sanity checks.", obj);
+		obj->pong_support_confirmed = TRUE;
+	}
 }
 
 int belle_sip_channel_ping_pong_enabled(const belle_sip_channel_t *obj) {
