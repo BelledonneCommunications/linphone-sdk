@@ -673,6 +673,9 @@ belle_sip_error_code belle_sdp_rtcp_fb_attribute_marshal(belle_sdp_rtcp_fb_attri
 					break;
 			}
 			break;
+		case BELLE_SDP_RTCP_FB_GOOG_REMB:
+			error = belle_sip_snprintf(buff, buff_size, offset, "goog-remb");
+			break;
 	}
 	return error;
 }
@@ -688,6 +691,9 @@ void belle_sdp_rtcp_fb_attribute_set_raw_type(belle_sdp_rtcp_fb_attribute_t *att
 	}
 	if (strcmp(value, "ccm") == 0) {
 		attribute->type = BELLE_SDP_RTCP_FB_CCM;
+	}
+	if (strcmp(value, "goog-remb") == 0) {
+		attribute->type = BELLE_SDP_RTCP_FB_GOOG_REMB;
 	}
 }
 void belle_sdp_rtcp_fb_attribute_set_raw_param(belle_sdp_rtcp_fb_attribute_t *attribute, const char *value) {

@@ -174,7 +174,8 @@ typedef enum _belle_sdp_rtcp_fb_val_type {
 	BELLE_SDP_RTCP_FB_ACK,
 	BELLE_SDP_RTCP_FB_NACK,
 	BELLE_SDP_RTCP_FB_TRR_INT,
-	BELLE_SDP_RTCP_FB_CCM
+	BELLE_SDP_RTCP_FB_CCM,
+	BELLE_SDP_RTCP_FB_GOOG_REMB
 } belle_sdp_rtcp_fb_val_type_t;
 typedef enum _belle_sdp_rtcp_fb_val_param {
 	BELLE_SDP_RTCP_FB_NONE,
@@ -315,7 +316,7 @@ BELLESIP_EXPORT void belle_sdp_info_set_value(belle_sdp_info_t *info, const char
 // unsigned int belle_sdp_key_as_key(const belle_sdp_key_t* key);
 // void belle_sdp_key_set_key(belle_sdp_key_t* key, const char* keyvalue);
 // void belle_sdp_key_set_method(belle_sdp_key_t* key, const char* method);
-//#define BELLE_SDP_KEY(t) BELLE_SDP_CAST(t,belle_sdp_key_t);
+// #define BELLE_SDP_KEY(t) BELLE_SDP_CAST(t,belle_sdp_key_t);
 
 /***************************************************************************************
  * Media

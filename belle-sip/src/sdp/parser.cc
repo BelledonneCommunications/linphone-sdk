@@ -114,7 +114,9 @@ bellesip::SDP::Parser::Parser() {
 	    ->setCollector("rtcp-fb-ccm-param", make_fn(&belle_sdp_rtcp_fb_attribute_set_raw_param))
 	    ->setCollector("rtcp-fb-ccm-tmmbr-param", make_fn(&belle_sdp_rtcp_fb_attribute_set_raw_param))
 	    ->setCollector("rtcp-fb-trr-int-type", make_fn(&belle_sdp_rtcp_fb_attribute_set_raw_type))
-	    ->setCollector("rtcp-fb-trr-int", make_fn(&belle_sdp_rtcp_fb_attribute_set_trr_int));
+	    ->setCollector("rtcp-fb-trr-int", make_fn(&belle_sdp_rtcp_fb_attribute_set_trr_int))
+	    ->setCollector("rtcp-fb-id", make_fn(&belle_sdp_rtcp_fb_attribute_set_raw_type))
+	    ->setCollector("rtcp-fb-param", make_fn(&belle_sdp_rtcp_fb_attribute_set_raw_param));
 
 	_parser->setHandler("rtcp-xr-attribute", make_fn(&belle_sdp_rtcp_xr_attribute_new))
 	    ->setCollector("rcvr-rtt-mode", make_fn(&belle_sdp_rtcp_xr_attribute_set_rcvr_rtt_mode))

@@ -349,6 +349,12 @@ static void test_rtcp_fb_attribute(void) {
 	BC_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_type(lAttribute), BELLE_SDP_RTCP_FB_CCM, int, "%d");
 	BC_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_param(lAttribute), BELLE_SDP_RTCP_FB_TMMBR, int, "%d");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = belle_sdp_rtcp_fb_attribute_parse("a=rtcp-fb:* goog-remb");
+	BC_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-fb");
+	BC_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_id(lAttribute), -1, int, "%d");
+	BC_ASSERT_EQUAL(belle_sdp_rtcp_fb_attribute_get_type(lAttribute), BELLE_SDP_RTCP_FB_GOOG_REMB, int, "%d");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 
 static void test_rtcp_xr_attribute(void) {
