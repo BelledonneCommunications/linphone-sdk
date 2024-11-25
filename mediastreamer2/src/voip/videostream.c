@@ -322,6 +322,9 @@ static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m
 	int i;
 
 	if (rtcp_is_PSFB(m) && (stream->ms.encoder != NULL)) {
+		/* Ignore PSFB goog-remb messages */
+		if (rtcp_PSFB_get_type(m) == RTCP_PSFB_AFB && rtcp_PSFB_is_goog_remb(m)) return;
+
 		/* The PSFB messages are to be notified to the encoder, so if we have no encoder simply ignore them. */
 
 		if (rtcp_PSFB_get_type(m) == RTCP_PSFB_FIR) {

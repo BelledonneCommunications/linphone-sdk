@@ -123,6 +123,7 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &stream->sessions);
 	}
 	media_stream_add_tmmbr_handler(stream, media_stream_tmmbr_received, stream);
+	media_stream_add_goog_remb_handler(stream, media_stream_goog_remb_received, stream);
 	stream->stun_allowed = TRUE;
 	stream->transfer_mode = FALSE;
 }
@@ -144,6 +145,20 @@ void media_stream_remove_tmmbr_handler(MediaStream *stream,
                                        BCTBX_UNUSED(void *user_data)) {
 	ortp_ev_dispatcher_disconnect(stream->evd, ORTP_EVENT_RTCP_PACKET_RECEIVED, RTCP_RTPFB,
 	                              (OrtpEvDispatcherCb)on_tmmbr_received);
+}
+
+void media_stream_add_goog_remb_handler(MediaStream *stream,
+                                        void (*on_goog_remb_received)(const OrtpEventData *evd, void *),
+                                        void *user_data) {
+	ortp_ev_dispatcher_connect(stream->evd, ORTP_EVENT_RTCP_PACKET_RECEIVED, RTCP_PSFB,
+	                           (OrtpEvDispatcherCb)on_goog_remb_received, user_data);
+}
+
+void media_stream_remove_goog_remb_handler(MediaStream *stream,
+                                           void (*on_goog_remb_received)(const OrtpEventData *evd, void *),
+                                           BCTBX_UNUSED(void *user_data)) {
+	ortp_ev_dispatcher_disconnect(stream->evd, ORTP_EVENT_RTCP_PACKET_RECEIVED, RTCP_PSFB,
+	                              (OrtpEvDispatcherCb)on_goog_remb_received);
 }
 
 static void on_ssrc_changed(RtpSession *session) {
@@ -262,6 +277,7 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions) {
 
 void media_stream_free(MediaStream *stream) {
 	media_stream_remove_tmmbr_handler(stream, media_stream_tmmbr_received, stream);
+	media_stream_remove_goog_remb_handler(stream, media_stream_goog_remb_received, stream);
 
 	if (stream->sessions.zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(stream->sessions.zrtp_context, NULL);
@@ -293,6 +309,7 @@ void media_stream_free(MediaStream *stream) {
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 	if (stream->fec_parameters != NULL) fec_params_destroy(stream->fec_parameters);
 	if (stream->log_tag) bctbx_free(stream->log_tag);
+	if (stream->last_goog_remb_received) freemsg(stream->last_goog_remb_received);
 }
 
 MSFactory *media_stream_get_factory(MediaStream *stream) {
@@ -989,6 +1006,66 @@ void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 	if (rtcp_RTPFB_get_type(evd->packet) != RTCP_RTPFB_TMMBR) return;
 	MediaStream *ms = (MediaStream *)user_pointer;
 	uint64_t tmmbr_mxtbr = rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
+	media_stream_process_tmmbr(ms, tmmbr_mxtbr);
+}
+
+static bool_t mediastream_goog_remb_equals(mblk_t *received, mblk_t *previous) {
+	const rtcp_fb_header_t *received_header = (rtcp_fb_header_t *)(received->b_rptr + sizeof(rtcp_common_header_t));
+	const rtcp_fb_header_t *previous_header = (rtcp_fb_header_t *)(previous->b_rptr + sizeof(rtcp_common_header_t));
+
+	if (received_header->packet_sender_ssrc != previous_header->packet_sender_ssrc) return FALSE;
+
+	const rtcp_fb_goog_remb_fci_t *received_fci = rtcp_PSFB_goog_remb_get_fci(received);
+	const rtcp_fb_goog_remb_fci_t *previous_fci = rtcp_PSFB_goog_remb_get_fci(previous);
+
+	if (received_fci->value != previous_fci->value) return FALSE;
+
+	const uint32_t *received_ssrcs = (uint32_t *)(received->b_rptr + sizeof(rtcp_common_header_t) +
+	                                              sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_goog_remb_fci_t));
+	const uint32_t *previous_ssrcs = (uint32_t *)(previous->b_rptr + sizeof(rtcp_common_header_t) +
+	                                              sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_goog_remb_fci_t));
+
+	// Since both goog-remb have the same value, then they have the same number of SSRCs
+	for (int i = 0; i < rtcp_fb_goog_remb_fci_get_num_ssrc(received_fci); ++i) {
+		if (received_ssrcs[i] != previous_ssrcs[i]) return FALSE;
+	}
+
+	return TRUE;
+}
+
+void media_stream_goog_remb_received(const OrtpEventData *evd, void *user_pointer) {
+	if (rtcp_PSFB_get_type(evd->packet) != RTCP_PSFB_AFB) return;
+
+	// Make sure we actually have a goog-remb
+	const rtcp_fb_goog_remb_fci_t *fci = rtcp_PSFB_goog_remb_get_fci(evd->packet);
+	if (fci == NULL || ntohl(fci->identifier) != 0x52454d42) return;
+
+	// And that this goog-remb is actually about us
+	if (rtcp_fb_goog_remb_fci_get_num_ssrc(fci) > 1) {
+		ms_warning("Received a goog-remb with more that 1 ssrc feedback, ignoring...");
+		return;
+	}
+
+	MediaStream *ms = (MediaStream *)user_pointer;
+	const uint32_t *ssrcs = (uint32_t *)(evd->packet->b_rptr + sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) +
+	                                     sizeof(rtcp_fb_goog_remb_fci_t));
+	if (ntohl(ssrcs[0]) != media_stream_get_send_ssrc(ms)) {
+		ms_warning("Received a goog-remb for ssrc (%u) that is not for us, ignoring...", ntohl(ssrcs[0]));
+		return;
+	}
+
+	// If we received the same goog-remb ignore it
+	if (ms->last_goog_remb_received != NULL) {
+		if (mediastream_goog_remb_equals(evd->packet, ms->last_goog_remb_received)) return;
+
+		freemsg(ms->last_goog_remb_received);
+	}
+
+	// Store it for next comparison
+	ms->last_goog_remb_received = copymsg(evd->packet);
+
+	// Process as a TMMBR
+	uint64_t tmmbr_mxtbr = rtcp_PSFB_goog_remb_get_max_bitrate(evd->packet);
 	media_stream_process_tmmbr(ms, tmmbr_mxtbr);
 }
 

@@ -81,6 +81,7 @@ typedef struct _stats_t {
 	rtp_stats_t rtp;
 	int number_of_EndOfFile;
 	int number_of_TMMBR;
+	int number_of_GOOG_REMB;
 	int number_of_VoiceDetected;
 	int number_of_VoiceEnded;
 } stats_t;
@@ -132,6 +133,14 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 							case RTCP_RTPFB_TMMBR:
 								st->number_of_TMMBR++;
 								break;
+							default:
+								break;
+						}
+					} else if (rtcp_is_PSFB(rtcp_packet)) {
+						switch (rtcp_PSFB_get_type(rtcp_packet)) {
+							case RTCP_PSFB_AFB: {
+								if (rtcp_PSFB_is_goog_remb(rtcp_packet)) st->number_of_GOOG_REMB++;
+							} break;
 							default:
 								break;
 						}
@@ -607,7 +616,7 @@ static void codec_change_for_audio_stream(void) {
 	rtp_profile_destroy(profile);
 }
 
-static void tmmbr_feedback_for_audio_stream(void) {
+static void bitrate_feedback_for_audio_stream(bool_t use_goog_remb) {
 	AudioStream *marielle = audio_stream_new2(_factory, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
 	stats_t marielle_stats;
 	AudioStream *margaux = audio_stream_new2(_factory, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
@@ -626,11 +635,23 @@ static void tmmbr_feedback_for_audio_stream(void) {
 	/* Activate AVPF and TMBRR. */
 	payload_type_set_flag(&payload_type_pcmu8000, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 	marielle_session = audio_stream_get_rtp_session(marielle);
-	rtp_session_enable_avpf_feature(marielle_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+
+	if (use_goog_remb) {
+		rtp_session_enable_avpf_feature(marielle_session, ORTP_AVPF_FEATURE_GOOG_REMB, TRUE);
+	} else {
+		rtp_session_enable_avpf_feature(marielle_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+	}
+
 	marielle_stats.q = ortp_ev_queue_new();
 	rtp_session_register_event_queue(marielle->ms.sessions.rtp_session, marielle_stats.q);
 	margaux_session = audio_stream_get_rtp_session(margaux);
-	rtp_session_enable_avpf_feature(margaux_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+
+	if (use_goog_remb) {
+		rtp_session_enable_avpf_feature(margaux_session, ORTP_AVPF_FEATURE_GOOG_REMB, TRUE);
+	} else {
+		rtp_session_enable_avpf_feature(margaux_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+	}
+
 	margaux_stats.q = ortp_ev_queue_new();
 	rtp_session_register_event_queue(margaux->ms.sessions.rtp_session, margaux_stats.q);
 
@@ -648,19 +669,38 @@ static void tmmbr_feedback_for_audio_stream(void) {
 	/* Wait for 1s so that some RTP packets are exchanged before sending the TMMBR. */
 	wait_for_until(&margaux->ms, &marielle->ms, &dummy, 1, 1500);
 
-	rtp_session_send_rtcp_fb_tmmbr(margaux_session, 100000);
-	rtp_session_send_rtcp_fb_tmmbr(marielle_session, 200000);
+	if (use_goog_remb) {
+		rtp_session_send_rtcp_fb_goog_remb(margaux_session, 100000);
+		rtp_session_send_rtcp_fb_goog_remb(marielle_session, 200000);
+	} else {
+		rtp_session_send_rtcp_fb_tmmbr(margaux_session, 100000);
+		rtp_session_send_rtcp_fb_tmmbr(marielle_session, 200000);
+	}
 
 	BC_ASSERT_TRUE(wait_for_until(&margaux->ms, &marielle->ms, &margaux_stats.number_of_EndOfFile, 1, 12000));
 	BC_ASSERT_TRUE(wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 12000));
 
-	BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->ms, &margaux->ms, &marielle_stats.number_of_TMMBR, 1,
-	                                                100, event_queue_cb, &marielle_stats, event_queue_cb,
-	                                                &margaux_stats));
-	BC_ASSERT_TRUE(wait_for_until_with_parse_events(&margaux->ms, &marielle->ms, &margaux_stats.number_of_TMMBR, 1, 100,
-	                                                event_queue_cb, &margaux_stats, event_queue_cb, &marielle_stats));
-	BC_ASSERT_EQUAL(marielle_stats.number_of_TMMBR, 1, int, "%d");
-	BC_ASSERT_EQUAL(margaux_stats.number_of_TMMBR, 1, int, "%d");
+	if (use_goog_remb) {
+		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->ms, &margaux->ms,
+		                                                &marielle_stats.number_of_GOOG_REMB, 1, 100, event_queue_cb,
+		                                                &marielle_stats, event_queue_cb, &margaux_stats));
+		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&margaux->ms, &marielle->ms, &margaux_stats.number_of_GOOG_REMB,
+		                                                1, 100, event_queue_cb, &margaux_stats, event_queue_cb,
+		                                                &marielle_stats));
+
+		BC_ASSERT_EQUAL(marielle_stats.number_of_GOOG_REMB, 1, int, "%d");
+		BC_ASSERT_EQUAL(margaux_stats.number_of_GOOG_REMB, 1, int, "%d");
+	} else {
+		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->ms, &margaux->ms, &marielle_stats.number_of_TMMBR, 1,
+		                                                100, event_queue_cb, &marielle_stats, event_queue_cb,
+		                                                &margaux_stats));
+		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&margaux->ms, &marielle->ms, &margaux_stats.number_of_TMMBR, 1,
+		                                                100, event_queue_cb, &margaux_stats, event_queue_cb,
+		                                                &marielle_stats));
+
+		BC_ASSERT_EQUAL(marielle_stats.number_of_TMMBR, 1, int, "%d");
+		BC_ASSERT_EQUAL(margaux_stats.number_of_TMMBR, 1, int, "%d");
+	}
 
 	/*make sure packets can cross from sender to receiver*/
 	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
@@ -672,6 +712,14 @@ static void tmmbr_feedback_for_audio_stream(void) {
 	ortp_ev_queue_destroy(marielle_stats.q);
 	ortp_ev_queue_destroy(margaux_stats.q);
 	rtp_profile_destroy(profile);
+}
+
+static void tmmbr_feedback_for_audio_stream(void) {
+	bitrate_feedback_for_audio_stream(FALSE);
+}
+
+static void goog_remb_feedback_for_audio_stream(void) {
+	bitrate_feedback_for_audio_stream(TRUE);
 }
 
 #if 0
@@ -1674,6 +1722,7 @@ static test_t tests[] = {
                 double_encrypted_relayed_audio_stream_with_participants_volumes_use_ekt),
     TEST_NO_TAG("Codec change for audio stream", codec_change_for_audio_stream),
     TEST_NO_TAG("TMMBR feedback for audio stream", tmmbr_feedback_for_audio_stream),
+    TEST_NO_TAG("Goog REMB feedback for audio stream", goog_remb_feedback_for_audio_stream),
     TEST_NO_TAG("Symetric rtp with wrong address", symetric_rtp_with_wrong_addr),
     TEST_NO_TAG("Symetric rtp with wrong rtcp port", symetric_rtp_with_wrong_rtcp_port),
     TEST_NO_TAG("Participants volumes in audio stream", participants_volumes_in_audio_stream),

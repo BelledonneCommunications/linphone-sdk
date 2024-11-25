@@ -41,7 +41,7 @@ void ms_bandwidth_controller_reset_state(MSBandwidthController *obj) {
 	obj->congestion_detected = 0;
 }
 
-static void ms_bandwidth_controller_send_tmmbr(MSBandwidthController *obj, struct _MediaStream *stream) {
+static void ms_bandwidth_controller_send_bitrate(MSBandwidthController *obj, struct _MediaStream *stream) {
 	RtpSession *session = stream->sessions.rtp_session;
 	float bandwidth = 0;
 	if (obj->currently_requested_stream_bandwidth > 0 && obj->maximum_bw_usage > 0 &&
@@ -50,10 +50,25 @@ static void ms_bandwidth_controller_send_tmmbr(MSBandwidthController *obj, struc
 	} else {
 		bandwidth = obj->currently_requested_stream_bandwidth / bctbx_list_size(obj->controlled_streams);
 	}
-	ms_message(
-	    "MSBandwidthController[%p]: for stream[%p] of type [%s], sending TMMBR for a bandwidth usage of [%f] bits/s",
-	    obj, stream, ms_format_type_to_string(stream->type), bandwidth);
-	rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)bandwidth);
+
+	// Send a goog-remb if the feature is enabled
+	if (rtp_session_avpf_feature_enabled(session, ORTP_AVPF_FEATURE_GOOG_REMB)) {
+		ms_message("MSBandwidthController[%p]: for stream[%p] of type [%s], sending goog-remb for a bandwidth usage of "
+		           "[%f] bits/s",
+		           obj, stream, ms_format_type_to_string(stream->type), bandwidth);
+		rtp_session_send_rtcp_fb_goog_remb(session, (uint64_t)bandwidth);
+
+		// If we send a goog-remb, we don't send a TMMBR
+		return;
+	}
+
+	// Send a TMMBR if the feature is enabled
+	if (rtp_session_avpf_feature_enabled(session, ORTP_AVPF_FEATURE_TMMBR)) {
+		ms_message("MSBandwidthController[%p]: for stream[%p] of type [%s], sending TMMBR for a bandwidth usage of "
+		           "[%f] bits/s",
+		           obj, stream, ms_format_type_to_string(stream->type), bandwidth);
+		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)bandwidth);
+	}
 }
 
 void ms_bandwidth_controller_set_maximum_bandwidth_usage(MSBandwidthController *obj, int bitrate) {
@@ -62,7 +77,7 @@ void ms_bandwidth_controller_set_maximum_bandwidth_usage(MSBandwidthController *
 		bctbx_list_t *elem;
 		for (elem = obj->controlled_streams; elem != NULL; elem = elem->next) {
 			MediaStream *ms = (MediaStream *)elem->data;
-			ms_bandwidth_controller_send_tmmbr(obj, ms);
+			ms_bandwidth_controller_send_bitrate(obj, ms);
 		}
 	}
 	/* If there is not yet currently_requested_stream_bandwidth (means no congestion detected yet and no bandwidth
@@ -185,13 +200,13 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 	}
 
 	obj->currently_requested_stream_bandwidth = controlled_stream_bandwidth_requested;
-	ms_bandwidth_controller_send_tmmbr(obj, ms);
+	ms_bandwidth_controller_send_bitrate(obj, ms);
 	obj->download_video_bandwidth_available_estimated = 0;
 	obj->download_audio_bandwidth_available_estimated = 0;
 	rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &video_bandwidth_estimator_params);
 }
 
-static void send_tmmbr_for_controlled_video_streams(MSBandwidthController *obj, float estimated_bandwidth) {
+static void send_bitrate_for_controlled_video_streams(MSBandwidthController *obj, float estimated_bandwidth) {
 	float bw_used_by_non_controlled_streams;
 	bctbx_list_t *elem;
 	size_t controlled_streams_count = bctbx_list_size(obj->controlled_streams);
@@ -221,7 +236,7 @@ static void send_tmmbr_for_controlled_video_streams(MSBandwidthController *obj, 
 	/* send a TMMBR request for each one of the controlled video streams. */
 	for (elem = obj->controlled_streams; elem != NULL; elem = elem->next) {
 		MediaStream *ms = (MediaStream *)elem->data;
-		ms_bandwidth_controller_send_tmmbr(obj, ms);
+		ms_bandwidth_controller_send_bitrate(obj, ms);
 	}
 }
 
@@ -244,7 +259,7 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 			           ms, estimated_bitrate / 1000, obj->stats.estimated_download_bandwidth / 1000);
 			return;
 		}
-		send_tmmbr_for_controlled_video_streams(obj, estimated_bitrate);
+		send_bitrate_for_controlled_video_streams(obj, estimated_bitrate);
 	}
 }
 
@@ -275,7 +290,7 @@ static void on_audio_bandwidth_estimation_available(const OrtpEventData *evd, vo
 		           (int)bctbx_list_size(obj->controlled_streams));
 		obj->download_audio_bandwidth_available_estimated = estimated_bitrate;
 		obj->currently_requested_stream_bandwidth = estimated_bitrate;
-		ms_bandwidth_controller_send_tmmbr(obj, ms);
+		ms_bandwidth_controller_send_bitrate(obj, ms);
 	}
 }
 
@@ -294,7 +309,10 @@ void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj
 		MediaStream *ms = (MediaStream *)elem->data;
 		if (ms->type == MSVideo) {
 			VideoStream *vs = (VideoStream *)ms;
-			if (vs->content != MSVideoContentThumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly) {
+			RtpSession *session = video_stream_get_rtp_session(vs);
+			if (vs->content != MSVideoContentThumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly &&
+			    (rtp_session_avpf_feature_enabled(session, ORTP_AVPF_FEATURE_TMMBR) ||
+			     rtp_session_avpf_feature_enabled(session, ORTP_AVPF_FEATURE_GOOG_REMB))) {
 				if (!ms->sessions.rtp_session->video_bandwidth_estimator_enabled) {
 					ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms),
 					                           ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,

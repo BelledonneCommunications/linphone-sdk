@@ -111,6 +111,17 @@ void media_stream_remove_tmmbr_handler(MediaStream *stream,
                                        void (*on_tmmbr_received)(const OrtpEventData *evd, void *),
                                        void *user_data);
 
+/* The handler of goog-remb for MediaStream objects.*/
+void media_stream_goog_remb_received(const OrtpEventData *evd, void *user_pointer);
+
+void media_stream_add_goog_remb_handler(MediaStream *stream,
+                                        void (*on_goog_remb_received)(const OrtpEventData *evd, void *),
+                                        void *user_data);
+
+void media_stream_remove_goog_remb_handler(MediaStream *stream,
+                                           void (*on_goog_remb_received)(const OrtpEventData *evd, void *),
+                                           void *user_data);
+
 void media_stream_print_summary(MediaStream *ms);
 
 RtpSession *media_stream_rtp_session_new_from_session(RtpSession *session, int mode);

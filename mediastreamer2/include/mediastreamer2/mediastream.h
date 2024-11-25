@@ -166,6 +166,7 @@ struct _MediaStream {
 	                                payload */
 	bool_t transfer_mode; /** When enable and the session is part of a bundle, a new SSRC detected on outgoing packet
 	                                will create a new RTP Session in transfer mode */
+	mblk_t *last_goog_remb_received;
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
