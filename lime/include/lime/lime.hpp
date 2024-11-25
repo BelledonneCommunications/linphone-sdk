@@ -138,14 +138,14 @@ namespace lime {
 	 * @param[in] algo	the CurveId to be converted
 	 * @return the matching string, "unset" if the CurveId is invalid
 	 */
-	const std::string CurveId2String(const lime::CurveId algo);
+	std::string CurveId2String(const lime::CurveId algo);
 	/**
 	 * convert a vector of CurveId into a comma separated string list
 	 * @param[in] algos		the vector of CurveId to be converted
 	 * @param[in] separator		when specified use this separator, comma is the default
 	 * @return a CSV list in a string
 	 */
-	const std::string CurveId2String(const std::vector<lime::CurveId> algos, const std::string separator=",");
+	std::string CurveId2String(const std::vector<lime::CurveId> algos, const std::string separator=",");
 
 	/**
 	 * @return true when PQ algorithms (c25519/k512 for now) are available
@@ -190,12 +190,12 @@ namespace lime {
 	class LimeManager {
 		private :
 
-			std::unordered_map<lime::DeviceId, std::shared_ptr<LimeGeneric>, decltype(&lime::DeviceId::hash)> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
+			std::unordered_map<lime::DeviceId, std::shared_ptr<LimeGeneric>, decltype(&lime::DeviceId::hash)> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU/algo)
 			std::mutex m_users_mutex; // m_users_cache mutex
 			std::shared_ptr<lime::Db> m_localStorage; // DB access information forwarded to SOCI to correctly access database
 			limeX3DHServerPostData m_X3DH_post_data; // send data to the X3DH key server
-			void load_user(std::shared_ptr<LimeGeneric> &user, const lime::DeviceId &localDeviceId, const bool allStatus=false); // helper function, get from m_users_cache or local Storage the requested Lime object
-			bool load_user_noexcept(std::shared_ptr<LimeGeneric> &user, const lime::DeviceId &localDeviceId) noexcept; // helper function, get from m_users_cache or local Storage the requested Lime object
+			std::shared_ptr<LimeGeneric> load_user(const lime::DeviceId &localDeviceId, const bool allStatus=false); // helper function, get from m_users_cache or local Storage the requested Lime object
+			std::shared_ptr<LimeGeneric> load_user_noexcept(const lime::DeviceId &localDeviceId) noexcept; // helper function, get from m_users_cache or local Storage the requested Lime object
 
 		public :
 
