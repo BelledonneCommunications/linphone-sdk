@@ -94,11 +94,11 @@ if (APPLE)
         COMMAND "cp" "-R" "${CMAKE_INSTALL_PREFIX}/Frameworks" "${PYTHON_INSTALL_MODULE_DIR}"
         
         # Copy grammar files from each projects, like install target would do
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belcard/src/vcard_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sdp/sdp_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/identity_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/ics_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belcard/src/vcard_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sdp/sdp_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/identity_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/ics_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
 
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.py" "${PYTHON_INSTALL_MODULE_DIR}" 
 
@@ -114,11 +114,11 @@ else()
         COMMAND "cp" "-R" "${CMAKE_INSTALL_FULL_LIBDIR}/*.so*" "${PYTHON_INSTALL_MODULE_DIR}"
         
         # Copy grammar files from each projects, like install target would do
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belcard/src/vcard_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sdp/sdp_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/identity_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/ics_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belcard/src/vcard_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sdp/sdp_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/identity_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/ics_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
 
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.py" "${PYTHON_INSTALL_MODULE_DIR}" 
 
