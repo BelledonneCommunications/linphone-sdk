@@ -38,11 +38,11 @@ namespace lime {
 	/****************************************************************************/
 	template <typename Curve>
 	void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices) {
-		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 		if (internal_recipients.empty()) {
 			return; // the device list was empty... this is very strange
 		}
 
+		std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 		// build a user list of missing ones : produce a list ready to be sent to SQL query: 'user','user','user',... also build a map to store shared_ptr to sessions
 		// build also a list of all peer devices used to fetch from DB their status: unknown, untrusted or trusted
 		std::string sqlString_requestedDevices{""};
@@ -120,7 +120,7 @@ namespace lime {
 	// load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 	template <typename Curve>
 	void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR>> &DRSessions) {
-		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+		std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 		rowset<int> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.Uid = :Uid AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;", use(senderDeviceId), use (m_db_Uid), use(ignoreThisDRSessionId));
 
 		for (const auto &sessionId : rs) {
@@ -375,7 +375,7 @@ namespace lime {
 
 	template <typename Curve>
 	void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
-		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+		std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 		transaction tr(m_localStorage->sql);
 
 		// update in DB, do not check presence as we're called after a load_user who already ensure that

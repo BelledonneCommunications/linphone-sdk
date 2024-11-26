@@ -4165,7 +4165,6 @@ static void user_registration_failure_test(const lime::CurveId curve) {
 	dbFilenameAlice.append(".alice.").append(CurveId2String(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
-	auto alice_db_mutex = make_shared<std::recursive_mutex>();
 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
@@ -4203,7 +4202,7 @@ static void user_registration_failure_test(const lime::CurveId curve) {
 	try {
 		/* now we have the user in local base but not active and not in remote, lets check that */
 		/* load alice from DB(using insider functions) : user is not active, we shall get an exception */
-		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilenameAlice, alice_db_mutex));
+		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilenameAlice));
 		auto curve = CurveId::unset;
 
 		localStorage->load_LimeUser(DeviceId(*aliceDeviceId, curve), Uid, lime_tester::test_x3dh_default_server); // this one will throw an exception if user is not found, just let it rise

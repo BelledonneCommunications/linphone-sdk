@@ -30,12 +30,9 @@
 using namespace::std;
 
 namespace lime {
-	LimeManager::LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<std::recursive_mutex> db_mutex)
-		: m_users_cache(0, DeviceId::hash), m_localStorage{std::make_shared<lime::Db>(db_access, db_mutex)}, m_X3DH_post_data{X3DH_post_data} { }
-
 	// When no mutex is provided for database access, create one
 	LimeManager::LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data)
-		: m_users_cache(0, DeviceId::hash), m_localStorage{std::make_shared<lime::Db>(db_access, std::make_shared<std::recursive_mutex>())}, m_X3DH_post_data{X3DH_post_data} { }
+		: m_users_cache(0, DeviceId::hash), m_localStorage{std::make_shared<lime::Db>(db_access)}, m_X3DH_post_data{X3DH_post_data} { }
 
 	/** Set a user in the LimeManager cache if not already present
 	 *
@@ -186,11 +183,8 @@ namespace lime {
 		seenIds.clear();
 
 		if (algos.size() == 1) { // main case: there is only one base algorithm
-			// Load user object
-			auto user = LimeManager::load_user(DeviceId(localDeviceId, algos[0]));
-
-			// call the encryption function
-			user->encrypt(associatedData, recipients, plainMessage, encryptionPolicy, cipherMessage, callback);
+			// Load user object and call the encryption function
+			LimeManager::load_user(DeviceId(localDeviceId, algos[0]))->encrypt(associatedData, recipients, plainMessage, encryptionPolicy, cipherMessage, callback);
 		} else { //We have several base algorithms, encrypt, in given order, with the different users until all recipients are satisfied or no more local user to try
 			// In case we might encrypt with several lime users (same GRUU but different base algo) and using the cipher message policy (actually not forcing DRMessage policy)
 			// we must produce only one cipher message (or it looses its purpose of efficiency).

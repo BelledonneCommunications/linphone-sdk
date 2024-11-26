@@ -36,7 +36,7 @@ namespace lime {
 		/// soci connexion to DB
 		soci::session	sql;
 		/// mutex on database access
-		std::shared_ptr<std::recursive_mutex> m_db_mutex;
+		std::recursive_mutex m_db_mutex;
 
 		Db()=delete; // we can't create a new DB holder without DB filename
 
@@ -44,9 +44,8 @@ namespace lime {
 		 * @brief Open and check DB validity, create or update db schema is needed
 		 *
 		 * @param[in]	filename	The path to DB file
-		 * @param[in]	db_mutex	database access mutex
 		 */
-		Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mutex);
+		Db(const std::string &filename);
 		~Db(){sql.close();};
 
 		void load_LimeUser(const DeviceId &deviceId, long int &Uid, std::string &url, const bool allStatus=false);

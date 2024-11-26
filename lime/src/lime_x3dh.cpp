@@ -59,7 +59,7 @@ namespace lime {
 			bool m_Ik_loaded; // did we load the Ik yet?
 			void load_SelfIdentityKey(void) {
 				if (m_Ik_loaded == false) {
-					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+					std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 					blob Ik_blob(m_localStorage->sql);
 					m_localStorage->sql<<"SELECT Ik FROM lime_LocalUsers WHERE Uid = :UserId LIMIT 1;", into(Ik_blob), use(m_db_Uid);
 					if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
@@ -82,7 +82,7 @@ namespace lime {
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			SignedPreKey<Curve> generate_SPk(const bool load=false) {
 				load_SelfIdentityKey(); // make sure our Ik is loaded in object
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 
 				// if the load flag is on, try to load a existing active key instead of generating it
 				if (load) {
@@ -150,7 +150,7 @@ namespace lime {
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			SignedPreKey<Curve> generate_SPk(const bool load=false) {
 				load_SelfIdentityKey(); // make sure our Ik is loaded in object
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 
 				// if the load flag is on, try to load a existing active key instead of generating it
 				if (load) {
@@ -230,7 +230,7 @@ namespace lime {
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			void generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load=false) {
 
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 
 				// make room for OPk and OPk ids
 				OPks.clear();
@@ -313,7 +313,7 @@ namespace lime {
 			void generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load=false) {
 
 				load_SelfIdentityKey(); // make sure our Ik is loaded in object
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 
 				// make room for OPk and OPk ids
 				OPks.clear();
@@ -402,7 +402,7 @@ namespace lime {
 			* @param[in]	OPkIds	List of Ids found on server
 			*/
 			void updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 				if (OPkIds.size()>0) { /* we have keys on server */
 					// build a comma-separated list of OPk id on server
 					std::string sqlString_OPkIds{""};
@@ -432,7 +432,7 @@ namespace lime {
 			* @exception BCTBX_EXCEPTION	thrown if user is not found in base
 			*/
 			void activate_user(void) {
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 				// check if the user is the DB
 				int Uid = 0;
 				// This user shall have an inactive curveId, fetch both just in case.
@@ -657,7 +657,7 @@ namespace lime {
 			* @return 	The SPk if found
 			*/
 			SignedPreKey<Curve> get_SPk(uint32_t SPk_id) {
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 				blob SPk_blob(m_localStorage->sql);
 				m_localStorage->sql<<"SELECT SPk FROM X3DH_SPk WHERE Uid = :Uid AND SPKid = :SPk_id LIMIT 1;", into(SPk_blob), use(m_db_Uid), use(SPk_id);
 				if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
@@ -677,7 +677,7 @@ namespace lime {
 			* @return The OPk if found
 			*/
 			OneTimePreKey<Curve> get_OPk(uint32_t OPk_id) {
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 				blob OPk_blob(m_localStorage->sql);
 				m_localStorage->sql<<"SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id LIMIT 1;", into(OPk_blob), use(m_db_Uid), use(OPk_id);
 				if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
@@ -1151,7 +1151,7 @@ namespace lime {
 			m_server_url{X3DHServerURL}, m_post_data{X3DH_post_data},
 			m_Ik_loaded{false} {
 				if (Uid == 0) { // When the given user id is 0: we must create the user
-					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+					std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 					int dbUid;
 					int curveIdActive = static_cast<uint8_t>(Curve::curveId());
 					int curveIdInactive = lime::settings::DBInactiveUserBit | curveIdActive;
@@ -1215,7 +1215,7 @@ namespace lime {
 			m_server_url{X3DHServerURL}, m_post_data{X3DH_post_data},
 			m_Ik_loaded{false} {
 				if (Uid == 0) { // When the given user id is 0: we must create the user
-					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+					std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 					int dbUid;
 					int curveIdActive = static_cast<uint8_t>(Curve::curveId());
 					int curveIdInactive = lime::settings::DBInactiveUserBit | curveIdActive;
@@ -1286,7 +1286,7 @@ namespace lime {
 			}
 
 			void set_x3dhServerUrl(const std::string &x3dhServerUrl) override {
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 				transaction tr(m_localStorage->sql);
 
 				// update in DB, do not check presence as we're called after a load_user who already ensure that
@@ -1331,7 +1331,7 @@ namespace lime {
 			}
 
 			bool is_currentSPk_valid(void) override{
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 				// Do we have an active SPk for this user which is younger than SPK_lifeTime_days
 				int dummy;
 				m_localStorage->sql<<"SELECT SPKid FROM X3DH_SPk WHERE Uid = :Uid AND Status = 1 AND timeStamp > date('now', '-"<<lime::settings::SPK_lifeTime_days<<" day') LIMIT 1;", into(dummy), use(m_db_Uid);

@@ -71,9 +71,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	remove(bobFilename.data());
 
 	// create sessions
-	auto alice_db_mutex = make_shared<std::recursive_mutex>();
-	auto bob_db_mutex = make_shared<std::recursive_mutex>();
-	lime_tester::dr_sessionsInit<Curve>(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
+	lime_tester::dr_sessionsInit<Curve>(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename, true, RNG_context);
 	std::vector<std::vector<uint8_t>> cipher;
 	std::vector<std::vector<RecipientInfos>> recipients;
 	std::vector<uint8_t> messageSender; // hold status of message: 0 not sent, 1 sent by Alice, 2 sent by Bob, 3 received
@@ -234,9 +232,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 	std::vector<uint8_t> aliceUserId{'a','l','i','c','e'};
 	std::vector<uint8_t> bobUserId{'b','o','b'};
 	// create sessions
-	auto alice_db_mutex = make_shared<std::recursive_mutex>();
-	auto bob_db_mutex = make_shared<std::recursive_mutex>();
-	lime_tester::dr_sessionsInit<Curve>(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
+	lime_tester::dr_sessionsInit<Curve>(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, bobFilename, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	bool aliceSender=true;
@@ -352,9 +348,7 @@ static void dr_simple_exchange(std::shared_ptr<DR> &DRsessionAlice, std::shared_
 			lime::EncryptionPolicy getEncryptionPolicyAlice, lime::EncryptionPolicy getEncryptionPolicyBob,
 			lime::EncryptionPolicy setEncryptionPolicyAlice, lime::EncryptionPolicy setEncryptionPolicyBob) {
 	// create sessions: alice sender, bob receiver
-	auto alice_db_mutex = make_shared<std::recursive_mutex>();
-	auto bob_db_mutex = make_shared<std::recursive_mutex>();
-	lime_tester::dr_sessionsInit<Curve>(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, alice_db_mutex, filenameBob, bob_db_mutex, true, RNG_context);
+	lime_tester::dr_sessionsInit<Curve>(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, filenameBob, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 	std::vector<uint8_t> aliceUserId{'a','l','i','c','e'};
 	std::vector<uint8_t> bobUserId{'b','o','b'};
@@ -470,7 +464,6 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 	std::shared_ptr<lime::Db> localStorageBob;
 	std::string bobFilename(db_filename);
 	bobFilename.append(".bob.pattern.sqlite3");
-	auto bob_db_mutex = make_shared<std::recursive_mutex>();
 	std::vector<uint8_t> bobUserId{'b','o','b'};
 
 	remove(bobFilename.data());
@@ -489,7 +482,7 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 	bctbx_free(pattern_filepath);
 
 	// Load the DR session with id 1 from the DB
-	localStorageBob = std::make_shared<lime::Db>(bobFilename, bob_db_mutex);
+	localStorageBob = std::make_shared<lime::Db>(bobFilename);
 	bob = make_DR_from_localStorage<Curve>(localStorageBob, 1, RNG_context);
 	BC_ASSERT_TRUE(bob->isActive());
 	if (!bob->isActive()) return; // skip the test if we were not able to load bob's session from pattern
@@ -890,9 +883,7 @@ static void dr_encryptionPolicy_error_test(std::string db_filename, lime::Encryp
 	std::vector<uint8_t> bobUserId{'b','o','b'};
 
 	// create sessions: alice sender, bob receiver
-	auto alice_db_mutex = make_shared<std::recursive_mutex>();
-	auto bob_db_mutex = make_shared<std::recursive_mutex>();
-	lime_tester::dr_sessionsInit<Curve>(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
+	lime_tester::dr_sessionsInit<Curve>(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	// alice encrypt a message

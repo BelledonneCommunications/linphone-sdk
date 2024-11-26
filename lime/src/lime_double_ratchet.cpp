@@ -1178,7 +1178,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	bool DRi<Curve>::session_save(bool commit) { // commit default to true
-		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+		std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 
 		try {
 			if (commit) {
@@ -1408,7 +1408,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	bool DRi<Curve>::session_load() {
-		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+		std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 
 		// blobs to store DR session data
 		blob DHr(m_localStorage->sql);
@@ -1498,7 +1498,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	bool DRi<Curve>::trySkippedMessageKeys(const uint16_t Nr, const std::vector<uint8_t> &DHrIndex, DRMKey &MK) {
-		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+		std::lock_guard<std::recursive_mutex> lock(m_localStorage->m_db_mutex);
 		blob MK_blob(m_localStorage->sql);
 		blob DHr_blob(m_localStorage->sql);
 		DHr_blob.write(0, (char *)(DHrIndex.data()), DHrIndex.size());
@@ -1679,7 +1679,7 @@ namespace lime {
 
 		// ratchet encrypt write to the db, to avoid a serie of transaction, manage it outside of the loop
 		// acquire lock and open a transaction
-		std::lock_guard<std::recursive_mutex> lock(*(localStorage->m_db_mutex));
+		std::lock_guard<std::recursive_mutex> lock(localStorage->m_db_mutex);
 		localStorage->start_transaction();
 
 		try {
