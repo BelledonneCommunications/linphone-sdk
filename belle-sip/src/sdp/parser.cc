@@ -187,7 +187,7 @@ void *bellesip::SDP::Parser::parse(const string &input, const string &rule) {
 }
 
 shared_ptr<Grammar> bellesip::SDP::Parser::loadGrammar() {
-	shared_ptr<Grammar> grammar = GrammarLoader::get().load("sdp_grammar");
+	shared_ptr<Grammar> grammar = GrammarLoader::get().load("sdp_grammar.belr");
 
 	if (!grammar) bctbx_fatal("Unable to load SDP grammar");
 

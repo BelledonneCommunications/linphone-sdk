@@ -452,7 +452,7 @@ void *bellesip::SIP::Parser::parse(const string &input, const string &rule, size
 }
 
 shared_ptr<Grammar> bellesip::SIP::Parser::loadGrammar() {
-	shared_ptr<Grammar> grammar = GrammarLoader::get().load("sip_grammar");
+	shared_ptr<Grammar> grammar = GrammarLoader::get().load("sip_grammar.belr");
 
 	if (!grammar) bctbx_fatal("Unable to load SIP grammar");
 

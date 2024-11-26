@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2024  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -138,8 +138,8 @@ set(BELLE_SIP_SOURCE_FILES_CXX
 	http-message.cc
 )
 set(GRAMMAR_FILES
-	sdp/sdp_grammar
-	sip/sip_grammar
+	sdp/sdp_grammar.belr
+	sip/sip_grammar.belr
 )
 
 if(APPLE)
@@ -169,8 +169,8 @@ else()
 endif()
 
 set(BELLESIP_RESOURCES
-	"${CMAKE_CURRENT_SOURCE_DIR}/../src/sdp/sdp_grammar"
-	"${CMAKE_CURRENT_SOURCE_DIR}/../src/sip/sip_grammar"
+	"${CMAKE_CURRENT_SOURCE_DIR}/../src/sdp/sdp_grammar.belr"
+	"${CMAKE_CURRENT_SOURCE_DIR}/../src/sip/sip_grammar.belr"
 )
 
 add_library(belle-sip ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${GRAMMAR_FILES})
