@@ -28,7 +28,7 @@
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:20240506_add_jsoncpp_for_oauth2
 
 .debian12_java_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-java:20240916_add_jdk
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-java:20241126_update_java_21
 
 .debian12_test_libl_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:20240506_add_jsoncpp_for_oauth2

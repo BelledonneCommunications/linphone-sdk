@@ -23,7 +23,7 @@ if $BUILD; then
     docker build --pull --network=host -t $IMAGE_TAG -f $DOCKERFILE .
 fi
 if $RUN; then
-    docker run --rm -it $IMAGE_TAG /bin/bash
+    docker run --rm -it -v $(pwd)/..:/home/bc/linphone-sdk $IMAGE_TAG /bin/bash
 fi
 if $PUSH; then
     docker push $IMAGE_TAG
