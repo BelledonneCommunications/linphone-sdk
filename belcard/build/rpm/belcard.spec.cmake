@@ -78,7 +78,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %doc LICENSE.txt CHANGELOG.md README.md
 %{_libdir}/*.so.*
-%{_datadir}/belr/grammars/vcard_grammar
+%{_datadir}/belr/grammars/vcard_grammar.belr
 
 %files devel
 %defattr(-,root,root)

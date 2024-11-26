@@ -21,9 +21,9 @@
 
 #include <belr/grammarbuilder.h>
 
-#define VCARD_GRAMMAR "vcard_grammar"
+#define VCARD_GRAMMAR "vcard_grammar.belr"
 
-#define VCARD3_GRAMMAR "vcard3_grammar"
+#define VCARD3_GRAMMAR "vcard3_grammar.belr"
 
 std::shared_ptr<belr::Grammar> loadVcardGrammar();
 

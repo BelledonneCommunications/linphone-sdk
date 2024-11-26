@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2024  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -42,8 +42,8 @@ set(BELCARD_SOURCE_FILES_CXX
 )
 
 set(VCARD_GRAMMAR_FILES
-	vcard_grammar
-	vcard3_grammar
+	vcard_grammar.belr
+	vcard3_grammar.belr
 )
 
 bc_apply_compile_flags(BELCARD_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
