@@ -27,6 +27,7 @@
 #include <functional>
 #include <string>
 #include <mutex>
+#include <ostream>
 
 namespace lime {
 
@@ -76,11 +77,13 @@ namespace lime {
 						     - trusted: we already confirmed this device identity public key
 						     - fail: we could not encrypt for this device, probably because it never published its keys on the X3DH server */
 		std::vector<uint8_t> DRmessage; /**< output: after encrypt calls back, it will hold the Double Ratchet message targeted to the specified recipient. */
+		bool done; /**< internal usage */
 		/**
 		 * recipient data are built giving a recipient id
 		 * @param[in] deviceId	the recipient device Id (its GRUU)
 		 */
-		RecipientData(const std::string &deviceId) : deviceId{deviceId}, peerStatus{lime::PeerDeviceStatus::unknown}, DRmessage{} {};
+		RecipientData(const std::string &deviceId) : deviceId{deviceId}, peerStatus{lime::PeerDeviceStatus::unknown}, DRmessage{}, done(false) {};
+		void dump(std::ostringstream &os, std::string indent="        ") const;
 	};
 
 	/** what a Lime callback could possibly say */
@@ -148,6 +151,13 @@ namespace lime {
 	std::string CurveId2String(const std::vector<lime::CurveId> algos, const std::string separator=",");
 
 	/**
+	 * convert a PeerDeviceStatus into a string
+	 * @param[in] status	the peerDeviceStatus to be converted
+	 * @return the matching string, "invalid" if the CurveId is invalid
+	 */
+	std::string PeerDeviceStatus2String(const lime::PeerDeviceStatus status);
+
+	/**
 	 * @return true when PQ algorithms (c25519/k512 for now) are available
 	 */
 	bool lime_is_PQ_available(void);
@@ -174,6 +184,24 @@ namespace lime {
 				// combine the hash
 				return username_hash(d.username) ^ (baseAlgo_hash(d.baseAlgo) << 1);
 			}
+	};
+
+	// a class holding all data structure to encrypt
+	struct EncryptionContext {
+			const std::vector<uint8_t> m_associatedData;
+			std::vector<RecipientData> m_recipients;
+			const std::vector<uint8_t> m_plainMessage;
+			std::vector<uint8_t> m_cipherMessage;
+			const lime::EncryptionPolicy m_encryptionPolicy;
+
+			// constructor with associated data being a string or a buffer
+			EncryptionContext(const std::vector<uint8_t> &associatedData, const std::vector<uint8_t> &plainMessage, const lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize ) :
+				m_associatedData(associatedData), m_plainMessage(plainMessage), m_encryptionPolicy(encryptionPolicy) {};
+			EncryptionContext(const std::string &associatedData, const std::vector<uint8_t> &plainMessage, const lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize) :
+				m_associatedData(associatedData.cbegin(), associatedData.cend()), m_plainMessage(plainMessage),  m_encryptionPolicy(encryptionPolicy) {};
+			// insert a recipient address
+			void addRecipient(const std::string &recipientAddress) { m_recipients.emplace_back(recipientAddress); }
+			void dump(std::ostringstream &os, std::string indent="        ") const;
 	};
 
 	/****************************************************************************/
@@ -216,11 +244,11 @@ namespace lime {
 			 * The OPkInitialBatchSize is optionnal, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const uint16_t OPkInitialBatchSize, const std::shared_ptr<limeCallback> callback);
+			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const uint16_t OPkInitialBatchSize, limeCallback callback);
 			/**
-			 * @overload void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback)
+			 * @overload void create_user(const std::string &localDeviceId, const std::string &x3dhServerUrl, const std::vector<lime::CurveId> &algos, limeCallback callback)
 			 */
-			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const std::shared_ptr<limeCallback> callback);
+			void create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, limeCallback callback);
 
 			/**
 			 * @brief Delete a user from local database and from the X3DH server
@@ -231,7 +259,7 @@ namespace lime {
 			 * @param[in]	callback	This operation contact the X3DH server and is thus asynchronous, when server responds,
 			 * 				this callback will be called giving the exit status and an error message in case of failure
 			 */
-			void delete_user(const DeviceId &localDeviceId, const std::shared_ptr<limeCallback> callback);
+			void delete_user(const DeviceId &localDeviceId, limeCallback callback);
 
 			/**
 			 * @brief Check if a user is present and active in local storage
@@ -271,30 +299,27 @@ namespace lime {
 			 * 	If the X3DH server can't provide keys for a peer device, its status is set to fail and its DRmessage is empty. Other devices get their encrypted message
 			 * 	If no peer device could get encrypted for all of them are missing keys on the X3DH server, the callback will be called with fail exit status
 			 *
-			 * @note nearly all parameters are shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
+			 * @note encryptionContext is shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
 			 * @param[in]		algos		Choice of base algorithms used as base for cryptographic operation involved. An ordered list holding one or more of: CurveId::c25519, CurveId::c448, CurveId:c25519k512.
-			 * @param[in]		recipientUserId	the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
-			 * @param[in,out]	recipients	a list of RecipientData holding:
+			 * @param[in,out]	encryptionContext This context must persist during asynchronous calls to the lime X3DH server. It holds
+			 *				- associated Data (recipientUserId or other)	is used as associated data to ensure no-one can mess with intended recipient (when the recipientUserId is given)
+			 * 				- recipients	a list of RecipientData holding:
 			 * 					- the recipient device Id(GRUU)
 			 * 					- an empty buffer to store the DRmessage which must then be routed to that recipient
 			 * 					- the peer Status. If peerStatus is set to fail, this entry is ignored otherwise the peerStatus is set by the encrypt, see ::PeerDeviceStatus definition for details
-			 * @param[in]		plainMessage	a buffer holding the message to encrypt, can be text or data.
-			 * @param[out]		cipherMessage	points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
+			 * 				- plainMessage: a buffer holding the message to encrypt, can be text or data.
+			 * 				- cipherMessage: points to the buffer to store the encrypted message which must be routed to all recipients(if one is produced, depends on encryption policy)
+			 * 				- encryptionPolicy: select how to manage the encryption: direct use of Double Ratchet message
+			 * 						or encrypt in the cipher message and use the DR message to share the cipher message key
+			 * 						default is optimized upload size mode.
 			 * @param[in]		callback	Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
 			 * 					this callback will be called giving the exit status and an error message in case of failure.
 			 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
 			 * 					the output of encryption as it won't be part of the callback parameters.
-			 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key
-			 * 						default is optimized upload size mode.
 			 */
-			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback>callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
-			/**
-			 * @overload encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize)
-			 * in this variant the associatedData used in the DR session is not the recipientUserId but a uint8_t buffer
-			 */
-			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
+			void encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<lime::EncryptionContext> encryptionContext, limeCallback callback);
 
 			/**
 			 * @brief Decrypt the given message
@@ -349,11 +374,11 @@ namespace lime {
 			 * The last two parameters are optional, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, limeCallback callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
 			/**
-			 * @overload void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback)
+			 * @overload void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, limeCallback callback)
 			 */
-			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback);
+			void update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, limeCallback callback);
 
 			/**
 			 * @brief retrieve self Identity Key, an EdDSA formatted public key

@@ -217,8 +217,9 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, const std::shared_ptr<limeRandomSeedCallback> randomSeedCallback) {
-		LIME_LOGI<<"encrypt from "<<m_selfDeviceId<<" on "<<CurveId2String(Curve::curveId())<<" to "<<recipients->size()<<" recipients";
+	void Lime<Curve>::encrypt(std::shared_ptr<lime::EncryptionContext> encryptionContext, const std::shared_ptr<limeCallback> callback, const std::shared_ptr<limeRandomSeedCallback> randomSeedCallback) {
+	//void Lime<Curve>::encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, const std::shared_ptr<limeRandomSeedCallback> randomSeedCallback) {
+		LIME_LOGI<<"encrypt from "<<m_selfDeviceId<<" on "<<CurveId2String(Curve::curveId())<<" to "<<encryptionContext->m_recipients.size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
@@ -227,10 +228,11 @@ namespace lime {
 		std::vector<RecipientInfos> internal_recipients{};
 
 		std::unique_lock<std::mutex> lock(m_mutex);
-		for (const auto &recipient : *recipients) {
+		for (const auto &recipient : encryptionContext->m_recipients) {
 			// if the input recipient peerStatus is fail we must ignore it
 			// most likely: we're in a call after a key bundle fetch and this peer device does not have keys on the X3DH server
-			if (recipient.peerStatus != lime::PeerDeviceStatus::fail) {
+			// also ignore the one tags as done as they were already computer in previous call (with another base algo probably)
+			if (recipient.peerStatus != lime::PeerDeviceStatus::fail && !recipient.done) {
 				auto sessionElem = m_DR_sessions_cache.find(recipient.deviceId);
 				if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache
 					if (sessionElem->second->isActive()) { // the session in cache is active
@@ -252,7 +254,7 @@ namespace lime {
 		/* If we are still missing session we must ask the X3DH server for key bundles */
 		if (missing_devices.size()>0) {
 			// create a new callbackUserData, it shall be then deleted in callback, store in all shared_ptr to input/output values needed to call this encrypt function
-			auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, randomSeedCallback, recipientUserId, recipients, plainMessage, cipherMessage, encryptionPolicy);
+			auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, randomSeedCallback, encryptionContext);
 			if (m_ongoing_encryption == nullptr) { // no ongoing asynchronous encryption process it
 				m_ongoing_encryption = userData;
 			} else { // some one else is expecting X3DH server response, enqueue this request
@@ -266,17 +268,18 @@ namespace lime {
 		}
 
 		// We have everyone: encrypt
-		encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy, m_localStorage, randomSeedCallback);
+		encryptMessage(internal_recipients, encryptionContext->m_plainMessage, encryptionContext->m_associatedData, m_selfDeviceId, encryptionContext->m_cipherMessage, encryptionContext->m_encryptionPolicy, m_localStorage, randomSeedCallback);
 
-		// move DR messages to the input/output structure, ignoring again the input with peerStatus set to fail
+		// move DR messages to the input/output structure, ignoring again the input with peerStatus set to fail and the ones done
 		// so the index on the internal_recipients still matches the way we created it from recipients
 		size_t i=0;
 		auto callbackStatus = lime::CallbackReturn::fail;
 		std::string callbackMessage{"All recipients failed to provide a key bundle"};
-		for (auto &recipient : *recipients) {
-			if (recipient.peerStatus != lime::PeerDeviceStatus::fail) {
+		for (auto &recipient : encryptionContext->m_recipients) {
+			if (recipient.peerStatus != lime::PeerDeviceStatus::fail && !recipient.done) {
 				recipient.DRmessage = std::move(internal_recipients[i].DRmessage);
 				recipient.peerStatus = internal_recipients[i].peerStatus;
+				recipient.done = true;
 				i++;
 				callbackStatus = lime::CallbackReturn::success; // we must have at least one recipient with a successful encryption to return success
 				callbackMessage.clear();
@@ -296,7 +299,7 @@ namespace lime {
 			auto userData = m_encryption_queue.front();
 			m_encryption_queue.pop(); // remove it from queue and do it
 			lock.unlock(); // unlock before recursive call
-			encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback, userData->randomSeedCallback);
+			encrypt(userData->encryptionContext, userData->callback, userData->randomSeedCallback);
 		}
 	}
 
@@ -396,7 +399,7 @@ namespace lime {
 		if (!m_encryption_queue.empty()) {
 			auto userData = m_encryption_queue.front();
 			m_encryption_queue.pop(); // remove it from queue and do it, as there is no more ongoing it shall be processed even if the queue still holds elements
-			encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback, userData->randomSeedCallback);
+			encrypt(userData->encryptionContext, userData->callback, userData->randomSeedCallback);
 		}
 	}
 

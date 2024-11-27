@@ -144,19 +144,19 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
  */
 static void group_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, const int deviceNumber, bool oneTalking=false, bool oneDecrypt=false) {
 
-	auto groupName = make_shared<std::string>("group Name");
+	std::string groupName("group Name");
 
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
 
 
 	// create DBs and managers
@@ -209,27 +209,24 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			// when only one device is talking: the device 0 send twice a message
 			auto senderIndex = oneTalking?0:i;
 
-			// create the list of recipients
-			auto recipients = make_shared<std::vector<RecipientData>>();
-			for (auto j=0; j<deviceNumber; j++) {
-				if (j!=senderIndex) { // don't write to self
-					recipients->emplace_back(*(devicesId[j]));
-				}
-			}
-
 			// select a message to encrypt
 			auto messages_pattern_index = i%lime_tester::messages_pattern.size();
-			auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[messages_pattern_index].begin(), lime_tester::messages_pattern[messages_pattern_index].end());
-
-			if (bench) {
-				startEncrypt = bctbx_get_cur_time_ms();
+			auto encryptionContext = make_shared<lime::EncryptionContext>(groupName, lime_tester::messages_pattern[messages_pattern_index]);
+			// create the list of recipients
+			for (auto j=0; j<deviceNumber; j++) {
+				if (j!=senderIndex) { // don't write to self
+					encryptionContext->addRecipient(*(devicesId[j]));
+				}
 			}
 
 			// get a manager for this device
 			manager = make_unique<LimeManager>(dbFilename[senderIndex], X3DHServerPost);
+			if (bench) {
+				startEncrypt = bctbx_get_cur_time_ms();
+			}
+
 			//encrypt
-			auto cipherMessage = make_shared<std::vector<uint8_t>>();
-			manager->encrypt(*(devicesId[senderIndex]), algos, groupName, recipients, message, cipherMessage, callback);
+			manager->encrypt(*(devicesId[senderIndex]), algos, encryptionContext, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 			if (bench) {
@@ -257,9 +254,8 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 				// get a manager for this device
 				manager = make_unique<LimeManager>(dbFilename[j], X3DHServerPost);
 				std::vector<uint8_t> receivedMessage{};
-				BC_ASSERT_TRUE(manager->decrypt(*(devicesId[j]), *groupName, *(devicesId[senderIndex]), (*recipients)[recipientDecryptIndex].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-				auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages_pattern_index]);
+				BC_ASSERT_TRUE(manager->decrypt(*(devicesId[j]), groupName, *(devicesId[senderIndex]), (encryptionContext->m_recipients)[recipientDecryptIndex].DRmessage, encryptionContext->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+				BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[messages_pattern_index]);
 				recipientDecryptIndex++;
 				if (oneDecrypt) {
 					break; // just decrypt one message
@@ -288,8 +284,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 				// get a manager for this device
 				manager = make_unique<LimeManager>(dbFilename[i], X3DHServerPost);
 				manager->delete_user(DeviceId(*(devicesId[i]), curve), callback);
-				expected_success++;
-				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
+				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			}
 
 			for (auto i=0; i<deviceNumber; i++) {

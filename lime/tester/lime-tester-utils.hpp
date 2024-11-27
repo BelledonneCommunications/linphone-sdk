@@ -44,11 +44,11 @@ extern std::string test_x3dh_domainB_server_port;
 extern std::string test_x3dh_domainC_server_port;
 
 // messages pattern
-extern std::string shortMessage;
-extern std::string longMessage;
-extern std::string veryLongMessage;
+extern std::vector<uint8_t> shortMessage;
+extern std::vector<uint8_t> longMessage;
+extern std::vector<uint8_t> veryLongMessage;
 
-extern std::vector<std::string> messages_pattern;
+extern std::vector<std::vector<uint8_t>> messages_pattern;
 
 // default value for the timeout
 extern int wait_for_timeout;
@@ -107,21 +107,21 @@ template <typename Curve>
 void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 
 /* return true if the message buffer is a DR message with the paylod direct encryption flag set */
-bool DR_message_payloadDirectEncrypt(std::vector<uint8_t> &message);
+bool DR_message_payloadDirectEncrypt(const std::vector<uint8_t> &message);
 /* return true if the message buffer is a DR message with public keys to perform an asymmetric ratchet */
-bool DR_message_holdsAsymmetricKeys(std::vector<uint8_t> &message);
+bool DR_message_holdsAsymmetricKeys(const std::vector<uint8_t> &message);
 /* return true if the message buffer is a valid DR message holding a X3DH init one in its header */
-bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message);
+bool DR_message_holdsX3DHInit(const std::vector<uint8_t> &message);
 /* this version will set the OPk status in the given bool if a packet is found */
-bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk);
+bool DR_message_holdsX3DHInit(const std::vector<uint8_t> &message, bool &haveOPk);
 
 /* return true if the message buffer is a valid DR message holding a X3DH init one in its header and copy the X3DH init message in the provided buffer */
-bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage);
+bool DR_message_extractX3DHInit(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage);
 
 /* return true if the message buffer is a valid DR message holding an X3DH init message, copy its SPk id in the given parameter */
-bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &SPkId);
+bool DR_message_extractX3DHInit_SPkId(const std::vector<uint8_t> &message, uint32_t &SPkId);
 /* return the Ns header field */
-uint16_t DR_message_get_Ns(std::vector<uint8_t> &message);
+uint16_t DR_message_get_Ns(const std::vector<uint8_t> &message);
 
 /* Open provided DB and look for DRSessions established between selfDevice and peerDevice
  * Populate the sessionsId vector with the Ids of sessions found

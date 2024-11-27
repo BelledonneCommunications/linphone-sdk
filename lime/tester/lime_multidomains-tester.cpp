@@ -156,14 +156,14 @@ static void lime_multidomains_simple_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
 	try {
 		std::vector<lime::CurveId> algos{curve};
 		// create Manager and device for alice
@@ -179,20 +179,16 @@ static void lime_multidomains_simple_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Alice encrypts a message to Bob  - keys are fetch from alice server forwarding the bundle request to friends domainB and domainC
-		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
-		aliceRecipients->emplace_back(*bobDeviceId);
-		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
-
-		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		auto enc = make_shared<lime::EncryptionContext>("foreign friends", lime_tester::messages_pattern[0]);
+		enc->addRecipient(*bobDeviceId);
+		aliceManager->encrypt(*aliceDeviceId, algos, enc, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// bob decrypts
 		std::vector<uint8_t> receivedMessage{};
 		// in that context we cannot know the expected decrypt return value, just check it is not fail
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "foreign friends", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "foreign friends", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		if (cleanDatabase) {
 			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
@@ -248,14 +244,14 @@ static void lime_multidomains_several_foreign_test(const lime::CurveId curve) {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
 	try {
 		std::vector<lime::CurveId> algos{curve};
 		// create Manager and device for alice
@@ -283,33 +279,27 @@ static void lime_multidomains_several_foreign_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Alice encrypts a message to Dave, Bob and Claire - keys are fetch from alice server forwarding the bundle request to friends domainB and domainC
-		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
-		aliceRecipients->emplace_back(*bobDeviceId);
-		aliceRecipients->emplace_back(*claireDeviceId);
-		aliceRecipients->emplace_back(*daveDeviceId);
-		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
-
-		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		auto enc = make_shared<lime::EncryptionContext>("foreign friends", lime_tester::messages_pattern[0]);
+		enc->addRecipient(*bobDeviceId);
+		enc->addRecipient(*claireDeviceId);
+		enc->addRecipient(*daveDeviceId);
+		aliceManager->encrypt(*aliceDeviceId, algos, enc, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// bob decrypts
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "foreign friends", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "foreign friends", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// claire decrypts
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "foreign friends", *aliceDeviceId, (*aliceRecipients)[1].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "foreign friends", *aliceDeviceId, enc->m_recipients[1].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// dave decrypts
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "foreign friends", *aliceDeviceId, (*aliceRecipients)[2].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "foreign friends", *aliceDeviceId, enc->m_recipients[2].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		if (cleanDatabase) {
 			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);
@@ -368,14 +358,14 @@ static void lime_multidomains_several_users_foreign_test(const lime::CurveId cur
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
 	try {
 		std::vector<lime::CurveId> algos{curve};
 		// create Manager and device for alice
@@ -416,61 +406,51 @@ static void lime_multidomains_several_users_foreign_test(const lime::CurveId cur
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Alice encrypts a message to Dave, Bob and Claire - keys are fetch from alice server forwarding the bundle request to friends domainB and domainC
-		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
-		aliceRecipients->emplace_back(*bobDeviceId);
-		aliceRecipients->emplace_back(*claireDeviceId);
-		aliceRecipients->emplace_back(*daveDeviceId);
-		aliceRecipients->emplace_back(*aliceDeviceId2);
-		aliceRecipients->emplace_back(*bobDeviceId2);
-		aliceRecipients->emplace_back(*claireDeviceId2);
-		aliceRecipients->emplace_back(*daveDeviceId2);
-		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
-
-		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("foreign friends"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		auto enc = make_shared<lime::EncryptionContext>("foreign friends", lime_tester::messages_pattern[0]);
+		enc->addRecipient(*bobDeviceId);
+		enc->addRecipient(*claireDeviceId);
+		enc->addRecipient(*daveDeviceId);
+		enc->addRecipient(*aliceDeviceId2);
+		enc->addRecipient(*bobDeviceId2);
+		enc->addRecipient(*claireDeviceId2);
+		enc->addRecipient(*daveDeviceId2);
+		aliceManager->encrypt(*aliceDeviceId, algos, enc, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// bob decrypts
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "foreign friends", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "foreign friends", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// claire decrypts
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "foreign friends", *aliceDeviceId, (*aliceRecipients)[1].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "foreign friends", *aliceDeviceId, enc->m_recipients[1].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// dave decrypts
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "foreign friends", *aliceDeviceId, (*aliceRecipients)[2].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "foreign friends", *aliceDeviceId, enc->m_recipients[2].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// alice2 decrypts
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId2, "foreign friends", *aliceDeviceId, (*aliceRecipients)[3].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId2, "foreign friends", *aliceDeviceId, enc->m_recipients[3].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// bob2 decrypts
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId2, "foreign friends", *aliceDeviceId, (*aliceRecipients)[4].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId2, "foreign friends", *aliceDeviceId, enc->m_recipients[4].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// claire2 decrypts
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId2, "foreign friends", *aliceDeviceId, (*aliceRecipients)[5].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId2, "foreign friends", *aliceDeviceId, enc->m_recipients[5].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// dave2 decrypts
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId2, "foreign friends", *aliceDeviceId, (*aliceRecipients)[6].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId2, "foreign friends", *aliceDeviceId, enc->m_recipients[6].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		if (cleanDatabase) {
 			aliceManager->delete_user(DeviceId(*aliceDeviceId, curve), callback);

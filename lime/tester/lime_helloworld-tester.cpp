@@ -188,14 +188,14 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 	// The counters part is for test synchronisation purpose
 	// The returnCode gives the status of command execution.
 	// Encryption make use of a lambda too but it's written directly in the call, see below
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
 
 	try {
 		std::vector<lime::CurveId> algos{curve};
@@ -232,51 +232,55 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 
-		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
+		/*** alice encrypt a message to bob ***/
 		// The encryption generates:
 		//      - one common cipher message which must be sent to all recipient devices(depends on encryption policy, message length and recipient number, it may be actually empty)
 		//      - a cipher header per recipient device, each recipient device shall receive its specific one
 
-		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
+		// Create an encryption context, it is allocated as a shared_ptr so it can be kept during asynchronous calls to the lime server
+		// it is given
+		//  - the associated data used during the encryption (here the name of the recipient, could be it's sip:uri - or the group one) - can be a uint8_t buffer or a string
+		//  - the plain text message
+		auto encryptionContext = make_shared<lime::EncryptionContext>("bob", lime_tester::messages_pattern[0]);
+		// in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
 		// RecipientData holds:
 		//      - recipient device id (identify the recipient)
 		//      - peer Device status :
 		//          - input : if explicitely set to lime::PeerDeviceStatus::fail, this entry is ignored
 		//          - output : the current status of this device in local database. See lime::PeerDeviceStatus definition(in lime.hpp) for details
 		//      - Double Ratchet message : output of encryption process targeted to this recipient device only
-		auto recipients = make_shared<std::vector<RecipientData>>();
-		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
-		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
-
-		// the plain message, type is std::vector<uint8_t> as it can be text as in this test but also any kind of data.
-		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		auto cipherMessage = make_shared<std::vector<uint8_t>>(); // an empty buffer to get the encrypted message
+		encryptionContext->addRecipient(*bobDeviceId); // we have only one recipient identified by its device id.
+		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to add some more recipients Device Id (GRUU)
 
 		LIME_LOGI<<"Alice encrypt the message"<<endl;
 		/************** SENDER SIDE CODE *****************************/
 		// encrypt, parameters are:
 		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
-		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
-		//      - RecipientData vector (see above), list all recipient devices, will hold their DR message
-		//      - plain message
-		//      - cipher message (this one must then be distributed to all recipients devices)
+		//      - base algorithm list
+		//      - the encryption context:
+		//        - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
+		//        - RecipientData vector (see above), list all recipient devices, will hold their DR message
+		//        - plain message
+		//        - cipher message (this one must then be distributed to all recipients devices)
+		//        - the encryption policy
 		//      - a callback (prototype: void(lime::CallbackReturn, std::string))
 		{
-		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
+		aliceManager->encrypt(*aliceDeviceId, algos, encryptionContext,
 					// lambda to get the results, it captures :
 					// - counter : relative to the test, real application won't need this, it's local and used to wait for completion and can't be destroyed before the call to this closure
-					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding DRmessage.
-					// - cipherMessage : It will hold the cipher message to be sent to all recipients devices.
-					// IMPORTANT : recipients and cipherMessage are captured by copy not reference. They are shared_ptr, their original scope is likely to be the function where the encrypt is called.
-					//             they shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase their
-					//             use count and are sure to still have them valid when we are called.
+					// - encryptionContext :  It will hold
+					//      - the same list of deviceIds we set as input with their corresponding DRmessage.
+					//      - cipherMessage : message to be sent to all recipients devices.(may not be present according to encryption policy)
+					// IMPORTANT : encryption context is captured by copy not reference. It is a shared_ptr, its original scope is likely to be the function where the encrypt is called.
+					//             it shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase the
+					//             use count and are sure to still have it valid when we are called. We can just move it to the closure to avoid that copy.
 					//             When the closure itself is destroyed (when last reference to it is destroyed), it will trigger destruction of the captured values (-1 in use count for the shared_ptr)
 					//             After this closure is called it is destroyed(internal reference is dropped) decreasing the count and allowing the release of the buffer.
 					//
 					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
-					//             In normal operation, the shared_ptrs to recipients and cipherMessage given to encrypt function are internally owned at least until the callback is called.
-					make_shared<limeCallback>([&counters,
-					recipients, cipherMessage](lime::CallbackReturn returnCode, std::string errorMessage){
+					//             In normal operation, the shared_ptr to the encryption context given to encrypt function is internally owned at least until the callback is called.
+					[&counters,
+					encryptionContext](lime::CallbackReturn returnCode, std::string errorMessage){
 						// counters is related to this test environment only, not to be considered for real usage
 						if (returnCode == lime::CallbackReturn::success) {
 							counters.operation_success++;
@@ -284,20 +288,19 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 							// Send the message to recipient
 							// that function must, before returning, send or copy the data to send them later
 							// recipients and cipherMessage are likely to be be destroyed as soon as we get out of this closure
-							// In this example we know that bodDevice is in recipients[0], real code shall loop on recipients vector
-							sendMessageTo("bob", (*recipients)[0].DRmessage, *cipherMessage);
+							// In this example we know that bodDevice is in m_recipients[0], real code shall loop on recipients vector
+							sendMessageTo("bob", encryptionContext->m_recipients[0].DRmessage, encryptionContext->m_cipherMessage);
 						} else {
 							counters.operation_failed++;
 							// The encryption failed.
 							LIME_LOGE<<"Lime operation failed : "<<errorMessage;
 						}
-					}));
+					});
 		}
 		LIME_LOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
 		// in real sending situation, the local instance of the shared pointer are destroyed by exiting the function where they've been declared
 		// and where we called the encrypt function. (The LimeManager shall instead never be destroyed until the application terminates)
-		recipients = nullptr;
-		cipherMessage = nullptr;
+		encryptionContext = nullptr;
 		/****** end of SENDER SIDE CODE ******************************/
 
 		/************** SYNCHRO **************************************/
@@ -322,10 +325,7 @@ static void helloworld_basic_test(const lime::CurveId curve) {
 			// it is the first time bob's Device is in communication with Alice's one, so the decrypt will return PeerDeviceStatus::unknown
 			// successive messages from Alice shall get a PeerDeviceStatus::untrusted as we did not take care of peer identity validation
 			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedDRmessage, bobReceivedCipherMessage, plainTextMessage) == lime::PeerDeviceStatus::unknown);
-
-			// it's a text message, so turn it into a string and compare with the one alice sent
-			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
-			BC_ASSERT_TRUE(plainTextMessageString == lime_tester::messages_pattern[0]);
+			BC_ASSERT_TRUE(plainTextMessage == lime_tester::messages_pattern[0]);
 			LIME_LOGI<<"Bob decrypt the message completed"<<endl;
 		} else {
 			LIME_LOGI<<"Bob decrypt the message : no message found"<<endl;
@@ -397,14 +397,15 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 	// The counters part is for test synchronisation purpose
 	// The returnCode gives the status of command execution.
 	// Encryption make use of a lambda too but it's written directly in the call, see below
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
+
 
 	try {
 		std::vector<lime::CurveId> algos{curve};
@@ -465,55 +466,52 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 		aliceManager->set_peerDeviceStatus(*bobDeviceId, curve, bobIk, lime::PeerDeviceStatus::trusted);
 		bobManager->set_peerDeviceStatus(*aliceDeviceId, curve, aliceIk, lime::PeerDeviceStatus::trusted);
 
-		/*** alice encrypt a message to bob, all parameters given to encrypt function are shared_ptr. ***/
 		// The encryption generates:
 		//      - one common cipher message which must be sent to all recipient devices(depends on encryption policy, message length and recipient number, it may be actually empty)
 		//      - a cipher header per recipient device, each recipient device shall receive its specific one
 
-		// [verify] before encryption we can verify that recipient identity is a trusted peer(and eventually decide to not perform the encryption if it is not)
-		// This information will be provided by the encrypt function anyway for each recipient device
-		// Here Bob's device is trusted as we just set its identity as verified
-		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
-
-		// Create an empty RecipientData vector, in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
+		// Create an encryption context, it is allocated as a shared_ptr so it can be kept during asynchronous calls to the lime server
+		// it is given
+		//  - the associated data used during the encryption (here the name of the recipient, could be it's sip:uri - or the group one) - can be a uint8_t buffer or a string
+		//  - the plain text message
+		auto encryptionContext = make_shared<lime::EncryptionContext>("bob", lime_tester::messages_pattern[0]);
+		// in this basic case we will encrypt to one device only but we can do it to any number of recipient devices.
 		// RecipientData holds:
 		//      - recipient device id (identify the recipient)
 		//      - peer Device status :
 		//          - input : if explicitely set to lime::PeerDeviceStatus::fail, this entry is ignored
 		//          - output : the current status of this device in local database. See lime::PeerDeviceStatus definition(in lime.hpp) for details
 		//      - Double Ratchet message : output of encryption process targeted to this recipient device only
-		auto recipients = make_shared<std::vector<RecipientData>>();
-		recipients->emplace_back(*bobDeviceId); // we have only one recipient identified by its device id.
-		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to emplace_back some more recipients Device Id (GRUU)
-
-		// the plain message, type is std::vector<uint8_t> as it can be text as in this test but also any kind of data.
-		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		auto cipherMessage = make_shared<std::vector<uint8_t>>(); // an empty buffer to get the encrypted message
+		encryptionContext->addRecipient(*bobDeviceId); // we have only one recipient identified by its device id.
+		// Shall we have more recipients (bob can have several devices or be a conference sip:uri, alice other devices must get a copy of the message), we just need to add some more recipients Device Id (GRUU)
 
 		LIME_LOGI<<"Alice encrypt the message"<<endl;
 		/************** SENDER SIDE CODE *****************************/
 		// encrypt, parameters are:
 		//      - localDeviceId to select which of the users managed by the LimeManager we shall use to perform the encryption (in our example we have only one local device). This one doesn't need to be a shared pointer.
-		//      - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
-		//      - RecipientData vector (see above), list all recipient devices, will hold their DR message
-		//      - plain message
-		//      - cipher message (this one must then be distributed to all recipients devices)
+		//      - base algorithm list
+		//      - the encryption context:
+		//        - recipientUser: an id of the recipient user (which can hold several devices), typically its sip:uri
+		//        - RecipientData vector (see above), list all recipient devices, will hold their DR message
+		//        - plain message
+		//        - cipher message (this one must then be distributed to all recipients devices)
+		//        - the encryption policy
 		//      - a callback (prototype: void(lime::CallbackReturn, std::string))
-		aliceManager->encrypt(*aliceDeviceId, algos, make_shared<const std::string>("bob"), recipients, message, cipherMessage,
+		aliceManager->encrypt(*aliceDeviceId, algos, encryptionContext,
 					// lambda to get the results, it captures :
 					// - counter : relative to the test, real application won't need this, it's local and used to wait for completion and can't be destroyed before the call to this closure
-					// - recipients :  It will hold the same list of deviceIds we set as input with their corresponding DRmessage.
-					// - cipherMessage : It will hold the cipher message to be sent to all recipients devices.
-					// IMPORTANT : recipients and cipherMessage are captured by copy not reference. They are shared_ptr, their original scope is likely to be the function where the encrypt is called.
-					//             they shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase their
-					//             use count and are sure to still have them valid when we are called.
-					//             When the closure itself is destroyed (when last reference to it is destroyed), it will trigger destruction of the captured values(-1 in use count for the shared_ptr)
+					// - encryptionContext :  It will hold
+					//      - the same list of deviceIds we set as input with their corresponding DRmessage.
+					//      - cipherMessage : message to be sent to all recipients devices.(may not be present according to encryption policy)
+					// IMPORTANT : encryption context is captured by copy not reference. It is a shared_ptr, its original scope is likely to be the function where the encrypt is called.
+					//             it shall then be destroyed when getting out of this function and thus won't be valid anymore when this closure is called. By getting a copy we just increase the
+					//             use count and are sure to still have it valid when we are called.
+					//             When the closure itself is destroyed (when last reference to it is destroyed), it will trigger destruction of the captured values (-1 in use count for the shared_ptr)
 					//             After this closure is called it is destroyed(internal reference is dropped) decreasing the count and allowing the release of the buffer.
 					//
 					//             It may be wise to use weak_ptr instead of shared ones so if any problem occurs resulting in callback never being called/destroyed, it won't held this buffer from being destroyed
-					//             In normal operation, the shared_ptrs to recipients and cipherMessage given to encrypt function are internally owned at least until the callback is called.
-					make_shared<limeCallback>([&counters,
-					recipients, cipherMessage](lime::CallbackReturn returnCode, std::string errorMessage){
+					//             In normal operation, the shared_ptr to the encryption context given to encrypt function is internally owned at least until the callback is called.
+					[&counters, encryptionContext](lime::CallbackReturn returnCode, std::string errorMessage){
 						// counters is related to this test environment only, not to be considered for real usage
 						if (returnCode == lime::CallbackReturn::success) {
 							counters.operation_success++;
@@ -521,22 +519,21 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 							// Send the message to recipient
 							// that function must, before returning, send or copy the data to send them later
 							// recipients and cipherMessage are likely to be be destroyed as soon as we get out of this closure
-							// In this example we know that bodDevice is in recipients[0], real code shall loop on recipients vector
-							sendMessageTo("bob", (*recipients)[0].DRmessage, *cipherMessage);
+							// In this example we know that bodDevice is in m_recipients[0], real code shall loop on recipients vector
+							sendMessageTo("bob", encryptionContext->m_recipients[0].DRmessage, encryptionContext->m_cipherMessage);
 							// [verify] now we can also check the trusted status of recipients, as we set as trusted Bob's key, it shall be trusted
-							BC_ASSERT_TRUE((*recipients)[0].peerStatus == lime::PeerDeviceStatus::trusted);
+							BC_ASSERT_TRUE(encryptionContext->m_recipients[0].peerStatus == lime::PeerDeviceStatus::trusted);
 						} else {
 							counters.operation_failed++;
 							// The encryption failed.
 							LIME_LOGE<<"Lime operation failed : "<<errorMessage;
 						}
-					}));
+					});
 
 		LIME_LOGI<<"Alice encrypt the message, out of encrypt call, wait for callback"<<endl;
 		// in real sending situation, the local instance of the shared pointer are destroyed by exiting the function where they've been declared
 		// and where we called the encrypt function. (The LimeManager shall instead never be destroyed until the application terminates)
-		recipients = nullptr;
-		cipherMessage = nullptr;
+		encryptionContext = nullptr;
 		/****** end of SENDER SIDE CODE ******************************/
 
 		/************** SYNCHRO **************************************/
@@ -565,10 +562,7 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve) {
 			// [verify] it is the first time bob's Device is in communication with Alice's one via message
 			// but they already exchanged their identity keys so they Bob's device trust Alice's one since the first incoming message
 			BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, bobReceivedDRmessage, bobReceivedCipherMessage, plainTextMessage) == lime::PeerDeviceStatus::trusted);
-
-			// it's a text message, so turn it into a string and compare with the one alice sent
-			std::string plainTextMessageString{plainTextMessage.begin(), plainTextMessage.end()};
-			BC_ASSERT_TRUE(plainTextMessageString == lime_tester::messages_pattern[0]);
+			BC_ASSERT_TRUE(plainTextMessage == lime_tester::messages_pattern[0]);
 			LIME_LOGI<<"Bob decrypt the message completed"<<endl;
 		} else {
 			LIME_LOGI<<"Bob decrypt the message : no message found"<<endl;

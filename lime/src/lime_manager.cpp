@@ -87,10 +87,11 @@ namespace lime {
 	/* Lime Manager API                                                         */
 	/*                                                                          */
 	/****************************************************************************/
-	void LimeManager::create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl,const std::shared_ptr<limeCallback> callback) {
-		create_user(localDeviceId, algos, x3dhServerUrl, lime::settings::OPk_initialBatchSize, callback);
+	void LimeManager::create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, limeCallback callback) {
+		create_user(localDeviceId, algos, x3dhServerUrl, lime::settings::OPk_initialBatchSize, std::move(callback));
 	}
-	void LimeManager::create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const uint16_t OPkInitialBatchSize, const std::shared_ptr<limeCallback> callback) {
+	void LimeManager::create_user(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::string &x3dhServerUrl, const uint16_t OPkInitialBatchSize, limeCallback callback) {
+		auto sharedCallback = make_shared<lime::limeCallback>(std::move(callback)); // need to store the callback into a shared_ptr as any we don't know which instance will be calling it
 		auto callbackCount = make_shared<size_t>(algos.size());
 		auto globalReturnCode = make_shared<lime::CallbackReturn>(lime::CallbackReturn::success);
 		auto globalReturnMessage = make_shared<std::string>();
@@ -107,13 +108,13 @@ namespace lime {
 				if (*callbackCount == 0) {
 					if (alreadyThere == algos.size()) {
 						// all the devices where already there: this is a fail
-						(*callback)(lime::CallbackReturn::fail, std::string("Try to create user ").append(localDeviceId).append(" on ").append(CurveId2String(algos)).append(" but all already in base"));
+						(*sharedCallback)(lime::CallbackReturn::fail, std::string("Try to create user ").append(static_cast<std::string>(deviceId)).append(" but all already in base"));
 					} else {
-						(*callback)(*globalReturnCode, *globalReturnMessage);
+						(*sharedCallback)(*globalReturnCode, *globalReturnMessage);
 					}
 				}
 			} else {
-				auto managerCreateCallback = make_shared<limeCallback>([thiz, algo, deviceId, callbackCount, globalReturnCode, globalReturnMessage, callback](lime::CallbackReturn returnCode, std::string errorMessage) {
+				auto managerCreateCallback = make_shared<limeCallback>([thiz, algo, deviceId, callbackCount, globalReturnCode, globalReturnMessage, sharedCallback](lime::CallbackReturn returnCode, std::string errorMessage) {
 					(*callbackCount)--;
 					if (returnCode == lime::CallbackReturn::fail) {
 						*globalReturnCode = lime::CallbackReturn::fail; // if one fail, return fail at the end of it
@@ -133,7 +134,7 @@ namespace lime {
 
 					// forward the callback when all are done
 					if (*callbackCount == 0) {
-						(*callback)(*globalReturnCode, *globalReturnMessage);
+						(*sharedCallback)(*globalReturnCode, *globalReturnMessage);
 					}
 				});
 
@@ -143,11 +144,11 @@ namespace lime {
 		}
 	}
 
-	void LimeManager::delete_user(const DeviceId &localDeviceId, const std::shared_ptr<limeCallback> callback) {
+	void LimeManager::delete_user(const DeviceId &localDeviceId, limeCallback callback) {
 		auto thiz = this;
-		auto managerDeleteCallback = make_shared<limeCallback>([thiz, localDeviceId, callback](lime::CallbackReturn returnCode, std::string errorMessage) {
+		auto managerDeleteCallback = make_shared<limeCallback>([thiz, localDeviceId, cb=std::move(callback)](lime::CallbackReturn returnCode, std::string errorMessage) {
 			// first forward the callback
-			(*callback)(returnCode, errorMessage);
+			cb(returnCode, errorMessage);
 
 			// then remove the user from cache(it will trigger destruction of the lime generic object so do it last
 			// as it will also destroy the instance of this callback)
@@ -170,12 +171,13 @@ namespace lime {
 		return globalReturn;
 	}
 
-	void LimeManager::encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, const lime::EncryptionPolicy encryptionPolicy) {
+	void LimeManager::encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<lime::EncryptionContext> encryptionContext, limeCallback callback) {
 		// prevent duplicate entries to make a mess -> just tag the duplicate as fail so it is ignored
 		std::unordered_set<std::string> seenIds;
-		for (auto& recipient : *recipients) {
+		for (auto& recipient : encryptionContext->m_recipients) {
 		       if (seenIds.find(recipient.deviceId) != seenIds.end()) {
 			       recipient.peerStatus = lime::PeerDeviceStatus::fail;
+			       recipient.done = true;
 		       } else {
 			       seenIds.insert(recipient.deviceId);
 		       }
@@ -184,7 +186,7 @@ namespace lime {
 
 		if (algos.size() == 1) { // main case: there is only one base algorithm
 			// Load user object and call the encryption function
-			LimeManager::load_user(DeviceId(localDeviceId, algos[0]))->encrypt(associatedData, recipients, plainMessage, encryptionPolicy, cipherMessage, callback);
+			LimeManager::load_user(DeviceId(localDeviceId, algos[0]))->encrypt(encryptionContext, std::make_shared<limeCallback>(std::move(callback)));
 		} else { //We have several base algorithms, encrypt, in given order, with the different users until all recipients are satisfied or no more local user to try
 			// In case we might encrypt with several lime users (same GRUU but different base algo) and using the cipher message policy (actually not forcing DRMessage policy)
 			// we must produce only one cipher message (or it looses its purpose of efficiency).
@@ -193,16 +195,15 @@ namespace lime {
 			// These must bet set/get via a callback
 			// Note: the cipherMessage is generated and stored in the cipherMessage buffer during the first call. It will then stay there untouched until we're done with all the algos
 			auto randomSeedStore = make_shared<std::vector<uint8_t>>();
-			cipherMessage->clear(); // make sure the cipherMessage is empty so we know when it was already computed
+			encryptionContext->m_cipherMessage.clear(); // make sure the cipherMessage is empty so we know when it was already computed
 			auto thiz = this;
 			auto algosIndex = make_shared<size_t>(0); // Keep the current index on the algos vector
 			auto globalReturnStatus = make_shared<lime::CallbackReturn>(lime::CallbackReturn::fail);
 			auto globalReturnMessage = make_shared<std::string>();
-			auto laterRoundRecipients = make_shared<std::vector<RecipientData>>();
 
 			// This callback set/get the randomseed used to encrypt the cipherMessage. It is the one used as cipherText by the DR encrypt when in cipherMessage encryption policy
 			auto managerRandomSeedCallback = make_shared<limeRandomSeedCallback>();
-			if (encryptionPolicy == lime::EncryptionPolicy::DRMessage) {
+			if (encryptionContext->m_encryptionPolicy == lime::EncryptionPolicy::DRMessage) {
 				managerRandomSeedCallback = nullptr;
 			} else {
 				*managerRandomSeedCallback = [randomSeedStore](const bool get, std::shared_ptr<std::vector<uint8_t>> &randomSeed) mutable {
@@ -222,7 +223,7 @@ namespace lime {
 			// This one is called when we finish the encryption for one lime user
 			auto managerEncryptCallback = make_shared<limeCallback>(); // declare and define in two step so the lambda can capture itself to be used inside its own body
 			std::weak_ptr<limeCallback> managerEncryptCallbackWkptr(managerEncryptCallback); // we must capture a weak pointer otherwise the closure self references and is never destroyed. The shared_ptr is anyway copied in the userData internal structure if needed
-			*managerEncryptCallback = [thiz, localDeviceId, algos, algosIndex, randomSeedStore, associatedData, recipients, plainMessage, encryptionPolicy, cipherMessage, callback, globalReturnStatus, globalReturnMessage, laterRoundRecipients, managerEncryptCallbackWkptr, managerRandomSeedCallback](lime::CallbackReturn returnCode, std::string errorMessage) {
+			*managerEncryptCallback = [thiz, localDeviceId, algos, algosIndex, randomSeedStore, encryptionContext, cb = std::move(callback), globalReturnStatus, globalReturnMessage, managerEncryptCallbackWkptr, managerRandomSeedCallback](lime::CallbackReturn returnCode, std::string errorMessage) {
 					// retrieve status and message
 					// if at least one returns success, return success too
 					if ((*globalReturnStatus == lime::CallbackReturn::success) || (returnCode == lime::CallbackReturn::success)) {
@@ -232,90 +233,52 @@ namespace lime {
 						globalReturnMessage->append(CurveId2String(algos[*algosIndex])).append(" : ").append(errorMessage);
 					}
 
-					// when this is the first call, we directly used the user provided recipient vector to store the result
-					// so there is no penalty when encrypting for all using the first lime user
-					if (*algosIndex == 0) {
-						// check if all the recipients have a DR message
-						for (const auto &recipient:*recipients) {
-							if (recipient.peerStatus == lime::PeerDeviceStatus::fail) {
-								laterRoundRecipients->emplace_back(recipient.deviceId);
-							}
-						}
-						// we have everyone
-						if (laterRoundRecipients->empty()) {
-							if (randomSeedStore) {
-								cleanBuffer(randomSeedStore->data(), randomSeedStore->size());
-							}
-							if (callback) (*callback)(*globalReturnStatus, *globalReturnMessage);
-							return;
-						} else {
-							(*algosIndex)++;
-							auto  user = thiz->load_user(DeviceId(localDeviceId, algos[*algosIndex]));
-							// make a new call using the laterRoundRecipients (the one failed from first round)
-							if (auto managerEncryptCallback = managerEncryptCallbackWkptr.lock()) {
-								user->encrypt(associatedData, laterRoundRecipients, plainMessage, encryptionPolicy, cipherMessage, managerEncryptCallback, managerRandomSeedCallback);
-							} else {
-								LIME_LOGE<<"encryption failed: trying to get a second round on device "<<static_cast<std::string>(DeviceId(localDeviceId, algos[*algosIndex]));
-								if (callback) (*callback)(lime::CallbackReturn::fail, "Fail to encrypt as we lost track of the manager encryption lambda closure");
-								return;
-							}
-						}
-					} else { // this is not the first call to the function
-						auto nextRoundRecipients = make_shared<std::vector<RecipientData>>();
-						 // retrieve all recipients that have a DR message and move them in the original recipient vector
-						for (const auto &recipient:(*laterRoundRecipients)) {
-							// failed recipient get queued for the next round
-							if (recipient.peerStatus == lime::PeerDeviceStatus::fail) {
-								nextRoundRecipients->emplace_back(recipient.deviceId);
-							} else { // copy back the succesfull one to the recipients passed by caller in parameter
-								for (auto &finalRecipient:(*recipients)) {
-									if (finalRecipient.deviceId == recipient.deviceId) {
-										finalRecipient.DRmessage = std::move(recipient.DRmessage);
-										finalRecipient.peerStatus = recipient.peerStatus;
-										break;
-									}
-								}
-							}
-						}
+					// Do we have more algorithms to try?
+					if (*algosIndex > 0) {
 						if (*algosIndex == algos.size() - 1) { // we ran out of base algorithm to try
 							if (randomSeedStore) {
 								cleanBuffer(randomSeedStore->data(), randomSeedStore->size());
 							}
-							if (callback) (*callback)(*globalReturnStatus, *globalReturnMessage);
+							cb(*globalReturnStatus, *globalReturnMessage);
 							return;
 						}
-						// we have everyone?
-						if (nextRoundRecipients->empty()) {
-							if (randomSeedStore) {
-								cleanBuffer(randomSeedStore->data(), randomSeedStore->size());
-							}
-							if (callback) (*callback)(*globalReturnStatus, *globalReturnMessage);
-							return;
-						} else { // still missing someone and have new algo to try
-							*laterRoundRecipients = std::move(*nextRoundRecipients);
-							(*algosIndex)++;
-							auto user = thiz->load_user(DeviceId(localDeviceId, algos[*algosIndex]));
-							// make a new call using the laterRoundRecipients (the one failed from first round)
-							if (auto managerEncryptCallback = managerEncryptCallbackWkptr.lock()) {
-								user->encrypt(associatedData, laterRoundRecipients, plainMessage, encryptionPolicy, cipherMessage, managerEncryptCallback, managerRandomSeedCallback);
-							} else {
-								LIME_LOGE<<"encryption failed: trying to get a second round on device "<<static_cast<std::string>(DeviceId(localDeviceId, algos[*algosIndex]));
-								if (callback) (*callback)(lime::CallbackReturn::fail, "Fail to encrypt as we lost track of the manager encryption lambda closure");
-								return;
-							}
-						}
+					}
 
+					// Did we encrypt for all our targets?
+					bool allDone = true;
+					// check if all the recipients are done. The one not done get their status reset to unknown
+					// so they are processed in the next call to encrypt
+					for (auto &recipient:encryptionContext->m_recipients) {
+						if (!recipient.done) {
+							recipient.peerStatus = lime::PeerDeviceStatus::unknown;
+							allDone = false;
+						}
+					}
+					// we have everyone
+					if (allDone) {
+						if (randomSeedStore) {
+							cleanBuffer(randomSeedStore->data(), randomSeedStore->size());
+						}
+						cb(*globalReturnStatus, *globalReturnMessage);
+						return;
+					} else { // load the next user and encrypt again
+						(*algosIndex)++;
+						auto  user = thiz->load_user(DeviceId(localDeviceId, algos[*algosIndex]));
+						// make a new call using the laterRoundRecipients (the one failed from first round)
+						if (auto managerEncryptCallback = managerEncryptCallbackWkptr.lock()) {
+							user->encrypt(encryptionContext, managerEncryptCallback, managerRandomSeedCallback);
+						} else {
+							LIME_LOGE<<"encryption failed: trying to get an other round on device "<<static_cast<std::string>(DeviceId(localDeviceId, algos[*algosIndex]));
+							cb(lime::CallbackReturn::fail, "Fail to encrypt as we lost track of the manager encryption lambda closure");
+							return;
+						}
 					}
 			};
 
 			// Start with the first lime user in the algo list
 			// Encrypt for the first user, when done it will call the manager callback (and it may call the randomSeedCallback to store the random seed if we may need it
-			LimeManager::load_user(DeviceId(localDeviceId, algos[0]))->encrypt(associatedData, recipients, plainMessage, encryptionPolicy, cipherMessage, managerEncryptCallback, managerRandomSeedCallback);
+			LimeManager::load_user(DeviceId(localDeviceId, algos[0]))->encrypt(encryptionContext, managerEncryptCallback, managerRandomSeedCallback);
 		}
-	}
-	void LimeManager::encrypt(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const std::shared_ptr<limeCallback> callback, const lime::EncryptionPolicy encryptionPolicy) {
-		auto associatedData = std::make_shared<const vector<uint8_t>>(recipientUserId->cbegin(), recipientUserId->cend());
-		encrypt(localDeviceId, algos, associatedData, recipients, plainMessage, cipherMessage, callback, encryptionPolicy);
 	}
 
 	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::vector<uint8_t> &associatedData, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
@@ -348,10 +311,10 @@ namespace lime {
 
 
 	/* This version use default settings */
-	void LimeManager::update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback) {
-		update(localDeviceId, algos, callback, lime::settings::OPk_serverLowLimit, lime::settings::OPk_batchSize);
+	void LimeManager::update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, limeCallback callback) {
+		update(localDeviceId, algos, std::move(callback), lime::settings::OPk_serverLowLimit, lime::settings::OPk_batchSize);
 	}
-	void LimeManager::update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, const std::shared_ptr<limeCallback> callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
+	void LimeManager::update(const std::string &localDeviceId, const std::vector<lime::CurveId> &algos, limeCallback callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
 		auto userCount = make_shared<size_t>(0);
 		std::vector<DeviceId> devicesUpdate{};
 		// Check if the last update was performed more than OPk_updatePeriod seconds ago
@@ -364,8 +327,8 @@ namespace lime {
 		}
 
 		if (*userCount == 0) {
-			if (callback) (*callback)(lime::CallbackReturn::success, "No update needed");
-				return;
+			callback(lime::CallbackReturn::success, "No update needed");
+			return;
 		}
 
 		/* DR sessions and old stale SPk cleaning - This cleaning is performed for all local users as it is easier this way */
@@ -375,6 +338,7 @@ namespace lime {
 
 		auto globalReturnCode = make_shared<lime::CallbackReturn>(lime::CallbackReturn::success);
 		auto localStorage = m_localStorage;
+		auto sharedCallback = make_shared<lime::limeCallback>(std::move(callback)); // need to store the callback into a shared_ptr as any we don't know which instance will be calling it
 		for (const auto &deviceId:devicesUpdate) {
 			LIME_LOGI<<"Update user "<<static_cast<std::string>(deviceId);
 
@@ -383,7 +347,7 @@ namespace lime {
 			auto userCallbackCount = make_shared<size_t>(2);
 
 			// this callback will get all callbacks from update OPk and SPk on all users, when everyone is done, call the callback given to LimeManager::update
-			auto managerUpdateCallback = make_shared<limeCallback>([userCount, userCallbackCount, globalReturnCode, callback, localStorage, deviceId](lime::CallbackReturn returnCode, std::string errorMessage) {
+			auto managerUpdateCallback = make_shared<limeCallback>([userCount, userCallbackCount, globalReturnCode, sharedCallback, localStorage, deviceId](lime::CallbackReturn returnCode, std::string errorMessage) {
 				(*userCallbackCount)--;
 				if (returnCode == lime::CallbackReturn::fail) {
 					*globalReturnCode = lime::CallbackReturn::fail; // if one fail, return fail at the end of it
@@ -398,7 +362,7 @@ namespace lime {
 
 				// When all users are done
 				if (*userCount == 0) {
-					if (callback) (*callback)(*globalReturnCode, "");
+					(*sharedCallback)(*globalReturnCode, "");
 				}
 			});
 
@@ -513,6 +477,23 @@ namespace lime {
 			csvAlgos << CurveId2String(algo);
 		}
 		return csvAlgos.str();
+	}
+
+	std::string PeerDeviceStatus2String(const lime::PeerDeviceStatus status) {
+		switch (status) {
+			case lime::PeerDeviceStatus::untrusted :
+				return "untrusted";
+			case lime::PeerDeviceStatus::trusted :
+				return "trusted";
+			case lime::PeerDeviceStatus::unsafe :
+				return "unsafe";
+			case lime::PeerDeviceStatus::fail :
+				return "fail";
+			case lime::PeerDeviceStatus::unknown :
+				return "unknown";
+			default:
+				return "invalid";
+		}
 	}
 
 	bool lime_is_PQ_available(void) {

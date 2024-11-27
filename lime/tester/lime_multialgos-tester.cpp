@@ -154,14 +154,14 @@ static bool multialgos_basic_test(const std::vector<lime::CurveId> aliceAlgos, c
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
 
 	try {
 		// create DB
@@ -189,35 +189,29 @@ static bool multialgos_basic_test(const std::vector<lime::CurveId> aliceAlgos, c
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
 		// alice send a message to bob
-		auto recipients = make_shared<std::vector<RecipientData>>();
-		recipients->emplace_back(*bobDeviceId);
-		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		auto cipherMessage = make_shared<std::vector<uint8_t>>();
-
-		aliceManager->encrypt(*aliceDeviceId, aliceAlgos, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		auto enc = make_shared<lime::EncryptionContext>("bob", lime_tester::messages_pattern[0], policy);
+		enc->addRecipient(*bobDeviceId);
+		aliceManager->encrypt(*aliceDeviceId, aliceAlgos, enc, callback);
 		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// decrypt with bob Manager
 		std::vector<uint8_t> receivedMessage{};
-		ret &= BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*recipients)[0].DRmessage)); // new sessions created, they must convey X3DH init message
-		ret &= BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
-		ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		ret &= BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit(enc->m_recipients[0].DRmessage)); // new sessions created, they must convey X3DH init message
+		ret &= BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
 		// bob replies to alice
-		recipients->clear();
-		recipients->emplace_back(*aliceDeviceId);
-		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
-		bobManager->encrypt(*bobDeviceId, bobAlgos, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback, policy);
+		enc = make_shared<lime::EncryptionContext>("alice", lime_tester::messages_pattern[1], policy);
+		enc->addRecipient(*aliceDeviceId);
+		bobManager->encrypt(*bobDeviceId, bobAlgos, enc, callback);
 		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// decrypt it
 		receivedMessage.clear();
-		ret &= BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		std::string receivedMessageStringAlice{receivedMessage.begin(), receivedMessage.end()};
-		ret &= BC_ASSERT_TRUE(receivedMessageStringAlice == lime_tester::messages_pattern[1]);
+		ret &= BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 		// delete the users
 		if (cleanDatabase) {
@@ -262,7 +256,7 @@ static void multialgos_basic(void) {
 #if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
 namespace {
 const std::vector<lime::CurveId> allAlgos{lime::CurveId::c25519, lime::CurveId::c448, lime::CurveId::c25519k512};
-bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &username, const std::shared_ptr<lime::limeCallback> callback, int &counter ) {
+bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &username, const lime::limeCallback &callback, int &counter ) {
 	bool ret = true;
 	// loop on all possible algo and delete the user if it exists
 	for (const auto algo:allAlgos) {
@@ -291,14 +285,14 @@ static bool multialgos_four_users_test(const std::vector<std::vector<lime::Curve
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
 
 	try {
 		// create DB
@@ -353,67 +347,56 @@ static bool multialgos_four_users_test(const std::vector<std::vector<lime::Curve
 			}
 
 			// alice send a message to bob, claire and dave
-			auto recipients = make_shared<std::vector<RecipientData>>();
-			recipients->emplace_back(*bobDeviceId);
-			recipients->emplace_back(*claireDeviceId);
-			recipients->emplace_back(*daveDeviceId);
-			auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-			auto cipherMessage = make_shared<std::vector<uint8_t>>();
-
-			aliceManager->encrypt(*aliceDeviceId, aliceAlgos[i], make_shared<const std::string>("friends"), recipients, message, cipherMessage, callback, policy);
+			auto enc = make_shared<lime::EncryptionContext>("friends", lime_tester::messages_pattern[0], policy);
+			enc->addRecipient(*bobDeviceId);
+			enc->addRecipient(*claireDeviceId);
+			enc->addRecipient(*daveDeviceId);
+			aliceManager->encrypt(*aliceDeviceId, aliceAlgos[i], enc, callback);
 			ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			if (policy == lime::EncryptionPolicy::cipherMessage) {
-				ret &= BC_ASSERT_TRUE(!cipherMessage->empty());
+				ret &= BC_ASSERT_TRUE(!enc->m_cipherMessage.empty());
 			}
 
 			// decrypt with bob Manager
 			std::vector<uint8_t> receivedMessage{};
-			ret &= BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "friends", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
-			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+			ret &= BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "friends", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 			// decrypt with claire Manager
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *aliceDeviceId, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+			ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *aliceDeviceId, enc->m_recipients[1].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 			// decrypt with dave Manager
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *aliceDeviceId, (*recipients)[2].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+			ret &= BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *aliceDeviceId, enc->m_recipients[2].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 			// bob replies to alice, claire and dave
-			cipherMessage->clear();
-			recipients->clear();
-			recipients->emplace_back(*aliceDeviceId);
-			recipients->emplace_back(*claireDeviceId);
-			recipients->emplace_back(*daveDeviceId);
-			message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
-			bobManager->encrypt(*bobDeviceId, bobAlgos[i], make_shared<const std::string>("friends"), recipients, message, cipherMessage, callback, policy);
+			enc = make_shared<lime::EncryptionContext>("friends", lime_tester::messages_pattern[1], policy);
+			enc->addRecipient(*aliceDeviceId);
+			enc->addRecipient(*claireDeviceId);
+			enc->addRecipient(*daveDeviceId);
+			bobManager->encrypt(*bobDeviceId, bobAlgos[i], enc, callback);
 			ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			if (policy == lime::EncryptionPolicy::cipherMessage) {
-				ret &= BC_ASSERT_TRUE(!cipherMessage->empty());
+				ret &= BC_ASSERT_TRUE(!enc->m_cipherMessage.empty());
 			}
 
 			// decrypt it on alice
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "friends", *bobDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+			ret &= BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "friends", *bobDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 			// decrypt it on claire
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *bobDeviceId, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+			ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *bobDeviceId, enc->m_recipients[1].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 			// decrypt it on dave
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *bobDeviceId, (*recipients)[2].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-			ret &= BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+			ret &= BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *bobDeviceId, enc->m_recipients[2].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 			LIME_LOGI<<"Test epoch :"<<i<<" done";
 		}
@@ -518,14 +501,14 @@ static void multialgos_peerStatus() {
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
 
-	auto callback = make_shared<limeCallback>([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+	limeCallback callback = [&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
 						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
 					}
-				});
+				};
 	const lime::EncryptionPolicy policy(lime::EncryptionPolicy::cipherMessage);
 
 	try {
@@ -558,17 +541,14 @@ static void multialgos_peerStatus() {
 		BC_ASSERT_TRUE(bobManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 
 		// alice sends a message to bob
-		auto recipients = make_shared<std::vector<RecipientData>>();
-		recipients->emplace_back(*bobDeviceId);
-		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
-		auto cipherMessage = make_shared<std::vector<uint8_t>>();
-		aliceManager->encrypt(*aliceDeviceId, c25519only, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		auto enc = make_shared<lime::EncryptionContext>("bob", lime_tester::messages_pattern[0], policy);
+		enc->addRecipient(*bobDeviceId);
+		aliceManager->encrypt(*aliceDeviceId, c25519only, enc, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		// decrypt with bob Manager
 		std::vector<uint8_t> receivedMessage{};
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		std::string receivedMessageString{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		// Check peerStatus: both are untrusted
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::untrusted);
@@ -590,17 +570,14 @@ static void multialgos_peerStatus() {
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// alice sends a message to bob, she still uses the c25519only device for Bob as no c25519k512 can be found
-		recipients->clear();
-		recipients->emplace_back(*bobDeviceId);
-		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
-		cipherMessage->clear();
-		aliceManager->encrypt(*aliceDeviceId, c25519k512andc25519, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		enc = make_shared<lime::EncryptionContext>("bob", lime_tester::messages_pattern[1], policy);
+		enc->addRecipient(*bobDeviceId);
+		aliceManager->encrypt(*aliceDeviceId, c25519k512andc25519, enc, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		// decrypt with bob Manager
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 		// Check peerStatus, it is still trusted as there is no new peer Device for Bob
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
@@ -610,49 +587,40 @@ static void multialgos_peerStatus() {
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// alice sends a message to bob, she'll uses a new peerDevice for Bob
-		recipients->clear();
-		recipients->emplace_back(*bobDeviceId);
-		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
-		cipherMessage->clear();
-		aliceManager->encrypt(*aliceDeviceId, c25519k512andc25519, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		enc = make_shared<lime::EncryptionContext>("bob", lime_tester::messages_pattern[2], policy);
+		enc->addRecipient(*bobDeviceId);
+		aliceManager->encrypt(*aliceDeviceId, c25519k512andc25519, enc, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		// decrypt with bob Manager
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[2]);
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[2]);
 
 		// Check peerStatus, it is now untrusted as there is a new peer Device for Bob
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::untrusted);
 
-		// alice changes her mind and encrypt to bo using specifically the c25519 only session
-		recipients->clear();
-		recipients->emplace_back(*bobDeviceId);
-		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[3].begin(), lime_tester::messages_pattern[3].end());
-		cipherMessage->clear();
-		aliceManager->encrypt(*aliceDeviceId, c25519only, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback, policy);
+		// alice changes her mind and encrypt to bob using specifically the c25519 only session
+		enc = make_shared<lime::EncryptionContext>("bob", lime_tester::messages_pattern[3], policy);
+		enc->addRecipient(*bobDeviceId);
+		aliceManager->encrypt(*aliceDeviceId, c25519only, enc, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		// decrypt with bob Manager
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[3]);
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[3]);
 
 		// Check peerStatus, the last encryption set the bob/c25519 peerDevice back to be the active one
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::trusted);
 
 		// bob encrypt to alice using specifically the c25519k512 session
-		recipients->clear();
-		recipients->emplace_back(*aliceDeviceId);
-		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[4].begin(), lime_tester::messages_pattern[4].end());
-		cipherMessage->clear();
-		bobManager->encrypt(*bobDeviceId, c25519k512andc25519, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback, policy);
+		enc = make_shared<lime::EncryptionContext>("alice", lime_tester::messages_pattern[4], policy);
+		enc->addRecipient(*aliceDeviceId);
+		bobManager->encrypt(*bobDeviceId, c25519k512andc25519, enc, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 		// decrypt with alice Manager
 		receivedMessage.clear();
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[4]);
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[4]);
 
 		// Check peerStatus, the last decryption set the bob/c25519k512 peerDevice back to be the active one -> untrusted
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*bobDeviceId) == lime::PeerDeviceStatus::untrusted);

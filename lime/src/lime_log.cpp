@@ -16,26 +16,27 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define lime_log_hpp
 
 #include <iomanip>
 #include <sstream>
 #include <memory>
 
+#include "lime_log.hpp"
+#include "lime/lime.hpp"
 
 using namespace::std;
 
 namespace lime {
-	void hexStr(std::ostringstream &os, const uint8_t *data, size_t len, size_t digestSize) {
+	void hexStr(std::ostringstream &os, const uint8_t *data, size_t len, size_t digest) {
 		os << std::dec<<"("<<len<<"B) "<<std::hex;
 		if (len > 0) {;
 			os << std::setw(2) << std::setfill('0') << (int)data[0];
-			if (digestSize>0 && len>digestSize*2 ) {
-				for( size_t i(1) ; i < digestSize; ++i ) {
+			if (digest>0 && len>digest*2 ) {
+				for( size_t i(1) ; i < digest; ++i ) {
 					os << ", "<<std::setw(2) << std::setfill('0') << (int)data[i];
 				}
-				os << " .. "<<std::setw(2) << std::setfill('0') << (int)data[len-digestSize];
-				for( size_t i(len -digestSize +1) ; i < len; ++i ) {
+				os << " .. "<<std::setw(2) << std::setfill('0') << (int)data[len-digest];
+				for( size_t i(len -digest +1) ; i < len; ++i ) {
 					os << ", "<<std::setw(2) << std::setfill('0') << (int)data[i];
 				}
 			} else {
@@ -45,5 +46,29 @@ namespace lime {
 			}
 		}
 	}
-} // namespace lime
+	void EncryptionContext::dump(std::ostringstream &os, std::string indent) const {
+		os<<std::endl<<indent<<"associatedData";
+		hexStr(os, m_associatedData.data(), m_associatedData.size());
+		os<<std::endl<<indent<<"recipients: ("<<m_recipients.size()<<")";
+		for (const auto &recipient:m_recipients) {
+			recipient.dump(os, "            ");
+		}
+		os<<std::endl<<indent<<"plainMessage";
+		hexStr(os, m_plainMessage.data(),  m_plainMessage.size());
+		os<<std::endl<<indent<<"cipherMessage: ";
+		hexStr(os, m_cipherMessage.data(),  m_cipherMessage.size());
+	}
+	void RecipientData::dump(std::ostringstream &os, std::string indent) const {
+		os<<std::endl<<indent<<"DeviceId: "<<deviceId<<std::endl;
+		if (done) {
+			os<<indent<<"done: true"<<std::endl;
+		} else {
+			os<<indent<<"done: false"<<std::endl;
+		}
+		os<<indent<<"peerStatus: "<<PeerDeviceStatus2String(peerStatus)<<std::endl;
+		os<<indent<<"DRmessage: ";
+		hexStr(os, DRmessage.data(),  DRmessage.size());
+	}
 
+
+} // namespace lime

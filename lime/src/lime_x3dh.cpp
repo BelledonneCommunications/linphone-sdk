@@ -463,7 +463,7 @@ namespace lime {
 			* @param[in,out] userData	the structure holding the data structure captured by the process response lambda
 			*/
 			void cleanUserData(std::shared_ptr<Lime<Curve>> limeObj, std::shared_ptr<callbackUserData> userData) {
-				if (userData->plainMessage!=nullptr) { // only encryption request for X3DH bundle would populate the plainMessage field of user data structure
+				if (userData->encryptionContext != nullptr) { // only encryption request for X3DH bundle would populate the encryptionContext
 					limeObj->processEncryptionQueue();
 				} else { // its not an encryption, just set userData to null it shall destroy it
 					userData = nullptr;
@@ -552,10 +552,11 @@ namespace lime {
 							for (const auto &peerBundle:peersBundle) {
 								// get all the bundless peer Devices
 								if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
-									for (auto &recipient:*(userData->recipients)) {
+									for (auto &recipient:userData->encryptionContext->m_recipients) {
 										// and set their recipient status to fail so the encrypt function would ignore them
 										if (recipient.deviceId == peerBundle.deviceId) {
 											recipient.peerStatus = lime::PeerDeviceStatus::fail;
+											break;
 										}
 									}
 								}
@@ -564,7 +565,7 @@ namespace lime {
 							// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
 							// We must not generate an exception here, so catch anything raising from encrypt
 							try {
-								limeObj->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback, userData->randomSeedCallback);
+								limeObj->encrypt(userData->encryptionContext, callback, userData->randomSeedCallback);
 							} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
 								if (hasCallback) (*callback)(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
 								cleanUserData(limeObj, userData);
