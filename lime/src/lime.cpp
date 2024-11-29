@@ -310,7 +310,7 @@ namespace lime {
 		LIME_LOGI<<m_selfDeviceId<<" decrypts from "<<senderDeviceId;
 		// do we have any session (loaded or not) matching that senderDeviceId ?
 		auto sessionElem = m_DR_sessions_cache.find(senderDeviceId);
-		auto db_sessionIdInCache = 0; // this would be the db_sessionId of the session stored in cache if there is one, no session has the Id 0
+		long db_sessionIdInCache = 0; // this would be the db_sessionId of the session stored in cache if there is one, no session has the Id 0
 		if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache, it is the active one, just give it a try
 			db_sessionIdInCache = sessionElem->second->dbSessionId();
 			std::vector<std::shared_ptr<DR>> cached_DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decrypt function ask for it
