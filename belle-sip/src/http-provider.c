@@ -354,6 +354,7 @@ static void http_channel_context_handle_response(belle_http_channel_context_t *c
 static void
 http_channel_notify_io_error(belle_http_channel_context_t *ctx, belle_sip_channel_t *chan, belle_http_request_t *req) {
 	belle_sip_io_error_event_t ev = {0};
+	if (belle_http_request_is_cancelled(req)) return;
 	/*TODO: would be nice to put the message in the event*/
 	ev.source = (belle_sip_object_t *)ctx->provider;
 	ev.host = chan->peer_cname;
@@ -724,6 +725,7 @@ void belle_http_provider_cancel_request(belle_http_provider_t *obj, belle_http_r
 		belle_sip_list_for_each2(outgoing_messages, (void (*)(void *, void *))reenqueue_request, obj);
 		belle_sip_list_free_with_data(outgoing_messages, belle_sip_object_unref);
 	}
+	release_background_task(req);
 }
 
 int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_tls_verify_policy_t *verify_ctx) {
