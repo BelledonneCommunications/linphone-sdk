@@ -66,7 +66,7 @@ task copyAssets(type: Sync) {
     include '**/*.mkv'
     include '**/*.wav'
     include '**/*.jpg'
-    include '**/*_grammar'
+    include '**/*_grammar.belr'
 
     //rename '(.*)', '$1'.toLowerCase()
     eachFile {
