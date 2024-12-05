@@ -52,6 +52,9 @@ public:
 	}
 	static Object *getCppObject(void *);
 	static const Object *getCppObject(const void *);
+	int getRefCount() const {
+		return mObject.ref;
+	}
 
 protected:
 	virtual ~Object(); /*the destructor must be kept protected, never public, including for all classes inherting from
