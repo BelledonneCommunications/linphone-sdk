@@ -41,13 +41,14 @@ println("AAR artefact group is: " + artefactGroupId + ", SDK version @LINPHONESD
 
 publishing {
     publications {
-        /*debug(MavenPublication) {
+        debug(MavenPublication) {
             groupId artefactGroupId
             artifactId 'linphone-sdk-android' + '-debug'
             version "@LINPHONESDK_VERSION@"
             artifact("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
             artifact source: "$buildDir/libs/linphone-sdk-android-sources.jar", classifier: 'sources', extension: 'jar'
             artifact source: "$buildDir/libs/linphone-sdk-android-javadoc.jar", classifier: 'javadoc', extension: 'jar'
+            artifact source: "$buildDir/distributions/linphone-sdk-android-libs-debug.zip", classifier: 'libs-debug', extension: 'zip'
 
             pom {
                 name = 'Linphone'
@@ -64,7 +65,7 @@ publishing {
                     url = 'https://gitlab.linphone.org/BC/public/linphone-sdk'
                 }
             }
-        }*/
+        }
 
         release(MavenPublication) {
             groupId artefactGroupId
