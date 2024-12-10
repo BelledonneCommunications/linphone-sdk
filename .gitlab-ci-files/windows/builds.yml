@@ -117,7 +117,7 @@
 
 .windows-ninja:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
@@ -229,6 +229,12 @@ vs2022-ninja-win64-windows:
   extends:
     - .windows-vs2022-ninja
     - .vs-ninja-win64-windows
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_CS_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS != null
   variables:
     # Build C# wrapper and tester and use sdk preset instead of 64bits preset so we have the artefacts in the tester
     CMAKE_PRESET: windows-ninja-sdk
@@ -377,7 +383,7 @@ vs2017-uwp-scheduled-windows-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
-.vs-win32-scheduled-windows:
+.vs-win3264-scheduled-windows:
   extends: .windows-vs2022-scheduled
   rules:
     - !reference [.rules-merge-request-manual, rules]
@@ -393,53 +399,53 @@ vs2017-uwp-scheduled-windows-pqc:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
-.vs-win32-scheduled-windows-pqc:
-  extends: .vs-win32-scheduled-windows
+.vs-win3264-scheduled-windows-pqc:
+  extends: .vs-win3264-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
   variables:
-    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON -DENABLE_PQCRYPTO=ON -DENABLE_GPL_THIRD_PARTIES=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON -DENABLE_PQCRYPTO=ON -DENABLE_GPL_THIRD_PARTIES=ON
 
-vs2022-win32-scheduled-windows:
+vs2022-win3264-scheduled-windows:
   extends:
     - .windows-vs2022-scheduled
-    - .vs-win32-scheduled-windows
+    - .vs-win3264-scheduled-windows
 
-vs2022-win32-scheduled-windows-pqc:
+vs2022-win3264-scheduled-windows-pqc:
   extends:
     - .windows-vs2022-scheduled
-    - .vs-win32-scheduled-windows-pqc
+    - .vs-win3264-scheduled-windows-pqc
 
-vs2019-win32-scheduled-windows:
+vs2019-win3264-scheduled-windows:
   extends:
     - .windows-vs2019-scheduled
-    - .vs-win32-scheduled-windows
+    - .vs-win3264-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
-vs2019-win32-scheduled-windows-pqc:
+vs2019-win3264-scheduled-windows-pqc:
   extends:
     - .windows-vs2019-scheduled
-    - .vs-win32-scheduled-windows-pqc
+    - .vs-win3264-scheduled-windows-pqc
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
-vs2017-win32-scheduled-windows:
+vs2017-win3264-scheduled-windows:
   extends:
     - .windows-vs2017-scheduled
-    - .vs-win32-scheduled-windows
+    - .vs-win3264-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
-vs2017-win32-scheduled-windows-pqc:
+vs2017-win3264-scheduled-windows-pqc:
   extends:
     - .windows-vs2017-scheduled
-    - .vs-win32-scheduled-windows-pqc
+    - .vs-win3264-scheduled-windows-pqc
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
-.vs-win32store-scheduled-windows:
+.vs-win64store-scheduled-windows:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -453,27 +459,27 @@ vs2017-win32-scheduled-windows-pqc:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON
     OUTPUT_ZIP_FOLDER: win32store
 
-vs2022-win32store-scheduled-windows:
+vs2022-win64store-scheduled-windows:
   extends:
     - .windows-vs2022-scheduled
-    - .vs-win32store-scheduled-windows
+    - .vs-win64store-scheduled-windows
 
-vs2019-win32store-scheduled-windows:
+vs2019-win64store-scheduled-windows:
   extends:
     - .windows-vs2019-scheduled
-    - .vs-win32store-scheduled-windows
+    - .vs-win64store-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
-vs2017-win32store-scheduled-windows:
+vs2017-win64store-scheduled-windows:
   extends:
     - .windows-vs2017-scheduled
-    - .vs-win32store-scheduled-windows
+    - .vs-win64store-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
-.win32-vs-novideo-windows:
-  extends: .vs-win32-scheduled-windows
+.win3264-vs-novideo-windows:
+  extends: .vs-win3264-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -481,21 +487,21 @@ vs2017-win32store-scheduled-windows:
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_VIDEO=OFF
 
-win32-vs2022-novideo-windows:
+win3264-vs2022-novideo-windows:
   extends:
     - .windows-vs2022-scheduled
-    - .win32-vs-novideo-windows
+    - .win3264-vs-novideo-windows
 
-win32-vs2019-novideo-windows:
+win3264-vs2019-novideo-windows:
   extends:
     - .windows-vs2019-scheduled
-    - .win32-vs-novideo-windows
+    - .win3264-vs-novideo-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
 
-win32-vs2017-novideo-windows:
+win3264-vs2017-novideo-windows:
   extends:
     - .windows-vs2017-scheduled
-    - .win32-vs-novideo-windows
+    - .win3264-vs-novideo-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]

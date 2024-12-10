@@ -70,7 +70,7 @@ liblinphone-win32-msbuild-windows-test:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
   needs:
-    - vs2022-win32-scheduled-windows
+    - vs2022-win3264-scheduled-windows
 
 liblinphone-win32-ninja-windows-test:
   extends: .windows-linphone-test
@@ -174,8 +174,9 @@ liblinphone-cswrapper-windows-test:
   allow_failure: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_CS_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS != null
   variables:
     MINGW_TYPE: mingw64
   needs:

@@ -8,6 +8,7 @@
         - .gitlab-ci-files/windows/packages.yml
         - cmake/NuGet/Windows/**/*
     - if: $DEPLOY_RUN_NUGET != null
+    - !reference [.rules-merge-request-manual, rules]
   script:
     - cd build
 
@@ -41,25 +42,27 @@
 vs2022-nuget-windows-package:
   extends: .vs-nuget-windows-package
   tags: [ "windows-powershell-vs-17-2022" ]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
   needs:
-  - vs2022-win32store-scheduled-windows
+  - vs2022-win64store-scheduled-windows
   - vs2022-uwp-scheduled-windows
-  - vs2022-win32-scheduled-windows
+  - vs2022-win3264-scheduled-windows
 
 vs2019-nuget-windows-package:
   extends: .vs-nuget-windows-package
   tags: [ "windows-powershell-vs-16-2019" ]
   needs:
-  - vs2019-win32store-scheduled-windows
+  - vs2019-win64store-scheduled-windows
   - vs2019-uwp-scheduled-windows
-  - vs2019-win32-scheduled-windows
+  - vs2019-win3264-scheduled-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 vs2017-nuget-windows-package:
   extends: .vs-nuget-windows-package
   tags: [ "windows-powershell-vs-15-2017" ]
   needs:
-  - vs2017-win32store-scheduled-windows
+  - vs2017-win64store-scheduled-windows
   - vs2017-uwp-scheduled-windows
-  - vs2017-win32-scheduled-windows
+  - vs2017-win3264-scheduled-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
