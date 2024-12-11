@@ -58,8 +58,8 @@ struct _MSAudioEndpoint {
 	int player_nchannels;
 	int pin;
 	int samplerate;
-	bool_t muted;
 	MSConferenceMode conf_mode;
+	bool_t muted;
 };
 
 MSAudioConference *ms_audio_conference_new(const MSAudioConferenceParams *params, MSFactory *factory) {
@@ -636,6 +636,11 @@ MSAudioEndpoint *ms_audio_endpoint_new_player(MSFactory *factory, const char *pa
 	ep->in_resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 	ep->out_resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 	ep->mixer_in.filter = ep->player_decoder ? ep->player_decoder : ep->player;
+	/* we create a dummy recorder in order to always have something connected in output of the mixer
+	 * if the event where the player audio endpoint is the only conference member,
+	 * otherwise this will create an invalid mediastreamer2 graph */
+	ep->recorder = ms_factory_create_filter(factory, MS_VOID_SINK_ID);
+	ep->mixer_out.filter = ep->recorder;
 
 	return ep;
 }
@@ -646,7 +651,7 @@ void ms_audio_player_endpoint_set_eof_cb(MSAudioEndpoint *ep, MSFilterNotifyFunc
 
 int ms_audio_player_endpoint_start(MSAudioEndpoint *ep) {
 	MSPlayerState state;
-	if (!ep->player || ep->recorder) {
+	if (!ep->player || !ep->recorder || ep->recorder->desc->id != MS_VOID_SINK_ID) {
 		ms_error("This endpoint isn't a player endpoint.");
 		return -1;
 	}
@@ -659,7 +664,7 @@ int ms_audio_player_endpoint_start(MSAudioEndpoint *ep) {
 }
 
 int ms_audio_player_endpoint_stop(MSAudioEndpoint *ep) {
-	if (!ep->player || ep->recorder) {
+	if (!ep->player) {
 		return -1;
 	}
 	return ms_filter_call_method_noarg(ep->player, MS_PLAYER_CLOSE);
