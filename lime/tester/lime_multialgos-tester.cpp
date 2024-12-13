@@ -177,13 +177,13 @@ static bool multialgos_basic_test(const std::vector<lime::CurveId> aliceAlgos, c
 		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d.");
 		aliceManager->create_user(*aliceDeviceId, aliceAlgos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
 		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
 		bobManager->create_user(*bobDeviceId, bobAlgos, lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		/* destroy and reload the Managers(tests everything is correctly saved/load from local Storage) */
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
@@ -192,13 +192,13 @@ static bool multialgos_basic_test(const std::vector<lime::CurveId> aliceAlgos, c
 		auto enc = make_shared<lime::EncryptionContext>("bob", lime_tester::messages_pattern[0], policy);
 		enc->addRecipient(*bobDeviceId);
 		aliceManager->encrypt(*aliceDeviceId, aliceAlgos, enc, callback);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// decrypt with bob Manager
 		std::vector<uint8_t> receivedMessage{};
-		ret &= BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit(enc->m_recipients[0].DRmessage)); // new sessions created, they must convey X3DH init message
-		ret &= BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
+		ret &= !!BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit(enc->m_recipients[0].DRmessage)); // new sessions created, they must convey X3DH init message
+		ret &= !!BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		ret &= !!BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
@@ -206,22 +206,22 @@ static bool multialgos_basic_test(const std::vector<lime::CurveId> aliceAlgos, c
 		enc = make_shared<lime::EncryptionContext>("alice", lime_tester::messages_pattern[1], policy);
 		enc->addRecipient(*aliceDeviceId);
 		bobManager->encrypt(*bobDeviceId, bobAlgos, enc, callback);
-		ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// decrypt it
 		receivedMessage.clear();
-		ret &= BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-		ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
+		ret &= !!BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		ret &= !!BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 		// delete the users
 		if (cleanDatabase) {
 			for (const auto &algo:aliceAlgos) {
 				aliceManager->delete_user(DeviceId(*aliceDeviceId, algo), callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+				ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			}
 			for (const auto &algo:bobAlgos) {
 				bobManager->delete_user(DeviceId(*bobDeviceId, algo), callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+				ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			}
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -262,7 +262,7 @@ bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &username
 	for (const auto algo:allAlgos) {
 		if (Manager->is_user(DeviceId(username,algo))) {
 			Manager->delete_user(DeviceId(username, algo), callback);
-			ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counter,counter+1,lime_tester::wait_for_timeout));
+			ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counter,counter+1,lime_tester::wait_for_timeout));
 		}
 	}
 	return ret;
@@ -323,27 +323,27 @@ static bool multialgos_four_users_test(const std::vector<std::vector<lime::Curve
 			auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 			if (!aliceManager->is_user(*aliceDeviceId, aliceAlgos[i])) {
 				aliceManager->create_user(*aliceDeviceId, aliceAlgos[i], lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+				ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 			}
 
 			// Create manager and device for bob
 			auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 			if (!bobManager->is_user(*bobDeviceId, bobAlgos[i])) {
 				bobManager->create_user(*bobDeviceId, bobAlgos[i], lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+				ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 			}
 
 			// Create manager and device for claire
 			auto claireManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
 			if (!claireManager->is_user(*claireDeviceId, claireAlgos[i])) {
 				claireManager->create_user(*claireDeviceId, claireAlgos[i], lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+				ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 			}
 			// Create manager and device for dave
 			auto daveManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
 			if (!daveManager->is_user(*daveDeviceId, daveAlgos[i])) {
 				daveManager->create_user(*daveDeviceId, daveAlgos[i], lime_tester::test_x3dh_default_server, lime_tester::OPkInitialBatchSize, callback);
-				ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+				ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 			}
 
 			// alice send a message to bob, claire and dave
@@ -352,25 +352,25 @@ static bool multialgos_four_users_test(const std::vector<std::vector<lime::Curve
 			enc->addRecipient(*claireDeviceId);
 			enc->addRecipient(*daveDeviceId);
 			aliceManager->encrypt(*aliceDeviceId, aliceAlgos[i], enc, callback);
-			ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			if (policy == lime::EncryptionPolicy::cipherMessage) {
-				ret &= BC_ASSERT_TRUE(!enc->m_cipherMessage.empty());
+				ret &= !!BC_ASSERT_TRUE(!enc->m_cipherMessage.empty());
 			}
 
 			// decrypt with bob Manager
 			std::vector<uint8_t> receivedMessage{};
-			ret &= BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "friends", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
+			ret &= !!BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "friends", *aliceDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= !!BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 			// decrypt with claire Manager
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *aliceDeviceId, enc->m_recipients[1].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
+			ret &= !!BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *aliceDeviceId, enc->m_recipients[1].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= !!BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 			// decrypt with dave Manager
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *aliceDeviceId, enc->m_recipients[2].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
+			ret &= !!BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *aliceDeviceId, enc->m_recipients[2].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= !!BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[0]);
 
 			// bob replies to alice, claire and dave
 			enc = make_shared<lime::EncryptionContext>("friends", lime_tester::messages_pattern[1], policy);
@@ -378,25 +378,25 @@ static bool multialgos_four_users_test(const std::vector<std::vector<lime::Curve
 			enc->addRecipient(*claireDeviceId);
 			enc->addRecipient(*daveDeviceId);
 			bobManager->encrypt(*bobDeviceId, bobAlgos[i], enc, callback);
-			ret &= BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			ret &= !!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			if (policy == lime::EncryptionPolicy::cipherMessage) {
-				ret &= BC_ASSERT_TRUE(!enc->m_cipherMessage.empty());
+				ret &= !!BC_ASSERT_TRUE(!enc->m_cipherMessage.empty());
 			}
 
 			// decrypt it on alice
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "friends", *bobDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
+			ret &= !!BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "friends", *bobDeviceId, enc->m_recipients[0].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= !!BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 			// decrypt it on claire
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *bobDeviceId, enc->m_recipients[1].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
+			ret &= !!BC_ASSERT_TRUE(claireManager->decrypt(*claireDeviceId, "friends", *bobDeviceId, enc->m_recipients[1].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= !!BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 			// decrypt it on dave
 			receivedMessage.clear();
-			ret &= BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *bobDeviceId, enc->m_recipients[2].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
-			ret &= BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
+			ret &= !!BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "friends", *bobDeviceId, enc->m_recipients[2].DRmessage, enc->m_cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+			ret &= !!BC_ASSERT_TRUE(receivedMessage == lime_tester::messages_pattern[1]);
 
 			LIME_LOGI<<"Test epoch :"<<i<<" done";
 		}
@@ -404,13 +404,13 @@ static bool multialgos_four_users_test(const std::vector<std::vector<lime::Curve
 		// delete the users
 		if (cleanDatabase) {
 			auto aliceManager = make_shared<LimeManager>(dbFilenameAlice, X3DHServerPost);
-			ret &=BC_ASSERT_TRUE(delete_any_user(aliceManager, *aliceDeviceId, callback, counters.operation_success));
+			ret &= !!BC_ASSERT_TRUE(delete_any_user(aliceManager, *aliceDeviceId, callback, counters.operation_success));
 			auto bobManager = make_shared<LimeManager>(dbFilenameBob, X3DHServerPost);
-			ret &=BC_ASSERT_TRUE(delete_any_user(bobManager, *bobDeviceId, callback, counters.operation_success));
+			ret &= !!BC_ASSERT_TRUE(delete_any_user(bobManager, *bobDeviceId, callback, counters.operation_success));
 			auto claireManager = make_shared<LimeManager>(dbFilenameClaire, X3DHServerPost);
-			ret &=BC_ASSERT_TRUE(delete_any_user(claireManager, *claireDeviceId, callback, counters.operation_success));
+			ret &= !!BC_ASSERT_TRUE(delete_any_user(claireManager, *claireDeviceId, callback, counters.operation_success));
 			auto daveManager = make_shared<LimeManager>(dbFilenameDave, X3DHServerPost);
-			ret &=BC_ASSERT_TRUE(delete_any_user(daveManager, *daveDeviceId, callback, counters.operation_success));
+			ret &= !!BC_ASSERT_TRUE(delete_any_user(daveManager, *daveDeviceId, callback, counters.operation_success));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
 			remove(dbFilenameClaire.data());
