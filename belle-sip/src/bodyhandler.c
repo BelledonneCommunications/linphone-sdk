@@ -270,6 +270,11 @@ int belle_sip_memory_body_handler_apply_encoding(belle_sip_memory_body_handler_t
 	                     BELLE_SIP_MEMORY_BODY_HANDLER_MINIMUM_DEFLATE_INPUT_SIZE))
 		return -1;
 
+	if (encoding == NULL) {
+		belle_sip_warning("%s: encoding is NULL", __FUNCTION__);
+		return -1;
+	}
+
 #ifdef HAVE_ZLIB
 	if (strcmp(encoding, "deflate") == 0) {
 		z_stream strm;
