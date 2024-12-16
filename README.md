@@ -48,7 +48,7 @@ Linphone-SDK's git repository comprises git submodules. It must be cloned with t
 
 ### Windows
 
-SDK compilation is supported on `Visual Studio 15 2017`/`Visual Studio 16 2019` and `MSYS2` https://www.msys2.org/.
+SDK compilation requires `Visual Studio 17 2022` and `MSYS2` https://www.msys2.org/.
 
 Only [CMake](https://cmake.org/), [7Zip](https://www.7-zip.org/download.html) and [MSYS2](https://www.msys2.org/) are needed before the build.
 Add the 7Zip executable in your PATH as it is not automatically done.
@@ -121,15 +121,13 @@ Sample configuration for arm64 targeting iPhone only in Debug mode:
 
 You can also build using the 'Ninja' or 'Unix makefiles' generators:
 
-`cmake --preset=ios-sdk -G Ninja -B build-ios -DCMAKE_BUILD_TYPE=Debug`
+`cmake --preset=ios-sdk -G Ninja -B build-ios`
 `cmake --build build-ios`
 
 If the generator is not specified, Xcode will be used by default.
 
 
-⚙ Note to developers: If a new Apple `.framework` folder needs to be added to the iOS build, remember to update the [NuGet iOS project] to include it.
 
-[NuGet iOS project]: cmake/NuGet/Xamarin/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/LinphoneSDK.Xamarin.iOS.csproj
 
 ### Android (using Docker)
 
@@ -146,7 +144,6 @@ user : gitlab+deploy-token-17
 pass : fFVgA_5Mf-qn2WbvsKRL
 
 ---
-
 
 **private access**
 
@@ -190,7 +187,7 @@ The freshly built SDK is located in the `build-android/` directory.
 ### MacOS
 
 Requirement:
- - Xcode >= 12
+ - Xcode >= 15
 
 Configure the project with:
 
@@ -200,10 +197,6 @@ And build it with:
 
 `cmake --build build-mac --config RelWithDebInfo`
 
-As for the iOS build, you can alternatively build with Ninja instead of Xcode by specifying it during the configuration step:
-
-`cmake --preset=mac-sdk -B build-mac -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo`
-`cmake --build build-mac`
 
 ### Windows
 
@@ -230,14 +223,16 @@ Requirement:
 
 You can use linphone-sdk in your Windows UWP app with the UWP mode.
 Win32 application can use the Windows Store mode in order to be publishable in Windows Stores.
-The Windows Bridge mode is built by using the `windows-store` preset instead of the `windows` one.
-The UWP mode is built by using the `uwp` preset instead of the `windows` one. If `-DLINPHONESDK_UWP_ARCHS` is not used, x86 and x64 will be build. 
+The Windows Bridge mode is built by using the `windows-store-sdk` preset instead of the `windows-sdk` one.
+The UWP mode is built by using the `uwp-sdk` preset instead of the `windows-sdk` one. If `-DLINPHONESDK_UWP_ARCHS` is not used, x86 and x64 will be build.
 
 Then, you can inject directly all your libraries that you need or package the SDK in a Nuget package.
 
 ### NuGet packaging
 
-The Linphone SDK is available as a `.nuget` package for .NET applications (Windows & Xamarin).
+The Linphone SDK is available as a `.nuget` package:
+- LinphoneSDK nuget for .NET applications MaUI for Android and iOS.
+- LinphoneSDK.windows for Windows OS comprising binaries for Win32, Win32Store and UWP targets
 
 See the [`cmake/NuGet`](cmake/NuGet/README.md) folder for build instructions.
 
@@ -313,30 +308,4 @@ Before embedding these features in your final application, **make sure to have t
 
 For more information, please visit [our dedicated wiki page](https://wiki.linphone.org/xwiki/wiki/public/view/Linphone/Third%20party%20components%20/)
 
-### Nuget packaging
-You can package 3 kinds of binaries : win32, uwp and win32 with Windows Store Compatibility.
-
-- win32: this is the win32 version of Linphone-SDK without any restrictions. The framework is 'win'.
-- uwp : this is a uwp x64/x86 version of Linphone-SDK. The framework is 'uap10.0'.
-- win32 Windows Store : this is the win32 version of Linphone-SDK with the Windows Store Compatibility enabled for Windows Bridge. The framework is 'netcore'.
-
-In an another build folder (like buildNuget), set these options. At least one path is needed :
-- (Needed) -DLINPHONESDK_PACKAGER=Nuget
-- (Optional) -DLINPHONESDK_DESKTOP_ZIP_PATH=<path of the zip file containing the Desktop binaries> (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86/linphone-sdk)
-- (Optional) -DLINPHONESDK_UWP_ZIP_PATH=<path of the zip file containing the UWP binaries> (eg. C:/projects/desktop-uwp/linphone-sdk/builduwp/linphone-sdk)
-- (Optional) -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=<path of the zip file containing the Desktop binaries with Store compatibility enabled> (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86_store/linphone-sdk)
-- (Optional) -DLINPHONESDK_UWP_ARCHS=<list of archs to package> (eg. "x86, x64" or "x64")
-
-Build the Package:
-
-	cmake .. -DLINPHONESDK_PACKAGER=Nuget -DLINPHONESDK_UWP_ZIP_PATH=C:/projects/desktop-uwp/linphone-sdk/builduwp/linphone-sdk
-	cmake --build . --target ALL_BUILD --config=RelWithDebInfo
-
-The nuget package will be in linphone-sdk/packages
-The generated package can keep the same file name between each generations on the same git version. Visual studio keep a cache of the Nuget and you need to delete its internal folder to take account any newer version for the same name.
-The folder can be found in your system path at <User>/.nuget/packages/linphonesdk
-
-### Demo app
-
-There is a very limited version of an application that can use this nuget at `https://gitlab.linphone.org/BC/public/linphone-windows10`
 
