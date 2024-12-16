@@ -170,7 +170,7 @@ BELLESIP_EXPORT void belle_sip_auth_event_set_signing_key(belle_sip_auth_event_t
  * @param event object
  * @return host value the socket is pointing to
  * */
-const char *belle_sip_io_error_event_get_host(const belle_sip_io_error_event_t *event);
+BELLESIP_EXPORT const char *belle_sip_io_error_event_get_host(const belle_sip_io_error_event_t *event);
 /*
  * Give access to the used transport
  * @param event object
