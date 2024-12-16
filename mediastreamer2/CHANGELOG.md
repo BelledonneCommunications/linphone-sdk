@@ -4,9 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+
+## [5.4.0] - 2025-01-14
+
 ### Added
-- Dynamic protection of video streams against packet loss with flexible forward error correction (FEC), depending on the bandwidth and the loss rate.
+- Dynamic protection of video streams against packet loss with flexible forward error correction (FlexFEC - RFC8627), depending on the bandwidth and the loss rate.
+- goog-remb RTCP packet
+- Add Simple Media File Format support, a house-made alternative audio/video file container that supports opus, AV1, H264, H265, VP8 codecs.
+- Added for client mixing in AudioStream, in order to support SFU-based audio conferencing.
+- PacketRouter module, the core of the SFU engine for routing audio and video packets.
+- Screen sharing input filters.
+- Management of client-to-mixer RTP extension in AudioStream, in receiving mode needed for SFU based conferencing.
+
+### Fixed
+- Buffer overflow risk in AV1 OBU parser
+- iOS AudioUnit crash
+
 
 ## [5.3.0] - 2023-12-18
 

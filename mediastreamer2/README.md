@@ -18,7 +18,6 @@ Mediastreamer2 is dual licensed, and is available either :
  - under a [GNU/AGPLv3 license](https://www.gnu.org/licenses/agpl-3.0.html), for free (open source). Please make sure that you understand and agree with the terms of this license before using it (see LICENSE.txt file for details). AGPLv3 is choosen over GPLv3 because mediastreamer2 can be used to create server-side applications, not just client-side ones. Any product incorporating mediastreamer2 to provide a remote service then has to be licensed under AGPLv3.
  For a client-side product, the "remote interaction" clause of AGPLv3 being irrelevant, the usual terms GPLv3 terms do apply (the two licences differ by this only clause).
 
-
  - under a proprietary license, for a fee, to be used in closed source applications. Contact [Belledonne Communications](https://www.linphone.org/contact) for any question about costs and services.
 
 Documentation
@@ -50,20 +49,22 @@ Compilation and installation
 
 - **libsrtp** for SRTP encryption
 - **bzrtp[3]** for ZRTP encryption
-- **libgsm**: GSM codecs support
-- **libbv16**: BV16 codec support
+- **libvpx** for VP8 encoding and decoding
+- **aom** for AV1 encoding
+- **dav1d** for AV1 decoding
+- **libmastroska-c** for recording/playing of audio/video streams
 - **libopus** for Opus encoding and decoding
 - **libspeex**: SPEEX codec support
 - **libspeex-dsp: resampler and AEC
+- **libturbojpeg**: video screenshot feature
 - **libalsa**: ALSA support (GNU/Linux only)
 - **libpulse**: PulseAudio support (GNU/Linux only)
+- **libgsm**: GSM codecs support
+- **libbv16**: BV16 codec support
 - **libv4l2**: video capture (GNU/Linux only;disablable)
 - **libx11** and libxv: video display with X11 (GNU/Linux only)
 - **libglx**: video dispaly with GLX (GNU/Linux only)
-- **libvpx** for VP8 encoding and decoding
-- **libmastroska-c** for recording/playing of audio/video streams
-- **libturbojpeg**: video screenshot feature
-- **ffmpeg**, h264 decoder, mpeg4 and mjpeg encoder/decoders, rescaling and pixel conversion.
+- **ffmpeg**, h264 decoder, mpeg4 and mjpeg encoder/decoders, rescaling and pixel conversion (unmaintained)
 
 ### Build instructions:
 
@@ -145,7 +146,7 @@ Subscribe here:
 --------------------------------------
 
 
-- [1] git://git.linphone.org/bctoolbox.git *or* <http://www.linphone.org/releases/sources/bctoolbox>
-- [2] git://git.linphone.org/ortp.git *or* <http://www.linphone.org/releases/sources/ortp>
-- [3] git://git.linphone.org/bzrtp.git *or* <http://www.linphone.org/releases/sources/bzrtp>
+- [1] bctoolbox: https://gitlab.linphone.org/BC/public/bctoolbox
+- [2] ortp: https://gitlab.linphone.org/BC/public/ortp
+- [3] bzrtp: https://gitlab.linphone.org/BC/public/bzrtp
 - [4] linphone-sdk: https://gitlab.linphone.org/BC/public/linphone-sdk.git
