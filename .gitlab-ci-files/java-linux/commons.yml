@@ -9,7 +9,7 @@
   variables:
     GIT_STRATEGY: fetch
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA_LINUX != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA != null
   script:
    - mkdir -p build-java-wrapper
    - cd build-java-wrapper
@@ -33,9 +33,9 @@
   stage: deploy
   tags: [ "docker" ]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA_LINUX != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA != null
   variables:
-    GIT_STRATEGY: fetch
+    GIT_STRATEGY: none
     MAVEN_REPO_URL: $ANDROID_MAVEN_URL
   before_script:
     - eval $(ssh-agent -s)
@@ -45,7 +45,7 @@
   script:
     - cd build-java-wrapper
     - mkdir -p maven_repository/org/linphone/
-    - echo $MAVEN_REPO_PATH
+    - echo $MAVEN_REPO_URL
     - rsync -avzP -e ssh --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/linphone-sdk maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
     - ../cmake/Java/gradlew -b upload.gradle publish $GRADLE_OPTIONS

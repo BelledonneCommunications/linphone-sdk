@@ -53,10 +53,6 @@ include:
   - '.gitlab-ci-files/iOS/tests.yml'
   - '.gitlab-ci-files/iOS/uploads.yml'
 
-  - '.gitlab-ci-files/java-linux/commons.yml'
-  - '.gitlab-ci-files/java-linux/ubuntu24_04.yml'
-  - '.gitlab-ci-files/java-linux/rocky9.yml'
-
   - '.gitlab-ci-files/linux-desktop/linux-desktop.yml'
   - '.gitlab-ci-files/linux-desktop/uploads.yml'
   # - '.gitlab-ci-files/raspbian.yml'
@@ -71,6 +67,9 @@ include:
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu2004.yml'
 
+  - '.gitlab-ci-files/java-linux/commons.yml'
+  - '.gitlab-ci-files/java-linux/ubuntu24_04.yml'
+  - '.gitlab-ci-files/java-linux/rocky9.yml'
 
   - '.gitlab-ci-files/yocto-raspberrypi3.yml'
   # - '.gitlab-ci-files/yocto-qemuarm64.yml'

@@ -83,3 +83,30 @@ nuget-upload-windows:
 
    script:
      - nuget push "build/linphone-sdk/packages/*.nupkg" -Source gitlab
+
+#################################################
+# Java/Maven artifact upload
+#################################################
+
+.vs-java-windows-upload:
+  stage: deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA != null
+  variables:
+    GIT_STRATEGY: none
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+  script:
+    - cd build-java-wrapper
+    - If ( Test-Path -Path "maven_repository/org/linphone/" ) {Remove-Item -recurse -force -path "maven_repository/org/linphone/" }
+    - mkdir maven_repository/org/linphone/
+    - echo $MAVEN_REPO_URL
+    - rsync -avzP -verbose --progress -e "ssh -v $CUSTOM_SSH_WINDOWS_PARAM" --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/linphone-sdk maven_repository/org/linphone/
+    - echo $GRADLE_OPTIONS
+    - ../cmake/Java/gradlew.bat -b upload.gradle publish $GRADLE_OPTIONS
+    - rsync -avzP -verbose --progress -e "ssh -v $CUSTOM_SSH_WINDOWS_PARAM" ./maven_repository/org/linphone/linphone-sdk $MAVEN_REPO_URL/org/linphone/
+
+vs2022-java-windows-upload:
+  extends: .vs-java-windows-upload
+  tags: [ "windows-powershell-vs-17-2022" ]
+  needs: 
+    - job: vs2022-java-windows-package

@@ -6,6 +6,9 @@ java-linux-package_rocky9:
   extends:
     - .java-linux-package
     - .java_linux_rocky9_image
+  needs:
+    - job: debian12-ninja-java
+      artifacts: false
 
 java-linux-upload_rocky9:
   extends:

@@ -12,7 +12,8 @@ repositories {
 
 // Define the output directory of the build (jars)
 def buildDir = 'linphone-sdk/bin/libs'
-def osClassifier = "${osdetector.release.id}.${osdetector.release.version}"
+def os = "${osdetector.os}"
+def osClassifier = os == "linux" ? "${osdetector.release.id}.${osdetector.release.version}" : os
 println "Detected OS classifier for this upload : ${osClassifier}"
 
 publishing {
