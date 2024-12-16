@@ -4,23 +4,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+
+## [5.4.0] - 2025-01-14
+
+### Added
+- Now requires mbedtls 3.6/
+- Added support for openssl as an alternative to mbedtls.
+
+### Changed
+- List copy optimisations.
+
 ### Removed
-- Crypto: remove polarssl support
+- Crypto: remove polarssl support.
 
 
 ## [5.3.68] - 2024-07-10
 
-## Added
+### Added
 - Use locale encoding from setlocale() on Windows and fallback to CP_APC if not found.
 
 ## [5.2.0] - 2022-11-14
 
-## Added
+### Added
 - Crypto: add support for post-quantum algorithms.
 - Crash handler and backtrace logger for Windows.
 
-## Changed
+### Changed
 - minor changes.
 
 
