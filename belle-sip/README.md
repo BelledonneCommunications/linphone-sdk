@@ -29,7 +29,7 @@ Features
 - fully asynchronous transport layer (UDP, TCP, TLS), comprising DNS resolver (SRV, A, AAAA).
 - full dual-stack IPv6 support.
 - automatic management of request refreshes with network disconnection resiliency thanks to the "refresher" object.
-- supported platforms: Linux, Mac OSX, windows XP+, iOS, Android, Blackberry 10.
+- supported platforms: Linux, Mac OSX, Windows, iOS, Android
 - HTTP/HTTPS client implementation.
 
 Dependencies
@@ -37,7 +37,8 @@ Dependencies
 
 ### Runtime dependencies
 
-- *bctoolbox* (git://git.linphone.org/bctoolbox.git or <https://gitlab.linphone.org/BC/public/bctoolbox>)
+- [bctoolbox](https://gitlab.linphone.org/BC/public/bctoolbox)
+- [belr](https://gitlab.linphone.org/BC/public/belr)
 
 
 Building belle-sip with CMake

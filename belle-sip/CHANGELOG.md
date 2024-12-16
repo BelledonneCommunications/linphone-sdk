@@ -4,17 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+
+
+
+## [5.4.0] - 2025-01-14
+
+### Added
+- Added RFC5626 ping/pong client procedure.
+- Bearer authentication for SIP (RFC8898) and http.
+- httplib as third party for non-regression tests only (not a runtime dependency).
+- http basic authentication.
 
 ### Changed
- - SIP & HTTP parser no longer uses antlr, but belr.
+- SIP & HTTP parser no longer uses antlr, but belr.
+- Optimizations
+
 
 ## [5.2.0] - 2022-11-07
 
-## Added
+### Added
 - Support for authentication headers with multiple challenges.
 
-## Fixed
+### Fixed
 - various weaknesses within multipart decoding process.
 - endless UDP transaction in a specific scenario.
 - crash on iOS 16 because of kCFStreamNetworkServiceTypeVoIP that no longer works.
