@@ -390,14 +390,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		}
 	}
 	rtp_bundle_set_mid_extension_id(rtpBundle_margaux, RTP_EXTENSION_MID);
-	MSMediaStreamSessions margaux;
+	MSMediaStreamSessions margaux = {};
 	margaux.rtp_session = rtpSession_margaux_marielle;
-	margaux.fec_session = NULL;
-	margaux.srtp_context = NULL;
-	margaux.zrtp_context = NULL;
-	margaux.dtls_context = NULL;
-	margaux.ticker = NULL;
-	margaux.auxiliary_sessions = NULL;
 
 	/* the relay needs to open rtp session with all endpoints, 2 bundled sessions for margaux. Relay's RtpSession are
 	 * all in transfer mode  */
@@ -469,14 +463,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		}
 	}
 	rtp_bundle_set_mid_extension_id(rtpBundle_relay, RTP_EXTENSION_MID);
-	MSMediaStreamSessions relay_margaux;
+	MSMediaStreamSessions relay_margaux = {};
 	relay_margaux.rtp_session = rtpSession_relay_margaux_marielle;
-	relay_margaux.fec_session = NULL;
-	relay_margaux.srtp_context = NULL;
-	relay_margaux.zrtp_context = NULL;
-	relay_margaux.dtls_context = NULL;
-	relay_margaux.ticker = NULL;
-	relay_margaux.auxiliary_sessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_margaux, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -490,14 +478,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_enable_transfer_mode(rtpSession_relay_marielle, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_marielle, FALSE);
 	rtp_session_set_payload_type(rtpSession_relay_marielle, MARIELLE_PAYLOAD_TYPE);
-	MSMediaStreamSessions relay_marielle;
+	MSMediaStreamSessions relay_marielle = {};
 	relay_marielle.rtp_session = rtpSession_relay_marielle;
-	relay_marielle.fec_session = NULL;
-	relay_marielle.srtp_context = NULL;
-	relay_marielle.zrtp_context = NULL;
-	relay_marielle.dtls_context = NULL;
-	relay_marielle.ticker = NULL;
-	relay_marielle.auxiliary_sessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_marielle, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -533,14 +515,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_enable_transfer_mode(rtpSession_relay_pauline, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_pauline, FALSE);
 	rtp_session_set_payload_type(rtpSession_relay_pauline, PAULINE_PAYLOAD_TYPE);
-	MSMediaStreamSessions relay_pauline;
+	MSMediaStreamSessions relay_pauline = {};
 	relay_pauline.rtp_session = rtpSession_relay_pauline;
-	relay_pauline.fec_session = NULL;
-	relay_pauline.srtp_context = NULL;
-	relay_pauline.zrtp_context = NULL;
-	relay_pauline.dtls_context = NULL;
-	relay_pauline.ticker = NULL;
-	relay_pauline.auxiliary_sessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_pauline, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -555,14 +531,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_profile(rtpSession_marielle, profile);
 	rtp_session_enable_rtcp(rtpSession_marielle, FALSE);
 	rtp_session_set_payload_type(rtpSession_marielle, MARIELLE_PAYLOAD_TYPE);
-	MSMediaStreamSessions marielle;
+	MSMediaStreamSessions marielle = {};
 	marielle.rtp_session = rtpSession_marielle;
-	marielle.fec_session = NULL;
-	marielle.srtp_context = NULL;
-	marielle.zrtp_context = NULL;
-	marielle.dtls_context = NULL;
-	marielle.ticker = NULL;
-	marielle.auxiliary_sessions = NULL;
 	RtpSession *rtpSession_marielle_bis = NULL;
 	RtpBundle *rtpBundle_marielle = NULL;
 	if (p.useBundledSource) { // Marielle bundles two sessions
@@ -590,13 +560,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_payload_type(rtpSession_pauline, PAULINE_PAYLOAD_TYPE);
 	rtp_session_set_seq_number(rtpSession_pauline, 0xFFF8); // Pauline's ROC will change after 8 packets sent as we
 	                                                        // start the session with a seqnumber near the max (0xFFFF)
-	MSMediaStreamSessions pauline;
+	MSMediaStreamSessions pauline = {};
 	pauline.rtp_session = rtpSession_pauline;
-	pauline.srtp_context = NULL;
-	pauline.zrtp_context = NULL;
-	pauline.dtls_context = NULL;
-	pauline.ticker = NULL;
-	pauline.auxiliary_sessions = NULL;
 
 	/* set outer keys */
 	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&marielle, p.outerSuite, marielle_outer_key,
@@ -621,6 +586,11 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&marielle, &ekt_params) == 0);
 			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&pauline, &ekt_params) == 0);
 			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&margaux, &ekt_params) == 0);
+			// when skipping pauline begins, we must force the EKT full tag to be present in every packets, not just the
+			// first ones
+			if (p.skipPaulineBegin) {
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt_full_tag_period(&pauline, 0) == 0);
+			}
 		} else { // set the inner keys
 			// Marielle (even when 2 sessions are bundled from marielle, they will use the same key)
 			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(

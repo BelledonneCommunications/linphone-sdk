@@ -663,6 +663,10 @@ static void _sender_process(MSFilter *f) {
 				header->b_cont = im;
 				mblk_meta_copy(im, header);
 
+				// before sending the message to ortp, set the ekt tag flag according to the
+				// independant flag. Do it after the mblk_meta_copy as both are stored in mblk.reservedX
+				ortp_mblk_set_ekt_tag_flag(header, mblk_get_independent_flag(im));
+
 				rtp_session_sendm_with_ts(s, header, timestamp);
 			} else if (d->mute == TRUE && d->skip == FALSE) {
 				process_cn(f, d, timestamp, im);

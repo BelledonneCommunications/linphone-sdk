@@ -310,6 +310,13 @@ MS2_PUBLIC const char *ms_crypto_suite_to_string(MSCryptoSuite suite);
  */
 MS2_PUBLIC void ms_srtp_context_delete(MSSrtpCtx *session);
 
+/**
+ * Set Ekt tag period - default is 100ms
+ * @param[in/out]	stream		The mediastream to operate on
+ * @param[in]		period		in ms, how long before sending again a fullEkt tag
+ * @return	0 on success, negative value otherwise
+ */
+MS2_PUBLIC int ms_media_stream_sessions_set_ekt_full_tag_period(MSMediaStreamSessions *sessions, uint64_t period);
 #ifdef __cplusplus
 }
 #endif
