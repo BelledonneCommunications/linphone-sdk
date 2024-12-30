@@ -97,10 +97,14 @@ for_each_weak_unref_free(belle_sip_list_t *l, belle_sip_object_destroy_notify_t 
 	return NULL;
 }
 
+static size_t belle_sip_channel_input_stream_get_readable_length(const belle_sip_channel_input_stream_t *input_stream) {
+	return input_stream->write_ptr - input_stream->read_ptr;
+}
+
 static void belle_sip_channel_input_stream_rewind(belle_sip_channel_input_stream_t *input_stream) {
 	int remaining;
 
-	remaining = (int)(input_stream->write_ptr - input_stream->read_ptr);
+	remaining = (int)(belle_sip_channel_input_stream_get_readable_length(input_stream));
 	if (remaining > 0) {
 		/* copy remaning bytes at top of buffer*/
 		memmove(input_stream->buff, input_stream->read_ptr, remaining);
@@ -121,7 +125,7 @@ static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_
 	input_stream->content_length = -1;
 }
 
-static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_input_stream_t *input_stream) {
+static size_t belle_sip_channel_input_stream_get_free_length(belle_sip_channel_input_stream_t *input_stream) {
 	return sizeof(input_stream->buff) - (input_stream->write_ptr - input_stream->buff);
 }
 
@@ -364,7 +368,9 @@ int belle_sip_channel_send_keep_alive(belle_sip_channel_t *obj, int doubled) {
 void belle_sip_channel_enable_ping_pong(belle_sip_channel_t *obj, int enabled) {
 	obj->ping_pong_enabled = (unsigned char)enabled;
 	if (!!!belle_sip_stack_ping_pong_verification_enabled(obj->stack)) {
-		belle_sip_message("Channel[%p]: RFC5626 pong support is assumed to be supported by the server without performing any sanity checks.", obj);
+		belle_sip_message("Channel[%p]: RFC5626 pong support is assumed to be supported by the server without "
+		                  "performing any sanity checks.",
+		                  obj);
 		obj->pong_support_confirmed = TRUE;
 	}
 }
@@ -608,7 +614,7 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 	size_t read_size = 0;
 	int num;
 
-	while ((num = (int)(obj->input_stream.write_ptr - obj->input_stream.read_ptr)) > 0) {
+	while ((num = (int)belle_sip_channel_input_stream_get_readable_length(&obj->input_stream)) > 0) {
 
 		if (obj->input_stream.state == WAITING_MESSAGE_START) {
 			int i;
@@ -616,7 +622,7 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 			 * complete request or response line somewhere*/
 			for (i = 0; i < num - 1; i++) {
 				if ((obj->input_stream.read_ptr[i] == '\r' && obj->input_stream.read_ptr[i + 1] == '\n') ||
-				    belle_sip_channel_input_stream_get_buff_length(&obj->input_stream) <=
+				    belle_sip_channel_input_stream_get_free_length(&obj->input_stream) <=
 				        1 /*1 because null terminated*/ /*if buffer full try to parse in any case*/) {
 					/*good, now we can start searching  for request/response*/
 					if ((offset = get_message_start_pos(obj->input_stream.read_ptr, num)) >= 0) {
@@ -731,7 +737,7 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj) {
 
 	if (obj->simulated_recv_return > 0) {
 		read_bytes = belle_sip_channel_recv(obj, obj->input_stream.write_ptr,
-		                                    belle_sip_channel_input_stream_get_buff_length(&obj->input_stream) - 1);
+		                                    belle_sip_channel_input_stream_get_free_length(&obj->input_stream) - 1);
 	} else {
 		belle_sip_message("channel [%p]: simulating recv() returning %i", obj, obj->simulated_recv_return);
 		read_bytes = obj->simulated_recv_return;
@@ -751,7 +757,9 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj) {
 			}
 		}
 		belle_sip_channel_process_stream(obj, FALSE);
-		if (obj->input_stream.state == WAITING_MESSAGE_START) {
+		if (obj->input_stream.state == WAITING_MESSAGE_START &&
+		    belle_sip_channel_input_stream_get_readable_length(&obj->input_stream) == 0) {
+			/* If no data is pending in the input stream and waiting for message start, release the background task. */
 			channel_end_recv_background_task(obj);
 		} /*if still in message acquisition state, keep the backgroud task*/
 	} else if (read_bytes == 0) {
