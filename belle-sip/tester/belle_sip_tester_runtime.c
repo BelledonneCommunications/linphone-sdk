@@ -217,7 +217,7 @@ void belle_sip_tester_after_each(void) {
 		                                       bc_tester_current_suite_name(), bc_tester_current_test_name());
 		belle_sip_object_dump_active_objects();
 		belle_sip_object_flush_active_objects();
-		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, format);
+		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, "%s", format);
 		belle_sip_error("%s", format);
 		belle_sip_free(format);
 

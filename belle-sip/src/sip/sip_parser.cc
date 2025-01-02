@@ -150,15 +150,6 @@ bellesip::SIP::Parser::Parser() {
 	    ->setCollector("uri-parameter", make_fn(&belle_sip_parameters_add_escaped))
 	    ->setCollector("header", make_fn(&belle_sip_uri_add_escaped_header));
 
-	_parser->setHandler("fast-uri", make_fn(&belle_sip_uri_new))
-	    ->setCollector("sip-uri-scheme", make_fn(&belle_sip_uri_set_scheme))
-	    ->setCollector("user", make_fn(&belle_sip_uri_set_escaped_user))
-	    ->setCollector("password", make_fn(&belle_sip_uri_set_escaped_user_password))
-	    ->setCollector("fast-host", make_fn(&belle_sip_uri_set_host))
-	    ->setCollector("port", make_fn(&belle_sip_uri_set_port))
-	    ->setCollector("uri-parameter", make_fn(&belle_sip_parameters_add_escaped))
-	    ->setCollector("header", make_fn(&belle_sip_uri_add_escaped_header));
-
 	_parser->setHandler("paramless-uri", make_fn(&belle_sip_uri_new))
 	    ->setCollector("sip-uri-scheme", make_fn(&belle_sip_uri_set_scheme))
 	    ->setCollector("user", make_fn(&belle_sip_uri_set_escaped_user))
@@ -171,13 +162,6 @@ bellesip::SIP::Parser::Parser() {
 	    ->setCollector("display-name", make_fn(&belle_sip_header_address_set_quoted_displayname_with_slashes))
 	    ->setCollector("quoted-display-name", make_fn(&belle_sip_header_address_set_quoted_displayname_with_slashes))
 	    ->setCollector("uri", make_fn(&belle_sip_header_address_set_uri))
-	    ->setCollector("generic-uri", make_fn(&belle_sip_header_address_set_generic_uri))
-	    ->setCollector("generic-param", make_fn(&belle_sip_parameters_add));
-
-	_parser->setHandler("fast-header-address", make_fn(&belle_sip_header_address_new))
-	    ->setCollector("display-name", make_fn(&belle_sip_header_address_set_quoted_displayname_with_slashes))
-	    ->setCollector("quoted-display-name", make_fn(&belle_sip_header_address_set_quoted_displayname_with_slashes))
-	    ->setCollector("fast-uri", make_fn(&belle_sip_header_address_set_uri))
 	    ->setCollector("generic-uri", make_fn(&belle_sip_header_address_set_generic_uri))
 	    ->setCollector("generic-param", make_fn(&belle_sip_parameters_add));
 

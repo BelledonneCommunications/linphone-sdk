@@ -1,3 +1,16 @@
+;
+; Modified rules for 'hostname'
+; Indeed, the official definitions is not straightforward and are not compatible with
+; the consume as much as possible belr's Loop behavior, leading to failed recognition of syntaxically correct inputs.
+;
+
+domainlabel    = alphanum / (alphanum *( alphanum / ( *("-") alphanum) ) ) ; modified to avoid an ambiguity
+toplabel       = alphanum / (alphanum *( alphanum / ( *("-") alphanum) ) ) ; modified to avoid an ambiguity & to relax the restriction on the 1st character as stated in RFC 1123 2.1
+fqdn = *( domainlabel "." ) toplabel  ; classic fqdn, for example 'sip.example.org'
+afqdn = *( domainlabel "." )          ; absolute fully qualified domain name, for example 'sip.example.org.' . This exists.
+simplified-hostname = fqdn / afqdn
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Rules from RFC 3261 with IPv6Address fix from RFC 5954, changes from RFC 7235 and changes from RFC 8760 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -58,7 +71,7 @@ user-unreserved = "&" / "=" / "+" / "$" / "," / ";" / "?" / "/"
 password        = *( unreserved / escaped / "&" / "=" / "+" / "$" / "," )
 hostport        = host [ ":" port ]
 host            = hostname / IPv4address / IPv6reference
-hostname        = *( domainlabel "." ) toplabel [ "." ]
+hostname        = simplified-hostname ; was initially *( domainlabel "." ) toplabel [ "." ]
 IPv6reference   = "[" IPv6address "]"
 h16             = 1*4HEXDIG
 ls32            = ( h16 ":" h16 ) / IPv4address
@@ -392,15 +405,9 @@ sips-scheme    = "sips:"
 userinfo       = user [ ":" password ] "@"
 uri-parameters = *( (SEMI uri-parameter) / SEMI ) ; allow semi only even if not in the RFC
 uri-parameter  = other-param ; all parameters are considered as other
-domainlabel    = alphanum / (alphanum *( alphanum / ( *("-") alphanum) ) ) ; modified to avoid an ambiguity
-toplabel       = alphanum / (alphanum *( alphanum / (*("-") alphanum ) ) ) ; modified to avoid an ambiguity & to relax the restriction on the 1st character as stated in RFC 1123 2.1
-
-fast-uri      = sip-uri-scheme [ userinfo ] fast-hostport uri-parameters [ headers ]
-fast-hostport = fast-host [ ":" port ]
-fast-host     = fast-hostname / IPv6reference ; IPv4address not included because cannot discriminate quickly between 192.168.0.1 and 192.168.0.com
-fast-hostname = alphanum *( alphanum / "-" / "." )
 
 paramless-uri = sip-uri-scheme [ userinfo ] hostport [ headers ]
+
 
 generic-uri = hier-part / absoluteURI
 
@@ -410,24 +417,18 @@ uric-no-slash-for-from-to-contact-addr-spec = unreserved / escaped / ":" / "@" /
 uric-for-from-to-contact-addr-spec          = reserved-for-from-to-contact-addr-spec / unreserved / escaped
 reserved-for-from-to-contact-addr-spec      = ":" / "@" / "&" / "=" / "+" / "$" / "/"
 
+name-addr-with-generic-uri           = [ display-name ] LAQUOT addr-spec-with-generic-uri RAQUOT
+paramless-name-addr-with-generic-uri = [ quoted-display-name ] addr-spec-with-generic-uri
+addr-spec-with-generic-uri           = [ LWS ] ( uri / generic-uri ) [ LWS ]
+paramless-addr-spec-with-generic-uri = paramless-uri / generic-uri-for-from-to-contact-addr-spec
+
 header-address-base = name-addr-with-generic-uri / addr-spec-with-generic-uri
 
 header-address                       = [ LWS ] ( ( name-addr-with-generic-uri *( SEMI generic-param ) )
                                                  / paramless-name-addr-with-generic-uri
                                                  / addr-spec-with-generic-uri )
                                        [ LWS ]
-name-addr-with-generic-uri           = [ display-name ] LAQUOT addr-spec-with-generic-uri RAQUOT
-paramless-name-addr-with-generic-uri = [ quoted-display-name ] addr-spec-with-generic-uri
-addr-spec-with-generic-uri           = [ LWS ] ( uri / generic-uri ) [ LWS ]
-paramless-addr-spec-with-generic-uri = paramless-uri / generic-uri-for-from-to-contact-addr-spec
 
-fast-header-address                       = [ LWS ] ( ( fast-name-addr-with-generic-uri *( SEMI generic-param ) )
-                                                    / fast-paramless-name-addr-with-generic-uri
-                                                    / fast-addr-spec-with-generic-uri )
-                                            [ LWS ]
-fast-name-addr-with-generic-uri           = [ display-name ] LAQUOT fast-addr-spec-with-generic-uri RAQUOT
-fast-paramless-name-addr-with-generic-uri = [ quoted-display-name ] fast-addr-spec-with-generic-uri
-fast-addr-spec-with-generic-uri           = [ LWS ] ( fast-uri / generic-uri ) [ LWS ]
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -540,5 +541,5 @@ refresher-param        = "refresher" EQUAL ("uas" / "uac")
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 header-diversion = "Diversion" ":" diversion-spec
-diversion-spec   = ( name-addr-with-generic-uri / paramless-addr-spec-with-generic-uri) *( SEMI diversion-params) ; Initially 1# (name-addr *( ";" diversion_params ))
+diversion-spec   = name-addr-with-generic-uri *( SEMI diversion-params) ; Initially 1# (name-addr *( ";" diversion_params ))
 diversion-params = generic-param

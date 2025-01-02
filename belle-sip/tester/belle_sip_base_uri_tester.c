@@ -120,6 +120,19 @@ static void test_ip_host(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
+static void testAFQDN(void) {
+	/* Notice the trailing dot at the end of the domain name. This is legal. */
+	belle_sip_uri_t *L_uri = belle_sip_uri_parse("sip:bob@example.net.");
+	if (BC_ASSERT_PTR_NOT_NULL(L_uri)) {
+		char *l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
+		belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+		L_uri = belle_sip_uri_parse(l_raw_uri);
+		belle_sip_free(l_raw_uri);
+		BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "example.net.");
+		belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+	}
+}
+
 static void test_lr(void) {
 	belle_sip_uri_t *L_uri = belle_sip_uri_parse("sip:192.168.0.1;lr");
 	char *l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
@@ -476,10 +489,10 @@ static void test_unescaping_good_chars(void) {
 	belle_sip_free(unescaped);
 
 	char username[10] = {'F', 'r', 'a', 'n', (char)0xc3, (char)0xa7, 'o', 'i', 's', 0x0};
-	unescaped = belle_sip_username_unescape_unnecessary_characters(username);
-	// 'ç' needs to be kept escaped
+	char *escaped = belle_sip_uri_to_escaped_username(username);
+	// 'ç' needs to be escaped
 	const char *expected2 = "Fran%c3%a7ois";
-	BC_ASSERT_STRING_EQUAL(unescaped, expected2);
+	BC_ASSERT_STRING_EQUAL(escaped, expected2);
 	belle_sip_free(unescaped);
 }
 
@@ -517,6 +530,7 @@ static void test_empty_password(void) {
 
 static test_t uri_tests[] = {
     TEST_NO_TAG("Simple URI", testSIMPLEURI),
+    TEST_NO_TAG("Uri with absolute fully qualified domain name", testAFQDN),
     TEST_NO_TAG("Complex URI", testCOMPLEXURI),
     TEST_NO_TAG("Escaped username", test_escaped_username),
     TEST_NO_TAG("Escaped username with bad chars", test_escaping_bad_chars),

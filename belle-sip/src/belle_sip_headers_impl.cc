@@ -393,10 +393,17 @@ int belle_sip_header_address_equals(const belle_sip_header_address_t *addr_a,
 }
 
 /*fast header address implementation*/
-typedef belle_sip_header_address_t belle_sip_fast_header_address_t;
-#define belle_sip_fast_header_address_parse belle_sip_header_address_fast_parse
-#define belle_sip_try_fast_header_address_parse belle_sip_header_address_try_fast_parse
-BELLE_SIP_ADDRESS_PARSE(fast_header_address);
+
+belle_sip_header_address_t *belle_sip_header_address_fast_parse(const char *address) {
+	return belle_sip_header_address_parse(address);
+}
+
+/*
+ same as belle_sip_header_address_fast_parse but with no error messagging
+ */
+belle_sip_header_address_t *belle_sip_header_address_try_fast_parse(const char *address) {
+	return belle_sip_header_address_parse(address);
+}
 
 /******************************
  * Allow header inherits from header
