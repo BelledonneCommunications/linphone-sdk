@@ -479,9 +479,9 @@ static void android_snd_write_process(MSFilter *obj) {
 			ms_warning("[AAudio Player] Player stream has disconnected");
 			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 		} else {
-			if (octx->volumeHackRequired) {
-				ms_message("[AAudio Player] Audio stream has been started, applying volume hack");
-				anroid_snd_write_require_volume_hack_depending_on_stream(octx);
+			if (streamState == AAUDIO_STREAM_STATE_STARTED && octx->volumeHackRequired) {
+				ms_message("[AAudio Player] Audio stream has been started, scheduling volume hack");
+				ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)anroid_snd_write_require_volume_hack_depending_on_stream, octx);
 				octx->volumeHackRequired = false;
 			}
 
