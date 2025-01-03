@@ -34,7 +34,7 @@ COPY gentoo/xterm.sh /etc/profile.d/
 # WARNING : AS GENTOO IS A ROLLING RELEASE, ALL THE IMAGE MUST BE REBUILT FOR AN UPGRADE, OTHERWIZE THERE COULD BE CONFLICTS BETWEEN PACKAGES (ALL THE SYSTEM MUST BE UPDATED AT ONCE, THIS IS ALSO TRUE OUT OF DOCKER)
 # Select profile & Update the system
 RUN emaint --auto sync && \
-    eselect profile set 1 && eselect profile show && \
+    eselect profile set default/linux/amd64/23.0 && eselect profile show && \
     emerge --verbose --update --deep --newuse @world && \
     emerge --depclean
 

@@ -10,18 +10,17 @@ EGIT_BRANCH="master"
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="debug doc examples ncurses test"
+IUSE="debug doc test"
 RESTRICT="test"
 
-RDEPEND="ncurses? ( sys-libs/ncurses:0= )"
 DEPEND="${RDEPEND}"
 BDEPEND="virtual/pkgconfig"
 
 src_configure() {
 	local mycmakeargs=(
-		-DENABLE_BCUNIT_CURSES="$(usex ncurses)"
+		-DENABLE_BCUNIT_CURSES="NO"
 		-DENABLE_BCUNIT_DOC="$(usex doc)"
-		-DENABLE_BCUNIT_EXAMPLES="$(usex examples)"
+		-DENABLE_BCUNIT_EXAMPLES="NO"
 		-DENABLE_BCUNIT_MEMTRACE="$(usex debug)"
 		-DENABLE_BCUNIT_TEST="$(usex test)"
 	)
