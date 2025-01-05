@@ -243,9 +243,75 @@ static void KYBER_test(void){
 	ssb.clear();
 }
 
+static void MLKEM_test(void){
+	std::vector<uint8_t> pk, sk, ct, ssa, ssb;
+
+	MLKEM512  mlkem512 = MLKEM512();
+	MLKEM768  mlkem768 = MLKEM768();
+	MLKEM1024 mlkem1024 = MLKEM1024();
+
+	BC_ASSERT_EQUAL(mlkem512.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(mlkem512.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_FALSE(ssa.empty());
+	BC_ASSERT_EQUAL(mlkem512.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	pk.clear();
+	sk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	BC_ASSERT_EQUAL(mlkem768.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(mlkem768.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_FALSE(ssa.empty());
+	BC_ASSERT_EQUAL(mlkem768.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	pk.clear();
+	sk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	BC_ASSERT_EQUAL(mlkem1024.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(mlkem1024.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_FALSE(ssa.empty());
+	BC_ASSERT_EQUAL(mlkem1024.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	pk.clear();
+	sk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	// Test for MLKEM512
+	BC_ASSERT_EQUAL(mlkem512.crypto_kem_dec(ssb, MLKEM512_pattern.at(1), MLKEM512_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(MLKEM512_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	// Test for MLKEM768
+	BC_ASSERT_EQUAL(mlkem768.crypto_kem_dec(ssb, MLKEM768_pattern.at(1), MLKEM768_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(MLKEM768_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	// Test for MLKEM1024
+	BC_ASSERT_EQUAL(mlkem1024.crypto_kem_dec(ssb, MLKEM1024_pattern.at(1), MLKEM1024_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(MLKEM1024_pattern.at(2) == ssb);
+
+	ssb.clear();
+}
+
 /*
  * Code to generate patterns for hybrid KEMs
- *
+ */
+#if 0
 static void localPrintHex(std::string title, std::vector<uint8_t> buf) {
 	std::cout<<title;
 	for (uint8_t b : buf) {
@@ -254,8 +320,7 @@ static void localPrintHex(std::string title, std::vector<uint8_t> buf) {
 	}
 	std::cout<<std::endl;
 }
-*/
-
+#endif
 
 static void HYBRID_KEM_test(){
 	std::vector<uint8_t> sk, sk1, sk2, ct1, ct2, pk, ct, ssa, ssb;
@@ -305,6 +370,30 @@ static void HYBRID_KEM_test(){
 
 	BC_ASSERT_EQUAL(hyb_k255_kyber512.crypto_kem_dec(ssb, hybrid_X25519_KYBER512_SHA256_pattern.at(1), hybrid_X25519_KYBER512_SHA256_pattern.at(0)), 0, int, "%d");
 	BC_ASSERT_TRUE(hybrid_X25519_KYBER512_SHA256_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	/* K25519 - MLKEM512 */
+
+	HYBRID_KEM hyb_k255_mlkem512 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<MLKEM512>()}, BCTBX_MD_SHA256);
+
+	BC_ASSERT_EQUAL(hyb_k255_mlkem512.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k255_mlkem512.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_FALSE(ssa.empty());
+	BC_ASSERT_EQUAL(hyb_k255_mlkem512.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	ct.clear();
+	pk.clear();
+	sk.clear();
+	ssa.clear();
+	ssb.clear();
+
+	// Test vector : K25519 - MLKEM512
+
+	BC_ASSERT_EQUAL(hyb_k255_mlkem512.crypto_kem_dec(ssb, hybrid_X25519_MLKEM512_SHA256_pattern.at(1), hybrid_X25519_MLKEM512_SHA256_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X25519_MLKEM512_SHA256_pattern.at(2) == ssb);
 
 	ssb.clear();
 
@@ -390,6 +479,67 @@ static void HYBRID_KEM_test(){
 
 	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha512.crypto_kem_dec(ssb, hybrid_X448_KYBER1024_SHA512_pattern.at(1), hybrid_X448_KYBER1024_SHA512_pattern.at(0)), 0, int, "%d");
 	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_SHA512_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	/* K448 - MLKEM1024 */
+
+	HYBRID_KEM hyb_k448_mlkem1024_sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA256);
+
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha256.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha256.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha256.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	ct.clear();
+	pk.clear();
+	sk.clear();
+	ssa.clear();
+	ssb.clear();
+
+	HYBRID_KEM hyb_k448_mlkem1024_sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA384);
+
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha384.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha384.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha384.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	ct.clear();
+	pk.clear();
+	sk.clear();
+	ssa.clear();
+	ssb.clear();
+
+	HYBRID_KEM hyb_k448_mlkem1024_sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA512);
+
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha512.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha512.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha512.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	ct.clear();
+	pk.clear();
+	sk.clear();
+	ssa.clear();
+	ssb.clear();
+
+	// Test vector : K448 - MLKEM1024
+
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha256.crypto_kem_dec(ssb, hybrid_X448_MLKEM1024_SHA256_pattern.at(1), hybrid_X448_MLKEM1024_SHA256_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_MLKEM1024_SHA256_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha384.crypto_kem_dec(ssb, hybrid_X448_MLKEM1024_SHA384_pattern.at(1), hybrid_X448_MLKEM1024_SHA384_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_MLKEM1024_SHA384_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha512.crypto_kem_dec(ssb, hybrid_X448_MLKEM1024_SHA512_pattern.at(1), hybrid_X448_MLKEM1024_SHA512_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_MLKEM1024_SHA512_pattern.at(2) == ssb);
 
 	ssb.clear();
 
@@ -542,6 +692,7 @@ static test_t crypto_tests[] = {
 	TEST_NO_TAG("ECDH KEM", ECDH_KEM_test),
 	TEST_NO_TAG("HQC", HQC_test),
 	TEST_NO_TAG("KYBER", KYBER_test),
+	TEST_NO_TAG("MLKEM", MLKEM_test),
 	TEST_NO_TAG("HYBRID KEM", HYBRID_KEM_test),
 };
 

@@ -37,6 +37,19 @@ using namespace std;
 namespace bctoolbox { // This interface should one day be merged in the bctoolbox project so use bctoolbox namespace
 
 /* Check our redifinitions of constants (made in the .hh) match the one from liboqs */
+static_assert(MLKEM512::skSize == OQS_KEM_ml_kem_512_length_secret_key, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM512::pkSize == OQS_KEM_ml_kem_512_length_public_key, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM512::ctSize == OQS_KEM_ml_kem_512_length_ciphertext, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM512::ssSize == OQS_KEM_ml_kem_512_length_shared_secret, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM768::skSize == OQS_KEM_ml_kem_768_length_secret_key, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM768::pkSize == OQS_KEM_ml_kem_768_length_public_key, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM768::ctSize == OQS_KEM_ml_kem_768_length_ciphertext, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM768::ssSize == OQS_KEM_ml_kem_768_length_shared_secret, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM1024::skSize == OQS_KEM_ml_kem_1024_length_secret_key, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM1024::pkSize == OQS_KEM_ml_kem_1024_length_public_key, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM1024::ctSize == OQS_KEM_ml_kem_1024_length_ciphertext, "forwarding oqs ml_kem define mismatch");
+static_assert(MLKEM1024::ssSize == OQS_KEM_ml_kem_1024_length_shared_secret, "forwarding oqs ml_kem define mismatch");
+
 static_assert(KYBER512::skSize == OQS_KEM_kyber_512_length_secret_key, "forwarding oqs kyber define mismatch");
 static_assert(KYBER512::pkSize == OQS_KEM_kyber_512_length_public_key, "forwarding oqs kyber define mismatch");
 static_assert(KYBER512::ctSize == OQS_KEM_kyber_512_length_ciphertext, "forwarding oqs kyber define mismatch");
@@ -103,6 +116,45 @@ size_t K448::get_ctSize() const noexcept {
 	return ctSize;
 }
 size_t K448::get_ssSize() const noexcept {
+	return ssSize;
+}
+
+size_t MLKEM512::get_skSize() const noexcept {
+	return skSize;
+}
+size_t MLKEM512::get_pkSize() const noexcept {
+	return pkSize;
+}
+size_t MLKEM512::get_ctSize() const noexcept {
+	return ctSize;
+}
+size_t MLKEM512::get_ssSize() const noexcept {
+	return ssSize;
+}
+
+size_t MLKEM768::get_skSize() const noexcept {
+	return skSize;
+}
+size_t MLKEM768::get_pkSize() const noexcept {
+	return pkSize;
+}
+size_t MLKEM768::get_ctSize() const noexcept {
+	return ctSize;
+}
+size_t MLKEM768::get_ssSize() const noexcept {
+	return ssSize;
+}
+
+size_t MLKEM1024::get_skSize() const noexcept {
+	return skSize;
+}
+size_t MLKEM1024::get_pkSize() const noexcept {
+	return pkSize;
+}
+size_t MLKEM1024::get_ctSize() const noexcept {
+	return ctSize;
+}
+size_t MLKEM1024::get_ssSize() const noexcept {
 	return ssSize;
 }
 
@@ -216,6 +268,93 @@ size_t HYBRID_KEM::get_ssSize() const noexcept {
 
 /* KEM INTERFACE FOR POST QUANTUM ALGORITHMS */
 // Post quantum implementations come from LibOQS
+
+int MLKEM512::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
+	pk.resize(pkSize);
+	sk.resize(skSize);
+
+	// Key pair generation function with MLKEM512
+	int res = OQS_KEM_ml_kem_512_keypair(pk.data(), sk.data());
+
+	return res;
+}
+
+int MLKEM512::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
+	ct.resize(ctSize);
+	ss.resize(ssSize);
+
+	// Key encapsulation with MLKEM512
+	int res = OQS_KEM_ml_kem_512_encaps(ct.data(), ss.data(), pk.data());
+
+	return res;
+}
+
+int MLKEM512::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
+	ss.resize(ssSize);
+
+	// Key decapsulation with MLKEM512
+	int res = OQS_KEM_ml_kem_512_decaps(ss.data(), ct.data(), sk.data());
+
+	return res;
+}
+
+int MLKEM768::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
+	pk.resize(pkSize);
+	sk.resize(skSize);
+
+	// Key pair generation function with MLKEM768
+	int res = OQS_KEM_ml_kem_768_keypair(pk.data(), sk.data());
+
+	return res;
+}
+
+int MLKEM768::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
+	ct.resize(ctSize);
+	ss.resize(ssSize);
+
+	// Key encapsulation with MLKEM768
+	int res = OQS_KEM_ml_kem_768_encaps(ct.data(), ss.data(), pk.data());
+
+	return res;
+}
+
+int MLKEM768::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
+	ss.resize(ssSize);
+
+	// Key decapsulation with MLKEM768
+	int res = OQS_KEM_ml_kem_768_decaps(ss.data(), ct.data(), sk.data());
+
+	return res;
+}
+
+int MLKEM1024::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
+	pk.resize(pkSize);
+	sk.resize(skSize);
+
+	// Key pair generation function with MLKEM1024
+	int res = OQS_KEM_ml_kem_1024_keypair(pk.data(), sk.data());
+
+	return res;
+}
+
+int MLKEM1024::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
+	ct.resize(ctSize);
+	ss.resize(ssSize);
+
+	// Key encapsulation with MLKEM1024
+	int res = OQS_KEM_ml_kem_1024_encaps(ct.data(), ss.data(), pk.data());
+
+	return res;
+}
+
+int MLKEM1024::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
+	ss.resize(ssSize);
+
+	// Key decapsulation with MLKEM1024
+	int res = OQS_KEM_ml_kem_1024_decaps(ss.data(), ct.data(), sk.data());
+
+	return res;
+}
 
 int KYBER512::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	pk.resize(pkSize);

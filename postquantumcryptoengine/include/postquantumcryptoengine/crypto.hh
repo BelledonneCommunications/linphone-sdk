@@ -99,6 +99,72 @@ public:
 };
 
 /**
+ * @brief The MLKEM512 class extends the KEM class
+ *		Initialises all key size parameters
+ *		Implements all functions that MLKEM512 algorithm needs
+ */
+class MLKEM512 : public KEM {
+public:
+	MLKEM512() = default;
+	constexpr static size_t skSize = 1632;
+	constexpr static size_t pkSize = 800;
+	constexpr static size_t ctSize = 768;
+	constexpr static size_t ssSize = 32;
+
+	size_t get_skSize() const noexcept override;
+	size_t get_pkSize() const noexcept override;
+	size_t get_ctSize() const noexcept override;
+	size_t get_ssSize() const noexcept override;
+	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+};
+
+/**
+ * @brief The MLKEM768 class extends the KEM class
+ *		Initialises all key size parameters
+ *		Implements all functions that MLKEM768 algorithm needs
+ */
+class MLKEM768 : public KEM {
+public:
+	MLKEM768() = default;
+	constexpr static size_t skSize = 2400;
+	constexpr static size_t pkSize = 1184;
+	constexpr static size_t ctSize = 1088;
+	constexpr static size_t ssSize = 32;
+
+	size_t get_skSize() const noexcept override;
+	size_t get_pkSize() const noexcept override;
+	size_t get_ctSize() const noexcept override;
+	size_t get_ssSize() const noexcept override;
+	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+};
+
+/**
+ * @brief The MLKEM1024 class extends the KEM class
+ *		Initialises all key size parameters
+ *		Implements all functions that MLKEM1024 algorithm needs
+ */
+class MLKEM1024 : public KEM {
+public:
+	MLKEM1024() = default;
+	constexpr static size_t skSize = 3168;
+	constexpr static size_t pkSize = 1568;
+	constexpr static size_t ctSize = 1568;
+	constexpr static size_t ssSize = 32;
+
+	size_t get_skSize() const noexcept override;
+	size_t get_pkSize() const noexcept override;
+	size_t get_ctSize() const noexcept override;
+	size_t get_ssSize() const noexcept override;
+	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+};
+
+/**
  * @brief The KYBER512 class extends the KEM class
  *		Initialises all key size parameters
  *		Implements all functions that KYBER512 algorithm needs

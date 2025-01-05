@@ -35,14 +35,17 @@ uint32_t bctbxpq_key_agreement_algo_list(void) {
 	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X448) {
 		ret |= BCTBX_KEM_X448;
 	}
-	/* LibOQS is built with support for Kyber512,768 and 1024, Sike434, 610 and 751 */
+	/* LibOQS is built with support for MLKEM(512,768 and 1024), Kyber(512,768 and 1024), HQC(128,192 and 256)*/
 	/* TODO: check they were actually enabled at compile time in liboqs */
 	ret |= BCTBX_KEM_KYBER512
 	|BCTBX_KEM_KYBER768
 	|BCTBX_KEM_KYBER1024
 	|BCTBX_KEM_HQC128
 	|BCTBX_KEM_HQC192
-	|BCTBX_KEM_HQC256;
+	|BCTBX_KEM_HQC256
+	|BCTBX_KEM_MLKEM512
+	|BCTBX_KEM_MLKEM768
+	|BCTBX_KEM_MLKEM1024;
 
 	return ret;
 }
