@@ -80,6 +80,7 @@
 /**
  * WARNING : it is very important to keep the key agreement defined in that order
  * as it is used to easily sort them from faster(DH2k) to slower(EC52)
+ * This is not relevant for any algo involving KEM exchange
  */
 #define ZRTP_KEYAGREEMENT_DH2k	0x41
 #define ZRTP_KEYAGREEMENT_X255	0x42
@@ -102,6 +103,11 @@
 #define ZRTP_KEYAGREEMENT_K448_HQC256	0x54
 #define ZRTP_KEYAGREEMENT_K255_KYB512_HQC128	0x55
 #define ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256	0x56
+#define ZRTP_KEYAGREEMENT_MLK1	0x57
+#define ZRTP_KEYAGREEMENT_MLK2	0x58
+#define ZRTP_KEYAGREEMENT_MLK3	0x59
+#define ZRTP_KEYAGREEMENT_K255_MLK512	0x5a
+#define ZRTP_KEYAGREEMENT_K448_MLK1024	0x5b
 
 #define ZRTP_KEYAGREEMENT_Prsh	0x9e
 #define ZRTP_KEYAGREEMENT_Mult	0x9f
