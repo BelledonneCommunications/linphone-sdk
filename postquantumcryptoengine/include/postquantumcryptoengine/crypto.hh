@@ -25,10 +25,12 @@
 #include <string>
 #include <list>
 #include "bctoolbox/crypto.hh"
+#include "bctoolbox/exception.hh"
 #include "postquantumcryptoengine/crypto.h"
 
 namespace bctoolbox {
 
+class HYBRID_KEM;
 /************************ KEM interface ************************/
 /**
  * @brief The KEM vitual class
@@ -37,25 +39,45 @@ namespace bctoolbox {
 class KEM {
 public:
 	virtual ~KEM() = default;
-	virtual size_t get_skSize() const noexcept = 0;
-	virtual size_t get_pkSize() const noexcept = 0;
-	virtual size_t get_ctSize() const noexcept = 0;
-	virtual size_t get_ssSize() const noexcept = 0;
 	virtual int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept = 0;
 	virtual int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept = 0;
 	virtual int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept = 0;
+private:
+	virtual size_t get_skSize() const = 0;
+	virtual size_t get_pkSize() const = 0;
+	virtual size_t get_ctSize() const = 0;
+	virtual size_t get_ssSize() const = 0;
+friend class HYBRID_KEM;
+};
+
+/**
+ * @brief The KEM CRTP(Curiously Recurring Template Pattern) class
+ * implement getters functions
+ */
+template <typename Derived> class KEMCRTP : public KEM {
+public:
+	virtual int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override = 0;
+	virtual int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override = 0;
+	virtual int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override = 0;
+private:
+	size_t get_skSize() const override;
+	size_t get_pkSize() const override;
+	size_t get_ctSize() const override;
+	size_t get_ssSize() const override;
 };
 
 /**
  * @brief The ECDH_KEM class extends the KEM class
  *		Declares all attributs that ECDH KEM algorithms need
  *		Implements all functions that ECDH KEM algorithms need
+ *		Pass the Derived template argument to KEMCRTP so getters implementation
+ *		will directly access the derived class
  */
-class ECDH_KEM : public KEM {
+template <typename Derived> class ECDH_KEM : public KEMCRTP<Derived> {
 protected:
-	uint8_t id;		/**< Id of the key agreement algorithm defined in the RFC https://datatracker.ietf.org/doc/html/rfc9180#section-7.1 */
-	int name;		/**< Name of the key agreement algorithm */
-	int hash_id;	/**< Id of the hash algorithm */
+	uint8_t mId;		/**< Id of the key agreement algorithm defined in the RFC https://datatracker.ietf.org/doc/html/rfc9180#section-7.1 */
+	int mName;		/**< Name of the key agreement algorithm */
+	int mHashId;	/**< Id of the hash algorithm */
 
 public:
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
@@ -68,34 +90,26 @@ public:
  * @brief The K25519 class extends the ECDH_KEM class
  *		Initialises all key size parameters
  */
-class K25519 : public ECDH_KEM {
+class K25519 : public ECDH_KEM<K25519> {
 public:
 	K25519(int hash_id);	/**< hash_id param represents the id of the hash algorithm used in the secret derivation */
 	constexpr static size_t skSize = BCTBX_ECDH_X25519_PRIVATE_SIZE;
 	constexpr static size_t pkSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
 	constexpr static size_t ctSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
 	constexpr static size_t ssSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 };
 
 /**
  * @brief The K448 class extends the ECDH_KEM class
  *		Initialises all key size parameters
  */
-class K448 : public ECDH_KEM {
+class K448 : public ECDH_KEM<K448> {
 public:
 	K448(int hash_id);		/**< hash_id param represents the id of the hash algorithm used in the secret derivation */
 	constexpr static size_t skSize = BCTBX_ECDH_X448_PRIVATE_SIZE;
 	constexpr static size_t pkSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
 	constexpr static size_t ctSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
 	constexpr static size_t ssSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 };
 
 /**
@@ -103,18 +117,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that MLKEM512 algorithm needs
  */
-class MLKEM512 : public KEM {
+class MLKEM512 : public KEMCRTP<MLKEM512> {
 public:
-	MLKEM512() = default;
 	constexpr static size_t skSize = 1632;
 	constexpr static size_t pkSize = 800;
 	constexpr static size_t ctSize = 768;
 	constexpr static size_t ssSize = 32;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -125,18 +134,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that MLKEM768 algorithm needs
  */
-class MLKEM768 : public KEM {
+class MLKEM768 : public KEMCRTP<MLKEM768> {
 public:
-	MLKEM768() = default;
 	constexpr static size_t skSize = 2400;
 	constexpr static size_t pkSize = 1184;
 	constexpr static size_t ctSize = 1088;
 	constexpr static size_t ssSize = 32;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -147,18 +151,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that MLKEM1024 algorithm needs
  */
-class MLKEM1024 : public KEM {
+class MLKEM1024 : public KEMCRTP<MLKEM1024> {
 public:
-	MLKEM1024() = default;
 	constexpr static size_t skSize = 3168;
 	constexpr static size_t pkSize = 1568;
 	constexpr static size_t ctSize = 1568;
 	constexpr static size_t ssSize = 32;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -169,18 +168,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that KYBER512 algorithm needs
  */
-class KYBER512 : public KEM {
+class KYBER512 : public KEMCRTP<KYBER512> {
 public:
-	KYBER512() = default;
 	constexpr static size_t skSize = 1632;
 	constexpr static size_t pkSize = 800;
 	constexpr static size_t ctSize = 768;
 	constexpr static size_t ssSize = 32;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -191,18 +185,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that KYBER768 algorithm needs
  */
-class KYBER768 : public KEM {
+class KYBER768 : public KEMCRTP<KYBER768> {
 public:
-	KYBER768() = default;
 	constexpr static size_t skSize = 2400;
 	constexpr static size_t pkSize = 1184;
 	constexpr static size_t ctSize = 1088;
 	constexpr static size_t ssSize = 32;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -213,18 +202,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that KYBER1024 algorithm needs
  */
-class KYBER1024 : public KEM {
+class KYBER1024 : public KEMCRTP<KYBER1024> {
 public:
-	KYBER1024() = default;
 	constexpr static size_t skSize = 3168;
 	constexpr static size_t pkSize = 1568;
 	constexpr static size_t ctSize = 1568;
 	constexpr static size_t ssSize = 32;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -235,18 +219,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that HQC128 algorithm needs
  */
-class HQC128 : public KEM {
+class HQC128 : public KEMCRTP<HQC128> {
 public:
-	HQC128() = default;
 	constexpr static size_t skSize = 2305;
 	constexpr static size_t pkSize = 2249;
 	constexpr static size_t ctSize = 4433;
 	constexpr static size_t ssSize = 64;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -257,18 +236,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that HQC192 algorithm needs
  */
-class HQC192 : public KEM {
+class HQC192 : public KEMCRTP<HQC192> {
 public:
-	HQC192() = default;
 	constexpr static size_t skSize = 4586;
 	constexpr static size_t pkSize = 4522;
 	constexpr static size_t ctSize = 8978;
 	constexpr static size_t ssSize = 64;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -279,18 +253,13 @@ public:
  *		Initialises all key size parameters
  *		Implements all functions that HQC256 algorithm needs
  */
-class HQC256 : public KEM {
+class HQC256 : public KEMCRTP<HQC256> {
 public:
-	HQC256() = default;
 	constexpr static size_t skSize = 7317;
 	constexpr static size_t pkSize = 7245;
 	constexpr static size_t ctSize = 14421;
 	constexpr static size_t ssSize = 64;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
@@ -301,22 +270,28 @@ public:
  *		Represents a hybrid KEM
  *		The KEM functions encapsulate, decapsulate several keys from several key exchange algorithms and combine them using the N-combiner
  */
-class HYBRID_KEM : public KEM {
+class HYBRID_KEM : public KEMCRTP<HYBRID_KEM> {
 private:
-	std::list<std::shared_ptr<KEM>> algo;	/**< List of the algorithms used in the hybrid KEM */
-	int hash_id;							/**< Id of the hash algorithm */
+	std::list<std::shared_ptr<KEM>> mAlgo;	/**< List of the algorithms used in the hybrid KEM */
+	int mHashId;							/**< Id of the hash algorithm */
 
 public:
-	HYBRID_KEM(const std::list<std::shared_ptr<KEM>> &, int);	/**< the int in param is the hash id */
+	// Dummy values, the getters function are never called on an hybrid kem object, it will trigger an exception if it is.
+	constexpr static size_t skSize = 0;
+	constexpr static size_t pkSize = 0;
+	constexpr static size_t ctSize = 0;
+	constexpr static size_t ssSize = 0;
 
-	size_t get_skSize() const noexcept override;
-	size_t get_pkSize() const noexcept override;
-	size_t get_ctSize() const noexcept override;
-	size_t get_ssSize() const noexcept override;
+	HYBRID_KEM(const std::list<std::shared_ptr<KEM>> &algoList, int hash_id);
+
 	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
 	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
+
+// already instanciated templates
+extern template class ECDH_KEM<K25519>;
+extern template class ECDH_KEM<K448>;
 
 } // namespace bctoolbox
 

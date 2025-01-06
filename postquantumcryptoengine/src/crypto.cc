@@ -76,194 +76,54 @@ static_assert(HQC256::pkSize == OQS_KEM_hqc_256_length_public_key, "forwarding o
 static_assert(HQC256::ctSize == OQS_KEM_hqc_256_length_ciphertext, "forwarding oqs hqc define mismatch");
 static_assert(HQC256::ssSize == OQS_KEM_hqc_256_length_shared_secret, "forwarding oqs hqc define mismatch");
 
+
+template <typename Derived> size_t KEMCRTP<Derived>::get_skSize() const {
+	if (Derived::skSize > 0) {
+		return Derived::skSize;
+	} else {
+		throw BCTBX_EXCEPTION<<"invalid sk size retrieved from derived class";
+	};
+}
+
+template <typename Derived> size_t KEMCRTP<Derived>::get_pkSize() const {
+	if (Derived::pkSize > 0) {
+		return Derived::pkSize;
+	} else {
+		throw BCTBX_EXCEPTION<<"invalid pk size retrieved from derived class";
+	};
+}
+
+template <typename Derived> size_t KEMCRTP<Derived>::get_ctSize() const {
+	if (Derived::ctSize > 0) {
+		return Derived::ctSize;
+	} else {
+		throw BCTBX_EXCEPTION<<"invalid ct size retrieved from derived class";
+	};
+}
+
+template <typename Derived> size_t KEMCRTP<Derived>::get_ssSize() const {
+	if (Derived::ssSize > 0) {
+		return Derived::ssSize;
+	} else {
+		throw BCTBX_EXCEPTION<<"invalid ss size retrieved from derived class";
+	};
+}
+
 K25519::K25519(int hash_id){
-	this->name = BCTBX_ECDH_X25519;
-	this->id = 0x20;
-	this->hash_id = hash_id;
+	this->mName = BCTBX_ECDH_X25519;
+	this->mId = 0x20;
+	this->mHashId = hash_id;
 }
 
 K448::K448(int hash_id){
-	this->name = BCTBX_ECDH_X448;
-	this->id = 0x21;
-	this->hash_id = hash_id;
+	this->mName = BCTBX_ECDH_X448;
+	this->mId = 0x21;
+	this->mHashId = hash_id;
 }
 
 HYBRID_KEM::HYBRID_KEM(const std::list<std::shared_ptr<KEM>> &algoList, int hash_id){
-	this->algo = algoList;
-	this->hash_id = hash_id;
-}
-
-size_t K25519::get_skSize() const noexcept {
-	return skSize;
-}
-size_t K25519::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t K25519::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t K25519::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t K448::get_skSize() const noexcept {
-	return skSize;
-}
-size_t K448::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t K448::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t K448::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t MLKEM512::get_skSize() const noexcept {
-	return skSize;
-}
-size_t MLKEM512::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t MLKEM512::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t MLKEM512::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t MLKEM768::get_skSize() const noexcept {
-	return skSize;
-}
-size_t MLKEM768::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t MLKEM768::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t MLKEM768::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t MLKEM1024::get_skSize() const noexcept {
-	return skSize;
-}
-size_t MLKEM1024::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t MLKEM1024::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t MLKEM1024::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t KYBER512::get_skSize() const noexcept {
-	return skSize;
-}
-size_t KYBER512::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t KYBER512::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t KYBER512::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t KYBER768::get_skSize() const noexcept {
-	return skSize;
-}
-size_t KYBER768::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t KYBER768::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t KYBER768::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t KYBER1024::get_skSize() const noexcept {
-	return skSize;
-}
-size_t KYBER1024::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t KYBER1024::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t KYBER1024::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t HQC128::get_skSize() const noexcept {
-	return skSize;
-}
-size_t HQC128::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t HQC128::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t HQC128::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t HQC192::get_skSize() const noexcept {
-	return skSize;
-}
-size_t HQC192::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t HQC192::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t HQC192::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t HQC256::get_skSize() const noexcept {
-	return skSize;
-}
-size_t HQC256::get_pkSize() const noexcept {
-	return pkSize;
-}
-size_t HQC256::get_ctSize() const noexcept {
-	return ctSize;
-}
-size_t HQC256::get_ssSize() const noexcept {
-	return ssSize;
-}
-
-size_t HYBRID_KEM::get_skSize() const noexcept {
-	size_t size = 0;
-	for(shared_ptr<KEM> e : algo){
-		size += e->get_skSize();
-	}
-	return size;
-}
-size_t HYBRID_KEM::get_pkSize() const noexcept {
-	size_t size = 0;
-	for(shared_ptr<KEM> e : algo){
-		size += e->get_pkSize();
-	}
-	return size;
-}
-size_t HYBRID_KEM::get_ctSize() const noexcept {
-	size_t size = 0;
-	for(shared_ptr<KEM> e : algo){
-		size += e->get_ctSize();
-	}
-	return size;
-}
-size_t HYBRID_KEM::get_ssSize() const noexcept {
-	switch(hash_id){
-		case BCTBX_MD_SHA256: return SHA256::ssize();
-		case BCTBX_MD_SHA384: return SHA384::ssize();
-		case BCTBX_MD_SHA512: return SHA512::ssize();
-		default: return 0;
-	}
+	this->mAlgo = algoList;
+	this->mHashId = hash_id;
 }
 
 /* KEM INTERFACE FOR POST QUANTUM ALGORITHMS */
@@ -542,7 +402,6 @@ int HQC256::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const
  * @param[in]       ct          Cipher text
  * @param[in]       pk          Public key
  * @param[in]       algo_id     Id of the algorithm used to generate the shared secret (https://datatracker.ietf.org/doc/html/rfc9180#section-7.1)
- * @param[in]		hash_id		Id of the hash functions used in the HKDF
  * @param[in]       secretSize  Shared secret size
  *
  * How are HKDF params built according to the RFC 9180 ?
@@ -583,45 +442,53 @@ static void secret_derivation(vector<uint8_t> &ss, const vector<uint8_t> &ct, co
 	ss = HKDF<hashAlgo>({}, ikm, info, secretSize);
 }
 
-int ECDH_KEM::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
+template <typename Derived>
+int ECDH_KEM<Derived>::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	bctbx_rng_context_t *RNG = bctbx_rng_context_new();
-	bctbx_ECDHContext_t *alice = bctbx_CreateECDHContext(name);
+	bctbx_ECDHContext_t *alice = bctbx_CreateECDHContext(mName);
 
 	bctbx_ECDHCreateKeyPair(alice, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, RNG);
 
-	pk.resize(get_pkSize());
-	copy_n(alice->selfPublic, get_pkSize(), pk.begin());
+	pk.resize(alice->pointCoordinateLength);
+	copy_n(alice->selfPublic, pk.size(), pk.begin());
 
-	sk.resize(get_skSize());
-	copy_n(alice->secret, get_skSize(), sk.begin());
+	sk.resize(alice->secretLength);
+	copy_n(alice->secret, sk.size(), sk.begin());
 
 	bctbx_rng_context_free(RNG);
 	bctbx_DestroyECDHContext(alice);
 	return 0;
 }
 
-int ECDH_KEM::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
+template <typename Derived>
+int ECDH_KEM<Derived>::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
 	bctbx_rng_context_t *RNG = bctbx_rng_context_new();
-	bctbx_ECDHContext_t *bob = bctbx_CreateECDHContext(name);
+	bctbx_ECDHContext_t *bob = bctbx_CreateECDHContext(mName);
 
-	ct.resize(get_ctSize());
+	if(pk.size() != bob->pointCoordinateLength) {
+		bctbx_rng_context_free(RNG);
+		bctbx_DestroyECDHContext(bob);
+		return 1;
+	}
 
-	bctbx_ECDHSetPeerPublicKey(bob, pk.data(), get_pkSize());
+	ct.resize(bob->pointCoordinateLength);
+
+	bctbx_ECDHSetPeerPublicKey(bob, pk.data(), pk.size());
 
 	/* Calculate Bob's public key and shared secret */
 	bctbx_ECDHCreateKeyPair(bob, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, RNG);
 	bctbx_ECDHComputeSecret(bob, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, RNG);
 
-	copy_n(bob->selfPublic, get_ctSize(), ct.begin());
+	copy_n(bob->selfPublic, ct.size(), ct.begin());
 
 	ss.resize(bob->secretLength);
 	copy_n(bob->sharedSecret, bob->secretLength, ss.begin());
 
 	// Derivation of the shared secret (ss)
-	switch(hash_id){
-		case BCTBX_MD_SHA256: secret_derivation<SHA256>(ss, ct, pk, id, bob->pointCoordinateLength); break;
-		case BCTBX_MD_SHA384: secret_derivation<SHA384>(ss, ct, pk, id, bob->pointCoordinateLength); break;
-		case BCTBX_MD_SHA512: secret_derivation<SHA512>(ss, ct, pk, id, bob->pointCoordinateLength); break;
+	switch(mHashId){
+		case BCTBX_MD_SHA256: secret_derivation<SHA256>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
+		case BCTBX_MD_SHA384: secret_derivation<SHA384>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
+		case BCTBX_MD_SHA512: secret_derivation<SHA512>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
 	}
 
 	bctbx_rng_context_free(RNG);
@@ -629,11 +496,16 @@ int ECDH_KEM::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vec
 	return 0;
 }
 
-int ECDH_KEM::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
+template <typename Derived>
+int ECDH_KEM<Derived>::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	bctbx_rng_context_t *RNG = bctbx_rng_context_new();
-	bctbx_ECDHContext_t *alice = bctbx_CreateECDHContext(name);
+	bctbx_ECDHContext_t *alice = bctbx_CreateECDHContext(mName);
 
-	if(sk.size() != get_skSize()) return 1;
+	if(sk.size() != alice->secretLength || ct.size() != alice->pointCoordinateLength) {
+		bctbx_rng_context_free(RNG);
+		bctbx_DestroyECDHContext(alice);
+		return 1;
+	}
 	bctbx_ECDHSetSecretKey(alice, sk.data(), sk.size());
 
 	bctbx_ECDHSetPeerPublicKey(alice, ct.data(), ct.size());
@@ -647,10 +519,10 @@ int ECDH_KEM::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, con
 	vector<uint8_t> pk{alice->selfPublic, alice->selfPublic+alice->pointCoordinateLength};
 
 	// Derivation of the shared secret (ss)
-	switch(hash_id){
-		case BCTBX_MD_SHA256: secret_derivation<SHA256>(ss, ct, pk, id, alice->pointCoordinateLength); break;
-		case BCTBX_MD_SHA384: secret_derivation<SHA384>(ss, ct, pk, id, alice->pointCoordinateLength); break;
-		case BCTBX_MD_SHA512: secret_derivation<SHA512>(ss, ct, pk, id, alice->pointCoordinateLength); break;
+	switch(mHashId){
+		case BCTBX_MD_SHA256: secret_derivation<SHA256>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
+		case BCTBX_MD_SHA384: secret_derivation<SHA384>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
+		case BCTBX_MD_SHA512: secret_derivation<SHA512>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
 	}
 
 	bctbx_rng_context_free(RNG);
@@ -660,6 +532,7 @@ int ECDH_KEM::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, con
 
 /* COMBINER ENCAPSULATION AND DECAPSULATION FUNCTIONS */
 
+namespace {
 /**
  * @brief Create (public/private) key pairs
  *
@@ -669,23 +542,28 @@ int ECDH_KEM::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, con
  *
  * @return  0 if no problem
  */
-static int crypto_gen_keypairs(const list<shared_ptr<KEM>> algo_list, vector<vector<uint8_t>> &pk_list, vector<vector<uint8_t>> &sk_list){
-	vector<uint8_t> pk, sk;
-	for (shared_ptr<KEM> a : algo_list) {
+int crypto_gen_keypairs(const list<shared_ptr<KEM>> algo_list, vector<vector<uint8_t>> &pk_list, vector<vector<uint8_t>> &sk_list){
+	pk_list.reserve(algo_list.size());
+	sk_list.reserve(algo_list.size());
+	for (const auto &a : algo_list) {
+		vector<uint8_t> pk, sk;
 		a->crypto_kem_keypair(pk, sk);
-		pk_list.push_back(pk);
-		sk_list.push_back(sk);
-		pk.clear();
-		sk.clear();
+		pk_list.push_back(std::move(pk));
+		sk_list.push_back(std::move(sk));
 	}
 	return 0;
 }
 
 template<typename hashAlgo>
-static vector<uint8_t> nested_dual_PRF(const vector<vector<uint8_t>> &list){
-	vector<uint8_t> T = {};
-	for(vector<uint8_t> e : list){
+vector<uint8_t> nested_dual_PRF(vector<vector<uint8_t>> &list){
+	vector<uint8_t> T;
+	for(auto &e : list){
 		T = HMAC<hashAlgo>(T, e);
+		// The list given to this function is all secret but the last one
+		// clean them when we don't need them anymore
+		if (&e != &list.back()) {
+			bctbx_clean(e.data(), e.size());
+		}
 	}
 	return T;
 }
@@ -700,29 +578,27 @@ static vector<uint8_t> nested_dual_PRF(const vector<vector<uint8_t>> &list){
  *
  * @return  code error (0 if no problem)
  */
-static int crypto_enc_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vector<uint8_t> &ss, vector<vector<uint8_t>> &ct_list, const vector<vector<uint8_t>> &pk_list){
+int crypto_enc_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vector<uint8_t> &ss, vector<vector<uint8_t>> &ct_list, const vector<vector<uint8_t>> &pk_list){
 	vector<vector<uint8_t>> secret_list;
-	vector<uint8_t> secret, ct;
 
 	// Compute cipher text and secret for each algo
 	int i=0;
-	for(shared_ptr<KEM> e : algo_list){
+	for(const auto &e : algo_list){
+		vector<uint8_t> secret, ct;
 		e->crypto_kem_enc(ct, secret, pk_list.at(i));
-		secret_list.push_back(secret);
-		ct_list.push_back(ct);
-		bctbx_clean(secret.data(), secret.size());
-		secret.clear();
-		ct.clear();
+		secret_list.push_back(std::move(secret));
+		ct_list.push_back(std::move(ct));
 		i++;
 	}
 
 	// Concatenation of the cipher texts in ct
-	for(vector<uint8_t> e : ct_list){
-		ct.insert(ct.end(), e.begin(), e.end());
+	vector<uint8_t> allCt;
+	for(const auto &e : ct_list){
+		allCt.insert(allCt.end(), e.cbegin(), e.cend());
 	}
 
 	// Compute the shared secret using a PRF
-	secret_list.push_back(ct);
+	secret_list.push_back(std::move(allCt));
 	switch(hash_id){
 		case BCTBX_MD_SHA256: ss = nested_dual_PRF<SHA256>(secret_list); break;
 		case BCTBX_MD_SHA384: ss = nested_dual_PRF<SHA384>(secret_list); break;
@@ -742,24 +618,22 @@ static int crypto_enc_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vec
  *
  * @return  code error (0 if no problem)
  */
-static int crypto_dec_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vector<uint8_t> &ss, const vector<vector<uint8_t>> &ct_list, const vector<vector<uint8_t>> &sk_list){
-	vector<uint8_t> secret;
+int crypto_dec_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vector<uint8_t> &ss, const vector<vector<uint8_t>> &ct_list, const vector<vector<uint8_t>> &sk_list){
 	vector<vector<uint8_t>> secret_list;
 
 	// Compute secret for each algo
 	int i = 0;
-	for(shared_ptr<KEM> e : algo_list){
+	for(const auto &e : algo_list){
+		vector<uint8_t> secret;
 		e->crypto_kem_dec(secret, ct_list.at(i), sk_list.at(i));
-		secret_list.push_back(secret);
-		bctbx_clean(secret.data(), secret.size());
-		secret.clear();
+		secret_list.push_back(std::move(secret));
 		i++;
 	}
 
 	// Concatenation of the both cipher texts in ct
 	vector<uint8_t> ct;
-	for(vector<uint8_t> e : ct_list){
-		ct.insert(ct.end(), e.begin(), e.end());
+	for(const auto &e : ct_list){
+		ct.insert(ct.end(), e.cbegin(), e.cend());
 	}
 
 	// Compute the shared secret using a PRF
@@ -771,67 +645,63 @@ static int crypto_dec_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vec
 	}
 	return 0;
 }
+}// anonymous namespace
 
 /* HYBRID KEM INTERFACE */
 // Use the combiner functions described before
 
 int HYBRID_KEM::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
-	int ret;
 	vector<vector<uint8_t>> pkList;
 	vector<vector<uint8_t>> skList;
 
-	ret = crypto_gen_keypairs(algo, pkList, skList);
+	int ret = crypto_gen_keypairs(mAlgo, pkList, skList);
 
-	for (vector<uint8_t> e : pkList) {
-		pk.insert(pk.end(), e.begin(), e.end());
+	for (const auto &e : pkList) {
+		pk.insert(pk.end(), e.cbegin(), e.cend());
 	}
 
-	for (vector<uint8_t> e : skList) {
-		sk.insert(sk.end(), e.begin(), e.end());
+	for (auto &e : skList) {
+		sk.insert(sk.end(), e.cbegin(), e.cend());
+		bctbx_clean(e.data(), e.size());
 	}
 
 	return ret;
 }
 
 int HYBRID_KEM::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
-	int ret;
-
 	vector<vector<uint8_t>> ctList;
 	vector<vector<uint8_t>> pkList;
 
-	ctList.resize(algo.size());
-	pkList.resize(algo.size());
+	ctList.resize(mAlgo.size());
+	pkList.resize(mAlgo.size());
 
-	auto iter = pk.begin();
+	auto iter = pk.cbegin();
 	int i = 0;
-	for (shared_ptr<KEM> e : algo) {
+	for (const auto &e : mAlgo) {
 		pkList.at(i).insert(pkList.at(i).end(), iter, iter+e->get_pkSize());
 		iter += e->get_pkSize();
 		i++;
 	}
 
-	ret = crypto_enc_N(algo, hash_id, ss, ctList, pkList);
+	int ret = crypto_enc_N(mAlgo, mHashId, ss, ctList, pkList);
 
-	for (vector<uint8_t> e : ctList) {
-		ct.insert(ct.end(), e.begin(), e.end());
+	for (const auto &e : ctList) {
+		ct.insert(ct.end(), e.cbegin(), e.cend());
 	}
-
 	return ret;
 }
 
 int HYBRID_KEM::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
-	int ret;
-
 	vector<vector<uint8_t>> ctList;
 	vector<vector<uint8_t>> skList;
 
-	ctList.resize(algo.size());
-	skList.resize(algo.size());
+	ctList.resize(mAlgo.size());
+	skList.resize(mAlgo.size());
 
-	auto iter = sk.begin();
-	auto iter2 = ct.begin();
+	auto iter = sk.cbegin();
+	auto iter2 = ct.cbegin();
 	int i = 0;
-	for (shared_ptr<KEM> e : algo) {
+	for (const auto &e : mAlgo) {
 		skList.at(i).insert(skList.at(i).end(), iter, iter+e->get_skSize());
 		iter += e->get_skSize();
 		ctList.at(i).insert(ctList.at(i).end(), iter2, iter2+e->get_ctSize());
@@ -839,10 +709,12 @@ int HYBRID_KEM::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, c
 		i++;
 	}
 
-	ret = crypto_dec_N(algo, hash_id, ss, ctList, skList);
-
-	return ret;
+	return crypto_dec_N(mAlgo, mHashId, ss, ctList, skList);
 }
+
+// force templates intanciation
+template class ECDH_KEM<K25519>;
+template class ECDH_KEM<K448>;
 
 } /* namespace bctoolbox */
 
