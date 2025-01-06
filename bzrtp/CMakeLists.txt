@@ -32,7 +32,7 @@ option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive 
 option(ENABLE_GOCLEAR "Enable the possibility to send and receive GoClear" YES)
 option(ENABLE_PQCRYPTO "Enable Post Quantum Cryptography key agreements algorithms" NO)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS NO)
 
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)

@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <list>
+#include <cstring>
 
 #include "cryptoUtils.h"
 #include "bctoolbox/crypto.hh"
@@ -1233,47 +1234,47 @@ void bzrtp_destroyKeyMaterial(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
  *
  * @return The public key size in bytes
  */
-static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
+static uint16_t bzrtp_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 #ifdef HAVE_BCTBXPQ
 	switch (keyAgreementAlgo) {
 	case ZRTP_KEYAGREEMENT_MLK1:
-		return bctoolbox::MLKEM512::pkSize;
+		return bctoolbox::MLKEM512::kPkSize;
 	case ZRTP_KEYAGREEMENT_MLK2:
-		return bctoolbox::MLKEM768::pkSize;
+		return bctoolbox::MLKEM768::kPkSize;
 	case ZRTP_KEYAGREEMENT_MLK3:
-		return bctoolbox::MLKEM1024::pkSize;
+		return bctoolbox::MLKEM1024::kPkSize;
 	case ZRTP_KEYAGREEMENT_KYB1:
-		return bctoolbox::KYBER512::pkSize;
+		return bctoolbox::KYBER512::kPkSize;
 	case ZRTP_KEYAGREEMENT_KYB2:
-		return bctoolbox::KYBER768::pkSize;
+		return bctoolbox::KYBER768::kPkSize;
 	case ZRTP_KEYAGREEMENT_KYB3:
-		return bctoolbox::KYBER1024::pkSize;
+		return bctoolbox::KYBER1024::kPkSize;
 	case ZRTP_KEYAGREEMENT_HQC1:
-		return bctoolbox::HQC128::pkSize;
+		return bctoolbox::HQC128::kPkSize;
 	case ZRTP_KEYAGREEMENT_HQC2:
-		return bctoolbox::HQC192::pkSize;
+		return bctoolbox::HQC192::kPkSize;
 	case ZRTP_KEYAGREEMENT_HQC3:
-		return bctoolbox::HQC256::pkSize;
+		return bctoolbox::HQC256::kPkSize;
 	case ZRTP_KEYAGREEMENT_K255:
-		return bctoolbox::K25519::pkSize;
+		return bctoolbox::K25519::kPkSize;
 	case ZRTP_KEYAGREEMENT_K448:
-		return bctoolbox::K448::pkSize;
+		return bctoolbox::K448::kPkSize;
 	case ZRTP_KEYAGREEMENT_K255_MLK512:
-		return bctoolbox::K25519::pkSize + bctoolbox::MLKEM512::pkSize;
+		return bctoolbox::K25519::kPkSize + bctoolbox::MLKEM512::kPkSize;
 	case ZRTP_KEYAGREEMENT_K255_KYB512:
-		return bctoolbox::K25519::pkSize + bctoolbox::KYBER512::pkSize;
+		return bctoolbox::K25519::kPkSize + bctoolbox::KYBER512::kPkSize;
 	case ZRTP_KEYAGREEMENT_K255_HQC128:
-		return bctoolbox::K25519::pkSize + bctoolbox::HQC128::pkSize;
+		return bctoolbox::K25519::kPkSize + bctoolbox::HQC128::kPkSize;
 	case ZRTP_KEYAGREEMENT_K448_MLK1024:
-		return bctoolbox::K448::pkSize + bctoolbox::MLKEM1024::pkSize;
+		return bctoolbox::K448::kPkSize + bctoolbox::MLKEM1024::kPkSize;
 	case ZRTP_KEYAGREEMENT_K448_KYB1024:
-		return bctoolbox::K448::pkSize + bctoolbox::KYBER1024::pkSize;
+		return bctoolbox::K448::kPkSize + bctoolbox::KYBER1024::kPkSize;
 	case ZRTP_KEYAGREEMENT_K448_HQC256:
-		return bctoolbox::K448::pkSize + bctoolbox::HQC256::pkSize;
+		return bctoolbox::K448::kPkSize + bctoolbox::HQC256::kPkSize;
 	case ZRTP_KEYAGREEMENT_K255_KYB512_HQC128:
-		return bctoolbox::K25519::pkSize + bctoolbox::KYBER512::pkSize + bctoolbox::HQC128::pkSize;
+		return bctoolbox::K25519::kPkSize + bctoolbox::KYBER512::kPkSize + bctoolbox::HQC128::kPkSize;
 	case ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256:
-		return bctoolbox::K448::pkSize + bctoolbox::KYBER1024::pkSize + bctoolbox::HQC256::pkSize;
+		return bctoolbox::K448::kPkSize + bctoolbox::KYBER1024::kPkSize + bctoolbox::HQC256::kPkSize;
 	default:
 		return 0;
 	}
@@ -1288,47 +1289,47 @@ static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
  *
  * @return The cipher text size in bytes
  */
-static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
+static uint16_t bzrtp_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
 #ifdef HAVE_BCTBXPQ
 	switch (keyAgreementAlgo) {
 	case ZRTP_KEYAGREEMENT_MLK1:
-		return bctoolbox::MLKEM512::ctSize;
+		return bctoolbox::MLKEM512::kCtSize;
 	case ZRTP_KEYAGREEMENT_MLK2:
-		return bctoolbox::MLKEM768::ctSize;
+		return bctoolbox::MLKEM768::kCtSize;
 	case ZRTP_KEYAGREEMENT_MLK3:
-		return bctoolbox::MLKEM1024::ctSize;
+		return bctoolbox::MLKEM1024::kCtSize;
 	case ZRTP_KEYAGREEMENT_KYB1:
-		return bctoolbox::KYBER512::ctSize;
+		return bctoolbox::KYBER512::kCtSize;
 	case ZRTP_KEYAGREEMENT_KYB2:
-		return bctoolbox::KYBER768::ctSize;
+		return bctoolbox::KYBER768::kCtSize;
 	case ZRTP_KEYAGREEMENT_KYB3:
-		return bctoolbox::KYBER1024::ctSize;
+		return bctoolbox::KYBER1024::kCtSize;
 	case ZRTP_KEYAGREEMENT_HQC1:
-		return bctoolbox::HQC128::ctSize;
+		return bctoolbox::HQC128::kCtSize;
 	case ZRTP_KEYAGREEMENT_HQC2:
-		return bctoolbox::HQC192::ctSize;
+		return bctoolbox::HQC192::kCtSize;
 	case ZRTP_KEYAGREEMENT_HQC3:
-		return bctoolbox::HQC256::ctSize;
+		return bctoolbox::HQC256::kCtSize;
 	case ZRTP_KEYAGREEMENT_K255:
-		return bctoolbox::K25519::ctSize;
+		return bctoolbox::K25519::kCtSize;
 	case ZRTP_KEYAGREEMENT_K448:
-		return bctoolbox::K448::ctSize;
+		return bctoolbox::K448::kCtSize;
 	case ZRTP_KEYAGREEMENT_K255_MLK512:
-		return bctoolbox::K25519::ctSize + bctoolbox::MLKEM512::ctSize;
+		return bctoolbox::K25519::kCtSize + bctoolbox::MLKEM512::kCtSize;
 	case ZRTP_KEYAGREEMENT_K255_KYB512:
-		return bctoolbox::K25519::ctSize + bctoolbox::KYBER512::ctSize;
+		return bctoolbox::K25519::kCtSize + bctoolbox::KYBER512::kCtSize;
 	case ZRTP_KEYAGREEMENT_K255_HQC128:
-		return bctoolbox::K25519::ctSize + bctoolbox::HQC128::ctSize;
+		return bctoolbox::K25519::kCtSize + bctoolbox::HQC128::kCtSize;
 	case ZRTP_KEYAGREEMENT_K448_MLK1024:
-		return bctoolbox::K448::ctSize + bctoolbox::MLKEM1024::ctSize;
+		return bctoolbox::K448::kCtSize + bctoolbox::MLKEM1024::kCtSize;
 	case ZRTP_KEYAGREEMENT_K448_KYB1024:
-		return bctoolbox::K448::ctSize + bctoolbox::KYBER1024::ctSize;
+		return bctoolbox::K448::kCtSize + bctoolbox::KYBER1024::kCtSize;
 	case ZRTP_KEYAGREEMENT_K448_HQC256:
-		return bctoolbox::K448::ctSize + bctoolbox::HQC256::ctSize;
+		return bctoolbox::K448::kCtSize + bctoolbox::HQC256::kCtSize;
 	case ZRTP_KEYAGREEMENT_K255_KYB512_HQC128:
-		return bctoolbox::K25519::ctSize + bctoolbox::KYBER512::ctSize + bctoolbox::HQC128::ctSize;
+		return bctoolbox::K25519::kCtSize + bctoolbox::KYBER512::kCtSize + bctoolbox::HQC128::kCtSize;
 	case ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256:
-		return bctoolbox::K448::ctSize + bctoolbox::KYBER1024::ctSize + bctoolbox::HQC256::ctSize;
+		return bctoolbox::K448::kCtSize + bctoolbox::KYBER1024::kCtSize + bctoolbox::HQC256::kCtSize;
 	default:
 		return 0;
 	}
@@ -1358,7 +1359,7 @@ uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, ui
 		switch (messageType) {
 		case MSGTYPE_COMMIT: // Commit packet includes the public key
 		{
-			auto ret = bzrt_getKEMPublicKeyLength(keyAgreementAlgo);
+			auto ret = bzrtp_getKEMPublicKeyLength(keyAgreementAlgo);
 			if (ret%4) { // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
 				ret += 4-ret%4;
 			}
@@ -1366,7 +1367,7 @@ uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, ui
 		}
 		case MSGTYPE_DHPART1: // DHPart1 packet holds the cipher text
 		{
-			auto ret = bzrt_getKEMCipherTextLength(keyAgreementAlgo);
+			auto ret = bzrtp_getKEMCipherTextLength(keyAgreementAlgo);
 			if (ret%4) { // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
 				ret += 4-ret%4;
 			}
@@ -1398,27 +1399,27 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo, u
 		return 132;
 #ifdef HAVE_BCTBXPQ
 	case ZRTP_KEYAGREEMENT_MLK1:
-		return bctoolbox::MLKEM512::ssSize;
+		return bctoolbox::MLKEM512::kSsSize;
 	case ZRTP_KEYAGREEMENT_MLK2:
-		return bctoolbox::MLKEM768::ssSize;
+		return bctoolbox::MLKEM768::kSsSize;
 	case ZRTP_KEYAGREEMENT_MLK3:
-		return bctoolbox::MLKEM1024::ssSize;
+		return bctoolbox::MLKEM1024::kSsSize;
 	case ZRTP_KEYAGREEMENT_KYB1:
-		return bctoolbox::KYBER512::ssSize;
+		return bctoolbox::KYBER512::kSsSize;
 	case ZRTP_KEYAGREEMENT_KYB2:
-		return bctoolbox::KYBER768::ssSize;
+		return bctoolbox::KYBER768::kSsSize;
 	case ZRTP_KEYAGREEMENT_KYB3:
-		return bctoolbox::KYBER1024::ssSize;
+		return bctoolbox::KYBER1024::kSsSize;
 	case ZRTP_KEYAGREEMENT_HQC1:
-		return bctoolbox::HQC128::ssSize;
+		return bctoolbox::HQC128::kSsSize;
 	case ZRTP_KEYAGREEMENT_HQC2:
-		return bctoolbox::HQC192::ssSize;
+		return bctoolbox::HQC192::kSsSize;
 	case ZRTP_KEYAGREEMENT_HQC3:
-		return bctoolbox::HQC256::ssSize;
+		return bctoolbox::HQC256::kSsSize;
 	case ZRTP_KEYAGREEMENT_K255:
-		return bctoolbox::K25519::ssSize;
+		return bctoolbox::K25519::kSsSize;
 	case ZRTP_KEYAGREEMENT_K448:
-		return bctoolbox::K448::ssSize;
+		return bctoolbox::K448::kSsSize;
 	case ZRTP_KEYAGREEMENT_K255_KYB512:
 	case ZRTP_KEYAGREEMENT_K255_MLK512:
 	case ZRTP_KEYAGREEMENT_K255_HQC128:
@@ -1465,7 +1466,7 @@ uint16_t bzrtp_computeCommitMessageVariableLength(uint8_t keyAgreementAlgo) {
 	if (keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) return 24; /* nonce (16 bytes) and keyID(8 bytes) are 24 bytes length in preshared Commit message format */
 	if (keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) return 16; /* nonce is 16 bytes length in multistream Commit message format */
 	if (bzrtp_isKem(keyAgreementAlgo)) {
-		auto ret = bzrt_getKEMPublicKeyLength(keyAgreementAlgo);
+		auto ret = bzrtp_getKEMPublicKeyLength(keyAgreementAlgo);
 		if (ret%4) { // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
 			ret += 4-ret%4;
 		}
@@ -1600,7 +1601,7 @@ int bzrtp_KEM_generateKeyPair(bzrtp_KEMContext_t *ctx) {
 		return BZRTP_ERROR_CONTEXTNOTREADY;
 	}
 
-	return ctx->ctx->crypto_kem_keypair(ctx->publicKey, ctx->secretKey);
+	return ctx->ctx->keyGen(ctx->publicKey, ctx->secretKey);
 }
 
 /**
@@ -1616,7 +1617,7 @@ int bzrtp_KEM_getPublicKey(bzrtp_KEMContext_t *ctx, uint8_t *publicKey) {
 	}
 
 	if (ctx->publicKey.size() > 0) {
-		memcpy(publicKey,ctx->publicKey.data(), ctx->publicKey.size());
+		std::memcpy(publicKey,ctx->publicKey.data(), ctx->publicKey.size());
 		return 0;
 	}
 	return BZRTP_ERROR_CONTEXTNOTREADY;
@@ -1628,7 +1629,7 @@ int bzrtp_KEM_getSharedSecret(bzrtp_KEMContext_t *ctx, uint8_t *sharedSecret) {
 	}
 
 	if (ctx->sharedSecret.size() > 0) {
-		memcpy(sharedSecret,ctx->sharedSecret.data(), ctx->sharedSecret.size());
+		std::memcpy(sharedSecret,ctx->sharedSecret.data(), ctx->sharedSecret.size());
 		return 0;
 	}
 	return BZRTP_ERROR_CONTEXTNOTREADY;
@@ -1640,11 +1641,10 @@ int bzrtp_KEM_encaps(bzrtp_KEMContext_t *ctx, uint8_t *publicKey, uint8_t *ciphe
 	}
 
 	std::vector<uint8_t> ct;
-	std::vector<uint8_t> pk(ctx->ctx->get_pkSize());
-	memcpy(pk.data(), publicKey, pk.size());
+	std::vector<uint8_t> pk(publicKey, publicKey + ctx->ctx->getPkSize());
 
-	if (ctx->ctx->crypto_kem_enc(ct, ctx->sharedSecret, pk) == 0) {
-		memcpy(cipherText, ct.data(), ct.size());
+	if (ctx->ctx->encaps(ct, ctx->sharedSecret, pk) == 0) {
+		std::memcpy(cipherText, ct.data(), ct.size());
 		return 0;
 	}
 	return BZRTP_ERROR_CONTEXTNOTREADY;
@@ -1654,9 +1654,8 @@ int bzrtp_KEM_decaps(bzrtp_KEMContext_t *ctx, uint8_t *cipherText) {
 	if (ctx == NULL || ctx->ctx == NULL || ctx->secretKey.size()==0) {
 		return BZRTP_ERROR_CONTEXTNOTREADY;
 	}
-	std::vector<uint8_t> ct(ctx->ctx->get_ctSize());
-	memcpy(ct.data(), cipherText, ct.size());
-	if (ctx->ctx->crypto_kem_dec(ctx->sharedSecret, ct, ctx->secretKey) == 0) {
+	std::vector<uint8_t> ct(cipherText, cipherText + ctx->ctx->getCtSize());
+	if (ctx->ctx->decaps(ctx->sharedSecret, ct, ctx->secretKey) == 0) {
 		return 0;
 	}
 	return BZRTP_ERROR_CONTEXTNOTREADY;
