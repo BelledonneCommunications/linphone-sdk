@@ -90,9 +90,8 @@
 
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #we search for a report associated to a commit directory
-    # * is used to search for new name (COMMIT-JOB_ID) and old name (COMMIT)
     #We enter in the if in case of a retry/commit --amend
-    - echo FIND_DIR="\$(find \$(pwd) -maxdepth 2 -path '*/$ESCAPED_BRANCH/$SDK_VERSION*')" | tee -a allure_launch_script
+    - echo FIND_DIR="\$(find -O3 \$(pwd)/$ESCAPED_BRANCH -mindepth 1 -maxdepth 1 -type d -iregex '^.*[0-9]+\.[0-9]+.*$' | sort --version-sort --reverse | head -n 1)" | tee -a allure_launch_script
     - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
     - echo "  then CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
@@ -114,10 +113,10 @@
     - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "then" | tee -a allure_launch_script
     #LIMITATION : no guarantee that find orders the paths by creation date
-    - echo "  LAST_MODIFIED_PATH=\$(find \$(pwd)/$PARENT_BRANCH -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
+    - echo "  LAST_MODIFIED_PATH=\$(find -O3 \$(pwd)/$PARENT_BRANCH -mindepth 5 -maxdepth 5 -type d -iregex '^.*/$PARENT_BRANCH/[0-9]+\.[0-9]+.*/$PLATFORM/$TESTER/allure-report/history$'| sort --version-sort --reverse | head -n 1)" | tee -a allure_launch_script
     - echo "  cp -r \$LAST_MODIFIED_PATH \$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER/history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    - echo "  cp -r \$(find \$(pwd) -path '*/$ESCAPED_BRANCH/*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) \$TEST_WORKSPACE_LOCATION/history;" | tee -a allure_launch_script
+    - echo "  cp -r \$(find -O3 \$FIND_DIR/$PLATFORM/$TESTER/allure-report/history -maxdepth 0) \$TEST_WORKSPACE_LOCATION/history;" | tee -a allure_launch_script
     - echo "fi;" | tee -a allure_launch_script
 
 
@@ -260,7 +259,7 @@ libl-debian10-test-upload:
     PLATFORM: "linux-debian10"
     TESTER: "liblinphone"
 
-#libl-ubuntu-test-upload:
+# libl-ubuntu-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - liblinphone-ubuntu-test
@@ -284,7 +283,7 @@ libl-gentoo-test-upload:
     PLATFORM: "linux-gentoo"
     TESTER: "liblinphone"
 
-#libl-ubuntu2004-test-upload:
+# libl-ubuntu2004-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - liblinphone-ubuntu2004-test
@@ -326,7 +325,7 @@ bct-debian10-test-upload:
     PLATFORM: "linux-debian10"
     TESTER: "bctoolbox"
 
-#bct-ubuntu-test-upload:
+# bct-ubuntu-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - bctoolbox-ubuntu-test
@@ -342,7 +341,7 @@ bct-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "bctoolbox"
 
-#bct-ubuntu2004-test-upload:
+# bct-ubuntu2004-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - bctoolbox-ubuntu2004-test
@@ -366,7 +365,7 @@ bellesip-debian10-test-upload:
     PLATFORM: "linux-debian10"
     TESTER: "bellesip"
 
-#test-upload-bsip-ubuntu:
+# test-upload-bsip-ubuntu:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - bellesip-ubuntu-test
@@ -382,7 +381,7 @@ bellesip-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "bellesip"
 
-#bellesip-ubuntu2004-test-upload:
+# bellesip-ubuntu2004-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - bellesip-ubuntu2004-test
@@ -400,7 +399,7 @@ ms2-arch-test-upload:
 
 #commented as long as ms2 testers aren't running everywhere
 
-#ms2-debian10-test-upload:
+# ms2-debian10-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - test-mediastreamer-debian10
@@ -408,7 +407,7 @@ ms2-arch-test-upload:
 #    PLATFORM: "linux-debian10"
 #    TESTER: "mediastreamer"
 
-#ms2-ubuntu-test-upload:
+# ms2-ubuntu-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #   - test-mediastreamer-ubuntu
@@ -416,7 +415,7 @@ ms2-arch-test-upload:
 #    PLATFORM: "linux-ubuntu-rolling"
 #    TESTER: "mediastreamer"
 
-#ms2-arch-test-upload:
+# ms2-arch-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - test-mediastreamer-arch
@@ -449,7 +448,7 @@ belr-debian10-test-upload:
     PLATFORM: "linux-debian10"
     TESTER: "belr"
 
-#belr-ubuntu-test-upload:
+# belr-ubuntu-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - belr-ubuntu-test
@@ -465,7 +464,7 @@ belr-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "belr"
 
-#belr-ubuntu2004-test-upload:
+# belr-ubuntu2004-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - belr-ubuntu2004-test
@@ -489,7 +488,7 @@ belcard-debian10-test-upload:
     PLATFORM: "linux-debian10"
     TESTER: "belcard"
 
-#belcard-ubuntu-test-upload:
+# belcard-ubuntu-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - belcard-ubuntu-test
@@ -505,7 +504,7 @@ belcard-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "belcard"
 
-#belcard-ubuntu2004-test-upload:
+# belcard-ubuntu2004-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - belcard-ubuntu2004-test
@@ -529,7 +528,7 @@ bzrtp-debian10-test-upload:
     PLATFORM: "linux-debian10"
     TESTER: "bzrtp"
 
-#bzrtp-ubuntu-test-upload:
+# bzrtp-ubuntu-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - bzrtp-ubuntu-test
@@ -545,7 +544,7 @@ bzrtp-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "bzrtp"
 
-#bzrtp-ubuntu2004-test-upload:
+# bzrtp-ubuntu2004-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
 #    - bzrtp-ubuntu2004-test
