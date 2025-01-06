@@ -96,6 +96,7 @@ if (APPLE)
         # Copy grammar files from each projects, like install target would do
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/belcard/src/vcard_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sdp/sdp_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sip/sip_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/identity_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/ics_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
@@ -116,6 +117,7 @@ else()
         # Copy grammar files from each projects, like install target would do
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/belcard/src/vcard_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sdp/sdp_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sip/sip_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/identity_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/ics_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
