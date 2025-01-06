@@ -35,7 +35,7 @@
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA != null
   variables:
-    GIT_STRATEGY: none
+    GIT_STRATEGY: fetch
     MAVEN_REPO_URL: $ANDROID_MAVEN_URL
   before_script:
     - eval $(ssh-agent -s)
