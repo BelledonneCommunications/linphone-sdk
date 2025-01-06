@@ -32,6 +32,11 @@
 
 using namespace std;
 
+namespace {
+/* EKT message type as defined in RFC8870 - section 4.1 */
+const uint8_t EKT_MsgType_SHORT = 0x00;
+} // namespace
+
 namespace mediastreamer {
 
 class PackerRouterLogContextualizer {
@@ -100,11 +105,18 @@ void RouterAudioInput::update() {
 
 			// We are still muted
 			if (mVolume == MS_VOLUME_DB_MUTED && newVolume == MS_VOLUME_DB_MUTED) {
-				// Wait at least sMutedSentInterval before sending this information again
-				// This is only needed for participants that joins after an input is muted to make sure they know
-				if (const auto time = mRouter->getTime(); time - mLastMutedSentTime > sMutedSentInterval) {
-					mNeedsToBeSent = true;
-					mLastMutedSentTime = mRouter->getTime();
+				// Check if we have a short EKT tag (packet last byte is 0x00)
+				// In that case, do not mark the packet to be sent, if the timer expired,
+				// we'll try again on the next one until we find a packet with a full EKT tag.
+				// We cannot be sure we are using EKT, if we are not, we may skip packet ending with 0x00
+				// without real motive, should be Ok.
+				if (m->b_rptr[msgdsize(m) - 1] != EKT_MsgType_SHORT) {
+					// Wait at least sMutedSentInterval before sending this information again
+					// This is only needed for participants that joins after an input is muted to make sure they know
+					if (const auto time = mRouter->getTime(); time - mLastMutedSentTime > sMutedSentInterval) {
+						mNeedsToBeSent = true;
+						mLastMutedSentTime = mRouter->getTime();
+					}
 				}
 			}
 
