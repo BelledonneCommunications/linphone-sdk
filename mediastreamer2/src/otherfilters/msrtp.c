@@ -542,6 +542,9 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 				    s, 8); // allocate 8 more bytes than needed so we can add an extension
 				           // header with client to mixer extension without reallocating
 			rtp_add_client_to_mixer_audio_level(header, d->client_to_mixer_extension_id, voice_activity, volume);
+			if (!d->voice_activity) { // There is no voice activity, so this is timer induced: set the ekt force flag
+				ortp_mblk_set_ekt_tag_flag(header, TRUE);
+			}
 
 			d->last_audio_level_sent_time = f->ticker->time;
 		}
@@ -655,6 +658,10 @@ static void _sender_process(MSFilter *f) {
 
 			if (d->skip == FALSE && d->mute == FALSE) {
 				header = create_packet_with_volume_data_at_intervals(f);
+				// create_packet_with_volume_data_at_intervals may set the force ekt flag
+				// when forcing the volume information on a silent source.
+				// But this information, stored in mblk_t.reserved1 is crashed when copying im meta data, save it
+				bool_t forceEKTFlag = ortp_mblk_get_ekt_tag_flag(header);
 
 				rtp_set_markbit(header, mblk_get_marker_info(im));
 
@@ -664,8 +671,9 @@ static void _sender_process(MSFilter *f) {
 				mblk_meta_copy(im, header);
 
 				// before sending the message to ortp, set the ekt tag flag according to the
-				// independant flag. Do it after the mblk_meta_copy as both are stored in mblk.reservedX
-				ortp_mblk_set_ekt_tag_flag(header, mblk_get_independent_flag(im));
+				// independant flag. OR with it the info saved after header creation
+				// Do it after the mblk_meta_copy as it will crash reservedX and the ekt flag is stored in reserved1
+				ortp_mblk_set_ekt_tag_flag(header, forceEKTFlag || mblk_get_independent_flag(im));
 
 				rtp_session_sendm_with_ts(s, header, timestamp);
 			} else if (d->mute == TRUE && d->skip == FALSE) {
