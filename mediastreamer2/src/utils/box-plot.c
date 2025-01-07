@@ -35,6 +35,7 @@ void ms_box_plot_reset(MSBoxPlot *bp) {
 
 void ms_box_plot_add_value(MSBoxPlot *bp, int64_t value) {
 	int64_t mean, deviation;
+	uint64_t count;
 	if (bp->count == 0) {
 		bp->min = bp->max = value;
 	} else {
@@ -43,14 +44,23 @@ void ms_box_plot_add_value(MSBoxPlot *bp, int64_t value) {
 	}
 	bp->sum += value;
 	bp->count++;
-	mean = bp->sum / bp->count;
+	count = bp->count;
+	if (count == 0) {
+		/* Avoid divide by zero when the statistics are reset by another thread.
+		 * We want to avoid using a mutex just for this.
+		 * The statistics will be inacurate one time should this happen./
+		 */
+		return;
+	}
+	mean = bp->sum / count;
 	deviation = value - mean;
 	bp->deviation_sum += deviation * deviation;
 	bp->mean = (double)mean;
 }
 
 double ms_box_plot_get_variance(const MSBoxPlot *bp) {
-	return bp->count != 0 ? (double)bp->deviation_sum / (double)bp->count : (double)0;
+	uint64_t count = bp->count;
+	return count != 0 ? (double)bp->deviation_sum / (double)count : (double)0;
 }
 
 double ms_box_plot_get_standard_deviation(const MSBoxPlot *bp) {
@@ -69,6 +79,7 @@ void ms_u_box_plot_reset(MSUBoxPlot *bp) {
 
 void ms_u_box_plot_add_value(MSUBoxPlot *bp, uint64_t value) {
 	int64_t deviation, mean;
+	uint64_t count;
 	if (bp->count == 0) {
 		bp->min = bp->max = value;
 	} else {
@@ -77,14 +88,23 @@ void ms_u_box_plot_add_value(MSUBoxPlot *bp, uint64_t value) {
 	}
 	bp->sum += value;
 	bp->count++;
-	mean = bp->sum / bp->count;
+	count = bp->count;
+	if (count == 0) {
+		/* Avoid divide by zero when the statistics are reset by another thread.
+		 * We want to avoid using a mutex just for this.
+		 * The statistics will be inacurate one time should this happen./
+		 */
+		return;
+	}
+	mean = bp->sum / count;
 	deviation = value - mean;
 	bp->deviation_sum += deviation * deviation;
 	bp->mean = (double)mean;
 }
 
 double ms_u_box_plot_get_variance(const MSUBoxPlot *bp) {
-	return bp->count != 0 ? (double)bp->deviation_sum / (double)bp->count : (double)0;
+	uint64_t count = bp->count;
+	return count != 0 ? (double)bp->deviation_sum / (double)count : (double)0;
 }
 
 double ms_u_box_plot_get_standard_deviation(const MSUBoxPlot *bp) {
