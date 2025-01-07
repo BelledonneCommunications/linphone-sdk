@@ -39,14 +39,14 @@ class HYBRID_KEM;
 class KEM {
 public:
 	virtual ~KEM() = default;
-	virtual int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept = 0;
-	virtual int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept = 0;
-	virtual int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept = 0;
+	virtual int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept = 0;
+	virtual int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept = 0;
+	virtual int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept = 0;
 private:
-	virtual size_t get_skSize() const = 0;
-	virtual size_t get_pkSize() const = 0;
-	virtual size_t get_ctSize() const = 0;
-	virtual size_t get_ssSize() const = 0;
+	virtual size_t getSkSize() const = 0;
+	virtual size_t getPkSize() const = 0;
+	virtual size_t getCtSize() const = 0;
+	virtual size_t getSsSize() const = 0;
 friend class HYBRID_KEM;
 };
 
@@ -56,14 +56,14 @@ friend class HYBRID_KEM;
  */
 template <typename Derived> class KEMCRTP : public KEM {
 public:
-	virtual int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override = 0;
-	virtual int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override = 0;
-	virtual int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override = 0;
+	virtual int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override = 0;
+	virtual int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override = 0;
+	virtual int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override = 0;
 private:
-	size_t get_skSize() const override;
-	size_t get_pkSize() const override;
-	size_t get_ctSize() const override;
-	size_t get_ssSize() const override;
+	size_t getSkSize() const override;
+	size_t getPkSize() const override;
+	size_t getCtSize() const override;
+	size_t getSsSize() const override;
 };
 
 /**
@@ -80,10 +80,10 @@ protected:
 	int mHashId;	/**< Id of the hash algorithm */
 
 public:
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	/* INFO : enc and dec return the derivation of shared secret | REF : https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-12 */
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -93,10 +93,10 @@ public:
 class K25519 : public ECDH_KEM<K25519> {
 public:
 	K25519(int hash_id);	/**< hash_id param represents the id of the hash algorithm used in the secret derivation */
-	constexpr static size_t skSize = BCTBX_ECDH_X25519_PRIVATE_SIZE;
-	constexpr static size_t pkSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
-	constexpr static size_t ctSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
-	constexpr static size_t ssSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
+	constexpr static size_t kSkSize = BCTBX_ECDH_X25519_PRIVATE_SIZE;
+	constexpr static size_t kPkSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
+	constexpr static size_t kCtSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
+	constexpr static size_t kSsSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
 };
 
 /**
@@ -106,10 +106,10 @@ public:
 class K448 : public ECDH_KEM<K448> {
 public:
 	K448(int hash_id);		/**< hash_id param represents the id of the hash algorithm used in the secret derivation */
-	constexpr static size_t skSize = BCTBX_ECDH_X448_PRIVATE_SIZE;
-	constexpr static size_t pkSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
-	constexpr static size_t ctSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
-	constexpr static size_t ssSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
+	constexpr static size_t kSkSize = BCTBX_ECDH_X448_PRIVATE_SIZE;
+	constexpr static size_t kPkSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
+	constexpr static size_t kCtSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
+	constexpr static size_t kSsSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
 };
 
 /**
@@ -119,14 +119,14 @@ public:
  */
 class MLKEM512 : public KEMCRTP<MLKEM512> {
 public:
-	constexpr static size_t skSize = 1632;
-	constexpr static size_t pkSize = 800;
-	constexpr static size_t ctSize = 768;
-	constexpr static size_t ssSize = 32;
+	constexpr static size_t kSkSize = 1632;
+	constexpr static size_t kPkSize = 800;
+	constexpr static size_t kCtSize = 768;
+	constexpr static size_t kSsSize = 32;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -136,14 +136,14 @@ public:
  */
 class MLKEM768 : public KEMCRTP<MLKEM768> {
 public:
-	constexpr static size_t skSize = 2400;
-	constexpr static size_t pkSize = 1184;
-	constexpr static size_t ctSize = 1088;
-	constexpr static size_t ssSize = 32;
+	constexpr static size_t kSkSize = 2400;
+	constexpr static size_t kPkSize = 1184;
+	constexpr static size_t kCtSize = 1088;
+	constexpr static size_t kSsSize = 32;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -153,14 +153,14 @@ public:
  */
 class MLKEM1024 : public KEMCRTP<MLKEM1024> {
 public:
-	constexpr static size_t skSize = 3168;
-	constexpr static size_t pkSize = 1568;
-	constexpr static size_t ctSize = 1568;
-	constexpr static size_t ssSize = 32;
+	constexpr static size_t kSkSize = 3168;
+	constexpr static size_t kPkSize = 1568;
+	constexpr static size_t kCtSize = 1568;
+	constexpr static size_t kSsSize = 32;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -170,14 +170,14 @@ public:
  */
 class KYBER512 : public KEMCRTP<KYBER512> {
 public:
-	constexpr static size_t skSize = 1632;
-	constexpr static size_t pkSize = 800;
-	constexpr static size_t ctSize = 768;
-	constexpr static size_t ssSize = 32;
+	constexpr static size_t kSkSize = 1632;
+	constexpr static size_t kPkSize = 800;
+	constexpr static size_t kCtSize = 768;
+	constexpr static size_t kSsSize = 32;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -187,14 +187,14 @@ public:
  */
 class KYBER768 : public KEMCRTP<KYBER768> {
 public:
-	constexpr static size_t skSize = 2400;
-	constexpr static size_t pkSize = 1184;
-	constexpr static size_t ctSize = 1088;
-	constexpr static size_t ssSize = 32;
+	constexpr static size_t kSkSize = 2400;
+	constexpr static size_t kPkSize = 1184;
+	constexpr static size_t kCtSize = 1088;
+	constexpr static size_t kSsSize = 32;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -204,14 +204,14 @@ public:
  */
 class KYBER1024 : public KEMCRTP<KYBER1024> {
 public:
-	constexpr static size_t skSize = 3168;
-	constexpr static size_t pkSize = 1568;
-	constexpr static size_t ctSize = 1568;
-	constexpr static size_t ssSize = 32;
+	constexpr static size_t kSkSize = 3168;
+	constexpr static size_t kPkSize = 1568;
+	constexpr static size_t kCtSize = 1568;
+	constexpr static size_t kSsSize = 32;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -221,14 +221,14 @@ public:
  */
 class HQC128 : public KEMCRTP<HQC128> {
 public:
-	constexpr static size_t skSize = 2305;
-	constexpr static size_t pkSize = 2249;
-	constexpr static size_t ctSize = 4433;
-	constexpr static size_t ssSize = 64;
+	constexpr static size_t kSkSize = 2305;
+	constexpr static size_t kPkSize = 2249;
+	constexpr static size_t kCtSize = 4433;
+	constexpr static size_t kSsSize = 64;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -238,14 +238,14 @@ public:
  */
 class HQC192 : public KEMCRTP<HQC192> {
 public:
-	constexpr static size_t skSize = 4586;
-	constexpr static size_t pkSize = 4522;
-	constexpr static size_t ctSize = 8978;
-	constexpr static size_t ssSize = 64;
+	constexpr static size_t kSkSize = 4586;
+	constexpr static size_t kPkSize = 4522;
+	constexpr static size_t kCtSize = 8978;
+	constexpr static size_t kSsSize = 64;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -255,14 +255,14 @@ public:
  */
 class HQC256 : public KEMCRTP<HQC256> {
 public:
-	constexpr static size_t skSize = 7317;
-	constexpr static size_t pkSize = 7245;
-	constexpr static size_t ctSize = 14421;
-	constexpr static size_t ssSize = 64;
+	constexpr static size_t kSkSize = 7317;
+	constexpr static size_t kPkSize = 7245;
+	constexpr static size_t kCtSize = 14421;
+	constexpr static size_t kSsSize = 64;
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 /**
@@ -277,16 +277,16 @@ private:
 
 public:
 	// Dummy values, the getters function are never called on an hybrid kem object, it will trigger an exception if it is.
-	constexpr static size_t skSize = 0;
-	constexpr static size_t pkSize = 0;
-	constexpr static size_t ctSize = 0;
-	constexpr static size_t ssSize = 0;
+	constexpr static size_t kSkSize = 0;
+	constexpr static size_t kPkSize = 0;
+	constexpr static size_t kCtSize = 0;
+	constexpr static size_t kSsSize = 0;
 
 	HYBRID_KEM(const std::list<std::shared_ptr<KEM>> &algoList, int hash_id);
 
-	int crypto_kem_keypair(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
-	int crypto_kem_enc(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
-	int crypto_kem_dec(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
+	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
+	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;
+	int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override;
 };
 
 // already instanciated templates
