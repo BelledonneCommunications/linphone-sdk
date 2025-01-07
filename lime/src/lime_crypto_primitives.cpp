@@ -374,7 +374,7 @@ class bctbx_KEM : public KEM<Algo> {
 	public:
 		void createKeyPair(Kpair<Algo>&keyPair) override {
 			std::vector<uint8_t> pk,sk;
-			m_ctx->crypto_kem_keypair(pk,sk);
+			m_ctx->keyGen(pk,sk);
 			keyPair.publicKey().assign(pk.cbegin());
 			keyPair.privateKey().assign(sk.cbegin());
 			cleanBuffer(sk.data(), sk.size());	
@@ -382,7 +382,7 @@ class bctbx_KEM : public KEM<Algo> {
 		void encaps(const K<Algo, lime::Ktype::publicKey> &publicKey, K<Algo, lime::Ktype::cipherText> &cipherText, K<Algo, lime::Ktype::sharedSecret> &sharedSecret) override {
 			std::vector<uint8_t> ct,ss;
 			std::vector<uint8_t> pk(publicKey.cbegin(), publicKey.cend());
-			m_ctx->crypto_kem_enc(ct, ss, pk);
+			m_ctx->encaps(ct, ss, pk);
 			cipherText.assign(ct.cbegin());
 			sharedSecret.assign(ss.cbegin());
 			cleanBuffer(ss.data(), ss.size());
@@ -391,7 +391,7 @@ class bctbx_KEM : public KEM<Algo> {
 			std::vector<uint8_t> ss;
 			std::vector<uint8_t> sk(privateKey.cbegin(), privateKey.cend());
 			std::vector<uint8_t> ct(cipherText.cbegin(), cipherText.cend());
-			m_ctx->crypto_kem_dec(ss, ct, sk);
+			m_ctx->decaps(ss, ct, sk);
 			sharedSecret.assign(ss.cbegin());
 			cleanBuffer(ss.data(), ss.size());
 			cleanBuffer(sk.data(), sk.size());
@@ -512,10 +512,10 @@ template <> bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t 
 #endif //EC448_ENABLED
 
 #ifdef HAVE_BCTBXPQ
-	static_assert(bctoolbox::KYBER512::pkSize == K<K512, Ktype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::skSize == K<K512, Ktype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::ctSize == K<K512, Ktype::cipherText>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::ssSize == K<K512, Ktype::sharedSecret>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(bctoolbox::KYBER512::kPkSize == K<K512, Ktype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(bctoolbox::KYBER512::kSkSize == K<K512, Ktype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(bctoolbox::KYBER512::kCtSize == K<K512, Ktype::cipherText>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(bctoolbox::KYBER512::kSsSize == K<K512, Ktype::sharedSecret>::ssize(), "bctoolbox and local defines mismatch");
 #endif //HAVE_BCTBXPQ
 /**
  * @brief force a buffer values to zero in a way that shall prevent the compiler from optimizing it out
