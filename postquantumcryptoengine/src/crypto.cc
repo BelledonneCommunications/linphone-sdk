@@ -36,7 +36,9 @@ using namespace std;
 
 namespace bctoolbox { // This interface should one day be merged in the bctoolbox project so use bctoolbox namespace
 
-/* Check our redifinitions of constants (made in the .hh) match the one from liboqs */
+// API doc says we return 0 when no problem, as we forward directly the OQS return code, check it is still true in liboqs
+static_assert(OQS_SUCCESS == 0);
+// Check our redifinitions of constants (made in the .hh) match the one from liboqs
 static_assert(MLKEM512::kSkSize == OQS_KEM_ml_kem_512_length_secret_key, "forwarding oqs ml_kem define mismatch");
 static_assert(MLKEM512::kPkSize == OQS_KEM_ml_kem_512_length_public_key, "forwarding oqs ml_kem define mismatch");
 static_assert(MLKEM512::kCtSize == OQS_KEM_ml_kem_512_length_ciphertext, "forwarding oqs ml_kem define mismatch");
@@ -76,54 +78,21 @@ static_assert(HQC256::kPkSize == OQS_KEM_hqc_256_length_public_key, "forwarding 
 static_assert(HQC256::kCtSize == OQS_KEM_hqc_256_length_ciphertext, "forwarding oqs hqc define mismatch");
 static_assert(HQC256::kSsSize == OQS_KEM_hqc_256_length_shared_secret, "forwarding oqs hqc define mismatch");
 
-
-template <typename Derived> size_t KEMCRTP<Derived>::getSkSize() const {
-	if (Derived::kSkSize > 0) {
-		return Derived::kSkSize;
-	} else {
-		throw BCTBX_EXCEPTION<<"invalid sk size retrieved from derived class";
-	};
-}
-
-template <typename Derived> size_t KEMCRTP<Derived>::getPkSize() const {
-	if (Derived::kPkSize > 0) {
-		return Derived::kPkSize;
-	} else {
-		throw BCTBX_EXCEPTION<<"invalid pk size retrieved from derived class";
-	};
-}
-
-template <typename Derived> size_t KEMCRTP<Derived>::getCtSize() const {
-	if (Derived::kCtSize > 0) {
-		return Derived::kCtSize;
-	} else {
-		throw BCTBX_EXCEPTION<<"invalid ct size retrieved from derived class";
-	};
-}
-
-template <typename Derived> size_t KEMCRTP<Derived>::getSsSize() const {
-	if (Derived::kSsSize > 0) {
-		return Derived::kSsSize;
-	} else {
-		throw BCTBX_EXCEPTION<<"invalid ss size retrieved from derived class";
-	};
-}
-
-K25519::K25519(int hash_id){
+K25519::K25519(int hashId){
 	this->mName = BCTBX_ECDH_X25519;
 	this->mId = 0x20;
-	this->mHashId = hash_id;
+	this->mHashId = hashId;
 }
 
-K448::K448(int hash_id){
+K448::K448(int hashId){
 	this->mName = BCTBX_ECDH_X448;
 	this->mId = 0x21;
-	this->mHashId = hash_id;
+	this->mHashId = hashId;
 }
 
-HYBRID_KEM::HYBRID_KEM(const std::list<std::shared_ptr<KEM>> &algoList, int hash_id){
+HYBRID_KEM::HYBRID_KEM(const std::list<std::shared_ptr<KEM>> &algoList, int hashId){
 	this->mAlgo = algoList;
-	this->mHashId = hash_id;
+	this->mHashId = hashId;
 }
 
 /* KEM INTERFACE FOR POST QUANTUM ALGORITHMS */
@@ -134,9 +103,7 @@ int MLKEM512::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with MLKEM512
-	int res = OQS_KEM_ml_kem_512_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_512_keypair(pk.data(), sk.data());
 }
 
 int MLKEM512::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -144,18 +111,14 @@ int MLKEM512::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint
 	ss.resize(kSsSize);
 
 	// Key encapsulation with MLKEM512
-	int res = OQS_KEM_ml_kem_512_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_512_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int MLKEM512::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with MLKEM512
-	int res = OQS_KEM_ml_kem_512_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_512_decaps(ss.data(), ct.data(), sk.data());
 }
 
 int MLKEM768::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
@@ -163,9 +126,7 @@ int MLKEM768::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with MLKEM768
-	int res = OQS_KEM_ml_kem_768_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_768_keypair(pk.data(), sk.data());
 }
 
 int MLKEM768::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -173,18 +134,14 @@ int MLKEM768::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint
 	ss.resize(kSsSize);
 
 	// Key encapsulation with MLKEM768
-	int res = OQS_KEM_ml_kem_768_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_768_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int MLKEM768::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with MLKEM768
-	int res = OQS_KEM_ml_kem_768_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_768_decaps(ss.data(), ct.data(), sk.data());
 }
 
 int MLKEM1024::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
@@ -192,9 +149,7 @@ int MLKEM1024::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with MLKEM1024
-	int res = OQS_KEM_ml_kem_1024_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_1024_keypair(pk.data(), sk.data());
 }
 
 int MLKEM1024::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -202,18 +157,14 @@ int MLKEM1024::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uin
 	ss.resize(kSsSize);
 
 	// Key encapsulation with MLKEM1024
-	int res = OQS_KEM_ml_kem_1024_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_1024_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int MLKEM1024::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with MLKEM1024
-	int res = OQS_KEM_ml_kem_1024_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_ml_kem_1024_decaps(ss.data(), ct.data(), sk.data());
 }
 
 int KYBER512::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
@@ -221,9 +172,7 @@ int KYBER512::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with KYBER512
-	int res = OQS_KEM_kyber_512_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_kyber_512_keypair(pk.data(), sk.data());
 }
 
 int KYBER512::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -231,18 +180,14 @@ int KYBER512::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint
 	ss.resize(kSsSize);
 
 	// Key encapsulation with KYBER512
-	int res = OQS_KEM_kyber_512_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_kyber_512_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int KYBER512::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with KYBER512
-	int res = OQS_KEM_kyber_512_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_kyber_512_decaps(ss.data(), ct.data(), sk.data());
 }
 
 int KYBER768::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
@@ -250,9 +195,7 @@ int KYBER768::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with KYBER768
-	int res = OQS_KEM_kyber_768_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_kyber_768_keypair(pk.data(), sk.data());
 }
 
 int KYBER768::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -260,18 +203,14 @@ int KYBER768::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint
 	ss.resize(kSsSize);
 
 	// Key encapsulation with KYBER768
-	int res = OQS_KEM_kyber_768_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_kyber_768_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int KYBER768::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with KYBER768
-	int res = OQS_KEM_kyber_768_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_kyber_768_decaps(ss.data(), ct.data(), sk.data());
 }
 
 int KYBER1024::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
@@ -279,9 +218,7 @@ int KYBER1024::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with KYBER1024
-	int res = OQS_KEM_kyber_1024_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_kyber_1024_keypair(pk.data(), sk.data());
 }
 
 int KYBER1024::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -289,18 +226,14 @@ int KYBER1024::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uin
 	ss.resize(kSsSize);
 
 	// Key encapsulation with KYBER1024
-	int res = OQS_KEM_kyber_1024_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_kyber_1024_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int KYBER1024::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with KYBER1024
-	int res = OQS_KEM_kyber_1024_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_kyber_1024_decaps(ss.data(), ct.data(), sk.data());
 }
 
 
@@ -309,9 +242,7 @@ int HQC128::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with HQC128
-	int res = OQS_KEM_hqc_128_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_hqc_128_keypair(pk.data(), sk.data());
 }
 
 int HQC128::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -319,18 +250,14 @@ int HQC128::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_
 	ss.resize(kSsSize);
 
 	// Key encapsulation with HQC128
-	int res = OQS_KEM_hqc_128_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_hqc_128_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int HQC128::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with HQC128
-	int res = OQS_KEM_hqc_128_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_hqc_128_decaps(ss.data(), ct.data(), sk.data());
 }
 
 int HQC192::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
@@ -338,9 +265,7 @@ int HQC192::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with HQC192
-	int res = OQS_KEM_hqc_192_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_hqc_192_keypair(pk.data(), sk.data());
 }
 
 int HQC192::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -348,18 +273,14 @@ int HQC192::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_
 	ss.resize(kSsSize);
 
 	// Key encapsulation with HQC192
-	int res = OQS_KEM_hqc_192_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_hqc_192_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int HQC192::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with HQC192
-	int res = OQS_KEM_hqc_192_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_hqc_192_decaps(ss.data(), ct.data(), sk.data());
 }
 
 int HQC256::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
@@ -367,9 +288,7 @@ int HQC256::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	sk.resize(kSkSize);
 
 	// Key pair generation function with HQC256
-	int res = OQS_KEM_hqc_256_keypair(pk.data(), sk.data());
-
-	return res;
+	return OQS_KEM_hqc_256_keypair(pk.data(), sk.data());
 }
 
 int HQC256::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
@@ -377,18 +296,14 @@ int HQC256::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_
 	ss.resize(kSsSize);
 
 	// Key encapsulation with HQC256
-	int res = OQS_KEM_hqc_256_encaps(ct.data(), ss.data(), pk.data());
-
-	return res;
+	return OQS_KEM_hqc_256_encaps(ct.data(), ss.data(), pk.data());
 }
 
 int HQC256::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(kSsSize);
 
 	// Key decapsulation with HQC256
-	int res = OQS_KEM_hqc_256_decaps(ss.data(), ct.data(), sk.data());
-
-	return res;
+	return OQS_KEM_hqc_256_decaps(ss.data(), ct.data(), sk.data());
 }
 
 /* KEM INTERFACE FOR CLASSIC ALGORITHMS */
@@ -401,13 +316,13 @@ int HQC256::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<
  * @param[in/out]   ss          Shared secret
  * @param[in]       ct          Cipher text
  * @param[in]       pk          Public key
- * @param[in]       algo_id     Id of the algorithm used to generate the shared secret (https://datatracker.ietf.org/doc/html/rfc9180#section-7.1)
+ * @param[in]       algoId     Id of the algorithm used to generate the shared secret (https://datatracker.ietf.org/doc/html/rfc9180#section-7.1)
  * @param[in]       secretSize  Shared secret size
  *
  * How are HKDF params built according to the RFC 9180 ?
  *  salt = ""
  *  ikm  = concat("ZRTP", suite_id, label, ikm)
- *      where   suite_id = concat("KEM", I2OSP(kem_id (=algo_id), 2))
+ *      where   suite_id = concat("KEM", I2OSP(kem_id (=algoId), 2))
  *              label    = "eae_prk"
  *              ikm      = ss
  *  info = concat(I2OSP(L (=secretSize), 2), "ZRTP-v1.1", suite_id, label, info)
@@ -416,27 +331,27 @@ int HQC256::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<
  *              info     = kem_context (= concat(ct, pk))
  */
 template<typename hashAlgo>
-static void secret_derivation(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &pk, const uint8_t algo_id, const size_t secretSize){
+static void secretDerivation(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &pk, const uint8_t algoId, const size_t secretSize){
 	// Compute ikm
-	string ikm_s = "ZRTPKEM";
-	vector<uint8_t> ikm{ikm_s.begin(), ikm_s.end()};
+	string ikmS = "ZRTPKEM";
+	vector<uint8_t> ikm{ikmS.cbegin(), ikmS.cend()};
 	ikm.push_back((uint8_t)0x00);
-	ikm.push_back(algo_id);
-	ikm_s = "eae_prk";
-	ikm.insert(ikm.end(), ikm_s.begin(), ikm_s.end());
-	ikm.insert(ikm.end(), ss.begin(), ss.end());
-	// Compute kem_context
-	vector<uint8_t> kem_context{ct.begin(), ct.end()};
-	kem_context.insert(kem_context.end(), pk.begin(), pk.end());
+	ikm.push_back(algoId);
+	ikmS = "eae_prk";
+	ikm.insert(ikm.end(), ikmS.cbegin(), ikmS.cend());
+	ikm.insert(ikm.end(), ss.cbegin(), ss.cend());
+	// Compute kem_context = ct || pk
+	vector<uint8_t> kemContext = ct;
+	kemContext.insert(kemContext.end(), pk.cbegin(), pk.cend());
 	//Compute info
-	string info_s = "ZRTP-v1.1KEM";
+	string infoS = "ZRTP-v1.1KEM";
 	vector<uint8_t> info{static_cast<uint8_t>((secretSize>>8)&0xFF), static_cast<uint8_t>((secretSize&0xFF))};
-	info.insert(info.end(), info_s.begin(), info_s.end());
+	info.insert(info.end(), infoS.cbegin(), infoS.cend());
 	info.push_back((uint8_t)0x00);
-	info.push_back(algo_id);
-	info_s = "shared_secret";
-	info.insert(info.end(), info_s.begin(), info_s.end());
-	info.insert(info.end(), kem_context.begin(), kem_context.end());
+	info.push_back(algoId);
+	infoS = "shared_secret";
+	info.insert(info.end(), infoS.cbegin(), infoS.cend());
+	info.insert(info.end(), kemContext.cbegin(), kemContext.cend());
 
 	// Compute new shared secret
 	ss = HKDF<hashAlgo>({}, ikm, info, secretSize);
@@ -486,9 +401,9 @@ int ECDH_KEM<Derived>::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const ve
 
 	// Derivation of the shared secret (ss)
 	switch(mHashId){
-		case BCTBX_MD_SHA256: secret_derivation<SHA256>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
-		case BCTBX_MD_SHA384: secret_derivation<SHA384>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
-		case BCTBX_MD_SHA512: secret_derivation<SHA512>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
+		case BCTBX_MD_SHA256: secretDerivation<SHA256>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
+		case BCTBX_MD_SHA384: secretDerivation<SHA384>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
+		case BCTBX_MD_SHA512: secretDerivation<SHA512>(ss, ct, pk, mId, bob->pointCoordinateLength); break;
 	}
 
 	bctbx_rng_context_free(RNG);
@@ -520,9 +435,9 @@ int ECDH_KEM<Derived>::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, co
 
 	// Derivation of the shared secret (ss)
 	switch(mHashId){
-		case BCTBX_MD_SHA256: secret_derivation<SHA256>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
-		case BCTBX_MD_SHA384: secret_derivation<SHA384>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
-		case BCTBX_MD_SHA512: secret_derivation<SHA512>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
+		case BCTBX_MD_SHA256: secretDerivation<SHA256>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
+		case BCTBX_MD_SHA384: secretDerivation<SHA384>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
+		case BCTBX_MD_SHA512: secretDerivation<SHA512>(ss, ct, pk, mId, alice->pointCoordinateLength); break;
 	}
 
 	bctbx_rng_context_free(RNG);
@@ -536,26 +451,27 @@ namespace {
 /**
  * @brief Create (public/private) key pairs
  *
- * @param[in]   algo_list   List of exchanging key algorithms
- * @param[out]  pk_list     List of public keys
- * @param[out]  sk_list     List of secret keys
+ * @param[in]   algoList   List of exchanging key algorithms
+ * @param[out]  pkList     List of public keys
+ * @param[out]  skList     List of secret keys
  *
  * @return  0 if no problem
  */
-int crypto_gen_keypairs(const list<shared_ptr<KEM>> algo_list, vector<vector<uint8_t>> &pk_list, vector<vector<uint8_t>> &sk_list){
-	pk_list.reserve(algo_list.size());
-	sk_list.reserve(algo_list.size());
-	for (const auto &a : algo_list) {
+int genKeypairs(const list<shared_ptr<KEM>> algoList, vector<vector<uint8_t>> &pkList, vector<vector<uint8_t>> &skList){
+	pkList.reserve(algoList.size());
+	skList.reserve(algoList.size());
+	int ret = 0;
+	for (const auto &a : algoList) {
 		vector<uint8_t> pk, sk;
-		a->keyGen(pk, sk);
-		pk_list.push_back(std::move(pk));
-		sk_list.push_back(std::move(sk));
+		ret += a->keyGen(pk, sk);
+		pkList.push_back(std::move(pk));
+		skList.push_back(std::move(sk));
 	}
-	return 0;
+	return ret;
 }
 
 template<typename hashAlgo>
-vector<uint8_t> nested_dual_PRF(vector<vector<uint8_t>> &list){
+vector<uint8_t> nestedDualPrf(vector<vector<uint8_t>> &list){
 	vector<uint8_t> T;
 	for(auto &e : list){
 		T = HMAC<hashAlgo>(T, e);
@@ -571,38 +487,38 @@ vector<uint8_t> nested_dual_PRF(vector<vector<uint8_t>> &list){
 /**
  * @brief Encapsulation N combiner
  *
- * @param[in]   algo_list   List of exchanging key algorithms
+ * @param[in]   algoList   List of exchanging key algorithms
  * @param[out]  ss          Hybrid shared secret
- * @param[out]  ct_list     List of cipher texts
- * @param[in]   pk_list     List of public keys
+ * @param[out]  ctList     List of cipher texts
+ * @param[in]   pkList     List of public keys
  *
  * @return  code error (0 if no problem)
  */
-int crypto_enc_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vector<uint8_t> &ss, vector<vector<uint8_t>> &ct_list, const vector<vector<uint8_t>> &pk_list){
-	vector<vector<uint8_t>> secret_list;
+int NCombinerEncaps(const list<shared_ptr<KEM>> &algoList, int hashId, vector<uint8_t> &ss, vector<vector<uint8_t>> &ctList, const vector<vector<uint8_t>> &pkList){
+	vector<vector<uint8_t>> secretList;
 
 	// Compute cipher text and secret for each algo
 	int i=0;
-	for(const auto &e : algo_list){
+	for(const auto &e : algoList){
 		vector<uint8_t> secret, ct;
-		e->encaps(ct, secret, pk_list.at(i));
-		secret_list.push_back(std::move(secret));
-		ct_list.push_back(std::move(ct));
+		e->encaps(ct, secret, pkList.at(i));
+		secretList.push_back(std::move(secret));
+		ctList.push_back(std::move(ct));
 		i++;
 	}
 
 	// Concatenation of the cipher texts in ct
 	vector<uint8_t> allCt;
-	for(const auto &e : ct_list){
+	for(const auto &e : ctList){
 		allCt.insert(allCt.end(), e.cbegin(), e.cend());
 	}
 
 	// Compute the shared secret using a PRF
-	secret_list.push_back(std::move(allCt));
-	switch(hash_id){
-		case BCTBX_MD_SHA256: ss = nested_dual_PRF<SHA256>(secret_list); break;
-		case BCTBX_MD_SHA384: ss = nested_dual_PRF<SHA384>(secret_list); break;
-		case BCTBX_MD_SHA512: ss = nested_dual_PRF<SHA512>(secret_list); break;
+	secretList.push_back(std::move(allCt));
+	switch(hashId){
+		case BCTBX_MD_SHA256: ss = nestedDualPrf<SHA256>(secretList); break;
+		case BCTBX_MD_SHA384: ss = nestedDualPrf<SHA384>(secretList); break;
+		case BCTBX_MD_SHA512: ss = nestedDualPrf<SHA512>(secretList); break;
 	}
 
 	return 0;
@@ -611,55 +527,88 @@ int crypto_enc_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vector<uin
 /**
  * @brief Decapsulation N combiner
  *
- * @param[in]   algo_list   List of exchanging key algorithms
+ * @param[in]   algoList   List of exchanging key algorithms
  * @param[out]  ss          Hybrid shared secret
- * @param[in]   ct_list     List of cipher texts
- * @param[in]   sk_list     List of secret keys
+ * @param[in]   ctList     List of cipher texts
+ * @param[in]   skList     List of secret keys
  *
  * @return  code error (0 if no problem)
  */
-int crypto_dec_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vector<uint8_t> &ss, const vector<vector<uint8_t>> &ct_list, const vector<vector<uint8_t>> &sk_list){
-	vector<vector<uint8_t>> secret_list;
+int NCombinerDecaps(const list<shared_ptr<KEM>> &algoList, int hashId, vector<uint8_t> &ss, const vector<vector<uint8_t>> &ctList, const vector<vector<uint8_t>> &skList){
+	vector<vector<uint8_t>> secretList;
 
 	// Compute secret for each algo
 	int i = 0;
-	for(const auto &e : algo_list){
+	for(const auto &e : algoList){
 		vector<uint8_t> secret;
-		e->decaps(secret, ct_list.at(i), sk_list.at(i));
-		secret_list.push_back(std::move(secret));
+		e->decaps(secret, ctList.at(i), skList.at(i));
+		secretList.push_back(std::move(secret));
 		i++;
 	}
 
 	// Concatenation of the both cipher texts in ct
 	vector<uint8_t> ct;
-	for(const auto &e : ct_list){
+	for(const auto &e : ctList){
 		ct.insert(ct.end(), e.cbegin(), e.cend());
 	}
 
 	// Compute the shared secret using a PRF
-	secret_list.push_back(ct);
-	switch(hash_id){
-		case BCTBX_MD_SHA256: ss = nested_dual_PRF<SHA256>(secret_list); break;
-		case BCTBX_MD_SHA384: ss = nested_dual_PRF<SHA384>(secret_list); break;
-		case BCTBX_MD_SHA512: ss = nested_dual_PRF<SHA512>(secret_list); break;
+	secretList.push_back(ct);
+	switch(hashId){
+		case BCTBX_MD_SHA256: ss = nestedDualPrf<SHA256>(secretList); break;
+		case BCTBX_MD_SHA384: ss = nestedDualPrf<SHA384>(secretList); break;
+		case BCTBX_MD_SHA512: ss = nestedDualPrf<SHA512>(secretList); break;
 	}
 	return 0;
 }
 }// anonymous namespace
 
 /* HYBRID KEM INTERFACE */
-// Use the combiner functions described before
+size_t HYBRID_KEM::getSkSize() const noexcept {
+	size_t ret = 0;
+	for (const auto &e : mAlgo) {
+		ret += e->getSkSize();
+	}
+	return ret;
+}
 
+size_t HYBRID_KEM::getPkSize() const noexcept {
+	size_t ret = 0;
+	for (const auto &e : mAlgo) {
+		ret += e->getPkSize();
+	}
+	return ret;
+}
+
+size_t HYBRID_KEM::getCtSize() const noexcept {
+	size_t ret = 0;
+	for (const auto &e : mAlgo) {
+		ret += e->getCtSize();
+	}
+	return ret;
+}
+
+size_t HYBRID_KEM::getSsSize() const noexcept {
+	size_t ret = 0;
+	for (const auto &e : mAlgo) {
+		ret += e->getSsSize();
+	}
+	return ret;
+}
+
+// Use the combiner functions described before
 int HYBRID_KEM::keyGen(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	vector<vector<uint8_t>> pkList;
 	vector<vector<uint8_t>> skList;
 
-	int ret = crypto_gen_keypairs(mAlgo, pkList, skList);
+	int ret = genKeypairs(mAlgo, pkList, skList);
 
+	pk.reserve(getPkSize());
 	for (const auto &e : pkList) {
 		pk.insert(pk.end(), e.cbegin(), e.cend());
 	}
 
+	sk.reserve(getSkSize());
 	for (auto &e : skList) {
 		sk.insert(sk.end(), e.cbegin(), e.cend());
 		bctbx_clean(e.data(), e.size());
@@ -672,19 +621,21 @@ int HYBRID_KEM::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<ui
 	vector<vector<uint8_t>> ctList;
 	vector<vector<uint8_t>> pkList;
 
-	ctList.resize(mAlgo.size());
-	pkList.resize(mAlgo.size());
+	ctList.reserve(mAlgo.size());
+	pkList.reserve(mAlgo.size());
 
+	size_t ctSize = 0;
 	auto iter = pk.cbegin();
-	int i = 0;
 	for (const auto &e : mAlgo) {
-		pkList.at(i).insert(pkList.at(i).end(), iter, iter+e->getPkSize());
-		iter += e->getPkSize();
-		i++;
+		auto pkSize = e->getPkSize();
+		pkList.emplace_back(iter, iter+pkSize);
+		std::advance(iter, pkSize);
+		ctSize += e->getCtSize(); // compute the final ct size to reserve space in output ct
 	}
 
-	int ret = crypto_enc_N(mAlgo, mHashId, ss, ctList, pkList);
+	int ret = NCombinerEncaps(mAlgo, mHashId, ss, ctList, pkList);
 
+	ct.reserve(ctSize);
 	for (const auto &e : ctList) {
 		ct.insert(ct.end(), e.cbegin(), e.cend());
 	}
@@ -695,21 +646,21 @@ int HYBRID_KEM::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vec
 	vector<vector<uint8_t>> ctList;
 	vector<vector<uint8_t>> skList;
 
-	ctList.resize(mAlgo.size());
-	skList.resize(mAlgo.size());
+	ctList.reserve(mAlgo.size());
+	skList.reserve(mAlgo.size());
 
 	auto iter = sk.cbegin();
 	auto iter2 = ct.cbegin();
-	int i = 0;
 	for (const auto &e : mAlgo) {
-		skList.at(i).insert(skList.at(i).end(), iter, iter+e->getSkSize());
-		iter += e->getSkSize();
-		ctList.at(i).insert(ctList.at(i).end(), iter2, iter2+e->getCtSize());
-		iter2 += e->getCtSize();
-		i++;
+		auto skSize = e->getSkSize();
+		auto ctSize = e->getCtSize();
+		skList.emplace_back(iter, iter + skSize);
+		std::advance(iter, skSize);
+		ctList.emplace_back(iter2, iter2 + ctSize);
+		std::advance(iter2, ctSize);
 	}
 
-	return crypto_dec_N(mAlgo, mHashId, ss, ctList, skList);
+	return NCombinerDecaps(mAlgo, mHashId, ss, ctList, skList);
 }
 
 // force templates intanciation

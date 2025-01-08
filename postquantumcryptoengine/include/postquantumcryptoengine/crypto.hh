@@ -30,7 +30,15 @@
 
 namespace bctoolbox {
 
-class HYBRID_KEM;
+// Helper struct to detect the presence of kSkSize member
+// When this member is present, the other size are defined too
+// when it is not, use the template type defined getter
+template<typename, typename = std::void_t<>>
+struct hasSize : std::false_type {};
+
+template<typename T>
+struct hasSize<T, std::void_t<decltype(T::kSkSize)>> : std::true_type {};
+
 /************************ KEM interface ************************/
 /**
  * @brief The KEM vitual class
@@ -39,15 +47,14 @@ class HYBRID_KEM;
 class KEM {
 public:
 	virtual ~KEM() = default;
+	virtual size_t getSkSize() const noexcept = 0;
+	virtual size_t getPkSize() const noexcept = 0;
+	virtual size_t getCtSize() const noexcept = 0;
+	virtual size_t getSsSize() const noexcept = 0;
 	virtual int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept = 0;
 	virtual int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept = 0;
 	virtual int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept = 0;
 private:
-	virtual size_t getSkSize() const = 0;
-	virtual size_t getPkSize() const = 0;
-	virtual size_t getCtSize() const = 0;
-	virtual size_t getSsSize() const = 0;
-friend class HYBRID_KEM;
 };
 
 /**
@@ -56,14 +63,25 @@ friend class HYBRID_KEM;
  */
 template <typename Derived> class KEMCRTP : public KEM {
 public:
+	size_t getSkSize() const noexcept override { return getSkSizeImpl(hasSize<Derived>{});};
+	size_t getPkSize() const noexcept override { return getPkSizeImpl(hasSize<Derived>{});};
+	size_t getCtSize() const noexcept override { return getCtSizeImpl(hasSize<Derived>{});};
+	size_t getSsSize() const noexcept override { return getSsSizeImpl(hasSize<Derived>{});};
 	virtual int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override = 0;
 	virtual int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override = 0;
 	virtual int decaps(std::vector<uint8_t> &ss, const std::vector<uint8_t> &ct, const std::vector<uint8_t> &sk) const noexcept override = 0;
 private:
-	size_t getSkSize() const override;
-	size_t getPkSize() const override;
-	size_t getCtSize() const override;
-	size_t getSsSize() const override;
+	/* tag dispatching :
+	 *  - when the Derived type defines the sizes of element directly, return them - CRTP
+	 *  - when it does not, return their own defined getters */
+	size_t getSkSizeImpl(std::true_type) const noexcept { return Derived::kSkSize;};
+	size_t getSkSizeImpl(std::false_type) const noexcept { return static_cast<const Derived*>(this)->getSkSize();};
+	size_t getPkSizeImpl(std::true_type) const noexcept { return Derived::kPkSize;};
+	size_t getPkSizeImpl(std::false_type) const noexcept { return static_cast<const Derived*>(this)->getPkSize();};
+	size_t getCtSizeImpl(std::true_type) const noexcept { return Derived::kCtSize;};
+	size_t getCtSizeImpl(std::false_type) const noexcept { return static_cast<const Derived*>(this)->getCtSize();};
+	size_t getSsSizeImpl(std::true_type) const noexcept { return Derived::kSsSize;};
+	size_t getSsSizeImpl(std::false_type) const noexcept { return static_cast<const Derived*>(this)->getSsSize();};
 };
 
 /**
@@ -92,7 +110,7 @@ public:
  */
 class K25519 : public ECDH_KEM<K25519> {
 public:
-	K25519(int hash_id);	/**< hash_id param represents the id of the hash algorithm used in the secret derivation */
+	K25519(int hashId);	/**< hashId param represents the id of the hash algorithm used in the secret derivation */
 	constexpr static size_t kSkSize = BCTBX_ECDH_X25519_PRIVATE_SIZE;
 	constexpr static size_t kPkSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
 	constexpr static size_t kCtSize = BCTBX_ECDH_X25519_PUBLIC_SIZE;
@@ -105,7 +123,7 @@ public:
  */
 class K448 : public ECDH_KEM<K448> {
 public:
-	K448(int hash_id);		/**< hash_id param represents the id of the hash algorithm used in the secret derivation */
+	K448(int hashId);		/**< hashId param represents the id of the hash algorithm used in the secret derivation */
 	constexpr static size_t kSkSize = BCTBX_ECDH_X448_PRIVATE_SIZE;
 	constexpr static size_t kPkSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
 	constexpr static size_t kCtSize = BCTBX_ECDH_X448_PUBLIC_SIZE;
@@ -276,13 +294,11 @@ private:
 	int mHashId;							/**< Id of the hash algorithm */
 
 public:
-	// Dummy values, the getters function are never called on an hybrid kem object, it will trigger an exception if it is.
-	constexpr static size_t kSkSize = 0;
-	constexpr static size_t kPkSize = 0;
-	constexpr static size_t kCtSize = 0;
-	constexpr static size_t kSsSize = 0;
-
-	HYBRID_KEM(const std::list<std::shared_ptr<KEM>> &algoList, int hash_id);
+	HYBRID_KEM(const std::list<std::shared_ptr<KEM>> &algoList, int hashId);
+	size_t getSkSize() const noexcept override;
+	size_t getPkSize() const noexcept override;
+	size_t getCtSize() const noexcept override;
+	size_t getSsSize() const noexcept override;
 
 	int keyGen(std::vector<uint8_t> &pk, std::vector<uint8_t> &sk) const noexcept override;
 	int encaps(std::vector<uint8_t> &ct, std::vector<uint8_t> &ss, const std::vector<uint8_t> &pk) const noexcept override;

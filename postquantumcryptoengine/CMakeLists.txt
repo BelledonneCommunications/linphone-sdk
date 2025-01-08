@@ -33,7 +33,7 @@ set(POSTQUANTUMCRYPTOENGINE_SO_VERSION 1)
 option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 option(ENABLE_UNIT_TESTS "Enable compilation of tests" ON)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS NO)
 
 include(GNUInstallDirs)
