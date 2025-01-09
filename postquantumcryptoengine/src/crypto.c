@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Belledonne Communications SARL.
+ * Copyright (c) 2020-2025 Belledonne Communications SARL.
  *
  * This file is part of bctoolbox.
  *

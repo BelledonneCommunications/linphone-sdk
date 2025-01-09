@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Belledonne Communications SARL.
+ * Copyright (c) 2020-2025 Belledonne Communications SARL.
  *
  * This file is part of postquantumcryptoengine.
  *
@@ -494,7 +494,7 @@ vector<uint8_t> nestedDualPrf(vector<vector<uint8_t>> &list){
  *
  * @return  code error (0 if no problem)
  */
-int NCombinerEncaps(const list<shared_ptr<KEM>> &algoList, int hashId, vector<uint8_t> &ss, vector<vector<uint8_t>> &ctList, const vector<vector<uint8_t>> &pkList){
+int nCombinerEncaps(const list<shared_ptr<KEM>> &algoList, int hashId, vector<uint8_t> &ss, vector<vector<uint8_t>> &ctList, const vector<vector<uint8_t>> &pkList){
 	vector<vector<uint8_t>> secretList;
 
 	// Compute cipher text and secret for each algo
@@ -534,7 +534,7 @@ int NCombinerEncaps(const list<shared_ptr<KEM>> &algoList, int hashId, vector<ui
  *
  * @return  code error (0 if no problem)
  */
-int NCombinerDecaps(const list<shared_ptr<KEM>> &algoList, int hashId, vector<uint8_t> &ss, const vector<vector<uint8_t>> &ctList, const vector<vector<uint8_t>> &skList){
+int nCombinerDecaps(const list<shared_ptr<KEM>> &algoList, int hashId, vector<uint8_t> &ss, const vector<vector<uint8_t>> &ctList, const vector<vector<uint8_t>> &skList){
 	vector<vector<uint8_t>> secretList;
 
 	// Compute secret for each algo
@@ -633,7 +633,7 @@ int HYBRID_KEM::encaps(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<ui
 		ctSize += e->getCtSize(); // compute the final ct size to reserve space in output ct
 	}
 
-	int ret = NCombinerEncaps(mAlgo, mHashId, ss, ctList, pkList);
+	int ret = nCombinerEncaps(mAlgo, mHashId, ss, ctList, pkList);
 
 	ct.reserve(ctSize);
 	for (const auto &e : ctList) {
@@ -660,7 +660,7 @@ int HYBRID_KEM::decaps(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vec
 		std::advance(iter2, ctSize);
 	}
 
-	return NCombinerDecaps(mAlgo, mHashId, ss, ctList, skList);
+	return nCombinerDecaps(mAlgo, mHashId, ss, ctList, skList);
 }
 
 // force templates intanciation

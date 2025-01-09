@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Belledonne Communications SARL.
+ * Copyright (c) 2020-2025 Belledonne Communications SARL.
  *
  * This file is part of postquantumcryptoengine.
  *

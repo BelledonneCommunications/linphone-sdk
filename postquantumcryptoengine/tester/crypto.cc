@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2020 Belledonne Communications SARL.
+ * Copyright (c) 2020-2025 Belledonne Communications SARL.
  *
  * This file is part of bctoolbox.
  *
@@ -37,9 +37,9 @@ static void ECDH_KEM_test(void) {
 	std::vector<uint8_t> pk, sk, ct, ssa, ssb;
 
 	K25519 k255 = K25519(BCTBX_MD_SHA256);
-	K448 k448_sha256 = K448(BCTBX_MD_SHA256);
-	K448 k448_sha384 = K448(BCTBX_MD_SHA384);
-	K448 k448_sha512 = K448(BCTBX_MD_SHA512);
+	K448 k448Sha256 = K448(BCTBX_MD_SHA256);
+	K448 k448Sha384 = K448(BCTBX_MD_SHA384);
+	K448 k448Sha512 = K448(BCTBX_MD_SHA512);
 
 	BC_ASSERT_EQUAL(k255.keyGen(pk, sk), 0, int, "%d");
 	BC_ASSERT_EQUAL(k255.encaps(ct, ssa, pk), 0, int, "%d");
@@ -55,10 +55,10 @@ static void ECDH_KEM_test(void) {
 	ssa.clear();
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(k448_sha256.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(k448_sha256.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha256.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha256.encaps(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(k448_sha256.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha256.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -68,10 +68,10 @@ static void ECDH_KEM_test(void) {
 	ssa.clear();
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(k448_sha384.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(k448_sha384.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha384.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha384.encaps(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(k448_sha384.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha384.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -81,32 +81,32 @@ static void ECDH_KEM_test(void) {
 	ssa.clear();
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(k448_sha512.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(k448_sha512.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha512.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha512.encaps(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(k448_sha512.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(k448Sha512.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
 	/* Test vectors */
 
-	BC_ASSERT_EQUAL(k255.decaps(ssb, X25516_SHA256_pattern.at(1), X25516_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(X25516_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(k255.decaps(ssb, X25519Sha256Pattern.at(1), X25519Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(X25519Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(k448_sha256.decaps(ssb, X448_SHA256_pattern.at(1), X448_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(X448_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(k448Sha256.decaps(ssb, X448Sha256Pattern.at(1), X448Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(X448Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(k448_sha384.decaps(ssb, X448_SHA384_pattern.at(1), X448_SHA384_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(X448_SHA384_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(k448Sha384.decaps(ssb, X448Sha384Pattern.at(1), X448Sha384Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(X448Sha384Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(k448_sha512.decaps(ssb, X448_SHA512_pattern.at(1), X448_SHA512_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(X448_SHA512_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(k448Sha512.decaps(ssb, X448Sha512Pattern.at(1), X448Sha512Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(X448Sha512Pattern.at(2) == ssb);
 
 	ssb.clear();
 }
@@ -158,20 +158,20 @@ static void HQC_test(void){
 	ssb.clear();
 
 	// Test for HQC128
-	BC_ASSERT_EQUAL(hqc128.decaps(ssb, HQC128_pattern.at(1), HQC128_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(HQC128_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hqc128.decaps(ssb, HQC128Pattern.at(1), HQC128Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(HQC128Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	// Test for HQC192
-	BC_ASSERT_EQUAL(hqc192.decaps(ssb, HQC192_pattern.at(1), HQC192_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(HQC192_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hqc192.decaps(ssb, HQC192Pattern.at(1), HQC192Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(HQC192Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	// Test for HQC256
-	BC_ASSERT_EQUAL(hqc256.decaps(ssb, HQC256_pattern.at(1), HQC256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(HQC256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hqc256.decaps(ssb, HQC256Pattern.at(1), HQC256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(HQC256Pattern.at(2) == ssb);
 
 	ssb.clear();
 }
@@ -223,20 +223,20 @@ static void KYBER_test(void){
 	ssb.clear();
 
 	// Test for KYBER512
-	BC_ASSERT_EQUAL(kyber512.decaps(ssb, KYBER512_pattern.at(1), KYBER512_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(KYBER512_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(kyber512.decaps(ssb, KYBER512Pattern.at(1), KYBER512Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(KYBER512Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	// Test for KYBER768
-	BC_ASSERT_EQUAL(kyber768.decaps(ssb, KYBER768_pattern.at(1), KYBER768_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(KYBER768_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(kyber768.decaps(ssb, KYBER768Pattern.at(1), KYBER768Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(KYBER768Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	// Test for KYBER1024
-	BC_ASSERT_EQUAL(kyber1024.decaps(ssb, KYBER1024_pattern.at(1), KYBER1024_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(KYBER1024_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(kyber1024.decaps(ssb, KYBER1024Pattern.at(1), KYBER1024Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(KYBER1024Pattern.at(2) == ssb);
 
 	ssb.clear();
 }
@@ -288,20 +288,20 @@ static void MLKEM_test(void){
 	ssb.clear();
 
 	// Test for MLKEM512
-	BC_ASSERT_EQUAL(mlkem512.decaps(ssb, MLKEM512_pattern.at(1), MLKEM512_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(MLKEM512_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(mlkem512.decaps(ssb, MLKEM512Pattern.at(1), MLKEM512Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(MLKEM512Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	// Test for MLKEM768
-	BC_ASSERT_EQUAL(mlkem768.decaps(ssb, MLKEM768_pattern.at(1), MLKEM768_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(MLKEM768_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(mlkem768.decaps(ssb, MLKEM768Pattern.at(1), MLKEM768Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(MLKEM768Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	// Test for MLKEM1024
-	BC_ASSERT_EQUAL(mlkem1024.decaps(ssb, MLKEM1024_pattern.at(1), MLKEM1024_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(MLKEM1024_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(mlkem1024.decaps(ssb, MLKEM1024Pattern.at(1), MLKEM1024Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(MLKEM1024Pattern.at(2) == ssb);
 
 	ssb.clear();
 }
@@ -325,12 +325,12 @@ static void HYBRID_KEM_test(){
 
 	/* X25519 - X25519 */
 
-	HYBRID_KEM hyb_k255_k255 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<K25519>(BCTBX_MD_SHA256)}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK255_k255 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<K25519>(BCTBX_MD_SHA256)}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k255_k255.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k255_k255.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255_k255.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255_k255.encaps(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(hyb_k255_k255.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255_k255.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -342,19 +342,19 @@ static void HYBRID_KEM_test(){
 
 	// Test vector : K25519 - K25519
 
-	BC_ASSERT_EQUAL(hyb_k255_k255.decaps(ssb, hybrid_X25519_X25519_SHA256_pattern.at(1), hybrid_X25519_X25519_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X25519_X25519_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK255_k255.decaps(ssb, hybridX25519X25519Sha256Pattern.at(1), hybridX25519X25519Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX25519X25519Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	/* K25519 - KYBER512 */
 
-	HYBRID_KEM hyb_k255_kyber512 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<KYBER512>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK255Kyber512 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<KYBER512>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k255_kyber512.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k255_kyber512.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Kyber512.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Kyber512.encaps(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(hyb_k255_kyber512.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Kyber512.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -366,19 +366,19 @@ static void HYBRID_KEM_test(){
 
 	// Test vector : K25519 - KYBER512
 
-	BC_ASSERT_EQUAL(hyb_k255_kyber512.decaps(ssb, hybrid_X25519_KYBER512_SHA256_pattern.at(1), hybrid_X25519_KYBER512_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X25519_KYBER512_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK255Kyber512.decaps(ssb, hybridX25519Kyber512Sha256Pattern.at(1), hybridX25519Kyber512Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX25519Kyber512Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	/* K25519 - MLKEM512 */
 
-	HYBRID_KEM hyb_k255_mlkem512 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<MLKEM512>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK255Mlkem512 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<MLKEM512>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k255_mlkem512.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k255_mlkem512.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Mlkem512.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Mlkem512.encaps(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(hyb_k255_mlkem512.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Mlkem512.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -390,19 +390,19 @@ static void HYBRID_KEM_test(){
 
 	// Test vector : K25519 - MLKEM512
 
-	BC_ASSERT_EQUAL(hyb_k255_mlkem512.decaps(ssb, hybrid_X25519_MLKEM512_SHA256_pattern.at(1), hybrid_X25519_MLKEM512_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X25519_MLKEM512_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK255Mlkem512.decaps(ssb, hybridX25519Mlkem512Sha256Pattern.at(1), hybridX25519Mlkem512Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX25519Mlkem512Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	/* K25519 - HQC128 */
 
-	HYBRID_KEM hyb_k255_hqc128 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<HQC128>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK255Hqc128 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<HQC128>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k255_hqc128.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k255_hqc128.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Hqc128.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Hqc128.encaps(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(hyb_k255_hqc128.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255Hqc128.decaps(ssb, ct, sk), 0, int, "%d");
 
 
 	BC_ASSERT_TRUE(ssa == ssb);
@@ -414,32 +414,18 @@ static void HYBRID_KEM_test(){
 
 	// Test vector : K25519 - HQC128
 
-	BC_ASSERT_EQUAL(hyb_k255_hqc128.decaps(ssb, hybrid_X25519_HQC128_SHA256_pattern.at(1), hybrid_X25519_HQC128_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X25519_HQC128_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK255Hqc128.decaps(ssb, hybridX25519Hqc128Sha256Pattern.at(1), hybridX25519Hqc128Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX25519Hqc128Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	/* K448 - KYBER1024 */
 
-	HYBRID_KEM hyb_k448_kyber1024_sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<KYBER1024>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK448Kyber1024Sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<KYBER1024>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha256.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha256.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha256.decaps(ssb, ct, sk), 0, int, "%d");
-
-	BC_ASSERT_TRUE(ssa == ssb);
-
-	ct.clear();
-	pk.clear();
-	sk.clear();
-	ssa.clear();
-	ssb.clear();
-
-	HYBRID_KEM hyb_k448_kyber1024_sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<KYBER1024>()}, BCTBX_MD_SHA384);
-
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha384.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha384.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha384.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha256.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha256.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha256.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -449,11 +435,25 @@ static void HYBRID_KEM_test(){
 	ssa.clear();
 	ssb.clear();
 
-	HYBRID_KEM hyb_k448_kyber1024_sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<KYBER1024>()}, BCTBX_MD_SHA512);
+	HYBRID_KEM hybK448Kyber1024Sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<KYBER1024>()}, BCTBX_MD_SHA384);
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha512.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha512.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha512.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha384.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha384.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha384.decaps(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	ct.clear();
+	pk.clear();
+	sk.clear();
+	ssa.clear();
+	ssb.clear();
+
+	HYBRID_KEM hybK448Kyber1024Sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<KYBER1024>()}, BCTBX_MD_SHA512);
+
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha512.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha512.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha512.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -465,42 +465,28 @@ static void HYBRID_KEM_test(){
 
 	// Test vector : K448 - KYBER1024
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha256.decaps(ssb, hybrid_X448_KYBER1024_SHA256_pattern.at(1), hybrid_X448_KYBER1024_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha256.decaps(ssb, hybridX448Kyber1024Sha256Pattern.at(1), hybridX448Kyber1024Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Kyber1024Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha384.decaps(ssb, hybrid_X448_KYBER1024_SHA384_pattern.at(1), hybrid_X448_KYBER1024_SHA384_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_SHA384_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha384.decaps(ssb, hybridX448Kyber1024Sha384Pattern.at(1), hybridX448Kyber1024Sha384Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Kyber1024Sha384Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_sha512.decaps(ssb, hybrid_X448_KYBER1024_SHA512_pattern.at(1), hybrid_X448_KYBER1024_SHA512_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_SHA512_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Kyber1024Sha512.decaps(ssb, hybridX448Kyber1024Sha512Pattern.at(1), hybridX448Kyber1024Sha512Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Kyber1024Sha512Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	/* K448 - MLKEM1024 */
 
-	HYBRID_KEM hyb_k448_mlkem1024_sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK448Mlkem1024Sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha256.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha256.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha256.decaps(ssb, ct, sk), 0, int, "%d");
-
-	BC_ASSERT_TRUE(ssa == ssb);
-
-	ct.clear();
-	pk.clear();
-	sk.clear();
-	ssa.clear();
-	ssb.clear();
-
-	HYBRID_KEM hyb_k448_mlkem1024_sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA384);
-
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha384.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha384.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha384.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha256.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha256.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha256.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -510,11 +496,25 @@ static void HYBRID_KEM_test(){
 	ssa.clear();
 	ssb.clear();
 
-	HYBRID_KEM hyb_k448_mlkem1024_sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA512);
+	HYBRID_KEM hybK448Mlkem1024Sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA384);
 
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha512.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha512.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha512.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha384.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha384.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha384.decaps(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	ct.clear();
+	pk.clear();
+	sk.clear();
+	ssa.clear();
+	ssb.clear();
+
+	HYBRID_KEM hybK448Mlkem1024Sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<MLKEM1024>()}, BCTBX_MD_SHA512);
+
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha512.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha512.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha512.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -526,42 +526,28 @@ static void HYBRID_KEM_test(){
 
 	// Test vector : K448 - MLKEM1024
 
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha256.decaps(ssb, hybrid_X448_MLKEM1024_SHA256_pattern.at(1), hybrid_X448_MLKEM1024_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_MLKEM1024_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha256.decaps(ssb, hybridX448Mlkem1024Sha256Pattern.at(1), hybridX448Mlkem1024Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Mlkem1024Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha384.decaps(ssb, hybrid_X448_MLKEM1024_SHA384_pattern.at(1), hybrid_X448_MLKEM1024_SHA384_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_MLKEM1024_SHA384_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha384.decaps(ssb, hybridX448Mlkem1024Sha384Pattern.at(1), hybridX448Mlkem1024Sha384Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Mlkem1024Sha384Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_mlkem1024_sha512.decaps(ssb, hybrid_X448_MLKEM1024_SHA512_pattern.at(1), hybrid_X448_MLKEM1024_SHA512_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_MLKEM1024_SHA512_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Mlkem1024Sha512.decaps(ssb, hybridX448Mlkem1024Sha512Pattern.at(1), hybridX448Mlkem1024Sha512Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Mlkem1024Sha512Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	/* K448 - HQC256 */
 
-	HYBRID_KEM hyb_k448_hqc256_sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<HQC256>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK448Hqc256Sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<HQC256>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha256.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha256.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha256.decaps(ssb, ct, sk), 0, int, "%d");
-
-	BC_ASSERT_TRUE(ssa == ssb);
-
-	sk.clear();
-	pk.clear();
-	ct.clear();
-	ssa.clear();
-	ssb.clear();
-
-	HYBRID_KEM hyb_k448_hqc256_sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<HQC256>()}, BCTBX_MD_SHA384);
-
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha384.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha384.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha384.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha256.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha256.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha256.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -571,11 +557,25 @@ static void HYBRID_KEM_test(){
 	ssa.clear();
 	ssb.clear();
 
-	HYBRID_KEM hyb_k448_hqc256_sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<HQC256>()}, BCTBX_MD_SHA512);
+	HYBRID_KEM hybK448Hqc256Sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<HQC256>()}, BCTBX_MD_SHA384);
 
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha512.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha512.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha512.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha384.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha384.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha384.decaps(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	sk.clear();
+	pk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	HYBRID_KEM hybK448Hqc256Sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<HQC256>()}, BCTBX_MD_SHA512);
+
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha512.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha512.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha512.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -587,29 +587,29 @@ static void HYBRID_KEM_test(){
 
 	// Test vector : K448 - HQC256
 
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha256.decaps(ssb, hybrid_X448_HQC256_SHA256_pattern.at(1), hybrid_X448_HQC256_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_HQC256_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha256.decaps(ssb, hybridX448Hqc256Sha256Pattern.at(1), hybridX448Hqc256Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Hqc256Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha384.decaps(ssb, hybrid_X448_HQC256_SHA384_pattern.at(1), hybrid_X448_HQC256_SHA384_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_HQC256_SHA384_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha384.decaps(ssb, hybridX448Hqc256Sha384Pattern.at(1), hybridX448Hqc256Sha384Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Hqc256Sha384Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha512.decaps(ssb, hybrid_X448_HQC256_SHA512_pattern.at(1), hybrid_X448_HQC256_SHA512_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_HQC256_SHA512_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Hqc256Sha512.decaps(ssb, hybridX448Hqc256Sha512Pattern.at(1), hybridX448Hqc256Sha512Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Hqc256Sha512Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 	/* K25519 - KYBER512 - HQC128 */
 
-	HYBRID_KEM hyb_k255_kyb512_hqc128 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<KYBER512>(), std::make_shared<HQC128>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK255_kyb512Hqc128 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<KYBER512>(), std::make_shared<HQC128>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k255_kyb512_hqc128.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k255_kyb512_hqc128.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255_kyb512Hqc128.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255_kyb512Hqc128.encaps(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(hyb_k255_kyb512_hqc128.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK255_kyb512Hqc128.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 	ct.clear();
@@ -620,32 +620,18 @@ static void HYBRID_KEM_test(){
 
 	// Test vector : K25519 - KYBER512 - HQC128
 
-	BC_ASSERT_EQUAL(hyb_k255_kyb512_hqc128.decaps(ssb, hybrid_X25519_KYBER512_HQC128_SHA256_pattern.at(1), hybrid_X25519_KYBER512_HQC128_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X25519_KYBER512_HQC128_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK255_kyb512Hqc128.decaps(ssb, hybridX25519Kyber512Hqc128Sha256Pattern.at(1), hybridX25519Kyber512Hqc128Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX25519Kyber512Hqc128Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
 
 	/* K448 - KYBER1024 - HQC256 */
-	HYBRID_KEM hyb_k448_kyber1024_hqc256_sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hybK448Kyber1024Hqc256Sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha256.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha256.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha256.decaps(ssb, ct, sk), 0, int, "%d");
-
-	BC_ASSERT_TRUE(ssa == ssb);
-
-	sk.clear();
-	pk.clear();
-	ct.clear();
-	ssa.clear();
-	ssb.clear();
-
-	HYBRID_KEM hyb_k448_kyber1024_hqc256_sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA384);
-
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha384.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha384.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha384.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha256.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha256.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha256.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -655,11 +641,25 @@ static void HYBRID_KEM_test(){
 	ssa.clear();
 	ssb.clear();
 
-	HYBRID_KEM hyb_k448_kyber1024_hqc256_sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA512);
+	HYBRID_KEM hybK448Kyber1024Hqc256Sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA384);
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha512.keyGen(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha512.encaps(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha512.decaps(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha384.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha384.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha384.decaps(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	sk.clear();
+	pk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	HYBRID_KEM hybK448Kyber1024Hqc256Sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA512);
+
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha512.keyGen(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha512.encaps(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha512.decaps(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -670,18 +670,18 @@ static void HYBRID_KEM_test(){
 	ssb.clear();
 
 	// Test vector : K448 - KYBER1024 - HQC256
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha256.decaps(ssb, hybrid_X448_KYBER1024_HQC256_SHA256_pattern.at(1), hybrid_X448_KYBER1024_HQC256_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_HQC256_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha256.decaps(ssb, hybridX448Kyber1024Hqc256Sha256Pattern.at(1), hybridX448Kyber1024Hqc256Sha256Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Kyber1024Hqc256Sha256Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha384.decaps(ssb, hybrid_X448_KYBER1024_HQC256_SHA384_pattern.at(1), hybrid_X448_KYBER1024_HQC256_SHA384_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_HQC256_SHA384_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha384.decaps(ssb, hybridX448Kyber1024Hqc256Sha384Pattern.at(1), hybridX448Kyber1024Hqc256Sha384Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Kyber1024Hqc256Sha384Pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha512.decaps(ssb, hybrid_X448_KYBER1024_HQC256_SHA512_pattern.at(1), hybrid_X448_KYBER1024_HQC256_SHA512_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_HQC256_SHA512_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hybK448Kyber1024Hqc256Sha512.decaps(ssb, hybridX448Kyber1024Hqc256Sha512Pattern.at(1), hybridX448Kyber1024Hqc256Sha512Pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybridX448Kyber1024Hqc256Sha512Pattern.at(2) == ssb);
 
 	ssb.clear();
 }
