@@ -529,12 +529,27 @@ std::shared_ptr<KEM<Algo>> make_KEM();
 #endif // EC448_ENABLED
 
 #ifdef HAVE_BCTBXPQ
+	// Kyber512
 	extern template std::shared_ptr<KEM<K512>> make_KEM();
 	extern template class K<K512, lime::Ktype::publicKey>;
 	extern template class K<K512, lime::Ktype::privateKey>;
 	extern template class K<K512, lime::Ktype::cipherText>;
 	extern template class K<K512, lime::Ktype::sharedSecret>;
 	extern template class Kpair<K512>;
+	// MLKEM 512
+	extern template std::shared_ptr<KEM<MLK512>> make_KEM();
+	extern template class K<MLK512, lime::Ktype::publicKey>;
+	extern template class K<MLK512, lime::Ktype::privateKey>;
+	extern template class K<MLK512, lime::Ktype::cipherText>;
+	extern template class K<MLK512, lime::Ktype::sharedSecret>;
+	extern template class Kpair<MLK512>;
+	// MLKEM 1024
+	extern template std::shared_ptr<KEM<MLK1024>> make_KEM();
+	extern template class K<MLK1024, lime::Ktype::publicKey>;
+	extern template class K<MLK1024, lime::Ktype::privateKey>;
+	extern template class K<MLK1024, lime::Ktype::cipherText>;
+	extern template class K<MLK1024, lime::Ktype::sharedSecret>;
+	extern template class Kpair<MLK1024>;
 #endif //HAVE_BCTBXPQ
 } // namespace lime
 

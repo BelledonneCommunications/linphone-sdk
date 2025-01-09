@@ -133,9 +133,20 @@ namespace lime {
 #endif
 
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 		extern template void buildMessage_X3DHinit<C255K512>(std::vector<uint8_t> &message, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const X<C255K512::EC, lime::Xtype::publicKey> &Ek, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		extern template void parseMessage_X3DHinit<C255K512>(const std::vector<uint8_t>message, DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, X<C255K512::EC, lime::Xtype::publicKey> &Ek, K<C255K512::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C255K512>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
+
+		extern template void buildMessage_X3DHinit<C255MLK512>(std::vector<uint8_t> &message, const DSA<C255MLK512::EC, lime::DSAtype::publicKey> &Ik, const X<C255MLK512::EC, lime::Xtype::publicKey> &Ek, const K<C255MLK512::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
+		extern template void parseMessage_X3DHinit<C255MLK512>(const std::vector<uint8_t>message, DSA<C255MLK512::EC, lime::DSAtype::publicKey> &Ik, X<C255MLK512::EC, lime::Xtype::publicKey> &Ek, K<C255MLK512::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
+		extern template bool parseMessage_get_X3DHinit<C255MLK512>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
+#endif
+#ifdef EC448_ENABLED
+		extern template void buildMessage_X3DHinit<C448MLK1024>(std::vector<uint8_t> &message, const DSA<C448MLK1024::EC, lime::DSAtype::publicKey> &Ik, const X<C448MLK1024::EC, lime::Xtype::publicKey> &Ek, const K<C448MLK1024::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
+		extern template void parseMessage_X3DHinit<C448MLK1024>(const std::vector<uint8_t>message, DSA<C448MLK1024::EC, lime::DSAtype::publicKey> &Ik, X<C448MLK1024::EC, lime::Xtype::publicKey> &Ek, K<C448MLK1024::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
+		extern template bool parseMessage_get_X3DHinit<C448MLK1024>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
+#endif
 #endif //HAVE_BCTBXPQ
 
 

@@ -141,6 +141,15 @@ namespace lime {
 #ifdef EC448_ENABLED
 	extern template class Lime<C448>;
 #endif
+#ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
+	extern template class Lime<C255K512>;
+	extern template class Lime<C255MLK512>;
+#endif
+#ifdef EC448_ENABLED
+	extern template class Lime<C448MLK1024>;
+#endif
+#endif
 
 }
 #endif /* lime_impl_hpp */

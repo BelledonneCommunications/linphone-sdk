@@ -610,7 +610,13 @@ static void helloworld_basic(void) {
 	helloworld_basic_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	helloworld_basic_test(lime::CurveId::c25519k512);
+	helloworld_basic_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	helloworld_basic_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -622,7 +628,13 @@ static void helloworld_verifyIdentity(void) {
 	helloworld_verifyIdentity_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	helloworld_verifyIdentity_test(lime::CurveId::c25519k512);
+	helloworld_verifyIdentity_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	helloworld_verifyIdentity_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 

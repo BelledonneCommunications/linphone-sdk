@@ -79,9 +79,17 @@ namespace lime {
 	extern template long int Db::store_peerDevice<C448>(const std::string &peerDeviceId, const DSA<C448, lime::DSAtype::publicKey> &Ik);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	extern template long int Db::check_peerDevice<C255K512>(const std::string &peerDeviceId, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const bool updateInvalid);
 	extern template long int Db::store_peerDevice<C255K512>(const std::string &peerDeviceId, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik);
+	extern template long int Db::check_peerDevice<C255MLK512>(const std::string &peerDeviceId, const DSA<C255MLK512::EC, lime::DSAtype::publicKey> &Ik, const bool updateInvalid);
+	extern template long int Db::store_peerDevice<C255MLK512>(const std::string &peerDeviceId, const DSA<C255MLK512::EC, lime::DSAtype::publicKey> &Ik);
 #endif
+#ifdef EC448_ENABLED
+	extern template long int Db::check_peerDevice<C448MLK1024>(const std::string &peerDeviceId, const DSA<C448MLK1024::EC, lime::DSAtype::publicKey> &Ik, const bool updateInvalid);
+	extern template long int Db::store_peerDevice<C448MLK1024>(const std::string &peerDeviceId, const DSA<C448MLK1024::EC, lime::DSAtype::publicKey> &Ik);
+#endif
+#endif // HAVE_BCTBXPQ
 
 }
 

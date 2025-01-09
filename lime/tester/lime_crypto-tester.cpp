@@ -165,18 +165,29 @@ static void exchange(void) {
 
 /* get patterns specialized constructor */
 template <typename Algo>
-void KEM_getPatterns(lime::K<Algo, lime::Ktype::privateKey> &sk, lime::K<Algo, lime::Ktype::publicKey> &pk, lime::K<Algo, lime::Ktype::cipherText> &ct, lime::K<Algo, lime::Ktype::sharedSecret> &ss) {
+void KEM_getPatterns(lime::K<Algo, lime::Ktype::privateKey> &sk, lime::K<Algo, lime::Ktype::cipherText> &ct, lime::K<Algo, lime::Ktype::sharedSecret> &ss) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
 	static_assert(sizeof(Algo) != sizeof(Algo), "You must specialize KEM class contructor for your type");
 }
 
 #ifdef HAVE_BCTBXPQ
-	/* specialise KEM creation : K512 is Kyber512 */
-template <> void KEM_getPatterns<K512>(lime::K<lime::K512, lime::Ktype::privateKey> &sk, lime::K<lime::K512, lime::Ktype::publicKey> &pk, lime::K<lime::K512, lime::Ktype::cipherText> &ct, lime::K<lime::K512, lime::Ktype::sharedSecret> &ss) {
+/* specialise KEMpattern creation : K512 is Kyber512 */
+template <> void KEM_getPatterns<K512>(lime::K<lime::K512, lime::Ktype::privateKey> &sk, lime::K<lime::K512, lime::Ktype::cipherText> &ct, lime::K<lime::K512, lime::Ktype::sharedSecret> &ss) {
 	sk.assign(sk_KYBER512.cbegin());
-	pk.assign(pk_KYBER512.cbegin());
 	ct.assign(ct_KYBER512.cbegin());
 	ss.assign(ss_KYBER512.cbegin());
+}
+/* specialise KEMpattern creation : MLK512 is MLKEM512 */
+template <> void KEM_getPatterns<MLK512>(lime::K<lime::MLK512, lime::Ktype::privateKey> &sk, lime::K<lime::MLK512, lime::Ktype::cipherText> &ct, lime::K<lime::MLK512, lime::Ktype::sharedSecret> &ss) {
+	sk.assign(sk_MLKEM512.cbegin());
+	ct.assign(ct_MLKEM512.cbegin());
+	ss.assign(ss_MLKEM512.cbegin());
+}
+/* specialise KEMpattern creation : MLK1024 is MLKEM1024 */
+template <> void KEM_getPatterns<MLK1024>(lime::K<lime::MLK1024, lime::Ktype::privateKey> &sk, lime::K<lime::MLK1024, lime::Ktype::cipherText> &ct, lime::K<lime::MLK1024, lime::Ktype::sharedSecret> &ss) {
+	sk.assign(sk_MLKEM1024.cbegin());
+	ct.assign(ct_MLKEM1024.cbegin());
+	ss.assign(ss_MLKEM1024.cbegin());
 }
 #endif //HAVE_BCTBXPQ
 
@@ -204,10 +215,9 @@ void KEM_test(void) {
 
 	/* Patterns */
 	lime::K<Algo, lime::Ktype::privateKey> skPattern;
-	lime::K<Algo, lime::Ktype::publicKey> pkPattern;
 	lime::K<Algo, lime::Ktype::cipherText> ctPattern;
 	lime::K<Algo, lime::Ktype::sharedSecret> ssPattern;
-	KEM_getPatterns<Algo>(skPattern, pkPattern, ctPattern, ssPattern);
+	KEM_getPatterns<Algo>(skPattern, ctPattern, ssPattern);
 	Alice->decaps(skPattern, ctPattern, ssAlice);
 	BC_ASSERT_TRUE(ssAlice == ssPattern);
 
@@ -287,6 +297,16 @@ static void keyEncapsulation(void) {
 	if (bench) {
 		LIME_LOGI<<"Bench for Kyber512:";
 		KEM_bench<K512>(BENCH_TIMING_MS);
+	}
+	KEM_test<MLK512>();
+	if (bench) {
+		LIME_LOGI<<"Bench for MLKem512:";
+		KEM_bench<MLK512>(BENCH_TIMING_MS);
+	}
+	KEM_test<MLK1024>();
+	if (bench) {
+		LIME_LOGI<<"Bench for MLKem1024:";
+		KEM_bench<MLK1024>(BENCH_TIMING_MS);
 	}
 #endif
 }

@@ -422,7 +422,13 @@ namespace lime {
 	template class Lime<C448>;
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	template class Lime<C255K512>;
+	template class Lime<C255MLK512>;
+#endif
+#ifdef EC448_ENABLED
+	template class Lime<C448MLK1024>;
+#endif
 #endif
 
 	/****************************************************************************/
@@ -459,9 +465,17 @@ namespace lime {
 			throw BCTBX_EXCEPTION << "Lime User creation asking to use Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
-#ifndef HAVE_BCTBXPQ
+#if !defined(HAVE_BCTBXPQ) || !defined(EC25519_ENABLED)
 		if (algo == lime::CurveId::c25519k512) {
 			throw BCTBX_EXCEPTION << "Lime User creation asking to use Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
+		}
+		if (algo == lime::CurveId::c25519mlk512) {
+			throw BCTBX_EXCEPTION << "Lime User creation asking to use MLKem512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
+		}
+#endif
+#if !defined(HAVE_BCTBXPQ) || !defined(EC448_ENABLED)
+		if (algo == lime::CurveId::c448mlk1024) {
+			throw BCTBX_EXCEPTION << "Lime User creation asking to use MLKem1024/Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 
@@ -489,7 +503,7 @@ namespace lime {
 			break;
 
 			case lime::CurveId::c25519k512 :
-#ifdef HAVE_BCTBXPQ
+#if defined(HAVE_BCTBXPQ) && defined(EC25519_ENABLED)
 			{
 				auto lime_ptr = std::make_shared<Lime<C255K512>>(localStorage, deviceId.getUsername(), url, X3DH_post_data);
 				lime_ptr->publish_user(callback, OPkInitialBatchSize);
@@ -497,6 +511,27 @@ namespace lime {
 			}
 #endif
 			break;
+
+			case lime::CurveId::c25519mlk512 :
+#if defined(HAVE_BCTBXPQ) && defined(EC25519_ENABLED)
+			{
+				auto lime_ptr = std::make_shared<Lime<C255MLK512>>(localStorage, deviceId.getUsername(), url, X3DH_post_data);
+				lime_ptr->publish_user(callback, OPkInitialBatchSize);
+				return std::static_pointer_cast<LimeGeneric>(lime_ptr);
+			}
+#endif
+			break;
+
+			case lime::CurveId::c448mlk1024 :
+#if defined(HAVE_BCTBXPQ) && defined(EC448_ENABLED)
+			{
+				auto lime_ptr = std::make_shared<Lime<C448MLK1024>>(localStorage, deviceId.getUsername(), url, X3DH_post_data);
+				lime_ptr->publish_user(callback, OPkInitialBatchSize);
+				return std::static_pointer_cast<LimeGeneric>(lime_ptr);
+			}
+#endif
+			break;
+
 			case lime::CurveId::unset :
 			default: // asking for an unsupported type
 				throw BCTBX_EXCEPTION << "Cannot create lime user "<<static_cast<std::string>(deviceId);
@@ -532,9 +567,17 @@ namespace lime {
 			throw BCTBX_EXCEPTION << "Lime load User "<<static_cast<std::string>(deviceId)<<" requests usage of Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
-#ifndef HAVE_BCTBXPQ
+#if !defined(HAVE_BCTBXPQ) || !defined(EC25519_ENABLED)
 		if (algo == lime::CurveId::c25519k512) {
 			throw BCTBX_EXCEPTION << "Lime load User "<<static_cast<std::string>(deviceId)<<" requests usage of Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
+		}
+		if (algo == lime::CurveId::c25519mlk512) {
+			throw BCTBX_EXCEPTION << "Lime load User "<<static_cast<std::string>(deviceId)<<" requests usage of MLKem512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
+		}
+#endif
+#if !defined(HAVE_BCTBXPQ) || !defined(EC448_ENABLED)
+		if (algo == lime::CurveId::c448mlk1024) {
+			throw BCTBX_EXCEPTION << "Lime load User "<<static_cast<std::string>(deviceId)<<" requests usage of MLKem1024/Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 		/* load user */
@@ -556,9 +599,22 @@ namespace lime {
 				return std::make_shared<Lime<C448>>(localStorage, deviceId.getUsername(), x3dh_server_url, X3DH_post_data, Uid);
 #endif
 			break;
+
 			case lime::CurveId::c25519k512 :
-#ifdef HAVE_BCTBXPQ
+#if defined(HAVE_BCTBXPQ) && defined(EC25519_ENABLED)
 				return std::make_shared<Lime<C255K512>>(localStorage, deviceId.getUsername(), x3dh_server_url, X3DH_post_data, Uid);
+#endif
+			break;
+
+			case lime::CurveId::c25519mlk512 :
+#if defined(HAVE_BCTBXPQ) && defined(EC25519_ENABLED)
+				return std::make_shared<Lime<C255MLK512>>(localStorage, deviceId.getUsername(), x3dh_server_url, X3DH_post_data, Uid);
+#endif
+			break;
+
+			case lime::CurveId::c448mlk1024 :
+#if defined(HAVE_BCTBXPQ) && defined(EC448_ENABLED)
+				return std::make_shared<Lime<C448MLK1024>>(localStorage, deviceId.getUsername(), x3dh_server_url, X3DH_post_data, Uid);
 #endif
 			break;
 

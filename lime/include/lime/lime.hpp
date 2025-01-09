@@ -39,6 +39,8 @@ namespace lime {
 		c25519=1, /**< Curve 25519 */
 		c448=2, /**< Curve 448-goldilocks */
 		c25519k512=3, /**< Hybrid KEM kyber512/curve 25519 */
+		c25519mlk512=4, /**< Hybrid MLKEM 512/curve 25519 */
+		c448mlk1024=5, /**< Hybrid MLKEM 1024/curve 448 */
 	};
 
 	/** Manage the encryption policy : how is the user's plaintext encrypted */
@@ -132,7 +134,8 @@ namespace lime {
 
 	/**
 	 * convert a string to its curveId equivalent
-	 * @param[in] algo	the string to be converted. Valid inputs are c25519, c448, c25519k512
+	 * @param[in] algo	the string to be converted.
+	 * Valid inputs are c25519, c448, c25519k512, c25519mlk512, c448mlk1024
 	 * @return  the converted id, CurveId::unset on invalid input
 	 * */
 	lime::CurveId string2CurveId(const std::string &algo);
@@ -158,7 +161,7 @@ namespace lime {
 	std::string PeerDeviceStatus2String(const lime::PeerDeviceStatus status);
 
 	/**
-	 * @return true when PQ algorithms (c25519/k512 for now) are available
+	 * @return true when PQ algorithms are available
 	 */
 	bool lime_is_PQ_available(void);
 
@@ -235,7 +238,7 @@ namespace lime {
 			 * 	A user is published on an X3DH key server who must run using the same elliptic curve selected for this user (creation will fail otherwise), the server url cannot be changed later
 			 *
 			 * @param[in]	localDeviceId		Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
-			 * @param[in]	algos			Choice of base algorithms used as base for cryptographic operation involved. An ordered list holding one or more of: CurveId::c25519, CurveId::c448, CurveId:c25519k512.
+			 * @param[in]	algos			An ordered list of algorithms used as base for cryptographic operation involved.
 			 * @param[in]	x3dhServerUrl		The complete url(including port) of the X3DH key server. It must connect using HTTPS. Example: https://sip5.linphone.org:25519
 			 * @param[in]	OPkInitialBatchSize	Number of OPks in the first batch uploaded to X3DH server
 			 * @param[in]	callback		This operation contact the X3DH server and is thus asynchronous, when server responds,
@@ -302,7 +305,7 @@ namespace lime {
 			 * @note encryptionContext is shared pointers as the process being asynchronous, the ownership will be taken internally exempting caller to manage the buffers.
 			 *
 			 * @param[in]		localDeviceId	used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
-			 * @param[in]		algos		Choice of base algorithms used as base for cryptographic operation involved. An ordered list holding one or more of: CurveId::c25519, CurveId::c448, CurveId:c25519k512.
+			 * @param[in]		algos		An ordered list of algorithms used as base for cryptographic operation involved.
 			 * @param[in,out]	encryptionContext This context must persist during asynchronous calls to the lime X3DH server. It holds
 			 *				- associated Data (recipientUserId or other)	is used as associated data to ensure no-one can mess with intended recipient (when the recipientUserId is given)
 			 * 				- recipients	a list of RecipientData holding:

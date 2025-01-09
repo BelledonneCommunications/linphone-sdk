@@ -439,32 +439,35 @@ namespace lime {
 	/* Lime utils functions                                                     */
 	/*                                                                          */
 	/****************************************************************************/
+namespace {
+	// a mapping from string to the curveId enum
+	const std::unordered_map<std::string, lime::CurveId> string2CurveIdMap = {
+			{"c25519", lime::CurveId::c25519},
+			{"c448", lime::CurveId::c448},
+			{"c25519k512", lime::CurveId::c25519k512},
+			{"c25519mlk512", lime::CurveId::c25519mlk512},
+			{"c448mlk1024", lime::CurveId::c448mlk1024},
+		};
+}
 
 	lime::CurveId string2CurveId(const std::string &algo) {
-		lime::CurveId curve = lime::CurveId::unset; // default to unset
-		if (algo.compare("c448") == 0) {
-			curve = lime::CurveId::c448;
-		} else if (algo.compare("c25519k512") == 0) {
-			curve = lime::CurveId::c25519k512;
-		} else if (algo.compare("c25519") == 0) {
-			curve = lime::CurveId::c25519;
+		auto it = string2CurveIdMap.find(algo);
+		if (it != string2CurveIdMap.end()) {
+			return it->second;
+		} else {
+			return lime::CurveId::unset; // unmatching input string
 		}
-		return curve;
 	}
 
 	std::string CurveId2String(const lime::CurveId algo) {
-		switch (algo) {
-			case lime::CurveId::c25519:
-				return "c25519";
-			case lime::CurveId::c448:
-				return "c448";
-			case lime::CurveId::c25519k512:
-				return "c25519k512";
-			case lime::CurveId::unset:
-			default:
-				return "unset";
+		for (const auto &e : string2CurveIdMap) {
+			if (e.second == algo) {
+				return e.first;
+			}
 		}
+		return "unset";
 	}
+
 	std::string CurveId2String(const std::vector<lime::CurveId> algos, const std::string separator) {
 		std::ostringstream csvAlgos;
 		auto first = true;

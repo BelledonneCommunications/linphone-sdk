@@ -390,10 +390,23 @@ static void lime_encryptionPolicyError() {
 			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_encryptionPolicyError_test(lime::CurveId::c25519k512, "lime_encryptionPolicyError_DR",
 			lime_tester::shortMessage, lime::EncryptionPolicy::DRMessage);
 	lime_encryptionPolicyError_test(lime::CurveId::c25519k512, "lime_encryptionPolicyError_cipher",
 			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
+
+	lime_encryptionPolicyError_test(lime::CurveId::c25519mlk512, "lime_encryptionPolicyError_DR",
+			lime_tester::shortMessage, lime::EncryptionPolicy::DRMessage);
+	lime_encryptionPolicyError_test(lime::CurveId::c25519mlk512, "lime_encryptionPolicyError_cipher",
+			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
+#endif
+#ifdef EC448_ENABLED
+	lime_encryptionPolicyError_test(lime::CurveId::c448mlk1024, "lime_encryptionPolicyError_DR",
+			lime_tester::shortMessage, lime::EncryptionPolicy::DRMessage);
+	lime_encryptionPolicyError_test(lime::CurveId::c448mlk1024, "lime_encryptionPolicyError_cipher",
+			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
+#endif
 #endif
 }
 
@@ -667,7 +680,14 @@ static void lime_encryptionPolicy() {
 	lime_encryptionPolicy_suite(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_encryptionPolicy_suite(lime::CurveId::c25519k512);
+
+	lime_encryptionPolicy_suite(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_encryptionPolicy_suite(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -966,7 +986,14 @@ static void lime_identityVerifiedStatus() {
 	lime_identityVerifiedStatus_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_identityVerifiedStatus_test(lime::CurveId::c25519k512);
+
+	lime_identityVerifiedStatus_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_identityVerifiedStatus_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -1195,7 +1222,14 @@ static void lime_peerDeviceStatus() {
 	lime_peerDeviceStatus_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_peerDeviceStatus_test(lime::CurveId::c25519k512);
+
+	lime_peerDeviceStatus_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_peerDeviceStatus_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -1286,7 +1320,14 @@ static void lime_encryptToUnsafe() {
 	lime_encryptToUnsafe_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_encryptToUnsafe_test(lime::CurveId::c25519k512);
+
+	lime_encryptToUnsafe_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_encryptToUnsafe_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -1955,7 +1996,14 @@ static void lime_update_OPk() {
 	lime_update_OPk_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_update_OPk_test(lime::CurveId::c25519k512);
+
+	lime_update_OPk_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_update_OPk_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -2121,7 +2169,14 @@ static void lime_update_SPk() {
 	lime_update_SPk_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_update_SPk_test(lime::CurveId::c25519k512);
+
+	lime_update_SPk_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_update_SPk_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -2223,7 +2278,14 @@ static void lime_update_clean_MK() {
 	lime_update_clean_MK_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_update_clean_MK_test(lime::CurveId::c25519k512);
+
+	lime_update_clean_MK_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_update_clean_MK_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -2324,7 +2386,14 @@ static void lime_update_republish() {
 	lime_update_republish_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_update_republish_test(lime::CurveId::c25519k512);
+
+	lime_update_republish_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_update_republish_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 /** Scenario
@@ -2421,8 +2490,17 @@ static void x3dh_without_OPk() {
 	x3dh_without_OPk_test(lime::CurveId::c448, "lime_x3dh_without_OPk_clean", false);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	x3dh_without_OPk_test(lime::CurveId::c25519k512, "lime_x3dh_without_OPk");
 	x3dh_without_OPk_test(lime::CurveId::c25519k512, "lime_x3dh_without_OPk_clean", false);
+
+	x3dh_without_OPk_test(lime::CurveId::c25519mlk512, "lime_x3dh_without_OPk");
+	x3dh_without_OPk_test(lime::CurveId::c25519mlk512, "lime_x3dh_without_OPk_clean", false);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_without_OPk_test(lime::CurveId::c448mlk1024, "lime_x3dh_without_OPk");
+	x3dh_without_OPk_test(lime::CurveId::c448mlk1024, "lime_x3dh_without_OPk_clean", false);
+#endif
 #endif
 }
 
@@ -2572,8 +2650,17 @@ static void x3dh_sending_chain_limit() {
 	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_sending_chain_limit_clean", false);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	x3dh_sending_chain_limit_test(lime::CurveId::c25519k512, "lime_x3dh_sending_chain_limit");
 	x3dh_sending_chain_limit_test(lime::CurveId::c25519k512, "lime_x3dh_sending_chain_limit_clean", false);
+
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519mlk512, "lime_x3dh_sending_chain_limit");
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519mlk512, "lime_x3dh_sending_chain_limit_clean", false);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_sending_chain_limit_test(lime::CurveId::c448mlk1024, "lime_x3dh_sending_chain_limit");
+	x3dh_sending_chain_limit_test(lime::CurveId::c448mlk1024, "lime_x3dh_sending_chain_limit_clean", false);
+#endif
 #endif
 
 }
@@ -2782,8 +2869,17 @@ static void x3dh_multiple_DRsessions(void) {
 	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions_clean", false);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	x3dh_multiple_DRsessions_test(lime::CurveId::c25519k512, "lime_x3dh_multiple_DRsessions");
 	x3dh_multiple_DRsessions_test(lime::CurveId::c25519k512, "lime_x3dh_multiple_DRsessions_clean", false);
+
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519mlk512, "lime_x3dh_multiple_DRsessions");
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519mlk512, "lime_x3dh_multiple_DRsessions_clean", false);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_multiple_DRsessions_test(lime::CurveId::c448mlk1024, "lime_x3dh_multiple_DRsessions");
+	x3dh_multiple_DRsessions_test(lime::CurveId::c448mlk1024, "lime_x3dh_multiple_DRsessions_clean", false);
+#endif
 #endif
 }
 
@@ -2981,8 +3077,17 @@ static void x3dh_multidev_operation_queue(void) {
 	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue_clean", false);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	x3dh_multidev_operation_queue_test(lime::CurveId::c25519k512, "lime_x3dh_multidev_operation_queue");
 	x3dh_multidev_operation_queue_test(lime::CurveId::c25519k512, "lime_x3dh_multidev_operation_queue_clean", false);
+
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519mlk512, "lime_x3dh_multidev_operation_queue");
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519mlk512, "lime_x3dh_multidev_operation_queue_clean", false);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_multidev_operation_queue_test(lime::CurveId::c448mlk1024, "lime_x3dh_multidev_operation_queue");
+	x3dh_multidev_operation_queue_test(lime::CurveId::c448mlk1024, "lime_x3dh_multidev_operation_queue_clean", false);
+#endif
 #endif
 }
 
@@ -3098,8 +3203,17 @@ static void x3dh_operation_queue(void) {
 	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue_clean", false);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	x3dh_operation_queue_test(lime::CurveId::c25519k512, "lime_x3dh_operation_queue");
 	x3dh_operation_queue_test(lime::CurveId::c25519k512, "lime_x3dh_operation_queue_clean", false);
+
+	x3dh_operation_queue_test(lime::CurveId::c25519mlk512, "lime_x3dh_operation_queue");
+	x3dh_operation_queue_test(lime::CurveId::c25519mlk512, "lime_x3dh_operation_queue_clean", false);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_operation_queue_test(lime::CurveId::c448mlk1024, "lime_x3dh_operation_queue");
+	x3dh_operation_queue_test(lime::CurveId::c448mlk1024, "lime_x3dh_operation_queue_clean", false);
+#endif
 #endif
 }
  /* Test Scenario
@@ -3214,7 +3328,14 @@ static void lime_identity_theft(void) {
 	lime_identity_theft_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_identity_theft_test(lime::CurveId::c25519k512);
+
+	lime_identity_theft_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_identity_theft_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
  /* A simple test with alice having 1 device and bob 2
@@ -3451,9 +3572,20 @@ static void x3dh_basic(void) {
 	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic_AD", true, true);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	x3dh_basic_test(lime::CurveId::c25519k512, "lime_x3dh_basic");
 	x3dh_basic_test(lime::CurveId::c25519k512, "lime_x3dh_basic_clean", false);
 	x3dh_basic_test(lime::CurveId::c25519k512, "lime_x3dh_basic_AD", true, true);
+
+	x3dh_basic_test(lime::CurveId::c25519mlk512, "lime_x3dh_basic");
+	x3dh_basic_test(lime::CurveId::c25519mlk512, "lime_x3dh_basic_clean", false);
+	x3dh_basic_test(lime::CurveId::c25519mlk512, "lime_x3dh_basic_AD", true, true);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_basic_test(lime::CurveId::c448mlk1024, "lime_x3dh_basic");
+	x3dh_basic_test(lime::CurveId::c448mlk1024, "lime_x3dh_basic_clean", false);
+	x3dh_basic_test(lime::CurveId::c448mlk1024, "lime_x3dh_basic_AD", true, true);
+#endif
 #endif
 }
 
@@ -3558,12 +3690,17 @@ static void x3dh_double_recipient(void) {
 #ifdef EC25519_ENABLED
 	x3dh_double_recipient_test(lime::CurveId::c25519);
 #endif
-#if 0
 #ifdef EC448_ENABLED
 	x3dh_double_recipient_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	x3dh_double_recipient_test(lime::CurveId::c25519k512);
+
+	x3dh_double_recipient_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_double_recipient_test(lime::CurveId::c448mlk1024);
 #endif
 #endif
 }
@@ -3819,8 +3956,17 @@ static void x3dh_user_not_found(void) {
 	x3dh_user_not_found_test(lime::CurveId::c448, "lime_x3dh_user_not_found_clean", false);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	x3dh_user_not_found_test(lime::CurveId::c25519k512, "lime_x3dh_user_not_found");
 	x3dh_user_not_found_test(lime::CurveId::c25519k512, "lime_x3dh_user_not_found_clean", false);
+
+	x3dh_user_not_found_test(lime::CurveId::c25519mlk512, "lime_x3dh_user_not_found");
+	x3dh_user_not_found_test(lime::CurveId::c25519mlk512, "lime_x3dh_user_not_found_clean", false);
+#endif
+#ifdef EC448_ENABLED
+	x3dh_user_not_found_test(lime::CurveId::c448mlk1024, "lime_x3dh_user_not_found");
+	x3dh_user_not_found_test(lime::CurveId::c448mlk1024, "lime_x3dh_user_not_found_clean", false);
+#endif
 #endif
 }
 
@@ -3960,7 +4106,14 @@ static void user_management(void) {
 	user_management_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	user_management_test(lime::CurveId::c25519k512);
+
+	user_management_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	user_management_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -4127,7 +4280,14 @@ static void user_registration_failure(void) {
 	user_registration_failure_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	user_registration_failure_test(lime::CurveId::c25519k512);
+
+	user_registration_failure_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	user_registration_failure_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -4523,7 +4683,14 @@ static void lime_multithread(void) {
 	lime_multithread_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_multithread_test(lime::CurveId::c25519k512);
+
+	lime_multithread_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_multithread_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 	}
 }
@@ -4627,8 +4794,17 @@ static void lime_session_cancel(void) {
 	lime_session_cancel_test(lime::CurveId::c448, "lime_session_cancel_clean", false);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_session_cancel_test(lime::CurveId::c25519k512, "lime_session_cancel");
 	lime_session_cancel_test(lime::CurveId::c25519k512, "lime_session_cancel_clean", false);
+
+	lime_session_cancel_test(lime::CurveId::c25519mlk512, "lime_session_cancel");
+	lime_session_cancel_test(lime::CurveId::c25519mlk512, "lime_session_cancel_clean", false);
+#endif
+#ifdef EC448_ENABLED
+	lime_session_cancel_test(lime::CurveId::c448mlk1024, "lime_session_cancel");
+	lime_session_cancel_test(lime::CurveId::c448mlk1024, "lime_session_cancel_clean", false);
+#endif
 #endif
 }
 
@@ -4864,8 +5040,17 @@ static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const st
 #endif //HAVE_BCTBXPQ
 static void lime_kem_asymmetric_ratchet(void) {
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	BC_ASSERT_TRUE(lime_kem_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_kem_asymmetric_ratchet"));
 	BC_ASSERT_TRUE(lime_kem_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_kem_asymmetric_ratchet_clean"));
+
+	BC_ASSERT_TRUE(lime_kem_asymmetric_ratchet_test(lime::CurveId::c25519mlk512, "lime_kem_asymmetric_ratchet"));
+	BC_ASSERT_TRUE(lime_kem_asymmetric_ratchet_test(lime::CurveId::c25519mlk512, "lime_kem_asymmetric_ratchet_clean"));
+#endif
+#ifdef EC448_ENABLED
+	BC_ASSERT_TRUE(lime_kem_asymmetric_ratchet_test(lime::CurveId::c448mlk1024, "lime_kem_asymmetric_ratchet"));
+	BC_ASSERT_TRUE(lime_kem_asymmetric_ratchet_test(lime::CurveId::c448mlk1024, "lime_kem_asymmetric_ratchet_clean"));
+#endif
 #endif
 }
 

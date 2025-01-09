@@ -211,7 +211,14 @@ static void lime_multidomains_simple() {
 	lime_multidomains_simple_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_multidomains_simple_test(lime::CurveId::c25519k512);
+
+	lime_multidomains_simple_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_multidomains_simple_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -327,7 +334,14 @@ static void lime_multidomains_several_foreign() {
 	lime_multidomains_several_foreign_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_multidomains_several_foreign_test(lime::CurveId::c25519k512);
+
+	lime_multidomains_several_foreign_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_multidomains_several_foreign_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 // Scenario:
@@ -482,7 +496,14 @@ static void lime_multidomains_several_users_foreign() {
 	lime_multidomains_several_users_foreign_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_multidomains_several_users_foreign_test(lime::CurveId::c25519k512);
+
+	lime_multidomains_several_users_foreign_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_multidomains_several_users_foreign_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 

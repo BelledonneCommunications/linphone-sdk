@@ -26,7 +26,6 @@
 #endif /* HAVE_BCTBXPQ */
 
 namespace lime {
-
 /* template instanciations for Curves 25519 and 448, done  */
 #if EC25519_ENABLED
 	template class X<C255, lime::Xtype::publicKey>;
@@ -56,6 +55,16 @@ namespace lime {
 	template class K<K512, lime::Ktype::cipherText>;
 	template class K<K512, lime::Ktype::sharedSecret>;
 	template class Kpair<K512>;
+	template class K<MLK512, lime::Ktype::publicKey>;
+	template class K<MLK512, lime::Ktype::privateKey>;
+	template class K<MLK512, lime::Ktype::cipherText>;
+	template class K<MLK512, lime::Ktype::sharedSecret>;
+	template class Kpair<MLK512>;
+	template class K<MLK1024, lime::Ktype::publicKey>;
+	template class K<MLK1024, lime::Ktype::privateKey>;
+	template class K<MLK1024, lime::Ktype::cipherText>;
+	template class K<MLK1024, lime::Ktype::sharedSecret>;
+	template class Kpair<MLK1024>;
 #endif /* HAVE_BCTBXPQ */
 
 /***** Random Number Generator ********/
@@ -357,15 +366,21 @@ std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit(void) {
 	return nullptr;
 }
 
-	/* specialise KEM creation : K512 is Kyber512 */
-	template <> std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit<K512>(void) {
-		return std::make_unique<bctoolbox::KYBER512>();
-	}
+/* specialise KEM creation : K512 is Kyber512 */
+template <> std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit<K512>(void) {
+	return std::make_unique<bctoolbox::KYBER512>();
+}
+/* specialise KEM creation : MLK512 */
+template <> std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit<MLK512>(void) {
+	return std::make_unique<bctoolbox::MLKEM512>();
+}
+/* specialise KEM creation : MLK1024 */
+template <> std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit<MLK1024>(void) {
+	return std::make_unique<bctoolbox::MLKEM1024>();
+}
 
 /**
  * @brief a wrapper around bctoolbox KEM algorithms, implements the key encapsulation mechanism interface
- *
- * Provides hybrid KEM curve 25519/Kyber512
  */
 template <typename Algo>
 class bctbx_KEM : public KEM<Algo> {
@@ -397,7 +412,7 @@ class bctbx_KEM : public KEM<Algo> {
 			cleanBuffer(sk.data(), sk.size());
 		}
 		bctbx_KEM() {
-			m_ctx = bctbx_KEMInit<K512>();
+			m_ctx = bctbx_KEMInit<Algo>();
 		}
 }; // class bctbx_KEM
 #endif //HAVE_BCTBXPQ
@@ -511,12 +526,6 @@ template <> bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t 
 	static_assert(BCTBX_EDDSA_448_SIGNATURE_SIZE == DSA<C448, DSAtype::signature>::ssize(), "bctoolbox and local defines mismatch");
 #endif //EC448_ENABLED
 
-#ifdef HAVE_BCTBXPQ
-	static_assert(bctoolbox::KYBER512::kPkSize == K<K512, Ktype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::kSkSize == K<K512, Ktype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::kCtSize == K<K512, Ktype::cipherText>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::kSsSize == K<K512, Ktype::sharedSecret>::ssize(), "bctoolbox and local defines mismatch");
-#endif //HAVE_BCTBXPQ
 /**
  * @brief force a buffer values to zero in a way that shall prevent the compiler from optimizing it out
  *
@@ -544,5 +553,9 @@ void cleanBuffer(uint8_t *buffer, size_t size) {
 #ifdef HAVE_BCTBXPQ
 	template class bctbx_KEM<K512>;
 	template std::shared_ptr<KEM<K512>> make_KEM();
+	template class bctbx_KEM<MLK512>;
+	template std::shared_ptr<KEM<MLK512>> make_KEM();
+	template class bctbx_KEM<MLK1024>;
+	template std::shared_ptr<KEM<MLK1024>> make_KEM();
 #endif //HAVE_BCTBXPQ
 } // namespace lime

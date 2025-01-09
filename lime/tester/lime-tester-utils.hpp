@@ -181,8 +181,18 @@ int wait_for_mutex(belle_sip_stack_t*s1,int* counter,int value,int timeout, std:
 	extern template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles,  std::shared_ptr<RNG> RNG_context);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
+	extern template void dr_sessionsInit<C255K512>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, std::shared_ptr<RNG> RNG_context);
 	extern template void dr_devicesInit<C255K512>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255K512>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
+	extern template void dr_sessionsInit<C255MLK512>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, std::shared_ptr<RNG> RNG_context);
+	extern template void dr_devicesInit<C255MLK512>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255MLK512>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
+#ifdef EC448_ENABLED
+	extern template void dr_devicesInit<C448MLK1024>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448MLK1024>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
+	extern template void dr_sessionsInit<C448MLK1024>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::string dbFilenameBob, bool initStorage, std::shared_ptr<RNG> RNG_context);
+#endif
+#endif // HAVE_BCTBXPQ
+
 } // namespace lime_tester
 
 extern "C" {

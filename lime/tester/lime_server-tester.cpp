@@ -218,7 +218,14 @@ static void lime_server_resource_limit_reached() {
 	lime_server_resource_limit_reached_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_server_resource_limit_reached_test(lime::CurveId::c25519k512);
+
+	lime_server_resource_limit_reached_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_server_resource_limit_reached_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 
@@ -348,10 +355,17 @@ static void lime_server_bundle_request_limit_reached() {
 	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
 #endif
 #ifdef EC448_ENABLED
-	//lime_server_bundle_request_limit_reached_test(lime::CurveId::c448, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c448, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
 #endif
 #ifdef HAVE_BCTBXPQ
-	//lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519k512, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
+#ifdef EC25519_ENABLED
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519k512, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
+
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519mlk512, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
+#endif
+#ifdef EC448_ENABLED
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c448mlk1024, "lime_server_bundle_request_limit_reached_keep", lime_tester::test_x3dh_default_server);
+#endif
 #endif
 }
 
@@ -363,7 +377,14 @@ static void lime_server_bundle_request_limit_reached_stop_serving() {
 	lime_server_bundle_request_limit_reached_test(lime::CurveId::c448, "lime_server_bundle_request_limit_reached_stop", lime_tester::test_x3dh_stop_on_request_limit_server, false);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519k512, "lime_server_bundle_request_limit_reached_stop", lime_tester::test_x3dh_stop_on_request_limit_server, false);
+
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c25519mlk512, "lime_server_bundle_request_limit_reached_stop", lime_tester::test_x3dh_stop_on_request_limit_server, false);
+#endif
+#ifdef EC448_ENABLED
+	lime_server_bundle_request_limit_reached_test(lime::CurveId::c448mlk1024, "lime_server_bundle_request_limit_reached_stop", lime_tester::test_x3dh_stop_on_request_limit_server, false);
+#endif
 #endif
 }
 
@@ -559,7 +580,14 @@ static void lime_server_bundle_request_limit_reached_multiple_users() {
 	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c448);
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
 	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c25519k512);
+
+	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c25519mlk512);
+#endif
+#ifdef EC448_ENABLED
+	lime_server_bundle_request_limit_reached_multiple_users_test(lime::CurveId::c448mlk1024);
+#endif
 #endif
 }
 

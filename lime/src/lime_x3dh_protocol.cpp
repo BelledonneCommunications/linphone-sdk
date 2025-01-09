@@ -656,6 +656,8 @@ namespace lime {
 		template bool parseMessage_selfOPks<C448>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
 #ifdef HAVE_BCTBXPQ
+#ifdef EC25519_ENABLED
+		// C25519/Kyber512
 		template void buildMessage_registerUser<C255K512>(std::vector<uint8_t> &message, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik,  const SignedPreKey<C255K512> &SPk, const std::vector<OneTimePreKey<C255K512>> &OPks) noexcept;
 		template void buildMessage_deleteUser<C255K512>(std::vector<uint8_t> &message) noexcept;
 		template void buildMessage_publishSPk<C255K512>(std::vector<uint8_t> &message, const SignedPreKey<C255K512> &SPk) noexcept;
@@ -665,6 +667,30 @@ namespace lime {
 		template bool parseMessage_getType<C255K512>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
 		template bool parseMessage_getPeerBundles<C255K512>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C255K512>> &peersBundle) noexcept;
 		template bool parseMessage_selfOPks<C255K512>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
+
+		// C25519/MLKem512
+		template void buildMessage_registerUser<C255MLK512>(std::vector<uint8_t> &message, const DSA<C255MLK512::EC, lime::DSAtype::publicKey> &Ik,  const SignedPreKey<C255MLK512> &SPk, const std::vector<OneTimePreKey<C255MLK512>> &OPks) noexcept;
+		template void buildMessage_deleteUser<C255MLK512>(std::vector<uint8_t> &message) noexcept;
+		template void buildMessage_publishSPk<C255MLK512>(std::vector<uint8_t> &message, const SignedPreKey<C255MLK512> &SPk) noexcept;
+		template void buildMessage_publishOPks<C255MLK512>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C255MLK512>> &OPks) noexcept;
+		template void buildMessage_getPeerBundles<C255MLK512>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
+		template void buildMessage_getSelfOPks<C255MLK512>(std::vector<uint8_t> &message) noexcept;
+		template bool parseMessage_getType<C255MLK512>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
+		template bool parseMessage_getPeerBundles<C255MLK512>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C255MLK512>> &peersBundle) noexcept;
+		template bool parseMessage_selfOPks<C255MLK512>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
+#ifdef EC448_ENABLED
+		// C448/MLKem1024
+		template void buildMessage_registerUser<C448MLK1024>(std::vector<uint8_t> &message, const DSA<C448MLK1024::EC, lime::DSAtype::publicKey> &Ik,  const SignedPreKey<C448MLK1024> &SPk, const std::vector<OneTimePreKey<C448MLK1024>> &OPks) noexcept;
+		template void buildMessage_deleteUser<C448MLK1024>(std::vector<uint8_t> &message) noexcept;
+		template void buildMessage_publishSPk<C448MLK1024>(std::vector<uint8_t> &message, const SignedPreKey<C448MLK1024> &SPk) noexcept;
+		template void buildMessage_publishOPks<C448MLK1024>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C448MLK1024>> &OPks) noexcept;
+		template void buildMessage_getPeerBundles<C448MLK1024>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
+		template void buildMessage_getSelfOPks<C448MLK1024>(std::vector<uint8_t> &message) noexcept;
+		template bool parseMessage_getType<C448MLK1024>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const std::shared_ptr<limeCallback> callback) noexcept;
+		template bool parseMessage_getPeerBundles<C448MLK1024>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C448MLK1024>> &peersBundle) noexcept;
+		template bool parseMessage_selfOPks<C448MLK1024>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
+#endif
+#endif // HAVE_BCTBXPQ
 	} //namespace x3dh_protocol
 } //namespace lime

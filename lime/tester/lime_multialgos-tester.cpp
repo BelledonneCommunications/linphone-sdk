@@ -135,7 +135,7 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 	belle_http_provider_send_request(prov,req,l);
 });
 
-#if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
+#if defined(HAVE_BCTBXPQ)
 namespace {
 /* This function will destroy and recreate managers given in parameter, force deleting all internal cache and start back from what is in local Storage */
 void managersClean(std::unique_ptr<LimeManager> &alice, std::unique_ptr<LimeManager> &bob, std::string aliceDb, std::string bobDb) {
@@ -233,7 +233,7 @@ static bool multialgos_basic_test(const std::vector<lime::CurveId> aliceAlgos, c
 	}
 	return ret;
 }
-#endif //defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
+#endif // defined(HAVE_BCTBXPQ)
 
 static void multialgos_basic(void) {
 #if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
@@ -249,13 +249,40 @@ static void multialgos_basic(void) {
 	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage,false));
 	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage,false));
 	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519k512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c25519k512}, lime::EncryptionPolicy::cipherMessage,false));
+
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, lime::EncryptionPolicy::DRMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::DRMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c448mlk1024}, lime::EncryptionPolicy::DRMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, lime::EncryptionPolicy::DRMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::DRMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c448mlk1024}, lime::EncryptionPolicy::DRMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c448mlk1024}, lime::EncryptionPolicy::cipherMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c448mlk1024, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c448mlk1024}, lime::EncryptionPolicy::cipherMessage,false));
+#endif
+#if defined(EC448_ENABLED) && defined(HAVE_BCTBXPQ)
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, lime::EncryptionPolicy::DRMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::DRMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c25519mlk512}, lime::EncryptionPolicy::DRMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, lime::EncryptionPolicy::DRMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::DRMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c25519mlk512}, lime::EncryptionPolicy::DRMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c25519mlk512}, lime::EncryptionPolicy::cipherMessage));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519}, lime::EncryptionPolicy::cipherMessage,false));
+	BC_ASSERT_TRUE(multialgos_basic_test(std::vector<lime::CurveId>{lime::CurveId::c25519mlk512, lime::CurveId::c25519}, std::vector<lime::CurveId>{lime::CurveId::c25519, lime::CurveId::c25519mlk512}, lime::EncryptionPolicy::cipherMessage,false));
 #endif
 }
 
 
-#if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
+#if defined(HAVE_BCTBXPQ)
 namespace {
-const std::vector<lime::CurveId> allAlgos{lime::CurveId::c25519, lime::CurveId::c448, lime::CurveId::c25519k512};
+const std::vector<lime::CurveId> allAlgos{lime::CurveId::c25519, lime::CurveId::c448, lime::CurveId::c25519k512, lime::CurveId::c25519mlk512, lime::CurveId::c448mlk1024};
 bool delete_any_user(std::shared_ptr<LimeManager> Manager, std::string &username, const lime::limeCallback &callback, int &counter ) {
 	bool ret = true;
 	// loop on all possible algo and delete the user if it exists
@@ -423,7 +450,7 @@ static bool multialgos_four_users_test(const std::vector<std::vector<lime::Curve
 	}
 	return ret;
 }
-#endif // defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
+#endif // defined(HAVE_BCTBXPQ)
 
 static void multialgos_four_users_basic(void) {
 #if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
@@ -475,6 +502,20 @@ static void multialgos_four_users_migration(void) {
 			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c25519}, {lime::CurveId::c25519}, {lime::CurveId::c25519}, {lime::CurveId::c25519}},
 			lime::EncryptionPolicy::cipherMessage));
 #endif
+#if defined(EC448_ENABLED) && defined(HAVE_BCTBXPQ)
+	// Dynamic algo support
+	BC_ASSERT_TRUE(multialgos_four_users_test(
+			// alice  uses: c448 | c448mlk1024,c448 | c448mlk1024,c448 | c448mlk1024,c448
+			// bob    uses: c448 |     c448         | c448mlk1024,c448 | c448mlk1024,c448
+			// claire uses: c448 |     c448         |       c448       | c448mlk1024,c448
+			// dave   uses: c448 |     c448         |       c448       |      c448
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c448}, {lime::CurveId::c448mlk1024, lime::CurveId::c448}, {lime::CurveId::c448mlk1024, lime::CurveId::c448}, {lime::CurveId::c448mlk1024, lime::CurveId::c448}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c448}, {lime::CurveId::c448}, {lime::CurveId::c448mlk1024, lime::CurveId::c448}, {lime::CurveId::c448mlk1024, lime::CurveId::c448}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c448}, {lime::CurveId::c448}, {lime::CurveId::c448}, {lime::CurveId::c448mlk1024, lime::CurveId::c448}},
+			std::vector<std::vector<lime::CurveId>>{{lime::CurveId::c448}, {lime::CurveId::c448}, {lime::CurveId::c448}, {lime::CurveId::c448}},
+			lime::EncryptionPolicy::cipherMessage));
+#endif
+
 }
 
 /*

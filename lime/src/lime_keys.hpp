@@ -24,6 +24,10 @@
 #include <array>
 #include <iterator>
 #include "lime/lime.hpp"
+#include "bctoolbox/crypto.hh"
+#ifdef HAVE_BCTBXPQ
+#include "postquantumcryptoengine/crypto.hh"
+#endif /* HAVE_BCTBXPQ */
 
 namespace lime {
 	// Data structure type enumerations
@@ -59,9 +63,9 @@ namespace lime {
 		/// the C25519 curve id using the CurveId enumeration
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519;};
 		/// for X25519, public, private and shared secret have the same length: 32 bytes
-		static constexpr size_t Xsize(lime::Xtype dataType) {return 32;};
+		static constexpr size_t Xsize(lime::Xtype dataType) {return BCTBX_ECDH_X25519_PUBLIC_SIZE;};
 		/// for Ed25519, public and private key have the same length: 32 bytes, signature is 64 bytes long
-		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?32:64;};
+		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?BCTBX_EDDSA_25519_PUBLIC_SIZE:BCTBX_EDDSA_25519_SIGNATURE_SIZE;};
 	};
 
 	/**
@@ -74,9 +78,9 @@ namespace lime {
 		 ///the C448 curve id using the CurveId enumeration
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c448;};
 		/// for X448, public, private and shared secret have the same length 56 bytes
-		static constexpr size_t Xsize(lime::Xtype dataType) {return 56;};
+		static constexpr size_t Xsize(lime::Xtype dataType) {return BCTBX_ECDH_X448_PUBLIC_SIZE;};
 		/// for Ed448, public and private key have the same length 57 bytes, signature is 114 bytes long
-		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?57:114;};
+		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?BCTBX_EDDSA_448_PUBLIC_SIZE:BCTBX_EDDSA_448_SIGNATURE_SIZE;};
 	};
 
 	struct genericKEM {
@@ -93,26 +97,89 @@ namespace lime {
 		static constexpr size_t Ksize(lime::Ktype dataType) {
 			switch (dataType) {
 				case lime::Ktype::publicKey:
-					return 800;
+					return bctoolbox::KYBER512::kPkSize;
 				break;
 				case lime::Ktype::privateKey:
-					return 1632;
+					return bctoolbox::KYBER512::kSkSize;
 				break;
 				case lime::Ktype::cipherText:
-					return 768;
+					return bctoolbox::KYBER512::kCtSize;
 				break;
 				case lime::Ktype::sharedSecret:
-					return 32;
+					return bctoolbox::KYBER512::kSsSize;
 				break;
 			}
 			return 0; // make compiler happy
 		};
 	};
 
+	/**
+	 * @brief MLKEM 512 KEM data types size definition
+	 */
+	struct MLK512: public genericKEM {
+		/// a string to indentify this curve
+		static const std::string Id(void) {return std::string("MLKEM512");};
+		 /// mlkem512
+		static constexpr size_t Ksize(lime::Ktype dataType) {
+			switch (dataType) {
+				case lime::Ktype::publicKey:
+					return bctoolbox::MLKEM512::kPkSize;
+				break;
+				case lime::Ktype::privateKey:
+					return bctoolbox::MLKEM512::kSkSize;
+				break;
+				case lime::Ktype::cipherText:
+					return bctoolbox::MLKEM512::kCtSize;
+				break;
+				case lime::Ktype::sharedSecret:
+					return bctoolbox::MLKEM512::kSsSize;
+				break;
+			}
+			return 0; // make compiler happy
+		};
+	};
+
+	/**
+	 * @brief MLKEM 1024 KEM data types size definition
+	 */
+	struct MLK1024: public genericKEM {
+		/// a string to indentify this curve
+		static const std::string Id(void) {return std::string("MLKEM1024");};
+		 /// mlkem1024
+		static constexpr size_t Ksize(lime::Ktype dataType) {
+			switch (dataType) {
+				case lime::Ktype::publicKey:
+					return bctoolbox::MLKEM1024::kPkSize;
+				break;
+				case lime::Ktype::privateKey:
+					return bctoolbox::MLKEM1024::kSkSize;
+				break;
+				case lime::Ktype::cipherText:
+					return bctoolbox::MLKEM1024::kCtSize;
+				break;
+				case lime::Ktype::sharedSecret:
+					return bctoolbox::MLKEM1024::kSsSize;
+				break;
+			}
+			return 0; // make compiler happy
+		};
+	};
+
+	// Hybrids: c25519/kyber512 c25519/mlkem512, c448/mlkem1024
 	struct C255K512: public C255,K512 {
 		static constexpr lime::CurveId curveId(void) {return lime::CurveId::c25519k512;};
 		using EC = C255;
 		using KEM = K512;
+	};
+	struct C255MLK512: public C255,MLK512 {
+		static constexpr lime::CurveId curveId(void) {return lime::CurveId::c25519mlk512;};
+		using EC = C255;
+		using KEM = MLK512;
+	};
+	struct C448MLK1024: public C448,MLK1024 {
+		static constexpr lime::CurveId curveId(void) {return lime::CurveId::c448mlk1024;};
+		using EC = C448;
+		using KEM = MLK1024;
 	};
 #endif // HAVE_BCTBXPQ
 
