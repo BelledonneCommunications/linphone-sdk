@@ -2390,10 +2390,10 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 
 	if (stream->tee) {
 		ms_connection_helper_link(&ch, stream->tee, 0, 0);
-		ms_filter_link(stream->tee, 1, stream->output2, 0);
+		if (stream->output2) ms_filter_link(stream->tee, 1, stream->output2, 0);
 		ms_filter_link(stream->tee, 2, stream->local_jpegwriter, 0);
 	} else {
-		ms_filter_link(stream->pixconv, 0, stream->output2, 0);
+		if (stream->output2) ms_filter_link(stream->pixconv, 0, stream->output2, 0);
 	}
 
 	/* create the ticker */
@@ -2460,7 +2460,9 @@ static MSFilter *_video_preview_stop(VideoPreview *stream, bool_t keep_source) {
 			ms_filter_unlink(stream->tee, 2, stream->local_jpegwriter, 0);
 		}
 	} else {
-		ms_connection_helper_unlink(&ch, stream->output2, 0, 0);
+		if (stream->output2) {
+			ms_connection_helper_unlink(&ch, stream->output2, 0, 0);
+		}
 	}
 
 	if (keep_source) {
@@ -2508,7 +2510,7 @@ _video_preview_change_camera(VideoPreview *stream, MSWebCam *cam, MSFilter *new_
 				ms_filter_unlink(stream->tee, 2, stream->local_jpegwriter, 0);
 			}
 		} else {
-			ms_connection_helper_unlink(&ch, stream->output2, 0, 0);
+			if (stream->output2) ms_connection_helper_unlink(&ch, stream->output2, 0, 0);
 		}
 
 		/*destroy the filters */
@@ -2533,7 +2535,7 @@ _video_preview_change_camera(VideoPreview *stream, MSWebCam *cam, MSFilter *new_
 		}
 
 		configure_video_preview_source(stream);
-		ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
+		if (stream->output2) ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
 
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_link(&ch, stream->source, -1, 0);
@@ -2555,7 +2557,7 @@ _video_preview_change_camera(VideoPreview *stream, MSWebCam *cam, MSFilter *new_
 				ms_filter_link(stream->tee, 2, stream->local_jpegwriter, 0);
 			}
 		} else {
-			ms_filter_link(stream->pixconv, 0, stream->output2, 0);
+			if (stream->output2) ms_filter_link(stream->pixconv, 0, stream->output2, 0);
 		}
 
 		ms_ticker_attach(stream->ms.sessions.ticker, stream->source);
