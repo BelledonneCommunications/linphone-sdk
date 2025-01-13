@@ -1,11 +1,11 @@
 Lime
 =======
 
-LIME is an end-to-end encryption library for one-to-one and group instant messaging, allowing users to exchange messages privately and asynchronously. It uses modern ciphering curve X448 and double ratchet algorithm for perfect forward secrecy.
+LIME is an end-to-end encryption library for one-to-one and group instant messaging, allowing users to exchange messages privately and asynchronously.
 
 LIME is composed of a portable client library coupled with a public key server developed by Belledonne Communications to allow end-to-end encryption for messaging, without having to exchange cryptographic keys simultaneously.
 
-The library exposes a C, C++, Python and Java API for easy integration in mobile and desktop environments.
+The library exposes a C++ API for easy integration in mobile and desktop environments.
 
 LIME supports multiple devices per user and multiple users per device.
 
@@ -19,15 +19,13 @@ license (closed source).
 
 Copyright © Belledonne Communications SARL
 
-The content of *src/jni* directory Copyright (c) 2016 Mapbox are covered by its respective license,
-see *src/jni/LICENSE.txt*
-
-The public key server (LIME server) is not part of this software package, and is only available under a proprietary license.
+The public key server (LIME server) is not part of this software package but can be found on the [lime server repository](https://gitlab.linphone.org/BC/public/lime-server)
 
 Dependencies
 ------------
-- *bctoolbox[2]* : portability layer, built with Elliptic Curve Cryptography
-- *soci-sqlite3* : Db access
+- *bctoolbox[1]* : portability layer, built with Elliptic Curve Cryptography
+- *soci-sqlite[2]* : Db access
+- *postquantumcryptoengine[3]* : abstraction layer to Kyber and MLKEM
 
 
 Build instructions
@@ -104,13 +102,12 @@ Options
 - `ENABLE_STRICT`                 : build with strict complier flags e.g. `-Wall -Werror` (default YES)
 - `ENABLE_CURVE25519`             : Enable support of Curve 25519 (default YES)
 - `ENABLE_CURVE448`               : Enable support of Curve 448 (default YES)
+- `ENABLE_PQCRYPTO'               : Enable Post Quantum Cryptography key agreements algorithms(default NO)
 - `ENABLE_PROFILING`              : Enable code profiling for GCC (default NO)
-- `ENABLE_C_INTERFACE`            : Enable support of C89 foreign function interface (default NO)
-- `ENABLE_JNI`                    : Enable support of Java foreign function interface (default NO)
 - `ENABLE_DOC`                    : Enable documenation generation, requires Doxygen (default NO)
 
 ------------------
 
-- [1] linphone-desktop: https://gitlab.linphone.org/BC/public/linphone-desktop.git
-- [2] bctoolbox: https://gitlab.linphone.org/BC/public/bctoolbox.git
-- [3] linphone-sdk: https://gitlab.linphone.org/BC/public/linphone-sdk.git
+- [1] bctoolbox: https://gitlab.linphone.org/BC/public/bctoolbox.git
+- [2] soci: https://gitlab.linphone.org/BC/public/external/soci
+- [3] postquantumcryptoengine: https://gitlab.linphone.org/BC/public/postquantumcryptoengine

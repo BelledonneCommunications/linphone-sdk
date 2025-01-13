@@ -46,24 +46,15 @@ set(LIME_SOURCE_FILES_CXX
 	lime_log.cpp
 )
 
-if (ENABLE_C_INTERFACE)
-	set(LIME_SOURCE_FILES_CXX ${LIME_SOURCE_FILES_CXX} lime_ffi.cpp)
-endif()
-
-if (ENABLE_JNI)
-	set(LIME_SOURCE_FILES_CXX ${LIME_SOURCE_FILES_CXX} lime_jni.cpp)
-	add_subdirectory(java)
-endif()
-
 bc_apply_compile_flags(LIME_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 add_library(lime ${LIME_PRIVATE_HEADER_FILES} ${LIME_HEADER_FILES} ${LIME_SOURCE_FILES_CXX})
 set_target_properties(lime PROPERTIES VERSION ${LIME_SO_VERSION})
-target_include_directories(lime PRIVATE ${JNI_INCLUDE_DIRS} INTERFACE
+target_include_directories(lime PRIVATE INTERFACE
 	$<INSTALL_INTERFACE:include>
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
-target_link_libraries(lime PRIVATE ${BCToolbox_TARGET} ${Soci_TARGET} ${Soci_sqlite3_TARGET} ${JNI_LIBRARIES})
+target_link_libraries(lime PRIVATE ${BCToolbox_TARGET} ${Soci_TARGET} ${Soci_sqlite3_TARGET})
 if(ENABLE_PQCRYPTO)
 	target_link_libraries(lime PRIVATE ${PostQuantumCryptoEngine_TARGET})
 endif()
