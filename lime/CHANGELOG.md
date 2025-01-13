@@ -3,7 +3,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [5.3.0] - XXXX-XX-XX
+## [5.4.0] - 2024-01-14
+### Added
+- Support for KEM algorithms in X3DH and DR. Add support for mix usage:
+   - X25519+Kyber512
+   - X25519+MLKem512
+   - X448+MLKem1024
+- Support multiple base algorithm for one user
+### Changed
+- Devices are identified by GRUU+base Algo
+
+## [5.3.0] - 2023-11-23
 ### Changed
 - Lime manager keeps an open connexion to the db
 - Update timer is managed internally: keep track of last successful update for each local user
