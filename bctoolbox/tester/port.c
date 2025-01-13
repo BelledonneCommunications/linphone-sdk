@@ -94,21 +94,36 @@ static void time_functions(void) {
 
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
 	BC_ASSERT_EQUAL(bctbx_timespec_compare(&y2k, &testTs), 0, int, "%d");
-	bctbx_timespec_add(&testTs, 604800);
+	bctbx_timespec_add_secs(&testTs, 604800);
 	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec + 604800, int64_t, "%" PRIi64);
 	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%" PRIi64);
 	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs) < 0);
 
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
-	bctbx_timespec_add(&testTs, -604800);
+	bctbx_timespec_add_secs(&testTs, -604800);
 	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec - 604800, int64_t, "%" PRIi64);
 	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%" PRIi64);
 	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs) > 0);
 
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
-	bctbx_timespec_add(&testTs, -946684801);
+	bctbx_timespec_add_secs(&testTs, -946684801);
 	BC_ASSERT_EQUAL(testTs.tv_sec, 0, int64_t, "%" PRIi64);
 	BC_ASSERT_EQUAL(testTs.tv_nsec, 0, int64_t, "%" PRIi64);
+
+	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
+	bctbx_timespec_add_millisecs(&testTs, 432);
+	BC_ASSERT_EQUAL(testTs.tv_sec, 946684800, int64_t, "%" PRIi64);
+	BC_ASSERT_EQUAL(testTs.tv_nsec, 555456789, int64_t, "%" PRIi64);
+
+	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
+	bctbx_timespec_add_millisecs(&testTs, 1098);
+	BC_ASSERT_EQUAL(testTs.tv_sec, 946684801, int64_t, "%" PRIi64);
+	BC_ASSERT_EQUAL(testTs.tv_nsec, 221456789, int64_t, "%" PRIi64);
+
+	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
+	bctbx_timespec_add_millisecs(&testTs, -300);
+	BC_ASSERT_EQUAL(testTs.tv_sec, 946684799, int64_t, "%" PRIi64);
+	BC_ASSERT_EQUAL(testTs.tv_nsec, 823456789, int64_t, "%" PRIi64);
 
 	/* test the get utc time function
 	 * there is no easy way to ensure we get the correct time, just check it is at least not the time from last boot,

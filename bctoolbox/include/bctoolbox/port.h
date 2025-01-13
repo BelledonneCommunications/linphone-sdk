@@ -588,15 +588,37 @@ BCTBX_PUBLIC void bctbx_sleep_until(const bctoolboxTimeSpec *ts);
  * @return a negative value if s1 is earlier than s2, 0 if they are equal, a positive value if s1 is later than s2
  */
 BCTBX_PUBLIC int bctbx_timespec_compare(const bctoolboxTimeSpec *s1, const bctoolboxTimeSpec *s2);
+
 /**
  * @brief Add given amount of seconds to a timeSpec structure
  *
- * @param[in/out]	ts	The timeSpec structure used as input, modified in output by increnting it according to second
+ * @param[in/out]	ts	The timeSpec structure used as input, modified in output by incrementing it according to second
+ * argument
+ * @param[in]		lap	In seconds, number of seconds to modify the given timeSpec, can be negative(which may set the
+ * original timeSpec to 0)
+ * @deprecated Use bctbx_timespec_add_secs() instead.
+ */
+BCTBX_DEPRECATED BCTBX_PUBLIC void bctbx_timespec_add(bctoolboxTimeSpec *ts, const int64_t lap);
+
+/**
+ * @brief Add given amount of seconds to a timeSpec structure
+ *
+ * @param[in/out]	ts	The timeSpec structure used as input, modified in output by incrementing it according to second
  * argument
  * @param[in]		lap	In seconds, number of seconds to modify the given timeSpec, can be negative(which may set the
  * original timeSpec to 0)
  */
-BCTBX_PUBLIC void bctbx_timespec_add(bctoolboxTimeSpec *ts, const int64_t lap);
+BCTBX_PUBLIC void bctbx_timespec_add_secs(bctoolboxTimeSpec *ts, const int64_t lap);
+
+/**
+ * @brief Add given amount of milliseconds to a timeSpec structure
+ *
+ * @param[in/out]	ts	The timeSpec structure used as input, modified in output by incrementing it according to second
+ * argument
+ * @param[in]		lap	In seconds, number of milliseconds to modify the given timeSpec, can be negative(which may set
+ * the original timeSpec to 0)
+ */
+BCTBX_PUBLIC void bctbx_timespec_add_millisecs(bctoolboxTimeSpec *ts, const int64_t lap);
 
 /**
  * @brief Parse a string into a number of seconds

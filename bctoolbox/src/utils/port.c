@@ -339,7 +339,7 @@ int __bctbx_thread_join(bctbx_thread_t thread, void **ptr) {
 int __bctbx_thread_create(bctbx_thread_t *thread, pthread_attr_t *attr, void *(*routine)(void *), void *arg) {
 	pthread_attr_t my_attr;
 	bool_t use_local = !attr;
-	if(use_local){
+	if (use_local) {
 		pthread_attr_init(&my_attr);
 		attr = &my_attr;
 	}
@@ -348,7 +348,7 @@ int __bctbx_thread_create(bctbx_thread_t *thread, pthread_attr_t *attr, void *(*
 #endif
 
 	int result = pthread_create(thread, attr, routine, arg);
-	if(use_local) pthread_attr_destroy(attr);
+	if (use_local) pthread_attr_destroy(attr);
 	return result;
 }
 
@@ -983,12 +983,40 @@ void bctbx_sleep_until(const bctoolboxTimeSpec *ts) {
  * @param[in]		lap	In seconds, number of seconds to modify the given timeSpec, can be negative(which may set the
  * original timeSpec to 0)
  */
-void bctbx_timespec_add(bctoolboxTimeSpec *ts, const int64_t lap) {
+void bctbx_timespec_add_secs(bctoolboxTimeSpec *ts, const int64_t lap) {
 	if (lap < 0 && -lap > ts->tv_sec) {
 		ts->tv_sec = 0;
 		ts->tv_nsec = 0;
 	} else {
 		ts->tv_sec += lap;
+	}
+}
+
+void bctbx_timespec_add(bctoolboxTimeSpec *ts, const int64_t lap) {
+	bctbx_timespec_add_secs(ts, lap);
+}
+
+void bctbx_timespec_add_millisecs(bctoolboxTimeSpec *ts, const int64_t lap) {
+	int64_t lap_secs = lap / 1000;
+	int64_t lap_nsecs = (lap % 1000) * 1000000;
+
+	if (lap_secs != 0) {
+		bctbx_timespec_add_secs(ts, lap_secs);
+	}
+
+	if ((lap_nsecs < 0) && (-lap_nsecs > ts->tv_nsec)) {
+		if (ts->tv_sec == 0) {
+			ts->tv_nsec = 0;
+		} else {
+			ts->tv_nsec = 1000000000 - (-lap_nsecs - ts->tv_nsec);
+			ts->tv_sec--;
+		}
+	} else {
+		ts->tv_nsec += lap_nsecs;
+		if (ts->tv_nsec > 1000000000) {
+			ts->tv_sec++;
+			ts->tv_nsec = ts->tv_nsec % 1000000000;
+		}
 	}
 }
 
