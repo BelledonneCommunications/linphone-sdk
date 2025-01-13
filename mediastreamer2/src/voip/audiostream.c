@@ -45,6 +45,10 @@
 #include "private.h"
 #include <math.h>
 
+#ifdef ENABLE_BAUDOT
+#include "mediastreamer2/baudot.h"
+#endif
+
 #ifdef __ANDROID__
 #include "mediastreamer2/devices.h"
 #endif
@@ -349,6 +353,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->dtmfgen != NULL) ms_filter_destroy(stream->dtmfgen);
 	if (stream->flowcontrol != NULL) ms_filter_destroy(stream->flowcontrol);
 	if (stream->plc != NULL) ms_filter_destroy(stream->plc);
+	if (stream->baudot_detector != NULL) ms_filter_destroy(stream->baudot_detector);
 	if (stream->ec != NULL) ms_filter_destroy(stream->ec);
 	if (stream->volrecv != NULL) ms_filter_destroy(stream->volrecv);
 	if (stream->volsend != NULL) ms_filter_destroy(stream->volsend);
@@ -360,6 +365,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->read_resampler != NULL) ms_filter_destroy(stream->read_resampler);
 	if (stream->write_resampler != NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp != NULL) ms_filter_destroy(stream->dtmfgen_rtp);
+	if (stream->baudot_generator != NULL) ms_filter_destroy(stream->baudot_generator);
 	if (stream->dummy) ms_filter_destroy(stream->dummy);
 	if (stream->recv_tee) ms_filter_destroy(stream->recv_tee);
 	if (stream->recorder) ms_filter_destroy(stream->recorder);
@@ -1247,6 +1253,16 @@ static void on_voice_activity_detected_cb(void *data,
 	}
 }
 
+static void baudot_generator_character_sent_cb(void *data,
+                                               BCTBX_UNUSED(MSFilter *f),
+                                               unsigned int event_id,
+                                               BCTBX_UNUSED(void *event_arg)) {
+	AudioStream *as = (AudioStream *)data;
+	if ((as->baudot_detector != NULL) && (event_id == MS_BAUDOT_GENERATOR_CHARACTER_SENT_EVENT)) {
+		ms_filter_call_method_noarg(as->baudot_detector, MS_BAUDOT_DETECTOR_NOTIFY_CHARACTER_JUST_SENT);
+	}
+}
+
 int audio_stream_start_from_io(AudioStream *stream,
                                RtpProfile *profile,
                                const char *rem_rtp_ip,
@@ -1396,6 +1412,14 @@ int audio_stream_start_from_io(AudioStream *stream,
 	}
 	if (tev_pt != -1) rtp_session_set_send_telephone_event_payload_type(rtps, tev_pt);
 
+	if ((stream->features & AUDIO_STREAM_FEATURE_BAUDOT) &&
+	    ((strcasecmp(pt->mime_type, "pcmu") == 0) || (strcasecmp(pt->mime_type, "pcma") == 0))) {
+		stream->baudot_generator = ms_factory_create_filter(stream->ms.factory, MS_BAUDOT_GENERATOR_ID);
+		ms_filter_add_notify_callback(stream->baudot_generator, baudot_generator_character_sent_cb, stream, TRUE);
+	} else {
+		stream->baudot_generator = NULL;
+	}
+
 	if (ms_filter_call_method(stream->ms.rtpsend, MS_FILTER_GET_SAMPLE_RATE, &sample_rate) != 0) {
 		ms_error("Sample rate is unknown for RTP side !");
 		return -1;
@@ -1525,6 +1549,10 @@ int audio_stream_start_from_io(AudioStream *stream,
 	if (stream->dtmfgen_rtp) {
 		ms_filter_call_method(stream->dtmfgen_rtp, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 		ms_filter_call_method(stream->dtmfgen_rtp, MS_FILTER_SET_NCHANNELS, &nchannels);
+	}
+	if (stream->baudot_generator) {
+		ms_filter_call_method(stream->baudot_generator, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		ms_filter_call_method(stream->baudot_generator, MS_FILTER_SET_NCHANNELS, &nchannels);
 	}
 
 	// Do not set sample rate if the input is a file
@@ -1686,6 +1714,18 @@ int audio_stream_start_from_io(AudioStream *stream,
 		}
 	}
 
+	if ((stream->features & AUDIO_STREAM_FEATURE_BAUDOT) &&
+	    ((strcasecmp(pt->mime_type, "pcmu") == 0) || (strcasecmp(pt->mime_type, "pcma") == 0))) {
+		stream->baudot_detector = ms_factory_create_filter(stream->ms.factory, MS_BAUDOT_DETECTOR_ID);
+
+		if (stream->baudot_detector) {
+			ms_filter_call_method(stream->baudot_detector, MS_FILTER_SET_NCHANNELS, &nchannels);
+			ms_filter_call_method(stream->baudot_detector, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		}
+	} else {
+		stream->baudot_detector = NULL;
+	}
+
 	/* Create generic PLC if not handled by the decoder directly*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
 		int decoder_have_plc = 0;
@@ -1769,6 +1809,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 	if (stream->volsend) ms_connection_helper_link(&h, stream->volsend, 0, 0);
 	if (stream->vad) ms_connection_helper_link(&h, stream->vad, 0, 0);
 	if (stream->dtmfgen_rtp) ms_connection_helper_link(&h, stream->dtmfgen_rtp, 0, 0);
+	if (stream->baudot_generator) ms_connection_helper_link(&h, stream->baudot_generator, 0, 0);
 	if (stream->outbound_mixer) ms_connection_helper_link(&h, stream->outbound_mixer, 0, 0);
 	if (stream->vaddtx) ms_connection_helper_link(&h, stream->vaddtx, 0, 0);
 	if (!skip_encoder_and_decoder) ms_connection_helper_link(&h, stream->ms.encoder, 0, 0);
@@ -1784,6 +1825,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 			setup_local_player(stream, sample_rate, nchannels);
 		}
 	}
+	if (stream->baudot_detector) ms_connection_helper_link(&h, stream->baudot_detector, 0, 0);
 	if (stream->plc) ms_connection_helper_link(&h, stream->plc, 0, 0);
 	if (stream->flowcontrol) ms_connection_helper_link(&h, stream->flowcontrol, 0, 0);
 	if (stream->dtmfgen) ms_connection_helper_link(&h, stream->dtmfgen, 0, 0);
@@ -2395,6 +2437,7 @@ void audio_stream_stop(AudioStream *stream) {
 			if (stream->volsend != NULL) ms_connection_helper_unlink(&h, stream->volsend, 0, 0);
 			if (stream->vad != NULL) ms_connection_helper_unlink(&h, stream->vad, 0, 0);
 			if (stream->dtmfgen_rtp) ms_connection_helper_unlink(&h, stream->dtmfgen_rtp, 0, 0);
+			if (stream->baudot_generator) ms_connection_helper_unlink(&h, stream->baudot_generator, 0, 0);
 			if (stream->outbound_mixer) ms_connection_helper_unlink(&h, stream->outbound_mixer, 0, 0);
 			if (stream->vaddtx) ms_connection_helper_unlink(&h, stream->vaddtx, 0, 0);
 			if (stream->ms.encoder) ms_connection_helper_unlink(&h, stream->ms.encoder, 0, 0);
@@ -2411,6 +2454,7 @@ void audio_stream_stop(AudioStream *stream) {
 				ms_connection_helper_unlink(&h, stream->local_mixer, 0, 0);
 				dismantle_local_player(stream);
 			}
+			if (stream->baudot_detector != NULL) ms_connection_helper_unlink(&h, stream->baudot_detector, 0, 0);
 			if (stream->plc != NULL) ms_connection_helper_unlink(&h, stream->plc, 0, 0);
 			if (stream->flowcontrol != NULL) ms_connection_helper_unlink(&h, stream->flowcontrol, 0, 0);
 			if (stream->dtmfgen != NULL) ms_connection_helper_unlink(&h, stream->dtmfgen, 0, 0);
@@ -2686,4 +2730,70 @@ uint32_t audio_stream_get_send_ssrc(const AudioStream *stream) {
 
 uint32_t audio_stream_get_recv_ssrc(const AudioStream *stream) {
 	return rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session);
+}
+
+#ifndef ENABLE_BAUDOT
+static void baudot_not_enabled_warning(void) {
+	ms_warning("Mediastreamer2 has not been built with Baudot support!");
+}
+#endif
+
+void audio_stream_send_baudot_character(BCTBX_UNUSED(AudioStream *stream), BCTBX_UNUSED(const char c)) {
+#ifdef ENABLE_BAUDOT
+	if (stream->baudot_generator) {
+		ms_filter_call_method(stream->baudot_generator, MS_BAUDOT_GENERATOR_SEND_CHARACTER, (char *)&c);
+	}
+#else
+	baudot_not_enabled_warning();
+#endif
+}
+
+void audio_stream_send_baudot_string(BCTBX_UNUSED(AudioStream *stream), BCTBX_UNUSED(const char *text)) {
+#ifdef ENABLE_BAUDOT
+	if (stream->baudot_generator) {
+		ms_filter_call_method(stream->baudot_generator, MS_BAUDOT_GENERATOR_SEND_STRING, (char *)text);
+	}
+#else
+	baudot_not_enabled_warning();
+#endif
+}
+
+void audio_stream_enable_baudot_decoding(BCTBX_UNUSED(AudioStream *stream), BCTBX_UNUSED(bool_t enabled)) {
+#ifdef ENABLE_BAUDOT
+	if (stream->baudot_detector) {
+		ms_filter_call_method(stream->baudot_detector, MS_BAUDOT_DETECTOR_ENABLE_DECODING, &enabled);
+	}
+#else
+	baudot_not_enabled_warning();
+#endif
+}
+
+void audio_stream_set_baudot_sending_mode(BCTBX_UNUSED(AudioStream *stream), BCTBX_UNUSED(MSBaudotMode mode)) {
+#ifdef ENABLE_BAUDOT
+	if (stream->baudot_generator) {
+		ms_filter_call_method(stream->baudot_generator, MS_BAUDOT_GENERATOR_SET_MODE, &mode);
+	}
+#else
+	baudot_not_enabled_warning();
+#endif
+}
+
+void audio_stream_set_baudot_pause_timeout(BCTBX_UNUSED(AudioStream *stream), BCTBX_UNUSED(uint8_t seconds)) {
+#ifdef ENABLE_BAUDOT
+	if (stream->baudot_generator) {
+		ms_filter_call_method(stream->baudot_generator, MS_BAUDOT_GENERATOR_SET_PAUSE_TIMEOUT, &seconds);
+	}
+#else
+	baudot_not_enabled_warning();
+#endif
+}
+
+void audio_stream_enable_baudot_detection(BCTBX_UNUSED(AudioStream *stream), BCTBX_UNUSED(bool_t enabled)) {
+#ifdef ENABLE_BAUDOT
+	if (stream->baudot_detector) {
+		ms_filter_call_method(stream->baudot_detector, MS_BAUDOT_DETECTOR_ENABLE_DETECTION, &enabled);
+	}
+#else
+	baudot_not_enabled_warning();
+#endif
 }

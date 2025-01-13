@@ -127,6 +127,9 @@ void mediastreamer2_tester_init(void (*ftester_printf)(int level, const char *fm
 #ifdef HAVE_ZLIB
 	bc_tester_add_suite(&smff_test_suite);
 #endif
+#ifdef ENABLE_BAUDOT
+	bc_tester_add_suite(&baudot_test_suite);
+#endif
 }
 
 void mediastreamer2_tester_uninit(void) {

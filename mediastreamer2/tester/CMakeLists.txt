@@ -1,7 +1,7 @@
 ############################################################################
 # Copyright (c) 2010-2023 Belledonne Communications SARL.
 #
-# This file is part of mediastreamer2 
+# This file is part of mediastreamer2
 # (see https://gitlab.linphone.org/BC/public/mediastreamer2).
 #
 ############################################################################
@@ -32,8 +32,8 @@ if(X11_Xv_FOUND)
 endif()
 
 if(WIN32)
-    # Required for htons()
-    list(APPEND MS2_LIBS_FOR_TESTER Ws2_32)
+	# Required for htons()
+	list(APPEND MS2_LIBS_FOR_TESTER Ws2_32)
 endif()
 
 if(SpeexDSP_FOUND)
@@ -151,6 +151,18 @@ add_definitions(
 # Required for the "EGL OpenGL contexts" test in mediastreamer2_player_tester.c and h26x tester.
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../include/OpenGL" "${CMAKE_CURRENT_SOURCE_DIR}/../src/videofilters")
 
+if(ENABLE_BAUDOT)
+	list(APPEND SOURCE_FILES_CXX mediastreamer2_baudot_tester.cpp)
+	set_source_files_properties(mediastreamer2_baudot_tester.cpp PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../src")
+	list(APPEND SOUND_FILES
+		sounds/baudot_alphabet_silence.wav
+		sounds/baudot_mono_alphabet_letter_by_letter_us.wav
+		sounds/baudot_mono_alphabet_us.wav
+		sounds/baudot_mono_digits_us.wav
+		sounds/baudot_stereo_alphabet_us.wav
+	)
+endif()
+
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES_C mediastreamer2_video_stream_tester.c)
 	list(APPEND SOURCE_FILES_C filters/framemarking_tester.c)
@@ -211,7 +223,7 @@ elseif(NOT ANDROID)
 					MACOSX_BUNDLE_BUNDLE_NAME org.linphone.ms2.mediastreamer2-tester
 					MACOSX_BUNDLE_BUNDLE_VERSION 1.0
 					MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0")
-		
+
 	else()
 		add_executable(mediastreamer2-tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
 	endif()

@@ -53,6 +53,9 @@ extern test_suite_t jitterbuffer_test_suite;
 #if MS_HAS_ARM_NEON
 extern test_suite_t neon_test_suite;
 #endif
+#ifdef ENABLE_BAUDOT
+extern test_suite_t baudot_test_suite;
+#endif
 
 #if TARGET_OS_MAC || TARGET_OS_IPHONE
 int apple_main(int argc, char *argv[]);

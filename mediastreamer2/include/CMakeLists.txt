@@ -23,6 +23,7 @@
 set(HEADER_FILES
 	allfilters.h
 	android_utils.h
+	baudot.h
 	bitratecontrol.h
 	bits_rw.h
 	box-plot.h

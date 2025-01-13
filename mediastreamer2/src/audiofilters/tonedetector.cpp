@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -27,47 +27,13 @@
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mstonedetector.h"
 
-#include <math.h>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include "goertzel_state.h"
 
 #define MAX_SCANS 10
 
+using namespace mediastreamer;
+
 static const float energy_min_threshold = 0.01f;
-
-typedef struct _GoertzelState {
-	uint64_t starttime;
-	int dur;
-	float coef;
-	bool_t event_sent;
-	bool_t pad[3];
-} GoertzelState;
-
-static void goertzel_state_init(GoertzelState *gs, int frequency, int sampling_frequency) {
-	gs->coef = (float)2 * (float)cos(2 * M_PI * ((float)frequency / (float)sampling_frequency));
-	gs->starttime = 0;
-	gs->dur = 0;
-}
-
-static float goertzel_state_run(GoertzelState *gs, int16_t *samples, int nsamples, float total_energy) {
-	int i;
-	float tmp;
-	float q1 = 0;
-	float q2 = 0;
-	float freq_en;
-
-	for (i = 0; i < nsamples; ++i) {
-		tmp = q1;
-		q1 = (gs->coef * q1) - q2 + (float)samples[i];
-		q2 = tmp;
-	}
-
-	freq_en = (q1 * q1) + (q2 * q2) - (q1 * q2 * gs->coef);
-	/*return a relative frequency energy compared over the total signal energy */
-	return freq_en / (total_energy * (float)nsamples * 0.5f);
-}
 
 static float compute_energy(int16_t *samples, int nsamples) {
 	float en = 0;
@@ -120,7 +86,7 @@ static int detector_add_scan(MSFilter *f, void *arg) {
 	if (i != -1) {
 		s->tone_def[i] = *def;
 		s->nscans++;
-		goertzel_state_init(&s->tone_gs[i], def->frequency, s->rate);
+		s->tone_gs[i].init(def->frequency, s->rate);
 		return 0;
 	}
 	return -1;
@@ -145,8 +111,8 @@ static void end_all_tones(DetectorState *s) {
 	int i;
 	for (i = 0; i < s->nscans; ++i) {
 		GoertzelState *gs = &s->tone_gs[i];
-		gs->dur = 0;
-		gs->event_sent = FALSE;
+		gs->set_duration(0);
+		gs->set_event_sent(false);
 	}
 }
 
@@ -161,7 +127,7 @@ static void detector_process(MSFilter *f) {
 		}
 	}
 	if (s->nscans > 0) {
-		uint8_t *buf = alloca(s->framesize);
+		uint8_t *buf = reinterpret_cast<uint8_t *>(alloca(s->framesize));
 
 		while (ms_bufferizer_read(s->buf, buf, s->framesize) != 0) {
 			float en = compute_energy((int16_t *)buf, s->framesize / 2);
@@ -170,22 +136,22 @@ static void detector_process(MSFilter *f) {
 				for (i = 0; i < s->nscans; ++i) {
 					GoertzelState *gs = &s->tone_gs[i];
 					MSToneDetectorDef *tone_def = &s->tone_def[i];
-					float freq_en = goertzel_state_run(gs, (int16_t *)buf, s->framesize / 2, en);
+					float freq_en = gs->run(reinterpret_cast<int16_t *>(buf), s->framesize / 2, en);
 					if (freq_en >= tone_def->min_amplitude) {
-						if (gs->dur == 0) gs->starttime = f->ticker->time;
-						gs->dur += s->frame_ms;
-						if (gs->dur >= tone_def->min_duration && !gs->event_sent) {
+						if (gs->get_duration() == 0) gs->set_start_time(f->ticker->time);
+						gs->set_duration(gs->get_duration() + s->frame_ms);
+						if (gs->get_duration() >= tone_def->min_duration && !gs->is_event_sent()) {
 							MSToneDetectorEvent event;
 
 							strncpy(event.tone_name, tone_def->tone_name, sizeof(event.tone_name));
-							event.tone_start_time = gs->starttime;
+							event.tone_start_time = gs->get_start_time();
 							ms_filter_notify(f, MS_TONE_DETECTOR_EVENT, &event);
-							gs->event_sent = TRUE;
+							gs->set_event_sent(true);
 						}
 					} else {
-						gs->event_sent = FALSE;
-						gs->dur = 0;
-						gs->starttime = 0;
+						gs->set_event_sent(false);
+						gs->set_duration(0);
+						gs->set_start_time(0);
 					}
 				}
 			} else end_all_tones(s);
@@ -197,6 +163,8 @@ static MSFilterMethod detector_methods[] = {{MS_TONE_DETECTOR_ADD_SCAN, detector
                                             {MS_TONE_DETECTOR_CLEAR_SCANS, detector_clear_scans},
                                             {MS_FILTER_SET_SAMPLE_RATE, detector_set_rate},
                                             {0, NULL}};
+
+extern "C" {
 
 #ifndef _MSC_VER
 
@@ -230,5 +198,7 @@ MSFilterDesc ms_tone_detector_desc = {
 };
 
 #endif
+
+} // extern "C"
 
 MS_FILTER_DESC_EXPORT(ms_tone_detector_desc)

@@ -26,6 +26,7 @@
 #include <ortp/nack.h>
 #include <ortp/ortp.h>
 
+#include <mediastreamer2/baudot.h>
 #include <mediastreamer2/bitratecontrol.h>
 #include <mediastreamer2/dtls_srtp.h>
 #include <mediastreamer2/ice.h>
@@ -545,6 +546,8 @@ struct _AudioStream {
 	MSFilter *soundwrite;
 	MSFilter *dtmfgen;
 	MSFilter *dtmfgen_rtp;
+	MSFilter *baudot_generator;
+	MSFilter *baudot_detector;
 	MSFilter *plc;
 	MSFilter *ec;                /*echo canceler*/
 	MSFilter *volsend, *volrecv; /*MSVolumes*/
@@ -774,12 +777,13 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const
 #define AUDIO_STREAM_FEATURE_REMOTE_PLAYING (1 << 9)
 #define AUDIO_STREAM_FEATURE_FLOW_CONTROL (1 << 10)
 #define AUDIO_STREAM_FEATURE_VAD (1 << 11)
+#define AUDIO_STREAM_FEATURE_BAUDOT (1 << 12)
 
 #define AUDIO_STREAM_FEATURE_ALL                                                                                       \
 	(AUDIO_STREAM_FEATURE_PLC | AUDIO_STREAM_FEATURE_EC | AUDIO_STREAM_FEATURE_EQUALIZER |                             \
 	 AUDIO_STREAM_FEATURE_VOL_SND | AUDIO_STREAM_FEATURE_VOL_RCV | AUDIO_STREAM_FEATURE_DTMF |                         \
 	 AUDIO_STREAM_FEATURE_DTMF_ECHO | AUDIO_STREAM_FEATURE_MIXED_RECORDING | AUDIO_STREAM_FEATURE_LOCAL_PLAYING |      \
-	 AUDIO_STREAM_FEATURE_REMOTE_PLAYING | AUDIO_STREAM_FEATURE_FLOW_CONTROL)
+	 AUDIO_STREAM_FEATURE_REMOTE_PLAYING | AUDIO_STREAM_FEATURE_FLOW_CONTROL | AUDIO_STREAM_FEATURE_BAUDOT)
 
 MS2_PUBLIC uint32_t audio_stream_get_features(AudioStream *st);
 MS2_PUBLIC void audio_stream_set_features(AudioStream *st, uint32_t features);
@@ -1188,6 +1192,49 @@ MS2_PUBLIC MSSndCard *audio_stream_get_input_ms_snd_card(AudioStream *stream);
  * @param[in] stream The AudioStream object
  */
 MS2_PUBLIC MSSndCard *audio_stream_get_output_ms_snd_card(AudioStream *stream);
+
+/**
+ * Send character as Baudot tones on the audio stream.
+ * @param[in] stream The AudioStream object
+ * @param[in] c The character to be sent
+ */
+MS2_PUBLIC void audio_stream_send_baudot_character(AudioStream *stream, const char c);
+
+/**
+ * Send text as Baudot tones on the audio stream.
+ * @param[in] stream The AudioStream object
+ * @param[in] text The text to be sent
+ */
+MS2_PUBLIC void audio_stream_send_baudot_string(AudioStream *stream, const char *text);
+
+/**
+ * Enable/disable Baudot tones decoding.
+ * @param[in] stream The AudioStream object
+ * @param[in] enabled Whether to enable or disable Baudot tones decoding.
+ */
+MS2_PUBLIC void audio_stream_enable_baudot_decoding(AudioStream *stream, bool_t enabled);
+
+/**
+ * Set the Baudot mode to use in the sending_path.
+ * @param[in] stream The AudioStream object
+ * @param[in] mode The Baudot mode to use in the sending path.
+ */
+MS2_PUBLIC void audio_stream_set_baudot_sending_mode(AudioStream *stream, MSBaudotMode mode);
+
+/**
+ * Set the Baudot significant pause timeout after which a LETTERS tone is retransmitted before resuming transmission (in
+ * seconds). Default is 5s.
+ * @param[in] stream The AudioStream object
+ * @param[in] seconds The significant pause timeout in seconds.
+ */
+MS2_PUBLIC void audio_stream_set_baudot_pause_timeout(AudioStream *stream, uint8_t seconds);
+
+/**
+ * Enable/disable Baudot tones detection.
+ * @param[in] stream The AudioStream object
+ * @param[in] enabled Whether to enable or disable Baudot tones detection.
+ */
+MS2_PUBLIC void audio_stream_enable_baudot_detection(AudioStream *stream, bool_t enabled);
 
 /**
  * @}

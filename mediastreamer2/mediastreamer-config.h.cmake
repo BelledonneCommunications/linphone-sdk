@@ -86,4 +86,4 @@
 
 #cmakedefine ENABLE_OPENGL_PROFILING 1
 
-
+#cmakedefine ENABLE_BAUDOT 1

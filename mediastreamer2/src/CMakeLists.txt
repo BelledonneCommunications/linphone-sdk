@@ -1,7 +1,7 @@
 ############################################################################
 # Copyright (c) 2010-2023 Belledonne Communications SARL.
 #
-# This file is part of mediastreamer2 
+# This file is part of mediastreamer2
 # (see https://gitlab.linphone.org/BC/public/mediastreamer2).
 #
 ############################################################################
@@ -83,7 +83,6 @@ set(VOIP_SOURCE_FILES_C
 	audiofilters/msg722.c
 	audiofilters/msvaddtx.c
 	audiofilters/msvolume.c
-	audiofilters/tonedetector.c
 	audiofilters/ulaw.c
 	audiofilters/waveheader.h
 	crypto/zrtp.c
@@ -128,10 +127,12 @@ set(VOIP_SOURCE_FILES_C
 	voip/private.h
 )
 set(VOIP_SOURCE_FILES_CXX
+	audiofilters/tonedetector.cpp
 	crypto/ms_srtp.cpp
 	crypto/dtls_srtp.cpp
 	utils/filter-wrapper/decoding-filter-wrapper.cpp
 	utils/filter-wrapper/encoding-filter-wrapper.cpp
+	utils/goertzel_state.cpp
 	videofilters/smff/recorder.cpp
 	videofilters/smff/player.cpp
 	videofilters/smff/smff.cpp
@@ -206,6 +207,14 @@ if(IOS)
 	list(APPEND VOIP_SOURCE_FILES_OBJC audiofilters/msiounit.mm)
 endif()
 
+if(ENABLE_BAUDOT)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		baudot/baudot_decoding_context.cpp
+		baudot/baudot_detector_filter.cpp
+		baudot/baudot_encoding_context.cpp
+		baudot/baudot_generator_filter.cpp
+	)
+endif()
 if(ENABLE_G726)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/g726.c)
 endif()
