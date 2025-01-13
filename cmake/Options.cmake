@@ -108,6 +108,7 @@ linphonesdk_option("Non free features" "Allow inclusion of non-free features (ma
 # Activation of audio related features
 linphonesdk_strict_dependent_option("AMRNB" "AMR narrow-band audio encoding/decoding support (require license) (needs ENABLE_NON_FREE_FEATURES=ON)." OFF ON OFF "ENABLE_NON_FREE_FEATURES" "Inclusion of non-free features is not allowed (ENABLE_NON_FREE_FEATURES)")
 linphonesdk_strict_dependent_option("AMRWB" "AMR wide-band audio encoding/decoding support (require license) (needs ENABLE_NON_FREE_FEATURES=ON)." OFF ON OFF "ENABLE_NON_FREE_FEATURES" "Inclusion of non-free features is not allowed (ENABLE_NON_FREE_FEATURES)")
+linphonesdk_option("Baudot" "Baudot text transmission support." ON)
 linphonesdk_option("BV16" "BroadVoice 16 audio encoding/decoding support." ON)
 linphonesdk_option("Codec2" "Codec2 audio encoding/decoding support." OFF)
 linphonesdk_option("G726" "G726 audio encoding/decoding support." OFF)
