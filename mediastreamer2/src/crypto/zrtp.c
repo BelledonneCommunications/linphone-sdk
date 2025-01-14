@@ -43,7 +43,6 @@ struct _MSZrtpContext {
 	    *rtp_modifier;           /**< transport modifier needed to be able to inject the ZRTP packet for sending */
 	bzrtpContext_t *zrtpContext; /**< the opaque zrtp context from libbzrtp */
 	/* cache related data */
-	uint32_t limeKeyTimeSpan;    /**< amount in seconds of the lime key life span */
 	void *cacheDB;               /**< pointer to an already open sqlite db holding the zid cache */
 	bctbx_mutex_t *cacheDBMutex; /**< pointer to a mutex used to lock cache access */
 	bool_t autoStart;            /*allow zrtp to start on first hello packet received*/
@@ -855,7 +854,6 @@ MSZrtpContext *ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	userData->stream_sessions = sessions;
 	userData->self_ssrc = sessions->rtp_session->snd.ssrc;
 
-	userData->limeKeyTimeSpan = params->limeKeyTimeSpan;
 	userData->cacheDB =
 	    params->zidCacheDB; /* add a link to the ZidCache and mutex to be able to access it from callbacks */
 	userData->cacheDBMutex = params->zidCacheDBMutex;

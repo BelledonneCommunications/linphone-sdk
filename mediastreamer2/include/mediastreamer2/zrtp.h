@@ -117,8 +117,7 @@ typedef struct MSZrtpParams {
 	bctbx_mutex_t *zidCacheDBMutex; /**< pointer to a mutex used to lock cache access */
 	const char *selfUri;            /* our sip URI, needed for zrtp Cache */
 	const char *peerUri;            /* the sip URI of correspondant, needed for zrtp Cache */
-	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span, set to 0 for infinite life span **/
-	bool_t autoStart;         /*allow zrtp to start on first hello packet received*/
+	bool_t autoStart;               /*allow zrtp to start on first hello packet received*/
 	bool_t acceptGoClear;
 
 	/* activated crypto types */
