@@ -45,8 +45,8 @@
 .rocky8_test_libl_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20240705_audio_group_entrypoint
 
-.rocky9_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9:20241216_change_python_version_to_3_9
+.rocky8_python_wrapper_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-python-wrapper:20250115_init
 
 .ubuntu2004_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:20231025_remove_modules_install_from_arg

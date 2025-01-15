@@ -12,11 +12,12 @@ RUN dnf install -y sudo vim
 # Configure additional repositories
 RUN dnf install -y epel-release && \
         dnf install -y dnf-plugins-core && \
-        dnf config-manager -y --set-enabled powertools #&& \
-#        dnf install -y http://repo.okay.com.mx/centos/8/x86_64/release/okay-release-1-5.el8.noarch.rpm
+        dnf config-manager -y --set-enabled powertools
+        # && dnf install -y http://repo.okay.com.mx/centos/8/x86_64/release/okay-release-1-5.el8.noarch.rpm
 
 # Update
-RUN dnf makecache --refresh && dnf -y update
+RUN dnf makecache --refresh && \
+    dnf -y update
 
 # Install development tools
 RUN dnf -y install at bison ccache clang doxygen gettext-devel git graphviz libtool make meson nasm ninja-build patch perl redhat-lsb-core rpm-build yasm && \
@@ -30,9 +31,9 @@ RUN dnf -y install alsa-lib-devel glew-devel gsm-devel jansson-devel libbsd-deve
     dnf -y clean all
 
 # Install CMake from the tar.gz as we need a newer version than the one being packaged
-ENV CMAKE3_HOME /opt/cmake3
+ENV CMAKE3_HOME=/opt/cmake3
 RUN mkdir $CMAKE3_HOME && \
-    curl --fail --silent --show-error --location https://cmake.org/files/v3.22/cmake-3.22.0-rc2-linux-aarch64.tar.gz | tar --extract --gzip --no-same-owner --file - --strip-components=1 --directory $CMAKE3_HOME
+    curl --fail --silent --show-error --location https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.tar.gz | tar --extract --gzip --no-same-owner --file - --strip-components=1 --directory $CMAKE3_HOME
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
