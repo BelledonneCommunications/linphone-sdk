@@ -109,10 +109,10 @@ bellesip::SIP::Parser::Parser() {
 	    ->setCollector("header-privacy", make_fn(&belle_sip_parser_context_add_header))
 	    ->setCollector("header-p-preferred-identity", make_fn(&belle_sip_parser_context_add_header_check_uri))
 	    ->setCollector("header-reason", make_fn(&belle_sip_parser_context_add_header_from_parser_context))
-	    ->setCollector("header-refer-to", make_fn(&belle_sip_parser_context_add_header))
+	    ->setCollector("header-refer-to", make_fn(&belle_sip_parser_context_add_header_check_uri))
 	    ->setCollector("header-service-route", make_fn(&belle_sip_parser_context_add_header_from_parser_context))
 	    ->setCollector("header-replaces", make_fn(&belle_sip_parser_context_add_header))
-	    ->setCollector("header-referred-by", make_fn(&belle_sip_parser_context_add_header))
+	    ->setCollector("header-referred-by", make_fn(&belle_sip_parser_context_add_header_check_uri))
 	    ->setCollector("header-session-expires", make_fn(&belle_sip_parser_context_add_header))
 	    ->setCollector("header-diversion", make_fn(&belle_sip_parser_context_add_header))
 	    ->setCollector("extension-header", make_fn(&belle_sip_parser_context_add_extension_header));
@@ -333,13 +333,17 @@ bellesip::SIP::Parser::Parser() {
 	    ->setCollector("display-name", make_fn(&belle_sip_header_address_set_quoted_displayname_with_slashes))
 	    ->setCollector("uri", make_fn(&belle_sip_header_address_set_uri))
 	    ->setCollector("paramless-uri", make_fn(&belle_sip_header_address_set_uri))
-	    ->setCollector("generic-param", make_fn(&belle_sip_parameters_add));
+	    ->setCollector("generic-uri", make_fn(&belle_sip_header_address_set_generic_uri))
+	    ->setCollector("generic-uri-for-from-to-contact-addr-spec", make_fn(&belle_sip_header_address_set_generic_uri))
+	    ->setCollector("refer-to-param", make_fn(&belle_sip_parameters_add_escaped));
 
 	_parser->setHandler("header-referred-by", make_fn(&belle_sip_header_referred_by_new))
 	    ->setCollector("display-name", make_fn(&belle_sip_header_address_set_quoted_displayname_with_slashes))
 	    ->setCollector("uri", make_fn(&belle_sip_header_address_set_uri))
 	    ->setCollector("paramless-uri", make_fn(&belle_sip_header_address_set_uri))
-	    ->setCollector("generic-param", make_fn(&belle_sip_parameters_add));
+	    ->setCollector("generic-uri", make_fn(&belle_sip_header_address_set_generic_uri))
+	    ->setCollector("generic-uri-for-from-to-contact-addr-spec", make_fn(&belle_sip_header_address_set_generic_uri))
+	    ->setCollector("refer-to-param", make_fn(&belle_sip_parameters_add));
 
 	_parser->setHandler("header-replaces", make_fn(&belle_sip_header_replaces_new))
 	    ->setCollector("callid", make_fn(&belle_sip_header_replaces_set_call_id))

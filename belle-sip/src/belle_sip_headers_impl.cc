@@ -255,18 +255,24 @@ belle_sip_header_address_t *belle_sip_header_address_clone(const belle_sip_heade
 static belle_sip_error_code _belle_sip_header_address_marshal(
     belle_sip_header_address_t *header, char *buff, size_t buff_size, size_t *offset, int force_angle_quote) {
 	belle_sip_error_code error = BELLE_SIP_OK;
+	bool has_display_name = header->displayname != nullptr;
 	/*1 display name*/
-	if (header->displayname) {
+	if (has_display_name) {
 		char *escaped_display_name = belle_sip_display_name_to_backslashed_escaped_string(header->displayname);
 		error = belle_sip_snprintf(buff, buff_size, offset, "\"%s\" ", escaped_display_name);
 		belle_sip_free(escaped_display_name);
 		if (error != BELLE_SIP_OK) return error;
 	}
 	if (header->uri || header->absolute_uri) {
+		bool has_parameters = belle_sip_parameters_get_parameter_names(&header->base);
+		bool is_sip_uri_with_headers_or_parameters =
+		    (header->uri != nullptr) &&
+		    (belle_sip_parameters_get_parameter_names((belle_sip_parameters_t *)header->uri) ||
+		     belle_sip_uri_get_header_names(header->uri));
+		bool angle_quote_required =
+		    force_angle_quote || has_display_name || is_sip_uri_with_headers_or_parameters || has_parameters;
 		/*cases where < is required*/
-		if (force_angle_quote || header->displayname || header->absolute_uri ||
-		    belle_sip_parameters_get_parameter_names((belle_sip_parameters_t *)header->uri) ||
-		    belle_sip_uri_get_header_names(header->uri) || belle_sip_parameters_get_parameter_names(&header->base)) {
+		if (angle_quote_required) {
 			error = belle_sip_snprintf(buff, buff_size, offset, "%s", "<");
 			if (error != BELLE_SIP_OK) return error;
 		}
@@ -276,9 +282,7 @@ static belle_sip_error_code _belle_sip_header_address_marshal(
 			error = belle_generic_uri_marshal(header->absolute_uri, buff, buff_size, offset);
 		}
 		if (error != BELLE_SIP_OK) return error;
-		if (force_angle_quote || header->displayname || header->absolute_uri ||
-		    belle_sip_parameters_get_parameter_names((belle_sip_parameters_t *)header->uri) ||
-		    belle_sip_uri_get_header_names(header->uri) || belle_sip_parameters_get_parameter_names(&header->base)) {
+		if (angle_quote_required) {
 			error = belle_sip_snprintf(buff, buff_size, offset, "%s", ">");
 			if (error != BELLE_SIP_OK) return error;
 		}
@@ -1926,10 +1930,12 @@ belle_sip_header_subscription_state_t *belle_sip_header_subscription_state_creat
 	                                     const belle_sip_header_##name##_t *orig) {                                    \
 	}                                                                                                                  \
 	belle_sip_error_code belle_sip_header_##name##_marshal(belle_sip_header_##name##_t *name, char *buff,              \
-	                                                       size_t buff_size, size_t *offset){                          \
-	    BELLE_SIP_FROM_LIKE_MARSHAL(name, FALSE)} BELLE_SIP_NEW_HEADER(header_##name, header_address, header_name)     \
-	    BELLE_SIP_PARSE_FULL(header_##name)                                                                            \
-	        belle_sip_header_##name##_t *belle_sip_header_##name##_create(const belle_sip_header_address_t *address) { \
+	                                                       size_t buff_size, size_t *offset) {                         \
+		BELLE_SIP_FROM_LIKE_MARSHAL(name, FALSE);                                                                      \
+	}                                                                                                                  \
+	BELLE_SIP_NEW_HEADER(header_##name, header_address, header_name)                                                   \
+	BELLE_SIP_PARSE_HEADER_WITH_URI_CHECK(header_##name)                                                               \
+	belle_sip_header_##name##_t *belle_sip_header_##name##_create(const belle_sip_header_address_t *address) {         \
 		belle_sip_header_##name##_t *header = belle_sip_header_##name##_new();                                         \
 		_belle_sip_object_copy((belle_sip_object_t *)header, (belle_sip_object_t *)address);                           \
 		belle_sip_header_set_next(BELLE_SIP_HEADER(header), NULL); /*make sure only one header is kept*/               \
