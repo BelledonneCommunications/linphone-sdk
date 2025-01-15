@@ -68,6 +68,16 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
   extends: rocky8-ninja-gcc
 
+rocky8-python-wheel:
+  tags: [ "docker" ]
+  image: !reference [.rocky8_python_wrapper_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.9 -DENABLE_VIDEO=OFF -DENABLE_SOUND=OFF
+  extends: .linux-desktop-python
+
 #################################################
 # TESTS
 #################################################

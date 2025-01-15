@@ -1,4 +1,4 @@
-FROM rockylinux:9
+FROM rockylinux:8
 
 LABEL org.opencontainers.image.authors="Alexandre Jörgensen <alexandre.jorgensen@belledonne-communications.com>"
 
@@ -20,9 +20,12 @@ RUN dnf -y install ccache cmake yasm nasm doxygen gcc clang meson ninja-build pe
 RUN dnf -y install ccache openssh openssh-clients git alsa-lib-devel pulseaudio-libs-devel libv4l-devel mysql-devel sqlite-devel && \
     dnf -y clean all
 
+# Install gcc toolset 12
+RUN dnf -y install gcc-toolset-12 gcc-toolset-12-libasan-devel gcc-toolset-12-libubsan-devel gcc-toolset-12-gdb
+
 # Install python-devel and pip
-RUN dnf -y install python3.9-devel
-RUN dnf -y install python3.9-pip
+RUN dnf -y install python39-devel
+RUN dnf -y install python39-pip
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
@@ -34,7 +37,7 @@ USER bc
 WORKDIR /home/bc
 
 # Install python development tools
-RUN pip install pystache six cython wheel pdoc
+RUN pip3.9 install --user pystache six cython wheel pdoc
 
-# Add python packages to PATH
-ENV PATH="$PATH:/home/bc/.local/lib/python3.11/site-packages:/home/bc/.local/bin"
+
+ENV PATH=$PATH:/home/bc/.local/bin
