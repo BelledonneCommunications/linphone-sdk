@@ -497,8 +497,8 @@ response-sipfrag = [ status-line ] *(message-header CRLF) [ CRLF ]
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 header-refer-to = ("Refer-To" / "r") HCOLON refer-to-spec
-refer-to-spec   = ( name-addr / paramless-addr-spec ) *(SEMI generic-param) ; Initially ( name-addr / addr-spec ) *(SEMI generic-param)
-
+refer-to-spec   = ( name-addr-with-generic-uri / paramless-addr-spec-with-generic-uri ) *(SEMI refer-to-param) ; Initially ( name-addr / addr-spec ) *(SEMI generic-param)
+refer-to-param  = generic-param
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ; Rules from RFC 3608 ;

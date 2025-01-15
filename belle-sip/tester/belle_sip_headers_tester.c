@@ -1163,6 +1163,24 @@ static void test_refer_to_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "dave");
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "denver.example.org");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_refer_to));
+
+	L_refer_to = belle_sip_header_refer_to_parse("Refer-To: "
+	                                             "cid:6a650fba");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_refer_to));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_refer_to));
+	L_refer_to = belle_sip_header_refer_to_parse(l_raw_header);
+	belle_sip_free(l_raw_header);
+
+	belle_generic_uri_t *L_generic_uri =
+	    belle_sip_header_address_get_absolute_uri(BELLE_SIP_HEADER_ADDRESS(L_refer_to));
+
+	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(L_generic_uri), "cid");
+	BC_ASSERT_PTR_NULL(belle_generic_uri_get_host(L_generic_uri));
+	BC_ASSERT_PTR_NULL(belle_generic_uri_get_user(L_generic_uri));
+	BC_ASSERT_PTR_NULL(belle_generic_uri_get_user_password(L_generic_uri));
+	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_opaque_part(L_generic_uri), "6a650fba");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_refer_to));
+
 	/*test factory*/
 	L_refer_to =
 	    belle_sip_header_refer_to_create((ha = belle_sip_header_address_parse("\"super man\" <sip:titi.com>")));
