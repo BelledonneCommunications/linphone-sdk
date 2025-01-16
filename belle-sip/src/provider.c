@@ -1134,6 +1134,10 @@ static void authorization_context_fill_from_auth(authorization_context_t *auth_c
 	authorization_context_set_user_id(auth_context, from_uri ? belle_sip_uri_get_user(from_uri) : NULL);
 	authorization_context_set_authz_server(auth_context,
 	                                       belle_sip_header_www_authenticate_get_authz_server(authenticate));
+	if (!auth_context->algorithm && bctbx_strcmp("Digest", auth_context->scheme) == 0) {
+		/*default algo is MD5 in case of digest auth*/
+		authorization_context_set_algorithm(auth_context, "MD5");
+	}
 }
 
 static belle_sip_list_t *belle_sip_provider_get_auth_context_by_realm_or_call_id(belle_sip_provider_t *p,
