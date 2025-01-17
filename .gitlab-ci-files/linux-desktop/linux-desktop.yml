@@ -529,7 +529,7 @@
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
-    ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
+    ADDITIONNAL_OPTIONS: " --show-account-manager-logs --dns-server fs-test-10.linphone.org"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ${PATH_TO_TESTER}/${TESTER_BIN}"
     TESTER: "liblinphone"
     #false
@@ -542,7 +542,6 @@
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
-    ADDITIONNAL_OPTIONS: ""
 
 .test-liblinphone-crypto-backend:
   extends: .test-liblinphone
@@ -550,7 +549,6 @@
   variables:
     #true
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "true"
-    ADDITIONNAL_OPTIONS: ""
 
 .test-liblinphone-mr:
   extends: .test-liblinphone
@@ -566,7 +564,6 @@
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
-    ADDITIONNAL_OPTIONS: ""
 
 .test-liblinphone-crypto-backend-mr:
   extends: .test-liblinphone-mr
@@ -575,4 +572,3 @@
   variables:
     #true
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "true"
-    ADDITIONNAL_OPTIONS: ""
