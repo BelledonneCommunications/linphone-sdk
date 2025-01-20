@@ -30,7 +30,6 @@
 using namespace::std;
 
 namespace lime {
-	// When no mutex is provided for database access, create one
 	LimeManager::LimeManager(const std::string &db_access, const limeX3DHServerPostData &X3DH_post_data)
 		: m_users_cache(0, DeviceId::hash), m_localStorage{std::make_shared<lime::Db>(db_access)}, m_X3DH_post_data{X3DH_post_data} { }
 

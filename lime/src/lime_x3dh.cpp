@@ -602,7 +602,7 @@ namespace lime {
 								generate_OPks(OPks, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
 								std::vector<uint8_t> X3DHmessage{};
 								x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks);
-								postToX3DHServer(userData, X3DHmessage);
+								postToX3DHServer(userData, std::move(X3DHmessage));
 							} else { /* nothing to do, just call the callback */
 								if (hasCallback) (*callback)(lime::CallbackReturn::success, "");
 								cleanUserData(limeObj, userData);
@@ -698,11 +698,11 @@ namespace lime {
 			* @param[in,out]	userData	the structure holding the data structure associated to the current asynchronous operation
 			* @param[in]		message		the message to be sent
 			*/
-			void postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message) {
+			void postToX3DHServer(std::shared_ptr<callbackUserData> userData, std::vector<uint8_t> &&message) {
 				LIME_LOGI<<"Post outgoing X3DH message from user "<<this->m_selfDeviceId;
 
 				// copy capture the shared_ptr to userData
-				m_post_data(m_server_url, m_selfDeviceId, message, [userData](int responseCode, const std::vector<uint8_t> &responseBody) {
+				m_post_data(m_server_url, m_selfDeviceId, std::move(message), [userData](int responseCode, const std::vector<uint8_t> &responseBody) {
 						auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
 						// check it is valid (lock() returns nullptr)
 						if (!thiz) { // our Lime caller object doesn't exists anymore
@@ -1322,13 +1322,13 @@ namespace lime {
 				// Build and post the message to server
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey(), SPk, OPks);
-				postToX3DHServer(userData, X3DHmessage);
+				postToX3DHServer(userData, std::move(X3DHmessage));
 			}
 
 			void delete_user(std::shared_ptr<callbackUserData> userData) override {
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_deleteUser<Curve>(X3DHmessage);
-				postToX3DHServer(userData, X3DHmessage);
+				postToX3DHServer(userData, std::move(X3DHmessage));
 			}
 
 			bool is_currentSPk_valid(void) override{
@@ -1348,19 +1348,19 @@ namespace lime {
 				auto SPk = generate_SPk();
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk);
-				postToX3DHServer(userData, X3DHmessage);
+				postToX3DHServer(userData, std::move(X3DHmessage));
 			}
 
 			void update_OPk(std::shared_ptr<callbackUserData> userData) override {
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_getSelfOPks<Curve>(X3DHmessage);
-				postToX3DHServer(userData, X3DHmessage); // in the response from server, if more OPks are needed, it will generate and post them before calling the callback
+				postToX3DHServer(userData, std::move(X3DHmessage)); // in the response from server, if more OPks are needed, it will generate and post them before calling the callback
 			}
 
 			void fetch_peerBundles(std::shared_ptr<callbackUserData> userData, std::vector<std::string> &peerDeviceIds) override {
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_getPeerBundles<Curve>(X3DHmessage, peerDeviceIds);
-				postToX3DHServer(userData, X3DHmessage);
+				postToX3DHServer(userData, std::move(X3DHmessage));
 			}
 
 			std::shared_ptr<DR> init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId) override {

@@ -114,7 +114,7 @@ static void process_response(void *data, const belle_http_response_event_t *even
  * @param[in] message		The data to be sent to the X3DH server
  * @param[in] responseProcess	The function to be called when response from server arrives. Function prototype is defined in lime.hpp: (void)(int responseCode, std::vector<uint8_t>response)
  */
-static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &responseProcess){
+static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const std::string &from, std::vector<uint8_t> &&message, const limeX3DHServerResponseProcess &responseProcess){
 	belle_http_request_listener_callbacks_t cbs;
 	belle_http_request_listener_t *l;
 	belle_generic_uri_t *uri;
@@ -156,10 +156,10 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
  * @param[in] message		The data to be sent to the X3DH server
  * @param[in] responseProcess	The function to be called when response from server arrives. Function prototype is defined in lime.hpp: (void)(int responseCode, std::vector<uint8_t>response)
  */
-static limeX3DHServerPostData X3DHServerPost_Failing_Simulation([](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &responseProcess){
+static limeX3DHServerPostData X3DHServerPost_Failing_Simulation([](const std::string &url, const std::string &from, std::vector<uint8_t> &&message, const limeX3DHServerResponseProcess &responseProcess){
 	switch (httpLink) {
 		case HttpLinkStatus::reception_fail :
-			X3DHServerPost(url, from, message, [](int response_code, const std::vector<uint8_t> &responseBody){
+			X3DHServerPost(url, from, std::move(message), [](int response_code, const std::vector<uint8_t> &responseBody){
 					// This is a dummy responseProcessing, just swallow the server answer and do nothing
 					});
 		break;
@@ -168,7 +168,7 @@ static limeX3DHServerPostData X3DHServerPost_Failing_Simulation([](const std::st
 		break;
 		case HttpLinkStatus::ok :
 		default:
-			X3DHServerPost(url, from, message, responseProcess);
+			X3DHServerPost(url, from, std::move(message), responseProcess);
 		break;
 	}
 });
@@ -4582,9 +4582,9 @@ static void lime_multithread_test(const lime::CurveId curve) {
 
 	auto belle_sip_mutex = make_shared<std::recursive_mutex>(); // a mutex for belle-sip operations, must be recursive a stack processing may trigger response reception wich may trigger message sending
 
-	limeX3DHServerPostData X3DHServerPost_mutex([belle_sip_mutex](const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &responseProcess){
+	limeX3DHServerPostData X3DHServerPost_mutex([belle_sip_mutex](const std::string &url, const std::string &from, std::vector<uint8_t> &&message, const limeX3DHServerResponseProcess &responseProcess){
 			std::lock_guard<std::recursive_mutex> lock(*belle_sip_mutex); // belle_sip_mutex is recursive so a thread can acquire the lock there even if it already got it from a stack processing
-			X3DHServerPost(url, from, message, responseProcess);
+			X3DHServerPost(url, from, std::move(message), responseProcess);
 			});
 
 
