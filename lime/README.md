@@ -75,8 +75,6 @@ Test suite names are
 - *lime*: Complete testing of all features provided by the library. Requires a live X3DH server on localhost
 - *multidomains*: Tests specific to the server multidomain management. Requires a live X3DH server on localhost, does not work with the nodejs server provided with the library.
 - *server*: Tests some server configuration(resource usage limitation). Requires a live X3DH server on localhost, does not work with the nodejs server provided with the library.
-- *C_ffi*: Available only if C interface is enabled, test the C89 foreign function interface
-- *JNI*: Available only if JNI is enabled, test the Java foreign function interface
 
 
 Library settings
@@ -86,11 +84,7 @@ Some mostly harmless settings are available in *src/lime_settings.hpp*
 
 Library APIs
 -----------
-The C++11 API is available in *include/lime/lime.hpp*
-
-if enabled (see Options), a C89 FFI is provided by *include/lime/lime_ffi.h*
-
-if enabled (see Options), a java FFI is provided by *Lime.jar* located in the build directory in *src/java* subdirectory
+The C++17 API is available in *include/lime/lime.hpp*
 
 
 Options
