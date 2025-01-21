@@ -538,7 +538,7 @@
 
 .test-liblinphone-tunnel-pq:
   extends: .test-liblinphone
-  tags: [ "docker-liblinphone-tester-light" ]
+  tags: [ "docker-test-liblinphone" ]
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
@@ -546,7 +546,7 @@
 
 .test-liblinphone-crypto-backend:
   extends: .test-liblinphone
-  tags: [ "docker-liblinphone-tester-light" ]
+  tags: [ "docker-test-liblinphone" ]
   variables:
     #true
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "true"
@@ -561,7 +561,7 @@
 
 .test-liblinphone-tunnel-pq-mr:
   extends: .test-liblinphone-mr
-  tags: [ "docker-liblinphone-tester-light" ]
+  tags: [ "docker-test-liblinphone" ]
   allow_failure: false
   variables:
     #true
@@ -570,7 +570,7 @@
 
 .test-liblinphone-crypto-backend-mr:
   extends: .test-liblinphone-mr
-  tags: [ "docker-liblinphone-tester-light" ]
+  tags: [ "docker-test-liblinphone" ]
   allow_failure: false
   variables:
     #true
