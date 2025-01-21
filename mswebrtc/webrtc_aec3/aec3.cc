@@ -25,118 +25,118 @@
 #include "mediastreamer2/msfilter.h"
 #include "mswebrtc_aec3.h"
 
-static void webrtc_aec3_init(MSFilter *f) {
+static void webrtc_aec_init(MSFilter *f) {
 	mswebrtc_aec3::mswebrtc_aec3 *aec3Inst = new mswebrtc_aec3::mswebrtc_aec3(f);
 	f->data = aec3Inst;
 }
 
-static void webrtc_aec3_uninit(MSFilter *f) {
+static void webrtc_aec_uninit(MSFilter *f) {
 	mswebrtc_aec3::mswebrtc_aec3 *aec3Inst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	aec3Inst->uninit();
 	delete aec3Inst;
 	f->data = nullptr;
 }
 
-static void webrtc_aec3_preprocess(MSFilter *f) {
+static void webrtc_aec_preprocess(MSFilter *f) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	aecInst->preprocess();
 }
 
-static void webrtc_aec3_process(MSFilter *f) {
+static void webrtc_aec_process(MSFilter *f) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	aecInst->process(f);
 }
 
-static void webrtc_aec3_postprocess(MSFilter *f) {
+static void webrtc_aec_postprocess(MSFilter *f) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	aecInst->postprocess();
 }
 
-static int webrtc_aec3_set_sample_rate(MSFilter *f, void *arg) {
+static int webrtc_aec_set_sample_rate(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	return aecInst->set_sample_rate(*static_cast<int *>(arg));
 }
 
-static int webrtc_aec3_get_sample_rate(MSFilter *f, void *arg) {
+static int webrtc_aec_get_sample_rate(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	*static_cast<int *>(arg) = aecInst->get_sample_rate();
 	return 0;
 }
 
-static int webrtc_aec3_set_framesize(MSFilter *f, void *arg) {
+static int webrtc_aec_set_framesize(MSFilter *f, void *arg) {
 	/* Do nothing because the WebRTC echo canceller 3 works at a given frame
 	 * duration: 100 ms */
 	return 0;
 }
 
-static int webrtc_aec3_set_delay(MSFilter *f, void *arg) {
+static int webrtc_aec_set_delay(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	aecInst->set_delay(*static_cast<int *>(arg));
 	return 0;
 }
 
-static int webrtc_aec3_get_delay(MSFilter *f, void *arg) {
+static int webrtc_aec_get_delay(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	*static_cast<int *>(arg) = aecInst->get_delay();
 	return 0;
 }
 
-static int webrtc_aec3_set_tail_length(MSFilter *f, void *arg) {
+static int webrtc_aec_set_tail_length(MSFilter *f, void *arg) {
 	/* Do nothing because this is not needed by the WebRTC echo canceller. */
 	return 0;
 }
 
-static int webrtc_aec3_set_bypass_mode(MSFilter *f, void *arg) {
+static int webrtc_aec_set_bypass_mode(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	bool_t *bypass = static_cast<bool_t *>(arg);
 	aecInst->set_bypass_mode(*bypass);
 	return 0;
 }
 
-static int webrtc_aec3_get_bypass_mode(MSFilter *f, void *arg) {
+static int webrtc_aec_get_bypass_mode(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	*static_cast<bool_t *>(arg) = aecInst->get_bypass_mode();
 	return 0;
 }
 
-static int webrtc_aec3_set_state(MSFilter *f, void *arg) {
+static int webrtc_aec_set_state(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	aecInst->set_state(ms_strdup((const char *)arg));
 	return 0;
 }
 
-static int webrtc_aec3_get_state(MSFilter *f, void *arg) {
+static int webrtc_aec_get_state(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	*(char **)arg = aecInst->get_state();
 	return 0;
 }
 
-static MSFilterMethod webrtc_aec3_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, webrtc_aec3_set_sample_rate},
-                                               {MS_FILTER_GET_SAMPLE_RATE, webrtc_aec3_get_sample_rate},
-                                               {MS_ECHO_CANCELLER_SET_TAIL_LENGTH, webrtc_aec3_set_tail_length},
-                                               {MS_ECHO_CANCELLER_SET_DELAY, webrtc_aec3_set_delay},
-                                               {MS_ECHO_CANCELLER_SET_FRAMESIZE, webrtc_aec3_set_framesize},
-                                               {MS_ECHO_CANCELLER_SET_BYPASS_MODE, webrtc_aec3_set_bypass_mode},
-                                               {MS_ECHO_CANCELLER_GET_BYPASS_MODE, webrtc_aec3_get_bypass_mode},
-                                               {MS_ECHO_CANCELLER_GET_STATE_STRING, webrtc_aec3_get_state},
-                                               {MS_ECHO_CANCELLER_SET_STATE_STRING, webrtc_aec3_set_state},
-                                               {MS_ECHO_CANCELLER_GET_DELAY, webrtc_aec3_get_delay},
-                                               {0, NULL}};
+static MSFilterMethod webrtc_aec_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, webrtc_aec_set_sample_rate},
+                                              {MS_FILTER_GET_SAMPLE_RATE, webrtc_aec_get_sample_rate},
+                                              {MS_ECHO_CANCELLER_SET_TAIL_LENGTH, webrtc_aec_set_tail_length},
+                                              {MS_ECHO_CANCELLER_SET_DELAY, webrtc_aec_set_delay},
+                                              {MS_ECHO_CANCELLER_SET_FRAMESIZE, webrtc_aec_set_framesize},
+                                              {MS_ECHO_CANCELLER_SET_BYPASS_MODE, webrtc_aec_set_bypass_mode},
+                                              {MS_ECHO_CANCELLER_GET_BYPASS_MODE, webrtc_aec_get_bypass_mode},
+                                              {MS_ECHO_CANCELLER_GET_STATE_STRING, webrtc_aec_get_state},
+                                              {MS_ECHO_CANCELLER_SET_STATE_STRING, webrtc_aec_set_state},
+                                              {MS_ECHO_CANCELLER_GET_DELAY, webrtc_aec_get_delay},
+                                              {0, NULL}};
 
-MSFilterDesc ms_webrtc_aec3_desc = {MS_FILTER_PLUGIN_ID,
-                                    "MSWebRTCAEC3",
-                                    "Echo canceller using AEC3 in WebRTC library.",
-                                    MS_FILTER_OTHER,
-                                    NULL,
-                                    2,
-                                    2,
-                                    webrtc_aec3_init,
-                                    webrtc_aec3_preprocess,
-                                    webrtc_aec3_process,
-                                    webrtc_aec3_postprocess,
-                                    webrtc_aec3_uninit,
-                                    webrtc_aec3_methods,
-                                    0};
+MSFilterDesc ms_webrtc_aec_desc = {MS_FILTER_PLUGIN_ID,
+                                   "MSWebRTCAEC",
+                                   "Echo canceller using WebRTC library.",
+                                   MS_FILTER_OTHER,
+                                   NULL,
+                                   2,
+                                   2,
+                                   webrtc_aec_init,
+                                   webrtc_aec_preprocess,
+                                   webrtc_aec_process,
+                                   webrtc_aec_postprocess,
+                                   webrtc_aec_uninit,
+                                   webrtc_aec_methods,
+                                   0};
 
 #ifdef _MSC_VER
 #define MS_PLUGIN_DECLARE(type) extern "C" __declspec(dllexport) type
@@ -144,7 +144,7 @@ MSFilterDesc ms_webrtc_aec3_desc = {MS_FILTER_PLUGIN_ID,
 #define MS_PLUGIN_DECLARE(type) extern "C" type
 #endif
 
-MS_PLUGIN_DECLARE(void) libmswebrtcaec3_init(MSFactory *factory) {
-	ms_factory_register_filter(factory, &ms_webrtc_aec3_desc);
-	ms_message("libmswebrtcaec3 plugin registered.");
+MS_PLUGIN_DECLARE(void) libmswebrtcaec_init(MSFactory *factory) {
+	ms_factory_register_filter(factory, &ms_webrtc_aec_desc);
+	ms_message("libmswebrtcaec plugin registered.");
 }

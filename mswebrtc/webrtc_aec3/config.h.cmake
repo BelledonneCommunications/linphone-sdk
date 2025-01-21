@@ -31,4 +31,4 @@
 
 #cmakedefine HAVE_MEDIASTREAMER2_MSCOMMON_H
 
-#cmakedefine BUILD_AEC3
+#cmakedefine BUILD_AEC

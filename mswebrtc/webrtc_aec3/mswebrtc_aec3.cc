@@ -38,8 +38,7 @@
 
 #include "modules/audio_processing/aec3/echo_canceller3.h"
 
-// FIXME FHA
-#define WRITE_METRICS 0
+#define EC_DUMP 0
 
 namespace mswebrtc_aec3 {
 
@@ -233,10 +232,10 @@ void mswebrtc_aec3::process(MSFilter *f) {
 		delay_ms = aec_metrics.delay_ms;
 		echo_return_loss = aec_metrics.echo_return_loss;
 		echo_return_loss_enhancement = aec_metrics.echo_return_loss_enhancement;
-		if (WRITE_METRICS) { // FIXME FHA to remove -> replace with EC_DUMP ?
-			ms_message("current metrics : delay = %d ms, ERL = %f, ERLE = %f", aec_metrics.delay_ms,
-			           aec_metrics.echo_return_loss, aec_metrics.echo_return_loss_enhancement);
-		}
+#if defined(EC_DUMP) && EC_DUMP
+		ms_message("current metrics : delay = %d ms, ERL = %f, ERLE = %f", aec_metrics.delay_ms,
+		           aec_metrics.echo_return_loss, aec_metrics.echo_return_loss_enhancement);
+#endif
 
 		// get processed capture
 		if (sample_rate_Hz > webrtc::AudioProcessing::kSampleRate16kHz) {

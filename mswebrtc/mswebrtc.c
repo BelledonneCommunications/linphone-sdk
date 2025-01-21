@@ -39,12 +39,6 @@
 extern MSFilterDesc ms_isac_dec_desc;
 extern MSFilterDesc ms_isac_enc_desc;
 #endif
-#ifdef BUILD_AEC
-extern MSFilterDesc ms_webrtc_aec_desc;
-#endif
-#ifdef BUILD_AECM
-extern MSFilterDesc ms_webrtc_aecm_desc;
-#endif
 #ifdef BUILD_ILBC
 extern MSFilterDesc ms_webrtc_ilbc_enc_desc;
 extern MSFilterDesc ms_webrtc_ilbc_dec_desc;
@@ -65,48 +59,42 @@ extern MSFilterDesc ms_webrtc_vad_desc;
 
 MS_PLUGIN_DECLARE(void) libmswebrtc_init(MSFactory *factory) {
 #ifdef BUILD_ISAC
-	char isac_version[20] = "";
+  char isac_version[20] = "";
 #endif
 #ifdef BUILD_ILBC
-	char ilbc_version[20] = "";
+  char ilbc_version[20] = "";
 #endif
 
-	WebRtcSpl_Init();
+  WebRtcSpl_Init();
 
 #ifdef BUILD_ISAC
-	WebRtcIsacfix_version(isac_version);
-	ms_factory_register_filter(factory, &ms_isac_enc_desc);
-	ms_factory_register_filter(factory, &ms_isac_dec_desc);
-#endif
-#ifdef BUILD_AEC
-	ms_factory_register_filter(factory, &ms_webrtc_aec_desc);
-#endif
-#ifdef BUILD_AECM
-	ms_factory_register_filter(factory, &ms_webrtc_aecm_desc);
+  WebRtcIsacfix_version(isac_version);
+  ms_factory_register_filter(factory, &ms_isac_enc_desc);
+  ms_factory_register_filter(factory, &ms_isac_dec_desc);
 #endif
 #ifdef BUILD_ILBC
-	WebRtcIlbcfix_version(ilbc_version);
-	ms_factory_register_filter(factory, &ms_webrtc_ilbc_enc_desc);
-	ms_factory_register_filter(factory, &ms_webrtc_ilbc_dec_desc);
+  WebRtcIlbcfix_version(ilbc_version);
+  ms_factory_register_filter(factory, &ms_webrtc_ilbc_enc_desc);
+  ms_factory_register_filter(factory, &ms_webrtc_ilbc_dec_desc);
 #endif
 #ifdef BUILD_VAD
-	ms_factory_register_filter(factory, &ms_webrtc_vad_desc);
+  ms_factory_register_filter(factory, &ms_webrtc_vad_desc);
 #endif
 
-	ms_message("libmswebrtc " VERSION " plugin loaded"
+  ms_message("libmswebrtc " VERSION " plugin loaded"
 #ifdef BUILD_ISAC
-	           ", iSAC codec version %s"
+             ", iSAC codec version %s"
 #endif
 #ifdef BUILD_ILBC
-	           ", iLBC codec version %s"
+             ", iLBC codec version %s"
 #endif
 #ifdef BUILD_ISAC
-	           ,
-	           isac_version
+             ,
+             isac_version
 #endif
 #ifdef BUILD_ILBC
-	           ,
-	           ilbc_version
+             ,
+             ilbc_version
 #endif
-	);
+  );
 }

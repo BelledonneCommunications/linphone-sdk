@@ -85,20 +85,6 @@ if test x${build_isac} = xtrue; then
 	AC_DEFINE(BUILD_ISAC, 1, [Defined iSAC support is built])
 fi
 
-AC_ARG_ENABLE(aec,
-	[AS_HELP_STRING([--disable-aec], [Turn off WebRTC echo canceller support (default=no)])],
-	[case "${enableval}" in
-		yes)	build_aec=true ;;
-		no)	build_aec=false ;;
-		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-aec) ;;
-	esac],
-	[build_aec=true]
-)
-AM_CONDITIONAL(BUILD_AEC, test x$build_aec = xtrue)
-if test x${build_aec} = xtrue; then
-	AC_DEFINE(BUILD_AEC, 1, [Defined AEC support is built])
-fi
-
 AC_ARG_ENABLE(ilbc,
 	[AS_HELP_STRING([--disable-ilbc], [Turn off WebRTC ILBC codec filter support (default=no)])],
 	[case "${enableval}" in
@@ -113,7 +99,7 @@ if test x${build_ilbc} = xtrue; then
 	AC_DEFINE(BUILD_ILBC, 1, [Defined ILBC support is built])
 fi
 
-if test "${build_isac}${build_aec}${build_ilbc}" = "falsefalsefalse"; then
+if test "${build_isac}${build_ilbc}" = "falsefalsefalse"; then
 	AC_MSG_ERROR([You need to enable at least one feature of WebRTC.])
 fi
 
@@ -138,5 +124,4 @@ AC_OUTPUT
 
 echo "Summary of build options:"
 printf "* %-30s %s\n" "iSAC" $build_isac
-printf "* %-30s %s\n" "AEC" $build_aec
 printf "* %-30s %s\n" "ILBC" $build_ilbc

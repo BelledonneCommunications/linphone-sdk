@@ -22,9 +22,13 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-if(ENABLE_AEC3)
+if(ENABLE_AEC)
 
-project(MSWebRTCAEC3 VERSION 1.1.1 LANGUAGES C CXX)
+project(MSWebRTCAEC VERSION 1.1.1 LANGUAGES C CXX)
+
+if(UNIX)
+	add_link_options("LINKER:-no-undefined") 
+endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
 
@@ -33,19 +37,17 @@ set(PACKAGE_NAME "${PROJECT_NAME}")
 set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "support@belledonne-communications.com")
-set(PACKAGE_TARNAME "mswebrtcaec3")
+set(PACKAGE_TARNAME "mswebrtcaec")
 set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
-option(ENABLE_AEC3 "Enable the WebRTC echo canceller 3 support." YES)
+option(ENABLE_AEC "Enable the WebRTC echo canceller support." YES)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # set(CMAKE_CXX_EXTENSIONS NO)
 
 include(GNUInstallDirs)
-
-add_link_options("LINKER:-no-undefined")
 
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
@@ -73,6 +75,7 @@ if(WIN32)
 endif()
 if(ANDROID)
 	add_definitions("-DANDROID")
+	add_definitions(-DWEBRTC_LINUX, -DWEBRTC_ANDROID)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM")
@@ -86,13 +89,19 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND CMAKE_GENERATOR MATCHES "^.
 		-DWEBRTC_ARCH_ARM
 	)
 endif()
-if(UNIX)
-	add_definitions(-DWEBRTC_POSIX)
+
+# Define WEBRTC_POSIX for POSIX-compliant systems
+if(UNIX AND NOT APPLE)
+    add_definitions(-DWEBRTC_POSIX)
+    message(STATUS "Defining WEBRTC_POSIX for POSIX-compliant system")
 	if(APPLE)
 		add_definitions(-DWEBRTC_MAC -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME)
 	else()
 		add_definitions(-DWEBRTC_LINUX -DWEBRTC_THREAD_RR)
 	endif()
+elseif(WIN32)
+    add_definitions(-DWEBRTC_WIN)
+    message(STATUS "Defining WEBRTC_WIN for Windows platform")
 endif()
 
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" SYSTEM_PROCESSOR)
@@ -101,9 +110,43 @@ if(FIXED_POINT_PROCESSOR)
 	add_definitions(-D__ARMEL__)
 endif()
 
-if(SYSTEM_PROCESSOR MATCHES "^i.?86.*" OR SYSTEM_PROCESSOR MATCHES "^x86.*" OR SYSTEM_PROCESSOR MATCHES "^x86_64.*" OR SYSTEM_PROCESSOR MATCHES "^amd64.*" OR SYSTEM_PROCESSOR MATCHES "^x64.*")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx2 -mfma")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
+include(CheckCXXCompilerFlag)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set(COMPILER_SUPPORTS_AVX2 TRUE)
+	set(COMPILER_SUPPORTS_FMA FALSE)
+else()
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+	check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA)
+endif()
+
+# Detect ARM architecture
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    message(STATUS "ARM architecture detected")
+	add_definitions(-DWEBRTC_ARCH_ARM64)
+
+    # Check ARM version
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "armv7" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        message(STATUS "ARM version 7 or higher detected")
+        add_definitions(-DWEBRTC_ARCH_ARM_V7)
+
+        # Check for NEON support
+        check_cxx_compiler_flag("-mfpu=neon" COMPILER_SUPPORTS_NEON)
+        if(COMPILER_SUPPORTS_NEON)
+            message(STATUS "NEON support detected")
+            add_definitions(-DWEBRTC_HAS_NEON)
+        endif()
+    endif()
+else()
+    # Check for SSE support on non-ARM architectures
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+		message(STATUS "SSE2 support detected for msvc")
+		set(COMPILER_SUPPORTS_SSE2 TRUE)
+	else()
+		check_cxx_compiler_flag("-msse2" COMPILER_SUPPORTS_SSE2)
+		if(COMPILER_SUPPORTS_SSE2)
+			message(STATUS "SSE2 support detected")
+		endif()
+	endif()
 endif()
 
 set(AEC3_CXX17_FLAGS "-std=c++17")
@@ -113,7 +156,6 @@ set(AEC3_AUDIO_PROCESSING_DIR "${WEBRTC_AEC3_SRC_DIR}/modules/audio_processing")
 set(AEC3_SRC_DIR "${WEBRTC_AEC3_SRC_DIR}/modules/audio_processing/aec3")
 set(AEC3_API_DIR "${WEBRTC_AEC3_SRC_DIR}/api/audio")
 set(AEC3_RTCBASE_DIR "${WEBRTC_AEC3_SRC_DIR}/rtc_base")
-
 set(AEC3_SRCS
 	aec3.cc
 	mswebrtc_aec3.cc
@@ -129,9 +171,7 @@ set(AEC3_SRCS
 	${AEC3_SRC_DIR}/echo_canceller3.cc
 	${AEC3_SRC_DIR}/block_framer.cc
 	${AEC3_SRC_DIR}/api_call_jitter_metrics.cc
-	${AEC3_SRC_DIR}/adaptive_fir_filter_avx2.cc
 	${AEC3_SRC_DIR}/adaptive_fir_filter.cc
-	${AEC3_SRC_DIR}/adaptive_fir_filter_erl_avx2.cc
 	${AEC3_SRC_DIR}/adaptive_fir_filter_erl.cc
 	${AEC3_SRC_DIR}/aec3_common.cc
 	${AEC3_SRC_DIR}/aec3_fft.cc
@@ -156,11 +196,9 @@ set(AEC3_SRCS
 	${AEC3_SRC_DIR}/erle_estimator.cc
 	${AEC3_SRC_DIR}/erl_estimator.cc
 	${AEC3_SRC_DIR}/fft_buffer.cc
-	${AEC3_SRC_DIR}/fft_data_avx2.cc
 	${AEC3_SRC_DIR}/filter_analyzer.cc
 	${AEC3_SRC_DIR}/frame_blocker.cc
 	${AEC3_SRC_DIR}/fullband_erle_estimator.cc
-	${AEC3_SRC_DIR}/matched_filter_avx2.cc
 	${AEC3_SRC_DIR}/matched_filter.cc
 	${AEC3_SRC_DIR}/matched_filter_lag_aggregator.cc
 	${AEC3_SRC_DIR}/moving_average.cc
@@ -187,10 +225,9 @@ set(AEC3_SRCS
 	${AEC3_SRC_DIR}/suppression_filter.cc
 	${AEC3_SRC_DIR}/suppression_gain.cc
 	${AEC3_SRC_DIR}/transparent_mode.cc
-	${AEC3_SRC_DIR}/vector_math_avx2.cc
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/audio_util.cc
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/push_sinc_resampler.cc
-	${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler.cc
+	${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler.cc	
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_avx2.cc
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/signal_processing/splitting_filter.c
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft.cc
@@ -206,37 +243,47 @@ set(AEC3_SRCS
 	${AEC3_RTCBASE_DIR}/memory/aligned_malloc.cc
 )
 
-# bc_apply_compile_flags(AEC3_CXX14_SRCS AEC3_CXX14_FLAGS)
-if(SYSTEM_PROCESSOR MATCHES "(^aarch64.*|arm64)")
-	add_definitions(
-		-DWEBRTC_ARCH_ARM64=1
-	)
+if(COMPILER_SUPPORTS_AVX2)
+	message(STATUS "AVX2 support detected")
+	list(APPEND AEC3_SRCS
+			${AEC3_SRC_DIR}/adaptive_fir_filter_avx2.cc
+			${AEC3_SRC_DIR}/adaptive_fir_filter_erl_avx2.cc
+			${AEC3_SRC_DIR}/fft_data_avx2.cc
+			${AEC3_SRC_DIR}/matched_filter_avx2.cc
+			${AEC3_SRC_DIR}/vector_math_avx2.cc
+		)
 endif()
 
-if(SYSTEM_PROCESSOR MATCHES "^arm.*" OR SYSTEM_PROCESSOR MATCHES "^aarch64.*")
+
+if(COMPILER_SUPPORTS_NEON)
 	list(APPEND AEC3_SRCS
 		${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_neon.cc
 		${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc
 	)
-elseif(SYSTEM_PROCESSOR MATCHES "^i.?86.*" OR SYSTEM_PROCESSOR MATCHES "^x86.*" OR SYSTEM_PROCESSOR MATCHES "^x86_64.*" OR SYSTEM_PROCESSOR MATCHES "^amd64.*" OR SYSTEM_PROCESSOR MATCHES "^x64.*")
+elseif(COMPILER_SUPPORTS_SSE2)
 	list(APPEND AEC3_SRCS
 		${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_sse.cc
 		${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_sse2.cc
 	)
 endif()
 
-include_directories(
+
+if(BUILD_SHARED_LIBS)
+	if(IOS)
+		add_library(mswebrtcaec SHARED ${AEC3_SRCS})
+	else()
+		add_library(mswebrtcaec MODULE ${AEC3_SRCS})
+	endif()
+else()
+	add_library(mswebrtcaec STATIC ${AEC3_SRCS})
+endif()
+
+target_include_directories(mswebrtcaec PRIVATE
 	${WEBRTC_AEC3_SRC_DIR}
 	${AEC3_AUDIO_PROCESSING_DIR}
 	${AEC3_SRC_DIR}
 	${AEC3_API_DIR}
-	${AEC3_RTCBASE_DIR}
 	${WEBRTC_AEC3_SRC_DIR}/third_party/abseil-cpp
-	)
-
-
-set(SOURCE_FILES
-	${AEC3_SRCS}
 )
 
 set(LIBS )
@@ -245,45 +292,67 @@ if(LIBM)
 	list(APPEND LIBS ${LIBM})
 endif()
 
-if(BUILD_SHARED_LIBS)
-	if(IOS)
-		add_library(mswebrtcaec3 SHARED ${SOURCE_FILES})
-	else()
-		add_library(mswebrtcaec3 MODULE ${SOURCE_FILES})
+target_link_libraries(mswebrtcaec PRIVATE ${Mediastreamer2_TARGET} ${LIBS})
+find_package(Threads REQUIRED)
+target_link_libraries(mswebrtcaec PRIVATE Threads::Threads)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+	if(COMPILER_SUPPORTS_AVX2)
+		target_compile_options(mswebrtcaec PRIVATE "/arch:AVX2")
+		message(STATUS "set flag  /arch:AVX2")
+	endif()
+	if(COMPILER_SUPPORTS_SSE2)
+		target_compile_options(mswebrtcaec PRIVATE "/arch:SSE2")
+		message(STATUS "set flag  /arch:SSE2")
 	endif()
 else()
-	add_library(mswebrtcaec3 STATIC ${SOURCE_FILES})
+	if(COMPILER_SUPPORTS_AVX2)
+		target_compile_options(mswebrtcaec PRIVATE -mavx2)
+		target_compile_definitions(mswebrtcaec PRIVATE WEBRTC_ENABLE_AVX2)
+		message(STATUS "set compile option -mavx2 and define WEBRTC_ENABLE_AVX2")
+	endif()
+	if(COMPILER_SUPPORTS_FMA)
+		target_compile_options(mswebrtcaec PRIVATE -mfma)
+		message(STATUS "set compile option -mfma")
+	endif()
+	if(COMPILER_SUPPORTS_SSE2)
+		target_compile_options(mswebrtcaec PRIVATE -msse2)
+		message(STATUS "set compile option -msse2")
+	endif()
 endif()
-target_link_libraries(mswebrtcaec3 PRIVATE ${Mediastreamer2_TARGET} ${LIBS})
-target_link_libraries(msopenh264 PRIVATE ${Mediastreamer2_TARGET} ${OpenH264_TARGET})
 
-set_target_properties(mswebrtcaec3 PROPERTIES LINKER_LANGUAGE CXX)
+if(MSVC)
+	target_compile_definitions(mswebrtcaec PRIVATE NOMINMAX)
+endif()
+target_compile_definitions(mswebrtcaec PRIVATE WIN32_LEAN_AND_MEAN)
+
+set_target_properties(mswebrtcaec PROPERTIES LINKER_LANGUAGE CXX)
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
-			set_target_properties(mswebrtcaec3 	PROPERTIES
+			set_target_properties(mswebrtcaec 	PROPERTIES
 							FRAMEWORK TRUE
-							MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mswebrtcaec3
+							MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mswebrtcaec
 							MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			)
 		endif()
 	endif()
 	if(MSVC)
-		install(FILES $<TARGET_PDB_FILE:mswebrtcaec3>
+		install(FILES $<TARGET_PDB_FILE:mswebrtcaec>
 			DESTINATION ${CMAKE_INSTALL_BINDIR}
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			CONFIGURATIONS Debug RelWithDebInfo
 		)
 		if(NOT IOS)
-			set_target_properties(mswebrtcaec3 PROPERTIES PREFIX "lib")
+			set_target_properties(mswebrtcaec PROPERTIES PREFIX "lib")
 		endif()
 	endif()
 endif()
 
-install(TARGETS mswebrtcaec3
+install(TARGETS mswebrtcaec
 		RUNTIME DESTINATION ${Mediastreamer2_PLUGINS_DIR}
 		LIBRARY DESTINATION ${Mediastreamer2_PLUGINS_DIR}
-		ARCHIVE DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
