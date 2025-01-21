@@ -252,7 +252,6 @@ void ms_factory_init(MSFactory *obj) {
 	ms_factory_add_platform_tag(obj, "desktop");
 #endif
 	obj->echo_canceller_filtername = ms_strdup("MSWebRTCAEC");
-	// obj->echo_canceller_3_filtername = ms_strdup("MSWebRTCAEC3");
 	tags = ms_factory_get_platform_tags_as_string(obj);
 	ms_message("ms_factory_init() done: platform_tags=%s", tags);
 	ms_free(tags);

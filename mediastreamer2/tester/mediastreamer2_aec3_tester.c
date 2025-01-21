@@ -32,8 +32,8 @@
 #include "mediastreamer2_tester_private.h"
 #include "ortp/port.h"
 
-#ifdef ENABLE_WEBRTC_AEC3
-extern void libmswebrtcaec3_init(MSFactory *factory);
+#ifdef ENABLE_WEBRTC_AEC
+extern void libmswebrtcaec_init(MSFactory *factory);
 #endif
 
 // double talk
@@ -239,7 +239,7 @@ static bool_t aec_base(const aec_test_config *config, const int delay_ms, int *e
 	ms_tester_create_filters(filter_mask, msFactory);
 
 	// AEC3 filter
-	MSFilterDesc *ec_desc = ms_factory_lookup_filter_by_name(msFactory, "MSWebRTCAEC3");
+	MSFilterDesc *ec_desc = ms_factory_lookup_filter_by_name(msFactory, "MSWebRTCAEC");
 	bool_t bypass_mode = FALSE;
 	aec = ms_factory_create_filter_from_desc(msFactory, ec_desc);
 	ms_filter_call_method(aec, MS_ECHO_CANCELLER_SET_STATE_STRING, "1048576");
@@ -760,7 +760,7 @@ static void simple_talks_with_several_delays(void) {
 			free(config.record_file);
 		}
 		config.record_file = ms_tester_get_random_filename(baseName, ".wav");
-		int energy_threshold = 1.;
+		double energy_threshold = 1.;
 		if (delays[i] > 400) energy_threshold = 3.;
 		const audio_analysis_param analysis_param =
 		    set_audio_analysis_param(delay_ms, 12500, 14500, 11000, 0.99, energy_threshold);
