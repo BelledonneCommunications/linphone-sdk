@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support multiple base algorithm for one user
 ### Changed
 - Devices are identified by GRUU+base Algo
+- Db schema updated from version 0.0.1 to 0.3.0
+### Removed
+- Support for java and C API
 
 ## [5.3.0] - 2023-11-23
 ### Changed

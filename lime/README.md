@@ -51,6 +51,10 @@ To generate the Doxygen documentation files (having ran the cmake command with E
 
 Comprehensive documentation on implementation choices and built-in protocols in *lime.pdf*
 
+To generate this document from the LaTeX source, run in this folder(to use the archived version of msc.sty):
+```
+latexmk -pdf -synctex=1 lime.tex
+```
 
 Testing
 -------
