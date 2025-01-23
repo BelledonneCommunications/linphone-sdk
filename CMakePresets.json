@@ -104,6 +104,70 @@
       }
     },
     {
+      "name": "bundled-android-common",
+      "inherits": "android-common",
+      "hidden": true,
+      "cacheVariables": {
+        "BUILD_BCTOOLBOX_SHARED_LIBS": "OFF",
+        "BUILD_JSONCPP_SHARED_LIBS": "OFF",
+        "BUILD_LIBJPEGTURBO_SHARED_LIBS": "OFF",
+        "BUILD_LIBSRTP2_SHARED_LIBS": "OFF",
+        "BUILD_MEDIASTREAMER2_SHARED_LIBS": "OFF",
+        "BUILD_MSAAUDIO_SHARED_LIBS": "OFF",
+        "BUILD_MSANDROIDCAMERA2_SHARED_LIBS": "OFF",
+        "BUILD_MSWEBRTC_SHARED_LIBS": "OFF",
+        "BUILD_ORTP_SHARED_LIBS": "OFF",
+        "BUILD_ZXINGCPP_SHARED_LIBS": "OFF",
+        "LINPHONESDK_PLATFORM": "BundledAndroid"
+      }
+    },
+    {
+      "name": "bundled-android-arm64",
+      "inherits": "bundled-android-common",
+      "displayName": "Config for Android arm64 (Bundled in a single shared lib)",
+      "description": "Build for Android arm64 using Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-bundled-android-arm64.cmake"
+      }
+    },
+    {
+      "name": "bundled-android-armv7",
+      "inherits": "bundled-android-common",
+      "displayName": "Config for Android armv7 (Bundled in a single shared lib)",
+      "description": "Build for Android armv7 using Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-bundled-android-armv7.cmake",
+        "ENABLE_ARM_NEON_INTRINSICS": "ON"
+      }
+    },
+    {
+      "name": "bundled-android-x86",
+      "inherits": "bundled-android-common",
+      "displayName": "Config for Android x86 (Bundled in a single shared lib)",
+      "description": "Build for Android x86 using Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-bundled-android-x86.cmake"
+      }
+    },
+    {
+      "name": "bundled-android-x86_64",
+      "inherits": "bundled-android-common",
+      "displayName": "Config for Android x86_64 (Bundled in a single shared lib)",
+      "description": "Build for Android x86_64 using Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-bundled-android-x86_64.cmake"
+      }
+    },
+    {
+      "name": "bundled-android-sdk",
+      "inherits": "bundled-android-common",
+      "displayName": "Config for Android (Bundled in a single shared lib)",
+      "description": "Build for Android (package for all selected archs)",
+      "cacheVariables": {
+        "LINPHONESDK_BUILD_TYPE": "BundledAndroid"
+      }
+    },
+    {
       "name": "default",
       "displayName": "Default Config",
       "description": "Default build using Unix Makefiles generator",

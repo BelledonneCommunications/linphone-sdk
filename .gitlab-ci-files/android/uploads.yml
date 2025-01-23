@@ -118,3 +118,11 @@ android-upload-g729-ldap-post-quantum:
     MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
   needs:
     - android-makefile-r27-g729-ldap-post-quantum
+
+bundled-android-upload:
+  extends: .android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+    MAVEN_REPO_PATH: bundled
+  needs:
+    - bundled-android-ninja-r27

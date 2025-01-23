@@ -28,6 +28,7 @@ recache-android:
 
   variables:
     CCACHE_SIZE: 4G
+    CMAKE_PRESET: android-sdk
 
   extends: .linux-prepare
 
@@ -36,7 +37,7 @@ recache-android:
     - echo $ANDROID_ARCHS
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake --preset=android-sdk -B build/android -G "$CMAKE_GENERATOR" $CMAKE_BUILD_TYPE -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
+    - cmake --preset=$CMAKE_PRESET -B build/android -G "$CMAKE_GENERATOR" $CMAKE_BUILD_TYPE -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
     - cmake --build build/android -- $ADDITIONAL_BUILD_OPTIONS
     #Get SDK version from cached cmake variables
     - cd build/android
@@ -83,6 +84,23 @@ android-ninja-r27:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+  extends: .android
+  needs:
+    - wait-cache-synchro-android
+
+bundled-android-ninja-r27:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
+  image: !reference [.android_r27_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+    CMAKE_PRESET: bundled-android-sdk
   extends: .android
   needs:
     - wait-cache-synchro-android
