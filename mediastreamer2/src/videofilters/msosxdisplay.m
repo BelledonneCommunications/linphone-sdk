@@ -385,9 +385,7 @@ static void osx_gl_process(MSFilter* f) {
 static void osx_gl_uninit(MSFilter* f) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
 	if (thiz != nil) {
-		NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
-		[thiz release];
-		[loopPool drain];
+	   [thiz performSelectorOnMainThread:@selector(release) withObject:nil waitUntilDone:FALSE];
 	}
 }
 
