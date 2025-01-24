@@ -308,4 +308,11 @@ Before embedding these features in your final application, **make sure to have t
 
 For more information, please visit [our dedicated wiki page](https://wiki.linphone.org/xwiki/wiki/public/view/Linphone/Third%20party%20components%20/)
 
+## Swift Package Manager (SPM) iOS and MacOS
+
+Building the SDK for Mac or iOS with swift wrapper generation enabled will build a local SPM.
+Note that SPM on MacOS requires FAT_BINARY option to be turned off.
+
+Example iOS: cmake --preset=ios-sdk -G Ninja -B spm-ios && cmake --build spm-ios -> will build a SPM under  spm-ios/linphone-sdk-swift-ios
+Example MacOS: cmake --preset=mac-sdk -G Ninja -B spm-macos -DENABLE_FAT_BINARY=NO &&  cmake --build spm-macos  -> will build a SPM under spm-macos/linphone-sdk-swift-macos 
 

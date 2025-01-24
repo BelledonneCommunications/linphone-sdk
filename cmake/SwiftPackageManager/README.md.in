@@ -1,0 +1,80 @@
+
+# Linphone SDK Swift Package
+
+**Linphone SDK** is a library to create VoIP and IM apps, based on SIP protocol.
+
+# Usage examples
+
+```swift
+	import linphonesw
+	
+	[...]
+	print("Linphone SDK informations = \(linphonesw.sdkVersion) (\(linphonesw.sdkBranch))")
+	if let config = try?Factory.Instance.createConfig(path: "sometpath"),
+	   let core = try?Factory.Instance.createCoreWithConfig(config: config, systemContext: nil),
+	   let address = try?Factory.Instance.createAddress(addr: "sip:user@domain") {
+		let call = core.inviteAddress(addr: address)
+		// SIP call establishment starts automatically
+	}
+```
+
+# Build information
+
+version : @LINPHONESDK_VERSION@
+branch : @LINPHONESDK_BRANCH@
+architecture : @VALID_ARCHS@
+
+@LINPHONESDK_ENABLED_FEATURES@
+
+# How to use public swift package
+
+- Open your Xcode Project
+- Menu File -> Add Package Dependencies
+- On top right entry field enter https://gitlab.linphone.org:/public/linphone-sdk-swift
+- Select your target
+- in your classes add :
+	import linphonesw (or linphone for C functions)
+- use linphone-sdk functions
+
+# How to use a locally built package without version control
+
+- Open your Xcode Project
+- Menu File -> Add Package Dependencies
+- Add Local
+- Navigate to the <build folder>
+- select linphone-sdk-swift-@SWIFT_PACKAGE_TARGET@
+- Add Package
+- Select your target
+- in your classes add :
+	import linphonesw (or linphone for C functions)
+- use linphone-sdk functions
+
+# How to use a locally built package with version control
+
+- from terminal navigate to <build folder>/linphone-sdk-swift-@SWIFT_PACKAGE_TARGET@
+- git init
+- git add .
+- git commit -a -m "Swift package @LINPHONESDK_VERSION@"
+- git tag -a @LINPHONESDK_VERSION@ -m "linphone-sdk @LINPHONESDK_VERSION@"
+- Open your Xcode Project
+- Menu File -> Add Package Dependencies
+- On top right entry field enter file://<build folder>/linphone-sdk-swift-@SWIFT_PACKAGE_TARGET@
+- Select your target
+- in your classes add :
+	import linphonesw (or linphone for C functions)
+- use linphone-sdk functions
+
+# How to remove local package in your project
+
+- Navigate to Project
+- Select "Package Dependencies" tab
+- Remove the package dependency.
+- If you are using a local package you may need to
+	* navigate to your application target(s) using the package
+	* open Build Phases / Link Binary With Libraries
+	* remove manually linphonesw -> important as Xcode may add many occurences leading to compilation failures
+
+# License
+
+@LINPHONESDK_LICENSE@
+
