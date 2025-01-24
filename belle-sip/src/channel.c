@@ -1155,8 +1155,8 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj) {
 			                             belle_sip_object_ref(obj));
 			return;
 		} /*else we have already tried all the ip addresses, so give up and notify the error*/
-	}     /*else the channel was previously working good with the current ip address but now fails, so let's notify the
-	         error*/
+	} /*else the channel was previously working good with the current ip address but now fails, so let's notify the
+	     error*/
 
 	obj->state = BELLE_SIP_CHANNEL_ERROR;
 	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
@@ -1261,7 +1261,7 @@ static char *make_logbuf(belle_sip_channel_t *obj,
                          belle_sip_direction_t direction) {
 	char *logbuf;
 	char truncate_msg[128] = {0};
-	size_t limit = 7000; /*big message when many ice candidates*/
+	size_t limit = 14000; /*typically a big INVITE with many streams and ice candidates*/
 
 	if (!belle_sip_log_level_enabled(level)) {
 		return NULL;
