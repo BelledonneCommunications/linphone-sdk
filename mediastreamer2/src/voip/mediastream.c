@@ -161,11 +161,19 @@ void media_stream_remove_goog_remb_handler(MediaStream *stream,
 	                              (OrtpEvDispatcherCb)on_goog_remb_received);
 }
 
-static void on_ssrc_changed(RtpSession *session) {
+static void on_ssrc_changed(RtpSession *session,
+                            BCTBX_UNUSED(void *unused1),
+                            BCTBX_UNUSED(void *unused2),
+                            BCTBX_UNUSED(void *unused3)) {
 	ms_message("SSRC change detected !");
 	rtp_session_resync(session);
 }
-
+static void rtp_session_resync_cb(RtpSession *session,
+                                  BCTBX_UNUSED(void *unused1),
+                                  BCTBX_UNUSED(void *unused2),
+                                  BCTBX_UNUSED(void *unused3)) {
+	rtp_session_resync(session);
+}
 RtpSession *ms_create_duplex_rtp_session(const char *local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
 	RtpSession *rtpr;
 	const int socket_buf_size = 2000000;
@@ -187,7 +195,7 @@ RtpSession *ms_create_duplex_rtp_session(const char *local_ip, int loc_rtp_port,
 		}
 	}
 
-	rtp_session_signal_connect(rtpr, "timestamp_jump", (RtpCallback)rtp_session_resync, NULL);
+	rtp_session_signal_connect(rtpr, "timestamp_jump", (RtpCallback)rtp_session_resync_cb, NULL);
 	rtp_session_signal_connect(rtpr, "ssrc_changed", (RtpCallback)on_ssrc_changed, NULL);
 
 	rtp_session_set_ssrc_changed_threshold(rtpr, 0);

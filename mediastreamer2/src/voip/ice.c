@@ -3029,7 +3029,7 @@ static int ice_find_stun_server_request_transaction(IceStunServerRequest *reques
 	        NULL);
 }
 
-static int ice_compare_stun_server_requests_to_remove(IceStunServerRequest *request) {
+static int ice_compare_stun_server_requests_to_remove(IceStunServerRequest *request, BCTBX_UNUSED(void *unused)) {
 	return request->to_remove == FALSE;
 }
 
@@ -4326,7 +4326,7 @@ void ice_session_reset(IceSession *session, IceRole role) {
  * GLOBAL PROCESS                                                             *
  *****************************************************************************/
 
-static int ice_find_gathering_stun_server_request(const IceStunServerRequest *request) {
+static int ice_find_gathering_stun_server_request(const IceStunServerRequest *request, BCTBX_UNUSED(void *unused)) {
 	return request->gathering == FALSE;
 }
 
