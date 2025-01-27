@@ -2002,9 +2002,6 @@ int mblen(const char *s, size_t n) {
 	mbstate_t state = {};
 	return (int)mbrlen(s, n, &state);
 }
-int wctomb(char *s, wchar_t wc) {
-	return wcrtomb(s, wc, NULL);
-}
 #endif
 
 int bctbx_strcasecmp(const char *a, const char *b) {
