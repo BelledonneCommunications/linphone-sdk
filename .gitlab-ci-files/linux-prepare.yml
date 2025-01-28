@@ -123,7 +123,6 @@ recache-get-from-branch:
     #Misleading name, means no compression at all
     CACHE_COMPRESSION_LEVEL: "fastest"
     CCACHE_DIRECTORY_NAME: "ccache"
-    FF_USE_FASTZIP: 1
 
     # Will work after the update to Gitlab 14
     FF_SCRIPT_SECTIONS: 1
