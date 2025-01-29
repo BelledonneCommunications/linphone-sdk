@@ -51,12 +51,12 @@ recache-android:
       - build/android/linphone-sdk/bin/outputs/aar/*.aar
       - build/android/linphone-sdk/bin/libs/linphone-sdk-android-javadoc.jar
       - build/android/linphone-sdk/bin/libs/linphone-sdk-android-sources.jar
-      - build/android/linphone-sdk/bin/distributions/linphone-sdk-*.zip
+      - build/android/linphone-sdk/bin/distributions/linphone-sdk-android-libs-debug.zip
       - build/android/linphone-sdk/bin/docs/javadoc/*
 
       # Needed for tester
-      - build/android/libs-debug/*
-      - linphone/tester/*
+      # - build/android/libs-debug/*
+      # - linphone/tester/*
 
       # Needed of uploads
       - build/android/build.gradle

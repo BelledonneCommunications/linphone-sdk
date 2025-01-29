@@ -25,7 +25,7 @@
     - cd build/android
     - mkdir -p maven_repository/org/linphone/
     - echo $MAVEN_REPO_PATH
-    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
+    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" --exclude "*.zip" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
     - ../../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
     - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $MAVEN_REPO_URL/org/linphone/
