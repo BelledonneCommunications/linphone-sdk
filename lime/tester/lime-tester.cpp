@@ -25,11 +25,6 @@
 
 static const char *log_domain = "lime";
 bool cleanDatabase = true;
-#ifdef FFI_ENABLED
-extern "C" {
-uint8_t ffi_cleanDatabase = 1;
-}
-#endif
 bool bench = false;
 
 static void log_handler(int lev, const char *fmt, va_list args) {
@@ -57,9 +52,6 @@ void lime_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list 
 	bc_tester_add_suite(&lime_lime_test_suite);
 	bc_tester_add_suite(&lime_massive_group_test_suite);
 	bc_tester_add_suite(&lime_helloworld_test_suite);
-#ifdef FFI_ENABLED
-	bc_tester_add_suite(&lime_ffi_test_suite);
-#endif
 	bc_tester_add_suite(&lime_multidomains_test_suite);
 	bc_tester_add_suite(&lime_server_test_suite);
 	bc_tester_add_suite(&lime_multialgos_test_suite);
@@ -139,27 +131,15 @@ int main(int argc, char *argv[]) {
 			lime_tester::test_x3dh_server_url=std::string(argv[i]);
 			lime_tester::test_x3dh_default_server=std::string("https://").append(std::string(argv[i])).append(":").append(lime_tester::test_x3dh_default_server_port);
 			lime_tester::test_x3dh_stop_on_request_limit_server=std::string("https://").append(std::string(argv[i])).append(":").append(lime_tester::test_x3dh_stop_on_request_limit_server_port);
-#ifdef FFI_ENABLED
-			strncpy(ffi_test_x3dh_server_url, argv[i], sizeof(ffi_test_x3dh_server_url)-1);
-#endif
 		} else if (strcmp(argv[i],"--x3dh-default-server-port")==0){
 			CHECK_ARG("--x3dh-default-server-port", ++i, argc);
 			lime_tester::test_x3dh_default_server_port=std::string(argv[i]);
 			lime_tester::test_x3dh_default_server=std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(std::string(argv[i]));
-#ifdef FFI_ENABLED
-			strncpy(ffi_test_x3dh_c25519_server_port, argv[i], sizeof(ffi_test_x3dh_c25519_server_port)-1);
-#endif
 		} else if (strcmp(argv[i],"--operation-timeout")==0){
 			CHECK_ARG("--operation-timeout", ++i, argc);
 			lime_tester::wait_for_timeout=std::atoi(argv[i]);
-#ifdef FFI_ENABLED
-			ffi_wait_for_timeout=lime_tester::wait_for_timeout;
-#endif
 		} else if (strcmp(argv[i],"--keep-tmp-db")==0){
 			cleanDatabase=false;
-#ifdef FFI_ENABLED
-			ffi_cleanDatabase=0;
-#endif
 		} else if (strcmp(argv[i],"--bench")==0){
 			bench=true;
 		}else {

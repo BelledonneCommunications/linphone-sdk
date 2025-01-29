@@ -35,9 +35,6 @@ extern test_suite_t lime_lime_test_suite;
 extern test_suite_t lime_helloworld_test_suite;
 extern test_suite_t lime_crypto_test_suite;
 extern test_suite_t lime_massive_group_test_suite;
-#ifdef FFI_ENABLED
-extern test_suite_t lime_ffi_test_suite;
-#endif
 extern test_suite_t lime_multidomains_test_suite;
 extern test_suite_t lime_server_test_suite;
 extern test_suite_t lime_multialgos_test_suite;
