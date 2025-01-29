@@ -53,13 +53,15 @@ BELLESIP_EXPORT belle_sip_header_address_t *belle_sip_header_address_create2(con
 
 BELLESIP_EXPORT belle_sip_header_address_t *belle_sip_header_address_parse(const char *address);
 
+BELLESIP_EXPORT belle_sip_header_address_t *belle_sip_header_address_try_parse(const char *address);
+
 /*
  same as belle_sip_header_address_parse but with less syntax checking
  */
 BELLESIP_EXPORT belle_sip_header_address_t *belle_sip_header_address_fast_parse(const char *address);
 
 /*
- same as belle_sip_header_address_fast_parse but with no error messagging
+ same as belle_sip_header_address_fast_parse but with no error log.
  */
 BELLESIP_EXPORT belle_sip_header_address_t *belle_sip_header_address_try_fast_parse(const char *address);
 
