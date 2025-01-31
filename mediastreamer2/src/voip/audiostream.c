@@ -1443,7 +1443,8 @@ int audio_stream_start_from_io(AudioStream *stream,
 	}
 
 	/* sample rate is already set for rtpsend and rtprcv, check if we have to adjust it to */
-	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
+	/* be able to use the echo canceller wich may be limited (webrtc aec3 supported frequencies are 16000, 32000 and
+	 * 48000 Hz) */
 	// First check if we need to use the echo canceller
 	// Overide feature if not requested or done at sound card level
 	if (((stream->features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) ||

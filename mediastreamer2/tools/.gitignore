@@ -8,4 +8,7 @@ ring
 videodisplay
 bench
 mtudiscover
-
+audio/aec/.idea/
+audio/aec/__pycache__/
+audio/aec/.idea/*
+audio/aec/__pycache__/*

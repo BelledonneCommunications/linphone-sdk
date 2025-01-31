@@ -36,6 +36,8 @@
 extern void libmswebrtcaec_init(MSFactory *factory);
 #endif
 
+#define EC_DUMP 0
+
 // double talk
 #define NEAR_END_SPEECH_DOUBLE_TALK "sounds/nearend_double_talk.wav"
 #define FAR_END_SPEECH_DOUBLE_TALK "sounds/farend_double_talk.wav"
@@ -68,9 +70,8 @@ static void init_config(aec_test_config *config) {
 	config->echo_file = NULL;
 	config->record_file = NULL;
 	config->noise_file = NULL;
-	config->mic_rec_file = NULL;
 	config->set_delay_to_aec_filter = TRUE;
-	config->mic_rec_file = "aec_input_mic.wav";
+	config->mic_rec_file = bc_tester_file("aec_input_mic.wav");
 }
 
 static void uninit_config(aec_test_config *config) {
@@ -79,12 +80,23 @@ static void uninit_config(aec_test_config *config) {
 	if (config->echo_file) free(config->echo_file);
 	if (config->noise_file) free(config->noise_file);
 	if (config->record_file) {
+#if EC_DUMP != 1
 		unlink(config->record_file);
-		free(config->record_file);
+#endif
+		ms_free(config->record_file);
 	}
 	if (config->mic_rec_file) {
+#if EC_DUMP != 1
 		unlink(config->mic_rec_file);
+#endif
+		ms_free(config->mic_rec_file);
 	}
+	config->nearend_speech_file = NULL;
+	config->farend_speech_file = NULL;
+	config->echo_file = NULL;
+	config->noise_file = NULL;
+	config->record_file = NULL;
+	config->mic_rec_file = NULL;
 }
 
 typedef struct _audio_analysis_param {
@@ -492,12 +504,12 @@ static bool_t aec_base(const aec_test_config *config, const int delay_ms, int *e
 
 	ms_filter_call_method(aec, MS_ECHO_CANCELLER_GET_DELAY, estimated_delay_ms);
 
-	ms_filter_call_method_noarg(sound_rec, MS_FILE_REC_CLOSE);
-	ms_filter_call_method_noarg(player_nearend, MS_FILE_PLAYER_CLOSE);
+	if (player_nearend) ms_filter_call_method_noarg(player_nearend, MS_FILE_PLAYER_CLOSE);
 	if (player_farend) ms_filter_call_method_noarg(player_farend, MS_FILE_PLAYER_CLOSE);
 	if (player_echo) ms_filter_call_method_noarg(player_echo, MS_FILE_PLAYER_CLOSE);
-	if (player_noise != NULL) ms_filter_call_method_noarg(player_noise, MS_FILE_PLAYER_CLOSE);
-	if (mic_rec != NULL) ms_filter_call_method_noarg(mic_rec, MS_FILE_REC_CLOSE);
+	if (player_noise) ms_filter_call_method_noarg(player_noise, MS_FILE_PLAYER_CLOSE);
+	if (sound_rec) ms_filter_call_method_noarg(sound_rec, MS_FILE_REC_CLOSE);
+	if (mic_rec) ms_filter_call_method_noarg(mic_rec, MS_FILE_REC_CLOSE);
 
 	if (player_farend) ms_ticker_detach(ms_tester_ticker, player_farend);
 	else ms_ticker_detach(ms_tester_ticker, player_nearend);
@@ -591,7 +603,9 @@ static void near_end_single_talk(void) {
 	aec_test_config config;
 	init_config(&config);
 	config.nearend_speech_file = bc_tester_res(NEAR_END_SPEECH_DOUBLE_TALK);
-	config.record_file = ms_tester_get_random_filename("aec_output_nearend_single_talk_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_nearend_single_talk_", ".wav");
+	config.record_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	int delay_ms = 0;
 	int estimated_delay_ms = 0;
 
@@ -620,7 +634,9 @@ static void far_end_single_talk(void) {
 	init_config(&config);
 	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_DOUBLE_TALK);
 	config.echo_file = bc_tester_res(ECHO_DOUBLE_TALK);
-	config.record_file = ms_tester_get_random_filename("aec_output_farend_single_talk_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_farend_single_talk_", ".wav");
+	config.record_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	int delay_ms = 100;
 	int estimated_delay_ms = 0;
 
@@ -665,7 +681,9 @@ static void double_talk(void) {
 	config.nearend_speech_file = bc_tester_res(NEAR_END_SPEECH_DOUBLE_TALK);
 	config.echo_file = bc_tester_res(ECHO_DOUBLE_TALK);
 	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_DOUBLE_TALK);
-	config.record_file = ms_tester_get_random_filename("aec_output_double_talk_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_double_talk_", ".wav");
+	config.record_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	int delay_ms = 100;
 	int estimated_delay_ms = 0;
 	const audio_analysis_param analysis_param = set_audio_analysis_param(delay_ms, 11500, 13500, 9500, 0.83, 1.);
@@ -680,7 +698,9 @@ static void double_talk_white_noise(void) {
 	config.echo_file = bc_tester_res(ECHO_DOUBLE_TALK);
 	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_DOUBLE_TALK);
 	config.noise_file = bc_tester_res(WHITE_NOISE_FILE);
-	config.record_file = ms_tester_get_random_filename("aec_output_double_talk_white_noise_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_double_talk_white_noise_", ".wav");
+	config.record_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	int delay_ms = 100;
 	int estimated_delay_ms = 0;
 	const audio_analysis_param analysis_param = set_audio_analysis_param(delay_ms, 11500, 13500, 9500, 0.90, 3.);
@@ -694,7 +714,9 @@ static void simple_talk(void) {
 	config.nearend_speech_file = bc_tester_res(NEAR_END_SPEECH_SIMPLE_TALK);
 	config.echo_file = bc_tester_res(ECHO_SIMPLE_TALK);
 	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_SIMPLE_TALK);
-	config.record_file = ms_tester_get_random_filename("aec_output_simple_talk_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_simple_talk_", ".wav");
+	config.record_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	int delay_ms = 100;
 	int estimated_delay_ms = 0;
 	const audio_analysis_param analysis_param = set_audio_analysis_param(delay_ms, 12500, 14500, 11000, 0.99, 1.);
@@ -709,7 +731,9 @@ static void simple_talk_white_noise(void) {
 	config.echo_file = bc_tester_res(ECHO_SIMPLE_TALK);
 	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_SIMPLE_TALK);
 	config.noise_file = bc_tester_res(WHITE_NOISE_FILE);
-	config.record_file = ms_tester_get_random_filename("aec_output_simple_talk_white_noise_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_simple_talk_white_noise_", ".wav");
+	config.record_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	int delay_ms = 100;
 	int estimated_delay_ms = 0;
 	const audio_analysis_param analysis_param = set_audio_analysis_param(delay_ms, 12500, 14500, 11000, 0.98, 4.);
@@ -724,7 +748,9 @@ static void simple_talk_48000Hz(void) {
 	config.nearend_speech_file = bc_tester_res(NEAR_END_SPEECH_SIMPLE_TALK);
 	config.echo_file = bc_tester_res(ECHO_SIMPLE_TALK);
 	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_SIMPLE_TALK);
-	config.record_file = ms_tester_get_random_filename("aec_output_simple_talk_48000Hz_resampled_16000Hz_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_simple_talk_48000Hz_resampled_16000Hz_", ".wav");
+	config.record_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	int delay_ms = 100;
 	int estimated_delay_ms = 0;
 	const audio_analysis_param analysis_param = set_audio_analysis_param(delay_ms, 12500, 14500, 11000, 0.98, 1.);
@@ -733,41 +759,39 @@ static void simple_talk_48000Hz(void) {
 }
 
 static void simple_talks_with_several_delays(void) {
-	aec_test_config config;
-	init_config(&config);
-	config.nearend_speech_file = bc_tester_res(NEAR_END_SPEECH_SIMPLE_TALK);
-	config.echo_file = bc_tester_res(ECHO_SIMPLE_TALK);
-	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_SIMPLE_TALK);
-	config.set_delay_to_aec_filter = FALSE;
 	int delays[5] = {0, 40, 80, 200, 470};
 	int estimated_delay_ms = 0;
 	int length;
 	char *baseName = NULL;
-
 	for (int i = 0; i < 5; i++) {
+		aec_test_config config;
+		init_config(&config);
+		config.nearend_speech_file = bc_tester_res(NEAR_END_SPEECH_SIMPLE_TALK);
+		config.echo_file = bc_tester_res(ECHO_SIMPLE_TALK);
+		config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_SIMPLE_TALK);
+		config.set_delay_to_aec_filter = FALSE;
+
 		int delay_ms = delays[i];
 		if (baseName) {
 			free(baseName);
 		}
-		length = snprintf(NULL, 0, "aec_output_delay_%dms_", delay_ms);
-		baseName = malloc(length + 1);
-		snprintf(baseName, length + 1, "aec_output_delay_%dms_", delay_ms);
 		if (config.mic_rec_file) {
 			unlink(config.mic_rec_file);
 		}
-		if (config.record_file) {
-			unlink(config.record_file);
-			free(config.record_file);
-		}
-		config.record_file = ms_tester_get_random_filename(baseName, ".wav");
+		length = snprintf(NULL, 0, "aec_output_delay_%dms_", delay_ms);
+		baseName = malloc(length + 1);
+		snprintf(baseName, length + 1, "aec_output_delay_%dms_", delay_ms);
+		char *random_filename = ms_tester_get_random_filename(baseName, ".wav");
+		config.record_file = bc_tester_file(random_filename);
+		bctbx_free(random_filename);
 		double energy_threshold = 1.;
 		if (delays[i] > 400) energy_threshold = 3.;
 		const audio_analysis_param analysis_param =
 		    set_audio_analysis_param(delay_ms, 12500, 14500, 11000, 0.99, energy_threshold);
 		talk_base(&config, delay_ms, &estimated_delay_ms, analysis_param);
+		uninit_config(&config);
 	}
 	free(baseName);
-	uninit_config(&config);
 }
 
 static void simple_talk_with_delay_change(void) {
@@ -776,7 +800,9 @@ static void simple_talk_with_delay_change(void) {
 	config.nearend_speech_file = bc_tester_res(NEAR_END_SPEECH_SIMPLE_TALK);
 	config.echo_file = bc_tester_res(ECHO_DELAY_CHANGE);
 	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_SIMPLE_TALK);
-	config.record_file = ms_tester_get_random_filename("aec_output_delay_change_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_delay_change_", ".wav");
+	config.record_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	int delay_ms = 100;
 	int estimated_delay_ms = 0;
 	int expected_final_delay_ms = 150;
