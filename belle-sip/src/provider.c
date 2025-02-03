@@ -1205,6 +1205,8 @@ static void belle_sip_provider_update_or_create_auth_context(belle_sip_provider_
 
 	if (belle_sip_stack_check_digest_compatibility(p->stack, authenticate) == -1) return;
 
+	if (algo == NULL) algo = "MD5";
+
 	for (auth_context_it = auth_context_lst =
 	         belle_sip_provider_get_auth_context_by_realm_or_call_id(p, call_id, from_uri, realm);
 	     auth_context_it != NULL; auth_context_it = auth_context_it->next) {
