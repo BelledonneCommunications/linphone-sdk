@@ -391,10 +391,10 @@ static void audio_stream_free(AudioStream *stream) {
 static int dtmf_tab[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '#', 'A', 'B', 'C', 'D'};
 
 static void on_dtmf_received(BCTBX_UNUSED(RtpSession *s), void *dtmf_ptr, void *user_data, BCTBX_UNUSED(void *unused)) {
-	int dtmf = (uint32_t)(intptr_t)dtmf_ptr;
+	uint32_t dtmf = (uint32_t)(uintptr_t)dtmf_ptr;
 	AudioStream *stream = (AudioStream *)user_data;
 	if (dtmf > 15) {
-		ms_warning("Unsupported telephone-event type.");
+		ms_warning("Unsupported telephone-event type: %x", dtmf);
 		return;
 	}
 	ms_message("Receiving dtmf %c.", dtmf_tab[dtmf]);
