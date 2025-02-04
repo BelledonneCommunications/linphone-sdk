@@ -502,6 +502,7 @@ struct OpenGlFunctions {
 
 	void *(*getProcAddress)(const char *name); // Set it to let MS2 initialize all functions
 	bool_t eglInitialized;
+	bool_t eglDisabled;
 	bool_t glInitialized;
 };
 

@@ -89,7 +89,7 @@ void *getAnyGLFuncAddress(void *library, void *firstFallback, const char *name) 
 extern "C" {
 #endif
 
-void opengl_functions_default_init(OpenGlFunctions *f) {
+void opengl_functions_default_init(OpenGlFunctions *f, bool_t eglDisabled) {
 #if defined(_WIN32)
 	HMODULE openglLibrary, firstFallbackLibrary = NULL;
 #elif !defined(__APPLE__)
@@ -198,7 +198,7 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 	openglLibrary = LoadLibraryExA("libEGL.dll", NULL, 0);
 #endif
 #else
-	openglLibrary = LoadPackagedLibrary(L"libEGL.dll", 0);    // UWP compatibility
+	openglLibrary = LoadPackagedLibrary(L"libEGL.dll", 0); // UWP compatibility
 #endif
 	if (openglLibrary == NULL) {
 		ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.dll: error %i", (int)GetLastError());
@@ -209,6 +209,13 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 		ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.so: %s", dlerror());
 	}
 #endif // _WIN32
+
+	if (eglDisabled) {
+		f->eglInitialized = FALSE;
+		ms_message("[ogl_functions] EGL is disabled");
+		return;
+	} else ms_message("[ogl_functions] EGL is enabled.");
+
 	f->eglGetProcAddress = CAST_EGL(resolveEGLGetProcAddress, eglGetProcAddress);
 
 	f->eglInitialized = TRUE;
