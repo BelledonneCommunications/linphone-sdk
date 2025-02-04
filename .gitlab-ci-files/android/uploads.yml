@@ -123,6 +123,7 @@ bundled-android-upload:
   extends: .android-upload-common
   variables:
     MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+    GRADLE_OPTIONS: -Pbundled -i
     MAVEN_REPO_PATH: bundled
   needs:
     - bundled-android-ninja-r27
