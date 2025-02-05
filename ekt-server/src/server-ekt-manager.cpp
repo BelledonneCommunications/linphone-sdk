@@ -219,8 +219,21 @@ void EktServerPlugin::ServerEktManager::sendNotify(const shared_ptr<Event> &ev,
 		}
 	}
 
-	string xmlBody = mLocalConf.lock()->getCore()->createXmlFromEktInfo(ei);
+	auto sharedLocalConf = mLocalConf.lock();
+	if (!sharedLocalConf) {
+		bctbx_warning(
+		    "ServerEktManager::sendNotify : Ignoring the attempt to send an EKT NOTIFY from a null ServerConference");
+		return;
+	}
+<<<<<<< Updated upstream
+	auto account = sharedLocalConf->getAccount();
+	string xmlBody = sharedLocalConf->getCore()->createXmlFromEktInfo(ei, account);
 	auto content = Factory::get()->createContent();
+=======
+	const auto account = sharedLocalConf->getAccount();
+	const string xmlBody = sharedLocalConf->getCore()->createXmlFromEktInfo(ei, account);
+	const auto content = Factory::get()->createContent();
+>>>>>>> Stashed changes
 	content->setType("application");
 	content->setSubtype("xml");
 	content->setUtf8Text(xmlBody);
