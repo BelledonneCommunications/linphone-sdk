@@ -1570,7 +1570,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 	char name[NI_MAXHOST];
 	char serv[NI_MAXSERV];
 
-	if (obj->local_ip == NULL) {
+	if (obj->local_ip == NULL || obj->local_port <= 0) {
 		struct sockaddr_storage saddr;
 		socklen_t slen2 = sizeof(saddr);
 		int err;
@@ -1582,7 +1582,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 		if (err != 0) {
 			belle_sip_error("belle_sip_channel_set_ready(): getnameinfo() failed: %s", gai_strerror(err));
 		} else {
-			obj->local_ip = belle_sip_strdup(name);
+			if (obj->local_ip == NULL) obj->local_ip = belle_sip_strdup(name);
 			obj->local_port = atoi(serv);
 			belle_sip_message("Channel has local address %s:%s", name, serv);
 		}

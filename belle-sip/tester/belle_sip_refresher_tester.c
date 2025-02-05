@@ -88,6 +88,7 @@ typedef struct endpoint {
 	unsigned char unreconizable_contact;
 	unsigned char bad_next_nonce;
 	unsigned char expect_failed_auth;
+	void *test_data;
 } endpoint_t;
 
 static unsigned int wait_for(belle_sip_stack_t *s1, belle_sip_stack_t *s2, int *counter, int value, int timeout) {
@@ -499,13 +500,13 @@ static void destroy_endpoint(endpoint_t *endpoint) {
 }
 
 static endpoint_t *create_udp_endpoint(int port, belle_sip_listener_callbacks_t *listener_callbacks) {
-	endpoint_t *endpoint = create_endpoint("0.0.0.0", port, "udp", listener_callbacks);
+	endpoint_t *endpoint = create_endpoint("127.0.0.1", port, "udp", listener_callbacks);
 	BC_ASSERT_PTR_NOT_NULL(endpoint->lp);
 	return endpoint;
 }
 
 static endpoint_t *create_tcp_endpoint(int port, belle_sip_listener_callbacks_t *listener_callbacks) {
-	endpoint_t *endpoint = create_endpoint("0.0.0.0", port, "tcp", listener_callbacks);
+	endpoint_t *endpoint = create_endpoint("127.0.0.1", port, "tcp", listener_callbacks);
 	BC_ASSERT_PTR_NOT_NULL(endpoint->lp);
 	return endpoint;
 }
@@ -1469,6 +1470,148 @@ static void register_digest_auth_with_bad_next_nonce(void) {
 	destroy_endpoint(server);
 }
 
+typedef struct channel_bank_test_data {
+	belle_sip_server_transaction_t *server_transaction;
+	int request_count;
+} channel_bank_test_data_t;
+
+static void channel_bank_test_server_process_request(void *user_data, const belle_sip_request_event_t *ev) {
+	endpoint_t *endpoint = (endpoint_t *)user_data;
+	belle_sip_response_t *resp;
+	belle_sip_server_transaction_t *tr;
+	channel_bank_test_data_t *test_data = (channel_bank_test_data_t *)endpoint->test_data;
+	test_data->request_count++;
+	tr = belle_sip_provider_create_server_transaction(endpoint->provider, belle_sip_request_event_get_request(ev));
+	resp = belle_sip_response_create_from_request(belle_sip_request_event_get_request(ev), 200);
+	test_data->server_transaction = (belle_sip_server_transaction_t *)belle_sip_object_ref(tr);
+	belle_sip_server_transaction_send_response(tr, resp);
+}
+
+static void channel_bank_test(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t *client, *server;
+	belle_sip_request_t *req;
+	belle_sip_client_transaction_t *client_transaction1, *client_transaction2;
+	belle_sip_server_transaction_t *server_transaction1, *server_transaction2;
+	channel_bank_test_data_t server_data = {0};
+	channel_bank_test_data_t client_data = {0};
+	belle_sip_uri_t *dest_uri;
+	int client_port1;
+	int client_port2;
+
+	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event = NULL;
+	;
+	client_callbacks.process_request_event = channel_bank_test_server_process_request;
+	client_callbacks.process_auth_requested = NULL;
+	;
+	server_callbacks.process_request_event = channel_bank_test_server_process_request;
+	client = create_udp_endpoint(BELLE_SIP_LISTENING_POINT_DONT_BIND, &client_callbacks);
+	client->test_data = &client_data;
+	server = create_udp_endpoint(6788, &server_callbacks);
+	server->test_data = &server_data;
+
+	/* send a first request */
+	req = belle_sip_request_create(
+	    belle_sip_uri_parse("sip:example.org"), "OPTIONS", belle_sip_provider_create_call_id(client->provider),
+	    belle_sip_header_cseq_create(20, "OPTIONS"),
+	    belle_sip_header_from_create2("sip:bob@example.org", BELLE_SIP_RANDOM_TAG),
+	    belle_sip_header_to_create2("sip:alice@example.org", NULL), belle_sip_header_via_new(), 70);
+	belle_sip_message_set_channel_bank_identifier(BELLE_SIP_MESSAGE(req), "xxx");
+
+	client_transaction1 = belle_sip_provider_create_client_transaction(client->provider, req);
+	belle_sip_client_transaction_send_request_to(client_transaction1, server->lp->listening_uri);
+	belle_sip_object_ref(client_transaction1);
+	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &server_data.request_count, 1, 1000));
+	server_transaction1 = server_data.server_transaction;
+
+	/* send a second request with different channel bank identifier*/
+	req = belle_sip_request_create(
+	    belle_sip_uri_parse("sip:example.org"), "OPTIONS", belle_sip_provider_create_call_id(client->provider),
+	    belle_sip_header_cseq_create(20, "OPTIONS"),
+	    belle_sip_header_from_create2("sip:bob@example.org", BELLE_SIP_RANDOM_TAG),
+	    belle_sip_header_to_create2("sip:alice@example.org", NULL), belle_sip_header_via_new(), 70);
+	belle_sip_message_set_channel_bank_identifier(BELLE_SIP_MESSAGE(req), "yyy");
+
+	client_transaction2 = belle_sip_provider_create_client_transaction(client->provider, req);
+	belle_sip_client_transaction_send_request_to(client_transaction2, server->lp->listening_uri);
+	belle_sip_object_ref(client_transaction2);
+	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &server_data.request_count, 2, 1000));
+	server_transaction2 = server_data.server_transaction;
+
+	/* Assert that all channels used so first and second transactions were different */
+	BC_ASSERT_PTR_NOT_NULL(server_transaction1->base.channel);
+	BC_ASSERT_PTR_NOT_NULL(server_transaction2->base.channel);
+	BC_ASSERT_PTR_NOT_NULL(client_transaction1->base.channel);
+	BC_ASSERT_PTR_NOT_NULL(client_transaction2->base.channel);
+
+	BC_ASSERT_TRUE(server_transaction1->base.channel != server_transaction2->base.channel);
+	BC_ASSERT_TRUE(client_transaction1->base.channel != client_transaction2->base.channel);
+
+	client_port1 = client_transaction1->base.channel->local_port;
+	client_port2 = client_transaction2->base.channel->local_port;
+
+	BC_ASSERT_TRUE(client_port1 != client_port2);
+
+	belle_sip_object_unref(client_transaction1);
+	belle_sip_object_unref(client_transaction2);
+	belle_sip_object_unref(server_transaction1);
+	belle_sip_object_unref(server_transaction2);
+
+	wait_for(client->stack, server->stack, NULL, 0, 1000);
+
+	/* now the server sends a request back to the client, through the first channel */
+	req = belle_sip_request_create(
+	    belle_sip_uri_parse("sip:bob@example.org"), "OPTIONS", belle_sip_provider_create_call_id(client->provider),
+	    belle_sip_header_cseq_create(20, "OPTIONS"),
+	    belle_sip_header_from_create2("sip:alice@example.org", BELLE_SIP_RANDOM_TAG),
+	    belle_sip_header_to_create2("sip:bob@example.org", NULL), belle_sip_header_via_new(), 70);
+	/* no channel bank identifier is given. */
+	dest_uri = belle_sip_uri_parse("sip:127.0.0.1");
+	belle_sip_uri_set_port(dest_uri, client_port1);
+	client_transaction1 = belle_sip_provider_create_client_transaction(server->provider, req);
+	belle_sip_client_transaction_send_request_to(client_transaction1, dest_uri);
+	belle_sip_object_ref(client_transaction1);
+	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &client_data.request_count, 1, 1000));
+	server_transaction1 = client_data.server_transaction;
+
+	/* server sends a request back to the client, through the second channel */
+	req = belle_sip_request_create(
+	    belle_sip_uri_parse("sip:bob@example.org"), "OPTIONS", belle_sip_provider_create_call_id(client->provider),
+	    belle_sip_header_cseq_create(20, "OPTIONS"),
+	    belle_sip_header_from_create2("sip:alice@example.org", BELLE_SIP_RANDOM_TAG),
+	    belle_sip_header_to_create2("sip:bob@example.org", NULL), belle_sip_header_via_new(), 70);
+	/* no channel bank identifier is given. */
+	dest_uri = belle_sip_uri_parse("sip:127.0.0.1");
+	belle_sip_uri_set_port(dest_uri, client_port2);
+	client_transaction2 = belle_sip_provider_create_client_transaction(server->provider, req);
+	belle_sip_client_transaction_send_request_to(client_transaction2, dest_uri);
+	belle_sip_object_ref(client_transaction2);
+	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &client_data.request_count, 2, 1000));
+	server_transaction2 = client_data.server_transaction;
+
+	/* Assert that all channels used so first and second transactions were different */
+	BC_ASSERT_PTR_NOT_NULL(server_transaction1->base.channel);
+	BC_ASSERT_PTR_NOT_NULL(server_transaction2->base.channel);
+	BC_ASSERT_PTR_NOT_NULL(client_transaction1->base.channel);
+	BC_ASSERT_PTR_NOT_NULL(client_transaction2->base.channel);
+
+	BC_ASSERT_TRUE(server_transaction1->base.channel != server_transaction2->base.channel);
+	BC_ASSERT_TRUE(client_transaction1->base.channel != client_transaction2->base.channel);
+
+	belle_sip_object_unref(client_transaction1);
+	belle_sip_object_unref(client_transaction2);
+	belle_sip_object_unref(server_transaction1);
+	belle_sip_object_unref(server_transaction2);
+
+	belle_sip_message("Done.");
+
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
 static test_t refresher_tests[] = {
     TEST_NO_TAG("REGISTER Expires header", register_expires_header),
     TEST_NO_TAG("REGISTER Expires in Contact", register_expires_in_contact),
@@ -1516,7 +1659,8 @@ static test_t refresher_tests[] = {
                 register_with_pingpong_without_pingpong_verification),
     TEST_NO_TAG("REGISTER with RFC5626 ping pong not supported server-side", register_with_pingpong_not_supported),
     TEST_NO_TAG("REGISTER with RFC5626 ping pong erroneously supported server-side",
-                register_with_pingpong_not_supported_2)};
+                register_with_pingpong_not_supported_2),
+    TEST_NO_TAG("Transactions using different channel banks", channel_bank_test)};
 
 test_suite_t refresher_test_suite = {"Refresher",
                                      NULL,

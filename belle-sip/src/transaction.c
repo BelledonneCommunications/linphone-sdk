@@ -369,9 +369,6 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	belle_sip_object_ref(resp);
 	if (!base->last_response || !base->channel) {
 		belle_sip_hop_t *hop;
-		belle_sip_message_set_channel_bank_identifier(
-		    (belle_sip_message_t *)resp,
-		    belle_sip_message_get_channel_bank_identifier((belle_sip_message_t *)base->request));
 		hop = belle_sip_response_get_return_hop(resp);
 		base->channel = belle_sip_provider_get_channel(base->provider, hop);
 		belle_sip_object_unref(hop);
