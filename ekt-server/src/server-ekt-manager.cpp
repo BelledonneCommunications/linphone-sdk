@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of the Liblinphone EKT server plugin
  * (see https://gitlab.linphone.org/BC/private/gc).
@@ -35,21 +35,21 @@ using namespace linphone;
 
 // -----------------------------------------------------------------------------
 
-EktServerPlugin::ServerEktManager::ServerEktManager(shared_ptr<Conference> localConf) {
+EktServerPlugin::ServerEktManager::ServerEktManager(const shared_ptr<Conference> &localConf) {
 	mLocalConf = localConf;
 }
 
 void EktServerPlugin::ServerEktManager::onParticipantDeviceStateChanged(
     const shared_ptr<Conference> &conference,
     const shared_ptr<const ParticipantDevice> &device,
-    ParticipantDevice::State state) {
+    const ParticipantDevice::State state) {
 	switch (state) {
 		case ParticipantDevice::State::ScheduledForLeaving:
 			bctbx_message("ServerEktManager::onParticipantDeviceStateChanged : [%s] is leaving",
 			              device->getAddress()->asStringUriOnly().c_str());
-			if (auto search = mParticipantDevices.find(device); search != mParticipantDevices.end()) {
-				auto sub = search->second->getEventSubscribe();
-				auto pub = search->second->getEventPublish();
+			if (const auto search = mParticipantDevices.find(device); search != mParticipantDevices.end()) {
+				const auto sub = search->second->getEventSubscribe();
+				const auto pub = search->second->getEventPublish();
 				if (sub) {
 					sub->removeListener(search->second);
 					sub->terminate();
@@ -71,8 +71,7 @@ void EktServerPlugin::ServerEktManager::onParticipantDeviceStateChanged(
 	}
 }
 
-void EktServerPlugin::ServerEktManager::onAllowedParticipantListChanged(
-    const std::shared_ptr<linphone::Conference> &conference) {
+void EktServerPlugin::ServerEktManager::onAllowedParticipantListChanged(const std::shared_ptr<Conference> &conference) {
 	bctbx_message("ServerEktManager::onAllowedParticipantListChanged : Allowed participant list for conference %s [%p] "
 	              "updated. Participants must regenerate EKT.",
 	              conference->getConferenceAddress()->asStringUriOnly().c_str(), conference.get());
@@ -116,7 +115,7 @@ int EktServerPlugin::ServerEktManager::subscribeReceived(const shared_ptr<Event>
 		}
 	}
 
-	if (ev->getSubscriptionState() == linphone::SubscriptionState::Active) {
+	if (ev->getSubscriptionState() == SubscriptionState::Active) {
 		for (auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
 			if (participantDevice->getAddress()->equal(ev->getRemoteContact())) {
 				auto oldEv = participantDeviceCtx->getEventSubscribe();
@@ -176,12 +175,12 @@ int EktServerPlugin::ServerEktManager::subscribeReceived(const shared_ptr<Event>
 	return 0;
 }
 
-void EktServerPlugin::ServerEktManager::sendNotifyAcceptedEkt(const shared_ptr<Event> &ev) {
+void EktServerPlugin::ServerEktManager::sendNotifyAcceptedEkt(const shared_ptr<Event> &ev) const {
 	sendNotify(ev, nullptr, {}, {});
 }
 
 void EktServerPlugin::ServerEktManager::sendNotifyWithParticipantDeviceList(
-    const shared_ptr<Event> &ev, const list<shared_ptr<const Address>> &addresses) {
+    const shared_ptr<Event> &ev, const list<shared_ptr<const Address>> &addresses) const {
 	if (addresses.empty()) {
 		bctbx_message("ServerEktManager::sendNotifyWithParticipantDeviceList : No need to ask EKT");
 	} else {
@@ -192,21 +191,20 @@ void EktServerPlugin::ServerEktManager::sendNotifyWithParticipantDeviceList(
 /**
  * Brief : Send an EKT NOTIFY
  * @param ev		Subscribe event
- * @param from		Address of the device who generated the cipher
- * @param to		Address of the device to who the cipher is sent
+ * @param from		Address of the device that generated the cipher
  * @param cipher	Ciphertext containing the encrypted EKT
- * @param addresses	Addresses of the devices for who the EKT must be encrypted
+ * @param addresses	Addresses of the devices for which the EKT must be encrypted
  */
 void EktServerPlugin::ServerEktManager::sendNotify(const shared_ptr<Event> &ev,
                                                    const shared_ptr<const Address> &from,
                                                    const shared_ptr<Buffer> &cipher,
-                                                   const list<shared_ptr<const Address>> &addresses) {
+                                                   const list<shared_ptr<const Address>> &addresses) const {
 	if (!ev) return;
 
-	shared_ptr<EktInfo> ei = Factory::get()->createEktInfo();
+	const shared_ptr<EktInfo> ei = Factory::get()->createEktInfo();
 	ei->setSspi(mSSpi);
 	if (!mCSpi.empty()) {
-		shared_ptr<Buffer> cspi = Factory::get()->createBufferFromData(mCSpi.data(), mCSpi.size());
+		const shared_ptr<Buffer> cspi = Factory::get()->createBufferFromData(mCSpi.data(), mCSpi.size());
 		ei->setCspi(cspi);
 	}
 	ei->setFromAddress(from);
@@ -214,26 +212,22 @@ void EktServerPlugin::ServerEktManager::sendNotify(const shared_ptr<Event> &ev,
 		ei->addCipher(ev->getRemoteContact()->asStringUriOnly(), cipher);
 	}
 	if (!addresses.empty()) {
-		for (auto addr : addresses) {
+		for (const auto &addr : addresses) {
 			ei->addCipher(addr->asStringUriOnly(), Factory::get()->createBuffer());
 		}
 	}
 
-	auto sharedLocalConf = mLocalConf.lock();
+	const auto sharedLocalConf = mLocalConf.lock();
 	if (!sharedLocalConf) {
 		bctbx_warning(
 		    "ServerEktManager::sendNotify : Ignoring the attempt to send an EKT NOTIFY from a null ServerConference");
 		return;
 	}
-<<<<<<< Updated upstream
-	auto account = sharedLocalConf->getAccount();
-	string xmlBody = sharedLocalConf->getCore()->createXmlFromEktInfo(ei, account);
-	auto content = Factory::get()->createContent();
-=======
+
 	const auto account = sharedLocalConf->getAccount();
 	const string xmlBody = sharedLocalConf->getCore()->createXmlFromEktInfo(ei, account);
 	const auto content = Factory::get()->createContent();
->>>>>>> Stashed changes
+
 	content->setType("application");
 	content->setSubtype("xml");
 	content->setUtf8Text(xmlBody);
@@ -243,14 +237,13 @@ void EktServerPlugin::ServerEktManager::sendNotify(const shared_ptr<Event> &ev,
 void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> &ev,
                                                         const shared_ptr<const Content> &content) {
 	if (ev && content) {
-		auto ei = mLocalConf.lock()->getCore()->createEktInfoFromXml(content->getUtf8Text());
-		auto eiFrom = ei->getFromAddress();
-		for (auto [participantDevice, participantDeviceCtx] : mParticipantDevices) {
+		const auto ei = mLocalConf.lock()->getCore()->createEktInfoFromXml(content->getUtf8Text());
+		const auto eiFrom = ei->getFromAddress();
+		for (const auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
 			if (participantDevice->getAddress()->equal(eiFrom)) {
 				bctbx_message("ServerEktManager::publishReceived : Event publish EKT [%p] received from [%s]", &ev,
 				              participantDevice->getAddress()->asStringUriOnly().c_str());
-				auto participantEvent = participantDeviceCtx->getEventPublish();
-				if (participantEvent != ev) {
+				if (auto participantEvent = participantDeviceCtx->getEventPublish(); participantEvent != ev) {
 					if (participantEvent != nullptr) {
 						participantEvent->removeListener(participantDeviceCtx);
 						participantEvent->terminate();
@@ -273,8 +266,7 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 		bctbx_error("ServerEktManager::publishReceived : Missing source address");
 		return;
 	}
-	auto sspi = ei->getSspi();
-	if (sspi == 0) {
+	if (const auto sspi = ei->getSspi(); sspi == 0) {
 		ev->denyPublish(Reason::BadEvent);
 		bctbx_error("ServerEktManager::publishReceived : Unexpected EKT PUBLISH format");
 		return;
@@ -283,9 +275,9 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 		bctbx_error("ServerEktManager::publishReceived : Wrong SSPI");
 		return;
 	}
-	auto eiCspi = ei->getCspi();
-	auto sizeCSpi = eiCspi->getSize();
-	auto contentCSPi = eiCspi->getContent();
+	const auto eiCspi = ei->getCspi();
+	const auto sizeCSpi = eiCspi->getSize();
+	const auto contentCSPi = eiCspi->getContent();
 	vector<uint8_t> cspi(sizeCSpi);
 	memcpy(cspi.data(), contentCSPi, sizeCSpi);
 	if (cspi.empty()) {
@@ -296,16 +288,16 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 
 	ev->acceptPublish();
 
-	auto from = ei->getFromAddress();
-	auto ciphers = ei->getCiphers();
+	const auto from = ei->getFromAddress();
+	const auto ciphers = ei->getCiphers();
 	list<shared_ptr<const Address>> participantDeviceAddressList = {};
 	shared_ptr<ParticipantDeviceContext> senderCtx = nullptr;
-	// TODO: Refactor the code when adding the EKT regeneration feature
+
 	if (mCSpi.empty()) {
 		mCSpi = cspi;
-		for (auto [participantDevice, participantDeviceCtx] : mParticipantDevices) {
-			auto participantDeviceAddress = participantDevice->getAddress();
-			if (participantDeviceAddress->equal(from)) { // PUBLISH sender
+		for (const auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
+			if (const auto participantDeviceAddress = participantDevice->getAddress();
+			    participantDeviceAddress->equal(from)) { // PUBLISH sender
 				senderCtx = participantDeviceCtx;
 				sendNotifyAcceptedEkt(
 				    participantDeviceCtx
@@ -317,8 +309,7 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 				bool ektFound = true;
 				if (ciphers) {
 					if (auto cipher = ciphers->getBuffer(participantDeviceAddress->asStringUriOnly())) {
-						auto evSub = participantDeviceCtx->getEventSubscribe();
-						if (evSub) {
+						if (auto evSub = participantDeviceCtx->getEventSubscribe()) {
 							sendNotify(evSub, from, cipher, {}); // Distribute the EKT to ParticipantDevices
 							participantDeviceCtx->setKnowsEkt(true);
 							bctbx_message("ServerEktManager::publishReceived : EKT (just selected) sent to [%s]",
@@ -338,15 +329,14 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 			}
 		}
 	} else if (mCSpi == cspi) {
-		for (auto [participantDevice, participantDeviceCtx] : mParticipantDevices) {
-			auto participantDeviceAddress = participantDevice->getAddress();
-			if (participantDeviceAddress->equal(from)) {
+		for (const auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
+			if (const auto participantDeviceAddress = participantDevice->getAddress();
+			    participantDeviceAddress->equal(from)) {
 				senderCtx = participantDeviceCtx;
 			} else {
 				if (!participantDeviceCtx->knowsEkt()) {
 					if (auto cipher = ciphers->getBuffer(participantDeviceAddress->asStringUriOnly())) {
-						auto evSub = participantDeviceCtx->getEventSubscribe();
-						if (evSub) {
+						if (auto evSub = participantDeviceCtx->getEventSubscribe()) {
 							sendNotify(evSub, from, cipher, {}); // Distribute the EKT to ParticipantDevices
 							participantDeviceCtx->setKnowsEkt(true);
 							bctbx_message(
@@ -365,7 +355,6 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 	if (!participantDeviceAddressList.empty()) {
 		sendNotifyWithParticipantDeviceList(senderCtx->getEventSubscribe(), participantDeviceAddressList);
 	}
-	return;
 }
 
 void EktServerPlugin::ServerEktManager::generateSSpi() {
@@ -390,7 +379,7 @@ EktServerPlugin::ServerEktManager::ParticipantDeviceContext::ParticipantDeviceCo
 }
 
 void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onSubscribeStateChanged(
-    const shared_ptr<Event> &event, SubscriptionState state) {
+    const shared_ptr<Event> &event, const SubscriptionState state) {
 	if (!mEventSubscribe) {
 		bctbx_error("Event subscribe EKT NULL");
 		return;
@@ -421,14 +410,13 @@ void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onPublishRecei
 		bctbx_message("ParticipantDeviceContext::onPublishReceived : New publish");
 	}
 	mEventPublish = event;
-	auto sem = mServerEktManager.lock();
-	if (sem && event->getPublishState() != PublishState::Ok) {
+	if (const auto sem = mServerEktManager.lock(); sem && event->getPublishState() != PublishState::Ok) {
 		sem->publishReceived(event, content);
 	}
 }
 
 void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onPublishStateChanged(const shared_ptr<Event> &event,
-                                                                                        PublishState state) {
+                                                                                        const PublishState state) {
 	if (state == PublishState::Cleared) {
 		bctbx_message("ParticipantDeviceContext::onPublishStateChanged : Cleared");
 		mEventPublish->removeListener(this->shared_from_this());
@@ -456,6 +444,6 @@ bool EktServerPlugin::ServerEktManager::ParticipantDeviceContext::knowsEkt() con
 	return mKnowsEkt;
 }
 
-void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::setKnowsEkt(bool knowsEkt) {
+void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::setKnowsEkt(const bool knowsEkt) {
 	mKnowsEkt = knowsEkt;
 }

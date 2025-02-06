@@ -36,7 +36,7 @@ namespace EktServerPlugin {
 
 class ServerEktManager : public linphone::ConferenceListener, public std::enable_shared_from_this<ServerEktManager> {
 public:
-	explicit ServerEktManager(std::shared_ptr<linphone::Conference> localConf);
+	explicit ServerEktManager(const std::shared_ptr<linphone::Conference> &localConf);
 	ServerEktManager(const ServerEktManager &serverEktManager) = delete;
 
 	void onParticipantDeviceStateChanged(const std::shared_ptr<linphone::Conference> &conference,
@@ -46,13 +46,14 @@ public:
 
 	int subscribeReceived(const std::shared_ptr<linphone::Event> &ev,
 	                      const std::shared_ptr<linphone::ParticipantDevice> &device);
-	void sendNotifyAcceptedEkt(const std::shared_ptr<linphone::Event> &ev);
+	void sendNotifyAcceptedEkt(const std::shared_ptr<linphone::Event> &ev) const;
 	void sendNotify(const std::shared_ptr<linphone::Event> &ev,
 	                const std::shared_ptr<const linphone::Address> &from,
 	                const std::shared_ptr<linphone::Buffer> &cipher,
-	                const std::list<std::shared_ptr<const linphone::Address>> &addresses);
-	void sendNotifyWithParticipantDeviceList(const std::shared_ptr<linphone::Event> &ev,
-	                                         const std::list<std::shared_ptr<const linphone::Address>> &addresses);
+	                const std::list<std::shared_ptr<const linphone::Address>> &addresses) const;
+	void
+	sendNotifyWithParticipantDeviceList(const std::shared_ptr<linphone::Event> &ev,
+	                                    const std::list<std::shared_ptr<const linphone::Address>> &addresses) const;
 	void publishReceived(const std::shared_ptr<linphone::Event> &ev,
 	                     const std::shared_ptr<const linphone::Content> &content);
 	void publishReceived(const std::shared_ptr<linphone::Event> &ev,
