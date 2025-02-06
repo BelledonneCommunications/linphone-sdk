@@ -119,8 +119,18 @@ void BufferRenderer::synchronize(QQuickFramebufferObject *item) {
 // =============================================================================
 
 void *getProcAddress(const char *name) {
-	return (void *)QOpenGLContext::currentContext()->getProcAddress(name);
+	auto context = QOpenGLContext::currentContext();
+	if (!context) {
+		ms_warning("[MSQOGL] Context couldn't be retrieved for getting function address on `%s`", name);
+		return nullptr;
+	}
+	auto f = context->getProcAddress(name);
+	if (!f) {
+		ms_warning("[MSQOGL] Function not found `%s`", name);
+		return nullptr;
+	} else return (void *)f;
 }
+
 static void qogl_init(MSFilter *f) {
 	FilterData *data = ms_new0(FilterData, 1);
 	qInfo() << "[MSQOGL] init : " << data;
@@ -137,8 +147,6 @@ static void qogl_init(MSFilter *f) {
 	data->free_lock = new std::mutex();
 	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.getProcAddress = getProcAddress;
-	data->functions.eglDisabled = TRUE;
-
 	f->data = data;
 }
 

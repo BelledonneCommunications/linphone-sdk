@@ -1318,7 +1318,7 @@ void ogl_display_auto_init(
 		if (f && f->getProcAddress) {
 			gldisp->default_functions->getProcAddress = f->getProcAddress;
 		}
-		opengl_functions_default_init(gldisp->default_functions, f && f->eglDisabled);
+		opengl_functions_default_init(gldisp->default_functions);
 	}
 	if (f && f->glInitialized) gldisp->functions = f;
 	else gldisp->functions = gldisp->default_functions;
@@ -1361,7 +1361,7 @@ void ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f,
 		if (f && f->getProcAddress) {
 			gldisp->default_functions->getProcAddress = f->getProcAddress;
 		}
-		opengl_functions_default_init(gldisp->default_functions, f && f->eglDisabled);
+		opengl_functions_default_init(gldisp->default_functions);
 	}
 	if (f && f->glInitialized) gldisp->functions = f;
 	else gldisp->functions = gldisp->default_functions;

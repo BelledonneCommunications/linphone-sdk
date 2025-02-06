@@ -27,7 +27,7 @@
 #if defined __cplusplus
 extern "C" {
 #endif
-void opengl_functions_default_init(OpenGlFunctions *f, bool_t eglDisabled);
+void opengl_functions_default_init(OpenGlFunctions *f);
 #if defined __cplusplus
 } // extern "C"
 #endif
