@@ -212,19 +212,19 @@ void belle_sip_tester_before_each(void) {
 void belle_sip_tester_after_each(void) {
 	int leaked_objects = belle_sip_object_get_object_count() - belle_sip_leaked_objects_count;
 	if (leaked_objects > 0) {
-		char *format = belle_sip_strdup_printf("%d object%s leaked in suite [%s] test [%s], please fix that!",
-		                                       leaked_objects, leaked_objects > 1 ? "s were" : "was",
-		                                       bc_tester_current_suite_name(), bc_tester_current_test_name());
+		char *formatted_string = belle_sip_strdup_printf("%d object%s leaked in suite [%s] test [%s], please fix that!",
+		                                                 leaked_objects, leaked_objects > 1 ? "s were" : "was",
+		                                                 bc_tester_current_suite_name(), bc_tester_current_test_name());
 		belle_sip_object_dump_active_objects();
 		belle_sip_object_flush_active_objects();
-		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, "%s", format);
-		belle_sip_error("%s", format);
-		belle_sip_free(format);
+		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, "%s", formatted_string);
+		belle_sip_error("%s", formatted_string);
 
 		belle_sip_tester_all_leaks_buffer =
 		    belle_sip_tester_all_leaks_buffer
-		        ? belle_sip_strcat_printf(belle_sip_tester_all_leaks_buffer, "\n%s", format)
-		        : belle_sip_strdup_printf("\n%s", format);
+		        ? belle_sip_strcat_printf(belle_sip_tester_all_leaks_buffer, "\n%s", formatted_string)
+		        : belle_sip_strdup_printf("\n%s", formatted_string);
+		belle_sip_free(formatted_string);
 	}
 
 	// prevent any future leaks

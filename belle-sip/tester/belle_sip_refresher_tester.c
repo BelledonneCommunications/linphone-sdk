@@ -49,6 +49,7 @@ static char publish_body[] =
 typedef enum auth_mode { none, digest, digest_auth, digest_with_next_nonce, digest_auth_with_next_nonce } auth_mode_t;
 
 typedef struct _status {
+	int oneHundredEighty;
 	int twoHundredOk;
 	int fourHundredOne;
 	int fourHundredSeven;
@@ -388,6 +389,9 @@ static void client_process_response_event(void *obj, const belle_sip_response_ev
 	int status = belle_sip_response_get_status_code(belle_sip_response_event_get_response(event));
 	belle_sip_message("caller_process_response_event [%i]", status);
 	switch (status) {
+		case 180:
+			endpoint->stat.oneHundredEighty++;
+			break;
 		case 200:
 			endpoint->stat.twoHundredOk++;
 			if (endpoint->connection_family != AF_UNSPEC) {
@@ -1503,10 +1507,8 @@ static void channel_bank_test(void) {
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	client_callbacks.process_response_event = NULL;
-	;
 	client_callbacks.process_request_event = channel_bank_test_server_process_request;
 	client_callbacks.process_auth_requested = NULL;
-	;
 	server_callbacks.process_request_event = channel_bank_test_server_process_request;
 	client = create_udp_endpoint(BELLE_SIP_LISTENING_POINT_DONT_BIND, &client_callbacks);
 	client->test_data = &client_data;
@@ -1612,6 +1614,80 @@ static void channel_bank_test(void) {
 	destroy_endpoint(server);
 }
 
+static void cleaned_channel_test_server_process_request(void *user_data, const belle_sip_request_event_t *ev) {
+	endpoint_t *endpoint = (endpoint_t *)user_data;
+	belle_sip_server_transaction_t *tr;
+	channel_bank_test_data_t *test_data = (channel_bank_test_data_t *)endpoint->test_data;
+	test_data->request_count++;
+	tr = belle_sip_provider_create_server_transaction(endpoint->provider, belle_sip_request_event_get_request(ev));
+	test_data->server_transaction = (belle_sip_server_transaction_t *)belle_sip_object_ref(tr);
+}
+
+static void channel_cleaned_during_transaction(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t *client, *server;
+	belle_sip_request_t *req;
+	belle_sip_client_transaction_t *client_transaction1;
+	belle_sip_server_transaction_t *server_transaction1;
+	channel_bank_test_data_t server_data = {0};
+	channel_bank_test_data_t client_data = {0};
+	belle_sip_response_t *resp;
+
+	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event = client_process_response_event;
+	server_callbacks.process_request_event = cleaned_channel_test_server_process_request;
+	client = create_udp_endpoint(BELLE_SIP_LISTENING_POINT_DONT_BIND, &client_callbacks);
+	client->test_data = &client_data;
+	server = create_udp_endpoint(6788, &server_callbacks);
+	server->test_data = &server_data;
+
+	/* send a first request */
+	req = belle_sip_request_create(
+	    belle_sip_uri_parse("sip:example.org"), "INVITE", belle_sip_provider_create_call_id(client->provider),
+	    belle_sip_header_cseq_create(20, "INVITE"),
+	    belle_sip_header_from_create2("sip:bob@example.org", BELLE_SIP_RANDOM_TAG),
+	    belle_sip_header_to_create2("sip:alice@example.org", NULL), belle_sip_header_via_new(), 70);
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),
+	                             BELLE_SIP_HEADER(belle_sip_header_contact_create(belle_sip_header_address_create(
+	                                 NULL, belle_sip_uri_parse("sip:bob@sip.example.org")))));
+
+	client_transaction1 = belle_sip_provider_create_client_transaction(client->provider, req);
+	belle_sip_client_transaction_send_request_to(client_transaction1, server->lp->listening_uri);
+	belle_sip_object_ref(client_transaction1);
+	/* this causes 100 Trying to be discarded, triggering re-transimissions */
+	belle_sip_channel_set_simulated_recv_return(client_transaction1->base.channel, 1500);
+	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &server_data.request_count, 1, 1000));
+	server_transaction1 = server_data.server_transaction;
+	/* clean server's channel and let client transaction retransmit */
+	belle_sip_listening_point_clean_channels(server->lp);
+
+	wait_for(client->stack, server->stack, NULL, 0, 4000);
+	belle_sip_channel_set_simulated_recv_return(client_transaction1->base.channel, 1);
+	resp = belle_sip_response_create_from_request(
+	    belle_sip_transaction_get_request((belle_sip_transaction_t *)server_transaction1), 180);
+	belle_sip_server_transaction_send_response(server_transaction1, resp);
+
+	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &client->stat.oneHundredEighty, 1, 1000));
+
+	resp = belle_sip_response_create_from_request(
+	    belle_sip_transaction_get_request((belle_sip_transaction_t *)server_transaction1), 200);
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),
+	                             BELLE_SIP_HEADER(belle_sip_header_contact_create(belle_sip_header_address_create(
+	                                 NULL, belle_sip_uri_parse("sip:alice@sip.example.org")))));
+	belle_sip_server_transaction_send_response(server_transaction1, resp);
+	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &client->stat.twoHundredOk, 1, 1000));
+
+	belle_sip_object_unref(client_transaction1);
+	belle_sip_object_unref(server_transaction1);
+
+	wait_for(client->stack, server->stack, NULL, 0, 1000);
+
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
 static test_t refresher_tests[] = {
     TEST_NO_TAG("REGISTER Expires header", register_expires_header),
     TEST_NO_TAG("REGISTER Expires in Contact", register_expires_in_contact),
@@ -1660,7 +1736,8 @@ static test_t refresher_tests[] = {
     TEST_NO_TAG("REGISTER with RFC5626 ping pong not supported server-side", register_with_pingpong_not_supported),
     TEST_NO_TAG("REGISTER with RFC5626 ping pong erroneously supported server-side",
                 register_with_pingpong_not_supported_2),
-    TEST_NO_TAG("Transactions using different channel banks", channel_bank_test)};
+    TEST_NO_TAG("Transactions using different channel banks", channel_bank_test),
+    TEST_NO_TAG("Cleaned channel during server transaction", channel_cleaned_during_transaction)};
 
 test_suite_t refresher_test_suite = {"Refresher",
                                      NULL,

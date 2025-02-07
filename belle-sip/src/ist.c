@@ -58,8 +58,7 @@ static int ist_on_timer_G(belle_sip_ist_t *obj) {
 	if (base->state == BELLE_SIP_TRANSACTION_COMPLETED) {
 		const belle_sip_timer_config_t *cfg = belle_sip_transaction_get_timer_config(base);
 		int64_t interval = belle_sip_source_get_timeout_int64(obj->timer_G);
-
-		belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)base->last_response);
+		_belle_sip_server_transaction_send_response(&obj->base, base->last_response);
 		belle_sip_source_set_timeout_int64(obj->timer_G, MIN(2 * interval, cfg->T2));
 		return BELLE_SIP_CONTINUE_WITHOUT_CATCHUP;
 	}
@@ -127,7 +126,7 @@ static int ist_send_new_response(belle_sip_ist_t *obj, belle_sip_response_t *res
 		case BELLE_SIP_TRANSACTION_PROCEEDING: {
 			const belle_sip_timer_config_t *cfg = belle_sip_transaction_get_timer_config(base);
 			ret = 0;
-			belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)resp);
+			_belle_sip_server_transaction_send_response(&obj->base, resp);
 			if (code >= 200 && code < 300) {
 				belle_sip_transaction_set_state(base, BELLE_SIP_TRANSACTION_ACCEPTED);
 				obj->timer_L = belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_L, obj, 64 * cfg->T1);
@@ -157,7 +156,7 @@ static void ist_on_request_retransmission(belle_sip_nist_t *obj) {
 	switch (base->state) {
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 		case BELLE_SIP_TRANSACTION_COMPLETED:
-			belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)base->last_response);
+			_belle_sip_server_transaction_send_response(&obj->base, base->last_response);
 			break;
 		default:
 			break;

@@ -996,6 +996,7 @@ void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t,
                                        belle_sip_provider_t *prov,
                                        belle_sip_request_t *req);
 void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, belle_sip_request_t *req);
+void _belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp);
 
 struct belle_sip_ist {
 	belle_sip_server_transaction_t base;
