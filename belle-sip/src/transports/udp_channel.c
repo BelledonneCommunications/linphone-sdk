@@ -31,12 +31,20 @@ struct belle_sip_udp_channel {
 
 typedef struct belle_sip_udp_channel belle_sip_udp_channel_t;
 
+static void udp_channel_close(belle_sip_channel_t *obj) {
+	belle_sip_udp_channel_t *chan = (belle_sip_udp_channel_t *)obj;
+	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t *)chan);
+	if (chan->shared_socket == SOCKET_NOT_SET && sock != SOCKET_NOT_SET) {
+		belle_sip_close_socket(belle_sip_source_get_socket((belle_sip_source_t *)obj));
+	}
+	belle_sip_source_reset((belle_sip_source_t *)obj);
+}
+
 static void udp_channel_uninit(belle_sip_udp_channel_t *obj) {
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t *)obj);
 	if (obj->shared_socket == SOCKET_NOT_SET && sock != SOCKET_NOT_SET) {
-		belle_sip_close_socket(belle_sip_source_get_socket((belle_sip_source_t *)obj));
-	} /*else
-	no close of the socket, because it is owned by the listerning point and shared between all channels*/
+		udp_channel_close((belle_sip_channel_t *)obj);
+	} /* else no close of the socket, because it is owned by the listening point and shared between all channels */
 }
 
 static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen) {
@@ -48,7 +56,7 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 			err = (int)bctbx_sendto(sock, buf, buflen, 0, obj->current_peer->ai_addr,
 			                        (socklen_t)obj->current_peer->ai_addrlen);
 		} else {
-			/*There is no serveur socket, so we are in connected mode*/
+			/*There is no server socket, so we are in connected mode*/
 			err = (int)bctbx_send(sock, buf, buflen, 0);
 		}
 		if (err == -1) {
@@ -141,8 +149,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_udp_channel_t){
     udp_channel_connect,
     udp_channel_send,
     udp_channel_recv,
-    NULL /*no close method*/
-} BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
+    udp_channel_close} BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
     belle_sip_channel_t *belle_sip_channel_new_udp(
         belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const char *dest, int port, int no_srv) {

@@ -81,7 +81,7 @@
 #include "dispatch/dispatch.h"
 #endif /* HAVE_DNS_SERVICE */
 
-#define SOCKET_NOT_SET ((belle_sip_socket_t) - 1)
+#define SOCKET_NOT_SET ((belle_sip_socket_t)-1)
 /*etc*/
 
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj, interface)                                                                \
@@ -331,6 +331,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s,
 belle_sip_source_t *belle_sip_fd_source_new(
     belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms);
 void belle_sip_source_uninit(belle_sip_source_t *s);
+void belle_sip_source_reset(belle_sip_source_t *s);
 void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t func);
 
 /* include private headers */
@@ -350,9 +351,7 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 
 /*parameters accessors*/
 #define GET_SET_STRING(object_type, attribute)                                                                         \
-	const char *object_type##_get_##attribute(const object_type##_t *obj) {                                            \
-		return obj->attribute;                                                                                         \
-	}                                                                                                                  \
+	const char *object_type##_get_##attribute(const object_type##_t *obj) { return obj->attribute; }                   \
 	void object_type##_set_##attribute(object_type##_t *obj, const char *value) {                                      \
 		const char *previous_value = obj->attribute; /*preserve if same value re-asigned*/                             \
 		if (value) {                                                                                                   \
@@ -361,9 +360,7 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 		if (previous_value != NULL) belle_sip_free((void *)previous_value);                                            \
 	}
 #define GET_SET_STRING_NO_ENCLOSING_BRACKETS(object_type, attribute)                                                   \
-	const char *object_type##_get_##attribute(const object_type##_t *obj) {                                            \
-		return obj->attribute;                                                                                         \
-	}                                                                                                                  \
+	const char *object_type##_get_##attribute(const object_type##_t *obj) { return obj->attribute; }                   \
 	void object_type##_set_##attribute(object_type##_t *obj, const char *value) {                                      \
 		const char *previous_value = obj->attribute;                                                                   \
 		if (value) {                                                                                                   \
@@ -431,12 +428,8 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 #define GET_SET_INT(object_type, attribute, type) GET_SET_INT_PRIVATE(object_type, attribute, type, )
 
 #define GET_SET_INT_PRIVATE(object_type, attribute, type, set_prefix)                                                  \
-	type object_type##_get_##attribute(const object_type##_t *obj) {                                                   \
-		return obj->attribute;                                                                                         \
-	}                                                                                                                  \
-	void set_prefix##object_type##_set_##attribute(object_type##_t *obj, type value) {                                 \
-		obj->attribute = value;                                                                                        \
-	}
+	type object_type##_get_##attribute(const object_type##_t *obj) { return obj->attribute; }                          \
+	void set_prefix##object_type##_set_##attribute(object_type##_t *obj, type value) { obj->attribute = value; }
 #define GET_SET_INT_PARAM(object_type, attribute, type) GET_SET_INT_PARAM_PRIVATE(object_type, attribute, type, )
 #define GET_SET_INT_PARAM2(object_type, attribute, type, func_name)                                                    \
 	GET_SET_INT_PARAM_PRIVATE2(object_type, attribute, type, , func_name)
@@ -470,12 +463,8 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 	}
 
 #define GET_SET_BOOL(object_type, attribute, getter)                                                                   \
-	unsigned int object_type##_##getter##_##attribute(const object_type##_t *obj) {                                    \
-		return obj->attribute;                                                                                         \
-	}                                                                                                                  \
-	void object_type##_set_##attribute(object_type##_t *obj, unsigned int value) {                                     \
-		obj->attribute = value;                                                                                        \
-	}
+	unsigned int object_type##_##getter##_##attribute(const object_type##_t *obj) { return obj->attribute; }           \
+	void object_type##_set_##attribute(object_type##_t *obj, unsigned int value) { obj->attribute = value; }
 #define GET_SET_BOOL_PARAM2(object_type, attribute, getter, func_name)                                                 \
 	unsigned int object_type##_##getter##_##func_name(const object_type##_t *obj) {                                    \
 		return belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(obj), #attribute);                              \
@@ -488,9 +477,7 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 	void zis_name##_set_##property_name(zis_name##_t *obj, object_type *property_name) {                               \
 		SET_OBJECT_PROPERTY(obj, property_name, property_name);                                                        \
 	}                                                                                                                  \
-	const object_type *zis_name##_get_##property_name(const zis_name##_t *obj) {                                       \
-		return obj->property_name;                                                                                     \
-	}
+	const object_type *zis_name##_get_##property_name(const zis_name##_t *obj) { return obj->property_name; }
 
 #define BELLE_PARSE(object_type_prefix, object_type, full_match)                                                       \
 	object_type_prefix##object_type##_t *object_type_prefix##try_##object_type##_parse(const char *value) {            \

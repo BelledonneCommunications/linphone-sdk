@@ -1038,7 +1038,6 @@ void belle_sip_channel_close(belle_sip_channel_t *obj) {
 	if (BELLE_SIP_OBJECT_VPTR(obj, belle_sip_channel_t)->close)
 		BELLE_SIP_OBJECT_VPTR(obj, belle_sip_channel_t)->close(obj); /*udp channel doesn't have close function*/
 	belle_sip_main_loop_remove_source(obj->stack->ml, (belle_sip_source_t *)obj);
-	belle_sip_source_uninit((belle_sip_source_t *)obj);
 }
 
 const struct addrinfo *belle_sip_channel_get_peer(belle_sip_channel_t *obj) {
@@ -1155,8 +1154,8 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj) {
 			                             belle_sip_object_ref(obj));
 			return;
 		} /*else we have already tried all the ip addresses, so give up and notify the error*/
-	} /*else the channel was previously working good with the current ip address but now fails, so let's notify the
-	     error*/
+	}     /*else the channel was previously working good with the current ip address but now fails, so let's notify the
+	         error*/
 
 	obj->state = BELLE_SIP_CHANNEL_ERROR;
 	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
