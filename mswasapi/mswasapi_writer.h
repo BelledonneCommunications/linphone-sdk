@@ -1,29 +1,26 @@
 /*
-mswasapi_writer.h
-
-mediastreamer2 library - modular sound and video processing and streaming
-Windows Audio Session API sound card plugin for mediastreamer2
-Copyright (C) 2010-2013 Belledonne Communications, Grenoble, France
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-*/
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ *
+ * This file is part of mswasapi library - modular sound and video processing and streaming Windows Audio Session API
+ * sound card plugin for mediastreamer2 (see https://gitlab.linphone.org/BC/public/mswasapi).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #pragma once
 
 #include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msqueue.h"
 
 #include "mswasapi.h"
 
@@ -32,8 +29,8 @@ public:
 	MSWASAPIWriter(MSFilter *filter);
 	virtual ~MSWASAPIWriter();
 
-	int activate() override;
-	int deactivate() override;
+	virtual int activate() override;
+	virtual int deactivate() override;
 	int feed(MSFilter *f);
 
 #ifdef MS2_WINDOWS_UNIVERSAL

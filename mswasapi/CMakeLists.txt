@@ -46,6 +46,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
 elseif( CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND CMAKE_SYSTEM_VERSION STREQUAL "10.0" )# UWP
 else()
+	list(APPEND SOURCE_FILES system_notifier.cpp)
 	list(APPEND LIBS Ole32)
 endif()
 
