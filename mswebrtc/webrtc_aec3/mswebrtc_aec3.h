@@ -49,11 +49,6 @@ private:
 	bool echostarted;
 	bool bypass_mode;
 	bool using_zeroes;
-	// #ifdef EC_DUMP
-	// 	FILE *echofile;
-	// 	FILE *reffile;
-	// 	FILE *cleanfile;
-	// #endif
 
 public:
 	mswebrtc_aec3(MSFilter *f);

@@ -56,11 +56,6 @@ mswebrtc_aec3::mswebrtc_aec3(MSFilter *f) {
 	echostarted = false;
 	bypass_mode = false;
 	using_zeroes = false;
-	// #ifdef EC_DUMP
-	// 	FILE *echofile;
-	// 	FILE *reffile;
-	// 	FILE *cleanfile;
-	// #endif
 }
 
 void mswebrtc_aec3::uninit() {
@@ -72,7 +67,7 @@ void mswebrtc_aec3::uninit() {
 
 void mswebrtc_aec3::configure_flow_controlled_bufferizer() {
 	ms_flow_controlled_bufferizer_set_samplerate(&ref, sample_rate_Hz);
-	ms_flow_controlled_bufferizer_set_max_size_ms(&ref, 0);
+	ms_flow_controlled_bufferizer_set_max_size_ms(&ref, 50);
 	ms_flow_controlled_bufferizer_set_granularity_ms(&ref, framesize_ms);
 }
 
@@ -159,7 +154,6 @@ void mswebrtc_aec3::process(MSFilter *f) {
 	while (ms_bufferizer_read(&echo, (uint8_t *)echo_data, (size_t)nbytes) >= (size_t)nbytes) {
 		mblk_t *oecho = allocb(nbytes, 0);
 		int avail;
-		int avail_samples;
 
 		if (!echostarted) echostarted = TRUE;
 
@@ -200,7 +194,10 @@ void mswebrtc_aec3::process(MSFilter *f) {
 			/* read from our no-delay buffer and output */
 			refm = allocb(nbytes, 0);
 			if (ms_flow_controlled_bufferizer_read(&ref, refm->b_wptr, nbytes) == 0) {
-				ms_fatal("Should never happen");
+				// FIXME FHA: crash happens here
+				MSBufferizer *obj = (MSBufferizer *)&ref;
+				ms_message("ref flow controlled bufferizer size is %d but nbytes is %d", (int)obj->size, (int)nbytes);
+				ms_fatal("Should never happen, read error on ref flow controlled bufferizer in AEC");
 			}
 			refm->b_wptr += nbytes;
 			ms_queue_put(f->outputs[0], refm);
@@ -208,10 +205,12 @@ void mswebrtc_aec3::process(MSFilter *f) {
 
 		/*now read a valid buffer of delayed ref samples*/
 		if (ms_bufferizer_read(&delayed_ref, (uint8_t *)ref_data, nbytes) == 0) {
-			ms_fatal("Should never happen");
+			// FIXME FHA
+			MSBufferizer *obj = (MSBufferizer *)&ref;
+			ms_message("delayed ref bufferizer size is %d but nbytes is %d", (int)obj->size, (int)nbytes);
+			ms_fatal("Should never happen, read error on delayed ref flow controlled bufferizer in AEC");
 		}
 		avail -= nbytes;
-		avail_samples = avail / 2;
 
 		// fill audio buffer
 		capture_buffer->webrtc::AudioBuffer::CopyFrom(echo_data, stream_config);
