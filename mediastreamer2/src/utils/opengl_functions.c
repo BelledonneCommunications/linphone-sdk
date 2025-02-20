@@ -168,8 +168,10 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 #endif
 	// No need to load libraries if getProcAddress is defined.
 	if (!f->getProcAddress) opengl_functions_load_gl((void **)&openglLibrary, (void **)&firstFallbackLibrary);
-	// User cases: functions already loaded or coming from libraries
+		// User cases: functions already loaded or coming from libraries
+#if !defined(__ANDROID__) && !defined(__APPLE__)
 	if (f->getProcAddress || firstFallbackLibrary != NULL || openglLibrary != NULL) {
+#endif
 		f->glInitialized = TRUE;
 		f->glInitialized &= ((f->glActiveTexture = CAST(resolveGlActiveTexture, glActiveTexture)) != NULL);
 		f->glInitialized &= ((f->glAttachShader = CAST(resolveGlAttachShader, glAttachShader)) != NULL);
@@ -228,16 +230,18 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 		f->glEndQuery = CAST(glEndQuerySignature, glEndQuery);
 		f->glGetQueryObjectui64v = CAST(glGetQueryObjectui64vSignature, glGetQueryObjectui64v);
 #else
-		f->glGenQueries = NULL;
-		f->glBeginQuery = NULL;
-		f->glEndQuery = NULL;
-		f->glGetQueryObjectui64v = NULL;
+	f->glGenQueries = NULL;
+	f->glBeginQuery = NULL;
+	f->glEndQuery = NULL;
+	f->glGetQueryObjectui64v = NULL;
 #endif
+
+#if !defined(__ANDROID__) && !defined(__APPLE__)
 	} else {
 		ms_error("[ogl_functions] GL functions cannot be initialized.");
 		return;
 	}
-
+#endif
 	//----------------------    EGL
 
 	openglLibrary = NULL;
