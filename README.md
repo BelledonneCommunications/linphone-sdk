@@ -314,5 +314,9 @@ Building the SDK for Mac or iOS with swift wrapper generation enabled will build
 Note that SPM on MacOS requires FAT_BINARY option to be turned off.
 
 Example iOS: cmake --preset=ios-sdk -G Ninja -B spm-ios && cmake --build spm-ios -> will build a SPM under  spm-ios/linphone-sdk-swift-ios
-Example MacOS: cmake --preset=mac-sdk -G Ninja -B spm-macos -DENABLE_FAT_BINARY=NO &&  cmake --build spm-macos  -> will build a SPM under spm-macos/linphone-sdk-swift-macos 
-
+Example MacOS: cmake --preset=mac-sdk -G Ninja -B spm-macos -DENABLE_FAT_BINARY=NO &&  cmake --build spm-macos  -> will build a SPM under spm-macos/linphone-sdk-swift-macos
+Note that it might be necessary to do the following steps if the app builds but immediately stops not finding a framework :  
+Open the "Build Settings" tab
+Search for "Runpath Search Paths" (LD_RUNPATH_SEARCH_PATHS)
+Ensure it contains:
+@loader_path/Frameworks

@@ -20,3 +20,50 @@ macos-upload:
     - pod repo push linphone-sdk-macosx build/mac/linphone-sdk.podspec --skip-import-validation --verbose --allow-warnings
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin master && cd -
     - pod repo remove linphone-sdk-macosx
+
+
+macos-upload-spm:
+  stage: deploy
+  tags: [ "macos-xcode13" ]
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_MACOS != null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+    SWIFT_PACKAGE_FLAVOR: ""
+  needs:
+    - macos-ninja-spm
+
+  script:
+    - DESCRIBE=$(git describe)
+    - echo $DESCRIBE
+    - !reference [.choose_upload_dir, script]
+    - |
+        if [[ "$CI_PIPELINE_SOURCE" == "merge_request_event" ]]; then
+          TARGET_BRANCH="$CI_COMMIT_REF_NAME"
+        else
+          TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}${SPM_DEPLOY_TARGET_BRANCH}"
+        fi
+    - VERSION=$(cat build/mac/linphone-sdk-swift-macos/VERSION)
+    - echo "Uploading SPM $VERSION to $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR"
+    - rsync -ar build/mac/linphone-sdk-swift-macos/ $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR/linphone-sdk-swift-macos-$VERSION/
+    - rm -rf build/mac/linphone-sdk-swift-macos/XCFrameworks
+    - echo "Publishing SPM to branch $TARGET_BRANCH."
+    - cd build/mac
+    - git clone git@gitlab.linphone.org:BC/public/linphone-sdk-swift-macos.git public-linphone-sdk-swift-macos
+    - cd public-linphone-sdk-swift-macos
+    - git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH"
+    - rsync -ar ../linphone-sdk-swift-macos/* .
+    - git add .
+    - git commit -a -m "Swift package $VERSION"
+    - git tag -a $VERSION -m "linphone-sdk $VERSION"
+    - git push || git push --set-upstream origin $TARGET_BRANCH
+    -  |
+         if [[ "$CI_PIPELINE_SOURCE" == "schedule" ]]; then
+           git push --tags
+         fi
+    - cd ..
+    - rm -rf public-linphone-sdk-swift-macos

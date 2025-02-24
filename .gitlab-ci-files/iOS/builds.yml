@@ -51,6 +51,7 @@
       - build/ios/*.podspec
       - build/ios/docs
       - tester/IOS/LinphoneTester/Podfile
+      - build/ios/linphone-sdk-swift-ios
 
     when: always
     expire_in: 1 day
@@ -247,3 +248,38 @@ ios-xcode-doc-arm64:
     - !reference [.set_xcdoc_directory, script]
     - CMAKE_OPTIONS="$CMAKE_OPTIONS -DLINPHONESDK_SWIFT_DOC_HOSTING_PATH=$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift"
     - !reference [ios-xcode, before_script]
+
+
+#################################################
+# SPM Ninja
+#################################################
+
+  
+ios-ninja-spm:
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_IOS == null
+  variables:
+    CMAKE_GENERATOR: Ninja
+    ARCHS_OPTIONS: "arm64,x86_64"
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+    CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    SWIFT_PACKAGE_FLAVOR: ""
+  extends: .ios
+  script:
+    - DESCRIBE=$(git describe)
+    - echo $DESCRIBE
+    - !reference [.choose_url_ios, script]
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}/spm/${SWIFT_PACKAGE_FLAVOR} -DUPLOAD_SWIFT_PACKAGE=ON"
+    - !reference [.ios, script]
+
+ios-ninja-novideo-spm:
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
+    SWIFT_PACKAGE_FLAVOR: "novideo"
+  extends: ios-ninja-spm
+  script:
+    - !reference [ios-ninja-spm, script]
