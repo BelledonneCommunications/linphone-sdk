@@ -37,8 +37,21 @@ extern "C" {
 #endif
 PLUGIN_EXPORT void liblinphone_ektserver_init(LinphoneCore *core) {
 	ms_message("EKT server plugin for core %s has been succesfully loaded", linphone_core_get_identity(core));
+	/* Build a C++ Core object on top of the LinphoneCore C object */
 	auto cppCore = linphone::Object::cPtrToSharedPtr<linphone::Core>(core);
-	cppCore->addListener(make_shared<EktServerPlugin::EktServerMain>());
+	/* The C++ linphone::Core object is passed and hold by the EktServerMain.
+	 * Indeed, in the scope of liblinphone-tester execution, there is no linphone::Core that is hold
+	 * anywhere else.
+	 * Unfortunately the linphone::CoreListener cannot work in this situation where the LinphoneCore
+	 * is destroyed while no linphone::Core object holds it.
+	 * To workaround this, the linphone::Core object is hold as a shared_ptr by the EktServerMain.
+	 * This shared_ptr<> is manually reset when the Core is stopped.
+	 * As a result of this: a liblinphone plugin written on top of the linphone++ wrapper
+	 * requires that core.stop() is called at some point in order to clear the circular shared_ptr
+	 * dependency.
+	 * Anyone having a better solution that does not mandate the core.stop() is welcome to change this.
+	 */
+	cppCore->addListener(make_shared<EktServerPlugin::EktServerMain>(cppCore));
 	cppCore->setEktPluginLoaded(true);
 }
 
