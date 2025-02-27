@@ -1,0 +1,792 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		66D1D4C92D70A346004CA19B /* linphonesw in Frameworks */ = {isa = PBXBuildFile; productRef = 66D1D4C82D70A346004CA19B /* linphonesw */; };
+		66D1D4CB2D70A350004CA19B /* linphonesw in Frameworks */ = {isa = PBXBuildFile; productRef = 66D1D4CA2D70A350004CA19B /* linphonesw */; settings = {ATTRIBUTES = (Required, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		663F0EE42D6CBB8D001D5643 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 663F0ECB2D6CBB8C001D5643 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 663F0ED22D6CBB8C001D5643;
+			remoteInfo = LinphoneTester;
+		};
+		663F0EEE2D6CBB8D001D5643 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 663F0ECB2D6CBB8C001D5643 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 663F0ED22D6CBB8C001D5643;
+			remoteInfo = LinphoneTester;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		663F0ED32D6CBB8C001D5643 /* LinphoneTester.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LinphoneTester.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		663F0EE32D6CBB8D001D5643 /* LinphoneTesterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LinphoneTesterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		663F0EED2D6CBB8D001D5643 /* LinphoneTesterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LinphoneTesterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		66D1D4CC2D71BCA6004CA19B /* linphonetester.xcframework.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; name = linphonetester.xcframework.zip; path = "../../../../IOS_TESTER/linphone-sdk-swift-ios/XCFrameworks/linphonetester.xcframework.zip"; sourceTree = "<group>"; };
+		66D1D4CD2D71BCC2004CA19B /* linphonetester */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = linphonetester; path = "../../../../IOS_TESTER/linphone-sdk-swift-ios/XCFrameworks/linphonetester.xcframework/ios-arm64/linphonetester.framework/linphonetester"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		667AE6782D7F34FD00B7F64F /* Exceptions for "LinphoneTesterTests" folder in "LinphoneTesterTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 663F0EE22D6CBB8D001D5643 /* LinphoneTesterTests */;
+		};
+		66A493182D7F313F00FFC369 /* Exceptions for "LinphoneTester" folder in "LinphoneTester" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				Log.swift,
+			);
+			target = 663F0ED22D6CBB8C001D5643 /* LinphoneTester */;
+		};
+		66D1D5F42D75E9F0004CA19B /* Exceptions for "LinphoneTester" folder in "LinphoneTesterTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Log.swift,
+			);
+			target = 663F0EE22D6CBB8D001D5643 /* LinphoneTesterTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		663F0ED52D6CBB8C001D5643 /* LinphoneTester */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				66A493182D7F313F00FFC369 /* Exceptions for "LinphoneTester" folder in "LinphoneTester" target */,
+				66D1D5F42D75E9F0004CA19B /* Exceptions for "LinphoneTester" folder in "LinphoneTesterTests" target */,
+			);
+			path = LinphoneTester;
+			sourceTree = "<group>";
+		};
+		663F0EE62D6CBB8D001D5643 /* LinphoneTesterTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				667AE6782D7F34FD00B7F64F /* Exceptions for "LinphoneTesterTests" folder in "LinphoneTesterTests" target */,
+			);
+			path = LinphoneTesterTests;
+			sourceTree = "<group>";
+		};
+		663F0EF02D6CBB8D001D5643 /* LinphoneTesterUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LinphoneTesterUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		663F0ED02D6CBB8C001D5643 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				66D1D4C92D70A346004CA19B /* linphonesw in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		663F0EE02D6CBB8D001D5643 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				66D1D4CB2D70A350004CA19B /* linphonesw in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		663F0EEA2D6CBB8D001D5643 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		663F0ECA2D6CBB8C001D5643 = {
+			isa = PBXGroup;
+			children = (
+				663F0ED52D6CBB8C001D5643 /* LinphoneTester */,
+				663F0EE62D6CBB8D001D5643 /* LinphoneTesterTests */,
+				663F0EF02D6CBB8D001D5643 /* LinphoneTesterUITests */,
+				663F0F012D6CBBAD001D5643 /* Frameworks */,
+				663F0ED42D6CBB8C001D5643 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		663F0ED42D6CBB8C001D5643 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				663F0ED32D6CBB8C001D5643 /* LinphoneTester.app */,
+				663F0EE32D6CBB8D001D5643 /* LinphoneTesterTests.xctest */,
+				663F0EED2D6CBB8D001D5643 /* LinphoneTesterUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		663F0F012D6CBBAD001D5643 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				66D1D4CD2D71BCC2004CA19B /* linphonetester */,
+				66D1D4CC2D71BCA6004CA19B /* linphonetester.xcframework.zip */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		663F0ED22D6CBB8C001D5643 /* LinphoneTester */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 663F0EF72D6CBB8D001D5643 /* Build configuration list for PBXNativeTarget "LinphoneTester" */;
+			buildPhases = (
+				663F0ECF2D6CBB8C001D5643 /* Sources */,
+				663F0ED02D6CBB8C001D5643 /* Frameworks */,
+				663F0ED12D6CBB8C001D5643 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				663F0ED52D6CBB8C001D5643 /* LinphoneTester */,
+			);
+			name = LinphoneTester;
+			packageProductDependencies = (
+				66D1D4C82D70A346004CA19B /* linphonesw */,
+			);
+			productName = LinphoneTester;
+			productReference = 663F0ED32D6CBB8C001D5643 /* LinphoneTester.app */;
+			productType = "com.apple.product-type.application";
+		};
+		663F0EE22D6CBB8D001D5643 /* LinphoneTesterTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 663F0EFA2D6CBB8D001D5643 /* Build configuration list for PBXNativeTarget "LinphoneTesterTests" */;
+			buildPhases = (
+				663F0EDF2D6CBB8D001D5643 /* Sources */,
+				663F0EE02D6CBB8D001D5643 /* Frameworks */,
+				663F0EE12D6CBB8D001D5643 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				663F0EE52D6CBB8D001D5643 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				663F0EE62D6CBB8D001D5643 /* LinphoneTesterTests */,
+			);
+			name = LinphoneTesterTests;
+			packageProductDependencies = (
+				66D1D4CA2D70A350004CA19B /* linphonesw */,
+			);
+			productName = LinphoneTesterTests;
+			productReference = 663F0EE32D6CBB8D001D5643 /* LinphoneTesterTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		663F0EEC2D6CBB8D001D5643 /* LinphoneTesterUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 663F0EFD2D6CBB8D001D5643 /* Build configuration list for PBXNativeTarget "LinphoneTesterUITests" */;
+			buildPhases = (
+				663F0EE92D6CBB8D001D5643 /* Sources */,
+				663F0EEA2D6CBB8D001D5643 /* Frameworks */,
+				663F0EEB2D6CBB8D001D5643 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				663F0EEF2D6CBB8D001D5643 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				663F0EF02D6CBB8D001D5643 /* LinphoneTesterUITests */,
+			);
+			name = LinphoneTesterUITests;
+			packageProductDependencies = (
+			);
+			productName = LinphoneTesterUITests;
+			productReference = 663F0EED2D6CBB8D001D5643 /* LinphoneTesterUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		663F0ECB2D6CBB8C001D5643 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					663F0ED22D6CBB8C001D5643 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					663F0EE22D6CBB8D001D5643 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 663F0ED22D6CBB8C001D5643;
+					};
+					663F0EEC2D6CBB8D001D5643 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 663F0ED22D6CBB8C001D5643;
+					};
+				};
+			};
+			buildConfigurationList = 663F0ECE2D6CBB8C001D5643 /* Build configuration list for PBXProject "LinphoneTester" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 663F0ECA2D6CBB8C001D5643;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				66D1D4C72D70A346004CA19B /* XCLocalSwiftPackageReference "../../../../IOS_TESTER/linphone-sdk-swift-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 663F0ED42D6CBB8C001D5643 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				663F0ED22D6CBB8C001D5643 /* LinphoneTester */,
+				663F0EE22D6CBB8D001D5643 /* LinphoneTesterTests */,
+				663F0EEC2D6CBB8D001D5643 /* LinphoneTesterUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		663F0ED12D6CBB8C001D5643 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		663F0EE12D6CBB8D001D5643 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		663F0EEB2D6CBB8D001D5643 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		663F0ECF2D6CBB8C001D5643 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		663F0EDF2D6CBB8D001D5643 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		663F0EE92D6CBB8D001D5643 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		663F0EE52D6CBB8D001D5643 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 663F0ED22D6CBB8C001D5643 /* LinphoneTester */;
+			targetProxy = 663F0EE42D6CBB8D001D5643 /* PBXContainerItemProxy */;
+		};
+		663F0EEF2D6CBB8D001D5643 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 663F0ED22D6CBB8C001D5643 /* LinphoneTester */;
+			targetProxy = 663F0EEE2D6CBB8D001D5643 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		663F0EF52D6CBB8D001D5643 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = Z2V957B3D6;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		663F0EF62D6CBB8D001D5643 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Z2V957B3D6;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		663F0EF82D6CBB8D001D5643 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LinphoneTester/LinphoneTester.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"LinphoneTester/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LinphoneTester/Info.plist;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Microphone required for VOIP calls";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					"\"bctoolbox\"",
+					"-framework",
+					"\"bctoolbox-ios\"",
+					"-framework",
+					"\"bctoolbox-tester\"",
+					"-framework",
+					"\"belcard\"",
+					"-framework",
+					"\"belle-sip\"",
+					"-framework",
+					"\"belr\"",
+					"-framework",
+					"\"libbelle-sip-tester\"",
+					"-framework",
+					"\"lime\"",
+					"-framework",
+					"\"limetester\"",
+					"-framework",
+					"\"linphone\"",
+					"-framework",
+					"\"linphonetester\"",
+					"-framework",
+					"\"mediastreamer2\"",
+					"-framework",
+					"\"msamr\"",
+					"-framework",
+					"\"mscodec2\"",
+					"-framework",
+					"\"msopenh264\"",
+					"-framework",
+					"\"mssilk\"",
+					"-framework",
+					"\"ortp\"",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTester;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "LinphoneTesterTests/LinphoneTesterTests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		663F0EF92D6CBB8D001D5643 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LinphoneTester/LinphoneTester.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"LinphoneTester/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LinphoneTester/Info.plist;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Microphone required for VOIP calls";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					"\"bctoolbox\"",
+					"-framework",
+					"\"bctoolbox-ios\"",
+					"-framework",
+					"\"bctoolbox-tester\"",
+					"-framework",
+					"\"belcard\"",
+					"-framework",
+					"\"belle-sip\"",
+					"-framework",
+					"\"belr\"",
+					"-framework",
+					"\"libbelle-sip-tester\"",
+					"-framework",
+					"\"lime\"",
+					"-framework",
+					"\"limetester\"",
+					"-framework",
+					"\"linphone\"",
+					"-framework",
+					"\"linphonetester\"",
+					"-framework",
+					"\"mediastreamer2\"",
+					"-framework",
+					"\"msamr\"",
+					"-framework",
+					"\"mscodec2\"",
+					"-framework",
+					"\"msopenh264\"",
+					"-framework",
+					"\"mssilk\"",
+					"-framework",
+					"\"ortp\"",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTester;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "LinphoneTesterTests/LinphoneTesterTests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		663F0EFB2D6CBB8D001D5643 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LinphoneTesterTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MACH_O_TYPE = mh_bundle;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					"\"bctoolbox\"",
+					"-framework",
+					"\"bctoolbox-ios\"",
+					"-framework",
+					"\"bctoolbox-tester\"",
+					"-framework",
+					"\"belcard\"",
+					"-framework",
+					"\"belle-sip\"",
+					"-framework",
+					"\"belr\"",
+					"-framework",
+					"\"libbelle-sip-tester\"",
+					"-framework",
+					"\"lime\"",
+					"-framework",
+					"\"limetester\"",
+					"-framework",
+					"\"linphone\"",
+					"-framework",
+					"\"linphonetester\"",
+					"-framework",
+					"\"mediastreamer2\"",
+					"-framework",
+					"\"msamr\"",
+					"-framework",
+					"\"mscodec2\"",
+					"-framework",
+					"\"msopenh264\"",
+					"-framework",
+					"\"mssilk\"",
+					"-framework",
+					"\"ortp\"",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "LinphoneTesterTests/LinphoneTesterTests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LinphoneTester.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LinphoneTester";
+			};
+			name = Debug;
+		};
+		663F0EFC2D6CBB8D001D5643 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LinphoneTesterTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MACH_O_TYPE = mh_bundle;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					"\"bctoolbox\"",
+					"-framework",
+					"\"bctoolbox-ios\"",
+					"-framework",
+					"\"bctoolbox-tester\"",
+					"-framework",
+					"\"belcard\"",
+					"-framework",
+					"\"belle-sip\"",
+					"-framework",
+					"\"belr\"",
+					"-framework",
+					"\"libbelle-sip-tester\"",
+					"-framework",
+					"\"lime\"",
+					"-framework",
+					"\"limetester\"",
+					"-framework",
+					"\"linphone\"",
+					"-framework",
+					"\"linphonetester\"",
+					"-framework",
+					"\"mediastreamer2\"",
+					"-framework",
+					"\"msamr\"",
+					"-framework",
+					"\"mscodec2\"",
+					"-framework",
+					"\"msopenh264\"",
+					"-framework",
+					"\"mssilk\"",
+					"-framework",
+					"\"ortp\"",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "LinphoneTesterTests/LinphoneTesterTests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LinphoneTester.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LinphoneTester";
+			};
+			name = Release;
+		};
+		663F0EFE2D6CBB8D001D5643 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LinphoneTester;
+			};
+			name = Debug;
+		};
+		663F0EFF2D6CBB8D001D5643 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LinphoneTester;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		663F0ECE2D6CBB8C001D5643 /* Build configuration list for PBXProject "LinphoneTester" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				663F0EF52D6CBB8D001D5643 /* Debug */,
+				663F0EF62D6CBB8D001D5643 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		663F0EF72D6CBB8D001D5643 /* Build configuration list for PBXNativeTarget "LinphoneTester" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				663F0EF82D6CBB8D001D5643 /* Debug */,
+				663F0EF92D6CBB8D001D5643 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		663F0EFA2D6CBB8D001D5643 /* Build configuration list for PBXNativeTarget "LinphoneTesterTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				663F0EFB2D6CBB8D001D5643 /* Debug */,
+				663F0EFC2D6CBB8D001D5643 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		663F0EFD2D6CBB8D001D5643 /* Build configuration list for PBXNativeTarget "LinphoneTesterUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				663F0EFE2D6CBB8D001D5643 /* Debug */,
+				663F0EFF2D6CBB8D001D5643 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		66D1D4C72D70A346004CA19B /* XCLocalSwiftPackageReference "../../../../IOS_TESTER/linphone-sdk-swift-ios" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../../IOS_TESTER/linphone-sdk-swift-ios";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		66D1D4C82D70A346004CA19B /* linphonesw */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = linphonesw;
+		};
+		66D1D4CA2D70A350004CA19B /* linphonesw */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66D1D4C72D70A346004CA19B /* XCLocalSwiftPackageReference "../../../../IOS_TESTER/linphone-sdk-swift-ios" */;
+			productName = linphonesw;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 663F0ECB2D6CBB8C001D5643 /* Project object */;
+}
