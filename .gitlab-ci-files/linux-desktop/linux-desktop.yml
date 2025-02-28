@@ -210,6 +210,7 @@
     GIT_SUBMODULE_STRATEGY: none
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "false"
+    LOG_PATTERN2: ""
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_LINUX_TESTS != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
@@ -251,6 +252,7 @@
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
+    - echo $LOG_PATTERN2.txt
     - |
         if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
         then
@@ -259,16 +261,16 @@
               $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --parallel-max 32 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
            else
               EXIT_CRYPTO_BACKEND_TAG=0;
-              $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "CRYPTO" $RESOURCES_DIR --log-file logLiblinphoneCryptoThIpv6.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
+              $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "CRYPTO" $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
            fi
         else
 
           EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=0;
 
-          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" --max-failed 0 $RESOURCES_DIR --log-file logLiblinphoneH264EKTOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
+          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" --max-failed 0 $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
 
-         # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
+         # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file $LOG_PATTERN2.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
 
         fi
 
@@ -347,14 +349,24 @@
     - sudo mkdir ${CI_PROJECT_DIR}/results
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
-
+    # Some testers store all logs in the same logfile which will be named ${BASE_PATTERN}.txt whereas others create a logfile for every suite in addition to the global logfile.
+    # The following code's goal is to avoid copying the global logfile if a log per suite exists
     - |
-        if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ] && [ $CRYPTO_BACKEND_TESTS_LIBLINPHONE = "false" ];
-        then
-          cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results;
-        else
-          cp -r log* ${CI_PROJECT_DIR}/results;
-        fi
+        for BASE_PATTERN in ${LOG_PATTERN} ${LOG_PATTERN2};
+        do
+          if [ "${BASE_PATTERN}" != "" ];
+          then
+            PATTER=""
+            if [[ -n $(find . -type f -name "${BASE_PATTERN}.txt_*") ]];
+            then
+              PATTERN=${BASE_PATTERN}.txt_*;
+            else
+              PATTERN=${BASE_PATTERN}.txt;
+            fi
+            echo "Copying logs with pattern ${PATTERN}"
+            cp -r ${PATTERN} ${CI_PROJECT_DIR}/results;
+          fi
+        done
     - cp index.html ${CI_PROJECT_DIR}/results
     - echo $CI_JOB_ID > ${CI_PROJECT_DIR}/results/tests_id
     - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
@@ -542,6 +554,8 @@
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
+    LOG_PATTERN: "logLiblinphoneH264EKTOverTunnelAndPQThIpv6"
+    LOG_PATTERN2: "logLiblinphoneTunnelOverTunnelAndPQThIpv6"
 
 .test-liblinphone-crypto-backend:
   extends: .test-liblinphone
@@ -564,6 +578,7 @@
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
+    LOG_PATTERN: "logLiblinphoneH264EKTOverTunnelAndPQThIpv6"
 
 .test-liblinphone-crypto-backend-mr:
   extends: .test-liblinphone-mr
@@ -572,3 +587,4 @@
   variables:
     #true
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "true"
+    LOG_PATTERN: "logLiblinphoneCryptoThIpv6"
