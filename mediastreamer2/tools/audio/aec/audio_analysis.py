@@ -38,6 +38,7 @@ class AudioAnalysis:
         self.start_sample = 0
         self.distance_mfcc = 0
         self.similarity_mfcc = 0
+        self.filter_stats = None
 
     def get_results(self, log_file):
         """
@@ -47,9 +48,10 @@ class AudioAnalysis:
 
         self.log_file = log_file
         metrics_lines = []
+        float_pattern = r'\d+\.\d+|\d+'
         with open(log_file) as f:
             contents = f.readlines()
-            for line in contents:
+            for i, line in enumerate(contents):
 
                 if "Initializing WebRTC echo canceler" in line:
                     self.sampling_rate_hz = int(line.split("with sample rate = ")[-1].split(" Hz")[0])
@@ -69,7 +71,7 @@ class AudioAnalysis:
                         self.maxpos = int(match.group(1))
 
                 if "Max cross-correlation obtained on speech parts" in line:
-                    match = re.search(r'\[([0-9]+\.[0-9]+)\]', line.split("similarity factor=")[-1])
+                    match = re.search(r'\[([-+]?\d*\.?\d+)\]', line.split("similarity factor=")[-1])
                     if match:
                         self.similarity_in_speech = float(match.group(1))
 
@@ -81,6 +83,15 @@ class AudioAnalysis:
                 if "Tester MSTicker: We are late of" in line:
                     late_str = line.split("Tester MSTicker: We are late of ")[-1].split(" milliseconds.")[0]
                     self.msticker_late_ms.append(int(late_str))
+
+                if "FILTER USAGE STATISTICS" in line:
+                    k = i + 4
+                    if k < len(contents):
+                        stats_line = contents[k]
+                        while k < len(contents) and "MSWebRTCAEC" not in stats_line and "=======================" not in stats_line:
+                            k = k + 1
+                        if "MSWebRTCAEC" in stats_line:
+                            self.filter_stats = np.array([float(num) for num in re.findall(float_pattern, stats_line.split("MSWebRTCAEC")[1])])
 
                 if "Suite [AEC3] Test [" in line:
                     # Suite [AEC3] Test [Double talk]
@@ -116,6 +127,14 @@ class AudioAnalysis:
         print(f"energy in silence: \t\t{self.energy_in_silence:0.2f}")
         print(f"similarity in speech: \t{self.similarity_in_speech:0.3f}")
         print(f"           with MFCC: \t{self.similarity_mfcc:0.3f}")
+
+        if self.filter_stats is not None:
+            print(f"filter usage stats: \tcount\t\t\t{self.filter_stats[0]:0.0f}")
+            print(f"\t\t\t\t\t\ttime\tmin\t\t{self.filter_stats[1]:0.2f} ms")
+            print(f"\t\t\t\t\t\t\t\tmean\t{self.filter_stats[2]:0.2f} ms")
+            print(f"\t\t\t\t\t\t\t\tmax\t\t{self.filter_stats[3]:0.2f} ms")
+            print(f"\t\t\t\t\t\t\t\tstd\t\t{self.filter_stats[4]:0.2f} ms")
+            print(f"\t\t\t\t\t\tCPU usage\t\t{self.filter_stats[5]:0.2f} %")
 
         print(f"test passed: \t\t\t{self.test_passed}")
         print(f"total time: \t\t\t{self.total_time_s:0.1f} s")

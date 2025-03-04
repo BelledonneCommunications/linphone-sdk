@@ -785,7 +785,7 @@ static void simple_talks_with_several_delays(void) {
 		config.record_file = bc_tester_file(random_filename);
 		bctbx_free(random_filename);
 		double energy_threshold = 1.;
-		if (delays[i] > 400) energy_threshold = 3.;
+		if (delays[i] > 400) energy_threshold = 3.3;
 		const audio_analysis_param analysis_param =
 		    set_audio_analysis_param(delay_ms, 12500, 14500, 11000, 0.99, energy_threshold);
 		talk_base(&config, delay_ms, &estimated_delay_ms, analysis_param);

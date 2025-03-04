@@ -97,7 +97,13 @@ class AECTest:
             "MSTicker late": self.results.msticker_late_ms,
             "test passed": self.results.test_passed,
             "time": self.results.total_time_s,
-            "similarity with MFCC": self.results.similarity_mfcc
+            "similarity with MFCC": self.results.similarity_mfcc,
+            "filter count": self.results.filter_stats[0],
+            "filter min time": self.results.filter_stats[1],
+            "filter mean time": self.results.filter_stats[2],
+            "filter max time": self.results.filter_stats[3],
+            "filter std time": self.results.filter_stats[4],
+            "filter CPU usage": self.results.filter_stats[5]
         }
 
         return row
