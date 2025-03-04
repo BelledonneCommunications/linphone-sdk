@@ -172,6 +172,8 @@ macos-ninja-spm:
     CMAKE_OPTIONS: -DENABLE_FAT_BINARY=NO
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+    LINPHONESDK_MACOS_ARCHS: "arm64,x86_64"
+    SWIFT_PACKAGE_FLAVOR: ""
 
   rules:
     - !reference [.rules-merge-request-manual, rules]
@@ -182,4 +184,15 @@ macos-ninja-spm:
     - !reference [.choose_url_macos, script]
     - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_URL/spm/${SWIFT_PACKAGE_FLAVOR} -DUPLOAD_SWIFT_PACKAGE=ON"
     - !reference [macos-ninja, script]
+
+macos-ninja-spm-novideo:
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_MACOS_BUILDS != null
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_FAT_BINARY=NO
+    SWIFT_PACKAGE_FLAVOR: "novideo"
+  extends: macos-ninja-spm
+  script:
+    - !reference [macos-ninja-spm, script]
 

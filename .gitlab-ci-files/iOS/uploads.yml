@@ -98,8 +98,7 @@ ios-ninja-spm-upload:
     SWIFT_PACKAGE_FLAVOR: ""
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_IOS != null && $SKIP_DEPLOY == null
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
+    - !reference [.rules-merge-request-manual, rules]
   needs:
     - ios-ninja-spm
 
@@ -130,12 +129,10 @@ ios-ninja-spm-upload:
          if [[ "$CI_PIPELINE_SOURCE" == "schedule" ]]; then
            git push --tags
          fi
-    - cd ..
-    - rm -rf public-linphone-sdk-swift-ios
 
-ios-ninja-spm-novideo-upload:
+ios-ninja-spm-upload-novideo:
   needs:
-    - ios-ninja-novideo-spm
+    - ios-ninja-spm-novideo
   variables:
     SWIFT_PACKAGE_FLAVOR: "novideo/"
   extends: ios-ninja-spm-upload

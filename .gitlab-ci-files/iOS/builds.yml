@@ -273,7 +273,7 @@ ios-ninja-spm:
     - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}/spm/${SWIFT_PACKAGE_FLAVOR} -DUPLOAD_SWIFT_PACKAGE=ON"
     - !reference [.ios, script]
 
-ios-ninja-novideo-spm:
+ios-ninja-spm-novideo:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null

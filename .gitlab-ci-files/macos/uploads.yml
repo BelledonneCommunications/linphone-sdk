@@ -22,14 +22,13 @@ macos-upload:
     - pod repo remove linphone-sdk-macosx
 
 
-macos-upload-spm:
+macos-ninja-spm-upload:
   stage: deploy
   tags: [ "macos-xcode13" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_MACOS != null
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
+    - !reference [.rules-merge-request-manual, rules]
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
@@ -43,7 +42,7 @@ macos-upload-spm:
     - !reference [.choose_upload_dir, script]
     - |
         if [[ "$CI_PIPELINE_SOURCE" == "merge_request_event" ]]; then
-          TARGET_BRANCH="$CI_COMMIT_REF_NAME"
+          TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}$CI_COMMIT_REF_NAME"
         else
           TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}${SPM_DEPLOY_TARGET_BRANCH}"
         fi
@@ -65,5 +64,10 @@ macos-upload-spm:
          if [[ "$CI_PIPELINE_SOURCE" == "schedule" ]]; then
            git push --tags
          fi
-    - cd ..
-    - rm -rf public-linphone-sdk-swift-macos
+
+macos-ninja-spm-upload-novideo:
+  needs:
+    - macos-ninja-spm-novideo
+  variables:
+    SWIFT_PACKAGE_FLAVOR: "novideo/"
+  extends: macos-ninja-spm-upload
