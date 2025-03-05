@@ -57,13 +57,16 @@ macos-ninja-spm-upload:
     - git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH"
     - rsync -ar ../linphone-sdk-swift-macos/* .
     - git add .
-    - git commit -a -m "Swift package $VERSION"
-    - git tag -a $VERSION -m "linphone-sdk $VERSION"
+    - git commit -a -m "Swift package $VERSION $SWIFT_PACKAGE_FLAVOR"
     - git push || git push --set-upstream origin $TARGET_BRANCH
-    -  |
-         if [[ "$CI_PIPELINE_SOURCE" == "schedule" ]]; then
-           git push --tags
-         fi
+    - |
+      if [ -n "$SWIFT_PACKAGE_FLAVOR" ]; then
+        SPM_TAG=$VERSION-$(echo "$SWIFT_PACKAGE_FLAVOR" | sed "s/\///g")
+      else
+       SPM_TAG=$VERSION
+      fi
+    - git tag -a $SPM_TAG -m "linphone-sdk $VERSION"
+    - git push --tags
 
 macos-ninja-spm-upload-novideo:
   needs:
