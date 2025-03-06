@@ -56,6 +56,8 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 
 #define MS_RTP_RECV_ENABLE_CSRC_EVENTS MS_FILTER_METHOD(MS_RTP_RECV_ID, 5, bool_t)
 
+#define MS_RTP_RECV_SET_FRAME_MARKING_EXTENSION_ID MS_FILTER_METHOD(MS_RTP_RECV_ID, 6, int)
+
 #define MS_RTP_RECV_GENERIC_CN_RECEIVED MS_FILTER_EVENT(MS_RTP_RECV_ID, 0, MSCngData)
 
 #define MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED                                                               \

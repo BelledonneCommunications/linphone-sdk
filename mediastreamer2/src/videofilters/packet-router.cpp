@@ -244,6 +244,22 @@ void RouterVideoInput::update() {
 		}
 	}
 }
+
+bool RouterVideoInput::isKeyFrame(mblk_t *packet) const {
+	// If full packet mode is enabled and end-to-end encryption is not, then we need to pass the payload to the key
+	// frame indicator since it will not check for header extension.
+	if (mRouter->isFullPacketModeEnabled() && !mRouter->isEndToEndEncryptionEnabled()) {
+		// Small hack to avoid duplicating the mblk_t packet since isKeyFrame only accepts a const.
+		mblk_t payload{};
+		rtp_get_payload(packet, &payload.b_rptr);
+		payload.b_wptr = packet->b_wptr;
+		payload.b_cont = packet->b_cont;
+
+		return mKeyFrameIndicator->isKeyFrame(&payload);
+	}
+
+	return mKeyFrameIndicator->isKeyFrame(packet);
+}
 #endif
 
 // =============================================================================
@@ -271,10 +287,13 @@ void RouterOutput::rewritePacketInformation(mblk_t *source, mblk_t *output) {
 
 	// We need to set sequence number for what we send out, otherwise the decoder won't be able
 	// to verify the integrity of the stream
-
 	mblk_set_timestamp_info(output, mAdjustedOutTimestamp);
 	mblk_set_cseq(output, mOutSeqNumber++);
+
+	// Set flags as the source
 	mblk_set_marker_info(output, mblk_get_marker_info(source));
+	mblk_set_independent_flag(output, mblk_get_independent_flag(source));
+	mblk_set_discardable_flag(output, mblk_get_discardable_flag(source));
 }
 
 void RouterOutput::rewriteExtensionIds(mblk_t *output, int inputIds[16], int outputIds[16]) {

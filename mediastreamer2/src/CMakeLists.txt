@@ -255,6 +255,7 @@ if(ENABLE_VIDEO)
 		videofilters/nowebcam.c
 		videofilters/pixconv.c
 		videofilters/sizeconv.c
+		videofilters/video-aggregator.c
 		videofilters/dummy_codec.c
 		voip/layouts.c
 		voip/layouts.h

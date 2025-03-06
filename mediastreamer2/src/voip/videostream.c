@@ -34,6 +34,7 @@
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msvideopresets.h"
+#include "mediastreamer2/video-aggregator.h"
 #include "mediastreamer2/zrtp.h"
 #include "private.h"
 
@@ -143,10 +144,57 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		if (streamMid != NULL) bctbx_free(streamMid);
 	}
 
-	// Resync the session because we are changing the ssrc
-	rtp_session_resync(stream->ms.sessions.rtp_session);
-	*newSession = stream->ms.sessions.rtp_session;
-	ms_message("New incoming SSRC %u on session [%p] detected, resync the session", ssrc, session);
+	// Do nothing if the aggregator is not created
+	if (stream->aggregator == NULL) {
+		ms_warning("New incoming SSRC %u on session %p but aggregator has not yet been instanciated.", ssrc, session);
+		bctbx_free(sMid);
+		return;
+	}
+
+	// If a branch slot is available, create a new session and assign it
+	bool_t available = FALSE;
+	for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
+		if (stream->branches[i].session == NULL) {
+			*newSession =
+			    media_stream_rtp_session_new_from_session(stream->ms.sessions.rtp_session, RTP_SESSION_RECVONLY);
+			stream->ms.sessions.auxiliary_sessions =
+			    bctbx_list_append(stream->ms.sessions.auxiliary_sessions, *newSession);
+
+			stream->branches[i].session = *newSession;
+			ms_filter_call_method(stream->branches[i].recv, MS_RTP_RECV_SET_SESSION, *newSession);
+
+			ms_message(
+			    "New incoming SSRC %u on session [%p] detected, create a new session [%p] attach it to branch %d", ssrc,
+			    session, *newSession, i);
+			available = TRUE;
+			break;
+		}
+	}
+
+	// If not, check for the last session used and use this one instead
+	if (!available) {
+		VideoStreamRecvBranch *recycled_branch = &stream->branches[0];
+		struct timeval oldest_recv_ts;
+		rtp_session_get_last_recv_time(recycled_branch->session, &oldest_recv_ts);
+
+		for (int i = 1; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
+			struct timeval tv;
+			rtp_session_get_last_recv_time(stream->branches[i].session, &tv);
+			if (tv.tv_sec < oldest_recv_ts.tv_sec) { /* selection is performed on tv_sec only, no need to be precise */
+				oldest_recv_ts.tv_sec = tv.tv_sec;
+				recycled_branch = &stream->branches[i];
+			}
+		}
+
+		// This method will resync the session, but it will be done by the RtpRecv filter and not this thread.
+		ms_filter_call_method_noarg(recycled_branch->recv, MS_RTP_RECV_RESET_JITTER_BUFFER);
+
+		*newSession = recycled_branch->session;
+
+		ms_message(
+		    "No free branch found on session [%p], so recycle session [%p] used to receive SSRC %u switched to %u",
+		    session, recycled_branch->session, recycled_branch->session->rcv.ssrc, ssrc);
+	}
 
 	bctbx_free(sMid);
 }
@@ -209,6 +257,11 @@ void video_stream_free(VideoStream *stream) {
 	if (stream->void_source) ms_filter_destroy(stream->void_source);
 	if (stream->itcsink) ms_filter_destroy(stream->itcsink);
 	if (stream->forward_sink) ms_filter_destroy(stream->forward_sink);
+	if (stream->aggregator) ms_filter_destroy(stream->aggregator);
+
+	for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
+		if (stream->branches[i].recv) ms_filter_destroy(stream->branches[i].recv);
+	}
 
 	if (stream->display_name) ms_free(stream->display_name);
 	if (stream->preset) ms_free(stream->preset);
@@ -1306,6 +1359,32 @@ static void csrc_event_cb(void *ud, BCTBX_UNUSED(MSFilter *f), unsigned int even
 				ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, &reset);
 				stream->wait_for_frame_decoded = TRUE;
 			}
+
+			stream->csrc_change_received = TRUE;
+
+			break;
+		case MS_VIDEO_AGGREGATOR_INPUT_CHANGED:
+			// When the video is in mixer mode, we will only receive events via the CSRC.
+			// But the video aggregator will still notify the first input changed. Ignore it.
+			if (stream->csrc_change_received) return;
+
+			const int input = *((int *)eventdata);
+			if (input == 0) {
+				// 0 is the default rtp session of the stream
+				stream->new_csrc = rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session);
+			} else {
+				stream->new_csrc = rtp_session_get_recv_ssrc(stream->branches[input - 1].session);
+			}
+
+			if (stream->new_csrc == 0) {
+				if (stream->wait_for_frame_decoded) stream->wait_for_frame_decoded = FALSE;
+				stream->csrc_changed_cb(stream->csrc_changed_cb_user_data, 0);
+			} else {
+				bool_t reset = TRUE;
+				ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, &reset);
+				stream->wait_for_frame_decoded = TRUE;
+			}
+
 			break;
 		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
 			if (stream->wait_for_frame_decoded) {
@@ -1478,7 +1557,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		/* and then connect all */
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_link(&ch, stream->source, -1, 0);
-		/* Note: if pixconv is not null then it is needed. For example, Thumbnail can coming directly from camera and
+		/* Note: if pixconv is not null then it is needed. For example, Thumbnail can come directly from camera and
 		 * not from itc*/
 		if (stream->pixconv) {
 			ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
@@ -1597,6 +1676,24 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			ms_filter_add_notify_callback(stream->ms.decoder, csrc_event_cb, stream, FALSE);
 		}
 
+		if (stream->frame_marking_extension_id > 0) {
+			ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_FRAME_MARKING_EXTENSION_ID,
+			                      &stream->frame_marking_extension_id);
+		}
+
+		if (stream->active_speaker_mode == TRUE && stream->frame_marking_extension_id > 0) {
+			stream->aggregator = ms_factory_create_filter(stream->ms.factory, MS_VIDEO_AGGREGATOR_ID);
+			if (stream->csrc_changed_cb) {
+				ms_filter_add_notify_callback(stream->aggregator, csrc_event_cb, stream, TRUE);
+			}
+
+			for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
+				stream->branches[i].recv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
+				ms_filter_call_method(stream->branches[i].recv, MS_RTP_RECV_SET_FRAME_MARKING_EXTENSION_ID,
+				                      &stream->frame_marking_extension_id);
+			}
+		}
+
 		if (!rtp_output) {
 			if (stream->output_performs_decoding == FALSE) {
 				stream->jpegwriter = ms_factory_create_filter(stream->ms.factory, MS_JPEG_WRITER_ID);
@@ -1668,6 +1765,13 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_link(&ch, stream->ms.rtprecv, -1, 0);
 		if ((stream->output_performs_decoding == FALSE) && !rtp_output) {
+			if (stream->aggregator) {
+				ms_connection_helper_link(&ch, stream->aggregator, 0, 0);
+				for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
+					ms_filter_link(stream->branches[i].recv, 0, stream->aggregator, i + 1);
+				}
+			}
+
 			if (stream->recorder_output) {
 				ms_connection_helper_link(&ch, stream->tee3, 0, 0);
 				ms_filter_link(stream->tee3, 1, stream->recorder_output, 0);
@@ -1675,6 +1779,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 				                              FALSE); /*until recorder is started, the tee3 is kept muted on pin 1*/
 				configure_recorder_output(stream);
 			}
+
 			ms_connection_helper_link(&ch, stream->ms.decoder, 0, 0);
 		}
 		if (stream->tee2) {
@@ -1684,7 +1789,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			configure_sink(stream, stream->forward_sink);
 		}
 		if (stream->output != NULL) ms_connection_helper_link(&ch, stream->output, 0, -1);
-		/* the video source must be send for preview , if it exists. */
+		/* the video source must be sent for preview , if it exists. */
 		if (stream->tee != NULL && stream->output != NULL && stream->output2 == NULL) {
 			// Don't add the preview output if the source is encoded. We could also add a decoding step here
 			if (stream->source_performs_encoding == FALSE) {
@@ -2054,6 +2159,12 @@ static MSFilter *_video_stream_stop(VideoStream *stream, bool_t keep_source) {
 				ms_connection_helper_start(&h);
 				ms_connection_helper_unlink(&h, stream->ms.rtprecv, -1, 0);
 				if ((stream->output_performs_decoding == FALSE) && !rtp_output) {
+					if (stream->aggregator) {
+						ms_connection_helper_unlink(&h, stream->aggregator, 0, 0);
+						for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
+							ms_filter_unlink(stream->branches[i].recv, 0, stream->aggregator, i + 1);
+						}
+					}
 					if (stream->recorder_output) {
 						ms_connection_helper_unlink(&h, stream->tee3, 0, 0);
 						ms_filter_unlink(stream->tee3, 1, stream->recorder_output, 0);

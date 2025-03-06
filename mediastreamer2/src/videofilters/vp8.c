@@ -42,10 +42,7 @@
 #define PICID_NEWER_THAN(s1, s2) ((uint16_t)((uint16_t)s1 - (uint16_t)s2) < 1 << 15)
 
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus)                                            \
-	{                                                                                                                  \
-		required_bitrate, bitrate_limit, {MS_VIDEO_SIZE_##resolution##_W, MS_VIDEO_SIZE_##resolution##_H}, fps, cpus,  \
-		    NULL                                                                                                       \
-	}
+	{required_bitrate, bitrate_limit, {MS_VIDEO_SIZE_##resolution##_W, MS_VIDEO_SIZE_##resolution##_H}, fps, cpus, NULL}
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
@@ -559,8 +556,8 @@ static bool_t enc_process_frame_task(void *obj) {
 				memcpy(packet->m->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
 				packet->m->b_wptr += pkt->data.frame.sz;
 				mblk_set_timestamp_info(packet->m, mblk_get_timestamp_info(im));
-				mblk_set_independent_flag(packet->m, (pkt->data.frame.flags & VPX_FRAME_IS_KEY ? 0x1 : 0x0));
-				mblk_set_discardable_flag(packet->m, (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE ? 0x1 : 0x0));
+				mblk_set_independent_flag(packet->m, (pkt->data.frame.flags & VPX_FRAME_IS_KEY));
+				mblk_set_discardable_flag(packet->m, (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE));
 				packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
 				packet->pd->non_reference_frame = s->avpf_enabled && !is_ref_frame;
 				if (s->avpf_enabled == TRUE) {
