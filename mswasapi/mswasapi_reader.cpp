@@ -50,7 +50,10 @@ int MSWASAPIReader::deactivate() {
 
 void MSWASAPIReader::start() {
 	MSWasapi::start();
-	if (mIsStarted) ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
+	if (mIsStarted) {
+		mSampleTime = (UINT64)-1;
+		ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
+	}
 }
 
 void MSWASAPIReader::stop() {
@@ -64,7 +67,7 @@ int MSWASAPIReader::feed(MSFilter *f) {
 	BYTE *pData;
 	UINT32 numFramesAvailable;
 	UINT32 numFramesInNextPacket = 0;
-	UINT64 devicePosition;
+	UINT64 devicePosition = (UINT64)-1;
 	mblk_t *m;
 	int bytesPerFrame = mNBlockAlign;
 
@@ -93,6 +96,19 @@ int MSWASAPIReader::feed(MSFilter *f) {
 				REPORT_ERROR("mswasapi: Could not release buffer of the MSWASAPI audio input interface [%x]", result);
 
 				m->b_wptr += numFramesAvailable * bytesPerFrame;
+				// Ticker has been desynchronized either by not setting the device position, or by being erroneous.
+				// It's supposed that when having an error, the position from GetBuffer cannot be reliable.
+				// Frame counting is done since then.
+				if (mSampleTime != (UINT64)-1) {
+					mSampleTime += numFramesAvailable;
+					devicePosition = mSampleTime;
+				} else if ((flags & AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR) || devicePosition == (UINT64)-1) {
+					ms_warning("mswasapi: Timestamp is erroneous. Switch to frame counting.");
+					mSampleTime = numFramesAvailable;
+					devicePosition = mSampleTime;
+					ms_ticker_synchronizer_resync(mTickerSynchronizer);
+				}
+
 				ms_ticker_synchronizer_update(mTickerSynchronizer, devicePosition, (unsigned int)mCurrentRate);
 
 				ms_queue_put(f->outputs[0], m);
