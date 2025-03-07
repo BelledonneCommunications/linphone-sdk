@@ -80,8 +80,13 @@ class AudioAnalysis:
                     if match:
                         self.energy_in_silence = float(match.group(1))
 
+                if "Energy=" in line and "aec_output_farend_single_talk" in line:
+                    match = re.search(r'([0-9]+\.[0-9]+)', line.split("Energy=")[-1].split(" in file")[0])
+                    if match:
+                        self.energy_in_silence = float(match.group(1))
+
                 if "Tester MSTicker: We are late of" in line:
-                    late_str = line.split("Tester MSTicker: We are late of ")[-1].split(" milliseconds.")[0]
+                    late_str = line.split("Tester MSTicker: We are late of ")[-1].split(" miliseconds.")[0]
                     self.msticker_late_ms.append(int(late_str))
 
                 if "FILTER USAGE STATISTICS" in line:
@@ -391,6 +396,7 @@ class AudioAnalysis:
         # Adjust layout and display the plot
         plt.tight_layout()
         # plt.show(block=True)
+        plt.close()
 
         return fig
 

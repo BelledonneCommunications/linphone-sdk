@@ -49,7 +49,6 @@ struct _MSFactory {
 	struct _AndroidSoundUtils *android_sound_utils;
 	char *image_resources_dir;
 	char *echo_canceller_filtername;
-	char *echo_canceller_3_filtername;
 	int expected_video_bandwidth;
 };
 
