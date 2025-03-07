@@ -329,7 +329,7 @@ void MsScreenSharing::inputThread() {
 void MsScreenSharing::feed(MSFilter *filter) {
 	if (mLastFormat.mSizeChanged) {
 		if (std::chrono::system_clock::now() - mLastFormat.mLastTimeSizeChanged < std::chrono::milliseconds(200))
-			return; // Avoid to burst replumbing (exemple of main issue if not : replumbing on each pixel change when
+			return; // Avoid to burst replumbing (example of main issue if not : replumbing on each pixel change when
 			        // moving window outside current screen)
 		ms_message("[MsScreenSharing] New format to notify.");
 		stop();
