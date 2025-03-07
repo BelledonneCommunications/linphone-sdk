@@ -151,13 +151,13 @@ void mswebrtc_aec3::process(MSFilter *f) {
 	ref_data = (int16_t *)alloca(nbytes);
 	echo_data = (int16_t *)alloca(nbytes);
 
-	while (ms_bufferizer_read(&echo, (uint8_t *)echo_data, (size_t)nbytes) >= (size_t)nbytes) {
+	while (ms_bufferizer_read(&echo, (uint8_t *)echo_data, (size_t)nbytes) >= static_cast<size_t>(nbytes)) {
 		mblk_t *oecho = allocb(nbytes, 0);
 		int avail;
 
 		if (!echostarted) echostarted = TRUE;
 
-		if ((avail = ms_bufferizer_get_avail(&delayed_ref)) < nbytes) {
+		if ((avail = static_cast<int>(ms_bufferizer_get_avail(&delayed_ref))) < nbytes) {
 			/*we don't have enough to read in a reference signal buffer, inject
 			 * silence instead*/
 			refm = allocb(nbytes, 0);

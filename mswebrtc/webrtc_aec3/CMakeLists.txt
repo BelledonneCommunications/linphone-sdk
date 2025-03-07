@@ -26,7 +26,7 @@ if(ENABLE_AEC)
 
 project(MSWebRTCAEC VERSION 1.1.1 LANGUAGES C CXX)
 
-if(UNIX)
+if(UNIX AND NOT APPLE)
 	add_link_options("LINKER:-no-undefined") 
 endif()
 
@@ -45,9 +45,9 @@ option(ENABLE_AEC "Enable the WebRTC echo canceller support." YES)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(CMAKE_CXX_EXTENSIONS NO)
 
 include(GNUInstallDirs)
+include(CheckCXXCompilerFlag)
 
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
@@ -91,17 +91,29 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND CMAKE_GENERATOR MATCHES "^.
 endif()
 
 # Define WEBRTC_POSIX for POSIX-compliant systems
-if(UNIX AND NOT APPLE)
+if(UNIX)
     add_definitions(-DWEBRTC_POSIX)
     message(STATUS "Defining WEBRTC_POSIX for POSIX-compliant system")
 	if(APPLE)
-		add_definitions(-DWEBRTC_MAC -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME)
+		add_definitions(-DWEBRTC_MAC)
+		if(IOS)
+			add_definitions(-DWEBRTC_IOS)
+		endif()
 	else()
-		add_definitions(-DWEBRTC_LINUX -DWEBRTC_THREAD_RR)
+		add_definitions(-DWEBRTC_LINUX)
 	endif()
 elseif(WIN32)
     add_definitions(-DWEBRTC_WIN)
     message(STATUS "Defining WEBRTC_WIN for Windows platform")
+endif()
+
+# Check if the compiler is Clang
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(STATUS "The compiler is Clang.") # FIXME FHA
+	set(COMPILER_IS_CLANG TRUE)
+else()
+    message(STATUS "The compiler is not Clang.") # FIXME FHA
+	set(COMPILER_IS_CLANG FALSE)
 endif()
 
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" SYSTEM_PROCESSOR)
@@ -110,22 +122,17 @@ if(FIXED_POINT_PROCESSOR)
 	add_definitions(-D__ARMEL__)
 endif()
 
-include(CheckCXXCompilerFlag)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(COMPILER_SUPPORTS_AVX2 TRUE)
-	set(COMPILER_SUPPORTS_FMA FALSE)
-else()
-    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
-	check_cxx_compiler_flag("-mfma" COMPILER_SUPPORTS_FMA)
-endif()
-
 # Detect ARM architecture
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-    message(STATUS "ARM architecture detected")
+if(SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+	message(STATUS "ARM64 architecture detected")
 	add_definitions(-DWEBRTC_ARCH_ARM64)
+endif()
+if(SYSTEM_PROCESSOR MATCHES "arm" OR SYSTEM_PROCESSOR MATCHES "aarch64")
+    message(STATUS "ARM architecture detected")
+	add_definitions(-DWEBRTC_ARM)
 
     # Check ARM version
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "armv7" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    if(SYSTEM_PROCESSOR MATCHES "armv7" OR SYSTEM_PROCESSOR MATCHES "aarch64")
         message(STATUS "ARM version 7 or higher detected")
         add_definitions(-DWEBRTC_ARCH_ARM_V7)
 
@@ -138,7 +145,7 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch
     endif()
 else()
     # Check for SSE support on non-ARM architectures
-	if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+	if (MSVC)
 		message(STATUS "SSE2 support detected for msvc")
 		set(COMPILER_SUPPORTS_SSE2 TRUE)
 	else()
@@ -159,7 +166,6 @@ set(AEC3_RTCBASE_DIR "${WEBRTC_AEC3_SRC_DIR}/rtc_base")
 set(AEC3_SRCS
 	aec3.cc
 	mswebrtc_aec3.cc
-	${WEBRTC_AEC3_SRC_DIR}
 	${AEC3_API_DIR}/echo_canceller3_config.cc
 	${AEC3_AUDIO_PROCESSING_DIR}/logging/apm_data_dumper.cc
 	${AEC3_AUDIO_PROCESSING_DIR}/audio_buffer.cc
@@ -167,7 +173,6 @@ set(AEC3_SRCS
 	${AEC3_AUDIO_PROCESSING_DIR}/splitting_filter.cc
 	${AEC3_AUDIO_PROCESSING_DIR}/three_band_filter_bank.cc
 	${AEC3_AUDIO_PROCESSING_DIR}/utility/cascaded_biquad_filter.cc
-	${AEC3_SRC_DIR}
 	${AEC3_SRC_DIR}/echo_canceller3.cc
 	${AEC3_SRC_DIR}/block_framer.cc
 	${AEC3_SRC_DIR}/api_call_jitter_metrics.cc
@@ -228,7 +233,6 @@ set(AEC3_SRCS
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/audio_util.cc
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/push_sinc_resampler.cc
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler.cc	
-	${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_avx2.cc
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/signal_processing/splitting_filter.c
 	${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft.cc
 	${WEBRTC_AEC3_SRC_DIR}/system_wrappers/source/cpu_features.cc
@@ -243,9 +247,19 @@ set(AEC3_SRCS
 	${AEC3_RTCBASE_DIR}/memory/aligned_malloc.cc
 )
 
+# Check the architecture
+if(SYSTEM_PROCESSOR MATCHES "x86_64|amd64|x86|i386")
+    message(STATUS "test build FHA: The architecture is x86 or x64, COMPILER_SUPPORTS_AVX2 set to TRUE.")
+	set(COMPILER_SUPPORTS_AVX2 TRUE)
+else()
+    message(STATUS "test build FHA: The architecture is neither x86 nor x64, COMPILER_SUPPORTS_AVX2 set to FALSE.")
+	set(COMPILER_SUPPORTS_AVX2 FALSE)
+endif()
+
 if(COMPILER_SUPPORTS_AVX2)
-	message(STATUS "AVX2 support detected")
+	message(STATUS "test build FHA: add avx2 source files")		
 	list(APPEND AEC3_SRCS
+			${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_avx2.cc
 			${AEC3_SRC_DIR}/adaptive_fir_filter_avx2.cc
 			${AEC3_SRC_DIR}/adaptive_fir_filter_erl_avx2.cc
 			${AEC3_SRC_DIR}/fft_data_avx2.cc
@@ -253,7 +267,6 @@ if(COMPILER_SUPPORTS_AVX2)
 			${AEC3_SRC_DIR}/vector_math_avx2.cc
 		)
 endif()
-
 
 if(COMPILER_SUPPORTS_NEON)
 	list(APPEND AEC3_SRCS
@@ -296,34 +309,38 @@ target_link_libraries(mswebrtcaec PRIVATE ${Mediastreamer2_TARGET} ${LIBS})
 find_package(Threads REQUIRED)
 target_link_libraries(mswebrtcaec PRIVATE Threads::Threads)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	if(COMPILER_SUPPORTS_AVX2)
+if(COMPILER_IS_CLANG)
+	target_compile_definitions(mswebrtcaec PRIVATE WEBRTC_ENABLE_AVX2)
+	message(STATUS "test build FHA: define WEBRTC_ENABLE_AVX2") # FIXME FHA
+else()
+    message(STATUS "test build FHA: The compiler is not Clang.") # FIXME FHA
+endif()
+
+if(COMPILER_SUPPORTS_AVX2)
+	if(MSVC)
 		target_compile_options(mswebrtcaec PRIVATE "/arch:AVX2")
-		message(STATUS "set flag  /arch:AVX2")
+		message(STATUS "test build FHA: set flag  /arch:AVX2")
+	else()
+		target_compile_options(mswebrtcaec PRIVATE -mavx2)
+		message(STATUS "test build FHA: set compile option -mavx2")
+		target_compile_options(mswebrtcaec PRIVATE -mfma)
+		message(STATUS "test build FHA: set compile option -mfma")
 	endif()
+endif()
+
+if(MSVC)
+	target_compile_definitions(mswebrtcaec PRIVATE NOMINMAX)
 	if(COMPILER_SUPPORTS_SSE2)
 		target_compile_options(mswebrtcaec PRIVATE "/arch:SSE2")
 		message(STATUS "set flag  /arch:SSE2")
 	endif()
 else()
-	if(COMPILER_SUPPORTS_AVX2)
-		target_compile_options(mswebrtcaec PRIVATE -mavx2)
-		target_compile_definitions(mswebrtcaec PRIVATE WEBRTC_ENABLE_AVX2)
-		message(STATUS "set compile option -mavx2 and define WEBRTC_ENABLE_AVX2")
-	endif()
-	if(COMPILER_SUPPORTS_FMA)
-		target_compile_options(mswebrtcaec PRIVATE -mfma)
-		message(STATUS "set compile option -mfma")
-	endif()
 	if(COMPILER_SUPPORTS_SSE2)
 		target_compile_options(mswebrtcaec PRIVATE -msse2)
 		message(STATUS "set compile option -msse2")
 	endif()
 endif()
 
-if(MSVC)
-	target_compile_definitions(mswebrtcaec PRIVATE NOMINMAX)
-endif()
 target_compile_definitions(mswebrtcaec PRIVATE WIN32_LEAN_AND_MEAN)
 
 set_target_properties(mswebrtcaec PROPERTIES LINKER_LANGUAGE CXX)
