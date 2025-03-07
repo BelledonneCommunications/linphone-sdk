@@ -547,6 +547,7 @@ int MSWasapi::restartAudioClient() {
 int MSWasapi::checkDefaultDevice() {
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
 	if (mDefaultDeviceChanged) {
+		mDefaultDeviceChanged = false;
 		MSAudioRouteChangedEvent ev;
 		memset(&ev, 0, sizeof(ev));
 		ev.need_update_device_list = true;

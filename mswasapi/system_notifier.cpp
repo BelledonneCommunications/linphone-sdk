@@ -76,6 +76,7 @@ HRESULT STDMETHODCALLTYPE SystemNotifier::OnDefaultDeviceChanged(EDataFlow flow,
 		mDefaultDeviceChanged = changed;
 		mDefaultDeviceAvailable = enabled;
 		mDefaultDeviceFirst = false;
+		if (mDefaultDeviceChanged) mDeviceStateChanged = true;
 	}
 	return S_OK;
 }
