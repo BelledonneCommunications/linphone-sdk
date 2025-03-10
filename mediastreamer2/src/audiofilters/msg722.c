@@ -205,7 +205,6 @@ struct DecState {
 static void dec_init(MSFilter *f) {
 	struct DecState *s = ms_new0(struct DecState, 1);
 	f->data = s;
-
 	s->dec_state = g722_decode_init(NULL, 64000, 0);
 	s->enc_state = g722_encode_init(NULL, 64000, 0);
 	s->concealer = ms_concealer_context_new(UINT32_MAX);
@@ -254,12 +253,27 @@ static void dec_process(MSFilter *f) {
 			generic_plc_update_continuity_buffer(s->plc_context, om->b_wptr, declen * sizeof(int16_t));
 
 			if (s->plc_context->plc_samples_used != 0) {
-				/* we were doing PLC, now resuming with normal audio, continuity buffer is twice the transition delay
+				/*we were doing PLC, now resuming with normal audio, continuity buffer is twice the transition delay
 				 * lengths, the second half is untouched by the update function and contains transition data generated
-				 * by PLC */
-				generic_plc_transition_mix(((int16_t *)(om->b_wptr)) + 16 * TRANSITION_DELAY,
-				                           ((int16_t *)(s->plc_context->continuity_buffer)) + 16 * TRANSITION_DELAY,
-				                           16 * TRANSITION_DELAY);
+				 * by PLC The first transitionBufferSize bytes of b_wptr have been written from continuity buffer,
+				 * current incoming message starts at b_wptr+transitionBufferSize. However if the incoming message is
+				 * shorter than transition delay, there is no data to mix as it was swallowed by the continuity buffer
+				 * during generic_plc_update_continuity_buffer */
+				if (declen >= 2 * 16 * TRANSITION_DELAY) {
+					/* We have enough data to mix the late PLC data and new incoming audio */
+					generic_plc_transition_mix(((int16_t *)(om->b_wptr)) + 16 * TRANSITION_DELAY,
+					                           ((int16_t *)(s->plc_context->continuity_buffer)) + 16 * TRANSITION_DELAY,
+					                           16 * TRANSITION_DELAY);
+				} else {
+					/* new incoming audio is not in b_wptr but at the begining of the continuity buffer, so we mix the
+					 * end of it with its beginning */
+					/* Note: if the received size is between 1 and 2 transition delay, we should mix part of the om and
+					 * part of the continuity buffer This case is not relevant enough - it shall actually never be true
+					 * - to bother, if this happens, we'll ear a crack sound < 5ms */
+					generic_plc_transition_mix((int16_t *)(s->plc_context->continuity_buffer),
+					                           (int16_t *)(s->plc_context->continuity_buffer + 16 * TRANSITION_DELAY),
+					                           16 * TRANSITION_DELAY);
+				}
 			}
 		}
 		s->plc_context->plc_index = 0;
