@@ -40,10 +40,6 @@ set(SOURCE_FILES_CXX
 	lime_multialgos-tester.cpp
 )
 
-set(SOURCE_FILES_C
-	lime_ffi-tester.c
-)
-
 bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
@@ -92,9 +88,6 @@ else()
 	add_test(NAME lime COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "lime")
 	add_test(NAME multidomains COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Multidomains")
 	add_test(NAME server COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Lime server")
-	if (ENABLE_C_INTERFACE)
-		add_test(NAME C_ffi COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "FFI")
-	endif()
 
 	if(ENABLE_PROFILING)
 		target_link_options(lime-tester PRIVATE "-pg")
@@ -109,8 +102,4 @@ else()
 		DESTINATION ${CMAKE_INSTALL_DATADIR}/lime_tester
 		PATTERN "*"
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE )
-endif()
-
-if (ENABLE_JNI)
-	add_subdirectory(java)
 endif()

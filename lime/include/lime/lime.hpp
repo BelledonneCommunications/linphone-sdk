@@ -120,7 +120,7 @@ namespace lime {
 	 * @param[in]	message			The message to post to the X3DH server
 	 * @param[in]	responseProcess		Function to be called with server's response
 	 */
-	using limeX3DHServerPostData = std::function<void(const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &reponseProcess)>;
+	using limeX3DHServerPostData = std::function<void(const std::string &url, const std::string &from, std::vector<uint8_t> &&message, const limeX3DHServerResponseProcess &reponseProcess)>;
 
 	/* Forward declare the class managing one lime user and class managing database */
 	class LimeGeneric;

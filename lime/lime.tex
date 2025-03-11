@@ -36,7 +36,9 @@
 
 \hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=olive}
 
-\def\currentVersion{1.1}
+\def\currentVersion{1.2}
+\def\VersionTag{5.4.0}
+
 
 \title{Linphone Instant Message Encryption v2.0 (Lime v2.0)}
 \date{\today\\Version \currentVersion}
@@ -50,7 +52,8 @@
 \newpage
 \section{Changelog}
 \begin{versionhistory}
-  \vhEntry{\currentVersion}{June 15, 2024}{JP}{Add support to Post-Quantum Cryptography}
+  \vhEntry{\currentVersion}{Feb 27, 2025}{JP}{Update PQC description with MLKem and add multialgo support}
+  \vhEntry{1.1}{June 15, 2024}{JP}{Add support to Post-Quantum Cryptography}
   \vhEntry{1.0}{March 6, 2019}{JP}{Initial version}
 \end{versionhistory}
 
@@ -58,8 +61,9 @@
 \section{Introduction}
 \paragraph{}Linphone Instant Message Encryption (Lime) v2.0 implements the Signal protocol allowing users to privately and asynchronously exchange messages. Detailed specification of the Signal protocol can be found on the \href{https://signal.org/docs/}{Signal website}. Lime supports multiple devices per user and multiple users per device.
 \paragraph{}Lime is designed to be used with \href{https://linphone.org}{Linphone}, an open source SIP phone. Lime establishes encrypted sessions and encrypts messages but relies on Linphone to acquire the unique identification string of peer devices and route the messages to their recipients. The use of Lime with other message delivery software is possible but is out of the scope of this document.
-\paragraph*{}Lime is written in C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\tiny\bf +}\nolinebreak\hspace{-.10em}\raisebox{.4ex}{\tiny\bf +}17 and the library uses templates to provide support for Curve25519, Curve448 and hybrid Curve25519/Kyber512 based cryptographic algorithms. The library supports one or several cryptographics bases according to build settings.\\*A users network (all clients and keys server) must commit to using a single cryptographic base (Curve25519, Curve448 or Curve25519/Kyber512), but a device may host several users communicating on separate users' networks; using different basse.
-\paragraph{Note:} Lime v1.0 was based on \href{https://en.wikipedia.org/wiki/Silent_Circle_Instant_Messaging_Protocol}{SCIMP}. This document presents Lime v2.0, which is neither related to nor compatible with Lime v1.0. In this document the use of the term Lime refers to Lime v2.0.
+\paragraph{}Lime is written in C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\tiny\bf +}\nolinebreak\hspace{-.10em}\raisebox{.4ex}{\tiny\bf +}17 and the library uses templates to provide support for Curve25519, Curve448 and hybrids Curve25519/Kyber512, Curve25519/MLKem512, Curve448/MLKem1024 based cryptographic algorithms. The library supports one or several cryptographics bases according to build settings.
+\paragraph{Notes:} Lime v1.0 was based on \href{https://en.wikipedia.org/wiki/Silent_Circle_Instant_Messaging_Protocol}{SCIMP}. This document presents Lime v2.0, which is neither related to nor compatible with Lime v1.0. In this document the use of the term Lime refers to Lime v2.0.
+\paragraph{}This document(version \currentVersion) refers to the implementation tagged \VersionTag \hspace{0.5em}on the \href{https://gitlab.linphone.org/BC/public/lime/-/commits/\VersionTag}{official repository}.
 
 \newpage
 \section{Notations}
@@ -150,7 +154,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   \subsection{PQXDH}
   \paragraph*{}In Lime, the key server will allways provide a SPk KEM public key to be able to pass it to the double ratchet init and an OPk KEM key if available.
   \paragraph*{}KEM OPk keys are not signed to improve the deniability property, see \cite{PQXDHdeniabilty}
-  \paragraph*{}In order not to rely on KEM properties (which are provided by Kyber), the key derivation functions generating the PQXDH output includes a transcript of all public material (public keys and cipher text) used in the generation of the shared secrets.
+  \paragraph*{}In order not to rely on KEM properties (Kyber or MLKem), the key derivation functions generating the PQXDH output includes a transcript of all public material (public keys and cipher text) used in the generation of the shared secrets.
 
   \subsection{Optional features not implemented}
     \begin{itemize}
@@ -164,7 +168,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   \subsection{Preliminaries}
     \paragraph{}For clarity, the different terms used in this document are defined here:
     \begin{itemize}
-      \item device Id: a unique string associated to a device, provided to Lime by Linphone. It shall be the GRUU\cite{rfc5627}
+      \item device Id: a unique string associated to a device, provided to Lime by Linphone. It shall be the GRUU\cite{rfc5627}. Internally a lime user is identified by the pair device Id, base algorithm.
       \item user Id: a unique string defining a user or a group of users, provided to Lime by Linphone. It shall be the sip URI.
       \item source: the device generating and encrypting a message.
       \item recipient: the parties targeted to receive and decrypt the message. Multiple devices can be associated to the it so any mention of recipient must specify user Id or device Id to clarify the intent.
@@ -823,6 +827,24 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \paragraph{maxMessagesReceivedAfterSkip} is a constant (128 default) linked to a double ratchet receiving chain (a new chain is started within the session each time a Diffie-Hellman ratchet is performed). Each time a skipped message key is stored in this chain, the counter is reset. Each time a message is decrypted by the session, all skipped message key chain counters are increase by one. When the counter reaches $maxMessagesReceivedAfterSkip$, the skipped message key chain is deleted.
 
 
+  \subsection{Multiple base algorithm support}
+  \paragraph{}To enable migration from one base algorithm to another (mostly to migrate from elliptic curve cryptography to elliptic curve and post quantum cryptography), the lime library supports the concurrent usage of multiple base algorithms.
+  \paragraph{}The base mechanims of this support is:
+  \begin{itemize}
+   \item devices are identitied by the pair deviceId (GRUU)/base algorithm
+   \item most of the API gets as input parameters: the deviceId and an ordered list of base algorithms
+  \end{itemize}
+  \subsubsection{user creation}
+  \paragraph{}The API provides a function to check user existence, getting as parameter the deviceId and a list of base algorithms. When at least one pair is not a active user(public key publication confirmed by the key server), it will returns false.
+  \paragraph{}The user creation function gets the deviceId/ordered base algorithm list parameters and check, in the given order, that the lime user deviceId/base algorithm exists. Every non existing user is created. When all potential users have been processed, the provided callback is called.
+  \subsubsection{encryption}
+  \paragraph{}Given the localDeviceId/ordered base algorithms list, the library tries to encrypt for all recipients using the first user localDeviceId/base algo. Any recipient non sastified after this round will try with the next base algorithm in the list until all recipients get a cipher text or all algorithm in the list have been tried.
+
+  \paragraph{}When using the cipher message encryption policy, the plain text is encrypted with a random key itself encrypted with Double Ratchet protocol. The MessageEncrypt function (see section \ref{messageEncrypt}) in that case produces a cipher message common to all recipients on top of their individual double ratchet cipher text. In order to keep this functionnality in the context of several calls to $MessageEncrypt$ made by different local users(same device Id but different base algorithm), the random key can be stored in a callback accesible buffer by the $MesssageEncrypt$ function caller. The first call to $MessageEncrypt$ will generate the random key (and the cipher message) and store it in the buffer using the provided callback. Successive calls retrieve the random key using the same mechanism.
+
+  \subsubsection{decryption}
+  Upon cipher text reception, the recipient parses the message header which contains the base algorithm id. This allows to load the appropriate user to decrypt the incoming message.
+
   \subsection{Local Storage}
     The local storage is provided by an sqlite3 database accessed using the \href{https://github.com/SOCI/soci}{SOCI library} \cite{libsoci}.
     \subsubsection{Devices tables}
@@ -844,7 +866,9 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \begin{itemize}
       \item $Did$: integer primary key.
       \item $DeviceId$: the peer device Id, it shall be its GRUU.
+      \item $curveId$: the base algorithm used by this peer device.
       \item $Ik$: the peer's public EdDSA identity key.
+      \item $Active$: this peer device is the active one, used to select a peer device when asked for status.
       \item $Status$: status flag:
         \begin{itemize}
           \item 0 for untrusted: peer's identity is not verified(default value)
@@ -933,7 +957,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \subsubsection{Double Ratchet}
       \begin{itemize}
         \item Diffie-Hellman using either X25519 or X448
-        \item KEM: Kyber512 (always used with X25519)
+        \item KEM: Kyber512 or MLKEM512(with X25519), MLKEM1024 (with X448)
         \item KDF are HKDF\cite{rfc5869} based on Sha512
         \item ENCRYPT is AES256-GCM with a 128bits authentication tag
       \end{itemize}
@@ -963,8 +987,11 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \item Curve 448 ECDH: 56 bytes
     \item Curve 448 EdDSA: 57 bytes
     \item Curve 448 Signature: 114 bytes
-    \item Kyber 512 Public Key: 800 bytes
-    \item Kyber 512 Cipher Text: 768 bytes
+    \item Kyber/MLKEM 512 Public Key: 800 bytes
+    \item Kyber/MLKEM 512 Cipher Text: 768 bytes
+    \item MLKEM 1024 Public Key: 1568 bytes
+    \item MLKEM 1024 Cipher Text: 1568 bytes
+
   \end{itemize}
   Keys are stored and distributed in the formats described in \cite{rfc7748} and \cite{rfc8032}.\\*
   Others numeric values (counts, Ids, counters) are unsigned integers in big endian.
@@ -995,7 +1022,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
               \item 0: (no X3DH init in the header)
             \end{itemize}
         \end{itemize}
-      \item Curve Id: [0x01 (curve 25519), 0x02 (curve 448), 0x02 (curve25519/kyber512)]
+      \item Curve Id:
+      \begin{itemize}
+       \item 0x01: curve 25519
+       \item 0x02: curve 448
+       \item 0x03: curve 25519 + Kyber512
+       \item 0x04: curve 25519 + MLKEM512
+       \item 0x05: curve 448 + MLKEM1024
+      \end{itemize}
       \end{itemize}
 
       \subsubsection{Header}
@@ -1013,7 +1047,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \multicolumn{2}{|c}{Ns}&\multicolumn{2}{|c|}{PN}\\
         \hline
-        \multicolumn{4}{|c|}{DHs$\langle 32,56,1600 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{DHs$\langle 32,56 bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
       \end{tabular}
@@ -1032,13 +1066,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \multicolumn{2}{|c}{Ns}&\multicolumn{2}{|c|}{PN}\\
         \hline
-        \multicolumn{4}{|c|}{DHs$\langle 32 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{DHs$\langle 32,56 bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{KEM self public key$\langle 800 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{KEM self public key$\langle 800,1568 bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{KEM cipherText(encapsulation to peer's KEM pk)$\langle 768 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{KEM cipherText(encapsulation to peer's KEM pk)$\langle 768,1568 bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
 
@@ -1059,7 +1093,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \multicolumn{2}{|c}{Ns}&\multicolumn{2}{|c|}{PN}\\
         \hline
-        \multicolumn{4}{|c|}{DHs$\langle 32 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{DHs$\langle 32,56 bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{Self KEM Pk index$\langle 12 bytes\rangle $}\\
@@ -1138,7 +1172,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \multicolumn{4}{|c|}{ ECDH Ephemeral Key$\langle 32,56bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{ KEM cipherText(encapsulation to OPk - or SPk$\langle 768 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{ KEM cipherText(encapsulation to OPk - or SPk$\langle 768,1568 bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{Signed Pre-key Id}\\
@@ -1188,7 +1222,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
 
     To device generated messages \textit{(deprecated) register User, delete User, post Signed Pre-key} and \textit{post One-time Pre-key}, on success, the X3DH server responds with the original message header:\\*
     Protocol Version $\Arrowvert $ Message type $\Arrowvert $ Curve Id
-    \paragraph{}OPk and SPk keys, when based on curve25519/kyber512, are a concatenation of the Curve25519 ECDH public key with the Kyber512 KEM public key.
+    \paragraph{}OPk and SPk keys, when based on multiple scheme (ECDH and KEM), are a concatenation of the ECDH public key with the KEM public key.
     \subsubsection{Register User Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
@@ -1200,7 +1234,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56bytes,832\rangle $}\\
+        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56,832,1600bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
@@ -1208,7 +1242,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \multicolumn{4}{|c|}{Signed Pre-key Id}\\
         \hline
-        \multicolumn{2}{|c}{keys Count} & \multicolumn{2}{|c|}{One-time Pre-key bundle$\langle 36,60,836bytes\rangle $\{keys Count\}}\\
+        \multicolumn{2}{|c}{keys Count} & \multicolumn{2}{|c|}{One-time Pre-key bundle$\langle 36,60,836,1604bytes\rangle $\{keys Count\}}\\
         \cline{1-2}
         \multicolumn{4}{|c|}{...}\\
         \hline
@@ -1217,7 +1251,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
         \hline
-        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56bytes,832\rangle$}\\
+        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56,832,1600bytes\rangle$}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{One-Time Pre-key Id}\\
@@ -1244,7 +1278,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         Protocol Version [0x01] & Message type [0x03] & Curve Id & \\
         \cline{1-3}
-        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56,832bytes\rangle $}\\
+        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56,832,1600bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{ECDH Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
@@ -1272,7 +1306,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
         \hline
-        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56,832bytes\rangle$}\\
+        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56,832,1600bytes\rangle$}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{One-Time Pre-key Id}\\
@@ -1330,7 +1364,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56,832bytes\rangle $}\\
+        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56,832,1600bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{Signed Pre-key Id}\\
@@ -1338,7 +1372,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \multicolumn{4}{|c|}{Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56,832bytes\rangle $\{0,1\} only if bundle flag = 0x01}\\
+        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56,832,1600bytes\rangle $\{0,1\} only if bundle flag = 0x01}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{One-Time Pre-key Id\{0,1\} only if bundle flag = 0x01}\\
@@ -1409,6 +1443,8 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item 0x06: \textbf{user not found}: an operation concerning a user could not be performed because the user was not found in server database.
       \item 0x07: \textbf{db error}: server encountered problem with its database.
       \item 0x08: \textbf{bad request}: malformed peer bundle request.
+      \item 0x09: \textbf{server failure}: server is badly configured and cannot run correctly.
+      \item 0x0a: \textbf{resource limit reached}: the request temporarily cannot be served as the user reached the usage limit.
     \end{itemize}
 
     \subsubsection{Deprecated Register User Message}
