@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(PostQuantumCryptoEngine VERSION 5.4.0)
+project(PostQuantumCryptoEngine VERSION 5.5.0)
 
 set(POSTQUANTUMCRYPTOENGINE_VERSION "${PROJECT_VERSION}")
 set(POSTQUANTUMCRYPTOENGINE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
