@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [5.4.0] - 2025-01-14
+## [5.4.0] - 2025-03-11
 
 ### Added
 - Added RFC5626 ping/pong client procedure.
