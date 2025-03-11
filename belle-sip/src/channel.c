@@ -1038,7 +1038,6 @@ void belle_sip_channel_close(belle_sip_channel_t *obj) {
 	if (BELLE_SIP_OBJECT_VPTR(obj, belle_sip_channel_t)->close)
 		BELLE_SIP_OBJECT_VPTR(obj, belle_sip_channel_t)->close(obj); /*udp channel doesn't have close function*/
 	belle_sip_main_loop_remove_source(obj->stack->ml, (belle_sip_source_t *)obj);
-	belle_sip_source_uninit((belle_sip_source_t *)obj);
 }
 
 const struct addrinfo *belle_sip_channel_get_peer(belle_sip_channel_t *obj) {
@@ -1261,7 +1260,7 @@ static char *make_logbuf(belle_sip_channel_t *obj,
                          belle_sip_direction_t direction) {
 	char *logbuf;
 	char truncate_msg[128] = {0};
-	size_t limit = 7000; /*big message when many ice candidates*/
+	size_t limit = 14000; /*typically a big INVITE with many streams and ice candidates*/
 
 	if (!belle_sip_log_level_enabled(level)) {
 		return NULL;
@@ -1570,7 +1569,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 	char name[NI_MAXHOST];
 	char serv[NI_MAXSERV];
 
-	if (obj->local_ip == NULL) {
+	if (obj->local_ip == NULL || obj->local_port <= 0) {
 		struct sockaddr_storage saddr;
 		socklen_t slen2 = sizeof(saddr);
 		int err;
@@ -1582,7 +1581,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 		if (err != 0) {
 			belle_sip_error("belle_sip_channel_set_ready(): getnameinfo() failed: %s", gai_strerror(err));
 		} else {
-			obj->local_ip = belle_sip_strdup(name);
+			if (obj->local_ip == NULL) obj->local_ip = belle_sip_strdup(name);
 			obj->local_port = atoi(serv);
 			belle_sip_message("Channel has local address %s:%s", name, serv);
 		}

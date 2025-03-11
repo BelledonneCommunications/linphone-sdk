@@ -403,10 +403,14 @@ belle_sip_header_address_t *belle_sip_header_address_fast_parse(const char *addr
 }
 
 /*
- same as belle_sip_header_address_fast_parse but with no error messagging
+ same as belle_sip_header_address_fast_parse but with no error log.
  */
 belle_sip_header_address_t *belle_sip_header_address_try_fast_parse(const char *address) {
-	return belle_sip_header_address_parse(address);
+	return belle_sip_try_header_address_parse(address);
+}
+
+belle_sip_header_address_t *belle_sip_header_address_try_parse(const char *address) {
+	return belle_sip_try_header_address_parse(address);
 }
 
 /******************************

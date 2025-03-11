@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2021 Belledonne Communications SARL.
+ * Copyright (c) 2012-2025 Belledonne Communications SARL.
  *
  * This file is part of belle-sip.
  *
@@ -23,7 +23,12 @@
 #include "belle_sip_tester.h"
 #include "belle_sip_tester_utils.h"
 
+#ifndef _WIN32
+#include <fcntl.h>
+#endif // _WIN32
+
 #include "register_tester.h"
+
 using namespace bellesip;
 
 const int RANDOM_PORT = -1;
@@ -698,6 +703,51 @@ static void test_channel_moving_to_error_and_cleaned(void) {
 	}
 }
 
+static void test_channel_moving_to_error_and_cleaned_dont_bind_mode() {
+	belle_sip_listening_point_t *old_lp = belle_sip_provider_get_listening_point(prov, "UDP");
+	belle_sip_provider_remove_listening_point(prov, old_lp);
+	belle_sip_listening_point_t *new_lp =
+	    belle_sip_stack_create_listening_point(stack, "0.0.0.0", BELLE_SIP_LISTENING_POINT_DONT_BIND, "UDP");
+	BC_ASSERT_PTR_NOT_NULL(new_lp);
+	belle_sip_provider_add_listening_point(prov, new_lp);
+	if (new_lp) {
+		belle_sip_request_t *req = nullptr;
+		belle_sip_client_transaction_t *tr = nullptr;
+		char identity[128];
+		char uri[128];
+
+		belle_sip_listening_point_clean_channels(new_lp);
+		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(new_lp), 0, int, "%d");
+
+		snprintf(identity, sizeof(identity), "Tester <sip:%s@%s>", "bellesip", "fs-test-8.linphone.org");
+		snprintf(uri, sizeof(uri), "sip:%s", "fs-test-8.linphone.org");
+		req = belle_sip_request_create(belle_sip_uri_parse(uri), "REGISTER", belle_sip_provider_create_call_id(prov),
+		                               belle_sip_header_cseq_create(20, "REGISTER"),
+		                               belle_sip_header_from_create2(identity, BELLE_SIP_RANDOM_TAG),
+		                               belle_sip_header_to_create2(identity, nullptr), belle_sip_header_via_new(), 70);
+		tr = belle_sip_provider_create_client_transaction(prov, req);
+		belle_sip_client_transaction_send_request(tr);
+		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(new_lp), 1, int, "%d");
+		belle_sip_channel_t *chan = belle_sip_provider_get_channel(prov, tr->next_hop);
+		belle_sip_stack_sleep(stack, 1000);
+		BC_ASSERT_EQUAL(belle_sip_channel_get_state(chan), BELLE_SIP_CHANNEL_READY, belle_sip_channel_state_t, "%d");
+#ifndef _WIN32
+		belle_sip_socket_t socket = belle_sip_source_get_socket((belle_sip_source_t *)chan);
+		BC_ASSERT_NOT_EQUAL(fcntl(socket, F_GETFL), -1, int, "%d");
+#endif // _WIN32
+
+		/*calling notify_server_error() will make the channel enter the error state, which is what we want to test*/
+		belle_sip_channel_notify_server_error(tr->base.channel);
+		belle_sip_object_ref(tr);
+		/*we just want to verify that it doesn't crash*/
+		belle_sip_stack_sleep(stack, 1000);
+#ifndef _WIN32
+		BC_ASSERT_EQUAL(fcntl(socket, F_GETFL), -1, int, "%d");
+#endif // _WIN32
+		belle_sip_object_unref(tr);
+	}
+}
+
 static void test_register_client_authenticated(void) {
 	belle_sip_request_t *reg;
 	authorized_request = NULL;
@@ -1335,6 +1385,8 @@ static test_t register_tests[] = {
     TEST_NO_TAG("TLS client cert bad ciphersuites", test_register_client_bad_ciphersuites),
     TEST_NO_TAG("Channel inactive", test_register_channel_inactive),
     TEST_NO_TAG("Channel moving to error test and cleaned", test_channel_moving_to_error_and_cleaned),
+    TEST_NO_TAG("Channel moving to error test and cleaned (DONT_BIND)",
+                test_channel_moving_to_error_and_cleaned_dont_bind_mode),
     TEST_NO_TAG("TCP connection failure", test_connection_failure),
     TEST_NO_TAG("TCP connection too long", test_connection_too_long_tcp),
     TEST_NO_TAG("TLS connection too long", test_connection_too_long_tls),

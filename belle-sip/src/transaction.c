@@ -359,6 +359,28 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_server_transaction_t){
 	belle_sip_random_token(t->to_tag, sizeof(t->to_tag));
 }
 
+static int belle_sip_server_transaction_check_channel(belle_sip_server_transaction_t *t, belle_sip_response_t *resp) {
+	belle_sip_transaction_t *base = (belle_sip_transaction_t *)t;
+	if (!base->channel) {
+		belle_sip_hop_t *hop;
+		hop = belle_sip_response_get_return_hop(resp);
+		base->channel = belle_sip_provider_get_channel(base->provider, hop);
+		belle_sip_object_unref(hop);
+		if (!base->channel) {
+			belle_sip_error("Transaction [%p]: No channel available for sending response.", t);
+			return -1;
+		}
+		belle_sip_object_ref(base->channel);
+		belle_sip_channel_add_listener(base->channel, BELLE_SIP_CHANNEL_LISTENER(t));
+	}
+	return 0;
+}
+
+void _belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp) {
+	if (belle_sip_server_transaction_check_channel(t, resp) == -1) return;
+	belle_sip_channel_queue_message(t->base.channel, (belle_sip_message_t *)resp);
+}
+
 void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp) {
 	belle_sip_transaction_t *base = (belle_sip_transaction_t *)t;
 	belle_sip_header_to_t *to =
@@ -366,22 +388,9 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	belle_sip_dialog_t *dialog = base->dialog;
 	int status_code;
 
+	if (belle_sip_server_transaction_check_channel(t, resp) == -1) return;
 	belle_sip_object_ref(resp);
-	if (!base->last_response || !base->channel) {
-		belle_sip_hop_t *hop;
-		belle_sip_message_set_channel_bank_identifier(
-		    (belle_sip_message_t *)resp,
-		    belle_sip_message_get_channel_bank_identifier((belle_sip_message_t *)base->request));
-		hop = belle_sip_response_get_return_hop(resp);
-		base->channel = belle_sip_provider_get_channel(base->provider, hop);
-		belle_sip_object_unref(hop);
-		if (!base->channel) {
-			belle_sip_error("Transaction [%p]: No channel available for sending response.", t);
-			return;
-		}
-		belle_sip_object_ref(base->channel);
-		belle_sip_channel_add_listener(base->channel, BELLE_SIP_CHANNEL_LISTENER(t));
-	}
+
 	status_code = belle_sip_response_get_status_code(resp);
 	if (status_code != 100) {
 		if (belle_sip_header_to_get_tag(to) == NULL) {

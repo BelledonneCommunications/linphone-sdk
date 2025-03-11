@@ -88,6 +88,7 @@ void stream_channel_close(belle_sip_stream_channel_t *obj) {
 		}
 #endif
 		belle_sip_close_socket(sock);
+		belle_sip_source_reset((belle_sip_source_t *)obj);
 	}
 }
 

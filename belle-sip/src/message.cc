@@ -905,6 +905,9 @@ belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t
 	if (h) {
 		belle_sip_message_add_header((belle_sip_message_t *)resp, h);
 	}
+	belle_sip_message_set_channel_bank_identifier(
+	    (belle_sip_message_t *)resp, belle_sip_message_get_channel_bank_identifier((belle_sip_message_t *)req));
+
 	return resp;
 }
 /*

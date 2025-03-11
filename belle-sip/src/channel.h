@@ -242,7 +242,7 @@ BELLESIP_EXPORT void belle_sip_channel_notify_server_error(belle_sip_channel_t *
  */
 void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj);
 
-void belle_sip_channel_set_simulated_recv_return(belle_sip_channel_t *obj, int recv_error);
+BELLESIP_EXPORT void belle_sip_channel_set_simulated_recv_return(belle_sip_channel_t *obj, int recv_error);
 
 int belle_sip_channel_send_keep_alive(belle_sip_channel_t *obj, int doubled);
 

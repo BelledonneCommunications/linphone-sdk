@@ -63,7 +63,7 @@ static int nist_send_new_response(belle_sip_nist_t *obj, belle_sip_response_t *r
 		case BELLE_SIP_TRANSACTION_TRYING:
 			if (code < 200) {
 				belle_sip_transaction_set_state(base, BELLE_SIP_TRANSACTION_PROCEEDING);
-				belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)resp);
+				_belle_sip_server_transaction_send_response(&obj->base, resp);
 				break;
 			}
 			BCTBX_NO_BREAK; /* no break nist can directly pass from TRYING to PROCEEDING*/
@@ -71,7 +71,7 @@ static int nist_send_new_response(belle_sip_nist_t *obj, belle_sip_response_t *r
 			if (code >= 200) {
 				nist_set_completed(obj);
 			}
-			belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)resp);
+			_belle_sip_server_transaction_send_response(&obj->base, resp);
 			break;
 		case BELLE_SIP_TRANSACTION_COMPLETED:
 			belle_sip_warning(
@@ -90,7 +90,11 @@ static void nist_on_request_retransmission(belle_sip_nist_t *obj) {
 	switch (base->state) {
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 		case BELLE_SIP_TRANSACTION_COMPLETED:
-			belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)base->last_response);
+			if (base->channel) {
+				belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)base->last_response);
+			} else {
+				belle_sip_error("nist_on_request_retransmission(): no channel");
+			}
 			break;
 		default:
 			// ignore

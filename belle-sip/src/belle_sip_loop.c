@@ -165,19 +165,19 @@ static void belle_sip_source_init(belle_sip_source_t *s,
 	s->sock = (belle_sip_socket_t)-1;
 }
 
-void belle_sip_source_uninit(belle_sip_source_t *obj) {
+void belle_sip_source_reset(belle_sip_source_t *s) {
 #ifdef _WIN32
-	if (obj->sock != (belle_sip_socket_t)-1) {
-		WSACloseEvent(obj->fd);
-		obj->fd = (WSAEVENT)-1;
+	if (s->sock != (belle_sip_socket_t)-1) {
+		WSACloseEvent(s->fd);
+		s->fd = (WSAEVENT)-1;
 	}
 #endif
-	obj->fd = (belle_sip_fd_t)-1;
-	obj->sock = (belle_sip_socket_t)-1;
-	/*	if (obj->it) {
-	        bctbx_iterator_delete(obj->it);
-	        obj->it=NULL;
-	    }*/
+	s->fd = (belle_sip_fd_t)-1;
+	s->sock = (belle_sip_socket_t)-1;
+}
+
+void belle_sip_source_uninit(belle_sip_source_t *obj) {
+	belle_sip_source_reset(obj);
 }
 
 void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t func) {
