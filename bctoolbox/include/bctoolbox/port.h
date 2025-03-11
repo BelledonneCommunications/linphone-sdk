@@ -932,5 +932,4 @@ BCTBX_PUBLIC void bctbx_set_stack_trace_hooks(bool_t use_bctbx_hooks);
 
 #if defined(__ANDROID__)
 int mblen(const char *s, size_t n);
-int wctomb(char *s, wchar_t wc);
 #endif

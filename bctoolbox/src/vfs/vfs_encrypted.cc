@@ -312,8 +312,8 @@ void VfsEncryption::secretMaterialSet(const std::vector<uint8_t> &secretMaterial
 	if (m_module == nullptr) {
 		if (mFileSize > 0 &&
 		    mAccessMode == O_RDONLY) { // we are opening a read only plain file, ignore the secret material
-			BCTBX_SLOGW << " Encrypted VFS access a plain file " << mFilename
-			            << "as read only. Secret material setting ignored";
+			BCTBX_SLOGW << "Encrypted VFS access a plain file " << mFilename
+			            << " as read only. Secret material setting ignored";
 			return;
 		} else {
 			throw EVFS_EXCEPTION << "Cannot set secret material before specifying which encryption suite to use. file "
@@ -338,7 +338,7 @@ void VfsEncryption::encryptionSuiteSet(const EncryptionSuite suite) {
 					mEncryptExistingPlainFile = true;
 					m_module = make_VfsEncryptionModule(suite);
 				} else {
-					BCTBX_SLOGW << " Encrypted VFS access a plain file " << mFilename << "as read only. Kept it plain";
+					BCTBX_SLOGW << "Encrypted VFS access a plain file " << mFilename << " as read only. Kept it plain";
 				}
 			} else {
 				throw EVFS_EXCEPTION << "Encryption suite for file " << mFilename << " is already set to "
