@@ -1,6 +1,6 @@
 ############################################################################
-# EktServer.cmake
-# Copyright (C) 2010-2025 Belledonne Communications, Grenoble France
+# toolchain-bundled-android-armv7.cmake
+# Copyright (C) 2010-2025  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,25 +20,6 @@
 #
 ############################################################################
 
-include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
+set(ANDROID_ABI "armeabi-v7a with NEON")
 
-linphone_sdk_check_git()
-
-set(EKT_SERVER_REVISION "2575393705848acad63a73b0cc8824b48a519bff")
-
-if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server")
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "fetch" "--all"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server"
-	)
-else()
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/ekt-server.git" "ekt-server"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-	)
-endif()
-
-execute_process(
-	COMMAND "${GIT_EXECUTABLE}" "checkout" "${EKT_SERVER_REVISION}"
-	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server"
-)
+include("${CMAKE_CURRENT_LIST_DIR}/toolchain-bundled-android-common.cmake")

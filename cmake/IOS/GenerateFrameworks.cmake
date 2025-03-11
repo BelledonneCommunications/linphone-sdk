@@ -22,7 +22,6 @@
 
 include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 
-
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" _IOS_ARCHS)
 
 message("Creating the destination directory that will contain the merged content of all architectures")

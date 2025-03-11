@@ -42,3 +42,13 @@ else()
 endif()
 
 configure_file("${LINPHONESDK_DIR}/cmake/macos/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/linphone-sdk.podspec" @ONLY)
+
+###################################
+# Generate Swift Package linphonesw
+###################################
+
+set(SWIFT_PACKAGE_TARGET "macos")
+set(SWIFT_PACKAGE_MIN_OS_VERSION ".macOS(.v10_14)")
+set(SWIFT_PACKAGE_SOURCE_XC_FRAMEWORKS_LOCATION "macos")
+set(LINPHONE_WRAPPER_SWIFT "${LINPHONESDK_NAME}/macos/share/linphonesw/LinphoneWrapper.swift")
+include("${LINPHONESDK_DIR}/cmake/SwiftPackageManager/GenerateSwiftPackage.cmake")

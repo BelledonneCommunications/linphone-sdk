@@ -12,7 +12,7 @@ Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *medias
 changes made to these components.
 
 
-## [5.4.0] 2025-01-14
+## [5.4.0] 2025-03-11
 
 ### Added
 - Swift Package for MacOS and iOS.

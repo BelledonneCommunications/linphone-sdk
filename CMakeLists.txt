@@ -83,7 +83,7 @@ set(LINPHONESDK_PACKAGER "" CACHE STRING "Packager name")
 set_property(CACHE LINPHONESDK_PACKAGER PROPERTY STRINGS "Nuget" "")
 
 
-if(LINPHONESDK_PLATFORM STREQUAL "Android")
+if(LINPHONESDK_PLATFORM MATCHES "Android")
 	set(ANDROID TRUE)
 elseif(LINPHONESDK_PLATFORM STREQUAL "IOS")
 	set(IOS TRUE)
@@ -121,6 +121,13 @@ if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL 
 	enable_language(ASM_NASM)
 
 	list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules")
+  if(MSVC)
+    # Prevent crash in std::mutex::lock() for builds made with latest VS 2022 version
+    # running on a machine where the redistributables are older.
+    # See https://stackoverflow.com/questions/78598141/first-stdmutexlock-crashes-in-application-built-with-latest-visual-studio
+    add_compile_definitions("_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR")
+  endif()
+
 	include("cmake/ExternalDependencies.cmake")
 	include("cmake/BCProjects.cmake")
 

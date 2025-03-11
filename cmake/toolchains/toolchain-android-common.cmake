@@ -48,7 +48,9 @@ if(NOT ANDROID_PLATFORM)
 endif()
 
 set(ANDROID_CPP_FEATURES "rtti exceptions")
-set(ANDROID_STL "c++_shared")
+if(NOT DEFINED ANDROID_STL)
+	set(ANDROID_STL "c++_shared")
+endif()
 
 
 # Add support for 16KiB page size.

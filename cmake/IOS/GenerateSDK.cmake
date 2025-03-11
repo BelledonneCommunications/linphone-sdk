@@ -61,3 +61,13 @@ configure_file("${LINPHONESDK_DIR}/cmake/IOS/linphone-sdk.podspec.cmake" "${LINP
 
 # Generate Podfile file
 configure_file("${LINPHONESDK_DIR}/cmake/IOS/Podfile.cmake" "${LINPHONESDK_DIR}/tester/IOS/LinphoneTester/Podfile" @ONLY)
+
+###################################
+# Generate Swift Package linphonesw
+###################################
+
+set(SWIFT_PACKAGE_TARGET "ios")
+set(SWIFT_PACKAGE_MIN_OS_VERSION ".iOS(.v13)")
+set(SWIFT_PACKAGE_SOURCE_XC_FRAMEWORKS_LOCATION "apple-darwin")
+set(LINPHONE_WRAPPER_SWIFT "${LINPHONESDK_NAME}/apple-darwin/share/linphonesw/LinphoneWrapper.swift")
+include("${LINPHONESDK_DIR}/cmake/SwiftPackageManager/GenerateSwiftPackage.cmake")

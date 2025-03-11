@@ -118,12 +118,11 @@ recache-get-from-branch:
 
 .linux-prepare:
   variables:
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-4-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-5-non_protected"
 
     #Misleading name, means no compression at all
     CACHE_COMPRESSION_LEVEL: "fastest"
     CCACHE_DIRECTORY_NAME: "ccache"
-    FF_USE_FASTZIP: 1
 
     # Will work after the update to Gitlab 14
     FF_SCRIPT_SECTIONS: 1

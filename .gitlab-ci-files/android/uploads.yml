@@ -25,7 +25,7 @@
     - cd build/android
     - mkdir -p maven_repository/org/linphone/
     - echo $MAVEN_REPO_PATH
-    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
+    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" --exclude "*.zip" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
     - ../../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
     - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $MAVEN_REPO_URL/org/linphone/
@@ -118,3 +118,12 @@ android-upload-g729-ldap-post-quantum:
     MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
   needs:
     - android-makefile-r27-g729-ldap-post-quantum
+
+bundled-android-upload:
+  extends: .android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+    GRADLE_OPTIONS: -Pbundled -i
+    MAVEN_REPO_PATH: bundled
+  needs:
+    - bundled-android-ninja-r27

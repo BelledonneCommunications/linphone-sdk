@@ -88,3 +88,55 @@ ios-xcode-pod-upload-xcode12:
 ios-xcode-pod-novideo-upload-xcode12:
   extends: .ios-xcode-novideo-upload
   tags: [ "macosx-min-xcode12.2-upload" ]
+
+ios-ninja-spm-upload:
+  tags: [ "macosx-min-xcode12.2-upload" ]
+  stage: deploy
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+    SWIFT_PACKAGE_FLAVOR: ""
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_IOS != null && $SKIP_DEPLOY == null
+    - !reference [.rules-merge-request-manual, rules]
+  needs:
+    - ios-ninja-spm
+
+  script:
+    - |
+        if [[ "$CI_PIPELINE_SOURCE" == "merge_request_event" ]]; then
+          TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}$CI_COMMIT_REF_NAME"
+        else
+          TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}${SPM_DEPLOY_TARGET_BRANCH}"
+        fi
+    - !reference [.factorize_ios_upload, script]
+    - ls -lart build/ios
+    - VERSION=$(cat build/ios/linphone-sdk-swift-ios/VERSION)
+    - echo "Uploading SPM $VERSION to $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/spm/$SWIFT_PACKAGE_FLAVOR"
+    - rsync -ar build/ios/linphone-sdk-swift-ios/ $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/spm/$SWIFT_PACKAGE_FLAVOR/linphone-sdk-swift-ios-$VERSION/
+    - rm -rf build/ios/linphone-sdk-swift-ios/XCFrameworks
+    - echo "Publishing SPM to branch $TARGET_BRANCH."
+    - cd build/ios
+    - git clone git@gitlab.linphone.org:BC/public/linphone-sdk-swift-ios.git public-linphone-sdk-swift-ios
+    - cd public-linphone-sdk-swift-ios
+    - git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH"
+    - rsync -ar ../linphone-sdk-swift-ios/* .
+    - git add .
+    - git commit -a -m "Swift package $VERSION $SWIFT_PACKAGE_FLAVOR"
+    - git push || git push --set-upstream origin $TARGET_BRANCH
+    - |
+      if [ -n "$SWIFT_PACKAGE_FLAVOR" ]; then
+        SPM_TAG=$VERSION-$(echo "$SWIFT_PACKAGE_FLAVOR" | sed "s/\///g")
+      else
+       SPM_TAG=$VERSION
+      fi
+    - git tag -a $SPM_TAG -m "linphone-sdk $SPM_TAG"
+    - git push --tags
+
+ios-ninja-spm-upload-novideo:
+  needs:
+    - ios-ninja-spm-novideo
+  variables:
+    SWIFT_PACKAGE_FLAVOR: "novideo/"
+  extends: ios-ninja-spm-upload
+

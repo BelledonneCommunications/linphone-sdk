@@ -1,0 +1,28 @@
+// swift-tools-version:@SWIFT_TOOLS_VERSION@
+import PackageDescription
+
+let package = Package(
+    name: "linphonesw",
+    platforms: [
+        @SWIFT_PACKAGE_MIN_OS_VERSION@
+    ],
+    products: [
+        .library(
+            name: "linphonesw",
+            targets: ["linphonesw"]
+        )
+    ],
+    targets: [
+        @BINARY_TARGETS@
+		.target(
+			name: "linphonexcframeworks",
+			dependencies: [@XCFRAMEWORKS_NAMES_CSV@]
+		),
+
+		.target(
+			name: "linphonesw",
+			dependencies: ["linphonexcframeworks"]
+		)
+    ]
+)
+
