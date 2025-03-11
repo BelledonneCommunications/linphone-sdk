@@ -126,26 +126,29 @@ struct opengles_display {
 	EGLContext mEglContext;
 	EGLConfig mEglConfig; // No need to be cleaned
 	EGLSurface mRenderSurface;
-	
-	//Callbacks
-	GLenum mLastError;	// 0 if none else best error coming from eglGetError()
-	bool_t mSendUnrecoverableError;	// When a Window ID becomes unavailable and need to be restarted, a restart callback has been called. This boolean avoid to call the callback multiple times.
+
+	// Callbacks
+	GLenum mLastError;              // 0 if none else best error coming from eglGetError()
+	bool_t mSendUnrecoverableError; // When a Window ID becomes unavailable and need to be restarted, a restart callback
+	                                // has been called. This boolean avoid to call the callback multiple times.
 };
 
 // -----------------------------------------------------------------------------
 
-static void error_mngmt_set(struct opengles_display * display, GLenum error){
-	unsigned int lastError = display->mLastError;//avoid mLastError to be reset while checking priorities
-	if(lastError == 0){
+static void error_mngmt_set(struct opengles_display *display, GLenum error) {
+	unsigned int lastError = display->mLastError; // avoid mLastError to be reset while checking priorities
+	if (lastError == 0) {
 		display->mLastError = error;
-	}else{
-	// Low priority
-		if( error == EGL_BAD_MATCH || error == EGL_BAD_ATTRIBUTE || error == EGL_BAD_PARAMETER) return;
-	// Simple priority
-		if( lastError == EGL_CONTEXT_LOST || lastError == EGL_BAD_NATIVE_WINDOW || lastError == EGL_BAD_SURFACE || lastError == EGL_BAD_NATIVE_PIXMAP) return;
-	// Level 1
-		if( error == EGL_BAD_ALLOC && lastError == EGL_BAD_ACCESS) return;
-		
+	} else {
+		// Low priority
+		if (error == EGL_BAD_MATCH || error == EGL_BAD_ATTRIBUTE || error == EGL_BAD_PARAMETER) return;
+		// Simple priority
+		if (lastError == EGL_CONTEXT_LOST || lastError == EGL_BAD_NATIVE_WINDOW || lastError == EGL_BAD_SURFACE ||
+		    lastError == EGL_BAD_NATIVE_PIXMAP)
+			return;
+		// Level 1
+		if (error == EGL_BAD_ALLOC && lastError == EGL_BAD_ACCESS) return;
+
 		display->mLastError = error;
 	}
 }
@@ -183,12 +186,14 @@ static void check_GL_errors(const OpenGlFunctions *f, const char *context) {
 	}
 }
 
-static void check_EGL_errors(struct opengles_display * display, const char *context) {
+static void check_EGL_errors(struct opengles_display *display, const char *context) {
 	if (display->functions->eglInitialized) {
 		GLenum error;
 		if ((error = display->functions->eglGetError()) != EGL_SUCCESS) {
-			ms_error("[ogl_display] EGL error: '%s' -> %x%s\n", context, error, error!=EGL_CONTEXT_LOST ? "(notify not implemented)" : "");
-//TODO: We know exactly what do to with EGL_CONTEXT_LOST so we can stop sending notifications. For other errors, we don't want to spam notifications on each call of ogl_display_notify_errors().
+			ms_error("[ogl_display] EGL error: '%s' -> %x%s\n", context, error,
+			         error != EGL_CONTEXT_LOST ? "(notify not implemented)" : "");
+			// TODO: We know exactly what do to with EGL_CONTEXT_LOST so we can stop sending notifications. For other
+			// errors, we don't want to spam notifications on each call of ogl_display_notify_errors().
 			error_mngmt_set(display, error);
 		}
 	}
@@ -1554,14 +1559,19 @@ void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bo
 }
 
 void ogl_display_notify_errors(struct opengles_display *display, MSFilter *filter) {
-	if(filter){
-		GLenum lastError = display->mLastError;// We ensure to get the last error one time in order to avoid changes while checking.
-		if( !display->mSendUnrecoverableError && lastError == EGL_CONTEXT_LOST){// TODO: This notification is only send one time for the life of the display. As this is the only one to take account (for now), we can ensure to not send other notifications till the restart.
-		// Some work has to be done to avoid sending multiple notifications for errors that are recoverable for the current display.
+	if (filter) {
+		GLenum lastError =
+		    display->mLastError; // We ensure to get the last error one time in order to avoid changes while checking.
+		if (!display->mSendUnrecoverableError &&
+		    lastError == EGL_CONTEXT_LOST) { // TODO: This notification is only send one time for the life of the
+			                                 // display. As this is the only one to take account (for now), we can
+			                                 // ensure to not send other notifications till the restart.
+			// Some work has to be done to avoid sending multiple notifications for errors that are recoverable for the
+			// current display.
 			display->mSendUnrecoverableError = TRUE;
 			ms_filter_notify(filter, MS_VIDEO_DISPLAY_ERROR_OCCURRED, &lastError);
 		}
-		display->mLastError = 0;// Resetting lastError to 0 will let the error manager to fill new errors.
+		display->mLastError = 0; // Resetting lastError to 0 will let the error manager to fill new errors.
 	}
 }
 // -----------------------------------------------------------------------------
@@ -1581,6 +1591,6 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDispl
 }
 #endif
 
-//#ifdef __cplusplus
-//}
-//#endif
+// #ifdef __cplusplus
+// }
+// #endif

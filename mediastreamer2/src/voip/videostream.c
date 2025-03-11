@@ -997,7 +997,10 @@ static void configure_qrcode_filter(VideoStream *stream) {
 }
 #endif
 
-static void video_stream_payload_type_changed(RtpSession *session, void *data) {
+static void video_stream_payload_type_changed(RtpSession *session,
+                                              void *data,
+                                              BCTBX_UNUSED(void *unused1),
+                                              BCTBX_UNUSED(void *unused2)) {
 	VideoStream *stream = (VideoStream *)data;
 	RtpProfile *prof = rtp_session_get_profile(session);
 	int payload = rtp_session_get_recv_payload_type(session);
@@ -1368,19 +1371,10 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		rtp_session_set_jitter_compensation(rtps, jitt_comp);
 	}
 
-/* FIXME: Temporary workaround for -Wcast-function-type. */
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-#endif // if __GNUC__ >= 8
+	rtp_session_signal_connect(stream->ms.sessions.rtp_session, "payload_type_changed",
+	                           (RtpCallback)video_stream_payload_type_changed, &stream->ms);
 
-	    rtp_session_signal_connect(stream->ms.sessions.rtp_session, "payload_type_changed",
-	                               (RtpCallback)video_stream_payload_type_changed, &stream->ms);
-
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic pop")
-#endif // if __GNUC__ >= 8
-
-	    rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session, &jbp);
+	rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session, &jbp);
 	jbp.max_packets = 1000; // needed for high resolution video
 	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session, &jbp);
 
@@ -2082,21 +2076,11 @@ static MSFilter *_video_stream_stop(VideoStream *stream, bool_t keep_source) {
 	}
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
 
-/* FIXME: Temporary workaround for -Wcast-function-type. */
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-#endif // if __GNUC__ >= 8
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "payload_type_changed",
+	                                          (RtpCallback)video_stream_payload_type_changed);
 
-	    rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "payload_type_changed",
-	                                              (RtpCallback)video_stream_payload_type_changed);
-
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic pop")
-#endif // if __GNUC__ >= 8
-
-	    /*Automatically the video recorder if it was opened previously*/
-	    if (stream->recorder_output &&
-	        ms_filter_implements_interface(stream->recorder_output, MSFilterRecorderInterface)) {
+	/*Automatically the video recorder if it was opened previously*/
+	if (stream->recorder_output && ms_filter_implements_interface(stream->recorder_output, MSFilterRecorderInterface)) {
 		MSRecorderState state = MSRecorderClosed;
 		ms_filter_call_method(stream->recorder_output, MS_RECORDER_GET_STATE, &state);
 		if (state != MSRecorderClosed) {

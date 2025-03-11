@@ -390,10 +390,11 @@ static void audio_stream_free(AudioStream *stream) {
 
 static int dtmf_tab[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '#', 'A', 'B', 'C', 'D'};
 
-static void on_dtmf_received(BCTBX_UNUSED(RtpSession *s), uint32_t dtmf, void *user_data) {
+static void on_dtmf_received(BCTBX_UNUSED(RtpSession *s), void *dtmf_ptr, void *user_data, BCTBX_UNUSED(void *unused)) {
+	uint32_t dtmf = (uint32_t)(uintptr_t)dtmf_ptr;
 	AudioStream *stream = (AudioStream *)user_data;
 	if (dtmf > 15) {
-		ms_warning("Unsupported telephone-event type.");
+		ms_warning("Unsupported telephone-event type: %x", dtmf);
 		return;
 	}
 	ms_message("Receiving dtmf %c.", dtmf_tab[dtmf]);
@@ -408,9 +409,11 @@ static void on_dtmf_received(BCTBX_UNUSED(RtpSession *s), uint32_t dtmf, void *u
  * This is a dirty hack that works anyway.
  * It would be interesting to have something that does the job
  * more easily within the MSTicker API.
- * return TRUE if the decoder was changed, FALSE otherwise.
  */
-static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data) {
+static void audio_stream_payload_type_changed(RtpSession *session,
+                                              void *data,
+                                              BCTBX_UNUSED(void *unused1),
+                                              BCTBX_UNUSED(void *unused2)) {
 	AudioStream *stream = (AudioStream *)data;
 	RtpProfile *prof = rtp_session_get_profile(session);
 	int payload = rtp_session_get_recv_payload_type(stream->ms.sessions.rtp_session);
@@ -418,7 +421,7 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data)
 
 	if (stream->ms.decoder == NULL) {
 		ms_message("audio_stream_payload_type_changed(): no decoder!");
-		return FALSE;
+		return;
 	}
 
 	if (pt != NULL) {
@@ -426,14 +429,14 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data)
 		/* if new payload type is Comfort Noise (CN), just do nothing */
 		if (strcasecmp(pt->mime_type, "CN") == 0) {
 			ms_message("Ignore payload type change to CN");
-			return FALSE;
+			return;
 		}
 
 		if (stream->ms.current_pt && strcasecmp(pt->mime_type, stream->ms.current_pt->mime_type) == 0 &&
 		    pt->clock_rate == stream->ms.current_pt->clock_rate) {
 			ms_message(
 			    "Ignoring payload type number change because it points to the same payload type as the current one");
-			return FALSE;
+			return;
 		}
 
 		// dec = ms_filter_create_decoder(pt->mime_type);
@@ -456,14 +459,13 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data)
 			ms_filter_link(stream->ms.decoder, 0, nextFilter, 0);
 			ms_filter_preprocess(stream->ms.decoder, stream->ms.sessions.ticker);
 			stream->ms.current_pt = pt;
-			return TRUE;
+			return;
 		} else {
 			ms_error("No decoder found for %s", pt->mime_type);
 		}
 	} else {
 		ms_warning("No payload type defined with number %i", payload);
 	}
-	return FALSE;
 }
 
 /*
@@ -1324,19 +1326,10 @@ int audio_stream_start_from_io(AudioStream *stream,
 		stream->dtmfgen = ms_factory_create_filter(stream->ms.factory, MS_DTMF_GEN_ID);
 	else stream->dtmfgen = NULL;
 
-/* FIXME: Temporary workaround for -Wcast-function-type. */
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-#endif // if __GNUC__ >= 8
-
-	    rtp_session_signal_connect(rtps, "telephone-event", (RtpCallback)on_dtmf_received, stream);
+	rtp_session_signal_connect(rtps, "telephone-event", (RtpCallback)on_dtmf_received, stream);
 	rtp_session_signal_connect(rtps, "payload_type_changed", (RtpCallback)audio_stream_payload_type_changed, stream);
 
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic pop")
-#endif // if __GNUC__ >= 8
-
-	    if (stream->ms.state == MSStreamPreparing) {
+	if (stream->ms.state == MSStreamPreparing) {
 		/*we were using the dummy preload graph, destroy it but keep sound filters unless no soundcard is given*/
 		_audio_stream_unprepare_sound(stream, io->input.type == MSResourceSoundcard);
 	}
@@ -2487,25 +2480,15 @@ void audio_stream_stop(AudioStream *stream) {
 		}
 	}
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
-
-/* FIXME: Temporary workaround for -Wcast-function-type. */
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-#endif // if __GNUC__ >= 8
-
-	    rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "telephone-event",
-	                                              (RtpCallback)on_dtmf_received);
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "telephone-event",
+	                                          (RtpCallback)on_dtmf_received);
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "payload_type_changed",
 	                                          (RtpCallback)audio_stream_payload_type_changed);
 
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic pop")
-#endif // if __GNUC__ >= 8
-
-	    // Before destroying the filters, pump the event queue so that pending events have a chance
-	    // to reach their listeners. When the filter are destroyed, all their pending events in the
-	    // event queue will be cancelled.
-	    evq = ms_factory_get_event_queue(stream->ms.factory);
+	// Before destroying the filters, pump the event queue so that pending events have a chance
+	// to reach their listeners. When the filter are destroyed, all their pending events in the
+	// event queue will be cancelled.
+	evq = ms_factory_get_event_queue(stream->ms.factory);
 	if (evq) ms_event_queue_pump(evq);
 	ms_factory_log_statistics(stream->ms.factory);
 	audio_stream_free(stream);
