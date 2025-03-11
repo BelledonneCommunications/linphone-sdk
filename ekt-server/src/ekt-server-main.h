@@ -29,6 +29,7 @@ namespace EktServerPlugin {
 
 class EktServerMain : public std::enable_shared_from_this<EktServerMain>, public linphone::CoreListener {
 public:
+	EktServerMain(const std::shared_ptr<linphone::Core> &core);
 	void onSubscribeReceived(const std::shared_ptr<linphone::Core> &core,
 	                         const std::shared_ptr<linphone::Event> &linphoneEvent,
 	                         const std::string &subscribeEvent,
@@ -45,11 +46,11 @@ public:
 	                          linphone::GlobalState state,
 	                          const std::string &message) override;
 	void onNetworkReachable(const std::shared_ptr<linphone::Core> &core, bool reachable);
-	void clear(const std::shared_ptr<linphone::Core> &core);
+	void clear();
+
 private:
 	std::shared_ptr<ServerEktManager>
 	findServerEktManager(const std::shared_ptr<const linphone::Address> &localConferenceAddress);
-
 
 	struct ConferenceAddressHash {
 		size_t operator()(const std::shared_ptr<const linphone::Address> &address) const {
@@ -60,7 +61,8 @@ private:
 	};
 
 	struct ConferenceAddressEqual {
-		size_t operator()(const std::shared_ptr<const linphone::Address> &address1, const std::shared_ptr<const linphone::Address> &address2) const {
+		size_t operator()(const std::shared_ptr<const linphone::Address> &address1,
+		                  const std::shared_ptr<const linphone::Address> &address2) const {
 			auto tmp1 = address1->clone();
 			tmp1->removeUriParam("gr");
 			auto tmp2 = address2->clone();
@@ -69,10 +71,14 @@ private:
 		}
 	};
 
-	std::unordered_map<const std::shared_ptr<const linphone::Address>, std::shared_ptr<linphone::Conference>, ConferenceAddressHash, ConferenceAddressEqual>
+	std::unordered_map<const std::shared_ptr<const linphone::Address>,
+	                   std::shared_ptr<linphone::Conference>,
+	                   ConferenceAddressHash,
+	                   ConferenceAddressEqual>
 	    mConferenceByAddress;
 
 	const char *kDataKey = "ServerEktManager";
+	std::shared_ptr<linphone::Core> mCore;
 };
 
 } // namespace EktServerPlugin

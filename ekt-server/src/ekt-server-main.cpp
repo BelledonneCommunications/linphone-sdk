@@ -19,6 +19,7 @@
  */
 
 #include "ekt-server-main.h"
+#include "bctoolbox/logging.h"
 
 // =============================================================================
 
@@ -27,8 +28,12 @@ using namespace linphone;
 
 // -----------------------------------------------------------------------------
 
-shared_ptr<EktServerPlugin::ServerEktManager>
-EktServerPlugin::EktServerMain::findServerEktManager(const shared_ptr<const Address> &conferenceAddress) {
+namespace EktServerPlugin {
+
+EktServerMain::EktServerMain(const std::shared_ptr<Core> &core) : mCore(core) {
+}
+
+shared_ptr<ServerEktManager> EktServerMain::findServerEktManager(const shared_ptr<const Address> &conferenceAddress) {
 	if (auto search = mConferenceByAddress.find(conferenceAddress); search != mConferenceByAddress.end()) {
 		auto conf = search->second;
 		if (conf != nullptr) {
@@ -39,10 +44,10 @@ EktServerPlugin::EktServerMain::findServerEktManager(const shared_ptr<const Addr
 	return nullptr;
 }
 
-void EktServerPlugin::EktServerMain::onSubscribeReceived(const shared_ptr<Core> &core,
-                                                         const shared_ptr<Event> &linphoneEvent,
-                                                         const string &subscribeEvent,
-                                                         const shared_ptr<const Content> &body) {
+void EktServerMain::onSubscribeReceived(const shared_ptr<Core> &core,
+                                        const shared_ptr<Event> &linphoneEvent,
+                                        const string &subscribeEvent,
+                                        const shared_ptr<const Content> &body) {
 	if (linphoneEvent->getName() == "ekt") {
 		auto confAddress = linphoneEvent->getToAddress();
 		auto ektManager = findServerEktManager(confAddress);
@@ -66,10 +71,10 @@ void EktServerPlugin::EktServerMain::onSubscribeReceived(const shared_ptr<Core> 
 	}
 }
 
-void EktServerPlugin::EktServerMain::onPublishReceived(const shared_ptr<Core> &core,
-                                                       const shared_ptr<Event> &linphoneEvent,
-                                                       const string &publishEvent,
-                                                       const shared_ptr<const Content> &body) {
+void EktServerMain::onPublishReceived(const shared_ptr<Core> &core,
+                                      const shared_ptr<Event> &linphoneEvent,
+                                      const string &publishEvent,
+                                      const shared_ptr<const Content> &body) {
 	if (linphoneEvent->getName() == "ekt") {
 		auto confAddress = linphoneEvent->getToAddress();
 		auto ektManager = findServerEktManager(confAddress);
@@ -77,9 +82,9 @@ void EktServerPlugin::EktServerMain::onPublishReceived(const shared_ptr<Core> &c
 	}
 }
 
-void EktServerPlugin::EktServerMain::onConferenceStateChanged(const shared_ptr<Core> &core,
-                                                              const shared_ptr<Conference> &conference,
-                                                              Conference::State state) {
+void EktServerMain::onConferenceStateChanged(const shared_ptr<Core> &core,
+                                             const shared_ptr<Conference> &conference,
+                                             Conference::State state) {
 	try {
 		auto &sem = conference->getData<ServerEktManager>(kDataKey);
 		switch (state) {
@@ -96,27 +101,32 @@ void EktServerPlugin::EktServerMain::onConferenceStateChanged(const shared_ptr<C
 	}
 }
 
-void EktServerPlugin::EktServerMain::onGlobalStateChanged(const std::shared_ptr<linphone::Core> &core,
-                                                          linphone::GlobalState state,
-                                                          const std::string &message) {
+void EktServerMain::onGlobalStateChanged(const std::shared_ptr<linphone::Core> &core,
+                                         linphone::GlobalState state,
+                                         const std::string &message) {
 	switch (state) {
 		case GlobalState::Shutdown:
-			clear(core);
+			/* The shutdown event is used to clear our Core shared_ptr<> */
+			clear();
 			break;
 		default:
 			break;
 	}
 }
 
-void EktServerPlugin::EktServerMain::onNetworkReachable(const std::shared_ptr<linphone::Core> &core, bool reachable) {
-	if (!reachable) clear(core);
+void EktServerMain::onNetworkReachable(const std::shared_ptr<linphone::Core> &core, bool reachable) {
 }
 
-void EktServerPlugin::EktServerMain::clear(const std::shared_ptr<linphone::Core> &core) {
+void EktServerMain::clear() {
 	for (auto [conferenceAddress, conference] : mConferenceByAddress) {
 		auto &sem = conference->getData<ServerEktManager>(kDataKey);
 		conference->removeListener(sem.shared_from_this());
 	}
 	mConferenceByAddress.clear();
-	core->removeListener(this->shared_from_this());
+
+	mCore->removeListener(this->shared_from_this());
+	mCore.reset();
+	bctbx_message("EktServerMain::clear()");
 }
+
+} // end of namespace EktServerPlugin
