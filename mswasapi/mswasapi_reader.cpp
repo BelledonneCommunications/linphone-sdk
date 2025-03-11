@@ -1,47 +1,37 @@
 /*
-mswasapi_reader.cpp
-
-mediastreamer2 library - modular sound and video processing and streaming
-Windows Audio Session API sound card plugin for mediastreamer2
-Copyright (C) 2010-2013 Belledonne Communications, Grenoble, France
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-*/
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ *
+ * This file is part of mswasapi library - modular sound and video processing and streaming Windows Audio Session API
+ * sound card plugin for mediastreamer2 (see https://gitlab.linphone.org/BC/public/mswasapi).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include "mswasapi_reader.h"
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msticker.h"
+#include "utils.h"
 
 #define REFTIME_250MS 2500000
-
-#define RELEASE_CLIENT(client)                                                                                         \
-	if (client != NULL) {                                                                                              \
-		client->Release();                                                                                             \
-		client = NULL;                                                                                                 \
-	}
-#define FREE_PTR(ptr)                                                                                                  \
-	if (ptr != NULL) {                                                                                                 \
-		CoTaskMemFree((LPVOID)ptr);                                                                                    \
-		ptr = NULL;                                                                                                    \
-	}
+static const int minBufferDurationMs = 200; // ms
 
 #ifdef MS2_WINDOWS_UNIVERSAL
 bool MSWASAPIReader::smInstantiated = false;
 #endif
 
-MSWASAPIReader::MSWASAPIReader(MSFilter *filter) : MSWasapi(filter, "input"), mAudioCaptureClient(NULL) {
+MSWASAPIReader::MSWASAPIReader(MSFilter *filter)
+    : MSWasapi(filter, MS_SND_CARD_CAP_CAPTURE), mAudioCaptureClient(NULL) {
 	mTickerSynchronizer = ms_ticker_synchronizer_new();
 }
 
@@ -50,96 +40,12 @@ MSWASAPIReader::~MSWASAPIReader() {
 }
 
 int MSWASAPIReader::activate() {
-	HRESULT result;
-	REFERENCE_TIME requestedDuration = REFTIME_250MS;
-	WAVEFORMATPCMEX proposedWfx;
-	WAVEFORMATEX *pUsedWfx = NULL;
-	WAVEFORMATEX *pSupportedWfx = NULL;
-	DWORD flags = 0;
-
-	if (!mAudioClient) goto error;
-	if (mIsActivated) return 0;
-
-#if defined(MS2_WINDOWS_PHONE)
-	flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE |
-	        AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
-#else
-	flags =
-	    AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
-#endif
-
-	proposedWfx = buildFormat();
-
-	result = mAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, (WAVEFORMATEX *)&proposedWfx, &pSupportedWfx);
-	if (result == S_OK) {
-		pUsedWfx = (WAVEFORMATEX *)&proposedWfx;
-	} else if (result == S_FALSE) {
-		bool formatNotExpected = false;
-		pUsedWfx = pSupportedWfx;
-		if (mTargetNChannels != pUsedWfx->nChannels) { // Channel is not what it was requested
-			mTargetNChannels = pUsedWfx->nChannels;
-			if (mForceNChannels == OverwriteState::TO_DO) { // Channel has been forced but it cannot be used. Warn MS2.
-				mForceNChannels = OverwriteState::DONE;
-				formatNotExpected = true;
-			}
-		}
-		if (mTargetRate != pUsedWfx->nSamplesPerSec) { // Channel is not what it was requested
-			mTargetRate = pUsedWfx->nSamplesPerSec;
-			if (mForceRate == OverwriteState::TO_DO) { // Channel has been forced but it cannot be used. Warn MS2.
-				mForceRate = OverwriteState::DONE;
-				formatNotExpected = true;
-			}
-		}
-		if (formatNotExpected) ms_filter_notify_no_arg(mFilter, MS_FILTER_OUTPUT_FMT_CHANGED);
-	} else {
-		REPORT_ERROR("mswasapi: Audio format not supported by the MSWASAPI audio input interface [%x]", result);
-	}
-
-	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
-	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
-		REPORT_ERROR("mswasapi: Could not initialize the MSWASAPI audio input interface [%x]", result);
-	}
-	mNBlockAlign = pUsedWfx->nBlockAlign;
-	mCurrentRate = mTargetRate;
-	mCurrentNChannels = mTargetNChannels;
-	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
-	REPORT_ERROR("mswasapi: Could not get buffer size for the MSWASAPI audio input interface [%x]", result);
-	ms_message("mswasapi: audio input interface buffer size: %i", mBufferFrameCount);
-	result = mAudioClient->GetService(IID_IAudioCaptureClient, (void **)&mAudioCaptureClient);
-	REPORT_ERROR("mswasapi: Could not get render service from the MSWASAPI audio input interface [%x]", result);
-	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeController);
-	REPORT_ERROR_NOGOTO("mswasapi: Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
-	result = mAudioClient->GetService(__uuidof(IAudioSessionControl), (void **)&mAudioSessionControl);
-	REPORT_ERROR_NOGOTO("mswasapi: Could not get audio session control service from the MSWASAPI audio input interface [%x]",
-	             result);
-	if (mAudioSessionControl != nullptr){
-		result = mAudioSessionControl->RegisterAudioSessionNotification(this);
-		REPORT_ERROR_NOGOTO("mswasapi: Could not register to Audio Session from the MSWASAPI audio input interface [%x]", result);
-	}
-	mIsActivated = true;
-	ms_message("mswasapi: capture initialized for [%s] at %i Hz, %i channels, with buffer size %i (%i ms), %i-bit "
-	           "frames are on %i bits",
-	           mDeviceName.c_str(), (int)mTargetRate, (int)mTargetNChannels, (int)mBufferFrameCount,
-	           (int)1000 * mBufferFrameCount / mTargetRate, (int)pUsedWfx->wBitsPerSample, mNBlockAlign * 8);
-	FREE_PTR(pSupportedWfx);
-	return 0;
-
-error:
-	ms_error("mswasapi: failed to initialize capture.");
-	FREE_PTR(pSupportedWfx);
-	if (mAudioClient) mAudioClient->Reset();
-	return -1;
+	return MSWasapi::activate(true, (void **)&mAudioCaptureClient);
 }
 
 int MSWASAPIReader::deactivate() {
-	RELEASE_CLIENT(mAudioCaptureClient);
-	RELEASE_CLIENT(mVolumeController);
-	if (mAudioSessionControl) {
-		mAudioSessionControl->UnregisterAudioSessionNotification(this);
-		RELEASE_CLIENT(mAudioSessionControl);
-	}
-	mIsActivated = false;
-	return 0;
+	SAFE_RELEASE(mAudioCaptureClient)
+	return MSWasapi::deactivate();
 }
 
 void MSWASAPIReader::start() {
@@ -206,7 +112,6 @@ void MSWASAPIReader::silence(MSFilter *f) {
 	mblk_t *om;
 	unsigned int bufsize;
 	unsigned int nsamples;
-
 	nsamples = (f->ticker->interval * mTargetRate) / 1000;
 	bufsize = nsamples * mTargetNChannels * 2;
 	om = allocb(bufsize, 0);
@@ -224,13 +129,13 @@ MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f) {
 #else
 	w->reader = new MSWASAPIReader(f);
 #endif
-	w->reader->AddRef();
 	return w;
 }
 void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr) {
 #ifdef MS2_WINDOWS_UNIVERSAL
 	ptr->reader->setInstantiated(false);
 #endif
+	ptr->reader->unregister();
 	ptr->reader->Release();
 	ptr->reader = nullptr;
 	delete ptr;
@@ -241,6 +146,7 @@ MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f) {
 }
 
 void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr) {
+	ptr->reader->unregister();
 	delete ptr;
 }
 #endif
