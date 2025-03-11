@@ -36,7 +36,7 @@ option(ENABLE_PQCRYPTO "Enable Post Quantum Cryptography key agreements algorith
 
 set(LANGUAGES_LIST CXX)
 
-project(Lime VERSION 5.4.0 LANGUAGES ${LANGUAGES_LIST})
+project(Lime VERSION 5.5.0 LANGUAGES ${LANGUAGES_LIST})
 
 set(LIME_SO_VERSION "0")
 set(LIME_VERSION ${PROJECT_VERSION})
