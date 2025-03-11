@@ -64,6 +64,8 @@ void doRelease(T && ... args) {
 #endif
 }
 
+MsScreenSharing_mac::PermissionStatus MsScreenSharing_mac::gPermissionGiven = PENDING_REQUEST;
+
 MsScreenSharing_mac::MsScreenSharing_mac() : MsScreenSharing(){
 	mLastFormat.mPixelFormat = MS_YUV420P;
 }
@@ -273,27 +275,39 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 @end
 
 bool MsScreenSharing_mac::getPermission() {
+	__block bool currentAccess = false;
 	ms_message("[MsScreenSharing_mac] Getting permissions");
-	__block bool haveAccess = false;
+	gPermissionGiven = PENDING_REQUEST;
 	// Must be call from main thread! If not, you may be in deadlock.
 	dispatch_sync(dispatch_get_main_queue(), ^{
 	// Checks whether the current process already has screen capture access
-		haveAccess = CGPreflightScreenCaptureAccess();
-	//Requests event listening access if absent, potentially prompting
-		if(!haveAccess) haveAccess = CGRequestScreenCaptureAccess();
+		currentAccess = CGPreflightScreenCaptureAccess();
 	});
-
-	return haveAccess;
+	if(!currentAccess){
+	//Requests event listening access if absent, potentially prompting
+		dispatch_async(dispatch_get_main_queue(), ^{
+			gPermissionGiven = CGRequestScreenCaptureAccess() ? PERMISSION_GRANTED : PERMISSION_DENIED;
+		});
+	}
+	return currentAccess;
 }
 
 void MsScreenSharing_mac::inputThread() {
+	ms_message("[MsScreenSharing_mac] Input thread started. %d", (int)mToStop);
 	if(mSourceDesc.type == MS_SCREEN_SHARING_EMPTY) return;
 	if(!getPermission()){
-		ms_error("[MsScreenSharing_mac] Permission denied for screen sharing");
-		return;
+		while(gPermissionGiven == PENDING_REQUEST && !mToStop){
+			std::unique_lock<std::mutex> lock(mThreadLock);
+			mThreadIterator.wait_for(lock, std::chrono::milliseconds( 200 ), [this]{return this->mToStop;});
+		}
+		if( gPermissionGiven != PERMISSION_GRANTED) {
+			ms_error("[MsScreenSharing_mac] Permission denied for screen sharing");
+			return;
+		}else
+			ms_message("[MsScreenSharing_mac] Permission granted");
 	}else
-		ms_message("[MsScreenSharing_mac] Permission granted");
-	
+		ms_message("[MsScreenSharing_mac] Permission is already granted");
+
 	NSError *error = nil;
 	SCContentFilter *filter = nil;
 	SCStreamConfiguration *streamConfig = nil;

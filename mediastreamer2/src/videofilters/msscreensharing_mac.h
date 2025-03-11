@@ -30,7 +30,7 @@ public:
 	MsScreenSharing_mac();
 	virtual ~MsScreenSharing_mac();
 	MsScreenSharing_mac(const MsScreenSharing_mac &) = delete;
-	
+
 	virtual void setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) override;
 
 	virtual void init() override;
@@ -44,6 +44,12 @@ public:
 	// For Apple processing
 	std::condition_variable mAppleThreadIterator;
 	std::mutex mAppleThreadLock;
+	typedef enum{
+		PENDING_REQUEST,
+		PERMISSION_DENIED,
+		PERMISSION_GRANTED
+	} PermissionStatus;
+	static PermissionStatus gPermissionGiven;// Keep in memory for decorrelate permission request async.
 };
 
 #endif
