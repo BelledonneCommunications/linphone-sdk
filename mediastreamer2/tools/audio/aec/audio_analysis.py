@@ -32,6 +32,7 @@ class AudioAnalysis:
         self.msticker_late_ms = []
         self.maxpos = 0
         self.test_passed = 1
+        self.asserts = 0
         self.total_time_s = 0
         self.silence_mask = None
         self.start_analysis_time_ms = 0
@@ -94,6 +95,7 @@ class AudioAnalysis:
                     if k < len(contents):
                         stats_line = contents[k]
                         while k < len(contents) and "MSWebRTCAEC" not in stats_line and "=======================" not in stats_line:
+                            stats_line = contents[k]
                             k = k + 1
                         if "MSWebRTCAEC" in stats_line:
                             self.filter_stats = np.array([float(num) for num in re.findall(float_pattern, stats_line.split("MSWebRTCAEC")[1])])
@@ -108,6 +110,13 @@ class AudioAnalysis:
                     match = re.search(r'([0-9]+\.[0-9]+)', total_time_str)
                     if match:
                         self.total_time_s = float(match.group(1))
+
+                if "Run Summary:    Type  Total    Ran Passed Failed Inactive" in line:
+                    k = i + 3
+                    if k < len(contents):
+                        if "asserts" in contents[k]:
+                            integers = [int(num) for num in contents[k].split() if num.isdigit()]
+                            self.asserts = integers[3]
 
         if len(metrics_lines) > 0:
             self.aec_metrics.get_metrics_from_logs(metrics_lines)
@@ -126,8 +135,12 @@ class AudioAnalysis:
             print(f"\terle = {self.aec_metrics.erle_final}")
         print(f"estimated delay: \t\t{self.estimated_delay_ms} ms")
         print(f"real final delay: \t\t{self.real_delay_ms} ms")
-        print(
-            f"maxpos: \t\t\t\t{self.maxpos} samples\n\t\t\t\t\t\t{self.maxpos * 1000. / self.aec_output.sample_rate_hz:0.0f} ms")
+        if self.aec_output is not None:
+            print(
+                f"maxpos: \t\t\t\t{self.maxpos} samples\n\t\t\t\t\t\t{self.maxpos * 1000. / self.aec_output.sample_rate_hz:0.0f} ms")
+        else:
+            print(
+                f"maxpos: \t\t\t\t{self.maxpos} samples\n\t\t\t\t\t\t{self.maxpos * 1000. / self.sampling_rate_hz:0.0f} ms")
 
         print(f"energy in silence: \t\t{self.energy_in_silence:0.2f}")
         print(f"similarity in speech: \t{self.similarity_in_speech:0.3f}")
