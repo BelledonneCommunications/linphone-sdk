@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "A120FB56-6E79-43A2-A339-FC09BE969281",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:LinphoneTester.xcodeproj",
+        "identifier" : "663F0EE22D6CBB8D001D5643",
+        "name" : "LinphoneTesterTests"
+      }
+    }
+  ],
+  "version" : 1
+}

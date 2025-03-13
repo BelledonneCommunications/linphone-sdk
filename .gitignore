@@ -14,6 +14,12 @@ tester/Windows/**/obj
 tester/Windows/**/bin
 tester/Windows/**/Generated*
 tester/Windows/LinphoneTester_uwp/packages
+
+# iOS tests
+*.DS_Store
+tester/IOS/LinphoneTester/Pods
+tester/IOS/LinphoneTester/PodFile*
+tester/IOS/LinphoneTester/LinphoneTester.xcworkspace
 tester/IOS/swift/LinphoneTester/LinphoneTester.xcodeproj/xcuserdata
 tester/IOS/swift/LinphoneTester/LinphoneTester.xcodeproj/project.xcworkspace/xcuserdata/
 CMakeUserPresets.json

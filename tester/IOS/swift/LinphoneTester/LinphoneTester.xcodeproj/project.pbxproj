@@ -9,17 +9,11 @@
 /* Begin PBXBuildFile section */
 		66D1D4C92D70A346004CA19B /* linphonesw in Frameworks */ = {isa = PBXBuildFile; productRef = 66D1D4C82D70A346004CA19B /* linphonesw */; };
 		66D1D4CB2D70A350004CA19B /* linphonesw in Frameworks */ = {isa = PBXBuildFile; productRef = 66D1D4CA2D70A350004CA19B /* linphonesw */; settings = {ATTRIBUTES = (Required, ); }; };
+		66EB9AE22D808527002CE796 /* SwiftTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = 66EB9AE12D80850B002CE796 /* SwiftTests.xctestplan */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		663F0EE42D6CBB8D001D5643 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 663F0ECB2D6CBB8C001D5643 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 663F0ED22D6CBB8C001D5643;
-			remoteInfo = LinphoneTester;
-		};
-		663F0EEE2D6CBB8D001D5643 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 663F0ECB2D6CBB8C001D5643 /* Project object */;
 			proxyType = 1;
@@ -31,9 +25,9 @@
 /* Begin PBXFileReference section */
 		663F0ED32D6CBB8C001D5643 /* LinphoneTester.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LinphoneTester.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		663F0EE32D6CBB8D001D5643 /* LinphoneTesterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LinphoneTesterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		663F0EED2D6CBB8D001D5643 /* LinphoneTesterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LinphoneTesterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		66D1D4CC2D71BCA6004CA19B /* linphonetester.xcframework.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; name = linphonetester.xcframework.zip; path = "../../../../IOS_TESTER/linphone-sdk-swift-ios/XCFrameworks/linphonetester.xcframework.zip"; sourceTree = "<group>"; };
 		66D1D4CD2D71BCC2004CA19B /* linphonetester */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = linphonetester; path = "../../../../IOS_TESTER/linphone-sdk-swift-ios/XCFrameworks/linphonetester.xcframework/ios-arm64/linphonetester.framework/linphonetester"; sourceTree = "<group>"; };
+		66EB9AE12D80850B002CE796 /* SwiftTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = SwiftTests.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -48,16 +42,8 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Log.swift,
 			);
 			target = 663F0ED22D6CBB8C001D5643 /* LinphoneTester */;
-		};
-		66D1D5F42D75E9F0004CA19B /* Exceptions for "LinphoneTester" folder in "LinphoneTesterTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Log.swift,
-			);
-			target = 663F0EE22D6CBB8D001D5643 /* LinphoneTesterTests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -66,7 +52,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				66A493182D7F313F00FFC369 /* Exceptions for "LinphoneTester" folder in "LinphoneTester" target */,
-				66D1D5F42D75E9F0004CA19B /* Exceptions for "LinphoneTester" folder in "LinphoneTesterTests" target */,
 			);
 			path = LinphoneTester;
 			sourceTree = "<group>";
@@ -77,11 +62,6 @@
 				667AE6782D7F34FD00B7F64F /* Exceptions for "LinphoneTesterTests" folder in "LinphoneTesterTests" target */,
 			);
 			path = LinphoneTesterTests;
-			sourceTree = "<group>";
-		};
-		663F0EF02D6CBB8D001D5643 /* LinphoneTesterUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = LinphoneTesterUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -103,22 +83,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		663F0EEA2D6CBB8D001D5643 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		663F0ECA2D6CBB8C001D5643 = {
 			isa = PBXGroup;
 			children = (
+				66EB9AE12D80850B002CE796 /* SwiftTests.xctestplan */,
 				663F0ED52D6CBB8C001D5643 /* LinphoneTester */,
 				663F0EE62D6CBB8D001D5643 /* LinphoneTesterTests */,
-				663F0EF02D6CBB8D001D5643 /* LinphoneTesterUITests */,
 				663F0F012D6CBBAD001D5643 /* Frameworks */,
 				663F0ED42D6CBB8C001D5643 /* Products */,
 			);
@@ -129,7 +102,6 @@
 			children = (
 				663F0ED32D6CBB8C001D5643 /* LinphoneTester.app */,
 				663F0EE32D6CBB8D001D5643 /* LinphoneTesterTests.xctest */,
-				663F0EED2D6CBB8D001D5643 /* LinphoneTesterUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -193,29 +165,6 @@
 			productReference = 663F0EE32D6CBB8D001D5643 /* LinphoneTesterTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		663F0EEC2D6CBB8D001D5643 /* LinphoneTesterUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 663F0EFD2D6CBB8D001D5643 /* Build configuration list for PBXNativeTarget "LinphoneTesterUITests" */;
-			buildPhases = (
-				663F0EE92D6CBB8D001D5643 /* Sources */,
-				663F0EEA2D6CBB8D001D5643 /* Frameworks */,
-				663F0EEB2D6CBB8D001D5643 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				663F0EEF2D6CBB8D001D5643 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				663F0EF02D6CBB8D001D5643 /* LinphoneTesterUITests */,
-			);
-			name = LinphoneTesterUITests;
-			packageProductDependencies = (
-			);
-			productName = LinphoneTesterUITests;
-			productReference = 663F0EED2D6CBB8D001D5643 /* LinphoneTesterUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -230,10 +179,6 @@
 						CreatedOnToolsVersion = 16.2;
 					};
 					663F0EE22D6CBB8D001D5643 = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = 663F0ED22D6CBB8C001D5643;
-					};
-					663F0EEC2D6CBB8D001D5643 = {
 						CreatedOnToolsVersion = 16.2;
 						TestTargetID = 663F0ED22D6CBB8C001D5643;
 					};
@@ -258,7 +203,6 @@
 			targets = (
 				663F0ED22D6CBB8C001D5643 /* LinphoneTester */,
 				663F0EE22D6CBB8D001D5643 /* LinphoneTesterTests */,
-				663F0EEC2D6CBB8D001D5643 /* LinphoneTesterUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -275,13 +219,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		663F0EEB2D6CBB8D001D5643 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				66EB9AE22D808527002CE796 /* SwiftTests.xctestplan in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -302,13 +240,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		663F0EE92D6CBB8D001D5643 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -316,11 +247,6 @@
 			isa = PBXTargetDependency;
 			target = 663F0ED22D6CBB8C001D5643 /* LinphoneTester */;
 			targetProxy = 663F0EE42D6CBB8D001D5643 /* PBXContainerItemProxy */;
-		};
-		663F0EEF2D6CBB8D001D5643 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 663F0ED22D6CBB8C001D5643 /* LinphoneTester */;
-			targetProxy = 663F0EEE2D6CBB8D001D5643 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -696,38 +622,6 @@
 			};
 			name = Release;
 		};
-		663F0EFE2D6CBB8D001D5643 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = LinphoneTester;
-			};
-			name = Debug;
-		};
-		663F0EFF2D6CBB8D001D5643 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = LinphoneTester;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -754,15 +648,6 @@
 			buildConfigurations = (
 				663F0EFB2D6CBB8D001D5643 /* Debug */,
 				663F0EFC2D6CBB8D001D5643 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		663F0EFD2D6CBB8D001D5643 /* Build configuration list for PBXNativeTarget "LinphoneTesterUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				663F0EFE2D6CBB8D001D5643 /* Debug */,
-				663F0EFF2D6CBB8D001D5643 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

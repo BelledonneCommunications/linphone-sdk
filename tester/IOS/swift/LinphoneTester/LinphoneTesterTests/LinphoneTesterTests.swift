@@ -168,19 +168,21 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         // And then you'll need to remove the closing square bracket at the end of the test name
         currentTestName = currentTestName.replacingOccurrences(of: "]", with: "_logs.txt")
         
-        //let logFile = bc_tester_file(currentTestName.cString(using: String.Encoding.utf8))
-        //liblinphone_tester_set_log_file(logFile)
+        let logFile = bc_tester_file(currentTestName.cString(using: String.Encoding.utf8))
+        liblinphone_tester_set_log_file(logFile)
     }
     
     
     override func tearDown() {
-        let attachment = XCTAttachment(contentsOfFile: getCacheDirectory().appendingPathComponent(currentTestName))
-        attachment.lifetime = .keepAlways
-       // add(attachment)
-        
-       // liblinphone_tester_set_log_file("")
+        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let attachment = XCTAttachment(contentsOfFile: cacheDir.appendingPathComponent(currentTestName))
+        attachment.lifetime = .deleteOnSuccess
+        add(attachment)
+        liblinphone_tester_set_log_file("")
+    
         super.tearDown()
     }
+    
     /*
      func testTokenReception() {
      NotificationCenter.default.addObserver(self,
@@ -453,7 +455,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
     func testVoipPushStopWhenDisablingAccountPush() {
         voipPushStopWhenDisablingPush(willDisableCorePush: false)
     }
-    /*
+    
     func testOverrideOldAccountPnPrid() {
         let marie = LinphoneTestUser(rcFile: "marie_rc")
         
@@ -491,7 +493,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         }
         cleanupTestUser(tester: pauline)
     }
-    */
+    
     var remoteTokenStr: String?
     var tokenReceivedExpect: XCTestExpectation!
     var pushReceivedExpect: XCTestExpectation!
