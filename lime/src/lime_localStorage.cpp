@@ -1,5 +1,5 @@
 /*
-	lime_x3dh.cpp
+	lime_localStorage.cpp
 	@author Johan Pascal
 	@copyright	Copyright (C) 2017  Belledonne Communications SARL
 

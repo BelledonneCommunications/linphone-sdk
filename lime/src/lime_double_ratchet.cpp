@@ -1215,7 +1215,7 @@ namespace lime {
 					// we use this session, make sure the associated peerDevice id is the active one
 					m_localStorage->sql<<"UPDATE lime_PeerDevices SET Active = 1 WHERE Did = :did;", use(m_peerDid);
 					// make sure we have no other session active with this pair local,peer DiD
-					m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+					m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Status = 1 AND Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 				}
 
 				if (m_X3DH_initMessage.size()>0) {
@@ -1251,7 +1251,7 @@ namespace lime {
 					{
 						// make sure we have no other session active with this pair local,peer DiD
 						if (m_active_status == false) {
-							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Status = 1 AND Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 							m_active_status = true;
 						}
 
@@ -1273,7 +1273,7 @@ namespace lime {
 					{   // Same as EC only ratchet, but we also update the last Kem ratchet time in DB
 						// make sure we have no other session active with this pair local,peer DiD
 						if (m_active_status == false) {
-							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Status = 1 AND Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 							m_active_status = true;
 						}
 
@@ -1316,7 +1316,7 @@ namespace lime {
 					{
 						// make sure we have no other session active with this pair local,peer DiD
 						if (m_active_status == false) {
-							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Status = 1 AND Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 							m_active_status = true;
 						}
 						int DHrStatusInt = DHrStatusToInt();

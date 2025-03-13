@@ -538,6 +538,7 @@ static void multialgos_four_users_migration(void) {
  * - check bob is back to untrusted
  */
 static void multialgos_peerStatus() {
+#if defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
 	std::string dbBaseFilename("multialgos_peerStatus");
 	lime_tester::events_counters_t counters={};
 	int expected_success=0;
@@ -683,6 +684,7 @@ static void multialgos_peerStatus() {
 		LIME_LOGE << e;
 		BC_FAIL("");
 	}
+#endif // defined(EC25519_ENABLED) && defined(HAVE_BCTBXPQ)
 }
 
 static test_t tests[] = {
