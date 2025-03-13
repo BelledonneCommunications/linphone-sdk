@@ -77,3 +77,74 @@ liblinphone-iOS-test:
       junit:
         - ${CI_PROJECT_DIR}/results/*.xml
     expire_in: 1 week
+    
+physical-swift-iOS-test:
+  tags: [ "macmini-m1-xcode15" ]
+  stage: test
+  allow_failure: true
+  needs:
+    - ios-ninja
+
+  variables:
+    XCODERESULT_NAME: "XCODE_TEST_RESULT"
+    SWIFT_TESTS_OUTPUT: "SWIFT_TESTS_OUTPUT"
+    TEST_IPHONE_NAME: "iPhone X"
+
+  script:
+    - cd ${CI_PROJECT_DIR}/tester/IOS/swift
+    - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
+    - PODFILE_PATH=../../../build-ios pod install
+
+    # Test launching
+    - xcodebuild -scheme LinphoneTester -destination 'platform=iOS,name=$TEST_IPHONE_NAME' test -testPlan SwiftTests -resultBundlePath "$XCODERESULT_NAME"
+
+
+  after_script:
+    - echo "generating xml results in $SWIFT_TESTS_OUTPUT.xml"
+    - trainer
+    - mv *.xml $SWIFT_TESTS_OUTPUT.xml
+    - echo "extracting XCTestAttachments in $SWIFT_TESTS_OUTPUT folder"
+    - xcparse attachments $XCODERESULT_NAME.xcresult $SWIFT_TESTS_OUTPUT --uti public.plain-text
+    - echo "Compressing attachments into $SWIFT_TESTS_OUTPUT.zip"
+    - zip -r $SWIFT_TESTS_OUTPUT.zip $SWIFT_TESTS_OUTPUT
+
+    - BRANCH=$CI_COMMIT_REF_NAME
+    - echo $BRANCH
+    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - echo $ESCAPED_BRANCH
+    - COMMIT=$(git describe)
+    - echo $COMMIT
+    - URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report
+
+    - echo "<\!DOCTYPE HTML>" >> index.html
+    - echo "<meta charset=\"UTF-8\">" >> index.html
+    - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
+    - echo "<script>" >> index.html
+    - echo "  window.location.href = \"$URL\"" >> index.html
+    - echo "</script>" >> index.html
+    - echo "<title>Page Redirection</title>" >> index.html
+    - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
+    - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
+    - cat index.html
+
+    - echo "TEST REPORTS URL $URL"
+
+    - echo "alias URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report"
+
+    #Gathering artifacts in one folder to ease their use
+    - mkdir ${CI_PROJECT_DIR}/results
+    - echo $CI_JOB_ID > ${CI_PROJECT_DIR}/results/tests_id
+    - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
+    - cp -r $SWIFT_TESTS_OUTPUT.xml ${CI_PROJECT_DIR}/results
+    - cp -r $SWIFT_TESTS_OUTPUT.zip ${CI_PROJECT_DIR}/results
+    - cp index.html ${CI_PROJECT_DIR}/results
+
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    reports:
+      junit:
+        - ${CI_PROJECT_DIR}/results/*.xml
+    expire_in: 1 week
+
