@@ -297,3 +297,84 @@ void belle_sip_tester_set_test_domain(const char *domain) {
 void belle_sip_tester_set_auth_domain(const char *domain) {
 	belle_sip_auth_domain = domain;
 }
+
+unsigned int
+belle_sip_tester_wait_for(belle_sip_stack_t *s1, belle_sip_stack_t *s2, int *counter, int value, int timeout) {
+	int retry = 0;
+#define ITER 20
+	while (((counter == NULL) || *counter < value) && retry++ < (timeout / ITER)) {
+		if (s1) belle_sip_stack_sleep(s1, ITER / 2);
+		if (s2) belle_sip_stack_sleep(s2, ITER / 2);
+	}
+	if (counter && *counter < value) return FALSE;
+	else return TRUE;
+}
+
+belle_sip_tester_endpoint_t *belle_sip_tester_create_endpoint(const char *ip,
+                                                              int port,
+                                                              const char *transport,
+                                                              belle_sip_listener_callbacks_t *listener_callbacks) {
+	belle_sip_tester_endpoint_t *endpoint = belle_sip_malloc0(sizeof(belle_sip_tester_endpoint_t));
+	endpoint->stack = belle_sip_stack_new(NULL);
+	endpoint->listener_callbacks = listener_callbacks;
+	endpoint->lp = belle_sip_stack_create_listening_point(endpoint->stack, ip, port, transport);
+	endpoint->connection_family = AF_INET;
+	endpoint->max_nc_count = BELLE_SIP_TESTER_MAX_NC_COUNT;
+	endpoint->expires_value = 1;
+
+	if (endpoint->lp) belle_sip_object_ref(endpoint->lp);
+
+	endpoint->provider = belle_sip_stack_create_provider(endpoint->stack, endpoint->lp);
+	belle_sip_provider_add_sip_listener(
+	    endpoint->provider,
+	    (endpoint->listener = belle_sip_listener_create_from_callbacks(endpoint->listener_callbacks, endpoint)));
+	sprintf(endpoint->nonce, "%p", endpoint); /*initial nonce*/
+	endpoint->nonce_count = 1;
+	endpoint->register_count = 3;
+	endpoint->retry_after = 0;
+	endpoint->expect_failed_auth = FALSE;
+	return endpoint;
+}
+
+void belle_sip_tester_generic_client_process_response_event(void *obj, const belle_sip_response_event_t *event) {
+	// belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
+	belle_sip_tester_endpoint_t *endpoint = (belle_sip_tester_endpoint_t *)obj;
+	int status = belle_sip_response_get_status_code(belle_sip_response_event_get_response(event));
+	belle_sip_message("caller_process_response_event [%i]", status);
+	switch (status) {
+		case 180:
+			endpoint->stat.oneHundredEighty++;
+			break;
+		case 200:
+			endpoint->stat.twoHundredOk++;
+			if (endpoint->connection_family != AF_UNSPEC) {
+				const char *host;
+				int family_found;
+				belle_sip_header_contact_t *ct = belle_sip_message_get_header_by_type(
+				    (belle_sip_message_t *)belle_sip_response_event_get_response(event), belle_sip_header_contact_t);
+				if (BC_ASSERT_PTR_NOT_NULL(ct)) {
+					host = belle_sip_uri_get_host(belle_sip_header_address_get_uri((belle_sip_header_address_t *)ct));
+					if (strchr(host, ':')) family_found = AF_INET6;
+					else family_found = AF_INET;
+					BC_ASSERT_EQUAL(family_found, endpoint->connection_family, int, "%d");
+				}
+			}
+			break;
+		case 401:
+			endpoint->stat.fourHundredOne++;
+			break;
+		case 407:
+			endpoint->stat.fourHundredSeven++;
+			break;
+		default:
+			break;
+	}
+}
+
+void belle_sip_tester_destroy_endpoint(belle_sip_tester_endpoint_t *endpoint) {
+	belle_sip_object_unref(endpoint->lp);
+	belle_sip_object_unref(endpoint->provider);
+	belle_sip_object_unref(endpoint->stack);
+	belle_sip_object_unref(endpoint->listener);
+	belle_sip_free(endpoint);
+}

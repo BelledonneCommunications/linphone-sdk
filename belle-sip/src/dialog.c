@@ -17,8 +17,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/defs.h"
 #include "belle_sip_internal.h"
-#include <bctoolbox/defs.h>
 
 static void belle_sip_dialog_init_200Ok_retrans(belle_sip_dialog_t *obj, belle_sip_response_t *resp);
 static int belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_response_t *msg);
@@ -361,6 +361,11 @@ static int dialog_on_200Ok_end(belle_sip_dialog_t *dialog) {
 
 	belle_sip_error("Dialog [%p] was not ACK'd within T1*64 seconds.", dialog);
 
+	if (dialog->is_server && dialog->got_initial_ack) {
+		belle_sip_message("The dialog is kept alive, since it was during a reINVITE.");
+		return BELLE_SIP_STOP;
+	}
+
 	if (dialog->last_transaction) {
 		/* Check if a BYE is not already in progress, no need to send a second one.*/
 		const char *request = belle_sip_request_get_method(belle_sip_transaction_get_request(dialog->last_transaction));
@@ -595,6 +600,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t *tr
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].", obj, transaction);
 
 	if (resp) code = belle_sip_response_get_status_code(resp);
+
+	if (obj->state == BELLE_SIP_DIALOG_TERMINATED && is_invite && !as_uas && code >= 200 && code < 300) {
+		belle_sip_message("Dialog [%p]: exhumed because a 200 OK for invite is received.", obj);
+		obj->state = BELLE_SIP_DIALOG_CONFIRMED;
+	}
 
 	bool_t do_not_update_last_transaction = (as_uas && (code == 491));
 	if (do_not_update_last_transaction) { /**/
@@ -1285,6 +1295,7 @@ int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ac
 	if (obj->needs_ack && belle_sip_header_cseq_get_seq_number(cseq) == obj->remote_invite_cseq) {
 		belle_sip_message("Incoming INVITE has ACK, dialog is happy");
 		obj->needs_ack = FALSE;
+		if (obj->is_server && !obj->got_initial_ack) obj->got_initial_ack = TRUE;
 		belle_sip_dialog_stop_200Ok_retrans(obj);
 		belle_sip_dialog_process_queue(obj);
 		return 0;

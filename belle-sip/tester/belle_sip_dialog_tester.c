@@ -19,9 +19,11 @@
 
 #include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
+#include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
 #include "belle_sip_tester_utils.h"
 #include "register_tester.h"
+
 int call_endeed;
 
 static const char *sdp = "v=0\r\n"
@@ -437,11 +439,91 @@ static void simple_call_with_prack(void) {
     belle_sip_object_unref(lp);
 }*/
 
+typedef struct channel_test_data {
+	belle_sip_server_transaction_t *server_transaction;
+	int request_count;
+} channel_test_data_t;
+
+static void cleaned_channel_test_server_process_request(void *user_data, const belle_sip_request_event_t *ev) {
+	belle_sip_tester_endpoint_t *endpoint = (belle_sip_tester_endpoint_t *)user_data;
+	belle_sip_server_transaction_t *tr;
+	channel_test_data_t *test_data = (channel_test_data_t *)endpoint->test_data;
+	test_data->request_count++;
+	tr = belle_sip_provider_create_server_transaction(endpoint->provider, belle_sip_request_event_get_request(ev));
+	test_data->server_transaction = (belle_sip_server_transaction_t *)belle_sip_object_ref(tr);
+}
+
+static void channel_cleaned_during_transaction(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	belle_sip_tester_endpoint_t *client, *server;
+	belle_sip_request_t *req;
+	belle_sip_client_transaction_t *client_transaction1;
+	belle_sip_server_transaction_t *server_transaction1;
+	channel_test_data_t server_data = {0};
+	channel_test_data_t client_data = {0};
+	belle_sip_response_t *resp;
+
+	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
+	server_callbacks.process_request_event = cleaned_channel_test_server_process_request;
+	client =
+	    belle_sip_tester_create_endpoint("127.0.0.1", BELLE_SIP_LISTENING_POINT_DONT_BIND, "udp", &client_callbacks);
+	client->test_data = &client_data;
+	server = belle_sip_tester_create_endpoint("127.0.0.1", 6788, "udp", &server_callbacks);
+	server->test_data = &server_data;
+
+	/* send a first request */
+	req = belle_sip_request_create(
+	    belle_sip_uri_parse("sip:example.org"), "INVITE", belle_sip_provider_create_call_id(client->provider),
+	    belle_sip_header_cseq_create(20, "INVITE"),
+	    belle_sip_header_from_create2("sip:bob@example.org", BELLE_SIP_RANDOM_TAG),
+	    belle_sip_header_to_create2("sip:alice@example.org", NULL), belle_sip_header_via_new(), 70);
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),
+	                             BELLE_SIP_HEADER(belle_sip_header_contact_create(belle_sip_header_address_create(
+	                                 NULL, belle_sip_uri_parse("sip:bob@sip.example.org")))));
+
+	client_transaction1 = belle_sip_provider_create_client_transaction(client->provider, req);
+	belle_sip_client_transaction_send_request_to(client_transaction1, server->lp->listening_uri);
+	belle_sip_object_ref(client_transaction1);
+	/* this causes 100 Trying to be discarded, triggering re-transimissions */
+	belle_sip_channel_set_simulated_recv_return(client_transaction1->base.channel, 1500);
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(client->stack, server->stack, &server_data.request_count, 1, 1000));
+	server_transaction1 = server_data.server_transaction;
+	/* clean server's channel and let client transaction retransmit */
+	belle_sip_listening_point_clean_channels(server->lp);
+
+	belle_sip_tester_wait_for(client->stack, server->stack, NULL, 0, 4000);
+	belle_sip_channel_set_simulated_recv_return(client_transaction1->base.channel, 1);
+	resp = belle_sip_response_create_from_request(
+	    belle_sip_transaction_get_request((belle_sip_transaction_t *)server_transaction1), 180);
+	belle_sip_server_transaction_send_response(server_transaction1, resp);
+
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(client->stack, server->stack, &client->stat.oneHundredEighty, 1, 1000));
+
+	resp = belle_sip_response_create_from_request(
+	    belle_sip_transaction_get_request((belle_sip_transaction_t *)server_transaction1), 200);
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),
+	                             BELLE_SIP_HEADER(belle_sip_header_contact_create(belle_sip_header_address_create(
+	                                 NULL, belle_sip_uri_parse("sip:alice@sip.example.org")))));
+	belle_sip_server_transaction_send_response(server_transaction1, resp);
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(client->stack, server->stack, &client->stat.twoHundredOk, 1, 1000));
+
+	belle_sip_object_unref(client_transaction1);
+	belle_sip_object_unref(server_transaction1);
+
+	belle_sip_tester_wait_for(client->stack, server->stack, NULL, 0, 1000);
+
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
+}
+
 static test_t dialog_tests[] = {
     TEST_ONE_TAG("Simple call", simple_call, "LeaksMemory"),
     TEST_ONE_TAG("Simple call with delay", simple_call_with_delay, "LeaksMemory"),
     TEST_ONE_TAG("Simple call with prack", simple_call_with_prack, "LeaksMemory"),
-};
+    TEST_NO_TAG("Cleaned channel during server transaction", channel_cleaned_during_transaction)};
 
 test_suite_t dialog_test_suite = {"Dialog",
                                   register_before_all,

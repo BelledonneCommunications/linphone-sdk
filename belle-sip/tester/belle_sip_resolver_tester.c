@@ -37,7 +37,7 @@
 #define SRV_DOMAIN "linphone.org"
 #define SIP_PORT 5060
 
-typedef struct endpoint {
+typedef struct resolver_endpoint {
 	belle_sip_stack_t *stack;
 	belle_sip_resolver_context_t *resolver_ctx;
 	int resolve_done;
@@ -45,7 +45,7 @@ typedef struct endpoint {
 	bctbx_list_t *srv_list;
 	belle_sip_resolver_results_t *results;
 	const struct addrinfo *ai_list;
-} endpoint_t;
+} resolver_endpoint_t;
 
 static unsigned int wait_for(belle_sip_stack_t *stack, int *current_value, int expected_value, int timeout) {
 #define ITER 1
@@ -59,7 +59,7 @@ static unsigned int wait_for(belle_sip_stack_t *stack, int *current_value, int e
 	else return TRUE;
 }
 
-static void destroy_endpoint_stack(endpoint_t *endpoint) {
+static void destroy_endpoint_stack(resolver_endpoint_t *endpoint) {
 	if (endpoint->stack != NULL) {
 		belle_sip_stack_sleep(endpoint->stack, 1);
 		belle_sip_object_unref(endpoint->stack);
@@ -67,19 +67,19 @@ static void destroy_endpoint_stack(endpoint_t *endpoint) {
 	}
 }
 
-static void init_endpoint_stack(endpoint_t *endpoint) {
+static void init_endpoint_stack(resolver_endpoint_t *endpoint) {
 	destroy_endpoint_stack(endpoint);
 	endpoint->stack = belle_sip_stack_new(NULL);
 }
 
-static endpoint_t *create_endpoint(void) {
-	endpoint_t *endpoint;
-	endpoint = belle_sip_new0(endpoint_t);
+static resolver_endpoint_t *create_endpoint(void) {
+	resolver_endpoint_t *endpoint;
+	endpoint = belle_sip_new0(resolver_endpoint_t);
 	init_endpoint_stack(endpoint);
 	return endpoint;
 }
 
-static void reset_endpoint(endpoint_t *endpoint) {
+static void reset_endpoint(resolver_endpoint_t *endpoint) {
 	endpoint->resolver_ctx = 0;
 	endpoint->resolve_done = 0;
 	endpoint->resolve_ko = 0;
@@ -94,7 +94,7 @@ static void reset_endpoint(endpoint_t *endpoint) {
 	}
 }
 
-static void destroy_endpoint(endpoint_t *endpoint) {
+static void destroy_endpoint(resolver_endpoint_t *endpoint) {
 	reset_endpoint(endpoint);
 	destroy_endpoint_stack(endpoint);
 	belle_sip_free(endpoint);
@@ -102,7 +102,7 @@ static void destroy_endpoint(endpoint_t *endpoint) {
 }
 
 static void a_resolve_done(void *data, belle_sip_resolver_results_t *results) {
-	endpoint_t *client = (endpoint_t *)data;
+	resolver_endpoint_t *client = (resolver_endpoint_t *)data;
 
 	client->resolve_done = 1;
 	belle_sip_object_ref(results);
@@ -116,7 +116,7 @@ static void a_resolve_done(void *data, belle_sip_resolver_results_t *results) {
 }
 
 static void srv_resolve_done(void *data, const char *name, belle_sip_list_t *srv_list, uint32_t ttl) {
-	endpoint_t *client = (endpoint_t *)data;
+	resolver_endpoint_t *client = (resolver_endpoint_t *)data;
 	BELLESIP_UNUSED(name);
 	client->resolve_done = 1;
 	if (srv_list) {
@@ -129,7 +129,7 @@ static void srv_resolve_done(void *data, const char *name, belle_sip_list_t *srv
 static void ipv4_a_query_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -162,7 +162,7 @@ static void ipv4_a_query(void) {
 /* Cancel A query */
 static void a_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 	int i, dummy = 0;
 
 	/* First run a successfull query, to the result is in the system cache */
@@ -216,7 +216,7 @@ static void a_query_cancelled(void) {
 /* Cancel a SRV query */
 static void srv_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 	int i, dummy = 0;
 
 	/* First run a successfull query, to the result is in the system cache */
@@ -274,7 +274,7 @@ static void srv_query_cancelled(void) {
 /* Cancel a SRV + A or AAAA query */
 static void srv_a_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 	int i, dummy = 0;
 
 	/* First run a successfull query, to the result is in the system cache */
@@ -329,7 +329,7 @@ static void srv_a_query_cancelled(void) {
 /* Cancel A+AAAA query */
 static void aaaa_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	int timeout;
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 	int i, dummy = 0;
 
 	if (!belle_sip_tester_ipv6_available()) {
@@ -387,7 +387,7 @@ static void aaaa_query_cancelled(void) {
 
 /* Cancel A query during timeout*/
 static void timeout_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 	int i, dummy = 0;
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
@@ -435,7 +435,7 @@ static void timeout_query_cancelled(void) {
 static void ipv4_cname_a_query_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -468,7 +468,7 @@ static void ipv4_cname_a_query(void) {
 
 static void local_query_engine(unsigned char dns_engine) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -495,7 +495,7 @@ static void local_query(void) {
 /* Successful IPv4 A query with no result */
 static void ipv4_a_query_no_result_engine(unsigned char dns_engine) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -517,7 +517,7 @@ static void ipv4_a_query_no_result(void) {
 
 /* IPv4 A query send failure */
 static void ipv4_a_query_send_failure_engine(unsigned char dns_engine) {
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -539,7 +539,7 @@ static void ipv4_a_query_send_failure(void) {
 /* IPv4 A query timeout */
 static void ipv4_a_query_timeout_engine(unsigned char dns_engine) {
 
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -562,7 +562,7 @@ static void ipv4_a_query_timeout(void) {
 /* Successful IPv4 A query with multiple results */
 static void ipv4_a_query_multiple_results_engine(unsigned char dns_engine) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -587,7 +587,7 @@ static void ipv4_a_query_multiple_results(void) {
 
 static void ipv4_a_query_with_v4mapped_results_engine(unsigned char dns_engine) {
 	int timeout;
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 
 	if (!belle_sip_tester_ipv6_available()) {
 		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
@@ -618,7 +618,7 @@ static void ipv4_a_query_with_v4mapped_results(void) {
 static void ipv6_aaaa_query_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 
 	if (!belle_sip_tester_ipv6_available()) {
 		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
@@ -684,7 +684,7 @@ static void ipv6_aaaa_query(void) {
 /* Successful SRV query */
 static void srv_query_engine(unsigned char dns_engine) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -712,7 +712,7 @@ static void srv_query(void) {
 /* Successful SRV + A or AAAA queries */
 static void srv_a_query_engine(unsigned char dns_engine) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -736,7 +736,7 @@ static void srv_a_query(void) {
 static void srv_a_query_no_srv_result_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -767,7 +767,7 @@ static void srv_a_query_no_srv_result(void) {
 }
 
 static void non_working_srv_a_query_engine(unsigned char dns_engine) {
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -791,7 +791,7 @@ static void non_working_srv_a_query(void) {
 
 static void local_full_query_engine(unsigned char dns_engine) {
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -818,7 +818,7 @@ static void local_full_query(void) {
 /* No query needed because already resolved */
 static void no_query_needed_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -867,7 +867,7 @@ static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[]) {
 static void _dns_fallback(const char *nameservers[], unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
-	endpoint_t *client = create_endpoint();
+	resolver_endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
 	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
@@ -935,7 +935,7 @@ static void dns_fallback_because_of_invalid_ipv6(void) {
 static void ipv6_dns_server_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 	const char *nameservers[] = {"2001:4860:4860::8888", NULL};
 
 	if (!belle_sip_tester_ipv6_available()) {
@@ -976,7 +976,7 @@ static void ipv6_dns_server(void) {
 static void ipv4_and_ipv6_dns_server_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 	const char *nameservers[] = {"8.8.8.8", "2a01:e00::2", NULL};
 
 	if (!belle_sip_tester_ipv6_available()) {

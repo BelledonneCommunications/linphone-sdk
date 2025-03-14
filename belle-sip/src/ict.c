@@ -140,6 +140,9 @@ static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp) {
 		case BELLE_SIP_TRANSACTION_COMPLETED:
 			if (code >= 300 && obj->ack) {
 				belle_sip_channel_queue_message(base->channel, (belle_sip_message_t *)obj->ack);
+			} else if (code >= 200 && code < 300) {
+				/* CANCEL / 200 OK race condition */
+				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t *)obj, resp);
 			}
 			break;
 		default:

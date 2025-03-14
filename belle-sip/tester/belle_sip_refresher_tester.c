@@ -46,63 +46,6 @@ static char publish_body[] =
     "	</impp:tuple>\n"
     "</impp:presence>\n";
 
-typedef enum auth_mode { none, digest, digest_auth, digest_with_next_nonce, digest_auth_with_next_nonce } auth_mode_t;
-
-typedef struct _status {
-	int oneHundredEighty;
-	int twoHundredOk;
-	int fourHundredOne;
-	int fourHundredSeven;
-	int fourHundredEightyOne;
-	int refreshOk;
-	int refreshKo;
-	int dialogTerminated;
-	int fiveHundredTree;
-} status_t;
-
-typedef struct endpoint {
-	belle_sip_stack_t *stack;
-	belle_sip_listener_callbacks_t *listener_callbacks;
-	belle_sip_provider_t *provider;
-	belle_sip_listening_point_t *lp;
-	belle_sip_listener_t *listener;
-	auth_mode_t auth;
-	status_t stat;
-	unsigned char expire_in_contact;
-	unsigned char enable_rfc5626;
-	char nonce[32];
-	unsigned int nonce_count;
-	const char *received;
-	int expires_value;
-	int rport;
-	int connection_family;
-	int register_count;
-	int transiant_network_failure;
-	belle_sip_refresher_t *refresher;
-	int early_refresher;
-	int number_of_body_found;
-	const char *realm;
-	unsigned int max_nc_count;
-	const char *algo;
-	const char *ha1;
-	int retry_after;
-	unsigned char unreconizable_contact;
-	unsigned char bad_next_nonce;
-	unsigned char expect_failed_auth;
-	void *test_data;
-} endpoint_t;
-
-static unsigned int wait_for(belle_sip_stack_t *s1, belle_sip_stack_t *s2, int *counter, int value, int timeout) {
-	int retry = 0;
-#define ITER 20
-	while (((counter == NULL) || *counter < value) && retry++ < (timeout / ITER)) {
-		if (s1) belle_sip_stack_sleep(s1, ITER / 2);
-		if (s2) belle_sip_stack_sleep(s2, ITER / 2);
-	}
-	if (counter && *counter < value) return FALSE;
-	else return TRUE;
-}
-
 // static void process_dialog_terminated(void *obj, const belle_sip_dialog_terminated_event_t *event){
 //	belle_sip_message("process_dialog_terminated called");
 // }
@@ -146,10 +89,8 @@ static void compute_response_auth_qop(const char *username,
 	                                                              size, algo);
 }
 
-#define MAX_NC_COUNT 5
-
 static void server_process_request_event(void *obj, const belle_sip_request_event_t *event) {
-	endpoint_t *endpoint = (endpoint_t *)obj;
+	belle_sip_tester_endpoint_t *endpoint = (belle_sip_tester_endpoint_t *)obj;
 	belle_sip_server_transaction_t *server_transaction =
 	    belle_sip_provider_create_server_transaction(endpoint->provider, belle_sip_request_event_get_request(event));
 	belle_sip_request_t *req = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(server_transaction));
@@ -275,7 +216,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 					belle_sip_header_www_authenticate_set_nonce(www_authenticate, endpoint->nonce);
 					if (endpoint->auth == digest_auth || endpoint->auth == digest_auth_with_next_nonce) {
 						belle_sip_header_www_authenticate_add_qop(www_authenticate, "auth");
-						if (endpoint->nonce_count >= MAX_NC_COUNT) {
+						if (endpoint->nonce_count >= BELLE_SIP_TESTER_MAX_NC_COUNT) {
 							belle_sip_header_www_authenticate_set_stale(www_authenticate, 1);
 						}
 						endpoint->nonce_count = 1;
@@ -374,48 +315,13 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 }
 
 static void client_process_dialog_terminated(void *obj, const belle_sip_dialog_terminated_event_t *event) {
-	endpoint_t *endpoint = (endpoint_t *)obj;
+	belle_sip_tester_endpoint_t *endpoint = (belle_sip_tester_endpoint_t *)obj;
 	endpoint->stat.dialogTerminated++;
 }
 
 static void server_process_dialog_terminated(void *obj, const belle_sip_dialog_terminated_event_t *event) {
-	endpoint_t *endpoint = (endpoint_t *)obj;
+	belle_sip_tester_endpoint_t *endpoint = (belle_sip_tester_endpoint_t *)obj;
 	endpoint->stat.dialogTerminated++;
-}
-
-static void client_process_response_event(void *obj, const belle_sip_response_event_t *event) {
-	// belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
-	endpoint_t *endpoint = (endpoint_t *)obj;
-	int status = belle_sip_response_get_status_code(belle_sip_response_event_get_response(event));
-	belle_sip_message("caller_process_response_event [%i]", status);
-	switch (status) {
-		case 180:
-			endpoint->stat.oneHundredEighty++;
-			break;
-		case 200:
-			endpoint->stat.twoHundredOk++;
-			if (endpoint->connection_family != AF_UNSPEC) {
-				const char *host;
-				int family_found;
-				belle_sip_header_contact_t *ct = belle_sip_message_get_header_by_type(
-				    (belle_sip_message_t *)belle_sip_response_event_get_response(event), belle_sip_header_contact_t);
-				if (BC_ASSERT_PTR_NOT_NULL(ct)) {
-					host = belle_sip_uri_get_host(belle_sip_header_address_get_uri((belle_sip_header_address_t *)ct));
-					if (strchr(host, ':')) family_found = AF_INET6;
-					else family_found = AF_INET;
-					BC_ASSERT_EQUAL(family_found, endpoint->connection_family, int, "%d");
-				}
-			}
-			break;
-		case 401:
-			endpoint->stat.fourHundredOne++;
-			break;
-		case 407:
-			endpoint->stat.fourHundredSeven++;
-			break;
-		default:
-			break;
-	}
 }
 
 // static void process_timeout(void *obj, const belle_sip_timeout_event_t *event){
@@ -426,7 +332,7 @@ static void client_process_response_event(void *obj, const belle_sip_response_ev
 // }
 
 static void client_process_auth_requested(void *obj, belle_sip_auth_event_t *event) {
-	endpoint_t *endpoint = (endpoint_t *)obj;
+	belle_sip_tester_endpoint_t *endpoint = (belle_sip_tester_endpoint_t *)obj;
 	if (endpoint->algo == NULL) endpoint->algo = "MD5";
 	belle_sip_message("process_auth_requested requested for [%s@%s]", belle_sip_auth_event_get_username(event),
 	                  belle_sip_auth_event_get_realm(event));
@@ -441,7 +347,7 @@ static void belle_sip_refresher_listener(belle_sip_refresher_t *refresher,
                                          unsigned int status_code,
                                          const char *reason_phrase,
                                          int will_retry) {
-	endpoint_t *endpoint = (endpoint_t *)user_pointer;
+	belle_sip_tester_endpoint_t *endpoint = (belle_sip_tester_endpoint_t *)user_pointer;
 	BELLESIP_UNUSED(refresher);
 	belle_sip_message("belle_sip_refresher_listener [%i] reason [%s]", status_code, reason_phrase);
 	if (status_code >= 300) endpoint->stat.refreshKo++;
@@ -471,52 +377,22 @@ static void belle_sip_refresher_listener(belle_sip_refresher_t *refresher,
 	}
 }
 
-static endpoint_t *
-create_endpoint(const char *ip, int port, const char *transport, belle_sip_listener_callbacks_t *listener_callbacks) {
-	endpoint_t *endpoint = belle_sip_new0(endpoint_t);
-	endpoint->stack = belle_sip_stack_new(NULL);
-	endpoint->listener_callbacks = listener_callbacks;
-	endpoint->lp = belle_sip_stack_create_listening_point(endpoint->stack, ip, port, transport);
-	endpoint->connection_family = AF_INET;
-	endpoint->max_nc_count = MAX_NC_COUNT;
-	endpoint->expires_value = 1;
-
-	if (endpoint->lp) belle_sip_object_ref(endpoint->lp);
-
-	endpoint->provider = belle_sip_stack_create_provider(endpoint->stack, endpoint->lp);
-	belle_sip_provider_add_sip_listener(
-	    endpoint->provider,
-	    (endpoint->listener = belle_sip_listener_create_from_callbacks(endpoint->listener_callbacks, endpoint)));
-	sprintf(endpoint->nonce, "%p", endpoint); /*initial nonce*/
-	endpoint->nonce_count = 1;
-	endpoint->register_count = 3;
-	endpoint->retry_after = 0;
-	endpoint->expect_failed_auth = FALSE;
-	return endpoint;
-}
-
-static void destroy_endpoint(endpoint_t *endpoint) {
-	belle_sip_object_unref(endpoint->lp);
-	belle_sip_object_unref(endpoint->provider);
-	belle_sip_object_unref(endpoint->stack);
-	belle_sip_object_unref(endpoint->listener);
-	belle_sip_free(endpoint);
-}
-
-static endpoint_t *create_udp_endpoint(int port, belle_sip_listener_callbacks_t *listener_callbacks) {
-	endpoint_t *endpoint = create_endpoint("127.0.0.1", port, "udp", listener_callbacks);
+static belle_sip_tester_endpoint_t *create_udp_endpoint(int port, belle_sip_listener_callbacks_t *listener_callbacks) {
+	belle_sip_tester_endpoint_t *endpoint =
+	    belle_sip_tester_create_endpoint("127.0.0.1", port, "udp", listener_callbacks);
 	BC_ASSERT_PTR_NOT_NULL(endpoint->lp);
 	return endpoint;
 }
 
-static endpoint_t *create_tcp_endpoint(int port, belle_sip_listener_callbacks_t *listener_callbacks) {
-	endpoint_t *endpoint = create_endpoint("127.0.0.1", port, "tcp", listener_callbacks);
+static belle_sip_tester_endpoint_t *create_tcp_endpoint(int port, belle_sip_listener_callbacks_t *listener_callbacks) {
+	belle_sip_tester_endpoint_t *endpoint =
+	    belle_sip_tester_create_endpoint("127.0.0.1", port, "tcp", listener_callbacks);
 	BC_ASSERT_PTR_NOT_NULL(endpoint->lp);
 	return endpoint;
 }
 
-static belle_sip_refresher_t *refresher_base_with_body2(endpoint_t *client,
-                                                        endpoint_t *server,
+static belle_sip_refresher_t *refresher_base_with_body2(belle_sip_tester_endpoint_t *client,
+                                                        belle_sip_tester_endpoint_t *server,
                                                         const char *method,
                                                         belle_sip_header_content_type_t *content_type,
                                                         const char *body,
@@ -570,12 +446,15 @@ static belle_sip_refresher_t *refresher_base_with_body2(endpoint_t *client,
 		if (client->realm) belle_sip_refresher_set_realm(client->refresher, client->realm);
 	} else {
 		if (server->auth == none) {
-			BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.twoHundredOk, 1, 1000));
+			BC_ASSERT_TRUE(
+			    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.twoHundredOk, 1, 1000));
 		} else {
 			if (strcasecmp("REGISTER", belle_sip_request_get_method(req)) == 0) {
-				BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.fourHundredOne, 1, 1000));
+				BC_ASSERT_TRUE(
+				    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.fourHundredOne, 1, 1000));
 			} else {
-				BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.fourHundredSeven, 1, 1000));
+				BC_ASSERT_TRUE(
+				    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.fourHundredSeven, 1, 1000));
 			}
 			/*update cseq*/
 			req = belle_sip_client_transaction_create_authenticated_request(trans, NULL, NULL);
@@ -584,9 +463,11 @@ static belle_sip_refresher_t *refresher_base_with_body2(endpoint_t *client,
 			belle_sip_object_ref(trans);
 			belle_sip_client_transaction_send_request(trans);
 			if (client->expect_failed_auth) {
-				BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.fourHundredOne, 1, 1000));
+				BC_ASSERT_TRUE(
+				    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.fourHundredOne, 1, 1000));
 			} else {
-				BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.twoHundredOk, 1, 1000));
+				BC_ASSERT_TRUE(
+				    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.twoHundredOk, 1, 1000));
 			}
 		}
 		client->refresher = refresher = belle_sip_client_transaction_create_refresher(trans);
@@ -598,8 +479,9 @@ static belle_sip_refresher_t *refresher_base_with_body2(endpoint_t *client,
 
 		if (!client->expect_failed_auth) {
 			begin = belle_sip_time_ms();
-			BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.refreshOk,
-			                        client->register_count + (client->early_refresher ? 1 : 0), timeout * 1000 + 1000));
+			BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.refreshOk,
+			                                         client->register_count + (client->early_refresher ? 1 : 0),
+			                                         timeout * 1000 + 1000));
 			end = belle_sip_time_ms();
 			BC_ASSERT_GREATER((long double)(end - begin),
 			                  (client->register_count / number_active_refresher) * 1000 * .9, long double,
@@ -607,14 +489,15 @@ static belle_sip_refresher_t *refresher_base_with_body2(endpoint_t *client,
 			BC_ASSERT_LOWER_STRICT(end - begin, (timeout * 1000 + 2000), unsigned long long, "%llu");
 		} else {
 			/* Will retry one more time before re-scheduling an attempt in 60 seconds */
-			BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.fourHundredOne, 2, 3000));
+			BC_ASSERT_TRUE(
+			    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.fourHundredOne, 2, 3000));
 		}
 	}
 	return refresher;
 }
 
-static void refresher_base_with_body(endpoint_t *client,
-                                     endpoint_t *server,
+static void refresher_base_with_body(belle_sip_tester_endpoint_t *client,
+                                     belle_sip_tester_endpoint_t *server,
                                      const char *method,
                                      belle_sip_header_content_type_t *content_type,
                                      const char *body) {
@@ -625,26 +508,27 @@ static void refresher_base_with_body(endpoint_t *client,
 	if (!client->expect_failed_auth) {
 		/*unregister twice to make sure refresh operation can be safely cascaded*/
 		belle_sip_refresher_refresh(refresher, 0);
-		BC_ASSERT_TRUE(
-		    wait_for(server->stack, client->stack, &client->stat.refreshOk, client->register_count + 1, 1000));
+		BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.refreshOk,
+		                                         client->register_count + 1, 1000));
 		BC_ASSERT_EQUAL(client->stat.refreshOk, client->register_count + 1, int, "%d");
 	} else {
-		BC_ASSERT_TRUE(
-		    wait_for(server->stack, client->stack, &client->stat.fourHundredOne, fourHundredOneResponses + 1, 2000));
+		BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.fourHundredOne,
+		                                         fourHundredOneResponses + 1, 2000));
 	}
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 }
 
-static void refresher_base(endpoint_t *client, endpoint_t *server, const char *method) {
+static void
+refresher_base(belle_sip_tester_endpoint_t *client, belle_sip_tester_endpoint_t *server, const char *method) {
 	refresher_base_with_body(client, server, method, NULL, NULL);
 }
-static void register_base(endpoint_t *client, endpoint_t *server) {
+static void register_base(belle_sip_tester_endpoint_t *client, belle_sip_tester_endpoint_t *server) {
 	refresher_base(client, server, "REGISTER");
 }
 static void refresher_base_with_param_and_body_for_ha1(const char *method,
                                                        unsigned char expire_in_contact,
-                                                       auth_mode_t auth_mode,
+                                                       belle_sip_tester_auth_mode_t auth_mode,
                                                        int early_refresher,
                                                        belle_sip_header_content_type_t *content_type,
                                                        const char *body,
@@ -653,10 +537,10 @@ static void refresher_base_with_param_and_body_for_ha1(const char *method,
                                                        const char *ha1) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -670,13 +554,13 @@ static void refresher_base_with_param_and_body_for_ha1(const char *method,
 		client->ha1 = ha1;
 	}
 	refresher_base_with_body(client, server, method, content_type, body);
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void refresher_base_with_param_and_body(const char *method,
                                                unsigned char expire_in_contact,
-                                               auth_mode_t auth_mode,
+                                               belle_sip_tester_auth_mode_t auth_mode,
                                                int early_refresher,
                                                belle_sip_header_content_type_t *content_type,
                                                const char *body,
@@ -688,7 +572,7 @@ static void refresher_base_with_param_and_body(const char *method,
 
 static void refresher_base_with_param(const char *method,
                                       unsigned char expire_in_contact,
-                                      auth_mode_t auth_mode,
+                                      belle_sip_tester_auth_mode_t auth_mode,
                                       const char *client_algo,
                                       const char *server_algo,
                                       const char *ha1) {
@@ -697,21 +581,21 @@ static void refresher_base_with_param(const char *method,
 }
 
 static void register_test_with_param_for_algorithm(unsigned char expire_in_contact,
-                                                   auth_mode_t auth_mode,
+                                                   belle_sip_tester_auth_mode_t auth_mode,
                                                    const char *client_algo,
                                                    const char *server_algo) {
 	refresher_base_with_param("REGISTER", expire_in_contact, auth_mode, client_algo, server_algo, NULL);
 }
 
 static void register_test_with_param_for_algorithm_ha1(unsigned char expire_in_contact,
-                                                       auth_mode_t auth_mode,
+                                                       belle_sip_tester_auth_mode_t auth_mode,
                                                        const char *client_algo,
                                                        const char *server_algo,
                                                        const char *ha1) {
 	refresher_base_with_param("REGISTER", expire_in_contact, auth_mode, client_algo, server_algo, ha1);
 }
 
-static void register_test_with_param(unsigned char expire_in_contact, auth_mode_t auth_mode) {
+static void register_test_with_param(unsigned char expire_in_contact, belle_sip_tester_auth_mode_t auth_mode) {
 	register_test_with_param_for_algorithm(expire_in_contact, auth_mode, NULL, NULL);
 }
 
@@ -732,7 +616,7 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_header_route_t *destination_route;
 	const char *identity = "sip:" USERNAME "@" SIPDOMAIN;
 	const char *domain = "sip:" SIPDOMAIN;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_uri_t *dest_uri;
 	belle_sip_refresher_t *refresher;
 	belle_sip_header_contact_t *contact = belle_sip_header_contact_new();
@@ -745,7 +629,7 @@ static void subscribe_base(int with_resource_lists) {
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 
 	client_callbacks.process_dialog_terminated = client_process_dialog_terminated;
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	server_callbacks.process_dialog_terminated = server_process_dialog_terminated;
@@ -780,14 +664,14 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_object_ref(trans); /*to avoid trans from being deleted before refresher can use it*/
 	belle_sip_client_transaction_send_request(trans);
 
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.fourHundredSeven, 1, 1000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.fourHundredSeven, 1, 1000));
 
 	req = belle_sip_client_transaction_create_authenticated_request(trans, NULL, NULL);
 	belle_sip_object_unref(trans);
 	trans = belle_sip_provider_create_client_transaction(client->provider, req);
 	belle_sip_object_ref(trans);
 	belle_sip_client_transaction_send_request(trans);
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.twoHundredOk, 1, 1000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.twoHundredOk, 1, 1000));
 	/*maybe dialog should be automatically created*/
 	BC_ASSERT_PTR_NOT_NULL(client_dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(trans)));
 	call_id = belle_sip_strdup(belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(client_dialog)));
@@ -798,19 +682,20 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_refresher_set_listener(refresher, belle_sip_refresher_listener, client);
 
 	begin = belle_sip_time_ms();
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.refreshOk, 3, 4000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.refreshOk, 3, 4000));
 	end = belle_sip_time_ms();
 	BC_ASSERT_GREATER((long double)(end - begin), 3000 * .9, long double, "%Lf");
 	BC_ASSERT_LOWER_STRICT(end - begin, 5000, unsigned long long, "%llu");
 
 	belle_sip_message("simulating dialog error and recovery");
 	belle_sip_stack_set_send_error(client->stack, 1);
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.fourHundredEightyOne, 1, 4000));
+	BC_ASSERT_TRUE(
+	    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.fourHundredEightyOne, 1, 4000));
 	/*let the transaction timeout*/
-	wait_for(server->stack, client->stack, &dummy, 1, 32000);
+	belle_sip_tester_wait_for(server->stack, client->stack, &dummy, 1, 32000);
 	belle_sip_stack_set_send_error(client->stack, 0);
 
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.refreshOk, 4, 4000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.refreshOk, 4, 4000));
 	BC_ASSERT_EQUAL(client->stat.dialogTerminated, 0, int, "%i");
 
 	/*make sure dialog has changed*/
@@ -833,10 +718,11 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_provider_set_unconditional_answer(server->provider, 481);
 	belle_sip_refresher_refresh(refresher, 10);
 
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.fourHundredEightyOne, 2, 4000));
+	BC_ASSERT_TRUE(
+	    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.fourHundredEightyOne, 2, 4000));
 	belle_sip_provider_enable_unconditional_answer(server->provider, FALSE);
 
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.refreshOk, 5, 4000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.refreshOk, 5, 4000));
 	BC_ASSERT_EQUAL(client->stat.dialogTerminated, 0, int, "%i");
 
 	/*make sure dialog has changed*/
@@ -851,7 +737,7 @@ static void subscribe_base(int with_resource_lists) {
 	belle_sip_refresher_refresh(refresher, 0);
 
 	belle_sip_refresher_stop(refresher);
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &server->stat.dialogTerminated, 3, 4000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &server->stat.dialogTerminated, 3, 4000));
 
 	belle_sip_object_unref(refresher);
 
@@ -859,8 +745,8 @@ static void subscribe_base(int with_resource_lists) {
 		BC_ASSERT_EQUAL(server->number_of_body_found, (server->auth == none ? 3 : 6), int, "%i");
 	}
 
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void subscribe_test(void) {
@@ -910,10 +796,10 @@ static void register_expires_in_contact_header_digest_md_sha256_ha1(void) {
 static void register_with_failure(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -923,18 +809,18 @@ static void register_with_failure(void) {
 	client->transiant_network_failure = 1;
 	register_base(client, server);
 	BC_ASSERT_EQUAL(client->stat.refreshKo, 1, int, "%d");
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void register_with_pingpong_pong_ok(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_refresher_t *refresher;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_tcp_endpoint(3452, &client_callbacks);
@@ -953,28 +839,28 @@ static void register_with_pingpong_pong_ok(void) {
 
 	/* send a client keepalive (PING)*/
 	belle_sip_listening_point_send_keep_alive(client->lp);
-	wait_for(server->stack, client->stack, NULL, 0, 1000);
+	belle_sip_tester_wait_for(server->stack, client->stack, NULL, 0, 1000);
 	/* server sends a keepalive (PONG)*/
 	belle_sip_listening_point_send_pong(server->lp);
-	wait_for(server->stack, client->stack, NULL, 0, 6000);
+	belle_sip_tester_wait_for(server->stack, client->stack, NULL, 0, 6000);
 	BC_ASSERT_EQUAL(client->stat.refreshOk, 1, int, "%d");
 
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 
 	BC_ASSERT_EQUAL(client->stat.refreshKo, 0, int, "%d");
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void register_with_pingpong_pong_nok_base(bool_t ping_pong_verification) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_refresher_t *refresher;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_tcp_endpoint(3452, &client_callbacks);
@@ -998,16 +884,16 @@ static void register_with_pingpong_pong_nok_base(bool_t ping_pong_verification) 
 	if (!!ping_pong_verification) {
 		/* send a client keepalive (PING)*/
 		belle_sip_listening_point_send_keep_alive(client->lp);
-		wait_for(server->stack, client->stack, NULL, 0, 1000);
+		belle_sip_tester_wait_for(server->stack, client->stack, NULL, 0, 1000);
 		/* the server replies with PONG.*/
 		belle_sip_listening_point_send_pong(server->lp);
-		wait_for(server->stack, client->stack, NULL, 0, 1000);
+		belle_sip_tester_wait_for(server->stack, client->stack, NULL, 0, 1000);
 	}
 
 	/* send another client keepalive (PING)*/
 	belle_sip_listening_point_send_keep_alive(client->lp);
 	/* we simulate a broken connection, no PONG is sent by server*/
-	wait_for(server->stack, client->stack, NULL, 0, 6000);
+	belle_sip_tester_wait_for(server->stack, client->stack, NULL, 0, 6000);
 	/* as a result the channel should have been closed and a new REGISTER sent */
 	BC_ASSERT_EQUAL(client->stat.refreshOk, 2, int, "%d");
 
@@ -1015,8 +901,8 @@ static void register_with_pingpong_pong_nok_base(bool_t ping_pong_verification) 
 	belle_sip_object_unref(refresher);
 
 	BC_ASSERT_EQUAL(client->stat.refreshKo, 1, int, "%d");
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void register_with_pingpong_pong_nok(void) {
@@ -1030,11 +916,11 @@ static void register_with_pingpong_without_pingpong_verification(void) {
 static void register_with_pingpong_not_supported(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_refresher_t *refresher;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_tcp_endpoint(3452, &client_callbacks);
@@ -1054,15 +940,15 @@ static void register_with_pingpong_not_supported(void) {
 	/* send a client keepalive (PING)*/
 	belle_sip_listening_point_send_keep_alive(client->lp);
 	/* server does not send a PONG, but nothing should happen at client side.*/
-	wait_for(server->stack, client->stack, NULL, 0, 6000);
+	belle_sip_tester_wait_for(server->stack, client->stack, NULL, 0, 6000);
 	BC_ASSERT_EQUAL(client->stat.refreshOk, 1, int, "%d");
 
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 
 	BC_ASSERT_EQUAL(client->stat.refreshKo, 0, int, "%d");
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 /* Case of a server that claims Supported: outbound, but does not send any pong.
@@ -1071,11 +957,11 @@ static void register_with_pingpong_not_supported(void) {
 static void register_with_pingpong_not_supported_2(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_refresher_t *refresher;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_tcp_endpoint(3452, &client_callbacks);
@@ -1095,26 +981,26 @@ static void register_with_pingpong_not_supported_2(void) {
 	/* send a client keepalive (PING)*/
 	belle_sip_listening_point_send_keep_alive(client->lp);
 	/* server does not send a PONG, and nothing should happen at client side.*/
-	wait_for(server->stack, client->stack, NULL, 0, 6000);
+	belle_sip_tester_wait_for(server->stack, client->stack, NULL, 0, 6000);
 	BC_ASSERT_EQUAL(client->stat.refreshOk, 1, int, "%d");
 
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 
 	BC_ASSERT_EQUAL(client->stat.refreshKo, 0, int, "%d");
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void register_with_failure_because_of_no_qop(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_digest_authentication_policy_t *digest_policy = belle_sip_digest_authentication_policy_new();
 
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -1129,19 +1015,19 @@ static void register_with_failure_because_of_no_qop(void) {
 
 	register_base(client, server);
 	BC_ASSERT_EQUAL(client->stat.twoHundredOk, 0, int, "%d");
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void register_with_failure_because_of_md5(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_digest_authentication_policy_t *digest_policy = belle_sip_digest_authentication_policy_new();
 
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -1157,19 +1043,19 @@ static void register_with_failure_because_of_md5(void) {
 
 	register_base(client, server);
 	BC_ASSERT_EQUAL(client->stat.twoHundredOk, 0, int, "%d");
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void refresher_sha256_with_md5_disabled(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_digest_authentication_policy_t *digest_policy = belle_sip_digest_authentication_policy_new();
 
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -1185,17 +1071,17 @@ static void refresher_sha256_with_md5_disabled(void) {
 	client->algo = "SHA-256";
 
 	refresher_base_with_body(client, server, "REGISTER", NULL, NULL);
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void register_with_unrecognizable_contact(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -1204,16 +1090,16 @@ static void register_with_unrecognizable_contact(void) {
 	server->unreconizable_contact = 1;
 	server->auth = digest;
 	register_base(client, server);
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 static void register_early_refresher(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -1222,17 +1108,17 @@ static void register_early_refresher(void) {
 	server->auth = digest;
 	client->early_refresher = 1;
 	register_base(client, server);
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void register_retry_after(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -1243,8 +1129,8 @@ static void register_retry_after(void) {
 	server->retry_after = 2;
 	client->retry_after = 2;
 	register_base(client, server);
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static int register_test_with_interfaces(const char *transport,
@@ -1254,17 +1140,17 @@ static int register_test_with_interfaces(const char *transport,
 	int ret = 0;
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
-	client = create_endpoint(client_ip, 3452, transport, &client_callbacks);
+	client = belle_sip_tester_create_endpoint(client_ip, 3452, transport, &client_callbacks);
 	client->connection_family = connection_family;
 	client->register_count = 1;
 
-	server = create_endpoint(server_ip, 6788, transport, &server_callbacks);
+	server = belle_sip_tester_create_endpoint(server_ip, 6788, transport, &server_callbacks);
 	server->expire_in_contact = client->expire_in_contact = 0;
 	server->auth = none;
 
@@ -1272,8 +1158,8 @@ static int register_test_with_interfaces(const char *transport,
 		belle_sip_warning("Cannot check ipv6 because host has no ipv6 support.");
 		ret = -1;
 	} else register_base(client, server);
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 	return ret;
 }
 
@@ -1284,17 +1170,17 @@ static int register_test_with_random_port(const char *transport,
 	int ret = 0;
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
-	client = create_endpoint(client_ip, -1, transport, &client_callbacks);
+	client = belle_sip_tester_create_endpoint(client_ip, -1, transport, &client_callbacks);
 	client->connection_family = connection_family;
 	client->register_count = 1;
 
-	server = create_endpoint(server_ip, 6788, transport, &server_callbacks);
+	server = belle_sip_tester_create_endpoint(server_ip, 6788, transport, &server_callbacks);
 	server->expire_in_contact = client->expire_in_contact = 0;
 	server->auth = none;
 
@@ -1302,8 +1188,8 @@ static int register_test_with_random_port(const char *transport,
 		belle_sip_warning("Cannot check ipv6 because host has no ipv6 support.");
 		ret = -1;
 	} else register_base(client, server);
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 	return ret;
 }
 
@@ -1407,14 +1293,14 @@ static void simple_publish_with_early_refresher(void) {
 static void register_and_publish(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_refresher_t *register_refresher;
 	belle_sip_refresher_t *publish_refresher;
 	belle_sip_header_content_type_t *content_type = belle_sip_header_content_type_create("application", "pidf+xml");
 
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -1433,19 +1319,21 @@ static void register_and_publish(void) {
 	publish_refresher = refresher_base_with_body2(client, server, "PUBLISH", content_type, publish_body, 2);
 
 	belle_sip_refresher_refresh(register_refresher, 0);
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.refreshOk, client->register_count + 1, 1000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.refreshOk,
+	                                         client->register_count + 1, 1000));
 	BC_ASSERT_EQUAL(client->stat.refreshOk, client->register_count + 1, int, "%d");
 	belle_sip_refresher_stop(register_refresher);
 	belle_sip_object_unref(register_refresher);
 
 	belle_sip_refresher_refresh(publish_refresher, 0);
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.refreshOk, client->register_count + 1, 1000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.refreshOk,
+	                                         client->register_count + 1, 1000));
 	BC_ASSERT_EQUAL(client->stat.refreshOk, client->register_count + 1, int, "%d");
 	belle_sip_refresher_stop(publish_refresher);
 	belle_sip_object_unref(publish_refresher);
 
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static void register_digest_with_next_nonce(void) {
@@ -1459,10 +1347,10 @@ static void register_digest_auth_with_next_nonce(void) {
 static void register_digest_auth_with_bad_next_nonce(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_response_event = belle_sip_tester_generic_client_process_response_event;
 	client_callbacks.process_auth_requested = client_process_auth_requested;
 	server_callbacks.process_request_event = server_process_request_event;
 	client = create_udp_endpoint(3452, &client_callbacks);
@@ -1470,8 +1358,8 @@ static void register_digest_auth_with_bad_next_nonce(void) {
 	server->auth = digest_auth_with_next_nonce;
 	server->bad_next_nonce = TRUE;
 	register_base(client, server);
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 typedef struct channel_bank_test_data {
@@ -1480,7 +1368,7 @@ typedef struct channel_bank_test_data {
 } channel_bank_test_data_t;
 
 static void channel_bank_test_server_process_request(void *user_data, const belle_sip_request_event_t *ev) {
-	endpoint_t *endpoint = (endpoint_t *)user_data;
+	belle_sip_tester_endpoint_t *endpoint = (belle_sip_tester_endpoint_t *)user_data;
 	belle_sip_response_t *resp;
 	belle_sip_server_transaction_t *tr;
 	channel_bank_test_data_t *test_data = (channel_bank_test_data_t *)endpoint->test_data;
@@ -1494,7 +1382,7 @@ static void channel_bank_test_server_process_request(void *user_data, const bell
 static void channel_bank_test(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
+	belle_sip_tester_endpoint_t *client, *server;
 	belle_sip_request_t *req;
 	belle_sip_client_transaction_t *client_transaction1, *client_transaction2;
 	belle_sip_server_transaction_t *server_transaction1, *server_transaction2;
@@ -1526,7 +1414,7 @@ static void channel_bank_test(void) {
 	client_transaction1 = belle_sip_provider_create_client_transaction(client->provider, req);
 	belle_sip_client_transaction_send_request_to(client_transaction1, server->lp->listening_uri);
 	belle_sip_object_ref(client_transaction1);
-	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &server_data.request_count, 1, 1000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(client->stack, server->stack, &server_data.request_count, 1, 1000));
 	server_transaction1 = server_data.server_transaction;
 
 	/* send a second request with different channel bank identifier*/
@@ -1540,7 +1428,7 @@ static void channel_bank_test(void) {
 	client_transaction2 = belle_sip_provider_create_client_transaction(client->provider, req);
 	belle_sip_client_transaction_send_request_to(client_transaction2, server->lp->listening_uri);
 	belle_sip_object_ref(client_transaction2);
-	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &server_data.request_count, 2, 1000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(client->stack, server->stack, &server_data.request_count, 2, 1000));
 	server_transaction2 = server_data.server_transaction;
 
 	/* Assert that all channels used so first and second transactions were different */
@@ -1562,7 +1450,7 @@ static void channel_bank_test(void) {
 	belle_sip_object_unref(server_transaction1);
 	belle_sip_object_unref(server_transaction2);
 
-	wait_for(client->stack, server->stack, NULL, 0, 1000);
+	belle_sip_tester_wait_for(client->stack, server->stack, NULL, 0, 1000);
 
 	/* now the server sends a request back to the client, through the first channel */
 	req = belle_sip_request_create(
@@ -1576,7 +1464,7 @@ static void channel_bank_test(void) {
 	client_transaction1 = belle_sip_provider_create_client_transaction(server->provider, req);
 	belle_sip_client_transaction_send_request_to(client_transaction1, dest_uri);
 	belle_sip_object_ref(client_transaction1);
-	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &client_data.request_count, 1, 1000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(client->stack, server->stack, &client_data.request_count, 1, 1000));
 	server_transaction1 = client_data.server_transaction;
 
 	/* server sends a request back to the client, through the second channel */
@@ -1591,7 +1479,7 @@ static void channel_bank_test(void) {
 	client_transaction2 = belle_sip_provider_create_client_transaction(server->provider, req);
 	belle_sip_client_transaction_send_request_to(client_transaction2, dest_uri);
 	belle_sip_object_ref(client_transaction2);
-	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &client_data.request_count, 2, 1000));
+	BC_ASSERT_TRUE(belle_sip_tester_wait_for(client->stack, server->stack, &client_data.request_count, 2, 1000));
 	server_transaction2 = client_data.server_transaction;
 
 	/* Assert that all channels used so first and second transactions were different */
@@ -1610,82 +1498,8 @@ static void channel_bank_test(void) {
 
 	belle_sip_message("Done.");
 
-	destroy_endpoint(client);
-	destroy_endpoint(server);
-}
-
-static void cleaned_channel_test_server_process_request(void *user_data, const belle_sip_request_event_t *ev) {
-	endpoint_t *endpoint = (endpoint_t *)user_data;
-	belle_sip_server_transaction_t *tr;
-	channel_bank_test_data_t *test_data = (channel_bank_test_data_t *)endpoint->test_data;
-	test_data->request_count++;
-	tr = belle_sip_provider_create_server_transaction(endpoint->provider, belle_sip_request_event_get_request(ev));
-	test_data->server_transaction = (belle_sip_server_transaction_t *)belle_sip_object_ref(tr);
-}
-
-static void channel_cleaned_during_transaction(void) {
-	belle_sip_listener_callbacks_t client_callbacks;
-	belle_sip_listener_callbacks_t server_callbacks;
-	endpoint_t *client, *server;
-	belle_sip_request_t *req;
-	belle_sip_client_transaction_t *client_transaction1;
-	belle_sip_server_transaction_t *server_transaction1;
-	channel_bank_test_data_t server_data = {0};
-	channel_bank_test_data_t client_data = {0};
-	belle_sip_response_t *resp;
-
-	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
-	client_callbacks.process_response_event = client_process_response_event;
-	server_callbacks.process_request_event = cleaned_channel_test_server_process_request;
-	client = create_udp_endpoint(BELLE_SIP_LISTENING_POINT_DONT_BIND, &client_callbacks);
-	client->test_data = &client_data;
-	server = create_udp_endpoint(6788, &server_callbacks);
-	server->test_data = &server_data;
-
-	/* send a first request */
-	req = belle_sip_request_create(
-	    belle_sip_uri_parse("sip:example.org"), "INVITE", belle_sip_provider_create_call_id(client->provider),
-	    belle_sip_header_cseq_create(20, "INVITE"),
-	    belle_sip_header_from_create2("sip:bob@example.org", BELLE_SIP_RANDOM_TAG),
-	    belle_sip_header_to_create2("sip:alice@example.org", NULL), belle_sip_header_via_new(), 70);
-	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),
-	                             BELLE_SIP_HEADER(belle_sip_header_contact_create(belle_sip_header_address_create(
-	                                 NULL, belle_sip_uri_parse("sip:bob@sip.example.org")))));
-
-	client_transaction1 = belle_sip_provider_create_client_transaction(client->provider, req);
-	belle_sip_client_transaction_send_request_to(client_transaction1, server->lp->listening_uri);
-	belle_sip_object_ref(client_transaction1);
-	/* this causes 100 Trying to be discarded, triggering re-transimissions */
-	belle_sip_channel_set_simulated_recv_return(client_transaction1->base.channel, 1500);
-	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &server_data.request_count, 1, 1000));
-	server_transaction1 = server_data.server_transaction;
-	/* clean server's channel and let client transaction retransmit */
-	belle_sip_listening_point_clean_channels(server->lp);
-
-	wait_for(client->stack, server->stack, NULL, 0, 4000);
-	belle_sip_channel_set_simulated_recv_return(client_transaction1->base.channel, 1);
-	resp = belle_sip_response_create_from_request(
-	    belle_sip_transaction_get_request((belle_sip_transaction_t *)server_transaction1), 180);
-	belle_sip_server_transaction_send_response(server_transaction1, resp);
-
-	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &client->stat.oneHundredEighty, 1, 1000));
-
-	resp = belle_sip_response_create_from_request(
-	    belle_sip_transaction_get_request((belle_sip_transaction_t *)server_transaction1), 200);
-	belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),
-	                             BELLE_SIP_HEADER(belle_sip_header_contact_create(belle_sip_header_address_create(
-	                                 NULL, belle_sip_uri_parse("sip:alice@sip.example.org")))));
-	belle_sip_server_transaction_send_response(server_transaction1, resp);
-	BC_ASSERT_TRUE(wait_for(client->stack, server->stack, &client->stat.twoHundredOk, 1, 1000));
-
-	belle_sip_object_unref(client_transaction1);
-	belle_sip_object_unref(server_transaction1);
-
-	wait_for(client->stack, server->stack, NULL, 0, 1000);
-
-	destroy_endpoint(client);
-	destroy_endpoint(server);
+	belle_sip_tester_destroy_endpoint(client);
+	belle_sip_tester_destroy_endpoint(server);
 }
 
 static test_t refresher_tests[] = {
@@ -1736,8 +1550,9 @@ static test_t refresher_tests[] = {
     TEST_NO_TAG("REGISTER with RFC5626 ping pong not supported server-side", register_with_pingpong_not_supported),
     TEST_NO_TAG("REGISTER with RFC5626 ping pong erroneously supported server-side",
                 register_with_pingpong_not_supported_2),
-    TEST_NO_TAG("Transactions using different channel banks", channel_bank_test),
-    TEST_NO_TAG("Cleaned channel during server transaction", channel_cleaned_during_transaction)};
+    TEST_NO_TAG("Transactions using different channel banks", channel_bank_test)
+
+};
 
 test_suite_t refresher_test_suite = {"Refresher",
                                      NULL,
