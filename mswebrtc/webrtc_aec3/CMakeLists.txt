@@ -93,18 +93,19 @@ endif()
 # Define WEBRTC_POSIX for POSIX-compliant systems
 if(UNIX)
     add_definitions(-DWEBRTC_POSIX)
-    message(STATUS "Defining WEBRTC_POSIX for POSIX-compliant system")
+    message(STATUS "Defining WEBRTC_POSIX for POSIX-compliant system") # FIXME FHA
 	if(APPLE)
 		add_definitions(-DWEBRTC_MAC)
 		if(IOS)
 			add_definitions(-DWEBRTC_IOS)
+			message(STATUS "Defining WEBRTC_IOS for ios platform") # FIXME FHA
 		endif()
 	else()
 		add_definitions(-DWEBRTC_LINUX)
 	endif()
 elseif(WIN32)
     add_definitions(-DWEBRTC_WIN)
-    message(STATUS "Defining WEBRTC_WIN for Windows platform")
+    message(STATUS "Defining WEBRTC_WIN for Windows platform") # FIXME FHA
 endif()
 
 # Check if the compiler is Clang
@@ -129,20 +130,40 @@ if(SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
 endif()
 if(SYSTEM_PROCESSOR MATCHES "arm" OR SYSTEM_PROCESSOR MATCHES "aarch64")
     message(STATUS "ARM architecture detected")
-	add_definitions(-DWEBRTC_ARM)
 
-    # Check ARM version
-    if(SYSTEM_PROCESSOR MATCHES "armv7" OR SYSTEM_PROCESSOR MATCHES "aarch64")
-        message(STATUS "ARM version 7 or higher detected")
-        add_definitions(-DWEBRTC_ARCH_ARM_V7)
+	if(SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+		message(STATUS "Detected ARM64 architecture.") # FIXME FHA
+		add_definitions(-DWEBRTC_ARCH_ARM64)
+		set(COMPILER_SUPPORTS_NEON FALSE)
+		check_cxx_compiler_flag(" -march=armv8-a" COMPILER_SUPPORTS_ARMV8)
+			if(COMPILER_SUPPORTS_ARMV8)
+				message(STATUS "add option  -march=armv8-a") # FIXME FHA
+				add_definitions(-DWEBRTC_HAS_NEON)
+			else()
+				# set(COMPILER_SUPPORTS_ARMV8 FALSE)
+				message(STATUS "test build FHA: DO NOT add option  -march=armv8-a") # FIXME FHA ok
+			endif()
+		message(STATUS "test build FHA: archi arm 64 detected, add def DWEBRTC_ARCH_ARM64 and DWEBRTC_HAS_NEON") # FIXME FHA
+	else()
+		add_definitions(-DWEBRTC_ARCH_ARM)
+		message(STATUS "test build FHA: archi arm detected, add def DWEBRTC_ARCH_ARM") # FIXME FHA
+		set(COMPILER_SUPPORTS_ARMV8 FALSE)
+		
+		if(SYSTEM_PROCESSOR MATCHES "armv[7-9]")
+			message(STATUS "test build FHA: ARM version 7 or higher detected") # FIXME FHA
+			add_definitions(-DWEBRTC_ARCH_ARM_V7)
+			check_cxx_compiler_flag("-mfpu=neon" COMPILER_SUPPORTS_NEON)
+			if(COMPILER_SUPPORTS_NEON)
+				message(STATUS "add option -mfpu=neon") # FIXME FHA ok
+				add_definitions(-DWEBRTC_HAS_NEON)
+				# set(COMPILER_SUPPORTS_NEON TRUE)
+			else()
+				# set(COMPILER_SUPPORTS_NEON FALSE)
+				message(STATUS "test build FHA: DO NOT add option -mfpu=neon") # FIXME FHA ok
+			endif()
+		endif()
 
-        # Check for NEON support
-        check_cxx_compiler_flag("-mfpu=neon" COMPILER_SUPPORTS_NEON)
-        if(COMPILER_SUPPORTS_NEON)
-            message(STATUS "NEON support detected")
-            add_definitions(-DWEBRTC_HAS_NEON)
-        endif()
-    endif()
+	endif()
 else()
     # Check for SSE support on non-ARM architectures
 	if (MSVC)
@@ -268,12 +289,14 @@ if(COMPILER_SUPPORTS_AVX2)
 		)
 endif()
 
-if(COMPILER_SUPPORTS_NEON)
+if(COMPILER_SUPPORTS_NEON OR COMPILER_SUPPORTS_ARMV8)
+message(STATUS "test build FHA: add files for neon") # FIXME FHA
 	list(APPEND AEC3_SRCS
 		${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_neon.cc
-		${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc
+		${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc  # FIXME FHA a valider si besoinffpu
 	)
 elseif(COMPILER_SUPPORTS_SSE2)
+	message(STATUS "test build FHA: DO NOT add files for neon, but for sse2") # FIXME FHA
 	list(APPEND AEC3_SRCS
 		${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_sse.cc
 		${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_sse2.cc
@@ -316,6 +339,14 @@ else()
     message(STATUS "test build FHA: The compiler is not Clang.") # FIXME FHA
 endif()
 
+if(COMPILER_SUPPORTS_ARMV8)
+	target_compile_options(mswebrtcaec PRIVATE -march=armv8-a)
+	message(STATUS "test build FHA: add target_compile_options -march=armv8") # FIXME FHA
+endif()
+if(COMPILER_SUPPORTS_NEON)
+	target_compile_options(mswebrtcaec PRIVATE -mfpu=neon)
+	message(STATUS "test build FHA: add target_compile_options -mfpu=neon") # FIXME FHA
+endif()
 if(COMPILER_SUPPORTS_AVX2)
 	if(MSVC)
 		target_compile_options(mswebrtcaec PRIVATE "/arch:AVX2")
@@ -367,11 +398,12 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 install(TARGETS mswebrtcaec
-		RUNTIME DESTINATION ${Mediastreamer2_PLUGINS_DIR}
-		LIBRARY DESTINATION ${Mediastreamer2_PLUGINS_DIR}
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		FRAMEWORK DESTINATION Frameworks
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	EXPORT LibLinphoneTargets
+	RUNTIME DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+	LIBRARY DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 
 
