@@ -421,7 +421,9 @@ void TrackReader::seekToTimestamp(RecordInterface::Timestamp timestamp) {
 	 * Keep in mind that records have are sorted by increasing timestamp, but there might be suites of equal timestamps.
 	 * ex: 200, 300, 400, 400, 400, 500, 600 etc.
 	 */
-	mCurrentRecord = seek(0, mRecords.size(), timestamp);
+	if (mRecords.size() > 0) {
+		mCurrentRecord = seek(0, mRecords.size() - 1, timestamp);
+	} else mCurrentRecord = 0;
 	bctbx_message("TrackReader: seek at index [%u] for timestamp [%u]", (unsigned)mCurrentRecord, (unsigned)timestamp);
 }
 
