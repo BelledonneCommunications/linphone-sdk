@@ -193,6 +193,24 @@ static void http_get_empty_body(void) {
 	}
 }
 
+static void http_get_redirected(void) {
+	HttpServer http_server;
+	http_counters_t counters = {0};
+	http_server.Get("/index.html", [](const httplib::Request &req, httplib::Response &res) {
+		res.status = 302;
+		res.set_header("Location", "/newindex.html");
+	});
+	http_server.Get("/newindex.html", [](const httplib::Request &req, httplib::Response &res) {
+		res.status = 200;
+		res.set_content("", "text/plain");
+	});
+	if (one_get(http_server.mRootUrl + "/index.html", &counters, &counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
+	}
+}
+
 static void http_get_io_error(void) {
 	http_counters_t counters = {0};
 	if (one_get("http://blablabla.fail", &counters, &counters.io_error_count) == 0) {
@@ -533,10 +551,10 @@ static void http_redirect_to_https(void) {
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
 	http_counters_t counters = {0};
-	const char *url = "http://www.linphone.org/remote_provisioning.xml";
+	const char *url = "http://www.linphone.org";
 	belle_sip_body_handler_t *bh;
 	belle_http_response_t *resp;
-	FILE *outfile = fopen("provisioning.xml", "w");
+	FILE *outfile = fopen("index.html", "w");
 
 	uri = belle_generic_uri_parse(url);
 
@@ -558,12 +576,12 @@ static void http_redirect_to_https(void) {
 	if (resp) {
 		bh = belle_sip_message_get_body_handler((belle_sip_message_t *)resp);
 		BC_ASSERT_GREATER_STRICT((unsigned int)belle_sip_body_handler_get_size(bh), 0, unsigned int, "%u");
-		FILE *body = fopen("provisioning.xml", "r");
+		FILE *body = fopen("index.html", "r");
 		/* Assert that we apparently received the body */
 		if (BC_ASSERT_PTR_NOT_NULL(body)) {
-			char tmp[512] = {0};
+			char tmp[1024] = {0};
 			BC_ASSERT_TRUE(fread(tmp, sizeof(tmp) - 1, 1, body) > 0);
-			BC_ASSERT_TRUE(strstr(tmp, "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"") != NULL);
+			BC_ASSERT_TRUE(strstr(tmp, "https://linphone.org/home/") != NULL);
 		}
 		fclose(body);
 	}
@@ -577,7 +595,8 @@ static void http_channel_reuse(void) {
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
 	http_counters_t counters = {0};
-	const char *url = "https://www.linphone.org/remote_provisioning.xml";
+	const char *url = "https://wiki.linphone.org/xwiki/wiki/public/download/Lib/Features/Remote%20Provisioning/WebHome/"
+	                  "remote_provisioning.xml";
 	belle_http_response_t *resp;
 	belle_sip_channel_t *channels[2];
 	FILE *outfile;
@@ -632,7 +651,8 @@ static void one_https_get_with_proxy(void) {
 
 static test_t http_tests[] = {
     TEST_NO_TAG("One http GET", one_http_get), TEST_NO_TAG("http GET of empty body", http_get_empty_body),
-    TEST_NO_TAG("One https GET", one_https_get), TEST_NO_TAG("One https GET with maddr", one_https_get_with_maddr),
+    TEST_NO_TAG("Http get redirected", http_get_redirected), TEST_NO_TAG("One https GET", one_https_get),
+    TEST_NO_TAG("One https GET with maddr", one_https_get_with_maddr),
     TEST_NO_TAG("One https GET with http proxy", one_https_get_with_proxy),
     TEST_NO_TAG("http request with io error", http_get_io_error),
     TEST_NO_TAG("https GET with long body", https_get_long_body),

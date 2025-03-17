@@ -53,9 +53,21 @@ struct belle_http_provider {
 static void uri_copy_parts(belle_generic_uri_t *uri, const belle_generic_uri_t *original_uri) {
 	const char *username = belle_generic_uri_get_user(original_uri);
 	const char *passwd = belle_generic_uri_get_user_password(original_uri);
+	const char *new_scheme = belle_generic_uri_get_scheme(uri);
+	const char *new_host = belle_generic_uri_get_host(uri);
+
 	if (username) belle_generic_uri_set_user(uri, username);
 	if (passwd) belle_generic_uri_set_user_password(uri, passwd);
-	/* are there other uri parameters that shall be copied ? */
+	/* Take into account that the Location header may be a relative uri */
+	if (!new_scheme) belle_generic_uri_set_scheme(uri, belle_generic_uri_get_scheme(original_uri));
+	if (!new_host) {
+		belle_generic_uri_set_host(uri, belle_generic_uri_get_host(original_uri));
+		if (belle_generic_uri_get_port(original_uri) != 0)
+			belle_generic_uri_set_port(uri, belle_generic_uri_get_port(original_uri));
+	}
+	/* The location header may not contain the initial query part */
+	if (belle_generic_uri_get_query(uri) == NULL)
+		belle_generic_uri_set_query(uri, belle_generic_uri_get_query(original_uri));
 }
 
 static int http_channel_context_handle_redirect(belle_http_channel_context_t *ctx, belle_http_request_t *req) {
