@@ -40,11 +40,18 @@
 
 namespace belr {
 
+/*
+ * A collector is an object that represents the relationship a child element to parent element.
+ * In the words, each element for which a Handler is being may collect other elements.
+ * This is the base collector class. Inherited classes are specialized for each kind of element.
+ */
 template <typename _parserElementT>
 class CollectorBase {
 public:
 	virtual ~CollectorBase() = default;
+	/* This method invokes the assignation of a child element represented by an element to a parent element. */
 	virtual void invokeWithChild(_parserElementT obj, _parserElementT child) = 0;
+	/* This method invokes the assignation of a child element represented as a simple string to a parent element. */
 	virtual void invokeWithValue(_parserElementT obj, const std::string &value) = 0;
 };
 
@@ -63,6 +70,11 @@ inline T universal_pointer_cast(U *p) {
 	return static_cast<T>(p);
 }
 
+/*
+ * Derived of CollectorBase, to specialize for a given parser element type.
+ * It does the job of casting types, from string to integer or floating type,
+ * in order to adapt to the element object API that receives the assignments.
+ */
 template <typename _functorT, typename _parserElementT>
 class ParserCollector : public CollectorBase<_parserElementT> {
 public:
@@ -138,12 +150,18 @@ class Parser;
 
 class HandlerContextBase;
 
+/*
+ * Base class for Handler, that is the object that represents the association between an ABNF rule
+ * and an application-supplied function that creates an object that represents the parsed element.
+ * The handler holds a map of Collectors for sub-element that it has to collect.
+ */
 template <typename _parserElementT>
 class ParserHandlerBase {
 	friend class HandlerContext<_parserElementT>;
 
 public:
 	virtual ~ParserHandlerBase() = default;
+	/* Invoke the creation of the object that will represent an element being parsed */
 	virtual _parserElementT invoke(const std::string &input, size_t begin, size_t count) = 0;
 
 	std::shared_ptr<HandlerContext<_parserElementT>> createContext();
@@ -154,6 +172,7 @@ public:
 protected:
 	void releaseContext(const std::shared_ptr<HandlerContext<_parserElementT>> &ctx);
 	ParserHandlerBase(const Parser<_parserElementT> &parser, const std::string &name);
+	/* Install a collector for sub-element */
 	void installCollector(const std::string &rulename, CollectorBase<_parserElementT> *collector);
 	CollectorBase<_parserElementT> *getCollector(unsigned int rule_id) const;
 
@@ -167,6 +186,10 @@ private:
 #endif
 };
 
+/*
+ * ParserHandler inherits from ParserHandlerBase, specializing the creation of handler object
+ * for their real type.
+ */
 template <typename _createElementFn, typename _parserElementT>
 class ParserHandler : public ParserHandlerBase<_parserElementT> {
 public:
@@ -199,6 +222,13 @@ private:
 	_createElementFn mHandlerCreateFunc;
 };
 
+/*
+ * An Assignment represents the action of executing a collection represented by a Collector.
+ * It is constructed during the parsing process.
+ * It may not be used, if at the end the parsing does not reach a final state.
+ * It holds the exact position of the string element to assign to the parent object,
+ * or a HandlerContext if the element is itself represented by an object.
+ */
 template <typename _parserElementT>
 class Assignment {
 public:
@@ -209,6 +239,7 @@ public:
 	    : mCollector(c), mBegin(begin), mCount(count), mChild(child) {
 	}
 
+	/* Invoke the assignment of a sub-lement to a parent object */
 	void invoke(_parserElementT parent, const std::string &input);
 
 private:
@@ -218,6 +249,11 @@ private:
 	std::shared_ptr<HandlerContext<_parserElementT>> mChild;
 };
 
+/*
+ * The HandlerContextBase is the base class for HandlerContext, that represent
+ * the action of creating an application-specified object (through the ParserHandler)
+ * during the parsing process.
+ */
 class HandlerContextBase : public std::enable_shared_from_this<HandlerContextBase> {
 public:
 	BELR_PUBLIC virtual ~HandlerContextBase() = default;
@@ -228,8 +264,14 @@ class HandlerContext : public HandlerContextBase {
 public:
 	HandlerContext(ParserHandlerBase<_parserElementT> *handler);
 
+	/* Set a child to the element, by adding an Assignment. */
 	void setChild(unsigned int subrule_id, size_t begin, size_t count, const std::shared_ptr<HandlerContext> &child);
+	/* Create the object representing the element, and perform the assignments. */
 	_parserElementT realize(const std::string &input, size_t begin, size_t count);
+	/* Create a HandlerContext in order to try a new path of the automaton.
+	 * This HandlerContext may be kept if the parsing was succesfull, in which case merge() must be called.
+	 * If not succesfull, recyle() must be used.
+	 */
 	std::shared_ptr<HandlerContext<_parserElementT>> branch();
 	void merge(const std::shared_ptr<HandlerContext<_parserElementT>> &other);
 	size_t getLastIterator() const;
@@ -241,6 +283,11 @@ private:
 	std::vector<Assignment<_parserElementT>> mAssignments;
 };
 
+/*
+ * The ParserLocalContext is instanciated in Recognizers in order to hold
+ * the current HandlerContext (representing a rule and an object to create), and the recognizer
+ * that recognizes the rule.
+ */
 struct ParserLocalContext {
 	void set(const std::shared_ptr<HandlerContextBase> &hc, const std::shared_ptr<Recognizer> &rec, size_t pos) {
 		mHandlerContext = hc;
@@ -253,17 +300,31 @@ struct ParserLocalContext {
 	size_t mAssignmentPos = 0;
 };
 
+/*
+ * The ParserContextBase is the base class that represents the entire parsing attempt.
+ * It is instanciated (in its derived form) within Parser::parseInput().
+ */
 class ParserContextBase {
 public:
 	virtual ~ParserContextBase() = default;
 
+	/* Called when a Recognizer is about to process an input. */
 	virtual void beginParse(ParserLocalContext &ctx, const std::shared_ptr<Recognizer> &rec) = 0;
+	/* Called when the Recognizer has finished to process an input, and notifies the position and number of characters
+	 * parsed. */
 	virtual void endParse(const ParserLocalContext &ctx, const std::string &input, size_t begin, size_t count) = 0;
+	/* Called when creating a branch, in order to explore a branch of the automaton tree. */
 	virtual std::shared_ptr<HandlerContextBase> branch() = 0;
+	/* If the branch succesfully parsed characters, it is merged.*/
 	virtual void merge(const std::shared_ptr<HandlerContextBase> &other) = 0;
+	/* Otherwise, it is removed. */
 	virtual void removeBranch(const std::shared_ptr<HandlerContextBase> &other) = 0;
 };
 
+/*
+ * The ParserContext is a derived class of ParserContextBase interface
+ * that does all the job for the specified _parserElementT type.
+ */
 template <typename _parserElementT>
 class ParserContext : public ParserContextBase {
 public:
