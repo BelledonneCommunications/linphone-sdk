@@ -1531,9 +1531,9 @@ ice_send_turn_server_allocate_request(IceStunServerRequest *request, const struc
 	request->stun_method = ms_stun_message_get_method(msg);
 	if (request->requested_address_family != 0)
 		ms_stun_message_set_requested_address_family(msg, request->requested_address_family);
-	transaction =
-	    ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen,
-	                          server, addrlen, msg, "TURN allocate request");
+	transaction = ice_send_stun_request(request->rtptp, request->source_ai->ai_addr,
+	                                    (socklen_t)request->source_ai->ai_addrlen, server, addrlen, msg,
+	                                    (msg->username ? "TURN allocate request with auth" : "TURN allocate request"));
 	ms_stun_message_destroy(msg);
 	return transaction;
 }
