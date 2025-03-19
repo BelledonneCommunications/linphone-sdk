@@ -39,9 +39,9 @@
 #include "belle-sip/resolver.h"
 #include "belle-sip/transaction.h"
 
+#include "bctoolbox/port.h"
+#include "bctoolbox/vconnect.h"
 #include "port.h"
-#include <bctoolbox/port.h>
-#include <bctoolbox/vconnect.h>
 
 #ifdef HAVE_CONFIG_H
 
@@ -288,6 +288,8 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_dual_resolver_context_t, belle_sip_resolver_context_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+extern int belle_sip_stack_name_addr_forced;
 
 void belle_sip_resolver_context_notify(belle_sip_resolver_context_t *ctx);
 

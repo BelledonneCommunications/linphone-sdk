@@ -1208,6 +1208,20 @@ static void test_referred_by_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "ref.example");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_referred_by));
 	BC_ASSERT_PTR_NULL(belle_sip_header_referred_by_parse("nimportequoi"));
+
+	L_referred_by = belle_sip_header_referred_by_parse("Referred-By: sip:r@ref.example");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_referred_by));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_referred_by));
+	BC_ASSERT_STRING_EQUAL(l_raw_header, "Referred-By: sip:r@ref.example");
+	belle_sip_free(l_raw_header);
+
+	belle_sip_stack_force_name_addr(TRUE);
+	L_referred_by = belle_sip_header_referred_by_parse("Referred-By: sip:r@ref.example");
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_referred_by));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_referred_by));
+	BC_ASSERT_STRING_EQUAL(l_raw_header, "Referred-By: <sip:r@ref.example>");
+	belle_sip_free(l_raw_header);
+	belle_sip_stack_force_name_addr(FALSE);
 }
 
 static void test_replaces_header(void) {

@@ -343,6 +343,16 @@ BELLESIP_EXPORT unsigned char belle_sip_stack_get_dns_engine(const belle_sip_sta
  **/
 BELLESIP_EXPORT void belle_sip_stack_simulate_non_working_srv(belle_sip_stack_t *stack, int yesno);
 
+/**
+ * Force header-address SIP headers (from, to, refer-to, referred-by...) to be serialized with name-addr ABNF rule,
+ * that is with angle quotes even if they are not necessary.
+ * The purpose of this function is to workaround bugs in third party SIP stacks.
+ * @note unlike other belle_sip_stack_t methods, this one is "static" in the meaning
+ * that it affects the serialisation behavior of the whole process and not only the serialization
+ * of the SIP messages that are processed by the belle_sip_provider_t from which this belle_sip_stack_t was created.
+ */
+BELLESIP_EXPORT void belle_sip_stack_force_name_addr(int forced);
+
 /*
  * End of test functions.
  */

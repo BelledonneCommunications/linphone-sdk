@@ -23,6 +23,8 @@
 static int belle_sip_well_known_port = 5060;
 static int belle_sip_well_known_port_tls = 5061;
 
+int belle_sip_stack_name_addr_forced = 0;
+
 int belle_sip_stack_get_well_known_port(void) {
 	return belle_sip_well_known_port;
 }
@@ -530,4 +532,9 @@ int belle_sip_stack_get_min_refresh_window(belle_sip_stack_t *stack) {
 
 int belle_sip_stack_get_max_refresh_window(belle_sip_stack_t *stack) {
 	return stack->refresh_window_max;
+}
+
+void belle_sip_stack_force_name_addr(int forced) {
+	belle_sip_message("belle_sip_stack_force_name_addr(): forced=%i", forced);
+	belle_sip_stack_name_addr_forced = forced;
 }

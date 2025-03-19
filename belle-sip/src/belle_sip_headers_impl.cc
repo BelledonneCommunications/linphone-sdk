@@ -256,6 +256,9 @@ static belle_sip_error_code _belle_sip_header_address_marshal(
     belle_sip_header_address_t *header, char *buff, size_t buff_size, size_t *offset, int force_angle_quote) {
 	belle_sip_error_code error = BELLE_SIP_OK;
 	bool has_display_name = header->displayname != nullptr;
+
+	if (belle_sip_stack_name_addr_forced) force_angle_quote = TRUE;
+
 	/*1 display name*/
 	if (has_display_name) {
 		char *escaped_display_name = belle_sip_display_name_to_backslashed_escaped_string(header->displayname);
