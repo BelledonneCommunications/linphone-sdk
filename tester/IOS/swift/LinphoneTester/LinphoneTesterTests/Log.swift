@@ -27,21 +27,16 @@ import linphonesw
 class Log: LoggingServiceDelegate {
 	
 	static let instance = Log()
-		
-	var debugEnabled = true // Todo : bind to app parameters
 	var service = LoggingService.Instance
 
 	private init() {
 		service.domain = Bundle.main.bundleIdentifier!
-		Core.setLogCollectionPath(path: Factory.Instance.getDownloadDir(context: nil))
-		Core.enableLogCollection(state: LogCollectionState.Enabled)
-		setMask()
 		LoggingService.Instance.addDelegate(delegate: self)
-		
+        setMask(verbose: true)
 	}
 	
-	func setMask() {
-		if debugEnabled {
+    func setMask(verbose: Bool = false) {
+		if verbose {
 			LoggingService.Instance.logLevelMask = UInt(LogLevel.Fatal.rawValue + LogLevel.Error.rawValue + LogLevel.Warning.rawValue + LogLevel.Message.rawValue + LogLevel.Trace.rawValue + LogLevel.Debug.rawValue)
 		} else {
 			LoggingService.Instance.logLevelMask = UInt(LogLevel.Fatal.rawValue +  LogLevel.Error.rawValue +  LogLevel.Warning.rawValue)

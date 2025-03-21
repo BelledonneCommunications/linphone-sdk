@@ -152,36 +152,113 @@ class LinphoneTestUser {
     }
 }
 
+// fs-test-9.linphone.org: 178.32.112.28
+// This var should be set in the SwiftTests configuration
+// or by using the "LINPHONETESTER_FLEXISIP_DNS" in the command line tool
+let LINPHONETESTER_FLEXISIP_DNS_ENV_VAR = "LINPHONETESTER_FLEXISIP_DNS_ENV_VAR"
+
+class LinphoneTesterEnvironment {
+    //@UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    var rawFlexisipTesterdnsIpAddresses: UnsafeMutableRawPointer!
+    var verbose: Bool = true
+    
+    static var shared = LinphoneTesterEnvironment()
+
+    private init() {
+        Log.instance.setMask(verbose: verbose)
+        
+        if let dnsServer = ProcessInfo.processInfo.environment[LINPHONETESTER_FLEXISIP_DNS_ENV_VAR], !dnsServer.isEmpty {
+            Log.info("\(LINPHONETESTER_FLEXISIP_DNS_ENV_VAR) found with value \(dnsServer)")
+            let dnsData = dnsServer.data(using: .utf8)!
+            let rawFlexisipTesterdnsIpAddresses = UnsafeMutableRawPointer.allocate(byteCount: dnsData.count, alignment: MemoryLayout<UInt8>.alignment)
+            dnsData.copyBytes(to: rawFlexisipTesterdnsIpAddresses.assumingMemoryBound(to: UInt8.self), count: dnsData.count)
+            flexisip_tester_dns_ip_addresses = bctbx_list_new(rawFlexisipTesterdnsIpAddresses)
+        } else {
+            Log.error("\(LINPHONETESTER_FLEXISIP_DNS_ENV_VAR) could not be found in environment, please set it")
+        }
+        liblinphone_tester_init(nil)
+        liblinphonetester_show_account_manager_logs = verbose ? 1 : 0
+        liblinphone_tester_keep_accounts(1);
+        
+        let testerUrl = Bundle.main.url(forResource: "Frameworks/linphonetester.framework", withExtension: nil)!
+        bc_tester_set_resource_dir_prefix(testerUrl.relativePath)
+        let cacheUrl = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!.relativePath
+        bc_tester_set_writable_dir_prefix(cacheUrl)
+
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if let error = error {
+                Log.error("Error requesting notification permissions: \(error)")
+            }
+            Log.info("Notification permissions granted: \(granted)")
+        }
+    }
+    deinit {
+        rawFlexisipTesterdnsIpAddresses.deallocate()
+    }
+    
+    func parseCommandLineArguments() {
+        let arguments = CommandLine.arguments
+        
+        var index = 1
+        while index < arguments.count {
+            let argument = arguments[index]
+            
+            switch argument {
+            case "--dns-server":
+                // Ensure there is a next argument
+                if index + 1 < arguments.count {
+                    let dnsServer = arguments[index + 1]
+                    Log.info("Flexisip tester DNS Server: \(dnsServer)")
+                    
+                    index += 1
+                } else {
+                    Log.error("Error: No value provided for --dns-server")
+                }
+            case "--verbose":
+                verbose = true
+            default:
+                Log.error("Unknown argument: \(argument)")
+            }
+            index += 1
+        }
+    }
+}
+
 class PhysicalDeviceIncomingPushTests: XCTestCase {
+    var currentTestName : String!
     
     override class func setUp() {
         super.setUp()
         Log.info("Setup PhysicalDeviceIncomingPushTests")
     }
     
-    var currentTestName : String!
     override func setUp() {
         super.setUp()
         
-        // get the name and remove the class name and what comes before the class name
-        currentTestName = self.name.replacingOccurrences(of: "-[PhysicalDeviceIncomingPushTests ", with: "")
-        // And then you'll need to remove the closing square bracket at the end of the test name
-        currentTestName = currentTestName.replacingOccurrences(of: "]", with: "_logs.txt")
-        
-        let logFile = bc_tester_file(currentTestName.cString(using: String.Encoding.utf8))
-        liblinphone_tester_set_log_file(logFile)
+        if LinphoneTesterEnvironment.shared.verbose {
+            // get the name and remove the class name and what comes before the class name
+            currentTestName = self.name.replacingOccurrences(of: "-[PhysicalDeviceIncomingPushTests ", with: "")
+            // And then you'll need to remove the closing square bracket at the end of the test name
+            currentTestName = currentTestName.replacingOccurrences(of: "]", with: "_logs.txt")
+            
+            let logFile = bc_tester_file(currentTestName.cString(using: String.Encoding.utf8))
+            liblinphone_tester_set_log_file(logFile)
+        }
     }
     
     
     override func tearDown() {
-        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        let attachment = XCTAttachment(contentsOfFile: cacheDir.appendingPathComponent(currentTestName))
-        attachment.lifetime = .deleteOnSuccess
-        add(attachment)
-        liblinphone_tester_set_log_file("")
-    
+        if LinphoneTesterEnvironment.shared.verbose {
+            let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+            let attachment = XCTAttachment(contentsOfFile: cacheDir.appendingPathComponent(currentTestName))
+            attachment.lifetime = .deleteOnSuccess
+            add(attachment)
+            liblinphone_tester_set_log_file("")
+        }
+        
         super.tearDown()
     }
+    
     
     /*
      func testTokenReception() {
@@ -456,41 +533,18 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         voipPushStopWhenDisablingPush(willDisableCorePush: false)
     }
     
-    func testOverrideOldAccountPnPrid() {
+    func testAlwaysFailingForAttachmentsImplementation() {
         let marie = LinphoneTestUser(rcFile: "marie_rc")
-        
-        // ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP.
-        // IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
         let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
         
         pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
             self.waitForExpectations(timeout: 5)
         }
         
-        let voipToken = pauline.core.defaultAccount?.params?.pushNotificationConfig?.voipToken
-        let prid = pauline.core.defaultAccount?.params?.pushNotificationConfig?.prid
-        
-        pauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
-            self.waitForExpectations(timeout: 5)
-        }
-        
-        let testPushParams = "pn-prid=NOTAREALTOKEN:voip;pn-provider=apns.dev;pn-param=ABCD1234.belledonne.LinphoneTester.voip"
-        pauline.core.config?.setString(section: "proxy_0", key: "push_parameters", value: testPushParams)
-        
-        pauline.startCore(startedCoreExpectation: expectation(description: "Pauline Core Started")) {
-            XCTAssertEqual(pauline.core.defaultAccount?.params?.pushNotificationConfig?.prid, "NOTAREALTOKEN:voip")
-            self.waitForExpectations(timeout: 5)
-        }
-        pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with modified voip token")) {
-            self.waitForExpectations(timeout: 5)
-        }
-        
-        XCTContext.runActivity(named: "Token and prid from the config should be overwritten") { _ in
-            let newVoipToken = pauline.core.defaultAccount?.params?.pushNotificationConfig?.voipToken
-            let newPrid = pauline.core.defaultAccount?.params?.pushNotificationConfig?.prid
-            XCTAssertEqual(voipToken, newVoipToken)
-            XCTAssertEqual(prid, newPrid)
-        }
+        Log.error("This is a test that always fails")
+        XCTAssertTrue(false)
+
+        cleanupTestUser(tester: marie)
         cleanupTestUser(tester: pauline)
     }
     

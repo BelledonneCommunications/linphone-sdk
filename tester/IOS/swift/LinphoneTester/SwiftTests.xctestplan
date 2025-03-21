@@ -9,7 +9,20 @@
     }
   ],
   "defaultOptions" : {
+    "commandLineArgumentEntries" : [
 
+    ],
+    "environmentVariableEntries" : [
+      {
+        "key" : "LINPHONETESTER_FLEXISIP_DNS_ENV_VAR",
+        "value" : "$(LINPHONETESTER_FLEXISIP_DNS)"
+      }
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:LinphoneTester.xcodeproj",
+      "identifier" : "663F0EE22D6CBB8D001D5643",
+      "name" : "LinphoneTesterTests"
+    }
   },
   "testTargets" : [
     {

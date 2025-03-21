@@ -5,13 +5,19 @@ cmake --build IOS_TESTER --config RelWithDebInfo -j8
 Test execution: 
 cd tester/IOS/swift/LinphoneTester
 
-[Tests execution]
-- Replace “IPHONE_DESTINATION“ with the device the tests will be run on. 
+[Xcode line tests execution]
+- Go to testplan "SwiftTests" configuration
+- In the environment variable, replace  "LINPHONETESTER_FLEXISIP_DNS_ENV_VAR" with the correct test server
+- run tests
+
+[Command line tests execution]
+- Replace "$TESTER_ADDRESSS" with the correct test server
+- Replace “$IPHONE_DESTINATION“ with the device the tests will be run on. 
 - Available devices can be displayed by running “xcrun xctrace list devices”
 - “test” can be replaced with “test-without-building”
 - “TEST_OUTPUT_DIR” must not already exists. It will be generated, as well as “TEST_OUTPUT_DIR.xcresult”
 
- xcodebuild -scheme LinphoneTester -destination 'platform=iOS,name=IPHONE_DESTINATION' test -testPlan SwiftTests -resultBundlePath TEST_OUTPUT_DIR
+ xcodebuild -scheme LinphoneTester -destination 'platform=iOS,name=$IPHONE_DESTINATION' test -resultBundlePath TEST_OUTPUT_DIR -LINPHONETESTER_FLEXISIP_DNS=$TESTER_ADDRESSS
 
 [Process xcresult]
 
