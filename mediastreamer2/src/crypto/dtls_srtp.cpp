@@ -171,15 +171,15 @@ uint8_t ms_dtls_srtp_check_certificate_fingerprint(const bctbx_x509_certificate_
 	int32_t ret = 0;
 
 	/* get Hash algorithm used from peer fingerprint */
-	if (startsWithCaseInsensitive(peer_fingerprint, "sha-1 ", 6) == 0) {
+	if (startsWithCaseInsensitive(peer_fingerprint, "sha-1 ", 6)) {
 		hash_function = BCTBX_MD_SHA1;
-	} else if (startsWithCaseInsensitive(peer_fingerprint, "sha-224 ", 8) == 0) {
+	} else if (startsWithCaseInsensitive(peer_fingerprint, "sha-224 ", 8)) {
 		hash_function = BCTBX_MD_SHA224;
-	} else if (startsWithCaseInsensitive(peer_fingerprint, "sha-256 ", 8) == 0) {
+	} else if (startsWithCaseInsensitive(peer_fingerprint, "sha-256 ", 8)) {
 		hash_function = BCTBX_MD_SHA256;
-	} else if (startsWithCaseInsensitive(peer_fingerprint, "sha-384 ", 8) == 0) {
+	} else if (startsWithCaseInsensitive(peer_fingerprint, "sha-384 ", 8)) {
 		hash_function = BCTBX_MD_SHA384;
-	} else if (startsWithCaseInsensitive(peer_fingerprint, "sha-512 ", 8) == 0) {
+	} else if (startsWithCaseInsensitive(peer_fingerprint, "sha-512 ", 8)) {
 		hash_function = BCTBX_MD_SHA512;
 	} else { /* we have an unknown hash function: return null */
 		ms_error("DTLS-SRTP received invalid peer fingerprint %s, hash function unknown", peer_fingerprint.c_str());
@@ -204,7 +204,7 @@ uint8_t ms_dtls_srtp_check_certificate_fingerprint(const bctbx_x509_certificate_
 	}
 
 	/* compare fingerprints */
-	if (caseInsensitiveCompare(peer_fingerprint, (char *)fingerprint) == 0) {
+	if (caseInsensitiveCompare(peer_fingerprint, (char *)fingerprint)) {
 		return 1;
 	} else {
 		ms_error("DTLS Handshake successful but fingerprints differ received : %s computed %s",
