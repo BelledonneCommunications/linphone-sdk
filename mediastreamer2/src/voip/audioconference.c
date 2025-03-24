@@ -299,6 +299,12 @@ static void configure_output(MSAudioEndpoint *ep) {
 
 	MSPacketRouterPinData pd;
 	pd.input = pd.output = pd.self = ep->pin;
+	memset(pd.extension_ids, 0, sizeof(pd.extension_ids));
+
+	// Set the correct extension ids negotiated
+	// We don't do MID as it is already rewritten by the session in transfer mode
+	pd.extension_ids[RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL] = ep->st->client_to_mixer_extension_id;
+	pd.extension_ids[RTP_EXTENSION_MIXER_TO_CLIENT_AUDIO_LEVEL] = ep->st->mixer_to_client_extension_id;
 
 	ms_filter_call_method(ep->conference->mixer, MS_PACKET_ROUTER_CONFIGURE_OUTPUT, &pd);
 }

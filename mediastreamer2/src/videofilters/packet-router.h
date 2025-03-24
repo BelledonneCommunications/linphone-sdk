@@ -45,9 +45,11 @@ public:
 	RouterInput(PacketRouter *router, int pin);
 	virtual ~RouterInput() = default;
 
+	virtual void configure(const MSPacketRouterPinData *pinData);
 	virtual void update() = 0;
 
 	int getPin() const;
+	int getExtensionId(int defaultExtensionId) const;
 
 protected:
 	PacketRouter *mRouter;
@@ -58,6 +60,8 @@ protected:
 	bool mSeqNumberSet = false;
 
 	bool mLocal = false;
+
+	int mExtensionIds[16] = {};
 };
 
 class RouterAudioInput : public RouterInput {
@@ -92,6 +96,7 @@ class RouterVideoInput : public RouterInput {
 public:
 	RouterVideoInput(PacketRouter *router, int pin, const std::string &encoding, bool fullPacketMode);
 
+	void configure(const MSPacketRouterPinData *pinData) override;
 	void update() override;
 
 protected:
@@ -115,9 +120,7 @@ public:
 	RouterOutput(PacketRouter *router, int pin);
 	virtual ~RouterOutput() = default;
 
-	virtual void configure(const MSPacketRouterPinData *pinData) {
-		mSelfSource = pinData->self;
-	};
+	virtual void configure(const MSPacketRouterPinData *pinData);
 	virtual void transfer() = 0;
 
 	int getSelfSource() const {
@@ -126,6 +129,7 @@ public:
 
 protected:
 	void rewritePacketInformation(mblk_t *source, mblk_t *output);
+	void rewriteExtensionIds(mblk_t *output, int inputIds[16], int outputIds[16]);
 
 	PacketRouter *mRouter;
 
@@ -136,6 +140,8 @@ protected:
 	uint32_t mAdjustedOutTimestamp = 0;
 
 	uint16_t mOutSeqNumber = 0;
+
+	int mExtensionIds[16] = {};
 };
 
 class RouterAudioOutput : public RouterOutput {

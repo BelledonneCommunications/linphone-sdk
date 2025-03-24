@@ -448,6 +448,12 @@ void VideoConferenceAllToAll::configureOutput(VideoEndpoint *ep) {
 	pd.output = ep->mOutPin;
 	pd.self = ep->mPin;
 	pd.active_speaker_enabled = ep->mLinkSource > -1;
+	memset(pd.extension_ids, 0, sizeof(pd.extension_ids));
+
+	// Set the correct extension ids negotiated
+	// We don't do MID as it is already rewritten by the session in transfer mode
+	pd.extension_ids[RTP_EXTENSION_FRAME_MARKING] = ep->mSt->frame_marking_extension_id;
+
 	ms_filter_call_method(mMixer, MS_PACKET_ROUTER_CONFIGURE_OUTPUT, &pd);
 }
 

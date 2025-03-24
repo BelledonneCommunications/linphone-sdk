@@ -27,9 +27,15 @@ namespace mediastreamer {
 class HeaderExtensionKeyFrameIndicator : public KeyFrameIndicator {
 public:
 	HeaderExtensionKeyFrameIndicator() = default;
+	explicit HeaderExtensionKeyFrameIndicator(int frameMarkingExtensionId);
 	virtual ~HeaderExtensionKeyFrameIndicator() = default;
 
 	bool isKeyFrame(mblk_t *frame) override;
+
+	void setFrameMarkingExtensionId(int frameMarkingExtensionId);
+
+protected:
+	int mFrameMarkingExtensionId = RTP_EXTENSION_FRAME_MARKING;
 };
 
 } // namespace mediastreamer

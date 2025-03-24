@@ -70,8 +70,16 @@ private:
 RouterInput::RouterInput(PacketRouter *router, int inputNumber) : mRouter(router), mPin(inputNumber) {
 }
 
+void RouterInput::configure(const MSPacketRouterPinData *pinData) {
+	std::copy(std::begin(pinData->extension_ids), std::end(pinData->extension_ids), std::begin(mExtensionIds));
+}
+
 int RouterInput::getPin() const {
 	return mPin;
+}
+
+int RouterInput::getExtensionId(int defaultExtensionId) const {
+	return mExtensionIds[defaultExtensionId] > 0 ? mExtensionIds[defaultExtensionId] : defaultExtensionId;
 }
 
 RouterAudioInput::RouterAudioInput(PacketRouter *router, int inputNumber) : RouterInput(router, inputNumber) {
@@ -90,8 +98,8 @@ void RouterAudioInput::update() {
 		mSsrc = rtp_get_ssrc(m);
 
 		bool_t voiceActivity = FALSE;
-		int newVolume =
-		    rtp_get_client_to_mixer_audio_level(m, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL, &voiceActivity);
+		int newVolume = rtp_get_client_to_mixer_audio_level(
+		    m, getExtensionId(RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL), &voiceActivity);
 
 		if (newVolume != RTP_AUDIO_LEVEL_NO_VOLUME) {
 			newVolume = static_cast<int>(ms_volume_dbov_to_dbm0(newVolume));
@@ -148,6 +156,17 @@ RouterVideoInput::RouterVideoInput(PacketRouter *router,
 		PackerRouterLogContextualizer prlc(router);
 		ms_error("Trying to create a video input in AV1 while it is disabled");
 #endif
+	}
+}
+
+void RouterVideoInput::configure(const MSPacketRouterPinData *pinData) {
+	RouterInput::configure(pinData);
+
+	// If we have an HeaderExtensionKeyFrameIndicator, update the extension id.
+	if (auto headerExtensionKeyFrameIndicator =
+	        dynamic_cast<HeaderExtensionKeyFrameIndicator *>(mKeyFrameIndicator.get());
+	    headerExtensionKeyFrameIndicator != nullptr) {
+		headerExtensionKeyFrameIndicator->setFrameMarkingExtensionId(getExtensionId(RTP_EXTENSION_FRAME_MARKING));
 	}
 }
 
@@ -212,6 +231,11 @@ void RouterVideoInput::update() {
 RouterOutput::RouterOutput(PacketRouter *router, int pin) : mRouter(router), mPin(pin) {
 }
 
+void RouterOutput::configure(const MSPacketRouterPinData *pinData) {
+	mSelfSource = pinData->self;
+	std::copy(std::begin(pinData->extension_ids), std::end(pinData->extension_ids), std::begin(mExtensionIds));
+}
+
 void RouterOutput::rewritePacketInformation(mblk_t *source, mblk_t *output) {
 	if (mblk_get_timestamp_info(source) != mOutTimestamp) {
 		if (mRouter->getRoutingMode() == PacketRouter::RoutingMode::Video) {
@@ -231,6 +255,22 @@ void RouterOutput::rewritePacketInformation(mblk_t *source, mblk_t *output) {
 	mblk_set_timestamp_info(output, mAdjustedOutTimestamp);
 	mblk_set_cseq(output, mOutSeqNumber++);
 	mblk_set_marker_info(output, mblk_get_marker_info(source));
+}
+
+void RouterOutput::rewriteExtensionIds(mblk_t *output, int inputIds[16], int outputIds[16]) {
+	int mapping[16] = {};
+	bool mappingRequired = false;
+
+	// 0 is no extension and 15 is reserved by the RFC
+	for (int i = 1; i < 15; i++) {
+		if (inputIds[i] > 0 && outputIds[i] > 0 && inputIds[i] != outputIds[i]) {
+			// If any is not the same put it in the mapping array
+			mapping[inputIds[i]] = outputIds[i];
+			mappingRequired = true;
+		}
+	}
+
+	if (mappingRequired) rtp_remap_header_extension_ids(output, mapping);
 }
 
 RouterAudioOutput::RouterAudioOutput(PacketRouter *router, int pin) : RouterOutput(router, pin) {
@@ -261,6 +301,8 @@ void RouterAudioOutput::transfer() {
 
 						if (!mRouter->isFullPacketModeEnabled()) {
 							rewritePacketInformation(m, o);
+						} else {
+							rewriteExtensionIds(o, input->mExtensionIds, mExtensionIds);
 						}
 
 						ms_queue_put(outputQueue, o);
@@ -317,6 +359,8 @@ void RouterVideoOutput::transfer() {
 				// Only re-write packet information if full packet mode is disabled
 				if (!mRouter->isFullPacketModeEnabled()) {
 					rewritePacketInformation(m, o);
+				} else {
+					rewriteExtensionIds(o, input->mExtensionIds, mExtensionIds);
 				}
 
 				ms_queue_put(outputQueue, o);
@@ -683,6 +727,8 @@ void PacketRouter::configureOutput(const MSPacketRouterPinData *pinData) {
 
 	if (pinData->input != -1) {
 		createInputIfNotExists(pinData->input);
+
+		mInputs[pinData->input]->configure(pinData);
 	}
 
 	unlock();

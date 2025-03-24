@@ -24,12 +24,19 @@
 
 namespace mediastreamer {
 
+HeaderExtensionKeyFrameIndicator::HeaderExtensionKeyFrameIndicator(int frameMarkingExtensionId)
+    : mFrameMarkingExtensionId(frameMarkingExtensionId) {};
+
 bool HeaderExtensionKeyFrameIndicator::isKeyFrame(mblk_t *frame) {
 	uint8_t marker = 0;
 
-	if (!rtp_get_frame_marker(frame, RTP_EXTENSION_FRAME_MARKING, &marker)) return false;
+	if (!rtp_get_frame_marker(frame, mFrameMarkingExtensionId, &marker)) return false;
 
 	return (marker & RTP_FRAME_MARKER_START) && (marker & RTP_FRAME_MARKER_INDEPENDENT);
+}
+
+void HeaderExtensionKeyFrameIndicator::setFrameMarkingExtensionId(int frameMarkingExtensionId) {
+	mFrameMarkingExtensionId = frameMarkingExtensionId;
 }
 
 } // namespace mediastreamer

@@ -215,8 +215,7 @@ audio_stream_bundle_recv_branch_new(RtpSession *session, int mixerInputPin, Audi
 static bool_t packet_contains_muted_volume(AudioStream *as, mblk_t *mp) {
 	bool_t voice_activity = FALSE;
 
-	int new_volume =
-	    rtp_get_client_to_mixer_audio_level(mp, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL, &voice_activity);
+	int new_volume = rtp_get_client_to_mixer_audio_level(mp, as->client_to_mixer_extension_id, &voice_activity);
 
 	if (new_volume == RTP_AUDIO_LEVEL_NO_VOLUME || (int)ms_volume_dbov_to_dbm0(new_volume) != MS_VOLUME_DB_MUTED)
 		return FALSE;

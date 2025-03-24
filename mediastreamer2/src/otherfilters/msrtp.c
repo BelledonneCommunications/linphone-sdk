@@ -997,8 +997,8 @@ static void receiver_check_for_extensions(MSFilter *f, mblk_t *m) {
 	// If we received a Mixer to Client, we ignore the Client to Mixer.
 	if (d->client_to_mixer_extension_id > 0 && !ignore_ctm) {
 		int ret;
-		if ((ret = rtp_get_client_to_mixer_audio_level(m, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL,
-		                                               &voice_activity)) != RTP_AUDIO_LEVEL_NO_VOLUME) {
+		if ((ret = rtp_get_client_to_mixer_audio_level(m, d->client_to_mixer_extension_id, &voice_activity)) !=
+		    RTP_AUDIO_LEVEL_NO_VOLUME) {
 			ctm_level.csrc = rtp_get_ssrc(m);
 			ctm_level.dbov = ret;
 			ms_filter_notify(f, MS_RTP_RECV_CLIENT_TO_MIXER_AUDIO_LEVEL_RECEIVED, &ctm_level);

@@ -34,6 +34,7 @@ typedef struct _MSPacketRouterPinData {
 	int output;
 	int self;
 	int active_speaker_enabled;
+	int extension_ids[16];
 } MSPacketRouterPinData;
 
 typedef struct _MSPacketRouterPinControl {
