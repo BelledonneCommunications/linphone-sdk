@@ -1120,7 +1120,7 @@ endif()
 if(BUILD_LIBSRTP2)
 	function(add_srtp)
 		set(BUILD_SHARED_LIBS ${BUILD_LIBSRTP2_SHARED_LIBS})
-		set(TEST_APPS OFF)
+		set(LIBSRTP_TEST_APPS OFF)
 
 		add_subdirectory("external/srtp")
 		add_dependencies(sdk srtp2)
