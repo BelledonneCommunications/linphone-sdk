@@ -17,7 +17,7 @@ cd tester/IOS/swift/LinphoneTester
 - “test” can be replaced with “test-without-building”
 - “TEST_OUTPUT_DIR” must not already exists. It will be generated, as well as “TEST_OUTPUT_DIR.xcresult”
 
- xcodebuild -scheme LinphoneTester -destination 'platform=iOS,name=$IPHONE_DESTINATION' test -resultBundlePath TEST_OUTPUT_DIR -LINPHONETESTER_FLEXISIP_DNS=$TESTER_ADDRESSS
+ xcodebuild -scheme LinphoneTester -destination 'platform=iOS,name=$IPHONE_DESTINATION' test -resultBundlePath TEST_OUTPUT_DIR LINPHONETESTER_FLEXISIP_DNS=$TESTER_ADDRESSS
 
 [Process xcresult]
 

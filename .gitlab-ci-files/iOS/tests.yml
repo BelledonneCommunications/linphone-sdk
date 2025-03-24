@@ -85,19 +85,23 @@ physical-swift-iOS-test:
   needs:
     - ios-ninja
 
+  
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_IOS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    
   variables:
     XCODERESULT_NAME: "XCODE_TEST_RESULT"
     SWIFT_TESTS_OUTPUT: "SWIFT_TESTS_OUTPUT"
     TEST_IPHONE_NAME: "iPhone X"
+    TESTER_ADDRESS: "178.32.112.29"
 
   script:
-    - cd ${CI_PROJECT_DIR}/tester/IOS/swift
-    - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
-    - PODFILE_PATH=../../../build-ios pod install
+    - cd ${CI_PROJECT_DIR}/tester/IOS/swift/LinphoneTester
+    - echo ${CI_PROJECT_DIR}/tester/IOS/swift/LinphoneTester
 
-    # Test launching
-    - xcodebuild -scheme LinphoneTester -destination 'platform=iOS,name=$TEST_IPHONE_NAME' test -testPlan SwiftTests -resultBundlePath "$XCODERESULT_NAME"
-
+    # Test build & launch
+    - xcodebuild -scheme LinphoneTester -destination 'platform=iOS,name=$TEST_IPHONE_NAME' test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_ADDRESS"
 
   after_script:
     - echo "generating xml results in $SWIFT_TESTS_OUTPUT.xml"
@@ -106,7 +110,7 @@ physical-swift-iOS-test:
     - echo "extracting XCTestAttachments in $SWIFT_TESTS_OUTPUT folder"
     - xcparse attachments $XCODERESULT_NAME.xcresult $SWIFT_TESTS_OUTPUT --uti public.plain-text
     - echo "Compressing attachments into $SWIFT_TESTS_OUTPUT.zip"
-    - zip -r $SWIFT_TESTS_OUTPUT.zip $SWIFT_TESTS_OUTPUT
+    - zip -r $SWIFT_TESTS_OUTPUT.zip $SWIFT_TESTS_OUTPUT $XCODERESULT_NAME.xcresult
 
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
