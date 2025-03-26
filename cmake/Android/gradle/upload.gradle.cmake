@@ -40,6 +40,12 @@ if (project.hasProperty("minimal-size")) {
 if (project.hasProperty("bundled")) {
     artefactGroupId = artefactGroupId + '.bundled'
 }
+if (project.hasProperty("bundled-no-video")) {
+    artefactGroupId = artefactGroupId + '.bundled-no-video'
+}
+if (project.hasProperty("bundled-minimal-size")) {
+    artefactGroupId = artefactGroupId + '.bundled-minimal'
+}
 println("AAR artefact group is: " + artefactGroupId + ", SDK version @LINPHONESDK_VERSION@")
 
 publishing {

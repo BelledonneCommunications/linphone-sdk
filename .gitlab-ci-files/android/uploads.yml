@@ -1,7 +1,7 @@
 .android-upload-common:
   stage: deploy
   tags: [ "docker" ]
-  image: !reference [.android_r27_image_version, image]
+  image: !reference [ .android_r27_image_version, image ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_ANDROID != null
@@ -36,7 +36,7 @@
 android-doc-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: !reference [.android_r27_image_version, image]
+  image: !reference [ .android_r27_image_version, image ]
 
   rules:
     - if: $DEPLOY_RUN_ANDROID != null
@@ -78,7 +78,7 @@ android-doc-upload:
 
     - LIBLINPHONE_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
 
-    - !reference [.choose_upload_dir, script]
+    - !reference [ .choose_upload_dir, script ]
 
     - cd build/android
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java
@@ -127,3 +127,21 @@ bundled-android-upload:
     MAVEN_REPO_PATH: bundled
   needs:
     - bundled-android-ninja-r27
+
+bundled-android-upload-no-video:
+  extends: .android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+    GRADLE_OPTIONS: -Pbundled-no-video -i
+    MAVEN_REPO_PATH: bundled-no-video
+  needs:
+    - bundled-android-ninja-r27-no-video
+
+bundled-android-upload-minimal-size:
+  extends: .android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+    GRADLE_OPTIONS: -Pbundled-minimal-size -i
+    MAVEN_REPO_PATH: bundled-minimal
+  needs:
+    - bundled-android-ninja-r27-minimal-size
