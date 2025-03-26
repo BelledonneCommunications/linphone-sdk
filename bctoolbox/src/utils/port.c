@@ -881,18 +881,18 @@ void bctbx_shm_close(void *mem) {
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // _MSC_VER
 static void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime) {
-#if defined(_WIN32_WCE) || defined(WIN32)
-#if defined(BCTBX_WINDOWS_DESKTOP) && !defined(ENABLE_MICROSOFT_STORE_APP) && !defined(BCTBX_WINDOWS_UWP)
+#ifdef _WIN32
+#if _WIN64
+	FILETIME lifeTime;
+	GetSystemTimePreciseAsFileTime(&lifeTime); // years in [1601;2554]
+	// conversion to Unix Epoch
+	uint64_t nsec =
+	    (((uint64_t)lifeTime.dwHighDateTime << 32ULL) + lifeTime.dwLowDateTime - 116444736000000000ULL) * 100ULL;
+	ret->tv_sec = nsec / 1000000000ULL;
+	ret->tv_nsec = nsec % 1000000000ULL;
+#else
 	DWORD timemillis;
-#if defined(_WIN32_WCE)
 	timemillis = GetTickCount();
-#else
-	timemillis = timeGetTime();
-#endif
-	ret->tv_sec = timemillis / 1000;
-	ret->tv_nsec = (timemillis % 1000) * 1000000LL;
-#else
-	ULONGLONG timemillis = GetTickCount64();
 	ret->tv_sec = timemillis / 1000;
 	ret->tv_nsec = (timemillis % 1000) * 1000000LL;
 #endif
