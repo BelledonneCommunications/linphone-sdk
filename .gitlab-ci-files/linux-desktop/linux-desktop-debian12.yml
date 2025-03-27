@@ -120,20 +120,30 @@ debian12-ninja-clang-pqc:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian12-ninja-clang
 
-debian12-ninja-gcc-python-wheel:
+debian12-ninja-clang-python-wheel:
   tags: [ "docker" ]
   image: !reference [.debian12_image_version, image]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
+    ADDITIONAL_CMAKE_OPTIONS: -DENABLE_PYTHON_WRAPPER_TESTER=ON
   extends: .linux-desktop-python
 
 debian12-ninja-java:
   tags: [ "docker" ]
   image: !reference [.debian12_java_image_version, image]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
   variables:
     CMAKE_GENERATOR: Ninja
+    ADDITIONAL_CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER_TESTER=ON
   extends: .linux-desktop-java
 
 #################################################
@@ -210,3 +220,53 @@ liblinphone-debian12-openssl-test-mr:
      - debian12-ninja-gcc-openssl
    variables:
      PLATFORM: linux-debian12
+
+liblinphone-debian12-python-wrapper-test:
+  image: !reference [ .debian12_test_libl_image_version, image ]
+  extends: .test-liblinphone
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+  needs:
+    - debian12-ninja-clang-python-wheel
+  script:
+    # Create a Python virtual-env and enter it
+    - python3 -m venv ${CI_PROJECT_DIR}/.python-virtual-env
+    - source ${CI_PROJECT_DIR}/.python-virtual-env/bin/activate
+
+    # Install the linphone wheel package
+    - pip install ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/linphone-*.whl
+
+    # Create the linphone config directory, otherwise the tests fail
+    - mkdir -p ~/.local/share/linphone
+
+    # Go to the Python tests project
+    - cd ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/share/pylinphone/wrapper-tests
+
+    # Execute the tester
+    - python test_pylinphone.py
+  after_script:
+  artifacts:
+
+liblinphone-debian12-java-wrapper-test:
+  image: !reference [ .debian12_test_libl_image_version, image ]
+  extends: .test-liblinphone
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+  needs:
+    - debian12-ninja-java
+  script:
+    # Prepare the test environment
+    - cd ${CI_PROJECT_DIR}/build/java/linphone-sdk/java/share/linphonej/WrapperTests
+    - chmod u+x gradlew
+    - unzip ${CI_PROJECT_DIR}/build/java/linphone-sdk/bin/distributions/linphone-sdk-java-*.zip
+
+    # Execute the tester
+    - ./gradlew test
+  after_script:
+  artifacts:

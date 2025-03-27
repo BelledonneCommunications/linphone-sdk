@@ -52,7 +52,7 @@ debian-python-doc-upload:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   needs:
-    - debian12-ninja-gcc-python-wheel
+    - debian12-ninja-clang-python-wheel
 
   script:
 

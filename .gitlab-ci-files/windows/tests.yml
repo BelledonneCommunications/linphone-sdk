@@ -192,3 +192,25 @@ liblinphone-cswrapper-windows-test:
     - dotnet test --arch x64
   after_script:
   artifacts:
+
+liblinphone-java-wrapper-windows-test:
+  extends: .windows-linphone-test
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS != null
+  variables:
+    MINGW_TYPE: mingw64
+  needs:
+    - vs2022-windows-java
+  script:
+    # Prepare the test environment
+    - cd $env:CI_PROJECT_DIR\build\win\linphone-sdk\java\share\linphonej\WrapperTests
+    - 7z.exe e $env:CI_PROJECT_DIR\build\win\linphone-sdk\bin\distributions\linphone-sdk-java-*.zip
+
+    # Execute the tester
+    - .\gradlew.bat test
+  after_script:
+  artifacts:
