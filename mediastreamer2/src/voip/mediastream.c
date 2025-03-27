@@ -1223,22 +1223,21 @@ void media_stream_create_or_update_fec_session(MediaStream *ms) {
 	if (mid == NULL) return;
 
 	if (ms->sessions.fec_session == NULL) {
-		int payload_type_number = 0;
 		RtpSession *fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
 		rtp_session_set_scheduling_mode(fec_session, 0);
 		rtp_session_set_blocking_mode(fec_session, 0);
 		rtp_session_enable_rtcp(fec_session, TRUE);
 		rtp_session_set_rtcp_report_interval(fec_session, 2500);
 		rtp_session_enable_avpf_feature(fec_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
-		rtp_session_set_profile(fec_session, profile);
-		payload_type_number = rtp_profile_get_payload_number_from_mime(profile, "flexfec");
-		rtp_session_set_payload_type(fec_session, payload_type_number);
 		fec_session->fec_stream = NULL;
 		ms->sessions.fec_session = fec_session;
 	} else {
 		rtp_session_reset_stats(ms->sessions.fec_session);
 	}
 
+	rtp_session_set_profile(ms->sessions.fec_session, profile);
+	int payload_type_number = rtp_profile_get_payload_number_from_mime(profile, "flexfec");
+	rtp_session_set_payload_type(ms->sessions.fec_session, payload_type_number);
 	rtp_bundle_add_session(ms->sessions.rtp_session->bundle, mid, ms->sessions.fec_session);
 	ms->fec_parameters = media_stream_extract_fec_params(fec_payload_type);
 	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, ms->fec_parameters);
