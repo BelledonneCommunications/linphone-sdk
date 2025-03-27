@@ -4,11 +4,11 @@ wait-cache-synchro-rocky8:
     BUILD_SUBTYPE: rocky8
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
-    - !reference [.wait-cache-synchro, rules]
+    - !reference [ .wait-cache-synchro, rules ]
 
 recache-rocky8:
   extends: .recache-update-cache
-  image: !reference [.rocky8_image_version, image]
+  image: !reference [ .rocky8_image_version, image ]
 
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
@@ -17,7 +17,7 @@ recache-rocky8:
 
 .factorize_rocky8: &docker_image_needs_platform_runner_tag_dev_toolset
   tags: [ "docker-test" ]
-  image: !reference [.rocky8_image_version, image]
+  image: !reference [ .rocky8_image_version, image ]
   needs:
     - rocky8-ninja-gcc
   variables:
@@ -31,7 +31,7 @@ recache-rocky8:
 
 rocky8-makefile-gcc:
   tags: [ "docker" ]
-  image: !reference [.rocky8_image_version, image]
+  image: !reference [ .rocky8_image_version, image ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     #Only used to overwrite value set by .set_parallel_level.yml
@@ -48,7 +48,7 @@ rocky8-makefile-gcc:
 
 rocky8-ninja-gcc:
   tags: [ "docker" ]
-  image: !reference [.rocky8_image_version, image]
+  image: !reference [ .rocky8_image_version, image ]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
@@ -70,7 +70,7 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
 
 rocky8-python-wheel:
   tags: [ "docker" ]
-  image: !reference [.rocky8_python_wrapper_image_version, image]
+  image: !reference [ .rocky8_python_wrapper_image_version, image ]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -136,7 +136,7 @@ ortp-rocky8-test-mr:
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 .factorize_bs_rocky8: &docker_image_needs_tag_platform_devtoolset_bs
-  image: !reference [.rocky8_image_version, image]
+  image: !reference [ .rocky8_image_version, image ]
   needs:
     - rocky8-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
@@ -153,7 +153,7 @@ bellesip-rocky8-test:
 #   <<: *docker_image_needs_tag_platform_devtoolset_bs
 
 .factorize_ms2_rocky8: &docker_image_needs_platform_devtoolset_ms
-  image: !reference [.rocky8_test_libl_image_version, image]
+  image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
     - rocky8-ninja-gcc
   variables:
@@ -169,7 +169,7 @@ mediastreamer-rocky8-test:
 
 mediastreamer-rocky8-test-h264-mr:
   extends: .test-mediastreamer-mr
-  image: !reference [.rocky8_test_libl_image_version, image]
+  image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
   variables:
@@ -177,7 +177,7 @@ mediastreamer-rocky8-test-h264-mr:
 
 
 .factorize_liblinphone_rocky8: &docker_image_needs_platform_devtoolset_libl
-  image: !reference [.rocky8_test_libl_image_version, image]
+  image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
     - rocky8-ninja-gcc
   variables:
@@ -190,7 +190,7 @@ liblinphone-rocky8-test:
 liblinphone-rocky8-test-pq-h264-ekt:
   extends:
     - .test-liblinphone-tunnel-pq
-  image: !reference [.rocky8_test_libl_image_version, image]
+  image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
   variables:
@@ -203,7 +203,7 @@ liblinphone-rocky8-test-mr:
 liblinphone-rocky8-test-mr-pq-h264-ekt:
   extends:
     - .test-liblinphone-tunnel-pq-mr
-  image: !reference [.rocky8_test_libl_image_version, image]
+  image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
   variables:

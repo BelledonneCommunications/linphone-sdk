@@ -67,6 +67,7 @@
       - build/default/gitdescribe.txt
       - build/default/linphone-sdk/desktop/linphone*.whl
       - build/default/linphone-sdk/desktop/pylinphone.html
+      - build/default/linphone-sdk/desktop/share/pylinphone
     expire_in: 1 day
 
 .linux-desktop-java:
