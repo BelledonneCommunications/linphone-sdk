@@ -71,11 +71,11 @@ android {
         targetCompatibility = 17
     }
 
-    compileSdkVersion 31
+    compileSdkVersion 34
     
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 31
+        targetSdkVersion 34
         versionCode 5400
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
