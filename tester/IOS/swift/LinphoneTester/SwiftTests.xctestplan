@@ -28,7 +28,7 @@
     {
       "target" : {
         "containerPath" : "container:LinphoneTester.xcodeproj",
-        "identifier" : "663F0EE22D6CBB8D001D5643",
+        "identifier" : "0FD481262D9EB044007183F9",
         "name" : "LinphoneTesterTests"
       }
     }

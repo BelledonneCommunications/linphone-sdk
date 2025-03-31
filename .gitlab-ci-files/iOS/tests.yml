@@ -97,11 +97,16 @@ physical-swift-iOS-test:
     TESTER_ADDRESS: "178.32.112.29"
 
   script:
+    - ls -al build/ios
     - cd ${CI_PROJECT_DIR}/tester/IOS/swift/LinphoneTester
     - echo ${CI_PROJECT_DIR}/tester/IOS/swift/LinphoneTester
+    - echo "Update path to linphone-sdk-swift in LinphoneTester.xcodeproj/project.pbxproj"
+    - sed -i '' 's|IOS_TESTER/linphone-sdk-swift|build/ios/linphone-sdk-swift|g' LinphoneTester.xcodeproj/project.pbxproj
 
     # Test build & launch
-    - xcodebuild -scheme LinphoneTester -destination 'platform=iOS,name=$TEST_IPHONE_NAME' test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_ADDRESS"
+    - echo 'xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_ADDRESS"'
+    - echo "xcodebuild -scheme LinphoneTester -destination platform=iOS,name=$TEST_IPHONE_NAME test -resultBundlePath $XCODERESULT_NAME LINPHONETESTER_FLEXISIP_DNS=$TESTER_ADDRESS"
+    - xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_ADDRESS"
 
   after_script:
     - echo "generating xml results in $SWIFT_TESTS_OUTPUT.xml"

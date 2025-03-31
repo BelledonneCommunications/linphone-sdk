@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1630"
+   LastUpgradeVersion = "1500"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
-      buildImplicitDependencies = "YES"
-      buildArchitectures = "Automatic">
+      buildImplicitDependencies = "YES">
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -15,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "663F0ED22D6CBB8C001D5643"
+               BlueprintIdentifier = "0FD481162D9EB042007183F9"
                BuildableName = "LinphoneTester.app"
                BlueprintName = "LinphoneTester"
                ReferencedContainer = "container:LinphoneTester.xcodeproj">
@@ -40,7 +39,7 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "663F0EE22D6CBB8D001D5643"
+               BlueprintIdentifier = "0FD481262D9EB044007183F9"
                BuildableName = "LinphoneTesterTests.xctest"
                BlueprintName = "LinphoneTesterTests"
                ReferencedContainer = "container:LinphoneTester.xcodeproj">
@@ -51,7 +50,7 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "663F0EEC2D6CBB8D001D5643"
+               BlueprintIdentifier = "0FD481302D9EB044007183F9"
                BuildableName = "LinphoneTesterUITests.xctest"
                BlueprintName = "LinphoneTesterUITests"
                ReferencedContainer = "container:LinphoneTester.xcodeproj">
@@ -73,7 +72,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "663F0ED22D6CBB8C001D5643"
+            BlueprintIdentifier = "0FD481162D9EB042007183F9"
             BuildableName = "LinphoneTester.app"
             BlueprintName = "LinphoneTester"
             ReferencedContainer = "container:LinphoneTester.xcodeproj">
@@ -90,7 +89,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "663F0ED22D6CBB8C001D5643"
+            BlueprintIdentifier = "0FD481162D9EB042007183F9"
             BuildableName = "LinphoneTester.app"
             BlueprintName = "LinphoneTester"
             ReferencedContainer = "container:LinphoneTester.xcodeproj">
