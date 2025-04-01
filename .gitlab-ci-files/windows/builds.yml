@@ -344,7 +344,7 @@ vs2022-windows-java:
   variables:
     CMAKE_PRESET: java-sdk-windows
     OUTPUT_ZIP_FOLDER: java
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=OFF
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=OFF -DENABLE_JAVA_WRAPPER_TESTER=ON
     PARALLEL_OPTIONS: --verbose
 
 ######################################################

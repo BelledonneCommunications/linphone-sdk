@@ -135,6 +135,7 @@ debian12-ninja-java:
   image: !reference [.debian12_java_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
+    ADDITIONAL_CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER_TESTER=ON
   extends: .linux-desktop-java
 
 #################################################
@@ -239,3 +240,21 @@ liblinphone-debian12-python-wrapper-test:
     - python test_pylinphone.py
   after_script:
   artifacts:
+
+liblinphone-debian12-java-wrapper-test:
+  image: !reference [ .debian12_test_libl_image_version, image ]
+  extends: .test-liblinphone
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+      needs:
+        - debian12-ninja-java
+  script:
+    # Prepare the test environment
+    - cd ${CI_PROJECT_DIR}/build/java/linphone-sdk/java/share/linphonej/WrapperTests
+    - chmod u+x gradlew
+    - unzip ${CI_PROJECT_DIR}/build/java/linphone-sdk/bin/distributions/linphone-sdk-java-*.zip
+
+    # Execute the tester
+    - ./gradlew test

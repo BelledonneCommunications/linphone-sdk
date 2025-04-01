@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:20240506_add_jsoncpp_for_oauth2
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:20250401_update_java_21
 ###############################################################################
 
 ARG FROM_IMAGE_TAG=20240506_add_jsoncpp_for_oauth2
@@ -11,7 +11,22 @@ MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 # Install mediastreamer test dependencies
 RUN sudo apt-get update && sudo apt-get install -y alsa-utils pulseaudio
 
-#Getting dependencies to run tests headlessly
+# Add Microsoft repositories
+RUN sudo apt-get update && \
+    sudo apt-get install wget && \
+    wget https://packages.microsoft.com/config/debian/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+    sudo dpkg -i packages-microsoft-prod.deb && \
+    rm packages-microsoft-prod.deb
+
+# Install Microsoft openJDK 21 for the java wrapper tester
+RUN sudo apt-get update && sudo apt-get install -y msopenjdk-21
+
+ENV JAVA_HOME=/usr/lib/jvm/msopenjdk-21-amd64/
+
+# Install other liblinphone java wrapper tester dependencies
+RUN sudo apt-get update && sudo apt-get install -y unzip
+
+# Getting dependencies to run tests headlessly
 RUN sudo apt-get update && sudo apt-get install -y xvfb
 #failing, need to find a workaround
 #RUN modprobe snd-dummy
