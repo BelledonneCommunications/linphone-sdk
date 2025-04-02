@@ -65,6 +65,10 @@
 #ifdef __linux__
 /*for monitoring total space allocated via malloc*/
 #include <malloc.h>
+#elif defined(_WIN32)
+#include <psapi.h>
+#elif defined(__APPLE__)
+#include <mach/mach.h>
 #endif
 
 #ifndef F_OK
@@ -1744,4 +1748,32 @@ void bc_set_trace_handler(void (*handler)(int, const char *, va_list)) {
 int bc_assert(const char *file, int line, int predicate, const char *format) {
 	if (!predicate) bc_tester_printf(bc_printf_verbosity_info, "%s", format);
 	return CU_assertImplementation(predicate, line, format, file, "", FALSE);
+}
+
+uint64_t bc_tester_get_memory_consumption(void) {
+	uint64_t memory = 0;
+#ifdef WIN32
+	PROCESS_MEMORY_COUNTERS mem;
+	GetProcessMemoryInfo(GetCurrentProcess(), &mem, sizeof(mem));
+	memory = mem.WorkingSetSize;
+#elif __linux__
+// see test_complete_message_handler comments about getrusage.
+#if defined(__GLIBC_PREREQ)
+#if __GLIBC_PREREQ(2, 33)
+	struct mallinfo2 minfo = mallinfo2();
+#else
+	struct mallinfo minfo = mallinfo();
+#endif
+#else
+	struct mallinfo minfo = mallinfo();
+#endif
+	memory = minfo.uordblks;
+#elif __APPLE__
+	struct task_basic_info info;
+	mach_msg_type_number_t count = TASK_BASIC_INFO_COUNT;
+	if (KERN_SUCCESS == task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&info, &count)) {
+		memory = info.resident_size;
+	}
+#endif
+	return memory;
 }

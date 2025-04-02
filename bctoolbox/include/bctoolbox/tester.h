@@ -42,19 +42,27 @@ typedef struct {
 
 #define TEST_NO_TAG_AUTO_NAMED(func)                                                                                   \
 	{                                                                                                                  \
-#func, func, { NULL, NULL }                                                                                    \
+		#func, func, {                                                                                                 \
+			NULL, NULL                                                                                                 \
+		}                                                                                                              \
 	}
 #define TEST_NO_TAG(name, func)                                                                                        \
 	{                                                                                                                  \
-		name, func, { NULL, NULL }                                                                                     \
+		name, func, {                                                                                                  \
+			NULL, NULL                                                                                                 \
+		}                                                                                                              \
 	}
 #define TEST_ONE_TAG(name, func, tag)                                                                                  \
 	{                                                                                                                  \
-		name, func, { tag, NULL }                                                                                      \
+		name, func, {                                                                                                  \
+			tag, NULL                                                                                                  \
+		}                                                                                                              \
 	}
 #define TEST_TWO_TAGS(name, func, tag1, tag2)                                                                          \
 	{                                                                                                                  \
-		name, func, { tag1, tag2 }                                                                                     \
+		name, func, {                                                                                                  \
+			tag1, tag2                                                                                                 \
+		}                                                                                                              \
 	}
 
 typedef struct {
@@ -237,6 +245,13 @@ BCTBX_PUBLIC int bc_assert(const char *file, int line, int predicate, const char
 #define BC_ASSERT_LOWER_STRICT(actual, max, type, type_format)                                                         \
 	_BC_ASSERT_PRED("BC_ASSERT_LOWER", ((cactual) < (cexpected)), actual, max, type,                                   \
 	                "Expected less than " type_format " but was " type_format ".", cexpected, cactual)
+
+/**
+ * Get the memory consumption of the current process.
+ *
+ * @return allocated memory in bytes.
+ */
+BCTBX_PUBLIC uint64_t bc_tester_get_memory_consumption(void);
 
 #ifdef __cplusplus
 }
