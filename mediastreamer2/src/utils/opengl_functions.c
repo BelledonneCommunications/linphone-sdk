@@ -95,16 +95,41 @@ void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary)
                     // embedd "libGLESv2.dll" or "opengl32sw.dll" with the app
 	bool_t haveOpengl32sw = FALSE;
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
+	DWORD searchFlags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR | DONT_RESOLVE_DLL_REFERENCES;
+// Load without resolving to check only local libraries. Then free library memory and effectively load the library
+// with resolving. This way, we ensure that the best library comes from the appication.
 #ifdef UNICODE
-	*openglLibrary = LoadLibraryW(L"opengl32sw.dll"); // From Qt6: Software implementation
-	if (!*openglLibrary) *openglLibrary = LoadLibraryW(L"libGLESv2.dll");
-	else haveOpengl32sw = TRUE;
+	*openglLibrary = LoadLibraryExW(L"opengl32sw.dll", NULL, searchFlags); // From Qt6: Software implementation
+	if (*openglLibrary) {
+		FreeLibrary((HMODULE)*openglLibrary);
+		*openglLibrary = LoadLibraryW(L"opengl32sw.dll");
+	}
+	if (!*openglLibrary) {
+		*openglLibrary = LoadLibraryExW(L"libGLESv2.dll", NULL, searchFlags);
+		if (*openglLibrary) {
+			FreeLibrary((HMODULE)*openglLibrary);
+			*openglLibrary = LoadLibraryW(L"libGLESv2.dll");
+		}
+	} else {
+		haveOpengl32sw = TRUE;
+	}
 	*firstFallbackLibrary = LoadLibraryW(L"opengl32.dll"); // From System32
 
 #else
-	*openglLibrary = LoadLibraryA("opengl32sw.dll"); // From Qt6: Software implementation
-	if (!*openglLibrary) *openglLibrary = LoadLibraryA("libGLESv2.dll");
-	else haveOpengl32sw = TRUE;
+	*openglLibrary = LoadLibraryExA("opengl32sw.dll", NULL, searchFlags); // From Qt6: Software implementation
+	if (*openglLibrary) {
+		FreeLibrary((HMODULE)*openglLibrary);
+		*openglLibrary = LoadLibraryA("opengl32sw.dll");
+	}
+	if (!*openglLibrary) {
+		*openglLibrary = LoadLibraryExA("libGLESv2.dll", NULL, searchFlags);
+		if (*openglLibrary) {
+			FreeLibrary((HMODULE)*openglLibrary);
+			*openglLibrary = LoadLibraryA("libGLESv2.dll");
+		}
+	} else {
+		haveOpengl32sw = TRUE;
+	}
 	*firstFallbackLibrary = LoadLibraryA("opengl32.dll"); // From System32
 #endif
 #else
@@ -140,12 +165,12 @@ void opengl_functions_load_egl(void **openglLibrary) {
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
 
 #ifdef UNICODE
-	*openglLibrary = LoadLibraryExW(L"libEGL.dll", NULL, 0);
+	*openglLibrary = LoadLibraryExW(L"libEGL.dll", NULL, LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
 #else
-	*openglLibrary = LoadLibraryExA("libEGL.dll", NULL, 0);
+	*openglLibrary = LoadLibraryExA("libEGL.dll", NULL, LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
 #endif
 #else
-	*openglLibrary = LoadPackagedLibrary(L"libEGL.dll", 0);    // UWP compatibility
+	*openglLibrary = LoadPackagedLibrary(L"libEGL.dll", 0); // UWP compatibility
 #endif
 	if (*openglLibrary == NULL) {
 		ms_warning("[ogl_functions] Function : Fail to load EGL plugin libEGL.dll: error %i", (int)GetLastError());
@@ -168,7 +193,7 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 #endif
 	// No need to load libraries if getProcAddress is defined.
 	if (!f->getProcAddress) opengl_functions_load_gl((void **)&openglLibrary, (void **)&firstFallbackLibrary);
-		// User cases: functions already loaded or coming from libraries
+	// User cases: functions already loaded or coming from libraries
 #if !defined(__ANDROID__) && !defined(__APPLE__)
 	if (f->getProcAddress || firstFallbackLibrary != NULL || openglLibrary != NULL) {
 #endif

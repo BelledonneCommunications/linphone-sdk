@@ -275,11 +275,14 @@ static void print_program_info(const OpenGlFunctions *f, GLuint program) {
 
 	GL_OPERATION(f, glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength));
 	if (logLength > 0) {
-		msg = ms_new(char, logLength);
+		msg = ms_new0(char, logLength);
 
 		GL_OPERATION(f, glGetProgramInfoLog(program, logLength, &logLength, msg));
-		ms_message("[ogl_display] OpenGL program info: %s", msg);
-
+		bool_t haveText = FALSE;
+		for (int i = 0; !haveText && i < logLength; ++i)
+			haveText = (msg[i] >= 'a' && msg[i] <= 'z') || (msg[i] >= 'A' && msg[i] <= 'Z') ||
+			           (msg[i] >= '0' && msg[i] <= '9');
+		if (haveText) ms_message("[ogl_display] OpenGL program info: %s", msg);
 		ms_free(msg);
 	} else ms_message("[ogl_display] OpenGL program info: [NO INFORMATION]");
 }
@@ -368,7 +371,8 @@ static bool_t load_shaders(struct opengles_display *gldisp) {
 	GL_OPERATION(f, glBindAttribLocation(program, ATTRIB_UV, "uv"))
 
 	// Try to compile newest shaders first
-	if (!compile_gl_program(f, program, vertShader, screen_transform_vert, fragShader, YCbCr_to_RGB_frag)) {
+	if (3 > opengl_version_major ||
+	    !compile_gl_program(f, program, vertShader, screen_transform_vert, fragShader, YCbCr_to_RGB_frag)) {
 		// If that fails...
 		ms_message("[ogl_display] Falling back to legacy shaders.");
 		if (!compile_gl_program(f, program, vertShader, yuv2rgb_vs, fragShader, yuv2rgb_fs)) {
@@ -447,6 +451,28 @@ static int pixel_unpack_alignment(uint8_t *ptr, int datasize) {
 	return (alignment_ptr <= alignment_data) ? alignment_ptr : alignment_data;
 }
 
+int ogl_display_make_current(struct opengles_display *gldisp, bool_t set) {
+	int status = 0;
+	if (gldisp->mEglDisplay && gldisp->functions->eglInitialized) {
+		ms_debug("[ogl_display] %s context %p/%p/%p to thread %p", (set ? "Set" : "Unset"), gldisp->mEglDisplay,
+		         gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
+		if (set) {
+			status = gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface,
+			                                           gldisp->mRenderSurface, gldisp->mEglContext)
+			             ? 0
+			             : -1;
+		} else {
+			status =
+			    gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+			        ? 0
+			        : -1;
+		}
+		check_EGL_errors(gldisp, "eglMakeCurrent");
+	}
+
+	return status;
+}
+
 static void ogl_display_set_yuv(struct opengles_display *gldisp, mblk_t *yuv, enum ImageType type) {
 	int j;
 
@@ -509,30 +535,45 @@ static bool_t update_textures_with_yuv(struct opengles_display *gldisp, enum Ima
 	const GLenum texture_format = gldisp->texFormat;
 	/* upload Y plane */
 	GL_OPERATION(f, glActiveTexture(GL_TEXTURE0))
+	check_GL_errors(f, "update_textures_with_yuv glActiveTexture0");
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][Y]))
+	check_GL_errors(f, "update_textures_with_yuv glBindTexture0");
 	GL_OPERATION(f, glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
+	check_GL_errors(f, "update_textures_with_yuv glPixelStorei0");
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, yuvbuf.w, yuvbuf.h, texture_format, GL_UNSIGNED_BYTE,
 	                                yuvbuf.planes[Y]))
+	check_GL_errors(f, "update_textures_with_yuv glTexSubImage2D0");
 
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_Y], 0))
+	check_GL_errors(f, "update_textures_with_yuv glUniform1i0");
 
 	/* upload U plane */
 	GL_OPERATION(f, glActiveTexture(GL_TEXTURE1))
+	check_GL_errors(f, "update_textures_with_yuv glActiveTexture1");
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][U]))
+	check_GL_errors(f, "update_textures_with_yuv glBindTexture1");
 	GL_OPERATION(f, glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
+	check_GL_errors(f, "update_textures_with_yuv glPixelStorei1");
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1, texture_format,
 	                                GL_UNSIGNED_BYTE, yuvbuf.planes[U]))
+	check_GL_errors(f, "update_textures_with_yuv glTexSubImage2D1");
 
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_U], 1))
+	check_GL_errors(f, "update_textures_with_yuv glUniform1i1");
 
 	/* upload V plane */
 	GL_OPERATION(f, glActiveTexture(GL_TEXTURE2))
+	check_GL_errors(f, "update_textures_with_yuv glActiveTexture2");
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][V]))
+	check_GL_errors(f, "update_textures_with_yuv glBindTexture2");
 	GL_OPERATION(f, glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
+	check_GL_errors(f, "update_textures_with_yuv glPixelStorei2");
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1, texture_format,
 	                                GL_UNSIGNED_BYTE, yuvbuf.planes[V]))
+	check_GL_errors(f, "update_textures_with_yuv glTexSubImage2D2");
 
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
+	check_GL_errors(f, "update_textures_with_yuv glUniform1i2");
 	gldisp->yuv_size[type].width = yuvbuf.w;
 	gldisp->yuv_size[type].height = yuvbuf.h;
 
@@ -783,12 +824,9 @@ struct opengles_display *ogl_display_new() {
 
 void ogl_display_clean(struct opengles_display *gldisp) {
 	if (gldisp->mEglDisplay != EGL_NO_DISPLAY) {
-		if (gldisp->functions->eglInitialized) {
-			gldisp->functions->eglMakeCurrent(
-			    gldisp->mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE,
-			    EGL_NO_CONTEXT); // Allow OpenGL to Release memory without delay as the current is no more binded
-			check_EGL_errors(gldisp, "ogl_display_clean: eglMakeCurrent");
-		}
+		ogl_display_make_current(gldisp, FALSE); // Allow OpenGL to Release memory without delay as the
+		                                         // current is no more binded, in case it was not done.
+
 		if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
 			if (gldisp->functions->eglInitialized) {
 				gldisp->functions->eglDestroySurface(gldisp->mEglDisplay, gldisp->mRenderSurface);
@@ -797,11 +835,12 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 			gldisp->mRenderSurface = EGL_NO_SURFACE;
 		}
 		if (gldisp->mEglContext != EGL_NO_CONTEXT) {
-			// if( gldisp->functions->eglInitialized){
-			//	gldisp->functions->eglDestroyContext(gldisp->mEglDisplay, gldisp->mEglContext);// This lead to crash on
-			// future eglMakeCurrent. Bug? Let eglReleaseThread to do it. 	check_EGL_errors(gldisp,
-			//"ogl_display_clean: eglDestroyContext");
-			// }
+			if (gldisp->functions->eglInitialized) {
+				// In case of crash that is resolved by commenting this line, the fix is about context that are bind to
+				// wrong threads. Check all MakeCurrent.
+				gldisp->functions->eglDestroyContext(gldisp->mEglDisplay, gldisp->mEglContext);
+				check_EGL_errors(gldisp, "ogl_display_clean: eglDestroyContext");
+			}
 			gldisp->mEglContext = EGL_NO_CONTEXT;
 		}
 		// if( gldisp->functions->eglInitialized){
@@ -809,12 +848,14 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 		// context/rendering surface that can be still in used. Let eglReleaseThread to do it. Reminder : mEglDisplay is
 		// the same for all. 	check_EGL_errors(gldisp, "ogl_display_clean: eglTerminate");
 		// }
+
 		if (gldisp->functions->eglInitialized) {
 			gldisp->functions->eglReleaseThread(); // Release all OpenGL resources
 			check_EGL_errors(gldisp, "ogl_display_clean: eglReleaseThread");
 			gldisp->functions->glFinish(); // Synchronize the clean
 			check_EGL_errors(gldisp, "ogl_display_clean: glFinish");
 		}
+
 		gldisp->mEglDisplay = EGL_NO_DISPLAY;
 	}
 }
@@ -1005,36 +1046,38 @@ using namespace Windows::Foundation;
 using namespace Platform;
 
 bool_t ogl_create_window(EGLNativeWindowType *window, Platform::Agile<CoreApplicationView> *windowId) {
-	auto worker = ref new WorkItemHandler([window, windowId](IAsyncAction ^ workItem) {
-		CoreApplicationView ^ coreView = CoreApplication::CreateNewView();
-		*windowId = Platform::Agile<CoreApplicationView>(coreView);
+	CoreApplicationView ^ coreView = CoreApplication::CreateNewView();
+	*windowId = Platform::Agile<CoreApplicationView>(coreView);
+	ms_message("[ogl_display] Creating new window: %p", windowId->Get());
+	Concurrency::create_task(
+	    coreView->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([window, windowId]() {
+		                                   auto layoutRoot = ref new Grid();
+		                                   SwapChainPanel ^ panel = ref new SwapChainPanel();
+		                                   panel->HorizontalAlignment = HorizontalAlignment::Stretch;
+		                                   panel->VerticalAlignment = VerticalAlignment::Stretch;
 
-		Concurrency::create_task(coreView->Dispatcher->RunAsync(
-		                             CoreDispatcherPriority::Normal, ref new DispatchedHandler([window, windowId]() {
-			                             auto layoutRoot = ref new Grid();
-			                             SwapChainPanel ^ panel = ref new SwapChainPanel();
-			                             panel->HorizontalAlignment = HorizontalAlignment::Stretch;
-			                             panel->VerticalAlignment = VerticalAlignment::Stretch;
+		                                   layoutRoot->Children->Append(panel);
+		                                   *window = (EGLNativeWindowType)panel;
 
-			                             layoutRoot->Children->Append(panel);
-			                             Window::Current->Content = layoutRoot;
-			                             Window::Current->Activate();
-			                             *window = (EGLNativeWindowType)panel;
-			                             ApplicationViewSwitcher::TryShowAsStandaloneAsync(
-			                                 Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->Id);
-		                             })))
-		    .wait();
-	});
-	Concurrency::create_task(ThreadPool::RunAsync(worker)).then([] {}).wait();
+		                                   auto viewId =
+		                                       Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->Id;
+		                                   CoreWindow::GetForCurrentThread()->Activate();
+		                                   ApplicationViewSwitcher::TryShowAsStandaloneAsync(
+		                                       Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->Id);
+		                                   Window::Current->Content = layoutRoot;
+	                                   })))
+	    .wait();
+	ms_message("[ogl_display] Window Created: %p", windowId->Get());
 	return (*window) != (EGLNativeWindowType)0;
 }
 
 void ogl_destroy_window(EGLNativeWindowType *window, Platform::Agile<CoreApplicationView> *windowId) {
 	if (windowId->Get()) {
+		ms_message("[ogl_display] Closing Window: %p", windowId->Get());
+		// Close must be in ASTA thread
 		Concurrency::create_task(windowId->Get()->Dispatcher->RunAsync(
-		                             CoreDispatcherPriority::Normal,
-		                             ref new DispatchedHandler([]() { CoreWindow::GetForCurrentThread()->Close(); })))
-		    .wait();
+		    CoreDispatcherPriority::Normal,
+		    ref new DispatchedHandler([]() { CoreWindow::GetForCurrentThread()->Close(); })));
 		*window = (EGLNativeWindowType)0;
 		*windowId = NULL;
 	}
@@ -1112,11 +1155,13 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void **window_id) {
 	*window_id = data;
 	*window = data->window; // It is safe to use this data as the event loop doesn't make any changes on it after
 	                        // signaling running
+	ms_debug("[ogl_display] Creating new window: %p", *window_id);
 	return *window != NULL;
 }
 
 void ogl_destroy_window(EGLNativeWindowType *window, void **window_id) {
 	if (window_id != NULL) {
+		ms_debug("[ogl_display] Closing window: %p", *window_id);
 		WindowsThreadData *data = (WindowsThreadData *)(*window_id);
 		data->stop = TRUE; // Stop event loop and wait till its end
 		ms_thread_join(data->thread, NULL);
@@ -1128,7 +1173,7 @@ void ogl_destroy_window(EGLNativeWindowType *window, void **window_id) {
 }
 #else
 bool_t ogl_create_window(BCTBX_UNUSED(EGLNativeWindowType *window), BCTBX_UNUSED(void **window_id)) {
-	ms_error("[ogl_display] Ceating a Window is not supported for the current platform");
+	ms_error("[ogl_display] Creating a Window is not supported for the current platform");
 	return FALSE;
 }
 void ogl_destroy_window(BCTBX_UNUSED(EGLNativeWindowType *window), BCTBX_UNUSED(void **window_id)) {
@@ -1278,13 +1323,13 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 	}
 	if (gldisp->mEglContext == EGL_NO_CONTEXT) {
 		ms_error("[ogl_display] Failed to create EGL context");
-		check_EGL_errors(gldisp, "ogl_create_surface");
 	}
+	check_EGL_errors(gldisp, "ogl_create_surface");
 	gldisp->mRenderSurface = f->eglCreateWindowSurface(gldisp->mEglDisplay, gldisp->mEglConfig, window, NULL);
 	if (gldisp->mRenderSurface == EGL_NO_SURFACE) {
 		ms_error("[ogl_display] Failed to create EGL Render Surface");
-		check_EGL_errors(gldisp, "ogl_create_surface");
 	}
+	check_EGL_errors(gldisp, "ogl_create_surface");
 }
 
 void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window) {
@@ -1327,19 +1372,22 @@ void ogl_display_auto_init(
 		ms_error("[ogl_display] functions is still NULL!");
 		return;
 	}
-
 	ogl_create_surface(gldisp, gldisp->functions, window);
-	if (gldisp->functions->eglInitialized) {
-		gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-		if (gldisp->mRenderSurface == EGL_NO_SURFACE || gldisp->mEglContext == EGL_NO_CONTEXT ||
-		    gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface,
-		                                      gldisp->mEglContext) == EGL_FALSE) {
+	if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
+		ms_debug("[ogl_display] Set context %p/%p/%p to thread %p", gldisp->mEglDisplay, gldisp->mRenderSurface,
+		         gldisp->mEglContext, ms_thread_self());
+		if (gldisp->mEglContext == EGL_NO_CONTEXT || ogl_display_make_current(gldisp, TRUE)) {
 			ms_error("[ogl_display] Failed to make EGLSurface current");
 		} else {
-			if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
-				gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width);
-				gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &height);
-			} // On failure, eglQuerySurface doesn't change output. It is safe to use it on all cases.
+			int w = 0, h = 0;
+			// On failure, eglQuerySurface doesn't change output. It is safe to use it on all cases.
+			gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &h);
+			gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &w);
+			if (w > 0 && h > 0) {
+				width = w;
+				height = h;
+			}
+			ogl_display_make_current(gldisp, FALSE);
 		}
 	}
 	if (width != 0 && height != 0) ogl_display_init(gldisp, gldisp->functions, width, height);
@@ -1366,11 +1414,12 @@ void ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f,
 	if (f && f->glInitialized) gldisp->functions = f;
 	else gldisp->functions = gldisp->default_functions;
 
-	ms_message("[ogl_display] init opengles_display (%d x %d, gl initialized:%d)", width, height,
-	           gldisp->glResourcesInitialized);
+	ms_message("[ogl_display] init opengles_display (%d x %d, gl initialized:%d) %p", width, height,
+	           gldisp->glResourcesInitialized, gldisp);
 	if (gldisp->functions == NULL || !gldisp->functions->glInitialized)
 		ms_error("[ogl_display] OpenGL functions have not been initialized");
 	else {
+		ogl_display_make_current(gldisp, TRUE);
 		if (!version_displayed) {
 			version_displayed = TRUE;
 			ms_message("OpenGL version string: %s", gldisp->functions->glGetString(GL_VERSION));
@@ -1408,15 +1457,15 @@ void ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f,
 			ms_error("[ogl_display] Failed to load shaders. Cleaning up...");
 			ogl_display_uninit(gldisp, TRUE);
 		}
-	}
-
 #ifdef ENABLE_OPENGL_PROFILING
-	// With the French locale, floats are printed with ',' which does not play
-	// nice with csv files.
-	setlocale(LC_NUMERIC, "POSIX");
+		// With the French locale, floats are printed with ',' which does not play
+		// nice with csv files.
+		setlocale(LC_NUMERIC, "POSIX");
 
-	gldisp->functions->glGenQueries(1, &gl_time_query);
+		gldisp->functions->glGenQueries(1, &gl_time_query);
 #endif
+		ogl_display_make_current(gldisp, FALSE);
+	}
 }
 
 void ogl_display_uninit(struct opengles_display *gldisp, bool_t freeGLresources) {
@@ -1428,7 +1477,8 @@ void ogl_display_uninit(struct opengles_display *gldisp, bool_t freeGLresources)
 		return;
 	}
 
-	ms_message("[ogl_display] uninit opengles_display (gl initialized:%d)\n", gldisp->glResourcesInitialized);
+	ms_message("[ogl_display] uninit opengles_display (gl initialized:%d) %p\n", gldisp->glResourcesInitialized,
+	           gldisp);
 
 	for (i = 0; i < MAX_IMAGE; i++) {
 		if (gldisp->yuv[i]) {
@@ -1470,7 +1520,6 @@ void ogl_display_set_preview_yuv_to_display(struct opengles_display *gldisp, mbl
 
 void ogl_display_render(struct opengles_display *gldisp, int orientation, MSVideoDisplayMode mode) {
 	const OpenGlFunctions *f = gldisp->functions;
-	bool_t render = TRUE;
 	if (!f) // Do no try to render if functions are not defined.
 		return;
 	check_GL_errors(f, "ogl_display_render");
@@ -1482,32 +1531,20 @@ void ogl_display_render(struct opengles_display *gldisp, int orientation, MSVide
 	struct timespec wall_start_time;
 	clock_gettime(CLOCK_MONOTONIC, &wall_start_time);
 #endif
-
-	if (gldisp->functions->eglInitialized) {
-		if (gldisp->mRenderSurface != EGL_NO_SURFACE &&
-		    gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface,
-		                                      gldisp->mEglContext) ==
-		        EGL_FALSE) { // No need to test other variable as if mRenderSurface is set, then others are too.
-			ms_error("[ogl_display] Failed to make EGLSurface current");
-			render = FALSE;
-		} else {
-			int width = 0, height = 0; // Get current surface size from EGL if we can
-			if (gldisp->mRenderSurface != EGL_NO_SURFACE &&
-			    EGL_TRUE == gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH,
-			                                                   &width) &&
-			    EGL_TRUE == gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT,
-			                                                   &height)) {
-				if (width == 0 || height == 0) {
-					ms_warning("Is eglQuerySurface() working ? it returned %ix%i.", width, height);
-				} else if (width != gldisp->backingWidth ||
-				           height !=
-				               gldisp->backingHeight) { // Size has changed : update display (buffers, viewport, etc.)
-					ogl_display_init(gldisp, f, width, height);
-				}
-			}
+	int width = 0, height = 0; // Get current surface size from EGL if we can
+	if (gldisp->mRenderSurface != EGL_NO_SURFACE &&
+	    EGL_TRUE ==
+	        gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width) &&
+	    EGL_TRUE ==
+	        gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &height)) {
+		if (width == 0 || height == 0) {
+			ms_warning("Is eglQuerySurface() working ? it returned %ix%i.", width, height);
+		} else if (width != gldisp->backingWidth ||
+		           height != gldisp->backingHeight) { // Size has changed : update display (buffers, viewport, etc.)
+			ogl_display_init(gldisp, f, width, height);
 		}
 	}
-	if (render && gldisp->functions->glInitialized && gldisp->shadersLoaded) {
+	if (gldisp->functions->glInitialized && gldisp->shadersLoaded) {
 		GL_OPERATION(f, glClearColor(0.f, 0.f, 0.f, 0.f));
 		GL_OPERATION(f, glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		GL_OPERATION(f, glUseProgram(gldisp->program))
@@ -1516,8 +1553,7 @@ void ogl_display_render(struct opengles_display *gldisp, int orientation, MSVide
 		// preview image already have the correct orientation
 		ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0, MSVideoDisplayBlackBars);
 		gldisp->texture_index = (gldisp->texture_index + 1) % TEXTURE_BUFFER_SIZE;
-		if (f->eglInitialized && gldisp->mRenderSurface != EGL_NO_SURFACE)
-			f->eglSwapBuffers(gldisp->mEglDisplay, gldisp->mRenderSurface);
+		if (gldisp->mRenderSurface != EGL_NO_SURFACE) f->eglSwapBuffers(gldisp->mEglDisplay, gldisp->mRenderSurface);
 	}
 
 #ifdef ENABLE_OPENGL_PROFILING
@@ -1559,7 +1595,7 @@ void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bo
 }
 
 void ogl_display_notify_errors(struct opengles_display *display, MSFilter *filter) {
-	if (filter) {
+	if (display && filter) {
 		GLenum lastError =
 		    display->mLastError; // We ensure to get the last error one time in order to avoid changes while checking.
 		if (!display->mSendUnrecoverableError &&

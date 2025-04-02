@@ -2352,9 +2352,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	}
 
 	if (stream->output2) {
-		if (stream->preview_window_id != 0) {
-			video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
-		}
+		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
 
 	if (stream->pixconv) {

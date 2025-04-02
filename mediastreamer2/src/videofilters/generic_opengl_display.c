@@ -44,6 +44,7 @@ struct _FilterData {
 #ifdef MS2_WINDOWS_UWP
 	Platform::Agile<CoreApplicationView>
 	    window_id; // This switch avoid using marshalling and /clr. This is the cause of not using void**
+	ms_mutex_t mCurrentTaskLock;
 	concurrency::task<void>
 	    mCurrentTask;       // Processing queue. Each task will be run inside the mCurrentTask thread (that is not ui).
 	bool_t mProcessStopped; // Goal : stop outside callbacks.
@@ -95,11 +96,12 @@ static void ogl_init(MSFilter *f) {
 	data->context_info.window = NULL;
 	data->mode = MSVideoDisplayBlackBars;
 #ifdef MS2_WINDOWS_UWP
-	data->mProcessStopped = FALSE;
+	data->mProcessStopped = TRUE;
 	data->mProcessTimer = nullptr;
 	data->mCurrentTask = concurrency::task_from_result();
 	data->mProcessPeriod.Duration = 10000000 / 30; // 30 FPS
 	data->mParentFilter = f;
+	ms_mutex_init(&data->mCurrentTaskLock, NULL);
 #endif
 	f->data = data;
 	if (!gMutexInitialized) {
@@ -112,14 +114,18 @@ static void ogl_init(MSFilter *f) {
 
 static void ogl_uninit_data(FilterData *data) {
 	ms_mutex_lock(&gLock);
-	if (data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window) {
-		ogl_destroy_window((EGLNativeWindowType *)&data->context_info.window, &data->window_id);
-	}
 	ogl_display_uninit(data->display, TRUE);
 	ogl_display_free(data->display);
 	data->display = NULL;
-	ms_free(data);
+	if (data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window) {
+		ogl_destroy_window((EGLNativeWindowType *)&data->context_info.window, &data->window_id);
+	}
 	ms_mutex_unlock(&gLock);
+#ifdef MS2_WINDOWS_UWP
+	data->mProcessStopped = TRUE;
+	ms_mutex_destroy(&data->mCurrentTaskLock);
+#endif
+	ms_free(data);
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -135,7 +141,9 @@ static void ogl_preprocess(MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
 	if (data->show_video) {
 		if (data->video_mode == MS_FILTER_VIDEO_AUTO && !data->context_info.window) {
+			ms_mutex_lock(&gLock);
 			ogl_create_window((EGLNativeWindowType *)&data->context_info.window, &data->window_id);
+			ms_mutex_unlock(&gLock);
 			data->update_context = UPDATE_CONTEXT_UPDATE;
 			data->context_info.width = MS_VIDEO_SIZE_CIF_W;
 			data->context_info.height = MS_VIDEO_SIZE_CIF_H;
@@ -198,15 +206,22 @@ static int ogl_set_video_size(MSFilter *f, void *arg) {
 static int ogl_set_native_window_id(MSFilter *f, void *arg) {
 	FilterData *data = (FilterData *)f->data;
 	MSOglContextInfo *context_info;
-
+	unsigned long video_mode = *((unsigned long *)arg);
 	ms_filter_lock(f);
 
 	context_info = *((MSOglContextInfo **)arg);
-	if ((intptr_t)context_info != (intptr_t)MS_FILTER_VIDEO_NONE) {
+	if (video_mode != MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] Set native window id : %p", (void *)context_info);
-		if ((intptr_t)context_info == (intptr_t)MS_FILTER_VIDEO_AUTO) { // Create a new Window
-			if (!data->context_info.window)
+		if (video_mode == MS_FILTER_VIDEO_AUTO) { // Create a new Window
+			if (
+#ifdef MS2_WINDOWS_UWP
+			    !data->mProcessStopped &&
+#endif
+			    !data->context_info.window) {
+				ms_mutex_lock(&gLock);
 				ogl_create_window((EGLNativeWindowType *)&data->context_info.window, &data->window_id);
+				ms_mutex_unlock(&gLock);
+			}
 			data->update_context = UPDATE_CONTEXT_UPDATE;
 			data->context_info.width = MS_VIDEO_SIZE_CIF_W;
 			data->context_info.height = MS_VIDEO_SIZE_CIF_H;
@@ -222,7 +237,7 @@ static int ogl_set_native_window_id(MSFilter *f, void *arg) {
 			data->update_context = UPDATE_CONTEXT_DISPLAY_UNINIT;
 			data->video_mode = MS_FILTER_VIDEO_NONE;
 		}
-	} else {
+	} else if (data->video_mode != MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] Reset native window id");
 		data->update_context = UPDATE_CONTEXT_DISPLAY_UNINIT;
 		if (data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window)
@@ -304,9 +319,14 @@ static int ogl_call_render(MSFilter *f, void *arg) {
 	}
 	if (data->show_video && context_info &&
 	    (context_info->window || (!context_info->window && context_info->width && context_info->height))) {
-		ogl_display_render(data->display, 0, data->mode);
+		if (ogl_display_make_current(data->display, TRUE)) {
+			ms_error("[ogl_display] Failed to make EGLSurface current");
+		} else {
+			ogl_display_render(data->display, 0, data->mode);
+			ogl_display_make_current(data->display, FALSE); // Clean context
+		}
 	}
-	ogl_display_notify_errors(data->display, f);
+	if (data->display) ogl_display_notify_errors(data->display, f);
 	ms_mutex_unlock(&gLock);
 	if (f != NULL) ms_filter_unlock(f);
 	return 0;
@@ -345,10 +365,9 @@ static void ogl_reset(MSFilter *f) {
 // that the currency have an event loop behaviour : new task is done after all others.
 template <typename Functor>
 static void add_task_uwp(FilterData *data, Functor functor) {
-	bool_t lock = !data->mProcessStopped;
-	if (lock) ms_filter_lock(data->mParentFilter);
+	ms_mutex_lock(&data->mCurrentTaskLock);
 	data->mCurrentTask = data->mCurrentTask.then(functor);
-	if (lock) ms_filter_unlock(data->mParentFilter);
+	ms_mutex_unlock(&data->mCurrentTaskLock);
 }
 
 // Create and wait a task to do in the UI thread.
@@ -367,6 +386,7 @@ static void ogl_uninit_uwp(MSFilter *f) {
 		run_ui_task_uwp([data]() { ogl_uninit_data(data); });
 		return task_from_result();
 	});
+	data->mCurrentTask.wait(); // The uninit is a final state. Wait for completion.
 }
 
 static task<void> delay_process_uwp(FilterData *data) {
@@ -396,14 +416,20 @@ static task<void> delay_process_uwp(FilterData *data) {
 
 static void ogl_preprocess_uwp(MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
-	ogl_preprocess(f);
-	data->mProcessTimer = ThreadPoolTimer::CreateTimer(ref new TimerElapsedHandler([data](ThreadPoolTimer ^ source) {
-		                                                   add_task_uwp(data, [data]() {
-			                                                   data->mProcessStopped = FALSE;
-			                                                   return delay_process_uwp(data);
-		                                                   });
-	                                                   }),
-	                                                   data->mProcessPeriod);
+	add_task_uwp(data, [data]() {
+		ogl_preprocess(data->mParentFilter);
+		run_ui_task_uwp([data]() {
+			data->mProcessTimer =
+			    ThreadPoolTimer::CreateTimer(ref new TimerElapsedHandler([data](ThreadPoolTimer ^ source) {
+				                                 add_task_uwp(data, [data]() {
+					                                 data->mProcessStopped = FALSE;
+					                                 return delay_process_uwp(data);
+				                                 });
+			                                 }),
+			                                 data->mProcessPeriod);
+		});
+		return task_from_result();
+	});
 }
 
 static int ogl_call_render_uwp(MSFilter *f, void *arg) {
@@ -423,10 +449,8 @@ static int ogl_call_render_uwp(MSFilter *f, void *arg) {
 
 static void ogl_postprocess_uwp(MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
-	ms_filter_lock(f);
 	data->mProcessStopped = TRUE;
 	if (data->mProcessTimer) data->mProcessTimer->Cancel();
-	ms_filter_unlock(f);
 }
 
 //------------------------------------------------------------------------------
@@ -435,23 +459,22 @@ static int ogl_set_native_window_id_uwp(MSFilter *f, void *arg) {
 	FilterData *data = (FilterData *)f->data;
 	MSOglContextInfo *context_info = *((MSOglContextInfo **)arg);
 	MSOglContextInfo context_info_data; // Store copy to keep scope from threads
+	unsigned long video_mode = *(unsigned long *)arg == MS_FILTER_VIDEO_NONE   ? MS_FILTER_VIDEO_NONE
+	                           : *(unsigned long *)arg == MS_FILTER_VIDEO_AUTO ? MS_FILTER_VIDEO_AUTO
+	                                                                           : 1;
 
-	if (context_info) {
+	if (context_info && video_mode == 1) {
 		context_info_data = *context_info;
 	}
-
+	ms_message("[MSOGL] Set uwp window id : %p", (void *)context_info);
 	// Do not use 'arg' because of scope variable
-	add_task_uwp(data, [f, data, context_info, context_info_data]() {
-		run_ui_task_uwp([f, data, context_info, context_info_data]() {
-			if (!data->mProcessStopped) {
-				if (context_info) {
-					auto context_info_ref = &context_info_data;
-					ogl_set_native_window_id(data->mParentFilter, (void *)&context_info_ref);
-				} else {
-					ogl_set_native_window_id(data->mParentFilter, (void *)&context_info);
-				}
-			}
-		});
+	add_task_uwp(data, [f, data, context_info, context_info_data, video_mode]() {
+		if (context_info && video_mode == 1) {
+			auto context_info_ref = &context_info_data;
+			ogl_set_native_window_id(data->mParentFilter, (void *)&context_info_ref);
+		} else {
+			ogl_set_native_window_id(data->mParentFilter, (void *)&context_info);
+		}
 		return task_from_result();
 	});
 	return 0;

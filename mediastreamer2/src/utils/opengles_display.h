@@ -90,6 +90,14 @@ MS2_PUBLIC void ogl_display_set_target_context(struct opengles_display *gldisp,
                                                const MSEGLContextDescriptor *const target_context);
 
 /**
+ * Make current.
+ *   @param gldisp display structure
+ *   @param set TRUE: Make current to gldisp->mEglDisplay, gldisp->mRenderSurface and gldisp->mEglContext. FALSE: clean
+ * current.
+ */
+MS2_PUBLIC int ogl_display_make_current(struct opengles_display *gldisp, bool_t set);
+
+/**
  * Uninit opaque structure.
  *
  * @param freeGLresources Are we allowed to release GL resources. GL resources
@@ -139,9 +147,10 @@ MS2_PUBLIC void ogl_display_enable_mirroring_to_display(struct opengles_display 
 MS2_PUBLIC void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bool_t enabled);
 
 /**
- * Notify errors to filter and reset the error queue. The queue contain only one kind of error in order to avoid duplicate notifications.
+ * Notify errors to filter and reset the error queue. The queue contain only one kind of error in order to avoid
+ * duplicate notifications.
  */
-MS2_PUBLIC void ogl_display_notify_errors(struct opengles_display * display, MSFilter * filter);
+MS2_PUBLIC void ogl_display_notify_errors(struct opengles_display *display, MSFilter *filter);
 
 /**
  * Create a new Window and store it into the EGLNativeWindowType generic structure
