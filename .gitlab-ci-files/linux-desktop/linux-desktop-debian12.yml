@@ -123,6 +123,10 @@ debian12-ninja-clang-pqc:
 debian12-ninja-clang-python-wheel:
   tags: [ "docker" ]
   image: !reference [.debian12_image_version, image]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -133,6 +137,10 @@ debian12-ninja-clang-python-wheel:
 debian12-ninja-java:
   tags: [ "docker" ]
   image: !reference [.debian12_java_image_version, image]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
   variables:
     CMAKE_GENERATOR: Ninja
     ADDITIONAL_CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER_TESTER=ON
@@ -216,6 +224,7 @@ liblinphone-debian12-openssl-test-mr:
 liblinphone-debian12-python-wrapper-test:
   image: !reference [ .debian12_test_libl_image_version, image ]
   extends: .test-liblinphone
+  allow_failure: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
@@ -244,12 +253,13 @@ liblinphone-debian12-python-wrapper-test:
 liblinphone-debian12-java-wrapper-test:
   image: !reference [ .debian12_test_libl_image_version, image ]
   extends: .test-liblinphone
+  allow_failure: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
-      needs:
-        - debian12-ninja-java
+  needs:
+    - debian12-ninja-java
   script:
     # Prepare the test environment
     - cd ${CI_PROJECT_DIR}/build/java/linphone-sdk/java/share/linphonej/WrapperTests

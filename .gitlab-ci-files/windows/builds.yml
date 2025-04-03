@@ -340,12 +340,19 @@ vs2022-uwp-windows:
     - .vs-uwp-windows
 
 vs2022-windows-java:
-  extends: .windows-vs2022-scheduled
+  extends: .windows-vs2022-msvc
   variables:
     CMAKE_PRESET: java-sdk-windows
     OUTPUT_ZIP_FOLDER: java
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=OFF -DENABLE_JAVA_WRAPPER_TESTER=ON
     PARALLEL_OPTIONS: --verbose
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA != null
+
 
 ######################################################
 # NIGHTLY
