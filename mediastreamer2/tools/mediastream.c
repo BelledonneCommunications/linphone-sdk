@@ -63,7 +63,7 @@ extern void libmsopenh264_init();
 extern void libmssilk_init();
 #endif
 #if TARGET_OS_IPHONE || defined(HAVE_WEBRTC)
-extern void libmswebrtc_init();
+extern void libmswebrtcaec_init();
 #endif
 #endif // TARGET_OS_IPHONE || defined (__ANDROID__)
 
@@ -798,7 +798,7 @@ void setup_media_streams(MediastreamDatas *args) {
 	libmssilk_init(); /*no plugin on IOS/Android */
 #endif
 #if TARGET_OS_IPHONE || defined(HAVE_WEBRTC)
-	libmswebrtc_init();
+	libmswebrtcaec_init();
 #endif
 
 #endif /* TARGET_OS_IPHONE || defined(__ANDROID__) */
