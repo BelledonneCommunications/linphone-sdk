@@ -81,7 +81,6 @@ liblinphone-iOS-test:
 physical-swift-iOS-test:
   tags: [ "macmini-m1-xcode15" ]
   stage: test
-  allow_failure: true
   needs:
     - ios-ninja
 
@@ -91,10 +90,10 @@ physical-swift-iOS-test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     
   variables:
-    XCODERESULT_NAME: "XCODE_TEST_RESULT"
-    SWIFT_TESTS_OUTPUT: "SWIFT_TESTS_OUTPUT"
+    XCODERESULT_NAME: "XcodeResults"
+    SWIFT_TESTS_OUTPUT: "physical-swift-iOS-test-results"
     TEST_IPHONE_NAME: "iPhone X"
-    TESTER_ADDRESS: "178.32.112.29"
+    TESTER_ADDRESS: "178.32.112.28"
 
   script:
     - ls -al build/ios
@@ -104,18 +103,30 @@ physical-swift-iOS-test:
     - sed -i '' 's|IOS_TESTER/linphone-sdk-swift|build/ios/linphone-sdk-swift|g' LinphoneTester.xcodeproj/project.pbxproj
 
     # Test build & launch
-    - echo 'xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_ADDRESS"'
-    - echo "xcodebuild -scheme LinphoneTester -destination platform=iOS,name=$TEST_IPHONE_NAME test -resultBundlePath $XCODERESULT_NAME LINPHONETESTER_FLEXISIP_DNS=$TESTER_ADDRESS"
-    - xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_ADDRESS"
+    - |
+        EXIT_XCODEBUILD_CODE=0
+        xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_ADDRESS" || EXIT_XCODEBUILD_CODE=$?
 
+        echo "EXIT_XCODEBUILD_CODE=$EXIT_XCODEBUILD_CODE"
+        echo "generating xml results in $SWIFT_TESTS_OUTPUT.xml"
+        trainer
+        mv *.xml $SWIFT_TESTS_OUTPUT.xml
+        echo "extracting XCTestAttachments in $SWIFT_TESTS_OUTPUT folder"
+        xcparse attachments $XCODERESULT_NAME.xcresult FailedTestLogs --uti public.plain-text
+        echo "Compressing attachments into $SWIFT_TESTS_OUTPUT.zip"
+        zip -r $SWIFT_TESTS_OUTPUT.zip FailedTestLogs $XCODERESULT_NAME.xcresult
+        echo "Cleaning up result folders"
+        rm -rf FailedTestLogs $XCODERESULT_NAME $XCODERESULT_NAME.xcresult
+        echo "Artifact properly generated, temporary files cleaned up, now we can return the xcode-build exit code"
+                  
+        if [ $EXIT_XCODEBUILD_CODE != 0 ];
+        then
+          exit 1;
+        else
+          exit 0;
+        fi;
+    
   after_script:
-    - echo "generating xml results in $SWIFT_TESTS_OUTPUT.xml"
-    - trainer
-    - mv *.xml $SWIFT_TESTS_OUTPUT.xml
-    - echo "extracting XCTestAttachments in $SWIFT_TESTS_OUTPUT folder"
-    - xcparse attachments $XCODERESULT_NAME.xcresult $SWIFT_TESTS_OUTPUT --uti public.plain-text
-    - echo "Compressing attachments into $SWIFT_TESTS_OUTPUT.zip"
-    - zip -r $SWIFT_TESTS_OUTPUT.zip $SWIFT_TESTS_OUTPUT $XCODERESULT_NAME.xcresult
 
     - BRANCH=$CI_COMMIT_REF_NAME
     - echo $BRANCH
@@ -144,8 +155,8 @@ physical-swift-iOS-test:
     - mkdir ${CI_PROJECT_DIR}/results
     - echo $CI_JOB_ID > ${CI_PROJECT_DIR}/results/tests_id
     - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
-    - cp -r $SWIFT_TESTS_OUTPUT.xml ${CI_PROJECT_DIR}/results
-    - cp -r $SWIFT_TESTS_OUTPUT.zip ${CI_PROJECT_DIR}/results
+    - cp -r tester/IOS/swift/LinphoneTester/$SWIFT_TESTS_OUTPUT.xml ${CI_PROJECT_DIR}/results
+    - cp -r tester/IOS/swift/LinphoneTester/$SWIFT_TESTS_OUTPUT.zip ${CI_PROJECT_DIR}/results
     - cp index.html ${CI_PROJECT_DIR}/results
 
   artifacts:
