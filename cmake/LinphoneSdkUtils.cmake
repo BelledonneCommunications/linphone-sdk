@@ -42,6 +42,14 @@ function(linphone_sdk_get_inherited_cmake_args OUTPUT_CONFIGURE_ARGS_VAR OUTPUT_
 		list(APPEND _CMAKE_CONFIGURE_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 	endif()
 
+	# We may need to define where the Python installation is located and pass it to the external projects.
+	get_cmake_property(_VARIABLE_NAMES VARIABLES)
+	foreach(_VARIABLE_NAME ${_VARIABLE_NAMES})
+		if(_VARIABLE_NAME MATCHES "^Python3_ROOT_DIR$")
+			list(APPEND _CMAKE_CONFIGURE_ARGS "-D${_VARIABLE_NAME}=${${_VARIABLE_NAME}}")
+		endif()
+	endforeach()
+
 	set("${OUTPUT_CONFIGURE_ARGS_VAR}" ${_CMAKE_CONFIGURE_ARGS} PARENT_SCOPE)
 	set("${OUTPUT_BUILD_ARGS_VAR}" ${_CMAKE_BUILD_ARGS} PARENT_SCOPE)
 endfunction()
@@ -115,7 +123,7 @@ endmacro()
 
 function(linphone_sdk_check_python_module_is_installed MODULE_NAME)
 	execute_process(
-		COMMAND "${PYTHON_EXECUTABLE}" "-c" "import ${MODULE_NAME}"
+		COMMAND "${Python3_EXECUTABLE}" "-c" "import ${MODULE_NAME}"
 		RESULT_VARIABLE _result
 		OUTPUT_QUIET
 		ERROR_QUIET
