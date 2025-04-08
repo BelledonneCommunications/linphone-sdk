@@ -105,13 +105,6 @@ if(NOT ENABLE_FAT_BINARY AND EXISTS "${LINPHONE_WRAPPER_SWIFT}")
 	message(STATUS "Generated linphonesw Swift Package in ${SWIFT_PACKAGE_DIR}")
 
 
-	# In the pbxproj of the LinphoneTester, change generic versioned path with the path to the swift package we are currently building"
-	set(LINPHONETESTER_PBXPROJ_FILE "${LINPHONESDK_DIR}/tester/IOS/swift/LinphoneTester/LinphoneTester.xcodeproj/project.pbxproj")
-	get_filename_component(BUILD_DIR_NAME ${CMAKE_CURRENT_BINARY_DIR} NAME)
-	file(READ ${LINPHONETESTER_PBXPROJ_FILE} PBXPROJ_CONTENTS)
-	string(REGEX REPLACE "/[^/]+/linphone-sdk-swift-ios" "/${BUILD_DIR_NAME}/linphone-sdk-swift-ios" PBXPROJ_CONTENTS "${PBXPROJ_CONTENTS}")
-	file(WRITE ${LINPHONETESTER_PBXPROJ_FILE} "${PBXPROJ_CONTENTS}")
-
 elseif(ENABLE_FAT_BINARY)
 		message(STATUS "Swift Package not generated as ENABLE_FAT_BINARY is ON (XCFramework required for SPM)")
 else()

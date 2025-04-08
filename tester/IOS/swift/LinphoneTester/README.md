@@ -2,6 +2,8 @@
 cmake --preset=ios-sdk -G Ninja -B IOS_TESTER -DLINPHONESDK_IOS_ARCHS=arm64 -DENABLE_UNIT_TESTS=YES
 cmake --build IOS_TESTER --config RelWithDebInfo -j8 
 
+/!\ If you build in a folder that's not "linphone-sdk/IOS_TESTER", make sure to update the path to the linphone-sdk-swift-ios package in the xcproject /!\
+
 Test execution: 
 cd tester/IOS/swift/LinphoneTester
 
