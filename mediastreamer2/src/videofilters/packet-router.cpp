@@ -113,12 +113,10 @@ void RouterAudioInput::update() {
 
 			// We are still muted
 			if (mVolume == MS_VOLUME_DB_MUTED && newVolume == MS_VOLUME_DB_MUTED) {
-				// Check if we have a short EKT tag (packet last byte is 0x00)
+				// Check if we have a short EKT tag (packet last byte is 0x00) when end to end ecryption is enabled.
 				// In that case, do not mark the packet to be sent, if the timer expired,
 				// we'll try again on the next one until we find a packet with a full EKT tag.
-				// We cannot be sure we are using EKT, if we are not, we may skip packet ending with 0x00
-				// without real motive, should be Ok.
-				if (m->b_rptr[msgdsize(m) - 1] != EKT_MsgType_SHORT) {
+				if (!mRouter->isEndToEndEncryptionEnabled() || m->b_rptr[msgdsize(m) - 1] != EKT_MsgType_SHORT) {
 					// Wait at least sMutedSentInterval before sending this information again
 					// This is only needed for participants that joins after an input is muted to make sure they know
 					if (const auto time = mRouter->getTime(); time - mLastMutedSentTime > sMutedSentInterval) {
@@ -143,9 +141,9 @@ void RouterAudioInput::update() {
 RouterVideoInput::RouterVideoInput(PacketRouter *router,
                                    int inputNumber,
                                    const std::string &encoding,
-                                   bool fullPacketMode)
+                                   bool endToEndEcryption)
     : RouterInput(router, inputNumber) {
-	if (fullPacketMode) {
+	if (endToEndEcryption) {
 		mKeyFrameIndicator = make_unique<HeaderExtensionKeyFrameIndicator>();
 	} else if (encoding == "VP8") {
 		mKeyFrameIndicator = make_unique<VP8KeyFrameIndicator>();
@@ -631,6 +629,14 @@ bool PacketRouter::isFullPacketModeEnabled() const {
 	return mFullPacketMode;
 }
 
+void PacketRouter::enableEndToEndEncryption(bool enable) {
+	mEndToEndEncryptionEnabled = enable;
+}
+
+bool PacketRouter::isEndToEndEncryptionEnabled() const {
+	return mEndToEndEncryptionEnabled;
+}
+
 RouterInput *PacketRouter::getRouterInput(int index) const {
 	PackerRouterLogContextualizer prlc(this);
 
@@ -868,7 +874,7 @@ void PacketRouter::createInputIfNotExists(int index) {
 			input = make_unique<RouterAudioInput>(this, index);
 		} else {
 #ifdef VIDEO_ENABLED
-			input = make_unique<RouterVideoInput>(this, index, mEncoding, mFullPacketMode);
+			input = make_unique<RouterVideoInput>(this, index, mEncoding, mEndToEndEncryptionEnabled);
 #endif
 		}
 
@@ -947,6 +953,15 @@ int PacketRouterFilterWrapper::onSetFullPacketModeEnabled(MSFilter *f, void *arg
 int PacketRouterFilterWrapper::onGetFullPacketModeEnabled(MSFilter *f, void *arg) {
 	try {
 		*static_cast<bool_t *>(arg) = static_cast<PacketRouter *>(f->data)->isFullPacketModeEnabled();
+		return 0;
+	} catch (const PacketRouter::MethodCallFailed &) {
+		return -1;
+	}
+}
+
+int PacketRouterFilterWrapper::onSetEndToEndEncryptionEnabled(MSFilter *f, void *arg) {
+	try {
+		static_cast<PacketRouter *>(f->data)->enableEndToEndEncryption(*static_cast<bool_t *>(arg));
 		return 0;
 	} catch (const PacketRouter::MethodCallFailed &) {
 		return -1;
@@ -1140,6 +1155,7 @@ static MSFilterMethod MS_FILTER_WRAPPER_METHODS_NAME(PacketRouter)[] = {
     {MS_PACKET_ROUTER_SET_ROUTING_MODE, PacketRouterFilterWrapper::onSetRoutingMode},
     {MS_PACKET_ROUTER_SET_FULL_PACKET_MODE_ENABLED, PacketRouterFilterWrapper::onSetFullPacketModeEnabled},
     {MS_PACKET_ROUTER_GET_FULL_PACKET_MODE_ENABLED, PacketRouterFilterWrapper::onGetFullPacketModeEnabled},
+    {MS_PACKET_ROUTER_SET_END_TO_END_ENCRYPTION_ENABLED, PacketRouterFilterWrapper::onSetEndToEndEncryptionEnabled},
     {MS_PACKET_ROUTER_CONFIGURE_OUTPUT, PacketRouterFilterWrapper::onConfigureOutput},
     {MS_PACKET_ROUTER_UNCONFIGURE_OUTPUT, PacketRouterFilterWrapper::onUnconfigureOutput},
     {MS_PACKET_ROUTER_SET_AS_LOCAL_MEMBER, PacketRouterFilterWrapper::onSetAsLocalMember},

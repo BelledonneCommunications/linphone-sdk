@@ -233,6 +233,9 @@ VideoConferenceAllToAll::VideoConferenceAllToAll(MSFactory *f, const MSVideoConf
 	bool_t full_packet = params->mode == MSConferenceModeRouterFullPacket ? TRUE : FALSE;
 	ms_filter_call_method(mMixer, MS_PACKET_ROUTER_SET_FULL_PACKET_MODE_ENABLED, &full_packet);
 
+	bool_t end_to_end_encryption = params->security_level == MSStreamSecurityLevelEndToEnd ? TRUE : FALSE;
+	ms_filter_call_method(mMixer, MS_PACKET_ROUTER_SET_END_TO_END_ENCRYPTION_ENABLED, &end_to_end_encryption);
+
 	ms_filter_add_notify_callback(mMixer, on_filter_event, this, TRUE);
 	mCfparams = *params;
 

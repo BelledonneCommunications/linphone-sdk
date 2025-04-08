@@ -94,7 +94,7 @@ class RouterVideoInput : public RouterInput {
 	friend class RouterInputVideoSelector;
 
 public:
-	RouterVideoInput(PacketRouter *router, int pin, const std::string &encoding, bool fullPacketMode);
+	RouterVideoInput(PacketRouter *router, int pin, const std::string &encoding, bool endToEndEcryption);
 
 	void configure(const MSPacketRouterPinData *pinData) override;
 	void update() override;
@@ -243,6 +243,9 @@ public:
 	void enableFullPacketMode(bool enable);
 	bool isFullPacketModeEnabled() const;
 
+	void enableEndToEndEncryption(bool enable);
+	bool isEndToEndEncryptionEnabled() const;
+
 	RouterInput *getRouterInput(int index) const;
 	RouterOutput *getRouterOutput(int index) const;
 
@@ -285,6 +288,7 @@ protected:
 
 	RoutingMode mRoutingMode = RoutingMode::Unknown;
 	bool mFullPacketMode = false;
+	bool mEndToEndEncryptionEnabled = false;
 
 	std::unique_ptr<RouterInputSelector> mSelector = nullptr;
 
@@ -305,6 +309,7 @@ public:
 	static int onSetRoutingMode(MSFilter *f, void *arg);
 	static int onSetFullPacketModeEnabled(MSFilter *f, void *arg);
 	static int onGetFullPacketModeEnabled(MSFilter *f, void *arg);
+	static int onSetEndToEndEncryptionEnabled(MSFilter *f, void *arg);
 
 	static int onConfigureOutput(MSFilter *f, void *arg);
 	static int onUnconfigureOutput(MSFilter *f, void *arg);

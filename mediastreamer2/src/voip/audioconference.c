@@ -83,6 +83,9 @@ MSAudioConference *ms_audio_conference_new(const MSAudioConferenceParams *params
 
 		bool_t full_packet = params->mode == MSConferenceModeRouterFullPacket ? TRUE : FALSE;
 		ms_filter_call_method(obj->mixer, MS_PACKET_ROUTER_SET_FULL_PACKET_MODE_ENABLED, &full_packet);
+
+		bool_t end_to_end_encryption = params->security_level == MSStreamSecurityLevelEndToEnd ? TRUE : FALSE;
+		ms_filter_call_method(obj->mixer, MS_PACKET_ROUTER_SET_END_TO_END_ENCRYPTION_ENABLED, &end_to_end_encryption);
 	}
 
 	return obj;
