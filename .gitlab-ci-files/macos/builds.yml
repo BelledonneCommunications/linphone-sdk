@@ -8,6 +8,7 @@
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_MACOS_BUILDS != null
 
   variables:
+    DEFAULT_CMAKE_OPTIONS: -DPython3_ROOT_DIR=/opt/bc/pip-packages/
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
     LINPHONESDK_MACOS_ARCHS: "arm64"
 
@@ -195,4 +196,3 @@ macos-ninja-spm-novideo:
   extends: macos-ninja-spm
   script:
     - !reference [macos-ninja-spm, script]
-
