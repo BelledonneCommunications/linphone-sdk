@@ -1135,6 +1135,15 @@ RtpSession *media_stream_rtp_session_new_from_session(RtpSession *session, int m
 	return s;
 }
 
+static void generate_unique_id(char *buffer, size_t buffer_size) {
+	if (buffer_size < 1) return;
+
+	for (size_t i = 0; i < buffer_size - 1; i++) {
+		buffer[i] = (char)(bctbx_random() % 26 + 'a');
+	}
+	buffer[buffer_size - 1] = '\0';
+}
+
 void media_stream_on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
 	mblk_t *m = (mblk_t *)mp;
 	uint32_t ssrc = rtp_get_ssrc(m);
@@ -1179,6 +1188,11 @@ void media_stream_on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void
 	*newSession = media_stream_rtp_session_new_from_session(ms->sessions.rtp_session, RTP_SESSION_SENDONLY);
 	ms_message("New outgoing SSRC %u on session %p detected, create a new session %p", ssrc, session, *newSession);
 	rtp_session_enable_transfer_mode(*newSession, TRUE); // relay rtp session is in transfer mode
+
+	char cname[20];
+	generate_unique_id(cname, sizeof(cname));
+	rtp_session_set_source_description(*newSession, cname, NULL, NULL, NULL, NULL, "oRTP", NULL);
+
 	bctbx_free(sMid);
 
 	/* keep track of newly created session */

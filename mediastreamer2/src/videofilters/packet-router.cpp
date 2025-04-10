@@ -85,6 +85,22 @@ int RouterInput::getExtensionId(int defaultExtensionId) const {
 RouterAudioInput::RouterAudioInput(PacketRouter *router, int inputNumber) : RouterInput(router, inputNumber) {
 }
 
+bool isRTCP(const uint8_t *packet) {
+	const uint8_t version = (packet[0] >> 6); // Version always 2.
+	const uint8_t packetType = packet[1];     // For RTCP, packetType indicates the type of report.
+
+	return (version == 2 && (packetType >= 72 && packetType <= 76));
+}
+
+bool queueContainsOnlyRtcp(MSQueue *queue) {
+	for (mblk_t *m = ms_queue_peek_first(queue); !ms_queue_end(queue, m); m = ms_queue_peek_next(queue, m)) {
+		if (!isRTCP(m->b_rptr)) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void RouterAudioInput::update() {
 	MSQueue *queue = mRouter->getInputQueue(mPin);
 	if (queue == nullptr || ms_queue_empty(queue)) return;
@@ -93,6 +109,12 @@ void RouterAudioInput::update() {
 
 	// Reset this state for the upcoming selection
 	mNeedsToBeSent = false;
+
+	// Always send RTCP
+	if (queueContainsOnlyRtcp(queue)) {
+		mNeedsToBeSent = true;
+		return;
+	}
 
 	for (mblk_t *m = ms_queue_peek_first(queue); !ms_queue_end(queue, m); m = ms_queue_peek_next(queue, m)) {
 		mSsrc = rtp_get_ssrc(m);
