@@ -17,6 +17,8 @@ let kPushTokenReceived = Notification.Name("PushTokenReceived")
 let kRemotePushTokenReceived = Notification.Name("RemotePushTokenReceived")
 let kPushNotificationReceived = Notification.Name("PushNotificationReceived")
 
+let expectationBaseTimeout: TimeInterval = 5
+
 func getCacheDirectory() -> URL {
     let paths = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
     return paths[0]
@@ -152,14 +154,12 @@ class LinphoneTestUser {
     }
 }
 
-// fs-test-9.linphone.org: 178.32.112.28
-// This var should be set in the SwiftTests configuration
-// or by using the "LINPHONETESTER_FLEXISIP_DNS" in the command line tool
+// This var should be set in the SwiftTests configuration.
+// You can also replace 'dnsServer.data(using: .utf8)!' with '"fs-test-xxx.linphone.org' in the init below
+// or define it with the "LINPHONETESTER_FLEXISIP_DNS" variable in the command line tool
 let LINPHONETESTER_FLEXISIP_DNS_ENV_VAR = "LINPHONETESTER_FLEXISIP_DNS_ENV_VAR"
 
-class LinphoneTesterEnvironment {
-    //@UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    var rawFlexisipTesterdnsIpAddresses: UnsafeMutableRawPointer!
+class LinphoneTesterEnvironment {    var rawFlexisipTesterDnsServer: UnsafeMutableRawPointer!
     var verbose: Bool = true
     
     static var shared = LinphoneTesterEnvironment()
@@ -170,9 +170,9 @@ class LinphoneTesterEnvironment {
         if let dnsServer = ProcessInfo.processInfo.environment[LINPHONETESTER_FLEXISIP_DNS_ENV_VAR], !dnsServer.isEmpty {
             Log.info("\(LINPHONETESTER_FLEXISIP_DNS_ENV_VAR) found with value \(dnsServer)")
             let dnsData = dnsServer.data(using: .utf8)!
-            let rawFlexisipTesterdnsIpAddresses = UnsafeMutableRawPointer.allocate(byteCount: dnsData.count, alignment: MemoryLayout<UInt8>.alignment)
-            dnsData.copyBytes(to: rawFlexisipTesterdnsIpAddresses.assumingMemoryBound(to: UInt8.self), count: dnsData.count)
-            flexisip_tester_dns_ip_addresses = bctbx_list_new(rawFlexisipTesterdnsIpAddresses)
+            let rawFlexisipTesterDnsServer = UnsafeMutableRawPointer.allocate(byteCount: dnsData.count, alignment: MemoryLayout<UInt8>.alignment)
+            dnsData.copyBytes(to: rawFlexisipTesterDnsServer.assumingMemoryBound(to: UInt8.self), count: dnsData.count)
+            flexisip_tester_dns_ip_addresses = liblinphone_tester_remove_v6_addr(liblinphone_tester_resolve_name_to_ip_address(rawFlexisipTesterDnsServer))
         } else {
             Log.error("\(LINPHONETESTER_FLEXISIP_DNS_ENV_VAR) could not be found in environment, please set it")
         }
@@ -193,34 +193,7 @@ class LinphoneTesterEnvironment {
         }
     }
     deinit {
-        rawFlexisipTesterdnsIpAddresses.deallocate()
-    }
-    
-    func parseCommandLineArguments() {
-        let arguments = CommandLine.arguments
-        
-        var index = 1
-        while index < arguments.count {
-            let argument = arguments[index]
-            
-            switch argument {
-            case "--dns-server":
-                // Ensure there is a next argument
-                if index + 1 < arguments.count {
-                    let dnsServer = arguments[index + 1]
-                    Log.info("Flexisip tester DNS Server: \(dnsServer)")
-                    
-                    index += 1
-                } else {
-                    Log.error("Error: No value provided for --dns-server")
-                }
-            case "--verbose":
-                verbose = true
-            default:
-                Log.error("Unknown argument: \(argument)")
-            }
-            index += 1
-        }
+        rawFlexisipTesterDnsServer.deallocate()
     }
 }
 
@@ -259,35 +232,6 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         super.tearDown()
     }
     
-    
-    /*
-     func testTokenReception() {
-     NotificationCenter.default.addObserver(self,
-     selector:#selector(self.receivedPushCallback),
-     name: NSNotification.Name(rawValue: kPushReceivedEvent),
-     object:nil);
-     
-     
-     tokenReceivedExpect = expectation(description: "Token received by push")
-     var creatorCallbackExpect = expectation(description: "OnSendToken callback")
-     creatorCallbacks.expect = creatorCallbackExpect
-     
-     creator.pnPrid =  (UIApplication.shared.delegate as! AppDelegate).pushToken! as String
-     creator.pnParam = "testteam.\(Bundle.main.bundleIdentifier! as String)"
-     creator.pnProvider = "apns.dev"
-     
-     creator.addDelegate(delegate: creatorCallbacks)
-     
-     
-     //_ = creator.sendTokenFlexiapi()
-     
-     waitForExpectations(timeout: 20)
-     
-     }
-     
-     */
-    
-    
     func cleanupTestUser(tester : LinphoneTestUser) {
         XCTContext.runActivity(named: "Cleaning up \(tester.rcFile)") { _ in
             let core = tester.core!
@@ -301,7 +245,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                 })
                 core.addDelegate(delegate: coreDelegate)
                 try! core.start()
-                waitForExpectations(timeout: 5)
+                waitForExpectations(timeout: expectationBaseTimeout)
                 core.removeDelegate(delegate: coreDelegate)
             }
             
@@ -314,7 +258,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                         }
                     })
                     acc.addDelegate(delegate: registeredDelegate)
-                    waitForExpectations(timeout: 5)
+                    waitForExpectations(timeout: expectationBaseTimeout)
                     acc.removeDelegate(delegate: registeredDelegate)
                 }
                 
@@ -329,7 +273,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                     }
                 })
                 core.defaultAccount!.addDelegate(delegate: clearedDelegate)
-                waitForExpectations(timeout: 5)
+                waitForExpectations(timeout: expectationBaseTimeout)
                 core.defaultAccount!.removeDelegate(delegate: clearedDelegate)
             }
         }
@@ -338,12 +282,12 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
     func testSimpleVoipPushCall() {
         let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
         pauline.waitForRegistration(registeredExpectation: expectation(description: "Pauline voip registered")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
         
         pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         let marie = LinphoneTestUser(rcFile: "marie_rc")
@@ -351,7 +295,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         XCTAssertNil(pauline.core.currentCall)
         pauline.waitForVoipPushIncoming(voipPushIncomingExpectation: expectation(description: "PushIncoming received")) {
             _ = marie.core.invite(url: paulineAddress)
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         XCTAssertNotNil(pauline.core.currentCall)
         
@@ -369,12 +313,12 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         pauline.core.mediaEncryptionMandatory = true
         
         pauline.waitForRegistration(registeredExpectation: expectation(description: "Pauline voip registered")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
         
         pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         var call1, call2 : Call?
@@ -396,7 +340,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             })
             pauline.core.addDelegate(delegate: receivedPushDelegate)
             _ = marie.core.invite(url: paulineAddress)
-            self.waitForExpectations(timeout: 10)
+            self.waitForExpectations(timeout: 2*expectationBaseTimeout)
         }
         
         cleanupTestUser(tester: marie)
@@ -410,7 +354,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         ensureNotRegisteredAgainExp.isInverted = true // Inverted expectation, this test ensures that Marie does not register with a voip token
         
         marie.waitForRegistration(registeredExpectation: ensureNotRegisteredAgainExp, isInverted: true) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         cleanupTestUser(tester: marie)
     }
@@ -418,7 +362,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
     func testUpdateRegisterWhenPushConfigurationChanges() {
         let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
         pauline.waitForRegistration(registeredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- Registered with voip token")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         let paulineAccount = pauline.core.defaultAccount!
@@ -429,21 +373,21 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         newPaulineParams?.pushNotificationConfig?.provider = "testprovider"
         paulineAccount.params = newPaulineParams
         pauline.waitForRegistration(registeredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing provider")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         newPaulineParams = paulineAccount.params?.clone()
         newPaulineParams?.pushNotificationConfig?.param = "testparams"
         paulineAccount.params = newPaulineParams
         pauline.waitForRegistration(registeredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing params")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         newPaulineParams = paulineAccount.params?.clone()
         newPaulineParams?.pushNotificationConfig?.prid = "testprid"
         paulineAccount.params = newPaulineParams
         pauline.waitForRegistration(registeredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing prid")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         cleanupTestUser(tester: pauline)
@@ -457,11 +401,11 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
         
         pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         var paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
-        pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: 10)    }
+        pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: expectationBaseTimeout)    }
         
         var call : Call?
         XCTContext.runActivity(named: "Marie calls Pauline, Pauline receives the voip push before the sip invite since core is stopped") { _ in
@@ -480,7 +424,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             pauline.core.addDelegate(delegate: basicPaulineIncomingCallDelegate)
             
             call = marie.core.invite(url: paulineAddress)
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
             
             pauline.core.removeDelegate(delegate: basicPaulineIncomingCallDelegate)
             
@@ -492,7 +436,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             })
             call?.addDelegate(delegate: callTerminatedDelegate)
             try! call!.terminate()
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         // Now, check that we do not receive it anymore when we disable push
@@ -505,11 +449,11 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                 pauline.core.defaultAccount!.params = newParams
             }
             pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered after disabling core push"), requireVoipToken: false) {
-                self.waitForExpectations(timeout: 5)
+                self.waitForExpectations(timeout: expectationBaseTimeout)
             }
         }
         paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
-        pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: 10)    }
+        pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: expectationBaseTimeout)    }
         
         XCTContext.runActivity(named: "Marie calls Pauline, but Pauline does not receive it because push are disabled") { _ in
             let expectNoCall = expectation(description: "Do not receive call when push is disabled")
@@ -520,7 +464,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             pauline.core.addDelegate(delegate: ensureNoIncomingCallDelegate)
             
             call = marie.core.invite(url: paulineAddress)
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
             pauline.core.removeDelegate(delegate: ensureNoIncomingCallDelegate)
         }
         cleanupTestUser(tester: marie)
@@ -532,22 +476,12 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
     func testVoipPushStopWhenDisablingAccountPush() {
         voipPushStopWhenDisablingPush(willDisableCorePush: false)
     }
-    
+    /*
     func testAlwaysFailingForAttachmentsImplementation() {
-        let marie = LinphoneTestUser(rcFile: "marie_rc")
-        let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
-        
-        pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
-            self.waitForExpectations(timeout: 5)
-        }
-        
         Log.error("This is a test that always fails")
         XCTAssertTrue(false)
-
-        cleanupTestUser(tester: marie)
-        cleanupTestUser(tester: pauline)
     }
-    
+    */
     var remoteTokenStr: String?
     var tokenReceivedExpect: XCTestExpectation!
     var pushReceivedExpect: XCTestExpectation!
@@ -570,7 +504,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                                                    object:nil);
             
             manualRegistry.enableVoipPush()
-            waitForExpectations(timeout: 5)
+            waitForExpectations(timeout: expectationBaseTimeout)
             XCTAssertNotNil(manualRegistry.voipToken)
         }
         
@@ -585,7 +519,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         paulineAccount.params = newParams
         
         pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         NotificationCenter.default.addObserver(self,
@@ -594,12 +528,12 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                                                object:nil);
         
         let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
-        pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: 10)    }
+        pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: expectationBaseTimeout)    }
         
         XCTContext.runActivity(named: "Marie calls Pauline, a VOIP push is received") { _ in
             pushReceivedExpect = expectation(description: "VOIP Push notification received")
             _ = marie.core.invite(url: paulineAddress)
-            self.waitForExpectations(timeout: 10)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         cleanupTestUser(tester: marie)
         cleanupTestUser(tester: pauline)
@@ -613,15 +547,14 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         
         // ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
         let pushPauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
-        let pushTimeoutInSecond = 5
-        pushPauline.core.pushIncomingCallTimeout = pushTimeoutInSecond
-        pushPauline.core.defaultAccount?.params?.conferenceFactoryUri = "sip:conference@fakeserver.com"
+        pushPauline.core.pushIncomingCallTimeout = Int(expectationBaseTimeout)
+        //pushPauline.core.defaultAccount?.params?.conferenceFactoryUri = "sip:conference@fakeserver.com"
         pushPauline.waitForRegistration(registeredExpectation: expectation(description: "testAnswerCallBeforePushIsReceivedOnSecondDevice - Registered with voip token")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         pushPauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         var marieCall : Call?
@@ -651,7 +584,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             pushPauline.core.addDelegate(delegate: pushPaulineIncomingCallDelegate)
             
             marieCall = marie.core.invite(url: basicPauline.core.defaultAccount!.params!.identityAddress!.asString())
-            self.waitForExpectations(timeout: TimeInterval(pushTimeoutInSecond - 1))
+            self.waitForExpectations(timeout: TimeInterval(expectationBaseTimeout - 1))
             basicPauline.core.removeDelegate(delegate: basicPaulineIncomingCallDelegate)
             pushPauline.core.removeDelegate(delegate: pushPaulineIncomingCallDelegate)
             
@@ -662,7 +595,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                 }
             })
             pushPauline.core.addDelegate(delegate: pushPaulineTimedOutDelegate)
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
             pushPauline.core.removeDelegate(delegate: pushPaulineTimedOutDelegate)
         }
         
@@ -676,7 +609,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             marieCall?.addDelegate(delegate: callTerminatedDelegate)
             
             try! marieCall!.terminate()
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         cleanupTestUser(tester: marie)
         cleanupTestUser(tester: basicPauline)
@@ -689,12 +622,12 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         // ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
         let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
         pauline.waitForRegistration(registeredExpectation: expectation(description: "Registered with voip token")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout )
         }
         let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
         
         pauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         XCTContext.runActivity(named: "Marie calls Pauline. Pauline declines when she receives the voip push, and never receives the SIP invite") { _ in
@@ -708,7 +641,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             
             pauline.waitForVoipPushIncoming(voipPushIncomingExpectation: expectation(description: "Incoming Push Received")) {
                 _ = marie.core.invite(url: paulineAddress)
-                self.waitForExpectations(timeout: 5)
+                self.waitForExpectations(timeout: expectationBaseTimeout)
             }
             
             let paulineCall = pauline.core.currentCall
@@ -724,7 +657,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             try! paulineCall!.decline(reason: Reason.Declined)
             pauline.core.removeDelegate(delegate: ensureSipInviteDelegate)
             pauline.core.autoIterateEnabled = true
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         cleanupTestUser(tester: marie)
         cleanupTestUser(tester: pauline)
@@ -737,12 +670,12 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         // ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
         let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
         pauline.waitForRegistration(registeredExpectation: expectation(description: "Registered with voip token")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
         
         pauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         var ensureSipInviteDelegate : CoreDelegateStub!
@@ -757,7 +690,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             
             pauline.waitForVoipPushIncoming(voipPushIncomingExpectation: expectation(description: "Incoming Push Received")) {
                 _ = marie.core.invite(url: paulineAddress)
-                self.waitForExpectations(timeout: 5)
+                self.waitForExpectations(timeout: expectationBaseTimeout)
             }
         }
         
@@ -777,7 +710,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             pauline.core.removeDelegate(delegate: ensureSipInviteDelegate)
             
             pauline.core.autoIterateEnabled = true
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
             paulineCall?.removeDelegate(delegate: callRunningDelegate)
         }
         
@@ -792,7 +725,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             paulineCall?.addDelegate(delegate: callTerminatedDelegate)
             
             try! paulineCall!.terminate()
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         cleanupTestUser(tester: marie)
         cleanupTestUser(tester: pauline)
@@ -808,7 +741,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                                                    object:nil);
             
             UIApplication.shared.registerForRemoteNotifications()
-            waitForExpectations(timeout: 10)
+            waitForExpectations(timeout: expectationBaseTimeout)
             XCTAssertNotNil(remoteTokenStr)
         }
         
@@ -834,13 +767,13 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                 }
             })
             paulineAccount.addDelegate(delegate: paulineRegisterDelegate)
-            waitForExpectations(timeout: 10)
+            waitForExpectations(timeout: expectationBaseTimeout)
             paulineAccount.removeDelegate(delegate: paulineRegisterDelegate)
         }
         
         
         pauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         XCTContext.runActivity(named: "Marie sends a chat message to Pauline. Pauline receives a remote push notification") { _ in
@@ -856,7 +789,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             let chatMsg = try! marieChatroom.createMessageFromUtf8(message: "TestMessage")
             chatMsg.send()
             
-            waitForExpectations(timeout: 10)
+            waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         cleanupTestUser(tester: marie)
@@ -867,7 +800,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
     func testUnregisteringOnStop() {
         let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
         pauline.waitForRegistration(registeredExpectation: expectation(description: "Registered with voip token")) {
-            self.waitForExpectations(timeout: 5)
+            self.waitForExpectations(timeout: expectationBaseTimeout)
         }
         
         func stopAndStart(clearedExpect: XCTestExpectation, shouldClear: Bool) {
@@ -879,14 +812,14 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                 })
                 pauline.core.addDelegate(delegate: coreDelegate)
                 pauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
-                    self.waitForExpectations(timeout: 5)
+                    self.waitForExpectations(timeout: expectationBaseTimeout)
                 }
                 pauline.core.removeDelegate(delegate: coreDelegate)
                 pauline.startCore(startedCoreExpectation: expectation(description: "Pauline Core Started")) {
-                    self.waitForExpectations(timeout: 5)
+                    self.waitForExpectations(timeout: expectationBaseTimeout)
                 }
                 pauline.waitForRegistration(registeredExpectation: expectation(description: "Registered"), requireVoipToken: false) {
-                    self.waitForExpectations(timeout: 5)
+                    self.waitForExpectations(timeout: expectationBaseTimeout)
                 }
             }
         }
@@ -905,7 +838,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             paulineAccount.params = newPaulineParams
             
             pauline.waitForRegistration(registeredExpectation: expectation(description: "Registered"), requireVoipToken: false) {
-                self.waitForExpectations(timeout: 5)
+                self.waitForExpectations(timeout: expectationBaseTimeout)
             }
         }
         
@@ -920,7 +853,7 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
             newPaulineParams?.remotePushNotificationAllowed = false
             paulineAccount.params = newPaulineParams
             pauline.waitForRegistration(registeredExpectation: expectation(description: "Registered"), requireVoipToken: false) {
-                self.waitForExpectations(timeout: 5)
+                self.waitForExpectations(timeout: expectationBaseTimeout)
             }
         }
         

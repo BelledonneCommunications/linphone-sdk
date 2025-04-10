@@ -93,7 +93,7 @@ physical-swift-iOS-test:
     XCODERESULT_NAME: "XcodeResults"
     SWIFT_TESTS_OUTPUT: "physical-swift-iOS-test-results"
     TEST_IPHONE_NAME: "iPhone X"
-    TESTER_ADDRESS: "178.32.112.28"
+    TESTER_ADDRESS: "fs-test-10.linphone.org"
 
   script:
     - ls -al build/ios
