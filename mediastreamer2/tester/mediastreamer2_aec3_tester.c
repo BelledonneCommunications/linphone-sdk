@@ -240,10 +240,9 @@ static bool_t aec_base(const aec_test_config *config, const int delay_ms, int *e
 	int output_nchannels = expected_nchannels;
 	bool_t send_silence = TRUE;
 	int audio_done = 0;
-	int elapsed = 0;
-	int waiting_time_ms = 20000;
+	float waiting_time_ms = 20000.;
 	if ((!config->farend_speech_file) || (!config->nearend_speech_file)) {
-		waiting_time_ms = 9000;
+		waiting_time_ms = 9000.;
 	}
 
 	ms_factory_reset_statistics(msFactory);
@@ -480,12 +479,17 @@ static bool_t aec_base(const aec_test_config *config, const int delay_ms, int *e
 			ms_error("Could not play noise. Playing filter failed to start");
 		}
 	}
+	struct timeval start_time;
+	struct timeval now;
+	float elapsed = 0.;
 	if (player_farend) {
-		elapsed = 0;
+		bctbx_gettimeofday(&start_time, NULL);
 		ms_filter_call_method(player_farend, MS_PLAYER_GET_CURRENT_POSITION, &farend_cur_pos_ms);
 		ms_message("play with delay %d ms", delay_ms);
-		while (farend_cur_pos_ms < delay_ms && elapsed * 10 < waiting_time_ms) {
-			elapsed++;
+		while (farend_cur_pos_ms < delay_ms && elapsed < waiting_time_ms) {
+			bctbx_gettimeofday(&now, NULL);
+			elapsed = ((now.tv_sec - start_time.tv_sec) * 1000.0f) + ((now.tv_usec - start_time.tv_usec) / 1000.0f);
+			ms_message("elapsed is %f (ms?) - %f", elapsed, waiting_time_ms);
 			ms_filter_call_method(player_farend, MS_PLAYER_GET_CURRENT_POSITION, &farend_cur_pos_ms);
 			ms_usleep(time_step_usec);
 		}
@@ -496,9 +500,11 @@ static bool_t aec_base(const aec_test_config *config, const int delay_ms, int *e
 	if ((player_echo) && (ms_filter_call_method_noarg(player_echo, MS_PLAYER_START) == -1)) {
 		ms_error("Could not play echo. Playing filter failed to start");
 	}
-	elapsed = 0;
-	while (audio_done != 1 && elapsed * 10 < waiting_time_ms) {
-		elapsed++;
+	elapsed = 0.;
+	bctbx_gettimeofday(&start_time, NULL);
+	while (audio_done != 1 && elapsed < waiting_time_ms) {
+		bctbx_gettimeofday(&now, NULL);
+		elapsed = ((now.tv_sec - start_time.tv_sec) * 1000.0f) + ((now.tv_usec - start_time.tv_usec) / 1000.0f);
 		ms_usleep(time_step_usec);
 	}
 
