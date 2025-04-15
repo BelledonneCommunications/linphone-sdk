@@ -154,9 +154,7 @@ class LinphoneTestUser {
     }
 }
 
-// This var should be set in the SwiftTests configuration.
-// You can also replace 'dnsServer.data(using: .utf8)!' with '"fs-test-xxx.linphone.org' in the init below
-// or define it with the "LINPHONETESTER_FLEXISIP_DNS" variable in the command line tool
+// Define this var with the "LINPHONETESTER_FLEXISIP_DNS=xxxxx.linphone.org" variable in the command line tool
 let LINPHONETESTER_FLEXISIP_DNS_ENV_VAR = "LINPHONETESTER_FLEXISIP_DNS_ENV_VAR"
 
 class LinphoneTesterEnvironment {    var rawFlexisipTesterDnsServer: UnsafeMutableRawPointer!
@@ -167,15 +165,18 @@ class LinphoneTesterEnvironment {    var rawFlexisipTesterDnsServer: UnsafeMutab
     private init() {
         Log.instance.setMask(verbose: verbose)
         
-        if let dnsServer = ProcessInfo.processInfo.environment[LINPHONETESTER_FLEXISIP_DNS_ENV_VAR], !dnsServer.isEmpty {
+        var dnsServer = ProcessInfo.processInfo.environment[LINPHONETESTER_FLEXISIP_DNS_ENV_VAR] ?? ""
+        if !dnsServer.isEmpty {
             Log.info("\(LINPHONETESTER_FLEXISIP_DNS_ENV_VAR) found with value \(dnsServer)")
-            let dnsData = dnsServer.data(using: .utf8)!
-            let rawFlexisipTesterDnsServer = UnsafeMutableRawPointer.allocate(byteCount: dnsData.count, alignment: MemoryLayout<UInt8>.alignment)
-            dnsData.copyBytes(to: rawFlexisipTesterDnsServer.assumingMemoryBound(to: UInt8.self), count: dnsData.count)
-            flexisip_tester_dns_ip_addresses = liblinphone_tester_remove_v6_addr(liblinphone_tester_resolve_name_to_ip_address(rawFlexisipTesterDnsServer))
         } else {
-            Log.error("\(LINPHONETESTER_FLEXISIP_DNS_ENV_VAR) could not be found in environment, please set it")
+            dnsServer = "fs-test-10.linphone.org"
+            Log.warn("\(LINPHONETESTER_FLEXISIP_DNS_ENV_VAR) could not be found in environment, using default value: \(dnsServer)")
         }
+        let dnsData = dnsServer.data(using: .utf8)!
+        let rawFlexisipTesterDnsServer = UnsafeMutableRawPointer.allocate(byteCount: dnsData.count, alignment: MemoryLayout<UInt8>.alignment)
+        dnsData.copyBytes(to: rawFlexisipTesterDnsServer.assumingMemoryBound(to: UInt8.self), count: dnsData.count)
+        flexisip_tester_dns_ip_addresses = liblinphone_tester_remove_v6_addr(liblinphone_tester_resolve_name_to_ip_address(rawFlexisipTesterDnsServer))
+        
         liblinphone_tester_init(nil)
         liblinphonetester_show_account_manager_logs = verbose ? 1 : 0
         liblinphone_tester_keep_accounts(1);
