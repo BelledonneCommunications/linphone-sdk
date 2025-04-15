@@ -93,7 +93,6 @@ physical-swift-iOS-test:
     XCODERESULT_NAME: "XcodeResults"
     SWIFT_TESTS_OUTPUT: "physical-swift-iOS-test-results"
     TEST_IPHONE_NAME: "iPhone X"
-    TESTER_ADDRESS: "fs-test-10.linphone.org"
 
   script:
     - ls -al build/ios
@@ -105,7 +104,7 @@ physical-swift-iOS-test:
     # Test build & launch
     - |
         EXIT_XCODEBUILD_CODE=0
-        xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_ADDRESS" || EXIT_XCODEBUILD_CODE=$?
+        xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_DNS" || EXIT_XCODEBUILD_CODE=$?
 
         echo "EXIT_XCODEBUILD_CODE=$EXIT_XCODEBUILD_CODE"
         echo "generating xml results in $SWIFT_TESTS_OUTPUT.xml"

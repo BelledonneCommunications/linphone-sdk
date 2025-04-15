@@ -8,6 +8,7 @@ variables:
   MAKEFILE_JOBS: 10
   CCACHE_SIZE: 3G
   FF_USE_FASTZIP: 1
+  TESTER_DNS: "fs-test-10.linphone.org"
 
   #Lime X3DH activated by default, if there is a problem, see the default
   #build options in CMakeBuilder
