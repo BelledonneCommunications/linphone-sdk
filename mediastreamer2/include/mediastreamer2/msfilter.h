@@ -190,9 +190,17 @@ struct _MSFilter {
 	MSQueue **inputs;           /**<Table of input queues.*/
 	MSQueue **outputs;          /**<Table of output queues */
 	struct _MSFactory *factory; /**<the factory that created this filter*/
-	void *padding;              /**Unused - to be reused later when new protected fields have to added*/
-	void *data;                 /**< Pointer used by the filter for internal state and computations.*/
-	struct _MSTicker *ticker;   /**<Pointer to the ticker object. It is never NULL when being called process()*/
+	/* the n_connected_inputs/n_connected_outputs must fill within a void* that was left as a placeholder for binary
+	 * compatibility in a previous version. They represents the number of connected inputs and connected outputs, which
+	 * is useful to optimize iterations on inputs or outputs.
+	 */
+#if defined(__SIZEOF_POINTER__) && (__SIZEOF_POINTER__ == 8) || defined(_WIN64)
+	int n_connected_inputs, n_connected_outputs;
+#else
+	int16_t n_connected_inputs, n_connected_outputs;
+#endif
+	void *data;               /**< Pointer used by the filter for internal state and computations.*/
+	struct _MSTicker *ticker; /**<Pointer to the ticker object. It is never NULL when being called process()*/
 	/*private attributes, they can be moved and changed at any time*/
 	MSList *notify_callbacks;
 	uint32_t last_tick;

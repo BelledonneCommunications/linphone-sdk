@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/msticker.h"
 
@@ -229,11 +229,12 @@ int ms_ticker_detach(MSTicker *ticker, MSFilter *f) {
 
 static bool_t filter_can_process(MSFilter *f, uint32_t tick) {
 	/* look if filters before this one have run */
-	int i;
+	int i, j;
 	MSQueue *l;
-	for (i = 0; i < f->desc->ninputs; i++) {
+	for (i = 0, j = 0; i < f->desc->ninputs && j < f->n_connected_inputs; i++) {
 		l = f->inputs[i];
 		if (l != NULL) {
+			j++;
 			if (l->prev.filter->last_tick != tick) return FALSE;
 		}
 	}
@@ -258,7 +259,7 @@ static void call_process(MSFilter *f) {
 }
 
 static void run_graph(MSFilter *f, MSTicker *s, bctbx_list_t **unschedulable, bool_t force_schedule) {
-	int i;
+	int i, j;
 	MSQueue *l;
 	if (f->last_tick != s->ticks) {
 		if (filter_can_process(f, s->ticks) || force_schedule) {
@@ -266,9 +267,10 @@ static void run_graph(MSFilter *f, MSTicker *s, bctbx_list_t **unschedulable, bo
 			f->last_tick = s->ticks;
 			call_process(f);
 			/* now recurse to next filters */
-			for (i = 0; i < f->desc->noutputs; i++) {
+			for (i = 0, j = 0; i < f->desc->noutputs && j < f->n_connected_outputs; i++) {
 				l = f->outputs[i];
 				if (l != NULL) {
+					j++;
 					run_graph(l->next.filter, s, unschedulable, force_schedule);
 				}
 			}

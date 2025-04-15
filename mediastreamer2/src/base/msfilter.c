@@ -41,7 +41,7 @@ void ms_filter_register(MSFilterDesc *desc) {
 	}
 }
 
-void ms_filter_unregister_all() {
+void ms_filter_unregister_all(void) {
 }
 
 bool_t ms_filter_codec_supported(const char *mime) {
@@ -133,7 +133,9 @@ int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2) {
 #endif
 	q = ms_queue_new(f1, pin1, f2, pin2);
 	f1->outputs[pin1] = q;
+	f1->n_connected_outputs++;
 	f2->inputs[pin2] = q;
+	f2->n_connected_inputs++;
 	return 0;
 }
 
@@ -156,6 +158,8 @@ int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2) {
 #endif
 	q = f1->outputs[pin1];
 	f1->outputs[pin1] = f2->inputs[pin2] = 0;
+	f1->n_connected_outputs--;
+	f2->n_connected_inputs--;
 	ms_queue_destroy(q);
 	return 0;
 }
@@ -271,10 +275,13 @@ void ms_filter_postprocess(MSFilter *f) {
 }
 
 bool_t ms_filter_inputs_have_data(MSFilter *f) {
-	int i;
-	for (i = 0; i < f->desc->ninputs; i++) {
+	int i, j;
+	for (i = 0, j = 0; i < f->desc->ninputs && j < f->n_connected_inputs; i++) {
 		MSQueue *q = f->inputs[i];
-		if (q != NULL && q->q.q_mcount > 0) return TRUE;
+		if (q != NULL) {
+			j++;
+			if (q->q.q_mcount > 0) return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -304,12 +311,15 @@ static void find_filters(bctbx_list_t **filters, MSFilter *f) {
 	f->seen = TRUE;
 	*filters = bctbx_list_append(*filters, f);
 	/* go upstream */
-	for (i = 0; i < f->desc->ninputs; i++) {
+	for (i = 0, found = 0; i < f->desc->ninputs && found < f->n_connected_inputs; i++) {
 		link = f->inputs[i];
-		if (link != NULL) find_filters(filters, link->prev.filter);
+		if (link != NULL) {
+			found++;
+			find_filters(filters, link->prev.filter);
+		}
 	}
 	/* go downstream */
-	for (i = 0, found = 0; i < f->desc->noutputs; i++) {
+	for (i = 0, found = 0; i < f->desc->noutputs && found < f->n_connected_outputs; i++) {
 		link = f->outputs[i];
 		if (link != NULL) {
 			found++;

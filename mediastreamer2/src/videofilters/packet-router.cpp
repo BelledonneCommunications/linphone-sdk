@@ -539,9 +539,12 @@ void PacketRouter::process() {
 	}
 
 	// Flush the rest.
-	for (int i = 0; i < ROUTER_MAX_INPUT_CHANNELS; ++i) {
-		MSQueue *q = getInput(i);
-		if (q) ms_queue_flush(q);
+	for (size_t i = 0, j = 0; i < ROUTER_MAX_INPUT_CHANNELS && j < getConnectedInputsCount(); ++i) {
+		MSQueue *q = getInput((int)i);
+		if (q) {
+			ms_queue_flush(q);
+			j++;
+		}
 	}
 
 	unlock();

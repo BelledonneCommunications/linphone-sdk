@@ -49,6 +49,12 @@ protected:
 	MSQueue *getOutput(int idx) const {
 		return _f->outputs[idx];
 	}
+	size_t getConnectedInputsCount() const {
+		return static_cast<size_t>(_f->n_connected_inputs);
+	}
+	size_t getConnectedOutputsCount() const {
+		return static_cast<size_t>(_f->n_connected_outputs);
+	}
 	uint64_t getTime() const {
 		return _f->ticker->time;
 	}
