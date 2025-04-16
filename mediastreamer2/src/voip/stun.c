@@ -1637,6 +1637,10 @@ ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int flags, const s
 
 	if ((context != NULL) && (context->rtp_session != NULL)) {
 		ortp_recvaddr_to_sockaddr(&msg->recv_addr, (struct sockaddr *)&sourceAddr, &sourceAddrLen);
+		/* msg->recv_addr is internally set to the TURN server for RTP/RTCP packets that need to go throug the TURN
+		 * server. However, this does not mean that the socket needs to use this address (which makes no sense). Hence,
+		 * reset the recv_addr so that it is not taken into account by the transport layer */
+		memset(&msg->recv_addr, 0, sizeof(msg->recv_addr));
 		if (ms_turn_rtp_endpoint_should_be_sent_to_turn_server(context, to, tolen)) {
 			if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
 				send_via_turn_tcp = TRUE;
