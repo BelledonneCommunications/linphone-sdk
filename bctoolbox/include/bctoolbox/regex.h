@@ -28,6 +28,10 @@ extern "C" {
 
 BCTBX_PUBLIC bool_t bctbx_is_matching_regex(const char *entry, const char *regex);
 BCTBX_PUBLIC bool_t bctbx_is_matching_regex_log(const char *entry, const char *regex, bool_t show_log);
+BCTBX_PUBLIC bool_t bctbx_is_matching_regex_log_context(const char *entry,
+                                                        const char *regex,
+                                                        bool_t show_log,
+                                                        const char *context);
 
 #ifdef __cplusplus
 }
