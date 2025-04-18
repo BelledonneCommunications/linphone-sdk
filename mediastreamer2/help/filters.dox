@@ -89,7 +89,6 @@
  * - Audio filters:
  *   - AMR-NB encoder/decoder
  *   - G.729 encoder/decoder
- *   - iLBC encoder/decoder
  *   - SILK encoder/decoder
  * - Video filters:
  *   - H.264 software encoder

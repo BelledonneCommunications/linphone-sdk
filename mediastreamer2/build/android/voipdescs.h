@@ -60,7 +60,7 @@ extern MSFilterDesc ms_l16_dec_desc;
 extern MSFilterDesc ms_aac_eld_dec_desc;
 extern MSFilterDesc ms_aac_eld_enc_desc;
 extern MSFilterDesc ms_jpeg_writer_desc;
-#if defined(BUILD_WEBRTC_AECM)
+#if defined(BUILD_WEBRTC_AEC)
 extern MSFilterDesc ms_webrtc_aec_desc;
 #endif
 extern MSFilterDesc ms_opus_dec_desc;
@@ -116,7 +116,7 @@ MSFilterDesc *ms_voip_filter_descs[] = {&ms_alaw_dec_desc,
                                         &ms_mkv_player_desc,
 #endif
 #endif // VIDEO_ENABLED
-#if defined(BUILD_WEBRTC_AECM)
+#if defined(BUILD_WEBRTC_AEC)
                                         &ms_webrtc_aec_desc,
 #endif
 #ifdef HAVE_OPUS

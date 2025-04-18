@@ -1574,6 +1574,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 		if (!stream->is_ec_delay_set && io->input.soundcard) {
 			int delay_ms = ms_snd_card_get_minimal_latency(io->input.soundcard);
 			ms_message("Setting echo canceller delay with value provided by soundcard: %i ms", delay_ms);
+			// Note: the delay is not set to WebRTC echo canceller, because it uses its own delay estimation
 			ms_filter_call_method(stream->ec, MS_ECHO_CANCELLER_SET_DELAY, &delay_ms);
 		} else {
 			ms_message("Setting echo canceller delay with value configured by application.");
@@ -2223,6 +2224,7 @@ void audio_stream_set_echo_canceller_params(AudioStream *stream, int tail_len_ms
 	if (stream->ec) {
 		if (tail_len_ms > 0) ms_filter_call_method(stream->ec, MS_ECHO_CANCELLER_SET_TAIL_LENGTH, &tail_len_ms);
 		if (delay_ms > 0) {
+			// Note: the delay is not set to WebRTC echo canceller, because it uses its own delay estimation
 			stream->is_ec_delay_set = TRUE;
 			ms_filter_call_method(stream->ec, MS_ECHO_CANCELLER_SET_DELAY, &delay_ms);
 		}

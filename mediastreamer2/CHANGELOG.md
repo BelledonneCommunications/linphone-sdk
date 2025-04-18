@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+- Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC and applied also for mobile. The delay of the echo path computed during calibration is not set to this Echo Canceller, because it is continuously estimated by AEC3. 
+- Voice Activity Detection updated to a recent version of WebRTC with minor changes.
+
+### Removed
+- AECM for mobile echo cancellation is removed and replaced by the new AEC.
+- Removed ISAC and iLBC audio codecs.
 
 ## [5.4.0] - 2025-03-11
 

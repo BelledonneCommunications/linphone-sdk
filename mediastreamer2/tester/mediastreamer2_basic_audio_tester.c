@@ -419,11 +419,6 @@ static void dtmfgen_enc_dec_tonedet_bv16(void) {
 		dtmfgen_enc_dec_tonedet("bv16", 8000, 1, TRUE);
 	}
 }
-static void dtmfgen_enc_dec_tonedet_isac(void) {
-	if (ms_factory_codec_supported(msFactory, "iSAC")) {
-		dtmfgen_enc_dec_tonedet("iSAC", 16000, 1, FALSE);
-	}
-}
 
 #if HAVE_OPUS
 static void dtmfgen_enc_dec_tonedet_opus(void) {
@@ -711,7 +706,6 @@ test_t basic_audio_tests[] = {TEST_ONE_TAG("silence detection 48000", silence_de
                               TEST_NO_TAG("dtmfgen-tonedet", dtmfgen_tonedet),
                               TEST_NO_TAG("dtmfgen-enc-dec-tonedet-bv16", dtmfgen_enc_dec_tonedet_bv16),
                               TEST_NO_TAG("dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu),
-                              TEST_NO_TAG("dtmfgen-enc-dec-tonedet-isac", dtmfgen_enc_dec_tonedet_isac),
 #if HAVE_OPUS
                               TEST_NO_TAG("dtmfgen-enc-dec-tonedet-opus", dtmfgen_enc_dec_tonedet_opus),
 #endif

@@ -33,7 +33,7 @@
 #include "ortp/port.h"
 
 #ifdef ENABLE_WEBRTC_AEC
-extern void libmswebrtcaec_init(MSFactory *factory);
+extern void libmswebrtc_init(MSFactory *factory);
 #endif
 
 #define EC_DUMP 0
@@ -376,12 +376,6 @@ static bool_t aec_base(const aec_test_config *config, const int delay_ms, int *e
 	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_SAMPLE_RATE, &config_sampling_rate);
 	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_NCHANNELS, &config_nchannels);
 
-	if (config->set_delay_to_aec_filter) {
-		ms_message("Setting echo canceller delay with value provided by user: %i ms", delay_ms);
-		int delay_set = delay_ms;
-		ms_filter_call_method(aec, MS_ECHO_CANCELLER_SET_DELAY, &delay_set);
-	}
-
 	MSConnectionHelper h;
 	// far end
 	ms_connection_helper_start(&h);
@@ -489,7 +483,6 @@ static bool_t aec_base(const aec_test_config *config, const int delay_ms, int *e
 		while (farend_cur_pos_ms < delay_ms && elapsed < waiting_time_ms) {
 			bctbx_gettimeofday(&now, NULL);
 			elapsed = ((now.tv_sec - start_time.tv_sec) * 1000.0f) + ((now.tv_usec - start_time.tv_usec) / 1000.0f);
-			ms_message("elapsed is %f (ms?) - %f", elapsed, waiting_time_ms);
 			ms_filter_call_method(player_farend, MS_PLAYER_GET_CURRENT_POSITION, &farend_cur_pos_ms);
 			ms_usleep(time_step_usec);
 		}
