@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(MSWebRTCAEC VERSION 1.1.1 LANGUAGES C CXX)
+project(MSWebRTC VERSION 5.4.0 LANGUAGES C CXX)
 
 if(UNIX AND NOT APPLE)
 	add_link_options("LINKER:-no-undefined") 
@@ -35,7 +35,7 @@ set(PACKAGE_NAME "${PROJECT_NAME}")
 set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "support@belledonne-communications.com")
-set(PACKAGE_TARNAME "mswebrtcaec")
+set(PACKAGE_TARNAME "mswebrtc")
 set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
@@ -70,7 +70,6 @@ add_definitions(-DRTC_DISABLE_LOGGING=1)
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 
-set(WEBRTC_AEC3_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -154,30 +153,27 @@ endif()
 set(AEC3_CXX17_FLAGS "-std=c++17")
 set(AEC3_CXX14_FLAGS "-std=c++14")
 
-set(AEC3_AUDIO_PROCESSING_DIR "${WEBRTC_AEC3_SRC_DIR}/modules/audio_processing")
-set(AEC3_SRC_DIR "${WEBRTC_AEC3_SRC_DIR}/modules/audio_processing/aec3")
-set(AEC3_API_DIR "${WEBRTC_AEC3_SRC_DIR}/api/audio")
-set(AEC3_RTCBASE_DIR "${WEBRTC_AEC3_SRC_DIR}/rtc_base")
-# set(AEC3_SRCS)	# FIXME FHA rename for both vad and aec
-
-set(WEBRTC_SIGNAL_PROCESSING_DIR "${WEBRTC_AEC3_SRC_DIR}/common_audio/signal_processing")
+set(AUDIO_PROCESSING_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/audio_processing")
+set(AEC3_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/audio_processing/aec3")
+set(RTCBASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/rtc_base")
+set(COMMON_AUDIO_SIGNAL_PROC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common_audio/signal_processing")
 set(VAD_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common_audio/vad")
 
-set(AEC3_SRCS
-	mswebrtcaec.c
+set(WEBRTC_SRC
+	mswebrtc.c
 )
 
 if(ENABLE_AEC)
-	list(APPEND AEC3_SRCS 
+	list(APPEND WEBRTC_SRC 
 		aec3.cc
 		mswebrtc_aec3.cc
-		${AEC3_API_DIR}/echo_canceller3_config.cc
-		${AEC3_AUDIO_PROCESSING_DIR}/logging/apm_data_dumper.cc
-		${AEC3_AUDIO_PROCESSING_DIR}/audio_buffer.cc
-		${AEC3_AUDIO_PROCESSING_DIR}/high_pass_filter.cc
-		${AEC3_AUDIO_PROCESSING_DIR}/splitting_filter.cc
-		${AEC3_AUDIO_PROCESSING_DIR}/three_band_filter_bank.cc
-		${AEC3_AUDIO_PROCESSING_DIR}/utility/cascaded_biquad_filter.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/api/audio/echo_canceller3_config.cc
+		${AUDIO_PROCESSING_DIR}/logging/apm_data_dumper.cc
+		${AUDIO_PROCESSING_DIR}/audio_buffer.cc
+		${AUDIO_PROCESSING_DIR}/high_pass_filter.cc
+		${AUDIO_PROCESSING_DIR}/splitting_filter.cc
+		${AUDIO_PROCESSING_DIR}/three_band_filter_bank.cc
+		${AUDIO_PROCESSING_DIR}/utility/cascaded_biquad_filter.cc
 		${AEC3_SRC_DIR}/echo_canceller3.cc
 		${AEC3_SRC_DIR}/block_framer.cc
 		${AEC3_SRC_DIR}/api_call_jitter_metrics.cc
@@ -235,33 +231,32 @@ if(ENABLE_AEC)
 		${AEC3_SRC_DIR}/suppression_filter.cc
 		${AEC3_SRC_DIR}/suppression_gain.cc
 		${AEC3_SRC_DIR}/transparent_mode.cc
-		${WEBRTC_AEC3_SRC_DIR}/common_audio/audio_util.cc
-		${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/push_sinc_resampler.cc
-		${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler.cc	
-		${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft.cc
-		${WEBRTC_AEC3_SRC_DIR}/system_wrappers/source/cpu_features.cc
-		${WEBRTC_AEC3_SRC_DIR}/system_wrappers/source/field_trial.cc
-		${WEBRTC_AEC3_SRC_DIR}/system_wrappers/source/metrics.cc
-		${WEBRTC_SIGNAL_PROCESSING_DIR}/splitting_filter.c
-		${AEC3_RTCBASE_DIR}/checks.cc
-		${AEC3_RTCBASE_DIR}/platform_thread_types.cc
-		${AEC3_RTCBASE_DIR}/race_checker.cc
-		${AEC3_RTCBASE_DIR}/string_encode.cc
-		${AEC3_RTCBASE_DIR}/string_utils.cc
-		${AEC3_RTCBASE_DIR}/experiments/field_trial_parser.cc
-		${AEC3_RTCBASE_DIR}/memory/aligned_malloc.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/common_audio/audio_util.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/common_audio/resampler/push_sinc_resampler.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/common_audio/resampler/sinc_resampler.cc	
+		${CMAKE_CURRENT_SOURCE_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/system_wrappers/source/cpu_features.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/system_wrappers/source/field_trial.cc
+		${CMAKE_CURRENT_SOURCE_DIR}/system_wrappers/source/metrics.cc
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/splitting_filter.c
+		${RTCBASE_DIR}/checks.cc
+		${RTCBASE_DIR}/platform_thread_types.cc
+		${RTCBASE_DIR}/race_checker.cc
+		${RTCBASE_DIR}/string_encode.cc
+		${RTCBASE_DIR}/string_utils.cc
+		${RTCBASE_DIR}/experiments/field_trial_parser.cc
+		${RTCBASE_DIR}/memory/aligned_malloc.cc
 	)
-
 	if(ANDROID)
-		list(APPEND AEC3_SRCS
-			${AEC3_RTCBASE_DIR}/platform_thread.cc
-			${WEBRTC_AEC3_SRC_DIR}/modules/utility/source/helpers_android.cc
+		list(APPEND WEBRTC_SRC
+			${RTCBASE_DIR}/platform_thread.cc
+			${CMAKE_CURRENT_SOURCE_DIR}/modules/utility/source/helpers_android.cc
 		)
 	endif()
 endif()
 
 if(ENABLE_VAD)
-	list(APPEND AEC3_SRCS
+	list(APPEND WEBRTC_SRC
 		vad.cc
 		${VAD_SRC_DIR}/vad.cc
 		${VAD_SRC_DIR}/vad_core.c
@@ -269,12 +264,13 @@ if(ENABLE_VAD)
 		${VAD_SRC_DIR}/vad_gmm.c
 		${VAD_SRC_DIR}/vad_sp.c
 		${VAD_SRC_DIR}/webrtc_vad.c
-		${WEBRTC_SIGNAL_PROCESSING_DIR}/division_operations.c
-		${WEBRTC_SIGNAL_PROCESSING_DIR}/energy.c
-		${WEBRTC_SIGNAL_PROCESSING_DIR}/get_scaling_square.c
-		${WEBRTC_SIGNAL_PROCESSING_DIR}/resample_by_2_internal.c
-		${WEBRTC_SIGNAL_PROCESSING_DIR}/resample_fractional.c
-		${WEBRTC_SIGNAL_PROCESSING_DIR}/resample_48khz.c
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/division_operations.c
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/energy.c
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/get_scaling_square.c
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/resample_by_2_internal.c
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/resample_fractional.c
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/resample_48khz.c
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/spl_inl.c
 	)
 endif()
 
@@ -287,8 +283,8 @@ if(ENABLE_AEC)
 	endif()
 
 	if(COMPILER_SUPPORTS_AVX2)
-		list(APPEND AEC3_SRCS
-				${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_avx2.cc
+		list(APPEND WEBRTC_SRC
+				${CMAKE_CURRENT_SOURCE_DIR}/common_audio/resampler/sinc_resampler_avx2.cc
 				${AEC3_SRC_DIR}/adaptive_fir_filter_avx2.cc
 				${AEC3_SRC_DIR}/adaptive_fir_filter_erl_avx2.cc
 				${AEC3_SRC_DIR}/fft_data_avx2.cc
@@ -298,42 +294,42 @@ if(ENABLE_AEC)
 	endif()
 
 	if(COMPILER_SUPPORTS_NEON OR COMPILER_SUPPORTS_ARMV8)
-		list(APPEND AEC3_SRCS
-			${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_neon.cc
-			${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc
+		list(APPEND WEBRTC_SRC
+			${CMAKE_CURRENT_SOURCE_DIR}/common_audio/resampler/sinc_resampler_neon.cc
+			${CMAKE_CURRENT_SOURCE_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc
 		)
 	elseif(COMPILER_SUPPORTS_SSE2)
-		list(APPEND AEC3_SRCS
-			${WEBRTC_AEC3_SRC_DIR}/common_audio/resampler/sinc_resampler_sse.cc
-			${WEBRTC_AEC3_SRC_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_sse2.cc
+		list(APPEND WEBRTC_SRC
+			${CMAKE_CURRENT_SOURCE_DIR}/common_audio/resampler/sinc_resampler_sse.cc
+			${CMAKE_CURRENT_SOURCE_DIR}/common_audio/third_party/ooura/fft_size_128/ooura_fft_sse2.cc
 		)
 	endif()
 endif()
 
 if(BUILD_SHARED_LIBS)
 	if(IOS)
-		add_library(mswebrtcaec SHARED ${AEC3_SRCS})
+		add_library(mswebrtc SHARED ${WEBRTC_SRC})
 	else()
-		add_library(mswebrtcaec MODULE ${AEC3_SRCS})
+		add_library(mswebrtc MODULE ${WEBRTC_SRC})
 	endif()
 else()
-	add_library(mswebrtcaec STATIC ${AEC3_SRCS})
+	add_library(mswebrtc STATIC ${WEBRTC_SRC})
 endif()
 
 if(ENABLE_AEC)
-	target_include_directories(mswebrtcaec PRIVATE
-		${WEBRTC_AEC3_SRC_DIR}
-		${AEC3_AUDIO_PROCESSING_DIR}
+	target_include_directories(mswebrtc PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}
+		${AUDIO_PROCESSING_DIR}
 		${AEC3_SRC_DIR}
-		${AEC3_API_DIR}
-		${WEBRTC_AEC3_SRC_DIR}/third_party/abseil-cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/api/audio
+		${CMAKE_CURRENT_SOURCE_DIR}/third_party/abseil-cpp
 	)
 endif()
 if(ENABLE_VAD)
-	target_include_directories(mswebrtcaec PRIVATE
+	target_include_directories(mswebrtc PRIVATE
 		${VAD_SRC_DIR}/include
-		${AEC3_RTCBASE_DIR}
-		${WEBRTC_SIGNAL_PROCESSING_DIR}/include
+		${RTCBASE_DIR}
+		${COMMON_AUDIO_SIGNAL_PROC_DIR}/include
 	)
 endif()
 
@@ -344,71 +340,71 @@ if(LIBM)
 	list(APPEND LIBS ${LIBM})
 endif()
 
-target_link_libraries(mswebrtcaec PRIVATE ${Mediastreamer2_TARGET} ${LIBS})
+target_link_libraries(mswebrtc PRIVATE ${Mediastreamer2_TARGET} ${LIBS})
 find_package(Threads REQUIRED)
-target_link_libraries(mswebrtcaec PRIVATE Threads::Threads)
+target_link_libraries(mswebrtc PRIVATE Threads::Threads)
 
 if(ENABLE_AEC)
 	if(COMPILER_IS_CLANG)
-		target_compile_definitions(mswebrtcaec PRIVATE WEBRTC_ENABLE_AVX2)
+		target_compile_definitions(mswebrtc PRIVATE WEBRTC_ENABLE_AVX2)
 	endif()
 	if(COMPILER_SUPPORTS_ARMV8)
-		target_compile_options(mswebrtcaec PRIVATE -march=armv8-a)
+		target_compile_options(mswebrtc PRIVATE -march=armv8-a)
 	endif()
 	if(COMPILER_SUPPORTS_NEON)
-		target_compile_options(mswebrtcaec PRIVATE -mfpu=neon)
+		target_compile_options(mswebrtc PRIVATE -mfpu=neon)
 	endif()
 	if(COMPILER_SUPPORTS_AVX2)
 		if(MSVC)
-			target_compile_options(mswebrtcaec PRIVATE "/arch:AVX2")
+			target_compile_options(mswebrtc PRIVATE "/arch:AVX2")
 		else()
-			target_compile_options(mswebrtcaec PRIVATE -mavx2)
-			target_compile_options(mswebrtcaec PRIVATE -mfma)
+			target_compile_options(mswebrtc PRIVATE -mavx2)
+			target_compile_options(mswebrtc PRIVATE -mfma)
 		endif()
 	endif()
 
 	if(MSVC)
-		target_compile_definitions(mswebrtcaec PRIVATE NOMINMAX)
+		target_compile_definitions(mswebrtc PRIVATE NOMINMAX)
 		if(COMPILER_SUPPORTS_SSE2)
-			target_compile_options(mswebrtcaec PRIVATE "/arch:SSE2")
+			target_compile_options(mswebrtc PRIVATE "/arch:SSE2")
 		endif()
 	else()
 		if(COMPILER_SUPPORTS_SSE2)
-			target_compile_options(mswebrtcaec PRIVATE -msse2)
+			target_compile_options(mswebrtc PRIVATE -msse2)
 		endif()
 	endif()
 endif()
 
-target_compile_definitions(mswebrtcaec PRIVATE WIN32_LEAN_AND_MEAN)
+target_compile_definitions(mswebrtc PRIVATE WIN32_LEAN_AND_MEAN)
 
 if(ANDROID)
-	target_link_libraries(mswebrtcaec PRIVATE log)
+	target_link_libraries(mswebrtc PRIVATE log)
 endif()
 
-set_target_properties(mswebrtcaec PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(mswebrtc PROPERTIES LINKER_LANGUAGE CXX)
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
-			set_target_properties(mswebrtcaec 	PROPERTIES
+			set_target_properties(mswebrtc 	PROPERTIES
 							FRAMEWORK TRUE
-							MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mswebrtcaec
+							MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mswebrtc
 							MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			)
 		endif()
 	endif()
 	if(MSVC)
-		install(FILES $<TARGET_PDB_FILE:mswebrtcaec>
+		install(FILES $<TARGET_PDB_FILE:mswebrtc>
 			DESTINATION ${CMAKE_INSTALL_BINDIR}
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			CONFIGURATIONS Debug RelWithDebInfo
 		)
 		if(NOT IOS)
-			set_target_properties(mswebrtcaec PROPERTIES PREFIX "lib")
+			set_target_properties(mswebrtc PROPERTIES PREFIX "lib")
 		endif()
 	endif()
 endif()
 
-install(TARGETS mswebrtcaec
+install(TARGETS mswebrtc
 	EXPORT LibLinphoneTargets
 	RUNTIME DESTINATION ${Mediastreamer2_PLUGINS_DIR}
 	LIBRARY DESTINATION ${Mediastreamer2_PLUGINS_DIR}

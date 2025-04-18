@@ -194,7 +194,6 @@ void mswebrtc_aec3::process(MSFilter *f) {
 			/* read from our no-delay buffer and output */
 			refm = allocb(nbytes, 0);
 			if (ms_flow_controlled_bufferizer_read(&ref, refm->b_wptr, nbytes) == 0) {
-				// FIXME FHA: crash happens here
 				MSBufferizer *obj = (MSBufferizer *)&ref;
 				ms_message("ref flow controlled bufferizer size is %d but nbytes is %d", (int)obj->size, (int)nbytes);
 				ms_fatal("Should never happen, read error on ref flow controlled bufferizer in AEC");
@@ -205,7 +204,6 @@ void mswebrtc_aec3::process(MSFilter *f) {
 
 		/*now read a valid buffer of delayed ref samples*/
 		if (ms_bufferizer_read(&delayed_ref, (uint8_t *)ref_data, nbytes) == 0) {
-			// FIXME FHA
 			MSBufferizer *obj = (MSBufferizer *)&ref;
 			ms_message("delayed ref bufferizer size is %d but nbytes is %d", (int)obj->size, (int)nbytes);
 			ms_fatal("Should never happen, read error on delayed ref flow controlled bufferizer in AEC");
@@ -224,8 +222,9 @@ void mswebrtc_aec3::process(MSFilter *f) {
 		// apply echo cancellation
 		EchoCanceller3Inst->AnalyzeCapture(capture_buffer.get());
 		EchoCanceller3Inst->AnalyzeRender(render_buffer.get());
-		EchoCanceller3Inst->ProcessCapture(capture_buffer.get(),
-		                                   false); // FIXME FHA set variable instead of false?
+		EchoCanceller3Inst->ProcessCapture(
+		    capture_buffer.get(),
+		    false); // the echo path gain level change is set to false by default but it could be improved
 
 		webrtc::EchoCanceller3::Metrics aec_metrics = EchoCanceller3Inst->GetMetrics();
 		delay_ms = aec_metrics.delay_ms;

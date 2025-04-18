@@ -22,9 +22,6 @@
 #endif
 
 #include "mediastreamer2/msfilter.h"
-// #include "signal_processing_library.h"
-
-// #include "mediastreamer2/mscodecutils.h"
 
 #ifdef BUILD_AEC
 extern MSFilterDesc ms_webrtc_aec_desc;
@@ -43,7 +40,7 @@ extern MSFilterDesc ms_webrtc_vad_desc;
 #define MS_PLUGIN_DECLARE(type) type
 #endif
 
-MS_PLUGIN_DECLARE(void) libmswebrtcaec_init(MSFactory *factory) {
+MS_PLUGIN_DECLARE(void) libmswebrtc_init(MSFactory *factory) {
 
 #ifdef BUILD_AEC
 	ms_factory_register_filter(factory, &ms_webrtc_aec_desc);
@@ -52,5 +49,5 @@ MS_PLUGIN_DECLARE(void) libmswebrtcaec_init(MSFactory *factory) {
 	ms_factory_register_filter(factory, &ms_webrtc_vad_desc);
 #endif
 
-	ms_message("libmswebrtcaec " VERSION " plugin loaded");
+	ms_message("libmswebrtc " VERSION " plugin loaded");
 }

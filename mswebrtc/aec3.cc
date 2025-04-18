@@ -70,8 +70,8 @@ static int webrtc_aec_set_framesize(MSFilter *f, void *arg) {
 }
 
 static int webrtc_aec_set_delay(MSFilter *f, void *arg) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
-	aecInst->set_delay(*static_cast<int *>(arg));
+	/* Do nothing because the WebRTC echo canceller 3 estimates continuously the delay. */
+	ms_message("The provided delay is not set to the echo canceller of WebRTC, because it uses its own estimation.");
 	return 0;
 }
 
@@ -123,25 +123,17 @@ static MSFilterMethod webrtc_aec_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, webrtc
                                               {MS_ECHO_CANCELLER_GET_DELAY, webrtc_aec_get_delay},
                                               {0, NULL}};
 
-MSFilterDesc ms_webrtc_aec_desc = {MS_FILTER_PLUGIN_ID,
-                                   "MSWebRTCAEC",
-                                   "Echo canceller using WebRTC library.",
-                                   MS_FILTER_OTHER,
-                                   NULL,
-                                   2,
-                                   2,
-                                   webrtc_aec_init,
-                                   webrtc_aec_preprocess,
-                                   webrtc_aec_process,
-                                   webrtc_aec_postprocess,
-                                   webrtc_aec_uninit,
-                                   webrtc_aec_methods,
-                                   0};
-
-#ifdef _MSC_VER
-#define MS_PLUGIN_DECLARE(type) extern "C" __declspec(dllexport) type
-#else
-#define MS_PLUGIN_DECLARE(type) extern "C" type
-#endif
-
-MS_FILTER_DESC_EXPORT(ms_webrtc_aec_desc)
+extern "C" MSFilterDesc ms_webrtc_aec_desc = {MS_FILTER_PLUGIN_ID,
+                                              "MSWebRTCAEC",
+                                              "Echo canceller using WebRTC library.",
+                                              MS_FILTER_OTHER,
+                                              NULL,
+                                              2,
+                                              2,
+                                              webrtc_aec_init,
+                                              webrtc_aec_preprocess,
+                                              webrtc_aec_process,
+                                              webrtc_aec_postprocess,
+                                              webrtc_aec_uninit,
+                                              webrtc_aec_methods,
+                                              0};

@@ -140,25 +140,17 @@ static MSFilterMethod vad_methods[] = {{MS_VAD_ENABLE_SILENCE_DETECTION, vad_ena
                                        {MS_FILTER_SET_SAMPLE_RATE, vad_set_sample_rate},
                                        {0, nullptr}};
 
-MSFilterDesc ms_webrtc_vad_desc = {MS_FILTER_PLUGIN_ID,
-                                   "MSWebRtcVADDec",
-                                   "WebRtc's VAD (new)",
-                                   MS_FILTER_OTHER,
-                                   "VAD",
-                                   1, // Inputs
-                                   1, // Outputs
-                                   vad_init,
-                                   nullptr,
-                                   vad_process,
-                                   nullptr,
-                                   vad_uninit,
-                                   vad_methods,
-                                   0};
-
-#ifdef _MSC_VER
-#define MS_PLUGIN_DECLARE(type) extern "C" __declspec(dllexport) type
-#else
-#define MS_PLUGIN_DECLARE(type) extern "C" type
-#endif
-
-MS_FILTER_DESC_EXPORT(ms_webrtc_vad_desc)
+extern "C" MSFilterDesc ms_webrtc_vad_desc = {MS_FILTER_PLUGIN_ID,
+                                              "MSWebRtcVADDec",
+                                              "WebRtc's VAD",
+                                              MS_FILTER_OTHER,
+                                              "VAD",
+                                              1, // Inputs
+                                              1, // Outputs
+                                              vad_init,
+                                              nullptr,
+                                              vad_process,
+                                              nullptr,
+                                              vad_uninit,
+                                              vad_methods,
+                                              0};
