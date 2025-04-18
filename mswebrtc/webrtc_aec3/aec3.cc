@@ -144,7 +144,4 @@ MSFilterDesc ms_webrtc_aec_desc = {MS_FILTER_PLUGIN_ID,
 #define MS_PLUGIN_DECLARE(type) extern "C" type
 #endif
 
-MS_PLUGIN_DECLARE(void) libmswebrtcaec_init(MSFactory *factory) {
-	ms_factory_register_filter(factory, &ms_webrtc_aec_desc);
-	ms_message("libmswebrtcaec plugin registered.");
-}
+MS_FILTER_DESC_EXPORT(ms_webrtc_aec_desc)

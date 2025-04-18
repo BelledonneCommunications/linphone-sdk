@@ -32,3 +32,4 @@
 #cmakedefine HAVE_MEDIASTREAMER2_MSCOMMON_H
 
 #cmakedefine BUILD_AEC
+#cmakedefine BUILD_VAD
