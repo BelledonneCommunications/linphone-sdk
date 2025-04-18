@@ -104,7 +104,7 @@ physical-swift-iOS-test:
     # Test build & launch
     - |
         EXIT_XCODEBUILD_CODE=0
-        xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$TESTER_DNS" || EXIT_XCODEBUILD_CODE=$?
+        xcodebuild -scheme LinphoneTester -destination "platform=iOS,name=$TEST_IPHONE_NAME" test -resultBundlePath "$XCODERESULT_NAME" LINPHONETESTER_FLEXISIP_DNS="$LIBLINPHONE_TESTER_DNS" || EXIT_XCODEBUILD_CODE=$?
 
         echo "EXIT_XCODEBUILD_CODE=$EXIT_XCODEBUILD_CODE"
         echo "generating xml results in $SWIFT_TESTS_OUTPUT.xml"
@@ -126,29 +126,6 @@ physical-swift-iOS-test:
         fi;
     
   after_script:
-
-    - BRANCH=$CI_COMMIT_REF_NAME
-    - echo $BRANCH
-    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
-    - echo $ESCAPED_BRANCH
-    - COMMIT=$(git describe)
-    - echo $COMMIT
-    - URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report
-
-    - echo "<\!DOCTYPE HTML>" >> index.html
-    - echo "<meta charset=\"UTF-8\">" >> index.html
-    - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
-    - echo "<script>" >> index.html
-    - echo "  window.location.href = \"$URL\"" >> index.html
-    - echo "</script>" >> index.html
-    - echo "<title>Page Redirection</title>" >> index.html
-    - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
-    - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
-    - cat index.html
-
-    - echo "TEST REPORTS URL $URL"
-
-    - echo "alias URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report"
 
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results
