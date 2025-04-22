@@ -357,7 +357,7 @@ static bool_t load_shaders(struct opengles_display *gldisp) {
 	GL_OPERATION(f, glGenBuffers(1, &gldisp->arrayBufferHandle))
 	GL_OPERATION(f, glBindBuffer(GL_ARRAY_BUFFER, gldisp->arrayBufferHandle))
 	// Allocate buffer (uninitialized)
-	GL_OPERATION(f, glBufferData(GL_ARRAY_BUFFER, (GLsizei *)ARRAY_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW))
+	GL_OPERATION(f, glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)ARRAY_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW))
 	bind_vertex_shader_input(f);
 
 	GLuint program = f->glCreateProgram();
@@ -779,7 +779,7 @@ static void ogl_display_render_type(struct opengles_display *gldisp,
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][V]))
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
 
-	GL_OPERATION(f, glBufferSubData(GL_ARRAY_BUFFER, (GLint *)0, (GLsizei *)ARRAY_BUFFER_SIZE, arrayBuffer))
+	GL_OPERATION(f, glBufferSubData(GL_ARRAY_BUFFER, 0, ARRAY_BUFFER_SIZE, arrayBuffer))
 
 	GL_OPERATION(f, glDrawArrays(GL_TRIANGLE_STRIP, 0, 4))
 
@@ -787,7 +787,7 @@ static void ogl_display_render_type(struct opengles_display *gldisp,
 }
 
 // -----------------------------------------------------------------------------
-struct opengles_display *ogl_display_new() {
+struct opengles_display *ogl_display_new(void) {
 	struct opengles_display *result = (struct opengles_display *)malloc(sizeof(struct opengles_display));
 	if (result == 0) {
 		ms_error("[ogl_display] Could not allocate OpenGL display structure");
