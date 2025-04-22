@@ -29,7 +29,7 @@
  * This file is the main() entry point for belle-sip-tester UNIX executable.
  */
 
-#if !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) &&                                                             \
+#if !defined(__ANDROID__) && !(TARGET_OS_IPHONE == 1) &&                                                               \
     !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
 
 static const char *belle_sip_helper =
