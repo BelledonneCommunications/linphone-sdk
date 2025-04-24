@@ -37,6 +37,7 @@ struct _MSAudioConference {
 	bctbx_list_t *members; /* list of MSAudioEndpoint */
 	int nmembers;
 	MSAudioEndpoint *active_speaker;
+	uint32_t current_speaker_ssrc;
 };
 
 struct _MSAudioEndpoint {
@@ -417,6 +418,7 @@ int ms_audio_conference_get_participant_volume(MSAudioConference *obj, uint32_t 
 void ms_audio_conference_process_events(MSAudioConference *obj) {
 	const bctbx_list_t *elem;
 	MSAudioEndpoint *winner = NULL;
+	uint32_t winner_ssrc = 0;
 
 	if (obj->params.mode == MSConferenceModeRouterFullPacket) {
 		int pin = -1;
@@ -447,16 +449,37 @@ void ms_audio_conference_process_events(MSAudioConference *obj) {
 					if (max_db > audio_threshold_min_db && max_db > max_db_over_member) {
 						max_db_over_member = max_db;
 						winner = ep;
+						winner_ssrc = is_remote ? rtp_session_get_recv_ssrc(ep->st->ms.sessions.rtp_session)
+						                        : rtp_session_get_send_ssrc(ep->st->ms.sessions.rtp_session);
 					}
 				}
 			}
 		}
 	}
 
+	// Notify the active speaker
 	if (obj->active_speaker != winner && winner != NULL) {
 		ms_message("Active speaker changed: now on pin %i", winner->pin);
 		if (obj->params.active_talker_callback) obj->params.active_talker_callback(obj, winner);
 		obj->active_speaker = winner;
+	}
+
+	if (obj->params.mode == MSConferenceModeMixer && winner_ssrc != obj->current_speaker_ssrc) {
+		// Add the ssrc of the winner in the contributing sources into each of the RtpSession
+		for (elem = obj->members; elem != NULL; elem = elem->next) {
+			MSAudioEndpoint *ep = (MSAudioEndpoint *)elem->data;
+
+			// Only do it if the mixer-to-client extension is not set
+			if (ep->st == NULL || ep->st->mixer_to_client_extension_id > 0) continue;
+
+			rtp_session_clear_contributing_sources(ep->st->ms.sessions.rtp_session);
+
+			if (winner_ssrc > 0)
+				rtp_session_add_contributing_source(ep->st->ms.sessions.rtp_session, winner_ssrc, NULL, NULL, NULL,
+				                                    NULL, NULL, NULL, NULL);
+		}
+
+		obj->current_speaker_ssrc = winner_ssrc;
 	}
 }
 
