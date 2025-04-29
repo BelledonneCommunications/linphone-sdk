@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2024 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -29,85 +29,82 @@
 #include <memory>
 #include <optional>
 
-#include "mediastreamer2/msfilter.h"
-
 #include "api/audio/audio_processing.h"
 #include "api/audio/echo_canceller3_config.h"
+#include "mediastreamer2/msfilter.h"
+#include "modules/audio_processing/aec3/echo_canceller3.h"
 #include "modules/audio_processing/audio_buffer.h"
 #include "mswebrtc_aec3.h"
-
-#include "modules/audio_processing/aec3/echo_canceller3.h"
 
 #define EC_DUMP 0
 
 namespace mswebrtc_aec3 {
 
-mswebrtc_aec3::mswebrtc_aec3(MSFilter *f) {
-	sample_rate_Hz = 16000;
-	delay_ms = 0;
-	echo_return_loss = 0.;
-	echo_return_loss_enhancement = 0.;
-	num_samples = 160;
-	nbytes = num_samples * sizeof(int16_t);
-	state_str = nullptr;
-	ms_bufferizer_init(&delayed_ref);
-	ms_bufferizer_init(&echo);
-	ms_flow_controlled_bufferizer_init(&ref, f, sample_rate_Hz, num_channels);
-	echostarted = false;
-	bypass_mode = false;
-	using_zeroes = false;
+mswebrtc_aec3::mswebrtc_aec3(MSFilter *filter) {
+	mSampleRateInHz = 16000;
+	mDelayInMs = 0;
+	mEchoReturnLoss = 0.0;
+	mEchoReturnLossEnhancement = 0.0;
+	mNumSamples = 160;
+	mNbytes = mNumSamples * sizeof(int16_t);
+	mStateStr = nullptr;
+	ms_bufferizer_init(&mDelayedRef);
+	ms_bufferizer_init(&mEcho);
+	ms_flow_controlled_bufferizer_init(&mRef, filter, mSampleRateInHz, kNumChannels);
+	mEchoStarted = false;
+	mBypassMode = false;
+	mUsingZeroes = false;
 }
 
 void mswebrtc_aec3::uninit() {
-	if (state_str) ms_free(state_str);
-	if (delayed_ref.size > 0) {
-		ms_bufferizer_uninit(&delayed_ref);
+	if (mStateStr) ms_free(mStateStr);
+	if (mDelayedRef.size > 0) {
+		ms_bufferizer_uninit(&mDelayedRef);
 	}
 }
 
 void mswebrtc_aec3::configure_flow_controlled_bufferizer() {
-	ms_flow_controlled_bufferizer_set_samplerate(&ref, sample_rate_Hz);
-	ms_flow_controlled_bufferizer_set_max_size_ms(&ref, 50);
-	ms_flow_controlled_bufferizer_set_granularity_ms(&ref, framesize_ms);
+	ms_flow_controlled_bufferizer_set_samplerate(&mRef, mSampleRateInHz);
+	ms_flow_controlled_bufferizer_set_max_size_ms(&mRef, 50);
+	ms_flow_controlled_bufferizer_set_granularity_ms(&mRef, kFramesizeMs);
 }
 
 void mswebrtc_aec3::preprocess() {
-
-	if (!webrtc::ValidFullBandRate(sample_rate_Hz)) {
+	if (!webrtc::ValidFullBandRate(mSampleRateInHz)) {
 		ms_error(
 		    "WebRTC echo canceller 3 does not support %d sample rate. Accepted values are 16000, 32000 or 48000 Hz.",
-		    sample_rate_Hz);
-		bypass_mode = true;
+		    mSampleRateInHz);
+		mBypassMode = true;
 		ms_error("Entering bypass mode");
 		return;
 	}
 
 	ms_message("Initializing WebRTC echo canceler 3 with sample rate = %i Hz, frame %i ms, %i samples, initial delay "
 	           "is %i ms, %i channel",
-	           sample_rate_Hz, framesize_ms, rtc::CheckedDivExact(sample_rate_Hz, 100), delay_ms, num_channels);
+	           mSampleRateInHz, kFramesizeMs, rtc::CheckedDivExact(mSampleRateInHz, 100), mDelayInMs, kNumChannels);
 	configure_flow_controlled_bufferizer();
-	const webrtc::EchoCanceller3Config aec_config = webrtc::EchoCanceller3Config();
-	EchoCanceller3Inst =
-	    std::make_unique<webrtc::EchoCanceller3>(aec_config, std::nullopt, sample_rate_Hz, num_channels, num_channels);
-	if (delay_ms != 0) {
-		EchoCanceller3Inst->SetAudioBufferDelay(delay_ms);
+	const webrtc::EchoCanceller3Config aecConfig = webrtc::EchoCanceller3Config();
+	mEchoCanceller3Inst =
+	    std::make_unique<webrtc::EchoCanceller3>(aecConfig, std::nullopt, mSampleRateInHz, kNumChannels, kNumChannels);
+	if (mDelayInMs != 0) {
+		mEchoCanceller3Inst->SetAudioBufferDelay(mDelayInMs);
 	}
 
-	if (!EchoCanceller3Inst) {
-		bypass_mode = true;
+	if (!mEchoCanceller3Inst) {
+		mBypassMode = true;
 		ms_error("EchoCanceller3 error at creation, entering bypass mode");
 		return;
 	}
 
-	num_samples = rtc::CheckedDivExact(sample_rate_Hz, 100);
-	nbytes = num_samples * sizeof(int16_t);
+	mNumSamples = rtc::CheckedDivExact(mSampleRateInHz, 100);
+	mNbytes = mNumSamples * sizeof(int16_t);
 
-	// initialize audio buffers
-	capture_buffer = std::make_unique<webrtc::AudioBuffer>(sample_rate_Hz, num_channels, sample_rate_Hz, num_channels,
-	                                                       sample_rate_Hz, num_channels);
-	render_buffer = std::make_unique<webrtc::AudioBuffer>(sample_rate_Hz, num_channels, sample_rate_Hz, num_channels,
-	                                                      sample_rate_Hz, num_channels);
-	stream_config = webrtc::StreamConfig(sample_rate_Hz, num_channels);
+	// Initialize audio buffers
+	mCaptureBuffer = std::make_unique<webrtc::AudioBuffer>(mSampleRateInHz, kNumChannels, mSampleRateInHz, kNumChannels,
+	                                                       mSampleRateInHz, kNumChannels);
+	mRenderBuffer = std::make_unique<webrtc::AudioBuffer>(mSampleRateInHz, kNumChannels, mSampleRateInHz, kNumChannels,
+	                                                      mSampleRateInHz, kNumChannels);
+	mStreamConfig = webrtc::StreamConfig(mSampleRateInHz, kNumChannels);
 
 	return;
 }
@@ -118,52 +115,51 @@ void mswebrtc_aec3::preprocess() {
  *	outputs[0]= is a copy of inputs[0] to be sent to soundcard
  *	outputs[1]= near end speech, echo removed - towards far end
  */
-void mswebrtc_aec3::process(MSFilter *f) {
-
+void mswebrtc_aec3::process(MSFilter *filter) {
 	mblk_t *refm;
 
-	if (bypass_mode) {
-		while ((refm = ms_queue_get(f->inputs[0])) != NULL) {
-			ms_queue_put(f->outputs[0], refm);
+	if (mBypassMode) {
+		while ((refm = ms_queue_get(filter->inputs[0])) != NULL) {
+			ms_queue_put(filter->outputs[0], refm);
 		}
-		while ((refm = ms_queue_get(f->inputs[1])) != NULL) {
-			ms_queue_put(f->outputs[1], refm);
+		while ((refm = ms_queue_get(filter->inputs[1])) != NULL) {
+			ms_queue_put(filter->outputs[1], refm);
 		}
 		return;
 	}
 
-	if (f->inputs[0] != nullptr) {
-		if (echostarted) {
-			while ((refm = ms_queue_get(f->inputs[0])) != NULL) {
+	if (filter->inputs[0] != nullptr) {
+		if (mEchoStarted) {
+			while ((refm = ms_queue_get(filter->inputs[0])) != NULL) {
 				mblk_t *cp = dupmsg(refm);
-				ms_bufferizer_put(&delayed_ref, cp);
-				ms_flow_controlled_bufferizer_put(&ref, refm);
+				ms_bufferizer_put(&mDelayedRef, cp);
+				ms_flow_controlled_bufferizer_put(&mRef, refm);
 			}
 		} else {
 			ms_warning("Getting reference signal but no echo to synchronize on.");
-			ms_queue_flush(f->inputs[0]);
+			ms_queue_flush(filter->inputs[0]);
 		}
 	}
 
-	ms_bufferizer_put_from_queue(&echo, f->inputs[1]);
+	ms_bufferizer_put_from_queue(&mEcho, filter->inputs[1]);
 
-	int16_t *ref_data, *echo_data;
-	ref_data = (int16_t *)alloca(nbytes);
-	echo_data = (int16_t *)alloca(nbytes);
+	int16_t *refData, *echoData;
+	refData = (int16_t *)alloca(mNbytes);
+	echoData = (int16_t *)alloca(mNbytes);
 
-	while (ms_bufferizer_read(&echo, (uint8_t *)echo_data, (size_t)nbytes) >= static_cast<size_t>(nbytes)) {
-		mblk_t *oecho = allocb(nbytes, 0);
+	while (ms_bufferizer_read(&mEcho, (uint8_t *)echoData, (size_t)mNbytes) >= static_cast<size_t>(mNbytes)) {
+		mblk_t *oEcho = allocb(mNbytes, 0);
 		int avail;
 
-		if (!echostarted) echostarted = TRUE;
+		if (!mEchoStarted) mEchoStarted = TRUE;
 
-		if ((avail = static_cast<int>(ms_bufferizer_get_avail(&delayed_ref))) < nbytes) {
+		if ((avail = static_cast<int>(ms_bufferizer_get_avail(&mDelayedRef))) < mNbytes) {
 			/*we don't have enough to read in a reference signal buffer, inject
 			 * silence instead*/
-			refm = allocb(nbytes, 0);
-			memset(refm->b_wptr, 0, nbytes);
-			refm->b_wptr += nbytes;
-			ms_bufferizer_put(&delayed_ref, refm);
+			refm = allocb(mNbytes, 0);
+			memset(refm->b_wptr, 0, mNbytes);
+			refm->b_wptr += mNbytes;
+			ms_bufferizer_put(&mDelayedRef, refm);
 			/*
 			 * However, we don't inject this silence buffer to the sound card, in
 			 * order to break the following bad loop:
@@ -182,98 +178,99 @@ void mswebrtc_aec3::process(MSFilter *f) {
 			 * take into account the situation.
 			 *
 			 */
-			if (!using_zeroes) {
+			if (!mUsingZeroes) {
 				ms_warning("Not enough ref samples, using zeroes");
-				using_zeroes = true;
+				mUsingZeroes = true;
 			}
 		} else {
-			if (using_zeroes) {
+			if (mUsingZeroes) {
 				ms_message("Samples are back.");
-				using_zeroes = false;
+				mUsingZeroes = false;
 			}
 			/* read from our no-delay buffer and output */
-			refm = allocb(nbytes, 0);
-			if (ms_flow_controlled_bufferizer_read(&ref, refm->b_wptr, nbytes) == 0) {
-				MSBufferizer *obj = (MSBufferizer *)&ref;
-				ms_message("ref flow controlled bufferizer size is %d but nbytes is %d", (int)obj->size, (int)nbytes);
+			refm = allocb(mNbytes, 0);
+			if (ms_flow_controlled_bufferizer_read(&mRef, refm->b_wptr, mNbytes) == 0) {
+				MSBufferizer *obj = (MSBufferizer *)&mRef;
+				ms_message("ref flow controlled bufferizer size is %d but mNbytes is %d", (int)obj->size, (int)mNbytes);
 				ms_fatal("Should never happen, read error on ref flow controlled bufferizer in AEC");
 			}
-			refm->b_wptr += nbytes;
-			ms_queue_put(f->outputs[0], refm);
+			refm->b_wptr += mNbytes;
+			ms_queue_put(filter->outputs[0], refm);
 		}
 
 		/*now read a valid buffer of delayed ref samples*/
-		if (ms_bufferizer_read(&delayed_ref, (uint8_t *)ref_data, nbytes) == 0) {
-			MSBufferizer *obj = (MSBufferizer *)&ref;
-			ms_message("delayed ref bufferizer size is %d but nbytes is %d", (int)obj->size, (int)nbytes);
+		if (ms_bufferizer_read(&mDelayedRef, (uint8_t *)refData, mNbytes) == 0) {
+			MSBufferizer *obj = (MSBufferizer *)&mRef;
+			ms_message("delayed ref bufferizer size is %d but mNbytes is %d", (int)obj->size, (int)mNbytes);
 			ms_fatal("Should never happen, read error on delayed ref flow controlled bufferizer in AEC");
 		}
-		avail -= nbytes;
+		avail -= mNbytes;
 
 		// fill audio buffer
-		capture_buffer->webrtc::AudioBuffer::CopyFrom(echo_data, stream_config);
-		render_buffer->webrtc::AudioBuffer::CopyFrom(ref_data, stream_config);
+		mCaptureBuffer->webrtc::AudioBuffer::CopyFrom(echoData, mStreamConfig);
+		mRenderBuffer->webrtc::AudioBuffer::CopyFrom(refData, mStreamConfig);
 
-		if (sample_rate_Hz > webrtc::AudioProcessing::kSampleRate16kHz) {
-			capture_buffer->SplitIntoFrequencyBands();
-			render_buffer->SplitIntoFrequencyBands();
+		if (mSampleRateInHz > webrtc::AudioProcessing::kSampleRate16kHz) {
+			mCaptureBuffer->SplitIntoFrequencyBands();
+			mRenderBuffer->SplitIntoFrequencyBands();
 		}
 
 		// apply echo cancellation
-		EchoCanceller3Inst->AnalyzeCapture(capture_buffer.get());
-		EchoCanceller3Inst->AnalyzeRender(render_buffer.get());
-		EchoCanceller3Inst->ProcessCapture(
-		    capture_buffer.get(),
+		mEchoCanceller3Inst->AnalyzeCapture(mCaptureBuffer.get());
+		mEchoCanceller3Inst->AnalyzeRender(mRenderBuffer.get());
+		mEchoCanceller3Inst->ProcessCapture(
+		    mCaptureBuffer.get(),
 		    false); // the echo path gain level change is set to false by default but it could be improved
 
-		webrtc::EchoCanceller3::Metrics aec_metrics = EchoCanceller3Inst->GetMetrics();
-		delay_ms = aec_metrics.delay_ms;
-		echo_return_loss = aec_metrics.echo_return_loss;
-		echo_return_loss_enhancement = aec_metrics.echo_return_loss_enhancement;
+		webrtc::EchoCanceller3::Metrics aecMetrics = mEchoCanceller3Inst->GetMetrics();
+		mDelayInMs = aecMetrics.delay_ms;
+		mEchoReturnLoss = aecMetrics.echo_return_loss;
+		mEchoReturnLossEnhancement = aecMetrics.echo_return_loss_enhancement;
 #if defined(EC_DUMP) && EC_DUMP
-		ms_message("current metrics : delay = %d ms, ERL = %f, ERLE = %f", aec_metrics.delay_ms,
-		           aec_metrics.echo_return_loss, aec_metrics.echo_return_loss_enhancement);
+		ms_message("current metrics : delay = %d ms, ERL = %f, ERLE = %f", aecMetrics.delay_ms,
+		           aecMetrics.echo_return_loss, aecMetrics.echo_return_loss_enhancement);
 #endif
 
 		// get processed capture
-		if (sample_rate_Hz > webrtc::AudioProcessing::kSampleRate16kHz) {
-			capture_buffer->MergeFrequencyBands();
+		if (mSampleRateInHz > webrtc::AudioProcessing::kSampleRate16kHz) {
+			mCaptureBuffer->MergeFrequencyBands();
 		}
 
-		capture_buffer->CopyTo(stream_config, (int16_t *)oecho->b_wptr);
-		oecho->b_wptr += nbytes;
-		ms_queue_put(f->outputs[1], oecho);
+		mCaptureBuffer->CopyTo(mStreamConfig, (int16_t *)oEcho->b_wptr);
+		oEcho->b_wptr += mNbytes;
+		ms_queue_put(filter->outputs[1], oEcho);
 	}
 }
 
 void mswebrtc_aec3::postprocess() {
-	ms_bufferizer_flush(&delayed_ref);
-	ms_bufferizer_flush(&echo);
-	ms_flow_controlled_bufferizer_flush(&ref);
-	if (EchoCanceller3Inst != nullptr) {
-		EchoCanceller3Inst = nullptr;
+	ms_bufferizer_flush(&mDelayedRef);
+	ms_bufferizer_flush(&mEcho);
+	ms_flow_controlled_bufferizer_flush(&mRef);
+	if (mEchoCanceller3Inst != nullptr) {
+		mEchoCanceller3Inst = nullptr;
 	}
-	if (capture_buffer != nullptr) {
-		capture_buffer.reset();
+	if (mCaptureBuffer != nullptr) {
+		mCaptureBuffer.reset();
 	}
-	if (render_buffer != nullptr) {
-		render_buffer.reset();
+	if (mRenderBuffer != nullptr) {
+		mRenderBuffer.reset();
 	}
 }
 
-int mswebrtc_aec3::set_sample_rate(int requested_rate) {
-	if (requested_rate >= 48000) {
-		sample_rate_Hz = 48000;
-	} else if (requested_rate >= 32000) {
-		sample_rate_Hz = 32000;
+int mswebrtc_aec3::set_sample_rate(int requestedRateInHz) {
+	if (requestedRateInHz >= 48000) {
+		mSampleRateInHz = 48000;
+	} else if (requestedRateInHz >= 32000) {
+		mSampleRateInHz = 32000;
 	} else {
-		sample_rate_Hz = 16000;
+		mSampleRateInHz = 16000;
 	}
-	if (sample_rate_Hz != requested_rate)
-		ms_message("Webrtc AEC3 does not support sampling rate %i, using %i instead", requested_rate, sample_rate_Hz);
+	if (mSampleRateInHz != requestedRateInHz)
+		ms_message("Webrtc AEC3 does not support sampling rate %i, using %i instead", requestedRateInHz,
+		           mSampleRateInHz);
 	configure_flow_controlled_bufferizer();
-	ms_message("sampling rate: %d - %d Hz", requested_rate, sample_rate_Hz);
-	return sample_rate_Hz;
+	ms_message("sampling rate: %d - %d Hz", requestedRateInHz, mSampleRateInHz);
+	return mSampleRateInHz;
 }
 
 } // namespace mswebrtc_aec3
