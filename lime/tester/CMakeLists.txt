@@ -54,7 +54,6 @@ if(ANDROID OR IOS)
 	endif()
 	if(IOS)
 		target_link_libraries(limetester PRIVATE sqlite3)
-		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		set_target_properties(limetester PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.limetester
