@@ -256,7 +256,7 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;	
 }
 
-static void _aaudio_player_init(AAudioOutputContext *octx, bool skip_update_stream_type) {
+static void _aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
 	AAudioStream *stream = nullptr;
 
@@ -265,11 +265,7 @@ static void _aaudio_player_init(AAudioOutputContext *octx, bool skip_update_stre
 		ms_error("[AAudio Player] Couldn't create stream builder for player: %s (%i)", AAudio_convertResultToText(result), result);
 	}
 
-	if (skip_update_stream_type) {
-		ms_message("[AAudio Player] Stream restarts due to device being changed (probably), do not apply sound card stream type configuration");
-	} else {
-		octx->updateStreamTypeFromMsSndCard();
-	}
+	octx->updateStreamTypeFromMsSndCard();
 
 	if (ms_android_sound_utils_is_audio_route_changes_disabled(octx->sound_utils)) {
 		ms_warning("[AAudio Player] Not using any device ID because audio route changes are disabled by configuration");
@@ -372,12 +368,7 @@ static void _aaudio_player_init(AAudioOutputContext *octx, bool skip_update_stre
 }
 
 static bool_t aaudio_player_init(AAudioOutputContext *octx) {
-	_aaudio_player_init(octx, FALSE);
-	return TRUE;
-}
-
-static bool_t aaudio_player_init_skip_update_stream_type(AAudioOutputContext *octx) {
-	_aaudio_player_init(octx, TRUE);
+	_aaudio_player_init(octx);
 	return TRUE;
 }
 
@@ -411,7 +402,7 @@ static bool_t aaudio_player_close(AAudioOutputContext *octx) {
 static bool_t aaudio_player_restart(AAudioOutputContext *octx) {
 	ms_message("[AAudio Player] Restarting stream");
 	aaudio_player_close(octx);
-	_aaudio_player_init(octx, TRUE);
+	_aaudio_player_init(octx);
 	ms_message("[AAudio Player] Stream was restarted");
 
 	return TRUE;
