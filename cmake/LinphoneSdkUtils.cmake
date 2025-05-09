@@ -45,7 +45,7 @@ function(linphone_sdk_get_inherited_cmake_args OUTPUT_CONFIGURE_ARGS_VAR OUTPUT_
 	# We may need to define where the Python installation is located and pass it to the external projects.
 	get_cmake_property(_VARIABLE_NAMES VARIABLES)
 	foreach(_VARIABLE_NAME ${_VARIABLE_NAMES})
-		if(_VARIABLE_NAME MATCHES "^Python3_ROOT_DIR$")
+		if(_VARIABLE_NAME MATCHES "^Python3_ROOT_DIR$" OR _VARIABLE_NAME MATCHES "^Python3_EXECUTABLE$")
 			list(APPEND _CMAKE_CONFIGURE_ARGS "-D${_VARIABLE_NAME}=${${_VARIABLE_NAME}}")
 		endif()
 	endforeach()
