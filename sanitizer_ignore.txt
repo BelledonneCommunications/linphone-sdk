@@ -5,6 +5,12 @@ leak:pa_xmalloc
 leak:convert_hostent_to_gaih_addrtuple
 leak:d_growable_string_callback_adapter
 
+# gcc/libc leak related to usage of thread local storage, that is not always properly released.
+# It may be related to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=113401
+leak:__cxa_thread_atexit_impl
+leak:bctbx_get_log_tags
+leak:bctbx_paste_log_tags
+
 # Files that contains suites that are, for now, known to leak
 leak:eventapi_tester.c
 leak:external_domain_tester.c
