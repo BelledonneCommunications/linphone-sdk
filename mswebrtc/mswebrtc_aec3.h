@@ -27,7 +27,7 @@ namespace mswebrtc_aec3 {
  */
 class mswebrtc_aec3 {
 private:
-	void configure_flow_controlled_bufferizer();
+	void configureFlowControlledBufferizer();
 
 	const int kFramesizeMs = 100;
 	const int kNumChannels = 1;
@@ -57,33 +57,33 @@ public:
 	void preprocess();
 	void process(MSFilter *filter);
 	void postprocess();
-	int set_sample_rate(int requestedRateInHz);
-	int get_sample_rate() {
+	int setSampleRate(int requestedRateInHz);
+	int getSampleRate() {
 		return mSampleRateInHz;
 	}
-	void set_delay(int requestedDelayInMs) {
+	void setDelay(int requestedDelayInMs) {
 		mDelayInMs = requestedDelayInMs;
 	}
-	int get_delay() {
+	int getDelay() {
 		return mDelayInMs;
 	}
-	int get_erl() {
+	int getErl() {
 		return mEchoReturnLoss;
 	}
-	int get_erle() {
+	int getErle() {
 		return mEchoReturnLossEnhancement;
 	}
-	void set_bypass_mode(bool bypass) {
+	void setBypassMode(bool bypass) {
 		mBypassMode = bypass;
 		ms_message("set EC bypass mode to [%i]", mBypassMode);
 	}
-	bool get_bypass_mode() {
+	bool getBypassMode() {
 		return mBypassMode;
 	}
-	void set_state(char *state) {
+	void setState(char *state) {
 		mStateStr = state;
 	}
-	char *get_state() {
+	char *getState() {
 		return mStateStr;
 	}
 };

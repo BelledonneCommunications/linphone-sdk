@@ -54,12 +54,12 @@ static void webrtc_aec_postprocess(MSFilter *f) {
 
 static int webrtc_aec_set_sample_rate(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
-	return aecInst->set_sample_rate(*static_cast<int *>(arg));
+	return aecInst->setSampleRate(*static_cast<int *>(arg));
 }
 
 static int webrtc_aec_get_sample_rate(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
-	*static_cast<int *>(arg) = aecInst->get_sample_rate();
+	*static_cast<int *>(arg) = aecInst->getSampleRate();
 	return 0;
 }
 
@@ -77,7 +77,7 @@ static int webrtc_aec_set_delay(MSFilter *f, void *arg) {
 
 static int webrtc_aec_get_delay(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
-	*static_cast<int *>(arg) = aecInst->get_delay();
+	*static_cast<int *>(arg) = aecInst->getDelay();
 	return 0;
 }
 
@@ -89,25 +89,25 @@ static int webrtc_aec_set_tail_length(MSFilter *f, void *arg) {
 static int webrtc_aec_set_bypass_mode(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
 	bool_t *bypass = static_cast<bool_t *>(arg);
-	aecInst->set_bypass_mode(*bypass);
+	aecInst->setBypassMode(*bypass);
 	return 0;
 }
 
 static int webrtc_aec_get_bypass_mode(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
-	*static_cast<bool_t *>(arg) = aecInst->get_bypass_mode();
+	*static_cast<bool_t *>(arg) = aecInst->getBypassMode();
 	return 0;
 }
 
 static int webrtc_aec_set_state(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
-	aecInst->set_state(ms_strdup((const char *)arg));
+	aecInst->setState(ms_strdup((const char *)arg));
 	return 0;
 }
 
 static int webrtc_aec_get_state(MSFilter *f, void *arg) {
 	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
-	*(char **)arg = aecInst->get_state();
+	*(char **)arg = aecInst->getState();
 	return 0;
 }
 

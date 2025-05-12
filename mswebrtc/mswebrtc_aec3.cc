@@ -23,6 +23,7 @@
 #include "echo_control.h"
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/msticker.h"
 #include "ortp/str_utils.h"
 #include <cstddef>
 #include <cstdint>
@@ -35,8 +36,6 @@
 #include "modules/audio_processing/aec3/echo_canceller3.h"
 #include "modules/audio_processing/audio_buffer.h"
 #include "mswebrtc_aec3.h"
-
-#define EC_DUMP 0
 
 namespace mswebrtc_aec3 {
 
@@ -58,12 +57,10 @@ mswebrtc_aec3::mswebrtc_aec3(MSFilter *filter) {
 
 void mswebrtc_aec3::uninit() {
 	if (mStateStr) ms_free(mStateStr);
-	if (mDelayedRef.size > 0) {
-		ms_bufferizer_uninit(&mDelayedRef);
-	}
+	ms_bufferizer_uninit(&mDelayedRef);
 }
 
-void mswebrtc_aec3::configure_flow_controlled_bufferizer() {
+void mswebrtc_aec3::configureFlowControlledBufferizer() {
 	ms_flow_controlled_bufferizer_set_samplerate(&mRef, mSampleRateInHz);
 	ms_flow_controlled_bufferizer_set_max_size_ms(&mRef, 50);
 	ms_flow_controlled_bufferizer_set_granularity_ms(&mRef, kFramesizeMs);
@@ -82,7 +79,7 @@ void mswebrtc_aec3::preprocess() {
 	ms_message("Initializing WebRTC echo canceler 3 with sample rate = %i Hz, frame %i ms, %i samples, initial delay "
 	           "is %i ms, %i channel",
 	           mSampleRateInHz, kFramesizeMs, rtc::CheckedDivExact(mSampleRateInHz, 100), mDelayInMs, kNumChannels);
-	configure_flow_controlled_bufferizer();
+	configureFlowControlledBufferizer();
 	const webrtc::EchoCanceller3Config aecConfig = webrtc::EchoCanceller3Config();
 	mEchoCanceller3Inst =
 	    std::make_unique<webrtc::EchoCanceller3>(aecConfig, std::nullopt, mSampleRateInHz, kNumChannels, kNumChannels);
@@ -226,10 +223,10 @@ void mswebrtc_aec3::process(MSFilter *filter) {
 		mDelayInMs = aecMetrics.delay_ms;
 		mEchoReturnLoss = aecMetrics.echo_return_loss;
 		mEchoReturnLossEnhancement = aecMetrics.echo_return_loss_enhancement;
-#if defined(EC_DUMP) && EC_DUMP
-		ms_message("current metrics : delay = %d ms, ERL = %f, ERLE = %f", aecMetrics.delay_ms,
-		           aecMetrics.echo_return_loss, aecMetrics.echo_return_loss_enhancement);
-#endif
+		if (filter->ticker->time % 5000 == 0) {
+			ms_message("AEC3 current metrics : delay = %d ms, ERL = %f, ERLE = %f", aecMetrics.delay_ms,
+			           aecMetrics.echo_return_loss, aecMetrics.echo_return_loss_enhancement);
+		}
 
 		// get processed capture
 		if (mSampleRateInHz > webrtc::AudioProcessing::kSampleRate16kHz) {
@@ -257,7 +254,7 @@ void mswebrtc_aec3::postprocess() {
 	}
 }
 
-int mswebrtc_aec3::set_sample_rate(int requestedRateInHz) {
+int mswebrtc_aec3::setSampleRate(int requestedRateInHz) {
 	if (requestedRateInHz >= 48000) {
 		mSampleRateInHz = 48000;
 	} else if (requestedRateInHz >= 32000) {
@@ -268,7 +265,7 @@ int mswebrtc_aec3::set_sample_rate(int requestedRateInHz) {
 	if (mSampleRateInHz != requestedRateInHz)
 		ms_message("Webrtc AEC3 does not support sampling rate %i, using %i instead", requestedRateInHz,
 		           mSampleRateInHz);
-	configure_flow_controlled_bufferizer();
+	configureFlowControlledBufferizer();
 	ms_message("sampling rate: %d - %d Hz", requestedRateInHz, mSampleRateInHz);
 	return mSampleRateInHz;
 }
