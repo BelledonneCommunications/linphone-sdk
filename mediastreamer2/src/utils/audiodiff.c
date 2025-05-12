@@ -450,7 +450,10 @@ int ms_audio_compare_silence_and_speech(const char *ref_file,
                                         const int stop_time_short_ms,
                                         const int start_time_ms) {
 
-	FileInfo *fi1, *fi2;
+	FileInfo *fi1 = NULL;
+	FileInfo *fi2 = NULL;
+	FileInfo *fi1_full = NULL;
+	FileInfo *fi2_full = NULL;
 	int max_shift_samples;
 	int err = 0;
 	ProgressContext pctx;
@@ -461,29 +464,14 @@ int ms_audio_compare_silence_and_speech(const char *ref_file,
 	*ret = 0;
 
 	fi1 = file_info_new(ref_file);
-	if (fi1 == NULL) return 0;
+	if (fi1 == NULL) {
+		err = -1;
+		goto end;
+	}
 	fi2 = file_info_new(matched_file);
 	if (fi2 == NULL) {
-		file_info_destroy(fi1);
-		return -1;
-	}
-
-	FileInfo *fi1_short, *fi2_short;
-	fi1_short = file_info_new(ref_file);
-	if (fi1_short == NULL) return 0;
-	fi2_short = file_info_new(matched_file);
-	if (fi2_short == NULL) {
-		file_info_destroy(fi1_short);
-		return -1;
-	}
-
-	FileInfo *fi1_full, *fi2_full;
-	fi1_full = file_info_new(ref_file);
-	if (fi1_full == NULL) return 0;
-	fi2_full = file_info_new(matched_file);
-	if (fi2_full == NULL) {
-		file_info_destroy(fi1_full);
-		return -1;
+		err = -1;
+		goto end;
 	}
 
 	if (fi1->rate != fi2->rate) {
@@ -551,6 +539,16 @@ int ms_audio_compare_silence_and_speech(const char *ref_file,
 		zero_pad_sample_fi1 = -maxpos;
 		zero_pad_sample_fi2 = 0;
 	}
+	fi1_full = file_info_new(ref_file);
+	if (fi1_full == NULL) {
+		err = -1;
+		goto end;
+	}
+	fi2_full = file_info_new(matched_file);
+	if (fi2_full == NULL) {
+		err = -1;
+		goto end;
+	}
 	int start_sample = (int)(start_time_ms / 1000. * (double)fi1->rate);
 	int size_samples_1 = fi1_full->nsamples - (int)(start_time_ms / 1000. * (double)fi1->rate);
 	int size_samples_2 = fi2_full->nsamples - (int)(start_time_ms / 1000. * (double)fi2->rate);
@@ -572,8 +570,6 @@ int ms_audio_compare_silence_and_speech(const char *ref_file,
 end:
 	file_info_destroy(fi1);
 	file_info_destroy(fi2);
-	file_info_destroy(fi1_short);
-	file_info_destroy(fi2_short);
 	file_info_destroy(fi1_full);
 	file_info_destroy(fi2_full);
 	return err;
