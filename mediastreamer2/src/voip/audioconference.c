@@ -472,11 +472,17 @@ void ms_audio_conference_process_events(MSAudioConference *obj) {
 			// Only do it if the mixer-to-client extension is not set
 			if (ep->st == NULL || ep->st->mixer_to_client_extension_id > 0) continue;
 
-			rtp_session_clear_contributing_sources(ep->st->ms.sessions.rtp_session);
+			RtpSession *session = ep->st->ms.sessions.rtp_session;
+			if (session == NULL) continue;
+
+			ortp_mutex_lock(&session->main_mutex);
+
+			rtp_session_clear_contributing_sources(session);
 
 			if (winner_ssrc > 0)
-				rtp_session_add_contributing_source(ep->st->ms.sessions.rtp_session, winner_ssrc, NULL, NULL, NULL,
-				                                    NULL, NULL, NULL, NULL);
+				rtp_session_add_contributing_source(session, winner_ssrc, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+			ortp_mutex_unlock(&session->main_mutex);
 		}
 
 		obj->current_speaker_ssrc = winner_ssrc;
