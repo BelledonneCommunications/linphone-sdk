@@ -484,6 +484,11 @@ typedef struct {
 	char *domain;
 } bctbx_stored_log_t;
 
+#if defined(__GNUC__) && (__GNUC__ == 15) && defined(__GNUC_MINOR__) && (__GNUC_MINOR__ < 2)
+// IT seems that since GCC15.0.x the second argument passed to va_start is not used causing such warning
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif // defined(__GNUC__) && (__GNUC__ == 15) && defined(__GNUC_MINOR__) && (__GNUC_MINOR__ < 2)
 void _bctbx_logv_flush(int dummy, ...) {
 	bctbx_list_t *elem;
 	bctbx_list_t *msglist;
@@ -531,6 +536,9 @@ void _bctbx_logv_flush(int dummy, ...) {
 	bctbx_list_free(msglist);
 	va_end(empty_va_list);
 }
+#if defined(__GNUC__) && (__GNUC__ == 15) && defined(__GNUC_MINOR__) && (__GNUC_MINOR__ < 2)
+#pragma GCC diagnostic pop
+#endif // defined(__GNUC__) && (__GNUC__ == 15) && defined(__GNUC_MINOR__) && (__GNUC_MINOR__ < 2)
 
 void bctbx_logv_flush(void) {
 	_bctbx_logv_flush(0);
