@@ -2790,7 +2790,7 @@ int dns_aaaa_cmp(const struct dns_aaaa *a, const struct dns_aaaa *b) {
 } /* dns_aaaa_cmp() */
 
 size_t dns_aaaa_arpa(void *_dst, size_t lim, const struct dns_aaaa *aaaa) {
-	static const unsigned char hex[16] = "0123456789abcdef";
+	static const unsigned char hex[17] = "0123456789abcdef";
 	struct dns_buf dst = DNS_B_INTO(_dst, lim);
 	unsigned nyble;
 	int i, j;
@@ -3382,7 +3382,7 @@ int dns_sshfp_cmp(const struct dns_sshfp *a, const struct dns_sshfp *b) {
 } /* dns_sshfp_cmp() */
 
 size_t dns_sshfp_print(void *_dst, size_t lim, struct dns_sshfp *fp) {
-	static const unsigned char hex[16] = "0123456789abcdef";
+	static const unsigned char hex[17] = "0123456789abcdef";
 	struct dns_buf dst = DNS_B_INTO(_dst, lim);
 	size_t i;
 
