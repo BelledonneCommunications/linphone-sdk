@@ -223,7 +223,7 @@ void mswebrtc_aec3::process(MSFilter *filter) {
 		mDelayInMs = aecMetrics.delay_ms;
 		mEchoReturnLoss = aecMetrics.echo_return_loss;
 		mEchoReturnLossEnhancement = aecMetrics.echo_return_loss_enhancement;
-		if (filter->ticker->time % 5000 == 0) {
+		if ((filter->ticker->time % 5000) == 0) {
 			ms_message("AEC3 current metrics : delay = %d ms, ERL = %f, ERLE = %f", aecMetrics.delay_ms,
 			           aecMetrics.echo_return_loss, aecMetrics.echo_return_loss_enhancement);
 		}

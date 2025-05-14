@@ -53,8 +53,8 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-find_package(BCToolbox 5.3.0 REQUIRED)
-find_package(Mediastreamer2 5.3.0 REQUIRED)
+find_package(BCToolbox 5.4.0 REQUIRED)
+find_package(Mediastreamer2 5.4.0 REQUIRED)
 
 find_library(LIBM NAMES m)
 
@@ -76,12 +76,7 @@ include_directories(
 
 add_definitions(-DHAVE_CONFIG_H)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM")
-	add_definitions(
-		-D__ARMEL__
-		-DWEBRTC_ARCH_ARM
-	)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND CMAKE_GENERATOR MATCHES "^.* ARM$")
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND CMAKE_GENERATOR MATCHES "^.* ARM$")
 	add_definitions(
 		-D__ARMEL__
 		-DWEBRTC_ARCH_ARM
