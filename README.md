@@ -84,7 +84,7 @@ There are two slightly different ways to build, depending on whether you use a m
 
 The steps described here are the base for building, but a few specifics behaviors for each platform are good to know and are described in the next subsections.
 
-#### Multi-Config generator
+### Multi-Config generator
 
 In the case of a multi-config generator, you will:
  1. Execute CMake to configure the project by giving the preset you want to build (you can get the list of presets available with the `cmake --list-presets` command), the build directory where you want the build to take place, the generator you want to use and eventually some additional options:
@@ -127,12 +127,23 @@ You can also build using the 'Ninja' or 'Unix makefiles' generators:
 If the generator is not specified, Xcode will be used by default.
 
 
+### Android
+
+You will need official Android SDK and NDK from Google, or use our docker image (see below) comprising all required SDK and NDK tools.
+The build works on Linux or MacOS hosts. Building on Windows may work, but is not recommended.
+
+```bash
+# Configure the build
+cmake --preset=android-sdk -B build-android -DCMAKE_BUILD_TYPE=RelWithDebInfo <extra-variable-definitions>
+
+# Build
+cmake --build build-android --parallel <number of jobs>
 
 
-### Android (using Docker)
+The freshly built SDK is located in the `build-android/` directory.
 
-Download the Docker image of the Android build environment:
 
+#### Download the Docker image of the Android build environment:
 
 ---
 **public access, with token**
@@ -151,7 +162,7 @@ A simple login with your Gitlab account should work.
 To know what docker image to pull, first check [.gitlab-ci-files/android/builds.yml](https://gitlab.linphone.org/BC/public/linphone-sdk/-/blob/master/.gitlab-ci-files/android/builds.yml)
 Currently we are using `bc-dev-android-r27` image name.
 
-You'll find the associated tag in [.gitlab-ci-files/.docker-images.yml](https://gitlab.linphone.org/BC/public/linphone-sdk/-/blob/master/.gitlab-ci-files/.docker-images.yml) (for Android R27 image it is currently `20240717_update_ndk`).
+You will find the associated tag in [.gitlab-ci-files/.docker-images.yml](https://gitlab.linphone.org/BC/public/linphone-sdk/-/blob/master/.gitlab-ci-files/.docker-images.yml) (for Android R27 image it is currently `20240717_update_ndk`).
 
 Replace `<name>` and `<tag>` in the commands below by the value you found.
 
@@ -169,20 +180,9 @@ cd <linphone-sdk-source>
 docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/<name>:<tag> /bin/bash -i
 ```
 
-Next command lines must be typed in the docker shell:
+cmake command lines must be typed in the docker shell.
 
-```bash
-# Configure the build
-cmake --preset=android-sdk -B build-android -DLINPHONESDK_ANDROID_ARCHS=arm64 -DCMAKE_BUILD_TYPE=RelWithDebInfo <extra-variable-definitions>
 
-# Build
-cmake --build build-android --parallel <number of jobs>
-
-# Quit build environment
-exit
-```
-
-The freshly built SDK is located in the `build-android/` directory.
 
 ### MacOS
 
@@ -191,11 +191,15 @@ Requirement:
 
 Configure the project with:
 
-`cmake --preset=mac-sdk -B build-mac -G Xcode`
+`cmake --preset=mac-sdk -B build-mac`
 
 And build it with:
 
 `cmake --build build-mac --config RelWithDebInfo`
+
+If you reach build errors related to Python or python dependencies such as pystache, then instruct cmake about where your python installation resides, with -DPython3_EXECUTABLE and -DPython3_ROOT_DIR .
+Indeed tends to prefer using Python3 from HomeBrew instead of the default python3 from PATH, which causes a lot of misunderstanding and waste of time.
+To simply use the Xcode provided python3, add -DPython3_EXECUTABLE=/usr/bin/python3 to the cmake configuration command line.
 
 
 ### Windows
