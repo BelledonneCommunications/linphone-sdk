@@ -145,7 +145,7 @@ function(bc_compute_full_version OUTPUT_VERSION)
 		endif()
 
 		# parse git describe version
-		if (NOT (GIT_DESCRIBE_VERSION MATCHES "^([0-9]+)[.]([0-9]+)[.]([0-9]+)(-alpha|-beta)?(-[0-9]+)?(-g[0-9a-f]+)?$"))
+		if (NOT (GIT_DESCRIBE_VERSION MATCHES "^([0-9]+)[.]([0-9]+)[.]([0-9]+)(-[a-zA-Z]+)?(-[0-9]+)?(-g[0-9a-f]+)?$"))
 			message(FATAL_ERROR "invalid git describe version: '${GIT_DESCRIBE_VERSION}'")
 		endif()
 		set(version_major ${CMAKE_MATCH_1})
