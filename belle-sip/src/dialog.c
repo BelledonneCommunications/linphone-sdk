@@ -77,7 +77,7 @@ static void set_to_tag(belle_sip_dialog_t *obj, belle_sip_header_to_t *to) {
 	}
 }
 
-static void check_route_set(belle_sip_list_t *rs) {
+static void check_route_set(const belle_sip_list_t *rs) {
 	if (rs) {
 		belle_sip_header_route_t *r = (belle_sip_header_route_t *)rs->data;
 		if (!belle_sip_uri_has_lr_param(belle_sip_header_address_get_uri((belle_sip_header_address_t *)r))) {
@@ -86,8 +86,35 @@ static void check_route_set(belle_sip_list_t *rs) {
 	}
 }
 
-static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_request_t *req) {
+static void
+belle_sip_dialog_make_route_set_from_record_routes(belle_sip_dialog_t *obj, belle_sip_message_t *msg, int as_uas) {
+	/**12.1.2 - (for UAC dialogs)
+	 * The route set MUST be set to the list of URIs in the Record-Route
+	 * header field from the response, taken in reverse order and preserving
+	 * all URI parameters.  If no Record-Route header field is present in
+	 * the response, the route set MUST be set to the empty set.
+	 **/
 	const belle_sip_list_t *elem;
+	obj->route_set = belle_sip_list_free_with_data(obj->route_set, belle_sip_object_unref);
+	for (elem = belle_sip_message_get_headers((belle_sip_message_t *)msg, BELLE_SIP_RECORD_ROUTE); elem != NULL;
+	     elem = elem->next) {
+		belle_sip_header_address_t *rr = (belle_sip_header_address_t *)elem->data;
+		for (; rr != NULL; rr = BELLE_SIP_HEADER_ADDRESS(belle_sip_header_get_next((belle_sip_header_t *)rr))) {
+			belle_sip_header_route_t *r;
+
+			r = belle_sip_header_route_create(rr);
+			belle_sip_object_ref(r);
+			if (!as_uas) {
+				obj->route_set = belle_sip_list_prepend(obj->route_set, r);
+			} else {
+				obj->route_set = belle_sip_list_append(obj->route_set, r);
+			}
+		}
+	}
+	check_route_set(obj->route_set);
+}
+
+static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_request_t *req) {
 	belle_sip_header_contact_t *ct = belle_sip_message_get_header_by_type(req, belle_sip_header_contact_t);
 	belle_sip_header_cseq_t *cseq = belle_sip_message_get_header_by_type(req, belle_sip_header_cseq_t);
 	belle_sip_header_via_t *via = belle_sip_message_get_header_by_type(req, belle_sip_header_via_t);
@@ -120,13 +147,8 @@ static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_reque
 	 * parameters.  If no Record-Route header field is present in the
 	 *request, the route set MUST be set to the empty set.
 	 */
-	obj->route_set = belle_sip_list_free_with_data(obj->route_set, belle_sip_object_unref);
-	for (elem = belle_sip_message_get_headers((belle_sip_message_t *)req, BELLE_SIP_RECORD_ROUTE); elem != NULL;
-	     elem = elem->next) {
-		obj->route_set = belle_sip_list_append(obj->route_set, belle_sip_object_ref(belle_sip_header_route_create(
-		                                                           (belle_sip_header_address_t *)elem->data)));
-	}
-	check_route_set(obj->route_set);
+	belle_sip_dialog_make_route_set_from_record_routes(obj, (belle_sip_message_t *)req, TRUE);
+
 	obj->remote_target = (belle_sip_header_address_t *)belle_sip_object_ref(ct);
 	obj->remote_cseq = belle_sip_header_cseq_get_seq_number(cseq);
 	if (strcmp(belle_sip_request_get_method(req), "INVITE") == 0) {
@@ -222,19 +244,14 @@ int belle_sip_dialog_establish_from_notify(belle_sip_dialog_t *obj, belle_sip_re
 	belle_sip_header_from_t *from = belle_sip_message_get_header_by_type(req, belle_sip_header_from_t);
 	belle_sip_header_cseq_t *cseq = belle_sip_message_get_header_by_type(req, belle_sip_header_cseq_t);
 	const char *from_tag = belle_sip_header_from_get_tag(from);
-	const belle_sip_list_t *elem;
 
 	if (!ct) {
 		belle_sip_error("Missing contact header in request [%p], cannot set remote target for dialog [%p]", req, obj);
 		return -1;
 	}
 
-	obj->route_set = belle_sip_list_free_with_data(obj->route_set, belle_sip_object_unref);
-	for (elem = belle_sip_message_get_headers((belle_sip_message_t *)req, BELLE_SIP_RECORD_ROUTE); elem != NULL;
-	     elem = elem->next) {
-		obj->route_set = belle_sip_list_append(obj->route_set, belle_sip_object_ref(belle_sip_header_route_create(
-		                                                           (belle_sip_header_address_t *)elem->data)));
-	}
+	belle_sip_dialog_make_route_set_from_record_routes(obj, (belle_sip_message_t *)req, TRUE);
+
 	obj->remote_cseq = belle_sip_header_cseq_get_seq_number(cseq);
 	obj->remote_target = (belle_sip_header_address_t *)belle_sip_object_ref(ct);
 	obj->remote_tag = belle_sip_strdup(from_tag);
@@ -245,7 +262,6 @@ int belle_sip_dialog_establish_from_notify(belle_sip_dialog_t *obj, belle_sip_re
 int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp) {
 	belle_sip_header_contact_t *ct = belle_sip_message_get_header_by_type(resp, belle_sip_header_contact_t);
 	belle_sip_header_to_t *to = belle_sip_message_get_header_by_type(resp, belle_sip_header_to_t);
-	const belle_sip_list_t *elem;
 
 	if (strcmp(belle_sip_request_get_method(req), "INVITE") == 0) obj->needs_ack = TRUE;
 
@@ -266,12 +282,7 @@ int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t
 		   recomputed based on the 2xx response using the procedures of Section
 		   12.2.1.2.
 		 */
-		obj->route_set = belle_sip_list_free_with_data(obj->route_set, belle_sip_object_unref);
-		for (elem = belle_sip_message_get_headers((belle_sip_message_t *)resp, BELLE_SIP_RECORD_ROUTE); elem != NULL;
-		     elem = elem->next) {
-			obj->route_set = belle_sip_list_prepend(obj->route_set, belle_sip_object_ref(belle_sip_header_route_create(
-			                                                            (belle_sip_header_address_t *)elem->data)));
-		}
+		belle_sip_dialog_make_route_set_from_record_routes(obj, (belle_sip_message_t *)resp, FALSE);
 
 		if (ct) {
 			/*remote Contact header may have changed between early dialog to confirmed*/
@@ -301,24 +312,11 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 
 	if (!obj->is_server) {
 		belle_sip_header_contact_t *ct = belle_sip_message_get_header_by_type(resp, belle_sip_header_contact_t);
-		const belle_sip_list_t *elem;
+
 		/*contact might be provided later*/
 		if (ct) obj->remote_target = (belle_sip_header_address_t *)belle_sip_object_ref(ct);
 
-		/**12.1.2
-		 *  The route set MUST be set to the list of URIs in the Record-Route
-		 *header field from the response, taken in reverse order and preserving
-		 *all URI parameters.  If no Record-Route header field is present in
-		 *the response, the route set MUST be set to the empty set.
-		 **/
-		obj->route_set = belle_sip_list_free_with_data(obj->route_set, belle_sip_object_unref);
-		for (elem = belle_sip_message_get_headers((belle_sip_message_t *)resp, BELLE_SIP_RECORD_ROUTE); elem != NULL;
-		     elem = elem->next) {
-			obj->route_set = belle_sip_list_prepend(obj->route_set, belle_sip_object_ref(belle_sip_header_route_create(
-			                                                            (belle_sip_header_address_t *)elem->data)));
-		}
-
-		check_route_set(obj->route_set);
+		belle_sip_dialog_make_route_set_from_record_routes(obj, (belle_sip_message_t *)resp, FALSE);
 		/*via might be unknown at dialog creation*/
 		if (strcasecmp(belle_sip_header_via_get_protocol(via), "TLS") == 0 && belle_sip_uri_is_secure(requri)) {
 			obj->is_secure = TRUE;
