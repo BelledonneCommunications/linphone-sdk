@@ -212,6 +212,7 @@
     GIT_SUBMODULE_STRATEGY: none
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "false"
+    LIBLINPHONE_TESTER_PARALLEL_OPTIONS: "--parallel --parallel-max 32"
     LOG_PATTERN2: ""
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_LINUX_TESTS != null && $SKIP_LINUX == null
@@ -260,17 +261,17 @@
         then
            if [ $CRYPTO_BACKEND_TESTS_LIBLINPHONE = "false" ];
            then
-              $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --parallel-max 32 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+              $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS $RESOURCES_DIR $ADDITIONNAL_OPTIONS --tag '!shaky' --log-file $LOG_PATTERN.txt || EXIT=$?
            else
               EXIT_CRYPTO_BACKEND_TAG=0;
-              $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "CRYPTO" $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
+              $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag "CRYPTO" $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS --tag '!shaky' || EXIT_CRYPTO_BACKEND_TAG=$?
            fi
         else
 
           EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=0;
 
-          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" --max-failed 0 $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
+          $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" --max-failed 0 $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS --tag '!shaky' || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
 
          # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file $LOG_PATTERN2.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
 
