@@ -1021,7 +1021,7 @@ static void mdns_register_callback(void *data, int error) {
 
 static void mdns_query_ipv4_or_ipv6(int family) {
 	belle_sip_mdns_register_t *reg;
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 	int register_error = -1;
 
 	client = create_endpoint();
@@ -1055,7 +1055,7 @@ static void mdns_query_ipv6(void) {
 }
 
 static void mdns_query_no_result(void) {
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 
 	client = create_endpoint();
 
@@ -1073,7 +1073,7 @@ static void mdns_query_no_result(void) {
 
 static void mdns_query_multiple_result(void) {
 	belle_sip_mdns_register_t *reg1, *reg2;
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 	int register_error = -1;
 
 	client = create_endpoint();
@@ -1118,7 +1118,7 @@ static void mdns_query_multiple_result(void) {
 
 static void mdns_queries(void) {
 	belle_sip_mdns_register_t *reg;
-	endpoint_t *client;
+	resolver_endpoint_t *client;
 	int register_error = -1;
 
 	client = create_endpoint();
