@@ -967,11 +967,12 @@ if(BUILD_MBEDTLS)
 		set(ENABLE_PROGRAMS OFF)
 		set(ENABLE_TESTING OFF)
 		set(MBEDTLS_FATAL_WARNINGS ${BUILD_MBEDTLS_WITH_FATAL_WARNINGS})
-#As of MBedTLS 3.6.3: Workaround to fix SSL error on handshake because of gcc15, in waiting of their fix.
+
+		#As of MBedTLS 3.6.3: Workaround to fix SSL error on handshake because of gcc15, in waiting of their fix.
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 15.0)
 			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fzero-init-padding-bits=unions")
 		endif()
-####################################################
+
 		add_subdirectory("external/mbedtls")
 		add_dependencies(sdk mbedtls)
 	endfunction()
