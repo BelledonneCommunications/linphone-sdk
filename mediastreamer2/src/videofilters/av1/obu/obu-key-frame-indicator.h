@@ -31,7 +31,7 @@ public:
 	ObuKeyFrameIndicator() = default;
 	~ObuKeyFrameIndicator() = default;
 
-	bool isKeyFrame(mblk_t *im) override;
+	bool isKeyFrame(const mblk_t *im) override;
 
 	void reset();
 

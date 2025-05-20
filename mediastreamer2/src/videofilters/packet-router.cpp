@@ -220,8 +220,8 @@ void RouterVideoInput::update() {
 
 		if (mKeyFrameRequested) {
 			if (!mSeqNumberSet || mCurrentTimestamp != newTimestamp) {
-				// Possibly a beginning of frame !
-				if (mKeyFrameIndicator->isKeyFrame(m)) {
+				// Possibly a beginning of frame!
+				if (isKeyFrame(m)) {
 					PackerRouterLogContextualizer prlc(mRouter);
 					ms_message("Key frame detected on pin %i", mPin);
 					mState = State::Running;

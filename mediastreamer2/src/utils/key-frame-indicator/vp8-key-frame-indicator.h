@@ -29,7 +29,7 @@ public:
 	VP8KeyFrameIndicator() = default;
 	virtual ~VP8KeyFrameIndicator() = default;
 
-	bool isKeyFrame(mblk_t *frame) override;
+	bool isKeyFrame(const mblk_t *frame) override;
 };
 
 } // namespace mediastreamer

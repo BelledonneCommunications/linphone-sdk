@@ -40,7 +40,7 @@ public:
 	 * @param frame Pointer to the frame to check.
 	 * @return True if the frame is a keyframe, false otherwise.
 	 */
-	virtual bool isKeyFrame(mblk_t *frame) = 0;
+	virtual bool isKeyFrame(const mblk_t *frame) = 0;
 };
 
 } // namespace mediastreamer

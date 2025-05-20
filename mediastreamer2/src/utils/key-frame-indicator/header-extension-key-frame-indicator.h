@@ -30,7 +30,7 @@ public:
 	explicit HeaderExtensionKeyFrameIndicator(int frameMarkingExtensionId);
 	virtual ~HeaderExtensionKeyFrameIndicator() = default;
 
-	bool isKeyFrame(mblk_t *frame) override;
+	bool isKeyFrame(const mblk_t *frame) override;
 
 	void setFrameMarkingExtensionId(int frameMarkingExtensionId);
 

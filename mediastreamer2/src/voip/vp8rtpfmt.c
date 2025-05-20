@@ -907,7 +907,7 @@ static Vp8RtpFmtErrorCode parse_payload_descriptor(Vp8RtpFmtPacket *packet) {
 	return Vp8RtpFmtOk;
 }
 
-uint8_t *vp8rtpfmt_skip_payload_descriptor(mblk_t *m) {
+uint8_t *vp8rtpfmt_skip_payload_descriptor(const mblk_t *m) {
 	uint8_t *h = m->b_rptr;
 	unsigned int packet_size = (unsigned int)(m->b_wptr - m->b_rptr);
 	uint8_t offset = 0;

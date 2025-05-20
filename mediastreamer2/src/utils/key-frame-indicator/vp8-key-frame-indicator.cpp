@@ -24,13 +24,14 @@
 
 namespace mediastreamer {
 
-bool VP8KeyFrameIndicator::isKeyFrame(mblk_t *frame) {
+bool VP8KeyFrameIndicator::isKeyFrame(const mblk_t *frame) {
 	uint8_t *p;
 
 	if (frame->b_cont) {
 		/* When data comes directly from the VP8 encoder, the VP8 payload is the second of the mblk_t chain.*/
 		return !(frame->b_cont->b_rptr[0] & 1);
 	}
+
 	p = vp8rtpfmt_skip_payload_descriptor(frame);
 
 	if (!p) {

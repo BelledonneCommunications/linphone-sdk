@@ -22,7 +22,7 @@
 
 namespace mediastreamer {
 
-bool ObuKeyFrameIndicator::isKeyFrame(mblk_t *im) {
+bool ObuKeyFrameIndicator::isKeyFrame(const mblk_t *im) {
 	if (im == nullptr) return false;
 
 	bool containsKeyFrame = false;

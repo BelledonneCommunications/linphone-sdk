@@ -27,7 +27,7 @@ namespace mediastreamer {
 HeaderExtensionKeyFrameIndicator::HeaderExtensionKeyFrameIndicator(int frameMarkingExtensionId)
     : mFrameMarkingExtensionId(frameMarkingExtensionId) {};
 
-bool HeaderExtensionKeyFrameIndicator::isKeyFrame(mblk_t *frame) {
+bool HeaderExtensionKeyFrameIndicator::isKeyFrame(const mblk_t *frame) {
 	uint8_t marker = 0;
 
 	if (!rtp_get_frame_marker(frame, mFrameMarkingExtensionId, &marker)) return false;

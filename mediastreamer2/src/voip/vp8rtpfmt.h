@@ -139,7 +139,7 @@ uint32_t vp8rtpfmt_unpacker_calc_extended_cseq(Vp8RtpFmtUnpackerCtx *ctx, uint16
 void vp8rtpfmt_send_rpsi(Vp8RtpFmtUnpackerCtx *ctx, uint16_t pictureid);
 
 /* Fast version that just skips the vp8 rtp payload header, and returns the start of the VP8 payload. */
-uint8_t *vp8rtpfmt_skip_payload_descriptor(mblk_t *m);
+uint8_t *vp8rtpfmt_skip_payload_descriptor(const mblk_t *m);
 
 #ifdef __cplusplus
 }

@@ -100,8 +100,9 @@ public:
 	void update() override;
 
 protected:
-	enum State { Stopped, Running };
+	bool isKeyFrame(mblk_t *packet) const;
 
+	enum State { Stopped, Running };
 	State mState = State::Stopped;
 
 	std::unique_ptr<KeyFrameIndicator> mKeyFrameIndicator = nullptr;
