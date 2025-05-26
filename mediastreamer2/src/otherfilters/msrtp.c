@@ -330,6 +330,7 @@ static uint32_t get_cur_timestamp(MSFilter *f, mblk_t *im) {
 	    d->dtmf ==
 	        0) { /*do not perform timestamp adjustment while a dtmf is being sent, otherwise durations are erroneous */
 		uint32_t packet_ts = mblk_get_timestamp_info(im);
+		if (d->rtp_transfer_mode) return packet_ts;
 		if (d->last_sent_time == -1) {
 			d->tsoff = curts - packet_ts;
 		} else if (d->enable_ts_adjustment) {
