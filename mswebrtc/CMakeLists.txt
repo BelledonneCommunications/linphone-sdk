@@ -24,7 +24,13 @@ cmake_minimum_required(VERSION 3.22)
 
 project(MSWebRTC VERSION 5.4.0 LANGUAGES C CXX)
 
-if(UNIX AND NOT APPLE)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	set(COMPILER_IS_CLANG TRUE)
+else()
+	set(COMPILER_IS_CLANG FALSE)
+endif()
+# all symbols must be resolved at link time, except when the sanitizer is enabled with Clang, because libasan introduces symbols that are resolved dynamically at runtime
+if(UNIX AND NOT APPLE AND NOT (COMPILER_IS_CLANG AND ENABLE_SANITIZER))
 	add_link_options("LINKER:-no-undefined") 
 endif()
 
@@ -100,12 +106,6 @@ elseif(WIN32)
     add_definitions(-DWEBRTC_WIN)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	set(COMPILER_IS_CLANG TRUE)
-else()
-	set(COMPILER_IS_CLANG FALSE)
-endif()
-
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" SYSTEM_PROCESSOR)
 string(REGEX MATCH "^(arm*|aarch64)" FIXED_POINT_PROCESSOR "${SYSTEM_PROCESSOR}")
 if(FIXED_POINT_PROCESSOR)
@@ -126,7 +126,7 @@ if(SYSTEM_PROCESSOR MATCHES "arm" OR SYSTEM_PROCESSOR MATCHES "aarch64")
 			endif()
 	else()
 		add_definitions(-DWEBRTC_ARCH_ARM)
-		set(COMPILER_SUPPORTS_ARMV8 FALSE)		
+		set(COMPILER_SUPPORTS_ARMV8 FALSE)	
 		if(SYSTEM_PROCESSOR MATCHES "armv[7-9]")
 			add_definitions(-DWEBRTC_ARCH_ARM_V7)
 			check_cxx_compiler_flag("-mfpu=neon" COMPILER_SUPPORTS_NEON)
@@ -144,9 +144,6 @@ else()
 		check_cxx_compiler_flag("-msse2" COMPILER_SUPPORTS_SSE2)
 	endif()
 endif()
-
-set(AEC3_CXX17_FLAGS "-std=c++17")
-set(AEC3_CXX14_FLAGS "-std=c++14")
 
 set(AUDIO_PROCESSING_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/audio_processing")
 set(AEC3_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules/audio_processing/aec3")
@@ -253,6 +250,7 @@ endif()
 if(ENABLE_VAD)
 	list(APPEND WEBRTC_SRC
 		vad.cc
+		${RTCBASE_DIR}/checks.cc
 		${VAD_SRC_DIR}/vad.cc
 		${VAD_SRC_DIR}/vad_core.c
 		${VAD_SRC_DIR}/vad_filterbank.c
@@ -270,24 +268,29 @@ if(ENABLE_VAD)
 endif()
 
 if(ENABLE_AEC)
-	# Check the architecture
-	if(SYSTEM_PROCESSOR MATCHES "x86_64|amd64|x86|i386")
-		set(COMPILER_SUPPORTS_AVX2 TRUE)
+	if(CMAKE_SYSTEM_NAME MATCHES "Android")
+		if(CMAKE_CXX_COMPILER_TARGET MATCHES "x86_64|i686" OR ANDROID_ABI MATCHES "x86_64|x86")
+			set(COMPILER_SUPPORTS_AVX2 TRUE)
+		else()
+			set(COMPILER_SUPPORTS_AVX2 FALSE)
+		endif()
 	else()
-		set(COMPILER_SUPPORTS_AVX2 FALSE)
+		if(SYSTEM_PROCESSOR MATCHES "x86_64|amd64|x86|i386")
+			set(COMPILER_SUPPORTS_AVX2 TRUE)
+		else()
+			set(COMPILER_SUPPORTS_AVX2 FALSE)
+		endif()
 	endif()
-
 	if(COMPILER_SUPPORTS_AVX2)
 		list(APPEND WEBRTC_SRC
-				${CMAKE_CURRENT_SOURCE_DIR}/common_audio/resampler/sinc_resampler_avx2.cc
-				${AEC3_SRC_DIR}/adaptive_fir_filter_avx2.cc
-				${AEC3_SRC_DIR}/adaptive_fir_filter_erl_avx2.cc
-				${AEC3_SRC_DIR}/fft_data_avx2.cc
-				${AEC3_SRC_DIR}/matched_filter_avx2.cc
-				${AEC3_SRC_DIR}/vector_math_avx2.cc
+			${CMAKE_CURRENT_SOURCE_DIR}/common_audio/resampler/sinc_resampler_avx2.cc
+			${AEC3_SRC_DIR}/adaptive_fir_filter_avx2.cc
+			${AEC3_SRC_DIR}/adaptive_fir_filter_erl_avx2.cc
+			${AEC3_SRC_DIR}/fft_data_avx2.cc
+			${AEC3_SRC_DIR}/matched_filter_avx2.cc
+			${AEC3_SRC_DIR}/vector_math_avx2.cc
 			)
 	endif()
-
 	if(COMPILER_SUPPORTS_NEON OR COMPILER_SUPPORTS_ARMV8)
 		list(APPEND WEBRTC_SRC
 			${CMAKE_CURRENT_SOURCE_DIR}/common_audio/resampler/sinc_resampler_neon.cc
@@ -322,14 +325,17 @@ if(ENABLE_AEC)
 endif()
 if(ENABLE_VAD)
 	target_include_directories(mswebrtc PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}
+		${VAD_SRC_DIR}
 		${VAD_SRC_DIR}/include
 		${RTCBASE_DIR}
 		${COMMON_AUDIO_SIGNAL_PROC_DIR}/include
+		${CMAKE_CURRENT_SOURCE_DIR}/third_party/abseil-cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/third_party/abseil-cpp/absl/meta
 	)
 endif()
 
-
-set(LIBS )
+set(LIBS)
 
 if(LIBM)
 	list(APPEND LIBS ${LIBM})
