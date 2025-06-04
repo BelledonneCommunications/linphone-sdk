@@ -105,6 +105,7 @@ struct AAudioOutputContext {
 		task = nullptr;
 		checkForDeviceChange = false;
 		adjustingBufferSize = false;
+		restartScheduled = false;
 	}
 
 	~AAudioOutputContext() {
@@ -175,6 +176,7 @@ struct AAudioOutputContext {
 	bool checkForDeviceChange;
 	bool volumeHackRequired;
 	bool adjustingBufferSize;
+	bool restartScheduled;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -405,6 +407,12 @@ static bool_t aaudio_player_restart(AAudioOutputContext *octx) {
 	_aaudio_player_init(octx);
 	ms_message("[AAudio Player] Stream was restarted");
 
+	if (octx->restartScheduled) {
+		ms_mutex_lock(&octx->stream_mutex);
+		octx->restartScheduled = false;
+		ms_mutex_unlock(&octx->stream_mutex);
+	}
+
 	return TRUE;
 }
 
@@ -462,8 +470,13 @@ static void android_snd_write_process(MSFilter *obj) {
 	if (octx->stream) {
 		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
 		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
-			ms_warning("[AAudio Player] Player stream has disconnected");
-			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
+			if (!octx->restartScheduled) {
+				ms_warning("[AAudio Player] Player stream has disconnected, restarting it");
+				ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
+				octx->restartScheduled = true;
+			} else {
+				ms_warning("[AAudio Player] Stream is in disconnected state but restart has already been scheduled");
+			}
 		} else {
 			if (streamState == AAUDIO_STREAM_STATE_STARTED && octx->volumeHackRequired) {
 				ms_message("[AAudio Player] Audio stream has been started, scheduling volume hack");
