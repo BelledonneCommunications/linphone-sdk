@@ -127,6 +127,7 @@ debian12-ninja-clang-python-wheel:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $DEPLOY_PYTHON != null && $SKIP_DEPLOY == null
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
