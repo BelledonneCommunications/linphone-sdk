@@ -196,6 +196,16 @@ liblinphone-rocky8-test-pq-h264-ekt:
   variables:
     PLATFORM: linux-rocky8
 
+liblinphone-rocky8-test-shaky:
+  extends:
+    - .test-liblinphone-shaky
+  image: !reference [ .rocky8_test_libl_image_version, image ]
+  needs:
+    # shaky tests uses this image when possible to be sure to test all shaky tests
+    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+  variables:
+    PLATFORM: linux-rocky8
+
 liblinphone-rocky8-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
@@ -203,6 +213,15 @@ liblinphone-rocky8-test-mr:
 liblinphone-rocky8-test-mr-pq-h264-ekt:
   extends:
     - .test-liblinphone-tunnel-pq-mr
+  image: !reference [ .rocky8_test_libl_image_version, image ]
+  needs:
+    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+  variables:
+    PLATFORM: linux-rocky8
+
+liblinphone-rocky8-test-shaky-mr:
+  extends:
+    - .test-liblinphone-shaky-mr
   image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264-ekt

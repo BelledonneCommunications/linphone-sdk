@@ -155,3 +155,11 @@ liblinphone-ubuntu-test:
     - ubuntu-rolling-ninja-clang
   variables:
     PLATFORM: linux-ubuntu-rolling
+
+liblinphone-ubuntu-test-shaky:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:$UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION
+  extends: .test-liblinphone-shaky
+  needs:
+    - ubuntu-rolling-ninja-clang
+  variables:
+    PLATFORM: linux-ubuntu-rolling

@@ -139,8 +139,18 @@ liblinphone-ubuntu2004-test-tunnel-pq:
   needs:
     - ubuntu2004-ninja-gcc-tunnel-pq
 
+liblinphone-ubuntu2004-test-shaky:
+  extends: .test-liblinphone-shaky
+  <<: *docker_image_platform_and_runner_tag_libl
+  needs:
+    - ubuntu2004-ninja-gcc-tunnel-pq
+
 # liblinphone-ubuntu2004-test-mr:
 #  extends: .test-liblinphone-mr
+#  <<: *docker_image_platform_and_runner_tag_libl
+
+# liblinphone-ubuntu2004-test-shaky-mr:
+#  extends: .test-liblinphone-shaky-mr
 #  <<: *docker_image_platform_and_runner_tag_libl
 
 liblinphone-ubuntu2004-test-force:
