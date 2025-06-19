@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ *
+ * This file is part of mediastreamer2
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#if !defined(_BITS_RW_H_)
+#define _BITS_RW_H_
+
+#include <ortp/port.h>
+
+typedef struct ms_bits_reader {
+	const uint8_t *buffer;
+	size_t buf_size;
+	int bit_index;
+} MSBitsReader;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void ms_bits_reader_init(MSBitsReader *reader, const uint8_t *buffer, size_t bufsize);
+
+int ms_bits_reader_n_bits(MSBitsReader *reader, int count, unsigned int *ret, const char *symbol_name);
+
+int ms_bits_reader_ue(MSBitsReader *reader, unsigned int *ret, const char *symbol_name);
+
+int ms_bits_reader_se(MSBitsReader *reader, int *ret, const char *symbol_name);
+
+typedef struct ms_bits_writer {
+	uint8_t *buffer;
+	size_t buf_size;
+	int bit_index;
+} MSBitsWriter;
+
+void ms_bits_writer_init(MSBitsWriter *writer, size_t initialbufsize);
+
+int ms_bits_writer_n_bits(MSBitsWriter *writer, int count, unsigned int value, const char *symbol_name);
+
+int ms_bits_writer_ue(MSBitsWriter *writer, unsigned int value, const char *symbol_name);
+
+int ms_bits_writer_se(MSBitsWriter *writer, int value, const char *symbol_name);
+
+int ms_bits_writer_trailing_bits(MSBitsWriter *writer);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

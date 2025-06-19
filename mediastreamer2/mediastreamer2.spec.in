@@ -1,0 +1,94 @@
+# -*- rpm-spec -*-
+# 
+# mediastreamer2 -- A media streaming library for telephony applications
+# 
+# These 2 lines are here because we can build the RPM for flexisip, in which
+# case we prefix the entire installation so that we don't break compatibility
+# with the user's libs.
+# To compile with bc prefix, use rpmbuild -ba --with bc [SPEC]
+%define                 pkg_name        %{?_with_bc:bc-mediastreamer}%{!?_with_bc:mediastreamer}
+%{?_with_bc: %define    _prefix         /opt/belledonne-communications}
+
+# re-define some directories for older RPMBuild versions which don't. This messes up the doc/ dir
+# taken from https://fedoraproject.org/wiki/Packaging:RPMMacros?rd=Packaging/RPMMacros
+%define _datarootdir       %{_prefix}/share
+%define _datadir           %{_datarootdir}
+%define _docdir            %{_datadir}/doc
+
+%ifarch %ix86
+%define		mediastreamer2_cpu	pentium4
+%endif
+
+Summary:	Audio/Video real-time streaming
+Name:		%pkg_name
+Version:	@MEDIASTREAMER_VERSION@
+Release:	%(git describe --tags --abbrev=40 | sed -rn 's/^.*-([0-9]+)-g[a-z0-9]{40}$/\1/p' || echo '1')%{?dist}
+License:	GPL
+Group:		Applications/Communications
+URL:		http://www.mediastreamer2.com
+Source0:        %{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+%ifarch %ix86
+BuildArch:	i686
+%endif
+
+%description
+Mediastreamer2 is a GPL licensed library to make audio and video
+real-time streaming and processing. Written in pure C, it is based
+upon the oRTP library.
+
+%package        devel
+Summary:        Headers, libraries and docs for the mediastreamer2 library
+Group:          Development/Libraries
+Requires:       %{name} = %{version}-%{release}
+
+%description    devel
+Mediastreamer2 is a GPL licensed library to make audio and video
+real-time streaming and processing. Written in pure C, it is based
+upon the ortp library.
+
+This package contains header files and development libraries needed to
+develop programs using the mediastreamer2 library.
+
+%define		video		%{?_without_video:0}%{!?_without_video:1}
+
+%prep
+%setup -q
+
+%build
+options="--enable-shared --enable-static --disable-glx --docdir=%{_docdir} "
+%if !%{video}
+options="$options --disable-video"
+%endif
+
+%configure $options
+	
+make -j$RPM_BUILD_NCPUS 
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make install DESTDIR=$RPM_BUILD_ROOT
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root,-)
+%{_bindir}/*
+%{_libdir}/*.so.*
+%{_datadir}/images/nowebcamCIF.jpg
+%{_datadir}/locale/??/LC_MESSAGES/mediastreamer.mo
+%{_datadir}/locale/??_??/LC_MESSAGES/mediastreamer.mo
+
+%files devel
+%defattr(-,root,root,-)
+%{_libdir}/*.la
+%{_libdir}/*.a
+%{_libdir}/*.so
+%{_libdir}/pkgconfig/*.pc
+%{_includedir}
+%{_docdir}
+
+%changelog
+* Tue Oct 25 2005 Francois-Xavier Kowalski <fix@hp.com>
+- Add to mediastreamer2 distribution with "make rpm" target

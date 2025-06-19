@@ -1,0 +1,1 @@
+BEGIN { print("MSFilterDesc * ms_voip_filter_descs[]={") } { printf("&%s,\n",$1) } END{ print("NULL\n};\n") }

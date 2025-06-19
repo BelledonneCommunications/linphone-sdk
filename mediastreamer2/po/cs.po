@@ -1,0 +1,325 @@
+# Czech translations for mediastreamer package.
+# This file is distributed under the same license as the linphone package.
+# Copyright (C) 2009 Simon Morlat (msgids)
+# Klara Cihlarova <koty@seznam.cz>, 2005.
+# Petr Pisar <petr.pisar@atlas.cz>, 2006, 2007, 2008, 2009, 2010, 2011.
+#
+# On hold → odložen
+# Pause call → odložit hovor
+# Resume call → obnovit hovor
+# Transfer → přepojit
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: mediastreamer 2.7.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-12-02 18:14+0100\n"
+"PO-Revision-Date: 2011-02-14 16:41+0100\n"
+"Last-Translator: Petr Pisar <petr.pisar@atlas.cz>\n"
+"Language-Team: Czech <translation-team-cs@lists.sourceforge.net>\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: ../src/alaw.c:144 ../src/alaw.c:162
+msgid "ITU-G.711 alaw encoder"
+msgstr "Kodér a-law ITU-G.711"
+
+#: ../src/alaw.c:194 ../src/alaw.c:211
+msgid "ITU-G.711 alaw decoder"
+msgstr "Dekodér a-law ITU-G.711"
+
+#: ../src/alsa.c:1014
+msgid "Alsa sound source"
+msgstr "Zdroj zvuku ALSA"
+
+#: ../src/alsa.c:1117
+msgid "Alsa sound output"
+msgstr "Zvukový výstup ALSA"
+
+#: ../src/aqsnd.c:1020
+msgid "Sound capture filter for MacOS X Audio Queue Service"
+msgstr "Filtr zachytávání zvuku přes MacOS X službu zvukové fronty"
+
+#: ../src/aqsnd.c:1044
+msgid "Sound playback filter for MacOS X Audio Queue Service"
+msgstr "Filtr přehrávání zvuku přes MacOS X službu zvukové fronty"
+
+#: ../src/dtmfgen.c:302 ../src/dtmfgen.c:321
+msgid "DTMF generator"
+msgstr "Generátor DTMF"
+
+#: ../src/gsm.c:120 ../src/gsm.c:138
+msgid "The GSM full-rate codec"
+msgstr "Kodek plnopásmového GSM"
+
+#: ../src/gsm.c:187 ../src/gsm.c:205
+msgid "The GSM codec"
+msgstr "GSM kodek"
+
+#: ../src/macsnd.c:630
+#, fuzzy
+msgid "Sound capture filter for MacOS X Audio Unit"
+msgstr "Filtr zachytávání zvuku přes MacOS X ovladače Core Audio"
+
+#: ../src/macsnd.c:645
+#, fuzzy
+msgid "Sound playback filter for MacOS X Audio Unit"
+msgstr "Filtr přehrávání zvuku přes MacOS X ovladače Core Audio"
+
+#: ../src/msconf.c:784 ../src/msconf.c:802
+msgid "A filter to make conferencing"
+msgstr "Filtr pro vytváření konferencí"
+
+#: ../src/msfileplayer.c:315 ../src/msfileplayer.c:333
+msgid "Raw files and wav reader"
+msgstr "Čtení syrových souborů a souborů WAV"
+
+#: ../src/msfilerec.c:174 ../src/msfilerec.c:192 ../src/msfilerec_win.c:216
+#: ../src/msfilerec_win.c:234
+msgid "Wav file recorder"
+msgstr "Nahrávání do souborů WAV"
+
+#: ../src/msjoin.c:47 ../src/msjoin.c:65
+msgid "A filter that send several inputs to one output."
+msgstr "Filtr, který směšuje několik vstupů do jednoho výstupu."
+
+#: ../src/msresample.c:181 ../src/msresample.c:199
+msgid "Audio resampler"
+msgstr "měnič frekvence"
+
+#: ../src/msrtp.c:377 ../src/msrtp.c:396
+msgid "RTP output filter"
+msgstr "Filtr RTP výstupu"
+
+#: ../src/msrtp.c:517 ../src/msrtp.c:535
+msgid "RTP input filter"
+msgstr "Filtr RTP vstupu"
+
+#: ../src/msspeex.c:421 ../src/msspeex.c:439 ../src/msspeex.c:616
+#: ../src/msspeex.c:635
+msgid "The free and wonderful speex codec"
+msgstr "Svobodný a úžasný kodek speex"
+
+#: ../src/msvolume.c:527 ../src/msvolume.c:542
+msgid "A filter that controls and measure sound volume"
+msgstr "Filtr, který měří a řídí hlasitost zvuku"
+
+#: ../src/msv4l.c:1012
+msgid "A video4linux compatible source filter to stream pictures."
+msgstr "Zdrojový filtr kompatibilní s Video4Linux proudující obrázky."
+
+#: ../src/msv4l2.c:588
+msgid "A filter to grab pictures from Video4Linux2-powered cameras"
+msgstr "Filtr zachytávající obrázky z Video4Linux2 kamer"
+
+#: ../src/nowebcam.c:1854
+msgid "A filter that outputs a static image."
+msgstr "Filtr, který vydává nehybný obrázek."
+
+#: ../src/pixconv.c:129 ../src/pixconv.c:147
+msgid "A pixel format converter"
+msgstr "Převodník formátu pixelů"
+
+#: ../src/sizeconv.c:202
+msgid "A video size converter"
+msgstr "Převaděč velikosti videa"
+
+#: ../src/sizeconv.c:220
+msgid "a small video size converter"
+msgstr "Převaděč velikosti malých videí"
+
+#: ../src/speexec.c:474 ../src/speexec.c:492
+msgid "Echo canceller using speex library"
+msgstr "Potlačení ozvěny prostřednictvím knihovny speex"
+
+#: ../src/tee.c:81 ../src/tee.c:99
+msgid "A filter that reads from input and copy to its multiple outputs."
+msgstr "Filtr, který čte vstup a kopíruje ho více výstupů."
+
+#: ../src/theora.c:376
+msgid "The theora video encoder from xiph.org"
+msgstr "Kodér videa do theory od xiph.org"
+
+#: ../src/theora.c:394
+msgid "The open-source and royalty-free 'theora' video codec from xiph.org"
+msgstr ""
+"Kodek pro video „theora“ od xiph.org, který má otevřený zdrojový kód a je "
+"prostý licenčních poplatků"
+
+#: ../src/theora.c:562 ../src/theora.c:580
+msgid "The theora video decoder from xiph.org"
+msgstr "Dekodér theora videa od xiph.org"
+
+#: ../src/ulaw.c:147 ../src/ulaw.c:165
+msgid "ITU-G.711 ulaw encoder"
+msgstr "Kodér µ-law ITU-G.711"
+
+#: ../src/ulaw.c:197 ../src/ulaw.c:215
+msgid "ITU-G.711 ulaw decoder"
+msgstr "Dekodér µ-law ITU-G.711"
+
+#: ../src/videodec.c:713 ../src/videodec.c:729 ../src/videodec.c:812
+#: ../src/videodec.c:828
+msgid "A H.263 decoder using ffmpeg library"
+msgstr "Dekodér H.263 používající knihovnu ffmpeg"
+
+#: ../src/videodec.c:746
+msgid "A MPEG4 decoder using ffmpeg library"
+msgstr "Dekodér MPEG4 používající knihovnu ffmpeg"
+
+#: ../src/videodec.c:762
+msgid "A RTP/JPEG decoder using ffmpeg library"
+msgstr "Dekodér RTP/JPEG používající knihovnu ffmpeg"
+
+#: ../src/videodec.c:778
+msgid "A MJPEG decoder using ffmpeg library"
+msgstr "Dekodér MPEG používající knihovnu ffmpeg"
+
+#: ../src/videodec.c:794
+msgid "A snow decoder using ffmpeg library"
+msgstr "Dekodér snow používající knihovnu ffmpeg"
+
+#: ../src/videoenc.c:904 ../src/videoenc.c:986
+msgid "A video H.263 encoder using ffmpeg library."
+msgstr "Kodér H.263 používající knihovnu ffmpeg."
+
+#: ../src/videoenc.c:920
+msgid ""
+"A video H.263 encoder using ffmpeg library. It is compliant with old RFC2190 "
+"spec."
+msgstr ""
+"Kodér H.263 videa používající knihovnu ffmpeg. Vyhovuje staré specifikaci "
+"RFC 2190."
+
+#: ../src/videoenc.c:936 ../src/videoenc.c:1018
+msgid "A video MPEG4 encoder using ffmpeg library."
+msgstr "Kodér MPEG4 videa používající knihovnu ffmpeg."
+
+#: ../src/videoenc.c:952
+msgid "A video snow encoder using ffmpeg library."
+msgstr "Kodér snow videa používající knihovnu ffmpeg."
+
+#: ../src/videoenc.c:968
+msgid "A RTP/MJPEG encoder using ffmpeg library."
+msgstr "Kodér RTP/MJPEG používající knihovnu ffmpeg."
+
+#: ../src/videoenc.c:1002
+msgid ""
+"A video H.263 encoder using ffmpeg library, compliant with old RFC2190 spec."
+msgstr ""
+"Kodér H.263 videa používající knihovnu ffmpeg, vyhovuje staré specifikaci "
+"RFC 2190."
+
+#: ../src/videoenc.c:1034
+msgid ""
+"The snow codec is royalty-free and is open-source. \n"
+"It uses innovative techniques that makes it one of most promising video "
+"codec. It is implemented within the ffmpeg project.\n"
+"However it is under development, quite unstable and compatibility with other "
+"versions cannot be guaranteed."
+msgstr ""
+"Kodek snow není zatížen poplatky a má otevřený zdrojový kód.\n"
+"Využívá průkopnické techniky, které jej činí jedním z nejslibnějších video "
+"kodeků. Je implementován v projektu ffmpeg.\n"
+"Avšak stále se vyvíjí, je trochu nestabilní a kompatibilita s ostatními "
+"verzemi není zaručena."
+
+#: ../src/videoenc.c:1054
+msgid "A MJPEG encoder using ffmpeg library."
+msgstr "Kodér MJPEG používající knihovnu ffmpeg."
+
+#: ../src/videoout.c:1028
+msgid "A SDL-based video display"
+msgstr ""
+
+#: ../src/wincevideods.c:969 ../src/wincevideods.c:987 ../src/winvideo.c:596
+#: ../src/winvideo.c:614 ../src/winvideods.c:1385 ../src/winvideods.c:1403
+msgid "A video4windows compatible source filter to stream pictures."
+msgstr "Zdrojový filtr kompatibilní s video4windows proudující obrázky."
+
+#: ../src/winvideo2.c:436 ../src/winvideo2.c:454
+msgid "A video for windows (vfw.h) based source filter to grab pictures."
+msgstr ""
+"Zdrojový filtr založený na videu pro windows (vwf.h) pro zachytávání obrázků."
+
+#: ../src/ice.c:1349 ../src/ice.c:1367
+msgid "ICE filter"
+msgstr "Filtr ICE"
+
+#: ../src/void.c:35 ../src/void.c:52
+msgid "A filter that trashes its input (useful for terminating some graphs)."
+msgstr ""
+"Filtr, který zahazuje svůj vstup (užitečné na zakončení některých grafů)."
+
+#: ../src/equalizer.c:338 ../src/equalizer.c:356
+msgid "Parametric sound equalizer."
+msgstr "Parametrický ekvalizér zvuku."
+
+#: ../src/msdscap-mingw.cc:1039
+msgid "A webcam grabber based on directshow."
+msgstr "Snímač kamer postavený na directshow."
+
+#: ../src/drawdib-display.c:552 ../src/drawdib-display.c:570
+msgid "A video display based on windows DrawDib api"
+msgstr ""
+
+#: ../src/audiomixer.c:296 ../src/audiomixer.c:315
+msgid "A filter that mixes down 16 bit sample audio streams"
+msgstr ""
+
+#: ../src/chanadapt.c:110 ../src/chanadapt.c:128
+msgid "A filter that converts from mono to stereo and vice versa."
+msgstr ""
+
+#: ../src/itc.c:98 ../src/itc.c:116 ../src/itc.c:198 ../src/itc.c:216
+msgid "Inter ticker communication filter."
+msgstr ""
+
+#: ../src/extdisplay.c:64 ../src/extdisplay.c:81
+msgid "A display filter sending the buffers to draw to the upper layer"
+msgstr ""
+
+#: ../src/msiounit.c:634
+msgid "Sound capture filter for MacOS X Audio Unit Service"
+msgstr ""
+
+#: ../src/msiounit.c:648
+msgid "Sound playback filter for MacOS X Audio Unit Service"
+msgstr ""
+
+#: ../src/x11video.c:529
+msgid "A video display using X11+Xv"
+msgstr ""
+
+#. .id=
+#. .name=
+#. .text=
+#: ../src/msandroid.cpp:516
+msgid "Sound capture filter for Android"
+msgstr ""
+
+#. .id=
+#. .name=
+#. .text=
+#: ../src/msandroid.cpp:826
+msgid "Sound playback filter for Android"
+msgstr ""
+
+#: ../src/msandroidvideo.cpp:367
+msgid "A filter that captures Android video."
+msgstr ""
+
+#: ../src/vp8.c:350 ../src/vp8.c:366
+#, fuzzy
+msgid "A video VP8 encoder using libvpx library."
+msgstr "Kodér MPEG4 videa používající knihovnu ffmpeg."
+
+#~ msgid "Sound capture filter for OSS drivers"
+#~ msgstr "Zvukový zachytávací filtr pro ovladače OSS"
+
+#~ msgid "Sound playback filter for OSS drivers"
+#~ msgstr "Zvukový přehrávací filtr pro ovladače OSS"

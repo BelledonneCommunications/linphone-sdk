@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "pythonproject"
+version = "0.1.0"
+description = ""
+authors = ["Belledonne Communications"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numpy = ">=1.24,<2.2"
+soundfile = "==0.13.0"
+librosa = "^0.10.2.post1"
+plotly = "^5.24.1"
+pandas = "^2.2.3"
+kaleido = "==0.2.1"
+matplotlib = "3.10.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

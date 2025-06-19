@@ -1,0 +1,249 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}</ProjectGuid>
+    <RootNamespace>mediastreamer2</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(TargetName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\src\base;$(ProjectDir)..\..\..\src\utils;$(ProjectDir)..\..\..\src\voip;$(ProjectDir)..\..\..\src\audiofilters;$(ProjectDil)..\..\..\src\otherfilters;$(ProjectDir)..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\oRTP\build\wp8\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\wp8\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\srtp\include;$(ProjectDir)..\..\..\..\..\srtp\crypto\include;$(ProjectDir)..\..\..\..\..\srtp\build\wp8\srtp;$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\opus\include;$(ProjectDir)..\..\..\..\..\polarssl\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\libvpx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;HAVE_SRTP;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;VIDEO_ENABLED;NO_FFMPEG;UNICODE;HAVE_CONFIG_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <AdditionalDependencies>ws2_32.lib;vpxmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\libvpx_build\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ImportLibrary>$(TargetDir)$(TargetName).lib</ImportLibrary>
+    </Link>
+    <PreBuildEvent>
+      <Command>version.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Batch script to get the git version</Message>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='ARM'">
+    <ClCompile>
+      <PreprocessorDefinitions>__ARMEL__;HAVE_POLARSSL_SSL_H;__ARM_NEON__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Reference Include="Windows">
+      <IsWinMDFile>true</IsWinMDFile>
+    </Reference>
+    <Reference Include="platform.winmd">
+      <IsWinMDFile>true</IsWinMDFile>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\mediastreamer2\allfilters.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\dtmfgen.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\flowcontrol.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\ice.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\mediastream.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msaudiomixer.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\mschanadapter.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\mscommon.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msconference.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\mseventqueue.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msfileplayer.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msfilerec.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msfilter.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msinterfaces.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msitc.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msmediaplayer.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msqueue.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msrtp.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\mssndcard.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msvideopresets.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msticker.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\msvolume.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\mswebcam.h" />
+    <ClInclude Include="..\..\..\include\mediastreamer2\videostarter.h" />
+    <ClInclude Include="..\..\..\src\audiofilters\g711.h" />
+    <ClInclude Include="..\..\..\src\utils\g722.h" />
+    <ClInclude Include="..\..\..\src\utils\kiss_fft.h" />
+    <ClInclude Include="..\..\..\src\utils\kiss_fftr.h" />
+    <ClInclude Include="..\..\..\src\utils\_kiss_fft_guts.h" />
+    <ClInclude Include="..\..\..\src\voip\layouts.h" />
+    <ClInclude Include="..\..\..\src\voip\msvideo_neon.h" />
+    <ClInclude Include="..\..\..\src\voip\nowebcam.h" />
+    <ClInclude Include="..\..\..\src\voip\private.h" />
+    <ClInclude Include="..\..\..\src\voip\rfc2429.h" />
+    <ClInclude Include="..\..\..\src\voip\vp8rtpfmt.h" />
+    <ClInclude Include="basedescs.h" />
+    <ClInclude Include="gitversion.h" />
+    <ClInclude Include="mediastreamer-config.h" />
+    <ClInclude Include="voipdescs.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\audiofilters\alaw.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\audiomixer.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\chanadapt.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\dtmfgen.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\equalizer.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\flowcontrol.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\g711.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\gsm.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\l16.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msfileplayer.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msfilerec.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msg722.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msopus.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msresample.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msspeex.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\msvolume.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\speexec.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\tonedetector.c" />
+    <ClCompile Include="..\..\..\src\audiofilters\ulaw.c" />
+    <ClCompile Include="..\..\..\src\base\eventqueue.c" />
+    <ClCompile Include="..\..\..\src\base\mscommon.c" />
+    <ClCompile Include="..\..\..\src\base\msfactory.c" />
+    <ClCompile Include="..\..\..\src\base\msfilter.c" />
+    <ClCompile Include="..\..\..\src\base\msqueue.c" />
+    <ClCompile Include="..\..\..\src\base\mssndcard.c" />
+    <ClCompile Include="..\..\..\src\base\msticker.c" />
+    <ClCompile Include="..\..\..\src\base\msvideopresets.c" />
+    <ClCompile Include="..\..\..\src\base\mswebcam.c" />
+    <ClCompile Include="..\..\..\src\base\mtu.c" />
+    <ClCompile Include="..\..\..\src\crypto\dtls_srtp.c" />
+    <ClCompile Include="..\..\..\src\crypto\ms_srtp.c" />
+    <ClCompile Include="..\..\..\src\crypto\zrtp.c" />
+    <ClCompile Include="..\..\..\src\otherfilters\itc.c" />
+    <ClCompile Include="..\..\..\src\otherfilters\join.c" />
+    <ClCompile Include="..\..\..\src\otherfilters\msrtp.c" />
+    <ClCompile Include="..\..\..\src\otherfilters\tee.c" />
+    <ClCompile Include="..\..\..\src\otherfilters\void.c" />
+    <ClCompile Include="..\..\..\src\utils\dsptools.c" />
+    <ClCompile Include="..\..\..\src\utils\g722_decode.c" />
+    <ClCompile Include="..\..\..\src\utils\g722_encode.c" />
+    <ClCompile Include="..\..\..\src\utils\kiss_fft.c" />
+    <ClCompile Include="..\..\..\src\utils\kiss_fftr.c" />
+    <ClCompile Include="..\..\..\src\utils\stream_regulator.c" />
+    <ClCompile Include="..\..\..\src\videofilters\extdisplay.c" />
+    <ClCompile Include="..\..\..\src\videofilters\mire.c" />
+    <ClCompile Include="..\..\..\src\videofilters\nowebcam.c" />
+    <ClCompile Include="..\..\..\src\videofilters\pixconv.c" />
+    <ClCompile Include="..\..\..\src\videofilters\sizeconv.c" />
+    <ClCompile Include="..\..\..\src\videofilters\vp8.c" />
+    <ClCompile Include="..\..\..\src\voip\audioconference.c" />
+    <ClCompile Include="..\..\..\src\voip\audiostream.c" />
+    <ClCompile Include="..\..\..\src\voip\bitratecontrol.c" />
+    <ClCompile Include="..\..\..\src\voip\bitratedriver.c" />
+    <ClCompile Include="..\..\..\src\voip\ice.c" />
+    <ClCompile Include="..\..\..\src\voip\layouts.c" />
+    <ClCompile Include="..\..\..\src\voip\mediastream.c" />
+    <ClCompile Include="..\..\..\src\voip\msmediaplayer.c" />
+    <ClCompile Include="..\..\..\src\voip\msvideo.c" />
+    <ClCompile Include="..\..\..\src\voip\msvideo_neon.c" />
+    <ClCompile Include="..\..\..\src\voip\msvoip.c" />
+    <ClCompile Include="..\..\..\src\voip\qosanalyzer.c" />
+    <ClCompile Include="..\..\..\src\voip\qualityindicator.c" />
+    <ClCompile Include="..\..\..\src\voip\rfc3984.c" />
+    <ClCompile Include="..\..\..\src\voip\ringstream.c" />
+    <ClCompile Include="..\..\..\src\voip\stun.c" />
+    <ClCompile Include="..\..\..\src\voip\stun_udp.c" />
+    <ClCompile Include="..\..\..\src\voip\videostarter.c" />
+    <ClCompile Include="..\..\..\src\voip\videostream.c" />
+    <ClCompile Include="..\..\..\src\voip\video_preset_high_fps.c" />
+    <ClCompile Include="..\..\..\src\voip\vp8rtpfmt.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\gsm\build\wp8\gsm\gsm.vcxproj">
+      <Project>{746ea080-5ba9-42c5-9e52-ea421c3f3afd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\opus\build\wp8\opus\opus.vcxproj">
+      <Project>{d450ec75-df02-48b0-a4fb-aca79bd894ab}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\polarssl\build\wp8\polarssl\polarssl.vcxproj">
+      <Project>{e9f8c5d1-13a2-46b6-a9bc-878030d4be09}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\speex\build\wp8\speex\speex.vcxproj">
+      <Project>{d5ec8c11-c1d9-47e3-bb82-a93c300fd902}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\speex\build\wp8\speex\speexdsp.vcxproj">
+      <Project>{6bd78980-9c71-4341-8775-ad19e9ec7305}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\srtp\build\wp8\srtp\srtp.vcxproj">
+      <Project>{b4b96bc4-2b72-4964-98e4-7fd048a43363}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\oRTP\build\wp8\oRTP\oRTP.vcxproj">
+      <Project>{ffc7b532-0502-4d88-ac98-9e89071cbc97}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsPhone\v$(TargetPlatformVersion)\Microsoft.Cpp.WindowsPhone.$(TargetPlatformVersion).targets" />
+</Project>

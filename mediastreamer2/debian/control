@@ -1,0 +1,49 @@
+Source: mediastreamer2
+Section: sound
+Priority: optional
+Maintainer: Debian VoIP Team <pkg-voip-maintainers@lists.alioth.debian.org>
+Uploaders: Samuel Mimram <smimram@debian.org>, Kilian Krause <kilian@debian.org>, Faidon Liambotis <paravoid@debian.org>, Mark Purcell <msp@debian.org>, Lionel Elie Mamane <lmamane@debian.org>, Tzafrir Cohen <tzafrir@debian.org>
+Build-Depends: debhelper (>= 8),
+ autoconf, automake, autotools-dev, libtool, pkg-config, intltool, 
+ libasound2-dev [linux-any],
+ libv4l-dev [linux-any],
+ libspeex-dev, libspeexdsp-dev, libgsm1-dev,
+ libxv-dev,
+ libavcodec-dev, libswscale-dev, doxygen, libglew-dev
+Standards-Version: 3.9.1
+Homepage: http://www.linphone.org/
+Vcs-Svn: svn://svn.debian.org/pkg-voip/linphone/trunk/
+Vcs-Browser: http://anonscm.debian.org/viewvc/pkg-voip/linphone/trunk/
+
+Package: libmediastreamer2
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: linphone web phone's media library
+ Linphone is an audio and video internet phone using the SIP protocol. It 
+ has a GTK+ and console interface, includes a large variety of audio and video 
+ codecs, and provides IM features.
+ .
+ This package contains the shared runtime libraries for handling media
+ operations.
+
+Package: libmediastreamer-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libmediastreamer2 (= ${binary:Version}), libasound2-dev [linux-any], libortp-dev, libspeex-dev
+Conflicts: libmediastreamer0-dev
+Description: linphone web phone's media library
+ Linphone is an audio and video internet phone using the SIP protocol. It 
+ has a GTK+ and console interface, includes a large variety of audio and video 
+ codecs, and provides IM features.
+ .
+ This package contains the shared runtime libraries for handling media
+ operations.
+
+Package: libmediastreamer2-dbg
+Architecture: any
+Depends: libmediastreamer2 (= ${binary:Version}), ${misc:Depends}
+Section: debug
+Priority: extra
+Description: Debugging symbols for mediastreamer
+ .

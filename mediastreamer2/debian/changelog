@@ -1,0 +1,61 @@
+mediastreamer2 (2.14.0) unstable; urgency=low
+  * bug fixes
+  
+ -- Belledonne Communications <info@belledonne-communications.com>  Thu, 17 August 2016 16:50:07 +0200 
+
+mediastreamer2 (2.13.0) unstable; urgency=low
+  * Add support of H264 hardware codec on Apple's platforms
+  * MSFactory usage : using one MSfactory per LinphoneCore instance, 
+    deprecate all "static" methods, now grouped around the MSFactory object.
+  * Adding BroadVoice16 audio codec support.
+  * Fix option to really disable libv4l2 when asked
+
+ -- Belledonne Communications <info@belledonne-communications.com>  Thu, 2 June 2016 13:50:07 +0200
+
+mediastreamer2 (2.12.1) unstable; urgency=low
+
+  * Fix crash in MKV recorder
+  * Fix I-frame request when starting MKV recording
+
+ -- Belledonne Communications <info@belledonne-communications.com>  Mon, 16 Nov 2015 10:42:00 +0200
+
+mediastreamer2 (2.12.0) unstable; urgency=low
+
+  * Allow video stream to keep its source (camera)
+  * Basic AVPF handling for H.264 codec
+  * Support of video presets (include a high-fps preset)
+  * Support of RTP session as input/output of a audio/video stream (instead of a sound card or camera/display)
+  * Handle jpeg image loading on Windows 10
+  * Video capture and display filter for BlackBerry 10
+  * Add text stream for RTT (Real-Time Text)
+  * Support of VP8 recording/playing in mkv files
+  * Bug fixes
+
+ -- Belledonne Communications <info@belledonne-communications.com>  Mon, 02 Nov 2015 13:57:00 +0200
+
+mediastreamer2 (2.11.2) unstable; urgency=low
+
+  * Initiale package for mediastreamer 2.11.2
+
+ -- Belledonne Communications <info@belledonne-communications.com>  Tue, 07 Oct 2015 15:10:00 +0200
+
+mediastreamer2 (2.10.0) unstable; urgency=low
+
+  * add HD video support
+  * new OpenSLES android sound module
+  * update android AEC settings table
+  * add opus codec
+  * bugfixes
+
+ -- Sylvain Berfini <sylvain.berfini@linphone.org>  Mon, 31 March 2013 16:09:01 +0200
+
+mediastreamer2 (1:2.9.0-1) unstable; urgency=low
+
+  * Subsequent release.
+
+ -- Guillaume Beraudo <guillaume.beraudo@linphone.org>  Wed, 30 Jan 2013 15:28:10 +0100
+mediastreamer2 (2.8.2) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Guillamue Beraudo <guillaume.beraudo@linphone.org>  Fri, 3 May 2012 13:58:16 +0200

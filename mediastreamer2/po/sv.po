@@ -1,0 +1,309 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: mediastreamer 2.7.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-12-02 18:14+0100\n"
+"PO-Revision-Date: 2009-02-17 15:22+0100\n"
+"Last-Translator: Emmanuel Frécon <emmanuel.frecon@myjoice.com>\n"
+"Language-Team: SWEDISH <SE@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+
+#: ../src/alaw.c:144 ../src/alaw.c:162
+msgid "ITU-G.711 alaw encoder"
+msgstr ""
+
+#: ../src/alaw.c:194 ../src/alaw.c:211
+msgid "ITU-G.711 alaw decoder"
+msgstr ""
+
+#: ../src/alsa.c:1014
+msgid "Alsa sound source"
+msgstr "Alsa ljud ingång"
+
+#: ../src/alsa.c:1117
+msgid "Alsa sound output"
+msgstr "Also ljud utgång"
+
+#: ../src/aqsnd.c:1020
+msgid "Sound capture filter for MacOS X Audio Queue Service"
+msgstr ""
+
+#: ../src/aqsnd.c:1044
+msgid "Sound playback filter for MacOS X Audio Queue Service"
+msgstr ""
+
+#: ../src/dtmfgen.c:302 ../src/dtmfgen.c:321
+msgid "DTMF generator"
+msgstr "DTMF generare"
+
+#: ../src/gsm.c:120 ../src/gsm.c:138
+msgid "The GSM full-rate codec"
+msgstr "Hög hastighet GSM codec"
+
+#: ../src/gsm.c:187 ../src/gsm.c:205
+msgid "The GSM codec"
+msgstr "GSM codec"
+
+#: ../src/macsnd.c:630
+#, fuzzy
+msgid "Sound capture filter for MacOS X Audio Unit"
+msgstr "Fånga ljud med OSS drivrutiner"
+
+#: ../src/macsnd.c:645
+#, fuzzy
+msgid "Sound playback filter for MacOS X Audio Unit"
+msgstr "Ljud utgång med OSS drivrutiner"
+
+#: ../src/msconf.c:784 ../src/msconf.c:802
+msgid "A filter to make conferencing"
+msgstr "Ett filter för konferens"
+
+#: ../src/msfileplayer.c:315 ../src/msfileplayer.c:333
+msgid "Raw files and wav reader"
+msgstr "Raw filer och WAV läsare"
+
+#: ../src/msfilerec.c:174 ../src/msfilerec.c:192 ../src/msfilerec_win.c:216
+#: ../src/msfilerec_win.c:234
+msgid "Wav file recorder"
+msgstr "WAV fil inspelare"
+
+#: ../src/msjoin.c:47 ../src/msjoin.c:65
+msgid "A filter that send several inputs to one output."
+msgstr "En filter som skickar flera ingångar till en utgång"
+
+#: ../src/msresample.c:181 ../src/msresample.c:199
+msgid "Audio resampler"
+msgstr ""
+
+#: ../src/msrtp.c:377 ../src/msrtp.c:396
+msgid "RTP output filter"
+msgstr ""
+
+#: ../src/msrtp.c:517 ../src/msrtp.c:535
+msgid "RTP input filter"
+msgstr ""
+
+#: ../src/msspeex.c:421 ../src/msspeex.c:439 ../src/msspeex.c:616
+#: ../src/msspeex.c:635
+msgid "The free and wonderful speex codec"
+msgstr "Den fria speex codec"
+
+#: ../src/msvolume.c:527 ../src/msvolume.c:542
+msgid "A filter that controls and measure sound volume"
+msgstr "Ett filter som kontrollerar och mäter ljudvolym"
+
+#: ../src/msv4l.c:1012
+msgid "A video4linux compatible source filter to stream pictures."
+msgstr "En video4linux kompatibel ingångsfilter för att strömma bilder"
+
+#: ../src/msv4l2.c:588
+msgid "A filter to grab pictures from Video4Linux2-powered cameras"
+msgstr "En filter för att fånga bilder från Video4Linux-2 capabla kameror"
+
+#: ../src/nowebcam.c:1854
+msgid "A filter that outputs a static image."
+msgstr "En filter med statisk bild"
+
+#: ../src/pixconv.c:129 ../src/pixconv.c:147
+msgid "A pixel format converter"
+msgstr "En pixel format konverterare"
+
+#: ../src/sizeconv.c:202
+msgid "A video size converter"
+msgstr "En video storlek konverterare"
+
+#: ../src/sizeconv.c:220
+msgid "a small video size converter"
+msgstr "En liten video storlek konverterare"
+
+#: ../src/speexec.c:474 ../src/speexec.c:492
+msgid "Echo canceller using speex library"
+msgstr "Echo cancellering med hjälp av speex"
+
+#: ../src/tee.c:81 ../src/tee.c:99
+msgid "A filter that reads from input and copy to its multiple outputs."
+msgstr ""
+"En filter som läser från sin ingång och kopierar till multipla utgångar"
+
+#: ../src/theora.c:376
+msgid "The theora video encoder from xiph.org"
+msgstr "Theora video encoder från xiph.org"
+
+#: ../src/theora.c:394
+msgid "The open-source and royalty-free 'theora' video codec from xiph.org"
+msgstr "Theora video codec från xiph.org, öppen källkod och utan royalties"
+
+#: ../src/theora.c:562 ../src/theora.c:580
+msgid "The theora video decoder from xiph.org"
+msgstr "Theora video decoder från xiph.org"
+
+#: ../src/ulaw.c:147 ../src/ulaw.c:165
+msgid "ITU-G.711 ulaw encoder"
+msgstr ""
+
+#: ../src/ulaw.c:197 ../src/ulaw.c:215
+msgid "ITU-G.711 ulaw decoder"
+msgstr ""
+
+#: ../src/videodec.c:713 ../src/videodec.c:729 ../src/videodec.c:812
+#: ../src/videodec.c:828
+msgid "A H.263 decoder using ffmpeg library"
+msgstr "En h.263 decoder via ffmpeg"
+
+#: ../src/videodec.c:746
+msgid "A MPEG4 decoder using ffmpeg library"
+msgstr "En MPEG4 decoder via ffmpeg"
+
+#: ../src/videodec.c:762
+msgid "A RTP/JPEG decoder using ffmpeg library"
+msgstr "En RTP/JPEG decoder via ffmpeg"
+
+#: ../src/videodec.c:778
+msgid "A MJPEG decoder using ffmpeg library"
+msgstr "En MJPEG decode via ffmpeg"
+
+#: ../src/videodec.c:794
+msgid "A snow decoder using ffmpeg library"
+msgstr "En snow decoder via ffmpeg"
+
+#: ../src/videoenc.c:904 ../src/videoenc.c:986
+msgid "A video H.263 encoder using ffmpeg library."
+msgstr "En video h.263 encoder via ffmpeg"
+
+#: ../src/videoenc.c:920
+msgid ""
+"A video H.263 encoder using ffmpeg library. It is compliant with old RFC2190 "
+"spec."
+msgstr ""
+"En video h.263 encoder via ffmpeg, kompatibel med den gamla RFC2190 "
+"specificationen."
+
+#: ../src/videoenc.c:936 ../src/videoenc.c:1018
+msgid "A video MPEG4 encoder using ffmpeg library."
+msgstr "En video MPEG4 encoder via ffmpeg"
+
+#: ../src/videoenc.c:952
+msgid "A video snow encoder using ffmpeg library."
+msgstr "En video snow encoder via ffmpeg"
+
+#: ../src/videoenc.c:968
+msgid "A RTP/MJPEG encoder using ffmpeg library."
+msgstr "En RTP/MJPEG encoder via ffmpeg"
+
+#: ../src/videoenc.c:1002
+msgid ""
+"A video H.263 encoder using ffmpeg library, compliant with old RFC2190 spec."
+msgstr ""
+"En video h.263 encoder via ffmpeg, kompatible med den gamla RFC2190 "
+"specifikationen."
+
+#: ../src/videoenc.c:1034
+msgid ""
+"The snow codec is royalty-free and is open-source. \n"
+"It uses innovative techniques that makes it one of most promising video "
+"codec. It is implemented within the ffmpeg project.\n"
+"However it is under development, quite unstable and compatibility with other "
+"versions cannot be guaranteed."
+msgstr ""
+"Snow codec:en är öppen källkod och utan royalties.\n"
+"Den använder sig av innovativa tekniker som gör den en av de bästa. Codec:en "
+"implementeras inom ffmpeg projektet.\n"
+"Dock, den är under utveckling och kompatibiliteten mellan versioner kan inte "
+"garanteras."
+
+#: ../src/videoenc.c:1054
+msgid "A MJPEG encoder using ffmpeg library."
+msgstr "En MJPEG encoder via ffmpeg"
+
+#: ../src/videoout.c:1028
+msgid "A SDL-based video display"
+msgstr "En video utgångsfönster med SDL"
+
+#: ../src/wincevideods.c:969 ../src/wincevideods.c:987 ../src/winvideo.c:596
+#: ../src/winvideo.c:614 ../src/winvideods.c:1385 ../src/winvideods.c:1403
+msgid "A video4windows compatible source filter to stream pictures."
+msgstr "En video4windows kompatibel ingångsfilter för att strömma bilder."
+
+#: ../src/winvideo2.c:436 ../src/winvideo2.c:454
+msgid "A video for windows (vfw.h) based source filter to grab pictures."
+msgstr "En video för windows kompatibel ingångsfilter för att fånga bilder."
+
+#: ../src/ice.c:1349 ../src/ice.c:1367
+msgid "ICE filter"
+msgstr ""
+
+#: ../src/void.c:35 ../src/void.c:52
+msgid "A filter that trashes its input (useful for terminating some graphs)."
+msgstr ""
+
+#: ../src/equalizer.c:338 ../src/equalizer.c:356
+msgid "Parametric sound equalizer."
+msgstr ""
+
+#: ../src/msdscap-mingw.cc:1039
+msgid "A webcam grabber based on directshow."
+msgstr ""
+
+#: ../src/drawdib-display.c:552 ../src/drawdib-display.c:570
+msgid "A video display based on windows DrawDib api"
+msgstr ""
+
+#: ../src/audiomixer.c:296 ../src/audiomixer.c:315
+msgid "A filter that mixes down 16 bit sample audio streams"
+msgstr "En filter för att mäta nivåer på 16 bitars PCM audio strömmar"
+
+#: ../src/chanadapt.c:110 ../src/chanadapt.c:128
+msgid "A filter that converts from mono to stereo and vice versa."
+msgstr "Ett filter som kontrollerar och mäter ljudvolym"
+
+#: ../src/itc.c:98 ../src/itc.c:116 ../src/itc.c:198 ../src/itc.c:216
+msgid "Inter ticker communication filter."
+msgstr "Error med förbindelsen till servern."
+
+#: ../src/extdisplay.c:64 ../src/extdisplay.c:81
+msgid "A display filter sending the buffers to draw to the upper layer"
+msgstr ""
+
+#: ../src/msiounit.c:634
+msgid "Sound capture filter for MacOS X Audio Unit Service"
+msgstr "Fånga ljud med OSS drivrutiner"
+
+#: ../src/msiounit.c:648
+msgid "Sound playback filter for MacOS X Audio Unit Service"
+msgstr "Ljud utgång med OSS drivrutiner"
+
+#: ../src/x11video.c:529
+msgid "A video display using X11+Xv"
+msgstr "En video utgångsfönster med SDL"
+
+#. .id=
+#. .name=
+#. .text=
+#: ../src/msandroid.cpp:516
+msgid "Sound capture filter for Android"
+msgstr ""
+
+#. .id=
+#. .name=
+#. .text=
+#: ../src/msandroid.cpp:826
+msgid "Sound playback filter for Android"
+msgstr ""
+
+#: ../src/msandroidvideo.cpp:367
+msgid "A filter that captures Android video."
+msgstr ""
+
+#: ../src/vp8.c:350 ../src/vp8.c:366
+#, fuzzy
+msgid "A video VP8 encoder using libvpx library."
+msgstr "En video MPEG4 encoder via ffmpeg"

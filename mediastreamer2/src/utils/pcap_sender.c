@@ -1,0 +1,127 @@
+/*
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ *
+ * This file is part of mediastreamer2
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <bctoolbox/defs.h>
+
+#include "pcap_sender.h"
+
+#include "mediastreamer2/msfileplayer.h"
+#include "mediastreamer2/mspcapfileplayer.h"
+#include "mediastreamer2/msudp.h"
+
+static void ms_pcap_stop(MSPCAPSender *s) {
+	MSConnectionHelper h;
+	// notify user callback
+	if (s->pcap_ended_cb != NULL) {
+		ms_message("Notifying user callback");
+		s->pcap_ended_cb(s, s->pcap_ended_user_data);
+	}
+	// then delete and free the graph
+	ms_message("Deleting graph");
+	ms_ticker_detach(s->ticker, s->file_player);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, s->file_player, -1, 0);
+	ms_connection_helper_unlink(&h, s->udp_send, 0, -1);
+	ms_filter_destroy(s->file_player);
+	ms_filter_destroy(s->udp_send);
+	ms_ticker_destroy(s->ticker);
+	ms_free(s);
+	ms_message("Done");
+}
+
+static void
+reader_notify_cb(void *user_data, BCTBX_UNUSED(MSFilter *f), unsigned int event, BCTBX_UNUSED(void *eventdata)) {
+	if (event == MS_PLAYER_EOF) {
+		ms_message("Reached end of file, stopping PCAP Sender");
+		ms_pcap_stop((MSPCAPSender *)user_data);
+	}
+}
+
+MSPCAPSender *ms_pcap_sendto(MSFactory *factory,
+                             const char *filepath,
+                             unsigned to_port,
+                             const MSIPPort *dest,
+                             int sample_rate,
+                             uint32_t ts_offset,
+                             MSPCAPFileEnded cb,
+                             void *user_data) {
+	MSTickerParams params;
+	MSConnectionHelper h;
+	MSPCAPSender *s;
+	MSFilter *udp_sender;
+	MSFilter *file_player;
+	int pcap_filter_property = MSPCAPFilePlayerLayerRTP;
+
+	if (sample_rate < 0 || dest == NULL || dest->ip == NULL || dest->port < 0) {
+		return NULL;
+	}
+
+	/*First try to set the destination*/
+	udp_sender = ms_factory_create_filter(factory, MS_UDP_SEND_ID);
+	if (ms_filter_call_method(udp_sender, MS_UDP_SEND_SET_DESTINATION, (void *)dest) != 0) {
+		ms_error("Failed to set destination, aborting");
+		ms_filter_destroy(udp_sender);
+		return NULL;
+	}
+
+	/*Secondly try to open the PCAP file*/
+	file_player = ms_factory_create_filter(factory, MS_PCAP_FILE_PLAYER_ID);
+	if (ms_filter_call_method(file_player, MS_PLAYER_OPEN, (void *)filepath) != 0) {
+		ms_error("Failed to open file %s, aborting", filepath);
+		ms_filter_destroy(file_player);
+		ms_filter_destroy(udp_sender);
+		return NULL;
+	}
+	if (ms_filter_call_method(file_player, MS_PCAP_FILE_PLAYER_SET_TO_PORT, (void *)&to_port) != 0) {
+		ms_error("Failed to set to port, aborting");
+		ms_filter_destroy(file_player);
+		ms_filter_destroy(udp_sender);
+		return NULL;
+	}
+	if (ms_filter_call_method(file_player, MS_PCAP_FILE_PLAYER_SET_TS_OFFSET, (void *)&ts_offset) != 0) {
+		ms_error("Failed to set ts_offset, aborting");
+		ms_filter_destroy(file_player);
+		ms_filter_destroy(udp_sender);
+		return NULL;
+	}
+
+	s = ms_new0(MSPCAPSender, 1);
+	s->udp_send = udp_sender;
+	s->file_player = file_player;
+	s->pcap_ended_cb = cb;
+	s->pcap_ended_user_data = user_data;
+
+	ms_filter_call_method(s->file_player, MS_PCAP_FILE_PLAYER_SET_LAYER, &pcap_filter_property);
+	pcap_filter_property = MSPCAPFilePlayerTimeRefCapture;
+	ms_filter_call_method(s->file_player, MS_PCAP_FILE_PLAYER_SET_TIMEREF, &pcap_filter_property);
+	ms_filter_call_method(s->file_player, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_add_notify_callback(s->file_player, reader_notify_cb, s, FALSE);
+	ms_filter_call_method_noarg(s->file_player, MS_PLAYER_START);
+
+	params.name = "MSUDP ticker";
+	params.prio = MS_TICKER_PRIO_REALTIME;
+	s->ticker = ms_ticker_new_with_params(&params);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, s->file_player, -1, 0);
+	ms_connection_helper_link(&h, s->udp_send, 0, -1);
+	ms_ticker_attach(s->ticker, s->file_player);
+
+	return s;
+}
