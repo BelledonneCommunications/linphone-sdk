@@ -1,0 +1,18 @@
+msopenh264-1.2.1 -- July 20th, 2017
+	* Bug fixes
+
+msopenh264-1.2.0 -- February 24th, 2017
+	* use the newest rfc3984 API
+
+msopenh264-1.1.2 -- June 2nd, 2016
+	* MSFactory usage.
+
+msopenh264-1.1.1 -- November 2nd, 2015
+	* Bug fixes
+
+msopenh264-1.1.0 -- June 4th, 2015
+	* Handle AVPF FIR and PLI
+	* Request PLI on decoding error if AVPF is enabled
+
+msopenh264-1.0.0 -- June 4th, 2015
+    * First official release
