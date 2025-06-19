@@ -10,9 +10,6 @@
 [submodule "ortp"]
 	path = ortp
 	url = ../ortp.git
-[submodule "mswasapi"]
-	path = mswasapi
-	url = ../mswasapi.git
 [submodule "bcmatroska2"]
 	path = bcmatroska2
 	url = ../bcmatroska2.git
