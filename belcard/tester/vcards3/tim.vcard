@@ -1,0 +1,11 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:Tim Howes
+N:Howes;Tim;;;
+ORG:Netscape Communications Corp.
+ADR;TYPE=WORK:;;501 E. Middlefield Rd.;Mountain View;CA; 94043;U.S.A.
+TEL;TYPE=VOICE,MSG,WORK:+1-415-937-3419
+TEL;TYPE=FAX,WORK:+1-415-528-4164
+EMAIL;TYPE=INTERNET:howes@netscape.com
+IMPP;TYPE=PERSONAL,pref:im:tim@example.com
+END:VCARD
