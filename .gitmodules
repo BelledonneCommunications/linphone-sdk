@@ -28,9 +28,6 @@
 [submodule "belr"]
 	path = belr
 	url = ../belr.git
-[submodule "bcunit"]
-	path = bcunit
-	url = ../bcunit.git
 [submodule "ortp"]
 	path = ortp
 	url = ../ortp.git
