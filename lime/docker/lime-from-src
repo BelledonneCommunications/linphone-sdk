@@ -1,0 +1,26 @@
+FROM centos
+MAINTAINER  Jehan Monnier <jehan.monnier@linphone.org>
+
+# Prepare dependencies
+COPY Belledonne.repo /etc/yum.repos.d/Belledonne.repo
+RUN yum -y install epel-release gdb 
+RUN yum update -y
+RUN yum -y install git gcc gcc-c++ make cmake3 mbedtls-devel rpm-build soci-devel soci-sqlite3-devel
+
+RUN mkdir -p /etc/opt/belledonne-communications/lime 
+#RUN rm -rf /root/rpmbuild/RPMS/x86_64/*
+
+RUN git clone https://gitlab.linphone.org/BC/public/external/decaf.git -b bc --depth 1 
+RUN cd decaf && mkdir WORK && cd WORK && cmake3 ../ -DENABLE_STATIC=yes -DCMAKE_POSITION_INDEPENDENT_CODE=yes -DENABLE_SHARED=no -DCMAKE_PREFIX_PATH=/opt/belledonne-communications/lime \
+-DCMAKE_INSTALL_PREFIX=/opt/belledonne-communications/lime && make install
+
+RUN git clone https://gitlab.linphone.org/BC/public/bctoolbox.git --depth 1 
+RUN cd bctoolbox && mkdir WORK && cd WORK && cmake3 ../ -DENABLE_DECAF=yes -DENABLE_TESTS_COMPONENT=no -DENABLE_TESTS=no  -DBC_PACKAGE_NAME_PREFIX=bclime- -DCPACK_PACKAGE_NAME=bclime-bctoolbox  -DCMAKE_PREFIX_PATH=/opt/belledonne-communications/lime \
+-DCMAKE_INSTALL_PREFIX=/opt/belledonne-communications/lime && make package_source && rpmbuild -ta *.tar.gz && rpm -Uhv /root/rpmbuild/RPMS/x86_64/bclime-bctoolbox*.rpm --replacefiles --replacepkgs
+
+RUN git clone https://gitlab.linphone.org/BC/public/lime.git --depth 1 
+RUN cd lime  && mkdir WORK && cd WORK && cmake3 ../ -DBC_PACKAGE_NAME_PREFIX=bclime- -DCPACK_PACKAGE_NAME=bclime-lime -DENABLE_UNIT_TESTS=no -DCMAKE_PREFIX_PATH=/opt/belledonne-communications/lime \
+-DCMAKE_INSTALL_PREFIX=/opt/belledonne-communications/lime && make package_source && rpmbuild -ta *.tar.gz && rpm -Uhv /root/rpmbuild/RPMS/x86_64/bclime-lime*.rpm  --replacefiles --replacepkgs
+
+#cleanup
+

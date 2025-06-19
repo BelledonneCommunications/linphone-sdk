@@ -1,0 +1,5 @@
+[Belledonne]
+name=Belledonne
+baseurl=https://download.linphone.org/snapshots/centos7
+enabled=1
+gpgcheck=0

@@ -1,0 +1,17 @@
+{
+  "name": "x3dh_server",
+  "version": "1.1.0",
+  "description": "A key management server for X3DH. This server is for testing purpose only and is intended to work with Lime client, an implementation of the signal protocol for linphone.",
+  "main": "x3dh.js",
+  "dependencies": {
+    "rwlock": "^5.0.0",
+    "sqlite3": "^5.1.7",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Belledonne Communications",
+  "license": "GPL-3.0"
+}
