@@ -331,10 +331,6 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 	ifneq ($(BUILD_AMRWB), 0)
 		LOCAL_STATIC_LIBRARIES += libvoamrwbenc
 	endif
-	ifeq ($(BUILD_SILK),1)
-		LOCAL_CFLAGS += -DHAVE_SILK
-		LOCAL_STATIC_LIBRARIES += libmssilk
-	endif
 	LOCAL_STATIC_LIBRARIES += libgsm
 	ifeq ($(BUILD_OPUS),1)
 		LOCAL_STATIC_LIBRARIES += libopus

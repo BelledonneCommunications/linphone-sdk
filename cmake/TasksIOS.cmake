@@ -55,13 +55,13 @@ endif()
 
 if(ENABLE_FAT_BINARY)
 	set(LINPHONE_APP_EXT_FRAMEWORKS
-		"bctoolbox.framework,belcard.framework,belle-sip.framework,belr.framework,lime.framework,linphone.framework,mediastreamer2.framework,msamr.framework,mscodec2.framework,msopenh264.framework,mssilk.framework,mswebrtc.framework,ortp.framework"
+		"bctoolbox.framework,belcard.framework,belle-sip.framework,belr.framework,lime.framework,linphone.framework,mediastreamer2.framework,msamr.framework,mscodec2.framework,msopenh264.framework,mswebrtc.framework,ortp.framework"
 		CACHE STRING "Frameworks which are safe for app extension use"
   )
 	set(LINPHONE_OTHER_FRAMEWORKS "bctoolbox-ios.framework" CACHE STRING "Frameworks which aren't safe for app extension use")
 else()
 	set(LINPHONE_APP_EXT_FRAMEWORKS
-		"bctoolbox.xcframework,belcard.xcframework,belle-sip.xcframework,belr.xcframework,lime.xcframework,linphone.xcframework,mediastreamer2.xcframework,msamr.xcframework,mscodec2.xcframework,msopenh264.xcframework,mssilk.xcframework,mswebrtc.xcframework,ortp.xcframework"
+		"bctoolbox.xcframework,belcard.xcframework,belle-sip.xcframework,belr.xcframework,lime.xcframework,linphone.xcframework,mediastreamer2.xcframework,msamr.xcframework,mscodec2.xcframework,msopenh264.xcframework,mswebrtc.xcframework,ortp.xcframework"
 		CACHE STRING "XCFrameworks which are safe for app extension use"
 	)
 	set(LINPHONE_OTHER_FRAMEWORKS "bctoolbox-ios.xcframework" CACHE STRING "XCFrameworks which aren't safe for app extension use")

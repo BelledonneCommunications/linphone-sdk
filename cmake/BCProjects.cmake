@@ -148,13 +148,6 @@ if(BUILD_MEDIASTREAMER2)
 	else()
 		linphone_sdk_add_dummy_library("msopenh264")
 	endif()
-	if(ENABLE_SILK)
-		add_subdirectory("mssilk")
-
-		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS mssilk)
-	else()
-		linphone_sdk_add_dummy_library("mssilk")
-	endif()
 	if(ENABLE_WASAPI)
 		add_subdirectory("mswasapi")
 

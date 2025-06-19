@@ -2851,7 +2851,6 @@ static void linphone_core_register_default_codecs(LinphoneCore *lc) {
 	if (ms_factory_get_cpu_count(lc->factory) == 1) opus_enabled = FALSE;
 #endif
 	linphone_core_register_payload_type(lc, &payload_type_opus, "useinbandfec=1", opus_enabled);
-	linphone_core_register_payload_type(lc, &payload_type_silk_wb, NULL, TRUE);
 	linphone_core_register_payload_type(lc, &payload_type_speex_wb, "vbr=on", TRUE);
 	linphone_core_register_payload_type(lc, &payload_type_speex_nb, "vbr=on", TRUE);
 	linphone_core_register_payload_type(lc, &payload_type_pcmu8000, NULL, TRUE);
@@ -2889,9 +2888,6 @@ static void linphone_core_register_default_codecs(LinphoneCore *lc) {
 	linphone_core_register_payload_type(lc, &payload_type_aaceld_48k, aac_fmtp162248, FALSE);
 	linphone_core_register_payload_type(lc, &payload_type_isac, NULL, FALSE);
 	linphone_core_register_payload_type(lc, &payload_type_speex_uwb, "vbr=on", FALSE);
-	linphone_core_register_payload_type(lc, &payload_type_silk_nb, NULL, FALSE);
-	linphone_core_register_payload_type(lc, &payload_type_silk_mb, NULL, FALSE);
-	linphone_core_register_payload_type(lc, &payload_type_silk_swb, NULL, FALSE);
 	linphone_core_register_payload_type(lc, &payload_type_g726_16, NULL, FALSE);
 	linphone_core_register_payload_type(lc, &payload_type_g726_24, NULL, FALSE);
 	linphone_core_register_payload_type(lc, &payload_type_g726_32, NULL, FALSE);

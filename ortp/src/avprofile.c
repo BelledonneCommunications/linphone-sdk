@@ -784,66 +784,6 @@ PayloadType payload_type_g722 = {
     FLAGS(0),
 };
 
-PayloadType payload_type_silk_nb = {
-    TYPE(PAYLOAD_AUDIO_PACKETIZED),
-    CLOCK_RATE(8000),
-    BITS_PER_SAMPLE(0),
-    ZERO_PATTERN(NULL),
-    PATTERN_LENGTH(0),
-    NORMAL_BITRATE(13000),
-    MIME_TYPE("SILK"),
-    CHANNELS(1),
-    RECV_FMTP(NULL),
-    SEND_FMTP(NULL),
-    NO_AVPF,
-    FLAGS(PAYLOAD_TYPE_IS_VBR),
-};
-
-PayloadType payload_type_silk_mb = {
-    TYPE(PAYLOAD_AUDIO_PACKETIZED),
-    CLOCK_RATE(12000),
-    BITS_PER_SAMPLE(0),
-    ZERO_PATTERN(NULL),
-    PATTERN_LENGTH(0),
-    NORMAL_BITRATE(15000),
-    MIME_TYPE("SILK"),
-    CHANNELS(1),
-    RECV_FMTP(NULL),
-    SEND_FMTP(NULL),
-    NO_AVPF,
-    FLAGS(PAYLOAD_TYPE_IS_VBR),
-};
-
-PayloadType payload_type_silk_wb = {
-    TYPE(PAYLOAD_AUDIO_PACKETIZED),
-    CLOCK_RATE(16000),
-    BITS_PER_SAMPLE(0),
-    ZERO_PATTERN(NULL),
-    PATTERN_LENGTH(0),
-    NORMAL_BITRATE(20000),
-    MIME_TYPE("SILK"),
-    CHANNELS(1),
-    RECV_FMTP(NULL),
-    SEND_FMTP(NULL),
-    NO_AVPF,
-    FLAGS(PAYLOAD_TYPE_IS_VBR),
-};
-
-PayloadType payload_type_silk_swb = {
-    TYPE(PAYLOAD_AUDIO_PACKETIZED),
-    CLOCK_RATE(24000),
-    BITS_PER_SAMPLE(0),
-    ZERO_PATTERN(NULL),
-    PATTERN_LENGTH(0),
-    NORMAL_BITRATE(30000),
-    MIME_TYPE("SILK"),
-    CHANNELS(1),
-    RECV_FMTP(NULL),
-    SEND_FMTP(NULL),
-    NO_AVPF,
-    FLAGS(PAYLOAD_TYPE_IS_VBR),
-};
-
 PayloadType payload_type_aaceld_16k = {
     TYPE(PAYLOAD_AUDIO_PACKETIZED),
     CLOCK_RATE(16000),

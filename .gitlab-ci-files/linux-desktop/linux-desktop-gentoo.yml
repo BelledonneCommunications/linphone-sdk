@@ -36,7 +36,7 @@ gentoo:
     # Set the submodules revisions in the ebuild files
     - git config --global --add safe.directory ${CI_PROJECT_DIR}
     - |
-        for PACKAGE in dev-libs/bctoolbox dev-libs/bcunit dev-libs/belcard dev-libs/belr dev-libs/liblinphone dev-libs/lime dev-libs/postquantumcryptoengine media-libs/bcmatroska2 media-libs/mediastreamer2 media-plugins/msamr media-plugins/mscodec2 media-plugins/msopenh264 media-plugins/mssilk media-plugins/mswebrtc net-libs/belle-sip net-libs/bzrtp net-libs/ortp
+        for PACKAGE in dev-libs/bctoolbox dev-libs/bcunit dev-libs/belcard dev-libs/belr dev-libs/liblinphone dev-libs/lime dev-libs/postquantumcryptoengine media-libs/bcmatroska2 media-libs/mediastreamer2 media-plugins/msamr media-plugins/mscodec2 media-plugins/msopenh264 media-plugins/mswebrtc net-libs/belle-sip net-libs/bzrtp net-libs/ortp
         do
           PACKAGE_NAME=$(echo "$PACKAGE" | cut -d "/" -f 2);
           PACKAGE_REVISION=$(git ls-tree HEAD | grep "$PACKAGE_NAME" | cut -f 1 | cut -d " " -f 3)

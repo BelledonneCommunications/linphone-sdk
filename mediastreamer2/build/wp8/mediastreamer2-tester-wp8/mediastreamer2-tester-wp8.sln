@@ -46,11 +46,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmsilbc", "..\..\..\..\..
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libilbc-rfc3951", "..\..\..\..\..\libilbc-rfc3951\build\wp8\libilbc-rfc3951\libilbc-rfc3951.vcxproj", "{8E216BF3-2DD8-4794-8E97-B1AED301ED4D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmssilk", "..\..\..\..\..\mssilk\build\wp8\mssilk\mssilk.vcxproj", "{36B528F9-FB79-4078-A16B-0A7442581BB7}"
-	ProjectSection(ProjectDependencies) = postProject
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70} = {027BAD0E-9179-48C1-9733-7AA7E2C2EC70}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmswasapi", "..\..\..\..\..\mswasapi\mswasapi\mswasapi.vcxproj", "{D22BD217-D0F8-4274-9B3A-F3F35F46482C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70} = {027BAD0E-9179-48C1-9733-7AA7E2C2EC70}

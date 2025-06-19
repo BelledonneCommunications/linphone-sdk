@@ -306,7 +306,7 @@ To generate the a SDK with GPL third parties, use the `-DENABLE_GPL_THIRD_PARTIE
 
 ## Note regarding third party components subject to license
 
-The Linphone SDK can be compiled with third parties code that are subject to patent license, especially: AMR, SILK and H264 codecs.
+The Linphone SDK can be compiled with third parties code that are subject to patent license, especially: AMR and H264 codecs.
 To build a SDK with any of these features you need to enable the `ENABLE_NON_FREE_FEATURES` option (**disabled by default**).
 Before embedding these features in your final application, **make sure to have the right to do so**.
 

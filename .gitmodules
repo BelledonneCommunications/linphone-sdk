@@ -1,9 +1,6 @@
 [submodule "bcg729"]
 	path = bcg729
 	url = ../bcg729.git
-[submodule "mssilk"]
-	path = mssilk
-	url = ../mssilk.git
 [submodule "bcmatroska2"]
 	path = bcmatroska2
 	url = ../bcmatroska2.git
