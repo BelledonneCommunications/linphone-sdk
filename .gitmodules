@@ -1,6 +1,3 @@
-[submodule "belle-sip"]
-	path = belle-sip
-	url = ../belle-sip.git
 [submodule "liblinphone"]
 	path = liblinphone
 	url = ../liblinphone.git
