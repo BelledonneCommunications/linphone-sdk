@@ -4,9 +4,6 @@
 [submodule "mssilk"]
 	path = mssilk
 	url = ../mssilk.git
-[submodule "ortp"]
-	path = ortp
-	url = ../ortp.git
 [submodule "bcmatroska2"]
 	path = bcmatroska2
 	url = ../bcmatroska2.git
