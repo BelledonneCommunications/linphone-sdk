@@ -1,0 +1,50 @@
+# Don't warn stuff that we are not "proguarding", warnings would make the build fail.
+-dontwarn org.linphone.**
+
+-keepparameternames 
+-keepattributes Exceptions,InnerClasses,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,EnclosingMethod
+
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
+}
+
+-keepclassmembers,allowoptimization enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# The following interfaces and classes are referenced from JNI
+{{#classes}}
+-keep interface {{package}}.{{className}} {*;}
+-keep class {{package}}.{{className}} {*;}
+-keep class {{package}}.{{classImplName}} {*;}
+{{/classes}}
+
+{{#enums}}
+-keep enum {{package}}.{{className}} {*;}
+{{/enums}}
+
+{{#listeners}}
+-keep class {{package}}.{{className}} {*;}
+-keep class {{package}}.{{className}}Stub {*;}
+{{/listeners}}
+
+# BuildConfig generated class for AAR
+-keep class org.linphone.core.BuildConfig { *; }
+
+# Wrapper classes
+-keep class org.linphone.core.CoreException {*;}
+-keep class org.linphone.core.Utils {*;}
+
+# Liblinphone tools
+-keep class org.linphone.core.tools.** {*;}
+
+# Mediastreamer classes
+-keep class org.linphone.mediastream.** {*;}
+
+# Protobuf classes
+-keep class com.google.protobuf.GeneratedMessageLite { *; }
+-keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
+-keep class com.android.server.os.LinphoneTombstoneProtos {*;}
+# Following allows to build a release app even without protobuf dependency
+-dontwarn com.google.protobuf.**

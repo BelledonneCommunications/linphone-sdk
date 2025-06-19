@@ -1,0 +1,98 @@
+/*
+{{className}}.java
+Copyright (C) 2010  Belledonne Communications, Grenoble, France
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
+package {{packageName}};
+
+{{#isAndroid}}
+import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
+{{/isAndroid}}
+{{#imports}}
+import {{import}}
+{{/imports}}
+
+/**
+{{#briefDoc}}
+{{#lines}}
+* {{{line}}}<br/>
+{{/lines}}
+{{/briefDoc}}
+{{#detailedDoc}}
+* <br/>
+{{#lines}}
+* {{{line}}}<br/>
+{{/lines}}
+{{/detailedDoc}}
+*/
+public enum {{{className}}} {
+{{#values}}
+    /**
+    {{#briefDoc}}
+    {{#lines}}
+    * {{{line}}}<br/>
+    {{/lines}}
+    {{/briefDoc}}
+    {{#detailedDoc}}
+    * <br/>
+    {{#lines}}
+    * {{{line}}}<br/>
+    {{/lines}}
+    {{/detailedDoc}}
+    */
+    {{name}}({{{value}}}){{commarorsemicolon}}
+
+{{/values}}
+    protected final int mValue;
+
+    private {{className}} (int value) {
+        mValue = value;
+    }
+
+    static public {{className}} fromInt(int value) throws RuntimeException {
+        switch(value) {
+        {{#values}}
+        case {{{value}}}: return {{name}};
+        {{/values}}
+        default:
+            throw new RuntimeException("Unhandled enum value " + value + " for {{className}}");
+        }
+    }
+    
+    static protected {{className}}[] fromIntArray(int[] values) throws RuntimeException {
+        int arraySize = values.length;
+        {{className}}[] enumArray = new {{className}}[arraySize];
+        for (int i = 0; i < arraySize; i++) {
+            enumArray[i] = {{className}}.fromInt(values[i]);
+        }
+        return enumArray;
+    }
+    
+    static protected int[] toIntArray({{className}}[] values) throws RuntimeException {
+        int arraySize = values.length;
+        int[] intArray = new int[arraySize];
+        for (int i = 0; i < arraySize; i++) {
+            intArray[i] = values[i].toInt();
+        }
+        return intArray;
+    }
+
+    public int toInt() {
+        return mValue;
+    }
+}

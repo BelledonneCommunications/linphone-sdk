@@ -1,0 +1,866 @@
+/*
+LinphoneWrapper.cs
+Copyright (c) 2010-2022 Belledonne Communications SARL.
+
+This file is part of Liblinphone 
+(see https://gitlab.linphone.org/BC/public/liblinphone).
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+using System;
+using System.Runtime.InteropServices;
+using System.Collections.Generic;
+#if IOS
+using ObjCRuntime;
+#endif
+
+namespace Linphone
+{
+#region Wrapper specifics
+	/// <summary>
+	/// Only contains the LIB_NAME value that represents the library in which all DllImport are made
+	/// </summary>
+	public class LinphoneWrapper
+	{
+		public const string VERSION = "{{version}}";
+
+#if IOS
+		public const string BELLE_SIP_LIB_NAME = "__Internal";
+		public const string BCTOOLBOX_LIB_NAME = "__Internal";
+		public const string MEDIASTREAMER_LIB_NAME = "__Internal";
+		public const string LIB_NAME = "__Internal";
+#elif ANDROID
+		public const string LIB_NAME = "liblinphone.so";
+		public const string BELLE_SIP_LIB_NAME = LIB_NAME;
+		public const string BCTOOLBOX_LIB_NAME = LIB_NAME;
+		public const string MEDIASTREAMER_LIB_NAME = LIB_NAME;
+#else
+		public const string BELLE_SIP_LIB_NAME = "belle-sip";
+		public const string BCTOOLBOX_LIB_NAME = "bctoolbox";
+		public const string MEDIASTREAMER_LIB_NAME = "mediastreamer2";
+		public const string LIB_NAME = "liblinphone"; // With this, it automatically finds liblinphone.dll
+#endif
+/// https://docs.microsoft.com/fr-fr/xamarin/cross-platform/app-fundamentals/building-cross-platform-applications/platform-divergence-abstraction-divergent-implementation#android
+#if ANDROID
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern void setAndroidLogHandler();
+#endif
+#if IOS
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern void linphone_iphone_enable_logs();
+#endif
+
+		/// <summary>
+		/// Registers the native log handler in Linphone.
+		/// </summary>
+		public static void setNativeLogHandler()
+		{
+#if ANDROID
+			setAndroidLogHandler();
+#elif IOS
+			linphone_iphone_enable_logs();
+#endif
+		}
+		
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern int linphone_force_utf8();
+		public static void forceUtf8(){
+			linphone_force_utf8();
+		}
+	}
+
+	/// <summary>
+	/// All methods that returns a LinphoneStatus with a value != 0 as an error code in C are translated in C# by throwing a LinphoneException
+	/// </summary>
+#if !(ANDROID || IOS)
+	public class LinphoneException : System.Exception
+	{
+		public LinphoneException() : base() { }
+		public LinphoneException(string message) : base(message) { }
+		public LinphoneException(string message, System.Exception inner) : base(message, inner) { }
+	}
+#else
+	[Serializable()]
+	public class LinphoneException : System.Exception
+	{
+		public LinphoneException() : base() { }
+		public LinphoneException(string message) : base(message) { }
+		public LinphoneException(string message, System.Exception inner) : base(message, inner) { }
+		protected LinphoneException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
+	}
+#endif
+
+	[StructLayout(LayoutKind.Sequential)]
+	/// <summary>
+	/// Parent class for a Linphone public objects
+	/// </summary>
+	public class LinphoneObject
+	{
+		internal IntPtr nativePtr;
+
+		internal GCHandle handle;
+
+		internal bool isListener;
+
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		internal delegate void OnLinphoneObjectDataDestroyed(IntPtr data);
+
+		[DllImport(LinphoneWrapper.BELLE_SIP_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+#if !(IOS || ANDROID)
+		internal static extern int belle_sip_object_data_set(IntPtr ptr, string name, IntPtr data, IntPtr cb);
+#else
+		internal static extern int belle_sip_object_data_set(IntPtr ptr, string name, IntPtr data, OnLinphoneObjectDataDestroyed cb);
+#endif
+
+		[DllImport(LinphoneWrapper.BELLE_SIP_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern IntPtr belle_sip_object_data_get(IntPtr ptr, string name);
+
+		[DllImport(LinphoneWrapper.BELLE_SIP_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern IntPtr belle_sip_object_ref(IntPtr ptr);
+
+		[DllImport(LinphoneWrapper.BELLE_SIP_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern void belle_sip_object_unref(IntPtr ptr);
+
+		[DllImport(LinphoneWrapper.BELLE_SIP_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern void belle_sip_object_data_remove(IntPtr ptr, string name);
+
+		[DllImport(LinphoneWrapper.BCTOOLBOX_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern IntPtr bctbx_list_next(IntPtr ptr);
+
+		[DllImport(LinphoneWrapper.BCTOOLBOX_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern IntPtr bctbx_list_get_data(IntPtr ptr);
+
+		[DllImport(LinphoneWrapper.BCTOOLBOX_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern void bctbx_list_free(IntPtr ptr);
+
+		[DllImport(LinphoneWrapper.BCTOOLBOX_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern IntPtr bctbx_list_append(IntPtr elem, IntPtr data);
+		
+		[DllImport(LinphoneWrapper.BCTOOLBOX_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal static extern void bctbx_free(IntPtr elem);
+
+		internal OnLinphoneObjectDataDestroyed onLinphoneListenerObjectDestroyed;
+
+#if IOS
+		[MonoPInvokeCallback((typeof(OnLinphoneObjectDataDestroyed)))]
+		internal static void on_linphone_cbs_data_destroyed(IntPtr data) {
+#else
+		internal void on_linphone_cbs_data_destroyed(IntPtr data) {
+#endif
+			if (data != IntPtr.Zero)
+			{
+				GCHandle handle = GCHandle.FromIntPtr(data);
+				if (handle.IsAllocated) {
+					handle.Free();
+				}
+			}
+		}
+
+		~LinphoneObject()
+		{
+			if (nativePtr != IntPtr.Zero && !isListener) {
+				belle_sip_object_data_remove(nativePtr, "cs_obj");
+				belle_sip_object_unref(nativePtr);
+				handle.Free();
+			}
+		}
+
+		internal static T fromNativePtr<T>(IntPtr ptr, bool takeRef=true, bool isListener=false) where T : LinphoneObject, new()
+		{
+			if (ptr == IntPtr.Zero) return null;
+			IntPtr objPtr = belle_sip_object_data_get(ptr, "cs_obj");
+			if (objPtr != IntPtr.Zero)
+			{
+				T obj = null;
+				GCHandle handle = GCHandle.FromIntPtr(objPtr);
+				if (handle.IsAllocated)
+				{
+					obj = (T)handle.Target;
+				}
+				if (obj == null)
+				{
+					objPtr = IntPtr.Zero;
+				}
+				else
+				{
+					return obj;
+				}
+			}
+			if (objPtr == IntPtr.Zero)
+			{
+				T obj = new T();
+				if (takeRef)
+				{
+					ptr = belle_sip_object_ref(ptr);
+				}
+				obj.nativePtr = ptr;
+				obj.isListener = isListener;
+
+				if (isListener) {
+					obj.handle = GCHandle.Alloc(obj, GCHandleType.Normal);
+				} else {
+					obj.handle = GCHandle.Alloc(obj, GCHandleType.WeakTrackResurrection);
+				}
+				objPtr = GCHandle.ToIntPtr(obj.handle);
+
+				if (isListener) {
+#if IOS
+					belle_sip_object_data_set(ptr, "cs_obj", objPtr, on_linphone_cbs_data_destroyed);
+#elif ANDROID
+					belle_sip_object_data_set(ptr, "cs_obj", objPtr, obj.on_linphone_cbs_data_destroyed);
+#else
+					obj.onLinphoneListenerObjectDestroyed = obj.on_linphone_cbs_data_destroyed;
+					IntPtr cb = Marshal.GetFunctionPointerForDelegate(obj.onLinphoneListenerObjectDestroyed);
+					belle_sip_object_data_set(ptr, "cs_obj", objPtr, cb);
+#endif
+				} else {
+#if !(IOS || ANDROID)
+					belle_sip_object_data_set(ptr, "cs_obj", objPtr, IntPtr.Zero);
+#else
+					belle_sip_object_data_set(ptr, "cs_obj", objPtr, null);
+#endif
+				}
+				return obj;
+			}
+			return null;
+		}
+		
+		/* This is a ugly hack because Marshall.PtrToStringUTF8() and its converse fonction
+		are not available in any version of .NET Framework */
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		[return: MarshalAs(UnmanagedType.LPUTF8Str)]
+		internal protected static extern String linphone_pointer_to_string(IntPtr ptr);
+		
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		internal protected static extern IntPtr linphone_string_to_pointer([MarshalAs(UnmanagedType.LPUTF8Str)] String str);
+
+		internal static IEnumerable<string> MarshalStringArray(IntPtr listPtr)
+		{
+			if (listPtr != IntPtr.Zero)
+			{
+				IntPtr ptr = listPtr;
+				while (ptr != IntPtr.Zero)
+				{
+					IntPtr dataPtr = bctbx_list_get_data(ptr);
+					if (dataPtr == IntPtr.Zero)
+					{
+						break;
+					}
+					string key = linphone_pointer_to_string(dataPtr);
+					yield return key;
+					ptr = bctbx_list_next(ptr);
+				}
+			}
+		}
+
+		internal static IEnumerable<T> MarshalBctbxList<T>(IntPtr listPtr, bool takeRef=true) where T : LinphoneObject, new()
+		{
+			if (listPtr != IntPtr.Zero)
+			{
+				IntPtr ptr = listPtr;
+				while (ptr != IntPtr.Zero)
+				{
+					IntPtr dataPtr = bctbx_list_get_data(ptr);
+					if (dataPtr == IntPtr.Zero)
+					{
+						break;
+					}
+					T obj = fromNativePtr<T>(dataPtr, takeRef);
+					yield return obj;
+					ptr = bctbx_list_next(ptr);
+				}
+			}
+		}
+
+		internal protected IntPtr StringArrayToBctbxList(IEnumerable<string> stringlist)
+		{
+			IntPtr bctbx_list = IntPtr.Zero;
+			foreach (string s in stringlist)
+			{
+				IntPtr string_ptr = linphone_string_to_pointer(s);
+				bctbx_list = bctbx_list_append(bctbx_list, string_ptr);
+			}
+			return bctbx_list;
+		}
+
+		internal protected void CleanStringArrayPtrs(IntPtr l)
+		{
+			IntPtr elem;
+			for (elem = l; elem != null; elem = bctbx_list_next(elem)){
+				bctbx_free(bctbx_list_get_data(elem));
+			}
+			bctbx_list_free(l);
+		}
+
+		internal static IntPtr ObjectArrayToBctbxList<T>(IEnumerable<T> objlist) where T : LinphoneObject, new()
+		{
+			IntPtr bctbx_list = IntPtr.Zero;
+			foreach (T ptr in objlist)
+			{
+				bctbx_list = bctbx_list_append(bctbx_list, ptr.nativePtr);
+			}
+			return bctbx_list;
+		}
+
+	}
+
+	public class MediastreamerFactory
+	{
+		public IntPtr nativePtr;
+
+		[DllImport(LinphoneWrapper.MEDIASTREAMER_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern int ms_factory_enable_filter_from_name(IntPtr nativePtr, string name, char enabled);
+
+		public void enableFilterFromName(string name, bool enabled)
+		{
+			ms_factory_enable_filter_from_name(nativePtr, name, enabled ? (char)1 : (char)0);
+		}
+
+		[DllImport(LinphoneWrapper.MEDIASTREAMER_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern void ms_devices_info_add(IntPtr devices_info, string manufacturer, string model, string platform, uint flags, int delay, int recommended_rate);
+
+		[DllImport(LinphoneWrapper.MEDIASTREAMER_LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr ms_factory_get_devices_info(IntPtr factory);
+
+		public void addDevicesInfo(string manufacturer, string model, string platform, uint flags, int delay, int recommended_rate)
+		{
+			ms_devices_info_add(ms_factory_get_devices_info(nativePtr), manufacturer, model, platform, flags, delay, recommended_rate);
+		}
+	}
+#endregion
+
+#region Enums
+
+	{{#enums}}
+	{{#enum}}
+	/// <summary>
+	{{#briefDoc}}
+	{{#lines}}
+	/// {{{line}}}
+	{{/lines}}
+	{{/briefDoc}}
+	{{#detailedDoc}}
+	/// <para>
+	{{#lines}}
+	/// {{{line}}}
+	{{/lines}}
+	{{/detailedDoc}}
+	{{#isFlag}}[Flags]{{/isFlag}}
+	public enum {{enumName}}
+	{
+		{{#values}}
+		/// <summary>
+		{{#briefDoc}}
+		{{#lines}}
+		/// {{{line}}}
+		{{/lines}}
+		{{/briefDoc}}
+		{{#detailedDoc}}
+		/// <para>
+		{{#lines}}
+		/// {{{line}}}
+		{{/lines}}
+		{{/detailedDoc}}
+		{{name}} = {{{value}}},
+		{{/values}}
+	}
+
+	{{/enum}}
+	{{/enums}}
+#endregion
+
+#region Listeners
+	{{#interfaces}}
+	{{#interface}}
+	/// <summary>
+	{{#briefDoc}}
+	{{#lines}}
+	/// {{{line}}}
+	{{/lines}}
+	{{/briefDoc}}
+	{{#detailedDoc}}
+	/// <para>
+	{{#lines}}
+	/// {{{line}}}
+	{{/lines}}
+	{{/detailedDoc}}
+	[StructLayout(LayoutKind.Sequential)]
+	public class {{interfaceName}} : LinphoneObject
+	{
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr linphone_{{interfaceCName}}_get_current_callbacks(IntPtr thiz);
+
+		{{#methods}}
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		{{#cb_setter}}
+#if !(ANDROID || IOS)
+		static extern void {{name}}(IntPtr thiz, IntPtr cb);
+#else
+		static extern void {{name}}(IntPtr thiz, {{name_private}} cb);
+#endif
+		{{/cb_setter}}
+		
+		{{#delegate}}
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		private delegate void {{name_private}}({{params_private}});
+
+		/// <summary>
+		{{#briefDoc}}
+		{{#lines}}
+		/// {{{line}}}
+		{{/lines}}
+		{{/briefDoc}}
+		{{#detailedDoc}}
+		/// <para>
+		{{#lines}}
+		/// {{{line}}}
+		{{/lines}}
+		{{/detailedDoc}}
+		{{#deprecated}}[Obsolete]
+		{{/deprecated}}public delegate void {{name_public}}({{{params_public}}});
+		private {{name_private}} {{var_private}};
+		private {{name_public}} {{var_public}};
+
+#if IOS
+		[MonoPInvokeCallback(typeof({{name_private}}))]
+#endif
+		private static void {{cb_name}}({{params_private}})
+		{
+			{{interfaceClassName}} thiz = fromNativePtr<{{interfaceClassName}}>({{first_param}});
+
+			IntPtr ptr = linphone_{{interfaceCName}}_get_current_callbacks(thiz.nativePtr);
+			{{interfaceName}} current_listener = fromNativePtr<{{interfaceName}}>(ptr, false, true);
+
+			if (current_listener != null)
+			{
+				current_listener.{{var_public}}?.Invoke({{{params}}});
+			}
+		}
+
+		public {{name_public}} {{name}}
+		{
+			get
+			{
+				return {{var_public}};
+			}
+			set
+			{
+				{{var_public}} = value;
+				{{var_private}} = {{cb_name}};
+#if !(IOS || ANDROID)
+				IntPtr cb = Marshal.GetFunctionPointerForDelegate({{var_private}});
+				{{c_name_setter}}(nativePtr, cb);
+#else
+				{{c_name_setter}}(nativePtr, {{var_private}});
+#endif
+			}
+		}
+		{{/delegate}}
+		{{/methods}}
+	}
+
+	{{/interface}}
+	{{/interfaces}}
+#endregion
+
+#region Classes
+	{{#classes}}
+	{{#_class}}
+	/// <summary>
+	{{#briefDoc}}
+	{{#lines}}
+	/// {{{line}}}
+	{{/lines}}
+	{{/briefDoc}}
+	{{#detailedDoc}}
+	/// <para>
+	{{#lines}}
+	/// {{{line}}}
+	{{/lines}}
+	{{/detailedDoc}}
+	[StructLayout(LayoutKind.Sequential)]
+	public class {{className}} : LinphoneObject
+	{
+		{{#isLinphoneFactory}}
+		static Factory()
+		{
+#if  __ANDROID__
+			Java.Lang.JavaSystem.LoadLibrary("c++_shared");
+			Java.Lang.JavaSystem.LoadLibrary("bctoolbox");
+			Java.Lang.JavaSystem.LoadLibrary("ortp");
+			Java.Lang.JavaSystem.LoadLibrary("mediastreamer2");
+			Java.Lang.JavaSystem.LoadLibrary("linphone");
+#endif
+			LinphoneWrapper.forceUtf8();
+		}
+
+		{{/isLinphoneFactory}}
+		{{#isLinphoneCall}}
+		/// Get the native window handle of the video window, casted as an unsigned long.
+		public string NativeVideoWindowIdString
+		{
+			get
+			{
+				return Marshal.PtrToStringUni(linphone_call_get_native_video_window_id(nativePtr));
+			}
+			set
+			{
+				IntPtr string_ptr_to_remove = linphone_call_get_native_video_window_id(nativePtr);
+				IntPtr string_ptr = Marshal.StringToHGlobalUni(value);
+				linphone_call_set_native_video_window_id(nativePtr, string_ptr);
+				if(string_ptr_to_remove != IntPtr.Zero)
+					Marshal.FreeHGlobal(string_ptr_to_remove);
+			}
+		}
+		{{/isLinphoneCall}}
+		{{#isLinphoneCore}}
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr linphone_core_get_ms_factory(IntPtr thiz);
+
+		public MediastreamerFactory MsFactory {
+			get
+			{
+				IntPtr ptr = linphone_core_get_ms_factory(nativePtr);
+				MediastreamerFactory factory = new MediastreamerFactory();
+				factory.nativePtr = ptr;
+				return factory;
+			}
+		}
+
+		/// Get the native window handle of the video window.
+		public string NativeVideoWindowIdString
+		{
+			get
+			{
+				return Marshal.PtrToStringUni(linphone_core_get_native_video_window_id(nativePtr));
+			}
+			set
+			{
+				IntPtr string_ptr_to_remove = linphone_core_get_native_video_window_id(nativePtr);
+				IntPtr string_ptr = Marshal.StringToHGlobalUni(value);
+				linphone_core_set_native_video_window_id(nativePtr, string_ptr);
+				if(string_ptr_to_remove != IntPtr.Zero)
+					Marshal.FreeHGlobal(string_ptr_to_remove);
+			}
+		}
+
+		/// Get the native window handle of the video preview window.
+		public string NativePreviewWindowIdString
+		{
+			get
+			{
+				return Marshal.PtrToStringUni(linphone_core_get_native_preview_window_id(nativePtr));
+			}
+			set
+			{
+				IntPtr string_ptr_to_remove = linphone_core_get_native_preview_window_id(nativePtr);
+				IntPtr string_ptr = Marshal.StringToHGlobalUni(value);
+				linphone_core_set_native_preview_window_id(nativePtr, string_ptr);
+				if(string_ptr_to_remove != IntPtr.Zero)
+					Marshal.FreeHGlobal(string_ptr_to_remove);
+			}
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct MSOglContextInfo
+		{
+			public System.IntPtr window;
+			public System.UInt32 width;
+			public System.UInt32 height;
+			public System.IntPtr getProcAddress;
+		};
+
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr linphone_core_get_native_video_window_id(IntPtr thiz);
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern void linphone_core_set_native_video_window_id(IntPtr thiz, IntPtr windowId);
+
+		/// <summary>
+		/// Get the native window handle of the video window. On Windows UWP/WindowsStore, this is a SwapChainPanel. eg: LinphoneManager.Instance.Core.NativeVideoWindowId = panel; The rendering is automatically done by Linphone.
+		/// </summary>
+#if WINDOWS_UWP
+		public Windows.UI.Xaml.Controls.SwapChainPanel NativeVideoWindowId
+		{
+			get
+			{
+				return (Windows.UI.Xaml.Controls.SwapChainPanel)Marshal.GetObjectForIUnknown(((MSOglContextInfo)Marshal.PtrToStructure<MSOglContextInfo>(linphone_core_get_native_video_window_id(nativePtr)) ).window);
+			}
+			set
+			{
+				MSOglContextInfo c;
+				if (value != null)
+					c.window = Marshal.GetIUnknownForObject(value);
+				else
+					c.window = IntPtr.Zero;
+				c.getProcAddress = IntPtr.Zero;
+				c.width = 0;
+				c.height = 0;
+				IntPtr pnt = Marshal.AllocHGlobal(Marshal.SizeOf(c));
+				Marshal.StructureToPtr(c, pnt, false);
+				IntPtr oldData = linphone_core_get_native_video_window_id(nativePtr);
+				linphone_core_set_native_video_window_id(nativePtr, pnt);
+				if (oldData != IntPtr.Zero){
+					IntPtr window = ((MSOglContextInfo)Marshal.PtrToStructure<MSOglContextInfo>(oldData) ).window;
+					if(window != IntPtr.Zero)
+						Marshal.Release( window );
+					Marshal.FreeHGlobal(oldData);
+				}
+			}
+		}
+#else
+		public IntPtr NativeVideoWindowId
+		{
+			get
+			{
+				return linphone_core_get_native_video_window_id(nativePtr);
+			}
+			set
+			{
+				linphone_core_set_native_video_window_id(nativePtr, value);
+			}
+		}
+#endif
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr linphone_core_get_native_preview_window_id(IntPtr thiz);
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern void linphone_core_set_native_preview_window_id(IntPtr thiz, IntPtr windowId);
+
+		/// <summary>
+		/// Get the native window handle of the video preview window. On Windows UWP/WindowsStore, this is a SwapChainPanel. eg: LinphoneManager.Instance.Core.NativePreviewWindowId = panel; The rendering is automatically done by Linphone.
+		/// </summary>
+		///
+#if WINDOWS_UWP
+		public Windows.UI.Xaml.Controls.SwapChainPanel NativePreviewWindowId
+		{
+			get
+			{
+				return(Windows.UI.Xaml.Controls.SwapChainPanel) Marshal.GetObjectForIUnknown(((MSOglContextInfo)Marshal.PtrToStructure<MSOglContextInfo>(linphone_core_get_native_preview_window_id(nativePtr)) ).window);
+			}
+			set
+			{
+				MSOglContextInfo c;
+				if (value != null)
+					c.window = Marshal.GetIUnknownForObject(value);
+				else
+					c.window = IntPtr.Zero;
+				c.getProcAddress = IntPtr.Zero;
+				c.width = 0;
+				c.height = 0;
+				IntPtr pnt = Marshal.AllocHGlobal(Marshal.SizeOf(c));
+				Marshal.StructureToPtr(c, pnt, false);
+				IntPtr oldData = linphone_core_get_native_preview_window_id(nativePtr);
+				linphone_core_set_native_preview_window_id(nativePtr, pnt);
+				if (oldData != IntPtr.Zero){
+					IntPtr window = ((MSOglContextInfo)Marshal.PtrToStructure<MSOglContextInfo>(oldData) ).window;
+					if(window != IntPtr.Zero)
+						Marshal.Release( window );
+					Marshal.FreeHGlobal(oldData);
+				}
+			}
+		}
+#else
+		public IntPtr NativePreviewWindowId
+		{
+			get
+			{
+				return linphone_core_get_native_preview_window_id(nativePtr);
+			}
+			set
+			{
+				linphone_core_set_native_preview_window_id(nativePtr, value);
+			}
+		}
+#endif
+
+		{{/isLinphoneCore}}
+
+		{{#listener}}
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr linphone_factory_get();
+
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr linphone_factory_create_{{listener_constructor}}_cbs(IntPtr factory);
+
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr linphone_{{listener_constructor}}_add_callbacks(IntPtr thiz, IntPtr cbs);
+
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		static extern IntPtr linphone_{{listener_constructor}}_remove_callbacks(IntPtr thiz, IntPtr cbs);
+
+		private {{interfaceName}} listener;
+
+		public {{interfaceName}} Listener
+		{
+			get {
+				if (listener == null)
+				{
+					IntPtr nativeListener = linphone_factory_create_{{listener_constructor}}_cbs(linphone_factory_get());
+					listener = fromNativePtr<{{interfaceName}}>(nativeListener, false, true);
+					linphone_{{listener_constructor}}_add_callbacks(nativePtr, nativeListener);
+					belle_sip_object_unref(nativeListener);
+				}
+				return listener;
+			}
+			set {
+				if (listener != null && value == null) {
+					linphone_{{listener_constructor}}_remove_callbacks(nativePtr, listener.nativePtr);
+				}
+				listener = value;
+			}
+		}
+		{{/listener}}
+
+		{{#dllImports}}
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		{{{prototype}}}
+		{{#has_second_prototype}}
+		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
+		{{second_prototype}}
+		{{/has_second_prototype}}
+
+		{{#has_property}}
+		/// <summary>
+		{{#briefDoc}}
+		{{#lines}}
+		/// {{{line}}}
+		{{/lines}}
+		{{/briefDoc}}
+		{{#detailedDoc}}
+		/// <para>
+		{{#lines}}
+		/// {{{line}}}
+		{{/lines}}
+		{{/detailedDoc}}
+		{{property_static}}public {{{property_return}}} {{property_name}}
+		{
+		{{#has_getter}}
+			get
+			{
+				{{#is_string}}
+				return linphone_pointer_to_string( {{getter_c_name}}({{getter_nativePtr}}) );
+				{{/is_string}}
+				{{#is_bool}}
+				return {{getter_c_name}}({{getter_nativePtr}}) != 0;
+				{{/is_bool}}
+				{{#is_class}}
+				IntPtr ptr = {{getter_c_name}}({{getter_nativePtr}});
+				{{{property_return}}} obj = fromNativePtr<{{return}}>(ptr, {{takeRef}});
+				return obj;
+				{{/is_class}}
+				{{#is_enum}}
+				return {{getter_c_name}}({{getter_nativePtr}});
+				{{/is_enum}}
+				{{#is_generic}}
+				return {{getter_c_name}}({{getter_nativePtr}});
+				{{/is_generic}}
+				{{#is_string_list}}
+				return MarshalStringArray({{getter_c_name}}({{getter_nativePtr}}));
+				{{/is_string_list}}
+				{{#is_class_list}}
+				return MarshalBctbxList<{{{list_type}}}>({{getter_c_name}}({{getter_nativePtr}}), {{takeRef}});
+				{{/is_class_list}}
+			}
+		{{/has_getter}}
+		{{#has_setter}}
+			set
+			{
+				{{#is_string}}
+				{{#exception}}int exception_result = {{/exception}}{{setter_c_name}}({{setter_nativePtr}}value);
+				{{#exception}}if (exception_result != 0) throw new LinphoneException("{{property_name}} setter returned value " + exception_result);{{/exception}}
+				{{/is_string}}
+				{{#is_bool}}
+				{{#exception}}int exception_result = {{/exception}}{{setter_c_name}}({{setter_nativePtr}}value ? (char)1 : (char)0);
+				{{#exception}}if (exception_result != 0) throw new LinphoneException("{{property_name}} setter returned value " + exception_result);{{/exception}}
+				{{/is_bool}}
+				{{#is_class}}
+				{{#exception}}int exception_result = {{/exception}}{{setter_c_name}}({{setter_nativePtr}}value.nativePtr);
+				{{#exception}}if (exception_result != 0) throw new LinphoneException("{{property_name}} setter returned value " + exception_result);{{/exception}}
+				{{/is_class}}
+				{{#is_enum}}
+				{{#exception}}int exception_result = {{/exception}}{{setter_c_name}}({{setter_nativePtr}}(int)value);
+				{{#exception}}if (exception_result != 0) throw new LinphoneException("{{property_name}} setter returned value " + exception_result);{{/exception}}
+				{{/is_enum}}
+				{{#is_generic}}
+				{{#exception}}int exception_result = {{/exception}}{{setter_c_name}}({{setter_nativePtr}}value);
+				{{#exception}}if (exception_result != 0) throw new LinphoneException("{{property_name}} setter returned value " + exception_result);{{/exception}}
+				{{/is_generic}}
+				{{#is_string_list}}
+				IntPtr bctbxList = StringArrayToBctbxList(value);
+				{{#exception}}int exception_result = {{/exception}}{{setter_c_name}}({{setter_nativePtr}}bctbxList);
+				CleanStringArrayPtrs(bctbxList);
+				{{#exception}}if (exception_result != 0) throw new LinphoneException("{{property_name}} setter returned value " + exception_result);{{/exception}}
+				{{/is_string_list}}
+				{{#is_class_list}}
+				{{#exception}}int exception_result = {{/exception}}{{setter_c_name}}({{setter_nativePtr}}ObjectArrayToBctbxList<{{{list_type}}}>(value));
+				{{#exception}}if (exception_result != 0) throw new LinphoneException("{{property_name}} setter returned value " + exception_result);{{/exception}}
+				{{/is_class_list}}
+			}
+		{{/has_setter}}
+		}
+		{{/has_property}}
+		{{#has_impl}}
+		{{#impl}}
+		/// <summary>
+		{{#briefDoc}}
+		{{#lines}}
+		/// {{{line}}}
+		{{/lines}}
+		{{/briefDoc}}
+		{{#detailedDoc}}
+		/// <para>
+		{{#lines}}
+		/// {{{line}}}
+		{{/lines}}
+		{{/detailedDoc}}
+		public {{static}}{{override}}{{{type}}} {{name}}({{{args}}})
+		{
+			{{#clean_string_list_ptrs}}IntPtr bctbxList = IntPtr.Zero;{{/clean_string_list_ptrs}}
+			{{#is_string}}
+			string returnVal = linphone_pointer_to_string({{c_name}}({{nativePtr}}{{{c_args}}}));
+			{{/is_string}}
+			{{#is_bool}}
+			{{#hasReturn}}bool returnVal = {{/hasReturn}}{{c_name}}({{nativePtr}}{{{c_args}}}) == (char)0 ? false : true;
+			{{/is_bool}}
+			{{#is_class}}
+			IntPtr ptr = {{c_name}}({{nativePtr}}{{{c_args}}});
+			{{type}} returnVal = fromNativePtr<{{type}}>(ptr, {{takeRef}});
+			{{/is_class}}
+			{{#is_enum}}
+			{{#exception}}int exception_result = {{/exception}}{{#hasReturn}}{{{type}}} returnVal = {{/hasReturn}}{{c_name}}({{nativePtr}}{{{c_args}}});
+			{{#exception}}if (exception_result != 0) throw new LinphoneException("{{name}} returned value " + exception_result);{{/exception}}
+			{{/is_enum}}
+			{{#is_generic}}
+			{{#exception}}int exception_result = {{/exception}}{{#hasReturn}}{{{type}}} returnVal = {{/hasReturn}}{{c_name}}({{nativePtr}}{{{c_args}}});
+			{{#exception}}if (exception_result != 0) throw new LinphoneException("{{name}} returned value" + exception_result);{{/exception}}
+			{{/is_generic}}
+			{{#is_string_list}}
+			IEnumerable<string> returnVal = MarshalStringArray({{c_name}}({{nativePtr}}{{{c_args}}}));
+			{{/is_string_list}}
+			{{#is_class_list}}
+			IEnumerable<{{{list_type}}}> returnVal = MarshalBctbxList<{{{list_type}}}>({{c_name}}({{nativePtr}}{{{c_args}}}), {{takeRef}});
+			{{/is_class_list}}
+			{{#clean_string_list_ptrs}}CleanStringArrayPtrs(bctbxList);{{/clean_string_list_ptrs}}
+			{{#gc_keepalive}}{{{keep_alive}}}
+			{{/gc_keepalive}}
+			{{#hasReturn}}return returnVal;{{/hasReturn}}
+		}
+		{{/impl}}
+		{{/has_impl}}
+		{{/dllImports}}
+	}
+	{{/_class}}
+	{{/classes}}
+#endregion
+}

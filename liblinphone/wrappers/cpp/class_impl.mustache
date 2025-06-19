@@ -1,0 +1,105 @@
+/*
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ *
+ * This file is part of Liblinphone 
+ * (see https://gitlab.linphone.org/BC/public/liblinphone).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef _MSC_VER
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif // _MSC_VER
+
+#include <belle-sip/object.h>
+#include <linphone/api/c-api.h>
+#include <linphone/chat.h>
+#include <linphone/linphonecore.h>
+#include <linphone/linphone_tunnel.h>
+#include <linphone/linphonecore_utils.h>
+#include <linphone/wrapper_utils.h>
+#include <linphone/logging.h>
+#include "linphone++/linphone.hh"
+#include "tools.hh"
+
+using namespace std;
+using namespace {{{namespace}}};
+
+{{#classes}}
+
+{{#wrapperCbs}}
+static {{{returnType}}} {{{cbName}}}({{{declArgs}}}) {
+	{{{cListenerName}}} *cbs = {{{currentCallbacksGetter}}}({{{firstArgName}}});
+	if (cbs) {
+		// Make a copy of the list of listeners, so that it is possible to remove a listener from a listener without corrupting the list.
+		std::list<std::shared_ptr<Listener> > listeners = *static_cast<std::list<std::shared_ptr<Listener> > *>(belle_sip_object_data_get((::belle_sip_object_t *)cbs, MultiListenableObject::sListenerListName));
+		for(std::list<std::shared_ptr<Listener> >::iterator it=listeners.begin(); it!=listeners.end(); it++) {
+			std::shared_ptr<{{{cppListenerName}}}> listener = std::static_pointer_cast<{{{cppListenerName}}},Listener>(*it);
+			{{{cppMethodCallingLine}}};
+		}
+	}
+}
+{{/wrapperCbs}}
+
+{{#isNotListener}}
+{{{namespace}}}::{{{className}}}::{{{className}}}(void *ptr, bool takeRef): {{{parentClassName}}}(ptr, takeRef) {
+}
+{{/isNotListener}}
+
+{{#islistenable}}
+void {{{className}}}::addListener(const std::shared_ptr<{{{listenerClassName}}}> &listener) {
+	MultiListenableObject::addListener(std::static_pointer_cast<Listener,{{{listenerClassName}}}>(listener));
+}
+
+void {{{className}}}::removeListener(const std::shared_ptr<{{{listenerClassName}}}> &listener) {
+	MultiListenableObject::removeListener(std::static_pointer_cast<Listener,{{{listenerClassName}}}>(listener));
+}
+
+void *{{{className}}}::createCallbacks() {
+	{{{cListenerName}}} *cbs = {{{listenerCreator}}}(linphone_factory_get());
+	{{#wrapperCbs}}
+	{{{callbackSetter}}}(cbs, {{{cbName}}});
+	{{/wrapperCbs}}
+	belle_sip_object_data_set((::belle_sip_object_t *)(cbs), MultiListenableObject::sListenerListName, new list<shared_ptr<Listener>>(), (::belle_sip_data_destroy)deleteListenerList);
+	belle_sip_object_data_set((::belle_sip_object_t *)(mPrivPtr), MultiListenableObject::sCbsPtrName, cbs, nullptr);
+	{{{callbacksAdder}}}(static_cast<{{{cClassName}}} *>(mPrivPtr), cbs);
+	belle_sip_object_unref((::belle_sip_object_t *)cbs);
+	return cbs;
+}
+{{/islistenable}}
+
+{{#isVcard}}
+std::shared_ptr<belcard::BelCard> &Vcard::getVcard() {
+	return *(shared_ptr<belcard::BelCard> *)linphone_vcard_get_belcard((LinphoneVcard *)mPrivPtr);
+}
+{{/isVcard}}
+
+{{#methods}}
+{{{implPrototype}}} {
+	{{{sourceCode}}}
+}
+{{/methods}}
+
+{{#staticMethods}}
+{{{implPrototype}}} {
+	{{{sourceCode}}}
+}
+{{/staticMethods}}
+
+{{/classes}}
+
+#ifndef _MSC_VER
+#pragma GCC diagnostic pop
+#endif // _MSC_VER

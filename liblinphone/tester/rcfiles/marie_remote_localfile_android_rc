@@ -1,0 +1,9 @@
+[misc]
+config-uri=file:///data/data/org.linphone.tester/files/config_files/rcfiles/marie_remote_localfile2_rc
+
+[tester]
+test_env=1
+
+[storage]
+call_logs_db_uri=null
+friends_db_uri=null

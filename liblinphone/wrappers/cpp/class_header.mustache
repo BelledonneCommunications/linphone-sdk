@@ -1,0 +1,177 @@
+/*
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ *
+ * This file is part of Liblinphone 
+ * (see https://gitlab.linphone.org/BC/public/liblinphone).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef _MSC_VER
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif // _MSC_VER
+
+#ifndef {{define}}
+#define {{define}}
+
+{{#includes}}
+{{#external}}
+#include <{{name}}>
+{{/external}}
+{{#internal}}
+#include "{{name}}.hh"
+{{/internal}}
+{{/includes}}
+#include "object.hh"
+
+{{#_class}}{{#isVcard}}
+namespace belcard {
+class BelCard;
+}
+{{/isVcard}}{{/_class}}
+
+
+{{#_class}}
+{{#isNotListener}}
+struct {{{privCClassName}}};
+{{/isNotListener}}
+{{/_class}}
+
+
+namespace linphone {
+
+	{{#priorDeclarations}}
+	{{{declaration}}};
+	{{/priorDeclarations}}
+
+	{{#_class}}
+	/**
+	 {{#briefDoc}}
+	 {{#lines}}
+	 * {{{line}}}
+	 {{/lines}}
+	 {{/briefDoc}}
+	 *
+	 {{#detailedDoc}}
+	 {{#lines}}
+	 * {{{line}}}
+	 {{/lines}}
+	 {{/detailedDoc}}
+	 */
+	class {{className}}{{#parentClassName}}: public {{{parentClassName}}}{{/parentClassName}} {
+		{{#friendClasses}}
+		friend class {{name}};
+		{{/friendClasses}}
+	
+		public:
+			{{#enums}}
+			{{#doc}}
+			/**
+			{{#lines}}
+			* {{{line}}}
+			{{/lines}}
+			*
+			*/
+			{{/doc}}
+			enum class {{name}} {
+				{{#enumerators}}
+				{{#doc}}
+				/**
+				{{#lines}}
+				* {{{line}}}
+				{{/lines}}
+				*/
+				{{/doc}}
+				{{name}}{{#value}} = {{{value}}}{{/value}}{{#notLast}},{{/notLast}}
+				{{/enumerators}}
+			};
+
+			{{/enums}}
+
+			{{#isNotListener}}
+			LINPHONECXX_PUBLIC {{{className}}}(void *ptr, bool takeRef=true);
+			LINPHONECXX_PUBLIC {{{privCClassName}}} *cPtr() {return ({{{privCClassName}}} *)mPrivPtr;}
+			{{/isNotListener}}
+
+			{{#islistenable}}
+			/**
+			 * @brief Add an application listener to the {{className}} instance.
+			 *
+			 * @param listener the application listener
+			 */
+			LINPHONECXX_PUBLIC void addListener(const std::shared_ptr<{{{listenerClassName}}}> &listener);
+			/**
+			 * @brief Remove a previously added listener from the {{className}} instance.
+			 *
+			 * @param listener the application listener
+			 */
+			LINPHONECXX_PUBLIC void removeListener(const std::shared_ptr<{{{listenerClassName}}}> &listener);
+			{{/islistenable}}
+	
+		public:
+			{{#isVcard}}
+			LINPHONECXX_PUBLIC std::shared_ptr<belcard::BelCard> &getVcard();
+			{{/isVcard}}
+			
+		
+			{{#methods}}
+			/**
+			{{#briefDoc}}
+			{{#lines}}
+			 * {{{line}}}
+			{{/lines}}
+			{{/briefDoc}}
+			 *
+			{{#detailedDoc}}
+			{{#lines}}
+			 * {{{line}}}
+			{{/lines}}
+			{{/detailedDoc}}
+			 */
+			LINPHONECXX_PUBLIC {{#deprecated}}LINPHONECXX_DEPRECATED {{/deprecated}}{{#isListener}}virtual {{/isListener}}{{{declPrototype}}}{{{suffix}}};
+			
+			{{/methods}}
+			{{#staticMethods}};
+			/**
+			{{#briefDoc}}
+			{{#lines}}
+			 * {{{line}}}
+			{{/lines}}
+			{{/briefDoc}}
+			 *
+			{{#detailedDoc}}
+			{{#lines}}
+			 * {{{line}}}
+			{{/lines}}
+			{{/detailedDoc}}
+			 */
+			LINPHONECXX_PUBLIC {{#deprecated}}LINPHONECXX_DEPRECATED {{/deprecated}}static {{{declPrototype}}};
+			
+			{{/staticMethods}}
+
+		{{#islistenable}}
+		private:
+			void *createCallbacks() override;
+		{{/islistenable}}
+	};
+	{{/_class}}
+
+};
+
+#endif // {{define}}
+
+#ifndef _MSC_VER
+#pragma GCC diagnostic pop
+#endif // _MSC_VER
