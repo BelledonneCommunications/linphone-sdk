@@ -16,9 +16,6 @@
 [submodule "external/speex"]
 	path = external/speex
 	url = https://gitlab.linphone.org/BC/public/external/speex.git
-[submodule "external/ffmpeg"]
-	path = external/ffmpeg
-	url = https://gitlab.linphone.org/BC/public/external/ffmpeg.git
 [submodule "external/libvpx"]
 	path = external/libvpx
 	url = https://gitlab.linphone.org/BC/public/external/libvpx.git
