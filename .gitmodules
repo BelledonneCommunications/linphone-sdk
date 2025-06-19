@@ -88,9 +88,6 @@
 [submodule "external/opencore-amr"]
 	path = external/opencore-amr
 	url = https://gitlab.linphone.org/BC/public/external/opencore-amr.git
-[submodule "lime"]
-	path = lime
-	url = ../lime.git
 [submodule "msaaudio"]
 	path = msaaudio
 	url = ../msaaudio.git
