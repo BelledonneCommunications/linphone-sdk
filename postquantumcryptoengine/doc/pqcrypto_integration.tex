@@ -1,0 +1,422 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[table]{xcolor}
+\usepackage[skip=+10pt,font=small,font=bf,justification=RaggedRight]{caption}
+\usepackage[a4paper,margin=1in,tmargin=1in,bmargin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{vhistory}
+\usepackage{textcomp}
+\usepackage[nottoc,numbib]{tocbibind}
+\usepackage[section]{placeins}
+\usepackage[toc,page]{appendix}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{natbib}
+
+\lstset{
+  basicstyle=\ttfamily,
+  columns=fullflexible,
+  showstringspaces=false,
+  commentstyle=\color{gray}\upshape
+}
+% Force smaller size in all tabular
+\let\oldtabular\tabular
+\renewcommand{\tabular}{\footnotesize\oldtabular}
+
+
+\def\currentVersion{1.0}
+
+
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=olive, urlcolor=olive}
+
+\title{Post Quantum Cryptography integration in Linphone}
+\date{\today\\Version \currentVersion}
+\author{Johan Pascal}
+
+
+
+\begin{document}
+\maketitle
+\newpage
+\tableofcontents
+
+\newpage
+\section{Changelog}
+\begin{versionhistory}
+  %\vhEntry{\currentVersion}{\today}{JP}{TODO: list the modifications of this version here}
+  \vhEntry{1.0}{\today}{JP}{Initial version}
+\end{versionhistory}
+
+\newpage
+\section{Introduction}
+\paragraph{}The mathematical problems of integer factorisation and discrete logarithms over finite fields or elliptic curves underpin most of the asymmetric algorithms used for key establishment and digital signatures on the internet.  These problems, and hence the algorithms based on them, will be vulnerable to attacks using Shor's Algorithm on a sufficiently large general-purpose quantum computer, known as a Cryptographically Relevant Quantum Computer (CRQC).  It is difficult to predict when, or if, such a device will exist.  However, it is necessary to defend against this possibility. Data encrypted today with an algorithm vulnerable to a quantum computer could be stored for decryption by a future attacker with a CRQC.\citep{driscoll-pqt-hybrid-terminology-00}
+
+\paragraph{}This document describes the integration of Post-Quantum Cryptography (PQC) in the Linphone SDK and details the modifications to the ZRTP protocol\citep{rfc6189} made to allow the use of PQC.
+\section{Notations}
+\paragraph{}$A\Arrowvert B$ denotes the concatenation of byte sequences $A$ and $B$
+
+\newpage
+\section{Post-Quantum cryptography}
+\subsection{Open Quantum Safe library}
+\paragraph*{}Linphone uses  \textit{liboqs}\citep{liboqs} as provider for Post-Quantum cryptography implementation. \textit{liboqs} is a project maintained by \href{https://openquantumsafe.org/}{Open Quantum Safe}. \textit{liboqs} puts together the code source from the official repositories of various PQC algorithms both key exchange and signature algorithms. \textit{liboqs} :
+\begin{itemize}
+  \item is frequently updated
+  \item has a large community and is supported by major actors
+  \item provides a consistent API and build scripts for all the NIST PQC standisation candidates
+  \item build scripts' allow algorithm selection
+\end{itemize}
+
+\paragraph*{}In the current context, the Linphone SDK requires only key exchange PQC. No signature algorithms are needed.
+
+\paragraph*{}As of August 2022, \textit{liboqs} provides the following Key Encapsulation Mechanism (KEM) algorithms:
+\begin{itemize}
+  \item BIKE
+  \item Classic McEliece
+  \item FrodoKEM
+  \item HQC
+  \item Kyber
+  \item NTRU
+  \item NTRU-Prime
+  \item Saber
+\end{itemize}
+
+\paragraph{}Kyber being the KEM algorithm first selected to be standardised by the NIST, linphone currently supports Kyber and HQC, specifically the variants Kyber512 and Kyber1024, HQC128 and HQC256. Other suitable, see \ref{subsec:zrtpRequirements}, algorithms provided by \textit{liboqs} can be included without major changes to the architecture.
+
+\subsection{Hybrid KEM}
+\paragraph{}During the transition from traditional to post-quantum algorithms, it is recommended to combine both types of algorithm. The construction that combines a traditional key
+   exchange with post-quantum key exchanges into a single key exchange is known as hybrid key exchange. We define a hybrid key exchange providing an interface identical to a simple KEM:
+  \begin{algorithm}
+  \begin{algorithmic}
+  \Function{KEMgenKey}{}
+    \State \Return $publicKey,secretKey$
+    \Comment{Generate and return a public key and a secret key}
+  \EndFunction
+  \Statex
+  \Function{KEMencaps}{$publicKey$}
+    \State \Return $sharedSecret,cipherText$
+    \Comment{Generate a shared secret and encapsulate it in a ciphertext}
+  \EndFunction
+  \Statex
+  \Function{KEMdecaps}{$secretKey,cipherText$}
+    \State \Return $sharedSecret$
+    \Comment{Retrieve the shared secret from the ciphertext}
+  \EndFunction
+  \end{algorithmic}
+  \caption{KEM interface}
+  \end{algorithm}
+  \FloatBarrier
+
+\subsubsection{ECDH-based KEM}
+\paragraph{}The first step is to build a KEM using a traditional ECDH. This is performed using the method described in the RFC9180 \citep{rfc9180} \href{https://www.rfc-editor.org/rfc/rfc9180#name-dh-based-kem-dhkem}{section 4.1}.
+  \begin{algorithm}
+  \begin{algorithmic}
+  \Function{ECDHgenKey}{}
+    \State \Return $publicKey,secretKey$
+    \Comment{Generate and return a public key and a secret key}
+  \EndFunction
+  \Statex
+  \Function{ECDHcomputeShared}{$selfSecretKey, peerPublicKey$}
+    \State \Return $sharedSecret$
+    \Comment{Generate a shared secret from self secret key and peer public key}
+  \EndFunction
+  \Statex
+  \Function{ECDHderivePublicKey}{$secretKey$}
+    \State \Return $publicKey$
+    \Comment{Derive a public key from the secret one}
+  \EndFunction
+  \end{algorithmic}
+   \caption{ECDH interface}
+  \end{algorithm}
+  \begin{algorithm}
+  \begin{algorithmic}
+  \Statex
+  \Function{KEMgenKey}{}
+    \State \Return ECDHgenKey{}
+    \Comment{Returns public and secret key generated by ECDH}
+  \EndFunction
+  \Statex
+  \Function{KEMencaps}{$publicKey$}
+    \State $pkE,skE \gets \Call{ECDHgenKey}{}$
+    \Comment{generate an ephemeral key pair}
+    \State $ssE \gets \Call{ECDHcomputeShared}{skE,publicKey}$
+    \State $ss \gets \Call{hkdf}{ssE,pkE \Arrowvert publicKey}$
+    \Comment{HKDF as defined in RFC5869}
+    \State \Return $ss,pkE$
+    \Comment{returns the ephemeral public key as cipher text} 
+  \EndFunction
+  \Statex
+  \Function{KEMdecaps}{$cipherText,secretKey$}
+    \State $ssE \gets \Call{ECDHcomputeShared}{secretKey,cipherText}$
+    \Comment{cipherText is the pkE} 
+    \State $publicKey \gets \Call{ECDHderivePublicKey}{secretKey}$
+    \State \Return \Call{hkdf}{$ssE,cipherText \Arrowvert publicKey}$
+    \Comment{HKDF as defined in RFC5869}
+  \EndFunction
+  \end{algorithmic}
+  \caption{ECDH-based KEM}
+  \end{algorithm}
+  \FloatBarrier
+
+  \paragraph*{}Linphone SDK produces two variants of ECDH-based KEM. One from X25519, the other from X448 described in \citep{rfc7748}. X22519 and X448 implementation is provided by \textit{libdecaf} \citep{libdecaf}.
+\subsubsection{KEM combiner}
+\paragraph*{}Section 3.3 in \citep{Bin18} describes a way of combining several KEMs into one. We apply this to build an hybrid KEM from two or more KEMs using HMAC-SHA as dual Pseudo Random Function and extractor. PublicKey, secretKey and cipherText sizes are implicitly known for each KEM algorithm, so the function {\sc split} can separate the concatenated entities.
+\paragraph*{} The following pseudo code combines \textit{n} KEMs together, each component is noted KEM\textsubscript{\textit{i}}, with \textit{i} in range $1,n$.
+
+\begin{algorithm}
+\caption{Combined KEMs}
+\begin{algorithmic}
+  \Statex
+  \Function{KEMgenKey}{}
+    \For { $i \gets 1,n$}
+      \State $pk\textsubscript{$i$},sk\textsubscript{$i$} \gets \Call{KEM\textup{\textsubscript{$i$}}genKey}{}$
+    \EndFor
+    \State \Return $pk\textsubscript{$1$} \Arrowvert .. \Arrowvert pk\textsubscript{$n$}, sk\textsubscript{$1$} \Arrowvert .. \Arrowvert sk\textsubscript{$n$}$
+    \Comment{returns a concatenation of both keys}
+  \EndFunction
+  \Statex
+  \Function{KEMencaps}{$publicKey$}
+    \State $pk\textsubscript{$1$} \Arrowvert .. \Arrowvert pk\textsubscript{$n$} \gets \Call{split}{publicKey}$
+    \Comment{split the public key into its components}
+    \Statex
+    \For { $i \gets 1,n$}
+      \Comment{generate secret and encapsulate it for each component}
+      \State $ss\textsubscript{$i$},ct\textsubscript{$i$} \gets \Call{KEM\textup{\textsubscript{$i$}}encaps}{pk\textsubscript{$i$}}$
+    \EndFor
+    \State $cipherText \gets ct\textsubscript{1} \Arrowvert .. \Arrowvert ck\textsubscript{$n$}$
+    \Statex
+    \State $k\textsubscript{1} \gets \Call{HMAC-SHA}{ , ss1}$
+    \Comment{Derive the shared secret from secrets and a transcript}
+    \For { $i \gets 2,n$}
+      \State $k\textsubscript{$i$} \gets \Call{HMAC-SHA}{ k\textsubscript{$i-1$}, ss\textsubscript{$i$}}$
+    \EndFor
+    \State $sharedSecret \gets \Call{HMAC-SHA}{ k\textsubscript{$n$}, cipherText}$
+    \Statex
+    \State \Return $sharedSecret,cipherText$
+  \EndFunction
+  \Statex
+  \Function{KEMdecaps}{$cipherText,secretKey$}
+    \State $sk\textsubscript{$1$} \Arrowvert .. \Arrowvert sk\textsubscript{$n$} \gets \Call{split}{secretKey}$
+    \Comment{retrieve secret key and cipher text components}
+    \State $ct\textsubscript{$1$} \Arrowvert .. \Arrowvert ct\textsubscript{$n$} \gets \Call{split}{cipherText}$
+    \Statex
+    \For { $i \gets 1,n$}
+      \Comment{retrieve encapsulated secret for each component}
+      \State $ss\textsubscript{$i$} \gets \Call{KEM\textup{\textsubscript{$i$}}decaps}{ct\textsubscript{$i$}, sk\textsubscript{$i$}}$
+    \EndFor
+    \Statex
+    \State $k\textsubscript{1} \gets \Call{HMAC-SHA}{ , ss1}$
+    \Comment{Derive the shared secret from secrets and a transcript}
+    \For { $i \gets 2,n$}
+      \State $k\textsubscript{$i$} \gets \Call{HMAC-SHA}{ k\textsubscript{$i-1$}, ss\textsubscript{$i$}}$
+    \EndFor
+    \State $sharedSecret \gets \Call{HMAC-SHA}{ k\textsubscript{$n$}, cipherText}$
+    \Statex
+    \State \Return $sharedSecret$
+  \EndFunction
+  \end{algorithmic}
+  \end{algorithm}
+  \FloatBarrier
+\paragraph*{}Linphone provides several hybrid KEMs:
+\begin{itemize}
+  \item two algorithms combined: X25519/Kyber512, X25519/HQC128, X448/Kyber1024, X448/HQC256
+  \item three algorithms combined: X25519/Kyber512/HQC128, X448/Kyber1024/HQC256
+\end{itemize}
+\paragraph*{}Kyber and HQC are based on different mathematical problems, hence the interest of combining them, with the classic ECDH exchange, should one of them be broken in the future.
+
+\subsection{Enable PQC in linphone SDK}
+\paragraph*{}\textit{liboqs} is linked to a module called \href{https://gitlab.linphone.org/BC/private/postquantumcryptoengine}{PostQuantumCryptoEngine}. To build the requested part of \textit{liboqs} and this module, call the linphone-sdk build command with the option
+\lstset{language=bash}
+\begin{lstlisting}
+-DENABLE_PQCRYPTO=On
+\end{lstlisting}
+
+\newpage
+\section{Audio and video calls}
+\paragraph*{}Linphone supports three protocols to initiate a SRTP protected audio/video call: SDES, DTLS-SRTP and ZRTP. We recommend the later for a higher level of confidentiality. The PQC algorithm is available only when using ZRTP\citep{rfc6189}.
+\subsection{ZRTP}
+\paragraph*{}ZRTP is a protocol based on Diffie-Hellman to agree on a session key and parameters for establising a SRTP session. Several features make this protocol secure, among them key continuity and Man-in-the-Middle detection.
+\paragraph*{}In particular the Man-in-the-Middle(MitM) detection feature is based on commitment of an endpoint to provide specific public key material in the next protocol packet. Focusing on the Diffie-Hellman exchange at the core of the protocol(see fig.\ref{fig:DHmode} for a complete data flow diagram) we have:
+\begin{itemize}
+  \item Bob commits to use a specific DH public key without revealing it (\textit{hash value} in the Commit packet).
+  \item Alice provides her own public key to Bob(\textit{pvr} in the DHPart1 packet). Bob can compute the shared secret using Alice public key and can derive the master key.
+  \item Bob provides his public key(\textit{pvi} in the DHPart2 packet) to Alice in the last packet of the transcripted sequence used to derive the master key.
+  \item Alice checks the public key provided by Bob is the one he commited to use and compute the shared secret.
+  \item on both endpoint the DH shared secret is derived including a transcript of the whole protocole exchange into the master key.
+  \item from the master key is derived a Short Authentication String(SAS) compared vocally between the two endpoints, if the SAS are not matching, it indicates an ongoing MitM. The SAS is short so it is easy to vocally compare but it makes it highly sensitive to collision attack.
+\end{itemize}
+\paragraph*{}This central part of the protocol achieves two functions:
+\begin{itemize}
+  \item a secure exchange a shared secret: a passive opponent is not able to retrieve the master key. This is provided by the Diffie-Hellman exchange.
+  \item prevent a collision attack on the SAS by an active opponent. This is provided by the commitment on the public key used by Bob. To perform a SAS collision, a malicious opponent must find a way to have two ZRTP exchanges leading to the same SAS. It boils down to be in position to compute the master key while still being able to modify it. When Bob receives Alice's public key, he has access to all the material to compute the master key. By commiting to use a specific public key before receiving Alice's one, only one value of the master key can be reached making the collision attack on SAS very hard to achieve.
+\end{itemize}
+
+\begin{figure}
+  \begin{verbatim}
+  Alice                                                Bob
+    |                                                   |
+    |      Alice and Bob establish a media session.     |
+    |         They initiate ZRTP on media ports         |
+    |                                                   |
+    | F1 Hello (version, options, Alice's ZID)          |
+    |-------------------------------------------------->|
+    |                                       HelloACK F2 |
+    |<--------------------------------------------------|
+    |            Hello (version, options, Bob's ZID) F3 |
+    |<--------------------------------------------------|
+    | F4 HelloACK                                       |
+    |-------------------------------------------------->|
+    |                                                   |
+    |             Bob acts as the initiator.            |
+    |                                                   |
+    |        Commit (Bob's ZID, options, hash value) F5 |
+    |<--------------------------------------------------|
+    | F6 DHPart1 (pvr, shared secret hashes)            |
+    |-------------------------------------------------->|
+    |            DHPart2 (pvi, shared secret hashes) F7 |
+    |<--------------------------------------------------|
+    |                                                   |
+    |     Alice and Bob generate SRTP session key.      |
+    |                                                   |
+    | F8 Confirm1 (MAC, D,A,V,E flags, sig)             |
+    |-------------------------------------------------->|
+    |             Confirm2 (MAC, D,A,V,E flags, sig) F9 |
+    |<--------------------------------------------------|
+    | F10 Conf2ACK                                      |
+    |-------------------------------------------------->|
+    |                    SRTP begins                    |
+    |<=================================================>|
+  \end{verbatim}
+  \caption{Diffie-Hellman mode ZRTP complete data flow}
+  \label{fig:DHmode}
+\end{figure}
+\FloatBarrier
+
+
+\subsection{KEM version}
+\paragraph*{}PQC key exchange algorithm call for candidates from the NIST imposed the usage of a KEM interface. To our purpose, the major difference between DH and KEM interface is that in a DH key exchange, both parties have an exactly symmetric role which is not the case with a KEM scheme.
+\paragraph*{}In the Diffie-Hellman ZRTP exchange, Alice and Bob can compute their DH key pair before hand, so Bob can commit to use a public key without revealing anything of it. The KEM scheme cannot straightforwardly substitute the DH one as one party must have access to the other's public key in order to start the protocol.
+\paragraph*{}To provide the same central properties we had to design a variant of the ZRTP protocol adapted to KEM scheme, the KEM mode. Focusing on the KEM exchange at the core of the protocol(see fig.\ref{fig:KEMmode} for a complete data flow diagram) we have:
+\begin{itemize}
+  \item Bob provides his public key(\textit{pvi} in the Commit packet) and commits to use a specific nonce without revealing it(\textit{hash value} in the Commit packet).
+  \item Alice encapsulates a shared secret in a ciphertext(\textit{pvr} in KEMPart1 packet) using Bob's public key.
+  \begin{itemize}
+    \item Alice has access to the shared secret but she cannot compute the master key as she does not have access to the whole exchange transcript.
+    \item Upon ciphertext reception, Bob can compute the shared secret and derive the master key.
+  \end{itemize} 
+  \item Bob provides the nonce he commited to(\textit{ni} in the KEMPart2 packet) to Alice in the last packet of the transcripted sequence used to derive the master key.
+  \item Alice checks the nonce provided by Bob is the one he commited to use and compute the master key.
+  \item from the master key is derived a Short Authentication String(SAS) compared vocally between the two endpoints, if the SAS are not matching, it indicates an ongoing MitM. The SAS is short so it is easy to vocally compare but it makes it highly sensitive to collision attack.
+\end{itemize}
+\paragraph*{}This central part of the protocol achieves the two same functions as the DH mode:
+\begin{itemize}
+  \item a secure exchange a shared secret: a passive opponent is not able to retrieve the master key. This is provided by the KEM.
+  \item prevent a collision attack on the SAS by an active opponent. This is provided by the commitment on the nonce used by Bob. To perform a SAS collision, a malicious opponent must find a way to have two ZRTP exchanges leading to the same SAS. It boils down to be in position to compute the master key while still being able to modify it.
+  \begin{itemize}
+    \item When Alice encapsulates the shared secret using Bob's public key, she cannot derive the master key as she does not have access to the KEMPart2 packet yet.
+    \item When Bob receives Alice's ciphertext, he has access to all the material to compute the master key. By commiting to use a specific nonce in the KEMPart2 packet before receiving Alice's ciphertext, only one value of the master key can be reached making the collision attack on SAS very hard to achieve.
+  \end{itemize}
+\end{itemize}
+
+\begin{figure}
+  \begin{verbatim}
+  Alice                                                Bob
+    |                                                   |
+    |      Alice and Bob establish a media session.     |
+    |         They initiate ZRTP on media ports         |
+    |                                                   |
+    | F1 Hello (version, options, Alice's ZID)          |
+    |-------------------------------------------------->|
+    |                                       HelloACK F2 |
+    |<--------------------------------------------------|
+    |            Hello (version, options, Bob's ZID) F3 |
+    |<--------------------------------------------------|
+    | F4 HelloACK                                       |
+    |-------------------------------------------------->|
+    |                                                   |
+    |             Bob acts as the initiator.            |
+    |                                                   |
+    |   Commit (Bob's ZID, options, hash value, pvi) F5 |
+    |<--------------------------------------------------|
+    | F6 KEMPart1 (pvr, shared secret hashes)           |
+    |-------------------------------------------------->|
+    |            KEMPart2 (ni, shared secret hashes) F7 |
+    |<--------------------------------------------------|
+    |                                                   |
+    |     Alice and Bob generate SRTP session key.      |
+    |                                                   |
+    | F8 Confirm1 (MAC, D,A,V,E flags, sig)             |
+    |-------------------------------------------------->|
+    |             Confirm2 (MAC, D,A,V,E flags, sig) F9 |
+    |<--------------------------------------------------|
+    | F10 Conf2ACK                                      |
+    |-------------------------------------------------->|
+    |                    SRTP begins                    |
+    |<=================================================>|
+  \end{verbatim}
+  \caption{KEM mode ZRTP complete data flow}
+  \label{fig:KEMmode}
+\end{figure}
+\FloatBarrier
+
+\subsection{ZRTP packet fragmentation}
+\paragraph*{}PQC key exchanges produce large public values(public key, cipher text) to be exchanged with the other endpoint. UDP datagrams are often limited to a maximum of 1500 bytes if UDP fragmentation is not desired. In order to compensate for this limitation we introduced a message fragmentation mechanism. ZRTP messages can be fragmented over several zrtp packets.
+\paragraph*{}Multiplexing scheme standard\citep{rfc7983} \href{https://datatracker.ietf.org/doc/html/rfc7983#section-7}{section 7} reserves for the ZRTP packet format the values 16 to 19 on the first byte to clearly distinguish ZRTP packets from STUN, DTLS, TURN or RTP/RTCP packets.
+
+\paragraph*{}ZRTP standard as specified in \citep{rfc6189} uses value 16 as the first byte of ZRTP packet. The ZRTP packet header fields (Sequence Numnber, Magic Cookie, Source Identifier and CRC) description can be found in RFC6189 \href{https://datatracker.ietf.org/doc/html/rfc6189#section-5}{section 5}.
+
+\paragraph*{}We introduce the use of value 17 as first byte of ZRTP packet to distinguish packets carrying a ZRTP message fragment. Packets holding message fragment get additional fields in the packet header:
+\begin{itemize}
+  \item message Id: a unique Id for this message, is attached to the message and is not incremented at each retransmission like the sequence number. It is initialised to a random value and is incremented for each new message generated.
+  \item message total length: size, in 32-bit words of the total message.
+  \item offset: offset of this fragment, in 32-bit words.
+  \item fragment length: size of this fragment, in 32-bit words.
+\end{itemize}
+\paragraph*{}The fragmentation mechanism is opportunistic: A ZRTP exchange using a key agreement algorithm not requiring large public values will use only regular packets and is thus fully compatible with the ZRTP version 1.10 described in RFC6189.
+\begin{figure}
+  \begin{verbatim}
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |0 0 0 1 0 0 0 1|  Not Used: 0  |         Sequence Number       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                 Magic Cookie 'ZRTP' (0x5a525450)              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Source Identifier                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |            message Id         |    message total length       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |            offset             |    fragment length            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   |           ZRTP Message fragment(length as indicated)          |
+   |                            . . .                              |
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          CRC (1 word)                         |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   \end{verbatim}
+  \caption{ZRTP packet format for fragmented ZRTP message}
+  \label{fig:fragmentedZRTPpacket}
+\end{figure}
+\FloatBarrier
+
+  
+
+\subsection{Suitable PQC algorithm properties}
+\label{subsec:zrtpRequirements}
+\paragraph*{}ZRTP impose some additional constraints on the choice of PQC KEM algorithm. As public key and cipher text are sent on the network at each call establishment, we must focus on small sized public keys and cipher text. This rules out for example Classic Mc Eliece. Another constraint is to generate a set of key, encapsulate and decapsulate also at each call establishment. These operations must be performed on mobile devices with sometime limited computation power.
+
+\newpage
+\section{Instant messaging}
+\paragraph*{}Instant messaging is end2end encrypted using Lime\citep{lime}, a Signal protocol derivative. This protocol relies on Elliptic-Curve Diffie-Hellman and EdDSA properties and no version using post-quantum cryptography is available yet.
+\paragraph*{}Instant messaging encryption is not encrypted using post-quantum cryptography, this is left for future work.
+
+\newpage
+
+\bibliographystyle{te}
+\bibliography{pqcrypto_integration}
+
+\end{document}
