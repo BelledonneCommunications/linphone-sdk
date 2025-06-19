@@ -1,9 +1,6 @@
 [submodule "bcg729"]
 	path = bcg729
 	url = ../bcg729.git
-[submodule "msamr"]
-	path = msamr
-	url = ../msamr.git
 [submodule "msopenh264"]
 	path = msopenh264
 	url = ../msopenh264.git
