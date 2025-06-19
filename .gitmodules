@@ -82,9 +82,6 @@
 [submodule "external/opencore-amr"]
 	path = external/opencore-amr
 	url = https://gitlab.linphone.org/BC/public/external/opencore-amr.git
-[submodule "msandroidcamera2"]
-	path = msandroidcamera2
-	url = ../msandroidcamera2.git
 [submodule "external/openldap"]
 	path = external/openldap
 	url = https://gitlab.linphone.org/BC/public/external/openldap.git
