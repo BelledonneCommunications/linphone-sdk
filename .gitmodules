@@ -16,9 +16,6 @@
 [submodule "ortp"]
 	path = ortp
 	url = ../ortp.git
-[submodule "mediastreamer2"]
-	path = mediastreamer2
-	url = ../mediastreamer2.git
 [submodule "mswasapi"]
 	path = mswasapi
 	url = ../mswasapi.git
