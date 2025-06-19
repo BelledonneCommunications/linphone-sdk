@@ -1,0 +1,257 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{88191e75-2993-48d7-aa76-652f274ef0fe}</ProjectGuid>
+    <RootNamespace>opencore_amrnb</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(TargetName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\common\dec\include;$(ProjectDir)..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\include;$(ProjectDir)..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\include;$(ProjectDir)..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src;$(ProjectDir)..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src;$(ProjectDir)..\..\..\..\opencore-amr\oscl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+      <ImportLibrary>$(TargetDir)$(TargetName).lib</ImportLibrary>
+      <ModuleDefinitionFile>$(ProjectDir)opencore_amrnb.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>MaxSpeed</Optimization>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Reference Include="Windows">
+      <IsWinMDFile>true</IsWinMDFile>
+    </Reference>
+    <Reference Include="platform.winmd">
+      <IsWinMDFile>true</IsWinMDFile>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\opencore-amr\amrnb\wrapper.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\add.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\az_lsp.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\bitno_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\bitreorder_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\c2_9pf_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\div_s.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\extract_h.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\extract_l.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\gains_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\gc_pred.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\get_const_tbls.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\gmed_n.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\gray_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\grid_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\int_lpc.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\inv_sqrt.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\inv_sqrt_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\log2.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\log2_norm.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\log2_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\lsfwt.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\lsp.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\lsp_az.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\lsp_lsf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\lsp_lsf_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\lsp_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\l_deposit_h.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\l_deposit_l.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\l_shr_r.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\mult_r.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\negate.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\norm_l.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\norm_s.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\overflow_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\ph_disp_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\pow2.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\pow2_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\pred_lt.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\qua_gain_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\q_plsf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\q_plsf_3.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\q_plsf_3_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\q_plsf_5.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\q_plsf_5_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\reorder.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\residu.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\round.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\set_zero.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\shr.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\shr_r.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\sqrt_l.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\sqrt_l_tbl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\sub.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\syn_filt.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\weight_a.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\common\src\window_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\agc.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\amrdecode.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\a_refl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\bgnscd.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\b_cn_cod.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\c_g_aver.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d1035pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d2_11pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d2_9pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d3_14pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d4_17pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d8_31pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\dec_amr.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\dec_gain.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\dec_input_format_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\dec_lag3.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\dec_lag6.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\dtx_dec.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d_gain_c.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d_gain_p.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d_plsf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d_plsf_3.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\d_plsf_5.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\ec_gains.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\ex_ctrl.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\if2_to_ets.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\int_lsf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\lsp_avg.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\ph_disp.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\post_pro.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\preemph.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\pstfilt.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\qgain475_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\sp_dec.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\dec\src\wmf_to_ets.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\amrencode.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\autocorr.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\c1035pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\c2_11pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\c2_9pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\c3_14pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\c4_17pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\c8_31pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\calc_cor.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\calc_en.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\cbsearch.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\cl_ltp.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\cod_amr.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\convolve.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\corrwght_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\cor_h.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\cor_h_x.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\cor_h_x2.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\div_32.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\dtx_enc.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\enc_lag3.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\enc_lag6.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\enc_output_format_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\ets_to_if2.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\ets_to_wmf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\gain_q.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\g_adapt.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\g_code.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\g_pitch.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\hp_max.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\inter_36.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\inter_36_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\lag_wind.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\lag_wind_tab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\levinson.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\lflg_upd.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\lpc.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\l_abs.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\l_comp.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\l_extract.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\l_negate.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\ol_ltp.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\pitch_fr.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\pitch_ol.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\pre_big.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\pre_proc.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\prm2bits.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\p_ol_wgh.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\qgain475.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\qgain795.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\qua_gain.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\q_gain_c.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\q_gain_p.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\s10_8pf.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\set_sign.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\sid_sync.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\spreproc.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\spstproc.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\sp_enc.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\ton_stab.cpp" />
+    <ClCompile Include="..\..\..\..\opencore-amr\opencore\codecs_v2\audio\gsm_amr\amr_nb\enc\src\vad1.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsPhone\v$(TargetPlatformVersion)\Microsoft.Cpp.WindowsPhone.$(TargetPlatformVersion).targets" />
+</Project>
