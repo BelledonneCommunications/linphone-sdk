@@ -4,9 +4,6 @@
 [submodule "mssilk"]
 	path = mssilk
 	url = ../mssilk.git
-[submodule "mswebrtc"]
-	path = mswebrtc
-	url = ../mswebrtc.git
 [submodule "ortp"]
 	path = ortp
 	url = ../ortp.git
