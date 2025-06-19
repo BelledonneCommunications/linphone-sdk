@@ -22,9 +22,6 @@
 [submodule "mswebrtc"]
 	path = mswebrtc
 	url = ../mswebrtc.git
-[submodule "belcard"]
-	path = belcard
-	url = ../belcard.git
 [submodule "belr"]
 	path = belr
 	url = ../belr.git
