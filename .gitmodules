@@ -79,9 +79,6 @@
 [submodule "external/liboqs"]
 	path = external/liboqs
 	url =  https://gitlab.linphone.org/BC/public/external/liboqs.git
-[submodule "postquantumcryptoengine"]
-	path = postquantumcryptoengine
-	url = ../postquantumcryptoengine.git
 [submodule "external/dav1d"]
 	path = external/dav1d
 	url = https://gitlab.linphone.org/BC/public/external/dav1d.git
