@@ -130,3 +130,6 @@
 [submodule "external/aom"]
 	path = external/aom
 	url = https://gitlab.linphone.org/BC/public/external/aom.git
+[submodule "tester/cpp-httplib"]
+	path = belle-sip/tester/cpp-httplib
+	url = https://gitlab.linphone.org/BC/public/external/cpp-httplib.git

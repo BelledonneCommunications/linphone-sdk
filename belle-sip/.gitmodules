@@ -1,3 +1,0 @@
-[submodule "tester/cpp-httplib"]
-	path = tester/cpp-httplib
-	url = https://gitlab.linphone.org/BC/public/external/cpp-httplib.git
