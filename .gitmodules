@@ -103,3 +103,6 @@
 [submodule "tester/cpp-httplib"]
 	path = belle-sip/tester/cpp-httplib
 	url = https://gitlab.linphone.org/BC/public/external/cpp-httplib.git
+[submodule "oboe"]
+	path = msoboe/oboe
+	url = https://github.com/google/oboe
