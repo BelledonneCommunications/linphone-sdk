@@ -19,9 +19,6 @@
 [submodule "mswebrtc"]
 	path = mswebrtc
 	url = ../mswebrtc.git
-[submodule "belr"]
-	path = belr
-	url = ../belr.git
 [submodule "ortp"]
 	path = ortp
 	url = ../ortp.git
