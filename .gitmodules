@@ -1,6 +1,3 @@
-[submodule "liblinphone"]
-	path = liblinphone
-	url = ../liblinphone.git
 [submodule "bcg729"]
 	path = bcg729
 	url = ../bcg729.git
