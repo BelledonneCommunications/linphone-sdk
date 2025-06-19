@@ -85,9 +85,6 @@
 [submodule "external/jsoncpp"]
 	path = external/jsoncpp
 	url = https://gitlab.linphone.org/BC/public/external/jsoncpp.git
-[submodule "msoboe"]
-	path = msoboe
-	url = ../msoboe.git
 [submodule "external/libyuv"]
 	path = external/libyuv
 	url = https://gitlab.linphone.org/BC/public/external/libyuv.git
