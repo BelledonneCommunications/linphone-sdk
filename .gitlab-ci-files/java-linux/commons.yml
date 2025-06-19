@@ -4,7 +4,7 @@
 
 .java-linux-package:
   stage: package
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   extends: .linux-prepare
   variables:
     GIT_STRATEGY: fetch
@@ -31,7 +31,7 @@
 
 .java-linux-upload:
   stage: deploy
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA != null
   variables:

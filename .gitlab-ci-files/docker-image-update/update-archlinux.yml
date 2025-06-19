@@ -12,7 +12,7 @@
 
 arch-image-docker-rebuild:
   stage: docker-update-build
-  tags: [ "linux-deploy" ]
+  tags: [ "linux-deploy-flat" ]
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
@@ -28,7 +28,7 @@ arch-image-docker-rebuild:
 
 arch-image-docker-rebuild-ms-test:
   stage: docker-update-build-ms
-  tags: [ "linux-deploy" ]
+  tags: [ "linux-deploy-flat" ]
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
   needs:
@@ -46,7 +46,7 @@ arch-image-docker-rebuild-ms-test:
 
 arch-image-docker-rebuild-liblinphone-test:
   stage: docker-update-build-liblinphone
-  tags: [ "linux-deploy" ]
+  tags: [ "linux-deploy-flat" ]
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts

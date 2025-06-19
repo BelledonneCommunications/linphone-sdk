@@ -50,7 +50,7 @@
 ios-xcode-doc-upload:
   #Extends but as we redefine the script, we are only fetching other jobs sections like rules, needs, stage and variables
   extends: .ios-xcode-podspec-upload
-  tags: [ "macosx-min-xcode12.2-upload" ]
+  tags: [ "macosx-min-xcode12.2-upload-flat" ]
   needs:
     - ios-xcode-doc-arm64
   script:
@@ -83,14 +83,14 @@ ios-xcode-doc-upload:
 
 ios-xcode-pod-upload-xcode12:
   extends: .ios-xcode-podspec-upload
-  tags: [ "macosx-min-xcode12.2-upload" ]
+  tags: [ "macosx-min-xcode12.2-upload-flat" ]
 
 ios-xcode-pod-novideo-upload-xcode12:
   extends: .ios-xcode-novideo-upload
-  tags: [ "macosx-min-xcode12.2-upload" ]
+  tags: [ "macosx-min-xcode12.2-upload-flat" ]
 
 ios-ninja-spm-upload:
-  tags: [ "macosx-min-xcode12.2-upload" ]
+  tags: [ "macosx-min-xcode12.2-upload-flat" ]
   stage: deploy
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes

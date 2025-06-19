@@ -1,6 +1,6 @@
 update-rootca:
   stage: update-rootca
-  tags: [ "deploy" ]
+  tags: [ "deploy-flat" ]
 
   only:
     variables:

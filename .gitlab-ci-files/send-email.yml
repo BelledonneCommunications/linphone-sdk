@@ -4,7 +4,7 @@
 
 send-email-test-report:
   stage: email-notif
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
 
   needs:
     - libl-rocky8-mr-test-upload

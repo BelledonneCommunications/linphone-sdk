@@ -44,7 +44,7 @@ recache-ubuntu2004:
 #################################################
 
 ubuntu2004-makefile-clang:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.ubuntu2004_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -64,7 +64,7 @@ ubuntu2004-makefile-clang-pqc:
 #################################################
 
 ubuntu2004-ninja-gcc:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.ubuntu2004_image_version, image]
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes

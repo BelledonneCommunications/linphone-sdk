@@ -13,7 +13,7 @@ recache-android:
 .android:
 
   stage: build
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
 
   cache:
     - !reference [.linux-prepare, cache]

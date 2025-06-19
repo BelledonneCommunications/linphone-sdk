@@ -11,7 +11,7 @@
 
 debian10-image-docker-rebuild:
   stage: docker-update-build
-  tags: [ "linux-deploy" ]
+  tags: [ "linux-deploy-flat" ]
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
@@ -27,7 +27,7 @@ debian10-image-docker-rebuild:
 
 debian10-image-docker-rebuild-ms-test:
   stage: docker-update-build-ms
-  tags: [ "linux-deploy" ]
+  tags: [ "linux-deploy-flat" ]
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
@@ -45,7 +45,7 @@ debian10-image-docker-rebuild-ms-test:
 
 debian10-image-docker-rebuild-liblinphone-test:
   stage: docker-update-build-liblinphone
-  tags: [ "linux-deploy" ]
+  tags: [ "linux-deploy-flat" ]
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts

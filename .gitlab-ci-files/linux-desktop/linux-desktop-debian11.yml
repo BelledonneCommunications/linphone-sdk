@@ -29,7 +29,7 @@ recache-debian11:
 
 debian11-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -41,7 +41,7 @@ debian11-makefile-gcc:
 
 debian11-makefile-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -58,7 +58,7 @@ debian11-makefile-clang:
 
 debian11-ninja-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
@@ -71,7 +71,7 @@ debian11-ninja-gcc:
 
 debian11-ninja-gcc-sequential:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
@@ -98,7 +98,7 @@ debian11-ninja-gcc-smallsdk:
 
 
 debian11-ninja-clang:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja

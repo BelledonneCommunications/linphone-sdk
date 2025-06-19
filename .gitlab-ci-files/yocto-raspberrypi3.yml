@@ -1,6 +1,6 @@
 debian11-yocto-raspberrypi3:
   stage: build
-  tags: ["docker"]
+  tags: ["docker-flat"]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:kirkstone-raspberrypi3
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_YOCTO_BUILDS != null && $SKIP_YOCTO == null

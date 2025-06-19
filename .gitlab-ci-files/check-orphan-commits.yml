@@ -1,6 +1,6 @@
 check-orphan-commits:
 
-  tags: [ "linux-deploy" ]
+  tags: [ "linux-deploy-flat" ]
   stage: check-orphans
   #prevents jobs from gathering all previous jobs artifacts
   needs: []

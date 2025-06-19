@@ -30,7 +30,7 @@ recache-ubuntu-rolling:
 
 ubuntu-rolling-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.ubuntu-rolling_image_version, image]
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE_UBUNTU != null
@@ -46,7 +46,7 @@ ubuntu-rolling-makefile-gcc:
 
 
 ubuntu-rolling-makefile-clang:
- tags: [ "docker" ]
+ tags: [ "docker-flat" ]
  image: !reference [.ubuntu-rolling_image_version, image]
  variables:
    CMAKE_GENERATOR: Unix Makefiles
@@ -64,7 +64,7 @@ ubuntu-rolling-makefile-clang:
 
 ubuntu-rolling-ninja-gcc:
 
- tags: [ "docker" ]
+ tags: [ "docker-flat" ]
  image: !reference [.ubuntu-rolling_image_version, image]
  variables:
    CMAKE_GENERATOR: Ninja
@@ -80,7 +80,7 @@ ubuntu-rolling-ninja-gcc-novideo:
 
 
 ubuntu-rolling-ninja-clang:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.ubuntu-rolling_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja

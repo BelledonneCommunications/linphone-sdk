@@ -28,7 +28,7 @@ recache-archlinux:
 
 arch-latest-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.archlinux_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -39,7 +39,7 @@ arch-latest-makefile-gcc:
 
 arch-latest-makefile-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.archlinux_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -54,7 +54,7 @@ arch-latest-makefile-clang:
 
 
 arch-latest-ninja-gcc:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.archlinux_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
@@ -75,7 +75,7 @@ arch-latest-ninja-gcc-pqc:
 
 arch-latest-ninja-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.archlinux_image_version, image]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

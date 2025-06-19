@@ -29,7 +29,7 @@ recache-debian10:
 
 debian10-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian10_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -43,7 +43,7 @@ debian10-makefile-gcc:
 
 debian10-makefile-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian10_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -62,7 +62,7 @@ debian10-makefile-clang:
 
 debian10-ninja-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian10_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
@@ -89,7 +89,7 @@ debian10-ninja-gcc-pqc:
   extends: debian10-ninja-gcc
 
 debian10-ninja-clang:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian10_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja

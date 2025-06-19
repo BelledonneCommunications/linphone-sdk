@@ -2,7 +2,7 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macos-xcode15" ]
+  tags: [ "macos-xcode15-flat" ]
 
   rules:
     - !reference [.rules-merge-request-manual, rules]
@@ -236,7 +236,7 @@ ios-xcode-pqc:
   extends: ios-xcode
 
 ios-xcode-doc-arm64:
-  tags: [ "macos-xcode15" ]
+  tags: [ "macos-xcode15-flat" ]
   variables:
     CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_SWIFT_DOC=ON -DENABLE_SWIFT_WRAPPER=ON -DENABLE_CSHARP_WRAPPER=ON -DENABLE_UNIT_TESTS=ON -DLINPHONESDK_IOS_PLATFORM=Simulator -DLINPHONESDK_BUILD_TYPE=IOS
     ARCHS_OPTIONS: "arm64"

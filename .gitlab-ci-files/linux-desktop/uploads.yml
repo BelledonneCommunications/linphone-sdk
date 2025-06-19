@@ -4,7 +4,7 @@
 
 debian-doc-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "deploy-flat" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_C_CPP_DOC != null && $SKIP_DEPLOY == null
@@ -42,7 +42,7 @@ debian-doc-upload:
 
 debian-python-doc-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "deploy-flat" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_PYTHON != null && $SKIP_DEPLOY == null
@@ -81,7 +81,7 @@ debian-python-doc-upload:
 
 bzrtp-doc-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "deploy-flat" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_BZRTP_DOC != null && $SKIP_DEPLOY == null
@@ -121,7 +121,7 @@ bzrtp-doc-upload:
 
 lime-doc-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "deploy-flat" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_LIME_DOC != null && $SKIP_DEPLOY == null
@@ -160,7 +160,7 @@ lime-doc-upload:
 
 rocky8-python-wheel-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "deploy-flat" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_PYTHON != null && $SKIP_DEPLOY == null

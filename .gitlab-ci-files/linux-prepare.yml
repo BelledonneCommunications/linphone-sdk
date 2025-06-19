@@ -3,7 +3,7 @@
 #
 recache-get-from-branch:
   stage: init-recache
-  tags: ["docker"]
+  tags: ["docker-flat"]
   extends: .no-cache
   variables:
     GIT_STRATEGY: none
@@ -43,7 +43,7 @@ recache-get-from-branch:
   needs:
     - recache-get-from-branch
   extends: .no-cache
-  tags: ["docker"]
+  tags: ["docker-flat"]
   variables:
     GIT_STRATEGY: none
   rules:
@@ -84,7 +84,7 @@ recache-get-from-branch:
 # /!\ As such, DO NOT MODIFY JOB NAMES unless you know what you are doing, as this could impact caching.
 .wait-cache-synchro:
   stage: wait-cache-synchro
-  tags: ["docker"]
+  tags: ["docker-flat"]
   extends: .no-cache
   variables:
     GIT_STRATEGY: none

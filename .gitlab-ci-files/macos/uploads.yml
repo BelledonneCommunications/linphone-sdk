@@ -1,6 +1,6 @@
 macos-upload:
   stage: deploy
-  tags: [ "macos-xcode13" ]
+  tags: [ "macos-xcode13-flat" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_MACOS != null
@@ -24,7 +24,7 @@ macos-upload:
 
 macos-ninja-spm-upload:
   stage: deploy
-  tags: [ "macos-xcode13" ]
+  tags: [ "macos-xcode13-flat" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_MACOS != null

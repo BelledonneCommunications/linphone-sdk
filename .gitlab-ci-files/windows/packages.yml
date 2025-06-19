@@ -45,7 +45,7 @@
 
 vs2022-nuget-windows-package:
   extends: .vs-nuget-windows-package
-  tags: [ "windows-powershell-vs-17-2022" ]
+  tags: [ "windows-powershell-vs-17-2022-flat" ]
   needs:
   - vs2022-win64store-scheduled-windows
   - vs2022-uwp-windows
@@ -109,7 +109,7 @@ vs2017-nuget-windows-package:
 
 vs2022-java-windows-package:
   extends: .vs-java-windows-package
-  tags: [ "windows-powershell-vs-17-2022" ]
+  tags: [ "windows-powershell-vs-17-2022-flat" ]
   needs: 
     - job: vs2022-windows-java
       artifacts: false

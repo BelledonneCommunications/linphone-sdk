@@ -3,7 +3,7 @@
 .windows-linphone-test:
   stage: test
   extends: .job-prepare
-  tags: [ "windows-powershell-vs-17-2022" ]
+  tags: [ "windows-powershell-vs-17-2022-flat" ]
   allow_failure: true
   variables:
     #no need to fetch repo, all the needed files are in input artifacts

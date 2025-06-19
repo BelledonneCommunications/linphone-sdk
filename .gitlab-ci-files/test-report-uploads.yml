@@ -4,7 +4,7 @@
 
 .test-report-upload:
   stage: deploy
-  tags: [ "deploy" ]
+  tags: [ "deploy-flat" ]
   allow_failure: true
   variables:
     XML_FILENAME_START_PATTERN: "BCUnit"

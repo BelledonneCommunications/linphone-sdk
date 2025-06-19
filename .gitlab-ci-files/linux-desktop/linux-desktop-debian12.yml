@@ -28,7 +28,7 @@ recache-debian12:
 
 debian12-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian12_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -40,7 +40,7 @@ debian12-makefile-gcc:
 
 debian12-makefile-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian12_image_version, image]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -57,7 +57,7 @@ debian12-makefile-clang:
 
 debian12-ninja-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian12_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
@@ -95,7 +95,7 @@ debian12-ninja-gcc-openssl:
   extends: debian12-ninja-gcc
 
 debian12-ninja-clang:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian12_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
@@ -121,7 +121,7 @@ debian12-ninja-clang-pqc:
   extends: debian12-ninja-clang
 
 debian12-ninja-clang-python-wheel:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian12_image_version, image]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -135,7 +135,7 @@ debian12-ninja-clang-python-wheel:
   extends: .linux-desktop-python
 
 debian12-ninja-java:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.debian12_java_image_version, image]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

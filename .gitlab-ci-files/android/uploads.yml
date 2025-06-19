@@ -1,6 +1,6 @@
 .android-upload-common:
   stage: deploy
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.android_r27_image_version, image]
 
   rules:
@@ -35,7 +35,7 @@
 
 android-doc-upload:
   stage: deploy
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [.android_r27_image_version, image]
 
   rules:

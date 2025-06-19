@@ -107,6 +107,6 @@ nuget-upload-windows:
 
 vs2022-java-windows-upload:
   extends: .vs-java-windows-upload
-  tags: [ "windows-powershell-vs-17-2022" ]
+  tags: [ "windows-powershell-vs-17-2022-flat" ]
   needs: 
     - job: vs2022-java-windows-package

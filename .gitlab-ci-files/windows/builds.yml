@@ -105,7 +105,7 @@
 
 .windows-vs2022:
   extends: .windows-vs
-  tags: [ "windows-powershell-vs-17-2022" ]
+  tags: [ "windows-powershell-vs-17-2022-flat" ]
 
 .windows-vs2019:
   extends: .windows-vs

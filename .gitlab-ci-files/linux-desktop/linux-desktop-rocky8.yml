@@ -30,7 +30,7 @@ recache-rocky8:
 
 
 rocky8-makefile-gcc:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -47,7 +47,7 @@ rocky8-makefile-gcc:
 
 
 rocky8-ninja-gcc:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -69,7 +69,7 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
   extends: rocky8-ninja-gcc
 
 rocky8-python-wheel:
-  tags: [ "docker" ]
+  tags: [ "docker-flat" ]
   image: !reference [ .rocky8_python_wrapper_image_version, image ]
   variables:
     CMAKE_GENERATOR: Ninja
