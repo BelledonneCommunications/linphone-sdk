@@ -1,0 +1,472 @@
+; SDP Syntax
+session-description = *(proto-version CRLF)
+                      *(origin CRLF)
+                      *(session-name CRLF)
+                      *(info CRLF)
+                      ;uri-field CRLF
+                      *(email CRLF)
+                      ;phone-fields CRLF
+                      *(connection CRLF)
+                      *(bandwidth CRLF)
+                      1*(times CRLF)
+                      ;key-field CRLF
+                      *(attribute CRLF)
+                      *(media-description)
+
+proto-version       = %x76 "=" proto-version-value
+                      ;this memo describes version 0
+proto-version-value = 1*DIGIT
+
+origin              = %x6f "=" username SP sess-id SP sess-version SP
+                      nettype SP addrtype SP unicast-address
+
+session-name        = %x73 "=" session-name-value
+session-name-value  = text
+
+info                = %x69 "=" info-value
+info-value          = text
+
+uri-field           = [%x75 "=" uri CRLF]
+
+email               = %x65 "=" email-address
+
+phone-fields        = *(%x70 "=" phone-number CRLF)
+
+connection          = %x63 "=" nettype SP addrtype SP
+                      connection-address
+                      ;a connection field must be present
+                      ;in every media description or at the
+                      ;session-level
+
+bandwidth           = %x62 "=" bwtype ":" bwvalue
+bwtype =              token
+bwvalue =             1*DIGIT
+
+times               = %x74 "=" start-stop-times
+                      *(CRLF repeat-fields)
+                      ;[zone-adjustments CRLF]
+
+start-stop-times    = start-time SP stop-time
+
+repeat-fields       = %x72 "=" repeat-interval SP typed-time
+                      1*(SP typed-time)
+
+zone-adjustments    = %x7a "=" time SP ["-"] typed-time
+                      *(SP time SP ["-"] typed-time)
+
+key-field           = [%x6b "=" key-type CRLF]
+
+media-description   = media CRLF
+                      [info CRLF]
+                      *(connection CRLF)
+                      *(bandwidth CRLF)
+                      ;[key-field]
+                      *(attribute CRLF)
+
+media               = %x6d "=" media-type SP sdp-port ["/" integer]
+                      SP proto 1*(SP fmt)
+
+; sub-rules of 'o='
+username            = non-ws-string
+                      ;pretty wide definition, but doesn't
+                      ;include space
+
+sess-id             = 1*DIGIT
+                      ;should be unique for this username/host
+
+sess-version        = 1*DIGIT
+
+nettype             = token
+                      ;typically "IN"
+
+addrtype            = token
+                      ;typically "IP4" or "IP6"
+
+; sub-rules of 'u='
+; uri =                 URI-reference
+                      ; see RFC 3986
+
+; sub-rules of 'e=', see RFC 2822 for definitions
+email-address        = address-and-comment / dispname-and-address
+                       / addr-spec
+address-and-comment  = addr-spec 1*SP "(" 1*email-safe ")"
+dispname-and-address = 1*email-safe 1*SP "<" addr-spec ">"
+
+; sub-rules of 'p='
+phone-number        = phone *SP "(" 1*email-safe ")" /
+                      1*email-safe "<" phone ">" /
+                      phone
+
+phone               = ["+"] DIGIT 1*(SP / "-" / DIGIT)
+
+; sub-rules of 'c='
+connection-address  = multicast-address / unicast-address
+
+; sub-rules of 't='
+start-time          = time / "0"
+
+stop-time           = time / "0"
+
+time                = POS-DIGIT 9*DIGIT
+                      ; Decimal representation of NTP time in
+                      ; seconds since 1900.  The representation
+                      ; of NTP time is an unbounded length field
+                      ; containing at least 10 digits.  Unlike the
+                      ; 64-bit representation used elsewhere, time
+                      ; in SDP does not wrap in the year 2036.
+
+; sub-rules of 'r=' and 'z='
+repeat-interval     = POS-DIGIT *DIGIT [fixed-len-time-unit]
+
+typed-time          = 1*DIGIT [fixed-len-time-unit]
+
+fixed-len-time-unit = %x64 / %x68 / %x6d / %x73
+
+; sub-rules of 'k='
+key-type            = %x70 %x72 %x6f %x6d %x70 %x74 /     ; "prompt"
+                      %x63 %x6c %x65 %x61 %x72 ":" text / ; "clear:"
+                      %x62 %x61 %x73 %x65 "64:" base64 /  ; "base64:"
+                      %x75 %x72 %x69 ":" uri              ; "uri:"
+
+base64      =         *base64-unit [base64-pad]
+
+base64-unit =         4base64-char
+base64-pad  =         2base64-char "==" / 3base64-char "="
+base64-char =         ALPHA / DIGIT / "+" / "/"
+
+; sub-rules of 'a='
+attribute           = csup-attribute / acap-attribute
+                    / tcap-attribute / creq-attribute
+                    / pcfg-attribute / acfg-attribute
+                    / rtcp-fb-attribute / rtcp-xr-attribute
+                    / label-attribute / content-attribute
+                    / raw-attribute
+raw-attribute       = %x61 "=" default-attribute
+default-attribute   = (att-field ":" att-value) / att-field
+att-field           = token
+att-value           = byte-string
+
+; sub-rules of 'm='
+media-type =          token
+                      ;typically "audio", "video", "text", or
+                      ;"application"
+
+fmt =                 token
+                      ;typically an RTP payload type for audio
+                      ;and video media
+
+proto  =              token *("/" token)
+                      ;typically "RTP/AVP" or "udp"
+
+sdp-port =            1*DIGIT
+
+; generic sub-rules: addressing
+unicast-address =     IP4-address / IP6-address / FQDN / extn-addr
+
+multicast-address =   IP4-multicast / IP6-multicast; / FQDN
+                      ;/ extn-addr
+
+IP4-multicast =       IP4-multicast-address
+                      "/" ttl [ "/" range ]
+                      ; IPv4 multicast addresses may be in the
+                      ; range 224.0.0.0 to 239.255.255.255
+range =               integer
+IP4-multicast-address = m1 3( "." decimal-uchar )
+
+m1 =                  ("22" ("4"/"5"/"6"/"7"/"8"/"9")) /
+                      ("23" DIGIT )
+
+IP6-multicast =       hexpart [ "/" range ]
+                      ; IPv6 address starting with FF
+
+ttl =                 (POS-DIGIT *2DIGIT) / "0"
+
+FQDN =                4*(alpha-numeric / "-" / ".")
+                      ; fully qualified domain name as specified
+                      ; in RFC 1035 (and updates)
+
+IP4-address =         b1 3("." decimal-uchar)
+
+b1 =                  decimal-uchar
+                      ; less than "224"
+
+; The following is consistent with RFC 2373 [30], Appendix B.
+IP6-address =         hexpart [ ":" IP4-address ]
+
+hexpart =             hexseq / hexseq "::" [ hexseq ] /
+                      "::" [ hexseq ]
+
+hexseq  =             hex4 *( ":" hex4)
+
+hex4    =             1*4HEXDIG
+
+; Generic for other address families
+extn-addr =           non-ws-string
+
+; generic sub-rules: datatypes
+text =                byte-string
+                      ;default is to interpret this as UTF8 text.
+                      ;ISO 8859-1 requires "a=charset:ISO-8859-1"
+                      ;session-level attribute to be used
+
+byte-string =         1*(%x01-09/%x0B-0C/%x0E-FF)
+                      ;any byte except NUL, CR, or LF
+
+non-ws-string =       1*(VCHAR/%x80-FF)
+                      ;string of visible characters
+
+token-char =          %x21 / %x23-27 / %x2A-2B / %x2D-2E / %x30-39
+                      / %x41-5A / %x5E-7E
+
+token =               1*(token-char)
+
+email-safe =          %x01-09/%x0B-0C/%x0E-27/%x2A-3B/%x3D/%x3F-FF
+                      ;any byte except NUL, CR, LF, or the quoting
+                      ;characters ()<>
+
+integer =             POS-DIGIT *DIGIT
+
+; generic sub-rules: primitives
+alpha-numeric =       ALPHA / DIGIT
+
+POS-DIGIT =           %x31-39 ; 1 - 9
+
+decimal-uchar =       DIGIT
+                      / POS-DIGIT DIGIT
+                      / ("1" 2*(DIGIT))
+                      / ("2" ("0"/"1"/"2"/"3"/"4") DIGIT)
+                      / ("2" "5" ("0"/"1"/"2"/"3"/"4"/"5"))
+
+; external references:
+; ALPHA, DIGIT, CRLF, SP, VCHAR: from RFC 4234
+; addr-spec: from RFC 2822
+
+addr-spec     = text ; non-standard definition
+
+; URI-reference: from RFC 3986
+
+URI           = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+
+hier-part     = "//" authority path-abempty
+              / path-absolute
+              / path-rootless
+              / path-empty
+
+URI-reference = URI / relative-ref
+
+absolute-URI  = scheme ":" hier-part [ "?" query ]
+
+relative-ref  = relative-part [ "?" query ] [ "#" fragment ]
+
+relative-part = "//" authority path-abempty
+              / path-absolute
+              / path-noscheme
+              / path-empty
+
+scheme        = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+
+authority     = [ userinfo "@" ] host [ ":" port ]
+userinfo      = *( unreserved / pct-encoded / sub-delims / ":" )
+host          = IP-literal / IPv4address / reg-name
+port          = *DIGIT
+
+IP-literal    = "[" ( IPv6address / IPvFuture  ) "]"
+
+IPvFuture     = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+
+IPv6address   =                            6( h16 ":" ) ls32
+              /                       "::" 5( h16 ":" ) ls32
+              / [               h16 ] "::" 4( h16 ":" ) ls32
+              / [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
+              / [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32
+              / [ *3( h16 ":" ) h16 ] "::"    h16 ":"   ls32
+              / [ *4( h16 ":" ) h16 ] "::"              ls32
+              / [ *5( h16 ":" ) h16 ] "::"              h16
+              / [ *6( h16 ":" ) h16 ] "::"
+
+h16           = 1*4HEXDIG
+ls32          = ( h16 ":" h16 ) / IPv4address
+IPv4address   = dec-octet "." dec-octet "." dec-octet "." dec-octet
+
+dec-octet     = DIGIT                 ; 0-9
+              / %x31-39 DIGIT         ; 10-99
+              / "1" 2DIGIT            ; 100-199
+              / "2" %x30-34 DIGIT     ; 200-249
+              / "25" %x30-35          ; 250-255
+
+reg-name      = *( unreserved / pct-encoded / sub-delims )
+
+path          = path-abempty    ; begins with "/" or is empty
+              / path-absolute   ; begins with "/" but not "//"
+              / path-noscheme   ; begins with a non-colon segment
+              / path-rootless   ; begins with a segment
+              / path-empty      ; zero characters
+
+path-abempty  = *( "/" segment )
+path-absolute = "/" [ segment-nz *( "/" segment ) ]
+path-noscheme = segment-nz-nc *( "/" segment )
+path-rootless = segment-nz *( "/" segment )
+path-empty    = text
+
+segment       = *pchar
+segment-nz    = 1*pchar
+segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )
+              ; non-zero-length segment without any colon ":"
+
+pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+
+query         = *( pchar / "/" / "?" )
+
+fragment      = *( pchar / "/" / "?" )
+
+pct-encoded   = "%" HEXDIG HEXDIG
+
+unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+reserved      = gen-delims / sub-delims
+gen-delims    = ":" / "/" / "?" / "#" / "[" / "]" / "@"
+sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
+              / "*" / "+" / "," / ";" / "="
+
+; RFC4585
+
+rtcp-fb-attribute = %x61 "=" "rtcp-fb:" rtcp-fb-pt SP rtcp-fb-val
+    ;%x61 "=rtcp-fb:" rtcp-fb-pt SP rtcp-fb-val
+
+rtcp-fb-pt     = "*"   ; wildcard: applies to all formats
+               / fmt   ; as defined in SDP spec
+
+rtcp-fb-val        = rtcp-fb-ack-type [rtcp-fb-ack-param]
+                    / rtcp-fb-nack-type [rtcp-fb-nack-param]
+                    / rtcp-fb-trr-int-type SP rtcp-fb-trr-int
+                    / rtcp-fb-ccm-type SP rtcp-fb-ccm-param
+                    / rtcp-fb-id rtcp-fb-param
+                    / rtcp-fb-id  ;no or empty param
+
+rtcp-fb-trr-int-type = "trr-int"
+rtcp-fb-trr-int    = 1*DIGIT
+
+; RFC5104
+rtcp-fb-ccm-type   = "ccm"
+rtcp-fb-ccm-param  = "fir"   ; Full Intra Request
+                    / rtcp-fb-ccm-tmmbr-param [SP "smaxpr=" text]
+                                ; Temporary max media bit rate
+                    ; / "tstr"  ; Temporal-Spatial Trade-Off, not implemented
+                    ; / "vbcm" *(SP subMessageType) ; H.271 VBCMs, not implemented
+                    ; / token [SP byte-string], not implemented
+
+rtcp-fb-ccm-tmmbr-param = "tmmbr"
+
+rtcp-fb-id         = 1*(alpha-numeric / "-" / "_")
+rtcp-fb-param      = SP "app" [SP byte-string]
+                    / SP token [SP byte-string]
+                    / rtcp-fb-trr-int
+
+rtcp-fb-ack-type   = "ack"
+rtcp-fb-ack-param  = SP "rpsi"
+                    / SP "app" [SP byte-string]
+                    / SP token [SP byte-string]
+                    / text ; empty
+
+rtcp-fb-nack-type  = "nack"
+rtcp-fb-nack-param = SP "pli"
+                    / SP "sli"
+                    / SP "rpsi"
+                    / SP "app" [SP byte-string]
+                    / SP token [SP byte-string]
+                    / text ; empty
+
+; RFC3611
+rtcp-xr-attribute = %x61 "=" "rtcp-xr" [":" xr-format *(SP xr-format)]
+
+xr-format = pkt-loss-rle
+            / pkt-dup-rle
+            / pkt-rcpt-times
+            / rcvr-rtt
+            / stat-summary
+            / voip-metrics
+            / format-ext
+
+pkt-loss-rle   = "pkt-loss-rle" ["=" max-size]
+pkt-dup-rle    = "pkt-dup-rle" ["=" max-size]
+pkt-rcpt-times = "pkt-rcpt-times" ["=" max-size]
+rcvr-rtt       = "rcvr-rtt" "=" rcvr-rtt-mode [":" max-size]
+rcvr-rtt-mode  = "all"
+                / "sender"
+stat-summary   = "stat-summary" ["=" stat-flag *("," stat-flag)]
+stat-flag      = "loss"
+                / "dup"
+                / "jitt"
+                / "TTL"
+                / "HL"
+voip-metrics   = "voip-metrics"
+max-size       = text; 1*DIGIT ; maximum block size in octets
+;DIGIT         = %x30-39
+format-ext     = text; non-ws-string
+
+; non-ws-string= 1*(%x21-FF)
+;CRLF          = %d13.10
+
+; RFC5939
+
+csup-attribute = %x61 "=" "csup:" option-tag-list
+creq-attribute = %x61 "=" "creq:" option-tag-list
+option-tag-list= option-tag *("," option-tag)
+option-tag     = token    ; defined in [RFC4566]
+
+tcap-attribute = %x61 "=" "tcap:" trpr-cap-num 1*WSP proto-list
+trpr-cap-num   = 1*10(DIGIT)
+proto-list     = proto *(1*WSP proto)
+
+acap-attribute = %x61 "=" "acap:" acap-cap-num 1*WSP acap-att-par
+acap-cap-num   = 1*10(DIGIT)
+acap-att-par   = default-attribute
+
+; acfg/pcfg
+
+acfg-attribute = %x61 "=" "acfg:" config-number [1*WSP sel-cfg-list]
+pcfg-attribute = %x61 "=" "pcfg:" config-number [1*WSP pot-cfg-list]
+config-number  = 1*10(DIGIT)
+
+sel-cfg-list   = sel-config *(1*WSP sel-config)
+sel-config     = 1*VCHAR; sel-attribute-config / sel-transport-protocol-config / sel-extension-config
+
+pot-cfg-list   = pot-config *(1*WSP pot-config)
+pot-config     = 1*VCHAR; attribute-config-list / transport-protocol-config-list / extension-config-list
+
+sel-attribute-config          = "a=" [delete-attributes ":"] mo-att-cap-list
+sel-transport-protocol-config = "t=" trpr-cap-num
+sel-extension-config          = ext-cap-name "=" 1*VCHAR
+
+attribute-config-list =  "a=" delete-attributes
+;attribute-config-list =/ "a=" [delete-attributes ":"] mo-att-cap-list *("|" mo-att-cap-list)
+
+transport-protocol-config-list = "t=" trpr-cap-num *("|" trpr-cap-num)
+
+delete-attributes = "-" ( "m" / "s" / "ms" )
+mo-att-cap-list   = mandatory-optional-att-cap-list /
+                    mandatory-att-cap-list /
+                    optional-att-cap-list
+
+mandatory-optional-att-cap-list  = mandatory-att-cap-list "," optional-att-cap-list
+mandatory-att-cap-list           = att-cap-list
+optional-att-cap-list            = "[" att-cap-list "]"
+
+extension-config-list   = ["+"] ext-cap-name "=" ext-cap-list
+
+att-cap-list      = att-cap-num *("," att-cap-num)
+att-cap-num       = 1*10(DIGIT)
+ext-cap-name      = 1*(ALPHA / DIGIT)
+ext-cap-list      = 1*VCHAR
+
+; RFC4796
+
+content-attribute   = %x61 "=" "content:" mediacnt-tag
+mediacnt-tag        = mediacnt *("," mediacnt)
+mediacnt            = "slides" / "speaker" / "sl" / "main"
+                             / "alt" / mediacnt-ext
+mediacnt-ext        = token
+
+; RFC4574
+
+label-attribute     = %x61 "=" "label:" pointer
+pointer             = token
