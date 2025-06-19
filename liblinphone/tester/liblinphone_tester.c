@@ -528,8 +528,8 @@ void liblinphone_tester_add_suites(void) {
 #endif // HAVE_ADVANCED_IM
 	liblinphone_tester_add_suite_with_default_time(&tunnel_test_suite, 0);
 	liblinphone_tester_add_suite_with_default_time(&offeranswer_test_suite, 221);
-	liblinphone_tester_add_suite_with_default_time(&call_test_suite, 777);
-	liblinphone_tester_add_suite_with_default_time(&call2_test_suite, 480);
+	bc_tester_add_suite(&call_test_suite);
+	bc_tester_add_suite(&call2_test_suite);
 	bc_tester_add_suite(&call_not_established_test_suite);
 	liblinphone_tester_add_suite_with_default_time(&push_incoming_call_test_suite, 65);
 	liblinphone_tester_add_suite_with_default_time(&call_recovery_test_suite, 283);
@@ -641,6 +641,7 @@ void liblinphone_tester_add_suites(void) {
 	bc_tester_add_suite(&call_twisted_cases_suite);
 	bc_tester_add_suite(&http_client_test_suite);
 	bc_tester_add_suite(&turn_server_test_suite);
+	bc_tester_add_suite(&dtmf_test_suite);
 }
 
 void liblinphone_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)) {

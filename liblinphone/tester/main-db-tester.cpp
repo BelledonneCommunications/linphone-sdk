@@ -664,11 +664,15 @@ test_t main_db_tests[] = {
     TEST_NO_TAG("Load a lot of chatrooms cleaning GRUU", load_a_lot_of_chatrooms_cleaning_gruu),
     TEST_NO_TAG("Search messages in chatroom", search_messages_in_chat_room)};
 
-test_suite_t main_db_test_suite = {"MainDb",
-                                   NULL,
-                                   NULL,
-                                   liblinphone_tester_before_each,
-                                   liblinphone_tester_after_each,
-                                   sizeof(main_db_tests) / sizeof(main_db_tests[0]),
-                                   main_db_tests,
-                                   0};
+test_suite_t main_db_test_suite = {
+    "MainDb",
+    NULL,
+    NULL,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(main_db_tests) / sizeof(main_db_tests[0]),
+    main_db_tests,
+    59, /* It usually runs faster, but since we allow retries for the "Load a lot of chatrooms" tests, it can take
+           longer. */
+    4   /*cpu weight: to preserve speed for "Load a lot of chatrooms"*/
+};

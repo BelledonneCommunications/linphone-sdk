@@ -37,6 +37,8 @@
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
 
+#define _bctbx_list_next(elem) (elem)->next
+
 bctbx_list_t *bctbx_list_new(void *data) {
 	bctbx_list_t *new_elem = bctbx_new0(bctbx_list_t, 1);
 	new_elem->data = data;
@@ -89,7 +91,7 @@ bctbx_list_t *bctbx_list_concat(bctbx_list_t *first, bctbx_list_t *second) {
 	if (it == NULL) return second;
 	if (second == NULL) return first;
 	while (it->next != NULL)
-		it = bctbx_list_next(it);
+		it = _bctbx_list_next(it);
 	it->next = second;
 	second->prev = it;
 	return first;
@@ -311,7 +313,7 @@ bctbx_list_t *bctbx_list_insert_sorted(bctbx_list_t *list, void *data, bctbx_com
 bctbx_list_t *bctbx_list_insert(bctbx_list_t *list, bctbx_list_t *before, void *data) {
 	bctbx_list_t *elem;
 	if (list == NULL || before == NULL) return bctbx_list_append(list, data);
-	for (elem = list; elem != NULL; elem = bctbx_list_next(elem)) {
+	for (elem = list; elem != NULL; elem = _bctbx_list_next(elem)) {
 		if (elem == before) {
 			if (elem->prev == NULL) return bctbx_list_prepend(list, data);
 			else {
@@ -330,7 +332,7 @@ static bctbx_list_t *bctbx_list_copy_with_func(const bctbx_list_t *list, bctbx_l
 	bctbx_list_t *copy = NULL;
 	bctbx_list_t *prev = NULL;
 
-	for (const bctbx_list_t *iter = list; iter != NULL; iter = bctbx_list_next(iter)) {
+	for (const bctbx_list_t *iter = list; iter != NULL; iter = _bctbx_list_next(iter)) {
 		bctbx_list_t *item = bctbx_list_new(copyfunc ? copyfunc(iter->data) : iter->data);
 
 		if (copy == NULL) {
@@ -357,7 +359,7 @@ bctbx_list_t *bctbx_list_copy_with_data(const bctbx_list_t *list, bctbx_list_cop
 bctbx_list_t *bctbx_list_copy_reverse_with_data(const bctbx_list_t *list, bctbx_list_copy_func copyfunc) {
 	bctbx_list_t *copy = NULL;
 	const bctbx_list_t *iter;
-	for (iter = list; iter != NULL; iter = bctbx_list_next(iter)) {
+	for (iter = list; iter != NULL; iter = _bctbx_list_next(iter)) {
 		copy = bctbx_list_prepend(copy, copyfunc(iter->data));
 	}
 	return copy;

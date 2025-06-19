@@ -27,6 +27,8 @@
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
+#include "mediastreamer2/msasync.h"
+
 #ifdef VIDEO_ENABLED
 typedef enum { YUV420Planar, YUV420SemiPlanar } VideoFormat;
 
@@ -545,9 +547,65 @@ static void test_filterdesc_enable_disable(void) {
 	test_filterdesc_enable_disable_base("pcmu", "MSUlawDec", FALSE);
 	test_filterdesc_enable_disable_base("pcma", "MSAlawEnc", TRUE);
 }
+
+static bool_t do_something(void *data) {
+	int *flag = (int *)data;
+	*flag = 1;
+	return TRUE;
+}
+
+static bool_t wait_event(int *event, int timeout_ms) {
+	uint64_t start_time = bctbx_get_cur_time_ms();
+	uint64_t cur_time;
+
+	while (*event == 0) {
+		ms_usleep(10000);
+		cur_time = bctbx_get_cur_time_ms();
+		if (cur_time - start_time > (uint64_t)timeout_ms) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+static void test_worker_threads(void) {
+	int i;
+	for (i = 0; i < 1000; ++i) {
+		int something_done = 0;
+		MSWorkerThread *wt = ms_worker_thread_new("test");
+		ms_worker_thread_add_task(wt, do_something, &something_done);
+		BC_ASSERT_TRUE(wait_event(&something_done, 2000));
+		ms_worker_thread_destroy(wt, TRUE);
+		if (something_done == 0) break;
+	}
+}
+
+static int global_something_done = 0;
+
+static void *thread_posting_on_worker_thread(void *data) {
+	MSWorkerThread *wt = (MSWorkerThread *)data;
+	ms_worker_thread_add_task(wt, do_something, &global_something_done);
+	return NULL;
+}
+
+static void test_worker_threads_2(void) {
+	int i;
+	for (i = 0; i < 1000; ++i) {
+		MSWorkerThread *wt = ms_worker_thread_new("test");
+		bctbx_thread_t th;
+		global_something_done = 0;
+		bctbx_thread_create(&th, NULL, thread_posting_on_worker_thread, wt);
+		BC_ASSERT_TRUE(wait_event(&global_something_done, 2000));
+		bctbx_thread_join(th, NULL);
+		ms_worker_thread_destroy(wt, TRUE);
+	}
+}
+
 static test_t tests[] = {TEST_NO_TAG("Multiple ms_voip_init", filter_register_tester),
                          TEST_NO_TAG("Is multicast", test_is_multicast),
                          TEST_NO_TAG("FilterDesc enabling/disabling", test_filterdesc_enable_disable),
+                         TEST_NO_TAG("Worker threads", test_worker_threads),
+                         TEST_NO_TAG("Worker threads 2", test_worker_threads_2),
 #ifdef VIDEO_ENABLED
                          TEST_NO_TAG("Video processing function", test_video_processing),
                          TEST_NO_TAG("Copy ycbcrbiplanar to true yuv with downscaling",

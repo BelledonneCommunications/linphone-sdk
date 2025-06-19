@@ -3196,17 +3196,22 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 		                             initialMarieStats.number_of_LinphoneChatRoomStateTerminated + 1,
 		                             liblinphone_tester_sip_timeout));
 	}
+	/* Wait a bit to prevent a race condition at flexisip conference server side,
+	 * where the 200 OK of BYE is not yet processed.
+	 * Due to the REGISTER that comes just after, the conference server is erroneously trying to
+	 * INVITE/BYE the client.
+	 * This wait can safely be removed in the future.
+	 */
+	wait_for_list(coresList, NULL, 0, 2000);
 
 	linphone_core_refresh_registers(pauline->lc);
 	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneRegistrationOk,
 	                             initialPaulineStats.number_of_LinphoneRegistrationOk + 1,
 	                             liblinphone_tester_sip_timeout));
 	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneSubscriptionOutgoingProgress,
-	                              initialPaulineStats.number_of_LinphoneSubscriptionOutgoingProgress + 1,
-	                              liblinphone_tester_sip_timeout));
+	                              initialPaulineStats.number_of_LinphoneSubscriptionOutgoingProgress + 1, 2000));
 	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneSubscriptionError,
-	                              initialPaulineStats.number_of_LinphoneSubscriptionError + 1,
-	                              liblinphone_tester_sip_timeout));
+	                              initialPaulineStats.number_of_LinphoneSubscriptionError + 1, 2000));
 
 	for (int idx = 0; idx < nbMessages; idx++) {
 		char messageText[100];

@@ -184,33 +184,49 @@ void bc_tester_printf(int level, const char *format, ...) {
 	va_end(args);
 }
 
-static bool_t test_enabled(const test_t *test, const bctbx_list_t *tags) {
+static bool_t test_has_tag(const test_t *test, const char *tag) {
 	size_t j;
-	bool_t enabled = (tags == NULL) ? TRUE : FALSE;
 	for (j = 0; j < (sizeof(test->tags) / sizeof(test->tags[0])); j++) {
 		if (test->tags[j] == NULL) break;
-		if (strcasecmp(test->tags[j], "skip") == 0 && !run_skipped_tests) {
-			// if test has the skip tag but skipped tests are not allowsed, disable it.
-			enabled = FALSE;
-			break;
-		}
-		const bctbx_list_t *it = tags;
-		while (it != NULL) {
-			const char *tag = bctbx_list_get_data(it);
-			if (tag) {
-				if (tag[0] == '!') {
-					if (strcasecmp(test->tags[j], tag + 1) == 0) {
-						// the test has a tag that we want to exclude.
-						return FALSE;
-					}
-				} else {
-					if (strcasecmp(test->tags[j], tag) == 0) {
-						// the test has a tag that we want.
-						return TRUE;
-					}
+		if (bctbx_strcasecmp(test->tags[j], tag) == 0) return TRUE;
+	}
+	return FALSE;
+}
+
+static bool_t test_enabled(const test_t *test, const bctbx_list_t *tags) {
+	const bctbx_list_t *it;
+	bool_t enabled = FALSE;
+	bool_t has_positive_tags = FALSE;
+	if (!run_skipped_tests && test_has_tag(test, "skip")) {
+		// if test has the skip tag but skipped tests are not allowsed, disable it.
+		return FALSE;
+	}
+
+	/* Step 1: check if the test matches one of the positive (not with '!') requested tags */
+	for (it = tags; it != NULL; it = bctbx_list_next(it)) {
+		const char *tag = bctbx_list_get_data(it);
+		if (tag) {
+			if (tag[0] != '!') {
+				has_positive_tags = TRUE;
+				if (test_has_tag(test, tag)) {
+					enabled = TRUE;
+					break;
 				}
 			}
-			it = bctbx_list_next(it);
+		}
+	}
+	/* If there were no positive tags to match, the test is assumed to be enabled */
+	if (!has_positive_tags) enabled = TRUE;
+	/* Step 2: check if test has to be excluded */
+	for (it = tags; it != NULL; it = bctbx_list_next(it)) {
+		const char *tag = bctbx_list_get_data(it);
+		if (tag) {
+			if (tag[0] == '!') {
+				if (test_has_tag(test, tag + 1)) {
+					enabled = FALSE;
+					break;
+				}
+			}
 		}
 	}
 	return enabled;
