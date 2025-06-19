@@ -67,9 +67,6 @@
 [submodule "external/codec2"]
 	path = external/codec2
 	url = https://gitlab.linphone.org/BC/public/external/codec2.git
-[submodule "mscodec2"]
-	path = mscodec2
-	url = https://gitlab.linphone.org/BC/public/mscodec2.git
 [submodule "external/decaf"]
 	path = external/decaf
 	url = https://gitlab.linphone.org/BC/public/external/decaf.git
