@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2024 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -33,7 +33,7 @@ LINPHONE_BEGIN_NAMESPACE
 // -----------------------------------------------------------------------------
 
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
-                               LinphoneSubscriptionDir dir,
+                               const LinphoneSubscriptionDir dir,
                                const string &name,
                                LinphonePrivate::SalSubscribeOp *op)
     : Event(core) {
@@ -48,10 +48,12 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
 }
 
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
-                               LinphoneSubscriptionDir dir,
+                               const LinphoneSubscriptionDir dir,
                                const string &name,
-                               int expires)
+                               int expires,
+                               const LinphonePrivacyMask privacy)
     : EventSubscribe(core, dir, name, new SalSubscribeOp(core->getCCore()->sal.get())) {
+	mOp->setPrivacy((SalPrivacyMask)privacy);
 	mExpires = expires;
 }
 
@@ -66,8 +68,9 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
 
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
                                const std::shared_ptr<const Address> &resource,
-                               const string &event)
-    : EventSubscribe(core, LinphoneSubscriptionIncoming, event, -1) {
+                               const string &event,
+                               const LinphonePrivacyMask privacy)
+    : EventSubscribe(core, LinphoneSubscriptionIncoming, event, -1, privacy) {
 	linphone_configure_op(core->getCCore(), mOp, resource->toC(), nullptr, TRUE);
 	setState(LinphoneSubscriptionIncomingReceived);
 	mOp->setEvent(event);
@@ -77,8 +80,9 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
                                const std::shared_ptr<const Address> &resource,
                                const string &event,
-                               int expires)
-    : EventSubscribe(core, LinphoneSubscriptionOutgoing, event, expires) {
+                               int expires,
+                               const LinphonePrivacyMask privacy)
+    : EventSubscribe(core, LinphoneSubscriptionOutgoing, event, expires, privacy) {
 	linphone_configure_op(core->getCCore(), mOp, resource->toC(), nullptr, TRUE);
 	mOp->setManualRefresherMode(
 	    !linphone_config_get_int(core->getCCore()->config, "sip", "refresh_generic_subscribe", 1));
@@ -88,9 +92,11 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
                                const std::shared_ptr<const Address> &resource,
                                const std::shared_ptr<Account> &account,
                                const string &event,
-                               int expires)
-    : EventSubscribe(core, LinphoneSubscriptionOutgoing, event, expires) {
-	linphone_configure_op_with_account(core->getCCore(), mOp, resource->toC(), nullptr, TRUE, account->toC());
+                               int expires,
+                               const LinphonePrivacyMask privacy)
+    : EventSubscribe(core, LinphoneSubscriptionOutgoing, event, expires, privacy) {
+	linphone_configure_op_with_account(core->getCCore(), mOp, resource->toC(), nullptr, TRUE,
+	                                   account ? account->toC() : nullptr);
 	mOp->setManualRefresherMode(
 	    !linphone_config_get_int(core->getCCore()->config, "sip", "refresh_generic_subscribe", 1));
 }

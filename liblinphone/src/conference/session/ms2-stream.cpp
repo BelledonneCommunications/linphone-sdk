@@ -315,7 +315,7 @@ void MS2Stream::fillLocalMediaDescription(OfferAnswerContext &ctx) {
 		confInfo = mainDb->getConferenceInfoFromURI(conferenceAddress);
 	}
 #endif // HAVE_DB_STORAGE
-	if ((address && address->hasParam(Conference::IsFocusParameter)) || confInfo) {
+	if ((address && address->hasParam(Conference::sIsFocusParameter)) || confInfo) {
 		localDesc.cfgs[localDesc.getChosenConfigurationIndex()].conference_ssrc = rtp_ssrc;
 	}
 

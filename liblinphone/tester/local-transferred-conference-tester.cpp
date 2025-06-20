@@ -168,10 +168,10 @@ void create_transfer_conference_base(time_t start_time,
 			ms_message("%s is entering conference %s", linphone_core_get_identity(mgr->lc), conference_address_str);
 			linphone_core_invite_address_with_params_2(mgr->lc, confAddr, new_params, NULL, nullptr);
 			linphone_call_params_unref(new_params);
-			LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-			BC_ASSERT_PTR_NOT_NULL(pcall);
-			if (pcall) {
-				LinphoneCallLog *call_log = linphone_call_get_call_log(pcall);
+			LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+			BC_ASSERT_PTR_NOT_NULL(participant_call);
+			if (participant_call) {
+				LinphoneCallLog *call_log = linphone_call_get_call_log(participant_call);
 				BC_ASSERT_TRUE(linphone_call_log_was_conference(call_log));
 			}
 		}
@@ -204,12 +204,13 @@ void create_transfer_conference_base(time_t start_time,
 			BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_NotifyFullStateReceived, 1,
 			                             liblinphone_tester_sip_timeout));
 
-			LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-			BC_ASSERT_PTR_NOT_NULL(pcall);
-			if (pcall) {
-				const LinphoneCallParams *call_cparams = linphone_call_get_current_params(pcall);
-				const LinphoneMediaEncryption pcall_enc = linphone_call_params_get_media_encryption(call_cparams);
-				BC_ASSERT_EQUAL(pcall_enc, encryption[encryptionIndex], int, "%d");
+			LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+			BC_ASSERT_PTR_NOT_NULL(participant_call);
+			if (participant_call) {
+				const LinphoneCallParams *call_cparams = linphone_call_get_current_params(participant_call);
+				const LinphoneMediaEncryption participant_call_enc =
+				    linphone_call_params_get_media_encryption(call_cparams);
+				BC_ASSERT_EQUAL(participant_call_enc, encryption[encryptionIndex], int, "%d");
 			}
 			LinphoneCall *ccall = linphone_core_get_call_by_remote_address2(focus.getLc(), mgr->identity);
 			BC_ASSERT_PTR_NOT_NULL(ccall);
@@ -305,16 +306,17 @@ void create_transfer_conference_base(time_t start_time,
 					size_t no_streams_video = video_transfer ? 3 : 0;
 					size_t no_streams_text = 0;
 
-					LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-					BC_ASSERT_PTR_NOT_NULL(pcall);
-					if (pcall) {
-						no_streams_audio = compute_no_audio_streams(pcall, pconference);
-						no_streams_video = compute_no_video_streams(video_transfer, pcall, pconference);
-						_linphone_call_check_max_nb_streams(pcall, no_streams_audio, no_streams_video, no_streams_text);
-						_linphone_call_check_nb_active_streams(pcall, no_streams_audio, no_streams_video,
+					LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+					BC_ASSERT_PTR_NOT_NULL(participant_call);
+					if (participant_call) {
+						no_streams_audio = compute_no_audio_streams(participant_call, pconference);
+						no_streams_video = compute_no_video_streams(video_transfer, participant_call, pconference);
+						_linphone_call_check_max_nb_streams(participant_call, no_streams_audio, no_streams_video,
+						                                    no_streams_text);
+						_linphone_call_check_nb_active_streams(participant_call, no_streams_audio, no_streams_video,
 						                                       no_streams_text);
 						if (security_level == LinphoneConferenceSecurityLevelEndToEnd) {
-							auto *callStats = linphone_call_get_stats(pcall, LinphoneStreamTypeAudio);
+							auto *callStats = linphone_call_get_stats(participant_call, LinphoneStreamTypeAudio);
 							auto *srtpInfo = linphone_call_stats_get_srtp_info(
 							    callStats, TRUE); // TRUE to get inner encryption stats
 							BC_ASSERT_TRUE(srtpInfo->send_source == MSSrtpKeySourceEKT);

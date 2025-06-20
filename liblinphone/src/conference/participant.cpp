@@ -144,7 +144,7 @@ std::shared_ptr<ParticipantDevice> Participant::addDevice(const std::shared_ptr<
 		         << *this;
 	}
 	device = ParticipantDevice::create(getSharedFromThis(), session, name);
-	devices.push_back(device);
+	mDevices.push_back(device);
 	return device;
 }
 
@@ -166,20 +166,20 @@ std::shared_ptr<ParticipantDevice> Participant::addDevice(const std::shared_ptr<
 		}
 	}
 	device = ParticipantDevice::create(getSharedFromThis(), gruu, name);
-	devices.push_back(device);
+	mDevices.push_back(device);
 	return device;
 }
 
 void Participant::clearDevices() {
-	devices.clear();
+	mDevices.clear();
 }
 
 shared_ptr<ParticipantDevice>
 Participant::findDevice(const LinphoneStreamType type, const std::string &label, const bool logFailure) const {
-	for (const auto &device : devices) {
+	for (const auto &device : mDevices) {
 		const auto &deviceLabel = device->getStreamLabel(type);
 		const auto &thumbnailLabel = device->getThumbnailStreamLabel();
-		if (!label.empty() && ((!deviceLabel.empty() && deviceLabel.compare(label) == 0) ||
+		if (!label.empty() && ((!deviceLabel.empty() && (deviceLabel == label)) ||
 		                       ((type == LinphoneStreamTypeVideo) && (thumbnailLabel == label)))) {
 			return device;
 		}
@@ -191,7 +191,7 @@ Participant::findDevice(const LinphoneStreamType type, const std::string &label,
 }
 
 shared_ptr<ParticipantDevice> Participant::findDeviceByCallId(const std::string &callId, const bool logFailure) const {
-	for (const auto &device : devices) {
+	for (const auto &device : mDevices) {
 		if (device->getCallId() == callId) return device;
 	}
 	if (logFailure) {
@@ -201,7 +201,7 @@ shared_ptr<ParticipantDevice> Participant::findDeviceByCallId(const std::string 
 }
 
 shared_ptr<ParticipantDevice> Participant::findDeviceBySsrc(uint32_t ssrc, LinphoneStreamType type) const {
-	for (const auto &device : devices) {
+	for (const auto &device : mDevices) {
 		if (device->getSsrc(type) == ssrc) return device;
 	}
 	return nullptr;
@@ -209,9 +209,9 @@ shared_ptr<ParticipantDevice> Participant::findDeviceBySsrc(uint32_t ssrc, Linph
 
 shared_ptr<ParticipantDevice> Participant::findDevice(const std::shared_ptr<const Address> &gruu,
                                                       const bool logFailure) const {
-	const auto &it = std::find_if(devices.cbegin(), devices.cend(),
-	                              [&gruu](const auto &device) { return device->getAddress()->uriEqual(*gruu); });
-	if (it != devices.cend()) {
+	const auto &it = std::find_if(mDevices.cbegin(), mDevices.cend(),
+	                              [&gruu](const auto &device) { return device->isSameAddress(gruu); });
+	if (it != mDevices.cend()) {
 		return *it;
 	}
 
@@ -223,10 +223,10 @@ shared_ptr<ParticipantDevice> Participant::findDevice(const std::shared_ptr<cons
 
 shared_ptr<ParticipantDevice> Participant::findDevice(const shared_ptr<const CallSession> &session,
                                                       const bool logFailure) const {
-	const auto &it = std::find_if(devices.cbegin(), devices.cend(),
+	const auto &it = std::find_if(mDevices.cbegin(), mDevices.cend(),
 	                              [&session](const auto &device) { return (device->getSession() == session); });
 
-	if (it != devices.cend()) {
+	if (it != mDevices.cend()) {
 		return *it;
 	}
 
@@ -237,20 +237,20 @@ shared_ptr<ParticipantDevice> Participant::findDevice(const shared_ptr<const Cal
 }
 
 const list<shared_ptr<ParticipantDevice>> &Participant::getDevices() const {
-	return devices;
+	return mDevices;
 }
 
 void Participant::removeDevice(const shared_ptr<const CallSession> &session) {
-	devices.erase(std::remove_if(devices.begin(), devices.end(),
-	                             [&session](const auto &device) { return (device->getSession() == session); }),
-	              devices.end());
+	mDevices.erase(std::remove_if(mDevices.begin(), mDevices.end(),
+	                              [&session](const auto &device) { return (device->getSession() == session); }),
+	               mDevices.end());
 }
 
 void Participant::removeDevice(const std::shared_ptr<Address> &gruu) {
-	devices.erase(
-	    std::remove_if(devices.begin(), devices.end(),
+	mDevices.erase(
+	    std::remove_if(mDevices.begin(), mDevices.end(),
 	                   [&gruu](const auto &device) { return (device->getAddress()->getUri() == gruu->getUri()); }),
-	    devices.end());
+	    mDevices.end());
 }
 
 // -----------------------------------------------------------------------------

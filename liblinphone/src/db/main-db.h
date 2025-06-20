@@ -60,6 +60,8 @@ class LINPHONE_INTERNAL_PUBLIC MainDb : public AbstractDb, public CoreAccessor {
 	friend class EventLog;
 
 public:
+	static const std::string sUnknownAddress;
+
 	enum Filter {
 		NoFilter = 0x0,
 		ConferenceCallFilter = 1 << 0,
@@ -329,6 +331,8 @@ private:
 	using ChatRoomWeakCompareMap =
 	    std::unordered_map<ConferenceId, ChatRoomContext, ConferenceId::WeakHash, ConferenceId::WeakEqual>;
 	void initCleanup();
+	static Address processConferenceAddress(const std::shared_ptr<Address> &uri);
+	void deleteConferenceInfo(const Address address);
 	bool addChatroomToList(ChatRoomWeakCompareMap &chatRoomsMap,
 	                       const std::shared_ptr<AbstractChatRoom> &chatRoom,
 	                       long long id,

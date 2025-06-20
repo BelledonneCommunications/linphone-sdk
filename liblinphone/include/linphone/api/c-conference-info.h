@@ -67,6 +67,14 @@ LINPHONE_PUBLIC const LinphoneParticipantInfo *
 linphone_conference_info_get_organizer_info(const LinphoneConferenceInfo *conference_info);
 
 /**
+ * Sets the organizer information of the conference.
+ * @param conference_info The #LinphoneConferenceInfo object. @notnil
+ * @param organizer The #LinphoneParticipantInfo of the conference's organizer. @maybenil
+ */
+LINPHONE_PUBLIC void linphone_conference_info_set_organizer_info(LinphoneConferenceInfo *conference_info,
+                                                                 const LinphoneParticipantInfo *organizer);
+
+/**
  * Retrieve the organizer of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @return The #LinphoneAddress of the conference's organizer. @maybenil
@@ -75,7 +83,7 @@ LINPHONE_PUBLIC const LinphoneAddress *
 linphone_conference_info_get_organizer(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the organizer of the conference.
+ * Sets the organizer of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param organizer The #LinphoneAddress of the conference's organizer. @maybenil
  */
@@ -100,7 +108,7 @@ LINPHONE_PUBLIC const bctbx_list_t *
 linphone_conference_info_get_participant_infos(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the list of participants.
+ * Sets the list of participants.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param participants The list of participants to set. \bctbx_list{LinphoneAddress} @maybenil
  * @deprecated 24/08/2023 use linphone_conference_info_set_participant_infos instead
@@ -109,7 +117,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void
 linphone_conference_info_set_participants(LinphoneConferenceInfo *conference_info, const bctbx_list_t *participants);
 
 /**
- * Set the list of participants.
+ * Sets the list of participants.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param participant_infos The list of participant informations to set. \bctbx_list{LinphoneParticipantInfo} @maybenil
  */
@@ -182,7 +190,7 @@ LINPHONE_PUBLIC const LinphoneAddress *linphone_conference_info_get_uri(const Li
 LINPHONE_PUBLIC time_t linphone_conference_info_get_date_time(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the date and time of the conference.
+ * Sets the date and time of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param datetime The date and time of the conference.
  */
@@ -196,7 +204,7 @@ LINPHONE_PUBLIC void linphone_conference_info_set_date_time(LinphoneConferenceIn
 LINPHONE_PUBLIC unsigned int linphone_conference_info_get_duration(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the duration (in minutes) of the conference.
+ * Sets the duration (in minutes) of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param duration The duration of the conference.
  */
@@ -211,7 +219,7 @@ LINPHONE_PUBLIC void linphone_conference_info_set_duration(LinphoneConferenceInf
 LINPHONE_PUBLIC const char *linphone_conference_info_get_subject(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the subject of the conference.
+ * Sets the subject of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param subject The subject of the conference. @maybenil
  */
@@ -225,7 +233,7 @@ LINPHONE_PUBLIC void linphone_conference_info_set_subject(LinphoneConferenceInfo
 LINPHONE_PUBLIC const char *linphone_conference_info_get_subject_utf8(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the subject of the conference.
+ * Sets the subject of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param subject The subject of the conference. @maybenil
  */
@@ -233,7 +241,7 @@ LINPHONE_PUBLIC void linphone_conference_info_set_subject_utf8(LinphoneConferenc
                                                                const char *subject);
 
 /**
- * Set the CCMP URI of the conference.
+ * Sets the CCMP URI of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param uri The URI of the conference in the CCMP server. @maybenil
  */
@@ -254,7 +262,7 @@ LINPHONE_PUBLIC const char *linphone_conference_info_get_ccmp_uri(const Linphone
 LINPHONE_PUBLIC const char *linphone_conference_info_get_description(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the description of the conference.
+ * Sets the description of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param description The description of the conference. @maybenil
  */
@@ -270,7 +278,7 @@ LINPHONE_PUBLIC const char *
 linphone_conference_info_get_description_utf8(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the description of the conference.
+ * Sets the description of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param description The description of the conference. @maybenil
  */
@@ -286,7 +294,7 @@ LINPHONE_PUBLIC LinphoneConferenceSecurityLevel
 linphone_conference_info_get_security_level(const LinphoneConferenceInfo *conference_info);
 
 /**
- * Set the desired security level of the conference.
+ * Sets the desired security level of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
  * @param security_level The desired security level of the conference.
  */
@@ -294,7 +302,7 @@ LINPHONE_PUBLIC void linphone_conference_info_set_security_level(LinphoneConfere
                                                                  LinphoneConferenceSecurityLevel security_level);
 
 /**
- * Set the capability of the conference.
+ * Sets the capability of the conference.
  * The capability information represents the capability for the conference linked to the #ConferenceInfo to handle a
  * given stream type (audio, video or text).
  * @param conference_info A #LinphoneConferenceInfo object @notnil

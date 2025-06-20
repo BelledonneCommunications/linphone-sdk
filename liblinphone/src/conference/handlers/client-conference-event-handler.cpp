@@ -88,11 +88,11 @@ void ClientConferenceEventHandler::setManagedByListEventhandler(bool managed) {
 }
 
 void ClientConferenceEventHandler::setInitialSubscriptionUnderWayFlag(bool on) {
-	initialSubscriptionUnderWay = on;
+	mInitialSubscriptionUnderWay = on;
 }
 
 bool ClientConferenceEventHandler::getInitialSubscriptionUnderWayFlag() const {
-	return initialSubscriptionUnderWay;
+	return mInitialSubscriptionUnderWay;
 }
 
 void ClientConferenceEventHandler::fillParticipantAttributes(
@@ -342,28 +342,43 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 		auto &users = confInfo->getUsers();
 		if (!users.present()) return;
 
-		auto account = conference->getAccount();
-		auto accountContactAddress = account ? account->getContactAddress() : nullptr;
-
 		// 4. Notify changes on users.
 		for (auto &user : users->getUser()) {
 			std::shared_ptr<Address> address = core->interpretUrl(user.getEntity().get(), false);
-			StateType state = user.getState();
+			StateType userState = user.getState();
 
 			bool isMe = conference->isMe(address);
 
 			shared_ptr<Participant> participant = nullptr;
-			if (isMe) participant = conference->getMe();
-			else participant = conference->findParticipant(address);
+			if (!isMe) {
+				// Try to look for an endpoint whose call-ID belongs to a call held by the core
+				for (const auto &endpoint : user.getEndpoint()) {
+					if (endpoint.getCallInfo().present()) {
+						const auto &callInfo = endpoint.getCallInfo().get();
+						if (callInfo.getSip().present()) {
+							const auto &sip = callInfo.getSip().get();
+							const auto &callId = sip.getCallId();
+							isMe |= (getCore()->getCallByCallId(callId) != nullptr);
+						}
+					}
+				}
+			}
+			if (isMe) {
+				participant = conference->getMe();
+				participant->setAddress(address);
+			} else {
+				participant = conference->findParticipant(address);
+			}
 
 			const auto &pIt = std::find_if(
 			    oldParticipants.cbegin(), oldParticipants.cend(),
 			    [&address](const auto &currentParticipant) { return (*address == *currentParticipant->getAddress()); });
 
 			auto &roles = user.getRoles();
-			if (state == StateType::deleted) {
+			if (userState == StateType::deleted) {
 				if (isMe) {
-					lInfo() << "Participant " << *address << " requested to be deleted is me.";
+					lInfo() << "Participant [" << *address << "] requested to be deleted from " << *conference
+					        << " is me.";
 					continue;
 				} else if (participant) {
 					conference->mParticipants.remove(participant);
@@ -373,26 +388,25 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						conference->notifyParticipantRemoved(creationTime, isFullState, participant);
 
 						// TODO FIXME: Remove later when devices for friends will be notified through presence
-						lInfo() << "[Friend] Removing device with address [" << address->asStringUriOnly() << "]";
+						lInfo() << "[Friend] Removing device with address [" << *address << "]";
 						core->getPrivate()->mainDb->removeDevice(address);
 					}
 
 					continue;
 				} else {
-					lWarning() << "Participant " << *address << " removed but not in the list of participants!";
+					lWarning() << "Participant [" << *address << "] removed from " << *conference
+					           << " but not in the list of participants!";
 				}
-			} else if (state == StateType::full) {
+			} else if (userState == StateType::full) {
 				if (isMe) {
-					lInfo() << "Participant " << *address << " requested to be added is me.";
-					fillParticipantAttributes(participant, roles, state, isFullState, false);
+					lInfo() << "Participant [" << *address << "] requested to be added to " << *conference << " is me.";
 				} else if (participant) {
-					lWarning() << "Participant " << *participant << " added but already in the list of participants!";
+					lWarning() << *participant << " added but already in the list of participants of " << *conference
+					           << "!";
 				} else {
 					participant = Participant::create(conference, address);
-					fillParticipantAttributes(participant, roles, state, isFullState, false);
-
 					conference->mParticipants.push_back(participant);
-					lInfo() << "Participant " << *participant << " is successfully added - " << *conference << " has "
+					lInfo() << *participant << " is successfully added - " << *conference << " has "
 					        << conference->getParticipantCount() << " participants";
 					if (!isFullState || (!oldParticipants.empty() && (pIt == oldParticipants.cend()) && !isMe)) {
 						conference->notifyParticipantAdded(creationTime, isFullState, participant);
@@ -407,22 +421,21 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 			}
 
 			if (!participant) {
-				lDebug() << "Participant " << *address
-				         << " is not in the list of participants however it is trying to change the list of devices or "
-				            "change role! Resubscribing to "
+				lDebug() << "Participant [" << *address
+				         << "] is not in the list of participants however its attributes or those of its participant "
+				            "device(s) have changed! Resubscribing to "
 				         << *conference << " to clear things up.";
 				requestFullState();
 			} else {
-
-				fillParticipantAttributes(participant, roles, state, isFullState, true);
+				fillParticipantAttributes(participant, roles, userState, isFullState, true);
 				for (const auto &endpoint : user.getEndpoint()) {
 					if (!endpoint.getEntity().present()) continue;
 
 					std::shared_ptr<Address> gruu = Address::create(endpoint.getEntity().get());
-					StateType state = endpoint.getState();
+					StateType endpointState = endpoint.getState();
 
 					shared_ptr<ParticipantDevice> device = nullptr;
-					if (state == StateType::full) {
+					if (endpointState == StateType::full) {
 						device = participant->addDevice(gruu);
 					} else {
 						if (endpoint.getCallInfo().present()) {
@@ -442,11 +455,8 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 
 					const auto previousDeviceState =
 					    device ? device->getState() : ParticipantDevice::State::ScheduledForJoining;
-
-					if (state == StateType::deleted) {
-
+					if (endpointState == StateType::deleted) {
 						participant->removeDevice(gruu);
-
 						if (device) {
 							if (endpoint.getDisconnectionInfo().present()) {
 								const auto &disconnectionInfo = endpoint.getDisconnectionInfo().get();
@@ -517,7 +527,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 							} else if (mediaType.compare("text") == 0) {
 								streamType = LinphoneStreamTypeText;
 							} else {
-								lError() << "Unrecognized media type " << mediaType;
+								lError() << "NOTIFY for " << *conference << ": Unrecognized media type " << mediaType;
 							}
 
 							std::string content;
@@ -570,7 +580,8 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						if (!thumbnailTagFound) {
 							lInfo()
 							    << "It seems that we are dealing with a legacy conference server that doesn't provide "
-							       "device's thumbnail informations.";
+							       "device's thumbnail informations for "
+							    << *conference << ".";
 							const auto &remoteAddress = mainSession ? mainSession->getRemoteAddress() : nullptr;
 							bool thumbnailEnabled = false;
 							if (isMe && remoteAddress && remoteAddress->uriEqual(*device->getAddress())) {
@@ -593,7 +604,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						}
 						conference->setCachedScreenSharingDevice();
 						const auto screenSharingChanged = device->enableScreenSharing(isScreenSharing);
-						if (!isFullState && (state != StateType::full) && screenSharingChanged) {
+						if (!isFullState && (endpointState != StateType::full) && screenSharingChanged) {
 							conference->notifyParticipantDeviceScreenSharingChanged(creationTime, isFullState,
 							                                                        participant, device);
 						}
@@ -601,7 +612,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						auto mediaAvailabilityChanged = device->updateStreamAvailabilities();
 						// Do not notify availability changed during full states and participant addition because it is
 						// already done by the listener method onFullStateReceived
-						if (!isFullState && (state != StateType::full) &&
+						if (!isFullState && (endpointState != StateType::full) &&
 						    (previousDeviceState != ParticipantDevice::State::ScheduledForJoining) &&
 						    (previousDeviceState != ParticipantDevice::State::Joining) &&
 						    (previousDeviceState != ParticipantDevice::State::Alerting)) {
@@ -700,18 +711,20 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 
 						// For chat rooms, the session is handled by the participant
 						if (isMe && mainSession && conference->supportsMedia()) {
-							if (accountContactAddress) {
-								if (*gruu == *accountContactAddress) {
+							const auto contactAddress = mainSession->getContactAddress();
+							if (contactAddress) {
+								if (device->isSameAddress(contactAddress)) {
 									device->setSession(mainSession);
 								}
 							} else {
-								lError() << "The account " << account << " linked to conference " << *conference
-								         << " has no contact address, therefore the core is not able to assign the "
-								            "main session to any participant device";
+								lError() << "Unable to retrive the contact address of " << *mainSession
+								         << " linked to conference " << *conference
+								         << ", hence the core is not able to assign the main session to any "
+								            "participant device";
 							}
 						}
 
-						if (state == StateType::full) {
+						if (endpointState == StateType::full) {
 							lInfo() << "Participant device " << *gruu << " has been successfully added";
 							bool sendNotify = (!oldParticipants.empty() && (pIt == oldParticipants.cend())) && !isMe;
 							if (pIt != oldParticipants.cend()) {
@@ -731,11 +744,11 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 								}
 							}
 						} else {
-							lInfo() << "Participant device " << *gruu << " has been successfully updated";
+							lInfo() << *device << " has been successfully updated in " << *conference;
 						}
 					} else {
-						lDebug() << "Unable to update media direction of device " << *gruu
-						         << " because it has not been found in " << *conference
+						lDebug() << "Unable to update media direction of device [" << *gruu
+						         << "] because it has not been found in " << *conference
 						         << ". Resubscribing to it to clear things up.";
 						requestFullState();
 					}
@@ -841,30 +854,51 @@ bool ClientConferenceEventHandler::subscribe() {
 
 	auto conference = getConference();
 	if (!conference) return false; // Conference has not been set
+
 	auto account = conference->getAccount();
-	if (!account ||
-	    ((account->getState() != LinphoneRegistrationRefreshing) && (account->getState() != LinphoneRegistrationOk))) {
-		return false;
+	if (account) {
+		auto accountState = account->getState();
+		bool isAnonymousParticipant =
+		    Conference::isAnonymousParticipant(account->getAccountParams()->getIdentityAddress());
+		if (!isAnonymousParticipant && (accountState != LinphoneRegistrationRefreshing) &&
+		    (accountState != LinphoneRegistrationOk)) {
+			lError() << "Unable to subscribe to " << *conference << " because " << *account
+			         << " has not registered yet";
+			return false;
+		}
 	}
 
 	const auto &subscribeToHeader = conference->getConferenceAddress();
 	if (!subscribeToHeader) return false; // Unknown peer address
+
 	try {
+		const auto &mainSession = conference->getMainSession();
+		LinphonePrivacyMask privacy = LinphonePrivacyDefault;
+		if (mainSession) {
+			privacy = mainSession->getParams()->getPrivacy();
+			const auto &callContactAddress = mainSession->getContactAddress();
+			if (callContactAddress && (!account || !account->getAccountParams()->getRegisterEnabled())) {
+				// If no account is associated to a conference or it has not reigstered yet, then send the subscribe
+				// using the same transport as the INVITE session
+				subscribeToHeader->setTransport(callContactAddress->getTransport());
+			}
+		}
 		ev = dynamic_pointer_cast<EventSubscribe>(
-		    (new EventSubscribe(getCore(), subscribeToHeader, account, "conference", 600))->toSharedPtr());
+		    (new EventSubscribe(getCore(), subscribeToHeader, account, "conference", 600, privacy))->toSharedPtr());
 		shared_ptr<EventCbs> cbs = EventCbs::create();
 		cbs->setUserData(this);
 		cbs->subscribeStateChangedCb = subscribeStateChangedCb;
 		ev->addCallbacks(cbs);
 		ev->getOp()->setFromAddress(localAddress->getImpl());
-		setInitialSubscriptionUnderWayFlag(true);
 		const string &lastNotifyStr = Utils::toString(getLastNotify());
 		ev->addCustomHeader("Last-Notify-Version", lastNotifyStr.c_str());
 		ev->setInternal(true);
 		ev->setProperty("event-handler-private", this);
-		lInfo() << *localAddress << " is subscribing to chat room or conference: " << *subscribeToHeader
-		        << " with last notify: " << lastNotifyStr;
-		return (ev->send(nullptr) == 0);
+		lInfo() << "ClientConferenceEventHandler [" << this << "]: " << *localAddress << " is subscribing to "
+		        << *conference << " with last notify: " << lastNotifyStr;
+		auto subscribeOk = (ev->send(nullptr) == 0);
+		setInitialSubscriptionUnderWayFlag(subscribeOk);
+		return subscribeOk;
 	} catch (const bad_weak_ptr &) {
 		lError() << "ClientConferenceEventHandler [" << this << "]: Unable to send subscribe to " << *conference
 		         << " as the core has already been destroyed";

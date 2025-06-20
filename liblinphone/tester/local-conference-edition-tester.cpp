@@ -747,20 +747,20 @@ static void edit_simple_conference_base(bool_t from_organizer,
 						size_t no_active_streams_video = 0;
 						size_t no_streams_text = 0;
 
-						LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-						BC_ASSERT_PTR_NOT_NULL(pcall);
-						if (pcall) {
-							no_streams_audio = compute_no_audio_streams(pcall, pconference);
-							no_active_streams_video = compute_no_video_streams(enabled, pcall, pconference);
-							_linphone_call_check_max_nb_streams(pcall, no_streams_audio, no_streams_video,
+						LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+						BC_ASSERT_PTR_NOT_NULL(participant_call);
+						if (participant_call) {
+							no_streams_audio = compute_no_audio_streams(participant_call, pconference);
+							no_active_streams_video = compute_no_video_streams(enabled, participant_call, pconference);
+							_linphone_call_check_max_nb_streams(participant_call, no_streams_audio, no_streams_video,
 							                                    no_streams_text);
-							_linphone_call_check_nb_active_streams(pcall, no_streams_audio, no_active_streams_video,
-							                                       no_streams_text);
-							const LinphoneCallParams *call_lparams = linphone_call_get_params(pcall);
+							_linphone_call_check_nb_active_streams(participant_call, no_streams_audio,
+							                                       no_active_streams_video, no_streams_text);
+							const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
 							BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), enabled, int, "%0d");
-							const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(pcall);
+							const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(participant_call);
 							BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_rparams), enabled, int, "%0d");
-							const LinphoneCallParams *call_cparams = linphone_call_get_current_params(pcall);
+							const LinphoneCallParams *call_cparams = linphone_call_get_current_params(participant_call);
 							BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_cparams), enabled, int, "%0d");
 						}
 						LinphoneCall *ccall = linphone_core_get_call_by_remote_address2(focus.getLc(), mgr->identity);
@@ -1958,10 +1958,10 @@ static void conference_cancelled_through_edit_base(bool_t server_restart, bool_t
 			linphone_call_params_set_video_direction(new_params, LinphoneMediaDirectionSendRecv);
 			linphone_core_invite_address_with_params_2(pauline.getLc(), confAddr, new_params, NULL, nullptr);
 			linphone_call_params_unref(new_params);
-			LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(pauline.getLc(), confAddr);
-			BC_ASSERT_PTR_NOT_NULL(pcall);
-			if (pcall) {
-				LinphoneCallLog *call_log = linphone_call_get_call_log(pcall);
+			LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(pauline.getLc(), confAddr);
+			BC_ASSERT_PTR_NOT_NULL(participant_call);
+			if (participant_call) {
+				LinphoneCallLog *call_log = linphone_call_get_call_log(participant_call);
 				BC_ASSERT_TRUE(linphone_call_log_was_conference(call_log));
 			}
 
@@ -2037,8 +2037,8 @@ static void conference_cancelled_through_edit_base(bool_t server_restart, bool_t
 			}
 
 			ms_message("%s exits conference %s", linphone_core_get_identity(pauline.getLc()), conference_address_str);
-			if (pcall) {
-				linphone_call_terminate(pcall);
+			if (participant_call) {
+				linphone_call_terminate(participant_call);
 				BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallEnd,
 				                             pauline_stat.number_of_LinphoneCallEnd + 1,
 				                             liblinphone_tester_sip_timeout));

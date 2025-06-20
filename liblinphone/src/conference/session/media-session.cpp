@@ -405,7 +405,7 @@ void MediaSessionPrivate::accepted() {
 					const auto contactAddress = q->getContactAddress();
 					const auto &confId = getConferenceId();
 					if (!confId.empty() && isInConference() &&
-					    !contactAddress->hasParam(Conference::IsFocusParameter)) {
+					    !contactAddress->hasParam(Conference::sIsFocusParameter)) {
 						// If the call was added to a conference after the last INVITE session was started, the reINVITE
 						// to enter conference must be sent only if capability negotiation reINVITE was not sent
 						if (!capabilityNegotiationReInviteSent) {
@@ -702,7 +702,7 @@ bool MediaSessionPrivate::isPausedByRemoteAllowed() {
 	// allowed to paused a call unilaterally. This assumption also aims at simplifying the management of the
 	// PausedByRemote state as it is simply triggered by SIP messages without really knowing the will of the other party
 	return !((conference && !isInConference() && remoteContactAddress &&
-	          remoteContactAddress->hasParam(Conference::IsFocusParameter)) ||
+	          remoteContactAddress->hasParam(Conference::sIsFocusParameter)) ||
 	         updatingConference ||
 	         ((prevState != CallSession::State::PausedByRemote) && (state == CallSession::State::Updating)));
 }
@@ -868,7 +868,7 @@ void MediaSessionPrivate::updating(bool isUpdate) {
 		// If the media session is in a conference, the remote media description is empty and audio video capabilities
 		// are disabled, then just call end the update
 		if ((((!!linphone_core_conference_server_enabled(q->getCore()->getCCore())) && conference) ||
-		     (remoteContactAddress && remoteContactAddress->hasParam(Conference::IsFocusParameter))) &&
+		     (remoteContactAddress && remoteContactAddress->hasParam(Conference::sIsFocusParameter))) &&
 		    !audioEnabled && !videoEnabled) {
 			updated(isUpdate);
 		} else {
@@ -1168,7 +1168,7 @@ void MediaSessionPrivate::initializeParamsAccordingToIncomingCallParams() {
 		 * policy */
 		setCompatibleIncomingCallParams(md);
 	} else if (((!!linphone_core_conference_server_enabled(q->getCore()->getCCore())) && conference) ||
-	           (remoteContactAddress && remoteContactAddress->hasParam(Conference::IsFocusParameter))) {
+	           (remoteContactAddress && remoteContactAddress->hasParam(Conference::sIsFocusParameter))) {
 		// We enter here when creating a group chat only conference
 		lInfo() << "CallSession [" << q
 		        << "]: disabling audio and video in our call params because the remote party didn't send a valid SDP";
@@ -1943,7 +1943,7 @@ void MediaSessionPrivate::fillLocalStreamDescription(SalStreamDescription &strea
 
 		const auto conference = q->getCore()->findConference(q->getSharedFromThis(), false);
 		if (conference || (q->getRemoteContactAddress() != nullptr &&
-		                   q->getRemoteContactAddress()->hasParam(Conference::IsFocusParameter))) {
+		                   q->getRemoteContactAddress()->hasParam(Conference::sIsFocusParameter))) {
 			if (type == SalAudio) {
 				bool rtpVolumesAllowed = !!linphone_config_get_int(linphone_core_get_config(q->getCore()->getCCore()),
 				                                                   "rtp", "use_volumes", 1);
@@ -2401,7 +2401,7 @@ void MediaSessionPrivate::addConferenceParticipantStreams(std::shared_ptr<SalMed
 					}
 				}
 			} else if (isConferenceServer ||
-			           (remoteContactAddress && remoteContactAddress->hasParam(Conference::IsFocusParameter))) {
+			           (remoteContactAddress && remoteContactAddress->hasParam(Conference::sIsFocusParameter))) {
 				// The conference server is a passive element, therefore it should always look at the client offer to
 				// know the participant stream order.
 				// Clients may also enter this if branch if they receive an INVITE by a conference server.
@@ -2750,7 +2750,7 @@ void MediaSessionPrivate::makeLocalMediaDescription(bool localIsOfferer,
 		if (conference) {
 			if (participantDevice &&
 			    (isInLocalConference || (!isInLocalConference && remoteContactAddress &&
-			                             remoteContactAddress->hasParam(Conference::IsFocusParameter)))) {
+			                             remoteContactAddress->hasParam(Conference::sIsFocusParameter)))) {
 				audioStream.setLabel(participantDevice->getStreamLabel(LinphoneStreamTypeAudio));
 			}
 		}
@@ -2835,7 +2835,7 @@ void MediaSessionPrivate::makeLocalMediaDescription(bool localIsOfferer,
 		if (conference && videoStream.enabled()) {
 			if (participantDevice &&
 			    (isInLocalConference || (!isInLocalConference && remoteContactAddress &&
-			                             remoteContactAddress->hasParam(Conference::IsFocusParameter)))) {
+			                             remoteContactAddress->hasParam(Conference::sIsFocusParameter)))) {
 				std::string label;
 				// The stream label is not known yet when a participant starts screen sharing
 				if (isInLocalConference) {
@@ -2910,7 +2910,7 @@ void MediaSessionPrivate::makeLocalMediaDescription(bool localIsOfferer,
 			if (audioStreamIndex != -1) getStreamsGroup().setStreamMain(static_cast<size_t>(audioStreamIndex));
 			const auto remoteContactAddress = q->getRemoteContactAddress();
 			const auto videoStreamIndex =
-			    (conference || (remoteContactAddress && remoteContactAddress->hasParam(Conference::IsFocusParameter)))
+			    (conference || (remoteContactAddress && remoteContactAddress->hasParam(Conference::sIsFocusParameter)))
 			        ? mdForMainStream->findIdxStreamWithContent(mainStreamAttrValue)
 			        : mdForMainStream->findIdxBestStream(SalVideo);
 			if (videoStreamIndex != -1) getStreamsGroup().setStreamMain(static_cast<size_t>(videoStreamIndex));
@@ -3760,7 +3760,7 @@ LinphoneStatus MediaSessionPrivate::pause() {
 
 		if (!!linphone_config_get_bool(linphone_core_get_config(q->getCore()->getCCore()), "misc",
 		                               "conference_event_log_enabled", TRUE) &&
-		    contactAddress && contactAddress->hasParam(Conference::IsFocusParameter)) {
+		    contactAddress && contactAddress->hasParam(Conference::sIsFocusParameter)) {
 			if (conference) {
 				if (conference->findParticipantDevice(q->getSharedFromThis())) {
 					lWarning() << "Unable to pause media session (local address " << *q->getLocalAddress()
@@ -3791,11 +3791,11 @@ LinphoneStatus MediaSessionPrivate::pause() {
 	string subject;
 	if (!conference) {
 		if (resultDesc->hasDir(SalStreamSendRecv)) {
-			subject = CallSession::predefinedSubject.at(CallSession::PredefinedSubjectType::CallOnHold);
+			subject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::CallOnHold);
 		} else if (resultDesc->hasDir(SalStreamRecvOnly) ||
 		           (resultDesc->hasDir(SalStreamInactive) &&
 		            state == CallSession::State::PausedByRemote)) { // Stream is inactive from Remote
-			subject = CallSession::predefinedSubject.at(CallSession::PredefinedSubjectType::BothPartiesOnHold);
+			subject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::BothPartiesOnHold);
 		} else {
 			lError() << "No reason to pause this call, it is already paused or inactive";
 			return -1;
@@ -4266,6 +4266,7 @@ LinphoneStatus MediaSessionPrivate::accept(const MediaSessionParams *msp, BCTBX_
 	L_Q();
 	if (msp) {
 		setParams(new MediaSessionParams(*msp));
+		q->setOpPrivacy();
 	}
 
 	const bool isOfferer = (op->getRemoteMediaDescription() ? false : true);
@@ -4326,6 +4327,7 @@ MediaSessionPrivate::acceptUpdate(const CallSessionParams *csp, CallSession::Sta
 		}
 		setParams(msp);
 	}
+	q->setOpPrivacy();
 	if (getParams()->videoEnabled() && !linphone_core_video_enabled(q->getCore()->getCCore())) {
 		lWarning() << "Requested video but video support is globally disabled. Refusing video";
 		getParams()->enableVideo(false);
@@ -4485,8 +4487,7 @@ MediaSession::MediaSession(const shared_ptr<Core> &core,
 	d->streamsGroup = makeUnique<StreamsGroup>(*this);
 	d->streamsGroup->getIceService().setListener(d);
 
-	lInfo() << "New MediaSession [" << this << "] initialized (liblinphone version: " << linphone_core_get_version()
-	        << ")";
+	lInfo() << "New " << *this << " initialized (liblinphone version: " << linphone_core_get_version() << ")";
 }
 
 MediaSession::~MediaSession() {
@@ -4818,7 +4819,7 @@ LinphoneStatus MediaSession::delayResume() {
 LinphoneStatus MediaSession::resume() {
 	L_D();
 	if (d->state == CallSession::State::Pausing) {
-		lInfo() << "Call is currently in state " << Utils::toString(d->state)
+		lInfo() << *this << " is currently in state " << Utils::toString(d->state)
 		        << " and cannot be immediately resumed therefore this task will be scheduled";
 		addPendingAction([this] { return this->resume(); });
 		return -1;
@@ -4829,12 +4830,11 @@ LinphoneStatus MediaSession::resume() {
 	}
 	if (!d->getParams()->getPrivate()->getInConference()) {
 		if (linphone_core_sound_resources_locked(getCore()->getCCore())) {
-			lWarning() << "Cannot resume MediaSession " << this
-			           << " because another call is locking the sound resources";
+			lWarning() << "Cannot resume " << *this << " because another call is locking the sound resources";
 			return -1;
 		}
 		if (linphone_core_preempt_sound_resources(getCore()->getCCore()) != 0) {
-			lInfo() << "Delaying call to " << __func__ << " because sound resources cannot be preempted";
+			lInfo() << "Unable to resume " << *this << " right now because sound resources cannot be preempted";
 			addPendingAction([this] { return this->resume(); });
 			return -1;
 		}
@@ -4850,9 +4850,9 @@ LinphoneStatus MediaSession::resume() {
 	Stream *as = d->getStreamsGroup().lookupMainStream(SalAudio);
 	if (as) as->stop();
 
-	string subject = CallSession::predefinedSubject.at(CallSession::PredefinedSubjectType::Resuming);
+	string subject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::Resuming);
 	if (d->getParams()->getPrivate()->getInConference() && !getCurrentParams()->getPrivate()->getInConference()) {
-		subject = CallSession::predefinedSubject.at(CallSession::PredefinedSubjectType::Conference);
+		subject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::Conference);
 	}
 
 	updateContactAddressInOp();
@@ -4966,10 +4966,10 @@ void MediaSession::sendVfuRequest() {
 	MediaSessionParams *curParams = getCurrentParams();
 
 	if ((curParams->avpfEnabled() || curParams->getPrivate()->implicitRtcpFbEnabled())) {
-		lInfo() << "Request Full Intra Request on CallSession [" << this << "]";
+		lInfo() << "Request Full Intra Request on " << *this;
 		d->getStreamsGroup().forEach<VideoControlInterface>([](VideoControlInterface *i) { i->sendVfuRequest(); });
 	} else if (getCore()->getCCore()->sip_conf.vfu_with_info) {
-		lInfo() << "Request SIP INFO FIR on CallSession [" << this << "]";
+		lInfo() << "Request SIP INFO FIR on " << *this;
 		if (d->state == CallSession::State::StreamsRunning) d->op->sendVfuRequest();
 	} else lInfo() << "vfu request using sip disabled from config [sip,vfu_with_info]";
 }
@@ -5000,7 +5000,7 @@ std::shared_ptr<Conference> MediaSession::getLocalConference() const {
 	if (!conference) {
 		const auto to = Address::create(d->op->getTo());
 		// Local conference
-		if (to->hasUriParam(Conference::ConfIdParameter)) {
+		if (to->hasUriParam(Conference::sConfIdParameter)) {
 			serverConferenceId = ConferenceId(to, to, conferenceIdParams);
 			conference = getCore()->findConference(serverConferenceId, false);
 		}
@@ -5856,7 +5856,9 @@ void MediaSession::setAuthenticationTokenVerified(bool value) {
 		if (encryptionEngine) { // inform lime that zrtp no longer guarantees the trust
 			const SalAddress *remoteAddress = d->getOp()->getRemoteContactAddress();
 			if (!remoteAddress) {
-				lError() << __func__ << " : MediaSession [" << this << "] Failed to retrieve remote address";
+				lError() << *this
+				         << ": Unable to notify the encryption engine that the trust is no longer guaranteed because "
+				            "the remote contact address is unknown or not valid";
 			} else {
 				peerDeviceId = sal_address_as_string_uri_only(remoteAddress);
 				encryptionEngine->authenticationRejected(peerDeviceId);

@@ -211,8 +211,10 @@ LINPHONE_PUBLIC bool_t linphone_conference_params_chat_enabled(const LinphoneCon
  * Sets the account for the conference
  * @param params A #LinphoneConferenceParams @notnil
  * @param account a pointer to the account. @maybenil
- * @warning The account can only be changed upon creation of a conference when calling
- * linphone_core_create_conference_with_params
+ * @warning This account is used to configure some conference parameter field, therefore it is recommended to set it
+ * after selecting the capabilities. For instance capabilities will be used when defaulting the factory address. If
+ * audio or video one is enabled, then the default factory address will be the one associated to audio video
+ * conferencing, otherwise it will be the chat one. linphone_core_create_conference_with_params
  */
 LINPHONE_PUBLIC void linphone_conference_params_set_account(LinphoneConferenceParams *params, LinphoneAccount *account);
 

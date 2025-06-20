@@ -98,7 +98,7 @@ protected:
 	bool subscriptionWanted = false;
 	bool waitingFullState = false;
 	bool fullStateRequested = false;
-	bool initialSubscriptionUnderWay = false;
+	bool mInitialSubscriptionUnderWay = false;
 
 private:
 	void unsubscribePrivate();

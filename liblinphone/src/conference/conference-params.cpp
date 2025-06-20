@@ -59,7 +59,6 @@ ConferenceParams::ConferenceParams(const ConferenceParams &other)
 	mUtf8Subject = other.mUtf8Subject;
 	mDescription = other.mDescription;
 	mUtf8Description = other.mUtf8Description;
-	mMe = other.mMe ? other.mMe->clone()->toSharedPtr() : nullptr;
 	mStartTime = other.mStartTime;
 	mEndTime = other.mEndTime;
 	mEarlierJoiningTime = other.mEarlierJoiningTime;

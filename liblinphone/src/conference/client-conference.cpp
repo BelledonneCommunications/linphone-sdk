@@ -142,7 +142,7 @@ void ClientConference::init(SalCallOp *op, BCTBX_UNUSED(ConferenceListener *conf
 	// Local conference sets last notify to 1 in its constructor
 	setLastNotify(0);
 
-	initializeFromAccount();
+	initializeFromAccount(op);
 
 	const auto &core = getCore();
 	std::shared_ptr<Address> organizerAddress = nullptr;
@@ -168,16 +168,18 @@ void ClientConference::init(SalCallOp *op, BCTBX_UNUSED(ConferenceListener *conf
 
 		fillInvitedParticipantList(conferenceInfo->getParticipants());
 		const auto &organizerInfo = conferenceInfo->getOrganizer();
-		organizerAddress = organizerInfo->getAddress();
-		const auto organizerFound = (std::find_if(mInvitedParticipants.cbegin(), mInvitedParticipants.cend(),
-		                                          [&organizerAddress](const auto &participant) {
-			                                          const auto pAddress = participant->getAddress();
-			                                          return organizerAddress->weakEqual(*pAddress);
-		                                          }) != mInvitedParticipants.cend());
-		if (!organizerFound) {
-			auto organizer = Participant::create(organizerAddress);
-			organizer->setRole(organizerInfo->getRole());
-			mInvitedParticipants.push_back(organizer);
+		if (organizerInfo) {
+			organizerAddress = organizerInfo->getAddress();
+			const auto organizerFound = (std::find_if(mInvitedParticipants.cbegin(), mInvitedParticipants.cend(),
+			                                          [&organizerAddress](const auto &participant) {
+				                                          const auto pAddress = participant->getAddress();
+				                                          return organizerAddress->weakEqual(*pAddress);
+			                                          }) != mInvitedParticipants.cend());
+			if (!organizerFound) {
+				auto organizer = Participant::create(organizerAddress);
+				organizer->setRole(organizerInfo->getRole());
+				mInvitedParticipants.push_back(organizer);
+			}
 		}
 
 		conferenceAddress = conferenceInfo->getUri();
@@ -274,7 +276,10 @@ void ClientConference::updateAndSaveConferenceInformations() {
 	// Update the organizer if it is not the same as the one guessed earlier on
 	const auto organizer = getOrganizer();
 	const auto infoOrganizer = conferenceInfo->getOrganizerAddress();
-	if (!organizer->weakEqual(*infoOrganizer)) {
+	bool organizerAddressChanged =
+	    organizer && organizer->isValid() &&
+	    (!infoOrganizer || !infoOrganizer->isValid() || !organizer->weakEqual(*infoOrganizer));
+	if (organizerAddressChanged) {
 		conferenceInfo->setOrganizer(organizer);
 	}
 
@@ -283,7 +288,7 @@ void ClientConference::updateAndSaveConferenceInformations() {
 	// address of the call
 	auto &mainDb = getCore()->getPrivate()->mainDb;
 	if (mainDb) {
-		lInfo() << "Inserting or updating conference information to database related to " << *this;
+		lInfo() << "Inserting or updating " << *conferenceInfo << " to database related to " << *this;
 		mConferenceInfoId = mainDb->insertConferenceInfo(conferenceInfo);
 	}
 #endif // HAVE_DB_STORAGE
@@ -303,7 +308,7 @@ std::shared_ptr<ConferenceInfo> ClientConference::createConferenceInfo() const {
 std::shared_ptr<CallSession> ClientConference::createSessionTo(const std::shared_ptr<const Address> &sessionTo) {
 	MediaSessionParams csp;
 	csp.addCustomHeader("Require", "recipient-list-invite");
-	csp.addCustomContactParameter(Conference::TextParameter);
+	csp.addCustomContactParameter(Conference::sTextParameter);
 	if (!mConfParams->isGroup()) {
 		csp.addCustomHeader("One-To-One-Chat-Room", "true");
 	}
@@ -478,7 +483,7 @@ bool ClientConference::isIn() const {
 	const auto &focusContactAddress = session->getRemoteContactAddress();
 	return (((callState == CallSession::State::UpdatedByRemote) || (callState == CallSession::State::Updating) ||
 	         (callState == CallSession::State::StreamsRunning)) &&
-	        focusContactAddress->hasUriParam(Conference::ConfIdParameter));
+	        focusContactAddress->hasUriParam(Conference::sConfIdParameter));
 }
 
 void ClientConference::setUtf8Subject(const std::string &subject) {
@@ -563,8 +568,8 @@ void ClientConference::setParticipantAdminStatus(const shared_ptr<Participant> &
 	SalReferOp *referOp = new SalReferOp(cCore->sal.get());
 	linphone_configure_op(cCore, referOp, getConferenceAddress()->toC(), nullptr, false);
 	Address referToAddr(*participant->getAddress());
-	if (isChat) referToAddr.setParam(Conference::TextParameter);
-	referToAddr.setParam(Conference::AdminParameter, Utils::toString(isAdmin));
+	if (isChat) referToAddr.setParam(Conference::sTextParameter);
+	referToAddr.setParam(Conference::sAdminParameter, Utils::toString(isAdmin));
 	referOp->sendRefer(referToAddr.getImpl());
 	referOp->unref();
 }
@@ -577,7 +582,7 @@ void ClientConference::callFocus() {
 		LinphoneCallParams *params = linphone_core_create_call_params(getCore()->getCCore(), nullptr);
 		if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
 			// Participant with the focus call is admin
-			L_GET_CPP_PTR_FROM_C_OBJECT(params)->addCustomContactParameter(Conference::AdminParameter,
+			L_GET_CPP_PTR_FROM_C_OBJECT(params)->addCustomContactParameter(Conference::sAdminParameter,
 			                                                               Utils::toString(true));
 		}
 		linphone_call_params_enable_video(params, mConfParams->videoEnabled());
@@ -587,17 +592,17 @@ void ClientConference::callFocus() {
 	}
 }
 
-std::shared_ptr<ParticipantDevice> ClientConference::createParticipantDevice(std::shared_ptr<Participant> participant,
-                                                                             std::shared_ptr<Call> call) {
+std::shared_ptr<ParticipantDevice> ClientConference::createParticipantDevice(std::shared_ptr<Participant> &participant,
+                                                                             const std::shared_ptr<Call> &call) {
 	auto device = Conference::createParticipantDevice(participant, call);
 	if (device) {
-		// In a client conference, the participant has no session attached ot it.
+		// In a client conference, the participant has no session attached to it.
 		device->setSession(nullptr);
 		if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
 			const auto &p = device->getParticipant();
 			if (p) {
 				const_cast<MediaSessionParams *>(call->getParams())
-				    ->addCustomContactParameter(Conference::AdminParameter, Utils::toString(p->isAdmin()));
+				    ->addCustomContactParameter(Conference::sAdminParameter, Utils::toString(p->isAdmin()));
 			}
 		}
 	}
@@ -626,7 +631,7 @@ bool ClientConference::addParticipant(const std::shared_ptr<Address> &participan
 	return ret;
 }
 
-bool ClientConference::addParticipant(std::shared_ptr<Call> call) {
+bool ClientConference::addParticipant(const std::shared_ptr<Call> call) {
 	if (getMe()->isAdmin()) {
 		switch (mState) {
 			case ConferenceInterface::State::None:
@@ -759,10 +764,10 @@ bool ClientConference::addParticipants(const list<std::shared_ptr<Address>> &add
 			const auto &factoryAddress = mConfParams->getConferenceFactoryAddress();
 			std::list<std::string> addressParams;
 			if (supportsMedia() && !factoryAddress) {
-				addressParams.push_back(Conference::IsFocusParameter);
+				addressParams.push_back(Conference::sIsFocusParameter);
 			}
 			if (isChat) {
-				addressParams.push_back(Conference::TextParameter);
+				addressParams.push_back(Conference::sTextParameter);
 			}
 
 			for (const auto &addr : addresses) {
@@ -810,7 +815,7 @@ bool ClientConference::transferToFocus(std::shared_ptr<Call> call) {
 	const std::shared_ptr<Address> &remoteAddress = call->getRemoteAddress();
 	std::shared_ptr<Participant> participant = findInvitedParticipant(remoteAddress);
 	if (participant) {
-		referToAddr->setParam(Conference::AdminParameter, Utils::toString(participant->isAdmin()));
+		referToAddr->setParam(Conference::sAdminParameter, Utils::toString(participant->isAdmin()));
 		// Add the participant to the list of the participants of the conference if the core does not support RFC4575
 		// (Conference Event Package) or the macro HAVE_ADVANCED_IM is not defined. In such a scenario, we make the best
 		// effort to ensure the client has a list of participant as up to date as possible
@@ -870,7 +875,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 		}
 
 		const bool isFocusFound =
-		    focusContactAddress ? focusContactAddress->hasParam(Conference::IsFocusParameter) : false;
+		    focusContactAddress ? focusContactAddress->hasParam(Conference::sIsFocusParameter) : false;
 		list<std::shared_ptr<Call>>::iterator it;
 		switch (state) {
 			case CallSession::State::StreamsRunning: {
@@ -886,7 +891,23 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 					mClientEktManager->subscribe();
 				}
 #endif // HAVE_ADVANCED_IM
-				updateParticipantInConferenceInfo(getMe());
+				auto meDevice = mMe->findDevice(session);
+				const auto contactAddress = session->getContactAddress();
+				// Upon reception of the full state, it may not be possible to associate the local device with the
+				// conference's session. This particularly occurs when the call contact address changes between the
+				// first INVITE and the SUBSCRIBE messages. If a suitable device is found, then a reINVITE must be
+				// scheduled to ensure that the thumbnail stream if put down in the offer.
+				if (!meDevice && contactAddress && mFinalized && mFullStateReceived) {
+					lInfo() << "No devices among those belonging to me is associated to " << *session;
+					meDevice = mMe->findDevice(contactAddress);
+					if (meDevice) {
+						lInfo() << "Found " << *meDevice << " whose address is the same as the contact address of "
+						        << *session << ". Scheduling reINVITE to get all streams";
+						meDevice->setSession(session);
+						mScheduleUpdate = true;
+					}
+				}
+
 				for (const auto &device : getParticipantDevices()) {
 					device->updateStreamAvailabilities();
 				}
@@ -917,6 +938,10 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 			case CallSession::State::Connected:
 				if (isFocusFound) {
 					setConferenceAddress(focusContactAddress);
+					// Now that the conference address is known, store the conference information in the database.
+					// Note that at this point, they might not be up to date or the capabilities right but it will allow
+					// to recover from early network issues
+					updateAndSaveConferenceInformations();
 				}
 				BCTBX_NO_BREAK; /* Intentional no break */
 			case CallSession::State::Paused:
@@ -943,9 +968,9 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 						setConferenceId(ConferenceId(focusContactAddress, getMe()->getAddress(),
 						                             getCore()->createConferenceIdParams()));
 						if (call) {
-							if (focusContactAddress->hasUriParam(Conference::ConfIdParameter)) {
+							if (focusContactAddress->hasUriParam(Conference::sConfIdParameter)) {
 								call->setConferenceId(
-								    focusContactAddress->getUriParamValue(Conference::ConfIdParameter));
+								    focusContactAddress->getUriParamValue(Conference::sConfIdParameter));
 							}
 							if (!call->mediaInProgress() ||
 							    !!!linphone_config_get_int(linphone_core_get_config(session->getCore()->getCCore()),
@@ -957,11 +982,11 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 				}
 				BCTBX_NO_BREAK; /* Intentional no break */
 			case CallSession::State::PausedByRemote:
-				if (!focusContactAddress->hasParam(Conference::IsFocusParameter) &&
+				if (!focusContactAddress->hasParam(Conference::sIsFocusParameter) &&
 				    (state != CallSession::State::Connected)) {
 					// The call was in conference and the focus removed its attribute to show that the call exited the
 					// conference
-					lInfo() << "Ending " << *this << " because server removed '" << Conference::IsFocusParameter
+					lInfo() << "Ending " << *this << " because server removed '" << Conference::sIsFocusParameter
 					        << "' attribute from its remote address " << *focusContactAddress;
 					endConference();
 				}
@@ -1642,6 +1667,7 @@ void ClientConference::onConferenceTerminated(BCTBX_UNUSED(const std::shared_ptr
 	for (const auto &device : getMe()->getDevices()) {
 		device->enableScreenSharing(false);
 	}
+	mFullStateReceived = false;
 	if (call) call->setConference(nullptr);
 	if (!mConfParams->chatEnabled()) {
 		setState(ConferenceInterface::State::Deleted);
@@ -1813,7 +1839,6 @@ void ClientConference::onFullStateReceived() {
 
 		if (!getCore()->getCCore()->sal->mediaDisabled()) {
 			if (session && (!session->mediaInProgress() || !session->getPrivate()->isUpdateSentWhenIceCompleted())) {
-
 				auto requestStreams = [this]() -> LinphoneStatus {
 					lInfo() << "Sending re-INVITE in order to get streams after receiving a NOTIFY full state for "
 					        << *this;
@@ -2161,7 +2186,7 @@ bool ClientConference::removeParticipant(const std::shared_ptr<Participant> &par
 			LinphoneAddress *lAddr = getConferenceAddress()->toC();
 			linphone_configure_op(cCore, referOp, lAddr, nullptr, false);
 			Address referToAddr(*participantAddress);
-			referToAddr.setParam(Conference::TextParameter);
+			referToAddr.setParam(Conference::sTextParameter);
 			referToAddr.setUriParam("method", "BYE");
 			referOp->sendRefer(referToAddr.getImpl());
 			referOp->unref();
@@ -2358,11 +2383,11 @@ int ClientConference::enter() {
 		linphone_call_params_set_in_conference(new_params, FALSE);
 		if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
 			L_GET_CPP_PTR_FROM_C_OBJECT(new_params)
-			    ->addCustomContactParameter(Conference::AdminParameter, Utils::toString(getMe()->isAdmin()));
+			    ->addCustomContactParameter(Conference::sAdminParameter, Utils::toString(getMe()->isAdmin()));
 		}
 
 		const std::shared_ptr<Address> &address = getConferenceAddress();
-		const string &confId = address->getUriParamValue(Conference::ConfIdParameter);
+		const string &confId = address->getUriParamValue(Conference::sConfIdParameter);
 		linphone_call_params_set_conference_id(new_params, confId.c_str());
 
 		std::string subject = getMe()->isAdmin() ? getUtf8Subject() : std::string();
@@ -2459,7 +2484,6 @@ const std::shared_ptr<Address> ClientConference::getOrganizer() const {
 		}
 	}
 #endif
-
 	if (!organizer) {
 		// The me participant is designed as organizer as a last resort in our guesses, therefore it may not be right.
 		// A search for a participant which joined the conference as focus owner is therefore needed.
@@ -2469,19 +2493,9 @@ const std::shared_ptr<Address> ClientConference::getOrganizer() const {
 		}
 	}
 
-	if (!organizer) {
-		auto session = static_pointer_cast<MediaSession>(getMainSession());
-		const auto referer = (session ? L_GET_PRIVATE(session->getMediaParams())->getReferer() : nullptr);
-		if (referer) {
-			organizer = referer->getRemoteAddress();
-		}
+	if (organizer) {
+		setOrganizer(organizer);
 	}
-
-	if (!organizer) {
-		// Guess the organizer and as last resort set it to ourselves
-		organizer = getMe()->getAddress();
-	}
-	setOrganizer(organizer);
 
 	return mOrganizer;
 }
@@ -2626,7 +2640,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 			}
 			if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
 				// Participant with the focus call is admin
-				dialoutParams->addCustomContactParameter(Conference::AdminParameter, Utils::toString(true));
+				dialoutParams->addCustomContactParameter(Conference::sAdminParameter, Utils::toString(true));
 			}
 			if (mConfParams->chatEnabled()) {
 				dialoutParams->addCustomHeader("Require", "recipient-list-invite");
@@ -2665,7 +2679,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 			}
 
 			if (!mediaSupported) {
-				dialoutParams->addCustomContactParameter(Conference::TextParameter);
+				dialoutParams->addCustomContactParameter(Conference::sTextParameter);
 				if (!mConfParams->isGroup()) {
 					dialoutParams->addCustomHeader("One-To-One-Chat-Room", "true");
 				}

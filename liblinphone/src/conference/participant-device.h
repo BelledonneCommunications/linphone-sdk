@@ -81,10 +81,10 @@ public:
 	};
 
 	ParticipantDevice();
-	explicit ParticipantDevice(std::shared_ptr<Participant> participant,
+	explicit ParticipantDevice(const std::shared_ptr<Participant> &participant,
 	                           const std::shared_ptr<CallSession> &session,
 	                           const std::string &name = "");
-	explicit ParticipantDevice(std::shared_ptr<Participant> participant,
+	explicit ParticipantDevice(const std::shared_ptr<Participant> &participant,
 	                           const std::shared_ptr<const Address> &gruu,
 	                           const std::string &name = "");
 	virtual ~ParticipantDevice();
@@ -97,8 +97,10 @@ public:
 
 	std::shared_ptr<Core> getCore() const;
 
+	static Address pruneAddress(const std::shared_ptr<const Address> &address);
 	std::shared_ptr<Address> getAddress() const;
 	void setAddress(const std::shared_ptr<Address> &address);
+	bool isSameAddress(const std::shared_ptr<const Address> &address) const;
 	const std::string &getCallId();
 	void setCallId(const std::string &callId);
 	const std::string &getFromTag();

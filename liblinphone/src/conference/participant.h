@@ -169,7 +169,7 @@ private:
 	bool isThisAdmin = false;
 	bool isThisFocus = false;
 	std::shared_ptr<CallSession> session;
-	std::list<std::shared_ptr<ParticipantDevice>> devices;
+	std::list<std::shared_ptr<ParticipantDevice>> mDevices;
 	time_t creationTime;
 	bool preserveSession = false;
 	Role mRole = Role::Listener;

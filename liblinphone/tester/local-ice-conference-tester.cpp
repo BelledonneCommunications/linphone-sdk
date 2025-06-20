@@ -316,14 +316,14 @@ static void abort_call_to_ice_conference(void) {
 
 					const LinphoneVideoActivationPolicy *pol = linphone_core_get_video_activation_policy(mgr->lc);
 					bool_t enabled = !!linphone_video_activation_policy_get_automatically_initiate(pol);
-					LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-					BC_ASSERT_PTR_NOT_NULL(pcall);
-					if (pcall) {
-						const LinphoneCallParams *call_lparams = linphone_call_get_params(pcall);
+					LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+					BC_ASSERT_PTR_NOT_NULL(participant_call);
+					if (participant_call) {
+						const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), enabled, int, "%0d");
-						const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(pcall);
+						const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_rparams), enabled, int, "%0d");
-						const LinphoneCallParams *call_cparams = linphone_call_get_current_params(pcall);
+						const LinphoneCallParams *call_cparams = linphone_call_get_current_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_cparams), enabled, int, "%0d");
 					}
 					LinphoneCall *ccall = linphone_core_get_call_by_remote_address2(focus.getLc(), mgr->identity);

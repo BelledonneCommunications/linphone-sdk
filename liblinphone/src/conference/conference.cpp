@@ -54,11 +54,15 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
-const std::string Conference::SecurityModeParameter = "conference-security-mode";
-const std::string Conference::ConfIdParameter = "conf-id";
-const std::string Conference::AdminParameter = "admin";
-const std::string Conference::IsFocusParameter = "isfocus";
-const std::string Conference::TextParameter = "text";
+const std::string Conference::sPAssertedIdentityHeader = "P-Preferred-Identity";
+// TODO: Uncomment when ticket https://linphone.atlassian.net/browse/FLEXISIP-614 will be resolved
+// const std::string Conference::sPAssertedIdentityHeader = "P-Asserted-Identity";
+const std::string Conference::sSecurityModeParameter = "conference-security-mode";
+const std::string Conference::sConfIdParameter = "conf-id";
+const std::string Conference::sAdminParameter = "admin";
+const std::string Conference::sIsFocusParameter = "isfocus";
+const std::string Conference::sTextParameter = "text";
+const std::string Conference::sAnonymousKeyword = "anonymous";
 
 Conference::Conference(const shared_ptr<Core> &core,
                        std::shared_ptr<CallSessionListener> callSessionListener,
@@ -103,7 +107,7 @@ const std::shared_ptr<Participant> &Conference::initializeMe(const std::shared_p
 	return mMe;
 }
 
-void Conference::initializeFromAccount() {
+void Conference::initializeFromAccount(SalCallOp *op) {
 	const auto &core = getCore();
 	auto account = mConfParams->getAccount();
 	if (!account) {
@@ -118,8 +122,27 @@ void Conference::initializeFromAccount() {
 		}
 	}
 
+	Address meAddress;
 	if (account) {
-		auto meAddress = account->getAccountParams()->getIdentityAddress()->getUri();
+		auto accountParams = account->getAccountParams();
+		if (accountParams) {
+			auto accountIdentity = accountParams->getIdentityAddress();
+			if (accountIdentity) {
+				meAddress = accountIdentity->getUri();
+			}
+		}
+	}
+
+	if (!meAddress.isValid() && op) {
+		const auto &opDir = op->getDir();
+		if (opDir == SalOp::Dir::Incoming) {
+			meAddress = Address(op->getTo());
+		} else {
+			meAddress = Address(op->getFrom());
+		}
+	}
+
+	if (meAddress.isValid()) {
 		mConferenceId = ConferenceId(Address(), std::move(meAddress), core->createConferenceIdParams());
 		initializeMe(mConferenceId.getLocalAddress());
 	}
@@ -175,10 +198,42 @@ void Conference::clearParticipants() {
 	mParticipants.clear();
 }
 
+bool Conference::isAnonymousParticipant(const std::shared_ptr<Address> &address) {
+	auto displayName = sAnonymousKeyword;
+	std::transform(displayName.begin(), displayName.begin() + 1, displayName.begin(),
+	               [](unsigned char c) { return std::toupper(c); });
+	return address && ((address->getDisplayName().find(displayName) != std::string::npos) ||
+	                   (address->getUsername().find(sAnonymousKeyword) != std::string::npos) ||
+	                   (address->getDomain().find(sAnonymousKeyword) != std::string::npos));
+}
+
+bool Conference::isAnonymousParticipant(const std::shared_ptr<Call> &call) {
+	const std::shared_ptr<Address> &address =
+	    call->isInConference() ? call->getRemoteAddress() : call->getLocalAddress();
+	return isAnonymousParticipant(address);
+}
+
+std::string Conference::getFreeAnonymousUsername() const {
+	unsigned int idx = 0;
+	bool found = false;
+	std::string username;
+	do {
+		username = std::string(sAnonymousKeyword + std::to_string(idx));
+		auto it = std::find_if(mParticipants.cbegin(), mParticipants.cend(), [&username](const auto &participant) {
+			return (participant->getAddress()->getUsername() == username);
+		});
+
+		found = (mParticipants.cend() != it);
+		if (found) {
+			idx++;
+		}
+	} while (found);
+	return username;
+}
+
 // -----------------------------------------------------------------------------
-std::shared_ptr<ParticipantDevice> Conference::createParticipantDevice(std::shared_ptr<Participant> participant,
-                                                                       std::shared_ptr<Call> call) {
-	const std::shared_ptr<Address> &remoteAddress = call->getRemoteAddress();
+std::shared_ptr<ParticipantDevice> Conference::createParticipantDevice(std::shared_ptr<Participant> &participant,
+                                                                       const std::shared_ptr<Call> &call) {
 	const auto &session = call->getActiveSession();
 	// If device is not found, then add it
 	if (participant->findDevice(session, false) == nullptr) {
@@ -191,31 +246,49 @@ std::shared_ptr<ParticipantDevice> Conference::createParticipantDevice(std::shar
 		auto deviceState = ParticipantDevice::State::Joining;
 		if (joining) {
 			deviceState = ParticipantDevice::State::Joining;
-			lInfo() << "Participant with address " << *remoteAddress << " has added device with session " << session
-			        << " (address " << *dAddress << ") to " << *this;
+			lInfo() << *participant << " has added device with " << *session << " (address " << *dAddress << ") to "
+			        << *this;
 		} else {
 			deviceState = ParticipantDevice::State::RequestingToJoin;
-			lInfo() << "Participant with address " << *remoteAddress << " has added device with session " << session
-			        << " (address " << *dAddress << ") which is requesting to join " << *this;
+			lInfo() << *participant << " has added device with " << *session << " (address " << *dAddress
+			        << ") which is requesting to join " << *this;
 		}
 		device->setState(deviceState, false);
-		// By default send a NOTIFY to inform the other clients that has been added
+		// By default send a NOTIFY to inform the other client that has been added
 		device->setSendAddedNotify(true);
 		return device;
 	} else {
-		lDebug() << "Participant with address " << *remoteAddress << " has already a device with session " << session;
+		lDebug() << *participant << " in " << *this << " has already a device with " << *session;
 	}
 	return nullptr;
 }
 
-bool Conference::addParticipantDevice(std::shared_ptr<Call> call) {
-	const std::shared_ptr<Address> &remoteAddress = call->getRemoteAddress();
-	auto p = findParticipant(remoteAddress);
-	if (p) {
-		auto device = createParticipantDevice(p, call);
-		bool added = (device != nullptr);
-		if (added) {
-			notifyNewDevice(device);
+bool Conference::addParticipantDevice(const std::shared_ptr<Call> &call) {
+	auto device = findParticipantDevice(call->getActiveSession());
+	if (!device) {
+		bool anonymousParticipant = isAnonymousParticipant(call);
+		std::shared_ptr<Participant> p;
+		const std::shared_ptr<Address> &remoteAddress = call->getRemoteAddress();
+		if (anonymousParticipant) {
+			// Find if any anonymous participant with no devices
+			auto pIt = std::find_if(mParticipants.begin(), mParticipants.end(), [&remoteAddress](const auto &p) {
+				return remoteAddress->weakEqual(*p->getAddress()) && (p->getDevices().size() == 0);
+			});
+			if (pIt != mParticipants.end()) {
+				p = (*pIt);
+			}
+		} else {
+			p = findParticipant(remoteAddress);
+		}
+		bool added = false;
+		if (p) {
+			device = createParticipantDevice(p, call);
+			added = (device != nullptr);
+			if (added) {
+				notifyNewDevice(device);
+			}
+		} else {
+			added = Conference::addParticipant(call);
 		}
 		return added;
 	}
@@ -232,7 +305,7 @@ void Conference::notifyNewDevice(const std::shared_ptr<ParticipantDevice> &devic
 	if (device) {
 		const auto &p = device->getParticipant();
 		if (p) {
-			time_t creationTime = ms_time(nullptr);
+			const time_t creationTime = ms_time(nullptr);
 			if (device->getState() == ParticipantDevice::State::Joining) {
 				notifyParticipantDeviceAdded(creationTime, false, p, device);
 			} else {
@@ -256,8 +329,28 @@ Address Conference::createParticipantAddressForResourceList(const ConferenceInfo
 	return address;
 }
 
-void Conference::fillParticipantAttributes(std::shared_ptr<Participant> &p) const {
-	const auto &pAddress = p->getAddress();
+void Conference::fillParticipantAttributes(std::shared_ptr<Participant> &p, const std::shared_ptr<Call> &call) const {
+	auto pAddress = p->getAddress();
+	if (call) {
+		bool isAnonymous = isAnonymousParticipant(pAddress);
+		if (isAnonymous) {
+			const auto remoteParams = call->getActiveSession()->getRemoteParams();
+			if (remoteParams) {
+				const auto pAssertedIdentity = remoteParams->getCustomHeader(sPAssertedIdentityHeader);
+				if (pAssertedIdentity) {
+					const auto assertedIdentityAddress = Address::create(pAssertedIdentity);
+					if (assertedIdentityAddress) {
+						lInfo() << *this << ": Using value of header " << sPAssertedIdentityHeader << " "
+						        << pAssertedIdentity << " to search the role of " << *p
+						        << " in the list of invited participants because it has an anonymous address "
+						        << *pAddress;
+						pAddress = assertedIdentityAddress;
+					}
+				}
+			}
+		}
+	}
+
 	const auto participantInfo =
 	    std::find_if(mInvitedParticipants.cbegin(), mInvitedParticipants.cend(),
 	                 [&pAddress](const auto &info) { return pAddress->weakEqual(*info->getAddress()); });
@@ -266,10 +359,10 @@ void Conference::fillParticipantAttributes(std::shared_ptr<Participant> &p) cons
 		if (mInvitedParticipants.empty()) {
 			// It is a conference created on the fly, therefore all participants are speakers
 			p->setRole(Participant::Role::Speaker);
-			lInfo() << *this
-			        << " has been created on the fly, either by inviting addresses or by merging existing calls "
-			           "therefore participant "
-			        << *pAddress << " is given the role of " << p->getRole();
+			lInfo()
+			    << *this
+			    << " has been created on the fly, either by inviting addresses or by merging existing calls therefore "
+			    << *p << " is given the role of " << p->getRole();
 		} else {
 			const bool isThereAListener =
 			    std::find_if(mInvitedParticipants.cbegin(), mInvitedParticipants.cend(), [](const auto &info) {
@@ -287,16 +380,15 @@ void Conference::fillParticipantAttributes(std::shared_ptr<Participant> &p) cons
 			}
 			p->setRole(role);
 
-			lInfo() << "Unable to find participant " << *pAddress
-			        << " in the list of invited participants. Assuming its role to be " << p->getRole() << " in "
-			        << *this << " because " << reason;
+			lInfo() << "Unable to find " << *p << " in the list of invited participants. Assuming its role to be "
+			        << p->getRole() << " in " << *this << " because " << reason;
 		}
 	} else {
 		const auto &role = (*participantInfo)->getRole();
 		if (role == Participant::Role::Unknown) {
 			p->setRole(Participant::Role::Speaker);
-			lInfo() << "No role was given to participant " << *pAddress << " when " << *this
-			        << " was created. Assuming its role to be " << p->getRole();
+			lInfo() << "No role was given to " << *p << " when " << *this << " was created. Assuming its role to be "
+			        << p->getRole();
 		} else {
 			p->setRole(role);
 		}
@@ -308,7 +400,7 @@ bool Conference::addParticipant(BCTBX_UNUSED(const std::shared_ptr<ParticipantIn
 	return false;
 }
 
-std::shared_ptr<Participant> Conference::createParticipant(std::shared_ptr<const Address> participantAddress) {
+std::shared_ptr<Participant> Conference::createParticipant(const std::shared_ptr<const Address> &participantAddress) {
 	auto participant = Participant::create(getSharedFromThis(), participantAddress);
 	auto session = participant->createSession(*this, nullptr, true);
 	session->addListener(getSharedFromThis());
@@ -316,15 +408,25 @@ std::shared_ptr<Participant> Conference::createParticipant(std::shared_ptr<const
 	bool isFocus = participantAddress && confAddr && (*participantAddress == *confAddr);
 	participant->setFocus(isFocus);
 	participant->setPreserveSession(false);
-	fillParticipantAttributes(participant);
+	fillParticipantAttributes(participant, nullptr);
 	return participant;
 }
 
-std::shared_ptr<Participant> Conference::createParticipant(std::shared_ptr<Call> call) {
+std::shared_ptr<Participant> Conference::createParticipant(const std::shared_ptr<Call> &call) {
 	auto session = call->getActiveSession();
-	const std::shared_ptr<Address> &remoteAddress = call->getRemoteAddress();
-	auto participant = Participant::create(getSharedFromThis(), remoteAddress);
-	fillParticipantAttributes(participant);
+	const auto &remoteAddress = call->getRemoteAddress();
+	auto participantAddress = remoteAddress->clone()->toSharedPtr();
+	bool anonymousParticipant = isAnonymousParticipant(call);
+	if (anonymousParticipant) {
+		auto username = getFreeAnonymousUsername();
+		participantAddress->setUsername(username);
+		// Uppercase the first letter as per RFC4575
+		std::transform(username.begin(), username.begin() + 1, username.begin(),
+		               [](unsigned char c) { return std::toupper(c); });
+		participantAddress->setDisplayName(username);
+	}
+	auto participant = Participant::create(getSharedFromThis(), participantAddress);
+	fillParticipantAttributes(participant, call);
 	participant->setFocus(false);
 	std::shared_ptr<Address> toAddr;
 	if (session) {
@@ -333,50 +435,62 @@ std::shared_ptr<Participant> Conference::createParticipant(std::shared_ptr<Call>
 			toAddr = Address::create(op->getTo());
 		}
 	}
-
 	if (toAddr && toAddr->isValid()) {
-		participant->setPreserveSession(!toAddr->hasUriParam(Conference::ConfIdParameter));
+		participant->setPreserveSession(!toAddr->hasUriParam(Conference::sConfIdParameter));
 	} else {
 		participant->setPreserveSession(true);
 	}
-
 	auto device = createParticipantDevice(participant, call);
 	device->setSendAddedNotify(false);
-
 	return participant;
 }
 
-bool Conference::addParticipant(std::shared_ptr<Call> call) {
+bool Conference::addParticipant(const std::shared_ptr<Call> call) {
 	const std::shared_ptr<Address> &remoteAddress = call->getRemoteAddress();
-	std::shared_ptr<Participant> participant = findParticipant(remoteAddress);
+	// Always add new participants with anonymous addresses
+	std::shared_ptr<Participant> participant;
+	bool anonymousParticipant = isAnonymousParticipant(call);
+	if (anonymousParticipant) {
+		// Search that there isn't any device with the same session
+		const auto device = findParticipantDevice(call->getActiveSession());
+		if (device) {
+			participant = device->getParticipant();
+		}
+	} else {
+		participant = findParticipant(remoteAddress);
+	}
 	bool success = false;
 	// Add a new participant only if it is not in the conference
 	if (participant == nullptr) {
-		auto participant = createParticipant(call);
+		participant = createParticipant(call);
 		mParticipants.push_back(participant);
-		time_t creationTime = ms_time(nullptr);
+		const time_t creationTime = ms_time(nullptr);
 		notifyParticipantAdded(creationTime, false, participant);
 		success = true;
 	} else {
-		lWarning() << "Participant with address " << *remoteAddress << " is already part of " << *this;
+		lWarning() << *participant << " is already part of " << *this;
 		success = false;
 	}
 	return success;
 }
 
 bool Conference::addParticipant(const std::shared_ptr<Address> &participantAddress) {
-	shared_ptr<Participant> participant = findParticipant(participantAddress);
+	std::shared_ptr<Participant> participant;
+	bool isAnonymous = isAnonymousParticipant(participantAddress);
+	// Always add new participants with anonymous addresses
+	if (!isAnonymous) {
+		participant = findParticipant(participantAddress);
+	}
 	if (participant) {
-		lWarning() << "Not adding participant '" << *participantAddress << "' because it is already a participant of "
-		           << *this;
+		lWarning() << "Not adding " << *participant << " because it is already in " << *this;
 		return false;
 	}
 	participant = createParticipant(participantAddress);
 	mParticipants.push_back(participant);
 	if (!mActiveParticipant) mActiveParticipant = participant;
 
-	lInfo() << "Participant with address " << *participantAddress << " has been added to " << *this;
-	time_t creationTime = ms_time(nullptr);
+	lInfo() << *participant << " has been added to " << *this;
+	const time_t creationTime = ms_time(nullptr);
 	notifyParticipantAdded(creationTime, false, participant);
 	return true;
 }
@@ -424,8 +538,7 @@ void Conference::removeParticipantDevice(BCTBX_UNUSED(const shared_ptr<Participa
 }
 
 int Conference::removeParticipantDevice(const std::shared_ptr<CallSession> &session) {
-	const std::shared_ptr<Address> &remoteAddress = session->getRemoteAddress();
-	std::shared_ptr<Participant> p = findParticipant(remoteAddress);
+	std::shared_ptr<Participant> p = findParticipant(session);
 	if (p) {
 		std::shared_ptr<ParticipantDevice> device = p->findDevice(session);
 		// If device is not found, then add it
@@ -446,15 +559,14 @@ int Conference::removeParticipantDevice(const std::shared_ptr<CallSession> &sess
 			device->setDisconnectionData(initiatingRemoval, linphone_error_info_get_protocol_code(ei),
 			                             linphone_error_info_get_reason(ei));
 			device->setState(ParticipantDevice::State::Left);
-			time_t creationTime = ms_time(nullptr);
+			const time_t creationTime = ms_time(nullptr);
 			notifyParticipantDeviceRemoved(creationTime, false, p, device);
 
 			lInfo() << "Removing device with session " << session << " from participant " << *p->getAddress() << " in "
 			        << *this;
 			p->removeDevice(session);
 
-			auto op = session->getPrivate()->getOp();
-			shared_ptr<Call> call = op ? getCore()->getCallByCallId(op->getCallId()) : nullptr;
+			shared_ptr<Call> call = getCore()->getCallBySession(session);
 			if (call) {
 				call->setConference(nullptr);
 			}
@@ -465,11 +577,11 @@ int Conference::removeParticipantDevice(const std::shared_ptr<CallSession> &sess
 	return -1;
 }
 
-int Conference::removeParticipant(std::shared_ptr<Call> call) {
-	const std::shared_ptr<Address> &remoteAddress = call->getRemoteAddress();
-	std::shared_ptr<Participant> p = findParticipant(remoteAddress);
+int Conference::removeParticipant(const std::shared_ptr<Call> &call) {
+	const std::shared_ptr<Participant> p = findParticipant(call->getActiveSession());
 	if (!p) {
-		lDebug() << "Unable to participant with address " << remoteAddress;
+		const std::shared_ptr<Address> &remoteAddress = call->getRemoteAddress();
+		lDebug() << "Unable to remove participant with address " << remoteAddress << " from " << *this;
 		return -1;
 	}
 	return removeParticipant(p);
@@ -477,19 +589,18 @@ int Conference::removeParticipant(std::shared_ptr<Call> call) {
 
 int Conference::removeParticipant(const std::shared_ptr<CallSession> &session,
                                   BCTBX_UNUSED(const bool preserveSession)) {
-	const std::shared_ptr<Address> &pAddress = session->getRemoteAddress();
-	const auto &conferenceAddress = getConferenceAddress();
-	std::shared_ptr<Participant> p = findParticipant(pAddress);
+	const std::shared_ptr<Participant> p = findParticipant(session);
 	removeParticipantDevice(session);
 	if (!p) {
-		lInfo() << "Participant removal failed: Participant with address " << *pAddress
-		        << " has not been found in conference " << *conferenceAddress;
+		const std::shared_ptr<Address> &pAddress = session->getRemoteAddress();
+		lInfo() << "Participant removal failed: Participant with address " << *pAddress << " has not been found in "
+		        << *this;
 		return -1;
 	}
 	if (p->getDevices().empty()) {
-		lInfo() << "Remove participant with address " << *pAddress << " from conference " << *conferenceAddress;
+		lInfo() << "Remove " << *p << " from " << *this;
 		mParticipants.remove(p);
-		time_t creationTime = ms_time(nullptr);
+		const time_t creationTime = ms_time(nullptr);
 		notifyParticipantRemoved(creationTime, false, p);
 		return 0;
 	}
@@ -526,16 +637,15 @@ bool Conference::removeParticipant(const std::shared_ptr<Participant> &participa
 				ev->terminate();
 			}
 
-			time_t creationTime = ms_time(nullptr);
+			const time_t creationTime = ms_time(nullptr);
 			notifyParticipantDeviceRemoved(creationTime, false, conferenceParticipant, device);
 		}
 
 		conferenceParticipant->clearDevices();
-		auto pSession = conferenceParticipant->getSession();
+		const auto pSession = conferenceParticipant->getSession();
 		// Detach call from conference
 		if (pSession) {
-			auto op = pSession->getPrivate()->getOp();
-			shared_ptr<Call> pSessionCall = op ? getCore()->getCallByCallId(op->getCallId()) : nullptr;
+			shared_ptr<Call> pSessionCall = getCore()->getCallBySession(pSession);
 			if (pSessionCall) {
 				pSessionCall->setConference(nullptr);
 			}
@@ -657,7 +767,11 @@ int Conference::terminate() {
 }
 
 LinphoneStatus Conference::updateMainSession(bool modifyParams) {
-	if (getCore()->getCCore()->sal->mediaDisabled()) return -1;
+	if (getCore()->getCCore()->sal->mediaDisabled()) {
+		lInfo() << "Core's SAL has disabled media, therefore the core of main session of " << *this
+		        << " cannot automatically send a reINVITE";
+		return -1;
+	}
 
 	LinphoneStatus ret = -1;
 	auto session = static_pointer_cast<MediaSession>(getMainSession());
@@ -986,6 +1100,12 @@ shared_ptr<Participant> Conference::findParticipant(const shared_ptr<const CallS
 			return participant;
 		}
 	}
+	// Try to find a device linked to the session and retrieve the participant. In fact, anonymous participants do not
+	// share the same address as the From header of the INVITE session
+	const auto &device = findParticipantDevice(session);
+	if (device) {
+		return device->getParticipant();
+	}
 
 	lDebug() << "Unable to find participant in " << *this << " with session " << session;
 	return nullptr;
@@ -1016,7 +1136,7 @@ Conference::findInvitedParticipant(const std::shared_ptr<const Address> &partici
 	return nullptr;
 }
 
-shared_ptr<ParticipantDevice> Conference::findParticipantDeviceByLabel(const LinphoneStreamType type,
+shared_ptr<ParticipantDevice> Conference::findParticipantDeviceByLabel(LinphoneStreamType type,
                                                                        const std::string &label) const {
 	for (const auto &participant : mParticipants) {
 		auto device = participant->findDevice(type, label, false);
@@ -1042,19 +1162,15 @@ shared_ptr<ParticipantDevice> Conference::findParticipantDeviceBySsrc(uint32_t s
 	return nullptr;
 }
 
-shared_ptr<ParticipantDevice> Conference::findParticipantDevice(const std::shared_ptr<const Address> &pAddr,
-                                                                const std::shared_ptr<const Address> &dAddr) const {
+shared_ptr<ParticipantDevice> Conference::findParticipantDevice(const std::shared_ptr<const Address> &dAddr) const {
 	for (const auto &participant : mParticipants) {
-		if (pAddr->weakEqual(*participant->getAddress())) {
-			auto device = participant->findDevice(dAddr, false);
-			if (device) {
-				return device;
-			}
+		auto device = participant->findDevice(dAddr, false);
+		if (device) {
+			return device;
 		}
 	}
 
-	lDebug() << "Unable to find participant device in " << *this << " with device address " << *dAddr
-	         << " belonging to participant " << *pAddr;
+	lDebug() << "Unable to find participant device in " << *this << " with address " << *dAddr;
 
 	return nullptr;
 }
@@ -1511,8 +1627,22 @@ const std::shared_ptr<ConferenceInfo> Conference::getUpdatedConferenceInfo() con
 			}
 		}
 
-		// Update me only if he/she is already in the list of participants info
-		updateParticipantInfoInConferenceInfo(conferenceInfo, getMe());
+		const auto &infoUri = conferenceInfo->getUri();
+		const auto &conferenceAddress = getConferenceAddress();
+		if ((!infoUri || !infoUri->isValid()) && conferenceAddress && conferenceAddress->isValid()) {
+			// Update conference URI if it was not set or it was invalid
+			conferenceInfo->setUri(conferenceAddress);
+		}
+
+		const auto &me = getMe();
+		// Do not add me participant since the start but wait for a NOTIFY message to come in. In fact, in the case of
+		// anonymous calls the guessed me address is not matching the me address on the server side. A way to know that
+		// the client has actually received the notify is to check for the number of devices. If it is equal or greater
+		// than 1, then the server notified the client.
+		if (!me->getDevices().empty()) {
+			// Update me only if he/she is already in the list of participants info
+			updateParticipantInfoInConferenceInfo(conferenceInfo, me);
+		}
 		for (const auto &participant : getParticipants()) {
 			updateParticipantInfoInConferenceInfo(conferenceInfo, participant);
 		}
@@ -1524,8 +1654,8 @@ const std::shared_ptr<ConferenceInfo> Conference::getUpdatedConferenceInfo() con
 		// fact, if a client dials a conference without prior knowledge (for example it is given an URI to call),
 		// the start and end time are initially estimated as there is no conference information associated to that
 		// URI.
-		time_t startTime = mConfParams->getStartTime();
-		time_t endTime = mConfParams->getEndTime();
+		const time_t startTime = mConfParams->getStartTime();
+		const time_t endTime = mConfParams->getEndTime();
 		conferenceInfo->setDateTime(startTime);
 		if ((startTime >= 0) && (endTime >= 0) && (endTime > startTime)) {
 			unsigned int duration = (static_cast<unsigned int>(endTime - startTime)) / 60;
@@ -1574,8 +1704,8 @@ std::shared_ptr<ConferenceInfo> Conference::createConferenceInfoWithCustomPartic
 		info->setUri(conferenceAddress);
 	}
 
-	time_t startTime = mConfParams->getStartTime();
-	time_t endTime = mConfParams->getEndTime();
+	const time_t startTime = mConfParams->getStartTime();
+	const time_t endTime = mConfParams->getEndTime();
 	info->setDateTime(startTime);
 	if ((startTime >= 0) && (endTime >= 0) && (endTime > startTime)) {
 		unsigned int duration = (static_cast<unsigned int>(endTime - startTime)) / 60;
@@ -1666,7 +1796,7 @@ void Conference::updateParticipantRoleInConferenceInfo(const std::shared_ptr<Par
 		if (info) {
 			const auto &address = participant->getAddress();
 			const auto &newRole = participant->getRole();
-			const auto &participantInfo = info->findParticipant(address);
+			const auto participantInfo = info->findParticipant(address);
 			if (participantInfo) {
 				auto newParticipantInfo = participantInfo->clone()->toSharedPtr();
 				newParticipantInfo->setRole(newRole);
@@ -1925,8 +2055,7 @@ void Conference::setMicrophoneMuted(bool muted) {
 				// has a media session associated to. In such a scenario all calls are muted one by one.
 				auto deviceSession = device->getSession();
 				if (deviceSession) {
-					auto op = deviceSession->getPrivate()->getOp();
-					shared_ptr<Call> call = op ? getCore()->getCallByCallId(op->getCallId()) : nullptr;
+					shared_ptr<Call> call = getCore()->getCallBySession(deviceSession);
 					if (call) {
 						call->setMicrophoneMuted(muted);
 					}
@@ -2022,7 +2151,7 @@ ConferenceLogContextualizer::~ConferenceLogContextualizer() {
 void ConferenceLogContextualizer::pushTag(const Conference &conference) {
 	auto address = conference.getConferenceAddress();
 	if (address) {
-		const char *value = address->getUriParamValueCstr(Conference::ConfIdParameter);
+		const char *value = address->getUriParamValueCstr(Conference::sConfIdParameter);
 		if (!value) value = address->getUsernameCstr();
 		if (!value) value = address->getDomainCstr();
 		if (value) {

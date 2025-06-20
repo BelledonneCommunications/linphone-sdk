@@ -43,121 +43,120 @@ public:
 	                 const std::shared_ptr<const ConferenceParams> params);
 	virtual ~ClientConference();
 
-	virtual void initFromDb(const std::shared_ptr<Participant> &me,
-	                        const ConferenceId conferenceId,
-	                        const unsigned int lastNotifyId,
-	                        bool hasBeenLeft) override;
+	void initFromDb(const std::shared_ptr<Participant> &me,
+	                const ConferenceId conferenceId,
+	                const unsigned int lastNotifyId,
+	                bool hasBeenLeft) override;
 	void initWithFocus(const std::shared_ptr<const Address> &focusAddr,
 	                   const std::shared_ptr<CallSession> &focusSession,
 	                   SalCallOp *op = nullptr,
 	                   ConferenceListener *confListener = nullptr);
-	virtual int inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
-	                            const LinphoneCallParams *params) override;
-	virtual bool dialOutAddresses(const std::list<std::shared_ptr<Address>> &addressList) override;
-	virtual bool addParticipant(const std::shared_ptr<ParticipantInfo> &info) override;
-	virtual bool addParticipants(const std::list<std::shared_ptr<Call>> &call) override;
-	virtual bool addParticipants(const std::list<std::shared_ptr<Address>> &addresses) override;
-	virtual bool addParticipant(std::shared_ptr<Call> call) override;
-	virtual bool addParticipant(const std::shared_ptr<Address> &participantAddress) override;
-	virtual std::shared_ptr<ParticipantDevice> createParticipantDevice(std::shared_ptr<Participant> participant,
-	                                                                   std::shared_ptr<Call> call) override;
-	virtual bool finalizeParticipantAddition(std::shared_ptr<Call> call) override;
+	int inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
+	                    const LinphoneCallParams *params) override;
+	bool dialOutAddresses(const std::list<std::shared_ptr<Address>> &addressList) override;
+	bool addParticipant(const std::shared_ptr<ParticipantInfo> &info) override;
+	bool addParticipants(const std::list<std::shared_ptr<Call>> &call) override;
+	bool addParticipants(const std::list<std::shared_ptr<Address>> &addresses) override;
+	bool addParticipant(const std::shared_ptr<Call> call) override;
+	bool addParticipant(const std::shared_ptr<Address> &participantAddress) override;
+	std::shared_ptr<ParticipantDevice> createParticipantDevice(std::shared_ptr<Participant> &participant,
+	                                                           const std::shared_ptr<Call> &call) override;
+	bool finalizeParticipantAddition(std::shared_ptr<Call> call) override;
 
-	virtual int removeParticipant(const std::shared_ptr<CallSession> &session, const bool preserveSession) override;
-	virtual int removeParticipant(const std::shared_ptr<Address> &addr) override;
-	virtual bool removeParticipant(const std::shared_ptr<Participant> &participant) override;
-	virtual int terminate() override;
-	virtual void init(SalCallOp *op = nullptr, ConferenceListener *confListener = nullptr) override;
-	virtual void finalizeCreation() override;
+	int removeParticipant(const std::shared_ptr<CallSession> &session, const bool preserveSession) override;
+	int removeParticipant(const std::shared_ptr<Address> &addr) override;
+	bool removeParticipant(const std::shared_ptr<Participant> &participant) override;
+	int terminate() override;
+	void init(SalCallOp *op = nullptr, ConferenceListener *confListener = nullptr) override;
+	void finalizeCreation() override;
 
-	virtual int enter() override;
-	virtual void join(const std::shared_ptr<Address> &participantAddress) override;
-	virtual void leave() override;
-	virtual bool isIn() const override;
-	virtual const std::shared_ptr<Address> getOrganizer() const override;
+	int enter() override;
+	void join(const std::shared_ptr<Address> &participantAddress) override;
+	void leave() override;
+	bool isIn() const override;
+	const std::shared_ptr<Address> getOrganizer() const override;
 
-	virtual int startRecording(const std::string &path) override;
+	int startRecording(const std::string &path) override;
 
-	virtual void setLocalParticipantStreamCapability(const LinphoneMediaDirection &direction,
-	                                                 const LinphoneStreamType type) override;
+	void setLocalParticipantStreamCapability(const LinphoneMediaDirection &direction,
+	                                         const LinphoneStreamType type) override;
 
-	virtual AudioControlInterface *getAudioControlInterface() const override;
-	virtual VideoControlInterface *getVideoControlInterface() const override;
-	virtual AudioStream *getAudioStream() override;
+	AudioControlInterface *getAudioControlInterface() const override;
+	VideoControlInterface *getVideoControlInterface() const override;
+	AudioStream *getAudioStream() override;
 
 	void multipartNotifyReceived(const std::shared_ptr<Event> &notifyLev, const Content &content);
 	void notifyReceived(const std::shared_ptr<Event> &notifyLev, const Content &content);
 
-	virtual int participantDeviceMediaCapabilityChanged(const std::shared_ptr<CallSession> &session) override;
-	virtual int participantDeviceMediaCapabilityChanged(const std::shared_ptr<Address> &addr) override;
-	virtual int participantDeviceMediaCapabilityChanged(const std::shared_ptr<Participant> &participant,
-	                                                    const std::shared_ptr<ParticipantDevice> &device) override;
-	virtual int participantDeviceSsrcChanged(const std::shared_ptr<CallSession> &session,
-	                                         const LinphoneStreamType type,
-	                                         uint32_t ssrc) override;
-	virtual int participantDeviceSsrcChanged(const std::shared_ptr<CallSession> &session,
-	                                         uint32_t audioSsrc,
-	                                         uint32_t videoSsrc) override;
-
-	virtual int participantDeviceAlerting(const std::shared_ptr<CallSession> &session) override;
-	virtual int participantDeviceAlerting(const std::shared_ptr<Participant> &participant,
-	                                      const std::shared_ptr<ParticipantDevice> &device) override;
-	virtual int participantDeviceJoined(const std::shared_ptr<CallSession> &session) override;
-	virtual int participantDeviceJoined(const std::shared_ptr<Participant> &participant,
-	                                    const std::shared_ptr<ParticipantDevice> &device) override;
-	virtual int participantDeviceLeft(const std::shared_ptr<CallSession> &session) override;
-	virtual int participantDeviceLeft(const std::shared_ptr<Participant> &participant,
-	                                  const std::shared_ptr<ParticipantDevice> &device) override;
-
-	virtual int getParticipantDeviceVolume(const std::shared_ptr<ParticipantDevice> &device) override;
-
-	virtual void onStateChanged(ConferenceInterface::State state) override;
-	virtual void onParticipantAdded(const std::shared_ptr<ConferenceParticipantEvent> &event,
-	                                const std::shared_ptr<Participant> &participant) override;
-	virtual void onParticipantRemoved(const std::shared_ptr<ConferenceParticipantEvent> &event,
-	                                  const std::shared_ptr<Participant> &participant) override;
-
-	virtual void onParticipantDeviceAdded(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
-	                                      const std::shared_ptr<ParticipantDevice> &device) override;
-	virtual void onParticipantDeviceRemoved(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
-	                                        const std::shared_ptr<ParticipantDevice> &device) override;
-	virtual void onParticipantDeviceStateChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
-	                                             const std::shared_ptr<ParticipantDevice> &device) override;
-	virtual void
-	onParticipantDeviceMediaAvailabilityChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	int participantDeviceMediaCapabilityChanged(const std::shared_ptr<CallSession> &session) override;
+	int participantDeviceMediaCapabilityChanged(const std::shared_ptr<Address> &addr) override;
+	int participantDeviceMediaCapabilityChanged(const std::shared_ptr<Participant> &participant,
 	                                            const std::shared_ptr<ParticipantDevice> &device) override;
-	virtual void onAvailableMediaChanged(const std::shared_ptr<ConferenceAvailableMediaEvent> &event) override;
+	int participantDeviceSsrcChanged(const std::shared_ptr<CallSession> &session,
+	                                 const LinphoneStreamType type,
+	                                 uint32_t ssrc) override;
+	int participantDeviceSsrcChanged(const std::shared_ptr<CallSession> &session,
+	                                 uint32_t audioSsrc,
+	                                 uint32_t videoSsrc) override;
 
-	virtual void onParticipantDeviceScreenSharingChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
-	                                                     const std::shared_ptr<ParticipantDevice> &device) override;
+	int participantDeviceAlerting(const std::shared_ptr<CallSession> &session) override;
+	int participantDeviceAlerting(const std::shared_ptr<Participant> &participant,
+	                              const std::shared_ptr<ParticipantDevice> &device) override;
+	int participantDeviceJoined(const std::shared_ptr<CallSession> &session) override;
+	int participantDeviceJoined(const std::shared_ptr<Participant> &participant,
+	                            const std::shared_ptr<ParticipantDevice> &device) override;
+	int participantDeviceLeft(const std::shared_ptr<CallSession> &session) override;
+	int participantDeviceLeft(const std::shared_ptr<Participant> &participant,
+	                          const std::shared_ptr<ParticipantDevice> &device) override;
 
-	virtual void setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) override;
+	int getParticipantDeviceVolume(const std::shared_ptr<ParticipantDevice> &device) override;
 
-	virtual void onSubjectChanged(const std::shared_ptr<ConferenceSubjectEvent> &event) override;
-	virtual void onParticipantSetRole(const std::shared_ptr<ConferenceParticipantEvent> &event,
-	                                  const std::shared_ptr<Participant> &participant) override;
-	virtual void onParticipantSetAdmin(const std::shared_ptr<ConferenceParticipantEvent> &event,
-	                                   const std::shared_ptr<Participant> &participant) override;
-	virtual bool update(const ConferenceParamsInterface &params) override;
+	void onStateChanged(ConferenceInterface::State state) override;
+	void onParticipantAdded(const std::shared_ptr<ConferenceParticipantEvent> &event,
+	                        const std::shared_ptr<Participant> &participant) override;
+	void onParticipantRemoved(const std::shared_ptr<ConferenceParticipantEvent> &event,
+	                          const std::shared_ptr<Participant> &participant) override;
 
-	virtual void notifyStateChanged(ConferenceInterface::State state) override;
+	void onParticipantDeviceAdded(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	                              const std::shared_ptr<ParticipantDevice> &device) override;
+	void onParticipantDeviceRemoved(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	                                const std::shared_ptr<ParticipantDevice> &device) override;
+	void onParticipantDeviceStateChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	                                     const std::shared_ptr<ParticipantDevice> &device) override;
+	void onParticipantDeviceMediaAvailabilityChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	                                                 const std::shared_ptr<ParticipantDevice> &device) override;
+	void onAvailableMediaChanged(const std::shared_ptr<ConferenceAvailableMediaEvent> &event) override;
+
+	void onParticipantDeviceScreenSharingChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	                                             const std::shared_ptr<ParticipantDevice> &device) override;
+
+	void setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) override;
+
+	void onSubjectChanged(const std::shared_ptr<ConferenceSubjectEvent> &event) override;
+	void onParticipantSetRole(const std::shared_ptr<ConferenceParticipantEvent> &event,
+	                          const std::shared_ptr<Participant> &participant) override;
+	void onParticipantSetAdmin(const std::shared_ptr<ConferenceParticipantEvent> &event,
+	                           const std::shared_ptr<Participant> &participant) override;
+	bool update(const ConferenceParamsInterface &params) override;
+
+	void notifyStateChanged(ConferenceInterface::State state) override;
 
 	void setMainSession(const std::shared_ptr<CallSession> &session);
-	virtual std::shared_ptr<Call> getCall() const override;
+	std::shared_ptr<Call> getCall() const override;
 
-	virtual bool isSubscriptionUnderWay() const override;
+	bool isSubscriptionUnderWay() const override;
 
-	virtual void onConferenceCreated(const std::shared_ptr<Address> &addr) override;
-	virtual void onConferenceKeywordsChanged(const std::vector<std::string> &keywords) override;
-	virtual void onConferenceTerminated(const std::shared_ptr<Address> &addr) override;
-	virtual void onParticipantsCleared() override;
-	virtual void onSecurityEvent(const std::shared_ptr<ConferenceSecurityEvent> &event) override;
-	virtual void onFirstNotifyReceived(const std::shared_ptr<Address> &addr) override;
-	virtual void onFullStateReceived() override;
+	void onConferenceCreated(const std::shared_ptr<Address> &addr) override;
+	void onConferenceKeywordsChanged(const std::vector<std::string> &keywords) override;
+	void onConferenceTerminated(const std::shared_ptr<Address> &addr) override;
+	void onParticipantsCleared() override;
+	void onSecurityEvent(const std::shared_ptr<ConferenceSecurityEvent> &event) override;
+	void onFirstNotifyReceived(const std::shared_ptr<Address> &addr) override;
+	void onFullStateReceived() override;
 
-	virtual void onEphemeralModeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
-	virtual void onEphemeralMessageEnabled(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
-	virtual void onEphemeralLifetimeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
+	void onEphemeralModeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
+	void onEphemeralMessageEnabled(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
+	void onEphemeralLifetimeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
 
 #ifdef HAVE_ADVANCED_IM
 	std::shared_ptr<ClientConferenceEventHandler> mEventHandler;
@@ -179,8 +178,9 @@ public:
 	void createFocus(const std::shared_ptr<const Address> &focusAddr,
 	                 const std::shared_ptr<CallSession> focusSession = nullptr);
 
-	virtual std::pair<bool, LinphoneMediaDirection> getMainStreamVideoDirection(
-	    const std::shared_ptr<CallSession> &session, bool localIsOfferer, bool useLocalParams) const override;
+	std::pair<bool, LinphoneMediaDirection> getMainStreamVideoDirection(const std::shared_ptr<CallSession> &session,
+	                                                                    bool localIsOfferer,
+	                                                                    bool useLocalParams) const override;
 
 	void onCallSessionSetReleased(const std::shared_ptr<CallSession> &session) override;
 	void onCallSessionSetTerminated(const std::shared_ptr<CallSession> &session) override;
@@ -205,8 +205,8 @@ private:
 	void acceptSession(const std::shared_ptr<CallSession> &session);
 	std::shared_ptr<CallSession> createSessionTo(const std::shared_ptr<const Address> &sessionTo);
 	std::shared_ptr<CallSession> createSession();
-	virtual std::shared_ptr<CallSession> getMainSession() const override;
-	virtual std::shared_ptr<ConferenceInfo> createConferenceInfo() const override;
+	std::shared_ptr<CallSession> getMainSession() const override;
+	std::shared_ptr<ConferenceInfo> createConferenceInfo() const override;
 	void updateAndSaveConferenceInformations();
 	bool focusIsReady() const;
 	bool transferToFocus(std::shared_ptr<Call> call);
@@ -217,18 +217,17 @@ private:
 	void onPendingCallStateChanged(std::shared_ptr<Call> call, CallSession::State callState);
 	std::list<Address> cleanAddressesList(const std::list<std::shared_ptr<Address>> &addresses) const;
 
-	virtual void configure(SalCallOp *op) override;
+	void configure(SalCallOp *op) override;
 
 	bool hasBeenLeft() const;
 
-	virtual void createEventHandler(ConferenceListener *confListener = nullptr,
-	                                bool addToListEventHandler = false) override;
+	void createEventHandler(ConferenceListener *confListener = nullptr, bool addToListEventHandler = false) override;
 	void initializeHandlers(ConferenceListener *confListener, bool addToListEventHandler);
 
-	virtual void handleRefer(SalReferOp *op,
-	                         const std::shared_ptr<LinphonePrivate::Address> &referAddr,
-	                         const std::string method) override;
-	virtual bool sessionParamsAllowThumbnails() const override;
+	void handleRefer(SalReferOp *op,
+	                 const std::shared_ptr<LinphonePrivate::Address> &referAddr,
+	                 const std::string method) override;
+	bool sessionParamsAllowThumbnails() const override;
 
 	void callFocus();
 

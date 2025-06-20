@@ -456,28 +456,28 @@ void ServerConferenceEventHandler::addMediaCapabilities(const std::shared_ptr<Pa
 	text.setStatus(XmlUtils::mediaDirectionToMediaStatus(textDirection));
 	endpoint.getMedia().push_back(text);
 
-	MediaType screenSharing = MediaType("4");
-	screenSharing.setDisplayText("thumbnail");
-	screenSharing.setType("video");
+	MediaType thumbnail = MediaType("4");
+	thumbnail.setDisplayText("thumbnail");
+	thumbnail.setType("video");
 
 	const auto &thumbnailVideoDirection = device->getThumbnailStreamCapability();
 	if (thumbnailVideoDirection != LinphoneMediaDirectionInactive) {
 		if (!device->getThumbnailStreamLabel().empty()) {
-			screenSharing.setLabel(device->getThumbnailStreamLabel());
+			thumbnail.setLabel(device->getThumbnailStreamLabel());
 		}
 		if (device->getThumbnailStreamSsrc() > 0) {
-			screenSharing.setSrcId(std::to_string(device->getThumbnailStreamSsrc()));
+			thumbnail.setSrcId(std::to_string(device->getThumbnailStreamSsrc()));
 		}
 	}
-	screenSharing.setStatus(XmlUtils::mediaDirectionToMediaStatus(thumbnailVideoDirection));
+	thumbnail.setStatus(XmlUtils::mediaDirectionToMediaStatus(thumbnailVideoDirection));
 	const auto streamData = StreamData("thumbnail");
-	auto &screenSharingDOMDoc = screenSharing.getDomDocument();
-	::xercesc::DOMElement *e(screenSharingDOMDoc.createElementNS(
+	auto &thumbnailDOMDoc = thumbnail.getDomDocument();
+	::xercesc::DOMElement *e(thumbnailDOMDoc.createElementNS(
 	    ::xsd::cxx::xml::string("linphone:xml:ns:conference-info-linphone-extension").c_str(),
 	    ::xsd::cxx::xml::string("linphone-cie:stream-data").c_str()));
 	*e << streamData;
-	screenSharing.getAny().push_back(e);
-	endpoint.getMedia().push_back(screenSharing);
+	thumbnail.getAny().push_back(e);
+	endpoint.getMedia().push_back(thumbnail);
 }
 
 void ServerConferenceEventHandler::addProtocols(const std::shared_ptr<ParticipantDevice> &device,
@@ -646,7 +646,13 @@ string ServerConferenceEventHandler::createNotifyParticipantAdded(const std::sha
 	user.getRoles()->getEntry().push_back((participant && participant->isAdmin()) ? "admin" : "participant");
 	if (participant) {
 		user.getRoles()->getEntry().push_back(Participant::roleToText(participant->getRole()));
+		auto organizer = conf->getOrganizer();
+		bool isOrganizer = organizer && organizer->weakEqual(*participant->getAddress());
+		if (isOrganizer) {
+			user.getRoles()->getEntry().push_back("organizer");
+		}
 	}
+
 	user.setState(StateType::full);
 
 	confInfo.getUsers()->getUser().push_back(user);
@@ -1127,37 +1133,43 @@ LinphoneStatus ServerConferenceEventHandler::subscribeReceived(const shared_ptr<
 	if (!conf) {
 		return -1;
 	}
-
-	const auto &participantAddress = ev->getFrom();
-	unsigned int lastNotify = conf->getLastNotify();
-
-	shared_ptr<Participant> participant = getConferenceParticipant(participantAddress);
-	if (!participant) {
-		lError() << "Declining SUBSCRIBE because participant " << *participantAddress << " cannot be found in "
-		         << *conf;
-		ev->deny(LinphoneReasonDeclined);
-		return -1;
-	}
-
 	const auto &contactAddr = ev->getRemoteContact();
-	shared_ptr<ParticipantDevice> device = participant->findDevice(contactAddr);
-	const auto deviceState = device ? device->getState() : ParticipantDevice::State::ScheduledForJoining;
-	if (!device ||
-	    ((deviceState != ParticipantDevice::State::Present) && (deviceState != ParticipantDevice::State::Joining))) {
-		lError() << "Received SUBSCRIBE for " << *conf << ", device sending subscribe [" << *contactAddr
-		         << "] is not known, no NOTIFY sent";
+	shared_ptr<ParticipantDevice> device = getConference()->findParticipantDevice(contactAddr);
+	if (!device) {
+		lError() << "Device [" << *contactAddr << "] sending SUBSCRIBE [" << ev << "] is not part of " << *conf
+		         << ", hence declining SUBSCRIBE";
 		ev->deny(LinphoneReasonDeclined);
 		return -1;
 	}
+
+	const auto deviceState = device->getState();
+	if ((deviceState != ParticipantDevice::State::Present) && (deviceState != ParticipantDevice::State::Joining)) {
+		lError() << "Device [" << *contactAddr << "] sending SUBSCRIBE [" << ev << "] to " << *conf
+		         << " cannot be sent NOTIFY messages because it is not in state "
+		         << Utils::toString(ParticipantDevice::State::Joining) << " or "
+		         << Utils::toString(ParticipantDevice::State::Present)
+		         << ", hence declining SUBSCRIBE because its state is " << Utils::toString(deviceState);
+		ev->deny(LinphoneReasonDeclined);
+		return -1;
+	}
+
+	const auto &deviceSession = device->getSession();
+	LinphonePrivacyMask privacy = LinphonePrivacyDefault;
+	if (deviceSession) {
+		privacy = deviceSession->getParams()->getPrivacy();
+	}
+	ev->getOp()->setPrivacy(privacy);
 
 	ev->accept();
 	if (ev->getState() == LinphoneSubscriptionActive) {
+		unsigned int lastNotify = conf->getLastNotify();
 		unsigned int evLastNotify = static_cast<unsigned int>(Utils::stoi(ev->getCustomHeader("Last-Notify-Version")));
 		auto oldEv = device->getConferenceSubscribeEvent();
 		device->setConferenceSubscribeEvent(ev);
 		if (oldEv) {
 			oldEv->terminate();
 		}
+		shared_ptr<Participant> participant = device->getParticipant();
 		const auto &pAddress = participant->getAddress();
 		const auto &dAddress = device->getAddress();
 		if ((evLastNotify == 0) || (deviceState == ParticipantDevice::State::Joining)) {

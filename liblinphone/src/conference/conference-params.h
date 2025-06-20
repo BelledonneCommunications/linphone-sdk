@@ -215,7 +215,6 @@ private:
 	std::string mUtf8Subject = "";
 	mutable std::string mDescription = "";
 	std::string mUtf8Description = "";
-	std::shared_ptr<Address> mMe = nullptr;
 	time_t mEarlierJoiningTime = -1;
 	time_t mExpiryTime = -1;
 	time_t mStartTime = -1;

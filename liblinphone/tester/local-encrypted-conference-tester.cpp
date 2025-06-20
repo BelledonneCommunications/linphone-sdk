@@ -595,13 +595,13 @@ static void create_simple_end_to_end_encrypted_conference_with_participant_added
 			                             liblinphone_tester_sip_timeout));
 			BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_LinphoneCallIncomingReceived, 1,
 			                             liblinphone_tester_sip_timeout));
-			LinphoneCall *berthe_pcall = linphone_core_get_call_by_remote_address2(berthe.getLc(), confAddr);
-			BC_ASSERT_PTR_NOT_NULL(berthe_pcall);
-			if (berthe_pcall) {
+			LinphoneCall *berthe_participant_call = linphone_core_get_call_by_remote_address2(berthe.getLc(), confAddr);
+			BC_ASSERT_PTR_NOT_NULL(berthe_participant_call);
+			if (berthe_participant_call) {
 				if (accept) {
-					linphone_call_accept(berthe_pcall);
+					linphone_call_accept(berthe_participant_call);
 				} else {
-					linphone_call_decline(berthe_pcall, LinphoneReasonDeclined);
+					linphone_call_decline(berthe_participant_call, LinphoneReasonDeclined);
 
 					BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_LinphoneCallEnd, 1,
 					                             liblinphone_tester_sip_timeout));
@@ -650,17 +650,18 @@ static void create_simple_end_to_end_encrypted_conference_with_participant_added
 			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallEncryptedOn, idx,
 			                             liblinphone_tester_sip_timeout));
 
-			berthe_pcall = linphone_core_get_call_by_remote_address2(berthe.getLc(), confAddr);
-			if (berthe_pcall) {
-				const LinphoneCallParams *call_cparams = linphone_call_get_current_params(berthe_pcall);
-				const LinphoneMediaEncryption pcall_enc = linphone_call_params_get_media_encryption(call_cparams);
-				BC_ASSERT_EQUAL(pcall_enc, encryption, int, "%d");
+			berthe_participant_call = linphone_core_get_call_by_remote_address2(berthe.getLc(), confAddr);
+			if (berthe_participant_call) {
+				const LinphoneCallParams *call_cparams = linphone_call_get_current_params(berthe_participant_call);
+				const LinphoneMediaEncryption participant_call_enc =
+				    linphone_call_params_get_media_encryption(call_cparams);
+				BC_ASSERT_EQUAL(participant_call_enc, encryption, int, "%d");
 			}
-			LinphoneCall *berthe_ccall =
+			LinphoneCall *focus_berthe_call =
 			    linphone_core_get_call_by_remote_address2(focus.getLc(), berthe.getCMgr()->identity);
-			BC_ASSERT_PTR_NOT_NULL(berthe_ccall);
-			if (berthe_ccall) {
-				const LinphoneCallParams *call_cparams = linphone_call_get_current_params(berthe_ccall);
+			BC_ASSERT_PTR_NOT_NULL(focus_berthe_call);
+			if (focus_berthe_call) {
+				const LinphoneCallParams *call_cparams = linphone_call_get_current_params(focus_berthe_call);
 				const LinphoneMediaEncryption ccall_enc = linphone_call_params_get_media_encryption(call_cparams);
 				BC_ASSERT_EQUAL(ccall_enc, encryption, int, "%d");
 			}

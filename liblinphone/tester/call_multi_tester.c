@@ -1056,7 +1056,7 @@ static void call_accepted_while_another_one_is_updating(bool_t update_from_calle
 	const LinphoneCallParams *phead_params = linphone_call_get_params(phead_call);
 	BC_ASSERT_TRUE(linphone_call_params_video_enabled(phead_params));
 
-	LinphoneCall *pcall = NULL;
+	LinphoneCall *participant_call = NULL;
 	unsigned int no_paused_by_remote = 0;
 	LinphoneCoreManager *pm = NULL;
 	for (bctbx_list_t *it = participants; it; it = bctbx_list_next(it)) {
@@ -1066,15 +1066,15 @@ static void call_accepted_while_another_one_is_updating(bool_t update_from_calle
 		if (call) {
 			no_paused_by_remote += (linphone_call_get_state(call) == LinphoneCallPausedByRemote) ? 1 : 0;
 			if (linphone_call_get_state(call) == LinphoneCallStreamsRunning) {
-				pcall = call;
+				participant_call = call;
 				pm = m;
 			}
 		}
 	}
 
-	BC_ASSERT_PTR_NOT_NULL(pcall);
-	if (pcall) {
-		char *p_remote_address = linphone_call_get_remote_address_as_string(pcall);
+	BC_ASSERT_PTR_NOT_NULL(participant_call);
+	if (participant_call) {
+		char *p_remote_address = linphone_call_get_remote_address_as_string(participant_call);
 		char *marie_identity = linphone_address_as_string(marie->identity);
 		BC_ASSERT_EQUAL(strcmp(p_remote_address, marie_identity), 0, int, "%d");
 		ms_free(p_remote_address);

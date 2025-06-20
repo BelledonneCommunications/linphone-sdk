@@ -156,7 +156,8 @@ const std::string &ConferenceId::getIdentifier() const {
 
 Address ConferenceId::reducedAddress(const Address &addr) {
 	Address ret = addr.getUriWithoutGruu();
-	ret.removeUriParam(Conference::SecurityModeParameter);
+	ret.removeUriParam(Conference::sSecurityModeParameter);
+	ret.removeUriParam(Address::sTransportParameter);
 	return ret;
 }
 

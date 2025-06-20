@@ -100,7 +100,8 @@ public:
 		Resuming = 6
 	};
 
-	static const std::map<PredefinedSubjectType, std::string> predefinedSubject;
+	static const std::map<PredefinedSubjectType, std::string> sPredefinedSubject;
+	static const std::string sAnonymousUri;
 
 	CallSession(const std::shared_ptr<Core> &core, const CallSessionParams *params);
 	void addListener(std::shared_ptr<CallSessionListener> listener);
@@ -244,11 +245,10 @@ protected:
 	CallSession::State getLastStableState() const;
 	void fillParametersIntoContactAddress(Address &contactAddress) const;
 	void assignAccount(const std::shared_ptr<Account> &account);
+	void setOpPrivacy();
 
 private:
-	// bool mIsDeclining = false;
 	bool mIsAccepting = false;
-	// LinphoneErrorInfo *mErrorCache = nullptr;
 	L_DECLARE_PRIVATE(CallSession);
 	L_DISABLE_COPY(CallSession);
 };

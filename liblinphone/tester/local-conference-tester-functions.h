@@ -259,6 +259,9 @@ private:
 			const LinphoneAccountParams *account_params = linphone_account_get_params(account);
 			LinphoneAccountParams *new_account_params = linphone_account_params_clone(account_params);
 			linphone_account_params_enable_rtp_bundle(new_account_params, TRUE);
+			// Avoid using the client's Privacy policy as it is the one used by default on incoming calls per
+			// section 4.2 of RFC 3323
+			linphone_account_params_set_privacy(new_account_params, LinphonePrivacyNone);
 			linphone_account_params_set_conference_factory_address(
 			    new_account_params, linphone_account_params_get_identity_address(account_params));
 			linphone_account_set_params(account, new_account_params);
@@ -389,6 +392,10 @@ void does_all_participants_have_matching_ekt(LinphoneCoreManager *focus,
                                              std::map<LinphoneCoreManager *, LinphoneParticipantInfo *> members,
                                              const LinphoneAddress *confAddr);
 
+bool_t check_thumbnail_availability(const LinphoneCoreManager *mgr, const LinphoneAddress *confAddr);
+bool_t check_screen_sharing(const LinphoneCoreManager *mgr,
+                            const LinphoneAddress *confAddr,
+                            const LinphoneCoreManager *screen_sharing_mgr);
 void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
                                  std::list<LinphoneCoreManager *> conferenceMgrs,
                                  LinphoneCoreManager *focus,
@@ -397,7 +404,7 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
                                  bool_t enable_video);
 
 void check_muted(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
-                 const LinphoneParticipantDevice *d,
+                 const LinphoneParticipantDevice *device,
                  std::list<LinphoneCoreManager *> mutedMgrs);
 
 void two_overlapping_conferences_base(bool_t same_organizer, bool_t is_dialout);

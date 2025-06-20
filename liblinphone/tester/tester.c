@@ -51,7 +51,6 @@
 #include "linphone/api/c-participant.h"
 #include "linphone/api/c-search-result.h"
 #include "linphone/core.h"
-#include "linphone/logging.h"
 #include "logging-private.h"
 #include "shared_tester_functions.h"
 #include "tester_utils.h"
@@ -206,7 +205,7 @@ int liblinphone_tester_audio_diff(const char *ref_file,
                                   void *user_data) {
 	int ret_value;
 #ifndef _WIN32
-	int current_priority = getpriority(PRIO_PROCESS, 0);
+	const int current_priority = getpriority(PRIO_PROCESS, 0);
 	/* be nice */
 	int err = setpriority(PRIO_PROCESS, 0, 5);
 	if (err != 0) {
@@ -422,7 +421,9 @@ bool_t wait_for_list(bctbx_list_t *lcs, const int *counter, int value, int timeo
 			linphone_core_iterate((LinphoneCore *)(iterator->data));
 		}
 #ifdef LINPHONE_WINDOWS_UWP
-		{ bc_tester_process_events(); }
+		{
+			bc_tester_process_events();
+		}
 #elif defined(LINPHONE_WINDOWS_DESKTOP)
 		{
 			MSG msg;
@@ -452,7 +453,9 @@ bool_t wait_for_list_for_uint64(bctbx_list_t *lcs, const uint64_t *counter, uint
 			linphone_core_iterate((LinphoneCore *)(iterator->data));
 		}
 #ifdef LINPHONE_WINDOWS_UWP
-		{ bc_tester_process_events(); }
+		{
+			bc_tester_process_events();
+		}
 #elif defined(LINPHONE_WINDOWS_DESKTOP)
 		{
 			MSG msg;
@@ -5991,21 +5994,23 @@ int find_matching_participant_info(const LinphoneParticipantInfo *info1, const L
 
 LinphoneParticipantInfo *add_participant_info_to_list(bctbx_list_t **participants_info,
                                                       const LinphoneAddress *address,
-                                                      LinphoneParticipantRole role,
+                                                      const LinphoneParticipantRole role,
                                                       int sequence) {
 	LinphoneParticipantInfo *ret = NULL;
 	LinphoneParticipantInfo *participant_info = linphone_participant_info_new(address);
-	linphone_participant_info_set_role(participant_info, role);
-	linphone_participant_info_set_sequence_number(participant_info, sequence);
-	const bctbx_list_t *participant_info_it = bctbx_list_find_custom(
-	    *participants_info, (int (*)(const void *, const void *))find_matching_participant_info, participant_info);
-	if (participant_info_it) {
-		ret = (LinphoneParticipantInfo *)bctbx_list_get_data(participant_info_it);
-	} else {
-		ret = linphone_participant_info_ref(participant_info);
-		*participants_info = bctbx_list_append(*participants_info, ret);
+	if (participant_info) {
+		linphone_participant_info_set_role(participant_info, role);
+		linphone_participant_info_set_sequence_number(participant_info, sequence);
+		const bctbx_list_t *participant_info_it = bctbx_list_find_custom(
+		    *participants_info, (int (*)(const void *, const void *))find_matching_participant_info, participant_info);
+		if (participant_info_it) {
+			ret = (LinphoneParticipantInfo *)bctbx_list_get_data(participant_info_it);
+		} else {
+			ret = linphone_participant_info_ref(participant_info);
+			*participants_info = bctbx_list_append(*participants_info, ret);
+		}
+		linphone_participant_info_unref(participant_info);
 	}
-	linphone_participant_info_unref(participant_info);
 	return ret;
 }
 
@@ -6129,7 +6134,10 @@ void compare_conference_infos(const LinphoneConferenceInfo *info1,
 	if (info1 && info2) {
 		BC_ASSERT_TRUE(linphone_address_weak_equal(linphone_conference_info_get_organizer(info1),
 		                                           linphone_conference_info_get_organizer(info2)));
-
+		if (!linphone_address_weak_equal(linphone_conference_info_get_organizer(info1),
+		                                 linphone_conference_info_get_organizer(info2))) {
+			abort();
+		}
 		BC_ASSERT_TRUE(
 		    linphone_address_equal(linphone_conference_info_get_uri(info1), linphone_conference_info_get_uri(info2)));
 
@@ -6225,4 +6233,25 @@ void compare_conference_infos(const LinphoneConferenceInfo *info1,
 		const bool_t chat_enabled2 = linphone_conference_info_get_capability(info2, LinphoneStreamTypeText);
 		BC_ASSERT_EQUAL(chat_enabled1, chat_enabled2, int, "%d");
 	}
+}
+
+LinphoneCall *get_peer_call(const LinphoneCoreManager *mgr, const LinphoneCall *participant_call) {
+	LinphoneCall *focus_call = NULL;
+	if (participant_call) {
+		LinphoneCallLog *participant_call_log = linphone_call_get_call_log(participant_call);
+		const char *participant_call_id = linphone_call_log_get_call_id(participant_call_log);
+		if (participant_call_id) {
+			focus_call = linphone_core_get_call_by_callid(mgr->lc, participant_call_id);
+		}
+	}
+	return focus_call;
+}
+
+bool_t is_anonymous_address(const LinphoneAddress *address) {
+	const char *anonymous = "anonymous";
+	const char *display_name = linphone_address_get_display_name(address);
+	const char *username = linphone_address_get_username(address);
+	const char *domain = linphone_address_get_domain(address);
+	return ((display_name && (strcasecmp(display_name, anonymous) == 0)) ||
+	        (username && (strcmp(username, anonymous) == 0)) || (domain && (strcasecmp(domain, anonymous) == 0)));
 }

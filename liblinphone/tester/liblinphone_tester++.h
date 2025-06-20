@@ -73,7 +73,9 @@ public:
 	CoreManager(const char *rc_file) : mMgr(linphone_core_manager_new(rc_file)) {
 	}
 	~CoreManager() {
-		lInfo() << "Core manager for [" << getIdentity() << "] destroyed";
+		const auto identity = getIdentity();
+		lInfo() << "Core manager for ["
+		        << (identity.isValid() ? identity.toString() : std::string("<unknown-identity>")) << "] destroyed";
 	}
 
 	// Accessors
@@ -112,7 +114,7 @@ public:
 		return borrowed_mut(linphone_core_get_default_proxy_config(mMgr->lc));
 	}
 	LinphonePrivate::Address getIdentity() const {
-		return *LinphonePrivate::Address::toCpp(mMgr->identity);
+		return mMgr->identity ? *LinphonePrivate::Address::toCpp(mMgr->identity) : LinphonePrivate::Address();
 	}
 	std::shared_ptr<LinphonePrivate::Call> getCurrentCall() {
 		return getCore().getCurrentCall();

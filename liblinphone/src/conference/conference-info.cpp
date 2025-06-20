@@ -49,7 +49,7 @@ const std::shared_ptr<Address> &ConferenceInfo::getOrganizerAddress() const {
 }
 
 void ConferenceInfo::setOrganizer(const std::shared_ptr<const ParticipantInfo> &organizer) {
-	const auto &participant = findParticipant(organizer);
+	const auto participant = findParticipant(organizer);
 	if (participant) {
 		mOrganizer = participant;
 		mOrganizer->addParameters(organizer->getAllParameters());
@@ -164,15 +164,12 @@ void ConferenceInfo::addParticipant(const std::shared_ptr<const ParticipantInfo>
 		}
 		mParticipants.push_back(newInfo);
 		if (logActivity) {
-			lInfo() << *participantInfo << " has been added to conference info " << this << " (address " << uriString
-			        << ") with role " << newInfo->getRole();
+			lInfo() << *participantInfo << " has been added to " << *this << " with role " << newInfo->getRole();
 		} else {
-			lDebug() << *participantInfo << " has been added to conference info " << this << " (address " << uriString
-			         << ") with role " << newInfo->getRole();
+			lDebug() << *participantInfo << " has been added to " << *this << " with role " << newInfo->getRole();
 		}
 	} else {
-		lInfo() << *participantInfo << " is already in the list of conference info " << this << " (address "
-		        << uriString << ")";
+		lInfo() << *participantInfo << " is already in the list of " << *this;
 		if (isOrganizer) {
 			// Update the organizer parameters
 			participant->addParameters(participantInfo->getAllParameters());
@@ -190,14 +187,12 @@ void ConferenceInfo::removeParticipant(const std::shared_ptr<const ParticipantIn
 	const auto uriString = (getUri() ? getUri()->toString() : std::string("sip:"));
 	if (hasParticipant(participantInfo)) {
 		if (logActivity) {
-			lInfo() << *participantInfo << " has been removed from conference info " << this << " (address "
-			        << uriString << ")";
+			lInfo() << *participantInfo << " has been removed from " << *this;
 		}
 		auto it = findParticipantIt(participantInfo);
 		mParticipants.erase(it);
 	} else {
-		lDebug() << "Unable to remove " << *participantInfo << " from conference info " << this << " (address "
-		         << uriString << ")";
+		lDebug() << "Unable to remove " << *participantInfo << " from " << *this;
 	}
 }
 
@@ -205,33 +200,30 @@ void ConferenceInfo::removeParticipant(const std::shared_ptr<const Address> &par
 	const auto uriString = (getUri() ? getUri()->toString() : std::string("sip:"));
 	if (hasParticipant(participant)) {
 		if (logActivity) {
-			lInfo() << "Participant with address " << *participant << " has been removed from conference info " << this
-			        << " (address " << uriString << ")";
+			lInfo() << "Participant with address " << *participant << " has been removed from " << *this;
 		}
 		auto it = findParticipantIt(participant);
 		mParticipants.erase(it);
 	} else {
-		lDebug() << "Unable to remove participant with address " << *participant << " from conference info " << this
-		         << " (address " << uriString << ")";
+		lDebug() << "Unable to remove participant with address " << *participant << " from " << *this;
 	}
 }
 
 void ConferenceInfo::updateParticipant(const std::shared_ptr<const ParticipantInfo> &participantInfo) {
 	const auto uriString = (getUri() ? getUri()->toString() : std::string("sip:"));
 	if (hasParticipant(participantInfo)) {
-		lInfo() << "Updating " << *participantInfo << " in conference info " << this << " (address " << uriString
-		        << ")";
+		lInfo() << "Updating " << *participantInfo << " in " << *this;
 		removeParticipant(participantInfo, false);
 		addParticipant(participantInfo, false);
 	} else {
-		lError() << "Unable to update informations of " << *participantInfo << " in conference info " << this
-		         << " (address " << uriString << ") because he/she has not been found in the list of participants";
+		lError() << "Unable to update informations of " << *participantInfo << " in " << *this
+		         << " because he/she has not been found in the list of participants";
 	}
 }
 
 ConferenceInfo::participant_list_t::const_iterator ConferenceInfo::findParticipantIt(const std::string &ccmpUri) const {
 	if (ccmpUri.empty()) {
-		lError() << "Unable to find a participant that has an empty CCMP uri";
+		lError() << *this << ": Unable to find a participant that has an empty CCMP uri";
 		return mParticipants.cend();
 	}
 	return std::find_if(mParticipants.begin(), mParticipants.end(), [&ccmpUri](const auto &p) {
@@ -246,8 +238,7 @@ const std::shared_ptr<ParticipantInfo> ConferenceInfo::findParticipant(const std
 		return *it;
 	};
 	const auto uriString = (getUri() ? getUri()->toString() : std::string("sip:"));
-	lDebug() << "Unable to find participant with CCMP uri [" << ccmpUri << "] in conference info " << this
-	         << " (address " << uriString << ")";
+	lDebug() << "Unable to find participant with CCMP uri [" << ccmpUri << "] in " << *this;
 	return nullptr;
 }
 
@@ -275,8 +266,7 @@ ConferenceInfo::findParticipant(const std::shared_ptr<const Address> &address) c
 	};
 	const auto addressString = (address ? address->toString() : std::string("sip:"));
 	const auto uriString = (getUri() ? getUri()->toString() : std::string("sip:"));
-	lDebug() << "Unable to find participant with address [" << addressString << "] in conference info " << this
-	         << " (address " << uriString << ")";
+	lDebug() << "Unable to find participant with address [" << addressString << "] in " << *this;
 	return nullptr;
 }
 
@@ -289,7 +279,7 @@ ConferenceInfo::findParticipantIt(const std::shared_ptr<const ParticipantInfo> &
 	const auto &address = participantInfo->getAddress();
 	const auto &ccmpUri = participantInfo->getCcmpUri();
 	if (!address && ccmpUri.empty()) {
-		lError() << "Unable to find a participant that has neither a valid SIP address nor a CCMP uri";
+		lError() << "Unable to find a participant that has neither a valid SIP address nor a CCMP uri in " << *this;
 		return mParticipants.cend();
 	}
 	ConferenceInfo::participant_list_t::const_iterator it = mParticipants.cend();
@@ -311,8 +301,7 @@ ConferenceInfo::findParticipant(const std::shared_ptr<const ParticipantInfo> &pa
 		return *it;
 	};
 	const auto uriString = (getUri() ? getUri()->toString() : std::string("sip:"));
-	lDebug() << "Unable to find " << *participantInfo << " in conference info " << this << " (address " << uriString
-	         << ")";
+	lDebug() << "Unable to find " << *participantInfo << " in " << *this;
 	return nullptr;
 }
 
@@ -448,7 +437,7 @@ const ConferenceInfo::State &ConferenceInfo::getState() const {
 
 void ConferenceInfo::setState(const ConferenceInfo::State &state) {
 	if (mState != state) {
-		lInfo() << "[Conference Info] [" << this << "] moving from state " << mState << " to state " << state;
+		lInfo() << *this << " moving from state " << mState << " to state " << state;
 		mState = state;
 	}
 }

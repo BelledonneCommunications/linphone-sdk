@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2024 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -534,6 +534,13 @@ void SalCallOp::processResponseCb(void *userCtx, const belle_sip_response_event_
 							if (!op->mDialog) op->setReleased();
 						}
 					}
+				} else if (code == 100) {
+					// Assign op's contact address as it might be chosen by belle-sip when the channel connection is set
+					const auto contact_header =
+					    belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(request), belle_sip_header_contact_t);
+					if (contact_header) {
+						op->setContactAddressFromHeader(contact_header);
+					}
 				} else if ((code >= 180) && (code < 200)) {
 					auto *previousResponse = dialog ? static_cast<belle_sip_response_t *>(belle_sip_object_data_get(
 					                                      BELLE_SIP_OBJECT(dialog), "early_response"))
@@ -593,6 +600,12 @@ void SalCallOp::processResponseCb(void *userCtx, const belle_sip_response_event_
 				case State::Active: // Re-invite, INFO, UPDATE case
 					if (method == "INVITE") {
 						if ((code >= 200) && (code < 300)) {
+							// Assign op's contact address as it might have changed by a reINVITE
+							const auto contact_header = belle_sip_message_get_header_by_type(
+							    BELLE_SIP_MESSAGE(request), belle_sip_header_contact_t);
+							if (contact_header) {
+								op->setContactAddressFromHeader(contact_header);
+							}
 							op->handleBodyFromResponse(response);
 							belle_sip_header_cseq_t *invite_cseq =
 							    belle_sip_message_get_header_by_type(request, belle_sip_header_cseq_t);
@@ -1173,7 +1186,11 @@ int SalCallOp::call(const SalAddress *from, const SalAddress *to, const string &
 	setFromAddress(from);
 	setToAddress(to);
 
-	lInfo() << "[" << from << "] calling [" << to << "] on op [" << this << "]";
+	char *fromString = sal_address_as_string(from);
+	char *toString = sal_address_as_string(to);
+	lInfo() << "[" << fromString << "] calling [" << toString << "] on op [" << this << "]";
+	ms_free(fromString);
+	ms_free(toString);
 
 	belle_sip_request_t *invite = buildRequest("INVITE");
 	if (!invite) // Can happen if the op has an invalid address

@@ -327,7 +327,7 @@ public:
 	std::unique_ptr<LogContextualizer> getLogContextualizer() override;
 
 	std::shared_ptr<Conference> getConference() const;
-	void setConference(std::shared_ptr<Conference> ref);
+	void setConference(const std::shared_ptr<Conference> &ref);
 	void reenterLocalConference(const std::shared_ptr<CallSession> &session);
 	MSAudioEndpoint *getEndpoint() const;
 	void setEndpoint(MSAudioEndpoint *endpoint);

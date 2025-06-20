@@ -42,7 +42,10 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
-const std::map<CallSession::PredefinedSubjectType, std::string> CallSession::predefinedSubject{
+// URI as described by RFC5379: https://www.rfc-editor.org/rfc/rfc5379#section-5.1.4
+const std::string CallSession::sAnonymousUri = "sip:anonymous@anonymous.invalid";
+
+const std::map<CallSession::PredefinedSubjectType, std::string> CallSession::sPredefinedSubject{
     {CallSession::PredefinedSubjectType::Conference, "Conference"},
     {CallSession::PredefinedSubjectType::InternalUpdate, "ICE processing concluded"},
     {CallSession::PredefinedSubjectType::Refresh, "Refreshing"},
@@ -124,7 +127,7 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 					if (call) {
 						const std::shared_ptr<Address> to = Address::create(op->getTo());
 						// Server conference
-						if (to->hasUriParam(Conference::ConfIdParameter)) {
+						if (to->hasUriParam(Conference::sConfIdParameter)) {
 							shared_ptr<Conference> conference = core->findConference(
 							    ConferenceId(to, to, q->getCore()->createConferenceIdParams()), false);
 
@@ -134,7 +137,7 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 							}
 						} else if (op->getRemoteContactAddress()) {
 							if (sal_address_has_param(op->getRemoteContactAddress(),
-							                          Conference::IsFocusParameter.c_str())) {
+							                          Conference::sIsFocusParameter.c_str())) {
 								const auto &conferenceInfo = Utils::createConferenceInfoFromOp(op, true);
 								if (conferenceInfo->getUri()->isValid()) {
 #ifdef HAVE_DB_STORAGE
@@ -711,6 +714,25 @@ void CallSessionPrivate::init() {
 }
 
 // -----------------------------------------------------------------------------
+void CallSession::setOpPrivacy() {
+	L_D();
+	auto params = d->params;
+	LinphonePrivacyMask privacyMask = LinphonePrivacyDefault;
+	if (params) {
+		privacyMask = params->getPrivacy();
+	}
+	if (privacyMask == LinphonePrivacyDefault) {
+		auto account = d->getDestAccount();
+		if (account) {
+			const auto &accountParams = account->getAccountParams();
+			if (accountParams) {
+				privacyMask = accountParams->getPrivacy();
+				params->setPrivacy(privacyMask);
+			}
+		}
+	}
+	d->op->setPrivacy((SalPrivacyMask)privacyMask);
+}
 
 void CallSessionPrivate::accept(const CallSessionParams *csp) {
 	L_Q();
@@ -722,6 +744,7 @@ void CallSessionPrivate::accept(const CallSessionParams *csp) {
 		op->setSentCustomHeaders(params->getPrivate()->getCustomHeaders());
 	}
 
+	q->setOpPrivacy();
 	op->accept();
 	setState(CallSession::State::Connected, "Connected");
 }
@@ -896,12 +919,12 @@ LinphoneStatus CallSessionPrivate::startUpdate(const CallSession::UpdateMethod m
 		const auto conference = q->getCore()->findConference(q->getSharedFromThis(), false);
 		if (!conference) {
 			if (isInConference())
-				newSubject = CallSession::predefinedSubject.at(CallSession::PredefinedSubjectType::Conference);
+				newSubject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::Conference);
 			else if (q->getParams()->getPrivate()->getInternalCallUpdate())
-				newSubject = CallSession::predefinedSubject.at(CallSession::PredefinedSubjectType::InternalUpdate);
+				newSubject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::InternalUpdate);
 			else if (q->getParams()->getPrivate()->getNoUserConsent())
-				newSubject = CallSession::predefinedSubject.at(CallSession::PredefinedSubjectType::Refresh);
-			else newSubject = CallSession::predefinedSubject.at(CallSession::PredefinedSubjectType::MediaChange);
+				newSubject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::Refresh);
+			else newSubject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::MediaChange);
 		}
 	}
 
@@ -1134,9 +1157,7 @@ void CallSessionPrivate::createOpTo(const std::shared_ptr<Address> &to) {
 	if (params->getPrivate()->getReferer()) op->setReferrer(params->getPrivate()->getReferer()->getPrivate()->getOp());
 	linphone_configure_op_with_account(core, op, to->toC(), q->getParams()->getPrivate()->getCustomHeaders(), false,
 	                                   toC(getDestAccount()));
-	if (q->getParams()->getPrivacy() != LinphonePrivacyDefault)
-		op->setPrivacy((SalPrivacyMask)q->getParams()->getPrivacy());
-	/* else privacy might be set by account */
+	q->setOpPrivacy();
 }
 
 // -----------------------------------------------------------------------------
@@ -1359,8 +1380,7 @@ CallSession::CallSession(const shared_ptr<Core> &core, const CallSessionParams *
 	getCore()->getPrivate()->registerListener(d);
 	if (params) d->setParams(new CallSessionParams(*params));
 	d->init();
-	lInfo() << "New CallSession [" << this << "] initialized (LinphoneCore version: " << linphone_core_get_version()
-	        << ")";
+	lInfo() << "New " << *this << " initialized (LinphoneCore version: " << linphone_core_get_version() << ")";
 }
 
 CallSession::CallSession(CallSessionPrivate &p, const shared_ptr<Core> &core) : Object(p), CoreAccessor(core) {
@@ -1483,7 +1503,7 @@ void CallSession::configure(LinphoneCallDir direction, const string &callid) {
 	d->direction = direction;
 
 	// Keeping a valid address while following https://www.ietf.org/rfc/rfc3323.txt guidelines.
-	const auto anonymous = Address::create("Anonymous <sip:anonymous@anonymous.invalid>");
+	const auto anonymous = Address::create(std::string("Anonymous <") + CallSession::sAnonymousUri + std::string(">"));
 	d->log = CallLog::create(getCore(), direction, anonymous, anonymous);
 	d->log->setCallId(callid);
 
@@ -1566,7 +1586,7 @@ LinphoneStatus CallSession::decline(LinphoneReason reason) {
 LinphoneStatus CallSession::decline(const LinphoneErrorInfo *ei) {
 	L_D();
 	if (d->state == CallSession::State::PushIncomingReceived && !d->op) {
-		lInfo() << "[pushkit] Terminate CallSession [" << this << "]";
+		lInfo() << "[pushkit] Terminate " << *this << "";
 		linphone_error_info_set(d->ei, nullptr, LinphoneReasonDeclined, 3, "Declined", nullptr);
 		d->terminate();
 		d->setState(LinphonePrivate::CallSession::State::Released, "Call released");
@@ -1824,16 +1844,14 @@ int CallSession::startInvite(const std::shared_ptr<Address> &destination,
 
 LinphoneStatus CallSession::terminate(const LinphoneErrorInfo *ei) {
 	L_D();
-	lInfo() << "Terminate CallSession [" << this << "] which is currently in state [" << Utils::toString(d->state)
-	        << "]";
+	lInfo() << "Terminate " << *this << " which is currently in state [" << Utils::toString(d->state) << "]";
 	SalErrorInfo sei;
 	memset(&sei, 0, sizeof(sei));
 	switch (d->state) {
 		case CallSession::State::Released:
 		case CallSession::State::End:
 		case CallSession::State::Error:
-			lWarning() << "No need to terminate CallSession [" << this << "] in state [" << Utils::toString(d->state)
-			           << "]";
+			lWarning() << "No need to terminate " << *this << " in state [" << Utils::toString(d->state) << "]";
 			return -1;
 		case CallSession::State::IncomingReceived:
 		case CallSession::State::PushIncomingReceived:
@@ -1885,10 +1903,12 @@ LinphoneStatus CallSession::update(const CallSessionParams *csp,
 	L_D();
 	CallSession::State nextState;
 	CallSession::State initialState = d->state;
-	if (!d->isUpdateAllowed(nextState)) return -1;
+	if (!d->isUpdateAllowed(nextState)) {
+		return -1;
+	}
 	d->setState(nextState, "Updating call");
 	if (d->currentParams == csp)
-		lWarning() << "CallSession::update() is given the current params, this is probably not what you intend to do!";
+		lWarning() << *this << " is given the current params, this is probably not what you intend to do!";
 	if (csp) d->setParams(new CallSessionParams(*csp));
 
 	list<Content> contentList;
@@ -2213,8 +2233,12 @@ void CallSession::updateContactAddressInOp() {
 	}
 
 	fillParametersIntoContactAddress(contactAddress);
-	lInfo() << "Updating contact address for session " << this << " to " << contactAddress;
-	d->op->setContactAddress(contactAddress.getImpl());
+	if (contactAddress.isValid()) {
+		lInfo() << "Updating contact address for " << *this << " to " << contactAddress;
+		if (d->op) {
+			d->op->setContactAddress(contactAddress.getImpl());
+		}
+	}
 }
 
 void CallSession::addPendingAction(std::function<LinphoneStatus()> f) {
@@ -2243,9 +2267,9 @@ bool CallSession::isEarlyState(CallSession::State state) {
 }
 
 bool CallSession::isPredefinedSubject(const std::string &subject) {
-	return std::find_if(CallSession::predefinedSubject.cbegin(), CallSession::predefinedSubject.cend(),
+	return std::find_if(CallSession::sPredefinedSubject.cbegin(), CallSession::sPredefinedSubject.cend(),
 	                    [&subject](const auto &element) { return (subject.compare(element.second) == 0); }) !=
-	       CallSession::predefinedSubject.cend();
+	       CallSession::sPredefinedSubject.cend();
 }
 
 bool CallSession::areSoundResourcesAvailable() {

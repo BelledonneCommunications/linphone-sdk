@@ -35,6 +35,8 @@ LINPHONE_BEGIN_NAMESPACE
 
 std::unordered_map<std::string, std::unique_ptr<SalAddress, Address::SalAddressDeleter>> Address::sAddressCache;
 
+const std::string Address::sTransportParameter = "transport";
+
 SalAddress *Address::getSalAddressFromCache(const string &address, bool assumeGrUri) {
 	auto &ptr = sAddressCache[address];
 	if (ptr) return sal_address_clone(ptr.get());

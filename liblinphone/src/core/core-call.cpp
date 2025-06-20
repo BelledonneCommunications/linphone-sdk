@@ -19,7 +19,6 @@
  */
 
 #include <algorithm>
-#include <math.h>
 
 #include "account/account.h"
 #include "call/call.h"
@@ -30,9 +29,6 @@
 #include "core-p.h"
 #include "linphone/api/c-call-log.h"
 #include "logger/logger.h"
-
-// TODO: Remove me later.
-#include "c-wrapper/c-wrapper.h"
 
 // =============================================================================
 
@@ -63,6 +59,12 @@ int CorePrivate::addCall(const shared_ptr<Call> &call) {
 		 * AudioUnit to stop working.
 		 */
 		linphone_core_stop_dtmf_stream(q->getCCore());
+	}
+
+	// Avoid adding twice the same call
+	const auto it = std::find_if(calls.cbegin(), calls.cend(), [&call](const auto &c) { return c == call; });
+	if (it != calls.cend()) {
+		return -1;
 	}
 	calls.push_back(call);
 
@@ -288,7 +290,24 @@ shared_ptr<Call> Core::getCallByCallId(const string &callId) const {
 	}
 
 	for (const auto &call : d->calls) {
-		if (!call->getLog()->getCallId().empty() && call->getLog()->getCallId() == callId) {
+		const auto &id = call->getLog()->getCallId();
+		if (!id.empty() && (id == callId)) {
+			return call;
+		}
+	}
+
+	return nullptr;
+}
+
+shared_ptr<Call> Core::getCallBySession(const std::shared_ptr<CallSession> &session) const {
+	L_D();
+	if (!session) {
+		return nullptr;
+	}
+
+	for (const auto &call : d->calls) {
+		const auto &callSession = call->getActiveSession();
+		if (callSession && (callSession == session)) {
 			return call;
 		}
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -105,26 +105,7 @@ void SalRegisterOp::registerRefresherListener(belle_sip_refresher_t *refresher,
 		op->mRoot->removePendingAuth(op); // Just in case
 
 		if (contactHeader) {
-			auto p = BELLE_SIP_PARAMETERS(contactHeader);
-			const char *gruu = belle_sip_parameters_get_parameter(p, "pub-gruu");
-
-			if (gruu) {
-				char *unquotedGruu = belle_sip_unquote_strdup(gruu);
-				auto parsedGruu = reinterpret_cast<SalAddress *>(belle_sip_header_address_parse(unquotedGruu));
-
-				if (parsedGruu != nullptr) {
-					op->setContactAddress(parsedGruu);
-				} else {
-					// Gruu is not valid, act as if there was none
-					op->setContactAddress(reinterpret_cast<SalAddress *>(BELLE_SIP_HEADER_ADDRESS(contactHeader)));
-				}
-
-				bctbx_free(unquotedGruu);
-				belle_sip_parameters_remove_parameter(p, "pub-gruu");
-			} else {
-				// Update contact with real value
-				op->setContactAddress(reinterpret_cast<SalAddress *>(BELLE_SIP_HEADER_ADDRESS(contactHeader)));
-			}
+			op->setContactAddressFromHeader(contactHeader);
 		}
 		op->mRoot->mCallbacks.register_success(op, belle_sip_refresher_get_expires(op->mRefresher) > 0);
 	} else if (statusCode >= 400) {

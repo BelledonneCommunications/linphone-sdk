@@ -70,7 +70,7 @@ void ClientChatRoom::addPendingMessage(const std::shared_ptr<ChatMessage> &chatM
 void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteContact) {
 	auto conference = dynamic_pointer_cast<ClientConference>(getConference());
 	conference->onConferenceCreated(remoteContact);
-	if (remoteContact->hasParam(Conference::IsFocusParameter) &&
+	if (remoteContact->hasParam(Conference::sIsFocusParameter) &&
 	    !getCore()->getPrivate()->clientListEventHandler->findHandler(getConferenceId())) {
 		mBgTask.start(getCore(), 32); // It will be stopped when receiving the first notify
 		conference->subscribe(true, false);

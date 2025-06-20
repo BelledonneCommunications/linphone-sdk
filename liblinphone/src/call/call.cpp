@@ -421,7 +421,7 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 		if (op->getRemoteContactAddress()) {
 			Address remoteContactAddress;
 			remoteContactAddress.setImpl(op->getRemoteContactAddress());
-			remoteContactIsFocus = (remoteContactAddress.hasParam(Conference::IsFocusParameter));
+			remoteContactIsFocus = (remoteContactAddress.hasParam(Conference::sIsFocusParameter));
 		}
 
 		if (!op->getTo().empty()) {
@@ -573,7 +573,7 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 			confParams->enableAudio(md->nbActiveStreamsOfType(SalAudio) > 0);
 			confParams->enableVideo(md->nbActiveStreamsOfType(SalVideo) > 0);
 		}
-		confParams->enableChat(remoteContactAddress && remoteContactAddress->hasParam(Conference::TextParameter));
+		confParams->enableChat(remoteContactAddress && remoteContactAddress->hasParam(Conference::sTextParameter));
 
 		if (confParams->audioEnabled() || confParams->videoEnabled() || confParams->chatEnabled()) {
 			clientConference = dynamic_pointer_cast<ClientConference>(
@@ -589,8 +589,8 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 	setConference(clientConference);
 
 	// Record conf-id to be used later when terminating the client conference
-	if (clientConference && remoteContactAddress->hasUriParam(Conference::ConfIdParameter)) {
-		setConferenceId(remoteContactAddress->getUriParamValue(Conference::ConfIdParameter));
+	if (clientConference && remoteContactAddress->hasUriParam(Conference::sConfIdParameter)) {
+		setConferenceId(remoteContactAddress->getUriParamValue(Conference::sConfIdParameter));
 	}
 }
 
@@ -1221,8 +1221,9 @@ void *Call::getNativeVideoWindowId() const {
 	return static_pointer_cast<const MediaSession>(getActiveSession())->getNativeVideoWindowId();
 }
 
-void *Call::createNativeVideoWindowId(void * context) const {
-	return static_pointer_cast<const MediaSession>(getActiveSession())->createNativeVideoWindowId("", false, false, context);
+void *Call::createNativeVideoWindowId(void *context) const {
+	return static_pointer_cast<const MediaSession>(getActiveSession())
+	    ->createNativeVideoWindowId("", false, false, context);
 }
 
 const MediaSessionParams *Call::getParams() const {
@@ -1466,7 +1467,7 @@ std::shared_ptr<Conference> Call::getConference() const {
 	return mConfRef.lock();
 }
 
-void Call::setConference(std::shared_ptr<Conference> ref) {
+void Call::setConference(const std::shared_ptr<Conference> &ref) {
 	mConfRef = ref;
 }
 

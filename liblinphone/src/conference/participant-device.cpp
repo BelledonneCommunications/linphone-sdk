@@ -30,8 +30,6 @@
 #include "participant.h"
 #include "private_functions.h"
 
-#include "linphone/api/c-event.h"
-
 using namespace std;
 
 // =============================================================================
@@ -48,22 +46,26 @@ ParticipantDevice::ParticipantDevice() {
 	setStreamCapability(LinphoneMediaDirectionInactive, LinphoneStreamTypeText);
 }
 
-ParticipantDevice::ParticipantDevice(std::shared_ptr<Participant> participant,
+ParticipantDevice::ParticipantDevice(const std::shared_ptr<Participant> &participant,
                                      const std::shared_ptr<CallSession> &session,
                                      const std::string &name)
-    : mParticipant(participant), mGruu(Address::create(participant->getAddress()->getUri())), mName(name),
-      mSession(session) {
+    : mParticipant(participant), mName(name), mSession(session) {
+	std::shared_ptr<Address> gruu;
 	if (mSession && mSession->getRemoteContactAddress()) {
-		setAddress(mSession->getRemoteContactAddress());
+		gruu = mSession->getRemoteContactAddress();
+	} else {
+		gruu = Address::create(participant->getAddress()->getUri());
 	}
+	setAddress(gruu);
 	updateMediaCapabilities();
 	updateStreamAvailabilities();
 }
 
-ParticipantDevice::ParticipantDevice(std::shared_ptr<Participant> participant,
+ParticipantDevice::ParticipantDevice(const std::shared_ptr<Participant> &participant,
                                      const std::shared_ptr<const Address> &gruu,
                                      const std::string &name)
-    : mParticipant(participant), mGruu(Address::create(gruu->getUri())), mName(name) {
+    : mParticipant(participant), mName(name) {
+	setAddress(Address::create(gruu->getUri()));
 	setStreamCapability(LinphoneMediaDirectionInactive, LinphoneStreamTypeAudio);
 	setStreamCapability(LinphoneMediaDirectionInactive, LinphoneStreamTypeVideo);
 	setStreamCapability(LinphoneMediaDirectionInactive, LinphoneStreamTypeText);
@@ -89,12 +91,28 @@ std::shared_ptr<Address> ParticipantDevice::getAddress() const {
 	return mGruu;
 }
 
-void ParticipantDevice::setAddress(const std::shared_ptr<Address> &address) {
-	if (mGruu) {
-		auto conference = getConference();
-		lInfo() << "Changing address of " << *this << " in " << *conference << " from " << *mGruu << " to " << *address;
+Address ParticipantDevice::pruneAddress(const std::shared_ptr<const Address> &address) {
+	auto newAddress = address->getUri();
+	// Not useful to keep the transport parameter in the participant device address
+	newAddress.removeUriParam(Address::sTransportParameter);
+	return newAddress;
+}
+
+bool ParticipantDevice::isSameAddress(const std::shared_ptr<const Address> &address) const {
+	if (!address || !mGruu) {
+		return false;
 	}
-	mGruu = Address::create(address->getUri());
+	return mGruu->uriEqual(pruneAddress(address));
+}
+
+void ParticipantDevice::setAddress(const std::shared_ptr<Address> &address) {
+	auto newAddress = pruneAddress(address);
+	if (mGruu) {
+		const auto conference = getConference();
+		lInfo() << "Changing address of " << *this << " in " << *conference << " from " << *mGruu << " to "
+		        << newAddress;
+	}
+	mGruu = Address::create(newAddress);
 	if (address->hasParam("+org.linphone.specs")) {
 		const auto &linphoneSpecs = address->getParamValue("+org.linphone.specs");
 		setCapabilityDescriptor(linphoneSpecs.substr(1, linphoneSpecs.size() - 2));
@@ -148,7 +166,7 @@ time_t ParticipantDevice::getTimeOfDisconnection() const {
 }
 
 bool ParticipantDevice::isInConference() const {
-	const auto &conference = getConference();
+	const auto conference = getConference();
 	if (conference) {
 		const auto &isMe = conference->isMe(mGruu);
 		if (isMe) {
@@ -167,7 +185,7 @@ bool ParticipantDevice::setSsrc(const LinphoneStreamType type, uint32_t newSsrc)
 		streams[type].ssrc = newSsrc;
 		changed = true;
 	}
-	auto conference = getConference();
+	const auto conference = getConference();
 	switch (type) {
 		case LinphoneStreamTypeAudio:
 			if (conference) {
@@ -212,7 +230,7 @@ bool ParticipantDevice::setThumbnailStreamSsrc(uint32_t newSsrc) {
 		thumbnailStream.ssrc = newSsrc;
 		changed = true;
 	}
-	auto conference = getConference();
+	const auto conference = getConference();
 	if (changed) {
 		if (conference) {
 			lInfo() << "Setting thumbnail stream ssrc of " << *this << " in " << *conference << " to " << newSsrc;
@@ -306,7 +324,7 @@ void ParticipantDevice::setState(State newState, bool notify) {
 		}
 		mState = newState;
 		_linphone_participant_device_notify_state_changed(toC(), (LinphoneParticipantDeviceState)newState);
-		const auto &conference = getConference();
+		const auto conference = getConference();
 		if (conference && sendNotify) {
 			conference->notifyParticipantDeviceStateChanged(ms_time(nullptr), false, getParticipant(),
 			                                                getSharedFromThis());
@@ -383,7 +401,7 @@ const std::string &ParticipantDevice::getStreamLabel(const LinphoneStreamType ty
 bool ParticipantDevice::setStreamLabel(const std::string &streamLabel, const LinphoneStreamType type) {
 	const bool idxFound = (streams.find(type) != streams.cend());
 	if (!idxFound || (streams[type].label != streamLabel)) {
-		auto conference = getConference();
+		const auto conference = getConference();
 		lInfo() << "Setting label of " << std::string(linphone_stream_type_to_string(type)) << " stream of " << *this
 		        << " in " << *conference << " to " << streamLabel;
 		streams[type].label = streamLabel;
@@ -398,7 +416,7 @@ const std::string &ParticipantDevice::getThumbnailStreamLabel() const {
 
 bool ParticipantDevice::setThumbnailStreamLabel(const std::string &streamLabel) {
 	if (thumbnailStream.label != streamLabel) {
-		auto conference = getConference();
+		const auto conference = getConference();
 		lInfo() << "Setting label of the thumbnail stream of " << *this << " in " << *conference << " to "
 		        << streamLabel;
 		thumbnailStream.label = streamLabel;
@@ -537,7 +555,7 @@ LinphoneMediaDirection ParticipantDevice::computeDeviceMediaDirection(const bool
 
 std::set<LinphoneStreamType> ParticipantDevice::updateMediaCapabilities() {
 	std::set<LinphoneStreamType> mediaCapabilityChanged;
-	const auto &conference = getConference();
+	const auto conference = getConference();
 
 	bool updateSsrc = true;
 	uint32_t audioSsrc = 0;
@@ -670,7 +688,7 @@ bool ParticipantDevice::computeStreamAvailable(const bool conferenceEnable,
 }
 
 std::set<LinphoneStreamType> ParticipantDevice::updateStreamAvailabilities() {
-	const auto &conference = getConference();
+	const auto conference = getConference();
 	std::set<LinphoneStreamType> streamAvailabilityChanged;
 
 	if (conference) {
@@ -786,10 +804,10 @@ void ParticipantDevice::videoDisplayErrorOccurred(int error_code) {
 	_linphone_participant_device_notify_video_display_error_occurred(toC(), error_code);
 }
 
-void *ParticipantDevice::createWindowId(void * context) {
+void *ParticipantDevice::createWindowId(void *context) {
 	void *windowId = context;
 #ifdef VIDEO_ENABLED
-	const auto &conference = getConference();
+	const auto conference = getConference();
 	const auto session = getSession() ? getSession() : (conference ? conference->getMainSession() : nullptr);
 	if (session) {
 		auto s = static_pointer_cast<MediaSession>(session);
@@ -816,7 +834,7 @@ void *ParticipantDevice::createWindowId(void * context) {
 void ParticipantDevice::setWindowId(void *newWindowId) {
 #ifdef VIDEO_ENABLED
 	mWindowId = newWindowId;
-	const auto &conference = getConference();
+	const auto conference = getConference();
 	const auto session = getSession() ? getSession() : (conference ? conference->getMainSession() : nullptr);
 	if (session) {
 		auto s = static_pointer_cast<MediaSession>(session);

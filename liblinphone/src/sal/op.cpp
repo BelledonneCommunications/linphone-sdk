@@ -24,7 +24,6 @@
 
 #include "bellesip_sal/sal_impl.h"
 #include "c-wrapper/internal/c-tools.h"
-#include "content/header/header-param.h"
 
 using namespace std;
 
@@ -89,6 +88,29 @@ void *SalOp::unref() {
 
 void SalOp::resetErrorInfo() {
 	sal_error_info_reset(&mErrorInfo);
+}
+
+void SalOp::setContactAddressFromHeader(belle_sip_header_contact_t *contactHeader) {
+	auto contactHeaderParams = BELLE_SIP_PARAMETERS(contactHeader);
+	const char *gruu = belle_sip_parameters_get_parameter(contactHeaderParams, "pub-gruu");
+
+	if (gruu) {
+		char *unquotedGruu = belle_sip_unquote_strdup(gruu);
+		auto parsedGruu = reinterpret_cast<SalAddress *>(belle_sip_header_address_parse(unquotedGruu));
+
+		if (parsedGruu != nullptr) {
+			setContactAddress(parsedGruu);
+		} else {
+			// Gruu is not valid, act as if there was none
+			setContactAddress(reinterpret_cast<SalAddress *>(BELLE_SIP_HEADER_ADDRESS(contactHeader)));
+		}
+
+		bctbx_free(unquotedGruu);
+		belle_sip_parameters_remove_parameter(contactHeaderParams, "pub-gruu");
+	} else {
+		// Update contact with real value
+		setContactAddress(reinterpret_cast<SalAddress *>(BELLE_SIP_HEADER_ADDRESS(contactHeader)));
+	}
 }
 
 void SalOp::setContactAddress(const SalAddress *value) {
@@ -520,12 +542,14 @@ belle_sip_request_t *SalOp::buildRequest(const string &method) {
 
 	char token[10];
 	belle_sip_header_from_t *fromHeader = nullptr;
-	if ((method == "REGISTER") || (mPrivacy == SalPrivacyNone)) {
-		fromHeader = belle_sip_header_from_create(BELLE_SIP_HEADER_ADDRESS(getFromAddress()),
-		                                          belle_sip_random_token(token, sizeof(token)));
-	} else {
+	auto useAnonymousFrom =
+	    !((method == "REGISTER") || (mPrivacy == SalPrivacyNone) || (mPrivacy == SalPrivacyDefault));
+	if (useAnonymousFrom) {
 		fromHeader = belle_sip_header_from_create2("Anonymous <sip:anonymous@anonymous.invalid>",
 		                                           belle_sip_random_token(token, sizeof(token)));
+	} else {
+		fromHeader = belle_sip_header_from_create(BELLE_SIP_HEADER_ADDRESS(getFromAddress()),
+		                                          belle_sip_random_token(token, sizeof(token)));
 	}
 
 	belle_sip_uri_t *requestUri = nullptr;
@@ -555,7 +579,7 @@ belle_sip_request_t *SalOp::buildRequest(const string &method) {
 	if (!routeAddresses.empty() && (method != "REGISTER") && !mRoot->mNoInitialRoute)
 		addInitialRouteSet(request, routeAddresses);
 
-	if ((method != "REGISTER") && (mPrivacy != SalPrivacyNone)) {
+	if (useAnonymousFrom) {
 		auto privacyHeader = belle_sip_header_privacy_new();
 		if (mPrivacy & SalPrivacyCritical)
 			belle_sip_header_privacy_add_privacy(privacyHeader, sal_privacy_to_string(SalPrivacyCritical));

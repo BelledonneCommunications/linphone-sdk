@@ -52,13 +52,20 @@ linphone_conference_info_get_organizer_info(const LinphoneConferenceInfo *confer
 	return organizer ? organizer->toC() : nullptr;
 }
 
+void linphone_conference_info_set_organizer_info(LinphoneConferenceInfo *conference_info,
+                                                 const LinphoneParticipantInfo *organizer) {
+	ConferenceInfo::toCpp(conference_info)
+	    ->setOrganizer(organizer ? ParticipantInfo::toCpp(organizer)->getSharedFromThis() : nullptr);
+}
+
 const LinphoneAddress *linphone_conference_info_get_organizer(const LinphoneConferenceInfo *conference_info) {
 	const auto &address = ConferenceInfo::toCpp(conference_info)->getOrganizerAddress();
 	return address && address->isValid() ? address->toC() : nullptr;
 }
 
 void linphone_conference_info_set_organizer(LinphoneConferenceInfo *conference_info, const LinphoneAddress *organizer) {
-	ConferenceInfo::toCpp(conference_info)->setOrganizer(Address::toCpp(organizer)->getSharedFromThis());
+	ConferenceInfo::toCpp(conference_info)
+	    ->setOrganizer(organizer ? Address::toCpp(organizer)->getSharedFromThis() : nullptr);
 }
 
 const bctbx_list_t *linphone_conference_info_get_participants(const LinphoneConferenceInfo *conference_info) {

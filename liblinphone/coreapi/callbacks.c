@@ -177,7 +177,7 @@ static void call_received(SalCallOp *h) {
 	// parameter is listed in the custom headers
 	chatCapabilities = !ephemerable.empty() || !ephemeralLifeTime.empty() || !endToEndEncrypted.empty() ||
 	                   !oneToOneChatRoom.empty() ||
-	                   !!(sal_address_has_param(remoteContactAddress, Conference::TextParameter.c_str()));
+	                   !!(sal_address_has_param(remoteContactAddress, Conference::sTextParameter.c_str()));
 #endif
 
 	auto params = ConferenceParams::create(L_GET_CPP_PTR_FROM_C_OBJECT(lc));
@@ -268,7 +268,7 @@ static void call_received(SalCallOp *h) {
 		h->release();
 #endif
 		return;
-	} else if (isServer && (chatCapabilities || to->hasUriParam(Conference::ConfIdParameter) || conferenceAccount)) {
+	} else if (isServer && (chatCapabilities || to->hasUriParam(Conference::sConfIdParameter) || conferenceAccount)) {
 		// Check if an account can be associated to a conference or the conference has chat capabilities. In fact, the
 		// latter check is required to be backward compatible as older versions of the flexisip conference server did
 		// not create chatroom addresses from a single conference focus but using the following pattern
@@ -341,7 +341,7 @@ static void call_received(SalCallOp *h) {
 #endif // HAVE_DB_STORAGE
 			{
 				if (hasStreams) {
-					if (sal_address_has_uri_param(h->getToAddress(), Conference::ConfIdParameter.c_str())) {
+					if (sal_address_has_uri_param(h->getToAddress(), Conference::sConfIdParameter.c_str())) {
 						long long expiredConferenceId =
 						    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->isInitialized()
 						        ? L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findExpiredConferenceId(to)
@@ -469,7 +469,7 @@ static void call_received(SalCallOp *h) {
 	}
 
 	if (linphone_config_get_int(linphone_core_get_config(lc), "sip", "reject_duplicated_calls", 1) &&
-	    !sal_address_has_param(remoteContactAddress, Conference::IsFocusParameter.c_str())) {
+	    !sal_address_has_param(remoteContactAddress, Conference::sIsFocusParameter.c_str())) {
 		/* Check if I'm the caller */
 		std::shared_ptr<Address> fromAddressToSearchIfMe = nullptr;
 		if (h->getPrivacy() == SalPrivacyNone) fromAddressToSearchIfMe = from->clone()->toSharedPtr();

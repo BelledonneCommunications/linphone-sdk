@@ -34,6 +34,7 @@ extern "C" {
 
 /**
  * Create a new #LinphoneParticipantInfo object.
+ * @param address The #LinphoneAddress of the #LinphoneParticipantInfo object. @notnil
  * @return The newly created #LinphoneParticipantInfo object. @notnil
  */
 LINPHONE_PUBLIC LinphoneParticipantInfo *linphone_participant_info_new(const LinphoneAddress *address);

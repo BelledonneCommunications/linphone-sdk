@@ -23,7 +23,6 @@
 
 #include <functional>
 #include <list>
-#include <unordered_map>
 
 #include <mediastreamer2/mssndcard.h>
 
@@ -41,7 +40,6 @@
 #include "linphone/enums/c-enums.h"
 #include "linphone/types.h"
 #include "object/object.h"
-#include "sal/event-op.h"
 
 // =============================================================================
 
@@ -157,6 +155,7 @@ public:
 	bool areSoundResourcesLocked() const;
 	std::shared_ptr<Call> getCallByRemoteAddress(const std::shared_ptr<const Address> &addr) const;
 	std::shared_ptr<Call> getCallByCallId(const std::string &callId) const;
+	std::shared_ptr<Call> getCallBySession(const std::shared_ptr<CallSession> &session) const;
 	const std::list<std::shared_ptr<Call>> &getCalls() const;
 	unsigned int getCallCount() const;
 	std::shared_ptr<Call> getCurrentCall() const;

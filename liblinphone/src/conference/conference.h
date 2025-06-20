@@ -69,16 +69,22 @@ class LINPHONE_PUBLIC Conference : public bellesip::HybridObject<LinphoneConfere
 
 public:
 	static constexpr int sLabelLength = 10;
-	static const std::string SecurityModeParameter;
-	static const std::string ConfIdParameter;
-	static const std::string AdminParameter;
-	static const std::string IsFocusParameter;
-	static const std::string TextParameter;
+	static const std::string sPAssertedIdentityHeader;
+	static const std::string sSecurityModeParameter;
+	static const std::string sConfIdParameter;
+	static const std::string sAdminParameter;
+	static const std::string sIsFocusParameter;
+	static const std::string sTextParameter;
+	static const std::string sAnonymousKeyword;
+
 	static bool isTerminationState(ConferenceInterface::State state);
 	static Address createParticipantAddressForResourceList(const ConferenceInfo::participant_list_t::value_type &p);
 	static Address createParticipantAddressForResourceList(const std::shared_ptr<Participant> &p);
 
-	virtual ~Conference();
+	static bool isAnonymousParticipant(const std::shared_ptr<Call> &call);
+	static bool isAnonymousParticipant(const std::shared_ptr<Address> &address);
+
+	virtual ~Conference() override;
 
 	virtual int inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
 	                            const LinphoneCallParams *params) = 0;
@@ -90,10 +96,9 @@ public:
 	void setInvitedParticipants(const std::list<std::shared_ptr<Participant>> &invitedParticipants);
 
 	std::shared_ptr<ParticipantDevice> findParticipantDevice(const std::shared_ptr<const CallSession> &session) const;
-	std::shared_ptr<ParticipantDevice> findParticipantDevice(const std::shared_ptr<const Address> &pAddr,
-	                                                         const std::shared_ptr<const Address> &dAddr) const;
+	std::shared_ptr<ParticipantDevice> findParticipantDevice(const std::shared_ptr<const Address> &dAddr) const;
 	std::shared_ptr<ParticipantDevice> findParticipantDeviceBySsrc(uint32_t ssrc, LinphoneStreamType type) const;
-	std::shared_ptr<ParticipantDevice> findParticipantDeviceByLabel(const LinphoneStreamType type,
+	std::shared_ptr<ParticipantDevice> findParticipantDeviceByLabel(LinphoneStreamType type,
 	                                                                const std::string &label) const;
 	std::shared_ptr<ParticipantDevice> getActiveSpeakerParticipantDevice() const;
 
@@ -112,11 +117,11 @@ public:
 	void addInvitedParticipant(const std::shared_ptr<Call> &call);
 	void addInvitedParticipant(const std::shared_ptr<Address> &address);
 	void addInvitedParticipant(const std::shared_ptr<Participant> &participant);
-	bool addParticipant(std::shared_ptr<Call> call) override;
+	bool addParticipant(const std::shared_ptr<Call> call) override;
 	bool addParticipant(const std::shared_ptr<ParticipantInfo> &info) override;
 	bool addParticipant(const std::shared_ptr<Address> &participantAddress) override;
 	bool addParticipants(const std::list<std::shared_ptr<Address>> &addresses) override;
-	virtual bool addParticipantDevice(std::shared_ptr<Call> call);
+	virtual bool addParticipantDevice(const std::shared_ptr<Call> &call);
 	virtual void addParticipantDevice(const std::shared_ptr<Participant> &participant,
 	                                  const std::shared_ptr<ParticipantDeviceIdentity> &deviceInfo);
 
@@ -136,7 +141,7 @@ public:
 	virtual void removeParticipantDevice(const std::shared_ptr<Participant> &participant,
 	                                     const std::shared_ptr<Address> &deviceAddress);
 	virtual int removeParticipantDevice(const std::shared_ptr<CallSession> &session);
-	int removeParticipant(std::shared_ptr<Call> call);
+	int removeParticipant(const std::shared_ptr<Call> &call);
 	virtual int removeParticipant(const std::shared_ptr<CallSession> &session, const bool preserveSession);
 	virtual int removeParticipant(const std::shared_ptr<Address> &addr) = 0;
 	bool removeParticipant(const std::shared_ptr<Participant> &participant) override;
@@ -425,19 +430,21 @@ protected:
 	std::list<std::shared_ptr<Participant>> getInvitedParticipants() const;
 	void removeInvitedParticipant(const std::shared_ptr<Address> &address);
 
-	std::shared_ptr<Participant> createParticipant(std::shared_ptr<Call> call);
-	std::shared_ptr<Participant> createParticipant(std::shared_ptr<const Address> participantAddress);
-	virtual std::shared_ptr<ParticipantDevice> createParticipantDevice(std::shared_ptr<Participant> participant,
-	                                                                   std::shared_ptr<Call> call);
+	std::string getFreeAnonymousUsername() const;
+
+	std::shared_ptr<Participant> createParticipant(const std::shared_ptr<Call> &call);
+	std::shared_ptr<Participant> createParticipant(const std::shared_ptr<const Address> &participantAddress);
+	virtual std::shared_ptr<ParticipantDevice> createParticipantDevice(std::shared_ptr<Participant> &participant,
+	                                                                   const std::shared_ptr<Call> &call);
 
 	std::list<std::shared_ptr<Participant>> getFullParticipantList() const;
-	void fillParticipantAttributes(std::shared_ptr<Participant> &p) const;
+	void fillParticipantAttributes(std::shared_ptr<Participant> &p, const std::shared_ptr<Call> &call) const;
 
 	void notifyNewDevice(const std::shared_ptr<ParticipantDevice> &device);
 
 	virtual void configure(SalCallOp *op) = 0;
 	const std::shared_ptr<Participant> &initializeMe(const std::shared_ptr<Address> &address);
-	void initializeFromAccount();
+	void initializeFromAccount(SalCallOp *op = nullptr);
 
 	void incrementLastNotify();
 	void setLastNotify(unsigned int lastNotify);

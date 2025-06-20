@@ -65,6 +65,8 @@ public:
 		                           chatroom_domain);
 		linphone_config_set_string(linphone_core_get_config(mCoreManager->lc), "misc", "force_chatroom_gr",
 		                           chatroom_gr);
+		linphone_config_set_bool(linphone_core_get_config(mCoreManager->lc), "misc", "conference_event_log_enabled",
+		                         FALSE);
 		linphone_core_enable_conference_server(mCoreManager->lc, is_conference_server);
 		bc_free(roDbPath);
 		bc_free(rwDbPath);

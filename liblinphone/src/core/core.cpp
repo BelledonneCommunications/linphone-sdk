@@ -2144,17 +2144,17 @@ shared_ptr<CallSession> Core::createOrUpdateConferenceOnServer(const std::shared
 			return nullptr;
 		}
 		conferenceFactoryUri = conferenceFactoryUriRef->clone()->toSharedPtr();
-		conferenceFactoryUri->setUriParam(Conference::SecurityModeParameter,
+		conferenceFactoryUri->setUriParam(Conference::sSecurityModeParameter,
 		                                  ConferenceParams::getSecurityLevelAttribute(confParams->getSecurityLevel()));
 	}
 
 	if (!!linphone_core_get_add_admin_information_to_contact(getCCore())) {
-		params.addCustomContactParameter(Conference::AdminParameter, Utils::toString(true));
+		params.addCustomContactParameter(Conference::sAdminParameter, Utils::toString(true));
 	}
 
 	if (confParams->chatEnabled()) {
 		if (!mediaEnabled) {
-			params.addCustomContactParameter(Conference::TextParameter);
+			params.addCustomContactParameter(Conference::sTextParameter);
 		}
 		params.addCustomHeader("Require", "recipient-list-invite");
 		params.addCustomHeader("One-To-One-Chat-Room", Utils::btos(!confParams->isGroup()));

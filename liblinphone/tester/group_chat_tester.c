@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -360,19 +360,16 @@ void configure_core_for_conference(LinphoneCore *core,
 	linphone_core_enable_conference_server(core, server);
 	linphone_core_enable_rtp_bundle(core, TRUE);
 	LinphoneAccount *account = linphone_core_get_default_account(core);
-	const LinphoneAccountParams *account_params = linphone_account_get_params(account);
-	LinphoneAccountParams *new_account_params = linphone_account_params_clone(account_params);
-	linphone_account_params_enable_rtp_bundle(new_account_params, TRUE);
-	linphone_account_set_params(account, new_account_params);
-	linphone_account_params_unref(new_account_params);
-	BC_ASSERT_TRUE(linphone_account_params_rtp_bundle_enabled(linphone_account_get_params(account)));
-	if (factoryAddr) {
-		char *factoryUri = linphone_address_as_string(factoryAddr);
-		LinphoneProxyConfig *proxy = linphone_core_get_default_proxy_config(core);
-		linphone_proxy_config_edit(proxy);
-		linphone_proxy_config_set_conference_factory_uri(proxy, factoryUri);
-		linphone_proxy_config_done(proxy);
-		bctbx_free(factoryUri);
+	if (account) {
+		const LinphoneAccountParams *account_params = linphone_account_get_params(account);
+		LinphoneAccountParams *new_account_params = linphone_account_params_clone(account_params);
+		linphone_account_params_enable_rtp_bundle(new_account_params, TRUE);
+		if (factoryAddr) {
+			linphone_account_params_set_conference_factory_address(new_account_params, factoryAddr);
+		}
+		linphone_account_set_params(account, new_account_params);
+		linphone_account_params_unref(new_account_params);
+		BC_ASSERT_TRUE(linphone_account_params_rtp_bundle_enabled(linphone_account_get_params(account)));
 	}
 }
 
@@ -382,11 +379,13 @@ void _configure_core_for_conference(LinphoneCoreManager *lcm, const LinphoneAddr
 
 void _configure_core_for_audio_video_conference(LinphoneCoreManager *lcm, const LinphoneAddress *factoryAddr) {
 	LinphoneAccount *account = linphone_core_get_default_account(lcm->lc);
-	LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(account));
-	linphone_account_params_set_conference_factory_address(params, factoryAddr);
-	linphone_account_params_set_audio_video_conference_factory_address(params, factoryAddr);
-	linphone_account_set_params(account, params);
-	linphone_account_params_unref(params);
+	if (account) {
+		LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(account));
+		linphone_account_params_set_conference_factory_address(params, factoryAddr);
+		linphone_account_params_set_audio_video_conference_factory_address(params, factoryAddr);
+		linphone_account_set_params(account, params);
+		linphone_account_params_unref(params);
+	}
 }
 
 void configure_core_for_callbacks(LinphoneCoreManager *lcm, LinphoneCoreCbs *cbs) {

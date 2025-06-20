@@ -1017,7 +1017,7 @@ void _configure_core_for_conference(LinphoneCoreManager *lcm, const LinphoneAddr
 void _configure_core_for_audio_video_conference(LinphoneCoreManager *lcm, const LinphoneAddress *factoryAddr);
 LinphoneParticipantInfo *add_participant_info_to_list(bctbx_list_t **participants_info,
                                                       const LinphoneAddress *address,
-                                                      LinphoneParticipantRole role,
+                                                      const LinphoneParticipantRole role,
                                                       int sequence);
 void conference_scheduler_state_changed(LinphoneConferenceScheduler *scheduler, LinphoneConferenceSchedulerState state);
 void conference_scheduler_invitations_sent(LinphoneConferenceScheduler *scheduler,
@@ -1065,6 +1065,9 @@ void check_conference_info_members(const LinphoneConferenceInfo *info,
 void compare_conference_infos(const LinphoneConferenceInfo *info1,
                               const LinphoneConferenceInfo *info2,
                               bool_t skip_participant_info);
+
+LinphoneCall *get_peer_call(const LinphoneCoreManager *mgr, const LinphoneCall *participant_call);
+bool_t is_anonymous_address(const LinphoneAddress *address);
 
 void _start_core(LinphoneCoreManager *lcm);
 extern const char *sFactoryUri;

@@ -325,13 +325,13 @@ static void simple_dial_out_conference_with_no_payloads(void) {
 
 		if (confAddr) {
 			for (auto mgr : participants) {
-				LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+				LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
 				if (mgr == pauline.getCMgr()) {
-					BC_ASSERT_PTR_NULL(pcall);
+					BC_ASSERT_PTR_NULL(participant_call);
 				} else {
-					BC_ASSERT_PTR_NOT_NULL(pcall);
-					if (pcall) {
-						linphone_call_accept(pcall);
+					BC_ASSERT_PTR_NOT_NULL(participant_call);
+					if (participant_call) {
+						linphone_call_accept(participant_call);
 					}
 				}
 			}
@@ -546,12 +546,12 @@ static void create_conference_dial_out_with_video_activation_and_layout_change(v
 				                            initialSubject, NULL, 0, LinphoneConferenceInfoStateNew,
 				                            LinphoneConferenceSecurityLevelNone, FALSE, TRUE, TRUE, FALSE);
 
-				LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-				BC_ASSERT_PTR_NOT_NULL(pcall);
-				if (pcall) {
-					LinphoneCallLog *call_log = linphone_call_get_call_log(pcall);
+				LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+				BC_ASSERT_PTR_NOT_NULL(participant_call);
+				if (participant_call) {
+					LinphoneCallLog *call_log = linphone_call_get_call_log(participant_call);
 					BC_ASSERT_TRUE(linphone_call_log_was_conference(call_log));
-					linphone_call_accept(pcall);
+					linphone_call_accept(participant_call);
 				}
 			}
 		}
@@ -595,10 +595,10 @@ static void create_conference_dial_out_with_video_activation_and_layout_change(v
 			check_conference_info_in_db(mgr, NULL, confAddr, marie.getCMgr()->identity, participants_info3, 0, 0,
 			                            initialSubject, NULL, 0, LinphoneConferenceInfoStateNew, security_level, FALSE,
 			                            TRUE, TRUE, FALSE);
-			LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-			BC_ASSERT_PTR_NOT_NULL(pcall);
-			if (pcall) {
-				LinphoneCallLog *call_log = linphone_call_get_call_log(pcall);
+			LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+			BC_ASSERT_PTR_NOT_NULL(participant_call);
+			if (participant_call) {
+				LinphoneCallLog *call_log = linphone_call_get_call_log(participant_call);
 				BC_ASSERT_TRUE(linphone_call_log_was_conference(call_log));
 				LinphoneConferenceInfo *call_log_info = linphone_call_log_get_conference_info(call_log);
 				if (BC_ASSERT_PTR_NOT_NULL(call_log_info)) {
@@ -724,25 +724,25 @@ static void create_conference_dial_out_with_video_activation_and_layout_change(v
 					size_t no_streams_video = 0;
 					size_t no_streams_text = 0;
 
-					LinphoneCall *pcall = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-					BC_ASSERT_PTR_NOT_NULL(pcall);
-					if (pcall) {
-						no_streams_audio = compute_no_audio_streams(pcall, pconference);
+					LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
+					BC_ASSERT_PTR_NOT_NULL(participant_call);
+					if (participant_call) {
+						no_streams_audio = compute_no_audio_streams(participant_call, pconference);
 						// Even if video is not enabled, the server will offer it and clients reject the video
 						// stream if they do not want to send or receive it.
-						no_streams_video = compute_no_video_streams(TRUE, pcall, pconference);
-						_linphone_call_check_max_nb_streams(pcall, no_max_streams_audio, no_max_streams_video,
-						                                    no_streams_text);
-						_linphone_call_check_nb_active_streams(pcall, no_streams_audio, no_streams_video,
+						no_streams_video = compute_no_video_streams(TRUE, participant_call, pconference);
+						_linphone_call_check_max_nb_streams(participant_call, no_max_streams_audio,
+						                                    no_max_streams_video, no_streams_text);
+						_linphone_call_check_nb_active_streams(participant_call, no_streams_audio, no_streams_video,
 						                                       no_streams_text);
-						const LinphoneCallParams *call_lparams = linphone_call_get_params(pcall);
+						const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), video_enabled, int, "%0d");
-						const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(pcall);
+						const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_rparams), video_enabled, int, "%0d");
-						const LinphoneCallParams *call_cparams = linphone_call_get_current_params(pcall);
+						const LinphoneCallParams *call_cparams = linphone_call_get_current_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_cparams), enabled, int, "%0d");
 
-						LinphoneCallLog *call_log = linphone_call_get_call_log(pcall);
+						LinphoneCallLog *call_log = linphone_call_get_call_log(participant_call);
 						BC_ASSERT_TRUE(linphone_call_log_was_conference(call_log));
 						LinphoneConferenceInfo *call_log_info = linphone_call_log_get_conference_info(call_log);
 						if (BC_ASSERT_PTR_NOT_NULL(call_log_info)) {

@@ -32,13 +32,14 @@ class Account;
 class LINPHONE_PUBLIC EventSubscribe : public Event {
 public:
 	EventSubscribe(const std::shared_ptr<Core> &core,
-	               LinphoneSubscriptionDir dir,
+	               const LinphoneSubscriptionDir dir,
 	               const std::string &name,
 	               LinphonePrivate::SalSubscribeOp *op);
 	EventSubscribe(const std::shared_ptr<Core> &core,
-	               LinphoneSubscriptionDir dir,
+	               const LinphoneSubscriptionDir dir,
 	               const std::string &name,
-	               int expires);
+	               int expires,
+	               const LinphonePrivacyMask privacy = LinphonePrivacyNone);
 	EventSubscribe(const std::shared_ptr<Core> &core,
 	               SalSubscribeOp *op,
 	               LinphoneSubscriptionDir dir,
@@ -46,16 +47,19 @@ public:
 	               bool isOutOfDialog);
 	EventSubscribe(const std::shared_ptr<Core> &core,
 	               const std::shared_ptr<const Address> &resource,
-	               const std::string &event);
+	               const std::string &event,
+	               const LinphonePrivacyMask privacy = LinphonePrivacyNone);
 	EventSubscribe(const std::shared_ptr<Core> &core,
 	               const std::shared_ptr<const Address> &resource,
 	               const std::string &event,
-	               int expires);
+	               int expires,
+	               const LinphonePrivacyMask privacy = LinphonePrivacyNone);
 	EventSubscribe(const std::shared_ptr<Core> &core,
 	               const std::shared_ptr<const Address> &resource,
 	               const std::shared_ptr<Account> &account,
 	               const std::string &event,
-	               int expires);
+	               int expires,
+	               const LinphonePrivacyMask privacy = LinphonePrivacyNone);
 
 	virtual ~EventSubscribe() = default;
 

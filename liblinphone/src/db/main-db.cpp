@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -286,6 +286,8 @@ buildSqlEventFilter(const list<MainDb::Filter> &filters, MainDb::FilterMask mask
 // -----------------------------------------------------------------------------
 // Misc helpers.
 // -----------------------------------------------------------------------------
+
+const std::string MainDb::sUnknownAddress = "sip:unknown@domain.invalid";
 
 shared_ptr<AbstractChatRoom> MainDbPrivate::findChatRoom(const ConferenceId &conferenceId) const {
 	L_Q();
@@ -620,16 +622,10 @@ long long MainDbPrivate::insertConferenceInfo(const std::shared_ptr<ConferenceIn
 		return -1;
 	}
 
-	const auto &conferenceUri = conferenceInfo->getUri();
-	const auto &organizer = conferenceInfo->getOrganizer();
-	const auto &organizerAddress = organizer ? organizer->getAddress() : nullptr;
-	const auto organizerAddressOk = (organizerAddress && organizerAddress->isValid());
-	const auto conferenceUriOk = (conferenceUri && conferenceUri->isValid());
-	if (!organizerAddressOk || !conferenceUriOk) {
-		const auto organizerAddressString = organizerAddressOk ? organizerAddress->toString() : std::string("sip:");
-		const auto conferenceUriString = conferenceUriOk ? conferenceUri->toString() : std::string("sip:");
-		lError() << "Trying to insert a Conference Info without a valid organizer SIP address ( "
-		         << organizerAddressString << ") or URI ( " << conferenceUriString << ")!";
+	const auto conferenceUri = q->processConferenceAddress(conferenceInfo->getUri());
+	const auto conferenceUriOk = conferenceUri.isValid();
+	if (!conferenceUriOk) {
+		lError() << "Trying to insert " << *conferenceInfo << " without a valid URI";
 		return -1;
 	}
 
@@ -637,7 +633,9 @@ long long MainDbPrivate::insertConferenceInfo(const std::shared_ptr<ConferenceIn
 	const int videoEnabled = conferenceInfo->getCapability(LinphoneStreamTypeVideo) ? 1 : 0;
 	const int chatEnabled = conferenceInfo->getCapability(LinphoneStreamTypeText) ? 1 : 0;
 	const auto &ccmpUri = conferenceInfo->getCcmpUri();
-	const long long &organizerSipAddressId = insertSipAddress(organizerAddress);
+	const auto &organizer = conferenceInfo->getOrganizer();
+	const auto organizerAddress = organizer ? organizer->getAddress() : Address::create(MainDb::sUnknownAddress);
+	const long long organizerSipAddressId = organizerAddress ? insertSipAddress(organizerAddress) : -1;
 	const long long &uriSipAddressId = insertSipAddress(conferenceUri);
 	const auto &dateTime = conferenceInfo->getDateTime();
 	auto startTime = dbSession.getTimeWithSociIndicator(dateTime);
@@ -701,8 +699,12 @@ long long MainDbPrivate::insertConferenceInfo(const std::shared_ptr<ConferenceIn
 		lInfo() << "Insert new " << *conferenceInfo << " in database: id " << conferenceInfoId << ".";
 	}
 
-	const bool isOrganizerAParticipant = conferenceInfo->hasParticipant(organizer);
-	insertOrUpdateConferenceInfoOrganizer(conferenceInfoId, organizer, isOrganizerAParticipant);
+	// Variable MainDb::sUnknownAddress stores a placeholder for the organizer's address, hence it must not be added to
+	// the table conference_info_participant
+	if (*organizerAddress != Address(MainDb::sUnknownAddress)) {
+		const bool isOrganizerAParticipant = conferenceInfo->hasParticipant(organizer);
+		insertOrUpdateConferenceInfoOrganizer(conferenceInfoId, organizer, isOrganizerAParticipant);
+	}
 
 	const auto &participantList = conferenceInfo->getParticipants();
 	for (const auto &participantInfo : participantList) {
@@ -845,11 +847,12 @@ long long MainDbPrivate::insertOrUpdateConferenceInfoParticipant(long long confe
 long long MainDbPrivate::insertOrUpdateConferenceCall(const std::shared_ptr<CallLog> &callLog,
                                                       const std::shared_ptr<ConferenceInfo> &conferenceInfo) {
 #ifdef HAVE_DB_STORAGE
+	L_Q();
 	long long conferenceInfoId = -1;
 
 	if (conferenceInfo != nullptr) {
-		const auto &conferenceAddress = conferenceInfo->getUri();
-		if (conferenceAddress) {
+		const auto conferenceAddress = q->processConferenceAddress(conferenceInfo->getUri());
+		if (conferenceAddress.isValid()) {
 			const long long &uriSipAddressId = insertSipAddress(conferenceAddress);
 			conferenceInfoId = selectConferenceInfoId(uriSipAddressId);
 			if (conferenceInfoId < 0) {
@@ -2249,7 +2252,6 @@ ParticipantInfo::participant_params_t MainDbPrivate::migrateConferenceInfoPartic
 shared_ptr<ConferenceInfo> MainDbPrivate::selectConferenceInfo(const soci::row &row) {
 	L_Q();
 	const long long &dbConferenceInfoId = dbSession.resolveId(row, 0);
-
 	auto conferenceInfo = getConferenceInfoFromCache(dbConferenceInfoId);
 	if (conferenceInfo) {
 		return conferenceInfo;
@@ -2262,10 +2264,9 @@ shared_ptr<ConferenceInfo> MainDbPrivate::selectConferenceInfo(const soci::row &
 	const std::string uriString = row.get<string>(2);
 	std::shared_ptr<Address> uri = Address::create(uriString);
 	conferenceInfo->setUri(uri);
-	const auto &conferenceUri = conferenceInfo->getUri();
-	if (conferenceUri && conferenceUri->isValid()) {
-		const auto &uri = conferenceUri->getUriWithoutGruu();
-		const auto &uriStringOrdered = uri.toStringUriOnlyOrdered();
+	const auto conferenceUri = q->processConferenceAddress(conferenceInfo->getUri());
+	if (conferenceUri.isValid()) {
+		const auto &uriStringOrdered = conferenceUri.toStringUriOnlyOrdered();
 		updateConferenceAddress = (uriStringOrdered != uriString);
 	}
 
@@ -7353,17 +7354,28 @@ std::shared_ptr<ConferenceInfo> MainDb::getConferenceInfoFromCcmpUri(const std::
 	return nullptr;
 }
 
+Address MainDb::processConferenceAddress(const std::shared_ptr<Address> &uri) {
+	if (!uri) {
+		return Address();
+	}
+	auto conferenceAddress = uri->getUriWithoutGruu();
+	conferenceAddress.removeUriParam(Address::sTransportParameter);
+	return conferenceAddress;
+}
+
 std::shared_ptr<ConferenceInfo> MainDb::getConferenceInfoFromURI(const std::shared_ptr<Address> &uri) {
 #ifdef HAVE_DB_STORAGE
 	if (isInitialized() && uri) {
-		string query = "SELECT conference_info.id, organizer_sip_address.value, uri_sip_address.value,"
-		               " start_time, duration, subject, description, state, ics_sequence, ics_uid, security_level, "
-		               "audio, video, chat, ccmp_uri, earlier_joining_time, expiry_time"
-		               " FROM conference_info, sip_address AS organizer_sip_address, sip_address AS uri_sip_address"
-		               " WHERE conference_info.organizer_sip_address_id = organizer_sip_address.id AND "
-		               "conference_info.uri_sip_address_id = uri_sip_address.id"
-		               " AND uri_sip_address.value LIKE '" +
-		               uri->getUriWithoutGruu().toStringUriOnlyOrdered() + "'";
+		const Address conferenceAddress(processConferenceAddress(uri));
+		const string query =
+		    "SELECT conference_info.id, organizer_sip_address.value, uri_sip_address.value,"
+		    " start_time, duration, subject, description, state, ics_sequence, ics_uid, security_level, "
+		    "audio, video, chat, ccmp_uri, earlier_joining_time, expiry_time"
+		    " FROM conference_info, sip_address AS organizer_sip_address, sip_address AS uri_sip_address"
+		    " WHERE conference_info.organizer_sip_address_id = organizer_sip_address.id AND "
+		    "conference_info.uri_sip_address_id = uri_sip_address.id"
+		    " AND uri_sip_address.value LIKE '" +
+		    conferenceAddress.toStringUriOnlyOrdered() + "'";
 
 		return L_DB_TRANSACTION {
 			L_D();
@@ -7505,22 +7517,23 @@ void MainDb::deleteConferenceInfo(long long dbConferenceId) {
 #endif
 }
 
-void MainDb::deleteConferenceInfo(const std::shared_ptr<Address> &address) {
+void MainDb::deleteConferenceInfo(const Address address) {
 #ifdef HAVE_DB_STORAGE
-	if (isInitialized()) {
+	if (isInitialized() && address.isValid()) {
 		L_DB_TRANSACTION {
 			L_D();
-			if (address) {
-				auto prunedAddress = address->getUriWithoutGruu();
-				lInfo() << "Deleting conference information linked to conference " << prunedAddress;
-				const long long &uriSipAddressId = d->selectSipAddressId(prunedAddress, false);
-				const long long &dbConferenceId = d->selectConferenceInfoId(uriSipAddressId);
-				deleteConferenceInfo(dbConferenceId);
-			}
+			lInfo() << "Deleting conference information linked to conference " << address;
+			const long long &uriSipAddressId = d->selectSipAddressId(address, false);
+			const long long &dbConferenceId = d->selectConferenceInfoId(uriSipAddressId);
+			deleteConferenceInfo(dbConferenceId);
 			tr.commit();
 		};
 	}
 #endif
+}
+
+void MainDb::deleteConferenceInfo(const std::shared_ptr<Address> &address) {
+	deleteConferenceInfo(processConferenceAddress(address));
 }
 
 void MainDb::deleteConferenceInfo(const std::shared_ptr<ConferenceInfo> &conferenceInfo) {

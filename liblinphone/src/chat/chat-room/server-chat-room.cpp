@@ -91,7 +91,7 @@ void ServerChatRoom::confirmRecreation(SalCallOp *op) {
 	session->configure(LinphoneCallIncoming, nullptr, op, from, to);
 	session->startIncomingNotification(false);
 	auto redirectAddr = *confAddr;
-	redirectAddr.setParam(Conference::IsFocusParameter);
+	redirectAddr.setParam(Conference::sIsFocusParameter);
 	session->redirect(redirectAddr);
 }
 
@@ -359,8 +359,8 @@ void ServerChatRoom::removeQueuedParticipantMessages(const shared_ptr<Participan
 	if (participant) mQueuedMessages.erase(participant->getAddress()->toString());
 }
 
-void ServerChatRoom::sendMessage(BCTBX_UNUSED(const shared_ptr<ServerChatRoom::Message> &message),
-                                 BCTBX_UNUSED(const std::shared_ptr<Address> &deviceAddr)) {
+void ServerChatRoom::sendMessage(const shared_ptr<ServerChatRoom::Message> &message,
+                                 const std::shared_ptr<Address> &deviceAddr) {
 	shared_ptr<ChatMessage> msg = createChatMessage();
 	copyMessageHeaders(message, msg);
 	// Special custom header to identify MESSAGE that belong to server group chatroom

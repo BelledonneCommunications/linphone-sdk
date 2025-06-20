@@ -20,7 +20,6 @@
 
 #include <bctoolbox/defs.h>
 
-#include "conference/params/call-session-params-p.h"
 #include "conference/participant-info.h"
 #include "conference/session/media-session.h"
 #include "conference/sip-conference-scheduler.h"
@@ -90,8 +89,8 @@ void SIPConferenceScheduler::createOrUpdateConference(const std::shared_ptr<Conf
 }
 
 void SIPConferenceScheduler::onCallSessionSetTerminated(const std::shared_ptr<CallSession> &session) {
-	const std::shared_ptr<Address> remoteAddress = session->getRemoteContactAddress();
-	if (remoteAddress == nullptr) {
+	const std::shared_ptr<Address> &remoteAddress = session->getRemoteContactAddress();
+	if (!remoteAddress) {
 		auto conferenceAddress = mConferenceInfo->getUri();
 		lError() << "[Conference Scheduler] [" << this
 		         << "] The session to update the conference information of conference "
@@ -101,14 +100,12 @@ void SIPConferenceScheduler::onCallSessionSetTerminated(const std::shared_ptr<Ca
 		            "the server";
 		setState(State::Error);
 	} else if (getState() != State::Error) {
+		setConferenceAddress(remoteAddress);
 		// Update conference info in database with updated conference information
 #ifdef HAVE_DB_STORAGE
 		auto &mainDb = getCore()->getPrivate()->mainDb;
 		mainDb->insertConferenceInfo(mConferenceInfo);
 #endif // HAVE_DB_STORAGE
-
-		auto conferenceAddress = remoteAddress;
-		setConferenceAddress(conferenceAddress);
 	}
 	getCore()->removeConferenceScheduler(getSharedFromThis());
 }
