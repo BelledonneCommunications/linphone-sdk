@@ -176,3 +176,11 @@ liblinphone-debian10-test:
     - debian10-ninja-gcc
   variables:
     PLATFORM: linux-debian10
+
+liblinphone-debian10-test-shaky:
+  image: !reference [.debian10_test_libl_image_version, image]
+  extends: .test-liblinphone-shaky
+  needs:
+    - debian10-ninja-gcc
+  variables:
+    PLATFORM: linux-debian10

@@ -256,22 +256,28 @@
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
     - echo $LOG_PATTERN2.txt
+    - echo $SHAKY_TESTS_LIBLINPHONE
     - |
         if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
         then
            if [ $CRYPTO_BACKEND_TESTS_LIBLINPHONE = "false" ];
            then
-              $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS $RESOURCES_DIR $ADDITIONNAL_OPTIONS --tag '!shaky' --log-file $LOG_PATTERN.txt || EXIT=$?
+              if [ $SHAKY_TESTS_LIBLINPHONE = "false" ];
+              then
+                  $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag '!shaky' --max-failed 0 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+              else
+                  $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'shaky' $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky || EXIT=$?
+              fi
            else
               EXIT_CRYPTO_BACKEND_TAG=0;
-              $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag "CRYPTO" $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS --tag '!shaky' || EXIT_CRYPTO_BACKEND_TAG=$?
+              $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag "CRYPTO" --tag '!shaky' $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
            fi
         else
 
           EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=0;
 
-          $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" --max-failed 0 $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS --tag '!shaky' || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
+          $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" --tag '!shaky' --max-failed 0 $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
 
          # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file $LOG_PATTERN2.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
 
@@ -544,12 +550,20 @@
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
-    ADDITIONNAL_OPTIONS: " --show-account-manager-logs --dns-server fs-test-10.linphone.org"
+    ADDITIONNAL_OPTIONS: "--show-account-manager-logs --dns-server fs-test-10.linphone.org"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ${PATH_TO_TESTER}/${TESTER_BIN}"
     TESTER: "liblinphone"
     #false
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "false"
+    SHAKY_TESTS_LIBLINPHONE: "false"
+
+.test-liblinphone-shaky:
+  extends: .test-liblinphone
+  tags: [ "docker-test-liblinphone" ]
+  variables:
+    LOG_PATTERN: "logLiblinphoneShaky"
+    SHAKY_TESTS_LIBLINPHONE: "true"
 
 .test-liblinphone-tunnel-pq:
   extends: .test-liblinphone
@@ -569,6 +583,13 @@
 
 .test-liblinphone-mr:
   extends: .test-liblinphone
+  allow_failure: false
+  #Only launches mr tests on mr, excepted for wip and draft
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.test-liblinphone-shaky-mr:
+  extends: .test-liblinphone-shaky
   allow_failure: false
   #Only launches mr tests on mr, excepted for wip and draft
   rules:

@@ -213,6 +213,14 @@ liblinphone-debian12-test:
   variables:
     PLATFORM: linux-debian12
 
+liblinphone-debian12-test-shaky:
+  image: !reference [.debian12_test_libl_image_version, image]
+  extends: .test-liblinphone-shaky
+  needs:
+    - debian12-ninja-gcc
+  variables:
+    PLATFORM: linux-debian12
+
 liblinphone-debian12-openssl-test-mr:
    image: !reference [.debian12_test_libl_image_version, image]
    extends: .test-liblinphone-crypto-backend-mr

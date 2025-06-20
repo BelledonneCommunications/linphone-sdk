@@ -152,6 +152,17 @@ liblinphone-gentoo-test:
     LOG_PATTERN: "/home/bc/logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "/usr/bin"
 
+liblinphone-gentoo-test-shaky:
+  extends: .test-liblinphone-shaky
+  <<: *docker_image_platform_and_runner_tag
+  tags: [ "docker-test-liblinphone" ]
+  variables:
+    PLATFORM: linux-gentoo
+    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+    PULSEAUDIO_KILL: "pulseaudio --kill"
+    LOG_PATTERN: "/home/bc/logLiblinphoneShaky"
+    PATH_TO_TESTER: "/usr/bin"
+
 #################################################
 # Uploads
 #################################################

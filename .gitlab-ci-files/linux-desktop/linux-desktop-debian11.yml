@@ -183,8 +183,24 @@ liblinphone-debian11-test:
   variables:
     PLATFORM: linux-debian11
 
+liblinphone-debian11-test-shaky:
+  image: !reference [.debian11_test_libl_image_version, image]
+  extends: .test-liblinphone-shaky
+  needs:
+    - debian11-ninja-gcc
+  variables:
+    PLATFORM: linux-debian11
+
 # liblinphone-debian11-test-mr:
 #   extends: .test-liblinphone-mr
+#   image: !reference [.debian11_test_libl_image_version, image]
+#   needs:
+#     - debian11-ninja-gcc
+#   variables:
+#     PLATFORM: linux-debian11
+
+# liblinphone-debian11-test-shaky-mr:
+#   extends: .test-liblinphone-shaky-mr
 #   image: !reference [.debian11_test_libl_image_version, image]
 #   needs:
 #     - debian11-ninja-gcc

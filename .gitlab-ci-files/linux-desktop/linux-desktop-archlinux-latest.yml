@@ -160,3 +160,13 @@ liblinphone-arch-test:
     - arch-latest-ninja-clang
   variables:
     PLATFORM: linux-arch
+
+liblinphone-arch-test-shaky:
+  image: !reference [.archlinux_test_libl_image_version, image]
+    #  rules:
+    #- !reference [.rules-merge-request-manual, rules]
+  extends: .test-liblinphone-shaky
+  needs:
+    - arch-latest-ninja-clang
+  variables:
+    PLATFORM: linux-arch
