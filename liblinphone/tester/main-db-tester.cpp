@@ -387,7 +387,7 @@ static void load_a_lot_of_chatrooms_base(bool_t keep_gruu) {
 	 * give two attempts. It the first fails, there is a second attempt, where normally disk access shall no longer be a
 	 * problem.
 	 */
-	for (int attempts = 0; attempts < 2; attempts++) {
+	for (int attempts = 0; attempts < 8; attempts++) {
 		expectedDurationMs = 600;
 #ifndef _WIN32
 		int current_priority = getpriority(PRIO_PROCESS, 0);
@@ -426,6 +426,7 @@ static void load_a_lot_of_chatrooms_base(bool_t keep_gruu) {
 		}
 #endif
 		if (ms <= expectedDurationMs) break;
+		bctbx_sleep_ms(1000); // perhaps disk I/O was already too busy, retry one more time a bit later.
 	}
 	BC_ASSERT_LOWER(ms, expectedDurationMs, long, "%li");
 }
@@ -644,7 +645,7 @@ static void search_messages_in_chat_room(void) {
 	}
 }
 
-test_t main_db_tests[] = {
+static test_t main_db_tests[] = {
     TEST_NO_TAG("Get events count", get_events_count),
     TEST_NO_TAG("Get messages count", get_messages_count),
     TEST_NO_TAG("Get unread messages count", get_unread_messages_count),

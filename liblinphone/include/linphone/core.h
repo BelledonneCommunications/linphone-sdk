@@ -1854,6 +1854,7 @@ LINPHONE_PUBLIC LinphoneStatus linphone_core_set_primary_contact(LinphoneCore *c
 
 /**
  * Returns the default identity when no account is used.
+ * This SIP address usually contains a private ip address, and may not be routable globally.
  *
  * @ingroup proxies
  * @param core the Core @notnil
@@ -1994,8 +1995,9 @@ LINPHONE_PUBLIC void linphone_core_enable_wifi_only(LinphoneCore *core, bool_t e
  * @param core the #LinphoneCore @notnil
  * @return a #LinphoneAddress object. @maybenil
  * @ingroup proxies
+ * @deprecated prefer using linphone_core_get_primary_contact_address()
  **/
-LINPHONE_PUBLIC LinphoneAddress *linphone_core_create_primary_contact_parsed(LinphoneCore *core);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneAddress *linphone_core_create_primary_contact_parsed(LinphoneCore *core);
 
 /**
  * Sets maximum available download bandwidth
@@ -2501,7 +2503,7 @@ LINPHONE_PUBLIC void linphone_core_set_default_account(LinphoneCore *core, Linph
 
 /**
  * Adds authentication information to the #LinphoneCore.
- * That piece of information will be used during all SIP transactions that require authentication.
+ * These nformation will be used during all SIP or HTTP transactions that require authentication.
  * @param core The #LinphoneCore. @notnil
  * @param info The #LinphoneAuthInfo to add. @notnil
  * @ingroup authentication
@@ -5494,6 +5496,8 @@ LINPHONE_PUBLIC int linphone_core_get_audio_dscp(const LinphoneCore *core);
 /**
  * Sets the DSCP field for outgoing video streams.
  * The DSCP defines the quality of service in IP packets.
+ * When RTP bundling is negociated during the call (see linphone_core_enable_rtp_bundle()), the video
+ * packets are sent through the audio RTP/UDP connection, which leaves the video dscp setting wihtout effect.
  * @note It is usually useless or a bad idea to try to play with DSCP bits unless having full control on the network.
  * @warning Setting the DSCP bits is more or less well supported by operating systems and sometimes requires to disable
  *IPv6.
@@ -8318,6 +8322,15 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_send_dtmf(LinphoneCore *c
  * @deprecated 22/10/2018 Use linphone_core_create_primary_contact_parsed() instead.
  **/
 LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneAddress *linphone_core_get_primary_contact_parsed(LinphoneCore *core);
+
+/**
+ * Same as linphone_core_get_primary_contact() but the result is a #LinphoneAddress object
+ * instead of a string.
+ * @param core the #LinphoneCore @notnil
+ * @return a #LinphoneAddress object. @maybenil @tobefreed
+ * @ingroup proxies
+ **/
+LINPHONE_PUBLIC LinphoneAddress *linphone_core_get_primary_contact_address(LinphoneCore *core);
 
 /**
  * Returns the list of available audio codecs.

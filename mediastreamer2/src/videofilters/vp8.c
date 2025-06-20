@@ -651,9 +651,7 @@ static void enc_process(MSFilter *f) {
 
 		ms_queue_remove(f->inputs[0], entry_f);
 		putq(&s->entry_q, entry_f);
-		ms_mutex_lock(&s->vp8_mutex);
 		ms_worker_thread_add_task(s->process_thread, enc_process_frame_task, (void *)f);
-		ms_mutex_unlock(&s->vp8_mutex);
 	}
 
 	/* Put each frame we have in exit_q in f->output[0] */
@@ -681,7 +679,7 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	const MSVideoConfiguration *vconf = (const MSVideoConfiguration *)data;
 	MSVideoSize vsize = s->vconf.vsize;
-	bool_t fps_changed = vconf->fps != s->vconf.fps;
+	// bool_t fps_changed = vconf->fps != s->vconf.fps;
 
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
@@ -696,20 +694,15 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 			    "Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d",
 			    vsize.width, vsize.height, s->vconf.vsize.width, s->vconf.vsize.height);
 			s->vconf.vsize = vsize;
-		} else if (fps_changed) {
-			/* The VP8 implementation is unreliable for fps change. Simply destroy the encoder and re-create a new one,
-			 * it is safer.*/
-			if (s->ready) {
-				ms_mutex_lock(&s->vp8_mutex);
-				vpx_codec_destroy(&s->codec);
-				enc_init_impl(f);
-				ms_mutex_unlock(&s->vp8_mutex);
-			}
 		} else {
+			/* The VP8 implementation is unreliable for dynamic fps or bitrate change
+			 * performed with vpx_codec_enc_config_set().
+			 * Sometimes, it has no effect, but we don't know why.
+			 * Simply destroy the encoder and re-create a new one, which is always working.
+			 */
 			ms_mutex_lock(&s->vp8_mutex);
-			if (vpx_codec_enc_config_set(&s->codec, &s->cfg) != 0) {
-				ms_error("VP8 encoder new configuration failed to apply.");
-			}
+			vpx_codec_destroy(&s->codec);
+			enc_init_impl(f);
 			ms_mutex_unlock(&s->vp8_mutex);
 		}
 	}

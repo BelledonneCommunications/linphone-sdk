@@ -6,7 +6,7 @@ Mediastreamer2
 Mediastreamer2 is a powerful and lightweight streaming engine for voice/video telephony applications.
 This media processing and streaming toolkit is responsible for receiving and sending all multimedia streams in Linphone, including voice/video capture, encoding and decoding, and rendering.
 
-For additional information, please [visit mediastreamer2's homepage on **linphone.org**](http://www.linphone.org/technical-corner/mediastreamer2)
+For additional information, please [visit mediastreamer2's homepage on **linphone.org**](https://www.linphone.org/en/voip-media-engine/)
 
 License
 -------
@@ -22,8 +22,6 @@ Mediastreamer2 is dual licensed, and is available either :
 
 Documentation
 -------------
-
-Please browse supported features and RFCs from [<https://www.linphone.org/technical-corner/mediastreamer2/features>].
 
 Mediastreamer2 has a concept of filters, that can be connected to form a graph. Each
 filter is responsible for doing some kind of processing and 
