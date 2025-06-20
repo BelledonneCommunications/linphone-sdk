@@ -83,8 +83,6 @@ extern unsigned char ms_tester_tone_detected;
 #define OPUS_PAYLOAD_TYPE 121
 #define SPEEX_PAYLOAD_TYPE 122
 #define SPEEX16_PAYLOAD_TYPE 123
-#define SILK_PAYLOAD_TYPE 124
-#define SILK16_PAYLOAD_TYPE 125
 #define BV16_PAYLOAD_TYPE 127
 #define FLEXFEC_PAYLOAD_TYPE 97
 

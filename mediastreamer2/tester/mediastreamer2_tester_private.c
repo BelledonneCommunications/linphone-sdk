@@ -264,7 +264,6 @@ RtpProfile *ms_tester_create_rtp_profile(void) {
 	rtp_profile_set_payload(profile, MP4V_PAYLOAD_TYPE, &payload_type_mp4v);
 	rtp_profile_set_payload(profile, OPUS_PAYLOAD_TYPE, &payload_type_opus);
 	rtp_profile_set_payload(profile, SPEEX_PAYLOAD_TYPE, &payload_type_speex_wb);
-	rtp_profile_set_payload(profile, SILK_PAYLOAD_TYPE, &payload_type_silk_wb);
 	return profile;
 }
 

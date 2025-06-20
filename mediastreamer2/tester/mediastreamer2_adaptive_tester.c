@@ -48,7 +48,6 @@ static int tester_before_all(void) {
 	rtp_profile_set_payload(&rtp_profile, 0, &payload_type_pcmu8000);
 	rtp_profile_set_payload(&rtp_profile, OPUS_PAYLOAD_TYPE, &payload_type_opus);
 	rtp_profile_set_payload(&rtp_profile, SPEEX_PAYLOAD_TYPE, &payload_type_speex_wb);
-	rtp_profile_set_payload(&rtp_profile, SILK16_PAYLOAD_TYPE, &payload_type_silk_wb);
 	rtp_profile_set_payload(&rtp_profile, PCMA8_PAYLOAD_TYPE, &payload_type_pcma8000);
 
 	rtp_profile_set_payload(&rtp_profile, H263_PAYLOAD_TYPE, &payload_type_h263);
