@@ -40,6 +40,16 @@ typedef void *(*bctbx_list_copy_func)(void *);
 
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_new(void *data);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_append(bctbx_list_t *elem, void *data);
+/*
+ * The bctbx_list_t has a O(n) complexity for append operations, and O(1) complexity for prepend or insertions.
+ * In order to speed up loops where multiple elements are appended, use bctbx_list_append_fast().
+ * The 'last' argument is a reference to bctbx_list_t pointer that must be set to NULL, and is updated on return
+ * by bctbx_list_append_fast() to point to the newly inserted element.
+ * At next append operation, it must be passed so that the append operation can be made in O(1).
+ * Use with caution !
+ */
+bctbx_list_t *bctbx_list_append_fast(bctbx_list_t *first, bctbx_list_t **last, void *data);
+
 BCTBX_PUBLIC BCTBX_DEPRECATED bctbx_list_t *bctbx_list_append_link(bctbx_list_t *elem, bctbx_list_t *new_elem);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_prepend(bctbx_list_t *elem, void *data);
 BCTBX_PUBLIC BCTBX_DEPRECATED bctbx_list_t *bctbx_list_prepend_link(bctbx_list_t *elem, bctbx_list_t *new_elem);

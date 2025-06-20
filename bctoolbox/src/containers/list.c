@@ -59,6 +59,21 @@ bctbx_list_t *bctbx_list_append(bctbx_list_t *elem, void *data) {
 	return bctbx_list_concat(elem, new_elem);
 }
 
+bctbx_list_t *bctbx_list_append_fast(bctbx_list_t *first, bctbx_list_t **last, void *data) {
+	bctbx_list_t *new_elem = bctbx_list_new(data);
+	if (*last != NULL) {
+		if ((*last)->next == NULL) {
+			bctbx_list_concat(*last, new_elem);
+			*last = new_elem;
+			return first;
+		} else {
+			bctbx_warning("bctbx_list_append_fast() mis-use or corrupted 'last' argument");
+		}
+	}
+	*last = new_elem;
+	return bctbx_list_concat(first, new_elem);
+}
+
 bctbx_list_t *bctbx_list_prepend_link(bctbx_list_t *elem, bctbx_list_t *new_elem) {
 	if (elem != NULL) { // NULL => NE => NLE => E => LE => NULL (where N=New, L=Last, E=Elem)
 		new_elem = bctbx_list_concat(new_elem, elem);

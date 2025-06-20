@@ -568,11 +568,12 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml) {
 	size_t pfd_size = (ml->nsources + 1) * sizeof(belle_sip_pollfd_t);
 	belle_sip_pollfd_t *pfd = (belle_sip_pollfd_t *)belle_sip_malloc0(pfd_size);
 	int i = 0;
-	belle_sip_list_t *elem, *next;
+	bctbx_list_t *elem, *next;
 	int duration = -1;
 	int ret;
 	uint64_t cur;
-	belle_sip_list_t *to_be_notified = NULL;
+	bctbx_list_t *to_be_notified = NULL;
+	bctbx_list_t *to_be_notified_last = NULL;
 	int can_clean = belle_sip_object_pool_cleanable(
 	    ml->pool); /*iterate might not be called by the thread that created the main loop*/
 	belle_sip_object_pool_t *tmp_pool = NULL;
@@ -649,9 +650,9 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml) {
 				belle_sip_error("Source [%p] does not contains any fd !", s);
 			}
 			if (revents != 0) {
-				to_be_notified = belle_sip_list_append(to_be_notified, belle_sip_object_ref(s));
+				to_be_notified = bctbx_list_append_fast(to_be_notified, &to_be_notified_last, belle_sip_object_ref(s));
 			}
-		} else to_be_notified = belle_sip_list_append(to_be_notified, belle_sip_object_ref(s));
+		} else to_be_notified = bctbx_list_append_fast(to_be_notified, &to_be_notified_last, belle_sip_object_ref(s));
 	}
 
 	/* Step 3: find timeouted sources */
@@ -667,7 +668,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml) {
 		} else {
 			if (s->revents == 0) {
 				s->expired = TRUE;
-				to_be_notified = belle_sip_list_append(to_be_notified, belle_sip_object_ref(s));
+				to_be_notified = bctbx_list_append_fast(to_be_notified, &to_be_notified_last, belle_sip_object_ref(s));
 			} /*else already in to_be_notified by Step 2*/
 
 			s->revents |= BELLE_SIP_EVENT_TIMEOUT;
