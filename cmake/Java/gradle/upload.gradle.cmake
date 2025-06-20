@@ -13,7 +13,16 @@ repositories {
 // Define the output directory of the build (jars)
 def buildDir = 'linphone-sdk/bin/libs'
 def os = "${osdetector.os}"
-def osClassifier = os == "linux" ? "${osdetector.release.id}.${osdetector.release.version}" : os
+// Determine OS classifier for artifact publishing:
+// - For Linux: Uses distribution ID + version (e.g. "ubuntu.24.04")
+// - For Rocky Linux: Only keeps major version (e.g. "rocky.9" from "9.4")
+// - For other OSes: Uses simple OS name (e.g. "windows", "mac")
+def osClassifier = os == "linux" ?
+                        (osdetector.release.id == "rocky" ?
+                        "${osdetector.release.id}.${osdetector.release.version.split('\\.')[0]}" :
+                        "${osdetector.release.id}.${osdetector.release.version}") :
+                        os
+
 println "Detected OS classifier for this upload : ${osClassifier}"
 
 publishing {
@@ -22,7 +31,7 @@ publishing {
             groupId = 'org.linphone'
             artifactId = 'linphone-sdk'
             version = "@LINPHONESDK_VERSION@"
-            
+
            artifact("${buildDir}/linphone-sdk.jar") {
                 classifier = osClassifier
             }
@@ -52,7 +61,7 @@ publishing {
             }
         }
     }
-    
+
     repositories {
         maven {
             url './maven_repository/'
