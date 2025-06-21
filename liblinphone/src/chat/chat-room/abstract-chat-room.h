@@ -157,8 +157,10 @@ public:
 	virtual int getChatMessageCount() const = 0;
 	virtual int getUnreadChatMessageCount() const = 0;
 
-	virtual void compose() = 0;
+	virtual void compose(const std::string& contentType) = 0;
+	virtual void stopComposing() = 0;
 	virtual bool isRemoteComposing() const = 0;
+	virtual const std::string &getRemoteComposingContentType() const = 0;
 	virtual std::list<std::shared_ptr<Address>> getComposingAddresses() const = 0;
 	const bctbx_list_t *getComposingCAddresses() const;
 

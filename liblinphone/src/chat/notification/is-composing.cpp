@@ -39,12 +39,13 @@ using namespace std;
 LINPHONE_BEGIN_NAMESPACE
 
 struct IsRemoteComposingData {
-	IsRemoteComposingData(IsComposing *isComposingHandler, string uri)
-	    : isComposingHandler(isComposingHandler), uri(uri) {
+	IsRemoteComposingData(IsComposing *isComposingHandler, string uri, string contentType)
+	    : isComposingHandler(isComposingHandler), uri(uri), contentType(contentType) {
 	}
 
 	IsComposing *isComposingHandler;
 	string uri;
+	string contentType;
 };
 
 // -----------------------------------------------------------------------------
@@ -62,13 +63,17 @@ IsComposing::~IsComposing() {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // _MSC_VER
-string IsComposing::createXml(bool isComposing) {
+string IsComposing::createXml(bool isComposing, const std::string& contentType) {
 #ifdef HAVE_ADVANCED_IM
 	Xsd::IsComposing::IsComposing node(isComposing ? "active" : "idle");
 	if (isComposing)
 		node.setRefresh(static_cast<unsigned long long>(
 		    linphone_config_get_int(core->config, "sip", "composing_refresh_timeout", defaultRefreshTimeout)));
 
+	if (!contentType.empty()) {
+		node.setContenttype(contentType);
+	}
+	
 	stringstream ss;
 	Xsd::XmlSchema::NamespaceInfomap map;
 	map[""].name = "urn:ietf:params:xml:ns:im-iscomposing";
@@ -94,14 +99,18 @@ void IsComposing::parse(const std::shared_ptr<Address> &remoteAddr, const string
 	    Xsd::IsComposing::parseIsComposing(data, Xsd::XmlSchema::Flags::dont_validate));
 	if (!node) return;
 
+	std::string contentType = ContentType::PlainText.getValue();
+	if (node->getContenttype().present()) {
+		contentType = node->getContenttype().get();
+	}
 	if (node->getState() == "active") {
 		unsigned long long refresh = 0;
 		if (node->getRefresh().present()) refresh = node->getRefresh().get();
-		startRemoteRefreshTimer(remoteAddr->asStringUriOnly(), refresh);
-		listener->onIsRemoteComposingStateChanged(remoteAddr, true);
+		startRemoteRefreshTimer(remoteAddr->asStringUriOnly(), contentType, refresh);
+		listener->onIsRemoteComposingStateChanged(remoteAddr, true, contentType);
 	} else if (node->getState() == "idle") {
 		stopRemoteRefreshTimer(remoteAddr->asStringUriOnly());
-		listener->onIsRemoteComposingStateChanged(remoteAddr, false);
+		listener->onIsRemoteComposingStateChanged(remoteAddr, false, contentType);
 	}
 #else
 	lWarning() << "Advanced IM such as group chat is disabled!";
@@ -189,18 +198,18 @@ int IsComposing::refreshTimerExpired() {
 	return BELLE_SIP_CONTINUE;
 }
 
-int IsComposing::remoteRefreshTimerExpired(const string &uri) {
-	listener->onIsRemoteComposingStateChanged(Address::create(uri), false);
+int IsComposing::remoteRefreshTimerExpired(const string &uri, const string &contentType) {
+	listener->onIsRemoteComposingStateChanged(Address::create(uri), false, contentType);
 	stopRemoteRefreshTimer(uri);
 	return BELLE_SIP_STOP;
 }
 
-void IsComposing::startRemoteRefreshTimer(const string &uri, unsigned long long refresh) {
+void IsComposing::startRemoteRefreshTimer(const string &uri, const std::string &contentType, unsigned long long refresh) {
 	unsigned int duration = getRemoteRefreshTimerDuration();
 	if (refresh != 0) duration = static_cast<unsigned int>(refresh);
 	auto it = remoteRefreshTimers.find(uri);
 	if (it == remoteRefreshTimers.end()) {
-		IsRemoteComposingData *data = new IsRemoteComposingData(this, uri);
+		IsRemoteComposingData *data = new IsRemoteComposingData(this, uri, contentType);
 		belle_sip_source_t *timer = core->sal->createTimer(remoteRefreshTimerExpired, data, duration * 1000,
 		                                                   "composing remote refresh timeout");
 		pair<string, belle_sip_source_t *> p(uri, timer);
@@ -236,7 +245,7 @@ int IsComposing::refreshTimerExpired(void *data, BCTBX_UNUSED(unsigned int reven
 
 int IsComposing::remoteRefreshTimerExpired(void *data, BCTBX_UNUSED(unsigned int revents)) {
 	IsRemoteComposingData *d = static_cast<IsRemoteComposingData *>(data);
-	int result = d->isComposingHandler->remoteRefreshTimerExpired(d->uri);
+	int result = d->isComposingHandler->remoteRefreshTimerExpired(d->uri, d->contentType);
 	return result;
 }
 

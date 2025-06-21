@@ -39,7 +39,7 @@ public:
 	IsComposing(LinphoneCore *core, IsComposingListener *listener);
 	~IsComposing();
 
-	std::string createXml(bool isComposing);
+	std::string createXml(bool isComposing, const std::string& contentType);
 	void parse(const std::shared_ptr<Address> &remoteAddr, const std::string &content);
 	void startIdleTimer();
 	void startRefreshTimer();
@@ -54,8 +54,8 @@ private:
 	unsigned int getRemoteRefreshTimerDuration();
 	int idleTimerExpired();
 	int refreshTimerExpired();
-	int remoteRefreshTimerExpired(const std::string &uri);
-	void startRemoteRefreshTimer(const std::string &uri, unsigned long long refresh);
+	int remoteRefreshTimerExpired(const std::string &uri, const std::string &contentType);
+	void startRemoteRefreshTimer(const std::string &uri, const std::string &contentType, unsigned long long refresh);
 	void stopAllRemoteRefreshTimers();
 	std::unordered_map<std::string, belle_sip_source_t *>::iterator
 	stopRemoteRefreshTimer(const std::unordered_map<std::string, belle_sip_source_t *>::const_iterator it);

@@ -169,11 +169,11 @@ void ChatRoom::onChatMessageSent(const shared_ptr<ChatMessage> &chatMessage) {
 	mIsComposingHandler->stopRefreshTimer();
 }
 
-void ChatRoom::sendIsComposingNotification() {
+void ChatRoom::sendIsComposingNotification(const std::string &contentType) {
 	LinphoneImNotifPolicy *policy = linphone_core_get_im_notif_policy(getCore()->getCCore());
 	if (!linphone_im_notif_policy_get_send_is_composing(policy)) return;
 
-	auto isComposingMsg = createIsComposingMessage();
+	auto isComposingMsg = createIsComposingMessage(contentType);
 	isComposingMsg->getPrivate()->send();
 }
 
@@ -432,9 +432,9 @@ shared_ptr<ImdnMessage> ChatRoom::createImdnMessage(const shared_ptr<ImdnMessage
 	return shared_ptr<ImdnMessage>(new ImdnMessage(message));
 }
 
-shared_ptr<IsComposingMessage> ChatRoom::createIsComposingMessage() {
+shared_ptr<IsComposingMessage> ChatRoom::createIsComposingMessage(const std::string &contentType) {
 	return shared_ptr<IsComposingMessage>(
-	    new IsComposingMessage(getSharedFromThis(), *mIsComposingHandler.get(), mIsComposing));
+	    new IsComposingMessage(getSharedFromThis(), *mIsComposingHandler.get(), mIsComposing, contentType));
 }
 
 shared_ptr<ChatMessage> ChatRoom::findChatMessage(const string &messageId) const {
@@ -559,7 +559,7 @@ void ChatRoom::notifyChatMessageReceived(const shared_ptr<ChatMessage> &chatMess
 	linphone_core_notify_message_received(getCore()->getCCore(), cr, L_GET_C_BACK_PTR(chatMessage));
 }
 
-void ChatRoom::notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, bool isComposing) {
+void ChatRoom::notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType) {
 	auto it = find_if(remoteIsComposing.cbegin(), remoteIsComposing.cend(),
 	                  [&remoteAddress](const auto &address) { return (*remoteAddress == *address); });
 
@@ -567,10 +567,12 @@ void ChatRoom::notifyIsComposingReceived(const std::shared_ptr<Address> &remoteA
 		if (it == remoteIsComposing.cend()) {
 			remoteIsComposing.push_back(remoteAddress);
 		}
+		mRemoteComposingContentType = contentType;
 	} else {
 		if (it != remoteIsComposing.cend()) {
 			remoteIsComposing.erase(it);
 		}
+		mRemoteComposingContentType = "";
 	}
 
 	LinphoneChatRoom *cr = getCChatRoom();
@@ -661,7 +663,7 @@ void ChatRoom::onChatMessageReceived(const shared_ptr<ChatMessage> &chatMessage)
 	if ((chatMessage->getPrivate()->getContentType() != ContentType::ImIsComposing) &&
 	    (chatMessage->getPrivate()->getContentType() != ContentType::Imdn)) {
 		mIsComposingHandler->stopRemoteRefreshTimer(fromAddress->toString());
-		notifyIsComposingReceived(fromAddress, false);
+		notifyIsComposingReceived(fromAddress, false, "");
 	}
 
 	if (core->isCurrentlyAggregatingChatMessages()) {
@@ -750,16 +752,16 @@ void ChatRoom::onIsComposingReceived(const std::shared_ptr<Address> &remoteAddre
 }
 
 void ChatRoom::onIsComposingRefreshNeeded() {
-	sendIsComposingNotification();
+	sendIsComposingNotification(mComposingContentType);
 }
 
 void ChatRoom::onIsComposingStateChanged(bool isComposing) {
 	mIsComposing = isComposing;
-	sendIsComposingNotification();
+	sendIsComposingNotification(mComposingContentType);
 }
 
-void ChatRoom::onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &remoteAddress, bool isComposing) {
-	notifyIsComposingReceived(remoteAddress, isComposing);
+void ChatRoom::onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType) {
+	notifyIsComposingReceived(remoteAddress, isComposing, contentType);
 }
 
 void ChatRoom::addPendingMessage(BCTBX_UNUSED(const std::shared_ptr<ChatMessage> &chatMessage)) {
@@ -919,17 +921,33 @@ int ChatRoom::getUnreadChatMessageCount() const {
 
 // -----------------------------------------------------------------------------
 
-void ChatRoom::compose() {
+void ChatRoom::compose(const std::string &contentType) {
 	if (!mIsComposing) {
 		mIsComposing = true;
-		sendIsComposingNotification();
+		mComposingContentType = contentType;
+		sendIsComposingNotification(mComposingContentType);
 		mIsComposingHandler->startRefreshTimer();
 	}
 	mIsComposingHandler->startIdleTimer();
 }
 
+void ChatRoom::stopComposing() {
+	if (mIsComposing) {
+		mIsComposingHandler->stopIdleTimer();
+		mIsComposingHandler->stopRefreshTimer();
+		
+		mIsComposing = false;
+		mComposingContentType = "";
+		sendIsComposingNotification(mComposingContentType);
+	}
+}
+
 bool ChatRoom::isRemoteComposing() const {
 	return !remoteIsComposing.empty();
+}
+
+const std::string &ChatRoom::getRemoteComposingContentType() const {
+	return mRemoteComposingContentType;
 }
 
 list<std::shared_ptr<Address>> ChatRoom::getComposingAddresses() const {

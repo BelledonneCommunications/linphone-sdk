@@ -769,6 +769,10 @@ static void lime_x3dh_message_test(bool_t with_composing,
 		linphone_chat_room_compose(marieCr);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneIsComposingActiveReceived,
 		                             initialPaulineStats.number_of_LinphoneIsComposingActiveReceived + 1, 10000));
+		BC_ASSERT_TRUE(linphone_chat_room_is_remote_composing(paulineCr));
+		const char *composingContentType = linphone_chat_room_get_remote_composing_content_type(paulineCr);
+		BC_ASSERT_PTR_NOT_NULL(composingContentType);
+		BC_ASSERT_STRING_EQUAL(composingContentType, "text/plain");
 	}
 	BC_ASSERT_TRUE(linphone_chat_room_is_empty(marieCr));
 	BC_ASSERT_TRUE(linphone_chat_room_is_empty(paulineCr));
@@ -813,6 +817,10 @@ static void lime_x3dh_message_test(bool_t with_composing,
 			linphone_chat_room_compose(paulineCr);
 			BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingActiveReceived,
 			                             initialMarieStats.number_of_LinphoneIsComposingActiveReceived + 1, 10000));
+			BC_ASSERT_TRUE(linphone_chat_room_is_remote_composing(marieCr));
+			const char *composingContentType = linphone_chat_room_get_remote_composing_content_type(marieCr);
+			BC_ASSERT_PTR_NOT_NULL(composingContentType);
+			BC_ASSERT_STRING_EQUAL(composingContentType, "text/plain");
 		}
 
 		// Pauline sends the response

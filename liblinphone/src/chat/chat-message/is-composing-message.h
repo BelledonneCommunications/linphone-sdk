@@ -39,7 +39,8 @@ public:
 private:
 	IsComposingMessage(const std::shared_ptr<AbstractChatRoom> &chatRoom,
 	                   IsComposing &isComposingHandler,
-	                   bool isComposing);
+	                   bool isComposing,
+	                   const std::string& contentType);
 
 	L_DECLARE_PRIVATE(NotificationMessage);
 	L_DISABLE_COPY(IsComposingMessage);

@@ -391,8 +391,29 @@ LINPHONE_PUBLIC LinphoneEventLog *linphone_chat_room_search_chat_message_by_text
  * Notifies the destination of the chat message being composed that the user is typing a new message.
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which a new message is being
  * typed. @notnil
+ * @deprecated 24/06/2025 use linphone_chat_room_compose_text_message() instead.
  */
 LINPHONE_PUBLIC void linphone_chat_room_compose(LinphoneChatRoom *chat_room);
+
+/**
+ * Notifies the destination of the chat message being composed that the user is typing a message.
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which a message is being
+ * typed. @notnil
+ */
+LINPHONE_PUBLIC void linphone_chat_room_compose_text_message(LinphoneChatRoom *chat_room);
+
+/**
+ * Notifies the destination of the chat message being composed that the user is recording a new voice message.
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which a voice message is being
+ * recorded. @notnil
+ */
+LINPHONE_PUBLIC void linphone_chat_room_compose_voice_message(LinphoneChatRoom *chat_room);
+
+/**
+ * Notifies the destination of the chat message that the user is no longer composing.
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which the composing was stopped. @notnil
+ */
+LINPHONE_PUBLIC void linphone_chat_room_stop_composing(LinphoneChatRoom *chat_room);
 
 /**
  * Tells whether the remote is currently composing a message.
@@ -400,6 +421,13 @@ LINPHONE_PUBLIC void linphone_chat_room_compose(LinphoneChatRoom *chat_room);
  * @return TRUE if the remote is currently composing a message, FALSE otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_chat_room_is_remote_composing(const LinphoneChatRoom *chat_room);
+
+/**
+ * Returns the content-type (if set) of what the remote is currently composing.
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation. @notnil
+ * @return the content-type of what the remote is currently composing if set and if it's currently composing, NULL otherwise. @maybenil
+ */
+LINPHONE_PUBLIC const char *linphone_chat_room_get_remote_composing_content_type(const LinphoneChatRoom *chat_room);
 
 /**
  * Gets the number of unread messages in the chatroom.

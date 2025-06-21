@@ -84,8 +84,10 @@ public:
 	int getChatMessageCount() const override;
 	int getUnreadChatMessageCount() const override;
 
-	void compose() override;
+	void compose(const std::string& contentType) override;
+	void stopComposing() override;
 	bool isRemoteComposing() const override;
+	const std::string &getRemoteComposingContentType() const override;
 	std::list<std::shared_ptr<Address>> getComposingAddresses() const override;
 
 	std::shared_ptr<ChatMessage> createChatMessage() override;
@@ -163,7 +165,7 @@ public:
 
 	void sendChatMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
 	void onChatMessageSent(const std::shared_ptr<ChatMessage> &chatMessage) override;
-	void sendIsComposingNotification();
+	void sendIsComposingNotification(const std::string &contentType);
 
 	void addEvent(const std::shared_ptr<EventLog> &eventLog) override;
 
@@ -186,7 +188,7 @@ public:
 	std::list<std::shared_ptr<ImdnMessage>>
 	createImdnMessages(const std::list<Imdn::MessageReason> &nonDeliveredMessages, bool aggregate);
 	std::shared_ptr<ImdnMessage> createImdnMessage(const std::shared_ptr<ImdnMessage> &message);
-	std::shared_ptr<IsComposingMessage> createIsComposingMessage();
+	std::shared_ptr<IsComposingMessage> createIsComposingMessage(const std::string &contentType);
 
 	void sendDeliveryErrorNotification(const std::shared_ptr<ChatMessage> &chatMessage, LinphoneReason reason);
 	void sendDeliveryNotification(const std::shared_ptr<ChatMessage> &chatMessage);
@@ -196,7 +198,7 @@ public:
 	void notifyAggregatedChatMessages() override;
 	void notifyMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage);
 	void notifyChatMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage) override;
-	void notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, bool isComposing);
+	void notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType);
 	void notifyUndecryptableChatMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage) override;
 
 	LinphoneReason onSipMessageReceived(SalOp *op, const SalMessage *message) override;
@@ -206,7 +208,7 @@ public:
 	void onIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, const std::string &text);
 	void onIsComposingRefreshNeeded() override;
 	void onIsComposingStateChanged(bool isComposing) override;
-	void onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &remoteAddress, bool isComposing) override;
+	void onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType) override;
 
 	void realtimeTextReceived(uint32_t character, const std::shared_ptr<Call> &call) override;
 #ifdef HAVE_BAUDOT
@@ -257,6 +259,8 @@ private:
 	size_t mReadCharacterIndex = 0;
 	std::vector<uint32_t> mReceivedRttCharacters;
 	std::vector<uint32_t> mLastMessageCharacters;
+	std::string mComposingContentType;
+	std::string mRemoteComposingContentType;
 
 	L_DISABLE_COPY(ChatRoom);
 };

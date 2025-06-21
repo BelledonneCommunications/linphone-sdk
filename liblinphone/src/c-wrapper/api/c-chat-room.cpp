@@ -79,6 +79,11 @@ bool_t linphone_chat_room_is_remote_composing(const LinphoneChatRoom *chat_room)
 	return AbstractChatRoom::toCpp(chat_room)->isRemoteComposing();
 }
 
+const char *linphone_chat_room_get_remote_composing_content_type(const LinphoneChatRoom *chat_room) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	return L_STRING_TO_C(AbstractChatRoom::toCpp(chat_room)->getRemoteComposingContentType());
+}
+
 LinphoneCore *linphone_chat_room_get_lc(const LinphoneChatRoom *chat_room) {
 	return linphone_chat_room_get_core(chat_room);
 }
@@ -225,7 +230,22 @@ uint32_t linphone_chat_room_get_char(LinphoneChatRoom *chat_room) {
 
 void linphone_chat_room_compose(LinphoneChatRoom *chat_room) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
-	AbstractChatRoom::toCpp(chat_room)->compose();
+	linphone_chat_room_compose_text_message(chat_room);
+}
+
+void linphone_chat_room_compose_text_message(LinphoneChatRoom *chat_room) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	AbstractChatRoom::toCpp(chat_room)->compose(ContentType::PlainText.getValue());
+}
+
+void linphone_chat_room_compose_voice_message(LinphoneChatRoom *chat_room) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	AbstractChatRoom::toCpp(chat_room)->compose(ContentType::VoiceRecording.getValue());
+}
+
+void linphone_chat_room_stop_composing(LinphoneChatRoom *chat_room) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	AbstractChatRoom::toCpp(chat_room)->stopComposing();
 }
 
 LinphoneCall *linphone_chat_room_get_call(const LinphoneChatRoom *chat_room) {

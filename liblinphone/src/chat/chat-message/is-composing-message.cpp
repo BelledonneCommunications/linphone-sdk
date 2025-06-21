@@ -32,12 +32,13 @@ LINPHONE_BEGIN_NAMESPACE
 
 IsComposingMessage::IsComposingMessage(const shared_ptr<AbstractChatRoom> &chatRoom,
                                        IsComposing &isComposingHandler,
-                                       bool isComposing)
+                                       bool isComposing,
+                                       const std::string& contentType)
     : NotificationMessage(*new NotificationMessagePrivate(chatRoom, ChatMessage::Direction::Outgoing)) {
 	L_D();
 	auto content = Content::create();
 	content->setContentType(ContentType::ImIsComposing);
-	content->setBodyFromUtf8(isComposingHandler.createXml(isComposing));
+	content->setBodyFromUtf8(isComposingHandler.createXml(isComposing, contentType));
 	addContent(content);
 	d->addSalCustomHeader(PriorityHeader::HeaderName, PriorityHeader::NonUrgent);
 	d->addSalCustomHeader("Expires", "0");

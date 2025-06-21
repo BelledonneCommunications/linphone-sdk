@@ -1960,8 +1960,9 @@ static void message_with_voice_recording_base(bool_t create_message_from_recorde
 
 	linphone_core_set_file_transfer_server(pauline->lc, file_transfer_url);
 
-	LinphoneChatRoom *room = linphone_core_get_chat_room(pauline->lc, marie->identity);
-	BC_ASSERT_TRUE(linphone_chat_room_is_empty(room));
+	LinphoneChatRoom *paulineToMarieRoom = linphone_core_get_chat_room(pauline->lc, marie->identity);
+	LinphoneChatRoom *marieToPaulineRoom = linphone_core_get_chat_room(marie->lc, pauline->identity);
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(paulineToMarieRoom));
 
 	// Force auto download
 	if (auto_download_only_voice_recordings) {
@@ -1976,6 +1977,12 @@ static void message_with_voice_recording_base(bool_t create_message_from_recorde
 	LinphoneRecorder *recorder = linphone_core_create_recorder(pauline->lc, params);
 	linphone_recorder_params_unref(params);
 
+	linphone_chat_room_compose_voice_message(paulineToMarieRoom);
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneIsComposingActiveReceived, 1, 10000));
+	const char *composingContentType = linphone_chat_room_get_remote_composing_content_type(marieToPaulineRoom);
+	BC_ASSERT_PTR_NOT_NULL(composingContentType);
+	BC_ASSERT_STRING_EQUAL(composingContentType, "audio/wav");
+
 	char *filename = bctbx_strdup_printf("%s/voice_record.wav", bc_tester_get_writable_dir_prefix());
 	linphone_recorder_open(recorder, filename);
 	wait_for_until(pauline->lc, NULL, NULL, 0, 5000);
@@ -1984,9 +1991,9 @@ static void message_with_voice_recording_base(bool_t create_message_from_recorde
 
 	LinphoneChatMessage *msg;
 	if (create_message_from_recorder) {
-		msg = linphone_chat_room_create_voice_recording_message(room, recorder);
+		msg = linphone_chat_room_create_voice_recording_message(paulineToMarieRoom, recorder);
 	} else {
-		msg = linphone_chat_room_create_empty_message(room);
+		msg = linphone_chat_room_create_empty_message(paulineToMarieRoom);
 		LinphoneContent *content = linphone_recorder_create_content(recorder);
 		linphone_chat_message_add_content(msg, content);
 		linphone_content_unref(content);
@@ -2000,6 +2007,8 @@ static void message_with_voice_recording_base(bool_t create_message_from_recorde
 	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 1));
 	LinphoneChatMessage *marie_msg = marie->stat.last_received_chat_message;
 	BC_ASSERT_PTR_NOT_NULL(marie_msg);
+	BC_ASSERT_FALSE(linphone_chat_room_is_remote_composing(marieToPaulineRoom));
+	BC_ASSERT_PTR_NULL(linphone_chat_room_get_remote_composing_content_type(marieToPaulineRoom));
 
 	if (marie_msg != NULL) {
 		BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageDelivered, 1));
@@ -2807,6 +2816,12 @@ static void is_composing_notification(void) {
 		bctbx_free(address_string);
 		bctbx_free(pauline_address);
 	}
+
+	BC_ASSERT_TRUE(linphone_chat_room_is_remote_composing(marie_chat_room));
+	const char *composingContentType = linphone_chat_room_get_remote_composing_content_type(marie_chat_room);
+	BC_ASSERT_PTR_NOT_NULL(composingContentType);
+	BC_ASSERT_STRING_EQUAL(composingContentType, "text/plain");
+
 	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 1));
 	LinphoneChatMessage *is_composing_msg = marie->stat.last_received_chat_message;
 	if (BC_ASSERT_PTR_NOT_NULL(is_composing_msg)) {
@@ -2819,6 +2834,10 @@ static void is_composing_notification(void) {
 	wait_for_until(pauline->lc, marie->lc, &dummy, 1, 1500); /*just to sleep while iterating*/
 	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneIsComposingIdleReceived, 1));
 	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 2));
+	BC_ASSERT_FALSE(linphone_chat_room_is_remote_composing(marie_chat_room));
+	composingContentType = linphone_chat_room_get_remote_composing_content_type(marie_chat_room);
+	BC_ASSERT_PTR_NULL(composingContentType);
+
 	is_composing_msg = marie->stat.last_received_chat_message;
 	if (BC_ASSERT_PTR_NOT_NULL(is_composing_msg)) {
 		const char *expires = linphone_chat_message_get_custom_header(is_composing_msg, "Expires");
