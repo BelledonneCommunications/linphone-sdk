@@ -919,7 +919,9 @@ bool MS2AudioStream::micEnabled() const {
 
 void MS2AudioStream::enableSpeaker(bool value) {
 	mSpeakerMuted = !value;
-	forceSpeakerMuted(mSpeakerMuted);
+	if (mStream) {
+		forceSpeakerMuted(mSpeakerMuted);
+	}
 }
 
 bool MS2AudioStream::speakerEnabled() const {
@@ -931,14 +933,17 @@ bool MS2AudioStream::supportsTelephoneEvents() {
 }
 
 void MS2AudioStream::sendDtmf(int dtmf) {
+	if (!mStream) return;
 	audio_stream_send_dtmf(mStream, (char)dtmf);
 }
 
 void MS2AudioStream::setRecordPath(const std::string &path) {
+	if (!mStream) return;
 	audio_stream_set_mixed_record_file(mStream, path.c_str());
 }
 
 bool MS2AudioStream::startRecording() {
+	if (!mStream) return false;
 	if (getMediaSessionPrivate().getParams()->getRecordFilePath().empty()) {
 		lError() << "MS2AudioStream::startRecording(): no output file specified. Use "
 		            "MediaSessionParams::setRecordFilePath()";
@@ -962,12 +967,12 @@ bool MS2AudioStream::startRecording() {
 }
 
 void MS2AudioStream::stopRecording() {
-	if (mRecordActive) audio_stream_mixed_record_stop(mStream);
+	if (mRecordActive && mStream) audio_stream_mixed_record_stop(mStream);
 	mRecordActive = false;
 }
 
 float MS2AudioStream::getPlayVolume() {
-	if (mStream->volrecv) {
+	if (mStream && mStream->volrecv) {
 		float vol = 0;
 		ms_filter_call_method(mStream->volrecv, MS_VOLUME_GET, &vol);
 		return vol;
@@ -976,7 +981,7 @@ float MS2AudioStream::getPlayVolume() {
 }
 
 float MS2AudioStream::getRecordVolume() {
-	if (mStream->volsend && !mMicMuted) {
+	if (mStream && mStream->volsend && !mMicMuted) {
 		float vol = 0;
 		ms_filter_call_method(mStream->volsend, MS_VOLUME_GET, &vol);
 		return vol;
@@ -985,18 +990,20 @@ float MS2AudioStream::getRecordVolume() {
 }
 
 float MS2AudioStream::getMicGain() {
-	return audio_stream_get_sound_card_input_gain(mStream);
+	return mStream ? audio_stream_get_sound_card_input_gain(mStream) : 0.0f;
 }
 
 void MS2AudioStream::setMicGain(float gain) {
+	if (!mStream) return;
 	audio_stream_set_sound_card_input_gain(mStream, gain);
 }
 
 float MS2AudioStream::getSpeakerGain() {
-	return audio_stream_get_sound_card_output_gain(mStream);
+	return mStream ? audio_stream_get_sound_card_output_gain(mStream) : 0.0f;
 }
 
 void MS2AudioStream::setSpeakerGain(float gain) {
+	if (!mStream) return;
 	audio_stream_set_sound_card_output_gain(mStream, gain);
 }
 
@@ -1010,13 +1017,14 @@ VideoStream *MS2AudioStream::getPeerVideoStream() {
 }
 
 void MS2AudioStream::enableEchoCancellation(bool value) {
-	if (mStream->ec) {
+	if (mStream && mStream->ec) {
 		bool bypassMode = !value;
 		ms_filter_call_method(mStream->ec, MS_ECHO_CANCELLER_SET_BYPASS_MODE, &bypassMode);
 	}
 }
 
 bool MS2AudioStream::echoCancellationEnabled() const {
+	if (!mStream) return false;
 	if (!mStream->ec) return !!linphone_core_echo_cancellation_enabled(getCCore());
 
 	bool_t val;
