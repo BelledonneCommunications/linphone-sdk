@@ -21,12 +21,9 @@
 ############################################################################
 
 # Add clang-format pre commit hook to specified projects
-set(SUBMODULES_TO_HOOK bctoolbox belcard belle-sip belr liblinphone mediastreamer2 ortp)
-foreach(SUBMODULE IN LISTS SUBMODULES_TO_HOOK)
-	if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git/modules/${SUBMODULE}")
-		file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/hook/pre-commit" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/.git/modules/${SUBMODULE}/hooks/")
-	endif()
-endforeach()
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit")
+	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/hook/pre-commit" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/")
+endif()
 
 # Enable color diagnostics
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24.0)
