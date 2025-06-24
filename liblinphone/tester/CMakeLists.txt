@@ -421,14 +421,10 @@ set(GROUP_CHAT_BENCHMARK_HEADERS
 	tools/tester.h
 )
 
+# Files defined here will be copied at the root of the linphonetester framework.
+# /!\ Only define files here: folders will be empty in the framework /!\
+# If you need to add a whole folder resources, see below calls to copy_resources_to_linphonetester_framework
 set(LINPHONETESTER_RESOURCES
-	"${CMAKE_CURRENT_SOURCE_DIR}/certificates"
-	"${CMAKE_CURRENT_SOURCE_DIR}/db"
-	"${CMAKE_CURRENT_SOURCE_DIR}/images"
-	"${CMAKE_CURRENT_SOURCE_DIR}/rcfiles"
-	"${CMAKE_CURRENT_SOURCE_DIR}/sipp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/sounds"
-	"${CMAKE_CURRENT_SOURCE_DIR}/vcards"
 	"${CMAKE_CURRENT_SOURCE_DIR}/tester_hosts"
 	"${CMAKE_CURRENT_SOURCE_DIR}/local_tester_hosts"
 )
@@ -488,6 +484,23 @@ if(ANDROID OR IOS)
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		)
+
+	# Define a function to copy resources from a specified directory into a directory with the same name, but inside the framework
+	function(copy_resources_to_linphonetester_framework resource_dir_to_copy)
+		# Add a custom command to copy the resources to the framework's Resources directory
+		add_custom_command(TARGET linphonetester POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy_directory
+				"${CMAKE_CURRENT_SOURCE_DIR}/${resource_dir_to_copy}" "$<TARGET_FILE_DIR:linphonetester>/${resource_dir_to_copy}"
+		)
+	endfunction()
+	copy_resources_to_linphonetester_framework("certificates")
+	copy_resources_to_linphonetester_framework("db")
+	copy_resources_to_linphonetester_framework("images")
+	copy_resources_to_linphonetester_framework("rcfiles")
+	copy_resources_to_linphonetester_framework("sipp")
+	copy_resources_to_linphonetester_framework("sounds")
+	copy_resources_to_linphonetester_framework("vcards")
+
 	install(FILES "liblinphone_tester.h"
 		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/linphone
 		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ

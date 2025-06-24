@@ -634,13 +634,11 @@ std::shared_ptr<Address> Account::guessContactForRegister() {
 				lError() << "Couldn't compute automatic push notifications parameters on " << *this
 				         << " because account params do not have available push notifications";
 			} else if (newParams->mPushNotificationAllowed || newParams->mRemotePushNotificationAllowed) {
-				if (newParams->mPushNotificationConfig->getProvider().empty()) {
-					bool tester_env = !!linphone_config_get_int(core->config, "tester", "test_env", FALSE);
-					if (tester_env) newParams->mPushNotificationConfig->setProvider("liblinphone_tester");
+				bool tester_env = !!linphone_config_get_int(core->config, "tester", "test_env", FALSE);
+				if (tester_env) newParams->mPushNotificationConfig->setProvider("liblinphone_tester");
 #if TARGET_OS_IPHONE
-					if (tester_env) newParams->mPushNotificationConfig->setProvider("apns.dev");
+				if (tester_env) newParams->mPushNotificationConfig->setProvider("apns.dev");
 #endif
-				}
 				newParams->mPushNotificationConfig->generatePushParams(newParams->mPushNotificationAllowed,
 				                                                       newParams->mRemotePushNotificationAllowed);
 				successfullyPreparedPushParameters = true;

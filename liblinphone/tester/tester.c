@@ -96,6 +96,8 @@ static char *liblinphone_tester_empty_rc_path = NULL;
 static int liblinphone_tester_keep_accounts_flag = 0;
 static bool_t liblinphone_tester_keep_record_files = FALSE;
 static bool_t liblinphone_tester_leak_detector_disabled = FALSE;
+static bool_t disable_CU_environment =
+    FALSE; // set to true if you're using CoreManagers outside of the linphone tester environment
 bool_t liblinphone_tester_keep_uuid = FALSE;
 bool_t liblinphone_tester_tls_support_disabled = FALSE;
 int manager_count = 0;
@@ -175,6 +177,11 @@ static void network_reachable(LinphoneCore *lc, bool_t reachable) {
 	if (reachable) counters->number_of_NetworkReachableTrue++;
 	else counters->number_of_NetworkReachableFalse++;
 }
+
+void liblinphone_tester_set_disable_CU_environment(bool_t isDisabled) {
+	disable_CU_environment = isDisabled;
+}
+
 void liblinphone_tester_clock_start(MSTimeSpec *start) {
 	ms_get_cur_time(start);
 }
@@ -2859,11 +2866,13 @@ void linphone_core_manager_start(LinphoneCoreManager *mgr, bool_t check_for_prox
 			ms_error("Did not register after %d seconds for %d proxies", REGISTER_TIMEOUT, proxy_count);
 		}
 	}
-	if (mgr->registration_failure) {
-		BC_ASSERT_EQUAL(mgr->stat.number_of_LinphoneRegistrationFailed, old_registration_failed + proxy_count, int,
-		                "%d");
-	} else {
-		BC_ASSERT_EQUAL(mgr->stat.number_of_LinphoneRegistrationOk, old_registration_ok + proxy_count, int, "%d");
+	if (!disable_CU_environment) {
+		if (mgr->registration_failure) {
+			BC_ASSERT_EQUAL(mgr->stat.number_of_LinphoneRegistrationFailed, old_registration_failed + proxy_count, int,
+			                "%d");
+		} else {
+			BC_ASSERT_EQUAL(mgr->stat.number_of_LinphoneRegistrationOk, old_registration_ok + proxy_count, int, "%d");
+		}
 	}
 	enable_codec(mgr->lc, "PCMU", 8000);
 
@@ -4211,11 +4220,15 @@ void call_stats_updated(LinphoneCore *lc, LinphoneCall *call, const LinphoneCall
 			counters->number_of_rtcp_received_via_mux++;
 		}
 		rtcp_received(counters, _linphone_call_stats_get_received_rtcp(lstats));
-		BC_ASSERT_TRUE(_linphone_call_stats_has_received_rtcp(lstats));
+		if (!disable_CU_environment) {
+			BC_ASSERT_TRUE(_linphone_call_stats_has_received_rtcp(lstats));
+		}
 	}
 	if (updated & LINPHONE_CALL_STATS_SENT_RTCP_UPDATE) {
 		counters->number_of_rtcp_sent++;
-		BC_ASSERT_TRUE(_linphone_call_stats_has_sent_rtcp(lstats));
+		if (!disable_CU_environment) {
+			BC_ASSERT_TRUE(_linphone_call_stats_has_sent_rtcp(lstats));
+		}
 	}
 	if (updated & LINPHONE_CALL_STATS_PERIODICAL_UPDATE) {
 		const int tab_size = sizeof counters->audio_download_bandwidth / sizeof(int);

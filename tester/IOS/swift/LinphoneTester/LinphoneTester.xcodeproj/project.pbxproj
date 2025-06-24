@@ -425,8 +425,6 @@
                     "-framework",
                     "\"msopenh264\"",
                     "-framework",
-                    "\"mssilk\"",
-                    "-framework",
                     "\"ortp\"",
                 );
 				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTester;
@@ -493,8 +491,6 @@
                     "-framework",
                     "\"msopenh264\"",
                     "-framework",
-                    "\"mssilk\"",
-                    "-framework",
                     "\"ortp\"",
                 );
 				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTester;
@@ -547,8 +543,6 @@
                     "\"mscodec2\"",
                     "-framework",
                     "\"msopenh264\"",
-                    "-framework",
-                    "\"mssilk\"",
                     "-framework",
                     "\"ortp\"",
                 );
@@ -604,8 +598,6 @@
                     "\"mscodec2\"",
                     "-framework",
                     "\"msopenh264\"",
-                    "-framework",
-                    "\"mssilk\"",
                     "-framework",
                     "\"ortp\"",
                 );

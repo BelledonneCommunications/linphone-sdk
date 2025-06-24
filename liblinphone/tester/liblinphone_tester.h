@@ -850,6 +850,7 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
                          const LinphoneCallTestParams *callee_test_params,
                          bool_t build_callee_params);
 
+void liblinphone_tester_set_disable_CU_environment(bool_t isDisabled);
 bool_t call(LinphoneCoreManager *caller_mgr, LinphoneCoreManager *callee_mgr);
 bool_t request_video(LinphoneCoreManager *caller, LinphoneCoreManager *callee, bool_t use_accept_call_update);
 bool_t remove_video(LinphoneCoreManager *caller, LinphoneCoreManager *callee);
@@ -1303,6 +1304,8 @@ int liblinphone_tester_sound_detection(LinphoneCoreManager *a,
                                        int timeout_ms,
                                        const char *log_tag);
 
+/* Exports DNS engine setting, for use in the iOS swift tester */
+void liblinphone_tester_set_dns_engine_by_default(LinphoneCore * lc);
 #ifdef __cplusplus
 };
 #endif
