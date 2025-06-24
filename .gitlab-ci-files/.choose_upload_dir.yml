@@ -9,7 +9,7 @@
   stage: deploy
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_TEST != null
-  tags: [ "macmini-m1-xcode13" ]
+  tags: [ "macos-xcode13-flat" ]
   script:
 
     # getSnapshotOrReleaseDirFromGitTag($DESCRIBE, $DEFAULT_SNAPSHOT_LOCATION, $DEFAULT_RELEASE_LOCATION)
@@ -60,7 +60,7 @@
   stage: deploy
   rules:
     - if: $DEPLOY_RUN_TEST != null
-  tags: [ "macmini-m1-xcode13" ]
+  tags: [ "macos-xcode13-flat" ]
   script:
     - SNAPSHOTS_LOCATION=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
     - RELEASES_LOCATION=$DEPLOY_RELEASES_DIRECTORY
@@ -78,7 +78,7 @@
   stage: deploy
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_TEST != null
-  tags: [ "macmini-m1-xcode13" ]
+  tags: [ "macos-xcode13-flat" ]
   script:
     - SNAPSHOTS_LOCATION=$MACOS_SNAPSHOTS_URL
     - RELEASES_LOCATION=$MACOS_RELEASES_URL
@@ -96,7 +96,7 @@
   stage: deploy
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_TEST != null
-  tags: [ "macmini-m1-xcode13" ]
+  tags: [ "macos-xcode13-flat" ]
   script:
     - SNAPSHOTS_LOCATION=$IOS_SNAPSHOTS_URL
     - RELEASES_LOCATION=$IOS_RELEASES_URL
@@ -114,6 +114,6 @@
   stage: deploy
   rules:
     - if: $DEPLOY_RUN_TEST
-  tags: [ "macmini-m1-xcode13" ]
+  tags: [ "macos-xcode13-flat" ]
   script:
     - UPLOAD_ROOT_DIRECTORY=$(echo $UPLOAD_ROOT_DIRECTORY | grep --extended-regexp --only-matching "[a-z]{8,9}$")

@@ -1,7 +1,7 @@
 macos-liblinphone-test:
   stage: test
   extends: .job-prepare
-  tags: [ "macmini-m1-xcode12" ]
+  tags: [ "macos-xcode13-flat" ]
   allow_failure: true
   needs:
     - macos-ninja

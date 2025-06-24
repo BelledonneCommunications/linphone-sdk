@@ -3,7 +3,7 @@
 #################################################
 
 liblinphone-iOS-test:
-  tags: [ "macmini-m1-xcode12" ]
+  tags: [ "macos-xcode13-flat" ]
   stage: test
   allow_failure: true
   needs:

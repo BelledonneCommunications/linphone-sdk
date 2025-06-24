@@ -1,6 +1,6 @@
 xamarin-package:
   stage: package
-  tags: [ "macmini-m1-xcode15" ]
+  tags: [ "macos-xcode15-flat" ]
   variables:
     GIT_STRATEGY: fetch
   needs:

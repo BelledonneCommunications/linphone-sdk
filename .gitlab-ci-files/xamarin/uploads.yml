@@ -1,6 +1,6 @@
 nuget-upload-xamarin:
   stage: deploy
-  tags: [ "macmini-m1-xcode15" ]
+  tags: [ "macos-xcode15-flat" ]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
