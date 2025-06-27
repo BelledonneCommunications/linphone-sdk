@@ -31,18 +31,13 @@ gentoo:
   script:
     - echo $CI_PIPELINE_SOURCE
     - echo $CI_OPEN_MERGE_REQUESTS
-    - echo $CI_COMMIT_BRANCH
+    - echo $CI_COMMIT_REF_NAME
 
     # Set the submodules revisions in the ebuild files
     - git config --global --add safe.directory ${CI_PROJECT_DIR}
     - |
-        for PACKAGE in dev-libs/bctoolbox dev-libs/bcunit dev-libs/belcard dev-libs/belr dev-libs/liblinphone dev-libs/lime dev-libs/postquantumcryptoengine media-libs/bcmatroska2 media-libs/mediastreamer2 media-plugins/msamr media-plugins/mscodec2 media-plugins/msopenh264 media-plugins/mswebrtc net-libs/belle-sip net-libs/bzrtp net-libs/ortp
-        do
-          PACKAGE_NAME=$(echo "$PACKAGE" | cut -d "/" -f 2);
-          PACKAGE_REVISION=$(git ls-tree HEAD | grep "$PACKAGE_NAME" | cut -f 1 | cut -d " " -f 3)
-          EBUILD_PATH="/var/db/repos/belledonne-communications/$PACKAGE/$PACKAGE_NAME-9999.ebuild"
-          echo "EGIT_COMMIT=\"$PACKAGE_REVISION\"" | sudo tee -a $EBUILD_PATH
-        done
+        echo "EGIT_COMMIT=\"$(git rev-parse HEAD)\"" | sudo tee -a /var/db/repos/belledonne-communications/dev-libs/linphone-sdk/linphone-sdk-9999.ebuild
+        sudo sed -i -e "s+EGIT_BRANCH=\"master\"+EGIT_BRANCH=\"$CI_COMMIT_REF_NAME\"+g" /var/db/repos/belledonne-communications/dev-libs/linphone-sdk/linphone-sdk-9999.ebuild
         for PACKAGE in dev-db/soci net-libs/mbedtls
         do
           PACKAGE_NAME=$(echo "$PACKAGE" | cut -d "/" -f 2);
@@ -52,8 +47,8 @@ gentoo:
         done
 
     # Do the build and create the binary packages
-    - sudo emerge @liblinphone-latest
-    - sudo quickpkg @liblinphone-latest
+    - sudo emerge @linphone-sdk-latest
+    - sudo quickpkg @linphone-sdk-latest
 
     # Get the binary packages to put as artifacts
     - sudo cp -r /var/cache/binpkgs .

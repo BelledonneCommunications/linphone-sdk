@@ -34,7 +34,7 @@
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:20250401_update_java_21
 
 .gentoo_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-gentoo:20250106_update_to_have_newer_xercesc
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-gentoo:20250627_update_packages_after_submodules_removal
 
 .raspios_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspios:20230706_add_deps_for_av1
