@@ -77,6 +77,7 @@ if(MSVC)
 	set_target_properties(ektserver PROPERTIES PREFIX "lib")
 endif()
 install(TARGETS ektserver
+	COMPONENT plugin-ektserver
 	RUNTIME DESTINATION ${LibLinphone_PLUGINS_DIR}
 	LIBRARY DESTINATION ${LibLinphone_PLUGINS_DIR}
 	ARCHIVE DESTINATION ${LibLinphone_PLUGINS_DIR}
