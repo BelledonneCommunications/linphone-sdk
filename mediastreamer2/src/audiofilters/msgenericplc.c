@@ -49,13 +49,17 @@ static void generic_plc_init(MSFilter *f) {
 #ifdef HAVE_G729B
 	mgps->decoderChannelContext = initBcg729DecoderChannel(); /* initialize bcg729 decoder for CNG */
 #endif
-	mgps->concealer = ms_concealer_context_new(MAX_PLC_COUNT);
 	mgps->nchannels = 1;
 	f->data = mgps;
 }
 
 static void generic_plc_preprocess(MSFilter *f) {
 	generic_plc_struct *mgps = (generic_plc_struct *)f->data;
+	if (mgps->concealer != NULL) {
+		ms_concealer_context_destroy(mgps->concealer);
+		mgps->concealer = NULL;
+	}
+	mgps->concealer = ms_concealer_context_new(MAX_PLC_COUNT);
 	if (mgps->plc_context == NULL) mgps->plc_context = generic_plc_create_context(mgps->rate);
 }
 
@@ -171,11 +175,13 @@ static void generic_plc_process(MSFilter *f) {
 	}
 }
 
-static void generic_plc_unit(MSFilter *f) {
+static void generic_plc_uninit(MSFilter *f) {
 	generic_plc_struct *mgps = (generic_plc_struct *)f->data;
 
 	generic_plc_destroy_context(mgps->plc_context);
-	ms_concealer_context_destroy(mgps->concealer);
+	if (mgps->concealer != NULL) {
+		ms_concealer_context_destroy(mgps->concealer);
+	}
 #ifdef HAVE_G729B
 	closeBcg729DecoderChannel(mgps->decoderChannelContext);
 #endif
@@ -226,7 +232,7 @@ MSFilterDesc ms_genericplc_desc = {MS_GENERIC_PLC_ID,
                                    generic_plc_preprocess,
                                    generic_plc_process,
                                    NULL,
-                                   generic_plc_unit,
+                                   generic_plc_uninit,
                                    generic_plc_methods,
                                    MS_FILTER_IS_PUMP};
 
@@ -241,7 +247,7 @@ MSFilterDesc ms_genericplc_desc = {.id = MS_GENERIC_PLC_ID,
                                    .init = generic_plc_init,
                                    .preprocess = generic_plc_preprocess,
                                    .process = generic_plc_process,
-                                   .uninit = generic_plc_unit,
+                                   .uninit = generic_plc_uninit,
                                    .flags = MS_FILTER_IS_PUMP,
                                    .methods = generic_plc_methods};
 
