@@ -21,8 +21,23 @@
 ############################################################################
 
 # Add clang-format pre commit hook to specified projects
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit")
-	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/hook/pre-commit" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/")
+include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
+linphone_sdk_check_git()
+
+if(GIT_EXECUTABLE)
+	# This will get .git/hooks if this is the base repository or .git/modules/linphone-sdk/hooks if not.
+	# https://stackoverflow.com/a/37293090
+	execute_process(
+			COMMAND "${GIT_EXECUTABLE}" "rev-parse" "--git-path" "hooks"
+			OUTPUT_VARIABLE LINPHONE_SDK_HOOKS_DIR
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			ERROR_QUIET
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+	)
+
+	if(LINPHONE_SDK_HOOKS_DIR)
+		file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/hook/pre-commit" "${LINPHONE_SDK_HOOKS_DIR}/pre-commit" ONLY_IF_DIFFERENT)
+	endif()
 endif()
 
 # Enable color diagnostics
