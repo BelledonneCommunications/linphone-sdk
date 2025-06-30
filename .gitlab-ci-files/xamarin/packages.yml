@@ -1,6 +1,6 @@
 xamarin-package:
   stage: package
-  tags: [ "macos-xcode15-flat" ]
+  tags: [ "macos-xcode13-flat" ]
   variables:
     GIT_STRATEGY: fetch
   needs:
@@ -20,7 +20,8 @@ xamarin-package:
 
 
   script:
-   - unzip $CI_PROJECT_DIR/build/ios/linphone-sdk-* -d linphone-sdk-xamarin
+   # linphone-sdk-[0-9]* instead of linphone-sdk-* because now linphone-sdk-swift-ios folder exists and causes error when unzipping
+   - unzip $CI_PROJECT_DIR/build/ios/linphone-sdk-[0-9]* -d linphone-sdk-xamarin
    - mkdir -p build-nuget
    - cd build-nuget
    # The C# wrapper is used both by Android and iOS but it's arbitrarily compiled in the iOS build (it has to come from somewhere)
