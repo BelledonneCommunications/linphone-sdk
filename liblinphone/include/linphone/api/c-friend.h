@@ -545,6 +545,14 @@ LINPHONE_PUBLIC void linphone_friend_set_job_title(LinphoneFriend *linphone_frie
  */
 LINPHONE_PUBLIC const char *linphone_friend_get_job_title(const LinphoneFriend *linphone_friend);
 
+/**
+ * Gets whether this friend is read only or not.
+ * A friend is read-only if the #LinphoneFriendList to which it belongs is read-only.
+ * @param linphone_friend the #LinphoneFriend object @notnil
+ * @return TRUE if the friend is attached to an existing #LinphoneFriendList which is in read-only mode, FALSE otherwise.
+ */
+LINPHONE_PUBLIC bool_t linphone_friend_get_is_read_only(const LinphoneFriend *linphone_friend);
+
 /************ */
 /* Friend CBS */
 /* ********** */

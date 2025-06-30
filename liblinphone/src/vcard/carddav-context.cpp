@@ -262,7 +262,7 @@ void CardDAVContext::addressBookUrlAndCtagRetrieved(const list<CardDAVResponse> 
 				friendList->updateRevision(mCtag);
 			}
 			lInfo() << "[CardDAV] Friend list sync URI & revision updated, fetching vCards";
-			fetchVcards();
+			retrieveCurrentUserPrivilegeSet();
 		} else {
 			lInfo() << "[CardDAV] No changes found on server, skipping sync";
 			serverToClientSyncDone(true, "Synchronization skipped because cTag already up to date");
@@ -282,6 +282,19 @@ void CardDAVContext::addressBookCtagRetrieved(string ctag) {
 		lInfo() << "[CardDAV] No changes found on server, skipping sync";
 		serverToClientSyncDone(true, "Synchronization skipped because cTag already up to date");
 	}
+}
+
+void CardDAVContext::currentUserPrivilegeSetRetrieved(bool isReadOnly) {
+	if (isReadOnly) {
+		lWarning() << "[CardDAV] Addressbook [" << mSyncUri << "] privilege is read-only, synchronization will be server to client only";
+		shared_ptr<FriendList> friendList = mFriendList.lock();
+		if (friendList) {
+			friendList->setIsReadOnly(true);
+		} else {
+			lError() << "[CardDAV] Failed to get FriendList to set read-only property";
+		}
+	}
+	fetchVcards();
 }
 
 void CardDAVContext::fetchVcards() {
@@ -306,6 +319,10 @@ void CardDAVContext::retrieveAddressBookUrlAndCtag() {
 
 void CardDAVContext::retrieveAddressBookCtag() {
 	sendQuery(CardDAVQuery::createAddressBookCtagPropfindQuery(this));
+}
+
+void CardDAVContext::retrieveCurrentUserPrivilegeSet() {
+	sendQuery(CardDAVQuery::createCurrentUserPrivilegeSetPropfindQuery(this));
 }
 
 void CardDAVContext::queryWellKnown(shared_ptr<CardDAVQuery> query) {
@@ -431,6 +448,9 @@ void CardDAVContext::processQueryResponse(shared_ptr<CardDAVQuery> query, const 
 						break;
 					case CardDAVQuery::PropfindType::AddressBookCTAG:
 						addressBookCtagRetrieved(parseAddressBookCtagValueFromXmlResponse(body));
+						break;
+					case CardDAVQuery::PropfindType::CurrentUserPrivilegeSet:
+						currentUserPrivilegeSetRetrieved(parseCurrentUserPrivilegeSetRetrievedFromXmlResponse(body));
 						break;
 				}
 				break;
@@ -874,6 +894,49 @@ list<CardDAVResponse> CardDAVContext::parseVcardsFromXmlResponse(const string &b
 	return result;
 }
 
+bool CardDAVContext::parseCurrentUserPrivilegeSetRetrievedFromXmlResponse(const string &body) {
+	bool isReadOnly = false; // in case of error assume addressbook can be written
+	XmlParsingContext xmlCtx(body);
+	if (xmlCtx.isValid()) {
+		xmlCtx.initCarddavNs();
+		xmlXPathObjectPtr responses = xmlCtx.getXpathObjectForNodeList("/d:multistatus/d:response");
+		if (responses && responses->nodesetval) {
+			xmlNodeSetPtr responsesNodes = responses->nodesetval;
+			if (responsesNodes->nodeNr >= 1) {
+				for (int i = 0; i < responsesNodes->nodeNr; i++) {
+					xmlCtx.setXpathContextNode(responsesNodes->nodeTab[i]);
+					string status = xmlCtx.getTextContent("d:propstat/d:status");
+					if (status == "HTTP/1.1 200 OK") {
+						xmlXPathObjectPtr privileges = xmlCtx.getXpathObjectForNodeList("d:propstat/d:prop/d:current-user-privilege-set/d:privilege");
+						if (privileges && privileges->nodesetval) {
+							xmlNodeSetPtr privilegesNodes = privileges->nodesetval;
+							bool allOrWriteContentFound = false;
+							if (privilegesNodes->nodeNr >= 1) {
+								for (int j = 0; j < privilegesNodes->nodeNr; j++) {
+									xmlNodePtr privilegeNode = privilegesNodes->nodeTab[j];
+									for (xmlNodePtr privilegeChild = privilegeNode->children; privilegeChild != NULL; privilegeChild = privilegeChild->next) {
+										string privilege = (char *)privilegeChild->name;
+										if (privilege == "all" || privilege == "write-content") {
+											allOrWriteContentFound = true;
+										}
+									}
+								}
+							}
+							xmlXPathFreeObject(privileges);
+							if (!allOrWriteContentFound) {
+								lWarning() << "[CardDAV] Neither all nor write-content privilege found, assuming addressbook is read only";
+								isReadOnly = true;
+							}
+						}
+					}
+				}
+			}
+			xmlXPathFreeObject(responses);
+		}
+	}
+	return isReadOnly;
+}
+
 #else
 
 list<CardDAVResponse> CardDAVContext::parseAddressBookUrlAndCtagValueFromXmlResponse(BCTBX_UNUSED(const string &body)) {
@@ -898,6 +961,10 @@ list<CardDAVResponse> CardDAVContext::parseVcardsEtagsFromXmlResponse(BCTBX_UNUS
 
 list<CardDAVResponse> CardDAVContext::parseVcardsFromXmlResponse(BCTBX_UNUSED(const string &body)) {
 	return list<CardDAVResponse>();
+}
+
+bool CardDAVContext::parseCurrentUserPrivilegeSetRetrievedFromXmlResponse(BCTBX_UNUSED(const string &body)) {
+	return false;
 }
 
 #endif /* HAVE_XML2 */

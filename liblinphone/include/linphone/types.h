@@ -366,7 +366,8 @@ typedef struct _LinphoneFriendListCbs LinphoneFriendListCbs;
 typedef enum _LinphoneFriendListStatus {
 	LinphoneFriendListOK = 0,                /**< Operation went fine */
 	LinphoneFriendListNonExistentFriend = 1, /**< #LinphoneFriend wasn't found in the #LinphoneFriendList */
-	LinphoneFriendListInvalidFriend = 2      /**< #LinphoneFriend is already present in a #LinphoneFriendList */
+	LinphoneFriendListInvalidFriend = 2,     /**< #LinphoneFriend is already present in a #LinphoneFriendList */
+	LinphoneFriendListReadOnly = 3      	 /**< #LinphoneFriendList is read only */
 } LinphoneFriendListStatus;
 
 /**

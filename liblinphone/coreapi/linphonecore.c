@@ -2802,6 +2802,7 @@ void linphone_configuring_terminated(LinphoneCore *lc, LinphoneConfiguringState 
 			linphone_friend_list_set_uri(lc->base_contacts_list_for_synchronization, contacts_vcard_list_uri);
 			linphone_friend_list_set_type(lc->base_contacts_list_for_synchronization, LinphoneFriendListTypeVCard4);
 			linphone_friend_list_enable_database_storage(lc->base_contacts_list_for_synchronization, TRUE);
+			linphone_friend_list_set_is_read_only(lc->base_contacts_list_for_synchronization, TRUE);
 			linphone_core_add_friend_list(lc, lc->base_contacts_list_for_synchronization);
 		} else {
 			ms_message("Found existing contacts-vcard-list friend list with URI [%s], keep it",

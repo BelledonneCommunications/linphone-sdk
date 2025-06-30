@@ -136,6 +136,9 @@ public:
 		return mRevision;
 	}
 
+	void setIsReadOnly(bool isReadOnly);
+	bool isReadOnly() const;
+
 private:
 	LinphoneFriendListStatus addFriend(const std::shared_ptr<Friend> &lf, bool synchronize);
 	void closeSubscriptions();
@@ -195,6 +198,7 @@ private:
 #if VCARD_ENABLED
 	std::shared_ptr<CardDAVContext> mCardDavContext;
 #endif
+	bool mIsReadOnly = false;
 };
 
 class FriendListCbs : public bellesip::HybridObject<LinphoneFriendListCbs, FriendListCbs>, public Callbacks {

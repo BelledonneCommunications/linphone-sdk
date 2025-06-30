@@ -362,3 +362,11 @@ LinphoneEvent *linphone_friend_list_get_event(const LinphoneFriendList *list) {
 	std::shared_ptr<Event> event = FriendList::toCpp(list)->mEvent;
 	return event ? event->toC() : nullptr;
 }
+
+bool_t linphone_friend_list_get_is_read_only(const LinphoneFriendList *list) {
+	return FriendList::toCpp(list)->isReadOnly();
+}
+
+void linphone_friend_list_set_is_read_only(LinphoneFriendList *list, bool_t read_only) {
+	FriendList::toCpp(list)->setIsReadOnly(!!read_only);
+}

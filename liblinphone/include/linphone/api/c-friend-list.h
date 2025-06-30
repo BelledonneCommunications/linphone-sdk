@@ -481,6 +481,22 @@ LINPHONE_PUBLIC bool_t linphone_friend_list_database_storage_enabled(const Linph
 LINPHONE_PUBLIC void linphone_friend_list_enable_database_storage(LinphoneFriendList *list, bool_t enable);
 
 /**
+ * Gets whether this friend list is read only or not.
+ * If it is, you won't be able to add/remove friends in/from it, nor to edit existing friends in it.
+ * @param list the #LinphoneFriendList object @notnil
+ * @return TRUE if this friend list is in read-only mode and thus can't be modified, FALSE otherwise.
+ */
+LINPHONE_PUBLIC bool_t linphone_friend_list_get_is_read_only(const LinphoneFriendList *list);
+
+/**
+ * Sets whether this friend list is read only or not.
+ * If it is, you won't be able to add/remove friends in/from it, nor to edit existing friends in it.
+ * @param list the #LinphoneFriendList object @notnil
+ * @param read_only TRUE to make this friend list "read only", FALSE otherwise.
+ */
+LINPHONE_PUBLIC void linphone_friend_list_set_is_read_only(LinphoneFriendList *list, bool_t read_only);
+
+/**
  * @}
  */
 

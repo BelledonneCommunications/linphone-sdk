@@ -50,7 +50,7 @@ public:
 class CardDAVQuery : public UserDataAccessor {
 public:
 	enum class Type { Propfind, AddressbookQuery, AddressbookQueryWithFilter, AddressbookMultiget, Put, Delete };
-	enum class PropfindType { UserPrincipal, UserAddressBooksHome, AddressBookUrlAndCTAG, AddressBookCTAG };
+	enum class PropfindType { UserPrincipal, UserAddressBooksHome, AddressBookUrlAndCTAG, AddressBookCTAG, CurrentUserPrivilegeSet };
 
 	CardDAVQuery(CardDAVContext *context);
 	CardDAVQuery(const CardDAVQuery &other) = delete;
@@ -65,6 +65,7 @@ public:
 	static std::shared_ptr<CardDAVQuery> createUserAddressBookPropfindQuery(CardDAVContext *context);
 	static std::shared_ptr<CardDAVQuery> createAddressBookUrlAndCtagPropfindQuery(CardDAVContext *context);
 	static std::shared_ptr<CardDAVQuery> createAddressBookCtagPropfindQuery(CardDAVContext *context);
+	static std::shared_ptr<CardDAVQuery> createCurrentUserPrivilegeSetPropfindQuery(CardDAVContext *context);
 	static std::shared_ptr<CardDAVQuery> createAddressbookQuery(CardDAVContext *context);
 	static std::shared_ptr<CardDAVQuery> createAddressbookQueryWithFilter(
 	    CardDAVContext *context, const std::list<CardDavPropFilter> &propFilters, unsigned int limit);

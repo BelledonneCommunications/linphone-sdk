@@ -1011,24 +1011,26 @@ long long MainDbPrivate::insertOrUpdateFriendList(const std::shared_ptr<FriendLi
 	std::string rlsUri = list->getRlsUri();
 	std::string syncUri = list->getUri();
 	std::string ctag = list->getRevision();
+	int readOnly = list->isReadOnly() ? 1 : 0;
 	int type = list->getType();
 
 	if (friendListId > 0) {
 		*dbSession.getBackendSession()
 		    << "UPDATE friends_list SET "
-		       "name = :name, rls_uri = :rlsUri, sync_uri = :syncUri, type = :type, ctag = :ctag "
-		       "WHERE id = :friendListId",
+		       "name = :name, rls_uri = :rlsUri, sync_uri = :syncUri, type = :type, ctag = :ctag, "
+		       "readOnly = :readOnly WHERE id = :friendListId",
 		    soci::use(name), soci::use(rlsUri), soci::use(syncUri), soci::use(type), soci::use(ctag),
-		    soci::use(friendListId);
+		    soci::use(readOnly), soci::use(friendListId);
 	} else {
 		lInfo() << "Insert new friend list in database: " << name;
 
 		*dbSession.getBackendSession() << "INSERT INTO friends_list ("
-		                                  "name, rls_uri, sync_uri, revision, type, ctag"
+		                                  "name, rls_uri, sync_uri, revision, type, ctag, readOnly"
 		                                  ") VALUES ("
-		                                  ":name, :rlsUri, :syncUri, 0, :type, :ctag"
+		                                  ":name, :rlsUri, :syncUri, 0, :type, :ctag, :readOnly"
 		                                  ")",
-		    soci::use(name), soci::use(rlsUri), soci::use(syncUri), soci::use(type), soci::use(ctag);
+		    soci::use(name), soci::use(rlsUri), soci::use(syncUri), soci::use(type), soci::use(ctag),
+		    soci::use(readOnly);
 
 		friendListId = dbSession.getLastInsertId();
 	}
@@ -2497,6 +2499,8 @@ std::shared_ptr<FriendList> MainDbPrivate::selectFriendList(const soci::row &row
 		friendList->mRevision = ctag;
 	}
 
+	friendList->setIsReadOnly(!!row.get<int>(7));
+
 	return friendList;
 }
 #endif
@@ -3192,6 +3196,12 @@ void MainDbPrivate::updateSchema() {
 		         << ": Column 'expiry_time' already exists in table 'conference_info'";
 	}
 
+	try {
+		*session << "ALTER TABLE friends_list ADD COLUMN readOnly BOOLEAN NOT NULL DEFAULT 0";
+	} catch (const soci::soci_error &e) {
+		lDebug() << "Caught exception " << e.what() << ": Column 'readOnly' already exists in table 'friends_list'";
+	}
+
 	// /!\ Warning : if varchar columns < 255 were to be indexed, their size must be set back to 191 = max indexable
 	// (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in column creation)
 	//
@@ -3303,8 +3313,8 @@ bool MainDbPrivate::importLegacyFriends(DbSession &inDbSession) {
 				;
 			names.insert(uniqueName);
 
-			*session << "INSERT INTO friends_list (name, rls_uri, sync_uri, revision, type, ctag) VALUES ("
-			            "  :name, :rlsUri, :syncUri, 0, :type, :ctag"
+			*session << "INSERT INTO friends_list (name, rls_uri, sync_uri, revision, type, ctag, readOnly) VALUES ("
+			            "  :name, :rlsUri, :syncUri, 0, :type, :ctag, 0"
 			            ")",
 			    soci::use(uniqueName), soci::use(rlsUri), soci::use(syncUri), soci::use(type), soci::use(ctag);
 			resolvedListsIds[friendList.get<int>(LegacyFriendListColId)] = dbSession.getLastInsertId();
@@ -7823,7 +7833,7 @@ std::list<std::shared_ptr<FriendList>> MainDb::getFriendLists() {
 
 		soci::rowset<soci::row> rows =
 		    (session->prepare
-		     << "SELECT id, name, rls_uri, sync_uri, revision, type, ctag FROM friends_list ORDER BY id");
+		     << "SELECT id, name, rls_uri, sync_uri, revision, type, ctag, readOnly FROM friends_list ORDER BY id");
 		for (const auto &row : rows) {
 			auto list = d->selectFriendList(row);
 			list->setCore(getCore());

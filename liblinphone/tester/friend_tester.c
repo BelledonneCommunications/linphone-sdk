@@ -136,6 +136,116 @@ static LinphoneLdap *_create_default_ldap_server(LinphoneCoreManager *manager,
 	return ldap;
 }
 
+static void read_only_friend_list(void) {
+	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("empty_rc", FALSE);
+
+	// By default friend lists aren't read only
+	LinphoneFriendList *lfl = linphone_core_get_default_friend_list(manager->lc);
+	BC_ASSERT_FALSE(linphone_friend_list_get_is_read_only(lfl));
+
+	// Let's create a new one, will be made read only later
+	LinphoneFriendList *read_only_friend_list = linphone_core_create_friend_list(manager->lc);
+	BC_ASSERT_FALSE(linphone_friend_list_get_is_read_only(read_only_friend_list));
+	linphone_friend_list_set_display_name(read_only_friend_list, "NOT_READ_ONLY_YET");
+
+	// Adding a friend while list isn't read only yet
+	LinphoneFriend *claire_friend = linphone_core_create_friend(manager->lc);
+	linphone_friend_set_name(claire_friend, "Claire");
+	linphone_friend_add_phone_number(claire_friend, "+3366666666");
+	LinphoneFriendListStatus status = linphone_friend_list_add_friend(read_only_friend_list, claire_friend);
+	BC_ASSERT_EQUAL(status, LinphoneFriendListOK, int, "%d");
+
+	linphone_friend_list_set_display_name(read_only_friend_list, "READ_ONLY");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_list_get_display_name(read_only_friend_list), "READ_ONLY");
+
+	// Now let's make the list read only
+	linphone_friend_list_set_is_read_only(read_only_friend_list, TRUE);
+	BC_ASSERT_TRUE(linphone_friend_list_get_is_read_only(read_only_friend_list));
+
+	// We no longer can change it's display name
+	linphone_friend_list_set_display_name(read_only_friend_list, "Is it really READ_ONLY?");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_list_get_display_name(read_only_friend_list), "READ_ONLY");
+
+	// It can still be added to the Core
+	linphone_core_add_friend_list(manager->lc, read_only_friend_list);
+	LinphoneFriendList *found = linphone_core_get_friend_list_by_name(manager->lc, "READ_ONLY");
+	BC_ASSERT_PTR_NOT_NULL(found);
+
+	// Neither can we add/remove friends
+	LinphoneFriend *marie_friend = linphone_core_create_friend(manager->lc);
+	linphone_friend_set_name(marie_friend, "Marie");
+	linphone_friend_add_phone_number(marie_friend, "+3305060708");
+	status = linphone_friend_list_add_friend(read_only_friend_list, marie_friend);
+	BC_ASSERT_EQUAL(status, LinphoneFriendListReadOnly, int, "%d");
+	linphone_friend_unref(marie_friend);
+
+	const bctbx_list_t *friends = linphone_friend_list_get_friends(read_only_friend_list);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(friends), 1, int, "%d");
+	status = linphone_friend_list_remove_friend(read_only_friend_list, claire_friend);
+	BC_ASSERT_EQUAL(status, LinphoneFriendListReadOnly, int, "%d");
+	friends = linphone_friend_list_get_friends(read_only_friend_list);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(friends), 1, int, "%d");
+
+	// Not edit already existing ones
+	status = linphone_friend_set_name(claire_friend, "Clairette");
+	BC_ASSERT_EQUAL(status, LinphoneFriendListReadOnly, int, "%d");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(claire_friend), "Claire");
+
+	LinphoneAddress *address = linphone_core_interpret_url(manager->lc, "sip:claire2@sip.example.net");
+	status = linphone_friend_set_address(claire_friend, address);
+	BC_ASSERT_EQUAL(status, LinphoneFriendListReadOnly, int, "%d");
+	BC_ASSERT_PTR_NULL(linphone_friend_get_address(claire_friend));
+
+	const bctbx_list_t *addresses = linphone_friend_get_addresses(claire_friend);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(addresses), 0, int, "%d");
+	linphone_friend_add_address(claire_friend, address);
+	addresses = linphone_friend_get_addresses(claire_friend);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(addresses), 0, int, "%d");
+	linphone_address_unref(address);
+
+	BC_ASSERT_PTR_NULL(linphone_friend_get_first_name(claire_friend));
+	status = linphone_friend_set_first_name(claire_friend, "Clairette");
+	BC_ASSERT_PTR_NULL(linphone_friend_get_first_name(claire_friend));
+	BC_ASSERT_EQUAL(status, LinphoneFriendListReadOnly, int, "%d");
+
+	BC_ASSERT_PTR_NULL(linphone_friend_get_last_name(claire_friend));
+	status = linphone_friend_set_last_name(claire_friend, "R.");
+	BC_ASSERT_EQUAL(status, LinphoneFriendListReadOnly, int, "%d");
+	BC_ASSERT_PTR_NULL(linphone_friend_get_last_name(claire_friend));
+
+	bctbx_list_t *phoneNumbers = linphone_friend_get_phone_numbers(claire_friend);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(phoneNumbers), 1, int, "%d");
+	linphone_friend_add_phone_number(claire_friend, "+3301020304");
+	bctbx_list_free_with_data(phoneNumbers, (bctbx_list_free_func)ms_free);
+	phoneNumbers = linphone_friend_get_phone_numbers(claire_friend);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(phoneNumbers), 1, int, "%d");
+	bctbx_list_free_with_data(phoneNumbers, (bctbx_list_free_func)ms_free);
+
+	BC_ASSERT_PTR_NULL(linphone_friend_get_job_title(claire_friend));
+	linphone_friend_set_job_title(claire_friend, "Stagiaire");
+	BC_ASSERT_PTR_NULL(linphone_friend_get_job_title(claire_friend));
+
+	BC_ASSERT_PTR_NULL(linphone_friend_get_organization(claire_friend));
+	linphone_friend_set_organization(claire_friend, "Belledonne Communications");
+	BC_ASSERT_PTR_NULL(linphone_friend_get_organization(claire_friend));
+
+	BC_ASSERT_PTR_NULL(linphone_friend_get_photo(claire_friend));
+	linphone_friend_set_photo(claire_friend, "http://pic.me");
+	BC_ASSERT_PTR_NULL(linphone_friend_get_photo(claire_friend));
+
+	BC_ASSERT_PTR_NULL(linphone_friend_get_ref_key(claire_friend));
+	linphone_friend_set_ref_key(claire_friend, "1234");
+	BC_ASSERT_PTR_NULL(linphone_friend_get_ref_key(claire_friend));
+
+	BC_ASSERT_FALSE(linphone_friend_get_starred(claire_friend));
+	linphone_friend_set_starred(claire_friend, TRUE);
+	BC_ASSERT_FALSE(linphone_friend_get_starred(claire_friend));
+
+	linphone_friend_unref(claire_friend);
+	linphone_friend_list_unref(read_only_friend_list);
+	linphone_core_manager_destroy(manager);
+}
+
 static void search_friend_in_alphabetical_order(void) {
 	LinphoneMagicSearch *magicSearch = NULL;
 	bctbx_list_t *resultList = NULL;
@@ -2757,6 +2867,7 @@ static void friend_list_db_storage_base(bool_t set_friends_db_path) {
 	}
 
 	LinphoneFriendList *default_fl = linphone_core_get_default_friend_list(core);
+	BC_ASSERT_FALSE(linphone_friend_list_get_is_read_only(default_fl));
 	BC_ASSERT_PTR_NOT_NULL(default_fl);
 	if (default_fl) {
 		BC_ASSERT_FALSE(linphone_friend_list_database_storage_enabled(default_fl));
@@ -2772,6 +2883,7 @@ static void friend_list_db_storage_base(bool_t set_friends_db_path) {
 	}
 
 	LinphoneFriendList *db_stored_fl = linphone_core_create_friend_list(core);
+	BC_ASSERT_FALSE(linphone_friend_list_get_is_read_only(db_stored_fl));
 	linphone_friend_list_set_display_name(db_stored_fl, "DB_STORED_FL");
 	BC_ASSERT_FALSE(linphone_friend_list_database_storage_enabled(db_stored_fl));
 	linphone_core_add_friend_list(core, db_stored_fl);
@@ -2798,6 +2910,9 @@ static void friend_list_db_storage_base(bool_t set_friends_db_path) {
 	linphone_friend_unref(marie_friend);
 	ms_message("-> Marie added to db stored friend list");
 
+	// Set friend list in read-only mode now
+	linphone_friend_list_set_is_read_only(db_stored_fl, TRUE);
+	BC_ASSERT_TRUE(linphone_friend_list_get_is_read_only(db_stored_fl));
 	linphone_friend_list_unref(db_stored_fl);
 
 	// Add a new friend list without DB storage
@@ -2815,6 +2930,7 @@ static void friend_list_db_storage_base(bool_t set_friends_db_path) {
 	linphone_friend_unref(laure_friend);
 	ms_message("-> Laure added to memory cached friend list");
 
+	BC_ASSERT_FALSE(linphone_friend_list_get_is_read_only(not_db_stored_fl));
 	linphone_friend_list_unref(not_db_stored_fl);
 
 	// Check that both friends list can be found using display name
@@ -2861,6 +2977,11 @@ static void friend_list_db_storage_base(bool_t set_friends_db_path) {
 
 	found_friend = linphone_core_find_friend_by_phone_number(core, "+3305060708"); // Marie
 	BC_ASSERT_PTR_NOT_NULL(found_friend);
+	BC_ASSERT_TRUE(linphone_friend_get_is_read_only(found_friend));
+
+	LinphoneFriendList *db_friend_list = linphone_friend_get_friend_list(found_friend);
+	BC_ASSERT_PTR_NOT_NULL(db_friend_list);
+	BC_ASSERT_TRUE(linphone_friend_list_get_is_read_only(db_friend_list));
 
 	found_friend = linphone_core_find_friend_by_phone_number(core, "+3312345678"); // Laure
 	BC_ASSERT_PTR_NULL(found_friend);
@@ -2907,6 +3028,7 @@ static void friend_phone_number_lookup_without_plus(void) {
 }
 
 test_t friends_tests[] = {
+    TEST_NO_TAG("Read-only friend list", read_only_friend_list),
     TEST_ONE_TAG("Return friend list in alphabetical order", search_friend_in_alphabetical_order, "MagicSearch"),
     TEST_ONE_TAG("Search friend without filter and domain", search_friend_without_filter, "MagicSearch"),
     TEST_ONE_TAG(

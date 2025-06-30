@@ -92,6 +92,7 @@ std::string Friend::toString() const {
 // -----------------------------------------------------------------------------
 
 LinphoneStatus Friend::setAddress(const std::shared_ptr<const Address> &address) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
 	if (!address) return -1;
 	shared_ptr<Address> newAddress = address->clone()->toSharedPtr();
 	newAddress->clean();
@@ -122,17 +123,20 @@ LinphoneStatus Friend::setAddress(const std::shared_ptr<const Address> &address)
 }
 
 LinphoneStatus Friend::setIncSubscribePolicy(LinphoneSubscribePolicy policy) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
 	mSubscribePolicy = policy;
 	return 0;
 }
 
 void Friend::setJobTitle(const std::string &title) {
+	if (isReadOnly()) return;
 	if (linphone_core_vcard_supported() && mVcard) {
 		mVcard->setJobTitle(title);
 	}
 }
 
 LinphoneStatus Friend::setName(const std::string &name) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
 	if (linphone_core_vcard_supported()) {
 		if (!mVcard) {
 			createVcard(name);
@@ -151,16 +155,19 @@ LinphoneStatus Friend::setName(const std::string &name) {
 }
 
 void Friend::setNativeUri(const std::string &nativeUri) {
+	if (isReadOnly()) return;
 	mNativeUri = nativeUri;
 }
 
 void Friend::setOrganization(const std::string &organization) {
+	if (isReadOnly()) return;
 	if (linphone_core_vcard_supported() && mVcard) {
 		mVcard->setOrganization(organization);
 	}
 }
 
 void Friend::setPhoto(const std::string &pictureUri) {
+	if (isReadOnly()) return;
 	if (linphone_core_vcard_supported() && mVcard) {
 		mVcard->setPhoto(pictureUri);
 	}
@@ -179,11 +186,13 @@ void Friend::setPresenceModelForUriOrTel(const std::string &uriOrTel, const std:
 }
 
 void Friend::setRefKey(const std::string &key) {
+	if (isReadOnly()) return;
 	mRefKey = key;
 	if (mFriendList) saveInDb();
 }
 
 void Friend::setStarred(bool starred) {
+	if (isReadOnly()) return;
 	if (linphone_core_vcard_supported() && mVcard) {
 		mVcard->setStarred(starred);
 	}
@@ -191,6 +200,7 @@ void Friend::setStarred(bool starred) {
 }
 
 void Friend::setVcard(const std::shared_ptr<Vcard> &vcard) {
+	if (isReadOnly()) return;
 	if (!linphone_core_vcard_supported()) return;
 
 	const std::string fullname = vcard->getFullName();
@@ -205,6 +215,11 @@ void Friend::setVcard(const std::shared_ptr<Vcard> &vcard) {
 }
 
 // -----------------------------------------------------------------------------
+
+bool Friend::isReadOnly() const {
+	if (mFriendList) return mFriendList->isReadOnly();
+	return false;
+}
 
 const std::shared_ptr<Address> Friend::getAddress() const {
 	const std::list<std::shared_ptr<Address>> sipAddresses = getAddresses();
@@ -519,6 +534,7 @@ LinphoneSecurityLevel Friend::getSecurityLevelForAddress(const Address &address)
 // -----------------------------------------------------------------------------
 
 void Friend::addAddress(const std::shared_ptr<const Address> &address) {
+	if (isReadOnly()) return;
 	if (!address) return;
 
 	for (auto &existing : getAddresses()) {
@@ -547,6 +563,7 @@ void Friend::addAddress(const std::shared_ptr<const Address> &address) {
 }
 
 void Friend::addPhoneNumber(const std::string &phoneNumber) {
+	if (isReadOnly()) return;
 	if (phoneNumber.empty()) return;
 	auto flattenedPhoneNumber = Utils::flattenPhoneNumber(phoneNumber);
 
@@ -568,6 +585,7 @@ void Friend::addPhoneNumber(const std::string &phoneNumber) {
 }
 
 void Friend::addPhoneNumberWithLabel(const std::shared_ptr<const FriendPhoneNumber> &phoneNumber) {
+	if (isReadOnly()) return;
 	if (!phoneNumber) return;
 	const std::string &phone = phoneNumber->getPhoneNumber();
 	if (phone.empty()) return;
@@ -611,6 +629,8 @@ bool Friend::createVcard(const std::string &name) {
 }
 
 void Friend::done() {
+	if (isReadOnly()) return;
+
 	if (linphone_core_vcard_supported() && mVcard) {
 		if (mVcard->compareMd5Hash()) {
 			lDebug() << "vCard's md5 has changed, mark friend as dirty and clear sip addresses list cache";
@@ -631,6 +651,8 @@ void Friend::done() {
 }
 
 void Friend::edit() {
+	if (isReadOnly()) return;
+
 	if (linphone_core_vcard_supported() && mVcard) {
 		mVcard->computeMd5Hash();
 	}
@@ -719,6 +741,7 @@ bool Friend::isPresenceReceived() const {
 }
 
 void Friend::remove() {
+	if (isReadOnly()) return;
 	if (mFriendList) mFriendList->removeFriend(getSharedFromThis());
 
 	if (mRcIndex >= 0) {
@@ -735,6 +758,7 @@ void Friend::remove() {
 }
 
 void Friend::removeAddress(const std::shared_ptr<const Address> &address) {
+	if (isReadOnly()) return;
 	if (!address) return;
 
 	std::string uri = address->asStringUriOnly();
@@ -745,6 +769,7 @@ void Friend::removeAddress(const std::shared_ptr<const Address> &address) {
 }
 
 void Friend::removePhoneNumber(const std::string &phoneNumber) {
+	if (isReadOnly()) return;
 	if (phoneNumber.empty()) return;
 
 	if (mFriendList) removeFriendFromListMapIfAlreadyInIt(phoneNumberToSipUri(phoneNumber));
@@ -754,6 +779,7 @@ void Friend::removePhoneNumber(const std::string &phoneNumber) {
 }
 
 void Friend::removePhoneNumberWithLabel(const std::shared_ptr<const FriendPhoneNumber> &phoneNumber) {
+	if (isReadOnly()) return;
 	if (!phoneNumber) return;
 
 	const std::string &phone = phoneNumber->getPhoneNumber();

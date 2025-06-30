@@ -83,6 +83,7 @@ static void remote_provisioning_contact_list_fetch_at_startup(void) {
 	LinphoneFriendList *friendList = linphone_core_get_friend_list_by_name(marie->lc, url.c_str());
 	BC_ASSERT_PTR_NOT_NULL(friendList);
 	if (friendList) {
+		BC_ASSERT_TRUE(linphone_friend_list_get_is_read_only(friendList));
 		unsigned int friends_list_size = (unsigned int)bctbx_list_size(linphone_friend_list_get_friends(friendList));
 		BC_ASSERT_EQUAL(friends_list_size, 0, unsigned int, "%u");
 	}
@@ -92,6 +93,7 @@ static void remote_provisioning_contact_list_fetch_at_startup(void) {
 	wait_for_until(marie->lc, NULL, NULL, 1, 5000);
 	BC_ASSERT_PTR_NOT_NULL(friendList);
 	if (friendList) {
+		BC_ASSERT_TRUE(linphone_friend_list_get_is_read_only(friendList));
 		unsigned int friends_list_size = (unsigned int)bctbx_list_size(linphone_friend_list_get_friends(friendList));
 		BC_ASSERT_EQUAL(friends_list_size, 3, unsigned int, "%u");
 	}
@@ -376,6 +378,7 @@ static void flexiapi_remote_provisioning_contacts_list_flow(void) {
 	LinphoneFriendList *friendList = linphone_core_get_friend_list_by_name(marie->lc, url.c_str());
 	BC_ASSERT_PTR_NOT_NULL(friendList);
 	if (friendList) {
+		BC_ASSERT_TRUE(linphone_friend_list_get_is_read_only(friendList));
 		wait_for_until(marie->lc, NULL, NULL, 1, 5000);
 
 		unsigned int friends_list_size = (unsigned int)bctbx_list_size(linphone_friend_list_get_friends(friendList));

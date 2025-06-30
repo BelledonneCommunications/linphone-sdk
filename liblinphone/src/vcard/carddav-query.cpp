@@ -192,6 +192,17 @@ shared_ptr<CardDAVQuery> CardDAVQuery::createAddressBookCtagPropfindQuery(CardDA
 	return query;
 }
 
+shared_ptr<CardDAVQuery> CardDAVQuery::createCurrentUserPrivilegeSetPropfindQuery(CardDAVContext *context) {
+	shared_ptr<CardDAVQuery> query = make_shared<CardDAVQuery>(context);
+	query->mDepth = "0";
+	query->mBody = "<d:propfind xmlns:d=\"DAV:\"><d:prop><d:current-user-privilege-set/></d:prop></d:propfind>";
+	query->mMethod = "PROPFIND";
+	query->mUrl = context->mSyncUri;
+	query->mType = Type::Propfind;
+	query->mPropfindType = PropfindType::CurrentUserPrivilegeSet;
+	return query;
+}
+
 shared_ptr<CardDAVQuery> CardDAVQuery::createPutQuery(CardDAVContext *context, const shared_ptr<Vcard> &vcard) {
 	shared_ptr<CardDAVQuery> query = make_shared<CardDAVQuery>(context);
 	query->mIfmatch = vcard->getEtag();

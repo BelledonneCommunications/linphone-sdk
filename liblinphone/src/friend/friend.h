@@ -137,6 +137,8 @@ public:
 	LinphoneSecurityLevel getSecurityLevel() const;
 	LinphoneSecurityLevel getSecurityLevelForAddress(const Address &address) const;
 
+	bool isReadOnly() const;
+
 	// Other
 	void addAddress(const std::shared_ptr<const Address> &address);
 	void addPhoneNumber(const std::string &phoneNumber);

@@ -85,6 +85,8 @@ void FriendList::release() {
 // -----------------------------------------------------------------------------
 
 void FriendList::setDisplayName(const std::string &displayName) {
+	if (isReadOnly()) return;
+
 	mDisplayName = displayName;
 	if (!mDisplayName.empty()) saveInDb();
 }
@@ -159,10 +161,12 @@ bool FriendList::isSubscriptionBodyless() const {
 // -----------------------------------------------------------------------------
 
 LinphoneFriendListStatus FriendList::addFriend(const std::shared_ptr<Friend> &lf) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
 	return addFriend(lf, true);
 }
 
 LinphoneFriendListStatus FriendList::addLocalFriend(const std::shared_ptr<Friend> &lf) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
 	return addFriend(lf, false);
 }
 
@@ -298,6 +302,9 @@ std::list<std::shared_ptr<Friend>> FriendList::findFriendsByUri(const std::strin
 }
 
 LinphoneStatus FriendList::importFriendsFromVcard4Buffer(const std::string &vcardBuffer) {
+	// We need this method to add friends for LinphoneFriendListTypeVCard4 lists
+	if (isReadOnly() && mType != LinphoneFriendListTypeVCard4) return LinphoneFriendListReadOnly;
+
 	std::list<std::shared_ptr<Vcard>> vcards =
 	    VcardContext::toCpp(getCore()->getCCore()->vcard_context)->getVcardListFromBuffer(vcardBuffer);
 	if (vcards.empty()) {
@@ -308,6 +315,8 @@ LinphoneStatus FriendList::importFriendsFromVcard4Buffer(const std::string &vcar
 }
 
 LinphoneStatus FriendList::importFriendsFromVcard4File(const std::string &vcardFile) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
+
 	std::list<std::shared_ptr<Vcard>> vcards =
 	    VcardContext::toCpp(getCore()->getCCore()->vcard_context)->getVcardListFromFile(vcardFile);
 	if (vcards.empty()) {
@@ -323,6 +332,7 @@ void FriendList::notifyPresence(const std::shared_ptr<PresenceModel> &model) con
 }
 
 LinphoneFriendListStatus FriendList::removeFriend(const std::shared_ptr<Friend> &lf) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
 	return removeFriend(lf, true);
 }
 
@@ -440,6 +450,8 @@ void FriendList::synchronizeFriendsFromServer() {
 }
 
 void FriendList::updateDirtyFriends() {
+	if (isReadOnly()) return;
+
 	createCardDavContextIfNotDoneYet();
 	for (const auto &lf : mDirtyFriendsToUpdate) {
 		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_sync_status_changed,
@@ -1078,7 +1090,7 @@ void FriendList::subscriptionStateChanged(LinphoneCore *lc,
 #ifdef VCARD_ENABLED
 
 void FriendList::carddavCreated(const std::shared_ptr<Friend> &f) {
-	addLocalFriend(f); // Add as local because we do not want to synchronize it right now
+	addFriend(f, false); // Add as local because we do not want to synchronize it right now
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_contact_created, f->toC());
 }
 
@@ -1103,6 +1115,28 @@ void FriendList::carddavUpdated(const std::shared_ptr<Friend> &newFriend, const 
 }
 
 #endif /* VCARD_ENABLED */
+
+bool FriendList::isReadOnly() const {
+	return mIsReadOnly;
+}
+
+void FriendList::setIsReadOnly(bool readOnly) {
+	mIsReadOnly = readOnly;
+#ifdef HAVE_DB_STORAGE
+	try {
+		if (getCore() && databaseStorageEnabled()) {
+			std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(getCore()->getCCore())->mainDb;
+			if (mainDb) {
+				mStorageId = mainDb->insertFriendList(getSharedFromThis());
+			}
+		} else {
+			lWarning() << "Can't save friend list [" << getDisplayName()
+			           << "] in DB, either Core is not available or database storage is disabled";
+		}
+	} catch (std::bad_weak_ptr &) {
+	}
+#endif
+}
 
 // -----------------------------------------------------------------------------
 

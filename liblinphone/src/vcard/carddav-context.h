@@ -66,6 +66,7 @@ private:
 	void userAddressBookHomeUrlRetrieved(std::string addressBookHomeUrl);
 	void addressBookUrlAndCtagRetrieved(const std::list<CardDAVResponse> &list);
 	void addressBookCtagRetrieved(std::string ctag);
+	void currentUserPrivilegeSetRetrieved(bool isReadOnly);
 
 	void fetchVcards();
 	void pullVcards(const std::list<CardDAVResponse> &list);
@@ -75,6 +76,7 @@ private:
 	void retrieveUserAddressBooksHomeUrl();
 	void retrieveAddressBookUrlAndCtag();
 	void retrieveAddressBookCtag();
+	void retrieveCurrentUserPrivilegeSet();
 
 	void sendQuery(const std::shared_ptr<CardDAVQuery> &query, bool cancelCurrentIfAny = false);
 	void setSchemeAndHostIfNotDoneYet(std::shared_ptr<CardDAVQuery> query);
@@ -92,6 +94,7 @@ private:
 	std::string parseAddressBookCtagValueFromXmlResponse(const std::string &body);
 	std::list<CardDAVResponse> parseVcardsEtagsFromXmlResponse(const std::string &body);
 	std::list<CardDAVResponse> parseVcardsFromXmlResponse(const std::string &body);
+	bool parseCurrentUserPrivilegeSetRetrievedFromXmlResponse(const std::string &body);
 
 	std::string getUrlSchemeHostAndPort() const;
 

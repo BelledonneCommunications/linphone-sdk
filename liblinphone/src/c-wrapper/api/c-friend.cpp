@@ -347,6 +347,10 @@ LinphoneStatus linphone_friend_set_name(LinphoneFriend *lf, const char *name) {
 }
 
 LinphoneStatus linphone_friend_set_last_name(LinphoneFriend *lf, const char *last_name) {
+	if (linphone_friend_get_is_read_only(lf)) {
+		return LinphoneFriendListReadOnly;
+	}
+
 	const std::shared_ptr<Vcard> vcard = Friend::toCpp(lf)->getVcard();
 	if (vcard) {
 		vcard->setFamilyName(L_C_TO_STRING(last_name));
@@ -356,6 +360,10 @@ LinphoneStatus linphone_friend_set_last_name(LinphoneFriend *lf, const char *las
 }
 
 LinphoneStatus linphone_friend_set_first_name(LinphoneFriend *lf, const char *first_name) {
+	if (linphone_friend_get_is_read_only(lf)) {
+		return LinphoneFriendListReadOnly;
+	}
+
 	const std::shared_ptr<Vcard> vcard = Friend::toCpp(lf)->getVcard();
 	if (vcard) {
 		vcard->setGivenName(L_C_TO_STRING(first_name));
@@ -405,6 +413,11 @@ void linphone_friend_set_user_data(LinphoneFriend *lf, void *data) {
 
 void linphone_friend_set_vcard(LinphoneFriend *lf, LinphoneVcard *vcard) {
 	if (lf) Friend::toCpp(lf)->setVcard(Vcard::getSharedFromThis(vcard));
+}
+
+bool_t linphone_friend_get_is_read_only(const LinphoneFriend *lf) {
+	if (lf) return Friend::toCpp(lf)->isReadOnly();
+	return TRUE;
 }
 
 void linphone_friend_unref(LinphoneFriend *lf) {
