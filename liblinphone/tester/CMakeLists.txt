@@ -274,6 +274,7 @@ set(SOURCE_FILES_C
 	eventapi_tester.c
 	external_domain_tester.c
 	flexisip_tester.c
+	friend_tester.c
 	group_chat_tester.c
 	group_chat_ephemeral_tester.c
 	liblinphone_tester.c
