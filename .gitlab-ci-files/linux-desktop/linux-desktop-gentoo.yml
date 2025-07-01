@@ -10,7 +10,7 @@
     - sudo rc-status
     - sudo touch /run/openrc/softlevel
     - sudo rc-service lighttpd start
-    - sudo emerge --getbinpkg @liblinphone-latest
+    - sudo emerge --getbinpkg @linphone-sdk-latest
 
 #################################################
 # Build
