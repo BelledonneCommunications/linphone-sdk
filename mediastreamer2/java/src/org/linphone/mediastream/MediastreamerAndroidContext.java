@@ -236,13 +236,13 @@ public class MediastreamerAndroidContext {
 	}
 
 	public synchronized static void hackVolumeOnStream(int stream) {
-		Log.i("[Audio Manager] Lower & raise audio volume on stream [" + stream + "] to workaround no sound issue until volume has changed...");
+		Log.i("[Audio Manager] Trying to workaround no sound issue on stream [" + stream + "] until volume has changed...");
 		try {
 			AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
 			if (stream == AudioManager.STREAM_RING) {
 				int ringerMode = audioManager.getRingerMode();
 				if (ringerMode == AudioManager.RINGER_MODE_SILENT || ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
-					Log.w("[Audio Manager] Device is either in silent or vibrate mode, do not apply volume hack on RING stream!");
+					Log.w("[Audio Manager] Device is either in silent or vibrate mode, do not apply volume workaround on RING stream!");
 					return;
 				}
 			}
@@ -257,27 +257,39 @@ public class MediastreamerAndroidContext {
 			Log.i("[Audio Manager] Max volume for stream is " + maxVolume + ", current volume is " + currentVolume);
 			int timeInMills = 50;
 			if (maxVolume == currentVolume) {
-				try {
+				// It seems the following API may result in volume not being the same as it was before the operation
+				/*try {
 					audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, stream, 0);
 					SystemClock.sleep(timeInMills);
 					audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, stream, 0);
 				} catch (SecurityException se) {
 					Log.e("[Audio Manager] Security exception during adjustSuggestedStreamVolume: ", se);
-				}
+				}*/
+
+				Log.i("[Audio Manager] Volume is at it's maximum, lowering it, waiting [" + timeInMills + "]ms and then raising it");
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0);
 				SystemClock.sleep(timeInMills);
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0);
 			} else {
-				try {
+				// It seems the following API may result in volume not being the same as it was before the operation
+				/*try {
 					audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, stream, 0);
 					SystemClock.sleep(timeInMills);
 					audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, stream, 0);
 				} catch (SecurityException se) {
 					Log.e("[Audio Manager] Security exception during adjustSuggestedStreamVolume: ", se);
-				}
+				}*/
+
+				Log.i("[Audio Manager] Volume is not at it's maximum, raising it, waiting [" + timeInMills + "]ms and then lowering it");
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0);
 				SystemClock.sleep(timeInMills);
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0);
+			}
+			
+			int newCurrentVolume = audioManager.getStreamVolume(stream);
+			Log.i("[Audio Manager] Workaround was applied, current volume is " + newCurrentVolume);
+			if (newCurrentVolume != currentVolume) {
+				Log.e("[Audio Manager] Volume level isn't the same after applying the workaround [" + newCurrentVolume + "] than it was before [" + currentVolume + "]!");
 			}
 		} catch (Exception e) {
 			Log.e("[Audio Manager] Failed to adjust volume: ", e);
