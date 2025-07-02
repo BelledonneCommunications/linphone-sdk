@@ -138,6 +138,10 @@ public class DeviceUtils {
 		try {
 			NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 			NotificationManager.Policy policy = notificationManager.getNotificationPolicy();
+			if (policy == null) {
+				Log.e("[Device Utils] NotificationManager Policy object is null!");
+				return false;
+			}
 			boolean senderCheck = policy.priorityCallSenders == NotificationManager.Policy.PRIORITY_SENDERS_ANY;
 			boolean categoryCheck = policy.priorityCategories == NotificationManager.Policy.PRIORITY_CATEGORY_CALLS;
 			Log.i("[Device Utils] Call sender check is [" + senderCheck + "], call caterogy check is [" + categoryCheck + "]");
@@ -152,6 +156,10 @@ public class DeviceUtils {
 		try {
 			NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 			NotificationManager.Policy policy = notificationManager.getNotificationPolicy();
+			if (policy == null) {
+				Log.e("[Device Utils] NotificationManager Policy object is null!");
+				return false;
+			}
 			return policy.priorityCallSenders == NotificationManager.Policy.PRIORITY_SENDERS_CONTACTS;
 		} catch (SecurityException se) {
 			Log.e("[Device Utils] Can't check notification policy: " + se);
@@ -196,6 +204,10 @@ public class DeviceUtils {
 		try {
 			NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 			NotificationManager.Policy policy = notificationManager.getNotificationPolicy();
+			if (policy == null) {
+				Log.e("[Device Utils] NotificationManager Policy object is null!");
+				return false;
+			}
 			return policy.priorityCallSenders == NotificationManager.Policy.PRIORITY_SENDERS_STARRED;
 		} catch (SecurityException se) {
 			Log.e("[Device Utils] Can't check notification policy: " + se);
