@@ -1542,13 +1542,13 @@ public class AndroidPlatformHelper {
         onBluetoothHeadsetStateChanged(500);
     }
 
-    private void onBluetoothHeadsetStateChangedOnCoreThread(int delay) {
+    private void onAudioStateChangedOnCoreThread(int delay, String deviceType) {
         if (mCore != null) {
             if (mCore.getConfig().getInt("audio", "android_monitor_audio_devices", 1) == 0) return;
             
             GlobalState globalState = mCore.getGlobalState();
             if (globalState == GlobalState.On || globalState == GlobalState.Ready) {
-                Log.i("[Platform Helper] Bluetooth headset state changed, waiting for " + delay + " ms before reloading sound devices");
+                Log.i("[Platform Helper] " + deviceType + " state changed, waiting for " + delay + " ms before reloading sound devices");
                 if (mReloadSoundDevicesScheduled) {
                     Log.w("[Platform Helper] Sound devices reload is already pending, skipping...");
                     return;
@@ -1567,7 +1567,7 @@ public class AndroidPlatformHelper {
                 };
                 dispatchOnCoreThreadAfter(reloadRunnable, delay);
             } else {
-                Log.w("[Platform Helper] Bluetooth headset state changed but current global state is ", globalState.name(), ", skipping...");
+                Log.w("[Platform Helper] " + deviceType + " state changed but current global state is ", globalState.name(), ", skipping...");
             }
         }
     }
@@ -1576,44 +1576,30 @@ public class AndroidPlatformHelper {
         Runnable bluetoothRunnable = new Runnable() {
             @Override
             public void run() {
-                onBluetoothHeadsetStateChangedOnCoreThread(delay);
+                onAudioStateChangedOnCoreThread(delay, "Bluetooth headset");
             }
         };
         dispatchOnCoreThread(bluetoothRunnable);
     }
 
-    private void onHeadsetStateChangedOnCoreThread(boolean connected) {
-        if (mCore != null) {
-            if (mCore.getConfig().getInt("audio", "android_monitor_audio_devices", 1) == 0) return;
-
-            GlobalState globalState = mCore.getGlobalState();
-            if (globalState == GlobalState.On || globalState == GlobalState.Ready) {
-                Log.i("[Platform Helper] Headset state changed, waiting for 500ms before reloading sound devices");
-                if (mReloadSoundDevicesScheduled) {
-                    Log.w("[Platform Helper] Sound devices reload is already pending, skipping...");
-                    return;
-                }
-                mReloadSoundDevicesScheduled = true;
-
-                Log.i("[Platform Helper] Reloading sound devices");
-                if (mCore != null) {
-                    reloadSoundDevices(mCore.getNativePointer());
-                    mReloadSoundDevicesScheduled = false;
-                }
-            } else {
-                Log.w("[Platform Helper] Headset state changed but current global state is ", globalState.name(), ", skipping...");
-            }
-        }
-    }
-
-    public void onHeadsetStateChanged(boolean connected) {
+    public void onHeadsetStateChanged() {
         Runnable headsetRunnable = new Runnable() {
             @Override
             public void run() {
-                onHeadsetStateChangedOnCoreThread(connected);
+                onAudioStateChangedOnCoreThread(500, "Headset");
             }
         };
         dispatchOnCoreThread(headsetRunnable);
+    }
+
+    public void onHdmiStateChanged() {
+        Runnable hdmiRunnable = new Runnable() {
+            @Override
+            public void run() {
+                onAudioStateChangedOnCoreThread(500, "HDMI audio");
+            }
+        };
+        dispatchOnCoreThread(hdmiRunnable);
     }
 
     public void onBackgroundMode() {

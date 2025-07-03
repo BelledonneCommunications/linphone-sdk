@@ -41,7 +41,8 @@ public:
 		GenericUsb = LinphoneAudioDeviceTypeGenericUsb,
 		Headset = LinphoneAudioDeviceTypeHeadset,
 		Headphones = LinphoneAudioDeviceTypeHeadphones,
-		HearingAid = LinphoneAudioDeviceTypeHearingAid
+		HearingAid = LinphoneAudioDeviceTypeHearingAid,
+		Hdmi = LinphoneAudioDeviceTypeHdmi
 	};
 
 	enum Capabilities {

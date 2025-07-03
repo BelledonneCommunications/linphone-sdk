@@ -254,6 +254,17 @@ static bool ms_android_is_device_type_speaker(JNIEnv *env, const char *audioDevi
 	return typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_SPEAKER");
 }
 
+static bool ms_android_is_device_type_hdmi(JNIEnv *env, const char *audioDeviceInfoClassName, int typeID) {
+	int androidSDK = ms_android_get_sdk_version(env);
+	if (androidSDK >= 31) {
+		if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_HDMI_EARC")) {
+			return true;
+		}
+	}
+	return typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_HDMI") ||
+	       typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_HDMI_ARC");
+}
+
 MSSndCardDeviceType ms_android_get_device_type(JNIEnv *env, jobject deviceInfo) {
 	int typeID = -1;
 	const char *audioDeviceInfoClassName = "android/media/AudioDeviceInfo";
@@ -291,6 +302,8 @@ MSSndCardDeviceType ms_android_get_device_type(JNIEnv *env, jobject deviceInfo) 
 	} else if (ms_android_get_sdk_version(env) >= 28 &&
 	           typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_HEARING_AID")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID;
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_HDMI")) {
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HDMI;
 	} else {
 		ms_error("[Android Audio Utils] Unknown device type for type ID %0d", typeID);
 	}

@@ -1272,7 +1272,8 @@ static void android_snd_card_device_create(JNIEnv *env,
 	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET) ||
 	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES) ||
 	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID) ||
-	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB)) {
+	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB) ||
+	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HDMI)) {
 
 		char *name = ms_android_get_device_product_name(env, deviceInfo);
 		int device_id = ms_android_get_device_id(env, deviceInfo);

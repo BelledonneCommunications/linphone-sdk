@@ -66,6 +66,9 @@ struct _AndroidSoundUtils {
 	int audioDeviceTypeUsbHeadset;
 	int audioDeviceTypeWiredHeadset;
 	int audioDeviceTypeHearingAid;
+	int audioDeviceTypeHdmi;
+	int audioDeviceTypeHdmiArc;
+	int audioDeviceTypeHdmiEarc;
 	MSDevicesInfo *devices_info;
 
 	int sdkVersion;

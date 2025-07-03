@@ -187,6 +187,16 @@ AndroidSoundUtils *ms_android_sound_utils_create(MSFactory *factory) {
 			    (int)env->GetStaticIntField(deviceClass, env->GetStaticFieldID(deviceClass, "TYPE_USB_HEADSET", "I"));
 		}
 
+		utils->audioDeviceTypeHdmi =
+		    (int)env->GetStaticIntField(deviceClass, env->GetStaticFieldID(deviceClass, "TYPE_HDMI", "I"));
+		utils->audioDeviceTypeHdmiArc =
+		    (int)env->GetStaticIntField(deviceClass, env->GetStaticFieldID(deviceClass, "TYPE_HDMI_ARC", "I"));
+		utils->audioDeviceTypeHdmiEarc = -1;
+		if (utils->sdkVersion >= 31) {
+			utils->audioDeviceTypeHdmiEarc =
+			    (int)env->GetStaticIntField(deviceClass, env->GetStaticFieldID(deviceClass, "TYPE_HDMI_EARC", "I"));
+		}
+
 		env->DeleteLocalRef(deviceClass);
 	} else {
 		ms_error("[Android Audio Utils] Failed to find android/media/AudioDeviceInfo class!");
@@ -390,6 +400,9 @@ MSSndCardDeviceType ms_android_sound_utils_get_device_type(const AndroidSoundUti
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET;
 	} else if (typeID == utils->audioDeviceTypeHearingAid) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID;
+	} else if (typeID == utils->audioDeviceTypeHdmi || typeID == utils->audioDeviceTypeHdmiArc ||
+	           typeID == utils->audioDeviceTypeHdmiEarc) {
+		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HDMI;
 	} else {
 		ms_error("[Android Audio Utils] Unknown device type for type ID %0d", typeID);
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone 
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -27,35 +27,30 @@ import android.media.AudioManager;
 import org.linphone.core.tools.Log;
 import org.linphone.core.tools.AndroidPlatformHelper;
 
-public class HeadsetReceiver extends BroadcastReceiver {
-    public HeadsetReceiver() {
+public class HdmiAudioReceiver extends BroadcastReceiver {
+    public HdmiAudioReceiver() {
         super();
-        Log.i("[Headset] Headset receiver created");
+        Log.i("[HDMI] HDMI audio receiver created");
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        Log.i("[Headset] Headset broadcast received");
+        Log.i("[HDMI] HDMI audio broadcast received");
 
-        // https://developer.android.com/reference/android/media/AudioManager#ACTION_HEADSET_PLUG
-        if (action.equals(AudioManager.ACTION_HEADSET_PLUG)) {
-            int state = intent.getIntExtra("state", 0);
-            String name = intent.getStringExtra("name");
-            int hasMicrophone = intent.getIntExtra("microphone", 0);
+        // https://developer.android.com/reference/android/media/AudioManager#ACTION_HDMI_AUDIO_PLUG
+        if (action.equals(AudioManager.ACTION_HDMI_AUDIO_PLUG)) {
+            int state = intent.getIntExtra(AudioManager.EXTRA_AUDIO_PLUG_STATE, 0);
 
             if (state == 0) {
-                Log.i("[Headset] Headset disconnected: " + name);
+                Log.i("[HDMI] HDMI audio disconnected");
             } else if (state == 1) {
-                Log.i("[Headset] Headset connected: " + name);
-                if (hasMicrophone == 1) {
-                    Log.i("[Headset] Headset has a microphone");
-                }
+                Log.i("[HDMI] HDMI audio connected");
             } else {
-                Log.w("[Headset] Unknown headset plugged state: " + state);
+                Log.w("[HDMI] Unknown HDMI audio plugged state: " + state);
             }
 
-            if (AndroidPlatformHelper.isReady()) AndroidPlatformHelper.instance().onHeadsetStateChanged();
+            if (AndroidPlatformHelper.isReady()) AndroidPlatformHelper.instance().onHdmiStateChanged();
         }
     }
 }

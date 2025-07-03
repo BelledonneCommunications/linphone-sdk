@@ -115,6 +115,9 @@ const AudioDevice::Type &AudioDevice::getType() const {
 		case MS_SND_CARD_DEVICE_TYPE_HEARING_AID:
 			mDeviceType = AudioDevice::Type::HearingAid;
 			break;
+		case MS_SND_CARD_DEVICE_TYPE_HDMI:
+			mDeviceType = AudioDevice::Type::Hdmi;
+			break;
 		case MS_SND_CARD_DEVICE_TYPE_UNKNOWN:
 			mDeviceType = AudioDevice::Type::Unknown;
 			break;
@@ -166,6 +169,9 @@ string AudioDevice::toString() const {
 			break;
 		case AudioDevice::Type::HearingAid:
 			ss << "Hearing Aid";
+			break;
+		case AudioDevice::Type::Hdmi:
+			ss << "Hdmi";
 			break;
 		case AudioDevice::Type::Unknown:
 		default:

@@ -118,7 +118,8 @@ static void android_snd_card_device_create(const AndroidSoundUtils *soundUtils, 
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID) ||
-		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB)
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB) ||
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HDMI)
 	) {
 		MSSndCard *card = ms_snd_card_new(&android_native_snd_aaudio_card_desc);
 		card = ms_snd_card_ref(card);

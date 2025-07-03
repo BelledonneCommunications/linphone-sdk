@@ -1226,6 +1226,7 @@ list<shared_ptr<AudioDevice>> Core::getAudioDevices() const {
 	bool bluetoothMicFound = false, bluetoothSpeakerFound = false;
 	bool headsetMicFound = false, headsetSpeakerFound = false;
 	bool hearingAidFound = false;
+	bool hdmiFound = false;
 
 	for (const auto &audioDevice : getExtendedAudioDevices()) {
 		switch (audioDevice->getType()) {
@@ -1292,11 +1293,17 @@ list<shared_ptr<AudioDevice>> Core::getAudioDevices() const {
 					lAudioDevices.push_back(audioDevice);
 				}
 				break;
+			case AudioDevice::Type::Hdmi:
+				if (!hdmiFound) {
+					hdmiFound = true;
+					lAudioDevices.push_back(audioDevice);
+				}
+				break;
 			default:
 				break;
 		}
 		if (micFound && speakerFound && earpieceFound && bluetoothMicFound && bluetoothSpeakerFound &&
-		    headsetMicFound && headsetSpeakerFound && hearingAidFound)
+		    headsetMicFound && headsetSpeakerFound && hearingAidFound && hdmiFound)
 			break;
 	}
 	return lAudioDevices;

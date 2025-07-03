@@ -47,6 +47,7 @@ import org.linphone.core.Core;
 import org.linphone.core.tools.Log;
 import org.linphone.core.tools.compatibility.DeviceUtils;
 import org.linphone.core.tools.receiver.HeadsetReceiver;
+import org.linphone.core.tools.receiver.HdmiAudioReceiver;
 import org.linphone.core.tools.AndroidPlatformHelper;
 
 public class AudioHelper implements OnAudioFocusChangeListener {
@@ -58,6 +59,7 @@ public class AudioHelper implements OnAudioFocusChangeListener {
     private int mVolumeBeforeEchoTest;
     private AudioDevice mPreviousDefaultOutputAudioDevice;
     private HeadsetReceiver mHeadsetReceiver;
+    private HdmiAudioReceiver mHdmiReceiver;
 
     public AudioHelper(Context context) {
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -67,12 +69,22 @@ public class AudioHelper implements OnAudioFocusChangeListener {
         mHeadsetReceiver = new HeadsetReceiver();
         IntentFilter filter = new IntentFilter(AudioManager.ACTION_HEADSET_PLUG);
         context.registerReceiver(mHeadsetReceiver, filter);
+
+        mHdmiReceiver = new HdmiAudioReceiver();
+        filter = new IntentFilter(AudioManager.ACTION_HDMI_AUDIO_PLUG);
+        context.registerReceiver(mHdmiReceiver, filter);
         
         Log.i("[Audio Helper] Helper created");
     }
 
     public void destroy(Context context) {
         Log.i("[Audio Helper] Destroying");
+
+        if (mHdmiReceiver != null) {
+            context.unregisterReceiver(mHdmiReceiver);
+            mHdmiReceiver = null;
+        }
+
         if (mHeadsetReceiver != null) {
             context.unregisterReceiver(mHeadsetReceiver);
             mHeadsetReceiver = null;
