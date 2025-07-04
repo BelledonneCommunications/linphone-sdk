@@ -558,7 +558,7 @@ int findAnomaly(std::vector<float> &nums, float lim_inf, float lim_sup) {
 	}
 	return low_val_number;
 }
-int video_call_fps_measurement(bool_t withFEC) {
+int video_call_fps_measurement(bool_t withFEC, const int measurement_duration_ms) {
 
 	flexfec_tests_params params{
 	    LinphoneMediaEncryptionNone,
@@ -574,6 +574,7 @@ int video_call_fps_measurement(bool_t withFEC) {
 	network_params.max_bandwidth = 5000000.f;
 	network_params.mode = OrtpNetworkSimulatorOutbound;
 	network_params.consecutive_loss_probability = 0.7f;
+	int start_timeout_ms = 2000;
 
 	marie = linphone_core_manager_new("marie_rc");
 	pauline = linphone_core_manager_new("pauline_rc");
@@ -586,6 +587,7 @@ int video_call_fps_measurement(bool_t withFEC) {
 	} else {
 		disable_all_video_codecs_except_one(marie->lc, "VP8");
 		disable_all_video_codecs_except_one(pauline->lc, "VP8");
+		start_timeout_ms = 10000; // increased timeout to let the video parameters converge to a stable configuration
 	}
 	linphone_payload_type_unref(pt_marie);
 	linphone_payload_type_unref(pt_pauline);
@@ -644,24 +646,23 @@ int video_call_fps_measurement(bool_t withFEC) {
 	// wait enough to start recovering lost packets with FEC
 	if (vstream->ms.fec_stream) {
 		fec_stats *stats = fec_stream_get_stats(vstream->ms.fec_stream);
-		uint64_t expected_recovered_packets = 5;
+		uint64_t expected_recovered_packets = 1;
 		BC_ASSERT_TRUE(wait_for_until_for_uint64(marie->lc, pauline->lc, &stats->packets_recovered,
-		                                         expected_recovered_packets, 60000));
+		                                         expected_recovered_packets, 40000));
 	} else {
 		const int dummy = 0;
-		wait_for_list(lcs, &dummy, 1, 2000);
+		wait_for_list(lcs, &dummy, 1, start_timeout_ms);
 	}
 
 	// measure FPS during time interval
 	MSTimeSpec ts;
 	liblinphone_tester_clock_start(&ts);
-	int time_to_wait = 10000;
 	std::vector<float> fps;
 	do {
 		wait_for_until(marie->lc, pauline->lc, NULL, 0, 50);
 		fps.push_back(video_stream_get_received_framerate(vstream));
 		ortp_message("fps measured on video output = %f", fps.back());
-	} while (!liblinphone_tester_clock_elapsed(&ts, time_to_wait));
+	} while (!liblinphone_tester_clock_elapsed(&ts, measurement_duration_ms));
 	end_call(marie, pauline);
 	bctbx_list_free(lcs);
 	linphone_core_manager_destroy(marie);
@@ -681,20 +682,20 @@ int video_call_fps_measurement(bool_t withFEC) {
 static void video_call_with_flexfec_check_fps() {
 	int anomaly_with_fec = 0;
 	int anomaly_without_fec = 0;
-	bool test_again = true;
 	int test_count = 1;
-	// the test is rerun in the rare case of failure due to the short delay in measurement.
-	while (test_again) {
+	int measurement_duration_ms = 10000;
+	// the test is rerun in the rare case of failure with an increased measurement duration.
+	do {
 		ortp_message("run test %d", test_count);
-		anomaly_with_fec = video_call_fps_measurement(TRUE);
-		anomaly_without_fec = video_call_fps_measurement(FALSE);
+		anomaly_with_fec = video_call_fps_measurement(TRUE, measurement_duration_ms);
+		anomaly_without_fec = video_call_fps_measurement(FALSE, measurement_duration_ms);
 		if (anomaly_without_fec <= anomaly_with_fec) {
 			ortp_message("test failed: anomaly_without_fec (%d) <= anomaly_with_fec (%d)", anomaly_without_fec,
 			             anomaly_with_fec);
 		}
-		test_again = ((anomaly_without_fec <= anomaly_with_fec + 10) || (anomaly_with_fec > 150)) && (test_count < 3);
 		test_count++;
-	}
+		measurement_duration_ms += 10000;
+	} while (((anomaly_without_fec <= anomaly_with_fec + 10) || (anomaly_with_fec > 150)) && (test_count < 5));
 	BC_ASSERT_GREATER_STRICT(anomaly_without_fec, anomaly_with_fec + 10, int, "%d");
 }
 

@@ -331,7 +331,6 @@ std::list<OrtpPayloadType *> PayloadTypeHandler::makeCodecsList(SalStreamType ty
 	if (type == SalVideo && bundle_enabled && linphone_core_fec_enabled(getCore()->getCCore())) {
 
 		auto fec_pt = createFecPayloadType();
-		lInfo() << "payload created for fec is " << payload_type_get_number(fec_pt) << " ***";
 		result.push_back(fec_pt);
 	}
 	assignPayloadTypeNumbers(result, previousList);
