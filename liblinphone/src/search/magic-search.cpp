@@ -225,7 +225,8 @@ list<shared_ptr<SearchResult>> MagicSearch::getContactListFromFilter(const strin
 	}
 	mFilter = filter;
 
-	auto allResults = processResults(resultList);
+	processResults(resultList);
+	auto allResults = getLastSearch();
 	lInfo() << "[Magic Search] Found in total [" << allResults.size() << "] results";
 
 	return allResults;
@@ -298,7 +299,7 @@ static void sortResultsByFriendInList(list<shared_ptr<SearchResult>> &resultList
 	});
 }
 
-list<shared_ptr<SearchResult>> MagicSearch::processResults(list<shared_ptr<SearchResult>> &pResultList) {
+void MagicSearch::processResults(list<shared_ptr<SearchResult>> &pResultList) {
 	if (mAsyncData.getSearchRequest().getAggregation() == LinphoneMagicSearchAggregationFriend) {
 		lDebug() << "[Magic Search] Found " << pResultList.size()
 		         << " results before sorting, aggregation & removing duplicates";
@@ -314,8 +315,6 @@ list<shared_ptr<SearchResult>> MagicSearch::processResults(list<shared_ptr<Searc
 	}
 
 	setSearchCache(pResultList);
-
-	return getLastSearch();
 }
 
 static bool findAddress(const list<shared_ptr<SearchResult>> &list, const LinphoneAddress *addr) {
@@ -339,6 +338,9 @@ list<shared_ptr<SearchResult>> MagicSearch::getLastSearch() const {
 		auto limitIterator = returnList.begin();
 		advance(limitIterator, (int)getSearchLimit());
 		returnList.erase(limitIterator, returnList.end());
+
+		_linphone_magic_search_notify_results_limit_reached((LinphoneMagicSearch *)toC(),
+		                                                    mAsyncData.getSearchRequest().getSourceFlags());
 	}
 
 	if (!mFilter.empty() && ((mAsyncData.getSearchRequest().getSourceFlags() & LinphoneMagicSearchSourceRequest) ==

@@ -358,9 +358,8 @@ public:
 
 	/**
 	 * @brief processResults Clean for unique items and set the cache.
-	 * @return the cleaned list.
 	 */
-	std::list<std::shared_ptr<SearchResult>> processResults(std::list<std::shared_ptr<SearchResult>> &results);
+	void processResults(std::list<std::shared_ptr<SearchResult>> &results);
 
 	/**
 	 * @brief beginNewSearchAsync Same as beginNewSearch but on an asynchronous version : it will build the
@@ -424,11 +423,18 @@ public:
 	void setMoreResultsAvailable(LinphoneMagicSearchCbsMoreResultsAvailableCb cb) {
 		mMoreResultsAvailableCb = cb;
 	}
+	LinphoneMagicSearchCbsResultsLimitReachedCb getResultsLimitReached() const {
+		return mResultsLimitReachedCb;
+	}
+	void setResultsLimitReached(LinphoneMagicSearchCbsResultsLimitReachedCb cb) {
+		mResultsLimitReachedCb = cb;
+	}
 
 private:
 	LinphoneMagicSearchCbsSearchResultsReceivedCb mResultsAvailableCb = nullptr;
 	LinphoneMagicSearchCbsLdapHaveMoreResultsCb mLdapMoreResultsAvailableCb = nullptr;
 	LinphoneMagicSearchCbsMoreResultsAvailableCb mMoreResultsAvailableCb = nullptr;
+	LinphoneMagicSearchCbsResultsLimitReachedCb mResultsLimitReachedCb = nullptr;
 };
 
 LINPHONE_END_NAMESPACE

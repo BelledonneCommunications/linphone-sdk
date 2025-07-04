@@ -117,7 +117,10 @@ void CardDavMagicSearchPlugin::processResults(const list<shared_ptr<Friend>> &fr
 
 	if (mMoreResultsAvailable) {
 		lInfo() << "[Magic Search][CardDAV] Server response says more results are available";
+		// Legacy
 		_linphone_magic_search_notify_more_results_available(getMagicSearch().toC(), getSource());
+
+		_linphone_magic_search_notify_results_limit_reached(getMagicSearch().toC(), getSource());
 	}
 
 	setHasEnded(true);

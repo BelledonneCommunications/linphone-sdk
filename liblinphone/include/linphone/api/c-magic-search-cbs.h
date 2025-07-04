@@ -104,6 +104,7 @@ linphone_magic_search_cbs_set_ldap_have_more_results(LinphoneMagicSearchCbs *cbs
  * Gets the callback notifying more results for a source flag are available.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
  * @return The more results available callback.
+ * @deprecated 07/07/2025 use linphone_magic_search_cbs_get_results_limit_reached() instead.
  */
 LINPHONE_PUBLIC LinphoneMagicSearchCbsMoreResultsAvailableCb
 linphone_magic_search_cbs_get_more_results_available(const LinphoneMagicSearchCbs *cbs);
@@ -112,10 +113,32 @@ linphone_magic_search_cbs_get_more_results_available(const LinphoneMagicSearchCb
  * Sets the callback notifying that more results for a source flag are available.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
  * @return The more results available callback.
+ * @deprecated 07/07/2025 use linphone_magic_search_cbs_set_results_limit_reached() instead.
  */
 LINPHONE_PUBLIC void
 linphone_magic_search_cbs_set_more_results_available(LinphoneMagicSearchCbs *cbs,
                                                      LinphoneMagicSearchCbsMoreResultsAvailableCb cb);
+
+/**
+ * Gets the callback notifying the search results limit has been reached,
+ * which means more results are available for currently set query parameters
+ * and thus user should refine it's request.
+ * @param cbs #LinphoneMagicSearchCbs object. @notnil
+ * @return The results limit reached callback.
+ */
+LINPHONE_PUBLIC LinphoneMagicSearchCbsResultsLimitReachedCb
+linphone_magic_search_cbs_get_results_limit_reached(const LinphoneMagicSearchCbs *cbs);
+
+/**
+ * Sets the callback notifying the search results limit has been reached,
+ * which means more results are available for currently set query parameters
+ * and thus user should refine it's request.
+ * @param cbs #LinphoneMagicSearchCbs object. @notnil
+ * @return The results limit reached callback.
+ */
+LINPHONE_PUBLIC void
+linphone_magic_search_cbs_set_results_limit_reached(LinphoneMagicSearchCbs *cbs,
+                                                    LinphoneMagicSearchCbsResultsLimitReachedCb cb);
 
 /**
  * @}

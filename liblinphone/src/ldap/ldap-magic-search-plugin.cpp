@@ -63,9 +63,11 @@ static void resultsCb(list<shared_ptr<Friend>> friends, void *data, bool_t haveM
 		shared_ptr<Ldap> ldap = Ldap::create(ldapPlugin->getCore(), ldapParams);
 		// Legacy
 		_linphone_magic_search_notify_ldap_have_more_results(ldapPlugin->getMagicSearch().toC(), ldap->toC());
-
 		_linphone_magic_search_notify_more_results_available(ldapPlugin->getMagicSearch().toC(),
 		                                                     ldapPlugin->getSource());
+
+		_linphone_magic_search_notify_results_limit_reached(ldapPlugin->getMagicSearch().toC(),
+		                                                    ldapPlugin->getSource());
 	}
 	ldapPlugin->setHasEnded(true);
 }

@@ -45,6 +45,11 @@ void _linphone_magic_search_notify_more_results_available(LinphoneMagicSearch *m
 	                                  linphone_magic_search_cbs_get_more_results_available, source);
 }
 
+void _linphone_magic_search_notify_results_limit_reached(LinphoneMagicSearch *magic_search, int sourcesFlag) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(MagicSearch, MagicSearch::toCpp(magic_search),
+	                                  linphone_magic_search_cbs_get_results_limit_reached, sourcesFlag);
+}
+
 LinphoneMagicSearch *linphone_core_create_magic_search(LinphoneCore *lc) {
 	return MagicSearch::createCObject(lc ? L_GET_CPP_PTR_FROM_C_OBJECT(lc) : nullptr);
 }

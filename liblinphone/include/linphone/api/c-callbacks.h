@@ -732,9 +732,18 @@ typedef void (*LinphoneMagicSearchCbsLdapHaveMoreResultsCb)(LinphoneMagicSearch 
  * Callback used to notify when more results are available for a given #LinphoneMagicSearchSource flag.
  * @param magic_search #LinphoneMagicSearch object @notnil
  * @param source The source flag indicating for which type of result there is more results available.
+ * @deprecated 07/07/2025 use #LinphoneMagicSearchCbsResultsLimitReachedCb instead.
  */
 typedef void (*LinphoneMagicSearchCbsMoreResultsAvailableCb)(LinphoneMagicSearch *magic_search,
                                                              LinphoneMagicSearchSource source);
+
+/**
+ * Callback used to notify when the configured search limit has been reached and thus user should refine it's search
+ * parameters.
+ * @param magic_search #LinphoneMagicSearch object @notnil
+ * @param sourcesFlag The source(s) flag indicating the request for which the limit has been reached.
+ */
+typedef void (*LinphoneMagicSearchCbsResultsLimitReachedCb)(LinphoneMagicSearch *magic_search, int sourcesFlag);
 
 /**
  * @}

@@ -74,3 +74,13 @@ void linphone_magic_search_cbs_set_more_results_available(LinphoneMagicSearchCbs
                                                           LinphoneMagicSearchCbsMoreResultsAvailableCb cb) {
 	MagicSearchCbs::toCpp(cbs)->setMoreResultsAvailable(cb);
 }
+
+LinphoneMagicSearchCbsResultsLimitReachedCb
+linphone_magic_search_cbs_get_results_limit_reached(const LinphoneMagicSearchCbs *cbs) {
+	return MagicSearchCbs::toCpp(cbs)->getResultsLimitReached();
+}
+
+void linphone_magic_search_cbs_set_results_limit_reached(LinphoneMagicSearchCbs *cbs,
+                                                         LinphoneMagicSearchCbsResultsLimitReachedCb cb) {
+	MagicSearchCbs::toCpp(cbs)->setResultsLimitReached(cb);
+}
