@@ -1138,6 +1138,8 @@ static void publish_received(SalPublishOp *op, const char *eventname, const SalB
 		linphone_event_set_publish_state(lev, LinphonePublishRefreshing);
 	}
 
+	linphone_event_ref(lev);
+
 	if (ret == Core::ETagStatus::AddOrUpdateETag)
 		L_GET_CPP_PTR_FROM_C_OBJECT(lc)->addOrUpdatePublishByEtag(
 		    op, dynamic_pointer_cast<EventPublish>(Event::toCpp(lev)->getSharedFromThis()));
@@ -1151,6 +1153,8 @@ static void publish_received(SalPublishOp *op, const char *eventname, const SalB
 	linphone_core_notify_publish_received(lc, lev, eventname, ct);
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Event, Event::toCpp(lev), linphone_event_cbs_get_publish_received, ct);
 	if (ct) linphone_content_unref(ct);
+
+	linphone_event_unref(lev);
 }
 
 static void incoming_publish_closed(SalOp *op) {
