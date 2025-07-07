@@ -1184,14 +1184,16 @@ static void snd_card_device_create_extra_fields(BCTBX_UNUSED(MSSndCardManager *m
 			           card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
 			card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 			card_data->builtin_aec = true;
-		} else if (hasBuiltinAec && !hasCrappyAec && card->device_type == MS_SND_CARD_DEVICE_TYPE_MICROPHONE) {
-			// Only apply this workaround to default microphone, not any other device that has CAPTURE capability
-			ms_warning("[OpenSLES] Removing MS_SND_CARD_CAP_CAPTURE flag from soundcard ([%s] device ID [%0d] type "
-			           "[%s]) to use HAEC Java capture soundcard",
-			           card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
-			card->capabilities &= ~MS_SND_CARD_CAP_CAPTURE;
-			card_data->builtin_aec = false;
 		}
+		// Don't do that anymore since we removed the legacy Java soundcard descriptor in msvoip.c
+		/*else if (hasBuiltinAec && !hasCrappyAec && card->device_type == MS_SND_CARD_DEVICE_TYPE_MICROPHONE) {
+		    // Only apply this workaround to default microphone, not any other device that has CAPTURE capability
+		    ms_warning("[OpenSLES] Removing MS_SND_CARD_CAP_CAPTURE flag from soundcard ([%s] device ID [%0d] type "
+		               "[%s]) to use HAEC Java capture soundcard",
+		               card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
+		    card->capabilities &= ~MS_SND_CARD_CAP_CAPTURE;
+		    card_data->builtin_aec = false;
+		} */
 	}
 
 	card->latency = deviceDescription->delay;
