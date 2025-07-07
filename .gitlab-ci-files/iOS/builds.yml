@@ -37,6 +37,7 @@
     - echo $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_CONFIGURATIONS
     - cmake --build build/ios $ADDITIONAL_BUILD_CONFIGURATIONS -- $ADDITIONAL_BUILD_OPTIONS
+    - zip -r tester/IOS/swift/LinphoneTester.zip tester/IOS/swift/linphoneTester
     # Get SDK version from cached cmake variables
     - cd build/ios
     - cat CMakeCache.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt
@@ -51,6 +52,7 @@
       - build/ios/*.podspec
       - build/ios/docs
       - tester/IOS/LinphoneTester/Podfile
+      - tester/IOS/swift/LinphoneTester.zip
       - build/ios/linphone-sdk-swift-ios
 
     when: always
@@ -272,6 +274,15 @@ ios-ninja-spm:
     - !reference [.choose_url_ios, script]
     - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}/spm/${SWIFT_PACKAGE_FLAVOR} -DUPLOAD_SWIFT_PACKAGE=ON"
     - !reference [.ios, script]
+  artifacts:
+    paths:
+      - build/ios/gitdescribe.txt
+      - build/ios/linphonesdkversion.txt
+      - build/ios/linphone-sdk-*.zip
+      - build/ios/*.podspec
+      - build/ios/docs
+      - tester/IOS/LinphoneTester/Podfile
+      - build/ios/linphone-sdk-swift-ios
 
 ios-ninja-spm-novideo:
   rules:

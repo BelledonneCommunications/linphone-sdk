@@ -93,11 +93,13 @@ physical-swift-iOS-test:
     XCODERESULT_NAME: "XcodeResults"
     SWIFT_TESTS_OUTPUT: "physical-swift-iOS-test-results"
     TEST_IPHONE_NAME: "iPhone X"
+    GIT_STRATEGY: none
 
   script:
     - ls -al build/ios
-    - cd ${CI_PROJECT_DIR}/tester/IOS/swift/LinphoneTester
-    - echo ${CI_PROJECT_DIR}/tester/IOS/swift/LinphoneTester
+    - unzip -o tester/IOS/swift/LinphoneTester.zip
+    - cd tester/IOS/swift/LinphoneTester
+    - echo tester/IOS/swift/LinphoneTester
     - echo "Update path to linphone-sdk-swift in LinphoneTester.xcodeproj/project.pbxproj"
     - sed -i '' 's|IOS_TESTER/linphone-sdk-swift|build/ios/linphone-sdk-swift|g' LinphoneTester.xcodeproj/project.pbxproj
 
@@ -133,7 +135,6 @@ physical-swift-iOS-test:
     - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
     - cp -r tester/IOS/swift/LinphoneTester/$SWIFT_TESTS_OUTPUT.xml ${CI_PROJECT_DIR}/results
     - cp -r tester/IOS/swift/LinphoneTester/$SWIFT_TESTS_OUTPUT.zip ${CI_PROJECT_DIR}/results
-    - cp index.html ${CI_PROJECT_DIR}/results
 
   artifacts:
     paths:

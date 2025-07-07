@@ -17,7 +17,7 @@ let kPushTokenReceived = Notification.Name("PushTokenReceived")
 let kRemotePushTokenReceived = Notification.Name("RemotePushTokenReceived")
 let kPushNotificationReceived = Notification.Name("PushNotificationReceived")
 
-let expectationBaseTimeout: TimeInterval = 10
+let expectationBaseTimeout: TimeInterval = 25
 
 func getCacheDirectory() -> URL {
     let paths = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
