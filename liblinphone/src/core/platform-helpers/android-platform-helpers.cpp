@@ -99,6 +99,7 @@ public:
 	string getDownloadPath() override;
 
 	void disableAudioRouteChanges(bool disable);
+	void disableVolumeWorkaround(bool disable);
 
 private:
 	int callVoidMethod(jmethodID id);
@@ -132,6 +133,7 @@ private:
 	jmethodID mIsActiveNetworkWifiOnlyCompliantId = nullptr;
 	jmethodID mUpdateNetworkReachabilityId = nullptr;
 	jmethodID mDisableAudioRouteChangesId = nullptr;
+	jmethodID mDisableVolumeWorkaroundId = nullptr;
 	jmethodID mStartPushService = nullptr;
 	jmethodID mStopPushService = nullptr;
 	jmethodID mStartFileTransferService = nullptr;
@@ -222,6 +224,7 @@ AndroidPlatformHelpers::AndroidPlatformHelpers(std::shared_ptr<LinphonePrivate::
 	mIsActiveNetworkWifiOnlyCompliantId = getMethodId(env, klass, "isActiveNetworkWifiOnlyCompliant", "()Z");
 	mUpdateNetworkReachabilityId = getMethodId(env, klass, "updateNetworkReachability", "()V");
 	mDisableAudioRouteChangesId = getMethodId(env, klass, "disableAudioRouteChanges", "(Z)V");
+	mDisableVolumeWorkaroundId = getMethodId(env, klass, "disableVolumeWorkaround", "(Z)V");
 	mStartPushService = getMethodId(env, klass, "startPushService", "()V");
 	mStopPushService = getMethodId(env, klass, "stopPushService", "()V");
 	mStartFileTransferService = getMethodId(env, klass, "startFileTransferService", "()V");
@@ -254,6 +257,9 @@ AndroidPlatformHelpers::AndroidPlatformHelpers(std::shared_ptr<LinphonePrivate::
 	LinphoneConfig *config = linphone_core_get_config(getCore()->getCCore());
 	if (linphone_config_get_bool(config, "sound", "android_disable_audio_route_changes", FALSE) == TRUE) {
 		disableAudioRouteChanges(true);
+	}
+	if (linphone_config_get_bool(config, "sound", "android_disable_volume_workaround", FALSE) == TRUE) {
+		disableVolumeWorkaround(true);
 	}
 }
 
@@ -683,6 +689,13 @@ void AndroidPlatformHelpers::disableAudioRouteChanges(bool disable) {
 	JNIEnv *env = ms_get_jni_env();
 	if (env && mJavaHelper) {
 		env->CallVoidMethod(mJavaHelper, mDisableAudioRouteChangesId, disable);
+	}
+}
+
+void AndroidPlatformHelpers::disableVolumeWorkaround(bool disable) {
+	JNIEnv *env = ms_get_jni_env();
+	if (env && mJavaHelper) {
+		env->CallVoidMethod(mJavaHelper, mDisableVolumeWorkaroundId, disable);
 	}
 }
 

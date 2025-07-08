@@ -1287,6 +1287,15 @@ public class AndroidPlatformHelper {
         MediastreamerAndroidContext.disableAudioRouteChanges(disable);
     }
 
+    public void disableVolumeWorkaround(boolean disable) {
+        if (disable) {
+            Log.i("[Platform Helper] Disabling audio volume workaround in mediastreamer2");
+        } else {
+            Log.i("[Platform Helper] Enabling audio volume workaround in mediastreamer2");
+        }
+        MediastreamerAndroidContext.disableVolumeWorkaround(disable);
+    }
+
     public void startPushService() {
         boolean connected = false;
         if (mNetworkManager != null) {

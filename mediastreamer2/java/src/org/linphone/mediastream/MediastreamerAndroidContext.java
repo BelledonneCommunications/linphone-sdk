@@ -40,6 +40,7 @@ public class MediastreamerAndroidContext {
 	private static int mDeviceFavoriteSampleRate = 44100;
 	private static int mDeviceFavoriteBufferSize = 256;
 	private static boolean mDisableAudioRouteChanges = false;
+	private static boolean mDisableVolumeWorkaround = false;
 
 	private MediastreamerAndroidContext() {
 	}
@@ -189,6 +190,15 @@ public class MediastreamerAndroidContext {
 		mDisableAudioRouteChanges = disable;
 	}
 
+	public synchronized static void disableVolumeWorkaround(boolean disable) {
+		if (disable) {
+			Log.i("[Audio Manager] Disabling audio volume workaround");
+		} else {
+			Log.i("[Audio Manager] Enabling audio volume workaround");
+		}
+		mDisableVolumeWorkaround = disable;
+	}
+
 	public synchronized static void enableSpeaker() { 
 		AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
 		if (audioManager.isBluetoothScoOn()) {
@@ -236,6 +246,11 @@ public class MediastreamerAndroidContext {
 	}
 
 	public synchronized static void hackVolumeOnStream(int stream) {
+		if (mDisableVolumeWorkaround) {
+			Log.i("[Audio Manager] Volume workaround is disabled, doing nothing");
+			return;
+		}
+
 		Log.i("[Audio Manager] Trying to workaround no sound issue on stream [" + stream + "] until volume has changed...");
 		try {
 			AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
