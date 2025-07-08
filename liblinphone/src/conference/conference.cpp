@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -1440,8 +1440,11 @@ void Conference::setState(ConferenceInterface::State state) {
 }
 
 void Conference::notifyStateChanged(ConferenceInterface::State state) {
-	for (const auto &l : mConfListeners) {
-		l->onStateChanged(state);
+	auto it = mConfListeners.begin();
+	while (it != mConfListeners.end()) {
+		const auto listener = *it;
+		++it;
+		listener->onStateChanged(state);
 	}
 }
 
@@ -1517,9 +1520,10 @@ const std::shared_ptr<ConferenceInfo> Conference::getUpdatedConferenceInfo() con
 		conferenceInfo->setSecurityLevel(mConfParams->getSecurityLevel());
 		conferenceInfo->setUtf8Subject(mConfParams->getUtf8Subject());
 
-		// Update start time and duration as this information can be sent through the SUBSCRIBE/NOTIFY dialog. In fact,
-		// if a client dials a conference without prior knowledge (for example it is given an URI to call), the start
-		// and end time are initially estimated as there is no conference information associated to that URI.
+		// Update start time and duration as this information can be sent through the SUBSCRIBE/NOTIFY dialog. In
+		// fact, if a client dials a conference without prior knowledge (for example it is given an URI to call),
+		// the start and end time are initially estimated as there is no conference information associated to that
+		// URI.
 		time_t startTime = mConfParams->getStartTime();
 		time_t endTime = mConfParams->getEndTime();
 		conferenceInfo->setDateTime(startTime);
@@ -1604,8 +1608,8 @@ void Conference::updateSecurityLevelInConferenceInfo(const ConferenceParams::Sec
 		if (info) {
 			info->setSecurityLevel(level);
 
-			// Store into DB after the start incoming notification in order to have a valid conference address being the
-			// contact address of the call
+			// Store into DB after the start incoming notification in order to have a valid conference address being
+			// the contact address of the call
 			auto &mainDb = getCore()->getPrivate()->mainDb;
 			if (mainDb) {
 				lInfo() << "Updating conference information of " << *this
@@ -1633,8 +1637,8 @@ void Conference::updateSubjectInConferenceInfo(const std::string &subject) const
 		if (info) {
 			info->setUtf8Subject(subject);
 
-			// Store into DB after the start incoming notification in order to have a valid conference address being the
-			// contact address of the call
+			// Store into DB after the start incoming notification in order to have a valid conference address being
+			// the contact address of the call
 			auto &mainDb = getCore()->getPrivate()->mainDb;
 			if (mainDb) {
 				lInfo() << "Updating conference information of " << *this << " because its subject has been changed to "
@@ -1669,8 +1673,8 @@ void Conference::updateParticipantRoleInConferenceInfo(const std::shared_ptr<Par
 
 				info->updateParticipant(newParticipantInfo);
 
-				// Store into DB after the start incoming notification in order to have a valid conference address being
-				// the contact address of the call
+				// Store into DB after the start incoming notification in order to have a valid conference address
+				// being the contact address of the call
 				auto &mainDb = getCore()->getPrivate()->mainDb;
 				if (mainDb) {
 					lInfo() << "Updating conference information of " << *this << " because the role of participant "
@@ -1761,8 +1765,8 @@ bool Conference::updateMinatureRequestedFlag() const {
 	bool changed = (oldMinaturesRequested != thumbnailsRequested);
 	for (const auto &p : mParticipants) {
 		for (const auto &d : p->getDevices()) {
-			// Even if the request of thumbnails has not changed, it may be possible that the stream availabilities have
-			// changed if one participant devices stqrts or stops sharing its screen
+			// Even if the request of thumbnails has not changed, it may be possible that the stream availabilities
+			// have changed if one participant devices stqrts or stops sharing its screen
 			auto availabilityChanges = d->updateStreamAvailabilities();
 			changed |= (availabilityChanges.find(LinphoneStreamTypeVideo) != availabilityChanges.cend());
 		}
@@ -1795,8 +1799,8 @@ LinphoneMediaDirection Conference::verifyVideoDirection(BCTBX_UNUSED(const std::
 void Conference::setInputAudioDevice(const shared_ptr<AudioDevice> &audioDevice) {
 	if (audioDevice) {
 		const auto &currentInputDevice = getInputAudioDevice();
-		// If pointer toward the new device has changed or at least one member of the audio device changed or no current
-		// audio device is set, then return true
+		// If pointer toward the new device has changed or at least one member of the audio device changed or no
+		// current audio device is set, then return true
 		bool change =
 		    currentInputDevice ? ((audioDevice != currentInputDevice) || (*audioDevice != *currentInputDevice)) : true;
 
@@ -1829,8 +1833,8 @@ void Conference::setInputAudioDevice(const shared_ptr<AudioDevice> &audioDevice)
 void Conference::setOutputAudioDevice(const shared_ptr<AudioDevice> &audioDevice) {
 	if (audioDevice) {
 		const auto &currentOutputDevice = getOutputAudioDevice();
-		// If pointer toward the new device has changed or at least one member of the audio device changed or no current
-		// audio device is set, then return true
+		// If pointer toward the new device has changed or at least one member of the audio device changed or no
+		// current audio device is set, then return true
 		bool change = currentOutputDevice
 		                  ? ((audioDevice != currentOutputDevice) || (*audioDevice != *currentOutputDevice))
 		                  : true;
@@ -1916,9 +1920,9 @@ void Conference::setMicrophoneMuted(bool muted) {
 		aci->enableMic(!muted);
 		for (const auto &participant : mParticipants) {
 			for (const auto &device : participant->getDevices()) {
-				// If the core is holding a conference (conference server or client holding the conference because it
-				// has scheduled a conference without having a conference server set), every participant device has a
-				// media session associated to. In such a scenario all calls are muted one by one.
+				// If the core is holding a conference (conference server or client holding the conference because
+				// it has scheduled a conference without having a conference server set), every participant device
+				// has a media session associated to. In such a scenario all calls are muted one by one.
 				auto deviceSession = device->getSession();
 				if (deviceSession) {
 					auto op = deviceSession->getPrivate()->getOp();

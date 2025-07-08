@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -266,6 +266,10 @@ public:
 		return mState;
 	}
 	virtual void setState(ConferenceInterface::State state) override;
+
+	std::list<std::shared_ptr<ConferenceListenerInterface>> getConferenceListenerList() const {
+		return mConfListeners;
+	}
 
 	virtual std::shared_ptr<Call> getCall() const = 0;
 
