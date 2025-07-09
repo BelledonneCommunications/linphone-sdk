@@ -118,8 +118,8 @@ private:
 
 	int mDuration = 0; /**<Duration of the call starting in connected state in seconds*/
 	float mQuality = -1.0;
-	time_t mStartTime = 0;     /**Start date of the call in seconds as expressed in a time_t */
-	time_t mConnectedTime = 0; /**Connecting date of the call in seconds as expressed in a time_t */
+	time_t mStartTime = 0;      /**Start date of the call in seconds as expressed in a time_t */
+	time_t mConnectedTime = -1; /**Connecting date of the call in seconds as expressed in a time_t */
 	bool mVideoEnabled = false;
 
 	long long mConferenceInfoId = -1;
