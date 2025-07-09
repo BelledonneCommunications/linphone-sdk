@@ -592,8 +592,12 @@ static int android_snd_read_playback_device_changed(MSFilter *obj, void *data) {
 			}
 		}
 	} else {
-		ms_message("[AAudio Recorder] New playback device [%s] doesn't have the same name as the current recorder device [%s], trying to find a recorder soundcard with the same name to use", playback_card->name, ictx->soundCard->name);
+		if (ictx->soundCard->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB) {
+			ms_message("[AAudio Recorder] Currently used recording audio device is USB ([%s]), do not attempt to change microphone to match newly selected playback device [%s]", ictx->soundCard->name, playback_card->name);
+			return 0;
+		}
 
+		ms_message("[AAudio Recorder] New playback device [%s] doesn't have the same name as the current recorder device [%s], trying to find a recorder soundcard with the same name to use", playback_card->name, ictx->soundCard->name);
 		MSSndCard *found = android_snd_read_find_sound_card_with_same_name(obj, playback_card, false);
 		if (found) {
 			ms_message("[AAudio Recorder] Found a sound card matching playback device name and with CAPTURE capability [%s], using it", found->name);
