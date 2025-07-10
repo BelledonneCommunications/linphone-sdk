@@ -149,7 +149,7 @@ ortp-ubuntu-test:
   <<: *docker_image_platform_and_runner_tag
 
 liblinphone-ubuntu-test:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:$UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.ubuntu-rolling-test-liblinphone_image_version, image]
   extends: .test-liblinphone
   needs:
     - ubuntu-rolling-ninja-clang
@@ -157,7 +157,7 @@ liblinphone-ubuntu-test:
     PLATFORM: linux-ubuntu-rolling
 
 liblinphone-ubuntu-test-shaky:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:$UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.ubuntu-rolling-test-liblinphone_image_version, image]
   extends: .test-liblinphone-shaky
   needs:
     - ubuntu-rolling-ninja-clang
