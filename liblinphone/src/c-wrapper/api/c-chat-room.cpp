@@ -621,6 +621,11 @@ const bctbx_list_t *linphone_chat_room_get_composing_addresses(LinphoneChatRoom 
 	return AbstractChatRoom::toCpp(chat_room)->getComposingCAddresses();
 }
 
+const bctbx_list_t *linphone_chat_room_get_composing_participants(LinphoneChatRoom *chat_room) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	return AbstractChatRoom::toCpp(chat_room)->getComposingCParticipants();
+}
+
 bool_t linphone_chat_room_get_muted(const LinphoneChatRoom *chat_room) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
 	return AbstractChatRoom::toCpp(chat_room)->getIsMuted();

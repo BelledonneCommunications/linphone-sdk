@@ -159,6 +159,7 @@ set(LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
 	chat/chat-room/basic-chat-room.h
 	chat/chat-room/chat-room.h
 	chat/chat-room/chat-params.h
+	chat/chat-room/composing-participant.h
 	chat/cpim/cpim.h
 	chat/cpim/header/cpim-core-headers.h
 	chat/cpim/header/cpim-generic-header.h
@@ -429,6 +430,7 @@ set(LINPHONE_CXX_OBJECTS_SOURCE_FILES
 	c-wrapper/api/c-chat-room-params.cpp
 	c-wrapper/api/c-chat-room-cbs.cpp
 	c-wrapper/api/c-chat-room.cpp
+	c-wrapper/api/c-composing-participant.cpp
 	c-wrapper/api/c-content.cpp
 	c-wrapper/api/c-conference-cbs.cpp
 	c-wrapper/api/c-conference-info.cpp
@@ -489,6 +491,7 @@ set(LINPHONE_CXX_OBJECTS_SOURCE_FILES
 	chat/chat-room/basic-chat-room.cpp
 	chat/chat-room/chat-room.cpp
 	chat/chat-room/chat-params.cpp
+	chat/chat-room/composing-participant.cpp
 	chat/encryption/encryption-engine.cpp
 	chat/encryption/legacy-encryption-engine.cpp
 	chat/ics/ics.cpp

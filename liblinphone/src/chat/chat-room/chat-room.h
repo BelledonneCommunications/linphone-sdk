@@ -26,6 +26,7 @@
 #include "abstract-chat-room.h"
 #include "chat/notification/imdn.h"
 #include "chat/notification/is-composing.h"
+#include "composing-participant.h"
 
 // =============================================================================
 
@@ -84,11 +85,12 @@ public:
 	int getChatMessageCount() const override;
 	int getUnreadChatMessageCount() const override;
 
-	void compose(const std::string& contentType) override;
+	void compose(const std::string &contentType) override;
 	void stopComposing() override;
 	bool isRemoteComposing() const override;
 	const std::string &getRemoteComposingContentType() const override;
 	std::list<std::shared_ptr<Address>> getComposingAddresses() const override;
+	std::list<std::shared_ptr<ComposingParticipant>> getComposingParticipants() const override;
 
 	std::shared_ptr<ChatMessage> createChatMessage() override;
 	std::shared_ptr<ChatMessage> createChatMessage(const std::string &text) override;
@@ -198,7 +200,8 @@ public:
 	void notifyAggregatedChatMessages() override;
 	void notifyMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage);
 	void notifyChatMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage) override;
-	void notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType);
+	void
+	notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType);
 	void notifyUndecryptableChatMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage) override;
 
 	LinphoneReason onSipMessageReceived(SalOp *op, const SalMessage *message) override;
@@ -208,7 +211,9 @@ public:
 	void onIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, const std::string &text);
 	void onIsComposingRefreshNeeded() override;
 	void onIsComposingStateChanged(bool isComposing) override;
-	void onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType) override;
+	void onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &remoteAddress,
+	                                     bool isComposing,
+	                                     std::string contentType) override;
 
 	void realtimeTextReceived(uint32_t character, const std::shared_ptr<Call> &call) override;
 #ifdef HAVE_BAUDOT
@@ -228,7 +233,7 @@ public:
 	void addCapability(AbstractChatRoom::CapabilitiesMask capability) override;
 	void onStateChanged(ConferenceInterface::State state) override;
 
-	std::list<std::shared_ptr<Address>> remoteIsComposing;
+	std::list<std::shared_ptr<ComposingParticipant>> composingParticipants;
 	std::list<std::shared_ptr<EventLog>> transientEvents;
 	std::list<std::shared_ptr<ChatMessage>> transientMessages;
 	std::list<std::shared_ptr<ChatMessage>> aggregatedMessages;

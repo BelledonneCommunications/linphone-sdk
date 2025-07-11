@@ -388,14 +388,6 @@ LINPHONE_PUBLIC LinphoneEventLog *linphone_chat_room_search_chat_message_by_text
                                                                                  LinphoneSearchDirection direction);
 
 /**
- * Notifies the destination of the chat message being composed that the user is typing a new message.
- * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which a new message is being
- * typed. @notnil
- * @deprecated 24/06/2025 use linphone_chat_room_compose_text_message() instead.
- */
-LINPHONE_PUBLIC void linphone_chat_room_compose(LinphoneChatRoom *chat_room);
-
-/**
  * Notifies the destination of the chat message being composed that the user is typing a message.
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which a message is being
  * typed. @notnil
@@ -411,7 +403,8 @@ LINPHONE_PUBLIC void linphone_chat_room_compose_voice_message(LinphoneChatRoom *
 
 /**
  * Notifies the destination of the chat message that the user is no longer composing.
- * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which the composing was stopped. @notnil
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which the composing was stopped.
+ * @notnil
  */
 LINPHONE_PUBLIC void linphone_chat_room_stop_composing(LinphoneChatRoom *chat_room);
 
@@ -425,7 +418,8 @@ LINPHONE_PUBLIC bool_t linphone_chat_room_is_remote_composing(const LinphoneChat
 /**
  * Returns the content-type (if set) of what the remote is currently composing.
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation. @notnil
- * @return the content-type of what the remote is currently composing if set and if it's currently composing, NULL otherwise. @maybenil
+ * @return the content-type of what the remote is currently composing if set and if it's currently composing, NULL
+ * otherwise. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_chat_room_get_remote_composing_content_type(const LinphoneChatRoom *chat_room);
 
@@ -676,6 +670,14 @@ LINPHONE_PUBLIC void linphone_chat_room_set_subject_utf8(LinphoneChatRoom *chat_
 LINPHONE_PUBLIC const bctbx_list_t *linphone_chat_room_get_composing_addresses(LinphoneChatRoom *chat_room);
 
 /**
+ * Gets the list of participants that are currently composing
+ * @param chat_room A #LinphoneChatRoom object @notnil
+ * @return List of #LinphoneComposingParticipant that are in the is_composing state.
+ * \bctbx_list{LinphoneComposingParticipant}
+ */
+LINPHONE_PUBLIC const bctbx_list_t *linphone_chat_room_get_composing_participants(LinphoneChatRoom *chat_room);
+
+/**
  * Sets the conference address of a group chat room. This function needs to be called from the
  * #LinphoneChatRoomCbsConferenceAddressGenerationCb callback and only there.
  * This function is meaningful only for server implementation of chatroom, and shall not by used by client applications.
@@ -828,6 +830,14 @@ LINPHONE_PUBLIC int linphone_chat_room_get_history_events_size(LinphoneChatRoom 
 /************ */
 /* DEPRECATED */
 /* ********** */
+
+/**
+ * Notifies the destination of the chat message being composed that the user is typing a new message.
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which a new message is being
+ * typed. @notnil
+ * @deprecated 24/06/2025 use linphone_chat_room_compose_text_message() instead.
+ */
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_room_compose(LinphoneChatRoom *chat_room);
 
 /**
  * Creates a message attached to the given chat room.

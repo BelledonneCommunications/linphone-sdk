@@ -49,6 +49,7 @@
 #include "linphone/api/c-chat-room-cbs.h"
 #include "linphone/api/c-chat-room-params.h"
 #include "linphone/api/c-chat-room.h"
+#include "linphone/api/c-composing-participant.h"
 #include "linphone/api/c-conference-cbs.h"
 #include "linphone/api/c-conference-info.h"
 #include "linphone/api/c-conference-params.h"

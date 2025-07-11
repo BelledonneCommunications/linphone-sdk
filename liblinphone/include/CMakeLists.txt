@@ -94,6 +94,7 @@ set(C_API_HEADER_FILES
 	c-chat-message.h
 	c-chat-room-cbs.h
 	c-chat-room.h
+	c-composing-participant.h
 	c-chat-room-params.h
 	c-chat-params.h
 	c-content.h

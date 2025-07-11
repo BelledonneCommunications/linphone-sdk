@@ -33,7 +33,12 @@ AbstractChatRoom::AbstractChatRoom(const shared_ptr<Core> &core) : CoreAccessor(
 }
 
 AbstractChatRoom::~AbstractChatRoom() {
-	bctbx_list_free(composingCAddresses);
+	if (composingCAddresses) {
+		bctbx_list_free(composingCAddresses);
+	}
+	if (composingCParticipants) {
+		bctbx_list_free(composingCParticipants);
+	}
 }
 
 std::ostream &operator<<(std::ostream &lhs, AbstractChatRoom::Capabilities e) {
@@ -106,6 +111,15 @@ const bctbx_list_t *AbstractChatRoom::getComposingCAddresses() const {
 	list<shared_ptr<LinphonePrivate::Address>> addresses = getComposingAddresses();
 	composingCAddresses = Utils::listToCBctbxList<LinphoneAddress, Address>(addresses);
 	return composingCAddresses;
+}
+
+const bctbx_list_t *AbstractChatRoom::getComposingCParticipants() const {
+	if (composingCParticipants) {
+		bctbx_list_free(composingCParticipants);
+	}
+	list<shared_ptr<LinphonePrivate::ComposingParticipant>> participants = getComposingParticipants();
+	composingCParticipants = Utils::listToCBctbxList<LinphoneComposingParticipant, ComposingParticipant>(participants);
+	return composingCParticipants;
 }
 
 void AbstractChatRoom::setSubject(const std::string &subject) {

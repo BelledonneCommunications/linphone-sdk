@@ -27,6 +27,7 @@
 
 #include "chat/chat-message/chat-message.h"
 #include "chat/chat-room/chat-room-cbs.h"
+#include "chat/chat-room/composing-participant.h"
 #include "conference/conference-interface.h"
 #include "conference/session/call-session-listener.h"
 #include "core/core-accessor.h"
@@ -157,12 +158,14 @@ public:
 	virtual int getChatMessageCount() const = 0;
 	virtual int getUnreadChatMessageCount() const = 0;
 
-	virtual void compose(const std::string& contentType) = 0;
+	virtual void compose(const std::string &contentType) = 0;
 	virtual void stopComposing() = 0;
 	virtual bool isRemoteComposing() const = 0;
 	virtual const std::string &getRemoteComposingContentType() const = 0;
 	virtual std::list<std::shared_ptr<Address>> getComposingAddresses() const = 0;
+	virtual std::list<std::shared_ptr<ComposingParticipant>> getComposingParticipants() const = 0;
 	const bctbx_list_t *getComposingCAddresses() const;
+	const bctbx_list_t *getComposingCParticipants() const;
 
 	virtual std::shared_ptr<ChatMessage> createChatMessage() = 0;
 	virtual std::shared_ptr<ChatMessage> createChatMessage(const std::string &text) = 0;
@@ -276,6 +279,7 @@ protected:
 
 private:
 	mutable bctbx_list_t *composingCAddresses = nullptr;
+	mutable bctbx_list_t *composingCParticipants = nullptr;
 	mutable std::string mSubject;
 
 	L_DISABLE_COPY(AbstractChatRoom);

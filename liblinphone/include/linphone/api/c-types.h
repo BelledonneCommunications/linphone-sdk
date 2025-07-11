@@ -525,6 +525,12 @@ typedef enum _LinphoneSearchDirection {
 	LinphoneSearchDirectionDown = 1,
 } LinphoneSearchDirection;
 
+/**
+ * Object that represents a #LinphoneChatRoom participant that is currently composing.
+ * @ingroup chatroom
+ */
+typedef struct _LinphoneComposingParticipant LinphoneComposingParticipant;
+
 // -----------------------------------------------------------------------------
 // Ekt.
 // -----------------------------------------------------------------------------

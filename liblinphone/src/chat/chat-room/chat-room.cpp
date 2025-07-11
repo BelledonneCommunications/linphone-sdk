@@ -254,7 +254,9 @@ void ChatRoom::realtimeTextOrBaudotCharacterReceived(uint32_t character,
 
 	if (call && (!isRealTimeText || call->getCurrentParams()->realtimeTextEnabled())) {
 		mReceivedRttCharacters.push_back(character);
-		remoteIsComposing.push_back(getPeerAddress());
+		shared_ptr<ComposingParticipant> participant =
+		    ComposingParticipant::create(getPeerAddress(), ContentType::PlainText.getValue());
+		composingParticipants.push_back(participant);
 		linphone_core_notify_is_composing_received(cCore, getCChatRoom());
 
 		bool isNewLine = false;
@@ -562,18 +564,21 @@ void ChatRoom::notifyChatMessageReceived(const shared_ptr<ChatMessage> &chatMess
 	linphone_core_notify_message_received(getCore()->getCCore(), cr, L_GET_C_BACK_PTR(chatMessage));
 }
 
-void ChatRoom::notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType) {
-	auto it = find_if(remoteIsComposing.cbegin(), remoteIsComposing.cend(),
-	                  [&remoteAddress](const auto &address) { return (*remoteAddress == *address); });
-
+void ChatRoom::notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress,
+                                         bool isComposing,
+                                         std::string contentType) {
+	auto it = find_if(
+	    composingParticipants.cbegin(), composingParticipants.cend(),
+	    [&remoteAddress](const auto &participant) { return (participant->getAddress()->weakEqual(remoteAddress)); });
+	shared_ptr<ComposingParticipant> participant = ComposingParticipant::create(remoteAddress, contentType);
 	if (isComposing) {
-		if (it == remoteIsComposing.cend()) {
-			remoteIsComposing.push_back(remoteAddress);
+		if (it == composingParticipants.cend()) {
+			composingParticipants.push_back(participant);
 		}
 		mRemoteComposingContentType = contentType;
 	} else {
-		if (it != remoteIsComposing.cend()) {
-			remoteIsComposing.erase(it);
+		if (it != composingParticipants.cend()) {
+			composingParticipants.erase(it);
 		}
 		mRemoteComposingContentType = "";
 	}
@@ -763,7 +768,9 @@ void ChatRoom::onIsComposingStateChanged(bool isComposing) {
 	sendIsComposingNotification(mComposingContentType);
 }
 
-void ChatRoom::onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType) {
+void ChatRoom::onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &remoteAddress,
+                                               bool isComposing,
+                                               std::string contentType) {
 	notifyIsComposingReceived(remoteAddress, isComposing, contentType);
 }
 
@@ -886,7 +893,7 @@ void ChatRoom::deleteFromDb() {
 	// Clear all transient events after deleting the chatroom.
 	// The application might still keep a reference to the chatroom, therefore the destructor may not be called
 	// immediately after the chatroom reference is freed by the core
-	remoteIsComposing.clear();
+	composingParticipants.clear();
 	transientEvents.clear();
 	transientMessages.clear();
 	aggregatedMessages.clear();
@@ -938,7 +945,7 @@ void ChatRoom::stopComposing() {
 	if (mIsComposing) {
 		mIsComposingHandler->stopIdleTimer();
 		mIsComposingHandler->stopRefreshTimer();
-		
+
 		mIsComposing = false;
 		mComposingContentType = "";
 		sendIsComposingNotification(mComposingContentType);
@@ -946,15 +953,23 @@ void ChatRoom::stopComposing() {
 }
 
 bool ChatRoom::isRemoteComposing() const {
-	return !remoteIsComposing.empty();
+	return !composingParticipants.empty();
 }
 
-const std::string &ChatRoom::getRemoteComposingContentType() const {
+const string &ChatRoom::getRemoteComposingContentType() const {
 	return mRemoteComposingContentType;
 }
 
-list<std::shared_ptr<Address>> ChatRoom::getComposingAddresses() const {
-	return remoteIsComposing;
+list<shared_ptr<Address>> ChatRoom::getComposingAddresses() const {
+	list<shared_ptr<Address>> addresses;
+	for (const auto &participant : composingParticipants) {
+		addresses.push_back(participant->getAddress());
+	}
+	return addresses;
+}
+
+list<shared_ptr<ComposingParticipant>> ChatRoom::getComposingParticipants() const {
+	return composingParticipants;
 }
 
 // -----------------------------------------------------------------------------

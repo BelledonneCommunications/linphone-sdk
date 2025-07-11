@@ -1269,7 +1269,7 @@ static void group_chat_room_creation_server(void) {
 	// Chloe begins composing a message
 	BC_ASSERT_PTR_NOT_NULL(chloeCr);
 	if (chloeCr) {
-		linphone_chat_room_compose(chloeCr);
+		linphone_chat_room_compose_text_message(chloeCr);
 	}
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingActiveReceived,
 	                             initialMarieStats.number_of_LinphoneIsComposingActiveReceived + 1,
@@ -1638,7 +1638,7 @@ static void group_chat_room_add_participant(void) {
 	BC_ASSERT_PTR_NULL(fakeParticipant);
 
 	// Pauline begins composing a message
-	linphone_chat_room_compose(paulineCr);
+	linphone_chat_room_compose_text_message(paulineCr);
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingActiveReceived,
 	                             initialMarieStats.number_of_LinphoneIsComposingActiveReceived + 1,
 	                             liblinphone_tester_sip_timeout));
@@ -1832,7 +1832,7 @@ static void group_chat_room_message(bool_t encrypt, bool_t sal_error, bool_t im_
 	    check_creation_chat_room_client_side(coresList, chloe, &initialChloeStats, confAddr, initialSubject, 2, FALSE);
 
 	// Chloe begins composing a message
-	linphone_chat_room_compose(chloeCr);
+	linphone_chat_room_compose_text_message(chloeCr);
 	if ((im_encryption_mandatory && encrypt) || !im_encryption_mandatory) {
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingActiveReceived,
 		                             initialMarieStats.number_of_LinphoneIsComposingActiveReceived + 1,
@@ -1903,7 +1903,7 @@ static void group_chat_room_message(bool_t encrypt, bool_t sal_error, bool_t im_
 	linphone_chat_message_unref(chloeMessage); // Unref here because of messageId using
 
 	// Pauline begins composing a messagewith some accents
-	linphone_chat_room_compose(paulineCr);
+	linphone_chat_room_compose_text_message(paulineCr);
 	if ((im_encryption_mandatory && encrypt) || !im_encryption_mandatory) {
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingActiveReceived,
 		                             initialMarieStats.number_of_LinphoneIsComposingActiveReceived + 2,
@@ -3915,6 +3915,7 @@ static void multiple_is_composing_notification(void) {
 	bctbx_list_t *coresManagerList = NULL;
 	bctbx_list_t *participantsAddresses = NULL;
 	const bctbx_list_t *composing_addresses = NULL;
+	const bctbx_list_t *composing_participants = NULL;
 	coresManagerList = bctbx_list_append(coresManagerList, marie);
 	coresManagerList = bctbx_list_append(coresManagerList, pauline);
 	coresManagerList = bctbx_list_append(coresManagerList, laure);
@@ -3945,7 +3946,7 @@ static void multiple_is_composing_notification(void) {
 	    check_creation_chat_room_client_side(coresList, laure, &initialLaureStats, confAddr, initialSubject, 2, FALSE);
 
 	// Only one is composing
-	linphone_chat_room_compose(paulineCr);
+	linphone_chat_room_compose_text_message(paulineCr);
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingActiveReceived, 1,
 	                             liblinphone_tester_sip_timeout));
@@ -3960,6 +3961,17 @@ static void multiple_is_composing_notification(void) {
 		BC_ASSERT_STRING_EQUAL(linphone_address_get_username(addr), linphone_address_get_username(pauline->identity));
 	}
 
+	composing_participants = linphone_chat_room_get_composing_participants(laureCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 1, int, "%i");
+	if (bctbx_list_size(composing_participants) == 1) {
+		LinphoneComposingParticipant *participant =
+		    (LinphoneComposingParticipant *)bctbx_list_get_data(composing_participants);
+		const LinphoneAddress *addr = linphone_composing_participant_get_address(participant);
+		BC_ASSERT_STRING_EQUAL(linphone_address_get_username(addr), linphone_address_get_username(pauline->identity));
+		const char *content_type = linphone_composing_participant_get_content_type(participant);
+		BC_ASSERT_STRING_EQUAL(content_type, "text/plain");
+	}
+
 	// Marie side
 	composing_addresses = linphone_chat_room_get_composing_addresses(marieCr);
 	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_addresses), 1, int, "%i");
@@ -3968,9 +3980,23 @@ static void multiple_is_composing_notification(void) {
 		BC_ASSERT_STRING_EQUAL(linphone_address_get_username(addr), linphone_address_get_username(pauline->identity));
 	}
 
+	composing_participants = linphone_chat_room_get_composing_participants(marieCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 1, int, "%i");
+	if (bctbx_list_size(composing_participants) == 1) {
+		LinphoneComposingParticipant *participant =
+		    (LinphoneComposingParticipant *)bctbx_list_get_data(composing_participants);
+		const LinphoneAddress *addr = linphone_composing_participant_get_address(participant);
+		BC_ASSERT_STRING_EQUAL(linphone_address_get_username(addr), linphone_address_get_username(pauline->identity));
+		const char *content_type = linphone_composing_participant_get_content_type(participant);
+		BC_ASSERT_STRING_EQUAL(content_type, "text/plain");
+	}
+
 	// Pauline side
 	composing_addresses = linphone_chat_room_get_composing_addresses(paulineCr);
 	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_addresses), 0, int, "%i");
+
+	composing_participants = linphone_chat_room_get_composing_participants(paulineCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 0, int, "%i");
 
 	wait_for_list(coresList, 0, 1, 1500);
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingIdleReceived, 1,
@@ -3983,9 +4009,14 @@ static void multiple_is_composing_notification(void) {
 	composing_addresses = linphone_chat_room_get_composing_addresses(laureCr);
 	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_addresses), 0, int, "%i");
 
+	composing_participants = linphone_chat_room_get_composing_participants(marieCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 0, int, "%i");
+	composing_participants = linphone_chat_room_get_composing_participants(laureCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 0, int, "%i");
+
 	// multiple is composing
-	linphone_chat_room_compose(paulineCr);
-	linphone_chat_room_compose(marieCr);
+	linphone_chat_room_compose_text_message(paulineCr);
+	linphone_chat_room_compose_voice_message(marieCr);
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_LinphoneIsComposingActiveReceived, 3,
 	                             liblinphone_tester_sip_timeout)); // + 2
@@ -4002,6 +4033,28 @@ static void multiple_is_composing_notification(void) {
 			composing_addresses = bctbx_list_next(composing_addresses);
 		}
 	}
+	composing_participants = linphone_chat_room_get_composing_participants(laureCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 2, int, "%i");
+	if (bctbx_list_size(composing_participants) == 2) {
+		while (composing_participants) {
+			LinphoneComposingParticipant *participant =
+			    (LinphoneComposingParticipant *)bctbx_list_get_data(composing_participants);
+			const LinphoneAddress *addr = linphone_composing_participant_get_address(participant);
+			bool_t equal =
+			    strcmp(linphone_address_get_username(addr), linphone_address_get_username(pauline->identity)) == 0 ||
+			    strcmp(linphone_address_get_username(addr), linphone_address_get_username(marie->identity)) == 0;
+			BC_ASSERT_TRUE(equal);
+
+			const char *content_type = linphone_composing_participant_get_content_type(participant);
+			if (strcmp(linphone_address_get_username(addr), linphone_address_get_username(marie->identity)) == 0) {
+				BC_ASSERT_STRING_EQUAL(content_type, "audio/wav");
+			} else {
+				BC_ASSERT_STRING_EQUAL(content_type, "text/plain");
+			}
+
+			composing_participants = bctbx_list_next(composing_participants);
+		}
+	}
 
 	// Marie side
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingActiveReceived, 2,
@@ -4012,6 +4065,16 @@ static void multiple_is_composing_notification(void) {
 		LinphoneAddress *addr = (LinphoneAddress *)bctbx_list_get_data(composing_addresses);
 		BC_ASSERT_STRING_EQUAL(linphone_address_get_username(addr), linphone_address_get_username(pauline->identity));
 	}
+	composing_participants = linphone_chat_room_get_composing_participants(marieCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 1, int, "%i");
+	if (bctbx_list_size(composing_participants) == 1) {
+		LinphoneComposingParticipant *participant =
+		    (LinphoneComposingParticipant *)bctbx_list_get_data(composing_participants);
+		const LinphoneAddress *addr = linphone_composing_participant_get_address(participant);
+		BC_ASSERT_STRING_EQUAL(linphone_address_get_username(addr), linphone_address_get_username(pauline->identity));
+		const char *content_type = linphone_composing_participant_get_content_type(participant);
+		BC_ASSERT_STRING_EQUAL(content_type, "text/plain");
+	}
 
 	// Pauline side
 	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneIsComposingActiveReceived, 1, 2000));
@@ -4020,6 +4083,16 @@ static void multiple_is_composing_notification(void) {
 	if (bctbx_list_size(composing_addresses) == 1) {
 		LinphoneAddress *addr = (LinphoneAddress *)bctbx_list_get_data(composing_addresses);
 		BC_ASSERT_STRING_EQUAL(linphone_address_get_username(addr), linphone_address_get_username(marie->identity));
+	}
+	composing_participants = linphone_chat_room_get_composing_participants(paulineCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 1, int, "%i");
+	if (bctbx_list_size(composing_participants) == 1) {
+		LinphoneComposingParticipant *participant =
+		    (LinphoneComposingParticipant *)bctbx_list_get_data(composing_participants);
+		const LinphoneAddress *addr = linphone_composing_participant_get_address(participant);
+		BC_ASSERT_STRING_EQUAL(linphone_address_get_username(addr), linphone_address_get_username(marie->identity));
+		const char *content_type = linphone_composing_participant_get_content_type(participant);
+		BC_ASSERT_STRING_EQUAL(content_type, "audio/wav");
 	}
 
 	wait_for_list(coresList, 0, 1, 1500);
@@ -4036,6 +4109,12 @@ static void multiple_is_composing_notification(void) {
 	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_addresses), 0, int, "%i");
 	composing_addresses = linphone_chat_room_get_composing_addresses(paulineCr);
 	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_addresses), 0, int, "%i");
+	composing_participants = linphone_chat_room_get_composing_participants(marieCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 0, int, "%i");
+	composing_participants = linphone_chat_room_get_composing_participants(laureCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 0, int, "%i");
+	composing_participants = linphone_chat_room_get_composing_participants(paulineCr);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(composing_participants), 0, int, "%i");
 
 	// Clean db from chat room
 	linphone_core_manager_delete_chat_room(marie, marieCr, coresList);
@@ -6259,7 +6338,7 @@ static void basic_chat_room_with_cpim_base(bool_t use_gruu, bool_t enable_imdn) 
 	if (marieCr) {
 		const LinphoneAddress *peer_address = linphone_chat_room_get_peer_address(marieCr);
 		BC_ASSERT_TRUE(linphone_address_has_uri_param(peer_address, "gr"));
-		linphone_chat_room_compose(marieCr);
+		linphone_chat_room_compose_text_message(marieCr);
 		BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneIsComposingActiveReceived, 1));
 		BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageReceived, 1, 2000));
 		marie_msg = _send_message(marieCr, marie_text);
@@ -6293,7 +6372,7 @@ static void basic_chat_room_with_cpim_base(bool_t use_gruu, bool_t enable_imdn) 
 	const char *pauline_text = "Yes Madam";
 	LinphoneChatMessage *pauline_msg = NULL;
 	if (paulineCr) {
-		linphone_chat_room_compose(paulineCr);
+		linphone_chat_room_compose_text_message(paulineCr);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneIsComposingActiveReceived, 1,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneIsComposingActiveReceived, 2, 3000));
