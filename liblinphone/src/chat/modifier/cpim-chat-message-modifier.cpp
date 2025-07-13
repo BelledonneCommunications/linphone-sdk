@@ -49,6 +49,8 @@ const string linphoneEphemeralHeader = "Ephemeral-Time";
 const string linphoneReplyingToMessageIdHeader = "Replying-To-Message-ID";
 const string linphoneReplyingToMessageSenderHeader = "Replying-To-Sender";
 const string linphoneReactionToMessageIdHeader = "In-Reply-To";
+const string linphoneReplacesMessageIdHeader = "Replaces";
+const string linphoneRetractsMessageIdHeader = "Retracts";
 
 const string imdnNamespaceUrn = "urn:ietf:params:imdn";
 const string imdnNamespace = "imdn";
@@ -147,6 +149,26 @@ ChatMessageModifier::Result CpimChatMessageModifier::encode(const shared_ptr<Cha
 		cpimMessage.addMessageHeader(
 		    Cpim::GenericHeader(linphoneNamespace + "." + linphoneReactionToMessageIdHeader, reactionToMessageId));
 		cpimMessage.addContentHeader(Cpim::GenericHeader("Content-Disposition", "Reaction"));
+	}
+
+	const string &replacesMessageId = message->getReplacesMessageId();
+	if (!replacesMessageId.empty()) {
+		if (!linphoneNamespaceHeaderSet) { // If message is ephemeral linphone namespace has already been set
+			cpimMessage.addMessageHeader(Cpim::NsHeader(linphoneNamespaceTag, linphoneNamespace));
+			linphoneNamespaceHeaderSet = true;
+		}
+		cpimMessage.addMessageHeader(
+		    Cpim::GenericHeader(linphoneNamespace + "." + linphoneReplacesMessageIdHeader, replacesMessageId));
+	}
+
+	const string &retractsMessageId = message->getRetractsMessageId();
+	if (!retractsMessageId.empty()) {
+		if (!linphoneNamespaceHeaderSet) { // If message is ephemeral linphone namespace has already been set
+			cpimMessage.addMessageHeader(Cpim::NsHeader(linphoneNamespaceTag, linphoneNamespace));
+			linphoneNamespaceHeaderSet = true;
+		}
+		cpimMessage.addMessageHeader(
+		    Cpim::GenericHeader(linphoneNamespace + "." + linphoneRetractsMessageIdHeader, retractsMessageId));
 	}
 
 	const Content *content;
@@ -288,6 +310,16 @@ ChatMessageModifier::Result CpimChatMessageModifier::decode(const shared_ptr<Cha
 			if (!dispositionHeader.empty() && strcasecmp(expected_disposition_header, dispositionHeader.c_str()) == 0) {
 				message->getPrivate()->setReactionToMessageId(reactionToMessageIdHeader->getValue());
 			}
+		}
+
+		auto replacesMessageIdHeader = cpimMessage->getMessageHeader(linphoneReplacesMessageIdHeader, linphoneNsName);
+		if (replacesMessageIdHeader) {
+			message->getPrivate()->setReplacesMessageId(replacesMessageIdHeader->getValue());
+		}
+
+		auto retractsMessageIdHeader = cpimMessage->getMessageHeader(linphoneRetractsMessageIdHeader, linphoneNsName);
+		if (retractsMessageIdHeader) {
+			message->getPrivate()->setRetractsMessageId(retractsMessageIdHeader->getValue());
 		}
 	}
 

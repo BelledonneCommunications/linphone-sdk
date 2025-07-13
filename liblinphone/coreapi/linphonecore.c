@@ -817,6 +817,24 @@ void linphone_core_cbs_set_snapshot_taken(LinphoneCoreCbs *cbs, LinphoneCoreCbsS
 	cbs->vtable->snapshot_taken = cb;
 }
 
+void linphone_core_cbs_set_message_content_edited(LinphoneCoreCbs *cbs,
+                                                  LinphoneCoreCbsMessageContentEditedCb message_edited_cb) {
+	cbs->vtable->message_content_edited = message_edited_cb;
+}
+
+LinphoneCoreCbsMessageContentEditedCb linphone_core_cbs_get_message_content_edited(LinphoneCoreCbs *cbs) {
+	return cbs->vtable->message_content_edited;
+}
+
+void linphone_core_cbs_set_message_retracted(LinphoneCoreCbs *cbs,
+                                             LinphoneCoreCbsMessageRetractedCb message_retracted_cb) {
+	cbs->vtable->message_retracted = message_retracted_cb;
+}
+
+LinphoneCoreCbsMessageRetractedCb linphone_core_cbs_get_message_retracted(LinphoneCoreCbs *cbs) {
+	return cbs->vtable->message_retracted;
+}
+
 void lc_callback_obj_init(LCCallbackObj *obj, LinphoneCoreCbFunc func, void *ud) {
 	obj->_func = func;
 	obj->_user_data = ud;

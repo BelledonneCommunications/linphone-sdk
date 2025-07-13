@@ -200,6 +200,15 @@ LinphoneChatMessage *linphone_chat_room_create_reply_message(LinphoneChatRoom *c
 	return object;
 }
 
+LinphoneChatMessage *linphone_chat_room_create_replaces_message(LinphoneChatRoom *chat_room, LinphoneChatMessage *msg) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	shared_ptr<ChatMessage> cppPtr =
+	    AbstractChatRoom::toCpp(chat_room)->createReplacesMessage(L_GET_CPP_PTR_FROM_C_OBJECT(msg));
+	LinphoneChatMessage *object = L_INIT(ChatMessage);
+	L_SET_CPP_PTR_FROM_C_OBJECT(object, cppPtr);
+	return object;
+}
+
 LinphoneChatMessage *linphone_chat_room_create_voice_recording_message(LinphoneChatRoom *chat_room,
                                                                        LinphoneRecorder *recorder) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
@@ -326,6 +335,11 @@ bool_t linphone_chat_room_is_empty(LinphoneChatRoom *chat_room) {
 void linphone_chat_room_delete_message(LinphoneChatRoom *chat_room, LinphoneChatMessage *msg) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
 	AbstractChatRoom::toCpp(chat_room)->deleteMessageFromHistory(L_GET_CPP_PTR_FROM_C_OBJECT(msg));
+}
+
+void linphone_chat_room_retract_message(LinphoneChatRoom *chat_room, LinphoneChatMessage *msg) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	AbstractChatRoom::toCpp(chat_room)->retractMessage(L_GET_CPP_PTR_FROM_C_OBJECT(msg));
 }
 
 void linphone_chat_room_delete_history(LinphoneChatRoom *chat_room) {
@@ -940,6 +954,16 @@ void _linphone_chat_room_notify_new_reaction_received(LinphoneChatRoom *chat_roo
                                                       const LinphoneChatMessageReaction *reaction) {
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(ChatRoom, AbstractChatRoom::toCpp(chat_room),
 	                                  linphone_chat_room_cbs_get_new_message_reaction, message, reaction);
+}
+
+void _linphone_chat_room_notify_message_content_edited(LinphoneChatRoom *chat_room, LinphoneChatMessage *message) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(ChatRoom, AbstractChatRoom::toCpp(chat_room),
+	                                  linphone_chat_room_cbs_get_message_content_edited, message);
+}
+
+void _linphone_chat_room_notify_message_retracted(LinphoneChatRoom *chat_room, LinphoneChatMessage *message) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(ChatRoom, AbstractChatRoom::toCpp(chat_room),
+	                                  linphone_chat_room_cbs_get_message_retracted, message);
 }
 
 // =============================================================================

@@ -1511,6 +1511,8 @@ shared_ptr<EventLog> MainDbPrivate::selectConferenceChatMessageEvent(const share
 			                                                  Address::create(row.get<string>(24)));
 		}
 		dChatMessage->setMessageId(row.get<string>(25));
+		dChatMessage->setEdited(!!row.get<int>(26));
+		dChatMessage->setRetracted(!!row.get<int>(27));
 
 		cache(chatMessage, eventId);
 	}
@@ -1711,24 +1713,29 @@ long long MainDbPrivate::insertConferenceChatMessageEvent(const shared_ptr<Event
 		sipAddressId = insertSipAddress(chatMessage->getReplyToSenderAddress());
 	}
 	const long long &replyToSipAddressId = sipAddressId;
+	const int edited = chatMessage->isEdited() ? 1 : 0;
+	const int retracted = chatMessage->isRetracted() ? 1 : 0;
 
 	*dbSession.getBackendSession()
 	    << "INSERT INTO conference_chat_message_event ("
 	       "  event_id, from_sip_address_id, to_sip_address_id,"
 	       "  time, state, direction, imdn_message_id, is_secured,"
 	       "  delivery_notification_required, display_notification_required,"
-	       "  marked_as_read, forward_info, call_id, reply_message_id, reply_sender_address_id, message_id"
+	       "  marked_as_read, forward_info, call_id, reply_message_id, reply_sender_address_id, message_id,"
+	       "  edited, retracted"
 	       ") VALUES ("
 	       "  :eventId, :localSipaddressId, :remoteSipaddressId,"
 	       "  :time, :state, :direction, :imdnMessageId, :isSecured,"
 	       "  :deliveryNotificationRequired, :displayNotificationRequired,"
-	       "  :markedAsRead, :forwardInfo, :callId, :replyMessageId, :replyToSipAddressId, :messageId"
+	       "  :markedAsRead, :forwardInfo, :callId, :replyMessageId, :replyToSipAddressId, :messageId,"
+	       "  :edited, :retracted"
 	       ")",
 	    soci::use(eventId), soci::use(fromSipAddressId), soci::use(toSipAddressId),
 	    soci::use(messageTime.first, messageTime.second), soci::use(state), soci::use(direction),
 	    soci::use(imdnMessageId), soci::use(isSecured), soci::use(deliveryNotificationRequired),
 	    soci::use(displayNotificationRequired), soci::use(markedAsRead), soci::use(forwardInfo), soci::use(callId),
-	    soci::use(replyMessageId), soci::use(replyToSipAddressId), soci::use(messageId);
+	    soci::use(replyMessageId), soci::use(replyToSipAddressId), soci::use(messageId), soci::use(edited),
+	    soci::use(retracted);
 
 	if (isEphemeral) {
 		long ephemeralLifetime = chatMessage->getEphemeralLifetime();
@@ -1848,15 +1855,20 @@ void MainDbPrivate::updateConferenceChatMessageEvent(const shared_ptr<EventLog> 
 		            ? dbState
 		            : state);
 		const int markedAsReadInt = markedAsRead ? 1 : 0;
-		*session << "UPDATE conference_chat_message_event SET state = :state, imdn_message_id = :imdnMessageId, "
-		            "marked_as_read = :markedAsRead WHERE event_id = :eventId",
-		    soci::use(stateInt), soci::use(imdnMessageId), soci::use(markedAsReadInt), soci::use(eventId);
+		const int edited = chatMessage->isEdited() ? 1 : 0;
+		const int retracted = chatMessage->isRetracted() ? 1 : 0;
+		*session
+		    << "UPDATE conference_chat_message_event SET state = :state, imdn_message_id = :imdnMessageId, "
+		       "marked_as_read = :markedAsRead, edited = :edited, retracted = :retracted WHERE event_id = :eventId",
+		    soci::use(stateInt), soci::use(imdnMessageId), soci::use(markedAsReadInt), soci::use(edited),
+		    soci::use(retracted), soci::use(eventId);
 	}
 
 	// 4. Update contents.
 	deleteContents(eventId);
-	for (const auto &content : chatMessage->getContents())
+	for (const auto &content : chatMessage->getContents()) {
 		insertContent(eventId, *content);
+	}
 
 	bool stateRequiresUpdatingParticipants = false;
 	if (state == ChatMessage::State::NotDelivered) {
@@ -3235,6 +3247,60 @@ void MainDbPrivate::updateSchema() {
 		lDebug() << "Caught exception " << e.what() << ": Column 'readOnly' already exists in table 'friends_list'";
 	}
 
+	try {
+		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN edited BOOLEAN NOT NULL DEFAULT 0";
+		*session << "DROP VIEW IF EXISTS conference_event_view";
+		*session << "CREATE VIEW conference_event_view AS"
+		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
+		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
+		            "participant_sip_address_id, subject, delivery_notification_required, "
+		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
+		            "ephemeral_lifetime, expired_time, lifetime, call_id, reply_message_id, reply_sender_address_id, "
+		            "message_id, edited"
+		            "  FROM event"
+		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
+		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
+		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
+		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
+		            "event.id"
+		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
+		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
+		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
+		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
+		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
+		            "event.id";
+	} catch (const soci::soci_error &e) {
+		lDebug() << "Caught exception " << e.what()
+		         << ": Column 'edited' already exists in table 'conference_chat_message_event'";
+	}
+
+	try {
+		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN retracted BOOLEAN NOT NULL DEFAULT 0";
+		*session << "DROP VIEW IF EXISTS conference_event_view";
+		*session << "CREATE VIEW conference_event_view AS"
+		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
+		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
+		            "participant_sip_address_id, subject, delivery_notification_required, "
+		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
+		            "ephemeral_lifetime, expired_time, lifetime, call_id, reply_message_id, reply_sender_address_id, "
+		            "message_id, edited, retracted"
+		            "  FROM event"
+		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
+		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
+		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
+		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
+		            "event.id"
+		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
+		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
+		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
+		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
+		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
+		            "event.id";
+	} catch (const soci::soci_error &e) {
+		lDebug() << "Caught exception " << e.what()
+		         << ": Column 'retracted' already exists in table 'conference_chat_message_event'";
+	}
+
 	// /!\ Warning : if varchar columns < 255 were to be indexed, their size must be set back to 191 = max indexable
 	// (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in column creation)
 	//
@@ -3546,12 +3612,12 @@ bool MainDbPrivate::importLegacyHistory(DbSession &inDbSession) {
 			            "  event_id, from_sip_address_id, to_sip_address_id,"
 			            "  time, state, direction, imdn_message_id, is_secured,"
 			            "  delivery_notification_required, display_notification_required,"
-			            "  marked_as_read"
+			            "  marked_as_read, edited, retracted"
 			            ") VALUES ("
 			            "  :eventId, :localSipAddressId, :remoteSipAddressId,"
 			            "  :creationTime, :state, :direction, '', :isSecured,"
 			            "  :deliveryNotificationRequired, :displayNotificationRequired,"
-			            "  1"
+			            "  1, 0, 0"
 			            ")",
 			    soci::use(eventId), soci::use(localSipAddressId), soci::use(remoteSipAddressId),
 			    soci::use(creationTime.first, creationTime.second), soci::use(state), soci::use(direction),
@@ -5014,7 +5080,7 @@ list<shared_ptr<ChatMessage>> MainDb::getEphemeralMessages() const {
 	    "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address.value, "
 	    "participant_sip_address.value, subject, delivery_notification_required, display_notification_required, "
 	    "security_alert, faulty_device, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
-	    "reply_message_id, reply_sender_address.value, message_id, chat_room_id"
+	    "reply_message_id, reply_sender_address.value, message_id, edited, retracted, chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
 	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
@@ -5278,7 +5344,7 @@ shared_ptr<ChatMessage> MainDb::getLastChatMessage(const ConferenceId &conferenc
 	    "device_sip_address.value, participant_sip_address.value, conference_event_view.subject, "
 	    "delivery_notification_required, display_notification_required, peer_sip_address.value, "
 	    "local_sip_address.value, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
-	    "reply_message_id, reply_sender_address.value, message_id"
+	    "reply_message_id, reply_sender_address.value, message_id, edited, retracted"
 	    " FROM conference_event_view"
 	    " JOIN chat_room ON chat_room.id = chat_room_id"
 	    " JOIN sip_address AS peer_sip_address ON peer_sip_address.id = peer_sip_address_id"
@@ -5446,7 +5512,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromMessageId(const std::s
 	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, "
+	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
+	    "retracted, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -5499,7 +5566,8 @@ MainDb::findChatMessagesFromImdnMessageId(const std::list<std::string> &imdnMess
 	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, "
+	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
+	    "retracted, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -5565,7 +5633,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromCallId(const std::stri
 	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, "
+	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
+	    "retracted, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -5622,7 +5691,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesToBeNotifiedAsDelivered() 
 	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, "
+	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
+	    "retracted, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -7133,7 +7203,7 @@ shared_ptr<EventLog> MainDb::searchChatMessagesByText(const ConferenceId &confer
 	    "  notify_id, device_sip_address.value, participant_sip_address.value, conference_event_view.subject, "
 	    "  delivery_notification_required, display_notification_required, peer_sip_address.value, "
 	    "  local_sip_address.value, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
-	    "  reply_message_id, reply_sender_address.value, message_id "
+	    "  reply_message_id, reply_sender_address.value, message_id, edited, retracted "
 	    "FROM conference_event_view "
 	    "JOIN chat_room ON chat_room.id = chat_room_id "
 	    "JOIN sip_address AS peer_sip_address ON peer_sip_address.id = peer_sip_address_id "

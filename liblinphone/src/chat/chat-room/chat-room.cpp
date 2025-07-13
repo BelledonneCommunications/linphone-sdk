@@ -913,6 +913,14 @@ void ChatRoom::deleteMessageFromHistory(const shared_ptr<ChatMessage> &message) 
 	}
 }
 
+void ChatRoom::retractMessage(const shared_ptr<ChatMessage> &msg) {
+	// https://xmpp.org/extensions/xep-0424.html recommends to use a fallback message
+	shared_ptr<ChatMessage> chatMessage =
+	    createChatMessageFromUtf8("/me retracted a previous message, but it's not supported by your client.");
+	chatMessage->getPrivate()->setRetractsMessageId(msg->getImdnMessageId());
+	chatMessage->send();
+}
+
 shared_ptr<ChatMessage> ChatRoom::getLastChatMessageInHistory() const {
 	return getCore()->getPrivate()->mainDb->getLastChatMessage(getConferenceId());
 }
@@ -1026,6 +1034,12 @@ shared_ptr<ChatMessage> ChatRoom::createForwardMessage(const shared_ptr<ChatMess
 shared_ptr<ChatMessage> ChatRoom::createReplyMessage(const shared_ptr<ChatMessage> &msg) {
 	shared_ptr<ChatMessage> chatMessage = createChatMessage();
 	chatMessage->getPrivate()->setReplyToMessageIdAndSenderAddress(msg->getImdnMessageId(), msg->getFromAddress());
+	return chatMessage;
+}
+
+shared_ptr<ChatMessage> ChatRoom::createReplacesMessage(const shared_ptr<ChatMessage> &msg) {
+	shared_ptr<ChatMessage> chatMessage = createChatMessage();
+	chatMessage->getPrivate()->setReplacesMessageId(msg->getImdnMessageId());
 	return chatMessage;
 }
 

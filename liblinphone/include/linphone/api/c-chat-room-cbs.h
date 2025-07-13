@@ -596,6 +596,38 @@ LINPHONE_PUBLIC void linphone_chat_room_cbs_set_new_message_reaction(LinphoneCha
                                                                      LinphoneChatRoomCbsNewMessageReactionCb cb);
 
 /**
+ * Get the message content edited callback.
+ * @param cbs #LinphoneChatRoomCbs object. @notnil
+ * @return The current message content edited callback.
+ */
+LINPHONE_PUBLIC LinphoneChatRoomCbsMessageContentEditedCb
+linphone_chat_room_cbs_get_message_content_edited(const LinphoneChatRoomCbs *cbs);
+
+/**
+ * Set the message content edited callback.
+ * @param cbs LinphoneChatRoomCbs object. @notnil
+ * @param cb The new message content edited to be used.
+ */
+LINPHONE_PUBLIC void linphone_chat_room_cbs_set_message_content_edited(LinphoneChatRoomCbs *cbs,
+                                                                       LinphoneChatRoomCbsMessageContentEditedCb cb);
+
+/**
+ * Get the message retracted callback.
+ * @param cbs #LinphoneChatRoomCbs object. @notnil
+ * @return The current message retracted callback.
+ */
+LINPHONE_PUBLIC LinphoneChatRoomCbsMessageRetractedCb
+linphone_chat_room_cbs_get_message_retracted(const LinphoneChatRoomCbs *cbs);
+
+/**
+ * Set the message retracted callback.
+ * @param cbs LinphoneChatRoomCbs object. @notnil
+ * @param cb The new message retracted to be used.
+ */
+LINPHONE_PUBLIC void linphone_chat_room_cbs_set_message_retracted(LinphoneChatRoomCbs *cbs,
+                                                                  LinphoneChatRoomCbsMessageRetractedCb cb);
+
+/**
  * @}
  */
 

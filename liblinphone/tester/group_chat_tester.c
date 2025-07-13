@@ -439,10 +439,9 @@ static void fill_content_buffer(LinphoneContent *content, const char *sendFilePa
 	fclose(file_to_send);
 }
 
-void _send_file_plus_text(
+LinphoneChatMessage *_send_file_plus_text_return_message(
     LinphoneChatRoom *cr, const char *sendFilepath, const char *sendFilepath2, const char *text, bool_t use_buffer) {
 	LinphoneChatMessage *msg;
-
 	LinphoneChatMessageCbs *cbs;
 	LinphoneContent *content = linphone_core_create_content(linphone_chat_room_get_core(cr));
 	belle_sip_object_set_name(BELLE_SIP_OBJECT(content), "sintel trailer content");
@@ -460,7 +459,10 @@ void _send_file_plus_text(
 	BC_ASSERT_PTR_NULL(linphone_content_get_related_chat_message_id(content));
 	linphone_content_unref(content);
 
-	if (text) linphone_chat_message_add_utf8_text_content(msg, text);
+	if (text) {
+		linphone_chat_message_add_utf8_text_content(msg, text);
+		BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(msg), text);
+	}
 
 	if (sendFilepath2) {
 		LinphoneContent *content2 = linphone_core_create_content(linphone_chat_room_get_core(cr));
@@ -486,6 +488,12 @@ void _send_file_plus_text(
 	linphone_chat_message_add_callbacks(msg, cbs);
 	linphone_chat_message_cbs_unref(cbs);
 	linphone_chat_message_send(msg);
+	return msg;
+}
+
+void _send_file_plus_text(
+    LinphoneChatRoom *cr, const char *sendFilepath, const char *sendFilepath2, const char *text, bool_t use_buffer) {
+	LinphoneChatMessage *msg = _send_file_plus_text_return_message(cr, sendFilepath, sendFilepath2, text, use_buffer);
 	linphone_chat_message_unref(msg);
 }
 

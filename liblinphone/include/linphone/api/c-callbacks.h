@@ -325,6 +325,18 @@ typedef void (*LinphoneChatMessageCbsNewMessageReactionCb)(LinphoneChatMessage *
 typedef void (*LinphoneChatMessageCbsReactionRemovedCb)(LinphoneChatMessage *message, const LinphoneAddress *address);
 
 /**
+ * Callback used to notify a message has been edited by it's sender after it was sent
+ * @param message #LinphoneChatMessage object that has been edited @notnil
+ */
+typedef void (*LinphoneChatMessageCbsContentEditedCb)(LinphoneChatMessage *message);
+
+/**
+ * Callback used to notify a message has been retracted by it's sender after it was sent
+ * @param message #LinphoneChatMessage object that has been edited @notnil
+ */
+typedef void (*LinphoneChatMessageCbsRetractedCb)(LinphoneChatMessage *message);
+
+/**
  * Call back used to notify participant IMDN state
  * @param message #LinphoneChatMessage object @notnil
  * @param state #LinphoneParticipantImdnState @notnil
@@ -654,6 +666,20 @@ typedef void (*LinphoneChatRoomCbsChatRoomReadCb)(LinphoneChatRoom *chat_room);
 typedef void (*LinphoneChatRoomCbsNewMessageReactionCb)(LinphoneChatRoom *chat_room,
                                                         LinphoneChatMessage *message,
                                                         const LinphoneChatMessageReaction *reaction);
+
+/**
+ * Callback used to notify a message has been edited after being sent or received.
+ * @param chat_room #LinphoneChatRoom object @notnil
+ * @param message #LinphoneChatMessage object that has been edited @notnil
+ */
+typedef void (*LinphoneChatRoomCbsMessageContentEditedCb)(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
+
+/**
+ * Callback used to notify a message has been retracted after being sent or received.
+ * @param chat_room #LinphoneChatRoom object @notnil
+ * @param message #LinphoneChatMessage object that has been retracted @notnil
+ */
+typedef void (*LinphoneChatRoomCbsMessageRetractedCb)(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
 
 /**
  * @}

@@ -583,6 +583,20 @@ const std::shared_ptr<Content> ChatMessagePrivate::getFileTransferContent() cons
 	return nullptr;
 }
 
+void ChatMessagePrivate::clearContents() {
+	L_Q();
+
+	auto content = q->getContents().front();
+	while (content != nullptr) {
+		removeContent(content);
+		if (!q->getContents().empty()) {
+			content = q->getContents().front();
+		} else {
+			content = nullptr;
+		}
+	}
+}
+
 const string &ChatMessagePrivate::getFileTransferFilepath() const {
 	return fileTransferFilePath;
 }
@@ -706,24 +720,13 @@ void ChatMessagePrivate::setText(const string &text) {
 
 const string &ChatMessagePrivate::getUtf8Text() const {
 	loadContentsFromDatabase();
-	if (direction == ChatMessage::Direction::Incoming) {
-		if (hasTextContent()) {
-			cText = getTextContent()->getBodyAsUtf8String();
-		} else if (!contents.empty()) {
-			auto &content = contents.front();
-			cText = content->getBodyAsUtf8String();
-		} else {
-			cText = internalContent.getBodyAsUtf8String();
-		}
+	if (hasTextContent()) {
+		cText = getTextContent()->getBodyAsUtf8String();
+	} else if (!contents.empty()) {
+		auto &content = contents.front();
+		cText = content->getBodyAsUtf8String();
 	} else {
-		if (!internalContent.isEmpty()) {
-			cText = internalContent.getBodyAsUtf8String();
-		} else {
-			if (!contents.empty()) {
-				auto &content = contents.front();
-				cText = content->getBodyAsUtf8String();
-			}
-		}
+		cText = internalContent.getBodyAsUtf8String();
 	}
 	return cText;
 }
@@ -1124,18 +1127,27 @@ LinphoneReason ChatMessagePrivate::receive() {
 	}
 
 	if (chatRoom && (getContentType() != ContentType::Imdn && getContentType() != ContentType::ImIsComposing)) {
-		// If we receive a message that is Outgoing it means we are in a flexisip based chat room and this message was
-		// sent by us from another device, storing it
-		if (direction == ChatMessage::Direction::Outgoing) {
-			toBeStored = true;
-		} else {
-			_linphone_chat_room_notify_chat_message_should_be_stored(
-			    static_pointer_cast<ChatRoom>(q->getChatRoom())->getCChatRoom(),
-			    L_GET_C_BACK_PTR(q->getSharedFromThis()));
-		}
+		string replacesExistingMessageId = q->getReplacesMessageId();
+		string retractsExistingMessageId = q->getRetractsMessageId();
+		bool successfullyEditedPreviousMessage = replaceExistingMessageUsingId(replacesExistingMessageId) ||
+		                                         retractExistingMessageUsingId(retractsExistingMessageId);
+		if (!successfullyEditedPreviousMessage) {
+			// If we receive a message that is Outgoing it means we are in a flexisip based chat room and this message
+			// was sent by us from another device, storing it
+			if (direction == ChatMessage::Direction::Outgoing) {
+				toBeStored = true;
+			} else {
+				_linphone_chat_room_notify_chat_message_should_be_stored(
+				    static_pointer_cast<ChatRoom>(q->getChatRoom())->getCChatRoom(),
+				    L_GET_C_BACK_PTR(q->getSharedFromThis()));
+			}
 
-		if (toBeStored) {
-			storeInDb();
+			if (toBeStored) {
+				storeInDb();
+			}
+		} else {
+			// Previous message was correctly edited, do not notify this one.
+			return reason;
 		}
 	} else {
 		toBeStored = false;
@@ -1233,6 +1245,123 @@ void ChatMessagePrivate::handleAutoDownload() {
 	return;
 }
 
+bool ChatMessagePrivate::retractExistingMessageUsingId(const string &messageId) {
+	L_Q();
+	if (messageId.empty()) return false;
+
+	std::shared_ptr<ChatMessage> messageToRetract = nullptr;
+	messageToRetract = q->getChatRoom()->findChatMessage(messageId);
+	if (messageToRetract == nullptr) {
+		if (direction == ChatMessage::Direction::Outgoing) {
+			lError() << "Sent a message that should retract another one with ID [" << messageId
+			         << "] but couldn't find it";
+		} else {
+			lError() << "Received a message that should retract another one with ID [" << messageId
+			         << "] but couldn't find it";
+		}
+		return false;
+	}
+
+	// This check was already made by sender at the start of send() method, no need to do it again here
+	if (direction == ChatMessage::Direction::Incoming) {
+		if (!messageToRetract->getFromAddress()->weakEqual(q->getFromAddress())) {
+			lError() << "Retraction request was sent by [" << q->getFromAddress()->asStringUriOnly()
+			         << "] which is different than message about to be edited sender ["
+			         << messageToRetract->getFromAddress()->asStringUriOnly() << "], aborting";
+			return false;
+		}
+	}
+
+	messageToRetract->getPrivate()->loadContentsFromDatabase();
+	if (!messageToRetract->getContents().empty()) {
+		lInfo() << "Removing content(s) from existing message being retracted";
+		messageToRetract->getPrivate()->clearContents();
+
+		// Add an empty plain text content, a ChatMessage wasn't planned to have no content at all.
+		shared_ptr<Content> emptyContent = make_shared<Content>();
+		emptyContent->setContentType(ContentType::PlainText);
+		emptyContent->setBodyFromUtf8("");
+		messageToRetract->getPrivate()->addContent(emptyContent);
+	} else {
+		lWarning() << "Existing message to retract doesn't have any content...";
+	}
+
+	// Do not store this message in DB since the update of the existing one was successful
+	toBeStored = false;
+
+	lInfo() << "Updating retracted message with ID [" << messageId << "] in DB";
+	messageToRetract->markAsRead();
+	messageToRetract->getPrivate()->setRetracted(true);
+	messageToRetract->getPrivate()->updateInDb();
+
+	LinphoneChatMessage *cRetractedMessage = L_GET_C_BACK_PTR(messageToRetract);
+	LinphoneChatRoom *cChatRoom = q->getChatRoom()->toC();
+	_linphone_chat_message_notify_retracted(cRetractedMessage);
+	_linphone_chat_room_notify_message_retracted(cChatRoom, cRetractedMessage);
+	linphone_core_notify_chat_message_retracted(q->getCore()->getCCore(), cChatRoom, cRetractedMessage);
+
+	return true;
+}
+
+bool ChatMessagePrivate::replaceExistingMessageUsingId(const string &messageId) {
+	L_Q();
+	if (messageId.empty()) return false;
+
+	std::shared_ptr<ChatMessage> messageToEdit = nullptr;
+	messageToEdit = q->getChatRoom()->findChatMessage(messageId);
+	if (messageToEdit == nullptr) {
+		if (direction == ChatMessage::Direction::Outgoing) {
+			lError() << "Sent a message that should replace another one with ID [" << messageId
+			         << "] but couldn't find it";
+		} else {
+			lError() << "Received a message that should replace another one with ID [" << messageId
+			         << "] but couldn't find it";
+		}
+		return false;
+	}
+
+	// This check was already made by sender at the start of send() method, no need to do it again here
+	if (direction == ChatMessage::Direction::Incoming) {
+		if (!messageToEdit->getFromAddress()->weakEqual(q->getFromAddress())) {
+			lError() << "Edit request was sent by [" << q->getFromAddress()->asStringUriOnly()
+			         << "] which is different than message about to be edited sender ["
+			         << messageToEdit->getFromAddress()->asStringUriOnly() << "], aborting";
+			return false;
+		}
+	}
+
+	messageToEdit->getPrivate()->loadContentsFromDatabase();
+
+	std::shared_ptr<Content> textContent;
+	for (auto content : messageToEdit->getContents()) {
+		if (content->getContentType() == ContentType::PlainText) {
+			textContent = content;
+			break;
+		}
+	}
+	if (textContent) {
+		messageToEdit->getPrivate()->removeContent(textContent);
+	}
+	for (auto content : getContents()) {
+		messageToEdit->getPrivate()->addContent(content);
+	}
+
+	// Do not store this message in DB since the update of the existing one was successful
+	toBeStored = false;
+
+	lInfo() << "Updating edited message with ID [" << messageId << "] in DB";
+	messageToEdit->getPrivate()->setEdited(true);
+	messageToEdit->getPrivate()->updateInDb();
+
+	LinphoneChatMessage *cEditedMessage = L_GET_C_BACK_PTR(messageToEdit);
+	LinphoneChatRoom *cChatRoom = q->getChatRoom()->toC();
+	_linphone_chat_message_notify_content_edited(cEditedMessage);
+	_linphone_chat_room_notify_message_content_edited(cChatRoom, cEditedMessage);
+	linphone_core_notify_chat_message_content_edited(q->getCore()->getCCore(), cChatRoom, cEditedMessage);
+
+	return true;
+}
+
 void ChatMessagePrivate::endMessageReception() {
 	L_Q();
 	shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
@@ -1294,6 +1423,55 @@ void ChatMessagePrivate::send() {
 	SalOp *op = salOp;
 	LinphoneCall *lcall = nullptr;
 	int errorCode = 0;
+
+	string replacesExistingMessageId = q->getReplacesMessageId();
+	bool isMessageEdit = !replacesExistingMessageId.empty();
+	if (isMessageEdit) {
+		// Makes sure the edit request we're about to send it valid
+		shared_ptr<ChatMessage> toEdit = q->getChatRoom()->findChatMessage(replacesExistingMessageId);
+		if (toEdit == nullptr) {
+			lError() << "Message with ID [" << replacesExistingMessageId
+			         << "] wasn't found, aborting message edit process!";
+			return;
+		}
+		if (!toEdit->canBeEdited()) {
+			lError() << "Message with ID [" << replacesExistingMessageId
+			         << "] can't be edited, aborting message edit process!";
+			return;
+		}
+		auto editedMessageFromAddress = toEdit->getFromAddress();
+		if (!editedMessageFromAddress->weakEqual(q->getFromAddress())) {
+			lError() << "Message with ID [" << replacesExistingMessageId << "] doesn't have the same sender ["
+			         << editedMessageFromAddress->asStringUriOnly() << "] and this one ["
+			         << q->getFromAddress()->asStringUriOnly() << "], aborting message edit process!";
+			return;
+		}
+	}
+
+	string retractsExistingMessageId = q->getRetractsMessageId();
+	bool isMessageRetraction = !retractsExistingMessageId.empty();
+	if (isMessageRetraction) {
+		// Makes sure the retraction request we're about to send it valid
+		shared_ptr<ChatMessage> toRetract = q->getChatRoom()->findChatMessage(retractsExistingMessageId);
+		if (toRetract == nullptr) {
+			lError() << "Message with ID [" << retractsExistingMessageId
+			         << "] wasn't found, aborting message retraction process!";
+			return;
+		}
+		if (!toRetract->canBeRetracted()) {
+			lError() << "Message with ID [" << retractsExistingMessageId
+			         << "] can't be retracted, aborting message retraction process!";
+			return;
+		}
+		auto retractedMessageFromAddress = toRetract->getFromAddress();
+		if (!retractedMessageFromAddress->weakEqual(q->getFromAddress())) {
+			lError() << "Message with ID [" << retractsExistingMessageId << "] doesn't have the same sender ["
+			         << retractedMessageFromAddress->asStringUriOnly() << "] and this one ["
+			         << q->getFromAddress()->asStringUriOnly() << "], aborting message retraction process!";
+			return;
+		}
+	}
+
 	bool isResend = ((state == ChatMessage::State::PendingDelivery) || (state == ChatMessage::State::NotDelivered));
 	// Remove the sent flag so the message will be sent by the OP in case of resend
 	currentSendStep &= ~ChatMessagePrivate::Step::Sent;
@@ -1304,9 +1482,15 @@ void ChatMessagePrivate::send() {
 	if (toBeStored) {
 		if (currentSendStep == (ChatMessagePrivate::Step::Started | ChatMessagePrivate::Step::None)) {
 			// First time it is sent
-			storeInDb();
-			if (!isResend && !q->isReaction() && getContentType() != ContentType::Imdn &&
-			    getContentType() != ContentType::ImIsComposing) {
+			if (!isMessageEdit && !isMessageRetraction) {
+				storeInDb();
+			} else {
+				// Do not store message editing/retracting another one in DB, edited one will be updated
+				toBeStored = false;
+			}
+
+			if (!isResend && !q->isReaction() && !isMessageEdit && !isMessageRetraction &&
+			    getContentType() != ContentType::Imdn && getContentType() != ContentType::ImIsComposing) {
 				if ((currentSendStep & ChatMessagePrivate::Step::Sending) != ChatMessagePrivate::Step::Sending) {
 					LinphoneChatRoom *cr = chatRoom->toC();
 					unique_ptr<MainDb> &mainDb = core->getPrivate()->mainDb;
@@ -1515,6 +1699,15 @@ void ChatMessagePrivate::send() {
 	setMessageId(callId);
 	setCallId(callId);
 
+	if (!isResend) {
+		if (isMessageEdit) {
+			replaceExistingMessageUsingId(replacesExistingMessageId);
+		}
+		if (isMessageRetraction) {
+			retractExistingMessageUsingId(retractsExistingMessageId);
+		}
+	}
+
 	if (isResend) {
 		// If it is a resend, reset participant states to Idle.
 		// Not doing so, it will lead to the message being incorrectly marked as not delivered when at least one
@@ -1544,7 +1737,7 @@ void ChatMessagePrivate::send() {
 		setIsReadOnly(true);
 	}
 
-	if (q->isReaction()) {
+	if (q->isReaction() || isMessageEdit || isMessageRetraction) {
 		return; // Do not notify chat message as sent
 	}
 
@@ -1822,6 +2015,100 @@ const shared_ptr<ChatMessageReaction> ChatMessage::getOwnReaction() const {
 		}
 	}
 	return ourReaction;
+}
+
+void ChatMessagePrivate::setRetractsMessageId(const string &id) {
+	retractsMessageId = id;
+
+#ifdef HAVE_ADVANCED_IM
+	L_Q();
+
+	if (q->getChatRoom()->canHandleCpim()) {
+		// Disable delivery / display notifications for message edit
+		positiveDeliveryNotificationRequired = false;
+		negativeDeliveryNotificationRequired = false;
+		displayNotificationRequired = false;
+	}
+#endif
+}
+
+const string &ChatMessage::getRetractsMessageId() const {
+	L_D();
+	return d->retractsMessageId;
+}
+
+bool ChatMessage::isRetracted() const {
+	L_D();
+	return d->isRetracted;
+}
+
+bool ChatMessage::canBeRetracted() const {
+	if (isRetracted()) return false;
+
+#ifdef HAVE_ADVANCED_IM
+	if (!getChatRoom()->canHandleCpim()) {
+		lWarning() << "Chat room doesn't support CPIM, message can't be edited";
+		return false;
+	}
+#endif
+
+	// You can't edit a message you have received.
+	if (getDirection() == ChatMessage::Direction::Incoming) {
+		lWarning() << "Message is in incoming direction, it can't be edited";
+		return false;
+	}
+
+	if (getChatRoom()->isReadOnly()) {
+		lWarning() << "Chat room is read only, it can't be edited";
+		return false;
+	}
+
+	long maxDelay = getCore()->getMaxDelayToEditRetractAlreadySentMessage();
+	if (maxDelay <= 0) {
+		lWarning() << "Max delay to edit already sent message is set to [" << maxDelay
+		           << "], which means the feature is disabled";
+		return false;
+	}
+
+	time_t originalMessageTime = getTime();
+	time_t now = ::ms_time(nullptr);
+	return (now - originalMessageTime) < maxDelay;
+}
+
+void ChatMessagePrivate::setReplacesMessageId(const string &id) {
+	replacesMessageId = id;
+
+#ifdef HAVE_ADVANCED_IM
+	L_Q();
+	if (q->getChatRoom()->canHandleCpim()) {
+		// Disable delivery / display notifications for message edit
+		positiveDeliveryNotificationRequired = false;
+		negativeDeliveryNotificationRequired = false;
+		displayNotificationRequired = false;
+	}
+#endif
+}
+
+const string &ChatMessage::getReplacesMessageId() const {
+	L_D();
+	return d->replacesMessageId;
+}
+
+bool ChatMessage::isEdited() const {
+	L_D();
+	return d->isEdited;
+}
+
+bool ChatMessage::canBeEdited() const {
+	if (!canBeRetracted()) return false;
+
+	// Only text contents can be edited
+	for (const auto &c : getContents()) {
+		if (c->getContentType() == ContentType::PlainText) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void ChatMessagePrivate::enableEphemeralWithTime(long time) {

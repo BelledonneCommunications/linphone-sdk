@@ -65,6 +65,8 @@ public:
 	LinphoneChatRoomCbsNewEventsCb newEventsCb;
 	LinphoneChatRoomCbsChatRoomReadCb chatRoomReadCb;
 	LinphoneChatRoomCbsNewMessageReactionCb newMessageReactionCb;
+	LinphoneChatRoomCbsMessageContentEditedCb messageContentEditedCb;
+	LinphoneChatRoomCbsMessageRetractedCb messageRetractedCb;
 };
 
 LINPHONE_END_NAMESPACE

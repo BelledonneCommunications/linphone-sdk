@@ -1068,4 +1068,21 @@ void Core::decrementRemainingDownloadFileCount() {
 	}
 }
 
+int Core::getMaxDelayToEditRetractAlreadySentMessage() {
+	if (mMaxDelayToEditRetractAlreadySentMessage == -1) {
+		LinphoneCore *cCore = getCCore();
+		LinphoneConfig *config = linphone_core_get_config(cCore);
+		mMaxDelayToEditRetractAlreadySentMessage = linphone_config_get_int(
+		    config, "chat", "max_delay_to_edit_retract_already_sent_message", 84600); // 24 hours
+	}
+	return mMaxDelayToEditRetractAlreadySentMessage;
+}
+
+void Core::setMaxDelayToEditRetractAlreadySentMessage(int maxDelayInSeconds) {
+	LinphoneCore *cCore = getCCore();
+	LinphoneConfig *config = linphone_core_get_config(cCore);
+	linphone_config_set_int(config, "chat", "max_delay_to_edit_retract_already_sent_message", maxDelayInSeconds);
+	mMaxDelayToEditRetractAlreadySentMessage = maxDelayInSeconds;
+}
+
 LINPHONE_END_NAMESPACE

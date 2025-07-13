@@ -235,6 +235,9 @@ public:
 	void setImdnResendPeriod(long seconds);
 	long getImdnResendPeriod() const;
 
+	int getMaxDelayToEditRetractAlreadySentMessage();
+	void setMaxDelayToEditRetractAlreadySentMessage(int maxDelayInSeconds);
+
 	// ---------------------------------------------------------------------------
 	// Conference.
 	// ---------------------------------------------------------------------------
@@ -512,6 +515,7 @@ private:
 	unsigned int mRemainingDownloadFileCount = 0;
 	unsigned int mRemainingUploadFileCount = 0;
 	unsigned int mAccountDeletionTimeout = 32;
+	int mMaxDelayToEditRetractAlreadySentMessage = -1;
 
 	mutable bctbx_list_t *mCachedProxyConfigs = NULL;
 

@@ -374,6 +374,8 @@ typedef struct _stats {
 	int number_of_LinphoneMessageFileTransferInProgress;
 	int number_of_LinphoneMessageDeliveredToUser;
 	int number_of_LinphoneMessageDisplayed;
+	int number_of_LinphoneMessageContentEdited;
+	int number_of_LinphoneMessageRetracted;
 	int number_of_LinphoneRemainingNumberOfFileTransferChanged;
 	int number_of_LinphoneMessageFileTransferTerminated;
 	int number_of_LinphoneMessageSent;
@@ -746,6 +748,10 @@ void reaction_removed(LinphoneCore *lc,
                       LinphoneChatRoom *room,
                       LinphoneChatMessage *msg,
                       const LinphoneAddress *address);
+void chat_room_message_content_edited(LinphoneChatRoom *room, LinphoneChatMessage *message);
+void chat_room_message_retracted(LinphoneChatRoom *room, LinphoneChatMessage *message);
+void liblinphone_tester_setup_message_content_edited_cb(LinphoneChatRoom *room, void *user_data);
+void liblinphone_tester_setup_message_content_retracted_cb(LinphoneChatRoom *room, void *user_data);
 char *random_filename(char *prefix, char *extension);
 char *random_filepath(char *prefix, char *extension);
 void file_transfer_received(LinphoneChatMessage *message, LinphoneContent *content, const LinphoneBuffer *buffer);
@@ -759,6 +765,8 @@ void set_ephemeral_cbs(bctbx_list_t *history);
 void _send_file_plus_text(
     LinphoneChatRoom *cr, const char *sendFilepath, const char *sendFilepath2, const char *text, bool_t use_buffer);
 void _send_file(LinphoneChatRoom *cr, const char *sendFilepath, const char *sendFilepath2, bool_t use_buffer);
+LinphoneChatMessage *_send_file_plus_text_return_message(
+    LinphoneChatRoom *cr, const char *sendFilepath, const char *sendFilepath2, const char *text, bool_t use_buffer);
 void _receive_file(bctbx_list_t *coresList,
                    LinphoneCoreManager *lcm,
                    stats *receiverStats,

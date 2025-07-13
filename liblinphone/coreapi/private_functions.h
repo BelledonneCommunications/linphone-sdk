@@ -485,6 +485,13 @@ void _linphone_account_notify_conference_information_updated(LinphoneAccount *ac
 void linphone_core_notify_alert(LinphoneCore *lc, LinphoneAlert *alert);
 LINPHONE_PUBLIC void linphone_alert_notify_on_terminated(LinphoneAlert *alert);
 
+void linphone_core_notify_chat_message_content_edited(LinphoneCore *lc,
+                                                      LinphoneChatRoom *chatRoom,
+                                                      LinphoneChatMessage *message);
+
+void linphone_core_notify_chat_message_retracted(LinphoneCore *lc,
+                                                 LinphoneChatRoom *chatRoom,
+                                                 LinphoneChatMessage *message);
 /*chat*/
 void linphone_chat_room_set_call(LinphoneChatRoom *cr, LinphoneCall *call);
 LinphoneChatRoomCbs *_linphone_chat_room_cbs_new(void);
@@ -541,12 +548,16 @@ void _linphone_chat_room_notify_chat_room_read(LinphoneChatRoom *cr);
 void _linphone_chat_room_notify_new_reaction_received(LinphoneChatRoom *cr,
                                                       LinphoneChatMessage *msg,
                                                       const LinphoneChatMessageReaction *reaction);
+void _linphone_chat_room_notify_message_content_edited(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
+void _linphone_chat_room_notify_message_retracted(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
 void _linphone_chat_room_clear_callbacks(LinphoneChatRoom *cr);
 
 void _linphone_chat_message_notify_msg_state_changed(LinphoneChatMessage *msg, LinphoneChatMessageState state);
 void _linphone_chat_message_notify_new_message_reaction(LinphoneChatMessage *msg,
                                                         const LinphoneChatMessageReaction *reaction);
 void _linphone_chat_message_notify_reaction_removed(LinphoneChatMessage *msg, const LinphoneAddress *address);
+void _linphone_chat_message_notify_content_edited(LinphoneChatMessage *msg);
+void _linphone_chat_message_notify_retracted(LinphoneChatMessage *msg);
 void _linphone_chat_message_notify_participant_imdn_state_changed(LinphoneChatMessage *msg,
                                                                   const LinphoneParticipantImdnState *state);
 void _linphone_chat_message_notify_file_transfer_terminated(LinphoneChatMessage *msg, LinphoneContent *content);

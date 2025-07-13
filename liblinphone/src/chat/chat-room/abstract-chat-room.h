@@ -152,6 +152,7 @@ public:
 	virtual void deleteFromDb() = 0;
 	virtual void deleteHistory() = 0;
 	virtual void deleteMessageFromHistory(const std::shared_ptr<ChatMessage> &message) = 0;
+	virtual void retractMessage(const std::shared_ptr<ChatMessage> &message) = 0;
 
 	virtual std::shared_ptr<ChatMessage> getLastChatMessageInHistory() const = 0;
 	virtual bool isEmpty() const = 0;
@@ -174,6 +175,7 @@ public:
 	virtual std::shared_ptr<ChatMessage> createFileTransferMessage(const std::shared_ptr<FileContent> &content) = 0;
 	virtual std::shared_ptr<ChatMessage> createForwardMessage(const std::shared_ptr<ChatMessage> &msg) = 0;
 	virtual std::shared_ptr<ChatMessage> createReplyMessage(const std::shared_ptr<ChatMessage> &msg) = 0;
+	virtual std::shared_ptr<ChatMessage> createReplacesMessage(const std::shared_ptr<ChatMessage> &msg) = 0;
 
 	virtual std::shared_ptr<ChatMessage> findChatMessage(const std::string &messageId) const = 0;
 	virtual std::shared_ptr<ChatMessage> findChatMessage(const std::string &messageId,

@@ -344,3 +344,21 @@ void linphone_chat_room_cbs_set_new_message_reaction(LinphoneChatRoomCbs *cbs,
                                                      LinphoneChatRoomCbsNewMessageReactionCb cb) {
 	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->newMessageReactionCb = cb;
 }
+
+LinphoneChatRoomCbsMessageContentEditedCb
+linphone_chat_room_cbs_get_message_content_edited(const LinphoneChatRoomCbs *cbs) {
+	return LinphonePrivate::ChatRoomCbs::toCpp(cbs)->messageContentEditedCb;
+}
+
+void linphone_chat_room_cbs_set_message_content_edited(LinphoneChatRoomCbs *cbs,
+                                                       LinphoneChatRoomCbsMessageContentEditedCb cb) {
+	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->messageContentEditedCb = cb;
+}
+
+LinphoneChatRoomCbsMessageRetractedCb linphone_chat_room_cbs_get_message_retracted(const LinphoneChatRoomCbs *cbs) {
+	return LinphonePrivate::ChatRoomCbs::toCpp(cbs)->messageRetractedCb;
+}
+
+void linphone_chat_room_cbs_set_message_retracted(LinphoneChatRoomCbs *cbs, LinphoneChatRoomCbsMessageRetractedCb cb) {
+	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->messageRetractedCb = cb;
+}

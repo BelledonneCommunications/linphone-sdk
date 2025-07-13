@@ -698,6 +698,26 @@ typedef void (*LinphoneCoreCbsMessageWaitingIndicationChangedCb)(LinphoneCore *c
 typedef void (*LinphoneCoreCbsSnapshotTakenCb)(LinphoneCore *core, const char *file_path);
 
 /**
+ * Callback notifying a message has been edited.
+ * @param core LinphoneCore object. @notnil
+ * @param chatRoom the #LinphoneChatRoom that contains the edited message. @notnil
+ * @param message the #LinphoneChatMessage that was edited. @notnil
+ */
+typedef void (*LinphoneCoreCbsMessageContentEditedCb)(LinphoneCore *core,
+                                                      LinphoneChatRoom *chatRoom,
+                                                      LinphoneChatMessage *message);
+
+/**
+ * Callback notifying a message has been retracted.
+ * @param core LinphoneCore object. @notnil
+ * @param chatRoom the #LinphoneChatRoom that contains the retracted message. @notnil
+ * @param message the #LinphoneChatMessage that was retracted. @notnil
+ */
+typedef void (*LinphoneCoreCbsMessageRetractedCb)(LinphoneCore *core,
+                                                  LinphoneChatRoom *chatRoom,
+                                                  LinphoneChatMessage *message);
+
+/**
  * @}
  **/
 

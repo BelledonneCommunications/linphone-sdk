@@ -3592,6 +3592,46 @@ void message_received_fail_to_decrypt(LinphoneCore *lc,
 	counters->last_fail_to_decrypt_received_chat_message = linphone_chat_message_ref(msg);
 }
 
+void chat_room_message_content_edited(BCTBX_UNUSED(LinphoneChatRoom *room), LinphoneChatMessage *msg) {
+	LinphoneCore *lc = linphone_chat_message_get_core(msg);
+	stats *counters = get_stats(lc);
+	counters->number_of_LinphoneMessageContentEdited++;
+	BC_ASSERT_TRUE(linphone_chat_message_is_edited(msg));
+}
+
+void chat_room_message_retracted(BCTBX_UNUSED(LinphoneChatRoom *room), LinphoneChatMessage *msg) {
+	LinphoneCore *lc = linphone_chat_message_get_core(msg);
+	stats *counters = get_stats(lc);
+	counters->number_of_LinphoneMessageRetracted++;
+	BC_ASSERT_TRUE(linphone_chat_message_is_retracted(msg));
+	const bctbx_list_t *contents = linphone_chat_message_get_contents(msg);
+	BC_ASSERT_PTR_NOT_NULL(contents);
+	if (contents) {
+		BC_ASSERT_EQUAL(bctbx_list_size(contents), 1, size_t, "%0zu");
+		const LinphoneContent *content = bctbx_list_get_data(contents);
+		BC_ASSERT_PTR_NOT_NULL(content);
+		if (content) {
+			BC_ASSERT_PTR_NULL(linphone_content_get_utf8_text(content));
+		}
+	}
+}
+
+void liblinphone_tester_setup_message_content_edited_cb(LinphoneChatRoom *room, void *user_data) {
+	LinphoneChatRoomCbs *room_cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
+	linphone_chat_room_cbs_set_message_content_edited(room_cbs, chat_room_message_content_edited);
+	linphone_chat_room_cbs_set_user_data(room_cbs, user_data);
+	linphone_chat_room_add_callbacks(room, room_cbs);
+	linphone_chat_room_cbs_unref(room_cbs);
+}
+
+void liblinphone_tester_setup_message_content_retracted_cb(LinphoneChatRoom *room, void *user_data) {
+	LinphoneChatRoomCbs *room_cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
+	linphone_chat_room_cbs_set_message_retracted(room_cbs, chat_room_message_retracted);
+	linphone_chat_room_cbs_set_user_data(room_cbs, user_data);
+	linphone_chat_room_add_callbacks(room, room_cbs);
+	linphone_chat_room_cbs_unref(room_cbs);
+}
+
 void reaction_received(LinphoneCore *lc,
                        BCTBX_UNUSED(LinphoneChatRoom *room),
                        LinphoneChatMessage *msg,

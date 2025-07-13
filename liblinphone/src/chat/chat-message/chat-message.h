@@ -146,6 +146,14 @@ public:
 	bool isReaction() const;
 	const std::string &getReactionToMessageId() const;
 	std::shared_ptr<ChatMessage> getReactionToMessage() const;
+
+	bool isRetracted() const;
+	const std::string &getRetractsMessageId() const;
+	bool canBeRetracted() const;
+	bool isEdited() const;
+	const std::string &getReplacesMessageId() const;
+	bool canBeEdited() const;
+
 	const std::list<std::shared_ptr<ChatMessageReaction>> getReactions() const;
 	const std::shared_ptr<ChatMessageReaction> getOwnReaction() const;
 

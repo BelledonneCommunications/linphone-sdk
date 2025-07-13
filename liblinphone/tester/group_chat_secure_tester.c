@@ -5947,7 +5947,400 @@ static void group_chat_lime_x3dh_with_imdn_sent_only_to_sender_after_going_over_
 	group_chat_with_imdn_sent_only_to_sender_base(TRUE, TRUE, FALSE);
 }
 
-test_t secure_group_chat_tests[] = {
+static void group_chat_lime_x3dh_message_content_edition_and_retract(const LinphoneTesterLimeAlgo curveId) {
+	LinphoneCoreManager *marie = linphone_core_manager_create("marie_rc");
+	LinphoneCoreManager *pauline = linphone_core_manager_create("pauline_rc");
+	bctbx_list_t *coresManagerList = NULL;
+	bctbx_list_t *participantsAddresses = NULL;
+	coresManagerList = bctbx_list_append(coresManagerList, marie);
+	coresManagerList = bctbx_list_append(coresManagerList, pauline);
+	LinphoneChatMessage *sentMessage;
+
+	set_lime_server_and_curve_list(curveId, coresManagerList);
+	stats initialMarieStats = marie->stat;
+	stats initialPaulineStats = pauline->stat;
+	bctbx_list_t *coresList = init_core_for_conference(coresManagerList);
+	start_core_for_conference(coresManagerList);
+	participantsAddresses =
+	    bctbx_list_append(participantsAddresses, linphone_address_new(linphone_core_get_identity(pauline->lc)));
+
+	// Wait for lime users to be created on X3DH server
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_X3dhUserCreationSuccess,
+	                             initialMarieStats.number_of_X3dhUserCreationSuccess + 1, x3dhServer_creationTimeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_X3dhUserCreationSuccess,
+	                             initialPaulineStats.number_of_X3dhUserCreationSuccess + 1,
+	                             x3dhServer_creationTimeout));
+
+	// Check encryption status for both participants
+	BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(marie->lc));
+	BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(pauline->lc));
+
+	LinphoneAccount *pauline_account = linphone_core_get_default_account(pauline->lc);
+	LinphoneAccountParams *pauline_params = linphone_account_params_clone(linphone_account_get_params(pauline_account));
+	linphone_account_params_set_instant_messaging_encryption_mandatory(pauline_params, TRUE);
+	linphone_account_set_params(pauline_account, pauline_params);
+	linphone_account_params_unref(pauline_params);
+
+	LinphoneAccount *marie_account = linphone_core_get_default_account(marie->lc);
+	LinphoneAccountParams *marie_params = linphone_account_params_clone(linphone_account_get_params(marie_account));
+	linphone_account_params_set_instant_messaging_encryption_mandatory(marie_params, TRUE);
+	linphone_account_set_params(marie_account, marie_params);
+	linphone_account_params_unref(marie_params);
+
+	// Marie creates a new group chat room
+	const char *initialSubject = "Friends";
+	LinphoneChatRoom *marieCr =
+	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
+	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(marieCr));
+
+	// Check that the chat room is correctly created on Pauline's side and that the participants are added
+	LinphoneChatRoom *paulineCr =
+	    check_creation_chat_room_client_side(coresList, pauline, &initialPaulineStats, confAddr, initialSubject, 1, 0);
+	if (!BC_ASSERT_PTR_NOT_NULL(paulineCr)) goto end;
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(paulineCr));
+
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(marieCr));
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(paulineCr));
+	BC_ASSERT_EQUAL(linphone_chat_room_get_unread_messages_count(paulineCr), 0, int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count(pauline->lc), 0, int, "%d");
+	BC_ASSERT_EQUAL(linphone_account_get_unread_chat_message_count(linphone_core_get_default_account(pauline->lc)), 0,
+	                int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count_from_active_locals(pauline->lc), 0, int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count_from_local(
+	                    pauline->lc, linphone_chat_room_get_local_address(paulineCr)),
+	                0, int, "%d");
+
+	// Check chat room security level
+	BC_ASSERT_EQUAL(linphone_chat_room_get_security_level(marieCr), LinphoneChatRoomSecurityLevelEncrypted, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_security_level(paulineCr), LinphoneChatRoomSecurityLevelEncrypted, int,
+	                "%d");
+
+	liblinphone_tester_setup_message_content_edited_cb(marieCr, marie);
+	liblinphone_tester_setup_message_content_retracted_cb(marieCr, marie);
+
+	liblinphone_tester_setup_message_content_edited_cb(paulineCr, pauline);
+	liblinphone_tester_setup_message_content_retracted_cb(paulineCr, pauline);
+
+	// Marie sends the message
+	const char *marieMessage = "What'z up?";
+	sentMessage = _send_message(marieCr, marieMessage);
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageReceived,
+	                             initialPaulineStats.number_of_LinphoneMessageReceived + 1,
+	                             liblinphone_tester_sip_timeout));
+	LinphoneChatMessage *paulineLastMsg = pauline->stat.last_received_chat_message;
+	if (!BC_ASSERT_PTR_NOT_NULL(paulineLastMsg)) goto end;
+
+	BC_ASSERT_FALSE(linphone_chat_room_is_empty(marieCr));
+	BC_ASSERT_FALSE(linphone_chat_room_is_empty(paulineCr));
+	BC_ASSERT_EQUAL(linphone_chat_room_get_unread_messages_count(paulineCr), 1, int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count(pauline->lc), 1, int, "%d");
+	BC_ASSERT_EQUAL(linphone_account_get_unread_chat_message_count(linphone_core_get_default_account(pauline->lc)), 1,
+	                int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count_from_active_locals(pauline->lc), 1, int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count_from_local(
+	                    pauline->lc, linphone_chat_room_get_local_address(paulineCr)),
+	                1, int, "%d");
+
+	// Check that the message was correctly decrypted
+	BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), marieMessage);
+	LinphoneAddress *marieAddr = linphone_address_new(linphone_core_get_identity(marie->lc));
+	BC_ASSERT_TRUE(linphone_address_weak_equal(marieAddr, linphone_chat_message_get_from_address(paulineLastMsg)));
+	linphone_address_unref(marieAddr);
+
+	// Edit message that was sent
+	const char *edited_text = "What's up?";
+	BC_ASSERT_TRUE(linphone_chat_message_is_editable(sentMessage));
+	BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(sentMessage), marieMessage);
+
+	LinphoneChatMessage *editedMsg = linphone_chat_room_create_replaces_message(marieCr, sentMessage);
+	LinphoneContent *text_content = linphone_core_create_content(linphone_chat_room_get_core(marieCr));
+	linphone_content_set_type(text_content, "text");
+	linphone_content_set_subtype(text_content, "plain");
+	linphone_content_set_utf8_text(text_content, edited_text);
+	linphone_chat_message_add_content(editedMsg, text_content);
+	linphone_content_unref(text_content);
+	linphone_chat_message_send(editedMsg);
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageContentEdited,
+	                             initialPaulineStats.number_of_LinphoneMessageContentEdited + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageContentEdited,
+	                             initialMarieStats.number_of_LinphoneMessageContentEdited + 1,
+	                             liblinphone_tester_sip_timeout));
+	linphone_chat_message_unref(editedMsg);
+
+	// On receiver side message is flagged as edited but it is not editable
+	BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), edited_text);
+	BC_ASSERT_FALSE(linphone_chat_message_is_editable(paulineLastMsg));
+	BC_ASSERT_TRUE(linphone_chat_message_is_edited(paulineLastMsg));
+
+	// On sender side message is flagged as edited and can be edited again
+	if (linphone_chat_room_get_history_size(marieCr) > 0) {
+		LinphoneChatMessage *editedMessage = linphone_chat_room_get_last_message_in_history(marieCr);
+		BC_ASSERT_PTR_NOT_NULL(editedMessage);
+		if (editedMessage != NULL) {
+			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(editedMessage), edited_text);
+			BC_ASSERT_TRUE(linphone_chat_message_is_editable(editedMessage));
+			BC_ASSERT_TRUE(linphone_chat_message_is_edited(editedMessage));
+			linphone_chat_message_unref(editedMessage);
+		}
+	}
+
+	// Now let's retract the sent message
+	BC_ASSERT_TRUE(linphone_chat_message_is_retractable(sentMessage));
+	linphone_chat_room_retract_message(marieCr, sentMessage);
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageRetracted,
+	                             initialPaulineStats.number_of_LinphoneMessageRetracted + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageRetracted,
+	                             initialMarieStats.number_of_LinphoneMessageRetracted + 1,
+	                             liblinphone_tester_sip_timeout));
+
+	// On receiver side message is flagged as retracted and has no text content anymore
+	BC_ASSERT_PTR_NULL(linphone_chat_message_get_utf8_text(paulineLastMsg));
+	BC_ASSERT_FALSE(linphone_chat_message_is_retractable(paulineLastMsg));
+	BC_ASSERT_TRUE(linphone_chat_message_is_retracted(paulineLastMsg));
+
+	// On sender side the message is in the same state as on the receiver
+	if (linphone_chat_room_get_history_size(marieCr) > 0) {
+		LinphoneChatMessage *retractedMessage = linphone_chat_room_get_last_message_in_history(marieCr);
+		BC_ASSERT_PTR_NOT_NULL(retractedMessage);
+		if (retractedMessage != NULL) {
+			BC_ASSERT_PTR_NULL(linphone_chat_message_get_utf8_text(retractedMessage));
+			BC_ASSERT_FALSE(linphone_chat_message_is_retractable(retractedMessage));
+			BC_ASSERT_TRUE(linphone_chat_message_is_retracted(retractedMessage));
+			linphone_chat_message_unref(retractedMessage);
+		}
+	}
+
+	linphone_chat_message_unref(sentMessage);
+end:
+
+	// Clean db from chat room
+	linphone_core_manager_delete_chat_room(marie, marieCr, coresList);
+	linphone_core_manager_delete_chat_room(pauline, paulineCr, coresList);
+
+	bctbx_list_free(coresList);
+	bctbx_list_free(coresManagerList);
+	linphone_core_manager_destroy(marie);
+	linphone_core_manager_destroy(pauline);
+}
+
+static void group_chat_lime_x3dh_edit_and_retract_sent_message(void) {
+	if (liblinphone_tester_is_lime_PQ_available()) {
+		group_chat_lime_x3dh_message_content_edition_and_retract(C25519K512);
+		group_chat_lime_x3dh_message_content_edition_and_retract(C25519MLK512);
+		group_chat_lime_x3dh_message_content_edition_and_retract(C448MLK1024);
+	} else {
+		group_chat_lime_x3dh_message_content_edition_and_retract(C25519);
+		group_chat_lime_x3dh_message_content_edition_and_retract(C448);
+	}
+}
+
+static void group_chat_lime_x3dh_edit_sent_message_with_file_base(const LinphoneTesterLimeAlgo curveId) {
+	LinphoneCoreManager *marie = linphone_core_manager_create("marie_rc");
+	LinphoneCoreManager *pauline = linphone_core_manager_create("pauline_rc");
+	bctbx_list_t *coresManagerList = NULL;
+	bctbx_list_t *participantsAddresses = NULL;
+	coresManagerList = bctbx_list_append(coresManagerList, marie);
+	coresManagerList = bctbx_list_append(coresManagerList, pauline);
+	LinphoneChatMessage *sentMessage;
+	char *sendFilepath = bc_tester_res("sounds/sintel_trailer_opus_h264.mkv");
+	char *receivePaulineFilepath = random_filepath("receive_file_secure_pauline", "dump");
+
+	// Remove any previously downloaded file
+	remove(receivePaulineFilepath);
+
+	set_lime_server_and_curve_list(curveId, coresManagerList);
+	stats initialMarieStats = marie->stat;
+	stats initialPaulineStats = pauline->stat;
+	bctbx_list_t *coresList = init_core_for_conference(coresManagerList);
+	start_core_for_conference(coresManagerList);
+	participantsAddresses =
+	    bctbx_list_append(participantsAddresses, linphone_address_new(linphone_core_get_identity(pauline->lc)));
+
+	// Wait for lime users to be created on X3DH server
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_X3dhUserCreationSuccess,
+	                             initialMarieStats.number_of_X3dhUserCreationSuccess + 1, x3dhServer_creationTimeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_X3dhUserCreationSuccess,
+	                             initialPaulineStats.number_of_X3dhUserCreationSuccess + 1,
+	                             x3dhServer_creationTimeout));
+
+	// Check encryption status for both participants
+	BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(marie->lc));
+	BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(pauline->lc));
+
+	LinphoneAccount *pauline_account = linphone_core_get_default_account(pauline->lc);
+	LinphoneAccountParams *pauline_params = linphone_account_params_clone(linphone_account_get_params(pauline_account));
+	linphone_account_params_set_instant_messaging_encryption_mandatory(pauline_params, TRUE);
+	linphone_account_set_params(pauline_account, pauline_params);
+	linphone_account_params_unref(pauline_params);
+
+	LinphoneAccount *marie_account = linphone_core_get_default_account(marie->lc);
+	LinphoneAccountParams *marie_params = linphone_account_params_clone(linphone_account_get_params(marie_account));
+	linphone_account_params_set_instant_messaging_encryption_mandatory(marie_params, TRUE);
+	linphone_account_set_params(marie_account, marie_params);
+	linphone_account_params_unref(marie_params);
+
+	// Marie creates a new group chat room
+	const char *initialSubject = "Friends";
+	LinphoneChatRoom *marieCr =
+	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
+	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(marieCr));
+
+	// Check that the chat room is correctly created on Pauline's side and that the participants are added
+	LinphoneChatRoom *paulineCr =
+	    check_creation_chat_room_client_side(coresList, pauline, &initialPaulineStats, confAddr, initialSubject, 1, 0);
+	if (!BC_ASSERT_PTR_NOT_NULL(paulineCr)) goto end;
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(paulineCr));
+
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(marieCr));
+	BC_ASSERT_TRUE(linphone_chat_room_is_empty(paulineCr));
+	BC_ASSERT_EQUAL(linphone_chat_room_get_unread_messages_count(paulineCr), 0, int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count(pauline->lc), 0, int, "%d");
+	BC_ASSERT_EQUAL(linphone_account_get_unread_chat_message_count(linphone_core_get_default_account(pauline->lc)), 0,
+	                int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count_from_active_locals(pauline->lc), 0, int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count_from_local(
+	                    pauline->lc, linphone_chat_room_get_local_address(paulineCr)),
+	                0, int, "%d");
+
+	// Check chat room security level
+	BC_ASSERT_EQUAL(linphone_chat_room_get_security_level(marieCr), LinphoneChatRoomSecurityLevelEncrypted, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_security_level(paulineCr), LinphoneChatRoomSecurityLevelEncrypted, int,
+	                "%d");
+
+	liblinphone_tester_setup_message_content_edited_cb(marieCr, marie);
+	liblinphone_tester_setup_message_content_edited_cb(paulineCr, pauline);
+
+	// Marie needs to have a file transfer server configured
+	linphone_core_set_file_transfer_server(marie->lc, file_transfer_url);
+
+	// Marie sends the message
+	const char *marieMessage = "What'z up?";
+	sentMessage = _send_file_plus_text_return_message(marieCr, sendFilepath, NULL, marieMessage, FALSE);
+
+	// Wait for Pauline to receive it
+	_receive_file_plus_text(coresList, pauline, &initialPaulineStats, receivePaulineFilepath, sendFilepath, NULL,
+	                        marieMessage, FALSE);
+	LinphoneChatMessage *paulineLastMsg = pauline->stat.last_received_chat_message;
+	if (!BC_ASSERT_PTR_NOT_NULL(paulineLastMsg)) goto end;
+
+	BC_ASSERT_FALSE(linphone_chat_room_is_empty(marieCr));
+	BC_ASSERT_FALSE(linphone_chat_room_is_empty(paulineCr));
+	BC_ASSERT_EQUAL(linphone_chat_room_get_unread_messages_count(paulineCr), 1, int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count(pauline->lc), 1, int, "%d");
+	BC_ASSERT_EQUAL(linphone_account_get_unread_chat_message_count(linphone_core_get_default_account(pauline->lc)), 1,
+	                int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count_from_active_locals(pauline->lc), 1, int, "%d");
+	BC_ASSERT_EQUAL(linphone_core_get_unread_chat_message_count_from_local(
+	                    pauline->lc, linphone_chat_room_get_local_address(paulineCr)),
+	                1, int, "%d");
+
+	// Check that the message was correctly decrypted
+	BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), marieMessage);
+	LinphoneAddress *marieAddr = linphone_address_new(linphone_core_get_identity(marie->lc));
+	BC_ASSERT_TRUE(linphone_address_weak_equal(marieAddr, linphone_chat_message_get_from_address(paulineLastMsg)));
+	linphone_address_unref(marieAddr);
+
+	// Edit message that was sent
+	const char *edited_text = "What's up?";
+	BC_ASSERT_TRUE(linphone_chat_message_is_editable(sentMessage));
+	BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(sentMessage), marieMessage);
+
+	LinphoneChatMessage *editedMsg = linphone_chat_room_create_replaces_message(marieCr, sentMessage);
+	LinphoneContent *text_content = linphone_core_create_content(linphone_chat_room_get_core(marieCr));
+	linphone_content_set_type(text_content, "text");
+	linphone_content_set_subtype(text_content, "plain");
+	linphone_content_set_utf8_text(text_content, edited_text);
+	linphone_chat_message_add_content(editedMsg, text_content);
+	linphone_content_unref(text_content);
+	linphone_chat_message_send(editedMsg);
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageContentEdited,
+	                             initialPaulineStats.number_of_LinphoneMessageContentEdited + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageContentEdited,
+	                             initialMarieStats.number_of_LinphoneMessageContentEdited + 1,
+	                             liblinphone_tester_sip_timeout));
+	linphone_chat_message_unref(editedMsg);
+
+	// On receiver side message is flagged as edited but it is not editable
+	BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), edited_text);
+	BC_ASSERT_FALSE(linphone_chat_message_is_editable(paulineLastMsg));
+	BC_ASSERT_TRUE(linphone_chat_message_is_edited(paulineLastMsg));
+
+	// Check the file hasn't changed
+	const bctbx_list_t *contents = linphone_chat_message_get_contents(paulineLastMsg);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(contents), 2, int, "%d");
+	const bctbx_list_t *it;
+	for (it = contents; it != NULL; it = bctbx_list_next(it)) {
+		const LinphoneContent *content = (LinphoneContent *)bctbx_list_get_data(it);
+		BC_ASSERT_PTR_NOT_NULL(content);
+
+		if (linphone_content_is_file(content)) {
+			BC_ASSERT_STRING_EQUAL(linphone_content_get_file_path(content), receivePaulineFilepath);
+		}
+	}
+
+	// On sender side message is flagged as edited and can be edited again
+	if (linphone_chat_room_get_history_size(marieCr) > 0) {
+		LinphoneChatMessage *editedMessage = linphone_chat_room_get_last_message_in_history(marieCr);
+		BC_ASSERT_PTR_NOT_NULL(editedMessage);
+		if (editedMessage != NULL) {
+			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(editedMessage), edited_text);
+			BC_ASSERT_TRUE(linphone_chat_message_is_editable(editedMessage));
+			BC_ASSERT_TRUE(linphone_chat_message_is_edited(editedMessage));
+
+			// Check the file hasn't changed
+			const bctbx_list_t *contents = linphone_chat_message_get_contents(editedMessage);
+			BC_ASSERT_EQUAL((int)bctbx_list_size(contents), 2, int, "%d");
+			const bctbx_list_t *it;
+			for (it = contents; it != NULL; it = bctbx_list_next(it)) {
+				const LinphoneContent *content = (LinphoneContent *)bctbx_list_get_data(it);
+				BC_ASSERT_PTR_NOT_NULL(content);
+
+				if (linphone_content_is_file(content)) {
+					BC_ASSERT_STRING_EQUAL(linphone_content_get_file_path(content), sendFilepath);
+				}
+			}
+
+			linphone_chat_message_unref(editedMessage);
+		}
+	}
+
+	linphone_chat_message_unref(sentMessage);
+end:
+	remove(receivePaulineFilepath);
+	bc_free(receivePaulineFilepath);
+	bc_free(sendFilepath);
+
+	// Clean db from chat room
+	linphone_core_manager_delete_chat_room(marie, marieCr, coresList);
+	linphone_core_manager_delete_chat_room(pauline, paulineCr, coresList);
+
+	bctbx_list_free(coresList);
+	bctbx_list_free(coresManagerList);
+	linphone_core_manager_destroy(marie);
+	linphone_core_manager_destroy(pauline);
+}
+
+static void group_chat_lime_x3dh_edit_sent_message_with_file(void) {
+	if (liblinphone_tester_is_lime_PQ_available()) {
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519K512);
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519MLK512);
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C448MLK1024);
+	} else {
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519);
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C448);
+	}
+}
+
+static test_t secure_group_chat_tests[] = {
     TEST_ONE_TAG("LIME X3DH create lime user", group_chat_lime_x3dh_create_lime_user, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH create multiple lime user using different base algorithm",
                  group_chat_lime_x3dh_create_multialgo_users,
@@ -5971,7 +6364,7 @@ test_t secure_group_chat_tests[] = {
                  "LimeX3DH"),
 };
 
-test_t secure_group_chat2_tests[] = {
+static test_t secure_group_chat2_tests[] = {
     TEST_ONE_TAG("LIME X3DH chatroom security level self multidevices",
                  group_chat_lime_x3dh_chatroom_security_level_self_multidevices,
                  "LimeX3DH"),
@@ -6001,7 +6394,7 @@ test_t secure_group_chat2_tests[] = {
                   "LimeX3DH",
                   "LeaksMemory" /*due to core restart*/)};
 
-test_t secure_group_chat_exhume_tests[] = {
+static test_t secure_group_chat_exhume_tests[] = {
     TEST_ONE_TAG(
         "LIME X3DH exhumed one-to-one chat room 1", exhume_group_chat_lime_x3dh_one_to_one_chat_room_1, "LimeX3DH"),
     TEST_ONE_TAG(
@@ -6012,7 +6405,7 @@ test_t secure_group_chat_exhume_tests[] = {
         "LIME X3DH exhumed one-to-one chat room 4", exhume_group_chat_lime_x3dh_one_to_one_chat_room_4, "LimeX3DH"),
 };
 
-test_t secure_message_tests[] = {
+static test_t secure_message_tests[] = {
     TEST_ONE_TAG("LIME X3DH message", group_chat_lime_x3dh_send_encrypted_message, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH message while offline", group_chat_lime_x3dh_send_encrypted_message_offline, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH message with error", group_chat_lime_x3dh_send_encrypted_message_with_error, "LimeX3DH"),
@@ -6058,9 +6451,14 @@ test_t secure_message_tests[] = {
                   "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("LIME X3DH send reaction message from two device with same identity",
                  group_chat_lime_x3dh_chat_room_multiple_reactions_from_same_identity_but_different_gruu,
-                 "LimeX3DH")};
+                 "LimeX3DH"),
+    TEST_ONE_TAG("LIME X3DH edit and retract already sent message",
+                 group_chat_lime_x3dh_edit_and_retract_sent_message,
+                 "LimeX3DH"),
+    TEST_ONE_TAG(
+        "LIME X3DH edit already sent message with file", group_chat_lime_x3dh_edit_sent_message_with_file, "LimeX3DH")};
 
-test_t secure_message2_tests[] = {
+static test_t secure_message2_tests[] = {
     TEST_ONE_TAG("LIME X3DH verify SAS before message", group_chat_lime_x3dh_verify_sas_before_message, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH reject SAS before message", group_chat_lime_x3dh_reject_sas_before_message, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH message before verify SAS", group_chat_lime_x3dh_message_before_verify_sas, "LimeX3DH"),
@@ -6125,7 +6523,7 @@ test_suite_t secure_message_test_suite = {"Secure Message",
                                           liblinphone_tester_after_each,
                                           sizeof(secure_message_tests) / sizeof(secure_message_tests[0]),
                                           secure_message_tests,
-                                          0};
+                                          512};
 
 test_suite_t secure_message2_test_suite = {"Secure Message2",
                                            NULL,

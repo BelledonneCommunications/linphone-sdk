@@ -294,6 +294,8 @@ typedef struct _LinphoneCoreVTable {
 	LinphoneCoreCbsAccountRemovedCb account_removed;
 	LinphoneCoreCbsMessageWaitingIndicationChangedCb message_waiting_indication_changed;
 	LinphoneCoreCbsSnapshotTakenCb snapshot_taken;
+	LinphoneCoreCbsMessageContentEditedCb message_content_edited;
+	LinphoneCoreCbsMessageRetractedCb message_retracted;
 	void *user_data; /**<User data associated with the above callbacks */
 } LinphoneCoreVTable;
 
@@ -1380,6 +1382,36 @@ LINPHONE_PUBLIC LinphoneCoreCbsSnapshotTakenCb linphone_core_cbs_get_snapshot_ta
  * @param cb The snapshot taken callback to be used.
  */
 LINPHONE_PUBLIC void linphone_core_cbs_set_snapshot_taken(LinphoneCoreCbs *cbs, LinphoneCoreCbsSnapshotTakenCb cb);
+
+/**
+ * Sets the message content edited callback.
+ * @param cbs #LinphoneCoreCbs object. @notnil
+ * @param message_edited_cb The #LinphoneCoreCbsMessageContentEditedCb callback to call. @notnil
+ */
+LINPHONE_PUBLIC void
+linphone_core_cbs_set_message_content_edited(LinphoneCoreCbs *cbs,
+                                             LinphoneCoreCbsMessageContentEditedCb message_edited_cb);
+/**
+ * Gets the message content edited callback.
+ * @param cbs #LinphoneCoreCbs object. @notnil
+ * @return The #LinphoneCoreCbsMessageContentEditedCb callback called.
+ */
+LINPHONE_PUBLIC LinphoneCoreCbsMessageContentEditedCb
+linphone_core_cbs_get_message_content_edited(LinphoneCoreCbs *cbs);
+
+/**
+ * Sets the message retracted callback.
+ * @param cbs #LinphoneCoreCbs object. @notnil
+ * @param message_retracted_cb The #LinphoneCoreCbsMessageRetractedCb callback to call. @notnil
+ */
+LINPHONE_PUBLIC void linphone_core_cbs_set_message_retracted(LinphoneCoreCbs *cbs,
+                                                             LinphoneCoreCbsMessageRetractedCb message_retracted_cb);
+/**
+ * Gets the message retracted callback.
+ * @param cbs #LinphoneCoreCbs object. @notnil
+ * @return The #LinphoneCoreCbsMessageRetractedCb callback called.
+ */
+LINPHONE_PUBLIC LinphoneCoreCbsMessageRetractedCb linphone_core_cbs_get_message_retracted(LinphoneCoreCbs *cbs);
 
 /**
  * @}

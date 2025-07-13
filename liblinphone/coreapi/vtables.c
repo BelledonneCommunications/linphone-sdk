@@ -639,3 +639,17 @@ void linphone_core_notify_alert(LinphoneCore *lc, LinphoneAlert *alert) {
 	NOTIFY_IF_EXIST(new_alert_triggered, lc, alert);
 	cleanup_dead_vtable_refs(lc);
 }
+
+void linphone_core_notify_chat_message_content_edited(LinphoneCore *lc,
+                                                      LinphoneChatRoom *chatRoom,
+                                                      LinphoneChatMessage *message) {
+	NOTIFY_IF_EXIST(message_content_edited, lc, chatRoom, message);
+	cleanup_dead_vtable_refs(lc);
+}
+
+void linphone_core_notify_chat_message_retracted(LinphoneCore *lc,
+                                                 LinphoneChatRoom *chatRoom,
+                                                 LinphoneChatMessage *message) {
+	NOTIFY_IF_EXIST(message_retracted, lc, chatRoom, message);
+	cleanup_dead_vtable_refs(lc);
+}

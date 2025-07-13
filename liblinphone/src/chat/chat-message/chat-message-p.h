@@ -91,6 +91,8 @@ public:
 	void setForwardInfo(const std::string &fInfo);
 	void setReplyToMessageIdAndSenderAddress(const std::string &id, const std::shared_ptr<Address> &sender);
 	void setReactionToMessageId(const std::string &id);
+	void setReplacesMessageId(const std::string &id);
+	void setRetractsMessageId(const std::string &id);
 
 	void enableEphemeralWithTime(long time);
 
@@ -199,6 +201,17 @@ public:
 		return unencryptedContentWarning;
 	}
 
+	bool retractExistingMessageUsingId(const std::string &messageId);
+	bool replaceExistingMessageUsingId(const std::string &messageId);
+
+	void setEdited(bool edited) {
+		isEdited = edited;
+	}
+
+	void setRetracted(bool retracted) {
+		isRetracted = retracted;
+	}
+
 	// -----------------------------------------------------------------------------
 	// Deprecated methods only used for C wrapper, to be removed some day...
 	// -----------------------------------------------------------------------------
@@ -255,6 +268,8 @@ public:
 	void setAutomaticallyResent(bool enable);
 
 	void setDelayTimerExpired();
+
+	void clearContents();
 
 	long long storageId = -1;
 
@@ -316,6 +331,8 @@ private:
 	std::string forwardInfo;
 	std::string replyingToMessageId;
 	std::string reactionToMessageId;
+	std::string replacesMessageId;
+	std::string retractsMessageId;
 	std::shared_ptr<Address> replyingToMessageSender;
 	std::shared_ptr<Address> recipientAddress;
 
@@ -331,6 +348,8 @@ private:
 	bool encryptionPrevented = false;
 	mutable bool contentsNotLoadedFromDatabase = false;
 	bool isInAggregationQueue = false;
+	bool isEdited = false;
+	bool isRetracted = false;
 
 	std::list<std::shared_ptr<ChatMessageListener>> listeners;
 

@@ -155,6 +155,14 @@ void _linphone_chat_message_notify_reaction_removed(LinphoneChatMessage *msg, co
 	NOTIFY_IF_EXIST(ReactionRemoved, reaction_removed, msg, address);
 }
 
+void _linphone_chat_message_notify_content_edited(LinphoneChatMessage *msg) {
+	NOTIFY_IF_EXIST(ContentEdited, content_edited, msg);
+}
+
+void _linphone_chat_message_notify_retracted(LinphoneChatMessage *msg) {
+	NOTIFY_IF_EXIST(Retracted, retracted, msg);
+}
+
 void _linphone_chat_message_notify_participant_imdn_state_changed(LinphoneChatMessage *msg,
                                                                   const LinphoneParticipantImdnState *state) {
 	NOTIFY_IF_EXIST(ParticipantImdnStateChanged, participant_imdn_state_changed, msg, state);
@@ -658,4 +666,20 @@ LinphoneChatMessageReaction *linphone_chat_message_create_reaction(LinphoneChatM
 	LinphonePrivate::ChatMessageReaction::toCpp(reaction)->setChatRoom(chatRoom);
 
 	return reaction;
+}
+
+bool_t linphone_chat_message_is_retracted(LinphoneChatMessage *message) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(message)->isRetracted();
+}
+
+bool_t linphone_chat_message_is_retractable(LinphoneChatMessage *message) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(message)->canBeRetracted();
+}
+
+bool_t linphone_chat_message_is_edited(LinphoneChatMessage *message) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(message)->isEdited();
+}
+
+bool_t linphone_chat_message_is_editable(LinphoneChatMessage *message) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(message)->canBeEdited();
 }

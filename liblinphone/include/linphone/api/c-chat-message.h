@@ -522,6 +522,34 @@ LINPHONE_PUBLIC bool_t linphone_chat_message_has_conference_invitation_content(c
 LINPHONE_PUBLIC LinphoneChatMessageReaction *linphone_chat_message_create_reaction(LinphoneChatMessage *message,
                                                                                    const char *utf8_reaction);
 
+/**
+ * Returns wether this message has been retracted by it's sender after it was sent.
+ * @param message the message you want to check if it was edited or not @notnil
+ * @return TRUE if the message has been retracted after it was sent, FALSE otherwise.
+ */
+LINPHONE_PUBLIC bool_t linphone_chat_message_is_retracted(LinphoneChatMessage *message);
+
+/**
+ * Returns wether this message can be retracted (maximum allowed time to retract it was reached or not).
+ * @param message the message you want to check if it can be retracted or not @notnil
+ * @return TRUE if the message can be retracted, FALSE otherwise.
+ */
+LINPHONE_PUBLIC bool_t linphone_chat_message_is_retractable(LinphoneChatMessage *message);
+
+/**
+ * Returns wether this message has been edited by it's sender after it was sent.
+ * @param message the message you want to check if it was edited or not @notnil
+ * @return TRUE if the message has been edited after it was sent, FALSE otherwise.
+ */
+LINPHONE_PUBLIC bool_t linphone_chat_message_is_edited(LinphoneChatMessage *message);
+
+/**
+ * Returns wether this message can be edited (maximum allowed time to edit it was reached or not).
+ * @param message the message you want to check if it can be edited or not @notnil
+ * @return TRUE if the message can be edited, FALSE otherwise.
+ */
+LINPHONE_PUBLIC bool_t linphone_chat_message_is_editable(LinphoneChatMessage *message);
+
 /************ */
 /* DEPRECATED */
 /* ********** */

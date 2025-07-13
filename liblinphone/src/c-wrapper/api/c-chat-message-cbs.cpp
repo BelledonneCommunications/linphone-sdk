@@ -38,6 +38,8 @@ struct _LinphoneChatMessageCbs {
 	LinphoneChatMessageCbsFileTransferSendChunkCb file_transfer_send_chunk;
 	LinphoneChatMessageCbsNewMessageReactionCb new_message_reaction;
 	LinphoneChatMessageCbsReactionRemovedCb reaction_removed;
+	LinphoneChatMessageCbsContentEditedCb content_edited;
+	LinphoneChatMessageCbsRetractedCb retracted;
 };
 
 BELLE_SIP_DECLARE_VPTR_NO_EXPORT(LinphoneChatMessageCbs);
@@ -182,4 +184,21 @@ linphone_chat_message_cbs_get_reaction_removed(const LinphoneChatMessageCbs *cbs
 void linphone_chat_message_cbs_set_reaction_removed(LinphoneChatMessageCbs *cbs,
                                                     LinphoneChatMessageCbsReactionRemovedCb cb) {
 	cbs->reaction_removed = cb;
+}
+
+LinphoneChatMessageCbsContentEditedCb linphone_chat_message_cbs_get_content_edited(const LinphoneChatMessageCbs *cbs) {
+	return cbs->content_edited;
+}
+
+void linphone_chat_message_cbs_set_content_edited(LinphoneChatMessageCbs *cbs,
+                                                  LinphoneChatMessageCbsContentEditedCb cb) {
+	cbs->content_edited = cb;
+}
+
+LinphoneChatMessageCbsRetractedCb linphone_chat_message_cbs_get_retracted(const LinphoneChatMessageCbs *cbs) {
+	return cbs->retracted;
+}
+
+void linphone_chat_message_cbs_set_retracted(LinphoneChatMessageCbs *cbs, LinphoneChatMessageCbsRetractedCb cb) {
+	cbs->retracted = cb;
 }

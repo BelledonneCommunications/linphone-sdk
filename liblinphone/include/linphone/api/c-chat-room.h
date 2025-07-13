@@ -107,6 +107,15 @@ LINPHONE_PUBLIC LinphoneChatMessage *linphone_chat_room_create_reply_message(Lin
                                                                              LinphoneChatMessage *message);
 
 /**
+ * Creates a replaces message that will edit the original message.
+ * @param chat_room the #LinphoneChatRoom object. @notnil
+ * @param message #LinphoneChatMessage message to edit. @notnil
+ * @return a new #LinphoneChatMessage @notnil
+ */
+LINPHONE_PUBLIC LinphoneChatMessage *linphone_chat_room_create_replaces_message(LinphoneChatRoom *chat_room,
+                                                                                LinphoneChatMessage *message);
+
+/**
  * Creates a chat message with a voice recording attached to the given chat room.
  * @warning If the recorder isn't in Closed state, it will return an empty message!
  * @param chat_room the #LinphoneChatRoom object. @notnil
@@ -238,6 +247,16 @@ LINPHONE_PUBLIC bool_t linphone_chat_room_ephemeral_supported_by_all_participant
  */
 
 LINPHONE_PUBLIC void linphone_chat_room_delete_message(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
+
+/**
+ * Deletes the content of a previously sent message for both sender and receivers.
+ * Message will still appear in the conversation history but will be empty.
+ * You can still delete it from history using linphone_chat_room_delete_message().
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation. @notnil
+ * @param message The #LinphoneChatMessage object to delete. @notnil
+ */
+
+LINPHONE_PUBLIC void linphone_chat_room_retract_message(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
 
 /**
  * Delete all messages from the history

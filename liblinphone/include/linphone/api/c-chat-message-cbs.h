@@ -97,7 +97,7 @@ LINPHONE_PUBLIC void linphone_chat_message_cbs_set_new_message_reaction(Linphone
                                                                         LinphoneChatMessageCbsNewMessageReactionCb cb);
 
 /**
- * Get the removed reaction callback.
+ * Gets the removed reaction callback.
  * @param cbs #LinphoneChatMessageCbs object. @notnil
  * @return The current new reaction callback.
  */
@@ -105,12 +105,44 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsReactionRemovedCb
 linphone_chat_message_cbs_get_reaction_removed(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the removed reaction callback.
+ * Sets the removed reaction callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The new reaction callback to be used.
  */
 LINPHONE_PUBLIC void linphone_chat_message_cbs_set_reaction_removed(LinphoneChatMessageCbs *cbs,
                                                                     LinphoneChatMessageCbsReactionRemovedCb cb);
+
+/**
+ * Gets the content edited callback.
+ * @param cbs #LinphoneChatMessageCbs object. @notnil
+ * @return The current new content edited callback.
+ */
+LINPHONE_PUBLIC LinphoneChatMessageCbsContentEditedCb
+linphone_chat_message_cbs_get_content_edited(const LinphoneChatMessageCbs *cbs);
+
+/**
+ * Sets the content edited callback.
+ * @param cbs LinphoneChatMessageCbs object. @notnil
+ * @param cb The new content edited callback to be used.
+ */
+LINPHONE_PUBLIC void linphone_chat_message_cbs_set_content_edited(LinphoneChatMessageCbs *cbs,
+                                                                  LinphoneChatMessageCbsContentEditedCb cb);
+
+/**
+ * Gets the retracted callback.
+ * @param cbs #LinphoneChatMessageCbs object. @notnil
+ * @return The current new retracted callback.
+ */
+LINPHONE_PUBLIC LinphoneChatMessageCbsRetractedCb
+linphone_chat_message_cbs_get_retracted(const LinphoneChatMessageCbs *cbs);
+
+/**
+ * Sets the retracted callback.
+ * @param cbs LinphoneChatMessageCbs object. @notnil
+ * @param cb The new retracted callback to be used.
+ */
+LINPHONE_PUBLIC void linphone_chat_message_cbs_set_retracted(LinphoneChatMessageCbs *cbs,
+                                                             LinphoneChatMessageCbsRetractedCb cb);
 
 /**
  * Get the download file transfer terminated callback.
