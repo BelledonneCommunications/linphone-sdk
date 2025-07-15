@@ -2520,6 +2520,12 @@ void Core::addOrUpdatePublishByEtag(SalPublishOp *op, shared_ptr<LinphonePrivate
 	op->setETag(generatedETag_char);
 }
 
+void Core::removePublishByEtag(const SalPublishOp *op) {
+	if (op && !op->getETag().empty()) {
+		mPublishByEtag.erase(op->getETag());
+	}
+}
+
 Core::ETagStatus Core::eTagHandler(SalPublishOp *op, const SalBodyHandler *body) {
 	string eTag(op->getETag());
 
