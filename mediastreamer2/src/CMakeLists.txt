@@ -653,10 +653,10 @@ if(BUILD_SHARED_LIBS)
 		if(VPX_FOUND)
 			target_link_options(mediastreamer2 PRIVATE "-Wl,--exclude-libs,libvpx.a")
 		endif()
-		# Do not version shared library on Android
-		set_target_properties(mediastreamer2 PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
+		# Do not version shared library on Android...
 	else()
-
+		# ...but version it otherwise
+		set_target_properties(mediastreamer2 PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 
 		#Workaround for the Debian 11 issue with conflict between libc and libtirpc
 		#/usr/bin/ld: /lib/x86_64-linux-gnu/libtirpc.so.3: warning: common of `rpc_createerr@@GLIBC_2.2.5' overridden by definition from /lib/x86_64-linux-gnu/libc.so.6
