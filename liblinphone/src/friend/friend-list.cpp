@@ -32,6 +32,7 @@
 #include "core/core.h"
 #include "db/main-db.h"
 #include "event/event.h"
+#include "friend-phone-number.h"
 #include "friend.h"
 #include "http/http-client.h"
 #include "linphone/api/c-account.h"
@@ -930,6 +931,110 @@ LinphoneFriendListStatus FriendList::removeFriend(const std::shared_ptr<Friend> 
 	deleteFriend(lf, removeFromServer);
 	mFriendsList.mList.erase(it);
 	return LinphoneFriendListOK;
+}
+
+bool FriendList::synchronizeFriendsWith(std::list<std::shared_ptr<Friend>> const &sourceFriends) {
+	const auto &localFriends = this->getFriends();
+	bool hasChanged = false;
+	// Create a map for source friends using refKey as the key for quick lookup
+	std::unordered_map<std::string, std::shared_ptr<Friend>> sourceFriendsMap;
+	for (const auto &sourceFriend : sourceFriends) {
+		const std::string &refKey = sourceFriend->getRefKey();
+		if (!refKey.empty()) {
+			sourceFriendsMap[refKey] = sourceFriend;
+		} else {
+			lWarning() << "Friend list [" << toC() << "] synchronizeFriendsWith: unexpected empty RefKey in friend '"
+			           << sourceFriend->getName() << "', this friend will not be synchronized";
+		}
+	}
+
+	std::vector<std::shared_ptr<Friend>> localFriendsToRemove;
+	for (auto &localFriend : localFriends) {
+		const std::string &refKey = localFriend->getRefKey();
+		if (sourceFriendsMap.find(refKey) != sourceFriendsMap.end()) {
+			const auto sourceFriend = sourceFriendsMap[refKey];
+			localFriend->setNativeUri(
+			    sourceFriend->getNativeUri()); // Native URI isn't stored in linphone database, needs to be updated
+			if (sourceFriend->dumpVCard() == localFriend->dumpVCard()) continue;
+			hasChanged = true;
+			localFriend->edit();
+			// Update basic fields that may have changed
+			localFriend->setName(sourceFriend->getName());
+			localFriend->setFirstName(sourceFriend->getFirstName());
+			localFriend->setLastName(sourceFriend->getLastName());
+			localFriend->setOrganization(sourceFriend->getOrganization());
+			localFriend->setJobTitle(sourceFriend->getJobTitle());
+			localFriend->setPhoto(sourceFriend->getPhoto());
+
+			// Clear local friend phone numbers & add all newly fetched one ones
+			bool atLeastAPhoneNumberWasRemoved = false;
+			for (const auto &localNumberPtr : localFriend->getPhoneNumbersWithLabel()) {
+				auto const &sourceNumbers = sourceFriend->getPhoneNumbers();
+				if (!atLeastAPhoneNumberWasRemoved) {
+					atLeastAPhoneNumberWasRemoved = std::find(sourceNumbers.begin(), sourceNumbers.end(),
+					                                          localNumberPtr->getPhoneNumber()) == sourceNumbers.end();
+				}
+				localFriend->removePhoneNumberWithLabel(localNumberPtr);
+			}
+			for (const auto &sourceNumberPtr : sourceFriend->getPhoneNumbersWithLabel()) {
+				localFriend->addPhoneNumberWithLabel(sourceNumberPtr);
+			}
+
+			// If at least a phone number was removed, remove all SIP address from local friend before adding all from
+			// newly fetched one. If none was removed, simply add SIP addresses from fetched contact that aren't already
+			// in the local friend.
+			if (atLeastAPhoneNumberWasRemoved) {
+				lWarning()
+				    << "Friend list [" << toC() << "] synchronizeFriendsWith: "
+				    << "At least a phone number was removed from native contact [" << localFriend->getName() << "],"
+				    << " clearing all SIP addresses from local friend before adding back the ones that still exists";
+				for (const auto &sipAddress : localFriend->getAddresses()) {
+					localFriend->removeAddress(sipAddress);
+				}
+			}
+
+			for (const auto &sipAddress : sourceFriend->getAddresses()) {
+				localFriend->addAddress(sipAddress);
+			}
+			localFriend->done();
+		} else {
+			// Friend does not exist in source list, remove it from the local list
+			localFriendsToRemove.push_back(localFriend);
+		}
+	}
+
+	for (const auto &localFriend : localFriendsToRemove) {
+		removeFriend(localFriend);
+		hasChanged = true;
+	}
+
+	// Check for newly created friends since last sync
+	for (auto &sourceFriendPair : sourceFriendsMap) {
+		string refKey = sourceFriendPair.first;
+		std::shared_ptr<Friend> sourceFriend = sourceFriendPair.second;
+
+		auto foundIt =
+		    std::find_if(localFriends.begin(), localFriends.end(), [refKey](const std::shared_ptr<Friend> &friendPtr) {
+			    return friendPtr->getRefKey() == refKey; // Matching property
+		    });
+		if (foundIt == localFriends.end()) {
+			string logName = sourceFriend->getName();
+			if (logName.empty()) {
+				logName = sourceFriend->getFirstName() + " " + sourceFriend->getLastName();
+			}
+			lInfo() << "Friend list [" << toC() << "] synchronizeFriendsWith: "
+			        << "Friend [" << sourceFriend->getName() << "] with ref key [" << sourceFriend->getRefKey()
+			        << "] not found in currently sorted list, adding it";
+			addLocalFriend(sourceFriend);
+			hasChanged = true;
+		}
+	}
+	if (hasChanged) {
+		lInfo() << "Friend list [" << toC() << "] has been synchronized";
+	} else {
+		lInfo() << "Friend list [" << toC() << "] did not require any change, it is already synchronized";
+	}
+	return hasChanged;
 }
 
 void FriendList::removeFromDb() {

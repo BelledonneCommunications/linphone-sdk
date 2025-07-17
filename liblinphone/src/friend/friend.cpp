@@ -154,6 +154,40 @@ LinphoneStatus Friend::setName(const std::string &name) {
 	return 0;
 }
 
+LinphoneStatus Friend::setLastName(const std::string &lastName) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
+	if (!linphone_core_vcard_supported()) return -1;
+
+	if (!mVcard) {
+		lInfo() << "Friend::setLastName() called but the contact has no vCard yet, creating one with last name '"
+		        << lastName << "'";
+		createVcard(lastName);
+	}
+	if (mVcard) {
+		mVcard->setFamilyName(lastName);
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+LinphoneStatus Friend::setFirstName(const std::string &firstName) {
+	if (isReadOnly()) return LinphoneFriendListReadOnly;
+	if (!linphone_core_vcard_supported()) return -1;
+
+	if (!mVcard) {
+		lInfo() << "Friend::setFirstName() called but the contact has no vCard yet, creating one with first name '"
+		        << firstName << "'";
+		createVcard(firstName);
+	}
+	if (mVcard) {
+		mVcard->setGivenName(firstName);
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
 void Friend::setNativeUri(const std::string &nativeUri) {
 	if (isReadOnly()) return;
 	mNativeUri = nativeUri;
@@ -210,7 +244,9 @@ void Friend::setVcard(const std::shared_ptr<Vcard> &vcard) {
 	}
 
 	mVcard = vcard;
-	mRefKey = vcard->getUid();
+	if (mRefKey.empty()) {
+		mRefKey = vcard->getUid();
+	}
 	if (mFriendList) saveInDb();
 }
 
@@ -350,6 +386,14 @@ const std::string &Friend::getName() const {
 		}
 	}
 	return mName;
+}
+
+const std::string &Friend::getLastName() const {
+	return mVcard ? mVcard->getFamilyName() : emptyString;
+}
+
+const std::string &Friend::getFirstName() const {
+	return mVcard ? mVcard->getGivenName() : emptyString;
 }
 
 const std::string &Friend::getNativeUri() const {
@@ -793,6 +837,10 @@ void Friend::removePhoneNumberWithLabel(const std::shared_ptr<const FriendPhoneN
 
 bool Friend::subscribesEnabled() const {
 	return mSubscribe;
+}
+
+const std::string &Friend::dumpVCard() const {
+	return mVcard ? mVcard->asVcard4String() : emptyString;
 }
 
 // -----------------------------------------------------------------------------

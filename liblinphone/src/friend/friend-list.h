@@ -127,6 +127,7 @@ public:
 	void notifyPresence(const std::shared_ptr<PresenceModel> &model) const;
 	LinphoneFriendListStatus removeFriend(const std::shared_ptr<Friend> &lf);
 	void removeFriends();
+	bool synchronizeFriendsWith(const std::list<std::shared_ptr<Friend>> &sourceFriends);
 	bool subscriptionsEnabled() const;
 	void synchronizeFriendsFromServer();
 	void updateDirtyFriends();

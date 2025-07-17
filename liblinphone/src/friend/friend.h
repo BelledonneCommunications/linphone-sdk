@@ -98,6 +98,8 @@ public:
 	LinphoneStatus setIncSubscribePolicy(LinphoneSubscribePolicy policy);
 	void setJobTitle(const std::string &title);
 	LinphoneStatus setName(const std::string &name);
+	LinphoneStatus setLastName(const std::string &lastName);
+	LinphoneStatus setFirstName(const std::string &firstName);
 	void setNativeUri(const std::string &nativeUri);
 	void setOrganization(const std::string &organization);
 	void setPhoto(const std::string &pictureUri);
@@ -119,6 +121,8 @@ public:
 	const std::string &getJobTitle() const;
 	const std::string &getOrganization() const;
 	const std::string &getName() const;
+	const std::string &getLastName() const;
+	const std::string &getFirstName() const;
 	const std::string &getNativeUri() const;
 	std::list<std::string> getPhoneNumbers() const;
 	std::list<std::shared_ptr<FriendPhoneNumber>> getPhoneNumbersWithLabel() const;
@@ -159,6 +163,7 @@ public:
 	void removePhoneNumber(const std::string &phoneNumber);
 	void removePhoneNumberWithLabel(const std::shared_ptr<const FriendPhoneNumber> &phoneNumber);
 	bool subscribesEnabled() const;
+	const std::string &dumpVCard() const;
 
 private:
 	void addAddressesAndNumbersIntoMaps(const std::shared_ptr<FriendList> &list);

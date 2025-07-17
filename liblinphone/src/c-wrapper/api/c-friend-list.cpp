@@ -212,6 +212,12 @@ LinphoneFriendListStatus linphone_friend_list_remove_friend(LinphoneFriendList *
 	return FriendList::toCpp(list)->removeFriend(Friend::getSharedFromThis(lf));
 }
 
+bool_t linphone_friend_list_synchronize_friends_with(LinphoneFriendList *list, const bctbx_list_t *source_friends) {
+	const std::list<std::shared_ptr<LinphonePrivate::Friend>> sourceFriends =
+	    LinphonePrivate::Utils::bctbxListToCppSharedPtrList<LinphoneFriend, LinphonePrivate::Friend>(source_friends);
+	return FriendList::toCpp(list)->synchronizeFriendsWith(sourceFriends);
+}
+
 const bctbx_list_t *linphone_friend_list_get_friends(const LinphoneFriendList *list) {
 	return FriendList::toCpp(list)->getFriendsCList();
 }

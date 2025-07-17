@@ -173,14 +173,12 @@ const char *linphone_friend_get_name(const LinphoneFriend *lf) {
 
 const char *linphone_friend_get_last_name(const LinphoneFriend *lf) {
 	if (!lf) return NULL;
-	const std::shared_ptr<Vcard> vcard = Friend::toCpp(lf)->getVcard();
-	return vcard ? L_STRING_TO_C(vcard->getFamilyName()) : NULL;
+	return L_STRING_TO_C(Friend::toCpp(lf)->getLastName());
 }
 
 const char *linphone_friend_get_first_name(const LinphoneFriend *lf) {
 	if (!lf) return NULL;
-	const std::shared_ptr<Vcard> vcard = Friend::toCpp(lf)->getVcard();
-	return vcard ? L_STRING_TO_C(vcard->getGivenName()) : NULL;
+	return L_STRING_TO_C(Friend::toCpp(lf)->getFirstName());
 }
 
 const char *linphone_friend_get_native_uri(const LinphoneFriend *lf) {
@@ -255,8 +253,7 @@ LinphoneVcard *linphone_friend_get_vcard(const LinphoneFriend *lf) {
 
 const char *linphone_friend_dump_vcard(const LinphoneFriend *lf) {
 	if (!lf) return NULL;
-	const std::shared_ptr<Vcard> vcard = Friend::toCpp(lf)->getVcard();
-	return vcard ? L_STRING_TO_C(vcard->asVcard4String()) : NULL;
+	return L_STRING_TO_C(Friend::toCpp(lf)->dumpVCard());
 }
 
 bool_t linphone_friend_has_capability(const LinphoneFriend *lf, const LinphoneFriendCapability capability) {
@@ -347,29 +344,11 @@ LinphoneStatus linphone_friend_set_name(LinphoneFriend *lf, const char *name) {
 }
 
 LinphoneStatus linphone_friend_set_last_name(LinphoneFriend *lf, const char *last_name) {
-	if (linphone_friend_get_is_read_only(lf)) {
-		return LinphoneFriendListReadOnly;
-	}
-
-	const std::shared_ptr<Vcard> vcard = Friend::toCpp(lf)->getVcard();
-	if (vcard) {
-		vcard->setFamilyName(L_C_TO_STRING(last_name));
-		return 0;
-	}
-	return -1;
+	return Friend::toCpp(lf)->setLastName(L_C_TO_STRING(last_name));
 }
 
 LinphoneStatus linphone_friend_set_first_name(LinphoneFriend *lf, const char *first_name) {
-	if (linphone_friend_get_is_read_only(lf)) {
-		return LinphoneFriendListReadOnly;
-	}
-
-	const std::shared_ptr<Vcard> vcard = Friend::toCpp(lf)->getVcard();
-	if (vcard) {
-		vcard->setGivenName(L_C_TO_STRING(first_name));
-		return 0;
-	}
-	return -1;
+	return Friend::toCpp(lf)->setFirstName(L_C_TO_STRING(first_name));
 }
 
 void linphone_friend_set_native_uri(LinphoneFriend *lf, const char *native_uri) {

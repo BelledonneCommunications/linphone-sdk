@@ -3100,6 +3100,209 @@ static void friend_phone_number_lookup_without_plus(void) {
 	linphone_core_manager_destroy(manager);
 }
 
+static void synchronize_local_friend_list_with_a_list_of_friends(void) {
+	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("empty_rc", FALSE);
+	LinphoneCore *lc = manager->lc;
+	LinphoneFriendList *lfl = linphone_core_get_default_friend_list(lc);
+
+	// Adding a friend with the same refkey to local friend list AND source friend list, we will check if it gets
+	// properly updated
+	char *common_refkey = "CommonFriend";
+	LinphoneFriend *local_common_friend = linphone_core_create_friend_with_address(lc, "sip:localcommon@sip.test.org");
+	linphone_friend_edit(local_common_friend);
+	linphone_friend_set_ref_key(local_common_friend, common_refkey);
+	linphone_friend_set_name(local_common_friend, "LocalName");
+	linphone_friend_set_first_name(local_common_friend, "LocalFirstName");
+	linphone_friend_set_last_name(local_common_friend, "LocalLastName");
+	linphone_friend_set_organization(local_common_friend, "LocalOrganization");
+	linphone_friend_set_job_title(local_common_friend, "LocalJobTitle");
+	linphone_friend_done(local_common_friend);
+
+	linphone_friend_enable_subscribes(local_common_friend, FALSE);
+	linphone_friend_list_add_friend(lfl, local_common_friend);
+	linphone_friend_unref(local_common_friend);
+
+	LinphoneFriend *source_common_friend =
+	    linphone_core_create_friend_with_address(lc, "sip:sourcecommon@sip.test.org");
+	linphone_friend_edit(source_common_friend);
+	linphone_friend_set_ref_key(source_common_friend, common_refkey);
+	linphone_friend_set_name(source_common_friend, "SourceName");
+	linphone_friend_set_first_name(source_common_friend, "SourceFirstName");
+	linphone_friend_set_last_name(source_common_friend, "SourceLastName");
+	linphone_friend_set_organization(source_common_friend, "SourceOrganization");
+	linphone_friend_set_job_title(source_common_friend, "SourceJobTitle");
+	linphone_friend_done(source_common_friend);
+
+	bctbx_list_t *source_friends = bctbx_list_append(NULL, source_common_friend);
+
+	// Add local friend that is not present in the source friend list. We expect it to be deleted
+	LinphoneFriend *local_extra_friend = linphone_core_create_friend_with_address(lc, "sip:localextra@sip.test.org");
+	linphone_friend_edit(local_extra_friend);
+	linphone_friend_set_ref_key(local_extra_friend, "LocalExtra");
+	linphone_friend_set_name(local_extra_friend, "LocalExName");
+	linphone_friend_done(local_extra_friend);
+	linphone_friend_enable_subscribes(local_extra_friend, FALSE);
+	linphone_friend_list_add_friend(lfl, local_extra_friend);
+	linphone_friend_unref(local_extra_friend);
+
+	// Add source friends that are not present in the local friendlist. We expect them to be added
+	LinphoneFriend *source_extra_friend = linphone_core_create_friend_with_address(lc, "sip:sourceextra@sip.test.org");
+	linphone_friend_edit(source_extra_friend);
+	linphone_friend_set_ref_key(source_extra_friend, "SourceExtra");
+	linphone_friend_set_name(source_extra_friend, "SourceExName");
+	linphone_friend_done(source_extra_friend);
+	bctbx_list_append(source_friends, source_extra_friend);
+
+	LinphoneFriend *source_extra_friend_2 =
+	    linphone_core_create_friend_with_address(lc, "sip:sourceextra2@sip.test.org");
+	linphone_friend_edit(source_extra_friend_2);
+	linphone_friend_set_ref_key(source_extra_friend_2, "SourceExtra2");
+	linphone_friend_set_name(source_extra_friend_2, "SourceEx2Name");
+	linphone_friend_done(source_extra_friend_2);
+	bctbx_list_append(source_friends, source_extra_friend_2);
+
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_friend_list_get_friends(lfl)) == 2);
+	BC_ASSERT_TRUE(bctbx_list_size(source_friends) == 3);
+
+	bool_t hasChanged = linphone_friend_list_synchronize_friends_with(lfl, source_friends);
+	BC_ASSERT_TRUE(hasChanged);
+
+	const bctbx_list_t *new_local_friends = linphone_friend_list_get_friends(lfl);
+	// Correct amount of friends after synchronisation
+	BC_ASSERT_TRUE(bctbx_list_size(new_local_friends) == 3);
+
+	// Check that common friend was updated with data from source friends
+	const LinphoneFriend *local_friend_extra_imported = (LinphoneFriend *)new_local_friends->data;
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(local_friend_extra_imported), "SourceExName");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_ref_key(local_friend_extra_imported), "SourceExtra");
+
+	new_local_friends = new_local_friends->next;
+	const LinphoneFriend *local_friend_extra_imported_2 = (LinphoneFriend *)new_local_friends->data;
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(local_friend_extra_imported_2), "SourceEx2Name");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_ref_key(local_friend_extra_imported_2), "SourceExtra2");
+
+	new_local_friends = new_local_friends->next;
+	const LinphoneFriend *local_friend_common_updated = (LinphoneFriend *)new_local_friends->data;
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(local_friend_common_updated), "SourceName");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_first_name(local_friend_common_updated), "SourceFirstName");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_last_name(local_friend_common_updated), "SourceLastName");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_organization(local_friend_common_updated), "SourceOrganization");
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_job_title(local_friend_common_updated), "SourceJobTitle");
+	// We didn't erase a phone number, so we expect two sip adresses
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_friend_get_addresses(local_friend_common_updated)) == 2);
+
+	bctbx_list_free_with_data(source_friends, (bctbx_list_free_func)linphone_friend_unref);
+	linphone_core_manager_destroy(manager);
+}
+
+static void synchronize_local_friend_list_with_a_list_of_friends_no_change(void) {
+	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("empty_rc", FALSE);
+	LinphoneCore *lc = manager->lc;
+	LinphoneFriendList *lfl = linphone_core_get_default_friend_list(lc);
+
+	char *common_refkey = "Common";
+	LinphoneFriend *local_common_friend = linphone_core_create_friend_with_address(lc, "sip:common@sip.test.org");
+	linphone_friend_edit(local_common_friend);
+	linphone_friend_set_ref_key(local_common_friend, common_refkey);
+	linphone_friend_set_name(local_common_friend, "Name");
+	linphone_friend_done(local_common_friend);
+	linphone_friend_enable_subscribes(local_common_friend, FALSE);
+	linphone_friend_list_add_friend(lfl, local_common_friend);
+	linphone_friend_unref(local_common_friend);
+
+	LinphoneFriend *source_common_friend = linphone_core_create_friend_with_address(lc, "sip:common@sip.test.org");
+	linphone_friend_edit(source_common_friend);
+	linphone_friend_set_ref_key(source_common_friend, common_refkey);
+	linphone_friend_set_name(source_common_friend, "Name");
+	linphone_friend_done(source_common_friend);
+	bctbx_list_t *source_friends = bctbx_list_append(NULL, source_common_friend);
+
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_friend_list_get_friends(lfl)) == 1);
+	BC_ASSERT_TRUE(bctbx_list_size(source_friends) == 1);
+
+	bool_t hasChanged = linphone_friend_list_synchronize_friends_with(lfl, source_friends);
+	BC_ASSERT_FALSE(hasChanged);
+
+	bctbx_list_free_with_data(source_friends, (bctbx_list_free_func)linphone_friend_unref);
+	linphone_core_manager_destroy(manager);
+}
+
+static bctbx_list_t *_create_basic_source_friends(LinphoneCore *lc, char *refKey, char *name) {
+	LinphoneFriend *source_friend = linphone_core_create_friend(lc);
+	linphone_friend_edit(source_friend);
+	linphone_friend_set_first_name(source_friend, name);
+	linphone_friend_set_ref_key(source_friend, refKey);
+	linphone_friend_done(source_friend);
+	return bctbx_list_append(NULL, source_friend);
+}
+
+static void synchronize_local_friend_list_with_a_list_of_friends_multiple_iterations_idempotent(void) {
+	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("empty_rc", FALSE);
+	LinphoneCore *lc = manager->lc;
+	LinphoneFriendList *lfl = linphone_core_get_default_friend_list(lc);
+	LinphoneMagicSearch *magicSearch = linphone_magic_search_new(manager->lc);
+
+	linphone_config_set_bool(linphone_core_get_config(lc), "magic_search", "return_empty_friends", TRUE);
+
+	char *refKey = "RefKey";
+	char *name = "Name";
+	bctbx_list_t *source_friends = _create_basic_source_friends(lc, refKey, name);
+
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_friend_list_get_friends(lfl)) == 0);
+	BC_ASSERT_TRUE(bctbx_list_size(source_friends) == 1);
+
+	bool_t hasChanged = linphone_friend_list_synchronize_friends_with(lfl, source_friends);
+	BC_ASSERT_TRUE(hasChanged);
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_friend_list_get_friends(lfl)) == 1);
+
+	bctbx_list_t *resultList = linphone_magic_search_get_contacts_list(
+	    magicSearch, "", "", LinphoneMagicSearchSourceAll, LinphoneMagicSearchAggregationFriend);
+	BC_ASSERT_TRUE(bctbx_list_size(resultList) == 1);
+	LinphoneSearchResult *search_result = (LinphoneSearchResult *)resultList->data;
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_first_name(linphone_search_result_get_friend(search_result)), name);
+
+	for (int i = 0; i < 3; i++) {
+		bctbx_list_t *source_friends_i = _create_basic_source_friends(lc, refKey, name);
+		hasChanged = linphone_friend_list_synchronize_friends_with(lfl, source_friends_i);
+		BC_ASSERT_FALSE(hasChanged);
+		BC_ASSERT_TRUE(bctbx_list_size(linphone_friend_list_get_friends(lfl)) == 1);
+		bctbx_list_t *result_list_i = linphone_magic_search_get_contacts_list(
+		    magicSearch, "", "", LinphoneMagicSearchSourceAll, LinphoneMagicSearchAggregationNone);
+		BC_ASSERT_TRUE(bctbx_list_size(result_list_i) == 1);
+		BC_ASSERT_STRING_EQUAL(linphone_friend_get_first_name(
+		                           linphone_search_result_get_friend((LinphoneSearchResult *)result_list_i->data)),
+		                       name);
+
+		bctbx_list_free_with_data(source_friends_i, (bctbx_list_free_func)linphone_friend_unref);
+		bctbx_list_free_with_data(result_list_i, (bctbx_list_free_func)linphone_search_result_unref);
+	}
+	bctbx_list_free_with_data(source_friends, (bctbx_list_free_func)linphone_friend_unref);
+	bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
+	linphone_magic_search_unref(magicSearch);
+	linphone_core_manager_destroy(manager);
+}
+
+static void friend_refkey_not_lot_on_vcard_set(void) {
+	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("empty_rc", FALSE);
+	LinphoneCore *lc = manager->lc;
+
+	char *refkey = "TestRefKey";
+	LinphoneFriend *friend = linphone_core_create_friend(lc);
+	linphone_friend_edit(friend);
+	linphone_friend_set_ref_key(friend, refkey);
+	linphone_friend_done(friend);
+
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_ref_key(friend), refkey);
+
+	linphone_friend_edit(friend);
+	linphone_friend_set_first_name(friend, "firstname");
+	linphone_friend_done(friend);
+
+	BC_ASSERT_STRING_EQUAL(linphone_friend_get_ref_key(friend), refkey);
+	linphone_friend_unref(friend);
+	linphone_core_manager_destroy(manager);
+}
+
 test_t friends_tests[] = {
     TEST_NO_TAG("Read-only friend list", read_only_friend_list),
     TEST_ONE_TAG("Return friend list in alphabetical order", search_friend_in_alphabetical_order, "MagicSearch"),
@@ -3152,6 +3355,13 @@ test_t friends_tests[] = {
     TEST_NO_TAG("Store friends list in DB", friend_list_db_storage),
     TEST_NO_TAG("Store friends list in DB without setting path to db file", friend_list_db_storage_without_db),
     TEST_NO_TAG("Friend phone number lookup without plus", friend_phone_number_lookup_without_plus),
+    TEST_NO_TAG("Synchronize local friendlist with a list of friends",
+                synchronize_local_friend_list_with_a_list_of_friends),
+    TEST_NO_TAG("Synchronize local friendlist with a list of friends but nothing changes",
+                synchronize_local_friend_list_with_a_list_of_friends_no_change),
+    TEST_NO_TAG("Synchronize local friendlist with a list of friends several times in a row",
+                synchronize_local_friend_list_with_a_list_of_friends_multiple_iterations_idempotent),
+    TEST_NO_TAG("Friend RefKey is not lost if already set when creating vcard", friend_refkey_not_lot_on_vcard_set),
 };
 
 test_suite_t friends_test_suite = {"Friends",
