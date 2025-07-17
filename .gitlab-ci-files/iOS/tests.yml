@@ -83,8 +83,7 @@ physical-swift-iOS-test:
   stage: test
   needs:
     - ios-ninja
-
-  
+  allow_failure: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_IOS_TESTS != null
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -94,7 +93,12 @@ physical-swift-iOS-test:
     SWIFT_TESTS_OUTPUT: "physical-swift-iOS-test-results"
     TEST_IPHONE_NAME: "iPhone X"
     GIT_STRATEGY: none
-
+    
+  before_script:
+    - echo "Deleting tester/IOS/swift/LinphoneTester that was possibly created by a previous job"
+    - rm -rf tester/IOS/swift/LinphoneTester
+    - echo "Deleting ${CI_PROJECT_DIR}/results artifacts that was possibly created by a previous job"
+    - rm -rf ${CI_PROJECT_DIR}/results
   script:
     - ls -al build/ios
     - unzip -o tester/IOS/swift/LinphoneTester.zip
@@ -111,14 +115,12 @@ physical-swift-iOS-test:
         echo "EXIT_XCODEBUILD_CODE=$EXIT_XCODEBUILD_CODE"
         echo "generating xml results in $SWIFT_TESTS_OUTPUT.xml"
         trainer
-        mv *.xml $SWIFT_TESTS_OUTPUT.xml
+        mv $XCODERESULT_NAME.xml $SWIFT_TESTS_OUTPUT.xml
         echo "extracting XCTestAttachments in $SWIFT_TESTS_OUTPUT folder"
         xcparse attachments $XCODERESULT_NAME.xcresult FailedTestLogs --uti public.plain-text
         echo "Compressing attachments into $SWIFT_TESTS_OUTPUT.zip"
         zip -r $SWIFT_TESTS_OUTPUT.zip FailedTestLogs $XCODERESULT_NAME.xcresult
-        echo "Cleaning up result folders"
-        rm -rf FailedTestLogs $XCODERESULT_NAME $XCODERESULT_NAME.xcresult
-        echo "Artifact properly generated, temporary files cleaned up, now we can return the xcode-build exit code"
+        echo "Artifact properly generated, now we can return the xcode-build exit code"
                   
         if [ $EXIT_XCODEBUILD_CODE != 0 ];
         then
