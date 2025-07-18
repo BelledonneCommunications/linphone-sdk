@@ -117,7 +117,7 @@ static void get_messages_count(void) {
 	MainDbProvider provider;
 	const MainDb &mainDb = provider.getMainDb();
 	if (mainDb.isInitialized()) {
-		BC_ASSERT_EQUAL(mainDb.getChatMessageCount(), 5157, int, "%d");
+		BC_ASSERT_EQUAL(mainDb.getChatMessageGlobalCount(), 5157, int, "%d");
 		BC_ASSERT_EQUAL(mainDb.getChatMessageCount(
 		                    ConferenceId(Address::create("sip:test-3@sip.linphone.org")->getSharedFromThis(),
 		                                 Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams())),
@@ -131,7 +131,7 @@ static void get_unread_messages_count(void) {
 	MainDbProvider provider;
 	const MainDb &mainDb = provider.getMainDb();
 	if (mainDb.isInitialized()) {
-		BC_ASSERT_EQUAL(mainDb.getUnreadChatMessageCount(), 2, int, "%d");
+		BC_ASSERT_EQUAL(mainDb.getUnreadChatMessageGlobalCount(), 2, int, "%d");
 		BC_ASSERT_EQUAL(mainDb.getUnreadChatMessageCount(
 		                    ConferenceId(Address::create("sip:test-3@sip.linphone.org")->getSharedFromThis(),
 		                                 Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams())),
