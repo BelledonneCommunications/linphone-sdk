@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -1373,7 +1373,7 @@ static void migration_from_call_history_db(void) {
 	bctbx_free(tmp_db);
 }
 
-test_t setup_tests[] = {
+static test_t setup_tests[] = {
     TEST_NO_TAG("Version check", linphone_version_test),
     TEST_NO_TAG("Version update check", linphone_version_update_test),
     TEST_NO_TAG("Linphone Address", linphone_address_test),

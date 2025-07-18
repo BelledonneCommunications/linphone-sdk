@@ -2366,11 +2366,61 @@ static void ldap_search(void) {
 	} else BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 0, int, "%d");
 	bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 
+	linphone_magic_search_get_contacts_list_async(magicSearch, "chlo", "", LinphoneMagicSearchSourceLdapServers,
+	                                              LinphoneMagicSearchAggregationNone); // double spaces
+	BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
+	stat->number_of_LinphoneMagicSearchResultReceived = 0;
+	resultList = linphone_magic_search_get_last_search(magicSearch);
+	if (ldap_available) {
+		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
+		_check_friend_result_list(manager->lc, resultList, 0, "sip:chloe@ldap.example.org", NULL);
+	} else BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 0, int, "%d");
+	bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
+
+	linphone_magic_search_get_contacts_list_async(magicSearch, "chloé", "", LinphoneMagicSearchSourceLdapServers,
+	                                              LinphoneMagicSearchAggregationNone); // double spaces
+	BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
+	stat->number_of_LinphoneMagicSearchResultReceived = 0;
+	resultList = linphone_magic_search_get_last_search(magicSearch);
+	if (ldap_available) {
+		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
+		_check_friend_result_list(manager->lc, resultList, 0, "sip:chloe@ldap.example.org", NULL);
+	} else BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 0, int, "%d");
+	bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
+
+	/* Test ldap searches with contact that have accent in their names.
+	 The approximate equal ~= is suitable for this. */
+	if (ldap_available) {
+		// Use cn for testing on display names
+		LinphoneLdapParams *params = linphone_ldap_params_clone(linphone_ldap_get_params(ldap));
+		linphone_ldap_params_set_filter(params, "(cn~=%s)");
+		linphone_ldap_params_set_name_attribute(params, "cn"); // Check accent in name
+		linphone_ldap_set_params(ldap, params);
+		linphone_ldap_params_unref(params);
+	}
+
+	linphone_magic_search_get_contacts_list_async(magicSearch, "chloe", "", LinphoneMagicSearchSourceLdapServers,
+	                                              LinphoneMagicSearchAggregationNone); // double spaces
+	BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
+	stat->number_of_LinphoneMagicSearchResultReceived = 0;
+	resultList = linphone_magic_search_get_last_search(magicSearch);
+	if (ldap_available) {
+		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
+		_check_friend_result_list(manager->lc, resultList, 0, "sip:chloe@ldap.example.org", NULL);
+		if (resultList == NULL) BC_FAIL("LDAP search with accent annihilated by magic search.");
+		else {
+			const LinphoneFriend *lf = linphone_search_result_get_friend(bctbx_list_nth_data(resultList, 0));
+			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(lf), "Chloé");
+		}
+	} else BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 0, int, "%d");
+	bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
+
 	if (ldap_available) {
 		// Test on complex filters
 		LinphoneLdapParams *params = linphone_ldap_params_clone(linphone_ldap_get_params(ldap));
 		linphone_ldap_params_set_name_attribute(
 		    params, "sn+givenName"); // Note: do not use gn as it seems to be rewrite with givenName by server
+		linphone_ldap_params_set_filter(params, "(cn=*%s*)");
 		linphone_ldap_set_params(ldap, params);
 		linphone_ldap_params_unref(params);
 	}
