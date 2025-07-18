@@ -90,6 +90,7 @@ static void ogl_init(MSFilter *f) {
 	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.glInitialized = FALSE;
 	data->functions.eglInitialized = FALSE;
+	data->functions.loadQtLibs = FALSE;
 	data->video_mode = MS_FILTER_VIDEO_NONE;
 	data->context_info.width = MS_VIDEO_SIZE_CIF_W;
 	data->context_info.height = MS_VIDEO_SIZE_CIF_H;
@@ -210,7 +211,7 @@ static int ogl_set_native_window_id(MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 
 	context_info = *((MSOglContextInfo **)arg);
-	if (video_mode != MS_FILTER_VIDEO_NONE) {
+	if (video_mode != (unsigned long)MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] Set native window id : %p", (void *)context_info);
 		if (video_mode == MS_FILTER_VIDEO_AUTO) { // Create a new Window
 			if (
@@ -237,7 +238,7 @@ static int ogl_set_native_window_id(MSFilter *f, void *arg) {
 			data->update_context = UPDATE_CONTEXT_DISPLAY_UNINIT;
 			data->video_mode = MS_FILTER_VIDEO_NONE;
 		}
-	} else if (data->video_mode != MS_FILTER_VIDEO_NONE) {
+	} else if (data->video_mode != (unsigned long)MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] Reset native window id");
 		data->update_context = UPDATE_CONTEXT_DISPLAY_UNINIT;
 		if (data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window)
@@ -253,6 +254,19 @@ static int ogl_get_native_window_id(MSFilter *f, void *arg) {
 	FilterData *s = (FilterData *)f->data;
 	MSOglContextInfo **id = (MSOglContextInfo **)arg;
 	*id = &s->context_info;
+
+	return 0;
+}
+
+static int ogl_create_native_window_id(BCTBX_UNUSED(MSFilter *f), void *arg) {
+	MSOglContextInfo *id = (MSOglContextInfo **)arg ? *(MSOglContextInfo **)arg : ms_new0(MSOglContextInfo, 1);
+#ifdef MS2_WINDOWS_UWP
+	Platform::Agile<CoreApplicationView> window_id;
+#else
+	void *window_id = NULL;
+#endif
+	ogl_create_window((EGLNativeWindowType *)&id->window, &window_id);
+	*(MSOglContextInfo **)arg = id;
 
 	return 0;
 }
@@ -507,6 +521,7 @@ extern "C" {
 static MSFilterMethod methods[] = {{MS_FILTER_SET_VIDEO_SIZE, ogl_set_video_size},
                                    {MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, ogl_set_native_window_id_uwp},
                                    {MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, ogl_get_native_window_id},
+                                   {MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, ogl_create_native_window_id},
                                    {MS_VIDEO_DISPLAY_SHOW_VIDEO, ogl_show_video},
                                    {MS_VIDEO_DISPLAY_ZOOM, ogl_zoom},
                                    {MS_VIDEO_DISPLAY_ENABLE_MIRRORING, ogl_enable_mirroring},
@@ -531,6 +546,7 @@ MSFilterDesc ms_ogl_desc = {MS_OGL_ID,                          // id
 static MSFilterMethod methods[] = {{MS_FILTER_SET_VIDEO_SIZE, ogl_set_video_size},
                                    {MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, ogl_set_native_window_id},
                                    {MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, ogl_get_native_window_id},
+                                   {MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, ogl_create_native_window_id},
                                    {MS_VIDEO_DISPLAY_SHOW_VIDEO, ogl_show_video},
                                    {MS_VIDEO_DISPLAY_ZOOM, ogl_zoom},
                                    {MS_VIDEO_DISPLAY_ENABLE_MIRRORING, ogl_enable_mirroring},

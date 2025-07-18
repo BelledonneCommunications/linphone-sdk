@@ -27,6 +27,7 @@
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
+#include "bctoolbox/defs.h"
 
 // =============================================================================
 
@@ -89,7 +90,7 @@ void *getAnyGLFuncAddress(void *library, void *firstFallback, const char *name) 
 extern "C" {
 #endif
 
-void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary) {
+void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary, BCTBX_UNUSED(bool_t loadQtlibs)) {
 	//----------------------    GL
 #if defined(_WIN32) // On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to
                     // embedd "libGLESv2.dll" or "opengl32sw.dll" with the app
@@ -99,7 +100,8 @@ void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary)
 // Load without resolving to check only local libraries. Then free library memory and effectively load the library
 // with resolving. This way, we ensure that the best library comes from the appication.
 #ifdef UNICODE
-	*openglLibrary = LoadLibraryExW(L"opengl32sw.dll", NULL, searchFlags); // From Qt6: Software implementation
+	*openglLibrary =
+	    (loadQtlibs ? LoadLibraryExW(L"opengl32sw.dll", NULL, searchFlags) : NULL); // From Qt6: Software implementation
 	if (*openglLibrary) {
 		FreeLibrary((HMODULE)*openglLibrary);
 		*openglLibrary = LoadLibraryW(L"opengl32sw.dll");
@@ -116,7 +118,8 @@ void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary)
 	*firstFallbackLibrary = LoadLibraryW(L"opengl32.dll"); // From System32
 
 #else
-	*openglLibrary = LoadLibraryExA("opengl32sw.dll", NULL, searchFlags); // From Qt6: Software implementation
+	*openglLibrary =
+	    (loadQtlibs ? LoadLibraryExA("opengl32sw.dll", NULL, searchFlags) : NULL); // From Qt6: Software implementation
 	if (*openglLibrary) {
 		FreeLibrary((HMODULE)*openglLibrary);
 		*openglLibrary = LoadLibraryA("opengl32sw.dll");
@@ -192,7 +195,8 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 	void *openglLibrary = NULL, *firstFallbackLibrary = NULL;
 #endif
 	// No need to load libraries if getProcAddress is defined.
-	if (!f->getProcAddress) opengl_functions_load_gl((void **)&openglLibrary, (void **)&firstFallbackLibrary);
+	if (!f->getProcAddress)
+		opengl_functions_load_gl((void **)&openglLibrary, (void **)&firstFallbackLibrary, f->loadQtLibs);
 	// User cases: functions already loaded or coming from libraries
 #if !defined(__ANDROID__) && !defined(__APPLE__)
 	if (f->getProcAddress || firstFallbackLibrary != NULL || openglLibrary != NULL) {

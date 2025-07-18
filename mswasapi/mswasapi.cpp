@@ -524,8 +524,10 @@ int MSWasapi::createAudioClient() {
 	    ("mswasapi: Could not set properties of the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
 	    result);
 #endif
+	CoUninitialize();
 	return 0;
 error:
+	CoUninitialize();
 	return -1;
 }
 

@@ -147,6 +147,7 @@ static void qogl_init(MSFilter *f) {
 	data->free_lock = new std::mutex();
 	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.getProcAddress = getProcAddress;
+	data->functions.loadQtLibs = TRUE;
 	f->data = data;
 }
 

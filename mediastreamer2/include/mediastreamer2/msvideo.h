@@ -621,8 +621,8 @@ MS2_PUBLIC size_t ms_video_payload_sizes(const size_t bitstreamSize,
 #define MS_FILTER_SET_FPS MS_FILTER_BASE_METHOD(104, float)
 #define MS_FILTER_GET_FPS MS_FILTER_BASE_METHOD(105, float)
 
-#define MS_FILTER_VIDEO_AUTO ((unsigned long)0)
-#define MS_FILTER_VIDEO_NONE ((unsigned long)-1)
+#define MS_FILTER_VIDEO_AUTO (0)
+#define MS_FILTER_VIDEO_NONE (-1)
 
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 /* DEPRECATED: Use MS_VIDEO_ENCODER_REQ_VFU instead */

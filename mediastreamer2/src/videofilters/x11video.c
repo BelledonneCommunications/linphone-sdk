@@ -537,7 +537,7 @@ static int x11video_get_native_window_id(MSFilter *f, void *arg) {
 	if (s->auto_window) {
 		*id = s->window_id;
 	} else {
-		*id = MS_FILTER_VIDEO_NONE;
+		*id = (unsigned long)MS_FILTER_VIDEO_NONE;
 	}
 	return 0;
 }
@@ -546,7 +546,7 @@ static int x11video_set_native_window_id(MSFilter *f, void *arg) {
 	X11Video *s = (X11Video *)f->data;
 	unsigned long id = *(unsigned long *)arg;
 	ms_filter_lock(f);
-	if (id != MS_FILTER_VIDEO_NONE) {
+	if (id != (unsigned long)MS_FILTER_VIDEO_NONE) {
 		x11video_unprepare(f);
 		s->autofit = FALSE;
 		s->auto_window = TRUE;

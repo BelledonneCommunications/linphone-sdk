@@ -667,12 +667,15 @@ static void ms_dshow_detect(MSWebCamManager *obj) {
 	SharedComPtr<ICreateDevEnum> createDevEnum;
 	if ((createDevEnum = makeShared<ICreateDevEnum>(CLSID_SystemDeviceEnum, IID_ICreateDevEnum)) == NULL) {
 		ms_error("Could not create device enumerator");
+		CoUninitialize();
 		return;
 	}
 #endif
 	SharedComPtr<IEnumMoniker> enumMoniker;
 	if (createDevEnum->CreateClassEnumerator(CLSID_VideoInputDeviceCategory, &enumMoniker, 0) != S_OK) {
 		ms_error("Fail to create class enumerator.");
+		createDevEnum = NULL;
+		CoUninitialize();
 		return;
 	}
 
@@ -692,4 +695,10 @@ static void ms_dshow_detect(MSWebCamManager *obj) {
 		ms_web_cam_manager_add_cam(obj, cam);
 		VariantClear(&var);
 	}
+	// Clean pointers in order before Uninitialization.
+	pBag = NULL;
+	enumMoniker = NULL;
+	createDevEnum = NULL;
+	moniker = NULL;
+	CoUninitialize();
 }

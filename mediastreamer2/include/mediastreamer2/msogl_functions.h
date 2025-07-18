@@ -503,6 +503,7 @@ struct OpenGlFunctions {
 	void *(*getProcAddress)(const char *name); // Set it to let MS2 initialize all functions
 	bool_t eglInitialized;
 	bool_t glInitialized;
+	bool_t loadQtLibs;
 };
 
 typedef struct OpenGlFunctions OpenGlFunctions;

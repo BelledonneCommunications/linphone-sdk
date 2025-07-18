@@ -46,7 +46,7 @@ public:
 	ConfigurationManager() {
 	}
 
-	virtual ~ConfigurationManager(){};
+	virtual ~ConfigurationManager() {};
 	virtual void clean() {
 		mSortedList.clear();
 	}
@@ -596,7 +596,7 @@ class ConfigurationManagerUwp : public ConfigurationManager<MediaFrameFormat ^> 
 public:
 	ConfigurationManagerUwp() {
 	}
-	virtual ~ConfigurationManagerUwp(){};
+	virtual ~ConfigurationManagerUwp() {};
 
 	void setMediaTypes(Windows::Media::Capture::Frames::MediaFrameSource ^ source) {
 		for (MediaFrameFormat ^ format : source->SupportedFormats) {
@@ -715,9 +715,8 @@ task<void> MSMFoundationUwpImpl::createReaderAsync() {
 				mReader = reader;
 				gCurrentCap = this; // Hack to allow callback to use native data
 				if (!gApp) gApp = ref new App();
-				mFrameArrivedToken = mReader->FrameArrived +=
-				    ref new TypedEventHandler<MediaFrameReader ^, MediaFrameArrivedEventArgs ^>(
-				        gApp, &App::reader_FrameArrived, CallbackContext::Any);
+				mFrameArrivedToken = mReader->FrameArrived += ref new TypedEventHandler < MediaFrameReader ^,
+				MediaFrameArrivedEventArgs ^ > (gApp, &App::reader_FrameArrived, CallbackContext::Any);
 			} catch (Platform::Exception ^ e) { // CreateFrameReaderAsync
 				if (e->HResult == 0xc00d3704 && mCameraSharingMode == MediaCaptureSharingMode::ExclusiveControl) {
 					mCameraSharingMode =
@@ -1094,11 +1093,21 @@ public:
 	HRESULT getDevices();
 };
 HRESULT MFDevices::getDevices() {
-	HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+#ifdef ENABLE_MICROSOFT_STORE_APP
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+#else
+	HRESULT hr = CoInitialize(NULL);
+#endif
+	bool doUninitialize = true;
 	UINT32 count = 0;
 	if (FAILED(hr) && hr != S_FALSE) {
-		ms_error("[MSMFoundationCapDesk] Cannot get devices because of failed CoInitialize [%X]", hr);
-		return hr;
+		if (hr == RPC_E_CHANGED_MODE) {
+			ms_warning("[MSMFoundationCapDesk] CoInitialize already call with different options [RPC_E_CHANGED_MODE]");
+			doUninitialize = false;
+		} else {
+			ms_error("[MSMFoundationCapDesk] Cannot get devices because of failed CoInitialize [%X]", hr);
+			return hr;
+		}
 	}
 	// Create an attribute store to specify enumeration parameters.
 
@@ -1106,7 +1115,7 @@ HRESULT MFDevices::getDevices() {
 	if (FAILED(hr)) {
 		ms_error("[MSMFoundationCapDesk] Cannot get devices due to create enumeration attributes [%X]", hr);
 		clean();
-		CoUninitialize();
+		if (doUninitialize) CoUninitialize();
 		return hr;
 	}
 	// The attribute to be requested is devices that can capture video
@@ -1114,7 +1123,7 @@ HRESULT MFDevices::getDevices() {
 	if (FAILED(hr)) {
 		ms_error("[MSMFoundationCapDesk] Cannot get devices due to capture attribute [%X]", hr);
 		clean();
-		CoUninitialize();
+		if (doUninitialize) CoUninitialize();
 		return hr;
 	}
 	// Enummerate the video capture devices
@@ -1123,7 +1132,7 @@ HRESULT MFDevices::getDevices() {
 		ms_error("[MSMFoundationCapDesk] Cannot enumerate capture devices from MFEnumDeviceSources [%X]", hr);
 		clean();
 	}
-	CoUninitialize();
+	if (doUninitialize) CoUninitialize();
 	return hr;
 }
 class ConfigurationManagerDesktop : public ConfigurationManager<IMFMediaType *> {
@@ -1131,7 +1140,7 @@ public:
 	std::vector<IMFMediaType *> mMediaTypes; // Used to cleanup
 	ConfigurationManagerDesktop() {
 	}
-	~ConfigurationManagerDesktop(){};
+	~ConfigurationManagerDesktop() {};
 
 	void clean() {
 		for (size_t i = 0; i < mMediaTypes.size(); ++i)
@@ -1566,6 +1575,12 @@ static MSMFoundationCap *ms_mfoundation_new() {
 static void ms_mfoundationcap_detect(MSWebCamManager *manager) {
 	MFDevices devices;
 	if (FAILED(devices.getDevices())) return;
+#ifdef ENABLE_MICROSOFT_STORE_APP
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+#else
+	HRESULT hr = CoInitialize(NULL);
+#endif
+	bool doUninitialize = SUCCEEDED(hr) || hr == S_FALSE;
 	for (UINT32 i = 0; i < devices.mDevicesCount; ++i) { // Get the human-friendly name of the device
 		WCHAR *nameString = NULL;
 		UINT32 cchName;
@@ -1596,6 +1611,7 @@ static void ms_mfoundationcap_detect(MSWebCamManager *manager) {
 		CoTaskMemFree(nameString);
 	}
 	devices.clean();
+	if (doUninitialize) CoUninitialize();
 }
 
 static void ms_mfoundationcap_uinit(MSWebCam *cam) {
