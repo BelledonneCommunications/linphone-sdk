@@ -66,9 +66,18 @@ MS2_PUBLIC void *ms_media_player_get_window_id(const MSMediaPlayer *obj);
 
 /**
  * Create a window ID
+ * A context can be used to prevent Linphone from allocating the container (#MSOglContextInfo for MSOGL). NULL if not used.
  * @param obj The player
+ * @param context preallocated Window ID (Used only for MSOGL) @maybenil
  * @return window_id the window ID
  */
+MS2_PUBLIC void *ms_media_player_create_window_id_2(MSMediaPlayer *obj, void *context);
+
+/**
+* Create a window ID
+* @param obj The player
+* @return window_id the window ID
+*/
 MS2_PUBLIC void *ms_media_player_create_window_id(MSMediaPlayer *obj);
 
 /**

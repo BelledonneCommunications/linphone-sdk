@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 	}
 	if (ms_media_player_has_video_track(player)) {
 		fprintf(stdout, "Found video track.\n");
-		ms_media_player_create_window_id(player);
+		ms_media_player_create_window_id_2(player, NULL);
 	}
 	ms_media_player_set_eof_callback(player, on_end_of_play, NULL);
 	ms_media_player_start(player);

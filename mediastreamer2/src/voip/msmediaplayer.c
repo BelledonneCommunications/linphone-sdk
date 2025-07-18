@@ -158,12 +158,16 @@ void *ms_media_player_get_window_id(const MSMediaPlayer *obj) {
 	return obj->window_id;
 }
 
-void *ms_media_player_create_window_id(MSMediaPlayer *obj) {
-	void *id = NULL;
+void *ms_media_player_create_window_id_2(MSMediaPlayer *obj, void *context) {
+	void *id = context;
 	if (obj->video_sink) {
 		ms_filter_call_method(obj->video_sink, MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, &id);
 	}
 	return id;
+}
+
+void *ms_media_player_create_window_id(MSMediaPlayer *obj) {
+	return ms_media_player_create_window_id_2(obj, NULL);
 }
 
 void ms_media_player_set_window_id(MSMediaPlayer *obj, void *window_id) {
