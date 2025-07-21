@@ -85,7 +85,7 @@ physical-swift-iOS-test:
     - ios-ninja
   allow_failure: true
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_IOS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_SWIFT_TESTS != null
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     
   variables:
