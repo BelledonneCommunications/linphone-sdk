@@ -1297,19 +1297,10 @@ public class AndroidPlatformHelper {
     }
 
     public void startPushService() {
-        boolean connected = false;
-        if (mNetworkManager != null) {
-            connected = mNetworkManager.isCurrentlyConnected(mContext);
-        } else {
-            Log.w("[Platform Helper] Network Manager isn't available yet, assuming network is un-reachable just in case");
-        }
-
-        if (!connected) {
-            Log.i("[Platform Helper] Push has been received but network seems unreachable, starting foreground push service");
-            Intent i = new Intent(mContext, mPushServiceClass);
-            DeviceUtils.startForegroundService(mContext, i);
-            mPushServiceStarted = true;
-        }
+        Log.i("[Platform Helper] Starting foreground push service");
+        Intent i = new Intent(mContext, mPushServiceClass);
+        DeviceUtils.startForegroundService(mContext, i);
+        mPushServiceStarted = true;
     }
 
     public void stopPushService() {
