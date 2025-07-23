@@ -1978,7 +1978,8 @@ static void message_with_voice_recording_base(bool_t create_message_from_recorde
 	linphone_recorder_params_unref(params);
 
 	linphone_chat_room_compose_voice_message(paulineToMarieRoom);
-	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneIsComposingActiveReceived, 1, 10000));
+	BC_ASSERT_TRUE(
+	    wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneIsComposingActiveReceived, 1, 10000));
 	const char *composingContentType = linphone_chat_room_get_remote_composing_content_type(marieToPaulineRoom);
 	BC_ASSERT_PTR_NOT_NULL(composingContentType);
 	BC_ASSERT_STRING_EQUAL(composingContentType, "audio/wav");
@@ -4655,11 +4656,15 @@ static void baudot_text_message(LinphoneBaudotMode initial_sender_baudot_mode,
 	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_tcp_rc");
 	LinphoneCallParams *marie_params = NULL;
 	LinphoneCall *pauline_call, *marie_call;
-	char *marie_db = bc_tester_file("marie.db");
-	char *pauline_db = bc_tester_file("pauline.db");
 
 	linphone_core_enable_baudot(marie->lc, TRUE);
 	linphone_core_enable_baudot(pauline->lc, TRUE);
+
+	// Use a silence file as input for marie to prevent gap in audio caused by the pulseaudio filter
+	char *filename = bc_tester_res("sounds/silence8000.wav");
+	linphone_core_set_play_file(marie->lc, filename);
+	linphone_core_set_use_files(marie->lc, TRUE);
+	bc_free(filename);
 
 	marie_params = linphone_core_create_call_params(marie->lc, NULL);
 
@@ -4723,10 +4728,6 @@ static void baudot_text_message(LinphoneBaudotMode initial_sender_baudot_mode,
 	linphone_call_params_unref(marie_params);
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
-	remove(marie_db);
-	bctbx_free(marie_db);
-	remove(pauline_db);
-	bctbx_free(pauline_db);
 }
 
 static void baudot_text_message_us(void) {
