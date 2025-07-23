@@ -497,6 +497,9 @@ static void subscribe_with_io_error(void) {
 	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 2, 8000));
 	sal_set_send_error(linphone_core_get_sal(marie->lc), 0);
 
+	// Wait for the first subscribe to expire on Pauline side (it should take 4s in the worst case scenario)
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+
 	/*and get it accepted again*/
 	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, 10000));
 	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 2, 5000));
@@ -509,7 +512,7 @@ static void subscribe_with_io_error(void) {
 	linphone_event_unref(lev);
 
 	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 2, 5000));
 
 	linphone_content_unref(content);
 	linphone_core_manager_destroy(marie);

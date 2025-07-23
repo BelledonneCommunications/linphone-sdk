@@ -1988,7 +1988,9 @@ static void check_results(LinphoneCoreManager *manager, bctbx_list_t *resultList
 	    + ((sourceFlags != LinphoneMagicSearchSourceNone) &&
 	               (((sourceFlags & LinphoneMagicSearchSourceFriends) == LinphoneMagicSearchSourceFriends) ||
 	                ((sourceFlags & LinphoneMagicSearchSourceCallLogs) == LinphoneMagicSearchSourceCallLogs) ||
+#ifdef LDAP_ENABLED
 	                ((sourceFlags & LinphoneMagicSearchSourceLdapServers) == LinphoneMagicSearchSourceLdapServers) ||
+#endif // LDAP_ENABLED
 	                ((sourceFlags & LinphoneMagicSearchSourceChatRooms) == LinphoneMagicSearchSourceChatRooms))
 	           ? 1
 	           : 0) // Common
