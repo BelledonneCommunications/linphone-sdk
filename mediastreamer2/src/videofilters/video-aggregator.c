@@ -28,6 +28,7 @@ typedef struct _VideoAggregatorData {
 	int last_input_sent;
 	uint32_t last_ssrc;
 	uint32_t last_kf_timestamp[MS_VIDEO_AGGREGATOR_NINPUTS];
+	bool_t first_packets;
 } VideoAggregatorData;
 
 static void video_aggregator_init(MSFilter *f) {
@@ -35,6 +36,7 @@ static void video_aggregator_init(MSFilter *f) {
 	d->last_input_sent = -1;
 	d->last_ssrc = 0;
 	memset(d->last_kf_timestamp, 0, sizeof(d->last_kf_timestamp));
+	d->first_packets = TRUE;
 	f->data = d;
 }
 
@@ -65,6 +67,14 @@ static void video_aggregator_process(MSFilter *f) {
 		if (i == d->last_input_sent || f->inputs[i] == NULL) continue;
 
 		while ((im = ms_queue_get(f->inputs[i])) != NULL) {
+			// Ignore the keyframe check for the first packets received by the aggregator.
+			if (d->first_packets) {
+				d->last_input_sent = i;
+				ms_queue_put(f->outputs[0], im);
+
+				continue;
+			}
+
 			// If we have a keyframe from a new input, we make sure this is a new keyframe.
 			if (mblk_get_independent_flag(im) && mblk_get_timestamp_info(im) != d->last_kf_timestamp[i]) {
 				d->last_input_sent = i;
@@ -79,6 +89,10 @@ static void video_aggregator_process(MSFilter *f) {
 				freemsg(im);
 			}
 		}
+	}
+
+	if (d->first_packets && d->last_input_sent != -1) {
+		d->first_packets = FALSE;
 	}
 }
 
