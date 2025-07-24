@@ -57,7 +57,7 @@ if(TARGET mbedtls)
 	set(MbedCrypto_TARGET mbedcrypto)
 
 	get_target_property(MbedTLS_VERSION mbedtls VERSION)
-	if (MbedTLS_VERSION EQUAL "MbedTLS_VERSION-NOTFOUND")
+	if (MbedTLS_VERSION STREQUAL "MbedTLS_VERSION-NOTFOUND")
 		set(MbedTLS_VERSION 3)
 	else()
 		string(REPLACE "." ";" MbedTLS_VERSION "${MbedTLS_VERSION}")
