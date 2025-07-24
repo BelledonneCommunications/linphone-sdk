@@ -388,9 +388,21 @@ bool verify_participant_removal_stats(bctbx_list_t *coresList,
                                       int nbParticipantsAdded,
                                       int nbNotifyEktReceived);
 
-void does_all_participants_have_matching_ekt(LinphoneCoreManager *focus,
-                                             std::map<LinphoneCoreManager *, LinphoneParticipantInfo *> members,
-                                             const LinphoneAddress *confAddr);
+bool does_all_participants_have_matching_ekt(std::list<LinphoneCoreManager *> members,
+                                             const LinphoneAddress *confAddr,
+                                             LinphoneConferenceSecurityLevel security_level);
+
+void check_call_establishment(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                              std::list<LinphoneCoreManager *> membersMgr,
+                              std::pair<LinphoneCoreManager *, stats> focus,
+                              const std::list<std::pair<LinphoneCoreManager *, stats>> &members,
+                              LinphoneCoreManager *organizer,
+                              const LinphoneAddress *confAddr,
+                              const LinphoneConferenceSecurityLevel security_level,
+                              const LinphoneMediaEncryption encryption,
+                              bool_t enable_chat,
+                              bool_t is_dialout,
+                              bool_t ics_sent);
 
 bool_t check_thumbnail_availability(const LinphoneCoreManager *mgr, const LinphoneAddress *confAddr);
 void toggle_screen_sharing(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
@@ -408,7 +420,8 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
                                  LinphoneCoreManager *focus,
                                  std::map<LinphoneCoreManager *, LinphoneParticipantInfo *> members,
                                  const LinphoneAddress *confAddr,
-                                 bool_t enable_video);
+                                 bool_t enable_video,
+                                 LinphoneConferenceSecurityLevel security_level);
 
 void check_muted(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
                  const LinphoneParticipantDevice *device,
