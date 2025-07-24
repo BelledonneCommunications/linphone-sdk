@@ -413,6 +413,7 @@ if(BUILD_DECAF)
 			set(ENABLE_STATIC ON)
 		endif()
 		set(ENABLE_STRICT OFF)
+		set(ENABLE_TESTS OFF)
 
 		set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # Prevent project from overriding the options we just set here
 		add_subdirectory("external/decaf")
