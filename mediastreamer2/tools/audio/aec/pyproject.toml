@@ -12,7 +12,9 @@ librosa = "^0.10.2.post1"
 plotly = "^5.24.1"
 pandas = "^2.2.3"
 kaleido = "==0.2.1"
-matplotlib = "3.10.0"
+matplotlib = "3.10.0.0"
+dtw-python = "^1.1.10"
+scipy = "^1.1.0"
 
 [build-system]
 requires = ["poetry-core"]

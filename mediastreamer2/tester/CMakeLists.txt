@@ -45,9 +45,12 @@ if(TurboJpeg_FOUND)
 	list(APPEND MS2_LIBS_FOR_TESTER ${TurboJpeg_TARGET})
 endif()
 
-
 if(ZLIB_FOUND)
 	list(APPEND MS2_LIBS_FOR_TESTER ${ZLIB_TARGET})
+endif()
+
+if(RNNOISE_FOUND)
+	list(APPEND MS2_LIBS_FOR_TESTER ${RNNOISE_TARGET})
 endif()
 
 set(SOUND_FILES
@@ -60,6 +63,8 @@ set(SOUND_FILES
 	sounds/echo_simple_talk_600ms.wav
 	sounds/farend_double_talk.wav
 	sounds/farend_simple_talk.wav
+	sounds/farend_simple_talk_48000.wav
+	sounds/farend_simple_talk_48000_2.wav
 	sounds/hello8000.wav
 	sounds/hello8000-1s.wav
 	sounds/hello16000.wav
@@ -68,7 +73,12 @@ set(SOUND_FILES
 	sounds/hello_pcmu.mka
 	sounds/laserrocket_16000_mono.wav
 	sounds/nearend_double_talk.wav
+	sounds/nearend_echo_400ms_noise_12dB_simple_talk_48000.wav
 	sounds/nearend_simple_talk.wav
+	sounds/nearend_simple_talk_48000.wav
+	sounds/noisy_nearend_0dB_simple_talk_48000.wav
+	sounds/noisy_nearend_6dB_simple_talk_48000.wav
+	sounds/noisy_nearend_12dB_simple_talk_48000.wav
 	sounds/nylon_48000_mono.wav
 	sounds/owl_44100_mono.wav
 	sounds/piano_8000_stereo.wav
@@ -130,6 +140,7 @@ set(SOURCE_FILES_C
 	mediastreamer2_audio_stream_tester.c
 	mediastreamer2_basic_audio_tester.c
 	mediastreamer2_framework_tester.c
+	mediastreamer2_noise_suppression_tester.c
 	mediastreamer2_player_tester.c
 	mediastreamer2_recorder_tester.c
 	mediastreamer2_sound_card_tester.c

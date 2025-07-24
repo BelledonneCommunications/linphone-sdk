@@ -258,6 +258,13 @@ bool MS2AudioMixer::echoCancellationEnabled() const {
 	return linphone_core_echo_cancellation_enabled(getSession().getCCore());
 }
 
+void MS2AudioMixer::enableNoiseSuppression(BCTBX_UNUSED(bool value)) {
+}
+
+bool MS2AudioMixer::noiseSuppressionEnabled() const {
+	return linphone_core_noise_suppression_enabled(getSession().getCCore());
+}
+
 void MS2AudioMixer::setInputDevice(const std::shared_ptr<AudioDevice> &audioDevice) {
 	if (mLocalParticipantStream) {
 		audio_stream_set_input_ms_snd_card(mLocalParticipantStream, audioDevice->getSoundCard());

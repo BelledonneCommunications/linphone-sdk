@@ -86,6 +86,8 @@ cmake_dependent_option(BUILD_OPENLDAP_SHARED_LIBS "Choose to build shared or sta
 cmake_dependent_option(BUILD_OPUS "Build opus library source code from submodule instead of searching it in system libraries." ON "ENABLE_OPUS" OFF)
 cmake_dependent_option(BUILD_OPUS_SHARED_LIBS "Choose to build shared or static opus library." ${BUILD_SHARED_LIBS} "BUILD_OPUS" OFF)
 
+cmake_dependent_option(BUILD_RNNOISE "Build rnnoise library source code from submodule instead of searching it in system libraries." ON "ENABLE_RNNOISE" OFF)
+
 cmake_dependent_option(BUILD_SOCI "Build soci library source code from submodule instead of searching it in system libraries." ON "ENABLE_SOCI" OFF)
 cmake_dependent_option(BUILD_SOCI_SHARED_LIBS "Choose to build shared or static soci library." ${BUILD_SHARED_LIBS} "BUILD_SOCI" OFF)
 set(BUILD_SOCI_BACKENDS "sqlite3" CACHE STRING "List of soci backends to build.")
@@ -1394,6 +1396,14 @@ if(BUILD_SPEEX)
 		add_dependencies(sdk speex)
 	endfunction()
 	add_speex()
+endif()
+
+if(BUILD_RNNOISE)
+	function(add_rnnoise)
+		add_subdirectory("external/rnnoise")
+		add_dependencies(sdk rnnoise)
+	endfunction()
+	add_rnnoise()
 endif()
 
 if(BUILD_VO_AMRWBENC)

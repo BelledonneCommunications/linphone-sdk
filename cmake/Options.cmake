@@ -122,6 +122,7 @@ linphonesdk_option("Theora" "Theora video encoding/decoding support." OFF)
 linphonesdk_dependent_option("WASAPI" "Windows Audio Session API (WASAPI) sound card support." ON "WIN32" OFF)
 linphonesdk_option("WebRTC AEC" "WebRTC echo canceller support." ON)
 linphonesdk_option("WebRTC VAD" "WebRTC voice activation detector support." ON)
+linphonesdk_option("RNNoise" "Noise suppression in audio with RNNoise support." ON)
 
 # Activation of video related features
 linphonesdk_option("Video" "Ability to capture and display video." ON)

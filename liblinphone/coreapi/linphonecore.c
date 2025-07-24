@@ -19,6 +19,7 @@
  */
 
 #include "linphone/types.h"
+#include "mediastreamer2/mscommon.h"
 #include <cmath>
 #include <sstream>
 #include <sys/stat.h>
@@ -1747,6 +1748,7 @@ static void sound_config_read(LinphoneCore *lc) {
 	linphone_core_set_disable_record_on_mute(
 	    lc, linphone_config_get_bool(lc->config, "sound", "disable_record_on_mute", FALSE));
 	linphone_core_set_remote_ringback_tone(lc, linphone_config_get_string(lc->config, "sound", "ringback_tone", NULL));
+	linphone_core_enable_noise_suppression(lc, !!linphone_config_get_int(lc->config, "sound", "noise_suppression", 0));
 
 	/*just parse requested stream feature once at start to print out eventual errors*/
 	linphone_core_get_audio_features(lc);
@@ -6119,6 +6121,16 @@ void linphone_core_enable_echo_limiter(LinphoneCore *lc, bool_t val) {
 
 bool_t linphone_core_echo_limiter_enabled(const LinphoneCore *lc) {
 	return lc->sound_conf.ea;
+}
+
+void linphone_core_enable_noise_suppression(LinphoneCore *lc, bool_t val) {
+	lc->sound_conf.noise_suppression = val;
+	if (linphone_core_ready(lc)) linphone_config_set_int(lc->config, "sound", "noise_suppression", val);
+	ms_message("set noise_suppression in config");
+}
+
+bool_t linphone_core_noise_suppression_enabled(const LinphoneCore *lc) {
+	return lc->sound_conf.noise_suppression;
 }
 
 void linphone_core_enable_mic(LinphoneCore *lc, bool_t enable) {

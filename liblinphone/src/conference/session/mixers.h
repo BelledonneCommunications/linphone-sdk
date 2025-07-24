@@ -204,6 +204,8 @@ public:
 	void setBaudotSendingStandard(LinphoneBaudotStandard standard) override;
 	void setBaudotPauseTimeout(uint8_t seconds) override;
 	void sendBaudotCharacter(char character) override;
+	virtual void enableNoiseSuppression(bool value) override;
+	virtual bool noiseSuppressionEnabled() const override;
 	// Used for the tone manager.
 	AudioStream *getAudioStream();
 

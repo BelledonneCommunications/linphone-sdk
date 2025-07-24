@@ -245,6 +245,11 @@ endif()
 if(SpeexDSP_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/speexec.c)
 endif()
+if(ENABLE_RNNOISE)
+	list(APPEND VOIP_SOURCE_FILES_C 
+		audiofilters/msnoisesuppressor.c
+		)
+endif()
 
 if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES_C
@@ -632,6 +637,9 @@ if(BCMatroska2_FOUND)
 endif()
 if(BV16_FOUND AND BV16_USE_BUILD_INTERFACE)
 	target_compile_definitions(mediastreamer2 PRIVATE BV16_USE_BUILD_INTERFACE)
+endif()
+if(RNNoise_FOUND)
+	target_link_libraries(mediastreamer2 PRIVATE ${RNNoise_TARGET})
 endif()
 
 if(JNI_FOUND)

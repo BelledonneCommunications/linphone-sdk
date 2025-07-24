@@ -13,7 +13,7 @@ LICENSE="GPL-3"
 KEYWORDS="~amd64 ~x86"
 SLOT="0"
 IUSE="+aec alsa amrnb amrwb +av1 +bv16 codec2 debug doc +g726 -g729 +gsm +jpeg -ldap +lime +matroska ntp-timestamp
-	+opengl openh264 +opus ortp-minimal pcap portaudio pqcrypto +pulseaudio +qrcode +resample +speex +srtp test +theora
+	+opengl openh264 +opus ortp-minimal pcap portaudio pqcrypto +pulseaudio +qrcode +resample +rnnoise +speex +srtp test +theora
 	tools +v4l +vad +vpx +yuv +zeroconf +zrtp"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}
 	zrtp? ( srtp )
@@ -137,6 +137,7 @@ src_configure() {
 		-DENABLE_QRCODE="$(usex qrcode)"
 		-DENABLE_RELATIVE_PREFIX=OFF
 		-DENABLE_RESAMPLE="$(usex resample)"
+		-DENABLE_RRNOISE="$(usex rnnoise)"
 		-DENABLE_SPEEX_CODEC="$(usex speex)"
 		-DENABLE_SPEEX_DSP="$(usex speex)"
 		-DENABLE_SRTP="$(usex srtp)"

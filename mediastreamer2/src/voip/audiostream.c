@@ -37,6 +37,7 @@
 #include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/msgenericplc.h"
 #include "mediastreamer2/msitc.h"
+#include "mediastreamer2/msnoisesuppressor.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/mstee.h"
@@ -368,6 +369,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->read_decoder != NULL) ms_filter_destroy(stream->read_decoder);
 	if (stream->write_encoder != NULL) ms_filter_destroy(stream->write_encoder);
 	if (stream->read_resampler != NULL) ms_filter_destroy(stream->read_resampler);
+	if (stream->noise_suppressor != NULL) ms_filter_destroy(stream->noise_suppressor);
 	if (stream->write_resampler != NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp != NULL) ms_filter_destroy(stream->dtmfgen_rtp);
 	if (stream->baudot_generator != NULL) ms_filter_destroy(stream->baudot_generator);
@@ -559,6 +561,25 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 	           from, to_name, to, from_rate, to_rate, from_channels, to_channels);
 }
 
+/*
+ * Set the noise suppressor filter in active or bypass mode depending on the channels number and sample rate configured
+ * before the noise suppressor.
+ */
+void audio_stream_configure_noise_suppressor(AudioStream *stream, MSFilter *previous_filter) {
+	if (!stream->noise_suppressor) {
+		return;
+	}
+	int sample_rate_Hz;
+	int nchannels;
+	ms_filter_call_method(previous_filter, MS_FILTER_GET_SAMPLE_RATE, &sample_rate_Hz);
+	ms_filter_call_method(previous_filter, MS_FILTER_GET_NCHANNELS, &nchannels);
+	bool_t bypass = FALSE;
+	if ((sample_rate_Hz != 48000) || (nchannels > 1)) {
+		bypass = TRUE;
+	}
+	ms_filter_call_method(stream->noise_suppressor, MS_NOISE_SUPPRESSOR_SET_BYPASS_MODE, &bypass);
+}
+
 static void audio_stream_process_rtcp(BCTBX_UNUSED(MediaStream *media_stream), BCTBX_UNUSED(const mblk_t *m)) {
 }
 
@@ -613,6 +634,7 @@ static void read_callback(void *ud, MSFilter *f, unsigned int id, BCTBX_UNUSED(v
 				MSFilter *from = stream->soundread;
 				if (stream->read_decoder) from = stream->read_decoder;
 				audio_stream_configure_resampler(stream, stream->read_resampler, from, stream->ms.encoder);
+				audio_stream_configure_noise_suppressor(stream, from);
 			}
 			break;
 		default:
@@ -1507,6 +1529,25 @@ int audio_stream_start_from_io(AudioStream *stream,
 	stream->sample_rate = sample_rate;
 	stream->nchannels = nchannels;
 
+	if ((stream->features & AUDIO_STREAM_FEATURE_NOISE_SUPPRESSION) && stream->use_ns) {
+		/* if the sample rate is 48000 Hz and the mode is mono, creates the noise suppressor filter */
+		stream->noise_suppressor = ms_factory_create_filter(stream->ms.factory, MS_NOISE_SUPPRESSOR_ID);
+		if (stream->noise_suppressor) {
+			bool_t bypass = !(sample_rate == 48000 && nchannels == 1);
+			if (!bypass) {
+				ms_message("Noise suppressor filter enabled for this audiostream.");
+			} else {
+				ms_message(
+				    "No noise suppression running in this audiostream because it must be mono with a sample rate of "
+				    "48000 Hz");
+			}
+			ms_filter_call_method(stream->noise_suppressor, MS_NOISE_SUPPRESSOR_SET_BYPASS_MODE, &bypass);
+		} else {
+			ms_error("Cannot create filter for noise suppression, not supported in this build.");
+			stream->features &= ~AUDIO_STREAM_FEATURE_NOISE_SUPPRESSION;
+		}
+	}
+
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
 		stream->volsend = ms_factory_create_filter(stream->ms.factory, MS_VOLUME_ID);
 	else stream->volsend = NULL;
@@ -1809,6 +1850,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, stream->soundread, -1, 0);
 	if (stream->read_decoder) ms_connection_helper_link(&h, stream->read_decoder, 0, 0);
+	if (stream->noise_suppressor) ms_connection_helper_link(&h, stream->noise_suppressor, 0, 0);
 	if (stream->read_resampler) ms_connection_helper_link(&h, stream->read_resampler, 0, 0);
 	if (stream->mic_equalizer) ms_connection_helper_link(&h, stream->mic_equalizer, 0, 0);
 	if (stream->ec) ms_connection_helper_link(&h, stream->ec, 1, 1);
@@ -2002,6 +2044,7 @@ void audio_stream_play(AudioStream *st, const char *name) {
 			ms_filter_call_method(st->soundread, MS_FILE_PLAYER_OPEN, (void *)name);
 			if (st->read_resampler) {
 				audio_stream_configure_resampler(st, st->read_resampler, st->soundread, st->ms.encoder);
+				audio_stream_configure_noise_suppressor(st, st->soundread);
 			}
 			int pause_time = 500;
 			ms_filter_call_method(st->soundread, MS_PLAYER_SET_LOOP, &pause_time);
@@ -2172,6 +2215,7 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	stream->use_gc = FALSE;
 	stream->use_agc = FALSE;
 	stream->use_ng = FALSE;
+	stream->use_ns = FALSE;
 	stream->features = AUDIO_STREAM_FEATURE_ALL;
 	stream->disable_record_on_mute = FALSE;
 
@@ -2268,6 +2312,16 @@ void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val) {
 		ms_filter_call_method(stream->volsend, MS_VOLUME_ENABLE_NOISE_GATE, &val);
 	} else {
 		ms_message("cannot set noise gate mode to [%i] because no volume send", val);
+	}
+}
+
+void audio_stream_enable_noise_suppression(AudioStream *stream, bool_t enabled) {
+	stream->use_ns = enabled;
+	if (stream->noise_suppressor) {
+		bool_t by_pass = !enabled;
+		ms_filter_call_method(stream->soundread, MS_NOISE_SUPPRESSOR_SET_BYPASS_MODE, &by_pass);
+	} else {
+		ms_message("cannot enable/disable noise suppression because no noise suppressor filter available");
 	}
 }
 
@@ -2437,6 +2491,7 @@ void audio_stream_stop(AudioStream *stream) {
 			ms_connection_helper_start(&h);
 			ms_connection_helper_unlink(&h, stream->soundread, -1, 0);
 			if (stream->read_decoder != NULL) ms_connection_helper_unlink(&h, stream->read_decoder, 0, 0);
+			if (stream->noise_suppressor) ms_connection_helper_unlink(&h, stream->noise_suppressor, 0, 0);
 			if (stream->read_resampler != NULL) ms_connection_helper_unlink(&h, stream->read_resampler, 0, 0);
 			if (stream->mic_equalizer) ms_connection_helper_unlink(&h, stream->mic_equalizer, 0, 0);
 			if (stream->ec != NULL) ms_connection_helper_unlink(&h, stream->ec, 1, 1);

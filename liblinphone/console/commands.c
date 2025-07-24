@@ -2131,6 +2131,16 @@ static int lpc_cmd_echolimiter(LinphoneCore *lc, char *args) {
 	return 1;
 }
 
+static int lpc_cmd_enable_noise_suppression(LinphoneCore *lc, BCTBX_UNUSED(char *args)) {
+	linphone_core_enable_noise_suppression(lc, 0);
+	return 1;
+}
+
+static int lpc_cmd_disable_noise_suppression(LinphoneCore *lc, BCTBX_UNUSED(char *args)) {
+	linphone_core_enable_noise_suppression(lc, 1);
+	return 1;
+}
+
 static int lpc_cmd_mute_mic(LinphoneCore *lc, BCTBX_UNUSED(char *args)) {
 	linphone_core_enable_mic(lc, 0);
 	return 1;

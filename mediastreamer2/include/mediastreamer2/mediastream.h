@@ -589,6 +589,7 @@ struct _AudioStream {
 	MSFilter *recorder_mixer;
 	MSFilter *recorder;
 	MSFilter *outbound_mixer;
+	MSFilter *noise_suppressor;
 	struct {
 		MSFilter *resampler;
 		MSFilter *encoder;
@@ -620,6 +621,7 @@ struct _AudioStream {
 	bool_t force_software_ec;
 	bool_t use_gc;
 	bool_t use_agc;
+	bool_t use_ns;
 
 	bool_t mic_eq_active;
 	bool_t spk_eq_active;
@@ -801,12 +803,14 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const
 #define AUDIO_STREAM_FEATURE_FLOW_CONTROL (1 << 10)
 #define AUDIO_STREAM_FEATURE_VAD (1 << 11)
 #define AUDIO_STREAM_FEATURE_BAUDOT (1 << 12)
+#define AUDIO_STREAM_FEATURE_NOISE_SUPPRESSION (1 << 13)
 
 #define AUDIO_STREAM_FEATURE_ALL                                                                                       \
 	(AUDIO_STREAM_FEATURE_PLC | AUDIO_STREAM_FEATURE_EC | AUDIO_STREAM_FEATURE_EQUALIZER |                             \
 	 AUDIO_STREAM_FEATURE_VOL_SND | AUDIO_STREAM_FEATURE_VOL_RCV | AUDIO_STREAM_FEATURE_DTMF |                         \
 	 AUDIO_STREAM_FEATURE_DTMF_ECHO | AUDIO_STREAM_FEATURE_MIXED_RECORDING | AUDIO_STREAM_FEATURE_LOCAL_PLAYING |      \
-	 AUDIO_STREAM_FEATURE_REMOTE_PLAYING | AUDIO_STREAM_FEATURE_FLOW_CONTROL | AUDIO_STREAM_FEATURE_BAUDOT)
+	 AUDIO_STREAM_FEATURE_REMOTE_PLAYING | AUDIO_STREAM_FEATURE_FLOW_CONTROL | AUDIO_STREAM_FEATURE_BAUDOT |           \
+	 AUDIO_STREAM_FEATURE_NOISE_SUPPRESSION)
 
 MS2_PUBLIC uint32_t audio_stream_get_features(AudioStream *st);
 MS2_PUBLIC void audio_stream_set_features(AudioStream *st, uint32_t features);
@@ -905,6 +909,15 @@ static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream
  * @param disable True if you wish to entirely stop the audio recording when muting the microphone.
  */
 MS2_PUBLIC void audio_stream_disable_record_on_mute(AudioStream *stream, bool_t disable);
+
+/**
+ * Enable or disable noise suppression on audio streams. This feature is supported only if the noise suppressor filter
+ * has been built.
+ *
+ * @param stream The stream.
+ * @param enable Wether the noise suppression must be enabled.
+ */
+MS2_PUBLIC void audio_stream_enable_noise_suppression(AudioStream *stream, bool_t enable);
 
 /**
  * Mute or unmute the microphone

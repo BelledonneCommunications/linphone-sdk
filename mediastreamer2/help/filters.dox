@@ -46,6 +46,7 @@
  *     - Resampler: src/audiofilters/msresample.c
  *     - Tone detector: src/audiofilters/tonedetector.c
  *     - Volume control and measure: src/audiofilters/msvolume.c
+ *     - Noise suppression: src/audiofilters/msnoisesuppressor.c
  * - Video filters:
  *   - Video capture and video display filters:
  *     - Android capture: src/android/androidvideo.cpp

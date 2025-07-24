@@ -59,6 +59,7 @@ set(HEADER_FILES
 	msqrcodereader.h
 	msmediaplayer.h
 	msmediarecorder.h
+	msnoisesuppressor.h
 	msqueue.h
 	msrtp.h
 	msscreensharing.h

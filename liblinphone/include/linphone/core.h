@@ -3781,6 +3781,22 @@ LINPHONE_PUBLIC void linphone_core_enable_mic(LinphoneCore *core, bool_t enable)
 LINPHONE_PUBLIC bool_t linphone_core_mic_enabled(LinphoneCore *core);
 
 /**
+ * Tells whether the noise suppression is enabled.
+ * @param core #LinphoneCore object @notnil
+ * @return TRUE if the noise suppression is enabled, FALSE if disabled.
+ * @ingroup media_parameters
+ **/
+LINPHONE_PUBLIC bool_t linphone_core_noise_suppression_enabled(const LinphoneCore *core);
+
+/**
+ * Enables or disables the noise suppression, if a noise suppression filter can be used.
+ * @param core #LinphoneCore object @notnil
+ * @param enable TRUE to enable the noise suppression, FALSE to disable it.
+ * @ingroup media_parameters
+ **/
+LINPHONE_PUBLIC void linphone_core_enable_noise_suppression(LinphoneCore *core, bool_t enable);
+
+/**
  * Returns the RTP transmission status for an active stream.
  * If audio is muted and config parameter rtp_no_xmit_on_audio_mute
  * has been set on then the RTP transmission is also muted.

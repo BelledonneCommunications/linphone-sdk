@@ -241,6 +241,8 @@ public:
 	virtual void setBaudotSendingStandard(LinphoneBaudotStandard standard) override;
 	virtual void setBaudotPauseTimeout(uint8_t seconds) override;
 	virtual void sendBaudotCharacter(char character) override;
+	virtual void enableNoiseSuppression(bool value) override;
+	virtual bool noiseSuppressionEnabled() const override;
 
 	virtual MediaStream *getMediaStream() const override;
 	virtual ~MS2AudioStream();
@@ -304,7 +306,8 @@ private:
 	bool mSpeakerMuted = false;
 	bool mRecordActive = false;
 	bool mStartZrtpLater = false;
-	bool mRestartStreamRequired = false;                // Set to true if the stream need to stop on render().
+	bool mRestartStreamRequired = false; // Set to true if the stream need to stop on render().
+	// bool mNoiseSuppression = false;
 	static constexpr const int ecStateMaxLen = 1048576; /* 1Mo */
 	static constexpr const char *ecStateStore = ".linphone.ecstate";
 	LinphoneBaudotMode mBaudotMode = LinphoneBaudotModeVoice;

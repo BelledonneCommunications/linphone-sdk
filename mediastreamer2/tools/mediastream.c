@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "mediastreamer2/mediastream.h"
 #include "bctoolbox/defs.h"
 #include "bctoolbox/port.h"
 
@@ -131,6 +132,7 @@ typedef struct _MediastreamDatas {
 	int preview_window_id;
 	/* starting values echo canceller */
 	int ec_len_ms, ec_delay_ms, ec_framesize;
+	bool_t noise_suppression;
 	char *srtp_local_master_key;
 	char *srtp_remote_master_key;
 	OrtpNetworkSimulatorParams netsim;
@@ -238,6 +240,7 @@ const char *usage =
     "[ --zrtp (enable zrtp) ]\n"
     "[ --fec <level> possible values are: 0 (fec enabled but nothing sent), 1 (1D, L=10), 2 (1D interleaved, L=5, "
     "D=5), 3 (2D, L=5, D=5), 4 (2D, L=4, D=4) and 5 (2D, L=3, D=3) ]\n"
+    "[ --ns (enable noise suppression, for 48kHz and mono audio) ]\n"
 #if TARGET_OS_IPHONE
     "[ --speaker route audio to speaker ]\n"
 #endif
@@ -340,6 +343,7 @@ MediastreamDatas *init_default_args(void) {
 	args->enable_rtcp = TRUE;
 	/* starting values echo canceller */
 	args->ec_len_ms = args->ec_delay_ms = args->ec_framesize = 0;
+	args->noise_suppression = FALSE;
 	args->enable_srtp = FALSE;
 	args->srtp_local_master_key = args->srtp_remote_master_key = NULL;
 	args->zoom = 1.0;
@@ -665,6 +669,8 @@ bool_t parse_args(int argc, char **argv, MediastreamDatas *out) {
 				ms_error("Invalid value for --fec");
 				return FALSE;
 			}
+		} else if (strcmp(argv[i], "--ns") == 0) {
+			out->noise_suppression = TRUE;
 		} else {
 			ms_error("Unknown option '%s'\n", argv[i]);
 			return FALSE;
@@ -900,6 +906,7 @@ void setup_media_streams(MediastreamDatas *args) {
 		audio_stream_enable_noise_gate(args->audio, args->use_ng);
 		audio_stream_set_echo_canceller_params(args->audio, args->ec_len_ms, args->ec_delay_ms, args->ec_framesize);
 		audio_stream_enable_echo_limiter(args->audio, args->el);
+		audio_stream_enable_noise_suppression(args->audio, args->noise_suppression);
 		audio_stream_enable_adaptive_bitrate_control(args->audio, args->rc_algo == RCAlgoSimple);
 		if (capt)
 			ms_snd_card_set_preferred_sample_rate(capt,

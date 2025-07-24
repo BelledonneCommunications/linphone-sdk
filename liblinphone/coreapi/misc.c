@@ -21,11 +21,13 @@
 
 #include <bctoolbox/defs.h>
 
+#include "mediastreamer2/allfilters.h"
 #include "mediastreamer2/mediastream.h"
 
 #include "core/core-p.h"
 #include "linphone/lpconfig.h"
 #include "linphone/wrapper_utils.h"
+#include "mediastreamer2/msfactory.h"
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -323,6 +325,7 @@ unsigned int linphone_core_get_audio_features(LinphoneCore *lc) {
 			else if ((strcasecmp(name, "BAUDOT") == 0) && (linphone_core_baudot_enabled(lc)))
 				ret |= AUDIO_STREAM_FEATURE_BAUDOT;
 #endif /* HAVE_BAUDOT */
+			else if (strcasecmp(name, "NOISE_SUPPRESSION") == 0) ret |= AUDIO_STREAM_FEATURE_NOISE_SUPPRESSION;
 			else if (strcasecmp(name, "ALL") == 0) ret |= AUDIO_STREAM_FEATURE_ALL;
 			else if (strcasecmp(name, "NONE") == 0) ret = 0;
 			else ms_error("Unsupported audio feature %s requested in config file.", name);
@@ -570,6 +573,10 @@ const char *linphone_core_get_default_video_display_filter(LinphoneCore *lc) {
 bool_t linphone_core_is_media_filter_supported(LinphoneCore *lc, const char *filtername) {
 	return ms_factory_lookup_filter_by_name(lc->factory, filtername) != NULL;
 }
+
+// bool_t linphone_core_is_noise_suppression_supported(LinphoneCore *lc) {
+// 	return ms_factory_lookup_filter_by_id(lc->factory, MS_NOISE_SUPPRESSOR_ID) != NULL;
+// }
 
 void linphone_core_set_echo_canceller_filter_name(LinphoneCore *lc, const char *filtername) {
 	linphone_config_set_string(lc->config, "sound", "ec_filter", filtername);

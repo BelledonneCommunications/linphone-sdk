@@ -19,6 +19,8 @@ class AudioSignal:
         self.normalized_aligned_data = None
         self.timestamps = None
         self.sample_rate_hz = 16000
+        self.sample_duration_s = 1./16000.
+        self.total_duration_s = 0.
 
     def normalize(self):
         """
@@ -36,53 +38,67 @@ class AudioSignal:
         if self.aligned_data is not None:
             self.normalized_aligned_data = self.aligned_data / np.max(np.abs(self.aligned_data))
 
-    def read_audio(self, sample_rate_hz=16000):
+    def read_audio(self):
         """
         Read the initial audio data from the wav file. Fill the data array, compute the normalized audio and fill the
         timestamps.
-        :param sample_rate_hz: sample rate in Hz, default is 16000 Hz.
         """
 
         if self.file_name == "":
             return None
 
         self.data, sample_rate_read = librosa.load(self.file_name,
-                                                   sr=sample_rate_hz)
-        if sample_rate_hz != sample_rate_read:
-            print(f"ERROR sampling rate {sample_rate_hz} != {sample_rate_read} Hz")
+                                                   sr=self.sample_rate_hz)
+        if self.sample_rate_hz != sample_rate_read:
+            print(f"ERROR sampling rate {self.sample_rate_hz} != {sample_rate_read} Hz")
             return None
-        self.sample_rate_hz = sample_rate_read
+        self.sample_duration_s = 1./float(self.sample_rate_hz)
+        self.total_duration_s = self.data.size * self.sample_duration_s
         print(f"read file {self.file_name}")
         print(
-            f"  -> data size is {self.data.size}, max is {np.max(self.data):1.0f}, sampling rate is {sample_rate_read}")
+            f"  -> data size is {self.data.size}, max is {np.max(self.data):1.0f}, sampling rate is {sample_rate_read} -> {self.total_duration_s:.2f} s")
 
         self.normalize()
 
-        sample_duration_s = 1. / self.sample_rate_hz
-        self.timestamps = sample_duration_s * np.arange(self.data.size)
+        self.sample_duration_s = 1. / self.sample_rate_hz
+        self.timestamps = self.sample_duration_s * np.arange(self.data.size)
 
-    def read_audio_from_file(self, file_path, sample_rate_hz=16000):
+    def read_audio_from_file(self, file_path):
         """
         Read the audio data from a given wav file.
         :param file_path: name of the wav file.
-        :param sample_rate_hz: sample rate in Hz, default is 16000 Hz.
         """
 
         if file_path == "":
             return None
 
         self.file_name = file_path
-        self.read_audio(sample_rate_hz)
+        self.read_audio()
 
     def write_in_file(self, file_name):
         """
         Write the audio data in wav file.
         :param file_name: name of the file.
         """
-        """
-        Write audio data in wav file.
-        :param file_name: name of the file
-        :return:
-        """
+
         if self.data is not None:
             sf.write(file_name, self.data, self.sample_rate_hz, subtype='PCM_16')
+
+    def write_aligned_in_file(self, file_name):
+        """
+        Write the aligned audio data in wav file.
+        :param file_name: name of the file.
+        """
+
+        if self.aligned_data is not None:
+            sf.write(file_name, self.aligned_data, self.sample_rate_hz, subtype='PCM_16')
+
+    def write_data_in_file(self, file_name, data):
+        """
+        Write the given audio data in wav file.
+        :param file_name: name of the file.
+        :param data: array of audio data
+        """
+
+        if data is not None:
+            sf.write(file_name, data, self.sample_rate_hz, subtype='PCM_16')

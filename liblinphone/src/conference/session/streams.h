@@ -256,6 +256,8 @@ public:
 	virtual void setBaudotSendingStandard(LinphoneBaudotStandard standard) = 0;
 	virtual void setBaudotPauseTimeout(uint8_t seconds) = 0;
 	virtual void sendBaudotCharacter(char character) = 0;
+	virtual void enableNoiseSuppression(bool value) = 0;
+	virtual bool noiseSuppressionEnabled() const = 0;
 	virtual ~AudioControlInterface() = default;
 };
 

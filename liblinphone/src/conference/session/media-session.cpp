@@ -909,6 +909,18 @@ void MediaSessionPrivate::setSpeakerMuted(bool muted) {
 
 // -----------------------------------------------------------------------------
 
+// bool MediaSessionPrivate::getNoiseSuppressionEnabled() const {
+// 	AudioControlInterface *i = getStreamsGroup().lookupMainStreamInterface<AudioControlInterface>(SalAudio);
+// 	return i ? !i->noiseSuppressionEnabled() : false;
+// }
+
+// void MediaSessionPrivate::setNoiseSuppressionEnabled(bool enable) {
+// 	AudioControlInterface *i = getStreamsGroup().lookupMainStreamInterface<AudioControlInterface>(SalAudio);
+// 	if (i) i->enableNoiseSuppression(!enable);
+// }
+
+// -----------------------------------------------------------------------------
+
 bool MediaSessionPrivate::getMicrophoneMuted() const {
 	AudioControlInterface *i = getStreamsGroup().lookupMainStreamInterface<AudioControlInterface>(SalAudio);
 	return i ? !i->micEnabled() : false;
