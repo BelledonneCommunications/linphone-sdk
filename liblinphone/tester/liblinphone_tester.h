@@ -1305,7 +1305,18 @@ int liblinphone_tester_sound_detection(LinphoneCoreManager *a,
                                        const char *log_tag);
 
 /* Exports DNS engine setting, for use in the iOS swift tester */
-void liblinphone_tester_set_dns_engine_by_default(LinphoneCore * lc);
+void liblinphone_tester_set_dns_engine_by_default(LinphoneCore *lc);
+
+/* Simple wrapper around ms_audio_diff() utility, that reduces current process priority during the processing
+ * in order to avoid to negatively affect other processes running test suites.
+ */
+int liblinphone_tester_audio_diff(const char *ref_file,
+                                  const char *matched_file,
+                                  double *ret,
+                                  const MSAudioDiffParams *params,
+                                  MSAudioDiffProgressNotify func,
+                                  void *user_data);
+
 #ifdef __cplusplus
 };
 #endif
