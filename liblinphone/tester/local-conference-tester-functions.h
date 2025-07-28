@@ -393,6 +393,13 @@ void does_all_participants_have_matching_ekt(LinphoneCoreManager *focus,
                                              const LinphoneAddress *confAddr);
 
 bool_t check_thumbnail_availability(const LinphoneCoreManager *mgr, const LinphoneAddress *confAddr);
+void toggle_screen_sharing(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                           LinphoneCoreManager *focus,
+                           const std::list<LinphoneCoreManager *> &members,
+                           LinphoneCoreManager *screen_sharing_mgr,
+                           LinphoneCallParams *screen_sharing_mgr_new_call_params,
+                           const LinphoneAddress *confAddr,
+                           bool_t screen_sharing_allowed);
 bool_t check_screen_sharing(const LinphoneCoreManager *mgr,
                             const LinphoneAddress *confAddr,
                             const LinphoneCoreManager *screen_sharing_mgr);

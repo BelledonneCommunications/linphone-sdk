@@ -3515,8 +3515,8 @@ void ServerConference::removeParticipantDevice(BCTBX_UNUSED(const shared_ptr<Par
 #ifdef HAVE_ADVANCED_IM
 	const auto &chatRoom = getChatRoom();
 	if (mConfParams->chatEnabled() && chatRoom) {
-		shared_ptr<Participant> participantCopy = participant; // make a copy of the shared_ptr because the participant
-		                                                       // may be removed by setParticipantDeviceState().
+		shared_ptr<Participant> participantRef = participant; // take a ref of the shared_ptr because the participant
+		                                                      // may be removed by setParticipantDeviceState().
 		lInfo() << "Device " << *deviceAddress << " is removed from " << *this;
 		auto participantDevice = participant->findDevice(deviceAddress);
 		if (!participantDevice) {
@@ -3530,7 +3530,7 @@ void ServerConference::removeParticipantDevice(BCTBX_UNUSED(const shared_ptr<Par
 		// First set it as left, so that it may eventually trigger the destruction of the chatroom if no device are
 		// present for any participant.
 		setParticipantDeviceState(participantDevice, ParticipantDevice::State::Left, false);
-		participantCopy->removeDevice(deviceAddress);
+		participantRef->removeDevice(deviceAddress);
 	}
 #endif // HAVE_ADVANCED_IM
 }

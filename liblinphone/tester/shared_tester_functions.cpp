@@ -1079,7 +1079,7 @@ void check_chat_message_properties(LinphoneChatMessage *msg) {
 	}
 }
 
-bool_t check_screen_sharing_call_sdp(LinphoneCall *call, bool_t screen_sharing_enabled) {
+bool_t check_screen_sharing_call_sdp(const LinphoneCall *call, const bool_t screen_sharing_enabled) {
 	bool ret = (call != nullptr);
 	BC_ASSERT_PTR_NOT_NULL(call);
 	if (call) {
@@ -1089,6 +1089,8 @@ bool_t check_screen_sharing_call_sdp(LinphoneCall *call, bool_t screen_sharing_e
 		    is_in_conference ? op->getRemoteMediaDescription() : op->getLocalMediaDescription();
 		int screenSharingStreamIdx =
 		    content_desc->findIdxStreamWithContent(MediaSessionPrivate::ScreenSharingContentAttribute);
+		lInfo() << __func__ << " DEBUG DEBUG screen sharing enabled " << !!screen_sharing_enabled << " stream idx "
+		        << screenSharingStreamIdx << " core " << linphone_core_get_identity(linphone_call_get_core(call));
 		if (screenSharingStreamIdx == -1) {
 			ret &= (screen_sharing_enabled == FALSE);
 		} else {
@@ -1123,10 +1125,15 @@ bool_t check_screen_sharing_call_sdp(LinphoneCall *call, bool_t screen_sharing_e
 }
 
 bool_t check_screen_sharing_sdp(LinphoneCoreManager *mgr1, LinphoneCoreManager *mgr2, bool_t screen_sharing_enabled) {
+	const LinphoneCall *mgr2_call = linphone_core_get_call_by_remote_address2(mgr2->lc, mgr1->identity);
+	return check_screen_sharing_sdp_2(mgr1, mgr2_call, screen_sharing_enabled);
+}
+
+bool_t
+check_screen_sharing_sdp_2(LinphoneCoreManager *mgr1, const LinphoneCall *mgr2_call, bool_t screen_sharing_enabled) {
 	bool_t ret = TRUE;
-	LinphoneCall *mgr1_call = linphone_core_get_call_by_remote_address2(mgr1->lc, mgr2->identity);
+	const LinphoneCall *mgr1_call = get_peer_call(mgr1, mgr2_call);
 	ret &= check_screen_sharing_call_sdp(mgr1_call, screen_sharing_enabled);
-	LinphoneCall *mgr2_call = linphone_core_get_call_by_remote_address2(mgr2->lc, mgr1->identity);
 	ret &= check_screen_sharing_call_sdp(mgr2_call, screen_sharing_enabled);
 	return ret;
 }

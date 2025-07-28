@@ -8401,10 +8401,12 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 		BC_ASSERT_PTR_NOT_NULL(confAddr);
 		char *conference_address_str = (confAddr) ? linphone_address_as_string(confAddr) : ms_strdup("sip:");
 
-		// Chat room creation to send ICS
+		// Chat room creation to send ICS - only Pauline and Michelle can receive the ICS as the other manager are not
+		// registered on the proxy
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreated, 2,
 		                             liblinphone_tester_sip_timeout));
 
+		// All clients enter the conference
 		const LinphoneMediaEncryption encryption = LinphoneMediaEncryptionNone;
 		for (auto mgr : members) {
 			LinphoneCallParams *new_params = linphone_core_create_call_params(mgr->lc, nullptr);
@@ -8429,6 +8431,7 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 			}
 		}
 
+		// Check that calls are correctly established as well as EKT, if applicable, and full state NOTIFY received
 		int idx = 1;
 		for (auto mgr : members) {
 			BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallOutgoingProgress, 1,
@@ -8438,8 +8441,6 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 			                             liblinphone_tester_sip_timeout));
 			BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallStreamsRunning, no_streams_running,
 			                             liblinphone_tester_sip_timeout));
-			// Update to add to conference.
-			// If ICE is enabled, the addition to a conference may go through a resume of the call
 			BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneConferenceStateCreated, 1,
 			                             liblinphone_tester_sip_timeout));
 			if ((mgr != laure.getCMgr()) && (mgr != berthe.getCMgr())) {
@@ -8488,7 +8489,6 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
 		                             focus_stat.number_of_LinphoneCallStreamsRunning + focus_no_streams_running,
 		                             liblinphone_tester_sip_timeout));
-		// If ICE is enabled, the addition to a conference may go through a resume of the call
 		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneConferenceStateCreated,
 		                             focus_stat.number_of_LinphoneConferenceStateCreated + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -8525,6 +8525,7 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 		wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe, lise}, conferenceMgrs,
 		                            focus.getCMgr(), memberList, confAddr, TRUE);
 
+		// Verify that Michelle is screen sharing and thumbnail streams have been offered
 		for (const auto &mgr : members) {
 			bool_t is_screen_sharing_enabled = (mgr == michelle.getCMgr());
 			LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
@@ -8563,6 +8564,7 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 		}
 
 		if (enable_chat) {
+			// Send chat messages with both a client registered on the proxy and one that isn't
 			const std::initializer_list<std::reference_wrapper<ClientConference>> cores2{marie,    laure,  pauline,
 			                                                                             michelle, berthe, lise};
 			LinphoneConference *marie_conference =
@@ -8746,6 +8748,7 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 			                                                                LinphoneParticipantRoleSpeaker, -1)));
 			linphone_address_unref(lise_identity);
 
+			// Lise and Berthe join the conference
 			int idx = 0;
 			for (const auto &mgr : {lise.getCMgr(), berthe.getCMgr()}) {
 				conferenceMgrs.push_back(mgr);
@@ -8803,13 +8806,6 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 			                   }));
 		}
 
-		focus_stat = focus.getStats();
-		stats marie_stat = marie.getStats();
-		stats pauline_stat = pauline.getStats();
-		stats laure_stat = laure.getStats();
-		stats berthe_stat = berthe.getStats();
-		stats lise_stat = lise.getStats();
-		stats michelle_stat = michelle.getStats();
 		// Michelle stops screen sharing
 		ms_message("%s stops screen sharing", linphone_core_get_identity(michelle.getLc()));
 		LinphoneCall *michelle_call = linphone_core_get_call_by_remote_address2(michelle.getLc(), confAddr);
@@ -8818,68 +8814,15 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 			LinphoneCallParams *new_params = linphone_core_create_call_params(michelle.getLc(), michelle_call);
 			linphone_call_params_enable_video(new_params, TRUE);
 			linphone_call_params_enable_screen_sharing(new_params, FALSE);
-			linphone_call_update(michelle_call, new_params);
+			toggle_screen_sharing({focus, marie, pauline, laure, michelle, berthe, lise}, focus.getCMgr(), members,
+			                      michelle.getCMgr(), new_params, confAddr, TRUE);
 			linphone_call_params_unref(new_params);
-
-			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneCallUpdating,
-			                             michelle_stat.number_of_LinphoneCallUpdating + 1,
-			                             liblinphone_tester_sip_timeout));
-
-			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneCallStreamsRunning,
-			                             michelle_stat.number_of_LinphoneCallStreamsRunning + 1,
-			                             liblinphone_tester_sip_timeout));
-
-			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallUpdatedByRemote,
-			                             focus_stat.number_of_LinphoneCallUpdatedByRemote + 1,
-			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
-			                             focus_stat.number_of_LinphoneCallStreamsRunning + 1,
-			                             liblinphone_tester_sip_timeout));
 		}
-
-		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_participant_devices_screen_sharing_disabled,
-		                             focus_stat.number_of_participant_devices_screen_sharing_disabled + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participant_devices_screen_sharing_disabled,
-		                             marie_stat.number_of_participant_devices_screen_sharing_disabled + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(
-		    coresList, &berthe.getStats().number_of_participant_devices_screen_sharing_disabled,
-		    berthe_stat.number_of_participant_devices_screen_sharing_disabled + 1, liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &lise.getStats().number_of_participant_devices_screen_sharing_disabled,
-		                             lise_stat.number_of_participant_devices_screen_sharing_disabled + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(
-		    coresList, &michelle.getStats().number_of_participant_devices_screen_sharing_disabled,
-		    michelle_stat.number_of_participant_devices_screen_sharing_disabled + 1, liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(
-		    coresList, &berthe.getStats().number_of_participant_devices_screen_sharing_disabled,
-		    berthe_stat.number_of_participant_devices_screen_sharing_disabled + 1, liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(
-		    coresList, &pauline.getStats().number_of_participant_devices_screen_sharing_disabled,
-		    pauline_stat.number_of_participant_devices_screen_sharing_disabled + 1, liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_participant_devices_screen_sharing_disabled,
-		                             laure_stat.number_of_participant_devices_screen_sharing_disabled + 1,
-		                             liblinphone_tester_sip_timeout));
-
-		for (const auto &mgr : conferenceMgrs) {
-			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe, lise})
-			                   .waitUntil(chrono::seconds(50),
-			                              [mgr, confAddr] { return check_screen_sharing(mgr, confAddr, NULL); }));
-		}
-
-		focus_stat = focus.getStats();
-		marie_stat = marie.getStats();
-		pauline_stat = pauline.getStats();
-		laure_stat = laure.getStats();
-		berthe_stat = berthe.getStats();
-		lise_stat = lise.getStats();
-		michelle_stat = michelle.getStats();
 
 		wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe, lise}, conferenceMgrs,
 		                            focus.getCMgr(), memberList, confAddr, TRUE);
 
-		// Lise enables screen sharing
+		// Lise takes over screen sharing
 		ms_message("%s takes over screen sharing from %s", linphone_core_get_identity(lise.getLc()),
 		           linphone_core_get_identity(michelle.getLc()));
 		LinphoneCall *lise_call = linphone_core_get_call_by_remote_address2(lise.getLc(), confAddr);
@@ -8888,54 +8831,9 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 			LinphoneCallParams *new_params = linphone_core_create_call_params(lise.getLc(), lise_call);
 			linphone_call_params_enable_video(new_params, TRUE);
 			linphone_call_params_enable_screen_sharing(new_params, TRUE);
-			linphone_call_update(lise_call, new_params);
+			toggle_screen_sharing({focus, marie, pauline, laure, michelle, berthe, lise}, focus.getCMgr(), members,
+			                      lise.getCMgr(), new_params, confAddr, TRUE);
 			linphone_call_params_unref(new_params);
-
-			BC_ASSERT_TRUE(wait_for_list(coresList, &lise.getStats().number_of_LinphoneCallUpdating,
-			                             lise_stat.number_of_LinphoneCallUpdating + 1, liblinphone_tester_sip_timeout));
-
-			BC_ASSERT_TRUE(wait_for_list(coresList, &lise.getStats().number_of_LinphoneCallStreamsRunning,
-			                             lise_stat.number_of_LinphoneCallStreamsRunning + 1,
-			                             liblinphone_tester_sip_timeout));
-
-			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallUpdatedByRemote,
-			                             focus_stat.number_of_LinphoneCallUpdatedByRemote + 1,
-			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
-			                             focus_stat.number_of_LinphoneCallStreamsRunning + 1,
-			                             liblinphone_tester_sip_timeout));
-		}
-
-		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_participant_devices_screen_sharing_enabled,
-		                             focus_stat.number_of_participant_devices_screen_sharing_enabled + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participant_devices_screen_sharing_enabled,
-		                             marie_stat.number_of_participant_devices_screen_sharing_enabled + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_participant_devices_screen_sharing_enabled,
-		                             berthe_stat.number_of_participant_devices_screen_sharing_enabled + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &lise.getStats().number_of_participant_devices_screen_sharing_enabled,
-		                             lise_stat.number_of_participant_devices_screen_sharing_enabled + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(
-		    coresList, &michelle.getStats().number_of_participant_devices_screen_sharing_enabled,
-		    michelle_stat.number_of_participant_devices_screen_sharing_enabled + 1, liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_participant_devices_screen_sharing_enabled,
-		                             berthe_stat.number_of_participant_devices_screen_sharing_enabled + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(
-		    coresList, &pauline.getStats().number_of_participant_devices_screen_sharing_enabled,
-		    pauline_stat.number_of_participant_devices_screen_sharing_enabled + 1, liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_participant_devices_screen_sharing_enabled,
-		                             laure_stat.number_of_participant_devices_screen_sharing_enabled + 1,
-		                             liblinphone_tester_sip_timeout));
-
-		for (const auto &mgr : conferenceMgrs) {
-			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe, lise})
-			                   .waitUntil(chrono::seconds(50), [mgr, &lise, confAddr] {
-				                   return check_screen_sharing(mgr, confAddr, lise.getCMgr());
-			                   }));
 		}
 
 		focus_stat = focus.getStats();
@@ -8946,8 +8844,8 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 
 		auto remaining_members = members;
 		bool anyone_screen_sharing = true;
-
 		for (auto mgr : members) {
+			// Participants leave the conference one by one
 			stats focus_stat2 = focus.getStats();
 			remaining_members.pop_front();
 			std::list<stats> remaining_members_stats;
@@ -9032,6 +8930,8 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 					                stat.number_of_participant_devices_screen_sharing_disabled, int, "%0d");
 				}
 
+				// Check that as soon as the screen sharing device (Lise) exits the conference, everybody is notified
+				// and the pointer to the screen sharing participant becomes NULL
 				LinphoneConference *conference =
 				    linphone_core_search_conference(remaining_mgr->lc, NULL, remaining_mgr->identity, confAddr, NULL);
 				BC_ASSERT_PTR_NOT_NULL(conference);
@@ -9115,6 +9015,7 @@ static void conference_with_anonymous_calls_base(LinphoneConferenceLayout layout
 		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneConferenceStateDeleted, 1,
 		                             liblinphone_tester_sip_timeout));
 
+		// Check call logs and conference information after conference ends
 		LinphoneConferenceInfo *focus_info =
 		    linphone_core_find_conference_information_from_uri(focus.getLc(), confAddr);
 		for (auto mgr : members) {
