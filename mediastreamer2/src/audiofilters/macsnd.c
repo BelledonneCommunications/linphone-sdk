@@ -159,21 +159,30 @@ static int au_get_default_device_id(AudioDeviceID *id, bool_t is_read) {
 }
 
 static int au_get_device_sample_rate(AudioDeviceID dev, bool_t is_read, int *rate) {
-	AudioObjectPropertyScope theScope = is_read ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput;
-	AudioObjectPropertyAddress theAddress = {kAudioDevicePropertyStreamFormat, theScope, 0};
-	AudioStreamBasicDescription format;
+	AudioObjectPropertyScope inputScope = is_read ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput;
+	AudioObjectPropertyAddress streamFormatAddress = {kAudioDevicePropertyStreamFormat, inputScope, 0};
+	AudioStreamBasicDescription format = {0};
 	UInt32 slen;
 	int err;
 
-	err = AudioObjectGetPropertyData(dev, &theAddress, 0, NULL, &slen, &format);
+	err = AudioObjectGetPropertyData(dev, &streamFormatAddress, 0, NULL, &slen, &format);
 
 	//		err = AudioDeviceGetProperty(dev, 0, cap & MS_SND_CARD_CAP_CAPTURE, kAudioDevicePropertyStreamFormat,
 	//&slen, &format);
-	if (err == kAudioHardwareNoError && format.mSampleRate > 0) {
+	if (err == kAudioHardwareBadObjectError) {
+		ms_warning("[MSAU] Trying to get rate from bad ID %d", (int)dev);
+	} else if (err != kAudioHardwareNoError) { // Try another method
+		AudioObjectPropertyAddress nominalSampleAddress = {kAudioDevicePropertyNominalSampleRate, inputScope,
+		                                                   kAudioObjectPropertyElementMaster};
+		err = AudioObjectGetPropertyData(dev, &nominalSampleAddress, 0, NULL, &slen, &format);
+	}
+	if (err == kAudioHardwareNoError && (int)format.mSampleRate > 0) {
 		// show_format("device", &format);
 		*rate = format.mSampleRate;
 		return 0;
-	} else return -1;
+	} else {
+		return -1;
+	}
 }
 
 static void
@@ -508,6 +517,81 @@ static OSStatus writeRenderProc(void *inRefCon,
 	return 0;
 }
 
+static AudioStreamBasicDescription au_get_stream_basic_description(AUCommon *d, bool_t is_read) {
+	OSStatus result;
+	UInt32 param;
+#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
+	AudioComponentDescription desc;
+	AudioComponent comp;
+#else
+	ComponentDescription desc;
+	Component comp;
+#endif
+	AudioStreamBasicDescription asbd = {0};
+	const int input_bus = 1;
+	const int output_bus = 0;
+	int device_rate = 0;
+	AudioUnitScope inputScope = is_read ? kAudioUnitScope_Input : kAudioUnitScope_Output;
+	AudioUnitElement element = is_read ? input_bus : output_bus;
+	UInt32 asbdsize = sizeof(AudioStreamBasicDescription);
+	// This is undocumented and this note is based only on user feedbacks :
+	// kAudioUnitSubType_DefaultOutput cannot be used for microphones.
+	// Also it appears that some properties cannot be set like format/buffer storage.
+	// If there are issues on data that cannot be retrieved/set (like sample rates),
+	// set componentSubType to kAudioUnitSubType_HALOutput on is_read
+
+	if (d->follow_default) { // Get Default device
+		au_get_default_device_id(&d->dev, is_read);
+	}
+	desc.componentType = kAudioUnitType_Output;
+	desc.componentSubType = d->dev != (AudioDeviceID)-1 ? kAudioUnitSubType_HALOutput : kAudioUnitSubType_DefaultOutput;
+	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
+	desc.componentFlags = 0;
+	desc.componentFlagsMask = 0;
+#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
+	comp = AudioComponentFindNext(NULL, &desc);
+#else
+	comp = FindNextComponent(NULL, &desc);
+#endif
+	if (comp == NULL) {
+		ms_error("[MSAU] Cannot find audio component");
+		return asbd;
+	}
+#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
+	result = AudioComponentInstanceNew(comp, &d->au);
+#else
+	result = OpenAComponent(comp, &d->au);
+#endif
+	if (result != noErr) {
+		ms_error("[MSAU] Cannot open audio component %" UINT32_X_PRINTF, result);
+		return asbd;
+	}
+	param = is_read;
+	if (d->dev != (AudioDeviceID)-1) { // Cannot manually enabling IO for defaults
+		CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, input_bus,
+		                                    &param, sizeof(UInt32)));
+
+		param = !is_read;
+		CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output,
+		                                    output_bus, &param, sizeof(UInt32)));
+
+		// Set the current device
+		CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global,
+		                                    output_bus, &d->dev, sizeof(AudioDeviceID)));
+	}
+	param = 0;
+	CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioUnitProperty_ShouldAllocateBuffer, inputScope, element, &param,
+	                                    sizeof(param)));
+	memset((char *)&asbd, 0, asbdsize);
+	CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioUnitProperty_StreamFormat, inputScope, element, &asbd, &asbdsize));
+
+	// Device rate (especially with HAL) is better than AudioUnit
+	if (!au_get_device_sample_rate(d->dev, is_read, &device_rate)) {
+		asbd.mSampleRate = device_rate;
+	}
+	return asbd;
+}
+
 static OSStatus audio_unit_default_listener(BCTBX_UNUSED(AudioObjectID inObjectID),
                                             BCTBX_UNUSED(UInt32 inNumberAddresses),
                                             BCTBX_UNUSED(const AudioObjectPropertyAddress *inAddresses),
@@ -542,80 +626,22 @@ static void audio_unit_notif_unregister(AUCommon *common, bool_t is_read) {
 
 static int audio_unit_open(MSFilter *f, AUCommon *d, bool_t is_read) {
 	OSStatus result;
-	UInt32 param;
-#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
-	AudioComponentDescription desc;
-	AudioComponent comp;
-#else
-	ComponentDescription desc;
-	Component comp;
-#endif
-	AudioStreamBasicDescription asbd;
+	UInt32 param = 0;
+	AudioStreamBasicDescription asbd = au_get_stream_basic_description(d, is_read);
+	UInt32 asbdsize = sizeof(AudioStreamBasicDescription);
 	const int input_bus = 1;
 	const int output_bus = 0;
-	int device_rate = 0;
-	// kAudioUnitSubType_DefaultOutput cannot be used for microphones. Also it appears that some properties cannot be
-	// set like format/buffer storage. Get Default audio unit
-	if (d->follow_default) {
-		au_get_default_device_id(&d->dev, is_read);
-	}
-	desc.componentType = kAudioUnitType_Output;
-	desc.componentSubType = d->dev != (AudioDeviceID)-1 ? kAudioUnitSubType_HALOutput : kAudioUnitSubType_DefaultOutput;
-	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
-	desc.componentFlags = 0;
-	desc.componentFlagsMask = 0;
-#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
-	comp = AudioComponentFindNext(NULL, &desc);
-#else
-	comp = FindNextComponent(NULL, &desc);
-#endif
-	if (comp == NULL) {
-		ms_error("[MSAU] Cannot find audio component");
-		return -1;
-	}
-#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
-	result = AudioComponentInstanceNew(comp, &d->au);
-#else
-	result = OpenAComponent(comp, &d->au);
-#endif
-	if (result != noErr) {
-		ms_error("[MSAU] Cannot open audio component %" UINT32_X_PRINTF, result);
-		return -1;
-	}
-	param = is_read;
-	if (d->dev != (AudioDeviceID)-1) { // Cannot manually enabling IO for defaults
-		CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, input_bus,
-		                                    &param, sizeof(UInt32)));
+	AudioUnitScope outputScope = is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input;
+	AudioUnitElement element = is_read ? input_bus : output_bus;
 
-		param = !is_read;
-		CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output,
-		                                    output_bus, &param, sizeof(UInt32)));
-
-		// Set the current device
-		CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global,
-		                                    output_bus, &d->dev, sizeof(AudioDeviceID)));
-	}
-
-	param = 0;
-	CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioUnitProperty_ShouldAllocateBuffer,
-	                                    is_read ? kAudioUnitScope_Input : kAudioUnitScope_Output,
-	                                    is_read ? input_bus : output_bus, &param, sizeof(param)));
-
-	UInt32 asbdsize = sizeof(AudioStreamBasicDescription);
-	memset((char *)&asbd, 0, asbdsize);
-
-	CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioUnitProperty_StreamFormat,
-	                                    is_read ? kAudioUnitScope_Input : kAudioUnitScope_Output,
-	                                    is_read ? input_bus : output_bus, &asbd, &asbdsize));
-
-	device_rate = asbd.mSampleRate;
-	if (device_rate == 0) au_get_device_sample_rate(d->dev, is_read, &device_rate);
-	if (device_rate != d->rate) {
+	if (asbd.mSampleRate != d->rate && asbd.mSampleRate > 0) {
 		// Filter rate and device rate are different. HAL cannot manage different rates alone.
 		// If rate is forced, we should need to use a resampling unit (kAudioUnitType_FormatConverter) and add it into a
 		// graph. As MS2 have his own resampler (which is better), reload format with new rate and warn MS2 for the
 		// change.
-		d->rate = device_rate;
+		ms_message("[MSAU] %s filter and device have different rate %d/%d", is_read ? "Input" : "Output",
+		           (int)asbd.mSampleRate, d->rate);
+		d->rate = asbd.mSampleRate;
 		ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
 	}
 	// Keep this afftection in case where mSampleRate is 0. Getter can give 0 but setter doesn't accept it. Use the
@@ -627,13 +653,11 @@ static int audio_unit_open(MSFilter *f, AUCommon *d, bool_t is_read) {
 	asbd.mFormatID = kAudioFormatLinearPCM;
 	asbd.mFormatFlags = kAudioFormatFlagIsPacked | kAudioFormatFlagIsSignedInteger;
 
-	CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioUnitProperty_StreamFormat,
-	                                    is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
-	                                    is_read ? input_bus : output_bus, &asbd, sizeof(AudioStreamBasicDescription)));
+	CHECK_AURESULT(AudioUnitSetProperty(d->au, kAudioUnitProperty_StreamFormat, outputScope, element, &asbd,
+	                                    sizeof(AudioStreamBasicDescription)));
 
-	CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioUnitProperty_StreamFormat,
-	                                    is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
-	                                    is_read ? input_bus : output_bus, &asbd, &asbdsize));
+	CHECK_AURESULT(
+	    AudioUnitGetProperty(d->au, kAudioUnitProperty_StreamFormat, outputScope, element, &asbd, &asbdsize));
 
 	show_format(is_read ? "Input audio unit after configuration" : "Output audio unit after configuration", &asbd);
 
@@ -645,9 +669,8 @@ static int audio_unit_open(MSFilter *f, AUCommon *d, bool_t is_read) {
 
 	// Get the number of frames in the IO buffer(s)
 	param = sizeof(UInt32);
-	CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioDevicePropertyBufferFrameSize,
-	                                    is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
-	                                    is_read ? input_bus : output_bus, &numFrames, &param));
+	CHECK_AURESULT(
+	    AudioUnitGetProperty(d->au, kAudioDevicePropertyBufferFrameSize, outputScope, element, &numFrames, &param));
 	ms_message("[MSAU] %s: number of frames per buffer = %" UINT32_PRINTF,
 	           is_read ? "Input AudioUnit" : "Output AudioUnit", numFrames);
 
@@ -655,17 +678,15 @@ static int audio_unit_open(MSFilter *f, AUCommon *d, bool_t is_read) {
 		/* Latency is only provided for output AudioUnit */
 		param = sizeof(UInt32);
 		UInt32 latency = 0;
-		CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioDevicePropertyLatency,
-		                                    is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
-		                                    is_read ? input_bus : output_bus, &latency, &param));
+		CHECK_AURESULT(
+		    AudioUnitGetProperty(d->au, kAudioDevicePropertyLatency, outputScope, element, &latency, &param));
 		ms_message("[MSAU] Latency = %" UINT32_PRINTF, latency);
 	}
 
 	param = sizeof(int);
 	int safetyOffset = 0;
-	CHECK_AURESULT(AudioUnitGetProperty(d->au, kAudioDevicePropertySafetyOffset,
-	                                    is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
-	                                    is_read ? input_bus : output_bus, &safetyOffset, &param));
+	CHECK_AURESULT(
+	    AudioUnitGetProperty(d->au, kAudioDevicePropertySafetyOffset, outputScope, element, &safetyOffset, &param));
 	ms_message("[MSAU] Safety offset = %i", safetyOffset);
 
 	AURenderCallbackStruct cbs;
@@ -996,8 +1017,10 @@ MSFilter *ms_au_read_new(MSSndCard *card) {
 	AuCard *wc = (AuCard *)card->data;
 	AURead *d = (AURead *)f->data;
 	/*d->common.dev = wc->dev;*/
-	set_audio_device_id(wc, (struct AUCommon *)d, TRUE);
-	d->common.rate = wc->rate;
+	set_audio_device_id(wc, &d->common, TRUE);
+	AudioStreamBasicDescription asbd = au_get_stream_basic_description(&d->common, TRUE);
+	d->common.rate = asbd.mSampleRate;
+	ms_message("[MSAU] Init with rate=%d for capture", d->common.rate);
 	return f;
 }
 
@@ -1006,8 +1029,10 @@ MSFilter *ms_au_write_new(MSSndCard *card) {
 	AuCard *wc = (AuCard *)card->data;
 	AUWrite *d = (AUWrite *)f->data;
 	/*d->common.dev = wc->dev;*/
-	set_audio_device_id(wc, (struct AUCommon *)d, FALSE);
-	d->common.rate = wc->rate;
+	set_audio_device_id(wc, &d->common, FALSE);
+	AudioStreamBasicDescription asbd = au_get_stream_basic_description(&d->common, FALSE);
+	d->common.rate = asbd.mSampleRate;
+	ms_message("[MSAU] Init with rate=%d for playback", d->common.rate);
 	return f;
 }
 
