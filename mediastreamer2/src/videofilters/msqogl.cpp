@@ -53,8 +53,8 @@ void freeFilter(FilterData *data, BufferRenderer *buffer, bool_t isQt) {
 		} else {
 			ms_filter_lock(data->parent);
 			ogl_display_free(data->display);
-			ms_filter_unlock(data->parent);
 			data->is_sdk_linked = FALSE;
+			ms_filter_unlock(data->parent);
 		}
 		if ((isQt && !data->is_sdk_linked) ||
 		    (!isQt && !data->is_qt_linked)) { // data is not linked to SDK (so it should have been wait on mutex or
@@ -90,14 +90,18 @@ QOpenGLFramebufferObject *BufferRenderer::createFramebufferObject(const QSize &s
 static int qogl_call_render(MSFilter *f, void *arg);
 void BufferRenderer::render() {
 	// Draw with ms filter.
-	if (mParent && mParent->is_sdk_linked && mParent->parent) {
-		qogl_call_render(mParent->parent, NULL);
-		// Synchronize opengl calls with QML.
+	if(mParent){
+		mParent->free_lock->lock();
+		if (mParent->is_sdk_linked && mParent->parent) {
+			qogl_call_render(mParent->parent, NULL);
+			// Synchronize opengl calls with QML.
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-		if (mWindow) mWindow->resetOpenGLState();
+			if (mWindow) mWindow->resetOpenGLState();
 #else
-		QQuickOpenGLUtils::resetOpenGLState();
+			QQuickOpenGLUtils::resetOpenGLState();
 #endif
+		}
+		mParent->free_lock->unlock();
 	}
 }
 
@@ -165,7 +169,7 @@ static void qogl_process(MSFilter *f) {
 
 	data = (FilterData *)f->data;
 	// No context given or video disabled.
-	if (!data->show_video || !data->renderer) goto end;
+	if (!data->show_video || !data->renderer || data->update_context) goto end;
 	if (f->inputs[0] != NULL && ((inm = ms_queue_peek_last(f->inputs[0])) != NULL) &&
 	    ms_yuv_buf_init_from_mblk(&src, inm) == 0) {
 		data->video_size.width = src.w;
