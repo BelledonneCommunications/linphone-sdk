@@ -104,18 +104,18 @@ LINPHONE_PUBLIC void linphone_recorder_params_set_video_codec(LinphoneRecorderPa
 LINPHONE_PUBLIC const char *linphone_recorder_params_get_video_codec(const LinphoneRecorderParams *params);
 
 /**
- * Set the #LinphoneRecorderFileFormat.
+ * Set the #LinphoneMediaFileFormat.
  * @see linphone_core_get_supported_file_formats_list() for information about supported file formats.
  * @param params The #LinphoneRecorderParams object. @notnil
- * @param format The #LinphoneRecorderFileFormat to set.
+ * @param format The #LinphoneMediaFileFormat to set.
  */
 LINPHONE_PUBLIC void linphone_recorder_params_set_file_format(LinphoneRecorderParams *params,
                                                               LinphoneMediaFileFormat format);
 
 /**
- * Retrieves the #LinphoneRecorderFileFormat.
+ * Retrieves the #LinphoneMediaFileFormat.
  * @param params The #LinphoneRecorderParams object. @notnil
- * @return the #LinphoneRecorderFileFormat.
+ * @return the #LinphoneMediaFileFormat.
  */
 LINPHONE_PUBLIC LinphoneMediaFileFormat linphone_recorder_params_get_file_format(const LinphoneRecorderParams *params);
 

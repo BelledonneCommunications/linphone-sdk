@@ -54,8 +54,9 @@
 typedef struct _LinphoneProxyConfig LinphoneProxyConfig;
 
 /**
- * @brief The object used to configure an account on a server via XML-RPC,
- * see @link https://wiki.linphone.org/xwiki/wiki/public/view/Lib/Features/Override%20account%20creator%20request/
+ * @brief The object used to configure an account on a server via XML-RPC
+ * See: [Override account creator
+ *request](https://wiki.linphone.org/xwiki/wiki/public/view/Lib/Features/Override%20account%20creator%20request/)
  * @ingroup account_creator
  **/
 typedef struct _LinphoneAccountCreator LinphoneAccountCreator;
@@ -367,7 +368,7 @@ typedef enum _LinphoneFriendListStatus {
 	LinphoneFriendListOK = 0,                /**< Operation went fine */
 	LinphoneFriendListNonExistentFriend = 1, /**< #LinphoneFriend wasn't found in the #LinphoneFriendList */
 	LinphoneFriendListInvalidFriend = 2,     /**< #LinphoneFriend is already present in a #LinphoneFriendList */
-	LinphoneFriendListReadOnly = 3      	 /**< #LinphoneFriendList is read only */
+	LinphoneFriendListReadOnly = 3           /**< #LinphoneFriendList is read only */
 } LinphoneFriendListStatus;
 
 /**
@@ -601,7 +602,7 @@ typedef struct _LinphoneContactSearch LinphoneContactSearch;
 typedef unsigned int LinphoneContactSearchID;
 
 /**
- * Old name of #LinphoneContactSearchID
+ * Old name of `LinphoneContactSearchID`
  * @deprecated 03/02/2017
  * @donotwrap
  */
@@ -844,7 +845,7 @@ typedef enum _LinphoneOnlineStatus {
 	LinphoneStatusOnThePhone = 5,   /**< On the phone */
 	LinphoneStatusOutToLunch = 6,   /**< Out to lunch */
 	LinphoneStatusDoNotDisturb = 7, /**< Do not disturb */
-	LinphoneStatusMoved = 8, /**< Moved in this sate, call can be redirected if an alternate contact address has been
+	LinphoneStatusMoved = 8, /**< Moved in this state, call can be redirected if an alternate contact address has been
 	                            set using function linphone_core_set_presence_info() */
 	LinphoneStatusAltService = 9, /**< Using another messaging service */
 	LinphoneStatusPending = 10,   /**< Pending */
@@ -1146,7 +1147,7 @@ typedef struct _LinphoneSipTransports {
 } LinphoneSipTransports;
 
 /**
- * Old name of #LinphoneSipTransports
+ * Old name of `LinphoneSipTransports`
  * @deprecated 03/02/2017
  * @donotwrap
  */
@@ -1389,12 +1390,12 @@ typedef enum _LinphoneMagicSearchSource {
 } LinphoneMagicSearchSource;
 
 /**
- * @brief Enum describing the type of #RemoteContactDirectory (currently CardDAV or LDAP).
+ * @brief Enum describing the type of #LinphoneRemoteContactDirectory (currently CardDAV or LDAP).
  * @ingroup buddy_list
  **/
 typedef enum _LinphoneRemoteContactDirectoryType {
-	LinphoneRemoteContactDirectoryTypeCardDav = 0, /**< Remote contact directory will use #CardDavParams */
-	LinphoneRemoteContactDirectoryTypeLdap = 1,    /**< Remote contact directory will use #LdapParams */
+	LinphoneRemoteContactDirectoryTypeCardDav = 0, /**< Remote contact directory will use #LinphoneCardDavParams */
+	LinphoneRemoteContactDirectoryTypeLdap = 1,    /**< Remote contact directory will use #LinphoneLdapParams */
 } LinphoneRemoteContactDirectoryType;
 
 /**

@@ -549,7 +549,8 @@ LINPHONE_PUBLIC const char *linphone_friend_get_job_title(const LinphoneFriend *
  * Gets whether this friend is read only or not.
  * A friend is read-only if the #LinphoneFriendList to which it belongs is read-only.
  * @param linphone_friend the #LinphoneFriend object @notnil
- * @return TRUE if the friend is attached to an existing #LinphoneFriendList which is in read-only mode, FALSE otherwise.
+ * @return TRUE if the friend is attached to an existing #LinphoneFriendList which is in read-only mode, FALSE
+ * otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_friend_get_is_read_only(const LinphoneFriend *linphone_friend);
 
@@ -628,7 +629,7 @@ LINPHONE_PUBLIC void linphone_friend_cbs_set_presence_received(LinphoneFriendCbs
 /**
  * Get the status of a friend
  * @param linphone_friend A #LinphoneFriend object
- * @return #LinphoneOnlineStatus
+ * @return `LinphoneOnlineStatus`
  * @deprecated 19/06/2013 Use linphone_friend_get_presence_model() instead
  * @donotwrap
  */

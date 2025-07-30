@@ -1665,7 +1665,7 @@ LINPHONE_PUBLIC LinphoneAddress *linphone_core_interpret_url(LinphoneCore *core,
  * In case of just a username, characters will be unescaped.
  * If a phone number is detected, it will be flattened.
  * sip: or sips: prefix will be added if not present.
- * Finally, \@domain will be added if not present using the default #Account.
+ * Finally, \@domain will be added if not present using the default #LinphoneAccount.
  * @see linphone_account_normalize_sip_uri() for a similar function.
  * @param core The core @notnil
  * @param url the url to parse @notnil
@@ -1761,10 +1761,10 @@ LINPHONE_PUBLIC LinphoneCall *linphone_core_invite_address_with_params_2(Linphon
  *
  * This function is for advanced usage: the execution of transfers is automatically managed by the LinphoneCore. However
  *if an application wants to have control over the call parameters for the new call, it should call this function
- *immediately during the #LinphoneCallStateRefered notification.
+ *immediately during the #LinphoneCallStateReferred notification.
  * @see #LinphoneCoreCbs
  * @param core #LinphoneCore object @notnil
- * @param call A #LinphoneCall that has just been notified about #LinphoneCallStateRefered state event. @notnil
+ * @param call A #LinphoneCall that has just been notified about #LinphoneCallStateReferred state event. @notnil
  * @param params The call parameters to be applied to the new call. @maybenil
  * @return A #LinphoneCall corresponding to the new call that is attempted to the transfer destination. @maybenil
  **/
@@ -2921,12 +2921,12 @@ LINPHONE_PUBLIC bool_t linphone_core_get_use_rfc2833_for_dtmf(LinphoneCore *core
  * Sets the ports to be used for each of transport (UDP or TCP)
  * A zero value port for a given transport means the transport
  * is not used.
- * A value of LC_SIP_TRANSPORT_RANDOM (-1) means the port is to be choosen randomly by the system.
- * A value of LC_SIP_TRANSPORT_DONTBIND (-2) means that the socket will not be bound explicitely, in other
+ * A value of LC_SIP_TRANSPORT_RANDOM (-1) means the port is to be chosen randomly by the system.
+ * A value of LC_SIP_TRANSPORT_DONTBIND (-2) means that the socket will not be bound explicitly, in other
  * words liblinphone won't listen for incoming connections at all. This mode is suitable for a pure client
  * application (ex: a mobile application).
  * @param core #LinphoneCore object @notnil
- * @param transports A #LinphoneSipTransports structure giving the ports to use @notnil
+ * @param transports A `LinphoneSipTransports` structure giving the ports to use @notnil
  * @return 0
  * @ingroup network_parameters
  **/
@@ -3055,8 +3055,8 @@ LINPHONE_PUBLIC void linphone_transports_set_dtls_port(LinphoneTransports *trans
 /**
  * Tells whether the given transport type is supported by the library.
  * @param core #LinphoneCore object @notnil
- * @param transport_type #LinphoneTranportType to check for support
- * @return A boolean value telling whether the given transport type is supported by the library
+ * @param transport_type #LinphoneTransportType to check for support
+ * @return A boolean value telling whether the library supports the given transport type
  **/
 LINPHONE_PUBLIC bool_t linphone_core_sip_transport_supported(const LinphoneCore *core,
                                                              LinphoneTransportType transport_type);
@@ -3407,11 +3407,11 @@ LINPHONE_PUBLIC void linphone_core_stop_ringing(LinphoneCore *core);
 
 /**
  * Sets the path to a wav file used for ringing. The file must be a wav 16bit linear.
- * If null, ringing is disable unless #linphone_core_get_use_native_ringing() is enabled, in which case we use the
+ * If null, ringing is disable unless `[sound] use_native_ringing` is enabled, in which case we use the
  *device ringtone.
  * @param core #LinphoneCore object @notnil
  * @param path The path to a wav file to be used for ringing, null to disable or use device ringing depending on
- *#linphone_core_get_use_native_ringing(). @maybenil
+ *`[sound] use_native_ringing`. @maybenil
  * @ingroup media_parameters
  **/
 LINPHONE_PUBLIC void linphone_core_set_ring(LinphoneCore *core, const char *path);
@@ -4254,12 +4254,12 @@ LINPHONE_PUBLIC float linphone_core_get_static_picture_fps(LinphoneCore *core);
  * see linphone_core_set_native_video_window_id() for details about `window_id`
  *
  * When MSQOgl can be used for the creation:
- ** linphone_core_create_native_video_window_id_2() returns a #QQuickFramebufferObject::Renderer. This object must be
+ ** linphone_core_create_native_video_window_id_2() returns a `QQuickFramebufferObject::Renderer`. This object must be
  *returned by your QQuickFramebufferObject::createRenderer() overload for Qt.
  ** linphone_core_set_native_video_window_id() must be called with this object after the creation.
  ** Note : Qt blocks GUI thread when calling createRenderer(), so it is safe to call linphone functions there if needed.
  *
- * A context can be used to prevent Linphone from allocating the container (#MSOglContextInfo for MSOGL). NULL if not
+ * A context can be used to prevent Linphone from allocating the container (`MSOglContextInfo` for MSOGL). NULL if not
  *used.
  *
  * @param core #LinphoneCore object @notnil
@@ -4284,7 +4284,7 @@ LINPHONE_PUBLIC void *linphone_core_create_native_video_window_id(const Linphone
  * see #linphone_core_set_native_video_window_id for details about `window_id`
  *
  * There is a special case for Qt :
- ** linphone_core_get_native_video_window_id() returns a #QQuickFramebufferObject::Renderer.
+ ** linphone_core_get_native_video_window_id() returns a `QQuickFramebufferObject::Renderer`.
  ** Note : Qt blocks GUI thread when calling createRenderer(), so it is safe to call linphone functions there if needed.
  *
  * @param core #LinphoneCore object @notnil
@@ -4315,12 +4315,12 @@ LINPHONE_PUBLIC void *linphone_core_get_native_video_window_id(const LinphoneCor
  ** This is currently only supported for Linux X11 (Window type), Windows UWP (SwapChainPanel type) and Windows Win32
  *(HWND type).
  **
- ** The C# Wrapper on Windows for UWP takes directly a #SwapChainPanel without Marshalling.
- ** On other platforms, `window_id` is a #MSOglContextInfo defined in msogl.h of mediastreamer2
+ ** The C# Wrapper on Windows for UWP takes directly a `SwapChainPane` without Marshalling.
+ ** On other platforms, `window_id` is a `MSOglContextInfo` defined in msogl.h of mediastreamer2
  ** There is a special case for Qt :
  *** The "MSQOGL" filter must be selected by using linphone_core_set_video_display_filter().
  *** Setting window id is only used to stop rendering by passing #LINPHONE_VIDEO_DISPLAY_NONE.
- *** linphone_core_get_native_video_window_id() returns a #QQuickFramebufferObject::Renderer and
+ *** linphone_core_get_native_video_window_id() returns a `QQuickFramebufferObject::Renderer` and
  *linphone_core_create_native_video_window_id_2() creates one.
  *** After a creation, linphone_core_set_native_video_window_id() must be called with the new object.
  *
@@ -4338,12 +4338,12 @@ LINPHONE_PUBLIC void linphone_core_set_native_video_window_id(LinphoneCore *core
  * see linphone_core_set_native_video_window_id() for details about `window_id`
  *
  * MSQOgl can be used for the creation.
- ** linphone_core_create_native_preview_window_id_2() returns a #QQuickFramebufferObject::Renderer. This object must be
+ ** linphone_core_create_native_preview_window_id_2() returns a `QQuickFramebufferObject::Renderer`. This object must be
  *returned by your QQuickFramebufferObject::createRenderer() overload for Qt.
  ** linphone_core_set_native_preview_window_id_2() must be called with this object after the creation.
  ** Note : Qt blocks GUI thread when calling createRenderer(), so it is safe to call linphone functions there if needed.
  *
- * A context can be used to prevent Linphone from allocating the container (#MSOglContextInfo for MSOGL). NULL if not
+ * A context can be used to prevent Linphone from allocating the container (`MSOglContextInfo` for MSOGL). NULL if not
  *used.
  *
  * @param core #LinphoneCore object @notnil
@@ -4368,7 +4368,7 @@ LINPHONE_PUBLIC void *linphone_core_create_native_preview_window_id(LinphoneCore
  * see linphone_core_set_native_video_window_id() for details about `window_id`
  *
  * There is a special case for Qt :
- ** linphone_core_get_native_preview_window_id() returns a #QQuickFramebufferObject::Renderer.
+ ** linphone_core_get_native_preview_window_id() returns a `QQuickFramebufferObject::Renderer`.
  ** Note : Qt blocks GUI thread when calling createRenderer(), so it is safe to call linphone functions there if needed.
  *
  * @param core #LinphoneCore object @notnil
@@ -4380,10 +4380,10 @@ LINPHONE_PUBLIC void *linphone_core_get_native_preview_window_id(LinphoneCore *c
 /**
  * Set the native window id where the preview video (local camera) is to be displayed.
  * This has to be used in conjunction with linphone_core_use_preview_window().
- * see linphone_core_set_native_video_window_id() for general details about `window_id`
+ * See linphone_core_set_native_video_window_id() for general details about `window_id`
  *
- * On Android : #org.linphone.mediastream.video.capture.CaptureTextureView is used for
- *linphone_core_set_native_preview_window_id(). It is inherited from #TextureView and takes care of rotating the
+ * On Android : `org.linphone.mediastream.video.capture.CaptureTextureView` is used for
+ *linphone_core_set_native_preview_window_id(). It is inherited from `TextureView` and takes care of rotating the
  *captured image from the camera and scale it to keep it's ratio.
  *
  * @param core #LinphoneCore object @notnil
@@ -5105,7 +5105,7 @@ LINPHONE_DEPRECATED LINPHONE_PUBLIC float linphone_core_get_conference_local_inp
 
 /**
  * Terminates the running conference. If it is a local conference, all calls
- * inside it will become back separate calls and will be put in #LinphoneCallPaused state.
+ * inside it will become back separate calls and will be put in `LinphoneCallPaused` state.
  * If it is a conference involving a focus server, all calls inside the conference
  * will be terminated.
  * @param core #LinphoneCore @notnil
@@ -5183,14 +5183,14 @@ linphone_core_get_conference_participant_list_type(const LinphoneCore *core);
 /**
  * Sets the on alert callback.
  * @param cbs #LinphoneCoreCbs object. @notnil
- * @param alert_cb The #LinphoneCoreCbsOnAlertCb callback to call. @notnil
+ * @param alert_cb The #LinphoneCoreCbsNewAlertTriggeredCb callback to call. @notnil
  */
 LINPHONE_PUBLIC void linphone_core_cbs_set_new_alert_triggered(LinphoneCoreCbs *cbs,
                                                                LinphoneCoreCbsNewAlertTriggeredCb alert_cb);
 /**
  * Gets the on alert callback.
  * @param cbs #LinphoneCoreCbs object. @notnil
- * @return The #LinphoneCoreCbsOnAlertCb callback called.
+ * @return The #LinphoneCoreCbsNewAlertTriggeredCb callback called.
  */
 LINPHONE_PUBLIC LinphoneCoreCbsNewAlertTriggeredCb linphone_core_cbs_get_new_alert_triggered(LinphoneCoreCbs *cbs);
 
@@ -5678,16 +5678,16 @@ LINPHONE_PUBLIC bool_t linphone_core_sdp_200_ack_enabled(const LinphoneCore *cor
  *
  * If you want to disable a tone, set a path to a non-existent file.
  * To disable all tones, use linphone_core_enable_call_tone_indications()
- * or set the tone_indications to 0 in the [misc] section of your linphonerc.
+ * or set the tone_indications to 0 in the [misc] section of your `linphonerc`.
  * @param core the core @notnil
- * @param tone_id the #LinphoneToneId
+ * @param tone_id the #LinphoneToneID
  * @param audiofile a wav file to be played or NULL to use the default (generated) one. @maybenil
  * @ingroup media_parameters
  **/
 LINPHONE_PUBLIC void linphone_core_set_tone(LinphoneCore *core, LinphoneToneID tone_id, const char *audiofile);
 
 /**
- * Globaly sets an http file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml.
+ * Globally sets an http file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml.
  * Url may be like: "https://file.linphone.org/upload.php".
  * This value can also be set for a dedicated account using linphone_account_params_set_file_transfer_server().
  * @param core #LinphoneCore to be modified @notnil
@@ -5971,7 +5971,7 @@ LINPHONE_PUBLIC LinphoneStatus linphone_core_set_network_simulator_params(Linpho
 /**
  * @brief Get the previously set network simulation parameters.
  * @see linphone_core_set_network_simulator_params()
- * @return a #OrtpNetworkSimulatorParams structure.
+ * @return a `OrtpNetworkSimulatorParams` structure.
  * @ingroup media_parameters
  * @donotwrap
  **/
@@ -6877,7 +6877,7 @@ LINPHONE_PUBLIC void linphone_core_set_record_aware_enabled(LinphoneCore *core, 
 
 /**
  * Enables the record-aware feature that will warn other users when doing recording during a call.
- * See @LinphoneCallCbs for being notified when a call is being recorded.
+ * See #LinphoneCallCbs for being notified when a call is being recorded.
  * @param core #LinphoneCore object @notnil
  * @param enable TRUE to activate the record aware feature, FALSE to disable it.
  **/
@@ -7657,7 +7657,7 @@ LINPHONE_PUBLIC bool_t linphone_core_ldap_available(LinphoneCore *core);
 
 /**
  * Create a LDAP params using default values from Linphone core.
- * Check #linphone_ldap_params to update values.
+ * Check #LinphoneLdapParams to update values.
  * In order to add a new LDAP configuration to #LinphoneMagicSearch, these parameters must be passed to
  * linphone_core_create_ldap_with_params. Or, use linphone_ldap_set_params().
  *
@@ -7931,7 +7931,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_set_log_handler(OrtpLogFu
  *
  * If the file pointer passed as an argument is NULL, stdout is used instead.
  * @param file A pointer to the FILE structure of the file to write to.
- * @deprecated 10/10/2017 Use #linphone_log_service_set_file() instead.
+ * @deprecated 10/10/2017 Use #linphone_logging_service_set_log_file() instead.
  * @donotwrap
  */
 LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_set_log_file(FILE *file);
@@ -7969,7 +7969,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED unsigned int linphone_core_get_log_level_mas
 /**
  * Enable logs in supplied FILE*.
  * @param file a C FILE* where to fprintf logs. If null stdout is used.
- * @deprecated 12/01/2017 Use #linphone_core_set_log_file and #linphone_core_set_log_level() instead.
+ * @deprecated 12/01/2017 Use `linphone_core_set_log_file()` and `linphone_core_set_log_level()` instead.
  * @donotwrap
  **/
 LINPHONE_DEPRECATED LINPHONE_PUBLIC void linphone_core_enable_logs(FILE *file);
@@ -7978,14 +7978,14 @@ LINPHONE_DEPRECATED LINPHONE_PUBLIC void linphone_core_enable_logs(FILE *file);
  * Enable logs through the user's supplied log callback.
  * @param logfunc The address of a OrtpLogFunc callback whose protoype is
  *            	  typedef void (*OrtpLogFunc)(OrtpLogLevel lev, const char *fmt, va_list args);
- * @deprecated 12/01/2017 Use #linphone_core_set_log_handler() and #linphone_core_set_log_level() instead.
+ * @deprecated 12/01/2017 Use `linphone_core_set_log_handler()` and `linphone_core_set_log_level()` instead.
  * @donotwrap
  **/
 LINPHONE_DEPRECATED LINPHONE_PUBLIC void linphone_core_enable_logs_with_cb(OrtpLogFunc logfunc);
 
 /**
  * Entirely disable logging.
- * @deprecated 12/01/2017 Use #linphone_core_set_log_level() instead.
+ * @deprecated 12/01/2017 Use `linphone_core_set_log_level()` instead.
  * @donotwrap
  **/
 LINPHONE_DEPRECATED LINPHONE_PUBLIC void linphone_core_disable_logs(void);
@@ -8127,7 +8127,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_transfer_call_t
  *
  * Basically the application is notified of incoming calls within the
  * call_state_changed callback of the #LinphoneCoreVTable structure, where it will receive
- * a #LinphoneCallStateIncoming event with the associated #LinphoneCall object.
+ * a #LinphoneCallStateIncomingReceived event with the associated #LinphoneCall object.
  * The application can later accept the call using this method.
  * @param core #LinphoneCore object
  * @param call The #LinphoneCall object representing the call to be answered
@@ -8143,7 +8143,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_accept_call(Lin
  *
  * Basically the application is notified of incoming calls within the
  * call_state_changed callback of the #LinphoneCoreVTable structure, where it will receive
- * a #LinphoneCallStateIncoming event with the associated #LinphoneCall object.
+ * a #LinphoneCallStateIncomingReceived event with the associated #LinphoneCall object.
  * The application can later accept the call using
  * this method.
  * @param core #LinphoneCore object
@@ -8384,7 +8384,7 @@ LINPHONE_PUBLIC LinphoneAddress *linphone_core_get_primary_contact_address(Linph
 /**
  * Returns the list of available audio codecs.
  * @param core The #LinphoneCore object
- * @return A list of #OrtpPayloadType. @bctbx_list{OrtpPayloadType}
+ * @return A list of `OrtpPayloadType`. @bctbx_list{OrtpPayloadType}
  *
  * This list is unmodifiable. The ->data field of the bctbx_list_t points a PayloadType
  * structure holding the codec information.
@@ -8412,7 +8412,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_set_audio_codec
 /**
  * Returns the list of available video codecs.
  * @param core The #LinphoneCore object
- * @return A list of #OrtpPayloadType. \bctbx_list{OrtpPayloadType}
+ * @return A list of `OrtpPayloadType`. \bctbx_list{OrtpPayloadType}
  *
  * This list is unmodifiable. The ->data field of the bctbx_list_t points a PayloadType
  * structure holding the codec information.
@@ -8688,7 +8688,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED int linphone_core_get_sip_port(LinphoneCore 
  * A zero value port for a given transport means the transport
  * is not used. A value of LC_SIP_TRANSPORT_RANDOM (-1) means the port is to be choosen randomly by the system.
  * @param core #LinphoneCore object
- * @param transports A #LinphoneSipTransports structure giving the ports to use
+ * @param transports A `LinphoneSipTransports` structure giving the ports to use
  * @return 0
  * @ingroup network_parameters
  * @deprecated 18/04/2017 Use linphone_core_set_transports instead
@@ -8702,7 +8702,7 @@ linphone_core_set_sip_transports(LinphoneCore *core, const LinphoneSipTransports
  * A zero value port for a given transport means the transport
  * is not used. A value of LC_SIP_TRANSPORT_RANDOM (-1) means the port is to be chosen randomly by the system.
  * @param core #LinphoneCore object
- * @param[out] transports A #LinphoneSipTransports structure that will receive the configured ports
+ * @param[out] transports A `LinphoneSipTransports` structure that will receive the configured ports
  * @return 0
  * @ingroup network_parameters
  * @deprecated 18/04/2017
@@ -8714,10 +8714,10 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_get_sip_transpo
 /**
  * Retrieves the real port number assigned for each sip transport (udp, tcp, tls).
  * A zero value means that the transport is not activated.
- * If LC_SIP_TRANSPORT_RANDOM was passed to linphone_core_set_sip_transports(), the random port choosed by the system is
+ * If LC_SIP_TRANSPORT_RANDOM was passed to linphone_core_set_sip_transports(), the random port choosen by the system is
  *returned.
  * @param core #LinphoneCore object
- * @param[out] tr A #LinphoneSipTransports structure that will receive the ports being used
+ * @param[out] tr A `LinphoneSipTransports` structure that will receive the ports being used
  * @ingroup network_parameters
  * @deprecated 18/04/2017 Use linphone_core_get_transports_used instead
  * @donotwrap
@@ -8945,7 +8945,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_set_preview_video_size_by
  * @see #linphone_core_set_preview_video_size()
  * @ingroup media_parameters
  * @param core the core
- * @return a #MSVideoSize
+ * @return a `MSVideoSize`
  * @deprecated 28/03/2017 Use #linphone_core_get_preview_video_definition() instead.
  * @donotwrap
  **/
@@ -8958,7 +8958,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED MSVideoSize linphone_core_get_preview_video_
  * @see #linphone_core_set_preview_video_size()
  * @ingroup media_parameters
  * @param core the core
- * @return a #MSVideoSize
+ * @return a `MSVideoSize`
  * @deprecated 28/03/2017 Use #linphone_core_get_current_preview_video_definition() instead.
  * @donotwrap
  **/
@@ -9398,8 +9398,8 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_remove_friend(LinphoneCor
  * Set my presence status
  * @param core #LinphoneCore object
  * @param minutes_away how long in away
- * @param alternative_contact sip uri used to redirect call in state #LinphoneStatusMoved
- * @param os #LinphoneOnlineStatus
+ * @param alternative_contact sip uri used to redirect call in state `LinphoneStatusMoved`
+ * @param os `LinphoneOnlineStatus`
  * @deprecated 03/02/2017 Use linphone_core_set_presence_model() instead
  * @donotwrap
  */
@@ -9431,7 +9431,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneFriend *linphone_core_get_friend_by_
 /**
  * Get my presence status
  * @param core #LinphoneCore object
- * @return #LinphoneOnlineStatus
+ * @return `LinphoneOnlineStatus`
  * @deprecated 03/02/2017 Use linphone_core_get_presence_model() instead
  * @donotwrap
  */

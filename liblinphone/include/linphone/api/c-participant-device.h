@@ -150,8 +150,8 @@ linphone_participant_device_get_disconnection_reason(const LinphoneParticipantDe
 
 /**
  * Gets the stream label of the device.
- * The capability information represents the capability for the #ParticipantDevice to handle a given stream type (audio,
- * video or text).
+ * The capability information represents the capability for the #LinphoneParticipantDevice to handle a given stream type
+ * (audio, video or text).
  * @param participant_device A #LinphoneParticipantDevice object @notnil
  * @param stream_type A #LinphoneStreamType
  * @return the label of stream of type stream_type of the device @maybenil
@@ -170,8 +170,8 @@ linphone_participant_device_get_thumbnail_stream_label(const LinphoneParticipant
 
 /**
  * Gets the stream capability of the device.
- * The capability information represents the capability for the #ParticipantDevice to handle a given stream type (audio,
- * video or text).
+ * The capability information represents the capability for the #LinphoneParticipantDevice to handle a given stream type
+ * (audio, video or text).
  * @param participant_device A #LinphoneParticipantDevice object @notnil
  * @param stream_type A #LinphoneStreamType
  * @return the capability of stream of type stream_type of the device #LinphoneMediaDirection
@@ -271,14 +271,16 @@ linphone_participant_device_get_native_video_window_id(const LinphoneParticipant
  * Creates a window ID and return it.
  * @see linphone_core_set_native_video_window_id() for a general discussion about window IDs.
  *
- * A context can be used to prevent Linphone from allocating the container (#MSOglContextInfo for MSOGL). NULL if not used.
+ * A context can be used to prevent Linphone from allocating the container (`MSOglContextInfo` for MSOGL). NULL if not
+ * used.
  *
  * @param participant_device A #LinphoneParticipantDevice object @notnil
  * @param context preallocated Window ID (Used only for MSOGL) @maybenil
  * @return the native video window id (type may vary depending on platform). @maybenil
  */
 LINPHONE_PUBLIC void *
-linphone_participant_device_create_native_video_window_id_2(LinphoneParticipantDevice *participant_device, void *context);
+linphone_participant_device_create_native_video_window_id_2(LinphoneParticipantDevice *participant_device,
+                                                            void *context);
 
 /**
  * Creates a window ID and return it.
@@ -287,7 +289,7 @@ linphone_participant_device_create_native_video_window_id_2(LinphoneParticipantD
  * @param participant_device A #LinphoneParticipantDevice object @notnil
  * @return the native video window id (type may vary depending on platform). @maybenil
  */
-LINPHONE_PUBLIC  void *
+LINPHONE_PUBLIC void *
 linphone_participant_device_create_native_video_window_id(LinphoneParticipantDevice *participant_device);
 
 /**

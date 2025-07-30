@@ -198,7 +198,7 @@
 **/
 
 /**
- * @defgroup wrapper
+ * @defgroup wrapper Wrapper
  * @brief Wrapper utilities.
  *
  * These functions are used by automatic API wrapper generators and should not
@@ -206,7 +206,7 @@
  */
 
 /**
- * @defgroup IOS
+ * @defgroup IOS IOS
  * @brief iOS specific functions
  *
  * These functions handle specific aspects of iOS, mainly CallKit integration.

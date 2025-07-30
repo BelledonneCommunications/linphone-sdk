@@ -521,9 +521,9 @@ LINPHONE_PUBLIC int linphone_call_decline_with_error_info(LinphoneCall *call, co
 /**
  * Accepts an incoming call.
  *
- * Basically the application is notified of incoming calls within the
+ * Basically, the application is notified of incoming calls within the
  * call_state_changed callback of the #LinphoneCoreVTable structure, where it will receive
- * a #LinphoneCallStateIncoming event with the associated #LinphoneCall object.
+ * a #LinphoneCallStateIncomingReceived event with the associated #LinphoneCall object.
  * The application can later accept the call using this method.
  * @param call The #LinphoneCall object @notnil
  * @return 0 on success, -1 on failure
@@ -533,12 +533,12 @@ LINPHONE_PUBLIC LinphoneStatus linphone_call_accept(LinphoneCall *call);
 /**
  * Accepts an incoming call, with parameters.
  *
- * Basically the application is notified of incoming calls within the
+ * Basically, the application is notified of incoming calls within the
  * call_state_changed callback of the #LinphoneCoreVTable structure, where it will receive
- * a #LinphoneCallStateIncoming event with the associated #LinphoneCall object.
+ * a #LinphoneCallStateIncomingReceived event with the associated #LinphoneCall object.
  * The application can later accept the call using this method.
  * @param call A #LinphoneCall object @notnil
- * @param params The specific parameters for this call, for example whether video is accepted or not. Use NULL to use
+ * @param params The specific parameters for this call, for example, whether video is accepted or not. Use NULL to use
  *default parameters. @maybenil
  * @return 0 on success, -1 on failure
  **/
@@ -600,8 +600,8 @@ LINPHONE_PUBLIC LinphoneStatus linphone_call_update(LinphoneCall *call, const Li
  *However in such case defering the update has no meaning since we just generated an offer.
  *
  * @param call A #LinphoneCall object @notnil
- * @return 0 if successful, -1 if the linphone_call_defer_update() was done outside a valid #LinphoneCallUpdatedByRemote
- *notification
+ * @return 0 if successful, -1 if the linphone_call_defer_update() was done outside a valid
+ *#LinphoneCallStateUpdatedByRemote notification
  **/
 LINPHONE_PUBLIC LinphoneStatus linphone_call_defer_update(LinphoneCall *call);
 
@@ -696,7 +696,9 @@ LINPHONE_PUBLIC void *linphone_call_get_native_video_window_id(const LinphoneCal
  * Create a native video window id where the video is to be displayed.
  * @see linphone_core_set_native_video_window_id() for a general discussion about window IDs.
  *
- * A context can be used to prevent Linphone from allocating the container (#MSOglContextInfo for MSOGL). NULL if not used.
+ * A context can be used to prevent Linphone from allocating the container (`MSOglContextInfo` for MSOGL). NULL if not
+ *used.
+ *
  * @param call the #LinphoneCall object @notnil
  * @param context preallocated Window ID (Used only for MSOGL) @maybenil
  * @return the native video window id (type may vary depending on platform). @maybenil
@@ -709,7 +711,7 @@ LINPHONE_PUBLIC void *linphone_call_create_native_video_window_id_2(const Linpho
  *
  * @param call the #LinphoneCall object @notnil
  * @return the native video window id (type may vary depending on platform). @maybenil
-**/
+ **/
 LINPHONE_PUBLIC void *linphone_call_create_native_video_window_id(const LinphoneCall *call);
 
 /**
@@ -1157,8 +1159,8 @@ LINPHONE_PUBLIC LinphoneStatus linphone_call_redirect(LinphoneCall *call, const 
  * The current call remains active and thus can be later paused or terminated.
  * It is possible to follow the progress of the transfer provided that transferee sends notification about it.
  * In this case, the transfer_state_changed callback of the #LinphoneCoreVTable is invoked to notify of the state of the
- *new call at the other party. The notified states are #LinphoneCallOutgoingInit , #LinphoneCallOutgoingProgress,
- *#LinphoneCallOutgoingRinging and #LinphoneCallConnected.
+ *new call at the other party. The notified states are #LinphoneCallStateOutgoingInit,
+ *#LinphoneCallStateOutgoingProgress, #LinphoneCallStateOutgoingRinging and #LinphoneCallStateConnected.
  * @param call The call to be transferred @notnil
  * @param refer_to The destination the call is to be referred to. @notnil
  * @return 0 on success, -1 on failure

@@ -22,7 +22,6 @@
 #define L_C_PLAYER_H_
 
 #include "linphone/types.h"
-#include "mediastreamer2/msinterfaces.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -154,7 +153,8 @@ LINPHONE_PUBLIC void linphone_player_set_window_id(LinphonePlayer *player, void 
 
 /**
  * Create a window id to be used to display video if any.
- * A context can be used to prevent Linphone from allocating the container (#MSOglContextInfo for MSOGL). NULL if not used.
+ * A context can be used to prevent Linphone from allocating the container (`MSOglContextInfo` for MSOGL). NULL if not
+ * used.
  *
  * @param player #LinphonePlayer object @notnil
  * @param context preallocated Window ID (Used only for MSOGL) @maybenil

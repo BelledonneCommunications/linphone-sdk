@@ -558,7 +558,7 @@ linphone_chat_message_get_file_transfer_filepath(const LinphoneChatMessage *mess
  * Start the download of the file from remote server
  *
  * @param message #LinphoneChatMessage object. @notnil
- * @param status_cb #LinphoneChatMessageStateChangeCb status callback invoked when file is downloaded or could not be
+ * @param status_cb #LinphoneChatMessageStateChangedCb status callback invoked when file is downloaded or could not be
  * downloaded
  * @param user_data user data
  * @deprecated 21/09/2017 Use linphone_chat_message_download_file() instead.

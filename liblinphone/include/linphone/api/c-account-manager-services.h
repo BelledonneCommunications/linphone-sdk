@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2024 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -85,7 +85,7 @@ linphone_account_manager_services_create_send_account_creation_token_by_push_req
  * Provider, param & prid can be obtained from linphone_core_get_push_notification_config(),
  * but on iOS may need some modifications (depending on debug mode for example).
  * Once the token is obtained, you can use it to open the recovery webpage on the flexisip account manager
- * at https://account_manager.domain.tld/recovery/phone/<recovery token>?phone=<phone number>
+ * at https://account_manager.domain.tld/recovery/phone/\<recovery token\>?phone=\<phone number\>
  * @param ams The #LinphoneAccountManagerServices object. @notnil
  * @param pn_provider The provider, for example "apns.dev". @notnil
  * @param pn_param The parameters, for example "ABCD1234.org.linphone.phone.remote". @notnil

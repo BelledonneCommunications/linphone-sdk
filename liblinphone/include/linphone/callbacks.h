@@ -579,7 +579,7 @@ typedef LinphoneCoreCbsFriendListRemovedCb LinphoneCoreFriendListRemovedCb;
  * @param core #LinphoneCore object @notnil
  * @param result The result of the version update check @notnil
  * @param version The version to update to @maybenil
- * @param url The url where to download the new version if the result is #LinphoneVersionUpdateCheckNewVersionAvailable
+ * @param url The url where to download the new version if the result is `LinphoneVersionUpdateCheckNewVersionAvailable`
  * @maybenil
  */
 typedef void (*LinphoneCoreCbsVersionUpdateCheckResultReceivedCb)(LinphoneCore *core,

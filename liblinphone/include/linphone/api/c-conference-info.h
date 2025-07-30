@@ -303,8 +303,8 @@ LINPHONE_PUBLIC void linphone_conference_info_set_security_level(LinphoneConfere
 
 /**
  * Sets the capability of the conference.
- * The capability information represents the capability for the conference linked to the #ConferenceInfo to handle a
- * given stream type (audio, video or text).
+ * The capability information represents the capability for the conference linked to the #LinphoneConferenceInfo to
+ * handle a given stream type (audio, video or text).
  * @param conference_info A #LinphoneConferenceInfo object @notnil
  * @param stream_type A #LinphoneStreamType
  * @param enable the capability of the conference linked to conference information #LinphoneConferenceInfo
@@ -315,8 +315,8 @@ LINPHONE_PUBLIC void linphone_conference_info_set_capability(LinphoneConferenceI
 
 /**
  * Get the capability of the conference.
- * The capability information represents the capability for the conference linked to the #ConferenceInfo to handle a
- * given stream type (audio, video or text).
+ * The capability information represents the capability for the conference linked to the #LinphoneConferenceInfo to
+ * handle a given stream type (audio, video or text).
  * @param conference_info A #LinphoneConferenceInfo object @notnil
  * @param stream_type A #LinphoneStreamType
  * @return the capability of the conference linked to conference information #LinphoneConferenceInfo

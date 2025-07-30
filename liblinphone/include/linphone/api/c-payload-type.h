@@ -97,7 +97,7 @@ LINPHONE_PUBLIC const char *linphone_payload_type_get_encoder_description(const 
 LINPHONE_PUBLIC int linphone_payload_type_get_normal_bitrate(const LinphonePayloadType *payload_type);
 
 /**
- * Change the normal bitrate of a payload type..
+ * Change the normal bitrate of a payload type.
  * @param payload_type the #LinphonePayloadType object @notnil
  * @param bitrate The new bitrate in kbits/s.
  */

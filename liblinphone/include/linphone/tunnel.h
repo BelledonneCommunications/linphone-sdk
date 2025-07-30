@@ -372,7 +372,7 @@ linphone_tunnel_set_http_proxy_auth_info(LinphoneTunnel *tunnel, const char *use
 /**
  * Set the username.
  * Required for tunnel TLS client authentification.
- * Certificate Altname or CName should be sip:<tunnel_username>@<tunnel_domain>
+ * Certificate Altname or CName should be sip:\<tunnel_username\>@\<tunnel_domain\>
  * @param tunnel #LinphoneTunnel object @notnil
  * @param username The username. @maybenil
  */
@@ -388,7 +388,7 @@ LINPHONE_PUBLIC const char *linphone_tunnel_get_username(LinphoneTunnel *tunnel)
 /**
  * Set the domain.
  * Required for tunnel TLS client authentification.
- * Certificate Altname or CName should be sip:<tunnel_username>@<tunnel_domain>
+ * Certificate Altname or CName should be sip:\<tunnel_username\>@\<tunnel_domain\>
  * @param tunnel #LinphoneTunnel object @notnil
  * @param domain The domain. @maybenil
  */

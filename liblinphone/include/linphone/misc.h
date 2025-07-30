@@ -36,20 +36,20 @@ extern "C" {
 
 /**
  * Disable a sip transport
- * Use with #LinphoneSipTransports
+ * Use with `LinphoneSipTransports`
  * @ingroup initializing
  */
 #define LC_SIP_TRANSPORT_DISABLED 0
 /**
  * Randomly chose a sip port for this transport
- * Use with #LinphoneSipTransports
+ * Use with `LinphoneSipTransports`
  * @ingroup initializing
  */
 #define LC_SIP_TRANSPORT_RANDOM (-1)
 
 /**
  * Don't create any server socket for this transport, ie don't bind on any port.
- * Use with #LinphoneSipTransports
+ * Use with `LinphoneSipTransports`
  * @ingroup initializing
  **/
 #define LC_SIP_TRANSPORT_DONTBIND (-2)
@@ -175,7 +175,7 @@ LINPHONE_PUBLIC const char *linphone_transport_to_string(LinphoneTransportType t
  * Converts a lowercase string to a #LinphoneTransportType enum.
  * @ingroup misc
  * @param transport the transport to parse. @notnil
- * @return #LinphoneTransportType matching input, or #LinphoneTransportUdp if nothing is found
+ * @return #LinphoneTransportType matching input, or `LinphoneTransportUdp` if nothing is found
  **/
 LINPHONE_PUBLIC LinphoneTransportType linphone_transport_parse(const char *transport);
 

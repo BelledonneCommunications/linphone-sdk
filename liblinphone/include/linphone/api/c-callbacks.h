@@ -97,7 +97,7 @@ typedef void (*LinphoneAccountManagerServicesRequestCbsOnRequestErrorCb)(
     const LinphoneDictionary *parameter_errors);
 
 /**
- * Callback for notifying when the #LinphoneAccountManagerServicesRequestGetDevicesList request has results available.
+ * Callback for notifying when a request has results available.
  * @param request #LinphoneAccountManagerServicesRequest object. @notnil
  * @param devices_list the \bctbx_list{LinphoneAccountDevice} of fetched devices. @notnil
  */

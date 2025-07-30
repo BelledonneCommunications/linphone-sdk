@@ -129,7 +129,7 @@ LINPHONE_PUBLIC void linphone_error_info_set(LinphoneErrorInfo *error_info,
 /**
  * Set the sub_ei in #LinphoneErrorInfo to another #LinphoneErrorInfo.
  * Used when a reason header is to be added in a SIP response. The first level #LinphoneErrorInfo defines the SIP
- * response code and phrase, the second (sub) #LinphoneErroInfo defining the content of the Reason header.
+ * response code and phrase, the second (sub) #LinphoneErrorInfo defining the content of the Reason header.
  * @param error_info #LinphoneErrorInfo object to which the other #LinphoneErrorInfo will be appended as ei->sub_ei.
  * @notnil
  * @param appended_error_info #LinphoneErrorInfo to append @maybenil

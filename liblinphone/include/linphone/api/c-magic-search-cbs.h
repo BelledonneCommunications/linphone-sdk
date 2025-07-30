@@ -112,7 +112,7 @@ linphone_magic_search_cbs_get_more_results_available(const LinphoneMagicSearchCb
 /**
  * Sets the callback notifying that more results for a source flag are available.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
- * @return The more results available callback.
+ * @param cb The more results available callback.
  * @deprecated 07/07/2025 use linphone_magic_search_cbs_set_results_limit_reached() instead.
  */
 LINPHONE_PUBLIC void
@@ -134,7 +134,7 @@ linphone_magic_search_cbs_get_results_limit_reached(const LinphoneMagicSearchCbs
  * which means more results are available for currently set query parameters
  * and thus user should refine it's request.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
- * @return The results limit reached callback.
+ * @param cb The results limit reached callback.
  */
 LINPHONE_PUBLIC void
 linphone_magic_search_cbs_set_results_limit_reached(LinphoneMagicSearchCbs *cbs,

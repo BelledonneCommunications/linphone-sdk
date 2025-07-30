@@ -297,6 +297,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_history_2(LinphoneChatRoom 
  * @param begin The first event of the range to be retrieved. History most recent message has index 0.
  * @param end The last event of the range to be retrieved. History oldest message has index of history size - 1 (use
  * #linphone_chat_room_get_history_size_2() to retrieve history size)
+ * @param filters The #LinphoneChatRoomHistoryFilterMask mask to filter the results with #LinphoneChatRoomHistoryFilter
  * @return A list of \bctbx_list{LinphoneEventLog} @tobefreed
  */
 LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_history_range_2(LinphoneChatRoom *chat_room,

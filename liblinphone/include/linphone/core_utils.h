@@ -64,7 +64,7 @@ typedef void (*LinphoneEcCalibrationAudioUninit)(void *data);
  *automatically.
  * @deprecated 16/10/2017 Use #linphone_core_start_echo_canceller_calibration() instead. To set the callbacks create or
  *get an already instantiated #LinphoneCoreCbs and call #linphone_core_cbs_set_ec_calibration_result(),
- *#linphone_core_cbs_set_ec_calibration_audio_init() and #linphone_core_cbs_set_ec_callibration_audio_uninit().
+ *#linphone_core_cbs_set_ec_calibration_audio_init() and #linphone_core_cbs_set_ec_calibration_audio_uninit().
  *Deprecated since 2017-10-16.
  * @ingroup misc
  * @donotwrap
@@ -128,8 +128,8 @@ LINPHONE_PUBLIC bool_t linphone_core_is_echo_canceller_calibration_required(Linp
 /**
  * @ingroup IOS
  * @param core The #LinphoneCore object. @notnil
- * Special function to warm up  dtmf feeback stream. #linphone_core_stop_dtmf_stream() must be called before entering FG
- * mode
+ * Special function to warm up  dtmf feedback stream. #linphone_core_stop_dtmf_stream() must be called before entering
+ * FG mode
  */
 LINPHONE_PUBLIC void linphone_core_start_dtmf_stream(LinphoneCore *core);
 
