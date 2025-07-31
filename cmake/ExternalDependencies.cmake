@@ -618,6 +618,8 @@ if(BUILD_FFMPEG)
 			CONFIGURE_COMMAND "sh" "${PROJECT_BINARY_DIR}/EP_ffmpeg_configure.sh"
 			BUILD_COMMAND "sh" "${PROJECT_BINARY_DIR}/EP_ffmpeg_build.sh"
 			INSTALL_COMMAND "sh" "${PROJECT_BINARY_DIR}/EP_ffmpeg_install.sh"
+			GIT_REPOSITORY "https://gitlab.linphone.org/BC/public/external/ffmpeg.git"
+			GIT_TAG "origin/bc"
 			LOG_CONFIGURE TRUE
 			LOG_BUILD TRUE
 			LOG_INSTALL TRUE
