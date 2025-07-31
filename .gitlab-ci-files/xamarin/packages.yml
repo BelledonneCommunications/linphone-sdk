@@ -4,7 +4,7 @@ xamarin-package:
   variables:
     GIT_STRATEGY: fetch
   needs:
-    - ios-xcode
+    - ios-ninja-spm
     - android-ninja-r27
     - vs2022-win3264-scheduled-windows
 
