@@ -62,6 +62,7 @@ ClientConferenceEventHandler::ClientConferenceEventHandler(const std::shared_ptr
     : CoreAccessor(core) {
 	conf = clientConference;
 	confListener = listener;
+	mDelayMessageSendBgTask.setName("Delay message sending");
 	try {
 		getCore()->getPrivate()->registerListener(this);
 	} catch (const bad_weak_ptr &) {
@@ -78,6 +79,7 @@ ClientConferenceEventHandler::~ClientConferenceEventHandler() {
 		// Unable to unregister listener here. Core is destroyed and the listener doesn't exist.
 	}
 
+	stopDelayMessageSendTimer();
 	unsubscribe();
 }
 
@@ -846,6 +848,64 @@ void ClientConferenceEventHandler::subscribeStateChangedCb(LinphoneEvent *lev, L
 	}
 }
 
+void ClientConferenceEventHandler::startDelayMessageSendTimer() {
+	stopDelayMessageSendTimer();
+	bool sendMessagesAfterNotify = !!linphone_core_send_message_after_notify_enabled(getCore()->getCCore());
+	int delayMessageSendS = linphone_core_get_message_sending_delay(getCore()->getCCore());
+	if (!sendMessagesAfterNotify) {
+		if (delayMessageSendS > 0) {
+			mDelayMessageSendBgTask.start(getCore());
+			auto conference = getConference();
+			lInfo() << *conference
+			        << " will not wait for the NOTIFY full state before sending messages, hence start timer to delay "
+			           "message sending by "
+			        << delayMessageSendS << "s to ensure that chat messages are sent to all participants";
+			mDelayMessageSendTimer = getCore()->getCCore()->sal->createTimer(
+			    delayMessageSendTimerExpired, this, static_cast<unsigned int>(delayMessageSendS) * 1000,
+			    "delay message sending timeout");
+		} else {
+			handleDelayMessageSendTimerExpired();
+		}
+	}
+}
+
+void ClientConferenceEventHandler::stopDelayMessageSendTimer() {
+	if (mDelayMessageSendTimer) {
+		try {
+			auto core = getCore()->getCCore();
+			if (core && core->sal) core->sal->cancelTimer(mDelayMessageSendTimer);
+		} catch (const bad_weak_ptr &) {
+		}
+		belle_sip_object_unref(mDelayMessageSendTimer);
+		mDelayMessageSendTimer = nullptr;
+		mDelayMessageSendBgTask.stop();
+	}
+}
+
+void ClientConferenceEventHandler::handleDelayMessageSendTimerExpired() {
+	mDelayTimerExpired = true;
+	stopDelayMessageSendTimer();
+	auto conference = getConference();
+	if (conference) {
+		lInfo() << "Timer to delay message sending in " << *conference
+		        << " has expired. Sending all pending messages if the conference has chat capabilities";
+		const auto &chatRoom = conference->getChatRoom();
+		if (chatRoom) {
+			chatRoom->sendPendingMessages();
+		}
+	}
+}
+
+int ClientConferenceEventHandler::delayMessageSendTimerExpired(void *data, BCTBX_UNUSED(unsigned int revents)) {
+	ClientConferenceEventHandler *handler = static_cast<ClientConferenceEventHandler *>(data);
+	handler->handleDelayMessageSendTimerExpired();
+	return 0;
+}
+
+bool ClientConferenceEventHandler::delayTimerExpired() const {
+	return mDelayTimerExpired;
+}
+
 bool ClientConferenceEventHandler::subscribe() {
 	if (!needToSubscribe()) return false; // Already subscribed or application did not request subscription
 
@@ -898,6 +958,7 @@ bool ClientConferenceEventHandler::subscribe() {
 		        << *conference << " with last notify: " << lastNotifyStr;
 		auto subscribeOk = (ev->send(nullptr) == 0);
 		setInitialSubscriptionUnderWayFlag(subscribeOk);
+		startDelayMessageSendTimer();
 		return subscribeOk;
 	} catch (const bad_weak_ptr &) {
 		lError() << "ClientConferenceEventHandler [" << this << "]: Unable to send subscribe to " << *conference
@@ -1010,6 +1071,7 @@ void ClientConferenceEventHandler::notifyReceived(const Content &content) {
 	const ContentType &contentType = content.getContentType();
 	if (contentType == ContentType::ConferenceInfo) {
 		conferenceInfoNotifyReceived(content.getBodyAsUtf8String());
+		handleDelayMessageSendTimerExpired();
 	}
 }
 
