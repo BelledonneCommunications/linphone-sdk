@@ -542,7 +542,8 @@ class Core;
 	bool_t record_aware;                                                                                               \
 	bool_t auto_send_ringing;                                                                                          \
 	int number_of_duplicated_messages;                                                                                 \
-	bool_t goog_remb_enabled;
+	bool_t goog_remb_enabled;                                                                                          \
+	bool_t in_iterate;
 
 #define LINPHONE_CORE_STRUCT_FIELDS                                                                                    \
 	LINPHONE_CORE_STRUCT_BASE_FIELDS                                                                                   \
