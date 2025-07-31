@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ms2-streams.h"
+
 #include <cmath>
 
 #include "bctoolbox/defs.h"
@@ -27,7 +29,6 @@
 #include "mediastreamer2/msfileplayer.h"
 #include "mediastreamer2/msvolume.h"
 
-#include "c-wrapper/c-wrapper.h"
 #include "call/call.h"
 #include "conference/client-conference.h"
 #include "conference/conference.h"
@@ -38,7 +39,6 @@
 #include "media-session-p.h"
 #include "media-session.h"
 #include "mixers.h"
-#include "ms2-streams.h"
 #include "nat/ice-service.h"
 
 using namespace ::std;
@@ -59,7 +59,7 @@ MS2AudioStream::MS2AudioStream(StreamsGroup &sg, const OfferAnswerContext &param
 	/* initialize ZRTP if it supported as default encryption or as optional encryption and capability negotiation is
 	 * enabled */
 	if (!mSessions.zrtp_context && getMediaSessionPrivate().isMediaEncryptionAccepted(LinphoneMediaEncryptionZRTP)) {
-		initZrtp();
+		MS2AudioStream::initZrtp();
 	}
 	initializeSessions((MediaStream *)mStream);
 }
@@ -635,11 +635,6 @@ void MS2AudioStream::render(const OfferAnswerContext &params, CallSession::State
 	}
 	if (getMediaSession().isPlayingRingbackTone()) setupRingbackPlayer();
 
-	std::shared_ptr<ParticipantDevice> device = nullptr;
-	if (conference) {
-		device = conference->findParticipantDevice(getMediaSession().getSharedFromThis());
-	}
-
 	if (audioMixer && !mMuted) {
 		const auto &audioConfParams = ms_audio_conference_get_params(audioMixer->getAudioConference());
 		mConferenceEndpoint = ms_audio_endpoint_get_from_stream(mStream, TRUE, audioConfParams->mode);
@@ -680,8 +675,6 @@ void MS2AudioStream::render(const OfferAnswerContext &params, CallSession::State
 	}
 
 	setupMediaLossCheck(targetState == CallSession::State::Paused);
-
-	return;
 }
 
 void MS2AudioStream::stop() {
@@ -1214,7 +1207,7 @@ std::string MS2AudioStream::getLabel() const {
 }
 
 MS2AudioStream::~MS2AudioStream() {
-	if (mStream) finish();
+	if (mStream) MS2AudioStream::finish();
 }
 
 LINPHONE_END_NAMESPACE
