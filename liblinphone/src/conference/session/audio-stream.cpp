@@ -929,6 +929,7 @@ bool MS2AudioStream::speakerEnabled() const {
 }
 
 bool MS2AudioStream::supportsTelephoneEvents() {
+	if (!mStream) return false;
 	return audio_stream_supports_telephone_events(mStream);
 }
 
