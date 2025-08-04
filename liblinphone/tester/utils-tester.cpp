@@ -226,6 +226,7 @@ static void address_serialization() {
 	Address a("sip:toto@sip.example.org;b=dede;a=dada;d=dodo;c=didi");
 	Address b("<sip:toto@sip.example.org;b=dede;a=dada;d=dodo;c=didi>");
 	Address c("<sip:toto@sip.example.org;b=dede;a=dada;d=dodo;c=didi>;f=dudu;e=caca");
+	Address d("sip:09 264 47 47@sip.example.org");
 
 	string result = a.toStringUriOnlyOrdered();
 	BC_ASSERT_STRING_EQUAL(result.c_str(), "sip:toto@sip.example.org;a=dada;b=dede;c=didi;d=dodo");
@@ -233,6 +234,8 @@ static void address_serialization() {
 	BC_ASSERT_STRING_EQUAL(result.c_str(), "sip:toto@sip.example.org;a=dada;b=dede;c=didi;d=dodo");
 	result = c.toStringUriOnlyOrdered();
 	BC_ASSERT_STRING_EQUAL(result.c_str(), "sip:toto@sip.example.org;a=dada;b=dede;c=didi;d=dodo");
+	result = d.toStringUriOnlyOrdered();
+	BC_ASSERT_STRING_EQUAL(result.c_str(), ":");
 }
 
 static void conferenceId_comparisons() {
