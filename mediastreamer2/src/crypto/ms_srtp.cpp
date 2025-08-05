@@ -160,7 +160,7 @@ class MSSrtpRecvStreamContext : public MSSrtpStreamContext {
 public:
 	std::map<uint16_t, std::shared_ptr<Ekt>>
 	    ektsReceiverPool; /**< a map of EKT used to decrypt incoming EKT tag if needed, indexed by SPI */
-	MSSrtpRecvStreamContext() {};
+	MSSrtpRecvStreamContext(){};
 };
 } // anonymous namespace
 
@@ -420,12 +420,12 @@ bool ms_srtp_set_ekt_tag(MSSrtpSendStreamContext *ctx, mblk_t *m, int *slen, siz
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 24) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 16) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 8) & 0xFF));
-			plainText.push_back(static_cast<uint8_t>((ssrc) & 0xFF));
+			plainText.push_back(static_cast<uint8_t>((ssrc)&0xFF));
 
 			plainText.push_back(static_cast<uint8_t>((roc >> 24) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((roc >> 16) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((roc >> 8) & 0xFF));
-			plainText.push_back(static_cast<uint8_t>((roc) & 0xFF));
+			plainText.push_back(static_cast<uint8_t>((roc)&0xFF));
 
 			// encrypt it
 			std::vector<uint8_t> cipherText{};
@@ -443,7 +443,7 @@ bool ms_srtp_set_ekt_tag(MSSrtpSendStreamContext *ctx, mblk_t *m, int *slen, siz
 
 			// append Length: in bytes, including length and message type byte
 			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size >> 8) & 0xFF));
-			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size) & 0xFF));
+			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size)&0xFF));
 
 			// Full EKT tag message type
 			cipherText.push_back(EKT_MsgType_FULL);
@@ -623,7 +623,7 @@ int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 						}
 						if (add_seq_num) {
 							m->b_rptr[slen++] = (original_seq_number >> 8) & 0xFF;
-							m->b_rptr[slen++] = (original_seq_number) & 0xFF;
+							m->b_rptr[slen++] = (original_seq_number)&0xFF;
 							config_byte |= OHB_SEQNUM_BIT;
 						}
 						m->b_rptr[slen++] = config_byte;
@@ -1623,7 +1623,7 @@ extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sess
 }
 
 extern "C" int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt_params) {
-	ms_message("set EKT with SPI %04x on session %p", ekt_params->ekt_spi, sessions);
+	ms_message("set EKT with SPI 0x%04x on session %p", ekt_params->ekt_spi, sessions);
 	check_and_create_srtp_context(sessions);
 	std::lock_guard<std::recursive_mutex> lockS(sessions->srtp_context->mSend.mMutex);
 	std::lock_guard<std::recursive_mutex> lockR(sessions->srtp_context->mRecv.mMutex);
@@ -1638,14 +1638,16 @@ extern "C" int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions,
 		// Is this the one used in send context?
 		if (sessions->srtp_context->mSend.ektSender != nullptr &&
 		    sessions->srtp_context->mSend.ektSender->mSpi == ekt_params->ekt_spi) {
-			ms_warning("EKT with SPI %04x already present and used for outgoing ekttags, keep using it, no SRTP master "
-			           "key generation",
-			           ekt_params->ekt_spi);
+			ms_warning(
+			    "EKT with SPI 0x%04x already present and used for outgoing ekttags, keep using it, no SRTP master "
+			    "key generation",
+			    ekt_params->ekt_spi);
 			return 0;
 		} else {
-			ms_warning("EKT with SPI %04x already present, switch back to it for outgoing ekttags and regenerate srtp "
-			           "master key",
-			           ekt_params->ekt_spi);
+			ms_warning(
+			    "EKT with SPI 0x%04x already present, switch back to it for outgoing ekttags and regenerate srtp "
+			    "master key",
+			    ekt_params->ekt_spi);
 			ekt = sessions->srtp_context->mRecv.ektsReceiverPool[ekt_params->ekt_spi];
 			ekt->mEpoch++;
 		}

@@ -124,6 +124,7 @@ int EktServerPlugin::ServerEktManager::subscribeReceived(const shared_ptr<Event>
 				if (oldEv) {
 					oldEv->removeListener(participantDeviceCtx);
 					oldEv->terminate();
+					participantDeviceCtx->setKnowsEkt(false);
 				}
 				deviceFound = true;
 			}
