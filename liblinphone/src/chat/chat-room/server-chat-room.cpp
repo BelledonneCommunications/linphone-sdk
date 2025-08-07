@@ -418,19 +418,19 @@ void ServerChatRoom::dispatchQueuedMessages() {
 		for (const auto &device : participant->getDevices()) {
 			string uri(device->getAddress()->toString());
 			auto &msgQueue = mQueuedMessages[uri];
-
 			if (!msgQueue.empty()) {
+				const auto &conference = getConference();
 				if (!getCurrentParams()->isGroup() && (device->getState() == ParticipantDevice::State::Left)) {
 					// Happens only with protocol < 1.1
-					lInfo() << "There is a message to transmit to a participant in left state in a one to one "
+					lInfo() << "There is a message in " << *conference
+					        << " to transmit to a participant in left state in a one to one "
 					           "chatroom, so inviting first.";
-					static_pointer_cast<ServerConference>(getConference())->inviteDevice(device);
+					static_pointer_cast<ServerConference>(conference)->inviteDevice(device);
 					continue;
 				}
 				if (device->getState() != ParticipantDevice::State::Present) continue;
 				size_t nbMessages = msgQueue.size();
-				lInfo() << "Conference " << *getConference()->getConferenceAddress() << ": Dispatching " << nbMessages
-				        << " queued message(s) for '" << uri << "'";
+				lInfo() << *conference << ": Dispatching " << nbMessages << " queued message(s) for '" << uri << "'";
 				while (!msgQueue.empty()) {
 					shared_ptr<ServerChatRoom::Message> msg = msgQueue.front();
 					sendMessage(msg, device->getAddress());

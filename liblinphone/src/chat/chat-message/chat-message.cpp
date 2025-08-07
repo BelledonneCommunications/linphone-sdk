@@ -63,7 +63,7 @@ LINPHONE_BEGIN_NAMESPACE
 
 static FsmIntegrityChecker<ChatMessage::State> chatMessageFsmChecker{
     {{ChatMessage::State::Idle,
-      {ChatMessage::State::Idle, ChatMessage::State::PendingDelivery, ChatMessage::State::InProgress,
+      {ChatMessage::State::PendingDelivery, ChatMessage::State::Queued, ChatMessage::State::InProgress,
        ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
        ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
        ChatMessage::State::FileTransferDone}},
@@ -75,10 +75,16 @@ static FsmIntegrityChecker<ChatMessage::State> chatMessageFsmChecker{
       {ChatMessage::State::InProgress, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
        ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
        ChatMessage::State::FileTransferDone}},
+     {ChatMessage::State::Queued,
+      {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::PendingDelivery,
+       ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
+       ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
+       ChatMessage::State::FileTransferDone}},
      {ChatMessage::State::PendingDelivery,
-      {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::Delivered,
-       ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
-       ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
+      {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::PendingDelivery,
+       ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
+       ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
+       ChatMessage::State::FileTransferDone}},
      {ChatMessage::State::NotDelivered,
       {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::Delivered,
        ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
@@ -335,10 +341,11 @@ void ChatMessagePrivate::setState(ChatMessage::State newState) {
 	// Delivered, NotDelivered, DeliveredToUser or Displayed before resetting the flag In fact, it may happen that the
 	// message goes from the NotDelivered state to InProgress and finally coming back to NotDelivered in some cases and
 	// we want to avoid the message to enter an infinite loop
-	if (mAutomaticallyResent &&
-	    ((newState == ChatMessage::State::PendingDelivery) || (newState == ChatMessage::State::Delivered) ||
-	     (newState == ChatMessage::State::DeliveredToUser) || (newState == ChatMessage::State::Displayed))) {
-		setAutomaticallyResent(false);
+	if (mAutomaticallyResent) {
+		if ((newState == ChatMessage::State::PendingDelivery) || (newState == ChatMessage::State::Delivered) ||
+		    (newState == ChatMessage::State::DeliveredToUser) || (newState == ChatMessage::State::Displayed)) {
+			setAutomaticallyResent(false);
+		}
 	}
 
 	// 2. Update state and notify changes.
@@ -387,6 +394,11 @@ void ChatMessagePrivate::setState(ChatMessage::State newState) {
 	}
 	if (state == ChatMessage::State::Displayed) {
 		listeners.clear();
+	} else if (hasBeenAutomaticallyResent && (state == ChatMessage::State::PendingDelivery)) {
+		const auto failState = ChatMessage::State::NotDelivered;
+		lError() << "Automatic resending of message [" << q << "] has failed. Setting message state to "
+		         << Utils::toString(failState);
+		setState(failState);
 	}
 
 	// 3. Specific case, upon reception do not attempt to store in db before asking the user if he wants to do so or not
@@ -415,7 +427,8 @@ void ChatMessagePrivate::setState(ChatMessage::State newState) {
 	// 5. Update in database if necessary.
 	if (state != ChatMessage::State::InProgress && state != ChatMessage::State::FileTransferError &&
 	    state != ChatMessage::State::FileTransferInProgress && state != ChatMessage::State::FileTransferCancelling) {
-		updateInDb();
+		// If the message has already been stored than the event log will only be updated
+		storeInDb();
 	}
 
 	bool needResend = false;
@@ -433,12 +446,13 @@ void ChatMessagePrivate::setState(ChatMessage::State newState) {
 		restoreFileTransferContentAsFileContent();
 	}
 
-	if (state == ChatMessage::State::PendingDelivery) {
+	if (q->needToBeResent()) {
 		chatRoom->getCore()->getPrivate()->registerListener(q);
+		int resendTimerDurationSeconds = linphone_core_get_message_automatic_resending_delay(q->getCore()->getCCore());
 		if ((direction == ChatMessage::Direction::Outgoing) && !hasBeenAutomaticallyResent && needResend &&
-		    !q->getResendTimer()) {
-			lInfo() << "Message [" << q << "]  will be automatically resent due to failure in "
-			        << ChatMessage::resendTimerExpiresS << "s";
+		    !q->getResendTimer() && (resendTimerDurationSeconds > 0)) {
+			lInfo() << "Message [" << q << "] will be automatically resent due to failure in "
+			        << resendTimerDurationSeconds << "s";
 			q->createResendTimer();
 		}
 	}
@@ -1479,16 +1493,14 @@ void ChatMessagePrivate::send() {
 	currentSendStep |= ChatMessagePrivate::Step::Started;
 	chatRoom->addTransientChatMessage(ref);
 
+	if (isMessageEdit || isMessageRetraction) {
+		// Do not store message editing/retracting another one in DB, edited one will be updated
+		toBeStored = false;
+	}
+
 	if (toBeStored) {
 		if (currentSendStep == (ChatMessagePrivate::Step::Started | ChatMessagePrivate::Step::None)) {
-			// First time it is sent
-			if (!isMessageEdit && !isMessageRetraction) {
-				storeInDb();
-			} else {
-				// Do not store message editing/retracting another one in DB, edited one will be updated
-				toBeStored = false;
-			}
-
+			storeInDb();
 			if (!isResend && !q->isReaction() && !isMessageEdit && !isMessageRetraction &&
 			    getContentType() != ContentType::Imdn && getContentType() != ContentType::ImIsComposing) {
 				if ((currentSendStep & ChatMessagePrivate::Step::Sending) != ChatMessagePrivate::Step::Sending) {
@@ -1499,11 +1511,18 @@ void ChatMessagePrivate::send() {
 					currentSendStep |= ChatMessagePrivate::Step::Sending;
 				}
 			}
-		} else if (currentSendStep == (ChatMessagePrivate::Step::Sending | ChatMessagePrivate::Step::Started |
-		                               ChatMessagePrivate::Step::None)) {
-			for (const auto &participant : chatRoom->getParticipants()) {
-				setParticipantState(participant->getAddress(), q->getState(), ::ms_time(nullptr));
+		} else if (state == ChatMessage::State::Queued) {
+			setState(ChatMessage::State::Idle);
+#ifdef HAVE_DB_STORAGE
+			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
+			shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
+			if (eventLog) {
+				for (const auto &participant : chatRoom->getParticipants()) {
+					mainDb->setChatMessageParticipantState(eventLog, participant->getAddress(), q->getState(),
+					                                       ::ms_time(nullptr));
+				}
 			}
+#endif // HAVE_DB_STORAGE
 		}
 	}
 
@@ -1511,6 +1530,9 @@ void ChatMessagePrivate::send() {
 		chatRoom->addPendingMessage(ref);
 		return;
 	}
+
+	// Message can be sent right now, hence remove the reference from the list of pending message should it exist
+	chatRoom->deletePendingMessage(ref);
 
 	if ((currentSendStep & ChatMessagePrivate::Step::FileUpload) == ChatMessagePrivate::Step::FileUpload) {
 		lInfo() << "File upload step already done, skipping";
@@ -1627,6 +1649,9 @@ void ChatMessagePrivate::send() {
 					chatRoom->removeTransientChatMessage(ref);
 					return;
 				} else if (result == ChatMessageModifier::Result::Suspended) {
+					lInfo() << "Delaying sending of message as the core is querying the encryption server to retrieve "
+					           "the participants' key";
+					setParticipantState(meAddress, ChatMessage::State::Idle, q->getTime());
 					return;
 				}
 			} else {
@@ -1750,6 +1775,14 @@ void ChatMessagePrivate::send() {
 void ChatMessagePrivate::storeInDb() {
 	L_Q();
 
+	string retractsExistingMessageId = q->getRetractsMessageId();
+	bool isMessageRetraction = !retractsExistingMessageId.empty();
+	string replacesExistingMessageId = q->getReplacesMessageId();
+	bool isMessageEdit = !replacesExistingMessageId.empty();
+	if (isMessageEdit || isMessageRetraction) {
+		return;
+	}
+
 	// TODO: store message in the future
 	if (linphone_core_conference_server_enabled(q->getCore()->getCCore())) return;
 
@@ -1800,7 +1833,7 @@ void ChatMessagePrivate::updateInDb() {
 	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
 
 	if (!eventLog) {
-		lError() << "cannot find eventLog for storage ID [" << storageId << "] associated to message ["
+		lError() << "Cannot find eventLog for storage ID [" << storageId << "] associated to message ["
 		         << q->getSharedFromThis() << "]";
 		return;
 	}
@@ -2512,8 +2545,10 @@ void ChatMessage::createResendTimer() {
 		if (mResendTimer) {
 			stopResendTimer();
 		}
+		int resendTimerDurationSeconds = linphone_core_get_message_automatic_resending_delay(getCore()->getCCore());
 		mResendTimer = getCore()->getCCore()->sal->createTimer(
-		    resendTimerExpired, this, ChatMessage::resendTimerExpiresS * 1000, "resend message timeout");
+		    resendTimerExpired, this, static_cast<unsigned int>(resendTimerDurationSeconds) * 1000,
+		    "resend message timeout");
 	} catch (const bad_weak_ptr &) {
 		lError() << "Unable to create resend timer for chat message [" << this << "]";
 	}
@@ -2550,7 +2585,7 @@ void ChatMessage::stopResendTimer() {
 
 void ChatMessage::onNetworkReachable(bool sipNetworkReachable, BCTBX_UNUSED(bool mediaNetworkReachable)) {
 	try {
-		if ((getState() == State::PendingDelivery) && sipNetworkReachable) {
+		if (needToBeResent() && sipNetworkReachable) {
 			// Try to resend message if the account has correctly registered
 			auto account = getCore()->findAccountByIdentityAddress(getLocalAddress());
 			if (account && (account->getState() == LinphoneRegistrationOk)) {
@@ -2566,8 +2601,7 @@ void ChatMessage::onAccountRegistrationStateChanged(std::shared_ptr<Account> acc
                                                     LinphoneRegistrationState state,
                                                     BCTBX_UNUSED(const string &message)) {
 	try {
-		if ((getState() != State::PendingDelivery) || (state != LinphoneRegistrationState::LinphoneRegistrationOk))
-			return;
+		if (!needToBeResent() || (state != LinphoneRegistrationState::LinphoneRegistrationOk)) return;
 		auto messageAccount = getCore()->findAccountByIdentityAddress(getLocalAddress());
 		if ((messageAccount == account) && (state == LinphoneRegistrationOk)) {
 			lInfo() << "Attempt again to send message " << this << " because the core registered again";
@@ -2575,6 +2609,11 @@ void ChatMessage::onAccountRegistrationStateChanged(std::shared_ptr<Account> acc
 		}
 	} catch (const bad_weak_ptr &) {
 	}
+}
+
+bool ChatMessage::needToBeResent() const {
+	const auto &state = getState();
+	return ((state == State::PendingDelivery) || (state == State::Queued));
 }
 
 std::ostream &operator<<(std::ostream &lhs, ChatMessage::State e) {
@@ -2590,6 +2629,9 @@ std::ostream &operator<<(std::ostream &lhs, ChatMessage::State e) {
 			break;
 		case ChatMessage::State::PendingDelivery:
 			lhs << "PendingDelivery";
+			break;
+		case ChatMessage::State::Queued:
+			lhs << "Queued";
 			break;
 		case ChatMessage::State::NotDelivered:
 			lhs << "NotDelivered";

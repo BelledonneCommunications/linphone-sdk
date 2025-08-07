@@ -87,7 +87,7 @@ Participant::createSession(const std::shared_ptr<Core> &core, const CallSessionP
 }
 
 void Participant::setSession(std::shared_ptr<CallSession> callSession) {
-	lInfo() << "Assigning session " << session << " to " << *this;
+	lInfo() << "Assigning session " << callSession << " to " << *this;
 	session = callSession;
 }
 // -----------------------------------------------------------------------------

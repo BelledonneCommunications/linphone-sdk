@@ -4340,6 +4340,9 @@ bool_t liblinphone_tester_chat_message_msg_update_stats(stats *counters, Linphon
 		case LinphoneChatMessageStateNotDelivered:
 			counters->number_of_LinphoneMessageNotDelivered++;
 			break;
+		case LinphoneChatMessageStateQueued:
+			counters->number_of_LinphoneMessageQueued++;
+			break;
 		case LinphoneChatMessageStatePendingDelivery:
 			counters->number_of_LinphoneMessagePendingDelivery++;
 			break;

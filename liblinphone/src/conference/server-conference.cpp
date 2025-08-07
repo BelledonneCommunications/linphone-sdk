@@ -307,7 +307,6 @@ bool ServerConference::update(const ConferenceParamsInterface &newParameters) {
 }
 
 bool ServerConference::updateConferenceInformation(SalCallOp *op) {
-	const auto &conferenceAddress = getConferenceAddress();
 	const auto nbParticipants = getParticipantCount();
 	if (nbParticipants > 0) {
 		lError() << "Unable to update conference information of " << *this
@@ -324,10 +323,10 @@ bool ServerConference::updateConferenceInformation(SalCallOp *op) {
 		}
 		auto invited = (findInvitedParticipant(address) != nullptr);
 		if (findParticipantDevice(address) || invited || address->weakEqual(*mOrganizer)) {
-			lInfo() << "Updating conference informations of conference " << *conferenceAddress;
+			lInfo() << "Updating conference information of " << *this;
 			const auto &remoteMd = op->getRemoteMediaDescription();
 
-			// The following informations are retrieved from the received INVITE:
+			// The following information are retrieved from the received INVITE:
 			// - start and end time from the SDP active time attribute
 			// - conference active media:
 			//    - if the SDP has at least one active audio stream, audio is enabled
@@ -400,16 +399,15 @@ bool ServerConference::updateConferenceInformation(SalCallOp *op) {
 			auto &mainDb = getCore()->getPrivate()->mainDb;
 			if (mainDb) {
 				lInfo() << "Inserting updated conference information to database in order to be able to recreate the "
-				           "conference "
-				        << *conferenceAddress << " in case of restart";
+				        << *this << " in case of restart";
 				mConferenceInfoId = mainDb->insertConferenceInfo(conferenceInfo);
 			}
 #endif // HAVE_DB_STORAGE
 		} else {
-			lWarning() << "Device with address " << address
+			lWarning() << "Device with address " << *address
 			           << " is not allowed to update the conference because they have not been invited nor are "
-			              "participants to conference "
-			           << *conferenceAddress << " nor are the organizer";
+			              "participants to "
+			           << *this << " nor are the organizer";
 		}
 	}
 	return true;
@@ -509,7 +507,7 @@ void ServerConference::configure(SalCallOp *op) {
 	}
 
 	if (isUpdate || (isAdmin && !createdConference)) {
-		// The following informations are retrieved from the received INVITE:
+		// The following information are retrieved from the received INVITE:
 		// - start and end time from the SDP active time attribute
 		// - conference active media:
 		//    - if the SDP has at least one active audio stream, audio is enabled
@@ -666,9 +664,8 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 	auto conferenceAddress = getConferenceAddress();
 	std::shared_ptr<Address> contactAddr = Address::create(op->getRemoteContact());
 	if (contactAddr->getUriParamValue("gr").empty()) {
-		lError() << "Conference " << *conferenceAddress
-		         << ": Declining INVITE because the contact does not have a 'gr' uri parameter [" << *contactAddr
-		         << "]";
+		lError() << *this << ": Declining INVITE because the contact does not have a 'gr' uri parameter ["
+		         << *contactAddr << "]";
 		op->decline(SalReasonDeclined, "");
 		if (serverGroupChatRoom) serverGroupChatRoom->setJoiningPendingAfterCreation(false);
 		return;
@@ -703,7 +700,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		// INVITE coming from an invited participant
 		participant = findInvitedParticipant(from);
 		if (!participant) {
-			lError() << "Conference " << *conferenceAddress << ": Declining INVITE coming from [" << *from
+			lError() << *this << ": Declining INVITE coming from [" << *from
 			         << "] that is not in the list of invited participants";
 			op->decline(SalReasonDeclined, "");
 			return;
@@ -711,16 +708,14 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		// In protocol < 1.1, one to one chatroom can be resurected by a participant, but the participant actually never
 		// leaves from server's standpoint.
 		if (getCurrentParams()->isGroup() && op->isContentInRemote(ContentType::ResourceLists)) {
-			lError() << "Conference " << *conferenceAddress
-			         << "Receiving ressource list body while not in creation step.";
+			lError() << *this << "Receiving ressource list body while not in creation step.";
 			op->decline(SalReasonNotAcceptable);
 			return;
 		}
 		device = participant->addDevice(gruu);
 		if (!getCurrentParams()->isGroup()) {
 			if (device->getState() == ParticipantDevice::State::Left) {
-				lInfo() << "Conference [" << *conferenceAddress << "] - " << *gruu
-				        << " is reconnected to the one to one chatroom.";
+				lInfo() << *this << " - " << *gruu << " is reconnected to the one to one chatroom.";
 				setParticipantDeviceState(device, ParticipantDevice::State::Joining);
 			}
 			participant->setAdmin(true);
@@ -939,11 +934,8 @@ void ServerConference::confirmCreation() {
 			// contact address of the call
 			auto &mainDb = getCore()->getPrivate()->mainDb;
 			if (mainDb) {
-				const auto conferenceAddressStr =
-				    (getConferenceAddress() ? getConferenceAddress()->toString() : std::string("sip::"));
-				lInfo()
-				    << "Inserting conference information to database in order to be able to recreate the conference "
-				    << conferenceAddressStr << " in case of restart";
+				lInfo() << "Inserting conference information to database in order to be able to recreate " << *this
+				        << " in case of restart";
 				mConferenceInfoId = mainDb->insertConferenceInfo(conferenceInfo);
 			}
 		}
@@ -1049,8 +1041,8 @@ void ServerConference::finalizeCreation() {
 					mConfParams->setEarlierJoiningTime(mConfParams->getStartTime());
 				}
 
-				auto addr = *conferenceAddress;
 				lInfo() << *this << " has been created created";
+				auto addr = *getConferenceAddress();
 				addr.setParam(Conference::sIsFocusParameter);
 				if (session->getState() == CallSession::State::Idle) {
 					lInfo() << *this << ": Scheduling redirection to [" << addr << "] for Call session [" << session
@@ -1069,8 +1061,6 @@ void ServerConference::finalizeCreation() {
 					// being the contact address of the call
 					auto &mainDb = getCore()->getPrivate()->mainDb;
 					if (mainDb) {
-						const auto conferenceAddressStr =
-						    (getConferenceAddress() ? getConferenceAddress()->toString() : std::string("sip::"));
 						lInfo() << "Inserting conference information to database in order to be able to recreate "
 						        << *this << " in case of restart";
 						mConferenceInfoId = mainDb->insertConferenceInfo(conferenceInfo);
@@ -1087,8 +1077,7 @@ void ServerConference::finalizeCreation() {
 				}
 #endif // HAVE_ADVANCED_IM
 			} else {
-				lError() << "Session of the me participant " << *mMe->getAddress() << " of conference [" << this
-				         << "] with address " << *conferenceAddress
+				lError() << "Session of the me participant " << *mMe->getAddress() << " of " << *this
 				         << " is not known therefore it is not possible to carry out the redirection";
 			}
 		}
@@ -1378,7 +1367,7 @@ int ServerConference::inviteAddresses(const std::list<std::shared_ptr<Address>> 
 					return -1;
 				}
 				if (sessionState == CallSession::State::IncomingReceived) {
-					lInfo() << *this << ": incoming INVITE in progress.";
+					lInfo() << *this << ": incoming INVITE already in progress.";
 					return -1;
 				}
 				setParticipantDeviceState(device, ParticipantDevice::State::Joining);
@@ -3145,8 +3134,6 @@ void ServerConference::onCallSessionStateChanged(const std::shared_ptr<CallSessi
                                                  CallSession::State state,
                                                  BCTBX_UNUSED(const std::string &message)) {
 	const auto &chatRoom = getChatRoom();
-	const auto conferenceAddressStr =
-	    (getConferenceAddress() ? getConferenceAddress()->toString() : std::string("sip::"));
 	if (supportsMedia()) {
 		std::shared_ptr<Address> remoteAddress = session->getRemoteAddress();
 		const auto &device = findParticipantDevice(session);
@@ -3375,8 +3362,7 @@ void ServerConference::onCallSessionStateChanged(const std::shared_ptr<CallSessi
 			case CallSession::State::End:
 			case CallSession::State::Error: {
 				lInfo() << "Removing terminated call (local address " << *session->getLocalAddress()
-				        << " remote address " << *remoteAddress << ") from conference " << this << " ("
-				        << conferenceAddressStr << ")";
+				        << " remote address " << *remoteAddress << ") from " << *this;
 				const auto &sessionErrorInfo = session->getErrorInfo();
 				if (sessionErrorInfo && (linphone_error_info_get_reason(sessionErrorInfo) == LinphoneReasonBusy)) {
 					removeParticipantDevice(session);
@@ -3486,8 +3472,8 @@ void ServerConference::onCallSessionStateChanged(const std::shared_ptr<CallSessi
 }
 
 void ServerConference::onCallSessionEarlyFailed(const std::shared_ptr<CallSession> &session, LinphoneErrorInfo *ei) {
-	lInfo() << *this << ": Removing terminated call (local address " << *session->getLocalAddress()
-	        << " remote address " << *session->getRemoteAddress() << " cannot be established because of error "
+	lInfo() << *this << ": Call (local address " << *session->getLocalAddress() << " remote address "
+	        << *session->getRemoteAddress() << " cannot be established because of error "
 	        << linphone_reason_to_string(linphone_error_info_get_reason(ei));
 	if (mState == ConferenceInterface::State::Instantiated) {
 		setState(ConferenceInterface::State::CreationFailed);
@@ -3692,8 +3678,7 @@ void ServerConference::updateParticipantDevices(
 		 * that is in the process of being added to the chatroom
 		 */
 		if (it == registrationSubscriptions.end()) {
-			lError() << "updateParticipantDevices(): " << *participantAddress
-			         << " registration info was not requested in " << *this;
+			lError() << *this << ": " << *participantAddress << " registration info was not requested.";
 			return;
 		} else {
 			newParticipantReginfo = serverGroupChatRoom->removeRegistrationSubscriptionParticipant(participantAddress);
@@ -3727,7 +3712,7 @@ void ServerConference::updateParticipantDevices(
 			};
 			auto it = find_if(devices.cbegin(), devices.cend(), predicate);
 			if (it == devices.cend()) {
-				lInfo() << *this << " Device " << *device->getAddress()
+				lInfo() << *this << ": device " << *device
 				        << " is no longer registered, it will be removed from the chatroom.";
 				devicesToRemove.push_back(device);
 			}
@@ -3745,7 +3730,7 @@ void ServerConference::updateParticipantDevices(
 			/* we need to recheck in case some devices have upgraded. */
 			serverGroupChatRoom->determineProtocolVersion();
 			if (protocolVersion == CorePrivate::groupChatProtocolVersion) {
-				lInfo() << "It's marvellous, all devices are now up to date !";
+				lInfo() << *this << ": It's marvellous, all devices are now up to date !";
 			}
 		}
 	}
@@ -3766,7 +3751,7 @@ void ServerConference::conclude() {
 	const auto &chatRoom = getChatRoom();
 	if (isChatOnly() && chatRoom) {
 		auto serverGroupChatRoom = dynamic_pointer_cast<ServerChatRoom>(chatRoom);
-		lInfo() << *this << ": All devices are known, the chatroom creation can be concluded.";
+		lInfo() << *this << ": all devices are known, the chatroom creation can be concluded.";
 		const auto &initiator = serverGroupChatRoom->getInitiatorDevice();
 		shared_ptr<CallSession> session = initiator ? initiator->getSession() : nullptr;
 

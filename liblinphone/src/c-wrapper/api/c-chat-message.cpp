@@ -609,6 +609,8 @@ const char *linphone_chat_message_state_to_string(const LinphoneChatMessageState
 			return "LinphoneChatMessageStateInProgress";
 		case LinphoneChatMessageStateDelivered:
 			return "LinphoneChatMessageStateDelivered";
+		case LinphoneChatMessageStateQueued:
+			return "LinphoneChatMessageStateQueued";
 		case LinphoneChatMessageStatePendingDelivery:
 			return "LinphoneChatMessageStatePendingDelivery";
 		case LinphoneChatMessageStateNotDelivered:

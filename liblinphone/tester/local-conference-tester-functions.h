@@ -187,26 +187,6 @@ public:
 		return *Address::toCpp(factory_uri);
 	}
 
-private:
-	static void
-	server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state) {
-		Focus *focus = (Focus *)(((LinphoneCoreManager *)linphone_core_get_user_data(core))->user_info);
-		switch (state) {
-			case LinphoneChatRoomStateInstantiated: {
-				LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
-				linphone_chat_room_cbs_set_participant_registration_subscription_requested(
-				    cbs, chat_room_participant_registration_subscription_requested);
-				setup_chat_room_callbacks(cbs);
-				linphone_chat_room_add_callbacks(cr, cbs);
-				linphone_chat_room_cbs_set_user_data(cbs, focus);
-				linphone_chat_room_cbs_unref(cbs);
-				break;
-			}
-			default:
-				break;
-		}
-	}
-
 	static void chat_room_participant_registration_subscription_requested(LinphoneChatRoom *cr,
 	                                                                      const LinphoneAddress *participantAddr) {
 		BC_ASSERT_PTR_NOT_NULL(participantAddr);
@@ -241,6 +221,26 @@ private:
 				linphone_chat_room_set_participant_devices(cr, participant.toC(), devices);
 				bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
 			}
+		}
+	}
+
+private:
+	static void
+	server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state) {
+		Focus *focus = (Focus *)(((LinphoneCoreManager *)linphone_core_get_user_data(core))->user_info);
+		switch (state) {
+			case LinphoneChatRoomStateInstantiated: {
+				LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
+				linphone_chat_room_cbs_set_participant_registration_subscription_requested(
+				    cbs, chat_room_participant_registration_subscription_requested);
+				setup_chat_room_callbacks(cbs);
+				linphone_chat_room_add_callbacks(cr, cbs);
+				linphone_chat_room_cbs_set_user_data(cbs, focus);
+				linphone_chat_room_cbs_unref(cbs);
+				break;
+			}
+			default:
+				break;
 		}
 	}
 

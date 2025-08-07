@@ -579,6 +579,11 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 							}
 						}
 						const auto &mainSession = conference->getMainSession();
+						std::string sessionCallId;
+						if (mainSession) {
+							const auto sessionCallLog = mainSession->getLog();
+							sessionCallId = sessionCallLog->getCallId();
+						}
 						if (!thumbnailTagFound) {
 							lInfo()
 							    << "It seems that we are dealing with a legacy conference server that doesn't provide "
@@ -712,17 +717,9 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						core->getPrivate()->mainDb->insertDevice(gruu, name);
 
 						// For chat rooms, the session is handled by the participant
-						if (isMe && mainSession && conference->supportsMedia()) {
-							const auto contactAddress = mainSession->getContactAddress();
-							if (contactAddress) {
-								if (device->isSameAddress(contactAddress)) {
-									device->setSession(mainSession);
-								}
-							} else {
-								lError() << "Unable to retrive the contact address of " << *mainSession
-								         << " linked to conference " << *conference
-								         << ", hence the core is not able to assign the main session to any "
-								            "participant device";
+						if (isMe && !sessionCallId.empty() && conference->supportsMedia()) {
+							if (device->getCallId() == sessionCallId) {
+								device->setSession(mainSession);
 							}
 						}
 
@@ -982,8 +979,9 @@ void ClientConferenceEventHandler::unsubscribePrivate() {
 
 void ClientConferenceEventHandler::onNetworkReachable(bool sipNetworkReachable,
                                                       BCTBX_UNUSED(bool mediaNetworkReachable)) {
+	auto conference = getConference();
 	if (sipNetworkReachable) {
-		auto conference = getConference();
+		// Automatically subscribe to chat only conferences as soon as the network can be reached again
 		if (conference && conference->isChatOnly()) {
 			subscribe(getConferenceId());
 		}

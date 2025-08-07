@@ -470,6 +470,7 @@ void CorePrivate::loadChatRooms() {
 	mainDb->insertDevices(deviceAddressesAndNames);
 	lInfo() << "End loadChatRooms";
 	sendDeliveryNotifications();
+	sendQueuedMessages();
 }
 
 void CorePrivate::handleEphemeralMessages(time_t currentTime) {
@@ -555,11 +556,22 @@ void CorePrivate::updateEphemeralMessages(const shared_ptr<ChatMessage> &message
 
 void CorePrivate::sendDeliveryNotifications() {
 	L_Q();
+	lInfo() << "Sending outstanding delivery notifications";
 	LinphoneImNotifPolicy *policy = linphone_core_get_im_notif_policy(q->getCCore());
 	if (linphone_im_notif_policy_get_send_imdn_delivered(policy)) {
 		auto chatMessages = mainDb->findChatMessagesToBeNotifiedAsDelivered();
 		for (const auto &chatMessage : chatMessages) {
 			chatMessage->getChatRoom()->sendDeliveryNotifications(chatMessage);
+		}
+	}
+}
+
+void CorePrivate::sendQueuedMessages() {
+	lInfo() << "Sending queued messages";
+	if (mainDb) {
+		auto chatMessages = mainDb->findQueuedChatMessages();
+		for (const auto &chatMessage : chatMessages) {
+			chatMessage->getChatRoom()->sendChatMessage(chatMessage);
 		}
 	}
 }

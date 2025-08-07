@@ -5634,9 +5634,7 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromCallId(const std::stri
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
 	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, "
-	    "chat_room_id"
-	    " FROM conference_event_view"
+	    "retracted, chat_room_id FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
 	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
 	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
@@ -5674,6 +5672,78 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromCallId(const std::stri
 		return chatMessages;
 	};
 
+#else
+	return list<shared_ptr<ChatMessage>>();
+#endif
+}
+
+list<shared_ptr<ChatMessage>> MainDb::findQueuedChatMessages() const {
+#ifdef HAVE_DB_STORAGE
+	// Keep chat_room_id at the end of the query !!!
+	const std::string timediffExpression = (getBackend() == MainDb::Backend::Sqlite3)
+	                                           ? "(julianday(time) - julianday(:maxExpireTime)) * 24 * 60 * 60"
+	                                           : "TIMESTAMPDIFF(SECOND, time, :maxExpireTime)";
+
+	static const string query =
+	    "SELECT conference_event_view.id AS event_id, type, creation_time, from_sip_address.value, "
+	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
+	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
+	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
+	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
+	    "retracted, chat_room_id FROM conference_event_view"
+	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
+	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
+	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
+	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
+	    "participant_sip_address_id"
+	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
+	    " WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE "
+	    "state = :queuedState AND direction = :direction AND CAST(" +
+	    timediffExpression + " As Integer) >= 0)";
+
+	/*
+	DurationLogger durationLogger(
+	    "Find chat messages to be notified as delivered: (peer=" +
+	conferenceId.getPeerAddress()->toStringUriOnlyOrdered() +
+	    ", local=" + conferenceId.getLocalAddress()->toStringUriOnlyOrdered() + ")."
+	);
+	*/
+
+	return L_DB_TRANSACTION {
+		L_D();
+
+		list<shared_ptr<ChatMessage>> chatMessages;
+		const int &direction = int(ChatMessage::Direction::Outgoing);
+		const int &state = int(ChatMessage::State::Queued);
+		long queuedMessageResendPeriod = getCore()->getQueuedMessageResendPeriod();
+		time_t minQueuedMessageTime = (queuedMessageResendPeriod < 0) ? 0 : (ms_time(NULL) - queuedMessageResendPeriod);
+		auto expiryTime = d->dbSession.getTimeWithSociIndicator(minQueuedMessageTime);
+		soci::rowset<soci::row> rows = (d->dbSession.getBackendSession()->prepare << query, soci::use(state),
+		                                soci::use(direction), soci::use(expiryTime.first, expiryTime.second));
+
+		for (const auto &row : rows) {
+			// chat_room_id is the last element of row
+			const long long &dbChatRoomId = d->dbSession.resolveId(row, (int)row.size() - 1);
+			ConferenceId conferenceId = d->getConferenceIdFromCache(dbChatRoomId);
+			if (!conferenceId.isValid()) {
+				conferenceId = d->selectConferenceId(dbChatRoomId);
+			}
+
+			if (conferenceId.isValid()) {
+				shared_ptr<AbstractChatRoom> chatRoom = d->findChatRoom(conferenceId);
+				if (chatRoom) {
+					shared_ptr<EventLog> event = d->selectGenericConferenceEvent(chatRoom, row);
+					if (event) {
+						L_ASSERT(event->getType() == EventLog::Type::ConferenceChatMessage);
+						chatMessages.push_back(
+						    static_pointer_cast<ConferenceChatMessageEvent>(event)->getChatMessage());
+					}
+				}
+			}
+		}
+
+		return chatMessages;
+	};
 #else
 	return list<shared_ptr<ChatMessage>>();
 #endif
@@ -5718,7 +5788,6 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesToBeNotifiedAsDelivered() 
 
 		list<shared_ptr<ChatMessage>> chatMessages;
 		const int &direction = int(ChatMessage::Direction::Incoming);
-		// Default to 10 days
 		long imdnResendPeriod = getCore()->getImdnResendPeriod();
 		time_t minImdnTime = (imdnResendPeriod < 0) ? 0 : (ms_time(NULL) - imdnResendPeriod);
 		auto expiryTime = d->dbSession.getTimeWithSociIndicator(minImdnTime);

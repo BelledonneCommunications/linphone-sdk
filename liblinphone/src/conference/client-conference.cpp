@@ -1276,10 +1276,16 @@ void ClientConference::onStateChanged(ConferenceInterface::State state) {
 				}
 			}
 			if (mediaSupported) {
-				getCore()->doLater([this]() {
+				LinphoneGlobalState coreGlobalState = linphone_core_get_global_state(getCore()->getCCore());
+				auto terminationFunction = [this]() {
 					Conference::terminate();
 					setState(ConferenceInterface::State::Terminated);
-				});
+				};
+				if (coreGlobalState == LinphoneGlobalShutdown) {
+					terminationFunction();
+				} else {
+					getCore()->doLater([terminationFunction]() { terminationFunction(); });
+				}
 			}
 			break;
 		case ConferenceInterface::State::Deleted:
@@ -1423,6 +1429,7 @@ void ClientConference::onParticipantDeviceRemoved(const std::shared_ptr<Conferen
 
 		const auto &confSecurityLevel = mConfParams->getSecurityLevel();
 		const auto &deviceAddress = device->getAddress();
+		const auto &participant = device->getParticipant();
 		const auto &audioAvailable = device->getStreamAvailability(LinphoneStreamTypeAudio);
 		const auto audioNeedsReInvite = ((confSecurityLevel == ConferenceParams::SecurityLevel::EndToEnd) &&
 		                                 mConfParams->audioEnabled() && params->audioEnabled() && audioAvailable);
@@ -1432,8 +1439,7 @@ void ClientConference::onParticipantDeviceRemoved(const std::shared_ptr<Conferen
 
 		// If the device was screen sharing, then notify the application that it isn't anymore
 		if (device->enableScreenSharing(false)) {
-			notifyParticipantDeviceScreenSharingChanged(ms_time(NULL), event->getFullState(), device->getParticipant(),
-			                                            device);
+			notifyParticipantDeviceScreenSharingChanged(ms_time(NULL), event->getFullState(), participant, device);
 		}
 
 		// If the device was the active speaker, then notify the application that it isn't anymore
@@ -1442,13 +1448,13 @@ void ClientConference::onParticipantDeviceRemoved(const std::shared_ptr<Conferen
 		}
 
 		if ((audioNeedsReInvite || videoNeedsReInvite) && (mState == ConferenceInterface::State::Created) &&
-		    !isMe(deviceAddress) && (device->getTimeOfJoining() >= 0)) {
+		    !isMe(participant->getAddress()) && (device->getTimeOfJoining() >= 0)) {
 			auto updateSession = [this, deviceAddress]() -> LinphoneStatus {
 				lInfo() << "Sending re-INVITE in order to update streams because participant device " << *deviceAddress
 				        << " has been removed from " << *this;
 				auto ret = updateMainSession();
 				if (ret != 0) {
-					lInfo() << "re-INVITE to update streams because participant device " << deviceAddress
+					lInfo() << "re-INVITE to update streams because participant device " << *deviceAddress
 					        << " has been removed from " << *this << " cannot be sent right now";
 				}
 				return ret;
@@ -1602,8 +1608,7 @@ void ClientConference::onConferenceCreated(BCTBX_UNUSED(const std::shared_ptr<Ad
 		setConferenceId(newConferenceId);
 	}
 	setConferenceAddress(addr);
-	lInfo() << *this << ": Conference [" << conferenceId << "] has been created with address "
-	        << *getConferenceAddress();
+	lInfo() << *this << ": Conference [" << conferenceId << "] has been created with " << *getConferenceAddress();
 
 	mFocus->setAddress(addr);
 	mFocus->clearDevices();
@@ -1741,12 +1746,18 @@ void ClientConference::onFirstNotifyReceived(BCTBX_UNUSED(const std::shared_ptr<
 #ifdef HAVE_ADVANCED_IM
 	auto chatRoom = getChatRoom();
 	if (mConfParams->chatEnabled() && chatRoom) {
-		// If the chatroom is not in tbhe created state, ignore the forst notify callback. Nonetheless, it has media
-		// capabilities, this callback might be called when the conference is in the CreationPending state
-		if (!((mState == ConferenceInterface::State::Created) ||
-		      (supportsMedia() && (mState == ConferenceInterface::State::CreationPending)))) {
-			lWarning() << "First notify received in " << *this << " that is not in the Created state ["
-			           << Utils::toString(getState()) << "], ignoring it!";
+		// This callback can only be called when the conference is either in the Created or CreationPending state.
+		// As the SUBSCRIBE and INVITE dialogs are independent from each other, there is no guarantee that the chatroom
+		// is fully created when receiving the first NOTIFY. For example, a chatroom can be in the CreationPending state
+		// when calling this callback if a network issue occured and the SUBSCRIBE is sent before the INVITE
+		// message
+		if ((mState != ConferenceInterface::State::Created) &&
+		    (mState != ConferenceInterface::State::CreationPending)) {
+			lWarning() << "First notify received in " << *this
+			           << " can only be taken into account if the conference is either in the "
+			           << Utils::toString(ConferenceInterface::State::CreationPending) << " nor "
+			           << Utils::toString(ConferenceInterface::State::Created) << " state. Actually, its state is ["
+			           << Utils::toString(getState()) << "]";
 			return;
 		}
 
@@ -1868,7 +1879,8 @@ void ClientConference::onFullStateReceived() {
 	} else {
 		if ((mState == ConferenceInterface::State::Instantiated) ||
 		    (mState == ConferenceInterface::State::CreationPending)) {
-			setState(ConferenceInterface::State::Created);
+			// Create an INVITE session to make sure that all participants are notified that this one is active
+			join(getMe()->getAddress());
 		}
 	}
 

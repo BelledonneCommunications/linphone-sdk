@@ -166,6 +166,7 @@ public:
 	std::list<std::shared_ptr<ChatMessage>> findChatMessagesFromCallId(const std::string &callId) const;
 
 	std::list<std::shared_ptr<ChatMessage>> findChatMessagesToBeNotifiedAsDelivered() const;
+	std::list<std::shared_ptr<ChatMessage>> findQueuedChatMessages() const;
 
 	std::shared_ptr<EventLog> findEventLog(const ConferenceId &conferenceId, const std::string &imdnMessageId) const;
 	std::shared_ptr<EventLog> searchChatMessagesByText(const ConferenceId &conferenceId,

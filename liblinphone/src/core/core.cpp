@@ -1907,6 +1907,18 @@ long Core::getConferenceAvailabilityBeforeStart() const {
 	                                       "conference_available_before_period", -1);
 }
 
+void Core::setQueuedMessageResendPeriod(long seconds) {
+	LinphoneConfig *config = linphone_core_get_config(getCCore());
+	linphone_config_set_int64(config, "chat", "queued_message_resend_period", seconds);
+	lInfo() << "Set queued message resend period to " << seconds << " seconds";
+}
+
+long Core::getQueuedMessageResendPeriod() const {
+	// Default to 10 days
+	return (long)linphone_config_get_int64(linphone_core_get_config(getCCore()), "chat", "queued_message_resend_period",
+	                                       10 * 24 * 60 * 60);
+}
+
 void Core::setImdnResendPeriod(long seconds) {
 	LinphoneConfig *config = linphone_core_get_config(getCCore());
 	linphone_config_set_int64(config, "chat", "imdn_resend_period", seconds);
@@ -2716,11 +2728,11 @@ void Core::removeDeletedAccount(const std::shared_ptr<Account> &account) {
 	auto &accounts = mDeletedAccounts.mList;
 	const auto accountIt = std::find(accounts.cbegin(), accounts.cend(), account);
 	if (accountIt == accounts.cend()) {
-		lError() << "Account [ " << account << "] is not in the list of deleted accounts";
+		lError() << *account << " is not in the list of deleted accounts";
 		return;
 	}
 	const auto &params = account->getAccountParams();
-	lInfo() << "Account for [" << *params->getServerAddress() << "] is definitely removed from core.";
+	lInfo() << *account << " for [" << *params->getServerAddress() << "] is definitely removed from core.";
 	account->releaseOps();
 	// Setting the proxy config associated to an account to NULL will cause its destruction and therefore losing the
 	// reference held by it to the Account object. In this way, the memory occupied by the account to be deleted is
@@ -2736,8 +2748,8 @@ void Core::removeDependentAccount(const std::shared_ptr<Account> &account) {
 	auto &accounts = mAccounts.mList;
 	for (const auto &accountInList : accounts) {
 		if ((accountInList != account) && (accountInList->getDependency() == account)) {
-			lInfo() << "Updating dependent account [" << accountInList
-			        << "] caused by removal of 'master' account idkey[" << accountIdKey << "]";
+			lInfo() << "Updating dependent account " << *accountInList
+			        << " caused by removal of 'master' account idkey[" << accountIdKey << "]";
 			accountInList->setDependency(NULL);
 			account->setNeedToRegister(account->getAccountParams()->getRegisterEnabled());
 			accountInList->update();

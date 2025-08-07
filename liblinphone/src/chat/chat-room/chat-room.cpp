@@ -778,6 +778,10 @@ void ChatRoom::addPendingMessage(BCTBX_UNUSED(const std::shared_ptr<ChatMessage>
 	lInfo() << __func__ << ": not implemented";
 }
 
+void ChatRoom::deletePendingMessage(BCTBX_UNUSED(const std::shared_ptr<ChatMessage> &chatMessage)) {
+	lInfo() << __func__ << ": not implemented";
+}
+
 // -----------------------------------------------------------------------------
 
 LinphoneChatRoom *ChatRoom::getCChatRoom() {

@@ -309,27 +309,13 @@ bctbx_list_t *linphone_conference_get_participants(const LinphoneConference *con
 bctbx_list_t *linphone_conference_get_participant_list(const LinphoneConference *conference) {
 	ConferenceLogContextualizer logContextualizer(conference);
 	const list<std::shared_ptr<Participant>> &participants = Conference::toCpp(conference)->getParticipants();
-	bctbx_list_t *participants_list = nullptr;
-	for (auto it = participants.begin(); it != participants.end(); it++) {
-		const std::shared_ptr<Participant> participant((*it));
-		participant->ref();
-		LinphoneParticipant *c_participant(participant->toC());
-		participants_list = bctbx_list_append(participants_list, c_participant);
-	}
-	return participants_list;
+	return Participant::getCListFromCppList(participants, true);
 }
 
 bctbx_list_t *linphone_conference_get_participant_device_list(const LinphoneConference *conference) {
 	ConferenceLogContextualizer logContextualizer(conference);
 	const list<std::shared_ptr<ParticipantDevice>> devices = Conference::toCpp(conference)->getParticipantDevices();
-	bctbx_list_t *devices_list = nullptr;
-	for (auto it = devices.begin(); it != devices.end(); it++) {
-		const std::shared_ptr<ParticipantDevice> device((*it));
-		device->ref();
-		LinphoneParticipantDevice *c_device(device->toC());
-		devices_list = bctbx_list_append(devices_list, c_device);
-	}
-	return devices_list;
+	return ParticipantDevice::getCListFromCppList(devices, true);
 }
 
 int linphone_conference_start_recording(LinphoneConference *conference, const char *path) {

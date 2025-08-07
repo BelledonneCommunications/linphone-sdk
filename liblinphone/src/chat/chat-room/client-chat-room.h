@@ -86,10 +86,6 @@ public:
 		return mPendingCreationMessages;
 	}
 
-	void clearPendingCreationMessages() {
-		mPendingCreationMessages.clear();
-	}
-
 	std::pair<bool, std::shared_ptr<AbstractChatRoom>> needToMigrate() const;
 
 	unsigned int getLastNotifyId() const;
@@ -99,6 +95,10 @@ public:
 	void sendChatMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
 
 	virtual void addPendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
+	virtual void deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
+	void clearPendingCreationMessages() {
+		mPendingCreationMessages.clear();
+	}
 	virtual void handleMessageRejected(const std::shared_ptr<ChatMessage> &chatMessage) override;
 
 	void onExhumedConference(const ConferenceId &oldConfId, const ConferenceId &newConfId);
@@ -111,7 +111,6 @@ public:
 	const std::list<ConferenceId> &getPreviousConferenceIds() const {
 		return mPreviousConferenceIds;
 	};
-	void addExhumeMessage(const std::shared_ptr<ChatMessage> msg);
 	bool isLocalExhumePending() const {
 		return mLocalExhumePending;
 	}

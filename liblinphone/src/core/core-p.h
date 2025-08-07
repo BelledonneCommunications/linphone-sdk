@@ -106,6 +106,7 @@ public:
 	void initEphemeralMessages();
 	void updateEphemeralMessages(const std::shared_ptr<ChatMessage> &message);
 	void sendDeliveryNotifications();
+	void sendQueuedMessages();
 	void insertChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom);
 	void insertChatRoomWithDb(const std::shared_ptr<AbstractChatRoom> &chatRoom, unsigned int notifyId = 0);
 	std::shared_ptr<AbstractChatRoom> createBasicChatRoom(const ConferenceId &conferenceId,

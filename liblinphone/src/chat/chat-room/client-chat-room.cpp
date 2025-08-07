@@ -63,8 +63,15 @@ ClientChatRoom::ClientChatRoom(const shared_ptr<Core> &core, const std::shared_p
 
 // -----------------------------------------------------------------------------
 void ClientChatRoom::addPendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) {
+	chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::Queued,
+	                                               ::ms_time(nullptr));
 	auto it = std::find(mPendingCreationMessages.begin(), mPendingCreationMessages.end(), chatMessage);
 	if (it == mPendingCreationMessages.end()) mPendingCreationMessages.push_back(chatMessage);
+}
+
+void ClientChatRoom::deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) {
+	auto it = std::find(mPendingCreationMessages.begin(), mPendingCreationMessages.end(), chatMessage);
+	if (it != mPendingCreationMessages.end()) mPendingCreationMessages.erase(it);
 }
 
 void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteContact) {
@@ -75,6 +82,7 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 		mBgTask.start(getCore(), 32); // It will be stopped when receiving the first notify
 		conference->subscribe(true, false);
 	}
+	sendPendingMessages();
 }
 
 void ClientChatRoom::handleMessageRejected(const std::shared_ptr<ChatMessage> &chatMessage) {
@@ -299,25 +307,20 @@ void ClientChatRoom::removeConferenceIdFromPreviousList(const ConferenceId &conf
 	getCore()->getPrivate()->mainDb->removePreviousConferenceId(confId);
 }
 
-void ClientChatRoom::addExhumeMessage(const std::shared_ptr<ChatMessage> msg) {
-	auto it = std::find(mPendingExhumeMessages.begin(), mPendingExhumeMessages.end(), msg);
-	if (it == mPendingExhumeMessages.end()) mPendingExhumeMessages.push_back(msg);
-}
-
 void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage) {
 	const auto &conference = getConference();
 	const auto &state = getState();
+	bool queueMessage = false;
 
 	if ((state == ConferenceInterface::State::Terminated) && !getCurrentParams()->isGroup()) {
 		lInfo() << *conference << ": Trying to send message into a terminated 1-1 chat room, exhuming it first";
 		exhume();
-		addExhumeMessage(chatMessage);
+		queueMessage = true;
 	} else if (state == ConferenceInterface::State::Instantiated ||
 	           state == ConferenceInterface::State::CreationPending) {
 		lInfo() << *conference << ": Trying to send a message [" << chatMessage
 		        << "] in a chat room that's not created yet, queuing the message and it will be sent later";
-		auto it = std::find(mPendingCreationMessages.begin(), mPendingCreationMessages.end(), chatMessage);
-		if (it == mPendingCreationMessages.end()) addPendingMessage(chatMessage);
+		queueMessage = true;
 	} else if (state == ConferenceInterface::State::Created) {
 		auto encryptionEngine = getCore()->getEncryptionEngine();
 		if (getCurrentParams()->getChatParams()->isEncrypted()) {
@@ -332,19 +335,34 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 				    << "] in an encrypted chat room because the list of participant devices has not been received yet "
 				       "and the encryption engine "
 				    << encryptionEngine << " requires it";
-				auto it = std::find(mPendingCreationMessages.begin(), mPendingCreationMessages.end(), chatMessage);
-				if (it == mPendingCreationMessages.end()) mPendingCreationMessages.push_back(chatMessage);
+				queueMessage = true;
 			} else {
 				ChatRoom::sendChatMessage(chatMessage);
 			}
 		} else {
 			ChatRoom::sendChatMessage(chatMessage);
 		}
-	} else {
-		lError() << *conference << ": Can't send a chat message in a chat room that is in state "
-		         << Utils::toString(state);
+	} else if (state == ConferenceInterface::State::Terminated) {
+		lError() << *conference << ": Can't send a chat message in a chat room that is already terminated.";
 		chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
 		                                               ::ms_time(nullptr));
+	} else {
+		lError() << *conference << ": Can't send a chat message in a chat room that is in state "
+		         << Utils::toString(state) << " right now - queueing it";
+		queueMessage = true;
+	}
+
+	if (queueMessage) {
+		auto conference = static_pointer_cast<ClientConference>(getConference());
+		auto focus = conference->mFocus;
+		shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(focus->getSession());
+		if (!session) {
+			lInfo() << "Creating an INVITE session to " << *conference << " in order to be able to send messages";
+			auto utf8Subject = conference->getUtf8Subject();
+			session = dynamic_pointer_cast<MediaSession>(conference->createSession());
+			session->startInvite(nullptr, utf8Subject, nullptr);
+		}
+		addPendingMessage(chatMessage);
 	}
 }
 
@@ -390,15 +408,16 @@ bool ClientChatRoom::canSendMessages() const {
 void ClientChatRoom::sendPendingMessages() {
 	const auto &conference = getConference();
 	// Now that chat room has been inserted in database, we can send any pending message
-	for (const auto &message : mPendingCreationMessages) {
-		lInfo() << "Found message [" << message << "] waiting for chat room " << *conference
-		        << " to be created, sending it now";
-		// First we need to update from & to address of the message,
+	auto it = mPendingCreationMessages.begin();
+	while (it != mPendingCreationMessages.end()) {
+		auto message = (*it);
+		it++;
+		lInfo() << "Found message [" << message << "] waiting for " << *conference << " to be created, sending it now";
+		// First we need to update from and to address of the message,
 		// as it was created at a time where the remote address of the chat room may not have been known
 		message->getPrivate()->setChatRoom(getSharedFromThis());
 		sendChatMessage(message);
 	}
-	clearPendingCreationMessages();
 }
 
 void ClientChatRoom::sendEphemeralUpdate() {

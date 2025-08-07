@@ -69,9 +69,6 @@ class LINPHONE_PUBLIC ChatMessage : public Object, public CoreAccessor, public C
 public:
 	L_OVERRIDE_SHARED_FROM_THIS(ChatMessage);
 
-	// Retry to send message expire value of the timer in seconds
-	static constexpr unsigned int resendTimerExpiresS = 10;
-
 	enum class State {
 		Idle = LinphoneChatMessageStateIdle,
 		InProgress = LinphoneChatMessageStateInProgress,
@@ -82,6 +79,7 @@ public:
 		DeliveredToUser = LinphoneChatMessageStateDeliveredToUser,
 		Displayed = LinphoneChatMessageStateDisplayed,
 		PendingDelivery = LinphoneChatMessageStatePendingDelivery,
+		Queued = LinphoneChatMessageStateQueued,
 		FileTransferInProgress = LinphoneChatMessageStateFileTransferInProgress,
 		FileTransferCancelling = LinphoneChatMessageStateFileTransferCancelling
 	};
@@ -209,6 +207,7 @@ private:
 	static int resendTimerExpired(void *data, unsigned int revents);
 	int handleAutomaticResend();
 	void stopResendTimer();
+	bool needToBeResent() const;
 
 	L_DECLARE_PRIVATE(ChatMessage);
 	L_DISABLE_COPY(ChatMessage);

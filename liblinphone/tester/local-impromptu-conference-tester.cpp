@@ -228,6 +228,11 @@ static void create_simple_conference_merging_calls(void) {
 	                                            LinphoneConferenceSecurityLevelNone, FALSE);
 }
 
+static void create_simple_ice_conference_merging_calls(void) {
+	create_simple_conference_merging_calls_base(TRUE, LinphoneConferenceLayoutActiveSpeaker, TRUE, FALSE, TRUE,
+	                                            LinphoneConferenceSecurityLevelNone, FALSE);
+}
+
 static void create_simple_conference_merging_calls_with_screen_sharing(void) {
 	create_simple_conference_merging_calls_base(FALSE, LinphoneConferenceLayoutActiveSpeaker, TRUE, FALSE, FALSE,
 	                                            LinphoneConferenceSecurityLevelNone, TRUE);
@@ -990,6 +995,9 @@ static test_t local_conference_impromptu_conference_tests[] = {
     TEST_NO_TAG("Create simple dial out conference with video activation and layout change",
                 LinphoneTest::create_conference_dial_out_with_video_activation_and_layout_change),
     TEST_NO_TAG("Create simple conference by merging calls", LinphoneTest::create_simple_conference_merging_calls),
+    TEST_ONE_TAG("Create simple ICE conference by merging calls",
+                 LinphoneTest::create_simple_ice_conference_merging_calls,
+                 "ICE"),
     TEST_NO_TAG("Create simple conference by merging calls with video toggling",
                 LinphoneTest::create_simple_conference_merging_calls_with_video_toggling),
     TEST_NO_TAG("Create simple conference by merging calls with screen sharing",

@@ -258,7 +258,6 @@ const std::string &ParticipantDevice::getCallId() {
 		const auto &log = mSession->getLog();
 		mCallId = log->getCallId();
 	}
-
 	return mCallId;
 }
 
@@ -388,6 +387,11 @@ void ParticipantDevice::setCapabilityDescriptor(const std::string &capabilities)
 void ParticipantDevice::setSession(std::shared_ptr<CallSession> session) {
 	lInfo() << "Assigning session " << session << " to " << *this << " in " << *getConference();
 	mSession = session;
+	// Clear the call ID, to and from tags here but do not assign them straight away as some of them may not be
+	// available yet
+	mCallId.clear();
+	mFromTag.clear();
+	mToTag.clear();
 }
 
 const std::string &ParticipantDevice::getStreamLabel(const LinphoneStreamType type) const {

@@ -71,6 +71,7 @@ static void on_msg_state_changed(BCTBX_UNUSED(LinphoneChatMessage *msg), Linphon
 		case LinphoneChatMessageStateFileTransferDone:
 		case LinphoneChatMessageStateFileTransferError:
 		case LinphoneChatMessageStateIdle:
+		case LinphoneChatMessageStateQueued:
 		case LinphoneChatMessageStatePendingDelivery:
 		case LinphoneChatMessageStateFileTransferCancelling:
 		case LinphoneChatMessageStateFileTransferInProgress:

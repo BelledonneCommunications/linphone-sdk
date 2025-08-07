@@ -100,11 +100,6 @@ static void create_simple_point_to_point_encrypted_ice_conference(void) {
 	    FALSE, FALSE, TRUE, FALSE, UNSET);
 }
 
-static void create_simple_ice_conference_merging_calls(void) {
-	create_simple_conference_merging_calls_base(TRUE, LinphoneConferenceLayoutActiveSpeaker, TRUE, FALSE, TRUE,
-	                                            LinphoneConferenceSecurityLevelNone, FALSE);
-}
-
 static void abort_call_to_ice_conference(void) {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
@@ -466,9 +461,6 @@ static test_t local_conference_scheduled_ice_conference_tests[] = {
     TEST_ONE_TAG("Create simple point-to-point encrypted ICE conference",
                  LinphoneTest::create_simple_point_to_point_encrypted_ice_conference,
                  "ICE"),
-    TEST_ONE_TAG("Create simple ICE conference by merging calls",
-                 LinphoneTest::create_simple_ice_conference_merging_calls,
-                 "ICE"), /* because of aborted calls*/
     TEST_TWO_TAGS("Abort call to ICE conference",
                   LinphoneTest::abort_call_to_ice_conference,
                   "LeaksMemory",

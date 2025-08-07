@@ -1210,6 +1210,87 @@ static void text_message_with_send_error(void) {
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
 }
+
+static void text_message_never_sent_due_to_channel_error(void) {
+	if (!linphone_factory_is_database_storage_available(linphone_factory_get())) {
+		ms_warning("Test skipped, database storage is not available");
+		return;
+	}
+
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_tcp_rc");
+	linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(marie->lc));
+	linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(pauline->lc));
+
+	bctbx_list_t *coresManagerList = NULL;
+	coresManagerList = bctbx_list_append(coresManagerList, marie);
+	coresManagerList = bctbx_list_append(coresManagerList, pauline);
+	bctbx_list_t *coresList = init_core_for_conference(coresManagerList);
+
+	int automatic_resending_duration_s = 3; // seconds
+	linphone_core_set_message_automatic_resending_delay(marie->lc, automatic_resending_duration_s);
+
+	LinphoneChatRoom *chat_room = linphone_core_get_chat_room(marie->lc, pauline->identity);
+	LinphoneChatMessage *msg =
+	    linphone_chat_room_create_message_from_utf8(chat_room, "You'll never get this message\n (smile)");
+	LinphoneChatMessageCbs *cbs = linphone_chat_message_get_callbacks(msg);
+
+	BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneMessageSent, 0, int, "%d");
+
+	/*simulate a network error*/
+	sal_set_send_error(linphone_core_get_sal(marie->lc), -1);
+	linphone_chat_message_cbs_set_msg_state_changed(cbs, liblinphone_tester_chat_message_msg_state_changed);
+	linphone_chat_message_send(msg);
+	char *message_id = ms_strdup(linphone_chat_message_get_message_id(msg));
+	BC_ASSERT_STRING_NOT_EQUAL(message_id, "");
+	ms_free(message_id);
+
+	/* check transient msg list: the msg should be in it, and should be the only one */
+	BC_ASSERT_EQUAL(_linphone_chat_room_get_transient_message_count(chat_room), 1, int, "%d");
+	BC_ASSERT_PTR_EQUAL(_linphone_chat_room_get_first_transient_message(chat_room), msg);
+
+	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessagePendingDelivery, 1));
+	/*BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneMessageInProgress,1, int, "%d");*/
+	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneMessageReceived, 0, int, "%d");
+
+	/* the msg should have been discarded from transient list after an error */
+	BC_ASSERT_EQUAL(_linphone_chat_room_get_transient_message_count(chat_room), 1, int, "%d");
+
+	// Even if error the message should be notified in sent callback
+	BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneMessageSent, 1, int, "%d");
+
+	// After 'automatic_resending_duration_s' seconds, the core tries to resend the message but unfortunately the
+	// channel is still erroring out, therefore it sets its state to NotDelivered
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessagePendingDelivery, 1,
+	                             (automatic_resending_duration_s + 1) * 1000));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageNotDelivered, 1,
+	                             (automatic_resending_duration_s + 1) * 1000));
+
+	// Verify that Pauline doesn't receive the message
+	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageReceived, 1, 2000));
+	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneMessageReceived, 0, int, "%d");
+
+	// In case of resend the send callback should not be called again
+	BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneMessageSent, 1, int, "%d");
+
+	/*restablish a working network*/
+	sal_set_send_error(linphone_core_get_sal(marie->lc), 0);
+
+	/*give a chance to register again to allow linphone_core_manager_destroy to properly unregister*/
+	linphone_core_refresh_registers(marie->lc);
+	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneRegistrationOk,
+	                        marie->stat.number_of_LinphoneRegistrationOk + 1));
+
+	BC_ASSERT_FALSE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageDelivered, 1, 2000));
+
+	bctbx_list_free(coresList);
+	bctbx_list_free(coresManagerList);
+
+	linphone_chat_message_unref(msg);
+	linphone_core_manager_destroy(marie);
+	linphone_core_manager_destroy(pauline);
+}
+
 void text_message_from_non_default_proxy_config_to_core_managers(LinphoneCoreManager *marie,
                                                                  LinphoneCoreManager *pauline) {
 	const bctbx_list_t *proxyConfigs = linphone_core_get_proxy_config_list(marie->lc);
@@ -4467,7 +4548,11 @@ void _text_message_with_custom_content_type(bool_t is_supported) {
 		LinphoneChatRoom *marie_room = linphone_core_get_chat_room(marie->lc, pauline->identity);
 		BC_ASSERT_PTR_NOT_NULL(marie_room);
 		if (marie_room) {
-			BC_ASSERT_PTR_NULL(linphone_chat_room_get_last_message_in_history(marie_room));
+			LinphoneChatMessage *marie_msg = linphone_chat_room_get_last_message_in_history(marie_room);
+			BC_ASSERT_PTR_NOT_NULL(marie_msg);
+			if (marie_msg) {
+				linphone_chat_message_unref(marie_msg);
+			}
 		}
 	}
 
@@ -5109,6 +5194,7 @@ static test_t message_tests[] = {
     TEST_NO_TAG("Text message compatibility mode", text_message_compatibility_mode),
     TEST_NO_TAG("Text message with ack", text_message_with_ack),
     TEST_NO_TAG("Text message with send error", text_message_with_send_error),
+    TEST_NO_TAG("Text message never sent due to channel error", text_message_never_sent_due_to_channel_error),
     TEST_NO_TAG("Text message from non default proxy config", text_message_from_non_default_proxy_config),
     TEST_NO_TAG("Text message reply from non default proxy config", text_message_reply_from_non_default_proxy_config),
     TEST_NO_TAG("Text message in call chat room", text_message_in_call_chat_room),

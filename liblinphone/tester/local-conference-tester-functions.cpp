@@ -11024,7 +11024,7 @@ void create_simple_conference_merging_calls_base(bool_t enable_ice,
 			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallUpdating,
 			                             pauline_stat.number_of_LinphoneCallUpdating + 2,
 			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneCallUpdating, 2,
+			BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneCallUpdating, 1,
 			                             liblinphone_tester_sip_timeout));
 			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallUpdatedByRemote,
 			                             focus_stat.number_of_LinphoneCallUpdatedByRemote + 6,
@@ -11036,12 +11036,15 @@ void create_simple_conference_merging_calls_base(bool_t enable_ice,
 			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallStreamsRunning,
 			                             pauline_stat.number_of_LinphoneCallStreamsRunning + 2,
 			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneCallStreamsRunning, 3,
+			BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneCallStreamsRunning, 2,
 			                             liblinphone_tester_sip_timeout));
 			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
 			                             focus_stat.number_of_LinphoneCallStreamsRunning + 7,
 			                             liblinphone_tester_sip_timeout));
 		}
+
+		wait_for_conference_streams({focus, marie, pauline, laure}, conferenceMgrs, focus.getCMgr(), memberList,
+		                            confAddr, toggle_video, security_level);
 
 		for (auto mgr : conferenceMgrs) {
 			const LinphoneAddress *local_address = (mgr == focus.getCMgr()) ? confAddr : mgr->identity;

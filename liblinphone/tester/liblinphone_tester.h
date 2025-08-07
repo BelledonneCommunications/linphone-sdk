@@ -363,6 +363,7 @@ typedef struct _stats {
 	int number_of_LinphoneMessageReceivedFailedToDecrypt;
 	int number_of_LinphoneAggregatedMessagesReceived;
 	int number_of_LinphoneMessageExtBodyReceived;
+	int number_of_LinphoneMessageQueued;
 	int number_of_LinphoneMessageInProgress;
 	int number_of_LinphoneMessageDelivered;
 	int number_of_LinphoneMessagePendingDelivery;

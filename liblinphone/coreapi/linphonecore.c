@@ -9155,6 +9155,15 @@ long linphone_core_get_conference_availability_before_start(const LinphoneCore *
 	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getConferenceAvailabilityBeforeStart();
 }
 
+void linphone_core_set_queued_message_resend_period(LinphoneCore *lc, long seconds) {
+	CoreLogContextualizer logContextualizer(lc);
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setQueuedMessageResendPeriod(seconds);
+}
+
+long linphone_core_get_queued_message_resend_period(const LinphoneCore *lc) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getQueuedMessageResendPeriod();
+}
+
 void linphone_core_set_imdn_resend_period(LinphoneCore *lc, long seconds) {
 	CoreLogContextualizer logContextualizer(lc);
 	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setImdnResendPeriod(seconds);
@@ -10315,4 +10324,12 @@ int linphone_core_get_message_sending_delay(const LinphoneCore *core) {
 
 void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration) {
 	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_s", duration);
+}
+
+int linphone_core_get_message_automatic_resending_delay(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "chat", "message_automatic_resending_s", 10);
+}
+
+void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration) {
+	linphone_config_set_int(linphone_core_get_config(core), "chat", "message_automatic_resending_s", duration);
 }

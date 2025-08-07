@@ -7462,6 +7462,23 @@ LINPHONE_PUBLIC void linphone_core_set_conference_availability_before_start(Linp
 LINPHONE_PUBLIC long linphone_core_get_conference_availability_before_start(const LinphoneCore *core);
 
 /**
+ * Set the queued message resend period. It is the number of seconds after the first attempt to send the message.
+ * @param core the #LinphoneCore. @notnil
+ * @param seconds number of seconds after the first attempt to send a message. A negative
+ * value means all queued messages are resent at startup.
+ * @ingroup chatroom
+ */
+LINPHONE_PUBLIC void linphone_core_set_queued_message_resend_period(LinphoneCore *core, long seconds);
+
+/**
+ * Gets the queued message resend period
+ * @param core the #LinphoneCore. @notnil
+ * @return the number of second to resend a queued message
+ * @ingroup chatroom
+ **/
+LINPHONE_PUBLIC long linphone_core_get_queued_message_resend_period(const LinphoneCore *core);
+
+/**
  * Set the IMDN resend period. It is the number of seconds after the first attempt to send, an IMDN message is sent
  * again on startup if failed earlier on
  * @param core the #LinphoneCore. @notnil
@@ -9401,6 +9418,24 @@ LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core,
  * @return the duration of the timer in seconds
  **/
 LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *core);
+
+/**
+ * Returns the duration of the timer that delays the sending of chat messages
+ * It sets the duration of the timer to resend a message when the channel is broken (i.e. the core gets an NoResponse or
+ * IOError response)
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param duration the duration of the timer in seconds. A 0 or negative number means that the feature is deactivated.
+ **/
+LINPHONE_PUBLIC void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration);
+
+/**
+ * Returns the duration of the timer that delays the automatic resending of chat messages
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return the duration of the timer in seconds
+ **/
+LINPHONE_PUBLIC int linphone_core_get_message_automatic_resending_delay(const LinphoneCore *core);
 
 /**
  * @deprecated 03/02/2017 Use linphone_core_interpret_url() instead

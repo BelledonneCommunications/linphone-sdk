@@ -232,6 +232,9 @@ public:
 	void incrementRemainingDownloadFileCount();
 	void decrementRemainingDownloadFileCount();
 
+	void setQueuedMessageResendPeriod(long seconds);
+	long getQueuedMessageResendPeriod() const;
+
 	void setImdnResendPeriod(long seconds);
 	long getImdnResendPeriod() const;
 
