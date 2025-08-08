@@ -366,6 +366,7 @@ LINPHONE_PUBLIC void sal_set_transport_timeout(Sal *sal, int timeout);
 LINPHONE_PUBLIC void sal_enable_test_features(Sal *ctx, bool_t value);
 LINPHONE_PUBLIC bool_t sal_transport_available(Sal *ctx, SalTransport t);
 
+LINPHONE_PUBLIC bool_t sal_has_supported_tag(Sal *sal, const char *tag);
 LINPHONE_PUBLIC const SalErrorInfo *sal_op_get_error_info(const SalOp *op);
 LINPHONE_PUBLIC bool_t sal_call_dialog_request_pending(const SalOp *op);
 LINPHONE_PUBLIC void sal_call_set_sdp_handling(SalOp *h, SalOpSDPHandling handling);
@@ -407,8 +408,8 @@ LINPHONE_PUBLIC void linphone_participant_device_set_state(LinphoneParticipantDe
                                                            LinphoneParticipantDeviceState state);
 LINPHONE_PUBLIC LinphoneCore *linphone_participant_device_get_core(const LinphoneParticipantDevice *participant_device);
 #else
-	LINPHONE_PUBLIC LinphonePrivate::Sal *linphone_core_get_sal(const LinphoneCore *lc);
-	LINPHONE_PUBLIC void sal_default_set_sdp_handling(LinphonePrivate::Sal *h, SalOpSDPHandling handling_method);
+LINPHONE_PUBLIC LinphonePrivate::Sal *linphone_core_get_sal(const LinphoneCore *lc);
+LINPHONE_PUBLIC void sal_default_set_sdp_handling(LinphonePrivate::Sal *h, SalOpSDPHandling handling_method);
 #endif // !defined(__cplusplus)
 
 LINPHONE_PUBLIC bool_t linphone_tunnel_is_tunnel_rtp_transport(const LinphoneTunnel *tunnel, const RtpTransport *tp);
