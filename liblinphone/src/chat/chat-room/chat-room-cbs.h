@@ -47,6 +47,7 @@ public:
 	LinphoneChatRoomCbsSubjectChangedCb subjectChangedCb;
 	LinphoneChatRoomCbsConferenceJoinedCb conferenceJoinedCb;
 	LinphoneChatRoomCbsConferenceLeftCb conferenceLeftCb;
+	LinphoneChatRoomCbsMessageEarlyFailureCb messageEarlyFailureCb;
 	LinphoneChatRoomCbsUndecryptableMessageReceivedCb undecryptableMessageReceivedCb;
 	LinphoneChatRoomCbsChatMessageReceivedCb chatMessageReceivedCb;
 	LinphoneChatRoomCbsChatMessagesReceivedCb chatMessagesReceivedCb;

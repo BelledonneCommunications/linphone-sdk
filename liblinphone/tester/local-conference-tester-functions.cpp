@@ -7767,7 +7767,6 @@ void create_conference_with_chat_base(LinphoneConferenceSecurityLevel security_l
 					                       Address::toCpp(confAddr)->toString() +
 					                       std::string(" dropped a few seconds ago");
 					LinphoneChatMessage *msg = ClientConference::sendTextMsg(marie_chat_room, msg_text);
-
 					BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, laure, berthe}).wait([&msg] {
 						return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 					}));
@@ -8078,6 +8077,17 @@ void create_conference_with_chat_base(LinphoneConferenceSecurityLevel security_l
 			LinphoneChatRoom *cr = linphone_core_search_chat_room(mgr->lc, NULL, NULL, confAddr, NULL);
 			BC_ASSERT_PTR_NOT_NULL(cr);
 			if (cr) {
+				stats mgr_stat = mgr->stat;
+
+				LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
+				setup_chat_room_callbacks(cbs);
+				linphone_chat_room_add_callbacks(cr, cbs);
+				linphone_chat_room_cbs_set_user_data(
+				    cbs, ((LinphoneCoreManager *)linphone_core_get_user_data(focus.getLc()))->user_info);
+				linphone_chat_room_cbs_unref(cbs);
+
+				ms_message("%s is trying to send a message to conference %s", linphone_core_get_identity(mgr->lc),
+				           conference_address_str);
 				std::string msg_text = std::string("Last message of ") + Address::toCpp(mgr->identity)->toString() +
 				                       std::string(" in conference ") + Address::toCpp(confAddr)->toString();
 				LinphoneChatMessage *msg = ClientConference::sendTextMsg(cr, msg_text);
@@ -8086,6 +8096,9 @@ void create_conference_with_chat_base(LinphoneConferenceSecurityLevel security_l
 					return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateNotDelivered);
 				}));
 				linphone_chat_message_unref(msg);
+				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneChatRoomMessageEarlyFailure,
+				                             mgr_stat.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
+				                             liblinphone_tester_sip_timeout));
 			}
 
 			if (!!join_after_termination) {
@@ -11078,8 +11091,6 @@ void create_simple_conference_merging_calls_base(bool_t enable_ice,
 				if (participant_call) {
 					BC_ASSERT_PTR_NOT_NULL(linphone_call_get_conference(participant_call));
 					BC_ASSERT_FALSE(linphone_call_is_in_conference(participant_call));
-					// BC_ASSERT_TRUE(linphone_call_get_microphone_muted(participant_call)
-					// == (mgr == pauline.getCMgr()));
 				}
 			}
 

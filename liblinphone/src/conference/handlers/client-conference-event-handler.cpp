@@ -918,9 +918,9 @@ void ClientConferenceEventHandler::unsubscribePrivate() {
 
 void ClientConferenceEventHandler::onNetworkReachable(bool sipNetworkReachable,
                                                       BCTBX_UNUSED(bool mediaNetworkReachable)) {
-	auto conference = getConference();
 	if (sipNetworkReachable) {
 		// Automatically subscribe to chat only conferences as soon as the network can be reached again
+		auto conference = getConference();
 		if (conference && conference->isChatOnly()) {
 			subscribe(getConferenceId());
 		}
@@ -966,6 +966,13 @@ void ClientConferenceEventHandler::invalidateSubscription() {
 		}
 		ev = nullptr;
 	}
+}
+
+LinphoneSubscriptionState ClientConferenceEventHandler::getSubscriptionState() const {
+	if (ev) {
+		return ev->getState();
+	}
+	return LinphoneSubscriptionNone;
 }
 
 // -----------------------------------------------------------------------------

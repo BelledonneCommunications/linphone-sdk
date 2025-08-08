@@ -883,6 +883,11 @@ void _linphone_chat_room_notify_ephemeral_message_deleted(LinphoneChatRoom *chat
 	                                  linphone_chat_room_cbs_get_ephemeral_message_deleted, event_log);
 }
 
+void _linphone_chat_room_notify_message_early_failure(LinphoneChatRoom *chat_room, const LinphoneEventLog *event_log) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(ChatRoom, AbstractChatRoom::toCpp(chat_room),
+	                                  linphone_chat_room_cbs_get_message_early_failure, event_log);
+}
+
 void _linphone_chat_room_notify_undecryptable_message_received(LinphoneChatRoom *chat_room, LinphoneChatMessage *msg) {
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(ChatRoom, AbstractChatRoom::toCpp(chat_room),
 	                                  linphone_chat_room_cbs_get_undecryptable_message_received, msg);

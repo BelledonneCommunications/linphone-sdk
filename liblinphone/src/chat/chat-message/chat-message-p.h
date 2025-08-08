@@ -105,11 +105,11 @@ public:
 	}
 
 	void forceFromAddress(const std::shared_ptr<Address> &fromAddress) {
-		this->fromAddress = fromAddress;
+		mFromAddress = fromAddress;
 	}
 
 	void forceToAddress(const std::shared_ptr<Address> &toAddress) {
-		this->toAddress = toAddress;
+		mToAddress = toAddress;
 	}
 
 	// Used by the ConferenceScheduler to keep track of the recipient Address in One-To-One Flexisip chat room
@@ -182,6 +182,7 @@ public:
 	std::string createFakeFileTransferFromUrl(const std::string &url);
 
 	void setChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom);
+	void updateAddresses(const std::shared_ptr<AbstractChatRoom> &chatRoom, bool force);
 
 	void setEncryptionPrevented(bool value) {
 		encryptionPrevented = value;
@@ -260,6 +261,7 @@ public:
 
 	void storeInDb();
 	void updateInDb();
+	void deleteFromDb();
 
 	static bool isImdnControlledState(ChatMessage::State state);
 
@@ -283,7 +285,11 @@ protected:
 
 private:
 	// Keep setState private as the chat message state must only be set through setParticipantState
-	virtual void setState(ChatMessage::State newState);
+	virtual void setState(ChatMessage::State newState, LinphoneReason reason = LinphoneReasonNone);
+	void updateToAddress(const std::shared_ptr<AbstractChatRoom> &chatRoom, bool force);
+	void updateFromAddress(const std::shared_ptr<AbstractChatRoom> &chatRoom, bool force);
+	void updateMeAddress(const std::shared_ptr<AbstractChatRoom> &chatRoom, bool force);
+	std::shared_ptr<Address> getLocalAddressFromChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom) const;
 
 	ChatMessagePrivate(const std::shared_ptr<AbstractChatRoom> &chatRoom, ChatMessage::Direction dir);
 	virtual ~ChatMessagePrivate();
@@ -320,11 +326,11 @@ private:
 	std::weak_ptr<AbstractChatRoom> mChatRoom;
 	ConferenceId conferenceId;
 	std::shared_ptr<Address> mMeAddress;
-	std::shared_ptr<Address> fromAddress;
+	std::shared_ptr<Address> mFromAddress;
+	std::shared_ptr<Address> mToAddress;
 	Address authenticatedFromAddress;
 	bool senderAuthenticationEnabled = true;
 	bool unencryptedContentWarning = false;
-	std::shared_ptr<Address> toAddress;
 
 	ChatMessage::State state = ChatMessage::State::Idle;
 	ChatMessage::Direction direction = ChatMessage::Direction::Incoming;

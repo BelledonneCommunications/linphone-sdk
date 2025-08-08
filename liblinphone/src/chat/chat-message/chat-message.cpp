@@ -128,12 +128,10 @@ ChatMessagePrivate::~ChatMessagePrivate() {
 
 void ChatMessagePrivate::setStorageId(long long id) {
 	L_Q();
-
 	if (id < 0) {
 		// Negative IDs invalidate the message therefore it will be deleted from the cache
 		q->deleteChatMessageFromCache();
 	}
-
 	storageId = id;
 }
 
@@ -219,20 +217,20 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
 	if (!q->isValid() && (eventLog || (newState == ChatMessage::State::NotDelivered))) {
 		if (newState == ChatMessage::State::NotDelivered) {
-			setState(newState);
+			setState(newState, reason);
 		}
 		return;
 	}
 
 	// Participant states are not supported
 	if (isBasicChatRoom) {
-		setState(newState);
+		setState(newState, reason);
 		return;
 	}
 
 	if (linphone_config_get_bool(linphone_core_get_config(chatRoom->getCore()->getCCore()), "misc",
 	                             "enable_simple_group_chat_message_state", FALSE)) {
-		setState(newState);
+		setState(newState, reason);
 	} else {
 		lInfo() << "Chat message " << sharedMessage << ": moving participant '" << *participantAddress << "' state to "
 		        << Utils::toString(newState);
@@ -242,7 +240,7 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 
 		// Update chat message state if it doesn't depend on IMDN
 		if (isMe && !isImdnControlledState(newState)) {
-			setState(newState);
+			setState(newState, reason);
 		}
 
 		if (isImdnControlledState(newState)) {
@@ -255,7 +253,7 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 			for (const auto &imdnState : imdnStates) {
 				const auto &participantState = imdnState.getState();
 				const auto &imdnParticipant = imdnState.getParticipant();
-				if (fromAddress->weakEqual(*(imdnParticipant->getAddress()))) {
+				if (mFromAddress->weakEqual(*(imdnParticipant->getAddress()))) {
 					if (participantState == ChatMessage::State::NotDelivered) {
 						nbNotDeliveredStates++;
 					}
@@ -295,7 +293,7 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 		if (isMe) {
 			// Set me participant state to displayed if we are the sender, set the message as Displayed as soon as we
 			// received the 202 Accepted response
-			if (fromAddress->weakEqual(*participantAddress) && (newState == ChatMessage::State::DeliveredToUser)) {
+			if (mFromAddress->weakEqual(*participantAddress) && (newState == ChatMessage::State::DeliveredToUser)) {
 				setParticipantState(participantAddress, ChatMessage::State::Displayed, ::ms_time(nullptr));
 			}
 			if ((newState == ChatMessage::State::NotDelivered) && (reason == LinphoneReasonForbidden)) {
@@ -327,7 +325,7 @@ void ChatMessagePrivate::setAutomaticallyResent(bool enable) {
 	mAutomaticallyResent = enable;
 }
 
-void ChatMessagePrivate::setState(ChatMessage::State newState) {
+void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason reason) {
 	L_Q();
 
 	// 1. Check valid transition.
@@ -335,7 +333,8 @@ void ChatMessagePrivate::setState(ChatMessage::State newState) {
 
 	const shared_ptr<ChatMessage> &sharedMessage = q->getSharedFromThis();
 	const auto &chatRoom = q->getChatRoom();
-	auto me = chatRoom->getMe();
+	updateAddresses(chatRoom, false);
+
 	bool hasBeenAutomaticallyResent = mAutomaticallyResent;
 	// If the message was automatically resent because of a previous failure, then wait that it reaches a state such as
 	// Delivered, NotDelivered, DeliveredToUser or Displayed before resetting the flag In fact, it may happen that the
@@ -376,6 +375,10 @@ void ChatMessagePrivate::setState(ChatMessage::State newState) {
 		    state == ChatMessage::State::DeliveredToUser || state == ChatMessage::State::Displayed) {
 			chatRoom->removeTransientChatMessage(sharedMessage);
 		}
+
+		if ((state == ChatMessage::State::NotDelivered) && q->isReaction()) {
+			deleteFromDb();
+		}
 	}
 
 	LinphoneChatMessage *msg = L_GET_C_BACK_PTR(q);
@@ -404,6 +407,7 @@ void ChatMessagePrivate::setState(ChatMessage::State newState) {
 	// 3. Specific case, upon reception do not attempt to store in db before asking the user if he wants to do so or not
 	if (state == ChatMessage::State::FileTransferDone && direction == ChatMessage::Direction::Incoming) {
 		if (!hasFileTransferContent() && isMarkedAsRead()) {
+			auto me = chatRoom->getMe();
 			setParticipantState(me->getAddress(), ChatMessage::State::Displayed, ::ms_time(nullptr));
 			return;
 		}
@@ -425,10 +429,18 @@ void ChatMessagePrivate::setState(ChatMessage::State newState) {
 	}
 
 	// 5. Update in database if necessary.
-	if (state != ChatMessage::State::InProgress && state != ChatMessage::State::FileTransferError &&
-	    state != ChatMessage::State::FileTransferInProgress && state != ChatMessage::State::FileTransferCancelling) {
+	if ((state != ChatMessage::State::InProgress) && (state != ChatMessage::State::FileTransferError) &&
+	    (state != ChatMessage::State::FileTransferInProgress) &&
+	    (state != ChatMessage::State::FileTransferCancelling) &&
+	    !((state == ChatMessage::State::NotDelivered) && (reason == LinphoneReasonUnsupportedContent) &&
+	      (direction == ChatMessage::Direction::Incoming))) {
 		// If the message has already been stored than the event log will only be updated
 		storeInDb();
+	}
+
+	if ((direction == ChatMessage::Direction::Outgoing) && (state == ChatMessage::State::NotDelivered) &&
+	    (currentSendStep == Step::None)) {
+		chatRoom->chatMessageEarlyFailure(sharedMessage);
 	}
 
 	bool needResend = false;
@@ -817,8 +829,13 @@ std::string ChatMessagePrivate::createFakeFileTransferFromUrl(const std::string 
 }
 
 void ChatMessagePrivate::setChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom) {
-	L_Q();
 	mChatRoom = chatRoom;
+	updateAddresses(chatRoom, true);
+}
+
+std::shared_ptr<Address>
+ChatMessagePrivate::getLocalAddressFromChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom) const {
+	L_Q();
 	const ConferenceId &conferenceId = chatRoom->getConferenceId();
 	const auto &account = chatRoom->getAccount();
 	const bool isBasicChatRoom =
@@ -864,19 +881,45 @@ void ChatMessagePrivate::setChatRoom(const shared_ptr<AbstractChatRoom> &chatRoo
 	} else {
 		lError() << "Unable to set local address of message [" << q << "] in " << *chatRoom;
 	}
+	return localAddress;
+}
 
-	auto peerAddress = conferenceId.getPeerAddress()->clone()->toSharedPtr();
+void ChatMessagePrivate::updateFromAddress(const shared_ptr<AbstractChatRoom> &chatRoom, bool force) {
+	if (!force && mFromAddress && mFromAddress->isValid()) return;
+	std::shared_ptr<Address> address;
 	if (direction == ChatMessage::Direction::Outgoing) {
-		fromAddress = localAddress;
-		toAddress = peerAddress;
+		address = getLocalAddressFromChatRoom(chatRoom);
 	} else {
-		fromAddress = peerAddress;
-		toAddress = localAddress;
+		const ConferenceId &conferenceId = chatRoom->getConferenceId();
+		address = conferenceId.getPeerAddress()->clone()->toSharedPtr();
 	}
+	forceFromAddress(address);
+}
+
+void ChatMessagePrivate::updateToAddress(const shared_ptr<AbstractChatRoom> &chatRoom, bool force) {
+	if (!force && mToAddress && mToAddress->isValid()) return;
+	std::shared_ptr<Address> address;
+	if (direction == ChatMessage::Direction::Outgoing) {
+		const ConferenceId &conferenceId = chatRoom->getConferenceId();
+		address = conferenceId.getPeerAddress()->clone()->toSharedPtr();
+	} else {
+		address = getLocalAddressFromChatRoom(chatRoom);
+	}
+	forceToAddress(address);
+}
+
+void ChatMessagePrivate::updateMeAddress(const shared_ptr<AbstractChatRoom> &chatRoom, bool force) {
+	if (!force && mMeAddress && mMeAddress->isValid()) return;
 	const auto &me = chatRoom->getMe();
 	if (me) {
 		mMeAddress = me->getAddress()->clone()->toSharedPtr();
 	}
+}
+
+void ChatMessagePrivate::updateAddresses(const shared_ptr<AbstractChatRoom> &chatRoom, bool force) {
+	updateFromAddress(chatRoom, force);
+	updateToAddress(chatRoom, force);
+	updateMeAddress(chatRoom, force);
 }
 
 // -----------------------------------------------------------------------------
@@ -1052,7 +1095,7 @@ LinphoneReason ChatMessagePrivate::receive() {
 	// Check if this is in fact an outgoing message (case where this is a message sent by us from an other device).
 	const bool isFlexisipChatRoom =
 	    (chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::FlexisipChat);
-	if (isFlexisipChatRoom && (chatRoom->getLocalAddress()->weakEqual(*fromAddress))) {
+	if (isFlexisipChatRoom && (chatRoom->getLocalAddress()->weakEqual(*mFromAddress))) {
 		setDirection(ChatMessage::Direction::Outgoing);
 	}
 
@@ -1067,12 +1110,12 @@ LinphoneReason ChatMessagePrivate::receive() {
 		for (auto &c : contents) {
 			ContentType ct(c->getContentType());
 			ct.cleanParameters();
-			string contenttype = ct.getType() + "/" + ct.getSubType();
-			if (linphone_core_is_content_type_supported(core->getCCore(), contenttype.c_str())) {
+			string contentType = ct.getType() + "/" + ct.getSubType();
+			if (linphone_core_is_content_type_supported(core->getCCore(), contentType.c_str())) {
 				foundSupportContentType = true;
 				break;
 			} else {
-				lError() << "Unsupported content-type: " << contenttype;
+				lError() << "Unsupported content-type: " << contentType;
 			}
 		}
 
@@ -1106,11 +1149,11 @@ LinphoneReason ChatMessagePrivate::receive() {
 
 		const string &reactionBody = getUtf8Text();
 		if (reactionBody.empty()) {
-			auto fromAddress = q->getFromAddress();
+			auto mFromAddress = q->getFromAddress();
 			lInfo() << "Reaction body for message ID [" << messageId << "] is empty, removing existing reaction from ["
-			        << fromAddress->asStringUriOnly() << "] if any";
+			        << mFromAddress->asStringUriOnly() << "] if any";
 			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-			mainDb->removeConferenceChatMessageReactionEvent(messageId, fromAddress);
+			mainDb->removeConferenceChatMessageReactionEvent(messageId, mFromAddress);
 
 			const LinphoneAddress *address = q->getFromAddress()->toC();
 			_linphone_chat_message_notify_reaction_removed(msg, address);
@@ -1487,6 +1530,7 @@ void ChatMessagePrivate::send() {
 	}
 
 	bool isResend = ((state == ChatMessage::State::PendingDelivery) || (state == ChatMessage::State::NotDelivered));
+
 	// Remove the sent flag so the message will be sent by the OP in case of resend
 	currentSendStep &= ~ChatMessagePrivate::Step::Sent;
 
@@ -1517,6 +1561,8 @@ void ChatMessagePrivate::send() {
 			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
 			shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
 			if (eventLog) {
+				// The message is being resent, therefore set all participants to the current message state and add new
+				// ones
 				for (const auto &participant : chatRoom->getParticipants()) {
 					mainDb->setChatMessageParticipantState(eventLog, participant->getAddress(), q->getState(),
 					                                       ::ms_time(nullptr));
@@ -1539,10 +1585,10 @@ void ChatMessagePrivate::send() {
 	} else {
 		ChatMessageModifier::Result result = fileTransferChatMessageModifier.encode(ref, errorCode);
 		if (result == ChatMessageModifier::Result::Error) {
-			setParticipantState(meAddress, ChatMessage::State::NotDelivered, ::ms_time(nullptr),
-			                    linphone_error_code_to_reason(errorCode));
 			// Remove current step so we go through all modifiers if message is re-sent
 			currentSendStep = ChatMessagePrivate::Step::None;
+			setParticipantState(meAddress, ChatMessage::State::NotDelivered, ::ms_time(nullptr),
+			                    linphone_error_code_to_reason(errorCode));
 			return;
 		}
 
@@ -1553,7 +1599,7 @@ void ChatMessagePrivate::send() {
 		currentSendStep |= ChatMessagePrivate::Step::FileUpload;
 	}
 
-	const auto toAddr = toAddress->toC();
+	const auto toAddr = mToAddress->toC();
 	if (linphone_config_get_int(core->getCCore()->config, "sip", "chat_use_call_dialogs", 0) != 0) {
 		lcall = linphone_core_get_call_by_remote_address2(core->getCCore(), toAddr);
 		if (lcall) {
@@ -1567,7 +1613,7 @@ void ChatMessagePrivate::send() {
 				string identity =
 				    linphone_core_find_best_identity(core->getCCore(), linphone_call_get_remote_address(lcall));
 				if (identity.empty()) {
-					auto account = core->lookupKnownAccount(toAddress, true);
+					auto account = core->lookupKnownAccount(mToAddress, true);
 					if (account) {
 						identity = account->getAccountParams()->getIdentityAddress()->toString();
 					} else {
@@ -1581,17 +1627,17 @@ void ChatMessagePrivate::send() {
 	if (!op) {
 		/* Sending out of call */
 		salOp = op = new SalMessageOp(core->getCCore()->sal.get());
-		if (!fromAddress) {
+		if (!mFromAddress) {
 			lError() << "The from address of ChatMessage [" << q << "] is unknown";
 			return;
 		}
-		const auto fromAddr = fromAddress->toC();
+		const auto fromAddr = mFromAddress->toC();
 		linphone_configure_op_2(core->getCCore(), op, fromAddr, toAddr, getSalCustomHeaders(),
 		                        !!linphone_config_get_int(core->getCCore()->config, "sip", "chat_msg_with_contact", 0));
 		op->setUserPointer(q); /* If out of call, directly store msg */
 	}
-	op->setFromAddress(fromAddress->getImpl());
-	op->setToAddress(toAddress->getImpl());
+	op->setFromAddress(mFromAddress->getImpl());
+	op->setToAddress(mToAddress->getImpl());
 
 	// ---------------------------------------
 	// Start of message modification
@@ -1767,7 +1813,9 @@ void ChatMessagePrivate::send() {
 	}
 
 	// Do not notify message sent callback when it's a resend or an IMDN/Composing
-	if (!isResend && getContentType() != ContentType::Imdn && getContentType() != ContentType::ImIsComposing) {
+	bool notifySending =
+	    (!isResend && (getContentType() != ContentType::Imdn) && (getContentType() != ContentType::ImIsComposing));
+	if (notifySending) {
 		chatRoom->onChatMessageSent(ref);
 	}
 }
@@ -1853,6 +1901,25 @@ void ChatMessagePrivate::updateInDb() {
 			chatRoom->removeTransientEvent(eventLog);
 		}
 	}
+}
+
+void ChatMessagePrivate::deleteFromDb() {
+	L_Q();
+
+	if (!q->isValid()) {
+		lDebug() << "Unable to remove to message [" << q->getSharedFromThis()
+		         << "] from the database because its storage ID [" << storageId << "] is not valid";
+		return;
+	}
+
+	shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
+	if (!chatRoom) return;
+
+	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
+	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
+
+	mainDb->deleteEvent(eventLog);
+	chatRoom->removeTransientEvent(eventLog);
 }
 
 // -----------------------------------------------------------------------------
@@ -2174,18 +2241,18 @@ const Address &ChatMessage::getAuthenticatedFromAddress() const {
 
 const std::shared_ptr<Address> &ChatMessage::getFromAddress() const {
 	L_D();
-	return d->fromAddress;
+	return d->mFromAddress;
 }
 
 const std::shared_ptr<Address> &ChatMessage::getToAddress() const {
 	L_D();
-	return d->toAddress;
+	return d->mToAddress;
 }
 
 const std::shared_ptr<Address> &ChatMessage::getLocalAddress() const {
 	L_D();
-	if (getDirection() == Direction::Outgoing) return d->fromAddress;
-	else return d->toAddress;
+	if (getDirection() == Direction::Outgoing) return d->mFromAddress;
+	else return d->mToAddress;
 }
 
 const std::shared_ptr<Address> &ChatMessage::getRecipientAddress() const {
@@ -2497,7 +2564,8 @@ int ChatMessage::putCharacter(uint32_t character) {
 
 	if (character == newLine || character == crlf || character == lf) {
 		const char *parameterName = isRealTimeText ? "store_rtt_messages" : "store_baudot_messages";
-		if (linphone_config_get_int(core->getCCore()->config, "misc", parameterName, 1) == 1) {
+		d->toBeStored = !!linphone_config_get_int(core->getCCore()->config, "misc", parameterName, 1);
+		if (d->toBeStored) {
 			lInfo() << "New line sent, forge a message with content " << d->rttMessage;
 			d->state = State::Displayed;
 			d->setText(d->rttMessage);

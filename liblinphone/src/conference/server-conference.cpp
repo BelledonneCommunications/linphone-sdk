@@ -705,14 +705,20 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 			op->decline(SalReasonDeclined, "");
 			return;
 		}
+
+		device = participant->findDevice(gruu);
 		// In protocol < 1.1, one to one chatroom can be resurected by a participant, but the participant actually never
 		// leaves from server's standpoint.
-		if (getCurrentParams()->isGroup() && op->isContentInRemote(ContentType::ResourceLists)) {
+		if (getCurrentParams()->isGroup() && op->isContentInRemote(ContentType::ResourceLists) &&
+		    (device->getState() != ParticipantDevice::State::Joining)) {
 			lError() << *this << "Receiving ressource list body while not in creation step.";
 			op->decline(SalReasonNotAcceptable);
 			return;
 		}
-		device = participant->addDevice(gruu);
+
+		if (!device) {
+			device = participant->addDevice(gruu);
+		}
 		if (!getCurrentParams()->isGroup()) {
 			if (device->getState() == ParticipantDevice::State::Left) {
 				lInfo() << *this << " - " << *gruu << " is reconnected to the one to one chatroom.";
@@ -751,7 +757,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		                ParticipantDevice::isLeavingState(deviceState);
 
 		if (rejectSession) {
-			lInfo() << "Device " << *deviceAddress << " is trying to establish a session in chatroom " << *addr
+			lInfo() << "Device " << *deviceAddress << " is trying to establish a session in " << *this
 			        << ". However it is in state " << Utils::toString(deviceState)
 			        << "therefore the session is likely to be immediately terminated";
 		} else {
@@ -764,12 +770,12 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 				}
 
 				// The client changed the session possibly following a loss the network
-				lInfo() << "Device " << *deviceAddress << " is replacing its session in chatroom " << *addr
+				lInfo() << "Device " << *deviceAddress << " is replacing its session in " << *this
 				        << ", hence the old one " << deviceSession << " is immediately terminated";
 				deviceSession->terminate();
 			}
 			lInfo() << "Setting session " << newDeviceSession << " to device " << *deviceAddress
-			        << " is replacing its session in chatroom " << *addr << ", hence the old one " << deviceSession
+			        << " is replacing its session in " << *this << ", hence the old one " << deviceSession
 			        << " is immediately terminated";
 			device->setSession(newDeviceSession);
 		}
@@ -1102,7 +1108,7 @@ void ServerConference::subscribeReceived(const shared_ptr<EventSubscribe> &event
 	const auto &chatRoom = getChatRoom();
 	const auto deviceState = device ? device->getState() : ParticipantDevice::State::ScheduledForJoining;
 	if (chatEnabled && device && (deviceState == ParticipantDevice::State::ScheduledForJoining)) {
-		lInfo() << "Inviting device " << *device->getAddress() << " because it was scheduled to join " << *this;
+		lInfo() << "Inviting " << *device << " because it was scheduled to join " << *this;
 		// Invite device as last time round it was attempted, the INVITE session errored out
 		inviteDevice(device);
 	}
@@ -1590,13 +1596,13 @@ shared_ptr<CallSession> ServerConference::makeSession(const std::shared_ptr<Part
 }
 
 void ServerConference::inviteDevice(const shared_ptr<ParticipantDevice> &device) {
-	lInfo() << *this << ": Inviting device '" << *device->getAddress() << "'";
+	lInfo() << *this << ": Inviting " << *device;
 	dialOutAddresses({device->getAddress()});
 }
 
 void ServerConference::byeDevice(const std::shared_ptr<ParticipantDevice> &device) {
 	const std::shared_ptr<Address> &conferenceAddress = getConferenceAddress();
-	lInfo() << *this << ": Asking device '" << *device->getAddress() << "' to leave";
+	lInfo() << *this << ": Asking " << *device << " to leave";
 	setParticipantDeviceState(device, ParticipantDevice::State::Leaving);
 	MediaSessionParams csp;
 	csp.enableAudio(mConfParams->audioEnabled());
@@ -2748,7 +2754,7 @@ void ServerConference::enableScreenSharing(const std::shared_ptr<LinphonePrivate
 			    !screenSharingDevice) {
 				bool changed = device->enableScreenSharing(isScreenSharingNegotiated);
 				lInfo() << "Screen sharing is " << std::string(isScreenSharingNegotiated ? "enabled" : "disabled")
-				        << " for device " << *device->getAddress() << " in " << *this;
+				        << " for " << *device << " in " << *this;
 				mMixerSession->enableScreenSharing(isScreenSharingNegotiated, &mediaSession->getStreamsGroup());
 				if (changed && notify) {
 					// Detect media changes to avoid having to send 2 NOTIFYs:
@@ -2781,7 +2787,7 @@ int ServerConference::participantDeviceAlerting(const std::shared_ptr<CallSessio
 
 int ServerConference::participantDeviceAlerting(BCTBX_UNUSED(const std::shared_ptr<Participant> &participant),
                                                 const std::shared_ptr<ParticipantDevice> &device) {
-	lInfo() << "Device " << *device->getAddress() << " changed state to alerting";
+	lInfo() << *device << " changed state to alerting";
 	device->updateMediaCapabilities();
 	device->updateStreamAvailabilities();
 	device->setState(ParticipantDevice::State::Alerting);
@@ -2811,7 +2817,7 @@ int ServerConference::participantDeviceJoined(BCTBX_UNUSED(const std::shared_ptr
 	const auto mediaCapabilitiesChanged = device->updateMediaCapabilities();
 	if ((!mediaCapabilitiesChanged.empty() || (device->getState() != ParticipantDevice::State::Present)) &&
 	    (getState() == ConferenceInterface::State::Created)) {
-		lInfo() << "Device " << *device->getAddress() << " joined " << *this;
+		lInfo() << *device << " joined " << *this;
 		device->updateStreamAvailabilities();
 		device->setState(ParticipantDevice::State::Present);
 		return 0;
@@ -2840,7 +2846,7 @@ int ServerConference::participantDeviceLeft(BCTBX_UNUSED(const std::shared_ptr<P
 	const auto mediaCapabilitiesChanged = device->updateMediaCapabilities();
 	if ((!mediaCapabilitiesChanged.empty() || (device->getState() != ParticipantDevice::State::OnHold)) &&
 	    (getState() == ConferenceInterface::State::Created)) {
-		lInfo() << "Device " << *device->getAddress() << " left " << *this;
+		lInfo() << *device << " left " << *this;
 		device->updateStreamAvailabilities();
 		device->setState(ParticipantDevice::State::OnHold);
 		return 0;
@@ -2883,7 +2889,7 @@ int ServerConference::participantDeviceMediaCapabilityChanged(const std::shared_
 	    ((getState() == ConferenceInterface::State::CreationPending) ||
 	     (getState() == ConferenceInterface::State::Created)) &&
 	    (device->getState() == ParticipantDevice::State::Present)) {
-		lInfo() << "Device " << *device->getAddress() << " in " << *this << " changed its media capabilities";
+		lInfo() << *device << " in " << *this << " changed its media capabilities";
 		device->updateStreamAvailabilities();
 		time_t creationTime = time(nullptr);
 		notifyParticipantDeviceMediaCapabilityChanged(creationTime, false, participant, device);
@@ -2903,13 +2909,12 @@ int ServerConference::participantDeviceSsrcChanged(const std::shared_ptr<CallSes
 		if (device) {
 			bool updated = device->setSsrc(type, ssrc);
 			if (updated) {
-				lInfo() << "Setting " << std::string(linphone_stream_type_to_string(type))
-				        << " ssrc of participant device " << *device->getAddress() << " in " << *this << " to " << ssrc;
+				lInfo() << "Setting " << std::string(linphone_stream_type_to_string(type)) << " ssrc of " << *device
+				        << " in " << *this << " to " << ssrc;
 				time_t creationTime = time(nullptr);
 				notifyParticipantDeviceMediaCapabilityChanged(creationTime, false, p, device);
 			} else {
-				lInfo() << "Leaving unchanged ssrc of participant device " << *device->getAddress() << " in " << *this
-				        << " whose value is " << ssrc;
+				lInfo() << "Leaving unchanged ssrc of " << *device << " in " << *this << " whose value is " << ssrc;
 			}
 			return 0;
 		}
@@ -2933,8 +2938,7 @@ int ServerConference::participantDeviceSsrcChanged(const std::shared_ptr<CallSes
 				time_t creationTime = time(nullptr);
 				notifyParticipantDeviceMediaCapabilityChanged(creationTime, false, p, device);
 			} else {
-				lInfo() << "Leaving unchanged ssrcs of participant device " << *device->getAddress() << " in " << *this
-				        << " whose values are";
+				lInfo() << "Leaving unchanged ssrcs of " << *device << " in " << *this << " whose values are";
 				lInfo() << "- audio -> " << audioSsrc;
 				lInfo() << "- video -> " << videoSsrc;
 			}
@@ -3415,16 +3419,15 @@ void ServerConference::onCallSessionStateChanged(const std::shared_ptr<CallSessi
 					if (device->getState() == ParticipantDevice::State::Joining ||
 					    device->getState() == ParticipantDevice::State::Present) {
 						const auto code = linphone_error_info_get_protocol_code(errorInfo);
-						lWarning() << *this << ": Received a BYE from " << *device->getAddress() << " with code "
-						           << code << ", setting it back to ScheduledForJoining.";
+						lWarning() << *this << ": Received a BYE from " << *device << " with code " << code
+						           << ", setting it back to ScheduledForJoining.";
 						setParticipantDeviceState(device, ParticipantDevice::State::ScheduledForJoining);
 						if (linphone_error_info_get_protocol_code(errorInfo) == 408 && initiatorDevice &&
 						    initiatorDevice == device) {
 							// Recovering if the initiator of the chatroom did not receive the 200Ok or the ACK has been
 							// lost
-							lInfo() << *this << ": Inviting again initiator device [" << device << " - "
-							        << *device->getAddress() << "] because its session was terminated with code "
-							        << code;
+							lInfo() << *this << ": Inviting again initiator device " << *device
+							        << " because its session was terminated with code " << code;
 							inviteDevice(device);
 						}
 					}
@@ -3577,7 +3580,7 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 	if (isChatOnly() && chatRoom) {
 		auto serverGroupChatRoom = dynamic_pointer_cast<ServerChatRoom>(chatRoom);
 		unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
-		lInfo() << *this << ": Participant device '" << *device->getAddress() << "' left";
+		lInfo() << *this << ": " << *device << " left";
 
 		if (getCurrentParams()->isGroup() || serverGroupChatRoom->getProtocolVersion() >= Utils::Version(1, 1)) {
 			shared_ptr<Participant> participant =
@@ -3684,13 +3687,13 @@ void ServerConference::updateParticipantDevices(
 		shared_ptr<Participant> participant;
 
 		if (newParticipantReginfo) {
-			if (!devices.empty()) {
-				participant = addParticipantToList(participantAddress);
-			} else {
+			if (devices.empty()) {
 				lInfo() << *this << " " << *participantAddress << " has no compatible devices.";
 				serverGroupChatRoom->unSubscribeRegistrationForParticipant(participantAddress);
 				removeInvitedParticipant(participantAddress);
 				return;
+			} else {
+				participant = addParticipantToList(participantAddress);
 			}
 		} else {
 			participant = findInvitedParticipant(participantAddress);

@@ -237,6 +237,7 @@ public:
 	virtual void setLastUpdateTime(time_t lastUpdateTime) = 0;
 
 	virtual void sendChatMessage(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
+	virtual void chatMessageEarlyFailure(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
 	virtual void onChatMessageSent(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
 
 	virtual void addEvent(const std::shared_ptr<EventLog> &eventLog) = 0;

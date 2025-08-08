@@ -530,6 +530,14 @@ typedef void (*LinphoneChatRoomCbsSecurityEventCb)(LinphoneChatRoom *chat_room, 
 typedef void (*LinphoneChatRoomCbsSubjectChangedCb)(LinphoneChatRoom *chat_room, const LinphoneEventLog *event_log);
 
 /**
+ * Callback used to notify a chat room that a message has been not sent because of a chat room error
+ * @param chat_room #LinphoneChatRoom involved in this conversation @notnil
+ * @param event_log #LinphoneEventLog The event to be notified @notnil
+ */
+typedef void (*LinphoneChatRoomCbsMessageEarlyFailureCb)(LinphoneChatRoom *chat_room,
+                                                         const LinphoneEventLog *event_log);
+
+/**
  * Callback used to notify a chat room that a message has been received but we were unable to decrypt it
  * @param chat_room #LinphoneChatRoom involved in this conversation @notnil
  * @param message The #LinphoneChatMessage that has been received @notnil

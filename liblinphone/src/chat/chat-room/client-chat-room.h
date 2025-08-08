@@ -93,6 +93,7 @@ public:
 	void onChatRoomCreated(const std::shared_ptr<Address> &remoteContact);
 	bool canSendMessages() const override;
 	void sendChatMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
+	void chatMessageEarlyFailure(const std::shared_ptr<ChatMessage> &chatMessage) override;
 
 	virtual void addPendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
 	virtual void deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
@@ -130,7 +131,6 @@ private:
 
 	// 1-1 exhume related
 	bool mLocalExhumePending = false;
-	std::list<std::shared_ptr<ChatMessage>> mPendingExhumeMessages;
 	std::list<ConferenceId> mPreviousConferenceIds;
 
 	L_DISABLE_COPY(ClientChatRoom);

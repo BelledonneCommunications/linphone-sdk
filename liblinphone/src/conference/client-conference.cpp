@@ -537,7 +537,7 @@ bool ClientConference::update(const ConferenceParamsInterface &newParameters) {
 	if (getMe()->isAdmin()) {
 		ret = Conference::update(newParameters);
 	} else {
-		lError() << *this << " Unable to update conference parameters because focus " << *getMe()->getAddress()
+		lError() << "Unable to update conference parameters of " << *this << " because focus " << *getMe()
 		         << " is not admin";
 	}
 	return ret;
@@ -556,8 +556,8 @@ void ClientConference::setParticipantAdminStatus(const shared_ptr<Participant> &
 	if (isAdmin == participant->isAdmin()) return;
 
 	if (!getMe()->isAdmin()) {
-		lError() << *this << ": Unable to set admin status of participant " << *participant->getAddress() << " to "
-		         << (isAdmin ? "true" : "false") << " because focus " << *getMe()->getAddress() << " is not admin";
+		lError() << *this << ": Unable to set admin status of " << *participant << " to "
+		         << (isAdmin ? "true" : "false") << " because focus " << *getMe() << " is not admin";
 		return;
 	}
 
@@ -1235,6 +1235,7 @@ void ClientConference::onStateChanged(ConferenceInterface::State state) {
 	auto session = getMainSession();
 	string subject = getUtf8Subject();
 	const auto mediaSupported = supportsMedia();
+	const auto hasChatCapability = mConfParams->chatEnabled();
 
 	shared_ptr<Call> sessionCall = nullptr;
 	if (session) {
@@ -1242,12 +1243,18 @@ void ClientConference::onStateChanged(ConferenceInterface::State state) {
 		sessionCall = op ? getCore()->getCallByCallId(op->getCallId()) : nullptr;
 	}
 
+	const auto &chatRoom = getChatRoom();
+
 	switch (state) {
 		case ConferenceInterface::State::None:
 		case ConferenceInterface::State::Instantiated:
-		case ConferenceInterface::State::CreationPending:
 		case ConferenceInterface::State::TerminationFailed:
 		case ConferenceInterface::State::Terminated:
+			break;
+		case ConferenceInterface::State::CreationPending:
+			if (hasChatCapability && chatRoom) {
+				getCore()->getPrivate()->insertChatRoomWithDb(chatRoom, getLastNotify());
+			}
 			break;
 		case ConferenceInterface::State::CreationFailed:
 			reset();
@@ -2439,10 +2446,18 @@ void ClientConference::join(const std::shared_ptr<Address> &) {
 		shared_ptr<CallSession> session = mFocus->getSession();
 		if (!session && ((mState == ConferenceInterface::State::Instantiated) ||
 		                 (mState == ConferenceInterface::State::Terminated))) {
+			lInfo() << "Creating focus session because " << *getMe()->getAddress() << " is joining " << *this;
 			session = createSession();
 		}
 		if (session) {
-			if (mState != ConferenceInterface::State::TerminationPending) session->startInvite(nullptr, "", nullptr);
+			const auto &sessionState = session->getState();
+			// Do not start a new INVITE if the session is still establishing
+			if ((mState != ConferenceInterface::State::TerminationPending) &&
+			    (sessionState == CallSession::State::Idle)) {
+				session->startInvite(nullptr, "", nullptr);
+			} else {
+				setState(ConferenceInterface::State::Created);
+			}
 			const auto &chatRoom = getChatRoom();
 			if (chatRoom && (mState != ConferenceInterface::State::Created))
 				setState(ConferenceInterface::State::CreationPending);

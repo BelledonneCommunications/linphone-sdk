@@ -58,6 +58,7 @@ public:
 
 	const std::shared_ptr<Address> &getPeerAddress() const;
 	const std::shared_ptr<Address> &getLocalAddress() const;
+	const ConferenceIdParams &getParams() const;
 
 	void setPeerAddress(const std::shared_ptr<const Address> &addr, bool forceUpdate = false);
 	void setLocalAddress(const std::shared_ptr<const Address> &addr, bool forceUpdate = false);

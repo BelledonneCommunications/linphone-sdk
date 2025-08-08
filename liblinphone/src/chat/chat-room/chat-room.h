@@ -168,6 +168,7 @@ public:
 	}
 
 	void sendChatMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
+	void chatMessageEarlyFailure(const std::shared_ptr<ChatMessage> &chatMessage) override;
 	void onChatMessageSent(const std::shared_ptr<ChatMessage> &chatMessage) override;
 	void sendIsComposingNotification(const std::string &contentType);
 

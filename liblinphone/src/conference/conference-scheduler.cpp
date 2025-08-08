@@ -257,8 +257,9 @@ void ConferenceScheduler::onChatMessageStateChanged(const shared_ptr<ChatMessage
 		if (chatRoom->getState() == Conference::State::Created) { // Chat room was created successfully
 			if (chatRoom->getCapabilities() &
 			    ChatRoom::Capabilities::OneToOne) { // Message was sent using a 1-1 chat room
-				lError() << "[Conference Scheduler] [" << this << "] Invitation couldn't be sent to participant ["
-				         << *participantAddress << "]";
+				lError() << "[Conference Scheduler] [" << this << "] Invitation [" << message
+				         << "] couldn't be sent to participant [" << *participantAddress << "] on one-to-one chat room "
+				         << chatRoom;
 				mInvitationsInError.push_back(participantAddress);
 			} else { // Message was sent using a group chat room
 				lError() << "[Conference Scheduler] [" << this
@@ -267,16 +268,18 @@ void ConferenceScheduler::onChatMessageStateChanged(const shared_ptr<ChatMessage
 				    (unsigned long)(message->getParticipantsByImdnState(ChatMessage::State::Delivered).size());
 				for (auto &participant : message->getParticipantsByImdnState(ChatMessage::State::NotDelivered)) {
 					participantAddress = participant.getParticipant()->getAddress();
-					lError() << "[Conference Scheduler] [" << this << "] Invitation couldn't be sent to participant ["
-					         << *participantAddress << "]";
+					lError() << "[Conference Scheduler] [" << this << "] Invitation [" << message
+					         << "] couldn't be sent to participant [" << *participantAddress << "] on group chat "
+					         << chatRoom;
 					mInvitationsInError.push_back(participantAddress);
 				}
 			}
 		} else { // Chat room wasn't created
 			if (chatRoom->getCapabilities() &
 			    ChatRoom::Capabilities::OneToOne) { // Message was sent using a 1-1 chat room
-				lError() << "[Conference Scheduler] [" << this << "] Invitation couldn't be sent to participant ["
-				         << *participantAddress << "]";
+				lError() << "[Conference Scheduler] [" << this << "] Invitation [" << message
+				         << "] couldn't be sent to participant [" << *participantAddress
+				         << "] because one-to-one chat room cannot be created";
 				mInvitationsInError.push_back(participantAddress);
 			} else { // Message was sent using a group chat room
 				lError() << "[Conference Scheduler] [" << this

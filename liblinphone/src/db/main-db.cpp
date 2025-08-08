@@ -442,7 +442,6 @@ long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chat
 		const long long &localSipAddressId = insertSipAddress(localAddress);
 		const long long &peerSipAddressNoGruuId = insertSipAddress(peerAddressNoGruu);
 		const long long &localSipAddressNoGruuId = insertSipAddress(localAddressNoGruu);
-
 		long long chatRoomId = selectChatRoomId(peerSipAddressId, localSipAddressId);
 		if (chatRoomId < 0) {
 			// If no chatroom has been found with the actual conference ID, try without the GRUU
@@ -473,6 +472,17 @@ long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chat
 				    chatRoom->getCapabilities() & ~ChatRoom::CapabilitiesMask(ChatRoom::Capabilities::Proxy);
 
 				// TODO: store chatroom local and peer addresses without GRUU
+				long long chatRoomPeerSipAddressId = -1;
+				long long chatRoomLocalSipAddressId = -1;
+				bool keepGruu = conferenceId.getParams().getKeepGruu();
+				if (keepGruu) {
+					chatRoomPeerSipAddressId = peerSipAddressId;
+					chatRoomLocalSipAddressId = localSipAddressId;
+				} else {
+					chatRoomPeerSipAddressId = peerSipAddressNoGruuId;
+					chatRoomLocalSipAddressId = localSipAddressNoGruuId;
+				}
+
 				const string &subject = chatRoomParams->getUtf8Subject();
 				int ephemeralEnabled = chatRoom->ephemeralEnabled() ? 1 : 0;
 				long ephemeralLifeTime = chatRoom->getEphemeralLifetime();
@@ -487,7 +497,7 @@ long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chat
 				                                  "  :lastUpdateTime, :capabilities, :subject, :flags, :lastNotifyId, "
 				                                  ":ephemeralEnabled, :ephemeralLifeTime, :conferenceInfoId"
 				                                  ")",
-				    soci::use(peerSipAddressId), soci::use(localSipAddressId),
+				    soci::use(chatRoomPeerSipAddressId), soci::use(chatRoomLocalSipAddressId),
 				    soci::use(creationTime.first, creationTime.second),
 				    soci::use(lastUpdateTime.first, lastUpdateTime.second), soci::use(capabilities), soci::use(subject),
 				    soci::use(flags), soci::use(notifyId), soci::use(ephemeralEnabled), soci::use(ephemeralLifeTime),
@@ -6443,8 +6453,6 @@ shared_ptr<AbstractChatRoom> MainDb::mergeChatRooms(const shared_ptr<AbstractCha
 
 	auto creationTimeToAddSoci = d->dbSession.getTimeWithSociIndicator(creationTimeToAdd);
 	soci::session *session = d->dbSession.getBackendSession();
-	lInfo() << "Moving all event of chatroom with ID " << dbChatRoomToRemoveId << " to chatroom with ID "
-	        << dbChatRoomToAddId;
 	// Move conference event that occurred before the latest chatroom was created.
 	// Events such as chat messages are already stored in both chat rooms
 	auto creationTimeToDeleteSoci = d->dbSession.getTimeWithSociIndicator(creationTimeToDelete);
@@ -6458,6 +6466,8 @@ shared_ptr<AbstractChatRoom> MainDb::mergeChatRooms(const shared_ptr<AbstractCha
 		newestCreationTimeSoci = creationTimeToAddSoci;
 	}
 
+	lInfo() << "Moving all event of chatroom with ID " << dbChatRoomToRemoveId << " to chatroom with ID "
+	        << dbChatRoomToAddId;
 	soci::rowset<soci::row> rows =
 	    (session->prepare
 	         << "SELECT conference_event.event_id, conference_event.chat_room_id FROM conference_event, event "
@@ -6535,7 +6545,6 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 		auto conferenceIdParams = core->createConferenceIdParams();
 		conferenceIdParams.enableExtractUri(false);
 		bool keepGruu = conferenceIdParams.getKeepGruu();
-
 		bool unifyChatroomAddress =
 		    !!linphone_config_get_bool(linphone_core_get_config(cCore), "misc", "unify_chatroom_address", FALSE);
 		std::string chatroomDomain;

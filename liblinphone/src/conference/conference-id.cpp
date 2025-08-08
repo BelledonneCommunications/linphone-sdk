@@ -132,6 +132,10 @@ const std::shared_ptr<Address> &ConferenceId::getLocalAddress() const {
 	return mLocalAddress;
 }
 
+const ConferenceIdParams &ConferenceId::getParams() const {
+	return mParams;
+}
+
 bool ConferenceId::isValid() const {
 	return mPeerAddress && mPeerAddress->isValid() && mLocalAddress && mLocalAddress->isValid();
 }

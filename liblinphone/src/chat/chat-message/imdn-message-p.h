@@ -39,7 +39,7 @@ private:
 	    : NotificationMessagePrivate(context.mChatRoom, ChatMessage::Direction::Outgoing), context(context) {
 	}
 
-	void setState(ChatMessage::State newState) override;
+	void setState(ChatMessage::State newState, LinphoneReason reason = LinphoneReasonNone) override;
 
 	ImdnMessage::Context context;
 

@@ -66,7 +66,9 @@ void ClientChatRoom::addPendingMessage(const std::shared_ptr<ChatMessage> &chatM
 	chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::Queued,
 	                                               ::ms_time(nullptr));
 	auto it = std::find(mPendingCreationMessages.begin(), mPendingCreationMessages.end(), chatMessage);
-	if (it == mPendingCreationMessages.end()) mPendingCreationMessages.push_back(chatMessage);
+	if (it == mPendingCreationMessages.end()) {
+		mPendingCreationMessages.push_back(chatMessage);
+	}
 }
 
 void ClientChatRoom::deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) {
@@ -257,13 +259,8 @@ void ClientChatRoom::onLocallyExhumedConference(const std::shared_ptr<Address> &
 	setState(ConferenceInterface::State::Created);
 	conference->subscribe(true);
 
-	lInfo() << "Found " << mPendingExhumeMessages.size() << " messages waiting for exhume";
-	for (auto &chatMessage : mPendingExhumeMessages) {
-		chatMessage->getPrivate()->setChatRoom(getSharedFromThis());
-		ChatRoom::sendChatMessage(chatMessage);
-	}
-
-	mPendingExhumeMessages.clear();
+	lInfo() << "Found " << mPendingCreationMessages.size() << " messages waiting for exhume";
+	sendPendingMessages();
 	mLocalExhumePending = false;
 }
 
@@ -307,6 +304,16 @@ void ClientChatRoom::removeConferenceIdFromPreviousList(const ConferenceId &conf
 	getCore()->getPrivate()->mainDb->removePreviousConferenceId(confId);
 }
 
+void ClientChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &chatMessage) {
+	chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
+	                                               ::ms_time(nullptr));
+	const auto &storageId = chatMessage->getStorageId();
+	L_ASSERT(storageId >= 0);
+	unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
+	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, storageId);
+	_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
+}
+
 void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage) {
 	const auto &conference = getConference();
 	const auto &state = getState();
@@ -322,20 +329,38 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 		        << "] in a chat room that's not created yet, queuing the message and it will be sent later";
 		queueMessage = true;
 	} else if (state == ConferenceInterface::State::Created) {
-		auto encryptionEngine = getCore()->getEncryptionEngine();
 		if (getCurrentParams()->getChatParams()->isEncrypted()) {
+			auto clientConference = dynamic_pointer_cast<ClientConference>(conference);
+			auto eventHandler = clientConference->mEventHandler;
+			auto encryptionEngine = getCore()->getEncryptionEngine();
 			if (!encryptionEngine) {
 				lError() << *conference << ": Unable to send message [" << chatMessage
 				         << "] because the encryption engine of the encrypted chat room has not been found";
 				chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
 				                                               ::ms_time(nullptr));
-			} else if (encryptionEngine->participantListRequired() && conference->getParticipantDevices().empty()) {
-				lInfo()
-				    << *conference << ": Delaying sending of message [" << chatMessage
-				    << "] in an encrypted chat room because the list of participant devices has not been received yet "
-				       "and the encryption engine "
-				    << encryptionEngine << " requires it";
-				queueMessage = true;
+			} else if (encryptionEngine->participantListRequired()) {
+				LinphoneGlobalState coreGlobalState = linphone_core_get_global_state(getCore()->getCCore());
+				bool coreShuttingDown =
+				    ((coreGlobalState == LinphoneGlobalOff) || (coreGlobalState == LinphoneGlobalShutdown));
+				if (!coreShuttingDown && (!eventHandler || eventHandler->notAlreadySubscribed() ||
+				                          (eventHandler->getSubscriptionState() == LinphoneSubscriptionError))) {
+					lError()
+					    << *conference << ": Unable to send chat message [" << chatMessage
+					    << "] because the subscription to retrieve the list of participant devices errored out or the "
+					       "conference has not instantiated a event handler probably due to the lack of RFC4575 "
+					       "support";
+					chatMessage->getPrivate()->setParticipantState(
+					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
+				} else if (conference->getParticipantDevices().empty()) {
+					lInfo() << *conference << ": Delaying sending of message [" << chatMessage
+					        << "] in an encrypted chat room because the list of participant devices has not been "
+					           "received yet "
+					           "and the encryption engine ["
+					        << encryptionEngine << "] requires it";
+					queueMessage = true;
+				} else {
+					ChatRoom::sendChatMessage(chatMessage);
+				}
 			} else {
 				ChatRoom::sendChatMessage(chatMessage);
 			}
@@ -343,23 +368,24 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 			ChatRoom::sendChatMessage(chatMessage);
 		}
 	} else if (state == ConferenceInterface::State::Terminated) {
-		lError() << *conference << ": Can't send a chat message in a chat room that is already terminated.";
+		lError() << *conference << ": Can't send chat message [" << chatMessage
+		         << "] in a chat room that is already terminated.";
 		chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
 		                                               ::ms_time(nullptr));
 	} else {
-		lError() << *conference << ": Can't send a chat message in a chat room that is in state "
+		lError() << *conference << ": Can't send chat message [" << chatMessage << "] in a chat room that is in state "
 		         << Utils::toString(state) << " right now - queueing it";
 		queueMessage = true;
 	}
 
 	if (queueMessage) {
-		auto conference = static_pointer_cast<ClientConference>(getConference());
-		auto focus = conference->mFocus;
+		auto clientConference = static_pointer_cast<ClientConference>(conference);
+		auto focus = clientConference->mFocus;
 		shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(focus->getSession());
 		if (!session) {
-			lInfo() << "Creating an INVITE session to " << *conference << " in order to be able to send messages";
-			auto utf8Subject = conference->getUtf8Subject();
-			session = dynamic_pointer_cast<MediaSession>(conference->createSession());
+			lInfo() << "Creating an INVITE session to " << *clientConference << " in order to be able to send messages";
+			auto utf8Subject = clientConference->getUtf8Subject();
+			session = dynamic_pointer_cast<MediaSession>(clientConference->createSession());
 			session->startInvite(nullptr, utf8Subject, nullptr);
 		}
 		addPendingMessage(chatMessage);
@@ -412,10 +438,10 @@ void ClientChatRoom::sendPendingMessages() {
 	while (it != mPendingCreationMessages.end()) {
 		auto message = (*it);
 		it++;
-		lInfo() << "Found message [" << message << "] waiting for " << *conference << " to be created, sending it now";
+		lInfo() << "Found message [" << message << "] waiting to be sent in " << *conference;
 		// First we need to update from and to address of the message,
 		// as it was created at a time where the remote address of the chat room may not have been known
-		message->getPrivate()->setChatRoom(getSharedFromThis());
+		message->getPrivate()->updateAddresses(getSharedFromThis(), true);
 		sendChatMessage(message);
 	}
 }

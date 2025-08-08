@@ -312,6 +312,22 @@ LINPHONE_PUBLIC void linphone_chat_room_cbs_set_subject_changed(LinphoneChatRoom
                                                                 LinphoneChatRoomCbsSubjectChangedCb cb);
 
 /**
+ * Get the message early failure callback.
+ * @param cbs #LinphoneChatRoomCbs object. @notnil
+ * @return The current message early failure callback.
+ */
+LINPHONE_PUBLIC LinphoneChatRoomCbsMessageEarlyFailureCb
+linphone_chat_room_cbs_get_message_early_failure(const LinphoneChatRoomCbs *cbs);
+
+/**
+ * Set the message early failure callback.
+ * @param cbs #LinphoneChatRoomCbs object. @notnil
+ * @param cb The message early failure callback to be used.
+ */
+LINPHONE_PUBLIC void linphone_chat_room_cbs_set_message_early_failure(LinphoneChatRoomCbs *cbs,
+                                                                      LinphoneChatRoomCbsMessageEarlyFailureCb cb);
+
+/**
  * Get the undecryptable message received callback.
  * @param cbs #LinphoneChatRoomCbs object. @notnil
  * @return The current undecryptable message received callback.

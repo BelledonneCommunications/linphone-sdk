@@ -525,6 +525,7 @@ void _linphone_chat_room_notify_ephemeral_event(LinphoneChatRoom *cr, const Linp
 void _linphone_chat_room_notify_ephemeral_message_timer_started(LinphoneChatRoom *cr,
                                                                 const LinphoneEventLog *event_log);
 void _linphone_chat_room_notify_ephemeral_message_deleted(LinphoneChatRoom *cr, const LinphoneEventLog *event_log);
+void _linphone_chat_room_notify_message_early_failure(LinphoneChatRoom *cr, const LinphoneEventLog *event_log);
 void _linphone_chat_room_notify_undecryptable_message_received(LinphoneChatRoom *cr, LinphoneChatMessage *msg);
 void _linphone_chat_room_notify_chat_message_received(LinphoneChatRoom *cr, const LinphoneEventLog *event_log);
 void _linphone_chat_room_notify_chat_messages_received(LinphoneChatRoom *cr, const bctbx_list_t *event_logs);

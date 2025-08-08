@@ -921,7 +921,8 @@ static void group_chat_room_server_ephemeral_mode_changed(void) {
 		BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(paulineCr));
 		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(paulineCr), 5, int, "%d");
 
-		LinphoneChatMessage *nonEphemeralMessage = _send_message(marieCr, "I have disabled ephemeral messages");
+		LinphoneChatMessage *nonEphemeralMessage =
+		    ClientConference::sendTextMsg(marieCr, "I have disabled ephemeral messages");
 
 		auto marieHistory = linphone_chat_room_get_history(marieCr, 0);
 		BC_ASSERT_EQUAL((int)bctbx_list_size(marieHistory), 1, int, "%i");

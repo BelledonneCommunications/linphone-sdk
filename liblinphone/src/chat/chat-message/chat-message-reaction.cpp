@@ -108,14 +108,12 @@ void ChatMessageReaction::send() {
 	mReactionMessage = mChatRoom->createChatMessage();
 	mReactionMessage->addListener(getSharedFromThis());
 	mReactionMessage->getPrivate()->setReactionToMessageId(mMessageId);
+	mReactionMessage->getPrivate()->storeInDb();
 
 	auto content = Content::create();
 	content->setContentType(ContentType::PlainText);
 	content->setBodyFromUtf8(mReaction);
 	mReactionMessage->addContent(content);
-
-	// Do not store the reaction in DB for now, won't know Call ID at this time, wait for above callback
-	mReactionMessage->setToBeStored(false);
 
 	lInfo() << "[Chat Message Reaction] Sending reaction [" << mReaction << "] for message ID [" << mMessageId << "]";
 	mReactionMessage->send();

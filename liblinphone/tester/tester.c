@@ -110,7 +110,7 @@ const MSAudioDiffParams audio_cmp_params = {10, 200};
 /* Default test server infrastructure. You may change to sandbox infrastructure to test changes to the infrastructure
  * first. */
 const char *flexisip_tester_dns_server = "fs-test-9.linphone.org";
-// const char *flexisip_tester_dns_server = "fs-test-sandbox-2.linphone.org";
+// const char *flexisip_tester_dns_server = "fs-test-sandbox-3.linphone.org";
 
 bctbx_list_t *flexisip_tester_dns_ip_addresses = NULL;
 const char *ccmp_server_url = "http://sip.example.org:3333/xml/";

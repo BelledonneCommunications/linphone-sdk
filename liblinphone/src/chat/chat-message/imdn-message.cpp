@@ -32,7 +32,7 @@ LINPHONE_BEGIN_NAMESPACE
 
 // -----------------------------------------------------------------------------
 
-void ImdnMessagePrivate::setState(ChatMessage::State newState) {
+void ImdnMessagePrivate::setState(ChatMessage::State newState, BCTBX_UNUSED(LinphoneReason reason)) {
 	L_Q();
 
 	if (newState == ChatMessage::State::Delivered) {

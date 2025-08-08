@@ -286,6 +286,7 @@ void group_chat_room_lime_server_message(bool encrypted);
 void group_chat_room_with_client_restart_base(bool encrypted);
 void group_chat_room_with_sip_errors_base(bool invite_error, bool subscribe_error, bool encrypted);
 void one_to_one_group_chat_room_deletion_by_server_client_base(bool encrypted);
+void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_remote_event_list_handler, bool encrypted);
 void sendEphemeralMessageInAdminMode(Focus &focus,
                                      ClientConference &sender,
                                      ClientConference &recipient,

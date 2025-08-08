@@ -190,8 +190,7 @@ static void group_chat_room_server_deletion() {
 			return true;
 		}) /*)*/;
 
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(marieCr, "message blabla");
-		linphone_chat_message_send(msg);
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(marieCr, "message blabla to everybody");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, pauline2}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -275,8 +274,7 @@ static void group_chat_room_server_deletion_with_rmt_lst_event_handler() {
 			return true;
 		}));
 
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(marieCr, "message blabla");
-		linphone_chat_message_send(msg);
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(marieCr, "message blabla to colleagues");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -605,8 +603,7 @@ static void group_chat_room_with_client_removed_added() {
 		                             initialPaulineStats.number_of_participant_devices_added + 1,
 		                             liblinphone_tester_sip_timeout));
 
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(marieCr, "message blabla");
-		linphone_chat_message_send(msg);
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(marieCr, "message blabla to core added");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, michelle2}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -1054,8 +1051,7 @@ static void group_chat_room_with_client_registering_with_short_register_expires(
 			}
 		};
 
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(michelleCr, "back with you");
-		linphone_chat_message_send(msg);
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(michelleCr, "back with you");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -1068,8 +1064,7 @@ static void group_chat_room_with_client_registering_with_short_register_expires(
 		linphone_chat_message_unref(msg);
 		msg = NULL;
 
-		msg = linphone_chat_room_create_message_from_utf8(marieCr, "welcome back");
-		linphone_chat_message_send(msg);
+		msg = ClientConference::sendTextMsg(marieCr, "welcome back");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -1298,8 +1293,7 @@ static void group_chat_room_with_client_restart_removed_from_server() {
 			}
 		};
 
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(michelleCr, "back with you");
-		linphone_chat_message_send(msg);
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(michelleCr, "back with you");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -1309,8 +1303,7 @@ static void group_chat_room_with_client_restart_removed_from_server() {
 		linphone_chat_message_unref(msg);
 		msg = NULL;
 
-		msg = linphone_chat_room_create_message_from_utf8(marieCr, "welcome back");
-		linphone_chat_message_send(msg);
+		msg = ClientConference::sendTextMsg(marieCr, "welcome back");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -1349,332 +1342,12 @@ static void group_chat_room_with_client_restart_removed_from_server() {
 	}
 }
 
-static void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_remote_event_list_handler) {
-	Focus focus("chloe_rc");
-	{ // to make sure focus is destroyed after clients.
-		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
-		ClientConference michelle("michelle_rc", focus.getConferenceFactoryAddress());
-		ClientConference berthe("berthe_rc", focus.getConferenceFactoryAddress());
-
-		focus.registerAsParticipantDevice(marie);
-		focus.registerAsParticipantDevice(michelle);
-		focus.registerAsParticipantDevice(berthe);
-
-		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
-		coresList = bctbx_list_append(coresList, marie.getLc());
-		coresList = bctbx_list_append(coresList, michelle.getLc());
-		coresList = bctbx_list_append(coresList, berthe.getLc());
-		bctbx_list_t *participantsAddresses = NULL;
-		Address michelleAddr = michelle.getIdentity();
-		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(michelleAddr.toC()));
-		Address bertheAddr = berthe.getIdentity();
-		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(bertheAddr.toC()));
-
-		stats initialMarieStats = marie.getStats();
-		stats initialMichelleStats = michelle.getStats();
-		stats initialBertheStats = berthe.getStats();
-		//
-		// Marie creates a new group chat room
-		const char *initialSubject = "Colleagues (characters: $ £ çà)";
-		LinphoneChatRoom *marieCr = create_chat_room_client_side_with_expected_number_of_participants(
-		    coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses, initialSubject, 2, false,
-		    LinphoneChatRoomEphemeralModeDeviceManaged);
-		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
-
-		// Check that the chat room is correctly created on Michelle's side and that the participants are added
-		LinphoneChatRoom *michelleCr = check_creation_chat_room_client_side(
-		    coresList, michelle.getCMgr(), &initialMichelleStats, confAddr, initialSubject, 2, FALSE);
-
-		LinphoneChatRoom *bertheCr = check_creation_chat_room_client_side(
-		    coresList, berthe.getCMgr(), &initialBertheStats, confAddr, initialSubject, 2, FALSE);
-
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe}).wait([&focus] {
-			for (const auto &chatRoom : focus.getCore().getChatRooms()) {
-				for (const auto &participant : chatRoom->getParticipants()) {
-					for (const auto &device : participant->getDevices()) {
-						if (device->getState() != ParticipantDevice::State::Present) {
-							return false;
-						}
-					}
-				}
-			}
-			return true;
-		}));
-
-		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomStateCreated,
-		                             initialMichelleStats.number_of_LinphoneChatRoomStateCreated + 1,
-		                             liblinphone_tester_sip_timeout));
-
-		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_LinphoneChatRoomStateCreated,
-		                             initialBertheStats.number_of_LinphoneChatRoomStateCreated + 1,
-		                             liblinphone_tester_sip_timeout));
-
-		// Marie now changes the subject
-		const char *newSubject = "Let's go drink a beer";
-		linphone_chat_room_set_subject(marieCr, newSubject);
-		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_subject_changed,
-		                             initialMarieStats.number_of_subject_changed + 1, liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_subject_changed,
-		                             initialMichelleStats.number_of_subject_changed + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_subject_changed,
-		                             initialBertheStats.number_of_subject_changed + 1, liblinphone_tester_sip_timeout));
-		BC_ASSERT_STRING_EQUAL(linphone_chat_room_get_subject(marieCr), newSubject);
-		BC_ASSERT_STRING_EQUAL(linphone_chat_room_get_subject(michelleCr), newSubject);
-		BC_ASSERT_STRING_EQUAL(linphone_chat_room_get_subject(bertheCr), newSubject);
-
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(marieCr), 2, int, "%d");
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 2, int, "%d");
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(bertheCr), 2, int, "%d");
-
-		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores2{focus, marie, michelle, berthe};
-		for (const ConfCoreManager &core : cores2) {
-			BC_ASSERT_TRUE(
-			    CoreManagerAssert({focus, marie, michelle, berthe}).waitUntil(chrono::seconds(10), [&focus, &core] {
-				    return checkChatroom(focus, core, -1);
-			    }));
-		};
-
-		initialMarieStats = marie.getStats();
-		initialMichelleStats = michelle.getStats();
-		initialBertheStats = berthe.getStats();
-
-		LinphoneAddress *michelleContact = linphone_address_clone(
-		    linphone_proxy_config_get_contact(linphone_core_get_default_proxy_config(michelle.getLc())));
-
-		// Restart Michelle
-		const char *uuid = linphone_config_get_string(linphone_core_get_config(michelle.getLc()), "misc", "uuid", NULL);
-		char *uuid_copy = NULL;
-		if (uuid) {
-			uuid_copy = bctbx_strdup(uuid);
-		}
-
-		ms_message("%s stops its core", linphone_core_get_identity(michelle.getLc()));
-		coresList = bctbx_list_remove(coresList, michelle.getLc());
-		linphone_core_manager_stop(michelle.getCMgr());
-
-		char *michelleContactStr = linphone_address_as_string(michelleContact);
-		ms_message("All %s's devices are removed", michelleContactStr);
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			auto participant =
-			    chatRoom->findParticipant(Address::toCpp(michelle.getCMgr()->identity)->getSharedFromThis());
-			BC_ASSERT_PTR_NOT_NULL(participant);
-			if (participant) {
-				const auto &devices = participant->getDevices();
-				BC_ASSERT_GREATER_STRICT(devices.size(), 0, size_t, "%zu");
-				for (const auto &device : devices) {
-					auto deviceAddress = device->getAddress();
-					ms_message("Delete device %s from the database", deviceAddress->toString().c_str());
-					L_GET_PRIVATE_FROM_C_OBJECT(focus.getLc())
-					    ->mainDb->deleteChatRoomParticipantDevice(chatRoom, device);
-				}
-				ClientConference::deleteAllDevices(participant);
-			}
-		}
-
-		// Marie removes Michelle from the chat room
-		LinphoneParticipant *michelleParticipant = linphone_chat_room_find_participant(marieCr, michelleContact);
-		BC_ASSERT_PTR_NOT_NULL(michelleParticipant);
-		linphone_chat_room_remove_participant(marieCr, michelleParticipant);
-
-		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participants_removed,
-		                             initialMarieStats.number_of_participants_removed + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_participants_removed,
-		                             initialBertheStats.number_of_participants_removed + 1,
-		                             liblinphone_tester_sip_timeout));
-
-		ms_message("%s is restarting its core", linphone_core_get_identity(focus.getLc()));
-		coresList = bctbx_list_remove(coresList, focus.getLc());
-
-		// Restart flexisip
-		focus.reStart();
-		coresList = bctbx_list_append(coresList, focus.getLc());
-
-		// For a SUBSCRIBE from the clients
-		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores3{marie, berthe};
-		for (ConfCoreManager &core : cores3) {
-			stats initialStats = core.getStats();
-			ms_message("%s toggles its network", linphone_core_get_identity(core.getLc()));
-			linphone_core_set_network_reachable(core.getLc(), FALSE);
-			BC_ASSERT_TRUE(wait_for_list(coresList, &core.getStats().number_of_LinphoneSubscriptionTerminated,
-			                             initialStats.number_of_LinphoneSubscriptionTerminated + 1,
-			                             liblinphone_tester_sip_timeout));
-			linphone_core_set_network_reachable(core.getLc(), TRUE);
-			BC_ASSERT_TRUE(wait_for_list(coresList, &core.getStats().number_of_LinphoneRegistrationOk,
-			                             initialStats.number_of_LinphoneRegistrationOk + 1,
-			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &core.getStats().number_of_LinphoneSubscriptionActive,
-			                             initialStats.number_of_LinphoneSubscriptionActive + 1,
-			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_FALSE(wait_for_list(coresList, &core.getStats().number_of_participant_devices_added,
-			                              initialStats.number_of_participant_devices_added + 1, 2000));
-			BC_ASSERT_FALSE(wait_for_list(coresList, &core.getStats().number_of_participants_added,
-			                              initialStats.number_of_participants_added + 1, 200));
-		}
-
-		ms_message("%s starts again its core", michelleContactStr);
-		ms_free(michelleContactStr);
-		linphone_core_manager_configure(michelle.getCMgr());
-		michelle.configure((!!use_remote_event_list_handler) ? focus.getConferenceFactoryAddress() : Address());
-		// Make sure gruu is preserved
-		linphone_config_set_string(linphone_core_get_config(michelle.getLc()), "misc", "uuid", uuid_copy);
-		linphone_core_manager_start(michelle.getCMgr(), TRUE);
-		coresList = bctbx_list_append(coresList, michelle.getLc());
-
-		if (uuid_copy) {
-			bctbx_free(uuid_copy);
-		}
-
-		setup_mgr_for_conference(michelle.getCMgr(), NULL);
-		if (!!use_remote_event_list_handler) {
-			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionActive,
-			                             initialMichelleStats.number_of_LinphoneSubscriptionActive + 1,
-			                             liblinphone_tester_sip_timeout));
-		} else {
-			BC_ASSERT_FALSE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionActive,
-			                              initialMichelleStats.number_of_LinphoneSubscriptionActive + 1, 2000));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionError,
-			                             initialMichelleStats.number_of_LinphoneSubscriptionError + 1,
-			                             liblinphone_tester_sip_timeout));
-		}
-
-		michelleCr = linphone_core_search_chat_room(michelle.getLc(), NULL, michelleContact, confAddr, NULL);
-		BC_ASSERT_PTR_NOT_NULL(michelleCr);
-
-		// wait until chatroom is deleted Michelle's side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe}).wait([&michelle] {
-			return michelle.getCore().getChatRooms().size() == 1;
-		}));
-
-		initialMarieStats = marie.getStats();
-		initialBertheStats = berthe.getStats();
-
-		// A second device for Berthe is added in order to verify that the server will not send a NOTIFY full state
-		// where Michelle is still a participant but she has no devices associated
-		ClientConference berthe2("berthe_rc", focus.getConferenceFactoryAddress());
-		stats initialBerthe2Stats = berthe2.getStats();
-		coresList = bctbx_list_append(coresList, berthe2.getLc());
-
-		LinphoneAddress *berthe2Contact = linphone_address_clone(
-		    linphone_proxy_config_get_contact(linphone_core_get_default_proxy_config(berthe2.getLc())));
-		ms_message("%s is adding device %s", linphone_core_get_identity(focus.getLc()),
-		           linphone_address_as_string(berthe2Contact));
-		focus.registerAsParticipantDevice(berthe2);
-
-		// Notify chat room that a participant has registered
-		bctbx_list_t *devices = NULL;
-		bctbx_list_t *specs = linphone_core_get_linphone_specs_list(berthe.getLc());
-		const LinphoneAddress *deviceAddr =
-		    linphone_proxy_config_get_contact(linphone_core_get_default_proxy_config(berthe.getLc()));
-		LinphoneParticipantDeviceIdentity *identity =
-		    linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddr, "");
-		linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
-		bctbx_list_free_with_data(specs, ms_free);
-		devices = bctbx_list_append(devices, identity);
-
-		specs = linphone_core_get_linphone_specs_list(berthe2.getLc());
-		deviceAddr = linphone_proxy_config_get_contact(linphone_core_get_default_proxy_config(berthe2.getLc()));
-		identity = linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddr, "");
-		linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
-		bctbx_list_free_with_data(specs, ms_free);
-		devices = bctbx_list_append(devices, identity);
-
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			linphone_chat_room_set_participant_devices(chatRoom->toC(), berthe.getCMgr()->identity, devices);
-		}
-		bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
-
-		LinphoneChatRoom *berthe2Cr = check_creation_chat_room_client_side(
-		    coresList, berthe2.getCMgr(), &initialBerthe2Stats, confAddr, newSubject, 1, FALSE);
-		BC_ASSERT_PTR_NOT_NULL(berthe2Cr);
-		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe2.getStats().number_of_LinphoneChatRoomStateCreated,
-		                             initialBerthe2Stats.number_of_LinphoneChatRoomStateCreated + 1,
-		                             liblinphone_tester_sip_timeout));
-
-		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participant_devices_added,
-		                             initialMarieStats.number_of_participant_devices_added + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_participant_devices_added,
-		                             initialBertheStats.number_of_participant_devices_added + 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_FALSE(wait_for_list(coresList, &michelle.getStats().number_of_participant_devices_added,
-		                              initialMichelleStats.number_of_participant_devices_added + 1, 2000));
-
-		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores{focus, marie, berthe, berthe2};
-		for (const ConfCoreManager &core : cores) {
-			BC_ASSERT_TRUE(
-			    CoreManagerAssert({focus, marie, michelle, berthe}).waitUntil(chrono::seconds(10), [&focus, &core] {
-				    return checkChatroom(focus, core, -1);
-			    }));
-			for (auto chatRoom : core.getCore().getChatRooms()) {
-				BC_ASSERT_EQUAL(chatRoom->getParticipants().size(), ((focus.getLc() == core.getLc())) ? 2 : 1, size_t,
-				                "%zu");
-				BC_ASSERT_STRING_EQUAL(chatRoom->getSubject().c_str(), newSubject);
-			}
-		};
-
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(michelleCr, "back with you");
-		linphone_chat_message_send(msg);
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe, berthe2}).wait([msg] {
-			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateNotDelivered);
-		}));
-		linphone_chat_message_unref(msg);
-		msg = NULL;
-
-		msg = linphone_chat_room_create_message_from_utf8(marieCr, "Michelle, I can't receive your messages .... :(");
-		linphone_chat_message_send(msg);
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe, berthe2}).wait([msg] {
-			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
-		}));
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe, berthe2}).wait([bertheCr] {
-			return linphone_chat_room_get_unread_messages_count(bertheCr) == 1;
-		}));
-		if (berthe2Cr) {
-			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe, berthe2}).wait([berthe2Cr] {
-				return linphone_chat_room_get_unread_messages_count(berthe2Cr) == 1;
-			}));
-		}
-		linphone_chat_message_unref(msg);
-		msg = NULL;
-
-		CoreManagerAssert({focus, marie, michelle, berthe}).waitUntil(std::chrono::seconds(2), [] { return false; });
-
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				auto participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe, berthe2}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, michelle, berthe, berthe2}).waitUntil(chrono::seconds(2), [] {
-			return false;
-		});
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
-
-		linphone_address_unref(michelleContact);
-		bctbx_list_free(coresList);
-	}
-}
-
 static void group_chat_room_with_client_removed_while_stopped_remote_list_event_handler() {
-	group_chat_room_with_client_removed_while_stopped_base(TRUE);
+	group_chat_room_with_client_removed_while_stopped_base(TRUE, FALSE);
 }
 
 static void group_chat_room_with_client_removed_while_stopped_no_remote_list_event_handler() {
-	group_chat_room_with_client_removed_while_stopped_base(FALSE);
+	group_chat_room_with_client_removed_while_stopped_base(FALSE, FALSE);
 }
 
 static void group_chat_room_with_creator_without_groupchat_capability_in_register() {
@@ -2655,8 +2328,7 @@ static void one_to_one_chatroom_backward_compatibility_base(const char *groupcha
 		                             initialPaulineStats.number_of_LinphoneChatRoomStateCreated + 1,
 		                             liblinphone_tester_sip_timeout));
 
-		LinphoneChatMessage *marieMsg1 = linphone_chat_room_create_message_from_utf8(marieCr, "Long live the C++ !");
-		linphone_chat_message_send(marieMsg1);
+		LinphoneChatMessage *marieMsg1 = ClientConference::sendTextMsg(marieCr, "Long live the C++ !");
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageSent,
 		                             initialMarieStats.number_of_LinphoneMessageSent + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -2757,8 +2429,7 @@ static void one_to_one_chatroom_exhumed_while_offline() {
 		ms_message("%s goes offline", linphone_core_get_identity(pauline.getLc()));
 		linphone_core_set_network_reachable(pauline.getLc(), FALSE);
 
-		LinphoneChatMessage *marieMsg1 = linphone_chat_room_create_message_from_utf8(marieCr, "Long live the C++ !");
-		linphone_chat_message_send(marieMsg1);
+		LinphoneChatMessage *marieMsg1 = ClientConference::sendTextMsg(marieCr, "Long live the C++ !");
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageSent,
 		                             initialMarieStats.number_of_LinphoneMessageSent + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -2856,9 +2527,7 @@ static void one_to_one_chatroom_exhumed_while_offline() {
 			paulineMsgs = linphone_chat_room_get_history_size(newPaulineCr);
 			BC_ASSERT_EQUAL(paulineMsgs, 1, int, "%d");
 
-			LinphoneChatMessage *paulineMsg =
-			    linphone_chat_room_create_message_from_utf8(newPaulineCr, "Sorry I was offline :(");
-			linphone_chat_message_send(paulineMsg);
+			LinphoneChatMessage *paulineMsg = ClientConference::sendTextMsg(newPaulineCr, "Sorry I was offline :(");
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([paulineMsg] {
 				return (linphone_chat_message_get_state(paulineMsg) == LinphoneChatMessageStateDelivered);
 			}));
@@ -2873,8 +2542,7 @@ static void one_to_one_chatroom_exhumed_while_offline() {
 			paulineMsgs = linphone_chat_room_get_history_size(newPaulineCr);
 			BC_ASSERT_EQUAL(paulineMsgs, 2, int, "%d");
 
-			LinphoneChatMessage *marieMsg = linphone_chat_room_create_message_from_utf8(marieCr, "exhumed!!");
-			linphone_chat_message_send(marieMsg);
+			LinphoneChatMessage *marieMsg = ClientConference::sendTextMsg(marieCr, "exhumed!!");
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([marieMsg] {
 				return (linphone_chat_message_get_state(marieMsg) == LinphoneChatMessageStateDelivered);
 			}));
@@ -3086,8 +2754,7 @@ static void multidomain_group_chat_room() {
 			                   return true;
 		                   }));
 
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(marieCr, "message blabla");
-		linphone_chat_message_send(msg);
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(marieCr, "message blabla domain0");
 		BC_ASSERT_TRUE(
 		    CoreManagerAssert({focusExampleDotOrg, focusAuth1DotExampleDotOrg, marie, pauline, michelle}).wait([msg] {
 			    return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
@@ -3149,8 +2816,7 @@ static void multidomain_group_chat_room() {
 			                   return true;
 		                   }));
 
-		msg = linphone_chat_room_create_message_from_utf8(marieCrfocusAuth1DotExampleDotOrg, "message blabla");
-		linphone_chat_message_send(msg);
+		msg = ClientConference::sendTextMsg(marieCrfocusAuth1DotExampleDotOrg, "message blabla domain1");
 		BC_ASSERT_TRUE(CoreManagerAssert({focusAuth1DotExampleDotOrg, marie, pauline, michelle}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -3582,7 +3248,6 @@ static void group_chat_room_with_duplications() {
 			std::string msg_text =
 			    std::string("Welcome to all to chatroom ") + chatRoom->getConferenceAddress()->toString();
 			LinphoneChatMessage *msg = ClientConference::sendTextMsg(chatRoom->toC(), msg_text);
-
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, laure}).wait([&msg] {
 				return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 			}));
@@ -3946,10 +3611,10 @@ static void short_ephemeral_lifetime_messages_test(void) {
 		BC_ASSERT_PTR_NOT_NULL(laureCr);
 
 		// Marie sends a message in a basic chatroom
-		const char *marie_text = "This is a group chat room";
 		LinphoneChatMessage *marie_msg = NULL;
 		if (marieCr) {
-			marie_msg = _send_message(marieCr, marie_text);
+			std::string marie_text("This is a group chat room");
+			marie_msg = ClientConference::sendTextMsg(marieCr, marie_text);
 		}
 
 		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> clients{marie, pauline, laure};

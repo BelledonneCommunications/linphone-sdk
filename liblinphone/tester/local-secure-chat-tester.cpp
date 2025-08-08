@@ -510,8 +510,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 		// Michelle has 3 participants: marie, pauline and a fake participant with marie's username having some
 		// uppercase letter
 		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 3, int, "%0d");
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(michelleCr, "back with you");
-		linphone_chat_message_send(msg);
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(michelleCr, "back with you");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, pauline}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 		}));
@@ -1222,9 +1221,7 @@ static void secure_one_to_one_chat_room_with_client_removed_from_database() {
 			}
 		}
 
-		LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(paulineCr, "Hello everybody");
-		linphone_chat_message_send(msg);
-
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(paulineCr, "Hello everybody");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateNotDelivered);
 		}));
@@ -1313,9 +1310,7 @@ static void secure_one_to_one_chat_room_with_client_sending_imdn_on_restart(void
 		std::string messageTextBase = "Hello everybody - attempt #";
 		for (int idx = 0; idx < nbMessages; idx++) {
 			std::string messageText(messageTextBase + std::to_string(idx));
-			LinphoneChatMessage *msg = linphone_chat_room_create_message_from_utf8(paulineCr, "Hello everybody");
-			linphone_chat_message_send(msg);
-
+			LinphoneChatMessage *msg = ClientConference::sendTextMsg(paulineCr, "Hello everybody");
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([msg] {
 				return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDeliveredToUser);
 			}));
@@ -1523,6 +1518,53 @@ static void secure_one_to_one_chat_room_with_subscribe_not_replied(void) {
 	}
 }
 
+void check_conference_creation(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                               std::initializer_list<std::reference_wrapper<ClientConference>> clients) {
+	for (ClientConference &client : clients) {
+		BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).waitUntil(std::chrono::seconds(10), [&client] {
+			const auto &chatRooms = client.getCore().getChatRooms();
+			if (chatRooms.size() != 1) {
+				return false;
+			}
+			for (auto chatRoom : chatRooms) {
+				if (chatRoom->getState() != ConferenceInterface::State::Created) {
+					return false;
+				}
+
+				const auto &me = chatRoom->getConference()->getMe();
+				if (me) {
+					const auto &devices = me->getDevices();
+					if (devices.size() != 1) {
+						return false;
+					}
+					for (const auto &device : devices) {
+						if (device->getState() != ParticipantDevice::State::Present) {
+							return false;
+						}
+					}
+				}
+
+				const auto &participants = chatRoom->getParticipants();
+				if (participants.size() != 1) {
+					return false;
+				}
+				for (const auto &participant : participants) {
+					const auto &devices = participant->getDevices();
+					if (devices.size() != 1) {
+						return false;
+					}
+					for (const auto &device : devices) {
+						if (device->getState() != ParticipantDevice::State::Present) {
+							return false;
+						}
+					}
+				}
+			}
+			return true;
+		}));
+	}
+}
+
 static void secure_group_chat_message_cannot_be_sent_immediately_base(bool_t restart_client) {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
@@ -1575,8 +1617,8 @@ static void secure_group_chat_message_cannot_be_sent_immediately_base(bool_t res
 		                             liblinphone_tester_sip_timeout));
 		ms_message("%s shuts down its network", linphone_core_get_identity(focus.getLc()));
 		linphone_core_set_network_reachable(focus.getLc(), FALSE);
-		const char *marieMessage = "I've a very bad network";
-		LinphoneChatMessage *msg = _send_message(marieChatRoom, marieMessage);
+		std::string marieMessage("I've a very bad network - maybe too late");
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(marieChatRoom, marieMessage);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageQueued,
 		                             initialMarieStats.number_of_LinphoneMessageQueued + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -1625,49 +1667,8 @@ static void secure_group_chat_message_cannot_be_sent_immediately_base(bool_t res
 		                             initialMarieStats.number_of_LinphoneChatRoomConferenceJoined + 1,
 		                             liblinphone_tester_sip_timeout));
 		const std::initializer_list<std::reference_wrapper<ClientConference>> clientsInConference{marie, pauline};
-		for (ClientConference &client : clientsInConference) {
-			const auto &chatRooms = client.getCore().getChatRooms();
-			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).waitUntil(std::chrono::seconds(10), [&chatRooms] {
-				if (chatRooms.size() != 1) {
-					return false;
-				}
-				for (auto chatRoom : chatRooms) {
-					if (chatRoom->getState() != ConferenceInterface::State::Created) {
-						return false;
-					}
-
-					const auto &me = chatRoom->getConference()->getMe();
-					if (me) {
-						const auto &devices = me->getDevices();
-						if (devices.size() != 1) {
-							return false;
-						}
-						for (const auto &device : devices) {
-							if (device->getState() != ParticipantDevice::State::Present) {
-								return false;
-							}
-						}
-					}
-
-					const auto &participants = chatRoom->getParticipants();
-					if (participants.size() != 1) {
-						return false;
-					}
-					for (const auto &participant : participants) {
-						const auto &devices = participant->getDevices();
-						if (devices.size() != 1) {
-							return false;
-						}
-						for (const auto &device : devices) {
-							if (device->getState() != ParticipantDevice::State::Present) {
-								return false;
-							}
-						}
-					}
-				}
-				return true;
-			}));
-		}
+		const std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs{focus, marie, pauline};
+		check_conference_creation(coreMgrs, clientsInConference);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageSent,
 		                             initialMarieStats.number_of_LinphoneMessageSent + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -1768,8 +1769,8 @@ static void secure_group_chat_message_cannot_be_sent_immediately_with_replaces(v
 			}
 			return ret;
 		}));
-		const char *marieMessage = "I've a very bad network";
-		LinphoneChatMessage *msg = _send_message(marieChatRoom, marieMessage);
+		std::string marieMessage("I've a very bad network - dropping in a few seconds");
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(marieChatRoom, marieMessage);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageQueued,
 		                             initialMarieStats.number_of_LinphoneMessageQueued + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -1807,49 +1808,8 @@ static void secure_group_chat_message_cannot_be_sent_immediately_with_replaces(v
 		                             initialPaulineStats.number_of_LinphoneRegistrationOk + 1,
 		                             liblinphone_tester_sip_timeout));
 		const std::initializer_list<std::reference_wrapper<ClientConference>> clientsInConference{marie, pauline};
-		for (ClientConference &client : clientsInConference) {
-			const auto &chatRooms = client.getCore().getChatRooms();
-			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).waitUntil(std::chrono::seconds(10), [&chatRooms] {
-				if (chatRooms.size() != 1) {
-					return false;
-				}
-				for (auto chatRoom : chatRooms) {
-					if (chatRoom->getState() != ConferenceInterface::State::Created) {
-						return false;
-					}
-
-					const auto &me = chatRoom->getConference()->getMe();
-					if (me) {
-						const auto &devices = me->getDevices();
-						if (devices.size() != 1) {
-							return false;
-						}
-						for (const auto &device : devices) {
-							if (device->getState() != ParticipantDevice::State::Present) {
-								return false;
-							}
-						}
-					}
-
-					const auto &participants = chatRoom->getParticipants();
-					if (participants.size() != 1) {
-						return false;
-					}
-					for (const auto &participant : participants) {
-						const auto &devices = participant->getDevices();
-						if (devices.size() != 1) {
-							return false;
-						}
-						for (const auto &device : devices) {
-							if (device->getState() != ParticipantDevice::State::Present) {
-								return false;
-							}
-						}
-					}
-				}
-				return true;
-			}));
-		}
+		const std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs{focus, marie, pauline};
+		check_conference_creation(coreMgrs, clientsInConference);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageSent,
 		                             initialMarieStats.number_of_LinphoneMessageSent + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -1884,6 +1844,138 @@ static void secure_group_chat_message_cannot_be_sent_immediately_with_replaces(v
 	}
 }
 
+static void secure_group_chat_message_sent_during_conference_creation(void) {
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		const LinphoneTesterLimeAlgo lime_algo = C25519;
+		const bool_t encrypted = (lime_algo != UNSET);
+		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress(), lime_algo);
+		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress(), lime_algo);
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(pauline);
+
+		stats initialMarieStats = marie.getStats();
+		stats initialPaulineStats = pauline.getStats();
+		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
+		coresList = bctbx_list_append(coresList, marie.getLc());
+		coresList = bctbx_list_append(coresList, pauline.getLc());
+
+		if (encrypted) {
+			// Check encryption status for both participants
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(marie.getLc()));
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(pauline.getLc()));
+		}
+
+		Address paulineAddr = pauline.getIdentity();
+		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(paulineAddr.toC()));
+
+		// Marie creates a new regular chat room
+		const char *initialSubject = "Network instable";
+		LinphoneConferenceParams *params = linphone_conference_params_new(marie.getLc());
+		linphone_conference_params_enable_chat(params, TRUE);
+		linphone_conference_params_set_security_level(params, LinphoneConferenceSecurityLevelEndToEnd);
+		linphone_conference_params_set_subject(params, initialSubject);
+		linphone_conference_params_enable_group(params, TRUE);
+		LinphoneChatParams *chat_params = linphone_conference_params_get_chat_params(params);
+		linphone_chat_params_set_backend(chat_params, LinphoneChatRoomBackendFlexisipChat);
+		linphone_chat_params_set_ephemeral_mode(chat_params, LinphoneChatRoomEphemeralModeAdminManaged);
+		LinphoneChatRoom *marieChatRoom =
+		    linphone_core_create_chat_room_7(marie.getLc(), params, participantsAddresses);
+		BC_ASSERT_PTR_NOT_NULL(marieChatRoom);
+		bctbx_list_free_with_data(participantsAddresses, (bctbx_list_free_func)linphone_address_unref);
+		participantsAddresses = NULL;
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
+			return focus.getCore().getChatRooms().size() == 1;
+		}));
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateInstantiated,
+		                             initialMarieStats.number_of_LinphoneChatRoomStateInstantiated + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreationPending,
+		                             initialMarieStats.number_of_LinphoneChatRoomStateCreationPending + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
+			bool ret = true;
+			for (auto &chatRoom : focus.getCore().getChatRooms()) {
+				ret &= (chatRoom->getParticipants().size() == 2);
+			}
+			return ret;
+		}));
+		std::string marieMessage("I've a very bad network - this message is goigng to be queued");
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(marieChatRoom, marieMessage);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageQueued,
+		                             initialMarieStats.number_of_LinphoneMessageQueued + 1,
+		                             liblinphone_tester_sip_timeout));
+		ms_message("%s shuts down its network", linphone_core_get_identity(marie.getLc()));
+		linphone_core_set_network_reachable(marie.getLc(), FALSE);
+		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageDelivered,
+		                              initialMarieStats.number_of_LinphoneMessageDelivered + 1, 500));
+		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreated,
+		                              initialMarieStats.number_of_LinphoneChatRoomStateCreated + 1, 500));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NetworkReachableFalse,
+		                             initialMarieStats.number_of_NetworkReachableFalse + 1,
+		                             liblinphone_tester_sip_timeout));
+		linphone_chat_message_unref(msg);
+		initialMarieStats = marie.getStats();
+		ms_message("%s turns its network back on", linphone_core_get_identity(marie.getLc()));
+		linphone_core_set_network_reachable(marie.getLc(), TRUE);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NetworkReachableTrue,
+		                             initialMarieStats.number_of_NetworkReachableTrue + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneRegistrationOk,
+		                             initialMarieStats.number_of_LinphoneRegistrationOk + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
+		                             initialMarieStats.number_of_LinphoneSubscriptionActive + 1,
+		                             liblinphone_tester_sip_timeout));
+		initialPaulineStats = pauline.getStats();
+		linphone_core_refresh_registers(pauline.getLc());
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneRegistrationOk,
+		                             initialPaulineStats.number_of_LinphoneRegistrationOk + 1,
+		                             liblinphone_tester_sip_timeout));
+		const std::initializer_list<std::reference_wrapper<ClientConference>> clientsInConference{marie, pauline};
+		const std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs{focus, marie, pauline};
+		check_conference_creation(coreMgrs, clientsInConference);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
+		                             initialPaulineStats.number_of_LinphoneMessageReceived + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		CoreManagerAssert({focus, marie, pauline}).waitUntil(std::chrono::seconds(2), [] { return false; });
+
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			for (auto participant : chatRoom->getParticipants()) {
+				//  force deletion by removing devices
+				auto participantAddress = participant->getAddress();
+				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
+			}
+		}
+
+		// wait until chatroom is deleted server side
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
+			return focus.getCore().getChatRooms().size() == 0;
+		}));
+
+		// wait bit more to detect side effect if any
+		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
+
+		// to avoid creation attempt of a new chatroom
+		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
+		linphone_proxy_config_edit(config);
+		linphone_proxy_config_set_conference_factory_uri(config, NULL);
+		linphone_proxy_config_done(config);
+		bctbx_list_free(coresList);
+	}
+}
+
+static void secure_group_chat_room_with_client_removed_while_stopped_remote_list_event_handler() {
+	group_chat_room_with_client_removed_while_stopped_base(TRUE, TRUE);
+}
+
+static void secure_group_chat_room_with_client_removed_while_stopped_no_remote_list_event_handler() {
+	group_chat_room_with_client_removed_while_stopped_base(FALSE, TRUE);
+}
+
 } // namespace LinphoneTest
 
 static test_t local_conference_secure_chat_tests[] = {
@@ -1905,6 +1997,14 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_one_to_one_group_chat_room_deletion_by_server_client,
                   "LimeX3DH",
                   "LeaksMemory"), /* because of network up and down */
+    TEST_TWO_TAGS("Secure group chat with client removed while stopped (Remote Conference List Event Handler)",
+                  LinphoneTest::secure_group_chat_room_with_client_removed_while_stopped_remote_list_event_handler,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* beacause of coreMgr restart*/
+    TEST_TWO_TAGS("Secure group chat with client removed while stopped (No Remote Conference List Event Handler)",
+                  LinphoneTest::secure_group_chat_room_with_client_removed_while_stopped_no_remote_list_event_handler,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_TWO_TAGS("Secure group chat room with client with uppercase username",
                   LinphoneTest::secure_group_chat_room_with_client_with_uppercase_username,
                   "LimeX3DH",
@@ -1916,6 +2016,10 @@ static test_t local_conference_secure_chat_tests[] = {
     TEST_ONE_TAG("Group chat Lime Server chat room encrypted message",
                  LinphoneTest::group_chat_room_lime_server_encrypted_message,
                  "LimeX3DH"),
+    TEST_TWO_TAGS("Secure group chat message sent during conference creation",
+                  LinphoneTest::secure_group_chat_message_sent_during_conference_creation,
+                  "LimeX3DH",
+                  "LeaksMemory" /*due to core restart*/),
     TEST_TWO_TAGS("Secure one-to-one chat send message after restart",
                   LinphoneTest::secure_one_to_one_chat_room_send_message_after_restart,
                   "LimeX3DH",

@@ -395,6 +395,9 @@ typedef struct _stats {
 	int number_of_LinphoneChatRoomEphemeralMessageDisabled;
 	int number_of_LinphoneChatRoomEphemeralTimerStarted;
 	int number_of_LinphoneChatRoomEphemeralDeleted;
+
+	int number_of_LinphoneChatRoomMessageEarlyFailure;
+
 	int number_of_X3dhUserCreationSuccess;
 	int number_of_X3dhUserCreationFailure;
 

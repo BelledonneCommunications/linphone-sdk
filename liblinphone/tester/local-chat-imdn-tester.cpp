@@ -250,6 +250,8 @@ static void group_chat_room_with_imdn_base(bool_t core_goes_offline) {
 					}
 				}
 				BC_ASSERT_EQUAL(admins, 1, int, "%0d");
+				BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chatRoom->toC()), (lc == focus.getLc()) ? 0 : 1,
+				                int, "%0i");
 			}
 		}
 
@@ -1225,8 +1227,8 @@ static void group_chat_room_lime_session_corrupted() {
 		BC_ASSERT_PTR_NOT_NULL(laureCr);
 		if (paulineCr && laureCr) {
 			// Marie sends the message
-			const char *marieMessage = "Hey ! What's up ?";
-			msg = _send_message(marieCr, marieMessage);
+			std::string marieMessage("Hey ! What's up ?");
+			msg = ClientConference::sendTextMsg(marieCr, marieMessage);
 			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
 			                             pauline_stat.number_of_LinphoneMessageReceived + 1,
 			                             liblinphone_tester_sip_timeout));
@@ -1240,11 +1242,11 @@ static void group_chat_room_lime_session_corrupted() {
 			if (!BC_ASSERT_PTR_NOT_NULL(laureLastMsg)) goto end;
 
 			// Check that the message was correctly decrypted if encrypted
-			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), marieMessage);
+			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), marieMessage.c_str());
 			LinphoneAddress *marieAddr = linphone_address_new(linphone_core_get_identity(marie.getLc()));
 			BC_ASSERT_TRUE(
 			    linphone_address_weak_equal(marieAddr, linphone_chat_message_get_from_address(paulineLastMsg)));
-			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(laureLastMsg), marieMessage);
+			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(laureLastMsg), marieMessage.c_str());
 			BC_ASSERT_TRUE(
 			    linphone_address_weak_equal(marieAddr, linphone_chat_message_get_from_address(laureLastMsg)));
 			linphone_address_unref(marieAddr);
@@ -1265,8 +1267,8 @@ static void group_chat_room_lime_session_corrupted() {
 			coresList = bctbx_list_append(coresList, pauline.getLc());
 
 			// Marie send a new message, it shall fail and get a 488 response
-			const char *marieTextMessage2 = "Do you copy?";
-			msg = _send_message(marieCr, marieTextMessage2);
+			std::string marieTextMessage2("Do you copy?");
+			msg = ClientConference::sendTextMsg(marieCr, marieTextMessage2);
 			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageDelivered,
 			                             marie_stat.number_of_LinphoneMessageDelivered + 2,
 			                             liblinphone_tester_sip_timeout)); // Delivered to the server
@@ -1280,16 +1282,16 @@ static void group_chat_room_lime_session_corrupted() {
 			linphone_chat_message_unref(msg);
 			laureLastMsg = laure.getStats().last_received_chat_message;
 			if (!BC_ASSERT_PTR_NOT_NULL(laureLastMsg)) goto end;
-			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(laureLastMsg), marieTextMessage2);
+			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(laureLastMsg), marieTextMessage2.c_str());
 			marieAddr = linphone_address_new(linphone_core_get_identity(marie.getLc()));
 			BC_ASSERT_TRUE(
 			    linphone_address_weak_equal(marieAddr, linphone_chat_message_get_from_address(laureLastMsg)));
 			linphone_address_unref(marieAddr);
 
 			// Try again, it shall work this time
-			const char *marieTextMessage3 = "Hello again";
 			marie_stat = marie.getStats();
-			msg = _send_message(marieCr, marieTextMessage3);
+			std::string marieTextMessage3("Hello again");
+			msg = ClientConference::sendTextMsg(marieCr, marieTextMessage3);
 			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageSent, 1, 5000));
 			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageDelivered,
 			                             marie_stat.number_of_LinphoneMessageDelivered + 1,
@@ -1307,8 +1309,8 @@ static void group_chat_room_lime_session_corrupted() {
 			if (!BC_ASSERT_PTR_NOT_NULL(paulineLastMsg)) goto end;
 			laureLastMsg = laure.getStats().last_received_chat_message;
 			if (!BC_ASSERT_PTR_NOT_NULL(laureLastMsg)) goto end;
-			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), marieTextMessage3);
-			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(laureLastMsg), marieTextMessage3);
+			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), marieTextMessage3.c_str());
+			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(laureLastMsg), marieTextMessage3.c_str());
 			marieAddr = linphone_address_new(linphone_core_get_identity(marie.getLc()));
 			BC_ASSERT_TRUE(
 			    linphone_address_weak_equal(marieAddr, linphone_chat_message_get_from_address(paulineLastMsg)));

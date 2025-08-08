@@ -305,6 +305,12 @@ static void chat_room_message_ephemeral_deleted(LinphoneChatRoom *cr, BCTBX_UNUS
 	manager->stat.number_of_LinphoneChatRoomEphemeralDeleted++;
 }
 
+static void chat_room_message_early_failure(LinphoneChatRoom *cr, BCTBX_UNUSED(const LinphoneEventLog *event_log)) {
+	LinphoneCore *core = linphone_chat_room_get_core(cr);
+	LinphoneCoreManager *manager = (LinphoneCoreManager *)linphone_core_get_user_data(core);
+	manager->stat.number_of_LinphoneChatRoomMessageEarlyFailure++;
+}
+
 void setup_chat_room_callbacks(LinphoneChatRoomCbs *cbs) {
 	linphone_chat_room_cbs_set_session_state_changed(cbs, chat_room_session_state_changed);
 	linphone_chat_room_cbs_set_is_composing_received(cbs, chat_room_is_composing_received);
@@ -321,6 +327,7 @@ void setup_chat_room_callbacks(LinphoneChatRoomCbs *cbs) {
 	linphone_chat_room_cbs_set_ephemeral_event(cbs, chat_room_message_ephemeral);
 	linphone_chat_room_cbs_set_ephemeral_message_timer_started(cbs, chat_room_message_ephemeral_started);
 	linphone_chat_room_cbs_set_ephemeral_message_deleted(cbs, chat_room_message_ephemeral_deleted);
+	linphone_chat_room_cbs_set_message_early_failure(cbs, chat_room_message_early_failure);
 }
 
 void core_chat_room_state_changed(BCTBX_UNUSED(LinphoneCore *core), LinphoneChatRoom *cr, LinphoneChatRoomState state) {
@@ -3220,8 +3227,9 @@ static void group_chat_room_reinvited_after_removed_base(bool_t offline_when_rem
 	bctbx_list_t *laureHistory = linphone_chat_room_get_history_events(newLaureCr, 0);
 	for (bctbx_list_t *item = laureHistory; item; item = bctbx_list_next(item)) {
 		LinphoneEventLog *event = (LinphoneEventLog *)bctbx_list_get_data(item);
-		if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceCreated)
+		if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceCreated) {
 			nbLaureConferenceCreatedEventsBeforeRestart++;
+		}
 	}
 	bctbx_list_free_with_data(laureHistory, (bctbx_list_free_func)linphone_event_log_unref);
 	// Restarting Laure's core doesn't generate a second ConferenceCreated event
@@ -3248,8 +3256,9 @@ static void group_chat_room_reinvited_after_removed_base(bool_t offline_when_rem
 		bctbx_list_t *laureHistory = linphone_chat_room_get_history_events(newLaureCr, 0);
 		for (bctbx_list_t *item = laureHistory; item; item = bctbx_list_next(item)) {
 			LinphoneEventLog *event = (LinphoneEventLog *)bctbx_list_get_data(item);
-			if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceCreated)
+			if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceCreated) {
 				nbLaureConferenceCreatedEventsAfterRestart++;
+			}
 		}
 		bctbx_list_free_with_data(laureHistory, (bctbx_list_free_func)linphone_event_log_unref);
 		BC_ASSERT_EQUAL(nbLaureConferenceCreatedEventsAfterRestart, nbLaureConferenceCreatedEventsBeforeRestart + 1,
@@ -6741,10 +6750,9 @@ static void exhume_one_to_one_chat_room_1(void) {
 		bctbx_list_t *participants = linphone_chat_room_get_participants(paulineOneToOneCr);
 		BC_ASSERT_EQUAL((int)bctbx_list_size(participants), 1, int, "%d");
 		bctbx_list_free_with_data(participants, (bctbx_list_free_func)linphone_participant_unref);
-
-		LinphoneChatMessage *exhume_message =
-		    linphone_chat_room_create_message_from_utf8(paulineOneToOneCr, "No. I am your father.");
-		linphone_chat_message_send(exhume_message);
+		LinphoneChatMessage *exhume_message = _send_message(paulineOneToOneCr, "No. I am your father.");
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageQueued, 1,
+		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneChatRoomStateCreated, 2,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(
@@ -7281,6 +7289,7 @@ static void exhume_one_to_one_chat_room_4(void) {
 
 	if (marieOneToOneCr) {
 		linphone_core_manager_delete_chat_room(marie, marieOneToOneCr, coresList);
+		marieOneToOneCr = NULL;
 		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneChatRoomStateTerminated, 1,
 		                              liblinphone_tester_sip_timeout));
 		/* The chatroom from Pauline is expected to terminate as well */

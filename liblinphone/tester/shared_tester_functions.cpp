@@ -1089,8 +1089,6 @@ bool_t check_screen_sharing_call_sdp(const LinphoneCall *call, const bool_t scre
 		    is_in_conference ? op->getRemoteMediaDescription() : op->getLocalMediaDescription();
 		int screenSharingStreamIdx =
 		    content_desc->findIdxStreamWithContent(MediaSessionPrivate::ScreenSharingContentAttribute);
-		lInfo() << __func__ << " DEBUG DEBUG screen sharing enabled " << !!screen_sharing_enabled << " stream idx "
-		        << screenSharingStreamIdx << " core " << linphone_core_get_identity(linphone_call_get_core(call));
 		if (screenSharingStreamIdx == -1) {
 			ret &= (screen_sharing_enabled == FALSE);
 		} else {

@@ -242,7 +242,6 @@ static void call_received(SalCallOp *h) {
 		}
 		auto remoteContact = Address::create(h->getRemoteContact());
 		auto conferenceIdParams = core->createConferenceIdParams();
-		conferenceIdParams.setKeepGruu(false);
 		conferenceIdParams.enableExtractUri(true);
 		ConferenceId conferenceId(remoteContact, to, conferenceIdParams);
 		shared_ptr<AbstractChatRoom> chatRoom = core->findChatRoom(conferenceId, false);

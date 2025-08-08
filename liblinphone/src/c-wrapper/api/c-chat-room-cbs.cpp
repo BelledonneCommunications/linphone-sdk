@@ -183,6 +183,16 @@ void linphone_chat_room_cbs_set_subject_changed(LinphoneChatRoomCbs *cbs, Linpho
 	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->subjectChangedCb = cb;
 }
 
+LinphoneChatRoomCbsMessageEarlyFailureCb
+linphone_chat_room_cbs_get_message_early_failure(const LinphoneChatRoomCbs *cbs) {
+	return LinphonePrivate::ChatRoomCbs::toCpp(cbs)->messageEarlyFailureCb;
+}
+
+void linphone_chat_room_cbs_set_message_early_failure(LinphoneChatRoomCbs *cbs,
+                                                      LinphoneChatRoomCbsMessageEarlyFailureCb cb) {
+	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->messageEarlyFailureCb = cb;
+}
+
 LinphoneChatRoomCbsUndecryptableMessageReceivedCb
 linphone_chat_room_cbs_get_undecryptable_message_received(const LinphoneChatRoomCbs *cbs) {
 	return LinphonePrivate::ChatRoomCbs::toCpp(cbs)->undecryptableMessageReceivedCb;

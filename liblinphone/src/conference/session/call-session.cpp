@@ -1262,7 +1262,7 @@ void CallSessionPrivate::repairByNewInvite(bool withReplaces) {
 	if (withReplaces) {
 		op->setReplaces(callId.c_str(), fromTag, toTag.empty() ? "0" : toTag);
 	} // empty tag is set to 0 as defined by rfc3891
-	// We have to re-create the local media description because the media local IP may have change, so go throug
+	// We have to re-create the local media description because the media local IP may have change, so go through
 	// initiateOutgoing();
 	bool defer = q->initiateOutgoing(subject, nullptr);
 	if (!defer) q->startInvite(nullptr, subject, contentToRestore);

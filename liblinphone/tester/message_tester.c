@@ -4549,7 +4549,7 @@ void _text_message_with_custom_content_type(bool_t is_supported) {
 		BC_ASSERT_PTR_NOT_NULL(marie_room);
 		if (marie_room) {
 			LinphoneChatMessage *marie_msg = linphone_chat_room_get_last_message_in_history(marie_room);
-			BC_ASSERT_PTR_NOT_NULL(marie_msg);
+			BC_ASSERT_PTR_NULL(marie_msg);
 			if (marie_msg) {
 				linphone_chat_message_unref(marie_msg);
 			}

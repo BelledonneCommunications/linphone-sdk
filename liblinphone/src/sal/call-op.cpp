@@ -614,6 +614,10 @@ void SalCallOp::processResponseCb(void *userCtx, const belle_sip_response_event_
 				} else if (method == "CANCEL") {
 					op->mRoot->mCallbacks.call_cancel_done(op);
 				}
+			} else if (code == 481) {
+				if (method == "CANCEL") {
+					op->mRoot->mCallbacks.call_cancel_done(op);
+				}
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:

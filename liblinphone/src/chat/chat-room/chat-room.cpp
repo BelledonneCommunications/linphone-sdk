@@ -156,6 +156,10 @@ void ChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage) {
 	}
 }
 
+void ChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &) {
+	return;
+}
+
 void ChatRoom::onChatMessageSent(const shared_ptr<ChatMessage> &chatMessage) {
 	LinphoneChatRoom *cr = getCChatRoom();
 	unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
@@ -270,8 +274,7 @@ void ChatRoom::realtimeTextOrBaudotCharacterReceived(uint32_t character,
 			// End of message
 			string completeText = Utils::unicodeToUtf8(mLastMessageCharacters);
 
-			shared_ptr<ChatMessage> pendingMessage = createChatMessage();
-			pendingMessage->getPrivate()->setDirection(ChatMessage::Direction::Incoming);
+			shared_ptr<ChatMessage> pendingMessage = createChatMessage(ChatMessage::Direction::Incoming);
 			auto content = Content::create();
 			content->setContentType(ContentType::PlainText);
 			content->setBodyFromUtf8(completeText);
@@ -303,10 +306,12 @@ void ChatRoom::realtimeTextOrBaudotCharacterReceived(uint32_t character,
 
 shared_ptr<ChatMessage> ChatRoom::createChatMessage(ChatMessage::Direction direction) {
 	shared_ptr<ChatMessage> message = shared_ptr<ChatMessage>(new ChatMessage(getSharedFromThis(), direction));
-	if (ephemeralEnabled() && direction == ChatMessage::Direction::Outgoing) {
-		lDebug() << "Create an outgoing ephemeral message " << message << " with lifetime " << getEphemeralLifetime()
-		         << " in chat room [" << getConferenceId() << "]";
-		message->getPrivate()->enableEphemeralWithTime(getEphemeralLifetime());
+	if (direction == ChatMessage::Direction::Outgoing) {
+		if (ephemeralEnabled()) {
+			lDebug() << "Create an outgoing ephemeral message " << message << " with lifetime "
+			         << getEphemeralLifetime() << " in chat room [" << getConferenceId() << "]";
+			message->getPrivate()->enableEphemeralWithTime(getEphemeralLifetime());
+		}
 	}
 	return message;
 }
@@ -1029,7 +1034,6 @@ shared_ptr<ChatMessage> ChatRoom::createForwardMessage(const shared_ptr<ChatMess
 	} else {
 		fInfo = msg->getForwardInfo().empty() ? msg->getFromAddress()->asStringUriOnly() : msg->getForwardInfo();
 	}
-
 	chatMessage->getPrivate()->setForwardInfo(fInfo);
 
 	return chatMessage;
