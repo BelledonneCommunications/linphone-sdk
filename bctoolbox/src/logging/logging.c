@@ -489,7 +489,7 @@ typedef struct {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // defined(__GNUC__) && (__GNUC__ == 15) && defined(__GNUC_MINOR__) && (__GNUC_MINOR__ < 2)
-void _bctbx_logv_flush(int dummy, ...) {
+void _bctbx_logv_flush(BCTBX_UNUSED(int dummy), ...) {
 	bctbx_list_t *elem;
 	bctbx_list_t *msglist;
 	va_list empty_va_list;
