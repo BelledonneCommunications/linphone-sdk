@@ -99,9 +99,9 @@ endforeach()
 # ###########################################################################
 foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 	if(ENABLE_MICROSOFT_STORE_APP)
-		set(_NAME "Windows")
-	else()
 		set(_NAME "Windows Store")
+	else()
+		set(_NAME "Windows")
 	endif()
 
 	get_arch_builddir_name("${_WINDOWS_ARCH}" _WINDOWS_ARCH_BUILDDIR_NAME)

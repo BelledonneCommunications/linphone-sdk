@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -177,6 +177,7 @@ public:
 private:
 	concurrency::task<void> startAsync();
 	concurrency::task<void> stopAsync();
+	bool mStopTasks = false;
 	bool_t setInternalFormat(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps);
 };
 #else

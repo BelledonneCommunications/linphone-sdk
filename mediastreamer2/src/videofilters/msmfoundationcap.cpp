@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2025 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -630,6 +630,7 @@ MSMFoundationUwpImpl::~MSMFoundationUwpImpl() {
 }
 
 void MSMFoundationUwpImpl::safeRelease() {
+	mStopTasks = true; // Warn other task to not add any other task.
 	mCurrentTask = mCurrentTask.then([this]() {
 		mCurrentTask = concurrency::task_from_result();
 		delete this;
@@ -777,39 +778,40 @@ task<void> MSMFoundationUwpImpl::startReaderAsync() {
 }
 
 void MSMFoundationUwpImpl::activate() {
-	mCurrentTask =
-	    mCurrentTask
-	        .then([this]() {
-		        try {
-			        MediaFrameSourceGroup ^ group = create_task(MediaFrameSourceGroup::FromIdAsync(mId))
-			                                            .get(); // TODO Can raise exception if no more available
-			        setFrameSource(group);
-		        } catch (Platform::Exception ^ e) {
-			        std::wstring wsstr(mId->Data());
-			        std::wstring wsstrResult(e->Message->Data());
-			        ms_error("[MSMFoundationCapUwp] Cannot get Frame Source from %s : %s [%X]",
-			                 make_string(wsstr).c_str(), make_string(wsstrResult).c_str(), e->HResult);
-		        }
-		        return task_from_result();
-	        })
-	        .then([this]() {
-		        if (mMediaCapture != nullptr && mSource != nullptr) {
-			        for (MediaFrameFormat ^ format : mSource->SupportedFormats) {
-				        // Limit ourselves to formats that we can render.
-				        String ^ width = format->VideoFormat ? format->VideoFormat->Width.ToString() : "?";
-				        String ^ height = format->VideoFormat ? format->VideoFormat->Height.ToString() : "?";
-				        String ^ framerate =
-				            format->FrameRate
-				                ? round(format->FrameRate->Numerator / format->FrameRate->Denominator).ToString()
-				                : "?";
-				        String ^ DisplayName = format->MajorType + " | " + format->Subtype + " | " + width + " x " +
-				                               height + " | " + framerate + "fps";
-				        std::wstring wsstr(DisplayName->Data());
-				        ms_message("[MSMFoundationCapUwp] %s", make_string(wsstr).c_str());
+	if (!mStopTasks)
+		mCurrentTask =
+		    mCurrentTask
+		        .then([this]() {
+			        try {
+				        MediaFrameSourceGroup ^ group = create_task(MediaFrameSourceGroup::FromIdAsync(mId))
+				                                            .get(); // TODO Can raise exception if no more available
+				        setFrameSource(group);
+			        } catch (Platform::Exception ^ e) {
+				        std::wstring wsstr(mId->Data());
+				        std::wstring wsstrResult(e->Message->Data());
+				        ms_error("[MSMFoundationCapUwp] Cannot get Frame Source from %s : %s [%X]",
+				                 make_string(wsstr).c_str(), make_string(wsstrResult).c_str(), e->HResult);
 			        }
-		        }
-		        return task_from_result();
-	        }); //, task_continuation_context::get_current_winrt_context());
+			        return task_from_result();
+		        })
+		        .then([this]() {
+			        if (mMediaCapture != nullptr && mSource != nullptr) {
+				        for (MediaFrameFormat ^ format : mSource->SupportedFormats) {
+					        // Limit ourselves to formats that we can render.
+					        String ^ width = format->VideoFormat ? format->VideoFormat->Width.ToString() : "?";
+					        String ^ height = format->VideoFormat ? format->VideoFormat->Height.ToString() : "?";
+					        String ^ framerate =
+					            format->FrameRate
+					                ? round(format->FrameRate->Numerator / format->FrameRate->Denominator).ToString()
+					                : "?";
+					        String ^ DisplayName = format->MajorType + " | " + format->Subtype + " | " + width + " x " +
+					                               height + " | " + framerate + "fps";
+					        std::wstring wsstr(DisplayName->Data());
+					        ms_message("[MSMFoundationCapUwp] %s", make_string(wsstr).c_str());
+				        }
+			        }
+			        return task_from_result();
+		        }); //, task_continuation_context::get_current_winrt_context());
 }
 
 void MSMFoundationUwpImpl::disposeMediaCapture() {
@@ -843,19 +845,20 @@ void MSMFoundationUwpImpl::processFrame(Windows::Media::Capture::Frames::MediaFr
 }
 
 void MSMFoundationUwpImpl::reader_FrameArrived(MediaFrameReader ^ reader, MediaFrameArrivedEventArgs ^ args) {
-	mCurrentTask = mCurrentTask.then([this, reader, args]() {
-		if (reader) {
-			try {
-				MediaFrameReference ^ frame = reader->TryAcquireLatestFrame();
-				if (frame) processFrame(frame);
-			} catch (Platform::Exception ^ e) {
-				std::wstring wsstrResult(e->Message->Data());
-				ms_error("[MSMFoundationCapUwp] Cannot acquire last frame : %s [%X]", make_string(wsstrResult).c_str(),
-				         e->HResult);
+	if (!mStopTasks)
+		mCurrentTask = mCurrentTask.then([this, reader, args]() {
+			if (reader) {
+				try {
+					MediaFrameReference ^ frame = reader->TryAcquireLatestFrame();
+					if (frame) processFrame(frame);
+				} catch (Platform::Exception ^ e) {
+					std::wstring wsstrResult(e->Message->Data());
+					ms_error("[MSMFoundationCapUwp] Cannot acquire last frame : %s [%X]",
+					         make_string(wsstrResult).c_str(), e->HResult);
+				}
 			}
-		}
-		return task_from_result();
-	});
+			return task_from_result();
+		});
 }
 task<void> MSMFoundationUwpImpl::startAsync() {
 	startReaderAsync().wait();
@@ -863,7 +866,7 @@ task<void> MSMFoundationUwpImpl::startAsync() {
 	return task_from_result();
 }
 void MSMFoundationUwpImpl::start() {
-	mCurrentTask = mCurrentTask.then([this]() { return startAsync(); });
+	if (!mStopTasks) mCurrentTask = mCurrentTask.then([this]() { return startAsync(); });
 }
 
 task<void> MSMFoundationUwpImpl::stopAsync() {
@@ -875,15 +878,16 @@ task<void> MSMFoundationUwpImpl::stopAsync() {
 	return stopReaderAsync();
 }
 void MSMFoundationUwpImpl::stop(const int &pWaitStop) {
-	mCurrentTask = mCurrentTask.then([this]() { return stopAsync(); });
+	if (!mStopTasks) mCurrentTask = mCurrentTask.then([this]() { return stopAsync(); });
 }
 
 void MSMFoundationUwpImpl::deactivate() {
-	mCurrentTask = mCurrentTask.then([this]() {
-		ms_message("[MSMFoundationCapUwp] Frames count : %d samples, %d processed", mSampleCount, mProcessCount);
-		mSampleCount = mProcessCount = 0;
-		return task_from_result();
-	});
+	if (!mStopTasks)
+		mCurrentTask = mCurrentTask.then([this]() {
+			ms_message("[MSMFoundationCapUwp] Frames count : %d samples, %d processed", mSampleCount, mProcessCount);
+			mSampleCount = mProcessCount = 0;
+			return task_from_result();
+		});
 }
 
 bool_t MSMFoundationUwpImpl::setInternalFormat(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps) {
@@ -944,42 +948,47 @@ MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 frameWidth,
 		// Suppose we can set this format but block frames processing till this format has been accepted.
 		if (setInternalFormat(videoFormat, frameWidth, frameHeight, pFps))
 			mNewFormatValidated = FALSE; // Format is different, we must wait that all are good.
-		mCurrentTask = mCurrentTask.then([this, mediaFormat, videoFormat, frameWidth, frameHeight, pFps, configsStr,
-		                                  requestedVideoFormat, requestedFrameWidth, requestedFrameHeight,
-		                                  requestedFps]() {
-			bool_t restartCamera = mRunning && mSource;
-			bool_t formatChanged = FALSE;
-			if (restartCamera) create_task(stopAsync()).wait();
-			EnterCriticalSection(&mCriticalSection);
-			try {
-				if (mSource) create_task(mSource->SetFormatAsync(mediaFormat)).wait();
-			} catch (Platform::Exception ^ e) {
-				std::wstring wsstrResult(e->Message->Data());
-				ms_warning("[MSMFoundationCapUwp] SetFormatAsync failed : %s [%X]", make_string(wsstrResult).c_str(),
-				           e->HResult);
-				ms_warning("%s", configsStr.c_str());
-				formatChanged = TRUE;
-			}
-			setInternalFormat(videoFormat, frameWidth, frameHeight, pFps);
-			LeaveCriticalSection(&mCriticalSection);
-			if (restartCamera) create_task(startAsync()).wait();
-			formatChanged = formatChanged || (videoFormat != requestedVideoFormat ||
-			                                  requestedFrameWidth != frameWidth || requestedFrameHeight != frameHeight);
-			mFmtChanged |= formatChanged;
-			// Block new frames
-			mNewFormatTakenAccount = !mFmtChanged; // The validated format is different from the request.
-			if (formatChanged) {                   // As requested format couldn't be set, add it to the blacklist
-				addToBlacklist(
-				    VideoFormat(requestedFrameWidth, requestedFrameHeight, requestedFps, requestedVideoFormat));
-			}
-			if (mSource) {
-				mNewFormatValidated = TRUE; // The new format (coming from requested or best fit) has been validated.
-				ms_message("[MSMFoundationCapUwp] %s the video format : %dx%d : %s, %f fps",
-				           (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
-			} else
-				ms_message("[MSMFoundationCapUwp] %s the video format without Reader : %dx%d : %s, %f fps",
-				           (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
-		});
+		if (!mStopTasks)
+			mCurrentTask =
+			    mCurrentTask.then([this, mediaFormat, videoFormat, frameWidth, frameHeight, pFps, configsStr,
+			                       requestedVideoFormat, requestedFrameWidth, requestedFrameHeight, requestedFps]() {
+				    bool_t restartCamera = mRunning && mSource;
+				    bool_t formatChanged = FALSE;
+				    if (restartCamera) create_task(stopAsync()).wait();
+				    EnterCriticalSection(&mCriticalSection);
+				    try {
+					    if (mSource) create_task(mSource->SetFormatAsync(mediaFormat)).wait();
+				    } catch (Platform::Exception ^ e) {
+					    std::wstring wsstrResult(e->Message->Data());
+					    ms_warning("[MSMFoundationCapUwp] SetFormatAsync failed : %s [%X]",
+					               make_string(wsstrResult).c_str(), e->HResult);
+					    ms_warning("%s", configsStr.c_str());
+					    formatChanged = TRUE;
+				    }
+				    setInternalFormat(videoFormat, frameWidth, frameHeight, pFps);
+				    LeaveCriticalSection(&mCriticalSection);
+				    if (restartCamera) create_task(startAsync()).wait();
+				    formatChanged =
+				        formatChanged || (videoFormat != requestedVideoFormat || requestedFrameWidth != frameWidth ||
+				                          requestedFrameHeight != frameHeight);
+				    mFmtChanged |= formatChanged;
+				    // Block new frames
+				    mNewFormatTakenAccount = !mFmtChanged; // The validated format is different from the request.
+				    if (formatChanged) { // As requested format couldn't be set, add it to the blacklist
+					    addToBlacklist(
+					        VideoFormat(requestedFrameWidth, requestedFrameHeight, requestedFps, requestedVideoFormat));
+				    }
+				    if (mSource) {
+					    mNewFormatValidated =
+					        TRUE; // The new format (coming from requested or best fit) has been validated.
+					    ms_message("[MSMFoundationCapUwp] %s the video format : %dx%d : %s, %f fps",
+					               (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat),
+					               mFps);
+				    } else
+					    ms_message("[MSMFoundationCapUwp] %s the video format without Reader : %dx%d : %s, %f fps",
+					               (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat),
+					               mFps);
+			    });
 	} else if (!SUCCEEDED(hr)) {
 		ms_error("[MSMFoundationCapUwp] Cannot set the video format : %dx%d : %s, %f fps. [%X]", frameWidth,
 		         frameHeight, pixFmtToString(videoFormat), pFps, hr);
