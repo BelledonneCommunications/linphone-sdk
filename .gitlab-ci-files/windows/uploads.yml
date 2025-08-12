@@ -20,7 +20,7 @@
 
 vs2022-win3264-windows-upload:
   stage: deploy
-  tags: [ "windows-powershell-rack"]
+  tags: [ "windows-powershell-rack-flat"]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
@@ -43,7 +43,7 @@ vs2022-win3264-windows-upload:
 
 cs-doc-windows-upload:
   stage: deploy
-  tags: [ "windows-powershell-rack"]
+  tags: [ "windows-powershell-rack-flat"]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_CS_DOC != null && $SKIP_DEPLOY == null
