@@ -19,12 +19,18 @@
 
 #pragma once
 
+#include "bctoolbox/logging.h"
 #include <functional>
 
 namespace bctoolbox {
 
+/*
+ * The IOSUtilsInterface is an abstract class used to provide functionnality that may not be available at runtime.
+ * For example, getting application state or using background tasks is not allowed in iOS app extension.
+ */
 class IOSUtilsInterface {
 public:
+	virtual void setLoggingFunction(BctbxLogFunc logFunction) = 0;
 	virtual unsigned long beginBackgroundTask(const char *name, std::function<void()> cb) = 0;
 	virtual void endBackgroundTask(unsigned long id) = 0;
 	virtual bool isApplicationStateActive() = 0;
@@ -32,6 +38,11 @@ public:
 	virtual ~IOSUtilsInterface() = default;
 };
 
+/*
+ * Main class to manipulate some iOS functionnality that may not be available
+ * depending on the execution context.
+ * In case it is not available (not in an app), a stub implementation is used.
+ */
 class IOSUtils {
 public:
 	unsigned long beginBackgroundTask(const char *name, std::function<void()> cb);

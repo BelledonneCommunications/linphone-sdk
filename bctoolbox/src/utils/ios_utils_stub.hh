@@ -28,6 +28,7 @@ public:
 	unsigned long beginBackgroundTask(const char *name, std::function<void()> cb) override;
 	void endBackgroundTask(unsigned long id) override;
 	bool isApplicationStateActive() override;
+	void setLoggingFunction(BctbxLogFunc logFunction) override;
 };
 
 } // namespace bctoolbox

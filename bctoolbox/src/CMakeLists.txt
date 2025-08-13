@@ -134,12 +134,14 @@ if(APPLE)
 	endif()
 	target_link_libraries(bctoolbox PRIVATE Iconv::Iconv)
 
-	set_target_properties(bctoolbox PROPERTIES
-		FRAMEWORK TRUE
-		MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox
-		MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
-		PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
-	)
+	if (BUILD_SHARED_LIBS)
+		set_target_properties(bctoolbox PROPERTIES
+			FRAMEWORK TRUE
+			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox
+			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
+			PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
+		)
+	endif()
 endif()
 
 if(WIN32)
@@ -215,9 +217,14 @@ if(ENABLE_TESTS_COMPONENT)
 	endif()
 endif()
 
+# The bctoolbox-ios library makes uses of sustem APIs that are not allowed in app extensions.
+# It is loaded dynamically by bctoolbox only if the running process is a real app.
+# Because of this dynamic loading requirement, it must be a framework.
 if(APPLE AND IOS)
 	add_library(bctoolbox-ios SHARED ${BCTOOLBOX_IOS_SOURCE_FILES})
-	target_link_libraries(bctoolbox-ios PRIVATE bctoolbox)
+	# Do not link to bctoolbox archive, it will duplicate symbols. Instead keep
+	# bctoolbox-ios free of any dependency to bctoolbox.
+	#target_link_libraries(bctoolbox-ios PRIVATE bctoolbox)
 	target_link_libraries(bctoolbox-ios PRIVATE "-framework UIKit" "-framework Foundation" "-framework CoreFoundation")
 	set_target_properties(bctoolbox-ios PROPERTIES
 		FRAMEWORK TRUE

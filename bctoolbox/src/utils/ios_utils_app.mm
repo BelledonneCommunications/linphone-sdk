@@ -35,7 +35,7 @@ unsigned long IOSUtilsApp::beginBackgroundTask(const char *name, std::function<v
 	
 	@try {
 		if (cb==nullptr){
-			bctbx_error("belle_sip_begin_background_task(): the callback must not be NULL. Application must be aware that the background task needs to be terminated.");
+			bctbxLog(BCTBX_LOG_ERROR,"belle_sip_begin_background_task(): the callback must not be NULL. Application must be aware that the background task needs to be terminated.");
 			bgid = UIBackgroundTaskInvalid;
 			@throw([NSException exceptionWithName:@"LinphoneCoreException" reason:@"Background task has no callback" userInfo:nil]);
 		}
@@ -51,7 +51,7 @@ unsigned long IOSUtilsApp::beginBackgroundTask(const char *name, std::function<v
 		}
 
 		if (bgid==UIBackgroundTaskInvalid){
-			bctbx_error("Could not start background task %s.", name);
+			bctbxLog(BCTBX_LOG_ERROR, "Could not start background task %s.", name);
 			bgid = 0;
 			@throw([NSException exceptionWithName:@"LinphoneCoreException" reason:@"Could not start background task" userInfo:nil]);
 		}
@@ -59,9 +59,9 @@ unsigned long IOSUtilsApp::beginBackgroundTask(const char *name, std::function<v
 		// backgroundTimeRemaining is properly set only when running background... but not immediately!
 		// removed app.applicationState check because not thread safe
 		if (app.backgroundTimeRemaining == DBL_MAX) {
-			bctbx_message("Background task %s started. Unknown remaining time since application is not fully in background.", name);
+			bctbxLog(BCTBX_LOG_MESSAGE, "Background task %s started. Unknown remaining time since application is not fully in background.", name);
 		} else {
-			bctbx_message("Background task %s started. Remaining time %.1f secs", name, app.backgroundTimeRemaining);
+			bctbxLog(BCTBX_LOG_MESSAGE, "Background task %s started. Remaining time %.1f secs", name, app.backgroundTimeRemaining);
 		}
 	}
 	@catch (NSException*) {
@@ -81,7 +81,19 @@ void IOSUtilsApp::endBackgroundTask(unsigned long id) {
 bool IOSUtilsApp::isApplicationStateActive() {
     return ([UIApplication sharedApplication].applicationState == UIApplicationStateActive);
 }
-    
+
+void IOSUtilsApp::setLoggingFunction(BctbxLogFunc logFunction){
+	mLogFunc = logFunction;
+}
+
+void IOSUtilsApp::bctbxLog(BctbxLogLevel level, const char *fmt, ...){
+	if (mLogFunc == nullptr) return;
+	va_list args;
+	va_start(args, fmt);
+	mLogFunc(BCTBX_LOG_DOMAIN, level, fmt, args);
+	va_end(args);
+}
+
 } //namespace bctoolbox
 
 extern "C" {

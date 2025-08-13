@@ -23,11 +23,25 @@
 
 namespace bctoolbox {
 
+/*
+ * Implementation of IOSUtilsInterface that has full app functionnality, ie
+ * encapsulate system library calls that are only available to apps.
+ * In order to avoid a build-time linkage that is not allowed in app extension,
+ * the implementation is embedded inside the bctoolbox-ios framework,
+ * that is loaded dynamically from bctoolbox.
+ * Since bctoolbox-ios cannot depend on bctoolbox archive (if it does so, symbols are duplicated),
+ * a pointer to the main log function is passed.
+ */
 class IOSUtilsApp : public IOSUtilsInterface {
 public:
 	unsigned long beginBackgroundTask(const char *name, std::function<void()> cb) override;
 	void endBackgroundTask(unsigned long id) override;
 	bool isApplicationStateActive() override;
+	void setLoggingFunction(BctbxLogFunc logFunction) override;
+	void bctbxLog(BctbxLogLevel level, const char *fmt, ...);
+
+private:
+	BctbxLogFunc mLogFunc;
 };
 
 } // namespace bctoolbox

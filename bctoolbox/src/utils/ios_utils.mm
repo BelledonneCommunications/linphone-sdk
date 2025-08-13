@@ -54,6 +54,7 @@ IOSUtils::IOSUtils() {
         using create_t = IOSUtilsInterface *(*)();
         auto createUtils = reinterpret_cast<create_t>(loadSymbol("bctbx_create_ios_utils_app"));
         mUtils = createUtils();
+        mUtils->setLoggingFunction(bctbx_logv);
     } else {
         mUtils = new IOSUtilsStub();
     }
@@ -131,6 +132,9 @@ void IOSUtilsStub::endBackgroundTask(BCTBX_UNUSED(unsigned long id)) {}
 
 bool IOSUtilsStub::isApplicationStateActive() {
     return false;
+}
+
+void IOSUtilsStub::setLoggingFunction(BCTBX_UNUSED(BctbxLogFunc logFunction)){
 }
 
 } //namespace bctoolbox
