@@ -31,7 +31,8 @@ LINPHONE_BEGIN_NAMESPACE
 
 class ConferenceEphemeralMessageEventPrivate : public ConferenceNotifiedEventPrivate {
 public:
-	long ephemeralLifetime;
+	long ephemeralLifetime = 0;
+	long ephemeralNotReadLifetime = 0;
 };
 
 // -----------------------------------------------------------------------------
@@ -39,7 +40,8 @@ public:
 ConferenceEphemeralMessageEvent::ConferenceEphemeralMessageEvent(Type type,
                                                                  time_t creationTime,
                                                                  const ConferenceId &conferenceId,
-                                                                 long ephemeralLifetime)
+                                                                 long ephemeralLifetime,
+                                                                 long ephemeralNotReadLifetime)
     : ConferenceNotifiedEvent(*new ConferenceEphemeralMessageEventPrivate, type, creationTime, conferenceId) {
 	L_D();
 	L_ASSERT(type == Type::ConferenceEphemeralMessageLifetimeChanged ||
@@ -47,11 +49,17 @@ ConferenceEphemeralMessageEvent::ConferenceEphemeralMessageEvent(Type type,
 	         type == Type::ConferenceEphemeralMessageManagedByParticipants ||
 	         type == Type::ConferenceEphemeralMessageEnabled || type == Type::ConferenceEphemeralMessageDisabled);
 	d->ephemeralLifetime = ephemeralLifetime;
+	d->ephemeralNotReadLifetime = ephemeralNotReadLifetime;
 }
 
 long ConferenceEphemeralMessageEvent::getEphemeralMessageLifetime() const {
 	L_D();
 	return d->ephemeralLifetime;
+}
+
+long ConferenceEphemeralMessageEvent::getEphemeralMessageNotReadLifetime() const {
+	L_D();
+	return d->ephemeralNotReadLifetime;
 }
 
 LINPHONE_END_NAMESPACE

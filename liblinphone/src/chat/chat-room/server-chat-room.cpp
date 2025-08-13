@@ -461,12 +461,15 @@ void ServerChatRoom::copyMessageHeaders(const shared_ptr<ServerChatRoom::Message
 void ServerChatRoom::handleEphemeralSettingsChange(const shared_ptr<CallSession> &session) {
 	if (getCurrentParams()->getChatParams()->ephemeralAllowed()) {
 		const auto op = session->getPrivate()->getOp();
-		string ephemeralLifeTime =
+		const string ephemeralLifeTime =
 		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), "Ephemeral-Life-Time"));
-		if (ephemeralLifeTime.empty()) {
+		const string ephemeralNotReadLifetime =
+		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), "Ephemeral-Not-Read-Life-Time"));
+		if (ephemeralLifeTime.empty() || ephemeralNotReadLifetime.empty()) {
 			setEphemeralModeForDevice(AbstractChatRoom::EphemeralMode::DeviceManaged, session);
 		} else {
-			setEphemeralLifetimeForDevice(std::stol(ephemeralLifeTime, nullptr), session);
+			setEphemeralLifetimeForDevice(std::stol(ephemeralLifeTime, nullptr),
+			                              std::stol(ephemeralNotReadLifetime, nullptr), session);
 		}
 	}
 }
@@ -490,19 +493,22 @@ void ServerChatRoom::setEphemeralModeForDevice(AbstractChatRoom::EphemeralMode m
 	}
 }
 
-void ServerChatRoom::setEphemeralLifetimeForDevice(long lifetime, const shared_ptr<CallSession> &session) {
-	lInfo() << "Conference " << *getConference()->getConferenceAddress() << ": New ephemeral time: " << lifetime;
+void ServerChatRoom::setEphemeralLifetimeForDevice(const long lifetime,
+                                                   const long notReadLifetime,
+                                                   const shared_ptr<CallSession> &session) {
+	lInfo() << "Conference " << *getConference()->getConferenceAddress() << ": New ephemeral time: " << lifetime
+	        << ", new ephemeral not-read lifetime: " << notReadLifetime;
 	getCurrentParams()->getChatParams()->setEphemeralLifetime(lifetime);
+	getCurrentParams()->getChatParams()->setEphemeralNotReadLifetime(notReadLifetime);
 
-	const auto device = getConference()->findParticipantDevice(session);
-	if (device) {
-		time_t creationTime = time(nullptr);
+	if (getConference()->findParticipantDevice(session)) {
+		const time_t creationTime = time(nullptr);
 		static_pointer_cast<ServerConference>(getConference())
-		    ->notifyEphemeralLifetimeChanged(creationTime, false, lifetime);
+		    ->notifyEphemeralLifetimeChanged(creationTime, false, lifetime, notReadLifetime);
 	} else {
 		lWarning()
 		    << "Unable to find device among those of the participants that changed ephemeral message lifetime to "
-		    << lifetime;
+		    << lifetime << " and ephemeral message not-read lifetime to " << notReadLifetime;
 	}
 }
 

@@ -233,7 +233,7 @@ protected:
 private:
 	std::string createNotify(Xsd::ConferenceInfo::ConferenceType confInfo, bool isFullState = false);
 	std::string createNotifySubjectChanged(const std::string &subject);
-	std::string createNotifyEphemeralLifetime(const long &lifetime);
+	std::string createNotifyEphemeralLifetime(const long &lifetime, const long &notReadLifetime);
 	std::string createNotifyEphemeralMode(const EventLog::Type &type);
 	std::shared_ptr<Content> makeContent(const std::string &xml);
 	void notifyParticipant(const std::shared_ptr<Content> &notify, const std::shared_ptr<Participant> &participant);

@@ -139,6 +139,7 @@ public:
 
 	bool isEphemeral() const;
 	long getEphemeralLifetime() const;
+	long getEphemeralNotReadLifetime() const;
 	time_t getEphemeralExpireTime() const;
 
 	bool isReaction() const;

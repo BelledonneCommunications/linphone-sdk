@@ -1453,7 +1453,7 @@ Conference::notifyEphemeralModeChanged(time_t creationTime, const bool isFullSta
 	L_ASSERT((type == EventLog::Type::ConferenceEphemeralMessageManagedByAdmin) ||
 	         (type == EventLog::Type::ConferenceEphemeralMessageManagedByParticipants));
 	shared_ptr<ConferenceEphemeralMessageEvent> event =
-	    make_shared<ConferenceEphemeralMessageEvent>(type, creationTime, mConferenceId, 0);
+	    make_shared<ConferenceEphemeralMessageEvent>(type, creationTime, mConferenceId, 0, 0);
 	event->setFullState(isFullState);
 	event->setNotifyId(mLastNotify);
 
@@ -1469,7 +1469,7 @@ Conference::notifyEphemeralMessageEnabled(time_t creationTime, const bool isFull
 	shared_ptr<ConferenceEphemeralMessageEvent> event =
 	    make_shared<ConferenceEphemeralMessageEvent>((enable) ? EventLog::Type::ConferenceEphemeralMessageEnabled
 	                                                          : EventLog::Type::ConferenceEphemeralMessageDisabled,
-	                                                 creationTime, getConferenceId(), 0);
+	                                                 creationTime, getConferenceId(), 0, 0);
 
 	event->setFullState(isFullState);
 	event->setNotifyId(mLastNotify);
@@ -1480,10 +1480,13 @@ Conference::notifyEphemeralMessageEnabled(time_t creationTime, const bool isFull
 	return event;
 }
 
-shared_ptr<ConferenceEphemeralMessageEvent>
-Conference::notifyEphemeralLifetimeChanged(time_t creationTime, const bool isFullState, const long lifetime) {
-	shared_ptr<ConferenceEphemeralMessageEvent> event = make_shared<ConferenceEphemeralMessageEvent>(
-	    EventLog::Type::ConferenceEphemeralMessageLifetimeChanged, creationTime, mConferenceId, lifetime);
+shared_ptr<ConferenceEphemeralMessageEvent> Conference::notifyEphemeralLifetimeChanged(time_t creationTime,
+                                                                                       const bool isFullState,
+                                                                                       const long lifetime,
+                                                                                       const long notReadLifetime) {
+	shared_ptr<ConferenceEphemeralMessageEvent> event =
+	    make_shared<ConferenceEphemeralMessageEvent>(EventLog::Type::ConferenceEphemeralMessageLifetimeChanged,
+	                                                 creationTime, mConferenceId, lifetime, notReadLifetime);
 	event->setFullState(isFullState);
 	event->setNotifyId(mLastNotify);
 

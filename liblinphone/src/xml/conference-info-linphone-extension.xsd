@@ -27,6 +27,7 @@
 			<xs:sequence>
 				<xs:element name="mode" type="tns:modeType"/>
 				<xs:element name="lifetime" type="xs:string" />
+				<xs:element name="not-read-lifetime" type="xs:string"/>
 				<xs:any namespace="##targetNamespace" processContents="strict" maxOccurs="unbounded" />	
 			</xs:sequence>
 		</xs:complexType>

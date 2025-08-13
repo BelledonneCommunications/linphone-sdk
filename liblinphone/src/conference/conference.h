@@ -217,8 +217,10 @@ public:
 	notifyEphemeralModeChanged(time_t creationTime, const bool isFullState, const EventLog::Type type);
 	virtual std::shared_ptr<ConferenceEphemeralMessageEvent>
 	notifyEphemeralMessageEnabled(time_t creationTime, const bool isFullState, const bool enable);
-	virtual std::shared_ptr<ConferenceEphemeralMessageEvent>
-	notifyEphemeralLifetimeChanged(time_t creationTime, const bool isFullState, const long lifetime);
+	virtual std::shared_ptr<ConferenceEphemeralMessageEvent> notifyEphemeralLifetimeChanged(time_t creationTime,
+	                                                                                        const bool isFullState,
+	                                                                                        const long lifetime,
+	                                                                                        const long notReadLifetime);
 	virtual std::shared_ptr<ConferenceNotifiedEvent> notifyAllowedParticipantListChanged(time_t creationTime,
 	                                                                                     const bool isFullState);
 	virtual std::shared_ptr<ConferenceParticipantDeviceEvent>

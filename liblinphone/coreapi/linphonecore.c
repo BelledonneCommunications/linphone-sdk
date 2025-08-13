@@ -3385,6 +3385,8 @@ static void linphone_core_init(LinphoneCore *lc,
 	    lc, linphone_config_get_bool(lc->config, "misc", "empty_chat_room_deletion",
 	                                 linphone_core_empty_chatrooms_deletion_enabled(lc)));
 
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->initEphemeralChatMessagePolicy();
+
 #ifdef __ANDROID__
 	if (system_context) {
 		JNIEnv *env = ms_get_jni_env();
@@ -9130,6 +9132,14 @@ long linphone_core_get_default_ephemeral_lifetime(const LinphoneCore *lc) {
 
 void linphone_core_set_default_ephemeral_lifetime(LinphoneCore *lc, long value) {
 	linphone_config_set_int64(lc->config, "misc", "ephemeral_lifetime", (int64_t)value);
+}
+
+long linphone_core_get_default_ephemeral_not_read_lifetime(const LinphoneCore *lc) {
+	return (long)linphone_config_get_int(lc->config, "misc", "ephemeral_not_read_lifetime", 0);
+}
+
+void linphone_core_set_default_ephemeral_not_read_lifetime(LinphoneCore *lc, const long value) {
+	linphone_config_set_int64(lc->config, "misc", "ephemeral_not_read_lifetime", (int64_t)value);
 }
 
 LinphoneConferenceLayout linphone_core_get_default_conference_layout(const LinphoneCore *lc) {

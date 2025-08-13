@@ -504,8 +504,8 @@ void liblinphone_tester_add_suites(void) {
 		liblinphone_tester_add_suite_with_default_time(&secure_group_chat_multialgos_test_suite, 72);
 	}
 	liblinphone_tester_add_suite_with_default_time(&lime_server_auth_test_suite, 125);
-	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_test_suite, 514);
-	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_basic_test_suite, 189);
+	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_test_suite, 896);
+	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_basic_test_suite, 415);
 #endif // HAVE_LIME_X3DH
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_conference_edition, 150);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_scheduled_conference_basic, 540);
@@ -688,8 +688,10 @@ void liblinphone_tester_simulate_mire_defunct(MSFilter *filter, bool_t defunct, 
 	}
 }
 
-void liblinphone_tester_set_dns_engine_by_default(LinphoneCore * lc) {
-	belle_sip_stack_set_dns_engine(sal_get_stack_impl(linphone_core_get_sal(lc)), BELLE_SIP_DNS_DNS_C); // Make sure we are not using Apple DNS Service during liblinphone tests
+void liblinphone_tester_set_dns_engine_by_default(LinphoneCore *lc) {
+	belle_sip_stack_set_dns_engine(
+	    sal_get_stack_impl(linphone_core_get_sal(lc)),
+	    BELLE_SIP_DNS_DNS_C); // Make sure we are not using Apple DNS Service during liblinphone tests
 }
 
 #if !TARGET_OS_IPHONE && !(defined(LINPHONE_WINDOWS_PHONE) || defined(LINPHONE_WINDOWS_UNIVERSAL))

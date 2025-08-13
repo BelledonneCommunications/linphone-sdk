@@ -130,6 +130,26 @@ void Ephemeral::setLifetime(::std::unique_ptr<LifetimeType> x) {
 	return this->lifetime_.detach();
 }
 
+const Ephemeral::NotReadLifetimeType &Ephemeral::getNotReadLifetime() const {
+	return this->not_read_lifetime_.get();
+}
+
+Ephemeral::NotReadLifetimeType &Ephemeral::getNotReadLifetime() {
+	return this->not_read_lifetime_.get();
+}
+
+void Ephemeral::setNotReadLifetime(const NotReadLifetimeType &x) {
+	this->not_read_lifetime_.set(x);
+}
+
+void Ephemeral::setNotReadLifetime(::std::unique_ptr<NotReadLifetimeType> x) {
+	this->not_read_lifetime_.set(std::move(x));
+}
+
+::std::unique_ptr<Ephemeral::NotReadLifetimeType> Ephemeral::setDetachNot_read_lifetime() {
+	return this->not_read_lifetime_.detach();
+}
+
 const Ephemeral::AnySequence &Ephemeral::getAny() const {
 	return this->any_;
 }
@@ -441,21 +461,26 @@ static const ::xsd::cxx::tree::type_factory_initializer<0, char, ModeEnum>
 // Ephemeral
 //
 
-Ephemeral::Ephemeral(const ModeType &mode, const LifetimeType &lifetime)
+Ephemeral::Ephemeral(const ModeType &mode, const LifetimeType &lifetime, const NotReadLifetimeType &not_read_lifetime)
     : ::LinphonePrivate::Xsd::XmlSchema::Type(), dom_document_(::xsd::cxx::xml::dom::create_document<char>()),
-      mode_(mode, this), lifetime_(lifetime, this), any_(this->getDomDocument()) {
+      mode_(mode, this), lifetime_(lifetime, this), not_read_lifetime_(not_read_lifetime, this),
+      any_(this->getDomDocument()) {
 }
 
-Ephemeral::Ephemeral(::std::unique_ptr<ModeType> mode, ::std::unique_ptr<LifetimeType> lifetime)
+Ephemeral::Ephemeral(::std::unique_ptr<ModeType> mode,
+                     ::std::unique_ptr<LifetimeType> lifetime,
+                     ::std::unique_ptr<NotReadLifetimeType> not_read_lifetime)
     : ::LinphonePrivate::Xsd::XmlSchema::Type(), dom_document_(::xsd::cxx::xml::dom::create_document<char>()),
-      mode_(std::move(mode), this), lifetime_(std::move(lifetime), this), any_(this->getDomDocument()) {
+      mode_(std::move(mode), this), lifetime_(std::move(lifetime), this),
+      not_read_lifetime_(std::move(not_read_lifetime), this), any_(this->getDomDocument()) {
 }
 
 Ephemeral::Ephemeral(const Ephemeral &x,
                      ::LinphonePrivate::Xsd::XmlSchema::Flags f,
                      ::LinphonePrivate::Xsd::XmlSchema::Container *c)
     : ::LinphonePrivate::Xsd::XmlSchema::Type(x, f, c), dom_document_(::xsd::cxx::xml::dom::create_document<char>()),
-      mode_(x.mode_, f, this), lifetime_(x.lifetime_, f, this), any_(x.any_, this->getDomDocument()) {
+      mode_(x.mode_, f, this), lifetime_(x.lifetime_, f, this), not_read_lifetime_(x.not_read_lifetime_, f, this),
+      any_(x.any_, this->getDomDocument()) {
 }
 
 Ephemeral::Ephemeral(const ::xercesc::DOMElement &e,
@@ -463,7 +488,7 @@ Ephemeral::Ephemeral(const ::xercesc::DOMElement &e,
                      ::LinphonePrivate::Xsd::XmlSchema::Container *c)
     : ::LinphonePrivate::Xsd::XmlSchema::Type(e, f | ::LinphonePrivate::Xsd::XmlSchema::Flags::base, c),
       dom_document_(::xsd::cxx::xml::dom::create_document<char>()), mode_(this), lifetime_(this),
-      any_(this->getDomDocument()) {
+      not_read_lifetime_(this), any_(this->getDomDocument()) {
 	if ((f & ::LinphonePrivate::Xsd::XmlSchema::Flags::base) == 0) {
 		::xsd::cxx::xml::dom::parser<char> p(e, true, false, false);
 		this->parse(p, f);
@@ -515,6 +540,26 @@ void Ephemeral::parse(::xsd::cxx::xml::dom::parser<char> &p, ::LinphonePrivate::
 			}
 		}
 
+		// not-read-lifetime
+		//
+		{
+			::std::unique_ptr<::xsd::cxx::tree::type> tmp(::xsd::cxx::tree::type_factory_map_instance<0, char>().create(
+			    "not-read-lifetime", "linphone:xml:ns:conference-info-linphone-extension",
+			    &::xsd::cxx::tree::factory_impl<NotReadLifetimeType>, false, true, i, n, f, this));
+
+			if (tmp.get() != 0) {
+				if (!not_read_lifetime_.present()) {
+					::std::unique_ptr<NotReadLifetimeType> r(dynamic_cast<NotReadLifetimeType *>(tmp.get()));
+
+					if (r.get()) tmp.release();
+					else throw ::xsd::cxx::tree::not_derived<char>();
+
+					this->not_read_lifetime_.set(::std::move(r));
+					continue;
+				}
+			}
+		}
+
 		// any
 		//
 		if (n.namespace_() == "linphone:xml:ns:conference-info-linphone-extension") {
@@ -535,6 +580,11 @@ void Ephemeral::parse(::xsd::cxx::xml::dom::parser<char> &p, ::LinphonePrivate::
 		throw ::xsd::cxx::tree::expected_element<char>("lifetime",
 		                                               "linphone:xml:ns:conference-info-linphone-extension");
 	}
+
+	if (!not_read_lifetime_.present()) {
+		throw ::xsd::cxx::tree::expected_element<char>("not-read-lifetime",
+		                                               "linphone:xml:ns:conference-info-linphone-extension");
+	}
 }
 
 Ephemeral *Ephemeral::_clone(::LinphonePrivate::Xsd::XmlSchema::Flags f,
@@ -547,6 +597,7 @@ Ephemeral &Ephemeral::operator=(const Ephemeral &x) {
 		static_cast<::LinphonePrivate::Xsd::XmlSchema::Type &>(*this) = x;
 		this->mode_ = x.mode_;
 		this->lifetime_ = x.lifetime_;
+		this->not_read_lifetime_ = x.not_read_lifetime_;
 		this->any_ = x.any_;
 	}
 
@@ -992,6 +1043,13 @@ static const ::xsd::cxx::tree::std_ostream_initializer<0, char, ModeEnum> _xsd_M
 
 		o << ::std::endl << "lifetime: ";
 		om.insert(o, i.getLifetime());
+	}
+
+	{
+		::xsd::cxx::tree::std_ostream_map<char> &om(::xsd::cxx::tree::std_ostream_map_instance<0, char>());
+
+		o << ::std::endl << "not-read-lifetime: ";
+		om.insert(o, i.getNotReadLifetime());
 	}
 
 	return o;
@@ -2819,6 +2877,21 @@ void operator<<(::xercesc::DOMElement &e, const Ephemeral &i) {
 
 			s << x;
 		} else tsm.serialize("lifetime", "linphone:xml:ns:conference-info-linphone-extension", false, true, e, x);
+	}
+
+	// not-read-lifetime
+	//
+	{
+		::xsd::cxx::tree::type_serializer_map<char> &tsm(::xsd::cxx::tree::type_serializer_map_instance<0, char>());
+
+		const Ephemeral::NotReadLifetimeType &x(i.getNotReadLifetime());
+		if (typeid(Ephemeral::NotReadLifetimeType) == typeid(x)) {
+			::xercesc::DOMElement &s(::xsd::cxx::xml::dom::create_element(
+			    "not-read-lifetime", "linphone:xml:ns:conference-info-linphone-extension", e));
+
+			s << x;
+		} else
+			tsm.serialize("not-read-lifetime", "linphone:xml:ns:conference-info-linphone-extension", false, true, e, x);
 	}
 
 	// any

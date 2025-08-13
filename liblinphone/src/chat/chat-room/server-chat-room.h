@@ -172,7 +172,8 @@ private:
 	void queueMessage(const std::shared_ptr<Message> &msg, const std::shared_ptr<Address> &deviceAddress);
 	void removeQueuedParticipantMessages(const std::shared_ptr<Participant> &participant);
 
-	void setEphemeralLifetimeForDevice(long time, const std::shared_ptr<CallSession> &session);
+	void
+	setEphemeralLifetimeForDevice(long lifetime, long notReadLifetime, const std::shared_ptr<CallSession> &session);
 	void setEphemeralModeForDevice(AbstractChatRoom::EphemeralMode mode, const std::shared_ptr<CallSession> &session);
 
 	static void copyMessageHeaders(const std::shared_ptr<Message> &fromMessage,

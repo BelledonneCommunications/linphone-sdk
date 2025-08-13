@@ -69,6 +69,7 @@ public:
 	EncryptionBackend getEncryptionBackend() const;
 	bool isRealTimeText() const;
 	long getEphemeralLifetime() const;
+	long getEphemeralNotReadLifetime() const;
 	AbstractChatRoom::EphemeralMode getEphemeralMode() const;
 	bool ephemeralEnabled() const;
 	bool ephemeralAllowed() const;
@@ -78,6 +79,7 @@ public:
 	void setRealTimeText(bool rtt);
 	void setEphemeralMode(AbstractChatRoom::EphemeralMode mode);
 	void setEphemeralLifetime(long lifetime);
+	void setEphemeralNotReadLifetime(long lifetime);
 	void enableEphemeral(bool ephem);
 	void allowEphemeral(bool ephem);
 
@@ -91,6 +93,7 @@ private:
 	bool mAllowEphemeral = false;
 	AbstractChatRoom::EphemeralMode mEphemeralMode = AbstractChatRoom::EphemeralMode::DeviceManaged;
 	long mEphemeralLifetime = 0;
+	long mEphemeralNotReadLifetime = 0;
 };
 
 LINPHONE_END_NAMESPACE

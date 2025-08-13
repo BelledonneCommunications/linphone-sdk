@@ -297,14 +297,24 @@ bool_t linphone_chat_room_ephemeral_enabled(const LinphoneChatRoom *chat_room) {
 	return (bool_t)AbstractChatRoom::toCpp(chat_room)->ephemeralEnabled();
 }
 
-void linphone_chat_room_set_ephemeral_lifetime(LinphoneChatRoom *chat_room, long time) {
+void linphone_chat_room_set_ephemeral_lifetime(LinphoneChatRoom *chat_room, const long lifetime) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
-	AbstractChatRoom::toCpp(chat_room)->setEphemeralLifetime(time, true);
+	AbstractChatRoom::toCpp(chat_room)->setEphemeralLifetime(lifetime, true);
 }
 
 long linphone_chat_room_get_ephemeral_lifetime(const LinphoneChatRoom *chat_room) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
 	return AbstractChatRoom::toCpp(chat_room)->getEphemeralLifetime();
+}
+
+void linphone_chat_room_set_ephemeral_not_read_lifetime(LinphoneChatRoom *chat_room, const long lifetime) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	AbstractChatRoom::toCpp(chat_room)->setEphemeralNotReadLifetime(lifetime, true);
+}
+
+long linphone_chat_room_get_ephemeral_not_read_lifetime(const LinphoneChatRoom *chat_room) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	return AbstractChatRoom::toCpp(chat_room)->getEphemeralNotReadLifetime();
 }
 
 bool_t linphone_chat_room_ephemeral_supported_by_all_participants(const LinphoneChatRoom *chat_room) {

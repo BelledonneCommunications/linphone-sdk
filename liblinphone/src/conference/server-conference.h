@@ -124,8 +124,8 @@ public:
 	notifyEphemeralModeChanged(time_t creationTime, const bool isFullState, const EventLog::Type type) override;
 	std::shared_ptr<ConferenceEphemeralMessageEvent>
 	notifyEphemeralMessageEnabled(time_t creationTime, const bool isFullState, const bool enable) override;
-	std::shared_ptr<ConferenceEphemeralMessageEvent>
-	notifyEphemeralLifetimeChanged(time_t creationTime, const bool isFullState, const long lifetime) override;
+	std::shared_ptr<ConferenceEphemeralMessageEvent> notifyEphemeralLifetimeChanged(
+	    time_t creationTime, const bool isFullState, const long lifetime, const long notReadLifetime) override;
 
 	std::shared_ptr<ConferenceParticipantDeviceEvent>
 	notifyParticipantDeviceJoiningRequest(time_t creationTime,

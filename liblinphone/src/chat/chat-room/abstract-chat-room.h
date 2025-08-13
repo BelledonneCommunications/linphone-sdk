@@ -197,6 +197,8 @@ public:
 	virtual bool ephemeralEnabled() const = 0;
 	virtual void setEphemeralLifetime(long lifetime, bool updateDb) = 0;
 	virtual long getEphemeralLifetime() const = 0;
+	virtual void setEphemeralNotReadLifetime(long lifetime, bool updateDb) = 0;
+	virtual long getEphemeralNotReadLifetime() const = 0;
 	virtual void setEphemeralMode(AbstractChatRoom::EphemeralMode mode, bool updateDb) = 0;
 	virtual AbstractChatRoom::EphemeralMode getEphemeralMode() const = 0;
 	virtual bool ephemeralSupportedByAllParticipants() const = 0;

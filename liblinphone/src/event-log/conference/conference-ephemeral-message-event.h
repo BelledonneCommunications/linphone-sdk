@@ -36,9 +36,11 @@ public:
 	ConferenceEphemeralMessageEvent(Type type,
 	                                time_t creationTime,
 	                                const ConferenceId &conferenceId,
-	                                long ephemeralLifetime);
+	                                long ephemeralLifetime,
+	                                long ephemeralNotReadLifetime);
 
 	long getEphemeralMessageLifetime() const;
+	long getEphemeralMessageNotReadLifetime() const;
 
 private:
 	L_DECLARE_PRIVATE(ConferenceEphemeralMessageEvent);

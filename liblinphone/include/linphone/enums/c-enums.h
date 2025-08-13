@@ -202,4 +202,18 @@ typedef enum _LinphoneMediaFileFormat {
 	                                  file extension. */
 } LinphoneMediaFileFormat;
 
+/**
+ * Ephemeral chat message policies.
+ * This enum represents different policies for managing ephemeral chat message lifetimes.
+ * @ingroup chat
+ */
+typedef enum _LinphoneEphemeralChatMessagePolicy {
+	LinphoneEphemeralChatMessagePolicyDefault =
+	    0, /**< In this mode, an ephemeral chat message expires at the same time for all participants, when every
+	          participant has read the message and its lifetime expires. */
+	LinphoneEphemeralChatMessagePolicyIndividual =
+	    1 /**< In this mode, an ephemeral chat message expires independently for each participant, after the duration of
+	         the lifetime once this participant has read the message. */
+} LinphoneEphemeralChatMessagePolicy;
+
 #endif

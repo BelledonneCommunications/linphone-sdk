@@ -10,6 +10,11 @@ This changelog file was started on October 2019. Previous changes were more or l
 
 ## Unreleased
 
+### Added
+
+- Added LinphoneEphemeralChatMessagePolicy to support several policies for how to handle the expiration of ephemeral
+  chat messages.
+
 ### Changed
 - Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC.
 - The delay measured by the Echo Canceller Calibrator is not used in mswebrtcaec.
@@ -276,4 +281,3 @@ This changelog file was started on October 2019. Previous changes were more or l
 ### Changed
 - Optimisations in chatrooms loading from Sqlite DB, improving startup time.
 - License changed to GNU GPLv3.
-

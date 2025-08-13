@@ -7358,20 +7358,36 @@ LINPHONE_PUBLIC LinphoneChatRoomEphemeralMode
 linphone_core_chat_room_get_default_ephemeral_mode(const LinphoneCore *core);
 
 /**
- * Set the default ephemeral lifetime in seconds
+ * Set the default ephemeral lifetime in seconds once read
  * @param core the #LinphoneCore. @notnil
- * @param value lifetime of ephemeral messages in seconds
+ * @param value lifetime of ephemeral messages in seconds once read
  * @ingroup chatroom
  */
 LINPHONE_PUBLIC void linphone_core_set_default_ephemeral_lifetime(LinphoneCore *core, long value);
 
 /**
- * Gets the default lifetime of ephemeral messages in seconds
+ * Gets the default lifetime of ephemeral messages in seconds once they are read
  * @param core the #LinphoneCore. @notnil
- * @return lifetime of ephemeral messages in seconds
+ * @return lifetime of ephemeral messages in seconds once read
  * @ingroup chatroom
  **/
 LINPHONE_PUBLIC long linphone_core_get_default_ephemeral_lifetime(const LinphoneCore *core);
+
+/**
+ * Set the default ephemeral lifetime in seconds when not read
+ * @param core the #LinphoneCore. @notnil
+ * @param value lifetime of ephemeral messages in seconds when not read
+ * @ingroup chatroom
+ */
+LINPHONE_PUBLIC void linphone_core_set_default_ephemeral_not_read_lifetime(LinphoneCore *core, long value);
+
+/**
+ * Gets the default lifetime of ephemeral messages in seconds when they are not read
+ * @param core the #LinphoneCore. @notnil
+ * @return lifetime of ephemeral messages in seconds when not read
+ * @ingroup chatroom
+ **/
+LINPHONE_PUBLIC long linphone_core_get_default_ephemeral_not_read_lifetime(const LinphoneCore *core);
 
 /**
  * Enable sending conference invitations in the chat message body instead of as a file attachment.
@@ -7943,6 +7959,28 @@ LINPHONE_PUBLIC void linphone_core_set_register_only_when_network_is_up(Linphone
  * @ingroup initializing
  */
 LINPHONE_PUBLIC bool_t linphone_core_get_register_only_when_network_is_up(const LinphoneCore *core);
+
+/**
+ * Sets the policy for ephemeral chat messages.
+ *
+ * See #LinphoneEphemeralChatMessagePolicy for more details.
+ * @param core the core @notnil
+ * @param policy the #LinphoneEphemeralChatMessagePolicy to use.
+ * @ingroup chat
+ */
+LINPHONE_PUBLIC void linphone_core_set_ephemeral_chat_message_policy(LinphoneCore *core,
+                                                                     LinphoneEphemeralChatMessagePolicy policy);
+
+/**
+ * Gets the current policy for ephemeral chat messages.
+ *
+ * See #LinphoneEphemeralChatMessagePolicy for more details.
+ * @param core the core @notnil
+ * @return the current #LinphoneEphemeralChatMessagePolicy.
+ * @ingroup chat
+ **/
+LINPHONE_PUBLIC LinphoneEphemeralChatMessagePolicy
+linphone_core_get_ephemeral_chat_message_policy(const LinphoneCore *core);
 
 /************ */
 /* DEPRECATED */

@@ -60,6 +60,11 @@ public:
 		Sending = 1 << 9
 	};
 
+	enum EphemeralCountdownType : int {
+		Normal,
+		NotRead,
+	};
+
 	void setApplyModifiers(bool value) {
 		applyModifiers = value;
 	}
@@ -94,11 +99,11 @@ public:
 	void setReplacesMessageId(const std::string &id);
 	void setRetractsMessageId(const std::string &id);
 
-	void enableEphemeralWithTime(long time);
+	void enableEphemeralWithTime(long lifetime, long notReadLifetime);
 
 	void setEphemeralExpireTime(time_t expireTime);
 
-	void startEphemeralCountDown();
+	void startEphemeralCountDown(EphemeralCountdownType countdownType);
 
 	void setAuthenticatedFromAddress(const Address &authenticatedFromAddress) {
 		this->authenticatedFromAddress = authenticatedFromAddress;
@@ -344,6 +349,7 @@ private:
 
 	bool isEphemeral = false;
 	long ephemeralLifetime = 0;
+	long ephemeralNotReadLifetime = 0;
 	time_t ephemeralExpireTime = 0;
 
 	bool mDelayTimerExpired = false;

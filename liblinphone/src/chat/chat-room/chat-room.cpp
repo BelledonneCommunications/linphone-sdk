@@ -310,7 +310,7 @@ shared_ptr<ChatMessage> ChatRoom::createChatMessage(ChatMessage::Direction direc
 		if (ephemeralEnabled()) {
 			lDebug() << "Create an outgoing ephemeral message " << message << " with lifetime "
 			         << getEphemeralLifetime() << " in chat room [" << getConferenceId() << "]";
-			message->getPrivate()->enableEphemeralWithTime(getEphemeralLifetime());
+			message->getPrivate()->enableEphemeralWithTime(getEphemeralLifetime(), getEphemeralNotReadLifetime());
 		}
 	}
 	return message;
@@ -1142,6 +1142,14 @@ void ChatRoom::setEphemeralLifetime(BCTBX_UNUSED(long lifetime), BCTBX_UNUSED(bo
 }
 
 long ChatRoom::getEphemeralLifetime() const {
+	return 0;
+}
+
+void ChatRoom::setEphemeralNotReadLifetime(BCTBX_UNUSED(long lifetime), BCTBX_UNUSED(bool updateDb)) {
+	lError() << "Ephemeral message is only supported in conference based chat room!";
+}
+
+long ChatRoom::getEphemeralNotReadLifetime() const {
 	return 0;
 }
 

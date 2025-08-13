@@ -202,9 +202,10 @@ CorePrivate::createClientChatRoom(const std::shared_ptr<const Address> &conferen
 shared_ptr<AbstractChatRoom> CorePrivate::createClientChatRoom(const string &subject,
                                                                const ConferenceId &conferenceId,
                                                                SalCallOp *op,
-                                                               bool encrypted,
-                                                               AbstractChatRoom::EphemeralMode ephemerableMode,
-                                                               long ephemeralLifeTime) {
+                                                               const bool encrypted,
+                                                               const AbstractChatRoom::EphemeralMode ephemeralMode,
+                                                               const long ephemeralLifeTime,
+                                                               const long ephemeralNotReadLifeTime) {
 #ifdef HAVE_ADVANCED_IM
 	L_Q();
 	shared_ptr<ConferenceParams> params = ConferenceParams::create(q->getSharedFromThis());
@@ -213,8 +214,9 @@ shared_ptr<AbstractChatRoom> CorePrivate::createClientChatRoom(const string &sub
 	                                   : ConferenceParams::SecurityLevel::None);
 	params->setGroup(true);
 	params->getChatParams()->setBackend(ChatParams::Backend::FlexisipChat);
-	params->getChatParams()->setEphemeralMode(ephemerableMode);
+	params->getChatParams()->setEphemeralMode(ephemeralMode);
 	params->getChatParams()->setEphemeralLifetime(ephemeralLifeTime);
+	params->getChatParams()->setEphemeralNotReadLifetime(ephemeralNotReadLifeTime);
 	return createClientChatRoom(conferenceId.getPeerAddress(), conferenceId, op, params);
 #else
 	lWarning() << "Advanced IM such as group chat is disabled!";

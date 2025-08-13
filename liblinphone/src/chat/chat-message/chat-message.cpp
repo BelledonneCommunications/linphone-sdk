@@ -228,6 +228,30 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 		return;
 	}
 
+	// Handle the ephemeral timers when using the individual policy
+	if (isEphemeral && isMe &&
+	    chatRoom->getCore()->getEphemeralChatMessagePolicy() == LinphoneEphemeralChatMessagePolicyIndividual) {
+		switch (newState) {
+			case ChatMessage::State::Displayed:
+				lInfo() << "Participant is in displayed state, starting ephemeral countdown";
+				startEphemeralCountDown(Normal);
+				break;
+			case ChatMessage::State::Delivered:
+				if (eventLog) { // Only start the countdown if the state has been stored
+					if (direction == ChatMessage::Direction::Outgoing) {
+						lInfo() << "Sender is in delivered state, starting ephemeral countdown";
+						startEphemeralCountDown(Normal);
+					} else {
+						lInfo() << "Participant is in delivered state, starting ephemeral not-read countdown";
+						startEphemeralCountDown(NotRead);
+					}
+				}
+				break;
+			default:
+				break;
+		}
+	}
+
 	if (linphone_config_get_bool(linphone_core_get_config(chatRoom->getCore()->getCCore()), "misc",
 	                             "enable_simple_group_chat_message_state", FALSE)) {
 		setState(newState, reason);
@@ -423,9 +447,17 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 	}
 
 	// 4. update in database for ephemeral message if necessary.
-	if (isEphemeral && state == ChatMessage::State::Displayed) {
-		lInfo() << "All participants are in displayed state, starting ephemeral countdown";
-		startEphemeralCountDown();
+	if (isEphemeral &&
+	    chatRoom->getCore()->getEphemeralChatMessagePolicy() == LinphoneEphemeralChatMessagePolicyDefault) {
+		if (state == ChatMessage::State::Displayed) {
+			lInfo() << "All participants are in displayed state, starting ephemeral countdown";
+			startEphemeralCountDown(Normal);
+		} else if (((direction == ChatMessage::Direction::Outgoing) && (state == ChatMessage::State::Delivered)) ||
+		           ((direction == ChatMessage::Direction::Incoming) &&
+		            (state == ChatMessage::State::DeliveredToUser))) {
+			lInfo() << "In delivered state, starting ephemeral not-read countdown";
+			startEphemeralCountDown(NotRead);
+		}
 	}
 
 	// 5. Update in database if necessary.
@@ -470,24 +502,42 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 	}
 }
 
-void ChatMessagePrivate::startEphemeralCountDown() {
+void ChatMessagePrivate::startEphemeralCountDown(const EphemeralCountdownType countdownType) {
 	L_Q();
 
-	shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
+	const shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
 	if (!chatRoom) return;
 
+	long lifetime;
+	switch (countdownType) {
+		default:
+		case Normal:
+			lifetime = ephemeralLifetime;
+			break;
+		case NotRead:
+			lifetime = ephemeralNotReadLifetime;
+			break;
+	}
+	if (countdownType == Normal && (ephemeralLifetime == 0)) {
+		// If no ephemeral lifetime is specified, use the ephemeral not-read lifetime
+		lifetime = ephemeralNotReadLifetime;
+	}
+	if (lifetime == 0) return; // Do not start the countdown if the lifetime is 0
+
 	// set ephemeral message expired time
-	ephemeralExpireTime = ::ms_time(NULL) + (long)ephemeralLifetime;
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
+	ephemeralExpireTime = ::ms_time(nullptr) + lifetime;
+	const unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
 	mainDb->updateEphemeralMessageInfos(storageId, ephemeralExpireTime);
 
 	const shared_ptr<ChatMessage> &sharedMessage = q->getSharedFromThis();
 	chatRoom->getCore()->getPrivate()->updateEphemeralMessages(sharedMessage);
 
-	lInfo() << "Starting ephemeral countdown with life time: " << ephemeralLifetime;
+	string countdownTypeStr;
+	if (countdownType == NotRead) countdownTypeStr = "not-read";
+	lInfo() << "Starting ephemeral " << countdownTypeStr << " countdown with life time: " << lifetime;
 
 	// notify start !
-	shared_ptr<LinphonePrivate::EventLog> event = LinphonePrivate::MainDb::getEvent(mainDb, q->getStorageId());
+	const shared_ptr<LinphonePrivate::EventLog> event = LinphonePrivate::MainDb::getEvent(mainDb, q->getStorageId());
 	if (chatRoom && event) {
 		_linphone_chat_room_notify_ephemeral_message_timer_started(chatRoom->toC(), L_GET_C_BACK_PTR(event));
 		LinphoneChatMessage *msg = L_GET_C_BACK_PTR(q);
@@ -2200,9 +2250,10 @@ bool ChatMessage::canBeEdited() const {
 	return false;
 }
 
-void ChatMessagePrivate::enableEphemeralWithTime(long time) {
+void ChatMessagePrivate::enableEphemeralWithTime(const long lifetime, const long notReadLifetime) {
 	isEphemeral = true;
-	ephemeralLifetime = time;
+	ephemeralLifetime = lifetime;
+	ephemeralNotReadLifetime = notReadLifetime;
 }
 
 void ChatMessagePrivate::loadContentsFromDatabase() const {
@@ -2267,6 +2318,11 @@ bool ChatMessage::isEphemeral() const {
 long ChatMessage::getEphemeralLifetime() const {
 	L_D();
 	return d->ephemeralLifetime;
+}
+
+long ChatMessage::getEphemeralNotReadLifetime() const {
+	L_D();
+	return d->ephemeralNotReadLifetime;
 }
 
 time_t ChatMessage::getEphemeralExpireTime() const {

@@ -57,6 +57,10 @@ long linphone_chat_params_get_ephemeral_lifetime(const LinphoneChatParams *param
 	return ChatParams::toCpp(params)->getEphemeralLifetime();
 }
 
+long linphone_chat_params_get_ephemeral_not_read_lifetime(const LinphoneChatParams *params) {
+	return ChatParams::toCpp(params)->getEphemeralNotReadLifetime();
+}
+
 bool_t linphone_chat_params_encryption_enabled(const LinphoneChatParams *params) {
 	return ChatParams::toCpp(params)->isEncrypted();
 }
@@ -78,8 +82,12 @@ void linphone_chat_params_set_ephemeral_mode(LinphoneChatParams *params, Linphon
 	ChatParams::toCpp(params)->setEphemeralMode(static_cast<AbstractChatRoom::EphemeralMode>(mode));
 }
 
-void linphone_chat_params_set_ephemeral_lifetime(LinphoneChatParams *params, long lifetime) {
+void linphone_chat_params_set_ephemeral_lifetime(LinphoneChatParams *params, const long lifetime) {
 	ChatParams::toCpp(params)->setEphemeralLifetime(lifetime);
+}
+
+void linphone_chat_params_set_ephemeral_not_read_lifetime(LinphoneChatParams *params, const long lifetime) {
+	ChatParams::toCpp(params)->setEphemeralNotReadLifetime(lifetime);
 }
 
 void linphone_chat_params_enable_rtt(LinphoneChatParams *params, bool_t rtt) {

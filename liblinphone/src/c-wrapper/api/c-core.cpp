@@ -394,3 +394,14 @@ LinphoneVcard *linphone_core_create_vcard_from_text(const LinphoneCore *core, co
 	return NULL;
 #endif
 }
+
+void linphone_core_set_ephemeral_chat_message_policy(LinphoneCore *core,
+                                                     const LinphoneEphemeralChatMessagePolicy policy) {
+	CoreLogContextualizer logContextualizer(core);
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->setEphemeralChatMessagePolicy(policy);
+}
+
+LinphoneEphemeralChatMessagePolicy linphone_core_get_ephemeral_chat_message_policy(const LinphoneCore *core) {
+	CoreLogContextualizer logContextualizer(core);
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->getEphemeralChatMessagePolicy();
+}

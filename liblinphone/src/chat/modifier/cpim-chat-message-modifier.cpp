@@ -46,6 +46,7 @@ LINPHONE_BEGIN_NAMESPACE
 const string linphoneNamespaceTag = "tag:linphone.org,2020:params:groupchat";
 const string linphoneNamespace = "linphone";
 const string linphoneEphemeralHeader = "Ephemeral-Time";
+const string linphoneEphemeralNotReadHeader = "Ephemeral-Not-Read-Time";
 const string linphoneReplyingToMessageIdHeader = "Replying-To-Message-ID";
 const string linphoneReplyingToMessageSenderHeader = "Replying-To-Sender";
 const string linphoneReactionToMessageIdHeader = "In-Reply-To";
@@ -91,10 +92,15 @@ ChatMessageModifier::Result CpimChatMessageModifier::encode(const shared_ptr<Cha
 	    message->getPrivate()->getNegativeDeliveryNotificationRequired() ||
 	    message->getPrivate()->getDisplayNotificationRequired()) {
 		if (message->isEphemeral()) {
-			long time = message->getEphemeralLifetime();
-			const string &buf = Utils::toString(time);
+			const long ephemeralLifeTime = message->getEphemeralLifetime();
+			const long ephemeralNotReadLifeTime = message->getEphemeralNotReadLifetime();
+			const string &ephemeralLifeTimeBuf = Utils::toString(ephemeralLifeTime);
+			const string &ephemeralNotReadLifeTimeBuf = Utils::toString(ephemeralNotReadLifeTime);
 			cpimMessage.addMessageHeader(Cpim::NsHeader(linphoneNamespaceTag, linphoneNamespace));
-			cpimMessage.addMessageHeader(Cpim::GenericHeader(linphoneNamespace + "." + linphoneEphemeralHeader, buf));
+			cpimMessage.addMessageHeader(
+			    Cpim::GenericHeader(linphoneNamespace + "." + linphoneEphemeralHeader, ephemeralLifeTimeBuf));
+			cpimMessage.addMessageHeader(Cpim::GenericHeader(linphoneNamespace + "." + linphoneEphemeralNotReadHeader,
+			                                                 ephemeralNotReadLifeTimeBuf));
 			linphoneNamespaceHeaderSet = true;
 		}
 
@@ -289,10 +295,15 @@ ChatMessageModifier::Result CpimChatMessageModifier::decode(const shared_ptr<Cha
 	}
 
 	if (!linphoneNsName.empty()) {
-		auto timeHeader = cpimMessage->getMessageHeader(linphoneEphemeralHeader, linphoneNsName);
-		if (timeHeader) {
-			long time = (long)Utils::stod(timeHeader->getValue());
-			message->getPrivate()->enableEphemeralWithTime(time);
+		auto lifetimeHeader = cpimMessage->getMessageHeader(linphoneEphemeralHeader, linphoneNsName);
+		auto notReadLifetimeHeader = cpimMessage->getMessageHeader(linphoneEphemeralNotReadHeader, linphoneNsName);
+		if (lifetimeHeader) {
+			long lifetime = static_cast<long>(Utils::stod(lifetimeHeader->getValue()));
+			long notReadLifetime = 0;
+			if (notReadLifetimeHeader) {
+				notReadLifetime = static_cast<long>(Utils::stod(notReadLifetimeHeader->getValue()));
+			}
+			message->getPrivate()->enableEphemeralWithTime(lifetime, notReadLifetime);
 		}
 
 		auto replyToMessageIdHeader = cpimMessage->getMessageHeader(linphoneReplyingToMessageIdHeader, linphoneNsName);

@@ -206,9 +206,28 @@ LINPHONE_PUBLIC void linphone_chat_room_set_ephemeral_lifetime(LinphoneChatRoom 
  * After the message is read, it will be deleted after "time" seconds.
  * @see linphone_chat_room_ephemeral_enabled()
  * @param chat_room #LinphoneChatRoom object @notnil
- * @return the ephemeral lifetime (in secoonds)
+ * @return the ephemeral lifetime (in seconds)
  */
 LINPHONE_PUBLIC long linphone_chat_room_get_ephemeral_lifetime(const LinphoneChatRoom *chat_room);
+
+/**
+ * Sets not-read lifetime (in seconds) for all new ephemeral messages in the chat room.
+ * If the message is not read, it will be deleted after "time" seconds.
+ * @see linphone_chat_room_ephemeral_enabled()
+ * @param chat_room #LinphoneChatRoom object @notnil
+ * @param time The ephemeral not-read lifetime, default is 0 (disabled)
+ * @warning A value of "time" equal to 0 disables the ephemeral not-read countdowns
+ */
+LINPHONE_PUBLIC void linphone_chat_room_set_ephemeral_not_read_lifetime(LinphoneChatRoom *chat_room, long time);
+
+/**
+ * Gets not-read lifetime (in seconds) for all new ephemeral messages in the chat room.
+ * If the message is not read, it will be deleted after "time" seconds.
+ * @see linphone_chat_room_ephemeral_enabled()
+ * @param chat_room #LinphoneChatRoom object @notnil
+ * @return the ephemeral not-read lifetime (in seconds)
+ */
+LINPHONE_PUBLIC long linphone_chat_room_get_ephemeral_not_read_lifetime(const LinphoneChatRoom *chat_room);
 
 /**
  * Sets the ephemeral mode of the chat room

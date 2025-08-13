@@ -261,6 +261,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 				if (nodeName == "linphone-cie:ephemeral") {
 					Ephemeral ephemeral{anyElement};
 					auto ephemeralLifetime = ephemeral.getLifetime();
+					auto ephemeralNotReadLifetime = ephemeral.getNotReadLifetime();
 					auto ephemeralMode = ephemeral.getMode();
 
 					std::shared_ptr<LinphonePrivate::ClientChatRoom> cgcr = nullptr;
@@ -271,15 +272,26 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						if (ephemeralMode.empty() || (ephemeralMode.compare("admin-managed") == 0)) {
 							cgcr->getCurrentParams()->getChatParams()->setEphemeralMode(
 							    AbstractChatRoom::EphemeralMode::AdminManaged);
-							if (!ephemeralLifetime.empty()) {
-								const auto lifetime = std::stol(ephemeralLifetime);
-								cgcr->getCurrentParams()->getChatParams()->setEphemeralLifetime(lifetime);
-								cgcr->enableEphemeral((lifetime != 0), false);
+							if (!ephemeralLifetime.empty() || !ephemeralNotReadLifetime.empty()) {
+								long lifetime = 0;
+								long notReadLifetime = 0;
+								if (!ephemeralLifetime.empty()) {
+									lifetime = std::stol(ephemeralLifetime);
+									cgcr->getCurrentParams()->getChatParams()->setEphemeralLifetime(lifetime);
+								}
+								if (!ephemeralNotReadLifetime.empty()) {
+									notReadLifetime = std::stol(ephemeralNotReadLifetime);
+									cgcr->getCurrentParams()->getChatParams()->setEphemeralNotReadLifetime(
+									    notReadLifetime);
+								}
+								cgcr->enableEphemeral((lifetime != 0) || (notReadLifetime != 0), false);
 								if (!isFullState) {
-									conference->notifyEphemeralLifetimeChanged(creationTime, isFullState, lifetime);
-
-									conference->notifyEphemeralMessageEnabled(creationTime, isFullState,
-									                                          (lifetime != 0));
+									conference->notifyEphemeralMessageEnabled(
+									    creationTime, isFullState, (lifetime != 0) || (notReadLifetime != 0));
+									conference->notifyEphemeralLifetimeChanged(
+									    creationTime, isFullState,
+									    cgcr->getCurrentParams()->getChatParams()->getEphemeralLifetime(),
+									    cgcr->getCurrentParams()->getChatParams()->getEphemeralNotReadLifetime());
 								}
 							}
 						} else if (ephemeralMode.compare("device-managed") == 0) {

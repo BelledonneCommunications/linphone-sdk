@@ -318,6 +318,8 @@ std::shared_ptr<CallSession> ClientConference::createSessionTo(const std::shared
 	if (mConfParams->getChatParams()->getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged) {
 		csp.addCustomHeader("Ephemerable", "true");
 		csp.addCustomHeader("Ephemeral-Life-Time", to_string(mConfParams->getChatParams()->getEphemeralLifetime()));
+		csp.addCustomHeader("Ephemeral-Not-Read-Life-Time",
+		                    to_string(mConfParams->getChatParams()->getEphemeralNotReadLifetime()));
 	}
 
 	csp.enableAudio(mConfParams->audioEnabled());
@@ -2732,6 +2734,9 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 					dialoutParams->addCustomHeader("Ephemerable", "true");
 					dialoutParams->addCustomHeader("Ephemeral-Life-Time",
 					                               to_string(mConfParams->getChatParams()->getEphemeralLifetime()));
+					dialoutParams->addCustomHeader(
+					    "Ephemeral-Not-Read-Life-Time",
+					    to_string(mConfParams->getChatParams()->getEphemeralNotReadLifetime()));
 				}
 			}
 			dialoutParams->getPrivate()->disableRinging(!mediaSupported);

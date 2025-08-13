@@ -403,6 +403,21 @@ public:
 
 	::std::unique_ptr<LifetimeType> setDetachLifetime();
 
+	// not-read-lifetime
+	//
+	typedef ::LinphonePrivate::Xsd::XmlSchema::String NotReadLifetimeType;
+	typedef ::xsd::cxx::tree::traits<NotReadLifetimeType, char> NotReadLifetimeTraits;
+
+	const NotReadLifetimeType &getNotReadLifetime() const;
+
+	NotReadLifetimeType &getNotReadLifetime();
+
+	void setNotReadLifetime(const NotReadLifetimeType &x);
+
+	void setNotReadLifetime(::std::unique_ptr<NotReadLifetimeType> p);
+
+	::std::unique_ptr<NotReadLifetimeType> setDetachNot_read_lifetime();
+
 	// any
 	//
 	typedef ::xsd::cxx::tree::element_sequence AnySequence;
@@ -423,9 +438,9 @@ public:
 
 	// Constructors.
 	//
-	Ephemeral(const ModeType &, const LifetimeType &);
+	Ephemeral(const ModeType &, const LifetimeType &, const NotReadLifetimeType &);
 
-	Ephemeral(::std::unique_ptr<ModeType>, ::std::unique_ptr<LifetimeType>);
+	Ephemeral(::std::unique_ptr<ModeType>, ::std::unique_ptr<LifetimeType>, ::std::unique_ptr<NotReadLifetimeType>);
 
 	Ephemeral(const ::xercesc::DOMElement &e,
 	          ::LinphonePrivate::Xsd::XmlSchema::Flags f = 0,
@@ -452,6 +467,7 @@ protected:
 
 	::xsd::cxx::tree::one<ModeType> mode_;
 	::xsd::cxx::tree::one<LifetimeType> lifetime_;
+	::xsd::cxx::tree::one<NotReadLifetimeType> not_read_lifetime_;
 	AnySequence any_;
 };
 

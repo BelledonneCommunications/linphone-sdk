@@ -128,8 +128,10 @@ public:
 	                                                       const ConferenceId &conferenceId,
 	                                                       SalCallOp *op,
 	                                                       bool encrypted,
-	                                                       AbstractChatRoom::EphemeralMode ephemerableMode,
-	                                                       long ephemeralLifeTime);
+	                                                       AbstractChatRoom::EphemeralMode ephemeralMode,
+	                                                       long ephemeralLifeTime,
+	                                                       long ephemeralNotReadLifeTime);
+
 	std::shared_ptr<AbstractChatRoom> createClientChatRoom(const std::string &subject, bool fallback, bool encrypted);
 
 	std::shared_ptr<AbstractChatRoom> createChatRoom(const std::shared_ptr<ConferenceParams> &params,
@@ -241,6 +243,7 @@ private:
 
 	std::string logLabel;
 	LinphoneCodecPriorityPolicy videoCodecPriorityPolicy = LinphoneCodecPriorityPolicyAuto;
+	LinphoneEphemeralChatMessagePolicy ephemeralChatMessagePolicy = LinphoneEphemeralChatMessagePolicyDefault;
 	std::unique_ptr<HttpClient> httpClient;
 
 	std::list<std::shared_ptr<FriendList>> friendLists;

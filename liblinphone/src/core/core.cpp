@@ -2161,6 +2161,8 @@ shared_ptr<CallSession> Core::createOrUpdateConferenceOnServer(const std::shared
 		params.addCustomHeader("Ephemerable", Utils::btos(confParams->getChatParams()->getEphemeralMode() ==
 		                                                  AbstractChatRoom::EphemeralMode::AdminManaged));
 		params.addCustomHeader("Ephemeral-Life-Time", to_string(confParams->getChatParams()->getEphemeralLifetime()));
+		params.addCustomHeader("Ephemeral-Not-Read-Life-Time",
+		                       to_string(confParams->getChatParams()->getEphemeralNotReadLifetime()));
 	}
 
 	if (!participants.empty()) {
@@ -3244,6 +3246,30 @@ Address Core::getIdentityAddress() const {
 	auto account = getDefaultAccount();
 	if (account) return *account->getAccountParams()->getIdentityAddress();
 	return getPrimaryContactAddress();
+}
+
+void Core::initEphemeralChatMessagePolicy() {
+	const auto lc = getCCore();
+	int ephemeralMessagePolicy = linphone_config_get_int(lc->config, "chat", "ephemeral_message_policy",
+	                                                     (int)linphone_core_get_ephemeral_chat_message_policy(lc));
+	if (ephemeralMessagePolicy != static_cast<int>(LinphoneEphemeralChatMessagePolicyIndividual)) {
+		ephemeralMessagePolicy = static_cast<int>(LinphoneEphemeralChatMessagePolicyDefault);
+	}
+	linphone_core_set_ephemeral_chat_message_policy(
+	    lc, static_cast<LinphoneEphemeralChatMessagePolicy>(ephemeralMessagePolicy));
+}
+
+void Core::setEphemeralChatMessagePolicy(const LinphoneEphemeralChatMessagePolicy policy) {
+	L_D();
+	if (linphone_core_ready(getCCore())) {
+		linphone_config_set_int(linphone_core_get_config(getCCore()), "chat", "ephemeral_message_policy", (int)policy);
+	}
+	d->ephemeralChatMessagePolicy = policy;
+}
+
+LinphoneEphemeralChatMessagePolicy Core::getEphemeralChatMessagePolicy() const {
+	L_D();
+	return d->ephemeralChatMessagePolicy;
 }
 
 LINPHONE_END_NAMESPACE

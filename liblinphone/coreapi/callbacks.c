@@ -164,12 +164,16 @@ static void call_received(SalCallOp *h) {
 	bool encrypted = endToEndEncrypted == "true";
 	string ephemerable = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemerable"));
 	string ephemeralLifeTime = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Life-Time"));
-	auto ephemeralMode = ((ephemerable == "true") && (!ephemeralLifeTime.empty()))
+	string ephemeralNotReadLifeTime =
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Not-Read-Life-Time"));
+	auto ephemeralMode = (ephemerable == "true") && (!ephemeralLifeTime.empty() || !ephemeralNotReadLifeTime.empty())
 	                         ? AbstractChatRoom::EphemeralMode::AdminManaged
 	                         : AbstractChatRoom::EphemeralMode::DeviceManaged;
 	long parsedEphemeralLifeTime = linphone_core_get_default_ephemeral_lifetime(lc);
+	long parsedEphemeralNotReadLifeTime = linphone_core_get_default_ephemeral_not_read_lifetime(lc);
 	if (ephemeralMode == AbstractChatRoom::EphemeralMode::AdminManaged) {
 		parsedEphemeralLifeTime = stol(ephemeralLifeTime, nullptr);
+		parsedEphemeralNotReadLifeTime = stol(ephemeralNotReadLifeTime, nullptr);
 	}
 	string oneToOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
 	bool isOneToOne = (oneToOneChatRoom == "true");
@@ -210,6 +214,7 @@ static void call_received(SalCallOp *h) {
 		                                         (parsedEphemeralLifeTime > 0));
 		params->getChatParams()->setBackend(ChatParams::Backend::FlexisipChat);
 		params->getChatParams()->setEphemeralLifetime(parsedEphemeralLifeTime);
+		params->getChatParams()->setEphemeralNotReadLifetime(parsedEphemeralNotReadLifeTime);
 #else
 		lWarning() << "Unable to add chat capabilities to parameters [" << params
 		           << "] because advanced IM such as group chat is disabled!";

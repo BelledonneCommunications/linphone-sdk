@@ -343,11 +343,13 @@ bool ServerConference::updateConferenceInformation(SalCallOp *op) {
 			string endToEndEncrypted = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "End-To-End-Encrypted"));
 			string ephemerable = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemerable"));
 			string ephemeralLifeTime = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Life-Time"));
+			string ephemeralNotReadLifetime =
+			    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Not-Read-Life-Time"));
 			string oneToOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
 			const auto remoteContactAddress = op->getRemoteContactAddress();
 			const auto chatEnabled =
-			    !ephemerable.empty() || !ephemeralLifeTime.empty() || !endToEndEncrypted.empty() ||
-			    !oneToOneChatRoom.empty() ||
+			    !ephemerable.empty() || !ephemeralLifeTime.empty() || !ephemeralNotReadLifetime.empty() ||
+			    !endToEndEncrypted.empty() || !oneToOneChatRoom.empty() ||
 			    !!(sal_address_has_param(remoteContactAddress, Conference::sTextParameter.c_str()));
 
 			bool previousChatEnablement = mConfParams->chatEnabled();
@@ -1222,11 +1224,11 @@ ServerConference::notifyEphemeralMessageEnabled(time_t creationTime, const bool 
 	return Conference::notifyEphemeralMessageEnabled(creationTime, isFullState, enable);
 }
 
-shared_ptr<ConferenceEphemeralMessageEvent>
-ServerConference::notifyEphemeralLifetimeChanged(time_t creationTime, const bool isFullState, const long lifetime) {
+shared_ptr<ConferenceEphemeralMessageEvent> ServerConference::notifyEphemeralLifetimeChanged(
+    time_t creationTime, const bool isFullState, const long lifetime, const long notReadLifetime) {
 	// Increment last notify before notifying participants so that the delta can be calculated correctly
 	incrementLastNotify();
-	return Conference::notifyEphemeralLifetimeChanged(creationTime, isFullState, lifetime);
+	return Conference::notifyEphemeralLifetimeChanged(creationTime, isFullState, lifetime, notReadLifetime);
 }
 
 shared_ptr<ConferenceParticipantDeviceEvent> ServerConference::notifyParticipantDeviceScreenSharingChanged(
@@ -1502,6 +1504,9 @@ bool ServerConference::dialOutAddresses(const std::list<std::shared_ptr<Address>
 			L_GET_CPP_PTR_FROM_C_OBJECT(new_params)
 			    ->addCustomHeader("Ephemeral-Life-Time",
 			                      to_string(getCurrentParams()->getChatParams()->getEphemeralLifetime()));
+			L_GET_CPP_PTR_FROM_C_OBJECT(new_params)
+			    ->addCustomHeader("Ephemeral-Not-Read-Life-Time",
+			                      to_string(getCurrentParams()->getChatParams()->getEphemeralNotReadLifetime()));
 		}
 	}
 
@@ -1614,6 +1619,8 @@ void ServerConference::byeDevice(const std::shared_ptr<ParticipantDevice> &devic
 			csp.addCustomHeader("Ephemerable", "true");
 			csp.addCustomHeader("Ephemeral-Life-Time",
 			                    to_string(getCurrentParams()->getChatParams()->getEphemeralLifetime()));
+			csp.addCustomHeader("Ephemeral-Not-Read-Life-Time",
+			                    to_string(getCurrentParams()->getChatParams()->getEphemeralNotReadLifetime()));
 		}
 	}
 	csp.getPrivate()->disableRinging(!supportsMedia());

@@ -389,6 +389,11 @@ public:
 
 	bool canAggregateChatMessages() const;
 	bool isCurrentlyAggregatingChatMessages() const;
+
+	void initEphemeralChatMessagePolicy();
+	void setEphemeralChatMessagePolicy(LinphoneEphemeralChatMessagePolicy policy);
+	LinphoneEphemeralChatMessagePolicy getEphemeralChatMessagePolicy() const;
+
 	// ---------------------------------------------------------------------------
 	// Signal informations
 	// ---------------------------------------------------------------------------

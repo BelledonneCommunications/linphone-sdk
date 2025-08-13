@@ -199,7 +199,8 @@ std::shared_ptr<Content> ServerConferenceEventHandler::createNotifyFullState(con
 		                          : "device-managed";
 
 		const auto ephemeral =
-		    Ephemeral(mode, std::to_string(chatRoom->getCurrentParams()->getChatParams()->getEphemeralLifetime()));
+		    Ephemeral(mode, std::to_string(chatRoom->getCurrentParams()->getChatParams()->getEphemeralLifetime()),
+		              std::to_string(chatRoom->getCurrentParams()->getChatParams()->getEphemeralNotReadLifetime()));
 
 		::xercesc::DOMElement *ephemeralE(confDescrDOMDoc.createElementNS(
 		    ::xsd::cxx::xml::string("linphone:xml:ns:conference-info-linphone-extension").c_str(),
@@ -984,11 +985,13 @@ string ServerConferenceEventHandler::createNotifyEphemeralMode(const EventLog::T
 	    (type == EventLog::Type::ConferenceEphemeralMessageManagedByAdmin) ? "admin-managed" : "device-managed";
 	shared_ptr<Core> core = conf->getCore();
 	long lifetime = linphone_core_get_default_ephemeral_lifetime(core->getCCore());
+	long notReadLifetime = linphone_core_get_default_ephemeral_not_read_lifetime(core->getCCore());
 	if (chatRoom) {
 		lifetime = chatRoom->getCurrentParams()->getChatParams()->getEphemeralLifetime();
+		notReadLifetime = chatRoom->getCurrentParams()->getChatParams()->getEphemeralNotReadLifetime();
 	}
 
-	const auto ephemeral = Ephemeral(mode, std::to_string(lifetime));
+	const auto ephemeral = Ephemeral(mode, std::to_string(lifetime), std::to_string(notReadLifetime));
 	auto &confDescrDOMDoc = confDescr.getDomDocument();
 
 	::xercesc::DOMElement *e(confDescrDOMDoc.createElementNS(
@@ -1003,7 +1006,7 @@ string ServerConferenceEventHandler::createNotifyEphemeralMode(const EventLog::T
 	return createNotify(confInfo);
 }
 
-string ServerConferenceEventHandler::createNotifyEphemeralLifetime(const long &lifetime) {
+string ServerConferenceEventHandler::createNotifyEphemeralLifetime(const long &lifetime, const long &notReadLifetime) {
 	auto conf = getConference();
 	if (!conf) {
 		return std::string();
@@ -1013,7 +1016,7 @@ string ServerConferenceEventHandler::createNotifyEphemeralLifetime(const long &l
 	const std::string entity = conferenceAddress ? conferenceAddress->asStringUriOnly() : std::string("sip:");
 	ConferenceType confInfo = ConferenceType(entity);
 	ConferenceDescriptionType confDescr = ConferenceDescriptionType();
-	if (lifetime != 0) {
+	if ((lifetime != 0) || (notReadLifetime != 0)) {
 		std::string keywordList;
 		keywordList += "ephemeral";
 		if (!keywordList.empty()) {
@@ -1034,7 +1037,7 @@ string ServerConferenceEventHandler::createNotifyEphemeralLifetime(const long &l
 
 	const ModeType mode =
 	    (chatRoomMode == AbstractChatRoom::EphemeralMode::AdminManaged) ? "admin-managed" : "device-managed";
-	const auto ephemeral = Ephemeral(mode, std::to_string(lifetime));
+	const auto ephemeral = Ephemeral(mode, std::to_string(lifetime), std::to_string(notReadLifetime));
 
 	auto &confDescrDOMDoc = confDescr.getDomDocument();
 
@@ -1505,10 +1508,10 @@ void ServerConferenceEventHandler::onEphemeralModeChanged(
 
 void ServerConferenceEventHandler::onEphemeralLifetimeChanged(
     const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
-	auto conf = getConference();
-	if (conf) {
-		notifyAll(makeContent(createNotifyEphemeralLifetime(event->getEphemeralMessageLifetime())));
+	// Do not send notify if the conference pointer is null. It may mean that the conference has been terminated.
+	if (getConference()) {
+		notifyAll(makeContent(createNotifyEphemeralLifetime(event->getEphemeralMessageLifetime(),
+		                                                    event->getEphemeralMessageNotReadLifetime())));
 	} else {
 		lWarning() << __func__ << ": Not sending notification of ephemeral lifetime changed to "
 		           << event->getEphemeralMessageLifetime();
