@@ -51,23 +51,7 @@ class Focus;
 class ClientConference : public ConfCoreManager {
 public:
 	ClientConference(std::string rc, Address factoryUri, LinphoneTesterLimeAlgo limeAlgo = UNSET)
-	    : ConfCoreManager(rc,
-	                      [this, factoryUri, limeAlgo](bool) {
-		                      configureCoreForConference(factoryUri);
-		                      _configure_core_for_audio_video_conference(mMgr.get(), factoryUri.toC());
-		                      linphone_core_enable_gruu_in_conference_address(getLc(), FALSE);
-		                      linphone_core_set_add_admin_information_to_contact(getLc(), FALSE);
-		                      linphone_core_enable_send_message_after_notify(getLc(), TRUE);
-		                      setupMgrForConference();
-		                      LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
-		                      linphone_core_cbs_set_chat_room_state_changed(cbs, core_chat_room_state_changed);
-		                      linphone_core_cbs_set_chat_room_subject_changed(cbs, core_chat_room_subject_changed);
-		                      linphone_core_cbs_set_message_sent(cbs, encrypted_message_sent);
-		                      linphone_core_cbs_set_message_received(cbs, encrypted_message_received);
-		                      linphone_core_add_callbacks(getLc(), cbs);
-		                      linphone_core_cbs_unref(cbs);
-		                      set_lime_server_and_curve(limeAlgo, mMgr.get());
-	                      }),
+	    : ConfCoreManager(rc, [this, factoryUri, limeAlgo](bool) { configure(factoryUri, limeAlgo); }),
 	      mFocus(nullptr) {
 	}
 
@@ -116,6 +100,23 @@ public:
 		}
 	}
 
+	void configure(Address factoryUri, LinphoneTesterLimeAlgo limeAlgo = UNSET) {
+		configureCoreForConference(factoryUri);
+		_configure_core_for_audio_video_conference(mMgr.get(), factoryUri.toC());
+		linphone_core_enable_gruu_in_conference_address(getLc(), FALSE);
+		linphone_core_set_add_admin_information_to_contact(getLc(), FALSE);
+		linphone_core_enable_send_message_after_notify(getLc(), TRUE);
+		setupMgrForConference();
+		LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+		linphone_core_cbs_set_chat_room_state_changed(cbs, core_chat_room_state_changed);
+		linphone_core_cbs_set_chat_room_subject_changed(cbs, core_chat_room_subject_changed);
+		linphone_core_cbs_set_message_sent(cbs, encrypted_message_sent);
+		linphone_core_cbs_set_message_received(cbs, encrypted_message_received);
+		linphone_core_add_callbacks(getLc(), cbs);
+		linphone_core_cbs_unref(cbs);
+		set_lime_server_and_curve(limeAlgo, mMgr.get());
+	}
+
 	friend Focus;
 
 protected:
@@ -130,15 +131,7 @@ private:
 /* Core manager acting as a focus*/
 class Focus : public ConfCoreManager {
 public:
-	Focus(std::string rc)
-	    : ConfCoreManager(rc, [this](bool) {
-		      linphone_core_enable_gruu_in_conference_address(getLc(), FALSE);
-		      linphone_core_enable_conference_server(getLc(), TRUE);
-		      linphone_core_set_conference_availability_before_start(getLc(), 0);
-		      linphone_core_set_conference_expire_period(getLc(), 0);
-	      }) {
-
-		configureFocus();
+	Focus(std::string rc) : ConfCoreManager(rc, [this](bool) { configureFocus(); }) {
 	}
 	~Focus() {
 		CoreManagerAssert({*this}).waitUntil(chrono::seconds(1), [] { return false; });
@@ -173,11 +166,6 @@ public:
 		auto cr = searchChatRoom(conferenceAddress, conferenceAddress);
 		BC_ASSERT_PTR_NOT_NULL(cr);
 		linphone_chat_room_notify_participant_device_registration(cr, participantDevice);
-	}
-
-	void reStart(bool check_for_proxies = TRUE) {
-		ConfCoreManager::reStart(check_for_proxies);
-		configureFocus();
 	}
 
 	const Address getConferenceFactoryAddress() const {
@@ -224,27 +212,12 @@ public:
 		}
 	}
 
-private:
-	static void
-	server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state) {
-		Focus *focus = (Focus *)(((LinphoneCoreManager *)linphone_core_get_user_data(core))->user_info);
-		switch (state) {
-			case LinphoneChatRoomStateInstantiated: {
-				LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
-				linphone_chat_room_cbs_set_participant_registration_subscription_requested(
-				    cbs, chat_room_participant_registration_subscription_requested);
-				setup_chat_room_callbacks(cbs);
-				linphone_chat_room_add_callbacks(cr, cbs);
-				linphone_chat_room_cbs_set_user_data(cbs, focus);
-				linphone_chat_room_cbs_unref(cbs);
-				break;
-			}
-			default:
-				break;
-		}
-	}
-
 	void configureFocus() {
+		linphone_core_enable_gruu_in_conference_address(getLc(), FALSE);
+		linphone_core_enable_conference_server(getLc(), TRUE);
+		linphone_core_set_conference_availability_before_start(getLc(), 0);
+		linphone_core_set_conference_expire_period(getLc(), 0);
+
 		LinphoneCoreCbs *cbs = linphone_core_get_first_callbacks(getLc());
 		linphone_config_set_int(linphone_core_get_config(getLc()), "misc", "hide_empty_chat_rooms", 0);
 		linphone_config_set_int(linphone_core_get_config(getLc()), "sip", "reject_duplicated_calls", 0);
@@ -272,6 +245,26 @@ private:
 		linphone_core_cbs_set_chat_room_state_changed(cbs, server_core_chat_room_state_changed);
 		linphone_core_cbs_set_message_sent(cbs, encrypted_message_sent);
 		//		linphone_core_cbs_set_refer_received(cbs, linphone_conference_server_refer_received);
+	}
+
+private:
+	static void
+	server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state) {
+		Focus *focus = (Focus *)(((LinphoneCoreManager *)linphone_core_get_user_data(core))->user_info);
+		switch (state) {
+			case LinphoneChatRoomStateInstantiated: {
+				LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
+				linphone_chat_room_cbs_set_participant_registration_subscription_requested(
+				    cbs, chat_room_participant_registration_subscription_requested);
+				setup_chat_room_callbacks(cbs);
+				linphone_chat_room_add_callbacks(cr, cbs);
+				linphone_chat_room_cbs_set_user_data(cbs, focus);
+				linphone_chat_room_cbs_unref(cbs);
+				break;
+			}
+			default:
+				break;
+		}
 	}
 
 	static void

@@ -1530,10 +1530,8 @@ bool ServerConference::dialOutAddresses(const std::list<std::shared_ptr<Address>
 	}
 
 	if (mOrganizer && mediaSupported) {
-		auto sipfrag = Content::create();
 		const auto organizerUri = mOrganizer->getUri();
-		sipfrag->setBodyFromLocale("From: <" + organizerUri.toString() + ">");
-		sipfrag->setContentType(ContentType::SipFrag);
+		auto sipfrag = Utils::createSipFragContent(organizerUri.toString());
 		L_GET_CPP_PTR_FROM_C_OBJECT(new_params)->addCustomContent(sipfrag);
 	}
 	auto success = (inviteAddresses(addressList, new_params) == 0);
