@@ -112,6 +112,16 @@ ios-ninja-spm-upload:
     - !reference [.factorize_ios_upload, script]
     - ls -lart build/ios
     - VERSION=$(cat build/ios/linphone-sdk-swift-ios/VERSION)
+    - echo "VERSION=$VERSION"
+    - PUBLIC_SPM_VERSION_URL="https://gitlab.linphone.org/BC/public/linphone-sdk-swift-ios/-/raw/$TARGET_BRANCH/VERSION"
+    - echo "PUBLIC_SPM_VERSION_URL=$PUBLIC_SPM_VERSION_URL"
+    - PUBLIC_SPM_VERSION="$(v=$(curl -sfL "$PUBLIC_SPM_VERSION_URL" | tr -d '\n\r'); echo "${v:-none}")"
+    - echo "PUBLIC_SPM_VERSION=$PUBLIC_SPM_VERSION"
+    - |
+      if [ "$PUBLIC_SPM_VERSION" = "$VERSION" ]; then
+        echo "Skipping public spm deployment as version $VERSION is already deployed."
+        exit 0
+      fi
     - echo "Uploading SPM $VERSION to $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/spm/$SWIFT_PACKAGE_FLAVOR"
     - rsync -ar build/ios/linphone-sdk-swift-ios/ $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/spm/$SWIFT_PACKAGE_FLAVOR/linphone-sdk-swift-ios-$VERSION/
     - rm -rf build/ios/linphone-sdk-swift-ios/XCFrameworks
