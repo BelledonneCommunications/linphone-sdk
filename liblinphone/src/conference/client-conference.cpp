@@ -2013,7 +2013,10 @@ bool ClientConference::delayTimerExpired() const {
 #ifdef HAVE_ADVANCED_IM
 	auto handler = getEventHandler();
 	if (handler) {
-		expired = handler->delayTimerExpired();
+		const auto &conferenceAddress = getConferenceAddress();
+		if (conferenceAddress) {
+			expired = handler->delayTimerExpired(*conferenceAddress);
+		}
 	}
 #endif // HAVE_ADVANCED_IM
 	return expired;
