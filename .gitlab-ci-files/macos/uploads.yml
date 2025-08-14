@@ -46,7 +46,14 @@ macos-ninja-spm-upload:
         else
           TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}${SPM_DEPLOY_TARGET_BRANCH}"
         fi
-    - VERSION=$(cat build/mac/linphone-sdk-swift-macos/VERSION)
+    - VERSION=$(tr -d '\n\r' < build/mac/linphone-sdk-swift-macos/VERSION)
+    - PUBLIC_SPM_VERSION_URL="https://gitlab.linphone.org/BC/public/linphone-sdk-swift-macos/-/raw/$TARGET_BRANCH/VERSION"
+    - PUBLIC_SPM_VERSION="$(v=$(curl -sfL "$PUBLIC_SPM_VERSION_URL" | tr -d '\n\r'); echo "${v:-none}")"
+    - |
+      if [ "$PUBLIC_SPM_VERSION" = "$VERSION" ]; then
+        echo "Skipping public spm deployment as version $VERSION is already deployed."
+        exit 0
+      fi
     - echo "Uploading SPM $VERSION to $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR"
     - rsync -ar build/mac/linphone-sdk-swift-macos/ $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR/linphone-sdk-swift-macos-$VERSION/
     - rm -rf build/mac/linphone-sdk-swift-macos/XCFrameworks
