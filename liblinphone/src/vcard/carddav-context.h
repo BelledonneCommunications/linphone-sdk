@@ -84,6 +84,7 @@ private:
 	void processQueryResponse(std::shared_ptr<CardDAVQuery> query, const HttpResponse &response);
 	void serverToClientSyncDone(bool success, const std::string &msg);
 	void vcardsFetched(const std::list<CardDAVResponse> &vCards);
+	void updateVcardFromResponse(std::shared_ptr<Vcard> &vcard, const CardDAVResponse &response) const;
 	void magicSearchResultsVcardsPulled(const std::list<CardDAVResponse> &vCards);
 	void vcardsPulled(const std::list<CardDAVResponse> &vCards);
 

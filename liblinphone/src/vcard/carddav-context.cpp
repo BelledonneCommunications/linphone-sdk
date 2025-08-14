@@ -261,7 +261,7 @@ void CardDAVContext::addressBookUrlAndCtagRetrieved(const list<CardDAVResponse> 
 				lInfo() << "[CardDAV] Updating friend list CTAG to [" << mCtag << "]";
 				friendList->updateRevision(mCtag);
 			}
-			lInfo() << "[CardDAV] Friend list sync URI & revision updated, fetching vCards";
+			lInfo() << "[CardDAV] Friend list sync URI & revision updated, trying to retrieve user privilege set";
 			retrieveCurrentUserPrivilegeSet();
 		} else {
 			lInfo() << "[CardDAV] No changes found on server, skipping sync";
@@ -286,7 +286,8 @@ void CardDAVContext::addressBookCtagRetrieved(string ctag) {
 
 void CardDAVContext::currentUserPrivilegeSetRetrieved(bool isReadOnly) {
 	if (isReadOnly) {
-		lWarning() << "[CardDAV] Addressbook [" << mSyncUri << "] privilege is read-only, synchronization will be server to client only";
+		lWarning() << "[CardDAV] Addressbook [" << mSyncUri
+		           << "] privilege is read-only, synchronization will be server to client only";
 		shared_ptr<FriendList> friendList = mFriendList.lock();
 		if (friendList) {
 			friendList->setIsReadOnly(true);
@@ -294,6 +295,7 @@ void CardDAVContext::currentUserPrivilegeSetRetrieved(bool isReadOnly) {
 			lError() << "[CardDAV] Failed to get FriendList to set read-only property";
 		}
 	}
+	lInfo() << "[CardDAV] Privilege set retrieved, fetching vCards";
 	fetchVcards();
 }
 
@@ -595,6 +597,38 @@ void CardDAVContext::vcardsFetched(const list<CardDAVResponse> &vCards) {
 	pullVcards(vCardsToPull);
 }
 
+void CardDAVContext::updateVcardFromResponse(shared_ptr<Vcard> &vcard, const CardDAVResponse &response) const {
+	// Compute downloaded vCards' URL and save it (+ eTag)
+	auto slashPos = response.mUrl.rfind('/');
+	lInfo() << "[CardDAV] Response URL is " << response.mUrl;
+	string vcardName = response.mUrl.substr((slashPos == string::npos) ? 0 : ++slashPos);
+	lInfo() << "[CardDAV] Extract vCard name is " << vcardName;
+
+	stringstream fullUrlSs;
+	string serverSyncUri = mSyncUri;
+	auto questionMarkPos = serverSyncUri.rfind('?');
+	if (questionMarkPos != string::npos) {
+		// In case of URL parameters in mSyncUri remove them
+		lWarning() << "[CardDAV] Removing URL parameters from server sync URI " << serverSyncUri;
+		serverSyncUri = serverSyncUri.substr(0, questionMarkPos);
+	}
+	if (serverSyncUri.back() == '/') {
+		fullUrlSs << serverSyncUri << vcardName;
+	} else {
+		fullUrlSs << serverSyncUri << "/" << vcardName;
+	}
+
+	string fullUrl = fullUrlSs.str();
+	lInfo() << "[CardDAV] Computed vCard full URL is " << fullUrl;
+	vcard->setUrl(fullUrl);
+	vcard->setEtag(response.mEtag);
+
+	if (vcard->getUid().empty()) {
+		lInfo() << "[CardDAV] Downloaded vCard doesn't have a unique ID, generating one";
+		vcard->generateUniqueId();
+	}
+}
+
 void CardDAVContext::magicSearchResultsVcardsPulled(const list<CardDAVResponse> &vCards) {
 	shared_ptr<CardDavMagicSearchPlugin> plugin = mCardDavMagicSearchPlugin.lock();
 	if (!plugin) return;
@@ -606,21 +640,10 @@ void CardDAVContext::magicSearchResultsVcardsPulled(const list<CardDAVResponse> 
 			shared_ptr<Vcard> vcard =
 			    VcardContext::getSharedFromThis(getCore()->getCCore()->vcard_context)->getVcardFromBuffer(vCardBuffer);
 			if (vcard) {
-				// Compute downloaded vCards' URL and save it (+ eTag)
-				auto slashPos = response.mUrl.rfind('/');
-				string vcardName = response.mUrl.substr((slashPos == string::npos) ? 0 : ++slashPos);
-				stringstream fullUrlSs;
-				if (mSyncUri.back() == '/') {
-					fullUrlSs << mSyncUri << vcardName;
-				} else {
-					fullUrlSs << mSyncUri << "/" << vcardName;
-				}
-				string fullUrl = fullUrlSs.str();
-				vcard->setUrl(fullUrl);
-				vcard->setEtag(response.mEtag);
-				if (vcard->getUid().empty()) vcard->generateUniqueId();
+				updateVcardFromResponse(vcard, response);
 				lInfo() << "[CardDAV] Downloaded vCard eTag is [" << vcard->getEtag() << "] and URL is ["
 				        << vcard->getUrl() << "]";
+
 				shared_ptr<Friend> newFriend = Friend::create(getCore(), vcard);
 				if (newFriend) {
 					results.push_back(newFriend);
@@ -643,21 +666,10 @@ void CardDAVContext::vcardsPulled(const list<CardDAVResponse> &vCards) {
 			shared_ptr<Vcard> vcard =
 			    VcardContext::getSharedFromThis(getCore()->getCCore()->vcard_context)->getVcardFromBuffer(vCardBuffer);
 			if (vcard) {
-				// Compute downloaded vCards' URL and save it (+ eTag)
-				auto slashPos = response.mUrl.rfind('/');
-				string vcardName = response.mUrl.substr((slashPos == string::npos) ? 0 : ++slashPos);
-				stringstream fullUrlSs;
-				if (mSyncUri.back() == '/') {
-					fullUrlSs << mSyncUri << vcardName;
-				} else {
-					fullUrlSs << mSyncUri << "/" << vcardName;
-				}
-				string fullUrl = fullUrlSs.str();
-				vcard->setUrl(fullUrl);
-				vcard->setEtag(response.mEtag);
-				if (vcard->getUid().empty()) vcard->generateUniqueId();
+				updateVcardFromResponse(vcard, response);
 				lInfo() << "[CardDAV] Downloaded vCard eTag is [" << vcard->getEtag() << "] and URL is ["
 				        << vcard->getUrl() << "]";
+
 				shared_ptr<Friend> newFriend = Friend::create(getCore(), vcard);
 				if (newFriend) {
 					const auto friendIt = find_if(friends.cbegin(), friends.cend(), [&](const auto &oldFriend) {
@@ -907,14 +919,16 @@ bool CardDAVContext::parseCurrentUserPrivilegeSetRetrievedFromXmlResponse(const 
 					xmlCtx.setXpathContextNode(responsesNodes->nodeTab[i]);
 					string status = xmlCtx.getTextContent("d:propstat/d:status");
 					if (status == "HTTP/1.1 200 OK") {
-						xmlXPathObjectPtr privileges = xmlCtx.getXpathObjectForNodeList("d:propstat/d:prop/d:current-user-privilege-set/d:privilege");
+						xmlXPathObjectPtr privileges = xmlCtx.getXpathObjectForNodeList(
+						    "d:propstat/d:prop/d:current-user-privilege-set/d:privilege");
 						if (privileges && privileges->nodesetval) {
 							xmlNodeSetPtr privilegesNodes = privileges->nodesetval;
 							bool allOrWriteContentFound = false;
 							if (privilegesNodes->nodeNr >= 1) {
 								for (int j = 0; j < privilegesNodes->nodeNr; j++) {
 									xmlNodePtr privilegeNode = privilegesNodes->nodeTab[j];
-									for (xmlNodePtr privilegeChild = privilegeNode->children; privilegeChild != NULL; privilegeChild = privilegeChild->next) {
+									for (xmlNodePtr privilegeChild = privilegeNode->children; privilegeChild != NULL;
+									     privilegeChild = privilegeChild->next) {
 										string privilege = (char *)privilegeChild->name;
 										if (privilege == "all" || privilege == "write-content") {
 											allOrWriteContentFound = true;
@@ -924,7 +938,8 @@ bool CardDAVContext::parseCurrentUserPrivilegeSetRetrievedFromXmlResponse(const 
 							}
 							xmlXPathFreeObject(privileges);
 							if (!allOrWriteContentFound) {
-								lWarning() << "[CardDAV] Neither all nor write-content privilege found, assuming addressbook is read only";
+								lWarning() << "[CardDAV] Neither all nor write-content privilege found, assuming "
+								              "addressbook is read only";
 								isReadOnly = true;
 							}
 						}

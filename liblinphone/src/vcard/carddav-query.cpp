@@ -182,7 +182,7 @@ shared_ptr<CardDAVQuery> CardDAVQuery::createAddressBookUrlAndCtagPropfindQuery(
 
 shared_ptr<CardDAVQuery> CardDAVQuery::createAddressBookCtagPropfindQuery(CardDAVContext *context) {
 	shared_ptr<CardDAVQuery> query = make_shared<CardDAVQuery>(context);
-	query->mDepth = "1"; // This PROPFIND must have Depth 1!
+	query->mDepth = "0"; // This PROPFIND must have Depth 0!
 	query->mBody = "<d:propfind xmlns:d=\"DAV:\" xmlns:cs=\"http://calendarserver.org/ns/\"><d:prop><cs:getctag "
 	               "/></d:prop></d:propfind>";
 	query->mMethod = "PROPFIND";
