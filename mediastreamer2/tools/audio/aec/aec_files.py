@@ -13,10 +13,11 @@ class AECFiles:
         self.nearend = AudioSignal()
         self.farend = AudioSignal()
         self.echo = AudioSignal()
-        self.aec_output = AudioSignal()
+        self.aec_output_clean = AudioSignal()
+        self.aec_output_ref = AudioSignal()
         self.sample_rate_hz = 16000
 
-    def set_file(self, farend_file, echo_file, nearend_file, aec_output_file=""):
+    def set_file(self, farend_file, echo_file, nearend_file, aec_output_clean_file="", aec_output_ref_file=""):
         """Set the name of the files."""
 
         if farend_file != "":
@@ -25,8 +26,10 @@ class AECFiles:
             self.echo.file_name = echo_file
         if nearend_file != "":
             self.nearend.file_name = nearend_file
-        if aec_output_file != "":
-            self.aec_output.file_name = aec_output_file
+        if aec_output_clean_file != "":
+            self.aec_output_clean.file_name = aec_output_clean_file
+        if aec_output_ref_file != "":
+            self.aec_output_ref.file_name = aec_output_ref_file
 
     def read_audio_from_files(self):
         """Read the audio data from files."""
@@ -34,14 +37,22 @@ class AECFiles:
         self.nearend.read_audio(self.sample_rate_hz)
         self.farend.read_audio(self.sample_rate_hz)
         self.echo.read_audio(self.sample_rate_hz)
-        self.aec_output.read_audio(self.sample_rate_hz)
+        self.aec_output_clean.read_audio(self.sample_rate_hz)
+        try:
+            self.aec_output_ref.read_audio(self.sample_rate_hz)
+        except FileNotFoundError:
+            pass
 
     def read_aec_output_audio_from_file(self):
-        """Read the audio data for AEC output from file."""
+        """Read the audio data for both AEC output from files."""
 
-        self.aec_output.read_audio(self.sample_rate_hz)
-        if self.aec_output.data is None:
-            print(f"ERROR while reading aec output wav file: no data read in {self.aec_output.file_name}")
+        self.aec_output_clean.read_audio(self.sample_rate_hz)
+        if self.aec_output_clean.data is None:
+            print(f"ERROR while reading aec output clean wav file: no data read in {self.aec_output_clean.file_name}")
+
+        self.aec_output_ref.read_audio(self.sample_rate_hz)
+        if self.aec_output_ref.data is None:
+            print(f"ERROR while reading aec output wav ref file: no data read in {self.aec_output_ref.file_name}")
 
     def write_files(self):
         """Write all audio data in files."""
@@ -55,18 +66,21 @@ class AECFiles:
         if self.echo.data is not None:
             print(f"write echo file {self.echo.file_name}")
             self.echo.write_in_file(self.echo.file_name)
-        if self.aec_output.data is not None:
-            print(f"write AEC output file {self.aec_output.file_name}")
-            self.aec_output.write_in_file(self.aec_output.file_name)
+        if self.aec_output_clean.data is not None:
+            print(f"write AEC output file {self.aec_output_clean.file_name}")
+            self.aec_output_clean.write_in_file(self.aec_output_clean.file_name)
+        if self.aec_output_ref.data is not None:
+            print(f"write AEC output file {self.aec_output_ref.file_name}")
+            self.aec_output_ref.write_in_file(self.aec_output_ref.file_name)
 
     def plot(self, fig_title=""):
         """Plot the audio and return the plotly figure."""
 
         sample_duration_s = 1. / self.sample_rate_hz
-        signal_name = ["far-end", "echo", "near-end", "AEC output"]
-        n_rows = 4
+        signal_name = ["far-end", "echo", "near-end", "AEC output clean", "AEC output ref"]
+        n_rows = 5
         fig = make_subplots(rows=n_rows, cols=1, shared_xaxes=True)
-        for i, audio_signal in enumerate([self.farend.data, self.echo.data, self.nearend.data, self.aec_output.data]):
+        for i, audio_signal in enumerate([self.farend.data, self.echo.data, self.nearend.data, self.aec_output_clean.data, self.aec_output_ref.data]):
             if audio_signal is not None:
                 timestamp = sample_duration_s * np.arange(audio_signal.size)
                 signal = audio_signal / np.max(np.abs(audio_signal))
@@ -88,5 +102,7 @@ class AECFiles:
             self.echo = AudioSignal()
         if self.nearend.data is not None:
             self.nearend = AudioSignal()
-        if self.aec_output.data is not None:
-            self.aec_output = AudioSignal()
+        if self.aec_output_clean.data is not None:
+            self.aec_output_ref = AudioSignal()
+        if self.aec_output_clean.data is not None:
+            self.aec_output_ref = AudioSignal()

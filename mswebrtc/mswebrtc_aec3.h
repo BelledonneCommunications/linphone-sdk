@@ -10,9 +10,9 @@
 #include "modules/audio_processing/aec3/echo_canceller3.h"
 #include "modules/audio_processing/high_pass_filter.h"
 
-namespace mswebrtc_aec3 {
+namespace mswebrtcaec3 {
 
-/** @class mswebrtc_aec3
+/** @class MSWebrtcAEC3
  * @brief Class to apply the AEC3 filter of WebRTC to the capture and the render
  * audio streams in order to suppress the echo.
  *
@@ -25,7 +25,7 @@ namespace mswebrtc_aec3 {
  * only 1 channel. The supported sampling rates are 16000 Hz, 32000 Hz, and 48000
  * Hz.
  */
-class mswebrtc_aec3 {
+class MSWebrtcAEC3 {
 private:
 	void configureFlowControlledBufferizer();
 
@@ -36,10 +36,9 @@ private:
 	double mEchoReturnLoss;
 	double mEchoReturnLossEnhancement;
 	int mNumSamples;
-	int mNbytes;
+	size_t mNbytes;
 	char *mStateStr;
 	std::unique_ptr<webrtc::EchoCanceller3> mEchoCanceller3Inst;
-	MSBufferizer mDelayedRef;
 	MSFlowControlledBufferizer mRef;
 	MSBufferizer mEcho;
 	std::unique_ptr<webrtc::EchoCanceller3Config> mAecConfig;
@@ -48,11 +47,11 @@ private:
 	webrtc::StreamConfig mStreamConfig;
 	bool mEchoStarted;
 	bool mBypassMode;
-	bool mUsingZeroes;
+	bool mWaitingRef;
 
 public:
-	mswebrtc_aec3(MSFilter *filter);
-	~mswebrtc_aec3(){};
+	MSWebrtcAEC3(MSFilter *filter);
+	~MSWebrtcAEC3(){};
 	void uninit();
 	void preprocess();
 	void process(MSFilter *filter);
@@ -88,6 +87,6 @@ public:
 	}
 };
 
-} // namespace mswebrtc_aec3
+} // namespace mswebrtcaec3
 
 #endif // MSWEBRTC_AEC3_H_

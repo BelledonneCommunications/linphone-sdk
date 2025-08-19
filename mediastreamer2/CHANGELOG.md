@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Changed
-- Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC and applied also for mobile. The delay of the echo path computed during calibration is not set to this Echo Canceller, because it is continuously estimated by AEC3. 
+- Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC and applied also for mobile. 
 - Voice Activity Detection updated to a recent version of WebRTC with minor changes.
 
 ### Removed

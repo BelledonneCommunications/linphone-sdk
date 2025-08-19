@@ -25,40 +25,42 @@
 #include "mediastreamer2/msfilter.h"
 #include "mswebrtc_aec3.h"
 
+using namespace mswebrtcaec3;
+
 static void webrtc_aec_init(MSFilter *f) {
-	mswebrtc_aec3::mswebrtc_aec3 *aec3Inst = new mswebrtc_aec3::mswebrtc_aec3(f);
+	MSWebrtcAEC3 *aec3Inst = new MSWebrtcAEC3(f);
 	f->data = aec3Inst;
 }
 
 static void webrtc_aec_uninit(MSFilter *f) {
-	mswebrtc_aec3::mswebrtc_aec3 *aec3Inst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aec3Inst = static_cast<MSWebrtcAEC3 *>(f->data);
 	aec3Inst->uninit();
 	delete aec3Inst;
 	f->data = nullptr;
 }
 
 static void webrtc_aec_preprocess(MSFilter *f) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	aecInst->preprocess();
 }
 
 static void webrtc_aec_process(MSFilter *f) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	aecInst->process(f);
 }
 
 static void webrtc_aec_postprocess(MSFilter *f) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	aecInst->postprocess();
 }
 
 static int webrtc_aec_set_sample_rate(MSFilter *f, void *arg) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	return aecInst->setSampleRate(*static_cast<int *>(arg));
 }
 
 static int webrtc_aec_get_sample_rate(MSFilter *f, void *arg) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	*static_cast<int *>(arg) = aecInst->getSampleRate();
 	return 0;
 }
@@ -70,13 +72,14 @@ static int webrtc_aec_set_framesize(MSFilter *f, void *arg) {
 }
 
 static int webrtc_aec_set_delay(MSFilter *f, void *arg) {
-	/* Do nothing because the WebRTC echo canceller 3 estimates continuously the delay. */
-	ms_message("The provided delay is not set to the echo canceller of WebRTC, because it uses its own estimation.");
+	ms_message("Set delay %d ms to the echo canceller of WebRTC.", *static_cast<int *>(arg));
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
+	aecInst->setDelay(*static_cast<int *>(arg));
 	return 0;
 }
 
 static int webrtc_aec_get_delay(MSFilter *f, void *arg) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	*static_cast<int *>(arg) = aecInst->getDelay();
 	return 0;
 }
@@ -87,26 +90,26 @@ static int webrtc_aec_set_tail_length(MSFilter *f, void *arg) {
 }
 
 static int webrtc_aec_set_bypass_mode(MSFilter *f, void *arg) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	bool_t *bypass = static_cast<bool_t *>(arg);
 	aecInst->setBypassMode(*bypass);
 	return 0;
 }
 
 static int webrtc_aec_get_bypass_mode(MSFilter *f, void *arg) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	*static_cast<bool_t *>(arg) = aecInst->getBypassMode();
 	return 0;
 }
 
 static int webrtc_aec_set_state(MSFilter *f, void *arg) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	aecInst->setState(ms_strdup((const char *)arg));
 	return 0;
 }
 
 static int webrtc_aec_get_state(MSFilter *f, void *arg) {
-	mswebrtc_aec3::mswebrtc_aec3 *aecInst = static_cast<mswebrtc_aec3::mswebrtc_aec3 *>(f->data);
+	MSWebrtcAEC3 *aecInst = static_cast<MSWebrtcAEC3 *>(f->data);
 	*(char **)arg = aecInst->getState();
 	return 0;
 }

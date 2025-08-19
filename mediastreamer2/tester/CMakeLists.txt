@@ -55,8 +55,9 @@ set(SOUND_FILES
 	sounds/bird_44100_stereo.wav
 	sounds/chimes_48000_stereo.wav
 	sounds/echo_delay_change.wav	
-	sounds/echo_double_talk.wav
-	sounds/echo_simple_talk.wav
+	sounds/echo_double_talk_100ms.wav
+	sounds/echo_simple_talk_100ms.wav
+	sounds/echo_simple_talk_600ms.wav
 	sounds/farend_double_talk.wav
 	sounds/farend_simple_talk.wav
 	sounds/hello8000.wav

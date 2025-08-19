@@ -439,7 +439,8 @@ class AudioAnalysis:
             # detect silence and talk
             self.detect_silence()
             if plot_silence_and_talk:
-                self.plot_audio_silence_and_talk()
+                fig = self.plot_audio_silence_and_talk()
+                fig.write_image(self.log_file.replace(".log", "_silence_talk.png"))
 
             # compute energy remaining in silence of aec output
             self.compute_energy_difference_with_nearend()

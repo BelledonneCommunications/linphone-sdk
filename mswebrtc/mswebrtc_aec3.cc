@@ -37,36 +37,34 @@
 #include "modules/audio_processing/audio_buffer.h"
 #include "mswebrtc_aec3.h"
 
-namespace mswebrtc_aec3 {
+namespace mswebrtcaec3 {
 
-mswebrtc_aec3::mswebrtc_aec3(MSFilter *filter) {
+MSWebrtcAEC3::MSWebrtcAEC3(MSFilter *filter) {
 	mSampleRateInHz = 16000;
 	mDelayInMs = 0;
 	mEchoReturnLoss = 0.0;
 	mEchoReturnLossEnhancement = 0.0;
 	mNumSamples = 160;
-	mNbytes = mNumSamples * sizeof(int16_t);
+	mNbytes = static_cast<size_t>(mNumSamples * sizeof(int16_t));
 	mStateStr = nullptr;
-	ms_bufferizer_init(&mDelayedRef);
 	ms_bufferizer_init(&mEcho);
 	ms_flow_controlled_bufferizer_init(&mRef, filter, mSampleRateInHz, kNumChannels);
 	mEchoStarted = false;
 	mBypassMode = false;
-	mUsingZeroes = false;
+	mWaitingRef = false;
 }
 
-void mswebrtc_aec3::uninit() {
+void MSWebrtcAEC3::uninit() {
 	if (mStateStr) ms_free(mStateStr);
-	ms_bufferizer_uninit(&mDelayedRef);
 }
 
-void mswebrtc_aec3::configureFlowControlledBufferizer() {
+void MSWebrtcAEC3::configureFlowControlledBufferizer() {
 	ms_flow_controlled_bufferizer_set_samplerate(&mRef, mSampleRateInHz);
 	ms_flow_controlled_bufferizer_set_max_size_ms(&mRef, 50);
 	ms_flow_controlled_bufferizer_set_granularity_ms(&mRef, kFramesizeMs);
 }
 
-void mswebrtc_aec3::preprocess() {
+void MSWebrtcAEC3::preprocess() {
 	if (!webrtc::ValidFullBandRate(mSampleRateInHz)) {
 		ms_error(
 		    "WebRTC echo canceller 3 does not support %d sample rate. Accepted values are 16000, 32000 or 48000 Hz.",
@@ -93,8 +91,9 @@ void mswebrtc_aec3::preprocess() {
 		return;
 	}
 
+	mEchoStarted = false;
 	mNumSamples = rtc::CheckedDivExact(mSampleRateInHz, 100);
-	mNbytes = mNumSamples * sizeof(int16_t);
+	mNbytes = static_cast<size_t>(mNumSamples * sizeof(int16_t));
 
 	// Initialize audio buffers
 	mCaptureBuffer = std::make_unique<webrtc::AudioBuffer>(mSampleRateInHz, kNumChannels, mSampleRateInHz, kNumChannels,
@@ -112,7 +111,7 @@ void mswebrtc_aec3::preprocess() {
  *	outputs[0]= is a copy of inputs[0] to be sent to soundcard
  *	outputs[1]= near end speech, echo removed - towards far end
  */
-void mswebrtc_aec3::process(MSFilter *filter) {
+void MSWebrtcAEC3::process(MSFilter *filter) {
 	mblk_t *refm;
 
 	if (mBypassMode) {
@@ -125,11 +124,14 @@ void mswebrtc_aec3::process(MSFilter *filter) {
 		return;
 	}
 
+	ms_bufferizer_put_from_queue(&mEcho, filter->inputs[1]);
+	if (!mEchoStarted) {
+		if (ms_bufferizer_get_avail(&mEcho) >= mNbytes) mEchoStarted = true;
+	}
+
 	if (filter->inputs[0] != nullptr) {
 		if (mEchoStarted) {
 			while ((refm = ms_queue_get(filter->inputs[0])) != NULL) {
-				mblk_t *cp = dupmsg(refm);
-				ms_bufferizer_put(&mDelayedRef, cp);
 				ms_flow_controlled_bufferizer_put(&mRef, refm);
 			}
 		} else {
@@ -138,74 +140,33 @@ void mswebrtc_aec3::process(MSFilter *filter) {
 		}
 	}
 
-	ms_bufferizer_put_from_queue(&mEcho, filter->inputs[1]);
+	std::vector<int16_t> refData(mNumSamples, 0);
+	std::vector<int16_t> echoData(mNumSamples, 0);
 
-	int16_t *refData, *echoData;
-	refData = (int16_t *)alloca(mNbytes);
-	echoData = (int16_t *)alloca(mNbytes);
-
-	while (ms_bufferizer_read(&mEcho, (uint8_t *)echoData, (size_t)mNbytes) >= static_cast<size_t>(mNbytes)) {
+	while (ms_bufferizer_read(&mEcho, reinterpret_cast<uint8_t *>(echoData.data()), mNbytes) >= mNbytes) {
 		mblk_t *oEcho = allocb(mNbytes, 0);
-		int avail;
-
-		if (!mEchoStarted) mEchoStarted = TRUE;
-
-		if ((avail = static_cast<int>(ms_bufferizer_get_avail(&mDelayedRef))) < mNbytes) {
-			/*we don't have enough to read in a reference signal buffer, inject
-			 * silence instead*/
-			refm = allocb(mNbytes, 0);
-			memset(refm->b_wptr, 0, mNbytes);
-			refm->b_wptr += mNbytes;
-			ms_bufferizer_put(&mDelayedRef, refm);
-			/*
-			 * However, we don't inject this silence buffer to the sound card, in
-			 * order to break the following bad loop:
-			 * - the sound playback filter detects it has too many pending samples,
-			 * then triggers an event to request samples to be dropped upstream.
-			 * - the upstream MSFlowControl filter is requested to drop samples, which
-			 * it starts to do.
-			 * - necessarily shortly after the AEC goes into a situation where it has
-			 * not enough reference samples while processing an audio buffer from mic.
-			 * - if the AEC injects a silence buffer as output, then it will RECREATE
-			 * a situation where the sound playback filter has too many pending
-			 * samples. That's why we should not do this. By not doing this, we will
-			 * create a discrepancy between what we really injected to the soundcard,
-			 * and what we told to the echo canceller about the samples we injected.
-			 * This shifts the echo. The echo canceller will re-converge quickly to
-			 * take into account the situation.
-			 *
-			 */
-			if (!mUsingZeroes) {
-				ms_warning("Not enough ref samples, using zeroes");
-				mUsingZeroes = true;
-			}
-		} else {
-			if (mUsingZeroes) {
+		if (ms_flow_controlled_bufferizer_get_avail(&mRef) >= mNbytes) {
+			if (mWaitingRef) {
 				ms_message("Samples are back.");
-				mUsingZeroes = false;
+				mWaitingRef = false;
 			}
-			/* read from our no-delay buffer and output */
+			/* read from reference buffer to AEC3 render buffer and output */
 			refm = allocb(mNbytes, 0);
-			if (ms_flow_controlled_bufferizer_read(&mRef, refm->b_wptr, mNbytes) == 0) {
-				MSBufferizer *obj = (MSBufferizer *)&mRef;
-				ms_message("ref flow controlled bufferizer size is %d but mNbytes is %d", (int)obj->size, (int)mNbytes);
-				ms_fatal("Should never happen, read error on ref flow controlled bufferizer in AEC");
-			}
+			ms_flow_controlled_bufferizer_read(&mRef, refm->b_wptr, mNbytes);
+			memcpy(refData.data(), refm->b_wptr, mNbytes);
 			refm->b_wptr += mNbytes;
 			ms_queue_put(filter->outputs[0], refm);
+		} else {
+			/*we don't have enough to read in a reference signal buffer, send nothing to ref output nor render buffer*/
+			if (!mWaitingRef) {
+				ms_warning("Not enough ref samples, waiting.");
+				mWaitingRef = true;
+			}
 		}
-
-		/*now read a valid buffer of delayed ref samples*/
-		if (ms_bufferizer_read(&mDelayedRef, (uint8_t *)refData, mNbytes) == 0) {
-			MSBufferizer *obj = (MSBufferizer *)&mRef;
-			ms_message("delayed ref bufferizer size is %d but mNbytes is %d", (int)obj->size, (int)mNbytes);
-			ms_fatal("Should never happen, read error on delayed ref flow controlled bufferizer in AEC");
-		}
-		avail -= mNbytes;
 
 		// fill audio buffer
-		mCaptureBuffer->webrtc::AudioBuffer::CopyFrom(echoData, mStreamConfig);
-		mRenderBuffer->webrtc::AudioBuffer::CopyFrom(refData, mStreamConfig);
+		mCaptureBuffer->webrtc::AudioBuffer::CopyFrom(echoData.data(), mStreamConfig);
+		mRenderBuffer->webrtc::AudioBuffer::CopyFrom(refData.data(), mStreamConfig);
 
 		if (mSampleRateInHz > webrtc::AudioProcessing::kSampleRate16kHz) {
 			mCaptureBuffer->SplitIntoFrequencyBands();
@@ -239,8 +200,7 @@ void mswebrtc_aec3::process(MSFilter *filter) {
 	}
 }
 
-void mswebrtc_aec3::postprocess() {
-	ms_bufferizer_flush(&mDelayedRef);
+void MSWebrtcAEC3::postprocess() {
 	ms_bufferizer_flush(&mEcho);
 	ms_flow_controlled_bufferizer_flush(&mRef);
 	if (mEchoCanceller3Inst != nullptr) {
@@ -254,7 +214,7 @@ void mswebrtc_aec3::postprocess() {
 	}
 }
 
-int mswebrtc_aec3::setSampleRate(int requestedRateInHz) {
+int MSWebrtcAEC3::setSampleRate(int requestedRateInHz) {
 	if (requestedRateInHz >= 48000) {
 		mSampleRateInHz = 48000;
 	} else if (requestedRateInHz >= 32000) {
@@ -270,4 +230,4 @@ int mswebrtc_aec3::setSampleRate(int requestedRateInHz) {
 	return mSampleRateInHz;
 }
 
-} // namespace mswebrtc_aec3
+} // namespace mswebrtcaec3
