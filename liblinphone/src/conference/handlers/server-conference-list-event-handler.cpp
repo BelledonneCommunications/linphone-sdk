@@ -168,6 +168,12 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 		}
 	}
 
+	if (!!linphone_config_get_bool(linphone_core_get_config(core->getCCore()), "chat",
+	                               "disable_list_event_handler_empty_notify", FALSE) &&
+	    contents.empty()) {
+		return;
+	}
+
 	Xsd::Rlmi::List rlmiList("", 0, TRUE);
 	rlmiList.setResource(resources);
 	Xsd::XmlSchema::NamespaceInfomap map;

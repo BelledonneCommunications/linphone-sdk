@@ -50,6 +50,8 @@ public:
 	void unsubscribe() override;
 	void unsubscribe(const std::shared_ptr<Account> &account);
 	void invalidateSubscription() override;
+	bool alreadySubscribed(const std::shared_ptr<Address> &address) const;
+	LinphoneSubscriptionState getSubscriptionState(const std::shared_ptr<Address> &address) const;
 	void notifyReceived(std::shared_ptr<Event> notifyLev, const std::shared_ptr<const Content> &notifyContent);
 	void addHandler(std::shared_ptr<ClientConferenceEventHandler> handler);
 	void removeHandler(std::shared_ptr<ClientConferenceEventHandler> handler);
@@ -59,6 +61,7 @@ public:
 	virtual void handleDelayMessageSendTimerExpired(const Address address) override;
 
 private:
+	const std::shared_ptr<EventSubscribe> findEvent(const std::shared_ptr<Address> &address) const;
 	bool isHandlerInSameDomainAsCore(const ConferenceId &conferenceId) const;
 	std::unordered_map<ConferenceId,
 	                   std::weak_ptr<ClientConferenceEventHandler>,

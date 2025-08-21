@@ -340,10 +340,16 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 				                                               ::ms_time(nullptr));
 			} else if (encryptionEngine->participantListRequired()) {
 				LinphoneGlobalState coreGlobalState = linphone_core_get_global_state(getCore()->getCCore());
+				auto eventSubscribeState = LinphoneSubscriptionNone;
+				bool alreadySubscribed = false;
+				if (eventHandler) {
+					alreadySubscribed = !eventHandler->notAlreadySubscribed();
+					eventSubscribeState = eventHandler->getSubscriptionState();
+				}
 				bool coreShuttingDown =
 				    ((coreGlobalState == LinphoneGlobalOff) || (coreGlobalState == LinphoneGlobalShutdown));
-				if (!coreShuttingDown && (!eventHandler || eventHandler->notAlreadySubscribed() ||
-				                          (eventHandler->getSubscriptionState() == LinphoneSubscriptionError))) {
+				if (!coreShuttingDown &&
+				    (!eventHandler || !alreadySubscribed || (eventSubscribeState == LinphoneSubscriptionError))) {
 					lError()
 					    << *conference << ": Unable to send chat message [" << chatMessage
 					    << "] because the subscription to retrieve the list of participant devices errored out or the "

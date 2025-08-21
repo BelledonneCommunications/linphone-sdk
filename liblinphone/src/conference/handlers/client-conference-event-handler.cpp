@@ -27,6 +27,7 @@
 #include <bctoolbox/defs.h>
 
 #include "chat/chat-room/client-chat-room.h"
+#include "client-conference-list-event-handler.h"
 #include "conference/client-conference.h"
 #include "conference/conference.h"
 #include "conference/participant.h"
@@ -819,7 +820,14 @@ void ClientConferenceEventHandler::handleDelayMessageSendTimerExpired(const Addr
 // -----------------------------------------------------------------------------
 
 bool ClientConferenceEventHandler::notAlreadySubscribed() const {
-	return !ev && subscriptionWanted;
+	bool notSubscribed = false;
+	if (managedByListEventhandler) {
+		notSubscribed =
+		    !getCore()->getPrivate()->clientListEventHandler->alreadySubscribed(getConferenceId().getLocalAddress());
+	} else {
+		notSubscribed = !ev && subscriptionWanted;
+	}
+	return notSubscribed;
 }
 
 bool ClientConferenceEventHandler::needToSubscribe() const {
@@ -969,10 +977,16 @@ void ClientConferenceEventHandler::invalidateSubscription() {
 }
 
 LinphoneSubscriptionState ClientConferenceEventHandler::getSubscriptionState() const {
-	if (ev) {
-		return ev->getState();
+	auto state = LinphoneSubscriptionNone;
+	if (managedByListEventhandler) {
+		state =
+		    getCore()->getPrivate()->clientListEventHandler->getSubscriptionState(getConferenceId().getLocalAddress());
+	} else {
+		if (ev) {
+			state = ev->getState();
+		}
 	}
-	return LinphoneSubscriptionNone;
+	return state;
 }
 
 // -----------------------------------------------------------------------------
@@ -982,6 +996,8 @@ void ClientConferenceEventHandler::setSubscriptionWanted(bool wanted) {
 }
 
 bool ClientConferenceEventHandler::subscribe(BCTBX_UNUSED(const ConferenceId &conferenceId)) {
+	// Do not send individual SUBSCRIBE messages if the event handler is managed by the list event handler
+	if (managedByListEventhandler) return false;
 	setSubscriptionWanted(true);
 	auto ret = subscribe();
 	if (ret) {

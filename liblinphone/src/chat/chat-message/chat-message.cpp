@@ -416,7 +416,7 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 	if (state == ChatMessage::State::Delivered && oldState == ChatMessage::State::Idle &&
 	    direction == ChatMessage::Direction::Incoming && !q->isValid()) {
 		// If we're here it's because message is because we're in the middle of the receive() method and
-		// we won't have a valid dbKey until the chat room callback asking if message should be store will be called
+		// we won't have a valid dbKey until the chat room callback asking if message should be stored will be called
 		// and that's happen in the notifyReceiving() called at the of the receive() method we're in.
 		// This prevents the error log: Invalid db key [%p] associated to message [%p]
 		return;
@@ -980,6 +980,8 @@ LinphoneReason ChatMessagePrivate::receive() {
 	// Start of message modification
 	// ---------------------------------------
 
+	q->initializeToBeStored();
+
 	if ((currentRecvStep & ChatMessagePrivate::Step::Encryption) == ChatMessagePrivate::Step::Encryption) {
 		lInfo() << "Encryption step already done, skipping";
 	} else {
@@ -1151,7 +1153,7 @@ LinphoneReason ChatMessagePrivate::receive() {
 		if (reactionBody.empty()) {
 			auto mFromAddress = q->getFromAddress();
 			lInfo() << "Reaction body for message ID [" << messageId << "] is empty, removing existing reaction from ["
-			        << mFromAddress->asStringUriOnly() << "] if any";
+			        << *mFromAddress << "] if any";
 			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
 			mainDb->removeConferenceChatMessageReactionEvent(messageId, mFromAddress);
 
@@ -1183,7 +1185,7 @@ LinphoneReason ChatMessagePrivate::receive() {
 		markAsRead();
 	}
 
-	if (chatRoom && (getContentType() != ContentType::Imdn && getContentType() != ContentType::ImIsComposing)) {
+	if (chatRoom && !q->isNotification()) {
 		string replacesExistingMessageId = q->getReplacesMessageId();
 		string retractsExistingMessageId = q->getRetractsMessageId();
 		bool successfullyEditedPreviousMessage = replaceExistingMessageUsingId(replacesExistingMessageId) ||
@@ -1537,16 +1539,12 @@ void ChatMessagePrivate::send() {
 	currentSendStep |= ChatMessagePrivate::Step::Started;
 	chatRoom->addTransientChatMessage(ref);
 
-	if (isMessageEdit || isMessageRetraction) {
-		// Do not store message editing/retracting another one in DB, edited one will be updated
-		toBeStored = false;
-	}
+	q->initializeToBeStored();
 
 	if (toBeStored) {
 		if (currentSendStep == (ChatMessagePrivate::Step::Started | ChatMessagePrivate::Step::None)) {
 			storeInDb();
-			if (!isResend && !q->isReaction() && !isMessageEdit && !isMessageRetraction &&
-			    getContentType() != ContentType::Imdn && getContentType() != ContentType::ImIsComposing) {
+			if (!isResend && !q->isReaction() && !isMessageEdit && !isMessageRetraction && !q->isNotification()) {
 				if ((currentSendStep & ChatMessagePrivate::Step::Sending) != ChatMessagePrivate::Step::Sending) {
 					LinphoneChatRoom *cr = chatRoom->toC();
 					unique_ptr<MainDb> &mainDb = core->getPrivate()->mainDb;
@@ -1759,7 +1757,7 @@ void ChatMessagePrivate::send() {
 	internalContent.setContentType(ContentType(""));
 
 	// Wait for message to be either Sent or NotDelivered unless it is an IMDN or COMPOSING
-	if (getContentType() == ContentType::Imdn || getContentType() == ContentType::ImIsComposing) {
+	if (q->isNotification()) {
 		chatRoom->removeTransientChatMessage(ref);
 	}
 
@@ -1813,8 +1811,7 @@ void ChatMessagePrivate::send() {
 	}
 
 	// Do not notify message sent callback when it's a resend or an IMDN/Composing
-	bool notifySending =
-	    (!isResend && (getContentType() != ContentType::Imdn) && (getContentType() != ContentType::ImIsComposing));
+	bool notifySending = (!isResend && !q->isNotification());
 	if (notifySending) {
 		chatRoom->onChatMessageSent(ref);
 	}
@@ -1823,16 +1820,7 @@ void ChatMessagePrivate::send() {
 void ChatMessagePrivate::storeInDb() {
 	L_Q();
 
-	string retractsExistingMessageId = q->getRetractsMessageId();
-	bool isMessageRetraction = !retractsExistingMessageId.empty();
-	string replacesExistingMessageId = q->getReplacesMessageId();
-	bool isMessageEdit = !replacesExistingMessageId.empty();
-	if (isMessageEdit || isMessageRetraction) {
-		return;
-	}
-
-	// TODO: store message in the future
-	if (linphone_core_conference_server_enabled(q->getCore()->getCCore())) return;
+	if (!toBeStored) return;
 
 	if (q->isValid()) {
 		updateInDb();
@@ -1847,7 +1835,8 @@ void ChatMessagePrivate::storeInDb() {
 	shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
 	if (!chatRoom) return;
 
-	chatRoom->addEvent(eventLog); // From this point forward the chat message will have a valid dbKey
+	chatRoom->addEvent(eventLog); // From this point going forward the chat message will have a valid dbKey
+	lInfo() << "ChatMessage [" << q << "] has been stored in database with storage id " << storageId;
 	const auto &chatRoomParams = chatRoom->getCurrentParams();
 	const bool isFlexisipChatRoom =
 	    (chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::FlexisipChat);
@@ -1878,7 +1867,7 @@ void ChatMessagePrivate::updateInDb() {
 	if (!chatRoom) return;
 
 	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
+	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, storageId);
 
 	if (!eventLog) {
 		lError() << "Cannot find eventLog for storage ID [" << storageId << "] associated to message ["
@@ -2293,6 +2282,32 @@ void ChatMessage::setToBeStored(bool value) {
 void ChatMessage::setInAggregationQueue(bool isInQueue) {
 	L_D();
 	d->isInAggregationQueue = isInQueue;
+}
+
+bool ChatMessage::isNotification() const {
+	L_D();
+	const auto &contentType = d->getContentType();
+	return ((contentType == ContentType::Imdn) || (contentType == ContentType::ImIsComposing));
+}
+
+void ChatMessage::initializeToBeStored() {
+	string retractsExistingMessageId = getRetractsMessageId();
+	bool isMessageRetraction = !retractsExistingMessageId.empty();
+	string replacesExistingMessageId = getReplacesMessageId();
+	bool isMessageEdit = !replacesExistingMessageId.empty();
+	bool isMessageNotification = isNotification();
+	bool isConferenceServer = !!linphone_core_conference_server_enabled(getCore()->getCCore());
+
+	// Do not store IMDN, IsComposing, message edits and retractions as well as messqges on conference servers
+	bool doNotStore = (isMessageNotification || isMessageEdit || isMessageRetraction || isConferenceServer);
+
+	lInfo() << "ChatMessage [" << this << "] will " << (doNotStore ? "not" : "") << " be stored by default because:";
+	lInfo() << "- is notification: " << (isMessageNotification ? "yes" : "no");
+	lInfo() << "- is message edit: " << (isMessageEdit ? "yes" : "no");
+	lInfo() << "- is message retraction: " << (isMessageRetraction ? "yes" : "no");
+	lInfo() << "- is conference server: " << (isConferenceServer ? "yes" : "no");
+
+	setToBeStored(!doNotStore);
 }
 
 // -----------------------------------------------------------------------------

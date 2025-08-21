@@ -181,6 +181,21 @@ void ClientConferenceListEventHandler::unsubscribe(const std::shared_ptr<Account
 	}
 }
 
+bool ClientConferenceListEventHandler::alreadySubscribed(const std::shared_ptr<Address> &address) const {
+	auto event = findEvent(address);
+	return (event != nullptr);
+}
+
+LinphoneSubscriptionState
+ClientConferenceListEventHandler::getSubscriptionState(const std::shared_ptr<Address> &address) const {
+	auto state = LinphoneSubscriptionNone;
+	auto event = findEvent(address);
+	if (event) {
+		state = event->getState();
+	}
+	return state;
+}
+
 void ClientConferenceListEventHandler::invalidateSubscription() {
 	levs.clear();
 }
@@ -194,12 +209,10 @@ void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> not
                                                       const std::shared_ptr<const Content> &notifyContent) {
 	if (notifyContent) {
 		const auto &from = notifyLev->getFrom();
-		auto it = std::find_if(levs.begin(), levs.end(), [&from](const auto &lev) {
-			return (*Address::create(lev->getOp()->getFrom()) == *from);
-		});
 		auto core = getCore();
 		const auto conferenceIdParams = core->createConferenceIdParams();
-		const auto levFound = (it != levs.end());
+		auto event = findEvent(from);
+		const auto levFound = (event != nullptr);
 		if (notifyContent->getContentType() == ContentType::ConferenceInfo) {
 			// Simple notify received directly from a chat-room
 			const string &xmlBody = notifyContent->getBodyAsUtf8String();
@@ -302,6 +315,16 @@ void ClientConferenceListEventHandler::handleDelayMessageSendTimerExpired(const 
 }
 
 // -----------------------------------------------------------------------------
+
+const std::shared_ptr<EventSubscribe>
+ClientConferenceListEventHandler::findEvent(const std::shared_ptr<Address> &address) const {
+	auto it = std::find_if(levs.begin(), levs.end(), [&address](const auto &lev) {
+		return (*Address::create(lev->getOp()->getFrom()) == *address);
+	});
+
+	if (it != levs.end()) return *it;
+	return nullptr;
+}
 
 std::shared_ptr<ClientConferenceEventHandler>
 ClientConferenceListEventHandler::findHandler(const ConferenceId &conferenceId) const {
@@ -448,12 +471,8 @@ void ClientConferenceListEventHandler::onAccountRegistrationStateChanged(std::sh
 		                                               // is the current subscription
 		const auto &accountParams = account->getAccountParams();
 		const auto &cfgAddress = accountParams->getIdentityAddress();
-		auto it = std::find_if(levs.begin(), levs.end(), [&cfgAddress](const auto &lev) {
-			return (*Address::create(lev->getOp()->getFrom()) == *cfgAddress);
-		});
-
 		// If no subscription is found, then unsubscribe the account
-		if (it != levs.end()) unsubscribe(account);
+		if (findEvent(cfgAddress)) unsubscribe(account);
 	}
 }
 

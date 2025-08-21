@@ -3335,22 +3335,13 @@ static void aggregated_imdns(void) {
 	linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(marie->lc));
 	linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(pauline->lc));
 
-	sent_cm = linphone_chat_room_create_message_from_utf8(pauline_chat_room, "Coucou");
-	linphone_chat_message_cbs_set_msg_state_changed(linphone_chat_message_get_callbacks(sent_cm),
-	                                                liblinphone_tester_chat_message_msg_state_changed);
-	linphone_chat_message_send(sent_cm);
+	sent_cm = _send_message(pauline_chat_room, "Coucou");
 	messages = bctbx_list_append(messages, sent_cm);
 
-	sent_cm = linphone_chat_room_create_message_from_utf8(pauline_chat_room, "ça va ?");
-	linphone_chat_message_cbs_set_msg_state_changed(linphone_chat_message_get_callbacks(sent_cm),
-	                                                liblinphone_tester_chat_message_msg_state_changed);
-	linphone_chat_message_send(sent_cm);
+	sent_cm = _send_message(pauline_chat_room, "ça va ?");
 	messages = bctbx_list_append(messages, sent_cm);
 
-	sent_cm = linphone_chat_room_create_message_from_utf8(pauline_chat_room, "tu fais quoi ce soir ?");
-	linphone_chat_message_cbs_set_msg_state_changed(linphone_chat_message_get_callbacks(sent_cm),
-	                                                liblinphone_tester_chat_message_msg_state_changed);
-	linphone_chat_message_send(sent_cm);
+	sent_cm = _send_message(pauline_chat_room, "tu fais quoi ce soir ?");
 	messages = bctbx_list_append(messages, sent_cm);
 
 	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageSent, 3));
@@ -3374,6 +3365,9 @@ static void aggregated_imdns(void) {
 
 	/* Pauline should be notified of messages being displayed */
 	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageDisplayed, 3));
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marie_chat_room), 3, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(pauline_chat_room), 3, int, "%d");
 
 	bctbx_list_free_with_data(messages, (bctbx_list_free_func)linphone_chat_message_unref);
 	linphone_core_manager_destroy(marie);
@@ -3404,7 +3398,7 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	participantsAddresses =
 	    bctbx_list_append(participantsAddresses, linphone_address_new(linphone_core_get_identity(chloe->lc)));
 
-	linphone_core_set_imdn_to_everybody_threshold(marie->lc, 1);
+	linphone_core_set_imdn_to_everybody_threshold(marie->lc, 10);
 	linphone_core_set_chat_messages_aggregation_enabled(marie->lc, TRUE);
 	linphone_config_set_int(linphone_core_get_config(marie->lc), "sip", "chat_messages_aggregation_delay", 10);
 	linphone_core_set_imdn_to_everybody_threshold(pauline->lc, 1);
@@ -3438,6 +3432,8 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	LinphoneChatRoom *chloeCr =
 	    check_creation_chat_room_client_side(coresList, chloe, &initialChloeStats, confAddr, initialSubject, 2, FALSE);
 
+	// Part 1: message aggregation with all clients online. One-to-one chatrooms between Marie and the other
+	// participants are created to send IMDN
 	int nbMessages = 10;
 	bctbx_list_t *messages = NULL;
 	for (int idx = 0; idx < nbMessages; idx++) {
@@ -3476,6 +3472,10 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageDisplayed, nbMessages,
 	                             liblinphone_tester_sip_timeout));
 
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), nbMessages, int, "%d");
+
 	expected_msg_state = LinphoneChatMessageStateDisplayed;
 	if (marieCr) {
 		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), nbMessages, int, "%d");
@@ -3492,6 +3492,7 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 		messages = NULL;
 	}
 
+	// Part 2: one-to-one chatroom between Marie and Pauline is destroyed. It has to be recreated to receive IMDNs
 	initialMarieStats = marie->stat;
 	initialChloeStats = chloe->stat;
 	initialPaulineStats = pauline->stat;
@@ -3589,6 +3590,149 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 		}
 		bctbx_list_free_with_data(pauline_history, (bctbx_list_free_func)linphone_chat_message_unref);
 	}
+
+	if (messages) {
+		bctbx_list_free_with_data(messages, (bctbx_list_free_func)linphone_chat_message_unref);
+		messages = NULL;
+	}
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 2 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 2 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 2 * nbMessages, int, "%d");
+
+	initialMarieStats = marie->stat;
+	initialChloeStats = chloe->stat;
+	initialPaulineStats = pauline->stat;
+
+	// Part 3: instable network testing. Recipient of the message go offline just before Chloe sends its message. The
+	// sender goes offline just before IMDNs are sent
+	linphone_core_set_network_reachable(marie->lc, FALSE);
+	linphone_core_set_network_reachable(pauline->lc, FALSE);
+
+	for (int idx = 0; idx < nbMessages; idx++) {
+		char messageText[100];
+		sprintf(messageText, "Wonderful - attempt %0d", idx);
+		LinphoneChatMessage *chloeMessage = _send_message(chloeCr, messageText);
+		BC_ASSERT_PTR_NOT_NULL(chloeMessage);
+		if (chloeMessage) {
+			messages = bctbx_list_append(messages, chloeMessage);
+		}
+	}
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageSent,
+	                             initialChloeStats.number_of_LinphoneMessageSent + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageDelivered,
+	                             initialChloeStats.number_of_LinphoneMessageDelivered + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+
+	BC_ASSERT_FALSE(wait_for_list(coresList, &marie->stat.number_of_LinphoneAggregatedMessagesReceived,
+	                              initialMarieStats.number_of_LinphoneAggregatedMessagesReceived + 1, 3000));
+	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneAggregatedMessagesReceived,
+	                              initialPaulineStats.number_of_LinphoneAggregatedMessagesReceived + 1, 3000));
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 2 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 2 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 3 * nbMessages, int, "%d");
+
+	linphone_core_set_network_reachable(chloe->lc, FALSE);
+	linphone_core_set_network_reachable(marie->lc, TRUE);
+	linphone_core_set_network_reachable(pauline->lc, TRUE);
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneAggregatedMessagesReceived,
+	                             initialMarieStats.number_of_LinphoneMessageReceived + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneAggregatedMessagesReceived,
+	                             initialPaulineStats.number_of_LinphoneMessageReceived + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+
+	BC_ASSERT_FALSE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageDeliveredToUser,
+	                              initialChloeStats.number_of_LinphoneMessageDeliveredToUser + 1, 3000));
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 3 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 3 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 3 * nbMessages, int, "%d");
+
+	linphone_core_set_network_reachable(chloe->lc, TRUE);
+
+	linphone_chat_room_mark_as_read(marieCr);
+	linphone_chat_room_mark_as_read(paulineCr);
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageDisplayed,
+	                             initialChloeStats.number_of_LinphoneMessageDisplayed + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 3 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 3 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 3 * nbMessages, int, "%d");
+
+	if (messages) {
+		bctbx_list_free_with_data(messages, (bctbx_list_free_func)linphone_chat_message_unref);
+		messages = NULL;
+	}
+
+	initialMarieStats = marie->stat;
+	initialChloeStats = chloe->stat;
+	initialPaulineStats = pauline->stat;
+
+	// Part 4: one client has instable network testing and receives all IMDNs and messages in one shot upon reconnection
+	linphone_core_set_network_reachable(pauline->lc, FALSE);
+
+	for (int idx = 0; idx < nbMessages; idx++) {
+		char messageText[100];
+		sprintf(messageText, "How is going? - attempt %0d", idx);
+		LinphoneChatMessage *chloeMessage = _send_message(chloeCr, messageText);
+		BC_ASSERT_PTR_NOT_NULL(chloeMessage);
+		if (chloeMessage) {
+			messages = bctbx_list_append(messages, chloeMessage);
+		}
+	}
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageSent,
+	                             initialChloeStats.number_of_LinphoneMessageSent + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageDelivered,
+	                             initialChloeStats.number_of_LinphoneMessageDelivered + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneAggregatedMessagesReceived,
+	                             initialMarieStats.number_of_LinphoneAggregatedMessagesReceived + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneAggregatedMessagesReceived,
+	                              initialPaulineStats.number_of_LinphoneAggregatedMessagesReceived + 1, 3000));
+
+	linphone_chat_room_mark_as_read(marieCr);
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 4 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 3 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 4 * nbMessages, int, "%d");
+
+	linphone_core_set_network_reachable(pauline->lc, TRUE);
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneAggregatedMessagesReceived,
+	                             initialMarieStats.number_of_LinphoneMessageReceived + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneAggregatedMessagesReceived,
+	                             initialPaulineStats.number_of_LinphoneMessageReceived + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageDeliveredToUser,
+	                             initialChloeStats.number_of_LinphoneMessageDeliveredToUser + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 4 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 4 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 4 * nbMessages, int, "%d");
+
+	linphone_chat_room_mark_as_read(paulineCr);
+
+	BC_ASSERT_TRUE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageDisplayed,
+	                             initialChloeStats.number_of_LinphoneMessageDisplayed + nbMessages,
+	                             liblinphone_tester_sip_timeout));
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 4 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 4 * nbMessages, int, "%d");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 4 * nbMessages, int, "%d");
 
 	if (messages) {
 		bctbx_list_free_with_data(messages, (bctbx_list_free_func)linphone_chat_message_unref);

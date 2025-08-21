@@ -780,7 +780,7 @@ static void secure_group_chat_room_with_multi_account_client() {
 	}
 }
 
-static void secure_one_to_one_chat_room_send_message_after_restart(void) {
+static void secure_one_to_one_chat_room_send_message_after_restart_base(bool_t can_list_event_handler_empty_notify) {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
 		const LinphoneTesterLimeAlgo lime_algo = C25519;
@@ -797,6 +797,13 @@ static void secure_one_to_one_chat_room_send_message_after_restart(void) {
 
 		linphone_core_enable_gruu_in_conference_address(marie.getLc(), TRUE);
 		linphone_core_enable_gruu_in_conference_address(pauline.getLc(), TRUE);
+
+		linphone_config_set_bool(linphone_core_get_config(focus.getLc()), "chat",
+		                         "disable_list_event_handler_empty_notify", !can_list_event_handler_empty_notify);
+		linphone_core_enable_send_message_after_notify(marie.getLc(), can_list_event_handler_empty_notify);
+		linphone_core_set_message_sending_delay(marie.getLc(), 2);
+		linphone_core_enable_send_message_after_notify(pauline.getLc(), can_list_event_handler_empty_notify);
+		linphone_core_set_message_sending_delay(pauline.getLc(), 2);
 
 		stats initialMarieStats = marie.getStats();
 		stats initialPaulineStats = pauline.getStats();
@@ -899,9 +906,13 @@ static void secure_one_to_one_chat_room_send_message_after_restart(void) {
 
 		ms_message("%s is restarting its core", linphone_core_get_identity(marie.getLc()));
 		coresList = bctbx_list_remove(coresList, marie.getLc());
-		marie.reStart();
+		linphone_core_manager_reinit(marie.getCMgr());
+		marie.configure(focus.getConferenceFactoryAddress(), lime_algo);
 		linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(marie.getLc()));
 		linphone_core_enable_gruu_in_conference_address(marie.getLc(), TRUE);
+		linphone_core_enable_send_message_after_notify(marie.getLc(), can_list_event_handler_empty_notify);
+		linphone_core_set_message_sending_delay(marie.getLc(), 2);
+		linphone_core_manager_start(marie.getCMgr(), TRUE);
 		coresList = bctbx_list_append(coresList, marie.getLc());
 		BC_ASSERT_EQUAL(marie.getCore().getChatRooms().size(), 1, size_t, "%0zu");
 
@@ -987,6 +998,14 @@ static void secure_one_to_one_chat_room_send_message_after_restart(void) {
 
 		bctbx_list_free(coresList);
 	}
+}
+
+static void secure_one_to_one_chat_room_send_message_after_restart(void) {
+	secure_one_to_one_chat_room_send_message_after_restart_base(TRUE);
+}
+
+static void secure_one_to_one_chat_room_send_message_after_restart_no_empty_notify(void) {
+	secure_one_to_one_chat_room_send_message_after_restart_base(FALSE);
 }
 
 static void secure_one_to_one_chat_room_created_twice(void) {
@@ -2022,6 +2041,10 @@ static test_t local_conference_secure_chat_tests[] = {
                   "LeaksMemory" /*due to core restart*/),
     TEST_TWO_TAGS("Secure one-to-one chat send message after restart",
                   LinphoneTest::secure_one_to_one_chat_room_send_message_after_restart,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* because of network up and down */
+    TEST_TWO_TAGS("Secure one-to-one chat send message after restart (no empty notify)",
+                  LinphoneTest::secure_one_to_one_chat_room_send_message_after_restart_no_empty_notify,
                   "LimeX3DH",
                   "LeaksMemory"), /* because of network up and down */
     TEST_TWO_TAGS("Secure group chat cannot be sent immediately",

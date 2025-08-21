@@ -158,10 +158,13 @@ public:
 	// TODO: Return a cpp reference.
 	const LinphoneErrorInfo *getErrorInfo() const;
 
+	bool isNotification() const;
+
 	bool isRead() const;
 	bool isReadOnly() const;
 	void markAsRead();
 
+	void initializeToBeStored();
 	bool getToBeStored() const;
 	virtual void setToBeStored(bool value);
 
