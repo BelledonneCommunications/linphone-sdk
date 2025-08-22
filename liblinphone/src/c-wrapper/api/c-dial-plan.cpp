@@ -62,6 +62,10 @@ const char *linphone_dial_plan_get_flag(const LinphoneDialPlan *dp) {
 	return L_STRING_TO_C(DialPlan::toCpp(dp)->getFlag());
 }
 
+const char *linphone_dial_plan_get_trunk_prefix(const LinphoneDialPlan *dp) {
+	return L_STRING_TO_C(DialPlan::toCpp(dp)->getTrunkPrefix());
+}
+
 int linphone_dial_plan_lookup_ccc_from_e164(const char *e164) {
 	return DialPlan::lookupCccFromE164(L_C_TO_STRING(e164));
 }

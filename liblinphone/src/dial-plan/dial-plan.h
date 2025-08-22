@@ -43,6 +43,7 @@ public:
 	    int maxNnl = 0,
 	    const std::string &icp = "",
 	    const std::string &flag = "",
+	    const std::string &trunkPrefix = "",
 	    const std::optional<std::function<size_t(const std::string)>> &nationalNumberLengthFunction = std::nullopt);
 	DialPlan(const DialPlan &other) = default;
 	DialPlan &operator=(const DialPlan &other);
@@ -59,6 +60,7 @@ public:
 	int getMaxNationalNumberLength() const;
 	const std::string &getInternationalCallPrefix() const;
 	const std::string &getFlag() const;
+	const std::string &getTrunkPrefix() const;
 	bool isGeneric() const;
 
 	std::string flattenPhoneNumber(const std::string &number) const;
@@ -87,6 +89,8 @@ private:
 	std::string internationalCallPrefix; // International call prefix, ex: 00 in europe.
 	std::string flag;
 	std::function<size_t(const std::string)> mNationalNumberLengthFunction;
+	std::string
+	    mTrunkPrefix; // Local trunk prefix to remove from start of phone number when applying international prefix.
 
 	static const std::list<std::shared_ptr<DialPlan>> sDialPlans;
 };

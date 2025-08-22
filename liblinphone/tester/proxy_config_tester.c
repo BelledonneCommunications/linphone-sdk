@@ -43,9 +43,9 @@ const char *phone_normalization(LinphoneProxyConfig *proxy, const char *in) {
 static void phone_normalization_without_proxy(void) {
 	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "012 345 6789"), "0123456789");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+33123456789"), "+33123456789");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+33012345678"), "+33012345678");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+33 0012345678"), "+33012345678");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+33012345678"), "+33012345678");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+33012345678"), "+3312345678");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+33 0012345678"), "+3312345678");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+33012345678"), "+3312345678");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+3301234567891"), "+33234567891");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "+33 01234567891"), "+33234567891");
 	BC_ASSERT_PTR_NULL(phone_normalization(NULL, "I_AM_NOT_A_NUMBER")); // invalid phone number
@@ -94,6 +94,7 @@ static void phone_normalization_with_proxy(void) {
 
 	linphone_proxy_config_set_dial_prefix(proxy, "49"); // Germany
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "1234 123 123 123"), "+491234123123123");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0302970"), "+49302970");
 
 	linphone_proxy_config_set_dial_prefix(proxy, "33");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "012 3456 789"), "+33123456789");
@@ -101,8 +102,8 @@ static void phone_normalization_with_proxy(void) {
 	linphone_proxy_config_set_dial_prefix(proxy, NULL);
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+33123456789"), "+33123456789");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+33 0123456789"), "+33123456789");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+330012345678"), "+33012345678");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+3301 2345678"), "+33012345678");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+330012345678"), "+3312345678");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+3301 2345678"), "+3312345678");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+3301234567891"), "+33234567891");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+33 (0) 1 23 45 67 89"), "+33123456789");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+90 (903) 1234567"), "+909031234567");
@@ -133,7 +134,7 @@ static void phone_normalization_with_proxy(void) {
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "012345"), "012345");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0123456"), "0123456");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "01234567"), "01234567");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "012345678"), "+33012345678"); // not short numbers, add prefix
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "012345678"), "+3312345678"); // not short numbers, add prefix
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0123456789"), "+33123456789");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "01234567890"), "+33234567890");
 
@@ -179,13 +180,13 @@ static void phone_normalization_with_proxy(void) {
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+33012345"), "+33012345");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+330123456"), "+330123456");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+3301234567"), "+3301234567");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+33012345678"), "+33012345678");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+33012345678"), "+3312345678");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+330123456789"), "+33123456789");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "+3301234567890"), "+33234567890");
 
 	// invalid prefix - use a generic dialplan with 10 max length and no min length
 	linphone_proxy_config_set_dial_prefix(proxy, "99");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0011234567890"), "+11234567890");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0011234567890"), "+1234567890");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0"), "+990");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "01"), "+9901");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "012"), "+99012");
@@ -229,7 +230,7 @@ static void phone_normalization_with_proxy(void) {
 	// Phone normalization for Belgium dial plan, with 8 or 9 digits and no 0 after international prefix
 	linphone_proxy_config_set_dial_prefix(proxy, "32");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0123456"), "0123456");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "01234567"), "+3201234567");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "01234567"), "+321234567");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "012345678"), "+3212345678");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0123456789"), "+32123456789");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "003212345678"), "+3212345678");
@@ -251,7 +252,7 @@ static void phone_normalization_with_dial_escape_plus(void) {
 
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0"), "0"); // France's dial plan, short number
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "01"), "01");
-	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "012345678"), "0033012345678"); // not short number
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "012345678"), "003312345678"); // not short number
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0123456789"), "0033123456789");
 
 	linphone_proxy_config_set_dial_prefix(proxy, "680");

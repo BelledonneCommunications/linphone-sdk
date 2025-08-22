@@ -70,10 +70,22 @@ char *generate_random_phone_from_dial_plan(const LinphoneDialPlan *dialPlan) {
 	char phone[64];
 	size_t i;
 	/*now with have a dialplan*/
+	const char *international_call_prefix = linphone_dial_plan_get_international_call_prefix(dialPlan);
+	const char *trunk_prefix = linphone_dial_plan_get_trunk_prefix(dialPlan);
 	for (i = 0; i < MIN((size_t)linphone_dial_plan_get_national_number_length(dialPlan), sizeof(phone) - 1); i++) {
-		if (i == strlen(linphone_dial_plan_get_international_call_prefix(dialPlan))) {
+		if (i == strlen(international_call_prefix)) {
 			// check if phone does not start with international call prefix
-			if (strncmp(phone, linphone_dial_plan_get_international_call_prefix(dialPlan), i) == 0) {
+			if (strncmp(phone, international_call_prefix, i) == 0) {
+				// bad luck, restarting phone number generation
+				return generate_random_phone_from_dial_plan(dialPlan);
+			}
+		} else if (trunk_prefix != NULL && i == strlen(international_call_prefix) + strlen(trunk_prefix)) {
+			// check if first number after international call prefix isn't the trunk prefix
+			char international_prefix_plus_trunk[12];
+			strcpy(international_prefix_plus_trunk, international_call_prefix);
+			strcat(international_prefix_plus_trunk, trunk_prefix);
+			international_prefix_plus_trunk[i] = '\0';
+			if (strncmp(phone, international_prefix_plus_trunk, i) == 0) {
 				// bad luck, restarting phone number generation
 				return generate_random_phone_from_dial_plan(dialPlan);
 			}

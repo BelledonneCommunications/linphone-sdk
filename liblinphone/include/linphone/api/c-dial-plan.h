@@ -90,6 +90,14 @@ LINPHONE_PUBLIC const char *linphone_dial_plan_get_international_call_prefix(con
 LINPHONE_PUBLIC const char *linphone_dial_plan_get_flag(const LinphoneDialPlan *dial_plan);
 
 /**
+ * Returns the trunk prefix for this country.
+ * Trunk prefix will be removed from the start of flattened phone number before adding international prefix.
+ * @param dial_plan the #LinphoneDialPlan object @notnil
+ * @return the trunk prefix if any, NULL otherwise @maybenil
+ */
+LINPHONE_PUBLIC const char *linphone_dial_plan_get_trunk_prefix(const LinphoneDialPlan *dial_plan);
+
+/**
  * Function to get  call country code from  ISO 3166-1 alpha-2 code, ex: FR returns 33
  * @param iso country code alpha2 @notnil
  * @return call country code or -1 if not found
