@@ -1,0 +1,14 @@
+
+
+[ldap_0]
+server=ldap://ldap.example.org
+min_chars=2
+filter=somefilter
+timeout=10
+
+
+[carddav_0]
+server_url=https://carddav.example.org
+use_exact_match_policy=0
+min_characters=4
+timeout=11

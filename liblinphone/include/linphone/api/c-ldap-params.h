@@ -227,6 +227,7 @@ LINPHONE_PUBLIC int linphone_ldap_params_get_min_chars(const LinphoneLdapParams 
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @param delay The timeout in milliseconds.
+ * @deprecated 22/08/2025 use linphone_remote_contact_directory_set_delay() instead.
  **/
 LINPHONE_PUBLIC void linphone_ldap_params_set_delay(LinphoneLdapParams *params, int delay);
 
@@ -234,6 +235,7 @@ LINPHONE_PUBLIC void linphone_ldap_params_set_delay(LinphoneLdapParams *params, 
  * @brief Get the delay between each search in milliseconds
  *
  * @param params The #LinphoneLdapParams object. @notnil
+ * @deprecated 22/08/2025 use linphone_remote_contact_directory_get_delay() instead.
  * @return The delay in milliseconds.
  **/
 LINPHONE_PUBLIC int linphone_ldap_params_get_delay(const LinphoneLdapParams *params);
@@ -360,6 +362,7 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_sip_domain(const LinphoneLd
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @param enable Enable or not the LDAP configuration.
+ * @deprecated 22/08/2025 Use linphone_remote_contact_directory_enable() instead.
  **/
 LINPHONE_PUBLIC void linphone_ldap_params_set_enabled(LinphoneLdapParams *params, bool_t enable);
 
@@ -368,6 +371,7 @@ LINPHONE_PUBLIC void linphone_ldap_params_set_enabled(LinphoneLdapParams *params
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return Enable or not the LDAP configuration.
+ * @deprecated 22/08/2025 Use linphone_remote_contact_directory_enabled() instead.
  **/
 LINPHONE_PUBLIC bool_t linphone_ldap_params_get_enabled(const LinphoneLdapParams *params);
 

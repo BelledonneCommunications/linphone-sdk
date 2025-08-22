@@ -57,6 +57,11 @@ void CardDavMagicSearchPlugin::startSearchAsync(const string &filter,
 	setHasEnded(false);
 	mMoreResultsAvailable = false;
 
+	if (!mParams->enabled()) {
+		setHasEnded(true);
+		return;
+	}
+
 	if (filter.size() < mParams->getMinCharactersToStartQuery()) {
 		lInfo() << "[Magic Search][CardDAV] Too few characters to start the query, doing nothing";
 		setHasEnded(true);

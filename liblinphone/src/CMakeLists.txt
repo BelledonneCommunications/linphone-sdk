@@ -309,6 +309,7 @@ set(LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
 	search/magic-search-plugin.h
 	search/magic-search.h
 	search/remote-contact-directory.h
+	search/remote-contact-directory.cpp
 	search/search-request.h
 	search/search-result.h
 	signal-information/signal-information.h

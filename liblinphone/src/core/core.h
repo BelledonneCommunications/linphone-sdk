@@ -347,6 +347,8 @@ public:
 
 	void handleIncomingMessageWaitingIndication(std::shared_ptr<Event> event, const Content *content);
 
+	void loadRemoteContactDirectories();
+	void writeRemoteContactDirectories();
 	const std::list<std::shared_ptr<RemoteContactDirectory>> &getRemoteContactDirectories();
 
 	void addRemoteContactDirectory(std::shared_ptr<RemoteContactDirectory> remoteContactDirectory);

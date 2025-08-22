@@ -38,7 +38,7 @@ LINPHONE_BEGIN_NAMESPACE
 // -----------------------------------------------------------------------------
 
 LdapParams::LdapParams(const shared_ptr<Core> &core) : CoreAccessor(core) {
-	lookupConfigEntryIndex();
+	mConfig = LdapConfigKeys::loadConfig(mConfig);
 }
 
 static string getSection(int index) {
@@ -52,16 +52,11 @@ LdapParams::LdapParams(const shared_ptr<Core> &core, int index) : CoreAccessor(c
 	LpConfig *config = linphone_core_get_config(core->getCCore());
 	if (linphone_config_has_section(config, section.c_str())) {
 		mConfigIndex = index;
-		readFromConfigFile();
+		readFromConfigFileLegacy();
 	} else {
 		lWarning() << "[LDAP] Config section [" << section << "] doesn't exists, looking for first available index";
-		lookupConfigEntryIndex();
+		lookupConfigEntryIndexLegacy();
 	}
-}
-
-LdapParams::LdapParams(const LdapParams &other) : HybridObject(other), CoreAccessor(other.getCore()) {
-	mConfigIndex = other.mConfigIndex;
-	mConfig = other.mConfig;
 }
 
 LdapParams::~LdapParams() {
@@ -286,7 +281,7 @@ int LdapParams::checkBaseObject() const {
 	else return LinphoneLdapCheckOk;
 }
 
-void LdapParams::lookupConfigEntryIndex() {
+void LdapParams::lookupConfigEntryIndexLegacy() {
 	int index = 0;
 	string section = getSection(index);
 
@@ -300,34 +295,42 @@ void LdapParams::lookupConfigEntryIndex() {
 	lInfo() << "[LDAP] This LdapParams object will use config section [" << section << "]";
 }
 
-void LdapParams::readFromConfigFile() {
+void LdapParams::readFromConfigFileLegacy() {
 	string section = getSection(mConfigIndex);
-	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
+
 	lInfo() << "[LDAP] Reading config section [" << section << "]";
 
-	bctbx_list_t *keys = linphone_config_get_keys_names_list(config, section.c_str());
+	readConfig(section, true);
+}
+
+void LdapParams::readConfig(const std::string &sectionName, bool legacy) {
+	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
+	bctbx_list_t *keys = linphone_config_get_keys_names_list(config, sectionName.c_str());
 	for (auto itKeys = keys; itKeys; itKeys = itKeys->next) {
 		std::string key = static_cast<char *>(itKeys->data);
-		mConfig[key] = linphone_config_get_string(config, section.c_str(), key.c_str(), "");
+		std::string internalKey;
+		if (!legacy) {
+			// With new loading, only keys starting with "ldap_" are considered.
+			if (key.find("ldap_") == 0) internalKey = key.substr(5);
+			else continue;
+		} else internalKey = key;
+		mConfig[internalKey] = linphone_config_get_string(config, sectionName.c_str(), key.c_str(), "");
 	}
 	if (keys) bctbx_list_free(keys);
 	mConfig = LdapConfigKeys::loadConfig(mConfig);
 }
 
-void LdapParams::writeToConfigFile() const {
-	string section = getSection(mConfigIndex);
-	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
-
+void LdapParams::writeConfig(const std::string &sectionName) {
+	LinphoneConfig *config = linphone_core_get_config(getCore()->getCCore());
+	static const list<string> obsoleteKeys = {"server", "timeout", "delay", "min_chars", "enable", "max_results"};
 	for (auto it = mConfig.begin(); it != mConfig.end(); ++it) {
-		linphone_config_set_string(config, section.c_str(), it->first.c_str(), it->second.c_str());
+		std::string key = it->first;
+		// Don't write legacy keys, that are now written by the RemoteContactDirectory object */'
+		if (std::find(obsoleteKeys.begin(), obsoleteKeys.end(), key) != obsoleteKeys.end()) continue;
+		// Valid keys are prefixed by "ldap_" in configuration file.
+		key = string("ldap_") + key;
+		linphone_config_set_string(config, sectionName.c_str(), key.c_str(), it->second.c_str());
 	}
-	linphone_config_sync(config);
-}
-
-void LdapParams::removeFromConfigFile() const {
-	string section = getSection(mConfigIndex);
-	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
-	linphone_config_clean_section(config, section.c_str());
 }
 
 LINPHONE_END_NAMESPACE

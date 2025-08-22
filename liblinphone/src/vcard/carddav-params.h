@@ -40,7 +40,7 @@ public:
 	CardDavParams(const std::shared_ptr<Core> &core);
 	CardDavParams(const std::shared_ptr<Core> &core, int index);
 	CardDavParams(const CardDavParams &other);
-	virtual ~CardDavParams() {};
+	virtual ~CardDavParams(){};
 
 	CardDavParams *clone() const override;
 
@@ -108,12 +108,22 @@ public:
 		mUseExactMatchPolicy = exactMatch;
 	}
 
-	void writeToConfigFile() const;
-	void removeFromConfigFile() const;
+	void enable(bool value) {
+		mEnabled = value;
+	}
+	bool enabled() const {
+		return mEnabled;
+	}
+
+	void readConfig(const std::string &sectionName, bool withPrefix = true);
+	void writeConfig(const std::string &sectionName);
+	void writeToConfigFileLegacy() const;
+	void removeFromConfigFileLegacy() const;
 
 private:
-	void lookupConfigEntryIndex();
-	void readFromConfigFile();
+	std::string getKey(std::string keyName, bool withPrefix);
+	void lookupConfigEntryIndexLegacy();
+	void readFromConfigFileLegacy();
 
 	int mConfigIndex = -1;
 
@@ -124,6 +134,7 @@ private:
 	std::list<std::string> mFieldsToUseToFilterUsingUserInput;
 	std::list<std::string> mFieldsToUseToFilterUsingDomain;
 	bool mUseExactMatchPolicy = false;
+	bool mEnabled = true;
 };
 
 LINPHONE_END_NAMESPACE

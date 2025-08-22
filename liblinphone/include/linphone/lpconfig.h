@@ -389,6 +389,13 @@ LINPHONE_PUBLIC int linphone_config_has_section(const LinphoneConfig *config, co
 LINPHONE_PUBLIC void linphone_config_clean_section(LinphoneConfig *config, const char *section);
 
 /**
+ * Removes a suite of sections whose name is derived from section argument,
+ * suffixed with _0, _1, _2 etc.
+ * This is a common representation for configuration objects that can have multiple instances.
+ */
+LINPHONE_PUBLIC void linphone_config_clean_section_suite(LinphoneConfig *lpconfig, const char *section);
+
+/**
  * Returns if a given section  with a given key is present in the configuration.
  * @param config The #LinphoneConfig object @notnil
  * @param section to check if the given entry exists @notnil

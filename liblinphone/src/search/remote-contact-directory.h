@@ -27,124 +27,60 @@
 
 LINPHONE_BEGIN_NAMESPACE
 
-class RemoteContactDirectory : public bellesip::HybridObject<LinphoneRemoteContactDirectory, RemoteContactDirectory> {
+class RemoteContactDirectory : public bellesip::HybridObject<LinphoneRemoteContactDirectory, RemoteContactDirectory>,
+                               public CoreAccessor {
 public:
-	RemoteContactDirectory(const std::shared_ptr<CardDavParams> &cardDavParams) {
-		mCardDavParams = cardDavParams;
-		mType = LinphoneRemoteContactDirectoryTypeCardDav;
-	}
+	static constexpr const char *kRemoteContactDirectorySectionBase = "remote_contact_directory";
+	RemoteContactDirectory(const std::shared_ptr<CardDavParams> &cardDavParams);
 
-	RemoteContactDirectory(const std::shared_ptr<LdapParams> &ldapParams) {
-		mLdapParams = ldapParams;
-		mType = LinphoneRemoteContactDirectoryTypeLdap;
-	}
+	RemoteContactDirectory(const std::shared_ptr<LdapParams> &ldapParams);
+
+	RemoteContactDirectory(const std::shared_ptr<Core> &core);
 
 	RemoteContactDirectory(const RemoteContactDirectory &ms) = delete;
-	virtual ~RemoteContactDirectory() {
-		mCardDavParams = nullptr;
-		mLdapParams = nullptr;
-	}
+	virtual ~RemoteContactDirectory();
 
-	RemoteContactDirectory *clone() const override {
-		return nullptr;
-	}
+	RemoteContactDirectory *clone() const override;
 
-	LinphoneRemoteContactDirectoryType getType() const {
-		return mType;
-	}
+	LinphoneRemoteContactDirectoryType getType() const;
 
-	std::shared_ptr<CardDavParams> getCardDavParams() const {
-		return mCardDavParams;
-	}
+	std::shared_ptr<CardDavParams> getCardDavParams() const;
 
-	std::shared_ptr<LdapParams> getLdapParams() const {
-		return mLdapParams;
-	}
+	std::shared_ptr<LdapParams> getLdapParams() const;
 
-	const std::string &getServerUrl() const {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			return mCardDavParams->getServerUrl();
-		} else {
-			return mLdapParams->getServer();
-		}
-	}
+	const std::string &getServerUrl() const;
 
-	void setServerUrl(const std::string &serverUrl) {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			mCardDavParams->setServerUrl(serverUrl);
-		} else {
-			mLdapParams->setServer(serverUrl);
-		}
-	}
+	void setServerUrl(const std::string &serverUrl);
 
-	unsigned int getLimit() const {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			return mCardDavParams->getLimit();
-		} else {
-			return (unsigned int)mLdapParams->getMaxResults();
-		}
-	}
+	unsigned int getLimit() const;
+	void setLimit(unsigned int limit);
 
-	void setLimit(unsigned int limit) {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			mCardDavParams->setLimit(limit);
-		} else {
-			mLdapParams->setMaxResults((int)limit);
-		}
-	}
+	unsigned int getMinCharactersToStartQuery() const;
 
-	unsigned int getMinCharactersToStartQuery() const {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			return mCardDavParams->getMinCharactersToStartQuery();
-		} else {
-			return (unsigned int)mLdapParams->getMinChars();
-		}
-	}
+	void setMinCharactersToStartQuery(unsigned int min);
 
-	void setMinCharactersToStartQuery(unsigned int min) {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			mCardDavParams->setMinCharactersToStartQuery(min);
-		} else {
-			mLdapParams->setMinChars((int)min);
-		}
-	}
+	unsigned int getTimeout() const;
 
-	unsigned int getTimeout() const {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			return mCardDavParams->getTimeout();
-		} else {
-			return (unsigned int)mLdapParams->getTimeout();
-		}
-	}
+	void setTimeout(unsigned int seconds);
 
-	void setTimeout(unsigned int seconds) {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			mCardDavParams->setTimeout(seconds);
-		} else {
-			mLdapParams->setTimeout((int)seconds);
-		}
-	}
+	void setDelayToStartQuery(int milliseconds);
+	int getDelayToStartQuery() const;
 
-	void writeToConfigFile() const {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			mCardDavParams->writeToConfigFile();
-		} else {
-			mLdapParams->writeToConfigFile();
-		}
-	}
+	bool enabled() const;
+	void enable(bool value);
 
-	void removeFromConfigFile() const {
-		if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {
-			mCardDavParams->removeFromConfigFile();
-		} else {
-			mLdapParams->removeFromConfigFile();
-		}
-	}
+	void writeConfig(size_t sectionIndex);
+
+	void readConfig(size_t sectionIndex);
 
 private:
+	void syncConfigAsync();
+	std::string getSectionName() const;
 	std::shared_ptr<CardDavParams> mCardDavParams;
 	std::shared_ptr<LdapParams> mLdapParams;
+	size_t mSectionIndex = (size_t)-1;
 	LinphoneRemoteContactDirectoryType mType;
+	bool mNeedConfigSync = false;
 };
 
 LINPHONE_END_NAMESPACE

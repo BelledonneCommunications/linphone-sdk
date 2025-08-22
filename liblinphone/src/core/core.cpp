@@ -1746,16 +1746,46 @@ const list<shared_ptr<RemoteContactDirectory>> &Core::getRemoteContactDirectorie
 }
 
 void Core::addRemoteContactDirectory(shared_ptr<RemoteContactDirectory> remoteContactDirectory) {
-	remoteContactDirectory->writeToConfigFile();
 	getPrivate()->mRemoteContactDirectories.push_back(remoteContactDirectory);
+	writeRemoteContactDirectories();
 }
 
 void Core::removeRemoteContactDirectory(shared_ptr<RemoteContactDirectory> remoteContactDirectory) {
-	remoteContactDirectory->removeFromConfigFile();
 	getPrivate()->mRemoteContactDirectories.remove(remoteContactDirectory);
+	writeRemoteContactDirectories();
 }
 
-void CorePrivate::reloadRemoteContactDirectories() {
+void Core::loadRemoteContactDirectories() {
+	L_D();
+	LinphoneConfig *cfg = linphone_core_get_config(getCCore());
+	d->reloadRemoteContactDirectoriesLegacy();
+
+	for (size_t i = 0;; ++i) {
+		string rcdSection = string(RemoteContactDirectory::kRemoteContactDirectorySectionBase) + "_" + to_string(i);
+		if (!linphone_config_has_section(cfg, rcdSection.c_str())) break;
+		auto rcd = (new RemoteContactDirectory(getSharedFromThis()))->toSharedPtr();
+		try {
+			rcd->readConfig(i);
+			d->mRemoteContactDirectories.push_back(rcd);
+		} catch (...) {
+			// ignored
+		}
+	}
+}
+
+void Core::writeRemoteContactDirectories() {
+	LinphoneConfig *cfg = linphone_core_get_config(getCCore());
+
+	string sectionName;
+	size_t i = 0;
+	linphone_config_clean_section_suite(cfg, RemoteContactDirectory::kRemoteContactDirectorySectionBase);
+	for (auto rcd : getRemoteContactDirectories()) {
+		rcd->writeConfig(i);
+		++i;
+	}
+}
+
+void CorePrivate::reloadRemoteContactDirectoriesLegacy() {
 	auto core = getPublic()->getSharedFromThis();
 	auto lpConfig = linphone_core_get_config(getCCore());
 	bctbx_list_t *bcSections = linphone_config_get_sections_names_list(lpConfig);
@@ -1794,6 +1824,28 @@ void CorePrivate::reloadRemoteContactDirectories() {
 
 	if (bcSections) bctbx_list_free(bcSections);
 	mRemoteContactDirectories = paramsList;
+	if (!mRemoteContactDirectories.empty()) {
+		mRemoteContactDirectoryMigrationNeeded = true;
+	}
+}
+
+void CorePrivate::migrateRemoteContactDirectories() {
+	L_Q();
+
+	if (mRemoteContactDirectoryMigrationNeeded) {
+		// write new sections
+		q->writeRemoteContactDirectories();
+		// Clean deprecated sections
+		LinphoneConfig *cfg = linphone_core_get_config(getCCore());
+		linphone_config_clean_section_suite(cfg, "carddav");
+		linphone_config_clean_section_suite(cfg, "ldap");
+		linphone_config_sync(cfg);
+		mRemoteContactDirectoryMigrationNeeded = false;
+	}
+}
+
+void CorePrivate::doConfigurationMigration() {
+	migrateRemoteContactDirectories();
 }
 
 // -----------------------------------------------------------------------------

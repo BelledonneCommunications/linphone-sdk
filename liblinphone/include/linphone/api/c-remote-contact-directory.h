@@ -49,6 +49,21 @@ LINPHONE_PUBLIC void linphone_remote_contact_directory_unref(LinphoneRemoteConta
 /*****************************************************************************************************************/
 
 /**
+ * Enable this remote contact directory, ie make it usable for searches with the #LinphoneMagicSearch object.
+ * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param value A boolean.
+ */
+LINPHONE_PUBLIC void linphone_remote_contact_directory_enable(LinphoneRemoteContactDirectory *params, bool_t value);
+
+/**
+ * Returns whether this remote contact directory is enabled, i.e. usable for searches with the
+ * #LinphoneMagicSearch .
+ * @param The #LinphoneRemoteContactDirectory object. @notnil
+ * @returns a boolean.
+ */
+LINPHONE_PUBLIC bool_t linphone_remote_contact_directory_enabled(const LinphoneRemoteContactDirectory *params);
+
+/**
  * Gets the type of remote contact directory (LDAP, CardDAV).
  * @param params The #LinphoneRemoteContactDirectory object. @notnil
  * @return the #LinphoneRemoteContactDirectoryType of this remote contact directory.

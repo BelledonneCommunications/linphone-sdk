@@ -88,3 +88,11 @@ unsigned int linphone_remote_contact_directory_get_timeout(const LinphoneRemoteC
 void linphone_remote_contact_directory_set_timeout(LinphoneRemoteContactDirectory *params, unsigned int seconds) {
 	RemoteContactDirectory::toCpp(params)->setTimeout(seconds);
 }
+
+void linphone_remote_contact_directory_enable(LinphoneRemoteContactDirectory *params, bool_t value) {
+	RemoteContactDirectory::toCpp(params)->enable(!!value);
+}
+
+bool_t linphone_remote_contact_directory_enabled(const LinphoneRemoteContactDirectory *params) {
+	return RemoteContactDirectory::toCpp(params)->enabled() ? TRUE : FALSE;
+}

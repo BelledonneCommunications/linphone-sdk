@@ -41,7 +41,6 @@ class LdapParams : public bellesip::HybridObject<LinphoneLdapParams, LdapParams>
 public:
 	LdapParams(const std::shared_ptr<Core> &core);
 	LdapParams(const std::shared_ptr<Core> &core, int index);
-	LdapParams(const LdapParams &other);
 	~LdapParams();
 
 	LdapParams *clone() const override;
@@ -98,12 +97,12 @@ public:
 	int checkServer() const;
 	int checkBaseObject() const;
 
-	void writeToConfigFile() const;
-	void removeFromConfigFile() const;
+	void readConfig(const std::string &sectionName, bool legacy = false);
+	void writeConfig(const std::string &sectionName);
 
 private:
-	void lookupConfigEntryIndex();
-	void readFromConfigFile();
+	void lookupConfigEntryIndexLegacy();
+	void readFromConfigFileLegacy();
 
 	int mConfigIndex = -1;
 	std::map<std::string, std::string> mConfig;

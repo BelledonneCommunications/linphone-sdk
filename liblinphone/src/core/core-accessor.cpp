@@ -34,6 +34,10 @@ LINPHONE_BEGIN_NAMESPACE
 CoreAccessor::CoreAccessor(const shared_ptr<Core> &core) : mCore(core) {
 }
 
+std::shared_ptr<Core> CoreAccessor::tryGetCore() const {
+	return mCore.lock();
+}
+
 shared_ptr<Core> CoreAccessor::getCore() const {
 	shared_ptr<Core> core = mCore.lock();
 	if (!core) {

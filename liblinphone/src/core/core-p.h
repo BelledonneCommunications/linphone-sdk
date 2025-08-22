@@ -114,7 +114,7 @@ public:
 
 	ToneManager &getToneManager();
 
-	void reloadRemoteContactDirectories();
+	void reloadRemoteContactDirectoriesLegacy();
 
 	// Base
 	std::shared_ptr<AbstractChatRoom> createServerChatRoom(const std::shared_ptr<const Address> &conferenceFactoryUri,
@@ -192,6 +192,11 @@ public:
 	int getCodecPriority(const OrtpPayloadType *pt) const;
 	std::string lookupOAuthClientSecret(const std::string &client_id);
 
+	void migrateRemoteContactDirectories();
+	/* Place any configuration migration code in this method, that is called immediately after reaching GlobalON state.
+	 */
+	void doConfigurationMigration();
+
 	static const Utils::Version conferenceProtocolVersion;
 	static const Utils::Version groupChatProtocolVersion;
 	static const Utils::Version ephemeralProtocolVersion;
@@ -247,6 +252,7 @@ private:
 	std::unique_ptr<HttpClient> httpClient;
 
 	std::list<std::shared_ptr<FriendList>> friendLists;
+	bool mRemoteContactDirectoryMigrationNeeded = false;
 
 	L_DECLARE_PUBLIC(Core);
 };

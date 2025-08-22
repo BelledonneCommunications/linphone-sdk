@@ -94,11 +94,9 @@ int Ldap::getNewId() const {
 }
 
 void Ldap::writeToConfigFile() {
-	mParams->writeToConfigFile();
 }
 
 void Ldap::removeFromConfigFile() {
-	mParams->removeFromConfigFile();
 }
 
 LINPHONE_END_NAMESPACE

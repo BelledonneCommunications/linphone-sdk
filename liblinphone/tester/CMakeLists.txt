@@ -222,6 +222,7 @@ set(RC_FILES
 	rcfiles/arthur_rc
 	rcfiles/marie_xml
 	rcfiles/marie_digest_auth_xml
+	rcfiles/remote_contact_directory_migration.rc
 )
 
 set(IMAGE_FILES

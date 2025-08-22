@@ -35,7 +35,6 @@ LINPHONE_BEGIN_NAMESPACE
 // -----------------------------------------------------------------------------
 
 CardDavParams::CardDavParams(const shared_ptr<Core> &core) : CoreAccessor(core) {
-	lookupConfigEntryIndex();
 }
 
 static string getSection(int index) {
@@ -49,10 +48,9 @@ CardDavParams::CardDavParams(const shared_ptr<Core> &core, int index) : CoreAcce
 	LpConfig *config = linphone_core_get_config(core->getCCore());
 	if (linphone_config_has_section(config, section.c_str())) {
 		mConfigIndex = index;
-		readFromConfigFile();
+		readFromConfigFileLegacy();
 	} else {
-		lWarning() << "[CardDAV] Config section [" << section << "] doesn't exists, looking for first available index";
-		lookupConfigEntryIndex();
+		lWarning() << "[CardDAV] Config section [" << section << "] doesn't exist.";
 	}
 }
 
@@ -72,21 +70,34 @@ CardDavParams *CardDavParams::clone() const {
 	return new CardDavParams(*this);
 }
 
-void CardDavParams::lookupConfigEntryIndex() {
-	int index = 0;
-	string section = getSection(index);
-
-	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
-	while (linphone_config_has_section(config, section.c_str())) {
-		index += 1;
-		section = getSection(index);
-	}
-
-	mConfigIndex = index;
-	lInfo() << "[CardDAV] This CardDavParams object will use config section [" << section << "]";
+std::string CardDavParams::getKey(std::string keyName, bool withPrefix) {
+	if (withPrefix) return "carddav_" + keyName;
+	else return keyName;
 }
 
-void CardDavParams::readFromConfigFile() {
+void CardDavParams::readConfig(const std::string &sectionName, bool withPrefix) {
+	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
+	mFieldsToUseToFilterUsingUserInput =
+	    Utils::configGetStringList(config, sectionName, getKey("fields_for_user_input", withPrefix));
+	mFieldsToUseToFilterUsingDomain =
+	    Utils::configGetStringList(config, sectionName, getKey("fields_for_domain", withPrefix));
+
+	mUseExactMatchPolicy = !!linphone_config_get_bool(config, sectionName.c_str(),
+	                                                  getKey("use_exact_match_policy", withPrefix).c_str(), FALSE);
+}
+
+void CardDavParams::writeConfig(const std::string &sectionName) {
+	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
+
+	Utils::configSetStringList(config, sectionName, getKey("fields_for_user_input", true),
+	                           mFieldsToUseToFilterUsingUserInput);
+	Utils::configSetStringList(config, sectionName, getKey("fields_for_domain", true), mFieldsToUseToFilterUsingDomain);
+
+	linphone_config_set_bool(config, sectionName.c_str(), getKey("use_exact_match_policy", true).c_str(),
+	                         mUseExactMatchPolicy);
+}
+
+void CardDavParams::readFromConfigFileLegacy() {
 	string section = getSection(mConfigIndex);
 	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
 	lInfo() << "[CardDAV] Reading config section [" << section << "]";
@@ -97,13 +108,10 @@ void CardDavParams::readFromConfigFile() {
 	mMinCharactersToStartQuery = (unsigned int)linphone_config_get_int(config, section.c_str(), "min_characters", 3);
 	mTimeoutInSeconds = (unsigned int)linphone_config_get_int(config, section.c_str(), "timeout", 5);
 
-	mFieldsToUseToFilterUsingUserInput = Utils::configGetStringList(config, section, "fields_for_user_input");
-	mFieldsToUseToFilterUsingDomain = Utils::configGetStringList(config, section, "fields_for_domain");
-
-	mUseExactMatchPolicy = !!linphone_config_get_bool(config, section.c_str(), "use_exact_match_policy", FALSE);
+	readConfig(section, false);
 }
 
-void CardDavParams::writeToConfigFile() const {
+void CardDavParams::writeToConfigFileLegacy() const {
 	string section = getSection(mConfigIndex);
 	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
 	linphone_config_clean_section(config, section.c_str());
@@ -122,7 +130,7 @@ void CardDavParams::writeToConfigFile() const {
 	linphone_config_set_bool(config, section.c_str(), "use_exact_match_policy", mUseExactMatchPolicy);
 }
 
-void CardDavParams::removeFromConfigFile() const {
+void CardDavParams::removeFromConfigFileLegacy() const {
 	string section = getSection(mConfigIndex);
 	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
 	linphone_config_clean_section(config, section.c_str());

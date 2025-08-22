@@ -29,7 +29,7 @@ static const std::map<std::string, LdapConfigKeys> gLdapConfigKeys = {
     {"timeout", LdapConfigKeys("5", '\0', false)},
     {"timeout_tls_ms", LdapConfigKeys("1000", '\0', false)},
     {"max_results", LdapConfigKeys("5", '\0', false)},
-    {"min_chars", LdapConfigKeys("0", '\0', false)},
+    {"min_chars", LdapConfigKeys("3", '\0', false)},
     {"delay", LdapConfigKeys("500", '\0', false)},
     {"auth_method", LdapConfigKeys(Utils::toString((int)LinphoneLdapAuthMethodSimple), '\0', false)},
     {"password", LdapConfigKeys("", '\0', false)},
@@ -40,7 +40,7 @@ static const std::map<std::string, LdapConfigKeys> gLdapConfigKeys = {
     {"name_attribute", LdapConfigKeys("sn", ',', false)},
     {"sip_attribute", LdapConfigKeys("mobile,telephonenumber,homephone,sn", ',', false)},
     {"sip_domain", LdapConfigKeys("", '\0', false)},
-    {"enable", LdapConfigKeys("0", '\0', false)},
+    {"enable", LdapConfigKeys("1", '\0', false)},
     // Use our own DNS resolver, which is asynchronous. Much better than openldap blocking getaddrinfo().
     {"use_sal", LdapConfigKeys("1", '\0', false)},
     {"use_tls", LdapConfigKeys("1", '\0', false)},

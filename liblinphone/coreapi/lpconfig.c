@@ -1105,6 +1105,18 @@ void linphone_config_clean_section(LpConfig *lpconfig, const char *section) {
 	lpconfig->modified = TRUE;
 }
 
+void linphone_config_clean_section_suite(LinphoneConfig *lpconfig, const char *section) {
+	bool_t found = TRUE;
+	for (int i = 0; found; ++i) {
+		char *section_name = bctbx_strdup_printf("%s_%i", section, i);
+
+		if (linphone_config_has_section(lpconfig, section_name)) {
+			linphone_config_clean_section(lpconfig, section_name);
+		} else found = FALSE;
+		bctbx_free(section_name);
+	}
+}
+
 bool_t linphone_config_needs_commit(const LpConfig *lpconfig) {
 	return lpconfig->modified;
 }

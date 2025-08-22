@@ -617,7 +617,7 @@ static void carddav_operation_before_sync(void) {
 	linphone_vcard_unref(lvc);
 	linphone_friend_list_add_friend(lfl, lf);
 	linphone_friend_unref(lf);
-	
+
 	wait_for_until(manager->lc, NULL, &stats->sync_done_count, 1, CARDDAV_SYNC_TIMEOUT);
 	BC_ASSERT_EQUAL(stats->sync_done_count, 1, int, "%i");
 
@@ -625,7 +625,7 @@ static void carddav_operation_before_sync(void) {
 	linphone_core_manager_destroy(manager);
 }
 
-static void carddav_clean(void) { 
+static void carddav_clean(void) {
 	// This is to ensure the content of the test addressbook is in the correct state for the following tests
 	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("carddav_rc", FALSE);
 	LinphoneFriendList *lfl = linphone_core_create_friend_list(manager->lc);
@@ -1246,7 +1246,7 @@ static void find_friend_by_ref_key_in_lot_of_friends_test(void) {
 	bctbx_mmap_cchar_delete(friends_map);
 }
 
-static void find_friend_by_ref_key_empty_list_test(void) {
+static void find_friend_by_ref_key_empty_list_test() {
 	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("empty_rc", FALSE);
 	LinphoneFriendList *lfl = linphone_core_get_default_friend_list(manager->lc);
 	LinphoneFriend *lf2;
@@ -1259,7 +1259,99 @@ end:
 	linphone_core_manager_destroy(manager);
 }
 
-test_t vcard_tests[] = {
+static void legacy_import_and_migration() {
+	LinphoneCoreManager *manager = linphone_core_manager_new("remote_contact_directory_migration.rc");
+	LinphoneConfig *config = linphone_core_get_config(manager->lc);
+	LinphoneRemoteContactDirectory *rcds1 = nullptr, *rcds2;
+
+	/* check that we have the correct number of RemoteContactDirectories */
+	bctbx_list_t *rcds = linphone_core_get_remote_contact_directories(manager->lc);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(rcds), 2, int, "%i");
+	if (bctbx_list_size(rcds) == 2) {
+		rcds1 = (LinphoneRemoteContactDirectory *)rcds->data;
+		rcds2 = (LinphoneRemoteContactDirectory *)rcds->next->data;
+
+		BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_type(rcds1), LinphoneRemoteContactDirectoryTypeLdap, int,
+		                "%i");
+		BC_ASSERT_STRING_EQUAL(linphone_remote_contact_directory_get_server_url(rcds1), "ldap://ldap.example.org");
+
+		BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_type(rcds2), LinphoneRemoteContactDirectoryTypeCardDav,
+		                int, "%i");
+		BC_ASSERT_STRING_EQUAL(linphone_remote_contact_directory_get_server_url(rcds2), "https://carddav.example.org");
+	}
+
+	/* now make sure the legacy sections are migrated */
+	BC_ASSERT_FALSE(linphone_config_has_section(config, "ldap_0"));
+	BC_ASSERT_FALSE(linphone_config_has_section(config, "carddav_0"));
+
+	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_0"));
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "type", "bad"), "ldap");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "uri", "bad"),
+	                       "ldap://ldap.example.org");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "ldap_filter", "bad"),
+	                       "somefilter");
+
+	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_1"));
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "type", "bad"), "carddav");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "uri", "bad"),
+	                       "https://carddav.example.org");
+	BC_ASSERT_STRING_EQUAL(
+	    linphone_config_get_string(config, "remote_contact_directory_1", "carddav_use_exact_match_policy", "bad"), "0");
+
+	bctbx_list_free_with_data(rcds, (bctbx_list_free_func)linphone_remote_contact_directory_unref);
+
+	/* Remove one of the remote contact directory, and add new one */
+
+	if (rcds1) linphone_core_remove_remote_contact_directory(manager->lc, rcds1);
+
+	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_0"));
+	BC_ASSERT_FALSE(linphone_config_has_section(config, "remote_contact_directory_1"));
+
+	LinphoneLdapParams *ldap_params = linphone_core_create_ldap_params(manager->lc);
+	linphone_ldap_params_set_bind_dn(ldap_params, "popopo");
+	rcds1 = linphone_core_create_ldap_remote_contact_directory(manager->lc, ldap_params);
+
+	BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_min_characters(rcds1), 3, int, "%i");
+	BC_ASSERT_TRUE(linphone_remote_contact_directory_enabled(rcds1));
+	linphone_remote_contact_directory_set_server_url(rcds1, "ldaps://ldap.example.org");
+	linphone_core_add_remote_contact_directory(manager->lc, rcds1);
+
+	linphone_ldap_params_unref(ldap_params);
+
+	/* Make sure this immediately reflects into the configation */
+
+	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_1"));
+
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "type", "bad"), "ldap");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "uri", "bad"),
+	                       "ldaps://ldap.example.org");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "ldap_bind_dn", "bad"),
+	                       "popopo");
+
+	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_0"));
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "type", "bad"), "carddav");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "uri", "bad"),
+	                       "https://carddav.example.org");
+	BC_ASSERT_STRING_EQUAL(
+	    linphone_config_get_string(config, "remote_contact_directory_0", "carddav_use_exact_match_policy", "bad"), "0");
+
+	/* check that the legacy section don't come back accidentally */
+	BC_ASSERT_FALSE(linphone_config_has_section(config, "ldap_0"));
+	BC_ASSERT_FALSE(linphone_config_has_section(config, "carddav_0"));
+
+	/* modify some settings dynamically */
+	linphone_remote_contact_directory_set_min_characters(rcds1, 1);
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "min_characters", "bad"),
+	                       "3");
+	linphone_core_iterate(manager->lc); // configuration is postponed to iterate(), which facilitated implementation.
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "min_characters", "bad"),
+	                       "1");
+
+	linphone_remote_contact_directory_unref(rcds1);
+	linphone_core_manager_destroy(manager);
+}
+
+static test_t vcard_tests[] = {
     TEST_NO_TAG("Import / Export friends from vCards", linphone_vcard_import_export_friends_test),
     TEST_NO_TAG("Import a lot of friends from vCards", linphone_vcard_import_a_lot_of_friends_test),
     TEST_NO_TAG("vCard creation for existing friends", linphone_vcard_update_existing_friends_test),
@@ -1286,7 +1378,8 @@ test_t vcard_tests[] = {
     TEST_NO_TAG("Find friend by ref key", find_friend_by_ref_key_test),
     TEST_NO_TAG("create a map and insert 20000 objects", insert_lot_of_friends_map_test),
     TEST_NO_TAG("Find ref key in 20000 objects map", find_friend_by_ref_key_in_lot_of_friends_test),
-    TEST_NO_TAG("Find friend by ref key in empty list", find_friend_by_ref_key_empty_list_test)};
+    TEST_NO_TAG("Find friend by ref key in empty list", find_friend_by_ref_key_empty_list_test),
+    TEST_NO_TAG("Legacy import and migration", legacy_import_and_migration)};
 
 test_suite_t vcard_test_suite = {"VCard",
                                  NULL,

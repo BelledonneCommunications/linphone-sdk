@@ -2830,10 +2830,11 @@ void linphone_configuring_terminated(LinphoneCore *lc, LinphoneConfiguringState 
 
 	_linphone_core_apply_transports(lc); // This will create SIP sockets.
 	L_GET_PRIVATE_FROM_C_OBJECT(lc)->initEphemeralMessages();
-	L_GET_PRIVATE_FROM_C_OBJECT(lc)->reloadRemoteContactDirectories();
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->loadRemoteContactDirectories();
 	linphone_core_set_state(lc, LinphoneGlobalOn, "On");
 	/* Auth infos may be altered by remote provisionning, immediately sync it to the config */
 	linphone_core_write_auth_infos(lc);
+	L_GET_PRIVATE_FROM_C_OBJECT(lc)->doConfigurationMigration();
 }
 
 static int linphone_core_serialization_ref = 0;

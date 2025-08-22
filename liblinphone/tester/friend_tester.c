@@ -104,6 +104,7 @@ static LinphoneLdap *_create_default_ldap_server(LinphoneCoreManager *manager,
 		linphone_ldap_params_set_password(params, "secret");
 		linphone_ldap_params_set_bind_dn(params, bind_dn);
 		// Defaults
+		linphone_ldap_params_set_min_chars(params, 0);
 		linphone_ldap_params_set_timeout(params, 10);
 		linphone_ldap_params_set_timeout_tls_ms(params, 2999);
 		linphone_ldap_params_set_max_results(params, 50);
@@ -3303,7 +3304,7 @@ static void friend_refkey_not_lot_on_vcard_set(void) {
 	linphone_core_manager_destroy(manager);
 }
 
-test_t friends_tests[] = {
+static test_t friends_tests[] = {
     TEST_NO_TAG("Read-only friend list", read_only_friend_list),
     TEST_ONE_TAG("Return friend list in alphabetical order", search_friend_in_alphabetical_order, "MagicSearch"),
     TEST_ONE_TAG("Search friend without filter and domain", search_friend_without_filter, "MagicSearch"),
