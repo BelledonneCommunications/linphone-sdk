@@ -4175,7 +4175,7 @@ LinphoneStatus MediaSessionPrivate::startAccept() {
 
 	// Try to preempt sound resources if the core is in a call or conference that are not the current ones
 	if (isThisNotCurrentConference || isThisNotCurrentMediaSession) {
-		if ((linphone_core_get_media_resource_mode(q->getCore()->getCCore()) == LinphoneExclusiveMediaResources) &&
+		if ((linphone_core_get_media_resource_mode(q->getCore()->getCCore()) == LinphoneMediaResourceModeExclusive) &&
 		    linphone_core_preempt_sound_resources(q->getCore()->getCCore()) != 0) {
 			lInfo() << "Delaying call to " << __func__ << " for media session (local address " << *q->getLocalAddress()
 			        << " remote address " << *q->getRemoteAddress() << ") in state " << Utils::toString(state)
@@ -4832,7 +4832,8 @@ LinphoneStatus MediaSession::resume() {
 		           << Utils::toString(d->state);
 		return -1;
 	}
-	if (!d->getParams()->getPrivate()->getInConference()) {
+	if (!d->getParams()->getPrivate()->getInConference() &&
+	    linphone_core_get_media_resource_mode(getCore()->getCCore()) == LinphoneMediaResourceModeExclusive) {
 		if (linphone_core_sound_resources_locked(getCore()->getCCore())) {
 			lWarning() << "Cannot resume " << *this << " because another call is locking the sound resources";
 			return -1;
