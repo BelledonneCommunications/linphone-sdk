@@ -1589,9 +1589,11 @@ static void text_message_auto_resent_after_failure_base(bool with_file_transfer)
 	                              initial_marie_stat.number_of_NetworkReachableTrue + 1, 5000));
 
 	/* wait for marie to receive pauline's msg */
-	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageSent, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageSent, 1,
+	                              liblinphone_tester_sip_timeout));
 
-	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageReceived, 1,
+	                              liblinphone_tester_sip_timeout));
 	LinphoneChatMessage *pauline_msg = pauline->stat.last_received_chat_message;
 	BC_ASSERT_PTR_NOT_NULL(pauline_msg);
 	LinphoneChatRoom *pauline_cr = linphone_core_get_chat_room(pauline->lc, marie->identity);
@@ -1606,13 +1608,13 @@ static void text_message_auto_resent_after_failure_base(bool with_file_transfer)
 	}
 
 	if (with_file_transfer) {
-		BC_ASSERT_TRUE(
-		    wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageReceivedWithFile, 1, 5000));
+		BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageReceivedWithFile,
+		                              1, liblinphone_tester_sip_timeout));
 		/* wait for a long time in case the DNS SRV resolution takes times - it should be immediate though */
 		BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 		                              &pauline->stat.number_of_LinphoneFileTransferDownloadSuccessful, 1, 55000));
-		BC_ASSERT_TRUE(
-		    wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageFileTransferDone, 1, 5000));
+		BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageFileTransferDone,
+		                              1, liblinphone_tester_sip_timeout));
 	}
 
 	if (pauline_msg) {
@@ -1637,12 +1639,14 @@ static void text_message_auto_resent_after_failure_base(bool with_file_transfer)
 		BC_ASSERT_EQUAL(state, LinphoneChatMessageStateDelivered, int, "%d");
 	}
 
-	BC_ASSERT_TRUE(
-	    wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageDeliveredToUser, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageDeliveredToUser, 1,
+	                              liblinphone_tester_sip_timeout));
 
 	linphone_chat_room_mark_as_read(pauline_cr); /* This sends the display notification */
-	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageDisplayed, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageDisplayed, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageDisplayed, 1,
+	                              liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageDisplayed, 1,
+	                              liblinphone_tester_sip_timeout));
 
 	if (pauline_msg) {
 		linphone_chat_message_unref(pauline_msg);
@@ -1931,7 +1935,8 @@ void transfer_message_base4(LinphoneCoreManager *marie,
 
 					if (linphone_factory_is_imdn_available(linphone_factory_get())) {
 						BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
-						                              &pauline->stat.number_of_LinphoneMessageDisplayed, 1, 5000));
+						                              &pauline->stat.number_of_LinphoneMessageDisplayed, 1,
+						                              liblinphone_tester_sip_timeout));
 					}
 				}
 			} else {
@@ -1953,7 +1958,8 @@ void transfer_message_base4(LinphoneCoreManager *marie,
 				linphone_chat_room_mark_as_read(marie_room);
 				if (linphone_factory_is_imdn_available(linphone_factory_get())) {
 					BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
-					                              &pauline->stat.number_of_LinphoneMessageDisplayed, 1, 5000));
+					                              &pauline->stat.number_of_LinphoneMessageDisplayed, 1,
+					                              liblinphone_tester_sip_timeout));
 				}
 			}
 		}
@@ -2557,7 +2563,7 @@ static void transfer_message_auto_download_two_files_same_name_same_time(void) {
 		bctbx_list_t *history = linphone_chat_room_get_history(marie_chat_room, 0);
 		BC_ASSERT_EQUAL((unsigned int)bctbx_list_size(history), 2, int, "%d");
 		BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageDelivered,
-		                              (int)bctbx_list_size(history), 5000));
+		                              (int)bctbx_list_size(history), liblinphone_tester_sip_timeout));
 
 		bctbx_list_t *it = history;
 
@@ -2746,8 +2752,8 @@ static void transfer_message_auto_download_aborted(void) {
 	/* wait for marie to receive pauline's msg */
 	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageSent, 1, 5000));
 
-	BC_ASSERT_TRUE(
-	    wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceivedWithFile, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceivedWithFile, 1,
+	                              liblinphone_tester_sip_timeout));
 	LinphoneChatMessage *marie_msg = marie->stat.last_received_chat_message;
 	BC_ASSERT_PTR_NOT_NULL(marie_msg);
 
@@ -3885,7 +3891,7 @@ static void real_time_text(bool_t audio_stream_enabled,
 				BC_ASSERT_FALSE(linphone_chat_message_put_char(rtt_message, message[i]));
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, (int)i + 1,
-				                              3000));
+				                              liblinphone_tester_sip_timeout));
 				BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message[i], char, "%c");
 			}
 			linphone_chat_message_send(rtt_message);
@@ -3988,13 +3994,13 @@ static void real_time_text_conversation(void) {
 				linphone_chat_message_put_char(pauline_rtt_message, message1_1[i]);
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, (int)i + 1,
-				                              5000));
+				                              liblinphone_tester_sip_timeout));
 				BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message1_1[i], char, "%c");
 
 				linphone_chat_message_put_char(marie_rtt_message, message1_2[i]);
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 				                              &pauline->stat.number_of_LinphoneIsComposingActiveReceived, (int)i + 1,
-				                              5000));
+				                              liblinphone_tester_sip_timeout));
 				BC_ASSERT_EQUAL(linphone_chat_room_get_char(pauline_chat_room), message1_2[i], char, "%c");
 			}
 
@@ -4005,11 +4011,11 @@ static void real_time_text_conversation(void) {
 			// Read new line character
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 			                              &marie->stat.number_of_LinphoneIsComposingActiveReceived,
-			                              (int)strlen(message1_1) + 1, 5000));
+			                              (int)strlen(message1_1) + 1, liblinphone_tester_sip_timeout));
 			BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), (char)0x2028, char, "%c");
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 			                              &pauline->stat.number_of_LinphoneIsComposingActiveReceived,
-			                              (int)strlen(message1_2) + 1, 5000));
+			                              (int)strlen(message1_2) + 1, liblinphone_tester_sip_timeout));
 			BC_ASSERT_EQUAL(linphone_chat_room_get_char(pauline_chat_room), (char)0x2028, char, "%c");
 
 			BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 1));
@@ -4040,13 +4046,13 @@ static void real_time_text_conversation(void) {
 				linphone_chat_message_put_char(pauline_rtt_message, message2_1[i]);
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, (int)i + 1,
-				                              5000));
+				                              liblinphone_tester_sip_timeout));
 				BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message2_1[i], char, "%c");
 
 				linphone_chat_message_put_char(marie_rtt_message, message2_2[i]);
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 				                              &pauline->stat.number_of_LinphoneIsComposingActiveReceived, (int)i + 1,
-				                              5000));
+				                              liblinphone_tester_sip_timeout));
 				BC_ASSERT_EQUAL(linphone_chat_room_get_char(pauline_chat_room), message2_2[i], char, "%c");
 			}
 
@@ -4057,11 +4063,11 @@ static void real_time_text_conversation(void) {
 			// Read new line character
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 			                              &marie->stat.number_of_LinphoneIsComposingActiveReceived,
-			                              (int)strlen(message2_1) + 1, 5000));
+			                              (int)strlen(message2_1) + 1, liblinphone_tester_sip_timeout));
 			BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), (char)0x2028, char, "%c");
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 			                              &pauline->stat.number_of_LinphoneIsComposingActiveReceived,
-			                              (int)strlen(message2_2) + 1, 5000));
+			                              (int)strlen(message2_2) + 1, liblinphone_tester_sip_timeout));
 			BC_ASSERT_EQUAL(linphone_chat_room_get_char(pauline_chat_room), (char)0x2028, char, "%c");
 
 			BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 1));
@@ -4134,7 +4140,7 @@ static void real_time_text_message_compat(bool_t end_with_crlf, bool_t end_with_
 				linphone_chat_message_put_char(rtt_message, message[i]);
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, (int)i + 1,
-				                              5000));
+				                              liblinphone_tester_sip_timeout));
 				BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message[i], char, "%c");
 			}
 
@@ -4145,7 +4151,7 @@ static void real_time_text_message_compat(bool_t end_with_crlf, bool_t end_with_
 			}
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 			                              &marie->stat.number_of_LinphoneIsComposingActiveReceived,
-			                              (int)strlen(message), 5000));
+			                              (int)strlen(message), liblinphone_tester_sip_timeout));
 			BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 1));
 			linphone_chat_message_unref(rtt_message);
 		}
@@ -4194,7 +4200,8 @@ static void real_time_text_message_accented_chars(void) {
 			for (i = 0; i < message_len; i++) {
 				linphone_chat_message_put_char(rtt_message, message[i]);
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
-				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, i + 1, 5000));
+				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, i + 1,
+				                              liblinphone_tester_sip_timeout));
 				BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message[i], unsigned long, "%lu");
 			}
 
@@ -4267,7 +4274,8 @@ static void real_time_text_and_early_media(void) {
 		for (i = 0; i < message_len; i++) {
 			linphone_chat_message_put_char(rtt_message, message[i]);
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
-			                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, i + 1, 5000));
+			                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, i + 1,
+			                              liblinphone_tester_sip_timeout));
 			BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message[i], unsigned long, "%lu");
 		}
 
@@ -4298,7 +4306,7 @@ static void real_time_text_and_early_media(void) {
 			linphone_chat_message_put_char(rtt_message, message[i]);
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 			                              &marie->stat.number_of_LinphoneIsComposingActiveReceived,
-			                              chars_received + i + 1, 5000));
+			                              chars_received + i + 1, liblinphone_tester_sip_timeout));
 			BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message[i], unsigned long, "%lu");
 		}
 
@@ -4368,7 +4376,7 @@ static void only_real_time_text_accepted(void) {
 			linphone_chat_message_put_char(rtt_message, message[i]);
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 			                              &marie->stat.number_of_LinphoneIsComposingActiveReceived,
-			                              chars_received + i + 1, 5000));
+			                              chars_received + i + 1, liblinphone_tester_sip_timeout));
 			BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message[i], unsigned long, "%lu");
 		}
 
@@ -4429,7 +4437,7 @@ static void real_time_text_copy_paste(void) {
 					int j;
 					BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 					                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, (int)i,
-					                              5000));
+					                              liblinphone_tester_sip_timeout));
 					for (j = 4; j > 0; j--) {
 						BC_ASSERT_EQUAL(linphone_chat_room_get_char(marie_chat_room), message[i - j], char, "%c");
 					}
@@ -4884,8 +4892,8 @@ static void received_messages_with_aggregation_enabled(void) {
 	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageSent, 1));
 
 	// check message is received using only new callback when chat room is being created
-	BC_ASSERT_TRUE(
-	    wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneAggregatedMessagesReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneAggregatedMessagesReceived, 1,
+	                              liblinphone_tester_sip_timeout));
 	BC_ASSERT_FALSE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 1, 3000));
 
 	linphone_chat_message_unref(chat_msg);
@@ -4897,8 +4905,8 @@ static void received_messages_with_aggregation_enabled(void) {
 	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageSent, 1));
 
 	// check message is received using only new callback for existing chat room
-	BC_ASSERT_TRUE(
-	    wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneAggregatedMessagesReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneAggregatedMessagesReceived, 1,
+	                              liblinphone_tester_sip_timeout));
 	BC_ASSERT_FALSE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 1, 3000));
 
 	linphone_chat_message_unref(chat_msg);
@@ -4914,8 +4922,8 @@ static void received_messages_with_aggregation_enabled(void) {
 
 	// check messages are received using only new callback when more than one message is being received in less than
 	// aggregation delay seconds
-	BC_ASSERT_TRUE(
-	    wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneAggregatedMessagesReceived, 10, 5000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneAggregatedMessagesReceived, 10,
+	                              liblinphone_tester_sip_timeout));
 	BC_ASSERT_FALSE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceived, 10, 3000));
 
 	// Give some time for IMDN's 200 OK to be received so it doesn't leak
