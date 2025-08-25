@@ -634,9 +634,14 @@ void ChatRoom::handleMessageRejected(BCTBX_UNUSED(const std::shared_ptr<ChatMess
 std::shared_ptr<ChatMessage> ChatRoom::getMessageFromSal(SalOp *op, const SalMessage *message) {
 	shared_ptr<ChatMessage> msg;
 
-	auto from = Address::create(op->getFrom());
-	msg = createChatMessage((*from == *getLocalAddress()) ? ChatMessage::Direction::Outgoing
-	                                                      : ChatMessage::Direction::Incoming);
+	const bool isBasicChatRoom = (getCurrentParams()->getChatParams()->getBackend() == ChatParams::Backend::Basic);
+	ChatMessage::Direction messageDirection = ChatMessage::Direction::Incoming;
+	if (!isBasicChatRoom) {
+		auto from = Address::create(op->getFrom());
+		messageDirection =
+		    ((*from == *getLocalAddress()) ? ChatMessage::Direction::Outgoing : ChatMessage::Direction::Incoming);
+	}
+	msg = createChatMessage(messageDirection);
 
 	Content content;
 	if (message->url && ContentType(message->content_type) == ContentType::ExternalBody) {
@@ -664,7 +669,6 @@ std::shared_ptr<ChatMessage> ChatRoom::getMessageFromSal(SalOp *op, const SalMes
 	// Don't do it for flexisip backend chat rooms, we need to know if the real message id from CPIM was retrieved or
 	// not Based on that we will send IMDNs or not In case CPIM was enabled on a Basic chat room, IMDN message ID will
 	// be overwritten by real one
-	const bool isBasicChatRoom = (getCurrentParams()->getChatParams()->getBackend() == ChatParams::Backend::Basic);
 	if (isBasicChatRoom) {
 		msg->getPrivate()->setImdnMessageId(messageId.str());
 	}
