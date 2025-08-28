@@ -110,7 +110,7 @@ public class CoreService extends Service {
 
             @Override
             public void onCallStateChanged(Core core, Call call, Call.State state, String message) {
-                if (state == Call.State.End || state == Call.State.Error || state == Call.State.Connected) {
+                if (state == Call.State.End || state == Call.State.Released || state == Call.State.Error || state == Call.State.Connected) {
                     stopVibration();
                 }
             }
