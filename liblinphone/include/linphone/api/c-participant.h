@@ -85,6 +85,14 @@ LINPHONE_PUBLIC bool_t linphone_participant_is_admin(const LinphoneParticipant *
 LINPHONE_PUBLIC bool_t linphone_participant_is_focus(const LinphoneParticipant *participant);
 
 /**
+ * Tells whether a participant is Me.
+ * If the default account is not defined then it will be TRUE if the participant is local.
+ * @param participant A #LinphoneParticipant object  @notnil
+ * @return TRUE if the participant is me, FALSE otherwise.
+*/
+LINPHONE_PUBLIC bool_t linphone_participant_is_me(const LinphoneParticipant *participant);
+
+/**
  * Get the security level of a participant.
  * @param participant A #LinphoneParticipant object @notnil
  * @return The #LinphoneChatRoomSecurityLevel of the participant

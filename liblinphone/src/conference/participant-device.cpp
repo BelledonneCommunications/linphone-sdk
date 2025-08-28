@@ -253,7 +253,7 @@ void ParticipantDevice::setUserData(void *ud) {
 	mUserData = ud;
 }
 
-const std::string &ParticipantDevice::getCallId() {
+const std::string &ParticipantDevice::getCallId() const{
 	if (mCallId.empty() && mSession) {
 		const auto &log = mSession->getLog();
 		mCallId = log->getCallId();
@@ -900,6 +900,26 @@ void ParticipantDevice::setIsMuted(bool isMuted) {
 
 bool ParticipantDevice::getIsMuted() const {
 	return mIsMuted;
+}
+
+bool ParticipantDevice::isMe() const {
+	bool isMe = false;
+	if (linphone_core_conference_server_enabled(getCore()->getCCore())) return false;
+	auto callId = getCallId();
+	if (!callId.empty()) {
+		isMe = !!getCore()->getCallByCallId(callId);
+		if (!isMe){
+			auto address = getAddress();
+			isMe = !!getCore()->findAccountByIdentityAddress(address);
+			if (!isMe) {
+				isMe = getCore()->getPrimaryContactAddress().weakEqual(address);
+			}
+		}
+	}else {
+		lError() << "[ParticipantDevice] Unexpected empty callId while checking 'is me' from participant device: " << *this;
+	}
+
+	return isMe;
 }
 
 void ParticipantDevice::setDisconnectionData(bool initiated, int code, LinphoneReason reason) {

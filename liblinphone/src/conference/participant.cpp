@@ -315,6 +315,29 @@ bool Participant::isAdmin() const {
 	return isThisAdmin;
 }
 
+bool Participant::isMe() const {
+	bool isMe = false;
+	if (linphone_core_conference_server_enabled(getCore()->getCCore())) return false;
+	auto conference = getConference();
+	if (conference) {
+		for (const auto &device : getDevices()) {
+			if ( device->isMe()) {
+				isMe = true;
+				break;
+			}
+		}
+		if (!isMe) {
+			isMe = conference->isMe(getAddress());
+		}
+	}else {
+		isMe = !!getCore()->findAccountByIdentityAddress(getAddress());
+		if (!isMe) {
+			isMe = getCore()->getPrimaryContactAddress().weakEqual(getAddress());
+		}
+	}
+
+	return isMe;
+}
 bool Participant::isFocus() const {
 	return isThisFocus;
 }

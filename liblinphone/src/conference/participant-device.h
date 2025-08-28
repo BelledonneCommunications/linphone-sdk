@@ -101,7 +101,7 @@ public:
 	std::shared_ptr<Address> getAddress() const;
 	void setAddress(const std::shared_ptr<Address> &address);
 	bool isSameAddress(const std::shared_ptr<const Address> &address) const;
-	const std::string &getCallId();
+	const std::string &getCallId() const;
 	void setCallId(const std::string &callId);
 	const std::string &getFromTag();
 	void setFromTag(const std::string &tag);
@@ -209,6 +209,8 @@ public:
 	void setIsMuted(bool isMuted);
 	bool getIsMuted() const;
 
+	bool isMe() const;
+
 	void videoDisplayErrorOccurred(int error_code);
 
 	bool enableScreenSharing(bool enabled);
@@ -231,7 +233,7 @@ private:
 	std::string mName;
 	std::shared_ptr<CallSession> mSession;
 	std::string mCapabilityDescriptor;
-	std::string mCallId;
+	mutable std::string mCallId;
 	std::string mFromTag;
 	std::string mToTag;
 	std::shared_ptr<EventSubscribe> mConferenceSubscribeEvent = nullptr;

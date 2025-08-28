@@ -106,6 +106,13 @@ LINPHONE_PUBLIC const char *linphone_participant_device_get_name(const LinphoneP
 LINPHONE_PUBLIC bool_t
 linphone_participant_device_is_in_conference(const LinphoneParticipantDevice *participant_device);
 
+ /**
+* Tells whether the participant device is Me.
+* @param participant A #LinphoneParticipantDevice object @notnil
+* @return TRUE if the participant is me, FALSE otherwise.
+*/
+ LINPHONE_PUBLIC bool_t linphone_participant_device_is_me(const LinphoneParticipantDevice *participant_device);
+
 /**
  * Gets the timestamp the device joined a conference.
  * @param participant_device A #LinphoneParticipantDevice object @notnil

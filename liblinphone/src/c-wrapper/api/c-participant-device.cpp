@@ -76,6 +76,10 @@ bool_t linphone_participant_device_is_in_conference(const LinphoneParticipantDev
 	return ParticipantDevice::toCpp(participant_device)->isInConference();
 }
 
+bool_t linphone_participant_device_is_me(const LinphoneParticipantDevice *participant_device) {
+	return ParticipantDevice::toCpp(participant_device)->isMe();
+}
+
 LinphoneParticipantDeviceJoiningMethod
 linphone_participant_device_get_joining_method(const LinphoneParticipantDevice *participant_device) {
 	return (LinphoneParticipantDeviceJoiningMethod)ParticipantDevice::toCpp(participant_device)->getJoiningMethod();

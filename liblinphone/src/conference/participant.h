@@ -111,6 +111,7 @@ public:
 
 	void setAdmin(bool isAdmin);
 	bool isAdmin() const;
+	bool isMe() const;
 
 	inline void setFocus(bool isFocus) {
 		this->isThisFocus = isFocus;

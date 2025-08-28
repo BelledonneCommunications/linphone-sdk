@@ -60,6 +60,10 @@ bool_t linphone_participant_is_focus(const LinphoneParticipant *participant) {
 	return LinphonePrivate::Participant::toCpp(participant)->isFocus();
 }
 
+bool_t linphone_participant_is_me(const LinphoneParticipant *participant) {
+	return LinphonePrivate::Participant::toCpp(participant)->isMe();
+}
+
 LinphoneChatRoomSecurityLevel linphone_participant_get_security_level(const LinphoneParticipant *participant) {
 	return (LinphoneChatRoomSecurityLevel)LinphonePrivate::Participant::toCpp(participant)->getSecurityLevel();
 }
