@@ -1086,7 +1086,6 @@ static void group_chat_room_with_client_idmn_after_restart_base(const LinphoneTe
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageDisplayed,
 		                             pauline_stat.number_of_LinphoneMessageDisplayed + 1,
 		                             liblinphone_tester_sip_timeout));
-
 		if (stop_core) {
 			linphone_core_manager_configure(laure.getCMgr());
 			// Make sure gruu is preserved
@@ -1113,16 +1112,22 @@ static void group_chat_room_with_client_idmn_after_restart_base(const LinphoneTe
 				        LinphoneChatMessage *lastMsg = cr ? linphone_chat_room_get_last_message_in_history(cr) : NULL;
 				        bool ret = false;
 				        if (!add_participant && (client->lc == berthe.getLc())) {
-					        ret = (lastMsg == nullptr);
+					        ret = (cr == nullptr);
+					        ret &= (lastMsg == nullptr);
 				        } else {
-					        ret = (lastMsg != nullptr);
-					        if (lastMsg) {
-						        bctbx_list_t *displayed_list = linphone_chat_message_get_participants_by_imdn_state(
-						            lastMsg, LinphoneChatMessageStateDisplayed);
-						        size_t expected_displayed_number = 3 + (add_participant ? 1 : 0);
-						        ret &= (bctbx_list_size(displayed_list) == expected_displayed_number);
-						        bctbx_list_free_with_data(displayed_list,
-						                                  (bctbx_list_free_func)linphone_participant_imdn_state_unref);
+					        ret = (cr != nullptr);
+					        if (cr) {
+						        LinphoneChatMessage *lastMsg = linphone_chat_room_get_last_message_in_history(cr);
+						        ret &= (lastMsg != nullptr);
+						        ret &= (linphone_chat_room_get_history_size(cr) == 1);
+						        if (lastMsg) {
+							        bctbx_list_t *displayed_list = linphone_chat_message_get_participants_by_imdn_state(
+							            lastMsg, LinphoneChatMessageStateDisplayed);
+							        size_t expected_displayed_number = 3 + (add_participant ? 1 : 0);
+							        ret &= (bctbx_list_size(displayed_list) == expected_displayed_number);
+							        bctbx_list_free_with_data(
+							            displayed_list, (bctbx_list_free_func)linphone_participant_imdn_state_unref);
+						        }
 					        }
 				        }
 				        return ret;

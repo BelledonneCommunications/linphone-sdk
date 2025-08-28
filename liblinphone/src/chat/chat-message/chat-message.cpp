@@ -464,7 +464,8 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 	if ((state != ChatMessage::State::InProgress) && (state != ChatMessage::State::FileTransferError) &&
 	    (state != ChatMessage::State::FileTransferInProgress) &&
 	    (state != ChatMessage::State::FileTransferCancelling) &&
-	    !((state == ChatMessage::State::NotDelivered) && (reason == LinphoneReasonUnsupportedContent) &&
+	    !((state == ChatMessage::State::NotDelivered) &&
+	      ((reason == LinphoneReasonUnsupportedContent) || (reason == LinphoneReasonNotAcceptable)) &&
 	      (direction == ChatMessage::Direction::Incoming))) {
 		// If the message has already been stored than the event log will only be updated
 		storeInDb();
@@ -890,11 +891,11 @@ ChatMessagePrivate::getLocalAddressFromChatRoom(const shared_ptr<AbstractChatRoo
 	const auto &account = chatRoom->getAccount();
 	const bool isBasicChatRoom =
 	    (chatRoom->getCurrentParams()->getChatParams()->getBackend() == ChatParams::Backend::Basic);
-	// If an account is attached to a chatroom, use its contact or the identity address otherwise use the local address
-	// of the conference ID. For Flexisip based chatrooms, it is paramount to use a contact address as the From header.
-	// RFC3428 forbids adding a Contact header to MESSAGE requests, therefore the From header is the only way a
-	// conference server knows which device sent the request and can be forwarded to the other chat members as well as
-	// other devices of the same participant.
+	// If an account is attached to a chatroom, use its contact or the identity address otherwise use the local
+	// address of the conference ID. For Flexisip based chatrooms, it is paramount to use a contact address as the
+	// From header. RFC3428 forbids adding a Contact header to MESSAGE requests, therefore the From header is the
+	// only way a conference server knows which device sent the request and can be forwarded to the other chat
+	// members as well as other devices of the same participant.
 	std::shared_ptr<Address> localAddress = nullptr;
 	if (account) {
 		if (isBasicChatRoom) {
@@ -914,11 +915,11 @@ ChatMessagePrivate::getLocalAddressFromChatRoom(const shared_ptr<AbstractChatRoo
 	if (!localAddress) {
 		localAddress = conferenceId.getLocalAddress();
 		if (localAddress) {
-			lInfo()
-			    << *chatRoom << " with ID " << conferenceId
-			    << " has no account associated to or the contact or the identity address is not available yet, setting "
-			       "conference ID's local address as message local address "
-			    << *localAddress;
+			lInfo() << *chatRoom << " with ID " << conferenceId
+			        << " has no account associated to or the contact or the identity address is not available yet, "
+			           "setting "
+			           "conference ID's local address as message local address "
+			        << *localAddress;
 		}
 	}
 
@@ -1030,7 +1031,13 @@ LinphoneReason ChatMessagePrivate::receive() {
 	// Start of message modification
 	// ---------------------------------------
 
-	q->initializeToBeStored();
+	if (internalContent.getContentType() == ContentType::Cpim) {
+		lDebug() << "The internal content type is " << internalContent.getContentType()
+		         << " therefore wait to decode it before making a decision on to whether the message has to be "
+		            "stored or not";
+	} else {
+		q->initializeToBeStored();
+	}
 
 	if ((currentRecvStep & ChatMessagePrivate::Step::Encryption) == ChatMessagePrivate::Step::Encryption) {
 		lInfo() << "Encryption step already done, skipping";
@@ -1058,7 +1065,6 @@ LinphoneReason ChatMessagePrivate::receive() {
 			lError() << "Account receiving this message is configured to have encryption mandatory, refusing message";
 			return LinphoneReasonNotAcceptable;
 		}
-
 		currentRecvStep |= ChatMessagePrivate::Step::Encryption;
 	}
 
@@ -1088,6 +1094,7 @@ LinphoneReason ChatMessagePrivate::receive() {
 #else
 			lWarning() << "Cpim support disabled.";
 #endif
+			q->initializeToBeStored();
 		}
 		currentRecvStep |= ChatMessagePrivate::Step::Cpim;
 	}
@@ -1138,8 +1145,8 @@ LinphoneReason ChatMessagePrivate::receive() {
 	// Remove internal content as it is not needed anymore and will confuse some old methods like getText()
 	internalContent.setBodyFromUtf8("");
 	internalContent.setContentType(ContentType(""));
-	// Also remove current step so we go through all modifiers if message is re-received (in case of recursive call from
-	// a modifier)
+	// Also remove current step so we go through all modifiers if message is re-received (in case of recursive call
+	// from a modifier)
 	currentRecvStep = ChatMessagePrivate::Step::None;
 
 	setParticipantState(meAddress, ChatMessage::State::Delivered, ::ms_time(nullptr));
@@ -1241,8 +1248,8 @@ LinphoneReason ChatMessagePrivate::receive() {
 		bool successfullyEditedPreviousMessage = replaceExistingMessageUsingId(replacesExistingMessageId) ||
 		                                         retractExistingMessageUsingId(retractsExistingMessageId);
 		if (!successfullyEditedPreviousMessage) {
-			// If we receive a message that is Outgoing it means we are in a flexisip based chat room and this message
-			// was sent by us from another device, storing it
+			// If we receive a message that is Outgoing it means we are in a flexisip based chat room and this
+			// message was sent by us from another device, storing it
 			if (direction == ChatMessage::Direction::Outgoing) {
 				toBeStored = true;
 			} else {
@@ -1337,8 +1344,8 @@ void ChatMessagePrivate::handleAutoDownload() {
 				unique_ptr<MainDb> &mainDb = q->getCore()->getPrivate()->mainDb;
 				auto dbInfo = mainDb->getConferenceInfoFromURI(confInfo->getUri());
 				if (dbInfo) {
-					// If a conference information has been found in the database, then copy the capabilities as this
-					// information is not available in the ICS
+					// If a conference information has been found in the database, then copy the capabilities as
+					// this information is not available in the ICS
 					for (const auto type : {LinphoneStreamTypeAudio, LinphoneStreamTypeVideo, LinphoneStreamTypeText}) {
 						confInfo->setCapability(type, dbInfo->getCapability(type));
 					}
@@ -1478,8 +1485,8 @@ void ChatMessagePrivate::endMessageReception() {
 	const auto &meAddress = q->getMeAddress();
 	chatRoom->removeTransientChatMessage(q->getSharedFromThis());
 	// The message is set to delivered here because this code is hit if the attachment cannot be downloaded or the
-	// download is aborted The delivered state will be set again message_delivery_update upon reception of 200 Ok or 202
-	// Accepted when a message is sent
+	// download is aborted The delivered state will be set again message_delivery_update upon reception of 200 Ok or
+	// 202 Accepted when a message is sent
 	setParticipantState(meAddress, ChatMessage::State::Delivered, ::ms_time(NULL));
 
 	const bool isBasicChatRoom = chatRoom->getCapabilities().isSet(ChatRoom::Capabilities::Basic);
@@ -1609,8 +1616,8 @@ void ChatMessagePrivate::send() {
 			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
 			shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
 			if (eventLog) {
-				// The message is being resent, therefore set all participants to the current message state and add new
-				// ones
+				// The message is being resent, therefore set all participants to the current message state and add
+				// new ones
 				for (const auto &participant : chatRoom->getParticipants()) {
 					mainDb->setChatMessageParticipantState(eventLog, participant->getAddress(), q->getState(),
 					                                       ::ms_time(nullptr));
@@ -1821,8 +1828,8 @@ void ChatMessagePrivate::send() {
 		// If it is a resend, reset participant states to Idle.
 		// Not doing so, it will lead to the message being incorrectly marked as not delivered when at least one
 		// participant hasn't received it yet.
-		// Use list of participants the client is sure have received the message and not the actual list of participants
-		// being part of the chatroom
+		// Use list of participants the client is sure have received the message and not the actual list of
+		// participants being part of the chatroom
 		for (const auto &imdnState : q->getParticipantsState()) {
 			const auto &participant = imdnState.getParticipant();
 			setParticipantState(participant->getAddress(), ChatMessage::State::Idle, q->getTime());
@@ -1830,8 +1837,8 @@ void ChatMessagePrivate::send() {
 		// Update message in DB to store the new IMDN message ID
 		updateInDb();
 	} else if (toBeStored) {
-		// Composing messages and IMDN aren't stored in DB so do not try, it will log an error message Invalid db key
-		// for nothing.
+		// Composing messages and IMDN aren't stored in DB so do not try, it will log an error message Invalid db
+		// key for nothing.
 		updateInDb();
 	}
 
@@ -1920,7 +1927,8 @@ void ChatMessagePrivate::updateInDb() {
 
 	if (direction == ChatMessage::Direction::Incoming) {
 		if (!hasFileTransferContent()) {
-			// Incoming message doesn't have any download waiting anymore, we can remove it's event from the transients
+			// Incoming message doesn't have any download waiting anymore, we can remove it's event from the
+			// transients
 			chatRoom->removeTransientEvent(eventLog);
 		}
 	} else {
@@ -2347,7 +2355,7 @@ void ChatMessage::initializeToBeStored() {
 	// Do not store IMDN, IsComposing, message edits and retractions as well as messqges on conference servers
 	bool doNotStore = (isMessageNotification || isMessageEdit || isMessageRetraction || isConferenceServer);
 
-	lInfo() << "ChatMessage [" << this << "] will " << (doNotStore ? "not" : "") << " be stored by default because:";
+	lInfo() << "ChatMessage [" << this << "] will" << (doNotStore ? " not " : " ") << "be stored by default because:";
 	lInfo() << "- is notification: " << (isMessageNotification ? "yes" : "no");
 	lInfo() << "- is message edit: " << (isMessageEdit ? "yes" : "no");
 	lInfo() << "- is message retraction: " << (isMessageRetraction ? "yes" : "no");
@@ -2500,7 +2508,8 @@ void ChatMessage::send() {
 		return;
 	}
 
-	// Remove the modifiers flag so the message will go through CPIM, Multipart and Encryption again in case of resent
+	// Remove the modifiers flag so the message will go through CPIM, Multipart and Encryption again in case of
+	// resent
 	d->currentSendStep &= ~ChatMessagePrivate::Step::Multipart;
 	d->currentSendStep &= ~ChatMessagePrivate::Step::Cpim;
 	d->currentSendStep &= ~ChatMessagePrivate::Step::Encryption;
@@ -2551,8 +2560,8 @@ bool ChatMessage::downloadFiles() {
 	return ret;
 }
 
-// This method is call once the downlaod of a file is terminated and it kicks off the download of the following one if
-// the user wishes to do so
+// This method is call once the downlaod of a file is terminated and it kicks off the download of the following one
+// if the user wishes to do so
 bool ChatMessage::downloadTerminated() {
 	L_D();
 	bool ret = false;
@@ -2690,8 +2699,8 @@ int ChatMessage::resendTimerExpired(void *data, BCTBX_UNUSED(unsigned int revent
 
 int ChatMessage::handleAutomaticResend() {
 	L_D();
-	// Keep a reference to this message as it may be freed when trying to send a message on a chat that is about to be
-	// terminated (state TerminationPending, Terminated, Deleted)
+	// Keep a reference to this message as it may be freed when trying to send a message on a chat that is about to
+	// be terminated (state TerminationPending, Terminated, Deleted)
 	auto ref = getSharedFromThis();
 	lInfo() << "Message [" << this << "] is automatically resent right now";
 	d->setAutomaticallyResent(true);

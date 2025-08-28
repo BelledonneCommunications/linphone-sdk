@@ -4964,6 +4964,11 @@ group_chat_lime_x3dh_send_encrypted_message_to_unable_to_decrypt_lime_x3dh_curve
 	BC_ASSERT_EQUAL(linphone_chat_room_get_security_level(marieCr), LinphoneChatRoomSecurityLevelEncrypted, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_security_level(paulineCr), LinphoneChatRoomSecurityLevelEncrypted, int,
 	                "%d");
+
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 1, int, " %i");
+	// Pauline should not store Marie's message in the database as it fails to decrypt it
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 0, int, " %i");
+
 end:
 	// Clean db from chat room
 	linphone_core_manager_delete_chat_room(marie, marieCr, coresList);
