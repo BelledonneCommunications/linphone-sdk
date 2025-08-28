@@ -1218,15 +1218,15 @@ void check_conference_medias(LinphoneConference *local_conference, LinphoneConfe
 	}
 }
 
-static void check_participant_added_to_conference(bctbx_list_t *lcs,
-                                                  LinphoneCoreManager *conf_mgr,
-                                                  stats conf_initial_stats,
-                                                  bctbx_list_t *new_participants,
-                                                  stats *new_participant_initial_stats,
-                                                  bool_t *is_call_paused,
-                                                  bctbx_list_t *participants,
-                                                  stats *participant_initial_stats,
-                                                  LinphoneConference *conference) {
+void check_participant_added_to_conference(bctbx_list_t *lcs,
+                                           LinphoneCoreManager *conf_mgr,
+                                           stats conf_initial_stats,
+                                           bctbx_list_t *new_participants,
+                                           stats *new_participant_initial_stats,
+                                           bool_t *is_call_paused,
+                                           bctbx_list_t *participants,
+                                           stats *participant_initial_stats,
+                                           LinphoneConference *conference) {
 
 	const int no_new_participants = (int)bctbx_list_size(new_participants);
 	int no_participants_without_event_log = 0;
@@ -1419,12 +1419,11 @@ void check_nb_streams(LinphoneCoreManager *m1,
 	}
 }
 
-static void wait_for_conference_stable_state(bctbx_list_t *lcs,
-                                             LinphoneCoreManager *conf_mgr,
-                                             size_t no_parts,
-                                             bctbx_list_t *new_participants,
-                                             const LinphoneAddress *conference_address) {
-
+void wait_for_conference_stable_state(bctbx_list_t *lcs,
+                                      LinphoneCoreManager *conf_mgr,
+                                      size_t no_parts,
+                                      bctbx_list_t *new_participants,
+                                      const LinphoneAddress *conference_address) {
 	bool_t c_event_log_enabled =
 	    linphone_config_get_bool(linphone_core_get_config(conf_mgr->lc), "misc", "conference_event_log_enabled", TRUE);
 	for (bctbx_list_t *itParticipant = new_participants; itParticipant;
