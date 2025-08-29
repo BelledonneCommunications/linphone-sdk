@@ -3398,7 +3398,7 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	participantsAddresses =
 	    bctbx_list_append(participantsAddresses, linphone_address_new(linphone_core_get_identity(chloe->lc)));
 
-	linphone_core_set_imdn_to_everybody_threshold(marie->lc, 10);
+	linphone_core_set_imdn_to_everybody_threshold(marie->lc, 1);
 	linphone_core_set_chat_messages_aggregation_enabled(marie->lc, TRUE);
 	linphone_config_set_int(linphone_core_get_config(marie->lc), "sip", "chat_messages_aggregation_delay", 10);
 	linphone_core_set_imdn_to_everybody_threshold(pauline->lc, 1);

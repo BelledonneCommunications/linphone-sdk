@@ -1679,6 +1679,65 @@ bool_t check_screen_sharing(const LinphoneCoreManager *mgr,
 	return screen_sharing_ok;
 }
 
+void send_text_message_and_check(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                                 LinphoneCoreManager *sender_mgr,
+                                 const std::string &msg_text,
+                                 LinphoneAddress *confAddr,
+                                 std::initializer_list<std::reference_wrapper<ClientConference>> members) {
+	LinphoneConference *sender_conference = linphone_core_search_conference(sender_mgr->lc, NULL, NULL, confAddr, NULL);
+	BC_ASSERT_PTR_NOT_NULL(sender_conference);
+	if (sender_conference) {
+		LinphoneChatRoom *sender_chat_room = linphone_conference_get_chat_room(sender_conference);
+		BC_ASSERT_PTR_NOT_NULL(sender_chat_room);
+		if (sender_chat_room) {
+			std::map<LinphoneCoreManager *, int> conferenceMgrChatHistorySizeMap;
+			for (ClientConference &core : members) {
+				LinphoneAccount *account = linphone_core_get_default_account(core.getLc());
+				LinphoneAddress *deviceAddress = linphone_account_get_contact_address(account);
+				LinphoneChatRoom *chatRoom = core.searchChatRoom(deviceAddress, confAddr);
+				BC_ASSERT_PTR_NOT_NULL(chatRoom);
+				int history_size = 0;
+				if (chatRoom) {
+					history_size = linphone_chat_room_get_history_size(chatRoom);
+				}
+				conferenceMgrChatHistorySizeMap[core.getCMgr()] = history_size;
+			}
+			stats sender_stats = sender_mgr->stat;
+			LinphoneChatMessage *msg = ClientConference::sendTextMsg(sender_chat_room, msg_text);
+
+			BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).wait(
+			    [&msg] { return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered); }));
+			linphone_chat_message_unref(msg);
+
+			BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds(10), [&sender_mgr, &sender_stats] {
+				return (sender_mgr->stat.number_of_LinphoneMessageSent ==
+				        (sender_stats.number_of_LinphoneMessageSent + 1));
+			}));
+
+			for (auto [mgr, history_size] : conferenceMgrChatHistorySizeMap) {
+				LinphoneAccount *account = linphone_core_get_default_account(mgr->lc);
+				LinphoneAddress *deviceAddress = linphone_account_get_contact_address(account);
+				LinphoneChatRoom *chatRoom =
+				    linphone_core_search_chat_room(mgr->lc, NULL, deviceAddress, confAddr, NULL);
+				if (!chatRoom) {
+					LinphoneConference *conference = linphone_core_search_conference_2(mgr->lc, confAddr);
+					BC_ASSERT_PTR_NOT_NULL(conference);
+					if (conference) {
+						chatRoom = linphone_conference_get_chat_room(conference);
+					}
+				}
+				BC_ASSERT_PTR_NOT_NULL(chatRoom);
+				if (chatRoom) {
+					BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).waitUntil(
+					    chrono::seconds(20), [history_size = history_size, &chatRoom] {
+						    return (linphone_chat_room_get_history_size(chatRoom) == (history_size + 1));
+					    }));
+				}
+			}
+		}
+	}
+}
+
 void set_video_settings_in_conference(LinphoneCoreManager *focus,
                                       LinphoneCoreManager *participantMgr,
                                       std::list<LinphoneCoreManager *> members,
@@ -2053,6 +2112,7 @@ void create_conference_base(time_t start_time,
 			} else {
 				linphone_core_set_default_conference_layout(mgr->lc, layout);
 				linphone_core_set_media_encryption(mgr->lc, encryption);
+				BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(mgr->lc));
 			}
 
 			if (do_not_use_proxy) {
@@ -2088,14 +2148,6 @@ void create_conference_base(time_t start_time,
 
 		int nortp_timeout = 10;
 		linphone_core_set_nortp_timeout(marie.getLc(), nortp_timeout);
-
-		if (encrypted_conference) {
-			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(marie.getLc()));
-			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(pauline.getLc()));
-			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(laure.getLc()));
-			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(michelle.getLc()));
-			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(berthe.getLc()));
-		}
 
 		// Shuffle focus's payload type numbers
 		LinphonePayloadType *pt_vp8 = linphone_core_get_payload_type(focus.getLc(), "VP8", 90000, 1);
@@ -10646,58 +10698,6 @@ void create_conference_with_active_call_base(bool_t dialout) {
 		bctbx_list_free_with_data(participants_info, (bctbx_list_free_func)linphone_participant_info_unref);
 		linphone_address_unref(confAddr);
 		bctbx_list_free(coresList);
-	}
-}
-
-static void send_text_message_and_check(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
-                                        LinphoneCoreManager *sender_mgr,
-                                        const std::string &msg_text,
-                                        LinphoneAddress *confAddr,
-                                        std::initializer_list<std::reference_wrapper<ClientConference>> members) {
-	LinphoneConference *sender_conference = linphone_core_search_conference(sender_mgr->lc, NULL, NULL, confAddr, NULL);
-	BC_ASSERT_PTR_NOT_NULL(sender_conference);
-	if (sender_conference) {
-		LinphoneChatRoom *sender_chat_room = linphone_conference_get_chat_room(sender_conference);
-		BC_ASSERT_PTR_NOT_NULL(sender_chat_room);
-		if (sender_chat_room) {
-			std::map<LinphoneCoreManager *, int> conferenceMgrChatHistorySizeMap;
-			for (ClientConference &core : members) {
-				LinphoneAccount *account = linphone_core_get_default_account(core.getLc());
-				LinphoneAddress *deviceAddress = linphone_account_get_contact_address(account);
-				LinphoneChatRoom *chatRoom = core.searchChatRoom(deviceAddress, confAddr);
-				BC_ASSERT_PTR_NOT_NULL(chatRoom);
-				int history_size = 0;
-				if (chatRoom) {
-					history_size = linphone_chat_room_get_history_size(chatRoom);
-				}
-				conferenceMgrChatHistorySizeMap[core.getCMgr()] = history_size;
-			}
-			stats sender_stats = sender_mgr->stat;
-			LinphoneChatMessage *msg = ClientConference::sendTextMsg(sender_chat_room, msg_text);
-
-			BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).wait(
-			    [&msg] { return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered); }));
-			linphone_chat_message_unref(msg);
-
-			BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds(10), [&sender_mgr, &sender_stats] {
-				return (sender_mgr->stat.number_of_LinphoneMessageSent ==
-				        (sender_stats.number_of_LinphoneMessageSent + 1));
-			}));
-
-			for (auto [mgr, history_size] : conferenceMgrChatHistorySizeMap) {
-				LinphoneAccount *account = linphone_core_get_default_account(mgr->lc);
-				LinphoneAddress *deviceAddress = linphone_account_get_contact_address(account);
-				LinphoneChatRoom *chatRoom =
-				    linphone_core_search_chat_room(mgr->lc, NULL, deviceAddress, confAddr, NULL);
-				BC_ASSERT_PTR_NOT_NULL(chatRoom);
-				if (chatRoom) {
-					BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).waitUntil(
-					    chrono::seconds(20), [history_size = history_size, &chatRoom] {
-						    return (linphone_chat_room_get_history_size(chatRoom) == (history_size + 1));
-					    }));
-				}
-			}
-		}
 	}
 }
 

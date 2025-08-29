@@ -9442,12 +9442,16 @@ LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_download_file_count(Lin
 LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_upload_file_count(LinphoneCore *core);
 
 /**
- * Enable sending of chat message on group chats only after receiving the NOTIFY full state
+ * Enable sending of chat message on group chats only after receiving the NOTIFY full state.
  * If it is disabled, as it is the default value, message will be sent after the delay set by
  *`linphone_core_get_message_sending_delay`
  * @ingroup chatroom
  * @param core #LinphoneCore object @notnil
  * @param enabled TRUE if enabled, FALSE otherwise.
+ * @warning Encryption engines may need the full list of devices active in a chatroom in order to encrypt a chat message
+ *to each of them. However, some releases of conference servers may not send NOTIFYs with empty bodies and in such a
+ *scenario, messages may benver be sent when the user sets this setting to TRUE. It is strongly advised to set it to
+ *TRUE if the target server can send NOTIFY messages with empty bodies.
  **/
 LINPHONE_PUBLIC void linphone_core_enable_send_message_after_notify(LinphoneCore *core, bool_t enabled);
 
