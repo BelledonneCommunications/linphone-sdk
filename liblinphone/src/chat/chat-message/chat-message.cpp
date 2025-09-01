@@ -1658,16 +1658,6 @@ void ChatMessagePrivate::send() {
 			    (callState == CallSession::State::PausedByRemote)) {
 				lInfo() << "Send SIP msg through the existing call";
 				op = call->getOp();
-				string identity =
-				    linphone_core_find_best_identity(core->getCCore(), linphone_call_get_remote_address(lcall));
-				if (identity.empty()) {
-					auto account = core->lookupKnownAccount(mToAddress, true);
-					if (account) {
-						identity = account->getAccountParams()->getIdentityAddress()->toString();
-					} else {
-						identity = linphone_core_get_primary_contact(core->getCCore());
-					}
-				}
 			}
 		}
 	}
