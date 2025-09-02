@@ -40,7 +40,7 @@ Av1Encoder::Av1Encoder(MSFactory *factory) : mFactory(factory) {
 }
 
 Av1Encoder::~Av1Encoder() {
-	if (mIsRunning) Av1Encoder::stop();
+	Av1Encoder::stop();
 }
 
 void Av1Encoder::setVideoSize(const MSVideoSize &vsize) {
@@ -166,6 +166,17 @@ bool Av1Encoder::fetch(MSQueue *encodedData) {
 
 	return true;
 }
+void Av1Encoder::resetEncoder() {
+	if (aom_codec_destroy(&mCodec)) {
+		ms_error("AV1Encoder: Failed to destroy encoder in restart procedure");
+	} else {
+		if (aom_codec_enc_init(&mCodec, mEncoder, &mConfig, 0)) {
+			ms_error("Av1Encoder: Failed to initialize encoder in restart procedure.");
+		} else {
+			aom_codec_control(&mCodec, AOME_SET_CPUUSED, 11);
+		}
+	}
+}
 
 void Av1Encoder::encoderThread() {
 	while (mIsRunning) {
@@ -217,6 +228,8 @@ void Av1Encoder::encoderThread() {
 		if (ret != AOM_CODEC_OK) {
 			ms_error("Av1Encoder: encode failed: %s (%s)", aom_codec_err_to_string(ret),
 			         aom_codec_error_detail(&mCodec));
+			ms_message("AV1Encoder: unexpected encode error occurred, proceed to reset encoder");
+			resetEncoder();
 		}
 
 		const aom_codec_cx_pkt_t *pkt;

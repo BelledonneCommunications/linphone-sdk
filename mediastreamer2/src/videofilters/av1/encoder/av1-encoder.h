@@ -68,6 +68,7 @@ public:
 
 protected:
 	void encoderThread();
+	void resetEncoder();
 
 	MSFactory *mFactory;
 
