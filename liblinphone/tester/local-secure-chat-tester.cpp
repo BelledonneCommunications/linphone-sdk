@@ -1781,7 +1781,7 @@ static void secure_group_chat_message_cannot_be_sent_immediately_with_replaces(v
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreationPending,
 		                             initialMarieStats.number_of_LinphoneChatRoomStateCreationPending + 1,
 		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, pauline}).wait([&focus] {
 			bool ret = true;
 			for (auto &chatRoom : focus.getCore().getChatRooms()) {
 				ret &= (chatRoom->getParticipants().size() == 2);
@@ -1914,7 +1914,7 @@ static void secure_group_chat_message_sent_during_conference_creation(void) {
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreationPending,
 		                             initialMarieStats.number_of_LinphoneChatRoomStateCreationPending + 1,
 		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, pauline}).wait([&focus] {
 			bool ret = true;
 			for (auto &chatRoom : focus.getCore().getChatRooms()) {
 				ret &= (chatRoom->getParticipants().size() == 2);
