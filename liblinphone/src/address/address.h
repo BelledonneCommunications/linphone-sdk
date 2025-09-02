@@ -171,14 +171,7 @@ protected:
 
 private:
 	SalAddress *mImpl = nullptr;
-	struct SalAddressDeleter {
-		void operator()(SalAddress *addr) {
-			sal_address_unref(addr);
-		}
-	};
 	static void removeFromLeakDetector(SalAddress *addr);
-
-	static std::unordered_map<std::string, std::unique_ptr<SalAddress, SalAddressDeleter>> sAddressCache;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Address &address) {

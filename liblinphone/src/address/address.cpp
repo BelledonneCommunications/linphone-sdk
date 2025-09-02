@@ -33,7 +33,19 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
-std::unordered_map<std::string, std::unique_ptr<SalAddress, Address::SalAddressDeleter>> Address::sAddressCache;
+struct SalAddressDeleter {
+	void operator()(SalAddress *addr) {
+		sal_address_unref(addr);
+	}
+};
+
+/*
+ * The sAddressCache was formely a private static member of Address.
+ * However, MSVC compiler does not permit to use the thread_local attribute on class marked for dll export
+ * (LINPHONE_PUBLIC), even if the thread_local member is private.
+ */
+
+static thread_local std::unordered_map<std::string, std::unique_ptr<SalAddress, SalAddressDeleter>> sAddressCache;
 
 const std::string Address::sTransportParameter = "transport";
 
