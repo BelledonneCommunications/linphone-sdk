@@ -1281,7 +1281,7 @@ static void legacy_import_and_migration() {
 	}
 
 	/* now make sure the legacy sections are migrated */
-	BC_ASSERT_FALSE(linphone_config_has_section(config, "ldap_0"));
+	BC_ASSERT_FALSE(linphone_config_has_section(config, "ldap_1"));
 	BC_ASSERT_FALSE(linphone_config_has_section(config, "carddav_0"));
 
 	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_0"));

@@ -1,6 +1,6 @@
 
 
-[ldap_0]
+[ldap_1]
 server=ldap://ldap.example.org
 min_chars=2
 filter=somefilter

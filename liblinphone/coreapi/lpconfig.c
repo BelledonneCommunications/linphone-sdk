@@ -1105,16 +1105,21 @@ void linphone_config_clean_section(LpConfig *lpconfig, const char *section) {
 	lpconfig->modified = TRUE;
 }
 
-void linphone_config_clean_section_suite(LinphoneConfig *lpconfig, const char *section) {
-	bool_t found = TRUE;
-	for (int i = 0; found; ++i) {
-		char *section_name = bctbx_strdup_printf("%s_%i", section, i);
-
-		if (linphone_config_has_section(lpconfig, section_name)) {
-			linphone_config_clean_section(lpconfig, section_name);
-		} else found = FALSE;
-		bctbx_free(section_name);
+void linphone_config_clean_section_suite(LinphoneConfig *lpconfig, const char *section_name) {
+	bctbx_list_t *to_clean = NULL; /* names of sections that need to be cleaned */
+	bctbx_list_t *elem;
+	for (elem = lpconfig->sections; elem != NULL; elem = elem->next) {
+		LpSection *section = (LpSection *)elem->data;
+		if (strstr(section->name, section_name) == section->name && section->name[strlen(section_name)] == '_' &&
+		    isdigit(section->name[strlen(section_name) + 1])) {
+			to_clean = bctbx_list_append(to_clean, section->name);
+		}
 	}
+	for (elem = to_clean; elem != NULL; elem = elem->next) {
+		const char *name = (const char *)elem->data;
+		linphone_config_clean_section(lpconfig, name);
+	}
+	bctbx_list_free(to_clean);
 }
 
 bool_t linphone_config_needs_commit(const LpConfig *lpconfig) {
