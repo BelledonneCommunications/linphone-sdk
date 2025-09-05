@@ -99,7 +99,7 @@ public:
 	}
 
 	void setContactAddressFromHeader(belle_sip_header_contact_t *contactHeader);
-	void setContactAddress(const SalAddress *value);
+	void setContactAddress(const SalAddress *value, bool mustBePreserved = false);
 	/* The contact address returned here is be pub-gruu provided by the proxy during REGISTER transaction, if "gruu"
 	 is supported by client and server, otherwise the low-level transport address.*/
 	const SalAddress *getContactAddress() const {
@@ -406,6 +406,7 @@ protected:
 	bool mOpReleased = false;
 	bool mOwnsDialog = true;
 	bool mUseSupportedTags = false;
+	bool mContactMustBePreserved = false;
 
 	friend class Sal;
 	friend class Call;
