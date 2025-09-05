@@ -123,7 +123,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	belle_sip_header_www_authenticate_t *authenticate;
 	belle_sip_list_t *authenticate_lst;
 	belle_sip_list_t *it;
-
+	int auth_info_found = 0;
 	int ret = 0;
 
 	if (req->auth_attempt_count > 1) {
@@ -155,11 +155,17 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	belle_sip_uri_t *from_uri = NULL;
 	belle_sip_header_t *header = belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), "From");
 
-	/* loop on all authenticate headers.  03/24 fixme probably not working for more than one auth header, still to be
-	 * tested*/
+	/*
+	 * Loop on all authenticate headers and their respective challenges.
+	 * It does not matter whether challenges are carried over one or multiple authentication headers.
+	 * The first challenge for which an authentication information is available breaks the loop.
+	 * Due to this design, it is NOT possible to answer to multiple challenges.
+	 * This could happen if both the server and an http proxy require digest authentication,
+	 * which is not so common in practice.
+	 */
 	authenticate_lst =
 	    belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp), BELLE_SIP_WWW_AUTHENTICATE));
-	for (it = authenticate_lst; it != NULL; it = it->next) {
+	for (it = authenticate_lst; it != NULL && auth_info_found == 0; it = it->next) {
 		authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(it->data);
 		do {
 			const char *requested_algorithm = belle_sip_header_www_authenticate_get_algorithm(authenticate);
@@ -223,7 +229,10 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 						algorithm = requested_algorithm;
 					}
 				}
-				if (ha1) break;
+				if (ha1) {
+					auth_info_found++;
+					break;
+				}
 			}
 			authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_header_get_next(BELLE_SIP_HEADER(authenticate)));
 		} while (authenticate);
@@ -253,7 +262,6 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(authorization));
 			belle_http_provider_send_request(ctx->provider, req, NULL);
 		}
-
 	} else if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_BASIC && username && passwd) {
 		belle_http_header_authorization_t *authorization;
 		req->auth_attempt_count++;
