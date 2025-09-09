@@ -141,6 +141,7 @@ public:
 	void enterBackground();
 	void enterForeground();
 	bool isInBackground() const;
+	void iterate() noexcept;
 
 	// ---------------------------------------------------------------------------
 	// C-Core.
@@ -166,6 +167,15 @@ public:
 	void soundcardEnableCallkit(bool enabled);
 	void soundcardAudioRouteChanged();
 	LinphoneStatus terminateAllCalls();
+
+	void toggleVideoPreview(bool enabled);
+#ifdef VIDEO_ENABLED
+	static void videoStreamCallback(void *userdata, BCTBX_UNUSED(const MSFilter *f), unsigned int id, const void *arg);
+	static void videoStreamPreviewDisplayCallback(void *userdata, const unsigned int id, const void *arg);
+	static void videoFilterCallback(void *userdata, BCTBX_UNUSED(MSFilter *f), unsigned int id, void *arg);
+	static void
+	videoFilterCallbackNotTurningPreviewOff(void *userdata, BCTBX_UNUSED(MSFilter *f), unsigned int id, void *arg);
+#endif
 
 	// ---------------------------------------------------------------------------
 	// Conference Call Event.
@@ -513,7 +523,7 @@ private:
 	void initPlugins();
 	void uninitPlugins();
 	int loadPlugins(const std::string &dir);
-	bool_t dlopenPlugin(const std::string &plugin_path, const std::string plugin_name);
+	bool dlopenPlugin(const std::string &plugin_path, const std::string plugin_name);
 
 	std::list<std::shared_ptr<Conference>> mConferencesPendingCreation;
 	std::list<std::shared_ptr<ConferenceScheduler>> mSipConferenceSchedulers;
