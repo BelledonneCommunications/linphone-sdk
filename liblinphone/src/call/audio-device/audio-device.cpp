@@ -19,13 +19,16 @@
  */
 
 #include "audio-device.h"
+#include "core/core-p.h"
+#include "core/core.h"
 #include "logger/logger.h"
 
 using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
-AudioDevice::AudioDevice(MSSndCard *soundCard) : mSoundCard(ms_snd_card_ref(soundCard)) {
+AudioDevice::AudioDevice(std::shared_ptr<Core> core, MSSndCard *soundCard)
+    : CoreAccessor(core), mSoundCard(ms_snd_card_ref(soundCard)) {
 	const char *id = ms_snd_card_get_string_id(soundCard);
 	mDeviceId = id;
 
@@ -129,8 +132,17 @@ const AudioDevice::Type &AudioDevice::getType() const {
 	return mDeviceType;
 }
 
+bool AudioDevice::getUseForRinging() const {
+	return mUseForRinging;
+}
+
 bool AudioDevice::followsSystemRoutingPolicy() const {
 	return !!(ms_snd_card_get_capabilities(mSoundCard) & MS_SND_CARD_CAP_FOLLOWS_SYSTEM_POLICY);
+}
+
+void AudioDevice::setUseForRinging(const bool useForRinging) {
+	mUseForRinging = useForRinging;
+	getCore()->getPrivate()->saveRingingAudioDevicesConfig();
 }
 
 string AudioDevice::toString() const {

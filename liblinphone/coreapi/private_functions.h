@@ -199,6 +199,9 @@ AuthStatus linphone_core_fill_belle_sip_auth_event(LinphoneCore *lc,
 
 void linphone_core_update_proxy_register(LinphoneCore *lc);
 const char *linphone_core_get_nat_address_resolved(LinphoneCore *lc);
+bctbx_list_t *linphone_core_get_all_ringing_snd_cards(LinphoneCore *lc);
+MSSndCard *linphone_core_get_first_ringing_snd_card(LinphoneCore *lc);
+MSSndCard *get_card_from_string_id(const char *devid, unsigned int cap, MSFactory *f);
 
 int linphone_proxy_config_send_publish(LinphoneProxyConfig *cfg, LinphonePresenceModel *presence);
 void linphone_proxy_config_set_state(LinphoneProxyConfig *cfg, LinphoneRegistrationState rstate, const char *message);

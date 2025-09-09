@@ -47,35 +47,48 @@ static void ring_player_event_handler(void *ud, BCTBX_UNUSED(MSFilter *f), unsig
 	}
 }
 
-RingStream *ring_start(MSFactory *factory, const char *file, int interval, MSSndCard *sndcard) {
-	return ring_start_with_cb(factory, file, interval, sndcard, NULL, NULL);
+RingStream *ring_start(MSFactory *factory, const char *file, const int interval, const bctbx_list_t *snd_cards) {
+	return ring_start_with_cb(factory, file, interval, snd_cards, NULL, NULL);
 }
 
-static void write_device_event_handler(void *user_data, BCTBX_UNUSED(MSFilter *f), unsigned int event, BCTBX_UNUSED(void *eventdata)) {
+static void write_device_event_handler(void *user_data,
+                                       BCTBX_UNUSED(MSFilter *f),
+                                       const unsigned int event,
+                                       BCTBX_UNUSED(void *eventdata)) {
 	if (event == MS_FILTER_OUTPUT_FMT_CHANGED) {
 		RingStream *stream = (RingStream *)user_data;
-		int  playbackRate,  playbackChannels;
-		ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_SAMPLE_RATE,&playbackRate);
-		ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_NCHANNELS,&playbackChannels);
-		
-		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&playbackRate);
-		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&playbackChannels);
+		int playbackRate, playbackChannels;
+
+		for (int i = 0; (i < MS_RING_STREAM_MAX_SND_CARDS); i++) {
+			if (stream->sndwrite[i] == NULL) break;
+
+			ms_filter_call_method(stream->sndwrite[i], MS_FILTER_GET_SAMPLE_RATE, &playbackRate);
+			ms_filter_call_method(stream->sndwrite[i], MS_FILTER_GET_NCHANNELS, &playbackChannels);
+		}
+
+		ms_filter_call_method(stream->write_resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &playbackRate);
+		ms_filter_call_method(stream->write_resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &playbackChannels);
 		ms_message("reconfiguring resampler output to rate=[%i], nchannels=[%i]", playbackRate, playbackChannels);
 	}
 }
 
-RingStream *ring_start_with_cb(
-    MSFactory *factory, const char *file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void *user_data) {
-	RingStream *stream;
+RingStream *ring_start_with_cb(MSFactory *factory,
+                               const char *file,
+                               int interval,
+                               const bctbx_list_t *snd_cards,
+                               const MSFilterNotifyFunc func,
+                               void *user_data) {
 	int srcchannels = 1, dstchannels = 1;
 	int srcrate, dstrate;
 	MSConnectionHelper h;
 	MSTickerParams params = {0};
 	MSPinFormat pinfmt = {0};
+	int i = 0;
+	RingStream *stream = ms_new0(RingStream, 1);
 
-	stream = (RingStream *)ms_new0(RingStream, 1);
-	if (sndcard != NULL) {
-		stream->card = ms_snd_card_ref(sndcard);
+	for (const bctbx_list_t *item = snd_cards; (i < MS_RING_STREAM_MAX_SND_CARDS) && (item != NULL);
+	     item = bctbx_list_next(item), i++) {
+		stream->card[i] = ms_snd_card_ref(bctbx_list_get_data(item));
 	}
 	if (file) {
 		stream->source = _ms_create_av_player(file, factory);
@@ -91,10 +104,24 @@ RingStream *ring_start_with_cb(
 	ms_filter_add_notify_callback(stream->source, ring_player_event_handler, stream, TRUE);
 	if (func != NULL) ms_filter_add_notify_callback(stream->source, func, user_data, FALSE);
 	stream->gendtmf = ms_factory_create_filter(factory, MS_DTMF_GEN_ID);
-	stream->sndwrite =
-	    (sndcard != NULL) ? ms_snd_card_create_writer(sndcard) : ms_factory_create_filter(factory, MS_VOID_SINK_ID);
-	// sndwrite Callback with TRUE because RingStream doesn't replumb graph so updates need to be done without restarting it.
-	ms_filter_add_notify_callback(stream->sndwrite, write_device_event_handler, stream, TRUE);
+
+	if (snd_cards) {
+		i = 0;
+		for (const bctbx_list_t *item = snd_cards; (i < MS_RING_STREAM_MAX_SND_CARDS) && (item != NULL);
+		     item = bctbx_list_next(item), i++) {
+			MSSndCard *snd_card = bctbx_list_get_data(item);
+			stream->sndwrite[i] = (snd_card != NULL) ? ms_snd_card_create_writer(snd_card)
+			                                         : ms_factory_create_filter(factory, MS_VOID_SINK_ID);
+			// sndwrite Callback with TRUE because RingStream doesn't replumb graph so updates need to be done without
+			// restarting it.
+			ms_filter_add_notify_callback(stream->sndwrite[i], write_device_event_handler, stream, TRUE);
+		}
+	} else {
+		stream->sndwrite[0] = ms_factory_create_filter(factory, MS_VOID_SINK_ID);
+		ms_filter_add_notify_callback(stream->sndwrite[0], write_device_event_handler, stream, TRUE);
+	}
+	stream->sndwrite_tee = ms_factory_create_filter(factory, MS_TEE_ID);
+
 	stream->write_resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 
 	if (file) {
@@ -120,10 +147,13 @@ RingStream *ring_start_with_cb(
 	dstrate = srcrate = pinfmt.fmt->rate;
 	dstchannels = srcchannels = pinfmt.fmt->nchannels;
 
-	ms_filter_call_method(stream->sndwrite, MS_FILTER_SET_SAMPLE_RATE, &srcrate);
-	ms_filter_call_method(stream->sndwrite, MS_FILTER_GET_SAMPLE_RATE, &dstrate);
-	ms_filter_call_method(stream->sndwrite, MS_FILTER_SET_NCHANNELS, &srcchannels);
-	ms_filter_call_method(stream->sndwrite, MS_FILTER_GET_NCHANNELS, &dstchannels);
+	for (i = 0; (i < MS_RING_STREAM_MAX_SND_CARDS); i++) {
+		if (!stream->sndwrite[i]) break;
+		ms_filter_call_method(stream->sndwrite[i], MS_FILTER_SET_SAMPLE_RATE, &srcrate);
+		ms_filter_call_method(stream->sndwrite[i], MS_FILTER_GET_SAMPLE_RATE, &dstrate);
+		ms_filter_call_method(stream->sndwrite[i], MS_FILTER_SET_NCHANNELS, &srcchannels);
+		ms_filter_call_method(stream->sndwrite[i], MS_FILTER_GET_NCHANNELS, &dstchannels);
+	}
 
 	/*eventually create a decoder*/
 	if (strcasecmp(pinfmt.fmt->encoding, "pcm") != 0) {
@@ -158,7 +188,11 @@ RingStream *ring_start_with_cb(
 	}
 	ms_connection_helper_link(&h, stream->gendtmf, 0, 0);
 	if (stream->write_resampler) ms_connection_helper_link(&h, stream->write_resampler, 0, 0);
-	ms_connection_helper_link(&h, stream->sndwrite, 0, -1);
+	ms_connection_helper_link(&h, stream->sndwrite_tee, 0, 0);
+	for (i = 0; i < MS_RING_STREAM_MAX_SND_CARDS; i++) {
+		if (!stream->sndwrite[i]) break;
+		ms_filter_link(stream->sndwrite_tee, i + 1, stream->sndwrite[i], 0);
+	}
 	ms_ticker_attach(stream->ticker, stream->source);
 
 	return stream;
@@ -179,6 +213,7 @@ void ring_stop(RingStream *stream) {
 	//	ms_message("DADA [RingStream] stop ringing card in stream is %s", ((stream->card) ? stream->card->id : "No
 	// card"));
 	MSConnectionHelper h;
+	int i;
 
 	if (stream->ticker) {
 		ms_ticker_detach(stream->ticker, stream->source);
@@ -190,15 +225,23 @@ void ring_stop(RingStream *stream) {
 		}
 		ms_connection_helper_unlink(&h, stream->gendtmf, 0, 0);
 		if (stream->write_resampler) ms_connection_helper_unlink(&h, stream->write_resampler, 0, 0);
-		ms_connection_helper_unlink(&h, stream->sndwrite, 0, -1);
+		ms_connection_helper_unlink(&h, stream->sndwrite_tee, 0, 0);
+		for (i = 0; i < MS_RING_STREAM_MAX_SND_CARDS; i++) {
+			if (stream->sndwrite[i]) ms_filter_unlink(stream->sndwrite_tee, i + 1, stream->sndwrite[i], 0);
+		}
 		ms_ticker_destroy(stream->ticker);
 	}
 	if (stream->source) ms_filter_destroy(stream->source);
 	if (stream->gendtmf) ms_filter_destroy(stream->gendtmf);
-	if (stream->sndwrite) ms_filter_destroy(stream->sndwrite);
+	for (i = 0; i < MS_RING_STREAM_MAX_SND_CARDS; i++) {
+		if (stream->sndwrite[i]) ms_filter_destroy(stream->sndwrite[i]);
+	}
+	if (stream->sndwrite_tee) ms_filter_destroy(stream->sndwrite_tee);
 	if (stream->decoder) ms_filter_destroy(stream->decoder);
 	if (stream->write_resampler) ms_filter_destroy(stream->write_resampler);
-	if (stream->card) ms_snd_card_unref(stream->card);
+	for (i = 0; i < MS_RING_STREAM_MAX_SND_CARDS; i++) {
+		if (stream->card[i]) ms_snd_card_unref(stream->card[i]);
+	}
 	ms_free(stream);
 }
 
@@ -206,28 +249,63 @@ void ring_stop(RingStream *stream) {
  * note: Only AAudio and OpenSLES leverage internal ID for output streams.
  */
 static void ring_stream_configure_output_snd_card(RingStream *stream) {
-	MSSndCard *card = stream->card;
-	if (stream->sndwrite) {
-		if (ms_filter_implements_interface(stream->sndwrite, MSFilterAudioPlaybackInterface)) {
-			ms_filter_call_method(stream->sndwrite, MS_AUDIO_PLAYBACK_SET_INTERNAL_ID, card);
-			ms_message("[RingStream] set output sound card for %s:%p to %s", ms_filter_get_name(stream->sndwrite),
-			           stream->sndwrite, card->id);
+	for (int i = 0; i < MS_RING_STREAM_MAX_SND_CARDS; i++) {
+		MSSndCard *card = stream->card[i];
+		if (card && stream->sndwrite[i]) {
+			if (ms_filter_implements_interface(stream->sndwrite[i], MSFilterAudioPlaybackInterface)) {
+				ms_filter_call_method(stream->sndwrite[i], MS_AUDIO_PLAYBACK_SET_INTERNAL_ID, card);
+				ms_message("[RingStream] set output sound card for %s:%p to %s",
+				           ms_filter_get_name(stream->sndwrite[i]), stream->sndwrite, card->id);
+			}
 		}
 	}
 }
 
-void ring_stream_set_output_ms_snd_card(RingStream *stream, MSSndCard *sndcard_playback) {
-	if (stream->card) {
-		ms_snd_card_unref(stream->card);
-		stream->card = NULL;
+void ring_stream_set_output_ms_snd_card(RingStream *stream, MSSndCard *snd_card) {
+	bctbx_list_t *snd_cards = bctbx_list_new(snd_card);
+	ring_stream_set_output_ms_snd_cards(stream, snd_cards);
+	bctbx_list_free(snd_cards);
+}
+
+MSSndCard *ring_stream_get_output_ms_snd_card(const RingStream *stream) {
+	MSSndCard *snd_card = NULL;
+	bctbx_list_t *snd_cards = ring_stream_get_output_ms_snd_cards(stream);
+	if (snd_cards) snd_card = (MSSndCard *)bctbx_list_get_data(snd_cards);
+	bctbx_list_free(snd_cards);
+	return snd_card;
+}
+
+void ring_stream_set_output_ms_snd_cards(RingStream *stream, const bctbx_list_t *snd_cards) {
+	for (int i = 0; i < MS_RING_STREAM_MAX_SND_CARDS; i++) {
+		if (stream->card[i]) {
+			ms_snd_card_unref(stream->card[i]);
+			stream->card[i] = NULL;
+		}
 	}
-	stream->card = ms_snd_card_ref(sndcard_playback);
+
+	int i;
+	const bctbx_list_t *item;
+	for (item = snd_cards, i = 0; item; item = bctbx_list_next(item), i++) {
+		if (i >= MS_RING_STREAM_MAX_SND_CARDS) {
+			ms_warning("Too many sound cards passed to ring_stream_set_output_ms_snd_cards(), some will be ignored!");
+			break;
+		}
+		stream->card[i] = ms_snd_card_ref(bctbx_list_get_data(item));
+	}
+
 	ring_stream_configure_output_snd_card(stream);
 }
 
-MSSndCard *ring_stream_get_output_ms_snd_card(RingStream *stream) {
-	// If stream is null, then do not try to access the card
-	if (stream) return stream->card;
+bctbx_list_t *ring_stream_get_output_ms_snd_cards(const RingStream *stream) {
+	bctbx_list_t *snd_cards = NULL;
 
-	return NULL;
+	// If the stream is null, then do not try to access the cards.
+	if (stream) {
+		for (int i = 0; i < MS_RING_STREAM_MAX_SND_CARDS; i++) {
+			if (!stream->card[i]) break;
+			snd_cards = bctbx_list_append(snd_cards, stream->card[i]);
+		}
+	}
+
+	return snd_cards;
 }

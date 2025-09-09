@@ -2688,6 +2688,97 @@ static void simple_conference_with_audio_device_change_using_public_api(void) {
 	destroy_mgr_in_conference(laure);
 }
 
+static int compare_stats_with_name(const MSFilterStats *stats, const char *name) {
+	return strcmp(stats->name, name);
+}
+
+static void simple_call_with_two_ringing_audio_devices(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *pauline =
+	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
+	bctbx_list_t *lcs = bctbx_list_append(NULL, marie->lc);
+	lcs = bctbx_list_append(lcs, pauline->lc);
+
+	register_device(pauline, &dummy_test_snd_card_desc);
+	register_device(pauline, &dummy2_test_snd_card_desc);
+
+	// Choose Pauline's audio devices
+	// Use linphone_core_get_extended_audio_devices instead of linphone_core_get_audio_devices because we added 2 BT
+	// devices, therefore we want the raw list. linphone_core_get_audio_devices returns only 1 device per type.
+	bctbx_list_t *audio_devices = linphone_core_get_extended_audio_devices(pauline->lc);
+
+	// As new devices are prepended, they can be easily accessed, and we do not run the risk of getting a device whose
+	// type is Unknown device at the head of the list.
+	LinphoneAudioDevice *current_dev = (LinphoneAudioDevice *)bctbx_list_get_data(audio_devices);
+	BC_ASSERT_PTR_NOT_NULL(current_dev);
+	linphone_audio_device_ref(current_dev);
+
+	// Unref cards
+	bctbx_list_free_with_data(audio_devices, (void (*)(void *))linphone_audio_device_unref);
+
+	// Set audio device to start with a known situation
+	linphone_core_set_default_input_audio_device(pauline->lc, current_dev);
+	linphone_core_set_default_output_audio_device(pauline->lc, current_dev);
+	linphone_audio_device_unref(current_dev);
+
+	// Define the 2 BT devices we added as being the ringing devices.
+	audio_devices = linphone_core_get_extended_audio_devices(pauline->lc);
+	for (bctbx_list_t *item = audio_devices; item != NULL; item = bctbx_list_next(item)) {
+		LinphoneAudioDevice *audio_device = (LinphoneAudioDevice *)bctbx_list_get_data(item);
+		if ((strcmp(linphone_audio_device_get_device_name(audio_device), DUMMY_TEST_SOUNDCARD) == 0) ||
+		    (strcmp(linphone_audio_device_get_device_name(audio_device), DUMMY2_TEST_SOUNDCARD) == 0)) {
+			linphone_audio_device_set_use_for_ringing(audio_device, TRUE);
+		}
+	}
+	bctbx_list_free_with_data(audio_devices, (void (*)(void *))linphone_audio_device_unref);
+
+	// Test that the use_for_ringing attribute of the audio devices is kept upon sound devices reloading.
+	linphone_core_reload_sound_devices(pauline->lc);
+	int nb_ringing_audio_devices = 0;
+	audio_devices = linphone_core_get_extended_audio_devices(pauline->lc);
+	for (bctbx_list_t *item = audio_devices; item != NULL; item = bctbx_list_next(item)) {
+		LinphoneAudioDevice *audio_device = (LinphoneAudioDevice *)bctbx_list_get_data(item);
+		if (linphone_audio_device_get_use_for_ringing(audio_device)) nb_ringing_audio_devices++;
+	}
+	bctbx_list_free_with_data(audio_devices, (void (*)(void *))linphone_audio_device_unref);
+	BC_ASSERT_EQUAL(nb_ringing_audio_devices, 3, int, "%d"); // 3 for the default audio device + the 2 we added
+
+	// Enable statistics on Pauline's MSFactory.
+	MSFactory *pauline_msfactory = linphone_core_get_ms_factory(pauline->lc);
+	ms_factory_enable_statistics(pauline_msfactory, TRUE);
+
+	LinphoneCall *marie_call = linphone_core_invite_address(marie->lc, pauline->identity);
+	BC_ASSERT_PTR_NOT_NULL(marie_call);
+
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneCallOutgoingRinging, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallIncomingReceived, 1, liblinphone_tester_sip_timeout));
+
+	// Let the ring play for a bit
+	wait_for_until(marie->lc, pauline->lc, NULL, 1, 200);
+
+	// Check that 2 sound card filters have been created.
+	const bctbx_list_t *stats_elem = bctbx_list_find_custom(ms_factory_get_statistics(pauline_msfactory),
+	                                                        (bctbx_compare_func)compare_stats_with_name, "DummyPlayer");
+	BC_ASSERT_PTR_NOT_NULL(stats_elem);
+	if (stats_elem) {
+		const MSFilterStats *stats = bctbx_list_get_data(stats_elem);
+		BC_ASSERT_EQUAL(stats->nb_creations, 2, int, "%d");
+	}
+
+	LinphoneCall *pauline_call = linphone_core_get_current_call(pauline->lc);
+	BC_ASSERT_PTR_NOT_NULL(pauline_call);
+	linphone_call_ref(pauline_call);
+
+	linphone_call_decline(pauline_call, LinphoneReasonDeclined);
+
+	linphone_call_unref(pauline_call);
+	linphone_core_manager_destroy(marie);
+	linphone_core_manager_destroy(pauline);
+	bctbx_list_free(lcs);
+}
+
 test_t audio_routes_tests[] = {
     TEST_NO_TAG("Simple call with audio devices reload", simple_call_with_audio_devices_reload),
     TEST_ONE_TAG("Simple call with real audio devices reload", simple_call_with_real_audio_devices_reload, "skip"),
@@ -2733,7 +2824,8 @@ test_t audio_routes_tests[] = {
                 simple_conference_with_audio_device_change_during_pause_caller),
     TEST_NO_TAG("Simple conference with audio device change during pause both parties",
                 simple_conference_with_audio_device_change_during_pause_caller_callee),
-    TEST_NO_TAG("Regex audio card selection", regex_card_selection)
+    TEST_NO_TAG("Regex audio card selection", regex_card_selection),
+    TEST_NO_TAG("Simple call with two ringing audio devices", simple_call_with_two_ringing_audio_devices)
 
 };
 

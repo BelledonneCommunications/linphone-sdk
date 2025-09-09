@@ -41,13 +41,16 @@ typedef void (*LinphoneRingtonePlayerFunc)(LinphoneRingtonePlayer *rp, void *use
 LINPHONE_PUBLIC LinphoneRingtonePlayer *linphone_ringtoneplayer_new(void);
 LINPHONE_PUBLIC void linphone_ringtoneplayer_destroy(LinphoneRingtonePlayer *rp);
 
-LINPHONE_PUBLIC LinphoneStatus linphone_ringtoneplayer_start(
-    MSFactory *factory, LinphoneRingtonePlayer *rp, MSSndCard *card, const char *ringtone, int loop_pause_ms);
+LINPHONE_PUBLIC LinphoneStatus linphone_ringtoneplayer_start(MSFactory *factory,
+                                                             LinphoneRingtonePlayer *rp,
+                                                             const bctbx_list_t *snd_cards,
+                                                             const char *ringtone,
+                                                             int loop_pause_ms);
 /**
  * Start a ringtone player
  * @param factory A MSFactory object @notnil
  * @param ringtone_player `LinphoneRingtonePlayer` object @notnil
- * @param card unused argument @maybenil
+ * @param snd_cards The list of sound cards to use for ringing @maybenil
  * @param ringtone path to the ringtone to play @notnil
  * @param loop_pause_ms pause interval in milliseconds to be observed between end of play and resuming at start. A value
  * of -1 disables loop mode
@@ -57,7 +60,7 @@ LINPHONE_PUBLIC LinphoneStatus linphone_ringtoneplayer_start(
  */
 LINPHONE_PUBLIC LinphoneStatus linphone_ringtoneplayer_start_with_cb(MSFactory *factory,
                                                                      LinphoneRingtonePlayer *ringtone_player,
-                                                                     MSSndCard *card,
+                                                                     const bctbx_list_t *snd_cards,
                                                                      const char *ringtone,
                                                                      int loop_pause_ms,
                                                                      LinphoneRingtonePlayerFunc end_of_ringtone,

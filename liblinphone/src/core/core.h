@@ -83,6 +83,7 @@ class RemoteContactDirectory;
 
 class LINPHONE_PUBLIC Core : public Object {
 	friend class Account;
+	friend class AudioDevice;
 	friend class Call;
 	friend class CallLog;
 	friend class CallSession;
@@ -328,6 +329,7 @@ public:
 	std::shared_ptr<AudioDevice> findAudioDeviceMatchingMsSoundCard(MSSndCard *soundCard) const;
 	std::list<std::shared_ptr<AudioDevice>> getAudioDevices() const;
 	std::list<std::shared_ptr<AudioDevice>> getExtendedAudioDevices() const;
+	std::list<std::shared_ptr<AudioDevice>> getRingingAudioDevices() const;
 
 	void setInputAudioDevice(const std::shared_ptr<AudioDevice> &audioDevice);
 	void setOutputAudioDevice(const std::shared_ptr<AudioDevice> &audioDevice);

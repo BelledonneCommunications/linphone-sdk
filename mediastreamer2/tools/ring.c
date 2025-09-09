@@ -44,7 +44,9 @@ int main(int argc, char *argv[]) {
 	if (sc == NULL) sc = ms_alsa_card_new_custom(card_id, card_id);
 #endif
 
-	r = ring_start(factory, file, 2000, sc);
+	bctbx_list_t *snd_cards = bctbx_list_new(sc);
+	r = ring_start(factory, file, 2000, snd_cards);
+	bctbx_list_free(snd_cards);
 	ms_sleep(10);
 	ring_stop(r);
 

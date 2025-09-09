@@ -164,8 +164,12 @@ static MSFilterStats *find_or_create_stats(MSFactory *factory, MSFilterDesc *des
 	if (elem == NULL) {
 		ret = ms_new0(MSFilterStats, 1);
 		ret->name = desc->name;
+		ret->nb_creations = 1;
 		factory->stats_list = bctbx_list_append(factory->stats_list, ret);
-	} else ret = (MSFilterStats *)elem->data;
+	} else {
+		ret = (MSFilterStats *)elem->data;
+		ret->nb_creations++;
+	}
 	return ret;
 }
 

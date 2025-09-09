@@ -154,6 +154,7 @@ typedef enum _MSFilterFlags MSFilterFlags;
 struct _MSFilterStats {
 	const char *name;      /*<filter name*/
 	MSUBoxPlot bp_elapsed; /* box plot for elapsed time in filter process in nanoseconds */
+	int nb_creations;
 };
 
 typedef struct _MSFilterStats MSFilterStats;

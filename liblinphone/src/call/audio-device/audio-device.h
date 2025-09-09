@@ -21,13 +21,14 @@
 #define AUDIO_DEVICE_H
 
 #include "belle-sip/object++.hh"
+#include "core/core-accessor.h"
 #include "linphone/api/c-types.h"
 #include "linphone/enums/call-enums.h"
 #include <mediastreamer2/mssndcard.h>
 
 LINPHONE_BEGIN_NAMESPACE
 
-class AudioDevice : public bellesip::HybridObject<LinphoneAudioDevice, AudioDevice> {
+class AudioDevice : public bellesip::HybridObject<LinphoneAudioDevice, AudioDevice>, public CoreAccessor {
 public:
 	enum Type {
 		Unknown = LinphoneAudioDeviceTypeUnknown,
@@ -51,7 +52,7 @@ public:
 		All = Record | Play
 	};
 
-	AudioDevice(MSSndCard *soundCard);
+	AudioDevice(std::shared_ptr<Core> core, MSSndCard *soundCard);
 	~AudioDevice();
 
 	MSSndCard *getSoundCard() const;
@@ -60,7 +61,10 @@ public:
 	const std::string &getDriverName() const;
 	const Capabilities &getCapabilities() const;
 	const Type &getType() const;
+	bool getUseForRinging() const;
 	bool followsSystemRoutingPolicy() const;
+
+	void setUseForRinging(bool useForRinging);
 
 	std::string toString() const override;
 
@@ -78,6 +82,7 @@ private:
 	std::string mDeviceName;
 	std::string mDriverName;
 	Capabilities mCapabilities;
+	bool mUseForRinging = false;
 	mutable Type mDeviceType = Unknown;
 };
 

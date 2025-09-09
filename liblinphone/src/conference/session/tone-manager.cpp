@@ -48,39 +48,34 @@ ToneManager::ToneManager(Core &core) : mCore(core) {
 }
 
 std::shared_ptr<AudioDevice> ToneManager::getOutputDevice(const shared_ptr<CallSession> &session) const {
-	std::shared_ptr<AudioDevice> device = nullptr;
+	std::shared_ptr<AudioDevice> device;
+	bctbx_list_t *sndCards = nullptr;
+
 	if (session == mSessionRinging) {
-		RingStream *ringStream = linphone_ringtoneplayer_get_stream(getCore().getCCore()->ringtoneplayer);
-		if (ringStream) {
-			MSSndCard *card = ring_stream_get_output_ms_snd_card(ringStream);
-			if (card) {
-				device = getCore().findAudioDeviceMatchingMsSoundCard(card);
-			}
+		if (const RingStream *ringStream = linphone_ringtoneplayer_get_stream(getCore().getCCore()->ringtoneplayer)) {
+			sndCards = ring_stream_get_output_ms_snd_cards(ringStream);
 		}
-	} else {
-		if (mRingStream) {
-			MSSndCard *card = ring_stream_get_output_ms_snd_card(mRingStream);
-			if (card) {
-				device = getCore().findAudioDeviceMatchingMsSoundCard(card);
-			}
-		}
+	} else if (mRingStream) {
+		sndCards = ring_stream_get_output_ms_snd_cards(mRingStream);
 	}
+
+	if (sndCards)
+		device = getCore().findAudioDeviceMatchingMsSoundCard(static_cast<MSSndCard *>(bctbx_list_get_data(sndCards)));
+	bctbx_list_free(sndCards);
 	return device;
 }
 
 void ToneManager::setOutputDevice(const shared_ptr<CallSession> &session,
                                   const std::shared_ptr<AudioDevice> &audioDevice) {
+	bctbx_list_t *sndCards = bctbx_list_new(audioDevice->getSoundCard());
 	if (mSessionRinging == session) {
-		RingStream *ringStream = linphone_ringtoneplayer_get_stream(getCore().getCCore()->ringtoneplayer);
-		if (ringStream) {
-			ring_stream_set_output_ms_snd_card(ringStream, audioDevice->getSoundCard());
+		if (RingStream *ringStream = linphone_ringtoneplayer_get_stream(getCore().getCCore()->ringtoneplayer)) {
+			ring_stream_set_output_ms_snd_cards(ringStream, sndCards);
 		}
-		return;
+	} else if (mRingStream) {
+		ring_stream_set_output_ms_snd_cards(mRingStream, sndCards);
 	}
-	if (mRingStream) {
-		ring_stream_set_output_ms_snd_card(mRingStream, audioDevice->getSoundCard());
-		return;
-	}
+	bctbx_list_free(sndCards);
 }
 
 void ToneManager::startRingbackTone() {
@@ -90,7 +85,7 @@ void ToneManager::startRingbackTone() {
 
 	if (!lc->sound_conf.play_sndcard) return;
 
-	MSSndCard *ringCard = lc->sound_conf.lsd_card ? lc->sound_conf.lsd_card : lc->sound_conf.play_sndcard;
+	bctbx_list_t *sndCards = nullptr;
 
 	std::shared_ptr<LinphonePrivate::Call> call = getCore().getCurrentCall();
 	if (call) {
@@ -99,15 +94,23 @@ void ToneManager::startRingbackTone() {
 		// If the user changed the audio device before the ringback started, the new value will be stored in the call
 		// playback card It is NULL otherwise
 		if (audioDevice) {
-			ringCard = audioDevice->getSoundCard();
+			sndCards = bctbx_list_append(sndCards, audioDevice->getSoundCard());
 		}
+	} else {
+		auto sndCard = lc->sound_conf.lsd_card ? lc->sound_conf.lsd_card : lc->sound_conf.play_sndcard;
+		if (sndCard) sndCards = bctbx_list_append(sndCards, sndCard);
 	}
 	destroyRingStream();
 
 	if (lc->sound_conf.remote_ring) {
-		ms_snd_card_set_stream_type(ringCard, MS_SND_CARD_STREAM_DTMF);
-		mRingStream = ring_start(lc->factory, lc->sound_conf.remote_ring, 2000, (lc->use_files) ? nullptr : ringCard);
+		for (auto item = sndCards; item != nullptr; item = bctbx_list_next(item)) {
+			const auto card = static_cast<MSSndCard *>(bctbx_list_get_data(item));
+			ms_snd_card_set_stream_type(card, MS_SND_CARD_STREAM_DTMF);
+		}
+		mRingStream = ring_start(lc->factory, lc->sound_conf.remote_ring, 2000, (lc->use_files) ? nullptr : sndCards);
 	}
+
+	bctbx_list_free(sndCards);
 }
 
 void ToneManager::stopRingbackTone() {
@@ -133,11 +136,16 @@ void ToneManager::startRingtone() {
 	lInfo() << "[ToneManager] " << __func__;
 
 	mStats.number_of_startRingtone++;
-	MSSndCard *ringcard = lc->sound_conf.lsd_card ? lc->sound_conf.lsd_card : lc->sound_conf.ring_sndcard;
-	if (ringcard) {
-		ms_snd_card_set_stream_type(ringcard, MS_SND_CARD_STREAM_RING);
-		linphone_ringtoneplayer_start(lc->factory, lc->ringtoneplayer, ringcard, lc->sound_conf.local_ring, 2000);
+
+	bctbx_list_t *sndCards = linphone_core_get_all_ringing_snd_cards(lc);
+	if (bctbx_list_size(sndCards) > 0) {
+		for (auto item = sndCards; item != nullptr; item = bctbx_list_next(item)) {
+			const auto card = static_cast<MSSndCard *>(bctbx_list_get_data(item));
+			ms_snd_card_set_stream_type(card, MS_SND_CARD_STREAM_RING);
+		}
+		linphone_ringtoneplayer_start(lc->factory, lc->ringtoneplayer, sndCards, lc->sound_conf.local_ring, 2000);
 	}
+	bctbx_list_free(sndCards);
 }
 
 void ToneManager::stopRingtone() {
@@ -184,7 +192,8 @@ void ToneManager::playDtmf(char dtmf, int duration) {
 	lInfo() << "[ToneManager] " << __func__;
 	LinphoneCore *lc = getCore().getCCore();
 
-	MSSndCard *card = linphone_core_in_call(lc) ? lc->sound_conf.play_sndcard : lc->sound_conf.ring_sndcard;
+	MSSndCard *card =
+	    linphone_core_in_call(lc) ? lc->sound_conf.play_sndcard : linphone_core_get_first_ringing_snd_card(lc);
 	MSFilter *f = getAudioResource(ToneGenerator, card, true);
 
 	if (f == nullptr) {
@@ -222,7 +231,7 @@ void ToneManager::startDtmfStream() {
 	}
 
 	/*make sure ring stream is started*/
-	getAudioResource(ToneGenerator, lc->sound_conf.ring_sndcard, true);
+	getAudioResource(ToneGenerator, linphone_core_get_first_ringing_snd_card(lc), true);
 
 	mDtmfStreamStarted = true;
 }
@@ -346,9 +355,20 @@ MSFilter *ToneManager::getAudioResource(AudioResourceType rtype, MSSndCard *card
 		if (rtype == LocalPlayer) audioResource = stream->local_player;
 	}
 	if (!audioResource) {
-		if (card && mRingStream && card != mRingStream->card) {
-			ring_stop(mRingStream);
-			mRingStream = nullptr;
+		if (card && mRingStream) {
+			bool shouldStopRingStream = false;
+			bctbx_list_t *cards = ring_stream_get_output_ms_snd_cards(mRingStream);
+			const size_t nbCards = bctbx_list_size(cards);
+			if (nbCards > 1) shouldStopRingStream = true;
+			else if (nbCards == 1) {
+				auto ringStreamCard = static_cast<MSSndCard *>(bctbx_list_get_data(cards));
+				if (card != ringStreamCard) shouldStopRingStream = true;
+			}
+			bctbx_list_free(cards);
+			if (shouldStopRingStream) {
+				ring_stop(mRingStream);
+				mRingStream = nullptr;
+			}
 		}
 		if (mRingStream == nullptr) {
 #if TARGET_OS_IPHONE
@@ -362,14 +382,16 @@ MSFilter *ToneManager::getAudioResource(AudioResourceType rtype, MSSndCard *card
 			if (!lc->use_files) {
 				ringcard = lc->sound_conf.lsd_card ? lc->sound_conf.lsd_card
 				           : card                  ? card
-				                                   : lc->sound_conf.ring_sndcard;
+				                                   : linphone_core_get_first_ringing_snd_card(lc);
 				if (ringcard == nullptr) return nullptr;
 				ms_snd_card_set_stream_type(ringcard, MS_SND_CARD_STREAM_DTMF);
 			}
 			if (!create) return nullptr;
 
-			ringStream = mRingStream = ring_start(
-			    lc->factory, nullptr, 0, ringcard); // passing a nullptr ringcard if core if lc->use_files is enabled
+			bctbx_list_t *cards = ringcard ? bctbx_list_new(ringcard) : nullptr;
+			ringStream = mRingStream =
+			    ring_start(lc->factory, nullptr, 0, cards); // passing a nullptr cards if lc->use_files is enabled
+			bctbx_list_free(cards);
 			ms_filter_call_method(mRingStream->gendtmf, MS_DTMF_GEN_SET_DEFAULT_AMPLITUDE, &amp);
 			/* A ring stream was started in the purpose of playing a tone. Make sure it is destroyed once the tone is
 			 * finished. */

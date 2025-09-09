@@ -1437,7 +1437,7 @@ std::shared_ptr<AudioDevice> Call::getOutputAudioDevice() const {
 		case CallSession::State::OutgoingRinging:
 		case CallSession::State::Pausing:
 		case CallSession::State::IncomingReceived: {
-			/* In these states, the AudioDevice may be used by the ToneManager, transciently, to play a waiting
+			/* In these states, the AudioDevice may be used by the ToneManager, transiently, to play a waiting
 			 * tone indication. */
 			auto toneManagerDevice = getCore()->getPrivate()->getToneManager().getOutputDevice(getActiveSession());
 			if (toneManagerDevice) return toneManagerDevice;

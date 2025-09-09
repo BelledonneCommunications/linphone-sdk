@@ -136,7 +136,6 @@ struct net_state {
 };
 
 struct sound_config {
-	struct _MSSndCard *ring_sndcard;  /* the playback sndcard currently used */
 	struct _MSSndCard *play_sndcard;  /* the playback sndcard currently used */
 	struct _MSSndCard *capt_sndcard;  /* the capture sndcard currently used */
 	struct _MSSndCard *media_sndcard; /* the media sndcard currently used */

@@ -3381,8 +3381,10 @@ LINPHONE_PUBLIC float linphone_core_get_playback_gain_db(LinphoneCore *core);
  * @param core #LinphoneCore object @notnil
  * @return The name of the currently assigned sound device for ringing. @maybenil
  * @ingroup media_parameters
+ * @deprecated 29/08/2025 Use a combination of linphone_core_get_extended_audio_devices() and
+ * linphone_audio_device_get_use_for_ringing() instead.
  **/
-LINPHONE_PUBLIC const char *linphone_core_get_ringer_device(LinphoneCore *core);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED const char *linphone_core_get_ringer_device(LinphoneCore *core);
 
 /**
  * Gets the name of the currently assigned sound device for playback.
@@ -3418,8 +3420,11 @@ LINPHONE_PUBLIC const char *linphone_core_get_media_device(LinphoneCore *core);
  * @param devid The device name as returned by linphone_core_get_sound_devices() @maybenil
  * @return 0
  * @ingroup media_parameters
+ * @deprecated 29/08/2025 Use a combination of linphone_core_get_extended_audio_devices() and
+ * linphone_audio_device_set_use_for_ringing() instead.
  **/
-LINPHONE_PUBLIC LinphoneStatus linphone_core_set_ringer_device(LinphoneCore *core, const char *devid);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_set_ringer_device(LinphoneCore *core,
+                                                                                   const char *devid);
 
 /**
  * Sets the sound device used for playback.

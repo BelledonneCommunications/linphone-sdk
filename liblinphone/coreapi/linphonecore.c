@@ -1637,23 +1637,20 @@ static void sound_config_read(LinphoneCore *lc) {
 	build_sound_devices_table(lc);
 
 #if TARGET_OS_IPHONE
-	tmpbuf = "AQ: Audio Queue Device";
 	tmpstr = "AU: Audio Unit Receiver";
 #else
-	tmpbuf = NULL;
 	tmpstr = NULL;
 #endif
 	devid = linphone_config_get_string(lc->config, "sound", "playback_dev_id", tmpstr);
 	linphone_core_set_playback_device(lc, devid);
-
-	devid = linphone_config_get_string(lc->config, "sound", "ringer_dev_id", tmpbuf);
-	linphone_core_set_ringer_device(lc, devid);
 
 	devid = linphone_config_get_string(lc->config, "sound", "capture_dev_id", tmpstr);
 	linphone_core_set_capture_device(lc, devid);
 
 	devid = linphone_config_get_string(lc->config, "sound", "media_dev_id", NULL);
 	linphone_core_set_media_device(lc, devid);
+
+	L_GET_PRIVATE_FROM_C_OBJECT(lc)->loadRingingAudioDevicesConfig();
 
 	// Wait to have restored previous sound cards to notify list has been updated
 	// Otherwise app won't be able to change audio device in callback
@@ -5604,10 +5601,11 @@ int linphone_core_get_media_level(LinphoneCore *lc) {
 }
 
 void linphone_core_set_ring_level(LinphoneCore *lc, int level) {
-	MSSndCard *sndcard;
 	lc->sound_conf.ring_lev = (char)level;
-	sndcard = lc->sound_conf.ring_sndcard;
-	if (sndcard) ms_snd_card_set_level(sndcard, MS_SND_CARD_PLAYBACK, level);
+
+	for (const auto card : L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAllRingingSoundCardsOrLsdCard()) {
+		ms_snd_card_set_level(card, MS_SND_CARD_PLAYBACK, level);
+	}
 }
 
 void linphone_core_set_mic_gain_db(LinphoneCore *lc, float gaindb) {
@@ -5688,7 +5686,7 @@ void linphone_core_set_media_level(LinphoneCore *lc, int level) {
 	if (sndcard) ms_snd_card_set_level(sndcard, MS_SND_CARD_PLAYBACK, level);
 }
 
-static MSSndCard *get_card_from_string_id(const char *devid, unsigned int cap, MSFactory *f) {
+MSSndCard *get_card_from_string_id(const char *devid, unsigned int cap, MSFactory *f) {
 	MSSndCard *sndcard = NULL;
 	if (devid != NULL) {
 		sndcard = ms_snd_card_manager_get_card_with_capabilities(ms_factory_get_snd_card_manager(f), devid, cap);
@@ -5724,14 +5722,19 @@ bool_t linphone_core_sound_device_can_playback(LinphoneCore *lc, const char *dev
 }
 
 LinphoneStatus linphone_core_set_ringer_device(LinphoneCore *lc, const char *devid) {
-	MSSndCard *card = get_card_from_string_id(devid, MS_SND_CARD_CAP_PLAYBACK, lc->factory);
-	if (lc->sound_conf.ring_sndcard) {
-		ms_snd_card_unref(lc->sound_conf.ring_sndcard);
-		lc->sound_conf.ring_sndcard = NULL;
+	for (const auto &audioDevice : L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getExtendedAudioDevices()) {
+		audioDevice->setUseForRinging(false);
 	}
-	if (card) lc->sound_conf.ring_sndcard = ms_snd_card_ref(card);
-	if (card && (linphone_core_ready(lc) || !devid || strcmp(devid, ms_snd_card_get_string_id(card)) != 0))
-		linphone_config_set_string(lc->config, "sound", "ringer_dev_id", ms_snd_card_get_string_id(card));
+
+	MSSndCard *card = get_card_from_string_id(devid, MS_SND_CARD_CAP_PLAYBACK, lc->factory);
+	if (card) {
+		for (const auto &audioDevice : L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getExtendedAudioDevices()) {
+			if (audioDevice->getId() == ms_snd_card_get_string_id(card)) {
+				audioDevice->setUseForRinging(true);
+				break;
+			}
+		}
+	}
 	return 0;
 }
 
@@ -5784,7 +5787,11 @@ LinphoneStatus linphone_core_set_input_audio_device_by_id(LinphoneCore *lc, cons
 }
 
 const char *linphone_core_get_ringer_device(LinphoneCore *lc) {
-	if (lc->sound_conf.ring_sndcard) return ms_snd_card_get_string_id(lc->sound_conf.ring_sndcard);
+	for (const auto &audioDevice : L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getExtendedAudioDevices()) {
+		if (audioDevice->getUseForRinging()) {
+			return audioDevice->getId().c_str();
+		}
+	}
 	return NULL;
 }
 
@@ -5841,21 +5848,20 @@ void linphone_core_set_default_sound_devices(LinphoneCore *lc) {
 
 void linphone_core_reload_sound_devices(LinphoneCore *lc) {
 	CoreLogContextualizer logContextualizer(lc);
-	const char *ringer;
 	const char *playback;
 	const char *capture;
 	const char *output_dev_id;
 	const char *input_dev_id;
-	char *ringer_copy = NULL;
 	char *playback_copy = NULL;
 	char *capture_copy = NULL;
 	char *output_dev_id_copy = NULL;
 	char *input_dev_id_copy = NULL;
+	std::list<std::string> ringingDeviceIds;
 
 	// Get current selection before reloading
-	ringer = linphone_core_get_ringer_device(lc);
-	if (ringer != NULL) {
-		ringer_copy = ms_strdup(ringer);
+	auto ringingAudioDevices = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getRingingAudioDevices();
+	for (auto ringingAudioDevice : ringingAudioDevices) {
+		ringingDeviceIds.push_back(ringingAudioDevice->getId());
 	}
 	playback = linphone_core_get_playback_device(lc);
 	if (playback != NULL) {
@@ -5885,9 +5891,11 @@ void linphone_core_reload_sound_devices(LinphoneCore *lc) {
 	build_sound_devices_table(lc);
 
 	// Set selection
-
-	linphone_core_set_ringer_device(lc, ringer_copy);
-	if (ringer_copy != NULL) ms_free(ringer_copy);
+	for (auto audioDevice : L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getExtendedAudioDevices()) {
+		for (auto ringingDeviceId : ringingDeviceIds) {
+			if (audioDevice->getId() == ringingDeviceId) audioDevice->setUseForRinging(true);
+		}
+	}
 	linphone_core_set_playback_device(lc, playback_copy);
 	if (playback_copy != NULL) ms_free(playback_copy);
 	linphone_core_set_capture_device(lc, capture_copy);
@@ -6047,18 +6055,30 @@ notify_end_of_ringtone(BCTBX_UNUSED(LinphoneRingtonePlayer *rp), void *user_data
 LinphoneStatus
 linphone_core_preview_ring(LinphoneCore *lc, const char *ring, LinphoneCoreCbFunc end_of_ringtone, void *userdata) {
 	int err;
-	MSSndCard *ringcard = lc->sound_conf.lsd_card ? lc->sound_conf.lsd_card : lc->sound_conf.ring_sndcard;
+	bctbx_list_t *snd_cards = linphone_core_get_all_ringing_snd_cards(lc);
 	if (linphone_ringtoneplayer_is_started(lc->ringtoneplayer)) {
 		ms_warning("Cannot start ring now,there's already a ring being played");
 		return -1;
 	}
 	lc_callback_obj_init(&lc->preview_finished_cb, end_of_ringtone, userdata);
-	err = linphone_ringtoneplayer_start_with_cb(lc->factory, lc->ringtoneplayer, ringcard, ring, -1,
+	err = linphone_ringtoneplayer_start_with_cb(lc->factory, lc->ringtoneplayer, snd_cards, ring, -1,
 	                                            notify_end_of_ringtone, (void *)lc);
+	bctbx_list_free(snd_cards);
 	if (err) {
 		L_GET_CPP_PTR_FROM_C_OBJECT(lc)->doLater([lc]() { lc_callback_obj_invoke(&lc->preview_finished_cb, lc); });
 	}
 	return err;
+}
+
+bctbx_list_t *linphone_core_get_all_ringing_snd_cards(LinphoneCore *lc) {
+	return L_GET_C_LIST_FROM_CPP_LIST(L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAllRingingSoundCardsOrLsdCard());
+}
+
+MSSndCard *linphone_core_get_first_ringing_snd_card(LinphoneCore *lc) {
+	for (const auto &audioDevice : L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getExtendedAudioDevices()) {
+		if (audioDevice->getUseForRinging()) return audioDevice->getSoundCard();
+	}
+	return nullptr;
 }
 
 MSFactory *linphone_core_get_ms_factory(LinphoneCore *lc) {
@@ -7328,10 +7348,6 @@ void rtp_config_uninit(LinphoneCore *lc) {
 static void sound_config_uninit(LinphoneCore *lc) {
 	sound_config_t *config = &lc->sound_conf;
 	ms_free((void *)config->cards);
-	if (config->ring_sndcard) {
-		ms_snd_card_unref(config->ring_sndcard);
-		config->ring_sndcard = NULL;
-	}
 	if (config->media_sndcard) {
 		ms_snd_card_unref(config->media_sndcard);
 		config->media_sndcard = NULL;
@@ -7503,10 +7519,6 @@ bool_t linphone_core_get_keep_stream_direction_for_rejected_stream(LinphoneCore 
 void linphone_core_set_use_files(LinphoneCore *lc, bool_t yesno) {
 	lc->use_files = yesno;
 	if (yesno) {
-		if (lc->sound_conf.ring_sndcard) {
-			ms_snd_card_unref(lc->sound_conf.ring_sndcard);
-			lc->sound_conf.ring_sndcard = NULL;
-		}
 		if (lc->sound_conf.play_sndcard) {
 			ms_snd_card_unref(lc->sound_conf.play_sndcard);
 			lc->sound_conf.play_sndcard = NULL;

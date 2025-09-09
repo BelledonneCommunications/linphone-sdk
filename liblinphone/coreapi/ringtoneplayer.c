@@ -28,9 +28,12 @@
 #include "TargetConditionals.h"
 #endif
 
-LinphoneStatus linphone_ringtoneplayer_start(
-    MSFactory *factory, LinphoneRingtonePlayer *rp, MSSndCard *card, const char *ringtone, int loop_pause_ms) {
-	return linphone_ringtoneplayer_start_with_cb(factory, rp, card, ringtone, loop_pause_ms, NULL, NULL);
+LinphoneStatus linphone_ringtoneplayer_start(MSFactory *factory,
+                                             LinphoneRingtonePlayer *rp,
+                                             const bctbx_list_t *snd_cards,
+                                             const char *ringtone,
+                                             int loop_pause_ms) {
+	return linphone_ringtoneplayer_start_with_cb(factory, rp, snd_cards, ringtone, loop_pause_ms, NULL, NULL);
 }
 
 #if TARGET_OS_IPHONE
@@ -47,7 +50,7 @@ void linphone_ringtoneplayer_destroy(LinphoneRingtonePlayer *rp) {
 
 int linphone_ringtoneplayer_start_with_cb(BCTBX_UNUSED(MSFactory *f),
                                           LinphoneRingtonePlayer *rp,
-                                          BCTBX_UNUSED(MSSndCard *card),
+                                          BCTBX_UNUSED(const bctbx_list_t *snd_cards),
                                           const char *ringtone,
                                           int loop_pause_ms,
                                           LinphoneRingtonePlayerFunc end_of_ringtone,
@@ -103,7 +106,7 @@ static void notify_end_of_ringtone(void *ud, BCTBX_UNUSED(MSFilter *f), unsigned
 
 LinphoneStatus linphone_ringtoneplayer_start_with_cb(MSFactory *factory,
                                                      LinphoneRingtonePlayer *rp,
-                                                     MSSndCard *card,
+                                                     const bctbx_list_t *snd_cards,
                                                      const char *ringtone,
                                                      int loop_pause_ms,
                                                      LinphoneRingtonePlayerFunc end_of_ringtone,
@@ -112,11 +115,11 @@ LinphoneStatus linphone_ringtoneplayer_start_with_cb(MSFactory *factory,
 		ms_message("the local ringtone is already started");
 		return 2;
 	}
-	if (card != NULL && ringtone) {
+	if ((bctbx_list_size(snd_cards) > 0) && ringtone) {
 		ms_message("Starting local ringtone...");
 		rp->end_of_ringtone = end_of_ringtone;
 		rp->end_of_ringtone_ud = user_data;
-		rp->ringstream = ring_start_with_cb(factory, ringtone, loop_pause_ms, card, notify_end_of_ringtone, rp);
+		rp->ringstream = ring_start_with_cb(factory, ringtone, loop_pause_ms, snd_cards, notify_end_of_ringtone, rp);
 		return rp->ringstream != NULL ? 0 : 1;
 	} else if (ringtone) {
 		ms_error("Can't start local ringtone without a MSSndCard!");

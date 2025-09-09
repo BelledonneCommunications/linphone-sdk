@@ -1435,6 +1435,7 @@ bool Core::isFriendListSubscriptionEnabled() const {
 // ---------------------------------------------------------------------------
 
 void CorePrivate::computeAudioDevicesList() {
+	L_Q();
 	audioDevices.clear();
 
 	MSSndCardManager *snd_card_manager = ms_factory_get_snd_card_manager(getCCore()->factory);
@@ -1442,7 +1443,86 @@ void CorePrivate::computeAudioDevicesList() {
 
 	for (const bctbx_list_t *it = list; it != nullptr; it = bctbx_list_next(it)) {
 		MSSndCard *card = static_cast<MSSndCard *>(bctbx_list_get_data(it));
-		audioDevices.push_back((new AudioDevice(card))->toSharedPtr());
+		audioDevices.push_back((new AudioDevice(q->getSharedFromThis(), card))->toSharedPtr());
+	}
+}
+
+std::list<MSSndCard *> CorePrivate::getAllRingingSoundCardsOrLsdCard() {
+	L_Q();
+	LinphoneCore *lc = L_GET_C_BACK_PTR(q);
+	if (lc->sound_conf.lsd_card) return {lc->sound_conf.lsd_card};
+	return getAllRingingSoundCards();
+}
+
+std::list<MSSndCard *> CorePrivate::getAllRingingSoundCards() {
+	L_Q();
+	std::list<MSSndCard *> sndCards;
+	for (const auto &audioDevice : q->getExtendedAudioDevices()) {
+		if (audioDevice->getUseForRinging()) sndCards.push_back(audioDevice->getSoundCard());
+	}
+	return sndCards;
+}
+
+std::string CorePrivate::getRingerDevIdKeyForConfig(int index) {
+	ostringstream keyString;
+	keyString << "ringer_dev_id";
+	if (index > 1) keyString << index;
+	return keyString.str();
+}
+
+void CorePrivate::loadRingingAudioDevicesConfig() {
+	L_Q();
+	auto lc = L_GET_C_BACK_PTR(q);
+
+	std::list<std::string> ringingAudioDevicesIds;
+	for (int i = 1; i <= MS_RING_STREAM_MAX_SND_CARDS; i++) {
+		auto devid = linphone_config_get_string(lc->config, "sound", getRingerDevIdKeyForConfig(i).c_str(), nullptr);
+		if (devid) ringingAudioDevicesIds.push_back(devid);
+	}
+
+	if (ringingAudioDevicesIds.empty()) {
+		// No audio device has the use_for_ringing attribute, get the default card.
+		char *defaultDevId = nullptr;
+#if TARGET_OS_IPHONE
+		defaultDevId = "AQ: Audio Queue Device";
+#endif
+		MSSndCard *card = get_card_from_string_id(defaultDevId, MS_SND_CARD_CAP_PLAYBACK, lc->factory);
+		if (card) ringingAudioDevicesIds.push_back(ms_snd_card_get_string_id(card));
+	}
+
+	for (const auto &audioDevice : L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getExtendedAudioDevices()) {
+		audioDevice->setUseForRinging(false);
+	}
+
+	for (const auto &devid : ringingAudioDevicesIds) {
+		MSSndCard *card = get_card_from_string_id(devid.c_str(), MS_SND_CARD_CAP_PLAYBACK, lc->factory);
+		if (card) {
+			for (const auto &audioDevice : L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getExtendedAudioDevices()) {
+				if (audioDevice->getId() == devid) {
+					audioDevice->setUseForRinging(true);
+					break;
+				}
+			}
+		}
+	}
+}
+
+void CorePrivate::saveRingingAudioDevicesConfig() {
+	L_Q();
+	auto lc = L_GET_C_BACK_PTR(q);
+
+	if (linphone_core_ready(lc)) {
+		int i = 1;
+		for (const auto &audioDevice : q->getExtendedAudioDevices()) {
+			if (audioDevice->getUseForRinging()) {
+				linphone_config_set_string(lc->config, "sound", getRingerDevIdKeyForConfig(i).c_str(),
+				                           audioDevice->getId().c_str());
+				i++;
+			}
+		}
+		for (; i <= MS_RING_STREAM_MAX_SND_CARDS; i++) {
+			linphone_config_clean_entry(lc->config, "sound", getRingerDevIdKeyForConfig(i).c_str());
+		}
 	}
 }
 
@@ -1547,6 +1627,15 @@ list<shared_ptr<AudioDevice>> Core::getAudioDevices() const {
 list<std::shared_ptr<AudioDevice>> Core::getExtendedAudioDevices() const {
 	L_D();
 	return d->audioDevices;
+}
+
+std::list<std::shared_ptr<AudioDevice>> Core::getRingingAudioDevices() const {
+	L_D();
+	std::list<std::shared_ptr<AudioDevice>> ringingAudioDevices;
+	for (auto audioDevice : d->audioDevices) {
+		if (audioDevice->getUseForRinging()) ringingAudioDevices.push_back(audioDevice);
+	}
+	return ringingAudioDevices;
 }
 
 void Core::setInputAudioDevice(const std::shared_ptr<AudioDevice> &audioDevice) {

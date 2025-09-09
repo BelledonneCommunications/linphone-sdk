@@ -47,41 +47,64 @@
 extern "C" {
 #endif
 
+#define MS_RING_STREAM_MAX_SND_CARDS 3
+
 /**
  * @addtogroup ring_api
  * @{
  **/
 
 struct _RingStream {
-	MSSndCard *card;
+	MSSndCard *card[MS_RING_STREAM_MAX_SND_CARDS];
 	MSTicker *ticker;
 	MSFilter *source;
 	MSFilter *gendtmf;
 	MSFilter *write_resampler;
-	MSFilter *sndwrite;
+	MSFilter *sndwrite[MS_RING_STREAM_MAX_SND_CARDS];
 	MSFilter *decoder;
+	MSFilter *sndwrite_tee;
 	int srcpin;
 };
 
 typedef struct _RingStream RingStream;
 
-MS2_PUBLIC RingStream *ring_start(MSFactory *factory, const char *file, int interval, MSSndCard *sndcard);
-MS2_PUBLIC RingStream *ring_start_with_cb(
-    MSFactory *factory, const char *file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void *user_data);
+MS2_PUBLIC RingStream *ring_start(MSFactory *factory, const char *file, int interval, const bctbx_list_t *snd_cards);
+MS2_PUBLIC RingStream *ring_start_with_cb(MSFactory *factory,
+                                          const char *file,
+                                          int interval,
+                                          const bctbx_list_t *snd_cards,
+                                          MSFilterNotifyFunc func,
+                                          void *user_data);
 MS2_PUBLIC void ring_stop(RingStream *stream);
 
 /**
  * Asks the ring filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
  * @param[in] stream The RingStream object
- * @param[in] sndcard_playback The wanted audio output soundcard
+ * @param[in] snd_card The wanted audio output soundcard
+ * @deprecated 29/08/2025 Use ring_stream_set_output_ms_snd_cards() instead
  */
-MS2_PUBLIC void ring_stream_set_output_ms_snd_card(RingStream *stream, MSSndCard *sndcard_playback);
+MS2_PUBLIC MS2_DEPRECATED void ring_stream_set_output_ms_snd_card(RingStream *stream, MSSndCard *snd_card);
 
 /**
- * Retrieve the current sound card from the audio playback filter (currently only used for AAudio and OpenSLES)
- * @param[in] stream The AudioStream object
+ * Retrieve the current sound card from the ring filter (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The RingStream object
+ * @deprecated 29/08/2025 Use ring_stream_get_output_ms_snd_cards() instead.
  */
-MS2_PUBLIC MSSndCard *ring_stream_get_output_ms_snd_card(RingStream *stream);
+MS2_PUBLIC MS2_DEPRECATED MSSndCard *ring_stream_get_output_ms_snd_card(const RingStream *stream);
+
+/**
+ * Asks the ring filter to route to the selected sound cards (currently only used for AAudio and OpenSLES)
+ * @param stream The RingStream object
+ * @param snd_cards The list of wanted audio output soundcards
+ */
+MS2_PUBLIC void ring_stream_set_output_ms_snd_cards(RingStream *stream, const bctbx_list_t *snd_cards);
+
+/**
+ * Retrieve the current list of sound cards from the ring filter (currently only used for AAudio and OpenSLES).
+ * @param stream The RingStream object
+ * @return The current list of sound cards from the ring filter
+ */
+MS2_PUBLIC bctbx_list_t *ring_stream_get_output_ms_snd_cards(const RingStream *stream);
 
 /**
  * @}

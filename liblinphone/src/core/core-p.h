@@ -182,6 +182,10 @@ public:
 	void stopEphemeralMessageTimer();
 
 	void computeAudioDevicesList();
+	std::list<MSSndCard *> getAllRingingSoundCardsOrLsdCard();
+	std::list<MSSndCard *> getAllRingingSoundCards();
+	void loadRingingAudioDevicesConfig();
+	void saveRingingAudioDevicesConfig();
 
 	/* called by linphone_core_set_video_device() to update the video device in the running call or conference.*/
 	void updateVideoDevice();
@@ -205,6 +209,7 @@ private:
 	void stopStartupBgTask();
 	bool isInBackground = false;
 	static int ephemeralMessageTimerExpired(void *data, unsigned int revents);
+	static std::string getRingerDevIdKeyForConfig(int index);
 
 	std::list<CoreListener *> listeners;
 

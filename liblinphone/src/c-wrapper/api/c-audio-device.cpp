@@ -53,6 +53,14 @@ LinphoneAudioDeviceType linphone_audio_device_get_type(const LinphoneAudioDevice
 	return static_cast<LinphoneAudioDeviceType>(AudioDevice::toCpp(audioDevice)->getType());
 }
 
+bool_t linphone_audio_device_get_use_for_ringing(const LinphoneAudioDevice *audio_device) {
+	return static_cast<bool_t>(AudioDevice::toCpp(audio_device)->getUseForRinging());
+}
+
+void linphone_audio_device_set_use_for_ringing(LinphoneAudioDevice *audio_device, bool_t use_for_ringing) {
+	AudioDevice::toCpp(audio_device)->setUseForRinging(use_for_ringing != FALSE);
+}
+
 bool_t linphone_audio_device_has_capability(const LinphoneAudioDevice *audioDevice,
                                             const LinphoneAudioDeviceCapabilities capability) {
 	return static_cast<bool_t>(linphone_audio_device_get_capabilities(audioDevice) & capability);
