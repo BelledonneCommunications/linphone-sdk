@@ -87,7 +87,8 @@ public:
 	virtual HRESULT setMediaConfiguration(GUID videoFormat,
 	                                      UINT32 frameWidth,
 	                                      UINT32 frameHeight,
-	                                      float FPS); // Set internal data and do updates
+	                                      float FPS,
+	                                      bool_t isInit); // Set internal data and do updates
 	virtual HRESULT restartWithNewConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps);
 	void addToBlacklist(const VideoFormat &format);
 	bool_t isTimeToSend(uint64_t tickerTime); // Wheck if we have to put the frame in ms queue
@@ -153,7 +154,7 @@ public:
 
 	//----------------------------------------  Actions
 
-	HRESULT setMediaConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps);
+	HRESULT setMediaConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps, bool_t isInit);
 	concurrency::task<void>
 	startReaderAsync(); // Starts reading frames from the current reader. Must be called from the UI thread.
 	concurrency::task<void> stopReaderAsync();   // Stops reading from the frame reader and disposes of the reader
@@ -187,6 +188,7 @@ private:
 class MSMFoundationDesktopImpl : public MSMFoundationCap, public IMFSourceReaderCallback {
 	//----------------------------------------  Variables
 	CONDITION_VARIABLE mIsFlushed;
+	HANDLE mReadSample;
 	long mReferenceCount;
 	IMFSourceReader *mSourceReader; // The source
 	unsigned int mPlaneSize;        // Optimization to avoid to compute it on each frame
@@ -208,7 +210,8 @@ public:
 	HRESULT setMediaConfiguration(GUID videoFormat,
 	                              UINT32 frameWidth,
 	                              UINT32 frameHeight,
-	                              float FPS);          // Set internal data and do updates
+	                              float FPS,
+	                              bool_t isInit);      // Set internal data and do updates
 	HRESULT setCaptureDevice(const std::string &name); // Set the current Capture device name
 	HRESULT setSourceReader(IMFActivate *device);      // Set the reader source
 	HRESULT restartWithNewConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFPS);

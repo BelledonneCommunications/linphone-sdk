@@ -56,13 +56,14 @@ public:
 	                             float *fps) { // Return Best Format from parameters
 		int roundedFps = (int)(*fps * 100.0);
 		if (mSortedList.size() > 0) {
+			// Note: upper_bound is ">"
 			auto mediaWidth = mSortedList.upper_bound(*width);
 			if (mediaWidth != mSortedList.begin()) --mediaWidth;
 			auto mediaHeight = mediaWidth->second.upper_bound(*height);
 			if (mediaHeight != mediaWidth->second.begin()) --mediaHeight;
-			auto mediaFps = mediaHeight->second.upper_bound(roundedFps); // Try to get more FPS than target
-			if (mediaFps != mediaHeight->second.begin())                 // fps <= target or fps[0]
-				--mediaFps;
+			// Try to get more FPS than target in order to match MSFrameRateController
+			auto mediaFps = mediaHeight->second.upper_bound(roundedFps);
+			if (mediaFps == mediaHeight->second.end()) --mediaFps; // ensure to have a value
 
 			auto mediaVideo = mediaFps->second.find(*videoFormat);
 			if (mediaVideo == mediaFps->second.end())
@@ -82,15 +83,16 @@ public:
 			}
 		} else return nullptr;
 	}
-	std::string toString() {
+	std::string toString(bool isLog = true) {
 		std::string displayStr;
 		for (auto width : mSortedList) {
 			for (auto height : width.second) {
 				for (auto fps : height.second) {
 					for (auto video : fps.second) {
-						displayStr += std::to_string(width.first) + " | " + std::to_string(height.first) + " | " +
-						              std::to_string(fps.first / 100.0) + std::string("fps | ") +
-						              MSMFoundationCap::pixFmtToString(video.first) + std::string("\n");
+						displayStr += (isLog ? "[MSMFoundationCap] " : "") + std::to_string(width.first) + " | " +
+						              std::to_string(height.first) + " | " + std::to_string(fps.first / 100.0) +
+						              std::string("fps | ") + MSMFoundationCap::pixFmtToString(video.first) +
+						              std::string("\n");
 					}
 				}
 			}
@@ -155,7 +157,7 @@ void MSMFoundationCap::safeRelease() {
 void MSMFoundationCap::setVSize(MSVideoSize vsize) {
 	VideoFormat requestedFormat(vsize.width, vsize.height, (int)mFps, mVideoFormat);
 	if (!requestedFormat.isBlacklisted(mVideoFormatBlacklist))
-		setMediaConfiguration(mVideoFormat, vsize.width, vsize.height, mFps);
+		setMediaConfiguration(mVideoFormat, vsize.width, vsize.height, mFps, FALSE);
 }
 
 void MSMFoundationCap::setWebCam(MSWebCam *webcam) {
@@ -167,8 +169,8 @@ void MSMFoundationCap::setFps(const float &pFps) {
 	ms_video_init_framerate_controller(
 	    &mFramerateController,
 	    pFps); // Set the controller to the target FPS and then try to find a format to fit the configuration
-	setMediaConfiguration(mVideoFormat, mWidth, mHeight,
-	                      pFps); // mFps can change here, but don't use it to the controller
+	setMediaConfiguration(mVideoFormat, mWidth, mHeight, pFps,
+	                      FALSE); // mFps can change here, but don't use it to the controller
 	ms_average_fps_init(&mAvgFps, "[MSMFoundationCap] fps=%f");
 }
 
@@ -219,7 +221,7 @@ void MSMFoundationCap::feed(MSFilter *filter) {
 void MSMFoundationCap::start() {
 }
 
-void MSMFoundationCap::stop(const int &pWaitStop) {
+void MSMFoundationCap::stop(const int &) {
 }
 
 void MSMFoundationCap::deactivate() {
@@ -227,7 +229,8 @@ void MSMFoundationCap::deactivate() {
 
 //-------------------------------------------------------------------------------------------------------------
 
-HRESULT MSMFoundationCap::setMediaConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps) {
+HRESULT MSMFoundationCap::setMediaConfiguration(
+    GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps, bool_t isInit) {
 	return S_OK;
 }
 
@@ -250,7 +253,7 @@ MSMFoundationCap::restartWithNewConfiguration(GUID videoFormat, UINT32 frameWidt
 void MSMFoundationCap::addToBlacklist(const VideoFormat &format) {
 	mVideoFormatBlacklist.push_back(format);
 	ms_message("[MSMFoundationCap] This requested video format is not supported by the camera. Add it into the "
-	           "blacklist : %dx%d : %s, %f fps",
+	           "blacklist : %dx%d : %s, %d fps",
 	           format.mWidth, format.mHeight, pixFmtToString(format.mVideoFormat), format.mFps);
 }
 
@@ -617,6 +620,21 @@ public:
 			}
 		}
 	}
+	bool isEqual(MediaFrameFormat ^ a, MediaFrameFormat ^ b) {
+		if (!a || !b) return false;
+		if (a->VideoFormat->Width != b->VideoFormat->Width || a->VideoFormat->Height != b->VideoFormat->Height)
+			return false;
+		int aFramerate =
+		    (int)((a->FrameRate ? static_cast<float>(a->FrameRate->Numerator) / a->FrameRate->Denominator : 0.0f) *
+		          10.0f);
+		int bFramerate =
+		    (int)((b->FrameRate ? static_cast<float>(b->FrameRate->Numerator) / b->FrameRate->Denominator : 0.0f) *
+		          10.0f);
+
+		if (aFramerate != bFramerate) return false;
+		if (std::wstring(a->Subtype->Data()) != std::wstring(b->Subtype->Data())) return false;
+		return true;
+	}
 };
 
 MSMFoundationUwpImpl::MSMFoundationUwpImpl() : MSMFoundationCap() {
@@ -662,10 +680,11 @@ void MSMFoundationUwpImpl::updateFrameSource() {
 				break;
 			}
 		}
-		if (mSource == nullptr) {
+		bool_t isInit = (mSource == nullptr);
+		if (isInit) {
 			mSource = mMediaCapture->FrameSources->First()->Current->Value;
 		}
-		setMediaConfiguration(mVideoFormat, mWidth, mHeight, mFps);
+		setMediaConfiguration(mVideoFormat, mWidth, mHeight, mFps, isInit);
 	}
 }
 
@@ -877,7 +896,7 @@ task<void> MSMFoundationUwpImpl::stopAsync() {
 	mRunning = FALSE;
 	return stopReaderAsync();
 }
-void MSMFoundationUwpImpl::stop(const int &pWaitStop) {
+void MSMFoundationUwpImpl::stop(const int &) {
 	if (!mStopTasks) mCurrentTask = mCurrentTask.then([this]() { return stopAsync(); });
 }
 
@@ -908,7 +927,8 @@ bool_t MSMFoundationUwpImpl::setInternalFormat(GUID videoFormat, UINT32 frameWid
 }
 
 HRESULT
-MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps) {
+MSMFoundationUwpImpl::setMediaConfiguration(
+    GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps, bool_t isInit) {
 	HRESULT hr = S_OK;
 	MediaFrameFormat ^ mediaFormat;
 	ConfigurationManagerUwp configs;
@@ -949,46 +969,46 @@ MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 frameWidth,
 		if (setInternalFormat(videoFormat, frameWidth, frameHeight, pFps))
 			mNewFormatValidated = FALSE; // Format is different, we must wait that all are good.
 		if (!mStopTasks)
-			mCurrentTask =
-			    mCurrentTask.then([this, mediaFormat, videoFormat, frameWidth, frameHeight, pFps, configsStr,
-			                       requestedVideoFormat, requestedFrameWidth, requestedFrameHeight, requestedFps]() {
-				    bool_t restartCamera = mRunning && mSource;
-				    bool_t formatChanged = FALSE;
-				    if (restartCamera) create_task(stopAsync()).wait();
-				    EnterCriticalSection(&mCriticalSection);
-				    try {
-					    if (mSource) create_task(mSource->SetFormatAsync(mediaFormat)).wait();
-				    } catch (Platform::Exception ^ e) {
-					    std::wstring wsstrResult(e->Message->Data());
-					    ms_warning("[MSMFoundationCapUwp] SetFormatAsync failed : %s [%X]",
-					               make_string(wsstrResult).c_str(), e->HResult);
-					    ms_warning("%s", configsStr.c_str());
-					    formatChanged = TRUE;
-				    }
-				    setInternalFormat(videoFormat, frameWidth, frameHeight, pFps);
-				    LeaveCriticalSection(&mCriticalSection);
-				    if (restartCamera) create_task(startAsync()).wait();
-				    formatChanged =
-				        formatChanged || (videoFormat != requestedVideoFormat || requestedFrameWidth != frameWidth ||
-				                          requestedFrameHeight != frameHeight);
-				    mFmtChanged |= formatChanged;
-				    // Block new frames
-				    mNewFormatTakenAccount = !mFmtChanged; // The validated format is different from the request.
-				    if (formatChanged) { // As requested format couldn't be set, add it to the blacklist
-					    addToBlacklist(
-					        VideoFormat(requestedFrameWidth, requestedFrameHeight, requestedFps, requestedVideoFormat));
-				    }
-				    if (mSource) {
-					    mNewFormatValidated =
-					        TRUE; // The new format (coming from requested or best fit) has been validated.
-					    ms_message("[MSMFoundationCapUwp] %s the video format : %dx%d : %s, %f fps",
-					               (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat),
-					               mFps);
-				    } else
-					    ms_message("[MSMFoundationCapUwp] %s the video format without Reader : %dx%d : %s, %f fps",
-					               (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat),
-					               mFps);
-			    });
+			mCurrentTask = mCurrentTask.then([this, mediaFormat, videoFormat, frameWidth, frameHeight, pFps, configsStr,
+			                                  requestedVideoFormat, requestedFrameWidth, requestedFrameHeight,
+			                                  requestedFps, isInit]() {
+				bool_t restartCamera = mRunning && mSource;
+				bool_t formatChanged = FALSE;
+				if (restartCamera) create_task(stopAsync()).wait();
+				EnterCriticalSection(&mCriticalSection);
+				try {
+					if (mSource) create_task(mSource->SetFormatAsync(mediaFormat)).wait();
+				} catch (Platform::Exception ^ e) {
+					std::wstring wsstrResult(e->Message->Data());
+					ms_warning("[MSMFoundationCapUwp] SetFormatAsync failed : %s [%X]",
+					           make_string(wsstrResult).c_str(), e->HResult);
+					ms_warning("%s", configsStr.c_str());
+					formatChanged = TRUE;
+				}
+				setInternalFormat(videoFormat, frameWidth, frameHeight, pFps);
+				LeaveCriticalSection(&mCriticalSection);
+				if (restartCamera) create_task(startAsync()).wait();
+				formatChanged =
+				    formatChanged || (videoFormat != requestedVideoFormat || requestedFrameWidth != frameWidth ||
+				                      requestedFrameHeight != frameHeight);
+				mFmtChanged |= formatChanged;
+				// Block new frames
+				mNewFormatTakenAccount = !mFmtChanged; // The validated format is different from the request.
+				if (formatChanged) {                   // As requested format couldn't be set, add it to the blacklist
+					addToBlacklist(
+					    VideoFormat(requestedFrameWidth, requestedFrameHeight, requestedFps, requestedVideoFormat));
+				}
+				if (mSource) {
+					mNewFormatValidated =
+					    TRUE; // The new format (coming from requested or best fit) has been validated.
+					ms_message("[MSMFoundationCapUwp] %s the video format : %dx%d : %s, %f fps",
+					           (formatChanged ? "Changed" : (isInit ? "Set" : "Keep")), mWidth, mHeight,
+					           pixFmtToString(mVideoFormat), mFps);
+				} else
+					ms_message("[MSMFoundationCapUwp] %s the video format without Reader : %dx%d : %s, %f fps",
+					           (formatChanged ? "Changed" : (isInit ? "Set" : "Keep")), mWidth, mHeight,
+					           pixFmtToString(mVideoFormat), mFps);
+			});
 	} else if (!SUCCEEDED(hr)) {
 		ms_error("[MSMFoundationCapUwp] Cannot set the video format : %dx%d : %s, %f fps. [%X]", frameWidth,
 		         frameHeight, pixFmtToString(videoFormat), pFps, hr);
@@ -1204,10 +1224,46 @@ public:
 				ms_error("[MSMFoundationCapDesk] %s", traces[i].c_str());
 		}
 	}
+	bool isEqual(IMFMediaType *a, IMFMediaType *b) {
+		if (!a || !b) return false;
+		UINT32 aWidth, aHeight;
+		UINT32 bWidth, bHeight;
+		MFGetAttributeSize(a, MF_MT_FRAME_SIZE, &aWidth, &aHeight);
+		MFGetAttributeSize(b, MF_MT_FRAME_SIZE, &bWidth, &bHeight);
+		if (aWidth != bWidth || aHeight != bHeight) return false;
+		UINT32 aFpsNumerator, aFpsDenominator;
+		UINT32 bFpsNumerator, bFpsDenominator;
+		MFGetAttributeRatio(a, MF_MT_FRAME_RATE, &aFpsNumerator, &aFpsDenominator);
+		MFGetAttributeRatio(b, MF_MT_FRAME_RATE, &bFpsNumerator, &bFpsDenominator);
+		if ((int)(10.0 * aFpsNumerator / aFpsDenominator) != (int)(10.0 * bFpsNumerator / bFpsDenominator))
+			return false;
+		GUID aVideoType;
+		GUID bVideoType;
+		a->GetGUID(MF_MT_SUBTYPE, &aVideoType);
+		b->GetGUID(MF_MT_SUBTYPE, &bVideoType);
+		if (std::string(MSMFoundationCap::pixFmtToString(aVideoType)) !=
+		    std::string(MSMFoundationCap::pixFmtToString(bVideoType)))
+			return false;
+		return true;
+	}
+	std::string toString(bool isLog = true) {
+		return ConfigurationManager<IMFMediaType *>::toString(isLog);
+	}
+	static std::string toString(IMFMediaType *mediaType) {
+		UINT32 width, height, fpsNumerator, fpsDenominator;
+		GUID videoType;
+		MFGetAttributeSize(mediaType, MF_MT_FRAME_SIZE, &width, &height);
+		MFGetAttributeRatio(mediaType, MF_MT_FRAME_RATE, &fpsNumerator, &fpsDenominator);
+		mediaType->GetGUID(MF_MT_SUBTYPE, &videoType);
+		return "[" + std::to_string(width) + "x" + std::to_string(height) + " : " +
+		       MSMFoundationCap::pixFmtToString(videoType) + ", " +
+		       std::to_string(static_cast<float>(fpsNumerator) / fpsDenominator) + "fps]";
+	}
 };
 
 MSMFoundationDesktopImpl::MSMFoundationDesktopImpl() : MSMFoundationCap() {
 	InitializeConditionVariable(&mIsFlushed);
+	mReadSample = CreateEvent(NULL, FALSE, FALSE, NULL);
 	mStride = mWidth;
 	mReferenceCount = 1;
 	mSourceReader = NULL;
@@ -1278,36 +1334,41 @@ void MSMFoundationDesktopImpl::start() {
 		}
 	}
 	devices.clean();
-	if (mSourceReader && !mRunning) {
-		EnterCriticalSection(&mCriticalSection);
-		HRESULT hr = mSourceReader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, NULL, NULL, NULL,
-		                                       NULL); // Ask for the first sample.
-		if (SUCCEEDED(hr)) {
-			mRunning = TRUE; // Inside critical section to ensure to not miss the first frame
-		} else {
-			ms_error("[MSMFoundationCapDesk] Cannot start reading from Camera : %X", hr);
+	if (mSourceReader) {
+		if (!mRunning) {
+			EnterCriticalSection(&mCriticalSection);
+			HRESULT hr = mSourceReader->ReadSample(MF_SOURCE_READER_FIRST_VIDEO_STREAM, 0, NULL, NULL, NULL,
+			                                       NULL); // Ask for the first sample.
+			if (SUCCEEDED(hr)) {
+				mRunning = TRUE; // Inside critical section to ensure to not miss the first frame
+			} else {
+				ms_error("[MSMFoundationCapDesk] Cannot start reading from Camera : %X", hr);
+			}
+			LeaveCriticalSection(&mCriticalSection);
 		}
-		LeaveCriticalSection(&mCriticalSection);
 	} else ms_error("[MSMFoundationCapDesk] Cannot start reading from Camera because of source reader not activated.");
 }
 
-void MSMFoundationDesktopImpl::stop(const int &pWaitStop) {
+void MSMFoundationDesktopImpl::stop(const int &flushWaitDurationMs) {
 	HRESULT hr;
-	if (mSourceReader && mRunning) {
-		EnterCriticalSection(&mCriticalSection);
-		mRunning = FALSE;
+	EnterCriticalSection(&mCriticalSection);
+	mRunning = FALSE;
+	if (mSourceReader && flushWaitDurationMs > 0) {
 		hr = mSourceReader->Flush(MF_SOURCE_READER_FIRST_VIDEO_STREAM); // Flush the video stream
-		if (SUCCEEDED(hr))
-			SleepConditionVariableCS(&mIsFlushed, &mCriticalSection,
-			                         pWaitStop); // wait for emptying queue. This is done asynchrounsly as the Callback
-			                                     // on flush has been implemented
-		else ms_error("[MSMFoundationCapDesk] Cannot flush device, %X", hr);
-		LeaveCriticalSection(&mCriticalSection);
+		if (SUCCEEDED(hr)) {
+			// SleepConditionVariableCS requires to lock section before calling it.
+			SleepConditionVariableCS(
+			    &mIsFlushed, &mCriticalSection,
+			    flushWaitDurationMs); // wait for emptying queue. This is done asynchronously as the Callback
+		} else {
+			ms_error("[MSMFoundationCapDesk] Cannot flush device, %X", hr);
+		}
 	}
 	if (mFrameData) {
 		freemsg(mFrameData);
 		mFrameData = NULL;
 	}
+	LeaveCriticalSection(&mCriticalSection);
 }
 
 void MSMFoundationDesktopImpl::deactivate() {
@@ -1356,12 +1417,14 @@ STDMETHODIMP MSMFoundationDesktopImpl::OnEvent(DWORD, IMFMediaEvent *mediaEvent)
 }
 // Method from IMFSourceReaderCallback
 STDMETHODIMP MSMFoundationDesktopImpl::OnFlush(DWORD) {
+	ms_message("[MSMFoundationCapDesk] Device flushed");
 	WakeConditionVariable(&mIsFlushed); // Wakeup threads that are waiting for the flush
 	return S_OK;
 }
 
 HRESULT
-MSMFoundationDesktopImpl::setMediaConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps) {
+MSMFoundationDesktopImpl::setMediaConfiguration(
+    GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps, bool_t isInit) {
 	HRESULT hr = S_OK;
 	IMFMediaType *mediaType = NULL;
 	ConfigurationManagerDesktop configs;
@@ -1371,6 +1434,7 @@ MSMFoundationDesktopImpl::setMediaConfiguration(GUID videoFormat, UINT32 frameWi
 	UINT32 requestedFrameWidth = frameWidth;
 	UINT32 requestedFrameHeight = frameHeight;
 	int requestedFps = (int)pFps;
+	UINT32 oldFpsNumerator = 1, oldFpsDenominator = 1;
 
 	EnterCriticalSection(&mCriticalSection);
 	if (mSourceReader) {
@@ -1383,69 +1447,108 @@ MSMFoundationDesktopImpl::setMediaConfiguration(GUID videoFormat, UINT32 frameWi
 		}
 		mediaType = configs.getMediaConfiguration(&videoFormat, &frameWidth, &frameHeight, &pFps);
 		if (mediaType) {
+			ms_debug("[MSMFoundationCapDesk] Requested configuration : %s from [%dx%d, %s:%d]",
+			         ConfigurationManagerDesktop::toString(mediaType).c_str(), requestedFrameWidth,
+			         requestedFrameHeight, pixFmtToString(requestedVideoFormat), requestedFps);
 			IMFMediaType *currentMediaType = NULL;
-			DWORD equalFlags = 0;
 			HRESULT hrCurrentMedia =
 			    mSourceReader->GetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, &currentMediaType);
 			if (SUCCEEDED(hrCurrentMedia) && currentMediaType) {
-				currentMediaType->IsEqual(mediaType,
-				                          &equalFlags); // This is the same media type. Don't need to change it.
-				doSet = (equalFlags != 0);
+				doSet = !configs.isEqual(currentMediaType, mediaType);
+				if (doSet) {
+					MFGetAttributeRatio(currentMediaType, MF_MT_FRAME_RATE, &oldFpsNumerator, &oldFpsDenominator);
+					ms_message("[MSMFoundationCapDesk] Old %sconfiguration : %s", (isInit ? "uninitialized " : ""),
+					           ConfigurationManagerDesktop::toString(currentMediaType).c_str());
+				}
 				currentMediaType->Release();
 			}
 			if (doSet) {
 				hr = mSourceReader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, NULL, mediaType);
-				if (hr == MF_E_INVALIDREQUEST) { // One or more sample requests are still pending. Flush the device,
-					                             // restart it and try setting format
-					ms_message("[MSMFoundationCapDesk] Restarting device with a new configuration : %dx%d : %s, %f fps",
-					           frameWidth, frameHeight, pixFmtToString(videoFormat), pFps);
-					stop(2000);
+				if (hr == MF_E_INVALIDREQUEST) {
+					// One or more sample requests are still pending. Try to stop and go.
+					int oneFrameTimeout =
+					    min(1000, ceil(1000 / (static_cast<float>(oldFpsNumerator) / oldFpsDenominator)));
+					stop(0);
+					LeaveCriticalSection(&mCriticalSection); // Let time for onReadSample to exit
+					// Wait at most 2 frames to be processed
+					if (WaitForSingleObject(mReadSample, 2 * oneFrameTimeout) == WAIT_OBJECT_0) Sleep(oneFrameTimeout);
+					// We need to sleep a bit of time to ensure of leaving callbacks after waking the thread
+					// or else SourceReader will be still in pending state.
+					EnterCriticalSection(&mCriticalSection);
 					hr = mSourceReader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, NULL, mediaType);
-					if (SUCCEEDED(hr)) {
-						start();
-					} else ms_error("[MSMFoundationCapDesk] Cannot restart device with the new configuration [%X]", hr);
+					if (hr == MF_E_INVALIDREQUEST) {
+						// Still pending. Flush the device to cancel sample requests and try setting format
+						ms_message("[MSMFoundationCapDesk] Restarting and flush device with a new configuration : %s",
+						           ConfigurationManagerDesktop::toString(mediaType).c_str());
+						LeaveCriticalSection(&mCriticalSection);
+						stop(4000); // NoWebcam has a 5s. Let a max of 4s to flush the device on its own critical
+						// section.
+						// Flushing device/SetCurrentMediaType can takes time!
+						EnterCriticalSection(&mCriticalSection);
+						hr = mSourceReader->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, NULL, mediaType);
+						if (hr == MF_E_INVALIDREQUEST) {
+							// still not ready. Supposed it will be ok after the previous flush as the configuration
+							// should has been checked. New sample should have the requested format.
+							ms_warning(
+							    "[MSMFoundationCapDesk] The device takes time to change its configuration. Try to "
+							    "start anyway with the new configuration. New samples reads will have the error "
+							    "MF_E_NOTACCEPTING till the flush has been done.");
+							hr = S_OK;
+						}
+					}
+					if (!SUCCEEDED(hr)) {
+						ms_error("[MSMFoundationCapDesk] Cannot restart device with the new configuration [%X]", hr);
+					}
 				}
 				if (SUCCEEDED(hr)) getStride(mediaType, &stride);
 			}
 		} else {
 			hr = -1;
 			ms_warning("[MSMFoundationCapDesk] No available configuration have been found from this list : \n%s",
-			           configs.toString().c_str());
+			           configs.toString(false).c_str());
 		}
 	}
-	if (doSet && SUCCEEDED(hr)) {
-		bool_t formatChanged = FALSE;
-		setVideoFormat(videoFormat);
-		mFps = pFps;
-		if (frameWidth != mWidth || frameHeight != mHeight || stride != mStride) {
-			if (mFrameData) {
-				freemsg(mFrameData);
-				mFrameData = NULL;
+	if (doSet) {
+		if (SUCCEEDED(hr)) {
+			bool_t formatChanged = FALSE;
+			setVideoFormat(videoFormat);
+			mFps = pFps;
+			if (frameWidth != mWidth || frameHeight != mHeight || stride != mStride) {
+				if (mFrameData) {
+					freemsg(mFrameData);
+					mFrameData = NULL;
+				}
+				mWidth = frameWidth;
+				mHeight = frameHeight;
+				mStride = stride;
+				mPlaneSize = mHeight * abs(mStride); // Details : mWidth * mHeight * abs(mStride) / mWidth;
+				formatChanged = TRUE;
+				mFmtChanged = !IsEqualGUID(videoFormat, requestedVideoFormat) || requestedFrameWidth != frameWidth ||
+				              requestedFrameHeight != frameHeight;
+				mNewFormatTakenAccount = FALSE; // Block new frames
 			}
-			mWidth = frameWidth;
-			mHeight = frameHeight;
-			mStride = stride;
-			mPlaneSize = mHeight * abs(mStride); // Details : mWidth * mHeight * abs(mStride) / mWidth;
-			formatChanged = TRUE;
-			mFmtChanged = videoFormat != requestedVideoFormat || requestedFrameWidth != frameWidth ||
-			              requestedFrameHeight != frameHeight;
-			mNewFormatTakenAccount = FALSE; // Block new frames
-		}
-		if (mSourceReader)
-			ms_message("[MSMFoundationCapDesk] %s the video format : %dx%d : %s, %f fps",
-			           (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
-		else
-			ms_message("[MSMFoundationCapDesk] %s the video format without Reader : %dx%d : %s, %f fps",
-			           (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
-		if (formatChanged && mFmtChanged) {
+			if (mSourceReader) {
+				ms_message("[MSMFoundationCapDesk] %s the video format : %dx%d : %s, %f fps",
+				           (formatChanged ? "Changed" : (isInit ? "Set" : "Keep")), mWidth, mHeight,
+				           pixFmtToString(mVideoFormat), mFps);
+			} else
+				ms_message("[MSMFoundationCapDesk] %s the video format without Reader : %dx%d : %s, %f fps",
+				           (formatChanged ? "Changed" : (isInit ? "Set" : "Keep")), mWidth, mHeight,
+				           pixFmtToString(mVideoFormat), mFps);
+			if (formatChanged && mFmtChanged) {
+				// As requested format couldn't be set, add it to the blacklist
+				addToBlacklist(
+				    VideoFormat(requestedFrameWidth, requestedFrameHeight, requestedFps, requestedVideoFormat));
+				ms_message("%s", configs.toString().c_str());
+			}
+		} else {
+			ms_error("[MSMFoundationCapDesk] Cannot set the video format : %dx%d : %s, %f fps. [%X]", frameWidth,
+			         frameHeight, pixFmtToString(videoFormat), pFps, hr);
 			ms_message("%s", configs.toString().c_str());
-			// As requested format couldn't be set, add it to the blacklist
-			addToBlacklist(VideoFormat(requestedFrameWidth, requestedFrameHeight, requestedFps, requestedVideoFormat));
 		}
-	} else if (!SUCCEEDED(hr)) {
-		ms_error("[MSMFoundationCapDesk] Cannot set the video format : %dx%d : %s, %f fps. [%X]", frameWidth,
-		         frameHeight, pixFmtToString(videoFormat), pFps, hr);
-		ms_message("%s", configs.toString().c_str());
+		// start the device if not running but after new configuration to write frames with correct data and to avoid
+		// being stuck.
+		if (mSourceReader) start();
 	}
 	LeaveCriticalSection(&mCriticalSection);
 	configs.clean();
@@ -1476,7 +1579,7 @@ HRESULT MSMFoundationDesktopImpl::setSourceReader(IMFActivate *device) {
 		hr = MFCreateSourceReaderFromMediaSource(source, attributes, &mSourceReader);
 	else ms_error("[MSMFoundationCapDesk] Cannot create source reader from media source [%X]", hr);
 	if (SUCCEEDED(hr)) { // Try to find a suitable output type.
-		hr = setMediaConfiguration(mVideoFormat, mWidth, mHeight, mFps);
+		hr = setMediaConfiguration(mVideoFormat, mWidth, mHeight, mFps, TRUE);
 	}
 	if (FAILED(hr)) {
 		if (mSourceReader) {
@@ -1505,7 +1608,7 @@ HRESULT MSMFoundationDesktopImpl::restartWithNewConfiguration(GUID videoFormat,
 	           frameHeight, pixFmtToString(videoFormat), pFps);
 	HRESULT hr = S_OK;
 	stop(2000);
-	hr = setMediaConfiguration(videoFormat, frameWidth, frameHeight, pFps);
+	hr = setMediaConfiguration(videoFormat, frameWidth, frameHeight, pFps, FALSE);
 	if (SUCCEEDED(hr)) {
 		start();
 	} else ms_error("[MSMFoundationCapDesk] Cannot restart device with the new configuration [%X]", hr);
@@ -1571,7 +1674,7 @@ HRESULT MSMFoundationDesktopImpl::OnReadSample(
 		}
 	}
 	LeaveCriticalSection(&mCriticalSection);
-
+	SetEvent(mReadSample);
 	return hr;
 }
 
