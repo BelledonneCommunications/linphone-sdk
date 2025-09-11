@@ -43,7 +43,7 @@ public:
 
 	static std::shared_ptr<Factory> get(void);
 
-	static void clean(void);
+	static void clean(bool fromAtExit = false) noexcept;
 
 	LinphoneCore *_createCore(LinphoneCoreCbs *cbs,
 	                          const std::string &config_path,

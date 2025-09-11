@@ -113,7 +113,7 @@ Factory::Factory() {
 }
 
 void Factory::_DestroyingCb(void) {
-	if (Factory::instance != NULL) Factory::instance.reset();
+	Factory::clean(true);
 }
 
 #define ADD_SUPPORTED_VIDEO_DEFINITION(factory, width, height, name)                                                   \
@@ -154,8 +154,13 @@ std::shared_ptr<Factory> Factory::get(void) {
 	return Factory::instance;
 }
 
-void Factory::clean(void) {
-	LinphonePrivate::Address::clearSipAddressesCache();
+void Factory::clean(bool fromAtExit) noexcept {
+	/*
+	 * The address cache is thread_local, thus is destroyed before the atexit() callbacks, according to
+	 * https://en.cppreference.com/w/cpp/utility/program/exit
+	 * It must not accessed if we run from exit().
+	 */
+	if (!fromAtExit) LinphonePrivate::Address::clearSipAddressesCache();
 	if (Factory::instance) {
 		Factory::instance.reset();
 	}
@@ -818,7 +823,6 @@ Factory::~Factory() {
 		bctbx_clean(mEvfsMasterKey->data(), mEvfsMasterKey->size());
 		mEvfsMasterKey = nullptr;
 	}
-	clean();
 }
 
 std::shared_ptr<ConferenceInfo> Factory::createConferenceInfo() const {
