@@ -53,7 +53,8 @@ static std::vector<uint8_t> loadBinaryFile(const std::string &filename) {
 	fstream f;
 	f.exceptions(fstream::badbit | fstream::failbit);
 	f.open(filename, fstream::in | fstream::binary);
-	while ((c = f.get()) != char_traits<char>::eof()) {
+	while (!f.eof()) {
+		c = f.get();
 		data.push_back(c);
 	}
 	f.close();

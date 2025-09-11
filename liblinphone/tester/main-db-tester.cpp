@@ -33,6 +33,8 @@
 #include <sys/time.h>
 #endif
 
+#include <thread>
+
 // =============================================================================
 
 using namespace std;
@@ -649,6 +651,35 @@ static void search_messages_in_chat_room(void) {
 	}
 }
 
+static void createAddresses(BCTBX_UNUSED(void *ignored)) {
+	for (int i = 0; i < 1000; ++i) {
+		std::ostringstream ostr;
+		ostr << "sip:bob" << i << "@example.org";
+		Address addr(ostr.str());
+	}
+}
+
+/* This test simply creates/destroys a lot of Address from different threads.
+ * The Address cache is thread_local, so shall not be subject to concurrent accesses.
+ * If not, the test should crash.
+ */
+static void address_cache_and_threads() {
+	constexpr size_t maxThreads = 20;
+	size_t i;
+	std::thread threads[maxThreads];
+	LinphoneFactory *factory = linphone_factory_get();
+	(void)factory;
+
+	for (i = 0; i < maxThreads; ++i) {
+		threads[i] = std::thread(createAddresses, nullptr);
+	}
+
+	linphone_factory_clean();
+	for (i = 0; i < maxThreads; ++i) {
+		threads[i].join();
+	}
+}
+
 static test_t main_db_tests[] = {
     TEST_NO_TAG("Get events count", get_events_count),
     TEST_NO_TAG("Get messages count", get_messages_count),
@@ -667,7 +698,8 @@ static test_t main_db_tests[] = {
                 database_with_chatroom_duplicates_gruu_pruned_conference_server),
     TEST_ONE_TAG("Load a lot of chatrooms", load_a_lot_of_chatrooms, "shaky"),
     TEST_ONE_TAG("Load a lot of chatrooms cleaning GRUU", load_a_lot_of_chatrooms_cleaning_gruu, "shaky"),
-    TEST_NO_TAG("Search messages in chatroom", search_messages_in_chat_room)};
+    TEST_NO_TAG("Search messages in chatroom", search_messages_in_chat_room),
+    TEST_NO_TAG("Address cache and threads", address_cache_and_threads)};
 
 test_suite_t main_db_test_suite = {
     "MainDb",

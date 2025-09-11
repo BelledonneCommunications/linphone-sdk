@@ -26,10 +26,10 @@
 #include <sstream>
 #include <vector>
 
-#define BELR_USE_ATOMIC 1
+#define BELR_THREAD_SAFE 1
 
-#if BELR_USE_ATOMIC
-#include <atomic>
+#if BELR_THREAD_SAFE
+#include <mutex>
 #endif
 
 #include "bctoolbox/defs.h"
@@ -181,8 +181,8 @@ private:
 	const Parser<_parserElementT> &mParser;
 	std::string mRulename;
 	std::shared_ptr<HandlerContext<_parserElementT>> mCachedContext;
-#if BELR_USE_ATOMIC
-	std::atomic_flag mCacheLocked = ATOMIC_FLAG_INIT;
+#if BELR_THREAD_SAFE
+	std::recursive_mutex mCacheMutex;
 #endif
 };
 
@@ -567,10 +567,10 @@ CollectorBase<_parserElementT> *ParserHandlerBase<_parserElementT>::getCollector
 
 template <typename _parserElementT>
 void ParserHandlerBase<_parserElementT>::releaseContext(const std::shared_ptr<HandlerContext<_parserElementT>> &ctx) {
-#if BELR_USE_ATOMIC
-	if (mCacheLocked.test_and_set(std::memory_order_relaxed) == false) {
-		mCachedContext = ctx;
-		mCacheLocked.clear(std::memory_order_relaxed);
+#if BELR_THREAD_SAFE
+	if (mCacheMutex.try_lock()) {
+		if (mCachedContext == nullptr) mCachedContext = ctx;
+		mCacheMutex.unlock();
 	}
 #else
 	mCachedContext = ctx;
@@ -579,14 +579,14 @@ void ParserHandlerBase<_parserElementT>::releaseContext(const std::shared_ptr<Ha
 
 template <typename _parserElementT>
 std::shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElementT>::createContext() {
-#if BELR_USE_ATOMIC
+#if BELR_THREAD_SAFE
 	std::shared_ptr<HandlerContext<_parserElementT>> ret;
-	if (mCacheLocked.test_and_set(std::memory_order_relaxed) == false) {
+	if (mCacheMutex.try_lock()) {
 		if (mCachedContext) {
 			ret = mCachedContext;
 			mCachedContext.reset();
 		}
-		mCacheLocked.clear(std::memory_order_relaxed);
+		mCacheMutex.unlock();
 	}
 	if (!ret) ret = std::make_shared<HandlerContext<_parserElementT>>(this);
 	return ret;
