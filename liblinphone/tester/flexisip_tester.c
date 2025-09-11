@@ -272,7 +272,8 @@ static void message_forking_with_unreachable_recipients_with_gruu(void) {
 
 	/*marie goes online now*/
 	linphone_core_set_network_reachable(marie->lc, TRUE);
-	if (BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneMessageReceived, 1, 3000))) {
+	if (BC_ASSERT_TRUE(
+	        wait_for_list(lcs, &marie->stat.number_of_LinphoneMessageReceived, 1, liblinphone_tester_sip_timeout))) {
 		BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_text(marie->stat.last_received_chat_message),
 		                       linphone_chat_message_get_text(message_1));
 	}
