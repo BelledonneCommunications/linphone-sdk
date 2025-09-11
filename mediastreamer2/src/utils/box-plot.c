@@ -48,11 +48,11 @@ void ms_box_plot_add_value(MSBoxPlot *bp, int64_t value) {
 	if (count == 0) {
 		/* Avoid divide by zero when the statistics are reset by another thread.
 		 * We want to avoid using a mutex just for this.
-		 * The statistics will be inacurate one time should this happen./
+		 * The statistics will be inaccurate one time should this happen./
 		 */
 		return;
 	}
-	mean = bp->sum / count;
+	mean = bp->sum / (int64_t)count;
 	deviation = value - mean;
 	bp->deviation_sum += deviation * deviation;
 	bp->mean = (double)mean;
@@ -92,12 +92,12 @@ void ms_u_box_plot_add_value(MSUBoxPlot *bp, uint64_t value) {
 	if (count == 0) {
 		/* Avoid divide by zero when the statistics are reset by another thread.
 		 * We want to avoid using a mutex just for this.
-		 * The statistics will be inacurate one time should this happen./
+		 * The statistics will be inaccurate one time should this happen./
 		 */
 		return;
 	}
 	mean = bp->sum / count;
-	deviation = value - mean;
+	deviation = ((int64_t)value) - mean;
 	bp->deviation_sum += deviation * deviation;
 	bp->mean = (double)mean;
 }
