@@ -2265,7 +2265,17 @@ LINPHONE_PUBLIC void linphone_core_set_dns_servers(LinphoneCore *core, const bct
 LINPHONE_PUBLIC bctbx_list_t *linphone_core_get_audio_payload_types(LinphoneCore *core);
 
 /**
- * Redefines the list of the available payload types (codecs).
+ * Redefines the list of the available payload types (codecs), in their order of preference.
+ *
+ * The payload type are listed from higher priority to lowest priority.
+ * It is worth to note that the set of #LinphonePayloadType objects assigned here need to be the same
+ * as the one returned by linphone_core_get_audio_payload_types().
+ * The purpose of the setter is to let application modify their order of preference.
+ * In particular, including in the provided list a payload type not supported has no effect.
+ * Removing specific payload types from the original list has no effect too: missing payload types
+ * will be automatically added.
+ * In order to disable a specific codec, applications shall use linphone_payload_type_enable() instead.
+ *
  * @param core The core. @notnil
  * @param payload_types The new list of payload types. \bctbx_list{LinphonePayloadType} @maybenil
  * @ingroup media_parameters
@@ -2273,7 +2283,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_core_get_audio_payload_types(LinphoneCore
 LINPHONE_PUBLIC void linphone_core_set_audio_payload_types(LinphoneCore *core, const bctbx_list_t *payload_types);
 
 /**
- * Returns the list of the available video payload types (codecs).
+ * Returns the list of the available video payload types (codecs), in their order of preference.
  * @param core The core. @notnil
  * @return A freshly allocated list of the available payload types.  @bctbx_list{LinphonePayloadType} @maybenil
  * @tobefreed
@@ -2283,9 +2293,20 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_core_get_video_payload_types(LinphoneCore
 
 /**
  * Redefines the list of the available video payload types (codecs).
+ *
+ * The payload type are listed from higher priority to lowest priority.
+ * It is worth to note that the set of #LinphonePayloadType objects assigned here need to be the same
+ * as the one returned by linphone_core_get_video_payload_types().
+ * The purpose of the setter is to let application modify their order of preference.
+ * In particular, including in the provided list a payload type not supported has no effect.
+ * Removing specific payload types from the original list has no effect too: missing payload types
+ * will be automatically added.
+ * In order to disable a specific codec, applications shall use linphone_payload_type_enable() instead.
+ *
  * Calling this function if the video codec priority policy is LinphoneCodecPriorityPolicyAuto
  * turns video codec priority policy to basic scheme, since application is not supposed to control
  * the order of video codecs when LinphoneCodecPriorityPolicyAuto is selected, by definition.
+ *
  * @see linphone_core_set_video_codec_priority_policy()
  * @param core The core. @notnil
  * @param payload_types The new list of codecs. The core does not take
@@ -2318,7 +2339,7 @@ LINPHONE_PUBLIC void linphone_core_set_video_codec_priority_policy(LinphoneCore 
 LINPHONE_PUBLIC LinphoneCodecPriorityPolicy linphone_core_get_video_codec_priority_policy(const LinphoneCore *core);
 
 /**
- * Returns the list of the available text payload types.
+ * Returns the list of the available real-time text payload types.
  * @param core The core. @notnil
  * @return A freshly allocated list of the available payload types.  @bctbx_list{LinphonePayloadType} @maybenil
  * @tobefreed
@@ -2327,7 +2348,7 @@ LINPHONE_PUBLIC LinphoneCodecPriorityPolicy linphone_core_get_video_codec_priori
 LINPHONE_PUBLIC bctbx_list_t *linphone_core_get_text_payload_types(LinphoneCore *core);
 
 /**
- * Redefines the list of the available payload types.
+ * Redefines the list of the available payload types for real-time text.
  * @param core The core. @notnil
  * @param payload_types The new list of payload types. \bctbx_list{LinphonePayloadType} @maybenil
  * @ingroup media_parameters
