@@ -135,6 +135,14 @@ static void liblinphone_tester_check_rtcp_base(LinphoneCoreManager *caller,
 					stats_ok = FALSE;
 				}
 			}
+			/* The number_of_rtcp_received is actualized every second thanks to periodical call_stats_update,
+			 * while the round_trip_delay is available almost instantly.
+			 * This explains why we have temporarily the false observation that round trip delay is known
+			 * while no RTCP packet is received.
+			 */
+			if (caller->stat.number_of_rtcp_received == 0 || callee->stat.number_of_rtcp_received == 0) {
+				stats_ok = FALSE;
+			}
 		}
 		wait_for_until(caller->lc, callee->lc, NULL, 0, 20); /*just to sleep while iterating*/
 	} while (!(stats_ok || liblinphone_tester_clock_elapsed(&ts, max_time_to_wait)));

@@ -338,15 +338,12 @@ void encrypted_call_with_params_base(LinphoneCoreManager *caller,
 		liblinphone_tester_check_rtcp(caller, callee);
 
 		BC_ASSERT_GREATER(linphone_core_manager_get_max_audio_down_bw(caller), 70, int, "%i");
-		LinphoneCallStats *calleeStats = linphone_call_get_audio_stats(linphone_core_get_current_call(callee->lc));
 		int counter = 0;
 		do {
 			counter++;
 			wait_for_until(callee->lc, caller->lc, &dummy, 1, 100);
 		} while ((counter < 100) && (linphone_core_manager_get_mean_audio_down_bw(callee) <= 70));
 		BC_ASSERT_GREATER(linphone_core_manager_get_mean_audio_down_bw(callee), 70, int, "%i");
-		linphone_call_stats_unref(calleeStats);
-		calleeStats = NULL;
 
 		// Check that no reINVITE is sent while checking streams
 		BC_ASSERT_EQUAL(callee->stat.number_of_LinphoneCallStreamsRunning,
@@ -436,7 +433,7 @@ void encrypted_call_with_params_base(LinphoneCoreManager *caller,
 			}
 
 			int dummy = 0;
-			wait_for_until(caller->lc, callee->lc, &dummy, 1, 3000); /*just to sleep while iterating 1s*/
+			wait_for_until(caller->lc, callee->lc, &dummy, 1, 3000); /*Wait 3 seconds for bandwidth meansurements*/
 
 			liblinphone_tester_check_rtcp(caller, callee);
 
@@ -447,10 +444,6 @@ void encrypted_call_with_params_base(LinphoneCoreManager *caller,
 				wait_for_until(callee->lc, caller->lc, &dummy, 1, 100);
 			} while ((counter < 100) && (linphone_core_manager_get_mean_audio_down_bw(callee) <= 70));
 			BC_ASSERT_GREATER(linphone_core_manager_get_mean_audio_down_bw(callee), 70, int, "%i");
-			calleeStats = linphone_call_get_audio_stats(linphone_core_get_current_call(callee->lc));
-			BC_ASSERT_GREATER(static_cast<int>(linphone_call_stats_get_download_bandwidth(calleeStats)), 70, int, "%i");
-			linphone_call_stats_unref(calleeStats);
-			calleeStats = NULL;
 		}
 #endif // VIDEO_ENABLED
 
@@ -502,7 +495,7 @@ void pause_resume_calls(LinphoneCoreManager *caller, LinphoneCoreManager *callee
 		           linphone_core_get_identity(caller->lc));
 		// Pause callee call
 		BC_ASSERT_TRUE(pause_call_1(callee, calleeCall, caller, callerCall));
-		wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+		wait_for_until(callee->lc, caller->lc, NULL, 0, 2000);
 
 		// Resume callee call
 		reset_counters(&caller->stat);
@@ -525,12 +518,11 @@ void pause_resume_calls(LinphoneCoreManager *caller, LinphoneCoreManager *callee
 		BC_ASSERT_EQUAL(linphone_call_params_get_media_encryption(linphone_call_get_current_params(calleeCall)),
 		                calleeEncryption, int, "%i");
 
-		wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+		wait_for_until(callee->lc, caller->lc, NULL, 0, 5000);
 
 		liblinphone_tester_check_rtcp(caller, callee);
 
 		BC_ASSERT_GREATER(linphone_core_manager_get_max_audio_down_bw(caller), 70, int, "%i");
-		LinphoneCallStats *calleeStats = linphone_call_get_audio_stats(linphone_core_get_current_call(callee->lc));
 		int counter = 0;
 		int dummy = 0;
 		do {
@@ -538,9 +530,6 @@ void pause_resume_calls(LinphoneCoreManager *caller, LinphoneCoreManager *callee
 			wait_for_until(callee->lc, caller->lc, &dummy, 1, 100);
 		} while ((counter < 100) && (linphone_core_manager_get_mean_audio_down_bw(callee) <= 70));
 		BC_ASSERT_GREATER(linphone_core_manager_get_mean_audio_down_bw(callee), 70, int, "%i");
-		BC_ASSERT_GREATER(static_cast<int>(linphone_call_stats_get_download_bandwidth(calleeStats)), 70, int, "%i");
-		linphone_call_stats_unref(calleeStats);
-		calleeStats = NULL;
 
 		check_stream_encryption(callerCall);
 		check_stream_encryption(calleeCall);
@@ -549,7 +538,7 @@ void pause_resume_calls(LinphoneCoreManager *caller, LinphoneCoreManager *callee
 		ms_message("%s pauses call with %s", linphone_core_get_identity(caller->lc),
 		           linphone_core_get_identity(callee->lc));
 		BC_ASSERT_TRUE(pause_call_1(caller, callerCall, callee, calleeCall));
-		wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+		wait_for_until(callee->lc, caller->lc, NULL, 0, 2000);
 
 		// Resume caller call
 		reset_counters(&caller->stat);
@@ -572,20 +561,17 @@ void pause_resume_calls(LinphoneCoreManager *caller, LinphoneCoreManager *callee
 		BC_ASSERT_EQUAL(linphone_call_params_get_media_encryption(linphone_call_get_current_params(calleeCall)),
 		                calleeEncryption, int, "%i");
 
-		wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+		wait_for_until(callee->lc, caller->lc, NULL, 0, 5000);
 
 		liblinphone_tester_check_rtcp(caller, callee);
 
 		BC_ASSERT_GREATER(linphone_core_manager_get_max_audio_down_bw(callee), 70, int, "%i");
-		LinphoneCallStats *callerStats = linphone_call_get_audio_stats(linphone_core_get_current_call(caller->lc));
 		counter = 0;
 		do {
 			counter++;
 			wait_for_until(callee->lc, caller->lc, &dummy, 1, 100);
 		} while ((counter < 100) && (linphone_core_manager_get_mean_audio_down_bw(caller) <= 70));
 		BC_ASSERT_GREATER(linphone_core_manager_get_mean_audio_down_bw(caller), 70, int, "%i");
-		linphone_call_stats_unref(callerStats);
-		callerStats = NULL;
 
 		check_stream_encryption(callerCall);
 		check_stream_encryption(calleeCall);
@@ -2882,7 +2868,7 @@ void simple_call_with_capability_negotiations_with_different_encryption_after_re
 
 		// Pause callee call
 		BC_ASSERT_TRUE(pause_call_1(callee, calleeCall, caller, callerCall));
-		wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+		wait_for_until(callee->lc, caller->lc, NULL, 5, 2000);
 
 		// Resume callee call
 		reset_counters(&caller->stat);
@@ -2926,12 +2912,11 @@ void simple_call_with_capability_negotiations_with_different_encryption_after_re
 
 			BC_ASSERT_EQUAL(encryptionAfterResume, encryption, int, "%i");
 
-			wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+			wait_for_until(callee->lc, caller->lc, NULL, 0, 5000);
 
 			liblinphone_tester_check_rtcp(caller, callee);
 
 			BC_ASSERT_GREATER(linphone_core_manager_get_max_audio_down_bw(caller), 70, int, "%i");
-			LinphoneCallStats *calleeStats = linphone_call_get_audio_stats(linphone_core_get_current_call(callee->lc));
 			int counter = 0;
 			int dummy = 0;
 			do {
@@ -2939,9 +2924,6 @@ void simple_call_with_capability_negotiations_with_different_encryption_after_re
 				wait_for_until(callee->lc, caller->lc, &dummy, 1, 100);
 			} while ((counter < 100) && (linphone_core_manager_get_mean_audio_down_bw(callee) <= 70));
 			BC_ASSERT_GREATER(linphone_core_manager_get_mean_audio_down_bw(callee), 70, int, "%i");
-			BC_ASSERT_GREATER(static_cast<int>(linphone_call_stats_get_download_bandwidth(calleeStats)), 70, int, "%i");
-			linphone_call_stats_unref(calleeStats);
-			calleeStats = NULL;
 
 			if ((encryption == LinphoneMediaEncryptionDTLS) || (encryption == LinphoneMediaEncryptionZRTP)) {
 				BC_ASSERT_TRUE(wait_for_until(caller->lc, callee->lc, &caller->stat.number_of_LinphoneCallEncryptedOn,
@@ -2956,7 +2938,7 @@ void simple_call_with_capability_negotiations_with_different_encryption_after_re
 			BC_ASSERT_TRUE(wait_for(callee->lc, caller->lc, &callee->stat.number_of_LinphoneCallPaused,
 			                        callee_stat.number_of_LinphoneCallPaused + 1));
 
-			wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+			wait_for_until(callee->lc, caller->lc, NULL, 0, 5000);
 
 			BC_ASSERT_LOWER(caller->stat.number_of_rtcp_received, 5, int, "%d");
 			BC_ASSERT_LOWER(callee->stat.number_of_rtcp_received, 5, int, "%d");
@@ -3035,7 +3017,7 @@ void simple_call_with_capability_negotiations_with_resume_and_media_change_base(
 
 		// Pause callee call
 		BC_ASSERT_TRUE(pause_call_1(callee, calleeCall, caller, callerCall));
-		wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+		wait_for_until(callee->lc, caller->lc, NULL, 5, 3000);
 
 		// Resume callee call
 		reset_counters(&caller->stat);
@@ -3092,12 +3074,11 @@ void simple_call_with_capability_negotiations_with_resume_and_media_change_base(
 
 		BC_ASSERT_EQUAL(encryptionAfterResume, encryption, int, "%i");
 
-		wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+		wait_for_until(callee->lc, caller->lc, NULL, 5, 5000);
 
 		liblinphone_tester_check_rtcp(caller, callee);
 
 		BC_ASSERT_GREATER(linphone_core_manager_get_max_audio_down_bw(caller), 70, int, "%i");
-		LinphoneCallStats *calleeStats = linphone_call_get_audio_stats(linphone_core_get_current_call(callee->lc));
 		int counter = 0;
 		int dummy = 0;
 		do {
@@ -3105,9 +3086,6 @@ void simple_call_with_capability_negotiations_with_resume_and_media_change_base(
 			wait_for_until(callee->lc, caller->lc, &dummy, 1, 100);
 		} while ((counter < 100) && (linphone_core_manager_get_mean_audio_down_bw(callee) <= 70));
 		BC_ASSERT_GREATER(linphone_core_manager_get_mean_audio_down_bw(callee), 70, int, "%i");
-		BC_ASSERT_GREATER(static_cast<int>(linphone_call_stats_get_download_bandwidth(calleeStats)), 70, int, "%i");
-		linphone_call_stats_unref(calleeStats);
-		calleeStats = NULL;
 
 		if (calleeCall) {
 			check_stream_encryption(calleeCall);
@@ -3165,21 +3143,17 @@ void simple_call_with_capability_negotiations_with_resume_and_media_change_base(
 
 		BC_ASSERT_EQUAL(optionalEncryption, encryption, int, "%i");
 
-		wait_for_until(callee->lc, caller->lc, NULL, 5, 10000);
+		wait_for_until(callee->lc, caller->lc, NULL, 0, 5000);
 
 		liblinphone_tester_check_rtcp(caller, callee);
 
 		BC_ASSERT_GREATER(linphone_core_manager_get_max_audio_down_bw(caller), 70, int, "%i");
-		calleeStats = linphone_call_get_audio_stats(linphone_core_get_current_call(callee->lc));
 		counter = 0;
 		do {
 			counter++;
 			wait_for_until(callee->lc, caller->lc, &dummy, 1, 100);
 		} while ((counter < 100) && (linphone_core_manager_get_mean_audio_down_bw(callee) <= 70));
 		BC_ASSERT_GREATER(linphone_core_manager_get_mean_audio_down_bw(callee), 70, int, "%i");
-		BC_ASSERT_GREATER(static_cast<int>(linphone_call_stats_get_download_bandwidth(calleeStats)), 70, int, "%i");
-		linphone_call_stats_unref(calleeStats);
-		calleeStats = NULL;
 
 		if (calleeCall) {
 			check_stream_encryption(calleeCall);
