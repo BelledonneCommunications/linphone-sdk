@@ -20,16 +20,24 @@
 
 package org.linphone.core.tools;
 
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
+import android.app.Application;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.content.res.Resources;
 import android.graphics.SurfaceTexture;
+import android.hardware.display.DisplayManager;
+import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
@@ -42,19 +50,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.os.Vibrator;
+import android.provider.Settings;
+import android.view.Display;
 import android.view.Surface;
 import android.view.TextureView;
 import android.Manifest;
-
-import android.app.Application;
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningServiceInfo;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
-import android.hardware.display.DisplayManager;
-import android.media.AudioManager;
-import android.os.Vibrator;
-import android.view.Display;
 
 import org.linphone.core.Address;
 import org.linphone.core.SignalType;
@@ -93,12 +94,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.Error;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
-
-import java.lang.Error;
-import java.lang.reflect.Constructor;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -622,7 +622,15 @@ public class AndroidPlatformHelper {
 
     public String getNativeLibraryDir() {
         ApplicationInfo info = mContext.getApplicationInfo();
-        return info.nativeLibraryDir;
+        String nativeLibDir = info.nativeLibraryDir;
+        Log.i("[Platform Helper] Native library directory is " + nativeLibDir);
+        return nativeLibDir;
+    }
+
+    public String getPhysicalDeviceIdentifier() {
+        String deviceId = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
+        Log.i("[Platform Helper] Android device ID is " + deviceId);
+        return deviceId;
     }
 
     public void acquireWifiLock() {

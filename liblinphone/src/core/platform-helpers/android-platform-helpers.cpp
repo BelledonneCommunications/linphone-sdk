@@ -57,6 +57,7 @@ public:
 	string getRingResource(const string &filename) const override;
 	string getSoundResource(const string &filename) const override;
 	void *getPathContext() override;
+	string getPhysicalDeviceIdentifier() const override;
 
 	void setVideoPreviewWindow(void *windowId) override;
 	void setVideoWindow(void *windowId) override;
@@ -123,6 +124,7 @@ private:
 	jmethodID mGetDnsServersId = nullptr;
 	jmethodID mGetPowerManagerId = nullptr;
 	jmethodID mGetNativeLibraryDirId = nullptr;
+	jmethodID mGetPhysicalDeviceIdentifier = nullptr;
 	jmethodID mSetNativeVideoWindowId = nullptr;
 	jmethodID mSetNativePreviewVideoWindowId = nullptr;
 	jmethodID mSetParticipantDeviceNativeVideoWindowId = nullptr;
@@ -213,6 +215,7 @@ AndroidPlatformHelpers::AndroidPlatformHelpers(std::shared_ptr<LinphonePrivate::
 	mCpuLockReleaseId = getMethodId(env, klass, "releaseCpuLock", "()V");
 	mGetDnsServersId = getMethodId(env, klass, "getDnsServers", "()[Ljava/lang/String;");
 	mGetNativeLibraryDirId = getMethodId(env, klass, "getNativeLibraryDir", "()Ljava/lang/String;");
+	mGetPhysicalDeviceIdentifier = getMethodId(env, klass, "getPhysicalDeviceIdentifier", "()Ljava/lang/String;");
 	mSetNativeVideoWindowId = getMethodId(env, klass, "setVideoRenderingView", "(Ljava/lang/Object;)V");
 	mSetNativePreviewVideoWindowId = getMethodId(env, klass, "setVideoPreviewView", "(Ljava/lang/Object;)V");
 	mSetParticipantDeviceNativeVideoWindowId =
@@ -339,6 +342,21 @@ string AndroidPlatformHelpers::getSoundResource(const string &filename) const {
 
 void *AndroidPlatformHelpers::getPathContext() {
 	return mSystemContext;
+}
+
+string AndroidPlatformHelpers::getPhysicalDeviceIdentifier() const {
+	JNIEnv *env = ms_get_jni_env();
+	string physicalDeviceIdentifier = "";
+	if (env && mJavaHelper) {
+		jstring jPhysicalDeviceId = (jstring)env->CallObjectMethod(mJavaHelper, mGetPhysicalDeviceIdentifier);
+		if (jPhysicalDeviceId) {
+			const char *physicalDeviceId = GetStringUTFChars(env, jPhysicalDeviceId);
+			physicalDeviceIdentifier = string(physicalDeviceId);
+			lInfo() << "[Android Platform Helper] Device physical identifier is [" << physicalDeviceIdentifier << "]";
+			ReleaseStringUTFChars(env, jPhysicalDeviceId, physicalDeviceId);
+		}
+	}
+	return physicalDeviceIdentifier;
 }
 
 // -----------------------------------------------------------------------------

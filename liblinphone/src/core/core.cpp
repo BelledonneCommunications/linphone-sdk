@@ -1841,10 +1841,12 @@ void Core::pushNotificationReceived(const string &callId, const string &payload,
 			}
 		}
 
-		auto chatMessage = findChatMessageFromCallId(callId);
-		if (chatMessage) {
-			lInfo() << "Chat message with matching Call-ID found, no need for a background task";
-			found = true;
+		if (!found) {
+			auto chatMessage = findChatMessageFromCallId(callId);
+			if (chatMessage) {
+				lInfo() << "Chat message with matching Call-ID found, no need for a background task";
+				found = true;
+			}
 		}
 
 		if (!found) {
