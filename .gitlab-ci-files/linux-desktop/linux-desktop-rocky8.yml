@@ -63,10 +63,49 @@ rocky8-ninja-gcc:
   needs:
     - wait-cache-synchro-rocky8
 
+rocky8-ninja-clang:
+  tags: [ "docker-flat" ]
+  image: !reference [ .rocky8_image_version, image ]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    CCACHE_SIZE: 15G
+    CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON
+    CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZER=ON -DOPTIMIZE_SANITIZED_BUILD=ON
+  extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-rocky8
+
+rocky8-ninja-clang-coverage:
+  tags: [ "docker-flat" ]
+  image: !reference [ .rocky8_image_version, image ]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    CCACHE_SIZE: 15G
+    CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON -DENABLE_COVERAGE=ON
+    CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZER=ON -DOPTIMIZE_SANITIZED_BUILD=ON
+  extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-rocky8
+
 rocky8-ninja-gcc-tunnel-pq-h264-ekt:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
   extends: rocky8-ninja-gcc
+
+rocky8-ninja-clang-tunnel-pq-h264-ekt-coverage:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_COVERAGE=ON
+  extends: rocky8-ninja-clang
 
 rocky8-python-wheel:
   tags: [ "docker-flat" ]
@@ -179,13 +218,31 @@ mediastreamer-rocky8-test-h264-mr:
 .factorize_liblinphone_rocky8: &docker_image_needs_platform_devtoolset_libl
   image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
-    - rocky8-ninja-gcc
+    - rocky8-ninja-clang-coverage
   variables:
     PLATFORM: linux-rocky8
 
 liblinphone-rocky8-test:
   extends: .test-liblinphone
   <<: *docker_image_needs_platform_devtoolset_libl
+
+liblinphone-rocky8-test-nocov:
+  when: manual
+  extends: .test-liblinphone
+  image: !reference [ .rocky8_test_libl_image_version, image ]
+  needs:
+    - rocky8-ninja-clang
+  variables:
+    PLATFORM: linux-rocky8
+
+liblinphone-rocky8-test-gcc:
+  when: manual
+  extends: .test-liblinphone
+  image: !reference [ .rocky8_test_libl_image_version, image ]
+  needs:
+    - rocky8-ninja-gcc
+  variables:
+    PLATFORM: linux-rocky8
 
 liblinphone-rocky8-test-pq-h264-ekt:
   extends:
@@ -209,6 +266,47 @@ liblinphone-rocky8-test-shaky:
 liblinphone-rocky8-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
+
+liblinphone-rocky8-coverage:
+  tags: [ "docker-flat" ]
+  stage: coverage
+  image: !reference [ .rocky8_test_libl_image_version, image ]
+  needs:
+    - liblinphone-rocky8-test-mr
+  variables:
+    LLVM_COV_OPTIONS: >
+      liblinphone
+      -instr-profile=default.profdata
+      --ignore-filename-regex=liblinphone/libxsd
+      --ignore-filename-regex=external
+    LIBLINPHONE_BINARY: coverage/liblinphone.so.10
+  script:
+    - echo "Extract .profdata from .profraw"
+    - llvm-profdata merge -sparse coverage/*.profraw -o default.profdata
+    - echo "Full coverage of liblinphone library"
+    - llvm-cov show $LIBLINPHONE_BINARY $LLVM_COV_OPTIONS -use-color > liblinphone_coverage_lines_full.txt
+    - echo "Display coverage by file of liblinphone library"
+    - llvm-cov report $LIBLINPHONE_BINARY $LLVM_COV_OPTIONS -use-color | tee liblinphone_coverage_report_by_file.txt
+    - echo "filtering work of report to get global coverage %"
+    - cat liblinphone_coverage_report_by_file.txt | grep -E "TOTAL" | grep -Po "\d+\.\d+\%" | sed -n '3p'
+    - echo "Export results in JSON format"
+    - llvm-cov export $LIBLINPHONE_BINARY $LLVM_COV_OPTIONS -format=text > liblinphone_coverage_export.txt
+    - echo "Export results in Lcov format"
+    - llvm-cov export $LIBLINPHONE_BINARY $LLVM_COV_OPTIONS -format=lcov > liblinphone_coverage_export.lcov
+    - /home/bc/.local/bin/lcov_cobertura liblinphone_coverage_export.lcov
+  coverage: '/[0-9][0-9]\.[0-9]+\%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      - liblinphone_coverage_report_by_file.txt
+      - liblinphone_coverage_lines_full.txt
+      - liblinphone_coverage_export.lcov
+      - liblinphone_coverage_export.txt
+      - coverage.xml
+    expire_in: 1 week
 
 liblinphone-rocky8-test-mr-pq-h264-ekt:
   extends:

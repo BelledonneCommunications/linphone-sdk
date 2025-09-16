@@ -2972,6 +2972,9 @@ bool Core::dlopenPlugin(BCTBX_UNUSED(const std::string &plugin_path),
 }
 
 void Core::uninitPlugins() {
+#if defined(ENABLE_COVERAGE)
+	ms_warning("Core::uninitPlugins - skipping dlclose() to avoid false leak report on code coverage builds");
+#else
 	for (auto &handle : loadedPlugins) {
 #if defined(_WIN32)
 		FreeLibrary(handle);
@@ -2979,6 +2982,7 @@ void Core::uninitPlugins() {
 		dlclose(handle);
 #endif
 	}
+#endif
 	loadedPlugins.clear();
 	plugins.clear();
 }

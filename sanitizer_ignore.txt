@@ -12,8 +12,6 @@ leak:__cxa_thread_atexit_impl
 leak:bctbx_get_log_tags
 leak:bctbx_paste_log_tags
 
-
-
 # Files that contains suites that are, for now, known to leak
 leak:eventapi_tester.c
 leak:external_domain_tester.c

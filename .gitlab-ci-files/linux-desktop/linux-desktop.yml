@@ -223,6 +223,8 @@
     #add Sanitizer's ignore list for known leaks
     - export LSAN_OPTIONS="exitcode=255:suppressions=${CI_PROJECT_DIR}/sanitizer_ignore.txt"
     - export ASAN_OPTIONS="exitcode=255"
+    - export ASAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
+    - export LLVM_PROFILE_FILE="default_%p.profraw"
 
     # - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER
@@ -265,6 +267,7 @@
            then
               if [ $SHAKY_TESTS_LIBLINPHONE = "false" ];
               then
+                  echo $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag '!shaky' $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
                   $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag '!shaky' $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
               else
                   $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'shaky' --max-failed 2 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky || EXIT=$?
@@ -382,11 +385,20 @@
     - cp index.html ${CI_PROJECT_DIR}/results
     - echo $CI_JOB_ID > ${CI_PROJECT_DIR}/results/tests_id
     - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
-
+    - mkdir ${CI_PROJECT_DIR}/coverage
+    - |
+        if [ "${PATH_TO_LIBLINPHONE_SO}" != "" ];
+        then
+          echo "Moving liblinphone.so and .profraw file to 'coverage' folder in artifacts"
+          mv $PATH_TO_LIBLINPHONE_SO ${CI_PROJECT_DIR}/coverage
+          mv *.profraw ${CI_PROJECT_DIR}/coverage/
+        fi
+    - echo "After script finished"
   artifacts:
     paths:
       - ${CI_PROJECT_DIR}/results/*
       - ${CI_PROJECT_DIR}/build/default/gitdescribe.txt
+      - ${CI_PROJECT_DIR}/coverage
     when: always
     reports:
       junit:
@@ -553,6 +565,7 @@
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
+    PATH_TO_LIBLINPHONE_SO: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
     ADDITIONNAL_OPTIONS: "--show-account-manager-logs --dns-server $LIBLINPHONE_TESTER_DNS"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ${PATH_TO_TESTER}/${TESTER_BIN}"
     TESTER: "liblinphone"

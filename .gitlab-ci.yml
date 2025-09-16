@@ -113,6 +113,7 @@ stages:
  - docker-update-build-ms
  - docker-update-build-liblinphone
  - test
+ - coverage
  - check-orphans
  - package
  - deploy
