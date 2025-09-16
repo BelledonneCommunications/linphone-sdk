@@ -309,12 +309,52 @@ LINPHONE_PUBLIC bool_t linphone_chat_room_is_empty(LinphoneChatRoom *chat_room);
 LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_media_contents(LinphoneChatRoom *chat_room);
 
 /**
+ * Gets the partial list of contents for which content-type starts with either video/, audio/ or image/.
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which matching contents should be
+ * retrieved. @notnil
+ * @param begin The first content of the range to be retrieved. Most recent content has index 0.
+ * @param end The last content of the range to be retrieved. Oldest content has index of size (use
+ * #linphone_chat_room_get_media_contents_size() to retrieve size)
+ * @return A list of contents considered as "media". \bctbx_list{LinphoneContent} @tobefreed
+ */
+LINPHONE_PUBLIC bctbx_list_t *
+linphone_chat_room_get_media_contents_range(LinphoneChatRoom *chat_room, int begin, int end);
+
+/**
+ * Gets the number of media contents (see #linphone_chat_room_get_media_contents()).
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which media contents size should
+ * be retrieved. @notnil
+ * @return the number of media contents for that #LinphoneChatRoom.
+ */
+LINPHONE_PUBLIC int linphone_chat_room_get_media_contents_size(LinphoneChatRoom *chat_room);
+
+/**
  * Gets all contents for which content-type starts with either text/ or application/.
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which matching contents should be
  * retrieved. @notnil
  * @return A list of contents considered as "document". \bctbx_list{LinphoneContent} @tobefreed
  */
 LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_document_contents(LinphoneChatRoom *chat_room);
+
+/**
+ * Gets the partial list of contents for which content-type starts with either text/ or application/.
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which matching contents should be
+ * retrieved. @notnil
+ * @param begin The first content of the range to be retrieved. Most recent content has index 0.
+ * @param end The last content of the range to be retrieved. Oldest content has index of size (use
+ * #linphone_chat_room_get_document_contents_size() to retrieve size)
+ * @return A list of contents considered as "document". \bctbx_list{LinphoneContent} @tobefreed
+ */
+LINPHONE_PUBLIC bctbx_list_t *
+linphone_chat_room_get_document_contents_range(LinphoneChatRoom *chat_room, int begin, int end);
+
+/**
+ * Gets the number of document contents (see #linphone_chat_room_get_document_contents()).
+ * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which document contents size
+ * should be retrieved. @notnil
+ * @return the number of document contents for that #LinphoneChatRoom.
+ */
+LINPHONE_PUBLIC int linphone_chat_room_get_document_contents_size(LinphoneChatRoom *chat_room);
 
 /**
  * Gets nb_message most recent events from chat_room chat room, sorted from oldest to most recent.
@@ -333,7 +373,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_history_2(LinphoneChatRoom 
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which messages should be
  * retrieved @notnil
  * @param begin The first event of the range to be retrieved. History most recent message has index 0.
- * @param end The last event of the range to be retrieved. History oldest message has index of history size - 1 (use
+ * @param end The last event of the range to be retrieved. History oldest message has index of history size (use
  * #linphone_chat_room_get_history_size_2() to retrieve history size)
  * @param filters The #LinphoneChatRoomHistoryFilterMask mask to filter the results with #LinphoneChatRoomHistoryFilter
  * @return A list of \bctbx_list{LinphoneEventLog} @tobefreed
@@ -823,7 +863,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_history(LinphoneChatRoom *c
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which messages should be
  * retrieved @notnil
  * @param begin The first message of the range to be retrieved. History most recent message has index 0.
- * @param end The last message of the range to be retrieved. History oldest message has index of history size - 1 (use
+ * @param end The last message of the range to be retrieved. History oldest message has index of history size (use
  * #linphone_chat_room_get_history_size() to retrieve history size)
  * @return A list of chat messages. \bctbx_list{LinphoneChatMessage} @tobefreed
  * @deprecated 30/07/2024. Use linphone_chat_room_get_history_range_2() instead.
@@ -844,7 +884,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_history_message_events(Linp
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which events should be retrieved
  * @notnil
  * @param begin The first event of the range to be retrieved. History most recent event has index 0.
- * @param end The last event of the range to be retrieved. History oldest event has index of history size - 1
+ * @param end The last event of the range to be retrieved. History oldest event has index of history size
  * @return The list of chat message events. \bctbx_list{LinphoneEventLog} @tobefreed
  */
 LINPHONE_PUBLIC bctbx_list_t *
@@ -864,7 +904,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_history_events(LinphoneChat
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which events should be retrieved
  * @notnil
  * @param begin The first event of the range to be retrieved. History most recent event has index 0.
- * @param end The last event of the range to be retrieved. History oldest event has index of history size - 1
+ * @param end The last event of the range to be retrieved. History oldest event has index of history size
  * @return The list of the found events. \bctbx_list{LinphoneEventLog} @tobefreed
  */
 LINPHONE_PUBLIC bctbx_list_t *

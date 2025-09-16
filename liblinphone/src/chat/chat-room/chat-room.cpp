@@ -819,11 +819,27 @@ ChatRoom::SecurityLevel ChatRoom::getSecurityLevel() const {
 // -----------------------------------------------------------------------------
 
 list<shared_ptr<Content>> ChatRoom::getMediaContents() const {
-	return getCore()->getPrivate()->mainDb->getMediaContents(getConferenceId());
+	return getCore()->getPrivate()->mainDb->getMediaContents(getConferenceId(), 0, 0);
+}
+
+list<shared_ptr<Content>> ChatRoom::getMediaContentsRange(int begin, int end) const {
+	return getCore()->getPrivate()->mainDb->getMediaContents(getConferenceId(), begin, end);
+}
+
+int ChatRoom::getMediaContentsSize() const {
+	return getCore()->getPrivate()->mainDb->getMediaContentsSize(getConferenceId());
 }
 
 list<shared_ptr<Content>> ChatRoom::getDocumentContents() const {
-	return getCore()->getPrivate()->mainDb->getDocumentContents(getConferenceId());
+	return getCore()->getPrivate()->mainDb->getDocumentContents(getConferenceId(), 0, 0);
+}
+
+list<shared_ptr<Content>> ChatRoom::getDocumentContentsRange(int begin, int end) const {
+	return getCore()->getPrivate()->mainDb->getDocumentContents(getConferenceId(), begin, end);
+}
+
+int ChatRoom::getDocumentContentsSize() const {
+	return getCore()->getPrivate()->mainDb->getDocumentContentsSize(getConferenceId());
 }
 
 list<shared_ptr<EventLog>> ChatRoom::getMessageHistory(int nLast) const {

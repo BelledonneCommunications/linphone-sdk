@@ -128,7 +128,11 @@ public:
 	virtual bool isReadOnly() const = 0;
 
 	virtual std::list<std::shared_ptr<Content>> getMediaContents() const = 0;
+	virtual std::list<std::shared_ptr<Content>> getMediaContentsRange(int begin, int end) const = 0;
+	virtual int getMediaContentsSize() const = 0;
 	virtual std::list<std::shared_ptr<Content>> getDocumentContents() const = 0;
+	virtual std::list<std::shared_ptr<Content>> getDocumentContentsRange(int begin, int end) const = 0;
+	virtual int getDocumentContentsSize() const = 0;
 
 	virtual std::list<std::shared_ptr<EventLog>> getMessageHistory(int nLast) const = 0;
 	virtual std::list<std::shared_ptr<EventLog>> getMessageHistoryRange(int begin, int end) const = 0;

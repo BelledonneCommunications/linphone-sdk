@@ -363,10 +363,34 @@ bctbx_list_t *linphone_chat_room_get_media_contents(LinphoneChatRoom *chat_room)
 	return LinphonePrivate::Content::getCListFromCppList(contents, true);
 }
 
+bctbx_list_t *linphone_chat_room_get_media_contents_range(LinphoneChatRoom *chat_room, int begin, int end) {
+	LinphonePrivate::ChatRoomLogContextualizer logContextualizer(chat_room);
+	list<shared_ptr<LinphonePrivate::Content>> contents =
+	    AbstractChatRoom::toCpp(chat_room)->getMediaContentsRange(begin, end);
+	return LinphonePrivate::Content::getCListFromCppList(contents, true);
+}
+
+int linphone_chat_room_get_media_contents_size(LinphoneChatRoom *chat_room) {
+	LinphonePrivate::ChatRoomLogContextualizer logContextualizer(chat_room);
+	return AbstractChatRoom::toCpp(chat_room)->getMediaContentsSize();
+}
+
 bctbx_list_t *linphone_chat_room_get_document_contents(LinphoneChatRoom *chat_room) {
 	LinphonePrivate::ChatRoomLogContextualizer logContextualizer(chat_room);
 	list<shared_ptr<LinphonePrivate::Content>> contents = AbstractChatRoom::toCpp(chat_room)->getDocumentContents();
 	return LinphonePrivate::Content::getCListFromCppList(contents, true);
+}
+
+bctbx_list_t *linphone_chat_room_get_document_contents_range(LinphoneChatRoom *chat_room, int begin, int end) {
+	LinphonePrivate::ChatRoomLogContextualizer logContextualizer(chat_room);
+	list<shared_ptr<LinphonePrivate::Content>> contents =
+	    AbstractChatRoom::toCpp(chat_room)->getDocumentContentsRange(begin, end);
+	return LinphonePrivate::Content::getCListFromCppList(contents, true);
+}
+
+int linphone_chat_room_get_document_contents_size(LinphoneChatRoom *chat_room) {
+	LinphonePrivate::ChatRoomLogContextualizer logContextualizer(chat_room);
+	return AbstractChatRoom::toCpp(chat_room)->getDocumentContentsSize();
 }
 
 bctbx_list_t *linphone_chat_room_get_history_range(LinphoneChatRoom *chat_room, int startm, int endm) {

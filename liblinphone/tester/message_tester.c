@@ -1698,6 +1698,11 @@ void transfer_message_base4(LinphoneCoreManager *marie,
 	/* create a chatroom on pauline's side */
 	chat_room = linphone_core_get_chat_room(pauline->lc, marie->identity);
 
+	int media_contents_count = linphone_chat_room_get_media_contents_size(chat_room);
+	BC_ASSERT_EQUAL(media_contents_count, 0, int, "%d");
+	bctbx_list_t *media_contents = linphone_chat_room_get_media_contents(chat_room);
+	BC_ASSERT_PTR_NULL(media_contents);
+
 	if (two_files) {
 		linphone_chat_room_allow_multipart(chat_room);
 		linphone_chat_room_allow_cpim(chat_room);
@@ -1808,6 +1813,39 @@ void transfer_message_base4(LinphoneCoreManager *marie,
 		if (two_files) {
 			BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 			                              &pauline->stat.number_of_LinphoneMessageFileTransferDone, 2, 1000));
+		}
+
+		// Test media contents in sender's chat room
+		media_contents_count = linphone_chat_room_get_media_contents_size(chat_room);
+		if (two_files) {
+			BC_ASSERT_EQUAL(media_contents_count, 2, int, "%d");
+		} else {
+			BC_ASSERT_EQUAL(media_contents_count, 1, int, "%d");
+		}
+		media_contents = linphone_chat_room_get_media_contents(chat_room);
+		BC_ASSERT_PTR_NOT_NULL(media_contents);
+		if (media_contents) {
+			size_t media_contents_size = bctbx_list_size(media_contents);
+			BC_ASSERT_EQUAL((int)media_contents_size, media_contents_count, int, "%d");
+
+			LinphoneContent *media_content = (LinphoneContent *)bctbx_list_get_data(media_contents);
+			const char *media_content_name = linphone_content_get_name(media_content);
+			BC_ASSERT_STRING_EQUAL(media_content_name, expected_filename);
+			bctbx_list_free_with_data(media_contents, (bctbx_list_free_func)linphone_content_unref);
+
+			if (two_files) {
+				media_contents = linphone_chat_room_get_media_contents_range(chat_room, 1, 2);
+				BC_ASSERT_PTR_NOT_NULL(media_contents);
+				if (media_contents) {
+					size_t media_contents_size = bctbx_list_size(media_contents);
+					BC_ASSERT_EQUAL((int)media_contents_size, 1, int, "%d");
+
+					LinphoneContent *media_content = (LinphoneContent *)bctbx_list_get_data(media_contents);
+					const char *media_content_name = linphone_content_get_name(media_content);
+					BC_ASSERT_STRING_EQUAL(media_content_name, "ahbahouaismaisbon.wav");
+					bctbx_list_free_with_data(media_contents, (bctbx_list_free_func)linphone_content_unref);
+				}
+			}
 		}
 
 		if (marie->stat.last_received_chat_message) {
@@ -1937,6 +1975,39 @@ void transfer_message_base4(LinphoneCoreManager *marie,
 						BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 						                              &pauline->stat.number_of_LinphoneMessageDisplayed, 1,
 						                              liblinphone_tester_sip_timeout));
+					}
+
+					// Test media contents in receiver's chat room
+					media_contents_count = linphone_chat_room_get_media_contents_size(marie_room);
+					if (two_files) {
+						BC_ASSERT_EQUAL(media_contents_count, 2, int, "%d");
+					} else {
+						BC_ASSERT_EQUAL(media_contents_count, 1, int, "%d");
+					}
+					media_contents = linphone_chat_room_get_media_contents(marie_room);
+					BC_ASSERT_PTR_NOT_NULL(media_contents);
+					if (media_contents) {
+						size_t media_contents_size = bctbx_list_size(media_contents);
+						BC_ASSERT_EQUAL((int)media_contents_size, media_contents_count, int, "%d");
+
+						LinphoneContent *media_content = (LinphoneContent *)bctbx_list_get_data(media_contents);
+						const char *media_content_name = linphone_content_get_name(media_content);
+						BC_ASSERT_STRING_EQUAL(media_content_name, expected_filename);
+						bctbx_list_free_with_data(media_contents, (bctbx_list_free_func)linphone_content_unref);
+
+						if (two_files) {
+							media_contents = linphone_chat_room_get_media_contents_range(marie_room, 1, 2);
+							BC_ASSERT_PTR_NOT_NULL(media_contents);
+							if (media_contents) {
+								size_t media_contents_size = bctbx_list_size(media_contents);
+								BC_ASSERT_EQUAL((int)media_contents_size, 1, int, "%d");
+
+								LinphoneContent *media_content = (LinphoneContent *)bctbx_list_get_data(media_contents);
+								const char *media_content_name = linphone_content_get_name(media_content);
+								BC_ASSERT_STRING_EQUAL(media_content_name, "ahbahouaismaisbon.wav");
+								bctbx_list_free_with_data(media_contents, (bctbx_list_free_func)linphone_content_unref);
+							}
+						}
 					}
 				}
 			} else {
@@ -5409,56 +5480,67 @@ static test_t message_tests[] = {
     TEST_NO_TAG("Text message with crappy TO header", text_message_crappy_to_header),
     TEST_NO_TAG("Text message with crappy TO header from existing chat room",
                 text_message_crappy_to_header_existing_chat_room),
-    TEST_NO_TAG("Transfer message", transfer_message),
-    TEST_NO_TAG("Transfer message 2", transfer_message_2),
-    TEST_NO_TAG("Transfer message 3", transfer_message_3),
-    TEST_NO_TAG("Transfer message 4", transfer_message_4),
-    TEST_NO_TAG("Message with voice recording", message_with_voice_recording),
-    TEST_NO_TAG("Message with voice recording 2", message_with_voice_recording_2),
-    TEST_NO_TAG("Message with voice recording 3", message_with_voice_recording_3),
-    TEST_NO_TAG("Transfer message legacy", transfer_message_legacy),
-    TEST_NO_TAG("Transfer message with 2 files", transfer_message_2_files),
-    TEST_NO_TAG("Transfer message auto download", transfer_message_auto_download),
-    TEST_NO_TAG("Transfer message auto download 2", transfer_message_auto_download_2),
-    TEST_NO_TAG("Transfer message auto download failure", transfer_message_auto_download_failure),
-    TEST_NO_TAG("Transfer message auto download enabled but file too large", transfer_message_auto_download_3),
-    TEST_NO_TAG("Transfer message auto download existing file", transfer_message_auto_download_existing_file),
-    TEST_NO_TAG("Transfer messages same file auto download",
-                transfer_message_auto_download_two_files_same_name_same_time),
-    TEST_NO_TAG("Transfer message from history", transfer_message_from_history),
-    TEST_NO_TAG("Transfer message with http proxy", file_transfer_with_http_proxy),
-    TEST_NO_TAG("Transfer message with upload io error", transfer_message_with_upload_io_error),
-    TEST_NO_TAG("Transfer message with download io error", transfer_message_with_download_io_error),
-    TEST_NO_TAG("Transfer message upload cancelled", transfer_message_upload_cancelled),
-    TEST_NO_TAG("Transfer message upload finished during stop", transfer_message_upload_finished_during_stop),
-    TEST_NO_TAG("Transfer message download cancelled", transfer_message_download_cancelled),
-    TEST_NO_TAG("Transfer message auto download aborted", transfer_message_auto_download_aborted),
-    TEST_NO_TAG("Transfer message core stopped async 1", transfer_message_core_stopped_async_1),
-    TEST_NO_TAG("Transfer message core stopped async 2", transfer_message_core_stopped_async_2),
-    TEST_NO_TAG("Transfer 2 messages simultaneously", file_transfer_2_messages_simultaneously),
-    TEST_NO_TAG("Transfer using external body URL", file_transfer_using_external_body_url),
-    TEST_NO_TAG("Transfer using external body URL 2", file_transfer_using_external_body_url_2),
-    TEST_NO_TAG("Transfer using external body URL 404", file_transfer_using_external_body_url_404),
-    TEST_NO_TAG("Transfer message - file transfer server authenticates client using certificate",
-                transfer_message_tls_client_auth),
-    TEST_NO_TAG("Transfer message - file transfer server authenticates client using digest auth",
-                transfer_message_digest_auth),
-    TEST_NO_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
-                "multiple auth domain",
-                transfer_message_digest_auth_any_domain),
-    TEST_NO_TAG("Transfer message - file transfer server authenticates client using digest auth - upload auth fail",
-                transfer_message_digest_auth_fail_up),
-    TEST_NO_TAG("Transfer message - file transfer server authenticates client using digest auth - download auth fail",
-                transfer_message_digest_auth_fail_down),
-    TEST_NO_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
-                "multiple auth domain - upload auth fail",
-                transfer_message_digest_auth_fail_any_domain_up),
-    TEST_NO_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
-                "multiple auth domain - download auth fail",
-                transfer_message_digest_auth_fail_any_domain_down),
-    TEST_NO_TAG("Transfer message - file size limited pass", transfer_message_small_files_pass),
-    TEST_NO_TAG("Transfer message - file size limited fail", transfer_message_small_files_fail),
-    TEST_NO_TAG("Transfer message auto resent after failure", transfer_message_auto_resent_after_failure),
+    TEST_ONE_TAG("Transfer message", transfer_message, "Transfer"),
+    TEST_ONE_TAG("Transfer message 2", transfer_message_2, "Transfer"),
+    TEST_ONE_TAG("Transfer message 3", transfer_message_3, "Transfer"),
+    TEST_ONE_TAG("Transfer message 4", transfer_message_4, "Transfer"),
+    TEST_ONE_TAG("Message with voice recording", message_with_voice_recording, "Transfer"),
+    TEST_ONE_TAG("Message with voice recording 2", message_with_voice_recording_2, "Transfer"),
+    TEST_ONE_TAG("Message with voice recording 3", message_with_voice_recording_3, "Transfer"),
+    TEST_ONE_TAG("Transfer message legacy", transfer_message_legacy, "Transfer"),
+    TEST_ONE_TAG("Transfer message with 2 files", transfer_message_2_files, "Transfer"),
+    TEST_ONE_TAG("Transfer message auto download", transfer_message_auto_download, "Transfer"),
+    TEST_ONE_TAG("Transfer message auto download 2", transfer_message_auto_download_2, "Transfer"),
+    TEST_ONE_TAG("Transfer message auto download failure", transfer_message_auto_download_failure, "Transfer"),
+    TEST_ONE_TAG(
+        "Transfer message auto download enabled but file too large", transfer_message_auto_download_3, "Transfer"),
+    TEST_ONE_TAG(
+        "Transfer message auto download existing file", transfer_message_auto_download_existing_file, "Transfer"),
+    TEST_ONE_TAG("Transfer messages same file auto download",
+                 transfer_message_auto_download_two_files_same_name_same_time,
+                 "Transfer"),
+    TEST_ONE_TAG("Transfer message from history", transfer_message_from_history, "Transfer"),
+    TEST_ONE_TAG("Transfer message with http proxy", file_transfer_with_http_proxy, "Transfer"),
+    TEST_ONE_TAG("Transfer message with upload io error", transfer_message_with_upload_io_error, "Transfer"),
+    TEST_ONE_TAG("Transfer message with download io error", transfer_message_with_download_io_error, "Transfer"),
+    TEST_ONE_TAG("Transfer message upload cancelled", transfer_message_upload_cancelled, "Transfer"),
+    TEST_ONE_TAG(
+        "Transfer message upload finished during stop", transfer_message_upload_finished_during_stop, "Transfer"),
+    TEST_ONE_TAG("Transfer message download cancelled", transfer_message_download_cancelled, "Transfer"),
+    TEST_ONE_TAG("Transfer message auto download aborted", transfer_message_auto_download_aborted, "Transfer"),
+    TEST_ONE_TAG("Transfer message core stopped async 1", transfer_message_core_stopped_async_1, "Transfer"),
+    TEST_ONE_TAG("Transfer message core stopped async 2", transfer_message_core_stopped_async_2, "Transfer"),
+    TEST_ONE_TAG("Transfer 2 messages simultaneously", file_transfer_2_messages_simultaneously, "Transfer"),
+    TEST_ONE_TAG("Transfer using external body URL", file_transfer_using_external_body_url, "Transfer"),
+    TEST_ONE_TAG("Transfer using external body URL 2", file_transfer_using_external_body_url_2, "Transfer"),
+    TEST_ONE_TAG("Transfer using external body URL 404", file_transfer_using_external_body_url_404, "Transfer"),
+    TEST_ONE_TAG("Transfer message - file transfer server authenticates client using certificate",
+                 transfer_message_tls_client_auth,
+                 "Transfer"),
+    TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth",
+                 transfer_message_digest_auth,
+                 "Transfer"),
+    TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
+                 "multiple auth domain",
+                 transfer_message_digest_auth_any_domain,
+                 "Transfer"),
+    TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth - upload auth fail",
+                 transfer_message_digest_auth_fail_up,
+                 "Transfer"),
+    TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth - download auth fail",
+                 transfer_message_digest_auth_fail_down,
+                 "Transfer"),
+    TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
+                 "multiple auth domain - upload auth fail",
+                 transfer_message_digest_auth_fail_any_domain_up,
+                 "Transfer"),
+    TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
+                 "multiple auth domain - download auth fail",
+                 transfer_message_digest_auth_fail_any_domain_down,
+                 "Transfer"),
+    TEST_ONE_TAG("Transfer message - file size limited pass", transfer_message_small_files_pass, "Transfer"),
+    TEST_ONE_TAG("Transfer message - file size limited fail", transfer_message_small_files_fail, "Transfer"),
+    TEST_ONE_TAG("Transfer message auto resent after failure", transfer_message_auto_resent_after_failure, "Transfer"),
     TEST_NO_TAG("Aggregated messages", received_messages_with_aggregation_enabled),
     TEST_NO_TAG("Text message denied", text_message_denied),
     TEST_NO_TAG("Message with wrong domain in TO header", basic_message_with_wrong_to_domain),

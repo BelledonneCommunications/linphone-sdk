@@ -5314,10 +5314,17 @@ void MainDb::setChatMessageParticipantState(const shared_ptr<EventLog> &eventLog
 #endif
 }
 
-list<shared_ptr<Content>> MainDb::getMediaContents(const ConferenceId &conferenceId) const {
+list<shared_ptr<Content>> MainDb::getMediaContents(const ConferenceId &conferenceId, int begin, int end) const {
 	list<shared_ptr<Content>> result = list<shared_ptr<Content>>();
+
 #ifdef HAVE_DB_STORAGE
-	static const string query =
+	if (begin < 0) begin = 0;
+	if (end > 0 && begin > end) {
+		lError() << "Unable to get media contents, range [" << begin << " - " << end << "] is invalid!";
+		return result;
+	}
+
+	string query =
 	    "SELECT name, path, size, content_type.value, conference_chat_message_event.time, "
 	    "conference_chat_message_event.imdn_message_id "
 	    " FROM chat_message_file_content "
@@ -5330,8 +5337,19 @@ list<shared_ptr<Content>> MainDb::getMediaContents(const ConferenceId &conferenc
 	    " WHERE content_type.value LIKE 'video/%' OR content_type.value LIKE 'image/%' OR content_type.value LIKE "
 	    "'audio/%' "
 	    " ORDER BY chat_message_content.event_id DESC";
+
 	return L_DB_TRANSACTION {
 		L_D();
+
+		if (end > 0) {
+			query += " LIMIT " + Utils::toString(end - begin);
+		} else {
+			query += " LIMIT " + d->dbSession.noLimitValue();
+		}
+		if (begin > 0) {
+			query += " OFFSET " + Utils::toString(begin);
+		}
+
 		const long long &chatRoomId = d->selectChatRoomId(conferenceId);
 		soci::rowset<soci::row> rows = (d->dbSession.getBackendSession()->prepare << query, soci::use(chatRoomId));
 		for (const auto &row : rows) {
@@ -5360,10 +5378,42 @@ list<shared_ptr<Content>> MainDb::getMediaContents(const ConferenceId &conferenc
 #endif
 }
 
-list<shared_ptr<Content>> MainDb::getDocumentContents(const ConferenceId &conferenceId) const {
-	list<shared_ptr<Content>> result = list<shared_ptr<Content>>();
+int MainDb::getMediaContentsSize(const ConferenceId &conferenceId) const {
 #ifdef HAVE_DB_STORAGE
-	static const string query =
+	const string query =
+	    "SELECT COUNT(*) "
+	    " FROM chat_message_file_content "
+	    " JOIN chat_message_content ON chat_message_content.id = chat_message_file_content.chat_message_content_id "
+	    " JOIN content_type ON content_type.id = chat_message_content.content_type_id "
+	    " JOIN conference_event ON conference_event.event_id = chat_message_content.event_id AND "
+	    " conference_event.chat_room_id = :chatRoomId "
+	    " WHERE content_type.value LIKE 'video/%' OR content_type.value LIKE 'image/%' OR content_type.value LIKE "
+	    "'audio/%' ";
+
+	return L_DB_TRANSACTION {
+		L_D();
+
+		int count;
+		const long long &dbChatRoomId = d->selectChatRoomId(conferenceId);
+		*d->dbSession.getBackendSession() << query, soci::into(count), soci::use(dbChatRoomId);
+
+		return count;
+	};
+#else
+	return -1;
+#endif
+}
+
+list<shared_ptr<Content>> MainDb::getDocumentContents(const ConferenceId &conferenceId, int begin, int end) const {
+	list<shared_ptr<Content>> result = list<shared_ptr<Content>>();
+
+#ifdef HAVE_DB_STORAGE
+	if (begin < 0) begin = 0;
+	if (end > 0 && begin > end) {
+		lError() << "Unable to get document contents, range [" << begin << " - " << end << "] is invalid!";
+		return result;
+	}
+	string query =
 	    "SELECT name, path, size, content_type.value, conference_chat_message_event.time, "
 	    "conference_chat_message_event.imdn_message_id "
 	    " FROM chat_message_file_content "
@@ -5375,8 +5425,19 @@ list<shared_ptr<Content>> MainDb::getDocumentContents(const ConferenceId &confer
 	    " conference_event.chat_room_id = :chatRoomId "
 	    " WHERE content_type.value LIKE 'text/%' OR content_type.value LIKE 'application/%' "
 	    " ORDER BY chat_message_content.event_id DESC";
+
 	return L_DB_TRANSACTION {
 		L_D();
+
+		if (end > 0) {
+			query += " LIMIT " + Utils::toString(end - begin);
+		} else {
+			query += " LIMIT " + d->dbSession.noLimitValue();
+		}
+		if (begin > 0) {
+			query += " OFFSET " + Utils::toString(begin);
+		}
+
 		const long long &chatRoomId = d->selectChatRoomId(conferenceId);
 		soci::rowset<soci::row> rows = (d->dbSession.getBackendSession()->prepare << query, soci::use(chatRoomId));
 		for (const auto &row : rows) {
@@ -5402,6 +5463,31 @@ list<shared_ptr<Content>> MainDb::getDocumentContents(const ConferenceId &confer
 	};
 #else
 	return result;
+#endif
+}
+
+int MainDb::getDocumentContentsSize(const ConferenceId &conferenceId) const {
+#ifdef HAVE_DB_STORAGE
+	const string query =
+	    "SELECT COUNT(*) "
+	    " FROM chat_message_file_content "
+	    " JOIN chat_message_content ON chat_message_content.id = chat_message_file_content.chat_message_content_id "
+	    " JOIN content_type ON content_type.id = chat_message_content.content_type_id "
+	    " JOIN conference_event ON conference_event.event_id = chat_message_content.event_id AND "
+	    " conference_event.chat_room_id = :chatRoomId "
+	    " WHERE content_type.value LIKE 'text/%' OR content_type.value LIKE 'application/%' ";
+
+	return L_DB_TRANSACTION {
+		L_D();
+
+		int count;
+		const long long &dbChatRoomId = d->selectChatRoomId(conferenceId);
+		*d->dbSession.getBackendSession() << query, soci::into(count), soci::use(dbChatRoomId);
+
+		return count;
+	};
+#else
+	return -1;
 #endif
 }
 
