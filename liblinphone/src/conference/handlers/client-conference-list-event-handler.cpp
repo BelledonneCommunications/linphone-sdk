@@ -134,7 +134,7 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 	evSub->setProperty("event-handler-private", this);
 	auto ret = evSub->send(content);
 	levs.push_back(evSub);
-	startDelayMessageSendTimer(*from);
+	startWaitNotifyTimer();
 
 	return (ret == 0);
 }
@@ -153,6 +153,7 @@ void ClientConferenceListEventHandler::unsubscribe() {
 		} catch (const bad_weak_ptr &) {
 		}
 	}
+	stopWaitNotifyTimer();
 }
 
 void ClientConferenceListEventHandler::unsubscribe(const std::shared_ptr<Account> &account) {
@@ -179,6 +180,7 @@ void ClientConferenceListEventHandler::unsubscribe(const std::shared_ptr<Account
 		} catch (const bad_weak_ptr &) {
 		}
 	}
+	stopWaitNotifyTimer();
 }
 
 bool ClientConferenceListEventHandler::alreadySubscribed(const std::shared_ptr<Address> &address) const {
@@ -200,13 +202,9 @@ void ClientConferenceListEventHandler::invalidateSubscription() {
 	levs.clear();
 }
 
-bool ClientConferenceListEventHandler::getInitialSubscriptionUnderWayFlag(const ConferenceId &conferenceId) const {
-	auto handler = findHandler(conferenceId);
-	return (handler) ? handler->getInitialSubscriptionUnderWayFlag() : false;
-}
-
 void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> notifyLev,
                                                       const std::shared_ptr<const Content> &notifyContent) {
+	stopWaitNotifyTimer();
 	if (notifyContent) {
 		const auto &from = notifyLev->getFrom();
 		auto core = getCore();
@@ -231,16 +229,8 @@ void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> not
 			if (!handler) return;
 
 			handler->notifyReceived(*notifyContent);
-			const auto initialSubscription = handler->getInitialSubscriptionUnderWayFlag();
 			if (handler->getInitialSubscriptionUnderWayFlag()) {
 				handler->setInitialSubscriptionUnderWayFlag(!levFound);
-			}
-			if (!delayMessageSendTimerStarted(*from) && initialSubscription &&
-			    !handler->getInitialSubscriptionUnderWayFlag()) {
-				auto conference = dynamic_pointer_cast<ClientConference>(handler->getConference());
-				if (conference) {
-					conference->sendPendingMessages();
-				}
 			}
 		} else {
 			list<Content> contents = ContentManager::multipartToContentList(*notifyContent);
@@ -271,44 +261,13 @@ void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> not
 			// Remove subscription underway flag from all handlers matching the account that sent the subscription
 			for (const auto &[key, handlerWkPtr] : handlers) {
 				try {
-					const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
+					std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
 					const ConferenceId &conferenceId = handler->getConferenceId();
 					if (from->weakEqual(*conferenceId.getLocalAddress())) {
-						if (handler->getInitialSubscriptionUnderWayFlag()) {
-							handler->setInitialSubscriptionUnderWayFlag(!levFound);
-						}
-						if (!delayMessageSendTimerStarted(*from)) {
-							auto conference = dynamic_pointer_cast<ClientConference>(handler->getConference());
-							if (conference) {
-								conference->sendPendingMessages();
-							}
-						}
+						handler->notifySubscriptionUnderwayDone();
 					}
 				} catch (const bad_weak_ptr &) {
 				}
-			}
-		}
-		handleDelayMessageSendTimerExpired(*from);
-	}
-}
-
-void ClientConferenceListEventHandler::handleDelayMessageSendTimerExpired(const Address address) {
-	if (delayMessageSendTimerStarted(address)) {
-		setDelayTimerExpired(true, address);
-		stopDelayMessageSendTimer(address);
-		for (const auto &[key, handlerWkPtr] : handlers) {
-			try {
-				const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
-				auto conference = dynamic_pointer_cast<ClientConference>(handler->getConference());
-				if (conference) {
-					handler->setDelayTimerExpired(true, *conference->getConferenceAddress());
-					if (conference->getCurrentParams()->chatEnabled()) {
-						lInfo() << "Timer to delay message sending in " << *conference
-						        << " has expired. Sending all pending messages if the conference has chat capabilities";
-						conference->sendPendingMessages();
-					}
-				}
-			} catch (const bad_weak_ptr &) {
 			}
 		}
 	}
@@ -482,6 +441,18 @@ void ClientConferenceListEventHandler::onEnteringBackground() {
 
 void ClientConferenceListEventHandler::onEnteringForeground() {
 	subscribe();
+}
+
+void ClientConferenceListEventHandler::onNotifyWaitExpired() {
+	// Remove subscription underway flag from all child handlers.
+	for (const auto &[key, handlerWkPtr] : handlers) {
+		try {
+			std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
+			handler->notifySubscriptionUnderwayDone();
+		} catch (...) {
+			// ignored
+		}
+	}
 }
 
 LINPHONE_END_NAMESPACE

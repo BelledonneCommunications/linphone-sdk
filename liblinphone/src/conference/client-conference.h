@@ -144,8 +144,8 @@ public:
 	void setMainSession(const std::shared_ptr<CallSession> &session);
 	std::shared_ptr<Call> getCall() const override;
 
-	virtual bool delayTimerExpired() const override;
 	bool isSubscriptionUnderWay() const override;
+	void onSubscriptionUnderwayDone();
 
 	void onConferenceCreated(const std::shared_ptr<Address> &addr) override;
 	void onConferenceKeywordsChanged(const std::vector<std::string> &keywords) override;

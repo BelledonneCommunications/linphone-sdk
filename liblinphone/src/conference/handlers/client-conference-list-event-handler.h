@@ -57,8 +57,6 @@ public:
 	void removeHandler(std::shared_ptr<ClientConferenceEventHandler> handler);
 	void clearHandlers();
 	std::shared_ptr<ClientConferenceEventHandler> findHandler(const ConferenceId &conferenceId) const;
-	bool getInitialSubscriptionUnderWayFlag(const ConferenceId &conferenceId) const;
-	virtual void handleDelayMessageSendTimerExpired(const Address address) override;
 
 private:
 	const std::shared_ptr<EventSubscribe> findEvent(const std::shared_ptr<Address> &address) const;
@@ -79,6 +77,7 @@ private:
 	                                       BCTBX_UNUSED(const std::string &message)) override;
 	void onEnteringBackground() override;
 	void onEnteringForeground() override;
+	virtual void onNotifyWaitExpired() override;
 };
 
 LINPHONE_END_NAMESPACE

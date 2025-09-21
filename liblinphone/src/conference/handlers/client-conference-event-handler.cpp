@@ -813,22 +813,6 @@ void ClientConferenceEventHandler::requestFullState() {
 	fullStateRequested = true;
 }
 
-void ClientConferenceEventHandler::handleDelayMessageSendTimerExpired(const Address address) {
-	if (delayMessageSendTimerStarted(address)) {
-		setDelayTimerExpired(true, address);
-		stopDelayMessageSendTimer(address);
-		auto conference = getConference();
-		if (conference) {
-			lInfo() << "Timer to delay message sending in " << *conference
-			        << " has expired. Sending all pending messages if the conference has chat capabilities";
-			const auto &chatRoom = conference->getChatRoom();
-			if (chatRoom) {
-				chatRoom->sendPendingMessages();
-			}
-		}
-	}
-}
-
 // -----------------------------------------------------------------------------
 
 bool ClientConferenceEventHandler::notAlreadySubscribed() const {
@@ -914,7 +898,7 @@ bool ClientConferenceEventHandler::subscribe() {
 		        << *conference << " with last notify: " << lastNotifyStr;
 		auto subscribeOk = (ev->send(nullptr) == 0);
 		setInitialSubscriptionUnderWayFlag(subscribeOk);
-		startDelayMessageSendTimer(*subscribeToHeader);
+		startWaitNotifyTimer();
 		return subscribeOk;
 	} catch (const bad_weak_ptr &) {
 		lError() << "ClientConferenceEventHandler [" << this << "]: Unable to send subscribe to " << *conference
@@ -933,6 +917,7 @@ void ClientConferenceEventHandler::unsubscribePrivate() {
 		shared_ptr<EventSubscribe> tmpEv = ev;
 		ev = nullptr;
 		tmpEv->terminate();
+		stopWaitNotifyTimer();
 	}
 }
 
@@ -1026,14 +1011,8 @@ void ClientConferenceEventHandler::unsubscribe() {
 	setManagedByListEventhandler(false);
 }
 
-void ClientConferenceEventHandler::updateInitialSubcriptionUnderWay(std::shared_ptr<Event> notifyLev) {
-	if (getInitialSubscriptionUnderWayFlag()) {
-		setInitialSubscriptionUnderWayFlag((ev != notifyLev));
-	}
-}
-
-void ClientConferenceEventHandler::notifyReceived(std::shared_ptr<Event> notifyLev, const Content &content) {
-	updateInitialSubcriptionUnderWay(notifyLev);
+void ClientConferenceEventHandler::notifyReceived(BCTBX_UNUSED(std::shared_ptr<Event> notifyLev),
+                                                  const Content &content) {
 	notifyReceived(content);
 }
 
@@ -1043,14 +1022,12 @@ void ClientConferenceEventHandler::notifyReceived(const Content &content) {
 	const ContentType &contentType = content.getContentType();
 	if (contentType == ContentType::ConferenceInfo) {
 		conferenceInfoNotifyReceived(content.getBodyAsUtf8String());
-		auto conference = getConference();
-		const auto &conferenceAddress = conference->getConferenceAddress();
-		handleDelayMessageSendTimerExpired(*conferenceAddress);
 	}
+	notifySubscriptionUnderwayDone();
 }
 
-void ClientConferenceEventHandler::multipartNotifyReceived(std::shared_ptr<Event> notifyLev, const Content &content) {
-	updateInitialSubcriptionUnderWay(notifyLev);
+void ClientConferenceEventHandler::multipartNotifyReceived(BCTBX_UNUSED(std::shared_ptr<Event> notifyLev),
+                                                           const Content &content) {
 	multipartNotifyReceived(content);
 }
 
@@ -1091,6 +1068,21 @@ time_t ClientConferenceEventHandler::dateTimeToTimeT(const Xsd::XmlSchema::DateT
 	timeStruct.tm_gmtoff = 0;
 #endif
 	return Utils::getTmAsTimeT(timeStruct);
+}
+
+/* HACK
+ * See comment in client-conference-event-handler-base.h.
+ *
+ */
+void ClientConferenceEventHandler::onNotifyWaitExpired() {
+	notifySubscriptionUnderwayDone();
+}
+
+void ClientConferenceEventHandler::notifySubscriptionUnderwayDone() {
+	stopWaitNotifyTimer();
+	setInitialSubscriptionUnderWayFlag(false);
+	auto conference = dynamic_pointer_cast<ClientConference>(getConference());
+	if (conference) conference->onSubscriptionUnderwayDone();
 }
 
 LINPHONE_END_NAMESPACE
