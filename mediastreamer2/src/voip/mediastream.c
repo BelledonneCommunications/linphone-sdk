@@ -1124,6 +1124,11 @@ RtpSession *media_stream_rtp_session_new_from_session(RtpSession *session, int m
 	rtp_session_enable_rtcp(s, rtp_session_rtcp_enabled(session));
 	rtp_session_enable_rtcp_mux(s, rtp_session_rtcp_mux_enabled(session));
 
+	/* timestamp jumps are not expected with auxiliary sessions used for conferencing,
+	 * but might happen in case of severe network issues, so handle it anyway.
+	 */
+	rtp_session_signal_connect(s, "timestamp_jump", (RtpCallback)rtp_session_resync_cb, NULL);
+
 	/* We want the auxiliary session to dispatch its events to the same recipients as the main session.
 	 * For that we simply register the main's RtpSession current event queues into the new auxiliary session.
 	 */
