@@ -22,7 +22,6 @@
 #define LINPHONE_ACCOUNT_PARAMS_H
 
 #include "linphone/api/c-types.h"
-#include "linphone/sipsetup.h"
 
 #ifdef __cplusplus
 extern "C" {

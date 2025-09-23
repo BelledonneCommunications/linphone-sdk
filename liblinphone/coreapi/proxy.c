@@ -39,9 +39,8 @@
 #include "linphone/core.h"
 #include "linphone/core_utils.h"
 #include "linphone/lpconfig.h"
-#include "linphone/sipsetup.h"
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/mediastream.h"
 
@@ -607,10 +606,6 @@ void linphone_core_set_default_account(LinphoneCore *lc, LinphoneAccount *accoun
 	                                                           : nullptr);
 }
 
-SipSetup *linphone_proxy_config_get_sip_setup(BCTBX_UNUSED(LinphoneProxyConfig *cfg)) {
-	return NULL;
-} // TODO: remove this
-
 void linphone_proxy_config_update(LinphoneProxyConfig *cfg) {
 	Account::toCpp(cfg->account)->update();
 }
@@ -618,14 +613,6 @@ void linphone_proxy_config_update(LinphoneProxyConfig *cfg) {
 void linphone_account_update(LinphoneAccount *account) {
 	Account::toCpp(account)->update();
 }
-
-void linphone_proxy_config_set_sip_setup(BCTBX_UNUSED(LinphoneProxyConfig *cfg), BCTBX_UNUSED(const char *type)) {
-
-} // TODO: remove this
-
-SipSetupContext *linphone_proxy_config_get_sip_setup_context(BCTBX_UNUSED(LinphoneProxyConfig *cfg)) {
-	return NULL;
-} // TODO: remove this
 
 void linphone_proxy_config_set_user_data(LinphoneProxyConfig *cfg, void *ud) {
 	linphone_account_set_user_data(cfg->account, ud);

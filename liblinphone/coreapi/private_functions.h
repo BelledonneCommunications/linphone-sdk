@@ -261,7 +261,6 @@ LinphoneAddress *linphone_friend_get_uri(const LinphoneFriend *lf);
 void linphone_friend_release(LinphoneFriend *lf);
 void linphone_friend_remove_incoming_subscription(LinphoneFriend *lf, LinphonePrivate::SalOp *op);
 void linphone_friend_set_inc_subscribe_pending(LinphoneFriend *lf, bool_t pending);
-void linphone_friend_set_info(LinphoneFriend *lf, BuddyInfo *info);
 void linphone_friend_set_outsub(LinphoneFriend *lf, LinphonePrivate::SalPresenceOp *outsub);
 void linphone_friend_set_out_sub_state(LinphoneFriend *lf, LinphoneSubscriptionState state);
 void linphone_friend_set_presence_received(LinphoneFriend *lf, bool_t received);

@@ -88,7 +88,6 @@
 #include "linphone/core_utils.h"
 #include "linphone/logging.h"
 #include "linphone/lpconfig.h"
-#include "linphone/sipsetup.h"
 #include "logger/logger.h"
 #include "logging-private.h"
 #include "private.h"
@@ -2710,7 +2709,6 @@ void linphone_core_reload_ms_plugins(LinphoneCore *lc, const char *path) {
 }
 
 static void _linphone_core_read_config(LinphoneCore *lc) {
-	sip_setup_register_all(lc->factory);
 	sound_config_read(lc);
 	net_config_read(lc);
 	rtp_config_read(lc);
@@ -3063,7 +3061,7 @@ static void _linphone_core_conference_subscription_state_changed(LinphoneCore *l
 static void linphone_core_internal_subscription_state_changed(LinphoneCore *lc,
                                                               LinphoneEvent *lev,
                                                               LinphoneSubscriptionState state) {
-	if (strcasecmp(linphone_event_get_name(lev), "Presence") == 0) {
+	if (strcasecmp(linphone_event_get_name(lev), "presence") == 0) {
 		linphone_friend_list_subscription_state_changed(lc, lev, state);
 	} else if (strcmp(linphone_event_get_name(lev), "conference") == 0) {
 		_linphone_core_conference_subscription_state_changed(lc, lev, state);
@@ -7792,8 +7790,6 @@ void _linphone_core_stop_async_end(LinphoneCore *lc) {
 	video_config_uninit(lc);
 	codecs_config_uninit(lc);
 	misc_config_uninit(lc);
-
-	sip_setup_unregister_all();
 
 	// We have to disconnect mainDB later since sip_config_uninit iterates
 	L_GET_PRIVATE_FROM_C_OBJECT(lc)->disconnectMainDb();

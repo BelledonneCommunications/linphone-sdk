@@ -49,7 +49,6 @@
 #include "linphone/presence.h"
 #include "linphone/proxy_config.h"
 #include "linphone/ringtoneplayer.h"
-#include "linphone/sipsetup.h"
 #include "linphone/types.h"
 #include "linphone/vcard.h"
 #include "linphone/video_definition.h"

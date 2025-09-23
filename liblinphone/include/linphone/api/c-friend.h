@@ -24,7 +24,6 @@
 #include "linphone/api/c-types.h"
 #include "linphone/callbacks.h"
 #include "linphone/enums/c-enums.h"
-#include "linphone/sipsetup.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -329,8 +328,6 @@ LINPHONE_PUBLIC void linphone_friend_set_user_data(LinphoneFriend *linphone_frie
  * @return the user data pointer. @maybenil
  **/
 LINPHONE_PUBLIC void *linphone_friend_get_user_data(const LinphoneFriend *linphone_friend);
-
-LINPHONE_PUBLIC BuddyInfo *linphone_friend_get_info(const LinphoneFriend *linphone_friend);
 
 /**
  * Set the reference key of a friend.

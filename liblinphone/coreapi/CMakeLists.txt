@@ -58,8 +58,6 @@ set(LINPHONE_SOURCE_FILES_C
 	quality_reporting.c
 	remote_provisioning.c
 	ringtoneplayer.c
-	siplogin.c
-	sipsetup.c
 	update_check.c
 	video_definition.c
 	vtables.c

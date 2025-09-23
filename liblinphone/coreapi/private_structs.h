@@ -21,7 +21,7 @@
 #ifndef _PRIVATE_STRUCTS_H_
 #define _PRIVATE_STRUCTS_H_
 
-#include <bctoolbox/map.h>
+#include "bctoolbox/map.h"
 
 #ifdef HAVE_XML2
 #include <libxml/xmlreader.h>
@@ -39,7 +39,6 @@ typedef struct _sqlite3 sqlite3;
 #include "event/event-publish.h"
 #include "linphone/core.h"
 #include "linphone/core_utils.h"
-#include "linphone/sipsetup.h"
 #include "sal/event-op.h"
 #include "sal/register-op.h"
 

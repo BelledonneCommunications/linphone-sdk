@@ -22,7 +22,6 @@
 #define LINPHONE_PROXY_CONFIG_H
 
 #include "linphone/api/c-push-notification-config.h"
-#include "linphone/sipsetup.h"
 #include "linphone/types.h"
 
 #ifdef __cplusplus
@@ -452,10 +451,6 @@ LINPHONE_PUBLIC const LinphoneErrorInfo *linphone_proxy_config_get_error_info(co
 LINPHONE_PUBLIC const char *linphone_proxy_config_get_transport(const LinphoneProxyConfig *proxy_config);
 
 LINPHONE_PUBLIC void linphone_proxy_config_set_sip_setup(LinphoneProxyConfig *proxy_config, const char *type);
-
-LINPHONE_PUBLIC SipSetupContext *linphone_proxy_config_get_sip_setup_context(LinphoneProxyConfig *proxy_config);
-
-LINPHONE_PUBLIC SipSetup *linphone_proxy_config_get_sip_setup(LinphoneProxyConfig *proxy_config);
 
 /**
  * Normalize a human readable phone number into a basic string. 888-444-222 becomes 888444222

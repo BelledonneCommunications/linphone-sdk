@@ -72,7 +72,6 @@
 
 #include "linphone/player.h"
 #include "linphone/ringtoneplayer.h"
-#include "linphone/sipsetup.h"
 #include "quality_reporting.h"
 #include "tester_utils.h"
 

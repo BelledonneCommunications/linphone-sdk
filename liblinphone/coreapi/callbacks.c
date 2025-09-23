@@ -1209,7 +1209,7 @@ static void on_expire(SalOp *op) {
 	/* FIXME: the Account should simply use the EventCbs to get notified of Expiring state */
 	void *user_data = linphone_event_get_user_data(lev);
 	const char *event_name = linphone_event_get_name(lev);
-	if (user_data && event_name && linphone_event_is_internal(lev) && strcmp(event_name, "presence") == 0) {
+	if (user_data && event_name && linphone_event_is_internal(lev) && strcasecmp(event_name, "presence") == 0) {
 		Account *account = (Account *)user_data;
 		if (account) {
 			lInfo() << "Presence publish about to expire, manually refreshing it for account [" << account << "]";

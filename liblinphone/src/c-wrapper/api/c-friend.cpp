@@ -157,10 +157,6 @@ LinphoneSubscribePolicy linphone_friend_get_inc_subscribe_policy(const LinphoneF
 	return Friend::toCpp(lf)->getIncSubscribePolicy();
 }
 
-BuddyInfo *linphone_friend_get_info(const LinphoneFriend *lf) {
-	return Friend::toCpp(lf)->getInfo();
-}
-
 const char *linphone_friend_get_job_title(const LinphoneFriend *lf) {
 	if (!lf) return NULL;
 	return L_STRING_TO_C(Friend::toCpp(lf)->getJobTitle());
@@ -528,10 +524,6 @@ void linphone_friend_remove_incoming_subscription(LinphoneFriend *lf, SalOp *op)
 
 void linphone_friend_set_inc_subscribe_pending(LinphoneFriend *lf, bool_t pending) {
 	Friend::toCpp(lf)->mIncSubscribePending = pending;
-}
-
-void linphone_friend_set_info(LinphoneFriend *lf, BuddyInfo *info) {
-	Friend::toCpp(lf)->mInfo = info;
 }
 
 void linphone_friend_set_outsub(LinphoneFriend *lf, LinphonePrivate::SalPresenceOp *outsub) {

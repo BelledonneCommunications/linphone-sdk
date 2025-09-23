@@ -49,7 +49,6 @@ set(ROOT_HEADER_FILES
 	presence.h
 	proxy_config.h
 	ringtoneplayer.h
-	sipsetup.h
 	tunnel.h
 	types.h
 	vcard.h

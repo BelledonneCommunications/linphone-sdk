@@ -84,7 +84,6 @@ public:
 	friend void ::linphone_friend_remove_incoming_subscription(LinphoneFriend *lf, LinphonePrivate::SalOp *op);
 	friend void ::linphone_friend_save(LinphoneFriend *lf, LinphoneCore *lc);
 	friend void ::linphone_friend_set_inc_subscribe_pending(LinphoneFriend *lf, bool_t pending);
-	friend void ::linphone_friend_set_info(LinphoneFriend *lf, BuddyInfo *info);
 	friend void ::linphone_friend_set_outsub(LinphoneFriend *lf, LinphonePrivate::SalPresenceOp *outsub);
 	friend void ::linphone_friend_set_out_sub_state(LinphoneFriend *lf, LinphoneSubscriptionState state);
 	friend void ::linphone_friend_set_presence_received(LinphoneFriend *lf, bool_t received);
@@ -117,7 +116,6 @@ public:
 	float getCapabilityVersion(LinphoneFriendCapability capability) const;
 	LinphoneConsolidatedPresence getConsolidatedPresence() const;
 	LinphoneSubscribePolicy getIncSubscribePolicy() const;
-	BuddyInfo *getInfo() const;
 	const std::string &getJobTitle() const;
 	const std::string &getOrganization() const;
 	const std::string &getName() const;
@@ -219,7 +217,6 @@ private:
 	mutable std::map<std::string, std::string> mPhoneNumberToSipUriMap;
 	mutable std::map<std::string, std::string> mSipUriToPhoneNumberMap;
 
-	BuddyInfo *mInfo = nullptr;
 	std::shared_ptr<Vcard> mVcard;
 	FriendList *mFriendList = nullptr;
 

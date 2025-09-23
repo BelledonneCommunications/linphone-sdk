@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "address/address.h"
 #include "core/core-p.h"
@@ -33,7 +33,6 @@
 #include "core/core.h"
 
 #include "linphone/api/c-account.h"
-#include "linphone/sipsetup.h"
 #include "presence/presence-model.h"
 #include "private.h" // TODO: To remove if possible
 #include "private_functions.h"
@@ -77,7 +76,6 @@ Friend::Friend(std::shared_ptr<Core> core, const std::shared_ptr<Vcard> &vcard) 
 Friend::~Friend() {
 	releaseOps();
 	clearPresenceModels();
-	if (mInfo) buddy_info_free(mInfo);
 }
 
 Friend *Friend::clone() const {
@@ -354,10 +352,6 @@ LinphoneConsolidatedPresence Friend::getConsolidatedPresence() const {
 
 LinphoneSubscribePolicy Friend::getIncSubscribePolicy() const {
 	return mSubscribePolicy;
-}
-
-BuddyInfo *Friend::getInfo() const {
-	return mInfo;
 }
 
 const std::string &Friend::getJobTitle() const {
