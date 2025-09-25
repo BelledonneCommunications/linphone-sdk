@@ -21,8 +21,8 @@
 #include <fstream>
 #include <set>
 
+#include "bctoolbox/defs.h"
 #include "bctoolbox/list.h"
-#include <bctoolbox/defs.h>
 
 #include "friend-list.h"
 
@@ -791,7 +791,7 @@ void FriendList::parseMultipartRelatedBody(const std::shared_ptr<const Content> 
 					while (it != nullptr) {
 						LinphoneContent *content = (LinphoneContent *)it->data;
 						const char *header = linphone_content_get_custom_header(content, "Content-Id");
-						if (header && (std::string(header) == cid)) {
+						if (header && Utils::iequalsIgnoreBrakets(header, cid)) {
 							presencePart = Content::toCpp(content)->getSharedFromThis();
 							break;
 						}
@@ -985,8 +985,9 @@ bool FriendList::synchronizeFriendsWith(std::list<std::shared_ptr<Friend>> const
 			// in the local friend.
 			if (atLeastAPhoneNumberWasRemoved) {
 				lWarning()
-				    << "Friend list [" << toC() << "] synchronizeFriendsWith: "
-				    << "At least a phone number was removed from native contact [" << localFriend->getName() << "],"
+				    << "Friend list [" << toC()
+				    << "] synchronizeFriendsWith: " << "At least a phone number was removed from native contact ["
+				    << localFriend->getName() << "],"
 				    << " clearing all SIP addresses from local friend before adding back the ones that still exists";
 				for (const auto &sipAddress : localFriend->getAddresses()) {
 					localFriend->removeAddress(sipAddress);
@@ -1022,8 +1023,8 @@ bool FriendList::synchronizeFriendsWith(std::list<std::shared_ptr<Friend>> const
 			if (logName.empty()) {
 				logName = sourceFriend->getFirstName() + " " + sourceFriend->getLastName();
 			}
-			lInfo() << "Friend list [" << toC() << "] synchronizeFriendsWith: "
-			        << "Friend [" << sourceFriend->getName() << "] with ref key [" << sourceFriend->getRefKey()
+			lInfo() << "Friend list [" << toC() << "] synchronizeFriendsWith: " << "Friend [" << sourceFriend->getName()
+			        << "] with ref key [" << sourceFriend->getRefKey()
 			        << "] not found in currently sorted list, adding it";
 			addLocalFriend(sourceFriend);
 			hasChanged = true;

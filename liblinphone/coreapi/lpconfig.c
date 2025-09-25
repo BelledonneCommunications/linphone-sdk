@@ -37,10 +37,10 @@
 #define MAX_LEN 16384
 
 #include "bctoolbox/charconv.h"
+#include "bctoolbox/defs.h"
 #include "bctoolbox/vfs.h"
 #include "belle-sip/object.h"
 #include "xml2lpc.h"
-#include <bctoolbox/defs.h>
 
 #include <assert.h>
 #include <stdio.h>
