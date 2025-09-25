@@ -104,11 +104,10 @@ char *belle_sip_unquote_strdup(const char *str) {
 		switch (*p) {
 			case ' ':
 			case '\t':
-				break;
+				continue;
 			case '"':
 				return _belle_sip_str_dup_and_unquote_string(p);
 			default:
-				return belle_sip_strdup(str);
 				break;
 		}
 	}

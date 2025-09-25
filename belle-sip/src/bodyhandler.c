@@ -1057,7 +1057,8 @@ static void belle_sip_multipart_body_handler_set_boundary(belle_sip_multipart_bo
 		belle_sip_free(obj->boundary);
 	}
 	if (boundary != NULL) {
-		obj->boundary = belle_sip_strdup(boundary);
+		/* When given from a Content-type header, the boundary may be surrouded with quotes. */
+		obj->boundary = belle_sip_unquote_strdup(boundary);
 	} else {
 		char random_token[60]; // Use a random boundary to reduce the probability of having the same boundary in file
 		                       // (like uploading file logs with file transfer).
