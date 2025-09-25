@@ -20,7 +20,7 @@
 
 #include <math.h>
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/mseventqueue.h"
@@ -1687,10 +1687,19 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 				ms_filter_add_notify_callback(stream->aggregator, csrc_event_cb, stream, TRUE);
 			}
 
+			bctbx_list_t *elem = stream->ms.sessions.auxiliary_sessions;
 			for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
+
 				stream->branches[i].recv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
 				ms_filter_call_method(stream->branches[i].recv, MS_RTP_RECV_SET_FRAME_MARKING_EXTENSION_ID,
 				                      &stream->frame_marking_extension_id);
+				if (elem) {
+					ms_message("VideoStream[%p]: re-establishing auxiliary session on branch %i", stream, i);
+					RtpSession *session = (RtpSession *)elem->data;
+					stream->branches[i].session = session;
+					ms_filter_call_method(stream->branches[i].recv, MS_RTP_RECV_SET_SESSION, session);
+					elem = elem->next;
+				}
 			}
 		}
 
