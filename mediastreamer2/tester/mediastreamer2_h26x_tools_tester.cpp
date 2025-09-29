@@ -48,15 +48,21 @@ static int releaseMSFactory() {
 }
 
 static std::vector<uint8_t> loadBinaryFile(const std::string &filename) {
-	char c;
-	vector<uint8_t> data;
 	fstream f;
-	f.exceptions(fstream::badbit | fstream::failbit);
+	f.exceptions(fstream::badbit);
 	f.open(filename, fstream::in | fstream::binary);
-	while (!f.eof()) {
-		c = f.get();
-		data.push_back(c);
+
+	f.unsetf(std::ios::skipws);
+	std::vector<uint8_t> data((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+	/*
+	std::vector<uint8_t> data;
+	int c;
+	while ((c = f.get()) != char_traits<char>::eof()) {
+	    c = f.get();
+	    data.push_back(c);
 	}
+	*/
+
 	f.close();
 	return data;
 }
