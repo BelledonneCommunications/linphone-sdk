@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-
+import copy
 
 import abstractapi
 import logging
@@ -127,6 +126,13 @@ class TextPart(ParagraphPart):
 	def translate(self, docTranslator, **kargs):
 		return docTranslator.translate_text(self)
 
+class AttributePart(ParagraphPart):
+	def __init__(self, text):
+		ParagraphPart.__init__(self)
+		self.text = text
+
+	def translate(self, docTranslator, **kargs):
+		return docTranslator.translate_attribute(self)
 
 class LanguageKeyword(ParagraphPart):
 	def __init__(self, keyword):
@@ -284,7 +290,7 @@ class Description(MultiChildTreeNode):
 
 class Parser:
 	def __init__(self):
-		self.constants_regex = re.compile('(?:^|\W)(TRUE|FALSE|NULL)(?:\W|$)')
+		self.constants_regex = re.compile('(?:^|\\W)(TRUE|FALSE|NULL)(?:\\W|$)')
 	
 	def parse_description(self, node):
 		if node is None:
@@ -320,19 +326,26 @@ class Parser:
 				paragraphs.append(paragraph)
 				paragraphs.append(self._parse_parameter_list(partNode))
 				paragraph = Paragraph()
+			elif partNode.tag == 'itemizedlist':
+				paragraphs.append(paragraph)
+				for p in self._parse_itemized_list(partNode):
+					if len(p) > 0:
+						paragraphs.append(p[0])
+				paragraph = Paragraph()
 			elif partNode.tag == 'bctbxlist':
 				pass
+			elif partNode.tag == 'maybenil' or partNode.tag == 'notnil':
+				paragraph.parts += self._parse_attribute(partNode)
 			else:
 				text = partNode.text
 				if text is not None:
 					paragraph.parts += self._parse_text(text)
-			
+					paragraphs.append(paragraph)
 			text = partNode.tail
 			if text is not None:
 				text = text.strip('\n')
 				if len(text) > 0:
 					paragraph.parts += self._parse_text(text)
-		
 		paragraphs.append(paragraph)
 		return [x for x in paragraphs if type(x) is not Paragraph or len(x.parts) > 0]
 	
@@ -381,7 +394,14 @@ class Parser:
 			desc = self.parse_description(paramItemNode.find('parameterdescription'))
 			paramList.parameters.append(ParameterDescription(name, desc))
 		return paramList
-	
+	def _parse_itemized_list(self, itemListNode):
+		paragraphs = []
+		for itemNode in itemListNode.findall('./listitem'):
+			p = self._parse_paragraph(itemNode.find('para'))
+			if len(p) > 0:
+				p[0].parts = self._parse_text("-") + p[0].parts
+				paragraphs.append(p)
+		return paragraphs
 	def _parse_xref_section(self, sectionNode):
 		sectionId = sectionNode.get('id')
 		if sectionId.startswith('deprecated_'):
@@ -398,6 +418,11 @@ class Parser:
 			return FunctionReference(node.text[0:-2])
 		else:
 			return ClassReference(node.text)
+	def _parse_attribute(self, node):
+		parts = []
+		parts.append(AttributePart(node.tag))
+		return parts
+
 
 
 class TranslationError(Exception):
@@ -467,7 +492,9 @@ class Translator:
 	
 	def translate_text(self, textpart):
 		return textpart.text
-	
+	#Remove the tag by default: Displaying it depends on the language.
+	def translate_attribute(self, attributepart):
+		return ''
 	def _translate_description(self, desc):
 		paras = []
 		for para in desc.paragraphs:
@@ -476,6 +503,8 @@ class Translator:
 	
 	def _translate_paragraph(self, para):
 		strPara = ''
+		if para is None:
+			return strPara
 		for part in para.parts:
 			try:
 				if isinstance(part, str):
@@ -547,7 +576,8 @@ class DoxygenTranslator(Translator):
 	def _tag_as_brief(self, lines):
 		if len(lines) > 0:
 			lines[0] = '@brief ' + lines[0]
-
+	def translate_attribute(self, attribute, **kargs):
+		return '@' + attribute.text
 	def translate_class_reference(self, ref, **kargs):
 		return '@ref ' + super().translate_reference(ref)
 
@@ -555,10 +585,10 @@ class DoxygenTranslator(Translator):
 		return super().translate_reference(ref) + '()'
 	
 	def _translate_section(self, section):
-		return '@{0} {1}'.format(
-			section.kind,
-			self._translate_paragraph(section.paragraph)
-		)
+			return '@{0} {1}'.format(
+				section.kind,
+				self._translate_paragraph(section.paragraph)
+			)
 	
 	def _translate_parameter_list(self, parameterList):
 		text = ''
@@ -569,6 +599,13 @@ class DoxygenTranslator(Translator):
 				text += ('@param {0} {1}\n'.format(paramDesc.name.translate(self.nameTranslator), desc))
 		return text
 
+	def _translate_item_list(self, itemList):
+		text = ''
+		for item in itemList.items:
+			paragraph = self._translate_paragraph(item.paragraph)
+			paragraph = paragraph[0] if len(paragraph) > 0 else ''
+			text += ('- {0}\n'.format(paragraph))
+		return text
 
 class JavaDocTranslator(Translator):
 	class ReferenceTranslator(metaname.JavaTranslator):
@@ -600,7 +637,9 @@ class JavaDocTranslator(Translator):
 			return 'note: {0}'.format(self._translate_paragraph(section.paragraph))
 		if section.kind == 'warning':
 			return 'warning: {0}'.format(self._translate_paragraph(section.paragraph))
-			
+		if section.kind == 'deprecated':
+			return 'deprecated: {0}'.format(self._translate_paragraph(section.paragraph))
+
 		return '@{0} {1}'.format(
 			section.kind,
 			self._translate_paragraph(section.paragraph)
@@ -639,6 +678,8 @@ class SwiftDocTranslator(Translator):
 			section.kind = 'Note'
 		elif section.kind == 'see':
 			section.kind = 'See also'
+		elif section.kind == 'deprecated':
+			section.kind = 'Deprecated'
 		else:
 			logging.warning('doc translate section pointing on an unknown object ({0})'.format(section.kind))
 
@@ -833,7 +874,7 @@ class SphinxTranslator(Translator):
 		typeName = type(ref.relatedObject).__name__.lower()
 		return self.get_referencer(typeName)
 	
-	isParamDescRegex = re.compile('\t*:(?:param\s+\w+|return):')
+	isParamDescRegex = re.compile('\\t*:(?:param\\s+\\w+|return):')
 	
 	def _split_line(self, line, width):
 		if SphinxTranslator.isParamDescRegex.match(line) is not None:
@@ -874,10 +915,10 @@ class SandCastleTranslator(Translator):
 
 	def translate_function_reference(self, ref):
 		refStr = Translator.translate_reference(self, ref, absName=True)
-		subnResult = re.subn('(\.Get\(\))', '.Instance' , refStr)
+		subnResult = re.subn('(\\.Get\\(\\))', '.Instance' , refStr)
 		if subnResult[1] > 0:
 			return '<see cref="{0}">{0}</see>'.format(subnResult[0])
-		subnResult = re.subn('(\.Get|\.Set)', '.' , subnResult[0])
+		subnResult = re.subn('(\\.Get|\\.Set)', '.' , subnResult[0])
 		if subnResult[1] > 0:
 			return '<see cref="{0}">{0}</see>'.format(subnResult[0])
 		return '<see cref="{0}()">{0}()</see>'.format(subnResult[0])
@@ -903,8 +944,11 @@ class SandCastleTranslator(Translator):
 				text += ('<param name="{0}">{1}</param>\n'.format(paramDesc.name.translate(self.nameTranslator), desc))
 		return text
 	
-	def _translate_section(self, section):
+	def _translate_section(self, s):
 		text =''
+		#Need to copy section to avoid reusing older section.kind that was already set.
+		#That lead to a recursivity because of the last else part.
+		section = copy.copy(s)
 		if not self.isEndTagPlaced:
 			text += '</para>\n'
 			text += '</summary>\n'
@@ -918,6 +962,8 @@ class SandCastleTranslator(Translator):
 			section.kind = '<remarks>Note : {0}</remarks>'
 		elif section.kind == 'see':
 			section.kind = '<remarks>See : {0}</remarks>'
+		elif section.kind == 'deprecated':
+			section.kind = '<remarks>Deprecated : {0}</remarks>'
 		else:
 			section.kind = section.kind + " : {0}"
 			logging.warning('SandCastle doc translate section pointing on an unknown object ({0})'.format(section.kind))
@@ -925,3 +971,6 @@ class SandCastleTranslator(Translator):
 		text += section.kind.format(self._translate_paragraph(section.paragraph))
 
 		return text
+
+	def translate_attribute(self, attribute, **kargs):
+		return '@' + attribute.text

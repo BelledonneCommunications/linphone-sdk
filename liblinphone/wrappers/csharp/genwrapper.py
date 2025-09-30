@@ -50,6 +50,7 @@ class CsharpTranslator:
 		methodDict['is_class'] = False
 		methodDict['is_enum'] = False
 		methodDict['is_generic'] = False
+		methodDict['is_deprecated'] = False
 		methodDict['takeRef'] = 'true'
 		return methodDict
 
@@ -94,7 +95,6 @@ class CsharpTranslator:
 
 		methodDict['briefDoc'] = method.briefDescription.translate(self.docTranslator, tagAsBrief=True) if method.briefDescription is not None else None
 		methodDict['detailedDoc'] = method.detailedDescription.translate(self.docTranslator) if method.detailedDescription is not None else None
-
 		methodDict['has_impl'] = genImpl
 		if genImpl:
 			methodDict['impl'] = {}
@@ -116,6 +116,7 @@ class CsharpTranslator:
 			methodDict['is_class'] = self.is_linphone_type(method.returnType, False, False) and type(method.returnType) is AbsApi.ClassType
 			methodDict['is_enum'] = self.is_linphone_type(method.returnType, False, False) and type(method.returnType) is AbsApi.EnumType
 			methodDict['is_generic'] = self.is_generic(methodDict)
+			methodDict['is_deprecated'] = method.deprecated
 			methodDict['takeRef'] = 'false' if method.returnAllocatedObject else 'true'
 			methodDict['impl']['args'] = ''
 			methodDict['impl']['c_args'] = ''
@@ -175,6 +176,7 @@ class CsharpTranslator:
 		methodDict['is_class'] = self.is_linphone_type(prop.returnType, False, False) and type(prop.returnType) is AbsApi.ClassType
 		methodDict['is_enum'] = self.is_linphone_type(prop.returnType, False, False) and type(prop.returnType) is AbsApi.EnumType
 		methodDict['is_generic'] = self.is_generic(methodDict)
+		methodDict['is_deprecated'] = prop.deprecated
 		methodDict['takeRef'] = 'true'
 		if isinstance(prop.returnType.parent, AbsApi.Method) and len(prop.returnType.parent.name.words) >=1:
 			if prop.returnType.parent.name.words == ['new'] or prop.returnType.parent.name.words[0] == 'create':
@@ -206,6 +208,7 @@ class CsharpTranslator:
 		methodDict['is_class'] = self.is_linphone_type(prop.args[0].type, True, False) and type(prop.args[0].type) is AbsApi.ClassType
 		methodDict['is_enum'] = self.is_linphone_type(prop.args[0].type, True, False) and type(prop.args[0].type) is AbsApi.EnumType
 		methodDict['is_generic'] = self.is_generic(methodDict)
+		methodDict['is_deprecated'] = prop.deprecated
 
 		return methodDict
 
@@ -220,6 +223,7 @@ class CsharpTranslator:
 		methodDict['exception'] = methodDictSet['exception']
 		methodDict['setter_nativePtr'] = methodDictSet['setter_nativePtr']
 		methodDict['setter_c_name'] = methodDictSet['setter_c_name']
+		methodDict['is_deprecated'] = methodDictSet['is_deprecated']
 
 		return methodDict
 
@@ -306,7 +310,7 @@ class CsharpTranslator:
 
 		listenerDict['delegate']['briefDoc'] = method.briefDescription.translate(self.docTranslator, tagAsBrief=True) if method.briefDescription is not None else None
 		listenerDict['delegate']['detailedDoc'] = method.detailedDescription.translate(self.docTranslator) if method.detailedDescription is not None else None
-		
+		listenerDict['delegate']['is_deprecated'] = method.deprecated
 		return listenerDict
 
 ###########################################################################################################################################
@@ -316,6 +320,7 @@ class CsharpTranslator:
 		enumDict['enumName'] = enum.name.translate(self.nameTranslator)
 		enumDict['briefDoc'] = enum.briefDescription.translate(self.docTranslator, tagAsBrief=True)
 		enumDict['detailedDoc'] = enum.detailedDescription.translate(self.docTranslator)
+
 		enumDict['values'] = []
 		enumDict['isFlag'] = False
 		i = 0

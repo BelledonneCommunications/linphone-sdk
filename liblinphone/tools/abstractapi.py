@@ -835,6 +835,7 @@ class CParser:
 			listener = Interface(name)
 			listener.briefDescription = cclass.briefDoc
 			listener.detailedDescription = cclass.detailedDoc
+			listener.deprecated = cclass.deprecated
 			
 			for property in cclass.properties.values():
 				if property.name != 'user_data':
@@ -875,9 +876,20 @@ class CParser:
 			argName.from_snake_case(arg.name)
 			argument = Argument(argName, self.parse_type(arg), maybenil=arg.maybenil, notnil=arg.notnil)
 			method.add_arguments(argument)
-		method.briefDescription = event.briefDoc
-		method.detailedDescription = event.detailedDoc
-		
+
+		if property.getter is not None:
+			method.briefDescription = property.getter.briefDoc
+			method.detailedDescription = property.getter.detailedDoc
+			method.deprecated = property.getter.deprecated
+		elif property.setter is not None and len(property.setter.arguments) == 2:
+			method.briefDescription = property.setter.briefDoc
+			method.detailedDescription = property.setter.detailedDoc
+			method.deprecated = property.setter.deprecated
+		else:
+			method.briefDescription = event.briefDoc
+			method.detailedDescription = event.detailedDoc
+			method.deprecated = event.deprecated
+
 		self.methodsIndex[property.name] = method
 		return method
 	

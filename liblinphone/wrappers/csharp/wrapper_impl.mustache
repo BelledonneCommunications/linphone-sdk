@@ -358,6 +358,9 @@ namespace Linphone
 	{{/lines}}
 	{{/detailedDoc}}
 	{{#isFlag}}[Flags]{{/isFlag}}
+	{{#is_deprecated}}
+	[ObsoleteAttribute]
+	{{/is_deprecated}}
 	public enum {{enumName}}
 	{
 		{{#values}}
@@ -397,6 +400,9 @@ namespace Linphone
 	{{/lines}}
 	{{/detailedDoc}}
 	[StructLayout(LayoutKind.Sequential)]
+	{{#is_deprecated}}
+	[ObsoleteAttribute]
+	{{/is_deprecated}}
 	public class {{interfaceName}} : LinphoneObject
 	{
 		[DllImport(LinphoneWrapper.LIB_NAME, CallingConvention = CallingConvention.Cdecl)]
@@ -428,8 +434,8 @@ namespace Linphone
 		/// {{{line}}}
 		{{/lines}}
 		{{/detailedDoc}}
-		{{#deprecated}}[Obsolete]
-		{{/deprecated}}public delegate void {{name_public}}({{{params_public}}});
+		{{#is_deprecated}}[ObsoleteAttribute]
+		{{/is_deprecated}}public delegate void {{name_public}}({{{params_public}}});
 		private {{name_private}} {{var_private}};
 		private {{name_public}} {{var_public}};
 
@@ -448,7 +454,9 @@ namespace Linphone
 				current_listener.{{var_public}}?.Invoke({{{params}}});
 			}
 		}
-
+		{{#is_deprecated}}
+		[ObsoleteAttribute]
+		{{/is_deprecated}}
 		public {{name_public}} {{name}}
 		{
 			get
@@ -491,6 +499,9 @@ namespace Linphone
 	{{/lines}}
 	{{/detailedDoc}}
 	[StructLayout(LayoutKind.Sequential)]
+	{{#is_deprecated}}
+	[ObsoleteAttribute]
+	{{/is_deprecated}}
 	public class {{className}} : LinphoneObject
 	{
 		{{#isLinphoneFactory}}
@@ -700,7 +711,9 @@ namespace Linphone
 		static extern IntPtr linphone_{{listener_constructor}}_remove_callbacks(IntPtr thiz, IntPtr cbs);
 
 		private {{interfaceName}} listener;
-
+		{{#is_deprecated}}
+		[ObsoleteAttribute]
+		{{/is_deprecated}}
 		public {{interfaceName}} Listener
 		{
 			get {
@@ -743,6 +756,9 @@ namespace Linphone
 		/// {{{line}}}
 		{{/lines}}
 		{{/detailedDoc}}
+		{{#is_deprecated}}
+		[ObsoleteAttribute]
+		{{/is_deprecated}}
 		{{property_static}}public {{{property_return}}} {{property_name}}
 		{
 		{{#has_getter}}
@@ -824,6 +840,9 @@ namespace Linphone
 		/// {{{line}}}
 		{{/lines}}
 		{{/detailedDoc}}
+		{{#is_deprecated}}
+		[ObsoleteAttribute]
+		{{/is_deprecated}}
 		public {{static}}{{override}}{{{type}}} {{name}}({{{args}}})
 		{
 			{{#clean_string_list_ptrs}}IntPtr bctbxList = IntPtr.Zero;{{/clean_string_list_ptrs}}

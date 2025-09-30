@@ -291,6 +291,9 @@ class Project:
 
 	def __cleanDescription(self, descriptionNode):
 		for para in descriptionNode.findall('./para'):
+			for n in para.findall('./itemizedlist/listitem/para'):
+				if n.text is not None:
+					n.text = '-' + n.text
 			for n in para.findall('./parameterlist'):
 				para.remove(n)
 			for n in para.findall("./simplesect[@kind='return']"):
@@ -303,7 +306,12 @@ class Project:
 			for n in para.findall("./simplesect[@kind='note']"):
 				n.tag = 'note'
 				n.attrib = {}
-			for n in para.findall(".//xrefsect"):
+			for n in para.findall(".//xrefsect[xreftitle='Deprecated']"):
+				t = ' '.join(n.itertext())
+				n.clear()
+				n.tag = 'deprecated'
+				n.text = t
+			for n in para.findall(".//xrefsect[xreftitle!='Deprecated']"):
 				para.remove(n)
 			for n in para.findall('.//ref'):
 				n.attrib = {}
