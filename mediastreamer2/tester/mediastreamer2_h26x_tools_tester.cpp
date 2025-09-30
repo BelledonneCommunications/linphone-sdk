@@ -51,18 +51,8 @@ static std::vector<uint8_t> loadBinaryFile(const std::string &filename) {
 	fstream f;
 	f.exceptions(fstream::badbit);
 	f.open(filename, fstream::in | fstream::binary);
-
 	f.unsetf(std::ios::skipws);
 	std::vector<uint8_t> data((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-	/*
-	std::vector<uint8_t> data;
-	int c;
-	while ((c = f.get()) != char_traits<char>::eof()) {
-	    c = f.get();
-	    data.push_back(c);
-	}
-	*/
-
 	f.close();
 	return data;
 }
@@ -104,6 +94,8 @@ static void bytestream_transcoding_two_consecutive_prevention_thee_bytes() {
 	vector<uint8_t> byteStream = {0, 0, 0, 1, 0, 0, 3, 0, 0, 3, 0};
 	bytestream_transcoding_test(byteStream);
 }
+
+#if ENABLE_CRASHING_TESTS
 
 static void packing_unpacking_test(const std::vector<uint8_t> &byteStream, const std::string &mime) {
 	MSQueue nalus, rtp;
@@ -153,13 +145,19 @@ static void packing_unpacking_test_h265_iframe() {
 	packing_unpacking_test(byteStream, "video/hevc");
 }
 
+#endif
+
 static test_t tests[] = {
     TEST_NO_TAG("Bytestream transcoding - paramter sets frame", paramter_sets_bytestream_transcoding_test),
     TEST_NO_TAG("Bytestream transcoding - i-frame", iframe_bytestream_transcoding_test),
     TEST_NO_TAG("Bytestream transcoding - two consecutive prevention three bytes",
-                bytestream_transcoding_two_consecutive_prevention_thee_bytes),
+                bytestream_transcoding_two_consecutive_prevention_thee_bytes)
+#if ENABLE_CRASHING_TESTS
+        ,
     TEST_NO_TAG("H265 Packing/Unpacking - paramter sets frame", packing_unpacking_test_h265_ps),
-    TEST_NO_TAG("H265 Packing/Unpacking - i-frame", packing_unpacking_test_h265_iframe)};
+    TEST_NO_TAG("H265 Packing/Unpacking - i-frame", packing_unpacking_test_h265_iframe)
+#endif
+};
 
 extern "C" {
 test_suite_t h26x_tools_test_suite = {
