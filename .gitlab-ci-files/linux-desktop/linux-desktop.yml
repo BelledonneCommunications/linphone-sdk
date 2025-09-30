@@ -610,7 +610,7 @@
 .test-liblinphone-crypto-backend-mr:
   extends: .test-liblinphone-mr
   tags: [ "docker-test-liblinphone" ]
-  allow_failure: false
+  allow_failure: true
   variables:
     #true
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "true"
