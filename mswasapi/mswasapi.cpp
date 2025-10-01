@@ -155,17 +155,26 @@ bool MSWasapi::unregister() {
 #endif
 }
 
-int MSWasapi::activate(bool isCapture, void **audioClient) {
+WaveFormat::WaveFormat() {
+}
+
+WaveFormat::~WaveFormat() {
+	clean();
+}
+void WaveFormat::clean() {
+	FREE_PTR(pSupportedWfx);
+	FREE_PTR(pSupportedWfx2);
+	pUsedWfx = NULL;
+}
+
+int MSWasapi::prepareInitialize(bool isCapture, void **audioClient, DWORD * flags, int *devicePeriodMs, REFERENCE_TIME * requestedBufferDuration, WaveFormat *format){
 	HRESULT result;
-	REFERENCE_TIME requestedBufferDuration =
-	    isCapture ? REFTIME_250MS : minBufferDurationMs * 10000LL; // is expressed in 100-nanoseconds units
-	WAVEFORMATPCMEX proposedWfx;
-	WAVEFORMATEX *pUsedWfx = NULL;
-	WAVEFORMATEX *pSupportedWfx = NULL;
-	WAVEFORMATEX *pSupportedWfx2 = NULL;
-	DWORD flags = 0;
-	int devicePeriodMs = -1;
 	REFERENCE_TIME devicePeriod = 0;
+	*devicePeriodMs = -1;
+	*requestedBufferDuration =
+		isCapture ? REFTIME_250MS : minBufferDurationMs * 10000LL; // is expressed in 100-nanoseconds units
+	*flags = 0;
+	format->pUsedWfx = NULL;
 
 	if (!mAudioClient) goto error;
 	if (mIsActivated) return 0;
@@ -173,56 +182,56 @@ int MSWasapi::activate(bool isCapture, void **audioClient) {
 	result = mAudioClient->GetDevicePeriod(&devicePeriod, NULL);
 	if (result != S_OK) {
 		ms_warning("mswasapi: GetDevicePeriod() on %s failed.", mMediaDirectionStr.c_str());
-	} else devicePeriodMs = (int)(devicePeriod / 10000);
+	} else *devicePeriodMs = (int)(devicePeriod / 10000);
 
 	if (isCapture) {
 #if defined(MS2_WINDOWS_PHONE)
-		flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE |
-		        AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
+		*flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE |
+				AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
 #else
-		flags = AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |
-		        AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
+		*flags = AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |
+				AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
 #endif
 	} else
-		flags = AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |
-		        AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
-	proposedWfx = buildFormat();
+		*flags = AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |
+				AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
+	format->proposedWfx = buildFormat();
 
-	result = mAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, (WAVEFORMATEX *)&proposedWfx, &pSupportedWfx);
+	result = mAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, (WAVEFORMATEX *)&format->proposedWfx, &format->pSupportedWfx);
 
 	if (result == S_OK) {
-		pUsedWfx = (WAVEFORMATEX *)&proposedWfx;
+		format->pUsedWfx = (WAVEFORMATEX *)&format->proposedWfx;
 	} else if (result == S_FALSE) {
-		if (pSupportedWfx->wBitsPerSample != 16) {
+		if (format->pSupportedWfx->wBitsPerSample != 16) {
 			// SDK doesn't support other than 16bits and IsFormatSupported() doesn't respect proposed sample. Retry from
 			// previous IsFormatSupported().
-			pUsedWfx = pSupportedWfx;
-			pUsedWfx->wBitsPerSample = 16;
-			pUsedWfx->nAvgBytesPerSec =
-			    (DWORD)pUsedWfx->nSamplesPerSec * pUsedWfx->nChannels * pUsedWfx->wBitsPerSample / 8;
-			pUsedWfx->nBlockAlign = pUsedWfx->wBitsPerSample * pUsedWfx->nChannels / 8;
-			result = mAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, pUsedWfx, &pSupportedWfx2);
+			format->pUsedWfx = format->pSupportedWfx;
+			format->pUsedWfx->wBitsPerSample = 16;
+			format->pUsedWfx->nAvgBytesPerSec =
+				(DWORD)format->pUsedWfx->nSamplesPerSec * format->pUsedWfx->nChannels * format->pUsedWfx->wBitsPerSample / 8;
+			format->pUsedWfx->nBlockAlign = format->pUsedWfx->wBitsPerSample * format->pUsedWfx->nChannels / 8;
+			result = mAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, format->pUsedWfx, &format->pSupportedWfx2);
 			if (result == S_FALSE) {
-				pUsedWfx = pSupportedWfx2;
+				format->pUsedWfx = format->pSupportedWfx2;
 			} else if (result != S_OK) {
 				REPORT_ERROR(("mswasapi: Audio format doesn't support 16bits frames by the MSWASAPI audio " +
-				              mMediaDirectionStr + "  interface [%x]")
-				                 .c_str(),
-				             result);
+							  mMediaDirectionStr + "  interface [%x]")
+								 .c_str(),
+							 result);
 			}
-		} else pUsedWfx = pSupportedWfx;
+		} else format->pUsedWfx = format->pSupportedWfx;
 		bool formatNotExpected = false;
-		if (pUsedWfx->wBitsPerSample != 16)
+		if (format->pUsedWfx->wBitsPerSample != 16)
 			ms_error("mswasapi: couldn't set format frames to 16 bits. It may lead to noises!");
-		if (mTargetNChannels != pUsedWfx->nChannels) { // Channel is not what it was requested
-			mTargetNChannels = pUsedWfx->nChannels;
+		if (mTargetNChannels != format->pUsedWfx->nChannels) { // Channel is not what it was requested
+			mTargetNChannels = format->pUsedWfx->nChannels;
 			if (mForceNChannels == OverwriteState::TO_DO) { // Channel has been forced but it cannot be used. Warn MS2.
 				mForceNChannels = OverwriteState::DONE;
 				formatNotExpected = true;
 			}
 		}
-		if (mTargetRate != pUsedWfx->nSamplesPerSec) { // Channel is not what it was requested
-			mTargetRate = pUsedWfx->nSamplesPerSec;
+		if (mTargetRate != format->pUsedWfx->nSamplesPerSec) { // Channel is not what it was requested
+			mTargetRate = format->pUsedWfx->nSamplesPerSec;
 			if (mForceRate == OverwriteState::TO_DO) { // Channel has been forced but it cannot be used. Warn MS2.
 				mForceRate = OverwriteState::DONE;
 				formatNotExpected = true;
@@ -231,18 +240,44 @@ int MSWasapi::activate(bool isCapture, void **audioClient) {
 		if (formatNotExpected) ms_filter_notify_no_arg(mFilter, MS_FILTER_OUTPUT_FMT_CHANGED);
 	} else {
 		REPORT_ERROR(
-		    ("mswasapi: Audio format not supported by the MSWASAPI audio " + mMediaDirectionStr + "interface [%x]")
-		        .c_str(),
-		    result);
+			("mswasapi: Audio format not supported by the MSWASAPI audio " + mMediaDirectionStr + "interface [%x]")
+				.c_str(),
+			result);
 	}
+	return 0;
+	error:
+	return -1;
+}
 
-	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedBufferDuration, 0, pUsedWfx, NULL);
-	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
-		REPORT_ERROR(
-		    ("mswasapi: Could not initialize the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
-		    result);
+int MSWasapi::activate(bool isCapture, void **audioClient) {
+	DWORD flags = 0;
+	int devicePeriodMs = -1;
+	REFERENCE_TIME requestedBufferDuration;
+	WaveFormat format;
+	if (!mAudioClient) goto error;
+	if (mIsActivated) return 0;
+	if(prepareInitialize(isCapture, audioClient, &flags, &devicePeriodMs, &requestedBufferDuration, &format)) goto error;
+	HRESULT result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedBufferDuration, 0, format.pUsedWfx, NULL);
+	if( result == AUDCLNT_E_ALREADY_INITIALIZED) {
+		// If Initialize() returns an error, then calls to any API will return an error (even if already initialized)
+		// Also, we want to be sure that we are using the correct format that can change between 2 activations.
+		// It's why we don't test the state of the AudioClient with a hack before initialization and make sure that the error is being already initialized.
+		// => restart the client from scratch
+		ms_message("mswasapi: Audio Client already initialized for %s. Restart it.", mMediaDirectionStr.c_str());
+		destroyAudioClient();
+		format.clean();
+		if(createAudioClient()) goto error;// Ensure that the new AudioClient is working.
+		// We don't simplify the code with recursivity because it has been decided without any proof that Initialize() could return
+		// an already initialized error after a new AudioClient.
+		if(prepareInitialize(isCapture, audioClient, &flags, &devicePeriodMs, &requestedBufferDuration, &format)) goto error;
+		result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedBufferDuration, 0, format.pUsedWfx, NULL);
 	}
-	mNBlockAlign = pUsedWfx->nBlockAlign;
+	if(result != S_OK){
+		REPORT_ERROR(
+			("mswasapi: Could not initialize the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
+			result);
+	}
+	mNBlockAlign = format.pUsedWfx->nBlockAlign;
 	mCurrentRate = mTargetRate;
 	mCurrentNChannels = mTargetNChannels;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
@@ -278,15 +313,11 @@ int MSWasapi::activate(bool isCapture, void **audioClient) {
 	           "%i, %i-bit frames are on %i bits",
 	           mMediaDirectionStr.c_str(), mDeviceName.c_str(), (int)mTargetRate, (int)mTargetNChannels,
 	           (int)mBufferFrameCount, (int)1000 * mBufferFrameCount / mTargetRate, devicePeriodMs,
-	           (int)pUsedWfx->wBitsPerSample, mNBlockAlign * 8);
-	FREE_PTR(pSupportedWfx);
-	FREE_PTR(pSupportedWfx2);
+	           (int)format.pUsedWfx->wBitsPerSample, mNBlockAlign * 8);
 	return 0;
 
 error:
 	ms_error("mswasapi: failed to initialize %s.", mMediaDirectionStr.c_str());
-	FREE_PTR(pSupportedWfx);
-	FREE_PTR(pSupportedWfx2);
 	if (mAudioClient) mAudioClient->Reset();
 	return -1;
 }
@@ -831,7 +862,9 @@ static void ms_wasapi_read_init(MSFilter *f) {
 
 static void ms_wasapi_read_preprocess(MSFilter *f) {
 	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
+	ms_filter_lock(f);
 	if (!r->activate()) r->start();
+	ms_filter_unlock(f);
 }
 
 static void ms_wasapi_read_process(MSFilter *f) {
@@ -842,9 +875,11 @@ static void ms_wasapi_read_process(MSFilter *f) {
 }
 
 static void ms_wasapi_read_postprocess(MSFilter *f) {
+	ms_filter_lock(f);
 	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	r->stop();
 	r->deactivate();
+	ms_filter_unlock(f);
 }
 
 static void ms_wasapi_read_uninit(MSFilter *f) {

@@ -61,6 +61,18 @@ typedef struct WasapiSndCard {
 	AUDIO_STREAM_CATEGORY streamCategory;
 } WasapiSndCard;
 
+class WaveFormat {
+public:
+	WaveFormat();
+	~WaveFormat();
+	void clean();
+
+	WAVEFORMATPCMEX proposedWfx;
+	WAVEFORMATEX *pSupportedWfx = NULL;
+	WAVEFORMATEX *pSupportedWfx2 = NULL;
+	WAVEFORMATEX *pUsedWfx = NULL;
+};
+
 class MSWasapi
 #ifdef MS2_WINDOWS_UNIVERSAL
     : public RuntimeClass<RuntimeClassFlags<ClassicCom>,
@@ -162,6 +174,7 @@ public:
 	int createAudioClient();
 	void destroyAudioClient();
 	int restartAudioClient();
+	int prepareInitialize(bool isCapture, void **audioClient, DWORD * flags, int *devicePeriodMs, REFERENCE_TIME * requestedBufferDuration, WaveFormat * format);
 	int activate(bool isCapture, void **audioClient);
 	int deactivate(IUnknown **audioClient);
 
