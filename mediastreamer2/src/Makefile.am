@@ -29,11 +29,10 @@ ANDROID_SRC_FILES= \
    	android/android_mediacodec.h \
 	audiofilters/aac-eld-android.cpp
 
-EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
-	videofilters/winvideods.c videofilters/wincevideods.c dxfilter.h dxfilter.cpp \
-	audiofilters/winsndds.cpp videofilters/msdscap.cc \
+EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c \
+	audiofilters/winsndds.cpp \
 	voip/nowebcamCIF.jpg audiofilters/winsnd3.c utils/vfw-missing.h \
-	videofilters/winvideo2.c utils/msjava.c $(ANDROID_SRC_FILES) \
+	utils/msjava.c $(ANDROID_SRC_FILES) \
 	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs libsrtp.map
 
 BUILT_SOURCES=basedescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h

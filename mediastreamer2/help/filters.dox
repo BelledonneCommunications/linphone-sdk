@@ -52,21 +52,22 @@
  *     - Android display: src/android/android-display.c
  *     - AV Foundation capture (iOS): src/videofilters/ioscapture.m
  *     - AV Foundation display (iOS): src/videofilters/iosdisplay.mm
- *     - DirectShow capture (Windows): src/videofilters/msdscap-mingw.cc
  *     - DrawDib display (Windows): src/videofilters/drawdib-display.c
  *     - External display - Send video to the upper layer: src/videofilters/extdisplay.c
  *     - GLX display (Linux): src/videofilters/glxvideo.c
+ *     - Media Foundation (Windows): src/videofilters/msmfoundationcap.cpp
  *     - Mire - Synthetic moving picture: src/videofilters/mire.c
  *     - OpenGL display (Mac OS X): src/videofilters/msosxdisplay.m
  *     - OpenGL ES2 display (Android): src/videofilters/android-opengl-display.c
+ *     - Qt display: src/videofilters/msqogl.cpp
  *     - Quicktime capture (Mac OS X): src/videofilters/qtcapture.m
+ *     - Screen Sharing (Linux): src/videofilters/msscreensharing_x11.cpp
+ *     - Screen Sharing (Mac): src/videofilters/msscreensharing_mac.mm
+ *     - Screen Sharing (Windows): src/videofilters/msscreensharing_win.cpp
  *     - SDL display: src/videofilters/videoout.c
  *     - Static image output: src/videofilters/nowebcam.c
  *     - Video For Linux (V4L) capture (Linux): src/videofilters/msv4l.c
  *     - Video For Linux 2 (V4L2) capture (Linux): src/videofilters/msv4l2.c
- *     - Video4windows (DirectShow) capture (Windows): src/videofilters/winvideods.c
- *     - Video4windows (DirectShow) capture (Windows CE): src/videofilters/wincevideods.c
- *     - Video For Windows (vfw) capture (Windows): src/videofilters/winvideo.c, src/videofilters/winvideo2.c
  *     - XV display (Linux): src/videofilters/x11video.c
  *   - Video encoder/decoder filters:
  *     - H.263, H.263-1998, MP4V-ES, JPEG, MJPEG, Snow: src/videofilters/videodec.c, src/videofilters/videoenc.c

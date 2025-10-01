@@ -48,7 +48,6 @@ extern MSFilterDesc ms_l16_dec_desc;
 extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_g722_dec_desc;
 #ifdef VIDEO_ENABLED
-extern MSFilterDesc ms_v4w_desc;
 extern MSFilterDesc ms_video_out_desc;
 extern MSFilterDesc ms_h263_enc_desc;
 extern MSFilterDesc ms_h263_dec_desc;
@@ -67,8 +66,6 @@ extern MSFilterDesc ms_size_conv_desc;
 extern MSFilterDesc ms_pix_conv_desc;
 extern MSFilterDesc ms_static_image_desc;
 extern MSFilterDesc ms_mire_desc;
-extern MSFilterDesc ms_vfw_desc;
-extern MSFilterDesc ms_dd_display_desc;
 extern MSFilterDesc ms_ext_display_desc;
 extern MSFilterDesc ms_jpeg_writer_desc;
 extern MSFilterDesc ms_vp8_enc_desc;

@@ -299,15 +299,7 @@ if(ENABLE_VIDEO)
 			videofilters/msmfoundationcap.cpp	#Media-Foundation
 			videofilters/msmfoundationcap.h
 		)
-	    if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-			add_definitions(-DHAVE_DIRECTSHOW)
-			if(NOT(ENABLE_MICROSOFT_STORE_APP))
-				list(APPEND VOIP_SOURCE_FILES_C videofilters/drawdib-display.c)
-			endif()
-			list(APPEND VOIP_SOURCE_FILES_CXX
-				videofilters/msdscap.cc				#DirectShow
-			)
-		elseif(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+		if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /ZW /EHsc /await")
 	    endif()
 	endif()

@@ -186,15 +186,6 @@ extern MSWebCamDesc v4l2_card_desc;
 
 #ifdef _WIN32
 extern MSWebCamDesc ms_mfoundationcap_desc;
-extern MSWebCamDesc ms_vfw_cam_desc;
-#endif
-
-#if defined(_WIN32) && defined(HAVE_DIRECTSHOW)
-extern MSWebCamDesc ms_directx_cam_desc;
-#endif
-
-#if defined(__MINGW32__) || defined(HAVE_DIRECTSHOW)
-extern MSWebCamDesc ms_dshow_cam_desc;
 #endif
 
 #if TARGET_OS_MAC
@@ -235,12 +226,6 @@ static MSWebCamDesc *ms_web_cam_descs[] = {
 #endif
 #if defined(_WIN32)
     &ms_mfoundationcap_desc,
-#endif
-#if defined(_WIN32) && defined(HAVE_VFW)
-    &ms_vfw_cam_desc,
-#endif
-#if defined(__MINGW32__) || defined(HAVE_DIRECTSHOW)
-    &ms_dshow_cam_desc,
 #endif
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR && !TARGET_OS_EMBEDDED
     &ms_v4m_cam_desc,
