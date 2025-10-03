@@ -865,6 +865,37 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
     }
 }
 
+class SwiftWrapperTests: XCTestCase {
+    override class func setUp() {
+        super.setUp()
+        Log.info("Setup SwiftWrapperTests")
+    }
+    
+    override func setUp() {
+        super.setUp()
+    }
+    
+    override func tearDown() {
+        super.tearDown()
+    }
+    
+    
+    func testConfigDefaultValue() {
+        let config = try? Factory.Instance.createConfig(path: nil)
+        XCTAssertNotNil(config)
+        
+        let default_value = "default_value"
+        let getStringVal = config?.getString(section: "default_domain", key: "test_key", defaultString: default_value)
+        XCTAssertEqual(default_value, getStringVal)
+        
+        let getSectionParamStringVal = config?.getSectionParamString(section: "default_domain", key: "test_key", defaultValue: default_value)
+        XCTAssertEqual(default_value, getSectionParamStringVal)
+        
+        let getStringDefaultVal = config?.getDefaultString(section: "default_domain", key: "test_key", defaultValue: default_value)
+        XCTAssertEqual(default_value, getStringDefaultVal)
+    }
+}
+
 /* TEMPORARLY DISABLED
 class PhysicalDeviceAudioRoutesTests: XCTestCase {
     
