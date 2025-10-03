@@ -154,7 +154,7 @@ public:
 
 	void updateChatRoomConferenceId(const std::shared_ptr<AbstractChatRoom> &chatRoom,
 	                                const ConferenceId &newConferenceId);
-	std::shared_ptr<AbstractChatRoom> findExhumableOneToOneChatRoom(const std::shared_ptr<Address> &localAddress,
+	std::shared_ptr<AbstractChatRoom> findExhumableOneOnOneChatRoom(const std::shared_ptr<Address> &localAddress,
 	                                                                const std::shared_ptr<Address> &participantAddress,
 	                                                                bool encrypted) const;
 	std::shared_ptr<AbstractChatRoom>

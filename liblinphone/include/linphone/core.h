@@ -9250,7 +9250,7 @@ LINPHONE_PUBLIC void linphone_core_enable_database(LinphoneCore *core, bool_t va
  * Create a client-side group chat room. When calling this function the chat room is only created
  * at the client-side and is empty. You need to call linphone_chat_room_add_participants() to
  * create at the server side and add participants to it.
- * Also, the created chat room will not be a one-to-one chat room even if linphone_chat_room_add_participants() is
+ * Also, the created chat room will not be a one-on-one chat room even if linphone_chat_room_add_participants() is
  * called with only one participant.
  *
  * @param core A #LinphoneCore object @notnil
@@ -9268,7 +9268,7 @@ linphone_core_create_client_group_chat_room(LinphoneCore *core, const char *subj
  * Create a client-side group chat room. When calling this function the chat room is only created
  * at the client-side and is empty. You need to call linphone_chat_room_add_participants() to
  * create at the server side and add participants to it.
- * Also, the created chat room will not be a one-to-one chat room even if linphone_chat_room_add_participants() is
+ * Also, the created chat room will not be a one-on-one chat room even if linphone_chat_room_add_participants() is
  * called with only one participant.
  *
  * @param core A #LinphoneCore object @notnil
@@ -9433,7 +9433,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneChatRoom *linphone_core_find_chat_ro
                                                                                    const LinphoneAddress *local_addr);
 
 /**
- * Find a one to one chat room.
+ * Find a one-on-one chat room.
  * No reference is transferred to the application. The #LinphoneCore keeps a reference on the chat room.
  * @param core the #LinphoneCore. @notnil
  * @param local_addr a linphone address. @notnil
@@ -9447,7 +9447,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneChatRoom *linphone_core_find_one_to_
     const LinphoneCore *core, const LinphoneAddress *local_addr, const LinphoneAddress *participant_addr);
 
 /**
- * Find a one to one chat room.
+ * Find a one-on-one chat room.
  * No reference is transferred to the application. The #LinphoneCore keeps a reference on the chat room.
  * @param core the #LinphoneCore. @notnil
  * @param local_addr a linphone address. @notnil

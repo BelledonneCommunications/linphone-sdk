@@ -175,12 +175,12 @@ static void call_received(SalCallOp *h) {
 		parsedEphemeralLifeTime = stol(ephemeralLifeTime, nullptr);
 		parsedEphemeralNotReadLifeTime = stol(ephemeralNotReadLifeTime, nullptr);
 	}
-	string oneToOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
-	bool isOneToOne = (oneToOneChatRoom == "true");
+	string oneOnOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
+	bool isOneOnOne = (oneOnOneChatRoom == "true");
 	// Chat capabilities are enabled if the text parameter is in the contact address or at least one chat configuration
 	// parameter is listed in the custom headers
 	chatCapabilities = !ephemerable.empty() || !ephemeralLifeTime.empty() || !endToEndEncrypted.empty() ||
-	                   !oneToOneChatRoom.empty() ||
+	                   !oneOnOneChatRoom.empty() ||
 	                   !!(sal_address_has_param(remoteContactAddress, Conference::sTextParameter.c_str()));
 #endif
 
@@ -208,7 +208,7 @@ static void call_received(SalCallOp *h) {
 		params->setChatDefaults();
 		params->setSecurityLevel(encrypted ? ConferenceParams::SecurityLevel::EndToEnd
 		                                   : ConferenceParams::SecurityLevel::None);
-		params->setGroup(!isOneToOne);
+		params->setGroup(!isOneOnOne);
 		params->getChatParams()->setEphemeralMode(ephemeralMode);
 		params->getChatParams()->enableEphemeral((ephemeralMode == AbstractChatRoom::EphemeralMode::AdminManaged) &&
 		                                         (parsedEphemeralLifeTime > 0));
@@ -226,7 +226,7 @@ static void call_received(SalCallOp *h) {
 #ifdef HAVE_ADVANCED_IM
 		auto resourceListContent = h->getContentInRemote(ContentType::ResourceLists);
 		auto participantInfoList = Utils::parseResourceLists(resourceListContent);
-		if (isOneToOne) {
+		if (isOneOnOne) {
 			const auto toIt = std::find_if(participantInfoList.cbegin(), participantInfoList.cend(),
 			                               [&to](const auto &info) { return to->weakEqual(*info->getAddress()); });
 			if (toIt != participantInfoList.cend()) {
@@ -234,7 +234,7 @@ static void call_received(SalCallOp *h) {
 			}
 			if (participantInfoList.size() == 1) {
 				const auto &participant = (*participantInfoList.begin())->getAddress();
-				shared_ptr<AbstractChatRoom> chatRoom = L_GET_PRIVATE_FROM_C_OBJECT(lc)->findExhumableOneToOneChatRoom(
+				shared_ptr<AbstractChatRoom> chatRoom = L_GET_PRIVATE_FROM_C_OBJECT(lc)->findExhumableOneOnOneChatRoom(
 				    to, participant, endToEndEncrypted == "true");
 				if (chatRoom) {
 					lInfo() << "Found exhumable chat room [" << chatRoom->getConferenceId() << "]";
@@ -262,7 +262,7 @@ static void call_received(SalCallOp *h) {
 		}
 
 		conference = chatRoom->getConference();
-		if (oneToOneChatRoom == "true") {
+		if (oneOnOneChatRoom == "true") {
 			chatRoom->addCapability(ClientChatRoom::Capabilities::OneToOne);
 		}
 		static_pointer_cast<ClientConference>(conference)->confirmJoining(h);
@@ -376,10 +376,10 @@ static void call_received(SalCallOp *h) {
 				} else {
 #ifdef HAVE_ADVANCED_IM
 					if (_linphone_core_is_conference_creation(lc, to->toC())) {
-						if (isOneToOne) {
-							bool_t oneToOneChatRoomEnabled = linphone_config_get_bool(
+						if (isOneOnOne) {
+							bool_t oneOnOneChatRoomEnabled = linphone_config_get_bool(
 							    linphone_core_get_config(lc), "misc", "enable_one_to_one_chat_room", TRUE);
-							if (!oneToOneChatRoomEnabled) {
+							if (!oneOnOneChatRoomEnabled) {
 								h->decline(SalReasonNotAcceptable);
 								h->release();
 								return;
@@ -388,12 +388,12 @@ static void call_received(SalCallOp *h) {
 							const auto participantList =
 							    Utils::parseResourceLists(h->getContentInRemote(ContentType::ResourceLists));
 							if (participantList.size() != 1) {
-								lInfo() << *fromOp << " is trying to create a one-to-one chatroom with "
+								lInfo() << *fromOp << " is trying to create a one-on-one chatroom with "
 								        << participantList.size() << " participants on server " << *to;
 								SalErrorInfo sei;
 								memset(&sei, 0, sizeof(sei));
 								const char *msg =
-								    "Trying to create a one-to-one chatroom with more than one participant";
+								    "Trying to create a one-on-one chatroom with more than one participant";
 								sal_error_info_set(&sei, SalReasonNotAcceptable, "SIP", 0, msg, msg);
 								h->replyWithErrorInfo(&sei, nullptr);
 								sal_error_info_reset(&sei);
@@ -402,7 +402,7 @@ static void call_received(SalCallOp *h) {
 							}
 							const auto &participant = (*participantList.begin())->getAddress();
 							std::shared_ptr<Address> confAddr =
-							    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findOneToOneConferenceChatRoomAddress(
+							    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findOneOnOneConferenceChatRoomAddress(
 							        fromOp, participant, encrypted);
 							if (confAddr && confAddr->isValid()) {
 								shared_ptr<AbstractChatRoom> chatRoom =
@@ -1043,7 +1043,7 @@ static void subscribe_response(SalOp *op, SalSubscribeStatus status, int will_re
 	} else if (status == SalSubscribePending) {
 		linphone_event_set_state(lev, LinphoneSubscriptionPending);
 	} else {
-		if (will_retry && linphone_core_get_global_state(lc) != LinphoneGlobalShutdown) {
+		if (will_retry && (linphone_core_get_global_state(lc) != LinphoneGlobalShutdown)) {
 			linphone_event_set_state(lev, LinphoneSubscriptionOutgoingProgress);
 		} else {
 			// If it is in GlobalShutDown state, the client conference event handler may be destroyed by the time this

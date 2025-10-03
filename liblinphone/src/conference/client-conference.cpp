@@ -155,7 +155,7 @@ void ClientConference::init(SalCallOp *op, BCTBX_UNUSED(ConferenceListener *conf
 	}
 #endif // HAVE_DB_STORAGE
 
-	const auto focusSession = mFocus ? mFocus->getSession() : nullptr;
+	const auto focusSession = getMainSession();
 	if (conferenceInfo) {
 		mConfParams->setUtf8Subject(conferenceInfo->getUtf8Subject());
 		auto startTime = conferenceInfo->getDateTime();
@@ -358,7 +358,7 @@ void ClientConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 	auto chatRoom = getChatRoom();
 	if (!chatRoom) return;
 
-	auto focusSession = mFocus->getSession();
+	auto focusSession = getMainSession();
 	bool previousSession = (focusSession != nullptr);
 
 	auto remoteContact = Address::create(op->getRemoteContact());
@@ -444,7 +444,7 @@ void ClientConference::setConferenceId(const ConferenceId &conferenceId) {
 
 	// Try to update the to field of the call log if the focus is defined.
 	if (mFocus) {
-		shared_ptr<CallSession> session = mFocus->getSession();
+		shared_ptr<CallSession> session = getMainSession();
 		if (session) {
 			std::shared_ptr<Address> address;
 			if (conferenceId.getPeerAddress()->isValid()) {
@@ -578,7 +578,7 @@ void ClientConference::setParticipantAdminStatus(const shared_ptr<Participant> &
 }
 
 void ClientConference::callFocus() {
-	if (!mFocus->getSession()) {
+	if (!getMainSession()) {
 		std::shared_ptr<Address> focusAddress = mFocus->getAddress();
 		lInfo() << *this << ": Calling the conference focus (" << *focusAddress
 		        << ") as there is no session towards the focus yet";
@@ -745,7 +745,7 @@ bool ClientConference::addParticipants(const list<std::shared_ptr<Address>> &add
 					return false;
 				}
 				if (!mConfParams->isGroup() && (addressesList.size() > 1 || getParticipantCount() != 0)) {
-					lError() << *this << ": Cannot add more than one participant in a one-to-one chatroom";
+					lError() << *this << ": Cannot add more than one participant in a one-on-one chatroom";
 					return false;
 				}
 
@@ -1035,7 +1035,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 		}
 	} else if (isChatOnly()) {
 #ifdef HAVE_ADVANCED_IM
-		auto session = mFocus->getSession();
+		auto session = getMainSession();
 		auto chatRoom = getChatRoom();
 		auto clientGroupChatRoom = dynamic_pointer_cast<ClientChatRoom>(chatRoom);
 		switch (state) {
@@ -1851,7 +1851,7 @@ void ClientConference::onFullStateReceived() {
 		}
 #endif // HAVE_ADVANCED_IM
 
-		auto session = mFocus ? dynamic_pointer_cast<MediaSession>(mFocus->getSession()) : nullptr;
+		auto session = mFocus ? dynamic_pointer_cast<MediaSession>(getMainSession()) : nullptr;
 		// Notify local participant that the microphone is muted when receiving the full state as participants are added
 		// as soon as possible
 		if (session) {
@@ -2203,7 +2203,7 @@ bool ClientConference::removeParticipant(const std::shared_ptr<Participant> &par
 			return (removeParticipant(participantAddress) == 0) ? true : false;
 		} else if (mConfParams->chatEnabled()) {
 			LinphoneCore *cCore = getCore()->getCCore();
-			// TODO handle one-to-one case ?
+			// TODO handle one-on-one case ?
 			SalReferOp *referOp = new SalReferOp(cCore->sal.get());
 			LinphoneAddress *lAddr = getConferenceAddress()->toC();
 			linphone_configure_op(cCore, referOp, lAddr, nullptr, false);
@@ -2425,7 +2425,7 @@ int ClientConference::enter() {
 void ClientConference::join(const std::shared_ptr<Address> &) {
 #ifdef HAVE_ADVANCED_IM
 	if (mConfParams->chatEnabled()) {
-		shared_ptr<CallSession> session = mFocus->getSession();
+		shared_ptr<CallSession> session = getMainSession();
 		if (!session && ((mState == ConferenceInterface::State::Instantiated) ||
 		                 (mState == ConferenceInterface::State::Terminated))) {
 			lInfo() << "Creating focus session because " << *getMe()->getAddress() << " is joining " << *this;
@@ -2475,7 +2475,7 @@ void ClientConference::leave() {
 		if (mEventHandler) {
 			mEventHandler->unsubscribe();
 		}
-		shared_ptr<CallSession> session = mFocus->getSession();
+		shared_ptr<CallSession> session = getMainSession();
 		if (session) {
 			session->terminate();
 		} else if (mState != ConferenceInterface::State::CreationFailed) {

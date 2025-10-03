@@ -67,7 +67,7 @@ void ServerChatRoom::confirmCreation() {
 	static_pointer_cast<ServerConference>(getConference())->confirmCreation();
 }
 
-/* This is called only when a participant attempts to create a one to one chatroom that already exists.
+/* This is called only when a participant attempts to create a one-on-one chatroom that already exists.
  * We just redirect it to the existing chatroom uri. */
 void ServerChatRoom::confirmRecreation(SalCallOp *op) {
 	const auto from = Address::create(op->getFrom());
@@ -75,12 +75,18 @@ void ServerChatRoom::confirmRecreation(SalCallOp *op) {
 	const auto &conf = getConference();
 	auto participant = conf->findInvitedParticipant(from);
 	if (!participant) {
-		lError() << this << " bug - " << *from << " is not a participant.";
-		op->decline(SalReasonInternalError, "");
-		return;
+		const auto participantCount = conf->getParticipantCount();
+		if (getCurrentParams()->isGroup() || (participantCount > 1)) {
+			lError() << this << " bug - " << *from << " is not a participant.";
+			op->decline(SalReasonInternalError, "");
+			return;
+		} else {
+			participant = Participant::create(conf, from);
+			conf->addInvitedParticipant(participant);
+		}
 	}
 
-	lInfo() << this << " is re-joined by " << *participant->getAddress();
+	lInfo() << this << " is re-joined by " << *from;
 	auto confAddr = conf->getConferenceAddress();
 	shared_ptr<Participant> me = conf->getMe();
 	if (!me) {
@@ -193,13 +199,13 @@ void ServerChatRoom::onBye(const shared_ptr<ParticipantDevice> &participantLeavi
 	if (!getCurrentParams()->isGroup()) {
 		if (mProtocolVersion < Utils::Version(1, 1)) {
 			/*
-			 * In protocol 1.0, unlike normal group chatrooms, a participant can never leave a one to one chatroom.
+			 * In protocol 1.0, unlike normal group chatrooms, a participant can never leave a one-on-one chatroom.
 			 * The receiving of BYE is instead interpreted as a termination of the SIP session specific for the device.
 			 */
 			shouldRemoveParticipant = false;
 		} else {
 			/*
-			 * In subsequent protocol versions, both participants of a one to one chatroom are removed,
+			 * In subsequent protocol versions, both participants of a one-on-one chatroom are removed,
 			 * which terminates the chatroom forever.
 			 */
 			lInfo() << "1-1 chatroom was left by one participant, removing other participant to terminate the chatroom";
@@ -273,7 +279,6 @@ bool ServerChatRoom::subscribeRegistrationForParticipants(
 	}
 
 	std::list<Address> requestedAddresses;
-
 	// Subscribe to the registration events from the proxy
 	for (const auto &addr : identAddresses) {
 		const auto cleanedAddr = addr->getUri();
@@ -413,7 +418,7 @@ bool ServerChatRoom::dispatchMessagesAfterFullState(const shared_ptr<Participant
 void ServerChatRoom::dispatchQueuedMessages() {
 	for (const auto &participant : getParticipants()) {
 		/*
-		 * Dispatch messages for each device in Present state. In a one to one chatroom, if a device
+		 * Dispatch messages for each device in Present state. In a one-on-one chatroom, if a device
 		 * is found is Left state, it must be invited first.
 		 */
 		for (const auto &device : participant->getDevices()) {
@@ -424,7 +429,7 @@ void ServerChatRoom::dispatchQueuedMessages() {
 				if (!getCurrentParams()->isGroup() && (device->getState() == ParticipantDevice::State::Left)) {
 					// Happens only with protocol < 1.1
 					lInfo() << "There is a message in " << *conference
-					        << " to transmit to a participant in left state in a one to one "
+					        << " to transmit to a participant in left state in a one-on-one "
 					           "chatroom, so inviting first.";
 					static_pointer_cast<ServerConference>(conference)->inviteDevice(device);
 					continue;

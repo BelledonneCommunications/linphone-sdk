@@ -139,7 +139,7 @@ std::shared_ptr<Content> ServerConferenceEventHandler::createNotifyFullState(con
 	ConferenceId conferenceId(conferenceAddress, conferenceAddress, conf->getCore()->createConferenceIdParams());
 	// Enquire whether this conference belongs to a server group chat room
 	std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
-	const bool oneToOne = chatRoom ? !!!chatRoom->getCurrentParams()->isGroup() : false;
+	const bool oneOnOne = chatRoom ? !!!chatRoom->getCurrentParams()->isGroup() : false;
 	const bool ephemerable = chatRoom ? !!chatRoom->getCurrentParams()->getChatParams()->ephemeralEnabled() : false;
 	string entity = conferenceAddress ? conferenceAddress->asStringUriOnly() : std::string();
 	string subject = conf->getUtf8Subject();
@@ -160,7 +160,7 @@ std::shared_ptr<Content> ServerConferenceEventHandler::createNotifyFullState(con
 	    textEnabled ? LinphoneMediaDirectionSendRecv : LinphoneMediaDirectionInactive;
 	addAvailableMediaCapabilities(audioDirection, videoDirection, textDirection, confDescr);
 	std::string keywordList;
-	if (oneToOne) {
+	if (oneOnOne) {
 		keywordList += "one-to-one ";
 	}
 	if (ephemerable) {

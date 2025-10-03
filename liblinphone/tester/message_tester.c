@@ -1574,7 +1574,7 @@ static void text_message_auto_resent_after_failure_base(bool with_file_transfer)
 	BC_ASSERT_EQUAL(_linphone_chat_room_get_transient_message_count(chat_room), 1, int, "%d");
 
 	// The upload to the file transfer server fails therefore the message sent callback is not called.
-	// On the other hand, if the message contains only text, then it is sent but the channel errors out
+	// On the other hand, if the message contains only text, then it is sent but the channel fails out
 	BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneMessageSent, (with_file_transfer) ? 0 : 1, int, "%d");
 
 	sal_set_send_error(linphone_core_get_sal(marie->lc), 0);
@@ -3594,24 +3594,24 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 		messages = NULL;
 	}
 
-	// Part 2: one-to-one chatroom between Marie and Pauline is destroyed. It has to be recreated to receive IMDNs
+	// Part 2: one-on-one chatroom between Marie and Pauline is destroyed. It has to be recreated to receive IMDNs
 	initialMarieStats = marie->stat;
 	initialChloeStats = chloe->stat;
 	initialPaulineStats = pauline->stat;
 	bctbx_list_t *participants = bctbx_list_append(NULL, pauline->identity);
-	ms_message("%s deletes one to one chatroom with %s", linphone_core_get_identity(marie->lc),
+	ms_message("%s deletes one-on-one chatroom with %s", linphone_core_get_identity(marie->lc),
 	           linphone_core_get_identity(pauline->lc));
-	LinphoneChatRoom *mariePaulineOneToOneCr =
+	LinphoneChatRoom *mariePaulineOneOnOneCr =
 	    linphone_core_search_chat_room(marie->lc, NULL, marie->identity, NULL, participants);
 	bctbx_list_free(participants);
-	BC_ASSERT_PTR_NOT_NULL(mariePaulineOneToOneCr);
-	if (mariePaulineOneToOneCr) {
-		const LinphoneChatRoomParams *chat_room_params = linphone_chat_room_get_current_params(mariePaulineOneToOneCr);
+	BC_ASSERT_PTR_NOT_NULL(mariePaulineOneOnOneCr);
+	if (mariePaulineOneOnOneCr) {
+		const LinphoneChatRoomParams *chat_room_params = linphone_chat_room_get_current_params(mariePaulineOneOnOneCr);
 		BC_ASSERT_PTR_NOT_NULL(chat_room_params);
 		if (chat_room_params) {
 			BC_ASSERT_FALSE(linphone_chat_room_params_group_enabled(chat_room_params));
 		}
-		linphone_chat_room_leave(mariePaulineOneToOneCr);
+		linphone_chat_room_leave(mariePaulineOneOnOneCr);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneChatRoomStateTerminationPending,
 		                             initialPaulineStats.number_of_LinphoneChatRoomStateTerminationPending + 1,
 		                             liblinphone_tester_sip_timeout));

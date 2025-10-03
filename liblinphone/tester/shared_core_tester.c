@@ -327,7 +327,7 @@ shared_core_create_chat_room(LinphoneCoreManager *sender, LinphoneCoreManager *r
 
 	LinphoneChatRoomParams *params = linphone_core_create_default_chat_room_params(sender->lc);
 
-	// Should create a one-to-one flexisip chat
+	// Should create a one-on-one flexisip chat
 	linphone_chat_room_params_set_backend(params, LinphoneChatRoomBackendFlexisipChat);
 	linphone_chat_room_params_enable_group(params, TRUE);
 	LinphoneChatRoom *senderCr = linphone_core_create_chat_room_2(sender->lc, params, subject, participantsAddresses);

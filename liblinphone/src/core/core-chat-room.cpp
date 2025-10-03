@@ -591,7 +591,7 @@ void CorePrivate::sendQueuedMessages() {
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // _MSC_VER
 shared_ptr<AbstractChatRoom>
-CorePrivate::findExhumableOneToOneChatRoom(const std::shared_ptr<Address> &localAddress,
+CorePrivate::findExhumableOneOnOneChatRoom(const std::shared_ptr<Address> &localAddress,
                                            const std::shared_ptr<Address> &participantAddress,
                                            bool encrypted) const {
 #ifdef HAVE_ADVANCED_IM
@@ -784,11 +784,11 @@ shared_ptr<AbstractChatRoom> Core::findChatRoom(const ConferenceId &conferenceId
 		return chatRoom;
 	}
 
-	auto alreadyExhumedOneToOne = d->findExumedChatRoomFromPreviousConferenceId(conferenceId);
-	if (alreadyExhumedOneToOne) {
+	auto alreadyExhumedOneOnOne = d->findExumedChatRoomFromPreviousConferenceId(conferenceId);
+	if (alreadyExhumedOneOnOne) {
 		lWarning() << "Found conference id as already exhumed chat room with new conference ID "
-		           << alreadyExhumedOneToOne->getConferenceId() << ".";
-		return alreadyExhumedOneToOne;
+		           << alreadyExhumedOneOnOne->getConferenceId() << ".";
+		return alreadyExhumedOneOnOne;
 	}
 	if (logIfNotFound) lInfo() << "Unable to find chat room in RAM: " << conferenceId << ".";
 	return nullptr;

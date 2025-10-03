@@ -228,12 +228,12 @@ public:
 	                                            long long *chatRoomId = nullptr);
 
 	std::shared_ptr<Address>
-	findMissingOneToOneConferenceChatRoomParticipantAddress(const std::shared_ptr<AbstractChatRoom> &chatRoom,
+	findMissingOneOnOneConferenceChatRoomParticipantAddress(const std::shared_ptr<AbstractChatRoom> &chatRoom,
 	                                                        const std::shared_ptr<Address> &presentParticipantAddr);
-	std::shared_ptr<Address> findOneToOneConferenceChatRoomAddress(const std::shared_ptr<Address> &participantA,
+	std::shared_ptr<Address> findOneOnOneConferenceChatRoomAddress(const std::shared_ptr<Address> &participantA,
 	                                                               const std::shared_ptr<Address> &participantB,
 	                                                               bool encrypted) const;
-	void insertOneToOneConferenceChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom, bool encrypted);
+	void insertOneOnOneConferenceChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom, bool encrypted);
 
 	void updateChatRoomParticipantDevice(const std::shared_ptr<AbstractChatRoom> &chatRoom,
 	                                     const std::shared_ptr<ParticipantDevice> &device);

@@ -406,14 +406,14 @@ LINPHONE_PUBLIC bool_t linphone_conference_params_is_valid(const LinphoneConfere
 /**
  * Get the group chat status of the text capabilities of the conference associated with the given parameters.
  * @param params The #LinphoneConferenceParams object. @notnil
- * @return TRUE if group chat is enabled, FALSE if one-to-one
+ * @return TRUE if group chat is enabled, FALSE if one-on-one
  **/
 LINPHONE_PUBLIC bool_t linphone_conference_params_group_enabled(const LinphoneConferenceParams *params);
 
 /**
  * Enables or disables group chat for the text capabilities of the conference associated with the given parameters.
  * @param params The #LinphoneConferenceParams object. @notnil
- * @param group TRUE to enable group chat, FALSE to disable (resulting in one-to-one text capabilities of
+ * @param group TRUE to enable group chat, FALSE to disable (resulting in one-on-one text capabilities of
  * the conference)
  **/
 LINPHONE_PUBLIC void linphone_conference_params_enable_group(LinphoneConferenceParams *params, bool_t group);

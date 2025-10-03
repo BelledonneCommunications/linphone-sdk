@@ -843,6 +843,15 @@ void ClientConferenceEventHandler::subscribeStateChangedCb(LinphoneEvent *lev, L
 		auto cbs = ev->getCurrentCallbacks();
 		ClientConferenceEventHandler *handler = static_cast<ClientConferenceEventHandler *>(cbs->getUserData());
 		handler->setInitialSubscriptionUnderWayFlag(false);
+		auto conf = handler->getConference();
+		if (conf && (ev->getReason() == LinphoneReasonDeclined)) {
+			lInfo() << "Leave " << *conf << " because the subscription [" << ev << "] errored out";
+			auto mainSession = conf->getMainSession();
+			if (mainSession) {
+				mainSession->terminate();
+			}
+			conf->setState(ConferenceInterface::State::Terminated);
+		}
 	}
 }
 
@@ -883,8 +892,11 @@ bool ClientConferenceEventHandler::subscribe() {
 				subscribeToHeader->setTransport(callContactAddress->getTransport());
 			}
 		}
+		const int eventSubscribeExpire = linphone_config_get_int(linphone_core_get_config(getCore()->getCCore()), "sip",
+		                                                         "conference_subscribe_expires", 600);
 		ev = dynamic_pointer_cast<EventSubscribe>(
-		    (new EventSubscribe(getCore(), subscribeToHeader, account, "conference", 600, privacy))->toSharedPtr());
+		    (new EventSubscribe(getCore(), subscribeToHeader, account, "conference", eventSubscribeExpire, privacy))
+		        ->toSharedPtr());
 		shared_ptr<EventCbs> cbs = EventCbs::create();
 		cbs->setUserData(this);
 		cbs->subscribeStateChangedCb = subscribeStateChangedCb;
@@ -963,11 +975,12 @@ void ClientConferenceEventHandler::onEnteringForeground() {
 
 void ClientConferenceEventHandler::invalidateSubscription() {
 	if (ev) {
+		auto conf = getConference();
 		if ((ev->getState() == LinphoneSubscriptionError) &&
-		    (getConference()->getState() == ConferenceInterface::State::CreationPending)) {
+		    (conf->getState() == ConferenceInterface::State::CreationPending)) {
 			// The conference received an answer to its SUBSCRIBE and the server is not supporting the conference
 			// event package
-			getConference()->setState(ConferenceInterface::State::Created);
+			conf->setState(ConferenceInterface::State::Created);
 		}
 		ev = nullptr;
 	}

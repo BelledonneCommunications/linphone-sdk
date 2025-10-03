@@ -194,10 +194,12 @@ void SalSubscribeOp::subscribeProcessRequestEventCb(void *userCtx, const belle_s
 				// Either a refresh or an unsubscribe
 				if (expiresHeader && belle_sip_header_expires_get_expires(expiresHeader) > 0) {
 					auto response = op->createResponseFromRequest(request, 200);
+					belle_sip_message_add_header(BELLE_SIP_MESSAGE(response), BELLE_SIP_HEADER(op->createContact()));
 					belle_sip_server_transaction_send_response(serverTransaction, response);
 				} else if (expiresHeader) {
 					lInfo() << "Unsubscribe received from [" << op->getFrom() << "]";
 					auto response = op->createResponseFromRequest(request, 200);
+					belle_sip_message_add_header(BELLE_SIP_MESSAGE(response), BELLE_SIP_HEADER(op->createContact()));
 					belle_sip_server_transaction_send_response(serverTransaction, response);
 					op->mRoot->mCallbacks.incoming_subscribe_closed(op);
 				}

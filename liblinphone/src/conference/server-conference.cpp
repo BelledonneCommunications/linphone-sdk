@@ -410,10 +410,10 @@ void ServerConference::updateConferenceParams(SalCallOp *op) {
 	string endToEndEncrypted = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "End-To-End-Encrypted"));
 	string ephemerable = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemerable"));
 	string ephemeralLifeTime = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Life-Time"));
-	string oneToOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
+	string oneOnOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
 	const auto remoteContactAddress = op->getRemoteContactAddress();
 	const auto chatEnabled = (!ephemerable.empty() || !ephemeralLifeTime.empty() || !endToEndEncrypted.empty() ||
-	                          !oneToOneChatRoom.empty() ||
+	                          !oneOnOneChatRoom.empty() ||
 	                          !!(sal_address_has_param(remoteContactAddress, Conference::sTextParameter.c_str())));
 
 	mConfParams->enableAudio(audioEnabled);
@@ -699,9 +699,20 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 			op->decline(SalReasonDeclined, "");
 			return;
 		}
+		// Try to add to the participant list if not in already. In fact it may happen that at this stage a participant
+		// is in the invited list but not the actual participant list when recovering a one-on-one chatroom.
+		if (!findParticipant(from)) {
+			mParticipants.push_back(participant);
+			shared_ptr<ConferenceParticipantEvent> event = notifyParticipantAdded(time(nullptr), false, participant);
+			getCore()->getPrivate()->mainDb->addEvent(event);
+			if (serverGroupChatRoom) {
+				const std::list<std::shared_ptr<const Address>> participantAddress{from};
+				serverGroupChatRoom->subscribeRegistrationForParticipants(participantAddress, true);
+			}
+		}
 
 		device = participant->findDevice(gruu);
-		// In protocol < 1.1, one to one chatroom can be resurected by a participant, but the participant actually never
+		// In protocol < 1.1, one-on-one chatroom can be resurected by a participant, but the participant actually never
 		// leaves from server's standpoint.
 		if (getCurrentParams()->isGroup() && op->isContentInRemote(ContentType::ResourceLists) &&
 		    (device->getState() != ParticipantDevice::State::Joining)) {
@@ -715,7 +726,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		}
 		if (!getCurrentParams()->isGroup()) {
 			if (device->getState() == ParticipantDevice::State::Left) {
-				lInfo() << *this << " - " << *gruu << " is reconnected to the one to one chatroom.";
+				lInfo() << *this << " - " << *gruu << " is reconnected to the one-on-one chatroom.";
 				setParticipantDeviceState(device, ParticipantDevice::State::Joining);
 			}
 			participant->setAdmin(true);
@@ -768,9 +779,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 				        << ", hence the old one " << deviceSession << " is immediately terminated";
 				deviceSession->terminate();
 			}
-			lInfo() << "Setting session " << newDeviceSession << " to device " << *deviceAddress
-			        << " is replacing its session in " << *this << ", hence the old one " << deviceSession
-			        << " is immediately terminated";
+			lInfo() << "Setting session " << newDeviceSession << " to device " << *deviceAddress << " in " << *this;
 			device->setSession(newDeviceSession);
 		}
 	}
@@ -954,7 +963,7 @@ void ServerConference::confirmCreation() {
 void ServerConference::handleSubjectChange(SalCallOp *op) {
 	if (sal_custom_header_find(op->getRecvCustomHeaders(), "Subject")) {
 		// Handle subject change
-		lInfo() << this << ": New subject \"" << op->getSubject() << "\"";
+		lInfo() << *this << ": New subject \"" << op->getSubject() << "\"";
 		// Already calling Conference::setSubject
 		setUtf8Subject(op->getSubject());
 	}
@@ -984,7 +993,7 @@ bool ServerConference::initializeParticipants(const shared_ptr<Participant> &ini
 
 	if (!getCurrentParams()->isGroup()) {
 		if (identAddresses.size() > 1) {
-			lError() << *this << ": chatroom is one to one but the list contains multiple participants !";
+			lError() << *this << ": chatroom is one-on-one but the list contains multiple participants !";
 			return false;
 		}
 	}
@@ -1092,8 +1101,8 @@ void ServerConference::subscribeReceived(const shared_ptr<EventSubscribe> &event
 	const auto &contactAddr = event->getRemoteContact();
 	auto device = findParticipantDevice(contactAddr);
 	if (!device) {
-		lError() << *contactAddr << " is not a member of " << *this;
-		event->deny(LinphoneReasonNotAcceptable);
+		lError() << "Declining SUBSCRIBE [" << event << "] because " << *contactAddr << " is not a member of " << *this;
+		event->deny(LinphoneReasonDeclined);
 		return;
 	}
 
@@ -2196,7 +2205,7 @@ bool ServerConference::addParticipant(const std::shared_ptr<ParticipantInfo> &in
 				shared_ptr<Participant> participant = findInvitedParticipant(participantAddress);
 				if (participant == nullptr && !mConfParams->isGroup() && getParticipantCount() == 2) {
 					lInfo() << *this << ": Not adding participant '" << *participantAddress
-					        << "' because this OneToOne chat room already has 2 participants";
+					        << "' because this one-on-one chat room already has 2 participants";
 					return false;
 				}
 
@@ -2442,7 +2451,7 @@ int ServerConference::removeParticipant(const std::shared_ptr<CallSession> &sess
 					auto newParams = updateParameterForParticipantRemoval(lastSession);
 					if (isIn()) {
 						// If the local participant is in, then an update is sent in order to notify that the call is
-						// exiting the conference and it becomes a simple one-to-one call
+						// exiting the conference and it becomes a simple one-on-one call
 						lInfo() << "Updating last call session [" << lastSession << "] to get it out of " << *this
 						        << " because the local participant is active in the conference";
 						err = lastSession->updateFromConference(newParams);
@@ -3679,8 +3688,8 @@ void ServerConference::updateParticipantDevices(
 		const auto &registrationSubscriptions = serverGroupChatRoom->getRegistrationSubscriptions();
 		auto it = registrationSubscriptions.find(participantAddress->getUri().toString());
 		/*
-		 * For security, since registration information might come from outside, make sure that the device list we
-		 * are asked to add are from a participant for which we have requested device information, i.e. a participant
+		 * For security reasons, since registration information might come from outside, make sure that the device list
+		 * we are asked to add are from a participant for which we have requested device information, i.e. a participant
 		 * that is in the process of being added to the chatroom
 		 */
 		if (it == registrationSubscriptions.end()) {
@@ -3793,10 +3802,10 @@ void ServerConference::conclude() {
 			 */
 			acceptSession(session);
 			if (!getCurrentParams()->isGroup() && (getInvitedParticipants().size() == 2)) {
-				// Insert the one-to-one chat room in Db if participants count is 2.
+				// Insert the one-on-one chat room in Db if participants count is 2.
 				// This is necessary for protocol version < 1.1, and for backward compatibility in case these prior
 				// versions are subsequently used by device that gets joined to the chatroom.
-				getCore()->getPrivate()->mainDb->insertOneToOneConferenceChatRoom(
+				getCore()->getPrivate()->mainDb->insertOneOnOneConferenceChatRoom(
 				    chatRoom, getCurrentParams()->getChatParams()->isEncrypted());
 			}
 		}

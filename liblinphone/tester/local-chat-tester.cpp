@@ -2266,7 +2266,7 @@ static void group_chat_room_bulk_notify_full_state_to_participant() {
 	group_chat_room_bulk_notify_to_participant_base(TRUE);
 }
 
-static void one_to_one_chatroom_backward_compatibility_base(const char *groupchat_spec) {
+static void one_on_one_chatroom_backward_compatibility_base(const char *groupchat_spec) {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
 		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
@@ -2299,8 +2299,8 @@ static void one_to_one_chatroom_backward_compatibility_base(const char *groupcha
 		stats initialMarieStats = marie.getStats();
 		stats initialPaulineStats = pauline.getStats();
 
-		// Marie creates a new one to one chat room
-		const char *initialSubject = "one to one with Pauline";
+		// Marie creates a new one-on-one chat room
+		const char *initialSubject = "one-on-one with Pauline";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
 		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
@@ -2372,11 +2372,11 @@ static void one_to_one_chatroom_backward_compatibility_base(const char *groupcha
 	}
 }
 
-static void one_to_one_chatroom_backward_compatibility() {
-	one_to_one_chatroom_backward_compatibility_base("groupchat/1.0");
+static void one_on_one_chatroom_backward_compatibility() {
+	one_on_one_chatroom_backward_compatibility_base("groupchat/1.0");
 }
 
-static void one_to_one_chatroom_exhumed_while_offline() {
+static void one_on_one_chatroom_exhumed_while_offline() {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
 		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
@@ -2394,8 +2394,8 @@ static void one_to_one_chatroom_exhumed_while_offline() {
 		stats initialMarieStats = marie.getStats();
 		stats initialPaulineStats = pauline.getStats();
 
-		// Marie creates a new one to one chat room
-		const char *initialSubject = "one to one with Pauline";
+		// Marie creates a new one-on-one chat room
+		const char *initialSubject = "one-on-one with Pauline";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
 		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
@@ -2590,7 +2590,7 @@ static void one_to_one_chatroom_exhumed_while_offline() {
 	}
 }
 
-static void one_to_one_chatroom_not_rejoined_after_leaving() {
+static void one_on_one_chatroom_not_rejoined_after_leaving() {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
 		const auto lime_algo = C25519;
@@ -2613,8 +2613,8 @@ static void one_to_one_chatroom_not_rejoined_after_leaving() {
 		stats initialMarieStats = marie.getStats();
 		stats initialPaulineStats = pauline.getStats();
 
-		// Marie creates a new one to one chat room
-		const char *initialSubject = "one to one with Pauline";
+		// Marie creates a new one-on-one chat room
+		const char *initialSubject = "one-on-one with Pauline";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
 		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
@@ -2947,8 +2947,8 @@ static void multidomain_group_chat_room() {
 	}
 }
 
-static void one_to_one_group_chat_room_deletion_by_server_client() {
-	one_to_one_group_chat_room_deletion_by_server_client_base(FALSE);
+static void one_on_one_group_chat_room_deletion_by_server_client() {
+	one_on_one_group_chat_room_deletion_by_server_client_base(FALSE);
 }
 
 static void group_chat_room_add_participant_with_invalid_address() {
@@ -3878,13 +3878,13 @@ static test_t local_conference_chat_basic_tests[] = {
     TEST_NO_TAG("Group chat room bulk notify to participant", LinphoneTest::group_chat_room_bulk_notify_to_participant),
     TEST_NO_TAG("Group chat room bulk notify full state to participant",
                 LinphoneTest::group_chat_room_bulk_notify_full_state_to_participant),
-    TEST_ONE_TAG("One to one chatroom exhumed while participant is offline",
-                 LinphoneTest::one_to_one_chatroom_exhumed_while_offline,
+    TEST_ONE_TAG("One-on-one chatroom exhumed while participant is offline",
+                 LinphoneTest::one_on_one_chatroom_exhumed_while_offline,
                  "LeaksMemory"), /* because of network up and down*/
-    TEST_NO_TAG("One to one chatroom not rejoined after leaving",
-                LinphoneTest::one_to_one_chatroom_not_rejoined_after_leaving),
-    TEST_NO_TAG("One to one chatroom (backward compatibility)",
-                LinphoneTest::one_to_one_chatroom_backward_compatibility),
+    TEST_NO_TAG("One-on-one chatroom not rejoined after leaving",
+                LinphoneTest::one_on_one_chatroom_not_rejoined_after_leaving),
+    TEST_NO_TAG("One-on-one chatroom (backward compatibility)",
+                LinphoneTest::one_on_one_chatroom_backward_compatibility),
     TEST_ONE_TAG(
         "Short ephemeral lifetime messages", LinphoneTest::short_ephemeral_lifetime_messages_test, "Ephemeral"),
     TEST_ONE_TAG("Group chat Server chat room deletion with remote list event handler",
@@ -3909,8 +3909,8 @@ static test_t local_conference_chat_advanced_tests[] = {
                 LinphoneTest::group_chat_room_with_creator_without_groupchat_capability),
     TEST_NO_TAG("Group chat with creator without groupchat capability in register",
                 LinphoneTest::group_chat_room_with_creator_without_groupchat_capability_in_register),
-    TEST_ONE_TAG("One to one group chat deletion initiated by server and client",
-                 LinphoneTest::one_to_one_group_chat_room_deletion_by_server_client,
+    TEST_ONE_TAG("One-on-one group chat deletion initiated by server and client",
+                 LinphoneTest::one_on_one_group_chat_room_deletion_by_server_client,
                  "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("Group chat room deletes chatroom after restart",
                  LinphoneTest::group_chat_room_with_client_deletes_chatroom_after_restart,

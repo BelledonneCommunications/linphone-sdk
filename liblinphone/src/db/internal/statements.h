@@ -33,7 +33,7 @@ enum Select {
 	SelectSipAddressIdCaseInsensitive,
 	SelectChatRoomId,
 	SelectChatRoomParticipantId,
-	SelectOneToOneChatRoomId,
+	SelectOneOnOneChatRoomId,
 	SelectConferenceEvent,
 	SelectConferenceEvents,
 	SelectConferenceInfoId,
@@ -45,7 +45,7 @@ enum Select {
 	SelectCount
 };
 
-enum Insert { InsertOneToOneChatRoom, InsertCount };
+enum Insert { InsertOneOnOneChatRoom, InsertCount };
 
 const char *get(Select selectStmt);
 const char *get(Insert insertStmt, AbstractDb::Backend backend);

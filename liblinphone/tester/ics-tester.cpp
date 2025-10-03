@@ -470,9 +470,9 @@ test_t ics_tests[] = {
     TEST_NO_TAG("Parse folded example", parse_folded_example),
     TEST_NO_TAG("Build Ics", build_ics),
     TEST_NO_TAG("Send conference invitations in basic chat room", send_conference_invitations_1),
-    TEST_NO_TAG("Send conference invitations in one-to-one encrypted chat room", send_conference_invitations_2),
+    TEST_NO_TAG("Send conference invitations in one-on-one encrypted chat room", send_conference_invitations_2),
     TEST_NO_TAG("Send conference invitations error in basic chat room", send_conference_invitations_error_1),
-    TEST_NO_TAG("Send conference invitations error in one-to-one encrypted chat room",
+    TEST_NO_TAG("Send conference invitations error in one-on-one encrypted chat room",
                 send_conference_invitations_error_2),
 };
 

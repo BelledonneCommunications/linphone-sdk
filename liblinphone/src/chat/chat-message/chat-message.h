@@ -182,6 +182,8 @@ public:
 	const Content &getInternalContent() const;
 	void setInternalContent(const Content &content);
 
+	void resetCurrentSteps();
+
 	bool downloadFile(std::shared_ptr<FileTransferContent> content, bool retry = false);
 	bool downloadFiles();
 	bool downloadTerminated();

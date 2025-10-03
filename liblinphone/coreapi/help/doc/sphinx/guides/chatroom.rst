@@ -1,12 +1,12 @@
 Chat room and messaging
 =======================
 
-There are different types of chat rooms. Basic chat rooms are simple chat rooms between two participants, they do not require a conference server and are considered as one-to-one chat rooms.
+There are different types of chat rooms. Basic chat rooms are simple chat rooms between two participants, they do not require a conference server and are considered as one-on-one chat rooms.
 
 Group chat rooms allow more than one peer user and require a conference server.
-Group chat rooms can also be considered as one-to-one if they have only one peer participant at the time of their creation and if the parameter "enable_one_to_one_chat_room" is set to true, otherwise a basic chat room will be created instead.
+Group chat rooms can also be considered as one-on-one if they have only one peer participant at the time of their creation and if the parameter "enable_one_to_one_chat_room" is set to true, otherwise a basic chat room will be created instead.
 
-Secured chat rooms are group chat rooms where LIME X3DH end-to-end encryption is enabled, they can be either group chat rooms or one-to-one chat rooms but not basic chat rooms.
+Secured chat rooms are group chat rooms where LIME X3DH end-to-end encryption is enabled, they can be either group chat rooms or one-on-one chat rooms but not basic chat rooms.
 
 Chat rooms parameters
 ---------------------

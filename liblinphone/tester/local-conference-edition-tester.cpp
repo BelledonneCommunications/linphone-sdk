@@ -1146,7 +1146,7 @@ static void edit_simple_conference_base(bool_t from_organizer,
 						}
 
 						// If not using the default account (which was used to create the conference), the
-						// conference scheduler errors out and Michelle is not added
+						// conference scheduler fails out and Michelle is not added
 						int exp_sequence_number = 0;
 						if (edit_successful) {
 							if (is_focus) {

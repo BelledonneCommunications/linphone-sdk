@@ -167,21 +167,26 @@ static bool check_conference_info_by_participant(LinphoneCoreManager *mgr,
 }
 
 // check if all participants and participant devices are `me` for participant_info in conference
-static void check_is_me(LinphoneConference *conference, LinphoneParticipantInfo *participant_info, bool_t is_anonymous,
-	bool *participant_is_me_check, bool *participant_device_is_me_check
-) {
+static void check_is_me(LinphoneConference *conference,
+                        LinphoneParticipantInfo *participant_info,
+                        bool_t is_anonymous,
+                        bool *participant_is_me_check,
+                        bool *participant_device_is_me_check) {
 	// Check IS ME
-	if ( conference) {
-		LinphoneAddress *identity = linphone_address_new(linphone_core_get_identity(linphone_conference_get_core(conference)));
+	if (conference) {
+		LinphoneAddress *identity =
+		    linphone_address_new(linphone_core_get_identity(linphone_conference_get_core(conference)));
 		LinphoneParticipant *participant = linphone_conference_is_me(conference, identity)
-											   ? linphone_conference_get_me(conference)
-											   : linphone_conference_find_participant(conference, identity);
+		                                       ? linphone_conference_get_me(conference)
+		                                       : linphone_conference_find_participant(conference, identity);
 		linphone_address_unref(identity);
 		// Check is_me on participants
 		bctbx_list_t *participants = linphone_conference_get_participant_list(conference);
-		for (bctbx_list_t *itParticipant = participants; itParticipant ; itParticipant = bctbx_list_next(itParticipant)) {
+		for (bctbx_list_t *itParticipant = participants; itParticipant;
+		     itParticipant = bctbx_list_next(itParticipant)) {
 			LinphoneParticipant *conf_participant = (LinphoneParticipant *)bctbx_list_get_data(itParticipant);
-			*participant_is_me_check &= (linphone_participant_is_me(conf_participant) == (conf_participant == participant));
+			*participant_is_me_check &=
+			    (linphone_participant_is_me(conf_participant) == (conf_participant == participant));
 		}
 		if (participants) {
 			bctbx_list_free_with_data(participants, (bctbx_list_free_func)linphone_participant_unref);
@@ -189,25 +194,24 @@ static void check_is_me(LinphoneConference *conference, LinphoneParticipantInfo 
 		// Check is_me on devices
 		auto address = linphone_participant_info_get_address(participant_info);
 		bctbx_list_t *devices = linphone_conference_get_participant_device_list(conference);
-		for (bctbx_list_t *itDevice = devices; itDevice ; itDevice = bctbx_list_next(itDevice)) {
+		for (bctbx_list_t *itDevice = devices; itDevice; itDevice = bctbx_list_next(itDevice)) {
 			LinphoneParticipantDevice *conf_device = (LinphoneParticipantDevice *)bctbx_list_get_data(itDevice);
 			if (is_anonymous) {
-				auto callId = linphone_core_find_call_log_from_call_id(linphone_conference_get_core(conference), ParticipantDevice::toCpp(conf_device)->getCallId().c_str());
-				*participant_device_is_me_check &= (linphone_participant_device_is_me(conf_device)  == (
-				!!callId
-					));
+				auto callId = linphone_core_find_call_log_from_call_id(
+				    linphone_conference_get_core(conference),
+				    ParticipantDevice::toCpp(conf_device)->getCallId().c_str());
+				*participant_device_is_me_check &= (linphone_participant_device_is_me(conf_device) == (!!callId));
 				if (callId) linphone_call_log_unref(callId);
-			}else {
-				*participant_device_is_me_check &= (linphone_participant_device_is_me(conf_device)  == (
-					linphone_address_weak_equal( linphone_participant_device_get_address(conf_device), address)
-				));
+			} else {
+				*participant_device_is_me_check &=
+				    (linphone_participant_device_is_me(conf_device) ==
+				     (linphone_address_weak_equal(linphone_participant_device_get_address(conf_device), address)));
 			}
 		}
 		if (devices) {
 			bctbx_list_free_with_data(devices, (bctbx_list_free_func)linphone_participant_device_unref);
 		}
 	}
-
 }
 
 void check_conference_me(LinphoneConference *conference, bool_t is_admin) {
@@ -1201,7 +1205,8 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 		                                                            &camera_enabled_map, conferenceMgrs, &video_check,
 		                                                            &participant_check, &device_check, &call_check,
 		                                                            &audio_direction_check, &security_check,
-		                                                            &participant_is_me_check, &participant_device_is_me_check] {
+		                                                            &participant_is_me_check,
+		                                                            &participant_device_is_me_check] {
 			video_check = false;
 			participant_check = false;
 			device_check = false;
@@ -1465,7 +1470,8 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 					    (default_account && is_anonymous_address(linphone_account_params_get_identity_address(
 					                            linphone_account_get_params(default_account))));
 
-					check_is_me(mgr_conference, info, is_anonymous, &participant_is_me_check, &participant_device_is_me_check);
+					check_is_me(mgr_conference, info, is_anonymous, &participant_is_me_check,
+					            &participant_device_is_me_check);
 
 					if (is_anonymous) {
 						participant_check &= (participant == nullptr);
@@ -1482,7 +1488,6 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 						participant_check &=
 						    ((linphone_participant_get_role(participant) == linphone_participant_info_get_role(info)) &&
 						     (linphone_participant_get_role(participant) != LinphoneParticipantRoleUnknown));
-
 					}
 				}
 			}
@@ -1562,6 +1567,8 @@ void toggle_screen_sharing(std::initializer_list<std::reference_wrapper<CoreMana
 	bool_t direction_ok_for_screen_sharing =
 	    ((video_direction == LinphoneMediaDirectionSendRecv) || (video_direction == LinphoneMediaDirectionSendOnly));
 	bool_t offer_screen_sharing = video_enabled && screen_sharing_enabled && direction_ok_for_screen_sharing;
+	ms_message("%s %s screen sharing", linphone_core_get_identity(screen_sharing_mgr->lc),
+	           (offer_screen_sharing ? "enables" : "disables"));
 	LinphoneCall *screen_sharing_mgr_call = linphone_core_get_call_by_remote_address2(screen_sharing_mgr->lc, confAddr);
 	BC_ASSERT_PTR_NOT_NULL(screen_sharing_mgr_call);
 	if (screen_sharing_mgr_call) {

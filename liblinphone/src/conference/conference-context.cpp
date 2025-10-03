@@ -71,7 +71,7 @@ bool ConferenceContext::operator==(const ConferenceContext &other) const {
 
 			if (mParams->getChatParams()->isEncrypted() != otherParams->getChatParams()->isEncrypted()) return false;
 
-			// Subject doesn't make any sense for basic chat room and one to one chats
+			// Subject doesn't make any sense for basic chat room and one-on-one chats
 			checkSubject = (mParams->isGroup() && (thisBackend == LinphonePrivate::ChatParams::Backend::FlexisipChat));
 		}
 

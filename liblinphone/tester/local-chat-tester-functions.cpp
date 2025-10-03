@@ -1433,7 +1433,7 @@ void group_chat_room_lime_server_message(bool encrypted) {
 	}
 }
 
-void one_to_one_group_chat_room_deletion_by_server_client_base(bool encrypted) {
+void one_on_one_group_chat_room_deletion_by_server_client_base(bool encrypted) {
 	Focus focus("chloe_rc");
 	LinphoneChatMessage *msg;
 	{ // to make sure focus is destroyed after clients.
@@ -1556,6 +1556,8 @@ void one_to_one_group_chat_room_deletion_by_server_client_base(bool encrypted) {
 				return true;
 			}));
 		}
+
+		bctbx_list_free(coresList);
 	}
 }
 
@@ -1769,15 +1771,15 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 			linphone_chat_message_unref(msg);
 
 			if (expected_state == LinphoneChatMessageStateNotDelivered) {
-				if (encrypted) {
+				if (!encrypted && use_remote_event_list_handler) {
+					BC_ASSERT_FALSE(
+					    wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
+					                  initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1, 3000));
+				} else {
 					BC_ASSERT_TRUE(wait_for_list(coresList,
 					                             &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
 					                             initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
 					                             liblinphone_tester_sip_timeout));
-				} else {
-					BC_ASSERT_FALSE(
-					    wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
-					                  initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1, 3000));
 				}
 			} else {
 				BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_LinphoneMessageReceived, 1,
@@ -1870,15 +1872,9 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe, berthe2}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateNotDelivered);
 		}));
-		if (encrypted) {
-			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
-			                             initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
-			                             liblinphone_tester_sip_timeout));
-		} else {
-			BC_ASSERT_FALSE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
-			                              initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
-			                              3000));
-		}
+		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
+		                             initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
+		                             liblinphone_tester_sip_timeout));
 
 		linphone_chat_message_unref(msg);
 		msg = NULL;

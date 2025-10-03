@@ -88,16 +88,21 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 }
 
 void ClientChatRoom::handleMessageRejected(const std::shared_ptr<ChatMessage> &chatMessage) {
-	// Only the one-to-one chatroom case is dealt as it has a particular behaviour.
-	// In fact, when a client deletes a one-to-one chatroom, the server is meant to destroy it on the other side as
+	// If a message has been rejected, then leave the chatroom and set it as Terminated.
+	// The device may have been removed on the server side and it may have not received this information for whatever
+	// reason.
+	getConference()->leave();
+	setState(ConferenceInterface::State::Terminated);
+
+	// Only the one-on-one chatroom case is dealt as it has a particular behaviour.
+	// In fact, when a client deletes a one-on-one chatroom, the server is meant to destroy it on the other side as
 	// well. If, for watever reason, the BYE is not answered, the chatroom is not destroyed and therefore future message
 	// may be replied with a 403 Forbidden response. A way to recover it is to initiate the destruction of the chatroom
 	// and then exhume it
 	if (!getCurrentParams()->isGroup()) {
 		lInfo() << "ChatMessage [" << chatMessage << "] could not be sent. Terminating chatroom [" << getConferenceId()
 		        << "] and retrying";
-		getConference()->leave();
-		setState(ConferenceInterface::State::Terminated);
+		chatMessage->resetCurrentSteps();
 		sendChatMessage(chatMessage);
 	}
 }
@@ -200,7 +205,7 @@ void ClientChatRoom::exhume() {
 		return;
 	}
 	if (getCurrentParams()->isGroup()) {
-		lError() << *conference << ": Cannot exhume non one-to-one chat room [" << confId << "]";
+		lError() << *conference << ": Cannot exhume non one-on-one chat room [" << confId << "]";
 		return;
 	}
 	if (getParticipants().size() == 0) {
@@ -222,7 +227,11 @@ void ClientChatRoom::exhume() {
 		content->setContentEncoding("deflate");
 	}
 
-	const auto &conferenceFactoryAddress = Core::getConferenceFactoryAddress(getCore(), confId.getLocalAddress());
+	std::shared_ptr<const LinphonePrivate::Address> conferenceFactoryAddress =
+	    getCurrentParams()->getConferenceFactoryAddress();
+	if (!conferenceFactoryAddress) {
+		conferenceFactoryAddress = Core::getConferenceFactoryAddress(getCore(), confId.getLocalAddress());
+	}
 	auto session = static_pointer_cast<ClientConference>(conference)->createSessionTo(conferenceFactoryAddress);
 	session->startInvite(nullptr, conference->getUtf8Subject(), content);
 	setState(ConferenceInterface::State::CreationPending);
@@ -320,7 +329,8 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 	bool queueMessage = false;
 
 	if ((state == ConferenceInterface::State::Terminated) && !getCurrentParams()->isGroup()) {
-		lInfo() << *conference << ": Trying to send message into a terminated 1-1 chat room, exhuming it first";
+		lInfo() << *conference << ": Trying to send message [" << chatMessage
+		        << "] into a terminated 1-1 chat room, exhuming it first";
 		exhume();
 		queueMessage = true;
 	} else if (state == ConferenceInterface::State::Instantiated ||

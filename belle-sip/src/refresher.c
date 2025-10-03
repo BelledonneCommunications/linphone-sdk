@@ -129,7 +129,7 @@ static void process_dialog_terminated(belle_sip_listener_t *user_ctx,
 		 * However the transaction to renew the dialog is either pending or already failed, and has scheduled a retry
 		 * already, so there is no need to reschedule a retry here.*/
 		belle_sip_warning("Refresher [%p] still started but expired, retrying", refresher);
-		if (refresher->listener) refresher->listener(refresher, refresher->user_data, 481, "dialod terminated", TRUE);
+		if (refresher->listener) refresher->listener(refresher, refresher->user_data, 481, "dialog terminated", TRUE);
 	}
 }
 

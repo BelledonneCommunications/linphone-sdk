@@ -83,7 +83,7 @@ constexpr const char *select[SelectCount] = {
 			WHERE chat_room_id = :1 AND participant_sip_address_id = :2
 		)",
 
-    /* SelectOneToOneChatRoomId */ R"(
+    /* SelectOneOnOneChatRoomId */ R"(
 			SELECT chat_room_id
 			FROM one_to_one_chat_room
 			LEFT JOIN chat_room ON chat_room.id = chat_room_id
@@ -158,7 +158,7 @@ constexpr const char *select[SelectCount] = {
 // ---------------------------------------------------------------------------
 
 constexpr AbstractStatement insert[InsertCount] = {
-    /* InsertOneToOneChatRoom */ R"(
+    /* InsertOneOnOneChatRoom */ R"(
 			INSERT INTO one_to_one_chat_room (
 				chat_room_id, participant_a_sip_address_id, participant_b_sip_address_id
 			) VALUES (:1, :2, :3)

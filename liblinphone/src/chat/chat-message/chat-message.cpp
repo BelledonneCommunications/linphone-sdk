@@ -86,9 +86,10 @@ static FsmIntegrityChecker<ChatMessage::State> chatMessageFsmChecker{
        ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
        ChatMessage::State::FileTransferDone}},
      {ChatMessage::State::NotDelivered,
-      {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::Delivered,
-       ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
-       ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
+      {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::PendingDelivery,
+       ChatMessage::State::Queued, ChatMessage::State::Delivered, ChatMessage::State::DeliveredToUser,
+       ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
+       ChatMessage::State::FileTransferDone}},
      {ChatMessage::State::DeliveredToUser,
       {ChatMessage::State::InProgress, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
        ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
@@ -2756,6 +2757,12 @@ void ChatMessage::onAccountRegistrationStateChanged(std::shared_ptr<Account> acc
 bool ChatMessage::needToBeResent() const {
 	const auto &state = getState();
 	return ((state == State::PendingDelivery) || (state == State::Queued));
+}
+
+void ChatMessage::resetCurrentSteps() {
+	L_D();
+	d->currentSendStep = ChatMessagePrivate::Step::None;
+	d->currentRecvStep = ChatMessagePrivate::Step::None;
 }
 
 std::ostream &operator<<(std::ostream &lhs, ChatMessage::State e) {

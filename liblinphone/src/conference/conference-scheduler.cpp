@@ -258,7 +258,7 @@ void ConferenceScheduler::onChatMessageStateChanged(const shared_ptr<ChatMessage
 			if (chatRoom->getCapabilities() &
 			    ChatRoom::Capabilities::OneToOne) { // Message was sent using a 1-1 chat room
 				lError() << "[Conference Scheduler] [" << this << "] Invitation [" << message
-				         << "] couldn't be sent to participant [" << *participantAddress << "] on one-to-one chat room "
+				         << "] couldn't be sent to participant [" << *participantAddress << "] on one-on-one chat room "
 				         << chatRoom;
 				mInvitationsInError.push_back(participantAddress);
 			} else { // Message was sent using a group chat room
@@ -279,7 +279,7 @@ void ConferenceScheduler::onChatMessageStateChanged(const shared_ptr<ChatMessage
 			    ChatRoom::Capabilities::OneToOne) { // Message was sent using a 1-1 chat room
 				lError() << "[Conference Scheduler] [" << this << "] Invitation [" << message
 				         << "] couldn't be sent to participant [" << *participantAddress
-				         << "] because one-to-one chat room cannot be created";
+				         << "] because one-on-one chat room cannot be created";
 				mInvitationsInError.push_back(participantAddress);
 			} else { // Message was sent using a group chat room
 				lError() << "[Conference Scheduler] [" << this

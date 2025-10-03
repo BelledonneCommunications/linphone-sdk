@@ -330,7 +330,7 @@ static void subscribe_test_manually_refreshed(void) {
 /* This test has LeaksMemory attribute due to the brutal disconnection of pauline, followed by core destruction.
  * TODO: fix it.
  */
-static void subscribe_loosing_dialog(void) {
+static void subscribe_losing_dialog(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneCoreManager *pauline1 = linphone_core_manager_new("pauline_tcp_rc");
 	LinphoneContent *content;
@@ -395,14 +395,14 @@ static void subscribe_loosing_dialog(void) {
 	bctbx_list_free(lcs);
 }
 
-/* This test has LeaksMemory attribute due to the brutal disconnection of pauline, followed by core destruction.
+/* This test has LeaksMemory attribute due to the brutal disconnection of marie, followed by core destruction.
  */
-static void subscribe_loosing_dialog_2(void) {
+static void subscribe_losing_dialog_2(void) {
 #ifdef WIN32
 	/*Unfortunately this test doesn't work on windows due to the way closed TCP ports behave.
 	 * Unlike linux and macOS, released TCP port don't send an ICMP error (or maybe at least for a period of time.
 	 * This prevents this test from working, see comments below*/
-	ms_warning("subscribe_loosing_dialog() skipped on windows.");
+	ms_warning("subscribe_losing_dialog() skipped on windows.");
 #else
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_tcp_rc");
@@ -786,8 +786,8 @@ test_t event_tests[] = {
     TEST_ONE_TAG("Subscribe terminated by subscriber", subscribe_test_terminated_by_subscriber, "presence"),
     TEST_ONE_TAG("Subscribe with custom headers", subscribe_test_with_custom_header, "presence"),
     TEST_ONE_TAG("Subscribe refreshed", subscribe_test_refreshed, "presence"),
-    TEST_TWO_TAGS("Subscribe loosing dialog", subscribe_loosing_dialog, "presence", "LeaksMemory"),
-    TEST_ONE_TAG("Server try to terminate a lost dialog", subscribe_loosing_dialog_2, "presence"),
+    TEST_TWO_TAGS("Subscribe losing dialog", subscribe_losing_dialog, "presence", "LeaksMemory"),
+    TEST_ONE_TAG("Server try to terminate a lost dialog", subscribe_losing_dialog_2, "presence"),
     TEST_ONE_TAG("Subscribe with io error", subscribe_with_io_error, "presence"),
     TEST_ONE_TAG("Subscribe manually refreshed", subscribe_test_manually_refreshed, "presence"),
     TEST_ONE_TAG("Subscribe terminated by notifier", subscribe_test_terminated_by_notifier, "presence"),

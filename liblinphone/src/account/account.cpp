@@ -984,7 +984,7 @@ list<shared_ptr<AbstractChatRoom>> Account::filterChatRooms(const string &filter
 		return mChatRoomList.mList;
 	}
 
-	list<shared_ptr<AbstractChatRoom>> oneToOneResults;
+	list<shared_ptr<AbstractChatRoom>> oneOnOneResults;
 	list<shared_ptr<AbstractChatRoom>> groupResults;
 	const auto &friendLists = getCore()->getFriendLists();
 
@@ -993,20 +993,20 @@ list<shared_ptr<AbstractChatRoom>> Account::filterChatRooms(const string &filter
 		if (capabilities & ChatRoom::Capabilities::Basic) {
 			auto peerAddress = chatRoom->getPeerAddress();
 			if (Utils::containsInsensitive(peerAddress->asStringUriOnly(), filter)) {
-				oneToOneResults.push_back(chatRoom);
+				oneOnOneResults.push_back(chatRoom);
 				continue;
 			}
 
 			for (const auto &friendList : friendLists) {
 				const auto buddy = friendList->findFriendByAddress(peerAddress);
 				if (buddy != nullptr && Utils::containsInsensitive(buddy->getName(), filter)) {
-					oneToOneResults.push_back(chatRoom);
+					oneOnOneResults.push_back(chatRoom);
 					break;
 				}
 			}
 		} else {
-			bool oneToOne = capabilities & ChatRoom::Capabilities::OneToOne;
-			if (!oneToOne) {
+			bool oneOnOne = capabilities & ChatRoom::Capabilities::OneToOne;
+			if (!oneOnOne) {
 				const string &subject = chatRoom->getSubject();
 				if (Utils::containsInsensitive(subject, filter)) {
 					groupResults.push_back(chatRoom);
@@ -1017,8 +1017,8 @@ list<shared_ptr<AbstractChatRoom>> Account::filterChatRooms(const string &filter
 			for (const auto &participant : chatRoom->getParticipants()) {
 				const auto peerAddress = participant->getAddress();
 				if (Utils::containsInsensitive(peerAddress->asStringUriOnly(), filter)) {
-					if (oneToOne) {
-						oneToOneResults.push_back(chatRoom);
+					if (oneOnOne) {
+						oneOnOneResults.push_back(chatRoom);
 					} else {
 						groupResults.push_back(chatRoom);
 					}
@@ -1028,8 +1028,8 @@ list<shared_ptr<AbstractChatRoom>> Account::filterChatRooms(const string &filter
 				for (const auto &friendList : friendLists) {
 					const auto buddy = friendList->findFriendByAddress(peerAddress);
 					if (buddy != nullptr && Utils::containsInsensitive(buddy->getName(), filter)) {
-						if (oneToOne) {
-							oneToOneResults.push_back(chatRoom);
+						if (oneOnOne) {
+							oneOnOneResults.push_back(chatRoom);
 						} else {
 							groupResults.push_back(chatRoom);
 						}
@@ -1040,8 +1040,8 @@ list<shared_ptr<AbstractChatRoom>> Account::filterChatRooms(const string &filter
 		}
 	}
 
-	oneToOneResults.splice(oneToOneResults.end(), groupResults);
-	return oneToOneResults;
+	oneOnOneResults.splice(oneOnOneResults.end(), groupResults);
+	return oneOnOneResults;
 }
 
 int Account::getMissedCallsCount() const {

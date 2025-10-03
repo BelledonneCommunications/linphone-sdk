@@ -774,7 +774,7 @@ public:
 	map<string, bool> participants;
 	map<string, size_t> participantDevices;
 	string confSubject;
-	bool oneToOne = false;
+	bool oneOnOne = false;
 
 	virtual void init(SalCallOp *op = nullptr, ConferenceListener *confListener = nullptr) override;
 };
@@ -801,7 +801,7 @@ void ConferenceEventTester::onConferenceCreated(BCTBX_UNUSED(const std::shared_p
 
 void ConferenceEventTester::onConferenceKeywordsChanged(const vector<string> &keywords) {
 	for (const auto &k : keywords) {
-		if (k == "one-to-one") oneToOne = true;
+		if (k == "one-to-one") oneOnOne = true;
 	}
 }
 
@@ -2449,7 +2449,7 @@ void send_device_removed_notify() {
 	linphone_core_manager_destroy(pauline);
 }
 
-void one_to_one_keyword() {
+void one_on_one_keyword() {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneCoreManager *pauline =
 	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
@@ -2472,7 +2472,7 @@ void one_to_one_keyword() {
 
 	std::shared_ptr<Address> addr = Address::toCpp(pauline->identity)->getSharedFromThis();
 
-	// Create basic chat room with OneToOne capability to ensure that one to one is added to notify
+	// Create basic chat room with OneOnOne capability to ensure that one-on-one is added to notify
 	pauline->lc->cppPtr->getOrCreateBasicChatRoom(addr, addr);
 
 	localConf->Conference::addParticipant(bobAddr);
@@ -2487,7 +2487,7 @@ void one_to_one_keyword() {
 	BC_ASSERT_EQUAL(tester->participantDevices.size(), 1, size_t, "%zu");
 	BC_ASSERT_TRUE(tester->participantDevices.find(bobAddr->toString()) != tester->participantDevices.end());
 	BC_ASSERT_EQUAL(tester->participantDevices.find(bobAddr->toString())->second, 0, size_t, "%zu");
-	BC_ASSERT_TRUE(tester->oneToOne);
+	BC_ASSERT_TRUE(tester->oneOnOne);
 
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
@@ -2512,7 +2512,7 @@ test_t conference_event_tests[] = {
     TEST_NO_TAG("Send subject changed notify", send_subject_changed_notify),
     TEST_NO_TAG("Send device added notify", send_device_added_notify),
     TEST_NO_TAG("Send device removed notify", send_device_removed_notify),
-    TEST_NO_TAG("one-to-one keyword", one_to_one_keyword)};
+    TEST_NO_TAG("one-on-one keyword", one_on_one_keyword)};
 
 test_suite_t conference_event_test_suite = {"Conference event",
                                             nullptr,

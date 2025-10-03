@@ -1176,7 +1176,6 @@ shared_ptr<ParticipantDevice> Conference::findParticipantDevice(const std::share
 }
 
 shared_ptr<ParticipantDevice> Conference::findParticipantDevice(const shared_ptr<const CallSession> &session) const {
-
 	for (const auto &participant : mParticipants) {
 		auto device = participant->findDevice(session, false);
 		if (device) {
