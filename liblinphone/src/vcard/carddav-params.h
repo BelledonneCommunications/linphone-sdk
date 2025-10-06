@@ -40,7 +40,7 @@ public:
 	CardDavParams(const std::shared_ptr<Core> &core);
 	CardDavParams(const std::shared_ptr<Core> &core, int index);
 	CardDavParams(const CardDavParams &other);
-	virtual ~CardDavParams(){};
+	virtual ~CardDavParams() {};
 
 	CardDavParams *clone() const override;
 
@@ -88,18 +88,6 @@ public:
 		mFieldsToUseToFilterUsingUserInput.push_back(field);
 	}
 
-	const std::list<std::string> &getFieldsToFilterDomainOn() const {
-		return mFieldsToUseToFilterUsingDomain;
-	}
-
-	void setFieldsToFilterDomainOn(std::list<std::string> list) {
-		mFieldsToUseToFilterUsingDomain = list;
-	}
-
-	void addFieldToFilterDomainOn(const std::string &field) {
-		mFieldsToUseToFilterUsingDomain.push_back(field);
-	}
-
 	bool getUseExactMatchPolicy() const {
 		return mUseExactMatchPolicy;
 	}
@@ -132,7 +120,6 @@ private:
 	unsigned int mMinCharactersToStartQuery = 1;
 	unsigned int mTimeoutInSeconds = 5;
 	std::list<std::string> mFieldsToUseToFilterUsingUserInput;
-	std::list<std::string> mFieldsToUseToFilterUsingDomain;
 	bool mUseExactMatchPolicy = false;
 	bool mEnabled = true;
 };

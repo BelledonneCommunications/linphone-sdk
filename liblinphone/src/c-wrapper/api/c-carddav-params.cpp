@@ -61,20 +61,12 @@ void linphone_card_dav_params_set_user_input_fields(LinphoneCardDavParams *param
 	CardDavParams::toCpp(params)->setFieldsToFilterUserInputOn(fields);
 }
 
-bctbx_list_t *linphone_card_dav_params_get_domain_fields(const LinphoneCardDavParams *params) {
-	bctbx_list_t *results = nullptr;
-	for (auto field : CardDavParams::toCpp(params)->getFieldsToFilterDomainOn()) {
-		results = bctbx_list_append(results, bctbx_strdup(L_STRING_TO_C(field)));
-	}
-	return results;
+bctbx_list_t *linphone_card_dav_params_get_domain_fields(BCTBX_UNUSED(const LinphoneCardDavParams *params)) {
+	return nullptr;
 }
 
-void linphone_card_dav_params_set_domain_fields(LinphoneCardDavParams *params, const bctbx_list_t *list) {
-	std::list<std::string> fields;
-	for (const bctbx_list_t *it = list; it != nullptr; it = bctbx_list_next(it)) {
-		fields.push_back(L_C_TO_STRING(static_cast<const char *>(bctbx_list_get_data(it))));
-	}
-	CardDavParams::toCpp(params)->setFieldsToFilterDomainOn(fields);
+void linphone_card_dav_params_set_domain_fields(BCTBX_UNUSED(LinphoneCardDavParams *params),
+                                                BCTBX_UNUSED(const bctbx_list_t *list)) {
 }
 
 bool_t linphone_card_dav_params_get_use_exact_match_policy(const LinphoneCardDavParams *params) {

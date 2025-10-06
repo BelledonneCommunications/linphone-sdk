@@ -62,7 +62,6 @@ CardDavParams::CardDavParams(const CardDavParams &other) : HybridObject(other), 
 	mMinCharactersToStartQuery = other.mMinCharactersToStartQuery;
 	mTimeoutInSeconds = other.mTimeoutInSeconds;
 	mFieldsToUseToFilterUsingUserInput = other.mFieldsToUseToFilterUsingUserInput;
-	mFieldsToUseToFilterUsingDomain = other.mFieldsToUseToFilterUsingDomain;
 	mUseExactMatchPolicy = other.mUseExactMatchPolicy;
 }
 
@@ -79,8 +78,6 @@ void CardDavParams::readConfig(const std::string &sectionName, bool withPrefix) 
 	LpConfig *config = linphone_core_get_config(getCore()->getCCore());
 	mFieldsToUseToFilterUsingUserInput =
 	    Utils::configGetStringList(config, sectionName, getKey("fields_for_user_input", withPrefix));
-	mFieldsToUseToFilterUsingDomain =
-	    Utils::configGetStringList(config, sectionName, getKey("fields_for_domain", withPrefix));
 
 	mUseExactMatchPolicy = !!linphone_config_get_bool(config, sectionName.c_str(),
 	                                                  getKey("use_exact_match_policy", withPrefix).c_str(), FALSE);
@@ -91,7 +88,6 @@ void CardDavParams::writeConfig(const std::string &sectionName) {
 
 	Utils::configSetStringList(config, sectionName, getKey("fields_for_user_input", true),
 	                           mFieldsToUseToFilterUsingUserInput);
-	Utils::configSetStringList(config, sectionName, getKey("fields_for_domain", true), mFieldsToUseToFilterUsingDomain);
 
 	linphone_config_set_bool(config, sectionName.c_str(), getKey("use_exact_match_policy", true).c_str(),
 	                         mUseExactMatchPolicy);
@@ -125,7 +121,6 @@ void CardDavParams::writeToConfigFileLegacy() const {
 	linphone_config_set_int(config, section.c_str(), "timeout", (int)mTimeoutInSeconds);
 
 	Utils::configSetStringList(config, section, "fields_for_user_input", mFieldsToUseToFilterUsingUserInput);
-	Utils::configSetStringList(config, section, "fields_for_domain", mFieldsToUseToFilterUsingDomain);
 
 	linphone_config_set_bool(config, section.c_str(), "use_exact_match_policy", mUseExactMatchPolicy);
 }

@@ -97,24 +97,23 @@ void CardDavMagicSearchPlugin::processResults(const list<shared_ptr<Friend>> &fr
 	lInfo() << "[Magic Search][CardDAV] Processing [" << friends.size() << "] friends";
 
 	list<shared_ptr<SearchResult>> resultList;
-	bool filterPluginResults = getMagicSearch().filterPluginsResults() || (!mDomain.empty() && mDomain != "*");
+	bool filterPluginResults = !mDomain.empty() && mDomain != "*";
 
 	for (auto &lFriend : friends) {
+		auto result = getMagicSearch().createResultFromFriend(lFriend, mDomain, getSource());
 		if (filterPluginResults) {
-			auto found = getMagicSearch().searchInFriend(lFriend, mDomain, getSource());
-			if (resultList.empty()) {
-				resultList = found;
-			} else if (!found.empty()) {
-				resultList.splice(resultList.end(), found);
+			const auto &address = result->getAddress();
+			if (!address || address->getDomain().find(mDomain) == std::string::npos) {
+				// Skipping result as address domain doesn't match user filter
+				continue;
 			}
-		} else {
-			auto result = getMagicSearch().createResultFromFriend(lFriend, mDomain, getSource());
-			resultList.push_back(result);
 		}
+		resultList.push_back(result);
 	}
 
 	if (filterPluginResults) {
-		lInfo() << "[Magic Search][CardDAV] Found " << resultList.size() << " results (after local filter is applied)";
+		lInfo() << "[Magic Search][CardDAV] Found " << resultList.size()
+		        << " results (after local domain filter is applied)";
 	} else {
 		lInfo() << "[Magic Search][CardDAV] Found " << resultList.size() << " results (no local filter was applied)";
 	}
@@ -139,13 +138,6 @@ list<CardDavPropFilter> CardDavMagicSearchPlugin::computePropFilters() const {
 	if (!fields.empty() && !mFilter.empty()) {
 		for (auto propFilter : fields) {
 			filters.push_back(CardDavPropFilter(mFilter, propFilter, exactMatch));
-		}
-	}
-
-	fields = mParams->getFieldsToFilterDomainOn();
-	if (!fields.empty() && !mDomain.empty()) {
-		for (auto propFilter : fields) {
-			filters.push_back(CardDavPropFilter(mDomain, propFilter, exactMatch));
 		}
 	}
 
