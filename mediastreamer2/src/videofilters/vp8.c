@@ -42,7 +42,10 @@
 #define PICID_NEWER_THAN(s1, s2) ((uint16_t)((uint16_t)s1 - (uint16_t)s2) < 1 << 15)
 
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus)                                            \
-	{required_bitrate, bitrate_limit, {MS_VIDEO_SIZE_##resolution##_W, MS_VIDEO_SIZE_##resolution##_H}, fps, cpus, NULL}
+	{                                                                                                                  \
+		required_bitrate, bitrate_limit, {MS_VIDEO_SIZE_##resolution##_W, MS_VIDEO_SIZE_##resolution##_H}, fps, cpus,  \
+		    NULL                                                                                                       \
+	}
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
@@ -959,7 +962,20 @@ static int dec_initialize_impl(MSFilter *f) {
 		ms_error("Failed to initialize VP8 decoder");
 		return -1;
 	}
+	ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i] max_threads=[%i]", s->avpf_enabled,
+	           s->freeze_on_error, s->max_threads);
+	vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error,
+	                        (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
+	s->first_image_decoded = FALSE;
+	s->ready = TRUE;
 	return 0;
+}
+
+static void dec_start_thread(MSFilter *f) {
+	DecState *s = (DecState *)f->data;
+	s->thread_running = TRUE;
+	s->waiting = FALSE;
+	ms_thread_create(&s->thread, NULL, dec_processing_thread, f);
 }
 
 static void dec_preprocess(MSFilter *f) {
@@ -980,19 +996,9 @@ static void dec_preprocess(MSFilter *f) {
 		if (caps & VPX_CODEC_CAP_ERROR_CONCEALMENT) {
 			s->flags |= VPX_CODEC_USE_ERROR_CONCEALMENT;
 		}
-
 		if (dec_initialize_impl(f) != 0) return;
-		ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i] max_threads=[%i]",
-		           s->avpf_enabled, s->freeze_on_error, s->max_threads);
-		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error,
-		                        (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
-		s->first_image_decoded = FALSE;
-		s->ready = TRUE;
 	}
-
-	s->thread_running = TRUE;
-	s->waiting = FALSE;
-	ms_thread_create(&s->thread, NULL, dec_processing_thread, f);
+	dec_start_thread(f);
 }
 
 static void dec_uninit(MSFilter *f) {
@@ -1143,16 +1149,20 @@ static void dec_process(MSFilter *f) {
 	ms_filter_unlock(f);
 }
 
-static void dec_postprocess(MSFilter *f) {
+static void dec_shutdown_thread(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
-	/* Shutdown the decoding thread, but leave entry_q and exit_q as they are.
-	 * In case of immediate restart of the graph, they may contain useful data and it is
-	 * stupid to create a discontinuity because of a graph restart.*/
 	ms_filter_lock(f);
 	s->thread_running = FALSE;
 	if (s->waiting) ms_cond_signal(&s->thread_cond);
 	ms_filter_unlock(f);
 	ms_thread_join(s->thread, NULL);
+}
+
+static void dec_postprocess(MSFilter *f) {
+	/* Shutdown the decoding thread, but leave entry_q and exit_q as they are.
+	 * In case of immediate restart of the graph, they may contain useful data and it is
+	 * stupid to create a discontinuity because of a graph restart.*/
+	dec_shutdown_thread(f);
 }
 
 static int dec_reset_first_image(MSFilter *f, BCTBX_UNUSED(void *data)) {
@@ -1176,13 +1186,19 @@ static int dec_freeze_on_error(MSFilter *f, void *data) {
 static int dec_reset(MSFilter *f, BCTBX_UNUSED(void *data)) {
 	DecState *s = (DecState *)f->data;
 	ms_message("Reseting VP8 decoder");
+	/* We must first shutdown the decoding thread, that accesses the
+	 * unpacker and the codec context all the time */
+	dec_shutdown_thread(f);
 	ms_filter_lock(f);
 	vpx_codec_destroy(&s->codec);
+	vp8rtpfmt_unpacker_uninit(&s->unpacker);
 	if (dec_initialize_impl(f) != 0) {
 		ms_error("Failed to reinitialize VP8 decoder");
 	}
 	s->first_image_decoded = FALSE;
 	ms_filter_unlock(f);
+	dec_start_thread(f);
+	ms_message("VP8 decoder re-initialized");
 	return 0;
 }
 

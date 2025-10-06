@@ -1344,6 +1344,26 @@ static MSPixFmt mime_type_to_pix_format(const char *mime_type) {
 	return MS_PIX_FMT_UNKNOWN;
 }
 
+static void
+aggregator_input_changed(void *ud, BCTBX_UNUSED(MSFilter *f), unsigned int event, BCTBX_UNUSED(void *eventdata)) {
+	VideoStream *stream = (VideoStream *)ud;
+
+	switch (event) {
+		case MS_VIDEO_AGGREGATOR_INPUT_CHANGED:
+			// When the video is in mixer mode, we will only receive events via the CSRC.
+			// But the video aggregator will still notify the first input changed. Ignore it.
+			if (stream->csrc_change_received) return;
+			/* Immediately reset the decoder context. Indeed, if not doing it, the decoder will observe
+			 * a gap in sequence number and timestamp that will immediately trigger a key-frame request,
+			 * even if the frame is fully decodable.
+			 */
+			ms_filter_call_method_noarg(stream->ms.decoder, MS_VIDEO_DECODER_RESET);
+			break;
+		default:
+			break;
+	}
+}
+
 static void csrc_event_cb(void *ud, BCTBX_UNUSED(MSFilter *f), unsigned int event, void *eventdata) {
 	VideoStream *stream = (VideoStream *)ud;
 
@@ -1384,7 +1404,6 @@ static void csrc_event_cb(void *ud, BCTBX_UNUSED(MSFilter *f), unsigned int even
 				ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, &reset);
 				stream->wait_for_frame_decoded = TRUE;
 			}
-
 			break;
 		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
 			if (stream->wait_for_frame_decoded) {
@@ -1684,8 +1703,9 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		if (stream->active_speaker_mode == TRUE && stream->frame_marking_extension_id > 0) {
 			stream->aggregator = ms_factory_create_filter(stream->ms.factory, MS_VIDEO_AGGREGATOR_ID);
 			if (stream->csrc_changed_cb) {
-				ms_filter_add_notify_callback(stream->aggregator, csrc_event_cb, stream, TRUE);
+				ms_filter_add_notify_callback(stream->aggregator, csrc_event_cb, stream, FALSE);
 			}
+			ms_filter_add_notify_callback(stream->aggregator, aggregator_input_changed, stream, TRUE);
 
 			bctbx_list_t *elem = stream->ms.sessions.auxiliary_sessions;
 			for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
@@ -1697,6 +1717,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 					ms_message("VideoStream[%p]: re-establishing auxiliary session on branch %i", stream, i);
 					RtpSession *session = (RtpSession *)elem->data;
 					stream->branches[i].session = session;
+					/* The RTP profile needs to be set again, as it may have changed. */
+					rtp_session_set_profile(session, profile);
 					ms_filter_call_method(stream->branches[i].recv, MS_RTP_RECV_SET_SESSION, session);
 					elem = elem->next;
 				}
