@@ -134,21 +134,34 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		memcpy(sMid, mid, midSize);
 		/* Check the mid in packet matches the stream's session one */
 		char *streamMid = rtp_bundle_get_session_mid(session->bundle, stream->ms.sessions.rtp_session);
+		if (streamMid == NULL) {
+			ms_warning("New incoming SSRC %u on session %p but mid of session is unknown at this time.", ssrc, session);
+			goto end;
+		}
 		if ((strlen(streamMid) != midSize) || (memcmp(mid, streamMid, midSize) != 0)) {
-			ms_warning("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
+			/* this new SSRC is not for our stream, skip */
+			ms_message("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
 			           session, sMid, streamMid);
 			bctbx_free(streamMid);
-			bctbx_free(sMid);
-			return;
+			goto end;
 		}
 		if (streamMid != NULL) bctbx_free(streamMid);
+	}
+	if (!stream->active_speaker_mode) {
+		/* We receive a new SSRC for a stream that is not expected to receive multiple streams at the time or
+		 * switch between streams rapidly (which is the case in active_speaker_mode).
+		 * In that case simply return the stream's main RTP session, so that it get re-initialized
+		 * with this new SSRC.
+		 */
+		*newSession = stream->ms.sessions.rtp_session;
+		ms_message("New incoming SSRC %u becomes the current stream for mid %s", ssrc, sMid);
+		goto end;
 	}
 
 	// Do nothing if the aggregator is not created
 	if (stream->aggregator == NULL) {
 		ms_warning("New incoming SSRC %u on session %p but aggregator has not yet been instanciated.", ssrc, session);
-		bctbx_free(sMid);
-		return;
+		goto end;
 	}
 
 	// If a branch slot is available, create a new session and assign it
@@ -195,7 +208,7 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		    "No free branch found on session [%p], so recycle session [%p] used to receive SSRC %u switched to %u",
 		    session, recycled_branch->session, recycled_branch->session->rcv.ssrc, ssrc);
 	}
-
+end:
 	bctbx_free(sMid);
 }
 
@@ -221,21 +234,17 @@ void video_stream_free(VideoStream *stream) {
 
 	if (stream->ms.video_quality_controller) ms_video_quality_controller_destroy(stream->ms.video_quality_controller);
 
-	if (stream->active_speaker_mode == TRUE) {
+	if (stream->ms.sessions.rtp_session) {
 		RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
 		if (bundle) {
 			rtp_session_signal_disconnect_by_callback_and_user_data(rtp_bundle_get_primary_session(bundle),
 			                                                        "new_incoming_ssrc_found_in_bundle",
 			                                                        on_incoming_ssrc_in_bundle, stream);
-		}
-	}
-
-	if (stream->ms.transfer_mode == TRUE) {
-		RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
-		if (bundle) {
-			rtp_session_signal_disconnect_by_callback_and_user_data(
-			    rtp_bundle_get_primary_session(bundle), "new_outgoing_ssrc_found_in_bundle",
-			    media_stream_on_outgoing_ssrc_in_bundle, &stream->ms);
+			if (stream->ms.transfer_mode == TRUE) {
+				rtp_session_signal_disconnect_by_callback_and_user_data(
+				    rtp_bundle_get_primary_session(bundle), "new_outgoing_ssrc_found_in_bundle",
+				    media_stream_on_outgoing_ssrc_in_bundle, &stream->ms);
+			}
 		}
 	}
 
@@ -1432,6 +1441,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 	MSPixFmt format;
 	MSVideoSize disp_size;
 	JBParameters jbp;
+	RtpBundle *bundle = rtps->bundle;
 
 	bool_t avpf_enabled = FALSE;
 	bool_t rtp_source = FALSE;
@@ -1486,6 +1496,19 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 	if (stream->frame_marking_extension_id > 0) {
 		ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID,
 		                      &stream->frame_marking_extension_id);
+	}
+
+	/*
+	 * Connect to the "new_incoming_ssrc_found_in_bundle" so that the stream can decide
+	 * whether the RtpSession can-be reinitialized for the stream, or if a new RtpSession
+	 * is to be instanciated to handle it.
+	 */
+	if (bundle) {
+		// Use rtp_session_signal_connect_from_source_session so that the bundle can disconnect it if this
+		// session is removed too early.
+		rtp_session_signal_connect_from_source_session(rtp_bundle_get_primary_session(bundle),
+		                                               "new_incoming_ssrc_found_in_bundle", on_incoming_ssrc_in_bundle,
+		                                               stream, stream->ms.sessions.rtp_session);
 	}
 
 	if (media_stream_get_direction(&stream->ms) == MediaStreamRecvOnly) {
@@ -1550,20 +1573,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			configure_video_source(stream, FALSE, TRUE);
 		}
 
-		if (stream->active_speaker_mode == TRUE) {
-			RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
-			if (bundle) {
-				// Use rtp_session_signal_connect_from_source_session so that the bundle can disconnect it if this
-				// session is removed too early.
-				rtp_session_signal_connect_from_source_session(
-				    rtp_bundle_get_primary_session(bundle), "new_incoming_ssrc_found_in_bundle",
-				    on_incoming_ssrc_in_bundle, stream, stream->ms.sessions.rtp_session);
-			}
-		}
-
 		if (stream->ms.transfer_mode == TRUE) {
 			rtp_session_set_mode(stream->ms.sessions.rtp_session, RTP_SESSION_RECVONLY);
-			RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
 			if (bundle) {
 				// Use rtp_session_signal_connect_from_source_session so that the bundle can disconnect it if this
 				// session is removed too early.
