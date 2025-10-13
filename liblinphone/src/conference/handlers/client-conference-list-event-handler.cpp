@@ -323,6 +323,7 @@ void ClientConferenceListEventHandler::addHandler(std::shared_ptr<ClientConferen
 		return;
 	}
 	handlers[conferenceId] = handler;
+	handler->setManagedByListEventhandler(true);
 }
 
 bool ClientConferenceListEventHandler::isHandlerInSameDomainAsCore(const ConferenceId &conferenceId) const {

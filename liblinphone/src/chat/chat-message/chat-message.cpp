@@ -415,12 +415,12 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 		linphone_chat_message_cbs_get_msg_state_changed(cbs)(msg, (LinphoneChatMessageState)state);
 	_linphone_chat_message_notify_msg_state_changed(msg, (LinphoneChatMessageState)state);
 
-	auto listenersCopy = listeners; // To allow listener to be removed while iterating
+	auto listenersCopy = mListeners; // To allow listener to be removed while iterating
 	for (auto &listener : listenersCopy) {
 		listener->onChatMessageStateChanged(q->getSharedFromThis(), state);
 	}
 	if (state == ChatMessage::State::Displayed) {
-		listeners.clear();
+		mListeners.clear();
 	} else if (hasBeenAutomaticallyResent && (state == ChatMessage::State::PendingDelivery)) {
 		const auto failState = ChatMessage::State::NotDelivered;
 		lError() << "Automatic resending of message [" << q << "] has failed. Setting message state to "
@@ -2666,12 +2666,16 @@ void ChatMessage::fileUploadEndBackgroundTask() {
 
 void ChatMessage::addListener(shared_ptr<ChatMessageListener> listener) {
 	L_D();
-	d->listeners.push_back(listener);
+	if (listener) {
+		d->mListeners.insert(listener);
+	}
 }
 
 void ChatMessage::removeListener(shared_ptr<ChatMessageListener> listener) {
 	L_D();
-	d->listeners.remove(listener);
+	if (auto it = d->mListeners.find(listener); it != d->mListeners.end()) {
+		d->mListeners.erase(it);
+	}
 }
 
 belle_sip_source_t *ChatMessage::getResendTimer() const {

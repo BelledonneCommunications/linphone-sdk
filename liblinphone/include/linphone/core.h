@@ -9498,6 +9498,14 @@ LINPHONE_PUBLIC void linphone_core_enable_send_message_after_notify(LinphoneCore
 LINPHONE_PUBLIC bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core);
 
 /**
+ * Returns the duration of the timer that delays the sending of chat messages
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return the duration of the timer in seconds
+ **/
+LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *core);
+
+/**
  * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
  *in group chats.
  * @ingroup chatroom
@@ -9508,15 +9516,6 @@ LINPHONE_PUBLIC bool_t linphone_core_send_message_after_notify_enabled(const Lin
 LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration);
 
 /**
- * Returns the duration of the timer that delays the sending of chat messages
- * @ingroup chatroom
- * @param core #LinphoneCore object @notnil
- * @return the duration of the timer in seconds
- **/
-LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *core);
-
-/**
- * Returns the duration of the timer that delays the sending of chat messages
  * It sets the duration of the timer to resend a message when the channel is broken (i.e. the core gets an NoResponse or
  * IOError response)
  * @ingroup chatroom

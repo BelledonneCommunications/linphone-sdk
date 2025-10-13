@@ -321,7 +321,7 @@ bool Participant::isMe() const {
 	auto conference = getConference();
 	if (conference) {
 		for (const auto &device : getDevices()) {
-			if ( device->isMe()) {
+			if (device->isMe()) {
 				isMe = true;
 				break;
 			}
@@ -329,7 +329,7 @@ bool Participant::isMe() const {
 		if (!isMe) {
 			isMe = conference->isMe(getAddress());
 		}
-	}else {
+	} else {
 		isMe = !!getCore()->findAccountByIdentityAddress(getAddress());
 		if (!isMe) {
 			isMe = getCore()->getPrimaryContactAddress().weakEqual(getAddress());
@@ -367,8 +367,14 @@ int Participant::getSequenceNumber() const {
 };
 
 void Participant::setRole(Participant::Role role) {
-	lInfo() << "Changing role of " << *this << " from " << Participant::roleToText(mRole) << " to "
-	        << Participant::roleToText(role);
+	const auto core = getCore();
+	if (!core || (linphone_core_get_global_state(core->getCCore()) == LinphoneGlobalStartup)) {
+		lDebug() << "Changing role of " << *this << " from " << Participant::roleToText(mRole) << " to "
+		         << Participant::roleToText(role);
+	} else {
+		lInfo() << "Changing role of " << *this << " from " << Participant::roleToText(mRole) << " to "
+		        << Participant::roleToText(role);
+	}
 	mRole = role;
 }
 

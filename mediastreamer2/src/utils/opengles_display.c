@@ -460,7 +460,7 @@ static int pixel_unpack_alignment(uint8_t *ptr, int datasize) {
 int ogl_display_make_current(struct opengles_display *gldisp, bool_t set) {
 	int status = 0;
 	if (gldisp->mEglDisplay && gldisp->functions->eglInitialized) {
-		ms_debug("[ogl_display] %s context %p/%p/%p to thread %p", (set ? "Set" : "Unset"), gldisp->mEglDisplay,
+		ms_debug("[ogl_display] %s context %p/%p/%p to thread %lu", (set ? "Set" : "Unset"), gldisp->mEglDisplay,
 		         gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
 		if (set) {
 			status = gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface,
@@ -1385,7 +1385,7 @@ void ogl_display_auto_init(
 	}
 	ogl_create_surface(gldisp, gldisp->functions, window);
 	if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
-		ms_debug("[ogl_display] Set context %p/%p/%p to thread %p", gldisp->mEglDisplay, gldisp->mRenderSurface,
+		ms_debug("[ogl_display] Set context %p/%p/%p to thread %lu", gldisp->mEglDisplay, gldisp->mRenderSurface,
 		         gldisp->mEglContext, ms_thread_self());
 		if (gldisp->mEglContext == EGL_NO_CONTEXT || ogl_display_make_current(gldisp, TRUE)) {
 			ms_error("[ogl_display] Failed to make EGLSurface current");

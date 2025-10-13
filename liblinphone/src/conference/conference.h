@@ -149,7 +149,7 @@ public:
 	void clearParticipants();
 
 	virtual void initFromDb(const std::shared_ptr<Participant> &me,
-	                        const ConferenceId conferenceId,
+	                        const ConferenceId &conferenceId,
 	                        const unsigned int lastNotifyId,
 	                        bool hasBeenLeft) = 0;
 	virtual void init(SalCallOp *op = nullptr, ConferenceListener *confListener = nullptr) = 0;
@@ -274,7 +274,8 @@ public:
 	}
 	virtual void setState(ConferenceInterface::State state) override;
 
-	std::list<std::shared_ptr<ConferenceListenerInterface>> getConferenceListenerList() const {
+	const std::set<std::shared_ptr<ConferenceListenerInterface>, SharedPtrCompare<ConferenceListenerInterface>> &
+	getConferenceListenerList() const {
 		return mConfListeners;
 	}
 
@@ -381,7 +382,8 @@ protected:
 	std::shared_ptr<ParticipantDevice> mActiveSpeakerDevice = nullptr;
 	std::shared_ptr<ParticipantDevice> mCachedScreenSharingDevice = nullptr;
 
-	std::list<std::shared_ptr<ConferenceListenerInterface>> mConfListeners;
+	std::set<std::shared_ptr<ConferenceListenerInterface>, SharedPtrCompare<ConferenceListenerInterface>>
+	    mConfListeners;
 
 	std::weak_ptr<CallSessionListener> mCallSessionListener;
 

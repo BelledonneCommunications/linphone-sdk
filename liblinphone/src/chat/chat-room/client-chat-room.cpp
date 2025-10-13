@@ -346,9 +346,8 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 					alreadySubscribed = !eventHandler->notAlreadySubscribed();
 					eventSubscribeState = eventHandler->getSubscriptionState();
 				}
-				bool coreShuttingDown =
-				    ((coreGlobalState == LinphoneGlobalOff) || (coreGlobalState == LinphoneGlobalShutdown));
-				if (!coreShuttingDown &&
+				bool coreRunning = (coreGlobalState == LinphoneGlobalOn);
+				if (coreRunning &&
 				    (!eventHandler || !alreadySubscribed || (eventSubscribeState == LinphoneSubscriptionError))) {
 					lError()
 					    << *conference << ": Unable to send chat message [" << chatMessage
