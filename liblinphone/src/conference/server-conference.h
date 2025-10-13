@@ -98,7 +98,7 @@ public:
 	                bool hasBeenLeft) override;
 	void init(SalCallOp *op = nullptr, ConferenceListener *confListener = nullptr) override;
 	bool update(const ConferenceParamsInterface &params) override;
-	int terminate() override;
+	int terminate(const LinphoneReason reason = LinphoneReasonNone) override;
 	void finalizeCreation() override;
 	void onConferenceTerminated(const std::shared_ptr<Address> &addr) override;
 	void onFirstNotifyReceived(const std::shared_ptr<Address> &addr) override;
@@ -106,7 +106,9 @@ public:
 	const std::shared_ptr<Address> getOrganizer() const override;
 
 	int enter() override;
-	void leave() override;
+	void join(const std::shared_ptr<Address> &participantAddress) override;
+	void leave(const LinphoneReason reason = LinphoneReasonNone) override;
+	LinphoneStatus nominateAdminAndLeave(const std::shared_ptr<const Address> &newAdmin) override;
 	bool isIn() const override;
 
 	std::shared_ptr<ConferenceParticipantEvent> notifyParticipantAdded(
@@ -164,13 +166,10 @@ public:
 	                                            const std::shared_ptr<Participant> &participant,
 	                                            const std::shared_ptr<ParticipantDevice> &participantDevice) override;
 
-	void notifyFullState() override;
 	void confirmCreation();
 	void updateConferenceParams(SalCallOp *op);
 	bool updateConferenceInformation(SalCallOp *op);
 	std::shared_ptr<Call> getCall() const override;
-
-	void notifyStateChanged(ConferenceInterface::State state) override;
 
 	int startRecording(const std::string &path) override;
 
@@ -197,7 +196,7 @@ public:
 
 	int getParticipantDeviceVolume(const std::shared_ptr<ParticipantDevice> &device) override;
 
-	void setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) override;
+	LinphoneStatus setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) override;
 
 	void moveDeviceToPresent(const std::shared_ptr<CallSession> &session);
 	void moveDeviceToPresent(const std::shared_ptr<ParticipantDevice> &device);
@@ -269,13 +268,11 @@ private:
 	virtual std::pair<bool, std::shared_ptr<Address>> configure(SalCallOp *op) override;
 	void enableScreenSharing(const std::shared_ptr<LinphonePrivate::CallSession> &session, bool notify);
 	MediaSessionParams *updateParameterForParticipantRemoval(const std::shared_ptr<CallSession> &session) const;
-	void terminateConferenceWithReason(const std::shared_ptr<Address> &remoteContactAddress,
-	                                   std::shared_ptr<MediaSession> &session,
+	void terminateConferenceWithReason(std::shared_ptr<MediaSession> &session,
 	                                   LinphoneReason reason,
 	                                   int code,
 	                                   const std::string &errorMessage);
-	int checkServerConfiguration(const std::shared_ptr<Address> &remoteContactAddress,
-	                             std::shared_ptr<LinphonePrivate::MediaSession> &session);
+	int checkServerConfiguration(std::shared_ptr<LinphonePrivate::MediaSession> &session);
 
 	void addLocalEndpoint();
 	void removeLocalEndpoint();

@@ -702,6 +702,22 @@ LINPHONE_PUBLIC LinphoneChatRoomSecurityLevel linphone_chat_room_get_security_le
 LINPHONE_PUBLIC void linphone_chat_room_leave(LinphoneChatRoom *chat_room);
 
 /**
+ * Nominates a new admin and then leaves a chat room.
+ * @param chat_room A #LinphoneChatRoom object @notnil
+ * @param new_admin The #LinphoneAddress of the new admin @notnil
+ * @note The local participant will not leave the chat room if the new admin cannot be nominated
+ */
+LINPHONE_PUBLIC void linphone_chat_room_nominate_admin_and_leave(LinphoneChatRoom *chat_room,
+                                                                 const LinphoneAddress *new_admin);
+
+/**
+ * Terminates a chat room and instruct the server to remove all participants
+ * @param chat_room A #LinphoneChatRoom object @notnil
+ * @return 0 if the termination is successful, -1 otherwise.
+ */
+LINPHONE_PUBLIC int linphone_chat_room_close(LinphoneChatRoom *chat_room);
+
+/**
  * Removes a participant of a chat room.
  * @param chat_room A #LinphoneChatRoom object @notnil
  * @param participant The participant to remove from the chat room @notnil

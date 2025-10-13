@@ -158,6 +158,15 @@ void linphone_conference_cbs_set_participant_device_media_capability_changed(
 	ConferenceCbs::toCpp(cbs)->participantDeviceMediaCapabilityChangedCb = cb;
 }
 
+LinphoneConferenceCbsOperationFailedCb linphone_conference_cbs_get_operation_failed(const LinphoneConferenceCbs *cbs) {
+	return ConferenceCbs::toCpp(cbs)->operationFailedCb;
+}
+
+void linphone_conference_cbs_set_operation_failed(LinphoneConferenceCbs *cbs,
+                                                  LinphoneConferenceCbsOperationFailedCb cb) {
+	ConferenceCbs::toCpp(cbs)->operationFailedCb = cb;
+}
+
 LinphoneConferenceCbsStateChangedCb linphone_conference_cbs_get_state_changed(const LinphoneConferenceCbs *cbs) {
 	return ConferenceCbs::toCpp(cbs)->stateChangedCb;
 }

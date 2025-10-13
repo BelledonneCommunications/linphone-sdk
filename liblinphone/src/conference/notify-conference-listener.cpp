@@ -123,6 +123,10 @@ void NotifyConferenceListener::onParticipantDeviceJoiningRequest(
 	_linphone_conference_notify_participant_device_joining_request(conf->toC(), device->toC());
 }
 
+void NotifyConferenceListener::onOperationFailed() {
+	_linphone_conference_notify_operation_failed(conf->toC());
+}
+
 void NotifyConferenceListener::onStateChanged(ConferenceInterface::State newState) {
 	_linphone_conference_notify_state_changed(conf->toC(), (LinphoneConferenceState)newState);
 }

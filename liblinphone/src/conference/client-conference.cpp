@@ -555,13 +555,13 @@ std::shared_ptr<Call> ClientConference::getCall() const {
 	return nullptr;
 }
 
-void ClientConference::setParticipantAdminStatus(const shared_ptr<Participant> &participant, bool isAdmin) {
-	if (isAdmin == participant->isAdmin()) return;
+LinphoneStatus ClientConference::setParticipantAdminStatus(const shared_ptr<Participant> &participant, bool isAdmin) {
+	if (isAdmin == participant->isAdmin()) return 0;
 
 	if (!getMe()->isAdmin()) {
 		lError() << *this << ": Unable to set admin status of " << *participant << " to "
 		         << (isAdmin ? "true" : "false") << " because focus " << *getMe() << " is not admin";
-		return;
+		return -1;
 	}
 
 	LinphoneCore *cCore = getCore()->getCCore();
@@ -569,12 +569,15 @@ void ClientConference::setParticipantAdminStatus(const shared_ptr<Participant> &
 
 	const auto isChat = mConfParams->chatEnabled();
 	SalReferOp *referOp = new SalReferOp(cCore->sal.get());
-	linphone_configure_op(cCore, referOp, getConferenceAddress()->toC(), nullptr, false);
+	const auto &account = getAccount();
+	linphone_configure_op_with_account(cCore, referOp, getConferenceAddress()->toC(), nullptr, true,
+	                                   account ? account->toC() : nullptr);
 	Address referToAddr(*participant->getAddress());
 	if (isChat) referToAddr.setParam(Conference::sTextParameter);
 	referToAddr.setParam(Conference::sAdminParameter, Utils::toString(isAdmin));
 	referOp->sendRefer(referToAddr.getImpl());
 	referOp->unref();
+	return 0;
 }
 
 void ClientConference::callFocus() {
@@ -762,8 +765,9 @@ bool ClientConference::addParticipants(const list<std::shared_ptr<Address>> &add
 		} else if (mState == ConferenceInterface::State::Created) {
 			SalReferOp *referOp = new SalReferOp(getCore()->getCCore()->sal.get());
 			LinphoneAddress *lAddr = getConferenceAddress()->toC();
-			linphone_configure_op(getCore()->getCCore(), referOp, lAddr, nullptr, true);
-
+			const auto &account = getAccount();
+			linphone_configure_op_with_account(getCore()->getCCore(), referOp, lAddr, nullptr, true,
+			                                   account ? account->toC() : nullptr);
 			const auto &factoryAddress = mConfParams->getConferenceFactoryAddress();
 			std::list<std::string> addressParams;
 			if (supportsMedia() && !factoryAddress) {
@@ -1055,9 +1059,14 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 					/* This is the case where we have re-created the session in order to quit the chatroom.
 					 * In this case, defer the sending of the bye so that it is sent after the ACK.
 					 * Indeed, the ACK is sent immediately after being notified of the Connected state.*/
-					getCore()->doLater([session]() {
+					getCore()->doLater([this, session]() {
 						if (session) {
-							session->terminate();
+							LinphoneErrorInfo *ei = linphone_error_info_new();
+							linphone_error_info_set(ei, "SIP", mExitReason, linphone_reason_to_error_code(mExitReason),
+							                        nullptr, nullptr);
+							session->terminate(ei);
+							linphone_error_info_unref(ei);
+							mExitReason = LinphoneReasonNone;
 						}
 					});
 				}
@@ -1083,9 +1092,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 							break;
 						}
 					}
-
 					const auto isLocalExhume = clientGroupChatRoom && clientGroupChatRoom->isLocalExhumePending();
-
 					if (found) {
 						/* This is the case where we are accepting a BYE for an already exhumed chat room, don't change
 						 * it's state */
@@ -1943,13 +1950,6 @@ void ClientConference::onEphemeralLifetimeChanged(
 #endif // HAVE_ADVANCED_IM
 }
 
-void ClientConference::notifyStateChanged(ConferenceInterface::State state) {
-	// Call callbacks before calling listeners because listeners may change state
-	linphone_core_notify_conference_state_changed(getCore()->getCCore(), toC(), (LinphoneConferenceState)mState);
-
-	Conference::notifyStateChanged(state);
-}
-
 void ClientConference::notifyDisplayedSpeaker(uint32_t csrc) {
 	if (mConfParams->videoEnabled()) {
 		if (mLastNotifiedSsrc == csrc) return;
@@ -2153,7 +2153,9 @@ int ClientConference::removeParticipant(const std::shared_ptr<Address> &addr) {
 					LinphoneCore *cCore = getCore()->getCCore();
 					SalReferOp *referOp = new SalReferOp(cCore->sal.get());
 					LinphoneAddress *lAddr = getConferenceAddress()->toC();
-					linphone_configure_op(cCore, referOp, lAddr, nullptr, false);
+					const auto &account = getAccount();
+					linphone_configure_op_with_account(cCore, referOp, lAddr, nullptr, true,
+					                                   account ? account->toC() : nullptr);
 					std::shared_ptr<Address> referToAddr = addr;
 					referToAddr->setMethodParam("BYE");
 					auto res = referOp->sendRefer(referToAddr->getImpl());
@@ -2206,7 +2208,9 @@ bool ClientConference::removeParticipant(const std::shared_ptr<Participant> &par
 			// TODO handle one-on-one case ?
 			SalReferOp *referOp = new SalReferOp(cCore->sal.get());
 			LinphoneAddress *lAddr = getConferenceAddress()->toC();
-			linphone_configure_op(cCore, referOp, lAddr, nullptr, false);
+			const auto &account = getAccount();
+			linphone_configure_op_with_account(cCore, referOp, lAddr, nullptr, true,
+			                                   account ? account->toC() : nullptr);
 			Address referToAddr(*participantAddress);
 			referToAddr.setParam(Conference::sTextParameter);
 			referToAddr.setUriParam("method", "BYE");
@@ -2323,45 +2327,59 @@ int ClientConference::getParticipantDeviceVolume(const std::shared_ptr<Participa
 	return AUDIOSTREAMVOLUMES_NOT_FOUND;
 }
 
-int ClientConference::terminate() {
-	if (supportsMedia()) {
-		auto savedState = mState;
-		auto session = getMainSession();
-		shared_ptr<Call> sessionCall = nullptr;
-		if (session) {
-			auto op = session->getPrivate()->getOp();
-			sessionCall = op ? getCore()->getCallByCallId(op->getCallId()) : nullptr;
-		}
+int ClientConference::terminate(const LinphoneReason reason) {
+	try {
+		if (supportsMedia()) {
+			auto savedState = mState;
+			auto session = getMainSession();
+			shared_ptr<Call> sessionCall = nullptr;
+			if (session) {
+				auto op = session->getPrivate()->getOp();
+				sessionCall = op ? getCore()->getCallByCallId(op->getCallId()) : nullptr;
+			}
 
-		switch (savedState) {
-			case ConferenceInterface::State::Created:
-			case ConferenceInterface::State::CreationPending:
-			case ConferenceInterface::State::CreationFailed:
-				if (sessionCall) {
-					// Conference will be deleted by terminating the session
-					session->terminate();
-					return 0;
-				}
-				break;
-			default:
-				break;
-		}
+			switch (savedState) {
+				case ConferenceInterface::State::Created:
+				case ConferenceInterface::State::CreationPending:
+				case ConferenceInterface::State::CreationFailed:
+					if (sessionCall) {
+						// Conference will be deleted by terminating the session
+						LinphoneErrorInfo *ei = linphone_error_info_new();
+						linphone_error_info_set(ei, "SIP", reason, linphone_reason_to_error_code(reason),
+						                        linphone_reason_to_string(reason), linphone_reason_to_string(reason));
+						session->terminate(ei);
+						linphone_error_info_unref(ei);
+						return 0;
+					}
+					break;
+				default:
+					break;
+			}
 
-		if (mState == ConferenceInterface::State::Terminated) {
-			setState(ConferenceInterface::State::Deleted);
-		} else if (mState != ConferenceInterface::State::Deleted) {
-			setState(ConferenceInterface::State::TerminationPending);
-			if (!sessionCall) {
-				setState(ConferenceInterface::State::Terminated);
+			if (mState == ConferenceInterface::State::Terminated) {
 				setState(ConferenceInterface::State::Deleted);
+			} else if (mState != ConferenceInterface::State::Deleted) {
+				setState(ConferenceInterface::State::TerminationPending);
+				if (!sessionCall) {
+					setState(ConferenceInterface::State::Terminated);
+					setState(ConferenceInterface::State::Deleted);
+				}
+			}
+
+			if (mConfParams->chatEnabled()) {
+				setChatRoom(nullptr);
+			}
+		} else if (getChatRoom()) {
+			LinphoneGlobalState coreGlobalState = linphone_core_get_global_state(getCore()->getCCore());
+			if (coreGlobalState == LinphoneGlobalOn) {
+				leave(reason);
+			} else {
+				setChatRoom(nullptr);
 			}
 		}
-	}
-
-	if (mConfParams->chatEnabled()) {
+	} catch (const bad_weak_ptr &) {
 		setChatRoom(nullptr);
 	}
-
 	return 0;
 }
 
@@ -2448,7 +2466,7 @@ void ClientConference::join(const std::shared_ptr<Address> &) {
 #endif // HAVE_ADVANCED_IM
 }
 
-void ClientConference::leave() {
+void ClientConference::leave(BCTBX_UNUSED(const LinphoneReason reason)) {
 	if (supportsMedia()) {
 		if (mState != ConferenceInterface::State::Created) {
 			lError() << "Could not leave the conference: bad conference state (" << Utils::toString(mState) << ")";
@@ -2471,15 +2489,18 @@ void ClientConference::leave() {
 				         << Utils::toString(callState);
 		}
 #ifdef HAVE_ADVANCED_IM
-	} else if (mConfParams->chatEnabled()) {
-		if (mEventHandler) {
-			mEventHandler->unsubscribe();
-		}
+	} else if (isChatOnly() && getChatRoom()) {
 		shared_ptr<CallSession> session = getMainSession();
 		if (session) {
-			session->terminate();
+			// Conference will be deleted by terminating the session
+			LinphoneErrorInfo *ei = linphone_error_info_new();
+			linphone_error_info_set(ei, "SIP", reason, linphone_reason_to_error_code(reason),
+			                        linphone_reason_to_string(reason), linphone_reason_to_string(reason));
+			session->terminate(ei);
+			linphone_error_info_unref(ei);
 		} else if (mState != ConferenceInterface::State::CreationFailed) {
 			// No need to create a session if the creation already failed
+			mExitReason = reason;
 			session = createSession();
 			session->startInvite(nullptr, "", nullptr);
 		}
@@ -2490,6 +2511,45 @@ void ClientConference::leave() {
 		}
 #endif // HAVE_ADVANCED_IM
 	}
+}
+
+LinphoneStatus ClientConference::nominateAdminAndLeave(const std::shared_ptr<const Address> &newAdmin) {
+	if (Conference::isTerminationState(mState)) {
+		lError() << "Unable to nominate new admin and leave " << *this << " because the conference is already in state "
+		         << Utils::toString(mState);
+		notifyOperationFailed();
+		return -1;
+	}
+	if (!getMe()->isAdmin()) {
+		lError() << "Unable to nominate new admin and leave " << *this << " because focus " << *getMe()->getAddress()
+		         << " is not admin";
+		notifyOperationFailed();
+		return -1;
+	}
+	const auto &participant = findParticipant(newAdmin);
+	if (!participant) {
+		lInfo() << "Cannot nominate " << *newAdmin << " as admin because it is not a member of " << *this;
+		notifyOperationFailed();
+		return -1;
+	}
+	auto session = dynamic_pointer_cast<MediaSession>(getMainSession());
+	LinphoneStatus ret = -1;
+	if (session) {
+		if (participant->isAdmin()) {
+			lInfo() << *participant << " is already an admin, hence there is no need to grant admin rights";
+			leave();
+			ret = 0;
+		} else {
+			ret = setParticipantAdminStatus(participant, true);
+			if (ret < 0) {
+				notifyOperationFailed();
+			} else {
+				setState(ConferenceInterface::State::TerminationPending);
+				mTerminateAfterSuccessfulAdminNomination = true;
+			}
+		}
+	}
+	return ret;
 }
 
 const std::shared_ptr<Address> ClientConference::getOrganizer() const {
@@ -2554,10 +2614,23 @@ void ClientConference::handleRefer(SalReferOp *op,
                                    const std::shared_ptr<LinphonePrivate::Address> &referAddr,
                                    const std::string method) {
 	if (method == "BYE") {
-		lInfo() << "The server requested " << *referAddr << " to leave the conference";
+		lInfo() << "The server requested " << *referAddr << " to leave " << *this;
 		// The server asks a participant to leave a chat room
 		leave();
 		op->reply(SalReasonNone);
+	}
+}
+
+void ClientConference::handleAcceptedRefer() {
+	if (mTerminateAfterSuccessfulAdminNomination && (mState == ConferenceInterface::State::TerminationPending)) {
+		terminate();
+	}
+}
+
+void ClientConference::handleRejectedRefer() {
+	if (mTerminateAfterSuccessfulAdminNomination && (mState == ConferenceInterface::State::TerminationPending)) {
+		notifyOperationFailed();
+		setState(ConferenceInterface::State::Created);
 	}
 }
 

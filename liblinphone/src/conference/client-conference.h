@@ -66,13 +66,14 @@ public:
 	int removeParticipant(const std::shared_ptr<CallSession> &session, const bool preserveSession) override;
 	int removeParticipant(const std::shared_ptr<Address> &addr) override;
 	bool removeParticipant(const std::shared_ptr<Participant> &participant) override;
-	int terminate() override;
+	int terminate(const LinphoneReason reason = LinphoneReasonNone) override;
 	void init(SalCallOp *op = nullptr, ConferenceListener *confListener = nullptr) override;
 	void finalizeCreation() override;
 
 	int enter() override;
 	void join(const std::shared_ptr<Address> &participantAddress) override;
-	void leave() override;
+	void leave(const LinphoneReason reason = LinphoneReasonNone) override;
+	LinphoneStatus nominateAdminAndLeave(const std::shared_ptr<const Address> &newAdmin) override;
 	bool isIn() const override;
 	const std::shared_ptr<Address> getOrganizer() const override;
 
@@ -130,7 +131,7 @@ public:
 	void onParticipantDeviceScreenSharingChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
 	                                             const std::shared_ptr<ParticipantDevice> &device) override;
 
-	void setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) override;
+	LinphoneStatus setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) override;
 
 	void onSubjectChanged(const std::shared_ptr<ConferenceSubjectEvent> &event) override;
 	void onParticipantSetRole(const std::shared_ptr<ConferenceParticipantEvent> &event,
@@ -138,8 +139,6 @@ public:
 	void onParticipantSetAdmin(const std::shared_ptr<ConferenceParticipantEvent> &event,
 	                           const std::shared_ptr<Participant> &participant) override;
 	bool update(const ConferenceParamsInterface &params) override;
-
-	void notifyStateChanged(ConferenceInterface::State state) override;
 
 	void setMainSession(const std::shared_ptr<CallSession> &session);
 	std::shared_ptr<Call> getCall() const override;
@@ -228,6 +227,9 @@ private:
 	void handleRefer(SalReferOp *op,
 	                 const std::shared_ptr<LinphonePrivate::Address> &referAddr,
 	                 const std::string method) override;
+	void handleAcceptedRefer() override;
+	void handleRejectedRefer() override;
+
 	bool sessionParamsAllowThumbnails() const override;
 
 	void callFocus();
@@ -236,11 +238,14 @@ private:
 	bool mScheduleUpdate = false;
 	bool mFullStateUpdate = false;
 	bool mFullStateReceived = false;
+	bool mTerminateAfterSuccessfulAdminNomination = false;
 	std::string mPendingSubject;
 	std::shared_ptr<Participant> mFocus;
 	std::list<std::shared_ptr<Call>> mPendingCalls;
 	std::list<std::shared_ptr<Call>> mTransferingCalls;
 	MediaSessionParams *mJoiningParams = nullptr;
+
+	LinphoneReason mExitReason = LinphoneReasonNone;
 
 	uint32_t mDisplayedSpeaker = 0;
 	uint32_t mLouderSpeaker = 0;

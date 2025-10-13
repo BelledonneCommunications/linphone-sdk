@@ -159,6 +159,14 @@ void linphone_chat_room_cbs_set_participant_admin_status_changed(
 	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->participantAdminStatusChangedCb = cb;
 }
 
+LinphoneChatRoomCbsOperationFailedCb linphone_chat_room_cbs_get_operation_failed(const LinphoneChatRoomCbs *cbs) {
+	return LinphonePrivate::ChatRoomCbs::toCpp(cbs)->operationFailedCb;
+}
+
+void linphone_chat_room_cbs_set_operation_failed(LinphoneChatRoomCbs *cbs, LinphoneChatRoomCbsOperationFailedCb cb) {
+	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->operationFailedCb = cb;
+}
+
 LinphoneChatRoomCbsStateChangedCb linphone_chat_room_cbs_get_state_changed(const LinphoneChatRoomCbs *cbs) {
 	return LinphonePrivate::ChatRoomCbs::toCpp(cbs)->stateChangedCb;
 }

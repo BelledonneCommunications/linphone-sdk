@@ -1318,6 +1318,30 @@ static int process_redirect(SalOp *op) {
 	return -1;
 }
 
+static void refer_success(SalOp *op) {
+	std::shared_ptr<Address> to = Address::create(op->getTo());
+	std::shared_ptr<Address> from = Address::create(op->getFrom());
+	LinphoneCore *lc = static_cast<LinphoneCore *>(op->getSal()->getUserPointer());
+	std::shared_ptr<Core> core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
+	const auto conferenceIdParams = core->createConferenceIdParams();
+	auto conference = core->findConference(ConferenceId(to, from, conferenceIdParams), false);
+	if (conference) {
+		conference->handleAcceptedRefer();
+	}
+}
+
+static void refer_failure(SalOp *op) {
+	std::shared_ptr<Address> to = Address::create(op->getTo());
+	std::shared_ptr<Address> from = Address::create(op->getFrom());
+	LinphoneCore *lc = static_cast<LinphoneCore *>(op->getSal()->getUserPointer());
+	std::shared_ptr<Core> core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
+	const auto conferenceIdParams = core->createConferenceIdParams();
+	auto conference = core->findConference(ConferenceId(to, from, conferenceIdParams), false);
+	if (conference) {
+		conference->handleRejectedRefer();
+	}
+}
+
 Sal::Callbacks linphone_sal_callbacks = {
     call_received,
     call_rejected,
@@ -1360,4 +1384,6 @@ Sal::Callbacks linphone_sal_callbacks = {
     on_notify_response,
     refer_received,
     process_redirect,
+    refer_success,
+    refer_failure,
 };

@@ -59,7 +59,7 @@ LINPHONE_PUBLIC void linphone_remote_contact_directory_enable(LinphoneRemoteCont
 /**
  * Returns whether this remote contact directory is enabled, i.e. usable for searches with the
  * #LinphoneMagicSearch .
- * @param The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @returns a boolean.
  */
 LINPHONE_PUBLIC bool_t

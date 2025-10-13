@@ -628,16 +628,6 @@ std::shared_ptr<Call> ServerConference::getCall() const {
 	return nullptr;
 }
 
-void ServerConference::notifyStateChanged(ConferenceInterface::State state) {
-	if (supportsMedia()) {
-		// Call callbacks before calling listeners because listeners may change state
-		linphone_core_notify_conference_state_changed(getCore()->getCCore(), toC(),
-		                                              (LinphoneConferenceState)getState());
-	}
-
-	Conference::notifyStateChanged(state);
-}
-
 /*
  * We go in this method in two cases:
  * - when the client who created the conference INVITEs the conference address that was specified
@@ -815,35 +805,33 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 #endif // HAVE_ADVANCED_IM
 }
 
-void ServerConference::terminateConferenceWithReason(const shared_ptr<Address> &remoteContactAddress,
-                                                     shared_ptr<MediaSession> &session,
+void ServerConference::terminateConferenceWithReason(shared_ptr<MediaSession> &session,
                                                      LinphoneReason reason,
                                                      int code,
                                                      const string &errorMessage) {
-	lInfo() << *remoteContactAddress << " : " << errorMessage;
+	lInfo() << *this << " terminates with reason " << errorMessage << " (code " << code << ")";
 	setState(ConferenceInterface::State::CreationFailed);
 	auto errorInfo = linphone_error_info_new();
 	linphone_error_info_set(errorInfo, nullptr, reason, code, errorMessage.c_str(), errorMessage.c_str());
 	session->decline(errorInfo);
 	linphone_error_info_unref(errorInfo);
-	// No need to leave the conference run for longer
+	// No need to leave the conference run longer
 	terminate();
 }
 
-int ServerConference::checkServerConfiguration(const shared_ptr<Address> &remoteContactAddress,
-                                               shared_ptr<MediaSession> &session) {
+int ServerConference::checkServerConfiguration(shared_ptr<MediaSession> &session) {
 	if (supportsMedia() && mConfParams->getSecurityLevel() == ConferenceParams::SecurityLevel::EndToEnd) {
 		int audioMode = linphone_config_get_int(linphone_core_get_config(getCore()->getCCore()), "sound",
 		                                        "conference_mode", MSConferenceModeMixer);
 		int videoMode = linphone_config_get_int(linphone_core_get_config(getCore()->getCCore()), "video",
 		                                        "conference_mode", MSConferenceModeMixer);
 		if (audioMode != MSConferenceModeRouterFullPacket || videoMode != MSConferenceModeRouterFullPacket) {
-			terminateConferenceWithReason(remoteContactAddress, session, LinphoneReasonNotAcceptable, 488,
+			terminateConferenceWithReason(session, LinphoneReasonNotAcceptable, 488,
 			                              "Attempt to establish an end-to-end encrypted conference, but focus is not "
 			                              "operating in full packet router mode");
 			return SERVER_CONFIGURATION_FAILED;
 		} else if (!getCore()->isEktPluginLoaded()) {
-			terminateConferenceWithReason(remoteContactAddress, session, LinphoneReasonNotAcceptable, 488,
+			terminateConferenceWithReason(session, LinphoneReasonNotAcceptable, 488,
 			                              "Attempt to establish an end-to-end encrypted conference, but focus has not "
 			                              "loaded the EktServer plugin required for this feature");
 			return SERVER_CONFIGURATION_FAILED;
@@ -895,7 +883,7 @@ void ServerConference::confirmCreation() {
 		}
 #endif // HAVE_ADVANCED_IM
 
-		if (checkServerConfiguration(remoteContactAddress, session) == SERVER_CONFIGURATION_FAILED) return;
+		if (checkServerConfiguration(session) == SERVER_CONFIGURATION_FAILED) return;
 
 		if (mState == ConferenceInterface::State::CreationFailed) {
 			return;
@@ -1178,10 +1166,6 @@ void ServerConference::subscriptionStateChanged(shared_ptr<EventSubscribe> event
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
 #endif // _MSC_VER
-
-void ServerConference::notifyFullState() {
-	Conference::notifyFullState();
-}
 
 shared_ptr<ConferenceParticipantEvent> ServerConference::notifyParticipantAdded(
     time_t creationTime, const bool isFullState, const std::shared_ptr<Participant> &participant) {
@@ -2581,7 +2565,7 @@ bool ServerConference::removeParticipant(const std::shared_ptr<Participant> &par
 	return success;
 }
 
-void ServerConference::setParticipantAdminStatus(const shared_ptr<Participant> &participant, bool isAdmin) {
+LinphoneStatus ServerConference::setParticipantAdminStatus(const shared_ptr<Participant> &participant, bool isAdmin) {
 	if (isAdmin != participant->isAdmin()) {
 		participant->setAdmin(isAdmin);
 		time_t creationTime = time(nullptr);
@@ -2591,6 +2575,7 @@ void ServerConference::setParticipantAdminStatus(const shared_ptr<Participant> &
 			getCore()->getPrivate()->mainDb->addEvent(event);
 		}
 	}
+	return 0;
 }
 
 void ServerConference::chooseAnotherAdminIfNoneInConference(const std::shared_ptr<Participant> &exceptParticipant) {
@@ -2985,7 +2970,7 @@ int ServerConference::getParticipantDeviceVolume(const std::shared_ptr<Participa
 	return AUDIOSTREAMVOLUMES_NOT_FOUND;
 }
 
-int ServerConference::terminate() {
+int ServerConference::terminate(const LinphoneReason reason) {
 	if (supportsMedia()) {
 		const auto &conferenceAddress = getConferenceAddress();
 		const auto conferenceAddressStr = (conferenceAddress ? conferenceAddress->toString() : std::string("sip:"));
@@ -3007,7 +2992,11 @@ int ServerConference::terminate() {
 					std::shared_ptr<MediaSession> session = static_pointer_cast<MediaSession>(d->getSession());
 					if (session) {
 						lInfo() << *this << ": Terminating session of participant device " << *d->getAddress();
-						session->terminate();
+						LinphoneErrorInfo *ei = linphone_error_info_new();
+						linphone_error_info_set(ei, "SIP", reason, linphone_reason_to_error_code(reason), nullptr,
+						                        nullptr);
+						session->terminate(ei);
+						linphone_error_info_unref(ei);
 					}
 				}
 			} else {
@@ -3058,7 +3047,16 @@ int ServerConference::enter() {
 	return 0;
 }
 
-void ServerConference::leave() {
+void ServerConference::join(const std::shared_ptr<Address> &) {
+	lInfo() << __func__ << " is not applicable to ServerConference";
+}
+
+LinphoneStatus ServerConference::nominateAdminAndLeave(BCTBX_UNUSED(const std::shared_ptr<const Address> &newAdmin)) {
+	lInfo() << __func__ << " is not applicable to ServerConference";
+	return -1;
+}
+
+void ServerConference::leave(BCTBX_UNUSED(const LinphoneReason reason)) {
 	if (isIn() && supportsMedia()) {
 		lInfo() << *getMe()->getAddress() << " is leaving " << *this;
 		removeLocalEndpoint();
@@ -3439,20 +3437,33 @@ void ServerConference::onCallSessionStateChanged(const std::shared_ptr<CallSessi
 				break;
 			case CallSession::State::End: {
 				const auto errorInfo = session->getErrorInfo();
-				if (errorInfo != nullptr && linphone_error_info_get_protocol_code(errorInfo) > 299) {
+				if (errorInfo && linphone_error_info_get_protocol_code(errorInfo) > 299) {
 					if (device->getState() == ParticipantDevice::State::Joining ||
 					    device->getState() == ParticipantDevice::State::Present) {
 						const auto code = linphone_error_info_get_protocol_code(errorInfo);
-						lWarning() << *this << ": Received a BYE from " << *device << " with code " << code
-						           << ", setting it back to ScheduledForJoining.";
-						setParticipantDeviceState(device, ParticipantDevice::State::ScheduledForJoining);
-						if (linphone_error_info_get_protocol_code(errorInfo) == 408 && initiatorDevice &&
-						    initiatorDevice == device) {
-							// Recovering if the initiator of the chatroom did not receive the 200Ok or the ACK has been
-							// lost
-							lInfo() << *this << ": Inviting again initiator device " << *device
-							        << " because its session was terminated with code " << code;
-							inviteDevice(device);
+						lWarning() << *this << ": Received a BYE from " << *device << " with code " << code;
+						if (code == 410) {
+							if (device->getParticipant()->isAdmin()) {
+								// An admin sent a BYE with reason Gone (code 410). The server therefore starts kicking
+								// everybody out.
+								for (auto &deviceToKick : getParticipantDevices()) {
+									if (deviceToKick != device) {
+										byeDevice(deviceToKick);
+									}
+								}
+							}
+							if (device->getState() == ParticipantDevice::State::Present) {
+								serverGroupChatRoom->onBye(device);
+							}
+						} else {
+							setParticipantDeviceState(device, ParticipantDevice::State::ScheduledForJoining);
+							if (code == 408 && initiatorDevice && initiatorDevice == device) {
+								// Recovering if the initiator of the chatroom did not receive the 200Ok or the ACK has
+								// been lost
+								lInfo() << *this << ": Inviting again initiator device " << *device
+								        << " because its session was terminated with code " << code;
+								inviteDevice(device);
+							}
 						}
 					}
 				} else {
@@ -3611,8 +3622,7 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 			    const_pointer_cast<Participant>(device->getParticipant()->getSharedFromThis());
 			if (ServerConference::allDevicesLeft(participant) &&
 			    findParticipant(participant->getAddress()) == nullptr) {
-				lInfo() << *this << ": Participant '" << *participant->getAddress()
-				        << "'removed and last device left, unsubscribing";
+				lInfo() << *this << ": " << *participant << " has been removed and the last device left, unsubscribing";
 				serverGroupChatRoom->unSubscribeRegistrationForParticipant(participant->getAddress());
 				mainDb->deleteChatRoomParticipant(serverGroupChatRoom, participant->getAddress());
 			}
@@ -3620,7 +3630,7 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 
 		// device left, we no longuer need to receive subscription info from it
 		if (device->isSubscribedToConferenceEventPackage()) {
-			lError() << *this << " still subscription pending for [" << device << "], terminating in emergency";
+			lError() << *this << " has still a subscription pending for " << *device << ", terminating in emergency";
 			// try to terminate subscription if any, but do not wait for anser.
 			auto ev = device->getConferenceSubscribeEvent();
 			ev->clearCallbacksList();
@@ -3640,13 +3650,13 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 			if (allLeft) {
 				// Delete the chat room from the main DB as its termination process started and it cannot be
 				// retrieved in the future
-				lInfo() << *this << ": Delete chatroom from MainDB as last participant has left";
+				lInfo() << "Delete " << *this << " from MainDB as last participant has left";
 				mainDb->deleteChatRoom(getConferenceId());
 				if (getState() != ConferenceInterface::State::TerminationPending) {
 					setState(ConferenceInterface::State::TerminationPending);
 				}
 				setState(ConferenceInterface::State::Terminated);
-				lInfo() << *this << ": No participant left, deleting the chat room";
+				lInfo() << "No participant left, deleting the " << *this;
 				requestDeletion();
 			}
 		}

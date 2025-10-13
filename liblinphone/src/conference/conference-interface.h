@@ -131,10 +131,11 @@ public:
 	 * the local participant  #getMe() is admin). All participants are notified of change of the admin.
 	 * @param[in] participant The Participant for which to change the admin status
 	 * @param[in] isAdmin A boolean value telling whether the participant should now be an admin or not
+	 * @return 0 if the admin nomination has successfully started, a negative number otherwise
 	 */
-	virtual void setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) = 0;
+	virtual LinphoneStatus setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) = 0;
 
-	/* This fonction add a participant to this conference.<br>
+	/* This function add a participant to this conference.<br>
 	 *Dependending if focus user agent is local or remote, behavior is defferent. <br>
 	 *In both case, a call with a from address corresponding to the participant address is searched first. <br>
 	 *<br>
@@ -147,6 +148,7 @@ public:
 	 Requesting a Focus to Add a New Resource to a Conference(Dial Out to a New Participant)" as described by RFC4579.
 	 <br>
 	 @param[in] participantAddress The address of the participant to add to this Conference.
+	 * @return True if everything is OK, False otherwise
 	*/
 	virtual bool addParticipant(const std::shared_ptr<Address> &participantAddress) = 0;
 
@@ -174,7 +176,7 @@ public:
 	virtual bool addParticipants(const std::list<std::shared_ptr<Address>> &addresses) = 0;
 
 	/*
-	 * Add local participant to this conference, this fonction is only available for local focus. Behavior is the same
+	 * Add local participant to this conference, this function is only available for local focus. Behavior is the same
 	 * as
 	 */
 	virtual void join(const std::shared_ptr<Address> &participantAddress) = 0;
@@ -245,8 +247,10 @@ public:
 	 *<b>Remote focus case: </b><br>
 	 * The local participant is removed from the conference as any other participant.
 	 * Conference is transitioned to state TerminationPending until removal is acknowled by the server.
+	 * @param[in] reason The chatroom exit #LinphoneReason that is going to be notified to the conference server through
+	 * the BYE message's Reason header.
 	 */
-	virtual void leave() = 0;
+	virtual void leave(const LinphoneReason reason = LinphoneReasonNone) = 0;
 
 	/*
 	 * Call to update conference parameters like media type. If not focus,  this operation is only available if the
@@ -272,21 +276,28 @@ public:
 	 */
 	virtual void onStateChanged(BCTBX_UNUSED(ConferenceInterface::State newState)) {
 	}
+
 	/*
-	 * This fonction is called each time a full state notification is receied from the focus.
+	 * This function is called each time the request to leave a conference cannot be fullfilled.
+	 */
+	virtual void onOperationFailed() {
+	}
+
+	/*
+	 * This function is called each time a full state notification is receied from the focus.
 	 */
 	virtual void onFullStateReceived() {
 	}
 
 	/*
-	 * This fonction is called each time the list of allowed participant is changed while the conference is active
+	 * This function is called each time the list of allowed participant is changed while the conference is active
 	 * @param[in] event informations related to the change of the participant allowed to join the conference. @notnil
 	 */
 	virtual void onAllowedParticipantListChanged(BCTBX_UNUSED(const std::shared_ptr<ConferenceNotifiedEvent> &event)) {
 	}
 
 	/*
-	 * This fonction is called each time a new participant is added by the focus after full state notification.
+	 * This function is called each time a new participant is added by the focus after full state notification.
 	 * @param[in] event informations related to the added participant. @notnil
 	 * @param[in] participant participant added to conference or chat room. @notnil
 	 */
@@ -295,7 +306,7 @@ public:
 	}
 
 	/*
-	 * This fonction is called each time a new participant is removed by the focus after full state notification.
+	 * This function is called each time a new participant is removed by the focus after full state notification.
 	 * @param[in] event informations related to the removed participant. @notnil
 	 * @param[in] participant participant removed from conference or chat room. @notnil
 	 */
@@ -304,7 +315,7 @@ public:
 	}
 
 	/*
-	 * This fonction is called each time a participant device changes its available media
+	 * This function is called each time a participant device changes its available media
 	 * @param[in] event informations related to the device's participant.
 	 * @param[in] device participant device that changed its media capabilities
 	 */
@@ -313,7 +324,7 @@ public:
 	    BCTBX_UNUSED(const std::shared_ptr<ParticipantDevice> &device)){};
 
 	/*
-	 * This fonction is called each time a participant device changes its available media
+	 * This function is called each time a participant device changes its available media
 	 * @param[in] event informations related to the device's participant.
 	 * @param[in] device participant device that changed its media availabilities
 	 */
@@ -322,7 +333,7 @@ public:
 	    BCTBX_UNUSED(const std::shared_ptr<ParticipantDevice> &device)){};
 
 	/*
-	 * This fonction is called each time a participant device state changes
+	 * This function is called each time a participant device state changes
 	 * @param[in] event informations related to the device's participant whose state changed. @notnil
 	 * @param[in] device participant device whose state changed. @notnil
 	 */
@@ -331,7 +342,7 @@ public:
 	                                    BCTBX_UNUSED(const std::shared_ptr<ParticipantDevice> &device)){};
 
 	/*
-	 * This fonction is called each time a participant device starts or stops screen sharing
+	 * This function is called each time a participant device starts or stops screen sharing
 	 * @param[in] event informations related to the device's participant who starts or stops screen sharing. @notnil
 	 * @param[in] device participant device who starts or stops screen sharing @notnil
 	 */
@@ -340,13 +351,13 @@ public:
 	    BCTBX_UNUSED(const std::shared_ptr<ParticipantDevice> &device)){};
 
 	/*
-	 * This fonction is called each time a participant device changes the ephemeral mode
+	 * This function is called each time a participant device changes the ephemeral mode
 	 * @param[in] event informations related to the device's participant.
 	 */
 	virtual void onEphemeralModeChanged(BCTBX_UNUSED(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event)){};
 
 	/*
-	 * This fonction is called each time a participant device enables or disables ephemeral messages when they are
+	 * This function is called each time a participant device enables or disables ephemeral messages when they are
 	 * managed by admins
 	 * @param[in] event informations related to the device's participant.
 	 */
@@ -354,7 +365,7 @@ public:
 	    onEphemeralMessageEnabled(BCTBX_UNUSED(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event)){};
 
 	/*
-	 * This fonction is called each time a participant device changes the ephemeral lifetime when ephemeral messages are
+	 * This function is called each time a participant device changes the ephemeral lifetime when ephemeral messages are
 	 * managed by admins
 	 * @param[in] event informations related to the device's participant.
 	 */
@@ -362,7 +373,7 @@ public:
 	    onEphemeralLifetimeChanged(BCTBX_UNUSED(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event)){};
 
 	/*
-	 * This fonction is called each time a participant changes its role in the conference after full state notification.
+	 * This function is called each time a participant changes its role in the conference after full state notification.
 	 * @param[in] event informations related to the participant new role. @notnil
 	 * @param[in] participant participant whose role changed. @notnil
 	 */
@@ -371,7 +382,7 @@ public:
 	}
 
 	/*
-	 * This fonction is called each time a new admin is set by the focus after full state notification.
+	 * This function is called each time a new admin is set by the focus after full state notification.
 	 * @param[in] event informations related to the new admin participant. @notnil
 	 * @param[in] participant participant whose admin status changed. @notnil
 	 */
@@ -380,7 +391,7 @@ public:
 	}
 
 	/*
-	 * This fonction is called each time a new subject is set by the focus after full state notification.
+	 * This function is called each time a new subject is set by the focus after full state notification.
 	 * @param[in] event informations related to the new subject. @notnil
 	 */
 	virtual void onSubjectChanged(BCTBX_UNUSED(const std::shared_ptr<ConferenceSubjectEvent> &event)) {
@@ -405,14 +416,14 @@ public:
 	}
 
 	/*
-	 * This fonction is called each time list of available media is modified by the focus after full state notification.
+	 * This function is called each time list of available media is modified by the focus after full state notification.
 	 * @param[in] event informations related to the available media. @notnil
 	 */
 	virtual void onAvailableMediaChanged(BCTBX_UNUSED(const std::shared_ptr<ConferenceAvailableMediaEvent> &event)) {
 	}
 
 	/*
-	 * This fonction is called each time a new participant device is added by the focus after full state notification.
+	 * This function is called each time a new participant device is added by the focus after full state notification.
 	 * @param[in] event informations related to the added participant's device. @notnil
 	 * @param[in] device participant device added to the conference or chat room. @notnil
 	 */
@@ -421,7 +432,7 @@ public:
 	}
 
 	/*
-	 * This fonction is called each time a new participant device is removed by the focus after full state notification.
+	 * This function is called each time a new participant device is removed by the focus after full state notification.
 	 * @param[in] event informations related to the removed device's participant. @notnil
 	 * @param[in] device participant device removed from the conference or chat room. @notnil
 	 */
@@ -431,7 +442,7 @@ public:
 	}
 
 	/*
-	 * This fonction is called each time a new participant device that is not in the allowed participants'list calls a
+	 * This function is called each time a new participant device that is not in the allowed participants'list calls a
 	 * closed-list conference
 	 * @param[in] event informations related to the removed device's participant. @notnil
 	 * @param[in] device participant device that is not in the allowed participants'list. @notnil
@@ -442,7 +453,7 @@ public:
 	}
 
 	/*
-	 * This fonction is called each time a participant device is being currently displayed as active speaker.
+	 * This function is called each time a participant device is being currently displayed as active speaker.
 	 * @param[in] device participant device currently being displayed as active speaker. @notnil
 	 */
 	virtual void onActiveSpeakerParticipantDevice(BCTBX_UNUSED(const std::shared_ptr<ParticipantDevice> &device)) {
@@ -451,7 +462,7 @@ public:
 
 /***********************************************************************************************************************/
 /* Conference object creation
-** Conference object can be either created at  initiative user application using fonction
+** Conference object can be either created at  initiative user application using function
 *ConferenceFactoryInterface::createConference
 */
 

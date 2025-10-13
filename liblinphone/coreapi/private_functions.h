@@ -433,6 +433,7 @@ void _linphone_conference_notify_participant_device_state_changed(LinphoneConfer
                                                                   const LinphoneParticipantDeviceState state);
 void _linphone_conference_notify_participant_device_screen_sharing_changed(
     LinphoneConference *conference, const LinphoneParticipantDevice *participant_device, bool_t enabled);
+void _linphone_conference_notify_operation_failed(LinphoneConference *conference);
 void _linphone_conference_notify_state_changed(LinphoneConference *conference, LinphoneConferenceState newState);
 void _linphone_conference_notify_available_media_changed(LinphoneConference *conference);
 void _linphone_conference_notify_subject_changed(LinphoneConference *conference, const char *subject);
@@ -516,6 +517,7 @@ void _linphone_chat_room_notify_participant_device_media_availability_changed(Li
                                                                               const LinphoneEventLog *event_log);
 void _linphone_chat_room_notify_participant_admin_status_changed(LinphoneChatRoom *cr,
                                                                  const LinphoneEventLog *event_log);
+void _linphone_chat_room_notify_operation_failed(LinphoneChatRoom *cr);
 void _linphone_chat_room_notify_state_changed(LinphoneChatRoom *cr, LinphoneChatRoomState newState);
 void _linphone_chat_room_notify_security_event(LinphoneChatRoom *cr, const LinphoneEventLog *event_log);
 void _linphone_chat_room_notify_subject_changed(LinphoneChatRoom *cr, const LinphoneEventLog *event_log);

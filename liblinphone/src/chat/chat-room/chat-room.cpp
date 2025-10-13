@@ -101,6 +101,11 @@ void ChatRoom::onStateChanged(BCTBX_UNUSED(ConferenceInterface::State state)) {
 	notifyStateChanged();
 }
 
+void ChatRoom::onOperationFailed() {
+	// Call callbacks before calling listeners because listeners may change state
+	_linphone_chat_room_notify_operation_failed(getCChatRoom());
+}
+
 void ChatRoom::invalidateAccount() {
 	const auto conferencePtr = getConference();
 	if (conferencePtr) {

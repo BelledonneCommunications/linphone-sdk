@@ -1040,11 +1040,11 @@ int Core::getImdnToEverybodyThreshold() const {
 }
 
 void Core::enableEmptyChatroomsDeletion(const bool enable) {
-	deleteEmptyChatrooms = enable;
+	mDeleteEmptyChatrooms = enable;
 }
 
 bool Core::emptyChatroomsDeletionEnabled() const {
-	return deleteEmptyChatrooms;
+	return mDeleteEmptyChatrooms;
 }
 
 unsigned int Core::getRemainingUploadFileCount() const {

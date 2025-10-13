@@ -40,6 +40,7 @@ private:
 	static void processResponseEventCb(void *userCtx, const belle_sip_response_event_t *event);
 	static void processTimeoutCb(void *userCtx, const belle_sip_timeout_event_t *event);
 	static void processRequestEventCb(void *userCtx, const belle_sip_request_event_t *event);
+	static void processTransactionTerminatedCb(void *userCtx, const belle_sip_transaction_terminated_event_t *event);
 };
 
 LINPHONE_END_NAMESPACE

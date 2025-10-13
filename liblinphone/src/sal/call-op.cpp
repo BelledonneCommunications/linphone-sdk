@@ -760,9 +760,7 @@ void SalCallOp::processTransactionTerminatedCb(void *userCtx, const belle_sip_tr
 
 	string method = belle_sip_request_get_method(request);
 	if ((op->mState == State::Terminating) && (method == "BYE" || method == "INVITE") &&
-	    (!response || ((belle_sip_response_get_status_code(response) != 401) &&
-	                   (belle_sip_response_get_status_code(response) != 407))) &&
-	    !op->mDialog) {
+	    (!response || ((code != 401) && (code != 407))) && !op->mDialog) {
 		if (response && belle_sip_response_get_status_code(response) == 408) {
 			sal_error_info_set(&op->mErrorInfo, SalReasonRequestTimeout, "SIP", 408, "no ACK received", nullptr);
 		}

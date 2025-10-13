@@ -55,7 +55,6 @@ void SalReferOp::processRequestEventCb(void *userCtx, const belle_sip_request_ev
 	belle_sip_object_ref(transaction);
 	belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(transaction), op->ref());
 	op->mPendingServerTransaction = transaction;
-
 	if (!referToHeader) {
 		lWarning() << "Cannot do anything with the REFER without destination";
 		op->reply(SalReasonUnknown); // Is mapped on bad request
@@ -72,11 +71,33 @@ void SalReferOp::processRequestEventCb(void *userCtx, const belle_sip_request_ev
 	op->unref();
 }
 
+void SalReferOp::processTransactionTerminatedCb(void *userCtx, const belle_sip_transaction_terminated_event_t *event) {
+	auto clientTransaction = belle_sip_transaction_terminated_event_get_client_transaction(event);
+	auto serverTransaction = belle_sip_transaction_terminated_event_get_server_transaction(event);
+	auto response = (clientTransaction ? belle_sip_transaction_get_response(BELLE_SIP_TRANSACTION(clientTransaction))
+	                                   : belle_sip_transaction_get_response(BELLE_SIP_TRANSACTION(serverTransaction)));
+	int code = 0;
+	if (response) code = belle_sip_response_get_status_code(response);
+	auto op = static_cast<SalReferOp *>(userCtx);
+	// Treat a 202 Accepted response as an error. In fact, Flexisip proxies store some REFER messages in order to
+	// forward them to the User-Agent once it registers. However, the conference server never registers to the proxy,
+	// therefore such messages are going to be lost. This should be fixed by JIRA
+	// https://linphone.atlassian.net/browse/FLEXISIP-812
+	if ((code >= 400) || (code == 202)) {
+		op->mRoot->mCallbacks.refer_failure(op);
+	} else if ((code >= 200) && (code < 300)) {
+		op->mRoot->mCallbacks.refer_success(op);
+	} else {
+		lError() << "Unhandled " << code << " response to op [" << op << "]";
+	}
+}
+
 void SalReferOp::fillCallbacks() {
 	static belle_sip_listener_callbacks_t opReferCallbacks = {0};
 	if (!opReferCallbacks.process_io_error) {
 		opReferCallbacks.process_io_error = processIoErrorCb;
 		opReferCallbacks.process_response_event = processResponseEventCb;
+		opReferCallbacks.process_transaction_terminated = processTransactionTerminatedCb;
 		opReferCallbacks.process_timeout = processTimeoutCb;
 		opReferCallbacks.process_request_event = processRequestEventCb;
 	}

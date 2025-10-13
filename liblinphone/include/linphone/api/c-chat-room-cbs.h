@@ -264,6 +264,22 @@ linphone_chat_room_cbs_set_participant_admin_status_changed(LinphoneChatRoomCbs 
                                                             LinphoneChatRoomCbsParticipantAdminStatusChangedCb cb);
 
 /**
+ * Get the leave failed callback.
+ * @param cbs #LinphoneChatRoomCbs object. @notnil
+ * @return The current leave failed callback.
+ */
+LINPHONE_PUBLIC LinphoneChatRoomCbsOperationFailedCb
+linphone_chat_room_cbs_get_operation_failed(const LinphoneChatRoomCbs *cbs);
+
+/**
+ * Set the leave failed callback.
+ * @param cbs #LinphoneChatRoomCbs object. @notnil
+ * @param cb The leave failed callback to be used.
+ */
+LINPHONE_PUBLIC void linphone_chat_room_cbs_set_operation_failed(LinphoneChatRoomCbs *cbs,
+                                                                 LinphoneChatRoomCbsOperationFailedCb cb);
+
+/**
  * Get the state changed callback.
  * @param cbs #LinphoneChatRoomCbs object. @notnil
  * @return The current state changed callback.

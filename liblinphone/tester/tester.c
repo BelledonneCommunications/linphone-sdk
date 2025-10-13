@@ -817,6 +817,12 @@ static void conference_participant_device_state_changed(LinphoneConference *conf
 	}
 }
 
+static void conference_operation_failed(LinphoneConference *conference) {
+	LinphoneCore *core = linphone_conference_get_core(conference);
+	LinphoneCoreManager *manager = (LinphoneCoreManager *)linphone_core_get_user_data(core);
+	manager->stat.number_of_conference_operation_failed++;
+}
+
 static void conference_available_media_changed(LinphoneConference *conference) {
 	LinphoneCore *core = linphone_conference_get_core(conference);
 	LinphoneCoreManager *manager = (LinphoneCoreManager *)linphone_core_get_user_data(core);
@@ -948,6 +954,7 @@ static void conference_participant_device_screen_sharing_changed(
 static void create_conference_cb(LinphoneConference *conference) {
 	LinphoneConferenceCbs *cbs = linphone_factory_create_conference_cbs(linphone_factory_get());
 	linphone_conference_cbs_set_state_changed(cbs, conference_state_changed);
+	linphone_conference_cbs_set_operation_failed(cbs, conference_operation_failed);
 	linphone_conference_cbs_set_available_media_changed(cbs, conference_available_media_changed);
 	linphone_conference_cbs_set_subject_changed(cbs, conference_subject_changed);
 	linphone_conference_cbs_set_participant_role_changed(cbs, conference_participant_role_changed);

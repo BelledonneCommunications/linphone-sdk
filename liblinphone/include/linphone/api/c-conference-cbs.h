@@ -261,6 +261,22 @@ LINPHONE_PUBLIC void linphone_conference_cbs_set_participant_device_media_capabi
     LinphoneConferenceCbs *cbs, LinphoneConferenceCbsParticipantDeviceMediaCapabilityChangedCb cb);
 
 /**
+ * Get the leave failed callback.
+ * @param[in] cbs #LinphoneConferenceCbs object.
+ * @return The current leave failed callback.
+ */
+LINPHONE_PUBLIC LinphoneConferenceCbsOperationFailedCb
+linphone_conference_cbs_get_operation_failed(const LinphoneConferenceCbs *cbs);
+
+/**
+ * Set the leave failed callback.
+ * @param[in] cbs #LinphoneConferenceCbs object.
+ * @param[in] cb The leave failed callback to be used.
+ */
+LINPHONE_PUBLIC void linphone_conference_cbs_set_operation_failed(LinphoneConferenceCbs *cbs,
+                                                                  LinphoneConferenceCbsOperationFailedCb cb);
+
+/**
  * Get the state changed callback.
  * @param[in] cbs #LinphoneConferenceCbs object.
  * @return The current state changed callback.

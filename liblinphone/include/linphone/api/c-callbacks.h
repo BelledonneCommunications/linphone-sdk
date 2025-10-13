@@ -509,6 +509,12 @@ typedef void (*LinphoneChatRoomCbsParticipantAdminStatusChangedCb)(LinphoneChatR
                                                                    const LinphoneEventLog *event_log);
 
 /**
+ * Callback used to notify a chat room exit failed.
+ * @param chat_room #LinphoneChatRoom object @notnil
+ */
+typedef void (*LinphoneChatRoomCbsOperationFailedCb)(LinphoneChatRoom *chat_room);
+
+/**
  * Callback used to notify a chat room state has changed.
  * @param chat_room #LinphoneChatRoom object @notnil
  * @param newState The new #LinphoneChatRoomState of the chat room
@@ -885,6 +891,12 @@ typedef void (*LinphoneConferenceCbsParticipantRoleChangedCb)(LinphoneConference
  */
 typedef void (*LinphoneConferenceCbsParticipantAdminStatusChangedCb)(LinphoneConference *conference,
                                                                      const LinphoneParticipant *participant);
+
+/**
+ * Callback used to notify a conference exit failed.
+ * @param[in] conference #LinphoneConference object @notnil
+ */
+typedef void (*LinphoneConferenceCbsOperationFailedCb)(LinphoneConference *conference);
 
 /**
  * Callback used to notify a conference state has changed.

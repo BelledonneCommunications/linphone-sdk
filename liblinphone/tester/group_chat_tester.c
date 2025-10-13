@@ -198,6 +198,12 @@ static void chat_room_participant_device_removed(LinphoneChatRoom *cr,
 	manager->stat.number_of_chat_room_participant_devices_removed++;
 }
 
+static void chat_room_operation_failed(LinphoneChatRoom *cr) {
+	LinphoneCore *core = linphone_chat_room_get_core(cr);
+	LinphoneCoreManager *manager = (LinphoneCoreManager *)linphone_core_get_user_data(core);
+	manager->stat.number_of_chat_room_operation_failed++;
+}
+
 static void chat_room_state_changed(LinphoneChatRoom *cr, LinphoneChatRoomState newState) {
 	LinphoneCore *core = linphone_chat_room_get_core(cr);
 	LinphoneCoreManager *manager = (LinphoneCoreManager *)linphone_core_get_user_data(core);
@@ -318,6 +324,7 @@ void setup_chat_room_callbacks(LinphoneChatRoomCbs *cbs) {
 	linphone_chat_room_cbs_set_participant_admin_status_changed(cbs, chat_room_participant_admin_status_changed);
 	linphone_chat_room_cbs_set_participant_removed(cbs, chat_room_participant_removed);
 	linphone_chat_room_cbs_set_state_changed(cbs, chat_room_state_changed);
+	linphone_chat_room_cbs_set_operation_failed(cbs, chat_room_operation_failed);
 	linphone_chat_room_cbs_set_security_event(cbs, chat_room_security_event);
 	linphone_chat_room_cbs_set_subject_changed(cbs, chat_room_subject_changed);
 	linphone_chat_room_cbs_set_participant_device_added(cbs, chat_room_participant_device_added);
@@ -2551,7 +2558,7 @@ static void group_chat_room_change_subject_non_admin(void) {
 
 	if (!BC_ASSERT_PTR_NOT_NULL(marieCr) || !BC_ASSERT_PTR_NOT_NULL(paulineCr) || !BC_ASSERT_PTR_NOT_NULL(laureCr))
 		goto end;
-	// Marie now changes the subject
+	// Pauline now changes the subject
 	linphone_chat_room_set_subject(paulineCr, newSubject);
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_chat_room_subject_changed,
 	                             initialMarieStats.number_of_chat_room_subject_changed,

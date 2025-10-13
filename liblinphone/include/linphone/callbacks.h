@@ -126,7 +126,6 @@ typedef LinphoneCoreCbsCallEncryptionChangedCb LinphoneCoreCallEncryptionChanged
  * @param state the current #LinphoneRegistrationState
  * @param message a non NULL informational message about the state @notnil
  * @deprecated 06/04/2020 Use #LinphoneCoreCbsAccountRegistrationStateChangedCb instead
- * @ingroup Proxies
  */
 typedef void (*LinphoneCoreCbsRegistrationStateChangedCb)(LinphoneCore *core,
                                                           LinphoneProxyConfig *proxy_config,

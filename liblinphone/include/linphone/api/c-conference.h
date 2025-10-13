@@ -299,11 +299,18 @@ LINPHONE_PUBLIC int linphone_conference_get_participant_count(const LinphoneConf
 LINPHONE_PUBLIC LinphoneParticipant *linphone_conference_get_me(const LinphoneConference *conference);
 
 /**
- * Terminates conference
+ * Terminates a conference
  * @param conference The #LinphoneConference object. @notnil
  * @return 0 if the termination is successful, -1 otherwise.
  */
 LINPHONE_PUBLIC int linphone_conference_terminate(LinphoneConference *conference);
+
+/**
+ * Terminates a conference. If no media is supported, it instructs the conference server to remove all participants
+ * @param conference The #LinphoneConference object. @notnil
+ * @return 0 if the termination is successful, -1 otherwise.
+ */
+LINPHONE_PUBLIC int linphone_conference_close(LinphoneConference *conference);
 
 /**
  * Retrieves the user pointer that was given to linphone_conference_set_user_data()
@@ -346,6 +353,17 @@ LINPHONE_PUBLIC int linphone_conference_enter(LinphoneConference *conference);
  * @return 0 if succeeded. Negative number if failed
  */
 LINPHONE_PUBLIC int linphone_conference_leave(LinphoneConference *conference);
+
+/**
+ * Nominates a new admin and then leaves a conference.
+ * @param conference A #LinphoneConference object @notnil
+ * @param new_admin The #LinphoneAddress of the new admin @notnil
+ * @return 0 if succeeded. Negative number if failed
+ * @note The local participant will not leave the chat room if the new admin cannot be nominated
+ * @warning It is not applicable to conference servers.
+ */
+LINPHONE_PUBLIC int linphone_conference_nominate_admin_and_leave(LinphoneConference *conference,
+                                                                 const LinphoneAddress *new_admin);
 
 /**
  * For a local audio video conference, this function compares the address provided as argument with that of participant

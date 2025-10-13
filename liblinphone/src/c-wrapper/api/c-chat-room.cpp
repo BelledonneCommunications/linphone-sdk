@@ -632,6 +632,17 @@ void linphone_chat_room_leave(LinphoneChatRoom *chat_room) {
 	AbstractChatRoom::toCpp(chat_room)->getConference()->leave();
 }
 
+void linphone_chat_room_nominate_admin_and_leave(LinphoneChatRoom *chat_room, const LinphoneAddress *new_admin) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	AbstractChatRoom::toCpp(chat_room)->getConference()->nominateAdminAndLeave(
+	    Address::toCpp(new_admin)->getSharedFromThis());
+}
+
+int linphone_chat_room_close(LinphoneChatRoom *chat_room) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	return AbstractChatRoom::toCpp(chat_room)->getConference()->terminate(LinphoneReasonGone);
+}
+
 void linphone_chat_room_remove_participant(LinphoneChatRoom *chat_room, LinphoneParticipant *participant) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
 	if (linphone_chat_room_can_handle_participants(chat_room)) {
@@ -866,6 +877,11 @@ void _linphone_chat_room_notify_participant_admin_status_changed(LinphoneChatRoo
 	_linphone_chat_room_notify_new_event(chat_room, event_log);
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(ChatRoom, AbstractChatRoom::toCpp(chat_room),
 	                                  linphone_chat_room_cbs_get_participant_admin_status_changed, event_log);
+}
+
+void _linphone_chat_room_notify_operation_failed(LinphoneChatRoom *chat_room) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(ChatRoom, AbstractChatRoom::toCpp(chat_room),
+	                                         linphone_chat_room_cbs_get_operation_failed);
 }
 
 void _linphone_chat_room_notify_state_changed(LinphoneChatRoom *chat_room, LinphoneChatRoomState newState) {

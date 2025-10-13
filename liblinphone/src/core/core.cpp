@@ -497,13 +497,15 @@ void CorePrivate::uninit() {
 
 	for (const auto &[id, conference] : mConferenceById) {
 		// Terminate audio video conferences just before core is stopped
-		lDebug() << "Terminating conference " << *conference << " with id " << id
-		         << " because the core is shutting down";
+		lDebug() << "Terminating " << *conference << " with id " << id << " because the core is shutting down";
 		conference->terminate();
 	}
 	mConferenceById.clear();
 	q->mConferencesPendingCreation.clear();
 	q->mSipConferenceSchedulers.clear();
+
+	// Free the last reference to chatrooms
+	q->updateChatRoomList();
 
 	// If we have an encryption engine, destroy it after handling all chat message tasks.
 	// This way, the core will make a last attempt to send messages on encrypted chatrooms.

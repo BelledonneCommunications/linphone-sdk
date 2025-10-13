@@ -6840,7 +6840,7 @@ linphone_core_notify_notify_presence_received_for_uri_or_tel(LinphoneCore *core,
  * Sets the size under which incoming files in chat messages will be downloaded automatically.
  * @param core #LinphoneCore object @notnil
  * @param size The size in bytes, -1 to disable the autodownload feature, 0 to download them all no matter the size
- * @ingroup chat
+ * @ingroup chatroom
  **/
 LINPHONE_PUBLIC void linphone_core_set_max_size_for_auto_download_incoming_files(LinphoneCore *core, int size);
 
@@ -6848,7 +6848,7 @@ LINPHONE_PUBLIC void linphone_core_set_max_size_for_auto_download_incoming_files
  * Gets the size under which incoming files in chat messages will be downloaded automatically.
  * @param core #LinphoneCore object @notnil
  * @return The size in bytes, -1 if autodownload feature is disabled, 0 to download them all no matter the size
- * @ingroup chat
+ * @ingroup chatroom
  **/
 LINPHONE_PUBLIC int linphone_core_get_max_size_for_auto_download_incoming_files(LinphoneCore *core);
 
@@ -6857,7 +6857,7 @@ LINPHONE_PUBLIC int linphone_core_get_max_size_for_auto_download_incoming_files(
  *recordings.
  * @param core #LinphoneCore object @notnil
  * @param auto_download_voice_recordings TRUE to automatically download incoming voice recordings, FALSE to disable it.
- * @ingroup chat
+ * @ingroup chatroom
  * @deprecated 16/12/2021 Use linphone_core_enable_auto_download_voice_recordings() instead.
  **/
 LINPHONE_PUBLIC void linphone_core_set_auto_download_voice_recordings_enabled(LinphoneCore *core,
@@ -6868,7 +6868,7 @@ LINPHONE_PUBLIC void linphone_core_set_auto_download_voice_recordings_enabled(Li
  *recordings.
  * @param core #LinphoneCore object @notnil
  * @param auto_download_voice_recordings TRUE to automatically download incoming voice recordings, FALSE to disable it.
- * @ingroup chat
+ * @ingroup chatroom
  **/
 LINPHONE_PUBLIC void linphone_core_enable_auto_download_voice_recordings(LinphoneCore *core,
                                                                          bool_t auto_download_voice_recordings);
@@ -6877,7 +6877,7 @@ LINPHONE_PUBLIC void linphone_core_enable_auto_download_voice_recordings(Linphon
  * Gets if the auto download for incoming voice recordings is enabled or not.
  * @param core #LinphoneCore object @notnil
  * @return TRUE if voice recordings will be automatically downloaded, FALSE otherwise.
- * @ingroup chat
+ * @ingroup chatroom
  * @deprecated 16/12/2021 Use linphone_core_auto_download_voice_recordings_enabled() instead.
  **/
 LINPHONE_PUBLIC bool_t linphone_core_is_auto_download_voice_recordings_enabled(LinphoneCore *core);
@@ -6886,7 +6886,7 @@ LINPHONE_PUBLIC bool_t linphone_core_is_auto_download_voice_recordings_enabled(L
  * Gets if the auto download for incoming voice recordings is enabled or not.
  * @param core #LinphoneCore object @notnil
  * @return TRUE if voice recordings will be automatically downloaded, FALSE otherwise.
- * @ingroup chat
+ * @ingroup chatroom
  **/
 LINPHONE_PUBLIC bool_t linphone_core_auto_download_voice_recordings_enabled(LinphoneCore *core);
 
@@ -6894,7 +6894,7 @@ LINPHONE_PUBLIC bool_t linphone_core_auto_download_voice_recordings_enabled(Linp
  * Automatically downloads files attached to a chat message if it's content type matches the one we use for icalendars.
  * @param core #LinphoneCore object @notnil
  * @param auto_download_icalendars TRUE to automatically download incoming icalendars, FALSE to disable it.
- * @ingroup chat
+ * @ingroup chatroom
  * @deprecated 16/12/2021 Use linphone_core_enable_auto_download_icalendars() instead.
  **/
 LINPHONE_PUBLIC void linphone_core_set_auto_download_icalendars_enabled(LinphoneCore *core,
@@ -6904,7 +6904,7 @@ LINPHONE_PUBLIC void linphone_core_set_auto_download_icalendars_enabled(Linphone
  * Automatically downloads files attached to a chat message if it's content type matches the one we use for icalendars.
  * @param core #LinphoneCore object @notnil
  * @param auto_download_icalendars TRUE to automatically download incoming icalendars, FALSE to disable it.
- * @ingroup chat
+ * @ingroup chatroom
  **/
 LINPHONE_PUBLIC void linphone_core_enable_auto_download_icalendars(LinphoneCore *core, bool_t auto_download_icalendars);
 
@@ -6912,7 +6912,7 @@ LINPHONE_PUBLIC void linphone_core_enable_auto_download_icalendars(LinphoneCore 
  * Gets if the automatic download of incoming icalendars is enabled or not.
  * @param core #LinphoneCore object @notnil
  * @return TRUE if icalendars will be automatically downloaded, FALSE otherwise.
- * @ingroup chat
+ * @ingroup chatroom
  * @deprecated 16/12/2021 Use linphone_core_auto_download_icalendars_enabled() instead.
  **/
 LINPHONE_PUBLIC bool_t linphone_core_is_auto_download_icalendars_enabled(LinphoneCore *core);
@@ -6921,7 +6921,7 @@ LINPHONE_PUBLIC bool_t linphone_core_is_auto_download_icalendars_enabled(Linphon
  * Gets if the automatic download of incoming icalendars is enabled or not.
  * @param core #LinphoneCore object @notnil
  * @return TRUE if icalendars will be automatically downloaded, FALSE otherwise.
- * @ingroup chat
+ * @ingroup chatroom
  **/
 LINPHONE_PUBLIC bool_t linphone_core_auto_download_icalendars_enabled(LinphoneCore *core);
 
@@ -8023,7 +8023,7 @@ LINPHONE_PUBLIC bool_t linphone_core_get_register_only_when_network_is_up(const 
  * See #LinphoneEphemeralChatMessagePolicy for more details.
  * @param core the core @notnil
  * @param policy the #LinphoneEphemeralChatMessagePolicy to use.
- * @ingroup chat
+ * @ingroup chatroom
  */
 LINPHONE_PUBLIC void linphone_core_set_ephemeral_chat_message_policy(LinphoneCore *core,
                                                                      LinphoneEphemeralChatMessagePolicy policy);
@@ -8034,7 +8034,7 @@ LINPHONE_PUBLIC void linphone_core_set_ephemeral_chat_message_policy(LinphoneCor
  * See #LinphoneEphemeralChatMessagePolicy for more details.
  * @param core the core @notnil
  * @return the current #LinphoneEphemeralChatMessagePolicy.
- * @ingroup chat
+ * @ingroup chatroom
  **/
 LINPHONE_PUBLIC LinphoneEphemeralChatMessagePolicy
 linphone_core_get_ephemeral_chat_message_policy(const LinphoneCore *core);

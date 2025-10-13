@@ -757,7 +757,7 @@ std::list<std::shared_ptr<Participant>> Conference::getFullParticipantList() con
 	return participantList;
 }
 
-int Conference::terminate() {
+int Conference::terminate(BCTBX_UNUSED(const LinphoneReason reason)) {
 	mParticipants.clear();
 	return 0;
 }
@@ -934,16 +934,6 @@ const string &Conference::getUsername() const {
 	return mUsername;
 }
 
-void Conference::join(BCTBX_UNUSED(const std::shared_ptr<Address> &participantAddress)) {
-}
-
-void Conference::leave() {
-}
-
-void Conference::setLocalParticipantStreamCapability(BCTBX_UNUSED(const LinphoneMediaDirection &direction),
-                                                     BCTBX_UNUSED(const LinphoneStreamType type)) {
-}
-
 bool Conference::update(const ConferenceParamsInterface &newParameters) {
 	const ConferenceParams &newConfParams = static_cast<const ConferenceParams &>(newParameters);
 	std::shared_ptr<Account> account;
@@ -973,11 +963,6 @@ bool Conference::removeParticipants(const list<shared_ptr<Participant>> &partici
 	for (const auto &p : participants)
 		soFarSoGood &= removeParticipant(p);
 	return soFarSoGood;
-}
-
-void Conference::setParticipantAdminStatus(BCTBX_UNUSED(const shared_ptr<Participant> &participant),
-                                           BCTBX_UNUSED(bool isAdmin)) {
-	lError() << "Conference class does not handle setParticipantAdminStatus() generically";
 }
 
 void Conference::setUtf8Subject(const string &subject) {
@@ -1561,7 +1546,19 @@ void Conference::setState(ConferenceInterface::State state) {
 	}
 }
 
+void Conference::notifyOperationFailed() {
+	auto it = mConfListeners.begin();
+	while (it != mConfListeners.end()) {
+		const auto listener = *it;
+		++it;
+		listener->onOperationFailed();
+	}
+}
+
 void Conference::notifyStateChanged(ConferenceInterface::State state) {
+	// Call callbacks before calling listeners because listeners may change state
+	linphone_core_notify_conference_state_changed(getCore()->getCCore(), toC(), (LinphoneConferenceState)mState);
+
 	auto it = mConfListeners.begin();
 	while (it != mConfListeners.end()) {
 		const auto listener = *it;
@@ -1935,6 +1932,12 @@ LinphoneMediaDirection Conference::verifyVideoDirection(BCTBX_UNUSED(const std::
                                                         const LinphoneMediaDirection suggestedVideoDirection) const {
 	// By default do not do anything
 	return suggestedVideoDirection;
+}
+
+void Conference::handleAcceptedRefer() {
+}
+
+void Conference::handleRejectedRefer() {
 }
 
 void Conference::setInputAudioDevice(const shared_ptr<AudioDevice> &audioDevice) {

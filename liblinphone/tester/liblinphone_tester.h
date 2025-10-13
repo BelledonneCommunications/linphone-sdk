@@ -527,6 +527,8 @@ typedef struct _stats {
 
 	int number_of_chat_room_subject_changed;
 
+	int number_of_chat_room_operation_failed;
+
 	int number_of_active_speaker_participant_device_changed;
 	int number_of_allowed_participant_list_changed;
 	int number_of_participants_added;
@@ -534,6 +536,7 @@ typedef struct _stats {
 	int number_of_participant_admin_statuses_changed;
 	int number_of_participants_removed;
 	int number_of_subject_changed;
+	int number_of_conference_operation_failed;
 	int number_of_available_media_changed;
 	int number_of_core_chat_room_subject_changed;
 

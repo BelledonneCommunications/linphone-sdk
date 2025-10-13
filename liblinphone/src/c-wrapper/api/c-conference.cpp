@@ -200,6 +200,11 @@ int linphone_conference_terminate(LinphoneConference *conference) {
 	return Conference::toCpp(conference)->terminate();
 }
 
+int linphone_conference_close(LinphoneConference *conference) {
+	ConferenceLogContextualizer logContextualizer(conference);
+	return Conference::toCpp(conference)->terminate(LinphoneReasonGone);
+}
+
 int linphone_conference_enter(LinphoneConference *conference) {
 	ConferenceLogContextualizer logContextualizer(conference);
 	return Conference::toCpp(conference)->enter();
@@ -209,6 +214,11 @@ int linphone_conference_leave(LinphoneConference *conference) {
 	ConferenceLogContextualizer logContextualizer(conference);
 	Conference::toCpp(conference)->leave();
 	return 0;
+}
+
+int linphone_conference_nominate_admin_and_leave(LinphoneConference *conference, const LinphoneAddress *new_admin) {
+	ConferenceLogContextualizer logContextualizer(conference);
+	return Conference::toCpp(conference)->nominateAdminAndLeave(Address::toCpp(new_admin)->getSharedFromThis());
 }
 
 bool_t linphone_conference_is_me(const LinphoneConference *conference, const LinphoneAddress *uri) {
@@ -572,6 +582,11 @@ void _linphone_conference_notify_participant_device_is_muted(LinphoneConference 
 void _linphone_conference_notify_state_changed(LinphoneConference *conference, LinphoneConferenceState newState) {
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Conference, Conference::toCpp(conference),
 	                                  linphone_conference_cbs_get_state_changed, newState);
+}
+
+void _linphone_conference_notify_operation_failed(LinphoneConference *conference) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(Conference, Conference::toCpp(conference),
+	                                         linphone_conference_cbs_get_operation_failed);
 }
 
 void _linphone_conference_notify_active_speaker_participant_device(

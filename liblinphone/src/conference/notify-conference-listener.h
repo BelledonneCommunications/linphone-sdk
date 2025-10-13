@@ -30,7 +30,7 @@ class Conference;
 
 class LINPHONE_PUBLIC NotifyConferenceListener : public ConferenceListenerInterface {
 public:
-	NotifyConferenceListener(Conference *conference) : conf(conference){};
+	NotifyConferenceListener(Conference *conference) : conf(conference) {};
 	virtual ~NotifyConferenceListener() = default;
 
 	/*
@@ -159,6 +159,11 @@ public:
 	 */
 	virtual void onParticipantDeviceScreenSharingChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
 	                                                     const std::shared_ptr<ParticipantDevice> &device) override;
+
+	/*
+	 * Notify Conference leave failed.
+	 */
+	virtual void onOperationFailed() override;
 
 	/*
 	 * Notify Conference state changes.

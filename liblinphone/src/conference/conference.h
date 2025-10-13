@@ -26,7 +26,7 @@
 #include "belle-sip/object++.hh"
 
 #include "address/address.h"
-#include "conference-cbs.h"
+#include "conference/conference-cbs.h"
 #include "conference/conference-id.h"
 #include "conference/conference-interface.h"
 #include "conference/conference-listener.h"
@@ -136,8 +136,7 @@ public:
 	const std::string &getSubject() const;
 	const std::string &getUtf8Subject() const override;
 
-	void join(const std::shared_ptr<Address> &participantAddress) override;
-	void leave() override;
+	virtual LinphoneStatus nominateAdminAndLeave(const std::shared_ptr<const Address> &newAdmin) = 0;
 
 	virtual void removeParticipantDevice(const std::shared_ptr<Participant> &participant,
 	                                     const std::shared_ptr<Address> &deviceAddress);
@@ -170,7 +169,6 @@ public:
 	virtual std::shared_ptr<Address> getConferenceAddress() const override;
 	void setConferenceAddress(const std::shared_ptr<Address> &conferenceAddress);
 
-	void setParticipantAdminStatus(const std::shared_ptr<Participant> &participant, bool isAdmin) override;
 	void setSubject(const std::string &subject);
 	void setUtf8Subject(const std::string &subject) override;
 
@@ -195,7 +193,7 @@ public:
 	};
 
 	virtual void setLocalParticipantStreamCapability(const LinphoneMediaDirection &direction,
-	                                                 const LinphoneStreamType type);
+	                                                 const LinphoneStreamType type) = 0;
 
 	virtual std::shared_ptr<ConferenceParticipantEvent> notifyParticipantAdded(
 	    time_t creationTime, const bool isFullState, const std::shared_ptr<Participant> &participant);
@@ -265,6 +263,7 @@ public:
 	void notifyLocalMutedDevices(bool muted);
 
 	virtual void notifyFullState();
+	virtual void notifyOperationFailed();
 	virtual void notifyStateChanged(ConferenceInterface::State state);
 	virtual void notifyActiveSpeakerParticipantDevice(const std::shared_ptr<ParticipantDevice> &participantDevice);
 
@@ -325,7 +324,7 @@ public:
 
 	virtual int getParticipantDeviceVolume(const std::shared_ptr<ParticipantDevice> &device) = 0;
 
-	virtual int terminate() = 0;
+	virtual int terminate(const LinphoneReason reason = LinphoneReasonNone) = 0;
 	virtual void finalizeCreation() = 0;
 
 	virtual int enter() = 0;
@@ -367,6 +366,8 @@ public:
 	virtual void handleRefer(SalReferOp *op,
 	                         const std::shared_ptr<LinphonePrivate::Address> &referAddr,
 	                         const std::string method) = 0;
+	virtual void handleAcceptedRefer();
+	virtual void handleRejectedRefer();
 
 	void resetLastNotify();
 

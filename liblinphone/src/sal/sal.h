@@ -111,6 +111,8 @@ public:
 	                                                   char **content);
 	using OnNotifyPresenceCb = void (*)(SalOp *op, SalSubscribeStatus ss, SalPresenceModel *model, const char *msg);
 	using OnRedirectCb = int (*)(SalOp *op);
+	using OnReferSuccessCb = void (*)(SalOp *op);
+	using OnReferFailureCb = void (*)(SalOp *op);
 	using OnSubscribePresenceReceivedCb = void (*)(SalPresenceOp *op, const char *from);
 	using OnSubscribePresenceClosedCb = void (*)(SalPresenceOp *op, const char *from);
 	using OnPingReplyCb = void (*)(SalOp *op);
@@ -164,6 +166,8 @@ public:
 		OnNotifyResponseCb on_notify_response;
 		OnReferCb refer_received; // For out of dialog refer
 		OnRedirectCb process_redirect;
+		OnReferSuccessCb refer_success;
+		OnReferFailureCb refer_failure;
 	};
 
 	Sal(MSFactory *factory);

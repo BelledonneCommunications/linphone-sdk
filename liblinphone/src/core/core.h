@@ -513,7 +513,7 @@ private:
 	Core();
 	void updateChatRoomList() const;
 
-	bool deleteEmptyChatrooms = true;
+	bool mDeleteEmptyChatrooms = true;
 	int mImdnToEverybodyThreshold = 5;
 	std::shared_ptr<SignalInformation> mSignalInformation = nullptr;
 	const ConferenceId prepareConfereceIdForSearch(const ConferenceId &conferenceId) const;

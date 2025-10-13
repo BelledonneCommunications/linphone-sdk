@@ -515,6 +515,8 @@ void Sal::setCallbacks(const Callbacks *cbs) {
 		mCallbacks.incoming_publish_closed = (OnIncomingPublishClosedCb)unimplementedStub;
 	if (!mCallbacks.on_expire) mCallbacks.on_expire = (OnExpireCb)unimplementedStub;
 	if (!mCallbacks.process_redirect) mCallbacks.process_redirect = (OnRedirectCb)unimplementedStub;
+	if (!mCallbacks.refer_success) mCallbacks.refer_success = (OnReferSuccessCb)unimplementedStub;
+	if (!mCallbacks.refer_failure) mCallbacks.refer_failure = (OnReferFailureCb)unimplementedStub;
 }
 
 void Sal::setFactory(MSFactory *value) {

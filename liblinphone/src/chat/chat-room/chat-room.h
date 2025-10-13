@@ -242,6 +242,7 @@ public:
 
 	void addCapability(AbstractChatRoom::CapabilitiesMask capability) override;
 	void onStateChanged(ConferenceInterface::State state) override;
+	void onOperationFailed() override;
 
 	std::list<std::shared_ptr<ComposingParticipant>> composingParticipants;
 	std::list<std::shared_ptr<EventLog>> transientEvents;
