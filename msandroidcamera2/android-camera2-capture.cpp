@@ -63,7 +63,8 @@ struct AndroidCamera2Context {
 			cameraDevice(nullptr), captureSession(nullptr), captureSessionOutputContainer(nullptr), 
 			nativeWindow(nullptr), captureWindow(nullptr), capturePreviewRequest(nullptr), 
 			cameraCaptureOutputTarget(nullptr), cameraPreviewOutputTarget(nullptr),
-			sessionCaptureOutput(nullptr), sessionPreviewOutput(nullptr), imageReader(nullptr) 
+			sessionCaptureOutput(nullptr), sessionPreviewOutput(nullptr), imageReader(nullptr),
+			retry_starting_capture(false)
 	{
 		captureSize.width = 0;
 		captureSize.height = 0;
@@ -128,6 +129,8 @@ struct AndroidCamera2Context {
 
 	ACameraDevice_StateCallbacks deviceStateCallbacks;
 	ACameraCaptureSession_stateCallbacks captureSessionStateCallbacks;
+
+	bool retry_starting_capture;
 };
 
 // We do this because the android_camera2_capture_device_on_disconnected and android_camera2_capture_device_on_error
@@ -175,10 +178,17 @@ static SharedAndroidCamera2Context sharedContext = {};
 static void android_camera2_capture_stop(AndroidCamera2Context *d);
 
 static void android_camera2_capture_device_on_disconnected(void *context, ACameraDevice *device) {
-    ms_message("[Camera2 Capture] Camera %s is disconnected", ACameraDevice_getId(device));
+    ms_warning("[Camera2 Capture] Camera %s is disconnected", ACameraDevice_getId(device));
 
 	AndroidCamera2Context *d = sharedContext.acquireContextLocked();
-	if (d != nullptr) android_camera2_capture_stop(d);
+	if (d != nullptr) {
+		if (d->capturing) {
+			ms_warning("[Camera2 Capture] Capture was started, stopping it");
+			android_camera2_capture_stop(d);
+		} else {
+			ms_warning("[Camera2 Capture] Capture wasn't started yet, doing nothing");
+		}
+	}
 	sharedContext.unlock();
 }
 
@@ -459,6 +469,17 @@ static void android_camera2_check_configuration_ok(AndroidCamera2Context *d) {
 	d->configured = true;
 }
 
+static void android_camera2_retry_capture_start_once_in_case_of_error(AndroidCamera2Context *d) {
+	if (d->retry_starting_capture) {
+		ms_error("[Camera2 Capture] We tried twice to start capture, considering configuration is wrong");
+		d->configured = false;
+		d->retry_starting_capture = false;
+	} else {
+		ms_error("[Camera2 Capture] Capture start failed, trying once again");
+		d->retry_starting_capture = true;
+	}
+}
+
 static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	ms_message("[Camera2 Capture] Starting capture");
 	camera_status_t camera_status = ACAMERA_OK;
@@ -539,7 +560,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	media_status_t status = AImageReader_new(d->captureSize.width, d->captureSize.height, d->captureFormat, 2, &d->imageReader);
 	if (status != AMEDIA_OK) {
 		ms_error("[Camera2 Capture] Failed to create image reader, error is %i", status);
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 	ms_message("[Camera2 Capture] Created image reader for size %ix%i and format %d", d->captureSize.width, d->captureSize.height, d->captureFormat);
@@ -550,14 +571,14 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
   	status = AImageReader_setImageListener(d->imageReader, d->imageReaderListener);
 	if (status != AMEDIA_OK) {
 		ms_error("[Camera2 Capture] Failed to set image listener, error is %i", status);
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 
 	status = AImageReader_getWindow(d->imageReader, &d->captureWindow);
 	if (status != AMEDIA_OK) {
 		ms_error("[Camera2 Capture] Capture window couldn't be acquired, error is %i", status);
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 	ANativeWindow_acquire(d->captureWindow);
@@ -565,42 +586,42 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	camera_status = ACameraOutputTarget_create(d->captureWindow, &d->cameraCaptureOutputTarget);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Couldn't create output target, error is %s", android_camera2_status_to_string(camera_status));
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 
 	camera_status = ACaptureRequest_addTarget(d->capturePreviewRequest, d->cameraCaptureOutputTarget);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Couldn't add output target to capture request, error is %s", android_camera2_status_to_string(camera_status));
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 
 	camera_status = ACaptureSessionOutput_create(d->captureWindow, &d->sessionCaptureOutput);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Couldn't create capture session output, error is %s", android_camera2_status_to_string(camera_status));
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 
 	camera_status = ACaptureSessionOutputContainer_add(d->captureSessionOutputContainer, d->sessionCaptureOutput);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Couldn't add capture session output to container, error is %s", android_camera2_status_to_string(camera_status));
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 
 	camera_status = ACameraDevice_createCaptureSession(d->cameraDevice, d->captureSessionOutputContainer, &d->captureSessionStateCallbacks, &d->captureSession);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Couldn't create capture session, error is %s", android_camera2_status_to_string(camera_status));
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 
 	camera_status = ACameraCaptureSession_setRepeatingRequest(d->captureSession, NULL, 1, &d->capturePreviewRequest, NULL);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Couldn't set capture session repeating request, error is %s", android_camera2_status_to_string(camera_status));
-		d->configured = false;
+		android_camera2_retry_capture_start_once_in_case_of_error(d);
 		return;
 	}
 
@@ -746,10 +767,15 @@ static void android_camera2_capture_process(MSFilter *f) {
 	
 	if (!d->capturing && d->configured) {
 		ms_filter_lock(f);
-		if (!d->capturing && d->configured) android_camera2_capture_start(d);
+		if (!d->capturing) {
+			if (d->configured) {
+				android_camera2_capture_start(d);
+			} else {
+				android_camera2_check_configuration_ok(d);
+			}
+		}
 		ms_filter_unlock(f);
-	}
-	
+	}	
 	
 	ms_mutex_lock(&d->mutex);
 	frame = d->frame;
@@ -775,6 +801,8 @@ static void android_camera2_capture_uninit(MSFilter *f) {
 
 	if (d->capturing) {
 		android_camera2_capture_stop(d);
+	} else {
+		android_camera2_capture_destroy_preview(d);
 	}
 
 	if (d->nativeWindowId != 0) {
@@ -1010,7 +1038,7 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 			ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
 		}
 	} else {
-		ms_message("[Camera2 Capture] New native window is the same as the current one, skipping...");
+		ms_warning("[Camera2 Capture] New native window is the same as the current one, skipping...");
 	}
 
 	return 0; 
