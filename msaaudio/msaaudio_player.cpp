@@ -296,6 +296,9 @@ static void _aaudio_player_init(AAudioOutputContext *octx) {
 		stream = nullptr;
 		return;
 	} else {
+		// Requires target API level to be at least 30
+		/*bool isMMapUsed = AAudioStream_isMMapUsed(stream);
+		ms_message("[AAudio Player] Player stream opened, is mMap used ? [%i]", isMMapUsed);*/
 		ms_message("[AAudio Player] Player stream opened");
 	}
 
@@ -406,12 +409,17 @@ static bool_t aaudio_player_restart(AAudioOutputContext *octx) {
 
 	aaudio_player_close(octx);
 	_aaudio_player_init(octx);
-	ms_message("[AAudio Player] Stream was restarted");
+	if (octx->stream != nullptr) {
+		ms_message("[AAudio Player] Stream was restarted");
 
-	if (octx->restartScheduled) {
-		ms_mutex_lock(&octx->stream_mutex);
-		octx->restartScheduled = false;
-		ms_mutex_unlock(&octx->stream_mutex);
+		if (octx->restartScheduled) {
+			ms_mutex_lock(&octx->stream_mutex);
+			octx->restartScheduled = false;
+			ms_mutex_unlock(&octx->stream_mutex);
+		}
+	} else {
+		ms_error("[AAudio Player] Failed to restart the stream, trying again");
+		ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 	}
 
 	return TRUE;
