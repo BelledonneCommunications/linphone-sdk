@@ -1172,12 +1172,16 @@ void media_stream_on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void
 		ms_warning("New outgoing SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
 		return;
 	} else {
+		/* Check the mid in packet matches the stream's session one */
+		char *streamMid = rtp_session_get_mid(ms->sessions.rtp_session);
+		if (streamMid == NULL) {
+			ms_warning("New outgoing SSRC %u but mid is unknown on session %p", ssrc, ms->sessions.rtp_session);
+			return;
+		}
 		sMid = bctbx_malloc0(midSize + 1);
 		memcpy(sMid, mid, midSize);
-		/* Check the mid in packet matches the stream's session one */
-		char *streamMid = rtp_bundle_get_session_mid(session->bundle, ms->sessions.rtp_session);
 		if ((strlen(streamMid) != midSize) || (memcmp(mid, streamMid, midSize) != 0)) {
-			ms_warning("New outgoing SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
+			ms_message("New outgoing SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
 			           session, sMid, streamMid);
 			bctbx_free(streamMid);
 			bctbx_free(sMid);
@@ -1240,7 +1244,7 @@ void media_stream_create_or_update_fec_session(MediaStream *ms) {
 	const PayloadType *fec_payload_type = rtp_profile_get_payload_from_mime(profile, "flexfec");
 	if (fec_payload_type == NULL) return;
 
-	char *mid = rtp_bundle_get_session_mid(ms->sessions.rtp_session->bundle, ms->sessions.rtp_session);
+	char *mid = rtp_session_get_mid(ms->sessions.rtp_session);
 	if (mid == NULL) return;
 
 	if (ms->sessions.fec_session == NULL) {

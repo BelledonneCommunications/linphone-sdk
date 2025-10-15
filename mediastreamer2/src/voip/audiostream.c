@@ -266,12 +266,18 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		ms_warning("New incoming SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
 		return;
 	} else {
+
+		/* Check the mid in packet matches the stream's session one */
+		char *streamMid = rtp_session_get_mid(stream->ms.sessions.rtp_session);
+		if (streamMid == NULL) {
+			ms_warning("New incoming SSRC %u on session %p, but session's mid is unknown.", ssrc,
+			           stream->ms.sessions.rtp_session);
+			return;
+		}
 		sMid = bctbx_malloc0(midSize + 1);
 		memcpy(sMid, mid, midSize);
-		/* Check the mid in packet matches the stream's session one */
-		char *streamMid = rtp_bundle_get_session_mid(session->bundle, stream->ms.sessions.rtp_session);
 		if ((strlen(streamMid) != midSize) || (memcmp(mid, streamMid, midSize) != 0)) {
-			ms_warning("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
+			ms_message("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
 			           session, sMid, streamMid);
 			bctbx_free(streamMid);
 			bctbx_free(sMid);

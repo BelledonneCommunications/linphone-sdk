@@ -115,6 +115,7 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	uint32_t ssrc = rtp_get_ssrc(m);
 	RtpSession **newSession = (RtpSession **)s;
 	VideoStream *stream = (VideoStream *)userData;
+	char *streamMid = NULL;
 
 	/* fetch the MID from the packet and check it is in sync with the current RtpSession one
 	 * Do not create a new session (-> packet drop) if :
@@ -130,22 +131,22 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		ms_warning("New incoming SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
 		return;
 	} else {
-		sMid = bctbx_malloc0(midSize + 1);
-		memcpy(sMid, mid, midSize);
+
 		/* Check the mid in packet matches the stream's session one */
-		char *streamMid = rtp_bundle_get_session_mid(session->bundle, stream->ms.sessions.rtp_session);
+		streamMid = rtp_session_get_mid(stream->ms.sessions.rtp_session);
 		if (streamMid == NULL) {
-			ms_warning("New incoming SSRC %u on session %p but mid of session is unknown at this time.", ssrc, session);
+			ms_warning("New incoming SSRC %u but mid of session %p is unknown at this time.", ssrc,
+			           stream->ms.sessions.rtp_session);
 			goto end;
 		}
+		sMid = bctbx_malloc0(midSize + 1);
+		memcpy(sMid, mid, midSize);
 		if ((strlen(streamMid) != midSize) || (memcmp(mid, streamMid, midSize) != 0)) {
 			/* this new SSRC is not for our stream, skip */
 			ms_message("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
 			           session, sMid, streamMid);
-			bctbx_free(streamMid);
 			goto end;
 		}
-		if (streamMid != NULL) bctbx_free(streamMid);
 	}
 	if (!stream->active_speaker_mode) {
 		/* We receive a new SSRC for a stream that is not expected to receive multiple streams at the time or
@@ -209,7 +210,8 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		    session, recycled_branch->session, recycled_branch->session->rcv.ssrc, ssrc);
 	}
 end:
-	bctbx_free(sMid);
+	if (sMid) bctbx_free(sMid);
+	if (streamMid != NULL) bctbx_free(streamMid);
 }
 
 void video_stream_free(VideoStream *stream) {
