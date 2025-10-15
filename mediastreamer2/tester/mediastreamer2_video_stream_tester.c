@@ -521,6 +521,9 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 	           payload_type_get_bitrate(vst2_pt), rtcp_bitrate_part * payload_type_get_bitrate(vst2_pt));
 	BC_ASSERT_LOWER(rtcp_send_bandwidth, (rtcp_bitrate_part * payload_type_get_bitrate(vst2_pt)), float, "%f");
 
+	destroy_video_stream(vst1);
+	destroy_video_stream(vst2);
+
 	if (vst1->bundle) {
 		rtp_bundle_delete(vst1->bundle);
 		vst1->bundle = NULL;
@@ -530,9 +533,6 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 		rtp_bundle_delete(vst2->bundle);
 		vst2->bundle = NULL;
 	}
-
-	destroy_video_stream(vst1);
-	destroy_video_stream(vst2);
 }
 
 static void change_codec(video_stream_tester_t *vst1, video_stream_tester_t *vst2, int payload_type) {

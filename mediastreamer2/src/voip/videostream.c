@@ -238,14 +238,14 @@ void video_stream_free(VideoStream *stream) {
 
 	if (stream->ms.sessions.rtp_session) {
 		RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
-		if (bundle) {
-			rtp_session_signal_disconnect_by_callback_and_user_data(rtp_bundle_get_primary_session(bundle),
-			                                                        "new_incoming_ssrc_found_in_bundle",
-			                                                        on_incoming_ssrc_in_bundle, stream);
+		RtpSession *primary_session = bundle ? rtp_bundle_get_primary_session(bundle) : NULL;
+		if (primary_session) {
+			rtp_session_signal_disconnect_by_callback_and_user_data(
+			    primary_session, "new_incoming_ssrc_found_in_bundle", on_incoming_ssrc_in_bundle, stream);
 			if (stream->ms.transfer_mode == TRUE) {
 				rtp_session_signal_disconnect_by_callback_and_user_data(
-				    rtp_bundle_get_primary_session(bundle), "new_outgoing_ssrc_found_in_bundle",
-				    media_stream_on_outgoing_ssrc_in_bundle, &stream->ms);
+				    primary_session, "new_outgoing_ssrc_found_in_bundle", media_stream_on_outgoing_ssrc_in_bundle,
+				    &stream->ms);
 			}
 		}
 	}

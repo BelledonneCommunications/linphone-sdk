@@ -996,6 +996,16 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		bctbx_list_free(relay_sessions_list);
 	}
 	bctbx_file_close(fp);
+
+	ms_media_stream_sessions_uninit(&marielle);
+	ms_media_stream_sessions_uninit(&margaux); // This will destroy rtpSession_margaux_marielle
+	rtp_session_destroy(rtpSession_margaux_pauline);
+	ms_media_stream_sessions_uninit(&pauline);
+	ms_media_stream_sessions_uninit(&relay_marielle);
+	ms_media_stream_sessions_uninit(&relay_margaux); // This will destroy rtpSession_relay_margaux_marielle
+	rtp_session_destroy(rtpSession_relay_margaux_pauline);
+	ms_media_stream_sessions_uninit(&relay_pauline);
+
 	rtp_bundle_delete(rtpBundle_relay);
 	rtp_bundle_delete(rtpBundle_margaux);
 	if (p.useBundledSource) {
@@ -1007,14 +1017,6 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		rtp_session_destroy(rtpSession_relay_margaux_marielle_bis);
 		rtp_session_destroy(rtpSession_margaux_marielle_bis);
 	}
-	ms_media_stream_sessions_uninit(&marielle);
-	ms_media_stream_sessions_uninit(&margaux); // This will destroy rtpSession_margaux_marielle
-	rtp_session_destroy(rtpSession_margaux_pauline);
-	ms_media_stream_sessions_uninit(&pauline);
-	ms_media_stream_sessions_uninit(&relay_marielle);
-	ms_media_stream_sessions_uninit(&relay_margaux); // This will destroy rtpSession_relay_margaux_marielle
-	rtp_session_destroy(rtpSession_relay_margaux_pauline);
-	ms_media_stream_sessions_uninit(&relay_pauline);
 
 	return error == false;
 }

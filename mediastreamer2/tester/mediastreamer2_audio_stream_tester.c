@@ -1315,16 +1315,16 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	BC_ASSERT_EQUAL(marielle_stats.rtp.sent_rtcp_packets + pauline_stats.rtp.sent_rtcp_packets,
 	                margaux_received_rtcp_packets, unsigned long long, "%llu");
 
-	/* cleaning */
-	rtp_bundle_delete(rtpBundle_margaux);
-	rtp_bundle_delete(rtpBundle_marielle);
-	rtp_bundle_delete(rtpBundle_pauline);
-
 	ms_media_stream_sessions_uninit(&marielle_sessions);
 	ms_media_stream_sessions_uninit(&margaux_sessions);
 	ms_media_stream_sessions_uninit(&pauline_sessions);
 	rtp_profile_destroy(profile);
 	bctbx_list_free(audiostreams);
+
+	/* cleaning */
+	rtp_bundle_delete(rtpBundle_margaux);
+	rtp_bundle_delete(rtpBundle_marielle);
+	rtp_bundle_delete(rtpBundle_pauline);
 
 	// unlink(recorded_file);
 	free(recorded_file);
