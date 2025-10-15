@@ -2300,14 +2300,16 @@ void video_stream_set_native_window_id(VideoStream *stream, void *id) {
 }
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, void *id) {
-	stream->preview_window_id = id;
+	if (stream) {
+		stream->preview_window_id = id;
 #if !TARGET_OS_IPHONE
-	if (stream->output2) {
-		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &id);
-	}
+		if (stream->output2) {
+			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &id);
+		}
 #endif
-	if (stream->source) {
-		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &id);
+		if (stream->source) {
+			ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &id);
+		}
 	}
 }
 
