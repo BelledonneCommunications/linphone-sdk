@@ -475,14 +475,9 @@ void ms_audio_conference_process_events(MSAudioConference *obj) {
 			RtpSession *session = ep->st->ms.sessions.rtp_session;
 			if (session == NULL) continue;
 
-			ortp_mutex_lock(&session->main_mutex);
-
 			rtp_session_clear_contributing_sources(session);
-
 			if (winner_ssrc > 0)
 				rtp_session_add_contributing_source(session, winner_ssrc, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-
-			ortp_mutex_unlock(&session->main_mutex);
 		}
 
 		obj->current_speaker_ssrc = winner_ssrc;
