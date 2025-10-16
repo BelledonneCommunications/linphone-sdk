@@ -8501,10 +8501,9 @@ static void client_changes_layout_in_conference_with_anonymous_participants_base
 		    LinphoneConferenceLayoutActiveSpeaker, LinphoneConferenceLayoutGrid};
 		for (const auto participant_layout : layout_sequence) {
 			for (auto mgr : members) {
-				stats participant_stat = mgr->stat;
-				focus_stat = focus.getStats();
-				ms_message("%s changes its layout of conference %s to %s", linphone_core_get_identity(mgr->lc),
-				           conference_address_str, linphone_conference_layout_to_string(participant_layout));
+				ms_message("%s changes its layout of conference %s to %s before dropping video capabilities",
+				           linphone_core_get_identity(mgr->lc), conference_address_str,
+				           linphone_conference_layout_to_string(participant_layout));
 				LinphoneCall *participant_call =
 				    linphone_core_get_call_by_remote_address2(mgr->lc, focus.getCMgr()->identity);
 				BC_ASSERT_PTR_NOT_NULL(participant_call);
@@ -8519,20 +8518,8 @@ static void client_changes_layout_in_conference_with_anonymous_participants_base
 				}
 				linphone_call_params_set_video_direction(new_params, video_direction);
 				linphone_call_params_set_conference_video_layout(new_params, participant_layout);
-				linphone_call_update(participant_call, new_params);
+				update_call(coresList, mgr, focus.getCMgr(), new_params);
 				linphone_call_params_unref(new_params);
-				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallUpdating,
-				                             participant_stat.number_of_LinphoneCallUpdating + 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallStreamsRunning,
-				                             participant_stat.number_of_LinphoneCallStreamsRunning + 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallUpdatedByRemote,
-				                             focus_stat.number_of_LinphoneCallUpdatedByRemote + 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
-				                             focus_stat.number_of_LinphoneCallStreamsRunning + 1,
-				                             liblinphone_tester_sip_timeout));
 				wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe, lise}, conferenceMgrs,
 				                            focus.getCMgr(), memberList, confAddr, TRUE, security_level);
 				const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
@@ -8557,9 +8544,7 @@ static void client_changes_layout_in_conference_with_anonymous_participants_base
 		}
 
 		for (auto mgr : members) {
-			stats participant_stat = mgr->stat;
-			focus_stat = focus.getStats();
-			ms_message("%s removes audio capabilities from the call to conference %s",
+			ms_message("%s removes video capabilities from the call to conference %s",
 			           linphone_core_get_identity(mgr->lc), conference_address_str);
 			LinphoneCall *participant_call =
 			    linphone_core_get_call_by_remote_address2(mgr->lc, focus.getCMgr()->identity);
@@ -8567,20 +8552,8 @@ static void client_changes_layout_in_conference_with_anonymous_participants_base
 			LinphoneCallParams *new_params = linphone_core_create_call_params(mgr->lc, participant_call);
 			linphone_call_params_set_media_encryption(new_params, encryption);
 			linphone_call_params_enable_video(new_params, FALSE);
-			linphone_call_update(participant_call, new_params);
+			update_call(coresList, mgr, focus.getCMgr(), new_params);
 			linphone_call_params_unref(new_params);
-			BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallUpdating,
-			                             participant_stat.number_of_LinphoneCallUpdating + 1,
-			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallStreamsRunning,
-			                             participant_stat.number_of_LinphoneCallStreamsRunning + 1,
-			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallUpdatedByRemote,
-			                             focus_stat.number_of_LinphoneCallUpdatedByRemote + 1,
-			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
-			                             focus_stat.number_of_LinphoneCallStreamsRunning + 1,
-			                             liblinphone_tester_sip_timeout));
 			wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe, lise}, conferenceMgrs,
 			                            focus.getCMgr(), memberList, confAddr, TRUE, security_level);
 			const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
@@ -8599,63 +8572,55 @@ static void client_changes_layout_in_conference_with_anonymous_participants_base
 			});
 		}
 
-		for (auto participant_layout_rit = layout_sequence.rbegin(); participant_layout_rit != layout_sequence.rend();
-		     ++participant_layout_rit) {
-			LinphoneConferenceLayout participant_layout = (*participant_layout_rit);
-			for (auto mgr_rit = members.rbegin(); mgr_rit != members.rend(); ++mgr_rit) {
-				LinphoneCoreManager *mgr = (*mgr_rit);
-				stats participant_stat = mgr->stat;
-				focus_stat = focus.getStats();
-				ms_message("%s changes its layout of conference %s to %s", linphone_core_get_identity(mgr->lc),
-				           conference_address_str, linphone_conference_layout_to_string(participant_layout));
-				LinphoneCall *participant_call =
-				    linphone_core_get_call_by_remote_address2(mgr->lc, focus.getCMgr()->identity);
-				BC_ASSERT_PTR_NOT_NULL(participant_call);
-				LinphoneCallParams *new_params = linphone_core_create_call_params(mgr->lc, participant_call);
-				linphone_call_params_set_media_encryption(new_params, encryption);
-				linphone_call_params_enable_video(new_params, TRUE);
-				LinphoneMediaDirection video_direction = LinphoneMediaDirectionSendRecv;
-				for (auto recvonly_mgr : recvonly_mgrs) {
-					if (recvonly_mgr == mgr) {
-						video_direction = LinphoneMediaDirectionRecvOnly;
+		for (LinphoneMediaDirection default_video_direction :
+		     {LinphoneMediaDirectionRecvOnly, LinphoneMediaDirectionSendRecv}) {
+			for (auto participant_layout_rit = layout_sequence.rbegin();
+			     participant_layout_rit != layout_sequence.rend(); ++participant_layout_rit) {
+				LinphoneConferenceLayout participant_layout = (*participant_layout_rit);
+				for (auto mgr_rit = members.rbegin(); mgr_rit != members.rend(); ++mgr_rit) {
+					LinphoneCoreManager *mgr = (*mgr_rit);
+					LinphoneCall *participant_call =
+					    linphone_core_get_call_by_remote_address2(mgr->lc, focus.getCMgr()->identity);
+					BC_ASSERT_PTR_NOT_NULL(participant_call);
+					LinphoneCallParams *new_params = linphone_core_create_call_params(mgr->lc, participant_call);
+					linphone_call_params_set_media_encryption(new_params, encryption);
+					linphone_call_params_enable_video(new_params, TRUE);
+					LinphoneMediaDirection video_direction = default_video_direction;
+					for (auto recvonly_mgr : recvonly_mgrs) {
+						if (recvonly_mgr == mgr) {
+							video_direction = LinphoneMediaDirectionRecvOnly;
+						}
 					}
-				}
-				linphone_call_params_set_video_direction(new_params, video_direction);
-				linphone_call_params_set_conference_video_layout(new_params, participant_layout);
-				linphone_call_update(participant_call, new_params);
-				linphone_call_params_unref(new_params);
-				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallUpdating,
-				                             participant_stat.number_of_LinphoneCallUpdating + 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallStreamsRunning,
-				                             participant_stat.number_of_LinphoneCallStreamsRunning + 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallUpdatedByRemote,
-				                             focus_stat.number_of_LinphoneCallUpdatedByRemote + 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
-				                             focus_stat.number_of_LinphoneCallStreamsRunning + 1,
-				                             liblinphone_tester_sip_timeout));
-				wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe, lise}, conferenceMgrs,
-				                            focus.getCMgr(), memberList, confAddr, TRUE, security_level);
-				const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
-				BC_ASSERT_PTR_NOT_NULL(call_lparams);
-				if (call_lparams) {
-					BC_ASSERT_EQUAL(video_direction, linphone_call_params_get_video_direction(call_lparams), int, "%i");
-				}
-				const LinphoneCallParams *call_cparams = linphone_call_get_current_params(participant_call);
-				BC_ASSERT_PTR_NOT_NULL(call_cparams);
-				if (call_cparams) {
-					LinphoneMediaDirection actual_video_direction =
-					    linphone_call_params_get_video_direction(call_cparams);
-					if (video_direction == LinphoneMediaDirectionRecvOnly) {
-						BC_ASSERT_TRUE((actual_video_direction == video_direction) ||
-						               (actual_video_direction == LinphoneMediaDirectionInactive));
+					linphone_call_params_set_video_direction(new_params, video_direction);
+					linphone_call_params_set_conference_video_layout(new_params, participant_layout);
+					ms_message("%s changes its layout of conference %s to %s setting video direction to %s",
+					           linphone_core_get_identity(mgr->lc), conference_address_str,
+					           linphone_conference_layout_to_string(participant_layout),
+					           linphone_media_direction_to_string(video_direction));
+					update_call(coresList, mgr, focus.getCMgr(), new_params);
+					linphone_call_params_unref(new_params);
+					wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe, lise}, conferenceMgrs,
+					                            focus.getCMgr(), memberList, confAddr, TRUE, security_level);
+					const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
+					BC_ASSERT_PTR_NOT_NULL(call_lparams);
+					if (call_lparams) {
+						BC_ASSERT_EQUAL(video_direction, linphone_call_params_get_video_direction(call_lparams), int,
+						                "%i");
 					}
+					const LinphoneCallParams *call_cparams = linphone_call_get_current_params(participant_call);
+					BC_ASSERT_PTR_NOT_NULL(call_cparams);
+					if (call_cparams) {
+						LinphoneMediaDirection actual_video_direction =
+						    linphone_call_params_get_video_direction(call_cparams);
+						if (video_direction == LinphoneMediaDirectionRecvOnly) {
+							BC_ASSERT_TRUE((actual_video_direction == video_direction) ||
+							               (actual_video_direction == LinphoneMediaDirectionInactive));
+						}
+					}
+					// wait a bit longer to detect side effect if any
+					CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe, lise})
+					    .waitUntil(chrono::seconds(2), [] { return false; });
 				}
-				// wait a bit longer to detect side effect if any
-				CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe, lise})
-				    .waitUntil(chrono::seconds(2), [] { return false; });
 			}
 		}
 
@@ -8664,8 +8629,7 @@ static void client_changes_layout_in_conference_with_anonymous_participants_base
 			LinphoneCall *call = linphone_core_get_call_by_remote_address2(mgr->lc, focus.getCMgr()->identity);
 			BC_ASSERT_PTR_NOT_NULL(call);
 			if (call) {
-				ms_message("%s is terminating call with %s", linphone_core_get_identity(mgr->lc),
-				           linphone_core_get_identity(focus.getLc()));
+				ms_message("%s is terminating call to %s", linphone_core_get_identity(mgr->lc), conference_address_str);
 				linphone_call_terminate(call);
 				BC_ASSERT_TRUE(
 				    wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallEnd, 1, liblinphone_tester_sip_timeout));
