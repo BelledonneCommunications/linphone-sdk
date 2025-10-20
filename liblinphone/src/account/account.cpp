@@ -292,7 +292,6 @@ void Account::setNeedToRegister(bool needToRegister) {
 		} catch (const bad_weak_ptr &) {
 			// Core pointer is null
 		}
-
 		triggerUpdate();
 	}
 }
