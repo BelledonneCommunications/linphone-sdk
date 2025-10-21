@@ -53,6 +53,7 @@ public:
 	bool isReadOnly() const override;
 
 	void deleteFromDb() override;
+	void deleteFromDbWithoutLeaving() override;
 
 	std::list<std::shared_ptr<EventLog>> getHistory(int nLast) const override;
 	std::list<std::shared_ptr<EventLog>> getHistory(int nLast, HistoryFilterMask filters) const override;
@@ -124,6 +125,8 @@ private:
 	virtual void sendPendingMessages() override;
 
 	void sendEphemeralUpdate();
+
+	void deleteChatRoomFromDb(bool leaveChatRoom);
 
 	bool mDeletionOnTerminationEnabled = false;
 	bool mListHandlerUsed = false;

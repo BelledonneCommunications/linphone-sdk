@@ -575,6 +575,10 @@ void linphone_core_remove_account(LinphoneCore *core, LinphoneAccount *account) 
 	L_GET_CPP_PTR_FROM_C_OBJECT(core)->removeAccount(Account::toCpp(account)->getSharedFromThis());
 }
 
+void linphone_core_remove_account_with_data(LinphoneCore *core, LinphoneAccount *account) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->removeAccountWithData(Account::toCpp(account)->getSharedFromThis());
+}
+
 const bctbx_list_t *linphone_core_get_deleted_account_list(const LinphoneCore *lc) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDeletedAccountsCList();
 }

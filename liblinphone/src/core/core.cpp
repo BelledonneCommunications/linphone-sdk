@@ -3190,6 +3190,35 @@ void Core::removeDependentAccount(const std::shared_ptr<Account> &account) {
 	}
 }
 
+void Core::removeAccountWithData(const std::shared_ptr<Account> &account) {
+	L_D();
+
+	// Delete chat messages and chat rooms without leaving them
+	const auto &chatRooms = account->getChatRooms();
+
+	for (const auto &chatRoom : chatRooms) {
+		chatRoom->deleteHistory();
+		chatRoom->deleteFromDbWithoutLeaving();
+	}
+
+	// Delete conferences information
+	const auto &conferenceInfos = account->getConferenceInfos();
+
+	for (const auto &conferenceInfo : conferenceInfos) {
+		d->deleteConferenceInfo(conferenceInfo->getUri());
+	}
+
+	// Delete call logs
+	account->deleteCallLogs();
+
+	// Delete AuthInfo if any
+	if (const auto *authInfo = account->findAuthInfo(); authInfo != nullptr)
+		linphone_core_remove_auth_info(getCCore(), authInfo);
+
+	// Finally, remove the account
+	removeAccount(account);
+}
+
 LinphoneStatus Core::addAccount(std::shared_ptr<Account> account) {
 	if (!account || !account->check()) {
 		return -1;

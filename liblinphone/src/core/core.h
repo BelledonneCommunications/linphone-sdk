@@ -464,6 +464,7 @@ public:
 	void removeAccount(std::shared_ptr<Account> account);
 	void removeDeletedAccount(const std::shared_ptr<Account> &account);
 	void removeDependentAccount(const std::shared_ptr<Account> &account);
+	void removeAccountWithData(const std::shared_ptr<Account> &account);
 	void clearAccounts();
 	void resetAccounts();
 	const std::list<std::shared_ptr<Account>> &getDeletedAccounts() const;

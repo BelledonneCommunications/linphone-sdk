@@ -151,14 +151,22 @@ bool ClientChatRoom::isReadOnly() const {
 	return getState() != ConferenceInterface::State::Created;
 }
 
-void ClientChatRoom::deleteFromDb() {
+void ClientChatRoom::deleteChatRoomFromDb(bool leaveChatRoom) {
 	auto ref = getSharedFromThis();
-	if (!hasBeenLeft()) {
+	if (leaveChatRoom && !hasBeenLeft()) {
 		setDeletionOnTerminationEnabled(true);
 		getConference()->leave();
 		return;
 	}
 	ChatRoom::deleteFromDb();
+}
+
+void ClientChatRoom::deleteFromDb() {
+	deleteChatRoomFromDb(true);
+}
+
+void ClientChatRoom::deleteFromDbWithoutLeaving() {
+	deleteChatRoomFromDb(false);
 }
 
 list<shared_ptr<EventLog>> ClientChatRoom::getHistory(int nLast) const {

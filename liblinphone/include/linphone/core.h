@@ -2518,6 +2518,16 @@ LINPHONE_PUBLIC void linphone_core_clear_accounts(LinphoneCore *core);
 LINPHONE_PUBLIC void linphone_core_remove_account(LinphoneCore *core, LinphoneAccount *account);
 
 /**
+ * Removes an account and any associated data.
+ *
+ * #LinphoneCore will then automatically unregister and place the account
+ * on a deleted list. For that reason, a removed account does NOT need to be freed.
+ * @param core #LinphoneCore object @notnil
+ * @param account the #LinphoneAccount to remove @notnil
+ **/
+LINPHONE_PUBLIC void linphone_core_remove_account_with_data(LinphoneCore *core, LinphoneAccount *account);
+
+/**
  * Returns an unmodifiable list of entered accounts.
  * @param core The #LinphoneCore object @notnil
  * @return \bctbx_list{LinphoneAccount} @maybenil

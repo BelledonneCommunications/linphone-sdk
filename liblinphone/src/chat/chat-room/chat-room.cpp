@@ -933,6 +933,10 @@ void ChatRoom::deleteFromDb() {
 	aggregatedMessages.clear();
 }
 
+void ChatRoom::deleteFromDbWithoutLeaving() {
+	deleteFromDb();
+}
+
 void ChatRoom::deleteHistory() {
 	getCore()->getPrivate()->mainDb->cleanHistory(getConferenceId());
 	setIsEmpty(true);

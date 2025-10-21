@@ -81,6 +81,7 @@ public:
 	int getHistorySize(HistoryFilterMask filters) const override;
 
 	void deleteFromDb() override;
+	void deleteFromDbWithoutLeaving() override;
 	void deleteHistory() override;
 	void deleteMessageFromHistory(const std::shared_ptr<ChatMessage> &message) override;
 	void retractMessage(const std::shared_ptr<ChatMessage> &message) override;

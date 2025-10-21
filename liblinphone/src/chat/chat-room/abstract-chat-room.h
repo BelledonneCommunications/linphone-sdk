@@ -154,6 +154,7 @@ public:
 	virtual int getHistorySize(HistoryFilterMask filters) const = 0;
 
 	virtual void deleteFromDb() = 0;
+	virtual void deleteFromDbWithoutLeaving() = 0;
 	virtual void deleteHistory() = 0;
 	virtual void deleteMessageFromHistory(const std::shared_ptr<ChatMessage> &message) = 0;
 	virtual void retractMessage(const std::shared_ptr<ChatMessage> &message) = 0;
