@@ -363,6 +363,26 @@ static void linphone_vcard_local_photo_to_base_64(void) {
 	BC_ASSERT_STRING_NOT_EQUAL(asString, asStringWithBase64Picture);
 	BC_ASSERT_STRING_EQUAL(base64vCard, asStringWithBase64Picture);
 	linphone_vcard_unref(lvc);
+	bctbx_free(asString);
+	bctbx_free(asStringWithBase64Picture);
+
+	lvc = linphone_vcard_context_get_vcard_from_buffer(
+	    linphone_core_get_vcard_context(manager->lc),
+	    "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Sylvain Berfini\r\nTEL;TYPE=work:"
+	    "0952636505\r\n\r\nEND:VCARD\r\n");
+	BC_ASSERT_PTR_NOT_NULL(lvc);
+	if (lvc == nullptr) return;
+
+	asString = ms_strdup(linphone_vcard_as_vcard4_string(lvc));
+	picture_path = bc_tester_res("images/doesnt_exists.jpeg");
+	picture = "file:";
+	picture.append(picture_path);
+	linphone_vcard_set_photo(lvc, picture.c_str());
+	asStringWithBase64Picture = ms_strdup(linphone_vcard_as_vcard4_string_with_base_64_picture(lvc));
+	BC_ASSERT_STRING_EQUAL(asString, asStringWithBase64Picture);
+	bctbx_free(picture_path);
+	linphone_vcard_unref(lvc);
+
 	bctbx_free(base64vCard);
 	bctbx_free(asString);
 	bctbx_free(asStringWithBase64Picture);
