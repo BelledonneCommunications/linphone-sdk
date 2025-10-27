@@ -26,6 +26,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <set>
 
 namespace bellesip {
 
@@ -187,6 +188,40 @@ public:
 	// The takeRef bool indicates whether a reference to the objects must be taken.
 	static bctbx_list_t *getCListFromCppList(const std::list<_CppType *> &cppList, bool takeRef = true) {
 		return buildCList(cppList, takeRef);
+	}
+
+	// Convenience method for easy bctbx_list(_Ctype) -> std::set<_CppType, Comp> conversion
+	// It does not take ownership of the hybrid object, but takes a ref.
+	template <typename _DerivedCppType = _CppType, typename _DerivedCType = _CType, typename Comp>
+	static std::set<std::shared_ptr<_DerivedCppType>, Comp> getCppSetFromCList(const bctbx_list_t *cList) {
+		std::list<std::shared_ptr<_DerivedCppType>> result;
+		for (auto it = cList; it != nullptr; it = bctbx_list_next(it))
+			result.insert(toCpp(static_cast<_DerivedCType *>(bctbx_list_get_data(it)))->getSharedFromThis());
+		return result;
+	}
+	// Convenience method for easy bctbx_list(_Ctype) -> std::set<_CppType, Comp> conversion
+	// Applies 'func' to get _CppType from _CType. Used in case we do not want to call  `toCpp` on _Ctype
+	template <typename _DerivedCppType = _CppType, typename _DerivedCType = _CType, typename Comp>
+	static std::set<std::shared_ptr<_DerivedCppType>, Comp>
+	getCppSetFromCList(const bctbx_list_t *cList,
+	                   const std::function<std::shared_ptr<_DerivedCppType>(_DerivedCType *)> &func) {
+		std::list<std::shared_ptr<_DerivedCppType>> result;
+		for (auto it = cList; it != nullptr; it = bctbx_list_next(it))
+			result.insert(func(static_cast<_DerivedCType *>(bctbx_list_get_data(it))));
+		return result;
+	}
+	// Convenience method for easy std::set<shared_ptr<CppType>, Comp> -> bctbx_list(CType) conversion
+	// The takeRef bool indicates whether a reference to the objects must be taken.
+	template <typename _DerivedCppType = _CppType, typename Comp>
+	static bctbx_list_t *getCListFromCppSet(const std::set<std::shared_ptr<_DerivedCppType>, Comp> &cppSet,
+	                                        bool takeRef = true) {
+		return buildCList(cppSet, takeRef);
+	}
+	// Convenience method for easy std::set<CppType*, Comp> -> bctbx_list(CType) conversion
+	// The takeRef bool indicates whether a reference to the objects must be taken.
+	template <typename _DerivedCppType = _CppType, typename Comp>
+	static bctbx_list_t *getCListFromCppSet(const std::set<_DerivedCppType *, Comp> &cppSet, bool takeRef = true) {
+		return buildCList(cppSet, takeRef);
 	}
 
 	static const char *nullifyEmptyString(const std::string &cppString) {

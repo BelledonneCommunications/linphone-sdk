@@ -2065,18 +2065,50 @@ void Core::handleIncomingMessageWaitingIndication(std::shared_ptr<Event> event, 
 // Remote Contact Directories.
 // -----------------------------------------------------------------------------
 
-const list<shared_ptr<RemoteContactDirectory>> &Core::getRemoteContactDirectories() {
+const Core::RemoteContactDirectorySet &Core::getRemoteContactDirectories() const {
 	return getPrivate()->mRemoteContactDirectories;
 }
 
+shared_ptr<RemoteContactDirectory>
+Core::findRemoteContactDirectory(shared_ptr<RemoteContactDirectory> remoteContactDirectory) const {
+	auto &directories = getPrivate()->mRemoteContactDirectories;
+	auto it = directories.find(remoteContactDirectory);
+	if (it == directories.end()) {
+		return nullptr;
+	}
+	return (*it);
+}
+
 void Core::addRemoteContactDirectory(shared_ptr<RemoteContactDirectory> remoteContactDirectory) {
-	getPrivate()->mRemoteContactDirectories.push_back(remoteContactDirectory);
+	auto &directories = getPrivate()->mRemoteContactDirectories;
+	auto [it, success] = directories.insert(remoteContactDirectory);
+	if (success) {
+		lInfo() << "Remote contact directory [" << remoteContactDirectory << "] has been added to the core";
+	} else {
+		auto storedRemoteContactDirectory = (*it);
+		// Sanity check
+		if (it != directories.end()) {
+			removeRemoteContactDirectory(storedRemoteContactDirectory);
+		}
+		auto [itStored, success] = directories.insert(remoteContactDirectory);
+		if (!success) {
+			storedRemoteContactDirectory = (*itStored);
+			lError() << "Remote contact directory [" << remoteContactDirectory << "] with index "
+			         << remoteContactDirectory->getSectionIndex() << " is the same as [" << storedRemoteContactDirectory
+			         << "] with index " << storedRemoteContactDirectory->getSectionIndex()
+			         << ", hence it will not be added to the core list";
+		}
+	}
 	writeRemoteContactDirectories();
 }
 
 void Core::removeRemoteContactDirectory(shared_ptr<RemoteContactDirectory> remoteContactDirectory) {
-	getPrivate()->mRemoteContactDirectories.remove(remoteContactDirectory);
-	writeRemoteContactDirectories();
+	auto &directories = getPrivate()->mRemoteContactDirectories;
+	if (auto it = directories.find(remoteContactDirectory); it != directories.end()) {
+		lInfo() << "Remote contact directory [" << (*it) << "] has been removed from the core list";
+		directories.erase(it);
+		writeRemoteContactDirectories();
+	}
 }
 
 void Core::loadRemoteContactDirectories() {
@@ -2090,7 +2122,7 @@ void Core::loadRemoteContactDirectories() {
 		auto rcd = (new RemoteContactDirectory(getSharedFromThis()))->toSharedPtr();
 		try {
 			rcd->readConfig(i);
-			d->mRemoteContactDirectories.push_back(rcd);
+			addRemoteContactDirectory(rcd);
 		} catch (...) {
 			// ignored
 		}
@@ -2116,7 +2148,7 @@ void CorePrivate::reloadRemoteContactDirectoriesLegacy() {
 
 	string carddavSection = "carddav_";
 	string ldapSection = "ldap_";
-	list<shared_ptr<RemoteContactDirectory>> paramsList;
+	decltype(mRemoteContactDirectories) paramsList;
 	for (auto itSections = bcSections; itSections; itSections = itSections->next) {
 		string section = static_cast<char *>(itSections->data);
 		if (section.rfind(carddavSection, 0) == 0) {
@@ -2126,7 +2158,7 @@ void CorePrivate::reloadRemoteContactDirectoriesLegacy() {
 					int index = stoi(indexStr);
 					auto params = CardDavParams::create(core, index);
 					auto remoteContactDirectory = RemoteContactDirectory::create(params);
-					paramsList.push_back(remoteContactDirectory);
+					paramsList.insert(remoteContactDirectory);
 				} catch (const invalid_argument &) {
 				} catch (const out_of_range &) {
 				}
@@ -2138,7 +2170,7 @@ void CorePrivate::reloadRemoteContactDirectoriesLegacy() {
 					int index = stoi(indexStr);
 					auto params = LdapParams::create(core, index);
 					auto remoteContactDirectory = RemoteContactDirectory::create(params);
-					paramsList.push_back(remoteContactDirectory);
+					paramsList.insert(remoteContactDirectory);
 				} catch (const invalid_argument &) {
 				} catch (const out_of_range &) {
 				}

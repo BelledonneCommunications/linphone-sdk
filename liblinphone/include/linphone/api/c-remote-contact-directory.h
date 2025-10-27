@@ -34,26 +34,27 @@ extern "C" {
 
 /**
  * Takes a reference on a #LinphoneRemoteContactDirectory.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return the same #LinphoneRemoteContactDirectory object. @notnil
  */
 LINPHONE_PUBLIC LinphoneRemoteContactDirectory *
-linphone_remote_contact_directory_ref(LinphoneRemoteContactDirectory *params);
+linphone_remote_contact_directory_ref(LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
  * Releases a #LinphoneRemoteContactDirectory.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  */
-LINPHONE_PUBLIC void linphone_remote_contact_directory_unref(LinphoneRemoteContactDirectory *params);
+LINPHONE_PUBLIC void linphone_remote_contact_directory_unref(LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /*****************************************************************************************************************/
 
 /**
  * Enable this remote contact directory, ie make it usable for searches with the #LinphoneMagicSearch object.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @param value A boolean.
  */
-LINPHONE_PUBLIC void linphone_remote_contact_directory_enable(LinphoneRemoteContactDirectory *params, bool_t value);
+LINPHONE_PUBLIC void linphone_remote_contact_directory_enable(LinphoneRemoteContactDirectory *remote_contact_directory,
+                                                              bool_t value);
 
 /**
  * Returns whether this remote contact directory is enabled, i.e. usable for searches with the
@@ -61,94 +62,100 @@ LINPHONE_PUBLIC void linphone_remote_contact_directory_enable(LinphoneRemoteCont
  * @param The #LinphoneRemoteContactDirectory object. @notnil
  * @returns a boolean.
  */
-LINPHONE_PUBLIC bool_t linphone_remote_contact_directory_enabled(const LinphoneRemoteContactDirectory *params);
+LINPHONE_PUBLIC bool_t
+linphone_remote_contact_directory_enabled(const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
  * Gets the type of remote contact directory (LDAP, CardDAV).
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return the #LinphoneRemoteContactDirectoryType of this remote contact directory.
  */
 LINPHONE_PUBLIC LinphoneRemoteContactDirectoryType
-linphone_remote_contact_directory_get_type(const LinphoneRemoteContactDirectory *params);
+linphone_remote_contact_directory_get_type(const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
- * Gets the CardDAV params if linphone_remote_contact_directory_get_type() returns CardDAV.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * Gets the CardDAV remote_contact_directory if linphone_remote_contact_directory_get_type() returns CardDAV.
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return the #LinphoneCardDavParams or NULL if not of CardDAV type. @maybenil
  */
-LINPHONE_PUBLIC LinphoneCardDavParams *
-linphone_remote_contact_directory_get_card_dav_params(const LinphoneRemoteContactDirectory *params);
+LINPHONE_PUBLIC LinphoneCardDavParams *linphone_remote_contact_directory_get_card_dav_remote_contact_directory(
+    const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
- * Gets the LDAP params if linphone_remote_contact_directory_get_type() returns LDAP.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * Gets the LDAP remote_contact_directory if linphone_remote_contact_directory_get_type() returns LDAP.
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return the #LinphoneLdapParams or NULL if not of LDAP type. @maybenil
  */
-LINPHONE_PUBLIC LinphoneLdapParams *
-linphone_remote_contact_directory_get_ldap_params(const LinphoneRemoteContactDirectory *params);
+LINPHONE_PUBLIC LinphoneLdapParams *linphone_remote_contact_directory_get_ldap_remote_contact_directory(
+    const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
  * Gets the configured remote contact directory server URL.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return the remote contact directory server URL. @maybenil
  */
 LINPHONE_PUBLIC const char *
-linphone_remote_contact_directory_get_server_url(const LinphoneRemoteContactDirectory *params);
+linphone_remote_contact_directory_get_server_url(const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
  * Sets the server URL to use to reach the remote contact directory server.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @param server_url the remote contact directory server URL. @maybenil
  */
-LINPHONE_PUBLIC void linphone_remote_contact_directory_set_server_url(LinphoneRemoteContactDirectory *params,
-                                                                      const char *server_url);
+LINPHONE_PUBLIC void
+linphone_remote_contact_directory_set_server_url(LinphoneRemoteContactDirectory *remote_contact_directory,
+                                                 const char *server_url);
 
 /**
  * Gets the maximum number of results to fetch, 0 means no limit.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return the maximum number of results, 0 means no limit.
  */
-LINPHONE_PUBLIC unsigned int linphone_remote_contact_directory_get_limit(const LinphoneRemoteContactDirectory *params);
+LINPHONE_PUBLIC unsigned int
+linphone_remote_contact_directory_get_limit(const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
  * Sets the maximum number of results to fetch, 0 means no limit.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @param limit the maximum number of results to return.
  */
-LINPHONE_PUBLIC void linphone_remote_contact_directory_set_limit(LinphoneRemoteContactDirectory *params,
-                                                                 unsigned int limit);
+LINPHONE_PUBLIC void
+linphone_remote_contact_directory_set_limit(LinphoneRemoteContactDirectory *remote_contact_directory,
+                                            unsigned int limit);
 
 /**
  * Gets the minimum number of characters to have before sending the query to the server.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return The mininum number of characters to have before sending the query.
  */
 LINPHONE_PUBLIC unsigned int
-linphone_remote_contact_directory_get_min_characters(const LinphoneRemoteContactDirectory *params);
+linphone_remote_contact_directory_get_min_characters(const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
  * Sets the minimum number of characters to have before sending the query to the server.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @param min the minimum characters to have in user input filter before sending the query.
  */
-LINPHONE_PUBLIC void linphone_remote_contact_directory_set_min_characters(LinphoneRemoteContactDirectory *params,
-                                                                          unsigned int min);
+LINPHONE_PUBLIC void
+linphone_remote_contact_directory_set_min_characters(LinphoneRemoteContactDirectory *remote_contact_directory,
+                                                     unsigned int min);
 
 /**
  * Gets the timeout (in seconds) after which the query is abandonned.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return The timeout (in seconds) after which the query is considered to be timed-out.
  */
 LINPHONE_PUBLIC unsigned int
-linphone_remote_contact_directory_get_timeout(const LinphoneRemoteContactDirectory *params);
+linphone_remote_contact_directory_get_timeout(const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
  * Sets the timeout (in seconds) after which the query is abandonned.
- * @param params The #LinphoneRemoteContactDirectory object. @notnil
+ * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @param seconds the number of seconds before considering the query as timed-out.
  */
-LINPHONE_PUBLIC void linphone_remote_contact_directory_set_timeout(LinphoneRemoteContactDirectory *params,
-                                                                   unsigned int seconds);
+LINPHONE_PUBLIC void
+linphone_remote_contact_directory_set_timeout(LinphoneRemoteContactDirectory *remote_contact_directory,
+                                              unsigned int seconds);
 
 /*****************************************************************************************************************/
 

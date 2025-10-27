@@ -21,21 +21,23 @@
 #ifndef _L_REMOTE_CONTACT_DIRECTORY_H_
 #define _L_REMOTE_CONTACT_DIRECTORY_H_
 
-#include "core/core.h"
-#include "ldap/ldap-params.h"
-#include "vcard/carddav-params.h"
+#include "core/core-accessor.h"
+#include "linphone/utils/utils.h"
 
 LINPHONE_BEGIN_NAMESPACE
+
+class LdapParams;
+class CardDavParams;
+class Core;
 
 class RemoteContactDirectory : public bellesip::HybridObject<LinphoneRemoteContactDirectory, RemoteContactDirectory>,
                                public CoreAccessor {
 public:
 	static constexpr const char *kRemoteContactDirectorySectionBase = "remote_contact_directory";
-	RemoteContactDirectory(const std::shared_ptr<CardDavParams> &cardDavParams);
-
-	RemoteContactDirectory(const std::shared_ptr<LdapParams> &ldapParams);
 
 	RemoteContactDirectory(const std::shared_ptr<Core> &core);
+	RemoteContactDirectory(const std::shared_ptr<CardDavParams> &cardDavParams);
+	RemoteContactDirectory(const std::shared_ptr<LdapParams> &ldapParams);
 
 	RemoteContactDirectory(const RemoteContactDirectory &ms) = delete;
 	virtual ~RemoteContactDirectory();
@@ -45,22 +47,18 @@ public:
 	LinphoneRemoteContactDirectoryType getType() const;
 
 	std::shared_ptr<CardDavParams> getCardDavParams() const;
-
 	std::shared_ptr<LdapParams> getLdapParams() const;
 
 	const std::string &getServerUrl() const;
-
 	void setServerUrl(const std::string &serverUrl);
 
 	unsigned int getLimit() const;
 	void setLimit(unsigned int limit);
 
 	unsigned int getMinCharactersToStartQuery() const;
-
 	void setMinCharactersToStartQuery(unsigned int min);
 
 	unsigned int getTimeout() const;
-
 	void setTimeout(unsigned int seconds);
 
 	void setDelayToStartQuery(int milliseconds);
@@ -70,8 +68,27 @@ public:
 	void enable(bool value);
 
 	void writeConfig(size_t sectionIndex);
-
 	void readConfig(size_t sectionIndex);
+	size_t getSectionIndex() const;
+
+	struct RemoteContactDirectorySharedPtrLess {
+		bool operator()(const std::shared_ptr<RemoteContactDirectory> &lhs,
+		                const std::shared_ptr<RemoteContactDirectory> &rhs) const {
+			bool ret = false;
+			auto lhsType = lhs->getType();
+			auto rhsType = rhs->getType();
+			if (lhsType == rhsType) {
+				if (lhsType == LinphoneRemoteContactDirectoryTypeCardDav) {
+					ret = (lhs->getCardDavParams() < rhs->getCardDavParams());
+				} else {
+					ret = (lhs->getLdapParams() < rhs->getLdapParams());
+				}
+			} else {
+				ret = (lhsType < rhsType);
+			}
+			return ret;
+		}
+	};
 
 private:
 	void syncConfigAsync();

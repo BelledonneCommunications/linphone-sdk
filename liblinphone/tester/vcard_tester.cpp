@@ -1291,13 +1291,13 @@ static void legacy_import_and_migration() {
 		rcds1 = (LinphoneRemoteContactDirectory *)rcds->data;
 		rcds2 = (LinphoneRemoteContactDirectory *)rcds->next->data;
 
-		BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_type(rcds1), LinphoneRemoteContactDirectoryTypeLdap, int,
-		                "%i");
-		BC_ASSERT_STRING_EQUAL(linphone_remote_contact_directory_get_server_url(rcds1), "ldap://ldap.example.org");
-
-		BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_type(rcds2), LinphoneRemoteContactDirectoryTypeCardDav,
+		BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_type(rcds1), LinphoneRemoteContactDirectoryTypeCardDav,
 		                int, "%i");
-		BC_ASSERT_STRING_EQUAL(linphone_remote_contact_directory_get_server_url(rcds2), "https://carddav.example.org");
+		BC_ASSERT_STRING_EQUAL(linphone_remote_contact_directory_get_server_url(rcds1), "https://carddav.example.org");
+
+		BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_type(rcds2), LinphoneRemoteContactDirectoryTypeLdap, int,
+		                "%i");
+		BC_ASSERT_STRING_EQUAL(linphone_remote_contact_directory_get_server_url(rcds2), "ldap://ldap.example.org");
 	}
 
 	/* now make sure the legacy sections are migrated */
@@ -1305,18 +1305,18 @@ static void legacy_import_and_migration() {
 	BC_ASSERT_FALSE(linphone_config_has_section(config, "carddav_0"));
 
 	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_0"));
-	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "type", "bad"), "ldap");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "type", "bad"), "carddav");
 	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "uri", "bad"),
-	                       "ldap://ldap.example.org");
-	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "ldap_filter", "bad"),
-	                       "somefilter");
-
-	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_1"));
-	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "type", "bad"), "carddav");
-	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "uri", "bad"),
 	                       "https://carddav.example.org");
 	BC_ASSERT_STRING_EQUAL(
-	    linphone_config_get_string(config, "remote_contact_directory_1", "carddav_use_exact_match_policy", "bad"), "0");
+	    linphone_config_get_string(config, "remote_contact_directory_0", "carddav_use_exact_match_policy", "bad"), "0");
+
+	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_1"));
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "type", "bad"), "ldap");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "uri", "bad"),
+	                       "ldap://ldap.example.org");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_1", "ldap_filter", "bad"),
+	                       "somefilter");
 
 	bctbx_list_free_with_data(rcds, (bctbx_list_free_func)linphone_remote_contact_directory_unref);
 
@@ -1349,11 +1349,11 @@ static void legacy_import_and_migration() {
 	                       "popopo");
 
 	BC_ASSERT_TRUE(linphone_config_has_section(config, "remote_contact_directory_0"));
-	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "type", "bad"), "carddav");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "type", "bad"), "ldap");
 	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "uri", "bad"),
-	                       "https://carddav.example.org");
-	BC_ASSERT_STRING_EQUAL(
-	    linphone_config_get_string(config, "remote_contact_directory_0", "carddav_use_exact_match_policy", "bad"), "0");
+	                       "ldap://ldap.example.org");
+	BC_ASSERT_STRING_EQUAL(linphone_config_get_string(config, "remote_contact_directory_0", "ldap_filter", "bad"),
+	                       "somefilter");
 
 	/* check that the legacy section don't come back accidentally */
 	BC_ASSERT_FALSE(linphone_config_has_section(config, "ldap_0"));

@@ -19,6 +19,11 @@
  */
 
 #include "remote-contact-directory.h"
+
+#include "core/core.h"
+#include "ldap/ldap-params.h"
+#include "vcard/carddav-params.h"
+
 using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
@@ -166,6 +171,10 @@ std::string RemoteContactDirectory::getSectionName() const {
 	return string(kRemoteContactDirectorySectionBase) + "_" + to_string(mSectionIndex);
 }
 
+size_t RemoteContactDirectory::getSectionIndex() const {
+	return mSectionIndex;
+}
+
 void RemoteContactDirectory::writeConfig(size_t sectionIndex) {
 	LinphoneConfig *cfg = linphone_core_get_config(getCore()->getCCore());
 	mSectionIndex = sectionIndex;
@@ -184,9 +193,10 @@ void RemoteContactDirectory::writeConfig(size_t sectionIndex) {
 	linphone_config_set_int(cfg, sectionName.c_str(), "enabled", enabled());
 	linphone_config_set_string(cfg, sectionName.c_str(), "type", type.c_str());
 	linphone_config_set_string(cfg, sectionName.c_str(), "uri", getServerUrl().c_str());
-	linphone_config_set_int(cfg, sectionName.c_str(), "timeout", getTimeout());
-	linphone_config_set_int(cfg, sectionName.c_str(), "min_characters", getMinCharactersToStartQuery());
-	linphone_config_set_int(cfg, sectionName.c_str(), "results_limit", getLimit());
+	linphone_config_set_int(cfg, sectionName.c_str(), "timeout", static_cast<int>(getTimeout()));
+	linphone_config_set_int(cfg, sectionName.c_str(), "min_characters",
+	                        static_cast<int>(getMinCharactersToStartQuery()));
+	linphone_config_set_int(cfg, sectionName.c_str(), "results_limit", static_cast<int>(getLimit()));
 	linphone_config_set_int(cfg, sectionName.c_str(), "delay", getDelayToStartQuery());
 	if (mCardDavParams) mCardDavParams->writeConfig(sectionName);
 	if (mLdapParams) mLdapParams->writeConfig(sectionName);
@@ -211,9 +221,11 @@ void RemoteContactDirectory::readConfig(size_t sectionIndex) {
 	}
 	enable(!!linphone_config_get_bool(cfg, sectionName.c_str(), "enabled", TRUE));
 	setServerUrl(linphone_config_get_string(cfg, sectionName.c_str(), "uri", ""));
-	setTimeout(linphone_config_get_int(cfg, sectionName.c_str(), "timeout", 5));
-	setMinCharactersToStartQuery(linphone_config_get_int(cfg, sectionName.c_str(), "min_characters", 3));
-	setLimit(linphone_config_get_int(cfg, sectionName.c_str(), "results_limit", 0)); // Not limited.
+	setTimeout(static_cast<unsigned int>(linphone_config_get_int(cfg, sectionName.c_str(), "timeout", 5)));
+	setMinCharactersToStartQuery(
+	    static_cast<unsigned int>(linphone_config_get_int(cfg, sectionName.c_str(), "min_characters", 3)));
+	setLimit(static_cast<unsigned int>(
+	    linphone_config_get_int(cfg, sectionName.c_str(), "results_limit", 0))); // Not limited.
 	setDelayToStartQuery(linphone_config_get_int(cfg, sectionName.c_str(), "delay", 500));
 	/* now read specific carddav or ldap parameters */
 	if (mType == LinphoneRemoteContactDirectoryTypeCardDav) {

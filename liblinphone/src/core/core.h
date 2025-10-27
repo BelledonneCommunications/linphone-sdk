@@ -40,6 +40,7 @@
 #include "linphone/enums/c-enums.h"
 #include "linphone/types.h"
 #include "object/object.h"
+#include "search/remote-contact-directory.h"
 
 // =============================================================================
 
@@ -359,9 +360,14 @@ public:
 
 	void handleIncomingMessageWaitingIndication(std::shared_ptr<Event> event, const Content *content);
 
+	typedef std::set<std::shared_ptr<RemoteContactDirectory>,
+	                 RemoteContactDirectory::RemoteContactDirectorySharedPtrLess>
+	    RemoteContactDirectorySet;
 	void loadRemoteContactDirectories();
 	void writeRemoteContactDirectories();
-	const std::list<std::shared_ptr<RemoteContactDirectory>> &getRemoteContactDirectories();
+	const RemoteContactDirectorySet &getRemoteContactDirectories() const;
+	std::shared_ptr<RemoteContactDirectory>
+	findRemoteContactDirectory(std::shared_ptr<RemoteContactDirectory> remoteContactDirectory) const;
 
 	void addRemoteContactDirectory(std::shared_ptr<RemoteContactDirectory> remoteContactDirectory);
 	void removeRemoteContactDirectory(std::shared_ptr<RemoteContactDirectory> remoteContactDirectory);
