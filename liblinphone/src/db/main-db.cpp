@@ -2555,9 +2555,11 @@ std::shared_ptr<Friend> MainDbPrivate::selectFriend(const soci::row &row) const 
 }
 
 std::shared_ptr<FriendList> MainDbPrivate::selectFriendList(const soci::row &row) const {
+	L_Q();
 	const long long &dbFriendListId = dbSession.resolveId(row, 0);
-	std::shared_ptr<FriendList> friendList = FriendList::create(nullptr);
-	friendList->mStoreInDb = true; // Obviously
+	std::shared_ptr<FriendList> friendList = FriendList::create(q->getCore());
+	friendList->inhibitDatabaseStorage(true); // for the time of loading data into it
+	friendList->mStoreInDb = true;            // Obviously
 	friendList->mStorageId = dbFriendListId;
 	friendList->setDisplayName(row.get<string>(1));
 	friendList->setRlsUri(row.get<string>(2));
@@ -2571,6 +2573,7 @@ std::shared_ptr<FriendList> MainDbPrivate::selectFriendList(const soci::row &row
 	} else {
 		friendList->mRevision = ctag;
 	}
+	friendList->inhibitDatabaseStorage(false);
 
 	friendList->setIsReadOnly(!!row.get<int>(7));
 
@@ -8387,7 +8390,6 @@ std::list<std::shared_ptr<FriendList>> MainDb::getFriendLists() {
 		     << "SELECT id, name, rls_uri, sync_uri, revision, type, ctag, readOnly FROM friends_list ORDER BY id");
 		for (const auto &row : rows) {
 			auto list = d->selectFriendList(row);
-			list->setCore(getCore());
 			auto friends = d->getFriends(list);
 			list->setFriends(friends);
 			clList.push_back(list);
