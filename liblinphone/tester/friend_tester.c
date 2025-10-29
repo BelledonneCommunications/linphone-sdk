@@ -2392,6 +2392,10 @@ static void check_results(LinphoneCoreManager *manager, bctbx_list_t *resultList
 		for (int i = 0; i < (int)bctbx_list_size(resultList); ++i) {
 			const LinphoneSearchResult *sr = bctbx_list_nth_data(resultList, i);
 			const LinphoneFriend *lf = linphone_search_result_get_friend(sr);
+			if (((sourceFlags & LinphoneMagicSearchSourceLdapServers) == LinphoneMagicSearchSourceLdapServers) ||
+			    ((sourceFlags & LinphoneMagicSearchSourceRemoteCardDAV) == LinphoneMagicSearchSourceRemoteCardDAV)) {
+				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
+			}
 			const LinphoneAddress *search_result_address = linphone_search_result_get_address(sr);
 			const LinphoneAddress *la =
 			    (search_result_address) ? search_result_address : linphone_friend_get_address(lf);

@@ -251,8 +251,13 @@ void Friend::setVcard(const std::shared_ptr<Vcard> &vcard) {
 // -----------------------------------------------------------------------------
 
 bool Friend::isReadOnly() const {
-	if (mFriendList) return mFriendList->isReadOnly();
-	return false;
+	// If the friend list is read-only, then the friend can't be edited no matter it's own read-only value.
+	if (mFriendList && mFriendList->isReadOnly()) return true;
+	return mIsReadOnly;
+}
+
+void Friend::setReadOnly(bool isReadOnly) {
+	mIsReadOnly = isReadOnly;
 }
 
 const std::shared_ptr<Address> Friend::getAddress() const {

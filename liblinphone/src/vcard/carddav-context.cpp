@@ -646,6 +646,8 @@ void CardDAVContext::magicSearchResultsVcardsPulled(const list<CardDAVResponse> 
 
 				shared_ptr<Friend> newFriend = Friend::create(getCore(), vcard);
 				if (newFriend) {
+					// Friends from remote contact directories are read only
+					newFriend->setReadOnly(true);
 					results.push_back(newFriend);
 				}
 			}

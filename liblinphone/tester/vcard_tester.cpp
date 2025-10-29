@@ -913,6 +913,11 @@ static void magic_search_carddav_query_from_api(void) {
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
+			LinphoneFriend *lf = linphone_search_result_get_friend(result);
+			BC_ASSERT_PTR_NOT_NULL(lf);
+			if (lf != nullptr) {
+				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
+			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
 			                       "François Grisez");
 			bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
@@ -927,6 +932,11 @@ static void magic_search_carddav_query_from_api(void) {
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
+			LinphoneFriend *lf = linphone_search_result_get_friend(result);
+			BC_ASSERT_PTR_NOT_NULL(lf);
+			if (lf != nullptr) {
+				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
+			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
 			                       "François Grisez");
 			bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
@@ -942,6 +952,11 @@ static void magic_search_carddav_query_from_api(void) {
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
+			LinphoneFriend *lf = linphone_search_result_get_friend(result);
+			BC_ASSERT_PTR_NOT_NULL(lf);
+			if (lf != nullptr) {
+				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
+			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
 			                       "François Grisez");
 			bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
@@ -1098,6 +1113,11 @@ static void magic_search_carddav_query_from_config(void) {
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 2, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
+			LinphoneFriend *lf = linphone_search_result_get_friend(result);
+			BC_ASSERT_PTR_NOT_NULL(lf);
+			if (lf != nullptr) {
+				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
+			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
 			                       "Ghislain Mary");
 		}
@@ -1112,6 +1132,11 @@ static void magic_search_carddav_query_from_config(void) {
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
+			LinphoneFriend *lf = linphone_search_result_get_friend(result);
+			BC_ASSERT_PTR_NOT_NULL(lf);
+			if (lf != nullptr) {
+				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
+			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
 			                       "Ghislain Mary");
 		}
@@ -1141,6 +1166,11 @@ static void magic_search_carddav_query_from_config(void) {
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
+			LinphoneFriend *lf = linphone_search_result_get_friend(result);
+			BC_ASSERT_PTR_NOT_NULL(lf);
+			if (lf != nullptr) {
+				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
+			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
 			                       "Margaux Clerc");
 		}
@@ -1176,6 +1206,11 @@ static void magic_search_carddav_query_from_config(void) {
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 2, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
+			LinphoneFriend *lf = linphone_search_result_get_friend(result);
+			BC_ASSERT_PTR_NOT_NULL(lf);
+			if (lf != nullptr) {
+				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
+			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
 			                       "Ghislain Mary");
 		}

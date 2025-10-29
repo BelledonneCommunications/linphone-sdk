@@ -140,6 +140,7 @@ public:
 	LinphoneSecurityLevel getSecurityLevelForAddress(const Address &address) const;
 
 	bool isReadOnly() const;
+	void setReadOnly(bool isReadOnly);
 
 	// Other
 	void addAddress(const std::shared_ptr<const Address> &address);
@@ -209,6 +210,7 @@ private:
 	std::string mRefKey;
 	long long mStorageId = -1;
 	int mRcIndex = -1;
+	bool mIsReadOnly = false;
 
 	SalPresenceOp *mOutSub = nullptr;
 	std::list<SalOp *> mInSubs; /* There can be multiple instances of a same Friend that subscribe to our presence. */

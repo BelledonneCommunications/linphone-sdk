@@ -758,6 +758,8 @@ void LdapContactProvider::handleSearchResult(LDAPMessage *message) {
 						}
 						int maxResults = atoi(mConfig["max_results"][0].c_str());
 						if (maxResults == 0 || req->mFoundCount < (unsigned int)maxResults) {
+							// Friends from remote contact directories are read only
+							lFriend->setReadOnly(true);
 							req->mFoundEntries.push_back(lFriend);
 							++req->mFoundCount;
 						} else { // Have more result (requested max_results+1). Do not store this result to
