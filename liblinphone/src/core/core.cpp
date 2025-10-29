@@ -2069,6 +2069,34 @@ const Core::RemoteContactDirectorySet &Core::getRemoteContactDirectories() const
 	return getPrivate()->mRemoteContactDirectories;
 }
 
+size_t Core::findRemoteContactDirectoryFreeIndex() const {
+	const auto &directories = getPrivate()->mRemoteContactDirectories;
+	if (directories.empty()) {
+		return 0;
+	}
+	std::set<size_t> indexes;
+	for (const auto &rcd : directories) {
+		indexes.insert(rcd->getSectionIndex());
+	}
+	auto indexBegin = indexes.begin();
+	if (*indexBegin != 0) {
+		return 0;
+	}
+	auto indexEnd = indexes.end();
+	size_t max_index = (*indexBegin);
+	for (auto it = indexBegin; it != indexEnd; it++) {
+		auto it2 = std::next(it, 1);
+		if (it2 != indexEnd) {
+			if (((*it2) - (*it)) > 1) {
+				return ((*it) + 1);
+			} else {
+				max_index = (*it2);
+			}
+		}
+	}
+	return (max_index + 1);
+}
+
 shared_ptr<RemoteContactDirectory>
 Core::findRemoteContactDirectory(shared_ptr<RemoteContactDirectory> remoteContactDirectory) const {
 	auto &directories = getPrivate()->mRemoteContactDirectories;
@@ -2080,6 +2108,9 @@ Core::findRemoteContactDirectory(shared_ptr<RemoteContactDirectory> remoteContac
 }
 
 void Core::addRemoteContactDirectory(shared_ptr<RemoteContactDirectory> remoteContactDirectory) {
+	if (remoteContactDirectory->getSectionIndex() == (size_t)-1) {
+		remoteContactDirectory->setSectionIndex(findRemoteContactDirectoryFreeIndex());
+	}
 	auto &directories = getPrivate()->mRemoteContactDirectories;
 	auto [it, success] = directories.insert(remoteContactDirectory);
 	if (success) {
@@ -2133,22 +2164,22 @@ void Core::writeRemoteContactDirectories() {
 	LinphoneConfig *cfg = linphone_core_get_config(getCCore());
 
 	string sectionName;
-	size_t i = 0;
 	linphone_config_clean_section_suite(cfg, RemoteContactDirectory::kRemoteContactDirectorySectionBase);
 	for (auto rcd : getRemoteContactDirectories()) {
-		rcd->writeConfig(i);
-		++i;
+		auto idx = rcd->getSectionIndex();
+		L_ASSERT(idx != (size_t)-1);
+		rcd->writeConfig(idx);
 	}
 }
 
 void CorePrivate::reloadRemoteContactDirectoriesLegacy() {
+	L_Q();
 	auto core = getPublic()->getSharedFromThis();
 	auto lpConfig = linphone_core_get_config(getCCore());
 	bctbx_list_t *bcSections = linphone_config_get_sections_names_list(lpConfig);
 
 	string carddavSection = "carddav_";
 	string ldapSection = "ldap_";
-	decltype(mRemoteContactDirectories) paramsList;
 	for (auto itSections = bcSections; itSections; itSections = itSections->next) {
 		string section = static_cast<char *>(itSections->data);
 		if (section.rfind(carddavSection, 0) == 0) {
@@ -2158,7 +2189,7 @@ void CorePrivate::reloadRemoteContactDirectoriesLegacy() {
 					int index = stoi(indexStr);
 					auto params = CardDavParams::create(core, index);
 					auto remoteContactDirectory = RemoteContactDirectory::create(params);
-					paramsList.insert(remoteContactDirectory);
+					q->addRemoteContactDirectory(remoteContactDirectory);
 				} catch (const invalid_argument &) {
 				} catch (const out_of_range &) {
 				}
@@ -2170,7 +2201,7 @@ void CorePrivate::reloadRemoteContactDirectoriesLegacy() {
 					int index = stoi(indexStr);
 					auto params = LdapParams::create(core, index);
 					auto remoteContactDirectory = RemoteContactDirectory::create(params);
-					paramsList.insert(remoteContactDirectory);
+					q->addRemoteContactDirectory(remoteContactDirectory);
 				} catch (const invalid_argument &) {
 				} catch (const out_of_range &) {
 				}
@@ -2179,7 +2210,6 @@ void CorePrivate::reloadRemoteContactDirectoriesLegacy() {
 	}
 
 	if (bcSections) bctbx_list_free(bcSections);
-	mRemoteContactDirectories = paramsList;
 	if (!mRemoteContactDirectories.empty()) {
 		mRemoteContactDirectoryMigrationNeeded = true;
 	}

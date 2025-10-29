@@ -171,6 +171,10 @@ std::string RemoteContactDirectory::getSectionName() const {
 	return string(kRemoteContactDirectorySectionBase) + "_" + to_string(mSectionIndex);
 }
 
+void RemoteContactDirectory::setSectionIndex(size_t index) {
+	mSectionIndex = index;
+}
+
 size_t RemoteContactDirectory::getSectionIndex() const {
 	return mSectionIndex;
 }

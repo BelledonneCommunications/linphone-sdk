@@ -368,6 +368,7 @@ public:
 	const RemoteContactDirectorySet &getRemoteContactDirectories() const;
 	std::shared_ptr<RemoteContactDirectory>
 	findRemoteContactDirectory(std::shared_ptr<RemoteContactDirectory> remoteContactDirectory) const;
+	size_t findRemoteContactDirectoryFreeIndex() const;
 
 	void addRemoteContactDirectory(std::shared_ptr<RemoteContactDirectory> remoteContactDirectory);
 	void removeRemoteContactDirectory(std::shared_ptr<RemoteContactDirectory> remoteContactDirectory);

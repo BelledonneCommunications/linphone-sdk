@@ -69,15 +69,21 @@ public:
 
 	void writeConfig(size_t sectionIndex);
 	void readConfig(size_t sectionIndex);
+
+	void setSectionIndex(size_t index);
 	size_t getSectionIndex() const;
 
 	struct RemoteContactDirectorySharedPtrLess {
 		bool operator()(const std::shared_ptr<RemoteContactDirectory> &lhs,
 		                const std::shared_ptr<RemoteContactDirectory> &rhs) const {
 			bool ret = false;
+			auto lhsIndex = lhs->getSectionIndex();
+			auto rhsIndex = rhs->getSectionIndex();
 			auto lhsType = lhs->getType();
 			auto rhsType = rhs->getType();
-			if (lhsType == rhsType) {
+			if ((lhsIndex != (size_t)-1) && (rhsIndex != (size_t)-1)) {
+				ret = (lhsIndex < rhsIndex);
+			} else if (lhsType == rhsType) {
 				if (lhsType == LinphoneRemoteContactDirectoryTypeCardDav) {
 					ret = (lhs->getCardDavParams() < rhs->getCardDavParams());
 				} else {

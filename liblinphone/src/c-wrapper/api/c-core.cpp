@@ -333,6 +333,9 @@ void linphone_core_add_ldap(LinphoneCore *core, LinphoneLdap *ldap) {
 	LinphoneLdapParams *params = linphone_ldap_get_params(ldap);
 	auto ldapParams = LdapParams::toCpp(params)->getSharedFromThis();
 	auto rdc = RemoteContactDirectory::create(ldapParams);
+	if (L_GET_CPP_PTR_FROM_C_OBJECT(core)->findRemoteContactDirectory(rdc)) {
+		return;
+	}
 	L_GET_CPP_PTR_FROM_C_OBJECT(core)->addRemoteContactDirectory(rdc);
 }
 
