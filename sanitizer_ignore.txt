@@ -49,6 +49,7 @@ leak:one_to_one_group_chat_room_deletion_by_server_client
 leak:group_chat_room_with_client_deletes_chatroom_after_restart
 leak:multidomain_group_chat_room
 leak:group_chat_room_with_invite_error_when_updating_subject
+leak:group_chat_room_bulk_notify_full_state_to_participant
 
 # Local conference tester (Secure Chat)
 leak:secure_one_to_one_chat_room_with_client_removed_from_database

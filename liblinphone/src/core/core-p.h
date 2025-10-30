@@ -107,7 +107,9 @@ public:
 	void sendDeliveryNotifications();
 	void sendQueuedMessages();
 	void insertChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom);
-	void insertChatRoomWithDb(const std::shared_ptr<AbstractChatRoom> &chatRoom, unsigned int notifyId = 0);
+	void insertChatRoomWithDb(const std::shared_ptr<AbstractChatRoom> &chatRoom,
+	                          unsigned int notifyId = 0,
+	                          bool rewriteAllInformations = false);
 	std::shared_ptr<AbstractChatRoom> createBasicChatRoom(const ConferenceId &conferenceId,
 	                                                      const std::shared_ptr<ConferenceParams> &params);
 

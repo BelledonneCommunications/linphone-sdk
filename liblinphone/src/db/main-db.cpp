@@ -429,7 +429,9 @@ long long MainDbPrivate::insertOrUpdateImportedBasicChatRoom(long long peerSipAd
 #endif
 }
 
-long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom, unsigned int notifyId) {
+long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom,
+                                        unsigned int notifyId,
+                                        bool rewriteAllInformations) {
 #ifdef HAVE_DB_STORAGE
 	L_Q();
 	if (q->isInitialized()) {
@@ -451,26 +453,51 @@ long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chat
 		try {
 			const int flags = chatRoom->hasBeenLeft() ? 1 : 0;
 			const auto &chatRoomParams = chatRoom->getCurrentParams();
+
+			auto creationTime = dbSession.getTimeWithSociIndicator(chatRoom->getCreationTime());
+			auto lastUpdateTime = dbSession.getTimeWithSociIndicator(chatRoom->getLastUpdateTime());
+
+			// Remove capabilities like `Proxy`.
+			const int &capabilities =
+			    chatRoom->getCapabilities() & ~ChatRoom::CapabilitiesMask(ChatRoom::Capabilities::Proxy);
+
+			const string &subject = chatRoomParams->getUtf8Subject();
+			int ephemeralEnabled = chatRoom->ephemeralEnabled() ? 1 : 0;
+			const long ephemeralLifetime = chatRoom->getEphemeralLifetime();
+			const long ephemeralNotReadLifetime = chatRoom->getEphemeralNotReadLifetime();
+			const long long &dbConferenceInfoId = selectConferenceInfoId(peerSipAddressNoGruuId);
+			const long long conferenceInfoId = (dbConferenceInfoId <= 0) ? 0 : dbConferenceInfoId;
+
 			if (chatRoomId >= 0) {
-				// The chat room is already stored in DB, but still update the notify id and the flags that might have
-				// changed
-				lInfo() << "Update chat room in database: " << conferenceId << ".";
-				*dbSession.getBackendSession() << "UPDATE chat_room SET"
-				                                  " last_notify_id = :lastNotifyId, "
-				                                  " flags = :flags "
-				                                  " WHERE id = :chatRoomId",
-				    soci::use(notifyId), soci::use(flags), soci::use(chatRoomId);
+				if (rewriteAllInformations) {
+					lInfo() << "Update all informations in database related to " << *chatRoom;
+					*dbSession.getBackendSession() << "UPDATE chat_room SET"
+					                                  " creation_time = :creationTime, "
+					                                  " last_update_time = :lastUpdateTime, "
+					                                  " capabilities = :capabilities, "
+					                                  " subject = :subject, "
+					                                  " flags = :flags, "
+					                                  " last_notify_id = :lastNotifyId, "
+					                                  " ephemeral_enabled = :ephemeralEnabled, "
+					                                  " ephemeral_messages_lifetime = :ephemeralMessagesLifetime, "
+					                                  " conference_info_id = :conferenceInfoId "
+					                                  " WHERE id = :chatRoomId",
+					    soci::use(creationTime.first, creationTime.second),
+					    soci::use(lastUpdateTime.first, lastUpdateTime.second), soci::use(capabilities),
+					    soci::use(subject), soci::use(flags), soci::use(notifyId), soci::use(ephemeralEnabled),
+					    soci::use(ephemeralLifetime), soci::use(conferenceInfoId), soci::use(chatRoomId);
+				} else {
+					// The chat room is already stored in DB, but still update the notify id and the flags that might
+					// have changed
+					lInfo() << "Update " << *chatRoom << " in database";
+					*dbSession.getBackendSession() << "UPDATE chat_room SET"
+					                                  " last_notify_id = :lastNotifyId, "
+					                                  " flags = :flags "
+					                                  " WHERE id = :chatRoomId",
+					    soci::use(notifyId), soci::use(flags), soci::use(chatRoomId);
+				}
 			} else {
-
 				lInfo() << "Insert new chat room in database: " << conferenceId << ".";
-
-				auto creationTime = dbSession.getTimeWithSociIndicator(chatRoom->getCreationTime());
-				auto lastUpdateTime = dbSession.getTimeWithSociIndicator(chatRoom->getLastUpdateTime());
-
-				// Remove capabilities like `Proxy`.
-				const int &capabilities =
-				    chatRoom->getCapabilities() & ~ChatRoom::CapabilitiesMask(ChatRoom::Capabilities::Proxy);
-
 				// TODO: store chatroom local and peer addresses without GRUU
 				long long chatRoomPeerSipAddressId = -1;
 				long long chatRoomLocalSipAddressId = -1;
@@ -482,13 +509,6 @@ long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chat
 					chatRoomPeerSipAddressId = peerSipAddressNoGruuId;
 					chatRoomLocalSipAddressId = localSipAddressNoGruuId;
 				}
-
-				const string &subject = chatRoomParams->getUtf8Subject();
-				int ephemeralEnabled = chatRoom->ephemeralEnabled() ? 1 : 0;
-				const long ephemeralLifetime = chatRoom->getEphemeralLifetime();
-				const long ephemeralNotReadLifetime = chatRoom->getEphemeralNotReadLifetime();
-				const long long &dbConferenceInfoId = selectConferenceInfoId(peerSipAddressNoGruuId);
-				const long long conferenceInfoId = (dbConferenceInfoId <= 0) ? 0 : dbConferenceInfoId;
 				*dbSession.getBackendSession()
 				    << "INSERT INTO chat_room ("
 				       "  peer_sip_address_id, local_sip_address_id, creation_time,"
@@ -6920,7 +6940,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 							participants.erase(meIt);
 						}
 					} catch (std::out_of_range &) {
-						if (!confInfo) {
+						if (serverMode) {
 							lInfo() << "Deleting chatroom with database ID set to " << dbChatRoomId
 							        << " because it has no participants";
 							d->deleteChatRoom(dbChatRoomId);
@@ -7129,11 +7149,29 @@ void MainDb::removePreviousConferenceId(const ConferenceId &previousConfId) {
 #endif
 }
 
-void MainDb::insertChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom, unsigned int notifyId) {
+void MainDb::insertChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom,
+                            unsigned int notifyId,
+                            bool rewriteAllInformations) {
 #ifdef HAVE_DB_STORAGE
 	L_DB_TRANSACTION {
 		L_D();
-		d->insertChatRoom(chatRoom, notifyId);
+		if (rewriteAllInformations) {
+			auto participants = chatRoom->getParticipants();
+			for (const auto &participant : participants) {
+				deleteChatRoomParticipant(chatRoom, participant->getAddress());
+				for (const auto &device : participant->getDevices()) {
+					deleteChatRoomParticipantDevice(chatRoom, device);
+				}
+			}
+			auto me = chatRoom->getMe();
+			if (me) {
+				deleteChatRoomParticipant(chatRoom, me->getAddress());
+				for (const auto &device : me->getDevices()) {
+					deleteChatRoomParticipantDevice(chatRoom, device);
+				}
+			}
+		}
+		d->insertChatRoom(chatRoom, notifyId, rewriteAllInformations);
 		tr.commit();
 	};
 #endif

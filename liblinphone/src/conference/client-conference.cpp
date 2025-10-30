@@ -1596,24 +1596,6 @@ void ClientConference::onAvailableMediaChanged(
 }
 
 void ClientConference::onParticipantsCleared() {
-#ifdef HAVE_ADVANCED_IM
-	const auto &chatRoom = getChatRoom();
-	if (mConfParams->chatEnabled() && chatRoom) {
-		// clear from db as well
-		auto &mainDb = getCore()->getPrivate()->mainDb;
-		for (const auto &participant : mParticipants) {
-			mainDb->deleteChatRoomParticipant(chatRoom, participant->getAddress());
-			for (const auto &device : participant->getDevices()) {
-				mainDb->deleteChatRoomParticipantDevice(chatRoom, device);
-			}
-		}
-		mainDb->deleteChatRoomParticipant(chatRoom, getMe()->getAddress());
-		for (const auto &device : getMe()->getDevices()) {
-			mainDb->deleteChatRoomParticipantDevice(chatRoom, device);
-		}
-	}
-#endif // HAVE_ADVANCED_IM
-
 	clearParticipants();
 }
 
@@ -1908,7 +1890,7 @@ void ClientConference::onFullStateReceived() {
 #ifdef HAVE_ADVANCED_IM
 	const auto &chatRoom = getChatRoom();
 	if (mConfParams->chatEnabled() && chatRoom) {
-		getCore()->getPrivate()->insertChatRoomWithDb(chatRoom, getLastNotify());
+		getCore()->getPrivate()->insertChatRoomWithDb(chatRoom, getLastNotify(), true);
 	}
 #endif // HAVE_ADVANCED_IM
 
