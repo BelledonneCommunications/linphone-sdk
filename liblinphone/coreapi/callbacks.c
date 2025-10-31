@@ -172,8 +172,8 @@ static void call_received(SalCallOp *h) {
 	long parsedEphemeralLifeTime = linphone_core_get_default_ephemeral_lifetime(lc);
 	long parsedEphemeralNotReadLifeTime = linphone_core_get_default_ephemeral_not_read_lifetime(lc);
 	if (ephemeralMode == AbstractChatRoom::EphemeralMode::AdminManaged) {
-		parsedEphemeralLifeTime = stol(ephemeralLifeTime, nullptr);
-		parsedEphemeralNotReadLifeTime = stol(ephemeralNotReadLifeTime, nullptr);
+		if (!ephemeralLifeTime.empty()) parsedEphemeralLifeTime = stol(ephemeralLifeTime, nullptr);
+		if (!ephemeralNotReadLifeTime.empty()) parsedEphemeralNotReadLifeTime = stol(ephemeralNotReadLifeTime, nullptr);
 	}
 	string oneOnOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
 	bool isOneOnOne = (oneOnOneChatRoom == "true");
