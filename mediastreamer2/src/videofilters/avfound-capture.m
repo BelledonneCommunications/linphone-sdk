@@ -94,10 +94,16 @@ static void capture_queue_cleanup(void* p) {
 		size_t w = CVPixelBufferGetWidth(frame);
 		size_t h = CVPixelBufferGetHeight(frame);
 		mblk_t *yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
+		if (!yuv_block) {
+			ms_warning("AVCapture: Not enough buffer in allocator. Ignoring frame");
+			ms_mutex_unlock(&mutex);
+			return;
+		}
 
 		CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
 		if (kCVReturnSuccess != status) {
 			ms_error("Error locking base address: %i", status);
+			ms_mutex_unlock(&mutex);
 			return;
 		}
 		size_t p;
