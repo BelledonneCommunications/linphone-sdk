@@ -27,7 +27,10 @@
 #if defined __cplusplus
 extern "C" {
 #endif
+OpenGlFunctions *opengl_functions_new(const OpenGlFunctions *default_functions);
+void opengl_functions_free(OpenGlFunctions *f);
 void opengl_functions_default_init(OpenGlFunctions *f);
+void opengl_functions_uninit(OpenGlFunctions *f);
 #if defined __cplusplus
 } // extern "C"
 #endif

@@ -35,7 +35,9 @@ GLint glueCompileShader(const OpenGlFunctions *f, const GLchar *sources, GLuint 
 	GLint logLength = 0, status;
 
 	f->glShaderSource(shader, 1, &sources, NULL);
+	glError(f);
 	f->glCompileShader(shader);
+	glError(f);
 
 	f->glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 	if (status == 0) {
@@ -64,10 +66,13 @@ GLint glueLinkProgram(const OpenGlFunctions *f, GLuint program) {
 	GLint logLength, status;
 
 	f->glLinkProgram(program);
+	glError(f);
 	f->glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+	glError(f);
 	if (logLength > 0) {
 		GLchar *log = (GLchar *)malloc(logLength);
 		f->glGetProgramInfoLog(program, logLength, &logLength, log);
+		glError(f);
 		bool_t haveText = FALSE;
 		for (int i = 0; !haveText && i < logLength; ++i)
 			haveText = (log[i] >= 'a' && log[i] <= 'z') || (log[i] >= 'A' && log[i] <= 'Z') ||

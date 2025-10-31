@@ -1,4 +1,5 @@
-#version 410
+# version 300 es
+
 /* Takes in 3-planar YUV 420 data in partial range 601 colour space
    and draws it to an RGB(A) surface.
    https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion

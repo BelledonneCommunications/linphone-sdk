@@ -1,4 +1,5 @@
-#version 410
+# version 300 es
+
 // Scales (and rotates) decoded frame to output surface
 
 in vec2 position;

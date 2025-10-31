@@ -307,11 +307,10 @@ if(ENABLE_VIDEO)
 		if(IOS)
 			list(APPEND VOIP_SOURCE_FILES_C
 				utils/opengl_functions.c
-				utils/opengl_functions.h
-				utils/opengles_display.c
-				utils/opengles_display.h
 				utils/shader_util.c
-				utils/shader_util.h
+			)
+			list(APPEND VOIP_SOURCE_FILES_CXX
+				utils/opengles_display.cpp
 			)
 			list(APPEND VOIP_SOURCE_FILES_OBJC
 				videofilters/iosdisplay.mm
@@ -323,14 +322,12 @@ if(ENABLE_VIDEO)
 				videofilters/msosxdisplay.m
 				videofilters/avfound-capture.m
 			)
-
 			list(APPEND VOIP_SOURCE_FILES_C
 				utils/opengl_functions.c
-				utils/opengl_functions.h
-				utils/opengles_display.c
-				utils/opengles_display.h
 				utils/shader_util.c
-				utils/shader_util.h
+			)
+			list(APPEND VOIP_SOURCE_FILES_CXX
+				utils/opengles_display.cpp
 			)
 		endif()
 	endif()
@@ -340,11 +337,7 @@ if(ENABLE_VIDEO)
 			android/android-opengl-display.c
 			android/android-texture-display.c
 			utils/opengl_functions.c
-			utils/opengl_functions.h
-			utils/opengles_display.c
-			utils/opengles_display.h
 			utils/shader_util.c
-			utils/shader_util.h
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM
@@ -355,6 +348,8 @@ if(ENABLE_VIDEO)
 			android/android_mediacodec.cpp
 			android/android-display-bad.cpp
 			android/androidvideo.cpp
+			utils/opengles_display.cpp
+			utils/shader_util.c
 		)
 	endif()
 	if (ENABLE_QNX)
@@ -394,26 +389,32 @@ if(ENABLE_VIDEO)
 		endif()
 	endif()
 	if(WIN32)
-		list(APPEND VOIP_SOURCE_FILES_CXX
+		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengl_functions.c
-			utils/opengles_display.c
 			utils/shader_util.c
+		)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			utils/opengles_display.cpp
 			videofilters/generic_opengl_display.c
 		)
 	elseif(OPENGL_FOUND OR QtAngle_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengl_functions.c
-			utils/opengles_display.c
 			utils/shader_util.c
 			videofilters/generic_opengl_display.c
+		)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			utils/opengles_display.cpp
 		)
 	endif()
 	if(OpenGL_GLX_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
-			utils/opengl_functions.c
-			utils/opengles_display.c
-			utils/shader_util.c
 			videofilters/glxvideo.c
+			utils/opengl_functions.c
+			utils/shader_util.c
+		)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			utils/opengles_display.cpp
 		)
 	endif()
 	if(SDL_FOUND)
@@ -522,12 +523,26 @@ if(APPLE OR ANDROID OR OPENGL_FOUND OR OpenGL_GLX_FOUND OR QtAngle_FOUND OR WIN3
 			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/YCbCr_to_RGB.frag.h"
 	)
+	add_custom_target(mediastreamer2-fragment-es-shader-header
+		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${Python3_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
+			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+			-DSOURCE_FILE="YCbCr_to_RGB_es.frag"
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
+		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/YCbCr_to_RGB_es.frag.h"
+	)
 	add_custom_target(mediastreamer2-vertex-shader-header
 		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${Python3_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
 			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 			-DSOURCE_FILE="screen_transform.vert"
 			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/screen_transform.vert.h"
+	)
+	add_custom_target(mediastreamer2-vertex-es-shader-header
+		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${Python3_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
+			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+			-DSOURCE_FILE="screen_transform_es.vert"
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
+		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/screen_transform_es.vert.h"
 	)
 	add_custom_target(mediastreamer2-yuv2rgb-fs-header
 		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${Python3_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
@@ -577,6 +592,7 @@ endif()
 set(MS2_DEPENDENCIES mediastreamer2-git-version mediastreamer2-basedescs-header mediastreamer2-voipdescs-header)
 if(APPLE OR ANDROID OR OPENGL_FOUND OR OpenGL_GLX_FOUND OR QtAngle_FOUND OR WIN32)
 	list(APPEND MS2_DEPENDENCIES mediastreamer2-vertex-shader-header mediastreamer2-fragment-shader-header mediastreamer2-yuv2rgb-fs-header mediastreamer2-yuv2rgb-vs-header)
+	list(APPEND MS2_DEPENDENCIES mediastreamer2-vertex-es-shader-header mediastreamer2-fragment-es-shader-header)
 endif()
 
 

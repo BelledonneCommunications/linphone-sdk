@@ -92,8 +92,7 @@ static bool_t android_texture_display_destroy_opengl(MSFilter *f) {
 		}
 
 		ogl_display_uninit(ad->ogl, TRUE);
-		ogl_display_free(ad->ogl);
-		ad->ogl = NULL;
+		ogl_display_free_and_nullify(&ad->ogl);
 		ms_message("[TextureView Display][Filter=%p] OGL display destroyed", f);
 	}
 

@@ -39,14 +39,24 @@ extern "C" {
 struct opengles_display;
 
 /**
- * Create opaque structure to handle OpenGL display
+ * Create opaque structure to handle OpenGL display without default functions.
  */
 MS2_PUBLIC struct opengles_display *ogl_display_new(void);
 
 /**
+ * Create opaque structure to handle OpenGL display using default functions.
+ */
+MS2_PUBLIC struct opengles_display *ogl_display_new_2(const OpenGlFunctions *default_functions);
+
+/**
  * Release opaque struct memory
  */
-MS2_PUBLIC void ogl_display_free(struct opengles_display *gldisp);
+MS2_PUBLIC void ogl_display_free_and_nullify(struct opengles_display **gldisp);
+
+/**
+ * Activate/deactivate threaded mode in order to avoid context reinitializations.
+ */
+MS2_PUBLIC void ogl_display_set_threaded(struct opengles_display *gldisp, bool_t threaded);
 
 /**
  * Perform initialization of opaque structure that will be auto-managed.
@@ -58,6 +68,8 @@ MS2_PUBLIC void ogl_display_free(struct opengles_display *gldisp);
  * @param width Default width of the display area.
  * @param height Default Height of the display area.
  */
+MS2_PUBLIC void ogl_display_library_init(struct opengles_display *gldisp, const OpenGlFunctions *f);
+MS2_PUBLIC void ogl_display_library_uninit(struct opengles_display *gldisp);
 MS2_PUBLIC void ogl_display_auto_init(
     struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window, int width, int height);
 
@@ -94,6 +106,7 @@ MS2_PUBLIC void ogl_display_set_target_context(struct opengles_display *gldisp,
  *   @param gldisp display structure
  *   @param set TRUE: Make current to gldisp->mEglDisplay, gldisp->mRenderSurface and gldisp->mEglContext. FALSE: clean
  * current.
+ * @return 0 for success and 1 if already current. -1 when eglMakeCurrent return false. -2 if not initialized.
  */
 MS2_PUBLIC int ogl_display_make_current(struct opengles_display *gldisp, bool_t set);
 
@@ -104,6 +117,9 @@ MS2_PUBLIC int ogl_display_make_current(struct opengles_display *gldisp, bool_t 
  * must only be freed within the correct GL context.
  */
 MS2_PUBLIC void ogl_display_uninit(struct opengles_display *gldisp, bool_t freeGLresources);
+
+MS2_PUBLIC void ogl_display_clean(struct opengles_display *gldisp);
+MS2_PUBLIC void ogl_display_terminate(struct opengles_display *gldisp);
 
 /**
  * Define the next yuv image to display. Note that yuv content will be copied.

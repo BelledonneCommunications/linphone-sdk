@@ -370,7 +370,7 @@ struct OpenGlFunctions {
 	// resolveGlEnable glEnable;
 	resolveGlEnableVertexAttribArray glEnableVertexAttribArray;
 	resolveGlFinish glFinish;
-	// resolveGlFlush glFlush;
+	resolveGlFlush glFlush;
 	// resolveGlFramebufferRenderbuffer glFramebufferRenderbuffer;
 	// resolveGlFramebufferTexture2D glFramebufferTexture2D;
 	// resolveGlFrontFace glFrontFace;
@@ -504,6 +504,11 @@ struct OpenGlFunctions {
 	bool_t eglInitialized;
 	bool_t glInitialized;
 	bool_t loadQtLibs;
+#if defined(_WIN32)
+	HMODULE openglLibrary, openglFallbackLibrary, eglLibrary;
+#else
+	void *openglLibrary, *openglFallbackLibrary, *eglLibrary;
+#endif
 };
 
 typedef struct OpenGlFunctions OpenGlFunctions;

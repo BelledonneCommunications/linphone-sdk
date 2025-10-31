@@ -96,7 +96,7 @@
 	CGLLockContext(cglContext);
 
 	ogl_display_uninit(display_helper, TRUE);
-	ogl_display_free(display_helper);
+	ogl_display_free_and_nullify(&display_helper);
 
 	CGLUnlockContext(cglContext);
 	CGLSetCurrentContext(savedContext);

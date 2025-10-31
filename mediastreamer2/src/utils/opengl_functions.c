@@ -33,8 +33,15 @@
 
 #if defined(__ANDROID__) || defined(__APPLE__)
 #define CAST(type, fn) (f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn) : (type)fn)
-#elif defined(WIN32)
-
+#elif defined(_WIN32)
+// Protect LoadLibrary from concurrency. ms_mutex_t is HANDLE* on Windows
+static ms_mutex_t sLibraryLock = NULL;
+static void destroy_library_mutex(void) {
+	if (sLibraryLock) {
+		ms_mutex_destroy(&sLibraryLock);
+		sLibraryLock = NULL;
+	}
+}
 #ifndef MS2_WINDOWS_UWP
 //[Desktop app only]
 #include <wingdi.h>
@@ -51,6 +58,7 @@ void *GetAnyGLFuncAddress(HMODULE library, HMODULE firstFallback, const char *na
 	return p;
 }
 #endif
+
 #include <windows.h>
 #ifdef MS2_WINDOWS_UWP
 #define CAST(type, fn)                                                                                                 \
@@ -90,13 +98,37 @@ void *getAnyGLFuncAddress(void *library, void *firstFallback, const char *name) 
 extern "C" {
 #endif
 
+OpenGlFunctions *opengl_functions_new(const OpenGlFunctions *default_functions) {
+	OpenGlFunctions *functions = ms_new0(OpenGlFunctions, 1);
+#ifdef _WIN32
+	if (!sLibraryLock) { // sLibraryLock is set to NULL only on exit. So this block is call only once.
+		ms_mutex_init(&sLibraryLock, NULL);
+		atexit(destroy_library_mutex);
+	}
+#endif
+	if (default_functions) {
+		functions->loadQtLibs = default_functions->loadQtLibs;
+		if (default_functions->getProcAddress) {
+			functions->getProcAddress = default_functions->getProcAddress;
+		}
+	}
+	opengl_functions_default_init(functions);
+	return functions;
+}
+
+void opengl_functions_free(OpenGlFunctions *f) {
+	opengl_functions_uninit(f);
+	ms_free(f);
+}
+
 void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary, BCTBX_UNUSED(bool_t loadQtlibs)) {
 	//----------------------    GL
 #if defined(_WIN32) // On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to
                     // embedd "libGLESv2.dll" or "opengl32sw.dll" with the app
 	bool_t haveOpengl32sw = FALSE;
+	ms_mutex_lock(&sLibraryLock);
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
-	DWORD searchFlags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR | DONT_RESOLVE_DLL_REFERENCES;
+	DWORD searchFlags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_AS_DATAFILE;
 // Load without resolving to check only local libraries. Then free library memory and effectively load the library
 // with resolving. This way, we ensure that the best library comes from the appication.
 #ifdef UNICODE
@@ -129,6 +161,7 @@ void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary,
 		if (*openglLibrary) {
 			FreeLibrary((HMODULE)*openglLibrary);
 			*openglLibrary = LoadLibraryA("libGLESv2.dll");
+			ms_message("[ogl_functions] Loading %p in thread [%x]", (void *)*openglLibrary, ms_thread_self());
 		}
 	} else {
 		haveOpengl32sw = TRUE;
@@ -147,7 +180,7 @@ void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary,
 		                                                         : *openglLibrary == NULL ? "opengl32.dll"
 		                                                                                  : "libGLESv2.dll"));
 	}
-
+	ms_mutex_unlock(&sLibraryLock);
 #elif !defined(__APPLE__)
 	if (*openglLibrary == NULL) *openglLibrary = dlopen("libGLESv2.so", RTLD_LAZY);
 	if (*openglLibrary == NULL) {
@@ -165,8 +198,8 @@ void opengl_functions_load_gl(void **openglLibrary, void **firstFallbackLibrary,
 void opengl_functions_load_egl(void **openglLibrary) {
 #if defined(_WIN32) // On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to
                     // embedd "libEGL.dll" with the app
+	ms_mutex_lock(&sLibraryLock);
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
-
 #ifdef UNICODE
 	*openglLibrary = LoadLibraryExW(L"libEGL.dll", NULL, LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
 #else
@@ -177,7 +210,8 @@ void opengl_functions_load_egl(void **openglLibrary) {
 #endif
 	if (*openglLibrary == NULL) {
 		ms_warning("[ogl_functions] Function : Fail to load EGL plugin libEGL.dll: error %i", (int)GetLastError());
-	} else ms_message("[ogl_functions] EGL plugin loaded");
+	} else ms_message("[ogl_functions] EGL plugin loaded in thread [%x]", ms_thread_self());
+	ms_mutex_unlock(&sLibraryLock);
 #elif !defined(__APPLE__)
 	*openglLibrary = dlopen("libEGL.so", RTLD_LAZY);
 	if (*openglLibrary == NULL) {
@@ -194,9 +228,7 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 #else
 	void *openglLibrary = NULL, *firstFallbackLibrary = NULL;
 #endif
-	// No need to load libraries if getProcAddress is defined.
-	if (!f->getProcAddress)
-		opengl_functions_load_gl((void **)&openglLibrary, (void **)&firstFallbackLibrary, f->loadQtLibs);
+	opengl_functions_load_gl((void **)&openglLibrary, (void **)&firstFallbackLibrary, f->loadQtLibs);
 	// User cases: functions already loaded or coming from libraries
 #if !defined(__ANDROID__) && !defined(__APPLE__)
 	if (f->getProcAddress || firstFallbackLibrary != NULL || openglLibrary != NULL) {
@@ -223,6 +255,7 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 		f->glInitialized &= ((f->glEnableVertexAttribArray =
 		                          CAST(resolveGlEnableVertexAttribArray, glEnableVertexAttribArray)) != NULL);
 		f->glInitialized &= ((f->glFinish = CAST(resolveGlFinish, glFinish)) != NULL);
+		f->glInitialized &= ((f->glFlush = CAST(resolveGlFlush, glFlush)) != NULL);
 		f->glInitialized &= ((f->glGenBuffers = CAST(resolveGlGenBuffers, glGenBuffers)) != NULL);
 		f->glInitialized &= ((f->glGenTextures = CAST(resolveGlGenTextures, glGenTextures)) != NULL);
 		f->glInitialized &= ((f->glGetError = CAST(resolveGlGetError, glGetError)) != NULL);
@@ -265,6 +298,9 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 	f->glGetQueryObjectui64v = NULL;
 #endif
 
+		f->openglLibrary = openglLibrary;
+		f->openglFallbackLibrary = firstFallbackLibrary;
+
 #if !defined(__ANDROID__) && !defined(__APPLE__)
 	} else {
 		ms_error("[ogl_functions] GL functions cannot be initialized.");
@@ -275,15 +311,16 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 
 	openglLibrary = NULL;
 	firstFallbackLibrary = NULL;
-	// No need to load EGL libraries if getProcAddress is defined: EGL availability will be determined by getProcAddress
-	// or from eglGetProcAddress if set.
-	if (!f->getProcAddress && !f->eglGetProcAddress) {
-		opengl_functions_load_egl((void **)&openglLibrary);
-	}
+	opengl_functions_load_egl((void **)&openglLibrary);
+	f->eglLibrary = openglLibrary;
 	// Set eglGetProcAddress from getProcAddress if defined, or libraries if not.
-	if (!f->eglGetProcAddress) f->eglGetProcAddress = CAST_EGL(resolveEGLGetProcAddress, eglGetProcAddress);
+#if !defined(__ANDROID__) && !defined(__APPLE__)
+	if (!f->eglGetProcAddress) f->eglGetProcAddress = CAST(resolveEGLGetProcAddress, eglGetProcAddress);
+#endif
 	// User cases: eglGetProcAddress already loaded, coming from getProcAddress or egl libraries loaded.
-	if (f->eglGetProcAddress || openglLibrary != NULL) {
+	// We don't use EGL with Qt because EGL seems to be managed by the Qt framework(no surface/display needed).
+	// Also API is not always available for customer and there are no safe check for it.
+	if (!f->loadQtLibs && (f->eglGetProcAddress || openglLibrary != NULL)) {
 		ms_message("[ogl_functions] EGL is enabled.");
 		f->eglInitialized = TRUE;
 		f->eglInitialized &= ((f->eglQueryAPI = CAST_EGL(resolveEGLQueryAPI, eglQueryAPI)) != NULL);
@@ -312,6 +349,27 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 		f->eglInitialized &= ((f->eglReleaseThread = CAST_EGL(resolveEGLReleaseThread, eglReleaseThread)) != NULL);
 		f->eglInitialized &= ((f->eglTerminate = CAST_EGL(resolveEGLTerminate, eglTerminate)) != NULL);
 	} else ms_message("[ogl_functions] EGL is disabled");
+}
+
+void opengl_functions_uninit(BCTBX_UNUSED(OpenGlFunctions *f)) {
+#ifdef _WIN32
+	ms_mutex_lock(&sLibraryLock);
+	ms_message("[ogl_functions] Unloading %s%s%slibraries in thread [%x]", f->openglLibrary ? "OpenGL " : "",
+	           f->openglFallbackLibrary ? "Fallback " : "", f->eglLibrary ? "EGL " : "", ms_thread_self());
+	if (f->eglLibrary)
+		if (!FreeLibrary(f->eglLibrary))
+			ms_warning("[ogl_functions] Cannot unload EGL libray :[%x]", (int)GetLastError());
+	if (f->openglFallbackLibrary)
+		if (!FreeLibrary(f->openglFallbackLibrary))
+			ms_warning("[ogl_functions] Cannot unload Fallback libray :[%x]", (int)GetLastError());
+	if (f->openglLibrary) {
+		if (!FreeLibrary(f->openglLibrary)) {
+			ms_warning("[ogl_functions] Cannot unload OpenGL libray :[%x]", (int)GetLastError());
+		} else ms_message("[ogl_functions] Unloading %p", (void *)f->openglLibrary);
+	}
+	memset(f, 0, sizeof(OpenGlFunctions));
+	ms_mutex_unlock(&sLibraryLock);
+#endif
 }
 
 #ifdef __cplusplus

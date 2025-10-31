@@ -230,8 +230,7 @@
 	[EAGLContext setCurrentContext:context];
 
 	ogl_display_uninit(display_helper, TRUE);
-	ogl_display_free(display_helper);
-	display_helper = NULL;
+	ogl_display_free_and_nullify(&display_helper);
 
 	glDeleteFramebuffers(1, &defaultFrameBuffer);
 	glDeleteRenderbuffers(1, &colorRenderBuffer);

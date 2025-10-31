@@ -18,7 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
+#ifdef __cplusplus
+#include "bctoolbox/utils.hh"
+#endif
 
 #include "mediastreamer2/mscommon.h"
 #include "opengles_display.h"
@@ -90,7 +93,6 @@ struct opengles_display {
 
 	/* GL resources */
 	bool_t glResourcesInitialized;
-	bool_t shadersLoaded;
 	GLuint arrayBufferHandle;
 	GLuint vertexArrayObjectHandle;
 	GLuint program, textures[TEXTURE_BUFFER_SIZE][MAX_IMAGE][3];
@@ -122,7 +124,8 @@ struct opengles_display {
 
 	EGLDisplay mEglDisplay;
 	// Describes the EGLContext to be requested
-	const MSEGLContextDescriptor *target_context;
+	bctbx_list_t *target_contexts; // array of MSEGLContextDescriptor
+	const MSEGLContextDescriptor *fallback_context;
 	EGLContext mEglContext;
 	EGLConfig mEglConfig; // No need to be cleaned
 	EGLSurface mRenderSurface;
@@ -157,53 +160,136 @@ static void error_mngmt_set(struct opengles_display *display, GLenum error) {
 	}
 }
 
-static void clean_GL_errors(const OpenGlFunctions *f) {
-	if (f->glInitialized)
-		while (f->glGetError() != GL_NO_ERROR)
-			;
-}
-
-static void check_GL_errors(struct opengles_display *display, const char *context) {
-	const OpenGlFunctions *f = display->functions;
+static void check_GL_errors(struct opengles_display *gldisp, const char *context) {
+	const OpenGlFunctions *f = gldisp->functions;
 	if (f->glInitialized) {
 		GLenum error;
 		while ((error = f->glGetError()) != GL_NO_ERROR) {
 			switch (error) {
 				case GL_INVALID_ENUM:
-					ms_error("[ogl_display] GL error: '%s' -> GL_INVALID_ENUM\n", context);
+					ms_error("[ogl_display]:%p [%lx] GL error: '%s' -> GL_INVALID_ENUM\n", gldisp, ms_thread_self(),
+					         context);
 					break;
 				case GL_INVALID_VALUE:
-					ms_error("[ogl_display] GL error: '%s' -> GL_INVALID_VALUE\n", context);
+					ms_error("[ogl_display]:%p [%lx] GL error: '%s' -> GL_INVALID_VALUE\n", gldisp, ms_thread_self(),
+					         context);
 					break;
 				case GL_INVALID_OPERATION:
-					ms_error("[ogl_display] GL error: '%s' -> GL_INVALID_OPERATION\n", context);
+					ms_error("[ogl_display]:%p [%lx] GL error: '%s' -> GL_INVALID_OPERATION\n", gldisp,
+					         ms_thread_self(), context);
 					break;
 				case GL_OUT_OF_MEMORY:
-					ms_error("[ogl_display] GL error: '%s' -> GL_OUT_OF_MEMORY\n", context);
+					ms_error("[ogl_display]:%p [%lx] GL error: '%s' -> GL_OUT_OF_MEMORY\n", gldisp, ms_thread_self(),
+					         context);
 					break;
 				case GL_INVALID_FRAMEBUFFER_OPERATION:
-					ms_error("[ogl_display] GL error: '%s' -> GL_INVALID_FRAMEBUFFER_OPERATION\n", context);
+					ms_error("[ogl_display]:%p [%lx] GL error: '%s' -> GL_INVALID_FRAMEBUFFER_OPERATION\n", gldisp,
+					         ms_thread_self(), context);
 					break;
 				default:
-					ms_error("[ogl_display] GL error: '%s' -> %x\n", context, error);
+					ms_error("[ogl_display]:%p [%lx] GL error: '%s' -> %x\n", gldisp, ms_thread_self(), context, error);
 			}
-			error_mngmt_set(display, error);
+			error_mngmt_set(gldisp, error);
 		}
 	}
 }
 
-static void check_EGL_errors(struct opengles_display *display, const char *context) {
-	if (display->functions->eglInitialized) {
+static void check_EGL_errors(struct opengles_display *gldisp, const char *context) {
+	if (gldisp->functions->eglInitialized) {
 		GLenum error;
-		if ((error = display->functions->eglGetError()) != EGL_SUCCESS) {
-			ms_error("[ogl_display] EGL error: '%s' -> %x%s\n", context, error,
+		if ((error = gldisp->functions->eglGetError()) != EGL_SUCCESS) {
+			ms_error("[ogl_display]:%p [%lx] EGL error: '%s' -> %x%s\n", gldisp, ms_thread_self(), context, error,
 			         error != EGL_CONTEXT_LOST ? "(notify not implemented)" : "");
 			// TODO: We know exactly what do to with EGL_CONTEXT_LOST so we can stop sending notifications. For other
 			// errors, we don't want to spam notifications on each call of ogl_display_notify_errors().
-			error_mngmt_set(display, error);
+			error_mngmt_set(gldisp, error);
 		}
 	}
 }
+
+// Class to store all version data in order to avoid filling logs with same data
+class OpenGLVersion {
+public:
+	OpenGLVersion() {
+	}
+	static std::string toStdString(const char *txt) {
+		return txt ? txt : "";
+	}
+	void setGl(struct opengles_display *gldisp) {
+		gl_version = toStdString((const char *)gldisp->functions->glGetString(GL_VERSION));
+		check_GL_errors(gldisp, "setGl GL_VERSION");
+		gl_extensions = toStdString((const char *)gldisp->functions->glGetString(GL_EXTENSIONS));
+		check_GL_errors(gldisp, "setGl GL_EXTENSIONS");
+		gl_vendor = toStdString((const char *)gldisp->functions->glGetString(GL_VENDOR));
+		check_GL_errors(gldisp, "setGl GL_VENDOR");
+		gl_renderer = toStdString((const char *)gldisp->functions->glGetString(GL_RENDERER));
+		check_GL_errors(gldisp, "setGl GL_RENDERER");
+		gl_glsl_version = toStdString((const char *)gldisp->functions->glGetString(GL_SHADING_LANGUAGE_VERSION));
+		check_GL_errors(gldisp, "setGl GL_SHADING_LANGUAGE_VERSION");
+	}
+	void setGl(const OpenGLVersion &other) {
+		gl_glsl_version = other.gl_glsl_version;
+		gl_vendor = other.gl_vendor;
+		gl_renderer = other.gl_renderer;
+		gl_extensions = other.gl_extensions;
+		gl_version = other.gl_version;
+	}
+
+	void setEgl(struct opengles_display *gldisp) {
+		egl_api = toStdString((const char *)gldisp->functions->eglQueryString(gldisp->mEglDisplay, EGL_CLIENT_APIS));
+		egl_vendor = toStdString((const char *)gldisp->functions->eglQueryString(gldisp->mEglDisplay, EGL_VENDOR));
+		egl_version = toStdString((const char *)gldisp->functions->eglQueryString(gldisp->mEglDisplay, EGL_VERSION));
+		egl_extension =
+		    toStdString((const char *)gldisp->functions->eglQueryString(gldisp->mEglDisplay, EGL_EXTENSIONS));
+		check_EGL_errors(gldisp, "setEgl");
+	}
+	void setEgl(const OpenGLVersion &other) {
+		egl_api = other.egl_api;
+		egl_vendor = other.egl_vendor;
+		egl_version = other.egl_version;
+		egl_extension = other.egl_extension;
+	}
+
+	bool equalEgl(const OpenGLVersion &other) const {
+		return egl_api == other.egl_api && egl_vendor == other.egl_vendor && egl_version == other.egl_version &&
+		       egl_extension == other.egl_extension;
+	}
+	bool equalGl(const OpenGLVersion &other) const {
+		return gl_glsl_version == other.gl_glsl_version && gl_vendor == other.gl_vendor &&
+		       gl_renderer == other.gl_renderer && gl_extensions == other.gl_extensions &&
+		       gl_version == other.gl_version;
+	}
+	void printGl() const {
+		ms_message("[ogl_display] OpenGL version: %s", gl_version.c_str());
+		ms_message("[ogl_display] OpenGL extensions: %s", gl_extensions.c_str());
+		ms_message("[ogl_display] OpenGL vendor: %s", gl_vendor.c_str());
+		ms_message("[ogl_display] OpenGL renderer: %s", gl_renderer.c_str());
+		ms_message("[ogl_display] OpenGL GLSL version: %s", gl_glsl_version.c_str());
+	}
+	void printEgl() const {
+		ms_message("[ogl_display] OpenEGL client API: %s", egl_api.c_str());
+		ms_message("[ogl_display] OpenEGL vendor: %s", egl_vendor.c_str());
+		ms_message("[ogl_display] OpenEGL version: %s", egl_version.c_str());
+		ms_message("[ogl_display] OpenEGL extensions: %s", egl_extension.c_str());
+	}
+	void print() {
+		printGl();
+		printEgl();
+	}
+	static OpenGLVersion sVersion;
+
+	std::string gl_extensions;
+	std::string gl_version;
+	std::string gl_vendor;
+	std::string gl_renderer;
+	std::string gl_glsl_version;
+
+	std::string egl_api;
+	std::string egl_vendor;
+	std::string egl_version;
+	std::string egl_extension;
+};
+OpenGLVersion OpenGLVersion::sVersion;
 static unsigned int align_on_power_of_2(unsigned int value) {
 	int i;
 	/* browse all power of 2 value, and find the one just >= value */
@@ -288,9 +374,9 @@ static void print_program_info(const OpenGlFunctions *f, GLuint program) {
 		for (int i = 0; !haveText && i < logLength; ++i)
 			haveText = (msg[i] >= 'a' && msg[i] <= 'z') || (msg[i] >= 'A' && msg[i] <= 'Z') ||
 			           (msg[i] >= '0' && msg[i] <= '9');
-		if (haveText) ms_message("[ogl_display] OpenGL program info: %s", msg);
+		if (haveText) ms_message("[ogl_display] OpenGL program info %d: %s", program, msg);
 		ms_free(msg);
-	} else ms_message("[ogl_display] OpenGL program info: [NO INFORMATION]");
+	} else ms_message("[ogl_display] OpenGL program info %d: [NO INFORMATION]", program);
 }
 
 #define ARRAY_BUFFER_SIZE (16 * sizeof(GL_FLOAT))
@@ -315,9 +401,12 @@ static bool_t compile_gl_program(const OpenGlFunctions *f,
 	return glueLinkProgram(f, program);
 }
 
-static bool_t load_shaders(struct opengles_display *gldisp) {
+static void load_shaders(struct opengles_display *gldisp) {
+
 #include "YCbCr_to_RGB.frag.h"
+#include "YCbCr_to_RGB_es.frag.h"
 #include "screen_transform.vert.h"
+#include "screen_transform_es.vert.h"
 // GLSL 1.00 legacy shaders
 #include "yuv2rgb.fs.h"
 #include "yuv2rgb.vs.h"
@@ -342,9 +431,7 @@ static bool_t load_shaders(struct opengles_display *gldisp) {
 	GLint opengl_version_major = 2;
 	f->glGetIntegerv(GL_MAJOR_VERSION, &opengl_version_major);
 	f->glGetError(); // Silence the possible error
-	// Luckily the following functions were also added in OpenGL ES 3.0, so no need
-	// to check for ES
-	if (3 <= opengl_version_major) {
+	if (3 <= opengl_version_major && f->glGenVertexArrays && f->glBindVertexArray) {
 		GL_OPERATION(f, glGenVertexArrays(1, &gldisp->vertexArrayObjectHandle))
 		GL_OPERATION(f, glBindVertexArray(gldisp->vertexArrayObjectHandle))
 	} else {
@@ -366,9 +453,15 @@ static bool_t load_shaders(struct opengles_display *gldisp) {
 	GL_OPERATION(f, glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)ARRAY_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW))
 	bind_vertex_shader_input(f);
 
+	GLuint vertShader, fragShader;
+	if (gldisp->program > 0) {
+		f->glDeleteProgram(gldisp->program); // Clean previous program
+		gldisp->program = 0;
+	}
 	GLuint program = f->glCreateProgram();
-	GLuint vertShader = f->glCreateShader(GL_VERTEX_SHADER);
-	GLuint fragShader = f->glCreateShader(GL_FRAGMENT_SHADER);
+	if (program == 0) check_GL_errors(gldisp, "load_shaders create_program");
+	vertShader = f->glCreateShader(GL_VERTEX_SHADER);
+	fragShader = f->glCreateShader(GL_FRAGMENT_SHADER);
 
 	GL_OPERATION(f, glAttachShader(program, vertShader))
 	GL_OPERATION(f, glAttachShader(program, fragShader))
@@ -376,14 +469,31 @@ static bool_t load_shaders(struct opengles_display *gldisp) {
 	GL_OPERATION(f, glBindAttribLocation(program, ATTRIB_VERTEX, "position"))
 	GL_OPERATION(f, glBindAttribLocation(program, ATTRIB_UV, "uv"))
 
-	// Try to compile newest shaders first
-	if (3 > opengl_version_major ||
-	    !compile_gl_program(f, program, vertShader, screen_transform_vert, fragShader, YCbCr_to_RGB_frag)) {
-		// If that fails...
-		ms_message("[ogl_display] Falling back to legacy shaders.");
-		if (!compile_gl_program(f, program, vertShader, yuv2rgb_vs, fragShader, yuv2rgb_fs)) {
-			check_GL_errors(gldisp, "load_shaders");
-			return FALSE;
+	if (f->eglInitialized) {
+		GLuint currentApi = f->eglQueryAPI();
+		// Try to compile newest shaders first
+		if ((currentApi == EGL_OPENGL_API &&
+		     !compile_gl_program(f, program, vertShader, screen_transform_vert, fragShader, YCbCr_to_RGB_frag)) ||
+		    (currentApi == EGL_OPENGL_ES_API &&
+		     !compile_gl_program(f, program, vertShader, screen_transform_es_vert, fragShader, YCbCr_to_RGB_es_frag)) ||
+		    currentApi == EGL_OPENVG_API // not supported
+		) {
+			// If that fails...
+			ms_message("[ogl_display]:%p Falling back to legacy shaders.", gldisp);
+			if (!compile_gl_program(f, program, vertShader, yuv2rgb_vs, fragShader, yuv2rgb_fs)) {
+				check_GL_errors(gldisp, "load_shaders");
+				return;
+			}
+		}
+	} else {
+		if (3 > opengl_version_major ||
+		    !compile_gl_program(f, program, vertShader, screen_transform_vert, fragShader, YCbCr_to_RGB_frag)) {
+			// If that fails...
+			ms_message("[ogl_display] Falling back to legacy shaders.");
+			if (!compile_gl_program(f, program, vertShader, yuv2rgb_vs, fragShader, yuv2rgb_fs)) {
+				check_GL_errors(gldisp, "load_shaders");
+				return;
+			}
 		}
 	}
 
@@ -398,11 +508,9 @@ static bool_t load_shaders(struct opengles_display *gldisp) {
 	GL_OPERATION(f, glDeleteShader(fragShader))
 
 	print_program_info(f, program);
-
 	gldisp->program = program;
 
 	check_GL_errors(gldisp, "load_shaders");
-	return TRUE;
 }
 
 // -----------------------------------------------------------------------------
@@ -445,7 +553,7 @@ static void allocate_gl_textures(struct opengles_display *gldisp, int w, int h, 
 	gldisp->allocatedTexturesSize[type].width = w;
 	gldisp->allocatedTexturesSize[type].height = h;
 
-	ms_message("[ogl_display] %s: allocated new textures[%d] (%d x %d)\n", __FUNCTION__, type, w, h);
+	ms_message("[ogl_display]:%p %s: allocated new textures[%d] (%d x %d)\n", gldisp, __FUNCTION__, type, w, h);
 
 	check_GL_errors(gldisp, "allocate_gl_textures");
 }
@@ -458,16 +566,25 @@ static int pixel_unpack_alignment(uint8_t *ptr, int datasize) {
 }
 
 int ogl_display_make_current(struct opengles_display *gldisp, bool_t set) {
-	int status = 0;
+	int status = -2;
 	if (gldisp->mEglDisplay && gldisp->functions->eglInitialized) {
-		ms_debug("[ogl_display] %s context %p/%p/%p to thread %lu", (set ? "Set" : "Unset"), gldisp->mEglDisplay,
-		         gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
+		EGLContext currentContext = gldisp->functions->eglGetCurrentContext();
 		if (set) {
-			status = gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface,
-			                                           gldisp->mRenderSurface, gldisp->mEglContext)
-			             ? 0
-			             : -1;
+			if (currentContext != EGL_NO_CONTEXT && currentContext != gldisp->mEglContext) {
+				gldisp->functions->glFinish();
+			}
+			if (currentContext == EGL_NO_CONTEXT || currentContext != gldisp->mEglContext) {
+				ms_message("[ogl_display]:%p %s current %p/%p/%p to thread %lx", gldisp, (set ? "Set" : "Unset"),
+				           gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
+				status = gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface,
+				                                           gldisp->mRenderSurface, gldisp->mEglContext)
+				             ? 0
+				             : -1;
+			} else status = 1;
 		} else {
+			if (currentContext != EGL_NO_CONTEXT) gldisp->functions->glFinish();
+			ms_message("[ogl_display]:%p %s current %p/%p/%p to thread %lx", gldisp, (set ? "Set" : "Unset"),
+			           gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
 			status =
 			    gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 			        ? 0
@@ -483,7 +600,7 @@ static void ogl_display_set_yuv(struct opengles_display *gldisp, mblk_t *yuv, en
 	int j;
 
 	if (!gldisp) {
-		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
+		ms_error("[ogl_display]:%p %s called with null struct opengles_display", gldisp, __FUNCTION__);
 		return;
 	}
 
@@ -514,7 +631,7 @@ static bool_t update_textures_with_yuv(struct opengles_display *gldisp, enum Ima
 	ms_yuv_buf_init_from_mblk(&yuvbuf, gldisp->yuv[type]);
 
 	if (yuvbuf.w == 0 || yuvbuf.h == 0) {
-		ms_warning("[ogl_display] Incoherent image size: %dx%d\n", yuvbuf.w, yuvbuf.h);
+		ms_warning("[ogl_display]:%p Incoherent image size: %dx%d\n", gldisp, yuvbuf.w, yuvbuf.h);
 		return FALSE;
 	}
 
@@ -598,7 +715,7 @@ static void ogl_display_render_type(struct opengles_display *gldisp,
                                     int orientation,
                                     MSVideoDisplayMode mode) {
 	if (!gldisp) {
-		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
+		ms_error("[ogl_display]:%p %s called with null struct opengles_display", gldisp, __FUNCTION__);
 		return;
 	}
 	if (!gldisp->yuv[type] || !gldisp->glResourcesInitialized) {
@@ -793,12 +910,15 @@ static void ogl_display_render_type(struct opengles_display *gldisp,
 }
 
 // -----------------------------------------------------------------------------
-struct opengles_display *ogl_display_new(void) {
+
+struct opengles_display *ogl_display_new_2(const OpenGlFunctions *default_functions) {
 	struct opengles_display *result = (struct opengles_display *)ms_malloc0(sizeof(struct opengles_display));
 	if (result == 0) {
 		ms_error("[ogl_display] Could not allocate OpenGL display structure");
 		return NULL;
 	}
+
+	ms_message("[ogl_display]:%p %s\n", result, __FUNCTION__);
 
 	memset(result, 0, sizeof(struct opengles_display));
 
@@ -811,23 +931,57 @@ struct opengles_display *ogl_display_new(void) {
 	static const EGLint request_opengl_4_1_core[] = {
 	    EGL_CONTEXT_MAJOR_VERSION,           4,       EGL_CONTEXT_MINOR_VERSION, 1, EGL_CONTEXT_OPENGL_PROFILE_MASK,
 	    EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT, EGL_NONE};
-	static const MSEGLContextDescriptor default_context = {EGL_OPENGL_API, request_opengl_4_1_core};
+	static const EGLint request_opengl_3[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
+	static const EGLint request_opengl_2[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
 
+	static const MSEGLContextDescriptor default_context = {EGL_OPENGL_API, request_opengl_4_1_core};
+	static const MSEGLContextDescriptor es_default_context = {
+	    EGL_OPENGL_ES_API, request_opengl_3}; // Used by Windows API as Angle translate to OpenGL ES
+	static const MSEGLContextDescriptor fallback_context = {EGL_OPENGL_ES_API, request_opengl_2};
 	result->mEglDisplay = EGL_NO_DISPLAY;
-	result->target_context = &default_context;
+	result->target_contexts = bctbx_list_append(result->target_contexts, (void *)&default_context);
+	result->target_contexts = bctbx_list_append(result->target_contexts, (void *)&es_default_context);
+
+	result->fallback_context = &fallback_context;
 	result->mEglContext = EGL_NO_CONTEXT;
 	result->mRenderSurface = EGL_NO_SURFACE;
-	result->shadersLoaded = FALSE;
+	result->program = 0;
 	result->arrayBufferHandle = 0;
 	result->vertexArrayObjectHandle = 0;
 	result->mSendUnrecoverableError = FALSE;
 
 	ms_mutex_init(&result->yuv_mutex, NULL);
-	ms_message("[ogl_display] %s : %p\n", __FUNCTION__, result);
-
+	result->default_functions = opengl_functions_new(default_functions);
 	return result;
 }
 
+struct opengles_display *ogl_display_new(void) {
+	return ogl_display_new_2(NULL);
+}
+
+void ogl_display_free_and_nullify(struct opengles_display **gldisp) {
+	int i;
+
+	if (!(*gldisp)) {
+		ms_error("[ogl_display]:%p %s called with null struct opengles_display", (*gldisp), __FUNCTION__);
+		return;
+	}
+
+	for (i = 0; i < MAX_IMAGE; i++) {
+		if ((*gldisp)->yuv[i]) {
+			freemsg((*gldisp)->yuv[i]);
+			(*gldisp)->yuv[i] = NULL;
+		}
+	}
+
+	(*gldisp)->target_contexts = bctbx_list_free((*gldisp)->target_contexts);
+	ms_mutex_destroy(&(*gldisp)->yuv_mutex);
+	if ((*gldisp)->default_functions) opengl_functions_free((*gldisp)->default_functions);
+	ms_free((*gldisp));
+	*gldisp = NULL;
+}
+
+// Clean display data (same thread as rendering)
 void ogl_display_clean(struct opengles_display *gldisp) {
 	if (gldisp->mEglDisplay != EGL_NO_DISPLAY) {
 		ogl_display_make_current(gldisp, FALSE); // Allow OpenGL to Release memory without delay as the
@@ -835,6 +989,8 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 
 		if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
 			if (gldisp->functions->eglInitialized) {
+				ms_message("[ogl_display]:%p eglDestroySurface [%p,%p]", gldisp, (void *)gldisp->mEglDisplay,
+				           (void *)gldisp->mRenderSurface);
 				gldisp->functions->eglDestroySurface(gldisp->mEglDisplay, gldisp->mRenderSurface);
 				check_EGL_errors(gldisp, "ogl_display_clean: eglDestroySurface");
 			}
@@ -844,6 +1000,8 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 			if (gldisp->functions->eglInitialized) {
 				// In case of crash that is resolved by commenting this line, the fix is about context that are bind to
 				// wrong threads. Check all MakeCurrent.
+				ms_message("[ogl_display]:%p eglDestroyContext [%p,%p]", gldisp, (void *)gldisp->mEglDisplay,
+				           (void *)gldisp->mEglContext);
 				gldisp->functions->eglDestroyContext(gldisp->mEglDisplay, gldisp->mEglContext);
 				check_EGL_errors(gldisp, "ogl_display_clean: eglDestroyContext");
 			}
@@ -866,47 +1024,61 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 	}
 }
 
-void ogl_display_free(struct opengles_display *gldisp) {
-	int i;
-
-	if (!gldisp) {
-		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
-		return;
-	}
-
+// Call it when no OpenGL is no more used to cleanup all memory related to display
+void ogl_display_terminate(struct opengles_display *gldisp) {
+	EGLDisplay eglDisplay = gldisp->mEglDisplay;
+	ogl_display_uninit(gldisp, TRUE);
 	ogl_display_clean(gldisp);
-
-	for (i = 0; i < MAX_IMAGE; i++) {
-		if (gldisp->yuv[i]) {
-			freemsg(gldisp->yuv[i]);
-			gldisp->yuv[i] = NULL;
+	ogl_display_library_init(gldisp,
+	                         gldisp->functions); // functions variable is only intialized when processing. We have to be
+	                                             // sure to use the correct version (and fallback to defaults).
+	if (gldisp->functions && gldisp->functions->eglInitialized) {
+		if (eglDisplay == EGL_NO_DISPLAY) {
+			eglDisplay = gldisp->functions->eglGetDisplay(EGL_DEFAULT_DISPLAY);
 		}
-	}
-	if (gldisp->default_functions) {
-		ms_free(gldisp->default_functions);
-		gldisp->default_functions = NULL;
-	}
-	ms_mutex_destroy(&gldisp->yuv_mutex);
-
-	ms_free(gldisp);
+		ms_message("[ogl_display]:%p eglTerminate on %p", gldisp, (void *)eglDisplay);
+		if (eglDisplay != EGL_NO_DISPLAY) {
+			// ensure to be initialized
+			int major = 0, minor = 0;
+			if (gldisp->functions->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE) {
+				GLenum error = gldisp->functions->eglGetError();
+				if (error != EGL_NOT_INITIALIZED) {
+					ms_error("[ogl_display]:%p [%lx] EGL initialization for termination error: -> %x\n", gldisp,
+					         ms_thread_self(), error);
+				}
+				error_mngmt_set(gldisp, error);
+				// in case of error, we don't need to terminate as being initialized is mandatory before
+				// terminating.
+				return;
+			}
+			EGLBoolean result =
+			    gldisp->functions->eglMakeCurrent(eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+			ms_message("[ogl_display]:%p Clean context and terminate display on %p [%d]", gldisp, (void *)eglDisplay,
+			           (int)result);
+			gldisp->functions->eglTerminate(eglDisplay);
+			check_EGL_errors(gldisp, "ogl_display_terminate: eglTerminate");
+		} else ms_error("[ogl_display]:%p Couldn't terminate because no display could be retrieved", gldisp);
+	} else ms_error("[ogl_display]:%p Couldn't terminate because OpenGL functions haven't been loaded", gldisp);
 }
 
 void ogl_display_set_size(struct opengles_display *gldisp, int width, int height) {
 	const OpenGlFunctions *f = gldisp->functions;
 	if (f->glInitialized) {
-		gldisp->backingWidth = width;
-		gldisp->backingHeight = height;
-		ms_message("[ogl_display] resize opengles_display (%d x %d, gl initialized:%d)", width, height,
-		           gldisp->glResourcesInitialized);
-
+		if (gldisp->backingWidth != width || gldisp->backingHeight != height) {
+			gldisp->backingWidth = width;
+			gldisp->backingHeight = height;
+			ms_message("[ogl_display]:%p resize opengles_display (%d x %d, gl initialized:%d)", gldisp, width, height,
+			           gldisp->glResourcesInitialized);
+		}
+		// Change viewport to synchronize sizes
 		GL_OPERATION(f, glViewport(0, 0, width, height))
 		check_GL_errors(gldisp, "ogl_display_set_size");
 	}
 }
 
-void ogl_display_set_target_context(struct opengles_display *gldisp,
-                                    const MSEGLContextDescriptor *const target_context) {
-	gldisp->target_context = target_context;
+void ogl_display_set_target_context(struct opengles_display *gldisp, const MSEGLContextDescriptor *target_context) {
+	gldisp->target_contexts = bctbx_list_free(gldisp->target_contexts);
+	gldisp->target_contexts = bctbx_list_append(gldisp->target_contexts, (void *)target_context);
 }
 
 #ifdef HAVE_GLX
@@ -1191,14 +1363,86 @@ void ogl_destroy_window(BCTBX_UNUSED(EGLNativeWindowType *window), BCTBX_UNUSED(
 /* Returns a context compatible with the given attributes.
    E.g. requesting a 2.0 context may return a 4.6 context in Compatibility profile
 */
-static EGLContext ogl_create_context(const struct opengles_display *const gldisp,
-                                     const MSEGLContextDescriptor *const desc) {
+
+static EGLContext ogl_create_context_from_desc(struct opengles_display *gldisp, const MSEGLContextDescriptor *desc) {
+	EGLContext context = EGL_NO_CONTEXT;
 	const OpenGlFunctions *const f = gldisp->functions;
+	if (!desc) return context;
+#ifdef __cplusplus
+	bool_t isSupportedAPI = FALSE;
+	// Check if Client API support the requested API;
+	std::vector<std::string> apis = bctoolbox::Utils::split(
+	    OpenGLVersion::toStdString(f->eglQueryString(gldisp->mEglDisplay, EGL_CLIENT_APIS)), " ");
+	for (size_t i = 0; !isSupportedAPI && i < apis.size(); ++i) {
+		switch (desc->api) {
+			// String reference: https://registry.khronos.org/EGL/sdk/docs/man/html/eglQueryString.xhtml
+			case EGL_OPENGL_API:
+				isSupportedAPI = (apis[i] == "OpenGL");
+				break;
+			case EGL_OPENGL_ES_API:
+				isSupportedAPI = (apis[i] == "OpenGL_ES");
+				break;
+			case EGL_OPENVG_API:
+				isSupportedAPI = (apis[i] == "OpenVG");
+				break;
+			default: {
+			}
+		}
+	}
+	if (!isSupportedAPI) {
+		ms_message("[ogl_display]:%p Requested API is not supported by the display client : [%x]", gldisp, desc->api);
+		return context;
+	}
+#endif
 	if (!f->eglBindAPI(desc->api)) {
-		return EGL_NO_CONTEXT;
+		ms_error("[ogl_display]:%p Cannot bind API to %x", gldisp, desc->api);
+		check_EGL_errors(gldisp, "ogl_create_context api");
+		return context;
 	}
 
-	return f->eglCreateContext(gldisp->mEglDisplay, gldisp->mEglConfig, EGL_NO_CONTEXT, desc->attrib_list);
+	int numConfigs = 0;
+	EGLint configAttributes[] = {EGL_RED_SIZE,   8, EGL_GREEN_SIZE,   8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8,
+	                             EGL_DEPTH_SIZE, 8, EGL_STENCIL_SIZE, 8, EGL_NONE};
+	if (f->eglChooseConfig(gldisp->mEglDisplay, configAttributes, &gldisp->mEglConfig, 1, &numConfigs) == EGL_FALSE ||
+	    numConfigs == 0) {
+		ms_warning("[ogl_display]:%p Failed to choose first EGLConfig", gldisp);
+		check_EGL_errors(gldisp, "ogl_create_context config");
+		return context;
+	}
+
+	context = f->eglCreateContext(gldisp->mEglDisplay, gldisp->mEglConfig, EGL_NO_CONTEXT, desc->attrib_list);
+	if (context == EGL_NO_CONTEXT) {
+		ms_warning("[ogl_display]:%p Failed to create context with [%x]", gldisp, desc->api);
+		check_EGL_errors(gldisp, "ogl_create_context");
+	}
+	return context;
+}
+
+static EGLContext ogl_create_context_from_list_desc(struct opengles_display *gldisp, const bctbx_list_t *desc) {
+	EGLContext context = EGL_NO_CONTEXT;
+	while (desc && (context = ogl_create_context_from_desc(
+	                    gldisp, ((MSEGLContextDescriptor *)bctbx_list_get_data(desc)))) == EGL_NO_CONTEXT)
+		desc = bctbx_list_next(desc);
+	if (desc && context != EGL_NO_CONTEXT) {
+		ms_message("[ogl_display]:%p Context created for [%x]", gldisp,
+		           ((MSEGLContextDescriptor *)bctbx_list_get_data(desc))->api);
+	}
+	return context;
+}
+
+static EGLContext ogl_create_context(struct opengles_display *gldisp) {
+	const OpenGlFunctions *const f = gldisp->functions;
+	EGLContext context = ogl_create_context_from_list_desc(gldisp, gldisp->target_contexts);
+	if (context == EGL_NO_CONTEXT) {
+		ms_warning("[ogl_display]:%p target EGL context creation failed. Falling back to OpenGL ES 2.0+ ...", gldisp);
+		context = ogl_create_context_from_desc(gldisp, gldisp->fallback_context);
+	}
+
+	if (gldisp->program > 0) {
+		GL_OPERATION(f, glDeleteProgram(gldisp->program));
+		gldisp->program = 0;
+	}
+	return context;
 }
 
 static void
@@ -1218,7 +1462,6 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 	//    rasterizer.
 
 	// ogl_display_clean(gldisp);// Clean the display before creating surface
-
 	int defaultDisplayAttributes[] = {
 	    // These are the default display attributes, used to request ANGLE's D3D11 renderer.
 	    // eglInitialize will only succeed with these attributes if the hardware supports D3D11 Feature Level 10_0+.
@@ -1232,12 +1475,13 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 	    EGL_TRUE,
 	    EGL_NONE,
 	};
+
 	// This tries to initialize EGL to D3D11 Feature Level 10_0+. See above comment for details.
 	gldisp->mEglDisplay =
 	    f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
 	check_EGL_errors(gldisp, "ogl_create_surface");
 	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
-		ms_error("[ogl_display] Failed to get EGL display (D3D11 10.0+).");
+		ms_error("[ogl_display]:%p Failed to get EGL display (D3D11 10.0+).", gldisp);
 	}
 
 	int major = 0, minor = 0;
@@ -1258,7 +1502,7 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 		gldisp->mEglDisplay =
 		    f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, fl9_3DisplayAttributes);
 		if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
-			ms_error("[ogl_display] Failed to get EGL display (D3D11 9.3).");
+			ms_error("[ogl_display]:%p Failed to get EGL display (D3D11 9.3).", gldisp);
 		}
 		if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE) {
 			// This initializes EGL to D3D11 Feature Level 11_0 on WARP, if 9_3+ is unavailable on the default GPU.
@@ -1274,70 +1518,53 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 			gldisp->mEglDisplay =
 			    f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, warpDisplayAttributes);
 			if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
-				ms_error("[ogl_display] Failed to get EGL display (D3D11 11.0 WARP)");
+				ms_error("[ogl_display]:%p Failed to get EGL display (D3D11 11.0 WARP)", gldisp);
 			}
 			if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE) {
 				// If all of the calls to eglInitialize returned EGL_FALSE then an error has occurred.
-				ms_error("[ogl_display] Failed to initialize EGLDisplay");
+				ms_error("[ogl_display]:%p Failed to initialize EGLDisplay", gldisp);
 			}
 		}
 	}
 #else
 	ogl_display_clean(gldisp); // Clean the display before creating surface
 
-	// gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_X11_KHR, EGL_DEFAULT_DISPLAY,
-	// defaultDisplayAttributes);
 	gldisp->mEglDisplay = f->eglGetDisplay(EGL_DEFAULT_DISPLAY);
 	check_EGL_errors(gldisp, "ogl_create_surface");
 	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
-		ms_error("[ogl_display] Failed to get EGL display.");
+		ms_error("[ogl_display]:%p Failed to get EGL display.", gldisp);
 	}
 
 	int major = 0, minor = 0;
 	if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE) {
-		ms_error("[ogl_display] Failed to initialize EGLDisplay");
+		ms_error("[ogl_display]:%p Failed to initialize EGLDisplay", gldisp);
 	}
 #endif
 
 	check_EGL_errors(gldisp, "ogl_create_surface");
-	ms_message("OpenEGL client API: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_CLIENT_APIS));
-	check_EGL_errors(gldisp, "ogl_create_surface");
-	ms_message("OpenEGL vendor: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VENDOR));
-	check_EGL_errors(gldisp, "ogl_create_surface");
-	ms_message("OpenEGL version: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VERSION));
-	check_EGL_errors(gldisp, "ogl_create_surface");
-	ms_message("OpenEGL extensions: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_EXTENSIONS));
-	check_EGL_errors(gldisp, "ogl_create_surface");
+	OpenGLVersion version;
+	version.setEgl(gldisp);
+	if (!OpenGLVersion::sVersion.equalEgl(version)) {
+		OpenGLVersion::sVersion.setEgl(version);
+		OpenGLVersion::sVersion.print(); // Print all data
+	}
 	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
 		return;
 	}
-
-	int numConfigs = 0;
-	EGLint configAttributes[] = {EGL_RED_SIZE,   8, EGL_GREEN_SIZE,   8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8,
-	                             EGL_DEPTH_SIZE, 8, EGL_STENCIL_SIZE, 8, EGL_NONE};
-	if (f->eglChooseConfig(gldisp->mEglDisplay, configAttributes, &gldisp->mEglConfig, 1, &numConfigs) == EGL_FALSE ||
-	    numConfigs == 0) {
-		ms_error("[ogl_display] Failed to choose first EGLConfig");
-		check_EGL_errors(gldisp, "ogl_create_surface");
-		return;
+	gldisp->mEglContext = ogl_create_context(gldisp);
+	if (gldisp->mEglContext == EGL_NO_CONTEXT) {
+		ms_error("[ogl_display]:%p Failed to create EGL context", gldisp);
 	}
 
-	gldisp->mEglContext = ogl_create_context(gldisp, gldisp->target_context);
-	if (gldisp->mEglContext == EGL_NO_CONTEXT) {
-		ms_warning("[ogl_display] target EGL context creation failed. Falling back to OpenGL ES 2.0+ ...");
-		static const EGLint request_opengl_2[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-		static const MSEGLContextDescriptor fallback = {EGL_OPENGL_ES_API, request_opengl_2};
-		gldisp->mEglContext = ogl_create_context(gldisp, &fallback);
-	}
-	if (gldisp->mEglContext == EGL_NO_CONTEXT) {
-		ms_error("[ogl_display] Failed to create EGL context");
-	}
-	check_EGL_errors(gldisp, "ogl_create_surface");
-	gldisp->mRenderSurface = f->eglCreateWindowSurface(gldisp->mEglDisplay, gldisp->mEglConfig, window, NULL);
-	if (gldisp->mRenderSurface == EGL_NO_SURFACE) {
-		ms_error("[ogl_display] Failed to create EGL Render Surface");
-	}
-	check_EGL_errors(gldisp, "ogl_create_surface");
+	EGLSurface surface = f->eglCreateWindowSurface(gldisp->mEglDisplay, gldisp->mEglConfig, window, NULL);
+	if (surface == EGL_NO_SURFACE) {
+		ms_error("[ogl_display]:%p Failed to create EGL Render Surface [%p,%p]", gldisp, (void *)gldisp->mEglDisplay,
+		         (void *)window);
+	} else
+		ms_message("[ogl_display]:%p Create EGL Render Surface [%p,%p]:%p", gldisp, (void *)gldisp->mEglDisplay,
+		           (void *)surface, (void *)window);
+	check_EGL_errors(gldisp, "ogl_create_surface surface");
+	gldisp->mRenderSurface = surface;
 }
 
 void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window) {
@@ -1345,7 +1572,8 @@ void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *
 		ogl_create_surface_default(gldisp, f, window);
 	}
 	if (gldisp->mRenderSurface == EGL_NO_SURFACE) { // Use pointers to set surface (we don't create)
-		if (window) ms_error("[ogl_display] Couldn't create a eglCreateWindowSurface. Try to get one from EGL");
+		if (window)
+			ms_error("[ogl_display]:%p Couldn't create a eglCreateWindowSurface. Try to get one from EGL", gldisp);
 		if (f->eglInitialized) {
 			if (gldisp->mEglDisplay == EGL_NO_DISPLAY) gldisp->mEglDisplay = f->eglGetCurrentDisplay();
 			if (gldisp->mEglContext == EGL_NO_CONTEXT) gldisp->mEglContext = f->eglGetCurrentContext();
@@ -1353,107 +1581,81 @@ void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *
 		}
 		if (gldisp->mEglDisplay == EGL_NO_DISPLAY || gldisp->mEglContext == EGL_NO_CONTEXT ||
 		    gldisp->mRenderSurface == EGL_NO_SURFACE) {
-			ms_error("[ogl_display] Display/Context/Surface couldn't be set");
+			ms_error("[ogl_display]:%p Display/Context/Surface couldn't be set", gldisp);
 			check_EGL_errors(gldisp, "ogl_create_surface");
 		}
 	}
 }
 
+void ogl_display_library_init(struct opengles_display *gldisp, const OpenGlFunctions *f) {
+	if (f && f->glInitialized) gldisp->functions = f;
+	else gldisp->functions = gldisp->default_functions;
+}
+
 void ogl_display_auto_init(
     struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window, int width, int height) {
 	if (!gldisp) {
-		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
+		ms_error("[ogl_display]:%p %s called with null struct opengles_display", gldisp, __FUNCTION__);
 		return;
 	}
-	// Create default functions if necessary. (No opengl functions given.)
-	if (!gldisp->default_functions) {
-		gldisp->default_functions = ms_new0(OpenGlFunctions, 1);
-		if (f) {
-			gldisp->default_functions->loadQtLibs = f->loadQtLibs;
-			if (f->getProcAddress) {
-				gldisp->default_functions->getProcAddress = f->getProcAddress;
-			}
-		}
-		opengl_functions_default_init(gldisp->default_functions);
-	}
-	if (f && f->glInitialized) gldisp->functions = f;
-	else gldisp->functions = gldisp->default_functions;
-
+	if (!gldisp->default_functions) gldisp->default_functions = opengl_functions_new(f);
+	ogl_display_library_init(gldisp, f);
 	if (!gldisp->functions) {
-		ms_error("[ogl_display] functions is still NULL!");
+		ms_error("[ogl_display]:%p functions is still NULL!", gldisp);
 		return;
 	}
 	ogl_create_surface(gldisp, gldisp->functions, window);
 	if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
-		ms_debug("[ogl_display] Set context %p/%p/%p to thread %lu", gldisp->mEglDisplay, gldisp->mRenderSurface,
-		         gldisp->mEglContext, ms_thread_self());
-		if (gldisp->mEglContext == EGL_NO_CONTEXT || ogl_display_make_current(gldisp, TRUE)) {
-			ms_error("[ogl_display] Failed to make EGLSurface current");
+		if (gldisp->mEglContext == EGL_NO_CONTEXT || ogl_display_make_current(gldisp, TRUE) < 0) {
+			ms_warning("[ogl_display]:%p Failed to make EGLSurface current", gldisp);
 		} else {
 			int w = 0, h = 0;
-			// On failure, eglQuerySurface doesn't change output. It is safe to use it on all cases.
 			gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &h);
 			gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &w);
 			if (w > 0 && h > 0) {
 				width = w;
 				height = h;
 			}
-			ogl_display_make_current(gldisp, FALSE);
 		}
 	}
 	if (width != 0 && height != 0) ogl_display_init(gldisp, gldisp->functions, width, height);
 }
 
 void ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f, int width, int height) {
-	static bool_t version_displayed = FALSE;
 	int i, j;
 
 	if (!gldisp) {
-		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
+		ms_error("[ogl_display]:%p %s called with null struct opengles_display", gldisp, __FUNCTION__);
 		return;
 	}
 	gldisp->mSendUnrecoverableError = FALSE;
 	gldisp->mLastError = 0;
-	// Create default functions if necessary. (No opengl functions given.)
-	if (!gldisp->default_functions) {
-		gldisp->default_functions = ms_new0(OpenGlFunctions, 1);
-		if (f) {
-			gldisp->default_functions->loadQtLibs = f->loadQtLibs;
-			if (f->getProcAddress) {
-				gldisp->default_functions->getProcAddress = f->getProcAddress;
-			}
-		}
-		opengl_functions_default_init(gldisp->default_functions);
-	}
-	if (f && f->glInitialized) gldisp->functions = f;
-	else gldisp->functions = gldisp->default_functions;
+	if (!gldisp->default_functions) gldisp->default_functions = opengl_functions_new(f);
+	ogl_display_library_init(gldisp, f);
 
-	ms_message("[ogl_display] init opengles_display (%d x %d, gl initialized:%d) %p", width, height,
+	ms_message("[ogl_display]:%p init opengles_display (%d x %d, gl initialized:%d) %p", gldisp, width, height,
 	           gldisp->glResourcesInitialized, gldisp);
 	if (gldisp->functions == NULL || !gldisp->functions->glInitialized)
-		ms_error("[ogl_display] OpenGL functions have not been initialized");
+		ms_error("[ogl_display]:%p OpenGL functions have not been initialized", gldisp);
 	else {
-		ogl_display_make_current(gldisp, TRUE);
-		if (!version_displayed) {
-			version_displayed = TRUE;
-			ms_message("OpenGL version string: %s", gldisp->functions->glGetString(GL_VERSION));
-			ms_message("OpenGL extensions: %s", gldisp->functions->glGetString(GL_EXTENSIONS));
-			ms_message("OpenGL vendor: %s", gldisp->functions->glGetString(GL_VENDOR));
-			ms_message("OpenGL renderer: %s", gldisp->functions->glGetString(GL_RENDERER));
-			ms_message("OpenGL version: %s", gldisp->functions->glGetString(GL_VERSION));
-			ms_message("OpenGL GLSL version: %s", gldisp->functions->glGetString(GL_SHADING_LANGUAGE_VERSION));
-			check_GL_errors(gldisp, "glGetString");
+		int currentStatus = ogl_display_make_current(gldisp, TRUE);
+		if (currentStatus == -1) {
+			ms_error("[ogl_display]:%p %s Cannot set context", gldisp, __FUNCTION__);
+			return;
 		}
-		clean_GL_errors(gldisp->functions);
+		OpenGLVersion version;
+		version.setGl(gldisp);
+		if (!OpenGLVersion::sVersion.equalGl(version)) {
+			OpenGLVersion::sVersion.setGl(version);
+			OpenGLVersion::sVersion.printGl();
+		}
 
 		GL_OPERATION(gldisp->functions, glDisable(GL_DEPTH_TEST))
 		GL_OPERATION(gldisp->functions, glDisable(GL_SCISSOR_TEST))
 		GL_OPERATION(gldisp->functions, glClearColor(0, 0, 0, 0))
 
 		ogl_display_set_size(gldisp, width, height);
-
 		if (gldisp->glResourcesInitialized) return;
-
 		for (j = 0; j < TEXTURE_BUFFER_SIZE; j++) {
 			// init textures
 			for (i = 0; i < MAX_IMAGE; i++) {
@@ -1465,10 +1667,10 @@ void ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f,
 		check_GL_errors(gldisp, "ogl_display_init");
 
 		gldisp->glResourcesInitialized = TRUE;
-		gldisp->shadersLoaded = load_shaders(gldisp);
+		if (gldisp->program == 0) load_shaders(gldisp);
 
-		if (!gldisp->shadersLoaded) {
-			ms_error("[ogl_display] Failed to load shaders. Cleaning up...");
+		if (gldisp->program == 0) {
+			ms_error("[ogl_display]:%p Failed to load shaders. Cleaning up...", gldisp);
 			ogl_display_uninit(gldisp, TRUE);
 		}
 #ifdef ENABLE_OPENGL_PROFILING
@@ -1478,7 +1680,6 @@ void ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f,
 
 		gldisp->functions->glGenQueries(1, &gl_time_query);
 #endif
-		ogl_display_make_current(gldisp, FALSE);
 	}
 }
 
@@ -1487,12 +1688,12 @@ void ogl_display_uninit(struct opengles_display *gldisp, bool_t freeGLresources)
 	const OpenGlFunctions *f;
 
 	if (!gldisp) {
-		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
+		ms_error("[ogl_display]:%p %s called with null struct opengles_display", gldisp, __FUNCTION__);
 		return;
 	}
 
-	ms_message("[ogl_display] uninit opengles_display (gl initialized:%d) %p. Rendered Frames=%ld/%ld\n",
-	           gldisp->glResourcesInitialized, gldisp, gldisp->mRenderedCount, gldisp->mRenderCount);
+	ms_message("[ogl_display]:%p uninit opengles_display (gl initialized:%d). Rendered Frames=%ld/%ld\n", gldisp,
+	           gldisp->glResourcesInitialized, gldisp->mRenderedCount, gldisp->mRenderCount);
 
 	for (i = 0; i < MAX_IMAGE; i++) {
 		if (gldisp->yuv[i]) {
@@ -1505,16 +1706,16 @@ void ogl_display_uninit(struct opengles_display *gldisp, bool_t freeGLresources)
 
 	if (gldisp->glResourcesInitialized && freeGLresources) {
 		// destroy gl resources
+		ogl_display_make_current(gldisp, TRUE);
 		for (j = 0; j < TEXTURE_BUFFER_SIZE; j++) {
 			for (i = 0; i < MAX_IMAGE; i++) {
 				GL_OPERATION(f, glDeleteTextures(3, gldisp->textures[j][i]));
 				gldisp->allocatedTexturesSize[i].width = gldisp->allocatedTexturesSize[i].height = 0;
 			}
 		}
-		if (f->glInitialized) GL_OPERATION(f, glDeleteProgram(gldisp->program));
+
 		ogl_display_clean(gldisp);
 	}
-
 	if (f) check_GL_errors(gldisp, "ogl_display_uninit");
 
 	gldisp->glResourcesInitialized = FALSE;
@@ -1533,18 +1734,18 @@ void ogl_display_set_preview_yuv_to_display(struct opengles_display *gldisp, mbl
 }
 
 void ogl_display_render(struct opengles_display *gldisp, int orientation, MSVideoDisplayMode mode) {
+	if (!gldisp) return;
 	const OpenGlFunctions *f = gldisp->functions;
 	++gldisp->mRenderCount;
 	if (!f) // Do no try to render if functions are not defined.
 		return;
-	check_GL_errors(gldisp, "ogl_display_render");
-	clean_GL_errors(f);
 #ifdef ENABLE_OPENGL_PROFILING
 	f->glFinish();
 	f->glBeginQuery(GL_TIME_ELAPSED, gl_time_query);
 	clock_t start_time = clock();
 	struct timespec wall_start_time;
 	clock_gettime(CLOCK_MONOTONIC, &wall_start_time);
+	check_GL_errors(gldisp, "ogl_display_render profiling_a");
 #endif
 	int width = 0, height = 0; // Get current surface size from EGL if we can
 	if (gldisp->mRenderSurface != EGL_NO_SURFACE &&
@@ -1559,17 +1760,26 @@ void ogl_display_render(struct opengles_display *gldisp, int orientation, MSVide
 			ogl_display_init(gldisp, f, width, height);
 		}
 	}
-	if (gldisp->functions->glInitialized && gldisp->shadersLoaded) {
-		GL_OPERATION(f, glClearColor(0.f, 0.f, 0.f, 0.f));
-		GL_OPERATION(f, glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-		GL_OPERATION(f, glUseProgram(gldisp->program))
-		check_GL_errors(gldisp, "ogl_display_render");
-		ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation, mode);
-		// preview image already have the correct orientation
-		ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0, MSVideoDisplayBlackBars);
-		gldisp->texture_index = (gldisp->texture_index + 1) % TEXTURE_BUFFER_SIZE;
-		if (gldisp->mRenderSurface != EGL_NO_SURFACE) f->eglSwapBuffers(gldisp->mEglDisplay, gldisp->mRenderSurface);
-		if (gldisp->mLastError == 0) ++gldisp->mRenderedCount;
+
+	if (gldisp->functions->glInitialized) {
+		if (gldisp->program == 0) load_shaders(gldisp);
+		if (gldisp->program > 0) {
+			GL_OPERATION(f, glClearColor(0.f, 0.f, 0.f, 0.f));
+			check_GL_errors(gldisp, "ogl_display_render clearColor");
+			GL_OPERATION(f, glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+			check_GL_errors(gldisp, "ogl_display_render clear");
+			GL_OPERATION(f, glUseProgram(gldisp->program))
+			check_GL_errors(gldisp, "ogl_display_render program");
+			ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation, mode);
+			// preview image already have the correct orientation
+			ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0, MSVideoDisplayBlackBars);
+			gldisp->texture_index = (gldisp->texture_index + 1) % TEXTURE_BUFFER_SIZE;
+			if (gldisp->mRenderSurface != EGL_NO_SURFACE)
+				f->eglSwapBuffers(gldisp->mEglDisplay, gldisp->mRenderSurface);
+			if (gldisp->mLastError == 0) ++gldisp->mRenderedCount;
+			check_GL_errors(gldisp, "ogl_display_render rendering");
+			f->glFinish();
+		}
 	}
 
 #ifdef ENABLE_OPENGL_PROFILING
@@ -1589,6 +1799,7 @@ void ogl_display_render(struct opengles_display *gldisp, int orientation, MSVide
 
 	ms_message("<Magic for grep>, CPU (ms), GPU (ms), Wall clock (ms):\n RUgx7N %f %f %f", elapsed_cpu_time,
 	           (double)elapsed_gpu_time / 1000000.f, elapsed_wall_clock_time);
+	check_GL_errors(gldisp, "ogl_display_render profiling_b");
 #endif
 }
 

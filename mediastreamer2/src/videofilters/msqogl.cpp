@@ -52,7 +52,7 @@ void freeFilter(FilterData *data, BufferRenderer *buffer, bool_t isQt) {
 			buffer->mParent = NULL;
 		} else {
 			ms_filter_lock(data->parent);
-			ogl_display_free(data->display);
+			ogl_display_free_and_nullify(&data->display);
 			data->is_sdk_linked = FALSE;
 			ms_filter_unlock(data->parent);
 		}
@@ -90,7 +90,7 @@ QOpenGLFramebufferObject *BufferRenderer::createFramebufferObject(const QSize &s
 static int qogl_call_render(MSFilter *f, void *arg);
 void BufferRenderer::render() {
 	// Draw with ms filter.
-	if(mParent){
+	if (mParent) {
 		mParent->free_lock->lock();
 		if (mParent->is_sdk_linked && mParent->parent) {
 			qogl_call_render(mParent->parent, NULL);
@@ -122,23 +122,12 @@ void BufferRenderer::synchronize(QQuickFramebufferObject *item) {
 // Process.
 // =============================================================================
 
-void *getProcAddress(const char *name) {
-	auto context = QOpenGLContext::currentContext();
-	if (!context) {
-		ms_warning("[MSQOGL] Context couldn't be retrieved for getting function address on `%s`", name);
-		return nullptr;
-	}
-	auto f = context->getProcAddress(name);
-	if (!f) {
-		ms_warning("[MSQOGL] Function not found `%s`", name);
-		return nullptr;
-	} else return (void *)f;
-}
-
 static void qogl_init(MSFilter *f) {
 	FilterData *data = ms_new0(FilterData, 1);
 	qInfo() << "[MSQOGL] init : " << data;
-	data->display = ogl_display_new();
+	memset(&data->functions, 0, sizeof(data->functions));
+	data->functions.loadQtLibs = TRUE;
+	data->display = ogl_display_new_2(&data->functions);
 	data->show_video = TRUE;
 	data->mirroring = TRUE;
 	data->update_mirroring = FALSE;
@@ -149,9 +138,6 @@ static void qogl_init(MSFilter *f) {
 	data->is_sdk_linked = TRUE;
 	data->mode = MSVideoDisplayBlackBars;
 	data->free_lock = new std::mutex();
-	memset(&data->functions, 0, sizeof(data->functions));
-	data->functions.getProcAddress = getProcAddress;
-	data->functions.loadQtLibs = TRUE;
 	f->data = data;
 }
 
@@ -295,15 +281,17 @@ static int qogl_call_render(MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 
 	data = (FilterData *)f->data;
-	if (data->show_video && data->renderer) {
-		if (data->update_context) {
-			ogl_display_init(data->display, &data->functions, data->renderer->mWidth, data->renderer->mHeight);
-			data->update_context = FALSE;
+	if (data->display) {
+		if (data->show_video && data->renderer) {
+			if (data->update_context) {
+				ogl_display_init(data->display, &data->functions, data->renderer->mWidth, data->renderer->mHeight);
+				data->update_context = FALSE;
+			}
+			ogl_display_render(data->display, 0, data->mode);
 		}
-		ogl_display_render(data->display, 0, data->mode);
-	}
 
-	ogl_display_notify_errors(data->display, f);
+		ogl_display_notify_errors(data->display, f);
+	}
 	ms_filter_unlock(f);
 
 	return 0;
