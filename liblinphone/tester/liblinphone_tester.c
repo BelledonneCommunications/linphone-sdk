@@ -506,13 +506,15 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_basic_test_suite, 415);
 #endif // HAVE_LIME_X3DH
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_conference_edition, 150);
-	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_scheduled_conference_basic, 540);
-	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_scheduled_conference_advanced, 574);
+	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_scheduled_conference_basic, 880);
+	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_scheduled_conference_advanced, 800);
 	liblinphone_tester_add_suite_with_default_time(
 	    &local_conference_test_suite_scheduled_conference_audio_only_participant, 581);
 	liblinphone_tester_add_suite_with_default_time(
 	    &local_conference_test_suite_scheduled_conference_with_screen_sharing, 581);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_scheduled_conference_with_chat, 900);
+	liblinphone_tester_add_suite_with_default_time(
+	    &local_conference_test_suite_scheduled_conference_with_chat_anonymous_participants, 500);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_scheduled_ice_conference, 563);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_impromptu_conference, 384);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_encrypted_impromptu_conference, 150);
