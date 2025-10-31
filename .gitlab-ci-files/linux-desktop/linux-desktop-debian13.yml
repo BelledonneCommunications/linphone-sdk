@@ -1,0 +1,280 @@
+wait-cache-synchro-debian13:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian13
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.wait-cache-synchro, rules]
+
+recache-debian13:
+  extends: .recache-update-cache
+  image: !reference [.debian13_image_version, image]
+
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_debian13: &docker_image_platform_and_runner_tag
+  tags: [ "docker-test" ]
+  image: !reference [.debian13_image_version, image]
+  variables:
+    PLATFORM: linux-debian13
+
+#################################################
+# Makefile
+#################################################
+
+
+debian13-makefile-gcc:
+
+  tags: [ "docker-flat" ]
+  image: !reference [.debian13_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .linux-desktop
+
+
+debian13-makefile-clang:
+
+  tags: [ "docker-flat" ]
+  image: !reference [.debian13_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .linux-desktop
+
+
+#################################################
+# Ninja
+#################################################
+
+
+debian13-ninja-gcc:
+
+  tags: [ "docker-flat" ]
+  image: !reference [.debian13_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+    CMAKE_OPTIONS: -DENABLE_LDAP=OFF
+  extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-debian13
+
+debian13-ninja-gcc-novideo:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
+  extends: debian13-ninja-gcc
+
+debian13-ninja-gcc-pqc:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
+  extends: debian13-ninja-gcc
+
+debian13-ninja-gcc-smallsdk:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF
+  extends: debian13-ninja-gcc
+
+debian13-ninja-gcc-openssl:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+    CMAKE_OPTIONS: -DENABLE_OPENSSL=ON -DENABLE_MBEDTLS=OFF -DENABLE_LDAP=ON
+  extends: debian13-ninja-gcc
+
+debian13-ninja-clang:
+  tags: [ "docker-flat" ]
+  image: !reference [.debian13_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    CMAKE_OPTIONS: -DENABLE_LDAP=OFF
+  extends: .linux-desktop
+
+debian13-ninja-clang-sanitizer:
+  variables:
+    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=ON -DCMAKE_BUILD_TYPE=Debug
+    ADDITIONAL_BUILD_OPTIONS: "-j 4"
+  extends: debian13-ninja-clang
+
+debian13-ninja-clang-novideo:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
+  extends: debian13-ninja-clang
+
+debian13-ninja-clang-pqc:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
+  extends: debian13-ninja-clang
+
+debian13-ninja-clang-python-wheel:
+  tags: [ "docker-flat" ]
+  image: !reference [.debian13_image_version, image]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    ADDITIONAL_CMAKE_OPTIONS: -DENABLE_PYTHON_WRAPPER_TESTER=ON
+  extends: .linux-desktop-python
+
+debian13-ninja-java:
+  tags: [ "docker-flat" ]
+  image: !reference [.debian13_java_image_version, image]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+  variables:
+    CMAKE_GENERATOR: Ninja
+    ADDITIONAL_CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER_TESTER=ON
+  extends: .linux-desktop-java
+
+#################################################
+# TESTS
+#################################################
+
+
+
+bctoolbox-debian13-test:
+  extends: .test-bctoolbox
+  needs:
+    - debian13-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+bctoolbox-debian13-openssl-test-mr:
+  extends: .test-bctoolbox-mr
+  needs:
+    - debian13-ninja-gcc-openssl
+  <<: *docker_image_platform_and_runner_tag
+
+
+pqc-debian13-test:
+  extends: .test-pqc
+  <<: *docker_image_platform_and_runner_tag
+  needs:
+    - debian13-ninja-gcc-pqc
+
+bellesip-debian13-test:
+  extends: .test-bellesip
+  needs:
+    - debian13-ninja-gcc
+  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+  tags: [ "docker-sequential" ]
+  image: !reference [.debian13_image_version, image]
+  variables:
+    PLATFORM: linux-debian13
+
+belr-debian13-test:
+  extends: .test-belr
+  needs:
+    - debian13-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+belcard-debian13-test:
+  extends: .test-belcard
+  needs:
+    - debian13-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+bzrtp-debian13-test:
+  extends: .test-bzrtp
+  needs:
+    - debian13-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+ortp-debian13-test:
+  extends: .test-ortp
+  needs:
+    - debian13-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+liblinphone-debian13-test:
+  image: !reference [.debian13_test_libl_image_version, image]
+  extends: .test-liblinphone
+  needs:
+    - debian13-ninja-gcc
+  variables:
+    PLATFORM: linux-debian13
+
+liblinphone-debian13-test-shaky:
+  image: !reference [.debian13_test_libl_image_version, image]
+  extends: .test-liblinphone-shaky
+  needs:
+    - debian13-ninja-gcc
+  variables:
+    PLATFORM: linux-debian13
+
+liblinphone-debian13-openssl-test-mr:
+   image: !reference [.debian13_test_libl_image_version, image]
+   extends: .test-liblinphone-crypto-backend-mr
+   needs:
+     - debian13-ninja-gcc-openssl
+   variables:
+     PLATFORM: linux-debian13
+
+liblinphone-debian13-python-wrapper-test:
+  image: !reference [ .debian13_test_libl_image_version, image ]
+  extends: .test-liblinphone
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+  needs:
+    - debian13-ninja-clang-python-wheel
+  script:
+    # Create a Python virtual-env and enter it
+    - python3 -m venv ${CI_PROJECT_DIR}/.python-virtual-env
+    - source ${CI_PROJECT_DIR}/.python-virtual-env/bin/activate
+
+    # Install the linphone wheel package
+    - pip install ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/linphone-*.whl
+
+    # Create the linphone config directory, otherwise the tests fail
+    - mkdir -p ~/.local/share/linphone
+
+    # Go to the Python tests project
+    - cd ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/share/pylinphone/wrapper-tests
+
+    # Execute the tester
+    - python test_pylinphone.py
+  after_script:
+  artifacts:
+
+liblinphone-debian13-java-wrapper-test:
+  image: !reference [ .debian13_test_libl_image_version, image ]
+  extends: .test-liblinphone
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+  needs:
+    - debian13-ninja-java
+  script:
+    # Prepare the test environment
+    - cd ${CI_PROJECT_DIR}/build/java/linphone-sdk/java/share/linphonej/WrapperTests
+    - chmod u+x gradlew
+    - unzip ${CI_PROJECT_DIR}/build/java/linphone-sdk/bin/distributions/linphone-sdk-java-*.zip
+
+    # Execute the tester
+    - ./gradlew test
+  after_script:
+  artifacts:

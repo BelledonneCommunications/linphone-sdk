@@ -12,12 +12,6 @@
 .archlinux_test_libl_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:20230706_add_deps_for_av1
 
-.debian10_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:20240506_add_jsoncpp_for_oauth2
-
-.debian10_test_libl_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:20240506_add_jsoncpp_for_oauth2
-
 .debian11_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:20240506_add_jsoncpp_for_oauth2
 
@@ -32,6 +26,15 @@
 
 .debian12_test_libl_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:20250401_update_java_21
+
+.debian13_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian13:20251103_update_setuptools
+
+.debian13_java_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian13-java:20251103_update_setuptools
+
+.debian13_test_libl_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian13-test-liblinphone:20251103_update_setuptools
 
 .gentoo_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-gentoo:20250627_update_packages_after_submodules_removal

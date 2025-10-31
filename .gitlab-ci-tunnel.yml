@@ -45,7 +45,9 @@ include:
   - '.gitlab-ci-files/linux-desktop/linux-desktop.yml'
 #  - '.gitlab-ci-files/linux-desktop/linux-desktop-archlinux-latest.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-centos7.yml'
-  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian10.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian11.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian12.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian13.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu-rolling.yml'
 
   - '.gitlab-ci-files/macosx/builds.yml'

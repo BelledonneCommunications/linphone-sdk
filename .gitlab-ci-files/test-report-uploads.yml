@@ -251,12 +251,12 @@ libl-rocky8-forced-test-upload:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_TESTS_LIBLINPHONE != null
 
-libl-debian10-test-upload:
+libl-debian13-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - liblinphone-debian10-test
+    - liblinphone-debian13-test
   variables:
-    PLATFORM: "linux-debian10"
+    PLATFORM: "linux-debian13"
     TESTER: "liblinphone"
 
 # libl-ubuntu-test-upload:
@@ -317,12 +317,12 @@ bct-rocky8-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "bctoolbox"
 
-bct-debian10-test-upload:
+bct-debian13-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bctoolbox-debian10-test
+    - bctoolbox-debian13-test
   variables:
-    PLATFORM: "linux-debian10"
+    PLATFORM: "linux-debian13"
     TESTER: "bctoolbox"
 
 # bct-ubuntu-test-upload:
@@ -357,12 +357,12 @@ bellesip-rocky8-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "bellesip"
 
-bellesip-debian10-test-upload:
+bellesip-debian13-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bellesip-debian10-test
+    - bellesip-debian13-test
   variables:
-    PLATFORM: "linux-debian10"
+    PLATFORM: "linux-debian13"
     TESTER: "bellesip"
 
 # test-upload-bsip-ubuntu:
@@ -399,12 +399,12 @@ ms2-arch-test-upload:
 
 #commented as long as ms2 testers aren't running everywhere
 
-# ms2-debian10-test-upload:
+# ms2-debian13-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
-#    - test-mediastreamer-debian10
+#    - test-mediastreamer-debian13
 #  variables:
-#    PLATFORM: "linux-debian10"
+#    PLATFORM: "linux-debian13"
 #    TESTER: "mediastreamer"
 
 # ms2-ubuntu-test-upload:
@@ -440,12 +440,12 @@ belr-rocky8-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "belr"
 
-belr-debian10-test-upload:
+belr-debian13-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - belr-debian10-test
+    - belr-debian13-test
   variables:
-    PLATFORM: "linux-debian10"
+    PLATFORM: "linux-debian13"
     TESTER: "belr"
 
 # belr-ubuntu-test-upload:
@@ -480,12 +480,12 @@ belcard-rocky8-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "belcard"
 
-belcard-debian10-test-upload:
+belcard-debian13-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - belcard-debian10-test
+    - belcard-debian13-test
   variables:
-    PLATFORM: "linux-debian10"
+    PLATFORM: "linux-debian13"
     TESTER: "belcard"
 
 # belcard-ubuntu-test-upload:
@@ -520,12 +520,12 @@ bzrtp-rocky8-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "bzrtp"
 
-bzrtp-debian10-test-upload:
+bzrtp-debian13-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bzrtp-debian10-test
+    - bzrtp-debian13-test
   variables:
-    PLATFORM: "linux-debian10"
+    PLATFORM: "linux-debian13"
     TESTER: "bzrtp"
 
 # bzrtp-ubuntu-test-upload:

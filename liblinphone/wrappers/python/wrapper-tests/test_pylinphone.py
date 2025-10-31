@@ -7,7 +7,7 @@ import unittest
 class LinphoneAddressCreationTestCase(unittest.TestCase):
     def test_linphone_address_creation_success(self):
         logging_service = linphone.LoggingService.get()
-        logging_service.set_log_level(linphone.LogLevelMessage)
+        logging_service.set_log_level(linphone.LogLevel.LogLevelMessage)
 
         factory = linphone.Factory.get()
         factory.top_resources_dir = os.path.join(os.path.dirname(os.path.abspath(linphone.__file__)), "share")
@@ -21,7 +21,7 @@ class LinphoneAddressCreationTestCase(unittest.TestCase):
 
     def test_linhone_address_creation_failure(self):
         logging_service = linphone.LoggingService.get()
-        logging_service.set_log_level(linphone.LogLevelMessage)
+        logging_service.set_log_level(linphone.LogLevel.LogLevelMessage)
 
         factory = linphone.Factory.get()
         factory.top_resources_dir = os.path.join(os.path.dirname(os.path.abspath(linphone.__file__)), "share")
@@ -44,20 +44,20 @@ class LinphoneCoreCreationTestCase(unittest.TestCase):
 
     def on_global_state_changed(self, core, state, message):
         match state:
-            case linphone.GlobalStateStartup:
+            case linphone.GlobalState.GlobalStateStartup:
                 self.nb_global_state_startup += 1
-            case linphone.GlobalStateConfiguring:
+            case linphone.GlobalState.GlobalStateConfiguring:
                 self.nb_global_state_configuring += 1
-            case linphone.GlobalStateOn:
+            case linphone.GlobalState.GlobalStateOn:
                 self.nb_global_state_on += 1
-            case linphone.GlobalStateShutdown:
+            case linphone.GlobalState.GlobalStateShutdown:
                 self.nb_global_state_shutdown += 1
-            case linphone.GlobalStateOff:
+            case linphone.GlobalState.GlobalStateOff:
                 self.nb_global_state_off += 1
 
     def test_linphone_core_creation(self):
         logging_service = linphone.LoggingService.get()
-        logging_service.set_log_level(linphone.LogLevelMessage)
+        logging_service.set_log_level(linphone.LogLevel.LogLevelMessage)
 
         factory = linphone.Factory.get()
         factory.top_resources_dir = os.path.join(os.path.dirname(os.path.abspath(linphone.__file__)), "share")
@@ -102,12 +102,12 @@ class SingleCallTestCase(unittest.TestCase):
 
     def on_call_state_changed(self, core, call, state, message):
         match state:
-            case linphone.CallStateIncomingReceived:
+            case linphone.CallState.CallStateIncomingReceived:
                 if core == self.callee_core:
                     self.callee_call = call
                     result = self.callee_call.accept()
                     self.assertEqual(result, 0)
-            case linphone.CallStateStreamsRunning:
+            case linphone.CallState.CallStateStreamsRunning:
                 if core == self.caller_core:
                     self.caller_nb_call_streams_running += 1
                 elif core == self.callee_core:
@@ -115,7 +115,7 @@ class SingleCallTestCase(unittest.TestCase):
                 if self.caller_nb_call_streams_running > 0 and self.callee_nb_call_streams_running > 0:
                     result = self.caller_call.terminate()
                     self.assertEqual(result, 0)
-            case linphone.CallStateReleased:
+            case linphone.CallState.CallStateReleased:
                 if core == self.caller_core:
                     self.caller_nb_call_released += 1
                 elif core == self.callee_core:
@@ -137,7 +137,7 @@ class SingleCallTestCase(unittest.TestCase):
 
     def test_single_call(self):
         logging_service = linphone.LoggingService.get()
-        logging_service.set_log_level(linphone.LogLevelMessage)
+        logging_service.set_log_level(linphone.LogLevel.LogLevelMessage)
 
         self.create_core_listener()
         self.caller_core = self.create_and_configure_core()
