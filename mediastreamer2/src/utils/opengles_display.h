@@ -44,14 +44,11 @@ struct opengles_display;
 MS2_PUBLIC struct opengles_display *ogl_display_new(void);
 
 /**
- * Create opaque structure to handle OpenGL display using default functions.
- */
-MS2_PUBLIC struct opengles_display *ogl_display_new_2(const OpenGlFunctions *default_functions);
-
-/**
  * Release opaque struct memory
  */
 MS2_PUBLIC void ogl_display_free_and_nullify(struct opengles_display **gldisp);
+
+MS2_PUBLIC void ogl_display_set_default_functions(struct opengles_display *gldisp, const OpenGlFunctions *default_functions);
 
 /**
  * Activate/deactivate threaded mode in order to avoid context reinitializations.

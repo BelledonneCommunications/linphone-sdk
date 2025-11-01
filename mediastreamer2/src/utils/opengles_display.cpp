@@ -911,7 +911,7 @@ static void ogl_display_render_type(struct opengles_display *gldisp,
 
 // -----------------------------------------------------------------------------
 
-struct opengles_display *ogl_display_new_2(const OpenGlFunctions *default_functions) {
+struct opengles_display *ogl_display_new() {
 	struct opengles_display *result = (struct opengles_display *)ms_malloc0(sizeof(struct opengles_display));
 	if (result == 0) {
 		ms_error("[ogl_display] Could not allocate OpenGL display structure");
@@ -951,12 +951,7 @@ struct opengles_display *ogl_display_new_2(const OpenGlFunctions *default_functi
 	result->mSendUnrecoverableError = FALSE;
 
 	ms_mutex_init(&result->yuv_mutex, NULL);
-	result->default_functions = opengl_functions_new(default_functions);
 	return result;
-}
-
-struct opengles_display *ogl_display_new(void) {
-	return ogl_display_new_2(NULL);
 }
 
 void ogl_display_free_and_nullify(struct opengles_display **gldisp) {
@@ -979,6 +974,11 @@ void ogl_display_free_and_nullify(struct opengles_display **gldisp) {
 	if ((*gldisp)->default_functions) opengl_functions_free((*gldisp)->default_functions);
 	ms_free((*gldisp));
 	*gldisp = NULL;
+}
+
+void ogl_display_set_default_functions(struct opengles_display *gldisp, const OpenGlFunctions *default_functions) {
+	if(gldisp->default_functions) opengl_functions_free(gldisp->default_functions);
+	gldisp->default_functions = opengl_functions_new(default_functions);
 }
 
 // Clean display data (same thread as rendering)

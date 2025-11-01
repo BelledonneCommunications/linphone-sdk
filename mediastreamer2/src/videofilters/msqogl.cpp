@@ -111,6 +111,7 @@ void BufferRenderer::synchronize(QQuickFramebufferObject *item) {
 	if (new_win == mWindow) return;
 
 	if (mParent) {
+		ogl_display_set_default_functions(mParent->display, &mParent->functions);// Synchronize functions with the current context
 		ogl_display_uninit(mParent->display, TRUE);
 		mParent->update_context = TRUE;
 	}
@@ -121,13 +122,34 @@ void BufferRenderer::synchronize(QQuickFramebufferObject *item) {
 // =============================================================================
 // Process.
 // =============================================================================
-
+// We need a pointer function coming from QOpenGLContext that is current because just having
+// a function pointer is not usable.
+void *getProcAddress(const char *name) {
+	auto context = QOpenGLContext::currentContext();
+	if (!context) {
+		ms_warning("[MSQOGL] Context couldn't be retrieved for getting function address on `%s`", name);
+		return nullptr;
+	}
+	auto f = context->getProcAddress(name);
+	if (!f) {
+		ms_warning("[MSQOGL] Function not found `%s`", name);
+		return nullptr;
+	} else {
+		return (void *)f;
+	}
+}
 static void qogl_init(MSFilter *f) {
 	FilterData *data = ms_new0(FilterData, 1);
 	qInfo() << "[MSQOGL] init : " << data;
 	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.loadQtLibs = TRUE;
-	data->display = ogl_display_new_2(&data->functions);
+	data->functions.getProcAddress = getProcAddress;
+	data->display = ogl_display_new();
+	// We cannot set default function if context doesn't exist (qogl_init may not be call from the same threead cas Qt).
+	// Function pointer must be used from Qt Context and not from library.
+	if( QOpenGLContext::currentContext())
+		ogl_display_set_default_functions(data->display, &data->functions);
+
 	data->show_video = TRUE;
 	data->mirroring = TRUE;
 	data->update_mirroring = FALSE;

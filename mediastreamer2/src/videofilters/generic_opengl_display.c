@@ -180,7 +180,8 @@ static void ogl_init(MSFilter *f) {
 	data->functions.glInitialized = FALSE;
 	data->functions.eglInitialized = FALSE;
 	data->functions.loadQtLibs = FALSE;
-	data->display = ogl_display_new_2(&data->functions);
+	data->display = ogl_display_new();
+	ogl_display_set_default_functions(data->display, &data->functions);
 	data->show_video = TRUE;
 	data->mirroring = TRUE;
 	data->update_mirroring = FALSE;
