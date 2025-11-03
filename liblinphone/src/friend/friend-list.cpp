@@ -1060,8 +1060,9 @@ void FriendList::saveInDb() {
 				mStorageId = mainDb->insertFriendList(getSharedFromThis());
 			}
 		} else {
-			lWarning() << "Can't save friend list [" << getDisplayName()
-			           << "] in DB, either Core is not available or database storage is disabled";
+			if (!mInhibitDbStorage)
+				lWarning() << "Can't save friend list [" << getDisplayName()
+				           << "] in DB, either Core is not available or database storage is disabled";
 		}
 	} catch (std::bad_weak_ptr &) {
 	}
@@ -1233,20 +1234,7 @@ bool FriendList::isReadOnly() const {
 
 void FriendList::setIsReadOnly(bool readOnly) {
 	mIsReadOnly = readOnly;
-#ifdef HAVE_DB_STORAGE
-	try {
-		if (getCore() && databaseStorageEnabled()) {
-			std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(getCore()->getCCore())->mainDb;
-			if (mainDb) {
-				mStorageId = mainDb->insertFriendList(getSharedFromThis());
-			}
-		} else {
-			lWarning() << "Can't save friend list [" << getDisplayName()
-			           << "] in DB, either Core is not available or database storage is disabled";
-		}
-	} catch (std::bad_weak_ptr &) {
-	}
-#endif
+	saveInDb();
 }
 
 // -----------------------------------------------------------------------------

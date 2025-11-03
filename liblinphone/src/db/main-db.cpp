@@ -2573,10 +2573,8 @@ std::shared_ptr<FriendList> MainDbPrivate::selectFriendList(const soci::row &row
 	} else {
 		friendList->mRevision = ctag;
 	}
-	friendList->inhibitDatabaseStorage(false);
-
 	friendList->setIsReadOnly(!!row.get<int>(7));
-
+	friendList->inhibitDatabaseStorage(false);
 	return friendList;
 }
 #endif
