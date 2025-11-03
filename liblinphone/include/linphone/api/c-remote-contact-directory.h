@@ -82,7 +82,7 @@ LINPHONE_PUBLIC LinphoneCardDavParams *linphone_remote_contact_directory_get_car
     const LinphoneRemoteContactDirectory *remote_contact_directory);
 
 /**
- * Gets the LDAP remote_contact_directory if linphone_remote_contact_directory_get_type() returns LDAP.
+ * Gets the LDAP remote contact directory if linphone_remote_contact_directory_get_type() returns LDAP.
  * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return the #LinphoneLdapParams or NULL if not of LDAP type. @maybenil
  */

@@ -25,6 +25,8 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
+const std::string PushNotificationConfig::kDefaultTeamId = "ABCD1234";
+
 PushNotificationConfig::PushNotificationConfig() {
 #ifdef __ANDROID__
 	mPushParams[PushConfigProviderKey] = "fcm";
@@ -44,7 +46,7 @@ PushNotificationConfig::PushNotificationConfig() {
 	mPushParams[PushConfigMsgSoundKey] = "msg.caf";
 	mPushParams[PushConfigRemotePushIntervalKey] = "";
 
-	mTeamId = "ABCD1234";
+	mTeamId = PushNotificationConfig::kDefaultTeamId;
 	mBundleIdentifer = "";
 	mVoipToken = "";
 	mRemoteToken = "";

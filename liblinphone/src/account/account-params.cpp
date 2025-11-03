@@ -182,7 +182,9 @@ AccountParams::AccountParams(LinphoneCore *lc, bool useDefaultValues) {
 		mPushNotificationConfig->setBundleIdentifer(string(
 		    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "bundle_identifier", "") : ""));
 		mPushNotificationConfig->setTeamId(
-		    string(useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "team_id", "") : ""));
+		    string(useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "team_id",
+		                                                                 PushNotificationConfig::kDefaultTeamId.c_str())
+		                            : ""));
 	}
 
 	mRtpBundleEnabled = useDefaultValues ? !!linphone_config_get_default_int(lc->config, "proxy", "rtp_bundle",
@@ -274,7 +276,8 @@ AccountParams::AccountParams(LinphoneCore *lc, int index) : AccountParams(lc, fa
 	mPushNotificationConfig->setVoipToken(linphone_config_get_string(config, key, "voip_token", ""));
 	mPushNotificationConfig->setRemoteToken(linphone_config_get_string(config, key, "remote_token", ""));
 	mPushNotificationConfig->setBundleIdentifer(linphone_config_get_string(config, key, "bundle_identifier", ""));
-	mPushNotificationConfig->setTeamId(linphone_config_get_string(config, key, "team_id", ""));
+	mPushNotificationConfig->setTeamId(
+	    linphone_config_get_string(config, key, "team_id", PushNotificationConfig::kDefaultTeamId.c_str()));
 	// mPushNotificationConfig can't be null because it is always created in AccountParams(lc) called previously
 	if (linphone_core_is_push_notification_enabled(lc) && !pushParameters.empty()) {
 		mPushNotificationConfig->readPushParamsFromString(pushParameters);
