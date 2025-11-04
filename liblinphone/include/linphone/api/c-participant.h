@@ -89,7 +89,7 @@ LINPHONE_PUBLIC bool_t linphone_participant_is_focus(const LinphoneParticipant *
  * If the default account is not defined then it will be TRUE if the participant is local.
  * @param participant A #LinphoneParticipant object  @notnil
  * @return TRUE if the participant is me, FALSE otherwise.
-*/
+ */
 LINPHONE_PUBLIC bool_t linphone_participant_is_me(const LinphoneParticipant *participant);
 
 /**

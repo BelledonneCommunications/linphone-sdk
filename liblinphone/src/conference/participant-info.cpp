@@ -57,6 +57,7 @@ ParticipantInfo::ParticipantInfo(const ParticipantInfo &other) : HybridObject(ot
 
 void ParticipantInfo::setAddress(const std::shared_ptr<const Address> &address) {
 	mAddress = Address::create(address->getUri());
+	mAddress->setDisplayName(address->getDisplayName());
 }
 
 const std::shared_ptr<Address> &ParticipantInfo::getAddress() const {

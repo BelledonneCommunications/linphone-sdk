@@ -47,7 +47,6 @@ Participant::Participant(const std::shared_ptr<Conference> conference,
 }
 
 Participant::Participant(std::shared_ptr<Address> address) : mAddress(address) {
-	L_ASSERT(address->getDisplayNameCstr() == nullptr);
 	L_ASSERT(!address->hasUriParam("gr"));
 }
 
@@ -57,7 +56,7 @@ Participant::~Participant() {
 
 void Participant::configure(const std::shared_ptr<Conference> conference,
                             const std::shared_ptr<const Address> &address) {
-	mAddress = Address::create(address->getUriWithoutGruu());
+	setAddress(address);
 	setConference(conference);
 	if (conference) {
 		const auto &conferenceParams = conference->getCurrentParams();
@@ -255,14 +254,22 @@ void Participant::removeDevice(const std::shared_ptr<Address> &gruu) {
 
 // -----------------------------------------------------------------------------
 
-void Participant::setAddress(const std::shared_ptr<Address> &newAddr) {
+void Participant::setAddress(const std::shared_ptr<const Address> &newAddr) {
 	mAddress = Address::create(newAddr->getUriWithoutGruu());
+	mAddress->setDisplayName(newAddr->getDisplayName());
 }
 
 const std::shared_ptr<Address> &Participant::getAddress() const {
 	return mAddress;
 }
 
+void Participant::setDisplayName(const std::string &name) {
+	mAddress->setDisplayName(name);
+}
+
+const std::string Participant::getDisplayName() const {
+	return mAddress->getDisplayName();
+}
 AbstractChatRoom::SecurityLevel Participant::getSecurityLevel() const {
 	return getSecurityLevelExcept(nullptr);
 }

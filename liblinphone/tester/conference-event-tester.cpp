@@ -263,7 +263,7 @@ static const char *sync_full_state_notify =
     "     USER"
     "   -->"
     "     <user entity=\"sip:frank@example.com\" state=\"full\">"
-    "      <display-text>Bob Hoskins</display-text>"
+    "      <display-text>Frank Clown</display-text>"
     "   <!--"
     "     ENDPOINTS"
     "   -->"
@@ -442,7 +442,7 @@ static const char *participant_added_notify = "<?xml version=\"1.0\" encoding=\"
                                               "   -->"
                                               "    <users>"
                                               "     <user entity=\"sip:frank@example.com\" state=\"full\">"
-                                              "      <display-text>Bob Hoskins</display-text>"
+                                              "      <display-text>Frank Clown</display-text>"
                                               "   <!--"
                                               "     ENDPOINTS"
                                               "   -->"
@@ -498,7 +498,7 @@ static const char *participant_not_added_notify = "<?xml version=\"1.0\" encodin
                                                   "   -->"
                                                   "    <users>"
                                                   "     <user entity=\"sip:frank@example.com\" state=\"partial\">"
-                                                  "      <display-text>Bob Hoskins</display-text>"
+                                                  "      <display-text>Frank Clown</display-text>"
                                                   "   <!--"
                                                   "     ENDPOINTS"
                                                   "   -->"
@@ -738,9 +738,9 @@ static const char *participant_unadmined_notify = "<?xml version=\"1.0\" encodin
                                                   "    </users>"
                                                   "   </conference-info>";
 
-static const char *bobUri = "sip:bob@example.com";
-static const char *aliceUri = "sip:alice@example.com";
-static const char *frankUri = "sip:frank@example.com";
+static const char *bobUri = "\"Bob Hoskins\" <sip:bob@example.com>";
+static const char *aliceUri = "\"Alice\" <sip:alice@example.com>";
+static const char *frankUri = "\"Frank Clown\" <sip:frank@example.com>";
 static const char *confUri = "sips:conf233@example.com";
 
 L_ENABLE_ATTR_ACCESS(ServerConference, shared_ptr<ServerConferenceEventHandler>, mEventHandler);
@@ -1017,6 +1017,7 @@ void first_notify_parsing() {
 	BC_ASSERT_EQUAL(tester->participants.size(), 2, size_t, "%zu");
 	char *bobAddrStr = linphone_address_as_string(bobAddr);
 	char *aliceAddrStr = linphone_address_as_string(aliceAddr);
+
 	BC_ASSERT_TRUE(tester->participants.find(bobAddrStr) != tester->participants.end());
 	BC_ASSERT_TRUE(tester->participants.find(aliceAddrStr) != tester->participants.end());
 	BC_ASSERT_TRUE(!tester->participants.find(bobAddrStr)->second);
@@ -1880,7 +1881,7 @@ add_participant_to_conference_through_call(bctbx_list_t **mgrs,
 			cppAddress->removeUriParam(name);
 		}
 		BC_ASSERT_TRUE(linphone_address_weak_equal(cppAddress->toC(), participant_mgr->identity));
-		const auto participant = confListener->participants.find(cppAddress->asStringUriOnly());
+		const auto participant = confListener->participants.find(cppAddress->toString());
 		BC_ASSERT_TRUE(participant != confListener->participants.end());
 
 		// Admin check

@@ -341,6 +341,8 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 		// 4. Notify changes on users.
 		for (auto &user : users->getUser()) {
 			std::shared_ptr<Address> address = core->interpretUrl(user.getEntity().get(), false);
+			const string &participantName = user.getDisplayText().present() ? user.getDisplayText().get() : "";
+			if (!participantName.empty()) address->setDisplayName(participantName);
 			StateType userState = user.getState();
 
 			bool isMe = conference->isMe(address);
@@ -361,7 +363,6 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 			}
 			if (isMe) {
 				participant = conference->getMe();
-				participant->setAddress(address);
 			} else {
 				participant = conference->findParticipant(address);
 			}
@@ -373,12 +374,11 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 			auto &roles = user.getRoles();
 			if (userState == StateType::deleted) {
 				if (isMe) {
-					lInfo() << "Participant [" << *address << "] requested to be deleted from " << *conference
-					        << " is me.";
+					lInfo() << *participant << " requested to be deleted from " << *conference << " is me.";
 					continue;
 				} else if (participant) {
 					conference->mParticipants.remove(participant);
-					lInfo() << "Participant " << *participant << " is successfully removed - " << *conference << " has "
+					lInfo() << *participant << " is successfully removed - " << *conference << " has "
 					        << conference->getParticipantCount() << " participants";
 					if (!isFullState) {
 						conference->notifyParticipantRemoved(creationTime, isFullState, participant);
@@ -390,12 +390,13 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 
 					continue;
 				} else {
-					lWarning() << "Participant [" << *address << "] removed from " << *conference
+					lWarning() << *participant << " removed from " << *conference
 					           << " but not in the list of participants!";
 				}
 			} else if (userState == StateType::full) {
 				if (isMe) {
-					lInfo() << "Participant [" << *address << "] requested to be added to " << *conference << " is me.";
+					participant->setAddress(address);
+					lInfo() << *participant << " requested to be added to " << *conference << " is me.";
 				} else if (participant) {
 					lWarning() << *participant << " added but already in the list of participants of " << *conference
 					           << "!";
@@ -703,8 +704,8 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						}
 
 						const string &name = endpoint.getDisplayText().present() ? endpoint.getDisplayText().get() : "";
-
 						if (!name.empty()) device->setName(name);
+
 						// TODO FIXME: Remove later when devices for friends will be notified through presence
 						lInfo() << "[Friend] Inserting new device with name [" << name << "] and address ["
 						        << gruu->asStringUriOnly() << "]";

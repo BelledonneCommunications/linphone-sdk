@@ -2319,7 +2319,7 @@ std::shared_ptr<ParticipantDevice> ServerConference::createParticipantDevice(std
 		auto displayName = L_C_TO_STRING(sal_address_get_display_name(
 		    (call->getDirection() == LinphoneCallIncoming) ? op->getFromAddress() : op->getToAddress()));
 		if (!displayName.empty()) {
-			device->setName(displayName);
+			participant->setDisplayName(displayName);
 		}
 		enableScreenSharing(session, false);
 		if (!mConfParams->isHidden()) {

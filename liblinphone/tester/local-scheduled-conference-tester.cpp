@@ -7819,6 +7819,8 @@ static void conference_with_anonymous_participants_base(LinphoneConferenceLayout
 
 		bctbx_list_t *coresList = NULL;
 
+		int anonymousUserIdx = 0;
+
 		for (auto mgr : {focus.getCMgr(), marie.getCMgr(), pauline.getCMgr(), laure.getCMgr(), michelle.getCMgr(),
 		                 berthe.getCMgr(), lise.getCMgr()}) {
 			LinphoneVideoActivationPolicy *pol =
@@ -7847,6 +7849,9 @@ static void conference_with_anonymous_participants_base(LinphoneConferenceLayout
 			if (!linphone_core_get_default_account(mgr->lc)) {
 				LinphoneAccountParams *params = linphone_core_create_account_params(mgr->lc);
 				LinphoneAddress *primary_contact = linphone_core_get_primary_contact_parsed(mgr->lc);
+				char display_name[50];
+				snprintf(display_name, sizeof(display_name), "user%0d", anonymousUserIdx);
+				linphone_address_set_display_name(primary_contact, display_name);
 				linphone_address_set_username(primary_contact, "anonymous");
 				linphone_account_params_set_identity_address(params, primary_contact);
 				linphone_address_unref(primary_contact);
@@ -7860,6 +7865,7 @@ static void conference_with_anonymous_participants_base(LinphoneConferenceLayout
 				linphone_core_set_default_account(mgr->lc, account);
 				linphone_account_params_unref(params);
 				linphone_account_unref(account);
+				anonymousUserIdx++;
 			}
 
 			coresList = bctbx_list_append(coresList, mgr->lc);
@@ -7982,6 +7988,29 @@ static void conference_with_anonymous_participants_base(LinphoneConferenceLayout
 				BC_ASSERT_EQUAL(linphone_call_params_screen_sharing_enabled(call_rparams), is_screen_sharing_enabled,
 				                int, "%0d");
 			}
+
+			bool_t device_name_null = TRUE;
+			int participant_name_count = 0;
+			LinphoneConference *pconference = linphone_core_search_conference_2(mgr->lc, confAddr);
+			BC_ASSERT_PTR_NOT_NULL(pconference);
+			if (pconference) {
+				bctbx_list_t *devices = linphone_conference_get_participant_device_list(pconference);
+				for (bctbx_list_t *itd = devices; itd; itd = bctbx_list_next(itd)) {
+					LinphoneParticipantDevice *device = (LinphoneParticipantDevice *)bctbx_list_get_data(itd);
+					device_name_null &= (linphone_participant_device_get_name(device) == NULL);
+					const LinphoneAddress *participant_address =
+					    linphone_participant_get_address(linphone_participant_device_get_participant(device));
+					if (participant_address && linphone_address_get_display_name(participant_address)) {
+						participant_name_count++;
+					}
+				}
+				if (devices) {
+					bctbx_list_free_with_data(devices, (void (*)(void *))linphone_participant_device_unref);
+				}
+			}
+
+			BC_ASSERT_TRUE(device_name_null);
+			BC_ASSERT_EQUAL(participant_name_count, 3, int, "%0d");
 
 			BC_ASSERT_TRUE(check_thumbnail_availability(mgr, confAddr));
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe, lise})
@@ -8234,6 +8263,32 @@ static void conference_with_anonymous_participants_base(LinphoneConferenceLayout
 		}
 
 		for (const auto &mgr : conferenceMgrs) {
+			if (mgr != focus.getCMgr()) {
+				bool_t device_name_null = TRUE;
+				int participant_name_count = 0;
+				LinphoneConference *pconference = linphone_core_search_conference_2(mgr->lc, confAddr);
+				BC_ASSERT_PTR_NOT_NULL(pconference);
+				if (pconference) {
+					bctbx_list_t *devices = linphone_conference_get_participant_device_list(pconference);
+					for (bctbx_list_t *itd = devices; itd; itd = bctbx_list_next(itd)) {
+						LinphoneParticipantDevice *device = (LinphoneParticipantDevice *)bctbx_list_get_data(itd);
+						device_name_null &= (linphone_participant_device_get_name(device) == NULL);
+						const LinphoneAddress *participant_address =
+						    linphone_participant_get_address(linphone_participant_device_get_participant(device));
+						if (participant_address && linphone_address_get_display_name(participant_address)) {
+							participant_name_count++;
+						}
+					}
+					if (devices) {
+						bctbx_list_free_with_data(devices, (void (*)(void *))linphone_participant_device_unref);
+					}
+				}
+
+				BC_ASSERT_TRUE(device_name_null);
+				BC_ASSERT_EQUAL(participant_name_count, 4, int, "%0d");
+
+				BC_ASSERT_TRUE(check_thumbnail_availability(mgr, confAddr));
+			}
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe, lise})
 			                   .waitUntil(chrono::seconds(50), [mgr, &michelle, confAddr] {
 				                   return check_screen_sharing(mgr, confAddr, michelle.getCMgr());

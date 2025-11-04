@@ -1327,9 +1327,11 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 					}
 					for (const auto &[memberMgr, info] : members) {
 						const LinphoneAccount *default_account = linphone_core_get_default_account(memberMgr->lc);
-						bool_t is_anonymous =
-						    (default_account && is_anonymous_address(linphone_account_params_get_identity_address(
-						                            linphone_account_get_params(default_account))));
+						const LinphoneAddress *identity_address =
+						    default_account ? linphone_account_params_get_identity_address(
+						                          linphone_account_get_params(default_account))
+						                    : NULL;
+						bool_t is_anonymous = (default_account && is_anonymous_address(identity_address));
 						found |= !!linphone_address_weak_equal(memberMgr->identity, device_address) || !is_anonymous;
 					}
 					if (mgr == focus) {

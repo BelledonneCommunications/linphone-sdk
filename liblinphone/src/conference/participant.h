@@ -113,6 +113,9 @@ public:
 	bool isAdmin() const;
 	bool isMe() const;
 
+	void setDisplayName(const std::string &name);
+	const std::string getDisplayName() const;
+
 	inline void setFocus(bool isFocus) {
 		this->isThisFocus = isFocus;
 	}
@@ -153,7 +156,7 @@ protected:
 	inline void removeSession() {
 		session.reset();
 	}
-	void setAddress(const std::shared_ptr<Address> &addr);
+	void setAddress(const std::shared_ptr<const Address> &addr);
 
 	std::shared_ptr<ParticipantDevice> addDevice(const std::shared_ptr<ParticipantDevice> &device);
 	std::shared_ptr<ParticipantDevice> addDevice(const std::shared_ptr<CallSession> &session,
