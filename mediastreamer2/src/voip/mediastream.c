@@ -952,6 +952,17 @@ MSWebCamDesc *ms_mire_webcam_desc_get(void) {
 }
 
 #endif
+int ms_media_session_get_packet_overhead(const MSMediaStreamSessions *sessions) {
+	int overhead = ortp_stream_is_ipv6(&(sessions->rtp_session->rtp.gs)) ? 40 : 20; // IP layer
+	overhead += 8 + 12;                                                             // UDP(8) + RTP(12)
+	// Note: RTP extension (nor CSRC) are included in this overhead.
+	// Using extension per se is 4 bytes overhead
+	// Commonly used extension are.
+	//  - mid for bundled streams: 4 bytes(if the id is less than 3 characters) once per second -> 64 bits/s ignore it
+	//  - audio level: when enabled, 4 bytes per packet defaut -> 4 times per second() -> 256 bits/s ignore it
+	overhead += (int)ms_media_stream_sessions_get_auth_tag_size(sessions);
+	return overhead;
+}
 
 static int update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit) {
 	int previous_br_limit = rtp_session_get_target_upload_bandwidth(obj->sessions.rtp_session);
@@ -972,6 +983,11 @@ static int update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit) {
 	}
 
 	if (obj->type != MSVideo) {
+		// update network overhead
+		int overhead = ms_media_session_get_packet_overhead(&(obj->sessions));
+		ms_filter_call_method(obj->encoder, MS_FILTER_SET_PACKET_OVERHEAD_SIZE, &overhead);
+		ms_message("Tmmbr update audio bitrate limit to %i (network overhead is %d)", br_limit, overhead);
+
 		if (ms_filter_call_method(obj->encoder, MS_FILTER_SET_BITRATE, &br_limit) != 0) {
 			ms_warning("Failed to apply bitrate constraint to %s", obj->encoder->desc->name);
 		}

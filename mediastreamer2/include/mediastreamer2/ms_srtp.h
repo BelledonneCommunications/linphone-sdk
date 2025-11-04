@@ -317,6 +317,13 @@ MS2_PUBLIC void ms_srtp_context_delete(MSSrtpCtx *session);
  * @return	0 on success, negative value otherwise
  */
 MS2_PUBLIC int ms_media_stream_sessions_set_ekt_full_tag_period(MSMediaStreamSessions *sessions, uint64_t period);
+
+/**
+ * Get the auth tag size added by the srtp protect on each packet
+ * - includes double encryption layer(and mean ekt tag size) when activated
+ * returns the tag size in bytes
+ */
+MS2_PUBLIC size_t ms_media_stream_sessions_get_auth_tag_size(const MSMediaStreamSessions *sessions);
 #ifdef __cplusplus
 }
 #endif

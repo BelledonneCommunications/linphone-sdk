@@ -56,8 +56,83 @@ const uint8_t EKT_MsgType_FULL = 0x02;
 /* Default period(in ms) for sending a full EKT tag: each 100 ms*/
 const uint64_t EktFullTagDefaultPeriod = 100;
 
-size_t ms_srtp_get_master_key_size(MSCryptoSuite suite);
-size_t ms_srtp_get_master_salt_size(MSCryptoSuite suite);
+size_t ms_srtp_get_master_key_size(MSCryptoSuite suite) {
+	switch (suite) {
+		case MS_AES_128_SHA1_80:
+		case MS_AES_128_SHA1_80_NO_AUTH:
+		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
+		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
+		case MS_AES_128_SHA1_80_NO_CIPHER:
+		case MS_AES_128_SHA1_32:
+		case MS_AES_128_SHA1_32_NO_AUTH:
+		case MS_AEAD_AES_128_GCM:
+			return SRTP_AES_128_KEY_LEN;
+		case MS_AES_256_SHA1_80:
+		case MS_AES_CM_256_SHA1_80:
+		case MS_AES_256_SHA1_32:
+		case MS_AEAD_AES_256_GCM:
+			return SRTP_AES_256_KEY_LEN;
+		case MS_CRYPTO_SUITE_INVALID:
+		default:
+			return 0;
+			break;
+	}
+}
+
+size_t ms_srtp_get_master_salt_size(MSCryptoSuite suite) {
+	switch (suite) {
+		case MS_AES_128_SHA1_80:
+		case MS_AES_128_SHA1_80_NO_AUTH:
+		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
+		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
+		case MS_AES_128_SHA1_80_NO_CIPHER:
+		case MS_AES_128_SHA1_32:
+		case MS_AES_128_SHA1_32_NO_AUTH:
+		case MS_AES_256_SHA1_80:
+		case MS_AES_CM_256_SHA1_80:
+		case MS_AES_256_SHA1_32:
+			return SRTP_SALT_LEN;
+		case MS_AEAD_AES_128_GCM:
+		case MS_AEAD_AES_256_GCM:
+			return SRTP_AEAD_SALT_LEN;
+		case MS_CRYPTO_SUITE_INVALID:
+		default:
+			return 0;
+			break;
+	}
+}
+
+size_t ms_srtp_get_auth_tag_size(MSCryptoSuite suite) {
+	switch (suite) {
+		case MS_CRYPTO_SUITE_INVALID:
+			return 0;
+		case MS_AES_128_SHA1_80_NO_CIPHER:
+			return 10;
+		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
+			return 10;
+		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
+			return 10;
+		case MS_AES_128_SHA1_32_NO_AUTH:
+			return 0;
+		case MS_AES_128_SHA1_80_NO_AUTH:
+			return 0;
+		case MS_AES_128_SHA1_32:
+			return 4;
+		case MS_AES_128_SHA1_80:
+			return 10;
+		case MS_AES_256_SHA1_32:
+			return 4;
+		case MS_AES_256_SHA1_80:
+			return 10;
+		case MS_AES_CM_256_SHA1_80:
+			return 10;
+		case MS_AEAD_AES_128_GCM:
+			return 16;
+		case MS_AEAD_AES_256_GCM:
+			return 16;
+	}
+	return 0;
+}
 
 struct MSSrtpStreamStats {
 	MSSrtpKeySource mSource; /**< who provided the key (SDES, ZRTP, DTLS-SRTP) */
@@ -160,7 +235,7 @@ class MSSrtpRecvStreamContext : public MSSrtpStreamContext {
 public:
 	std::map<uint16_t, std::shared_ptr<Ekt>>
 	    ektsReceiverPool; /**< a map of EKT used to decrypt incoming EKT tag if needed, indexed by SPI */
-	MSSrtpRecvStreamContext(){};
+	MSSrtpRecvStreamContext() {};
 };
 } // anonymous namespace
 
@@ -191,6 +266,19 @@ MSSrtpCtx *ms_srtp_context_new(void) {
 }
 
 /**** Encrypted Key Transport related functions ****/
+/** Compute the size of the full EKT tag
+ * @param[in] ekt		the EKT context : timestamps, crypto suite
+ * @return size in bytes of a full ekt tag according to used crypto suite
+ */
+size_t ms_srtp_ekt_full_tag_size(const std::shared_ptr<Ekt> &ekt) {
+	// RFC 8870 section 4.1: tag is EKTCipherText + 7 bytes trailer(SPI, Epoch, Length, terminal byte)
+	// EKTPlain is SRTPMasterKeyLength(1 byte) SRTPMasterKey(depends on crypto suite) SSRC(4 bytes) ROC(4 bytes)
+	size_t EKTPlain_size = 1 + ms_srtp_get_master_key_size(ekt->mSrtpCryptoSuite) + 4 + 4;
+	// EKTCipher size, using AESKeyWrap 128 or 256 is : round up the plaintext size to a multiple of 8 + 8
+	size_t EKTCipher_size = EKTPlain_size + ((EKTPlain_size % 8 == 0) ? 0 : (8 - (EKTPlain_size % 8))) + 8;
+	return EKTCipher_size + 7;
+}
+
 /** Compute the size of the EKT tag
  * includes the determination of the EKT tag to insert : short of full
  * From RFC 8870:
@@ -199,6 +287,7 @@ MSSrtpCtx *ms_srtp_context_new(void) {
  * @param[in] ekt		the EKT context : timestamps, crypto suite
  * @param[in] ssrc		the SSRC of the current packet, is used to index the timestamp map
  * @param[in] forceEktTag	when set, always compute the size of a full Ekt tag
+ * @return size in bytes of a the ekt tag (full or short)
  */
 size_t ms_srtp_ekt_get_tag_size(const std::shared_ptr<Ekt> &ekt, uint32_t ssrc, bool forceEktTag) {
 	bool fullEktTag = false;
@@ -215,12 +304,7 @@ size_t ms_srtp_ekt_get_tag_size(const std::shared_ptr<Ekt> &ekt, uint32_t ssrc, 
 		}
 	}
 	if (fullEktTag == true) {
-		// RFC 8870 section 4.1: tag is EKTCipherText + 7 bytes trailer(SPI, Epoch, Length, terminal byte)
-		// EKTPlain is SRTPMasterKeyLength(1 byte) SRTPMasterKey(depends on crypto suite) SSRC(4 bytes) ROC(4 bytes)
-		size_t EKTPlain_size = 1 + ms_srtp_get_master_key_size(ekt->mSrtpCryptoSuite) + 4 + 4;
-		// EKTCipher size, using AESKeyWrap 128 or 256 is : round up the plaintext size to a multiple of 8 + 8
-		size_t EKTCipher_size = EKTPlain_size + ((EKTPlain_size % 8 == 0) ? 0 : (8 - (EKTPlain_size % 8))) + 8;
-		return EKTCipher_size + 7;
+		return ms_srtp_ekt_full_tag_size(ekt);
 	} else { // Short Ekt tag is one byte long
 		return 1;
 	}
@@ -420,12 +504,12 @@ bool ms_srtp_set_ekt_tag(MSSrtpSendStreamContext *ctx, mblk_t *m, int *slen, siz
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 24) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 16) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 8) & 0xFF));
-			plainText.push_back(static_cast<uint8_t>((ssrc)&0xFF));
+			plainText.push_back(static_cast<uint8_t>((ssrc) & 0xFF));
 
 			plainText.push_back(static_cast<uint8_t>((roc >> 24) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((roc >> 16) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((roc >> 8) & 0xFF));
-			plainText.push_back(static_cast<uint8_t>((roc)&0xFF));
+			plainText.push_back(static_cast<uint8_t>((roc) & 0xFF));
 
 			// encrypt it
 			std::vector<uint8_t> cipherText{};
@@ -443,7 +527,7 @@ bool ms_srtp_set_ekt_tag(MSSrtpSendStreamContext *ctx, mblk_t *m, int *slen, siz
 
 			// append Length: in bytes, including length and message type byte
 			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size >> 8) & 0xFF));
-			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size)&0xFF));
+			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size) & 0xFF));
 
 			// Full EKT tag message type
 			cipherText.push_back(EKT_MsgType_FULL);
@@ -623,7 +707,7 @@ int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 						}
 						if (add_seq_num) {
 							m->b_rptr[slen++] = (original_seq_number >> 8) & 0xFF;
-							m->b_rptr[slen++] = (original_seq_number)&0xFF;
+							m->b_rptr[slen++] = (original_seq_number) & 0xFF;
 							config_byte |= OHB_SEQNUM_BIT;
 						}
 						m->b_rptr[slen++] = config_byte;
@@ -899,52 +983,6 @@ int ms_srtcp_process_on_receive(RtpTransportModifier *t, mblk_t *m) {
 	return slen;
 }
 
-size_t ms_srtp_get_master_key_size(MSCryptoSuite suite) {
-	switch (suite) {
-		case MS_AES_128_SHA1_80:
-		case MS_AES_128_SHA1_80_NO_AUTH:
-		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
-		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
-		case MS_AES_128_SHA1_80_NO_CIPHER:
-		case MS_AES_128_SHA1_32:
-		case MS_AES_128_SHA1_32_NO_AUTH:
-		case MS_AEAD_AES_128_GCM:
-			return SRTP_AES_128_KEY_LEN;
-		case MS_AES_256_SHA1_80:
-		case MS_AES_CM_256_SHA1_80:
-		case MS_AES_256_SHA1_32:
-		case MS_AEAD_AES_256_GCM:
-			return SRTP_AES_256_KEY_LEN;
-		case MS_CRYPTO_SUITE_INVALID:
-		default:
-			return 0;
-			break;
-	}
-}
-
-size_t ms_srtp_get_master_salt_size(MSCryptoSuite suite) {
-	switch (suite) {
-		case MS_AES_128_SHA1_80:
-		case MS_AES_128_SHA1_80_NO_AUTH:
-		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
-		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
-		case MS_AES_128_SHA1_80_NO_CIPHER:
-		case MS_AES_128_SHA1_32:
-		case MS_AES_128_SHA1_32_NO_AUTH:
-		case MS_AES_256_SHA1_80:
-		case MS_AES_CM_256_SHA1_80:
-		case MS_AES_256_SHA1_32:
-			return SRTP_SALT_LEN;
-		case MS_AEAD_AES_128_GCM:
-		case MS_AEAD_AES_256_GCM:
-			return SRTP_AEAD_SALT_LEN;
-		case MS_CRYPTO_SUITE_INVALID:
-		default:
-			return 0;
-			break;
-	}
-}
-
 /**** Session management functions ****/
 
 /**
@@ -955,7 +993,7 @@ void ms_srtp_transport_modifier_destroy(RtpTransportModifier *tp) {
 	ms_free(tp);
 }
 
-MSSrtpStreamContext *get_stream_context(MSMediaStreamSessions *sessions, bool is_send) {
+MSSrtpStreamContext *get_stream_context(const MSMediaStreamSessions *sessions, bool is_send) {
 	if (is_send) {
 		return &sessions->srtp_context->mSend;
 	} else {
@@ -1596,6 +1634,22 @@ extern "C" bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMedi
 	return sessions->srtp_context->mSend.mMandatoryEnabled && sessions->srtp_context->mRecv.mMandatoryEnabled;
 }
 
+extern "C" size_t ms_media_stream_sessions_get_auth_tag_size(const MSMediaStreamSessions *sessions) {
+	if (!sessions->srtp_context) return 0;
+
+	size_t tag_size = ms_srtp_get_auth_tag_size(sessions->srtp_context->mSend.mStats.mSuite);
+	if (sessions->srtp_context->mSend.mEktMode == MS_EKT_ENABLED &&
+	    sessions->srtp_context->mSend.ektSender != nullptr) {
+		tag_size += ms_srtp_get_auth_tag_size(sessions->srtp_context->mSend.mInnerStats.mSuite) +
+		            1 // empty OHB byte after the inner tag
+		              // Ekt tag: full ekt tag every 100ms we do not have the ptime so approximate a ptime of 33 ms
+		            // for ptime = 20 -> we over estimate the Ekt tag bandwidth
+		            // for ptime = 40 (and over) -> we under estimate the Ekt tag bandwidth
+		            + (ms_srtp_ekt_full_tag_size(sessions->srtp_context->mSend.ektSender) / 3);
+	}
+	return tag_size;
+}
+
 extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sessions, MSEKTMode mode) {
 	check_and_create_srtp_context(sessions);
 	std::lock_guard<std::recursive_mutex> lockS(sessions->srtp_context->mSend.mMutex);
@@ -1766,5 +1820,8 @@ extern "C" int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions,
 extern "C" int ms_media_stream_sessions_set_ekt_full_tag_period(MSMediaStreamSessions *sessions, uint64_t period) {
 	ms_error("Unable to set EKT key full tag period: srtp support disabled in mediastreamer2");
 	return -1;
-};
+}
+extern "C" size_t ms_media_stream_sessions_get_auth_tag_size(const MSMediaStreamSessions *sessions) {
+	return 0;
+}
 #endif

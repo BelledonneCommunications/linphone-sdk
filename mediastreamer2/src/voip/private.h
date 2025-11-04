@@ -146,6 +146,8 @@ MS2_PUBLIC bool_t ms_path_ends_with(const char *path, const char *suffix);
  */
 extern MSOfferAnswerProvider h264_offer_answer_provider;
 
+/* compute current packet overhead */
+int ms_media_session_get_packet_overhead(const MSMediaStreamSessions *sessions);
 #ifdef __cplusplus
 }
 #endif

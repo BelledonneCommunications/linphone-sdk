@@ -658,7 +658,7 @@ static void video_bandwidth_estimator(void) {
  *  - Margaux sends a TMMBR to restore the original bitrate
  *  - Marielle stops sending duplicates for the audio bw estimator
  */
-static void audio_bandwidth_estimator(void) {
+static void audio_bandwidth_estimator_base(bool_t use_srtp) {
 	int dummy = 0;
 	char *file = bc_tester_res(HELLO_16K_1S_FILE);
 	char *random_filename = ms_tester_get_random_filename(RECORDED_16K_1S_FILE, ".wav");
@@ -693,6 +693,13 @@ static void audio_bandwidth_estimator(void) {
 	const abe_stats_t *marielle_abe_stats = rtp_session_get_audio_bandwidth_estimator_stats(marielle_session);
 	const abe_stats_t *margaux_abe_stats = rtp_session_get_audio_bandwidth_estimator_stats(margaux_session);
 
+	if (use_srtp) {
+		const char *aes_gcm_128_bits_key = "bkTcxXe9N3/vHKKiqQAqmL0qJ+CSiWRat/Tadg==";
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle_ms->sessions), MS_AEAD_AES_128_GCM,
+		                                                              aes_gcm_128_bits_key, MSSrtpKeySourceSDES) == 0);
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux_ms->sessions), MS_AEAD_AES_128_GCM,
+		                                                              aes_gcm_128_bits_key, MSSrtpKeySourceSDES) == 0);
+	}
 	/* Network simulator: limit Marielle's outbound to 24kb/s */
 	int pause_time = 0;
 	OrtpNetworkSimulatorParams networkParams = {0};
@@ -761,6 +768,13 @@ static void audio_bandwidth_estimator(void) {
 	stream_manager_delete(marielle, TRUE);
 	stream_manager_delete(margaux, TRUE);
 }
+static void audio_bandwidth_estimator(void) {
+	audio_bandwidth_estimator_base(FALSE);
+}
+
+static void audio_bandwidth_estimator_srtp(void) {
+	audio_bandwidth_estimator_base(TRUE);
+}
 
 static test_t tests[] = {
     TEST_NO_TAG("Packet duplication", packet_duplication),
@@ -782,6 +796,7 @@ static test_t tests[] = {
 #endif
     TEST_NO_TAG("Video bandwidth estimator", video_bandwidth_estimator),
     TEST_NO_TAG("Audio bandwidth estimator", audio_bandwidth_estimator),
+    TEST_NO_TAG("Audio bandwidth estimator with SRTP", audio_bandwidth_estimator_srtp),
 };
 
 test_suite_t adaptive_test_suite = {

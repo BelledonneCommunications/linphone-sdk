@@ -64,6 +64,7 @@ typedef struct _OpusEncData {
 	int useinbandfec;
 	int packetlosspercentage;
 	int usedtx;
+	int packetoverhead; /**< in bits, the packet overhead applied by IP/UDP/(S)RTP layers on the payload */
 	bool_t ptime_set;
 
 } OpusEncData;
@@ -102,6 +103,7 @@ static void ms_opus_enc_init(MSFilter *f) {
 	d->useinbandfec = 0;
 	d->packetlosspercentage = 10;
 	d->usedtx = 0;
+	d->packetoverhead = 40 * 8; // default to IPv4(20) + UDP(8) + RTP (12) with no RTP extension, no Srtp tag
 
 	f->data = d;
 }
@@ -118,6 +120,7 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 		ms_error("Opus encoder creation failed: %s", opus_strerror(error));
 		return;
 	}
+	ms_message("Opus encoder created: samplerate %d channels: %d", d->samplerate, d->channels);
 
 #ifndef MS2_WINDOWS_UNIVERSAL
 	env = getenv("MS2_OPUS_COMPLEXITY");
@@ -346,7 +349,7 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 
 	/* if have a potentiel ptime modification suggested by caller, check ptime and bitrate for adjustment */
 	if (ptimeStep != 0) {
-		normalized_cbr = (int)(((((float)d->max_network_bitrate) / (pps * 8)) - 20 - 12 - 8) * pps * 8);
+		normalized_cbr = d->max_network_bitrate - (int)((float)d->packetoverhead * pps);
 		if (normalized_cbr < 12000) {
 			if (d->ptime < d->maxptime || (ptimeStep < 0 && d->ptime > 40)) {
 				d->ptime += ptimeStep;
@@ -367,12 +370,12 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 		pps = 1000.0f / d->ptime;
 	}
 
-	normalized_cbr = (int)(((((float)d->max_network_bitrate) / (pps * 8)) - 20 - 12 - 8) * pps * 8);
+	normalized_cbr = d->max_network_bitrate - (int)((float)d->packetoverhead * pps);
 	/* check if bitrate is in range [6,510kbps] */
 	if (normalized_cbr < 6000) {
 		int initial_value = normalized_cbr;
 		normalized_cbr = 6000;
-		d->max_network_bitrate = (int)((normalized_cbr / (pps * 8) + 12 + 8 + 20) * 8 * pps);
+		d->max_network_bitrate = 6000 + (int)((float)d->packetoverhead * pps);
 		ms_warning("Opus encoder does not support bitrate [%i]. Instead set to 6kbps, network bitrate [%d]",
 		           initial_value, d->max_network_bitrate);
 	}
@@ -381,7 +384,7 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	if (normalized_cbr > maxaveragebitrate) {
 		int initial_value = normalized_cbr;
 		normalized_cbr = maxaveragebitrate;
-		d->max_network_bitrate = (int)((normalized_cbr / (pps * 8) + 12 + 8 + 20) * 8 * pps);
+		d->max_network_bitrate = normalized_cbr + (int)((float)d->packetoverhead * pps);
 		ms_warning("Opus encoder cannot set codec bitrate to [%i] because of maxaveragebitrate constraint or absolute "
 		           "maximum bitrate value. New network bitrate is [%i]",
 		           initial_value, d->max_network_bitrate);
@@ -479,7 +482,7 @@ static int ms_opus_enc_set_bitrate(MSFilter *f, void *arg) {
 		// ABS(difference of current and requested bitrate)   ABS(current network bandwidth overhead - new ptime target
 		// overhead)
 		if ((d->max_network_bitrate - bitrate) * ptimeStepSign >
-		    (((40 * 8 * 1000) / d->ptime - (40 * 8 * 1000) / ptimeTarget) * ptimeStepSign)) {
+		    (((d->packetoverhead * 1000) / d->ptime - (d->packetoverhead * 1000) / ptimeTarget) * ptimeStepSign)) {
 			ptimeStepValue = 20;
 		}
 	}
@@ -528,7 +531,7 @@ static int ms_opus_enc_set_ptime(MSFilter *f, void *arg) {
 		ms_message("Opus enc: got ptime=%i", d->ptime);
 	}
 	if (d->bitrate != -1) {
-		d->max_network_bitrate = ((d->bitrate * d->ptime / 8000) + 12 + 8 + 20) * 8000 / d->ptime;
+		d->max_network_bitrate = d->bitrate + d->packetoverhead * 1000 / d->ptime;
 	}
 	d->ptime_set = TRUE;
 	retval = 0;
@@ -660,6 +663,13 @@ static int ms_opus_enc_get_capabilities(BCTBX_UNUSED(MSFilter *f), void *arg) {
 	return 0;
 }
 
+static int ms_opus_enc_set_packet_overhead(MSFilter *f, void *arg) {
+	OpusEncData *d = (OpusEncData *)f->data;
+	d->packetoverhead = *((int *)arg) * 8; // argument is in bytes, but the overhead is stored in bit
+	ms_message("MS Opus encoder: set packet overhead to %d bits", d->packetoverhead);
+	return 0;
+}
+
 static MSFilterMethod ms_opus_enc_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, ms_opus_enc_set_sample_rate},
                                                {MS_FILTER_GET_SAMPLE_RATE, ms_opus_enc_get_sample_rate},
                                                {MS_FILTER_SET_BITRATE, ms_opus_enc_set_bitrate},
@@ -670,6 +680,7 @@ static MSFilterMethod ms_opus_enc_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, ms_op
                                                {MS_FILTER_SET_NCHANNELS, ms_opus_enc_set_nchannels},
                                                {MS_FILTER_GET_NCHANNELS, ms_opus_enc_get_nchannels},
                                                {MS_AUDIO_ENCODER_GET_CAPABILITIES, ms_opus_enc_get_capabilities},
+                                               {MS_FILTER_SET_PACKET_OVERHEAD_SIZE, ms_opus_enc_set_packet_overhead},
                                                {0, NULL}};
 
 /******************************************************************************

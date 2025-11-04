@@ -1600,6 +1600,10 @@ int audio_stream_start_from_io(AudioStream *stream,
 	if (!skip_encoder_and_decoder) {
 		/* give the encoder/decoder some parameters*/
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		/* compute the network overhead on RTP payload */
+		int overhead = ms_media_session_get_packet_overhead(&(stream->ms.sessions));
+		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_PACKET_OVERHEAD_SIZE, &overhead);
+
 		if (stream->ms.target_bitrate <= 0) {
 			stream->ms.target_bitrate = pt->normal_bitrate;
 			ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i", stream,
