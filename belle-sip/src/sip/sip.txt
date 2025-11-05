@@ -245,6 +245,9 @@ header-max-forwards = "Max-Forwards" HCOLON max-forwards
 max-forwards        = 1*DIGIT
 
 header-proxy-authenticate      = "Proxy-Authenticate" HCOLON *( "," OWS ) proxy-authenticate-challenge *( OWS "," [ OWS proxy-authenticate-challenge ] ) *( OWS ",") ; Updated by RFC 7235 and slightly modified
+; According to https://datatracker.ietf.org/doc/html/rfc7235#appendix-C, every challenge parameter can be a quoted string, though it is not permitted in SIP
+; challenge definition.
+
 proxy-authenticate-challenge   = challenge
 challenge                      = auth-scheme [ 1*SP ( [ ( "," / digest-cln ) *( OWS "," OWS digest-cln ) ] / token68 ) ] ; Updated by RFC 7235 and slightly modified
 digest-cln                     = realm / domain / nonce / opaque / stale / algorithm / qop-options / auth-param
@@ -257,9 +260,9 @@ opaque-value                   = quoted-string
 stale                          = "stale" BWS "=" BWS stale-value
 stale-value                    = ( "true" / "false" )
 algorithm                      = "algorithm" BWS "=" BWS algorithm-value
-algorithm-value                = ( "MD5" / "MD5-sess" / "SHA-256" / "SHA-256-sess" / "SHA-512-256" / "SHA-512-256-sess" /token ) ; Updated by RFC 8760
+algorithm-value                = ( "MD5" / "MD5-sess" / "SHA-256" / "SHA-256-sess" / "SHA-512-256" / "SHA-512-256-sess" / token / quoted-string ) ; Updated by RFC 8760
 qop-options                    = "qop" BWS "=" BWS LDQUOT qop-value *("," qop-value) RDQUOT
-qop-value                      = "auth" / "auth-int" / token
+qop-value                      = "auth" / "auth-int" / token / quoted-string
 
 header-proxy-authorization = "Proxy-Authorization" HCOLON credentials
 

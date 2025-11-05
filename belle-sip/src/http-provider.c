@@ -117,7 +117,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	const char *passwd = NULL;
 	const char *access_token = NULL;
 	const char *ha1 = NULL;
-	const char *algorithm = NULL;
+	char *selected_algorithm = NULL;
 	belle_sip_auth_mode_t auth_mode = BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
 	char computed_ha1[65];
 	belle_sip_header_www_authenticate_t *authenticate;
@@ -168,7 +168,8 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	for (it = authenticate_lst; it != NULL && auth_info_found == 0; it = it->next) {
 		authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(it->data);
 		do {
-			const char *requested_algorithm = belle_sip_header_www_authenticate_get_algorithm(authenticate);
+			char *requested_algorithm =
+			    belle_sip_unquote_strdup(belle_sip_header_www_authenticate_get_algorithm(authenticate));
 
 			realm = belle_sip_header_www_authenticate_get_realm(authenticate);
 
@@ -176,7 +177,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 
 			if (strcasecmp("Digest", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
 				if (requested_algorithm == NULL) { // default algorithm is MD5
-					requested_algorithm = "MD5";
+					requested_algorithm = bctbx_strdup("MD5");
 				}
 				auth_mode = BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
 				if (belle_sip_stack_check_digest_compatibility(ctx->provider->stack, authenticate) == -1) continue;
@@ -188,10 +189,10 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 				auth_mode = BELLE_SIP_AUTH_MODE_HTTP_BEARER;
 				/* ok, Bearer is supported*/
 			} else {
-				belle_sip_error("Unsupported auth scheme [%s] in response  [%p], cannot authenticate",
-				                belle_sip_header_www_authenticate_get_scheme(authenticate), resp);
-				belle_sip_list_free(authenticate_lst);
-				return -1;
+				belle_sip_message("Unsupported auth scheme [%s] in response  [%p]",
+				                  belle_sip_header_www_authenticate_get_scheme(authenticate), resp);
+				bctbx_free(requested_algorithm);
+				continue;
 			}
 
 			if (header) {
@@ -203,6 +204,12 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 			}
 
 			if ((!username || !passwd) && !access_token) {
+				/* TODO: we iterate over authentication challenges, but only one of them can be processed.
+				 */
+				if (ev) {
+					belle_sip_auth_event_destroy(ev);
+					ev = NULL;
+				}
 				ev = belle_sip_auth_event_create((belle_sip_object_t *)ctx->provider, realm, from_uri);
 				belle_sip_auth_event_set_algorithm(ev, requested_algorithm);
 				ev->try_count = req->auth_attempt_count;
@@ -217,7 +224,6 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 				passwd = ev->passwd;
 				ha1 = ev->ha1;
 				access_token = ev->bearer_token ? belle_sip_bearer_token_get_token(ev->bearer_token) : NULL;
-				algorithm = ev->algorithm;
 			}
 			if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
 				if (!ha1) {
@@ -226,13 +232,17 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 						                                                belle_sip_auth_define_size(requested_algorithm),
 						                                                requested_algorithm);
 						ha1 = computed_ha1;
-						algorithm = requested_algorithm;
 					}
 				}
 				if (ha1) {
+					selected_algorithm = requested_algorithm;
 					auth_info_found++;
 					break;
 				}
+			}
+			if (requested_algorithm) {
+				bctbx_free(requested_algorithm);
+				requested_algorithm = NULL;
 			}
 			authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_header_get_next(BELLE_SIP_HEADER(authenticate)));
 		} while (authenticate);
@@ -251,7 +261,8 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		                                               1); /*we don't store nonce count for now*/
 		belle_sip_header_authorization_set_username(BELLE_SIP_HEADER_AUTHORIZATION(authorization), username);
 		belle_http_header_authorization_set_uri(authorization, belle_http_request_get_uri(req));
-		belle_sip_header_authorization_set_algorithm(BELLE_SIP_HEADER_AUTHORIZATION(authorization), algorithm);
+		belle_sip_header_authorization_set_algorithm(BELLE_SIP_HEADER_AUTHORIZATION(authorization), selected_algorithm);
+		bctbx_free(selected_algorithm);
 		if (belle_sip_auth_helper_fill_authorization(BELLE_SIP_HEADER_AUTHORIZATION(authorization),
 		                                             belle_http_request_get_method(req), ha1)) {
 			belle_sip_error("Cannot fill auth header for request [%p]", req);
