@@ -111,8 +111,8 @@ void BufferRenderer::synchronize(QQuickFramebufferObject *item) {
 	if (new_win == mWindow) return;
 
 	if (mParent) {
-		ogl_display_set_default_functions(mParent->display, &mParent->functions);// Synchronize functions with the current context
 		ogl_display_uninit(mParent->display, TRUE);
+		ogl_display_set_default_functions(mParent->display, &mParent->functions);// Synchronize functions with the current context
 		mParent->update_context = TRUE;
 	}
 
@@ -145,7 +145,7 @@ static void qogl_init(MSFilter *f) {
 	data->functions.loadQtLibs = TRUE;
 	data->functions.getProcAddress = getProcAddress;
 	data->display = ogl_display_new();
-	// We cannot set default function if context doesn't exist (qogl_init may not be call from the same threead cas Qt).
+	// We cannot set default function if context doesn't exist (qogl_init may not be call from the same thread as Qt).
 	// Function pointer must be used from Qt Context and not from library.
 	if( QOpenGLContext::currentContext())
 		ogl_display_set_default_functions(data->display, &data->functions);
