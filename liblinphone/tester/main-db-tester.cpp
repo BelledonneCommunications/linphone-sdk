@@ -69,11 +69,16 @@ public:
 		                           chatroom_gr);
 		linphone_config_set_bool(linphone_core_get_config(mCoreManager->lc), "misc", "conference_event_log_enabled",
 		                         FALSE);
+		linphone_core_set_imdn_resend_period(mCoreManager->lc, -1);
 		linphone_core_enable_conference_server(mCoreManager->lc, is_conference_server);
 		bc_free(roDbPath);
 		bc_free(rwDbPath);
 		linphone_core_manager_start(mCoreManager, false);
-		BC_ASSERT_TRUE(getMainDb().isInitialized());
+		auto &mainDb = getMainDb();
+		BC_ASSERT_TRUE(mainDb.isInitialized());
+		if (!is_conference_server) {
+			BC_ASSERT_EQUAL(mainDb.findChatMessagesToBeNotifiedAsDelivered().size(), 0, size_t, "%zu");
+		}
 	}
 
 	void reStart(bool check_for_proxies = TRUE) {

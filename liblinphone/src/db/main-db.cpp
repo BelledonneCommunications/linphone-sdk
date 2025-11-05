@@ -5581,6 +5581,19 @@ shared_ptr<ChatMessage> MainDb::getLastChatMessage(const ConferenceId &conferenc
 #endif
 }
 
+void MainDb::invalidateChatMessageImdn(const std::shared_ptr<ChatMessage> &message) const {
+#ifdef HAVE_DB_STORAGE
+	static const string query =
+	    "UPDATE conference_chat_message_event SET delivery_notification_required = 0 where imdn_message_id = :imdnId";
+	L_DB_TRANSACTION {
+		L_D();
+		const auto &imdnId = message->getImdnMessageId();
+		*d->dbSession.getBackendSession() << query, soci::use(imdnId);
+		tr.commit();
+	};
+#endif
+}
+
 shared_ptr<EventLog> MainDb::findEventLog(const ConferenceId &conferenceId, const string &imdnMessageId) const {
 #ifdef HAVE_DB_STORAGE
 	// TODO: Optimize.
