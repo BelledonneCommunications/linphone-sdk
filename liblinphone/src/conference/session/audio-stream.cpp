@@ -18,7 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mediastreamer2/msnoisesuppressor.h"
 #include "ms2-streams.h"
 
 #include <cmath>
@@ -28,6 +27,7 @@
 #include "mediastreamer2/flowcontrol.h"
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msfileplayer.h"
+#include "mediastreamer2/msnoisesuppressor.h"
 #include "mediastreamer2/msvolume.h"
 
 #include "call/call.h"
@@ -246,7 +246,6 @@ void MS2AudioStream::configureAudioStream() {
 	audio_stream_enable_automatic_gain_control(mStream, linphone_core_agc_enabled(getCCore()));
 	bool_t enabled = !!linphone_config_get_int(linphone_core_get_config(getCCore()), "sound", "noisegate", 0);
 	audio_stream_enable_noise_gate(mStream, enabled);
-	lInfo() << "set status of noise suppression from core in MS2AudioStream::configureAudioStream()";
 	audio_stream_enable_noise_suppression(mStream, linphone_core_noise_suppression_enabled(getCCore()));
 	audio_stream_set_features(mStream, linphone_core_get_audio_features(getCCore()));
 }
@@ -901,19 +900,6 @@ void MS2AudioStream::handleEvent(const OrtpEvent *ev) {
 			break;
 	}
 }
-
-// void MS2AudioStream::enableNoiseSuppression(bool value) {
-// 	mNoiseSuppression = !value;
-// 	lInfo() << "get new status of noise suppression from enableNoiseSuppression()";
-// 	if (mStream) {
-// 		lInfo() << "set status of noise suppression from enableNoiseSuppression() in current stream";
-// 		audio_stream_enable_noise_suppression(mStream, value);
-// 	}
-// }
-
-// bool MS2AudioStream::noiseSuppressionEnabled() const {
-// 	return mNoiseSuppression;
-// }
 
 void MS2AudioStream::enableMic(bool value) {
 	mMicMuted = !value;

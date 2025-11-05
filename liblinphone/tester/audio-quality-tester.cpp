@@ -32,7 +32,6 @@
 #include "core/core.h"
 // TODO: Remove me later.
 #include "liblinphone_tester.h"
-#include "linphone/core.h"
 #include "private.h"
 #include "tester_utils.h"
 
@@ -63,12 +62,12 @@ public:
 	std::map<std::string, std::string> mFmtp;
 };
 
-// #if !defined(__arm__) && !defined(__arm64__) && !TARGET_IPHONE_SIMULATOR && !defined(__ANDROID__)
-// static void completion_cb(BCTBX_UNUSED(void *user_data), int percentage) {
-// 	fprintf(stdout, "%i %% completed\r", percentage);
-// 	fflush(stdout);
-// }
-// #endif
+#if !defined(__arm__) && !defined(__arm64__) && !TARGET_IPHONE_SIMULATOR && !defined(__ANDROID__)
+static void completion_cb(BCTBX_UNUSED(void *user_data), int percentage) {
+	fprintf(stdout, "%i %% completed\r", percentage);
+	fflush(stdout);
+}
+#endif
 
 static void audio_call_with_soundcard(const char *codec_name, int clock_rate, bool_t stereo) {
 	LinphoneCoreManager *marie;
@@ -135,23 +134,14 @@ audio_call_stereo_call(const char *codec_name, int clock_rate, int bitrate_overr
 	LinphoneCoreManager *marie;
 	LinphoneCoreManager *pauline;
 	LinphonePayloadType *pt;
-	// char *stereo_file = bc_tester_res("sounds/vrroom.wav");
-	char *stereo_file = bc_tester_res("sounds/noisy_audio_farend_48000_mono_for_linphone_test.wav"); // mono
-	char *recordpath = bc_tester_file("denoised_record.wav");
-	bool_t audio_cmp_failed = TRUE;
+	char *stereo_file = bc_tester_res("sounds/vrroom.wav");
+	char *recordpath = bc_tester_file("stereo-record.wav");
+	bool_t audio_cmp_failed = FALSE;
 	OrtpNetworkSimulatorParams simparams = {0};
-	// unlink(recordpath);
+	unlink(recordpath);
 
 	marie = linphone_core_manager_new("marie_rc");
 	pauline = linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
-
-	lInfo() << "******";
-	// linphone_core_enable_noise_suppression(marie->lc, TRUE);
-	// linphone_core_enable_noise_suppression(pauline->lc, TRUE);
-
-	// uint32_t features = audio_stream_get_features(marie);
-	// features |= AUDIO_STREAM_FEATURE_NOISE_SUPPRESSION;
-	// audio_stream_set_features(marie, features);
 
 	/*make sure we have the requested codec */
 	pt = linphone_core_get_payload_type(marie->lc, codec_name, clock_rate, 2);
@@ -179,13 +169,8 @@ audio_call_stereo_call(const char *codec_name, int clock_rate, int bitrate_overr
 	linphone_core_set_mtu(pauline->lc, 4000);
 
 	/*stereo is supported only without volume control, echo canceller...*/
-	// linphone_config_set_string(linphone_core_get_config(marie->lc), "sound", "features", "REMOTE_PLAYING");
-	// linphone_config_set_string(linphone_core_get_config(pauline->lc), "sound", "features", "REMOTE_PLAYING");
-	linphone_config_set_string(linphone_core_get_config(marie->lc), "sound", "features",
-	                           "REMOTE_PLAYING|NOISE_SUPPRESSION");
-	linphone_config_set_string(linphone_core_get_config(pauline->lc), "sound", "features",
-	                           "REMOTE_PLAYING|NOISE_SUPPRESSION");
-	ms_message(" REMOTE_PLAYING set ");
+	linphone_config_set_string(linphone_core_get_config(marie->lc), "sound", "features", "REMOTE_PLAYING");
+	linphone_config_set_string(linphone_core_get_config(pauline->lc), "sound", "features", "REMOTE_PLAYING");
 	if (plc) {
 		linphone_config_set_string(linphone_core_get_config(marie->lc), "sound", "features", "PLC");
 		linphone_config_set_string(linphone_core_get_config(pauline->lc), "sound", "features", "PLC");
@@ -201,44 +186,40 @@ audio_call_stereo_call(const char *codec_name, int clock_rate, int bitrate_overr
 	wait_for_until(marie->lc, pauline->lc, NULL, 0, 6000);
 	end_call(pauline, marie);
 
-	// 	if (clock_rate != 48000) {
-	// 		ms_warning("Similarity checking not implemented for files not having the same sampling rate");
-	// 	} else {
-	// #if !defined(__arm__) && !defined(__arm64__) && !TARGET_IPHONE_SIMULATOR && !defined(__ANDROID__)
-	// 		double similar;
-	// 		double min_threshold = .75f; /*should be above 0.8 in best conditions*/
-	// 		double max_threshold = 1.f;
-	// 		if (!stereo) {
-	// 			/*when opus doesn't transmit stereo, the cross correlation is around 0.6 : as expected, it is not as
-	// good as
-	// 			 * in full stereo mode*/
-	// 			min_threshold = .4f;
-	// 			max_threshold = .68f;
-	// 		}
-	// 		// BC_ASSERT_EQUAL(
-	// 		//     liblinphone_tester_audio_diff(stereo_file, recordpath, &similar, &audio_cmp_params, completion_cb,
-	// NULL),
-	// 		//     0, int, "%d");
-	// 		// BC_ASSERT_GREATER(similar, min_threshold, double, "%g");
-	// 		// BC_ASSERT_LOWER(similar, max_threshold, double, "%g");
-	// 		// if (similar < min_threshold || similar > max_threshold) {
-	// 		// 	audio_cmp_failed = TRUE;
-	// 		// }
-	// #endif
-	// 	}
-	// 	if (!audio_cmp_failed) unlink(recordpath);
+	if (clock_rate != 48000) {
+		ms_warning("Similarity checking not implemented for files not having the same sampling rate");
+	} else {
+#if !defined(__arm__) && !defined(__arm64__) && !TARGET_IPHONE_SIMULATOR && !defined(__ANDROID__)
+		double similar;
+		double min_threshold = .75f; /*should be above 0.8 in best conditions*/
+		double max_threshold = 1.f;
+		if (!stereo) {
+			/*when opus doesn't transmit stereo, the cross correlation is around 0.6 : as expected, it is not as good as
+			 * in full stereo mode*/
+			min_threshold = .4f;
+			max_threshold = .68f;
+		}
+		BC_ASSERT_EQUAL(
+		    liblinphone_tester_audio_diff(stereo_file, recordpath, &similar, &audio_cmp_params, completion_cb, NULL), 0,
+		    int, "%d");
+		BC_ASSERT_GREATER(similar, min_threshold, double, "%g");
+		BC_ASSERT_LOWER(similar, max_threshold, double, "%g");
+		if (similar < min_threshold || similar > max_threshold) {
+			audio_cmp_failed = TRUE;
+		}
+#endif
+	}
 	if (!audio_cmp_failed) unlink(recordpath);
 end:
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
 	ms_free(stereo_file);
-	ms_free(recordpath);
+	bc_free(recordpath);
 }
 
 static void audio_stereo_call_l16(void) {
 	audio_call_stereo_call("L16", 44100, 0, TRUE, FALSE);
 }
-
 static void audio_stereo_call_l16_plc(void) {
 	audio_call_stereo_call("L16", 44100, 0, TRUE, TRUE);
 }
