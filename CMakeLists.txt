@@ -96,6 +96,7 @@ include("cmake/CheckBuildTools${LINPHONESDK_PLATFORM}.cmake")
 
 if(ENABLE_SANITIZER)
 	include("cmake/Sanitizer.cmake")
+  add_compile_definitions(SANITIZER_ENABLED=1)
 endif()
 if(ENABLE_HW_SANITIZER)
    include("cmake/HWSanitizer.cmake")

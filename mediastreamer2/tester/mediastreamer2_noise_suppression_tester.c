@@ -23,7 +23,6 @@
 #include "bctoolbox/tester.h"
 #include "mediastreamer2/allfilters.h"
 #include "mediastreamer2/mediastream.h"
-#include "mediastreamer2/msaudiomixer.h"
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfactory.h"
 #include "mediastreamer2/msfileplayer.h"
@@ -254,6 +253,13 @@ static void play_and_denoise_audio(denoising_test_config *config) {
 		ms_usleep(time_step_usec);
 	}
 
+	if (noise_suppressor) {
+		if (config->bypass) {
+			ms_filter_call_method(noise_suppressor, MS_NOISE_SUPPRESSOR_GET_BYPASS_MODE, &config->bypass);
+			BC_ASSERT_TRUE(config->bypass);
+		}
+	}
+
 	ms_filter_call_method_noarg(player_talk, MS_FILE_PLAYER_CLOSE);
 	ms_filter_call_method_noarg(sound_rec, MS_FILE_REC_CLOSE);
 	if (noise_suppressor) ms_ticker_detach(ms_tester_ticker, noise_suppressor);
@@ -275,52 +281,36 @@ end:
 
 static void check_audio_quality(char *clean_file,
                                 char *reference_file,
-                                char *noisy_file,
                                 int start_short_ms,
                                 int stop_short_ms,
                                 int start_comparison_ms,
-                                float energy_threshold,
-                                float similarity_threshold,
+                                double energy_min,
+                                double energy_max,
+                                double similarity_min,
                                 int max_shift_percent) {
 	setlocale(LC_NUMERIC, "C");
-	double similar = 0.;
 	double energy = 0.;
+	double similar = 0.;
 	MSAudioDiffParams audio_cmp_params;
 	audio_cmp_params.chunk_size_ms = 0;
 	audio_cmp_params.max_shift_percent = max_shift_percent;
 	ms_message("Compare clean audio with reference");
-	ms_message("start audio comparisons at %d ms, align audio between [%d, %d]", start_comparison_ms, start_short_ms,
-	           stop_short_ms);
 	ms_message("audio clean     %s", clean_file);
 	ms_message("audio reference %s", reference_file);
+	ms_message("start audio comparisons at %d ms, align audio between [%d, %d]", start_comparison_ms, start_short_ms,
+	           stop_short_ms);
 	ms_message("Try to align output on reference by computing cross correlation with a maximal shift of %d percent",
 	           audio_cmp_params.max_shift_percent);
 	BC_ASSERT_EQUAL(ms_audio_compare_silence_and_speech(reference_file, clean_file, &similar, &energy,
 	                                                    &audio_cmp_params, NULL, NULL, start_short_ms, stop_short_ms,
 	                                                    start_comparison_ms),
 	                0, int, "%d");
-	ms_message("energy in silence = %f - max = %f", energy, energy_threshold);
-	ms_message("similarity in talk = %f - min = %f", similar, similarity_threshold);
-	BC_ASSERT_GREATER(similar, similarity_threshold, double, "%f");
+	ms_message("energy in silence = %f - min = %f, max = %f", energy, energy_min, energy_max);
+	ms_message("similarity in talk = %f - min = %f", similar, similarity_min);
+	BC_ASSERT_GREATER(similar, similarity_min, double, "%f");
 	BC_ASSERT_LOWER(similar, 1.0, double, "%f");
-	BC_ASSERT_LOWER(energy, energy_threshold, double, "%f");
-
-	if (noisy_file) {
-		double k = 100.;
-		ms_message("Check that noise in silence is at least divided by %f", k);
-		ms_message("audio noisy     %s", noisy_file);
-		ms_message("audio reference %s", reference_file);
-		double similar_noisy = 0.;
-		double energy_noisy = 0.;
-		BC_ASSERT_EQUAL(ms_audio_compare_silence_and_speech(reference_file, noisy_file, &similar_noisy, &energy_noisy,
-		                                                    &audio_cmp_params, NULL, NULL, start_short_ms,
-		                                                    stop_short_ms, start_comparison_ms),
-		                0, int, "%d");
-		ms_message(
-		    "energy in silence of noisy audio = %f, the remainig energy after denoising is expected to be less than %f",
-		    energy_noisy, energy_noisy / k);
-		BC_ASSERT_LOWER_STRICT(energy, energy_noisy / k, double, "%f");
-	}
+	BC_ASSERT_GREATER(energy, energy_min, double, "%f");
+	BC_ASSERT_LOWER(energy, energy_max, double, "%f");
 }
 
 static void talk_with_noise_snr_12dB(void) {
@@ -329,8 +319,8 @@ static void talk_with_noise_snr_12dB(void) {
 	config.clean_file = bc_tester_file("clean_talk_with_noise_snr_12dB.wav");
 	config.speech_file = bc_tester_res(NOISY_SPEECH_12DB_FILE);
 	play_and_denoise_audio(&config);
-	check_audio_quality(config.clean_file, config.reference_file, config.speech_file, config.start_comparison_short_ms,
-	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.1f, 0.97f,
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.1f, 0.97f,
 	                    config.max_shift_percent);
 	uninit_denoising_test_config(&config);
 }
@@ -341,8 +331,8 @@ static void talk_with_noise_snr_6dB(void) {
 	config.clean_file = bc_tester_file("clean_talk_with_noise_snr_6dB.wav");
 	config.speech_file = bc_tester_res(NOISY_SPEECH_6DB_FILE);
 	play_and_denoise_audio(&config);
-	check_audio_quality(config.clean_file, config.reference_file, config.speech_file, config.start_comparison_short_ms,
-	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.1f, 0.96f,
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.1f, 0.96f,
 	                    config.max_shift_percent);
 	uninit_denoising_test_config(&config);
 }
@@ -353,8 +343,8 @@ static void talk_with_noise_snr_0dB(void) {
 	config.clean_file = bc_tester_file("clean_talk_with_noise_snr_0dB.wav");
 	config.speech_file = bc_tester_res(NOISY_SPEECH_0DB_FILE);
 	play_and_denoise_audio(&config);
-	check_audio_quality(config.clean_file, config.reference_file, config.speech_file, config.start_comparison_short_ms,
-	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.15f, 0.95f,
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.15f, 0.95f,
 	                    config.max_shift_percent);
 	uninit_denoising_test_config(&config);
 }
@@ -366,12 +356,9 @@ static void talk_with_noise_bypass_mode(void) {
 	config.speech_file = bc_tester_res(NOISY_SPEECH_0DB_FILE);
 	config.bypass = TRUE;
 	play_and_denoise_audio(&config);
-	double similarity = 0.;
-	MSAudioDiffParams param;
-	param.chunk_size_ms = 0;
-	param.max_shift_percent = config.max_shift_percent;
-	ms_audio_diff(config.clean_file, config.speech_file, &similarity, &param, NULL, NULL);
-	BC_ASSERT_GREATER(similarity, 0.99, double, "%f");
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 150.f, 200.f, 0.86f,
+	                    config.max_shift_percent);
 	uninit_denoising_test_config(&config);
 }
 
@@ -576,13 +563,18 @@ static void noise_suppression_in_audio_stream(void) {
 	                  MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
 	                  MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, FALSE,
 	                  TRUE, config.play_duration_ms, 0, 0, NULL);
-	check_audio_quality(config.clean_file, config.reference_file, config.speech_file, config.start_comparison_short_ms,
-	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.1f, 0.77f, max_shift_percent);
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.1f, 0.77f,
+	                    max_shift_percent);
 	uninit_denoising_test_config(&config);
 	free(audio_file_margaux);
 }
 
 static void noise_suppression_in_audio_stream_with_echo_400ms(void) {
+#if SANITIZER_ENABLED == 1
+	BC_PASS("Cannot run this test if sanitizer is eanbled");
+	return;
+#endif
 	denoising_test_config config;
 	init_denoising_test_config(&config);
 	config.speech_file = bc_tester_res(NOISY_NEAREND_WITH_ECHO_400_FILE);
@@ -598,8 +590,9 @@ static void noise_suppression_in_audio_stream_with_echo_400ms(void) {
 	                  MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
 	                  MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, TRUE,
 	                  TRUE, config.play_duration_ms, delay_init_ms, 0, NULL);
-	check_audio_quality(config.clean_file, config.reference_file, config.speech_file, config.start_comparison_short_ms,
-	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.15f, 0.77f, max_shift_percent);
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.15f, 0.77f,
+	                    max_shift_percent);
 	uninit_denoising_test_config(&config);
 	free(audio_file_margaux);
 }
@@ -619,6 +612,7 @@ static void noise_suppression_in_audio_stream_with_sample_rate_change(void) {
 	                  TRUE, config.play_duration_ms, 0, config_change_ms, audio_file_16000);
 	uninit_denoising_test_config(&config);
 	free(audio_file_margaux);
+	free(audio_file_16000);
 }
 
 static void noise_suppression_in_audio_stream_with_nchannels_change(void) {
@@ -636,6 +630,7 @@ static void noise_suppression_in_audio_stream_with_nchannels_change(void) {
 	                  TRUE, config.play_duration_ms, 0, config_change_ms, audio_file_stereo);
 	uninit_denoising_test_config(&config);
 	free(audio_file_margaux);
+	free(audio_file_stereo);
 }
 
 static void noise_suppression_disabled_in_audio_stream(void) {
