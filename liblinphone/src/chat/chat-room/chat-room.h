@@ -210,8 +210,9 @@ public:
 	void notifyAggregatedChatMessages() override;
 	void notifyMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage);
 	void notifyChatMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage) override;
-	void
-	notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress, bool isComposing, std::string contentType);
+	void notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress,
+	                               bool isComposing,
+	                               std::string contentType) override;
 	void notifyUndecryptableChatMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage) override;
 
 	LinphoneReason onSipMessageReceived(SalOp *op, const SalMessage *message) override;

@@ -254,6 +254,9 @@ public:
 	virtual void sendDeliveryNotifications(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
 
 	virtual void notifyChatMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
+	virtual void notifyIsComposingReceived(const std::shared_ptr<Address> &remoteAddress,
+	                                       bool isComposing,
+	                                       std::string contentType) = 0;
 	virtual void notifyUndecryptableChatMessageReceived(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
 
 	virtual LinphoneReason onSipMessageReceived(SalOp *op, const SalMessage *message) = 0;

@@ -6059,6 +6059,7 @@ static void group_chat_lime_x3dh_message_content_edition_and_retract(const Linph
 	BC_ASSERT_TRUE(linphone_chat_message_is_editable(sentMessage));
 	BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(sentMessage), marieMessage);
 
+	linphone_chat_room_compose_text_message(marieCr);
 	LinphoneChatMessage *editedMsg = linphone_chat_room_create_replaces_message(marieCr, sentMessage);
 	LinphoneContent *text_content = linphone_core_create_content(linphone_chat_room_get_core(marieCr));
 	linphone_content_set_type(text_content, "text");
@@ -6075,6 +6076,9 @@ static void group_chat_lime_x3dh_message_content_edition_and_retract(const Linph
 	                             initialMarieStats.number_of_LinphoneMessageContentEdited + 1,
 	                             liblinphone_tester_sip_timeout));
 	linphone_chat_message_unref(editedMsg);
+
+	BC_ASSERT_FALSE(linphone_chat_room_is_remote_composing(paulineCr));
+	BC_ASSERT_FALSE(linphone_chat_room_is_remote_composing(marieCr));
 
 	// On receiver side message is flagged as edited but it is not editable
 	BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_utf8_text(paulineLastMsg), edited_text);

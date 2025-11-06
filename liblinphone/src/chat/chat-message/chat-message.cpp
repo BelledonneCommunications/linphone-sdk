@@ -1264,6 +1264,8 @@ LinphoneReason ChatMessagePrivate::receive() {
 			}
 		} else {
 			// Previous message was correctly edited, do not notify this one.
+			const std::shared_ptr<Address> &fromAddress = q->getFromAddress();
+			chatRoom->notifyIsComposingReceived(fromAddress, false, "");
 			return reason;
 		}
 	} else {
