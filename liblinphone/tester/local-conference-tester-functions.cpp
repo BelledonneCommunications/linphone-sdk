@@ -8250,6 +8250,13 @@ void create_conference_with_chat_base(LinphoneConferenceSecurityLevel security_l
 		});
 
 		ms_free(conference_address_str);
+
+		// Make sure that removeAccountWithData properly cleans conference chatrooms
+		BC_ASSERT_NOT_EQUAL(marie.getCore().getChatRooms().size(), 0, size_t, "%zu");
+		marie.getCore().removeAccountWithData(marie.getCore().getDefaultAccount());
+		BC_ASSERT_EQUAL(marie.getCore().getChatRooms().size(), 0, size_t, "%zu");
+		BC_ASSERT_PTR_NULL(linphone_core_search_conference_2(marie.getLc(), confAddr));
+
 		bctbx_list_free_with_data(participants_info, (bctbx_list_free_func)linphone_participant_info_unref);
 		linphone_address_unref(confAddr);
 		bctbx_list_free(coresList);

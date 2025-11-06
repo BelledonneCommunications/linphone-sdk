@@ -561,6 +561,85 @@ static void supported_tags_handled_by_account_empty_list_test(void) {
 	supported_tags_handled_by_account_test(true);
 }
 
+static void check_chatrooms_and_call_log_status_after_account_remove_account(bool remove_data) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneAccount *marie_account = linphone_core_get_default_account(marie->lc);
+	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_tcp_rc");
+	bctbx_list_t *lcs = NULL;
+	lcs = bctbx_list_append(lcs, marie->lc);
+	lcs = bctbx_list_append(lcs, pauline->lc);
+
+	BC_ASSERT_TRUE(wait_for_until(marie->lc, NULL, &marie->stat.number_of_LinphoneRegistrationOk, 1,
+	                              liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, NULL, &pauline->stat.number_of_LinphoneRegistrationOk, 1,
+	                              liblinphone_tester_sip_timeout));
+
+	/* Create a call */
+	LinphoneCallParams *call_params = linphone_core_create_call_params(marie->lc, NULL);
+	linphone_core_invite_address_with_params(marie->lc, pauline->identity, call_params);
+	linphone_call_params_unref(call_params);
+
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallIncomingReceived, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneCallOutgoingRinging, 1, liblinphone_tester_sip_timeout));
+	if (linphone_core_is_incoming_invite_pending(pauline->lc)) {
+		BC_ASSERT_PTR_NOT_NULL(linphone_core_get_current_call(pauline->lc));
+		end_call(pauline, marie);
+	}
+
+	/* create a chatroom on Marie's side */
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_chat_rooms(marie->lc)) == 0);
+	bctbx_list_t *participants = NULL;
+	LinphoneChatRoom *chat_room;
+	LinphoneConferenceParams *params;
+	LinphoneChatParams *chat_params;
+	LinphoneChatMessage *sent_msg;
+	participants = bctbx_list_append(participants, pauline->identity);
+
+	params = linphone_core_create_conference_params_2(marie->lc, NULL);
+	linphone_conference_params_enable_chat(params, TRUE);
+	chat_params = linphone_conference_params_get_chat_params(params);
+	linphone_conference_params_enable_group(params, FALSE);
+	linphone_chat_params_set_backend(chat_params, LinphoneChatRoomBackendBasic);
+	chat_room = linphone_core_create_chat_room_7(marie->lc, params, participants);
+	bctbx_list_free(participants);
+	linphone_conference_params_unref(params);
+	BC_ASSERT_PTR_NOT_NULL(chat_room);
+
+	sent_msg = linphone_chat_room_create_message_from_utf8(chat_room, "Hello");
+	linphone_chat_message_set_content_type(sent_msg, "text/plain");
+	linphone_chat_message_send(sent_msg);
+	BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageReceived, 1));
+	linphone_chat_room_unref(chat_room);
+	linphone_chat_message_unref(sent_msg);
+
+	/* Check chatrooms and calllog persistence */
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_chat_rooms(marie->lc)) == 1);
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+	if (remove_data) {
+		linphone_core_remove_account_with_data(marie->lc, marie_account);
+		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_chat_rooms(marie->lc)) == 0);
+		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 0);
+	} else {
+		linphone_core_remove_account(marie->lc, marie_account);
+		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_chat_rooms(marie->lc)) == 1);
+		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+	}
+
+	bctbx_list_free(lcs);
+	linphone_core_manager_destroy(marie);
+	linphone_core_manager_destroy(pauline);
+}
+
+static void account_chatrooms_and_call_logs_kept_after_remove_account(void) {
+	check_chatrooms_and_call_log_status_after_account_remove_account(false);
+}
+
+static void account_chatrooms_and_call_logs_removed_after_remove_account_with_data(void) {
+	check_chatrooms_and_call_log_status_after_account_remove_account(true);
+}
+
 static test_t account_tests[] = {
     TEST_NO_TAG("Simple account creation", simple_account_creation),
     TEST_NO_TAG("Simple account creation with removal", simple_account_creation_with_removal),
@@ -579,6 +658,10 @@ static test_t account_tests[] = {
     TEST_NO_TAG("Supported tags handled by account (without gruu)",
                 supported_tags_handled_by_account_without_gruu_test),
     TEST_NO_TAG("Supported tags handled by account (empty list)", supported_tags_handled_by_account_empty_list_test),
+    TEST_NO_TAG("Account chatrooms and call logs stay in DB when remove_account",
+                account_chatrooms_and_call_logs_kept_after_remove_account),
+    TEST_NO_TAG("Account chatrooms and call logs deleted from DB when using remove_Account_with_data (empty list)",
+                account_chatrooms_and_call_logs_removed_after_remove_account_with_data),
 };
 
 test_suite_t account_test_suite = {"Account",

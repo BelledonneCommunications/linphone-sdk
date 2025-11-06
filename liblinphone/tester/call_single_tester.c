@@ -912,6 +912,12 @@ static void call_outbound_using_secondary_account(void) {
 	}
 	end_call(marie, pauline);
 
+	// Since call was made with secondary account,
+	// we should not have any changes when removing the primary account
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+	linphone_core_remove_account_with_data(marie->lc, linphone_core_get_default_account(marie->lc));
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+
 end:
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);

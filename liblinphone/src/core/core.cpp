@@ -3190,6 +3190,10 @@ void Core::removeDependentAccount(const std::shared_ptr<Account> &account) {
 	}
 }
 
+static int log_addr_cmp(LinphoneCallLog *log, LinphoneAddress *address) {
+	return linphone_address_weak_equal(linphone_call_log_get_local_address(log), address) ? 0 : 1;
+}
+
 void Core::removeAccountWithData(const std::shared_ptr<Account> &account) {
 	L_D();
 
@@ -3210,6 +3214,16 @@ void Core::removeAccountWithData(const std::shared_ptr<Account> &account) {
 
 	// Delete call logs
 	account->deleteCallLogs();
+	// Check and also delete the call logs individually since account->deleteCallLogs()
+	// only removes them from the DB, and not from the lc->call_logs cache
+	shared_ptr<Address> accountAddress = account->getAccountParams()->getIdentityAddress();
+	lInfo() << "removeAccountWithData: Removing all call logs with local address matching" << *accountAddress;
+	size_t nbCallLogs = bctbx_list_size(getCCore()->call_logs);
+	getCCore()->call_logs = bctbx_list_remove_custom_with_data(
+	    getCCore()->call_logs, reinterpret_cast<bctbx_compare_func>(log_addr_cmp),
+	    reinterpret_cast<bctbx_list_free_func>(linphone_call_log_unref), accountAddress->toC());
+	lInfo() << "removeAccountWithData: " << (nbCallLogs - bctbx_list_size(getCCore()->call_logs))
+	        << " call logs removed";
 
 	// Delete AuthInfo if any
 	if (const auto *authInfo = account->findAuthInfo(); authInfo != nullptr)
