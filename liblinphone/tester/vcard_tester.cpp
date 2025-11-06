@@ -880,6 +880,8 @@ static void magic_search_carddav_query_from_api(void) {
 	linphone_remote_contact_directory_set_limit(rcd, 0);
 	linphone_remote_contact_directory_set_min_characters(rcd, 0);
 	linphone_remote_contact_directory_set_timeout(rcd, 5);
+	linphone_remote_contact_directory_set_delay(rcd, 200);
+	BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_delay(rcd), 0, int, "%0d");
 	linphone_core_add_remote_contact_directory(manager->lc, rcd);
 	linphone_card_dav_params_unref(carddavParams);
 

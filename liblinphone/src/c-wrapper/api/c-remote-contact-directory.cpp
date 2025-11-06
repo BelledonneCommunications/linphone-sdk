@@ -103,6 +103,15 @@ void linphone_remote_contact_directory_set_timeout(LinphoneRemoteContactDirector
 	RemoteContactDirectory::toCpp(remote_contact_directory)->setTimeout(seconds);
 }
 
+int linphone_remote_contact_directory_get_delay(const LinphoneRemoteContactDirectory *remote_contact_directory) {
+	return RemoteContactDirectory::toCpp(remote_contact_directory)->getDelayToStartQuery();
+}
+
+void linphone_remote_contact_directory_set_delay(LinphoneRemoteContactDirectory *remote_contact_directory,
+                                                 int milliseconds) {
+	RemoteContactDirectory::toCpp(remote_contact_directory)->setDelayToStartQuery(milliseconds);
+}
+
 void linphone_remote_contact_directory_enable(LinphoneRemoteContactDirectory *remote_contact_directory, bool_t value) {
 	RemoteContactDirectory::toCpp(remote_contact_directory)->enable(!!value);
 }

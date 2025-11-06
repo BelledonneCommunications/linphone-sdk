@@ -264,7 +264,6 @@ protected:
 
 	std::string mPackageSoundDir;
 	std::string mPackageRingDir;
-	std::string mPackageDataDir;
 
 private:
 	bctbx_list_t *mSupportedVideoDefinitions;

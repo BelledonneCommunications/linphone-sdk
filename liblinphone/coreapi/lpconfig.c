@@ -557,13 +557,13 @@ LinphoneStatus linphone_config_read_file(LpConfig *lpconfig, const char *filenam
 	char *path = lp_realpath(filename, NULL);
 	bctbx_vfs_file_t *pFile = bctbx_file_open(lpconfig->g_bctbx_vfs, path, "r");
 	if (pFile != NULL) {
-		ms_message("Reading config information from %s", path);
+		ms_message("Reading config information from `%s` resolved by `%s`", filename, path);
 		linphone_config_parse(lpconfig, pFile);
 		bctbx_file_close(pFile);
 		ms_free(path);
 		return 0;
 	}
-	ms_warning("Fail to open file %s", path);
+	ms_warning("Fail to open file `%s` resolved by `%s`", filename, path);
 	ms_free(path);
 	return -1;
 }

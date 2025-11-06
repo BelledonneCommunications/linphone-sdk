@@ -1769,6 +1769,8 @@ static void remote_contact_directory_operations(void) {
 		linphone_ldap_params_unref(ldap_params);
 		BC_ASSERT_TRUE(linphone_remote_contact_directory_get_type(remote_contact_directory) ==
 		               LinphoneRemoteContactDirectoryTypeLdap);
+		linphone_remote_contact_directory_set_delay(remote_contact_directory, 200);
+		BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_delay(remote_contact_directory), 200, int, "%0d");
 		linphone_core_add_remote_contact_directory(marie->lc, remote_contact_directory);
 
 		bctbx_list_t *remote_contact_directories = linphone_core_get_remote_contact_directories(marie->lc);
@@ -1876,6 +1878,8 @@ static void remote_contact_directory_operations(void) {
 		linphone_remote_contact_directory_set_limit(remote_contact_directory, 0);
 		linphone_remote_contact_directory_set_min_characters(remote_contact_directory, 0);
 		linphone_remote_contact_directory_set_timeout(remote_contact_directory, 5);
+		linphone_remote_contact_directory_set_delay(remote_contact_directory, 200);
+		BC_ASSERT_EQUAL(linphone_remote_contact_directory_get_delay(remote_contact_directory), 0, int, "%0d");
 		linphone_core_add_remote_contact_directory(marie->lc, remote_contact_directory);
 		linphone_card_dav_params_unref(carddavParams);
 

@@ -101,7 +101,6 @@ Factory::Factory() {
 
 	mPackageSoundDir = PACKAGE_SOUND_DIR;
 	mPackageRingDir = PACKAGE_RING_DIR;
-	mPackageDataDir = PACKAGE_DATA_DIR;
 
 #ifdef HAVE_SQLITE
 	/* register the bctbx sqlite vfs. It is not used by default */
