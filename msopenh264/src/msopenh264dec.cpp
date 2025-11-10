@@ -288,16 +288,29 @@ int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus) {
       *dst++ = 0;
       *dst++ = 0;
       *dst++ = 1;
-      *dst++ = *src++;
-      while (src < (im->b_wptr - 3)) {
-        if ((src[0] == 0) && (src[1] == 0) && (src[2] < 3)) {
-          *dst++ = 0;
-          *dst++ = 0;
-          *dst++ = 3;
-          src += 2;
-        }
-        *dst++ = *src++;
-      }
+    	*dst++ = *src++;
+    	while (src < (im->b_wptr - 5)) {
+/*  RBSP (Raw Byte Sequence Payload) and SODB (String of Data Bits).
+ *	RBSP has any of 0x000000, 0x000001, 0x000002, and 0x000003
+ *	SODB has 0x00000300, 0x00000301, 0x00000302, and 0x00000303
+ *
+ *  An encoder has to insert an “emulation prevention byte” 0x03 while a decoder has to remove emulation prevention bytes.
+ *	Encoder : RBSP => SODB
+ *	Decoder : SODB => RBSP
+ *
+ *	Details:
+ *		- https://wenchy.github.io/blogs/2015-12-11-H.264-stream-structure.html
+ *		- https://videonerd.website/start-code-emulation/
+*/
+    		if ((src[0] == 0) && (src[1] == 0) && (src[2] == 3) && (src[3] == 0) && (src[4] <= 3) ) {
+    			*dst++ = 0;
+    			*dst++ = 0;
+    			*dst++ = src[4];
+    			src += 5;
+    		}else
+    			*dst++ = *src++;
+    	}
+
       while (src < im->b_wptr) {
         *dst++ = *src++;
       }
