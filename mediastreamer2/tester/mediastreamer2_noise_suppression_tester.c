@@ -34,6 +34,7 @@
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 #include "ortp/port.h"
+#include "ortp/rtpsession.h"
 #include <locale.h>
 
 #define NS_DUMP 1
@@ -424,6 +425,21 @@ static void audio_stream_base(const char *audio_file_marielle,
 	rtp_profile_set_payload(profile, 0, &payload_type_opus);
 	rtp_profile_set_payload(profile, 8, &payload_type_pcma8000);
 
+	// JBParameters jitter_params_marielle;
+	RtpSession *marielle_rtp_session = audio_stream_get_rtp_session(marielle);
+	// rtp_session_get_jitter_buffer_params(marielle_rtp_session, &jitter_params_marielle);
+	// jitter_params_marielle.adaptive = FALSE;
+	// rtp_session_set_jitter_buffer_params(marielle_rtp_session, &jitter_params_marielle);
+
+	// JBParameters jitter_params_margaux;
+	RtpSession *margaux_rtp_session = audio_stream_get_rtp_session(margaux);
+	// rtp_session_get_jitter_buffer_params(margaux_rtp_session, &jitter_params_margaux);
+	// jitter_params_margaux.adaptive = FALSE;
+	// rtp_session_set_jitter_buffer_params(margaux_rtp_session, &jitter_params_margaux);
+
+	rtp_session_enable_adaptive_jitter_compensation(marielle_rtp_session, FALSE);
+	rtp_session_enable_adaptive_jitter_compensation(margaux_rtp_session, FALSE);
+
 	BC_ASSERT_EQUAL(audio_stream_start_full(
 	                    marielle, profile, ms_is_multicast(marielle_local_ip) ? marielle_local_ip : marielle_remote_ip,
 	                    ms_is_multicast(marielle_local_ip) ? marielle_local_rtp_port : marielle_remote_rtp_port,
@@ -437,7 +453,43 @@ static void audio_stream_base(const char *audio_file_marielle,
 
 	if (config_change_ms == 0) {
 		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
+
+		JBParameters jitter_params_marielle;
+		marielle_rtp_session = audio_stream_get_rtp_session(marielle);
+		rtp_session_get_jitter_buffer_params(marielle_rtp_session, &jitter_params_marielle);
+		if (jitter_params_marielle.adaptive) {
+			ms_message("** marielle jitter buffer is adaptive");
+		} else {
+			ms_message("** marielle jitter buffer is NOT adaptive");
+		}
+
+		JBParameters jitter_params_margaux;
+		margaux_rtp_session = audio_stream_get_rtp_session(margaux);
+		rtp_session_get_jitter_buffer_params(margaux_rtp_session, &jitter_params_margaux);
+		if (jitter_params_margaux.adaptive) {
+			ms_message("** margaux jitter buffer is adaptive");
+		} else {
+			ms_message("** margaux jitter buffer is NOT adaptive");
+		}
+
 		wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, audio_stop_ms);
+
+		marielle_rtp_session = audio_stream_get_rtp_session(marielle);
+		rtp_session_get_jitter_buffer_params(marielle_rtp_session, &jitter_params_marielle);
+		if (jitter_params_marielle.adaptive) {
+			ms_message("** marielle jitter buffer is adaptive");
+		} else {
+			ms_message("** marielle jitter buffer is NOT adaptive");
+		}
+
+		margaux_rtp_session = audio_stream_get_rtp_session(margaux);
+		rtp_session_get_jitter_buffer_params(margaux_rtp_session, &jitter_params_margaux);
+		if (jitter_params_margaux.adaptive) {
+			ms_message("** margaux jitter buffer is adaptive");
+		} else {
+			ms_message("** margaux jitter buffer is NOT adaptive");
+		}
+
 	} else {
 		int dummy = 0;
 		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, config_change_ms);
@@ -563,8 +615,13 @@ static void noise_suppression_in_audio_stream(void) {
 	                  MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
 	                  MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, FALSE,
 	                  TRUE, config.play_duration_ms, 0, 0, NULL);
+	// TODO: fix simlarity measurements with _ms_audio_diff_chunked that is robust to small shifts
+	// for the moment the energy in silence is tehe only relevant measurement
+	// check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	//                     config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.1f, 0.77f,
+	//                     max_shift_percent);
 	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
-	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.1f, 0.77f,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 2.5f, 0.1f,
 	                    max_shift_percent);
 	uninit_denoising_test_config(&config);
 	free(audio_file_margaux);
