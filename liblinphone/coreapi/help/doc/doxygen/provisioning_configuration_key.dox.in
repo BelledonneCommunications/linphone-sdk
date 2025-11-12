@@ -1,0 +1,85 @@
+/**
+ * \defgroup provisioning_configuration_key Provisioning configuration key
+
+ * This document describes the architecture of contact management in Liblinphone, and related configuration items for remote provisioning.<br/>
+ * There are two distincts concepts for dealing with Contacts in Liblinphone:
+ * <ul>
+ * <li> Remote contact directories: represented as #LinphoneRemoteContactDirectory object, these are used by the application through the #LinphoneMagicSearch object, that can also search through locally stored contacts (from chats, call history, friend lists) </li>
+ * <li> Contact lists, represented by the #LinphoneFriendList object, a container of #LinphoneFriend objects. The Core contains a list of #LinphoneFriendList objects, that are loaded from database </li>
+ * </ul>
+
+ * <h2>Remote contact directories (section [<i>remote_contact_directory_N</i>])</h2>
+
+ * There are currently two kinds of remote contact directories:
+ * <ul>
+ * <li> LDAP </li>
+ * <li> CardDav </li>
+ * </ul>
+ * Their role is not to present a permanent list of contacts to the user, but rather return, per a search request, a list of contacts that match the request.<br/>
+ * The search request is transmitted through the protocol (LDAP or CardDav), and executed on the server. The server's response is analysed and search results are represented as a list of #LinphoneFriend objects.<br/>
+ * LDAP connection configuration has it is own password key, and it is not relying at all on the #LinphoneAuthInfo objects, unlike all other liblinphone initiated connections.<br/>
+ * Table \ref remote_contact_directory_parameters "remote contact directory parameters" lists all remote contact directory parameters one may find under section [<i>remote_contact_directory_N</i>] of a Linphone RC file.<br/>
+ * <table>
+ *<caption id="remote_contact_directory_parameters">Remote Contact directory parameters</caption>
+ *<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
+ *<tr><td>enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>Whether the remote contact directory is enabled</td></tr>
+ *<tr><td>type</td><td>string</td><td>carddav or ldap</td><td>""</td><td>The type (protocol) used by the remote contact directory</td></tr>
+ *<tr><td>uri</td><td>string</td><td>a URI</td><td>""</td><td>The server URI, typically ldap://example.org or https://carddav.example.org</td></tr>
+ *<tr><td>min_characters</td><td>integer</td><td>any positive integer or 0</td><td>3</td><td>The minimum number of characters needed to submit the request</td></tr>
+ *<tr><td>results_limit</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>Limit on the number of returned results. 0 means returns all results</td></tr>
+ *<tr><td>timeout</td><td>integer</td><td>any positive integer or 0</td><td>5</td><td>Request timeout in seconds</td></tr>
+ *<tr><td>delay</td><td>integer</td><td>any positive integer or 0</td><td>500</td><td>Delay in milliseconds before submitting the request</td></tr>
+ *<tr><td>carddav_fields_for_user_input</td><td>string</td><td></td><td>""</td><td>List of comma separated VCard fields to match with the user input</td></tr>
+ *<tr><td>carddav_fields_for_domain</td><td>string</td><td></td><td>""</td><td>List of comma separated VCard fields to match for SIP domain</td></tr>
+ *<tr><td>carddav_use_exact_match_policy</td><td>integer</td><td>0 or 1</td><td>0</td><td>Whether the match must be exact or approximate (ignoring accents, case, ...)</td></tr>
+ *<tr><td>ldap_bind_dn</td><td>string</td><td></td><td>""</td><td>LDAP bind distinguished name</td></tr>
+ *<tr><td rowspan="2">ldap_auth_method</td><td rowspan="2">integer</td><td>0: anonymous</td><td rowspan="2">1</td><td rowspan="2">LDAP authentication method</td></tr>
+ *<tr><td>1: simple</td></tr>
+ *<tr><td>ldap_base_object</td><td>string</td><td></td><td>""</td><td>LDAP base object</td></tr>
+ *<tr><td>ldap_name_attribute</td><td>string</td><td></td><td>"sn"</td><td>LDAP attribute(s) to browse for contact names</td></tr>
+ *<tr><td>ldap_sip_attribute</td><td>string</td><td></td><td>"mobile,telephonenumber,homephone,sn"</td><td>LDAP attribute(s) to use to create SIP URIs associated with this remote contact directory</td></tr>
+ *<tr><td>ldap_sip_domain</td><td>string</td><td></td><td>""</td><td>A SIP domain to filter results</td></tr>
+ *<tr><td>ldap_filter</td><td>string</td><td></td><td>"(sn=%s)"</td><td>A LDAP search filter</td></tr>
+ *</table>
+
+<!--
+ * <h2>FriendLists (section [<i>friend_list_N</i>])</h2>
+
+ * A FriendList is represented by the #LinphoneFriendList object. It is a list of #LinphoneFriend (contacts) that is stored locally on the device, and may be captured or synchronized with a remote server.
+ * There are currently different types of friendlist:
+ * - Pure local friend list, stored in local sqlite3 database
+ * - friend list stored locally, but initally fetched from an HTTP server such as VCARD file, and re-captured at each Core or application start up
+ * - friend list stored locally, but synchronized in both directions with a CardDAV server. With this type of friend list, each change to the list and its contacts (#LinphoneFriend) performed by the local user is pushed on the server, and any change present on the server is pulled by the client. This typically allows synchronisation of contact lists between several client devices, or may simply be to pull down a contact list from a server, and get it refreshed from the server in a more efficient way than the VCARD file method.
+
+ * Table \ref friendlist_parameters "friendlist parameters" lists all remote contact directory parameters one may find under section [<i>friend_list_N</i>] of a Linphone RC file.<br/>
+ * <table>
+ *<caption id="friendlist_parameters">Friendlist parameters</caption>
+ *<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
+ *<tr><td rowspan="3">type</td><td rowspan="3">string</td><td>local</td><td rowspan="3">local</td><td rowspan="3">The type of friendlist, i.e. the way it is expected to work</td></tr>
+ *<tr><td>carddav</td></tr>
+ *<tr><td>vcard</td></tr>
+ *<tr><td>uri</td><td>string</td><td>any file or HTTP/HTTPS URI</td><td>""</td><td>The URI from which the friendlist is synchronized to (Applicable only to carddav or vcard friendlist types)</td></tr>
+ *<tr><td>name</td><td>string</td><td>any UTF-8 string</td><td>""</td><td>A display name for this friendlist</td></tr>
+ *</table>
+-->
+
+ * <h2>Authentication (section [<i>auth_info_N</i>])</h2>
+
+ * Both #LinphoneRemoteContactDirectory and #LinphoneFriendList objects may require authentication. Like all authentication information, they need to be supplied in the form of a #LinphoneAuthInfo object, whose configuration storage representation is of [<i>auth_info_N</i>] section, numbered from 0.<br/>
+ * Table \ref authinfo_parameters "authentication information parameters" lists all remote contact directory parameters one may find under section [<i>auth_info_N</i>] of a Linphone RC file.<br/>
+ * <table>
+ *<caption id="authinfo_parameters">Authentication information parameters</caption>
+ *<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
+ *<tr><td>username</td><td>string</td><td>anything</td><td>""</td><td>The username to use for authenticating</td></tr>
+ *<tr><td>domain</td><td>string</td><td>anything</td><td>""</td><td>A SIP domain to which the use of thie #LinphoneAuthInfo is scoped to</td></tr>
+ *<tr><td>passwd</td><td>string</td><td>anything</td><td>""</td><td>The clear-text password</td></tr>
+ *<tr><td>realm</td><td>string</td><td>anything</td><td>""</td><td>The realm advertised by the server, it may be left empty if unknown</td></tr>
+ *<tr><td>ha1</td><td>string</td><td>anything</td><td>""</td><td>A digest HA1 of the password</td></tr>
+ *<tr><td rowspan="2">algorithm</td><td rowspan="2">string</td><td>MD5</td><td rowspan="2">MD5</td><td rowspan="2">The digest algorithm</td></tr>
+ *<tr><td>SHA-256</td></tr>
+ *<tr><td>authorization_server</td><td>string</td><td>any HTTP/HTTPS URI</td><td>""</td><td>An OAUTH/OpenID connect authorization server URI to use to autheticate</td></tr>
+ *<tr><td>token_endpoint</td><td>string</td><td>any HTTP/HTTPS URI</td><td>""</td><td>URI of endpoint to refresh tokens</td></tr>
+ *<tr><td>client_id</td><td>string</td><td>anything</td><td>""</td><td>OAUTH client ID</td></tr>
+ *<tr><td>client_secret</td><td>string</td><td>anything</td><td>""</td><td>OAUTH client secret</td></tr>
+ *</table>
+ */

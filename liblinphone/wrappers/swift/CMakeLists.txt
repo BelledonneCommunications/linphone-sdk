@@ -32,7 +32,35 @@
 # https://forums.swift.org/t/announcing-swift-support-in-cmake/24792
 # https://github.com/compnerd/swift-cmake-demo
 
+if(WIN32)
+	set(SED_BACKSLASH "\\\\\\")
+	set(SED_ESCAPE_CHARACTER "\^")
+	set(SED_BINARY_MODE "-b")
+else()
+	set(SED_BACKSLASH "\\\\")
+	set(SED_ESCAPE_CHARACTER "")
+	set(SED_BINARY_MODE "")
+endif()
 
+if(APPLE)
+	set(SED_IN_PLACE_EDIT_ARG "-i ''")
+else()
+	set(SED_IN_PLACE_EDIT_ARG "-i")
+endif()
+
+configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md.raw")
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md"
+	COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/\`\`\\1\`\`/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*\\\*\[\[:space:\]\]*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<h2${SED_ESCAPE_CHARACTER}\>\(\.+\)${SED_ESCAPE_CHARACTER}\<\\/h2${SED_ESCAPE_CHARACTER}\>/\\\#\\\# \\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_BACKSLASH}defgroup\[\[:space:\]\]+\[A-Za-z\\_\]+\[\[:space:\]\]+\(\[A-Za-z\[:space:\]\]+\)/\\\# \\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/Table ${SED_BACKSLASH}ref \[A-Za-z\\_\]+ \\\"\[A-Za-z\[:space:\]\\_\]+\\\"/The table below/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md.raw
+	liblinphone-doc
+)
 
 add_custom_command(OUTPUT LinphoneWrapper.swift
 	COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/genwrapper.py" "${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml"
@@ -41,6 +69,7 @@ add_custom_command(OUTPUT LinphoneWrapper.swift
 	${PROJECT_SOURCE_DIR}/tools/metaname.py
 	${PROJECT_SOURCE_DIR}/tools/abstractapi.py
 	${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml/index.xml
+	${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
 	genwrapper.py
 	wrapper_impl.mustache
 	liblinphone-doc

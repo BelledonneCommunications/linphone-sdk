@@ -86,3 +86,6 @@ Applications can submit presence information through the Core's @Linphone.Core.P
 Symmetrically, applications can subscribe to the presence server to get notified of the presence status of a contact list.
 This is to be done thanks to the @Linphone.FriendList and @Linphone.Friend classes.
 
+# Liblinphone Configuration Parameters
+Liblinphone supports a variety of configuration parameters that allow the end user to customize the behaviour of its application depending on its needs.
+- [Provisioning Configuration Key](provisioning_configuration_key.html)

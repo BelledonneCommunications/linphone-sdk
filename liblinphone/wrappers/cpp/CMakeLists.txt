@@ -37,6 +37,29 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/linphone++/linpho
 	${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml/index.xml
 	liblinphone-doc
 )
+
+if(WIN32)
+	set(SED_BINARY_MODE "-b")
+else()
+	set(SED_BINARY_MODE "")
+endif()
+
+if(APPLE)
+	set(SED_IN_PLACE_EDIT_ARG "-i ''")
+else()
+	set(SED_IN_PLACE_EDIT_ARG "-i")
+endif()
+
+configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw")
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox"
+	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\(\\/\\\*\\\*\)/namespace linphone \{\\n\\n\\1/' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\(\\\*\\/\)/\\1\\n\}/' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw
+	liblinphone-doc
+)
+
 add_custom_target(liblinphone-cxx-wrapper ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/include/linphone++/linphone.hh" "${CMAKE_CURRENT_BINARY_DIR}/src/linphone++.cc")
 
 add_library(liblinphone++
@@ -121,10 +144,12 @@ if(ENABLE_DOC OR ENABLE_CXX_WRAPPER)
 		set(DOXYGEN_INPUT "")
 		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/include/linphone++\"")
 		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox\"")
+		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox\"")
 
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
 		set(DOC_INPUT_FILES ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 			${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox
+			${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
 		)
 
 		set(CPP_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/cpp")
