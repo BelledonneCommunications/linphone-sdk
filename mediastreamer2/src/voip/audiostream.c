@@ -1530,19 +1530,8 @@ int audio_stream_start_from_io(AudioStream *stream,
 	stream->nchannels = nchannels;
 
 	if ((stream->features & AUDIO_STREAM_FEATURE_NOISE_SUPPRESSION) && stream->use_ns) {
-		/* if the sample rate is 48000 Hz and the mode is mono, creates the noise suppressor filter */
 		stream->noise_suppressor = ms_factory_create_filter(stream->ms.factory, MS_NOISE_SUPPRESSOR_ID);
-		if (stream->noise_suppressor) {
-			bool_t bypass = !(sample_rate == 48000 && nchannels == 1);
-			if (!bypass) {
-				ms_message("Noise suppressor filter enabled for this audiostream.");
-			} else {
-				ms_message(
-				    "No noise suppression running in this audiostream because it must be mono with a sample rate of "
-				    "48000 Hz");
-			}
-			ms_filter_call_method(stream->noise_suppressor, MS_NOISE_SUPPRESSOR_SET_BYPASS_MODE, &bypass);
-		} else {
+		if (!stream->noise_suppressor) {
 			ms_error("Cannot create filter for noise suppression, not supported in this build.");
 			stream->features &= ~AUDIO_STREAM_FEATURE_NOISE_SUPPRESSION;
 		}
@@ -1738,6 +1727,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 		if (stream->read_decoder) from = stream->read_decoder;
 		audio_stream_configure_resampler(stream, stream->read_resampler, from,
 		                                 skip_encoder_and_decoder ? stream->soundread : stream->ms.encoder);
+		audio_stream_configure_noise_suppressor(stream, from);
 	}
 	if (stream->write_resampler) {
 		MSFilter *to = stream->soundwrite;

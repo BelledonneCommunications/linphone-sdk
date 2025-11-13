@@ -37,7 +37,7 @@
 #include "ortp/rtpsession.h"
 #include <locale.h>
 
-#define NS_DUMP 1
+#define NS_DUMP 0
 
 #define FAREND_FILE "sounds/farend_simple_talk_48000_2.wav"
 #define SPEECH_FILE "sounds/nearend_simple_talk_48000.wav"
@@ -93,7 +93,6 @@ static void uninit_denoising_test_config(denoising_test_config *config) {
 	if (config->speech_file) ms_free(config->speech_file);
 #if NS_DUMP != 1
 	if (config->clean_file) unlink(config->clean_file);
-	if (config->reference_file) unlink(config->reference_file);
 #endif
 	if (config->clean_file) ms_free(config->clean_file);
 	if (config->reference_file) ms_free(config->reference_file);
@@ -425,18 +424,8 @@ static void audio_stream_base(const char *audio_file_marielle,
 	rtp_profile_set_payload(profile, 0, &payload_type_opus);
 	rtp_profile_set_payload(profile, 8, &payload_type_pcma8000);
 
-	// JBParameters jitter_params_marielle;
 	RtpSession *marielle_rtp_session = audio_stream_get_rtp_session(marielle);
-	// rtp_session_get_jitter_buffer_params(marielle_rtp_session, &jitter_params_marielle);
-	// jitter_params_marielle.adaptive = FALSE;
-	// rtp_session_set_jitter_buffer_params(marielle_rtp_session, &jitter_params_marielle);
-
-	// JBParameters jitter_params_margaux;
 	RtpSession *margaux_rtp_session = audio_stream_get_rtp_session(margaux);
-	// rtp_session_get_jitter_buffer_params(margaux_rtp_session, &jitter_params_margaux);
-	// jitter_params_margaux.adaptive = FALSE;
-	// rtp_session_set_jitter_buffer_params(margaux_rtp_session, &jitter_params_margaux);
-
 	rtp_session_enable_adaptive_jitter_compensation(marielle_rtp_session, FALSE);
 	rtp_session_enable_adaptive_jitter_compensation(margaux_rtp_session, FALSE);
 
@@ -453,42 +442,7 @@ static void audio_stream_base(const char *audio_file_marielle,
 
 	if (config_change_ms == 0) {
 		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
-
-		JBParameters jitter_params_marielle;
-		marielle_rtp_session = audio_stream_get_rtp_session(marielle);
-		rtp_session_get_jitter_buffer_params(marielle_rtp_session, &jitter_params_marielle);
-		if (jitter_params_marielle.adaptive) {
-			ms_message("** marielle jitter buffer is adaptive");
-		} else {
-			ms_message("** marielle jitter buffer is NOT adaptive");
-		}
-
-		JBParameters jitter_params_margaux;
-		margaux_rtp_session = audio_stream_get_rtp_session(margaux);
-		rtp_session_get_jitter_buffer_params(margaux_rtp_session, &jitter_params_margaux);
-		if (jitter_params_margaux.adaptive) {
-			ms_message("** margaux jitter buffer is adaptive");
-		} else {
-			ms_message("** margaux jitter buffer is NOT adaptive");
-		}
-
 		wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, audio_stop_ms);
-
-		marielle_rtp_session = audio_stream_get_rtp_session(marielle);
-		rtp_session_get_jitter_buffer_params(marielle_rtp_session, &jitter_params_marielle);
-		if (jitter_params_marielle.adaptive) {
-			ms_message("** marielle jitter buffer is adaptive");
-		} else {
-			ms_message("** marielle jitter buffer is NOT adaptive");
-		}
-
-		margaux_rtp_session = audio_stream_get_rtp_session(margaux);
-		rtp_session_get_jitter_buffer_params(margaux_rtp_session, &jitter_params_margaux);
-		if (jitter_params_margaux.adaptive) {
-			ms_message("** margaux jitter buffer is adaptive");
-		} else {
-			ms_message("** margaux jitter buffer is NOT adaptive");
-		}
 
 	} else {
 		int dummy = 0;
@@ -696,7 +650,6 @@ static void noise_suppression_disabled_in_audio_stream(void) {
 	config.speech_file = bc_tester_res(NOISY_SPEECH_12DB_FILE);
 	config.clean_file = bc_tester_file("clean_noise_suppression_disabled_in_audio_stream.wav");
 	config.play_duration_ms = 2500; // noise only, without speech
-	// int max_shift_percent = 0;
 	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
 	audio_stream_without_noise_suppressor(
 	    config.speech_file, audio_file_margaux, config.clean_file, MARIELLE_IP, MARGAUX_IP, MARIELLE_RTP_PORT,
@@ -739,6 +692,134 @@ static void noise_suppression_by_passed_in_audio_stream_stereo(void) {
 	free(audio_file_margaux);
 }
 
+static void audio_stream_at_start(const char *audio_file_marielle,
+                                  const char *audio_file_margaux,
+                                  const char *audio_file_record,
+                                  const char *marielle_local_ip,
+                                  const char *marielle_remote_ip,
+                                  int marielle_local_rtp_port,
+                                  int marielle_remote_rtp_port,
+                                  int marielle_local_rtcp_port,
+                                  int marielle_remote_rtcp_port,
+                                  const char *margaux_local_ip,
+                                  const char *margaux_remote_ip,
+                                  int margaux_local_rtp_port,
+                                  int margaux_remote_rtp_port,
+                                  int margaux_local_rtcp_port,
+                                  int margaux_remote_rtcp_port,
+                                  int audio_stop_ms) {
+
+	MSFilterDesc *ns_desc = ms_factory_lookup_filter_by_name(msFactory, "MSNoiseSuppressor");
+	if (ns_desc == NULL) {
+		BC_PASS("Noise suppression not enabled");
+		return;
+	}
+
+#if NS_DUMP == 1
+	if (audio_file_record) unlink(audio_file_record);
+#endif
+
+	stats_t marielle_stats;
+	stats_t margaux_stats;
+	AudioStream *marielle =
+	    audio_stream_new2(msFactory, marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
+	AudioStream *margaux =
+	    audio_stream_new2(msFactory, margaux_local_ip, margaux_local_rtp_port, margaux_local_rtcp_port);
+	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session, TRUE);
+	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session, TRUE);
+	int target_bitrate = 48000;
+	media_stream_set_target_network_bitrate(&marielle->ms, target_bitrate);
+	media_stream_set_target_network_bitrate(&margaux->ms, target_bitrate);
+	audio_stream_enable_noise_suppression(marielle, TRUE);
+	reset_stats(&marielle_stats);
+	reset_stats(&margaux_stats);
+	RtpProfile *profile = rtp_profile_new("default profile");
+	rtp_profile_set_payload(profile, 0, &payload_type_opus);
+	rtp_profile_set_payload(profile, 8, &payload_type_pcma8000);
+
+	BC_ASSERT_EQUAL(audio_stream_start_full(
+	                    marielle, profile, ms_is_multicast(marielle_local_ip) ? marielle_local_ip : marielle_remote_ip,
+	                    ms_is_multicast(marielle_local_ip) ? marielle_local_rtp_port : marielle_remote_rtp_port,
+	                    marielle_remote_ip, marielle_remote_rtcp_port, 0, 50, audio_file_marielle, NULL, NULL, NULL, 0),
+	                0, int, "%d");
+	BC_ASSERT_EQUAL(audio_stream_start_full(margaux, profile, margaux_remote_ip, margaux_remote_rtp_port,
+	                                        margaux_remote_ip, margaux_remote_rtcp_port, 0, 50, audio_file_margaux,
+	                                        audio_file_record, NULL, NULL, 0),
+	                0, int, "%d");
+
+	// get sound configuration before noise suppression filter
+	MSFilter *file_player = marielle->soundread;
+	int rate_in_Hz = 0;
+	int nchannels = 0;
+	ms_filter_call_method(file_player, MS_FILTER_GET_SAMPLE_RATE, &rate_in_Hz);
+	ms_filter_call_method(file_player, MS_FILTER_GET_NCHANNELS, &nchannels);
+
+	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
+	wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, audio_stop_ms);
+
+	BC_ASSERT_PTR_NOT_NULL(marielle->noise_suppressor);
+	if (marielle->noise_suppressor) {
+		bool_t mode = FALSE;
+		ms_filter_call_method(marielle->noise_suppressor, MS_NOISE_SUPPRESSOR_GET_BYPASS_MODE, &mode);
+		if (!audio_file_marielle) {
+			// without file, the audio stream is configured at 8000 Hz, the noise suppressor must be bypassed
+			BC_ASSERT_TRUE(mode);
+		} else {
+			// the noise suppressor is by passed if the file is not 48000 Hz and mono
+			if (rate_in_Hz == 48000 && nchannels == 1) {
+				BC_ASSERT_FALSE(mode);
+			} else {
+				BC_ASSERT_TRUE(mode);
+			}
+		}
+	}
+	audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
+	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
+	if (audio_file_marielle) {
+		BC_ASSERT_GREATER_STRICT(marielle_stats.rtp.packet_sent, 0, unsigned long long, "%llu");
+		BC_ASSERT_GREATER_STRICT(margaux_stats.rtp.packet_recv, 0, unsigned long long, "%llu");
+	}
+	BC_ASSERT_GREATER_STRICT(marielle_stats.rtp.packet_recv, 0, unsigned long long, "%llu");
+	BC_ASSERT_GREATER_STRICT(margaux_stats.rtp.packet_sent, 0, unsigned long long, "%llu");
+	audio_stream_stop(marielle);
+	audio_stream_stop(margaux);
+	rtp_profile_destroy(profile);
+}
+
+static void noise_suppression_by_passed_at_start_in_audio_stream(void) {
+	denoising_test_config config;
+	init_denoising_test_config(&config);
+	config.play_duration_ms = 2500; // noise only, without speech
+	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
+	// start without file then rate is 8000Hz, the noise suppressor must be by-passed
+	audio_stream_at_start(NULL, audio_file_margaux, NULL, MARIELLE_IP, MARGAUX_IP, MARIELLE_RTP_PORT, MARGAUX_RTP_PORT,
+	                      MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP, MARIELLE_IP, MARGAUX_RTP_PORT,
+	                      MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, config.play_duration_ms);
+	// start with file at rate 16000Hz, the noise suppressor must be by-passed
+	config.speech_file = bc_tester_res(SPEECH_16000_FILE);
+	config.play_duration_ms = 15000;
+	config.clean_file = bc_tester_file("clean_noise_suppression_enabled_at_start_in_audio_stream.wav");
+	audio_stream_at_start(config.speech_file, audio_file_margaux, config.clean_file, MARIELLE_IP, MARGAUX_IP,
+	                      MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
+	                      MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT,
+	                      config.play_duration_ms);
+	uninit_denoising_test_config(&config);
+	// start with file at rate 48000Hz, the noise suppressor must run
+	init_denoising_test_config(&config);
+	config.speech_file = bc_tester_res(SPEECH_FILE);
+	config.play_duration_ms = 2500;
+	config.clean_file = bc_tester_file("clean_noise_suppression_enabled_at_start_in_audio_stream.wav");
+	audio_stream_at_start(config.speech_file, audio_file_margaux, config.clean_file, MARIELLE_IP, MARGAUX_IP,
+	                      MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
+	                      MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT,
+	                      config.play_duration_ms);
+	double energy = 0.;
+	ms_audio_energy(config.clean_file, &energy);
+	BC_ASSERT_LOWER(energy, 0.1, double, "%f");
+	uninit_denoising_test_config(&config);
+	free(audio_file_margaux);
+}
+
 static test_t tests[] = {
     TEST_NO_TAG("Talk with noise SNR 12dB", talk_with_noise_snr_12dB),
     TEST_NO_TAG("Talk with noise SNR 6dB", talk_with_noise_snr_6dB),
@@ -755,6 +836,8 @@ static test_t tests[] = {
                 noise_suppression_by_passed_in_audio_stream_at_16000Hz),
     TEST_NO_TAG("Noise suppression by passed in audio stream stereo",
                 noise_suppression_by_passed_in_audio_stream_stereo),
+    TEST_NO_TAG("Noise suppression by passed at start in audio stream",
+                noise_suppression_by_passed_at_start_in_audio_stream),
 };
 
 test_suite_t noise_suppression_test_suite = {
