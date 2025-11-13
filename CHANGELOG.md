@@ -13,6 +13,9 @@ changes made to these components.
 
 ## Unreleased
 
+### Added
+- Noise suppression with RNNoise, for 48000 Hz and mono audio streams.
+
 ### Removed
 - Dependency to WebRTC's repository.
 

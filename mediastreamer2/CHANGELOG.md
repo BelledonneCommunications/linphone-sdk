@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Noise suppression with RNNoise, for 48000 Hz and mono audio streams
+
 ### Changed
 - Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC and applied also for mobile. 
 - Voice Activity Detection updated to a recent version of WebRTC with minor changes.
