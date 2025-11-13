@@ -574,8 +574,8 @@ int ogl_display_make_current(struct opengles_display *gldisp, bool_t set) {
 				gldisp->functions->glFinish();
 			}
 			if (currentContext == EGL_NO_CONTEXT || currentContext != gldisp->mEglContext) {
-				ms_message("[ogl_display]:%p %s current %p/%p/%p to thread %lx", gldisp, (set ? "Set" : "Unset"),
-				           gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
+				ms_debug("[ogl_display]:%p %s current %p/%p/%p to thread %lx", gldisp, (set ? "Set" : "Unset"),
+				         gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
 				status = gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface,
 				                                           gldisp->mRenderSurface, gldisp->mEglContext)
 				             ? 0
@@ -583,8 +583,8 @@ int ogl_display_make_current(struct opengles_display *gldisp, bool_t set) {
 			} else status = 1;
 		} else {
 			if (currentContext != EGL_NO_CONTEXT) gldisp->functions->glFinish();
-			ms_message("[ogl_display]:%p %s current %p/%p/%p to thread %lx", gldisp, (set ? "Set" : "Unset"),
-			           gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
+			ms_debug("[ogl_display]:%p %s current %p/%p/%p to thread %lx", gldisp, (set ? "Set" : "Unset"),
+			         gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mEglContext, ms_thread_self());
 			status =
 			    gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 			        ? 0
@@ -977,7 +977,7 @@ void ogl_display_free_and_nullify(struct opengles_display **gldisp) {
 }
 
 void ogl_display_set_default_functions(struct opengles_display *gldisp, const OpenGlFunctions *default_functions) {
-	if(gldisp->default_functions) opengl_functions_free(gldisp->default_functions);
+	if (gldisp->default_functions) opengl_functions_free(gldisp->default_functions);
 	gldisp->default_functions = opengl_functions_new(default_functions);
 }
 
