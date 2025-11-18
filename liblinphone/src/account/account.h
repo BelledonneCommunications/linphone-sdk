@@ -95,6 +95,7 @@ public:
 	void setDependency(std::shared_ptr<Account> dependency);
 	void setDependee(std::shared_ptr<Account> dependency);
 	void setLimeUserAccountStatus(LimeUserAccountStatus status);
+	void setRemoveAuthInfoOnRegistrationCleared(bool removeAuthOnCleared);
 
 	// Getters
 	int getAuthFailure() const;
@@ -222,6 +223,7 @@ private:
 	bool mSendPublish = false;
 	bool mIsUnregistering = false;
 	bool hasProxyConfigRef = false;
+	bool mRemoveAuthInfoOnRegistrationCleared = false;
 
 	belle_sip_source_t *mDeletionTimer = nullptr;
 

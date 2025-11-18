@@ -412,6 +412,10 @@ void Account::handleDeletion() {
 		case LinphoneRegistrationCleared:
 			cancelDeletion();
 			getCore()->removeDeletedAccount(getSharedFromThis());
+			if (mRemoveAuthInfoOnRegistrationCleared) {
+				if (const auto *authInfo = findAuthInfo(); authInfo != nullptr)
+					linphone_core_remove_auth_info(getCCore(), authInfo);
+			}
 			break;
 		case LinphoneRegistrationNone:
 		default:
@@ -518,6 +522,10 @@ void Account::setLimeUserAccountStatus(LimeUserAccountStatus status) {
 		// Trigger the update again so that it can continue.
 		triggerUpdate();
 	}
+}
+
+void Account::setRemoveAuthInfoOnRegistrationCleared(bool removeAuthOnCleared) {
+	mRemoveAuthInfoOnRegistrationCleared = removeAuthOnCleared;
 }
 
 // -----------------------------------------------------------------------------

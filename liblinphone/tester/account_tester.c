@@ -617,14 +617,21 @@ static void check_chatrooms_and_call_log_status_after_account_remove_account(boo
 	/* Check chatrooms and calllog persistence */
 	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_chat_rooms(marie->lc)) == 1);
 	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_auth_info_list(marie->lc)) == 1);
 	if (remove_data) {
 		linphone_core_remove_account_with_data(marie->lc, marie_account);
 		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_chat_rooms(marie->lc)) == 0);
 		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 0);
+		// Auth info should not be deleted yet, need to wait account registration cleared
+		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_auth_info_list(marie->lc)) == 1);
+		BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneRegistrationCleared, 1));
+		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_auth_info_list(marie->lc)) == 0);
 	} else {
 		linphone_core_remove_account(marie->lc, marie_account);
 		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_chat_rooms(marie->lc)) == 1);
 		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+		BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneRegistrationCleared, 1));
+		BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_auth_info_list(marie->lc)) == 1);
 	}
 
 	bctbx_list_free(lcs);

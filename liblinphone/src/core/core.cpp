@@ -3225,9 +3225,8 @@ void Core::removeAccountWithData(const std::shared_ptr<Account> &account) {
 	lInfo() << "removeAccountWithData: " << (nbCallLogs - bctbx_list_size(getCCore()->call_logs))
 	        << " call logs removed";
 
-	// Delete AuthInfo if any
-	if (const auto *authInfo = account->findAuthInfo(); authInfo != nullptr)
-		linphone_core_remove_auth_info(getCCore(), authInfo);
+	// Flag account to ask for auth info deletion after registration is cleared
+	account->setRemoveAuthInfoOnRegistrationCleared(true);
 
 	// Finally, remove the account
 	removeAccount(account);
