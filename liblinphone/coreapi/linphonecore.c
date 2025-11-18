@@ -1748,7 +1748,23 @@ static void sound_config_read(LinphoneCore *lc) {
 	linphone_core_set_disable_record_on_mute(
 	    lc, linphone_config_get_bool(lc->config, "sound", "disable_record_on_mute", FALSE));
 	linphone_core_set_remote_ringback_tone(lc, linphone_config_get_string(lc->config, "sound", "ringback_tone", NULL));
-	linphone_core_enable_noise_suppression(lc, !!linphone_config_get_int(lc->config, "sound", "noise_suppression", 0));
+
+	/* The software noise suppression is not enabled on Android nor iOS devices, as they have efficient hardware noise
+	 * suppressor. On other systems, the noise suppression can be enabled only if the MSNoiseSuppressor filter is
+	 * available, that is the case if the RNNoise library has been built. */
+	int noise_suppression_enable_default = 1;
+#if defined(__ANDROID__) || TARGET_OS_IPHONE
+	noise_suppression_enable_default = 0;
+#endif
+	if (noise_suppression_enable_default == 1) {
+		MSFactory *factory = linphone_core_get_ms_factory(lc);
+		MSFilterDesc *desc = ms_factory_lookup_filter_by_name(factory, "MSNoiseSuppressor");
+		if (!desc) {
+			noise_suppression_enable_default = 0;
+		}
+	}
+	linphone_core_enable_noise_suppression(
+	    lc, !!linphone_config_get_int(lc->config, "sound", "noise_suppression", noise_suppression_enable_default));
 
 	/*just parse requested stream feature once at start to print out eventual errors*/
 	linphone_core_get_audio_features(lc);
@@ -6126,7 +6142,6 @@ bool_t linphone_core_echo_limiter_enabled(const LinphoneCore *lc) {
 void linphone_core_enable_noise_suppression(LinphoneCore *lc, bool_t val) {
 	lc->sound_conf.noise_suppression = val;
 	if (linphone_core_ready(lc)) linphone_config_set_int(lc->config, "sound", "noise_suppression", val);
-	ms_message("set noise_suppression in config");
 }
 
 bool_t linphone_core_noise_suppression_enabled(const LinphoneCore *lc) {

@@ -3781,15 +3781,20 @@ LINPHONE_PUBLIC void linphone_core_enable_mic(LinphoneCore *core, bool_t enable)
 LINPHONE_PUBLIC bool_t linphone_core_mic_enabled(LinphoneCore *core);
 
 /**
- * Tells whether the noise suppression is enabled.
+ * Indicates whether software noise suppression is enabled.
+ * This does not provide information about hardware noise suppression.
  * @param core #LinphoneCore object @notnil
- * @return TRUE if the noise suppression is enabled, FALSE if disabled.
+ * @return TRUE if the software noise suppression is enabled, FALSE if disabled.
  * @ingroup media_parameters
  **/
 LINPHONE_PUBLIC bool_t linphone_core_noise_suppression_enabled(const LinphoneCore *core);
 
 /**
  * Enables or disables the noise suppression, if a noise suppression filter can be used.
+ * This actually controls software noise suppression only. When 'enable' is set to FALSE, software noise suppression is
+ * disabled, but hardware one, if available, remains activated. When set to TRUE, software noise suppression is
+ * enabled and hardware one, if available, remains activated.
+ * The software noise suppression cannot be enabled on iOS nor Android devices.
  * @param core #LinphoneCore object @notnil
  * @param enable TRUE to enable the noise suppression, FALSE to disable it.
  * @ingroup media_parameters

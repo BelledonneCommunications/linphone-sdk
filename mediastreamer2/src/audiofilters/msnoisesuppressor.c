@@ -18,9 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/defs.h"
 #include "bctoolbox/list.h"
 #include "mediastreamer2/mscommon.h"
-#include <bctoolbox/defs.h>
 #include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
@@ -28,7 +28,7 @@
 #endif
 
 #include "mediastreamer2/msnoisesuppressor.h"
-#include <rnnoise.h>
+#include "rnnoise.h"
 
 #define FRAME_SIZE 480
 
@@ -96,12 +96,10 @@ static void noise_suppressor_process(BCTBX_UNUSED(MSFilter *f)) {
 			x[i] = (float)noisy_audio[i];
 		}
 		rnnoise_process_frame(data->denoise_state, x, x);
-		int16_t clean_audio[FRAME_SIZE] = {0};
-		for (int i = 0; i < FRAME_SIZE; i++) {
-			clean_audio[i] = (int16_t)x[i];
-		}
 		mblk_t *m_clean = allocb((size_t)data->frame_size_bytes, 0);
-		memcpy(m_clean->b_wptr, clean_audio, data->frame_size_bytes);
+		for (int i = 0; i < FRAME_SIZE; i++) {
+			((int16_t *)m_clean->b_wptr)[i] = (int16_t)x[i];
+		}
 		m_clean->b_wptr += data->frame_size_bytes;
 		ms_queue_put(f->outputs[0], m_clean);
 	}

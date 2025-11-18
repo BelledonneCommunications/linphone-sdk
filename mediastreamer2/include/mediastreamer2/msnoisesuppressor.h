@@ -21,7 +21,7 @@
 #ifndef _MS_NOISE_SUPPRESSOR_H_
 #define _MS_NOISE_SUPPRESSOR_H_
 
-#include <mediastreamer2/msfilter.h>
+#include "mediastreamer2/msfilter.h"
 
 #define MS_NOISE_SUPPRESSOR_SET_BYPASS_MODE MS_FILTER_METHOD(MS_NOISE_SUPPRESSOR_ID, 0, bool_t)
 
