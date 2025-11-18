@@ -301,7 +301,7 @@ static MSSndCard *ca_card_new(const char *name, const char *uidname, AudioDevice
 	else card->name = ms_strdup_printf("%s (%s)", name, uidname); /*include uid so that names are uniques*/
 	card->capabilities = cap;
 	if (is_read) {
-		card->latency = 70; /* Sound card latency seems always not least than 70ms on mac*/
+		card->latency = 40; /* Sound card latency seems always not least than 40ms on mac*/
 	}
 	d->rate = 44100;
 
