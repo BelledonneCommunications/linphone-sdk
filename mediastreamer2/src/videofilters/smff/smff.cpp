@@ -575,7 +575,7 @@ bool FileReader::readRoot() {
 bool FileReader::readTrack() {
 	SMFFTrackDescriptor trackDescriptor{};
 	if (!read(&trackDescriptor, sizeof(trackDescriptor), "track descriptor")) {
-		return false;
+		return mUncompressDone ? true : false; // ignore if read fails because there was nothing to read.
 	}
 	trackDescriptor.codecName[sizeof(trackDescriptor.codecName) - 1] = '\0';
 	auto trackReader = new TrackReader(*this, trackDescriptor.trackID, trackDescriptor.codecName,
