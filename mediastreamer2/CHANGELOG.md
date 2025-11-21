@@ -4,18 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [5.5.0] - 2025-12-01
 
 ### Added
-- Noise suppression with RNNoise, for 48000 Hz and mono audio streams
+- Noise suppressor filter based on [RNNoise](https://github.com/xiph/rnnoise) for 48000 Hz and mono audio streams
 
 ### Changed
-- Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC and applied also for mobile. 
+- Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC and applied also for mobiles.
+  AEC3 brings a major improvement by being able to cancel echo in a much wider time window compared for previous version.
 - Voice Activity Detection updated to a recent version of WebRTC with minor changes.
+
+### Fixed
+- video conference SFU mode (also fixed in release/5.4)
+- memory and GPU resources leaks in OpenGL video rendering (also fixed in release/5.4)
+- take into account of SRTP overhead in opus codec bitrate control (also fixed in release/5.4)
+- AV1 encoder internal error (also fixed in release/5.4)
 
 ### Removed
 - AECM for mobile echo cancellation is removed and replaced by the new AEC.
 - Removed ISAC and iLBC audio codecs.
+- Old windows pre-Vista specific filters: DirectShow, DrawDib, Vfw, thare no longer used for many years.
+
 
 ## [5.4.0] - 2025-03-11
 

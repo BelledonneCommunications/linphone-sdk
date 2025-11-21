@@ -11,13 +11,27 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
-## Unreleased
+## [5.5.0] 2025-12-01
 
 ### Added
-- Noise suppression with RNNoise, for 48000 Hz and mono audio streams.
+- [RNNoise](https://github.com/xiph/rnnoise) dependency for noise suppression feature.
+- GCC 15 support
+- New Swift wrapper test suite.
+
+### Changes
+- MAJOR CHANGE: most git submodules have been removed and incororated within the linphone-sdk git project.
+  Only external dependencies remain as git submodule within the linphone-sdk project.
+  The switch to release/5.5 branch requires manual removal of former submodules, because git is not able
+  to this task automatically. For that reason, doing a fresh git clone of the linphone-sdk is the recommended solution.
+- Upgrade of WebRTC source code (used for Acoustic Echo Cancellation and Voice Activity Dection)
 
 ### Removed
-- Dependency to WebRTC's repository.
+- Dependency to WebRTC's repository, replaced by a copy of need source code files for AEC3.
+- WebRTC AECM for (Acoustic Echo Canceller for Mobile) is removed, superseed by AEC3
+- ISAC and iLBC audio codecs.
+
+### Fixed
+- Decoding errors with msopenh264 plugin.
 
 
 ## [5.4.0] 2025-03-11

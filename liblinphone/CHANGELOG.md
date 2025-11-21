@@ -8,20 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
-## Unreleased
+## [5.5.0] 2025-12-01
 
 ### Added
-
-- Added LinphoneEphemeralChatMessagePolicy to support several policies for how to handle the expiration of ephemeral
+- Feature to edit/retract a chat message for both sender and receiver.
+- Noise suppressor capability (see linphone_core_enable_noise_suppression(). It is enabled by default on desktop platforms,
+  where efficiently complements the acoustic echo canceller.
+- New LinphoneEphemeralChatMessagePolicy to support several policies for how to handle the expiration of ephemeral
   chat messages.
+- Feature to suppress an Account and all its associated data: call logs, chatrooms, conferences
+  see linphone_core_remove_account_with_data() for details.
+- New methods for leaving a chatroom:
+  * linphone_chat_room_nominate_admin_and_leave() to nominate a new admin and leave (useful when an admin wants to leave)
+  * linphone_chat_room_close() to request the conference server to definitely close the chatroom.
+- Documentation of internal configuration key/values used for remote provisioning (work in progres).
 
 ### Changed
 - Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC.
 - Voice Activity Detection updated to a recent version of WebRTC with minor changes.
+- ServerConference is now able to manage anonymous participants.
+- Improved management of streams in SDP offer/answer, to improve compatibility with WebRTC SDP offers.
+- Refactored LDAP and CardDav integration: the new LinphoneRemoteContactDirectory object unifies both methods.
+  LinphoneLdap object is deprecated.
+- Improved reliability of chat - pending messages are now immediately stored.
+
+### Fixed
+- race conditions leading to crashes when liblinphone is used in a multi-threaded application.
+  Warning: the "one thread for one LinphoneCore at a time" rule remains valid.
+
 
 ### Removed
 - AECM for mobile echo cancellation is removed and replaced by the new AEC.
 - removed ISAC and iLBC audio codecs.
+
 
 ## [5.4.0] 2025-03-11
 
