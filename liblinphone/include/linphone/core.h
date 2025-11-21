@@ -7413,8 +7413,7 @@ LINPHONE_PUBLIC const LinphoneAudioDevice *linphone_core_get_default_output_audi
  * @param mode default ephemeral message mode #LinphoneChatRoomEphemeralMode
  * @ingroup chatroom
  */
-LINPHONE_PUBLIC void linphone_core_chat_room_set_default_ephemeral_mode(LinphoneCore *core,
-                                                                        LinphoneChatRoomEphemeralMode mode);
+LINPHONE_PUBLIC void linphone_core_set_default_ephemeral_mode(LinphoneCore *core, LinphoneChatRoomEphemeralMode mode);
 
 /**
  * Gets the default ephemeral message mode
@@ -7422,8 +7421,7 @@ LINPHONE_PUBLIC void linphone_core_chat_room_set_default_ephemeral_mode(Linphone
  * @return the default ephemeral message mode #LinphoneChatRoomEphemeralMode
  * @ingroup chatroom
  **/
-LINPHONE_PUBLIC LinphoneChatRoomEphemeralMode
-linphone_core_chat_room_get_default_ephemeral_mode(const LinphoneCore *core);
+LINPHONE_PUBLIC LinphoneChatRoomEphemeralMode linphone_core_get_default_ephemeral_mode(const LinphoneCore *core);
 
 /**
  * Set the default ephemeral lifetime in seconds once read
@@ -8069,6 +8067,156 @@ LINPHONE_PUBLIC void linphone_core_set_ephemeral_chat_message_policy(LinphoneCor
 LINPHONE_PUBLIC LinphoneEphemeralChatMessagePolicy
 linphone_core_get_ephemeral_chat_message_policy(const LinphoneCore *core);
 
+/**
+ * Same as linphone_core_get_primary_contact() but the result is a #LinphoneAddress object
+ * instead of a string.
+ * @param core the #LinphoneCore @notnil
+ * @return a #LinphoneAddress object. @maybenil @tobefreed
+ * @ingroup proxies
+ **/
+LINPHONE_PUBLIC LinphoneAddress *linphone_core_get_primary_contact_address(LinphoneCore *core);
+
+/**
+ * Enable text sending via Baudot tones in the audio stream.
+ * @ingroup media_parameters
+ * It is disabled by default.
+ * Enablement requires a SDK built with full Baudot support: -DENABLE_BAUDOT=ON .
+ * @param core #LinphoneCore object @notnil
+ * @param enabled TRUE if enabled, FALSE otherwise.
+ **/
+LINPHONE_PUBLIC void linphone_core_enable_baudot(LinphoneCore *core, bool_t enabled);
+
+/**
+ * Returns enablement of text sending via Baudot tones in the audio stream.
+ * @ingroup media_parameters
+ * @param core #LinphoneCore object @notnil
+ * @return TRUE if text sending via Baudot tones in the audio stream is enabled, FALSE otherwise.
+ **/
+LINPHONE_PUBLIC bool_t linphone_core_baudot_enabled(const LinphoneCore *core);
+
+/**
+ * Returns whether the database is enabled.
+ * @param core the #LinphoneCore @notnil
+ * @return a boolean indicating the enablement of the database.
+ * @ingroup initializing
+ */
+LINPHONE_PUBLIC bool_t linphone_core_database_enabled(const LinphoneCore *core);
+
+/**
+ * Enables or disables database usage. This function can only be called before starting the core up
+ * @param core the #LinphoneCore @notnil
+ * @param value a boolean to indicate whether the database is to be enabled.
+ * @ingroup initializing
+ */
+LINPHONE_PUBLIC void linphone_core_enable_database(LinphoneCore *core, bool_t value);
+
+/**
+ * Returns how many attachments are yet to be downloaded
+ * @param core the #LinphoneCore. @notnil
+ * @return how many attachments are yet to be downloaded.
+ * @ingroup chatroom
+ **/
+LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_download_file_count(LinphoneCore *core);
+
+/**
+ * Returns how many attachments are yet to be uploaded
+ * @param core the #LinphoneCore. @notnil
+ * @return how many attachments are yet to be uploaded.
+ * @ingroup chatroom
+ **/
+LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_upload_file_count(LinphoneCore *core);
+
+/**
+ * Enable sending of chat message on group chats only after receiving the NOTIFY full state
+ * If it is disabled, as it is the default value, message will be sent after the delay set by
+ *`linphone_core_get_message_sending_delay`
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param enabled TRUE if enabled, FALSE otherwise.
+ **/
+LINPHONE_PUBLIC void linphone_core_enable_send_message_after_notify(LinphoneCore *core, bool_t enabled);
+
+/**
+ * Returns enablement of sending chat messages on group chats after receiving the NOTIFY full state
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return TRUE if the core waits for the NOTIFY full statet before sending messages to group chats, FALSE otherwise.
+ **/
+LINPHONE_PUBLIC bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core);
+
+/**
+ * Returns the duration of the timer that delays the sending of chat messages
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return the duration of the timer in seconds
+ **/
+LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *core);
+
+/**
+ * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
+ *in group chats.
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
+ * @warning it is only useful to set this property if `linphone_core_send_message_after_notify_enabled` returns false
+ **/
+LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration);
+
+/**
+ * It sets the duration of the timer to resend a message when the channel is broken (i.e. the core gets an NoResponse or
+ * IOError response)
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param duration the duration of the timer in seconds. A 0 or negative number means that the feature is deactivated.
+ **/
+LINPHONE_PUBLIC void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration);
+
+/**
+ * Returns the duration of the timer that delays the automatic resending of chat messages
+ * @ingroup chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return the duration of the timer in seconds
+ **/
+LINPHONE_PUBLIC int linphone_core_get_message_automatic_resending_delay(const LinphoneCore *core);
+
+/**
+ * Gets a #LinphoneEktInfo from an XML body.
+ * @param core the #LinphoneCore
+ * @param xml_body the string containing the XML body @notnil
+ * @return The #LinphoneEktInfo @maybenil
+ * @ingroup ekt_api
+ */
+LINPHONE_PUBLIC const LinphoneEktInfo *linphone_core_create_ekt_info_from_xml(const LinphoneCore *core,
+                                                                              const char *xml_body);
+
+/**
+ * Gets an XML body using a specific account
+ * @param core the #LinphoneCore
+ * @param ekt_info the #LinphoneEktInfo @notnil
+ * @param account the #LinphoneAccount associated with the conference @maybenil
+ * @return The XML body @maybenil @tobefreed
+ * @ingroup ekt_api
+ */
+LINPHONE_PUBLIC char *linphone_core_create_xml_from_ekt_info_2(const LinphoneCore *core,
+                                                               const LinphoneEktInfo *ekt_info,
+                                                               const LinphoneAccount *account);
+
+/**
+ * Gets if the EKT plugin is currently loaded in the Linphone core instance.
+ * @param core the #LinphoneCore
+ * @return true if the EKT plugin is loaded
+ * @ingroup ekt_api
+ */
+LINPHONE_PUBLIC bool_t linphone_core_is_ekt_plugin_loaded(const LinphoneCore *core);
+
+/**
+ * sets the state of the EKT plugin in the Linphone core instance.
+ * @param core the #LinphoneCore
+ * @param ekt_plugin_loaded whether the EKT plugin is loaded or not
+ * @ingroup ekt_api
+ */
+LINPHONE_PUBLIC void linphone_core_set_ekt_plugin_loaded(LinphoneCore *core, bool_t ekt_plugin_loaded);
+
 /************ */
 /* DEPRECATED */
 /* ********** */
@@ -8549,15 +8697,6 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_send_dtmf(LinphoneCore *c
 LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneAddress *linphone_core_get_primary_contact_parsed(LinphoneCore *core);
 
 /**
- * Same as linphone_core_get_primary_contact() but the result is a #LinphoneAddress object
- * instead of a string.
- * @param core the #LinphoneCore @notnil
- * @return a #LinphoneAddress object. @maybenil @tobefreed
- * @ingroup proxies
- **/
-LINPHONE_PUBLIC LinphoneAddress *linphone_core_get_primary_contact_address(LinphoneCore *core);
-
-/**
  * Returns the list of available audio codecs.
  * @param core The #LinphoneCore object
  * @return A list of `OrtpPayloadType`. @bctbx_list{OrtpPayloadType}
@@ -8660,24 +8799,6 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_set_text_codecs
  * @donotwrap
  */
 #define linphone_core_generic_confort_noise_enabled(core) linphone_core_generic_comfort_noise_enabled(core)
-
-/**
- * Enable text sending via Baudot tones in the audio stream.
- * @ingroup media_parameters
- * It is disabled by default.
- * Enablement requires a SDK built with full Baudot support: -DENABLE_BAUDOT=ON .
- * @param core #LinphoneCore object @notnil
- * @param enabled TRUE if enabled, FALSE otherwise.
- **/
-LINPHONE_PUBLIC void linphone_core_enable_baudot(LinphoneCore *core, bool_t enabled);
-
-/**
- * Returns enablement of text sending via Baudot tones in the audio stream.
- * @ingroup media_parameters
- * @param core #LinphoneCore object @notnil
- * @return TRUE if text sending via Baudot tones in the audio stream is enabled, FALSE otherwise.
- **/
-LINPHONE_PUBLIC bool_t linphone_core_baudot_enabled(const LinphoneCore *core);
 
 /**
  * Tells whether the specified payload type is enabled.
@@ -9260,22 +9381,6 @@ LINPHONE_DEPRECATED LINPHONE_PUBLIC void linphone_core_set_chat_database_path(Li
 LINPHONE_DEPRECATED LINPHONE_PUBLIC const char *linphone_core_get_chat_database_path(const LinphoneCore *core);
 
 /**
- * Returns whether the database is enabled.
- * @param core the #LinphoneCore @notnil
- * @return a boolean indicating the enablement of the database.
- * @ingroup initializing
- */
-LINPHONE_PUBLIC bool_t linphone_core_database_enabled(const LinphoneCore *core);
-
-/**
- * Enables or disables database usage. This function can only be called before starting the core up
- * @param core the #LinphoneCore @notnil
- * @param value a boolean to indicate whether the database is to be enabled.
- * @ingroup initializing
- */
-LINPHONE_PUBLIC void linphone_core_enable_database(LinphoneCore *core, bool_t value);
-
-/**
  * Create a client-side group chat room. When calling this function the chat room is only created
  * at the client-side and is empty. You need to call linphone_chat_room_add_participants() to
  * create at the server side and add participants to it.
@@ -9493,75 +9598,6 @@ linphone_core_find_one_to_one_chat_room_2(const LinphoneCore *core,
                                           bool_t encrypted);
 
 /**
- * Returns how many attachments are yet to be downloaded
- * @param core the #LinphoneCore. @notnil
- * @return how many attachments are yet to be downloaded.
- * @ingroup chatroom
- **/
-LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_download_file_count(LinphoneCore *core);
-
-/**
- * Returns how many attachments are yet to be uploaded
- * @param core the #LinphoneCore. @notnil
- * @return how many attachments are yet to be uploaded.
- * @ingroup chatroom
- **/
-LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_upload_file_count(LinphoneCore *core);
-
-/**
- * Enable sending of chat message on group chats only after receiving the NOTIFY full state
- * If it is disabled, as it is the default value, message will be sent after the delay set by
- *`linphone_core_get_message_sending_delay`
- * @ingroup chatroom
- * @param core #LinphoneCore object @notnil
- * @param enabled TRUE if enabled, FALSE otherwise.
- **/
-LINPHONE_PUBLIC void linphone_core_enable_send_message_after_notify(LinphoneCore *core, bool_t enabled);
-
-/**
- * Returns enablement of sending chat messages on group chats after receiving the NOTIFY full state
- * @ingroup chatroom
- * @param core #LinphoneCore object @notnil
- * @return TRUE if the core waits for the NOTIFY full statet before sending messages to group chats, FALSE otherwise.
- **/
-LINPHONE_PUBLIC bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core);
-
-/**
- * Returns the duration of the timer that delays the sending of chat messages
- * @ingroup chatroom
- * @param core #LinphoneCore object @notnil
- * @return the duration of the timer in seconds
- **/
-LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *core);
-
-/**
- * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
- *in group chats.
- * @ingroup chatroom
- * @param core #LinphoneCore object @notnil
- * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
- * @warning it is only useful to set this property if `linphone_core_send_message_after_notify_enabled` returns false
- **/
-LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration);
-
-/**
- * It sets the duration of the timer to resend a message when the channel is broken (i.e. the core gets an NoResponse or
- * IOError response)
- * @ingroup chatroom
- * @param core #LinphoneCore object @notnil
- * @param duration the duration of the timer in seconds. A 0 or negative number means that the feature is deactivated.
- **/
-LINPHONE_PUBLIC void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration);
-
-/**
- * Returns the duration of the timer that delays the automatic resending of chat messages
- * @ingroup chatroom
- * @param core #LinphoneCore object @notnil
- * @return the duration of the timer in seconds
- **/
-LINPHONE_PUBLIC int linphone_core_get_message_automatic_resending_delay(const LinphoneCore *core);
-
-/**
  * @deprecated 03/02/2017 Use linphone_core_interpret_url() instead
  * @donotwrap
  */
@@ -9651,16 +9687,6 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_set_call_logs_database_pa
 LINPHONE_PUBLIC LINPHONE_DEPRECATED const char *linphone_core_get_call_logs_database_path(LinphoneCore *core);
 
 /**
- * Gets a #LinphoneEktInfo from an XML body.
- * @param core the #LinphoneCore
- * @param xml_body the string containing the XML body @notnil
- * @return The #LinphoneEktInfo @maybenil
- * @ingroup ekt_api
- */
-LINPHONE_PUBLIC const LinphoneEktInfo *linphone_core_create_ekt_info_from_xml(const LinphoneCore *core,
-                                                                              const char *xml_body);
-
-/**
  * Gets an XML body
  * @param core the #LinphoneCore
  * @param ekt_info the #LinphoneEktInfo @notnil
@@ -9672,32 +9698,24 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED char *linphone_core_create_xml_from_ekt_info
                                                                                  const LinphoneEktInfo *ekt_info);
 
 /**
- * Gets an XML body using a specific account
- * @param core the #LinphoneCore
- * @param ekt_info the #LinphoneEktInfo @notnil
- * @param account the #LinphoneAccount associated with the conference @maybenil
- * @return The XML body @maybenil @tobefreed
- * @ingroup ekt_api
+ * Sets the default ephemeral message mode
+ * @param core the #LinphoneCore. @notnil
+ * @param mode default ephemeral message mode #LinphoneChatRoomEphemeralMode
+ * @ingroup chatroom
+ * @deprecated 21/11/2025 use linphone_core_set_default_ephemeral_mode().
  */
-LINPHONE_PUBLIC char *linphone_core_create_xml_from_ekt_info_2(const LinphoneCore *core,
-                                                               const LinphoneEktInfo *ekt_info,
-                                                               const LinphoneAccount *account);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void
+linphone_core_chat_room_set_default_ephemeral_mode(LinphoneCore *core, LinphoneChatRoomEphemeralMode mode);
 
 /**
- * Gets if the EKT plugin is currently loaded in the Linphone core instance.
- * @param core the #LinphoneCore
- * @return true if the EKT plugin is loaded
- * @ingroup ekt_api
- */
-LINPHONE_PUBLIC bool_t linphone_core_is_ekt_plugin_loaded(const LinphoneCore *core);
-
-/**
- * sets the state of the EKT plugin in the Linphone core instance.
- * @param core the #LinphoneCore
- * @param ekt_plugin_loaded whether the EKT plugin is loaded or not
- * @ingroup ekt_api
- */
-LINPHONE_PUBLIC void linphone_core_set_ekt_plugin_loaded(LinphoneCore *core, bool_t ekt_plugin_loaded);
+ * Gets the default ephemeral message mode
+ * @param core the #LinphoneCore. @notnil
+ * @return the default ephemeral message mode #LinphoneChatRoomEphemeralMode
+ * @ingroup chatroom
+ * @deprecated 21/11/2025 use linphone_core_get_default_ephemeral_mode().
+ **/
+LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneChatRoomEphemeralMode
+linphone_core_chat_room_get_default_ephemeral_mode(const LinphoneCore *core);
 
 #ifdef __cplusplus
 }

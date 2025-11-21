@@ -807,7 +807,7 @@ linphone_chat_room_notify_participant_device_registration(LinphoneChatRoom *chat
 /**
  * Returns current parameters associated with the chat room.
  * This is typically the parameters passed during the #LinphoneChatRoom creation process to
- *linphone_core_chat_room_create_chat_room() or some default parameters if no #LinphoneChatRoomParams was explicitely
+ *linphone_core_create_chat_room_7() or some default parameters if no #LinphoneChatRoomParams was explicitely
  *passed during #LinphoneChatRoom creation.
  * @param chat_room the #LinphoneChatRoom object @notnil
  * @return the current #LinphoneChatRoomParams parameters. @notnil
@@ -818,7 +818,7 @@ LINPHONE_PUBLIC const LinphoneChatRoomParams *linphone_chat_room_get_current_par
 /**
  * Returns current parameters associated with the chat room.
  * This is typically the parameters passed during the #LinphoneChatRoom creation process to
- *linphone_core_chat_room_create_chat_room() or some default parameters if no #LinphoneChatRoomParams was explicitely
+ *linphone_core_create_chat_room_7() or some default parameters if no #LinphoneChatRoomParams was explicitely
  *passed during #LinphoneChatRoom creation.
  * @param chat_room the #LinphoneChatRoom object @notnil
  * @return the current #LinphoneChatRoomParams parameters. @notnil

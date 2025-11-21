@@ -8863,11 +8863,19 @@ void linphone_core_enable_sdp_200_ack(LinphoneCore *lc, bool_t enable) {
 }
 
 LinphoneChatRoomEphemeralMode linphone_core_chat_room_get_default_ephemeral_mode(const LinphoneCore *lc) {
+	return linphone_core_get_default_ephemeral_mode(lc);
+}
+
+LinphoneChatRoomEphemeralMode linphone_core_get_default_ephemeral_mode(const LinphoneCore *lc) {
 	return (LinphoneChatRoomEphemeralMode)linphone_config_get_int(lc->config, "misc", "chat_room_ephemeral_mode",
 	                                                              LinphoneChatRoomEphemeralModeDeviceManaged);
 }
 
 void linphone_core_chat_room_set_default_ephemeral_mode(LinphoneCore *lc, LinphoneChatRoomEphemeralMode mode) {
+	linphone_core_set_default_ephemeral_mode(lc, mode);
+}
+
+void linphone_core_set_default_ephemeral_mode(LinphoneCore *lc, LinphoneChatRoomEphemeralMode mode) {
 	linphone_config_set_int(lc->config, "misc", "chat_room_ephemeral_mode", (int)mode);
 }
 

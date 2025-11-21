@@ -36,8 +36,7 @@ ChatParams::ChatParams(const std::shared_ptr<Core> &core) {
 void ChatParams::setChatDefaults(const std::shared_ptr<Core> &core) {
 	auto cCore = core ? core->getCCore() : nullptr;
 	if (cCore) {
-		setEphemeralMode(
-		    static_cast<AbstractChatRoom::EphemeralMode>(linphone_core_chat_room_get_default_ephemeral_mode(cCore)));
+		setEphemeralMode(static_cast<AbstractChatRoom::EphemeralMode>(linphone_core_get_default_ephemeral_mode(cCore)));
 		setEphemeralLifetime(linphone_core_get_default_ephemeral_lifetime(cCore));
 		setEphemeralNotReadLifetime(linphone_core_get_default_ephemeral_not_read_lifetime(cCore));
 	}

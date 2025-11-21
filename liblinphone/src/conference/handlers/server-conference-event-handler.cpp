@@ -1035,8 +1035,8 @@ string ServerConferenceEventHandler::createNotifyEphemeralLifetime(const long &l
 	// Enquire whether this conference belongs to a server group chat room
 	std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
 	shared_ptr<Core> core = conf->getCore();
-	auto chatRoomMode = static_cast<AbstractChatRoom::EphemeralMode>(
-	    linphone_core_chat_room_get_default_ephemeral_mode(core->getCCore()));
+	auto chatRoomMode =
+	    static_cast<AbstractChatRoom::EphemeralMode>(linphone_core_get_default_ephemeral_mode(core->getCCore()));
 	if (chatRoom) {
 		chatRoomMode = chatRoom->getCurrentParams()->getChatParams()->getEphemeralMode();
 	}
