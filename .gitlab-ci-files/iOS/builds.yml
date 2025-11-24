@@ -139,9 +139,9 @@ ios-ninja-smallsdk:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF
-  extends: ios-ninja
+  extends:
+    - ios-ninja
+    - .smallsdk-cmake-options
 
 
 ios-ninja-pqc:

@@ -79,9 +79,9 @@ debian10-ninja-gcc-novideo:
   extends: debian10-ninja-gcc
 
 debian10-ninja-gcc-smallsdk:
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF
-  extends: debian10-ninja-gcc
+  extends:
+    - debian10-ninja-gcc
+    - .smallsdk-cmake-options
 
 debian10-ninja-gcc-pqc:
   variables:
