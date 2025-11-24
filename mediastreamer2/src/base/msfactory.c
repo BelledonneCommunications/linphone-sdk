@@ -867,12 +867,14 @@ static MSFmtDescriptor *ms_fmt_descriptor_new_copy(const MSFmtDescriptor *orig) 
 	if (orig->encoding) obj->encoding = ms_strdup(orig->encoding);
 	obj->vsize = orig->vsize;
 	obj->fps = orig->fps;
+	ms_mutex_init(&obj->mutex, NULL);
 	return obj;
 }
 
 const char *ms_fmt_descriptor_to_string(const MSFmtDescriptor *obj) {
-	MSFmtDescriptor *mutable_fmt = (MSFmtDescriptor *)obj;
 	if (!obj) return "null";
+	MSFmtDescriptor *mutable_fmt = (MSFmtDescriptor *)obj;
+	ms_mutex_lock(&mutable_fmt->mutex);
 	if (obj->text == NULL) {
 		if (obj->type == MSAudio) {
 			mutable_fmt->text = ms_strdup_printf("type=audio;encoding=%s;rate=%i;channels=%i;fmtp='%s'", obj->encoding,
@@ -883,6 +885,7 @@ const char *ms_fmt_descriptor_to_string(const MSFmtDescriptor *obj) {
 			                     obj->vsize.height, obj->fps, obj->fmtp ? obj->fmtp : "");
 		}
 	}
+	ms_mutex_unlock(&mutable_fmt->mutex);
 	return obj->text;
 }
 
@@ -895,6 +898,7 @@ static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj) {
 	if (obj->encoding) ms_free(obj->encoding);
 	if (obj->fmtp) ms_free(obj->fmtp);
 	if (obj->text) ms_free(obj->text);
+	ms_mutex_destroy(&obj->mutex);
 	ms_free(obj);
 }
 

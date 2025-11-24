@@ -896,9 +896,9 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 	if (is_player) {
 		ms_filter_call_method(stream->source, MS_FILTER_GET_OUTPUT_FMT, &pf);
 		if (pf.fmt == NULL || pf.fmt->vsize.width == 0) {
-			MSVideoSize vsize = {640, 480};
 			ms_error("Player does not give its format correctly [%s]", ms_fmt_descriptor_to_string(pf.fmt));
 			/*put a default format as the error handling is complicated here*/
+			MSVideoSize vsize = {640, 480};
 			pf.fmt = ms_factory_get_video_format(stream->ms.factory, "VP8", vsize, 0, NULL);
 		}
 		cam_vsize = pf.fmt->vsize;

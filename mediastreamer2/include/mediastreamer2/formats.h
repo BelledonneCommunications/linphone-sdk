@@ -55,6 +55,7 @@ struct _MSFmtDescriptor {
 	MSVideoSize vsize; /**<video size*/
 	float fps;         /**<average framerate*/
 	char *text;        /**<do not use directly, use ms_fmt_descriptor_to_string() instead*/
+	ms_mutex_t mutex;  /**< mutex to avoid concurrent access to resources*/
 };
 
 typedef struct _MSFmtDescriptor MSFmtDescriptor;
