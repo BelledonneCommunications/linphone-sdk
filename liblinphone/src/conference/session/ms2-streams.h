@@ -397,6 +397,8 @@ public:
 
 	void setVideoSource(const std::shared_ptr<const VideoSourceDescriptor> &descriptor);
 	std::shared_ptr<const VideoSourceDescriptor> getVideoSource() const;
+	void setSentSize(MSVideoSize preferredSize, bool updateGraph);
+
 	virtual ~MS2VideoStream();
 
 protected:
