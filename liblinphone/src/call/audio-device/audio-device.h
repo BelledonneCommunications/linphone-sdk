@@ -59,8 +59,8 @@ public:
 	const std::string &getId() const;
 	const std::string &getDeviceName() const;
 	const std::string &getDriverName() const;
-	const Capabilities &getCapabilities() const;
-	const Type &getType() const;
+	Capabilities getCapabilities() const;
+	Type getType() const;
 	bool getUseForRinging() const;
 	bool followsSystemRoutingPolicy() const;
 
