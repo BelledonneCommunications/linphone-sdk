@@ -92,9 +92,9 @@ ubuntu2004-ninja-gcc-pqc:
   extends: ubuntu2004-ninja-gcc
 
 ubuntu2004-ninja-gcc-smallsdk:
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF -DENABLE_QRCODE=OFF
-  extends: ubuntu2004-ninja-gcc
+  extends:
+    - ubuntu2004-ninja-gcc
+    - .smallsdk-cmake-options
 
 ubuntu2004-ninja-gcc-tunnel-pq:
   rules:

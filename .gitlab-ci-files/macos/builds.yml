@@ -128,6 +128,14 @@ macos-ninja-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=ON
   extends: macos-ninja
 
+macos-m1-multiarch-ninja-smallsdk:
+  extends:
+    - .macos-m1-multiarch-desktop
+    - .smallsdk-cmake-options
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
 #################################################
 # XCode
 #################################################

@@ -245,6 +245,21 @@ vs2022-ninja-win64-windows-pqc :
     - .windows-vs2022-ninja
     - .vs-ninja-win64-windows-pqc
 
+vs2022-ninja-win64-windows-smallsdk :
+  extends:
+    - .windows-vs2022-ninja
+    - .vs-ninja-win64-windows
+    - .smallsdk-cmake-options
+  variables:
+    OUTPUT_ZIP_FOLDER: win64-smallsdk
+    PARALLEL_OPTIONS: --verbose
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA != null
+
 vs2019-ninja-win64-windows:
   extends:
     - .windows-vs2019-ninja
@@ -352,7 +367,6 @@ vs2022-windows-java:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $ENABLE_WINDOWS_TESTS != null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_MAVEN_JAVA != null
-
 
 ######################################################
 # NIGHTLY

@@ -28,9 +28,9 @@
 #include "chat/notification/is-composing.h"
 #include "logger/logger.h"
 
-#ifdef HAVE_ADVANCED_IM
+#if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 #include "xml/is-composing.h"
-#endif
+#endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 
 // =============================================================================
 
@@ -63,8 +63,8 @@ IsComposing::~IsComposing() {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // _MSC_VER
-string IsComposing::createXml(bool isComposing, const std::string& contentType) {
-#ifdef HAVE_ADVANCED_IM
+string IsComposing::createXml(bool isComposing, const std::string &contentType) {
+#if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	Xsd::IsComposing::IsComposing node(isComposing ? "active" : "idle");
 	if (isComposing)
 		node.setRefresh(static_cast<unsigned long long>(
@@ -73,7 +73,7 @@ string IsComposing::createXml(bool isComposing, const std::string& contentType) 
 	if (!contentType.empty()) {
 		node.setContenttype(contentType);
 	}
-	
+
 	stringstream ss;
 	Xsd::XmlSchema::NamespaceInfomap map;
 	map[""].name = "urn:ietf:params:xml:ns:im-iscomposing";
@@ -82,7 +82,7 @@ string IsComposing::createXml(bool isComposing, const std::string& contentType) 
 #else
 	lWarning() << "Advanced IM such as group chat is disabled!";
 	return "";
-#endif
+#endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 }
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
@@ -93,7 +93,7 @@ string IsComposing::createXml(bool isComposing, const std::string& contentType) 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // _MSC_VER
 void IsComposing::parse(const std::shared_ptr<Address> &remoteAddr, const string &text) {
-#ifdef HAVE_ADVANCED_IM
+#if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	istringstream data(text);
 	unique_ptr<Xsd::IsComposing::IsComposing> node(
 	    Xsd::IsComposing::parseIsComposing(data, Xsd::XmlSchema::Flags::dont_validate));
@@ -114,7 +114,7 @@ void IsComposing::parse(const std::shared_ptr<Address> &remoteAddr, const string
 	}
 #else
 	lWarning() << "Advanced IM such as group chat is disabled!";
-#endif
+#endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 }
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
@@ -204,7 +204,9 @@ int IsComposing::remoteRefreshTimerExpired(const string &uri, const string &cont
 	return BELLE_SIP_STOP;
 }
 
-void IsComposing::startRemoteRefreshTimer(const string &uri, const std::string &contentType, unsigned long long refresh) {
+void IsComposing::startRemoteRefreshTimer(const string &uri,
+                                          const std::string &contentType,
+                                          unsigned long long refresh) {
 	unsigned int duration = getRemoteRefreshTimerDuration();
 	if (refresh != 0) duration = static_cast<unsigned int>(refresh);
 	auto it = remoteRefreshTimers.find(uri);

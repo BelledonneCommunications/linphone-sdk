@@ -41,6 +41,7 @@ enum class EktXmlContent {
 	CipherTransport // all fields
 };
 
+#if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 static void ekt_xml_composing_parsing_test(EktXmlContent exc) {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneAccount *marieAccount = linphone_core_get_default_account(marie->lc);
@@ -113,6 +114,7 @@ static void spi_info_ekt_xml_composing_parsing_test() {
 static void cipher_transport_ekt_xml_composing_parsing_test() {
 	ekt_xml_composing_parsing_test(EktXmlContent::CipherTransport);
 }
+#endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 
 static void create_simple_end_to_end_encrypted_conference() {
 	create_conference_base(ms_time(nullptr), -1, FALSE, LinphoneConferenceParticipantListTypeOpen, FALSE,
@@ -586,10 +588,12 @@ static void create_simple_end_to_end_encrypted_conference_with_participant_added
 			wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe}, conferenceMgrs,
 			                            focus.getCMgr(), memberList, confAddr, TRUE, security_level);
 
+#ifdef HAVE_ADVANCED_IM
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe})
 			                   .waitUntil(chrono::seconds(50), [&members, &confAddr, &security_level] {
 				                   return does_all_participants_have_matching_ekt(members, confAddr, security_level);
 			                   }));
+#endif // HAVE_ADVANCED_IM
 
 			int new_nb_admins = 0;
 			if (focus_conference) {
@@ -671,10 +675,12 @@ static void create_simple_end_to_end_encrypted_conference_with_participant_added
 			wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe}, conferenceMgrs,
 			                            focus.getCMgr(), memberList, confAddr, TRUE, security_level);
 
+#ifdef HAVE_ADVANCED_IM
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe})
 			                   .waitUntil(chrono::seconds(50), [&members, &confAddr, &security_level] {
 				                   return does_all_participants_have_matching_ekt(members, confAddr, security_level);
 			                   }));
+#endif // HAVE_ADVANCED_IM
 
 			if (focus_conference) {
 				new_nb_admins = 0;
@@ -1084,9 +1090,11 @@ static void encrypted_conference_joined_multiple_times_with_chat_keeping_client_
 } // namespace LinphoneTest
 
 static test_t local_conference_end_to_end_encryption_scheduled_conference_tests[] = {
+#if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
     TEST_ONE_TAG("First notify", LinphoneTest::first_notify_ekt_xml_composing_parsing_test, "End2EndConf"),
     TEST_ONE_TAG("SPI info", LinphoneTest::spi_info_ekt_xml_composing_parsing_test, "End2EndConf"),
     TEST_ONE_TAG("Cipher transport", LinphoneTest::cipher_transport_ekt_xml_composing_parsing_test, "End2EndConf"),
+#endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
     TEST_ONE_TAG("End-to-End Conference joined multiple times",
                  LinphoneTest::encrypted_conference_joined_multiple_times,
                  "End2EndConf"),
