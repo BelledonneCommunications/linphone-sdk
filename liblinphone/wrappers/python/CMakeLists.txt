@@ -82,6 +82,12 @@ if (ENABLE_DOC)
 		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<ul${SED_ESCAPE_CHARACTER}\>//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
 		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<\\/ul${SED_ESCAPE_CHARACTER}\>//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
 		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/Table ${SED_BACKSLASH}ref \[A-Za-z\\_\]\+ \\\"\[A-Za-z\[:space:\]\\_\]\+\\\"/The table below/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<i${SED_ESCAPE_CHARACTER}\>\(\.+\)${SED_ESCAPE_CHARACTER}\<\\/i${SED_ESCAPE_CHARACTER}\>/\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#/\_/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::\(\[\[:alnum:\]\]+\)::\\_\(\[\[:alnum:\]\\_\]+\)\(\\\(\\\)\)/\`\\1\.\\2\\3\`/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/set_//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/get_//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
 		DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md.raw
 		liblinphone-doc
 	)

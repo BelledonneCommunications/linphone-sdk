@@ -61,6 +61,9 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuratio
 	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*\\\*\[\[:space:\]\]*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*${SED_BACKSLASH}defgroup\[\[:space:\]\]+\[A-Za-z\\_\]+\[\[:space:\]\]+\(\[A-Za-z\[:space:\]\]+\)/${SED_ESCAPE_CHARACTER}\<h1${SED_ESCAPE_CHARACTER}\>\\1${SED_ESCAPE_CHARACTER}\<\\/h1${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/Table ${SED_BACKSLASH}ref \[A-Za-z\\_\]\+ \"\[A-Za-z\[:space:\]\\_\]\+\"/The table below/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::\(\[\[:alnum:\]\]+\)::\(\[\[:alnum:\]\]+\)\(\\\(\\\)\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\#\\2--\"${SED_ESCAPE_CHARACTER}\>\\1\.\\2\\3${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw
 	liblinphone-doc
 )

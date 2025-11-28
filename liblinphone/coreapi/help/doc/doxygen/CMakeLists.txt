@@ -30,7 +30,28 @@ if(ENABLE_DOC OR ENABLE_CXX_WRAPPER OR ENABLE_CSHARP_WRAPPER OR ENABLE_JAVA_WRAP
 		string(REGEX REPLACE "\\.[^.]*$" "" STRIPPED_LINPHONE_VERSION ${LINPHONE_VERSION})
 		# Replace @LINPHONESDK_STATE@ and @STRIPPED_LINPHONE_VERSION@ in site main page
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doxygen.dox.in ${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox)
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/provisioning_configuration_key.dox.in ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/provisioning_configuration_key.dox.in ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw)
+
+		if(WIN32)
+			set(SED_BINARY_MODE "-b")
+		else()
+			set(SED_BINARY_MODE "")
+		endif()
+
+
+		if(APPLE)
+			set(SED_IN_PLACE_EDIT_ARG "-i ''")
+		else()
+			set(SED_IN_PLACE_EDIT_ARG "-i")
+		endif()
+
+		add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox"
+			COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+			COMMAND sed -r ${SED_BINARY_MODE} ' s/:://g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#/\_/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#/\_/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw
+		)
 
 		set(DOXYGEN_INPUT "")
 		foreach (HEADER_FILE ${LINPHONE_HEADER_FILES})
@@ -44,6 +65,7 @@ if(ENABLE_DOC OR ENABLE_CXX_WRAPPER OR ENABLE_CSHARP_WRAPPER OR ENABLE_JAVA_WRAP
 		set(DOC_INPUT_FILES ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 			${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox
 			${LINPHONE_HEADER_FILES}
+			${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
 		)
 		set(XML_DIR "${CMAKE_CURRENT_BINARY_DIR}/xml")
 		set(LINPHONE_DOXYGEN_XML_DIR ${XML_DIR} PARENT_SCOPE)

@@ -56,6 +56,10 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuratio
 	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\(\\/\\\*\\\*\)/namespace linphone \{\\n\\n\\1/' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\(\\\*\\/\)/\\1\\n\}/' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone:://g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\(::\)\(\[\[:alnum:\]\]\)/\\1\\L\\2/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw
 	liblinphone-doc
 )

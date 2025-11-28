@@ -104,6 +104,10 @@ if(ENABLE_DOC OR ENABLE_CSHARP_WRAPPER)
 			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<ul${SED_ESCAPE_CHARACTER}\>//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
 			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<\\/ul${SED_ESCAPE_CHARACTER}\>//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
 			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/Table ${SED_BACKSLASH}ref \[A-Za-z\\_\]\+ \\\"\[A-Za-z\[:space:\]\\_\]\+\\\"/The table below/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::/\@Linphone::/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/::/\./g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md.raw
 			liblinphone-doc
 		)

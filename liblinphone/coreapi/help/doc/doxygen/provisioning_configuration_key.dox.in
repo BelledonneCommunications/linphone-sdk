@@ -3,16 +3,15 @@
 
  * This document lists the supported sections and keys of the ini-style linphonerc configuration file.<br/>
  * This configuration can be served through https in order to remotely configure a linphone-sdk based application, see
- * linphone_core_set_config_uri().
+ * linphone::_##core::_#set_#provisioning_#uri().
  * The <a href="https://gitlab.linphone.org/BC/public/flexisip-account-manager">Flexisip Account Manager</a> has built-in
  * support for remote provisioning Linphone or linphone-sdk based client applications.
  *
  * @warning this page is under construction, not all section and keys are yet referenced.
- *
- *
- * <h2>SIP accounts (section [<i>proxy_N</i>])</h2>
- *
- * The <i>proxy_N</i> sections represents SIP accounts. Their name inherits from the legacy object name LinphoneProxyConfig in liblinphone, that is now superseeded by
+
+ * <h2>SIP accounts - section [<i>proxy_N</i>]</h2>
+
+ * The <i>proxy_N</i> sections represents SIP accounts. Their name inherits from the legacy object name #LinphoneProxyConfig in liblinphone, that is now superseeded by
  * by the #LinphoneAccount and #LinphoneAccountParams object, but the linphonerc section name was left unchanged to preserve configuration file compatibility.
  * <table>
  *<caption id="sip_account_parameters">SIP account parameters</caption>
@@ -20,13 +19,13 @@
  *<tr><td>reg_identity</td><td>string</td><td>SIP address</td><td>""</td><td>The SIP address of the user, as to be sent in the From header of the REGISTER request</td></tr>
  *<tr><td>reg_proxy</td><td>string</td><td>SIP address</td><td>""</td><td>The address of the SIP server</td></tr>
  *<tr><td>reg_route</td><td>string</td><td>SIP address</td><td>""</td><td>An optional SIP address to include as a route</td></tr>
- *<tr><td>reg_sendregister</td><td>boolean</td><td>0 or 1</td><td>3</td><td>Whether to send a REGISTER request</td></tr>
+ *<tr><td>reg_sendregister</td><td>boolean</td><td>0 or 1</td><td>1</td><td>Whether to send a REGISTER request</td></tr>
  *<tr><td>reg_expires</td><td>integer</td><td>any strictly positive integer</td><td>3600</td><td>The expiry of the REGISTER, in seconds</td></tr>
  *<tr><td>realm</td><td>string</td><td>any string</td><td>""</td><td>The authentication realm of the SIP service, used to match with authentication information</td></tr>
  *</table>
- *
- * <h2>Remote contact directories (section [<i>remote_contact_directory_N</i>])</h2>
- *
+
+ * <h2>Remote contact directories - section [<i>remote_contact_directory_N</i>]</h2>
+
  * Their role is not to present a permanent list of contacts to the user, but rather return, per a search request, a list of contacts that match the request.<br/>
  * The search request is transmitted through the protocol (LDAP or CardDav), and executed on the server. The server's response is analysed and search results are represented as a list of #LinphoneFriend objects.<br/>
  * LDAP connection configuration has it is own password key, and it is not relying at all on the #LinphoneAuthInfo objects, unlike all other liblinphone initiated connections.<br/>
@@ -55,7 +54,7 @@
  *</table>
 
 <!--
- * <h2>FriendLists (section [<i>friend_list_N</i>])</h2>
+ * <h2>FriendLists - section [<i>friend_list_N</i>]</h2>
 
  * A FriendList is represented by the #LinphoneFriendList object. It is a list of #LinphoneFriend (contacts) that is stored locally on the device, and may be captured or synchronized with a remote server.
  * There are currently different types of friendlist:
@@ -75,7 +74,7 @@
  *</table>
 -->
 
- * <h2>Authentication (section [<i>auth_info_N</i>])</h2>
+ * <h2>Authentication - section [<i>auth_info_N</i>]</h2>
 
  * The auth_info sections provide authentication information to use for SIP as well as http services (typically remote provisioning, cardDav requests). They need to be supplied in the form of a #LinphoneAuthInfo object, whose configuration storage representation is of [<i>auth_info_N</i>] sections, numbered continuously from 0.<br/>
  * Table \ref authinfo_parameters "authentication information parameters" lists all remote contact directory parameters one may find under section [<i>auth_info_N</i>] of a Linphone RC file.<br/>
@@ -94,6 +93,4 @@
  *<tr><td>client_id</td><td>string</td><td>anything</td><td>""</td><td>OAUTH client ID</td></tr>
  *<tr><td>client_secret</td><td>string</td><td>anything</td><td>""</td><td>OAUTH client secret</td></tr>
  *</table>
- *
-
  */

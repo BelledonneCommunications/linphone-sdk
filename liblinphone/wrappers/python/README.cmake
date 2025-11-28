@@ -24,7 +24,7 @@ Liblinphone is a high-level open source library that integrates all the SIP voic
 
 Liblinphone combines our media processing and streaming toolkit (Mediastreamer2) with our user-agent library for SIP signaling (belle-sip).
 
-Liblinphone is distributed under GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html). Please understand the licencing details before using it!
+Liblinphone is distributed under [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html). Please understand the licencing details before using it!
 For any use of this library beyond the rights granted to you by the GPLv3 license, please [contact Belledonne Communications](https://www.linphone.org/contact).
 
 ## Other supported languages
