@@ -1409,8 +1409,8 @@ bool ChatMessagePrivate::retractExistingMessageUsingId(const string &messageId) 
 	toBeStored = false;
 
 	lInfo() << "Updating retracted message with ID [" << messageId << "] in DB";
-	messageToRetract->markAsRead();
 	messageToRetract->getPrivate()->setRetracted(true);
+	messageToRetract->markAsRead();
 	messageToRetract->getPrivate()->updateInDb();
 
 	LinphoneChatMessage *cRetractedMessage = L_GET_C_BACK_PTR(messageToRetract);
@@ -2459,8 +2459,9 @@ void ChatMessage::markAsRead() {
 	shared_ptr<AbstractChatRoom> chatRoom = getChatRoom();
 
 	d->markAsRead();
-	// Do not set the message state has displayed if it contains a file transfer (to prevent imdn sending)
-	if (!d->hasFileTransferContent()) {
+	// Do not set the message state has displayed if it contains a file transfer or if message has been retracted (to
+	// prevent imdn sending)
+	if (!d->hasFileTransferContent() && !isRetracted()) {
 		const auto &meAddress = getMeAddress();
 		d->setParticipantState(meAddress, ChatMessage::State::Displayed, ::ms_time(nullptr));
 	}
