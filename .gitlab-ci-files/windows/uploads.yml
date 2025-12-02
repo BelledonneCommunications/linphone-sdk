@@ -70,6 +70,8 @@ cs-doc-windows-upload:
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$STRIPPED_LINPHONE_VERSION/cs
     # We are forced to use brakets, otherwize powershell will resolve ':' as part of a drive letter
     - scp -pr build/win/linphone-sdk/win32/share/doc/liblinphone-$LINPHONE_VERSION/cs/* ${DEPLOY_SERVER}:${UPLOAD_ROOT_DIRECTORY}/docs/liblinphone/${STRIPPED_LINPHONE_VERSION}/cs
+    # Workaround for directories into generated documentation, that do not have correct executable permission.
+    - ssh $DEPLOY_SERVER "chmod -R 755 ``find ${UPLOAD_ROOT_DIRECTORY}/docs/liblinphone/${STRIPPED_LINPHONE_VERSION}/cs -type d``"
 
 nuget-upload-windows:
    extends: nuget-upload-xamarin
