@@ -1,0 +1,8 @@
+__pycache__/
+.idea/
+.python-version
+*.egg-info
+dist/
+*.wav
+audio_files/
+.venv/

@@ -1,0 +1,60 @@
+[project]
+name = "tools"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{name="Belledonne Communications"},]
+license = "AGPL-3.0-or-later"
+dependencies = [
+    "dtw-python>=1.7.2",
+    "kaleido==0.2.1", # version to export images from firefox
+    "librosa>=0.11.0",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.5",
+    "pandas>=2.3.3",
+    "plotly>=6.5.0",
+    "scipy>=1.16.3",
+    "typer>=0.20.0",
+]
+
+[project.scripts]
+aec = "tools.aec.main:app"
+noise-suppression = "tools.noise_suppression.main:app"
+
+[dependency-groups]
+dev = [
+    "pandas-stubs>=2.3.2.250926",
+    "ruff>=0.14.6",
+]
+
+[tool.uv]
+package = true
+
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+fix = true
+
+[tool.ruff.lint]
+select = ["ALL"] # enable all rules by default
+ignore = [ # disable some specific rules (reason in comment)
+    "COM", # (flake8-commas) handled by ruff
+    "EM", # (flake8-errmsg) too little gain for the cost
+    "PTH123", # (builtin open() should be replaced by Path.open()) use of path.py and not Pathlib
+    "TRY003", # (avoid specifying long messages outside the exception class) would recommend the opposite
+    "ERA001", # remaining commented code, as it is used for developpement only
+    "T201", # use of print function, as it is used for developpement only
+    "D203", # no blank line before docstring on class definitions
+    "D213", # docstring summary on first line, not second
+]
+fixable = ["ALL"] # Allow autofix for all enabled rules
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore `D104` (missing docstring in public package) in all `__init__.py` files
+"__init__.py" = ["D104"]
+"generate_audio.py" = ["ALL"] # experimental file, never go to prod
+"src/tools/noise_suppression/mfcc_results.py" = ["ALL"] # experimental file, never go to prod
+"src/tools/noise_suppression/results.py" = ["ALL"] # experimental file, never go to prod
