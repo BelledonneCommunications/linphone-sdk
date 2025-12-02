@@ -46,6 +46,7 @@ private:
 
 	AbstractDb::Backend backend;
 	bool initialized = false;
+	bool updateSchemaAtInitialisation = true;
 
 	L_DECLARE_PUBLIC(AbstractDb);
 };

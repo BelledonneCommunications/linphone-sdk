@@ -54,6 +54,7 @@ void AbstractDbPrivate::safeInit() {
 	L_Q();
 	dbSession.enableForeignKeys(false);
 	q->init();
+	if (updateSchemaAtInitialisation) q->updateSchema();
 	dbSession.enableForeignKeys(true);
 	initialized = true;
 #endif
@@ -170,9 +171,18 @@ bool AbstractDb::import(Backend, const string &) {
 	return false;
 }
 
+void AbstractDb::setUpdateSchemaAtInitialisation(bool updateSchemaAtInitialisation) {
+	L_D();
+	d->updateSchemaAtInitialisation = updateSchemaAtInitialisation;
+}
+
 // -----------------------------------------------------------------------------
 
 void AbstractDb::init() {
+	// Nothing.
+}
+
+void AbstractDb::updateSchema() {
 	// Nothing.
 }
 

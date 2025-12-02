@@ -190,6 +190,9 @@ void CorePrivate::init() {
 				uri += " synchronous=OFF";
 			}
 			lInfo() << "Opening linphone database " << uri << " with backend " << backend;
+			bool updateDbAtInitialision = !!linphone_config_get_bool(linphone_core_get_config(lc), "storage",
+			                                                         "update_db_at_initialisation", true);
+			mainDb->setUpdateSchemaAtInitialisation(updateDbAtInitialision);
 			uri = LinphonePrivate::Utils::localeToUtf8(uri); // `mainDb->connect` take a UTF8 string.
 			auto startMs = bctbx_get_cur_time_ms();
 			if (!mainDb->connect(backend, uri)) {

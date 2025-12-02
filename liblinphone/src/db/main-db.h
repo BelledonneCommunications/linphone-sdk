@@ -321,6 +321,13 @@ public:
 	std::list<std::shared_ptr<FriendDevice>> getDevices(const std::shared_ptr<Address> &address);
 
 	// ---------------------------------------------------------------------------
+	// Versions.
+	// ---------------------------------------------------------------------------
+
+	unsigned int getModuleVersion(const std::string &name);
+	void updateSchema() override;
+
+	// ---------------------------------------------------------------------------
 	// Other.
 	// ---------------------------------------------------------------------------
 

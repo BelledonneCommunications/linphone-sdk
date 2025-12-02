@@ -3856,8 +3856,6 @@ void MainDb::init() {
 	auto timestampType = bind(&DbSession::timestampType, &d->dbSession);
 	auto varcharPrimaryKeyStr = bind(&DbSession::varcharPrimaryKeyStr, &d->dbSession, _1);
 
-	initCleanup();
-
 	session->begin();
 
 	try {
@@ -4616,7 +4614,28 @@ void MainDb::init() {
 		                "    ON DELETE CASCADE"
 		                ") " +
 		                charset;
+	} catch (const soci::soci_error &e) {
+		lError() << "Exception while creating the database's schema : " << e.what();
+		session->rollback();
+		// Throw exception so that it can be catched by the calling function
+		throw e;
+		return;
+	}
+	session->commit();
+#endif
+}
 
+void MainDb::updateSchema() {
+#ifdef HAVE_DB_STORAGE
+	L_D();
+
+	soci::session *session = d->dbSession.getBackendSession();
+
+	initCleanup();
+
+	session->begin();
+
+	try {
 		d->updateSchema();
 
 		migrateConferenceInfos();
@@ -4624,7 +4643,7 @@ void MainDb::init() {
 		d->updateModuleVersion("events", ModuleVersionEvents);
 		d->updateModuleVersion("friends", ModuleVersionFriends);
 	} catch (const soci::soci_error &e) {
-		lError() << "Exception while creating or updating the database's schema : " << e.what();
+		lError() << "Exception while updating the database's schema : " << e.what();
 		session->rollback();
 		// Throw exception so that it can be catched by the calling function
 		throw e;
@@ -4634,6 +4653,11 @@ void MainDb::init() {
 
 	initCleanup();
 #endif
+}
+
+unsigned int MainDb::getModuleVersion(const std::string &name) {
+	L_D();
+	return d->getModuleVersion(name);
 }
 
 void MainDb::migrateConferenceInfos() {

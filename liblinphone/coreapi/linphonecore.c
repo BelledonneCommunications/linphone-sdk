@@ -10129,3 +10129,13 @@ int linphone_core_get_message_automatic_resending_delay(const LinphoneCore *core
 void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration) {
 	linphone_config_set_int(linphone_core_get_config(core), "chat", "message_automatic_resending_s", duration);
 }
+
+void linphone_core_upgrade_database(LinphoneCore *core) {
+	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
+	if (mainDb && mainDb->isInitialized()) {
+		mainDb->updateSchema();
+	} else {
+		ms_error("Trying to upgrade database before linphone_core_start() has been called, it has not been initialized "
+		         "yet.");
+	}
+}

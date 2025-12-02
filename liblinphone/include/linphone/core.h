@@ -8217,6 +8217,13 @@ LINPHONE_PUBLIC bool_t linphone_core_is_ekt_plugin_loaded(const LinphoneCore *co
  */
 LINPHONE_PUBLIC void linphone_core_set_ekt_plugin_loaded(LinphoneCore *core, bool_t ekt_plugin_loaded);
 
+/**
+ * Upgrade the database manually to the latest schema.
+ * @param core the #LinphoneCore
+ * @ingroup misc
+ */
+LINPHONE_PUBLIC void linphone_core_upgrade_database(LinphoneCore *core);
+
 /************ */
 /* DEPRECATED */
 /* ********** */

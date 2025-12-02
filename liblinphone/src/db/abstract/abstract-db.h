@@ -50,6 +50,8 @@ public:
 
 	bool forceReconnect();
 
+	virtual void updateSchema();
+
 	Backend getBackend() const;
 
 	virtual bool import(Backend backend, const std::string &parameters);
@@ -57,6 +59,8 @@ public:
 	bool isInitialized() const;
 	/* This function is to initialize soci backends when used with static linking. */
 	static void registerBackend(Backend backend);
+
+	void setUpdateSchemaAtInitialisation(bool updateSchemaWhenInitializing);
 
 protected:
 	explicit AbstractDb(AbstractDbPrivate &p);

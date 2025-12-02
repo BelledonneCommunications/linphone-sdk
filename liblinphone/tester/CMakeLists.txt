@@ -135,6 +135,7 @@ set(DB_FILES
 	db/chatroom_conference.db
 	db/chatroom_duplicates.db
 	db/server_chatroom_duplicates.db
+	db/update.db
 )
 
 set(RC_FILES

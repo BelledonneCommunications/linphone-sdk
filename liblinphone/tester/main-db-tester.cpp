@@ -53,13 +53,16 @@ public:
 	MainDbProvider(const char *db_file,
 	               bool_t keep_gruu = TRUE,
 	               bool_t unify_chatroom_address = FALSE,
-	               bool_t is_conference_server = FALSE) {
+	               bool_t is_conference_server = FALSE,
+	               bool_t update_db_at_initialisation = TRUE) {
 		mCoreManager = linphone_core_manager_create("empty_rc");
 		char *roDbPath = bc_tester_res(db_file);
 		char *rwDbPath = bc_tester_file(core_db);
 		BC_ASSERT_FALSE(liblinphone_tester_copy_file(roDbPath, rwDbPath));
 		linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(mCoreManager->lc));
 		linphone_config_set_string(linphone_core_get_config(mCoreManager->lc), "storage", "uri", rwDbPath);
+		linphone_config_set_bool(linphone_core_get_config(mCoreManager->lc), "storage", "update_db_at_initialisation",
+		                         update_db_at_initialisation);
 		linphone_core_enable_gruu_in_conference_address(mCoreManager->lc, keep_gruu);
 		linphone_config_set_bool(linphone_core_get_config(mCoreManager->lc), "misc", "unify_chatroom_address",
 		                         unify_chatroom_address);
@@ -685,6 +688,26 @@ static void address_cache_and_threads() {
 	}
 }
 
+static void load_database_without_updating_and_update_manually() {
+	MainDbProvider provider("db/update.db", TRUE, FALSE, FALSE, FALSE);
+	MainDb &mainDb = provider.getMainDb();
+	if (mainDb.isInitialized()) {
+		// At the moment of writing events module is at 1.0.31.
+		// So we test that the upgrade puts us at 1.0.31 or higher.
+		constexpr unsigned int upgradedEventsVersion = makeVersion(1, 0, 31);
+
+		// "update.db" should be at 1.0.8.
+		unsigned int eventsVersion = mainDb.getModuleVersion("events");
+		BC_ASSERT_LOWER_STRICT(eventsVersion, upgradedEventsVersion, unsigned int, "%u");
+
+		// Call the corresponding core function instead of directly the mainDb
+		linphone_core_upgrade_database(provider.getCoreManager()->lc);
+
+		eventsVersion = mainDb.getModuleVersion("events");
+		BC_ASSERT_GREATER(eventsVersion, upgradedEventsVersion, unsigned int, "%u");
+	}
+}
+
 static test_t main_db_tests[] = {
     TEST_NO_TAG("Get events count", get_events_count),
     TEST_NO_TAG("Get messages count", get_messages_count),
@@ -704,7 +727,9 @@ static test_t main_db_tests[] = {
     TEST_ONE_TAG("Load a lot of chatrooms", load_a_lot_of_chatrooms, "shaky"),
     TEST_ONE_TAG("Load a lot of chatrooms cleaning GRUU", load_a_lot_of_chatrooms_cleaning_gruu, "shaky"),
     TEST_NO_TAG("Search messages in chatroom", search_messages_in_chat_room),
-    TEST_NO_TAG("Address cache and threads", address_cache_and_threads)};
+    TEST_NO_TAG("Address cache and threads", address_cache_and_threads),
+    TEST_NO_TAG("Load database without updating schema and update manually",
+                load_database_without_updating_and_update_manually)};
 
 test_suite_t main_db_test_suite = {
     "MainDb",
