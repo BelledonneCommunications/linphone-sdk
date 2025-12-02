@@ -814,7 +814,7 @@ static void simple_talk_with_missing_packets(void) {
 	config.nearend_speech_file = bc_tester_res(NEAR_END_SPEECH_SIMPLE_TALK);
 	config.echo_file = bc_tester_res(ECHO_SIMPLE_TALK_100MS);
 	config.farend_speech_file = bc_tester_res(FAR_END_SPEECH_SIMPLE_TALK);
-	char *random_filename = ms_tester_get_random_filename("aec_output_simple_talk_without_initial_delay_", ".wav");
+	char *random_filename = ms_tester_get_random_filename("aec_output_talk_with_missing_packets_", ".wav");
 	config.record_file = bc_tester_file(random_filename);
 	bctbx_free(random_filename);
 	config.reference_packets_lost = TRUE;
