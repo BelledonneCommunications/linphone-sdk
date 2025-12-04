@@ -16,9 +16,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""App to analyse the Acoustic Echo Cancellation feature.
+"""App to analyze the Acoustic Echo Cancellation feature.
 
-Runs and analyses the tests of AEC3 suite of linphone-sdk. It can be used to run several times the tests,
+Runs and analyzes the tests of AEC3 suite of linphone-sdk. It can be used to run several times the tests,
 to compute the MFCC similarity, to plot the results or to get the table with all metrics.
 """
 

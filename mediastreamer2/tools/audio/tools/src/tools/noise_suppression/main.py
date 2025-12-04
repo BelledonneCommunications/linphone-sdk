@@ -16,9 +16,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""App to analyse the Noise Suppression feature.
+"""App to analyze the Noise Suppression feature.
 
-Runs and analyses the tests of Noise Suppression suite of linphone-sdk. It can be used to run several times the tests,
+Runs and analyzes the tests of Noise Suppression suite of linphone-sdk. It can be used to run several times the tests,
 to compute the MFCC similarity, to plot the results or to get the table with all metrics.
 """
 
@@ -74,18 +74,24 @@ def main(
             "talk_with_noise_snr_12dB",
             "talk_with_noise_snr_6dB",
             "talk_with_noise_snr_0dB",
+            "talk_with_noise_snr_12dB_for_stereo",
             "noise_suppression_in_audio_stream",
+            "noise_suppression_in_audio_stream_for_stereo",
             "noise_suppression_in_audio_stream_with_echo_400ms",  # do not run this one with sanitizer
+            "noise_suppression_in_audio_stream_with_nchannels_change",
         ]
     elif test != "":
         noise_suppression_test_list = [test]
     else:
         noise_suppression_test_list = [
             "talk_with_noise_snr_12dB",
-            # "talk_with_noise_snr_6dB",
-            # "talk_with_noise_snr_0dB",
-            # "noise_suppression_in_audio_stream",
-            # "noise_suppression_in_audio_stream_with_echo_400ms",
+            "talk_with_noise_snr_6dB",
+            "talk_with_noise_snr_0dB",
+            "talk_with_noise_snr_12dB_for_stereo",
+            "noise_suppression_in_audio_stream",
+            "noise_suppression_in_audio_stream_for_stereo",
+            # "noise_suppression_in_audio_stream_with_echo_400ms",  # do not run this one with sanitizer
+            "noise_suppression_in_audio_stream_with_nchannels_change",
         ]
 
     for input_test_name in noise_suppression_test_list:
@@ -110,8 +116,10 @@ def main(
                 noisy_speech = noisy_nearend_6db
             elif "0dB" in test_name:
                 noisy_speech = noisy_nearend_0db
-            elif test_name == "noise_suppression_in_audio_stream":
+            elif test_name in ["noise_suppression_in_audio_stream", "noise_suppression_in_audio_stream_for_stereo"]:
                 noisy_speech = noisy_nearend_12db
+            elif test_name == "noise_suppression_in_audio_stream_with_nchannels_change":
+                kwargs["alignment interval"] = [3000, 4000]
             elif test_name == "noise_suppression_in_audio_stream_with_echo_400ms":
                 print("Warning: compile without sanitizer for this test.")
                 noisy_speech = nearend_echo_400ms_noise

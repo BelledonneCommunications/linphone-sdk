@@ -562,22 +562,36 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 }
 
 /*
- * Set the noise suppressor filter in active or bypass mode depending on the channels number and sample rate configured
- * before the noise suppressor.
+ * Configure the noise suppressor filter depending on the filter before:
+ * - if the sample rate of the previous filter is not supported, set bypass mode and return the previous filter
+ * - else if the channel number is not 1, the noise suppressor is configured to select the first channel only. The noise
+ * suppressor filter is returned.
+ * The next filter in audiostream is the resampler. Depending on if the noise suppressor is active or not, the resampler
+ * will be configured to select a channel or not, as the output of the noise suppressor is always mono channel.
  */
-void audio_stream_configure_noise_suppressor(AudioStream *stream, MSFilter *previous_filter) {
+MSFilter *audio_stream_configure_noise_suppressor(AudioStream *stream, MSFilter *from) {
 	if (!stream->noise_suppressor) {
-		return;
+		return from;
 	}
+
 	int sample_rate_Hz;
-	int nchannels;
-	ms_filter_call_method(previous_filter, MS_FILTER_GET_SAMPLE_RATE, &sample_rate_Hz);
-	ms_filter_call_method(previous_filter, MS_FILTER_GET_NCHANNELS, &nchannels);
 	bool_t bypass = FALSE;
-	if ((sample_rate_Hz != 48000) || (nchannels > 1)) {
+	ms_filter_call_method(from, MS_FILTER_GET_SAMPLE_RATE, &sample_rate_Hz);
+	if (sample_rate_Hz != 48000) {
 		bypass = TRUE;
+		ms_filter_call_method(stream->noise_suppressor, MS_NOISE_SUPPRESSOR_SET_BYPASS_MODE, &bypass);
+		return from;
 	}
+
 	ms_filter_call_method(stream->noise_suppressor, MS_NOISE_SUPPRESSOR_SET_BYPASS_MODE, &bypass);
+	int nchannels;
+	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &nchannels);
+	ms_filter_call_method(stream->noise_suppressor, MS_FILTER_SET_NCHANNELS, &nchannels);
+	int ns_channel = 0;
+	int ns_rate = 0;
+	ms_filter_call_method(stream->noise_suppressor, MS_FILTER_GET_NCHANNELS, &ns_channel);
+	ms_filter_call_method(stream->noise_suppressor, MS_FILTER_GET_SAMPLE_RATE, &ns_rate);
+	return stream->noise_suppressor;
 }
 
 static void audio_stream_process_rtcp(BCTBX_UNUSED(MediaStream *media_stream), BCTBX_UNUSED(const mblk_t *m)) {
@@ -633,8 +647,8 @@ static void read_callback(void *ud, MSFilter *f, unsigned int id, BCTBX_UNUSED(v
 			if (f == stream->soundread && stream->read_resampler) {
 				MSFilter *from = stream->soundread;
 				if (stream->read_decoder) from = stream->read_decoder;
+				from = audio_stream_configure_noise_suppressor(stream, from);
 				audio_stream_configure_resampler(stream, stream->read_resampler, from, stream->ms.encoder);
-				audio_stream_configure_noise_suppressor(stream, from);
 			}
 			break;
 		default:
@@ -1725,9 +1739,9 @@ int audio_stream_start_from_io(AudioStream *stream,
 	if (stream->read_resampler) {
 		MSFilter *from = stream->soundread;
 		if (stream->read_decoder) from = stream->read_decoder;
+		from = audio_stream_configure_noise_suppressor(stream, from);
 		audio_stream_configure_resampler(stream, stream->read_resampler, from,
 		                                 skip_encoder_and_decoder ? stream->soundread : stream->ms.encoder);
-		audio_stream_configure_noise_suppressor(stream, from);
 	}
 	if (stream->write_resampler) {
 		MSFilter *to = stream->soundwrite;
@@ -2033,8 +2047,8 @@ void audio_stream_play(AudioStream *st, const char *name) {
 		if (name != NULL) {
 			ms_filter_call_method(st->soundread, MS_FILE_PLAYER_OPEN, (void *)name);
 			if (st->read_resampler) {
-				audio_stream_configure_resampler(st, st->read_resampler, st->soundread, st->ms.encoder);
-				audio_stream_configure_noise_suppressor(st, st->soundread);
+				MSFilter *from = audio_stream_configure_noise_suppressor(st, st->soundread);
+				audio_stream_configure_resampler(st, st->read_resampler, from, st->ms.encoder);
 			}
 			int pause_time = 500;
 			ms_filter_call_method(st->soundread, MS_PLAYER_SET_LOOP, &pause_time);

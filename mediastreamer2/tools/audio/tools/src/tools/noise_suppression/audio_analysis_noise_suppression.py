@@ -85,8 +85,8 @@ class AudioAnalysisNoiseSuppression:
                     if match:
                         self.noise_gain = float(match.group(1))
 
-                if "[Noise suppressor] set rate" in line:
-                    self.sampling_rate_hz = int(line.split("set rate ")[-1].split(" Hz")[0])
+                if "MSNoiseSuppressor" in line and "initialized for " in line:
+                    self.sampling_rate_hz = int(line.split("initialized for ")[-1].split(" Hz")[0])
                     print(f"sampling rate found is {self.sampling_rate_hz} Hz")
 
                 if "chunk - max cross-correlation obtained at position " in line and self.maxpos == 0:

@@ -66,17 +66,19 @@ void MSWebrtcAEC3::configureFlowControlledBufferizer() {
 
 void MSWebrtcAEC3::preprocess() {
 	if (!webrtc::ValidFullBandRate(mSampleRateInHz)) {
-		ms_error(
-		    "WebRTC echo canceller 3 does not support %d sample rate. Accepted values are 16000, 32000 or 48000 Hz.",
-		    mSampleRateInHz);
+		ms_error("WebRTCAEC[%p]: echo canceller 3 does not support %d sample rate. Accepted values are 16000, 32000 "
+		         "or 48000 Hz.",
+		         this, mSampleRateInHz);
 		mBypassMode = true;
 		ms_error("Entering bypass mode");
 		return;
 	}
 
-	ms_message("Initializing WebRTC echo canceler 3 with sample rate = %i Hz, frame %i ms, %i samples, initial delay "
+	ms_message("WebRTCAEC[%p]: initializing echo canceler 3 with sample rate = %i Hz, frame %i ms, %i samples, "
+	           "initial delay "
 	           "is %i ms, %i channel",
-	           mSampleRateInHz, kFramesizeMs, rtc::CheckedDivExact(mSampleRateInHz, 100), mDelayInMs, kNumChannels);
+	           this, mSampleRateInHz, kFramesizeMs, rtc::CheckedDivExact(mSampleRateInHz, 100), mDelayInMs,
+	           kNumChannels);
 	configureFlowControlledBufferizer();
 	const webrtc::EchoCanceller3Config aecConfig = webrtc::EchoCanceller3Config();
 	mEchoCanceller3Inst =
@@ -87,7 +89,7 @@ void MSWebrtcAEC3::preprocess() {
 
 	if (!mEchoCanceller3Inst) {
 		mBypassMode = true;
-		ms_error("EchoCanceller3 error at creation, entering bypass mode");
+		ms_error("WebRTCAEC[%p]: error at creation, entering bypass mode", this);
 		return;
 	}
 
@@ -135,7 +137,7 @@ void MSWebrtcAEC3::process(MSFilter *filter) {
 				ms_flow_controlled_bufferizer_put(&mRef, refm);
 			}
 		} else {
-			ms_warning("Getting reference signal but no echo to synchronize on.");
+			ms_warning("WebRTCAEC[%p]: getting reference signal but no echo to synchronize on.", this);
 			ms_queue_flush(filter->inputs[0]);
 		}
 	}
@@ -147,7 +149,7 @@ void MSWebrtcAEC3::process(MSFilter *filter) {
 		mblk_t *oEcho = allocb(mNbytes, 0);
 		if (ms_flow_controlled_bufferizer_get_avail(&mRef) >= mNbytes) {
 			if (mWaitingRef) {
-				ms_message("Samples are back.");
+				ms_message("WebRTCAEC[%p]: samples are back.", this);
 				mWaitingRef = false;
 			}
 			/* read from reference buffer to AEC3 render buffer and output */
@@ -159,7 +161,7 @@ void MSWebrtcAEC3::process(MSFilter *filter) {
 		} else {
 			/*we don't have enough to read in a reference signal buffer, send nothing to ref output nor render buffer*/
 			if (!mWaitingRef) {
-				ms_warning("Not enough ref samples, waiting.");
+				ms_warning("WebRTCAEC[%p]: not enough ref samples, waiting.", this);
 				mWaitingRef = true;
 			}
 		}
@@ -185,8 +187,8 @@ void MSWebrtcAEC3::process(MSFilter *filter) {
 		mEchoReturnLoss = aecMetrics.echo_return_loss;
 		mEchoReturnLossEnhancement = aecMetrics.echo_return_loss_enhancement;
 		if ((filter->ticker->time % 5000) == 0) {
-			ms_message("AEC3 current metrics : delay = %d ms, ERL = %f, ERLE = %f", aecMetrics.delay_ms,
-			           aecMetrics.echo_return_loss, aecMetrics.echo_return_loss_enhancement);
+			ms_message("WebRTCAEC[%p] AEC3 current metrics: delay = %d ms, ERL = %f, ERLE = %f", this,
+			           aecMetrics.delay_ms, aecMetrics.echo_return_loss, aecMetrics.echo_return_loss_enhancement);
 		}
 
 		// get processed capture
@@ -223,10 +225,10 @@ int MSWebrtcAEC3::setSampleRate(int requestedRateInHz) {
 		mSampleRateInHz = 16000;
 	}
 	if (mSampleRateInHz != requestedRateInHz)
-		ms_message("Webrtc AEC3 does not support sampling rate %i, using %i instead", requestedRateInHz,
+		ms_message("WebRTCAEC[%p]: AEC3 does not support sampling rate %i, using %i instead", this, requestedRateInHz,
 		           mSampleRateInHz);
 	configureFlowControlledBufferizer();
-	ms_message("sampling rate: %d - %d Hz", requestedRateInHz, mSampleRateInHz);
+	ms_message("WebRTCAEC[%p]: sampling rate: %d - %d Hz", this, requestedRateInHz, mSampleRateInHz);
 	return mSampleRateInHz;
 }
 

@@ -79,6 +79,7 @@ set(SOUND_FILES
 	sounds/noisy_nearend_0dB_simple_talk_48000.wav
 	sounds/noisy_nearend_6dB_simple_talk_48000.wav
 	sounds/noisy_nearend_12dB_simple_talk_48000.wav
+	sounds/noisy_nearend_12dB_simple_talk_48000_stereo.wav
 	sounds/nylon_48000_mono.wav
 	sounds/owl_44100_mono.wav
 	sounds/piano_8000_stereo.wav

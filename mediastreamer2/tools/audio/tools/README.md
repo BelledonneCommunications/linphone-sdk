@@ -29,8 +29,8 @@ Don't forget to enable the dump of files in mediastreamer2/tester/mediastreamer2
 To get more instant measurements of AEC metrics during talk, change or comment the time occurrence in mswebrtc/mswebrtc_aec3.cc :
 ```
 if ((filter->ticker->time % 5000) == 0) {
-    ms_message("AEC3 current metrics : delay = %d ms, ERL = %f, ERLE = %f", aecMetrics.delay_ms,
-               aecMetrics.echo_return_loss, aecMetrics.echo_return_loss_enhancement);
+    ms_message("WebRTCAEC[%p] AEC3 current metrics: delay = %d ms, ERL = %f, ERLE = %f", this,
+               aecMetrics.delay_ms, aecMetrics.echo_return_loss, aecMetrics.echo_return_loss_enhancement);
 }
 ```
 

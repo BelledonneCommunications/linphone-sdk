@@ -45,6 +45,7 @@
 #define NOISY_SPEECH_12DB_FILE "sounds/noisy_nearend_12dB_simple_talk_48000.wav"
 #define NOISY_SPEECH_6DB_FILE "sounds/noisy_nearend_6dB_simple_talk_48000.wav"
 #define NOISY_SPEECH_0DB_FILE "sounds/noisy_nearend_0dB_simple_talk_48000.wav"
+#define NOISY_SPEECH_12DB_STEREO_FILE "sounds/noisy_nearend_12dB_simple_talk_48000_stereo.wav"
 #define SPEECH_16000_FILE "sounds/hello16000.wav"
 #define SPEECH_STEREO_FILE "sounds/chimes_48000_stereo.wav"
 
@@ -200,9 +201,10 @@ static void play_and_denoise_audio(denoising_test_config *config) {
 			goto end;
 		}
 		noise_suppressor = ms_factory_create_filter_from_desc(msFactory, ns_desc);
-		ms_filter_call_method(noise_suppressor, MS_FILTER_GET_SAMPLE_RATE, &ns_sample_rate);
+		ms_filter_call_method(noise_suppressor, MS_FILTER_SET_NCHANNELS, &nchannels_input);
 		ms_filter_call_method(noise_suppressor, MS_FILTER_GET_NCHANNELS, &ns_nchannels);
-		if ((ns_sample_rate != signal_input_rate) || (ns_nchannels != nchannels_input)) {
+		ms_filter_call_method(noise_suppressor, MS_FILTER_GET_SAMPLE_RATE, &ns_sample_rate);
+		if (ns_sample_rate != signal_input_rate) {
 			ms_error("wrong sampling rate, RNNoise requires %d Hz.", ns_sample_rate);
 			BC_FAIL("Cannot apply noise suppression on this audio.");
 			goto end;
@@ -349,6 +351,19 @@ static void talk_with_noise_snr_0dB(void) {
 	uninit_denoising_test_config(&config);
 }
 
+static void talk_with_noise_snr_12dB_for_stereo(void) {
+	denoising_test_config config;
+	init_denoising_test_config(&config);
+	config.clean_file = bc_tester_file("clean_talk_with_noise_snr_12dB_for_stereo.wav");
+	config.speech_file = bc_tester_res(NOISY_SPEECH_12DB_STEREO_FILE);
+	config.play_duration_ms = 7000;
+	play_and_denoise_audio(&config);
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.1f, 0.97f,
+	                    config.max_shift_percent);
+	uninit_denoising_test_config(&config);
+}
+
 static void talk_with_noise_bypass_mode(void) {
 	denoising_test_config config;
 	init_denoising_test_config(&config);
@@ -365,6 +380,7 @@ static void talk_with_noise_bypass_mode(void) {
 static void audio_stream_base(const char *audio_file_marielle,
                               const char *audio_file_margaux,
                               const char *audio_file_record,
+                              const char *audio_file_record_part_2,
                               const char *marielle_local_ip,
                               const char *marielle_remote_ip,
                               int marielle_local_rtp_port,
@@ -399,6 +415,7 @@ static void audio_stream_base(const char *audio_file_marielle,
 
 #if NS_DUMP == 1
 	unlink(audio_file_record);
+	if (audio_file_record_part_2) unlink(audio_file_record_part_2);
 #endif
 
 	stats_t marielle_stats;
@@ -440,8 +457,8 @@ static void audio_stream_base(const char *audio_file_marielle,
 	                                        audio_file_record, NULL, NULL, 0),
 	                0, int, "%d");
 
+	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
 	if (config_change_ms == 0) {
-		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
 		wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, audio_stop_ms);
 
 	} else {
@@ -451,13 +468,24 @@ static void audio_stream_base(const char *audio_file_marielle,
 		ms_filter_call_method(marielle->noise_suppressor, MS_NOISE_SUPPRESSOR_GET_BYPASS_MODE, &mode);
 		BC_ASSERT_FALSE(mode);
 		audio_stream_play(marielle, NULL);
-		reset_stats(&marielle_stats);
-		reset_stats(&margaux_stats);
+		if (audio_file_record_part_2) {
+			ms_filter_call_method_noarg(margaux->soundwrite, MS_FILE_REC_STOP);
+			ms_filter_call_method_noarg(margaux->soundwrite, MS_FILE_REC_CLOSE);
+		}
 		audio_stream_play(marielle, audio_file_marielle_2);
-		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
-		wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 12, audio_stop_ms);
+		if (audio_file_record_part_2) {
+			ms_filter_call_method(margaux->soundwrite, MS_FILE_REC_OPEN, (void *)audio_file_record_part_2);
+			ms_filter_call_method_noarg(margaux->soundwrite, MS_FILE_REC_START);
+		}
+		wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, audio_stop_ms);
+		int sample_rate = 0;
+		ms_filter_call_method(marielle->soundread, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
 		ms_filter_call_method(marielle->noise_suppressor, MS_NOISE_SUPPRESSOR_GET_BYPASS_MODE, &mode);
-		BC_ASSERT_TRUE(mode);
+		if (sample_rate != 48000) {
+			BC_ASSERT_TRUE(mode);
+		} else {
+			BC_ASSERT_FALSE(mode);
+		}
 	}
 	audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
@@ -565,15 +593,31 @@ static void noise_suppression_in_audio_stream(void) {
 	config.play_duration_ms = 15400;
 	int max_shift_percent = 20;
 	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
-	audio_stream_base(config.speech_file, audio_file_margaux, config.clean_file, MARIELLE_IP, MARGAUX_IP,
+	audio_stream_base(config.speech_file, audio_file_margaux, config.clean_file, NULL, MARIELLE_IP, MARGAUX_IP,
 	                  MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
 	                  MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, FALSE,
 	                  TRUE, config.play_duration_ms, 0, 0, NULL);
-	// TODO: fix simlarity measurements with _ms_audio_diff_chunked that is robust to small shifts
-	// for the moment the energy in silence is tehe only relevant measurement
-	// check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
-	//                     config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 0.1f, 0.77f,
-	//                     max_shift_percent);
+	// TODO: set a relevant threshold for similarity measurement, when the problem of the small shifts in audio is fixed
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 2.5f, 0.1f,
+	                    max_shift_percent);
+	uninit_denoising_test_config(&config);
+	free(audio_file_margaux);
+}
+
+static void noise_suppression_in_audio_stream_for_stereo(void) {
+	denoising_test_config config;
+	init_denoising_test_config(&config);
+	config.speech_file = bc_tester_res(NOISY_SPEECH_12DB_STEREO_FILE);
+	config.clean_file = bc_tester_file("clean_noise_suppression_in_audio_stream_for_stereo.wav");
+	config.play_duration_ms = 7000;
+	int max_shift_percent = 20;
+	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
+	audio_stream_base(config.speech_file, audio_file_margaux, config.clean_file, NULL, MARIELLE_IP, MARGAUX_IP,
+	                  MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
+	                  MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, FALSE,
+	                  TRUE, config.play_duration_ms, 0, 0, NULL);
+	// TODO: set a relevant threshold for similarity measurement, when the problem of the small shifts in audio is fixed
 	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
 	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 2.5f, 0.1f,
 	                    max_shift_percent);
@@ -597,7 +641,7 @@ static void noise_suppression_in_audio_stream_with_echo_400ms(void) {
 	int max_shift_percent = 20;
 	int delay_init_ms = 400;
 	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
-	audio_stream_base(config.speech_file, audio_file_margaux, config.clean_file, MARIELLE_IP, MARGAUX_IP,
+	audio_stream_base(config.speech_file, audio_file_margaux, config.clean_file, NULL, MARIELLE_IP, MARGAUX_IP,
 	                  MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
 	                  MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, TRUE,
 	                  TRUE, config.play_duration_ms, delay_init_ms, 0, NULL);
@@ -617,7 +661,7 @@ static void noise_suppression_in_audio_stream_with_sample_rate_change(void) {
 	int config_change_ms = 5000;
 	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
 	char *audio_file_16000 = bc_tester_res(SPEECH_16000_FILE);
-	audio_stream_base(config.speech_file, audio_file_margaux, config.clean_file, MARIELLE_IP, MARGAUX_IP,
+	audio_stream_base(config.speech_file, audio_file_margaux, config.clean_file, NULL, MARIELLE_IP, MARGAUX_IP,
 	                  MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
 	                  MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, FALSE,
 	                  TRUE, config.play_duration_ms, 0, config_change_ms, audio_file_16000);
@@ -629,17 +673,31 @@ static void noise_suppression_in_audio_stream_with_sample_rate_change(void) {
 static void noise_suppression_in_audio_stream_with_nchannels_change(void) {
 	denoising_test_config config;
 	init_denoising_test_config(&config);
-	config.speech_file = bc_tester_res(NOISY_SPEECH_12DB_FILE);
+	config.speech_file = bc_tester_res(NOISY_NEAREND_WITH_ECHO_400_FILE);
+	char *clean_file_part_1 =
+	    bc_tester_file("clean_noise_suppression_in_audio_stream_with_nchannels_change_part_1.wav");
 	config.clean_file = bc_tester_file("clean_noise_suppression_in_audio_stream_with_nchannels_change.wav");
 	config.play_duration_ms = 6000;
-	int config_change_ms = 5000;
+	int config_change_ms = 2500;
 	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
-	char *audio_file_stereo = bc_tester_res(SPEECH_STEREO_FILE);
-	audio_stream_base(config.speech_file, audio_file_margaux, config.clean_file, MARIELLE_IP, MARGAUX_IP,
-	                  MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP,
-	                  MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, FALSE,
-	                  TRUE, config.play_duration_ms, 0, config_change_ms, audio_file_stereo);
+	char *audio_file_stereo = bc_tester_res(NOISY_SPEECH_12DB_STEREO_FILE);
+	audio_stream_base(config.speech_file, audio_file_margaux, clean_file_part_1, config.clean_file, MARIELLE_IP,
+	                  MARGAUX_IP, MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT,
+	                  MARGAUX_IP, MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT,
+	                  MARIELLE_RTCP_PORT, FALSE, TRUE, config.play_duration_ms, 0, config_change_ms, audio_file_stereo);
+	config.start_comparison_ms = 0;
+	config.start_comparison_short_ms = 3000;
+	config.stop_comparison_short_ms = 4000;
+	int max_shift_percent = 20;
+	// TODO: set a relevant threshold for similarity measurement, when the problem of the small shifts in audio is fixed
+	check_audio_quality(config.clean_file, config.reference_file, config.start_comparison_short_ms,
+	                    config.stop_comparison_short_ms, config.start_comparison_ms, 0.f, 2.5f, 0.1f,
+	                    max_shift_percent);
 	uninit_denoising_test_config(&config);
+#if NS_DUMP != 1
+	unlink(clean_file_part_1);
+#endif
+	free(clean_file_part_1);
 	free(audio_file_margaux);
 	free(audio_file_stereo);
 }
@@ -667,21 +725,6 @@ static void noise_suppression_by_passed_in_audio_stream_at_16000Hz(void) {
 	init_denoising_test_config(&config);
 	config.speech_file = bc_tester_res(SPEECH_16000_FILE);
 	config.clean_file = bc_tester_file("clean_noise_suppression_by_passed_in_audio_stream_at_16000Hz.wav");
-	config.play_duration_ms = 4000;
-	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
-	audio_stream_without_noise_suppressor(
-	    config.speech_file, audio_file_margaux, config.clean_file, MARIELLE_IP, MARGAUX_IP, MARIELLE_RTP_PORT,
-	    MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_RTCP_PORT, MARGAUX_IP, MARIELLE_IP, MARGAUX_RTP_PORT,
-	    MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, TRUE, config.play_duration_ms);
-	uninit_denoising_test_config(&config);
-	free(audio_file_margaux);
-}
-
-static void noise_suppression_by_passed_in_audio_stream_stereo(void) {
-	denoising_test_config config;
-	init_denoising_test_config(&config);
-	config.speech_file = bc_tester_res(SPEECH_STEREO_FILE);
-	config.clean_file = bc_tester_file("clean_noise_suppression_by_passed_in_audio_stream_stereo.wav");
 	config.play_duration_ms = 4000;
 	char *audio_file_margaux = bc_tester_res(FAREND_FILE);
 	audio_stream_without_noise_suppressor(
@@ -824,8 +867,10 @@ static test_t tests[] = {
     TEST_NO_TAG("Talk with noise SNR 12dB", talk_with_noise_snr_12dB),
     TEST_NO_TAG("Talk with noise SNR 6dB", talk_with_noise_snr_6dB),
     TEST_NO_TAG("Talk with noise SNR 0dB", talk_with_noise_snr_0dB),
+    TEST_NO_TAG("Talk with noise SNR 12dB for stereo", talk_with_noise_snr_12dB_for_stereo),
     TEST_NO_TAG("Talk with noise bypass mode", talk_with_noise_bypass_mode),
     TEST_NO_TAG("Noise suppression in audio stream", noise_suppression_in_audio_stream),
+    TEST_NO_TAG("Noise suppression in audio stream for stereo", noise_suppression_in_audio_stream_for_stereo),
     TEST_NO_TAG("Noise suppression in audio stream with echo 400ms", noise_suppression_in_audio_stream_with_echo_400ms),
     TEST_NO_TAG("Noise suppression in audio stream with sample rate change",
                 noise_suppression_in_audio_stream_with_sample_rate_change),
@@ -834,8 +879,6 @@ static test_t tests[] = {
     TEST_NO_TAG("Noise suppression disabled in audio stream", noise_suppression_disabled_in_audio_stream),
     TEST_NO_TAG("Noise suppression by passed in audio stream at 16000Hz",
                 noise_suppression_by_passed_in_audio_stream_at_16000Hz),
-    TEST_NO_TAG("Noise suppression by passed in audio stream stereo",
-                noise_suppression_by_passed_in_audio_stream_stereo),
     TEST_NO_TAG("Noise suppression by passed at start in audio stream",
                 noise_suppression_by_passed_at_start_in_audio_stream),
 };

@@ -81,16 +81,12 @@ class AudioAnalysis:
         with open(log_file) as f:
             contents = f.readlines()
             for i, line in enumerate(contents):
-                if "Initializing WebRTC echo canceler" in line:
+                if "initializing echo canceler 3" in line:
                     self.sampling_rate_hz = int(line.split("with sample rate = ")[-1].split(" Hz")[0])
                     print(f"sampling rate found is {self.sampling_rate_hz} Hz")
 
-                if "current metrics :" in line:
+                if "current metrics:" in line:
                     metrics_lines.append(line)
-
-                if "estimated delay is" in line:
-                    self.estimated_delay_ms = int(line.split("estimated delay is ")[-1].split(", real")[0])
-                    self.real_delay_ms = int(line.split("real delay is ")[-1].split(" ms")[0])
 
                 if "chunk - max cross-correlation obtained at position " in line and self.maxpos == 0:
                     match = re.search(
