@@ -131,8 +131,14 @@ void H26xDecoderFilter::process() {
 	       (!_useRegulator && (om = ms_queue_get(&q)) != nullptr)) {
 		MSPicture pic;
 		ms_yuv_buf_init_from_mblk(&pic, om);
-		_vsize.width = pic.w;
-		_vsize.height = pic.h;
+
+		if (_vsize.width != pic.w || _vsize.height != pic.h) {
+			ms_message("H26xDecoder: detected output format change from %ix%i to %ix%i", _vsize.width, _vsize.height,
+			           pic.w, pic.h);
+			_vsize.width = pic.w;
+			_vsize.height = pic.h;
+			notify(MS_FILTER_OUTPUT_FMT_CHANGED);
+		}
 
 		if (!_firstImageDecoded) {
 			ms_message("H26xDecoder: first frame decoded %ix%i", _vsize.width, _vsize.height);
