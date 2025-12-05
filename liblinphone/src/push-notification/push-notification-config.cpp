@@ -179,6 +179,18 @@ void PushNotificationConfig::setRemotePushInterval(const string &remotePushInter
 	mPushParams[PushConfigRemotePushIntervalKey] = remotePushInterval;
 }
 
+bool doesParamNeedUpdate(string const &paramVal, bool voipPushAllowed, bool remotePushAllowed) {
+	bool foundVoipInParam = paramVal.find("voip") != string::npos;
+	if (voipPushAllowed && !foundVoipInParam) return true;
+	if (!voipPushAllowed && foundVoipInParam) return true;
+
+	bool foundRemoteInParam = paramVal.find("remote") != string::npos;
+	if (remotePushAllowed && !foundRemoteInParam) return true;
+	if (!remotePushAllowed && foundRemoteInParam) return true;
+
+	return false;
+}
+
 void PushNotificationConfig::generatePushParams(bool voipPushAllowed, bool remotePushAllowed) {
 	if (mPushParams[PushConfigProviderKey].empty()) {
 #ifdef __ANDROID__
@@ -194,6 +206,7 @@ void PushNotificationConfig::generatePushParams(bool voipPushAllowed, bool remot
 	if (mVoipToken.empty()) voipPushAllowed = false;
 
 	if (mPushParams[PushConfigParamKey].empty() ||
+	    doesParamNeedUpdate(mPushParams[PushConfigParamKey], voipPushAllowed, remotePushAllowed) ||
 	    (mTokensHaveChanged && (!mVoipToken.empty() || !mRemoteToken.empty()))) {
 		string services;
 		if (voipPushAllowed) {
@@ -206,6 +219,7 @@ void PushNotificationConfig::generatePushParams(bool voipPushAllowed, bool remot
 	}
 
 	if (mPushParams[PushConfigPridKey].empty() ||
+	    doesParamNeedUpdate(mPushParams[PushConfigPridKey], voipPushAllowed, remotePushAllowed) ||
 	    (mTokensHaveChanged && (!mVoipToken.empty() || !mRemoteToken.empty()))) {
 		string newPrid;
 		if (voipPushAllowed) {
