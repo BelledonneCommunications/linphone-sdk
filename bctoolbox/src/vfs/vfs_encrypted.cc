@@ -666,11 +666,21 @@ size_t VfsEncryption::write(const std::vector<uint8_t> &plainData, size_t offset
 	// prepend the plain buffer if needed
 	if (readOffset < offset) { // we need to get the plain data from readOffset to offset
 		// decrypt the first chunk
-		auto plainChunk = m_module->decryptChunk(
-		    firstChunk,
-		    std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin() + std::min(rawChunkSizeGet(), rawData.size())));
-		plain.insert(plain.begin(), plainChunk.cbegin(),
-		             plainChunk.cbegin() + (offset - readOffset)); // prepend the begining to our plain buffer
+		try { // Improve debug trace for crash report 13581
+			auto plainChunk = m_module->decryptChunk(
+			    firstChunk,
+			    std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin() + std::min(rawChunkSizeGet(), rawData.size())));
+			plain.insert(plain.begin(), plainChunk.cbegin(),
+			             plainChunk.cbegin() + (offset - readOffset)); // prepend the begining to our plain buffer
+		} catch (EvfsException const &e) {
+			BCTBX_SLOGE << "Encrypted VFS read before write fails on file " << mFilename << "(size  " << mFileSize
+			            << " bytes): " << e;
+			BCTBX_SLOGE << "Encrypted VFS was trying to write " << plainData.size() << " at offset " << offset
+			            << " read offset " << readOffset << " raw chunk size is " << rawChunkSizeGet()
+			            << " data chunk size is " << mChunkSize << " first chunk " << firstChunk << " last chunk"
+			            << lastChunk << " actual rawData size " << rawData.size();
+			throw EVFS_EXCEPTION << "EVFS: fail to decrypt partial data chunk before writing " << mFilename;
+		}
 	}
 
 	// append the plain buffer if needed:
@@ -879,9 +889,14 @@ static ssize_t bcWrite(bctbx_vfs_file_t *pFile, const void *buf, size_t count, o
 	if (offset < 0) return BCTBX_VFS_ERROR;
 	if (pFile && pFile->pUserData) {
 		VfsEncryption *ctx = static_cast<VfsEncryption *>(pFile->pUserData);
-		return (ssize_t)ctx->write(std::vector<uint8_t>(reinterpret_cast<const uint8_t *>(buf),
-		                                                reinterpret_cast<const uint8_t *>(buf) + count),
-		                           offset);
+		try {
+			return (ssize_t)ctx->write(std::vector<uint8_t>(reinterpret_cast<const uint8_t *>(buf),
+			                                                reinterpret_cast<const uint8_t *>(buf) + count),
+			                           offset);
+		} catch (EvfsException const &e) { // caller is most likely a C file(vfs.c), so swallow all exceptions
+			BCTBX_SLOGE << "Encrypted VFS can't write File " << ctx->filenameGet() << " : " << e;
+			return BCTBX_VFS_ERROR;
+		}
 	}
 	return BCTBX_VFS_ERROR;
 }
