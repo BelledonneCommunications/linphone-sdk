@@ -277,8 +277,10 @@ void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> not
 
 const std::shared_ptr<EventSubscribe>
 ClientConferenceListEventHandler::findEvent(const std::shared_ptr<Address> &address) const {
-	auto it = std::find_if(levs.begin(), levs.end(), [&address](const auto &lev) {
-		return (*Address::create(lev->getOp()->getFrom()) == *address);
+	// Ignore GRUU as the current one may not be the same as the one used to create the chatroom.
+	auto addressWithoutGruu = address->getUriWithoutGruu();
+	auto it = std::find_if(levs.begin(), levs.end(), [&addressWithoutGruu](const auto &lev) {
+		return addressWithoutGruu == Address(lev->getOp()->getFrom()).getUriWithoutGruu();
 	});
 
 	if (it != levs.end()) return *it;

@@ -371,11 +371,13 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 				bool coreRunning = (coreGlobalState == LinphoneGlobalOn);
 				if (coreRunning &&
 				    (!eventHandler || !alreadySubscribed || (eventSubscribeState == LinphoneSubscriptionError))) {
-					lError()
-					    << *conference << ": Unable to send chat message [" << chatMessage
-					    << "] because the subscription to retrieve the list of participant devices errored out or the "
-					       "conference has not instantiated a event handler probably due to the lack of RFC4575 "
-					       "support";
+					lError() << *conference << ": Unable to send chat message [" << chatMessage
+					         << "] because the subscription to retrieve the list of participant devices errored out "
+					            "(current state "
+					         << linphone_subscription_state_to_string(eventSubscribeState)
+					         << ") or the conference has not instantiated a event handler probably due to the lack of "
+					            "RFC4575 support (event handler ["
+					         << eventHandler << "] - subscribe sent [" << alreadySubscribed << "])";
 					chatMessage->getPrivate()->setParticipantState(
 					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
 				} else if (conference->getParticipantDevices().empty()) {
