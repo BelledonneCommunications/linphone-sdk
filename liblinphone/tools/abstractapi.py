@@ -963,6 +963,9 @@ class CParser:
 				param['size'] = elem
 			elif elem == 'int':
 				name = 'integer'
+			elif elem == 'uint64_t':
+				name = 'integer'
+				param['size'] = 'long'
 			elif elem == 'float':
 				name = 'floatant'
 				param['size'] = 'float'
