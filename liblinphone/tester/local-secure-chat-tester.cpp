@@ -1186,6 +1186,7 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 				focusMainDb->deleteChatRoomParticipant(focusCppCr, Address::create(paulineAddr)->getSharedFromThis());
 			}
 
+			stats initialFocusStats = focus.getStats();
 			initialBertheStats = berthe.getStats();
 			initialPaulineStats = pauline.getStats();
 			initialMarieStats = marie.getStats();
@@ -1193,6 +1194,15 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 			// wait a bit longer to detect side effect if any
 			CoreManagerAssert({focus, marie, pauline, berthe})
 			    .waitUntil(chrono::seconds(2 * pauline_subscribe_expires_value), [] { return false; });
+
+			BC_ASSERT_EQUAL(focus.getStats().number_of_LinphoneSubscriptionIncomingReceived,
+			                initialFocusStats.number_of_LinphoneSubscriptionIncomingReceived, int, "%0d");
+			BC_ASSERT_EQUAL(pauline.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
+			                initialPaulineStats.number_of_LinphoneSubscriptionOutgoingProgress, int, "%0d");
+			BC_ASSERT_EQUAL(berthe.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
+			                initialBertheStats.number_of_LinphoneSubscriptionOutgoingProgress, int, "%0d");
+			BC_ASSERT_EQUAL(marie.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
+			                initialMarieStats.number_of_LinphoneSubscriptionOutgoingProgress, int, "%0d");
 
 			ms_message("%s is restarting its core", linphone_core_get_identity(focus.getLc()));
 			coresList = bctbx_list_remove(coresList, focus.getLc());
@@ -2598,6 +2608,14 @@ static void secure_group_chat_room_with_client_removed_while_stopped_no_remote_l
 	group_chat_room_with_client_removed_while_stopped_base(FALSE, TRUE);
 }
 
+static void secure_group_chat_room_with_client_removed_and_reinvinted(void) {
+	group_chat_room_with_client_removed_and_reinvinted_base(true, false);
+}
+
+static void secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption(void) {
+	group_chat_room_with_client_removed_and_reinvinted_base(true, true);
+}
+
 } // namespace LinphoneTest
 
 static test_t local_conference_secure_chat_tests[] = {
@@ -2693,7 +2711,11 @@ static test_t local_conference_secure_chat_tests[] = {
     TEST_TWO_TAGS("Secure one-on-one chat with client removed from server chatroom only",
                   LinphoneTest::secure_one_on_one_chat_room_with_client_removed_from_server_chatroom_only,
                   "LimeX3DH",
-                  "LeaksMemory")};
+                  "LeaksMemory"),
+    TEST_NO_TAG("Secure group chat with client removed and then reinvited",
+                LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted),
+    TEST_NO_TAG("Secure group chat with client removed and then reinvited after database corruption",
+                LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption)};
 
 test_suite_t local_conference_test_suite_secure_chat = {
     "Local conference tester (Secure Chat)",

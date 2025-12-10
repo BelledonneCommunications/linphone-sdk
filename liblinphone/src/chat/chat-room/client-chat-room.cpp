@@ -85,7 +85,7 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 	if (remoteContact->hasParam(Conference::sIsFocusParameter) &&
 	    !getCore()->getPrivate()->clientListEventHandler->findHandler(getConferenceId())) {
 		mBgTask.start(getCore(), 32); // It will be stopped when receiving the first notify
-		conference->subscribe(true, false);
+		conference->subscribe(false, false);
 	}
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	sendPendingMessages();
@@ -278,7 +278,7 @@ void ClientChatRoom::onLocallyExhumedConference(const std::shared_ptr<Address> &
 	onExhumedConference(oldConfId, newConfId);
 
 	setState(ConferenceInterface::State::Created);
-	conference->subscribe(true);
+	conference->subscribe(false);
 
 	lInfo() << "Found " << mPendingCreationMessages.size() << " messages waiting for exhume";
 	sendPendingMessages();
@@ -317,7 +317,7 @@ void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 	conference->confirmJoining(op);
 
 	setState(ConferenceInterface::State::Created);
-	conference->subscribe(true);
+	conference->subscribe(false);
 }
 
 void ClientChatRoom::removeConferenceIdFromPreviousList(const ConferenceId &confId) {

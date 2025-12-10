@@ -261,7 +261,7 @@ void check_delete_focus_conference_info(std::initializer_list<std::reference_wra
 				           linphone_core_get_identity(mgr->lc), conferenceAddressString, time_left);
 				CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds(1), [] { return false; });
 			}
-			if ((mgr == focus) && (time_left <= 0) && (focus_cleanup_window > 0)) {
+			if ((mgr == focus) && (time_left <= 1) && (focus_cleanup_window > 0)) {
 				BC_ASSERT_PTR_NULL(info);
 			} else {
 				BC_ASSERT_PTR_NOT_NULL(info);
@@ -7265,14 +7265,6 @@ void create_conference_with_chat_base(LinphoneConferenceSecurityLevel security_l
 			if (fconference) {
 				LinphoneChatRoom *cr = linphone_conference_get_chat_room(fconference);
 				BC_ASSERT_PTR_NOT_NULL(cr);
-				if (cr) {
-					LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
-					setup_chat_room_callbacks(cbs);
-					linphone_chat_room_add_callbacks(cr, cbs);
-					linphone_chat_room_cbs_set_user_data(
-					    cbs, ((LinphoneCoreManager *)linphone_core_get_user_data(focus.getLc()))->user_info);
-					linphone_chat_room_cbs_unref(cbs);
-				}
 			}
 		}
 

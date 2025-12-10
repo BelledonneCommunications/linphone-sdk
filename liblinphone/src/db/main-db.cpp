@@ -7985,18 +7985,20 @@ void MainDb::insertExpiredConference(const std::shared_ptr<Address> &uri) {
 #endif
 }
 
-void MainDb::deleteConferenceInfo(long long dbConferenceId) {
+void MainDb::deleteConferenceInfo(long long dbConferenceId, bool doCleanup) {
 #ifdef HAVE_DB_STORAGE
 	L_D();
-	long long peerId;
 	soci::session *session = d->dbSession.getBackendSession();
-	std::string peerIdQuery =
-	    "SELECT uri_sip_address_id FROM conference_info WHERE (conference_info.id = :conferenceInfoId)";
-	*session << peerIdQuery, soci::use(dbConferenceId), soci::into(peerId);
-	if (session->got_data()) {
-		long long chatRoomId = d->selectChatRoomId(peerId);
-		if (chatRoomId >= 0) {
-			d->deleteChatRoom(chatRoomId);
+	if (doCleanup) {
+		long long peerId;
+		std::string peerIdQuery =
+		    "SELECT uri_sip_address_id FROM conference_info WHERE (conference_info.id = :conferenceInfoId)";
+		*session << peerIdQuery, soci::use(dbConferenceId), soci::into(peerId);
+		if (session->got_data()) {
+			long long chatRoomId = d->selectChatRoomId(peerId);
+			if (chatRoomId >= 0) {
+				d->deleteChatRoom(chatRoomId);
+			}
 		}
 	}
 
@@ -8005,7 +8007,7 @@ void MainDb::deleteConferenceInfo(long long dbConferenceId) {
 #endif
 }
 
-void MainDb::deleteConferenceInfo(const Address address) {
+void MainDb::deleteConferenceInfo(const Address address, bool doCleanup) {
 #ifdef HAVE_DB_STORAGE
 	if (isInitialized() && address.isValid()) {
 		L_DB_TRANSACTION {
@@ -8013,19 +8015,19 @@ void MainDb::deleteConferenceInfo(const Address address) {
 			lInfo() << "Deleting conference information linked to conference " << address;
 			const long long &uriSipAddressId = d->selectSipAddressId(address, false);
 			const long long &dbConferenceId = d->selectConferenceInfoId(uriSipAddressId);
-			deleteConferenceInfo(dbConferenceId);
+			deleteConferenceInfo(dbConferenceId, doCleanup);
 			tr.commit();
 		};
 	}
 #endif
 }
 
-void MainDb::deleteConferenceInfo(const std::shared_ptr<Address> &address) {
-	deleteConferenceInfo(processConferenceAddress(address));
+void MainDb::deleteConferenceInfo(const std::shared_ptr<Address> &address, bool doCleanup) {
+	deleteConferenceInfo(processConferenceAddress(address), doCleanup);
 }
 
-void MainDb::deleteConferenceInfo(const std::shared_ptr<ConferenceInfo> &conferenceInfo) {
-	deleteConferenceInfo(conferenceInfo->getUri());
+void MainDb::deleteConferenceInfo(const std::shared_ptr<ConferenceInfo> &conferenceInfo, bool doCleanup) {
+	deleteConferenceInfo(conferenceInfo->getUri(), doCleanup);
 }
 
 // -----------------------------------------------------------------------------

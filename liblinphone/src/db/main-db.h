@@ -272,9 +272,9 @@ public:
 	std::shared_ptr<ConferenceInfo> getConferenceInfoFromURI(const std::shared_ptr<Address> &uri);
 	std::shared_ptr<ConferenceInfo> getConferenceInfoFromCcmpUri(const std::string &uri);
 	long long insertConferenceInfo(const std::shared_ptr<ConferenceInfo> &conferenceInfo);
-	void deleteConferenceInfo(long long dbConferenceId);
-	void deleteConferenceInfo(const std::shared_ptr<Address> &address);
-	void deleteConferenceInfo(const std::shared_ptr<ConferenceInfo> &conferenceInfo);
+	void deleteConferenceInfo(long long dbConferenceId, bool doCleanup = true);
+	void deleteConferenceInfo(const std::shared_ptr<Address> &address, bool doCleanup = true);
+	void deleteConferenceInfo(const std::shared_ptr<ConferenceInfo> &conferenceInfo, bool doCleanup = true);
 	void migrateConferenceInfos();
 	void cleanupConferenceInfo(time_t expiredBeforeThisTime);
 
@@ -345,7 +345,7 @@ private:
 
 	void initCleanup();
 	static Address processConferenceAddress(const std::shared_ptr<Address> &uri);
-	void deleteConferenceInfo(const Address address);
+	void deleteConferenceInfo(const Address address, bool doCleanup = true);
 
 	typedef std::unordered_map<ConferenceId, ChatRoomContext, ConferenceId::WeakHash, ConferenceId::WeakEqual>
 	    ChatRoomContextWeakCompareMap;

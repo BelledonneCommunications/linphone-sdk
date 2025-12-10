@@ -1695,9 +1695,16 @@ std::shared_ptr<ConferenceInfo> Conference::createConferenceInfoWithCustomPartic
 	}
 	return createConferenceInfoWithCustomParticipantList(organizer, infos);
 }
+
 std::shared_ptr<ConferenceInfo> Conference::createConferenceInfoWithCustomParticipantList(
     const std::shared_ptr<Address> &organizer, const ConferenceInfo::participant_list_t &invitedParticipants) const {
 	std::shared_ptr<ConferenceInfo> info = ConferenceInfo::create();
+
+	const auto &conferenceAddress = getConferenceAddress();
+	if (conferenceAddress && conferenceAddress->isValid()) {
+		info->setUri(conferenceAddress);
+	}
+
 	if (organizer) {
 		auto organizerInfo = ParticipantInfo::create(Address::create(organizer->getUri()));
 		for (const auto &[name, value] : organizer->getParams()) {
@@ -1707,11 +1714,6 @@ std::shared_ptr<ConferenceInfo> Conference::createConferenceInfoWithCustomPartic
 	}
 	for (const auto &participant : invitedParticipants) {
 		info->addParticipant(participant);
-	}
-
-	const auto &conferenceAddress = getConferenceAddress();
-	if (conferenceAddress && conferenceAddress->isValid()) {
-		info->setUri(conferenceAddress);
 	}
 
 	const time_t startTime = mConfParams->getStartTime();
@@ -2125,6 +2127,13 @@ bool Conference::isConferenceStarted() const {
 	return conferenceStarted;
 }
 
+bool Conference::supportsConferenceEventPackage() const {
+#if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
+	return !!linphone_config_get_bool(linphone_core_get_config(getCore()->getCCore()), "misc",
+	                                  "conference_event_log_enabled", TRUE);
+#endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
+	return false;
+}
 bool Conference::isSubscriptionUnderWay() const {
 	return false;
 }
