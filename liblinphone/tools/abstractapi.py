@@ -963,9 +963,6 @@ class CParser:
 				param['size'] = elem
 			elif elem == 'int':
 				name = 'integer'
-			elif elem == 'uint64_t':
-				name = 'integer'
-				param['size'] = 'long'
 			elif elem == 'float':
 				name = 'floatant'
 				param['size'] = 'float'
@@ -1222,7 +1219,7 @@ class JavaLangTranslator(CLikeLangTranslator):
 				if jni:
 					return 'jbyteArray'
 				return 'byte[]'
-			elif type_.size is not None and type_.size == 'long':
+			elif type_.size is not None and (type_.size == 'long' or (type_.isUnsigned == True and type_.size == 64)):
 				if jni:
 					return 'jlong'
 				return 'long'
