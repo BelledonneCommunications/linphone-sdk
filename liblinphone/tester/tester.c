@@ -4384,6 +4384,13 @@ void liblinphone_tester_chat_message_msg_state_changed(LinphoneChatMessage *msg,
 		ms_error("Unexpected state [%s] for msg [%p]", linphone_chat_message_state_to_string(state), msg);
 	else ms_message("New state [%s] for msg [%p]", linphone_chat_message_state_to_string(state), msg);
 
+	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(msg);
+	if (linphone_chat_message_get_to_be_stored(msg)) {
+		BC_ASSERT_PTR_NOT_NULL(event_log);
+	} else {
+		BC_ASSERT_PTR_NULL(event_log);
+	}
+
 	if (linphone_chat_message_is_outgoing(msg) && state == LinphoneChatMessageStateDelivered) {
 		LinphoneChatRoom *room = linphone_chat_message_get_chat_room(msg);
 		BC_ASSERT_PTR_NOT_NULL(room);

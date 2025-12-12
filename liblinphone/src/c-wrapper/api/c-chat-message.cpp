@@ -685,3 +685,11 @@ bool_t linphone_chat_message_is_edited(LinphoneChatMessage *message) {
 bool_t linphone_chat_message_is_editable(LinphoneChatMessage *message) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(message)->canBeEdited();
 }
+
+const LinphoneEventLog *linphone_chat_message_get_event_log(LinphoneChatMessage *message) {
+	const auto eventLog = L_GET_CPP_PTR_FROM_C_OBJECT(message)->getEventLog();
+	if (eventLog) {
+		return L_GET_C_BACK_PTR(eventLog);
+	}
+	return NULL;
+}

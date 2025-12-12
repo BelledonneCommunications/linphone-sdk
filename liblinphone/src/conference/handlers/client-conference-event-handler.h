@@ -49,7 +49,7 @@ public:
 	virtual ~ClientConferenceEventHandler() = default;
 
 	bool subscribe(const ConferenceId &conferenceId);
-	bool notAlreadySubscribed() const;
+	bool alreadySubscribed() const;
 	bool needToSubscribe() const;
 	void notifyReceived(const Content &content);
 	void notifyReceived(std::shared_ptr<Event> notifyLev, const Content &content);
@@ -64,8 +64,6 @@ public:
 	std::shared_ptr<Conference> getConference() const;
 	unsigned int getLastNotify() const;
 	void requestFullState();
-
-	void setSubscriptionWanted(bool wanted);
 
 	void setInitialSubscriptionUnderWayFlag(bool on);
 	bool getInitialSubscriptionUnderWayFlag() const;
@@ -93,7 +91,6 @@ protected:
 	ConferenceListener *confListener = nullptr;
 
 	bool managedByListEventhandler = false;
-	bool subscriptionWanted = false;
 	bool waitingFullState = false;
 	bool fullStateRequested = false;
 	bool mInitialSubscriptionUnderWay = false;

@@ -816,15 +816,10 @@ void ClientConferenceEventHandler::requestFullState() {
 
 // -----------------------------------------------------------------------------
 
-bool ClientConferenceEventHandler::notAlreadySubscribed() const {
-	bool notSubscribed = false;
-	if (managedByListEventhandler) {
-		notSubscribed =
-		    !getCore()->getPrivate()->clientListEventHandler->alreadySubscribed(getConferenceId().getLocalAddress());
-	} else {
-		notSubscribed = !ev && subscriptionWanted;
-	}
-	return notSubscribed;
+bool ClientConferenceEventHandler::alreadySubscribed() const {
+	const auto &subscriptionState = getSubscriptionState();
+	return (subscriptionState == LinphoneSubscriptionActive) ||
+	       (subscriptionState == LinphoneSubscriptionOutgoingProgress);
 }
 
 bool ClientConferenceEventHandler::needToSubscribe() const {
@@ -835,7 +830,7 @@ bool ClientConferenceEventHandler::needToSubscribe() const {
 		conferenceStateOk = (conferenceState == ConferenceInterface::State::CreationPending) ||
 		                    (conferenceState == ConferenceInterface::State::Created);
 	}
-	return notAlreadySubscribed() && !managedByListEventhandler && conferenceStateOk;
+	return !alreadySubscribed() && !managedByListEventhandler && conferenceStateOk;
 }
 
 void ClientConferenceEventHandler::subscribeStateChangedCb(LinphoneEvent *lev, LinphoneSubscriptionState state) {
@@ -867,13 +862,13 @@ bool ClientConferenceEventHandler::subscribe() {
 	if (!needToSubscribe()) {
 		lError()
 		    << "Unable to subscribe to " << *conference
-		    << "  because either there is an active subscription to it or the application didn't request to subscribe";
+		    << " because either there is an active subscription to it or the application didn't request to subscribe";
 		return false; // Already subscribed or application did not request subscription
 	}
 
 	const auto localAddress = getConferenceId().getLocalAddress();
 	if (!localAddress) {
-		lError() << "Unable to subscribe to " << *conference << "  because the local address is unknown";
+		lError() << "Unable to subscribe to " << *conference << " because the local address is unknown";
 		return false; // Unknown local address
 	}
 
@@ -887,7 +882,7 @@ bool ClientConferenceEventHandler::subscribe() {
 		    Conference::isAnonymousParticipant(account->getAccountParams()->getIdentityAddress());
 		if (!isAnonymousParticipant && (accountState != LinphoneRegistrationRefreshing) &&
 		    (accountState != LinphoneRegistrationOk)) {
-			lError() << "Unable to subscribe to " << *conference << "  because " << *account
+			lError() << "Unable to subscribe to " << *conference << " because " << *account
 			         << " has not registered yet (its state is "
 			         << linphone_registration_state_to_string(account->getState()) << ")";
 			return false;
@@ -1017,27 +1012,18 @@ LinphoneSubscriptionState ClientConferenceEventHandler::getSubscriptionState() c
 }
 
 // -----------------------------------------------------------------------------
-
-void ClientConferenceEventHandler::setSubscriptionWanted(bool wanted) {
-	subscriptionWanted = wanted;
-}
-
 bool ClientConferenceEventHandler::subscribe(BCTBX_UNUSED(const ConferenceId &conferenceId)) {
 	// Do not send individual SUBSCRIBE messages if the event handler is managed by the list event handler
 	if (managedByListEventhandler) return false;
-	setSubscriptionWanted(true);
 	auto ret = subscribe();
 	if (ret) {
 		waitingFullState = (getLastNotify() == 0);
-	} else {
-		setSubscriptionWanted(false);
 	}
 	return ret;
 }
 
 void ClientConferenceEventHandler::unsubscribe() {
 	unsubscribePrivate();
-	setSubscriptionWanted(false);
 	setManagedByListEventhandler(false);
 }
 

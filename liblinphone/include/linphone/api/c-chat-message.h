@@ -300,7 +300,7 @@ LINPHONE_PUBLIC const char *linphone_chat_message_get_custom_header(const Linpho
 LINPHONE_PUBLIC void linphone_chat_message_remove_custom_header(LinphoneChatMessage *message, const char *header_name);
 
 /**
- * Returns wether the message has been read or not.
+ * Returns whether the message has been read or not.
  * @param message #LinphoneChatMessage object. @notnil
  * @return TRUE if message has been marked as read, FALSE otherwise.
  */
@@ -322,7 +322,7 @@ LINPHONE_PUBLIC LinphoneReason linphone_chat_message_get_reason(const LinphoneCh
 LINPHONE_PUBLIC const LinphoneErrorInfo *linphone_chat_message_get_error_info(const LinphoneChatMessage *message);
 
 /**
- * Returns wether the chat message is a forward message or not.
+ * Returns whether the chat message is a forward message or not.
  * @param message #LinphoneChatMessage object. @notnil
  * @return TRUE if it is a forward message, FALSE otherwise
  */
@@ -336,7 +336,7 @@ LINPHONE_PUBLIC bool_t linphone_chat_message_is_forward(LinphoneChatMessage *mes
 LINPHONE_PUBLIC const char *linphone_chat_message_get_forward_info(const LinphoneChatMessage *message);
 
 /**
- * Returns wether the chat message is a reply message or not.
+ * Returns whether the chat message is a reply message or not.
  * @param message #LinphoneChatMessage object. @notnil
  * @return TRUE if it is a reply message, FALSE otherwise
  */
@@ -365,7 +365,7 @@ linphone_chat_message_get_reply_message_sender_address(LinphoneChatMessage *mess
 LINPHONE_PUBLIC LinphoneChatMessage *linphone_chat_message_get_reply_message(LinphoneChatMessage *message);
 
 /**
- * Returns wether the chat message is an ephemeral message or not.
+ * Returns whether the chat message is an ephemeral message or not.
  * An ephemeral message will automatically disappear from the recipient's screen after the message has been viewed.
  * @param message #LinphoneChatMessage object. @notnil
  * @return TRUE if it is an ephemeral message, FALSE otherwise
@@ -506,7 +506,7 @@ LINPHONE_PUBLIC const LinphoneChatMessageReaction *
 linphone_chat_message_get_own_reaction(const LinphoneChatMessage *message);
 
 /**
- * Returns wether the chat message has a conference invitation content or not.
+ * Returns whether the chat message has a conference invitation content or not.
  * @param message #LinphoneChatMessage object. @notnil
  * @return TRUE if it has one, FALSE otherwise.
  */
@@ -523,39 +523,46 @@ LINPHONE_PUBLIC LinphoneChatMessageReaction *linphone_chat_message_create_reacti
                                                                                    const char *utf8_reaction);
 
 /**
- * Returns wether this message has been retracted by it's sender after it was sent.
+ * Returns whether this message has been retracted by it's sender after it was sent.
  * @param message the message you want to check if it was edited or not @notnil
  * @return TRUE if the message has been retracted after it was sent, FALSE otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_chat_message_is_retracted(LinphoneChatMessage *message);
 
 /**
- * Returns wether this message can be retracted (maximum allowed time to retract it was reached or not).
+ * Returns whether this message can be retracted (maximum allowed time to retract it was reached or not).
  * @param message the message you want to check if it can be retracted or not @notnil
  * @return TRUE if the message can be retracted, FALSE otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_chat_message_is_retractable(LinphoneChatMessage *message);
 
 /**
- * Returns wether this message has been edited by it's sender after it was sent.
+ * Returns whether this message has been edited by it's sender after it was sent.
  * @param message the message you want to check if it was edited or not @notnil
  * @return TRUE if the message has been edited after it was sent, FALSE otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_chat_message_is_edited(LinphoneChatMessage *message);
 
 /**
- * Returns wether this message can be edited (maximum allowed time to edit it was reached or not).
+ * Returns whether this message can be edited (maximum allowed time to edit it was reached or not).
  * @param message the message you want to check if it can be edited or not @notnil
  * @return TRUE if the message can be edited, FALSE otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_chat_message_is_editable(LinphoneChatMessage *message);
+
+/**
+ * Returns the event log associated to the chat message
+ * @param message the message you want to retrieve the event log for @notnil
+ * @return The event log, if exists, NULL otherwise @maybenil
+ */
+LINPHONE_PUBLIC const LinphoneEventLog *linphone_chat_message_get_event_log(LinphoneChatMessage *message);
 
 /************ */
 /* DEPRECATED */
 /* ********** */
 
 /**
- * Returns wether the chat message has a text content or not.
+ * Returns whether the chat message has a text content or not.
  * @param message #LinphoneChatMessage object. @notnil
  * @return TRUE if it has one, FALSE otherwise.
  * @deprecated 27/10/2020. Check if linphone_chat_message_get_contents() contains a #LinphoneContent for which it's
@@ -668,7 +675,6 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED bool_t linphone_chat_message_is_file_transfe
  * content type.
  */
 LINPHONE_PUBLIC LINPHONE_DEPRECATED bool_t linphone_chat_message_is_text(const LinphoneChatMessage *message);
-
 /**
  * @}
  */

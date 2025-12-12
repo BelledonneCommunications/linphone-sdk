@@ -341,13 +341,13 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 	bool queueMessage = false;
 
 	if ((state == ConferenceInterface::State::Terminated) && !getCurrentParams()->isGroup()) {
-		lInfo() << *conference << ": Trying to send message [" << chatMessage
+		lInfo() << *this << ": Trying to send message [" << chatMessage
 		        << "] into a terminated 1-1 chat room, exhuming it first";
 		exhume();
 		queueMessage = true;
 	} else if (state == ConferenceInterface::State::Instantiated ||
 	           state == ConferenceInterface::State::CreationPending) {
-		lInfo() << *conference << ": Trying to send a message [" << chatMessage
+		lInfo() << *this << ": Trying to send a message [" << chatMessage
 		        << "] in a chat room that's not created yet, queuing the message and it will be sent later";
 		queueMessage = true;
 	} else if (state == ConferenceInterface::State::Created) {
@@ -356,7 +356,7 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 			auto eventHandler = clientConference->mEventHandler;
 			auto encryptionEngine = getCore()->getEncryptionEngine();
 			if (!encryptionEngine) {
-				lError() << *conference << ": Unable to send message [" << chatMessage
+				lError() << *this << ": Unable to send message [" << chatMessage
 				         << "] because the encryption engine of the encrypted chat room has not been found";
 				chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
 				                                               ::ms_time(nullptr));
@@ -365,23 +365,31 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 				auto eventSubscribeState = LinphoneSubscriptionNone;
 				bool alreadySubscribed = false;
 				if (eventHandler) {
-					alreadySubscribed = !eventHandler->notAlreadySubscribed();
+					alreadySubscribed = eventHandler->alreadySubscribed();
 					eventSubscribeState = eventHandler->getSubscriptionState();
 				}
 				bool coreRunning = (coreGlobalState == LinphoneGlobalOn);
-				if (coreRunning &&
-				    (!eventHandler || !alreadySubscribed || (eventSubscribeState == LinphoneSubscriptionError))) {
-					lError() << *conference << ": Unable to send chat message [" << chatMessage
+				if (!conference->supportsConferenceEventPackage()) {
+					lError() << *this << ": Unable to send chat message [" << chatMessage
+					         << "] because RFC4575 is not supported in this chatroom therefore it is not possible to "
+					            "retrieve the list of participants";
+					chatMessage->getPrivate()->setParticipantState(
+					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
+				} else if (coreRunning && (!eventHandler || (eventSubscribeState == LinphoneSubscriptionError))) {
+					lError() << *this << ": Unable to send chat message [" << chatMessage
 					         << "] because the subscription to retrieve the list of participant devices errored out "
 					            "(current state "
 					         << linphone_subscription_state_to_string(eventSubscribeState)
-					         << ") or the conference has not instantiated a event handler probably due to the lack of "
-					            "RFC4575 support (event handler ["
-					         << eventHandler << "] - subscribe sent [" << alreadySubscribed << "])";
+					         << ") or the event handler has not been instantiated (event handler [" << eventHandler
+					         << "]";
 					chatMessage->getPrivate()->setParticipantState(
 					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
-				} else if (conference->getParticipantDevices().empty()) {
-					lInfo() << *conference << ": Delaying sending of message [" << chatMessage
+				} else if (!alreadySubscribed) {
+					lInfo() << *this << ": Delaying sending of message [" << chatMessage
+					        << "] in an encrypted chat room because no subscription has been sent yet";
+					queueMessage = true;
+				} else if (!alreadySubscribed || conference->getParticipantDevices().empty()) {
+					lInfo() << *this << ": Delaying sending of message [" << chatMessage
 					        << "] in an encrypted chat room because the list of participant devices has not been "
 					           "received yet "
 					           "and the encryption engine ["

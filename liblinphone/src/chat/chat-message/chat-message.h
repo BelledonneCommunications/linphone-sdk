@@ -40,6 +40,7 @@ class ClientChatRoom;
 class Address;
 class Conference;
 class Content;
+class EventLog;
 class FileContent;
 class FileTransferContent;
 class ChatMessagePrivate;
@@ -108,6 +109,7 @@ public:
 	void setIsSecured(bool isSecured);
 	// ----- TODO: Remove me.
 
+	std::shared_ptr<EventLog> getEventLog() const;
 	long long getStorageId() const;
 	void deleteChatMessageFromCache();
 
@@ -213,7 +215,7 @@ private:
 	static int resendTimerExpired(void *data, unsigned int revents);
 	int handleAutomaticResend();
 	void stopResendTimer();
-	bool needToBeResent() const;
+	bool needsToBeResent() const;
 
 	L_DECLARE_PRIVATE(ChatMessage);
 	L_DISABLE_COPY(ChatMessage);

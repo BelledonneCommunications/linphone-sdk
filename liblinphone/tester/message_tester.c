@@ -74,6 +74,10 @@ create_message_from_sintel_trailer_legacy(LinphoneChatRoom *chat_room, const cha
 	linphone_content_set_user_data(content, file_to_send);
 
 	msg = linphone_chat_room_create_file_transfer_message(chat_room, content);
+	BC_ASSERT_TRUE(linphone_chat_message_get_to_be_stored(msg));
+	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(msg);
+	BC_ASSERT_PTR_NULL(event_log);
+
 	cbs = linphone_chat_message_get_callbacks(msg);
 	linphone_chat_message_cbs_set_file_transfer_send(cbs, tester_file_transfer_send);
 	linphone_chat_message_cbs_set_msg_state_changed(cbs, liblinphone_tester_chat_message_msg_state_changed);
@@ -109,6 +113,9 @@ LinphoneChatMessage *_create_message_from_sintel_trailer(LinphoneChatRoom *chat_
 	linphone_content_set_user_data(content, file_to_send);
 
 	msg = linphone_chat_room_create_file_transfer_message(chat_room, content);
+	BC_ASSERT_TRUE(linphone_chat_message_get_to_be_stored(msg));
+	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(msg);
+	BC_ASSERT_PTR_NULL(event_log);
 	cbs = linphone_factory_create_chat_message_cbs(linphone_factory_get());
 	linphone_chat_message_cbs_set_file_transfer_send_chunk(cbs, tester_file_transfer_send_2);
 	linphone_chat_message_cbs_set_msg_state_changed(cbs, liblinphone_tester_chat_message_msg_state_changed);
@@ -667,6 +674,9 @@ static void message_with_two_attachments(void) {
 	linphone_chat_room_allow_multipart(chat_room);
 
 	LinphoneChatMessage *message = linphone_chat_room_create_empty_message(chat_room);
+	BC_ASSERT_TRUE(linphone_chat_message_get_to_be_stored(message));
+	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(message);
+	BC_ASSERT_PTR_NULL(event_log);
 
 	LinphoneContent *file_transfer_content1 = linphone_core_create_content(linphone_chat_room_get_core(chat_room));
 	linphone_content_set_file_path(file_transfer_content1, send_filepath1);

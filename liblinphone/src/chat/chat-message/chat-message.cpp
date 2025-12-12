@@ -406,6 +406,51 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 		}
 	}
 
+	bool needsToBeStored =
+	    ((state != ChatMessage::State::InProgress) && (state != ChatMessage::State::FileTransferError) &&
+	     (state != ChatMessage::State::FileTransferInProgress) &&
+	     (state != ChatMessage::State::FileTransferCancelling) &&
+	     !((state == ChatMessage::State::NotDelivered) &&
+	       ((reason == LinphoneReasonUnsupportedContent) || (reason == LinphoneReasonNotAcceptable)) &&
+	       (direction == ChatMessage::Direction::Incoming)));
+	// 3. Specific case, upon reception do not attempt to store in db before asking the user if he wants to do so or not
+	if (state == ChatMessage::State::FileTransferDone && direction == ChatMessage::Direction::Incoming) {
+		if (!hasFileTransferContent() && isMarkedAsRead()) {
+			auto me = chatRoom->getMe();
+			setParticipantState(me->getAddress(), ChatMessage::State::Displayed, ::ms_time(nullptr));
+			needsToBeStored = false;
+		}
+	}
+
+	if (state == ChatMessage::State::Delivered && oldState == ChatMessage::State::Idle &&
+	    direction == ChatMessage::Direction::Incoming && !q->isValid()) {
+		// If we're here it's because message is because we're in the middle of the receive() method and
+		// we won't have a valid dbKey until the chat room callback asking if message should be stored will be called
+		// and that's happen in the notifyReceiving() called at the of the receive() method we're in.
+		// This prevents the error log: Invalid db key [%p] associated to message [%p]
+		needsToBeStored = false;
+	}
+
+	// 4. update in database for ephemeral message if necessary.
+	if (isEphemeral &&
+	    chatRoom->getCore()->getEphemeralChatMessagePolicy() == LinphoneEphemeralChatMessagePolicyDefault) {
+		if (state == ChatMessage::State::Displayed) {
+			lInfo() << "All participants are in displayed state, starting ephemeral countdown";
+			startEphemeralCountDown(Normal);
+		} else if (((direction == ChatMessage::Direction::Outgoing) && (state == ChatMessage::State::Delivered)) ||
+		           ((direction == ChatMessage::Direction::Incoming) &&
+		            (state == ChatMessage::State::DeliveredToUser))) {
+			lInfo() << "In delivered state, starting ephemeral not-read countdown";
+			startEphemeralCountDown(NotRead);
+		}
+	}
+
+	// 5. Update in database if necessary.
+	if (needsToBeStored) {
+		// If the message has already been stored than the event log will only be updated
+		storeInDb();
+	}
+
 	LinphoneChatMessage *msg = L_GET_C_BACK_PTR(q);
 	if (linphone_chat_message_get_message_state_changed_cb(msg))
 		linphone_chat_message_get_message_state_changed_cb(msg)(
@@ -429,49 +474,6 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 		setState(failState);
 	}
 
-	// 3. Specific case, upon reception do not attempt to store in db before asking the user if he wants to do so or not
-	if (state == ChatMessage::State::FileTransferDone && direction == ChatMessage::Direction::Incoming) {
-		if (!hasFileTransferContent() && isMarkedAsRead()) {
-			auto me = chatRoom->getMe();
-			setParticipantState(me->getAddress(), ChatMessage::State::Displayed, ::ms_time(nullptr));
-			return;
-		}
-	}
-
-	if (state == ChatMessage::State::Delivered && oldState == ChatMessage::State::Idle &&
-	    direction == ChatMessage::Direction::Incoming && !q->isValid()) {
-		// If we're here it's because message is because we're in the middle of the receive() method and
-		// we won't have a valid dbKey until the chat room callback asking if message should be stored will be called
-		// and that's happen in the notifyReceiving() called at the of the receive() method we're in.
-		// This prevents the error log: Invalid db key [%p] associated to message [%p]
-		return;
-	}
-
-	// 4. update in database for ephemeral message if necessary.
-	if (isEphemeral &&
-	    chatRoom->getCore()->getEphemeralChatMessagePolicy() == LinphoneEphemeralChatMessagePolicyDefault) {
-		if (state == ChatMessage::State::Displayed) {
-			lInfo() << "All participants are in displayed state, starting ephemeral countdown";
-			startEphemeralCountDown(Normal);
-		} else if (((direction == ChatMessage::Direction::Outgoing) && (state == ChatMessage::State::Delivered)) ||
-		           ((direction == ChatMessage::Direction::Incoming) &&
-		            (state == ChatMessage::State::DeliveredToUser))) {
-			lInfo() << "In delivered state, starting ephemeral not-read countdown";
-			startEphemeralCountDown(NotRead);
-		}
-	}
-
-	// 5. Update in database if necessary.
-	if ((state != ChatMessage::State::InProgress) && (state != ChatMessage::State::FileTransferError) &&
-	    (state != ChatMessage::State::FileTransferInProgress) &&
-	    (state != ChatMessage::State::FileTransferCancelling) &&
-	    !((state == ChatMessage::State::NotDelivered) &&
-	      ((reason == LinphoneReasonUnsupportedContent) || (reason == LinphoneReasonNotAcceptable)) &&
-	      (direction == ChatMessage::Direction::Incoming))) {
-		// If the message has already been stored than the event log will only be updated
-		storeInDb();
-	}
-
 	if ((direction == ChatMessage::Direction::Outgoing) && (state == ChatMessage::State::NotDelivered) &&
 	    (currentSendStep == Step::None)) {
 		chatRoom->chatMessageEarlyFailure(sharedMessage);
@@ -492,7 +494,7 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 		restoreFileTransferContentAsFileContent();
 	}
 
-	if (q->needToBeResent()) {
+	if (q->needsToBeResent()) {
 		chatRoom->getCore()->getPrivate()->registerListener(q);
 		int resendTimerDurationSeconds = linphone_core_get_message_automatic_resending_delay(q->getCore()->getCCore());
 		if ((direction == ChatMessage::Direction::Outgoing) && !hasBeenAutomaticallyResent && needResend &&
@@ -2015,6 +2017,23 @@ long long ChatMessage::getStorageId() const {
 	return d->storageId;
 }
 
+shared_ptr<EventLog> ChatMessage::getEventLog() const {
+	L_D();
+	shared_ptr<AbstractChatRoom> chatRoom(d->mChatRoom.lock());
+	if (chatRoom) {
+		const auto &storageId = getStorageId();
+		if (storageId >= 0) {
+			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
+			return mainDb->getEvent(mainDb, storageId);
+		} else {
+			return nullptr;
+		}
+	} else {
+		lError() << "ChatMessage [" << this << "] is not associated to any chatroom";
+	}
+	return nullptr;
+}
+
 shared_ptr<AbstractChatRoom> ChatMessage::getChatRoom() const {
 	L_D();
 	shared_ptr<AbstractChatRoom> chatRoom(d->mChatRoom.lock());
@@ -2731,7 +2750,7 @@ void ChatMessage::stopResendTimer() {
 
 void ChatMessage::onNetworkReachable(bool sipNetworkReachable, BCTBX_UNUSED(bool mediaNetworkReachable)) {
 	try {
-		if (needToBeResent() && sipNetworkReachable) {
+		if (needsToBeResent() && sipNetworkReachable) {
 			// Try to resend message if the account has correctly registered
 			auto account = getCore()->findAccountByIdentityAddress(getLocalAddress());
 			if (account && (account->getState() == LinphoneRegistrationOk)) {
@@ -2747,7 +2766,7 @@ void ChatMessage::onAccountRegistrationStateChanged(std::shared_ptr<Account> acc
                                                     LinphoneRegistrationState state,
                                                     BCTBX_UNUSED(const string &message)) {
 	try {
-		if (!needToBeResent() || (state != LinphoneRegistrationState::LinphoneRegistrationOk)) return;
+		if (!needsToBeResent() || (state != LinphoneRegistrationState::LinphoneRegistrationOk)) return;
 		auto messageAccount = getCore()->findAccountByIdentityAddress(getLocalAddress());
 		if ((messageAccount == account) && (state == LinphoneRegistrationOk)) {
 			lInfo() << "Attempt again to send message " << this << " because the core registered again";
@@ -2757,7 +2776,7 @@ void ChatMessage::onAccountRegistrationStateChanged(std::shared_ptr<Account> acc
 	}
 }
 
-bool ChatMessage::needToBeResent() const {
+bool ChatMessage::needsToBeResent() const {
 	const auto &state = getState();
 	return ((state == State::PendingDelivery) || (state == State::Queued));
 }
