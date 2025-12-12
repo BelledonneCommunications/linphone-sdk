@@ -453,6 +453,12 @@ static void audio_bandwidth_estimation_base(bool srtp) {
 	linphone_core_set_use_files(marie->lc, TRUE);
 	linphone_core_set_play_file(marie->lc, stereo_file);
 
+	/*disable audio noise suppression as it reduces too much the packets size*/
+	linphone_core_enable_noise_suppression(
+	    marie->lc, !!linphone_config_get_int(marie->lc->config, "sound", "noise_suppression", FALSE));
+	linphone_core_enable_noise_suppression(
+	    marie->lc, !!linphone_config_get_int(pauline->lc->config, "sound", "noise_suppression", FALSE));
+
 	if (!BC_ASSERT_TRUE(call(pauline, marie))) goto end;
 
 	// Lower Marie's outbound bitrate on the network
