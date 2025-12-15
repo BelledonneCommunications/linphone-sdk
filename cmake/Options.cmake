@@ -143,6 +143,7 @@ linphonesdk_dependent_option("MSWinRTVideo" "Build mswinrtvid mediastreamer plug
 
 # Activation of other software features
 linphonesdk_option("Advanced IM" "Enable advanced instant messaging such as group chat." ON)
+linphonesdk_option("Xercesc" "Enable XERCESC support." ON)
 linphonesdk_option("Assets" "Enable packaging of assets (ringtones) when building the SDK." ON)
 linphonesdk_option("Daemon" "Enable Linphone Daemon." ON)
 linphonesdk_option("DB Storage" "Enable the database storage." ON)

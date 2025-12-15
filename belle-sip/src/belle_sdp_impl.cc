@@ -1439,6 +1439,7 @@ const struct static_payload static_payload_list[] = {
 
 static const size_t payload_list_elements = sizeof(static_payload_list) / sizeof(struct static_payload);
 
+#ifndef BELLE_SDP_FORCE_RTP_MAP
 static int mime_parameter_is_static(const belle_sdp_mime_parameter_t *param) {
 	const struct static_payload *iterator;
 	size_t i;
@@ -1451,6 +1452,7 @@ static int mime_parameter_is_static(const belle_sdp_mime_parameter_t *param) {
 	}
 	return FALSE;
 }
+#endif // BELLE_SDP_FORCE_RTP_MAP
 
 static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_parameter, int format) {
 	const struct static_payload *iterator;
@@ -1591,7 +1593,7 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 #ifndef BELLE_SDP_FORCE_RTP_MAP /* defined to for RTP map even for static codec*/
 	if (!mime_parameter_is_static(mime_parameter)) {
 		/*dynamic payload*/
-#endif
+#endif // BELLE_SDP_FORCE_RTP_MAP
 		if (belle_sdp_mime_parameter_get_channel_count(mime_parameter) > 1) {
 			snprintf(atribute_value, MAX_FMTP_LENGTH, "%i %s/%i/%i",
 			         belle_sdp_mime_parameter_get_media_format(mime_parameter),
@@ -1606,7 +1608,7 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 		belle_sdp_media_description_set_attribute_value(media_description, "rtpmap", atribute_value);
 #ifndef BELLE_SDP_FORCE_RTP_MAP
 	}
-#endif
+#endif // BELLE_SDP_FORCE_RTP_MAP
 
 	// always include fmtp parameters if available
 	if (belle_sdp_mime_parameter_get_parameters(mime_parameter)) {

@@ -261,7 +261,7 @@ void check_delete_focus_conference_info(std::initializer_list<std::reference_wra
 				           linphone_core_get_identity(mgr->lc), conferenceAddressString, time_left);
 				CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds(1), [] { return false; });
 			}
-			if ((mgr == focus) && (time_left <= 1) && (focus_cleanup_window > 0)) {
+			if ((mgr == focus) && (time_left <= 0) && (focus_cleanup_window > 0)) {
 				BC_ASSERT_PTR_NULL(info);
 			} else {
 				BC_ASSERT_PTR_NOT_NULL(info);
