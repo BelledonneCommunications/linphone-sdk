@@ -2059,6 +2059,7 @@ void Core::handleIncomingMessageWaitingIndication(std::shared_ptr<Event> event, 
 		if (!accountAddr) accountAddr = mwi->getAccountAddress();
 		auto account = findAccountByIdentityAddress(accountAddr);
 		if (account) {
+			account->setReceivedMessageWaitingIndication(mwi);
 			LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Account, account,
 			                                  linphone_account_cbs_get_message_waiting_indication_changed, mwi->toC());
 		}

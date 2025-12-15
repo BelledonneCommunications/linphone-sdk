@@ -1534,6 +1534,14 @@ void Account::unsubscribeFromMessageWaitingIndication() {
 	}
 }
 
+void Account::setReceivedMessageWaitingIndication(const shared_ptr<Mwi::MessageWaitingIndication> &mwi) {
+	mLatestReceivedMwiInfo = mwi;
+}
+
+shared_ptr<Mwi::MessageWaitingIndication> Account::getReceivedMessageWaitingIndication() const {
+	return mLatestReceivedMwiInfo;
+}
+
 // -----------------------------------------------------------------------------
 
 void Account::onInternationalPrefixChanged() {

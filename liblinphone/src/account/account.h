@@ -24,6 +24,7 @@
 #include <memory>
 
 #include "account-params.h"
+#include "account/mwi/message-waiting-indication.h"
 #include "c-wrapper/c-wrapper.h"
 #include "c-wrapper/internal/c-sal.h"
 #include "call/call-log.h"
@@ -160,6 +161,8 @@ public:
 	std::shared_ptr<Event> getMwiEvent() const;
 	void subscribeToMessageWaitingIndication();
 	void unsubscribeFromMessageWaitingIndication();
+	void setReceivedMessageWaitingIndication(const std::shared_ptr<Mwi::MessageWaitingIndication> &mwi);
+	std::shared_ptr<Mwi::MessageWaitingIndication> getReceivedMessageWaitingIndication() const;
 
 	// Utils
 	static LinphoneAccountAddressComparisonResult compareLinphoneAddresses(const std::shared_ptr<const Address> &a,
@@ -263,6 +266,7 @@ private:
 	unsigned int mCcmpConferenceInformationRequestsCounter = 0;
 
 	std::shared_ptr<Event> mMwiEvent;
+	std::shared_ptr<Mwi::MessageWaitingIndication> mLatestReceivedMwiInfo;
 };
 
 class AccountCbs : public bellesip::HybridObject<LinphoneAccountCbs, AccountCbs>, public Callbacks {

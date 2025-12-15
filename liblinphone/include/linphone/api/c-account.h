@@ -319,6 +319,13 @@ LINPHONE_PUBLIC void linphone_account_clear_call_logs(const LinphoneAccount *acc
  *up-to-date list of conferences
  **/
 LINPHONE_PUBLIC bctbx_list_t *linphone_account_get_conference_information_list(const LinphoneAccount *account);
+/**
+ * Returns the latest Message Waiting Indication (MWI) received payload, if any.
+ * @param account The #LinphoneAccount object. @notnil
+ * @return The latest #LinphoneMessageWaitingIndication or NULL. @maybenil
+ **/
+LINPHONE_PUBLIC const LinphoneMessageWaitingIndication *
+linphone_account_get_latest_received_message_waiting_indication(const LinphoneAccount *account);
 
 /**
  * Returns the list of conference information stored locally for a given account.

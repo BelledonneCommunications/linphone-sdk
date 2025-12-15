@@ -130,6 +130,12 @@ static void mwi_changed_on_account(LinphoneAccount *account, const LinphoneMessa
 	if (linphone_message_waiting_indication_has_message_waiting(mwi)) {
 		counters->number_of_mwi++;
 	}
+
+	const LinphoneMessageWaitingIndication *account_mwi =
+	    linphone_account_get_latest_received_message_waiting_indication(account);
+	BC_ASSERT_PTR_NOT_NULL(account_mwi);
+	BC_ASSERT_EQUAL(account_mwi, mwi, const LinphoneMessageWaitingIndication *, "%p");
+
 	const LinphoneMessageWaitingIndicationSummary *summary =
 	    linphone_message_waiting_indication_get_summary(mwi, LinphoneMessageWaitingIndicationVoice);
 	if (summary) {
@@ -258,6 +264,7 @@ static void mwi_notified_on_account(void) {
 
 	BC_ASSERT_TRUE(wait_for_until(pauline->lc, nullptr, &pauline->stat.number_of_LinphoneRegistrationOk, 1, 5000));
 
+	BC_ASSERT_PTR_NULL(linphone_account_get_latest_received_message_waiting_indication(pauline_account));
 	LinphoneAccountCbs *cbs = linphone_factory_create_account_cbs(linphone_factory_get());
 	linphone_account_cbs_set_message_waiting_indication_changed(cbs, mwi_changed_on_account);
 	linphone_account_add_callbacks(pauline_account, cbs);
@@ -280,6 +287,7 @@ static void mwi_notified_on_account(void) {
 	BC_ASSERT_EQUAL(pauline->stat.number_of_old_LinphoneMessageWaitingIndicationVoice, 8, int, "%d");
 	BC_ASSERT_EQUAL(pauline->stat.number_of_new_urgent_LinphoneMessageWaitingIndicationVoice, 1, int, "%d");
 	BC_ASSERT_EQUAL(pauline->stat.number_of_old_urgent_LinphoneMessageWaitingIndicationVoice, 2, int, "%d");
+	BC_ASSERT_PTR_NOT_NULL(linphone_account_get_latest_received_message_waiting_indication(pauline_account));
 
 	linphone_core_manager_destroy(pauline);
 }

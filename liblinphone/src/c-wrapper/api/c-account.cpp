@@ -253,6 +253,15 @@ bctbx_list_t *linphone_account_get_conference_information_list(const LinphoneAcc
 	return linphone_account_get_conference_information_list_2(account, NULL);
 }
 
+const LinphoneMessageWaitingIndication *
+linphone_account_get_latest_received_message_waiting_indication(const LinphoneAccount *account) {
+	auto mwi = Account::toCpp(account)->getReceivedMessageWaitingIndication();
+	if (mwi != nullptr) {
+		return mwi->toC();
+	}
+	return nullptr;
+}
+
 bctbx_list_t *linphone_account_get_conference_information_list_2(const LinphoneAccount *account,
                                                                  bctbx_list_t *capabilities) {
 	AccountLogContextualizer logContextualizer(account);
