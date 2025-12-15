@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -162,6 +162,20 @@ public:
 	                              BCTBX_UNUSED(MSBaudotStandard standard)) {
 	}
 #endif /* HAVE_BAUDOT */
+
+	virtual void onHeadsetAnswerCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	}
+	virtual void onHeadsetEndCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	}
+	virtual void onHeadsetHoldCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	}
+	virtual void onHeadsetMicrophoneMuteToggled(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session),
+	                                            BCTBX_UNUSED(bool mute)) {
+	}
+	virtual void onHeadsetRejectCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	}
+	virtual void onHeadsetResumeCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	}
 
 	virtual void confirmGoClear() const {};
 

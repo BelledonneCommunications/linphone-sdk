@@ -266,6 +266,10 @@ private:
 	std::list<std::shared_ptr<FriendList>> friendLists;
 	bool mRemoteContactDirectoryMigrationNeeded = false;
 
+#ifdef HAVE_HIDAPI
+	std::list<std::shared_ptr<HidDevice>> hidDevices;
+#endif /* HAVE_HIDAPI */
+
 	L_DECLARE_PUBLIC(Core);
 };
 

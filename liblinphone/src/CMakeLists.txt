@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (c) 2010-2024 Belledonne Communications SARL.
+# Copyright (c) 2010-2026 Belledonne Communications SARL.
 #
 ############################################################################
 #
@@ -113,6 +113,9 @@ if(MsAndroidCamera2_FOUND)
 endif()
 if(MsWebRtc_FOUND)
 	list(APPEND LINK_LIBS ${MsWebRtc_TARGET})
+endif()
+if(HidAPI_FOUND)
+	list(APPEND LINK_LIBS ${HidAPI_TARGET})
 endif()
 
 
@@ -392,6 +395,13 @@ if(ENABLE_VCARD)
 		vcard/carddav-query.h
 		vcard/carddav-response.h
 		vcard/carddav-magic-search-plugin.h
+	)
+endif()
+
+if(HidAPI_FOUND)
+	list(APPEND LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
+		hid/hid.h
+		hid/hid-device.h
 	)
 endif()
 
@@ -735,6 +745,13 @@ if (ENABLE_DB_STORAGE)
 	)
 endif()
 
+if(HidAPI_FOUND)
+	list(APPEND LINPHONE_CXX_OBJECTS_SOURCE_FILES
+		hid/hid.cpp
+		hid/hid-device.cpp
+	)
+endif()
+
 
 set(LINPHONE_OBJC_SOURCE_FILES)
 if (APPLE)
@@ -860,6 +877,9 @@ else()
 		PUBLIC ${PUBLIC_LINK_LIBS}
 		PRIVATE ${LINK_LIBS}
 	)
+endif()
+if(HidAPI_FOUND AND HidAPI_USE_BUILD_INTERFACE)
+	target_compile_definitions(liblinphone PRIVATE "HIDAPI_USE_BUILD_INTERFACE")
 endif()
 if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	target_link_libraries(liblinphone PUBLIC "Ws2_32" "Iphlpapi" "user32")

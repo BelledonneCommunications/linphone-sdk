@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -26,6 +26,10 @@
 #include "c-wrapper/c-wrapper.h"
 #include "conference/conference-info.h"
 #include "linphone/api/c-types.h"
+
+#ifdef HAVE_HIDAPI
+#include "hid/hid.h"
+#endif /* HAVE_HIDAPI */
 
 // TODO: From coreapi. Remove me later.
 #include "private.h"
@@ -164,6 +168,10 @@ public:
 	const std::string &getLiblinphonePluginsDir() const;
 	void setLiblinphonePluginsDir(const std::string &path);
 
+#ifdef HAVE_HIDAPI
+	const Hid &getHid() const;
+#endif /* HAVE_HIDAPI */
+
 	LinphoneErrorInfo *createErrorInfo() const;
 	LinphoneRange *createRange() const;
 	LinphoneTransports *createTransports() const;
@@ -299,6 +307,10 @@ private:
 	    mEvfsMasterKey; // use a shared_ptr as _LinphoneFactory is not really an object and vector destructor end up
 	                    // never being called otherwise
 	void *mUserData;
+
+#ifdef HAVE_HIDAPI
+	Hid mHid;
+#endif /* HAVE_HIDAPI */
 };
 LINPHONE_END_NAMESPACE
 

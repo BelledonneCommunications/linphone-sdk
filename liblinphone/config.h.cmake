@@ -1,6 +1,6 @@
 /***************************************************************************
  * config.h.cmake
- * Copyright (C) 2014  Belledonne Communications, Grenoble France
+ * Copyright (C) 2014-2026  Belledonne Communications, Grenoble France
  *
  ****************************************************************************
  *
@@ -71,3 +71,4 @@
 #cmakedefine HAVE_STATIC_MSAAUDIO
 #cmakedefine HAVE_STATIC_MSANDROIDCAMERA2
 #cmakedefine HAVE_STATIC_MSWEBRTC
+#cmakedefine HAVE_HIDAPI

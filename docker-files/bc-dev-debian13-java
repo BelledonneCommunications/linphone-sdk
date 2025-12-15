@@ -1,8 +1,8 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian13-java:20251103_update_setuptools
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian13-java:20260106_add_deps_for_hidapi
 ###############################################################################
 
-ARG FROM_IMAGE_TAG=20251103_update_setuptools
+ARG FROM_IMAGE_TAG=20260106_add_deps_for_hidapi
 FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian13:$FROM_IMAGE_TAG
 
 MAINTAINER Andrea Gianarda <andrea.gianarda@belledonne-communications.com>

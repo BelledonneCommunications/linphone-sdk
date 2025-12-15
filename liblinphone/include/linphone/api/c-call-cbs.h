@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -378,6 +378,106 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_baudot_detected(LinphoneCallCbs *cbs,
  * @return The Baudot detected callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsBaudotDetectedCb linphone_call_cbs_get_baudot_detected(LinphoneCallCbs *cbs);
+
+/**
+ * Set the headset answer call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @param[in] cb The headset answer call requested callback to be used.
+ */
+LINPHONE_PUBLIC void
+linphone_call_cbs_set_headset_answer_call_requested(LinphoneCallCbs *cbs,
+                                                    LinphoneCallCbsHeadsetAnswerCallRequestedCb cb);
+
+/**
+ * Get the headset answer call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @return The headset answer call requested callback.
+ */
+LINPHONE_PUBLIC LinphoneCallCbsHeadsetAnswerCallRequestedCb
+linphone_call_cbs_get_headset_answer_call_requested(LinphoneCallCbs *cbs);
+
+/**
+ * Set the headset end call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @param[in] cb The headset end call requested callback to be used.
+ */
+LINPHONE_PUBLIC void linphone_call_cbs_set_headset_end_call_requested(LinphoneCallCbs *cbs,
+                                                                      LinphoneCallCbsHeadsetEndCallRequestedCb cb);
+
+/**
+ * Get the headset end call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @return The headset end call requested callback.
+ */
+LINPHONE_PUBLIC LinphoneCallCbsHeadsetEndCallRequestedCb
+linphone_call_cbs_get_headset_end_call_requested(LinphoneCallCbs *cbs);
+
+/**
+ * Set the headset hold call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @param[in] cb The headset hold call requested callback to be used.
+ */
+LINPHONE_PUBLIC void linphone_call_cbs_set_headset_hold_call_requested(LinphoneCallCbs *cbs,
+                                                                       LinphoneCallCbsHeadsetHoldCallRequestedCb cb);
+
+/**
+ * Get the headset hold call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @return The headset hold call requested callback.
+ */
+LINPHONE_PUBLIC LinphoneCallCbsHeadsetHoldCallRequestedCb
+linphone_call_cbs_get_headset_hold_call_requested(LinphoneCallCbs *cbs);
+
+/**
+ * Set the headset microphone mute toggled callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @param[in] cb The headset microphone mute toggled callback to be used.
+ */
+LINPHONE_PUBLIC void
+linphone_call_cbs_set_headset_microphone_mute_toggled(LinphoneCallCbs *cbs,
+                                                      LinphoneCallCbsHeadsetMicrophoneMuteToggledCb cb);
+
+/**
+ * Get the headset microphone mute toggled callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @return The headset microphone mute toggled callback.
+ */
+LINPHONE_PUBLIC LinphoneCallCbsHeadsetMicrophoneMuteToggledCb
+linphone_call_cbs_get_headset_microphone_mute_toggled(LinphoneCallCbs *cbs);
+
+/**
+ * Set the headset reject call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @param[in] cb The headset reject call requested callback to be used.
+ */
+LINPHONE_PUBLIC void
+linphone_call_cbs_set_headset_reject_call_requested(LinphoneCallCbs *cbs,
+                                                    LinphoneCallCbsHeadsetRejectCallRequestedCb cb);
+
+/**
+ * Get the headset reject call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @return The headset reject call requested callback.
+ */
+LINPHONE_PUBLIC LinphoneCallCbsHeadsetRejectCallRequestedCb
+linphone_call_cbs_get_headset_reject_call_requested(LinphoneCallCbs *cbs);
+
+/**
+ * Set the headset resume call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @param[in] cb The headset resume call requested callback to be used.
+ */
+LINPHONE_PUBLIC void
+linphone_call_cbs_set_headset_resume_call_requested(LinphoneCallCbs *cbs,
+                                                    LinphoneCallCbsHeadsetResumeCallRequestedCb cb);
+
+/**
+ * Get the headset resume call requested callback.
+ * @param[in] cbs The #LinphoneCallCbs object. @notnil
+ * @return The headset resume call requested callback.
+ */
+LINPHONE_PUBLIC LinphoneCallCbsHeadsetResumeCallRequestedCb
+linphone_call_cbs_get_headset_resume_call_requested(LinphoneCallCbs *cbs);
 
 /**
  * @}

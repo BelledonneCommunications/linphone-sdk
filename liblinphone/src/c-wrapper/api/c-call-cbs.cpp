@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -215,4 +215,59 @@ LinphoneCallCbsBaudotDetectedCb linphone_call_cbs_get_baudot_detected(LinphoneCa
 
 void linphone_call_cbs_set_baudot_detected(LinphoneCallCbs *cbs, LinphoneCallCbsBaudotDetectedCb cb) {
 	CallCbs::toCpp(cbs)->baudotDetectedCb = cb;
+}
+
+LinphoneCallCbsHeadsetAnswerCallRequestedCb linphone_call_cbs_get_headset_answer_call_requested(LinphoneCallCbs *cbs) {
+	return CallCbs::toCpp(cbs)->headsetAnswerCallRequestedCb;
+}
+
+void linphone_call_cbs_set_headset_answer_call_requested(LinphoneCallCbs *cbs,
+                                                         LinphoneCallCbsHeadsetAnswerCallRequestedCb cb) {
+	CallCbs::toCpp(cbs)->headsetAnswerCallRequestedCb = cb;
+}
+
+LinphoneCallCbsHeadsetEndCallRequestedCb linphone_call_cbs_get_headset_end_call_requested(LinphoneCallCbs *cbs) {
+	return CallCbs::toCpp(cbs)->headsetEndCallRequestedCb;
+}
+
+void linphone_call_cbs_set_headset_end_call_requested(LinphoneCallCbs *cbs,
+                                                      LinphoneCallCbsHeadsetEndCallRequestedCb cb) {
+	CallCbs::toCpp(cbs)->headsetEndCallRequestedCb = cb;
+}
+
+LinphoneCallCbsHeadsetHoldCallRequestedCb linphone_call_cbs_get_headset_hold_call_requested(LinphoneCallCbs *cbs) {
+	return CallCbs::toCpp(cbs)->headsetHoldCallRequestedCb;
+}
+
+void linphone_call_cbs_set_headset_hold_call_requested(LinphoneCallCbs *cbs,
+                                                       LinphoneCallCbsHeadsetHoldCallRequestedCb cb) {
+	CallCbs::toCpp(cbs)->headsetHoldCallRequestedCb = cb;
+}
+
+LinphoneCallCbsHeadsetMicrophoneMuteToggledCb
+linphone_call_cbs_get_headset_microphone_mute_toggled(LinphoneCallCbs *cbs) {
+	return CallCbs::toCpp(cbs)->headsetMicrophoneMuteToggledCb;
+}
+
+void linphone_call_cbs_set_headset_microphone_mute_toggled(LinphoneCallCbs *cbs,
+                                                           LinphoneCallCbsHeadsetMicrophoneMuteToggledCb cb) {
+	CallCbs::toCpp(cbs)->headsetMicrophoneMuteToggledCb = cb;
+}
+
+LinphoneCallCbsHeadsetRejectCallRequestedCb linphone_call_cbs_get_headset_reject_call_requested(LinphoneCallCbs *cbs) {
+	return CallCbs::toCpp(cbs)->headsetRejectCallRequestedCb;
+}
+
+void linphone_call_cbs_set_headset_reject_call_requested(LinphoneCallCbs *cbs,
+                                                         LinphoneCallCbsHeadsetRejectCallRequestedCb cb) {
+	CallCbs::toCpp(cbs)->headsetRejectCallRequestedCb = cb;
+}
+
+LinphoneCallCbsHeadsetResumeCallRequestedCb linphone_call_cbs_get_headset_resume_call_requested(LinphoneCallCbs *cbs) {
+	return CallCbs::toCpp(cbs)->headsetResumeCallRequestedCb;
+}
+
+void linphone_call_cbs_set_headset_resume_call_requested(LinphoneCallCbs *cbs,
+                                                         LinphoneCallCbsHeadsetResumeCallRequestedCb cb) {
+	CallCbs::toCpp(cbs)->headsetResumeCallRequestedCb = cb;
 }

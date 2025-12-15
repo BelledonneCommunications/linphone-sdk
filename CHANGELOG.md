@@ -11,6 +11,12 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
+## Unreleased
+
+### Added
+- [HIDAPI](https://github.com/libusb/hidapi) dependency for Jabra headsets support.
+
+
 ## [5.5.0] 2025-12-01
 
 ### Added

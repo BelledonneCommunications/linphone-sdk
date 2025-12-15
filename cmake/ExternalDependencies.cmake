@@ -1,6 +1,6 @@
 ############################################################################
 # ExternalDependencies.cmake
-# Copyright (C) 2010-2023  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2026  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -47,6 +47,9 @@ cmake_dependent_option(BUILD_FFMPEG "Build ffmpeg library source code from submo
 
 cmake_dependent_option(BUILD_GSM "Build gsm library source code from submodule instead of searching it in system libraries." ON "ENABLE_GSM" OFF)
 cmake_dependent_option(BUILD_GSM_SHARED_LIBS "Choose to build shared or static gsm library." ${BUILD_SHARED_LIBS} "BUILD_GSM" OFF)
+
+cmake_dependent_option(BUILD_HIDAPI "Build hidapi library source code from submodule instead of searching it in system libraries." ON "ENABLE_HIDAPI" OFF)
+cmake_dependent_option(BUILD_HIDAPI_SHARED_LIBS "Choose to build shared or static hidapi library." ${BUILD_SHARED_LIBS} "BUILD_HIDAPI" OFF)
 
 cmake_dependent_option(BUILD_JSONCPP "Build jsoncpp library source code from submodule instead of searching it in system libraries." ON "ENABLE_JSONCPP" OFF)
 cmake_dependent_option(BUILD_JSONCPP_SHARED_LIBS "Choose to build shared or static jsoncpp library." ${BUILD_SHARED_LIBS} "BUILD_JSONCPP" OFF)
@@ -653,6 +656,31 @@ if(BUILD_GSM)
 		add_dependencies(sdk gsm)
 	endfunction()
 	add_gsm()
+endif()
+
+if(BUILD_HIDAPI)
+	function(add_hidapi)
+		set(BUILD_SHARED_LIBS ${BUILD_HIDAPI_SHARED_LIBS})
+		set(HIDAPI_WITH_TESTS OFF)
+		set(HIDAPI_BUILD_PP_DATA_DUMP OFF)
+		set(HIDAPI_BUILD_HIDTEST OFF)
+		set(HIDAPI_ENABLE_ASAN OFF)
+		set(HIDAPI_INSTALL_TARGETS ON)
+		if(UNIX AND NOT APPLE)
+			set(HIDAPI_WITH_HIDRAW ON)
+			set(HIDAPI_WITH_LIBUSB OFF)
+		endif()
+
+		add_subdirectory("external/hidapi")
+		if(WIN32)
+			add_dependencies(sdk hidapi_winapi)
+		elseif(APPLE)
+			add_dependencies(sdk hidapi_darwin)
+		else()
+			add_dependencies(sdk hidapi_hidraw)
+		endif()
+	endfunction()
+	add_hidapi()
 endif()
 
 if(BUILD_JSONCPP)

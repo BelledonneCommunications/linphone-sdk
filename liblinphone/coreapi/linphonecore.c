@@ -70,6 +70,7 @@
 #include "conference/conference.h"
 #include "conference/server-conference.h"
 #include "content/file-transfer-content.h"
+#include "factory/factory.h"
 #include "linphone/api/c-account-params.h"
 #include "linphone/api/c-account.h"
 #include "linphone/api/c-address.h"
@@ -2708,6 +2709,19 @@ void linphone_core_set_state(LinphoneCore *lc, LinphoneGlobalState gstate, const
 	if (!coreFsmChecker.isValid(lc->state, gstate)) lFatal() << "Bad core state transition.";
 	lc->state = gstate;
 	linphone_core_notify_global_state_changed(lc, gstate, message);
+
+#ifdef HAVE_HIDAPI
+	const auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
+	if (gstate == LinphoneGlobalOn) {
+		for (const auto &hidDevice : core->getHidDevices()) {
+			hidDevice->startPollTimer();
+		}
+	} else if (gstate == LinphoneGlobalOff) {
+		for (const auto &hidDevice : core->getHidDevices()) {
+			hidDevice->stopPollTimer();
+		}
+	}
+#endif /* HAVE_HIDAPI */
 }
 
 static void misc_config_read(LinphoneCore *lc) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -244,6 +244,10 @@ void CorePrivate::init() {
 	}
 
 	createConferenceCleanupTimer(q->getConferenceCleanupPeriod());
+
+#ifdef HAVE_HIDAPI
+	hidDevices = Factory::toCpp(linphone_factory_get())->getHid().getDevices(q->getSharedFromThis());
+#endif /* HAVE_HIDAPI */
 
 #ifdef __ANDROID__
 	// On Android assume Core has been started in background,
@@ -538,6 +542,10 @@ void CorePrivate::uninit() {
 	// clear encrypted files plain cache directory
 	std::string cacheDir(Factory::get()->getCacheDir(nullptr) + "/evfs/");
 	bctbx_rmdir(cacheDir.c_str(), TRUE);
+
+#ifdef HAVE_HIDAPI
+	hidDevices.clear();
+#endif /* HAVE_HIDAPI */
 
 	q->uninitPlugins();
 
@@ -3688,6 +3696,14 @@ bool Core::isEktPluginLoaded() const {
 void Core::setEktPluginLoaded(bool ektPluginLoaded) {
 	mEktPluginLoaded = ektPluginLoaded;
 }
+
+#ifdef HAVE_HIDAPI
+const std::list<std::shared_ptr<HidDevice>> &Core::getHidDevices() const {
+	L_D();
+
+	return d->hidDevices;
+}
+#endif /* HAVE_HIDAPI */
 
 std::shared_ptr<Account> Core::guessLocalAccountFromMalformedMessage(const std::shared_ptr<Address> &localAddress,
                                                                      const std::shared_ptr<Address> &peerAddress) {

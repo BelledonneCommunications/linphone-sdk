@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -179,6 +179,15 @@ bool Call::getMicrophoneMuted() const {
 }
 
 void Call::setMicrophoneMuted(bool muted) {
+#ifdef HAVE_HIDAPI
+	for (const auto &hidDevice : getCore()->getHidDevices()) {
+		if (muted) {
+			hidDevice->mute();
+		} else {
+			hidDevice->unmute();
+		}
+	}
+#endif /* HAVE_HIDAPI */
 	static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->setMicrophoneMuted(muted);
 }
 
@@ -440,6 +449,8 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 			    ConferenceId(to, to, getCore()->createConferenceIdParams()), false);
 		}
 	}
+
+	notifyStateChangeToHeadset(state);
 
 	switch (state) {
 		case CallSession::State::OutgoingInit:
@@ -807,6 +818,30 @@ void Call::onBaudotDetected(BCTBX_UNUSED(const std::shared_ptr<CallSession> &ses
 	    this->toC(), (standard == MSBaudotStandardEurope) ? LinphoneBaudotStandardEurope : LinphoneBaudotStandardUs);
 }
 #endif /* HAVE_BAUDOT */
+
+void Call::onHeadsetAnswerCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	linphone_call_notify_headset_answer_call_requested(this->toC());
+}
+
+void Call::onHeadsetEndCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	linphone_call_notify_headset_end_call_requested(this->toC());
+}
+
+void Call::onHeadsetHoldCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	linphone_call_notify_headset_hold_call_requested(this->toC());
+}
+
+void Call::onHeadsetMicrophoneMuteToggled(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session), const bool mute) {
+	linphone_call_notify_headset_microphone_mute_toggled(this->toC(), mute ? TRUE : FALSE);
+}
+
+void Call::onHeadsetRejectCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	linphone_call_notify_headset_reject_call_requested(this->toC());
+}
+
+void Call::onHeadsetResumeCallRequested(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+	linphone_call_notify_headset_resume_call_requested(this->toC());
+}
 
 void Call::onTmmbrReceived(BCTBX_UNUSED(const shared_ptr<CallSession> &session), int streamIndex, int tmmbr) {
 	linphone_call_notify_tmmbr_received(this->toC(), streamIndex, tmmbr);
@@ -1514,6 +1549,67 @@ void Call::setBaudotSendingStandard(LinphoneBaudotStandard standard) {
 void Call::setBaudotPauseTimeout(uint8_t seconds) {
 	getMediaSession()->setBaudotPauseTimeout(seconds);
 }
+
+// -----------------------------------------------------------------------------
+
+#ifdef HAVE_HIDAPI
+/**
+ * Notify the headset of a call state change so that it can change its own state internally.
+ * It enables it to be able to request a particular action according to the call state.
+ * For example, the main button can request to start a new call if the headset state is on-hook (meaning there is no
+ * current call), or it can request to answer an incoming call if its state is ringing.
+ */
+void Call::notifyStateChangeToHeadset(const CallSession::State state) {
+	const LinphoneCore *lc = getCore()->getCCore();
+	for (const auto &hidDevice : getCore()->getHidDevices()) {
+		switch (state) {
+			case CallSession::State::IncomingReceived:
+				hidDevice->startRinging();
+				break;
+			case CallSession::State::OutgoingInit:
+				hidDevice->startCall();
+				break;
+			case CallSession::State::End:
+			case CallSession::State::Error:
+				if (linphone_core_get_calls_nb(lc) == 0) {
+					hidDevice->endCall();
+				} else {
+					// For the case where we reject a second incoming call.
+					hidDevice->stopRinging();
+				}
+				break;
+			case CallSession::State::Connected: {
+				bool hasPausedCalls = false;
+				for (const auto &call : getCore()->getCalls()) {
+					if (call->getState() == CallSession::State::Paused) {
+						hasPausedCalls = true;
+						break;
+					}
+				}
+				hidDevice->answerCall(hasPausedCalls);
+			} break;
+			case CallSession::State::Paused: {
+				bool allCallsPaused = true;
+				for (const auto &call : getCore()->getCalls()) {
+					if (call->getState() != CallSession::State::Paused) {
+						allCallsPaused = false;
+						break;
+					}
+				}
+				hidDevice->holdCall(allCallsPaused);
+			} break;
+			case CallSession::State::Resuming:
+				hidDevice->resumeCall();
+				break;
+			default:
+				break;
+		}
+	}
+}
+#else
+void Call::notifyStateChangeToHeadset(BCTBX_UNUSED(CallSession::State state)) {
+}
+#endif /* HAVE_HIDAPI */
 
 // -----------------------------------------------------------------------------
 

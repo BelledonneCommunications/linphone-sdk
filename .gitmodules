@@ -88,3 +88,6 @@
 [submodule "oboe"]
 	path = msoboe/oboe
 	url = https://github.com/google/oboe
+[submodule "external/hidapi"]
+	path = external/hidapi
+	url = https://github.com/libusb/hidapi.git

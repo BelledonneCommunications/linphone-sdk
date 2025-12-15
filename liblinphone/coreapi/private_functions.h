@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -71,6 +71,12 @@ void linphone_call_notify_video_display_error_occurred(LinphoneCall *call, int e
 void linphone_call_notify_audio_device_changed(LinphoneCall *call, LinphoneAudioDevice *audioDevice);
 void linphone_call_notify_remote_recording(LinphoneCall *call, bool_t recording);
 void linphone_call_notify_baudot_detected(LinphoneCall *call, LinphoneBaudotStandard standard);
+void linphone_call_notify_headset_answer_call_requested(LinphoneCall *call);
+void linphone_call_notify_headset_end_call_requested(LinphoneCall *call);
+void linphone_call_notify_headset_hold_call_requested(LinphoneCall *call);
+void linphone_call_notify_headset_microphone_mute_toggled(LinphoneCall *call, bool_t mute);
+void linphone_call_notify_headset_reject_call_requested(LinphoneCall *call);
+void linphone_call_notify_headset_resume_call_requested(LinphoneCall *call);
 
 LinphoneCall *linphone_call_new_outgoing(struct _LinphoneCore *lc,
                                          const LinphoneAddress *from,

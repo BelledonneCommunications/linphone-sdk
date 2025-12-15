@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -71,6 +71,12 @@ public:
 	LinphoneCallCbsAudioDeviceChangedCb audioDeviceChangedCb;
 	LinphoneCallCbsRemoteRecordingCb remoteRecordingCb;
 	LinphoneCallCbsBaudotDetectedCb baudotDetectedCb;
+	LinphoneCallCbsHeadsetAnswerCallRequestedCb headsetAnswerCallRequestedCb;
+	LinphoneCallCbsHeadsetEndCallRequestedCb headsetEndCallRequestedCb;
+	LinphoneCallCbsHeadsetHoldCallRequestedCb headsetHoldCallRequestedCb;
+	LinphoneCallCbsHeadsetMicrophoneMuteToggledCb headsetMicrophoneMuteToggledCb;
+	LinphoneCallCbsHeadsetRejectCallRequestedCb headsetRejectCallRequestedCb;
+	LinphoneCallCbsHeadsetResumeCallRequestedCb headsetResumeCallRequestedCb;
 };
 
 class LINPHONE_PUBLIC Call : public bellesip::HybridObject<LinphoneCall, Call>,
@@ -267,6 +273,11 @@ public:
 	void setBaudotPauseTimeout(uint8_t seconds);
 
 	// -----------------------------------------------------------------------------
+
+	void notifyStateChangeToHeadset(CallSession::State state);
+
+	// -----------------------------------------------------------------------------
+
 	/* CallSessionListener */
 	void onAckBeingSent(const std::shared_ptr<CallSession> &session, LinphoneHeaders *headers) override;
 	void onAckReceived(const std::shared_ptr<CallSession> &session, LinphoneHeaders *headers) override;
@@ -321,6 +332,13 @@ public:
 	void onSnapshotTaken(const std::shared_ptr<CallSession> &session, const char *file_path) override;
 	void onStartRingtone(const std::shared_ptr<CallSession> &session) override;
 	void onRemoteRecording(const std::shared_ptr<CallSession> &session, bool recording) override;
+
+	void onHeadsetAnswerCallRequested(const std::shared_ptr<CallSession> &session) override;
+	void onHeadsetEndCallRequested(const std::shared_ptr<CallSession> &session) override;
+	void onHeadsetHoldCallRequested(const std::shared_ptr<CallSession> &session) override;
+	void onHeadsetMicrophoneMuteToggled(const std::shared_ptr<CallSession> &session, bool mute) override;
+	void onHeadsetRejectCallRequested(const std::shared_ptr<CallSession> &session) override;
+	void onHeadsetResumeCallRequested(const std::shared_ptr<CallSession> &session) override;
 
 	void confirmGoClear() const override;
 

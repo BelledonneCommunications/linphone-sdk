@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -720,6 +720,12 @@ bool_t Factory::isImdnAvailable() const {
 	return FALSE;
 #endif
 }
+
+#ifdef HAVE_HIDAPI
+const Hid &Factory::getHid() const {
+	return mHid;
+}
+#endif /* HAVE_HIDAPI */
 
 bool Factory::setVfsEncryption(const uint16_t encryptionModule, const uint8_t *secret, const size_t secretSize) {
 

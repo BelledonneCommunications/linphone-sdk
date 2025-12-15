@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -194,6 +194,35 @@ void linphone_call_notify_remote_recording(LinphoneCall *call, bool_t recording)
 
 void linphone_call_notify_baudot_detected(LinphoneCall *call, LinphoneBaudotStandard standard) {
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Call, Call::toCpp(call), linphone_call_cbs_get_baudot_detected, standard);
+}
+
+void linphone_call_notify_headset_answer_call_requested(LinphoneCall *call) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(Call, Call::toCpp(call),
+	                                         linphone_call_cbs_get_headset_answer_call_requested);
+}
+
+void linphone_call_notify_headset_end_call_requested(LinphoneCall *call) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(Call, Call::toCpp(call), linphone_call_cbs_get_headset_end_call_requested);
+}
+
+void linphone_call_notify_headset_hold_call_requested(LinphoneCall *call) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(Call, Call::toCpp(call),
+	                                         linphone_call_cbs_get_headset_hold_call_requested);
+}
+
+void linphone_call_notify_headset_microphone_mute_toggled(LinphoneCall *call, const bool_t mute) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Call, Call::toCpp(call), linphone_call_cbs_get_headset_microphone_mute_toggled,
+	                                  mute);
+}
+
+void linphone_call_notify_headset_reject_call_requested(LinphoneCall *call) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(Call, Call::toCpp(call),
+	                                         linphone_call_cbs_get_headset_reject_call_requested);
+}
+
+void linphone_call_notify_headset_resume_call_requested(LinphoneCall *call) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(Call, Call::toCpp(call),
+	                                         linphone_call_cbs_get_headset_resume_call_requested);
 }
 
 // =============================================================================

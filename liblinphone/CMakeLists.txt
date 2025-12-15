@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (c) 2010-2023 Belledonne Communications SARL.
+# Copyright (c) 2010-2026 Belledonne Communications SARL.
 #
 ############################################################################
 #
@@ -78,6 +78,7 @@ option(ENABLE_EXAMPLE_PLUGIN "Enable build of the example plugin" NO)
 option(ENABLE_EKT_SERVER_PLUGIN "Enable build of the EKT encryption plugin" NO)
 option(ENABLE_DEPRECATED_TESTS "Enable execution of deprecated tests" NO)
 option(ENABLE_BAUDOT "Enable Baudot text transmission." YES)
+option(ENABLE_HIDAPI "Enable the HidAPI support for LibLinphone." ON)
 
 option(ENABLE_SRTP "Build with the SRTP transport support." YES)
 cmake_dependent_option(ENABLE_ZRTP "Build with ZRTP support." YES "ENABLE_SRTP" NO)
@@ -242,6 +243,14 @@ endif()
 #needed for OAUTH2 authentication.
 find_package(JsonCPP REQUIRED)
 
+if(ENABLE_HIDAPI)
+	find_package(HidAPI)
+	if(NOT HidAPI_FOUND)
+		message(WARNING "Could not find the HidAPI library!")
+		set(ENABLE_HIDAPI OFF CACHE BOOL "Enable the HidAPI support for LibLinphone." FORCE)
+	endif()
+endif()
+
 if(UNIX AND NOT APPLE)
 	include(CheckIncludeFiles)
 	check_include_files(libudev.h HAVE_LIBUDEV_H)
@@ -396,6 +405,9 @@ endif()
 
 if(ENABLE_BAUDOT)
     set(HAVE_BAUDOT 1)
+endif()
+if(HidAPI_FOUND)
+	set(HAVE_HIDAPI 1)
 endif()
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")

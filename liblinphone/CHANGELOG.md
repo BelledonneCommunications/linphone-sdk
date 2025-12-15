@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## Unreleased
+
+### Added
+- Support of Jabra headsets (currently for the Engage 55 & Evolve 2 55 models).
+
+
 ## [5.5.0] 2025-12-01
 
 ### Added

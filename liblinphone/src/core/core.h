@@ -73,6 +73,9 @@ class EncryptionEngine;
 class ChatMessage;
 class ChatMessageReaction;
 class ChatRoom;
+#ifdef HAVE_HIDAPI
+class HidDevice;
+#endif /* HAVE_HIDAPI */
 class Ldap;
 class PushNotificationMessage;
 class SalMediaDescription;
@@ -512,6 +515,14 @@ public:
 
 	bool isEktPluginLoaded() const;
 	void setEktPluginLoaded(bool ektPluginLoaded);
+
+	// ---------------------------------------------------------------------------
+	// HID devices
+	// ---------------------------------------------------------------------------
+
+#ifdef HAVE_HIDAPI
+	const std::list<std::shared_ptr<HidDevice>> &getHidDevices() const;
+#endif /* HAVE_HIDAPI */
 
 private:
 	Core();

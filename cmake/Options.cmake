@@ -1,6 +1,6 @@
 ############################################################################
 # Options.cmake
-# Copyright (C) 2010-2023  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2026  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -150,6 +150,7 @@ linphonesdk_option("DB Storage" "Enable the database storage." ON)
 linphonesdk_dependent_option("DNS_SERVICE" "Enable Apple DNS Service. Available on Mac and iOS. Incompatible with ENABLE_MDNS=ON." ON "APPLE" OFF)
 linphonesdk_option("Example Plugin" "Enable build of the liblinphone example plugin." OFF)
 linphonesdk_option("FlexiAPI" "Enable the FlexiAPI support in Liblinphone." ON)
+linphonesdk_option("HidAPI" "Enable the HidAPI support in LibLinphone." ON)
 linphonesdk_option("LDAP" "Enable LDAP Liblinphone." OFF)
 linphonesdk_option("mDNS" "Multicast DNS support." OFF)
 linphonesdk_dependent_option("Microsoft Store App" "Enable build for Microsoft Store." OFF "WIN32" OFF)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -292,6 +292,49 @@ typedef void (*LinphoneCallCbsRemoteRecordingCb)(LinphoneCall *call, bool_t reco
  * @param standard The Baudot standard of the detected tones.
  */
 typedef void (*LinphoneCallCbsBaudotDetectedCb)(LinphoneCall *call, LinphoneBaudotStandard standard);
+
+/**
+ * Callback to notify that the headset has requested to answer the incoming call.
+ *
+ * @param call LinphoneCall that the headset requests to answer @notnil
+ */
+typedef void (*LinphoneCallCbsHeadsetAnswerCallRequestedCb)(LinphoneCall *call);
+
+/**
+ * Callback to notify that the headset has requested to end the current call.
+ *
+ * @param call LinphoneCall that the headset requests to end @notnil
+ */
+typedef void (*LinphoneCallCbsHeadsetEndCallRequestedCb)(LinphoneCall *call);
+
+/**
+ * Callback to notify that the headset has requested to hold the current call.
+ *
+ * @param call LinphoneCall that the headset requests to hold @notnil
+ */
+typedef void (*LinphoneCallCbsHeadsetHoldCallRequestedCb)(LinphoneCall *call);
+
+/**
+ * Callback to notify that the headset microphone has been muted or unmuted.
+ *
+ * @param call LinphoneCall where the microphone has been muted @notnil
+ * @param mute Whether the headset microphone has been muted or unmuted.
+ */
+typedef void (*LinphoneCallCbsHeadsetMicrophoneMuteToggledCb)(LinphoneCall *call, bool_t mute);
+
+/**
+ * Callback to notify that the headset has requested to reject the incoming call.
+ *
+ * @param call LinphoneCall that the headset requests to reject @notnil
+ */
+typedef void (*LinphoneCallCbsHeadsetRejectCallRequestedCb)(LinphoneCall *call);
+
+/**
+ * Callback to notify that the headset has requested to resume the current call.
+ *
+ * @param call LinphoneCall that the headset requests to resume @notnil
+ */
+typedef void (*LinphoneCallCbsHeadsetResumeCallRequestedCb)(LinphoneCall *call);
 
 /**
  * @}

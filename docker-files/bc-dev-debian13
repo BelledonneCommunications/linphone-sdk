@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian13:20251103_update_setuptools
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian13:20260106_add_deps_for_hidapi
 ###############################################################################
 
 FROM debian:trixie
@@ -28,7 +28,7 @@ RUN apt-get update && \
 
 # Install linphone & flexisip dependencies development packages
 RUN apt-get update && \
-    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libmariadb-dev libmbedtls-dev libopus-dev libpq-dev libpulse-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev xsdcxx libjsoncpp-dev && \
+    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libmariadb-dev libmbedtls-dev libopus-dev libpq-dev libpulse-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libudev-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev xsdcxx libjsoncpp-dev && \
     apt-get clean
 
 # Configure user bc
