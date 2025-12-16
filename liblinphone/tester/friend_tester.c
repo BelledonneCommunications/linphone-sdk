@@ -3232,6 +3232,29 @@ static void ldap_features_more_results(void) {
 extern LinphoneFriend *linphone_friend_new_from_config_file(LinphoneCore *lc, int index);
 extern int linphone_friend_get_rc_index(const LinphoneFriend *lf);
 
+static void friends_from_rc_with_database_enabled(void) {
+	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("friends_rc", FALSE);
+	LinphoneCore *core = manager->lc;
+	LinphoneConfig *config = linphone_core_get_config(core);
+
+	// Disable legacy friends storage
+	linphone_config_set_int(config, "misc", "store_friends", 0);
+
+	char *friends_db = liblinphone_tester_make_unique_file_path("friends", "db");
+	linphone_core_set_friends_database_path(core, friends_db);
+
+	LinphoneFriendList *friend_list = linphone_core_get_default_friend_list(core);
+	const bctbx_list_t *friends = linphone_friend_list_get_friends(friend_list);
+	BC_ASSERT_PTR_NOT_NULL(friends);
+	if (friends) {
+		BC_ASSERT_EQUAL((int)bctbx_list_size(friends), 3, int, "%i");
+	}
+
+	unlink(friends_db);
+	bctbx_free(friends_db);
+	linphone_core_manager_destroy(manager);
+}
+
 static void delete_friend_from_rc(void) {
 	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("friends_rc", FALSE);
 	LinphoneCore *core = manager->lc;
@@ -3719,6 +3742,7 @@ static test_t friends_tests[] = {
     TEST_TWO_TAGS("Ldap features more results", ldap_features_more_results, "MagicSearch", "LDAP"),
     TEST_ONE_TAG("Ldap params edition with check", ldap_params_edition_with_check, "LDAP"),
     TEST_TWO_TAGS("Remote contact directory operations", remote_contact_directory_operations, "LDAP", "CardDAV"),
+    TEST_NO_TAG("Read friends in linphone rc with database storage enabled", friends_from_rc_with_database_enabled),
     TEST_NO_TAG("Delete friend in linphone rc", delete_friend_from_rc),
     TEST_NO_TAG("Store friends list in DB", friend_list_db_storage),
     TEST_NO_TAG("Store friends list in DB without setting path to db file", friend_list_db_storage_without_db),

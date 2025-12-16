@@ -953,9 +953,21 @@ int linphone_core_friends_storage_resync_friends_lists(LinphoneCore *lc) {
 
 	std::list<std::shared_ptr<FriendList>> friendLists = mainDb->getFriendLists();
 	if (!friendLists.empty()) {
+		LinphoneFriendList *default_friend_list = linphone_core_get_default_friend_list(lc);
+		linphone_friend_list_ref(default_friend_list);
+
 		lc->friends_lists =
 		    bctbx_list_free_with_data(lc->friends_lists, (bctbx_list_free_func)linphone_friend_list_unref);
 		lc->cppPtr->clearFriendLists();
+
+		// Add back "_default" friend list if it wasn't configured to be stored in DB
+		if (!linphone_friend_list_database_storage_enabled(default_friend_list)) {
+			const bctbx_list_t *default_friends = linphone_friend_list_get_friends(default_friend_list);
+			if (bctbx_list_size(default_friends) > 0) {
+				linphone_core_add_friend_list(lc, default_friend_list);
+			}
+		}
+		linphone_friend_list_unref(default_friend_list);
 
 		for (auto &friendList : friendLists) {
 			linphone_core_add_friend_list(lc, friendList->toC());
