@@ -355,14 +355,16 @@ void MsScreenSharing::feed(MSFilter *filter) {
 					mFrameData = nullptr;
 				}
 			}
+			bool frameSent = false;
 			if (newFrame || ms_video_capture_new_frame(&mIdleFramerateController, filter->ticker->time)) {
 				uint32_t timestamp = (uint32_t)(filter->ticker->time * 90); // rtp uses a 90000 Hz clockrate for video
 				if (!newFrame) newFrame = dupmsg(mFrameToSend); // Copy case: no new frame have arrived or idle FPS.
 				mblk_set_precious_flag(newFrame, 1);
 				mblk_set_timestamp_info(newFrame, timestamp); // prevent mirroring at the output
 				ms_queue_put(filter->outputs[0], newFrame);
-				ms_average_fps_update(&mAvgFps, filter->ticker->time);
+				frameSent = true;
 			}
+			ms_average_fps_activity(&mAvgFps, filter->ticker->time, frameSent);
 		}
 		mFrameLock.unlock();
 	}

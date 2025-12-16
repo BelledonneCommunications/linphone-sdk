@@ -47,7 +47,7 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-unsigned int ms_get_cpu_count() {
+unsigned int ms_get_cpu_count(void) {
 	return ms_factory_get_cpu_count(ms_factory_get_fallback());
 }
 
@@ -187,7 +187,7 @@ int ms_load_plugins(const char *dir) {
 static int ms_base_ref = 0;
 static int ms_plugins_ref = 0;
 
-void ms_base_init() {
+void ms_base_init(void) {
 	ms_base_ref++;
 	if (ms_base_ref > 1) {
 		ms_message("Skipping ms_base_init, because [%i] ref", ms_base_ref);
@@ -197,7 +197,7 @@ void ms_base_init() {
 	ms_factory_get_fallback();
 }
 
-void ms_base_exit() {
+void ms_base_exit(void) {
 	--ms_base_ref;
 	if (ms_base_ref > 0) {
 		ms_message("Skipping ms_base_exit, still [%i] ref", ms_base_ref);
@@ -270,7 +270,7 @@ void ms_usleep(uint64_t usec) {
 #endif
 }
 
-int ms_get_payload_max_size() {
+int ms_get_payload_max_size(void) {
 	return ms_factory_get_payload_max_size(ms_factory_get_fallback());
 }
 

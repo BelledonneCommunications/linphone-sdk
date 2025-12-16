@@ -70,30 +70,38 @@ struct _MSTickerLateEvent {
 
 typedef struct _MSTickerLateEvent MSTickerLateEvent;
 
+struct _MSTickerParams {
+	MSTickerPrio prio;
+	const char *name;
+	bool_t no_real_time;
+};
+
+typedef struct _MSTickerParams MSTickerParams;
+
 struct _MSTicker {
 	ms_mutex_t lock; /*main lock protecting the filter execution list */
 	ms_cond_t cond;
 	MSList *execution_list; /* the list of source filters to be executed.*/
 	MSList *task_list;      /* list of tasks (see ms_filter_postpone_task())*/
 	ms_thread_t thread;     /* the thread ressource*/
-	int interval;           /* in miliseconds*/
-	int exec_id;
+	MSTickerParams params;
+	int interval; /* in miliseconds*/
 	uint32_t ticks;
-	uint64_t time; /* a time since the start of the ticker expressed in milisec*/
-	uint64_t orig; /* a relative time to take in account difference between time base given by consecutive
-	                  get_cur_time_ptr() functions.*/
+	MSFilter *retry_at_filter; /* in case of graph execution suspension, the filter where to retry. */
+	uint64_t time;             /* a time since the start of the ticker expressed in milisec*/
+	uint64_t orig;             /* a relative time to take in account difference between time base given by consecutive
+	                              get_cur_time_ptr() functions.*/
 	MSTickerTimeFunc get_cur_time_ptr;
 	void *get_cur_time_data;
 	ms_mutex_t
 	    cur_time_lock; /*mutex protecting the get_cur_time_ptr/get_cur_time_data which can be changed at any time*/
-	char *name;        /* the thread name */
 	bctbx_log_tags_t *creator_tags;
 	double av_load; /*average load of the ticker */
-	MSTickerPrio prio;
 	MSTickerTickFunc wait_next_tick;
 	void *wait_next_tick_data;
 	MSTickerLateEvent late_event;
 	unsigned long thread_id;
+	bool_t tick_suspended;
 	bool_t run; /* flag to indicate whether the ticker must be run or not */
 };
 
@@ -102,13 +110,6 @@ struct _MSTicker {
  * @var MSTicker
  */
 typedef struct _MSTicker MSTicker;
-
-struct _MSTickerParams {
-	MSTickerPrio prio;
-	const char *name;
-};
-
-typedef struct _MSTickerParams MSTickerParams;
 
 struct _MSTickerSynchronizer {
 	uint64_t offset;           /**<the default offset of ticker*/
@@ -305,6 +306,11 @@ MS2_PUBLIC void ms_ticker_synchronizer_resync(MSTickerSynchronizer *ts);
  * @param ts  A #MSTickerSynchronizer object.
  */
 MS2_PUBLIC void ms_ticker_synchronizer_destroy(MSTickerSynchronizer *ts);
+
+/*
+ * Private methods
+ */
+void ms_ticker_suspend_tick(MSTicker *ticker);
 
 #ifdef __cplusplus
 }

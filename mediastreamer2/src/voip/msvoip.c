@@ -393,7 +393,7 @@ void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx) {
 #endif
 
 static int ms_voip_ref = 0;
-void ms_voip_init() {
+void ms_voip_init(void) {
 	if (ms_voip_ref++ > 0) {
 		ms_message("Skipping ms_voip_init, because [%i] ref", ms_voip_ref);
 		return;
@@ -401,7 +401,7 @@ void ms_voip_init() {
 	ms_factory_init_voip(ms_factory_get_fallback());
 }
 
-void ms_voip_exit() {
+void ms_voip_exit(void) {
 	if (--ms_voip_ref > 0) {
 		ms_message("Skipping ms_voip_exit, still [%i] ref", ms_voip_ref);
 		return;

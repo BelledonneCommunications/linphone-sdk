@@ -214,8 +214,8 @@ void ms_video_conference_process_encoder_control(BCTBX_UNUSED(VideoStream *vs),
 VideoConferenceAllToAll::VideoConferenceAllToAll(MSFactory *f, const MSVideoConferenceParams *params) {
 	const MSFmtDescriptor *fmt = {0};
 	MSVideoSize vsize = {0};
-	MSTickerParams tickerParams;
-	memset(&tickerParams, 0, sizeof(tickerParams));
+	MSTickerParams tickerParams{};
+
 	tickerParams.name = "Video conference(all to all)";
 	tickerParams.prio = __ms_get_default_prio(TRUE);
 

@@ -729,6 +729,18 @@ MS2_PUBLIC bool_t ms_filter_inputs_have_data(MSFilter *f);
 MS2_PUBLIC void ms_filter_notify(MSFilter *f, unsigned int id, void *arg);
 MS2_PUBLIC void ms_filter_notify_no_arg(MSFilter *f, unsigned int id);
 MS2_PUBLIC void ms_filter_clear_notify_callback(MSFilter *f);
+/*
+ * This method is intended for filters to declare that they are unable
+ * to process more data, due to resource constraints (cpu, memory...).
+ * It must be called from process() function, just before return.
+ * It has the following effects, depending on whether the MSTicker is in
+ * real-time mode (the default) or non real-time mode.
+ * If real-time, the content of input queue is simply discarded.
+ * If not real-time, the content of input queue is left, and the ticker
+ * is requested to suspend the graph execution, sleep a little, and
+ * resume the graph execution.
+ */
+MS2_PUBLIC void ms_filter_declare_busy(MSFilter *f);
 void ms_filter_clean_pending_events(MSFilter *f);
 #define ms_filter_lock(f) ms_mutex_lock(&(f)->lock)
 #define ms_filter_unlock(f) ms_mutex_unlock(&(f)->lock)

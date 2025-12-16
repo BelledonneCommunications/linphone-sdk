@@ -99,7 +99,7 @@ int ms_async_reader_read(MSAsyncReader *obj, uint8_t *buf, size_t size) {
 	}
 	/*eventually ask to fill the bufferizer*/
 	if (obj->ntasks_pending == 0) {
-		if (avail < obj->blocksize) {
+		if (avail < obj->blocksize && !obj->eof) {
 			obj->ntasks_pending++;
 			ms_worker_thread_add_task(obj->wth, async_reader_fill, obj);
 		}
@@ -129,6 +129,7 @@ void ms_async_reader_seek(MSAsyncReader *obj, off_t offset) {
 	obj->ntasks_pending++;
 	obj->moving++;
 	obj->seekoff = offset;
+	obj->eof = FALSE;
 	ms_worker_thread_add_task(obj->wth, async_reader_seek, obj);
 	ms_mutex_unlock(&obj->mutex);
 }

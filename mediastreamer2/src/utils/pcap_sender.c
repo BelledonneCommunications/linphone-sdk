@@ -62,7 +62,7 @@ MSPCAPSender *ms_pcap_sendto(MSFactory *factory,
                              uint32_t ts_offset,
                              MSPCAPFileEnded cb,
                              void *user_data) {
-	MSTickerParams params;
+	MSTickerParams params = {0};
 	MSConnectionHelper h;
 	MSPCAPSender *s;
 	MSFilter *udp_sender;

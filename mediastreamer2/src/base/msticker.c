@@ -64,12 +64,12 @@ static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params) {
 	ticker->time = 0;
 	ticker->interval = TICKER_INTERVAL;
 	ticker->run = FALSE;
-	ticker->exec_id = 0;
 	ticker->get_cur_time_ptr = &get_cur_time_ms;
 	ticker->get_cur_time_data = NULL;
-	ticker->name = ms_strdup(params->name);
+	ticker->params.name = ms_strdup(params->name);
+	ticker->params.prio = params->prio;
+	ticker->params.no_real_time = params->no_real_time;
 	ticker->av_load = 0;
-	ticker->prio = params->prio;
 	ticker->wait_next_tick = wait_next_tick;
 	ticker->wait_next_tick_data = ticker;
 	ticker->late_event.lateMs = 0;
@@ -79,8 +79,8 @@ static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params) {
 	ms_ticker_start(ticker);
 }
 
-MSTicker *ms_ticker_new() {
-	MSTickerParams params;
+MSTicker *ms_ticker_new(void) {
+	MSTickerParams params = {0};
 	params.name = "MSTicker";
 	params.prio = MS_TICKER_PRIO_NORMAL;
 	return ms_ticker_new_with_params(&params);
@@ -101,18 +101,18 @@ static void ms_ticker_stop(MSTicker *s) {
 
 void ms_ticker_set_name(MSTicker *s, const char *name) {
 	ms_mutex_lock(&s->lock);
-	if (s->name) ms_free(s->name);
-	s->name = ms_strdup(name);
+	if (s->params.name) ms_free((char *)s->params.name);
+	s->params.name = ms_strdup(name);
 	ms_mutex_unlock(&s->lock);
 }
 
 void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio) {
-	ticker->prio = prio;
+	ticker->params.prio = prio;
 }
 
 static void ms_ticker_uninit(MSTicker *ticker) {
 	ms_ticker_stop(ticker);
-	ms_free(ticker->name);
+	ms_free((char *)ticker->params.name);
 	if (ticker->creator_tags) {
 		bctbx_log_tags_destroy(ticker->creator_tags);
 		ticker->creator_tags = NULL;
@@ -220,6 +220,9 @@ int ms_ticker_detach(MSTicker *ticker, MSFilter *f) {
 	for (it = sources; it != NULL; it = bctbx_list_next(it)) {
 		ticker->execution_list = bctbx_list_remove(ticker->execution_list, it->data);
 	}
+	/* In case of detach, any suspended graph execution is cancelled.*/
+	ticker->retry_at_filter = NULL;
+	ticker->tick_suspended = FALSE;
 	ms_mutex_unlock(&ticker->lock);
 	bctbx_list_for_each(filters, (void (*)(void *))call_postprocess);
 	bctbx_list_free(filters);
@@ -241,7 +244,7 @@ static bool_t filter_can_process(MSFilter *f, uint32_t tick) {
 	return TRUE;
 }
 
-static void call_process(MSFilter *f) {
+static void call_process(MSTicker *s, MSFilter *f) {
 	bool_t process_done = FALSE;
 	if (f->desc->ninputs == 0 || f->desc->flags & MS_FILTER_IS_PUMP) {
 		ms_filter_process(f);
@@ -252,7 +255,8 @@ static void call_process(MSFilter *f) {
 				           f->desc->name);
 			}
 			ms_filter_process(f);
-			if (f->postponed_task) break;
+			/* In no-real-time mode, filters are allowed not to consume all data if they declare busy */
+			if (f->postponed_task || s->tick_suspended) break;
 			process_done = TRUE;
 		}
 	}
@@ -265,7 +269,14 @@ static void run_graph(MSFilter *f, MSTicker *s, bctbx_list_t **unschedulable, bo
 		if (filter_can_process(f, s->ticks) || force_schedule) {
 			/* this is a candidate */
 			f->last_tick = s->ticks;
-			call_process(f);
+			call_process(s, f);
+			if (s->tick_suspended) {
+				/* A filter has requested the tick to be suspended. Stop go down through this filter graph.
+				 * Retry later.
+				 */
+				s->retry_at_filter = f;
+				return;
+			}
 			/* now recurse to next filters */
 			for (i = 0, j = 0; i < f->desc->noutputs && j < f->n_connected_outputs; i++) {
 				l = f->outputs[i];
@@ -284,7 +295,14 @@ static void run_graph(MSFilter *f, MSTicker *s, bctbx_list_t **unschedulable, bo
 static void run_graphs(MSTicker *s, bctbx_list_t *execution_list, bool_t force_schedule) {
 	bctbx_list_t *it;
 	bctbx_list_t *unschedulable = NULL;
-	for (it = execution_list; it != NULL; it = it->next) {
+
+	if (s->retry_at_filter) {
+		MSFilter *retry_at_filter = s->retry_at_filter;
+		s->retry_at_filter = NULL;
+		run_graph(retry_at_filter, s, &unschedulable, force_schedule);
+	}
+
+	for (it = execution_list; it != NULL && !s->tick_suspended; it = it->next) {
 		run_graph((MSFilter *)it->data, s, &unschedulable, force_schedule);
 	}
 	/* filters that are part of a loop haven't been called in process() because one of their input refers to a filter
@@ -329,7 +347,7 @@ static uint64_t get_cur_time_ms(BCTBX_UNUSED(void *unused)) {
 
 static int set_high_prio(MSTicker *obj) {
 	int precision = 2;
-	int prio = obj->prio;
+	int prio = obj->params.prio;
 
 	if (prio > MS_TICKER_PRIO_NORMAL) {
 #ifdef _WIN32
@@ -353,7 +371,7 @@ static int set_high_prio(MSTicker *obj) {
 			ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 		}
 #else
-		ms_warning("SetThreadPriority() is not implemented. %s priority left to normal.", obj->name);
+		ms_warning("SetThreadPriority() is not implemented. %s priority left to normal.", obj->params.name);
 #endif
 #else
 		struct sched_param param;
@@ -384,17 +402,17 @@ static int set_high_prio(MSTicker *obj) {
 				   thread is to use setpriority().
 				*/
 				if (setpriority(PRIO_PROCESS, 0, -19) == -1) {
-					ms_message("%s setpriority() failed: %s, nevermind.", obj->name, strerror(errno));
+					ms_message("%s setpriority() failed: %s, nevermind.", obj->params.name, strerror(errno));
 				} else {
-					ms_message("%s priority increased nearly to maximum (-19).", obj->name);
+					ms_message("%s priority increased nearly to maximum (-19).", obj->params.name);
 				}
-			} else ms_warning("%s: Set pthread_setschedparam failed: %s", obj->name, strerror(result));
+			} else ms_warning("%s: Set pthread_setschedparam failed: %s", obj->params.name, strerror(result));
 		} else {
-			ms_message("%s priority set to %s and value (%i)", obj->name,
+			ms_message("%s priority set to %s and value (%i)", obj->params.name,
 			           policy == SCHED_FIFO ? "SCHED_FIFO" : "SCHED_RR", param.sched_priority);
 		}
 #endif
-	} else ms_message("%s priority left to normal.", obj->name);
+	} else ms_message("%s priority left to normal.", obj->params.name);
 	return precision;
 }
 
@@ -439,9 +457,14 @@ static int wait_next_tick(void *data, BCTBX_UNUSED(uint64_t virt_ticker_time)) {
 		}
 	}
 	if (late > 100 && has_slept) {
-		ms_warning("%s: late wakeup by %i ms", s->name, late);
+		ms_warning("%s: late wakeup by %i ms", s->params.name, late);
 	}
 	return late;
+}
+
+static void ms_ticker_snooze(MSTicker *s) {
+	(void)s;
+	bctbx_sleep_ms(10);
 }
 
 /*the ticker thread function that executes the filters */
@@ -449,7 +472,7 @@ void *ms_ticker_run(void *arg) {
 	MSTicker *s = (MSTicker *)arg;
 	int last_late = 0;
 	int precision = 2;
-	int late;
+	int late = 0;
 	int max_late = 0;
 	uint64_t late_time_checkpoint = 0;
 
@@ -460,9 +483,9 @@ void *ms_ticker_run(void *arg) {
 	}
 
 	ms_mutex_lock(&s->lock);
-	bctbx_set_self_thread_name(s->name);
+	bctbx_set_self_thread_name(s->params.name);
 
-	precision = set_high_prio(s);
+	if (!s->params.no_real_time) precision = set_high_prio(s);
 	s->thread_id = ms_thread_self();
 	s->ticks = 1;
 	ms_mutex_lock(&s->cur_time_lock);
@@ -472,7 +495,13 @@ void *ms_ticker_run(void *arg) {
 	while (s->run) {
 		uint64_t late_tick_time = 0, current_time;
 
-		s->ticks++;
+		if (s->tick_suspended) {
+			/* Last tick was suspended. Snooze and retry it. */
+			ms_mutex_unlock(&s->lock);
+			ms_ticker_snooze(s);
+			s->tick_suspended = FALSE;
+			ms_mutex_lock(&s->lock);
+		} else s->ticks++;
 		/*Step 1: run the graphs*/
 		{
 #if TICKER_MEASUREMENTS
@@ -493,20 +522,24 @@ void *ms_ticker_run(void *arg) {
 		ms_mutex_unlock(&s->lock);
 		/*Step 2: wait for next tick*/
 		s->time += s->interval;
-		late = s->wait_next_tick(s->wait_next_tick_data, s->time);
-		current_time = ms_get_cur_time_ms();
-		if (current_time > late_time_checkpoint + 1000) { // We print max late each 1s
-			if (max_late > 0) {                           // We have a counted late
-				ms_warning("%s: We are late of %d miliseconds.", s->name, max_late);
-				max_late = 0; // Reset max
+		if (!s->params.no_real_time) {
+			late = s->wait_next_tick(s->wait_next_tick_data, s->time);
+			current_time = ms_get_cur_time_ms();
+			if (current_time > late_time_checkpoint + 1000) { // We print max late each 1s
+				if (max_late > 0) {                           // We have a counted late
+					ms_warning("%s: We are late of %d miliseconds.", s->params.name, max_late);
+					max_late = 0; // Reset max
+				}
+				late_time_checkpoint = current_time; // Reset time
 			}
-			late_time_checkpoint = current_time; // Reset time
+			if (late > s->interval * 5 && late > last_late) {
+				max_late = (late > max_late ? late : max_late); // Get the max
+				late_tick_time = current_time;
+			}
+			last_late = late;
+		} else {
+			if (s->execution_list == NULL) ms_ticker_snooze(s);
 		}
-		if (late > s->interval * 5 && late > last_late) {
-			max_late = (late > max_late ? late : max_late); // Get the max
-			late_tick_time = current_time;
-		}
-		last_late = late;
 		ms_mutex_lock(&s->lock);
 		if (late_tick_time) {
 			s->late_event.lateMs = late;
@@ -515,8 +548,8 @@ void *ms_ticker_run(void *arg) {
 		s->late_event.current_late_ms = late;
 	}
 	ms_mutex_unlock(&s->lock);
-	unset_high_prio(precision);
-	ms_message("%s thread exiting", s->name);
+	if (!s->params.no_real_time) unset_high_prio(precision);
+	ms_message("%s thread exiting", s->params.name);
 
 	s->thread_id = 0;
 	ms_thread_exit(NULL);
@@ -622,6 +655,10 @@ void ms_ticker_set_synchronizer(MSTicker *ticker, MSTickerSynchronizer *ts) {
 	} else {
 		ms_ticker_set_time_func(ticker, NULL, NULL);
 	}
+}
+
+void ms_ticker_suspend_tick(MSTicker *ticker) {
+	ticker->tick_suspended = TRUE;
 }
 
 static uint64_t get_ms(const MSTimeSpec *ts) {

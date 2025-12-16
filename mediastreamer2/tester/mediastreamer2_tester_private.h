@@ -98,6 +98,10 @@ void ms_tester_tone_generation_loop(void);
 void ms_tester_tone_detection_loop(void);
 void ms_tester_tone_generation_and_detection_loop(void);
 RtpProfile *ms_tester_create_rtp_profile(void);
+void ms_tester_assert_file_content_equals(const char *path1,
+                                          const char *path2,
+                                          bool_t skip_wav_header,
+                                          size_t ignored_trailing_bytes);
 
 typedef void (*ms_tester_iterate_cb)(MediaStream *ms, void *user_pointer);
 

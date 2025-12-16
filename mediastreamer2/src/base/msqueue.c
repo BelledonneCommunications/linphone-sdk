@@ -61,7 +61,7 @@ void ms_bufferizer_init(MSBufferizer *obj) {
 	obj->size = 0;
 }
 
-MSBufferizer *ms_bufferizer_new() {
+MSBufferizer *ms_bufferizer_new(void) {
 	MSBufferizer *obj = (MSBufferizer *)ms_new0(MSBufferizer, 1);
 	ms_bufferizer_init(obj);
 	return obj;

@@ -19,7 +19,8 @@
  */
 
 #include "mediastreamer2_tester_private.h"
-#include <bctoolbox/tester.h>
+#include "bctoolbox/tester.h"
+#include "bctoolbox/vfs.h"
 
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/msfileplayer.h"
@@ -28,6 +29,8 @@
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/mstonedetector.h"
 #include "mediastreamer2/mswebcam.h"
+
+#include "../src/audiofilters/waveheader.h"
 
 typedef struct {
 	MSDtmfGenCustomTone generated_tone;
@@ -71,7 +74,7 @@ MSFactory *ms_tester_factory_new(void) {
 }
 
 static MSTicker *create_ticker(void) {
-	MSTickerParams params;
+	MSTickerParams params = {0};
 	params.name = "Tester MSTicker";
 	params.prio = MS_TICKER_PRIO_NORMAL;
 	return ms_ticker_new_with_params(&params);
@@ -434,4 +437,70 @@ bool_t wait_for_until_for_uint64_with_parse_events(MediaStream *ms1,
 
 bool_t wait_for(MediaStream *ms_1, MediaStream *ms_2, int *counter, int value) {
 	return wait_for_until(ms_1, ms_2, counter, value, 2000);
+}
+
+void ms_tester_assert_file_content_equals(const char *path1,
+                                          const char *path2,
+                                          bool_t ignore_wav_header,
+                                          size_t ignored_trailling_bytes) {
+	uint8_t *buf1;
+	uint8_t *buf2;
+	int header_size1 = 0;
+	int header_size2 = 0;
+
+	bctbx_vfs_file_t *f1 = bctbx_file_open(bctbx_vfs_get_default(), path1, "r");
+	bctbx_vfs_file_t *f2 = bctbx_file_open(bctbx_vfs_get_default(), path2, "r");
+	BC_ASSERT_PTR_NOT_NULL(f1);
+	BC_ASSERT_PTR_NOT_NULL(f2);
+	if (f1 == NULL || f2 == NULL) return;
+
+	if (ignore_wav_header) {
+		wave_header_t wh;
+		header_size1 = ms_read_wav_header_from_fp(&wh, f1);
+		if (header_size1 == -1) header_size1 = 0;
+		header_size2 = ms_read_wav_header_from_fp(&wh, f2);
+		if (header_size2 == -1) header_size2 = 0;
+		ms_message("Skipped wav header bytes: file1: %i  file2: %i", header_size1, header_size2);
+	}
+
+	ssize_t s1 = bctbx_file_size(f1) - header_size1;
+	ssize_t s2 = bctbx_file_size(f2) - header_size2;
+
+	if (s1 > s2) {
+		if (s1 - s2 < (ssize_t)ignored_trailling_bytes) {
+			s1 = s2;
+		}
+	} else {
+		if (s2 - s1 < (ssize_t)ignored_trailling_bytes) {
+			s2 = s1;
+		}
+	}
+
+	BC_ASSERT_EQUAL((long)s2, (long)s1, long, "%ld");
+	BC_ASSERT_TRUE(s1 != BCTBX_VFS_ERROR);
+	if (s1 != s2 || s1 == BCTBX_VFS_ERROR) return;
+	ssize_t fileSize = (ssize_t)s1;
+
+	buf1 = bctbx_malloc0(fileSize);
+	buf2 = bctbx_malloc0(fileSize);
+
+	BC_ASSERT_TRUE(bctbx_file_read2(f1, buf1, (size_t)fileSize) == fileSize);
+	BC_ASSERT_TRUE(bctbx_file_read2(f2, buf2, (size_t)fileSize) == fileSize);
+
+	bctbx_file_close(f1);
+	bctbx_file_close(f2);
+
+	if (buf1 && buf2) {
+		bool_t data_are_equal = TRUE;
+		for (ssize_t i = 0; i < fileSize; ++i) {
+			if (buf1[i] != buf2[i]) {
+				ms_message("Data difference at position %i: %i vs %i", (int)i, (int)buf1[i], (int)buf2[i]);
+				data_are_equal = FALSE;
+			}
+		}
+		BC_ASSERT_TRUE(data_are_equal);
+	}
+
+	if (buf1) ms_free(buf1);
+	if (buf2) ms_free(buf2);
 }

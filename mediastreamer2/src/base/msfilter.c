@@ -411,3 +411,23 @@ const char *ms_format_type_to_string(MSFormatType type) {
 	}
 	return "invalid";
 }
+
+void ms_filter_declare_busy(MSFilter *f) {
+	if (!f->ticker) {
+		ms_error("Declaring busy state outside of process() function is meaningless.");
+		return;
+	}
+	if (!f->ticker->params.no_real_time) {
+		/* Simply drop input buffers and continue normally */
+		int i, j;
+		for (i = 0, j = 0; j < f->n_connected_inputs && i < f->desc->ninputs; i++) {
+			if (f->inputs[i] != NULL) {
+				ms_queue_flush(f->inputs[i]);
+				j++;
+			}
+		}
+	} else {
+		/* leave input buffers as they are, but inform ticket that graph execution is to be suspended. */
+		ms_ticker_suspend_tick(f->ticker);
+	}
+}

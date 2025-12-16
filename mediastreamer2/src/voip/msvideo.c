@@ -1089,7 +1089,7 @@ bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time) {
 
 /*compatibility, deprecated*/
 bool_t ms_video_update_average_fps(MSAverageFPS *afps, uint64_t current_time) {
-	return ms_average_fps_update(afps, current_time);
+	return ms_average_fps_activity(afps, current_time, TRUE);
 }
 
 float ms_average_fps_get(const MSAverageFPS *afps) {

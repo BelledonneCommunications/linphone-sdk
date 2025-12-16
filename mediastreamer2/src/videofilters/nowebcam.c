@@ -379,7 +379,7 @@ void ms_static_image_set_default_image(const char *path) {
 	}
 }
 
-const char *ms_static_image_get_default_image() {
+const char *ms_static_image_get_default_image(void) {
 	return ms_nowebcam_def_image;
 }
 

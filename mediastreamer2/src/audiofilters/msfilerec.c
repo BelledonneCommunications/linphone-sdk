@@ -157,6 +157,13 @@ static int rec_open(MSFilter *f, void *arg) {
 				ms_error("Could not lseek to end of file: %s", strerror(err));
 			}
 		} else ms_error("fstat() failed: %s", strerror(errno));
+	} else if (s->is_wav) {
+		/* need to reserve space for wav header, that will be written at close time */
+		wave_header_t placeholder;
+		memset(&placeholder, 0, sizeof(placeholder));
+		if (bctbx_file_write2(s->fp, &placeholder, sizeof(placeholder)) == BCTBX_VFS_ERROR) {
+			ms_error("Could not reserve space for wave header: %s", strerror(errno));
+		}
 	}
 	ms_message("MSFileRec: recording into %s", filename);
 	s->writer = ms_async_writer_new(s->fp);

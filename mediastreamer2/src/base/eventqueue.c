@@ -147,7 +147,7 @@ void ms_event_queue_clean(MSEventQueue *q, MSFilter *destroyed) {
 	flushq(&freeq, 0);
 }
 
-MSEventQueue *ms_event_queue_new() {
+MSEventQueue *ms_event_queue_new(void) {
 	MSEventQueue *q = ms_new0(MSEventQueue, 1);
 	ms_mutex_init(&q->mutex, NULL);
 	qinit(&q->q);

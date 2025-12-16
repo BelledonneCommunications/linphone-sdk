@@ -95,6 +95,7 @@ typedef struct _wave_header_t {
 #define wave_header_get_channel(header) le_uint16((header)->format_chunk.channel)
 #define wave_header_get_bpsmpl(header) le_uint16((header)->format_chunk.blockalign)
 
-int ms_read_wav_header_from_fp(wave_header_t *header, bctbx_vfs_file_t *fp);
+/* This function is used from tests.*/
+MS2_PUBLIC int ms_read_wav_header_from_fp(wave_header_t *header, bctbx_vfs_file_t *fp);
 
 #endif

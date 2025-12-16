@@ -20,6 +20,7 @@
 
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/mediastream.h"
+#include "mediastreamer2/mseventqueue.h"
 #include "mediastreamer2/msfileplayer.h"
 #include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/msrtp.h"
@@ -601,6 +602,100 @@ static void test_worker_threads_2(void) {
 	}
 }
 
+static void dummy_encoder_process(MSFilter *f) {
+	mblk_t *im;
+
+	static uint64_t process_called_count = 0;
+	process_called_count++;
+	if (process_called_count % 50 < 4) {
+		ms_message("Dummy encoder is busy !");
+		ms_filter_declare_busy(f);
+		return;
+	}
+
+	ms_message("Dummy encoder is processing hard !");
+	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+		ms_queue_put(f->outputs[0], im);
+	}
+}
+
+static MSFilterDesc dummy_asynchronous_encoder = {
+    MS_FILTER_PLUGIN_ID,
+    "MSDummyEncoder",
+    "Dummy asynchronous encoder",
+    MS_FILTER_OTHER,
+    "dummyfmt", /*enc_fmt*/
+    1,
+    1,
+    NULL, /*init*/
+    NULL, /*preprocess*/
+    dummy_encoder_process,
+    NULL, /*postprocess*/
+    NULL, /*uninit*/
+    NULL, /*methods*/
+          // MS_FILTER_IS_PUMP
+};
+
+static int player_done = 0;
+
+static void
+on_reader_event(BCTBX_UNUSED(void *user_data), BCTBX_UNUSED(MSFilter *f), unsigned int id, BCTBX_UNUSED(void *arg)) {
+	if (id == MS_PLAYER_EOF) {
+		player_done = 1;
+	}
+}
+
+static void non_real_time_tickers(void) {
+	MSFactory *factory = ms_tester_factory_new();
+	MSFilter *reader = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
+	MSFilter *writer = ms_factory_create_filter(factory, MS_FILE_REC_ID);
+	MSFilter *dummy_encoder = ms_factory_create_filter_from_desc(factory, &dummy_asynchronous_encoder);
+	MSTickerParams ticker_params = {0};
+	MSEventQueue *evq = ms_factory_create_event_queue(factory);
+	MSTicker *ticker;
+	char *input_filename = bc_tester_res("sounds/hello8000.wav");
+	char *output_filename = ms_tester_get_random_filename("output", ".wav");
+
+	ms_filter_link(reader, 0, dummy_encoder, 0);
+	ms_filter_link(dummy_encoder, 0, writer, 0);
+
+	BC_ASSERT_TRUE(ms_filter_call_method(reader, MS_PLAYER_OPEN, input_filename) == 0);
+	BC_ASSERT_TRUE(ms_filter_call_method(writer, MS_RECORDER_OPEN, output_filename) == 0);
+
+	ticker_params.name = "Accelerated ticker";
+	ticker_params.no_real_time = TRUE;
+
+	ticker = ms_ticker_new_with_params(&ticker_params);
+
+	ms_ticker_attach(ticker, reader);
+
+	BC_ASSERT_TRUE(ms_filter_call_method_noarg(writer, MS_RECORDER_START) == 0);
+	BC_ASSERT_TRUE(ms_filter_call_method_noarg(reader, MS_PLAYER_START) == 0);
+	ms_filter_add_notify_callback(reader, on_reader_event, NULL, FALSE);
+
+	do {
+		ms_event_queue_pump(evq);
+	} while (!player_done);
+
+	BC_ASSERT_TRUE(ms_filter_call_method_noarg(reader, MS_PLAYER_CLOSE) == 0);
+	BC_ASSERT_TRUE(ms_filter_call_method_noarg(writer, MS_RECORDER_CLOSE) == 0);
+
+	ms_ticker_detach(ticker, reader);
+
+	ms_tester_assert_file_content_equals(input_filename, output_filename, TRUE, 100);
+
+	ms_filter_unlink(reader, 0, dummy_encoder, 0);
+	ms_filter_unlink(dummy_encoder, 0, writer, 0);
+
+	ms_filter_destroy(reader);
+	ms_filter_destroy(writer);
+	ms_filter_destroy(dummy_encoder);
+	ms_ticker_destroy(ticker);
+	ms_factory_destroy(factory);
+	bctbx_free(output_filename);
+	bctbx_free(input_filename);
+}
+
 static test_t tests[] = {TEST_NO_TAG("Multiple ms_voip_init", filter_register_tester),
                          TEST_NO_TAG("Is multicast", test_is_multicast),
                          TEST_NO_TAG("FilterDesc enabling/disabling", test_filterdesc_enable_disable),
@@ -633,9 +728,9 @@ static test_t tests[] = {TEST_NO_TAG("Multiple ms_voip_init", filter_register_te
                          TEST_NO_TAG("Copy yuv buffer with pixel strides: semi-planar to planar with sliding",
                                      test_yuv_copy_with_pix_strides_semi_planar_to_planar_with_sliding),
                          TEST_NO_TAG("Copy yuv buffer with pixel strides: semi-planar to semi-planar with sliding",
-                                     test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar_with_sliding)
+                                     test_yuv_copy_with_pix_strides_semi_planar_to_semi_planar_with_sliding),
 #endif
-};
+                         TEST_NO_TAG("Accelerated (non-real-time) tickers", non_real_time_tickers)};
 
 test_suite_t framework_test_suite = {
     "Framework", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

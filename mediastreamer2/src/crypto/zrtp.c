@@ -803,7 +803,7 @@ void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessi
 
 /**** Public functions ****/
 /* header declared in include/mediastreamer2/zrtp.h */
-bool_t ms_zrtp_available() {
+bool_t ms_zrtp_available(void) {
 	return TRUE;
 }
 
