@@ -206,6 +206,7 @@ private:
 	std::shared_ptr<CallSession> createSessionTo(const std::shared_ptr<const Address> &sessionTo);
 	std::shared_ptr<CallSession> createSession();
 	std::shared_ptr<CallSession> getMainSession() const override;
+	std::shared_ptr<ConferenceInfo> createOrGetConferenceInfo() const override;
 	std::shared_ptr<ConferenceInfo> createConferenceInfo() const override;
 	void updateAndSaveConferenceInformations();
 	bool focusIsReady() const;

@@ -6222,10 +6222,6 @@ void compare_conference_infos(const LinphoneConferenceInfo *info1,
 	if (info1 && info2) {
 		BC_ASSERT_TRUE(linphone_address_weak_equal(linphone_conference_info_get_organizer(info1),
 		                                           linphone_conference_info_get_organizer(info2)));
-		if (!linphone_address_weak_equal(linphone_conference_info_get_organizer(info1),
-		                                 linphone_conference_info_get_organizer(info2))) {
-			abort();
-		}
 		BC_ASSERT_TRUE(
 		    linphone_address_equal(linphone_conference_info_get_uri(info1), linphone_conference_info_get_uri(info2)));
 

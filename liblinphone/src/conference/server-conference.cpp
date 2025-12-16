@@ -177,7 +177,7 @@ void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
 			}
 		} else {
 			// createOrGetConferenceInfo assign a conference information to the mConferenceInfo Conference class member
-			[[maybe_unused]] const auto &conferenceInfo = createOrGetConferenceInfo();
+			[[maybe_unused]] auto conferenceInfo = createOrGetConferenceInfo();
 #ifdef HAVE_DB_STORAGE
 			if (conferenceInfo) {
 				auto &mainDb = core->getPrivate()->mainDb;
