@@ -176,7 +176,9 @@ void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
 				updateConferenceInformation();
 			}
 		} else {
-			const auto &conferenceInfo = createOrGetConferenceInfo();
+			// createOrGetConferenceInfo assign a conference information to the mConferenceInfo Conference class member
+			[[maybe_unused]] const auto &conferenceInfo = createOrGetConferenceInfo();
+#ifdef HAVE_DB_STORAGE
 			if (conferenceInfo) {
 				auto &mainDb = core->getPrivate()->mainDb;
 				if (mainDb) {
@@ -185,6 +187,7 @@ void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
 					mainDb->insertConferenceInfo(conferenceInfo);
 				}
 			}
+#endif // HAVE_DB_STORAGE
 		}
 	}
 }
@@ -371,7 +374,7 @@ bool ServerConference::updateConferenceInformation(SalCallOp *op) {
 }
 
 void ServerConference::updateConferenceInformation() {
-	const auto &conferenceInfo = createConferenceInfoWithCustomParticipantList(mOrganizer, mInvitedParticipants);
+	const auto &conferenceInfo = createConferenceInfo();
 	auto infoState = ConferenceInfo::State::New;
 	if (mInvitedParticipants.empty()) {
 		infoState = ConferenceInfo::State::Cancelled;
@@ -925,8 +928,8 @@ void ServerConference::confirmCreation() {
 		}
 #endif // HAVE_ADVANCED_IM
 
-		const auto &conferenceInfo = createOrGetConferenceInfo();
-
+		// createOrGetConferenceInfo assign a conference information to the mConferenceInfo Conference class member
+		[[maybe_unused]] const auto &conferenceInfo = createOrGetConferenceInfo();
 #ifdef HAVE_DB_STORAGE
 		// Method startIncomingNotification can move the conference to the CreationFailed state if the organizer
 		// doesn't have any of the codecs the server supports
@@ -1052,8 +1055,10 @@ void ServerConference::finalizeCreation() {
 				} else {
 					session->redirect(addr);
 				}
+				// createOrGetConferenceInfo assign a conference information to the mConferenceInfo Conference class
+				// member
+				[[maybe_unused]] const auto &conferenceInfo = createOrGetConferenceInfo();
 #ifdef HAVE_DB_STORAGE
-				const auto &conferenceInfo = createOrGetConferenceInfo();
 				// Method startIncomingNotification can move the conference to the CreationFailed state if the organizer
 				// doesn't have any of the codecs the server supports
 				// It is therefore important to make sure that this code is called after it
@@ -1289,9 +1294,11 @@ ServerConference::notifyParticipantDeviceStateChanged(time_t creationTime,
 			time_t newExpiryTime = deviceTimeOfJoining + expiry;
 			if (newExpiryTime > actualExpiryTime) {
 				mConfParams->setExpiryTime(newExpiryTime);
+				// createOrGetConferenceInfo assign a conference information to the mConferenceInfo Conference class
+				// member
+				[[maybe_unused]] auto conferenceInfo = createOrGetConferenceInfo();
 #ifdef HAVE_DB_STORAGE
 				if (mainDb) {
-					auto conferenceInfo = createOrGetConferenceInfo();
 					conferenceInfo->setExpiryTime(newExpiryTime);
 					mainDb->insertConferenceInfo(conferenceInfo);
 				}
@@ -1841,8 +1848,11 @@ shared_ptr<Participant> ServerConference::addParticipantToList(BCTBX_UNUSED(cons
 		 * removed previously OR a totally new participant. */
 		if (!findParticipant(addr)) {
 			mParticipants.push_back(participant);
-			shared_ptr<ConferenceParticipantEvent> event = notifyParticipantAdded(time(nullptr), false, participant);
+			[[maybe_unused]] shared_ptr<ConferenceParticipantEvent> event =
+			    notifyParticipantAdded(time(nullptr), false, participant);
+#ifdef HAVE_DB_STORAGE
 			getCore()->getPrivate()->mainDb->addEvent(event);
+#endif // HAVE_DB_STORAGE
 		}
 	}
 #endif // HAVE_ADVANCED_IM
@@ -2031,7 +2041,7 @@ bool ServerConference::addParticipant(const std::shared_ptr<Call> call) {
 					const_cast<MediaSessionParams *>(call->getParams())->enableVideo(false);
 				}
 
-				auto success = addParticipantAndDevice(call);
+				[[maybe_unused]] auto success = addParticipantAndDevice(call);
 				const auto &device = findParticipantDevice(session);
 				LinphoneMediaDirection audioDirection = LinphoneMediaDirectionInactive;
 				LinphoneMediaDirection videoDirection = LinphoneMediaDirectionInactive;
@@ -2053,6 +2063,7 @@ bool ServerConference::addParticipant(const std::shared_ptr<Call> call) {
 							break;
 					}
 
+#ifdef HAVE_DB_STORAGE
 					auto &mainDb = getCore()->getPrivate()->mainDb;
 					if (success && conferenceAddress && mainDb) {
 						auto conferenceInfo = mainDb->getConferenceInfoFromURI(conferenceAddress);
@@ -2063,6 +2074,7 @@ bool ServerConference::addParticipant(const std::shared_ptr<Call> call) {
 							}
 						}
 					}
+#endif // HAVE_DB_STORAGE
 				}
 
 				const_cast<MediaSessionParams *>(call->getParams())->setAudioDirection(audioDirection);
@@ -2288,9 +2300,11 @@ void ServerConference::addParticipantDevice(BCTBX_UNUSED(const shared_ptr<Partic
 			device = participant->addDevice(deviceInfo->getAddress(), deviceInfo->getName());
 			device->setCapabilityDescriptor(deviceInfo->getCapabilityDescriptor());
 			serverGroupChatRoom->updateProtocolVersionFromDevice(device);
-			shared_ptr<ConferenceParticipantDeviceEvent> event =
+			[[maybe_unused]] shared_ptr<ConferenceParticipantDeviceEvent> event =
 			    notifyParticipantDeviceAdded(time(nullptr), false, participant, device);
+#ifdef HAVE_DB_STORAGE
 			getCore()->getPrivate()->mainDb->addEvent(event);
+#endif // HAVE_DB_STORAGE
 
 			if (serverGroupChatRoom->getProtocolVersion() < Utils::Version(1, 1) && !getCurrentParams()->isGroup() &&
 			    allDevLeft) {
@@ -2546,10 +2560,13 @@ bool ServerConference::removeParticipant(const std::shared_ptr<Participant> &par
 		const auto &chatRoom = getChatRoom();
 		if (mConfParams->chatEnabled() && chatRoom) {
 			auto serverGroupChatRoom = dynamic_pointer_cast<ServerChatRoom>(chatRoom);
-			unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
 			time_t creationTime = time(nullptr);
-			shared_ptr<ConferenceParticipantEvent> event = notifyParticipantRemoved(creationTime, false, participant);
+			[[maybe_unused]] shared_ptr<ConferenceParticipantEvent> event =
+			    notifyParticipantRemoved(creationTime, false, participant);
+#ifdef HAVE_DB_STORAGE
+			unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
 			mainDb->addConferenceParticipantEventToDb(event);
+#endif // HAVE_DB_STORAGE
 
 			serverGroupChatRoom->removeQueuedParticipantMessages(participant);
 
@@ -2562,7 +2579,9 @@ bool ServerConference::removeParticipant(const std::shared_ptr<Participant> &par
 				           "devices "
 				           "associated to it, unsubscribing";
 				serverGroupChatRoom->unSubscribeRegistrationForParticipant(participant->getAddress());
+#ifdef HAVE_DB_STORAGE
 				mainDb->deleteChatRoomParticipant(serverGroupChatRoom, participant->getAddress());
+#endif // HAVE_DB_STORAGE
 			}
 
 			if (!hasAdminLeft()) chooseAnotherAdminIfNoneInConference(participant);
@@ -2577,11 +2596,13 @@ LinphoneStatus ServerConference::setParticipantAdminStatus(const shared_ptr<Part
 	if (isAdmin != participant->isAdmin()) {
 		participant->setAdmin(isAdmin);
 		time_t creationTime = time(nullptr);
-		auto event = notifyParticipantSetAdmin(creationTime, false, participant, isAdmin);
+		[[maybe_unused]] auto event = notifyParticipantSetAdmin(creationTime, false, participant, isAdmin);
+#ifdef HAVE_DB_STORAGE
 		const auto &chatRoom = getChatRoom();
 		if (mConfParams->chatEnabled() && chatRoom && mConfParams->isGroup()) {
 			getCore()->getPrivate()->mainDb->addEvent(event);
 		}
+#endif // HAVE_DB_STORAGE
 	}
 	return 0;
 }
@@ -2663,9 +2684,11 @@ void ServerConference::setUtf8Subject(const std::string &subject) {
 	Conference::setUtf8Subject(subject);
 	if (subject.compare(previousSubject) != 0) {
 		time_t creationTime = time(nullptr);
-		auto event = notifySubjectChanged(creationTime, false, getUtf8Subject());
+		[[maybe_unused]] auto event = notifySubjectChanged(creationTime, false, getUtf8Subject());
 		if (isChatOnly()) {
+#ifdef HAVE_DB_STORAGE
 			getCore()->getPrivate()->mainDb->addEvent(event);
+#endif // HAVE_DB_STORAGE
 		}
 	}
 }
@@ -3549,8 +3572,11 @@ void ServerConference::removeParticipantDevice(BCTBX_UNUSED(const shared_ptr<Par
 			return;
 		}
 		// Notify to everyone the retirement of this device.
-		auto deviceEvent = notifyParticipantDeviceRemoved(time(nullptr), false, participant, participantDevice);
+		[[maybe_unused]] auto deviceEvent =
+		    notifyParticipantDeviceRemoved(time(nullptr), false, participant, participantDevice);
+#ifdef HAVE_DB_STORAGE
 		getCore()->getPrivate()->mainDb->addEvent(deviceEvent);
+#endif // HAVE_DB_STORAGE
 
 		// First set it as left, so that it may eventually trigger the destruction of the chatroom if no device are
 		// present for any participant.
@@ -3578,7 +3604,9 @@ void ServerConference::setParticipantDeviceState(BCTBX_UNUSED(const shared_ptr<P
 			auto deviceAddress = device->getAddress();
 			lInfo() << *this << ": Set participant device '" << *deviceAddress << "' state to " << state;
 			device->setState(state, notify);
+#ifdef HAVE_DB_STORAGE
 			getCore()->getPrivate()->mainDb->updateChatRoomParticipantDevice(chatRoom, device);
+#endif // HAVE_DB_STORAGE
 			const auto participant = findParticipant(deviceAddress);
 			switch (state) {
 				case ParticipantDevice::State::ScheduledForLeaving:
@@ -3617,7 +3645,9 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 	const auto &chatRoom = getChatRoom();
 	if (isChatOnly() && chatRoom) {
 		auto serverGroupChatRoom = dynamic_pointer_cast<ServerChatRoom>(chatRoom);
+#ifdef HAVE_DB_STORAGE
 		unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
+#endif // HAVE_DB_STORAGE
 		lInfo() << *this << ": " << *device << " left";
 
 		if (getCurrentParams()->isGroup() || serverGroupChatRoom->getProtocolVersion() >= Utils::Version(1, 1)) {
@@ -3627,7 +3657,9 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 			    findParticipant(participant->getAddress()) == nullptr) {
 				lInfo() << *this << ": " << *participant << " has been removed and the last device left, unsubscribing";
 				serverGroupChatRoom->unSubscribeRegistrationForParticipant(participant->getAddress());
+#ifdef HAVE_DB_STORAGE
 				mainDb->deleteChatRoomParticipant(serverGroupChatRoom, participant->getAddress());
+#endif // HAVE_DB_STORAGE
 			}
 		}
 
@@ -3654,7 +3686,9 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 				// Delete the chat room from the main DB as its termination process started and it cannot be
 				// retrieved in the future
 				lInfo() << "Delete " << *this << " from MainDB as last participant has left";
+#ifdef HAVE_DB_STORAGE
 				mainDb->deleteChatRoom(getConferenceId());
+#endif // HAVE_DB_STORAGE
 				if (getState() != ConferenceInterface::State::TerminationPending) {
 					setState(ConferenceInterface::State::TerminationPending);
 				}
@@ -3832,8 +3866,10 @@ void ServerConference::conclude() {
 				// Insert the one-on-one chat room in Db if participants count is 2.
 				// This is necessary for protocol version < 1.1, and for backward compatibility in case these prior
 				// versions are subsequently used by device that gets joined to the chatroom.
+#ifdef HAVE_DB_STORAGE
 				getCore()->getPrivate()->mainDb->insertOneOnOneConferenceChatRoom(
 				    chatRoom, getCurrentParams()->getChatParams()->isEncrypted());
+#endif // HAVE_DB_STORAGE
 			}
 		}
 	}
