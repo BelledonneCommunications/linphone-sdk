@@ -32,14 +32,14 @@ if(ENABLE_DOC OR ENABLE_CXX_WRAPPER OR ENABLE_CSHARP_WRAPPER OR ENABLE_JAVA_WRAP
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doxygen.dox.in ${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/provisioning_configuration_key.dox.in ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw)
 
-		if(WIN32)
+		if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
 			set(SED_BINARY_MODE "-b")
 		else()
 			set(SED_BINARY_MODE "")
 		endif()
 
 
-		if(APPLE)
+		if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
 			set(SED_IN_PLACE_EDIT_ARG "-i ''")
 		else()
 			set(SED_IN_PLACE_EDIT_ARG "-i")
@@ -47,7 +47,7 @@ if(ENABLE_DOC OR ENABLE_CXX_WRAPPER OR ENABLE_CSHARP_WRAPPER OR ENABLE_JAVA_WRAP
 
 		add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox"
 			COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-			COMMAND sed -r ${SED_BINARY_MODE} ' s/:://g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+			COMMAND sed -r ${SED_BINARY_MODE} 's/:://g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
 			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#/\_/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
 			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#/\_/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw
