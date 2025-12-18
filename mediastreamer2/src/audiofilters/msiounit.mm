@@ -1257,7 +1257,7 @@ static void au_read_process(MSFilter *f){
 	}
 	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, [au_holder rate]);
 	ms_mutex_unlock(&d->mutex);
-	if (f->ticker->time % 1000 == 0 && [au_holder mic_enabled] ){
+	if (f->ticker->time % 3000 == 0 && [au_holder mic_enabled] ){
 		/* The purpose of this code is to detect when an AudioUnit becomes silent, which unfortunately happens randomly
 		 * due to persistent bugs in iOS. Callkit's management of AudioSession is really unreliable, with sometimes
 		 * double activations or double deactivations, deactivations shortly after beginning a second call, and sometimes
