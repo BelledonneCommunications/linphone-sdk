@@ -3509,6 +3509,28 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 			                  initialPaulineStats.number_of_chat_room_participant_devices_removed + 1, 100));
 			BC_ASSERT_FALSE(wait_for_list(coresList, &laure.getStats().number_of_chat_room_participant_devices_removed,
 			                              initialLaureStats.number_of_chat_room_participant_devices_removed + 1, 100));
+			if (unresponsive_server) {
+				BC_ASSERT_TRUE(wait_for_list(coresList,
+				                             &marie.getStats().number_of_LinphoneChatRoomStateTerminationPending,
+				                             initialMarieStats.number_of_LinphoneChatRoomStateTerminationPending + 1,
+				                             liblinphone_tester_sip_timeout));
+
+				// We must wait for the timer F to expire (https://www.rfc-editor.org/rfc/rfc3261.html#section-17.1.2.2)
+				// after 64*T1 (i.e. 32s)
+				BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreated,
+				                             initialMarieStats.number_of_LinphoneChatRoomStateCreated + 1, 33000));
+			}
+
+			BC_ASSERT_FALSE(wait_for_list(coresList, &leaving_mgr->stat.number_of_LinphoneChatRoomStateTerminated,
+			                              initialLeavingMgrStats.number_of_LinphoneChatRoomStateTerminated + 1, 1000));
+
+			BC_ASSERT_TRUE(wait_for_list(coresList, &leaving_mgr->stat.number_of_conference_operation_failed,
+			                             initialLeavingMgrStats.number_of_conference_operation_failed + 1,
+			                             liblinphone_tester_sip_timeout));
+
+			BC_ASSERT_TRUE(wait_for_list(coresList, &leaving_mgr->stat.number_of_chat_room_operation_failed,
+			                             initialLeavingMgrStats.number_of_chat_room_operation_failed + 1,
+			                             liblinphone_tester_sip_timeout));
 		} else {
 			BC_ASSERT_TRUE(
 			    wait_for_list(coresList, &michelle.getStats().number_of_chat_room_participant_admin_statuses_changed,
