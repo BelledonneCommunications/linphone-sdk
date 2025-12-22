@@ -116,7 +116,9 @@ if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL 
 	endif()
 	# Need to activate ASM and ASM_NASM at the top level and in this order to workaround a bug of CMake
 	enable_language(ASM)
-	enable_language(ASM_NASM)
+	if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+		enable_language(ASM_NASM)
+	endif()
 
 	list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules")
   if(MSVC)
