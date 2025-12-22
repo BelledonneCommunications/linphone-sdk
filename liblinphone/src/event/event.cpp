@@ -115,7 +115,7 @@ const string &Event::getName() const {
 	return mName;
 }
 
-const std::shared_ptr<Address> Event::getFrom() const {
+std::shared_ptr<Address> Event::getFrom() const {
 	return cacheFrom();
 }
 
@@ -123,7 +123,7 @@ void Event::setFrom(const std::shared_ptr<Address> &fromAddress) {
 	mFromAddress = fromAddress->clone()->toSharedPtr();
 }
 
-const std::shared_ptr<Address> Event::getTo() const {
+std::shared_ptr<Address> Event::getTo() const {
 	return cacheTo();
 }
 
@@ -218,6 +218,10 @@ void Event::setUnrefWhenTerminated(bool unrefWhenTerminated) {
 
 void Event::setManualRefresherMode(bool manual) {
 	mOp->setManualRefresherMode(manual);
+}
+
+void Event::overridePrivacy(LinphonePrivacyMask privacy) {
+	mOp->setPrivacy(privacy);
 }
 
 LINPHONE_END_NAMESPACE

@@ -894,7 +894,8 @@ bool ClientConferenceEventHandler::subscribe() {
 
 	try {
 		const auto &mainSession = conference->getMainSession();
-		LinphonePrivacyMask privacy = LinphonePrivacyDefault;
+		LinphonePrivacyMask privacy =
+		    account ? account->getAccountParams()->getPrivacy() : (LinphonePrivacyMask)LinphonePrivacyDefault;
 		if (mainSession) {
 			privacy = mainSession->getParams()->getPrivacy();
 			const auto &callContactAddress = mainSession->getContactAddress();
@@ -907,8 +908,9 @@ bool ClientConferenceEventHandler::subscribe() {
 		const int eventSubscribeExpire = linphone_config_get_int(linphone_core_get_config(getCore()->getCCore()), "sip",
 		                                                         "conference_subscribe_expires", 600);
 		ev = dynamic_pointer_cast<EventSubscribe>(
-		    (new EventSubscribe(getCore(), subscribeToHeader, account, "conference", eventSubscribeExpire, privacy))
+		    (new EventSubscribe(getCore(), subscribeToHeader, account, "conference", eventSubscribeExpire))
 		        ->toSharedPtr());
+		ev->overridePrivacy(privacy);
 		shared_ptr<EventCbs> cbs = EventCbs::create();
 		cbs->setUserData(this);
 		cbs->subscribeStateChangedCb = subscribeStateChangedCb;

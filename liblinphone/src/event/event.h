@@ -75,10 +75,10 @@ public:
 
 	const std::string &getName() const;
 
-	const std::shared_ptr<Address> getFrom() const;
+	std::shared_ptr<Address> getFrom() const;
 	void setFrom(const std::shared_ptr<Address> &fromAddress);
 
-	const std::shared_ptr<Address> getTo() const;
+	std::shared_ptr<Address> getTo() const;
 	void setTo(const std::shared_ptr<Address> &toAddress);
 
 	const std::string &getCallId() const;
@@ -95,6 +95,10 @@ public:
 
 	int getExpires() const;
 	void setExpires(int expires);
+
+	/* The privacy policy is determined automatically from the used Account,
+	 * however it is possible to override it using this method.*/
+	void overridePrivacy(LinphonePrivacyMask privacy);
 
 	void setUnrefWhenTerminated(bool unrefWhenTerminated);
 
@@ -116,7 +120,6 @@ protected:
 	mutable std::shared_ptr<Address> mRequestAddress = nullptr;
 	LinphonePrivate::SalEventOp *mOp = nullptr;
 	SalCustomHeader *mSendCustomHeaders = nullptr;
-
 	std::string mName;
 
 	int mExpires;

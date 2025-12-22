@@ -30,12 +30,19 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
-// -----------------------------------------------------------------------------
+EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
+                               LinphoneSubscriptionDir dir,
+                               const string &name,
+                               int expires)
+    : EventSubscribe(core, new SalSubscribeOp(core->getCCore()->sal.get()), dir, name) {
+	mExpires = expires;
+}
 
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
-                               const LinphoneSubscriptionDir dir,
+                               SalSubscribeOp *op,
+                               LinphoneSubscriptionDir dir,
                                const string &name,
-                               LinphonePrivate::SalSubscribeOp *op)
+                               bool isOutOfDialog)
     : Event(core) {
 	mDir = dir;
 	mOp = op;
@@ -45,32 +52,13 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
 		/*already established dialog */
 		setState(LinphoneSubscriptionActive);
 	}
-}
-
-EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
-                               const LinphoneSubscriptionDir dir,
-                               const string &name,
-                               int expires,
-                               const LinphonePrivacyMask privacy)
-    : EventSubscribe(core, dir, name, new SalSubscribeOp(core->getCCore()->sal.get())) {
-	mOp->setPrivacy((SalPrivacyMask)privacy);
-	mExpires = expires;
-}
-
-EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
-                               SalSubscribeOp *op,
-                               LinphoneSubscriptionDir dir,
-                               const string &name,
-                               bool isOutOfDialog)
-    : EventSubscribe(core, dir, name, op) {
 	mIsOutOfDialogOp = isOutOfDialog;
 }
 
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
                                const std::shared_ptr<const Address> &resource,
-                               const string &event,
-                               const LinphonePrivacyMask privacy)
-    : EventSubscribe(core, LinphoneSubscriptionIncoming, event, -1, privacy) {
+                               const string &event)
+    : EventSubscribe(core, LinphoneSubscriptionIncoming, event, -1) {
 	linphone_configure_op(core->getCCore(), mOp, resource->toC(), nullptr, TRUE);
 	setState(LinphoneSubscriptionIncomingReceived);
 	mOp->setEvent(event);
@@ -80,23 +68,17 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
                                const std::shared_ptr<const Address> &resource,
                                const string &event,
-                               int expires,
-                               const LinphonePrivacyMask privacy)
-    : EventSubscribe(core, LinphoneSubscriptionOutgoing, event, expires, privacy) {
-	linphone_configure_op(core->getCCore(), mOp, resource->toC(), nullptr, TRUE);
-	mOp->setManualRefresherMode(
-	    !linphone_config_get_int(core->getCCore()->config, "sip", "refresh_generic_subscribe", 1));
+                               int expires)
+    : EventSubscribe(core, resource, core->lookupKnownAccount(resource, true), event, expires) {
 }
 
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
                                const std::shared_ptr<const Address> &resource,
                                const std::shared_ptr<Account> &account,
                                const string &event,
-                               int expires,
-                               const LinphonePrivacyMask privacy)
-    : EventSubscribe(core, LinphoneSubscriptionOutgoing, event, expires, privacy) {
-	linphone_configure_op_with_account(core->getCCore(), mOp, resource->toC(), nullptr, TRUE,
-	                                   account ? account->toC() : nullptr);
+                               int expires)
+    : EventSubscribe(core, LinphoneSubscriptionOutgoing, event, expires) {
+	linphone_configure_op_with_account(core->getCCore(), mOp, resource->toC(), nullptr, TRUE, bellesip::toC(account));
 	mOp->setManualRefresherMode(
 	    !linphone_config_get_int(core->getCCore()->config, "sip", "refresh_generic_subscribe", 1));
 }
