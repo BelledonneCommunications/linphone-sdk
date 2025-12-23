@@ -5265,11 +5265,11 @@ static void baudot_text_message(LinphoneBaudotMode initial_sender_baudot_mode,
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
 				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, (int)i + 1,
 				                              liblinphone_tester_sip_timeout));
-				/* To ensure readability of the xml report, do not print a non-ascii and even non-utf-8 character in the
+				/* To ensure readability of the xml report, do not print a non-printable in the
 				 * assert, should this test case be failing.*/
 				int expectedChar = toupper(message[i]);
 				int readChar = (int)linphone_chat_room_get_char(marie_chat_room);
-				if (BC_ASSERT_TRUE(isascii(readChar) != 0)) {
+				if (BC_ASSERT_TRUE(readChar >= 0 && readChar < 256) && BC_ASSERT_TRUE(isprint(readChar) != 0)) {
 					BC_ASSERT_EQUAL(readChar, expectedChar, int, "%c");
 				}
 			}
