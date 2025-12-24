@@ -386,6 +386,7 @@ LinphoneVcard *linphone_core_create_vcard_from_text(const LinphoneCore *core, co
 #ifdef VCARD_ENABLED
 	return linphone_vcard_context_get_vcard_from_buffer(core->vcard_context, input);
 #else
+	(void)core;
 	return NULL;
 #endif
 }
