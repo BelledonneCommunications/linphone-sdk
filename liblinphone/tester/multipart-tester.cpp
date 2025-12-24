@@ -241,7 +241,7 @@ static void multipart_two_file_content_and_one_text_with_cpim(void) {
 	chat_message_multipart_modifier_base(true, true, true, true);
 }
 
-test_t multipart_tests[] = {
+static test_t multipart_tests[] = {
     TEST_NO_TAG("Chat message multipart 2 text content", multipart_two_text_content),
     TEST_NO_TAG("Chat message multipart 2 text content with CPIM", multipart_two_text_content_with_cpim),
     TEST_NO_TAG("Chat message multipart 1 file content and 1 text content", multipart_one_text_and_one_file_content),

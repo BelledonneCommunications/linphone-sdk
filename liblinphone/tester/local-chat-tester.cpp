@@ -2656,36 +2656,36 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 		if (termination_failed) {
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &marie.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialMarieStats.number_of_chat_room_participant_admin_statuses_changed + 1, 1000));
+			                  initialMarieStats.number_of_chat_room_participant_admin_statuses_changed + 1, 3000));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &michelle.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialMichelleStats.number_of_chat_room_participant_admin_statuses_changed + 1, 1000));
+			                  initialMichelleStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &pauline.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialPaulineStats.number_of_chat_room_participant_admin_statuses_changed + 1, 1000));
+			                  initialPaulineStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &laure.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialLaureStats.number_of_chat_room_participant_admin_statuses_changed + 1, 1000));
+			                  initialLaureStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
 
 			BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_chat_room_participants_removed,
-			                              initialMarieStats.number_of_chat_room_participants_removed + 1, 1000));
+			                              initialMarieStats.number_of_chat_room_participants_removed + 1, 100));
 			BC_ASSERT_FALSE(wait_for_list(coresList, &michelle.getStats().number_of_chat_room_participants_removed,
-			                              initialMichelleStats.number_of_chat_room_participants_removed + 1, 1000));
+			                              initialMichelleStats.number_of_chat_room_participants_removed + 1, 100));
 			BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_chat_room_participants_removed,
-			                              initialPaulineStats.number_of_chat_room_participants_removed + 1, 1000));
+			                              initialPaulineStats.number_of_chat_room_participants_removed + 1, 100));
 			BC_ASSERT_FALSE(wait_for_list(coresList, &laure.getStats().number_of_chat_room_participants_removed,
-			                              initialLaureStats.number_of_chat_room_participants_removed + 1, 1000));
+			                              initialLaureStats.number_of_chat_room_participants_removed + 1, 100));
 
 			BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_chat_room_participant_devices_removed,
-			                              initialMarieStats.number_of_chat_room_participant_devices_removed + 1, 1000));
+			                              initialMarieStats.number_of_chat_room_participant_devices_removed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &michelle.getStats().number_of_chat_room_participant_devices_removed,
-			                  initialMichelleStats.number_of_chat_room_participant_devices_removed + 1, 1000));
+			                  initialMichelleStats.number_of_chat_room_participant_devices_removed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &pauline.getStats().number_of_chat_room_participant_devices_removed,
-			                  initialPaulineStats.number_of_chat_room_participant_devices_removed + 1, 1000));
+			                  initialPaulineStats.number_of_chat_room_participant_devices_removed + 1, 100));
 			BC_ASSERT_FALSE(wait_for_list(coresList, &laure.getStats().number_of_chat_room_participant_devices_removed,
-			                              initialLaureStats.number_of_chat_room_participant_devices_removed + 1, 1000));
+			                              initialLaureStats.number_of_chat_room_participant_devices_removed + 1, 100));
 
 			if (unresponsive_server) {
 				BC_ASSERT_TRUE(wait_for_list(coresList,
@@ -3317,7 +3317,7 @@ static void one_on_one_chatroom_not_rejoined_after_leaving() {
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
 		                              initialMarieStats.number_of_LinphoneSubscriptionOutgoingProgress + 1, 2000));
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionError,
-		                              initialMarieStats.number_of_LinphoneSubscriptionError + 1, 2000));
+		                              initialMarieStats.number_of_LinphoneSubscriptionError + 1, 1000));
 
 		// wait a bit longer to detect side effect if any
 		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });

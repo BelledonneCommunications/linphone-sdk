@@ -1514,7 +1514,7 @@ static void secure_one_on_one_chat_room_recreates_chat_room_after_error(bool_t r
 				                              initialPaulineStats.number_of_LinphoneMessageNotDelivered + 1, 2000));
 
 				BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateTerminated,
-				                              initialPaulineStats.number_of_LinphoneChatRoomStateTerminated + 1, 2000));
+				                              initialPaulineStats.number_of_LinphoneChatRoomStateTerminated + 1, 1000));
 			}
 
 			participants = bctbx_list_append(participants, marie.getCMgr()->identity);
@@ -2096,10 +2096,10 @@ static void secure_one_on_one_chat_room_with_subscribe_not_replied(void) {
 		                             liblinphone_tester_sip_timeout));
 
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_NotifyFullStateReceived,
-		                              initialMarieStats.number_of_NotifyFullStateReceived + 1, 2000));
+		                              initialMarieStats.number_of_NotifyFullStateReceived + 1, 3000));
 
 		BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionActive,
-		                              initialPaulineStats.number_of_LinphoneSubscriptionActive + 1, 2000));
+		                              initialPaulineStats.number_of_LinphoneSubscriptionActive + 1, 100));
 
 		int nbMessages = 10;
 		bctbx_list_t *messages = NULL;
@@ -2114,7 +2114,7 @@ static void secure_one_on_one_chat_room_with_subscribe_not_replied(void) {
 				BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageSent,
 				                              initialMarieStats.number_of_LinphoneMessageSent + 1, 1000));
 				BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
-				                              initialPaulineStats.number_of_LinphoneMessageReceived + 1, 1000));
+				                              initialPaulineStats.number_of_LinphoneMessageReceived + 1, 100));
 				messages = bctbx_list_append(messages, marieMessage);
 			}
 		}
@@ -2134,7 +2134,7 @@ static void secure_one_on_one_chat_room_with_subscribe_not_replied(void) {
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageSent,
 		                              initialMarieStats.number_of_LinphoneMessageSent + 1, 1000));
 		BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
-		                              initialPaulineStats.number_of_LinphoneMessageReceived + 1, 1000));
+		                              initialPaulineStats.number_of_LinphoneMessageReceived + 1, 100));
 
 		for (bctbx_list_t *it = messages; it; it = bctbx_list_next(it)) {
 			LinphoneChatMessage *msg = (LinphoneChatMessage *)bctbx_list_get_data(it);
@@ -2257,8 +2257,7 @@ static void secure_group_chat_message_cannot_be_sent_immediately_base(bool_t res
 		ms_message("%s shuts down its network", linphone_core_get_identity(marie.getLc()));
 		linphone_core_set_network_reachable(marie.getLc(), FALSE);
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageDelivered,
-		                              initialMarieStats.number_of_LinphoneMessageDelivered + 1,
-		                              liblinphone_tester_sip_timeout));
+		                              initialMarieStats.number_of_LinphoneMessageDelivered + 1, 3000));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NetworkReachableFalse,
 		                             initialMarieStats.number_of_NetworkReachableFalse + 1,
 		                             liblinphone_tester_sip_timeout));

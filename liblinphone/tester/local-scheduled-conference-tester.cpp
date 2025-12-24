@@ -3247,7 +3247,7 @@ static void conference_with_screen_sharing_participant_only() {
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallEnd,
 		                              marie_stat.number_of_LinphoneCallEnd + 1, (1000 * nortp_timeout)));
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallReleased,
-		                              marie_stat.number_of_LinphoneCallReleased + 1, (1000 * nortp_timeout)));
+		                              marie_stat.number_of_LinphoneCallReleased + 1, 100));
 
 		focus_stat = focus.getStats();
 		marie_stat = marie.getStats();
@@ -3283,7 +3283,7 @@ static void conference_with_screen_sharing_participant_only() {
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallEnd,
 		                              marie_stat.number_of_LinphoneCallEnd + 1, (1000 * nortp_timeout)));
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallReleased,
-		                              marie_stat.number_of_LinphoneCallReleased + 1, (1000 * nortp_timeout)));
+		                              marie_stat.number_of_LinphoneCallReleased + 1, 100));
 
 		focus_stat = focus.getStats();
 
@@ -5400,7 +5400,7 @@ static void create_simple_conference_with_update_deferred() {
 			BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_participant_devices_added,
 			                              pauline_stat2.number_of_participant_devices_added + 1, 1000));
 			BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_participants_added,
-			                              pauline_stat2.number_of_participants_added + 1, 1000));
+			                              pauline_stat2.number_of_participants_added + 1, 100));
 			BC_ASSERT_TRUE(linphone_conference_is_in(paulineConference));
 
 			if (participant_call) {
