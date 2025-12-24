@@ -35,7 +35,7 @@ public:
 
 	virtual void init() override;
 	bool initDisplay();
-	bool getPermission();
+	void getPermission();
 
 	virtual void getWindowSize(int *windowX, int *windowY, int *windowWidth, int *windowHeight) const override;
 	virtual void inputThread() override;
