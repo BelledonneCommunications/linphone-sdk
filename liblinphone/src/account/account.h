@@ -146,7 +146,7 @@ public:
 	void pauseRegister();
 	void refreshRegister();
 	void registerAccount();
-	void releaseOps();
+	void release();
 	void stopRefreshing();
 	void unpublish();
 	void unregister();

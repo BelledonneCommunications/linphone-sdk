@@ -85,7 +85,7 @@ Account::~Account() {
 	if (mPresenceModel) linphone_presence_model_unref(mPresenceModel);
 
 	setConfig(nullptr);
-	releaseOps();
+	release();
 }
 
 Account *Account::clone() const {
@@ -322,7 +322,11 @@ void Account::triggerDeletion() {
 
 void Account::cancelDeletion() {
 	if (mDeletionTimer) {
-		Core::destroyTimer(mDeletionTimer);
+		try {
+			getCore()->destroyTimer(mDeletionTimer);
+		} catch (...) {
+			// ignored, this should not happen.
+		}
 		mDeletionTimer = nullptr;
 	}
 }
@@ -1472,7 +1476,7 @@ bool Account::check() {
 	return true;
 }
 
-void Account::releaseOps() {
+void Account::release() {
 	if (mOp) {
 		mOp->release();
 		mOp = nullptr;
@@ -1482,6 +1486,7 @@ void Account::releaseOps() {
 		mPresencePublishEvent->terminate();
 		mPresencePublishEvent = nullptr;
 	}
+	cancelDeletion();
 }
 
 void Account::resolveDependencies() {

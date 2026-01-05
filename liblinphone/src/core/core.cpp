@@ -400,8 +400,9 @@ void CorePrivate::createConferenceCleanupTimer(long period) {
 }
 
 void CorePrivate::stopConferenceCleanupTimer() {
+	L_Q();
 	if (mConferenceCleanupTimer) {
-		Core::destroyTimer(mConferenceCleanupTimer);
+		q->destroyTimer(mConferenceCleanupTimer);
 		mConferenceCleanupTimer = nullptr;
 	}
 }
@@ -3128,7 +3129,7 @@ void Core::removeAccount(std::shared_ptr<Account> account) {
 		mDeletedAccounts.mList.push_back(account);
 		account->triggerDeletion();
 	} else {
-		account->releaseOps();
+		account->release();
 		account->setConfig(nullptr);
 	}
 
@@ -3172,7 +3173,7 @@ void Core::removeDeletedAccount(const std::shared_ptr<Account> &account) {
 	}
 	const auto &params = account->getAccountParams();
 	lInfo() << *account << " for [" << *params->getServerAddress() << "] is definitely removed from core.";
-	account->releaseOps();
+	account->release();
 	// Setting the proxy config associated to an account to NULL will cause its destruction and therefore losing the
 	// reference held by it to the Account object. In this way, the memory occupied by the account to be deleted is
 	// properly once it is erased by the account list
@@ -3318,12 +3319,11 @@ void Core::clearProxyConfigList() const {
 void Core::releaseAccounts() {
 	clearProxyConfigList();
 	for (const auto &account : getAccounts()) {
-		account->releaseOps();
+		account->release();
 	}
 
 	for (const auto &account : getDeletedAccounts()) {
-		account->releaseOps();
-		account->cancelDeletion();
+		account->release();
 	}
 }
 
