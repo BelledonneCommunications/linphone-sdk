@@ -1013,6 +1013,6 @@ test_suite_t local_conference_test_suite_ephemeral_chat = {
     liblinphone_tester_after_each,
     sizeof(local_conference_ephemeral_chat_tests) / sizeof(local_conference_ephemeral_chat_tests[0]),
     local_conference_ephemeral_chat_tests,
-    0,
+    167,
     2 /*cpu_weight : chat uses more resources due to core restarts */
 };

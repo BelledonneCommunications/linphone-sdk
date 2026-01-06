@@ -715,5 +715,7 @@ test_suite_t call_flexfec_suite = {"Call with FlexFec",
                                    liblinphone_tester_before_each,
                                    liblinphone_tester_after_each,
                                    sizeof(call_flexfec_tests) / sizeof(call_flexfec_tests[0]),
-                                   call_flexfec_tests};
+                                   call_flexfec_tests,
+                                   200,
+                                   1};
 #endif // VIDEO_ENABLED

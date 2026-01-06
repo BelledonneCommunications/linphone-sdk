@@ -64,6 +64,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 	coresManagerList = bctbx_list_append(coresManagerList, marie);
 	coresManagerList = bctbx_list_append(coresManagerList, pauline);
 	int size;
+	static const int ephemeral_long_time = 20;
 
 	set_lime_server_and_curve_list(curveId, coresManagerList);
 	stats initialMarieStats = marie->stat;
@@ -109,8 +110,8 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 	LinphoneChatMessage *message[10];
 	if (remained) {
 		linphone_chat_room_enable_ephemeral(marieCr, TRUE);
-		linphone_chat_room_set_ephemeral_lifetime(marieCr, 30);
-		if (use_not_read_lifetime) linphone_chat_room_set_ephemeral_not_read_lifetime(marieCr, 30);
+		linphone_chat_room_set_ephemeral_lifetime(marieCr, ephemeral_long_time);
+		if (use_not_read_lifetime) linphone_chat_room_set_ephemeral_not_read_lifetime(marieCr, ephemeral_long_time);
 
 		// Marie sends messages
 		for (int i = 0; i < 10; i++) {
@@ -198,7 +199,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 	                             initialPaulineStats.number_of_LinphoneMessageEphemeralDeleted + 10,
 	                             liblinphone_tester_sip_timeout));
 
-	wait_for_list(coresList, NULL, 1, (liblinphone_tester_sip_timeout * 3) / 2);
+	wait_for_list(coresList, NULL, 1, ephemeral_long_time * 1000 / 2);
 	size = size - 9;
 	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), size, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), size, int, "%d");
@@ -222,7 +223,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 		bctbx_list_t *tmpCoresList = init_core_for_conference(tmpCoresManagerList);
 		bctbx_list_free(tmpCoresManagerList);
 		coresList = bctbx_list_concat(coresList, tmpCoresList);
-		if (expired) wait_for_list(coresList, NULL, 0, 30000);
+		if (expired) wait_for_list(coresList, NULL, 0, ephemeral_long_time * 1000);
 
 		linphone_core_manager_start(pauline, TRUE);
 		paulineCr = linphone_core_search_chat_room(pauline->lc, NULL, localAddr, peerAddr, NULL);
@@ -231,7 +232,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 		linphone_address_unref(localAddr);
 		linphone_address_unref(peerAddr);
 
-		wait_for_list(coresList, NULL, 1, 30000);
+		wait_for_list(coresList, NULL, 1, ephemeral_long_time * 1000);
 
 		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 1, int, "%d");
 		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 1, int, "%d");
@@ -925,7 +926,7 @@ static void ephemeral_group_message_individual_policy_test(void) {
 	ephemeral_group_message_with_policy_test(LinphoneEphemeralChatMessagePolicyIndividual);
 }
 
-test_t ephemeral_group_chat_tests[] = {
+static test_t ephemeral_group_chat_tests[] = {
     TEST_TWO_TAGS("Chat room remaining ephemeral default policy messages",
                   chat_room_remaining_ephemeral_message_default_policy_test,
                   "Ephemeral",
@@ -946,7 +947,7 @@ test_t ephemeral_group_chat_tests[] = {
     TEST_ONE_TAG(
         "Send non ephemeral message", send_msg_from_no_ephemeral_chat_room_to_ephemeral_chat_room, "Ephemeral")};
 
-test_t ephemeral_group_chat_basic_tests[] = {
+static test_t ephemeral_group_chat_basic_tests[] = {
     TEST_ONE_TAG("Unencrypted chat room ephemeral default policy messages",
                  unencrypted_chat_room_ephemeral_message_default_policy_test,
                  "Ephemeral"),
@@ -979,7 +980,8 @@ test_suite_t ephemeral_group_chat_test_suite = {"Ephemeral group chat",
                                                 sizeof(ephemeral_group_chat_tests) /
                                                     sizeof(ephemeral_group_chat_tests[0]),
                                                 ephemeral_group_chat_tests,
-                                                0};
+                                                643,
+                                                1};
 
 test_suite_t ephemeral_group_chat_basic_test_suite = {"Ephemeral group chat (Basic)",
                                                       NULL,
@@ -989,7 +991,8 @@ test_suite_t ephemeral_group_chat_basic_test_suite = {"Ephemeral group chat (Bas
                                                       sizeof(ephemeral_group_chat_basic_tests) /
                                                           sizeof(ephemeral_group_chat_basic_tests[0]),
                                                       ephemeral_group_chat_basic_tests,
-                                                      0};
+                                                      359,
+                                                      1};
 
 #if __clang__ || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic pop

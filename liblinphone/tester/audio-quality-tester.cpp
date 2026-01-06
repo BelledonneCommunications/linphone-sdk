@@ -21,7 +21,7 @@
 #include <map>
 #include <vector>
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "address/address.h"
 #include "chat/chat-message/chat-message.h"
@@ -553,7 +553,7 @@ static void audio_call_with_opus_and_soundcard(void) {
 	audio_call_with_soundcard("opus", 48000, TRUE);
 }
 
-test_t audio_quality_tests[] = {
+static test_t audio_quality_tests[] = {
     TEST_NO_TAG("Audio loss rate resilience opus", audio_call_loss_resilience_opus),
     TEST_NO_TAG("Simple stereo call with L16", audio_stereo_call_l16),
     TEST_NO_TAG("Simple stereo call with L16 (PLC)", audio_stereo_call_l16_plc),
@@ -570,5 +570,5 @@ test_suite_t audio_quality_test_suite = {"Audio Call quality",
                                          liblinphone_tester_after_each,
                                          sizeof(audio_quality_tests) / sizeof(audio_quality_tests[0]),
                                          audio_quality_tests,
-                                         750,
-                                         2};
+                                         1010,
+                                         1};

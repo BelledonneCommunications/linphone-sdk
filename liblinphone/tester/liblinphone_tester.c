@@ -502,8 +502,8 @@ void liblinphone_tester_add_suites(void) {
 		liblinphone_tester_add_suite_with_default_time(&secure_group_chat_multialgos_test_suite, 72);
 	}
 	liblinphone_tester_add_suite_with_default_time(&lime_server_auth_test_suite, 125);
-	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_test_suite, 896);
-	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_basic_test_suite, 415);
+	bc_tester_add_suite(&ephemeral_group_chat_test_suite);
+	bc_tester_add_suite(&ephemeral_group_chat_basic_test_suite);
 #endif // HAVE_LIME_X3DH
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_conference_edition, 150);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_scheduled_conference_basic, 880);
@@ -523,7 +523,7 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_advanced, 300);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_error, 261);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_imdn, 315);
-	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_ephemeral_chat, 281);
+	bc_tester_add_suite(&local_conference_test_suite_ephemeral_chat);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_secure_chat, 687);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_transferred_conference_basic, 100);
 #endif // HAVE_ADVANCED_IM
@@ -558,7 +558,7 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&call_video_advanced_scenarios_test_suite, 168);
 	liblinphone_tester_add_suite_with_default_time(&call_video_quality_test_suite, 455);
 	liblinphone_tester_add_suite_with_default_time(&alerts_test_suite, 90);
-	liblinphone_tester_add_suite_with_default_time(&call_flexfec_suite, 600);
+	bc_tester_add_suite(&call_flexfec_suite);
 #endif // ifdef VIDEO_ENABLED
 	liblinphone_tester_add_suite_with_default_time(&audio_bypass_suite, 11);
 	liblinphone_tester_add_suite_with_default_time(&audio_routes_test_suite, 349);
