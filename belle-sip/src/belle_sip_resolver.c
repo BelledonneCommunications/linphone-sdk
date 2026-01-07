@@ -66,7 +66,6 @@ struct belle_sip_dns_srv {
 	unsigned short weight;
 	unsigned short port;
 	unsigned char a_done;
-	unsigned char dont_free_a_results;
 	int cumulative_weight; /*used only temporarily*/
 	char *target;
 	belle_sip_combined_resolver_context_t *root_resolver; /* used internally to combine SRV and A queries*/
@@ -87,7 +86,7 @@ static void belle_sip_dns_srv_destroy(belle_sip_dns_srv_t *obj) {
 		belle_sip_object_unref(obj->a_resolver);
 		obj->a_resolver = NULL;
 	}
-	if (obj->a_results && !obj->dont_free_a_results) {
+	if (obj->a_results) {
 		bctbx_freeaddrinfo(obj->a_results);
 		obj->a_results = NULL;
 	}
@@ -1658,7 +1657,7 @@ static void combined_resolver_context_check_finished(belle_sip_combined_resolver
 			for (elem = obj->srv_results; elem != NULL; elem = elem->next) {
 				belle_sip_dns_srv_t *srv = (belle_sip_dns_srv_t *)elem->data;
 				final = ai_list_append(final, srv->a_results);
-				srv->dont_free_a_results = TRUE;
+				srv->a_results = NULL;
 			}
 			obj->final_results = final;
 		}
@@ -1799,6 +1798,7 @@ belle_sip_resolver_context_t *belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		ctx->family = family;
 		/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
 		belle_sip_object_ref(ctx);
+
 		ctx->srv_ctx = belle_sip_stack_resolve_srv(stack, service, transport, name, process_srv_results, ctx);
 		if (ctx->srv_ctx) {
 			belle_sip_object_ref(ctx->srv_ctx);
@@ -1807,6 +1807,7 @@ belle_sip_resolver_context_t *belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		ctx->a_fallback_ctx = belle_sip_stack_resolve_a(ctx->base.stack, ctx->name, ctx->port, ctx->family,
 		                                                process_a_fallback_result, ctx);
 		if (ctx->a_fallback_ctx) belle_sip_object_ref(ctx->a_fallback_ctx);
+
 		if (ctx->base.notified) {
 			belle_sip_object_unref(ctx);
 			return NULL;
@@ -2103,7 +2104,7 @@ int belle_sip_get_src_addr_for(
 
 	belle_sip_close_socket(sock);
 	return ret;
-fail : {
+fail: {
 	struct addrinfo *res =
 	    bctbx_ip_address_to_addrinfo(af_type, SOCK_STREAM, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
 	if (res != NULL) {
