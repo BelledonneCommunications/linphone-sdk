@@ -1050,7 +1050,7 @@ LinphoneStatus add_participant_to_local_conference_through_invite(bctbx_list_t *
 				new_call_cnt++;
 				BC_ASSERT_TRUE(wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneCallOutgoingProgress,
 				                             conf_initial_stats.number_of_LinphoneCallOutgoingProgress + new_call_cnt,
-				                             2000));
+				                             liblinphone_tester_sip_timeout));
 				if (linphone_core_is_network_reachable(m->lc)) {
 					BC_ASSERT_TRUE(
 					    wait_for_list(lcs, &m->stat.number_of_LinphoneCallIncomingReceived,
@@ -1593,14 +1593,14 @@ LinphoneStatus add_calls_to_remote_conference(bctbx_list_t *lcs,
 		    (new_participants_initial_stats[counter - 1].number_of_LinphoneSubscriptionOutgoingProgress + 1),
 		    liblinphone_tester_sip_timeout));
 		//		BC_ASSERT_TRUE(wait_for_list(lcs,&focus_mgr->stat.number_of_LinphoneSubscriptionIncomingReceived,(focus_initial_stats.number_of_LinphoneSubscriptionIncomingReceived
-		//+ counter),1000));
+		//+ counter),liblinphone_tester_sip_timeout));
 
 		BC_ASSERT_TRUE(
 		    wait_for_list(lcs, &m->stat.number_of_LinphoneSubscriptionActive,
 		                  new_participants_initial_stats[counter - 1].number_of_LinphoneSubscriptionActive + 1,
 		                  liblinphone_tester_sip_timeout));
 		//		BC_ASSERT_TRUE(wait_for_list(lcs,&focus_mgr->stat.number_of_LinphoneSubscriptionActive,(focus_initial_stats.number_of_LinphoneSubscriptionActive
-		//+ counter),1000));
+		//+ counter),liblinphone_tester_sip_timeout));
 
 		BC_ASSERT_TRUE(wait_for_list(lcs, &focus_mgr->stat.number_of_LinphoneCallStreamsRunning,
 		                             (focus_initial_stats.number_of_LinphoneCallStreamsRunning + counter +
@@ -1808,7 +1808,7 @@ LinphoneStatus add_calls_to_remote_conference(bctbx_list_t *lcs,
 		                             (conf_initial_stats.number_of_LinphoneSubscriptionOutgoingProgress + 1),
 		                             liblinphone_tester_sip_timeout));
 		//		BC_ASSERT_TRUE(wait_for_list(lcs,&focus_mgr->stat.number_of_LinphoneSubscriptionIncomingReceived,(focus_initial_stats.number_of_LinphoneSubscriptionIncomingReceived
-		//+ counter + 1),1000));
+		//+ counter + 1),liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(lcs, &focus_mgr->stat.number_of_LinphoneConferenceStateCreationPending,
 		                             focus_initial_stats.number_of_LinphoneConferenceStateCreationPending + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -1819,7 +1819,7 @@ LinphoneStatus add_calls_to_remote_conference(bctbx_list_t *lcs,
 		                             conf_initial_stats.number_of_LinphoneSubscriptionActive + 1,
 		                             liblinphone_tester_sip_timeout));
 		//		BC_ASSERT_TRUE(wait_for_list(lcs,&focus_mgr->stat.number_of_LinphoneSubscriptionActive,(focus_initial_stats.number_of_LinphoneSubscriptionActive
-		//+ counter + 1),1000));
+		//+ counter + 1),liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneCallStreamsRunning,
 		                             (conf_initial_stats.number_of_LinphoneCallStreamsRunning + 1),
 		                             liblinphone_tester_sip_timeout));
@@ -1935,7 +1935,8 @@ LinphoneStatus add_calls_to_local_conference(bctbx_list_t *lcs,
 				}
 				if (is_call_paused) {
 					BC_ASSERT_TRUE(wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneCallResuming,
-					                             conf_initial_stats.number_of_LinphoneCallResuming + resumed, 2000));
+					                             conf_initial_stats.number_of_LinphoneCallResuming + resumed,
+					                             liblinphone_tester_sip_timeout));
 					resumed++;
 				} else {
 					BC_ASSERT_TRUE(wait_for_list(lcs, &m->stat.number_of_LinphoneCallUpdatedByRemote,
@@ -4391,48 +4392,53 @@ void liblinphone_tester_chat_message_msg_state_changed(LinphoneChatMessage *msg,
 		BC_ASSERT_PTR_NULL(event_log);
 	}
 
-	if (linphone_chat_message_is_outgoing(msg) && state == LinphoneChatMessageStateDelivered) {
-		LinphoneChatRoom *room = linphone_chat_message_get_chat_room(msg);
-		BC_ASSERT_PTR_NOT_NULL(room);
-		if (room && linphone_chat_room_get_capabilities(room) & LinphoneChatRoomCapabilitiesConference) {
-			bctbx_list_t *participants = linphone_chat_room_get_participants(room);
-			if (participants) {
-				bctbx_list_t *participants_in_delivered_state =
-				    linphone_chat_message_get_participants_by_imdn_state(msg, state);
-				BC_ASSERT_PTR_NOT_NULL(participants_in_delivered_state);
-				bctbx_list_t *participants_in_displayed_state =
-				    linphone_chat_message_get_participants_by_imdn_state(msg, LinphoneChatMessageStateDisplayed);
-				bctbx_list_t *participants_in_delivered_to_user_state =
-				    linphone_chat_message_get_participants_by_imdn_state(msg, LinphoneChatMessageStateDeliveredToUser);
+	if (linphone_chat_message_is_outgoing(msg)) {
+		if (state == LinphoneChatMessageStateDelivered) {
+			LinphoneChatRoom *room = linphone_chat_message_get_chat_room(msg);
+			BC_ASSERT_PTR_NOT_NULL(room);
+			if (room && linphone_chat_room_get_capabilities(room) & LinphoneChatRoomCapabilitiesConference) {
+				bctbx_list_t *participants = linphone_chat_room_get_participants(room);
+				if (participants) {
+					bctbx_list_t *participants_in_delivered_state =
+					    linphone_chat_message_get_participants_by_imdn_state(msg, state);
+					BC_ASSERT_PTR_NOT_NULL(participants_in_delivered_state);
+					bctbx_list_t *participants_in_displayed_state =
+					    linphone_chat_message_get_participants_by_imdn_state(msg, LinphoneChatMessageStateDisplayed);
+					bctbx_list_t *participants_in_delivered_to_user_state =
+					    linphone_chat_message_get_participants_by_imdn_state(msg,
+					                                                         LinphoneChatMessageStateDeliveredToUser);
 
-				size_t delivered_or_displayed = 0;
-				delivered_or_displayed +=
-				    ((participants_in_delivered_state) ? bctbx_list_size(participants_in_delivered_state) : 0);
-				delivered_or_displayed += ((participants_in_delivered_to_user_state)
-				                               ? bctbx_list_size(participants_in_delivered_to_user_state)
-				                               : 0);
-				delivered_or_displayed +=
-				    ((participants_in_displayed_state) ? bctbx_list_size(participants_in_displayed_state) : 0);
+					size_t delivered_or_displayed = 0;
+					delivered_or_displayed +=
+					    ((participants_in_delivered_state) ? bctbx_list_size(participants_in_delivered_state) : 0);
+					delivered_or_displayed += ((participants_in_delivered_to_user_state)
+					                               ? bctbx_list_size(participants_in_delivered_to_user_state)
+					                               : 0);
+					delivered_or_displayed +=
+					    ((participants_in_displayed_state) ? bctbx_list_size(participants_in_displayed_state) : 0);
 
-				BC_ASSERT_EQUAL(delivered_or_displayed, bctbx_list_size(participants), size_t, "%0zu");
+					BC_ASSERT_EQUAL(delivered_or_displayed, bctbx_list_size(participants), size_t, "%0zu");
 
-				if (participants_in_delivered_state) {
-					bctbx_list_free_with_data(participants_in_delivered_state,
-					                          (bctbx_list_free_func)linphone_participant_imdn_state_unref);
+					if (participants_in_delivered_state) {
+						bctbx_list_free_with_data(participants_in_delivered_state,
+						                          (bctbx_list_free_func)linphone_participant_imdn_state_unref);
+					}
+
+					if (participants_in_delivered_to_user_state) {
+						bctbx_list_free_with_data(participants_in_delivered_to_user_state,
+						                          (bctbx_list_free_func)linphone_participant_imdn_state_unref);
+					}
+
+					if (participants_in_displayed_state) {
+						bctbx_list_free_with_data(participants_in_displayed_state,
+						                          (bctbx_list_free_func)linphone_participant_imdn_state_unref);
+					}
+
+					bctbx_list_free_with_data(participants, (bctbx_list_free_func)linphone_participant_unref);
 				}
-
-				if (participants_in_delivered_to_user_state) {
-					bctbx_list_free_with_data(participants_in_delivered_to_user_state,
-					                          (bctbx_list_free_func)linphone_participant_imdn_state_unref);
-				}
-
-				if (participants_in_displayed_state) {
-					bctbx_list_free_with_data(participants_in_displayed_state,
-					                          (bctbx_list_free_func)linphone_participant_imdn_state_unref);
-				}
-
-				bctbx_list_free_with_data(participants, (bctbx_list_free_func)linphone_participant_unref);
 			}
+		} else if (state == LinphoneChatMessageStateQueued) {
+			BC_ASSERT_TRUE(linphone_chat_message_is_read(msg));
 		}
 	}
 }
@@ -5076,9 +5082,9 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
 	                        initial_caller.number_of_LinphoneCallConnected + 1));
 
 	result = wait_for_until(callee_mgr->lc, caller_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallStreamsRunning,
-	                        initial_caller.number_of_LinphoneCallStreamsRunning + 1, 2000) &&
+	                        initial_caller.number_of_LinphoneCallStreamsRunning + 1, liblinphone_tester_sip_timeout) &&
 	         wait_for_until(callee_mgr->lc, caller_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallStreamsRunning,
-	                        initial_callee.number_of_LinphoneCallStreamsRunning + 1, 2000);
+	                        initial_callee.number_of_LinphoneCallStreamsRunning + 1, liblinphone_tester_sip_timeout);
 
 	BC_ASSERT_GREATER(callee_stats->number_of_startNamedTone,
 	                  callee_mgr->stat.number_of_LinphoneCallEnd + callee_mgr->stat.number_of_LinphoneCallError, int,

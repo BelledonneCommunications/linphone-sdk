@@ -63,13 +63,13 @@ public:
 	const ConferenceId &getConferenceId() const;
 	std::shared_ptr<Conference> getConference() const;
 	unsigned int getLastNotify() const;
-	void requestFullState();
+	bool requestFullState();
 
 	void setInitialSubscriptionUnderWayFlag(bool on);
 	bool getInitialSubscriptionUnderWayFlag() const;
 	void notifySubscriptionUnderwayDone();
 
-	void setManagedByListEventhandler(bool managed);
+	void setManagedByListEventHandler(bool managed);
 
 	static void subscribeStateChangedCb(LinphoneEvent *lev, LinphoneSubscriptionState state);
 
@@ -90,7 +90,7 @@ protected:
 	std::weak_ptr<Conference> conf;
 	ConferenceListener *confListener = nullptr;
 
-	bool managedByListEventhandler = false;
+	bool managedByListEventHandler = false;
 	bool waitingFullState = false;
 	bool fullStateRequested = false;
 	bool mInitialSubscriptionUnderWay = false;

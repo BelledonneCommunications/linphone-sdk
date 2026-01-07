@@ -143,6 +143,7 @@ public:
 	std::shared_ptr<ConferenceParams> getCurrentParams() const override;
 
 	bool isSubscriptionUnderWay() const override;
+	void reload() override;
 
 	bool isMe(const std::shared_ptr<Address> &address) const override;
 	std::shared_ptr<Participant> getMe() const override;

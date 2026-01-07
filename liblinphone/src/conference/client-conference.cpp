@@ -95,6 +95,10 @@ std::pair<bool, std::shared_ptr<Address>> ClientConference::configure(SalCallOp 
 	return std::make_pair(false, nullptr);
 }
 
+void ClientConference::reload() {
+	createEventHandler(this, isChatOnly());
+}
+
 void ClientConference::initFromDb(const std::shared_ptr<Participant> &me,
                                   const ConferenceId &conferenceId,
                                   const unsigned int lastNotifyId,
@@ -241,10 +245,11 @@ void ClientConference::createEventHandler(BCTBX_UNUSED(ConferenceListener *confL
 		}
 		if (addToListEventHandler) {
 			getCore()->getPrivate()->clientListEventHandler->addHandler(mEventHandler);
-		}
-		const auto &conferenceId = getConferenceId();
-		if (conferenceId.isValid()) {
-			mEventHandler->subscribe(conferenceId);
+		} else {
+			const auto &conferenceId = getConferenceId();
+			if (conferenceId.isValid()) {
+				mEventHandler->subscribe(conferenceId);
+			}
 		}
 	} else {
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
@@ -2052,7 +2057,12 @@ bool ClientConference::isSubscriptionUnderWay() const {
 }
 
 void ClientConference::onSubscriptionUnderwayDone() {
-	sendPendingMessages();
+#ifdef HAVE_ADVANCED_IM
+	const auto &chatRoom = getChatRoom();
+	if (mConfParams->chatEnabled() && chatRoom) {
+		chatRoom->sendPendingMessages();
+	}
+#endif // HAVE_ADVANCED_IM
 }
 
 #ifndef _MSC_VER
@@ -2104,15 +2114,6 @@ void ClientConference::notifyReceived(const std::shared_ptr<Event> &notifyLev, c
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
 #endif // _MSC_VER
-
-void ClientConference::sendPendingMessages() {
-#ifdef HAVE_ADVANCED_IM
-	const auto &chatRoom = getChatRoom();
-	if (mConfParams->chatEnabled() && chatRoom) {
-		chatRoom->sendPendingMessages();
-	}
-#endif // HAVE_ADVANCED_IM
-}
 
 int ClientConference::inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
                                       const LinphoneCallParams *params) {
@@ -2922,12 +2923,14 @@ void ClientConference::onCallSessionSetReleased(const shared_ptr<CallSession> &s
 	}
 }
 
-void ClientConference::requestFullState() {
+bool ClientConference::requestFullState() {
+	bool ret = false;
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	if (mEventHandler) {
-		mEventHandler->requestFullState();
+		ret = mEventHandler->requestFullState();
 	}
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
+	return ret;
 }
 
 void ClientConference::unsubscribe() {

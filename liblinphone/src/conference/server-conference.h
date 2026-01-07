@@ -90,6 +90,7 @@ public:
 	void subscribeReceived(const std::shared_ptr<EventSubscribe> &event);
 	void subscriptionStateChanged(std::shared_ptr<EventSubscribe> event, LinphoneSubscriptionState state);
 
+	void reload() override;
 	void initFromDb(const std::shared_ptr<Participant> &me,
 	                const ConferenceId &conferenceId,
 	                const unsigned int lastNotifyId,

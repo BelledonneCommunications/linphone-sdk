@@ -2279,10 +2279,10 @@ static void classic_video_entry_phone_setup(LinphoneMediaDirection callee_video_
 	BC_ASSERT_TRUE(wait_for(callee_mgr->lc, caller_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallConnected, 1));
 	BC_ASSERT_TRUE(wait_for(callee_mgr->lc, caller_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallConnected, 1));
 
-	ok =
-	    wait_for_until(callee_mgr->lc, caller_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallStreamsRunning, 1,
-	                   5000) &&
-	    wait_for_until(callee_mgr->lc, caller_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallStreamsRunning, 1, 5000);
+	ok = wait_for_until(callee_mgr->lc, caller_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallStreamsRunning, 1,
+	                    liblinphone_tester_sip_timeout) &&
+	     wait_for_until(callee_mgr->lc, caller_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallStreamsRunning, 1,
+	                    liblinphone_tester_sip_timeout);
 	BC_ASSERT_TRUE(ok);
 	if (!ok) goto end;
 	check_media_direction(callee_mgr, callee_call, lcs, LinphoneMediaDirectionSendRecv, callee_video_direction);
@@ -2316,9 +2316,9 @@ static void classic_video_entry_phone_setup(LinphoneMediaDirection callee_video_
 	linphone_call_params_unref(in_call_params);
 
 	ok = wait_for_until(callee_mgr->lc, caller_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallStreamsRunning, 2,
-	                    10000) &&
+	                    liblinphone_tester_sip_timeout) &&
 	     wait_for_until(callee_mgr->lc, caller_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallStreamsRunning, 2,
-	                    10000);
+	                    liblinphone_tester_sip_timeout);
 	BC_ASSERT_TRUE(ok);
 	if (!ok) goto end;
 	callee_call = linphone_core_get_current_call(callee_mgr->lc);
@@ -3419,8 +3419,8 @@ static void video_call_with_fallback_to_static_picture_when_no_fps(void) {
 		caller_stream = (VideoStream *)linphone_call_get_stream(caller_call, LinphoneStreamTypeVideo);
 		// Set the FPS to 0 and keep away further set in order to simulate a defunct camera
 		liblinphone_tester_simulate_mire_defunct(caller_stream->source, TRUE, 0);
-		BC_ASSERT_TRUE(
-		    wait_for_until(caller->lc, callee->lc, &caller->stat.number_of_LinphoneCallCameraNotWorking, 1, 10000));
+		BC_ASSERT_TRUE(wait_for_until(caller->lc, callee->lc, &caller->stat.number_of_LinphoneCallCameraNotWorking, 1,
+		                              liblinphone_tester_sip_timeout));
 		camera = video_stream_get_camera(caller_stream);
 		if (BC_ASSERT_PTR_NOT_NULL(camera)) BC_ASSERT_STRING_EQUAL(ms_web_cam_get_name(camera), "Static picture");
 	}
@@ -3665,8 +3665,10 @@ static void video_call_with_video_forwarding_base(bool_t forwardee_end_call) {
 
 	// Make first a call from marie to pauline
 	if (BC_ASSERT_TRUE(call(marie, pauline))) {
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneCallStreamsRunning, 1, 10000));
-		BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1, 10000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphoneCallStreamsRunning, 1, liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1, liblinphone_tester_sip_timeout));
 
 		// Put pauline on "pause" by changing the audio direction to inactive and video to recvonly
 		LinphoneCall *marie_pauline_call = linphone_core_get_current_call(marie->lc);
@@ -3678,17 +3680,22 @@ static void video_call_with_video_forwarding_base(bool_t forwardee_end_call) {
 		linphone_call_update(marie_pauline_call, params);
 		linphone_call_params_unref(params);
 
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneCallUpdating, 1, 10000));
-		BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallUpdatedByRemote, 1, 10000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphoneCallUpdating, 1, liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallUpdatedByRemote, 1,
+		                             liblinphone_tester_sip_timeout));
 
-		BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallStreamsRunning, 2, 10000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallStreamsRunning, 2, liblinphone_tester_sip_timeout));
 
 		wait_for_list(lcs, &dummy, 1, 2000);
 
 		// Make a call from marie to laure, since Marie has media resource mode to shared it shouldn't pause it
 		if (BC_ASSERT_TRUE(call(marie, laure))) {
-			BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneCallStreamsRunning, 2, 10000));
-			BC_ASSERT_TRUE(wait_for_list(lcs, &laure->stat.number_of_LinphoneCallStreamsRunning, 1, 10000));
+			BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneCallStreamsRunning, 2,
+			                             liblinphone_tester_sip_timeout));
+			BC_ASSERT_TRUE(wait_for_list(lcs, &laure->stat.number_of_LinphoneCallStreamsRunning, 1,
+			                             liblinphone_tester_sip_timeout));
 
 			LinphoneCall *marie_laure_call = linphone_core_get_call_by_remote_address2(marie->lc, laure->identity);
 			LinphoneVideoSourceDescriptor *descriptor = linphone_video_source_descriptor_new();
@@ -3729,8 +3736,10 @@ static void video_call_with_video_forwarding_base(bool_t forwardee_end_call) {
 			linphone_call_update(marie_pauline_call, params);
 			linphone_call_params_unref(params);
 
-			BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneCallStreamsRunning, 3, 10000));
-			BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallStreamsRunning, 3, 10000));
+			BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneCallStreamsRunning, 3,
+			                             liblinphone_tester_sip_timeout));
+			BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallStreamsRunning, 3,
+			                             liblinphone_tester_sip_timeout));
 
 			end_call(marie, pauline);
 		}
@@ -3776,10 +3785,10 @@ static void video_call_set_image_as_video_source(void) {
 
 	// Make first a call from marie to pauline
 	if (BC_ASSERT_TRUE(call(marie, pauline))) {
-		BC_ASSERT_TRUE(
-		    wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallStreamsRunning, 1, 10000));
-		BC_ASSERT_TRUE(
-		    wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1, 10000));
+		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallStreamsRunning, 1,
+		                              liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1,
+		                              liblinphone_tester_sip_timeout));
 
 		LinphoneCall *marie_call = linphone_core_get_current_call(marie->lc);
 		LinphoneVideoSourceDescriptor *descriptor = linphone_video_source_descriptor_new();

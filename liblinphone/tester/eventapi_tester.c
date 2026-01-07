@@ -59,8 +59,10 @@ static void subscribe_test_declined(void) {
 	lev = linphone_core_subscribe(marie->lc, pauline->identity, "dodo", 600, content);
 	linphone_event_ref(lev);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
 	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionError, 1,
 	                             21000)); /*yes flexisip may wait 20 secs in case of forking*/
 	ei = linphone_event_get_error_info(lev);
@@ -69,7 +71,8 @@ static void subscribe_test_declined(void) {
 		BC_ASSERT_EQUAL(linphone_error_info_get_protocol_code(ei), 603, int, "%d");
 		BC_ASSERT_PTR_NOT_NULL(linphone_error_info_get_phrase(ei));
 	}
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 1000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 
 	bctbx_list_free(lcs);
 	linphone_content_unref(content);
@@ -108,10 +111,14 @@ static void subscribe_test_with_args(bool_t terminated_by_subscriber,
 		lev = linphone_core_subscribe(marie->lc, pauline->identity, "dodo", expires, content);
 	}
 	linphone_event_ref(lev);
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 3000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, 3000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, 1000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 
 	/* make sure transport used for the subscribe is the same as the one used for REGISTER*/
 	belle_sip_header_via_t *via =
@@ -121,7 +128,7 @@ static void subscribe_test_with_args(bool_t terminated_by_subscriber,
 
 	if (without_notify == FALSE) {
 		/*make sure marie receives first notification before terminating*/
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, 5000));
+		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
 	}
 
 	if (refresh_type == AutoRefresh) {
@@ -131,9 +138,11 @@ static void subscribe_test_with_args(bool_t terminated_by_subscriber,
 			BC_ASSERT_EQUAL(linphone_event_get_subscription_state(pauline->lev), LinphoneSubscriptionActive, int, "%d");
 		}
 	} else if (refresh_type == ManualRefresh) {
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionExpiring, 1, 4000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionExpiring, 1, liblinphone_tester_sip_timeout));
 		linphone_event_update_subscribe(lev, NULL);
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, 5000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, liblinphone_tester_sip_timeout));
 	}
 
 	if (ua_restarts) {
@@ -148,8 +157,10 @@ static void subscribe_test_with_args(bool_t terminated_by_subscriber,
 		linphone_event_terminate(pauline->lev);
 	}
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 
 	bctbx_list_free(lcs);
 	linphone_event_unref(lev);
@@ -175,10 +186,14 @@ static void subscribe_test_destroy_core_before_event_terminate(void) {
 
 	lev = linphone_core_subscribe(marie->lc, pauline->identity, "dodo", expires, content);
 	linphone_event_ref(lev);
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 3000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, 3000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, 1000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 
 	/* make sure transport used for the subscribe is the same as the one used for REGISTER*/
 	belle_sip_header_via_t *via =
@@ -187,7 +202,7 @@ static void subscribe_test_destroy_core_before_event_terminate(void) {
 	                       linphone_proxy_config_get_transport(linphone_core_get_default_proxy_config(marie->lc)));
 
 	/*make sure marie receives first notification before terminating*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
 
 	wait_for_list(lcs, NULL, 0, 6000);
 	BC_ASSERT_PTR_NOT_NULL(pauline->lev);
@@ -196,8 +211,8 @@ static void subscribe_test_destroy_core_before_event_terminate(void) {
 	}
 
 	/*linphone_event_terminate(lev);
-	BC_ASSERT_TRUE(wait_for_list(lcs,&marie->stat.number_of_LinphoneSubscriptionTerminated,1,5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs,&pauline->stat.number_of_LinphoneSubscriptionTerminated,1,5000));*/
+	BC_ASSERT_TRUE(wait_for_list(lcs,&marie->stat.number_of_LinphoneSubscriptionTerminated,1,liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs,&pauline->stat.number_of_LinphoneSubscriptionTerminated,1,liblinphone_tester_sip_timeout));*/
 
 	bctbx_list_free(lcs);
 	linphone_core_manager_destroy(marie);
@@ -249,10 +264,13 @@ static void subscribe_test_with_args2(bool_t terminated_by_subscriber, RefreshTe
 	linphone_event_add_custom_header(lev, "My-Header2", "pimpon");
 	linphone_event_send_subscribe(lev, content);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
 	/* wait for receiving the 200 Ok in order to check the Via */
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, 1000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 	/* make sure transport used for the subscribe is the same as the one used for REGISTER*/
 	BC_ASSERT_STRING_NOT_EQUAL(linphone_proxy_config_get_transport(linphone_core_get_default_proxy_config(marie->lc)),
 	                           "udp");
@@ -269,18 +287,21 @@ static void subscribe_test_with_args2(bool_t terminated_by_subscriber, RefreshTe
 		BC_ASSERT_STRING_EQUAL(linphone_event_get_custom_header(pauline->lev, "My-Header2"), "pimpon");
 	}
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 
 	/*make sure marie receives first notification before terminating*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
 
 	if (refresh_type == AutoRefresh) {
 		wait_for_list(lcs, NULL, 0, 6000);
 		BC_ASSERT_EQUAL(linphone_event_get_subscription_state(pauline->lev), LinphoneSubscriptionActive, int, "%d");
 	} else if (refresh_type == ManualRefresh) {
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionExpiring, 1, 4000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionExpiring, 1, liblinphone_tester_sip_timeout));
 		linphone_event_update_subscribe(lev, NULL);
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, 5000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, liblinphone_tester_sip_timeout));
 	}
 
 	if (terminated_by_subscriber) {
@@ -290,8 +311,10 @@ static void subscribe_test_with_args2(bool_t terminated_by_subscriber, RefreshTe
 		linphone_event_terminate(pauline->lev);
 	}
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 	linphone_event_unref(lev);
 	linphone_content_unref(content);
 	linphone_core_manager_destroy(marie);
@@ -350,14 +373,18 @@ static void subscribe_losing_dialog(void) {
 	linphone_event_add_custom_header(lev, "My-Header2", "pimpon");
 	linphone_event_send_subscribe(lev, content);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline1->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline1->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline1->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline1->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 
 	/*make sure marie receives first notification before terminating*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
 
 	/* now pauline looses internet connection and reboots, as ICMP error sent when flexisip tries to re-open the
 	 * connection can be blocked by firewall, we directly send 503 from pauline1 */
@@ -372,20 +399,25 @@ static void subscribe_losing_dialog(void) {
 	/* Marie will retry the subscription.
 	 * She will first receive a 503 Service unavailable from flexisip thanks the "no longer existing" Pauline1.
 	 * Then she will forge a new SUBSCRIBE in order to restart a new dialog, and this one will reach the new Pauline.*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 2, 8000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 2,
+	                             liblinphone_tester_sip_timeout));
 	/*and get it accepted again*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 	BC_ASSERT_PTR_NOT_NULL(pauline->lev);
 	if (pauline->lev)
 		BC_ASSERT_EQUAL(linphone_event_get_subscription_state(pauline->lev), LinphoneSubscriptionActive, int, "%d");
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 2, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 2, liblinphone_tester_sip_timeout));
 	linphone_event_terminate(lev);
 	linphone_event_unref(lev);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 
 	linphone_content_unref(content);
 	linphone_core_manager_destroy(marie);
@@ -424,14 +456,18 @@ static void subscribe_losing_dialog_2(void) {
 	linphone_event_send_subscribe(lev, content);
 	linphone_content_unref(content);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 
 	/*make sure marie receives first notification before terminating*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
 
 	/* now marie looses internet connection and reboots */
 	linphone_core_set_network_reachable(marie->lc, FALSE);
@@ -450,7 +486,8 @@ static void subscribe_losing_dialog_2(void) {
 		linphone_content_unref(ct);
 
 		/* the notify should fail, causing termination of the LinphoneEvent at notifier side */
-		BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+		BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1,
+		                             liblinphone_tester_sip_timeout));
 	} else {
 		BC_FAIL("Unexpect null event for pauline");
 	}
@@ -481,38 +518,48 @@ static void subscribe_with_io_error(void) {
 	linphone_event_add_custom_header(lev, "My-Header2", "pimpon");
 	linphone_event_send_subscribe(lev, content);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 
 	/*make sure marie receives first notification before terminating*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
 
 	/* now marie gets network errors when refreshing*/
 	sal_set_send_error(linphone_core_get_sal(marie->lc), -1);
 
 	/*marie will retry the subscription*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 2, 8000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 2,
+	                             liblinphone_tester_sip_timeout));
 	sal_set_send_error(linphone_core_get_sal(marie->lc), 0);
 
 	// Wait for the first subscribe to expire on Pauline side (it should take 4s in the worst case scenario)
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 
 	/*and get it accepted again*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, 10000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 2, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 2, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 2, liblinphone_tester_sip_timeout));
 	BC_ASSERT_PTR_NOT_NULL(pauline->lev);
 	if (pauline->lev) {
 		BC_ASSERT_EQUAL(linphone_event_get_subscription_state(pauline->lev), LinphoneSubscriptionActive, int, "%d");
 	}
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 2, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 2, liblinphone_tester_sip_timeout));
 	linphone_event_terminate(lev);
 	linphone_event_unref(lev);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 2, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 2, liblinphone_tester_sip_timeout));
 
 	linphone_content_unref(content);
 	linphone_core_manager_destroy(marie);
@@ -540,26 +587,33 @@ static void subscribe_not_timely_responded(void) {
 	linphone_event_add_custom_header(lev, "My-Header2", "pimpon");
 	linphone_event_send_subscribe(lev, content);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 
 	/*make sure marie receives first notification before terminating*/
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
 
 	/* now pauline is no longer scheduled (simulating a very big latency in the network) */
 	lcs = bctbx_list_remove(lcs, pauline->lc);
 	/*marie's dialog will expire while the SUBSCRIBE refresh is in progress*/
-	wait_for_list(lcs, NULL, 0, 8000);
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 2,
+	                             liblinphone_tester_sip_timeout));
 
 	lcs = bctbx_list_append(lcs, pauline->lc);
 	wait_for_list(lcs, NULL, 0, 3000);
 	linphone_event_terminate(lev);
 	linphone_event_unref(lev);
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 
 	linphone_content_unref(content);
 	linphone_core_manager_destroy(marie);
@@ -587,25 +641,33 @@ static void publish_test_with_args(bool_t refresh, int expires) {
 	linphone_event_add_custom_header(lev, "CustomHeader", "someValue");
 	linphone_event_send_publish(lev, content);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishIncomingReceived, 1, 3000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOk, 1, 3000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishOk, 1, 3000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOutgoingProgress, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOk, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishOk, 1, liblinphone_tester_sip_timeout));
 
 	if (!refresh) {
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishExpiring, 1, 5000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphonePublishExpiring, 1, liblinphone_tester_sip_timeout));
 		linphone_event_update_publish(lev, content);
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOutgoingProgress, 2, 1000));
-		BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishRefreshing, 1, 3000));
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOk, 2, 3000));
-		BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishOk, 2, 3000));
+		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOutgoingProgress, 2,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishRefreshing, 1, liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOk, 2, liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishOk, 2, liblinphone_tester_sip_timeout));
 	} else {
 	}
 
 	linphone_event_terminate(lev);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishCleared, 1, 3000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishCleared, 1, 3000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphonePublishCleared, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishCleared, 1, liblinphone_tester_sip_timeout));
 
 	linphone_event_unref(lev);
 
@@ -644,11 +706,13 @@ static void publish_expired(void) {
 	linphone_event_add_custom_header(lev, "My-Header", "Marie loses connection");
 	linphone_event_send_publish(lev, content);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishIncomingReceived, 1, 3000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOutgoingProgress, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOk, 1, 3000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishOk, 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOk, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishOk, 1, liblinphone_tester_sip_timeout));
 
 	linphone_core_set_network_reachable(marie->lc, FALSE);
 	lcs = bctbx_list_remove(lcs, marie->lc);
@@ -657,7 +721,8 @@ static void publish_expired(void) {
 	linphone_core_manager_uninit(marie);
 	bctbx_free(marie);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishCleared, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphonePublishCleared, 1, liblinphone_tester_sip_timeout));
 
 	linphone_content_unref(content);
 	linphone_core_manager_destroy(pauline);
@@ -692,9 +757,10 @@ static void out_of_dialog_notify(void) {
 	linphone_event_add_custom_header(lev, "CustomHeader", "someValue");
 	linphone_event_notify(lev, content);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_NotifyReceived, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &notify_response_done, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &notify_response_done, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 
 	linphone_event_unref(lev);
 	linphone_event_cbs_unref(lev_cbs);
@@ -719,8 +785,10 @@ static void subscribe_notify_with_missing_200ok(void) {
 	lev = linphone_core_create_subscribe(marie->lc, pauline->identity, "dodo", expires);
 	linphone_event_send_subscribe(lev, NULL);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 10000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
 
 	LinphoneEvent *pauline_event = pauline->lev;
 	if (BC_ASSERT_PTR_NOT_NULL(pauline_event)) {
@@ -729,7 +797,8 @@ static void subscribe_notify_with_missing_200ok(void) {
 		sal_set_send_error(linphone_core_get_sal(pauline->lc), 0); /*normal behavior*/
 	}
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
 
 	content = linphone_core_create_content(marie->lc);
 	linphone_content_set_type(content, "application");
@@ -739,12 +808,15 @@ static void subscribe_notify_with_missing_200ok(void) {
 	linphone_content_unref(content);
 
 	/*make sure marie receives the notify and transitions the subscribption to active state */
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_NotifyReceived, 1, liblinphone_tester_sip_timeout));
 
 	linphone_event_terminate(pauline->lev);
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 	linphone_event_unref(lev);
 	linphone_event_unref(pauline_event);
 
@@ -766,13 +838,17 @@ static void subscribe_notify_not_handled(void) {
 	lev = linphone_core_create_subscribe(marie->lc, pauline->identity, "dodo", expires);
 	linphone_event_send_subscribe(lev, NULL);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1, 10000));
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
 	BC_ASSERT_PTR_NULL(pauline->lev);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionError, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionError, 1, liblinphone_tester_sip_timeout));
 
 	linphone_event_unref(lev);
 

@@ -414,6 +414,11 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 		if ((state == ChatMessage::State::NotDelivered) && q->isReaction()) {
 			deleteFromDb();
 		}
+
+		// Mark as read outgoing queued messages so that the application can correctly display them
+		if (state == ChatMessage::State::Queued) {
+			markAsRead();
+		}
 	}
 
 	bool needsToBeStored =

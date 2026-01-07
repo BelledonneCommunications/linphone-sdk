@@ -43,6 +43,7 @@ public:
 	                 const std::shared_ptr<const ConferenceParams> params);
 	virtual ~ClientConference();
 
+	void reload() override;
 	void initFromDb(const std::shared_ptr<Participant> &me,
 	                const ConferenceId &conferenceId,
 	                const unsigned int lastNotifyId,
@@ -162,8 +163,7 @@ public:
 	std::shared_ptr<ClientConferenceEventHandler> mEventHandler;
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 
-	void requestFullState();
-	void sendPendingMessages();
+	bool requestFullState();
 
 	/* Report the csrc included in the video stream, so that we can notify who is presented on the screen.*/
 	void notifyDisplayedSpeaker(uint32_t csrc);

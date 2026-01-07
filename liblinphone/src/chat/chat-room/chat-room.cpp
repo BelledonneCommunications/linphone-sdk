@@ -1081,6 +1081,14 @@ shared_ptr<ChatMessage> ChatRoom::createReplacesMessage(const shared_ptr<ChatMes
 }
 
 // -----------------------------------------------------------------------------
+void ChatRoom::reload() {
+	const auto conference = getConference();
+	if (!conference) {
+		return;
+	}
+	return conference->reload();
+}
+
 bool ChatRoom::isSubscriptionUnderWay() const {
 	const auto conference = getConference();
 	if (!conference) {

@@ -66,9 +66,19 @@ bool ClientConferenceListEventHandler::subscribe() {
 bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &account) {
 	unsubscribe(account);
 
-	if (handlers.empty()) return false;
+	if (handlers.empty()) {
+		lError() << "Unable to subscribe to the conference event package (RFC 4575) of all chatrooms linked to "
+		         << *account << " because no handler is available";
+		return false;
+	}
 
-	if (account->getState() != LinphoneRegistrationOk) return false;
+	auto accountState = account->getState();
+	if ((accountState != LinphoneRegistrationRefreshing) && (accountState != LinphoneRegistrationOk)) {
+		lError() << "Unable to subscribe to the conference event package (RFC 4575) of all chatrooms linked to "
+		         << *account << " because the account has not registered yet (its current state is "
+		         << linphone_registration_state_to_string(accountState) << ")";
+		return false;
+	}
 
 	const auto &accountParams = account->getAccountParams();
 	auto identityAddress = accountParams->getIdentityAddress();
@@ -105,7 +115,7 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 				handler->setInitialSubscriptionUnderWayFlag(!handler->alreadySubscribed());
 				Xsd::ResourceLists::EntryType entry = Xsd::ResourceLists::EntryType(addr.asStringUriOnly());
 				l.getEntry().push_back(entry);
-				handler->setManagedByListEventhandler(true);
+				handler->setManagedByListEventHandler(true);
 			}
 		} catch (const bad_weak_ptr &) {
 		}
@@ -117,8 +127,10 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 	serializeResourceLists(xmlBody, rl, map);
 	content->setBodyFromUtf8(xmlBody.str());
 
+	const int eventSubscribeExpire = linphone_config_get_int(linphone_core_get_config(getCore()->getCCore()), "sip",
+	                                                         "conference_subscribe_expires", 600);
 	auto evSub = dynamic_pointer_cast<EventSubscribe>(
-	    (new EventSubscribe(getCore(), factoryUri, "conference", 600))->toSharedPtr());
+	    (new EventSubscribe(getCore(), factoryUri, "conference", eventSubscribeExpire))->toSharedPtr());
 	const auto &from = account->getContactAddress();
 	evSub->getOp()->setFromAddress(from->getImpl());
 	evSub->setInternal(true);
@@ -143,14 +155,6 @@ void ClientConferenceListEventHandler::unsubscribe() {
 		evSub->terminate();
 	}
 	levs.clear();
-
-	for (const auto &[key, handlerWkPtr] : handlers) {
-		try {
-			const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
-			handler->setManagedByListEventhandler(false);
-		} catch (const bad_weak_ptr &) {
-		}
-	}
 	stopWaitNotifyTimer();
 }
 
@@ -163,19 +167,6 @@ void ClientConferenceListEventHandler::unsubscribe(const std::shared_ptr<Account
 		shared_ptr<EventSubscribe> evSub = *it;
 		levs.erase(it);
 		evSub->terminate();
-	}
-
-	const auto &accountParams = account->getAccountParams();
-	auto identityAddress = accountParams->getIdentityAddress();
-	for (const auto &[key, handlerWkPtr] : handlers) {
-		try {
-			const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
-			const ConferenceId &conferenceId = handler->getConferenceId();
-			if (identityAddress->weakEqual(*conferenceId.getLocalAddress())) {
-				handler->setManagedByListEventhandler(false);
-			}
-		} catch (const bad_weak_ptr &) {
-		}
 	}
 	stopWaitNotifyTimer();
 }
@@ -323,7 +314,7 @@ void ClientConferenceListEventHandler::addHandler(std::shared_ptr<ClientConferen
 		return;
 	}
 	handlers[conferenceId] = handler;
-	handler->setManagedByListEventhandler(true);
+	handler->setManagedByListEventHandler(true);
 }
 
 bool ClientConferenceListEventHandler::isHandlerInSameDomainAsCore(const ConferenceId &conferenceId) const {
@@ -368,7 +359,7 @@ void ClientConferenceListEventHandler::removeHandler(std::shared_ptr<ClientConfe
 
 	auto it = handlers.find(conferenceId);
 	if (it != handlers.end()) {
-		handler->setManagedByListEventhandler(false);
+		handler->setManagedByListEventHandler(false);
 		handlers.erase(it);
 		lInfo() << "Client Conference Event Handler with conference id " << conferenceId << " [" << handler
 		        << "] has been removed.";

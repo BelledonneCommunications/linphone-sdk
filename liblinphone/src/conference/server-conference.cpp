@@ -76,6 +76,9 @@ ServerConference::~ServerConference() {
 	cleanup();
 }
 
+void ServerConference::reload() {
+}
+
 void ServerConference::initFromDb(const std::shared_ptr<Participant> &me,
                                   const ConferenceId &conferenceId,
                                   const unsigned int lastNotifyId,

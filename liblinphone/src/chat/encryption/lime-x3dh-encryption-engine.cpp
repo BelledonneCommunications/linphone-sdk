@@ -228,7 +228,7 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processOutgoingMessage(con
 	    make_shared<ChatMessageModifier::Result>(ChatMessageModifier::Result::Suspended);
 	shared_ptr<AbstractChatRoom> chatRoom = message->getChatRoom();
 	if (!chatRoom) {
-		lWarning() << "Sending encrypted message on an unknown chatroom";
+		lWarning() << "Sending encrypted message [" << message << "] on an unknown chatroom";
 		errorCode = 488; // Not Acceptable
 		return ChatMessageModifier::Result::Error;
 	}
@@ -237,9 +237,10 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processOutgoingMessage(con
 
 	// Check if chatroom is encrypted or not
 	if (chatRoomParams->getChatParams()->isEncrypted()) {
-		lInfo() << "[LIME] " << *chatRoom << " is encrypted, proceed to encrypt outgoing message";
+		lInfo() << "[LIME] " << *chatRoom << " is encrypted, proceed to encrypt outgoing message [" << message << "]";
 	} else {
-		lInfo() << "[LIME] " << *chatRoom << " is not encrypted, no need to encrypt outgoing message";
+		lInfo() << "[LIME] " << *chatRoom << " is not encrypted, no need to encrypt outgoing message [" << message
+		        << "]";
 		return ChatMessageModifier::Result::Skipped;
 	}
 
@@ -247,7 +248,7 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processOutgoingMessage(con
 	if (linphone_config_get_int(linphone_core_get_config(chatRoom->getCore()->getCCore()), "lime",
 	                            "allow_message_in_unsafe_chatroom", 0) == 0) {
 		if (chatRoom->getSecurityLevel() == AbstractChatRoom::SecurityLevel::Unsafe) {
-			lWarning() << "Sending encrypted message in an unsafe chatroom";
+			lWarning() << "Sending encrypted message [" << message << "] in an unsafe chatroom " << *chatRoom;
 			errorCode = 488; // Not Acceptable
 			return ChatMessageModifier::Result::Error;
 		}
@@ -255,7 +256,8 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processOutgoingMessage(con
 
 	const auto &account = chatRoom->getAccount();
 	if (!account) {
-		lWarning() << "Sending encrypted message with unknown account";
+		lWarning() << "Sending encrypted message [" << message << "] in " << *chatRoom
+		           << " that is not linked to any account";
 		errorCode = 488; // Not Acceptable
 		return ChatMessageModifier::Result::Error;
 	}
@@ -264,71 +266,70 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processOutgoingMessage(con
 	bool tooManyDevices = FALSE;
 	int maxNbDevicePerParticipant = linphone_config_get_int(linphone_core_get_config(chatRoom->getCore()->getCCore()),
 	                                                        "lime", "max_nb_device_per_participant", INT_MAX);
+
+	// Add potential other devices of the sender participant
+	const auto &accountContactAddress = account->getContactAddress();
+	const auto &localDevice =
+	    accountContactAddress ? accountContactAddress : chatRoom->getConferenceId().getLocalAddress();
+	if (!localDevice) {
+		lWarning() << "Sending an encrypted message [" << message << "] in " << *chatRoom
+		           << "  but the local device address is unknown";
+		errorCode = 488; // Not Acceptable
+		return ChatMessageModifier::Result::Error;
+	}
+
 	bool requestFullState = false;
-	// A set allow doesn't allow to have two identical keys
+	// A set doesn't allow to have two identical keys
 	std::set<Address> recipientAddresses;
-	const list<shared_ptr<Participant>> participants = chatRoom->getParticipants();
-	for (const shared_ptr<Participant> &participant : participants) {
+	list<shared_ptr<Participant>> members = chatRoom->getParticipants();
+	const auto &me = chatRoom->getMe();
+	if (me) {
+		members.push_back(me);
+	}
+	for (const shared_ptr<Participant> &member : members) {
 		int nbDevice = 0;
-		const list<shared_ptr<ParticipantDevice>> devices = participant->getDevices();
+		const list<shared_ptr<ParticipantDevice>> devices = member->getDevices();
+		const auto isMe = chatRoom->isMe(member->getAddress());
 		for (const shared_ptr<ParticipantDevice> &device : devices) {
 			Address address(*device->getAddress());
-			auto [it, inserted] = recipientAddresses.insert(address);
-			if (inserted) {
-				nbDevice++;
-			} else {
-				lWarning() << "Multiple instances of participant device with address " << address
-				           << " have been found in " << *chatRoom;
-				requestFullState = true;
+			if (!isMe || (address != *localDevice)) {
+				auto [it, inserted] = recipientAddresses.insert(address);
+				if (inserted) {
+					nbDevice++;
+				} else {
+					lWarning() << "Multiple instances of participant device with address " << address
+					           << " have been found in " << *chatRoom;
+					requestFullState = true;
+				}
 			}
 		}
 		if (nbDevice > maxNbDevicePerParticipant) tooManyDevices = TRUE;
 	}
 
-	// Add potential other devices of the sender participant
-	int nbDevice = 0;
-	const auto &accountContactAddress = account->getContactAddress();
-	const auto &localDevice =
-	    accountContactAddress ? accountContactAddress : chatRoom->getConferenceId().getLocalAddress();
-	if (!localDevice) {
-		lWarning() << "Sending an encrypted message but the local device address is unknown";
-		errorCode = 488; // Not Acceptable
-		return ChatMessageModifier::Result::Error;
-	}
-
-	const list<shared_ptr<ParticipantDevice>> senderDevices = chatRoom->getMe()->getDevices();
-	for (const auto &senderDevice : senderDevices) {
-		if (*senderDevice->getAddress() != *localDevice) {
-			Address address(*senderDevice->getAddress());
-			auto [it, inserted] = recipientAddresses.insert(address);
-			if (inserted) {
-				nbDevice++;
-			} else {
-				lWarning() << "Multiple instances of me participant device with address " << address
-				           << " have been found in " << *chatRoom;
-				requestFullState = true;
-			}
-		}
-	}
-	if (nbDevice > maxNbDevicePerParticipant) tooManyDevices = TRUE;
-
 	// Check if there is at least one recipient
 	if (recipientAddresses.empty()) {
-		lError() << "[LIME] encrypting message on " << *chatRoom << " with no recipient";
+		lError() << "[LIME] encrypting message [" << message << "] on " << *chatRoom << " with no recipient";
 		errorCode = 488;
 		return ChatMessageModifier::Result::Error;
 	}
 
 	shared_ptr<ClientConference> conference = dynamic_pointer_cast<ClientConference>(chatRoom->getConference());
 	if (requestFullState && conference) {
-		// It looks like at least one participant device has multiple instances in the chat room therefore request a
-		// full state to make sure the client and the server are on the same page
-		conference->requestFullState();
+		// It looks like there is an issue with the device list (for example one participant device has multiple
+		// instances in the chat room) therefore request a full state to make sure the client and the server are on the
+		// same page
+		if (!conference->requestFullState()) {
+			lError() << "[LIME] Unable to send message [" << message << "] on " << *chatRoom
+			         << " because the list of participant is either incomplete or contains errors";
+			errorCode = 488;
+			return ChatMessageModifier::Result::Error;
+		}
 	}
 
 	// If too many devices for a participant, throw a local security alert event
 	if (tooManyDevices) {
-		lWarning() << "[LIME] encrypting message for excessive number of devices, message discarded";
+		lWarning() << "[LIME] encrypting message [" << message
+		           << "] for excessive number of devices, message discarded";
 
 		// Check the last 2 events for security alerts before sending a new security event
 		bool recentSecurityAlert = false;

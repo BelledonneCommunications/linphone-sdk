@@ -288,7 +288,8 @@ static void simple_register_with_custom_refresh_period(void) {
 	linphone_account_unref(account);
 	linphone_account_params_unref(account_params);
 
-	BC_ASSERT_TRUE(wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationOk, 1, 5000));
+	BC_ASSERT_TRUE(
+	    wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationOk, 1, liblinphone_tester_sip_timeout));
 	// The timeout of the timer is the upper bound of the refresh window in ms
 	BC_ASSERT_TRUE(wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationOk, 2,
 	                              (1000 * max_refresh * expires) / 100));
@@ -296,7 +297,8 @@ static void simple_register_with_custom_refresh_period(void) {
 	BC_ASSERT_EQUAL(counters->number_of_auth_info_requested, 0, int, "%d");
 
 	linphone_core_stop(lcm->lc);
-	BC_ASSERT_TRUE(wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationCleared, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationCleared, 1,
+	                              liblinphone_tester_sip_timeout));
 	linphone_core_start(lcm->lc);
 	int actual_min_refresh;
 	int actual_max_refresh;
@@ -1148,16 +1150,16 @@ static void io_recv_error_late_recovery(void) {
 
 		lcs = bctbx_list_append(NULL, lc);
 
-		BC_ASSERT_TRUE(wait_for_list(lcs, &counters->number_of_LinphoneRegistrationFailed,
-		                             (register_ok - number_of_udp_proxy),
-		                             sal_get_refresher_retry_after(linphone_core_get_sal(lc)) + 3000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &counters->number_of_LinphoneRegistrationFailed, (register_ok - number_of_udp_proxy),
+		                  sal_get_refresher_retry_after(linphone_core_get_sal(lc)) + liblinphone_tester_sip_timeout));
 
 		sal_set_recv_error(linphone_core_get_sal(lc), 1); /*reset*/
 		sal_set_send_error(linphone_core_get_sal(lc), 0);
 
-		BC_ASSERT_TRUE(wait_for_list(lcs, &counters->number_of_LinphoneRegistrationOk,
-		                             register_ok - number_of_udp_proxy + register_ok,
-		                             sal_get_refresher_retry_after(linphone_core_get_sal(lc)) + 3000));
+		BC_ASSERT_TRUE(wait_for_list(
+		    lcs, &counters->number_of_LinphoneRegistrationOk, register_ok - number_of_udp_proxy + register_ok,
+		    sal_get_refresher_retry_after(linphone_core_get_sal(lc)) + liblinphone_tester_sip_timeout));
 
 		bctbx_list_free(lcs);
 		linphone_core_manager_destroy(lcm);
@@ -1333,7 +1335,8 @@ static void tls_with_non_tls_server(void) {
 		linphone_proxy_config_set_server_addr(proxy_cfg, tmp);
 		linphone_proxy_config_done(proxy_cfg);
 		linphone_address_unref(addr);
-		BC_ASSERT_TRUE(wait_for_until(lc, lc, &lcm->stat.number_of_LinphoneRegistrationFailed, 1, 10000));
+		BC_ASSERT_TRUE(
+		    wait_for_until(lc, lc, &lcm->stat.number_of_LinphoneRegistrationFailed, 1, liblinphone_tester_sip_timeout));
 		linphone_core_manager_destroy(lcm);
 	}
 }
@@ -1588,7 +1591,8 @@ static void update_contact_private_ip_address(void) {
 	linphone_auth_info_unref(ai);
 	linphone_core_add_proxy_config(lcm->lc, cfg);
 
-	BC_ASSERT_TRUE(wait_for_until(lcm->lc, lcm->lc, &counters->number_of_LinphoneRegistrationProgress, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(lcm->lc, lcm->lc, &counters->number_of_LinphoneRegistrationProgress, 1,
+	                              liblinphone_tester_sip_timeout));
 	const LinphoneAddress *ct = linphone_proxy_config_get_contact(cfg);
 	if (!BC_ASSERT_PTR_NULL(ct)) {
 		char *tmp = linphone_address_as_string(ct);
@@ -1596,11 +1600,13 @@ static void update_contact_private_ip_address(void) {
 		bctbx_free(tmp);
 	}
 
-	BC_ASSERT_TRUE(wait_for_until(lcm->lc, lcm->lc, &counters->number_of_LinphoneRegistrationOk, 1, 5000));
+	BC_ASSERT_TRUE(wait_for_until(lcm->lc, lcm->lc, &counters->number_of_LinphoneRegistrationOk, 1,
+	                              liblinphone_tester_sip_timeout));
 	BC_ASSERT_PTR_NOT_NULL(linphone_proxy_config_get_contact(cfg));
 
 	/* the second REGISTER is to ensure that the contact address guessed from Via is set to the proxy */
-	BC_ASSERT_TRUE(wait_for_until(lcm->lc, lcm->lc, &counters->number_of_LinphoneRegistrationOk, 2, 5000));
+	BC_ASSERT_TRUE(wait_for_until(lcm->lc, lcm->lc, &counters->number_of_LinphoneRegistrationOk, 2,
+	                              liblinphone_tester_sip_timeout));
 
 	const LinphoneAddress *contactUpdated = linphone_proxy_config_get_contact(cfg);
 	BC_ASSERT_PTR_NOT_NULL(contactUpdated);
@@ -1643,7 +1649,8 @@ static void unreliable_channels_cleanup(void) {
 	/* simulate a push notification to be received, in order to have the unreliable connection to be closed. */
 	linphone_core_ensure_registered(lcm->lc);
 	/* this should result in a new register to be done */
-	BC_ASSERT_TRUE(wait_for_until(lcm->lc, lcm->lc, &lcm->stat.number_of_LinphoneRegistrationOk, 2, 8000));
+	BC_ASSERT_TRUE(wait_for_until(lcm->lc, lcm->lc, &lcm->stat.number_of_LinphoneRegistrationOk, 2,
+	                              liblinphone_tester_sip_timeout));
 	linphone_core_manager_destroy(lcm);
 }
 
@@ -1672,10 +1679,10 @@ static void registration_with_custom_contact(void) {
 	linphone_account_set_params(account, new_params);
 	linphone_account_params_unref(new_params);
 
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneRegistrationOk, 2, 10000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneRegistrationOk, 2, liblinphone_tester_sip_timeout));
 
 	/* Marie makes a call to pauline, it should ring on pauline side, not laure, because pauline is available.*/
-
 	if (BC_ASSERT_TRUE(call(marie, pauline))) {
 		wait_for_list(lcs, NULL, 0, 3000);
 		end_call(pauline, marie);
@@ -1688,19 +1695,23 @@ static void registration_with_custom_contact(void) {
 	linphone_core_invite_address(marie->lc, pauline->identity);
 	if (BC_ASSERT_TRUE(wait_for_list(lcs, &laure->stat.number_of_LinphoneCallIncomingReceived, 1, 15000))) {
 		linphone_call_accept(linphone_core_get_current_call(laure->lc));
-		BC_ASSERT_TRUE(wait_for_list(lcs, &laure->stat.number_of_LinphoneCallStreamsRunning, 1, 10000));
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneCallStreamsRunning, 2, 10000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &laure->stat.number_of_LinphoneCallStreamsRunning, 1, liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphoneCallStreamsRunning, 2, liblinphone_tester_sip_timeout));
 		liblinphone_tester_check_rtcp(marie, laure);
 		end_call(laure, marie);
 	}
 	/* Pauline goes online, and removes laure as secondary contact.*/
 	linphone_core_set_network_reachable(pauline->lc, TRUE);
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneRegistrationOk, 3, 10000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneRegistrationOk, 3, liblinphone_tester_sip_timeout));
 	new_params = linphone_account_params_clone(linphone_account_get_params(account));
 	linphone_account_params_set_custom_contact(new_params, NULL);
 	linphone_account_set_params(account, new_params);
 	linphone_account_params_unref(new_params);
-	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneRegistrationOk, 4, 10000));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneRegistrationOk, 4, liblinphone_tester_sip_timeout));
 
 	/* Pauline goes offline. Marie makes a call, no one should receive this call.*/
 	linphone_core_set_network_reachable(pauline->lc, FALSE);
@@ -1713,7 +1724,8 @@ static void registration_with_custom_contact(void) {
 			linphone_call_terminate(c);
 		}
 		linphone_call_unref(c);
-		BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneCallReleased, 3, 10000));
+		BC_ASSERT_TRUE(
+		    wait_for_list(lcs, &marie->stat.number_of_LinphoneCallReleased, 3, liblinphone_tester_sip_timeout));
 	}
 
 	bctbx_list_free(lcs);

@@ -1119,9 +1119,15 @@ void ServerConferenceEventHandler::notifyParticipant(const std::shared_ptr<Conte
 
 void ServerConferenceEventHandler::notifyParticipantDevice(const shared_ptr<Content> &content,
                                                            const shared_ptr<ParticipantDevice> &device) {
-	if (!device->isSubscribedToConferenceEventPackage()) return;
 	auto conf = getConference();
 	if (!conf) {
+		lDebug() << "Unable to notify " << *device << " because ServerConferenceEventHandler [" << this
+		         << "] is not attached to any conference";
+		return;
+	}
+
+	if (!device->isSubscribedToConferenceEventPackage()) {
+		lDebug() << *device << " in " << *conf << " has not subscribed to the conference event package (RFC4575)";
 		return;
 	}
 

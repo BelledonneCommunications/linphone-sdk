@@ -507,33 +507,43 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 		michelleCr = michelle.searchChatRoom(michelleDeviceAddr, confAddr);
 		BC_ASSERT_PTR_NOT_NULL(michelleCr);
 
-		// Michelle has 3 participants: marie, pauline and a fake participant with marie's username having some
+		// Michelle has 3 participants: marie, pauline and a fake participant with pauline's username having some
 		// uppercase letter
+		// The LIME encryption engine doesn't allow the message ot be delivered.
 		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 3, int, "%0d");
 		LinphoneChatMessage *msg = ClientConference::sendTextMsg(michelleCr, "back with you");
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, pauline}).wait([msg] {
-			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
+			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateNotDelivered);
 		}));
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, pauline}).wait([marieCr] {
+		BC_ASSERT_FALSE(CoreManagerAssert({focus, marie, michelle, pauline}).waitUntil(chrono::seconds(1), [marieCr] {
 			return linphone_chat_room_get_unread_messages_count(marieCr) == 1;
 		}));
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, pauline}).wait([paulineCr] {
+		BC_ASSERT_FALSE(CoreManagerAssert({focus, marie, michelle, pauline}).waitUntil(chrono::seconds(1), [paulineCr] {
 			return linphone_chat_room_get_unread_messages_count(paulineCr) == 1;
 		}));
 		linphone_chat_message_unref(msg);
 		msg = NULL;
 
-		linphone_chat_room_mark_as_read(marieCr);
-		linphone_chat_room_mark_as_read(paulineCr);
-
-		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageDisplayed, 1,
-		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageDisplayed, 1,
+		michelleContact = linphone_account_get_contact_address(michelle.getDefaultAccount());
+		michelleContactString = linphone_address_as_string(michelleContact);
+		michelleCppCr = AbstractChatRoom::toCpp(michelleCr)->getSharedFromThis();
+		ms_message("%s is restarting its core to recover the participant list of chatroom %s", michelleContactString,
+		           michelleCppCr->getConferenceAddress()->toString().c_str());
+		ms_free(michelleContactString);
+		coresList = bctbx_list_remove(coresList, michelle.getLc());
+		michelle.reStart();
+		coresList = bctbx_list_append(coresList, michelle.getLc());
+		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionActive, 1,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_NotifyFullStateReceived, 1,
 		                             liblinphone_tester_sip_timeout));
 		// Client and server are on the same page now. The only participants of the chat room are Marie and Pauline
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 2, int, "%0d");
+		michelleDeviceAddr = linphone_address_clone(linphone_account_get_contact_address(michelle.getDefaultAccount()));
+		michelleCr = michelle.searchChatRoom(michelleDeviceAddr, confAddr);
+		BC_ASSERT_PTR_NOT_NULL(michelleCr);
+		if (michelleCr) {
+			BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 2, int, "%0d");
+		}
 
 		for (auto chatRoom : focus.getCore().getChatRooms()) {
 			for (auto participant : chatRoom->getParticipants()) {
@@ -2619,6 +2629,10 @@ static void secure_group_chat_room_with_client_removed_and_reinvinted_after_data
 	group_chat_room_with_client_removed_and_reinvinted_base(true, true, true);
 }
 
+static void secure_group_chat_room_with_duplications(void) {
+	group_chat_room_with_duplications_base(true);
+}
+
 } // namespace LinphoneTest
 
 static test_t local_conference_secure_chat_tests[] = {
@@ -2707,6 +2721,10 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_one_on_one_chat_room_with_client_sending_imdn_on_restart,
                   "LimeX3DH",
                   "LeaksMemory"),
+    TEST_TWO_TAGS("Secure group chat with duplications",
+                  LinphoneTest::secure_group_chat_room_with_duplications,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_TWO_TAGS("Secure one-on-one chat with subscribe not replied",
                   LinphoneTest::secure_one_on_one_chat_room_with_subscribe_not_replied,
                   "LimeX3DH",

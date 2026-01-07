@@ -284,6 +284,8 @@ public:
 
 	virtual void addCapability(AbstractChatRoom::CapabilitiesMask capability) = 0;
 
+	virtual void reload() = 0;
+
 	virtual Imdn *getImdnHandler() const = 0;
 
 	virtual std::shared_ptr<ConferenceInfo> getConferenceInfo() const = 0;

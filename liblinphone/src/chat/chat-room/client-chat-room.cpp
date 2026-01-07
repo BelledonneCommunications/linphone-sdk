@@ -390,7 +390,7 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 				} else if (coreRunning && (!eventHandler || (eventSubscribeState == LinphoneSubscriptionError))) {
 					lError() << *this << ": Unable to send chat message [" << chatMessage
 					         << "] because the subscription to retrieve the list of participant devices errored out "
-					            "(current state "
+					            "(current state is "
 					         << linphone_subscription_state_to_string(eventSubscribeState)
 					         << ") or the event handler has not been instantiated (event handler [" << eventHandler
 					         << "]";
@@ -468,10 +468,13 @@ bool ClientChatRoom::canSendMessages() const {
 
 void ClientChatRoom::sendPendingMessages() {
 	const auto &conference = getConference();
-	// Now that chat room has been inserted in database, we can send any pending message
+	// This loop is done with iterators and a while statement because sendChatMessage may delete an item of the
+	// mPendingCreationMessages list
 	auto it = mPendingCreationMessages.begin();
 	while (it != mPendingCreationMessages.end()) {
+		// Retrieve the message from the iterator
 		auto message = (*it);
+		// Increment the iterator in case the list is modified when sending the message
 		it++;
 		lInfo() << "Found message [" << message << "] waiting to be sent in " << *conference;
 		// First we need to update from and to address of the message,

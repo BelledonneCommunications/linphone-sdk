@@ -67,8 +67,8 @@ ClientConferenceEventHandler::ClientConferenceEventHandler(const std::shared_ptr
 
 // -----------------------------------------------------------------------------
 
-void ClientConferenceEventHandler::setManagedByListEventhandler(bool managed) {
-	managedByListEventhandler = managed;
+void ClientConferenceEventHandler::setManagedByListEventHandler(bool managed) {
+	managedByListEventHandler = managed;
 }
 
 void ClientConferenceEventHandler::setInitialSubscriptionUnderWayFlag(bool on) {
@@ -805,13 +805,20 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 	}
 }
 
-void ClientConferenceEventHandler::requestFullState() {
+bool ClientConferenceEventHandler::requestFullState() {
 	auto conference = getConference();
 	lInfo() << "Requesting full state for " << *conference;
 	unsubscribe();
 	conference->resetLastNotify();
-	subscribe(getConferenceId());
-	fullStateRequested = true;
+	fullStateRequested = subscribe(getConferenceId());
+	if (!fullStateRequested) {
+		const auto &chatRoom = conference->getChatRoom();
+		if (chatRoom) {
+			const auto &core = getCore();
+			core->getPrivate()->mainDb->updateNotifyId(chatRoom, conference->getLastNotify());
+		}
+	}
+	return fullStateRequested;
 }
 
 // -----------------------------------------------------------------------------
@@ -830,7 +837,7 @@ bool ClientConferenceEventHandler::needToSubscribe() const {
 		conferenceStateOk = (conferenceState == ConferenceInterface::State::CreationPending) ||
 		                    (conferenceState == ConferenceInterface::State::Created);
 	}
-	return !alreadySubscribed() && !managedByListEventhandler && conferenceStateOk;
+	return !alreadySubscribed() && !managedByListEventHandler && conferenceStateOk;
 }
 
 void ClientConferenceEventHandler::subscribeStateChangedCb(LinphoneEvent *lev, LinphoneSubscriptionState state) {
@@ -859,22 +866,30 @@ bool ClientConferenceEventHandler::subscribe() {
 		return false; // Conference has not been set
 	}
 
+	if (managedByListEventHandler) {
+		lDebug() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
+		         << " because it is managed by the list event handler";
+		return false; // Handler managed by the list event handler
+	}
+
 	if (!needToSubscribe()) {
 		lError()
-		    << "Unable to subscribe to " << *conference
+		    << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
 		    << " because either there is an active subscription to it or the application didn't request to subscribe";
 		return false; // Already subscribed or application did not request subscription
 	}
 
 	const auto localAddress = getConferenceId().getLocalAddress();
 	if (!localAddress) {
-		lError() << "Unable to subscribe to " << *conference << " because the local address is unknown";
+		lError() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
+		         << " because the local address is unknown";
 		return false; // Unknown local address
 	}
 
 	auto account = conference->getAccount();
 	if (!account) {
-		lError() << "Unable to subscribe to " << *conference << "  because no account is linked to the conference";
+		lError() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
+		         << "  because no account is linked to the conference";
 		return false;
 	} else {
 		auto accountState = account->getState();
@@ -882,15 +897,19 @@ bool ClientConferenceEventHandler::subscribe() {
 		    Conference::isAnonymousParticipant(account->getAccountParams()->getIdentityAddress());
 		if (!isAnonymousParticipant && (accountState != LinphoneRegistrationRefreshing) &&
 		    (accountState != LinphoneRegistrationOk)) {
-			lError() << "Unable to subscribe to " << *conference << " because " << *account
-			         << " has not registered yet (its state is "
+			lError() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
+			         << " because " << *account << " has not registered yet (its state is "
 			         << linphone_registration_state_to_string(account->getState()) << ")";
 			return false;
 		}
 	}
 
 	const auto &subscribeToHeader = conference->getConferenceAddress();
-	if (!subscribeToHeader) return false; // Unknown peer address
+	if (!subscribeToHeader) {
+		lError() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
+		         << "  because the conference address is not known";
+		return false; // Unknown peer address
+	}
 
 	try {
 		const auto &mainSession = conference->getMainSession();
@@ -927,8 +946,8 @@ bool ClientConferenceEventHandler::subscribe() {
 		startWaitNotifyTimer();
 		return subscribeOk;
 	} catch (const bad_weak_ptr &) {
-		lError() << "ClientConferenceEventHandler [" << this << "]: Unable to send subscribe to " << *conference
-		         << " as the core has already been destroyed";
+		lError() << "ClientConferenceEventHandler [" << this << "] is unable to send subscribe to " << *conference
+		         << " because the core has already been destroyed";
 	}
 	return false;
 }
@@ -1002,7 +1021,7 @@ void ClientConferenceEventHandler::invalidateSubscription() {
 
 LinphoneSubscriptionState ClientConferenceEventHandler::getSubscriptionState() const {
 	auto state = LinphoneSubscriptionNone;
-	if (managedByListEventhandler) {
+	if (managedByListEventHandler) {
 		state =
 		    getCore()->getPrivate()->clientListEventHandler->getSubscriptionState(getConferenceId().getLocalAddress());
 	} else {
@@ -1016,7 +1035,12 @@ LinphoneSubscriptionState ClientConferenceEventHandler::getSubscriptionState() c
 // -----------------------------------------------------------------------------
 bool ClientConferenceEventHandler::subscribe(BCTBX_UNUSED(const ConferenceId &conferenceId)) {
 	// Do not send individual SUBSCRIBE messages if the event handler is managed by the list event handler
-	if (managedByListEventhandler) return false;
+	if (managedByListEventHandler) {
+		auto conf = getConference();
+		lWarning() << "Unable to subscribe to " << *conf << " using a client conference event handler [" << this
+		           << "] because its subscription is already handled by the conference list event handler";
+		return false;
+	}
 	auto ret = subscribe();
 	if (ret) {
 		waitingFullState = (getLastNotify() == 0);
@@ -1026,7 +1050,6 @@ bool ClientConferenceEventHandler::subscribe(BCTBX_UNUSED(const ConferenceId &co
 
 void ClientConferenceEventHandler::unsubscribe() {
 	unsubscribePrivate();
-	setManagedByListEventhandler(false);
 }
 
 void ClientConferenceEventHandler::notifyReceived(BCTBX_UNUSED(std::shared_ptr<Event> notifyLev),

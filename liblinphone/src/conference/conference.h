@@ -148,6 +148,7 @@ public:
 	bool removeParticipants(const std::list<std::shared_ptr<Participant>> &participants) override;
 	void clearParticipants();
 
+	virtual void reload() = 0;
 	virtual void initFromDb(const std::shared_ptr<Participant> &me,
 	                        const ConferenceId &conferenceId,
 	                        const unsigned int lastNotifyId,

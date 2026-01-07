@@ -1014,10 +1014,14 @@ bool MS2VideoControl::cameraEnabled() const {
 // Check [-- Window ID distribution for screen sharing ---] table in MediaSession::getNativeVideoWindowId
 void *MS2VideoControl::createNativeWindowId(void *context) const {
 	VideoStream *vs = getVideoStream();
-	return vs ? video_stream_local_screen_sharing_enabled(vs)
-	                ? video_stream_create_native_preview_window_id(vs, context)
-	                : video_stream_create_native_window_id(vs, context)
-	          : nullptr;
+	if (vs) {
+		if (video_stream_local_screen_sharing_enabled(vs)) {
+			return video_stream_create_native_preview_window_id(vs, context);
+		} else {
+			return video_stream_create_native_window_id(vs, context);
+		}
+	}
+	return nullptr;
 }
 
 void MS2VideoControl::setNativeWindowId(void *w) {
@@ -1037,10 +1041,16 @@ void *MS2VideoControl::getNativeWindowId() const {
 	if (mNativeWindowId) {
 		return mNativeWindowId;
 	}
-	/* It was not set but we want to get the one automatically created by mediastreamer2 (desktop versions only) */
-	return vs ? video_stream_local_screen_sharing_enabled(vs) ? video_stream_get_native_preview_window_id(vs)
-	                                                          : video_stream_get_native_window_id(vs)
-	          : nullptr;
+	/* It was not set but we want to get the one automatically created by mediastreamer2 (desktop versions only)
+	 */
+	if (vs) {
+		if (video_stream_local_screen_sharing_enabled(vs)) {
+			return video_stream_get_native_preview_window_id(vs);
+		} else {
+			return video_stream_get_native_window_id(vs);
+		}
+	}
+	return nullptr;
 }
 
 // Preview API should not be call for Main stream if screen sharing is activated.
@@ -1049,18 +1059,21 @@ void *MS2VideoControl::getNativeWindowId() const {
 // using.
 void *MS2VideoControl::createNativePreviewWindowId(void *context) const {
 	VideoStream *vs = getVideoStream();
-	lInfo() << "Create native window id for stream [" << vs << "]";
-	return vs && !video_stream_local_screen_sharing_enabled(vs)
-	           ? video_stream_create_native_preview_window_id(vs, context)
-	           : nullptr;
+	if (vs && !video_stream_local_screen_sharing_enabled(vs)) {
+		lInfo() << "Create native window id for stream [" << vs << "]";
+		return video_stream_create_native_preview_window_id(vs, context);
+	}
+	return nullptr;
 }
 
 void MS2VideoControl::setNativePreviewWindowId(void *w) {
 	VideoStream *vs = getVideoStream();
 	mNativePreviewWindowId = w;
 	if (vs) {
-		lInfo() << "Set native window id of stream [" << vs << "] to " << mNativePreviewWindowId;
-		if (!video_stream_local_screen_sharing_enabled(vs)) video_stream_set_native_preview_window_id(vs, w);
+		if (!video_stream_local_screen_sharing_enabled(vs)) {
+			lInfo() << "Set native window id of stream [" << vs << "] to " << mNativePreviewWindowId;
+			video_stream_set_native_preview_window_id(vs, w);
+		}
 	}
 }
 

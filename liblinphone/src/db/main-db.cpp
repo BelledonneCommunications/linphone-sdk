@@ -6897,6 +6897,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 				const long long &dbChatRoomId = d->dbSession.resolveId(chatRoomRow, 0);
 				shared_ptr<AbstractChatRoom> chatRoom = core->findChatRoom(conferenceId, false);
 				if (chatRoom) {
+					chatRoom->reload();
 					ChatRoomContext context(chatRoom, dbChatRoomId, false, false);
 					chatRoomsMap.insert(std::make_pair(conferenceId, context));
 					continue;
