@@ -299,6 +299,10 @@ private:
 	void updateMeAddress(const std::shared_ptr<AbstractChatRoom> &chatRoom, bool force);
 	std::shared_ptr<Address> getLocalAddressFromChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom) const;
 
+	void notifyImdnStateChanged(const std::shared_ptr<Address> &participantAddress,
+	                            ChatMessage::State newState,
+	                            time_t stateChangeTime) const;
+
 	ChatMessagePrivate(const std::shared_ptr<AbstractChatRoom> &chatRoom, ChatMessage::Direction dir);
 	virtual ~ChatMessagePrivate();
 

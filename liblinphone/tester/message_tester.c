@@ -720,6 +720,7 @@ static void message_with_two_attachments(void) {
 	LinphoneChatMessage *laure_recv_msg = laure->stat.last_received_chat_message;
 	BC_ASSERT_PTR_NOT_NULL(laure_recv_msg);
 	if (laure_recv_msg != NULL) {
+		linphone_chat_room_mark_as_read(linphone_chat_message_get_chat_room(laure_recv_msg));
 		LinphoneChatMessageCbs *recv_cbs = linphone_chat_message_get_callbacks(laure_recv_msg);
 		linphone_chat_message_cbs_set_msg_state_changed(recv_cbs, liblinphone_tester_chat_message_msg_state_changed);
 		linphone_chat_message_cbs_set_file_transfer_recv(recv_cbs, file_transfer_received);

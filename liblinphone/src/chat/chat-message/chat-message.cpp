@@ -193,8 +193,7 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 	         << "): Moving participant " << *participantAddress << " from state " << Utils::toString(currentState)
 	         << " to state " << Utils::toString(newState);
 
-	auto me = chatRoom->getMe();
-	const auto isMe = participantAddress->weakEqual(*me->getAddress());
+	const auto isMe = chatRoom->isMe(participantAddress);
 	// Send IMDN if the participant whose state changes is me
 	if (isMe) {
 		switch (newState) {
@@ -263,11 +262,6 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 			mainDb->setChatMessageParticipantState(eventLog, participantAddress, newState, stateChangeTime);
 		}
 
-		// Update chat message state if it doesn't depend on IMDN
-		if (isMe && !isImdnControlledState(newState)) {
-			setState(newState, reason);
-		}
-
 		if (isImdnControlledState(newState)) {
 			const auto imdnStates = q->getParticipantsState();
 			size_t nbRecipients = 0;
@@ -313,6 +307,10 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 			           ((nbDeliveredStates + nbDisplayedStates + nbDeliveredToUserStates) == nbRecipients)) {
 				setState(ChatMessage::State::Delivered);
 			}
+		} else {
+			if (isMe) {
+				setState(newState, reason);
+			}
 		}
 
 		if (isMe) {
@@ -328,10 +326,22 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 		}
 	}
 
+	notifyImdnStateChanged(participantAddress, newState, stateChangeTime);
+}
+
+void ChatMessagePrivate::notifyImdnStateChanged(const std::shared_ptr<Address> &participantAddress,
+                                                ChatMessage::State newState,
+                                                time_t stateChangeTime) const {
+	L_Q();
+
+	const auto &chatRoom = dynamic_pointer_cast<ChatRoom>(q->getChatRoom());
+	if (!chatRoom) return;
+
 	// Once the participant and IMDN state are updated, it is possible to notify the application
 	LinphoneChatMessage *msg = L_GET_C_BACK_PTR(q);
 	LinphoneChatRoom *cr = chatRoom->toC();
-	auto participant = isMe ? me : chatRoom->findParticipant(participantAddress);
+	const auto isMe = chatRoom->isMe(participantAddress);
+	auto participant = isMe ? chatRoom->getMe() : chatRoom->findParticipant(participantAddress);
 	ParticipantImdnState imdnState(participant, newState, stateChangeTime);
 
 	// Legacy callbacks, deprecated !
@@ -416,8 +426,6 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 	// 3. Specific case, upon reception do not attempt to store in db before asking the user if he wants to do so or not
 	if (state == ChatMessage::State::FileTransferDone && direction == ChatMessage::Direction::Incoming) {
 		if (!hasFileTransferContent() && isMarkedAsRead()) {
-			auto me = chatRoom->getMe();
-			setParticipantState(me->getAddress(), ChatMessage::State::Displayed, ::ms_time(nullptr));
 			needsToBeStored = false;
 		}
 	}
@@ -492,6 +500,13 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 			salOp = nullptr;
 		}
 		restoreFileTransferContentAsFileContent();
+	} else if (state == ChatMessage::State::FileTransferDone && direction == ChatMessage::Direction::Incoming) {
+		if (!hasFileTransferContent() && isMarkedAsRead()) {
+			auto me = chatRoom->getMe();
+			if (me) {
+				setParticipantState(me->getAddress(), ChatMessage::State::Displayed, ::ms_time(nullptr));
+			}
+		}
 	}
 
 	if (q->needsToBeResent()) {
