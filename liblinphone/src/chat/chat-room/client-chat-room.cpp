@@ -428,15 +428,6 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 	}
 
 	if (queueMessage) {
-		auto clientConference = static_pointer_cast<ClientConference>(conference);
-		auto focus = clientConference->mFocus;
-		shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(focus->getSession());
-		if (!session) {
-			lInfo() << "Creating an INVITE session to " << *clientConference << " in order to be able to send messages";
-			auto utf8Subject = clientConference->getUtf8Subject();
-			session = dynamic_pointer_cast<MediaSession>(clientConference->createSession());
-			session->startInvite(nullptr, utf8Subject, nullptr);
-		}
 		addPendingMessage(chatMessage);
 	}
 }
