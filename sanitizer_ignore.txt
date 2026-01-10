@@ -1,4 +1,5 @@
 # These are known leaks.
+leak:XShmCreateImage
 leak:__sanitizer::Symbolizer::Demangle
 leak:libstdc++.so
 leak:pa_xmalloc
