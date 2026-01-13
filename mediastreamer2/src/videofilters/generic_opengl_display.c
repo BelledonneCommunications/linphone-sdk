@@ -546,7 +546,10 @@ static void ogl_uninit_uwp(MSFilter *f) {
 		run_ui_task_uwp([data]() { ogl_uninit_data(data); });
 		return task_from_result();
 	});
-	data->current_task.wait(); // The uninit is a final state. Wait for completion.
+	// Wait on concurrency cannot be call from Ui thread or we get an invalid_operation exception.
+	// If waiting is needed to clean correctly data without being disrupted from other instances
+	// , we may need to hack a wait procedure.
+	// data->current_task.wait(); // The uninit is a final state. Wait for completion.
 }
 
 static task<void> delay_process_uwp(FilterData *data) {
