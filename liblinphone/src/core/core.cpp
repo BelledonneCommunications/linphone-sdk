@@ -862,9 +862,6 @@ void Core::enterBackground() {
 	lInfo() << "Core::enterBackground()";
 	d->isInBackground = true;
 
-#ifdef __ANDROID__
-	static_cast<PlatformHelpers *>(L_GET_C_BACK_PTR(this)->platform_helper)->updateNetworkReachability();
-#endif
 #if TARGET_OS_IPHONE
 	LinphoneCore *lc = L_GET_C_BACK_PTR(this);
 	/* Stop the dtmf stream in case it was started.*/

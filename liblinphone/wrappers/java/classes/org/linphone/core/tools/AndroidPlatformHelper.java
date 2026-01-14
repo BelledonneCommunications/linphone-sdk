@@ -112,8 +112,9 @@ public class AndroidPlatformHelper {
     
     private static final int AUTO_ITERATE_TIMER_CORE_START_OR_PUSH_RECEIVED = 20; // 20ms
     private static final int AUTO_ITERATE_TIMER_RESET_AFTER = 20000; // 20s
+    private static final int PERIODIC_NETWORK_CHECK_IN_BACKGROUND = 5000; // 5s
 
-    private static AndroidPlatformHelper sInstance;
+    private static volatile AndroidPlatformHelper sInstance;
 
     public static boolean isReady() {
         return sInstance != null;
@@ -1148,6 +1149,28 @@ public class AndroidPlatformHelper {
         return false;
     }
 
+    public void updateNetworkReachabilityPeriodically(long delay) {
+        Runnable updateNetworkReachabilityPeriodicallyRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (mCore.isInBackground()) {
+                    Log.i("[Platform Helper] App is in background, checking if network is still available");
+                    boolean connected = mNetworkManager.isCurrentlyConnected(mContext);
+                    if (!connected) {
+                        Log.w("[Platform Helper] No connectivity: setting network unreachable and aborting periodic network availability check");
+                        setNetworkReachable(mNativePtr, false);
+                    } else {
+                        Log.i("[Platform Helper] Network seems to still be available, checking again later");
+                        updateNetworkReachabilityPeriodically(delay);
+                    }
+                } else {
+                    Log.i("[Platform Helper] App is no longer in backgroud, aborting periodic network availability check");
+                }
+            }
+        };
+        dispatchOnCoreThreadAfter(updateNetworkReachabilityPeriodicallyRunnable, delay);
+    }
+
     public void updateNetworkReachability() {
         if (mNativePtr == 0) {
             Log.w("[Platform Helper] Native pointer has been reset, stopping there");
@@ -1389,6 +1412,11 @@ public class AndroidPlatformHelper {
 
         Log.i("[Platform Helper] Notifying Core a push with Call-ID [" + callId + "] has been received");
         processPushNotification(mCore.getNativePointer(), callId, payload, isCoreStarting);
+
+        if (mMonitoringEnabled && !isCoreStarting && mCore.isInBackground()) {
+            Log.i("[Platform Helper] Push notification received & app is in background, starting periodic check of network reachability");
+            updateNetworkReachabilityPeriodically(PERIODIC_NETWORK_CHECK_IN_BACKGROUND);
+        }
 
         Log.i("[Platform Helper] Releasing platform helper push notification wakelock");
         wakeLock.release();
@@ -1634,6 +1662,10 @@ public class AndroidPlatformHelper {
                         stopTimerToResetAutoIterateSchedule();
                         Log.i("[Platform Helper] Restarting core.iterate() schedule with background timer");
                         startAutoIterate(mCore.getAutoIterateBackgroundSchedule());
+                    }
+                    if (mMonitoringEnabled) {
+                        Log.i("[Platform Helper] Starting periodic check of network reachability");
+                        updateNetworkReachabilityPeriodically(PERIODIC_NETWORK_CHECK_IN_BACKGROUND);
                     }
                 }
             }
