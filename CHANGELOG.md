@@ -25,6 +25,8 @@ changes made to these components.
 - Windows: requires Visual Studio 2022.
 - Android: requires NDK 27.
 - MbedTLS upgraded to 3.6.
+- Swap values between LINPHONE_VIDEO_DISPLAY_NONE and LINPHONE_VIDEO_DISPLAY_AUTO to match with NULL value.
+- LINPHONE_VIDEO_DISPLAY_AUTO is defined as default for native ids.
 
 ### Removed
 - Cocoapods (no longer supported)
