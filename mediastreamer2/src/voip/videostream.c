@@ -2291,7 +2291,7 @@ void *video_stream_create_native_window_id(VideoStream *stream, void *context) {
 	if (stream->output) {
 		if (ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, &id) == 0) return id;
 	}
-	return stream->window_id;
+	return NULL;// We call a creation function. We need to create one, not getting from something old that could be deleted.
 }
 
 void video_stream_set_native_window_id(VideoStream *stream, void *id) {
@@ -2338,7 +2338,7 @@ void *video_stream_create_native_preview_window_id(VideoStream *stream, void *co
 		    ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, &id) == 0)
 			return id;
 	}
-	return stream->preview_window_id;
+	return NULL;// We call a creation function. We need to create one, not getting from something old that could be deleted
 }
 
 void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno) {
