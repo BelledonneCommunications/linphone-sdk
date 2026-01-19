@@ -367,10 +367,6 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 				participant = conference->findParticipant(address);
 			}
 
-			const auto &pIt = std::find_if(
-			    oldParticipants.cbegin(), oldParticipants.cend(),
-			    [&address](const auto &currentParticipant) { return (*address == *currentParticipant->getAddress()); });
-
 			auto &roles = user.getRoles();
 			if (userState == StateType::deleted) {
 				if (isMe) {
@@ -405,7 +401,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 					conference->mParticipants.push_back(participant);
 					lInfo() << *participant << " is successfully added - " << *conference << " has "
 					        << conference->getParticipantCount() << " participants";
-					if (!isFullState || (!oldParticipants.empty() && (pIt == oldParticipants.cend()) && !isMe)) {
+					if (!isFullState) {
 						conference->notifyParticipantAdded(creationTime, isFullState, participant);
 					}
 				}
@@ -720,15 +716,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 
 						if (endpointState == StateType::full) {
 							lInfo() << "Participant device " << *gruu << " has been successfully added";
-							bool sendNotify = (!oldParticipants.empty() && (pIt == oldParticipants.cend())) && !isMe;
-							if (pIt != oldParticipants.cend()) {
-								const auto &oldDevices = (*pIt)->getDevices();
-								const auto &dIt = std::find_if(
-								    oldDevices.cbegin(), oldDevices.cend(),
-								    [&gruu](const auto &oldDevice) { return (*gruu == *oldDevice->getAddress()); });
-								sendNotify = (dIt == oldDevices.cend()) && !isMe;
-							}
-							if (!isFullState || sendNotify) {
+							if (!isFullState) {
 								if (device->getState() == ParticipantDevice::State::RequestingToJoin) {
 									conference->notifyParticipantDeviceJoiningRequest(creationTime, isFullState,
 									                                                  participant, device);

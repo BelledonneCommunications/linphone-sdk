@@ -3683,9 +3683,6 @@ void create_conference_base(time_t start_time,
 					BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
 					                             marie_stat2.number_of_LinphoneSubscriptionActive + nb_subscriptions,
 					                             liblinphone_tester_sip_timeout));
-					BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_conference_full_state_received,
-					                             marie_stat2.number_of_conference_full_state_received + 1,
-					                             liblinphone_tester_sip_timeout));
 					BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
 					                             focus_stat2.number_of_LinphoneSubscriptionActive + 2,
 					                             liblinphone_tester_sip_timeout));
@@ -3700,14 +3697,17 @@ void create_conference_base(time_t start_time,
 					                             marie_stat2.number_of_LinphoneCallStreamsRunning + 2,
 					                             liblinphone_tester_sip_timeout));
 				}
-
-				BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participants_added,
-				                             marie_stat2.number_of_participants_added + 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participant_devices_added,
-				                             marie_stat2.number_of_participant_devices_added + 1,
-				                             liblinphone_tester_sip_timeout));
-				if (!network_restart) {
+				if (network_restart && !enable_chat) {
+					BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_conference_full_state_received,
+					                             marie_stat2.number_of_conference_full_state_received + 1,
+					                             liblinphone_tester_sip_timeout));
+				} else {
+					BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participants_added,
+					                             marie_stat2.number_of_participants_added + 1,
+					                             liblinphone_tester_sip_timeout));
+					BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participant_devices_added,
+					                             marie_stat2.number_of_participant_devices_added + 1,
+					                             liblinphone_tester_sip_timeout));
 					BC_ASSERT_TRUE(wait_for_list(coresList,
 					                             &marie.getStats().number_of_conference_participant_devices_present,
 					                             marie_stat2.number_of_conference_participant_devices_present + 1,
