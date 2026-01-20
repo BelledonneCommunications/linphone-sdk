@@ -120,6 +120,7 @@
 #include "event/event-publish.h"
 #include "friend/friend-list.h"
 #include "http/http-client.h"
+#include "presence/presence-model.h"
 #include "sal/sal.h"
 #include "vcard/vcard-context.h"
 #ifdef HAVE_CONFIG_H
@@ -5301,7 +5302,7 @@ LinphoneCall *linphone_core_get_call_by_remote_address2(const LinphoneCore *lc, 
 
 int linphone_core_send_publish(LinphoneCore *lc, LinphonePresenceModel *presence, bool_t send_publish) {
 	CoreLogContextualizer logContextualizer(lc);
-	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setPresenceModelAndSendPublish(presence, !!send_publish);
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setPresenceModelAndSendPublish(PresenceModel::toCpp(presence)->getSharedFromThis(), !!send_publish);
 }
 
 void linphone_core_set_inc_timeout(LinphoneCore *lc, int seconds) {
@@ -5581,7 +5582,6 @@ LinphoneConsolidatedPresence linphone_core_get_consolidated_presence(const Linph
 
 void linphone_core_set_consolidated_presence(LinphoneCore *lc, LinphoneConsolidatedPresence presence) {
 	LinphonePresenceModel *model;
-	LinphonePresenceActivity *activity = NULL;
 
 	if (linphone_core_get_global_state(lc) != LinphoneGlobalOn) return;
 
@@ -5591,29 +5591,7 @@ void linphone_core_set_consolidated_presence(LinphoneCore *lc, LinphoneConsolida
 			account->unpublish();
 		}
 	}
-	model = linphone_presence_model_new();
-	switch (presence) {
-		case LinphoneConsolidatedPresenceOnline:
-			linphone_presence_model_set_basic_status(model, LinphonePresenceBasicStatusOpen);
-			break;
-		case LinphoneConsolidatedPresenceBusy:
-			linphone_presence_model_set_basic_status(model, LinphonePresenceBasicStatusOpen);
-			activity = linphone_presence_activity_new(LinphonePresenceActivityAway, NULL);
-			break;
-		case LinphoneConsolidatedPresenceDoNotDisturb:
-			linphone_presence_model_set_basic_status(model, LinphonePresenceBasicStatusClosed);
-			activity = linphone_presence_activity_new(LinphonePresenceActivityAway, NULL);
-			break;
-		case LinphoneConsolidatedPresenceOffline:
-		default:
-			linphone_presence_model_set_basic_status(model, LinphonePresenceBasicStatusClosed);
-			break;
-	}
-
-	if (activity != NULL) {
-		linphone_presence_model_add_activity(model, activity);
-		linphone_presence_activity_unref(activity);
-	}
+	model = linphone_core_create_presence_model_for_consolidated_presence(lc, presence);
 	linphone_core_set_presence_model_with_publish_toggle(lc, model, FALSE);
 	linphone_presence_model_unref(model);
 

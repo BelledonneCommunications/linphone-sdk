@@ -66,6 +66,10 @@ static const char *__policy_enum_to_str(LinphoneSubscribePolicy pol) {
  * HELPER FUNCTIONS TO EASE ACCESS IN MOST SIMPLER CASES                     *
  ****************************************************************************/
 
+LinphonePresenceModel *linphone_presence_model_new_with_consolidated_presence(LinphoneConsolidatedPresence presence) {
+	return PresenceModel::createCObject(presence);
+}
+
 LinphonePresenceModel *linphone_presence_model_new_with_activity(LinphonePresenceActivityType acttype,
                                                                  const char *description) {
 	return PresenceModel::createCObject(acttype, L_C_TO_STRING(description));
@@ -794,6 +798,12 @@ LinphonePresenceActivity *linphone_core_create_presence_activity(BCTBX_UNUSED(Li
 
 LinphonePresenceModel *linphone_core_create_presence_model(BCTBX_UNUSED(LinphoneCore *lc)) {
 	return linphone_presence_model_new();
+}
+
+LinphonePresenceModel *
+linphone_core_create_presence_model_for_consolidated_presence(BCTBX_UNUSED(LinphoneCore *lc),
+                                                              LinphoneConsolidatedPresence presence) {
+	return linphone_presence_model_new_with_consolidated_presence(presence);
 }
 
 LinphonePresenceModel *linphone_core_create_presence_model_with_activity(BCTBX_UNUSED(LinphoneCore *lc),

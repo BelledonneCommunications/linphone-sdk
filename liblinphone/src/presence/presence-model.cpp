@@ -57,6 +57,31 @@ PresenceModel::PresenceModel(LinphonePresenceActivityType activityType,
 	addNote(note, lang);
 }
 
+PresenceModel::PresenceModel(LinphoneConsolidatedPresence presence) {
+	std::shared_ptr<PresenceActivity> activity;
+	switch (presence) {
+		case LinphoneConsolidatedPresenceOnline:
+			setBasicStatus(LinphonePresenceBasicStatusOpen);
+			break;
+		case LinphoneConsolidatedPresenceBusy:
+			setBasicStatus(LinphonePresenceBasicStatusOpen);
+			activity = PresenceActivity::create(LinphonePresenceActivityAway, std::string());
+			break;
+		case LinphoneConsolidatedPresenceDoNotDisturb:
+			setBasicStatus(LinphonePresenceBasicStatusClosed);
+			activity = PresenceActivity::create(LinphonePresenceActivityAway, std::string());
+			break;
+		case LinphoneConsolidatedPresenceOffline:
+		default:
+			setBasicStatus(LinphonePresenceBasicStatusClosed);
+			break;
+	}
+
+	if (activity) {
+		addActivity(activity);
+	}
+}
+
 PresenceModel *PresenceModel::clone() const {
 	return nullptr;
 }

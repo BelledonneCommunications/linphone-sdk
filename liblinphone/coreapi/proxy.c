@@ -369,7 +369,7 @@ void linphone_proxy_config_set_realm(LinphoneProxyConfig *cfg, const char *realm
 }
 
 int linphone_proxy_config_send_publish(LinphoneProxyConfig *proxy, LinphonePresenceModel *presence) {
-	Account::toCpp(proxy->account)->setPresenceModel(presence);
+	linphone_account_set_presence_model(proxy->account, presence);
 	return Account::toCpp(proxy->account)->sendPublish();
 }
 

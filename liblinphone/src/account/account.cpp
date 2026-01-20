@@ -43,6 +43,7 @@
 #include "event/event-publish.h"
 #include "friend/friend.h"
 #include "linphone/core.h"
+#include "presence/presence-model.h"
 #include "presence/presence-service.h"
 #include "private.h"
 #include "utils/custom-params.h"
@@ -82,7 +83,6 @@ Account::~Account() {
 	if (mSentHeaders) sal_custom_header_free(mSentHeaders);
 	setDependency(nullptr);
 	if (mErrorInfo) linphone_error_info_unref(mErrorInfo);
-	if (mPresenceModel) linphone_presence_model_unref(mPresenceModel);
 
 	setConfig(nullptr);
 	release();
@@ -504,7 +504,7 @@ void Account::setDependee(std::shared_ptr<Account> dependee) {
 
 void Account::setDependency(std::shared_ptr<Account> dependency) {
 	if (!mParams) {
-		lWarning() << "setDependency is called but no AccountParams is set on Account [" << this << "]";
+		lWarning() << "setDependency is called but no AccountParams is set on " << *this;
 		return;
 	}
 
@@ -908,7 +908,7 @@ LinphoneTransportType Account::getTransport() {
 	} else if (mParams && !mParams->getServerAddressAsString().empty()) {
 		route_addr = mParams->getServerAddress()->getImpl();
 	} else {
-		lError() << "Cannot guess transport for account with identity [" << this << "]";
+		lError() << "Cannot guess transport for " << *this;
 		return ret;
 	}
 	ret = salTransportToLinphoneTransport(sal_address_get_transport(route_addr));
@@ -1085,7 +1085,7 @@ list<shared_ptr<CallLog>> Account::getCallLogs() const {
 	}
 
 	if (linphone_core_get_global_state(getCore()->getCCore()) != LinphoneGlobalOn) {
-		lWarning() << "getCallLogs is called but core is not running on Account [" << this << "]";
+		lWarning() << "getCallLogs is called but core is not running on " << *this;
 		return {};
 	}
 
@@ -1101,7 +1101,7 @@ list<shared_ptr<CallLog>> Account::getCallLogsForAddress(const std::shared_ptr<c
 	}
 
 	if (linphone_core_get_global_state(getCore()->getCCore()) != LinphoneGlobalOn) {
-		lWarning() << "getCallLogsForAddress is called but core is not running on Account [" << this << "]";
+		lWarning() << "getCallLogsForAddress is called but core is not running on " << *this;
 		return {};
 	}
 
@@ -1133,7 +1133,7 @@ list<shared_ptr<ConferenceInfo>> Account::getConferenceInfos(const std::list<Lin
 	}
 
 	if (linphone_core_get_global_state(getCore()->getCCore()) != LinphoneGlobalOn) {
-		lWarning() << "getConferenceInfos is called but core is not running on Account [" << this << "]";
+		lWarning() << "getConferenceInfos is called but core is not running on " << *this;
 		return {};
 	}
 
@@ -1317,8 +1317,8 @@ void Account::update() {
 			}
 		}
 		if (mSendPublish && (mState == LinphoneRegistrationOk || mState == LinphoneRegistrationCleared)) {
-			if (mPresenceModel == nullptr) {
-				setPresenceModel(getCCore()->presence_model);
+			if (!mPresenceModel) {
+				setPresenceModel(PresenceModel::toCpp(getCCore()->presence_model)->getSharedFromThis(), false);
 			}
 			sendPublish();
 			mSendPublish = false;
@@ -1355,17 +1355,44 @@ shared_ptr<EventPublish> Account::createPublish(const std::string &event, int ex
 	    (new EventPublish(getCore(), getSharedFromThis(), nullptr, event, expires))->toSharedPtr());
 }
 
-void Account::setPresenceModel(LinphonePresenceModel *presence) {
-	if (mPresenceModel) {
-		linphone_presence_model_unref(mPresenceModel);
-		mPresenceModel = nullptr;
+void Account::setPresenceModel(const std::shared_ptr<PresenceModel> &presenceModel, bool needToSendPublish) {
+	mPresenceModel = presenceModel;
+	if (needToSendPublish) {
+		sendPublish();
 	}
-	if (presence) mPresenceModel = linphone_presence_model_ref(presence);
+}
+
+const std::shared_ptr<PresenceModel> &Account::getPresenceModel() const {
+	return mPresenceModel;
+}
+
+void Account::setConsolidatedPresence(LinphoneConsolidatedPresence presence) {
+
+	if (linphone_core_get_global_state(getCCore()) != LinphoneGlobalOn) return;
+
+	if (presence == LinphoneConsolidatedPresenceOffline) {
+		unpublish();
+	}
+
+	auto model = PresenceModel::create(presence);
+	setPresenceModel(model);
+
+	if (presence != LinphoneConsolidatedPresenceOffline) {
+		if (getAccountParams()->getPublishEnabled()) {
+			/* When going online or busy, publish after changing the presence model. */
+			sendPublish();
+		}
+	}
+}
+
+LinphoneConsolidatedPresence Account::getConsolidatedPresence() const {
+	return (getAccountParams()->getPublishEnabled() && mPresenceModel) ? mPresenceModel->getConsolidatedPresence()
+	                                                                   : LinphoneConsolidatedPresenceOffline;
 }
 
 int Account::sendPublish() {
-	if (mPresenceModel == nullptr) {
-		lError() << "No presence model has been set for this account, can't send the PUBLISH";
+	if (!mPresenceModel) {
+		lError() << "No presence model has been set for " << *this << ", can't send the PUBLISH";
 		return -1;
 	}
 
@@ -1399,38 +1426,39 @@ int Account::sendPublish() {
 		LinphoneConfig *config = linphone_core_get_config(getCCore());
 		if (linphone_config_get_bool(config, "sip", "update_presence_model_timestamp_before_publish_expires_refresh",
 		                             FALSE)) {
-			unsigned int nbServices = linphone_presence_model_get_nb_services(mPresenceModel);
+			unsigned int nbServices = mPresenceModel->getNbServices();
 			if (nbServices > 0) {
-				LinphonePresenceService *latest_service =
-				    linphone_presence_model_get_nth_service(mPresenceModel, nbServices - 1);
-				PresenceService::toCpp(latest_service)->setTimestamp(ms_time(nullptr));
+				std::shared_ptr<PresenceService> latestService = mPresenceModel->getNthService(nbServices - 1);
+				if (latestService) {
+					latestService->setTimestamp(ms_time(nullptr));
+				}
 			}
 		}
 
-		if (linphone_presence_model_get_presentity(mPresenceModel) == nullptr) {
-			lInfo() << "No presentity set for model [" << mPresenceModel << "], using identity from account [" << this
-			        << "]: " << *identityAddress;
-			linphone_presence_model_set_presentity(mPresenceModel, identityAddress->toC());
+		auto currentPresentity = mPresenceModel->getPresentity();
+		if (!currentPresentity) {
+			lInfo() << "No presentity set for model [" << mPresenceModel << "], using identity from " << *this << ": "
+			        << *identityAddress;
+			mPresenceModel->setPresentity(identityAddress);
 		}
 
-		const auto currentPresentity = linphone_presence_model_get_presentity(mPresenceModel);
-		std::shared_ptr<const Address> presentityAddress = nullptr;
-		char *contact = nullptr;
-		if (!linphone_address_equal(currentPresentity, identityAddress->toC())) {
-			lInfo() << "Presentity for model [" << mPresenceModel << "] differs account [" << this
-			        << "], using account " << *identityAddress;
-			presentityAddress = Address::getSharedFromThis(currentPresentity); /*saved, just in case*/
-			if (linphone_presence_model_get_contact(mPresenceModel)) {
-				contact = bctbx_strdup(linphone_presence_model_get_contact(mPresenceModel));
-			}
-			linphone_presence_model_set_presentity(mPresenceModel, identityAddress->toC());
-			linphone_presence_model_set_contact(mPresenceModel, nullptr); /*it will be automatically computed*/
+		currentPresentity = mPresenceModel->getPresentity();
+		std::shared_ptr<Address> presentityAddress = nullptr;
+		std::string contact;
+		if (*identityAddress != *currentPresentity) {
+			lInfo() << "Presentity for model [" << mPresenceModel << "] differs from the identity address of " << *this;
+			// Save presentity and contact addresses to be restored after sending the PUBLISH message
+			presentityAddress = currentPresentity;
+			contact = mPresenceModel->getContact();
+
+			mPresenceModel->setPresentity(identityAddress);
+			mPresenceModel->setContact(std::string()); /*it will be automatically computed*/
 		}
 
-		char *presence_body;
-		if (!(presence_body = linphone_presence_model_to_xml(mPresenceModel))) {
-			lError() << "Cannot publish presence model [" << mPresenceModel << "] for account [" << this
-			         << "] because of xml serialization error";
+		std::string presenceBody = mPresenceModel->toXml();
+		if (presenceBody.empty()) {
+			lError() << "Cannot publish presence model [" << mPresenceModel << "] for " << *this
+			         << " because of xml serialization error";
 			return -1;
 		}
 
@@ -1440,22 +1468,17 @@ int Account::sendPublish() {
 		}
 
 		auto content = Content::create(nullptr, true);
-		content->setBody((const uint8_t *)presence_body, strlen(presence_body));
+		content->setBody((const uint8_t *)presenceBody.c_str(), presenceBody.size());
 		ContentType contentType("application", "pidf+xml");
 		content->setContentType(contentType);
 
 		err = mPresencePublishEvent->send(content);
-		ms_free(presence_body);
 
 		if (presentityAddress) {
 			lInfo() << "Restoring previous presentity address " << *presentityAddress << " for model ["
 			        << mPresenceModel << "]";
-
-			linphone_presence_model_set_presentity(mPresenceModel, presentityAddress->toC());
-		}
-		if (contact) {
-			linphone_presence_model_set_contact(mPresenceModel, contact);
-			bctbx_free(contact);
+			mPresenceModel->setPresentity(presentityAddress);
+			mPresenceModel->setContact(contact);
 		}
 	} else
 		setSendPublish(true); /*otherwise do not send publish if registration is in progress, this will be done later*/
@@ -1795,7 +1818,7 @@ void Account::ccmpConferenceInformationRequestSent() {
 
 void Account::ccmpConferenceInformationResponseReceived() {
 	if (mCcmpConferenceInformationRequestsCounter == 0) {
-		lFatal() << *this << " Receiving more responses than HTTP requests sent";
+		lFatal() << *this << ": Receiving more responses than HTTP requests sent";
 	}
 	mCcmpConferenceInformationRequestsCounter--;
 	if (mCcmpConferenceInformationRequestsCounter == 0) {

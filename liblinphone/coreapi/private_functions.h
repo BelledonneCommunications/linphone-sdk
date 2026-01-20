@@ -360,6 +360,9 @@ void linphone_core_send_initial_subscribes(LinphoneCore *lc);
 
 void linphone_proxy_config_update(LinphoneProxyConfig *cfg);
 LinphoneAccount *linphone_proxy_config_get_account(LinphoneProxyConfig *cfg);
+void linphone_account_set_presence_model_with_publish_toggle(LinphoneAccount *account,
+                                                             LinphonePresenceModel *presence_model,
+                                                             bool_t send_publish);
 void linphone_account_update(LinphoneAccount *account);
 LinphoneProxyConfig *linphone_account_get_proxy_config(LinphoneAccount *account);
 
@@ -1013,6 +1016,9 @@ int linphone_core_get_default_account_index(LinphoneCore *lc);
 LINPHONE_PUBLIC bool_t linphone_core_get_add_admin_information_to_contact(const LinphoneCore *lc);
 LINPHONE_PUBLIC void linphone_core_set_add_admin_information_to_contact(LinphoneCore *lc, bool_t enabled);
 
+LinphonePresenceModel *
+linphone_core_create_presence_model_for_consolidated_presence(BCTBX_UNUSED(LinphoneCore *lc),
+                                                              LinphoneConsolidatedPresence presence);
 char *linphone_presence_model_to_xml(LinphonePresenceModel *model);
 
 LinphoneVideoDefinition *linphone_video_definition_new(unsigned int width, unsigned int height, const char *name);

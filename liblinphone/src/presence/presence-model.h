@@ -54,12 +54,14 @@ public:
 	              const std::string &description,
 	              const std::string &note,
 	              const std::string &lang);
+	PresenceModel(LinphoneConsolidatedPresence presence);
 	PresenceModel(const PresenceModel &other) = delete;
 	virtual ~PresenceModel() = default;
 
 	PresenceModel *clone() const override;
 
 	// Friends
+	friend Account;
 	friend FriendList;
 	friend PresencePerson;
 	friend PresenceService;

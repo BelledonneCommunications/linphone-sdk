@@ -34,6 +34,7 @@
 #include "linphone/api/c-call-log.h"
 #include "linphone/api/c-conference-info.h"
 #include "linphone/wrapper_utils.h"
+#include "presence/presence-model.h"
 #include "utils/enum.h"
 
 // =============================================================================
@@ -282,6 +283,37 @@ bctbx_list_t *linphone_account_get_conference_information_list_2(const LinphoneA
 	}
 
 	return results;
+}
+
+LinphoneConsolidatedPresence linphone_account_get_consolidated_presence(const LinphoneAccount *account) {
+	return Account::toCpp(account)->getConsolidatedPresence();
+}
+
+void linphone_account_set_consolidated_presence(LinphoneAccount *account, LinphoneConsolidatedPresence presence) {
+
+	Account::toCpp(account)->setConsolidatedPresence(presence);
+}
+
+void linphone_account_set_presence_model(LinphoneAccount *account, LinphonePresenceModel *presence_model) {
+	linphone_account_set_presence_model_with_publish_toggle(account, presence_model, TRUE);
+}
+
+void linphone_account_set_presence_model_with_publish_toggle(LinphoneAccount *account,
+                                                             LinphonePresenceModel *presence_model,
+                                                             bool_t send_publish) {
+	std::shared_ptr<PresenceModel> presenceModel;
+	if (presence_model) {
+		presenceModel = PresenceModel::toCpp(presence_model)->getSharedFromThis();
+	}
+	Account::toCpp(account)->setPresenceModel(presenceModel, !!send_publish);
+}
+
+const LinphonePresenceModel *linphone_account_get_presence_model(const LinphoneAccount *account) {
+	const auto &presenceModel = Account::toCpp(account)->getPresenceModel();
+	if (presenceModel) {
+		return presenceModel->toC();
+	}
+	return nullptr;
 }
 
 void linphone_account_add_callbacks(LinphoneAccount *account, LinphoneAccountCbs *cbs) {

@@ -496,7 +496,11 @@ static void test_presence_list_base(bool_t enable_compression) {
 	linphone_core_set_presence_model(marie->lc, presence);
 	linphone_presence_model_unref(presence);
 	presence = linphone_core_create_presence_model_with_activity(pauline->lc, LinphonePresenceActivityVacation, NULL);
-	linphone_core_set_presence_model(pauline->lc, presence);
+	LinphoneAccount *pauline_account = linphone_core_get_default_account(pauline->lc);
+	BC_ASSERT_PTR_NOT_NULL(pauline_account);
+	if (pauline_account) {
+		linphone_account_set_presence_model(pauline_account, presence);
+	}
 	linphone_presence_model_unref(presence);
 
 	lfl = linphone_core_create_friend_list(laure->lc);

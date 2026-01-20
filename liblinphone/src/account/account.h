@@ -58,6 +58,7 @@ class Event;
 class AbstractChatRoom;
 class EventPublish;
 class HttpResponse;
+class PresenceModel;
 
 class LINPHONE_PUBLIC Account : public bellesip::HybridObject<LinphoneAccount, Account>,
                                 public UserDataAccessor,
@@ -96,6 +97,8 @@ public:
 	void setDependency(std::shared_ptr<Account> dependency);
 	void setDependee(std::shared_ptr<Account> dependency);
 	void setLimeUserAccountStatus(LimeUserAccountStatus status);
+	void setPresenceModel(const std::shared_ptr<PresenceModel> &presence, bool needToSendPublish = true);
+	void setConsolidatedPresence(LinphoneConsolidatedPresence presence);
 	void setRemoveAuthInfoOnRegistrationCleared(bool removeAuthOnCleared);
 
 	// Getters
@@ -115,6 +118,8 @@ public:
 	std::shared_ptr<Account> getDependency();
 	std::shared_ptr<Account> getDependee();
 	LimeUserAccountStatus getLimeUserAccountStatus() const;
+	const std::shared_ptr<PresenceModel> &getPresenceModel() const;
+	LinphoneConsolidatedPresence getConsolidatedPresence() const;
 
 	int getUnreadChatMessageCount() const;
 	const std::list<std::shared_ptr<AbstractChatRoom>> &getChatRooms() const;
@@ -139,7 +144,6 @@ public:
 	}
 	bool check();
 	bool isAvpfEnabled() const;
-	void setPresenceModel(LinphonePresenceModel *presence);
 	int sendPublish();
 	void apply(LinphoneCore *lc);
 	void notifyPublishStateChanged(LinphonePublishState state);
@@ -234,10 +238,10 @@ private:
 
 	LinphoneErrorInfo *mErrorInfo = nullptr;
 
-	std::shared_ptr<Address> mContactAddress = nullptr;
-	std::shared_ptr<Address> mContactAddressWithoutParams = nullptr;
-	std::shared_ptr<Address> mPendingContactAddress = nullptr;
-	mutable std::shared_ptr<Address> mServiceRouteAddress = nullptr;
+	std::shared_ptr<Address> mContactAddress;
+	std::shared_ptr<Address> mContactAddressWithoutParams;
+	std::shared_ptr<Address> mPendingContactAddress;
+	mutable std::shared_ptr<Address> mServiceRouteAddress;
 
 	LinphoneRegistrationState mState = LinphoneRegistrationNone;
 	LinphoneRegistrationState mPreviousState = LinphoneRegistrationNone;
@@ -245,10 +249,10 @@ private:
 	SalRegisterOp *mOp = nullptr;
 	SalCustomHeader *mSentHeaders = nullptr;
 
-	std::shared_ptr<EventPublish> mPresencePublishEvent = nullptr;
-	LinphonePresenceModel *mPresenceModel = nullptr;
+	std::shared_ptr<EventPublish> mPresencePublishEvent;
+	std::shared_ptr<PresenceModel> mPresenceModel;
 
-	std::shared_ptr<Account> mDependency = nullptr;
+	std::shared_ptr<Account> mDependency;
 	std::weak_ptr<Account> mDependee;
 
 	unsigned long long mPreviousPublishParamsHash[2] = {0};

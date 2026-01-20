@@ -37,12 +37,27 @@ extern "C" {
  ****************************************************************************/
 
 /**
+ * Creates a presence model with a consolidated presence
+ * @param presence The #LinphoneConsolidatedPresence to set for the created presence model.
+ * @return The created #LinphonePresenceModel, or NULL if an error occured. @maybenil
+ * @warning This function will set the basic status of the model and it may create an activity depending on the
+ * #LinphoneConsolidatedPresence
+ * @see linphone_presence_model_new(), linphone_presence_model_new_with_activity(),
+ * linphone_presence_model_new_with_activity_and_note()
+ *
+ * The created presence model has the activity specified in the parameters.
+ */
+LINPHONE_PUBLIC LinphonePresenceModel *
+linphone_presence_model_new_with_consolidated_presence(LinphoneConsolidatedPresence presence);
+
+/**
  * Creates a presence model specifying an activity.
  * @param activity The #LinphonePresenceActivityType to set for the created presence model.
  * @param description An additional description of the activity (mainly useful for the 'other' activity). Set it to NULL
  * to not add a description. @maybenil
  * @return The created #LinphonePresenceModel, or NULL if an error occured. @maybenil
- * @see linphone_presence_model_new(), linphone_presence_model_new_with_activity_and_note()
+ * @see linphone_presence_model_new(), linphone_presence_model_new_with_activity_and_note(),
+ * linphone_presence_model_new_with_consolidated_presence()
  *
  * The created presence model has the activity specified in the parameters.
  */
@@ -58,7 +73,8 @@ LINPHONE_PUBLIC LinphonePresenceModel *linphone_presence_model_new_with_activity
  * @param lang The language the note is written in. It can be set to NULL in order to not specify the language of the
  * note. @maybenil
  * @return The created #LinphonePresenceModel, or NULL if an error occured. @maybenil
- * @see linphone_presence_model_new_with_activity(), linphone_presence_model_new_with_activity_and_note()
+ * @see linphone_presence_model_new(), linphone_presence_model_new_with_activity(),
+ * linphone_presence_model_new_with_consolidated_presence()
  *
  * The created presence model has the activity and the note specified in the parameters.
  */
@@ -146,7 +162,7 @@ LINPHONE_PUBLIC LinphonePresenceActivity *linphone_presence_model_get_activity(c
  * description is to be added. @maybenil
  * @return 0 if successful, a value < 0 in case of error.
  *
- * WARNING: This function will modify the basic status of the model according to the activity being set.
+ * @warning This function will modify the basic status of the model according to the activity being set.
  * If you don't want the basic status to be modified automatically, you can use the combination of
  * linphone_presence_model_set_basic_status(), linphone_presence_model_clear_activities() and
  * linphone_presence_model_add_activity().
@@ -234,7 +250,8 @@ linphone_presence_model_get_consolidated_presence(const LinphonePresenceModel *m
 /**
  * Creates a default presence model.
  * @return The created presence model, NULL on error. @maybenil
- * @see linphone_presence_model_new_with_activity(), linphone_presence_model_new_with_activity_and_note()
+ * @see linphone_presence_model_new_with_activity(), linphone_presence_model_new_with_activity_and_note(),
+ * linphone_presence_model_new_with_consolidated_presence()
  *
  * The created presence model is considered 'offline'.
  */

@@ -343,6 +343,36 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_account_get_conference_information_list_2
                                                                                  bctbx_list_t *capabilities);
 
 /**
+ * Set the presence model linked to a given account and send a PUBLISH message to the presence server.
+ * @param account The #LinphoneAccount object. @notnil
+ * @param presence_model The presence model to assign. @maybenil
+ **/
+LINPHONE_PUBLIC void linphone_account_set_presence_model(LinphoneAccount *account,
+                                                         LinphonePresenceModel *presence_model);
+
+/**
+ * Get the presence model linked to a given account.
+ * @param account The #LinphoneAccount object. @notnil
+ * @return the presence model, if assigned, NULL otherwise. @maybenil
+ **/
+LINPHONE_PUBLIC const LinphonePresenceModel *linphone_account_get_presence_model(const LinphoneAccount *account);
+
+/**
+ * Gets consolidated presence for a #LinphoneAccount
+ * @param account The #LinphoneAccount object. @notnil
+ * @return A #LinphoneConsolidatedPresence presence
+ */
+LINPHONE_PUBLIC LinphoneConsolidatedPresence linphone_account_get_consolidated_presence(const LinphoneAccount *account);
+
+/**
+ * Sets consolidated presence for a #LinphoneAccount
+ * @param account The #LinphoneAccount object. @notnil
+ * @param presence #LinphoneConsolidatedPresence value
+ */
+LINPHONE_PUBLIC void linphone_account_set_consolidated_presence(LinphoneAccount *account,
+                                                                LinphoneConsolidatedPresence presence);
+
+/**
  * Detect if the given input is a phone number or not.
  * @param account The #LinphoneAccount object, unused yet but may contain useful data. Can be NULL. @maybenil
  * @param username The string to parse. @notnil

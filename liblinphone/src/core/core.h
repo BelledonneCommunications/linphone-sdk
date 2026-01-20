@@ -445,7 +445,7 @@ public:
 	Core::ETagStatus eTagHandler(SalPublishOp *op, const SalBodyHandler *body);
 
 	void notifyPublishStateChangedToAccount(const std::shared_ptr<Event> event, LinphonePublishState state);
-	int setPresenceModelAndSendPublish(LinphonePresenceModel *presence, bool sendPublish);
+	int setPresenceModelAndSendPublish(std::shared_ptr<PresenceModel> presence, bool sendPublish);
 
 	void setLabel(const std::string &label);
 	const std::string &getLabel() const;
