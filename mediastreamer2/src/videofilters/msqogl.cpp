@@ -38,12 +38,12 @@
 typedef enum {
 	QtLink = 1,
 	MSLink = 2,
-}MSQOGLLink;
+} MSQOGLLink;
 
 // Use cases: Build Filter(MS), Set Native ID (Qt)
-static void addLink(FilterData* data, MSQOGLLink link) {
+static void addLink(FilterData *data, MSQOGLLink link) {
 	data->link_lock->lock();
-	switch(link){
+	switch (link) {
 		case QtLink:
 			qInfo() << "[MSQOGL] Link Qt to: " << data;
 			data->is_qt_linked = TRUE;
@@ -56,14 +56,14 @@ static void addLink(FilterData* data, MSQOGLLink link) {
 	data->link_lock->unlock();
 }
 // Use cases: Destroy MSFilter(MS), Destroy Qt buffer(Qt), Unset Native ID(Qt)
-static void removeLink(FilterData* data, MSQOGLLink link) {
-	if(!data) return;
+static void removeLink(FilterData *data, MSQOGLLink link) {
+	if (!data) return;
 	data->link_lock->lock();
-	switch(link) {
+	switch (link) {
 		case QtLink:
 			qInfo() << "[MSQOGL] Unlink Qt from: " << data;
 			data->is_qt_linked = FALSE;
-			if(data->renderer) data->renderer->mParent = NULL;
+			if (data->renderer) data->renderer->mParent = NULL;
 			data->renderer = NULL;
 			break;
 		case MSLink:
@@ -74,17 +74,16 @@ static void removeLink(FilterData* data, MSQOGLLink link) {
 			ms_filter_unlock(data->parent);
 			break;
 	}
-	if( !data->is_qt_linked && !data->is_ms_linked) {
+	if (!data->is_qt_linked && !data->is_ms_linked) {
 		qInfo() << "[MSQOGL] Free filter: " << data;
 		data->link_lock->unlock();
 		delete data->link_lock;
 		// Just for debugging if something is wrong with lock. We will know if it has been deleted:
 		data->link_lock = NULL;
 		ms_free(data);
-	}else
-		data->link_lock->unlock();
+	} else data->link_lock->unlock();
 }
-static bool_t isRenderable(FilterData * data) {
+static bool_t isRenderable(FilterData *data) {
 	return data->parent && data->is_ms_linked;
 }
 
@@ -122,7 +121,7 @@ void BufferRenderer::render() {
 	if (mParent) {
 		// mParent can be removed from Qt thread while processing.
 		// It is not destroyed so it should be safe to use the instance.
-		FilterData* data = mParent;
+		FilterData *data = mParent;
 		data->link_lock->lock();
 		if (isRenderable(data)) {
 			qogl_call_render(data->parent, NULL);
@@ -144,7 +143,8 @@ void BufferRenderer::synchronize(QQuickFramebufferObject *item) {
 
 	if (mParent) {
 		ogl_display_uninit(mParent->display, TRUE);
-		ogl_display_set_default_functions(mParent->display, &mParent->functions);// Synchronize functions with the current context
+		ogl_display_set_default_functions(mParent->display,
+		                                  &mParent->functions); // Synchronize functions with the current context
 		mParent->update_context = TRUE;
 	}
 
@@ -179,8 +179,7 @@ static void qogl_init(MSFilter *f) {
 	data->display = ogl_display_new();
 	// We cannot set default function if context doesn't exist (qogl_init may not be call from the same thread as Qt).
 	// Function pointer must be used from Qt Context and not from library.
-	if( QOpenGLContext::currentContext())
-		ogl_display_set_default_functions(data->display, &data->functions);
+	if (QOpenGLContext::currentContext()) ogl_display_set_default_functions(data->display, &data->functions);
 
 	data->show_video = TRUE;
 	data->mirroring = TRUE;
@@ -252,13 +251,16 @@ static int qogl_create_window_id(BCTBX_UNUSED(MSFilter *f), void *arg) {
 	return 0;
 }
 
-// if arg is NULL, stop rendering by removing renderer
+// if arg is MS_FILTER_VIDEO_AUTO/MS_FILTER_VIDEO_NONE/NULL, stop rendering by removing renderer
+// MS_FILTER_VIDEO_AUTO is not used by MSQOGL but is the default of LinphoneCore.
+// So in order to avoid client updates, we can safely consider it as of ending rendering.
 static int qogl_set_native_window_id(MSFilter *f, void *arg) {
 	FilterData *data;
-
+	unsigned long video_mode = *((unsigned long *)arg);
 	ms_filter_lock(f);
 	data = (FilterData *)f->data;
-	if (!arg || (arg && !(*(QQuickFramebufferObject::Renderer **)arg))) {
+	if (video_mode == (unsigned long)MS_FILTER_VIDEO_NONE || video_mode == (unsigned long)MS_FILTER_VIDEO_AUTO ||
+	    (arg && !(*(QQuickFramebufferObject::Renderer **)arg))) {
 		qInfo() << "[MSQOGL] reset renderer for " << data;
 		removeLink(data, QtLink);
 	} else {

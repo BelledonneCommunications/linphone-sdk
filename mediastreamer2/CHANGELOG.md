@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Screen sharing input filters.
 - Management of client-to-mixer RTP extension in AudioStream, in receiving mode needed for SFU based conferencing.
 
+### Changed
+- Swap values between MS_FILTER_VIDEO_NONE and MS_FILTER_VIDEO_AUTO to match with NULL value.
+
 ### Fixed
 - Buffer overflow risk in AV1 OBU parser
 - iOS AudioUnit crash

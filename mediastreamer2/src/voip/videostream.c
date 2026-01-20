@@ -868,9 +868,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
 
 	/* transmit its preview window id if any to source filter*/
-	if (stream->preview_window_id != 0) {
-		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
-	}
+	video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 
 	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
 
@@ -1610,10 +1608,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		}
 		ms_connection_helper_link(&ch, stream->ms.rtpsend, 0, -1);
 		if (stream->output2) {
-			if (stream->preview_window_id != 0) {
-				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,
-				                      &stream->preview_window_id);
-			}
+			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &stream->preview_window_id);
 			if (ms_filter_implements_interface(stream->output2, MSFilterVideoDisplayInterface)) {
 				assign_value_to_mirroring_flag_to_preview(stream);
 			}
@@ -1786,10 +1781,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 
 				if (ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE))
 					ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &stream->corner);
-				if (stream->window_id != 0) {
-					autofit = 0;
-					ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &stream->window_id);
-				}
+				autofit = 0;
+				ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &stream->window_id);
 				if (ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_ENABLE_AUTOFIT))
 					ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_ENABLE_AUTOFIT, &autofit);
 				if (stream->display_filter_auto_rotate_enabled &&
@@ -2291,7 +2284,8 @@ void *video_stream_create_native_window_id(VideoStream *stream, void *context) {
 	if (stream->output) {
 		if (ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, &id) == 0) return id;
 	}
-	return NULL;// We call a creation function. We need to create one, not getting from something old that could be deleted.
+	return NULL; // We call a creation function. We need to create one, not getting from something old that could be
+	             // deleted.
 }
 
 void video_stream_set_native_window_id(VideoStream *stream, void *id) {
@@ -2338,7 +2332,8 @@ void *video_stream_create_native_preview_window_id(VideoStream *stream, void *co
 		    ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, &id) == 0)
 			return id;
 	}
-	return NULL;// We call a creation function. We need to create one, not getting from something old that could be deleted
+	return NULL; // We call a creation function. We need to create one, not getting from something old that could be
+	             // deleted
 }
 
 void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno) {

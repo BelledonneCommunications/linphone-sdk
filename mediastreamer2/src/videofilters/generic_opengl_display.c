@@ -187,7 +187,7 @@ static void ogl_init(MSFilter *f) {
 	data->update_mirroring = FALSE;
 	data->prev_inm = NULL;
 
-	data->video_mode = MS_FILTER_VIDEO_NONE;
+	data->video_mode = (unsigned long)MS_FILTER_VIDEO_NONE;
 	data->context_info.width = MS_VIDEO_SIZE_CIF_W;
 	data->context_info.height = MS_VIDEO_SIZE_CIF_H;
 	data->context_info.window = NULL;
@@ -214,7 +214,7 @@ static void ogl_init(MSFilter *f) {
 
 static void ogl_uninit_data(FilterData *data) {
 	ms_mutex_lock(&gLock);
-	if (data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window) {
+	if (data->video_mode == (unsigned long)MS_FILTER_VIDEO_AUTO && data->context_info.window) {
 		ogl_destroy_window((EGLNativeWindowType *)&data->context_info.window, &data->window_id);
 	}
 
@@ -257,7 +257,7 @@ static void ogl_preprocess(MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
 	ms_filter_lock(f);
 	if (data->show_video) {
-		if (data->video_mode == MS_FILTER_VIDEO_AUTO && !data->context_info.window) {
+		if (data->video_mode == (unsigned long)MS_FILTER_VIDEO_AUTO && !data->context_info.window) {
 			ms_mutex_lock(&gLock);
 			ogl_create_window((EGLNativeWindowType *)&data->context_info.window, &data->window_id);
 			ms_mutex_unlock(&gLock);
@@ -340,9 +340,9 @@ static bool_t msogl_set_native_window_id(MSFilter *f) {
 
 	context_info = *((MSOglContextInfo **)data->requested_window_id);
 	if (video_mode != (unsigned long)MS_FILTER_VIDEO_NONE) {
-		ms_message("[MSOGL]:%p Set native window id: %p ID=[%lu/%lu] on %p", f, (void *)context_info, video_mode,
-		           data->video_mode, data->display);
-		if (video_mode == MS_FILTER_VIDEO_AUTO) { // Create a new Window
+		ms_message("[MSOGL]:%p Set native window id: %p NativeID=[%lu => %lu] on %p", f, (void *)context_info,
+		           data->video_mode, video_mode, data->display);
+		if (video_mode == (unsigned long)MS_FILTER_VIDEO_AUTO) { // Create a new Window
 			if (
 #ifdef MS2_WINDOWS_UWP
 			    !data->process_stopped &&
@@ -371,10 +371,10 @@ static bool_t msogl_set_native_window_id(MSFilter *f) {
 			data->video_mode = video_mode;
 		}
 	} else if (data->video_mode != (unsigned long)MS_FILTER_VIDEO_NONE) {
-		ms_message("[MSOGL]:%p Reset native window id: ID=[%lu/%lu] on %p", f, video_mode, data->video_mode,
+		ms_message("[MSOGL]:%p Unset native window id: NativeID=[%lu => %lu] on %p", f, data->video_mode, video_mode,
 		           data->display);
 		data->update_context = UPDATE_CONTEXT_DISPLAY_UNINIT;
-		if (data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window)
+		if (data->video_mode == (unsigned long)MS_FILTER_VIDEO_AUTO && data->context_info.window)
 			ogl_destroy_window((EGLNativeWindowType *)&data->context_info.window, &data->window_id);
 		memset(&data->context_info, 0, sizeof data->context_info);
 		data->video_mode = video_mode;
