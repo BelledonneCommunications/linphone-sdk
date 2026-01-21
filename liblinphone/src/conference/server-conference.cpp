@@ -3077,7 +3077,7 @@ int ServerConference::enter() {
 		const auto &meAddress = mMe->getAddress();
 		lInfo() << *meAddress << " is rejoining " << *this;
 		setOrganizer(meAddress);
-
+		L_GET_PRIVATE(getCore())->setCurrentLocalConference(getSharedFromThis());
 		addLocalEndpoint();
 	}
 	return 0;
@@ -3096,6 +3096,7 @@ void ServerConference::leave(BCTBX_UNUSED(const LinphoneReason reason)) {
 	if (isIn() && supportsMedia()) {
 		lInfo() << *getMe()->getAddress() << " is leaving " << *this;
 		removeLocalEndpoint();
+		L_GET_PRIVATE(getCore())->setCurrentLocalConference(nullptr);
 	}
 }
 

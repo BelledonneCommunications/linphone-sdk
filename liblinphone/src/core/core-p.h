@@ -204,6 +204,8 @@ public:
 	 */
 	void doConfigurationMigration();
 
+	void setCurrentLocalConference(const std::shared_ptr<Conference> &conference);
+
 	static const Utils::Version conferenceProtocolVersion;
 	static const Utils::Version groupChatProtocolVersion;
 	static const Utils::Version ephemeralProtocolVersion;
@@ -222,6 +224,7 @@ private:
 
 	std::list<std::shared_ptr<Call>> calls;
 	std::shared_ptr<Call> currentCall;
+	std::weak_ptr<Conference> currentLocalConference; /* set to the active client-mixed conference*/
 
 	typedef std::
 	    unordered_map<ConferenceId, std::shared_ptr<AbstractChatRoom>, ConferenceId::WeakHash, ConferenceId::WeakEqual>

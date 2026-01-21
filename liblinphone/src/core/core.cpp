@@ -827,6 +827,10 @@ void CorePrivate::reorderVideoCodecList() {
 	}
 }
 
+void CorePrivate::setCurrentLocalConference(const std::shared_ptr<Conference> &conference) {
+	currentLocalConference = conference;
+}
+
 // =============================================================================
 
 Core::Core() : Object(*new CorePrivate) {
@@ -2512,7 +2516,7 @@ std::shared_ptr<Conference> Core::searchConference(const std::shared_ptr<Confere
 	return conference;
 }
 
-std::shared_ptr<Conference> Core::searchConference(const std::string identifier) const {
+std::shared_ptr<Conference> Core::searchConference(const std::string &identifier) const {
 	auto [localAddress, peerAddress] = ConferenceId::parseIdentifier(identifier);
 	if (!localAddress || !localAddress->isValid() || !peerAddress || !peerAddress->isValid()) {
 		return nullptr;
@@ -2536,6 +2540,12 @@ shared_ptr<Conference> Core::searchConference(const std::shared_ptr<const Addres
 		conference = it->second;
 	}
 
+	return conference;
+}
+
+std::shared_ptr<Conference> Core::getCurrentLocalConference() const {
+	L_D();
+	auto conference = d->currentLocalConference.lock();
 	return conference;
 }
 

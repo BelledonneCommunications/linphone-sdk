@@ -5215,7 +5215,8 @@ LinphoneCall *linphone_core_get_call_by_callid(const LinphoneCore *lc, const cha
 }
 
 bool_t linphone_core_in_call(const LinphoneCore *lc) {
-	return linphone_core_get_current_call((LinphoneCore *)lc) != NULL || linphone_core_is_in_conference(lc);
+	return linphone_core_get_current_call((LinphoneCore *)lc) != NULL ||
+	       L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getCurrentLocalConference();
 }
 
 LinphoneCall *linphone_core_get_current_call(const LinphoneCore *lc) {
@@ -5235,10 +5236,11 @@ LinphoneStatus linphone_core_pause_all_calls(LinphoneCore *lc) {
 
 int linphone_core_preempt_sound_resources(LinphoneCore *lc) {
 	LinphoneCall *current_call;
+	shared_ptr<Conference> current_conference = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getCurrentLocalConference();
 	int err = 0;
 
-	if (linphone_core_is_in_conference(lc)) {
-		linphone_core_leave_conference(lc);
+	if (current_conference) {
+		current_conference->leave();
 		return 0;
 	}
 
@@ -6176,6 +6178,7 @@ bool_t linphone_core_noise_suppression_enabled(const LinphoneCore *lc) {
 void linphone_core_enable_mic(LinphoneCore *lc, bool_t enable) {
 	CoreLogContextualizer logContextualizer(lc);
 	LinphoneCall *call;
+	shared_ptr<Conference> conference;
 	const bctbx_list_t *list;
 	const bctbx_list_t *elem;
 
@@ -6183,8 +6186,8 @@ void linphone_core_enable_mic(LinphoneCore *lc, bool_t enable) {
 	           lc->sound_conf.mic_enabled ? "enabled" : "disabled");
 	lc->sound_conf.mic_enabled = enable; /* this is a global switch read everywhere the microphone is used. */
 	/* apply to conference and calls */
-	if (linphone_core_is_in_conference(lc)) {
-		linphone_conference_set_microphone_muted(lc->conf_ctx, linphone_conference_get_microphone_muted(lc->conf_ctx));
+	if ((conference = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getCurrentLocalConference()) != nullptr) {
+		conference->setMicrophoneMuted(conference->getMicrophoneMuted());
 	}
 	list = linphone_core_get_calls(lc);
 	for (elem = list; elem != NULL; elem = elem->next) {
