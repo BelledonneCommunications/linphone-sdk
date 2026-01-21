@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (c) 2010-2022 Belledonne Communications SARL.
+# Copyright (c) 2010-2026 Belledonne Communications SARL.
 #
 ############################################################################
 #
@@ -38,29 +38,29 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/linphone++/linpho
 	liblinphone-doc
 )
 
-if(WIN32)
-	set(SED_BINARY_MODE "-b")
-else()
-	set(SED_BINARY_MODE "")
-endif()
+include("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/cmake_doxygen_sed_fixes.txt")
 
-if(APPLE)
-	set(SED_IN_PLACE_EDIT_ARG "-i ''")
-else()
-	set(SED_IN_PLACE_EDIT_ARG "-i")
-endif()
+#Replacing linphone_core_set_tag_100rel_support_level
+set(SED_FUNCTION_CASE_1 "${SED_QUOTES}s/linphone_core_set_tag_100rel_support_level/linphone::Core::setTag100RelSupportLevel/g${SED_QUOTES}" )
 
-configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw")
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox"
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\(\\/\\\*\\\*\)/namespace linphone \{\\n\\n\\1/' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\(\\\*\\/\)/\\1\\n\}/' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone:://g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\(::\)\(\[\[:alnum:\]\]\)/\\1\\L\\2/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw
+# Replacing linphone_nat_policy_***
+#-r ':a;s/linphone_nat_policy_([a-z0-9_\(\)]*)/linphone::NatPolicy::\l\1\n/g;s/(linphone::NatPolicy::[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+set(SED_CLASS_CASE_1 "${SED_QUOTES}:a\;s/linphone_nat_policy_([a-z0-9_\\(\\)]*)/linphone::NatPolicy::\\l\\1\\n/g\;s/(linphone::NatPolicy::[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+#Replacing linphone_core_***
+#-r ':a;s/linphone_core_([a-z0-9_\(\)]*)/linphone::Core::\l\1\n/g;s/(linphone::Core::[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+set(SED_CLASS_CASE_2 "${SED_QUOTES}:a\;s/linphone_core_([a-z0-9_\\(\\)]*)/linphone::Core::\\l\\1\\n/g\;s/(linphone::Core::[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+
+set(PROVISIONING_DOC_OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox)
+configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${PROVISIONING_DOC_OUTPUT_FILE}.raw")
+
+add_custom_command(OUTPUT "${PROVISIONING_DOC_OUTPUT_FILE}"
+	COMMAND ${CMAKE_COMMAND} -E remove -f ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/linphone::\\1/g' ${PROVISIONING_DOC_OUTPUT_FILE}.raw > ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_GENERIC_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_FUNCTION_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_2} ${PROVISIONING_DOC_OUTPUT_FILE}
+	DEPENDS ${PROVISIONING_DOC_OUTPUT_FILE}.raw
 	liblinphone-doc
 )
 
@@ -139,23 +139,30 @@ if(ENABLE_DOC OR ENABLE_CXX_WRAPPER)
 	find_package(Doxygen REQUIRED)
 	if(DOXYGEN_FOUND)
 		set(top_srcdir "${PROJECT_SOURCE_DIR}")
-
 		# Remove everything after the last point in LINPHONE_VERSION (4.5.0 --> 4.5) to create STRIPPED_LINPHONE_VERSION
 		string(REGEX REPLACE "\\.[^.]*$" "" STRIPPED_LINPHONE_VERSION ${LINPHONE_VERSION})
 		# Replace @LINPHONESDK_STATE@ and @STRIPPED_LINPHONE_VERSION@ in site main page
+		set(DOXYFILE_INPUT "")
+		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/include/linphone++\"")
+		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox\"")
+		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${PROVISIONING_DOC_OUTPUT_FILE}\"")
+		set(DOXYFILE_OPTIMIZE_OUTPUT_FOR_C NO)
+		set(DOXYFILE_FILE_PATTERNS "*.hh *.dox" )
+		set(DOXYFILE_EXAMPLE_PATH "")
+		set(DOXYFILE_HTML_OUTPUT cpp)
+		set(DOXYFILE_GENERATE_XML NO)
+		if(DOXYGEN_VERSION VERSION_LESS "1.9.0")
+			set(DOXYFILE_ENABLED_SECTIONS "DOXYFILE_USE_COPYBRIEF")
+		else()
+			set(DOXYFILE_ENABLED_SECTIONS "DOXYFILE_USE_COPYBRIEF DOXYFILE_USE_DETAILS")
+		endif()
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doxygen.dox.in ${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox)
-
-		set(DOXYGEN_INPUT "")
-		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/include/linphone++\"")
-		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox\"")
-		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox\"")
-
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+		configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/custom_design.css.in" custom_design.css @ONLY)
+		configure_file(${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
 		set(DOC_INPUT_FILES ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 			${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox
-			${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+			${PROVISIONING_DOC_OUTPUT_FILE}
 		)
-
 		set(CPP_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/cpp")
 		set(LINPHONE_DOXYGEN_CPP_HTML_DIR ${CPP_HTML_DIR} PARENT_SCOPE)
 		add_custom_command(OUTPUT "${CPP_HTML_DIR}/index.html"
@@ -165,7 +172,7 @@ if(ENABLE_DOC OR ENABLE_CXX_WRAPPER)
 			DEPENDS ${DOC_INPUT_FILES}
 			liblinphone-cxx-wrapper
 		)
-		add_custom_target(linphone-cpp-html-doc ALL DEPENDS "${CPP_HTML_DIR}/index.html")
+		add_custom_target(liblinphone-cpp-html-doc ALL DEPENDS "${CPP_HTML_DIR}/index.html")
 		if(ENABLE_DOC)
 			install(DIRECTORY "${CPP_HTML_DIR}"
 				DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/liblinphone-${LINPHONE_VERSION}")

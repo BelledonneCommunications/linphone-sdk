@@ -48,7 +48,7 @@ else()
 	set(SED_IN_PLACE_EDIT_ARG "-i")
 endif()
 
-configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md.raw")
+configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/simple_provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md.raw")
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md"
 	COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md
 	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/\`\`\\1\`\`/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.md

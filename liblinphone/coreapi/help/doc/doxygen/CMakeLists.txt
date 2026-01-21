@@ -29,43 +29,44 @@ if(ENABLE_DOC OR ENABLE_CXX_WRAPPER OR ENABLE_CSHARP_WRAPPER OR ENABLE_JAVA_WRAP
 		# Remove everything after the last point in LINPHONE_VERSION (4.5.0 --> 4.5) to create STRIPPED_LINPHONE_VERSION
 		string(REGEX REPLACE "\\.[^.]*$" "" STRIPPED_LINPHONE_VERSION ${LINPHONE_VERSION})
 		# Replace @LINPHONESDK_STATE@ and @STRIPPED_LINPHONE_VERSION@ in site main page
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doxygen.dox.in ${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox)
-		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/provisioning_configuration_key.dox.in ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw)
 
-		if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-			set(SED_BINARY_MODE "-b")
-		else()
-			set(SED_BINARY_MODE "")
-		endif()
+		include("cmake_doxygen_sed_fixes.txt")
+		set(PROVISIONING_DOC_OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/provisioning_configuration_key.dox.in ${PROVISIONING_DOC_OUTPUT_FILE}.raw)
 
-
-		if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-			set(SED_IN_PLACE_EDIT_ARG "-i ''")
-		else()
-			set(SED_IN_PLACE_EDIT_ARG "-i")
-		endif()
-
-		add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox"
+		add_custom_command(OUTPUT ${PROVISIONING_DOC_OUTPUT_FILE}
 			COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-			COMMAND sed -r ${SED_BINARY_MODE} 's/:://g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#/\_/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#/\_/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
-			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw
+			COMMAND sed -r ${SED_BINARY_MODE} 's/:://g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox.raw > ${PROVISIONING_DOC_OUTPUT_FILE}
+			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_GENERIC_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
+			DEPENDS ${PROVISIONING_DOC_OUTPUT_FILE}.raw
 		)
 
-		set(DOXYGEN_INPUT "")
+		set(DOXYFILE_INPUT "")
 		foreach (HEADER_FILE ${LINPHONE_HEADER_FILES})
-			string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${HEADER_FILE}\"")
+			string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${HEADER_FILE}\"")
 		endforeach ()
-		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_SOURCE_DIR}\"")
-		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${PROJECT_SOURCE_DIR}/coreapi/help/examples/C\"")
-		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox\"")
-		string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox\"")
+		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${CMAKE_CURRENT_SOURCE_DIR}\"")
+		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${PROJECT_SOURCE_DIR}/coreapi/help/examples/C\"")
+		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox\"")
+		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${PROVISIONING_DOC_OUTPUT_FILE}\"")
+		set(DOXYFILE_OPTIMIZE_OUTPUT_FOR_C YES)
+		set(DOXYFILE_FILE_PATTERNS "*.c *.h *.dox" )
+		set(DOXYFILE_EXAMPLE_PATH "${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/coreapi/help/examples/C")
+		set(DOXYFILE_HTML_OUTPUT c)
+		set(DOXYFILE_GENERATE_XML YES)
+		if(DOXYGEN_VERSION VERSION_LESS "1.9.0")
+			set(DOXYFILE_ENABLED_SECTIONS "DOXYFILE_USE_COPYBRIEF")
+		else()
+			set(DOXYFILE_ENABLED_SECTIONS "DOXYFILE_USE_COPYBRIEF DOXYFILE_USE_DETAILS")
+		endif()
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doxygen.dox.in ${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/custom_design.css.in custom_design.css @ONLY)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+
 		set(DOC_INPUT_FILES ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 			${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox
 			${LINPHONE_HEADER_FILES}
-			${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox
+			${PROVISIONING_DOC_OUTPUT_FILE}
 		)
 		set(XML_DIR "${CMAKE_CURRENT_BINARY_DIR}/xml")
 		set(LINPHONE_DOXYGEN_XML_DIR ${XML_DIR} PARENT_SCOPE)

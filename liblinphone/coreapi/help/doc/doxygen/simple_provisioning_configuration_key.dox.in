@@ -1,0 +1,11 @@
+/**
+ * \defgroup group_provisioning_configuration_key Provisioning configuration keys
+
+ * The <a href="https://download.linphone.org/@LINPHONESDK_STATE@/docs/liblinphone/@STRIPPED_LINPHONE_VERSION@/c/group__group__provisioning__configuration__key.html">C documentation</a> lists the supported sections and keys of the ini-style linphonerc configuration file.<br/>
+ *
+ * This configuration can be served through https in order to remotely configure a linphone-sdk based application, see
+ * linphone::_##core::_#set_#provisioning_#uri().
+ * The <a href="https://gitlab.linphone.org/BC/public/flexisip-account-manager">Flexisip Account Manager</a> has built-in
+ * support for remote provisioning Linphone or linphone-sdk based client applications.
+ *
+ */

@@ -3125,8 +3125,6 @@ LINPHONE_PUBLIC void linphone_transports_set_dtls_port(LinphoneTransports *trans
 LINPHONE_PUBLIC bool_t linphone_core_sip_transport_supported(const LinphoneCore *core,
                                                              LinphoneTransportType transport_type);
 
-LINPHONE_PUBLIC bool_t linphone_core_content_encoding_supported(const LinphoneCore *core, const char *content_encoding);
-
 /**
  * Sets the incoming call timeout in seconds.
  * If an incoming call isn't answered for this timeout period, it is

@@ -1,0 +1,13 @@
+/* Resize the search input field. The standard bar is too tiny*/
+#MSearchBox {
+    width: 360px;
+    height: 23px
+}
+/* there are 3 elements in Box:
+-  The left and right have a size of 10px+20px (margin+icon)
+=> field.width = box.width - 2*30px
+*/
+#MSearchField {
+    width: 300px;
+    height: 23px
+}

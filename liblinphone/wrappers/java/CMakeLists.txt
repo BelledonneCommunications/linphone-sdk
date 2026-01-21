@@ -50,7 +50,7 @@ else()
 	set(SED_IN_PLACE_EDIT_ARG "-i")
 endif()
 
-configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw")
+configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/simple_provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw")
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache"
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\"${SED_ESCAPE_CHARACTER}\>Linphone\.\\1${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache

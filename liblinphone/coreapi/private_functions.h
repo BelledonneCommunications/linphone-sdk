@@ -235,6 +235,7 @@ void linphone_friend_list_subscription_state_changed(LinphoneCore *lc,
                                                      LinphoneSubscriptionState state);
 void linphone_friend_list_invalidate_friends_maps(LinphoneFriendList *list);
 LinphoneEvent *linphone_friend_list_get_event(const LinphoneFriendList *list);
+LINPHONE_PUBLIC bool_t linphone_core_content_encoding_supported(const LinphoneCore *core, const char *content_encoding);
 
 /**
  * Removes all bodyless friend lists.

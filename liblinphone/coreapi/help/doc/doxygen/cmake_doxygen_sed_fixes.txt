@@ -1,0 +1,57 @@
+############################################################################
+# CMakeLists.txt
+# Copyright (c) 2010-2026 Belledonne Communications SARL.
+#
+############################################################################
+#
+# This file is part of Liblinphone 
+# (see https://gitlab.linphone.org/BC/public/liblinphone).
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+############################################################################
+
+#Export Sed parameters that are generic for all languages:
+
+# -SED_BINARY_MODE: On Windows, the option must be specified.
+# -SED_QUOTES: On Windows, sed will escape some characters like parenthesis. use double quote to avoid that.
+#		It must be used for encapsulate each sed regex.
+# -SED_IN_PLACE_EDIT_ARG: Correct in place edit option from OS.
+# -SED_GENERIC_CASE_1: fix for older version of Doxygen to apply with sed.
+#Ex: COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_GENERIC_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
+
+if(WIN32)
+	set(SED_BINARY_MODE "-b")
+	set(SED_QUOTES "\"")
+else()
+	set(SED_BINARY_MODE "")
+	set(SED_QUOTES "'")
+endif()
+
+if(APPLE)
+	set(SED_IN_PLACE_EDIT_ARG "-i ''")
+else()
+	set(SED_IN_PLACE_EDIT_ARG "-i")
+endif()
+
+#Limitations: Class/function must be ended by < (for the html </td>) or space. We can then process function(), function and copybrief.
+#Copypbrief must be between <td> and </td> because of buggy doxygen in old version in order to allow hiding them more easily with regex.
+#DOXYGEN < 1.13: \copybrief is not working inside cells. We need to write it on a specific line
+#DOXYGEN < 1.9: \copybrief and <details> tags are not working correctly in all languages.
+
+# Add jump line before and after doxygen functions.
+# Add a 'if DOXYFILE_USE_COPYBRIEF' and 'copybrief' section.
+#-r 's/<td>\\copybrief ([^<]*)([ |</td>])/\n\\if DOXYFILE_USE_COPYBRIEF\n<td>\n\\copybrief \1\n\\endif\n\2/g'
+set(SED_GENERIC_CASE_1 "${SED_QUOTES}s/<td>\\\\copybrief ([^<]*)([</td>])/\\n\\\\if DOXYFILE_USE_COPYBRIEF\\n<td>\\n\\\\copybrief \\1\\n\\\\endif\\n\\2/g${SED_QUOTES}")
+
+
