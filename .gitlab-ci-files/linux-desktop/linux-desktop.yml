@@ -548,7 +548,7 @@
   allow_failure: true
   variables:
     TESTER_BIN: "liblinphone-tester"
-    XVFB: "Xvfb :99"
+    XVFB: "Xvfb :99 -maxclients 512"
     PULSEAUDIO: ""
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"

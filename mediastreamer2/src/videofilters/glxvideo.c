@@ -145,7 +145,7 @@ static void glxvideo_prepare(MSFilter *f) {
 	XWindowAttributes wa;
 
 	if (s->display == NULL) return;
-	if (s->window_id == (unsigned long)-1) return;
+	if (s->window_id == (unsigned long)MS_FILTER_VIDEO_NONE) return;
 
 	/* Make sure X11 window is ready to use*/
 	XSync(s->display, False);
@@ -210,7 +210,7 @@ static void glxvideo_process(MSFilter *f) {
 
 	ms_filter_lock(f);
 
-	if (obj->window_id == 0 || obj->window_id == (Window)-1 || x11_error == TRUE) goto end;
+	if (obj->window_id == MS_FILTER_VIDEO_NONE || obj->window_id == (Window)MS_FILTER_VIDEO_AUTO || x11_error == TRUE) goto end;
 	XGetWindowAttributes(obj->display, obj->window_id, &wa);
 	if (wa.width != obj->wsize.width || wa.height != obj->wsize.height) {
 		ms_warning("Resized to %ix%i", wa.width, wa.height);
