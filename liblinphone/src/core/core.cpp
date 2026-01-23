@@ -503,7 +503,7 @@ void CorePrivate::uninit() {
 		}
 	}
 
-	mChatRoomsById.clear();
+	mBasicChatRoomsById.clear();
 
 	for (const auto &[id, conference] : mConferenceById) {
 		// Terminate audio video conferences just before core is stopped
@@ -2319,7 +2319,7 @@ void Core::invalidateAccountInConferencesAndChatRooms(const std::shared_ptr<Acco
 		}
 	}
 
-	for (const auto &[id, chatRoom] : d->mChatRoomsById) {
+	for (const auto &[id, chatRoom] : d->mBasicChatRoomsById) {
 		if (account == chatRoom->getAccount()) {
 			chatRoom->invalidateAccount();
 		}
