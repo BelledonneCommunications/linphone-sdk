@@ -99,3 +99,7 @@ leak:create_encrypted_conference_with_chat_and_cores_restart
 
 # Local Conference Tester (Scheduled Conference Basic)
 leak:conference_with_server_no_rtp_timeout
+
+# Local Conference Tester (Conference Edition)
+leak:conference_edition_with_organizer_codec_mismatch
+leak:conference_edition_with_simultaneous_participant_add_remove
