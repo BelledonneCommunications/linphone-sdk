@@ -3428,9 +3428,11 @@ static void linphone_core_init(LinphoneCore *lc,
 		}
 		lc->system_context = (jobject)env->NewGlobalRef((jobject)system_context);
 	}
-	if (lc->system_context) {
-		lc->platform_helper = LinphonePrivate::createAndroidPlatformHelpers(lc->cppPtr, lc->system_context);
-	} else ms_fatal("You must provide the Android's app context when creating the core!");
+	if (lc->platform_helper == NULL) {
+		if (lc->system_context) {
+			lc->platform_helper = LinphonePrivate::createAndroidPlatformHelpers(lc->cppPtr, lc->system_context);
+		} else ms_fatal("You must provide the Android's app context when creating the core!");
+	}
 #elif TARGET_OS_IPHONE
 	if (system_context) {
 		lc->system_context = system_context;
@@ -5302,7 +5304,8 @@ LinphoneCall *linphone_core_get_call_by_remote_address2(const LinphoneCore *lc, 
 
 int linphone_core_send_publish(LinphoneCore *lc, LinphonePresenceModel *presence, bool_t send_publish) {
 	CoreLogContextualizer logContextualizer(lc);
-	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setPresenceModelAndSendPublish(PresenceModel::toCpp(presence)->getSharedFromThis(), !!send_publish);
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setPresenceModelAndSendPublish(
+	    PresenceModel::toCpp(presence)->getSharedFromThis(), !!send_publish);
 }
 
 void linphone_core_set_inc_timeout(LinphoneCore *lc, int seconds) {
@@ -7925,9 +7928,6 @@ void _linphone_core_stop_async_end(LinphoneCore *lc) {
 		 process at the same time until this one is finally stopped */
 		LinphonePrivate::uninitSharedCore(lc);
 	}
-#else
-	if (lc->platform_helper) delete getPlatformHelpers(lc);
-	lc->platform_helper = NULL;
 #endif
 
 	linphone_core_set_state(lc, LinphoneGlobalOff, "Off");

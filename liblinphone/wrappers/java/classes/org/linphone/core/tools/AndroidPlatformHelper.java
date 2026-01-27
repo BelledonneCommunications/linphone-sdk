@@ -345,8 +345,9 @@ public class AndroidPlatformHelper {
         Log.i("[Platform Helper] Initialization done");
     }
 
-    public void onLinphoneCoreStart(boolean monitoringEnabled) {
+    public void onLinphoneCoreStart(Core core, boolean monitoringEnabled) {
         Log.i("[Platform Helper] onLinphoneCoreStart, network monitoring is " + monitoringEnabled);
+        mCore = core;
         mMonitoringEnabled = monitoringEnabled;
 
         if (!isAndroidXMediaAvailable() && mCore.isNativeRingingEnabled()) {
@@ -469,16 +470,15 @@ public class AndroidPlatformHelper {
     }
 
     public void stop() {
-        if (mCore != null) {
-            Runnable runnable = new Runnable() {
-                @Override
-                public void run() {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                if (mCore != null) {
                     Log.i("[Platform Helper] Stopping Core");
                     stopCore(mCore.getNativePointer());
                 }
-            };
-            dispatchOnCoreThread(runnable);
-        }
+            }
+        };
     }
 
     public void onLinphoneCoreStop() {
@@ -488,6 +488,25 @@ public class AndroidPlatformHelper {
         // The view listener will be called and the call to the native method will result in a crash in the Core accessor in the native PlatformHelper
         setVideoPreviewView(null);
         setVideoRenderingView(null);
+
+        if (mServiceRunning) {
+            Log.i("[Platform Helper] Stopping service ", mServiceClass.getName());
+            mContext.stopService(new Intent().setClass(mContext, mServiceClass));
+        }
+
+        stopAutoIterate();
+        stopTimerToResetAutoIterateSchedule();
+        stopNetworkMonitoring();
+
+        if (mCore != null) {
+            mCore.removeListener(mListener);
+        }
+        mCore = null; // To allow the garbage colletor to free the Core
+        Log.i("[Platform Helper] Core released");
+    }
+
+    public void destroy() {
+        Log.i("[Platform Helper] Destroying");
 
         // Cleaning manually the wakelocks in case of unreleased ones (linphone_core_destroy for instance)
         while (mWakeLock.isHeld()) {
@@ -506,24 +525,6 @@ public class AndroidPlatformHelper {
 
         mNativePtr = 0;
         mHandler.removeCallbacksAndMessages(null);
-        stopNetworkMonitoring();
-
-        if (mServiceRunning) {
-            Log.i("[Platform Helper] Stopping service ", mServiceClass.getName());
-            mContext.stopService(new Intent().setClass(mContext, mServiceClass));
-        }
-
-        mCore.removeListener(mListener);
-
-        stopAutoIterate();
-        stopTimerToResetAutoIterateSchedule();
-
-        mCore = null; // To allow the garbage colletor to free the Core
-        Log.i("[Platform Helper] Core released");
-    }
-
-    public void destroy() {
-        Log.i("[Platform Helper] Destroying");
 
         if (mActivityCallbacks != null) {
             ((Application) mContext).unregisterActivityLifecycleCallbacks(mActivityCallbacks);
@@ -1153,18 +1154,20 @@ public class AndroidPlatformHelper {
         Runnable updateNetworkReachabilityPeriodicallyRunnable = new Runnable() {
             @Override
             public void run() {
-                if (mCore.isInBackground()) {
-                    Log.i("[Platform Helper] App is in background, checking if network is still available");
-                    boolean connected = mNetworkManager.isCurrentlyConnected(mContext);
-                    if (!connected) {
-                        Log.w("[Platform Helper] No connectivity: setting network unreachable and aborting periodic network availability check");
-                        setNetworkReachable(mNativePtr, false);
+                if (mCore != null) {
+                    if (mCore.isInBackground()) {
+                        Log.i("[Platform Helper] App is in background, checking if network is still available");
+                        boolean connected = mNetworkManager.isCurrentlyConnected(mContext);
+                        if (!connected) {
+                            Log.w("[Platform Helper] No connectivity: setting network unreachable and aborting periodic network availability check");
+                            setNetworkReachable(mNativePtr, false);
+                        } else {
+                            Log.i("[Platform Helper] Network seems to still be available, checking again later");
+                            updateNetworkReachabilityPeriodically(delay);
+                        }
                     } else {
-                        Log.i("[Platform Helper] Network seems to still be available, checking again later");
-                        updateNetworkReachabilityPeriodically(delay);
+                        Log.i("[Platform Helper] App is no longer in backgroud, aborting periodic network availability check");
                     }
-                } else {
-                    Log.i("[Platform Helper] App is no longer in backgroud, aborting periodic network availability check");
                 }
             }
         };
@@ -1400,6 +1403,7 @@ public class AndroidPlatformHelper {
 
     public void processPushNotification(String callId, String payload, boolean isCoreStarting) {
         Log.i("[Platform Helper] Acquiring platform helper push notification wakelock");
+        if (mCore == null) return;
         WakeLock wakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Push Notification Processing");
         wakeLock.acquire(20000L);
         
@@ -1522,7 +1526,9 @@ public class AndroidPlatformHelper {
             Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
-                    healNetworkConnections(mCore.getNativePointer());
+                    if (mCore != null) {
+                        healNetworkConnections(mCore.getNativePointer());
+                    }
                 }
             };
             dispatchOnCoreThread(runnable);
