@@ -13,10 +13,10 @@
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:20260126_update_gcc_15
 
 .debian11_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:20260122_pkg_config_dependency
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:20260202_libudev
 
 .debian11_test_libl_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:20260122_pkg_config_dependency
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:20260202_libudev
 
 .debian12_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:20260106_add_deps_for_hidapi
