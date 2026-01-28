@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20230706_add_deps_for_av1
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20260126_update_gcc_15
 ###############################################################################
 
 FROM archlinux:latest

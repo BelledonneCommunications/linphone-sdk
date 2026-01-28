@@ -768,10 +768,10 @@ DNS_NOTUSED static size_t dns_strnlcpy(char *dst, size_t lim, const char *src, s
 
 static size_t dns_af_len(int af) {
 	static const size_t table[AF_MAX] = {
-		[AF_INET6] = sizeof(struct sockaddr_in6),
-		[AF_INET] = sizeof(struct sockaddr_in),
+	    [AF_INET6] = sizeof(struct sockaddr_in6),
+	    [AF_INET] = sizeof(struct sockaddr_in),
 #if DNS_HAVE_SOCKADDR_UN
-		[AF_UNIX] = sizeof(struct sockaddr_un),
+	    [AF_UNIX] = sizeof(struct sockaddr_un),
 #endif
 	};
 
@@ -1201,7 +1201,11 @@ error:
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #define DNS_B_INIT(src, n)                                                                                             \
-	{ (unsigned char *)(src), (unsigned char *)(src), (unsigned char *)(src) + (n), }
+	{                                                                                                                  \
+	    (unsigned char *)(src),                                                                                        \
+	    (unsigned char *)(src),                                                                                        \
+	    (unsigned char *)(src) + (n),                                                                                  \
+	}
 
 #define DNS_B_FROM(src, n) DNS_B_INIT((src), (n))
 #define DNS_B_INTO(src, n) DNS_B_INIT((src), (n))
@@ -2124,11 +2128,11 @@ size_t dns_d_comp(void *dst_, size_t lim, const void *src_, size_t len, struct d
 
 					b.p = b.x;
 				} /* while() */
-			}     /* for() */
+			} /* for() */
 
 			a.p = a.x;
 		} /* while() */
-	}     /* if () */
+	} /* if () */
 #endif
 
 	if (!dst.p) *error = DNS_EILLEGAL;
@@ -2164,7 +2168,7 @@ unsigned short dns_d_skip(unsigned short src, struct dns_packet *P) {
 
 				/* success ==> */ return src;
 		} /* switch() */
-	}     /* while() */
+	} /* while() */
 
 invalid:
 	return P->end;
@@ -2224,7 +2228,7 @@ size_t dns_d_expand(void *dst, size_t lim, unsigned short src, struct dns_packet
 
 				continue;
 		} /* switch() */
-	}     /* while() */
+	} /* while() */
 
 toolong:
 	*error = DNS_EILLEGAL;
@@ -3744,7 +3748,7 @@ int dns_any_cmp(const union dns_any *a, enum dns_type x, const union dns_any *b,
 
 size_t dns_any_print(void *_dst, size_t lim, union dns_any *any, enum dns_type type) {
 	const struct dns_rrtype *t;
-	struct dns_buf src, dst;
+	struct dns_buf src = {0}, dst = {0};
 
 	if ((t = dns_rrtype(type))) return t->print(_dst, lim, any);
 
@@ -4329,7 +4333,7 @@ int dns_resconf_pton(struct sockaddr_storage *ss, const char *src) {
 
 				break;
 		} /* switch() */
-	}     /* while() */
+	} /* while() */
 inet:
 
 	port = (!port) ? 53 : port;
@@ -4417,7 +4421,7 @@ int dns_resconf_loadfile(struct dns_resolv_conf *resconf, FILE *fp) {
 						default:
 							break;
 					} /* switch() */
-				}     /* for() */
+				} /* for() */
 
 				break;
 			case DNS_RESCONF_FAMILY:
@@ -4511,7 +4515,7 @@ int dns_resconf_loadfile(struct dns_resolv_conf *resconf, FILE *fp) {
 						default:
 							break;
 					} /* switch() */
-				}     /* for() */
+				} /* for() */
 
 				break;
 			case DNS_RESCONF_INTERFACE:
@@ -4781,7 +4785,7 @@ static _Bool dns_anyconf_match(const char *pat, int mc) {
 				if (mc == pc) return match;
 				break;
 		} /* switch() */
-	}     /* while() */
+	} /* while() */
 
 	return !match;
 } /* dns_anyconf_match() */
@@ -5964,7 +5968,7 @@ struct dns_socket {
 	struct dns_packet *answer;
 	size_t alen, apos;
 	int ip_differ; /*set when remote address and response from which it is received are different*/
-};                 /* struct dns_socket */
+}; /* struct dns_socket */
 
 /*
  * NOTE: Actual closure delayed so that kqueue(2) and epoll(2) callers have
@@ -6773,8 +6777,8 @@ retry:
 					goto error;
 				}
 			} /* foreach(rr) */
-		}     /* foreach(packet) */
-	}         /* foreach(section) */
+		} /* foreach(packet) */
+	} /* foreach(section) */
 
 	return P[2];
 error:
@@ -7568,7 +7572,7 @@ struct dns_addrinfo {
 }; /* struct dns_addrinfo */
 
 #define DNS_AI_AFMAX 32
-#define DNS_AI_AF2INDEX(af) (1UL << ((af)-1))
+#define DNS_AI_AF2INDEX(af) (1UL << ((af) - 1))
 
 static int dns_ai_nextaf(struct dns_addrinfo *ai) {
 	int qtype = 0, atype = 0;
@@ -9092,8 +9096,7 @@ static int ircode(int argc, char *argv[]) {
 	return 0;
 } /* ircode() */
 
-#define SIZE1(x)                                                                                                       \
-	{ DNS_PP_STRINGIFY(x), sizeof(x) }
+#define SIZE1(x) {DNS_PP_STRINGIFY(x), sizeof(x)}
 #define SIZE2(x, ...) SIZE1(x), SIZE1(__VA_ARGS__)
 #define SIZE3(x, ...) SIZE1(x), SIZE2(__VA_ARGS__)
 #define SIZE4(x, ...) SIZE1(x), SIZE3(__VA_ARGS__)
@@ -9282,7 +9285,7 @@ int main(int argc, char **argv) {
 
 				return EXIT_FAILURE;
 		} /* switch() */
-	}     /* while() */
+	} /* while() */
 
 	argc -= optind;
 	argv += optind;
