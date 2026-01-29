@@ -251,12 +251,22 @@ static void recovered_call_on_network_switch_in_early_state_1(void) {
 	recovered_call_on_network_switch_in_early_state(marie);
 	linphone_core_manager_destroy(marie);
 }
+
 static void recovered_call_on_network_switch_in_early_state_without_replaces_support(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	linphone_core_remove_supported_tag(marie->lc, "replaces");
 	recovered_call_on_network_switch_in_early_state(marie);
 	linphone_core_manager_destroy(marie);
 }
+
+static void recovered_call_on_network_switch_in_early_state_1_no_database(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_create("marie_rc");
+	linphone_core_enable_database(marie->lc, false);
+	linphone_core_manager_start(marie, TRUE);
+	recovered_call_on_network_switch_in_early_state(marie);
+	linphone_core_manager_destroy(marie);
+}
+
 static void recovered_call_on_network_switch_in_early_state_1_udp(void) {
 	LinphoneCoreManager *laure = linphone_core_manager_new("laure_rc_udp");
 	recovered_call_on_network_switch_in_early_state(laure);
@@ -1100,6 +1110,9 @@ static test_t call_recovery_tests[] = {
     TEST_NO_TAG("Call with network switch and no recovery possible", call_with_network_switch_no_recovery),
     TEST_ONE_TAG("Recovered call on network switch in early state 1",
                  recovered_call_on_network_switch_in_early_state_1,
+                 "CallRecovery"),
+    TEST_ONE_TAG("Recovered call on network switch in early state 1 with no database",
+                 recovered_call_on_network_switch_in_early_state_1_no_database,
                  "CallRecovery"),
     TEST_ONE_TAG("Recovered call on network switch in early state without replaces support",
                  recovered_call_on_network_switch_in_early_state_without_replaces_support,

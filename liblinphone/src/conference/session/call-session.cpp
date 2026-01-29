@@ -521,7 +521,7 @@ void CallSessionPrivate::updateToFromAssertedIdentity() {
 
 #ifdef HAVE_DB_STORAGE
 			auto &mainDb = q->getCore()->getPrivate()->mainDb;
-			if (mainDb != nullptr) mainDb->updateCallLog(log);
+			if (mainDb != nullptr && mainDb->isInitialized()) mainDb->updateCallLog(log);
 #endif // HAVE_DB_STORAGE
 		} else {
 			lWarning() << "Unsupported P-Asserted-Identity header";
@@ -547,7 +547,7 @@ void CallSessionPrivate::replaceOp(SalCallOp *newOp) {
 	log->setCallId(op->getCallId());
 #ifdef HAVE_DB_STORAGE
 	auto &mainDb = q->getCore()->getPrivate()->mainDb;
-	if (mainDb != nullptr) mainDb->updateCallLog(log);
+	if (mainDb != nullptr && mainDb->isInitialized()) mainDb->updateCallLog(log);
 #endif // HAVE_DB_STORAGE
 	switch (state) {
 		case CallSession::State::IncomingEarlyMedia:
