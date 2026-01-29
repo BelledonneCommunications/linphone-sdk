@@ -1,5 +1,5 @@
 /**
- * \defgroup provisioning_configuration_key Provisioning configuration keys
+ * \defgroup group_provisioning_configuration_key Provisioning configuration keys
 
  * This document lists the supported sections and keys of the ini-style linphonerc configuration file.<br/>
  * This configuration can be served through https in order to remotely configure a linphone-sdk based application, see

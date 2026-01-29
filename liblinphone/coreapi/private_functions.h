@@ -768,7 +768,7 @@ bctbx_list_t *linphone_remote_provisioning_split_headers(bctbx_list_t *headers);
  *(check linphone_core_set_provisioning_uri()).
  * @param core the #LinphoneCore object @notnil
  * @return the list a "<header name>:<value>". \bctbx_list{char *} @notnil @tobefreed
- * @ingroup initializing
+ * @ingroup group_initializing
  **/
 bctbx_list_t *linphone_core_get_provisioning_headers(const LinphoneCore *lc);
 
@@ -779,7 +779,7 @@ bctbx_list_t *linphone_core_get_provisioning_headers(const LinphoneCore *lc);
  * Enable or disable the UPDATE method support
  * @param[in] lc #LinphoneCore object
  * @param[in] value Enable or disable it
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_core_set_enable_sip_update(const LinphoneCore *lc, int value);
 

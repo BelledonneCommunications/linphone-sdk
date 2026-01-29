@@ -33,7 +33,7 @@ extern "C" {
 #endif // ifdef __cplusplus
 
 /**
- * @addtogroup account
+ * @addtogroup group_account
  * @{
  **/
 
@@ -71,7 +71,7 @@ typedef void (*LinphoneAccountCbsConferenceInformationUpdatedCb)(LinphoneAccount
  **/
 
 /**
- * @addtogroup account_creator
+ * @addtogroup group_account_creator
  * @{
  **/
 
@@ -109,7 +109,7 @@ typedef void (*LinphoneAccountManagerServicesRequestCbsOnDevicesListFetchedCb)(
  **/
 
 /**
- * @addtogroup alert
+ * @addtogroup group_alert
  * @{
  **/
 /**
@@ -128,7 +128,7 @@ typedef void (*LinphoneAlertCbsTerminatedCb)(LinphoneAlert *alert);
  */
 
 /**
- * @addtogroup call_control
+ * @addtogroup group_call_control
  * @{
  **/
 
@@ -341,7 +341,7 @@ typedef void (*LinphoneCallCbsHeadsetResumeCallRequestedCb)(LinphoneCall *call);
  **/
 
 /**
- * @addtogroup chatroom
+ * @addtogroup group_chatroom
  * @{
  */
 
@@ -743,7 +743,7 @@ typedef void (*LinphoneChatRoomCbsMessageRetractedCb)(LinphoneChatRoom *chat_roo
  **/
 
 /**
- * @addtogroup event_api
+ * @addtogroup group_event_api
  * @{
  */
 
@@ -776,8 +776,8 @@ typedef void (*LinphoneEventCbsSubscribeStateChangedCb)(LinphoneEvent *event, Li
 
 /**
  * Callback used to notify the received to a PUBLISH
- * @param event The #LinphoneEvent object that receive the PUBLISH @notnil
- * @param content The #LinphoneContent object that containe the body of the event @maybenil
+ * @param event The #LinphoneEvent object that receives the PUBLISH @notnil
+ * @param content The #LinphoneContent object that contains the body of the event @maybenil
  **/
 typedef void (*LinphoneEventCbsPublishReceivedCb)(LinphoneEvent *event, LinphoneContent *content);
 
@@ -793,7 +793,7 @@ typedef void (*LinphoneEventCbsPublishStateChangedCb)(LinphoneEvent *event, Linp
  */
 
 /**
- * @addtogroup misc
+ * @addtogroup group_misc
  * @{
  */
 
@@ -836,7 +836,7 @@ typedef void (*LinphoneMagicSearchCbsResultsLimitReachedCb)(LinphoneMagicSearch 
 /* DEPRECATED */
 /* ********** */
 /**
- * @addtogroup chatroom
+ * @addtogroup group_chatroom
  * @{
  */
 
@@ -857,7 +857,7 @@ typedef void (*LinphoneChatMessageStateChangedCb)(LinphoneChatMessage *message,
  **/
 
 /**
- * @addtogroup conference
+ * @addtogroup group_conference
  * @{
  */
 

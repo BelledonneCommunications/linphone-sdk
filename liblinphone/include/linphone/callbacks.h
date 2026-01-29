@@ -25,7 +25,7 @@
 #include "linphone/types.h"
 
 /**
- * @addtogroup chatroom
+ * @addtogroup group_chatroom
  * @{
  */
 
@@ -34,7 +34,7 @@
  **/
 
 /**
- * @addtogroup initializing
+ * @addtogroup group_initializing
  * @{
  **/
 
@@ -721,7 +721,7 @@ typedef void (*LinphoneCoreCbsMessageRetractedCb)(LinphoneCore *core,
  **/
 
 /**
- * @addtogroup event_api
+ * @addtogroup group_event_api
  * @{
  **/
 
@@ -847,7 +847,7 @@ typedef void (*LinphoneCoreCbsPreviewDisplayErrorOccurredCb)(LinphoneCore *core,
  **/
 
 /**
- * @addtogroup buddy_list
+ * @addtogroup group_buddy_list
  * @{
  */
 
@@ -913,7 +913,7 @@ typedef void (*LinphoneFriendCbsPresenceReceivedCb)(LinphoneFriend *linphone_fri
  **/
 
 /**
- * @addtogroup misc
+ * @addtogroup group_misc
  * @{
  */
 
@@ -1034,7 +1034,7 @@ typedef void (*LinphoneCoreCbsChatRoomExhumedCb)(LinphoneCore *core, LinphoneCha
  **/
 
 /**
- * @addtogroup call_control
+ * @addtogroup group_call_control
  * @{
  */
 
