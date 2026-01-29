@@ -102,10 +102,11 @@ void ToneManager::startRingbackTone() {
 	}
 	destroyRingStream();
 
+	MSSndCardStreamType streamType = MS_SND_CARD_STREAM_DTMF;
 	if (lc->sound_conf.remote_ring) {
 		for (auto item = sndCards; item != nullptr; item = bctbx_list_next(item)) {
 			const auto card = static_cast<MSSndCard *>(bctbx_list_get_data(item));
-			ms_snd_card_set_stream_type(card, MS_SND_CARD_STREAM_DTMF);
+			ms_snd_card_set_stream_type(card, streamType);
 		}
 		mRingStream = ring_start(lc->factory, lc->sound_conf.remote_ring, 2000, (lc->use_files) ? nullptr : sndCards);
 	}

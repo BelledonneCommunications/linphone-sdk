@@ -138,7 +138,7 @@ struct AAudioOutputContext {
 				break;
 			case MS_SND_CARD_STREAM_DTMF:
 				usage = AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING;
-				content_type =  AAUDIO_CONTENT_TYPE_SONIFICATION ;
+				content_type = AAUDIO_CONTENT_TYPE_SONIFICATION;
 				ms_message("[AAudio Player] Using DTMF mode");
 				break;
 			case MS_SND_CARD_STREAM_VOICE:
@@ -403,6 +403,7 @@ static bool_t aaudio_player_close(AAudioOutputContext *octx) {
 
 static bool_t aaudio_player_restart(AAudioOutputContext *octx) {
 	ms_message("[AAudio Player] Restarting stream");
+
 	aaudio_player_close(octx);
 	_aaudio_player_init(octx);
 	ms_message("[AAudio Player] Stream was restarted");
@@ -421,19 +422,20 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 }
 
 static void anroid_snd_write_require_volume_hack_depending_on_stream(AAudioOutputContext *octx) {
-	if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION || octx->usage == AAUDIO_USAGE_NOTIFICATION_RINGTONE || octx->usage == AAUDIO_USAGE_MEDIA) {
-		std::string streamName = "STREAM_VOICE_CALL";
-		int stream = 0; // https://developer.android.com/reference/android/media/AudioManager#STREAM_VOICE_CALL
-		if (octx->usage == AAUDIO_USAGE_NOTIFICATION_RINGTONE) {
-			streamName = "STREAM_RING";
-			stream = 2; // https://developer.android.com/reference/android/media/AudioManager#STREAM_RING
-		} else if (octx->usage == AAUDIO_USAGE_MEDIA) {
-			streamName = "STREAM_MUSIC";
-			stream = 3; // https://developer.android.com/reference/android/media/AudioManager#STREAM_MUSIC
-		}
-		ms_message("[AAudio Player] Asking for volume hack on stream [%s](%i) (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)", streamName.c_str(), stream);
-		ms_android_sound_utils_hack_volume(octx->sound_utils, stream);
+	std::string streamName = "STREAM_VOICE_CALL";
+	int stream = 0; // https://developer.android.com/reference/android/media/AudioManager#STREAM_VOICE_CALL
+	if (octx->usage == AAUDIO_USAGE_NOTIFICATION_RINGTONE) {
+		streamName = "STREAM_RING";
+		stream = 2; // https://developer.android.com/reference/android/media/AudioManager#STREAM_RING
+	} else if (octx->usage == AAUDIO_USAGE_MEDIA) {
+		streamName = "STREAM_MUSIC";
+		stream = 3; // https://developer.android.com/reference/android/media/AudioManager#STREAM_MUSIC
+	} else if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING) {
+		streamName = "STREAM_DTMF";
+		stream = 8; // https://developer.android.com/reference/android/media/AudioManager#STREAM_DTMF
 	}
+	ms_message("[AAudio Player] Asking for volume hack on stream [%s](%i) (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)", streamName.c_str(), stream);
+	ms_android_sound_utils_hack_volume(octx->sound_utils, stream);
 }
 
 static void android_snd_write_preprocess(MSFilter *obj) {

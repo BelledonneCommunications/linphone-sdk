@@ -438,8 +438,8 @@ public class AndroidPlatformHelper {
                         mAudioHelper.releaseRingingAudioFocus();
                     }
                 } else if (state == Call.State.OutgoingInit && core.getCallsNb() == 1) {
-                    Log.i("[Platform Helper] Outgoing call in progress, no other call, acquire ringing audio focus for ringback");
-                    mAudioHelper.requestRingingAudioFocus();
+                    Log.i("[Platform Helper] Outgoing call in progress, no other call, acquire call audio focus for ringback tone");
+                    mAudioHelper.requestCallAudioFocus(false);
                 } else if (state == Call.State.StreamsRunning) {
                     Log.i("[Platform Helper] Call active, ensure audio focus granted");
                     mAudioHelper.requestCallAudioFocus(false);
