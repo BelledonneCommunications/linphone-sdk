@@ -9792,9 +9792,8 @@ LinphoneConferenceInfo *linphone_core_find_conference_information_from_ccmp_uri(
 	auto confInfo = mainDb->getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri));
 
 	if (confInfo != nullptr) {
-		// Clone the conference information so that the application can freely change it without modifying the
-		// object stored in the cached of the DB
-		return linphone_conference_info_clone(confInfo->toC());
+		// Take a ref as the value returned by the MainDB class is a clone of the cached one
+		return linphone_conference_info_ref(confInfo->toC());
 	}
 
 	return NULL;
@@ -9817,9 +9816,8 @@ LinphoneConferenceInfo *linphone_core_find_conference_information_from_uri(Linph
 	const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
 	auto confInfo = mainDb->getConferenceInfoFromURI(uri_addr);
 	if (confInfo != nullptr) {
-		// Clone the conference information so that the application can freely change it without modifying the
-		// object stored in the cached of the DB
-		return linphone_conference_info_clone(confInfo->toC());
+		// Take a ref as the value returned by the MainDB class is a clone of the cached one
+		return linphone_conference_info_ref(confInfo->toC());
 	}
 	return NULL;
 #else
