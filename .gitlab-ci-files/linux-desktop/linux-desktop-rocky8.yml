@@ -45,7 +45,6 @@ rocky8-makefile-gcc:
 # Ninja
 #################################################
 
-
 rocky8-ninja-gcc:
   tags: [ "docker" ]
   image: !reference [ .rocky8_image_version, image ]
@@ -67,6 +66,19 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
   extends: rocky8-ninja-gcc
+
+rocky8-ninja-gcc-mysql:
+  tags: [ "docker" ]
+  image: !reference [ .rocky8_image_version, image ]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+  extends: .linux-desktop
 
 rocky8-python-wheel:
   tags: [ "docker" ]
@@ -206,6 +218,16 @@ liblinphone-rocky8-test-shaky:
   variables:
     PLATFORM: linux-rocky8
 
+liblinphone-rocky8-test-performance:
+  extends:
+    - .test-liblinphone-performance
+  image: !reference [ .rocky8_test_libl_image_version, image ]
+  needs:
+    - rocky8-ninja-gcc-mysql
+  variables:
+    PLATFORM: linux-rocky8
+    NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE: "true"
+
 liblinphone-rocky8-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
@@ -225,6 +247,15 @@ liblinphone-rocky8-test-shaky-mr:
   image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+  variables:
+    PLATFORM: linux-rocky8
+
+liblinphone-rocky8-test-performance-mr:
+  extends:
+    - .test-liblinphone-performance-mr
+  image: !reference [ .rocky8_test_libl_image_version, image ]
+  needs:
+    - rocky8-ninja-gcc-mysql
   variables:
     PLATFORM: linux-rocky8
 

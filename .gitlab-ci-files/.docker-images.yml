@@ -40,10 +40,10 @@
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspios:20230706_add_deps_for_av1
 
 .rocky8_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:20230914_gdb_toolset_12_sdk
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:20260219_soci_mysql
 
 .rocky8_test_libl_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20240705_audio_group_entrypoint
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20260219_soci_mysql
 
 .rocky8_python_wrapper_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-python-wrapper:20250115_init

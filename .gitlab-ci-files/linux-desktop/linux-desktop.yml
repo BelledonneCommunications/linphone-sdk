@@ -213,6 +213,8 @@
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "false"
     SHAKY_TESTS_LIBLINPHONE: "false"
+    PERFORMANCE_TESTS_LIBLINPHONE: "false"
+    NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE: "false"
     LIBLINPHONE_TESTER_PARALLEL_OPTIONS: "--parallel --parallel-max 32"
     LOG_PATTERN2: ""
   rules:
@@ -258,16 +260,26 @@
     - echo $LOG_PATTERN.txt
     - echo $LOG_PATTERN2.txt
     - echo $SHAKY_TESTS_LIBLINPHONE
+    - echo $PERFORMANCE_TESTS_LIBLINPHONE
+    - echo $NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE
     - |
         if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
         then
            if [ $CRYPTO_BACKEND_TESTS_LIBLINPHONE = "false" ];
            then
-              if [ $SHAKY_TESTS_LIBLINPHONE = "false" ];
+              if [ $SHAKY_TESTS_LIBLINPHONE = "true" ];
               then
-                  $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag '!shaky' $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
-              else
                   $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'shaky' --max-failed 2 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky || EXIT=$?
+              elif [ $PERFORMANCE_TESTS_LIBLINPHONE = "true" ];
+              then
+                  if [ $NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE = "true" ];
+                  then
+                      $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'Performance' --tag 'NightlyPerformance' --max-failed 0 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky || EXIT=$?
+                  else
+                      $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'Performance' --max-failed 0 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky || EXIT=$?
+                  fi
+              else
+                  $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag '!shaky' --tag '!NightlyPerformance' --tag '!Performance' $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
               fi
            else
               EXIT_CRYPTO_BACKEND_TAG=0;
@@ -560,6 +572,7 @@
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
     CRYPTO_BACKEND_TESTS_LIBLINPHONE: "false"
     SHAKY_TESTS_LIBLINPHONE: "false"
+    PERFORMANCE_TESTS_LIBLINPHONE: "false"
 
 .test-liblinphone-shaky:
   extends: .test-liblinphone
@@ -567,6 +580,14 @@
   variables:
     LOG_PATTERN: "logLiblinphoneShaky"
     SHAKY_TESTS_LIBLINPHONE: "true"
+
+.test-liblinphone-performance:
+  extends: .test-liblinphone
+  tags: [ "docker-test-liblinphone" ]
+  variables:
+    LOG_PATTERN: "logLiblinphonePerformance"
+    PERFORMANCE_TESTS_LIBLINPHONE: "true"
+    NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE: "false"
 
 .test-liblinphone-tunnel-pq:
   extends: .test-liblinphone
@@ -593,6 +614,13 @@
 
 .test-liblinphone-shaky-mr:
   extends: .test-liblinphone-shaky
+  allow_failure: false
+  #Only launches mr tests on mr, excepted for wip and draft
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.test-liblinphone-performance-mr:
+  extends: .test-liblinphone-performance
   allow_failure: false
   #Only launches mr tests on mr, excepted for wip and draft
   rules:

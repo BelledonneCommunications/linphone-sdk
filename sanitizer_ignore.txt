@@ -28,7 +28,9 @@ leak:local-secure-chat-tester.cpp
 leak:call_declined_with_reasons
 
 # Local conference tester (Chat)
-leak:group_chat_room_creation_server
+leak:group_chat_room_creation_server_with_server_restart
+leak:group_chat_room_creation_server_without_server_restart
+leak:group_chat_room_with_no_participants_following_database_corruption
 leak:group_chat_room_server_deletion
 leak:group_chat_room_with_duplications
 leak:group_chat_room_with_client_removed_added
