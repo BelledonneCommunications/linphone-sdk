@@ -520,10 +520,8 @@ const list<shared_ptr<FriendDevice>> Friend::getDevices() const {
 const list<shared_ptr<FriendDevice>> Friend::getDevicesForAddress(BCTBX_UNUSED(const Address &address)) const {
 	list<shared_ptr<FriendDevice>> devicesList;
 
-#ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(getCore()->getCCore())->mainDb;
-	if (mainDb) {
-		devicesList = mainDb->getDevices(Address::create(address));
+	if (auto db = getCore()->getDatabase()) {
+		devicesList = db.value().get()->getDevices(Address::create(address));
 		lDebug() << "[Friend] Found [" << devicesList.size() << "] devices for address [" << address.asStringUriOnly()
 		         << "]";
 
@@ -541,7 +539,6 @@ const list<shared_ptr<FriendDevice>> Friend::getDevicesForAddress(BCTBX_UNUSED(c
 			lError() << "[Friend] No encryption engine on the Core, can't fetch devices' security level";
 		}
 	}
-#endif
 
 	return devicesList;
 }
@@ -1109,10 +1106,9 @@ void Friend::releaseOps() {
 }
 
 void Friend::removeFromDb() {
-#ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(getCore()->getCCore())->mainDb;
-	if (mainDb) mainDb->deleteFriend(getSharedFromThis());
-#endif
+	if (auto db = getCore()->getDatabase()) {
+		db.value().get()->deleteFriend(getSharedFromThis());
+	}
 	mStorageId = -1;
 }
 
@@ -1140,13 +1136,12 @@ void Friend::saveInDb() {
 		lWarning() << "Trying to add a friend in db, but friend list isn't, let's do that first";
 		mFriendList->saveInDb();
 	}
-#ifdef HAVE_DB_STORAGE
 	try {
-		std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(getCore()->getCCore())->mainDb;
-		if (mainDb) mStorageId = mainDb->insertFriend(getSharedFromThis());
+		if (auto db = getCore()->getDatabase()) {
+			mStorageId = db.value().get()->insertFriend(getSharedFromThis());
+		}
 	} catch (std::bad_weak_ptr &) {
 	}
-#endif
 }
 
 const std::string &Friend::sipUriToPhoneNumber(const std::string &uri) const {

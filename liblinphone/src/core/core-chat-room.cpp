@@ -878,8 +878,10 @@ void Core::deleteChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom) {
 	if (chatRoomInCoreMap) {
 		CorePrivate *d = core->getPrivate();
 		d->mConferenceById.erase(conferenceId);
-		d->mBasicChatRoomsById.erase(conferenceId);
-		if (d->mainDb->isInitialized()) d->mainDb->deleteChatRoom(conferenceId);
+        d->mBasicChatRoomsById.erase(conferenceId);
+		if (auto db = core->getDatabase()) {
+			db.value().get()->deleteChatRoom(conferenceId);
+		}
 	} else {
 		lError() << "Unable to delete chat room [" << chatRoom << "] with conference ID " << conferenceId
 		         << " because it cannot be found.";
@@ -989,8 +991,9 @@ LinphoneReason Core::onSipMessageReceived(SalOp *op, const SalMessage *sal_msg) 
 				auto oldConfId = chatRoom->getConferenceId();
 				conferenceId.setLocalAddress(localAccount->getAccountParams()->getIdentityAddress(), true);
 
-				d->mainDb->updateChatRoomConferenceId(oldConfId, conferenceId);
-
+				if (auto db = getDatabase()) {
+					db.value().get()->updateChatRoomConferenceId(oldConfId, conferenceId);
+				}
 				auto basicChatRoom = dynamic_pointer_cast<BasicChatRoom>(chatRoom);
 				basicChatRoom->setConferenceId(conferenceId);
 

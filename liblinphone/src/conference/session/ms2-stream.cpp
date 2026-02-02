@@ -304,17 +304,14 @@ void MS2Stream::fillLocalMediaDescription(OfferAnswerContext &ctx) {
 		}
 	}
 	std::shared_ptr<LinphonePrivate::ConferenceInfo> confInfo = nullptr;
-#ifdef HAVE_DB_STORAGE
 	// Search in the DB if this is a call toward a conference URI
-	auto &mainDb = getCore().getPrivate()->mainDb;
-	if (mainDb) {
+	if (auto db = getCore().getDatabase()) {
 		auto &session = getMediaSession();
 		auto conferenceAddress = getMediaSessionPrivate().getParams()->getPrivate()->getInConference()
 		                             ? session.getLocalAddress()
 		                             : session.getRemoteAddress();
-		confInfo = mainDb->getConferenceInfoFromURI(conferenceAddress);
+		confInfo = db.value().get()->getConferenceInfoFromURI(conferenceAddress);
 	}
-#endif // HAVE_DB_STORAGE
 	if ((address && address->hasParam(Conference::sIsFocusParameter)) || confInfo) {
 		localDesc.cfgs[localDesc.getChosenConfigurationIndex()].conference_ssrc = rtp_ssrc;
 	}

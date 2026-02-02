@@ -192,9 +192,10 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 	// not been sent yet.
 	const auto &from = q->getFromAddress();
 	const auto &messageState = q->getState();
-	if ((newState == ChatMessage::State::NotDelivered) && ((messageState == ChatMessage::State::Delivered) || (messageState == ChatMessage::State::DeliveredToUser) ||
-	    (messageState == ChatMessage::State::Displayed)) && participantAddress->weakEqual(*from) &&
-	    ((*localAddress == *from) || !localAddress->weakEqual(*from))) {
+	if ((newState == ChatMessage::State::NotDelivered) &&
+	    ((messageState == ChatMessage::State::Delivered) || (messageState == ChatMessage::State::DeliveredToUser) ||
+	     (messageState == ChatMessage::State::Displayed)) &&
+	    participantAddress->weakEqual(*from) && ((*localAddress == *from) || !localAddress->weakEqual(*from))) {
 		lInfo() << "Ignoring transition of the sender of message [" << q << "] " << *participantAddress << " to state "
 		        << Utils::toString(newState)
 		        << "; it may happen that one of its devices wasn't able to receive the message";
@@ -243,8 +244,8 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 		}
 	}
 
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
+	auto db = chatRoom->getCore()->getDatabase();
+	shared_ptr<EventLog> eventLog = db ? MainDb::getEvent(db.value().get(), q->getStorageId()) : nullptr;
 	if (!q->isValid() && (eventLog || (newState == ChatMessage::State::NotDelivered))) {
 		if (newState == ChatMessage::State::NotDelivered) {
 			setState(newState, reason);
@@ -289,7 +290,7 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 		lInfo() << "Chat message " << sharedMessage << ": moving participant '" << *participantAddress << "' state to "
 		        << Utils::toString(newState);
 		if (eventLog) {
-			mainDb->setChatMessageParticipantState(eventLog, participantAddress, newState, stateChangeTime);
+			db.value().get()->setChatMessageParticipantState(eventLog, participantAddress, newState, stateChangeTime);
 		}
 
 		if (isImdnControlledState(newState)) {
@@ -580,8 +581,10 @@ void ChatMessagePrivate::startEphemeralCountDown(const EphemeralCountdownType co
 
 	// set ephemeral message expired time
 	ephemeralExpireTime = ::ms_time(nullptr) + lifetime;
-	const unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	mainDb->updateEphemeralMessageInfos(storageId, ephemeralExpireTime);
+	auto db = chatRoom->getCore()->getDatabase();
+	if (db) {
+		db.value().get()->updateEphemeralMessageInfos(storageId, ephemeralExpireTime);
+	}
 
 	const shared_ptr<ChatMessage> &sharedMessage = q->getSharedFromThis();
 	chatRoom->getCore()->getPrivate()->updateEphemeralMessages(sharedMessage);
@@ -591,7 +594,8 @@ void ChatMessagePrivate::startEphemeralCountDown(const EphemeralCountdownType co
 	lInfo() << "Starting ephemeral " << countdownTypeStr << " countdown with life time: " << lifetime;
 
 	// notify start !
-	const shared_ptr<LinphonePrivate::EventLog> event = LinphonePrivate::MainDb::getEvent(mainDb, q->getStorageId());
+	const shared_ptr<LinphonePrivate::EventLog> event =
+	    LinphonePrivate::MainDb::getEvent(db.value().get(), q->getStorageId());
 	if (chatRoom && event) {
 		_linphone_chat_room_notify_ephemeral_message_timer_started(chatRoom->toC(), L_GET_C_BACK_PTR(event));
 		LinphoneChatMessage *msg = L_GET_C_BACK_PTR(q);
@@ -619,8 +623,12 @@ void ChatMessagePrivate::disableDeliveryNotificationRequiredInDatabase() {
 	shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
 	if (!chatRoom) return;
 
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	if (q->isValid()) mainDb->disableDeliveryNotificationRequired(mainDb->getEvent(mainDb, q->getStorageId()));
+	if (auto db = chatRoom->getCore()->getDatabase()) {
+		if (q->isValid()) {
+			const unique_ptr<MainDb> &mainDb = db.value().get();
+			mainDb->disableDeliveryNotificationRequired(MainDb::getEvent(mainDb, q->getStorageId()));
+		}
+	}
 }
 
 void ChatMessagePrivate::disableDisplayNotificationRequiredInDatabase() {
@@ -629,9 +637,12 @@ void ChatMessagePrivate::disableDisplayNotificationRequiredInDatabase() {
 	shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
 	if (!chatRoom) return;
 
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	const std::shared_ptr<const EventLog> &eventLog = mainDb->getEvent(mainDb, q->getStorageId());
-	if (q->isValid() && eventLog) mainDb->disableDisplayNotificationRequired(eventLog);
+	if (auto db = chatRoom->getCore()->getDatabase()) {
+		const unique_ptr<MainDb> &mainDb = db.value().get();
+		const std::shared_ptr<const EventLog> &eventLog = MainDb::getEvent(mainDb, q->getStorageId());
+		;
+		if (q->isValid() && eventLog) mainDb->disableDisplayNotificationRequired(eventLog);
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -1264,8 +1275,9 @@ LinphoneReason ChatMessagePrivate::receive() {
 			auto mFromAddress = q->getFromAddress();
 			lInfo() << "Reaction body for message ID [" << messageId << "] is empty, removing existing reaction from ["
 			        << *mFromAddress << "] if any";
-			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-			mainDb->removeConferenceChatMessageReactionEvent(messageId, mFromAddress);
+			if (auto db = chatRoom->getCore()->getDatabase()) {
+				db.value().get()->removeConferenceChatMessageReactionEvent(messageId, mFromAddress);
+			}
 
 			const LinphoneAddress *address = q->getFromAddress()->toC();
 			_linphone_chat_message_notify_reaction_removed(msg, address);
@@ -1395,18 +1407,18 @@ void ChatMessagePrivate::handleAutoDownload() {
 			    linphone_factory_create_conference_info_from_icalendar_content(linphone_factory_get(), c->toC());
 			if (cConfInfo != nullptr) {
 				auto confInfo = ConferenceInfo::toCpp(cConfInfo)->getSharedFromThis();
-#ifdef HAVE_DB_STORAGE
-				unique_ptr<MainDb> &mainDb = q->getCore()->getPrivate()->mainDb;
-				auto dbInfo = mainDb->getConferenceInfoFromURI(confInfo->getUri());
-				if (dbInfo) {
-					// If a conference information has been found in the database, then copy the capabilities as
-					// this information is not available in the ICS
-					for (const auto type : {LinphoneStreamTypeAudio, LinphoneStreamTypeVideo, LinphoneStreamTypeText}) {
-						confInfo->setCapability(type, dbInfo->getCapability(type));
+				if (auto db = q->getCore()->getDatabase()) {
+					auto dbInfo = db.value().get()->getConferenceInfoFromURI(confInfo->getUri());
+					if (dbInfo) {
+						// If a conference information has been found in the database, then copy the capabilities as
+						// this information is not available in the ICS
+						for (const auto type :
+						     {LinphoneStreamTypeAudio, LinphoneStreamTypeVideo, LinphoneStreamTypeText}) {
+							confInfo->setCapability(type, dbInfo->getCapability(type));
+						}
 					}
+					db.value().get()->insertConferenceInfo(confInfo);
 				}
-				mainDb->insertConferenceInfo(confInfo);
-#endif // HAVE_DB_STORAGE
 				linphone_core_notify_conference_info_received(q->getCore()->getCCore(), cConfInfo);
 				linphone_conference_info_unref(cConfInfo);
 			}
@@ -1659,26 +1671,26 @@ void ChatMessagePrivate::send() {
 			if (!isResend && !q->isReaction() && !isMessageEdit && !isMessageRetraction && !q->isNotification()) {
 				if ((currentSendStep & ChatMessagePrivate::Step::Sending) != ChatMessagePrivate::Step::Sending) {
 					LinphoneChatRoom *cr = chatRoom->toC();
-					unique_ptr<MainDb> &mainDb = core->getPrivate()->mainDb;
-					shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
-					_linphone_chat_room_notify_chat_message_sending(cr, L_GET_C_BACK_PTR(eventLog));
+					if (auto db = core->getDatabase()) {
+						shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), q->getStorageId());
+						_linphone_chat_room_notify_chat_message_sending(cr, L_GET_C_BACK_PTR(eventLog));
+					}
 					currentSendStep |= ChatMessagePrivate::Step::Sending;
 				}
 			}
 		} else if (state == ChatMessage::State::Queued) {
 			setState(ChatMessage::State::Idle);
-#ifdef HAVE_DB_STORAGE
-			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-			shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
-			if (eventLog) {
-				// The message is being resent, therefore set all participants to the current message state and add
-				// new ones
-				for (const auto &participant : chatRoom->getParticipants()) {
-					mainDb->setChatMessageParticipantState(eventLog, participant->getAddress(), q->getState(),
-					                                       ::ms_time(nullptr));
+			if (auto db = core->getDatabase()) {
+				shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), q->getStorageId());
+				if (eventLog) {
+					// The message is being resent, therefore set all participants to the current message state and add
+					// new ones
+					for (const auto &participant : chatRoom->getParticipants()) {
+						db.value().get()->setChatMessageParticipantState(eventLog, participant->getAddress(),
+						                                                 q->getState(), ::ms_time(nullptr));
+					}
 				}
 			}
-#endif // HAVE_DB_STORAGE
 		}
 	}
 
@@ -1968,8 +1980,10 @@ void ChatMessagePrivate::updateInDb() {
 	shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
 	if (!chatRoom) return;
 
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, storageId);
+	auto db = chatRoom->getCore()->getDatabase();
+	if (!db) return;
+
+	shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), storageId);
 
 	if (!eventLog) {
 		lError() << "Cannot find eventLog for storage ID [" << storageId << "] associated to message ["
@@ -1978,7 +1992,7 @@ void ChatMessagePrivate::updateInDb() {
 	}
 	// Avoid transaction in transaction if contents are not loaded.
 	loadContentsFromDatabase();
-	mainDb->updateEvent(eventLog);
+	db.value().get()->updateEvent(eventLog);
 
 	if (direction == ChatMessage::Direction::Incoming) {
 		if (!hasFileTransferContent()) {
@@ -2007,11 +2021,11 @@ void ChatMessagePrivate::deleteFromDb() {
 	shared_ptr<AbstractChatRoom> chatRoom = q->getChatRoom();
 	if (!chatRoom) return;
 
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, q->getStorageId());
-
-	mainDb->deleteEvent(eventLog);
-	chatRoom->removeTransientEvent(eventLog);
+	if (auto db = chatRoom->getCore()->getDatabase()) {
+		shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), q->getStorageId());
+		MainDb::deleteEvent(eventLog);
+		chatRoom->removeTransientEvent(eventLog);
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -2057,8 +2071,9 @@ bool ChatMessage::isValid() const {
 void ChatMessage::deleteChatMessageFromCache() {
 	if (isValid()) {
 		// Delete chat message from the cache
-		unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
-		mainDb->getPrivate()->storageIdToChatMessage.erase(getStorageId());
+		if (auto db = getCore()->getDatabase()) {
+			db.value().get()->getPrivate()->storageIdToChatMessage.erase(getStorageId());
+		}
 	}
 }
 
@@ -2073,8 +2088,8 @@ shared_ptr<EventLog> ChatMessage::getEventLog() const {
 	if (chatRoom) {
 		const auto &storageId = getStorageId();
 		if (storageId >= 0) {
-			unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-			return mainDb->getEvent(mainDb, storageId);
+			auto db = chatRoom->getCore()->getDatabase();
+			return db ? MainDb::getEvent(db.value().get(), storageId) : nullptr;
 		} else {
 			return nullptr;
 		}
@@ -2206,15 +2221,21 @@ shared_ptr<ChatMessage> ChatMessage::getReactionToMessage() const {
 
 const list<shared_ptr<ChatMessageReaction>> ChatMessage::getReactions() const {
 	L_D();
-	d->reactions = getChatRoom()->getCore()->getPrivate()->mainDb->getChatMessageReactions(
-	    const_pointer_cast<ChatMessage>(getSharedFromThis()));
+	if (auto db = getChatRoom()->getCore()->getDatabase()) {
+		d->reactions = db.value().get()->getChatMessageReactions(const_pointer_cast<ChatMessage>(getSharedFromThis()));
+	} else {
+		d->reactions.clear();
+	}
 	return d->reactions;
 }
 
 const shared_ptr<ChatMessageReaction> ChatMessage::getOwnReaction() const {
 	L_D();
-	d->reactions = getChatRoom()->getCore()->getPrivate()->mainDb->getChatMessageReactions(
-	    const_pointer_cast<ChatMessage>(getSharedFromThis()));
+	if (auto db = getChatRoom()->getCore()->getDatabase()) {
+		d->reactions = db.value().get()->getChatMessageReactions(const_pointer_cast<ChatMessage>(getSharedFromThis()));
+	} else {
+		d->reactions.clear();
+	}
 
 	shared_ptr<ChatMessageReaction> ourReaction = nullptr;
 	for (auto reaction : d->reactions) {
@@ -2332,9 +2353,9 @@ void ChatMessagePrivate::loadContentsFromDatabase() const {
 	if (contentsNotLoadedFromDatabase) {
 		isReadOnly = false;
 		contentsNotLoadedFromDatabase = false;
-		q->getChatRoom()->getCore()->getPrivate()->mainDb->loadChatMessageContents(
-		    const_pointer_cast<ChatMessage>(q->getSharedFromThis()));
-
+		if (auto db = q->getChatRoom()->getCore()->getDatabase()) {
+			db.value().get()->loadChatMessageContents(const_pointer_cast<ChatMessage>(q->getSharedFromThis()));
+		}
 		isReadOnly = true;
 	}
 }
@@ -2446,17 +2467,17 @@ list<ParticipantImdnState> ChatMessage::getParticipantsState() const {
 	const bool isBasicChatRoom = (chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::Basic);
 	if (isBasicChatRoom || !isValid()) return result;
 
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, getStorageId());
-	list<MainDb::ParticipantState> dbResults = mainDb->getChatMessageParticipantStates(eventLog);
-	for (const auto &dbResult : dbResults) {
-		auto isMe = chatRoom->isMe(dbResult.address);
-		auto participant = isMe ? chatRoom->getMe() : chatRoom->findParticipant(dbResult.address);
-		if (participant) {
-			result.emplace_back(participant, dbResult.state, dbResult.timestamp);
+	if (auto db = chatRoom->getCore()->getDatabase()) {
+		shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), getStorageId());
+		list<MainDb::ParticipantState> dbResults = db.value().get()->getChatMessageParticipantStates(eventLog);
+		for (const auto &dbResult : dbResults) {
+			auto isMe = chatRoom->isMe(dbResult.address);
+			auto participant = isMe ? chatRoom->getMe() : chatRoom->findParticipant(dbResult.address);
+			if (participant) {
+				result.emplace_back(participant, dbResult.state, dbResult.timestamp);
+			}
 		}
 	}
-
 	return result;
 }
 
@@ -2467,20 +2488,21 @@ list<ParticipantImdnState> ChatMessage::getParticipantsByImdnState(ChatMessage::
 	const bool isBasicChatRoom = (chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::Basic);
 	if (isBasicChatRoom || !isValid()) return result;
 
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, getStorageId());
-	list<MainDb::ParticipantState> dbResults = mainDb->getChatMessageParticipantsByImdnState(eventLog, state);
-	const auto &from = getFromAddress();
-	const auto &me = chatRoom->getMe();
-	auto sender = chatRoom->isMe(from) ? me : chatRoom->findParticipant(from);
-	for (const auto &dbResult : dbResults) {
-		const auto &pAddress = dbResult.address;
-		auto participant = chatRoom->isMe(pAddress) ? me : chatRoom->findParticipant(pAddress);
-		// Do not add myself to the result list if I am the sender.
-		if (participant && (participant != sender))
-			result.emplace_back(participant, dbResult.state, dbResult.timestamp);
+	if (auto db = chatRoom->getCore()->getDatabase()) {
+		shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), getStorageId());
+		list<MainDb::ParticipantState> dbResults =
+		    db.value().get()->getChatMessageParticipantsByImdnState(eventLog, state);
+		const auto &from = getFromAddress();
+		const auto &me = chatRoom->getMe();
+		auto sender = chatRoom->isMe(from) ? me : chatRoom->findParticipant(from);
+		for (const auto &dbResult : dbResults) {
+			const auto &pAddress = dbResult.address;
+			auto participant = chatRoom->isMe(pAddress) ? me : chatRoom->findParticipant(pAddress);
+			// Do not add myself to the result list if I am the sender.
+			if (participant && (participant != sender))
+				result.emplace_back(participant, dbResult.state, dbResult.timestamp);
+		}
 	}
-
 	return result;
 }
 
@@ -2492,12 +2514,13 @@ ChatMessage::State ChatMessage::getParticipantState(const shared_ptr<Address> &a
 	}
 	const bool isBasicChatRoom =
 	    (chatRoom->getCurrentParams()->getChatParams()->getBackend() == ChatParams::Backend::Basic);
-	unique_ptr<MainDb> &mainDb = chatRoom->getCore()->getPrivate()->mainDb;
-	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, getStorageId());
-	if (isBasicChatRoom) {
-		participantState = getState();
-	} else if (eventLog) {
-		participantState = mainDb->getChatMessageParticipantState(eventLog, address);
+	if (auto db = chatRoom->getCore()->getDatabase()) {
+		shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), getStorageId());
+		if (isBasicChatRoom) {
+			participantState = getState();
+		} else if (eventLog) {
+			participantState = db.value().get()->getChatMessageParticipantState(eventLog, address);
+		}
 	}
 	return participantState;
 }

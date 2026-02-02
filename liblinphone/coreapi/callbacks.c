@@ -403,8 +403,10 @@ static void call_received(SalCallOp *h) {
 							}
 							const auto &participant = (*participantList.begin())->getAddress();
 							std::shared_ptr<Address> confAddr =
-							    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findOneOnOneConferenceChatRoomAddress(
-							        fromOp, participant, encrypted);
+							    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->isInitialized()
+							        ? L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findOneOnOneConferenceChatRoomAddress(
+							              fromOp, participant, encrypted)
+							        : nullptr;
 							if (confAddr && confAddr->isValid()) {
 								shared_ptr<AbstractChatRoom> chatRoom =
 								    core->findChatRoom(ConferenceId(confAddr, confAddr, conferenceIdParams));

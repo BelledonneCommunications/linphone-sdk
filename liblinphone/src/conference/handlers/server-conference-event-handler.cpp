@@ -500,9 +500,13 @@ std::shared_ptr<Content> ServerConferenceEventHandler::createNotifyMultipart(int
 	}
 
 	auto core = conf->getCore();
-	list<shared_ptr<EventLog>> events = core->getPrivate()->mainDb->getConferenceNotifiedEvents(
-	    ConferenceId(conf->getConferenceAddress(), conf->getConferenceAddress(), core->createConferenceIdParams()),
-	    static_cast<unsigned int>(notifyId));
+
+	list<shared_ptr<EventLog>> events;
+	if (auto db = core->getDatabase()) {
+		events = db.value().get()->getConferenceNotifiedEvents(
+		    ConferenceId(conf->getConferenceAddress(), conf->getConferenceAddress(), core->createConferenceIdParams()),
+		    static_cast<unsigned int>(notifyId));
+	}
 
 	list<shared_ptr<Content>> contents;
 	for (const auto &eventLog : events) {

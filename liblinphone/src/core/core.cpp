@@ -1979,9 +1979,8 @@ void Core::healNetworkConnections() {
 }
 
 int Core::getUnreadChatMessageCount() const {
-	L_D();
-	if (d->mainDb && d->mainDb->isInitialized()) {
-		return d->mainDb->getUnreadChatMessageGlobalCount();
+	if (auto db = getDatabase()) {
+		return db.value().get()->getUnreadChatMessageGlobalCount();
 	}
 	return -1;
 }
@@ -2041,8 +2040,10 @@ std::shared_ptr<ChatRoom> Core::getPushNotificationChatRoom(const std::string &c
 }
 
 std::shared_ptr<ChatMessage> Core::findChatMessageFromCallId(const std::string &callId) const {
-	L_D();
-	std::list<std::shared_ptr<ChatMessage>> chatMessages = d->mainDb->findChatMessagesFromCallId(callId);
+	std::list<std::shared_ptr<ChatMessage>> chatMessages;
+	if (auto db = getDatabase()) {
+		chatMessages = db.value().get()->findChatMessagesFromCallId(callId);
+	}
 	return chatMessages.empty() ? nullptr : chatMessages.front();
 }
 
@@ -3809,4 +3810,13 @@ LinphoneEphemeralChatMessagePolicy Core::getEphemeralChatMessagePolicy() const {
 	return d->ephemeralChatMessagePolicy;
 }
 
+std::optional<std::reference_wrapper<const unique_ptr<MainDb>>> Core::getDatabase() const {
+#ifdef HAVE_DB_STORAGE
+	auto &mainDb = getPrivate()->mainDb;
+	if (mainDb != nullptr && mainDb->isInitialized()) {
+		return mainDb;
+	}
+#endif
+	return std::nullopt;
+}
 LINPHONE_END_NAMESPACE

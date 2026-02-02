@@ -238,8 +238,9 @@ void Imdn::parse(const shared_ptr<ChatMessage> &chatMessage) {
 
 	// It seems to be more efficient to only make one database request to get all chat messages from their IMDN message
 	// ID
-	list<shared_ptr<ChatMessage>> chatMessages =
-	    chatMessage->getCore()->getPrivate()->mainDb->findChatMessagesFromImdnMessageId(messagesIds);
+	auto db = chatMessage->getCore()->getDatabase();
+	auto chatMessages =
+	    db ? db.value().get()->findChatMessagesFromImdnMessageId(messagesIds) : list<shared_ptr<ChatMessage>>();
 	for (const auto &imdn : imdns) {
 		shared_ptr<ChatMessage> cm = nullptr;
 		for (const auto &chatMessage : chatMessages) {

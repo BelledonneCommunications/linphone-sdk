@@ -1044,10 +1044,9 @@ bool FriendList::synchronizeFriendsWith(std::list<std::shared_ptr<Friend>> const
 }
 
 void FriendList::removeFromDb() {
-#ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(getCore()->getCCore())->mainDb;
-	if (mainDb) mainDb->deleteFriendList(getSharedFromThis());
-#endif
+	if (auto db = getCore()->getDatabase()) {
+		db.value().get()->deleteFriendList(getSharedFromThis());
+	}
 	mStorageId = -1;
 }
 
@@ -1055,9 +1054,8 @@ void FriendList::saveInDb() {
 #ifdef HAVE_DB_STORAGE
 	try {
 		if (getCore() && databaseStorageEnabled()) {
-			std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(getCore()->getCCore())->mainDb;
-			if (mainDb) {
-				mStorageId = mainDb->insertFriendList(getSharedFromThis());
+			if (auto db = getCore()->getDatabase()) {
+				mStorageId = db.value().get()->insertFriendList(getSharedFromThis());
 			}
 		} else {
 			if (!mInhibitDbStorage)

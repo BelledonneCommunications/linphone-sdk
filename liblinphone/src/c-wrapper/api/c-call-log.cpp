@@ -269,7 +269,7 @@ void linphone_core_store_call_log(LinphoneCore *lc, LinphoneCallLog *log) {
 
 #ifdef HAVE_DB_STORAGE
 	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (mainDb) mainDb->insertCallLog(CallLog::toCpp(log)->getSharedFromThis());
+	if (mainDb && mainDb->isInitialized()) mainDb->insertCallLog(CallLog::toCpp(log)->getSharedFromThis());
 #endif
 
 	lc->call_logs = bctbx_list_prepend(lc->call_logs, linphone_call_log_ref(log));
@@ -285,7 +285,7 @@ const bctbx_list_t *linphone_core_get_call_history(LinphoneCore *lc) {
 
 #ifdef HAVE_DB_STORAGE
 	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb) return lc->call_logs;
+	if (!mainDb || !mainDb->isInitialized()) return lc->call_logs;
 
 	if (lc->call_logs != NULL) {
 		size_t callLogsDatabaseSize = (size_t)mainDb->getCallHistorySize();
@@ -312,7 +312,7 @@ void linphone_core_delete_call_history(LinphoneCore *lc) {
 
 #ifdef HAVE_DB_STORAGE
 	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb) return;
+	if (!mainDb || !mainDb->isInitialized()) return;
 
 	mainDb->deleteCallHistory();
 #endif
@@ -332,7 +332,7 @@ void linphone_core_delete_call_log(LinphoneCore *lc, LinphoneCallLog *log) {
 
 #ifdef HAVE_DB_STORAGE
 	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb) return;
+	if (!mainDb || !mainDb->isInitialized()) return;
 
 	mainDb->deleteCallLog(CallLog::toCpp(log)->getSharedFromThis());
 #endif
@@ -351,7 +351,7 @@ int linphone_core_get_call_history_size(LinphoneCore *lc) {
 
 #ifdef HAVE_DB_STORAGE
 	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb) return 0;
+	if (!mainDb || !mainDb->isInitialized()) return 0;
 
 	return mainDb->getCallHistorySize();
 #else
@@ -366,7 +366,7 @@ bctbx_list_t *linphone_core_get_call_history_2(LinphoneCore *lc,
 
 #ifdef HAVE_DB_STORAGE
 	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb) return NULL;
+	if (!mainDb || !mainDb->isInitialized()) return NULL;
 
 	const auto peerAddr = Address::toCpp(peer_addr)->getSharedFromThis();
 	const auto localAddr = Address::toCpp(local_addr)->getSharedFromThis();
@@ -391,7 +391,7 @@ LinphoneCallLog *linphone_core_get_last_outgoing_call_log(LinphoneCore *lc) {
 
 #ifdef HAVE_DB_STORAGE
 	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb) return NULL;
+	if (!mainDb || !mainDb->isInitialized()) return NULL;
 
 	auto log = mainDb->getLastOutgoingCall();
 
@@ -407,7 +407,7 @@ LinphoneCallLog *linphone_core_find_call_log(LinphoneCore *lc, const char *call_
 
 #ifdef HAVE_DB_STORAGE
 	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb) return NULL;
+	if (!mainDb || !mainDb->isInitialized()) return NULL;
 
 	auto log = mainDb->getCallLog(L_C_TO_STRING(call_id), limit);
 

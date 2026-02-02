@@ -157,8 +157,10 @@ void ClientConference::init(SalCallOp *op, BCTBX_UNUSED(ConferenceListener *conf
 	auto conferenceAddress = mFocus ? mFocus->getAddress() : nullptr;
 	std::shared_ptr<ConferenceInfo> conferenceInfo = nullptr;
 #ifdef HAVE_DB_STORAGE
-	if (conferenceAddress && core->getPrivate()->mainDb && supportsMedia()) {
-		conferenceInfo = core->getPrivate()->mainDb->getConferenceInfoFromURI(conferenceAddress);
+	if (conferenceAddress && supportsMedia()) {
+		if (auto db = core->getDatabase()) {
+			conferenceInfo = db.value().get()->getConferenceInfoFromURI(conferenceAddress);
+		}
 	}
 #endif // HAVE_DB_STORAGE
 
@@ -291,15 +293,12 @@ void ClientConference::updateAndSaveConferenceInformations() {
 		conferenceInfo->setOrganizer(organizer);
 	}
 
-#ifdef HAVE_DB_STORAGE
 	// Store into DB after the start incoming notification in order to have a valid conference address being the contact
 	// address of the call
-	auto &mainDb = getCore()->getPrivate()->mainDb;
-	if (mainDb) {
+	if (auto db = getCore()->getDatabase()) {
 		lInfo() << "Inserting or updating " << *conferenceInfo << " to database related to " << *this;
-		mConferenceInfoId = mainDb->insertConferenceInfo(conferenceInfo);
+		mConferenceInfoId = db.value().get()->insertConferenceInfo(conferenceInfo);
 	}
-#endif // HAVE_DB_STORAGE
 
 	auto callLog = getMainSession() ? getMainSession()->getLog() : nullptr;
 	if (callLog) {
@@ -906,7 +905,10 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 			lInfo() << "Deleting " << *this
 			        << " from the list of conferences held by the core, its conference information and remove media "
 			           "support";
-			getCore()->getPrivate()->mainDb->deleteConferenceInfo(getConferenceAddress(), false);
+
+			if (auto db = getCore()->getDatabase()) {
+				db.value().get()->deleteConferenceInfo(getConferenceAddress(), false);
+			}
 			mConfParams->enableAudio(false);
 			mConfParams->enableVideo(false);
 			getCore()->deleteConference(ref);
@@ -1574,9 +1576,11 @@ void ClientConference::onParticipantDeviceStateChanged(
 	if (mConfParams->chatEnabled() && chatRoom) {
 		if (event->getFullState()) return;
 		chatRoom->addEvent(event);
-		getCore()->getPrivate()->mainDb->updateChatRoomParticipantDevice(chatRoom, device);
-		_linphone_chat_room_notify_participant_device_state_changed(chatRoom->toC(), L_GET_C_BACK_PTR(event),
-		                                                            (LinphoneParticipantDeviceState)device->getState());
+		if (auto db = getCore()->getDatabase()) {
+			db.value().get()->updateChatRoomParticipantDevice(chatRoom, device);
+			_linphone_chat_room_notify_participant_device_state_changed(
+			    chatRoom->toC(), L_GET_C_BACK_PTR(event), (LinphoneParticipantDeviceState)device->getState());
+		}
 	}
 #endif // HAVE_ADVANCED_IM
 }
@@ -2541,16 +2545,14 @@ const std::shared_ptr<Address> ClientConference::getOrganizer() const {
 	}
 
 	std::shared_ptr<Address> organizer = nullptr;
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = getCore()->getPrivate()->mainDb;
-	if (mainDb) {
-		const auto &confInfo = mainDb->getConferenceInfoFromURI(getConferenceAddress());
+	if (auto db = getCore()->getDatabase()) {
+		const auto &confInfo = db.value().get()->getConferenceInfoFromURI(getConferenceAddress());
 		// me is admin if the organizer is the same as me
 		if (confInfo) {
 			organizer = confInfo->getOrganizerAddress();
 		}
 	}
-#endif
+
 	if (!organizer) {
 		// The me participant is designed as organizer as a last resort in our guesses, therefore it may not be right.
 		// A search for a participant which joined the conference as focus owner is therefore needed.

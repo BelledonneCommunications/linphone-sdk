@@ -9789,7 +9789,7 @@ LinphoneConferenceInfo *linphone_core_find_conference_information_from_ccmp_uri(
 	CoreLogContextualizer logContextualizer(core);
 #ifdef HAVE_DB_STORAGE
 	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
-	auto confInfo = mainDb->getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri));
+	auto confInfo = mainDb->isInitialized() ? mainDb->getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri)) : nullptr;
 
 	if (confInfo != nullptr) {
 		// Take a ref as the value returned by the MainDB class is a clone of the cached one
@@ -9814,7 +9814,7 @@ LinphoneConferenceInfo *linphone_core_find_conference_information_from_uri(Linph
 #ifdef HAVE_DB_STORAGE
 	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
 	const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
-	auto confInfo = mainDb->getConferenceInfoFromURI(uri_addr);
+	auto confInfo = mainDb->isInitialized() ? mainDb->getConferenceInfoFromURI(uri_addr) : nullptr;
 	if (confInfo != nullptr) {
 		// Take a ref as the value returned by the MainDB class is a clone of the cached one
 		return linphone_conference_info_ref(confInfo->toC());
@@ -9897,6 +9897,8 @@ bctbx_list_t *linphone_core_get_conference_informations_with_participant(Linphon
 	CoreLogContextualizer logContextualizer(core);
 #ifdef HAVE_DB_STORAGE
 	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
+	if (!mainDb || !mainDb->isInitialized()) return NULL;
+
 	const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
 	auto list = mainDb->getConferenceInfosWithParticipant(uri_addr);
 

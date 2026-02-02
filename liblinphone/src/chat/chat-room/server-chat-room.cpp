@@ -214,8 +214,9 @@ void ServerChatRoom::onBye(const shared_ptr<ParticipantDevice> &participantLeavi
 				// Do not wait to delete the chat room from the list stored in the core as the process of terminating it
 				// has already started and it cannot be restored
 				lInfo() << this << ": Delete chatroom from MainDB as last participant has left";
-				unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
-				mainDb->deleteChatRoom(getConferenceId());
+				if (auto db = getCore()->getDatabase()) {
+					db.value().get()->deleteChatRoom(getConferenceId());
+				}
 			}
 			setState(ConferenceInterface::State::TerminationPending);
 		}

@@ -155,14 +155,10 @@ void ConferenceScheduler::setInfo(const std::shared_ptr<ConferenceInfo> &info) {
 	}
 
 	bool isUpdate = conferenceAddress && conferenceAddress->isValid();
-#ifdef HAVE_DB_STORAGE
-	if (isUpdate) {
-		auto &mainDb = getCore()->getPrivate()->mainDb;
-		// It may happen that the application modifies the conference info stored in the main DB cache. Doing so makes
-		// impossible for the SDK to figure out changes. By invalidating the main DB cache, the SDK has to read the
-		// information from the database and update the main DB cache.
-		mainDb->invalidateConferenceInfoCacheIfNeeded(info);
-		auto confInfo = mainDb->getConferenceInfoFromURI(conferenceAddress);
+	auto db = getCore()->getDatabase();
+	if (isUpdate && db) {
+		db.value().get()->invalidateConferenceInfoCacheIfNeeded(info);
+		auto confInfo = db.value().get()->getConferenceInfoFromURI(conferenceAddress);
 		if (confInfo) {
 			lInfo() << "[Conference Scheduler] [" << this
 			        << "] Found matching conference info in database for address [" << *conferenceAddress << "]";
@@ -175,7 +171,6 @@ void ConferenceScheduler::setInfo(const std::shared_ptr<ConferenceInfo> &info) {
 			isUpdate = false;
 		}
 	}
-#endif // HAVE_DB_STORAGE
 
 	if (participantListEmpty && !isUpdate) {
 		lWarning() << "[Conference Scheduler] [" << this
@@ -342,14 +337,11 @@ void ConferenceScheduler::setConferenceAddress(const std::shared_ptr<Address> &c
 	}
 
 	bool error = false;
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = getCore()->getPrivate()->mainDb;
-	if (mainDb) {
+	if (auto db = getCore()->getDatabase()) {
 		lInfo() << "[Conference Scheduler] [" << this << "] Conference address " << *conferenceAddress
 		        << " is known, inserting conference info [" << mConferenceInfo << "] in database";
-		error = (mainDb->insertConferenceInfo(mConferenceInfo) < 0);
+		error = (db.value().get()->insertConferenceInfo(mConferenceInfo) < 0);
 	}
-#endif
 
 	auto newState = error ? State::Error : State::Ready;
 	setState(newState);
@@ -385,10 +377,7 @@ shared_ptr<ChatMessage> ConferenceScheduler::createInvitationChatMessage(shared_
 	}
 
 	// Update conference info in database with new sequence and uid
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = getCore()->getPrivate()->mainDb;
-	mainDb->insertConferenceInfo(mConferenceInfo);
-#endif // HAVE_DB_STORAGE
+	if (auto db = getCore()->getDatabase()) db.value().get()->insertConferenceInfo(mConferenceInfo);
 	message->addListener(getSharedFromThis());
 	return message;
 }
@@ -436,12 +425,10 @@ void ConferenceScheduler::sendInvitations(shared_ptr<ConferenceParams> conferenc
 	}
 
 	std::shared_ptr<ConferenceInfo> dbConferenceInfo = nullptr;
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = getCore()->getPrivate()->mainDb;
-	if (mainDb && conferenceAddress) {
-		dbConferenceInfo = getCore()->getPrivate()->mainDb->getConferenceInfoFromURI(conferenceAddress);
+	auto db = getCore()->getDatabase();
+	if (conferenceAddress && db) {
+		dbConferenceInfo = db.value().get()->getConferenceInfoFromURI(conferenceAddress);
 	}
-#endif // HAVE_DB_STORAGE
 
 	std::list<std::shared_ptr<Address>> invitees;
 	for (const auto &participantInfo : participants) {

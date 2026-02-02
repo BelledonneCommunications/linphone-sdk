@@ -388,16 +388,13 @@ void Core::reportConferenceCallEvent(EventLog::Type type,
                                      std::shared_ptr<CallLog> &callLog,
                                      std::shared_ptr<ConferenceInfo> confInfo) {
 	std::shared_ptr<Address> to = callLog->getToAddress() ? callLog->getToAddress() : nullptr;
-#ifdef HAVE_DB_STORAGE
-	L_D();
 
-	if (d->mainDb == nullptr) return;
-
-	if (confInfo == nullptr) {
+	auto db = getDatabase();
+	if (db && confInfo == nullptr) {
 		// Let's see if we have a conference info in db with the corresponding URI
-		confInfo = callLog->wasConference() ? callLog->getConferenceInfo() : d->mainDb->getConferenceInfoFromURI(to);
+		confInfo =
+		    callLog->wasConference() ? callLog->getConferenceInfo() : db.value().get()->getConferenceInfoFromURI(to);
 	}
-#endif
 
 	// TODO: This is a workaround that has to be removed ASAP
 	// Add all calls that have been into a conference to the call logs of the core. The if below is required for calls
@@ -436,10 +433,10 @@ void Core::reportConferenceCallEvent(EventLog::Type type,
 	}
 	// End of workaround
 
-#ifdef HAVE_DB_STORAGE
-	auto event = make_shared<ConferenceCallEvent>(type, std::time(nullptr), callLog, confInfo);
-	d->mainDb->addEvent(event);
-#endif
+	if (db) {
+		auto event = make_shared<ConferenceCallEvent>(type, std::time(nullptr), callLog, confInfo);
+		db.value().get()->addEvent(event);
+	}
 
 	LinphoneCore *lc = getCCore();
 

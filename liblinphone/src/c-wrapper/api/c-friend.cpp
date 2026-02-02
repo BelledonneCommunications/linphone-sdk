@@ -948,6 +948,7 @@ void linphone_core_update_friends_subscriptions(LinphoneCore *lc) {
 int linphone_core_friends_storage_resync_friends_lists(LinphoneCore *lc) {
 	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
 
+	if (!mainDb || !mainDb->isInitialized()) return 0;
 	// First remove all the orphan friends from the DB (friends that are not in a friend list)
 	mainDb->deleteOrphanFriends();
 
@@ -981,6 +982,8 @@ int linphone_core_friends_storage_resync_friends_lists(LinphoneCore *lc) {
 
 bctbx_list_t *linphone_core_fetch_friends_from_db(LinphoneCore *lc, LinphoneFriendList *list) {
 	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
+	if (!mainDb || !mainDb->isInitialized()) return nullptr;
+
 	std::list<std::shared_ptr<Friend>> friends = mainDb->getFriends(FriendList::getSharedFromThis(list));
 	bctbx_list_t *result = nullptr;
 	for (const auto &f : friends) {
@@ -991,6 +994,8 @@ bctbx_list_t *linphone_core_fetch_friends_from_db(LinphoneCore *lc, LinphoneFrie
 
 bctbx_list_t *linphone_core_fetch_friends_lists_from_db(LinphoneCore *lc) {
 	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
+	if (!mainDb || !mainDb->isInitialized()) return nullptr;
+
 	std::list<std::shared_ptr<FriendList>> friendLists = mainDb->getFriendLists();
 	bctbx_list_t *result = nullptr;
 	for (const auto &l : friendLists) {

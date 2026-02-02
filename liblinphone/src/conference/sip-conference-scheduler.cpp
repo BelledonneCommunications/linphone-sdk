@@ -102,10 +102,9 @@ void SIPConferenceScheduler::onCallSessionSetTerminated(const std::shared_ptr<Ca
 	} else if (getState() != State::Error) {
 		setConferenceAddress(remoteAddress);
 		// Update conference info in database with updated conference information
-#ifdef HAVE_DB_STORAGE
-		auto &mainDb = getCore()->getPrivate()->mainDb;
-		mainDb->insertConferenceInfo(mConferenceInfo);
-#endif // HAVE_DB_STORAGE
+		if (auto db = getCore()->getDatabase()) {
+			db.value().get()->insertConferenceInfo(mConferenceInfo);
+		}
 	}
 	getCore()->removeConferenceScheduler(getSharedFromThis());
 }

@@ -1602,16 +1602,14 @@ std::shared_ptr<ConferenceInfo> Conference::createOrGetConferenceInfo() const {
 	// Pure chatrooms do not need a conference information
 	mConferenceInfo = nullptr;
 	if (isChatOnly()) return mConferenceInfo;
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = getCore()->getPrivate()->mainDb;
-	if (mainDb) {
+	if (auto db = getCore()->getDatabase()) {
 		if (mConferenceInfoId == -1) {
-			mConferenceInfo = mainDb->getConferenceInfoFromURI(getConferenceAddress());
+			mConferenceInfo = db.value().get()->getConferenceInfoFromURI(getConferenceAddress());
 		} else {
-			mConferenceInfo = mainDb->getConferenceInfo(mConferenceInfoId);
+			mConferenceInfo = db.value().get()->getConferenceInfo(mConferenceInfoId);
 		}
 	}
-#endif // HAVE_DB_STORAGE
+
 	if (!mConferenceInfo) {
 		mConferenceInfo = createConferenceInfo();
 	}
@@ -1741,16 +1739,13 @@ void Conference::updateSecurityLevelInConferenceInfo(const ConferenceParams::Sec
 		if (info) {
 			info->setSecurityLevel(level);
 
-#ifdef HAVE_DB_STORAGE
 			// Store into DB after the start incoming notification in order to have a valid conference address being
 			// the contact address of the call
-			auto &mainDb = getCore()->getPrivate()->mainDb;
-			if (mainDb) {
+			if (auto db = getCore()->getDatabase()) {
 				lInfo() << "Updating conference information of " << *this
 				        << " because its security level has been changed to " << level;
-				mainDb->insertConferenceInfo(info);
+				db.value().get()->insertConferenceInfo(info);
 			}
-#endif // HAVE_DB_STORAGE
 		}
 	}
 }
@@ -1763,16 +1758,13 @@ void Conference::updateSubjectInConferenceInfo(const std::string &subject) const
 		if (info) {
 			info->setUtf8Subject(subject);
 
-#ifdef HAVE_DB_STORAGE
 			// Store into DB after the start incoming notification in order to have a valid conference address being
 			// the contact address of the call
-			auto &mainDb = getCore()->getPrivate()->mainDb;
-			if (mainDb) {
+			if (auto db = getCore()->getDatabase()) {
 				lInfo() << "Updating conference information of " << *this << " because its subject has been changed to "
 				        << subject;
-				mainDb->insertConferenceInfo(info);
+				db.value().get()->insertConferenceInfo(info);
 			}
-#endif // HAVE_DB_STORAGE
 		}
 	}
 }
@@ -1792,16 +1784,13 @@ void Conference::updateParticipantRoleInConferenceInfo(const std::shared_ptr<Par
 
 				info->updateParticipant(newParticipantInfo);
 
-#ifdef HAVE_DB_STORAGE
 				// Store into DB after the start incoming notification in order to have a valid conference address
 				// being the contact address of the call
-				auto &mainDb = getCore()->getPrivate()->mainDb;
-				if (mainDb) {
+				if (auto db = getCore()->getDatabase()) {
 					lInfo() << "Updating conference information of " << *this << " because the role of participant "
 					        << *address << " changed to " << newRole;
-					mainDb->insertConferenceInfo(info);
+					db.value().get()->insertConferenceInfo(info);
 				}
-#endif // HAVE_DB_STORAGE
 			} else {
 				lError() << "Unable to update role of participant " << *address << " to " << newRole
 				         << " because it cannot be found in the conference info linked to " << *this;
@@ -1851,16 +1840,14 @@ void Conference::updateParticipantInConferenceInfo(const std::shared_ptr<Partici
 		auto info = createOrGetConferenceInfo();
 		if (info) {
 			[[maybe_unused]] bool update = updateParticipantInfoInConferenceInfo(info, participant);
-#ifdef HAVE_DB_STORAGE
 			// Store into DB after the start incoming notification in order to have a valid conference address being
 			// the contact address of the call
-			auto &mainDb = getCore()->getPrivate()->mainDb;
-			if (mainDb && update) {
+			auto db = getCore()->getDatabase();
+			if (db && update) {
 				lInfo() << "Updating conference information of " << *this << " because participant "
 				        << *participantAddress << " has been added or has modified its informations";
-				mainDb->insertConferenceInfo(info);
+				db.value().get()->insertConferenceInfo(info);
 			}
-#endif // HAVE_DB_STORAGE
 		}
 	}
 }
