@@ -3,9 +3,9 @@
 
  * This document lists the supported sections and keys of the ini-style linphonerc configuration file.<br/>
  * This configuration can be served through https in order to remotely configure a linphone-sdk based application, see
- * linphone::_##core::_#set_#provisioning_#uri().
+ * linphone::_##core::_#set_#provisioning_#uri().<br/>
  * The <a href="https://gitlab.linphone.org/BC/public/flexisip-account-manager">Flexisip Account Manager</a> has built-in
- * support for remote provisioning Linphone or linphone-sdk based client applications.
+ * support for remote provisioning Linphone or linphone-sdk based client applications.<br/>
  *
  * @warning this page is under construction, not all section and keys are yet referenced.
 

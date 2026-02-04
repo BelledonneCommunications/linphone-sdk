@@ -1,4 +1,9 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<style>
+table, th, td {
+border:1px solid black;
+}
+</style>
 <HTML>
 	<HEAD>
 	<TITLE>Quick tour of liblinphone's features</TITLE>
@@ -106,9 +111,5 @@
 		<br/>
 		This is to be done thanks to the <a href="org/linphone/core/FriendList.html">FriendList</a> and <a href="org/linphone/core/Friend.html">Friend</a> classes.
 		<h1>Liblinphone Configuration Parameters</h1>
-		Liblinphone supports a variety of configuration parameters that allow the end user to customize the behaviour of its application depending on its needs.
-		<ul>
-		<li><a href="provisioning_configuration_key.html">Provisioning Configuration Keys</a></li>
-		</ul>
 	</BODY>
 </HTML>

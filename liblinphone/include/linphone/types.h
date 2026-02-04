@@ -462,9 +462,9 @@ typedef enum _LinphoneRegistrationState {
 } LinphoneRegistrationState;
 
 /**
- * @brief Main object to instanciate and on which to keep a reference.
+ * @brief Main object to instantiate and on which to keep a reference.
  *
- * This object is the first object to instanciante, and will allow you to perform all kind of tasks.
+ * This object is the first object to instantiate, and will allow you to perform all kind of tasks.
  * To create it, use either linphone_factory_create_core_3() or linphone_factory_create_core_with_config_3(),
  * see #LinphoneConfig for more information about factory and default config.
  * On some platforms like Android or iOS you will need to give it the Context of your application.
@@ -474,9 +474,9 @@ typedef enum _LinphoneRegistrationState {
  * It is recommended to add a #LinphoneCoreCbs listener using linphone_core_add_callbacks() to monitor different events.
  *
  * To be able to receive events from the network, you must schedule a call linphone_core_iterate() often, like every
- * 20ms. On Android & iOS linphone_core_is_auto_iterate_enabled() is enabled by default so you don't have to worry about
- * that unless you disable it using linphone_core_enable_auto_iterate() or by setting in the [misc] section of your
- * configuration auto_iterate=0.
+ * 20ms. On Android and iOS linphone_core_is_auto_iterate_enabled() is enabled by default so you don't have to worry
+ * about that unless you disable it using linphone_core_enable_auto_iterate() or by setting in the [misc] section of
+ * your configuration auto_iterate=0.
  * @warning Our API isn't thread-safe but also isn't blocking, so it is strongly recommend to always call our methods
  * from the main thread.
  *
