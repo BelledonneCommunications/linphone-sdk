@@ -2131,12 +2131,9 @@ void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,
 				info->setCapability(LinphoneStreamTypeAudio, true);
 				info->setCapability(LinphoneStreamTypeVideo, true);
 				info->setCapability(LinphoneStreamTypeText, false);
-				L_GET_CPP_PTR_FROM_C_OBJECT(laure.getLc())->getDatabase().value().get()->insertConferenceInfo(info);
-				L_GET_CPP_PTR_FROM_C_OBJECT(laure.getLc())
-				    ->getDatabase()
-				    .value()
-				    .get()
-				    ->insertChatRoom(chatRoom, chatRoom->getConference()->getLastNotify(), true);
+				laure.getDatabase().value().get()->insertConferenceInfo(info);
+				laure.getDatabase().value().get()->insertChatRoom(chatRoom, chatRoom->getConference()->getLastNotify(),
+				                                                  true);
 			}
 
 			if (restart_core_after_corruption) {
@@ -2857,47 +2854,48 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		                             laure_stat.number_of_LinphoneRegistrationOk + 1, liblinphone_tester_sip_timeout));
 
 		BC_ASSERT_EQUAL(laure.getCore().getChatRooms().size(), nbChatrooms, size_t, "%zu");
-		auto &laureMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(laure.getLc())->getDatabase().value().get();
-		BC_ASSERT_EQUAL(laureMainDb->getChatRooms().size(), nbChatrooms, size_t, "%zu");
+		auto laureMainDb = laure.getDatabase();
+		BC_ASSERT_EQUAL(laureMainDb.value().get()->getChatRooms().size(), nbChatrooms, size_t, "%zu");
 
 		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores2{marie, pauline, laure, michelle};
 		for (const ConfCoreManager &core : cores2) {
 			int expectedHistorySize = (core.getCMgr() == michelle.getCMgr()) ? 0 : 5;
-			BC_ASSERT_TRUE(
-			    CoreManagerAssert({focus, marie, pauline, michelle, laure})
-			        .wait([&core, &nbChatrooms, &encrypted, &expectedHistorySize] {
-				        const auto &coreChatRooms = core.getCore().getChatRooms();
-				        if (coreChatRooms.size() < static_cast<size_t>(nbChatrooms)) {
-					        return false;
-				        }
-				        for (auto chatRoom : coreChatRooms) {
-					        if (chatRoom->getState() != ConferenceInterface::State::Created) {
-						        return false;
-					        }
-					        auto params = chatRoom->getCurrentParams();
-					        if (params->getChatParams()->isEncrypted() != !!encrypted) {
-						        return false;
-					        }
-					        auto historySize = chatRoom->getMessageHistorySize();
-					        if (historySize != expectedHistorySize) {
-						        return false;
-					        }
-					        auto &coreMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(core.getLc())->getDatabase().value().get();
-					        if (coreMainDb->getChatMessageCount(chatRoom->getConferenceId()) != historySize) {
-						        return false;
-					        }
-				        }
-				        return true;
-			        }));
+			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, laure})
+			                   .wait([&core, &nbChatrooms, &encrypted, &expectedHistorySize] {
+				                   const auto &coreChatRooms = core.getCore().getChatRooms();
+				                   if (coreChatRooms.size() < static_cast<size_t>(nbChatrooms)) {
+					                   return false;
+				                   }
+				                   for (auto chatRoom : coreChatRooms) {
+					                   if (chatRoom->getState() != ConferenceInterface::State::Created) {
+						                   return false;
+					                   }
+					                   auto params = chatRoom->getCurrentParams();
+					                   if (params->getChatParams()->isEncrypted() != !!encrypted) {
+						                   return false;
+					                   }
+					                   auto historySize = chatRoom->getMessageHistorySize();
+					                   if (historySize != expectedHistorySize) {
+						                   return false;
+					                   }
+					                   auto coreMainDb = core.getDatabase();
+					                   if (coreMainDb.value().get()->getChatMessageCount(chatRoom->getConferenceId()) !=
+					                       historySize) {
+						                   return false;
+					                   }
+				                   }
+				                   return true;
+			                   }));
 		}
 
 		for (const auto &conferenceId : oldConferenceIds) {
 			const auto chatRoom = laure.getCore().findChatRoom(conferenceId, false);
 			BC_ASSERT_PTR_NOT_NULL(chatRoom);
 			if (chatRoom) {
-				BC_ASSERT_EQUAL(laureMainDb->getConferenceNotifiedEvents(conferenceId, 0).size(),
-				                laureMainDb->getConferenceNotifiedEvents(chatRoom->getConferenceId(), 0).size(), size_t,
-				                "%zu");
+				BC_ASSERT_EQUAL(
+				    laureMainDb.value().get()->getConferenceNotifiedEvents(conferenceId, 0).size(),
+				    laureMainDb.value().get()->getConferenceNotifiedEvents(chatRoom->getConferenceId(), 0).size(),
+				    size_t, "%zu");
 			}
 		}
 
@@ -2911,8 +2909,9 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			    });
 			BC_ASSERT_TRUE(oldConferenceIdIt != oldConferenceIds.end());
 			if (oldConferenceIdIt != oldConferenceIds.end()) {
-				BC_ASSERT_EQUAL(laureMainDb->getConferenceNotifiedEvents(conferenceId, 0).size(),
-				                laureMainDb->getConferenceNotifiedEvents(*oldConferenceIdIt, 0).size(), size_t, "%zu");
+				BC_ASSERT_EQUAL(laureMainDb.value().get()->getConferenceNotifiedEvents(conferenceId, 0).size(),
+				                laureMainDb.value().get()->getConferenceNotifiedEvents(*oldConferenceIdIt, 0).size(),
+				                size_t, "%zu");
 			}
 		}
 

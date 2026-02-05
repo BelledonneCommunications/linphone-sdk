@@ -399,7 +399,7 @@ void ClientChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &chat
 	const auto &storageId = chatMessage->getStorageId();
 	L_ASSERT(storageId >= 0);
 	if (auto db = getCore()->getDatabase()) {
-		shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), storageId);
+		shared_ptr<EventLog> eventLog = db.value().get()->getEvent(storageId);
 		_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
 	}
 }

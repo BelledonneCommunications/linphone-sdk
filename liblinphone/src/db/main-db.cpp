@@ -4943,28 +4943,29 @@ int MainDb::getEventCount(FilterMask mask) const {
 #endif
 }
 
-shared_ptr<EventLog> MainDb::getEvent(const unique_ptr<MainDb> &mainDb, const long long &storageId) {
+shared_ptr<EventLog> MainDb::getEvent(const long long &storageId) {
+
 #ifdef HAVE_DB_STORAGE
-	if ((storageId < 0) || (mainDb == nullptr)) {
+	if ((storageId < 0) || !isInitialized()) {
 		if ((storageId < 0)) {
 			lDebug() << "Unable to get event from invalid storage ID " << storageId;
 		}
 		return nullptr;
 	}
 
-	MainDbPrivate *d = mainDb->getPrivate();
+	MainDbPrivate *d = getPrivate();
 
 	shared_ptr<EventLog> event = d->getEventFromCache(storageId);
 	if (event) return event;
 
-	return L_DB_TRANSACTION_C(mainDb.get()) {
+	return L_DB_TRANSACTION_C(this) {
 		// TODO: Improve. Deal with all events in the future.
 		soci::row row;
 		*d->dbSession.getBackendSession() << Statements::get(Statements::SelectConferenceEvent), soci::into(row),
 		    soci::use(storageId);
 
 		ConferenceId conferenceId(Address(row.get<string>(16)), Address(row.get<string>(17)),
-		                          mainDb->getCore()->createConferenceIdParams());
+		                          getCore()->createConferenceIdParams());
 		shared_ptr<AbstractChatRoom> chatRoom = d->findChatRoom(conferenceId);
 		if (!chatRoom) return shared_ptr<EventLog>();
 
@@ -4982,9 +4983,9 @@ shared_ptr<EventLog> MainDb::getEventFromKey(const MainDbKey &dbKey) {
 		return nullptr;
 	}
 
-	auto &db = dbKey.getPrivate()->core.lock()->getDatabase().value().get();
+	auto db = dbKey.getPrivate()->core.lock()->getDatabase();
 	const long long &eventId = dbKey.getPrivate()->storageId;
-	return MainDb::getEvent(db, eventId);
+	return db.value().get()->getEvent(eventId);
 #else
 	return nullptr;
 #endif

@@ -168,7 +168,7 @@ void ChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &) {
 void ChatRoom::onChatMessageSent(const shared_ptr<ChatMessage> &chatMessage) {
 	LinphoneChatRoom *cr = getCChatRoom();
 	if (auto db = getCore()->getDatabase()) {
-		shared_ptr<EventLog> eventLog = MainDb::getEvent(db.value().get(), chatMessage->getStorageId());
+		shared_ptr<EventLog> eventLog = db.value().get()->getEvent(chatMessage->getStorageId());
 		_linphone_chat_room_notify_chat_message_sent(cr, L_GET_C_BACK_PTR(eventLog));
 	}
 	linphone_core_notify_message_sent(getCore()->getCCore(), cr, L_GET_C_BACK_PTR(chatMessage));
@@ -201,7 +201,7 @@ void ChatRoom::addEvent(const shared_ptr<EventLog> &eventLog) {
 	EventLog::Type type = eventLog->getType();
 
 	auto db = getCore()->getDatabase();
-	if (!db || db.value().get()->addEvent(eventLog)) {
+	if (!db || !db.value().get()->addEvent(eventLog)) {
 		lWarning() << "Failed to add event of type " << type << " to the database";
 	}
 
@@ -988,8 +988,7 @@ void ChatRoom::deleteHistory() {
 
 void ChatRoom::deleteMessageFromHistory(const shared_ptr<ChatMessage> &message) {
 	if (auto db = getCore()->getDatabase()) {
-		shared_ptr<LinphonePrivate::EventLog> event =
-		    LinphonePrivate::MainDb::getEvent(db.value().get(), message->getStorageId());
+		shared_ptr<LinphonePrivate::EventLog> event = db.value().get()->getEvent(message->getStorageId());
 		if (event) {
 			LinphonePrivate::EventLog::deleteFromDatabase(event);
 			setIsEmpty(db.value().get()->isChatRoomEmpty(getConferenceId()));

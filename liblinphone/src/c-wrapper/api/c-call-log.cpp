@@ -283,8 +283,6 @@ const bctbx_list_t *linphone_core_get_call_history(LinphoneCore *lc) {
 	}
 
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
-		if (!db) return lc->call_logs;
-
 		if (lc->call_logs != nullptr) {
 			size_t callLogsDatabaseSize = (size_t)db.value().get()->getCallHistorySize();
 			if (bctbx_list_size(lc->call_logs) >= callLogsDatabaseSize) return lc->call_logs;

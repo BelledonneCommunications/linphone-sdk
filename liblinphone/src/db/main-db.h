@@ -106,10 +106,10 @@ public:
 	bool addEvent(const std::shared_ptr<EventLog> &eventLog);
 	bool updateEvent(const std::shared_ptr<EventLog> &eventLog);
 	static bool deleteEvent(const std::shared_ptr<const EventLog> &eventLog);
+	std::shared_ptr<EventLog> getEvent(const long long &storageId);
 	int getEventCount(FilterMask mask = NoFilter) const;
 
 	static std::shared_ptr<EventLog> getEventFromKey(const MainDbKey &dbKey);
-	static std::shared_ptr<EventLog> getEvent(const std::unique_ptr<MainDb> &mainDb, const long long &storageId);
 
 	// ---------------------------------------------------------------------------
 	// Conference notified events.
