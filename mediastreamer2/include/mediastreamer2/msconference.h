@@ -75,6 +75,8 @@ struct _MSAudioConferenceParams {
 	MSStreamSecurityLevel security_level;
 	MSConferenceMode mode;
 	void *user_data;
+	bool_t csrc_usage_allowed; /*When in mixer mode, indicates whether the use of CSRC fields is allowed, in absence of
+	                            of any clear indication that it is, such as mixer-to-client extension support. */
 };
 
 /**
