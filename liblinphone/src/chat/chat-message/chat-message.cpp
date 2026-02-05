@@ -638,10 +638,8 @@ void ChatMessagePrivate::disableDisplayNotificationRequiredInDatabase() {
 	if (!chatRoom) return;
 
 	if (auto db = chatRoom->getCore()->getDatabase()) {
-		const unique_ptr<MainDb> &mainDb = db.value().get();
-		const std::shared_ptr<const EventLog> &eventLog = MainDb::getEvent(mainDb, q->getStorageId());
-		;
-		if (q->isValid() && eventLog) mainDb->disableDisplayNotificationRequired(eventLog);
+		const std::shared_ptr<const EventLog> &eventLog = MainDb::getEvent(db.value().get(), q->getStorageId());
+		if (q->isValid() && eventLog) db.value().get()->disableDisplayNotificationRequired(eventLog);
 	}
 }
 

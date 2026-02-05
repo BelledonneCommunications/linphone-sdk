@@ -21,6 +21,7 @@
 #ifndef _L_CORE_P_H_
 #define _L_CORE_P_H_
 
+#include <optional>
 #include <stdexcept>
 
 #include "linphone/utils/utils.h"
@@ -170,7 +171,8 @@ public:
 	// Cancel task scheduled on the main loop
 	void doLater(const std::function<void()> &something);
 	belle_sip_main_loop_t *getMainLoop();
-	std::unique_ptr<MainDb> mainDb;
+	std::optional<std::reference_wrapper<const std::unique_ptr<MainDb>>> getDatabase() const;
+	void uninitDatabase();
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	std::unique_ptr<ClientConferenceListEventHandler> clientListEventHandler;
 	std::unique_ptr<ServerConferenceListEventHandler> serverListEventHandler;
@@ -222,6 +224,7 @@ private:
 	// of the CallSession object which doesn't hold a strong reference to it
 	std::list<std::shared_ptr<Call>> mReleasingCalls;
 
+	std::unique_ptr<MainDb> mainDb;
 	std::list<std::shared_ptr<Call>> calls;
 	std::shared_ptr<Call> currentCall;
 	std::weak_ptr<Conference> currentLocalConference; /* set to the active client-mixed conference*/

@@ -2449,7 +2449,7 @@ static void group_chat_room_with_imdn_chat_room_deleted_on_client_side(void) {
 		BC_ASSERT_EQUAL(pauline.getCore().getChatRooms().size(), 1, size_t, "%zu");
 		BC_ASSERT_EQUAL(michelle.getCore().getChatRooms().size(), 1, size_t, "%zu");
 
-		auto &marieMainDb = L_GET_PRIVATE_FROM_C_OBJECT(marie.getLc())->mainDb;
+		auto &marieMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(marie.getLc())->getDatabase().value().get();
 		for (auto chatRoom : marie.getCore().getChatRooms()) {
 			auto chatRoomParams = chatRoom->getCurrentParams();
 			BC_ASSERT_TRUE(chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::FlexisipChat);

@@ -637,6 +637,19 @@ belle_sip_main_loop_t *CorePrivate::getMainLoop() {
 	           : nullptr;
 }
 
+optional<reference_wrapper<const unique_ptr<MainDb>>> CorePrivate::getDatabase() const {
+#ifdef HAVE_DB_STORAGE
+	if (mainDb != nullptr && mainDb->isInitialized()) {
+		return mainDb;
+	}
+#endif
+	return std::nullopt;
+}
+
+void CorePrivate::uninitDatabase() {
+	mainDb = nullptr;
+}
+
 Sal *CorePrivate::getSal() {
 	return getPublic()->getCCore()->sal.get();
 }
@@ -3811,12 +3824,11 @@ LinphoneEphemeralChatMessagePolicy Core::getEphemeralChatMessagePolicy() const {
 }
 
 std::optional<std::reference_wrapper<const unique_ptr<MainDb>>> Core::getDatabase() const {
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = getPrivate()->mainDb;
-	if (mainDb != nullptr && mainDb->isInitialized()) {
-		return mainDb;
-	}
-#endif
-	return std::nullopt;
+	return getPrivate()->getDatabase();
 }
+
+void Core::uninitDatabase() {
+	getPrivate()->uninitDatabase();
+}
+
 LINPHONE_END_NAMESPACE

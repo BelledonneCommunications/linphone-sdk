@@ -100,7 +100,7 @@ static void get_existing_conference_info_from_call_log() {
 	conferenceInfo->addParticipant(Address::create("sip:laure@sip.linphone.org"));
 
 	// First insert the conference info into DB
-	L_GET_PRIVATE_FROM_C_OBJECT(marie->lc)->mainDb->insertConferenceInfo(conferenceInfo);
+	L_GET_CPP_PTR_FROM_C_OBJECT(marie->lc)->getDatabase().value().get()->insertConferenceInfo(conferenceInfo);
 
 	// Report the call event without specifying the conference info
 	L_GET_CPP_PTR_FROM_C_OBJECT(marie->lc)->reportConferenceCallEvent(EventLog::Type::ConferenceCallStarted, callLog,
@@ -162,7 +162,7 @@ static void last_outgoing_call_without_conference() {
 	L_GET_CPP_PTR_FROM_C_OBJECT(marie->lc)->reportConferenceCallEvent(EventLog::Type::ConferenceCallEnded, callLog,
 	                                                                  conferenceInfo);
 
-	auto lastCall = L_GET_PRIVATE_FROM_C_OBJECT(marie->lc)->mainDb->getLastOutgoingCall();
+	auto lastCall = L_GET_CPP_PTR_FROM_C_OBJECT(marie->lc)->getDatabase().value().get()->getLastOutgoingCall();
 
 	BC_ASSERT_PTR_NOT_NULL(lastCall);
 	if (lastCall != nullptr) {

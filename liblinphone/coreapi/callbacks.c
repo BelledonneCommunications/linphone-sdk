@@ -323,11 +323,8 @@ static void call_received(SalCallOp *h) {
 				return;
 			}
 		} else {
-#ifdef HAVE_DB_STORAGE
-			std::shared_ptr<ConferenceInfo> confInfo =
-			    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->isInitialized()
-			        ? L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->getConferenceInfoFromURI(to)
-			        : nullptr;
+			auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
+			std::shared_ptr<ConferenceInfo> confInfo = db ? db.value().get()->getConferenceInfoFromURI(to) : nullptr;
 			if (confInfo) {
 				params->enableAudio(confInfo->getCapability(LinphoneStreamTypeAudio));
 				params->enableVideo(confInfo->getCapability(LinphoneStreamTypeVideo));
@@ -342,15 +339,10 @@ static void call_received(SalCallOp *h) {
 				}
 				conference = (new ServerConference(core, nullptr, params))->toSharedPtr();
 				conference->init(h);
-			} else
-#endif // HAVE_DB_STORAGE
-			{
+			} else {
 				if (hasStreams) {
 					if (sal_address_has_uri_param(h->getToAddress(), Conference::sConfIdParameter.c_str())) {
-						long long expiredConferenceId =
-						    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->isInitialized()
-						        ? L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findExpiredConferenceId(to)
-						        : -1;
+						long long expiredConferenceId = db ? db.value().get()->findExpiredConferenceId(to) : -1;
 						SalErrorInfo sei;
 						memset(&sei, 0, sizeof(sei));
 						std::string msg = "Conference " + to->toString();
@@ -403,10 +395,9 @@ static void call_received(SalCallOp *h) {
 							}
 							const auto &participant = (*participantList.begin())->getAddress();
 							std::shared_ptr<Address> confAddr =
-							    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->isInitialized()
-							        ? L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findOneOnOneConferenceChatRoomAddress(
-							              fromOp, participant, encrypted)
-							        : nullptr;
+							    db ? db.value().get()->findOneOnOneConferenceChatRoomAddress(fromOp, participant,
+							                                                                 encrypted)
+							       : nullptr;
 							if (confAddr && confAddr->isValid()) {
 								shared_ptr<AbstractChatRoom> chatRoom =
 								    core->findChatRoom(ConferenceId(confAddr, confAddr, conferenceIdParams));

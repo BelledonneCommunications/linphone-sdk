@@ -4878,7 +4878,7 @@ bool MainDb::deleteEvent(const shared_ptr<const EventLog> &eventLog) {
 	shared_ptr<Core> core = dEventKey->core.lock();
 	L_ASSERT(core);
 
-	MainDb &mainDb = *core->getPrivate()->mainDb.get();
+	MainDb &mainDb = *core->getDatabase().value().get();
 
 	return L_DB_TRANSACTION_C(&mainDb) {
 		MainDbPrivate *const d = mainDb.getPrivate();
@@ -4982,9 +4982,9 @@ shared_ptr<EventLog> MainDb::getEventFromKey(const MainDbKey &dbKey) {
 		return nullptr;
 	}
 
-	unique_ptr<MainDb> &q = dbKey.getPrivate()->core.lock()->getPrivate()->mainDb;
+	auto &db = dbKey.getPrivate()->core.lock()->getDatabase().value().get();
 	const long long &eventId = dbKey.getPrivate()->storageId;
-	return MainDb::getEvent(q, eventId);
+	return MainDb::getEvent(db, eventId);
 #else
 	return nullptr;
 #endif

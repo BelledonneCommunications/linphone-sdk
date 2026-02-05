@@ -472,7 +472,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 			           << michelle.getCMgr()->database_path << ". Error is " << e.what();
 		}
 
-		auto &michelleMainDb = L_GET_PRIVATE_FROM_C_OBJECT(michelle.getLc())->mainDb;
+		auto &michelleMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(michelle.getLc())->getDatabase().value().get();
 		ms_message("%s is adding participant with address %s to chatroom %s in the database",
 		           linphone_core_get_identity(michelle.getLc()),
 		           paulineUppercaseParticipant->getAddress()->toString().c_str(),
@@ -1181,7 +1181,7 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 			msg = NULL;
 
 			// Pauline is removed from the participant list in the server database and the server restarts
-			auto &focusMainDb = L_GET_PRIVATE_FROM_C_OBJECT(focus.getLc())->mainDb;
+			auto &focusMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(focus.getLc())->getDatabase().value().get();
 			Address paulineAddr = pauline.getIdentity();
 			for (auto focusCppCr : focus.getCore().getChatRooms()) {
 				ms_message("%s is removed from the participant list of chatroom %s",
@@ -1432,7 +1432,7 @@ static void secure_one_on_one_chat_room_recreates_chat_room_after_error(bool_t r
 			msg = NULL;
 
 			// Pauline is removed from the participant list in the server database and the server restarts
-			auto &focusMainDb = L_GET_PRIVATE_FROM_C_OBJECT(focus.getLc())->mainDb;
+			auto &focusMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(focus.getLc())->getDatabase().value().get();
 			Address paulineAddr = pauline.getIdentity();
 			for (auto focusCppCr : focus.getCore().getChatRooms()) {
 				ms_message("%s is removed from the participant list of chatroom %s",
@@ -1706,7 +1706,7 @@ static void secure_one_on_one_chat_room_created_twice(void) {
 			return linphone_chat_room_get_unread_messages_count(paulineCr) == 1;
 		}));
 
-		auto &marieMainDb = L_GET_PRIVATE_FROM_C_OBJECT(marie.getLc())->mainDb;
+		auto &marieMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(marie.getLc())->getDatabase().value().get();
 		// Delete all chatrooms from Marie's DB
 		for (auto chatRoom : marie.getCore().getChatRooms()) {
 			marieMainDb->deleteChatRoom(chatRoom->getConferenceId());
@@ -1972,9 +1972,9 @@ static void secure_one_on_one_chat_room_with_client_sending_imdn_on_restart(void
 		           linphone_core_get_identity(marie.getLc()));
 		// Simulate that chat message are still in state Delivered when restarting the core and the Delivery IMDN has
 		// not been sent yet
-		auto &paulineMainDb = L_GET_PRIVATE_FROM_C_OBJECT(pauline.getLc())->mainDb;
+		auto &paulineMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(pauline.getLc())->getDatabase().value().get();
 		paulineMainDb->enableAllDeliveryNotificationRequired();
-		auto &marieMainDb = L_GET_PRIVATE_FROM_C_OBJECT(marie.getLc())->mainDb;
+		auto &marieMainDb = L_GET_CPP_PTR_FROM_C_OBJECT(marie.getLc())->getDatabase().value().get();
 		marieMainDb->enableAllDeliveryNotificationRequired();
 
 		// Restart Marie

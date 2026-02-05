@@ -267,10 +267,9 @@ bctbx_list_t *linphone_core_read_call_logs_from_config_file(LinphoneCore *lc) {
 void linphone_core_store_call_log(LinphoneCore *lc, LinphoneCallLog *log) {
 	if (!lc) return;
 
-#ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (mainDb && mainDb->isInitialized()) mainDb->insertCallLog(CallLog::toCpp(log)->getSharedFromThis());
-#endif
+	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
+		db.value().get()->insertCallLog(CallLog::toCpp(log)->getSharedFromThis());
+	}
 
 	lc->call_logs = bctbx_list_prepend(lc->call_logs, linphone_call_log_ref(log));
 }
@@ -283,26 +282,25 @@ const bctbx_list_t *linphone_core_get_call_history(LinphoneCore *lc) {
 		return NULL;
 	}
 
-#ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb || !mainDb->isInitialized()) return lc->call_logs;
+	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
+		if (!db) return lc->call_logs;
 
-	if (lc->call_logs != NULL) {
-		size_t callLogsDatabaseSize = (size_t)mainDb->getCallHistorySize();
-		if (bctbx_list_size(lc->call_logs) >= callLogsDatabaseSize) return lc->call_logs;
-		// If some call logs were added to the Core before the full history was loaded from database,
-		// clean memory cache and reload everything from database
-		bctbx_list_free_with_data(lc->call_logs, (bctbx_list_free_func)linphone_call_log_unref);
-		lc->call_logs = NULL;
-	}
+		if (lc->call_logs != nullptr) {
+			size_t callLogsDatabaseSize = (size_t)db.value().get()->getCallHistorySize();
+			if (bctbx_list_size(lc->call_logs) >= callLogsDatabaseSize) return lc->call_logs;
+			// If some call logs were added to the Core before the full history was loaded from database,
+			// clean memory cache and reload everything from database
+			bctbx_list_free_with_data(lc->call_logs, (bctbx_list_free_func)linphone_call_log_unref);
+			lc->call_logs = nullptr;
+		}
 
-	auto list = mainDb->getCallHistory(lc->max_call_logs);
-	if (!list.empty()) {
-		for (auto &log : list) {
-			lc->call_logs = bctbx_list_append(lc->call_logs, linphone_call_log_ref(log->toC()));
+		auto list = db.value().get()->getCallHistory(lc->max_call_logs);
+		if (!list.empty()) {
+			for (auto &log : list) {
+				lc->call_logs = bctbx_list_append(lc->call_logs, linphone_call_log_ref(log->toC()));
+			}
 		}
 	}
-#endif
 
 	return lc->call_logs;
 }
@@ -310,16 +308,14 @@ const bctbx_list_t *linphone_core_get_call_history(LinphoneCore *lc) {
 void linphone_core_delete_call_history(LinphoneCore *lc) {
 	if (!lc) return;
 
-#ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb || !mainDb->isInitialized()) return;
+	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
+	if (!db) return;
 
-	mainDb->deleteCallHistory();
-#endif
+	db.value().get()->deleteCallHistory();
 
 	if (lc->call_logs) {
 		bctbx_list_free_with_data(lc->call_logs, (bctbx_list_free_func)linphone_call_log_unref);
-		lc->call_logs = NULL;
+		lc->call_logs = nullptr;
 	}
 }
 
@@ -330,16 +326,14 @@ void linphone_core_delete_call_history(LinphoneCore *lc) {
 void linphone_core_delete_call_log(LinphoneCore *lc, LinphoneCallLog *log) {
 	if (!lc) return;
 
-#ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb || !mainDb->isInitialized()) return;
+	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
+	if (!db) return;
 
-	mainDb->deleteCallLog(CallLog::toCpp(log)->getSharedFromThis());
-#endif
+	db.value().get()->deleteCallLog(CallLog::toCpp(log)->getSharedFromThis());
 
 	if (lc->call_logs) {
 		bctbx_list_free_with_data(lc->call_logs, (bctbx_list_free_func)linphone_call_log_unref);
-		lc->call_logs = NULL;
+		lc->call_logs = nullptr;
 	}
 }
 #ifndef _MSC_VER
@@ -350,10 +344,9 @@ int linphone_core_get_call_history_size(LinphoneCore *lc) {
 	if (!lc) return 0;
 
 #ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb || !mainDb->isInitialized()) return 0;
-
-	return mainDb->getCallHistorySize();
+	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
+	if (!db) return 0;
+	return db.value().get()->getCallHistorySize();
 #else
 	return (int)bctbx_list_size(lc->call_logs);
 #endif
@@ -365,14 +358,14 @@ bctbx_list_t *linphone_core_get_call_history_2(LinphoneCore *lc,
 	if (!lc || !peer_addr || !local_addr) return NULL;
 
 #ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb || !mainDb->isInitialized()) return NULL;
+	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
+	if (!db) return nullptr;
 
 	const auto peerAddr = Address::toCpp(peer_addr)->getSharedFromThis();
 	const auto localAddr = Address::toCpp(local_addr)->getSharedFromThis();
-	auto list = mainDb->getCallHistory(peerAddr, localAddr);
+	auto list = db.value().get()->getCallHistory(peerAddr, localAddr);
 
-	bctbx_list_t *results = NULL;
+	bctbx_list_t *results = nullptr;
 	if (!list.empty()) {
 		for (auto &log : list) {
 			results = bctbx_list_append(results, linphone_call_log_ref(log->toC()));
@@ -387,15 +380,14 @@ bctbx_list_t *linphone_core_get_call_history_2(LinphoneCore *lc,
 }
 
 LinphoneCallLog *linphone_core_get_last_outgoing_call_log(LinphoneCore *lc) {
-	if (!lc) return NULL;
+	if (!lc) return nullptr;
 
 #ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb || !mainDb->isInitialized()) return NULL;
+	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
+	if (!db) return nullptr;
+	auto log = db.value().get()->getLastOutgoingCall();
 
-	auto log = mainDb->getLastOutgoingCall();
-
-	return log != nullptr ? linphone_call_log_ref(log->toC()) : NULL;
+	return log ? linphone_call_log_ref(log->toC()) : nullptr;
 #else
 	bctbx_fatal("This function requires ENABLE_DB_STORAGE in order to work!");
 	return NULL;
@@ -403,15 +395,15 @@ LinphoneCallLog *linphone_core_get_last_outgoing_call_log(LinphoneCore *lc) {
 }
 
 LinphoneCallLog *linphone_core_find_call_log(LinphoneCore *lc, const char *call_id, int limit) {
-	if (!lc) return NULL;
+	if (!lc) return nullptr;
 
 #ifdef HAVE_DB_STORAGE
-	std::unique_ptr<MainDb> &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-	if (!mainDb || !mainDb->isInitialized()) return NULL;
+	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
+	if (!db) return nullptr;
 
-	auto log = mainDb->getCallLog(L_C_TO_STRING(call_id), limit);
+	auto log = db.value().get()->getCallLog(L_C_TO_STRING(call_id), limit);
 
-	return log != nullptr ? linphone_call_log_ref(log->toC()) : NULL;
+	return log ? linphone_call_log_ref(log->toC()) : nullptr;
 #else
 	long i;
 	bctbx_list_t *item;
