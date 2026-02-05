@@ -81,6 +81,7 @@ arch-latest-ninja-clang:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
+    CMAKE_OPTIONS: -DENABLE_CXX_WRAPPER=ON
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
