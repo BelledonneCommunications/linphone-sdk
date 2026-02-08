@@ -174,10 +174,12 @@ void GenericPlatformHelpers::onLinphoneCoreStart(bool monitoringEnabled) {
 	if (!monitoringEnabled) return;
 
 	if (!mMonitorTimer) {
-		mMonitorTimer = getCore()->getCCore()->sal->createTimer(monitorTimerExpired, this, DefaultMonitorTimeout * 1000,
-		                                                        "monitor network timeout");
-	} else {
-		belle_sip_source_set_timeout_int64(mMonitorTimer, (int64_t)DefaultMonitorTimeout * 1000);
+		mMonitorTimer = getCore()->createTimer(
+		    [this]() -> bool {
+			    monitorTimerExpired(this, 0);
+			    return true;
+		    },
+		    DefaultMonitorTimeout * 1000, "monitor network timeout");
 	}
 
 	// Get ip right now to avoid waiting for 5s
@@ -185,6 +187,10 @@ void GenericPlatformHelpers::onLinphoneCoreStart(bool monitoringEnabled) {
 }
 
 void GenericPlatformHelpers::onLinphoneCoreStop() {
+	if (mMonitorTimer) {
+		getCore()->destroyTimer(mMonitorTimer);
+		mMonitorTimer = nullptr;
+	}
 }
 
 void GenericPlatformHelpers::startAudioForEchoTestOrCalibration() {
