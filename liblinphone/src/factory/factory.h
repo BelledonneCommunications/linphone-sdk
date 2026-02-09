@@ -169,7 +169,7 @@ public:
 	void setLiblinphonePluginsDir(const std::string &path);
 
 #ifdef HAVE_HIDAPI
-	const Hid &getHid() const;
+	Hid &getHid();
 #endif /* HAVE_HIDAPI */
 
 	LinphoneErrorInfo *createErrorInfo() const;

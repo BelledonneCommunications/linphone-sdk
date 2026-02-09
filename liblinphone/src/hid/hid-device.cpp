@@ -33,11 +33,13 @@
 LINPHONE_BEGIN_NAMESPACE
 
 HidDevice::HidDevice(const std::shared_ptr<Core> &core,
+                     const std::string &name,
                      const std::wstring &serialNumber,
                      void *device,
                      const HidDeviceInputData inputData,
                      const HidDeviceOutputData outputData)
-    : CoreAccessor(core), mSerialNumber(serialNumber), mDevice(device), mInputData(inputData), mOutputData(outputData) {
+    : CoreAccessor(core), mName(name), mSerialNumber(serialNumber), mDevice(device), mInputData(inputData),
+      mOutputData(outputData) {
 	if (core == nullptr) lFatal() << "Cannot create HidDevice without Core.";
 	hid_set_nonblocking(static_cast<hid_device *>(mDevice), TRUE);
 }
@@ -286,9 +288,16 @@ std::shared_ptr<HidDevice> HidDevice::create(const std::shared_ptr<Core> &core,
 
 	switch (productId) {
 		CASE_HID_DEVICE(PRODUCT_ID_JABRA_ENGAGE_55, JabraEngage55HidDevice)
+		CASE_HID_DEVICE(PRODUCT_ID_JABRA_ENGAGE_55_BIS, JabraEngage55HidDevice)
 		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55, JabraEvolve255HidDevice)
+		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55_BIS, JabraEvolve255HidDevice)
 		default:
-			return nullptr;
+			device = hid_open_path(path);
+			if (!device) {
+				wcstombs(error, hid_error(nullptr), sizeof(error));
+				lError() << "Could not open Unknown HidDevice: " << error;
+			}
+			return std::make_shared<UnknownHidDevice>(core, productId, serialNumber, device);
 	}
 }
 

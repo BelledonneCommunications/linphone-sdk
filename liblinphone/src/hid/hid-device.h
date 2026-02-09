@@ -57,19 +57,27 @@ public:
 class HidDevice : public CoreAccessor {
 public:
 	HidDevice(const std::shared_ptr<Core> &core,
+	          const std::string &name,
 	          const std::wstring &serialNumber,
 	          void *device,
 	          HidDeviceInputData inputData,
 	          HidDeviceOutputData outputData);
 	virtual ~HidDevice();
 
-	void startPollTimer();
-	void stopPollTimer();
+	virtual void startPollTimer();
+	virtual void stopPollTimer();
 
 	/**
 	 * Handle the events received from a headset.
 	 */
 	void handleEvents();
+
+	const std::string &getName() const {
+		return mName;
+	};
+	const std::wstring &getSerialNumber() const {
+		return mSerialNumber;
+	}
 
 	void answerCall(bool hasPausedCalls);
 	void endCall();
@@ -95,10 +103,13 @@ protected:
 	static bool valueHas(uint16_t value, uint16_t bits);
 
 	uint8_t mState = 0;
+	std::string mName;
 
 private:
-	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55 = 0x1131;  // Jabra Link 400
-	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55 = 0x2e56; // Jabra Link 390
+	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55 = 0x1131;      // Jabra Link 400
+	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55_BIS = 0x1132;  // Jabra Link 400
+	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55 = 0x2e56;     // Jabra Link 390
+	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55_BIS = 0x2e57; // Jabra Link 390
 
 	static constexpr int EVENT_POLL_INTERVAL_MS = 20;
 
@@ -107,6 +118,24 @@ private:
 	void *mDevice;
 	HidDeviceInputData mInputData;
 	HidDeviceOutputData mOutputData;
+};
+
+class UnknownHidDevice : public HidDevice {
+public:
+	UnknownHidDevice(const std::shared_ptr<Core> &core,
+	                 const uint16_t productId,
+	                 const std::wstring &serialNumber,
+	                 void *device)
+	    : HidDevice(core, "", serialNumber, device, HidDeviceInputData{}, HidDeviceOutputData{}) {
+		std::stringstream nameFormat;
+		nameFormat << "Unknown HidDevice with product ID " << productId;
+		mName = nameFormat.str();
+	};
+
+	void startPollTimer() override {
+	}
+	void stopPollTimer() override {
+	}
 };
 
 /**
@@ -131,6 +160,7 @@ class JabraEngage55HidDevice : public HidDevice {
 public:
 	JabraEngage55HidDevice(const std::shared_ptr<Core> &core, const std::wstring &serialNumber, void *device)
 	    : HidDevice(core,
+	                "Jabra Engage 55",
 	                serialNumber,
 	                device,
 	                HidDeviceInputData{0x0100, 0x1000, 0x0800, 0x8000},
@@ -159,6 +189,7 @@ class JabraEvolve255HidDevice : public HidDevice {
 public:
 	JabraEvolve255HidDevice(const std::shared_ptr<Core> &core, const std::wstring &serialNumber, void *device)
 	    : HidDevice(core,
+	                "Jabra Evolve 2 55",
 	                serialNumber,
 	                device,
 	                HidDeviceInputData{0x0100, 0x1000, 0x0800, 0x0008},

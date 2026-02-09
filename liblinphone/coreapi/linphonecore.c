@@ -2724,13 +2724,13 @@ void linphone_core_set_state(LinphoneCore *lc, LinphoneGlobalState gstate, const
 #ifdef HAVE_HIDAPI
 	const auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
 	if (gstate == LinphoneGlobalOn) {
-		for (const auto &hidDevice : core->getHidDevices()) {
-			hidDevice->startPollTimer();
-		}
+		Factory::toCpp(linphone_factory_get())->getHid().startDeviceDetection(core);
 	} else if (gstate == LinphoneGlobalOff) {
+		Factory::toCpp(linphone_factory_get())->getHid().stopDeviceDetection();
 		for (const auto &hidDevice : core->getHidDevices()) {
 			hidDevice->stopPollTimer();
 		}
+		core->clearHidDevices();
 	}
 #endif /* HAVE_HIDAPI */
 }
