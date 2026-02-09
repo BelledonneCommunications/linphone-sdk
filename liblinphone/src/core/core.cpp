@@ -245,10 +245,6 @@ void CorePrivate::init() {
 
 	createConferenceCleanupTimer(q->getConferenceCleanupPeriod());
 
-#ifdef HAVE_HIDAPI
-	hidDevices = Factory::toCpp(linphone_factory_get())->getHid().getDevices(q->getSharedFromThis());
-#endif /* HAVE_HIDAPI */
-
 #ifdef __ANDROID__
 	// On Android assume Core has been started in background,
 	// otherwise first notifyEnterForeground() will do nothing.
@@ -3726,6 +3722,41 @@ const std::list<std::shared_ptr<HidDevice>> &Core::getHidDevices() const {
 	L_D();
 
 	return d->hidDevices;
+}
+
+void Core::clearHidDevices() {
+	L_D();
+
+	d->hidDevices.clear();
+}
+
+void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
+	L_D();
+
+	// Remove devices that are no longer present
+	std::list<std::shared_ptr<HidDevice>>::iterator currentIt = d->hidDevices.begin();
+	while (currentIt != d->hidDevices.end()) {
+		const std::shared_ptr<HidDevice> &hidDevice = *currentIt;
+		auto it = std::find_if(devices.begin(), devices.end(), [hidDevice](const std::shared_ptr<HidDevice> &device) {
+			return hidDevice->getSerialNumber() == device->getSerialNumber();
+		});
+		if (it == devices.end()) {
+			lInfo() << "HidDevice \"" << (*currentIt)->getName() << "\" has been unplugged";
+			(*currentIt)->stopPollTimer();
+			d->hidDevices.erase(currentIt++);
+		} else {
+			// Device is present in both lists, remove it so that we don't add a du
+			devices.erase(it);
+			++currentIt;
+		}
+	}
+
+	// Add devices that were not present before
+	for (const auto &device : devices) {
+		lInfo() << "Detected HidDevice \"" << device->getName() << "\"";
+		d->hidDevices.push_back(device);
+		device->startPollTimer();
+	}
 }
 #endif /* HAVE_HIDAPI */
 

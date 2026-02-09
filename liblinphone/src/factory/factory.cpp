@@ -722,7 +722,7 @@ bool_t Factory::isImdnAvailable() const {
 }
 
 #ifdef HAVE_HIDAPI
-const Hid &Factory::getHid() const {
+Hid &Factory::getHid() {
 	return mHid;
 }
 #endif /* HAVE_HIDAPI */

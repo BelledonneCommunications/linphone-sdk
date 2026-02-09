@@ -531,6 +531,8 @@ public:
 
 #ifdef HAVE_HIDAPI
 	const std::list<std::shared_ptr<HidDevice>> &getHidDevices() const;
+	void clearHidDevices();
+	void updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices);
 #endif /* HAVE_HIDAPI */
 
 private:

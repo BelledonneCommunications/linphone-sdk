@@ -45,6 +45,23 @@ Hid::~Hid() {
 	}
 }
 
+void Hid::startDeviceDetection(const std::shared_ptr<Core> &core) {
+	stopDeviceDetection();
+	mCore = core;
+	mTimer = mCore->createTimer(
+	    [this, core]() {
+		    core->updateHidDevices(getDevices(core));
+		    return true;
+	    },
+	    DETECTION_POLL_INTERVAL_MS, "HID device detection timer");
+}
+
+void Hid::stopDeviceDetection() {
+	if (mTimer && mCore) mCore->destroyTimer(mTimer);
+	mTimer = nullptr;
+	mCore = nullptr;
+}
+
 std::list<std::shared_ptr<HidDevice>> Hid::getDevices(const std::shared_ptr<Core> &core) const {
 	std::list<std::shared_ptr<HidDevice>> result;
 
@@ -61,7 +78,14 @@ std::list<std::shared_ptr<HidDevice>> Hid::getDevices(const std::shared_ptr<Core
 		    (current_device->usage_page == USAGE_PAGE_TELEPHONY) &&
 		    (current_device->usage == USAGE_TELEPHONY_HANDSET)) {
 			const auto productId = current_device->product_id;
-			result.push_back(HidDevice::create(core, productId, serialNumber, current_device->path));
+			char manufacturerStr[512];
+			char productStr[512];
+			wcstombs(manufacturerStr, current_device->manufacturer_string ? current_device->manufacturer_string : L"",
+			         sizeof(manufacturerStr));
+			wcstombs(productStr, current_device->product_string ? current_device->product_string : L"",
+			         sizeof(productStr));
+			const auto hidDevice = HidDevice::create(core, productId, serialNumber, current_device->path);
+			if (hidDevice) result.push_back(hidDevice);
 		}
 	}
 
