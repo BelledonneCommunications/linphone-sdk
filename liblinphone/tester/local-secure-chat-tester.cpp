@@ -2723,10 +2723,11 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_one_on_one_chat_room_with_client_sending_imdn_on_restart,
                   "LimeX3DH",
                   "LeaksMemory"),
-    TEST_TWO_TAGS("Secure group chat with duplications",
-                  LinphoneTest::secure_group_chat_room_with_duplications,
-                  "LimeX3DH",
-                  "LeaksMemory"), /* beacause of coreMgr restart*/
+    TEST_THREE_TAGS("Secure group chat with duplications",
+                    LinphoneTest::secure_group_chat_room_with_duplications,
+                    "LimeX3DH",
+                    "LeaksMemory", /* beacause of coreMgr restart*/
+                    "shaky"),
     TEST_TWO_TAGS("Secure one-on-one chat with subscribe not replied",
                   LinphoneTest::secure_one_on_one_chat_room_with_subscribe_not_replied,
                   "LimeX3DH",

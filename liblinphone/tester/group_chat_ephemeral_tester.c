@@ -927,10 +927,11 @@ static void ephemeral_group_message_individual_policy_test(void) {
 }
 
 static test_t ephemeral_group_chat_tests[] = {
-    TEST_TWO_TAGS("Chat room remaining ephemeral default policy messages",
-                  chat_room_remaining_ephemeral_message_default_policy_test,
-                  "Ephemeral",
-                  "LeaksMemory"), /*due to core restart*/
+    TEST_THREE_TAGS("Chat room remaining ephemeral default policy messages",
+                    chat_room_remaining_ephemeral_message_default_policy_test,
+                    "Ephemeral",
+                    "LeaksMemory", /*due to core restart*/
+                    "shake"),
     TEST_TWO_TAGS("Chat room expired ephemeral default policy messages",
                   chat_room_expired_ephemeral_message_default_policy_test,
                   "Ephemeral",
