@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup chatroom
+ * @addtogroup group_chatroom
  * @{
  */
 

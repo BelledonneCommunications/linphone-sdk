@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup misc
+ * @addtogroup group_misc
  * @{
  */
 

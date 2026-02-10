@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup media_parameters
+ * @addtogroup group_media_parameters
  * @{
  */
 
