@@ -271,6 +271,8 @@ liblinphone-rocky8-coverage:
   tags: [ "docker-flat" ]
   stage: coverage
   image: !reference [ .rocky8_test_libl_image_version, image ]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   needs:
     - liblinphone-rocky8-test-mr
   variables:
