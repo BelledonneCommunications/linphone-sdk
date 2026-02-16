@@ -284,6 +284,10 @@ These ON/OFF options control the enablement of important features of the SDK, wh
 - `ENABLE_MKV`: enablement of Matroska video file reader/writer.
 - `ENABLE_LDAP`: enablement of OpenLDAP.
 
+By default, the build produces shared libraries (or frameworks on MacOS/iOS). A static library only build is possible by using
+`-DBUILD_SHARED_LIBS=NO`.
+Static library build is not recommended and may not be usable at all for an iOS or Android application.
+
 ### Android permissions
 
 The SDK declares a bunch of permission it may or may not need depending on your usage.

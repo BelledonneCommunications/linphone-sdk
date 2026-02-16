@@ -224,7 +224,8 @@ public:
 	BELR_PUBLIC void clear();
 	/**
 	 * Add a specific path to lookup for grammar binary files.
-	 * Any specific paths added by this method is actually prepended to the list of paths.
+	 * Any specific path added by this method is actually prepended to the list of paths.
+	 * If the path already exists in the current list, it is ignored.
 	 * @param path a path
 	 **/
 	BELR_PUBLIC void addPath(const std::string &path);
