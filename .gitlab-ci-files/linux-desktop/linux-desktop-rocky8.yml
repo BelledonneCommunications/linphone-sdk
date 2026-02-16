@@ -67,7 +67,6 @@ rocky8-ninja-clang:
   tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_GENERATOR: Ninja
@@ -101,11 +100,6 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
   extends: rocky8-ninja-gcc
-
-rocky8-ninja-clang-tunnel-pq-h264-ekt-coverage:
-  variables:
-    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_COVERAGE=ON
-  extends: rocky8-ninja-clang
 
 rocky8-python-wheel:
   tags: [ "docker-flat" ]
@@ -230,6 +224,8 @@ liblinphone-rocky8-test-nocov:
   when: manual
   extends: .test-liblinphone
   image: !reference [ .rocky8_test_libl_image_version, image ]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   needs:
     - rocky8-ninja-clang
   variables:
