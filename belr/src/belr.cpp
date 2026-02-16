@@ -20,9 +20,8 @@
 /*
  * To troubleshoot parsing, un comment the two following defines to get _very_ verbose logs.
  */
-
-// #define BCTBX_DEBUG_MODE 1
-// #define BELR_DEBUG 1
+#define BCTBX_DEBUG_MODE 1
+#define BELR_DEBUG 1
 
 #include <bctoolbox/defs.h>
 

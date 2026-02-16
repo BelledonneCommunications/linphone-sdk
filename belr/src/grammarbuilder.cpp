@@ -465,6 +465,7 @@ GrammarLoader &GrammarLoader::get() {
 }
 
 void GrammarLoader::addPath(const string &path) {
+	if (find(mAppPaths.begin(), mAppPaths.end(), path) != mAppPaths.end()) return; /* already present */
 	mAppPaths.push_front(path);
 }
 
@@ -484,12 +485,12 @@ string GrammarLoader::lookup(const string &fileName, const list<string> &paths) 
 }
 
 bool GrammarLoader::isAbsolutePath(const string &fileName) {
-	if (fileName[0] == '/') return TRUE;
+	if (fileName[0] == '/') return true;
 #ifdef _WIN32
 	/* for windows:*/
-	if (fileName.size() > 2 && fileName[1] == ':') return TRUE;
+	if (fileName.size() > 2 && fileName[1] == ':') return true;
 #endif
-	return FALSE;
+	return false;
 }
 
 shared_ptr<Grammar> GrammarLoader::load(const string &fileName) {
