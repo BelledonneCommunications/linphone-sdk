@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup call_control
+ * @addtogroup group_call_control
  * @{
  **/
 
@@ -110,7 +110,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_audio(LinphoneCallParams *call_
  * Check if ringing is disabled
  * @param params the #LinphoneCallParams @notnil
  * @return TRUE if ringing is disabled; FALSE otherwise.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_ringing_disabled(const LinphoneCallParams *params);
 
@@ -118,7 +118,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_ringing_disabled(const LinphoneCallP
  * Define whether ringing is disabled
  * @param params the #LinphoneCallParams @notnil
  * @param disable TRUE to disable ringing; FALSE otherwise.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC void linphone_call_params_disable_ringing(LinphoneCallParams *params, bool_t disable);
 
@@ -126,7 +126,7 @@ LINPHONE_PUBLIC void linphone_call_params_disable_ringing(LinphoneCallParams *pa
  * Check if tone indications are enabled
  * @param params the #LinphoneCallParams @notnil
  * @return TRUE if tone indications are enabled; FALSE otherwise.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_tone_indications_enabled(const LinphoneCallParams *params);
 
@@ -134,7 +134,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_tone_indications_enabled(const Linph
  * Define whether tone indications are enabled
  * @param params the #LinphoneCallParams @notnil
  * @param enable TRUE to enable tone indications; FALSE otherwise.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC void linphone_call_params_enable_tone_indications(LinphoneCallParams *params, bool_t enable);
 
@@ -142,7 +142,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_tone_indications(LinphoneCallPa
  * Check if the capability negotiation (RFC5939) reINVITE is enabled or not.
  * @param params the #LinphoneCallParams @notnil
  * @return TRUE if capability negotiation reINVITE is enabled; FALSE otherwise.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_capability_negotiation_reinvite_enabled(const LinphoneCallParams *params);
 
@@ -150,7 +150,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_capability_negotiation_reinvite_enab
  * Define whether capability negotiation (RFC5939) reINVITE is enabled
  * @param params the #LinphoneCallParams @notnil
  * @param enable TRUE to enable capability negotiation reINVITE; FALSE otherwise.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC void linphone_call_params_enable_capability_negotiation_reinvite(LinphoneCallParams *params,
                                                                                  bool_t enable);
@@ -159,7 +159,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_capability_negotiation_reinvite
  * Indicates whether capability negotiations (RFC5939) is enabled.
  * @param params the #LinphoneCallParams @notnil
  * @return a boolean indicating the enablement of capability negotiations.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_capability_negotiations_enabled(const LinphoneCallParams *params);
 
@@ -175,7 +175,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_capability_negotiations(Linphon
  * (RFC5939) is enabled.
  * @param params the #LinphoneCallParams @notnil
  * @return a boolean indicating the enablement of pcfg and acfg line merging
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_cfg_lines_merged(const LinphoneCallParams *params);
 
@@ -191,7 +191,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_cfg_lines_merging(LinphoneCallP
  * (RFC5939) is enabled.
  * @param params the #LinphoneCallParams @notnil
  * @return a boolean indicating the enablement of tcap line merging
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_tcap_lines_merged(const LinphoneCallParams *params);
 
@@ -207,7 +207,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_tcap_line_merging(LinphoneCallP
  * @param params the #LinphoneCallParams @notnil
  * @param encryption The #LinphoneMediaEncryption to check whether is supported
  * @return a boolean indicating whether the encryption is supported
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_is_media_encryption_supported(const LinphoneCallParams *params,
                                                                           const LinphoneMediaEncryption encryption);
@@ -216,7 +216,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_is_media_encryption_supported(const 
  * Returns the list of supported encryptions in the call
  * @param params the #LinphoneCallParams @notnil
  * @return a list of encryptions supported in a given call \bctbx_list{LinphoneMediaEncryption} @notnil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  * @donotwrap
  */
 LINPHONE_PUBLIC bctbx_list_t *linphone_call_params_get_supported_encryptions(const LinphoneCallParams *params);
@@ -233,7 +233,7 @@ LINPHONE_PUBLIC void linphone_call_params_set_supported_encryptions(LinphoneCall
  * Returns the list of enable srtp suite in the call (enforced only if SDES is the selected encryption mode)
  * @param call_params the #LinphoneCallParams @notnil
  * @return a list of srtp suite enabled in a given call \bctbx_list{LinphoneSrtpSuite} @notnil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bctbx_list_t *linphone_call_params_get_srtp_suites(const LinphoneCallParams *call_params);
 
@@ -242,7 +242,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_call_params_get_srtp_suites(const Linphon
  * @param call_params #LinphoneCallParams object @notnil
  * @param srtpSuites list with the list of SRTP encryption suites enabled in a given call \bctbx_list{LinphoneSrtpSuite}
  *@notnil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_set_srtp_suites(LinphoneCallParams *call_params, bctbx_list_t *srtpSuites);
 
@@ -611,7 +611,7 @@ LINPHONE_PUBLIC void linphone_call_params_unref(LinphoneCallParams *call_params)
  *unchanged.
  * @param params #LinphoneCallParams @notnil
  * @param yesno if yes, subsequent calls will propose multicast ip set by #linphone_core_set_audio_multicast_addr()
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_enable_audio_multicast(LinphoneCallParams *params, bool_t yesno);
 
@@ -619,7 +619,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_audio_multicast(LinphoneCallPar
  * Use to get multicast state of audio stream.
  * @param params #LinphoneCallParams @notnil
  * @return true if  subsequent calls will propose multicast ip set by #linphone_core_set_audio_multicast_addr()
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC bool_t linphone_call_params_audio_multicast_enabled(const LinphoneCallParams *params);
 
@@ -631,7 +631,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_audio_multicast_enabled(const Linpho
  * @param params #LinphoneCallParams @notnil
  * @param yesno if yes, subsequent outgoing calls will propose multicast ip set by
  *#linphone_core_set_video_multicast_addr()
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_enable_video_multicast(LinphoneCallParams *params, bool_t yesno);
 
@@ -639,7 +639,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_video_multicast(LinphoneCallPar
  * Use to get multicast state of video stream.
  * @param params #LinphoneCallParams @notnil
  * @return true if  subsequent calls will propose multicast ip set by #linphone_core_set_video_multicast_addr()
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC bool_t linphone_call_params_video_multicast_enabled(const LinphoneCallParams *params);
 
@@ -649,7 +649,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_video_multicast_enabled(const Linpho
  * @param params #LinphoneCallParams @notnil
  * @param yesno if yes, subsequent outgoing calls will propose rtt
  * @return 0
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC LinphoneStatus linphone_call_params_enable_realtime_text(LinphoneCallParams *params, bool_t yesno);
 
@@ -657,7 +657,7 @@ LINPHONE_PUBLIC LinphoneStatus linphone_call_params_enable_realtime_text(Linphon
  * Use to get real time text following rfc4103.
  * @param params #LinphoneCallParams @notnil
  * @return returns true if call rtt is activated.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC bool_t linphone_call_params_realtime_text_enabled(const LinphoneCallParams *params);
 
@@ -665,7 +665,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_realtime_text_enabled(const Linphone
  * Use to set keep alive interval for real time text following rfc4103.
  * @param params #LinphoneCallParams @notnil
  * @param interval The keep alive interval for real time text, 25000 by default.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_set_realtime_text_keepalive_interval(LinphoneCallParams *params,
                                                                                unsigned int interval);
@@ -674,7 +674,7 @@ LINPHONE_PUBLIC void linphone_call_params_set_realtime_text_keepalive_interval(L
  * Use to get keep alive interval of real time text following rfc4103.
  * @param params #LinphoneCallParams @notnil
  * @return returns keep alive interval of real time text.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC unsigned int
 linphone_call_params_get_realtime_text_keepalive_interval(const LinphoneCallParams *params);
@@ -684,7 +684,7 @@ linphone_call_params_get_realtime_text_keepalive_interval(const LinphoneCallPara
  * @param params The #LinphoneCallParams to add a custom SDP attribute to. @notnil
  * @param attribute_name The name of the attribute to add. @notnil
  * @param attribute_value The content value of the attribute to add. @maybenil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_add_custom_sdp_attribute(LinphoneCallParams *params,
                                                                    const char *attribute_name,
@@ -696,7 +696,7 @@ LINPHONE_PUBLIC void linphone_call_params_add_custom_sdp_attribute(LinphoneCallP
  * @param type The type of the stream to add a custom SDP attribute to.
  * @param attribute_name The name of the attribute to add. @notnil
  * @param attribute_value The content value of the attribute to add. @maybenil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_add_custom_sdp_media_attribute(LinphoneCallParams *params,
                                                                          LinphoneStreamType type,
@@ -708,7 +708,7 @@ LINPHONE_PUBLIC void linphone_call_params_add_custom_sdp_media_attribute(Linphon
  * @param params The #LinphoneCallParams to get the custom SDP attribute from. @notnil
  * @param attribute_name The name of the attribute to get. @notnil
  * @return Whether the attribute is present.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC bool_t linphone_call_params_has_custom_sdp_attribute(const LinphoneCallParams *params,
                                                                      const char *attribute_name);
@@ -718,7 +718,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_has_custom_sdp_attribute(const Linph
  * @param params The #LinphoneCallParams to get the custom SDP attribute from. @notnil
  * @param attribute_name The name of the attribute to get. @notnil
  * @return The content value of the attribute or NULL if not found. @maybenil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC const char *linphone_call_params_get_custom_sdp_attribute(const LinphoneCallParams *params,
                                                                           const char *attribute_name);
@@ -729,7 +729,7 @@ LINPHONE_PUBLIC const char *linphone_call_params_get_custom_sdp_attribute(const 
  * @param type The type of the stream to add a custom SDP attribute to.
  * @param attribute_name The name of the attribute to get. @notnil
  * @return Whether the attribute is present.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC bool_t linphone_call_params_has_custom_sdp_media_attribute(const LinphoneCallParams *params,
                                                                            LinphoneStreamType type,
@@ -741,7 +741,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_has_custom_sdp_media_attribute(const
  * @param type The type of the stream to add a custom SDP attribute to.
  * @param attribute_name The name of the attribute to get. @notnil
  * @return The content value of the attribute or NULL if not found. @maybenil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC const char *linphone_call_params_get_custom_sdp_media_attribute(const LinphoneCallParams *params,
                                                                                 LinphoneStreamType type,
@@ -750,7 +750,7 @@ LINPHONE_PUBLIC const char *linphone_call_params_get_custom_sdp_media_attribute(
 /**
  * Clear the custom SDP attributes related to all the streams in the SDP exchanged within SIP messages during a call.
  * @param params The #LinphoneCallParams to clear the custom SDP attributes from. @notnil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_clear_custom_sdp_attributes(LinphoneCallParams *params);
 
@@ -758,7 +758,7 @@ LINPHONE_PUBLIC void linphone_call_params_clear_custom_sdp_attributes(LinphoneCa
  * Clear the custom SDP attributes related to a specific stream in the SDP exchanged within SIP messages during a call.
  * @param params The #LinphoneCallParams to clear the custom SDP attributes from. @notnil
  * @param type The type of the stream to clear the custom SDP attributes from.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_clear_custom_sdp_media_attributes(LinphoneCallParams *params,
                                                                             LinphoneStreamType type);
@@ -767,7 +767,7 @@ LINPHONE_PUBLIC void linphone_call_params_clear_custom_sdp_media_attributes(Linp
  * Gets a list of #LinphoneContent set if exists
  * @param params The #LinphoneCallParams to get the custom Content from. @notnil
  * @return A list of #LinphoneContent set if exists, NULL otherwise. \bctbx_list{LinphoneContent}  @maybenil @tobefreed
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC bctbx_list_t *linphone_call_params_get_custom_contents(const LinphoneCallParams *params);
 
@@ -775,7 +775,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_call_params_get_custom_contents(const Lin
  * Adds a #LinphoneContent to be added to the INVITE SDP.
  * @param params The #LinphoneCallParams in which to set the custom #LinphoneContent. @notnil
  * @param content The #LinphoneContent to be added. @notnil
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_add_custom_content(LinphoneCallParams *params, LinphoneContent *content);
 
@@ -784,7 +784,7 @@ LINPHONE_PUBLIC void linphone_call_params_add_custom_content(LinphoneCallParams 
  * See https://datatracker.ietf.org/doc/html/rfc8843 for more information.
  * @param params the #LinphoneCallParams @notnil
  * @return a boolean indicating the enablement of rtp bundle mode.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_rtp_bundle_enabled(const LinphoneCallParams *params);
 
@@ -797,7 +797,7 @@ LINPHONE_PUBLIC bool_t linphone_call_params_rtp_bundle_enabled(const LinphoneCal
  * @param value a boolean to indicate whether the feature is to be enabled.
  * @deprecated This property can no longer be controlled via #LinphoneCallParams. Use
  * linphone_account_params_enable_rtp_bundle().
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_call_params_enable_rtp_bundle(LinphoneCallParams *params,
                                                                                 bool_t value);
@@ -808,7 +808,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_call_params_enable_rtp_bundle(
  * Instead use linphone_call_set_microphone_muted() when call has been created.
  * @param params #LinphoneCallParams object @notnil
  * @param enable TRUE to enable the microphone, FALSE to disable it.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC void linphone_call_params_enable_mic(LinphoneCallParams *params, bool_t enable);
 
@@ -818,7 +818,7 @@ LINPHONE_PUBLIC void linphone_call_params_enable_mic(LinphoneCallParams *params,
  * Instead use linphone_call_get_microphone_muted() when call has been created.
  * @param params #LinphoneCallParams object @notnil
  * @return TRUE if the microphone will be enabled, FALSE if disabled.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  **/
 LINPHONE_PUBLIC bool_t linphone_call_params_mic_enabled(const LinphoneCallParams *params);
 
@@ -871,7 +871,7 @@ linphone_call_params_get_output_audio_device(const LinphoneCallParams *params);
  * @param params the #LinphoneCallParams @notnil
  * @return TRUE if capability negotiation reINVITE is enabled; FALSE otherwise.
  * @deprecated 16/12/2021 Use #linphone_call_params_capability_negotiation_reinvite_enabled() instead.
- * @ingroup media_parameters
+ * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC LINPHONE_DEPRECATED bool_t
 linphone_call_params_is_capability_negotiation_reinvite_enabled(const LinphoneCallParams *params);

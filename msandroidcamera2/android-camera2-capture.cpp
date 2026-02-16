@@ -50,10 +50,10 @@ struct AndroidCamera2Device {
 		}
 	};
 
-	char *camId;
-	int32_t orientation;
-	bool back_facing;
-	bool external;
+	char *camId = nullptr;
+	int32_t orientation = 0;
+	bool back_facing = false;
+	bool external = false;
 };
 
 struct AndroidCamera2Context {
@@ -855,57 +855,66 @@ static void android_camera2_capture_choose_best_configurations(AndroidCamera2Con
 	}
 
 	ACameraMetadata_const_entry supportedFpsRanges;
-	ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES, &supportedFpsRanges);
-	for (int i = 0; i < supportedFpsRanges.count; i += 2) {
-		int32_t min = supportedFpsRanges.data.i32[i];
-		int32_t max = supportedFpsRanges.data.i32[i + 1];
-		ms_message("[Camera2 Capture] Supported FPS range: [%d-%d]", min, max);
+	camera_status = ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES, &supportedFpsRanges);
+	if (camera_status != ACAMERA_OK) {
+		ms_error("[Camera2 Capture] Failed to get ACAMERA_CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES : %d", camera_status);
+	} else {
+		for (int i = 0; i < supportedFpsRanges.count; i += 2) {
+			int32_t min = supportedFpsRanges.data.i32[i];
+			int32_t max = supportedFpsRanges.data.i32[i + 1];
+			ms_message("[Camera2 Capture] Supported FPS range: [%d-%d]", min, max);
+		}
 	}
 	
 	ACameraMetadata_const_entry scaler;
-	ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &scaler);
-	
-	MSVideoSize backupSize;
-	backupSize.width = 0;
-	backupSize.height = 0;
-	double askedRatio = d->captureSize.width * d->captureSize.height;
 	bool found = false;
-	
-	for (int i = 0; i < scaler.count; i += 4) {
-		int32_t input = scaler.data.i32[i + 3];
-		int32_t format = scaler.data.i32[i + 0];
-		if (input) continue;
-
-		if (format == d->captureFormat) {
-			int32_t width = scaler.data.i32[i + 1];
-			int32_t height = scaler.data.i32[i + 2];
-			double currentSizeRatio = width * height;
-			ms_message("[Camera2 Capture] Available size width [%d], height [%d] for requested format [%d]", width, height, format);
-
-			if (width == d->captureSize.width && height == d->captureSize.height) {
-				found = true;
-			} else {
-				double backupRatio = backupSize.width * backupSize.height;
-				if (backupRatio == 0 || fabs(askedRatio - currentSizeRatio) < fabs(askedRatio - backupRatio)) {
-					// Current resolution is closer to the one we want than the one in backup, update backup
-					backupSize.width = width;
-					backupSize.height = height;
-				}
-			}
-		} else {
-			int32_t width = scaler.data.i32[i + 1];
-			int32_t height = scaler.data.i32[i + 2];
-			ms_debug("[Camera2 Capture] Available size width [%d], height [%d] for format [%d]", width, height, format);
-		}
-	}
-
-	if (found) {
-		ms_message("[Camera2 Capture] Found exact match for our required size of [%ix%i]", d->captureSize.width, d->captureSize.height);
+	camera_status = ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &scaler);
+	if (camera_status != ACAMERA_OK) {
+		ms_error("[Camera2 Capture] Failed to get ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS : %d", camera_status);
+		d->captureSize.width = 640;
+		d->captureSize.height = 480;
 	} else {
-		// Asked resolution not found
-		d->captureSize.width = backupSize.width;
-		d->captureSize.height = backupSize.height;
-		ms_warning("[Camera2 Capture] Couldn't find requested resolution, instead using [%ix%i]", backupSize.width, backupSize.height);
+		MSVideoSize backupSize;
+		backupSize.width = 0;
+		backupSize.height = 0;
+		double askedRatio = d->captureSize.width * d->captureSize.height;
+		
+		for (int i = 0; i < scaler.count; i += 4) {
+			int32_t input = scaler.data.i32[i + 3];
+			int32_t format = scaler.data.i32[i + 0];
+			if (input) continue;
+
+			if (format == d->captureFormat) {
+				int32_t width = scaler.data.i32[i + 1];
+				int32_t height = scaler.data.i32[i + 2];
+				double currentSizeRatio = width * height;
+				ms_message("[Camera2 Capture] Available size width [%d], height [%d] for requested format [%d]", width, height, format);
+
+				if (width == d->captureSize.width && height == d->captureSize.height) {
+					found = true;
+				} else {
+					double backupRatio = backupSize.width * backupSize.height;
+					if (backupRatio == 0 || fabs(askedRatio - currentSizeRatio) < fabs(askedRatio - backupRatio)) {
+						// Current resolution is closer to the one we want than the one in backup, update backup
+						backupSize.width = width;
+						backupSize.height = height;
+					}
+				}
+			} else {
+				int32_t width = scaler.data.i32[i + 1];
+				int32_t height = scaler.data.i32[i + 2];
+				ms_debug("[Camera2 Capture] Available size width [%d], height [%d] for format [%d]", width, height, format);
+			}
+		}
+
+		if (found) {
+			ms_message("[Camera2 Capture] Found exact match for our required size of [%ix%i]", d->captureSize.width, d->captureSize.height);
+		} else {
+			// Asked resolution not found
+			d->captureSize.width = backupSize.width;
+			d->captureSize.height = backupSize.height;
+			ms_warning("[Camera2 Capture] Couldn't find requested resolution, instead using [%ix%i]", backupSize.width, backupSize.height);
+		}
 	}
 
 	ACameraMetadata_free(cameraMetadata);
@@ -1227,39 +1236,55 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 			AndroidCamera2Device *device = new AndroidCamera2Device(ms_strdup(camId));
 
   			ACameraMetadata_const_entry orientation;
-			ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_SENSOR_ORIENTATION, &orientation);
-			int32_t angle = orientation.data.i32[0];
-			device->orientation = angle;
+			int32_t angle = 0;
+			camera_status = ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_SENSOR_ORIENTATION, &orientation);
+			if (camera_status != ACAMERA_OK) {
+				ms_error("[Camera2 Capture] Failed to get ACAMERA_SENSOR_ORIENTATION : %d", camera_status);
+			} else {
+				angle = orientation.data.i32[0];
+				device->orientation = angle;
+			}
 
 			ACameraMetadata_const_entry hardwareLevel;
-			ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL, &hardwareLevel);
 			std::string supportedHardwareLevel = "unknown";
-			switch (hardwareLevel.data.u8[0]) {
-				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED:
-					supportedHardwareLevel = "limited";
-					break;
-				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_FULL:
-					supportedHardwareLevel = "full";
-					break;
-				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY:
-					supportedHardwareLevel = "legacy";
-					break;
-				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_3:
-					supportedHardwareLevel = "3";
-					break;
-				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_EXTERNAL:
-					supportedHardwareLevel = "external (limited)";
-					break;
+			camera_status = ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL, &hardwareLevel);
+			if (camera_status != ACAMERA_OK) {
+				ms_error("[Camera2 Capture] Failed to get ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL : %d", camera_status);
+			} else {
+				switch (hardwareLevel.data.u8[0]) {
+					case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED:
+						supportedHardwareLevel = "limited";
+						break;
+					case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_FULL:
+						supportedHardwareLevel = "full";
+						break;
+					case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY:
+						supportedHardwareLevel = "legacy";
+						break;
+					case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_3:
+						supportedHardwareLevel = "3";
+						break;
+					case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_EXTERNAL:
+						supportedHardwareLevel = "external (limited)";
+						break;
+				}
 			}
 
   			ACameraMetadata_const_entry face;
-			ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_LENS_FACING, &face);
-			bool back_facing = face.data.u8[0] == ACAMERA_LENS_FACING_BACK;
-			bool external = face.data.u8[0] == ACAMERA_LENS_FACING_EXTERNAL;
-			std::string facing = std::string(external ? "external" : !back_facing ? "front" : "back");
-			ms_message("[Camera2 Capture] Camera %s is facing [%s] with angle [%d], hardware level is [%s]", camId, facing.c_str(), angle, supportedHardwareLevel.c_str());
-			device->back_facing = back_facing;
-			device->external = external;
+			bool back_facing = false;
+			bool external = false;
+			std::string facing = "unknown";
+			camera_status = ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_LENS_FACING, &face);
+			if (camera_status != ACAMERA_OK) {
+				ms_error("[Camera2 Capture] Failed to get ACAMERA_LENS_FACING : %d", camera_status);
+			} else {
+				back_facing = face.data.u8[0] == ACAMERA_LENS_FACING_BACK;
+				external = face.data.u8[0] == ACAMERA_LENS_FACING_EXTERNAL;
+				facing = std::string(external ? "external" : !back_facing ? "front" : "back");
+				ms_message("[Camera2 Capture] Camera %s is facing [%s] with angle [%d], hardware level is [%s]", camId, facing.c_str(), angle, supportedHardwareLevel.c_str());
+				device->back_facing = back_facing;
+				device->external = external;
+			}
 
 			MSWebCam *cam = ms_web_cam_new(&ms_android_camera2_capture_webcam_desc);
 			std::string idstring = std::string(!back_facing ? "Front" : "Back") + std::string("FacingCamera");

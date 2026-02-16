@@ -219,13 +219,15 @@ void ClientChatRoom::deleteFromDbWithoutLeaving() {
 }
 
 list<shared_ptr<EventLog>> ClientChatRoom::getHistory(int nLast) const {
-	try {
-		return getCore()->getPrivate()->mainDb->getHistory(
-		    getConferenceId(), nLast,
-		    getCurrentParams()->isGroup() ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-		                                                        MainDb::Filter::ConferenceInfoNoDeviceFilter})
-		                                  : MainDb::Filter::ConferenceChatMessageSecurityFilter);
-	} catch (const bad_weak_ptr &) {
+	if (auto db = getCore()->getDatabase()) {
+		try {
+			return db.value().get()->getHistory(getConferenceId(), nLast,
+			                                    getCurrentParams()->isGroup()
+			                                        ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
+			                                                              MainDb::Filter::ConferenceInfoNoDeviceFilter})
+			                                        : MainDb::Filter::ConferenceChatMessageSecurityFilter);
+		} catch (const bad_weak_ptr &) {
+		}
 	}
 	return list<shared_ptr<EventLog>>();
 }
@@ -235,13 +237,16 @@ list<shared_ptr<EventLog>> ClientChatRoom::getHistory(int nLast, HistoryFilterMa
 }
 
 list<shared_ptr<EventLog>> ClientChatRoom::getHistoryRange(int begin, int end) const {
-	try {
-		return getCore()->getPrivate()->mainDb->getHistoryRange(
-		    getConferenceId(), begin, end,
-		    getCurrentParams()->isGroup() ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-		                                                        MainDb::Filter::ConferenceInfoNoDeviceFilter})
-		                                  : MainDb::Filter::ConferenceChatMessageSecurityFilter);
-	} catch (const bad_weak_ptr &) {
+
+	if (auto db = getCore()->getDatabase()) {
+		try {
+			return db.value().get()->getHistoryRange(
+			    getConferenceId(), begin, end,
+			    getCurrentParams()->isGroup() ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
+			                                                        MainDb::Filter::ConferenceInfoNoDeviceFilter})
+			                                  : MainDb::Filter::ConferenceChatMessageSecurityFilter);
+		} catch (const bad_weak_ptr &) {
+		}
 	}
 	return list<shared_ptr<EventLog>>();
 }
@@ -251,13 +256,15 @@ list<shared_ptr<EventLog>> ClientChatRoom::getHistoryRange(int begin, int end, H
 }
 
 int ClientChatRoom::getHistorySize() const {
-	try {
-		return getCore()->getPrivate()->mainDb->getHistorySize(
-		    getConferenceId(), getCurrentParams()->isGroup()
-		                           ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-		                                                 MainDb::Filter::ConferenceInfoNoDeviceFilter})
-		                           : MainDb::Filter::ConferenceChatMessageSecurityFilter);
-	} catch (const bad_weak_ptr &) {
+	if (auto db = getCore()->getDatabase()) {
+		try {
+			return db.value().get()->getHistorySize(
+			    getConferenceId(), getCurrentParams()->isGroup()
+			                           ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
+			                                                 MainDb::Filter::ConferenceInfoNoDeviceFilter})
+			                           : MainDb::Filter::ConferenceChatMessageSecurityFilter);
+		} catch (const bad_weak_ptr &) {
+		}
 	}
 	return 0;
 }
@@ -367,7 +374,9 @@ void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 	if (getState() != Conference::State::Terminated) {
 		// Wait for chat room to have been updated before inserting the previous ID in db
 		if (oldConfId != newConfId) {
-			getCore()->getPrivate()->mainDb->insertNewPreviousConferenceId(newConfId, oldConfId);
+			if (auto db = getCore()->getDatabase()) {
+				db.value().get()->insertNewPreviousConferenceId(newConfId, oldConfId);
+			}
 		}
 	}
 
@@ -379,7 +388,9 @@ void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 
 void ClientChatRoom::removeConferenceIdFromPreviousList(const ConferenceId &confId) {
 	mPreviousConferenceIds.remove(confId);
-	getCore()->getPrivate()->mainDb->removePreviousConferenceId(confId);
+	if (auto db = getCore()->getDatabase()) {
+		db.value().get()->removePreviousConferenceId(confId);
+	}
 }
 
 void ClientChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &chatMessage) {
@@ -387,9 +398,10 @@ void ClientChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &chat
 	                                               ::ms_time(nullptr));
 	const auto &storageId = chatMessage->getStorageId();
 	L_ASSERT(storageId >= 0);
-	unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
-	shared_ptr<EventLog> eventLog = mainDb->getEvent(mainDb, storageId);
-	_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
+	if (auto db = getCore()->getDatabase()) {
+		shared_ptr<EventLog> eventLog = db.value().get()->getEvent(storageId);
+		_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
+	}
 }
 
 void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage) {
@@ -635,6 +647,7 @@ void ClientChatRoom::enableEphemeral(bool ephem, bool updateDb) {
 
 	auto lifetime = getEphemeralLifetime();
 	auto notReadLifetime = getEphemeralNotReadLifetime();
+	auto db = getCore()->getDatabase();
 	if (getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged) {
 		if (!conference->getMe()->isAdmin()) {
 			lError() << *conference << ": Only admins can enable or disable ephemeral messages";
@@ -646,22 +659,21 @@ void ClientChatRoom::enableEphemeral(bool ephem, bool updateDb) {
 				if (lifetime == 0) {
 					lifetime = linphone_core_get_default_ephemeral_lifetime(getCore()->getCCore());
 					getCurrentParams()->getChatParams()->setEphemeralLifetime(lifetime);
-					if (updateDb) {
+					if (updateDb && db) {
 						lInfo() << "Reset ephemeral lifetime of chat room " << *conference
 						        << " to the default value of " << lifetime
 						        << " because ephemeral messages were enabled with a time equal to 0.";
-						getCore()->getPrivate()->mainDb->updateChatRoomEphemeralLifetime(getConferenceId(), lifetime);
+						db.value().get()->updateChatRoomEphemeralLifetime(getConferenceId(), lifetime);
 					}
 				}
 				if (notReadLifetime == 0) {
 					notReadLifetime = linphone_core_get_default_ephemeral_lifetime(getCore()->getCCore());
 					getCurrentParams()->getChatParams()->setEphemeralNotReadLifetime(notReadLifetime);
-					if (updateDb) {
+					if (updateDb && db) {
 						lInfo() << "Reset ephemeral not read lifetime of chat room " << *conference
 						        << " to the default value of " << notReadLifetime
 						        << " because ephemeral messages were enabled with a not read time equal to 0.";
-						getCore()->getPrivate()->mainDb->updateChatRoomEphemeralNotReadLifetime(getConferenceId(),
-						                                                                        notReadLifetime);
+						db.value().get()->updateChatRoomEphemeralNotReadLifetime(getConferenceId(), notReadLifetime);
 					}
 				}
 				if ((lifetime == 0) || (notReadLifetime == 0)) {
@@ -679,7 +691,7 @@ void ClientChatRoom::enableEphemeral(bool ephem, bool updateDb) {
 	}
 
 	if (updateDb) {
-		getCore()->getPrivate()->mainDb->updateChatRoomEphemeralEnabled(getConferenceId(), ephem);
+		if (db) db.value().get()->updateChatRoomEphemeralEnabled(getConferenceId(), ephem);
 		shared_ptr<ConferenceEphemeralMessageEvent> event;
 		if (ephem)
 			event = make_shared<ConferenceEphemeralMessageEvent>(EventLog::Type::ConferenceEphemeralMessageEnabled,
@@ -750,7 +762,9 @@ void ClientChatRoom::setEphemeralLifetime(long lifetime, const bool updateDb) {
 	}
 
 	if (updateDb) {
-		getCore()->getPrivate()->mainDb->updateChatRoomEphemeralLifetime(getConferenceId(), lifetime);
+		if (auto db = getCore()->getDatabase()) {
+			db.value().get()->updateChatRoomEphemeralLifetime(getConferenceId(), lifetime);
+		}
 
 		if (getCurrentParams()
 		        ->getChatParams()
@@ -821,7 +835,9 @@ void ClientChatRoom::setEphemeralNotReadLifetime(long notReadLifetime, const boo
 	}
 
 	if (updateDb) {
-		getCore()->getPrivate()->mainDb->updateChatRoomEphemeralNotReadLifetime(getConferenceId(), notReadLifetime);
+		if (auto db = getCore()->getDatabase()) {
+			db.value().get()->updateChatRoomEphemeralNotReadLifetime(getConferenceId(), notReadLifetime);
+		}
 
 		if (getCurrentParams()
 		        ->getChatParams()

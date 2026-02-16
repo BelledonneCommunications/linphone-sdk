@@ -80,6 +80,7 @@ public:
 		return mBypassMode;
 	}
 	void setState(char *state) {
+		if (mStateStr) ms_free(mStateStr);
 		mStateStr = state;
 	}
 	char *getState() {

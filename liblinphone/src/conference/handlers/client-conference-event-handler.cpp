@@ -199,7 +199,9 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 				conference->setLastNotify(version.get());
 				if (chatRoom) {
 					// Update last notify ID in the DB just in case the notify does not generate any further event
-					core->getPrivate()->mainDb->updateNotifyId(chatRoom, getLastNotify());
+					if (auto db = core->getDatabase()) {
+						db.value().get()->updateNotifyId(chatRoom, getLastNotify());
+					}
 				}
 			}
 		}
@@ -379,9 +381,11 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 					if (!isFullState) {
 						conference->notifyParticipantRemoved(creationTime, isFullState, participant);
 
-						// TODO FIXME: Remove later when devices for friends will be notified through presence
-						lInfo() << "[Friend] Removing device with address [" << *address << "]";
-						core->getPrivate()->mainDb->removeDevice(address);
+						if (auto db = core->getDatabase()) {
+							// TODO FIXME: Remove later when devices for friends will be notified through presence
+							lInfo() << "[Friend] Removing device with address [" << *address << "]";
+							db.value().get()->removeDevice(address);
+						}
 					}
 
 					continue;
@@ -702,10 +706,12 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						const string &name = endpoint.getDisplayText().present() ? endpoint.getDisplayText().get() : "";
 						if (!name.empty()) device->setName(name);
 
-						// TODO FIXME: Remove later when devices for friends will be notified through presence
-						lInfo() << "[Friend] Inserting new device with name [" << name << "] and address ["
-						        << gruu->asStringUriOnly() << "]";
-						core->getPrivate()->mainDb->insertDevice(gruu, name);
+						if (auto db = core->getDatabase()) {
+							// TODO FIXME: Remove later when devices for friends will be notified through presence
+							lInfo() << "[Friend] Inserting new device with name [" << name << "] and address ["
+							        << gruu->asStringUriOnly() << "]";
+							db.value().get()->insertDevice(gruu, name);
+						}
 
 						// For chat rooms, the session is handled by the participant
 						if (isMe && !sessionCallId.empty() && conference->supportsMedia()) {
@@ -802,8 +808,9 @@ bool ClientConferenceEventHandler::requestFullState() {
 	if (!fullStateRequested) {
 		const auto &chatRoom = conference->getChatRoom();
 		if (chatRoom) {
-			const auto &core = getCore();
-			core->getPrivate()->mainDb->updateNotifyId(chatRoom, conference->getLastNotify());
+			if (auto db = getCore()->getDatabase()) {
+				db.value().get()->updateNotifyId(chatRoom, conference->getLastNotify());
+			}
 		}
 	}
 	return fullStateRequested;

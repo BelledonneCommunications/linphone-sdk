@@ -1783,8 +1783,11 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 				for (const auto &device : devices) {
 					auto deviceAddress = device->getAddress();
 					ms_message("Delete device %s from the database", deviceAddress->toString().c_str());
-					L_GET_PRIVATE_FROM_C_OBJECT(focus.getLc())
-					    ->mainDb->deleteChatRoomParticipantDevice(chatRoom, device);
+					L_GET_CPP_PTR_FROM_C_OBJECT(focus.getLc())
+					    ->getDatabase()
+					    .value()
+					    .get()
+					    ->deleteChatRoomParticipantDevice(chatRoom, device);
 				}
 				ClientConference::deleteAllDevices(participant);
 			}
@@ -2128,9 +2131,9 @@ void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,
 				info->setCapability(LinphoneStreamTypeAudio, true);
 				info->setCapability(LinphoneStreamTypeVideo, true);
 				info->setCapability(LinphoneStreamTypeText, false);
-				L_GET_PRIVATE_FROM_C_OBJECT(laure.getLc())->mainDb->insertConferenceInfo(info);
-				L_GET_PRIVATE_FROM_C_OBJECT(laure.getLc())
-				    ->mainDb->insertChatRoom(chatRoom, chatRoom->getConference()->getLastNotify(), true);
+				laure.getDatabase().value().get()->insertConferenceInfo(info);
+				laure.getDatabase().value().get()->insertChatRoom(chatRoom, chatRoom->getConference()->getLastNotify(),
+				                                                  true);
 			}
 
 			if (restart_core_after_corruption) {
@@ -2851,8 +2854,8 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		                             laure_stat.number_of_LinphoneRegistrationOk + 1, liblinphone_tester_sip_timeout));
 
 		BC_ASSERT_EQUAL(laure.getCore().getChatRooms().size(), nbChatrooms, size_t, "%zu");
-		auto &laureMainDb = L_GET_PRIVATE_FROM_C_OBJECT(laure.getLc())->mainDb;
-		BC_ASSERT_EQUAL(laureMainDb->getChatRooms().size(), nbChatrooms, size_t, "%zu");
+		auto laureMainDb = laure.getDatabase();
+		BC_ASSERT_EQUAL(laureMainDb.value().get()->getChatRooms().size(), nbChatrooms, size_t, "%zu");
 
 		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores2{marie, pauline, laure, michelle};
 		for (const ConfCoreManager &core : cores2) {
@@ -2875,8 +2878,8 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 					                   if (historySize != expectedHistorySize) {
 						                   return false;
 					                   }
-					                   auto &coreMainDb = L_GET_PRIVATE_FROM_C_OBJECT(core.getLc())->mainDb;
-					                   if (coreMainDb->getChatMessageCount(chatRoom->getConferenceId()) !=
+					                   auto coreMainDb = core.getDatabase();
+					                   if (coreMainDb.value().get()->getChatMessageCount(chatRoom->getConferenceId()) !=
 					                       historySize) {
 						                   return false;
 					                   }
@@ -2889,9 +2892,10 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			const auto chatRoom = laure.getCore().findChatRoom(conferenceId, false);
 			BC_ASSERT_PTR_NOT_NULL(chatRoom);
 			if (chatRoom) {
-				BC_ASSERT_EQUAL(laureMainDb->getConferenceNotifiedEvents(conferenceId, 0).size(),
-				                laureMainDb->getConferenceNotifiedEvents(chatRoom->getConferenceId(), 0).size(), size_t,
-				                "%zu");
+				BC_ASSERT_EQUAL(
+				    laureMainDb.value().get()->getConferenceNotifiedEvents(conferenceId, 0).size(),
+				    laureMainDb.value().get()->getConferenceNotifiedEvents(chatRoom->getConferenceId(), 0).size(),
+				    size_t, "%zu");
 			}
 		}
 
@@ -2905,8 +2909,9 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			    });
 			BC_ASSERT_TRUE(oldConferenceIdIt != oldConferenceIds.end());
 			if (oldConferenceIdIt != oldConferenceIds.end()) {
-				BC_ASSERT_EQUAL(laureMainDb->getConferenceNotifiedEvents(conferenceId, 0).size(),
-				                laureMainDb->getConferenceNotifiedEvents(*oldConferenceIdIt, 0).size(), size_t, "%zu");
+				BC_ASSERT_EQUAL(laureMainDb.value().get()->getConferenceNotifiedEvents(conferenceId, 0).size(),
+				                laureMainDb.value().get()->getConferenceNotifiedEvents(*oldConferenceIdIt, 0).size(),
+				                size_t, "%zu");
 			}
 		}
 

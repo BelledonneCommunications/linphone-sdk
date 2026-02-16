@@ -214,17 +214,16 @@ std::shared_ptr<ConferenceInfo> CallLog::getConferenceInfo() const {
 	// The conference info stored in the database is always up to date, therefore try to update the cache all the time
 	// if there id is valid Nonetheless, the cache variable is required if the core disables the storage of information
 	// in the database.
-#ifdef HAVE_DB_STORAGE
-	auto &db = L_GET_PRIVATE(getCore())->mainDb;
-	if (mConferenceInfoId != -1) {
-		mConferenceInfo = db->getConferenceInfo(mConferenceInfoId);
-	} else if (mTo && !mConferenceInfo) {
-		// Try to find the conference info based on the to address
-		// We enter this branch of the if-else statement only if the call cannot be started right away, for example when
-		// ICE candidates need to be gathered first
-		mConferenceInfo = db->getConferenceInfoFromURI(getRemoteAddress());
+	if (auto db = getCore()->getDatabase()) {
+		if (mConferenceInfoId != -1) {
+			mConferenceInfo = db.value().get()->getConferenceInfo(mConferenceInfoId);
+		} else if (mTo && !mConferenceInfo) {
+			// Try to find the conference info based on the to address
+			// We enter this branch of the if-else statement only if the call cannot be started right away, for example
+			// when ICE candidates need to be gathered first
+			mConferenceInfo = db.value().get()->getConferenceInfoFromURI(getRemoteAddress());
+		}
 	}
-#endif // HAVE_DB_STORAGE
 
 	return mConferenceInfo;
 }

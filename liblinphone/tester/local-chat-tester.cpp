@@ -450,14 +450,20 @@ static void group_chat_room_with_no_participants_following_database_corruption()
 						auto deviceAddress = device->getAddress();
 						ms_message("Delete device %s from %s's database", deviceAddress->toString().c_str(),
 						           linphone_core_get_identity(marie.getLc()));
-						L_GET_PRIVATE_FROM_C_OBJECT(marie.getLc())
-						    ->mainDb->deleteChatRoomParticipantDevice(chatRoom, device);
+						L_GET_CPP_PTR_FROM_C_OBJECT(marie.getLc())
+						    ->getDatabase()
+						    .value()
+						    .get()
+						    ->deleteChatRoomParticipantDevice(chatRoom, device);
 					}
 					auto participantAddress = participant->getAddress();
 					ms_message("Delete participant %s from %s's database", participantAddress->toString().c_str(),
 					           linphone_core_get_identity(marie.getLc()));
-					L_GET_PRIVATE_FROM_C_OBJECT(marie.getLc())
-					    ->mainDb->deleteChatRoomParticipant(chatRoom, participantAddress);
+					L_GET_CPP_PTR_FROM_C_OBJECT(marie.getLc())
+					    ->getDatabase()
+					    .value()
+					    .get()
+					    ->deleteChatRoomParticipant(chatRoom, participantAddress);
 				}
 			}
 		}
@@ -2438,8 +2444,8 @@ static void group_chat_room_bulk_notify_to_participant_base(bool_t trigger_full_
 		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(paulineCr), 2, int, "%d");
 		BC_ASSERT_STRING_EQUAL(linphone_chat_room_get_subject(paulineCr), newSubject2);
 
-		auto &paulineMainDb = L_GET_PRIVATE_FROM_C_OBJECT(pauline.getLc())->mainDb;
-		auto paulineDbChatRooms = paulineMainDb->getChatRooms();
+		auto paulineMainDb = pauline.getDatabase();
+		auto paulineDbChatRooms = paulineMainDb.value().get()->getChatRooms();
 		BC_ASSERT_EQUAL(paulineDbChatRooms.size(), 1, size_t, "%zu");
 		for (auto chatRoom : paulineDbChatRooms) {
 			BC_ASSERT_STRING_EQUAL(chatRoom->getSubject().c_str(), newSubject2);
@@ -2452,8 +2458,8 @@ static void group_chat_room_bulk_notify_to_participant_base(bool_t trigger_full_
 		pauline.reStart();
 		coresList = bctbx_list_append(coresList, pauline.getLc());
 
-		auto &paulineMainDbAfterRestart = L_GET_PRIVATE_FROM_C_OBJECT(pauline.getLc())->mainDb;
-		auto paulineDbChatRoomsAfterRestart = paulineMainDbAfterRestart->getChatRooms();
+		auto paulineMainDbAfterRestart = pauline.getDatabase();
+		auto paulineDbChatRoomsAfterRestart = paulineMainDbAfterRestart.value().get()->getChatRooms();
 		BC_ASSERT_EQUAL(paulineDbChatRooms.size(), paulineDbChatRoomsAfterRestart.size(), size_t, "%zu");
 		for (auto chatRoom : paulineDbChatRoomsAfterRestart) {
 			BC_ASSERT_STRING_EQUAL(chatRoom->getSubject().c_str(), newSubject2);

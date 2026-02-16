@@ -32,7 +32,7 @@ extern "C" {
 #endif // ifdef __cplusplus
 
 /**
- * @addtogroup call_control
+ * @addtogroup group_call_control
  * @{
  */
 
@@ -680,7 +680,7 @@ LINPHONE_PUBLIC LinphoneStatus linphone_call_transfer_to_another(LinphoneCall *c
  */
 
 /**
- * @addtogroup media_parameters
+ * @addtogroup group_media_parameters
  * @{
  */
 
@@ -760,7 +760,7 @@ LINPHONE_PUBLIC bool_t linphone_call_echo_limiter_enabled(const LinphoneCall *ca
  */
 
 /**
- * @addtogroup call_misc
+ * @addtogroup group_call_misc
  * @{
  */
 

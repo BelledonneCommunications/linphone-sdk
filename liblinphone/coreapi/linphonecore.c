@@ -1601,6 +1601,16 @@ static string get_default_local_ring(LinphoneCore *lc) {
 	return static_cast<PlatformHelpers *>(lc->platform_helper)->getRingResource(LOCAL_RING_WAV);
 }
 
+char *linphone_core_get_default_local_ringtone(LinphoneCore *lc) {
+	return bctbx_strdup(L_STRING_TO_C(get_default_local_ring(lc)));
+}
+
+static void set_default_local_ring(LinphoneCore *lc) {
+	const string local_ring = get_default_local_ring(lc);
+	if (bctbx_file_exist(local_ring.c_str()) == 0) linphone_core_set_ring(lc, local_ring.c_str());
+	else ms_error("Default local ringtone file '%s' does not exist", local_ring.c_str());
+}
+
 static string get_default_onhold_music(LinphoneCore *lc) {
 	if (linphone_core_file_format_supported(lc, "mkv")) {
 		return static_cast<PlatformHelpers *>(lc->platform_helper)->getSoundResource(HOLD_MUSIC_MKV);
@@ -1690,9 +1700,8 @@ static void sound_config_read(LinphoneCore *lc) {
 			if (bctbx_file_exist(tmpbuf) == 0) {
 				linphone_core_set_ring(lc, tmpbuf);
 			} else {
-				string soundResource = static_cast<PlatformHelpers *>(lc->platform_helper)->getSoundResource(tmpbuf);
-				if (bctbx_file_exist(soundResource.c_str()) == 0) linphone_core_set_ring(lc, soundResource.c_str());
-				else ms_warning("'%s' ring file does not exist", tmpbuf);
+				ms_warning("'%s' ring file does not exist, trying default ringtone", tmpbuf);
+				set_default_local_ring(lc);
 			}
 		} else {
 			linphone_core_set_ring(lc, tmpbuf);
@@ -1703,10 +1712,11 @@ static void sound_config_read(LinphoneCore *lc) {
 		if (!lc->native_ringing_enabled) {
 			ms_warning(
 			    "Native ringing has been disabled but no ringtone has been defined in sound config, using default one");
-			linphone_core_set_ring(lc, get_default_local_ring(lc).c_str());
+			set_default_local_ring(lc);
 		}
 #else
-		linphone_core_set_ring(lc, get_default_local_ring(lc).c_str());
+		ms_warning("No ringtone has been defined in sound config, using default one");
+		set_default_local_ring(lc);
 #endif
 	}
 
@@ -3359,7 +3369,7 @@ static void linphone_core_init(LinphoneCore *lc,
 	ms_message("Initializing LinphoneCore %s", linphone_core_get_version());
 
 	// Needed so that mainDb does not exist during the init phase when the core has been stopped and then restarted
-	L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb = nullptr;
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->uninitDatabase();
 
 	// During the core initialization, the accounts are reloaded, therefore the previous accounts can be safely deleted
 	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->resetAccounts();
@@ -3428,9 +3438,11 @@ static void linphone_core_init(LinphoneCore *lc,
 		}
 		lc->system_context = (jobject)env->NewGlobalRef((jobject)system_context);
 	}
-	if (lc->system_context) {
-		lc->platform_helper = LinphonePrivate::createAndroidPlatformHelpers(lc->cppPtr, lc->system_context);
-	} else ms_fatal("You must provide the Android's app context when creating the core!");
+	if (lc->platform_helper == NULL) {
+		if (lc->system_context) {
+			lc->platform_helper = LinphonePrivate::createAndroidPlatformHelpers(lc->cppPtr, lc->system_context);
+		} else ms_fatal("You must provide the Android's app context when creating the core!");
+	}
 #elif TARGET_OS_IPHONE
 	if (system_context) {
 		lc->system_context = system_context;
@@ -5302,7 +5314,8 @@ LinphoneCall *linphone_core_get_call_by_remote_address2(const LinphoneCore *lc, 
 
 int linphone_core_send_publish(LinphoneCore *lc, LinphonePresenceModel *presence, bool_t send_publish) {
 	CoreLogContextualizer logContextualizer(lc);
-	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setPresenceModelAndSendPublish(PresenceModel::toCpp(presence)->getSharedFromThis(), !!send_publish);
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setPresenceModelAndSendPublish(
+	    PresenceModel::toCpp(presence)->getSharedFromThis(), !!send_publish);
 }
 
 void linphone_core_set_inc_timeout(LinphoneCore *lc, int seconds) {
@@ -6002,7 +6015,7 @@ void linphone_core_enable_native_ringing(LinphoneCore *core, bool_t enable) {
 	if (enable == FALSE && linphone_core_get_ring(core) == NULL) {
 		ms_warning(
 		    "Native ringing has been disabled but no ringtone has been defined in sound config, using default one");
-		linphone_core_set_ring(core, get_default_local_ring(core).c_str());
+		set_default_local_ring(core);
 	}
 }
 
@@ -6352,9 +6365,8 @@ LinphoneNatPolicy *linphone_core_get_nat_policy(const LinphoneCore *lc) {
 void linphone_core_set_call_logs_database_path(LinphoneCore *lc, const char *path) {
 	CoreLogContextualizer logContextualizer(lc);
 	if (!linphone_core_conference_server_enabled(lc)) {
-		auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-		if (mainDb && mainDb->isInitialized()) {
-			mainDb->import(LinphonePrivate::MainDb::Sqlite3, path);
+		if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
+			db.value().get()->import(LinphonePrivate::MainDb::Sqlite3, path);
 			linphone_core_migrate_logs_from_rc_to_db(lc);
 		} else {
 			ms_warning("%s() needs to be called once linphone_core_start() has been called or Database has not been "
@@ -7925,9 +7937,6 @@ void _linphone_core_stop_async_end(LinphoneCore *lc) {
 		 process at the same time until this one is finally stopped */
 		LinphonePrivate::uninitSharedCore(lc);
 	}
-#else
-	if (lc->platform_helper) delete getPlatformHelpers(lc);
-	lc->platform_helper = NULL;
 #endif
 
 	linphone_core_set_state(lc, LinphoneGlobalOff, "Off");
@@ -8831,9 +8840,8 @@ int linphone_core_get_video_dscp(const LinphoneCore *lc) {
 void linphone_core_set_chat_database_path(LinphoneCore *lc, const char *path) {
 	CoreLogContextualizer logContextualizer(lc);
 	if (!linphone_core_conference_server_enabled(lc)) {
-		auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb;
-		if (mainDb && mainDb->isInitialized()) {
-			mainDb->import(LinphonePrivate::MainDb::Sqlite3, path);
+		if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
+			db.value().get()->import(LinphonePrivate::MainDb::Sqlite3, path);
 			L_GET_PRIVATE_FROM_C_OBJECT(lc)->loadChatRooms();
 		} else {
 			ms_warning("%s() needs to be called once linphone_core_start() has been called or Database has not been "
@@ -9787,20 +9795,13 @@ const char *linphone_core_get_srtp_crypto_suites(LinphoneCore *core) {
 #endif // _MSC_VER
 LinphoneConferenceInfo *linphone_core_find_conference_information_from_ccmp_uri(LinphoneCore *core, const char *uri) {
 	CoreLogContextualizer logContextualizer(core);
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
-	auto confInfo = mainDb->getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri));
-
-	if (confInfo != nullptr) {
-		// Clone the conference information so that the application can freely change it without modifying the
-		// object stored in the cached of the DB
-		return linphone_conference_info_clone(confInfo->toC());
+	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
+		if (auto confInfo = db.value().get()->getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri))) {
+			// Take a ref as the value returned by the MainDB class is a clone of the cached one
+			return linphone_conference_info_ref(confInfo->toC());
+		}
 	}
-
-	return NULL;
-#else
-	return NULL;
-#endif
+	return nullptr;
 }
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
@@ -9812,19 +9813,14 @@ LinphoneConferenceInfo *linphone_core_find_conference_information_from_ccmp_uri(
 #endif // _MSC_VER
 LinphoneConferenceInfo *linphone_core_find_conference_information_from_uri(LinphoneCore *core, LinphoneAddress *uri) {
 	CoreLogContextualizer logContextualizer(core);
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
-	const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
-	auto confInfo = mainDb->getConferenceInfoFromURI(uri_addr);
-	if (confInfo != nullptr) {
-		// Clone the conference information so that the application can freely change it without modifying the
-		// object stored in the cached of the DB
-		return linphone_conference_info_clone(confInfo->toC());
+	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
+		const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
+		if (auto confInfo = db.value().get()->getConferenceInfoFromURI(uri_addr)) {
+			// Take a ref as the value returned by the MainDB class is a clone of the cached one
+			return linphone_conference_info_ref(confInfo->toC());
+		}
 	}
-	return NULL;
-#else
-	return NULL;
-#endif
+	return nullptr;
 }
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
@@ -9835,25 +9831,22 @@ LinphoneConferenceInfo *linphone_core_find_conference_information_from_uri(Linph
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // _MSC_VER
 static bctbx_list_t *get_conference_information_list(LinphoneCore *core, time_t t, bctbx_list_t *capabilities) {
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
-	if (mainDb == NULL) return NULL;
+	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase();
+	if (!db) return nullptr;
+
 	std::list<LinphoneStreamType> capabilityList;
 	if (capabilities) {
-		for (bctbx_list_t *capability = capabilities; capability != NULL; capability = capability->next) {
+		for (bctbx_list_t *capability = capabilities; capability != nullptr; capability = capability->next) {
 			capabilityList.push_back(
 			    static_cast<LinphoneStreamType>(LINPHONE_PTR_TO_INT(bctbx_list_get_data(capability))));
 		}
 	}
-	auto list = mainDb->getConferenceInfos(t, capabilityList);
-	bctbx_list_t *results = NULL;
+	auto list = db.value().get()->getConferenceInfos(t, capabilityList);
+	bctbx_list_t *results = nullptr;
 	for (auto &info : list) {
 		results = bctbx_list_append(results, linphone_conference_info_ref(info->toC()));
 	}
 	return results;
-#else
-	return NULL;
-#endif
 }
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
@@ -9897,20 +9890,18 @@ bctbx_list_t *linphone_core_get_conference_information_list_after_time_2(Linphon
 #endif // _MSC_VER
 bctbx_list_t *linphone_core_get_conference_informations_with_participant(LinphoneCore *core, LinphoneAddress *uri) {
 	CoreLogContextualizer logContextualizer(core);
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
-	const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
-	auto list = mainDb->getConferenceInfosWithParticipant(uri_addr);
+	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase();
+	if (!db) return nullptr;
 
-	bctbx_list_t *results = NULL;
+	const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
+	auto list = db.value().get()->getConferenceInfosWithParticipant(uri_addr);
+
+	bctbx_list_t *results = nullptr;
 	for (auto &conf : list) {
 		results = bctbx_list_append(results, linphone_conference_info_ref(conf->toC()));
 	}
 
 	return results;
-#else
-	return NULL;
-#endif
 }
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
@@ -10129,9 +10120,8 @@ void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int
 }
 
 void linphone_core_upgrade_database(LinphoneCore *core) {
-	auto &mainDb = L_GET_PRIVATE_FROM_C_OBJECT(core)->mainDb;
-	if (mainDb && mainDb->isInitialized()) {
-		mainDb->updateSchema();
+	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
+		db.value().get()->updateSchema();
 	} else {
 		ms_error("Trying to upgrade database before linphone_core_start() has been called, it has not been initialized "
 		         "yet.");

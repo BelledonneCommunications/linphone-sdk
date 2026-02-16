@@ -503,7 +503,7 @@ void CorePrivate::uninit() {
 		}
 	}
 
-	mChatRoomsById.clear();
+	mBasicChatRoomsById.clear();
 
 	for (const auto &[id, conference] : mConferenceById) {
 		// Terminate audio video conferences just before core is stopped
@@ -635,6 +635,19 @@ belle_sip_main_loop_t *CorePrivate::getMainLoop() {
 	return q->getCCore()->sal
 	           ? belle_sip_stack_get_main_loop(static_cast<belle_sip_stack_t *>(q->getCCore()->sal->getStackImpl()))
 	           : nullptr;
+}
+
+optional<reference_wrapper<const unique_ptr<MainDb>>> CorePrivate::getDatabase() const {
+#ifdef HAVE_DB_STORAGE
+	if (mainDb != nullptr && mainDb->isInitialized()) {
+		return mainDb;
+	}
+#endif
+	return std::nullopt;
+}
+
+void CorePrivate::uninitDatabase() {
+	mainDb = nullptr;
 }
 
 Sal *CorePrivate::getSal() {
@@ -1979,9 +1992,8 @@ void Core::healNetworkConnections() {
 }
 
 int Core::getUnreadChatMessageCount() const {
-	L_D();
-	if (d->mainDb && d->mainDb->isInitialized()) {
-		return d->mainDb->getUnreadChatMessageGlobalCount();
+	if (auto db = getDatabase()) {
+		return db.value().get()->getUnreadChatMessageGlobalCount();
 	}
 	return -1;
 }
@@ -2041,8 +2053,10 @@ std::shared_ptr<ChatRoom> Core::getPushNotificationChatRoom(const std::string &c
 }
 
 std::shared_ptr<ChatMessage> Core::findChatMessageFromCallId(const std::string &callId) const {
-	L_D();
-	std::list<std::shared_ptr<ChatMessage>> chatMessages = d->mainDb->findChatMessagesFromCallId(callId);
+	std::list<std::shared_ptr<ChatMessage>> chatMessages;
+	if (auto db = getDatabase()) {
+		chatMessages = db.value().get()->findChatMessagesFromCallId(callId);
+	}
 	return chatMessages.empty() ? nullptr : chatMessages.front();
 }
 
@@ -2319,7 +2333,7 @@ void Core::invalidateAccountInConferencesAndChatRooms(const std::shared_ptr<Acco
 		}
 	}
 
-	for (const auto &[id, chatRoom] : d->mChatRoomsById) {
+	for (const auto &[id, chatRoom] : d->mBasicChatRoomsById) {
 		if (account == chatRoom->getAccount()) {
 			chatRoom->invalidateAccount();
 		}
@@ -2958,6 +2972,9 @@ bool Core::dlopenPlugin(BCTBX_UNUSED(const std::string &plugin_path),
 }
 
 void Core::uninitPlugins() {
+#if defined(ENABLE_COVERAGE)
+	ms_warning("Core::uninitPlugins - skipping dlclose() to avoid false leak report on code coverage builds");
+#else
 	for (auto &handle : loadedPlugins) {
 #if defined(_WIN32)
 		FreeLibrary(handle);
@@ -2965,6 +2982,7 @@ void Core::uninitPlugins() {
 		dlclose(handle);
 #endif
 	}
+#endif
 	loadedPlugins.clear();
 	plugins.clear();
 }
@@ -3807,6 +3825,14 @@ void Core::setEphemeralChatMessagePolicy(const LinphoneEphemeralChatMessagePolic
 LinphoneEphemeralChatMessagePolicy Core::getEphemeralChatMessagePolicy() const {
 	L_D();
 	return d->ephemeralChatMessagePolicy;
+}
+
+std::optional<std::reference_wrapper<const unique_ptr<MainDb>>> Core::getDatabase() const {
+	return getPrivate()->getDatabase();
+}
+
+void Core::uninitDatabase() {
+	getPrivate()->uninitDatabase();
 }
 
 LINPHONE_END_NAMESPACE

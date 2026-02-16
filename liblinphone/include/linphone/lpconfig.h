@@ -40,7 +40,7 @@
 #include "linphone/types.h"
 
 /**
- * @addtogroup misc
+ * @addtogroup group_misc
  * @{
  */
 
@@ -57,7 +57,7 @@ extern "C" {
  * Instantiates a #LinphoneConfig object from a user config file.
  * The caller of this constructor owns a reference. linphone_config_unref() must be called when this object is no longer
  * needed.
- * @ingroup misc
+ * @ingroup group_misc
  * @param filename the filename of the config file to read to fill the instantiated #LinphoneConfig @maybenil
  * @see linphone_config_new_with_factory()
  * @return a #LinphoneConfig object @maybenil
@@ -68,7 +68,7 @@ LINPHONE_PUBLIC LinphoneConfig *linphone_config_new(const char *filename);
  * Instantiates a #LinphoneConfig object from a user provided buffer.
  * The caller of this constructor owns a reference. linphone_config_unref() must be called when this object is no longer
  * needed.
- * @ingroup misc
+ * @ingroup group_misc
  * @param buffer the buffer from which the #LinphoneConfig will be retrieved. We expect the buffer to be
  * null-terminated. @notnil
  * @see linphone_config_new_with_factory()
@@ -81,7 +81,7 @@ LINPHONE_PUBLIC LinphoneConfig *linphone_config_new_from_buffer(const char *buff
  * Instantiates a #LinphoneConfig object from a user config file and a factory config file.
  * The caller of this constructor owns a reference. linphone_config_unref() must be called when this object is no longer
  * needed.
- * @ingroup misc
+ * @ingroup group_misc
  * @param config_filename the filename of the user config file to read to fill the instantiated #LinphoneConfig
  * @maybenil
  * @param factory_config_filename the filename of the factory config file to read to fill the instantiated
@@ -103,7 +103,7 @@ LINPHONE_PUBLIC LinphoneConfig *linphone_config_new_with_factory(const char *con
  * Both iOS application and iOS app extension that need shared core must activate the "App group" capability with the
  * SAME "group id" in the project settings. The caller of this constructor owns a reference. linphone_config_unref()
  * must be called when this object is no longer needed.
- * @ingroup misc
+ * @ingroup group_misc
  * @param app_group_id used to compute the path of the config file in the file system shared by the shared Cores @notnil
  * @param config_filename the filename of the user config file to read to fill the instantiated #LinphoneConfig
  * @maybenil
@@ -122,7 +122,7 @@ LINPHONE_PUBLIC LinphoneConfig *linphone_config_new_for_shared_core(const char *
 
 /**
  * Reads a user config file and fill the #LinphoneConfig with the read config values.
- * @ingroup misc
+ * @ingroup group_misc
  * @param config The #LinphoneConfig object to fill with the content of the file @notnil
  * @param filename The filename of the config file to read to fill the #LinphoneConfig @notnil
  */
@@ -130,7 +130,7 @@ LINPHONE_PUBLIC LinphoneStatus linphone_config_read_file(LinphoneConfig *config,
 
 /**
  * Reads a xml config file and fill the #LinphoneConfig with the read config dynamic values.
- * @ingroup misc
+ * @ingroup group_misc
  * @param config The #LinphoneConfig object to fill with the content of the file @notnil
  * @param filename The filename of the config file to read to fill the #LinphoneConfig @notnil
  */
@@ -138,7 +138,7 @@ LINPHONE_PUBLIC const char *linphone_config_load_from_xml_file(LinphoneConfig *c
 
 /**
  * Reads a xml config string and fill the #LinphoneConfig with the read config dynamic values.
- * @ingroup misc
+ * @ingroup group_misc
  * @param config The #LinphoneConfig object to fill with the content of the file @notnil
  * @param buffer The string of the config file to fill the #LinphoneConfig @notnil
  * @return 0 in case of success
@@ -147,7 +147,7 @@ LINPHONE_PUBLIC LinphoneStatus linphone_config_load_from_xml_string(LinphoneConf
 
 /**
  * Returns the filename used to store the user config.
- * @ingroup misc
+ * @ingroup group_misc
  * @param config the #LinphoneConfig object. @notnil
  * @return the filename used to store the user config if any. @maybenil
  * @donotwrap
@@ -156,7 +156,7 @@ LINPHONE_PUBLIC const char *linphone_config_get_filename(const LinphoneConfig *c
 
 /**
  * Returns the filename that was used as the factory config.
- * @ingroup misc
+ * @ingroup group_misc
  * @param config the #LinphoneConfig object. @notnil
  * @return the filename used to as the factory config if any. @maybenil
  * @donotwrap
@@ -165,7 +165,7 @@ LINPHONE_PUBLIC const char *linphone_config_get_factory_filename(const LinphoneC
 
 /**
  * Returns the temporary filename used to store the user config.
- * @ingroup misc
+ * @ingroup group_misc
  * @param config the #LinphoneConfig object. @notnil
  * @return the temporary filename used to store the user config if any. @maybenil
  * @donotwrap

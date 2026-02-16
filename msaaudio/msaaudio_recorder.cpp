@@ -188,6 +188,9 @@ static bool_t aaudio_recorder_init(MSFilter *obj) {
 		ms_mutex_unlock(&ictx->stream_mutex);
 		return TRUE;
 	} else {
+		// Requires target API level to be at least 30
+		/*bool isMMapUsed = AAudioStream_isMMapUsed(ictx->stream);
+		ms_message("[AAudio Recorder] Recorder stream opened, is mMap used ? [%i]", isMMapUsed);*/
 		ms_message("[AAudio Recorder] Recorder stream opened");
 	}
 

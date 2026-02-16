@@ -140,14 +140,11 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 							                          Conference::sIsFocusParameter.c_str())) {
 								const auto &conferenceInfo = Utils::createConferenceInfoFromOp(op, true);
 								if (conferenceInfo->getUri()->isValid()) {
-#ifdef HAVE_DB_STORAGE
-									auto &mainDb = core->getPrivate()->mainDb;
-									if (mainDb) {
+									if (auto db = core->getDatabase()) {
 										lInfo() << "Inserting conference information to database related to conference "
 										        << *conferenceInfo->getUri();
-										mainDb->insertConferenceInfo(conferenceInfo);
+										db.value().get()->insertConferenceInfo(conferenceInfo);
 									}
-#endif // HAVE_DB_STORAGE
 									auto log = q->getLog();
 									log->setConferenceInfo(conferenceInfo);
 								}
@@ -519,10 +516,9 @@ void CallSessionPrivate::updateToFromAssertedIdentity() {
 			        << "].";
 			log->setToAddress(pAssertedIdAddr);
 
-#ifdef HAVE_DB_STORAGE
-			auto &mainDb = q->getCore()->getPrivate()->mainDb;
-			if (mainDb != nullptr) mainDb->updateCallLog(log);
-#endif // HAVE_DB_STORAGE
+			if (auto db = q->getCore()->getDatabase()) {
+				db.value().get()->updateCallLog(log);
+			}
 		} else {
 			lWarning() << "Unsupported P-Asserted-Identity header";
 		}
@@ -545,10 +541,9 @@ void CallSessionPrivate::replaceOp(SalCallOp *newOp) {
 	op->setLocalMediaDescription(oldOp->getLocalMediaDescription());
 	// Replace the call ID in the call log
 	log->setCallId(op->getCallId());
-#ifdef HAVE_DB_STORAGE
-	auto &mainDb = q->getCore()->getPrivate()->mainDb;
-	if (mainDb != nullptr) mainDb->updateCallLog(log);
-#endif // HAVE_DB_STORAGE
+	if (auto db = q->getCore()->getDatabase()) {
+		db.value().get()->updateCallLog(log);
+	}
 	switch (state) {
 		case CallSession::State::IncomingEarlyMedia:
 		case CallSession::State::IncomingReceived:
@@ -1054,16 +1049,15 @@ void CallSessionPrivate::setContactOp() {
 				lInfo() << "The guessed contact address " << *contactInfo.mAddress
 				        << " doesn't match the actual chatroom conference address " << *conferenceAddress;
 			} else {
-#ifdef HAVE_DB_STORAGE
-				auto &mainDb = q->getCore()->getPrivate()->mainDb;
-				const auto &confInfo = mainDb->getConferenceInfoFromURI(guessedConferenceAddress);
-				if (confInfo) {
-					// The conference may have already been terminated when setting the contact address.
-					// This happens when an admin cancel a conference by sending an INVITE with an empty resource
-					// list Add parameters stored in the conference information URI to the contact address
-					conferenceAddress = confInfo->getUri()->clone()->toSharedPtr();
+				if (auto db = q->getCore()->getDatabase()) {
+					const auto &confInfo = db.value().get()->getConferenceInfoFromURI(guessedConferenceAddress);
+					if (confInfo) {
+						// The conference may have already been terminated when setting the contact address.
+						// This happens when an admin cancel a conference by sending an INVITE with an empty resource
+						// list Add parameters stored in the conference information URI to the contact address
+						conferenceAddress = confInfo->getUri()->clone()->toSharedPtr();
+					}
 				}
-#endif // HAVE_DB_STORAGE
 			}
 			if (conferenceAddress && conferenceAddress->isValid()) {
 				if (contactInfo.mAddress && contactInfo.mAddress->isValid()) {

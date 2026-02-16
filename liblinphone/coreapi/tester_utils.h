@@ -350,6 +350,7 @@ LINPHONE_PUBLIC const char *sal_get_uuid(const Sal *ctx);
 
 LINPHONE_PUBLIC void sal_default_set_sdp_handling(Sal *h, SalOpSDPHandling handling_method);
 
+/* simulate transport errors. 0: normal, -1: socket error, positive value: discard silently */
 LINPHONE_PUBLIC void sal_set_send_error(Sal *sal, int value);
 LINPHONE_PUBLIC void sal_set_recv_error(Sal *sal, int value);
 LINPHONE_PUBLIC void sal_set_client_bind_port(Sal *sal, int port);
@@ -449,6 +450,8 @@ linphone_core_create_basic_chat_room(LinphoneCore *core, const char *localSipUri
 bool_t linphone_core_account_strict_matching_enabled(const LinphoneCore *core);
 
 LINPHONE_PUBLIC void linphone_core_enable_account_strict_matching(LinphoneCore *core, bool_t enable);
+
+LINPHONE_PUBLIC char *linphone_core_get_default_local_ringtone(LinphoneCore *lc);
 
 #ifdef __cplusplus
 }

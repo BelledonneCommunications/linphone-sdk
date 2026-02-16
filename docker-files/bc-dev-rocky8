@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:20260106_add_deps_for_hidapi
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:20260122_update_clang
 ###############################################################################
 
 FROM rockylinux:8
@@ -8,6 +8,9 @@ MAINTAINER Mickaël Turnel <mickael.turnel@belledonne-communications.com>
 
 # Install common general tools
 RUN dnf install -y sudo vim
+
+# Fix bug on recent rocky images where /etc/shadow is being created without root read permissions
+RUN chmod 0640 /etc/shadow
 
 # Configure additional repositories
 RUN dnf install -y epel-release && \

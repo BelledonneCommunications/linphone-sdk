@@ -9290,8 +9290,9 @@ static test_t local_conference_scheduled_conference_advanced_tests[] = {
     TEST_ONE_TAG("Change active speaker", LinphoneTest::change_active_speaker, "shaky"),
     TEST_NO_TAG("Active speaker conference with anonymous participants",
                 LinphoneTest::active_speaker_conference_with_anonymous_participants),
-    TEST_NO_TAG("Grid conference with anonymous participants",
-                LinphoneTest::grid_conference_with_anonymous_participants),
+    TEST_ONE_TAG("Grid conference with anonymous participants",
+                 LinphoneTest::grid_conference_with_anonymous_participants,
+                 "shaky"),
 #ifndef HAVE_EKT_SERVER_PLUGIN
     TEST_NO_TAG("Failure in creating end to end encrypted conference EKT plugin missing",
                 LinphoneTest::failure_in_creating_end_to_end_encrypted_conference_ekt_plugin_missing)

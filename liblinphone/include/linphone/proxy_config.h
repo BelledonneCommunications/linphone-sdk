@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup proxies
+ * @addtogroup group_proxies
  * @{
  **/
 

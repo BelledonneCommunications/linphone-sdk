@@ -1096,8 +1096,12 @@ list<shared_ptr<CallLog>> Account::getCallLogs() const {
 	}
 
 	auto localAddress = mParams->mIdentityAddress;
-	unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
-	return mainDb->getCallHistoryForLocalAddress(localAddress, linphone_core_get_max_call_logs(getCore()->getCCore()));
+	if (auto db = getCore()->getDatabase()) {
+		return db.value().get()->getCallHistoryForLocalAddress(localAddress,
+		                                                       linphone_core_get_max_call_logs(getCore()->getCCore()));
+	} else {
+		return list<shared_ptr<CallLog>>();
+	}
 }
 
 list<shared_ptr<CallLog>> Account::getCallLogsForAddress(const std::shared_ptr<const Address> &remoteAddress) const {
@@ -1112,8 +1116,12 @@ list<shared_ptr<CallLog>> Account::getCallLogsForAddress(const std::shared_ptr<c
 	}
 
 	auto localAddress = mParams->mIdentityAddress;
-	unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
-	return mainDb->getCallHistory(remoteAddress, localAddress, linphone_core_get_max_call_logs(getCore()->getCCore()));
+	if (auto db = getCore()->getDatabase()) {
+		return db.value().get()->getCallHistory(remoteAddress, localAddress,
+		                                        linphone_core_get_max_call_logs(getCore()->getCCore()));
+	} else {
+		return list<shared_ptr<CallLog>>();
+	}
 }
 
 void Account::deleteCallLogs() const {
@@ -1128,8 +1136,9 @@ void Account::deleteCallLogs() const {
 	}
 
 	auto localAddress = mParams->mIdentityAddress;
-	unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
-	mainDb->deleteCallHistoryForLocalAddress(localAddress);
+	if (auto db = getCore()->getDatabase()) {
+		db.value().get()->deleteCallHistoryForLocalAddress(localAddress);
+	}
 }
 
 list<shared_ptr<ConferenceInfo>> Account::getConferenceInfos(const std::list<LinphoneStreamType> capabilities) const {
@@ -1144,8 +1153,9 @@ list<shared_ptr<ConferenceInfo>> Account::getConferenceInfos(const std::list<Lin
 	}
 
 	auto localAddress = mParams->mIdentityAddress;
-	unique_ptr<MainDb> &mainDb = getCore()->getPrivate()->mainDb;
-	mConferenceInfos = mainDb->getConferenceInfosWithParticipant(localAddress, capabilities);
+	if (auto db = getCore()->getDatabase()) {
+		mConferenceInfos = db.value().get()->getConferenceInfosWithParticipant(localAddress, capabilities);
+	}
 
 	const auto ccmpServerUrl = mParams->getCcmpServerUrl();
 	if (!ccmpServerUrl.empty()) {
@@ -2154,12 +2164,10 @@ void Account::handleResponseConferenceInformation(void *ctx, BCTBX_UNUSED(const 
 						}
 					}
 					account->addConferenceInfo(info);
-#ifdef HAVE_DB_STORAGE
-					auto &mainDb = account->getCore()->getPrivate()->mainDb;
-					if (mainDb) {
-						mainDb->insertConferenceInfo(info);
+
+					if (auto db = account->getCore()->getDatabase()) {
+						db.value().get()->insertConferenceInfo(info);
 					}
-#endif // HAVE_DB_STORAGE
 				}
 			} catch (const std::bad_cast &e) {
 				lError() << "Error while casting parsed CCMP response (CcmpConfResponseMessageType) in account ["

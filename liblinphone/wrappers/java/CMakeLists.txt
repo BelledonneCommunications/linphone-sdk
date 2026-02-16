@@ -51,11 +51,14 @@ else()
 endif()
 
 configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/simple_provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw")
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache"
+configure_file("${PROJECT_SOURCE_DIR}/wrappers/java/overview.mustache.in" "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in")
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache"
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
 	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\"${SED_ESCAPE_CHARACTER}\>Linphone\.\\1${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*\\\*/${SED_ESCAPE_CHARACTER}\<\!DOCTYPE HTML PUBLIC \"\-\\\/\\\/W3C\\\/\\\/DTD HTML 4\.0 Transitional\\\/\\\/EN\"${SED_ESCAPE_CHARACTER}\>\\n${SED_ESCAPE_CHARACTER}\<style${SED_ESCAPE_CHARACTER}\>\\ntable, th, td {\\nborder:1px solid black\;\\n}\\n${SED_ESCAPE_CHARACTER}\<\\\/style${SED_ESCAPE_CHARACTER}\>\\n${SED_ESCAPE_CHARACTER}\<HTML${SED_ESCAPE_CHARACTER}\>\\n/' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\//${SED_ESCAPE_CHARACTER}\<\\\/HTML${SED_ESCAPE_CHARACTER}\>/' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/@//' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*\\\*//' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*\\\*\[\[:space:\]\]*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
@@ -64,7 +67,11 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuratio
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::\(\[\[:alnum:\]\]+\)::\(\[\[:alnum:\]\]+\)\(\\\(\\\)\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\#\\2--\"${SED_ESCAPE_CHARACTER}\>\\1\.\\2\\3${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+	COMMAND head -n -2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+	COMMAND cat ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+	COMMAND tail -2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw
+	${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in
 	liblinphone-doc
 )
 
@@ -82,7 +89,6 @@ add_custom_command(OUTPUT "${jni_sources}"
 	java_interface.mustache
 	jni.mustache
 	overview.mustache
-	provisioning_configuration_key.mustache
 	proguard.mustache
 	liblinphone-doc
 	COMMENT "Generating java wrapper"

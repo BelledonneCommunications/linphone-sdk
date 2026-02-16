@@ -376,7 +376,7 @@ MSSndCardDeviceType ms_android_sound_utils_get_device_type(const AndroidSoundUti
 	}
 
 	MSSndCardDeviceType deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
-	if (typeID == utils->audioDeviceTypeBluetoothSco) {
+	if (typeID == utils->audioDeviceTypeBluetoothSco || typeID == utils->audioDeviceTypeBluetoothHeadset) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH;
 	} else if (typeID == utils->audioDeviceTypeBluetoothA2dp) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP;
@@ -395,8 +395,7 @@ MSSndCardDeviceType ms_android_sound_utils_get_device_type(const AndroidSoundUti
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_AUX_LINE;
 	} else if (typeID == utils->audioDeviceTypeTelephony) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_TELEPHONY;
-	} else if (typeID == utils->audioDeviceTypeBluetoothHeadset || typeID == utils->audioDeviceTypeUsbHeadset ||
-	           typeID == utils->audioDeviceTypeWiredHeadset) {
+	} else if (typeID == utils->audioDeviceTypeUsbHeadset || typeID == utils->audioDeviceTypeWiredHeadset) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET;
 	} else if (typeID == utils->audioDeviceTypeHearingAid) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID;

@@ -323,11 +323,8 @@ static void call_received(SalCallOp *h) {
 				return;
 			}
 		} else {
-#ifdef HAVE_DB_STORAGE
-			std::shared_ptr<ConferenceInfo> confInfo =
-			    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->isInitialized()
-			        ? L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->getConferenceInfoFromURI(to)
-			        : nullptr;
+			auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
+			std::shared_ptr<ConferenceInfo> confInfo = db ? db.value().get()->getConferenceInfoFromURI(to) : nullptr;
 			if (confInfo) {
 				params->enableAudio(confInfo->getCapability(LinphoneStreamTypeAudio));
 				params->enableVideo(confInfo->getCapability(LinphoneStreamTypeVideo));
@@ -342,15 +339,10 @@ static void call_received(SalCallOp *h) {
 				}
 				conference = (new ServerConference(core, nullptr, params))->toSharedPtr();
 				conference->init(h);
-			} else
-#endif // HAVE_DB_STORAGE
-			{
+			} else {
 				if (hasStreams) {
 					if (sal_address_has_uri_param(h->getToAddress(), Conference::sConfIdParameter.c_str())) {
-						long long expiredConferenceId =
-						    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->isInitialized()
-						        ? L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findExpiredConferenceId(to)
-						        : -1;
+						long long expiredConferenceId = db ? db.value().get()->findExpiredConferenceId(to) : -1;
 						SalErrorInfo sei;
 						memset(&sei, 0, sizeof(sei));
 						std::string msg = "Conference " + to->toString();
@@ -403,8 +395,9 @@ static void call_received(SalCallOp *h) {
 							}
 							const auto &participant = (*participantList.begin())->getAddress();
 							std::shared_ptr<Address> confAddr =
-							    L_GET_PRIVATE_FROM_C_OBJECT(lc)->mainDb->findOneOnOneConferenceChatRoomAddress(
-							        fromOp, participant, encrypted);
+							    db ? db.value().get()->findOneOnOneConferenceChatRoomAddress(fromOp, participant,
+							                                                                 encrypted)
+							       : nullptr;
 							if (confAddr && confAddr->isValid()) {
 								shared_ptr<AbstractChatRoom> chatRoom =
 								    core->findChatRoom(ConferenceId(confAddr, confAddr, conferenceIdParams));
@@ -1038,6 +1031,11 @@ static void subscribe_response(SalOp *op, SalSubscribeStatus status, int will_re
 	LinphoneCore *lc = (LinphoneCore *)op->getSal()->getUserPointer();
 
 	if (lev == NULL) return;
+	if (linphone_event_get_subscription_state(lev) == LinphoneSubscriptionTerminated) {
+		/* no longer interested in the subscription. Ignore, the NOTIFY will be later rejected with 481. */
+		lWarning() << "Ignored response to SUBSCRIBE, LinphoneEvent is in Terminated state.";
+		return;
+	}
 
 	if (status == SalSubscribeActive) {
 		linphone_event_set_state(lev, LinphoneSubscriptionActive);
@@ -1071,9 +1069,12 @@ static void notify(SalSubscribeOp *op, SalSubscribeStatus st, const char *eventn
 			linphone_event_set_internal(lev, true);
 		}
 	}
+
 	linphone_event_ref(lev);
 	if ((!out_of_dialog) && (st != SalSubscribeNone)) {
-		linphone_event_set_state(lev, linphone_subscription_state_from_sal(st));
+		if (linphone_event_get_subscription_state(lev) != LinphoneSubscriptionTerminated) {
+			linphone_event_set_state(lev, linphone_subscription_state_from_sal(st));
+		}
 	}
 
 	/* Take into account that the subscription may have been closed by app already within the callback of

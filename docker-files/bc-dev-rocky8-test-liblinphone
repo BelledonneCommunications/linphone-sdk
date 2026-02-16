@@ -1,8 +1,8 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20230914_gdb_toolset_12_sdk
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20260122_llvm_coverage
 ###############################################################################
 
-ARG FROM_IMAGE_TAG=20230914_gdb_toolset_12_sdk
+ARG FROM_IMAGE_TAG=20260122_update_clang
 
 FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:$FROM_IMAGE_TAG
 
@@ -16,8 +16,20 @@ RUN sudo dnf -y install Xvfb
 #failing, need to find a workaround
 #RUN modprobe snd-dummy
 
+#Getting llvm-toolset for code coverage and clang build sanitizer
+RUN sudo dnf -y install llvm-toolset
+
+# Switch to 'bc' user
+USER bc
+WORKDIR /home/bc
+
+#Install cobertura for gitlab test coverage data processing
+#Installing with user 'bc' puts the modules in /home/bc/.local/bin.
+RUN python3 -m pip install --user lcov_cobertura
+
 COPY --chmod=0755 link-audio-group-docker.sh /usr/local/sbin/
 
 ENTRYPOINT ["/usr/local/sbin/link-audio-group-docker.sh"]
 
 SHELL ["/bin/bash", "-c"]
+

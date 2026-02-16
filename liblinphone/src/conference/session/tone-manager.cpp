@@ -102,10 +102,11 @@ void ToneManager::startRingbackTone() {
 	}
 	destroyRingStream();
 
+	MSSndCardStreamType streamType = MS_SND_CARD_STREAM_DTMF;
 	if (lc->sound_conf.remote_ring) {
 		for (auto item = sndCards; item != nullptr; item = bctbx_list_next(item)) {
 			const auto card = static_cast<MSSndCard *>(bctbx_list_get_data(item));
-			ms_snd_card_set_stream_type(card, MS_SND_CARD_STREAM_DTMF);
+			ms_snd_card_set_stream_type(card, streamType);
 		}
 		mRingStream = ring_start(lc->factory, lc->sound_conf.remote_ring, 2000, (lc->use_files) ? nullptr : sndCards);
 	}
@@ -344,10 +345,13 @@ MSFilter *ToneManager::getAudioResource(AudioResourceType rtype, MSSndCard *card
 	MSFilter *audioResource = nullptr;
 	shared_ptr<Conference> conference;
 	float tmp;
-	if (call) {
-		stream = reinterpret_cast<AudioStream *>(linphone_call_get_stream(call, LinphoneStreamTypeAudio));
-	} else if ((conference = getCore().getCurrentLocalConference()) != nullptr) {
+
+	if ((conference = getCore().getCurrentLocalConference()) != nullptr) {
+		lInfo() << "[ToneManager] using audio from local conference.";
 		stream = linphone_conference_get_audio_stream(conference->toC());
+	} else if (call) {
+		lInfo() << "[ToneManager] using audio from current call.";
+		stream = reinterpret_cast<AudioStream *>(linphone_call_get_stream(call, LinphoneStreamTypeAudio));
 	}
 	if (stream) {
 		if (rtype == ToneGenerator) audioResource = stream->dtmfgen;

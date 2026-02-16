@@ -464,12 +464,15 @@ void ms_audio_conference_process_events(MSAudioConference *obj) {
 		obj->active_speaker = winner;
 	}
 
-	if (obj->params.mode == MSConferenceModeMixer && winner_ssrc != obj->current_speaker_ssrc) {
+	if (obj->params.mode == MSConferenceModeMixer && obj->params.csrc_usage_allowed &&
+	    winner_ssrc != obj->current_speaker_ssrc) {
 		// Add the ssrc of the winner in the contributing sources into each of the RtpSession
+		// as a fallback solution for those that do not support mixer-to-client extension.
 		for (elem = obj->members; elem != NULL; elem = elem->next) {
 			MSAudioEndpoint *ep = (MSAudioEndpoint *)elem->data;
 
-			// Only do it if the mixer-to-client extension is not set
+			// Only do it if the mixer-to-client extension is not set,
+			// otherwise it will be set as part of the mixer-to-client extension.
 			if (ep->st == NULL || ep->st->mixer_to_client_extension_id > 0) continue;
 
 			RtpSession *session = ep->st->ms.sessions.rtp_session;

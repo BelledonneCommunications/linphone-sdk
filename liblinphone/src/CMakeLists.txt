@@ -846,6 +846,19 @@ add_library(liblinphone ${LINPHONE_RESOURCES} ${SWIFT_MODULE_FILES} ${LINPHONE_H
 	${LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES} ${LINPHONE_CXX_OBJECTS_SOURCE_FILES} ${LINPHONE_OBJC_SOURCE_FILES}
 	$<TARGET_OBJECTS:liblinphone-coreapi>
 )
+
+if (ENABLE_COVERAGE)
+	if(CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
+		message(STATUS "Enabling code coverage for Clang/LLVM for liblinphone")
+		target_compile_options(liblinphone PUBLIC "-fprofile-instr-generate")
+		target_compile_options(liblinphone PUBLIC "-fcoverage-mapping")
+		target_link_options(liblinphone PUBLIC "-fprofile-instr-generate")
+		target_compile_definitions(liblinphone PUBLIC ENABLE_COVERAGE)
+	else()
+		message(FATAL "CMAKE_CXX_COMPILER_ID is set to ${CMAKE_CXX_COMPILER_ID}. Coverage works only under Clang. Disable ENABLE_COVERAGE option or use Clang.")
+	endif()
+endif()
+
 if(APPLE)
 	set_target_properties(liblinphone PROPERTIES OUTPUT_NAME linphone)
 else()

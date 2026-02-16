@@ -37,25 +37,31 @@ typedef int (*pre_post_function_t)(void);
 typedef struct {
 	const char *name;
 	test_function_t func;
-	const char *tags[2];
+	const char *tags[3];
 } test_t;
 
 #define TEST_NO_TAG(name, func)                                                                                        \
 	{                                                                                                                  \
 		name, func, {                                                                                                  \
-			NULL, NULL                                                                                                 \
+			NULL, NULL, NULL                                                                                           \
 		}                                                                                                              \
 	}
 #define TEST_ONE_TAG(name, func, tag)                                                                                  \
 	{                                                                                                                  \
 		name, func, {                                                                                                  \
-			tag, NULL                                                                                                  \
+			tag, NULL, NULL                                                                                            \
 		}                                                                                                              \
 	}
 #define TEST_TWO_TAGS(name, func, tag1, tag2)                                                                          \
 	{                                                                                                                  \
 		name, func, {                                                                                                  \
-			tag1, tag2                                                                                                 \
+			tag1, tag2, NULL                                                                                           \
+		}                                                                                                              \
+	}
+#define TEST_THREE_TAGS(name, func, tag1, tag2, tag3)                                                                  \
+	{                                                                                                                  \
+		name, func, {                                                                                                  \
+			tag1, tag2, tag3                                                                                           \
 		}                                                                                                              \
 	}
 
@@ -224,7 +230,7 @@ BCTBX_PUBLIC int bc_assert(const char *file, int line, int predicate, const char
 	                "Expected NOT " type_format " but it was.", cexpected)
 #define BC_ASSERT_STRING_EQUAL(actual, expected)                                                                       \
 	_BC_ASSERT_PRED("BC_ASSERT_STRING_EQUAL",                                                                          \
-	                cactual &&cexpected && !(strcmp((const char *)(cactual), (const char *)(cexpected))), actual,      \
+	                cactual && cexpected && !(strcmp((const char *)(cactual), (const char *)(cexpected))), actual,     \
 	                expected, const char *, "Expected %s but was %s.", cexpected ? cexpected : "nullptr",              \
 	                cactual ? cactual : "nullptr")
 #define BC_ASSERT_GREATER(actual, min, type, type_format)                                                              \

@@ -2506,7 +2506,9 @@ shared_ptr<ConferenceInfo> MainDbPrivate::selectConferenceInfo(const soci::row &
 
 	cache(conferenceInfo, dbConferenceInfoId);
 
-	return conferenceInfo;
+	// Clone the conference info so that the returned value is consistent with the scenario the conference information
+	// is retrieved from the cache, i.e. a cloned conference information.
+	return conferenceInfo->clone()->toSharedPtr();
 }
 #endif
 
@@ -4876,7 +4878,7 @@ bool MainDb::deleteEvent(const shared_ptr<const EventLog> &eventLog) {
 	shared_ptr<Core> core = dEventKey->core.lock();
 	L_ASSERT(core);
 
-	MainDb &mainDb = *core->getPrivate()->mainDb.get();
+	MainDb &mainDb = *core->getDatabase().value().get();
 
 	return L_DB_TRANSACTION_C(&mainDb) {
 		MainDbPrivate *const d = mainDb.getPrivate();
@@ -4941,28 +4943,29 @@ int MainDb::getEventCount(FilterMask mask) const {
 #endif
 }
 
-shared_ptr<EventLog> MainDb::getEvent(const unique_ptr<MainDb> &mainDb, const long long &storageId) {
+shared_ptr<EventLog> MainDb::getEvent(const long long &storageId) {
+
 #ifdef HAVE_DB_STORAGE
-	if ((storageId < 0) || (mainDb == nullptr)) {
+	if ((storageId < 0) || !isInitialized()) {
 		if ((storageId < 0)) {
 			lDebug() << "Unable to get event from invalid storage ID " << storageId;
 		}
 		return nullptr;
 	}
 
-	MainDbPrivate *d = mainDb->getPrivate();
+	MainDbPrivate *d = getPrivate();
 
 	shared_ptr<EventLog> event = d->getEventFromCache(storageId);
 	if (event) return event;
 
-	return L_DB_TRANSACTION_C(mainDb.get()) {
+	return L_DB_TRANSACTION_C(this) {
 		// TODO: Improve. Deal with all events in the future.
 		soci::row row;
 		*d->dbSession.getBackendSession() << Statements::get(Statements::SelectConferenceEvent), soci::into(row),
 		    soci::use(storageId);
 
 		ConferenceId conferenceId(Address(row.get<string>(16)), Address(row.get<string>(17)),
-		                          mainDb->getCore()->createConferenceIdParams());
+		                          getCore()->createConferenceIdParams());
 		shared_ptr<AbstractChatRoom> chatRoom = d->findChatRoom(conferenceId);
 		if (!chatRoom) return shared_ptr<EventLog>();
 
@@ -4980,9 +4983,9 @@ shared_ptr<EventLog> MainDb::getEventFromKey(const MainDbKey &dbKey) {
 		return nullptr;
 	}
 
-	unique_ptr<MainDb> &q = dbKey.getPrivate()->core.lock()->getPrivate()->mainDb;
+	auto db = dbKey.getPrivate()->core.lock()->getDatabase();
 	const long long &eventId = dbKey.getPrivate()->storageId;
-	return MainDb::getEvent(q, eventId);
+	return db.value().get()->getEvent(eventId);
 #else
 	return nullptr;
 #endif
@@ -7998,6 +8001,30 @@ void MainDb::insertExpiredConference(const std::shared_ptr<Address> &uri) {
 		const long long &uriSipAddressId = d->insertSipAddress(uri);
 		*session << "INSERT INTO expired_conferences (uri_sip_address_id) VALUES (:uriSipAddressId)",
 		    soci::use(uriSipAddressId);
+	}
+#endif
+}
+
+void MainDb::invalidateConferenceInfoCacheIfNeeded(const std::shared_ptr<ConferenceInfo> &info) {
+#ifdef HAVE_DB_STORAGE
+	if (isInitialized()) {
+		L_DB_TRANSACTION {
+			L_D();
+			auto uri = info->getUri();
+			if (uri) {
+				auto prunedAddress = uri->getUriWithoutGruu();
+				const long long &uriSipAddressId = d->selectSipAddressId(prunedAddress, false);
+				const long long &dbConferenceId = d->selectConferenceInfoId(uriSipAddressId);
+				auto it = d->storageIdToConferenceInfo.find(dbConferenceId);
+				if (it != d->storageIdToConferenceInfo.cend()) {
+					shared_ptr<ConferenceInfo> cachedInfo = it->second.lock();
+					if (cachedInfo && (cachedInfo == info)) {
+						d->storageIdToConferenceInfo.erase(dbConferenceId);
+					}
+				}
+				tr.commit();
+			}
+		};
 	}
 #endif
 }

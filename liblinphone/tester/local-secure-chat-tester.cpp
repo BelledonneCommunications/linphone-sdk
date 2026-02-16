@@ -472,12 +472,12 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 			           << michelle.getCMgr()->database_path << ". Error is " << e.what();
 		}
 
-		auto &michelleMainDb = L_GET_PRIVATE_FROM_C_OBJECT(michelle.getLc())->mainDb;
+		auto michelleMainDb = michelle.getDatabase();
 		ms_message("%s is adding participant with address %s to chatroom %s in the database",
 		           linphone_core_get_identity(michelle.getLc()),
 		           paulineUppercaseParticipant->getAddress()->toString().c_str(),
 		           michelleCppCr->getConferenceAddress()->toString().c_str());
-		michelleMainDb->insertChatRoomParticipant(michelleCppCr, paulineUppercaseParticipant);
+		michelleMainDb.value().get()->insertChatRoomParticipant(michelleCppCr, paulineUppercaseParticipant);
 		for (const auto &deviceCr : michelleCppCr->getConference()
 		                                ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 		                                ->getDevices()) {
@@ -487,7 +487,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 			           linphone_core_get_identity(michelle.getLc()), device->getAddress()->toString().c_str(),
 			           paulineUppercaseParticipant->getAddress()->toString().c_str(),
 			           michelleCppCr->getConferenceAddress()->toString().c_str());
-			michelleMainDb->insertChatRoomParticipantDevice(michelleCppCr, device);
+			michelleMainDb.value().get()->insertChatRoomParticipantDevice(michelleCppCr, device);
 		}
 
 		LinphoneAddress *michelleContact = linphone_account_get_contact_address(michelle.getDefaultAccount());
@@ -1181,7 +1181,7 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 			msg = NULL;
 
 			// Pauline is removed from the participant list in the server database and the server restarts
-			auto &focusMainDb = L_GET_PRIVATE_FROM_C_OBJECT(focus.getLc())->mainDb;
+			auto focusMainDb = focus.getDatabase();
 			Address paulineAddr = pauline.getIdentity();
 			for (auto focusCppCr : focus.getCore().getChatRooms()) {
 				ms_message("%s is removed from the participant list of chatroom %s",
@@ -1191,9 +1191,10 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 				     focusCppCr->getConference()
 				         ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 				         ->getDevices()) {
-					focusMainDb->deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
+					focusMainDb.value().get()->deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
 				}
-				focusMainDb->deleteChatRoomParticipant(focusCppCr, Address::create(paulineAddr)->getSharedFromThis());
+				focusMainDb.value().get()->deleteChatRoomParticipant(focusCppCr,
+				                                                     Address::create(paulineAddr)->getSharedFromThis());
 			}
 
 			stats initialFocusStats = focus.getStats();
@@ -1432,7 +1433,7 @@ static void secure_one_on_one_chat_room_recreates_chat_room_after_error(bool_t r
 			msg = NULL;
 
 			// Pauline is removed from the participant list in the server database and the server restarts
-			auto &focusMainDb = L_GET_PRIVATE_FROM_C_OBJECT(focus.getLc())->mainDb;
+			auto focusMainDb = focus.getDatabase();
 			Address paulineAddr = pauline.getIdentity();
 			for (auto focusCppCr : focus.getCore().getChatRooms()) {
 				ms_message("%s is removed from the participant list of chatroom %s",
@@ -1442,9 +1443,10 @@ static void secure_one_on_one_chat_room_recreates_chat_room_after_error(bool_t r
 				     focusCppCr->getConference()
 				         ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 				         ->getDevices()) {
-					focusMainDb->deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
+					focusMainDb.value().get()->deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
 				}
-				focusMainDb->deleteChatRoomParticipant(focusCppCr, Address::create(paulineAddr)->getSharedFromThis());
+				focusMainDb.value().get()->deleteChatRoomParticipant(focusCppCr,
+				                                                     Address::create(paulineAddr)->getSharedFromThis());
 			}
 
 			initialPaulineStats = pauline.getStats();
@@ -1706,10 +1708,10 @@ static void secure_one_on_one_chat_room_created_twice(void) {
 			return linphone_chat_room_get_unread_messages_count(paulineCr) == 1;
 		}));
 
-		auto &marieMainDb = L_GET_PRIVATE_FROM_C_OBJECT(marie.getLc())->mainDb;
+		auto marieMainDb = marie.getDatabase();
 		// Delete all chatrooms from Marie's DB
 		for (auto chatRoom : marie.getCore().getChatRooms()) {
-			marieMainDb->deleteChatRoom(chatRoom->getConferenceId());
+			marieMainDb.value().get()->deleteChatRoom(chatRoom->getConferenceId());
 		}
 
 		// Restart Marie's core - No chatroom is loaded
@@ -1972,10 +1974,10 @@ static void secure_one_on_one_chat_room_with_client_sending_imdn_on_restart(void
 		           linphone_core_get_identity(marie.getLc()));
 		// Simulate that chat message are still in state Delivered when restarting the core and the Delivery IMDN has
 		// not been sent yet
-		auto &paulineMainDb = L_GET_PRIVATE_FROM_C_OBJECT(pauline.getLc())->mainDb;
-		paulineMainDb->enableAllDeliveryNotificationRequired();
-		auto &marieMainDb = L_GET_PRIVATE_FROM_C_OBJECT(marie.getLc())->mainDb;
-		marieMainDb->enableAllDeliveryNotificationRequired();
+		auto paulineMainDb = pauline.getDatabase();
+		paulineMainDb.value().get()->enableAllDeliveryNotificationRequired();
+		auto marieMainDb = marie.getDatabase();
+		marieMainDb.value().get()->enableAllDeliveryNotificationRequired();
 
 		// Restart Marie
 		marie.reStart();
@@ -2721,10 +2723,11 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_one_on_one_chat_room_with_client_sending_imdn_on_restart,
                   "LimeX3DH",
                   "LeaksMemory"),
-    TEST_TWO_TAGS("Secure group chat with duplications",
-                  LinphoneTest::secure_group_chat_room_with_duplications,
-                  "LimeX3DH",
-                  "LeaksMemory"), /* beacause of coreMgr restart*/
+    TEST_THREE_TAGS("Secure group chat with duplications",
+                    LinphoneTest::secure_group_chat_room_with_duplications,
+                    "LimeX3DH",
+                    "LeaksMemory", /* beacause of coreMgr restart*/
+                    "shaky"),
     TEST_TWO_TAGS("Secure one-on-one chat with subscribe not replied",
                   LinphoneTest::secure_one_on_one_chat_room_with_subscribe_not_replied,
                   "LimeX3DH",

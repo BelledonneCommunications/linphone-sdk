@@ -91,6 +91,7 @@ option(BUILD_SHARED_LIBS "Build using shared libraries." ON)
 linphonesdk_dependent_option("HW Sanitizer" "Enable Android HW sanitizer" OFF "ANDROID" OFF)
 linphonesdk_option("Sanitizer" "Enable Clang sanitizer" OFF)
 linphonesdk_option("Strict" "Pass strict flags to the compiler." ON)
+linphonesdk_option("Coverage" "Enable Clang code coverage for liblinphone" OFF)
 
 # Activation of tools/tests...
 linphonesdk_option("Assets" "Enable packaging of assets (ringtones) when building the SDK." ON)

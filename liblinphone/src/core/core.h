@@ -23,6 +23,7 @@
 
 #include <functional>
 #include <list>
+#include <optional>
 
 #include "mediastreamer2/mssndcard.h"
 
@@ -427,6 +428,8 @@ public:
 	void setEphemeralChatMessagePolicy(LinphoneEphemeralChatMessagePolicy policy);
 	LinphoneEphemeralChatMessagePolicy getEphemeralChatMessagePolicy() const;
 
+	std::optional<std::reference_wrapper<const std::unique_ptr<MainDb>>> getDatabase() const;
+	void uninitDatabase();
 	// ---------------------------------------------------------------------------
 	// Signal informations
 	// ---------------------------------------------------------------------------

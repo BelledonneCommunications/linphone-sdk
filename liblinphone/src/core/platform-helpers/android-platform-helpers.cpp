@@ -226,7 +226,7 @@ AndroidPlatformHelpers::AndroidPlatformHelpers(std::shared_ptr<LinphonePrivate::
 	mSetParticipantDeviceNativeVideoWindowId =
 	    getMethodId(env, klass, "setParticipantDeviceVideoRenderingView", "(JLjava/lang/Object;)V");
 	mResizeVideoPreviewId = getMethodId(env, klass, "resizeVideoPreview", "(II)V");
-	mOnLinphoneCoreStartId = getMethodId(env, klass, "onLinphoneCoreStart", "(Z)V");
+	mOnLinphoneCoreStartId = getMethodId(env, klass, "onLinphoneCoreStart", "(Lorg/linphone/core/Core;Z)V");
 	mOnLinphoneCoreStopId = getMethodId(env, klass, "onLinphoneCoreStop", "()V");
 	mOnWifiOnlyEnabledId = getMethodId(env, klass, "onWifiOnlyEnabled", "(Z)V");
 	mIsActiveNetworkWifiOnlyCompliantId = getMethodId(env, klass, "isActiveNetworkWifiOnlyCompliant", "()Z");
@@ -553,7 +553,9 @@ void AndroidPlatformHelpers::onLinphoneCoreStart(bool monitoringEnabled) {
 	JNIEnv *env = ms_get_jni_env();
 	if (env) {
 		if (mJavaHelper) {
-			env->CallVoidMethod(mJavaHelper, mOnLinphoneCoreStartId, (jboolean)monitoringEnabled);
+			LinphoneCore *cCore = getCore()->getCCore();
+			jobject javaCore = ::LinphonePrivate::getCore(env, cCore, TRUE, FALSE);
+			env->CallVoidMethod(mJavaHelper, mOnLinphoneCoreStartId, (jobject)javaCore, (jboolean)monitoringEnabled);
 		}
 	}
 	androidBackgroundTask.stop();
