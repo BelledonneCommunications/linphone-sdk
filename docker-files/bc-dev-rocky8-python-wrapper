@@ -1,3 +1,7 @@
+###############################################################################
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-python-wrapper:20260401_add_systemd_devel
+###############################################################################
+
 FROM rockylinux:8
 
 LABEL org.opencontainers.image.authors="Alexandre Jörgensen <alexandre.jorgensen@belledonne-communications.com>"
@@ -17,15 +21,17 @@ RUN dnf install -y epel-release && \
 RUN dnf -y install ccache cmake yasm nasm doxygen gcc clang meson ninja-build perl && \
     dnf -y clean all
 
-RUN dnf -y install ccache openssh openssh-clients git alsa-lib-devel pulseaudio-libs-devel libv4l-devel mysql-devel sqlite-devel && \
+RUN dnf -y install ccache openssh openssh-clients git alsa-lib-devel pulseaudio-libs-devel libv4l-devel mysql-devel sqlite-devel systemd-devel && \
     dnf -y clean all
 
 # Install gcc toolset 12
 RUN dnf -y install gcc-toolset-12 gcc-toolset-12-libasan-devel gcc-toolset-12-libubsan-devel gcc-toolset-12-gdb
 
+RUN dnf -y remove python
+
 # Install python-devel and pip
-RUN dnf -y install python39-devel
-RUN dnf -y install python39-pip
+RUN dnf -y install python3.12-devel
+RUN dnf -y install python3.12-pip
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
@@ -37,7 +43,6 @@ USER bc
 WORKDIR /home/bc
 
 # Install python development tools
-RUN pip3.9 install --user pystache six cython wheel pdoc
-
+RUN pip3.12 install --user pystache six cython wheel pdoc
 
 ENV PATH=$PATH:/home/bc/.local/bin

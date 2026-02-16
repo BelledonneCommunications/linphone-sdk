@@ -49,7 +49,7 @@
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20260226_soci_mysql_systemd_devel
 
 .rocky8_python_wrapper_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-python-wrapper:20250115_init
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-python-wrapper:20260401_add_systemd_devel
 
 .ubuntu2004_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:20231025_remove_modules_install_from_arg

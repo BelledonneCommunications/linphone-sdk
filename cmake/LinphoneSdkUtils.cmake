@@ -129,9 +129,9 @@ function(linphone_sdk_check_python_module_is_installed MODULE_NAME)
 		ERROR_QUIET
 	)
 	if(_result EQUAL 0)
-		message(STATUS "'${MODULE_NAME}' python module found")
+		message(STATUS "'${MODULE_NAME}' python (${Python3_EXECUTABLE}) module found")
 	else()
-		message(FATAL_ERROR "'${MODULE_NAME}' python module not found")
+		message(FATAL_ERROR "'${MODULE_NAME}' python (${Python3_EXECUTABLE}) module not found")
 	endif()
 endfunction()
 
