@@ -11,6 +11,13 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
+## [5.4.92] 2026-02-20
+
+### Changed
+- Ephemeral API: one-time activation/deactivation from new functions:
+ * linphone_chat_params_activate_ephemeral()/linphone_chat_params_deactivate_ephemeral()
+ * linphone_chat_room_activate_ephemeral()/linphone_chat_room_deactivate_ephemeral()
+
 
 ## [5.4.0] 2025-03-11
 
