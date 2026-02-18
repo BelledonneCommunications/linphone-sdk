@@ -6856,7 +6856,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 			const string query =
 			    "SELECT chat_room.id, peer_sip_address.value, local_sip_address.value,"
 			    " creation_time, last_update_time, capabilities, subject, last_notify_id, flags, last_message_id,"
-			    " ephemeral_enabled, ephemeral_messages_lifetime,"
+			    " ephemeral_enabled, ephemeral_messages_lifetime, ephemeral_messages_not_read_lifetime,"
 			    " unread_messages_count.message_count, muted, conference_info_id"
 			    " FROM chat_room"
 			    " LEFT JOIN (SELECT conference_event.chat_room_id, count(*) as message_count"
@@ -6876,7 +6876,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 				offset++;
 				nbChatRooms--;
 				if (!typeHasBeenSet) {
-					unreadMessageCountType = chatRoomRow.get_properties(12).get_data_type();
+					unreadMessageCountType = chatRoomRow.get_properties(13).get_data_type();
 					typeHasBeenSet = true;
 				}
 
@@ -6921,7 +6921,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 				int capabilities = chatRoomRow.get<int>(5);
 				string subject = chatRoomRow.get<string>(6, "");
 				const long long &lastMessageId = d->dbSession.resolveId(chatRoomRow, 9);
-				bool muted = !!chatRoomRow.get<int>(13);
+				bool muted = !!chatRoomRow.get<int>(14);
 
 				shared_ptr<ConferenceParams> params = ConferenceParams::fromCapabilities(capabilities, core);
 				const auto backend = params->getChatParams()->getBackend();
@@ -6935,12 +6935,11 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 					unsigned int lastNotifyId = d->dbSession.getUnsignedInt(chatRoomRow, 7, 0);
 
 					params->setUtf8Subject(subject);
-					params->getChatParams()->setEphemeralLifetime((long)chatRoomRow.get<double>(11));
-					params->getChatParams()->enableEphemeral(!!chatRoomRow.get<int>(10, 0));
+					params->getChatParams()->enableEphemeral((long)chatRoomRow.get<double>(11), (long)chatRoomRow.get<double>(12));
 					const auto &conferenceAddress = conferenceId.getPeerAddress();
 					params->setConferenceAddress(conferenceAddress);
 
-					const long long &conferenceInfoId = d->dbSession.resolveId(chatRoomRow, 14);
+					const long long &conferenceInfoId = d->dbSession.resolveId(chatRoomRow, 15);
 					shared_ptr<ConferenceInfo> confInfo;
 					if (conferenceInfoId > 0) {
 						soci::row conferenceInfoRow;
@@ -7106,8 +7105,8 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 
 				int unreadMessagesCount = 0;
 				if (unreadMessageCountType == soci::dt_string)
-					unreadMessagesCount = std::stoi(chatRoomRow.get<string>(12, "0"));
-				else unreadMessagesCount = chatRoomRow.get<int>(12, 0);
+					unreadMessagesCount = std::stoi(chatRoomRow.get<string>(13, "0"));
+				else unreadMessagesCount = chatRoomRow.get<int>(13, 0);
 
 				lDebug() << "Found chat room in DB: " << conferenceId;
 

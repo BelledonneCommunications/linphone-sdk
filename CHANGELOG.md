@@ -39,6 +39,13 @@ changes made to these components.
 ### Fixed
 - Decoding errors with msopenh264 plugin.
 
+## [5.4.92] 2026-02-20
+
+### Changed
+- Ephemeral API: one-time activation/deactivation from new functions:
+ * linphone_chat_params_activate_ephemeral()/linphone_chat_params_deactivate_ephemeral()
+ * linphone_chat_room_activate_ephemeral()/linphone_chat_room_deactivate_ephemeral()
+
 
 ## [5.4.0] 2025-03-11
 

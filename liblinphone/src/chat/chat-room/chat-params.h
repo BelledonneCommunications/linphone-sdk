@@ -78,9 +78,7 @@ public:
 	void setEncryptionBackend(EncryptionBackend backend);
 	void setRealTimeText(bool rtt);
 	void setEphemeralMode(AbstractChatRoom::EphemeralMode mode);
-	void setEphemeralLifetime(long lifetime);
-	void setEphemeralNotReadLifetime(long lifetime);
-	void enableEphemeral(bool ephem);
+	void enableEphemeral(long lifetime, long notReadLifetime);
 	void allowEphemeral(bool ephem);
 
 	bool isValid() const;
@@ -89,7 +87,6 @@ private:
 	Backend mBackend = Backend::FlexisipChat;
 	EncryptionBackend mEncryptionBackend = EncryptionBackend::None;
 	bool mRtt = false; // Real Time Text
-	bool mEnableEphemeral = false;
 	bool mAllowEphemeral = false;
 	AbstractChatRoom::EphemeralMode mEphemeralMode = AbstractChatRoom::EphemeralMode::DeviceManaged;
 	long mEphemeralLifetime = 0;
