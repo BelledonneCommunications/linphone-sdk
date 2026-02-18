@@ -216,8 +216,7 @@ shared_ptr<AbstractChatRoom> CorePrivate::createClientChatRoom(const string &sub
 	params->setGroup(true);
 	params->getChatParams()->setBackend(ChatParams::Backend::FlexisipChat);
 	params->getChatParams()->setEphemeralMode(ephemeralMode);
-	params->getChatParams()->setEphemeralLifetime(ephemeralLifeTime);
-	params->getChatParams()->setEphemeralNotReadLifetime(ephemeralNotReadLifeTime);
+	params->getChatParams()->enableEphemeral(ephemeralLifeTime, ephemeralNotReadLifeTime);
 	return createClientChatRoom(conferenceId.getPeerAddress(), conferenceId, op, params);
 #else
 	lWarning() << "Advanced IM such as group chat is disabled!";
@@ -435,11 +434,12 @@ shared_ptr<AbstractChatRoom> CorePrivate::createChatRoom(const shared_ptr<Confer
 				return chatRoom;
 			}
 		}
+		if (chatRoomParameters->getChatParams()->getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged)
+			chatRoomParameters->getChatParams()->enableEphemeral(chatRoomParameters->getChatParams()->getEphemeralLifetime()
+		        , chatRoomParameters->getChatParams()->getEphemeralNotReadLifetime());
+		else
+			chatRoomParameters->getChatParams()->enableEphemeral(0, 0);
 
-		chatRoomParameters->getChatParams()->enableEphemeral(
-		    (chatRoomParameters->getChatParams()->getEphemeralMode() ==
-		     AbstractChatRoom::EphemeralMode::AdminManaged) &&
-		    (chatRoomParameters->getChatParams()->getEphemeralLifetime() > 0));
 		ConferenceId conferenceId(nullptr, localAddr, q->createConferenceIdParams());
 		chatRoom = createClientChatRoom(conferenceFactoryUri, conferenceId, nullptr, chatRoomParameters);
 		if (!chatRoom) {

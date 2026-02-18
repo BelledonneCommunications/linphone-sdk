@@ -279,17 +279,14 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 								long notReadLifetime = 0;
 								if (!ephemeralLifetime.empty()) {
 									lifetime = std::stol(ephemeralLifetime);
-									cgcr->getCurrentParams()->getChatParams()->setEphemeralLifetime(lifetime);
 								}
 								if (!ephemeralNotReadLifetime.empty()) {
 									notReadLifetime = std::stol(ephemeralNotReadLifetime);
-									cgcr->getCurrentParams()->getChatParams()->setEphemeralNotReadLifetime(
-									    notReadLifetime);
 								}
-								cgcr->enableEphemeral((lifetime != 0) || (notReadLifetime != 0), false);
+								cgcr->enableEphemeral(lifetime, notReadLifetime, false, false);
 								if (!isFullState) {
 									conference->notifyEphemeralMessageEnabled(
-									    creationTime, isFullState, (lifetime != 0) || (notReadLifetime != 0));
+									    creationTime, isFullState, cgcr->ephemeralEnabled());
 									conference->notifyEphemeralLifetimeChanged(
 									    creationTime, isFullState,
 									    cgcr->getCurrentParams()->getChatParams()->getEphemeralLifetime(),

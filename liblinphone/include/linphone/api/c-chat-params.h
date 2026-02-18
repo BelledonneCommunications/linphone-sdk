@@ -98,22 +98,52 @@ linphone_chat_params_get_encryption_backend(const LinphoneChatParams *params);
 LINPHONE_PUBLIC LinphoneChatRoomEphemeralMode linphone_chat_params_get_ephemeral_mode(const LinphoneChatParams *params);
 
 /**
- * Set lifetime (in seconds) for all new ephemral messages in the text capabilities of the chat.
- * After the message is read, it will be deleted after "time" seconds.
- * @see linphone_chat_params_ephemeral_enabled()
+ * Set lifetime (in seconds) for all new ephemeral messages in the text capabilities of the chat.
+ * After the message is read, it will be deleted after "lifetime" seconds.
+ * The "not read lifetime" timeout will remain unchanged and will be set to
+ * linphone_core_get_default_ephemeral_not_read_lifetime() if it is never specified.
+ * When still not read, it will be deleted after "notReadLifetime" seconds to avoid being persistent.
+ * @see linphone_chat_room_activate_ephemeral()
  * @param params The #LinphoneChatParams object. @notnil
- * @param time The ephemeral lifetime, default is disabled (0)
+ * @param lifetime The ephemeral lifetime, strictly positive
  */
-LINPHONE_PUBLIC void linphone_chat_params_set_ephemeral_lifetime(LinphoneChatParams *params, long time);
+LINPHONE_PUBLIC LinphoneStatus linphone_chat_params_activate_ephemeral(LinphoneChatParams *params, unsigned int lifetime);
+
+/**
+ * Set lifetime (in seconds) for all new ephemeral messages in the text capabilities of the chat.
+ * After the message is read, it will be deleted after "lifetime" seconds.
+ * When still not read, it will be deleted after "notReadLifetime" seconds to avoid being persistent.
+ * @see linphone_chat_room_activate_ephemeral()
+ * @param params The #LinphoneChatParams object. @notnil
+ * @param lifetime The ephemeral lifetime, strictly positive
+ * @param notReadLifetime The ephemeral not read lifetime, strictly positive
+ */
+LINPHONE_PUBLIC LinphoneStatus linphone_chat_params_activate_ephemeral_2(LinphoneChatParams *params, unsigned int lifetime, unsigned int notReadLifetime);
+
+/**
+ * Deactivate new ephemeral messages in the text capabilities of the chat.
+ * @see linphone_chat_room_deactivate_ephemeral()
+ * @param params The #LinphoneChatParams object. @notnil
+ */
+LINPHONE_PUBLIC void linphone_chat_params_deactivate_ephemeral(LinphoneChatParams *params);
 
 /**
  * Get lifetime (in seconds) for all new ephemeral messages in the text capabilities of the chat.
- * After the message is read, it will be deleted after "time" seconds.
- * @see linphone_chat_params_ephemeral_enabled()
+ * After the message is read, it will be deleted after "lifetime" seconds.
+ * @see linphone_chat_room_activate_ephemeral()
  * @param params The #LinphoneChatParams object. @notnil
  * @return the ephemeral lifetime (in seconds)
  */
 LINPHONE_PUBLIC long linphone_chat_params_get_ephemeral_lifetime(const LinphoneChatParams *params);
+
+/**
+ * Get not read lifetime (in seconds) for all new ephemeral messages in the text capabilities of the chat.
+ * When still not read, it will be deleted after "notReadLifetime" seconds to avoid being persistent.
+ * @see linphone_chat_room_activate_ephemeral_2()
+ * @param params The #LinphoneChatParams object. @notnil
+ * @return The ephemeral not read lifetime (in seconds)
+ */
+LINPHONE_PUBLIC long linphone_chat_params_get_ephemeral_not_read_lifetime(const LinphoneChatParams *params);
 
 /**
  * Get the encryption status of the text capabilities of the chat associated with the given parameters.
@@ -159,6 +189,17 @@ LINPHONE_PUBLIC void linphone_chat_params_set_ephemeral_mode(LinphoneChatParams 
  * @param rtt TRUE to enable real time text, FALSE to disable.
  **/
 LINPHONE_PUBLIC void linphone_chat_params_enable_rtt(LinphoneChatParams *params, bool_t rtt);
+
+/**
+ * Set lifetime (in seconds) for all new ephemeral messages in the text capabilities of the chat.
+ * After the message is read, it will be deleted after "time" seconds.
+ * @see linphone_chat_room_activate_ephemeral()
+ * @param params The #LinphoneChatParams object. @notnil
+ * @param lifetime The ephemeral lifetime, strictly positive
+ * @deprecated 20/02/2026 Use linphone_chat_params_activate_ephemeral() or linphone_chat_params_deactivate_ephemeral()
+ * instead.
+ */
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_params_set_ephemeral_lifetime(LinphoneChatParams *params, long time);
 
 /**
  * @}

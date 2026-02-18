@@ -109,9 +109,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 
 	LinphoneChatMessage *message[10];
 	if (remained) {
-		linphone_chat_room_enable_ephemeral(marieCr, TRUE);
-		linphone_chat_room_set_ephemeral_lifetime(marieCr, ephemeral_long_time);
-		if (use_not_read_lifetime) linphone_chat_room_set_ephemeral_not_read_lifetime(marieCr, ephemeral_long_time);
+		linphone_chat_room_activate_ephemeral_3(marieCr, ephemeral_long_time, use_not_read_lifetime? ephemeral_long_time:0);
 
 		// Marie sends messages
 		for (int i = 0; i < 10; i++) {
@@ -120,14 +118,11 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 	}
 
 	// Marie disable ephemeral in the group chat room
-	linphone_chat_room_enable_ephemeral(marieCr, FALSE);
+	linphone_chat_room_deactivate_ephemeral(marieCr);
 	LinphoneChatMessage *messageNormal = _send_message(marieCr, "See you later");
 
 	LinphoneChatMessage *messagef[10];
-	linphone_chat_room_enable_ephemeral(marieCr, TRUE);
-	linphone_chat_room_set_ephemeral_lifetime(marieCr, 5);
-	if (use_not_read_lifetime)
-		linphone_chat_room_set_ephemeral_not_read_lifetime(marieCr, liblinphone_tester_sip_timeout / 2000);
+	linphone_chat_room_activate_ephemeral_3(marieCr, 5, use_not_read_lifetime > 0 ? liblinphone_tester_sip_timeout / 2000 : 0);
 
 	BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(marieCr));
 
@@ -390,8 +385,7 @@ static void send_msg_from_no_ephemeral_chat_room_to_ephemeral_chat_room_curve(co
 
 	if (!BC_ASSERT_PTR_NOT_NULL(marieCr) || !BC_ASSERT_PTR_NOT_NULL(paulineCr)) goto end;
 
-	linphone_chat_room_enable_ephemeral(paulineCr, TRUE);
-	linphone_chat_room_set_ephemeral_lifetime(paulineCr, 1);
+	linphone_chat_room_activate_ephemeral(paulineCr, 1);
 
 	BC_ASSERT_FALSE(linphone_chat_room_ephemeral_enabled(marieCr));
 	BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(paulineCr));
@@ -489,8 +483,7 @@ static void mixed_ephemeral_message_test_curve(const int curveId) {
 	    check_creation_chat_room_client_side(coresList, pauline, &initialPaulineStats, confAddr, initialSubject, 1, 0);
 
 	if (!BC_ASSERT_PTR_NOT_NULL(marieCr) || !BC_ASSERT_PTR_NOT_NULL(paulineCr)) goto end;
-	linphone_chat_room_enable_ephemeral(marieCr, TRUE);
-	linphone_chat_room_set_ephemeral_lifetime(marieCr, 2000);
+	linphone_chat_room_activate_ephemeral(marieCr, 2000);
 	// Marie sends messages
 	LinphoneChatMessage *message = _send_message_ephemeral(marieCr, "This is Marie", TRUE);
 
@@ -525,7 +518,7 @@ static void mixed_ephemeral_message_test_curve(const int curveId) {
 	                             initialPaulineStats.number_of_LinphoneMessageEphemeralTimerStarted + 1,
 	                             liblinphone_tester_sip_timeout));
 
-	linphone_chat_room_set_ephemeral_lifetime(marieCr, 1);
+	linphone_chat_room_activate_ephemeral(marieCr, 1);
 	// Marie sends messages
 	LinphoneChatMessage *message2 = _send_message_ephemeral(marieCr, "Hello", TRUE);
 
@@ -654,16 +647,17 @@ static void chat_room_ephemeral_settings_curve(const int curveId) {
 
 	BC_ASSERT_FALSE(linphone_chat_room_ephemeral_enabled(marieCr));
 	BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(marieCr), 0, long, "%ld");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_not_read_lifetime(marieCr), 0, long, "%ld");
 
 	// TODO: uncomment this assert when linphone_chat_room_ephemeral_supported_by_all_participants() is implemented.
 	//  Today (2020, March), the conference server does not notify the device capabilities to the participants.
 	// BC_ASSERT_TRUE(linphone_chat_room_ephemeral_supported_by_all_participants(marieCr));
 
-	linphone_chat_room_enable_ephemeral(marieCr, TRUE);
-	linphone_chat_room_set_ephemeral_lifetime(marieCr, 1);
+	linphone_chat_room_activate_ephemeral(marieCr, 1);
 
 	BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(marieCr));
 	BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(marieCr), 1, long, "%ld");
+	BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_not_read_lifetime(marieCr), 0, long, "%ld");
 
 	{
 		// To simulate dialog removal
@@ -686,24 +680,51 @@ static void chat_room_ephemeral_settings_curve(const int curveId) {
 
 	BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(marieCr));
 	BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(marieCr), 1, long, "%ld");
+	// Checks
+	unsigned int targetLifetimeChanged = 0;
+	unsigned int targetMessageEnabled = 0;
+	unsigned int targetMessageDisabled = 0;
 
-	unsigned int nbMarieConferenceEphemeralMessageLifetimeChanged = 0;
-	unsigned int nbMarieConferenceEphemeralMessageEnabled = 0;
-	unsigned int nbMarieConferenceEphemeralMessageDisabled = 0;
-	bctbx_list_t *marieHistory = linphone_chat_room_get_history_events(marieCr, 0);
-	for (bctbx_list_t *item = marieHistory; item; item = bctbx_list_next(item)) {
-		LinphoneEventLog *event = (LinphoneEventLog *)bctbx_list_get_data(item);
-		if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceEphemeralMessageLifetimeChanged)
-			nbMarieConferenceEphemeralMessageLifetimeChanged++;
-		else if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceEphemeralMessageEnabled)
-			nbMarieConferenceEphemeralMessageEnabled++;
-		else if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceEphemeralMessageDisabled)
-			nbMarieConferenceEphemeralMessageDisabled++;
+	for (int i = 0; i < 3; ++i) {
+		// Test cases
+		switch (i) {
+			case 0: { // Activation
+				targetLifetimeChanged = 0;
+				targetMessageEnabled = 1;
+				targetMessageDisabled = 0;
+			} break;
+			case 1: { // Update
+				linphone_chat_room_activate_ephemeral(marieCr, 2);
+				targetLifetimeChanged = 1;
+				targetMessageEnabled = 1;
+				targetMessageDisabled = 0;
+			} break;
+			case 2: { // Deactivation
+				linphone_chat_room_deactivate_ephemeral(marieCr);
+				targetLifetimeChanged = 1;
+				targetMessageEnabled = 1;
+				targetMessageDisabled = 1;
+			} break;
+		}
+
+		unsigned int nbMarieConferenceEphemeralMessageLifetimeChanged = 0;
+		unsigned int nbMarieConferenceEphemeralMessageEnabled = 0;
+		unsigned int nbMarieConferenceEphemeralMessageDisabled = 0;
+		bctbx_list_t *marieHistory = linphone_chat_room_get_history_events(marieCr, 0);
+		for (bctbx_list_t *item = marieHistory; item; item = bctbx_list_next(item)) {
+			LinphoneEventLog *event = (LinphoneEventLog *)bctbx_list_get_data(item);
+			if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceEphemeralMessageLifetimeChanged)
+				nbMarieConferenceEphemeralMessageLifetimeChanged++;
+			else if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceEphemeralMessageEnabled)
+				nbMarieConferenceEphemeralMessageEnabled++;
+			else if (linphone_event_log_get_type(event) == LinphoneEventLogTypeConferenceEphemeralMessageDisabled)
+				nbMarieConferenceEphemeralMessageDisabled++;
+		}
+		bctbx_list_free_with_data(marieHistory, (bctbx_list_free_func)linphone_event_log_unref);
+		BC_ASSERT_EQUAL(nbMarieConferenceEphemeralMessageLifetimeChanged, targetLifetimeChanged, unsigned int, "%u");
+		BC_ASSERT_EQUAL(nbMarieConferenceEphemeralMessageEnabled, targetMessageEnabled, unsigned int, "%u");
+		BC_ASSERT_EQUAL(nbMarieConferenceEphemeralMessageDisabled, targetMessageDisabled, unsigned int, "%u");
 	}
-	bctbx_list_free_with_data(marieHistory, (bctbx_list_free_func)linphone_event_log_unref);
-	BC_ASSERT_EQUAL(nbMarieConferenceEphemeralMessageLifetimeChanged, 1, unsigned int, "%u");
-	BC_ASSERT_EQUAL(nbMarieConferenceEphemeralMessageEnabled, 1, unsigned int, "%u");
-	BC_ASSERT_EQUAL(nbMarieConferenceEphemeralMessageDisabled, 0, unsigned int, "%u");
 
 end:
 	// Clean db from chat room
@@ -785,7 +806,7 @@ static void ephemeral_group_message_test_curve_with_policy(const int curveId,
 	BC_ASSERT_FALSE(linphone_chat_room_ephemeral_enabled(marieCr));
 
 	// Marie disable ephemeral in the group chat room
-	linphone_chat_room_enable_ephemeral(marieCr, FALSE);
+	linphone_chat_room_deactivate_ephemeral(marieCr);
 	LinphoneChatMessage *messageNormal = _send_message(marieCr, "See you later");
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageReceived,
@@ -796,12 +817,10 @@ static void ephemeral_group_message_test_curve_with_policy(const int curveId,
 	                             initialMarieStats.number_of_LinphoneMessageDeliveredToUser + 1,
 	                             liblinphone_tester_sip_timeout));
 
-	linphone_chat_room_enable_ephemeral(marieCr, TRUE);
 	if ((policy == LinphoneEphemeralChatMessagePolicyIndividual) || (useNotReadLifetime == TRUE)) {
-		linphone_chat_room_set_ephemeral_not_read_lifetime(
-		    marieCr, (liblinphone_tester_sip_timeout + (liblinphone_tester_sip_timeout / 2)) / 2000);
+		linphone_chat_room_activate_ephemeral_3(marieCr, linphone_core_get_default_ephemeral_lifetime(marie->lc), (liblinphone_tester_sip_timeout + (liblinphone_tester_sip_timeout / 2)) / 2000);
 	} else {
-		linphone_chat_room_set_ephemeral_lifetime(marieCr, 1);
+		linphone_chat_room_activate_ephemeral(marieCr, 1);
 	}
 
 	BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(marieCr));

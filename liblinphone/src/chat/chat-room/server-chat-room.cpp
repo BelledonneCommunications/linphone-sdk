@@ -475,7 +475,7 @@ void ServerChatRoom::handleEphemeralSettingsChange(const shared_ptr<CallSession>
 		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), "Ephemeral-Life-Time"));
 		const string ephemeralNotReadLifetime =
 		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), "Ephemeral-Not-Read-Life-Time"));
-		if (ephemeralLifeTime.empty() || ephemeralNotReadLifetime.empty()) {
+		if (ephemeralLifeTime.empty() && ephemeralNotReadLifetime.empty()) {
 			setEphemeralModeForDevice(AbstractChatRoom::EphemeralMode::DeviceManaged, session);
 		} else {
 			setEphemeralLifetimeForDevice(std::stol(ephemeralLifeTime, nullptr),
@@ -508,8 +508,7 @@ void ServerChatRoom::setEphemeralLifetimeForDevice(const long lifetime,
                                                    const shared_ptr<CallSession> &session) {
 	lInfo() << *this << ": New ephemeral time: " << lifetime
 	        << ", new ephemeral non-read lifetime: " << notReadLifetime;
-	getCurrentParams()->getChatParams()->setEphemeralLifetime(lifetime);
-	getCurrentParams()->getChatParams()->setEphemeralNotReadLifetime(notReadLifetime);
+	getCurrentParams()->getChatParams()->enableEphemeral(lifetime, notReadLifetime);
 
 	if (getConference()->findParticipantDevice(session)) {
 		const time_t creationTime = time(nullptr);
