@@ -1147,6 +1147,15 @@ static void ms_wasapi_snd_card_uninit(MSSndCard *card) {
 	ms_free(c);
 }
 
+static void ms_wasapi_snd_card_unload(MSSndCardManager *) {
+#if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
+	if (gSystemNotifier) {
+		delete gSystemNotifier;
+		gSystemNotifier = nullptr;
+	}
+#endif
+}
+
 static bool_t ms_wasapi_card_reload_requested(BCTBX_UNUSED(MSSndCardManager *m)) {
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
 	return gSystemNotifier ? gSystemNotifier->isDeviceStateChanged() : FALSE;
@@ -1167,7 +1176,7 @@ static MSSndCardDesc ms_wasapi_snd_card_desc = {"WASAPI",
                                                 ms_wasapi_snd_card_create_writer,
                                                 ms_wasapi_snd_card_uninit,
                                                 NULL,
-                                                NULL,
+                                                ms_wasapi_snd_card_unload,
                                                 NULL,
                                                 NULL,
                                                 NULL,
