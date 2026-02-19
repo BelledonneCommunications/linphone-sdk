@@ -161,6 +161,7 @@ const char *liblinphone_tester_ipv6_probing_address = "2a01:e00::2";
 bool_t liblinphonetester_show_account_manager_logs = FALSE;
 bool_t liblinphonetester_no_account_creator = FALSE;
 unsigned int liblinphone_tester_max_cpu_count = 2;
+const unsigned int liblinphone_tester_max_parallel_suites = 32;
 
 const int liblinphone_tester_sip_timerF_timeout = 33000; // in ms, use this value for default SIP Timer F timeout.
 const int liblinphone_tester_sip_timeout = 10000;        // in ms, use this value for default SIP operation timeout

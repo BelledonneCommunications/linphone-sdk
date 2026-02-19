@@ -46,7 +46,6 @@ extern void *system_context;
 #endif
 
 extern test_suite_t account_creator_local_test_suite;
-extern test_suite_t account_creator_flexiapi_test_suite;
 // extern test_suite_t account_creator_xmlrpc_test_suite;
 extern test_suite_t account_manager_services_test_suite;
 extern test_suite_t call_test_suite;
@@ -204,6 +203,7 @@ extern int liblinphone_tester_ipv4_available(void);
 extern const int liblinphone_tester_sip_timerF_timeout;
 extern const int liblinphone_tester_sip_timeout;
 extern const int x3dhServer_creationTimeout;
+extern const unsigned int liblinphone_tester_max_parallel_suites;
 
 /**
  * @brief Tells the tester whether or not to clean the accounts it has created between runs.

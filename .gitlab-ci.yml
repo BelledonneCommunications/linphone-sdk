@@ -107,8 +107,10 @@ include:
 stages:
  - init-recache
  - recache
+ - prior-wait-cache-synchro
  - wait-cache-synchro
  - docker-update-build
+ - prior-build
  - build
  - docker-update-build-ms
  - docker-update-build-liblinphone
@@ -118,3 +120,6 @@ stages:
  - package
  - deploy
  - email-notif
+# wait-cache are stage synchronized because they have not the 'needs' keyword.
+# As other jobs depend on them, they will run after there are completed ; Next jobs don't depend on the stage.
+# So the goal of Prior-* is to run prioritized jobs first to unlock other jobs before unprioritized.

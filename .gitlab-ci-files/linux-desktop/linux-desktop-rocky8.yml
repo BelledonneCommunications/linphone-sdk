@@ -1,5 +1,6 @@
 wait-cache-synchro-rocky8:
   extends: .wait-cache-synchro
+  stage: prior-wait-cache-synchro
   variables:
     BUILD_SUBTYPE: rocky8
   rules:
@@ -53,6 +54,7 @@ rocky8-makefile-gcc:
 
 
 rocky8-ninja-gcc:
+  stage: prior-build
   tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   rules:
@@ -86,6 +88,7 @@ rocky8-ninja-clang:
     - wait-cache-synchro-rocky8
 
 rocky8-ninja-clang-coverage:
+  stage: prior-build
   tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   rules:
@@ -107,8 +110,8 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
   extends: rocky8-ninja-gcc
 
-rocky8-ninja-gcc-mysql:
-  tags: [ "docker" ]
+rocky8-ninja-clang-mysql:
+  tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -119,6 +122,8 @@ rocky8-ninja-gcc-mysql:
     CXX: clang++
     CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DCMAKE_BUILD_TYPE=RelWithDebInfo
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-rocky8
 
 rocky8-python-wheel:
   tags: [ "docker-flat" ]
@@ -293,7 +298,7 @@ liblinphone-rocky8-test-performance:
     - .test-liblinphone-performance
   image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
-    - rocky8-ninja-gcc-mysql
+    - rocky8-ninja-clang-mysql
   variables:
     PLATFORM: linux-rocky8
     NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE: "true"
@@ -401,7 +406,7 @@ liblinphone-rocky8-test-performance-mr:
     - .test-liblinphone-performance-mr
   image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
-    - rocky8-ninja-gcc-mysql
+    - rocky8-ninja-clang-mysql
   variables:
     PLATFORM: linux-rocky8
 

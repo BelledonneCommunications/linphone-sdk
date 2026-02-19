@@ -37,6 +37,7 @@
 #define ME_VCF "http://dav.example.org/baikal/html/card.php/addressbooks/tester/default/me.vcf"
 #define ME_VCF_2 "/baikal/html/card.php/addressbooks/tester/default/me.vcf"
 #define ME_VCF_3 "/baikal/html/card.php/addressbooks/tester/default/unknown.vcf"
+#define ME_VCF_4 "/baikal/html/card.php/addressbooks/tester/default/best_friend.vcf"
 #define CARDDAV_SYNC_TIMEOUT 15000
 
 using namespace LinphonePrivate;
@@ -689,6 +690,20 @@ static void carddav_clean(void) {
 		friends_iterator = bctbx_list_next(friends_iterator);
 	}
 	bctbx_list_free(friends);
+	stats->sync_done_count = 0;
+
+	lvc = linphone_vcard_context_get_vcard_from_buffer(linphone_core_get_vcard_context(manager->lc),
+													   "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:François "
+													   "Grisez\r\nIMPP:sip:francois.grisez@sip.linphone.org\r\nUID:"
+													   "4d8b9e0a-69b0-4da1-8364-26e8d00a0de8\r\nEND:VCARD\r\n");
+	linphone_vcard_set_url(lvc, ME_VCF_4);
+	lf = linphone_core_create_friend_from_vcard(manager->lc, lvc);
+	linphone_vcard_unref(lvc);
+	BC_ASSERT_EQUAL(linphone_friend_list_add_friend(lfl, lf), LinphoneFriendListOK, int, "%i");
+	linphone_friend_unref(lf);
+	// Wait here to synchronize creation order.
+	BC_ASSERT_TRUE(wait_for_until(manager->lc, NULL, &stats->sync_done_count, 1, CARDDAV_SYNC_TIMEOUT));
+
 
 	lvc = linphone_vcard_context_get_vcard_from_buffer(
 	    linphone_core_get_vcard_context(manager->lc),
@@ -697,15 +712,15 @@ static void carddav_clean(void) {
 	linphone_vcard_set_url(lvc, ME_VCF);
 	lf = linphone_core_create_friend_from_vcard(manager->lc, lvc);
 	linphone_vcard_unref(lvc);
-	linphone_friend_list_add_friend(lfl, lf);
+	BC_ASSERT_EQUAL(linphone_friend_list_add_friend(lfl, lf), LinphoneFriendListOK, int, "%i");
 	linphone_friend_unref(lf);
-	wait_for_until(manager->lc, NULL, &stats->sync_done_count, 1, CARDDAV_SYNC_TIMEOUT);
-	BC_ASSERT_EQUAL(stats->sync_done_count, 1, int, "%i");
+	BC_ASSERT_TRUE(wait_for_until(manager->lc, NULL, &stats->sync_done_count, 2, CARDDAV_SYNC_TIMEOUT));
 
 	ms_free(stats);
 	linphone_core_manager_destroy(manager);
 }
 
+// it changes the DB for used in tests. Do not add it into suite because the DB need to be cleaned after.
 static void carddav_integration(void) {
 	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("carddav_rc", FALSE);
 	LinphoneFriendList *lfl = linphone_core_create_friend_list(manager->lc);
@@ -753,8 +768,8 @@ static void carddav_integration(void) {
 	BC_ASSERT_PTR_NOT_NULL(linphone_vcard_get_uid(lvc));
 
 	linphone_friend_list_remove_friend(lfl, lf);
-	BC_ASSERT_EQUAL((unsigned int)bctbx_list_size(linphone_friend_list_get_friends(lfl)), 1, unsigned int,
-	                "%u"); // a local Sylvain friend is there
+	BC_ASSERT_EQUAL((unsigned int)bctbx_list_size(linphone_friend_list_get_friends(lfl)), 2, unsigned int,
+	                "%u"); // Sylvain and François are local friends is there
 	LinphoneFriend *sylvain = (LinphoneFriend *)bctbx_list_get_data(linphone_friend_list_get_friends(lfl));
 	BC_ASSERT_PTR_NOT_NULL(sylvain);
 	wait_for_until(manager->lc, NULL, &stats->sync_done_count, 3, CARDDAV_SYNC_TIMEOUT);
@@ -801,7 +816,7 @@ static void carddav_integration(void) {
 	BC_ASSERT_EQUAL(stats->updated_contact_count, 1, int, "%i");
 	BC_ASSERT_STRING_NOT_EQUAL(linphone_friend_list_get_revision(lfl), "0");
 
-	BC_ASSERT_EQUAL(bctbx_list_size(linphone_friend_list_get_friends(lfl)), 1, size_t, "%zu");
+	BC_ASSERT_EQUAL(bctbx_list_size(linphone_friend_list_get_friends(lfl)), 2, size_t, "%zu");
 	lf = (LinphoneFriend *)bctbx_list_get_data((linphone_friend_list_get_friends(lfl)));
 	addr = linphone_friend_get_address(lf);
 	BC_ASSERT_PTR_NOT_NULL(addr);
@@ -817,7 +832,7 @@ static void carddav_integration(void) {
 
 	linphone_core_set_network_reachable(manager->lc, FALSE); // To prevent the CardDAV update
 	linphone_friend_edit(lf);
-	linphone_friend_set_name(lf, "François Grisez");
+	linphone_friend_set_name(lf, "Sylvain");
 	linphone_friend_done(lf);
 	BC_ASSERT_EQUAL((unsigned int)bctbx_list_size(
 	                    linphone_friend_list_get_dirty_friends_to_update(linphone_friend_get_friend_list(lf))),
@@ -827,6 +842,7 @@ static void carddav_integration(void) {
 	linphone_friend_list_cbs_unref(cbs);
 	linphone_core_manager_destroy(manager);
 	ms_free(stats);
+	carddav_clean();
 }
 
 void _onMagicSearchResultsReceived(LinphoneMagicSearch *magic_search) {
@@ -911,8 +927,8 @@ static void magic_search_carddav_query_from_api(void) {
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// no filter so 1 expected, the whole address book
-		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
+		// no filter so 2 expected, the whole address book
+		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 2, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
 			LinphoneFriend *lf = linphone_search_result_get_friend(result);
@@ -922,15 +938,19 @@ static void magic_search_carddav_query_from_api(void) {
 			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
 			                       "François Grisez");
+			result = (LinphoneSearchResult *)bctbx_list_get_data(bctbx_list_next(resultList));
+			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
+								   "Sylvain Berfini");
+
 			bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 		}
 
-		linphone_magic_search_get_contacts_list_async(magicSearch, "çois", "", LinphoneMagicSearchSourceRemoteCardDAV,
+		linphone_magic_search_get_contacts_list_async(magicSearch, "fini", "", LinphoneMagicSearchSourceRemoteCardDAV,
 		                                              LinphoneMagicSearchAggregationNone);
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// 1 result expected: François Grisez from FN & N
+		// 1 result expected: Sylvain Berfini from FN & N
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
@@ -940,11 +960,11 @@ static void magic_search_carddav_query_from_api(void) {
 				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
 			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
-			                       "François Grisez");
+			                       "Sylvain Berfini");
 			bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 		}
 
-		linphone_magic_search_get_contacts_list_async(magicSearch, "sylv", "sip.linphone.org",
+		linphone_magic_search_get_contacts_list_async(magicSearch, "çois", "sip.linphone.org",
 		                                              LinphoneMagicSearchSourceRemoteCardDAV,
 		                                              LinphoneMagicSearchAggregationNone);
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
@@ -1078,6 +1098,7 @@ static void carddav_server_to_client_and_client_to_sever_sync(void) {
 	linphone_friend_list_unref(lfl);
 	linphone_friend_list_cbs_unref(cbs);
 	linphone_core_manager_destroy(manager);
+	carddav_clean();
 }
 
 static void magic_search_carddav_query_from_config(void) {
@@ -1111,7 +1132,7 @@ static void magic_search_carddav_query_from_config(void) {
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// no filter so 2 expected : margaux & ghislain, the whole address book
+		// no filter so 2 expected : Sylvain & François, the whole address book
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 2, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
@@ -1121,16 +1142,16 @@ static void magic_search_carddav_query_from_config(void) {
 				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
 			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
-			                       "Ghislain Mary");
+			                       "François Grisez");
 		}
 		bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 
-		linphone_magic_search_get_contacts_list_async(magicSearch, "gh", "", LinphoneMagicSearchSourceRemoteCardDAV,
+		linphone_magic_search_get_contacts_list_async(magicSearch, "fr", "", LinphoneMagicSearchSourceRemoteCardDAV,
 		                                              LinphoneMagicSearchAggregationNone);
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// 1 expected : ghislain (FN, N & IMPP will match)
+		// 1 expected : françois (FN, N & IMPP will match)
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
@@ -1140,31 +1161,31 @@ static void magic_search_carddav_query_from_config(void) {
 				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
 			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
-			                       "Ghislain Mary");
+			                       "François Grisez");
 		}
 		bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 
-		linphone_magic_search_get_contacts_list_async(magicSearch, "mar", "", LinphoneMagicSearchSourceRemoteCardDAV,
+		linphone_magic_search_get_contacts_list_async(magicSearch, "n", "", LinphoneMagicSearchSourceRemoteCardDAV,
 		                                              LinphoneMagicSearchAggregationNone);
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// 2 expected : margaux (FN, N & IMPP will match) & Ghislain Mary (FN & N) will match
+		// 2 expected : francois grisez & Sylvain Berfiniwill match
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 2, int, "%d");
 		bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 
-		linphone_magic_search_get_contacts_list_async(magicSearch, "marg", "", LinphoneMagicSearchSourceRemoteCardDAV,
+		linphone_magic_search_get_contacts_list_async(magicSearch, "nc", "", LinphoneMagicSearchSourceRemoteCardDAV,
 		                                              LinphoneMagicSearchAggregationNone);
-		linphone_magic_search_get_contacts_list_async(magicSearch, "marga", "", LinphoneMagicSearchSourceRemoteCardDAV,
+		linphone_magic_search_get_contacts_list_async(magicSearch, "nç", "", LinphoneMagicSearchSourceRemoteCardDAV,
 		                                              LinphoneMagicSearchAggregationNone);
-		linphone_magic_search_get_contacts_list_async(magicSearch, "margau", "", LinphoneMagicSearchSourceRemoteCardDAV,
+		linphone_magic_search_get_contacts_list_async(magicSearch, "nço", "", LinphoneMagicSearchSourceRemoteCardDAV,
 		                                              LinphoneMagicSearchAggregationNone);
 		linphone_magic_search_get_contacts_list_async(
-		    magicSearch, "margaux", "", LinphoneMagicSearchSourceRemoteCardDAV, LinphoneMagicSearchAggregationNone);
+		    magicSearch, "françois", "", LinphoneMagicSearchSourceRemoteCardDAV, LinphoneMagicSearchAggregationNone);
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// 1 expected : margaux
+		// 1 expected : françois
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
@@ -1174,17 +1195,17 @@ static void magic_search_carddav_query_from_config(void) {
 				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
 			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
-			                       "Margaux Clerc");
+			                       "François Grisez");
 		}
 		bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 
-		linphone_magic_search_get_contacts_list_async(magicSearch, "margaux", "sip.test.org",
+		linphone_magic_search_get_contacts_list_async(magicSearch, "françois", "sip.test.org",
 		                                              LinphoneMagicSearchSourceRemoteCardDAV,
 		                                              LinphoneMagicSearchAggregationNone);
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// O expected as margaux SIP URI isn't on sip.test.org domain
+		// O expected as françois SIP URI isn't on sip.test.org domain
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 0, int, "%d");
 		bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 
@@ -1194,7 +1215,7 @@ static void magic_search_carddav_query_from_config(void) {
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// O expected as margaux SIP URI isn't on sip.test.org domain
+		// O expected as SIP URI isn't on sip.test.org domain
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 0, int, "%d");
 		bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 
@@ -1204,7 +1225,7 @@ static void magic_search_carddav_query_from_config(void) {
 		BC_ASSERT_TRUE(wait_for(manager->lc, NULL, &stat->number_of_LinphoneMagicSearchResultReceived, 1));
 		stat->number_of_LinphoneMagicSearchResultReceived = 0;
 		resultList = linphone_magic_search_get_last_search(magicSearch);
-		// 2 expected : margaux & ghislain (IMPP will match)
+		// 2 expected : françois & sylvain (IMPP will match)
 		BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 2, int, "%d");
 		if (resultList) {
 			result = (LinphoneSearchResult *)bctbx_list_get_data(resultList);
@@ -1214,7 +1235,7 @@ static void magic_search_carddav_query_from_config(void) {
 				BC_ASSERT_TRUE(linphone_friend_get_is_read_only(lf));
 			}
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
-			                       "Ghislain Mary");
+			                       "François Grisez");
 		}
 		bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 
