@@ -2089,7 +2089,7 @@ static int ice_check_received_binding_request_username(const IceCheckList *cl,
                                                        const MSStunMessage *msg,
                                                        const MSStunAddress *remote_addr) {
 	const char *username = ms_stun_message_get_username(msg);
-	char *colon = strchr(username, ':');
+	const char *colon = strchr(username, ':');
 	if ((colon == NULL) || (strncmp(username, ice_check_list_local_ufrag(cl), colon - username) != 0)) {
 		ms_error("ice: Wrong USERNAME attribute (colon=%p)", colon);
 		ice_send_error_response(rtp_session, evt_data, msg, remote_addr, MS_STUN_ERROR_CODE_UNAUTHORIZED,

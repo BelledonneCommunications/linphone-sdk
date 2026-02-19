@@ -1242,7 +1242,7 @@ static void detect_res_prefix(const char *prog) {
 	FILE *writable_file = NULL;
 
 	if (prog != NULL) {
-		char *ptr;
+		const char *ptr = NULL;
 		progpath = strdup(prog);
 		if (strchr(prog, '/') != NULL) {
 			progpath[strrchr(prog, '/') - prog + 1] = '\0';

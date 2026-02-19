@@ -120,13 +120,13 @@ char *bctbx_strdup(const char *tmp) {
 }
 
 char *bctbx_dirname(const char *path) {
-	char *ptr = strrchr(path, '/');
+	const char *ptr = strrchr(path, '/');
 	if (ptr == NULL) ptr = strrchr(path, '\\');
 	return ptr ? bctbx_strndup(path, (int)(ptr - path)) : bctbx_strdup(".");
 }
 
 char *bctbx_basename(const char *path) {
-	char *ptr = strrchr(path, '/');
+	const char *ptr = strrchr(path, '/');
 	if (ptr == NULL) ptr = strrchr(path, '\\');
 	if (ptr == NULL) return bctbx_strdup(path);
 	return bctbx_strdup(ptr + 1);
