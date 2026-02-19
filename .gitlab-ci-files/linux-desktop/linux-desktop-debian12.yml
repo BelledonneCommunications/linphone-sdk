@@ -134,6 +134,8 @@ debian12-ninja-clang-python-wheel:
     CXX: clang++
     ADDITIONAL_CMAKE_OPTIONS: -DENABLE_PYTHON_WRAPPER_TESTER=ON
   extends: .linux-desktop-python
+  needs:
+    - wait-cache-synchro-debian12
 
 debian12-ninja-java:
   tags: [ "docker" ]
