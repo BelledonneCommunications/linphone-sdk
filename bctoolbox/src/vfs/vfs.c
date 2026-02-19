@@ -341,7 +341,7 @@ off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
 	return BCTBX_VFS_ERROR;
 }
 
-static char *findNextLine(const char *buf) {
+static char *findNextLine(char *buf) {
 	char *pNextLine = NULL;
 	char *pNextLineR = NULL;
 	char *pNextLineN = NULL;
@@ -388,7 +388,7 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 	if ((pFile->gSize > 0) && (pFile->gPageOffset <= pFile->offset) &&
 	    (pFile->gPageOffset + (off_t)pFile->gSize > pFile->offset)) {
 		// look for a new line in the cache
-		const char *c = pFile->gPage + (pFile->offset - pFile->gPageOffset);
+		char *c = pFile->gPage + (pFile->offset - pFile->gPageOffset);
 		pNextLine = findNextLine(c);
 		if (pNextLine) {
 			/* Got a line! Comments use \n to describe EOL while it can be \r too */

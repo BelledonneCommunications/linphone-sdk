@@ -44,7 +44,7 @@ PayloadType *ms_tools_parse_custom_payload(const char *name) {
 	char subtype[64] = {0};
 	char clockrate[64] = {0};
 	char nchannels[64];
-	char *separator;
+	const char *separator = NULL;
 
 	if (strlen(name) >= sizeof(clockrate) - 1) {
 		fprintf(stderr, "Cannot parse %s: too long.\n", name);
@@ -53,12 +53,12 @@ PayloadType *ms_tools_parse_custom_payload(const char *name) {
 
 	separator = strchr(name, '/');
 	if (separator) {
-		char *separator2;
+		const char *separator2 = NULL;
 
 		strncpy(type, name, separator - name);
 		separator2 = strchr(separator + 1, '/');
 		if (separator2) {
-			char *separator3;
+			const char *separator3 = NULL;
 
 			strncpy(subtype, separator + 1, separator2 - separator - 1);
 			separator3 = strchr(separator2 + 1, '/');

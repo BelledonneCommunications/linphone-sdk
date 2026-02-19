@@ -7121,22 +7121,25 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 					const long long &peerSipAddressId = d->insertSipAddress(peerAddress);
 					const long long &localSipAddressId = d->insertSipAddress(localAddress);
 					query += "peer_sip_address_id = " + Utils::toString(peerSipAddressId) +
-					         ", local_sip_address_id = " + Utils::toString(localSipAddressId) + " ";
+					         ", local_sip_address_id = " + Utils::toString(localSipAddressId);
 				}
 				if (updateFlags) {
+					if (conferenceIdChanged) {
+						query += ", ";
+					}
 					const int flags = chatRoom->hasBeenLeft() ? 1 : 0;
 					// If we end up here, it means that there was a problem with a media conference supporting chat
 					// capabilities. The core might have lost the connection while the conference was ongoing therefore
 					// the database could not be updated to reflect the termination of the conference.
 					lInfo() << "Updating flags of chatroom [" << chatRoom << "] with ID " << dbId
 					        << ": setting it as terminated and reset the last notify ID to 0";
-					query += "flags = " + Utils::toString(flags) + ", last_notify_id = 0 ";
+					query += "flags = " + Utils::toString(flags) + ", last_notify_id = 0";
 					auto chatConference = chatRoom->getConference();
 					if (chatConference) {
 						chatConference->resetLastNotify();
 					}
 				}
-				query += "WHERE id = :chatRoomId";
+				query += " WHERE id = :chatRoomId";
 				*session << query, soci::use(dbId);
 			}
 		}
