@@ -1,6 +1,6 @@
 ############################################################################
 # TasksPython.cmake
-# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2026 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -102,6 +102,13 @@ if (APPLE)
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
 
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.py" "${PYTHON_INSTALL_MODULE_DIR}" 
+        
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.pyi" "${PYTHON_INSTALL_MODULE_DIR}"
+        COMMAND "cp" "${CMAKE_INSTALL_FULL_LIBDIR}/pylinphone.pyi" "${PYTHON_INSTALL_MODULE_DIR}"
+
+        # Tag this python package as 'typed' (contains type hints) by creating an empty py.typed file.
+        # Source: https://typing.python.org/en/latest/spec/distributing.html#packaging-typed-libraries
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/py.typed" "${PYTHON_INSTALL_MODULE_DIR}"
 
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         COMMENT "Generating linphone SDK with Python wrapper"
@@ -122,7 +129,14 @@ else()
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/ics_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
 
-        COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.py" "${PYTHON_INSTALL_MODULE_DIR}" 
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.py" "${PYTHON_INSTALL_MODULE_DIR}"
+
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.pyi" "${PYTHON_INSTALL_MODULE_DIR}"
+        COMMAND "cp" "${CMAKE_INSTALL_FULL_LIBDIR}/pylinphone.pyi" "${PYTHON_INSTALL_MODULE_DIR}"
+
+        # Tag this python package as 'typed' (contains type hints) by creating an empty py.typed file.
+        # Source: https://typing.python.org/en/latest/spec/distributing.html#packaging-typed-libraries
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/py.typed" "${PYTHON_INSTALL_MODULE_DIR}"
 
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         COMMENT "Generating linphone SDK with Python wrapper"

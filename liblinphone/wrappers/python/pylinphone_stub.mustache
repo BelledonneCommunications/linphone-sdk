@@ -1,0 +1,168 @@
+# -*- coding: utf-8 -*-
+
+# pylinphone.pyi
+# Copyright (c) 2010-2026 Belledonne Communications SARL.
+#
+# This file is part of Liblinphone 
+# (see https://gitlab.linphone.org/BC/public/liblinphone).
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import annotations
+
+from enum import Enum
+from typing import Callable, Union
+
+{{#enums}}
+class {{name}}(Enum):
+    """
+    {{#briefDoc}}
+    {{#lines}}
+    {{{line}}}
+    {{/lines}}
+    {{/briefDoc}}
+    {{#detailedDoc}}
+    {{#lines}}
+    {{{line}}}
+    {{/lines}}
+    {{/detailedDoc}}
+    """
+
+    {{#values}}
+    {{name}}{{value_name}} = {{value}}
+    """{{#briefDoc}}{{#lines}}{{{line}}}{{/lines}}{{/briefDoc}}"""
+    {{/values}}
+
+{{/enums}}
+
+{{#objects}}
+class {{python_name}}:
+    """
+    {{#briefDoc}}
+    {{#lines}}
+    {{{line}}}
+    {{/lines}}
+    {{/briefDoc}}
+
+    {{#detailedDoc}}
+    {{#lines}}
+    {{{line}}}
+    {{/lines}}
+    {{/detailedDoc}}
+    """
+
+    {{#is_factory}}
+    @classmethod
+    def get(cls) -> Factory:
+        ...
+    {{/is_factory}}
+
+    {{#callbacks}}
+    @property
+    def {{callback_var_name}}(self) -> {{doc_python_params}}:
+        """
+        {{#briefDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/briefDoc}}
+
+        {{#detailedDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/detailedDoc}}
+        """
+        ...
+
+    @{{callback_var_name}}.setter
+    def {{callback_var_name}}(self, cb: {{doc_python_params}}) -> None:
+        """
+        {{#briefDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/briefDoc}}
+
+        {{#detailedDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/detailedDoc}}
+        """
+        ...
+
+    {{/callbacks}}
+
+    {{#properties}}
+    {{#getter}}
+    @property
+    def {{python_name}}(self) -> {{#doc_return_maybenil}}Union[{{/doc_return_maybenil}}{{doc_return_type}}{{#doc_return_maybenil}}, None]{{/doc_return_maybenil}}:
+        """
+        {{#briefDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/briefDoc}}
+
+        {{#detailedDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/detailedDoc}}
+        """
+        ...
+
+    {{/getter}}
+
+    {{#setter}}
+    @{{python_name}}.setter
+    def {{python_name}}(self, value: {{#doc_value_maybenil}}Union[{{/doc_value_maybenil}}{{doc_value_type}}{{#doc_value_maybenil}}, None]{{/doc_value_maybenil}}) -> None:
+        """
+        {{#briefDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/briefDoc}}
+
+        {{#detailedDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/detailedDoc}}
+        """
+        ...
+
+    {{/setter}}
+    {{/properties}}
+    
+    {{#methods}}
+    def {{python_name}}({{^is_static}}self{{/is_static}}{{doc_python_params}}){{#has_return}} -> {{#doc_return_maybenil}}Union[{{/doc_return_maybenil}}{{doc_return_type}}{{#doc_return_maybenil}}, None]{{/doc_return_maybenil}}{{/has_return}}:
+        """
+        {{#briefDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/briefDoc}}
+        
+        {{#detailedDoc}}
+        {{#lines}}
+        {{{line}}}
+        {{/lines}}
+        {{/detailedDoc}}{{fakeDoc}}
+        """
+        ...
+
+    {{/methods}}
+{{/objects}}

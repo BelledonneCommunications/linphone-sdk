@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2020 Belledonne Communications, Grenoble France
+# Copyright (C) 2020-2026 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -11,7 +11,7 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
@@ -31,13 +31,14 @@ else()
 	find_package(Python3 REQUIRED)
 endif()
 
-add_custom_command(OUTPUT pylinphone.pyx pylinphone.py
+add_custom_command(OUTPUT pylinphone.pyx pylinphone.py pylinphone.pyi
 	COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/genwrapper.py" "${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml"
 	DEPENDS ${PROJECT_SOURCE_DIR}/tools/genapixml.py
 	${PROJECT_SOURCE_DIR}/tools/metadoc.py
 	${PROJECT_SOURCE_DIR}/tools/abstractapi.py
 	genwrapper.py
 	pylinphone.mustache
+	pylinphone_stub.mustache
 	liblinphone-doc
 	COMMENT "Generating python wrapper"
 )
@@ -47,7 +48,7 @@ add_custom_command(OUTPUT pylinphone.c
 	DEPENDS pylinphone.pyx
 )
 
-list(APPEND PYLINPHONE_DEPENDENCIES "pylinphone.pyx" "pylinphone.c")
+list(APPEND PYLINPHONE_DEPENDENCIES "pylinphone.pyx" "pylinphone.pyi" "pylinphone.c")
 if (ENABLE_DOC)
 
 	if (WIN32)
@@ -136,6 +137,8 @@ install(TARGETS pylinphone
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	FRAMEWORK DESTINATION Frameworks
 )
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pylinphone.pyi" DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if(ENABLE_PYTHON_WRAPPER_TESTER)
 	# Install the tests project into the install data dir

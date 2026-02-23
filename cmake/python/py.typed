@@ -1,0 +1,2 @@
+# Tag this python package as 'typed' (contains type hints) by creating an empty py.typed file.
+# Source: https://typing.python.org/en/latest/spec/distributing.html#packaging-typed-libraries

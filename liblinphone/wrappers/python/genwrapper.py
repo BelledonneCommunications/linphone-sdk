@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # genwrapper.pyx
-# Copyright (c) 2010-2024 Belledonne Communications SARL.
+# Copyright (c) 2010-2026 Belledonne Communications SARL.
 #
 # This file is part of Liblinphone 
 # (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -612,6 +612,10 @@ class PylinphoneDoc(Pylinphone):
     def __init__(self, parser):
         Pylinphone.__init__(self, parser)
 
+class PylinphoneStub(Pylinphone):
+    def __init__(self, parser):
+        Pylinphone.__init__(self, parser)
+
 ###############################################################################
 
 def render(renderer, item, path):
@@ -690,3 +694,6 @@ if __name__ == '__main__':
 
     wrapper = PylinphoneDoc(parser)
     render(renderer, wrapper, args.outputdir + '/pylinphone.py')
+
+    wrapper = PylinphoneStub(parser)
+    render(renderer, wrapper, args.outputdir + '/pylinphone.pyi')
