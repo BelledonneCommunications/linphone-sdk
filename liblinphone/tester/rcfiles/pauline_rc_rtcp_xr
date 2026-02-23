@@ -51,7 +51,8 @@ automatically_accept=0
 device=StaticImage: Static picture
 
 [sound]
-echocancellation=0 #to not overload cpu in case of VG
+echocancellation=0 #to not overload cpu
+noise_suppression=0
 
 [tester]
 test_env=1

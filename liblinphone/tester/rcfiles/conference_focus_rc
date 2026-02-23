@@ -41,3 +41,7 @@ test_env=1
 [storage]
 call_logs_db_uri=null
 friends_db_uri=null
+
+[sound]
+echocancellation=0 #to not overload cpu
+noise_suppression=0
