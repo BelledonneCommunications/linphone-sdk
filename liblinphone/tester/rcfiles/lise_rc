@@ -57,7 +57,8 @@ device=StaticImage: Static picture
 codec_priority_policy=1
 
 [sound]
-echocancellation=0 #to not overload cpu in case of VG
+echocancellation=0 #to not overload cpu
+noise_suppression=0
 playback_dev_id=PulseAudio Unknown: Comet Lake PCH cAVS HDMI / DisplayPort 3 Output
 ringer_dev_id=PulseAudio Unknown: Comet Lake PCH cAVS HDMI / DisplayPort 3 Output
 capture_dev_id=PulseAudio Unknown: Comet Lake PCH cAVS Headset Mono Microphone + Headphones Stereo Microphone
