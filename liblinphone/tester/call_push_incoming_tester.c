@@ -74,13 +74,16 @@ void simple_push_call_base(bool_t push, bool_t canceled, bool_t decline, bool_t 
 
 	const char *callid = linphone_call_log_get_call_id(linphone_call_get_call_log(marie_call));
 	if (push) {
-		// simulate pushkit
-		linphone_core_start_process_remote_notification(pauline, callid);
-
+		/* simulate network change before linphone_core_start_process_remote_notification(),
+		 * so that the INVITE has no chance to reach pauline during linphone_core_start_process_remote_notification(),
+		 * that contains a few linphone_core_iterate() calls.*/
 		if (network_change) {
 			linphone_core_set_network_reachable(pauline->lc, FALSE);
 			linphone_core_set_network_reachable(pauline->lc, TRUE);
 		}
+
+		// simulate pushkit
+		linphone_core_start_process_remote_notification(pauline, callid);
 
 		BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneCallPushIncomingReceived, 1, int, "%d");
 		pauline_call = linphone_core_get_current_call(pauline->lc);
@@ -249,7 +252,7 @@ end:
 	linphone_core_manager_destroy(marie);
 }
 
-test_t push_incoming_call_tests[] = {
+static test_t push_incoming_call_tests[] = {
     TEST_NO_TAG("Simple accept call", simple_accept_call),
     TEST_NO_TAG("Push accept call", push_accept_call),
     TEST_NO_TAG("Push accept call with network change", push_accept_call_with_network_change),
