@@ -102,6 +102,9 @@ if (APPLE)
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
 
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.py" "${PYTHON_INSTALL_MODULE_DIR}" 
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.pyi" "${PYTHON_INSTALL_MODULE_DIR}"
+
+        COMMAND "cp" "${CMAKE_INSTALL_FULL_LIBDIR}/pylinphone.pyi" "${PYTHON_INSTALL_MODULE_DIR}"
 
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         COMMENT "Generating linphone SDK with Python wrapper"
@@ -123,6 +126,9 @@ else()
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar.belr" "${PYTHON_INSTALL_GRAMMARS_DIR}"
 
         COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.py" "${PYTHON_INSTALL_MODULE_DIR}" 
+        COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.pyi" "${PYTHON_INSTALL_MODULE_DIR}"
+
+        COMMAND "cp" "${CMAKE_INSTALL_FULL_LIBDIR}/pylinphone.pyi" "${PYTHON_INSTALL_MODULE_DIR}"
 
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         COMMENT "Generating linphone SDK with Python wrapper"

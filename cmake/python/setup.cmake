@@ -16,7 +16,7 @@ setup(
     license="GPLv3",
     packages=['linphone'],
     package_data={
-        'linphone': ['*.so*', '*.dylib*', 'Frameworks/', 'share/belr/grammars/*'],
+        'linphone': ['*.so*', '*.dylib*', '*.pyi', 'py.typed', 'Frameworks/', 'share/belr/grammars/*'],
     },
     include_package_data=True,
     distclass=BinaryDistribution,
