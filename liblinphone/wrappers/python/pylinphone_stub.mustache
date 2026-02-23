@@ -1,0 +1,57 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
+from enum import Enum
+from typing import Callable, Union
+
+{{#enums}}
+class {{name}}(Enum):
+    {{#values}}
+    {{name}}{{value_name}} = {{value}}
+    {{/values}}
+
+{{/enums}}
+
+{{#objects}}
+class {{python_name}}:
+    ...
+{{/objects}}
+
+{{#objects}}
+class {{python_name}}:
+    {{#is_factory}}
+    @staticmethod
+    def get() -> Factory:
+        ...
+    {{/is_factory}}
+    {{#callbacks}}
+    @property
+    def {{callback_var_name}}(self) -> {{doc_python_params}}:
+        ...
+
+    @{{callback_var_name}}.setter
+    def {{callback_var_name}}(self, cb: {{doc_python_params}}) -> None:
+        ...
+
+    {{/callbacks}}
+    {{#properties}}
+    {{#getter}}
+    @property
+    def {{python_name}}(self) -> {{#doc_return_maybenil}}Union[{{/doc_return_maybenil}}{{doc_return_type}}{{#doc_return_maybenil}}, None]{{/doc_return_maybenil}}:
+        ...
+
+    {{/getter}}
+    {{#setter}}
+    @{{python_name}}.setter
+    def {{python_name}}(self, value: {{#doc_value_maybenil}}Union[{{/doc_value_maybenil}}{{doc_value_type}}{{#doc_value_maybenil}}, None]{{/doc_value_maybenil}}) -> None:
+        ...
+
+    {{/setter}}
+    {{/properties}}
+    {{#methods}}
+    def {{python_name}}({{^is_static}}self{{/is_static}}{{doc_python_params}}){{#has_return}} -> {{#doc_return_maybenil}}Union[{{/doc_return_maybenil}}{{doc_return_type}}{{#doc_return_maybenil}}, None]{{/doc_return_maybenil}}{{/has_return}}:
+        ...
+
+    {{/methods}}
+{{/objects}}
