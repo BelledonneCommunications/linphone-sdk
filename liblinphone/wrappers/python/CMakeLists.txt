@@ -31,14 +31,13 @@ else()
 	find_package(Python3 REQUIRED)
 endif()
 
-add_custom_command(OUTPUT pylinphone.pyx pylinphone.py pylinphone.pyi
+add_custom_command(OUTPUT pylinphone.pyx pylinphone.py
 	COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/genwrapper.py" "${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml"
 	DEPENDS ${PROJECT_SOURCE_DIR}/tools/genapixml.py
 	${PROJECT_SOURCE_DIR}/tools/metadoc.py
 	${PROJECT_SOURCE_DIR}/tools/abstractapi.py
 	genwrapper.py
 	pylinphone.mustache
-	pylinphone_stub.mustache
 	liblinphone-doc
 	COMMENT "Generating python wrapper"
 )
@@ -48,7 +47,7 @@ add_custom_command(OUTPUT pylinphone.c
 	DEPENDS pylinphone.pyx
 )
 
-list(APPEND PYLINPHONE_DEPENDENCIES "pylinphone.pyx" "pylinphone.pyi" "pylinphone.c")
+list(APPEND PYLINPHONE_DEPENDENCIES "pylinphone.pyx" "pylinphone.c")
 if (ENABLE_DOC)
 
 	if (WIN32)
@@ -136,10 +135,6 @@ install(TARGETS pylinphone
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	FRAMEWORK DESTINATION Frameworks
-)
-
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pylinphone.pyi"
-	DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 if(ENABLE_PYTHON_WRAPPER_TESTER)
