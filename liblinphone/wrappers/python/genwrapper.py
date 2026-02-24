@@ -612,10 +612,6 @@ class PylinphoneDoc(Pylinphone):
     def __init__(self, parser):
         Pylinphone.__init__(self, parser)
 
-class PylinphoneStub(Pylinphone):
-    def __init__(self, parser):
-        Pylinphone.__init__(self, parser)
-
 ###############################################################################
 
 def render(renderer, item, path):
@@ -694,6 +690,3 @@ if __name__ == '__main__':
 
     wrapper = PylinphoneDoc(parser)
     render(renderer, wrapper, args.outputdir + '/pylinphone.py')
-
-    wrapper = PylinphoneStub(parser)
-    render(renderer, wrapper, args.outputdir + '/pylinphone.pyi')
