@@ -5411,8 +5411,8 @@ list<shared_ptr<Content>> MainDb::getMediaContents(const ConferenceId &conferenc
 	    "chat_message_content.event_id "
 	    " JOIN conference_event ON conference_event.event_id = chat_message_content.event_id AND "
 	    " conference_event.chat_room_id = :chatRoomId "
-	    " WHERE content_type.value LIKE 'video/%' OR content_type.value LIKE 'image/%' OR content_type.value LIKE "
-	    "'audio/%' "
+	    " WHERE content_type.value LIKE 'video/%' OR content_type.value LIKE 'image/%' OR (content_type.value LIKE "
+	    "'audio/%' AND NOT content_type.value LIKE '%;voice-recording=yes') "
 	    " ORDER BY chat_message_content.event_id DESC";
 
 	return L_DB_TRANSACTION {
@@ -5462,8 +5462,8 @@ int MainDb::getMediaContentsSize(const ConferenceId &conferenceId) const {
 	    " JOIN content_type ON content_type.id = chat_message_content.content_type_id "
 	    " JOIN conference_event ON conference_event.event_id = chat_message_content.event_id AND "
 	    " conference_event.chat_room_id = :chatRoomId "
-	    " WHERE content_type.value LIKE 'video/%' OR content_type.value LIKE 'image/%' OR content_type.value LIKE "
-	    "'audio/%' ";
+	    " WHERE content_type.value LIKE 'video/%' OR content_type.value LIKE 'image/%' OR (content_type.value LIKE "
+	    "'audio/%' AND NOT content_type.value LIKE '%;voice-recording=yes') ";
 
 	return L_DB_TRANSACTION {
 		L_D();

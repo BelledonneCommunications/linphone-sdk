@@ -301,7 +301,7 @@ LINPHONE_PUBLIC int linphone_chat_room_get_history_size_2(LinphoneChatRoom *chat
 LINPHONE_PUBLIC bool_t linphone_chat_room_is_empty(LinphoneChatRoom *chat_room);
 
 /**
- * Gets all contents for which content-type starts with either video/, audio/ or image/.
+ * Gets all contents for which content-type starts with either video/, audio/ (except for voice messages) or image/.
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which matching contents should be
  * retrieved. @notnil
  * @return A list of contents considered as "media". \bctbx_list{LinphoneContent} @tobefreed
@@ -309,7 +309,8 @@ LINPHONE_PUBLIC bool_t linphone_chat_room_is_empty(LinphoneChatRoom *chat_room);
 LINPHONE_PUBLIC bctbx_list_t *linphone_chat_room_get_media_contents(LinphoneChatRoom *chat_room);
 
 /**
- * Gets the partial list of contents for which content-type starts with either video/, audio/ or image/.
+ * Gets the partial list of contents for which content-type starts with either video/, audio/ (except for voice
+ * messages) or image/.
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation for which matching contents should be
  * retrieved. @notnil
  * @param begin The first content of the range to be retrieved. Most recent content has index 0.

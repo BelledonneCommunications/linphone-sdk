@@ -2406,6 +2406,21 @@ static void message_with_voice_recording_base(bool_t create_message_from_recorde
 		BC_ASSERT_STRING_EQUAL(linphone_content_get_type(content), "audio");
 		BC_ASSERT_STRING_EQUAL(linphone_content_get_subtype(content), "wav");
 		BC_ASSERT_TRUE(linphone_content_is_voice_recording(content));
+
+		// Make sure voice recordings do not appear in getMediaContents() APIs
+		int media_contents_count = linphone_chat_room_get_media_contents_size(marieToPaulineRoom);
+		BC_ASSERT_EQUAL(media_contents_count, 0, int, "%d");
+		bctbx_list_t *media_contents = linphone_chat_room_get_media_contents(marieToPaulineRoom);
+		media_contents_count = (int)bctbx_list_size(media_contents);
+		BC_ASSERT_EQUAL(media_contents_count, 0, int, "%d");
+		bctbx_list_free_with_data(media_contents, (bctbx_list_free_func)linphone_content_unref);
+
+		media_contents_count = linphone_chat_room_get_media_contents_size(paulineToMarieRoom);
+		BC_ASSERT_EQUAL(media_contents_count, 0, int, "%d");
+		media_contents = linphone_chat_room_get_media_contents(paulineToMarieRoom);
+		media_contents_count = (int)bctbx_list_size(media_contents);
+		BC_ASSERT_EQUAL(media_contents_count, 0, int, "%d");
+		bctbx_list_free_with_data(media_contents, (bctbx_list_free_func)linphone_content_unref);
 	}
 
 	BC_ASSERT_PTR_NOT_NULL(linphone_core_get_chat_room(marie->lc, pauline->identity));
