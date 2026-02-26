@@ -50,6 +50,19 @@ bc_apply_compile_flags(BELCARD_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_
 bc_apply_compile_flags(BELCARD_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 add_library(belcard ${BELCARD_HEADER_FILES} ${BELCARD_SOURCE_FILES_C} ${BELCARD_SOURCE_FILES_CXX} ${VCARD_GRAMMAR_FILES})
+
+if (ENABLE_COVERAGE)
+	if(CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
+		message(STATUS "Enabling code coverage for Clang/LLVM for belcard")
+		target_compile_options(belcard PUBLIC "-fprofile-instr-generate")
+		target_compile_options(belcard PUBLIC "-fcoverage-mapping")
+		target_link_options(belcard PUBLIC "-fprofile-instr-generate")
+		target_compile_definitions(belcard PUBLIC ENABLE_COVERAGE)
+	else()
+		message(FATAL "CMAKE_CXX_COMPILER_ID is set to ${CMAKE_CXX_COMPILER_ID}. Coverage works only under Clang. Disable ENABLE_COVERAGE option or use Clang.")
+	endif()
+endif()
+
 set_target_properties(belcard PROPERTIES VERSION ${BELCARD_SO_VERSION})
 target_include_directories(belcard INTERFACE
   $<INSTALL_INTERFACE:include>

@@ -226,7 +226,7 @@
     - export LSAN_OPTIONS="exitcode=255:suppressions=${CI_PROJECT_DIR}/sanitizer_ignore.txt"
     - export ASAN_OPTIONS="exitcode=255"
     - export ASAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
-    - export LLVM_PROFILE_FILE="default_%p.profraw"
+    - export LLVM_PROFILE_FILE=${CI_JOB_NAME}%p.profraw
 
     # - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER
@@ -399,10 +399,11 @@
     - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
     - mkdir ${CI_PROJECT_DIR}/coverage
     - |
-        if [ "${PATH_TO_LIBLINPHONE_SO}" != "" ];
+        echo "PATH_TO_COVERAGE_BINARY=$PATH_TO_COVERAGE_BINARY"
+        if [ "${PATH_TO_COVERAGE_BINARY}" != "" ];
         then
-          echo "Moving liblinphone.so and .profraw file to 'coverage' folder in artifacts"
-          mv $PATH_TO_LIBLINPHONE_SO ${CI_PROJECT_DIR}/coverage
+          echo "Moving $PATH_TO_COVERAGE_BINARY and .profraw files to 'coverage' folder in artifacts"
+          mv $PATH_TO_COVERAGE_BINARY ${CI_PROJECT_DIR}/coverage
           mv *.profraw ${CI_PROJECT_DIR}/coverage/
         fi
     - echo "After script finished"
@@ -577,7 +578,6 @@
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
-    PATH_TO_LIBLINPHONE_SO: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
     ADDITIONNAL_OPTIONS: "--show-account-manager-logs --dns-server $LIBLINPHONE_TESTER_DNS"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ${PATH_TO_TESTER}/${TESTER_BIN}"
     TESTER: "liblinphone"

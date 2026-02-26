@@ -23,7 +23,13 @@ recache-rocky8:
   variables:
     PLATFORM: linux-rocky8
 
-
+.factorize_rocky8_coverage: &docker_image_needs_platform_runner_tag_dev_toolset_coverage
+  tags: [ "docker-test" ]
+  image: !reference [ .rocky8_image_version, image ]
+  needs:
+    - rocky8-ninja-clang-coverage
+  variables:
+    PLATFORM: linux-rocky8
 #################################################
 # Makefile
 #################################################
@@ -151,19 +157,27 @@ pqc-rocky8-test:
 
 belr-rocky8-test:
   extends: .test-belr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
+  variables:
+    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelr.so.1"
 
 belr-rocky8-test-mr:
   extends: .test-belr-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
+  variables:
+    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelr.so.1"
 
 belcard-rocky8-test:
   extends: .test-belcard
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
+  variables:
+    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelcard.so.1"
 
 belcard-rocky8-test-mr:
   extends: .test-belcard-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
+  variables:
+    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelcard.so.1"
 
 bzrtp-rocky8-test:
   extends: .test-bzrtp
@@ -209,9 +223,9 @@ mediastreamer-rocky8-test:
   extends: .test-mediastreamer
   <<: *docker_image_needs_platform_devtoolset_ms
 
-# mediastreamer-rocky8-test-mr:
-#   extends: .test-mediastreamer-mr
-#   <<: *docker_image_needs_platform_devtoolset_ms
+#mediastreamer-rocky8-test-mr:
+#  extends: .test-mediastreamer-mr
+#  <<: *docker_image_needs_platform_devtoolset_ms
 
 mediastreamer-rocky8-test-h264-mr:
   extends: .test-mediastreamer-mr
@@ -232,6 +246,8 @@ mediastreamer-rocky8-test-h264-mr:
 liblinphone-rocky8-test:
   extends: .test-liblinphone
   <<: *docker_image_needs_platform_devtoolset_libl
+  variables:
+    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
 
 liblinphone-rocky8-test-nocov:
   when: manual
@@ -285,36 +301,38 @@ liblinphone-rocky8-test-performance:
 liblinphone-rocky8-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
+  variables:
+    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
 
-liblinphone-rocky8-coverage:
+.linphone-sdk-rocky8-coverage:
   tags: [ "docker-flat" ]
   stage: coverage
   image: !reference [ .rocky8_test_libl_image_version, image ]
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  needs:
-    - liblinphone-rocky8-test-mr
   variables:
     LLVM_COV_OPTIONS: >
-      liblinphone
-      -instr-profile=default.profdata
+      -instr-profile=coverage/default.profdata
       --ignore-filename-regex=liblinphone/libxsd
+      --ignore-filename-regex=liblinphone/src/xml
       --ignore-filename-regex=external
-    LIBLINPHONE_BINARY: coverage/liblinphone.so.10
   script:
     - echo "Extract .profdata from .profraw"
-    - llvm-profdata merge -sparse coverage/*.profraw -o default.profdata
+    - llvm-profdata merge -sparse coverage/*.profraw -o coverage/default.profdata
     - echo "Full coverage of liblinphone library"
-    - llvm-cov show $LIBLINPHONE_BINARY $LLVM_COV_OPTIONS -use-color > liblinphone_coverage_lines_full.txt
+    - llvm-cov show $COVERED_LIBRARIES $LLVM_COV_OPTIONS -use-color > linphone_sdk_coverage_lines_full.txt
     - echo "Display coverage by file of liblinphone library"
-    - llvm-cov report $LIBLINPHONE_BINARY $LLVM_COV_OPTIONS -use-color | tee liblinphone_coverage_report_by_file.txt
+    - llvm-cov report $COVERED_LIBRARIES $LLVM_COV_OPTIONS -use-color | tee linphone_sdk_coverage_report_by_file.txt
     - echo "filtering work of report to get global coverage %"
-    - cat liblinphone_coverage_report_by_file.txt | grep -E "TOTAL" | grep -Po "\d+\.\d+\%" | sed -n '3p'
+    - cat linphone_sdk_coverage_report_by_file.txt | grep -E "TOTAL" | grep -Po "\d+\.\d+\%" | sed -n '3p'
     - echo "Export results in JSON format"
-    - llvm-cov export $LIBLINPHONE_BINARY $LLVM_COV_OPTIONS -format=text > liblinphone_coverage_export.txt
+    - llvm-cov export $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=text > linphone_sdk_coverage_export.txt
     - echo "Export results in Lcov format"
-    - llvm-cov export $LIBLINPHONE_BINARY $LLVM_COV_OPTIONS -format=lcov > liblinphone_coverage_export.lcov
-    - /home/bc/.local/bin/lcov_cobertura liblinphone_coverage_export.lcov
+    - llvm-cov export $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=lcov > linphone_sdk_coverage_export.lcov
+    - /home/bc/.local/bin/lcov_cobertura linphone_sdk_coverage_export.lcov
+    - echo "Generate HTML coverage report"
+    - mkdir -p linphone_sdk_coverage_html
+    - llvm-cov show $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=html -output-dir=linphone_sdk_coverage_html
+    - chmod -R 755 linphone_sdk_coverage_html
+    - ls -al linphone_sdk_coverage_html/*
   coverage: '/[0-9][0-9]\.[0-9]+\%/'
   artifacts:
     reports:
@@ -322,12 +340,43 @@ liblinphone-rocky8-coverage:
         coverage_format: cobertura
         path: coverage.xml
     paths:
-      - liblinphone_coverage_report_by_file.txt
-      - liblinphone_coverage_lines_full.txt
-      - liblinphone_coverage_export.lcov
-      - liblinphone_coverage_export.txt
+      - linphone_sdk_coverage_report_by_file.txt
+      - linphone_sdk_coverage_lines_full.txt
+      - linphone_sdk_coverage_export.lcov
+      - linphone_sdk_coverage_export.txt
+      - linphone_sdk_coverage_html
       - coverage.xml
     expire_in: 1 week
+
+linphone-sdk-rocky8-coverage-mr:
+  extends:
+    - .linphone-sdk-rocky8-coverage
+  needs:
+    - liblinphone-rocky8-test-mr
+    - belcard-rocky8-test-mr
+    - belr-rocky8-test-mr
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    COVERED_LIBRARIES: >
+      -object=coverage/libbelr.so.1 
+      -object=coverage/libbelcard.so.1 
+      -object=coverage/liblinphone.so.10
+
+linphone-sdk-rocky8-coverage:
+  extends:
+    - .linphone-sdk-rocky8-coverage
+  needs:
+    - liblinphone-rocky8-test
+    - belcard-rocky8-test
+    - belr-rocky8-test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+  variables:
+    COVERED_LIBRARIES: >
+      -object=coverage/libbelr.so.1 
+      -object=coverage/libbelcard.so.1 
+      -object=coverage/liblinphone.so.10
 
 liblinphone-rocky8-test-mr-pq-h264-ekt:
   extends:
