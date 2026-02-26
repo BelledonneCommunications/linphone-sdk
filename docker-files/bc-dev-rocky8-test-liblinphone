@@ -1,8 +1,8 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20260122_llvm_coverage
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20260226_soci_mysql_systemd_devel
 ###############################################################################
 
-ARG FROM_IMAGE_TAG=20260122_update_clang
+ARG FROM_IMAGE_TAG=20260226_soci_mysql_systemd_devel
 
 FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:$FROM_IMAGE_TAG
 

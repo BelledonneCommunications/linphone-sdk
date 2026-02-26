@@ -153,7 +153,7 @@ ClientChatRoom::getSecurityLevelExcept(const std::shared_ptr<ParticipantDevice> 
 	}
 
 	// Until participant list & self devices list is populated, don't assume chat room is safe but encrypted
-	if (conference->getParticipantDevices().size() == 0 && getMe()->getDevices().size() == 0) {
+	if (mConference->getParticipantDevices().size() == 0 && getMe()->getDevices().size() == 0) {
 		lDebug() << *this << ": Chatroom SecurityLevel = Encrypted";
 		return AbstractChatRoom::SecurityLevel::Encrypted;
 	}
@@ -384,13 +384,6 @@ void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 
 	setState(ConferenceInterface::State::Created);
 	conference->subscribe(false);
-}
-
-void ClientChatRoom::removeConferenceIdFromPreviousList(const ConferenceId &confId) {
-	mPreviousConferenceIds.remove(confId);
-	if (auto db = getCore()->getDatabase()) {
-		db.value().get()->removePreviousConferenceId(confId);
-	}
 }
 
 void ClientChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &chatMessage) {

@@ -245,7 +245,7 @@ char *linphone_core_get_download_path(LinphoneCore *lc) {
 size_t linphone_chat_room_get_previouses_conference_ids_count(BCTBX_UNUSED(LinphoneChatRoom *cr)) {
 #ifdef HAVE_ADVANCED_IM
 	shared_ptr<AbstractChatRoom> chatRoom = AbstractChatRoom::toCpp(cr)->getSharedFromThis();
-	return static_pointer_cast<ClientChatRoom>(chatRoom)->getPreviousConferenceIds().size();
+	return chatRoom->getPreviousConferenceIds().size();
 #else
 	lError() << "Unable to retrieve previous chat room previous IDs as Advanced IM features have been disabled";
 	return 0;

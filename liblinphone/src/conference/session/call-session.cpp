@@ -516,7 +516,6 @@ void CallSessionPrivate::updateToFromAssertedIdentity() {
 			        << "].";
 			log->setToAddress(pAssertedIdAddr);
 
-
 			if (auto db = q->getCore()->getDatabase()) {
 				db.value().get()->updateCallLog(log);
 			}
@@ -1185,8 +1184,8 @@ CallSessionPrivate::ContactInfo CallSessionPrivate::chooseContact() const {
 			         << *q->getLocalAddress() << " remote address "
 			         << (q->getRemoteAddress() ? q->getRemoteAddress()->toString() : "sip:") << ").";
 		}
-		if (addr && (account->getOp() || (account->getDependency() != nullptr) ||
-		             linphone_core_conference_server_enabled(q->getCore()->getCCore()))) {
+		if (addr &&
+		    (account->getOp() || (account->getDependency() != nullptr) || q->getCore()->conferenceServerEnabled())) {
 			/* If using a account, use the contact address as guessed with the REGISTERs */
 			lInfo() << "Contact " << *addr << " has been fixed using account " << *account;
 			result = addr->clone()->toSharedPtr();
@@ -1527,7 +1526,7 @@ void CallSession::assignAccount(const std::shared_ptr<Account> &account) {
 		LinphoneAccount *cAccount = nullptr;
 
 		if (direction == LinphoneCallIncoming) {
-			if (linphone_core_conference_server_enabled(core)) {
+			if (getCore()->conferenceServerEnabled()) {
 				// In the case of a server, clients may call the conference factory in order to create a conference
 				cAccount = linphone_core_lookup_account_by_conference_factory_strict(core, toAddr);
 			}
@@ -1999,7 +1998,7 @@ const std::shared_ptr<Address> CallSession::getContactAddress() const {
 	if (op && op->getContactAddress()) {
 		contactAddress = Address::create();
 		contactAddress->setImpl(op->getContactAddress());
-	} else if (linphone_core_conference_server_enabled(getCore()->getCCore()) && account && accountContactAddress) {
+	} else if (getCore()->conferenceServerEnabled() && account && accountContactAddress) {
 		contactAddress = accountContactAddress->clone()->toSharedPtr();
 	} else {
 		lInfo() << "No contact address from op or account for " << *this << " (local address " << *getLocalAddress()
@@ -2231,7 +2230,7 @@ void CallSession::updateContactAddressInOp() {
 		if (accountOp && accountOp->getContactAddress()) {
 			/* Give a chance to update the contact address if connectivity has changed */
 			contactAddress.setImpl(accountOp->getContactAddress());
-		} else if (linphone_core_conference_server_enabled(getCore()->getCCore()) && accountContactAddress) {
+		} else if (getCore()->conferenceServerEnabled() && accountContactAddress) {
 			contactAddress = *accountContactAddress;
 		}
 

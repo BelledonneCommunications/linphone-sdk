@@ -26,31 +26,12 @@
 LINPHONE_BEGIN_NAMESPACE
 
 ConferenceContext::ConferenceContext(const std::shared_ptr<ConferenceParams> &params,
-                                     const std::shared_ptr<const Address> &localAddress,
-                                     const std::shared_ptr<const Address> &remoteAddress,
                                      const std::list<std::shared_ptr<Address>> &participants) {
 	mConferenceParams = params;
 	mParticipants = participants;
-	mLocalAddress = (localAddress) ? localAddress->getUriWithoutGruu() : Address();
-	mRemoteAddress = (remoteAddress) ? remoteAddress->getUriWithoutGruu() : Address();
 }
 
 bool ConferenceContext::operator==(const ConferenceContext &other) const {
-	if (mLocalAddress.isValid() &&
-	    (mLocalAddress.toStringUriOnlyOrdered(false) != other.getLocalAddress().toStringUriOnlyOrdered(false))) {
-		lDebug() << "Conference context equalily failed because of local address mismatch; this "
-		         << mLocalAddress.toStringUriOnlyOrdered(false) << " other "
-		         << other.getLocalAddress().toStringUriOnlyOrdered(false);
-		return false;
-	}
-	if (mRemoteAddress.isValid() &&
-	    (mRemoteAddress.toStringUriOnlyOrdered(false) != other.getRemoteAddress().toStringUriOnlyOrdered(false))) {
-		lDebug() << "Conference context equalily failed because of remote address mismatch; this "
-		         << mRemoteAddress.toStringUriOnlyOrdered(false) << " other "
-		         << other.getRemoteAddress().toStringUriOnlyOrdered(false);
-		return false;
-	}
-
 	// Check parameters only if pointer provided as argument is not null
 	if (mConferenceParams) {
 		const auto &otherParams = other.getConferenceParams();

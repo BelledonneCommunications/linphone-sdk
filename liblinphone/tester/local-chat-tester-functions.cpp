@@ -241,6 +241,7 @@ void group_chat_room_with_client_restart_base(bool encrypted) {
 		focus.registerAsParticipantDevice(laure);
 		focus.registerAsParticipantDevice(berthe);
 
+		linphone_core_enable_gruu_in_conference_address(focus.getLc(), TRUE);
 		linphone_core_set_add_admin_information_to_contact(marie.getLc(), TRUE);
 		linphone_core_set_add_admin_information_to_contact(laure.getLc(), TRUE);
 
@@ -328,6 +329,7 @@ void group_chat_room_with_client_restart_base(bool encrypted) {
 		};
 
 		ClientConference michelle2("michelle_rc", focus.getConferenceFactoryAddress(), lime_algo);
+		linphone_core_enable_gruu_in_conference_address(michelle2.getLc(), TRUE);
 		stats initialMichelle2Stats = michelle2.getStats();
 		coresList = bctbx_list_append(coresList, michelle2.getLc());
 		if (encrypted) {
@@ -2401,6 +2403,8 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress(), lime_algo);
 		ClientConference laure("laure_tcp_rc", focus.getConferenceFactoryAddress(), lime_algo);
 
+		linphone_core_enable_gruu_in_conference_address(laure.getLc(), TRUE);
+
 		if (encrypted) {
 			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(marie.getLc()));
 			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(pauline.getLc()));
@@ -2431,8 +2435,8 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		coresList = bctbx_list_append(coresList, laure.getLc());
 		coresList = bctbx_list_append(coresList, michelle.getLc());
 
-		int nbChatrooms = 10;
-		for (int idx = 0; idx < nbChatrooms; idx++) {
+		int nbChatRooms = 10;
+		for (int idx = 0; idx < nbChatRooms; idx++) {
 			marie_stat = marie.getStats();
 			pauline_stat = pauline.getStats();
 			laure_stat = laure.getStats();
@@ -2486,12 +2490,12 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}));
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomStateCreated,
-		                             nbChatrooms, liblinphone_tester_sip_timeout));
+		                             nbChatRooms, liblinphone_tester_sip_timeout));
 
-		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneChatRoomStateCreated, nbChatrooms,
+		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneChatRoomStateCreated, nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
-		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateCreated, nbChatrooms,
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateCreated, nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
 		marie_stat = marie.getStats();
@@ -2514,16 +2518,16 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneMessageSent,
-		                             laure_stat.number_of_LinphoneMessageSent + nbChatrooms,
+		                             laure_stat.number_of_LinphoneMessageSent + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
-		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageReceived,
-		                             marie_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             marie_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageReceived,
-		                             michelle_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             michelle_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
 		// wait a bit longer to detect side effect if any
@@ -2535,11 +2539,13 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		laure.configure(focus.getConferenceFactoryAddress(), lime_algo);
 		linphone_core_enable_gruu_in_conference_address(laure.getLc(), TRUE);
 		linphone_config_set_string(linphone_core_get_config(laure.getLc()), "misc", "uuid", NULL);
+		linphone_core_remove_linphone_spec(laure.getLc(), "groupchat");
+		const char *spec = "groupchat/1.2";
+		linphone_core_add_linphone_spec(laure.getLc(), spec);
 
 		laure_stat = laure.getStats();
 
 		ms_message("%s starts again its core", linphone_core_get_identity(laure.getLc()));
-		laure.configureCoreForConference(focus.getConferenceFactoryAddress());
 		linphone_core_enable_send_message_after_notify(laure.getLc(), FALSE);
 		linphone_core_manager_start(laure.getCMgr(), TRUE);
 		focus.registerAsParticipantDevice(laure);
@@ -2552,10 +2558,11 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneRegistrationOk,
 		                             laure_stat.number_of_LinphoneRegistrationOk + 1, liblinphone_tester_sip_timeout));
 
-		LinphoneAccount *account = linphone_core_get_default_account(laure.getLc());
-		LinphoneAddress *laureDeviceAddress = linphone_account_get_contact_address(account);
 		// Notify chat room that a participant has registered
 		bctbx_list_t *devices = NULL;
+
+		LinphoneAccount *account = linphone_core_get_default_account(laure.getLc());
+		LinphoneAddress *laureDeviceAddress = linphone_account_get_contact_address(account);
 		bctbx_list_t *specs = linphone_core_get_linphone_specs_list(laure.getLc());
 
 		LinphoneParticipantDeviceIdentity *identity =
@@ -2569,11 +2576,18 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}
 		bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
 
+		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneSubscriptionActive,
+		                             laure_stat.number_of_LinphoneSubscriptionActive + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		BC_ASSERT_FALSE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneSubscriptionActive,
+		                              laure_stat.number_of_LinphoneSubscriptionActive + 2, 2000));
+
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, laure})
 		                   .waitUntil(chrono::seconds(20),
-		                              [&laure, &nbChatrooms] { return checkChatroomCreation(laure, nbChatrooms); }));
+		                              [&laure, &nbChatRooms] { return checkChatroomCreation(laure, nbChatRooms); }));
 
-		BC_ASSERT_EQUAL(laure.getCore().getChatRooms().size(), nbChatrooms, size_t, "%zu");
+		BC_ASSERT_EQUAL(laure.getCore().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
@@ -2594,16 +2608,16 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneMessageSent,
-		                             laure_stat.number_of_LinphoneMessageSent + nbChatrooms,
+		                             laure_stat.number_of_LinphoneMessageSent + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
-		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageReceived,
-		                             marie_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             marie_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageReceived,
-		                             michelle_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             michelle_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
 		for (auto chatRoom : michelle.getCore().getChatRooms()) {
@@ -2612,13 +2626,13 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			linphone_core_delete_chat_room(michelle.getLc(), chatRoom->toC());
 		}
 		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomStateDeleted,
-		                             michelle_stat.number_of_LinphoneChatRoomStateDeleted + nbChatrooms,
+		                             michelle_stat.number_of_LinphoneChatRoomStateDeleted + nbChatRooms,
 		                             3 * liblinphone_tester_sip_timeout));
 		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores{marie, pauline, laure};
 		for (const ConfCoreManager &core : cores) {
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, laure})
-			                   .waitUntil(chrono::seconds(20), [&core, &nbChatrooms] {
-				                   return checkChatroomCreation(core, nbChatrooms, 2);
+			                   .waitUntil(chrono::seconds(20), [&core, &nbChatRooms] {
+				                   return checkChatroomCreation(core, nbChatRooms, 2);
 			                   }));
 		}
 
@@ -2665,13 +2679,13 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneMessageSent,
-		                             laure_stat.number_of_LinphoneMessageSent + nbChatrooms,
+		                             laure_stat.number_of_LinphoneMessageSent + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
-		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageReceived,
-		                             marie_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             marie_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
 		laure_stat = laure.getStats();
@@ -2725,13 +2739,13 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneMessageSent,
-		                             laure_stat.number_of_LinphoneMessageSent + nbChatrooms,
+		                             laure_stat.number_of_LinphoneMessageSent + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
-		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageReceived,
-		                             marie_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             marie_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
 		laure_stat = laure.getStats();
@@ -2779,13 +2793,13 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneMessageSent,
-		                             laure_stat.number_of_LinphoneMessageSent + nbChatrooms,
+		                             laure_stat.number_of_LinphoneMessageSent + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
-		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageReceived,
-		                             marie_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             marie_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
 		char *uuid = NULL;
@@ -2804,6 +2818,9 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			bctbx_free(uuid);
 		}
 
+		linphone_core_remove_linphone_spec(laure.getLc(), "groupchat");
+		linphone_core_add_linphone_spec(laure.getLc(), spec);
+
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
 		michelle_stat = michelle.getStats();
@@ -2819,20 +2836,20 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participant_devices_added,
-		                             marie_stat.number_of_participant_devices_added + nbChatrooms,
+		                             marie_stat.number_of_participant_devices_added + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_participant_devices_added,
-		                             pauline_stat.number_of_participant_devices_added + nbChatrooms,
+		                             pauline_stat.number_of_participant_devices_added + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_participants_added,
-		                             marie_stat.number_of_participants_added + nbChatrooms,
+		                             marie_stat.number_of_participants_added + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_participants_added,
-		                             pauline_stat.number_of_participants_added + nbChatrooms,
+		                             pauline_stat.number_of_participants_added + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomStateCreated,
-		                             michelle_stat.number_of_LinphoneChatRoomStateCreated + nbChatrooms,
+		                             michelle_stat.number_of_LinphoneChatRoomStateCreated + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
 		laure_stat = laure.getStats();
@@ -2853,17 +2870,17 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneRegistrationOk,
 		                             laure_stat.number_of_LinphoneRegistrationOk + 1, liblinphone_tester_sip_timeout));
 
-		BC_ASSERT_EQUAL(laure.getCore().getChatRooms().size(), nbChatrooms, size_t, "%zu");
+		BC_ASSERT_EQUAL(laure.getCore().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 		auto laureMainDb = laure.getDatabase();
-		BC_ASSERT_EQUAL(laureMainDb.value().get()->getChatRooms().size(), nbChatrooms, size_t, "%zu");
+		BC_ASSERT_EQUAL(laureMainDb.value().get()->getChatRooms().size(), nbChatRooms, size_t, "%zu");
 
 		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores2{marie, pauline, laure, michelle};
 		for (const ConfCoreManager &core : cores2) {
 			int expectedHistorySize = (core.getCMgr() == michelle.getCMgr()) ? 0 : 5;
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, laure})
-			                   .wait([&core, &nbChatrooms, &encrypted, &expectedHistorySize] {
+			                   .wait([&core, &nbChatRooms, &encrypted, &expectedHistorySize] {
 				                   const auto &coreChatRooms = core.getCore().getChatRooms();
-				                   if (coreChatRooms.size() < static_cast<size_t>(nbChatrooms)) {
+				                   if (coreChatRooms.size() < static_cast<size_t>(nbChatRooms)) {
 					                   return false;
 				                   }
 				                   for (auto chatRoom : coreChatRooms) {
@@ -3037,19 +3054,19 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		}
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneMessageSent,
-		                             laure_stat.number_of_LinphoneMessageSent + nbChatrooms,
+		                             laure_stat.number_of_LinphoneMessageSent + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
-		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             pauline_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageReceived,
-		                             marie_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             marie_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageReceived,
-		                             michelle_stat.number_of_LinphoneMessageReceived + nbChatrooms,
+		                             michelle_stat.number_of_LinphoneMessageReceived + nbChatRooms,
 		                             liblinphone_tester_sip_timeout));
 
-		BC_ASSERT_EQUAL(marie.getCore().getChatRooms().size(), nbChatrooms, size_t, "%zu");
+		BC_ASSERT_EQUAL(marie.getCore().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 
 		// Delete Laure's chatrooms by retrieving their conference address from Marie's ones.
 		// This will allow to verify that there is no duplicate chatroom in stored by Laure's core

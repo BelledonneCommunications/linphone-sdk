@@ -83,8 +83,9 @@ void ServerConference::initFromDb(const std::shared_ptr<Participant> &me,
                                   const ConferenceId &conferenceId,
                                   const unsigned int lastNotifyId,
                                   BCTBX_UNUSED(bool hasBeenLeft)) {
+	chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
 	if (me) {
-		lError() << "Unexpected me participant " << *me->getAddress() << " in server conference";
+		lError() << "Unexpected me participant " << *me << " in server " << *this;
 	}
 	setLastNotify(lastNotifyId);
 	mConferenceId = conferenceId;
@@ -101,9 +102,12 @@ void ServerConference::initFromDb(const std::shared_ptr<Participant> &me,
 	if (conferenceAddress) {
 		setConferenceAddress(conferenceAddress);
 	}
+	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+	mCreationDurationMs += (long)chrono::duration_cast<chrono::milliseconds>(end - start).count();
 }
 
 void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
+	chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
 	// Set last notify to 1 in order to ensure that the 1st notify to client conference is correctly processed
 	// Remote conference sets last notify to 0 in its constructor
 	setLastNotify(1);
@@ -190,6 +194,8 @@ void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
 			}
 		}
 	}
+	chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+	mCreationDurationMs += (long)chrono::duration_cast<chrono::milliseconds>(end - start).count();
 }
 
 void ServerConference::createEventHandler(BCTBX_UNUSED(ConferenceListener *confListener),
@@ -248,11 +254,11 @@ bool ServerConference::validateNewParameters(const ConferenceParams &newConfPara
 }
 
 bool ServerConference::supportsVideoCapabilities() const {
-	return !!linphone_core_conference_server_enabled(getCore()->getCCore());
+	return getCore()->conferenceServerEnabled();
 }
 
 bool ServerConference::supportsChatCapabilities() const {
-	return !!linphone_core_conference_server_enabled(getCore()->getCCore());
+	return getCore()->conferenceServerEnabled();
 }
 
 void ServerConference::checkConferenceParams() {
@@ -606,7 +612,7 @@ void ServerConference::setConferenceTimes(time_t startTime, time_t endTime) {
 
 std::list<std::shared_ptr<const Address>> ServerConference::getAllowedAddresses() const {
 	auto allowedAddresses = getInvitedAddresses();
-	if (!findInvitedParticipant(mOrganizer)) {
+	if (mOrganizer && !findInvitedParticipant(mOrganizer)) {
 		allowedAddresses.push_back(mOrganizer);
 	}
 	return allowedAddresses;
@@ -629,6 +635,7 @@ std::shared_ptr<Call> ServerConference::getCall() const {
  */
 void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 #ifdef HAVE_ADVANCED_IM
+	chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
 	shared_ptr<Participant> participant;
 
 	shared_ptr<ServerChatRoom> serverGroupChatRoom;
@@ -653,6 +660,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 	auto joiningPendingAfterCreation =
 	    serverGroupChatRoom ? serverGroupChatRoom->isJoiningPendingAfterCreation() : false;
 	auto from = Address::create(op->getFrom());
+	auto db = getCore()->getDatabase();
 	if (joiningPendingAfterCreation) {
 		// Check if the participant is already there, this INVITE may come from an unknown device of an already present
 		// participant
@@ -666,8 +674,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		 * events will be queued. */
 		shared_ptr<ConferenceParticipantDeviceEvent> deviceEvent =
 		    notifyParticipantDeviceAdded(time(nullptr), false, participant, device);
-
-		if (auto db = getCore()->getDatabase()) {
+		if (db) {
 			db.value().get()->addEvent(deviceEvent);
 			if (getCurrentParams()->isGroup()) {
 				shared_ptr<ConferenceParticipantEvent> adminEvent =
@@ -688,7 +695,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		// is in the invited list but not the actual participant list when recovering a one-on-one chatroom.
 		if (!findParticipant(from)) {
 			mParticipants.push_back(participant);
-			if (auto db = getCore()->getDatabase()) {
+			if (db) {
 				shared_ptr<ConferenceParticipantEvent> event =
 				    notifyParticipantAdded(time(nullptr), false, participant);
 				db.value().get()->addEvent(event);
@@ -704,7 +711,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		// leaves from server's standpoint.
 		if (getCurrentParams()->isGroup() && op->isContentInRemote(ContentType::ResourceLists) &&
 		    (device->getState() != ParticipantDevice::State::Joining)) {
-			lError() << *this << "Receiving ressource list body while not in creation step.";
+			lError() << *this << " received a resource list body while not in creation step.";
 			op->decline(SalReasonNotAcceptable);
 			return;
 		}
@@ -714,7 +721,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		}
 		if (!getCurrentParams()->isGroup()) {
 			if (device->getState() == ParticipantDevice::State::Left) {
-				lInfo() << *this << " - " << *gruu << " is reconnected to the one-on-one chatroom.";
+				lInfo() << *device << " has reconnected to the one-on-one chatroom " << *this << ".";
 				setParticipantDeviceState(device, ParticipantDevice::State::Joining);
 			}
 			participant->setAdmin(true);
@@ -723,7 +730,6 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 	}
 
 	shared_ptr<CallSession> newDeviceSession = deviceSession;
-	const auto &deviceAddress = device->getAddress();
 	auto rejectSession = false;
 	SalReason reason = SalReasonNone;
 	if (serverGroupChatRoom && (!deviceSession || (deviceSession->getPrivate()->getOp() != op))) {
@@ -752,9 +758,8 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		reason = SalReasonDeclined;
 
 		if (rejectSession) {
-			lInfo() << "Device " << *deviceAddress << " is trying to establish a session in " << *this
-			        << ". However it is in state " << Utils::toString(deviceState)
-			        << "therefore the session is likely to be immediately terminated";
+			lInfo() << *device << " is trying to establish a session with " << *this << ". However it is in state "
+			        << Utils::toString(deviceState) << "therefore the session is likely to be immediately terminated";
 		} else {
 			if (deviceSession) {
 				// Search for the matching cached device and update it as well. In fact cache devices are used in the
@@ -765,18 +770,18 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 				}
 
 				// The client changed the session possibly following a loss the network
-				lInfo() << "Device " << *deviceAddress << " is replacing its session in " << *this
-				        << ", hence the old one " << deviceSession << " is immediately terminated";
+				lInfo() << *device << " is replacing its session in " << *this << ", hence the old one "
+				        << deviceSession << " is immediately terminated";
 				deviceSession->terminate();
 			}
-			lInfo() << "Setting session " << newDeviceSession << " to device " << *deviceAddress << " in " << *this;
+			lInfo() << "Setting session " << newDeviceSession << " to " << *device << " in " << *this;
 			device->setSession(newDeviceSession);
 		}
 	}
 
 	if (!newDeviceSession) {
-		lError() << "No session can be associated to " << *deviceAddress << " in " << *this
-		         << ", therefore rejecting op [" << op << "]";
+		lError() << "No session can be associated to " << *device << " in " << *this << ", therefore rejecting op ["
+		         << op << "]";
 		rejectSession = true;
 		reason = SalReasonNotAcceptable;
 	}
@@ -789,10 +794,12 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 				op->decline(reason, "");
 				requestDeletion();
 			}
+			chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+			mCreationDurationMs += (long)chrono::duration_cast<chrono::milliseconds>(end - start).count();
 			/* we don't accept the session yet: initializeParticipants() has launched queries for device information
 			 * that will later populate the chatroom*/
 		} else if (rejectSession) {
-			lInfo() << "Decline op [" << op << "] linked to admin device " << *deviceAddress;
+			lInfo() << "Decline op [" << op << "] linked to admin " << *device << " of " << *this;
 			op->decline(reason, "");
 		} else {
 			/* after creation, only changes to the subject and ephemeral settings are allowed*/
@@ -802,7 +809,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		}
 	} else {
 		if (rejectSession) {
-			lInfo() << "Decline op [" << op << "] linked to device " << *deviceAddress;
+			lInfo() << "Decline op [" << op << "] linked to " << *device << " of " << *this;
 			op->decline(reason, "");
 		} else {
 			/*it is a non-admin participant that reconnected to the chatroom*/
@@ -1358,7 +1365,7 @@ int ServerConference::inviteAddresses(const std::list<std::shared_ptr<Address>> 
 		 * - A can call inviteAddresses({B,C}, params) and we should not start any new call
 		 * Note that this scenario is not possible for a conference server as it is a passive component.
 		 */
-		if (linphone_core_conference_server_enabled(lc)) {
+		if (getCore()->conferenceServerEnabled()) {
 			if (device) {
 				const auto &session = device->getSession();
 				const auto sessionState = session ? session->getState() : CallSession::State::Idle;
@@ -3613,7 +3620,7 @@ void ServerConference::setParticipantDeviceState(BCTBX_UNUSED(const shared_ptr<P
 		// event though the participant may not be notified yet as it is offline
 		if (linphone_core_get_global_state(getCore()->getCCore()) == LinphoneGlobalOn) {
 			auto deviceAddress = device->getAddress();
-			lInfo() << *this << ": Set participant device '" << *deviceAddress << "' state to " << state;
+			lInfo() << *this << ": Set " << *device << " state to " << state;
 			device->setState(state, notify);
 			if (auto db = getCore()->getDatabase()) {
 				db.value().get()->updateChatRoomParticipantDevice(chatRoom, device);
@@ -3659,7 +3666,6 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 
 		auto db = getCore()->getDatabase();
 		lInfo() << *this << ": " << *device << " left";
-
 		if (getCurrentParams()->isGroup() || serverGroupChatRoom->getProtocolVersion() >= Utils::Version(1, 1)) {
 			shared_ptr<Participant> participant =
 			    const_pointer_cast<Participant>(device->getParticipant()->getSharedFromThis());
@@ -3714,8 +3720,8 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 /*
  * This method is in charge of applying the state of a participant device to the SIP session
  */
-void ServerConference::updateParticipantDeviceSession(BCTBX_UNUSED(const shared_ptr<ParticipantDevice> &device),
-                                                      BCTBX_UNUSED(bool freshlyRegistered)) {
+void ServerConference::updateParticipantDeviceSession(const shared_ptr<ParticipantDevice> &device,
+                                                      bool freshlyRegistered) {
 	if (isChatOnly()) {
 		switch (device->getState()) {
 			case ParticipantDevice::State::ScheduledForJoining:
@@ -3727,11 +3733,14 @@ void ServerConference::updateParticipantDeviceSession(BCTBX_UNUSED(const shared_
 			case ParticipantDevice::State::ScheduledForLeaving:
 				byeDevice(device);
 				break;
-			case ParticipantDevice::State::Leaving:
-				if (freshlyRegistered &&
-				    (!device->getSession() || (device->getSession()->getState() != CallSession::State::End)))
+			case ParticipantDevice::State::Leaving: {
+				auto deviceSession = device->getSession();
+				// When the session is in the End state, a BYE has already been sent but not answered yet. Hence there
+				// is no need to send another BYE.
+				if (freshlyRegistered && (!deviceSession || (deviceSession->getState() != CallSession::State::End)))
 					byeDevice(device);
 				break;
+			}
 			case ParticipantDevice::State::Alerting:
 			case ParticipantDevice::State::Present:
 			case ParticipantDevice::State::OnHold:
@@ -3890,7 +3899,7 @@ void ServerConference::setParticipantDevices(BCTBX_UNUSED(const std::shared_ptr<
                                              BCTBX_UNUSED(const list<shared_ptr<ParticipantDeviceIdentity>> &devices)) {
 #ifdef HAVE_ADVANCED_IM
 	const auto &chatRoom = getChatRoom();
-	if (isChatOnly()) {
+	if (isChatOnly() && chatRoom) {
 		updateParticipantDevices(participantAddress, devices);
 		auto serverGroupChatRoom = dynamic_pointer_cast<ServerChatRoom>(chatRoom);
 		if (serverGroupChatRoom->isJoiningPendingAfterCreation()) {
