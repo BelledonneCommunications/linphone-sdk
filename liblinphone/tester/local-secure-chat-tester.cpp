@@ -2159,7 +2159,6 @@ static void secure_one_on_one_chat_room_with_subscribe_not_replied(void) {
 			bctbx_list_free_with_data(messages, (bctbx_list_free_func)linphone_chat_message_unref);
 			messages = NULL;
 		}
-
 		bctbx_list_free(coresList);
 	}
 }

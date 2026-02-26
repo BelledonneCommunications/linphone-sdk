@@ -52,18 +52,18 @@ LINPHONE_BEGIN_NAMESPACE
 // =============================================================================
 
 ChatRoom::ChatRoom(const shared_ptr<Core> &core, const std::shared_ptr<Conference> &conf) : AbstractChatRoom(core) {
-	conference = conf;
+	mConference = conf;
 	mImdnHandler.reset(new Imdn(this));
 	mIsComposingHandler.reset(new IsComposing(core->getCCore(), this));
 }
 
 ChatRoom::~ChatRoom() {
 	mImdnHandler.reset();
-	conference = nullptr;
+	mConference = nullptr;
 }
 
 std::shared_ptr<Conference> ChatRoom::getConference() const {
-	return conference;
+	return mConference;
 };
 
 ConferenceInterface::State ChatRoom::getState() const {
@@ -809,11 +809,11 @@ void ChatRoom::onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &r
 }
 
 void ChatRoom::addPendingMessage(BCTBX_UNUSED(const std::shared_ptr<ChatMessage> &chatMessage)) {
-	lInfo() << __func__ << ": not implemented";
+	lDebug() << __func__ << ": not implemented";
 }
 
 void ChatRoom::deletePendingMessage(BCTBX_UNUSED(const std::shared_ptr<ChatMessage> &chatMessage)) {
-	lInfo() << __func__ << ": not implemented";
+	lDebug() << __func__ << ": not implemented";
 }
 
 // -----------------------------------------------------------------------------
@@ -1294,6 +1294,13 @@ void ChatRoom::setIsMuted(const bool muted, const bool updateDb) {
 	}
 }
 
+void ChatRoom::removeConferenceIdFromPreviousList(const ConferenceId &confId) {
+	mPreviousConferenceIds.remove(confId);
+	if (auto db = getCore()->getDatabase()) {
+		db.value().get()->removePreviousConferenceId(confId);
+	}
+}
+
 std::shared_ptr<ConferenceInfo> ChatRoom::getConferenceInfo() const {
 	const auto conference = getConference();
 	if (!conference) {
@@ -1301,6 +1308,10 @@ std::shared_ptr<ConferenceInfo> ChatRoom::getConferenceInfo() const {
 	}
 	return conference->createOrGetConferenceInfo();
 }
+
+long ChatRoom::getLastMessageProcessingDurationMs() const {
+	return mLastMessageProcessingDurationMs;
+};
 
 ChatRoomLogContextualizer::ChatRoomLogContextualizer(const LinphoneChatRoom *cr)
     : CoreLogContextualizer(*AbstractChatRoom::toCpp(cr)) {

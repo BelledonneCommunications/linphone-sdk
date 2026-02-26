@@ -1703,6 +1703,7 @@ static void schedule_simple_conference_db_conference_scheduler() {
 		scheduler_conference_info = linphone_conference_scheduler_get_info(conference_scheduler);
 		BC_ASSERT_PTR_NOT_NULL(scheduler_conference_info);
 		if (!scheduler_conference_info) {
+			linphone_conference_scheduler_unref(conference_scheduler);
 			goto end;
 		}
 		conference_address = linphone_conference_info_get_uri(scheduler_conference_info)

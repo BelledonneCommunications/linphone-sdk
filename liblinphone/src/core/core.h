@@ -203,9 +203,10 @@ public:
 	// ---------------------------------------------------------------------------
 	// ChatRoom.
 	// ---------------------------------------------------------------------------
-
-	std::list<std::shared_ptr<AbstractChatRoom>> getRawChatRoomList(bool includeBasic = true,
-	                                                                bool includeConference = true) const;
+	typedef std::
+	    unordered_map<ConferenceId, std::shared_ptr<AbstractChatRoom>, ConferenceId::WeakHash, ConferenceId::WeakEqual>
+	        ChatRoomWeakCompareMap;
+	ChatRoomWeakCompareMap getRawChatRoomList(bool includeBasic = true, bool includeConference = true) const;
 	std::list<std::shared_ptr<AbstractChatRoom>> &getChatRooms() const;
 	const bctbx_list_t *getChatRoomsCList() const;
 
@@ -283,9 +284,13 @@ public:
 	std::shared_ptr<Conference> searchConference(const std::shared_ptr<ConferenceParams> &params,
 	                                             const std::shared_ptr<const Address> &localAddress,
 	                                             const std::shared_ptr<const Address> &remoteAddress,
-	                                             const std::list<std::shared_ptr<Address>> &participants) const;
+	                                             const std::list<std::shared_ptr<Address>> &participants,
+	                                             bool logIfNotFound = true) const;
 	std::shared_ptr<Conference> searchConference(const std::shared_ptr<const Address> &conferenceAddress) const;
 	std::shared_ptr<Conference> searchConference(const std::string &identifier) const;
+
+	void enableConferenceServer(bool enable);
+	bool conferenceServerEnabled() const;
 
 	void enableGruuInConferenceAddress(bool keep);
 	bool gruuInConferenceAddressEnabled() const;
@@ -543,6 +548,7 @@ private:
 	Core();
 	void updateChatRoomList() const;
 
+	bool mIsConferenceServer = false;
 	bool mGruuInConferenceAddress = false;
 	bool mDeleteEmptyChatrooms = true;
 	int mImdnToEverybodyThreshold = 5;

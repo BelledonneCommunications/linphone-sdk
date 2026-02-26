@@ -247,18 +247,30 @@ public:
 	void onStateChanged(ConferenceInterface::State state) override;
 	void onOperationFailed() override;
 
+	const std::list<ConferenceId> &getPreviousConferenceIds() const override {
+		return mPreviousConferenceIds;
+	};
+
+	long getLastMessageProcessingDurationMs() const override;
+
 	std::list<std::shared_ptr<ComposingParticipant>> composingParticipants;
 	std::list<std::shared_ptr<EventLog>> transientEvents;
 	std::list<std::shared_ptr<ChatMessage>> transientMessages;
 	std::list<std::shared_ptr<ChatMessage>> aggregatedMessages;
 
 protected:
+	void removeConferenceIdFromPreviousList(const ConferenceId &confId);
+	void addConferenceIdToPreviousList(const ConferenceId &confId) {
+		mPreviousConferenceIds.push_back(confId);
+	}
+
 	std::optional<Address> getImdnChatRoomPeerAddress(const std::shared_ptr<ChatMessage> &message) const;
 	std::shared_ptr<AbstractChatRoom> getImdnChatRoom(const std::shared_ptr<Address> peerAddress);
 	std::shared_ptr<ChatMessage> getMessageFromSal(SalOp *op, const SalMessage *message);
 	explicit ChatRoom(const std::shared_ptr<Core> &core, const std::shared_ptr<Conference> &conf = nullptr);
 
-	std::shared_ptr<Conference> conference;
+	std::shared_ptr<Conference> mConference;
+	long mLastMessageProcessingDurationMs = 0;
 
 private:
 	void
@@ -280,6 +292,8 @@ private:
 	std::vector<uint32_t> mLastMessageCharacters;
 	std::string mComposingContentType;
 	std::string mRemoteComposingContentType;
+
+	std::list<ConferenceId> mPreviousConferenceIds;
 
 	L_DISABLE_COPY(ChatRoom);
 };

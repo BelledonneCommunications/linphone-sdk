@@ -104,7 +104,7 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 	try {
 		rl = Xsd::ResourceLists::parseResourceLists(data, Xsd::XmlSchema::Flags::dont_validate);
 	} catch (const exception &) {
-		lError() << "Error while parsing subscribe body for conferences asked by: " << participantAddr;
+		lError() << "Error while parsing subscribe body for conferences asked by: " << *participantAddr;
 		return;
 	}
 
@@ -130,6 +130,7 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 				         << "] in chat room: " << conferenceId;
 				continue;
 			}
+
 			shared_ptr<ParticipantDevice> device = participant->findDevice(deviceAddr);
 			if (!device || (device->getState() != ParticipantDevice::State::Present &&
 			                device->getState() != ParticipantDevice::State::Joining)) {
@@ -137,17 +138,6 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 				         << *participantAddr << "] in chat room: " << conferenceId;
 				continue;
 			}
-
-			char token[17];
-			belle_sip_random_token(token, sizeof(token));
-
-			// Add entry into the Rlmi content of the notify body
-			Xsd::Rlmi::Resource resource(addr->asStringUriOnly());
-			Xsd::Rlmi::Resource::InstanceSequence instances;
-			Xsd::Rlmi::Instance instance(token, Xsd::Rlmi::State::Value::active);
-			instances.push_back(instance);
-			resource.setInstance(instances);
-			resources.push_back(resource);
 
 			device->setConferenceSubscribeEvent((subscriptionState == LinphoneSubscriptionIncomingReceived) ? ev
 			                                                                                                : nullptr);
@@ -238,7 +228,7 @@ void ServerConferenceListEventHandler::addHandler(std::shared_ptr<ServerConferen
 	if (!id.isValid()) {
 		// Do not add the evetn handler if the conference ID is not valid as it might be changed later on and therefore
 		// the core ends up in a scenario where 2 entries point to the same handler
-		lError() << *conf << " associated to handler " << handler << " has an invalid conference id " << id;
+		lError() << *conf << " associated to handler " << handler << " has an invalid " << id;
 		return;
 	}
 
@@ -260,10 +250,10 @@ void ServerConferenceListEventHandler::removeHandler(std::shared_ptr<ServerConfe
 		auto it = handlers.find(conferenceId);
 		if (it != handlers.end()) {
 			handlers.erase(it);
-			lInfo() << "Server Conference Event Handler with conference id " << conferenceId << " [" << handler
+			lInfo() << "Server Conference Event Handler with " << conferenceId << " [" << handler
 			        << "] has been removed.";
 		} else {
-			lError() << "Server Conference Event Handler with conference id " << conferenceId << " has not been found.";
+			lError() << "Server Conference Event Handler with " << conferenceId << " has not been found.";
 		}
 	} else {
 		lInfo() << "Unable to remove handler " << handler << " from ServerConferenceListEventHandler [" << this
@@ -280,9 +270,9 @@ ServerConferenceListEventHandler::findHandler(const ConferenceId &conferenceId) 
 	} catch (const bad_weak_ptr &) {
 	} catch (const out_of_range &) {
 		if (linphone_core_get_global_state(getCore()->getCCore()) == LinphoneGlobalStartup) {
-			lDebug() << "Unable to find handler with conference id " << conferenceId;
+			lDebug() << "Unable to find handler with " << conferenceId;
 		} else {
-			lInfo() << "Unable to find handler with conference id " << conferenceId;
+			lInfo() << "Unable to find handler with " << conferenceId;
 		}
 	}
 	return nullptr;
