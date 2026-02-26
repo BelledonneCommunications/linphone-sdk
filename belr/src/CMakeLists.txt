@@ -38,6 +38,19 @@ if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 endif()
 
 add_library(belr ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_CXX})
+
+if (ENABLE_COVERAGE)
+	if(CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
+		message(STATUS "Enabling code coverage for Clang/LLVM for belr")
+		target_compile_options(belr PUBLIC "-fprofile-instr-generate")
+		target_compile_options(belr PUBLIC "-fcoverage-mapping")
+		target_link_options(belr PUBLIC "-fprofile-instr-generate")
+		target_compile_definitions(belr PUBLIC ENABLE_COVERAGE)
+	else()
+		message(FATAL "CMAKE_CXX_COMPILER_ID is set to ${CMAKE_CXX_COMPILER_ID}. Coverage works only under Clang. Disable ENABLE_COVERAGE option or use Clang.")
+	endif()
+endif()
+
 set_target_properties(belr PROPERTIES VERSION ${BELR_SO_VERSION})
 target_include_directories(belr INTERFACE
 	$<INSTALL_INTERFACE:include>
