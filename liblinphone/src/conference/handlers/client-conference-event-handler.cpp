@@ -390,7 +390,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 
 					continue;
 				} else {
-					lWarning() << *participant << " removed from " << *conference
+					lWarning() << "Participant with " << *address << " has been removed from " << *conference
 					           << " but not in the list of participants!";
 				}
 			} else if (userState == StateType::full) {
