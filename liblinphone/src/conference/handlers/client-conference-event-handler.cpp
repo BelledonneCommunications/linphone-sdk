@@ -394,7 +394,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 
 					continue;
 				} else {
-					lWarning() << *address << " removed from " << *conference
+					lWarning() << "Participant with " << *address << " has been removed from " << *conference
 					           << " but not in the list of participants!";
 					continue;
 				}
