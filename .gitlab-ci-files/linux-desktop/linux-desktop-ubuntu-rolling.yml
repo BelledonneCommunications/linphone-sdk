@@ -119,7 +119,7 @@ bellesip-ubuntu-test:
   extends: .test-bellesip
   needs:
     - ubuntu-rolling-ninja-clang
-  tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  tags: [ "docker-sequential" ]
   image: !reference [.ubuntu-rolling_image_version, image]
   variables:
     PLATFORM: linux-ubuntu-rolling
