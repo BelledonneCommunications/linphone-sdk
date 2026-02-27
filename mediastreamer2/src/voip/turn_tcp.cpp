@@ -28,11 +28,11 @@
 #include <winsock2.h>
 #endif
 
-#include <bctoolbox/crypto.h>
-#include <bctoolbox/defs.h>
+#include "bctoolbox/crypto.h"
+#include "bctoolbox/defs.h"
 
-#include <mediastreamer2/mscommon.h>
-#include <mediastreamer2/stun.h>
+#include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/stun.h"
 
 static const unsigned int MTU_MAX = 1500;
 static const uint64_t flowControlMaxTime = 3000;
@@ -250,8 +250,9 @@ static int tls_callback_read(void *ctx, unsigned char *buf, size_t len) {
 
 	int ret = recv(*socket, (char *)buf, (int)len, 0);
 	if (ret < 0) {
-		ret = -ret;
-		if (ret == TURN_EWOULDBLOCK || ret == TURN_EINPROGRESS || ret == TURN_EINTR) return BCTBX_ERROR_NET_WANT_READ;
+		int socketError = getSocketErrorCode();
+		if (socketError == TURN_EWOULDBLOCK || socketError == TURN_EINPROGRESS || socketError == TURN_EINTR)
+			return BCTBX_ERROR_NET_WANT_READ;
 		return BCTBX_ERROR_NET_CONN_RESET;
 	}
 	return ret;
@@ -262,8 +263,9 @@ static int tls_callback_write(void *ctx, const unsigned char *buf, size_t len) {
 
 	int ret = send(*socket, (const char *)buf, (int)len, 0);
 	if (ret < 0) {
-		ret = -ret;
-		if (ret == TURN_EWOULDBLOCK || ret == TURN_EINPROGRESS || ret == TURN_EINTR) return BCTBX_ERROR_NET_WANT_WRITE;
+		int socketError = getSocketErrorCode();
+		if (socketError == TURN_EWOULDBLOCK || socketError == TURN_EINPROGRESS || socketError == TURN_EINTR)
+			return BCTBX_ERROR_NET_WANT_WRITE;
 		return BCTBX_ERROR_NET_CONN_RESET;
 	}
 	return ret;
@@ -329,6 +331,9 @@ SslContext::~SslContext() {
 
 int SslContext::connect() {
 	int error = bctbx_ssl_handshake(mContext);
+	if (error == BCTBX_ERROR_NET_WANT_READ || error == BCTBX_ERROR_NET_WANT_WRITE) {
+		return error;
+	}
 	if (error < 0) {
 		char errbuf[1024] = {0};
 		bctbx_strerror(error, errbuf, sizeof(errbuf) - 1);
@@ -348,6 +353,76 @@ int SslContext::read(unsigned char *buffer, size_t length) {
 
 int SslContext::write(const unsigned char *buffer, size_t length) {
 	return bctbx_ssl_write(mContext, buffer, length);
+}
+
+// -------------------------------------------------------------------------------------------------------
+
+SocketException::SocketException(const char *message)
+    : std::runtime_error(std::string(message + std::string(getSocketError()))) {
+}
+
+/*
+ * Creates two TCP sockets connected through local loopback.
+ * This is portable way to control execution of a thread that waits in poll().
+ */
+ControlSocketPair::ControlSocketPair() {
+	int err;
+	struct sockaddr_in listeningAddr {};
+	socklen_t socket_size = sizeof(listeningAddr);
+	mEmitter = socket(AF_INET, SOCK_STREAM, 0);
+	mReaderMother = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (mEmitter == INVALID_SOCKET || mReaderMother == INVALID_SOCKET) {
+		throw SocketException("Failure to create sockets");
+	}
+	listeningAddr.sin_family = AF_INET;
+	listeningAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	listeningAddr.sin_port = 0; /* let the system choose */
+	err = bind(mReaderMother, (struct sockaddr *)&listeningAddr, sizeof(listeningAddr));
+	if (err == -1) throw SocketException("Failure to bind socket");
+	err = getsockname(mReaderMother, (struct sockaddr *)&listeningAddr, &socket_size);
+	if (err == -1) throw SocketException("Failure to get socket address");
+	err = listen(mReaderMother, 1);
+	if (err == -1) throw SocketException("Failure to listen on socket");
+	set_non_blocking_socket(mReaderMother);
+	set_non_blocking_socket(mEmitter);
+	err = ::connect(mEmitter, (struct sockaddr *)&listeningAddr, socket_size);
+	if (TurnSocket::turnPoll(mReaderMother, 2000, POLLIN) != 1) {
+		throw SocketException("Failure to listen on socket");
+	}
+	struct sockaddr_in ignored {};
+	socklen_t ignored_size = sizeof(ignored);
+	mReader = ::accept(mReaderMother, (struct sockaddr *)&ignored, &ignored_size);
+	if (mReader == INVALID_SOCKET) throw SocketException("Failure to accept connection");
+	if (TurnSocket::turnPoll(mEmitter, 2000, POLLIN | POLLOUT) != 1) {
+		throw SocketException("Failure to connect");
+	}
+	set_non_blocking_socket(mReader);
+}
+
+ortp_socket_t ControlSocketPair::getSocket() {
+	return mReader;
+}
+
+void ControlSocketPair::notifyEvent() {
+	uint8_t data = 0;
+	int err = ::send(mEmitter, (char *)&data, 1, 0);
+	if (err != 1) {
+		BCTBX_SLOGE << "ControlSocketPair::notifyEvent failure: " << err << getSocketError();
+	}
+}
+
+void ControlSocketPair::cleanEvent() {
+	uint8_t buffer[16] = {};
+	while (::recv(mReader, (char *)buffer, sizeof(buffer), 0) > 0) {
+		/*purge data, otherwise the socket may immediately declare that there is something to read */
+	}
+}
+
+ControlSocketPair::~ControlSocketPair() {
+	if (mEmitter != INVALID_SOCKET) close_socket(mEmitter);
+	if (mReaderMother != INVALID_SOCKET) close_socket(mReaderMother);
+	if (mReader != INVALID_SOCKET) close_socket(mReader);
 }
 
 // -------------------------------------------------------------------------------------------------------
@@ -395,13 +470,13 @@ int TurnSocket::connect() {
 
 	bctbx_freeaddrinfo(ai);
 
-	error = turnPoll(mSocket, 5, true);
+	error = waitSocketEvent(mRecvControlSocket, mSocket, defaultPollTimeoutMs, POLLIN | POLLOUT);
 	if (error == 0) {
 		ms_error("TurnSocket [%p]: connect time-out", this);
 		close();
 		return -1;
 	} else if (error < 0) {
-		ms_error("TurnSocket [%p]: unexpected error: %s", this, getSocketError());
+		ms_message("TurnSocket [%p]: need to exit now.", this);
 		close();
 		return -1;
 	}
@@ -418,16 +493,29 @@ int TurnSocket::connect() {
 		close();
 		return -1;
 	}
+	ms_message("TurnSocket [%p]: connected at TCP level.", this);
 
-	// Add HTTP Proxy connection here if needed
-
-	set_blocking_socket(mSocket);
+	// TODO: Add HTTP Proxy connection here if needed
 
 	if (mClient->mUseSsl) {
 		mSsl =
 		    std::make_unique<SslContext>(mSocket, mClient->mRootCertificatePath, mClient->mTurnServerCn, mClient->mRng);
 
-		error = mSsl->connect();
+		do {
+			error = mSsl->connect();
+			if (error == BCTBX_ERROR_NET_WANT_READ || error == BCTBX_ERROR_NET_WANT_WRITE) {
+				int waitError = waitSocketEvent(mRecvControlSocket, mSocket, defaultPollTimeoutMs,
+				                                error == BCTBX_ERROR_NET_WANT_READ ? POLLIN : POLLOUT);
+				if (waitError == -1) {
+					BCTBX_SLOGM << "TurnSocket::connect(): need to abort TLS handshake";
+					break;
+				} else if (waitError == 0) {
+					BCTBX_SLOGM << "TurnSocket::connect(): timeout during TLS handshake";
+					break;
+				}
+				BCTBX_SLOGM << "TurnSocket::connect(): TLS handshake in progress...";
+			} else break;
+		} while (1);
 		if (error < 0) {
 			ms_error("TurnSocket [%p]: SSL handshake failed", this);
 			mSsl.reset();
@@ -506,6 +594,8 @@ void TurnSocket::start() {
 void TurnSocket::stop() {
 	if (mRunning) {
 		mRunning = false;
+		/* make the recv thread exit from poll() */
+		mRecvControlSocket.notifyEvent();
 	}
 
 	mSendingLock.lock();
@@ -528,10 +618,53 @@ void TurnSocket::stop() {
 		mReceivingQueue.pop();
 }
 
+int TurnSocket::turnPoll(ortp_socket_t socket, int milliseconds, int events) {
+	struct pollfd pfd;
+
+	pfd.fd = socket;
+	pfd.events = events;
+	pfd.revents = 0;
+#ifdef WIN32
+	return WSAPoll(&pfd, 1, milliseconds);
+#else
+	return poll(&pfd, 1, milliseconds);
+#endif
+}
+
+int TurnSocket::waitSocketEvent(ControlSocketPair &controller, ortp_socket_t socket, int milliseconds, int events) {
+	struct pollfd pfd[2] = {};
+	int err;
+
+	pfd[0].fd = socket;
+	pfd[0].events = events;
+	pfd[0].revents = 0;
+	pfd[1].fd = controller.getSocket();
+	pfd[1].events = POLLIN;
+	pfd[1].revents = 0;
+
+#ifdef WIN32
+	err = WSAPoll(pfd, 2, milliseconds);
+#else
+	err = poll(pfd, 2, milliseconds);
+#endif
+	if (err == 0) return 0;
+	else if (err == -1) {
+		BCTBX_SLOGE << "TurnSocket: error in poll(): " << getSocketError();
+		return -1;
+	}
+	if (pfd[1].revents != 0) {
+		controller.cleanEvent();
+		return -1;
+	}
+	if (pfd[0].revents != 0) return 1;
+	BCTBX_SLOGE << "TurnSocket: should not happen." << getSocketError();
+	return -1;
+}
+
 void TurnSocket::processRead() {
 	int bytes = -1;
-
-	if (turnPoll(mSocket, 5, false) == 1) {
+	int err = waitSocketEvent(mRecvControlSocket, mSocket, defaultPollTimeoutMs, POLLIN);
+	if (err == 1) {
 		auto p = std::make_unique<Packet>(MTU_MAX);
 
 		if (mSsl) {
@@ -561,6 +694,9 @@ void TurnSocket::processRead() {
 				addToReceivingQueue(std::move(p));
 			}
 		}
+	} else if (err == -1) {
+		BCTBX_SLOGM << "TurnSocket::processRead: need to exit.";
+		mError = true;
 	}
 }
 
@@ -684,13 +820,18 @@ TurnClient::TurnClient(MSTurnContext *context, bool useSsl, std::string rootCert
 }
 
 TurnClient::~TurnClient() {
+	if (mTurnConnection) mTurnConnection->stop();
 	if (mRng) bctbx_rng_context_free(mRng);
 }
 
 void TurnClient::connect() {
 	if (mTurnConnection == nullptr) {
-		mTurnConnection = std::make_unique<TurnSocket>(this, mTurnServerPort);
-		mTurnConnection->start();
+		try {
+			mTurnConnection = std::make_unique<TurnSocket>(this, mTurnServerPort);
+			mTurnConnection->start();
+		} catch (std::exception &e) {
+			BCTBX_SLOGE << "TurnClient: could not create TurnSocket: " << e.what();
+		}
 	}
 }
 
