@@ -29,31 +29,15 @@
 #include <queue>
 #include <thread>
 
-#include <bctoolbox/crypto.h>
-#include <mediastreamer2/mscommon.h>
-#include <mediastreamer2/stun.h>
+#include "bctoolbox/crypto.h"
+#include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/stun.h"
 
 #ifdef WIN32
 
 #define TURN_EWOULDBLOCK WSAEWOULDBLOCK
 #define TURN_EINPROGRESS WSAEINPROGRESS
 #define TURN_EINTR WSAEINTR
-
-inline static int turnPoll(ortp_socket_t socket, int seconds, bool write) {
-	fd_set fds;
-	struct timeval tv;
-
-	FD_ZERO(&fds);
-	FD_SET(socket, &fds);
-	tv.tv_sec = seconds;
-	tv.tv_usec = 0;
-
-	if (write) {
-		return select((int)socket + 1, NULL, &fds, NULL, &tv);
-	} else {
-		return select((int)socket + 1, &fds, NULL, NULL, &tv);
-	}
-}
 
 #else
 
@@ -66,17 +50,6 @@ inline static int turnPoll(ortp_socket_t socket, int seconds, bool write) {
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET static_cast<ortp_socket_t>(-1)
 #endif
-
-inline static int turnPoll(ortp_socket_t socket, int seconds, bool write) {
-	struct pollfd pfd;
-
-	pfd.fd = socket;
-	pfd.events = POLLIN;
-	if (write) pfd.events = POLLIN | POLLOUT;
-	pfd.revents = 0;
-
-	return poll(&pfd, 1, seconds * 1000);
-}
 
 #endif
 
@@ -202,6 +175,23 @@ private:
 
 class TurnClient;
 
+class SocketException : public std::runtime_error {
+public:
+	SocketException(const char *message);
+};
+
+class ControlSocketPair {
+public:
+	ControlSocketPair();
+	~ControlSocketPair();
+	void notifyEvent();
+	void cleanEvent();
+	ortp_socket_t getSocket();
+
+private:
+	ortp_socket_t mEmitter = INVALID_SOCKET, mReaderMother = INVALID_SOCKET, mReader = INVALID_SOCKET;
+};
+
 class TurnSocket {
 	friend class TurnClient;
 
@@ -231,11 +221,20 @@ public:
 	bool isRunning() const {
 		return mRunning;
 	}
+	static int turnPoll(ortp_socket_t socket, int milliseconds, int events);
 
 private:
+	/* wait an event on the supplied socket.
+	 * The ControlSocketPair is also added in the poll(), so that it can be interrupted promptly by
+	 * simply calling ControlSocketPair::notify().
+	 * return value: 1-> something happened on the socket;  0->timeout; -1; controller has been notified.
+	 */
+	int waitSocketEvent(ControlSocketPair &controller, ortp_socket_t socket, int milliseconds, int events);
 	void runSend();
 	void runRead();
 
+	/* the control socket pair is just to control the recv thread */
+	ControlSocketPair mRecvControlSocket;
 	TurnClient *mClient;
 	int mPort;
 
@@ -260,6 +259,7 @@ private:
 	std::queue<std::unique_ptr<Packet>> mReceivingQueue;
 
 	PacketReader mPacketReader;
+	static const constexpr int defaultPollTimeoutMs = 30000;
 };
 
 class TurnClient {
