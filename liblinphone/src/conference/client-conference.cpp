@@ -516,7 +516,7 @@ void ClientConference::setUtf8Subject(const std::string &subject) {
 	}
 	auto session = dynamic_pointer_cast<MediaSession>(getMainSession());
 	if (session) {
-		if ((subject.compare(mPendingSubject) != 0) || (getUtf8Subject().empty() && !subject.empty())) {
+		if ((subject != mPendingSubject) || (getUtf8Subject().empty() && !subject.empty())) {
 			mPendingSubject = subject;
 			auto updateSubject = [this, subject]() -> LinphoneStatus {
 				auto session = dynamic_pointer_cast<MediaSession>(getMainSession());
@@ -529,6 +529,8 @@ void ClientConference::setUtf8Subject(const std::string &subject) {
 					delete currentParams;
 					if (ret != 0) {
 						lInfo() << "re-INVITE to update subject to \"" << subject << "\" cannot be sent right now";
+					} else {
+						mPendingSubject.clear();
 					}
 					return ret;
 				}
@@ -545,6 +547,7 @@ void ClientConference::setUtf8Subject(const std::string &subject) {
 		session = dynamic_pointer_cast<MediaSession>(createSession());
 		if (session) {
 			session->startInvite(nullptr, subject, nullptr);
+			mPendingSubject.clear();
 		}
 	} else {
 		mPendingSubject = subject;
@@ -1316,7 +1319,7 @@ void ClientConference::onStateChanged(ConferenceInterface::State state) {
 			}
 			break;
 		case ConferenceInterface::State::Created:
-			if (session && getMe()->isAdmin() && !mPendingSubject.empty() && (subject.compare(mPendingSubject) != 0)) {
+			if (session && getMe()->isAdmin() && !mPendingSubject.empty() && (subject != mPendingSubject)) {
 				setUtf8Subject(mPendingSubject);
 			}
 			break;
