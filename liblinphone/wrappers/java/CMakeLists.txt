@@ -67,7 +67,7 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache"
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::\(\[\[:alnum:\]\]+\)::\(\[\[:alnum:\]\]+\)\(\\\(\\\)\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\#\\2--\"${SED_ESCAPE_CHARACTER}\>\\1\.\\2\\3${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND head -n -2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+	COMMAND awk "NR>n{print a[NR%n]}{a[NR%n]=\$0}" n=2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
 	COMMAND cat ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
 	COMMAND tail -2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw
