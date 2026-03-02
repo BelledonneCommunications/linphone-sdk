@@ -374,6 +374,8 @@ public:
 
 	void setConferenceId(const ConferenceId &conferenceId);
 
+	bool maxParticipantNumberNearlyReached() const;
+
 protected:
 	explicit Conference(const std::shared_ptr<Core> &core,
 	                    std::shared_ptr<CallSessionListener> callSessionListener,

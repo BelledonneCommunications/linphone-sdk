@@ -687,6 +687,13 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		// Try to add to the participant list if not in already. In fact it may happen that at this stage a participant
 		// is in the invited list but not the actual participant list when recovering a one-on-one chatroom.
 		if (!findParticipant(from)) {
+			if (maxParticipantNumberNearlyReached()) {
+				lInfo()
+				    << *this << ": Declining INVITE coming from [" << *from
+				    << "] because the maximum number of participants allowed in a chatroom has already been reached";
+				op->decline(SalReasonDeclined);
+				return;
+			}
 			mParticipants.push_back(participant);
 			if (auto db = getCore()->getDatabase()) {
 				shared_ptr<ConferenceParticipantEvent> event =
@@ -871,18 +878,37 @@ void ServerConference::confirmCreation() {
 
 #ifdef HAVE_ADVANCED_IM
 		const auto &remoteContactAddress = session->getRemoteContactAddress();
-		if (mConfParams->chatEnabled() && remoteContactAddress->hasParam("+org.linphone.specs")) {
-			const auto linphoneSpecs = remoteContactAddress->getParamValue("+org.linphone.specs");
-			// The creator of the chatroom must have the capability "groupchat"
-			auto protocols = Utils::parseCapabilityDescriptor(linphoneSpecs.substr(1, linphoneSpecs.size() - 2));
-			auto groupchat = protocols.find("groupchat");
-			if (groupchat == protocols.end()) {
-				lError() << "Creator " << remoteContactAddress->asStringUriOnly()
-				         << " has no groupchat capability set: " << linphoneSpecs;
+		if (mConfParams->chatEnabled()) {
+			if (remoteContactAddress->hasParam("+org.linphone.specs")) {
+				const auto linphoneSpecs = remoteContactAddress->getParamValue("+org.linphone.specs");
+				// The creator of the chatroom must have the capability "groupchat"
+				auto protocols = Utils::parseCapabilityDescriptor(linphoneSpecs.substr(1, linphoneSpecs.size() - 2));
+				auto groupchat = protocols.find("groupchat");
+				if (groupchat == protocols.end()) {
+					lError() << "Creator " << *remoteContactAddress
+					         << " has no groupchat capability set: " << linphoneSpecs;
+					setState(ConferenceInterface::State::CreationFailed);
+					auto errorInfo = linphone_error_info_new();
+					std::string reason = "\"groupchat\" capability has not been found in remote contact address ";
+					reason += remoteContactAddress->toString();
+					linphone_error_info_set(errorInfo, NULL, LinphoneReasonForbidden, 403, reason.c_str(),
+					                        reason.c_str());
+					session->decline(errorInfo);
+					linphone_error_info_unref(errorInfo);
+				}
+			}
+
+			auto maxParticipantsPerChatroom = linphone_core_get_max_participants_per_chatroom(getCore()->getCCore());
+			if ((maxParticipantsPerChatroom > 0) &&
+			    (static_cast<size_t>(maxParticipantsPerChatroom) < mInvitedParticipants.size())) {
+				lError() << "Creator " << *remoteContactAddress
+				         << " is trying to create a chatroom with more participants than the maximum number allowed by "
+				            "the server configuration ("
+				         << maxParticipantsPerChatroom << ")";
 				setState(ConferenceInterface::State::CreationFailed);
 				auto errorInfo = linphone_error_info_new();
-				std::string reason = "\"groupchat\" capability has not been found in remote contact address ";
-				reason += remoteContactAddress->toString();
+				std::string reason = std::string("Unable to create chatrooms with more than ") +
+				                     std::to_string(maxParticipantsPerChatroom) + std::string(" participants");
 				linphone_error_info_set(errorInfo, NULL, LinphoneReasonForbidden, 403, reason.c_str(), reason.c_str());
 				session->decline(errorInfo);
 				linphone_error_info_unref(errorInfo);
@@ -1022,6 +1048,7 @@ void ServerConference::finalizeCreation() {
 			LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(ChatRoom, chatRoom,
 			                                         linphone_chat_room_cbs_get_conference_address_generation);
 		}
+
 #endif // HAVE_ADVANCED_IM
 		const std::shared_ptr<Address> &conferenceAddress = getConferenceAddress();
 		setConferenceId(ConferenceId(conferenceAddress, conferenceAddress, getCore()->createConferenceIdParams()));
@@ -1844,6 +1871,12 @@ shared_ptr<Participant> ServerConference::addParticipantToList(BCTBX_UNUSED(cons
 		/* Case of participant that is still referenced in the chatroom, but no longer authorized because it has been
 		 * removed previously OR a totally new participant. */
 		if (!findParticipant(addr)) {
+			if (maxParticipantNumberNearlyReached()) {
+				lInfo() << *this << ": Not adding participant '" << *addr
+				        << "' to the list because the maximum number of participants allowed in a chatroom has already "
+				           "been reached";
+				return nullptr;
+			}
 			mParticipants.push_back(participant);
 			[[maybe_unused]] shared_ptr<ConferenceParticipantEvent> event =
 			    notifyParticipantAdded(time(nullptr), false, participant);
@@ -2001,6 +2034,7 @@ bool ServerConference::addParticipant(const std::shared_ptr<Call> call) {
 			mMixerSession->setSecurityLevel(mConfParams->getSecurityLevel());
 		}
 
+		bool success = false;
 		// Add participant to the conference participant list
 		switch (state) {
 			case CallSession::State::OutgoingInit:
@@ -2038,7 +2072,7 @@ bool ServerConference::addParticipant(const std::shared_ptr<Call> call) {
 					const_cast<MediaSessionParams *>(call->getParams())->enableVideo(false);
 				}
 
-				[[maybe_unused]] auto success = addParticipantAndDevice(call);
+				success = addParticipantAndDevice(call);
 				const auto &device = findParticipantDevice(session);
 				LinphoneMediaDirection audioDirection = LinphoneMediaDirectionInactive;
 				LinphoneMediaDirection videoDirection = LinphoneMediaDirectionInactive;
@@ -2082,6 +2116,10 @@ bool ServerConference::addParticipant(const std::shared_ptr<Call> call) {
 				         << ", hence it cannot be added to " << *this << " right now";
 				return false;
 				break;
+		}
+
+		if (!success) {
+			call->terminate();
 		}
 
 		// Update call
@@ -2172,14 +2210,21 @@ bool ServerConference::addParticipant(const std::shared_ptr<ParticipantInfo> &in
 	const auto &participantAddress = info->getAddress();
 	const auto devices = getParticipantDevices(false);
 	bool hasActiveDevices = (devices.size() > 0);
+
 	// Allow to add participant if the conference has at least one active device or the addition occurs within the
 	// active window
 	if (hasActiveDevices || (!isConferenceExpired() && isConferenceAvailable())) {
+		if (maxParticipantNumberNearlyReached()) {
+			lInfo() << "Not adding participant '" << *participantAddress << "' to active " << *this
+			        << " because the maximum number of participants allowed in a chatroom has already "
+			           "been reached";
+			return false;
+		}
+
 		if (supportsMedia()) {
 			const auto initialState = getState();
 			if ((initialState == ConferenceInterface::State::CreationPending) ||
 			    (initialState == ConferenceInterface::State::Created)) {
-
 				const auto allowedAddresses = getAllowedAddresses();
 				auto p = std::find_if(
 				    allowedAddresses.begin(), allowedAddresses.end(),

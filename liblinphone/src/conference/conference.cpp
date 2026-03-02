@@ -457,6 +457,11 @@ bool Conference::addParticipant(const std::shared_ptr<Call> call) {
 	} else {
 		participant = findParticipant(remoteAddress);
 	}
+	if (maxParticipantNumberNearlyReached()) {
+		lInfo() << *this << ": Not adding participant '" << *remoteAddress << "' with call " << *call
+		        << " because the maximum number of participants allowed in a chatroom has already been reached";
+		return false;
+	}
 	bool success = false;
 	// Add a new participant only if it is not in the conference
 	if (participant == nullptr) {
@@ -481,6 +486,11 @@ bool Conference::addParticipant(const std::shared_ptr<Address> &participantAddre
 	}
 	if (participant) {
 		lWarning() << "Not adding " << *participant << " because it is already in " << *this;
+		return false;
+	}
+	if (maxParticipantNumberNearlyReached()) {
+		lInfo() << *this << ": Not adding participant '" << *participantAddress
+		        << "' because the maximum number of participants allowed in a chatroom has already been reached";
 		return false;
 	}
 	participant = createParticipant(participantAddress);
@@ -2095,6 +2105,7 @@ bool Conference::supportsConferenceEventPackage() const {
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	return false;
 }
+
 bool Conference::isSubscriptionUnderWay() const {
 	return false;
 }
@@ -2124,6 +2135,17 @@ void Conference::setChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom) 
 
 const std::shared_ptr<AbstractChatRoom> Conference::getChatRoom() const {
 	return mChatRoom;
+}
+
+bool Conference::maxParticipantNumberNearlyReached() const {
+	if (!!linphone_core_conference_server_enabled(getCore()->getCCore()) && mConfParams->chatEnabled()) {
+		auto maxParticipantsPerChatroom = linphone_core_get_max_participants_per_chatroom(getCore()->getCCore());
+		if ((maxParticipantsPerChatroom > 0) &&
+		    (static_cast<size_t>(maxParticipantsPerChatroom) <= mParticipants.size())) {
+			return true;
+		}
+	}
+	return false;
 }
 
 std::unique_ptr<LogContextualizer> Conference::getLogContextualizer() {

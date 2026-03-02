@@ -2609,8 +2609,8 @@ void ClientConference::handleAcceptedRefer() {
 }
 
 void ClientConference::handleRejectedRefer() {
+	notifyOperationFailed();
 	if (mTerminateAfterSuccessfulAdminNomination && (mState == ConferenceInterface::State::TerminationPending)) {
-		notifyOperationFailed();
 		setState(ConferenceInterface::State::Created);
 	}
 }
@@ -2680,9 +2680,9 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 		auto ref = getSharedFromThis();
 		getCore()->removeConferencePendingCreation(ref);
 		if (remoteAddress == nullptr) {
-			lError() << *this
-			         << " The session to update the conference information did not successfully establish hence it is "
-			            "likely that the request wasn't taken into account by the server";
+			lError() << *this << ": " << session
+			         << " did not successfully establish hence it is likely that the request wasn't taken into account "
+			            "by the server";
 			setState(ConferenceInterface::State::CreationFailed);
 		} else if (dynamic_pointer_cast<MediaSession>(session) &&
 		           ((mState == ConferenceInterface::State::Instantiated) ||

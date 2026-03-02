@@ -8181,6 +8181,26 @@ LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core,
 LINPHONE_PUBLIC void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration);
 
 /**
+ * It sets the maximum number of participants a chatroom on a server can support.
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param max_participants the maximum number of participants a chatroom is allowed to have at any given time. A 0 or
+ * negative value means that there is no upper limit.
+ * @warning it is only applicable to conference servers
+ **/
+LINPHONE_PUBLIC void linphone_core_set_max_participants_per_chatroom(LinphoneCore *core, int max_participants);
+
+/**
+ * Returns the maximum number of participants a conference server can support in a single chatroom
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return the maximum allowed participant number per chatroom. A 0 or negative value means that there is no upper
+ * limit.
+ * @warning it is only applicable to conference servers
+ **/
+LINPHONE_PUBLIC int linphone_core_get_max_participants_per_chatroom(const LinphoneCore *core);
+
+/**
  * Returns the duration of the timer that delays the automatic resending of chat messages
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil

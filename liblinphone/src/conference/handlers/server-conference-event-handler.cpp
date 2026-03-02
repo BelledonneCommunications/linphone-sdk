@@ -193,22 +193,30 @@ std::shared_ptr<Content> ServerConferenceEventHandler::createNotifyFullState(con
 		confDescr.getAny().push_back(confTimesE);
 	}
 
-	if (ephemerable && chatRoom) {
-		const ModeType mode = (chatRoom->getCurrentParams()->getChatParams()->getEphemeralMode() ==
-		                       AbstractChatRoom::EphemeralMode::AdminManaged)
-		                          ? "admin-managed"
-		                          : "device-managed";
+	if (chatRoom) {
+		if (ephemerable) {
+			const ModeType mode = (chatRoom->getCurrentParams()->getChatParams()->getEphemeralMode() ==
+			                       AbstractChatRoom::EphemeralMode::AdminManaged)
+			                          ? "admin-managed"
+			                          : "device-managed";
 
-		const auto ephemeral =
-		    Ephemeral(mode, std::to_string(chatRoom->getCurrentParams()->getChatParams()->getEphemeralLifetime()),
-		              std::to_string(chatRoom->getCurrentParams()->getChatParams()->getEphemeralNotReadLifetime()));
+			const auto ephemeral =
+			    Ephemeral(mode, std::to_string(chatRoom->getCurrentParams()->getChatParams()->getEphemeralLifetime()),
+			              std::to_string(chatRoom->getCurrentParams()->getChatParams()->getEphemeralNotReadLifetime()));
 
-		::xercesc::DOMElement *ephemeralE(confDescrDOMDoc.createElementNS(
-		    ::xsd::cxx::xml::string("linphone:xml:ns:conference-info-linphone-extension").c_str(),
-		    ::xsd::cxx::xml::string("linphone-cie:ephemeral").c_str()));
-		*ephemeralE << ephemeral;
+			::xercesc::DOMElement *ephemeralE(confDescrDOMDoc.createElementNS(
+			    ::xsd::cxx::xml::string("linphone:xml:ns:conference-info-linphone-extension").c_str(),
+			    ::xsd::cxx::xml::string("linphone-cie:ephemeral").c_str()));
+			*ephemeralE << ephemeral;
 
-		confDescr.getAny().push_back(ephemeralE);
+			confDescr.getAny().push_back(ephemeralE);
+		}
+
+		auto maxParticipantsPerChatroom = linphone_core_get_max_participants_per_chatroom(conf->getCore()->getCCore());
+		if (maxParticipantsPerChatroom > 0) {
+			confDescr.setMaximumUserCount(
+			    static_cast<ConferenceDescriptionType::MaximumUserCountType>(maxParticipantsPerChatroom));
+		}
 	}
 
 	ConferenceParamsInterface::SecurityLevel securityLevel = conferenceParams->getSecurityLevel();

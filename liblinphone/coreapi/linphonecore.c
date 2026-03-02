@@ -10119,6 +10119,14 @@ void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int
 	linphone_config_set_int(linphone_core_get_config(core), "chat", "message_automatic_resending_s", duration);
 }
 
+int linphone_core_get_max_participants_per_chatroom(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "chat", "max_participants_per_chatroom", -1);
+}
+
+void linphone_core_set_max_participants_per_chatroom(LinphoneCore *core, int max_participants) {
+	linphone_config_set_int(linphone_core_get_config(core), "chat", "max_participants_per_chatroom", max_participants);
+}
+
 void linphone_core_upgrade_database(LinphoneCore *core) {
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
 		db.value().get()->updateSchema();
