@@ -24,6 +24,8 @@ import org.linphone.mediastream.Log;
 import android.content.Context;
 import android.graphics.Matrix;
 import android.graphics.RectF;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Size;
 import android.view.TextureView;
@@ -33,6 +35,8 @@ public class CaptureTextureView extends TextureView {
         BLACK_BARS, OCCUPY_ALL_SPACE, HYBRID  
     }
 
+    private Handler mHandler;
+    
     private int mCapturedVideoWidth = 0;
     private int mCapturedVideoHeight = 0;
     private int mRotation = -1;
@@ -44,14 +48,21 @@ public class CaptureTextureView extends TextureView {
 
     public CaptureTextureView(Context context) {
         this(context, null);
+        init();
     }
 
     public CaptureTextureView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
+        init();
     }
 
     public CaptureTextureView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        init();
+    }
+
+    private void init() {
+        mHandler = new Handler(Looper.getMainLooper());
     }
 
     public DisplayMode getActualDisplayMode() {
@@ -70,7 +81,16 @@ public class CaptureTextureView extends TextureView {
         if (rotation != mRotation) {
             mRotation = rotation;
             Log.i("[Capture TextureView] Changing preview texture rotation to [" + rotation + "]°");
-            rotateToMatchDisplayOrientation();
+            
+            if (mHandler != null) {
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        rotateToMatchDisplayOrientation();
+                    }
+                };
+                mHandler.post(runnable);
+            }
         } else {
             Log.w("[Capture TextureView] Rotation is already set to [" + mRotation + "]°, skipping");
         }
@@ -171,7 +191,15 @@ public class CaptureTextureView extends TextureView {
         mCapturedVideoWidth = width;
         mCapturedVideoHeight = height;
 
-        rotateToMatchDisplayOrientation();
+        if (mHandler != null) {
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    rotateToMatchDisplayOrientation();
+                }
+            };
+            mHandler.post(runnable);
+        }
     }
 
     @Override
