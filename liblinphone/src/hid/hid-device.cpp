@@ -88,6 +88,7 @@ void HidDevice::write(const uint8_t data) const {
 	uint8_t buffer[3] = {0};
 	buffer[0] = 0x02;
 	buffer[1] = data;
+	lInfo() << "HidDevice::write: " << static_cast<int>(data);
 	hid_write(static_cast<hid_device *>(mDevice), buffer, sizeof(buffer));
 }
 
@@ -103,6 +104,25 @@ bool HidDevice::stateHas(const uint8_t bits) const {
 	return (mState & bits) == bits;
 }
 
+std::string HidDevice::stateStr() const {
+	std::ostringstream os;
+	os << "[ ";
+	if (stateHas(mOutputData.mMute)) {
+		os << "Muted ";
+	}
+	if (stateHas(mOutputData.mOffHook)) {
+		os << "OffHook ";
+	}
+	if (stateHas(mOutputData.mRinger)) {
+		os << "Ringing ";
+	}
+	if (stateHas(mOutputData.mHold)) {
+		os << "Held ";
+	}
+	os << "]";
+	return os.str();
+}
+
 bool HidDevice::valueHas(const uint16_t value, const uint16_t bits) {
 	return (value & bits) == bits;
 }
@@ -112,6 +132,7 @@ void HidDevice::handleEvents() {
 	uint16_t value = 0;
 
 	if ((read(reportId, value) > 2) && (reportId == 0x02)) {
+		lInfo() << "HidDevice handling event " << static_cast<int>(value) << " with state " << stateStr();
 		const auto currentCall = getCore()->getCurrentCall();
 
 		const bool wasMuted = stateHas(mOutputData.mMute);
@@ -129,9 +150,30 @@ void HidDevice::handleEvents() {
 		const bool hasGoneOffHook = wasOnHook && isOffHook;
 		const bool hasGoneOnHook = wasOffHook && isOnHook;
 
+		std::ostringstream os;
+		os << "HidDevice signaled [ ";
+		if (isCallRejectSignaled) {
+			os << "CallReject ";
+		}
+		if (isHookFlashSignaled) {
+			os << "HookFlash ";
+		}
+		if (isMuteChangeSignaled) {
+			os << "MuteChange ";
+		}
+		if (isOffHook) {
+			os << "OffHook ";
+		}
+		if (isOnHook) {
+			os << "OnHook ";
+		}
+		os << "]";
+		lInfo() << os.str();
+
 		if (wasRinging && isCallRejectSignaled) {
 			for (const auto &call : getCore()->getCalls()) {
 				if (call->getState() == CallSession::State::IncomingReceived) {
+					lInfo() << "HidDevice is rejecting a call";
 					call->onHeadsetRejectCallRequested(call->getActiveSession());
 					break;
 				}
@@ -140,6 +182,7 @@ void HidDevice::handleEvents() {
 		}
 
 		if (isMuteChangeSignaled && currentCall) {
+			lInfo() << "HidDevice is toggling the microphone mute state";
 			currentCall->onHeadsetMicrophoneMuteToggled(currentCall->getActiveSession(), !wasMuted);
 			return;
 		}
@@ -148,6 +191,7 @@ void HidDevice::handleEvents() {
 			if (wasRinging) {
 				for (const auto &call : getCore()->getCalls()) {
 					if (call->getState() == CallSession::State::IncomingReceived) {
+						lInfo() << "HidDevice is requesting to answer a call";
 						call->onHeadsetAnswerCallRequested(call->getActiveSession());
 						break;
 					}
@@ -157,6 +201,7 @@ void HidDevice::handleEvents() {
 					// Swap calls
 					for (const auto &call : getCore()->getCalls()) {
 						if (call->getState() == CallSession::State::Paused) {
+							lInfo() << "HidDevice is requesting to resume a call";
 							call->onHeadsetResumeCallRequested(call->getActiveSession());
 							break;
 						}
@@ -165,6 +210,7 @@ void HidDevice::handleEvents() {
 					// Being held & on-hook means that the call is on-hold, and so we need to resume it.
 					for (const auto &call : getCore()->getCalls()) {
 						if (call->getState() == CallSession::State::Paused) {
+							lInfo() << "HidDevice is requesting to resume a call";
 							call->onHeadsetResumeCallRequested(call->getActiveSession());
 							break;
 						}
@@ -172,6 +218,7 @@ void HidDevice::handleEvents() {
 				}
 			} else if (wasOffHook && currentCall) {
 				// Being off-hook and not held is the normal ongoing call situation, so we need to hold the call.
+				lInfo() << "HidDevice is requesting to hold a call";
 				currentCall->onHeadsetHoldCallRequested(currentCall->getActiveSession());
 			}
 			return;
@@ -179,14 +226,14 @@ void HidDevice::handleEvents() {
 
 		if (hasGoneOffHook) {
 			if (wasRinging && currentCall) {
+				lInfo() << "HidDevice is requesting to answer a call";
 				currentCall->onHeadsetAnswerCallRequested(currentCall->getActiveSession());
-				return;
 			} else {
 				// Start of call from headset, end it immediately as we don't know what to do with this...
 				answerCall(false);
 				endCall();
-				return;
 			}
+			return;
 		}
 
 		if (hasGoneOnHook) {
@@ -194,11 +241,13 @@ void HidDevice::handleEvents() {
 			if (currentCall && (currentCall->getState() != CallSession::State::Resuming)) {
 				// There is a short transition to on-hook while we are resuming the call. We must ignore it, otherwise
 				// we would end the call.
+				lInfo() << "HidDevice is requesting to end a call";
 				currentCall->onHeadsetEndCallRequested(currentCall->getActiveSession());
 			}
 			// If there was also an incoming call, answer it.
 			for (const auto &call : getCore()->getCalls()) {
 				if (call->getState() == CallSession::State::IncomingReceived) {
+					lInfo() << "HidDevice is requesting to answer a call";
 					call->onHeadsetAnswerCallRequested(call->getActiveSession());
 					break;
 				}
@@ -217,12 +266,14 @@ void HidDevice::answerCall(const bool hasPausedCalls) {
 	} else {
 		removeFromState(mOutputData.mHold);
 	}
+	lInfo() << "HidDevice::answerCall: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::endCall() {
 	removeFromState(mOutputData.mRinger);
 	removeFromState(mOutputData.mOffHook);
+	lInfo() << "HidDevice::endCall: new state = " << stateStr();
 	write(mState);
 }
 
@@ -233,17 +284,20 @@ void HidDevice::holdCall(const bool allCallsPaused) {
 	} else {
 		addToState(mOutputData.mOffHook);
 	}
+	lInfo() << "HidDevice::holdCall: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::mute() {
 	addToState(mOutputData.mMute);
+	lInfo() << "HidDevice::mute: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::resumeCall() {
 	removeFromState(mOutputData.mHold);
 	addToState(mOutputData.mOffHook);
+	lInfo() << "HidDevice::resumeCall: new state = " << stateStr();
 	write(mState);
 }
 
@@ -251,21 +305,25 @@ void HidDevice::startCall() {
 	addToState(mOutputData.mOffHook);
 	removeFromState(mOutputData.mMute);
 	removeFromState(mOutputData.mRinger);
+	lInfo() << "HidDevice::startCall: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::startRinging() {
 	addToState(mOutputData.mRinger);
+	lInfo() << "HidDevice::startRinging: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::stopRinging() {
 	removeFromState(mOutputData.mRinger);
+	lInfo() << "HidDevice::stopRinging: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::unmute() {
 	removeFromState(mOutputData.mMute);
+	lInfo() << "HidDevice::unmute: new state = " << stateStr();
 	write(mState);
 }
 
@@ -288,9 +346,10 @@ std::shared_ptr<HidDevice> HidDevice::create(const std::shared_ptr<Core> &core,
 
 	switch (productId) {
 		CASE_HID_DEVICE(PRODUCT_ID_JABRA_ENGAGE_55, JabraEngage55HidDevice)
-		CASE_HID_DEVICE(PRODUCT_ID_JABRA_ENGAGE_55_BIS, JabraEngage55HidDevice)
+		CASE_HID_DEVICE(PRODUCT_ID_JABRA_ENGAGE_55_TEAMS, JabraEngage55HidDevice)
+		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55_LINK_380, JabraEngage55HidDevice)
 		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55, JabraEvolve255HidDevice)
-		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55_BIS, JabraEvolve255HidDevice)
+		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55_TEAMS, JabraEvolve255HidDevice)
 		default:
 			device = hid_open_path(path);
 			if (!device) {
