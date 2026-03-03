@@ -146,8 +146,7 @@ public:
 			LinphoneAccount *account = (LinphoneAccount *)bctbx_list_get_data(accountIt);
 			const LinphoneAddress *cAddr = linphone_account_get_contact_address(account);
 			if (cAddr) {
-				Address participantDevice = Address::toCpp(cAddr)->getUri();
-				Address participant = participantDevice.getUriWithoutGruu();
+				Address participant = Address::toCpp(cAddr)->getUriWithoutGruu();
 				mParticipantDevices.insert({participant, std::reference_wrapper<ClientConference>(otherMgr)});
 			}
 		}
@@ -255,6 +254,7 @@ public:
 			BC_ASSERT_TRUE(linphone_account_params_rtp_bundle_enabled(linphone_account_get_params(account)));
 		}
 
+		linphone_core_cbs_set_global_state_changed(cbs, server_core_global_state_changed);
 		linphone_core_cbs_set_subscription_state_changed(cbs, linphone_subscription_state_change);
 		linphone_core_cbs_set_chat_room_state_changed(cbs, server_core_chat_room_state_changed);
 		linphone_core_cbs_set_message_sent(cbs, encrypted_message_sent);
@@ -281,8 +281,27 @@ private:
 		}
 	}
 
+	static void server_core_global_state_changed(LinphoneCore *core,
+	                                             LinphoneGlobalState gstate,
+	                                             BCTBX_UNUSED(const char *message)) {
+		if (gstate == LinphoneGlobalOn) {
+			Focus *focus = (Focus *)(((LinphoneCoreManager *)linphone_core_get_user_data(core))->user_info);
+			// Restore chatroom callbacks
+			const bctbx_list_t *chat_rooms = linphone_core_get_chat_rooms(core);
+			for (const bctbx_list_t *it = chat_rooms; it; it = bctbx_list_next(it)) {
+				LinphoneChatRoom *chat_room = (LinphoneChatRoom *)it->data;
+				LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
+				linphone_chat_room_cbs_set_participant_registration_subscription_requested(
+				    cbs, Focus::chat_room_participant_registration_subscription_requested);
+				linphone_chat_room_add_callbacks(chat_room, cbs);
+				linphone_chat_room_cbs_set_user_data(cbs, focus);
+				linphone_chat_room_cbs_unref(cbs);
+			}
+		}
+	}
+
 	static void
-	encrypted_message_sent(BCTBX_UNUSED(LinphoneCore *lc), LinphoneChatRoom *room, LinphoneChatMessage *msg) {
+	encrypted_message_sent(BCTBX_UNUSED(LinphoneCore *core), LinphoneChatRoom *room, LinphoneChatMessage *msg) {
 		LinphoneChatRoomCapabilitiesMask capabilities = linphone_chat_room_get_capabilities(room);
 		std::shared_ptr<ChatMessage> cppMsg = L_GET_CPP_PTR_FROM_C_OBJECT(msg);
 		Content internalContent = cppMsg->getInternalContent();
@@ -297,7 +316,7 @@ private:
 
 // Chat rooms
 void group_chat_room_lime_server_message(bool encrypted);
-void group_chat_room_with_client_restart_base(bool encrypted);
+void group_chat_room_with_client_restart_base(bool encrypted, bool server_restart_before_participant_addition);
 void group_chat_room_with_sip_errors_base(bool invite_error, bool subscribe_error, bool encrypted);
 void one_on_one_group_chat_room_deletion_by_server_client_base(bool encrypted);
 void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,

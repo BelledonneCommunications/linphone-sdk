@@ -227,7 +227,7 @@ static void send_message_on_network_reachable(LinphoneCore *lc, bool_t reachable
 	}
 }
 
-void group_chat_room_with_client_restart_base(bool encrypted) {
+void group_chat_room_with_client_restart_base(bool encrypted, bool server_restart_before_participant_addition) {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
 		const LinphoneTesterLimeAlgo lime_algo = encrypted ? C25519 : UNSET;
@@ -267,6 +267,16 @@ void group_chat_room_with_client_restart_base(bool encrypted) {
 			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(berthe.getLc()));
 			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(laure.getLc()));
 		}
+
+		int subscribe_expires_value_s = 15;
+		linphone_config_set_int(linphone_core_get_config(marie.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribe_expires_value_s);
+		linphone_config_set_int(linphone_core_get_config(laure.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribe_expires_value_s);
+		linphone_config_set_int(linphone_core_get_config(michelle.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribe_expires_value_s);
+		linphone_config_set_int(linphone_core_get_config(berthe.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribe_expires_value_s);
 
 		// Marie creates a new group chat room
 		const char *initialSubject = "Colleagues (characters: $ £ çà)";
@@ -330,6 +340,8 @@ void group_chat_room_with_client_restart_base(bool encrypted) {
 
 		ClientConference michelle2("michelle_rc", focus.getConferenceFactoryAddress(), lime_algo);
 		linphone_core_enable_gruu_in_conference_address(michelle2.getLc(), TRUE);
+		linphone_config_set_int(linphone_core_get_config(michelle2.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribe_expires_value_s);
 		stats initialMichelle2Stats = michelle2.getStats();
 		coresList = bctbx_list_append(coresList, michelle2.getLc());
 		if (encrypted) {
@@ -404,14 +416,52 @@ void group_chat_room_with_client_restart_base(bool encrypted) {
 		BC_ASSERT_PTR_NULL(linphone_core_search_chat_room_by_identifier(
 		    marie.getLc(), "sip:toto@sip.conference.org##sip:me@sip.local.org"));
 
+		if (server_restart_before_participant_addition) {
+			initialMarieStats = marie.getStats();
+			initialMichelleStats = michelle.getStats();
+			initialMichelle2Stats = michelle2.getStats();
+			initialBertheStats = berthe.getStats();
+
+			ms_message("%s is restarting its core before %s adds %s to the chatroom",
+			           linphone_core_get_identity(focus.getLc()), linphone_core_get_identity(marie.getLc()),
+			           linphone_core_get_identity(laure.getLc()));
+			coresList = bctbx_list_remove(coresList, focus.getLc());
+			// Restart flexisip
+			focus.reStart();
+			coresList = bctbx_list_append(coresList, focus.getLc());
+
+			// Wait for subscriptions between the clients and the server to expire.
+			// In fact clients are not notified that the server restarted so from the server standpoint, the events are
+			// in the Terminated state
+			CoreManagerAssert({focus, marie, berthe, michelle, michelle2, laure})
+			    .waitUntil(chrono::seconds(subscribe_expires_value_s + 1), [] { return false; });
+
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialMarieStats.number_of_LinphoneSubscriptionActive + 1,
+			                             (subscribe_expires_value_s * 1000)));
+
+			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialMichelleStats.number_of_LinphoneSubscriptionActive + 1,
+			                             (subscribe_expires_value_s * 1000)));
+
+			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle2.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialMichelle2Stats.number_of_LinphoneSubscriptionActive + 1,
+			                             (subscribe_expires_value_s * 1000)));
+
+			BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialBertheStats.number_of_LinphoneSubscriptionActive + 1,
+			                             (subscribe_expires_value_s * 1000)));
+		}
+
 		initialMarieStats = marie.getStats();
 		initialMichelleStats = michelle.getStats();
+		initialMichelle2Stats = michelle2.getStats();
 		initialBertheStats = berthe.getStats();
 		initialLaureStats = laure.getStats();
 
 		Address laureAddr = laure.getIdentity();
 		participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(laureAddr.toC()));
-		ms_message("%s is adding participant %s", linphone_core_get_identity(focus.getLc()),
+		ms_message("%s is adding participant %s", linphone_core_get_identity(marie.getLc()),
 		           linphone_core_get_identity(laure.getLc()));
 		linphone_chat_room_add_participants(marieCr, participantsAddresses);
 		bctbx_list_free(participantsAddresses);
@@ -453,11 +503,21 @@ void group_chat_room_with_client_restart_base(bool encrypted) {
 		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle2.getStats().number_of_chat_room_participant_devices_added,
 		                             initialMichelle2Stats.number_of_chat_room_participant_devices_added + 1,
 		                             liblinphone_tester_sip_timeout));
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(marieCr), 3, int, "%d");
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(bertheCr), 3, int, "%d");
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 3, int, "%d");
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelle2Cr), 3, int, "%d");
-		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(laureCr), 3, int, "%d");
+		if (marieCr) {
+			BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(marieCr), 3, int, "%d");
+		}
+		if (bertheCr) {
+			BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(bertheCr), 3, int, "%d");
+		}
+		if (michelleCr) {
+			BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 3, int, "%d");
+		}
+		if (michelle2Cr) {
+			BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelle2Cr), 3, int, "%d");
+		}
+		if (laureCr) {
+			BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(laureCr), 3, int, "%d");
+		}
 
 		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores{focus,     marie, michelle,
 		                                                                           michelle2, laure, berthe};
@@ -2399,13 +2459,13 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(michelle.getLc()));
 		}
 
-		int subscribe_expires_value = 10;
+		int subscribe_expires_value_s = 15;
 		linphone_config_set_int(linphone_core_get_config(marie.getLc()), "sip", "conference_subscribe_expires",
-		                        subscribe_expires_value);
+		                        subscribe_expires_value_s);
 		linphone_config_set_int(linphone_core_get_config(pauline.getLc()), "sip", "conference_subscribe_expires",
-		                        subscribe_expires_value);
+		                        subscribe_expires_value_s);
 		linphone_config_set_int(linphone_core_get_config(michelle.getLc()), "sip", "conference_subscribe_expires",
-		                        subscribe_expires_value);
+		                        subscribe_expires_value_s);
 
 		focus.registerAsParticipantDevice(marie);
 		focus.registerAsParticipantDevice(michelle);
@@ -2844,7 +2904,7 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		ms_message("%s starts one last time its core", linphone_core_get_identity(laure.getLc()));
 		laure.configure(focus.getConferenceFactoryAddress(), lime_algo);
 		linphone_config_set_int(linphone_core_get_config(laure.getLc()), "sip", "conference_subscribe_expires",
-		                        subscribe_expires_value);
+		                        subscribe_expires_value_s);
 
 		linphone_core_manager_start(laure.getCMgr(), TRUE);
 		focus.registerAsParticipantDevice(laure);
@@ -2933,7 +2993,7 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			linphone_core_manager_reinit(core.getCMgr());
 			core.configure(focus.getConferenceFactoryAddress(), lime_algo);
 			linphone_config_set_int(linphone_core_get_config(core.getLc()), "sip", "conference_subscribe_expires",
-			                        subscribe_expires_value);
+			                        subscribe_expires_value_s);
 			linphone_core_manager_start(core.getCMgr(), TRUE);
 			coresList = bctbx_list_append(coresList, core.getLc());
 		}
@@ -2962,33 +3022,38 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 
 		// Wait for a little while to spot any errors
 		CoreManagerAssert({focus, marie, pauline, michelle, laure})
-		    .waitUntil(chrono::seconds(subscribe_expires_value + 1), [] { return false; });
+		    .waitUntil(chrono::seconds(subscribe_expires_value_s + 1), [] { return false; });
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
 		                             marie_stat.number_of_LinphoneSubscriptionOutgoingProgress + 1,
-		                             liblinphone_tester_sip_timeout));
+		                             (subscribe_expires_value_s * 1000)));
 
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
 		                              marie_stat.number_of_LinphoneSubscriptionOutgoingProgress + 2, 1000));
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
 		                             pauline_stat.number_of_LinphoneSubscriptionOutgoingProgress + 1,
-		                             liblinphone_tester_sip_timeout));
+		                             (subscribe_expires_value_s * 1000)));
 
 		BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
 		                              pauline_stat.number_of_LinphoneSubscriptionOutgoingProgress + 2, 1000));
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
 		                             laure_stat.number_of_LinphoneSubscriptionOutgoingProgress + 1,
-		                             liblinphone_tester_sip_timeout));
+		                             (subscribe_expires_value_s * 1000)));
 
 		BC_ASSERT_FALSE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
 		                              laure_stat.number_of_LinphoneSubscriptionOutgoingProgress + 2, 1000));
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionTerminated,
 		                             focus_stat.number_of_LinphoneSubscriptionTerminated + 3,
-		                             liblinphone_tester_sip_timeout));
+		                             (subscribe_expires_value_s * 1000)));
 
+		marie_stat = marie.getStats();
+		pauline_stat = pauline.getStats();
+		michelle_stat = michelle.getStats();
+		laure_stat = laure.getStats();
+		focus_stat = focus.getStats();
 		ms_message("%s turns on its network", linphone_core_get_identity(focus.getLc()));
 		linphone_core_set_network_reachable(focus.getLc(), TRUE);
 
@@ -2996,32 +3061,32 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 		// In fact clients are not notified that the server restarted so from the server standpoint, the events are in
 		// the Terminated state
 		CoreManagerAssert({focus, marie, pauline, michelle, laure})
-		    .waitUntil(chrono::seconds(subscribe_expires_value + 1), [] { return false; });
+		    .waitUntil(chrono::seconds(subscribe_expires_value_s + 1), [] { return false; });
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
 		                             marie_stat.number_of_LinphoneSubscriptionActive + 1,
-		                             liblinphone_tester_sip_timeout));
+		                             (subscribe_expires_value_s * 1000)));
 
 		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
 		                              marie_stat.number_of_LinphoneSubscriptionActive + 2, 1000));
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionActive,
 		                             pauline_stat.number_of_LinphoneSubscriptionActive + 1,
-		                             liblinphone_tester_sip_timeout));
+		                             (subscribe_expires_value_s * 1000)));
 
 		BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionActive,
 		                              pauline_stat.number_of_LinphoneSubscriptionActive + 2, 1000));
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneSubscriptionActive,
 		                             laure_stat.number_of_LinphoneSubscriptionActive + 1,
-		                             liblinphone_tester_sip_timeout));
+		                             (subscribe_expires_value_s * 1000)));
 
 		BC_ASSERT_FALSE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneSubscriptionActive,
 		                              laure_stat.number_of_LinphoneSubscriptionActive + 2, 1000));
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
 		                             focus_stat.number_of_LinphoneSubscriptionActive + 3,
-		                             liblinphone_tester_sip_timeout));
+		                             (subscribe_expires_value_s * 1000)));
 
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
