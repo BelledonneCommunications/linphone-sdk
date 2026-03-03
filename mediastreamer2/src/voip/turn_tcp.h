@@ -61,7 +61,7 @@ namespace turn {
 class Packet {
 public:
 	Packet(size_t size);
-	Packet(uint8_t *buffer, size_t size);
+	Packet(const uint8_t *buffer, size_t size);
 	/* Create a packet from a mblk_t, possibly adding necessary padding (because STUN/TURN packets must be 4-bytes
 	 * padded). */
 	Packet(mblk_t *msg, bool withPadding);
