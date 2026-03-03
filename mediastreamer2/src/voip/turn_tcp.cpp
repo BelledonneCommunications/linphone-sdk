@@ -75,7 +75,7 @@ Packet::Packet(size_t size) : mTimestamp(0) {
 	mMblk = allocb(size, 0);
 }
 
-Packet::Packet(uint8_t *buffer, size_t size) : mTimestamp(0) {
+Packet::Packet(const uint8_t *buffer, size_t size) : mTimestamp(0) {
 	mMblk = allocb(size, 0);
 	memcpy(mMblk->b_wptr, buffer, size);
 	mMblk->b_wptr += size;
@@ -367,7 +367,7 @@ SocketException::SocketException(const char *message)
  */
 ControlSocketPair::ControlSocketPair() {
 	int err;
-	struct sockaddr_in listeningAddr {};
+	struct sockaddr_in listeningAddr{};
 	socklen_t socket_size = sizeof(listeningAddr);
 	mEmitter = socket(AF_INET, SOCK_STREAM, 0);
 	mReaderMother = socket(AF_INET, SOCK_STREAM, 0);
@@ -390,7 +390,7 @@ ControlSocketPair::ControlSocketPair() {
 	if (TurnSocket::turnPoll(mReaderMother, 2000, POLLIN) != 1) {
 		throw SocketException("Failure to listen on socket");
 	}
-	struct sockaddr_in ignored {};
+	struct sockaddr_in ignored{};
 	socklen_t ignored_size = sizeof(ignored);
 	mReader = ::accept(mReaderMother, (struct sockaddr *)&ignored, &ignored_size);
 	if (mReader == INVALID_SOCKET) throw SocketException("Failure to accept connection");
@@ -454,6 +454,10 @@ int TurnSocket::connect() {
 	int optVal = 1;
 	if (setsockopt(mSocket, IPPROTO_TCP, TCP_NODELAY, (char *)&optVal, sizeof(optVal)) != 0) {
 		ms_error("TurnSocket [%p]: failed to activate TCP_NODELAY: %s", this, getSocketError());
+	}
+	optVal = 0;
+	if (setsockopt(mSocket, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&optVal, sizeof(optVal)) != 0) {
+		ms_error("TurnSocket [%p]: failed to enable dual-stack mode: %s", this, getSocketError());
 	}
 
 	set_non_blocking_socket(mSocket);
@@ -840,6 +844,8 @@ int TurnClient::recvfrom(mblk_t *msg, BCTBX_UNUSED(int flags), struct sockaddr *
 
 	if (!mTurnConnection) return 0;
 
+	size_t bufsz = (size_t)(msg->b_datap->db_lim - msg->b_datap->db_base);
+
 	mTurnConnection->mReceivingLock.lock();
 	if (!mTurnConnection->mReceivingQueue.empty()) {
 		p = std::move(mTurnConnection->mReceivingQueue.front());
@@ -848,7 +854,14 @@ int TurnClient::recvfrom(mblk_t *msg, BCTBX_UNUSED(int flags), struct sockaddr *
 	mTurnConnection->mReceivingLock.unlock();
 
 	if (p != nullptr) {
-		memcpy(msg->b_rptr, p->data(), p->length());
+
+		if (p->length() > bufsz) {
+			/* This should not happen, but the copy must be protected against buffer overflow. */
+			BCTBX_SLOGW << "TurnClient::recvfrom(): truncating packet of size " << p->length() << " to " << bufsz
+			            << " bytes";
+			p->setLength(bufsz);
+		}
+		memcpy(msg->b_wptr, p->data(), p->length());
 
 		// Set from and fromlen to the turn server address
 		memcpy(from, (struct sockaddr *)&mContext->turn_server_addr, mContext->turn_server_addrlen);
