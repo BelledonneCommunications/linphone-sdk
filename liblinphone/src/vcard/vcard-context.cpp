@@ -21,6 +21,7 @@
 #include "vcard-context.h"
 #include "vcard.h"
 
+#include <sstream>
 
 // =============================================================================
 
@@ -76,12 +77,100 @@ static string fixVcardTimestamps(const string &input) {
 	return result;
 }
 
+// Sanitize vCard properties that are syntactically invalid per RFC 6350 / belcard grammar.
+// A single invalid property line causes the entire vCard to fail parsing in belcard/belr
+// because the strict PEG grammar's 1*property loop stops on the first non-matching line.
+//
+// Known problematic patterns from Nextcloud/Sabre/Google contacts:
+//   - URL;VALUE=URI:Google+   => value is not a valid URI (no scheme), remove the line
+//   - PHOTO;VALUE=URI:data:application/octet-stream;base64\,  => empty data, remove the line
+static string sanitizeVcardProperties(const string &input) {
+	istringstream stream(input);
+	string line;
+	string result;
+	result.reserve(input.size());
+	int removedCount = 0;
+
+	while (getline(stream, line)) {
+		// Remove trailing \r if present (getline strips \n but not \r)
+		if (!line.empty() && line.back() == '\r') {
+			line.pop_back();
+		}
+
+		bool removeLine = false;
+
+		// Check URL properties: value must be a valid URI (must contain "://")
+		// Handles grouped properties like ITEM1.URL;VALUE=URI:...
+		{
+			string upper = line;
+			for (auto &c : upper) c = static_cast<char>(toupper((unsigned char)c));
+			// Find "URL" preceded by start-of-line or "."
+			size_t urlPos = upper.find("URL");
+			if (urlPos != string::npos && (urlPos == 0 || upper[urlPos - 1] == '.')) {
+				// Find the colon that separates property name/params from value
+				size_t colonPos = line.find(':', urlPos + 3);
+				if (colonPos != string::npos) {
+					string value = line.substr(colonPos + 1);
+					// A valid URI must have a scheme followed by ":" (e.g. "http:", "https:", "tel:")
+					if (value.find(':') == string::npos) {
+						lWarning() << "[vCard] Removing invalid URL property (value '" << value
+						           << "' is not a valid URI): " << line;
+						removeLine = true;
+					}
+				}
+			}
+		}
+
+		// Check PHOTO properties with empty data
+		// e.g. PHOTO;VALUE=URI:data:application/octet-stream;base64\,
+		if (!removeLine) {
+			string upper = line;
+			for (auto &c : upper) c = static_cast<char>(toupper((unsigned char)c));
+			size_t photoPos = upper.find("PHOTO");
+			if (photoPos != string::npos && (photoPos == 0 || upper[photoPos - 1] == '.')) {
+				// Check if it's a base64 data URI with empty data
+				size_t base64Pos = line.find("base64");
+				if (base64Pos == string::npos) base64Pos = line.find("BASE64");
+				if (base64Pos != string::npos) {
+					// Find the comma after base64 — data should follow
+					size_t commaPos = line.find(',', base64Pos);
+					if (commaPos == string::npos) commaPos = line.find("\\,", base64Pos);
+					if (commaPos != string::npos) {
+						string afterComma = line.substr(
+						    line[commaPos] == '\\' ? commaPos + 2 : commaPos + 1);
+						// Trim whitespace
+						size_t start = afterComma.find_first_not_of(" \t");
+						if (start == string::npos || afterComma.substr(start).empty()) {
+							lWarning() << "[vCard] Removing PHOTO property with empty base64 data: "
+							           << line.substr(0, 80) << "...";
+							removeLine = true;
+						}
+					}
+				}
+			}
+		}
+
+		if (removeLine) {
+			removedCount++;
+		} else {
+			result += line + "\r\n";
+		}
+	}
+
+	if (removedCount > 0) {
+		lInfo() << "[vCard] Sanitized vCard: removed " << removedCount << " invalid property line(s)";
+	}
+
+	return result;
+}
+
 shared_ptr<Vcard> VcardContext::getVcardFromBuffer(const string &buffer) const {
 	if (buffer.empty()) return nullptr;
 	string fixedBuffer = fixVcardTimestamps(buffer);
 	if (fixedBuffer != buffer) {
 		lInfo() << "[vCard] Applied timestamp fix to vCard buffer";
 	}
+	fixedBuffer = sanitizeVcardProperties(fixedBuffer);
 	shared_ptr<belcard::BelCard> belCard = mParser->parseOne(fixedBuffer);
 	if (belCard) {
 		return Vcard::create(belCard);
@@ -96,6 +185,7 @@ list<shared_ptr<Vcard>> VcardContext::getVcardListFromBuffer(const string &buffe
 	list<shared_ptr<Vcard>> result;
 	if (!buffer.empty()) {
 		string fixedBuffer = fixVcardTimestamps(buffer);
+		fixedBuffer = sanitizeVcardProperties(fixedBuffer);
 		shared_ptr<belcard::BelCardList> belCards = mParser->parse(fixedBuffer);
 		if (belCards) {
 			for (const auto &belCard : belCards->getCards())
