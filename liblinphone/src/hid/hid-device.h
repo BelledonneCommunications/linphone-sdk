@@ -64,8 +64,8 @@ public:
 	          HidDeviceOutputData outputData);
 	virtual ~HidDevice();
 
-	virtual void startPollTimer();
-	virtual void stopPollTimer();
+	void startPollTimer();
+	void stopPollTimer();
 
 	/**
 	 * Handle the events received from a headset.
@@ -100,16 +100,18 @@ protected:
 	void addToState(uint8_t bits);
 	void removeFromState(uint8_t bits);
 	bool stateHas(uint8_t bits) const;
+	std::string stateStr() const;
 	static bool valueHas(uint16_t value, uint16_t bits);
 
 	uint8_t mState = 0;
 	std::string mName;
 
 private:
-	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55 = 0x1131;      // Jabra Link 400
-	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55_BIS = 0x1132;  // Jabra Link 400
-	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55 = 0x2e56;     // Jabra Link 390
-	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55_BIS = 0x2e57; // Jabra Link 390
+	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55 = 0x1131;           // Jabra Link 400
+	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55_TEAMS = 0x1132;     // Jabra Link 400
+	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55_LINK_380 = 0x24c8; // Jabra Link 380
+	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55 = 0x2e56;          // Jabra Link 390
+	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55_TEAMS = 0x2e57;    // Jabra Link 390
 
 	static constexpr int EVENT_POLL_INTERVAL_MS = 20;
 
@@ -120,22 +122,41 @@ private:
 	HidDeviceOutputData mOutputData;
 };
 
+/**
+ * Unknown HID device
+ * Try to use common values in the hope that it will work.
+ *
+ * Input data:
+ *   0x0100 => hook switch
+ *   0x0200 => line busy
+ *   0x0400 => line
+ *   0x0800 => phone mute
+ *   0x1000 => hook flash
+ *   0x8000 => programmable button
+ *
+ * Output data:
+ *   0x00 => on-hook
+ *   0x01 => off-hook
+ *   0x02 => mute
+ *   0x04 => ringing
+ *   0x08 => hold
+ */
 class UnknownHidDevice : public HidDevice {
 public:
 	UnknownHidDevice(const std::shared_ptr<Core> &core,
 	                 const uint16_t productId,
 	                 const std::wstring &serialNumber,
 	                 void *device)
-	    : HidDevice(core, "", serialNumber, device, HidDeviceInputData{}, HidDeviceOutputData{}) {
+	    : HidDevice(core,
+	                "",
+	                serialNumber,
+	                device,
+	                HidDeviceInputData{0x0100, 0x1000, 0x0800, 0x8000},
+	                HidDeviceOutputData{0x01, 0x02, 0x04, 0x08}) {
 		std::stringstream nameFormat;
 		nameFormat << "Unknown HidDevice with product ID " << productId;
 		mName = nameFormat.str();
 	};
-
-	void startPollTimer() override {
-	}
-	void stopPollTimer() override {
-	}
 };
 
 /**
