@@ -21,6 +21,7 @@
 #include "vcard-context.h"
 #include "vcard.h"
 
+
 // =============================================================================
 
 using namespace std;
@@ -44,13 +45,49 @@ VcardContext *VcardContext::clone() const {
 
 // -----------------------------------------------------------------------------
 
+static string fixVcardTimestamps(const string &input) {
+	// Nextcloud/Sabre generates REV timestamps without seconds (e.g. REV:20260221T2148Z)
+	// but RFC 6350 and belcard grammar require seconds (REV:20260221T214800Z).
+	// Fix by inserting "00" seconds before the trailing "Z" when only HHmm is present.
+	//
+	// NOTE: We avoid std::regex_replace here because the replacement pattern "$100$2"
+	// is misinterpreted by some C++ stdlib implementations (notably libc++ on macOS):
+	// "$10" is parsed as backreference to group 10 instead of group 1 + literal "0",
+	// producing "0Z" instead of "REV:20260221T222600Z".
+	string result = input;
+	size_t pos = 0;
+	while ((pos = result.find("REV:", pos)) != string::npos) {
+		// REV:<8 digits>T<4 digits>Z → insert "00" before Z
+		size_t valueStart = pos + 4;
+		size_t expectedZ = valueStart + 13; // 8 digits + T + 4 digits = 13
+		if (expectedZ < result.size() && result[valueStart + 8] == 'T' &&
+		    (result[expectedZ] == 'Z' || result[expectedZ] == 'z')) {
+			bool valid = true;
+			for (size_t i = 0; i < 8 && valid; i++) valid = isdigit((unsigned char)result[valueStart + i]);
+			for (size_t i = 9; i < 13 && valid; i++) valid = isdigit((unsigned char)result[valueStart + i]);
+			if (valid) {
+				result.insert(expectedZ, "00");
+				pos = expectedZ + 3; // skip past inserted "00Z"
+				continue;
+			}
+		}
+		pos += 4;
+	}
+	return result;
+}
+
 shared_ptr<Vcard> VcardContext::getVcardFromBuffer(const string &buffer) const {
 	if (buffer.empty()) return nullptr;
-	shared_ptr<belcard::BelCard> belCard = mParser->parseOne(buffer);
+	string fixedBuffer = fixVcardTimestamps(buffer);
+	if (fixedBuffer != buffer) {
+		lInfo() << "[vCard] Applied timestamp fix to vCard buffer";
+	}
+	shared_ptr<belcard::BelCard> belCard = mParser->parseOne(fixedBuffer);
 	if (belCard) {
 		return Vcard::create(belCard);
 	} else {
-		lError() << "[vCard] Couldn't parse buffer " << buffer;
+		// Log the fixed buffer so we can see exactly what belcard failed to parse
+		lError() << "[vCard] Couldn't parse buffer (length=" << fixedBuffer.size() << "):\n" << fixedBuffer;
 		return nullptr;
 	}
 }
@@ -58,7 +95,8 @@ shared_ptr<Vcard> VcardContext::getVcardFromBuffer(const string &buffer) const {
 list<shared_ptr<Vcard>> VcardContext::getVcardListFromBuffer(const string &buffer) const {
 	list<shared_ptr<Vcard>> result;
 	if (!buffer.empty()) {
-		shared_ptr<belcard::BelCardList> belCards = mParser->parse(buffer);
+		string fixedBuffer = fixVcardTimestamps(buffer);
+		shared_ptr<belcard::BelCardList> belCards = mParser->parse(fixedBuffer);
 		if (belCards) {
 			for (const auto &belCard : belCards->getCards())
 				result.push_back(Vcard::create(belCard));
