@@ -275,7 +275,7 @@ bool ServerChatRoom::subscribeRegistrationForParticipants(
 	bool subscriptionsPending = false;
 	LinphoneGlobalState gs = linphone_core_get_global_state(getCore()->getCCore());
 	if (gs != LinphoneGlobalOn) {
-		lError() << "The core is currently in state " << std::string(linphone_global_state_to_string(gs))
+		lError() << *this << ": the core is currently in state " << std::string(linphone_global_state_to_string(gs))
 		         << " but registration subscriptions can only be set up when the core is in state GlobalOn";
 		return false;
 	}
@@ -289,6 +289,13 @@ bool ServerChatRoom::subscribeRegistrationForParticipants(
 			if (newInvited) mRegistrationSubscriptionParticipants.emplace_back(cleanedAddr);
 			mUnnotifiedRegistrationSubscriptions++;
 			subscriptionsPending = true;
+		}
+	}
+
+	if (requestedAddresses.empty()) {
+		lError() << "Unable to find a registration subscription for any of the requested addresses:";
+		for (const auto &addr : identAddresses) {
+			lError() << "- " << *addr;
 		}
 	}
 

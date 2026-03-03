@@ -1157,7 +1157,7 @@ static void group_chat_room_with_client_deletes_chatroom_after_restart() {
 }
 
 static void group_chat_room_with_client_restart() {
-	group_chat_room_with_client_restart_base(false);
+	group_chat_room_with_client_restart_base(false, false);
 }
 
 static void group_chat_room_with_client_registering_with_short_register_expires() {

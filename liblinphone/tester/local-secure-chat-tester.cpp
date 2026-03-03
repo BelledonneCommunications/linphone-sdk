@@ -33,7 +33,11 @@
 namespace LinphoneTest {
 
 static void secure_group_chat_room_with_client_restart() {
-	group_chat_room_with_client_restart_base(true);
+	group_chat_room_with_client_restart_base(true, false);
+}
+
+static void secure_group_chat_room_with_client_restart_and_server_restarted_before_participant_addition() {
+	group_chat_room_with_client_restart_base(true, true);
 }
 
 static void secure_group_chat_room_with_invite_error() {
@@ -1465,13 +1469,6 @@ static void secure_one_on_one_chat_room_recreates_chat_room_after_error(bool_t r
 			// Verify that Pauline is no longer a participant of the chatroom. Marie is not notified as there is no
 			// conference event associated to
 			for (auto chatRoom : focus.getCore().getChatRooms()) {
-				LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
-				linphone_chat_room_cbs_set_participant_registration_subscription_requested(
-				    cbs, Focus::chat_room_participant_registration_subscription_requested);
-				setup_chat_room_callbacks(cbs);
-				linphone_chat_room_add_callbacks(chatRoom->toC(), cbs);
-				linphone_chat_room_cbs_set_user_data(cbs, &focus);
-				linphone_chat_room_cbs_unref(cbs);
 				BC_ASSERT_PTR_NULL(linphone_chat_room_find_participant(chatRoom->toC(), paulineAddr.toC()));
 			}
 
@@ -2859,6 +2856,11 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_group_chat_room_with_client_restart,
                   "LimeX3DH",
                   "LeaksMemory"), /* beacause of coreMgr restart*/
+    TEST_TWO_TAGS(
+        "Secure Group chat with client restart and server restarted just before participant addition",
+        LinphoneTest::secure_group_chat_room_with_client_restart_and_server_restarted_before_participant_addition,
+        "LimeX3DH",
+        "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Secure group chat with INVITE session error",
                  LinphoneTest::secure_group_chat_room_with_invite_error,
                  "LimeX3DH"),
