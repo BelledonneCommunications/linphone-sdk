@@ -884,14 +884,16 @@ bool ClientConferenceEventHandler::subscribe() {
 	}
 
 	auto account = conference->getAccount();
-	if (!account) {
-		lError() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
-		         << "  because no account is linked to the conference";
-		return false;
-	} else {
+	std::shared_ptr<const AccountParams> accountParams;
+	if (account) {
+		accountParams = account->getAccountParams();
+		if (!accountParams) {
+			lError() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
+			         << "  because " << *account << " has no parameters associated to";
+			return false;
+		}
 		auto accountState = account->getState();
-		bool isAnonymousParticipant =
-		    Conference::isAnonymousParticipant(account->getAccountParams()->getIdentityAddress());
+		bool isAnonymousParticipant = Conference::isAnonymousParticipant(accountParams->getIdentityAddress());
 		if (!isAnonymousParticipant && (accountState != LinphoneRegistrationRefreshing) &&
 		    (accountState != LinphoneRegistrationOk)) {
 			lError() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
@@ -899,6 +901,10 @@ bool ClientConferenceEventHandler::subscribe() {
 			         << linphone_registration_state_to_string(account->getState()) << ")";
 			return false;
 		}
+	} else {
+		lError() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
+		         << "  because no account is linked to the conference";
+		return false;
 	}
 
 	const auto &subscribeToHeader = conference->getConferenceAddress();
@@ -910,12 +916,14 @@ bool ClientConferenceEventHandler::subscribe() {
 
 	try {
 		const auto &mainSession = conference->getMainSession();
-		LinphonePrivacyMask privacy =
-		    account ? account->getAccountParams()->getPrivacy() : (LinphonePrivacyMask)LinphonePrivacyDefault;
+		LinphonePrivacyMask privacy = accountParams->getPrivacy();
 		if (mainSession) {
-			privacy = mainSession->getParams()->getPrivacy();
+			auto sessionParams = mainSession->getParams();
+			if (sessionParams) {
+				privacy = sessionParams->getPrivacy();
+			}
 			const auto &callContactAddress = mainSession->getContactAddress();
-			if (callContactAddress && (!account || !account->getAccountParams()->getRegisterEnabled())) {
+			if (callContactAddress && !accountParams->getRegisterEnabled()) {
 				// If no account is associated to a conference or it has not reigstered yet, then send the subscribe
 				// using the same transport as the INVITE session
 				subscribeToHeader->setTransport(callContactAddress->getTransport());
@@ -1032,12 +1040,6 @@ LinphoneSubscriptionState ClientConferenceEventHandler::getSubscriptionState() c
 // -----------------------------------------------------------------------------
 bool ClientConferenceEventHandler::subscribe(BCTBX_UNUSED(const ConferenceId &conferenceId)) {
 	// Do not send individual SUBSCRIBE messages if the event handler is managed by the list event handler
-	if (managedByListEventHandler) {
-		auto conf = getConference();
-		lWarning() << "Unable to subscribe to " << *conf << " using a client conference event handler [" << this
-		           << "] because its subscription is already handled by the conference list event handler";
-		return false;
-	}
 	auto ret = subscribe();
 	if (ret) {
 		waitingFullState = (getLastNotify() == 0);
