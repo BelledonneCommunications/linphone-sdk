@@ -92,8 +92,24 @@ foreach(_FRAMEWORK IN LISTS _FRAMEWORKS)
 		if(ENABLE_FAT_BINARY)
 			list(APPEND _ALL_ARCH_FRAMEWORKS "${LINPHONESDK_NAME}/macos-${_ARCH}/Frameworks/${_FRAMEWORK_NAME}.framework/${_FRAMEWORK_NAME}")
 		else()
+			set(_FRAMEWORK_PATH "${LINPHONESDK_NAME}/macos-${_ARCH}/Frameworks/${_FRAMEWORK_NAME}.framework")
 			list(APPEND _ALL_ARCH_FRAMEWORKS "-framework")
-			list(APPEND _ALL_ARCH_FRAMEWORKS "${LINPHONESDK_NAME}/macos-${_ARCH}/Frameworks/${_FRAMEWORK_NAME}.framework")
+			list(APPEND _ALL_ARCH_FRAMEWORKS "${_FRAMEWORK_PATH}")
+
+			# Generate dSYM for this framework slice using dsymutil
+			set(_DSYM_PATH "${_FRAMEWORK_PATH}.dSYM")
+			get_filename_component(_DSYM_ABSOLUTE_PATH "${_DSYM_PATH}" ABSOLUTE)
+			execute_process(
+				COMMAND "dsymutil" "${_FRAMEWORK_PATH}/${_FRAMEWORK_NAME}" "-o" "${_DSYM_PATH}"
+				RESULT_VARIABLE _DSYMUTIL_RESULT
+			)
+			if(_DSYMUTIL_RESULT EQUAL 0 AND EXISTS "${_DSYM_PATH}")
+				list(APPEND _ALL_ARCH_FRAMEWORKS "-debug-symbols")
+				list(APPEND _ALL_ARCH_FRAMEWORKS "${_DSYM_ABSOLUTE_PATH}")
+				message(STATUS "Generated dSYM for ${_FRAMEWORK_NAME} (${_ARCH})")
+			else()
+				message(WARNING "Failed to generate dSYM for ${_FRAMEWORK_NAME} (${_ARCH}), skipping debug symbols for this slice")
+			endif()
 		endif()
 	endforeach()
 	if(ENABLE_SWIFT_WRAPPER AND ENABLE_SWIFT_WRAPPER_COMPILATION)
@@ -112,7 +128,7 @@ foreach(_FRAMEWORK IN LISTS _FRAMEWORKS)
 			COMMAND "lipo" "-create" "-output" "${CMAKE_INSTALL_PREFIX}/Frameworks/${_FRAMEWORK_NAME}.framework/${_FRAMEWORK_NAME}" ${_ALL_ARCH_FRAMEWORKS}
 		)
 	else()
-		message (STATUS "Creating XCFramework for ${_FRAMEWORK_NAME} for archs [${_ARCH_STRING}]")
+		message (STATUS "Creating XCFramework for ${_FRAMEWORK_NAME} for archs [${_ARCH_STRING}] with debug symbols")
 		execute_process(
 			COMMAND "xcodebuild" "-create-xcframework" "-output" "${CMAKE_INSTALL_PREFIX}/XCFrameworks/${_FRAMEWORK_NAME}.xcframework" ${_ALL_ARCH_FRAMEWORKS}
 		)
