@@ -1111,10 +1111,11 @@ void FriendList::sendListSubscriptionWithBody(const std::shared_ptr<Address> &ad
 			content->setContentEncoding("deflate");
 			mEvent->addCustomHeader("Accept-Encoding", "deflate");
 		}
-		for (auto &lf : mFriendsList.mList)
+		for (auto &lf : mFriendsList.mList) {
 			lf->mSubscribeActive = true;
-		mEvent->send(content);
+		}
 		mEvent->setUserData(this);
+		mEvent->send(content);
 	}
 }
 
@@ -1132,8 +1133,8 @@ void FriendList::sendListSubscriptionWithoutBody(const std::shared_ptr<Address> 
 		mEvent->addCustomHeader("Accept-Encoding", "deflate");
 	for (auto &lf : mFriendsList.mList)
 		lf->mSubscribeActive = true;
-	linphone_event_send_subscribe(mEvent->toC(), nullptr);
 	mEvent->setUserData(this);
+	mEvent->send(nullptr);
 }
 
 void FriendList::setFriends(const std::list<std::shared_ptr<Friend>> &friends) {
@@ -1180,18 +1181,18 @@ void FriendList::updateSubscriptions() {
 
 // -----------------------------------------------------------------------------
 
-void FriendList::subscriptionStateChanged(LinphoneCore *lc,
+void FriendList::subscriptionStateChanged(BCTBX_UNUSED(LinphoneCore *lc),
                                           const std::shared_ptr<Event> event,
                                           LinphoneSubscriptionState state) {
 	FriendList *list = reinterpret_cast<FriendList *>(event->getUserData());
 	if (!list) {
-		lWarning() << "core [" << lc << "] Receiving unexpected state [" << linphone_subscription_state_to_string(state)
-		           << "] for event [" << event->toC() << "], no associated friend list";
+		lWarning() << "Receiving unexpected state [" << linphone_subscription_state_to_string(state) << "] for event ["
+		           << event << "], no associated friend list";
 	} else {
-		lInfo() << "Receiving new state [" << linphone_subscription_state_to_string(state) << "] for event ["
-		        << event->toC() << "] for friend list [" << list << "]";
+		lInfo() << "Receiving new state [" << linphone_subscription_state_to_string(state) << "] for event [" << event
+		        << "] for friend list [" << list << "]";
 		if ((state == LinphoneSubscriptionOutgoingProgress) && (event->getReason() == LinphoneReasonNoMatch)) {
-			lInfo() << "Reseting version count for friend list [" << list->toC() << "]";
+			lInfo() << "Reseting version count for friend list [" << list << "]";
 			list->mExpectedNotificationVersion = 0;
 		}
 	}

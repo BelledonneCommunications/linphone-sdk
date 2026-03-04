@@ -303,7 +303,11 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 			for (const auto &imdnState : imdnStates) {
 				const auto &participantState = imdnState.getState();
 				const auto &imdnParticipant = imdnState.getParticipant();
-				if (mFromAddress->weakEqual(*(imdnParticipant->getAddress()))) {
+				std::shared_ptr<Address> participantAddress;
+				if (imdnParticipant) {
+					participantAddress = imdnParticipant->getAddress();
+				}
+				if (mFromAddress && participantAddress && mFromAddress->weakEqual(*participantAddress)) {
 					if (participantState == ChatMessage::State::NotDelivered) {
 						nbNotDeliveredStates++;
 					}
@@ -2472,6 +2476,9 @@ list<ParticipantImdnState> ChatMessage::getParticipantsState() const {
 			auto participant = isMe ? chatRoom->getMe() : chatRoom->findParticipant(dbResult.address);
 			if (participant) {
 				result.emplace_back(participant, dbResult.state, dbResult.timestamp);
+			} else {
+				lWarning() << "ChatMessage [" << this << "] is expected to be or have been sent to a participant with "
+				           << *(dbResult.address) << " but it is not part of " << *chatRoom;
 			}
 		}
 	}
