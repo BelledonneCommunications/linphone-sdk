@@ -31,6 +31,7 @@
 #include "vcard.h"
 #include "xml/xml-parsing-context.h"
 
+#include "bctoolbox/crypto.h"
 #include "private.h"
 
 // =============================================================================
@@ -363,6 +364,52 @@ void CardDAVContext::sendQuery(const shared_ptr<CardDAVQuery> &query, bool cance
 	} catch (const std::exception &e) {
 		lError() << "Could not build http request: " << e.what();
 		return;
+	}
+
+	// Add preemptive Authorization: Basic header for CardDAV servers.
+	// The core's AuthInfo system clears plaintext passwords (replacing them with HA1),
+	// but HTTP Basic auth requires the plaintext password. CardDAV credentials are
+	// stored separately in the [carddav_auth] config section to avoid this issue.
+	{
+		belle_generic_uri_t *parsedUri = belle_generic_uri_parse(url.c_str());
+		if (parsedUri) {
+			const char *host = belle_generic_uri_get_host(parsedUri);
+			if (host) {
+				string domain(host);
+				LpConfig *lpconfig = linphone_core_get_config(getCore()->getCCore());
+				const char *cfgUsername = linphone_config_get_string(lpconfig, "carddav_auth",
+				                                                      (domain + "_username").c_str(), NULL);
+				const char *cfgPassword = linphone_config_get_string(lpconfig, "carddav_auth",
+				                                                      (domain + "_password").c_str(), NULL);
+
+				if (cfgUsername && cfgPassword) {
+					lInfo() << "[CardDAV] Found CardDAV credentials in config for domain [" << domain << "]";
+					mHttpRequest->setAuthInfo(cfgUsername, host);
+
+					string credentials = string(cfgUsername) + ":" + string(cfgPassword);
+					size_t encodedLen = credentials.size() * 2;
+					vector<unsigned char> encoded(encodedLen);
+					bctbx_base64_encode(encoded.data(), &encodedLen,
+					                    (const unsigned char *)credentials.c_str(), credentials.size());
+					string authHeader = "Basic " + string((char *)encoded.data(), encodedLen);
+					lInfo() << "[CardDAV] Adding preemptive Basic auth header for user [" << cfgUsername << "]";
+					mHttpRequest->addHeader("Authorization", authHeader);
+				} else {
+					// Fallback: try AuthInfo (password may be available if store_ha1_passwd is disabled)
+					const LinphoneAuthInfo *ai = linphone_core_find_auth_info(getCore()->getCCore(), NULL, NULL, host);
+					if (ai) {
+						const char *authUsername = linphone_auth_info_get_username(ai);
+						if (authUsername) {
+							lInfo() << "[CardDAV] Setting auth info from AuthInfo for domain [" << domain << "]";
+							mHttpRequest->setAuthInfo(authUsername, host);
+						}
+					} else {
+						lInfo() << "[CardDAV] No auth info found for domain [" << domain << "]";
+					}
+				}
+			}
+			belle_sip_object_unref(parsedUri);
+		}
 	}
 
 	if (!query->mDepth.empty()) {
