@@ -414,15 +414,14 @@ void ClientConferenceListEventHandler::onNetworkReachable(bool sipNetworkReachab
 void ClientConferenceListEventHandler::onAccountRegistrationStateChanged(std::shared_ptr<Account> account,
                                                                          LinphoneRegistrationState state,
                                                                          BCTBX_UNUSED(const std::string &message)) {
-	const auto &previousAccountState = account->getPreviousState();
+
+	const auto &accountParams = account->getAccountParams();
+	const auto &cfgAddress = accountParams->getIdentityAddress();
 	// Do not subscribe again is the moving from RegistrationOk or RegistrationPending to RegistrationOk
-	if ((state == LinphoneRegistrationOk) && (previousAccountState != LinphoneRegistrationOk) &&
-	    (previousAccountState != LinphoneRegistrationRefreshing)) {
+	if ((state == LinphoneRegistrationOk) && !alreadySubscribed(cfgAddress)) {
 		subscribe(account);
 	} else if (state == LinphoneRegistrationCleared) { // On cleared, restart subscription if the cleared proxy config
 		                                               // is the current subscription
-		const auto &accountParams = account->getAccountParams();
-		const auto &cfgAddress = accountParams->getIdentityAddress();
 		// If no subscription is found, then unsubscribe the account
 		if (findEvent(cfgAddress)) unsubscribe(account);
 	}

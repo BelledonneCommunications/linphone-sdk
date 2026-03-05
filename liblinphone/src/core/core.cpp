@@ -383,6 +383,10 @@ void CorePrivate::createConferenceCleanupTimer(long period) {
 	stopConferenceCleanupTimer();
 	if (period > 0) {
 		auto onConferenceCleanup = [this]() -> bool {
+			// Clean up the database before checking which conferences have expired because calling
+			// Conference::terminate() deletes the conference information from the database and therefore the conference
+			// URI cannot be stored among the expired conference list anymore
+			mainDb->cleanupConferenceInfo(ms_time(NULL));
 			auto it = mConferenceById.begin();
 			while (it != mConferenceById.end()) {
 				auto [id, conference] = (*it);
@@ -396,7 +400,6 @@ void CorePrivate::createConferenceCleanupTimer(long period) {
 					conference->terminate();
 				}
 			};
-			mainDb->cleanupConferenceInfo(ms_time(NULL));
 			return BELLE_SIP_CONTINUE;
 		};
 		mConferenceCleanupTimer =
