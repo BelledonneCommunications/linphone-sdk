@@ -47,6 +47,7 @@
 #include "presence/presence-service.h"
 #include "private.h"
 #include "utils/custom-params.h"
+#include "utils/fsm-integrity-checker.h"
 #include "utils/xml-utils.h"
 #ifdef HAVE_XERCESC
 #include "xml/xcon-ccmp.h"
@@ -62,6 +63,24 @@ LINPHONE_BEGIN_NAMESPACE
 using namespace Xsd::XconCcmp;
 using namespace Xsd::XconConferenceInfo;
 #endif // HAVE_XERCESC
+
+static FsmIntegrityChecker<LinphoneRegistrationState> accountFsmChecker{
+    {{LinphoneRegistrationNone, {LinphoneRegistrationProgress, LinphoneRegistrationFailed}},
+     {LinphoneRegistrationProgress,
+      {LinphoneRegistrationOk, LinphoneRegistrationRefreshing, LinphoneRegistrationFailed}},
+     {LinphoneRegistrationOk,
+      {
+          LinphoneRegistrationNone,
+          LinphoneRegistrationProgress,
+          LinphoneRegistrationOk,
+          LinphoneRegistrationRefreshing,
+          LinphoneRegistrationFailed,
+          LinphoneRegistrationCleared,
+      }},
+     {LinphoneRegistrationCleared, {LinphoneRegistrationNone, LinphoneRegistrationProgress}},
+     {LinphoneRegistrationFailed,
+      {LinphoneRegistrationNone, LinphoneRegistrationProgress, LinphoneRegistrationOk, LinphoneRegistrationRefreshing}},
+     {LinphoneRegistrationRefreshing, {LinphoneRegistrationNone, LinphoneRegistrationOk, LinphoneRegistrationFailed}}}};
 
 Account::Account(LinphoneCore *lc, std::shared_ptr<AccountParams> params)
     : CoreAccessor(lc ? L_GET_CPP_PTR_FROM_C_OBJECT(lc) : nullptr) {
@@ -442,10 +461,18 @@ void Account::handleDeletion() {
 void Account::setState(LinphoneRegistrationState state, const std::string &message) {
 	/*allow multiple notification of LinphoneRegistrationOk for refreshing*/
 	if ((mState != state) || (state == LinphoneRegistrationOk)) {
+
+		// Check valid transition.
+		if (!accountFsmChecker.isValid(mState, state)) {
+			lWarning() << "Invalid state transition from state [" << linphone_registration_state_to_string(mState)
+			           << "] to [" << linphone_registration_state_to_string(state) << "] on " << *this;
+			return;
+		}
+
 		auto core = getCCore();
 		const auto identity = (mParams) ? mParams->getIdentityAddress()->toString() : std::string("sip:");
 		if (!mParams) lWarning() << "AccountParams not set for " << *this;
-		lInfo() << *this << " moving from state [" << linphone_registration_state_to_string(mState) << "] to ["
+		lInfo() << *this << " is moving from state [" << linphone_registration_state_to_string(mState) << "] to ["
 		        << linphone_registration_state_to_string(state) << "] on core [" << core << "]";
 		mIsUnregistering = false;
 		if (state == LinphoneRegistrationOk) {

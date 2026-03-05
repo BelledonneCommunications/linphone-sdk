@@ -272,15 +272,16 @@ void check_delete_focus_conference_info(std::initializer_list<std::reference_wra
 				           "happen within milliseconds",
 				           focus_cleanup_window, linphone_core_get_identity(mgr->lc), conferenceAddressString,
 				           time_left);
-				CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds(focus_cleanup_window), [&mgr, &confAddr] {
-					LinphoneConferenceInfo *info =
-					    linphone_core_find_conference_information_from_uri(mgr->lc, confAddr);
-					bool is_confernece_info_null = (info == NULL);
-					if (info) {
-						linphone_conference_info_unref(info);
-					}
-					return is_confernece_info_null;
-				});
+				BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).waitUntil(
+				    chrono::seconds(focus_cleanup_window), [&mgr, &confAddr, &time_left] {
+					    LinphoneConferenceInfo *info =
+					        linphone_core_find_conference_information_from_uri(mgr->lc, confAddr);
+					    bool is_confernece_info_null = (info == NULL);
+					    if (info) {
+						    linphone_conference_info_unref(info);
+					    }
+					    return (time_left > 0) ? !is_confernece_info_null : is_confernece_info_null;
+				    }));
 			} else {
 				BC_ASSERT_PTR_NOT_NULL(info);
 			}
@@ -301,15 +302,16 @@ void check_delete_focus_conference_info(std::initializer_list<std::reference_wra
 			           Utils::timeToIso8601(now).c_str());
 			// wait for the conference to end
 			if (focus_cleanup_window > 0) {
-				CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds((wait_time + 1)), [&focus, &confAddr] {
-					LinphoneConferenceInfo *focus_info =
-					    linphone_core_find_conference_information_from_uri(focus->lc, confAddr);
-					if (focus_info) {
-						linphone_conference_info_unref(focus_info);
-						return false;
-					}
-					return true;
-				});
+				BC_ASSERT_TRUE(
+				    CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds((wait_time + 1)), [&focus, &confAddr] {
+					    LinphoneConferenceInfo *focus_info =
+					        linphone_core_find_conference_information_from_uri(focus->lc, confAddr);
+					    if (focus_info) {
+						    linphone_conference_info_unref(focus_info);
+						    return false;
+					    }
+					    return true;
+				    }));
 			} else {
 				CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds((wait_time + 1)), [] { return false; });
 				LinphoneConferenceInfo *focus_info =

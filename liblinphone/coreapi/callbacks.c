@@ -652,9 +652,10 @@ static void register_success(SalOp *op, bool_t registered) {
 		return;
 	}
 
+	auto cppAccount = Account::toCpp(account)->getSharedFromThis();
 	// If this register is a refresh sent by belle-sip, then move to the Refreshing register first
-	if (registered && Account::toCpp(account)->getPreviousState() == LinphoneRegistrationOk) {
-		Account::toCpp(account)->setState(LinphoneRegistrationRefreshing, "Registration refreshing");
+	if (registered && (cppAccount->getPreviousState() == LinphoneRegistrationOk)) {
+		cppAccount->setState(LinphoneRegistrationRefreshing, "Registration refreshing");
 	}
 
 	LinphoneRegistrationState state = LinphoneRegistrationNone;
@@ -666,7 +667,7 @@ static void register_success(SalOp *op, bool_t registered) {
 		state = LinphoneRegistrationCleared;
 		stateMessage = "Unregistration done";
 	}
-	Account::toCpp(account)->setState(state, stateMessage);
+	cppAccount->setState(state, stateMessage);
 }
 
 static void register_failure(SalOp *op) {
