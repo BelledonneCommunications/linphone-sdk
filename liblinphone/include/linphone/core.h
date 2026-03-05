@@ -2623,6 +2623,14 @@ LINPHONE_PUBLIC void linphone_core_abort_authentication(LinphoneCore *core, cons
 LINPHONE_PUBLIC void linphone_core_clear_all_auth_info(LinphoneCore *core);
 
 /**
+ * Clean all expired authentication informations.
+ * @ingroup group_authentication
+ * @param core the #LinphoneCore @notnil
+ * @return the number of authentication informations that were removed.
+ **/
+LINPHONE_PUBLIC int linphone_core_clean_auth_infos(LinphoneCore *core);
+
+/**
  * Setup a new digest authentication policy applicable for SIP and HTTP.
  *
  * @param core the #LinphoneCore @notnil

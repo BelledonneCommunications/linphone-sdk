@@ -43,7 +43,7 @@ noise_suppression=0
 
 [net]
 
-stun_server=stun.example.org
+stun_server=stun.example.org:3479
 
 [call_log_0]
 dir=0

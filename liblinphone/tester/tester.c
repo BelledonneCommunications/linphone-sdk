@@ -425,7 +425,9 @@ bool_t wait_for_list(bctbx_list_t *lcs, const int *counter, int value, int timeo
 			linphone_core_iterate((LinphoneCore *)(iterator->data));
 		}
 #ifdef LINPHONE_WINDOWS_UWP
-		{ bc_tester_process_events(); }
+		{
+			bc_tester_process_events();
+		}
 #elif defined(LINPHONE_WINDOWS_DESKTOP)
 		{
 			MSG msg;
@@ -455,7 +457,9 @@ bool_t wait_for_list_for_uint64(bctbx_list_t *lcs, const uint64_t *counter, uint
 			linphone_core_iterate((LinphoneCore *)(iterator->data));
 		}
 #ifdef LINPHONE_WINDOWS_UWP
-		{ bc_tester_process_events(); }
+		{
+			bc_tester_process_events();
+		}
 #elif defined(LINPHONE_WINDOWS_DESKTOP)
 		{
 			MSG msg;
@@ -5118,12 +5122,14 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
 
 		caller_call = linphone_core_get_current_call(caller_mgr->lc);
 		BC_ASSERT_PTR_NOT_NULL(caller_call);
+		if (caller_call) caller_call = linphone_call_ref(caller_call);
 		const LinphoneCallParams *caller_call_param = linphone_call_get_current_params(caller_call);
 		const LinphoneMediaEncryption caller_enc = linphone_call_params_get_media_encryption(caller_call_param);
 		check_lime_ik(caller_mgr, caller_call);
 
 		callee_call = linphone_core_get_current_call(callee_mgr->lc);
 		BC_ASSERT_PTR_NOT_NULL(callee_call);
+		if (callee_call) callee_call = linphone_call_ref(callee_call);
 		const LinphoneCallParams *callee_call_param = linphone_call_get_current_params(callee_call);
 		const LinphoneMediaEncryption callee_enc = linphone_call_params_get_media_encryption(callee_call_param);
 		check_lime_ik(callee_mgr, callee_call);
@@ -5224,7 +5230,8 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
 
 		check_stream_encryption(caller_call);
 		check_stream_encryption(callee_call);
-
+		if (caller_call) linphone_call_unref(caller_call);
+		if (callee_call) linphone_call_unref(callee_call);
 		if (caller_enc == LinphoneMediaEncryptionDTLS) {
 			LinphoneCall *call = linphone_core_get_current_call(caller_mgr->lc);
 			if (!BC_ASSERT_PTR_NOT_NULL(call)) return FALSE;

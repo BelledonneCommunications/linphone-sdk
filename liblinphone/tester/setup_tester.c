@@ -1394,6 +1394,24 @@ static void local_ringtone_fallback_test(void) {
 	linphone_core_unref(lc);
 }
 
+static void clean_auth_infos(void) {
+	LinphoneCore *lc =
+	    linphone_factory_create_core_3(linphone_factory_get(), NULL, liblinphone_tester_get_empty_rc(), system_context);
+	if (!BC_ASSERT_PTR_NOT_NULL(lc)) return;
+
+	linphone_core_start(lc);
+	LinphoneAuthInfo *ai = linphone_auth_info_new("dummy", NULL, "pass", NULL, NULL, NULL);
+	linphone_auth_info_set_expires(ai, 10);
+	linphone_core_add_auth_info(lc, ai);
+	linphone_auth_info_unref(ai);
+	BC_ASSERT_EQUAL(bctbx_list_size(linphone_core_get_auth_info_list(lc)), 1, size_t, "%zu");
+	wait_for_until(lc, NULL, NULL, 0, 15);
+	BC_ASSERT_EQUAL(linphone_core_clean_auth_infos(lc), 1, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_list_size(linphone_core_get_auth_info_list(lc)), 0, size_t, "%zu");
+	linphone_core_stop(lc);
+	linphone_core_unref(lc);
+}
+
 static test_t setup_tests[] = {
     TEST_NO_TAG("Version check", linphone_version_test),
     TEST_NO_TAG("Version update check", linphone_version_update_test),
@@ -1435,6 +1453,7 @@ static test_t setup_tests[] = {
     TEST_NO_TAG("Audio devices", audio_devices),
     TEST_NO_TAG("Migrate from call history database", migration_from_call_history_db),
     TEST_NO_TAG("Local ringtone fallback", local_ringtone_fallback_test),
+    TEST_NO_TAG("Clean auth infos", clean_auth_infos),
 };
 
 test_suite_t setup_test_suite = {"Setup",
