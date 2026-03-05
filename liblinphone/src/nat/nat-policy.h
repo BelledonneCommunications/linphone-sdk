@@ -135,7 +135,8 @@ public:
 	void saveToConfig(LinphoneConfig *config, int index) const;
 	static void clearConfigFromIndex(LinphoneConfig *config, int index);
 
-	void updateTurnConfiguration(const std::function<void(bool)> &iceGathering);
+	void updateTurnConfiguration(const std::optional<std::shared_ptr<Address>> &from,
+	                             const std::function<void(bool)> &iceGathering);
 	bool needToUpdateTurnConfiguration();
 	void cancelTurnConfigurationUpdate();
 

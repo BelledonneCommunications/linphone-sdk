@@ -1,3 +1,7 @@
+[account_creator]
+backend=1
+url=http://subscribe.example.org/flexiapi/api/
+
 [sip]
 sip_port=-1
 sip_tcp_port=-1
@@ -50,7 +54,7 @@ echocancellation=0 #to not overload cpu
 noise_suppression=0
 
 [net]
-stun_server=stun.example.org
+stun_server=stun.example.org:3479
 
 [tester]
 test_env=1

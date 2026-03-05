@@ -240,7 +240,9 @@ bool NatPolicy::resolveStunServer() {
 			ms_message("Starting stun server resolution [%s]", host);
 			auto lambda = [this](belle_sip_resolver_results_t *results) { this->stunServerResolved(results); };
 			if (port == 0) {
-				port = 3478;
+				// Use default ports
+				if (mTurnTlsEnabled) port = 5349;
+				else port = 3478;
 				mStunResolverContext = lc->sal->resolve(service, "udp", host, port, family, lambda);
 			} else {
 				mStunResolverContext = lc->sal->resolveA(host, port, family, lambda);
@@ -401,12 +403,20 @@ bool NatPolicy::processJsonConfigurationResponse(const std::shared_ptr<NatPolicy
 	return ret;
 }
 
-void NatPolicy::updateTurnConfiguration(const std::function<void(bool)> &completionRoutine) {
+void NatPolicy::updateTurnConfiguration(const std::optional<std::shared_ptr<Address>> &from,
+                                        const std::function<void(bool)> &completionRoutine) {
 	try {
 		mCompletionRoutine = completionRoutine;
 		auto &httpClient = getCore()->getHttpClient();
 		auto &httpRequest = httpClient.createRequest("GET", mTurnConfigurationEndpoint);
-
+		if (from) {
+			auto fromAddress = from.value()->clone();
+			fromAddress->clean();          // Remove gruu
+			fromAddress->setScheme("sip"); // TODO: FAM v2.0.6 doesn't support sips. Force to sip.
+			httpRequest.setAuthInfo(fromAddress->getUsername(), fromAddress->getDomain());
+			httpRequest.addHeader("From", fromAddress->asStringUriOnly());
+			delete fromAddress;
+		}
 		std::weak_ptr<NatPolicy> natPolicyRef = shared_from_this();
 		httpRequest.execute([natPolicyRef](const HttpResponse &response) -> void {
 			auto sharedNatPolicy = natPolicyRef.lock();

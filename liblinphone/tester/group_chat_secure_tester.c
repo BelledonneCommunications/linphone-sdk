@@ -6374,15 +6374,15 @@ static test_t secure_group_chat_tests[] = {
 };
 
 static test_t secure_group_chat2_tests[] = {
+    TEST_ONE_TAG("Lime Unique one-on-one chatroom recreated from message",
+                 group_chat_room_unique_one_on_one_chat_room_recreated_from_message,
+                 "LimeX3DH"), // First in the list because of the CLS history
     TEST_ONE_TAG("LIME X3DH chatroom security level self multidevices",
                  group_chat_lime_x3dh_chatroom_security_level_self_multidevices,
                  "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH chatroom security alert", group_chat_lime_x3dh_chatroom_security_alert, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH call security alert", group_chat_lime_x3dh_call_security_alert, "LimeX3DH"),
     TEST_ONE_TAG("Imdn", imdn_for_group_chat_room, "LimeX3DH"),
-    TEST_ONE_TAG("Lime Unique one-on-one chatroom recreated from message",
-                 group_chat_room_unique_one_on_one_chat_room_recreated_from_message,
-                 "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH stop/start core", group_chat_lime_x3dh_stop_start_core, "LimeX3DH"),
     TEST_TWO_TAGS("LIME X3DH session corrupted",
                   group_chat_lime_x3dh_session_corrupted,

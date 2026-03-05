@@ -249,11 +249,14 @@ bool IceService::prepare() {
 	if (!mIceSession) return false;
 
 	const auto natPolicy = getMediaSessionPrivate().getNatPolicy();
-	if (natPolicy && natPolicy->turnEnabled() && natPolicy->needToUpdateTurnConfiguration()) {
-		natPolicy->updateTurnConfiguration([this](BCTBX_UNUSED(bool ignored)) {
-			bool ret = needIceGathering();
-			if (!ret) notifyEndOfPrepare();
-		});
+	if (natPolicy && (natPolicy->turnEnabled() || natPolicy->stunEnabled()) &&
+	    natPolicy->needToUpdateTurnConfiguration()) {
+		auto account = getMediaSessionPrivate().getDestAccount();
+		natPolicy->updateTurnConfiguration(account ? account->getAccountParams()->getIdentityAddress() : nullptr,
+		                                   [this](BCTBX_UNUSED(bool ignored)) {
+			                                   bool ret = needIceGathering();
+			                                   if (!ret) notifyEndOfPrepare();
+		                                   });
 		return true;
 	}
 	return needIceGathering();

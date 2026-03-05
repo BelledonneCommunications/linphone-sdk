@@ -2057,6 +2057,7 @@ static void sip_config_read(LinphoneCore *lc) {
 			break;
 		}
 	}
+	linphone_core_clean_auth_infos(lc); // Clean all expired auth infos.
 	/*this is to filter out unsupported encryption schemes*/
 	linphone_core_set_media_encryption(lc, linphone_core_get_media_encryption(lc));
 

@@ -450,6 +450,22 @@ void linphone_core_clear_all_auth_info(LinphoneCore *lc) {
 	lc->auth_info = NULL;
 }
 
+int linphone_core_clean_auth_infos(LinphoneCore *lc) {
+	bctbx_list_t *elem = lc->auth_info;
+	int count = 0;
+	while (elem != NULL) {
+		LinphoneAuthInfo *info = (LinphoneAuthInfo *)elem->data;
+		if ((linphone_auth_info_get_expires(info) != 0) && (linphone_auth_info_get_expires(info) <= time(nullptr))) {
+			elem = bctbx_list_next(elem); // Iterate before removing item
+			lc->auth_info =
+			    bctbx_list_remove_with_data(lc->auth_info, info, (bctbx_list_free_func)linphone_auth_info_unref);
+			++count;
+		} else elem = bctbx_list_next(elem);
+	}
+	linphone_core_write_auth_infos(lc);
+	return count;
+}
+
 void linphone_auth_info_fill_belle_sip_event(const LinphoneAuthInfo *auth_info, belle_sip_auth_event *event) {
 	if (auth_info) {
 		const char *auth_username = linphone_auth_info_get_username(auth_info);

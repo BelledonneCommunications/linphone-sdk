@@ -50,7 +50,7 @@ noise_suppression=0
 
 [net]
 
-stun_server=stun.example.org
+stun_server=stun.example.org:3479
 
 [tunnel]
 verifyCert=1

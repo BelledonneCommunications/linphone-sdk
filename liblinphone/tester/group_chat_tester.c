@@ -3238,9 +3238,12 @@ static void group_chat_room_reinvited_after_removed_base(bool_t offline_when_rem
 			coresList = bctbx_list_concat(coresList, tmpCoresList);
 			coresManagerList = bctbx_list_append(coresManagerList, laure);
 			previousLaureChatRoomStateTerminated = 0;
-
-			BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_LinphoneSubscriptionError, 1,
-			                             liblinphone_tester_sip_timeout));
+			if (restart_after_reinvited)
+				BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_LinphoneSubscriptionActive, 1,
+				                             liblinphone_tester_sip_timeout));
+			else
+				BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_LinphoneSubscriptionError, 1,
+				                             liblinphone_tester_sip_timeout));
 
 			// Toggle the network to make sure that Pauline received the BYE from the server. The first attempt of the
 			// server to BYE a device fails because the BYE is answered with a 503 Service Unavailable as the client is
