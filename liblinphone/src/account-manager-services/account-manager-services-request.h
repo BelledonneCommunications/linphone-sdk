@@ -94,7 +94,7 @@ private:
 
 class AccountManagerServicesRequestCbs
     : public bellesip::HybridObject<LinphoneAccountManagerServicesRequestCbs, AccountManagerServicesRequestCbs>,
-      public Callbacks {
+      public ListenerBase {
 public:
 	LinphoneAccountManagerServicesRequestCbsOnSuccessfulRequestCb getRequestSuccessful() const;
 	void setRequestSuccessful(LinphoneAccountManagerServicesRequestCbsOnSuccessfulRequestCb cb);

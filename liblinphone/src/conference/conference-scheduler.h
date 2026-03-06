@@ -95,7 +95,7 @@ protected:
 };
 
 class ConferenceSchedulerCbs : public bellesip::HybridObject<LinphoneConferenceSchedulerCbs, ConferenceSchedulerCbs>,
-                               public Callbacks {
+                               public ListenerBase {
 public:
 	LinphoneConferenceSchedulerCbsStateChangedCb getStateChanged() const;
 	void setStateChanged(LinphoneConferenceSchedulerCbsStateChangedCb cb);

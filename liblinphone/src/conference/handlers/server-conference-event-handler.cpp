@@ -904,7 +904,7 @@ void ServerConferenceEventHandler::notifyResponseCb(LinphoneEvent *lev) {
 	auto cbs = ev->getCurrentCallbacks();
 	ServerConferenceEventHandler *handler = static_cast<ServerConferenceEventHandler *>(cbs->getUserData());
 	cbs->setUserData(nullptr);
-	cbs->notifyResponseCb = nullptr;
+	cbs->mNotifyResponseCb = nullptr;
 
 	if (ev->getReason() != LinphoneReasonNone) return;
 
@@ -1146,7 +1146,7 @@ void ServerConferenceEventHandler::notifyParticipantDevice(const shared_ptr<Cont
 	shared_ptr<EventSubscribe> ev = device->getConferenceSubscribeEvent();
 	shared_ptr<EventCbs> cbs = EventCbs::create();
 	cbs->setUserData(this);
-	cbs->notifyResponseCb = notifyResponseCb;
+	cbs->mNotifyResponseCb = notifyResponseCb;
 	ev->addCallbacks(cbs);
 
 	ev->notify(content);

@@ -64,7 +64,7 @@ void ServerConferenceListEventHandler::notifyResponseCb(LinphoneEvent *lev) {
 	shared_ptr<EventCbs> cbs = ev->getCurrentCallbacks();
 	ServerConferenceListEventHandler *listHandler = static_cast<ServerConferenceListEventHandler *>(cbs->getUserData());
 	cbs->setUserData(nullptr);
-	cbs->notifyResponseCb = nullptr;
+	cbs->mNotifyResponseCb = nullptr;
 
 	if (ev->getReason() != LinphoneReasonNone) return;
 
@@ -208,7 +208,7 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 
 	shared_ptr<EventCbs> cbs = EventCbs::create();
 	cbs->setUserData(this);
-	cbs->notifyResponseCb = notifyResponseCb;
+	cbs->mNotifyResponseCb = notifyResponseCb;
 	ev->addCallbacks(cbs);
 	std::shared_ptr<Content> multipart;
 	if (!contentsAsPtr.empty()) {

@@ -65,7 +65,7 @@ protected:
 	static LinphonePlayerState linphoneStateFromMs2State(MSPlayerState state);
 };
 
-class PlayerCbs : public bellesip::HybridObject<LinphonePlayerCbs, PlayerCbs>, public Callbacks {
+class PlayerCbs : public bellesip::HybridObject<LinphonePlayerCbs, PlayerCbs>, public ListenerBase {
 public:
 	LinphonePlayerCbsEofReachedCb getEofReached() const;
 	void setEofReached(LinphonePlayerCbsEofReachedCb cb);

@@ -32,21 +32,39 @@
 // =============================================================================
 
 LINPHONE_BEGIN_NAMESPACE
+class Event;
 
-class EventCbs : public bellesip::HybridObject<LinphoneEventCbs, EventCbs>, public Callbacks {
+/* Use this class to inherint a listener used internally */
+class EventListener : public ListenerBase {
 public:
-	LinphoneEventCbsNotifyResponseCb notifyResponseCb;
-	LinphoneEventCbsNotifyReceivedCb notifyReceivedCb;
-	LinphoneEventCbsSubscribeReceivedCb subscribeReceivedCb;
-	LinphoneEventCbsSubscribeStateChangedCb subscribeStateChangedCb;
-	LinphoneEventCbsPublishReceivedCb publishReceivedCb;
-	LinphoneEventCbsPublishStateChangedCb publishStateChangedCb;
+	virtual ~EventListener() = default;
+	virtual void notifyResponse(const std::shared_ptr<Event> &) {};
+	virtual void notifyReceived(const std::shared_ptr<Event> &, const std::shared_ptr<Content> &) {};
+	virtual void subscribeReceived(const std::shared_ptr<Event> &) {};
+	virtual void subscribeStateChanged(const std::shared_ptr<Event> &, LinphoneSubscriptionState) {};
+	virtual void publishStateChanged(const std::shared_ptr<Event> &, LinphonePublishState) {};
+};
+
+/* This class maps to the LinphoneEventCbs object, that contains Event's callbacks. */
+class EventCbs : public bellesip::HybridObject<LinphoneEventCbs, EventCbs>, public EventListener {
+public:
+	virtual void notifyResponse(const std::shared_ptr<Event> &event) override;
+	virtual void notifyReceived(const std::shared_ptr<Event> &event, const std::shared_ptr<Content> &content) override;
+	virtual void subscribeReceived(const std::shared_ptr<Event> &event) override;
+	virtual void subscribeStateChanged(const std::shared_ptr<Event> &event, LinphoneSubscriptionState state) override;
+	virtual void publishStateChanged(const std::shared_ptr<Event> &event, LinphonePublishState state) override;
+	LinphoneEventCbsNotifyResponseCb mNotifyResponseCb{};
+	LinphoneEventCbsNotifyReceivedCb notifyReceivedCb{};
+	LinphoneEventCbsSubscribeReceivedCb subscribeReceivedCb{};
+	LinphoneEventCbsSubscribeStateChangedCb subscribeStateChangedCb{};
+	LinphoneEventCbsPublishReceivedCb publishReceivedCb{};
+	LinphoneEventCbsPublishStateChangedCb publishStateChangedCb{};
 };
 
 class Core;
 
 class LINPHONE_PUBLIC Event : public bellesip::HybridObject<LinphoneEvent, Event>,
-                              public CallbacksHolder<EventCbs>,
+                              public CallbacksHolder<EventCbs, EventListener>,
                               public CoreAccessor,
                               public UserDataAccessor,
                               public PropertyContainer {

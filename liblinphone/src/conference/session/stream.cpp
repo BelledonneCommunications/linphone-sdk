@@ -240,7 +240,7 @@ void Stream::initMulticast(const OfferAnswerContext &params) {
 			mPortConfig.multicastIp = linphone_core_get_video_multicast_addr(getCCore());
 		}
 		/* multicastRtpPort is the one that will be advertised.
-		 * However, the socket that will send to the multicast address/port does need need to bind on this port.
+		 * However, the socket that will send to the multicast address/port does not need to bind on this port.
 		 * It should not to avoid port conflicts with multicast receivers that may run on the same host.
 		 * The bind() will be done on a random port instead.
 		 */

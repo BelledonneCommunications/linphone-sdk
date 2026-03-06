@@ -71,6 +71,8 @@ public:
 	void startTimeoutHandling();
 	void stopTimeoutHandling();
 
+	void onPublishReceived(Content *content);
+
 protected:
 	virtual ~EventPublish();
 

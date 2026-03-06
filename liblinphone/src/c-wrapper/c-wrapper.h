@@ -42,9 +42,16 @@
 #define LINPHONE_PTR_TO_INT(x) ((int)(intptr_t)(x))
 
 #include "belle-sip/object++.hh"
+#include "list-holder.h"
 
 /*
+ * DEPRECATED
  * Macros to invoke callbacks owned by an HybridObject derived type.
+ *
+ * It is now recommended to use CallbacksHolder::invokeListeners() method to invoke listeners.
+ * For this to work, the callback object (ex EventCbs, AccountCbs...) must inherit from
+ * an abtract listener class, that can be used internally for pure C++ code.
+ * See src/event/event.h for a working example of the new way to manage listeners and Cbs objects.
  */
 
 #define LINPHONE_HYBRID_OBJECT_INVOKE_CBS_WITH_C(cppType, cppObject, cbGetter, ...)                                    \
@@ -114,10 +121,11 @@ private:
 };
 
 /*
- * Base class for all '*Cbs' classes.
+ * Base class for all listeners, including '*Cbs' classes.
  */
-class LINPHONE_PUBLIC Callbacks : public UserDataAccessor {
+class LINPHONE_PUBLIC ListenerBase : public UserDataAccessor {
 public:
+	virtual ~ListenerBase() = default;
 	inline void setActive(bool active) {
 		mIsActive = active;
 	}
@@ -127,6 +135,111 @@ public:
 
 private:
 	bool mIsActive = true;
+};
+
+/* Base class for the ListenerHolder template.
+ * It is mainly there to avoid multiple instanciations of similar methods,
+ * where just the managed listener type differs, in order to save object code space.
+ */
+class LINPHONE_PUBLIC ListenerHolderBase {
+public:
+	using UnderlyingContainer = std::set<ListenerBase *>;
+	virtual ~ListenerHolderBase() = default;
+	void addListener(ListenerBase *listener);
+	void removeListener(ListenerBase *listener);
+	const UnderlyingContainer &getContainer() const {
+		return mListeners;
+	}
+	void clear();
+
+protected:
+	ListenerBase *mCurrentListener = nullptr;
+	UnderlyingContainer mListeners;
+};
+
+/*
+ * Base class for a class that can invoke listeners.
+ */
+template <typename _listenerT>
+class LINPHONE_PUBLIC ListenerHolder : public ListenerHolderBase {
+public:
+	template <typename _lambdaT>
+	void invokeListeners(_lambdaT lambda) {
+		std::list<ListenerBase *> listenersCopy(mListeners.begin(), mListeners.end());
+		for (auto l : listenersCopy) {
+			/*
+			 * This could be a static_cast<> to get better performance.
+			 * Dynamic_cast is here for safety.
+			 */
+			_listenerT *realListener = dynamic_cast<_listenerT *>(l);
+			if (realListener) {
+				mCurrentListener = l;
+				lambda(realListener);
+				mCurrentListener = nullptr;
+			} else
+				lError() << "ListenerHolder::invokeListeners(): could not dynamic_cast listener " << l << " to type "
+				         << typeid(_listenerT).name();
+		}
+	}
+};
+
+/*
+ * Template class for classes that hold callbacks (such as LinphoneCallCbs, LinphoneAccountCbs etc.
+ * and internal listeners.
+ * The invocation of all listeners (including callback objects) must be done using
+ * the invokeListeners() memeber function, inherited from ListenerHolder.
+ * For this to work, the callback object (ex EventCbs, AccountCbs...) must inherit from
+ * an abtract listener class, that can be used internally for pure C++ code.
+ * See src/event/event.h for a working example of the new way to manage listeners and Cbs objects.
+ *
+ * Former method: for objects not yet using a listener interface on top of their Cbs object,
+ * it can be done with the LINPHONE_HYBRID_OBJECT_INVOKE_CBS() macro.
+ */
+template <typename _CppCbsType, typename _ListenerType = ListenerBase>
+class LINPHONE_PUBLIC CallbacksHolder : public ListenerHolder<_ListenerType> {
+public:
+	void addCallbacks(const std::shared_ptr<_CppCbsType> &callbacks) {
+		if (find(mCallbacksList.mList.begin(), mCallbacksList.mList.end(), callbacks) == mCallbacksList.mList.end()) {
+			mCallbacksList.mList.push_back(callbacks);
+			callbacks->setActive(true);
+			this->addListener(callbacks.get());
+		} else {
+			lError() << "Rejected Callbacks " << typeid(_CppCbsType).name() << " [" << (void *)callbacks.get()
+			         << "] added twice.";
+		}
+	}
+	void removeCallbacks(const std::shared_ptr<_CppCbsType> &callbacks) {
+		auto it = find(mCallbacksList.mList.begin(), mCallbacksList.mList.end(), callbacks);
+		if (it != mCallbacksList.mList.end()) {
+			mCallbacksList.mList.erase(it);
+			callbacks->setActive(false);
+			this->removeListener(callbacks.get());
+		} else {
+			lError() << "Attempt to remove " << typeid(_CppCbsType).name() << " [" << (void *)callbacks.get()
+			         << "] that does not exist.";
+		}
+	}
+	void setCurrentCallbacks(const std::shared_ptr<_CppCbsType> &callbacks) {
+		this->mCurrentListener = callbacks.get();
+	}
+	std::shared_ptr<_CppCbsType> getCurrentCallbacks() const {
+		/* The current listener may not be a _CppCbsType, but a simple listener interface.*/
+		_CppCbsType *currentCbs = dynamic_cast<_CppCbsType *>(this->mCurrentListener);
+		return currentCbs ? currentCbs->getSharedFromThis() : nullptr;
+	}
+	const std::list<std::shared_ptr<_CppCbsType>> &getCallbacksList() const {
+		return mCallbacksList.mList;
+	}
+	const bctbx_list_t *getCCallbacksList() const {
+		return mCallbacksList.getCList();
+	}
+	void clearCallbacksList() {
+		mCallbacksList.mList.clear();
+		this->clear();
+	}
+
+private:
+	ListHolder<_CppCbsType> mCallbacksList;
 };
 
 LINPHONE_END_NAMESPACE

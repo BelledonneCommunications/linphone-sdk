@@ -192,7 +192,7 @@ LinphoneStatus EventSubscribe::notify(const std::shared_ptr<const Content> &body
 }
 
 void EventSubscribe::notifyNotifyResponse() {
-	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(Event, this, linphone_event_cbs_get_notify_response);
+	invokeListeners([this](EventListener *l) { l->notifyResponse(this->getSharedFromThis()); });
 }
 
 LinphoneSubscriptionState EventSubscribe::getState() const {
@@ -209,12 +209,20 @@ void EventSubscribe::setState(LinphoneSubscriptionState state) {
 			linphone_core_notify_subscription_state_changed(getCore()->getCCore(), this->toC(), state);
 		} catch (const bad_weak_ptr &) {
 		}
-		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Event, this, linphone_event_cbs_get_subscribe_state_changed, state);
+		invokeListeners(
+		    [this, state](EventListener *l) { l->subscribeStateChanged(this->getSharedFromThis(), state); });
 		if (state == LinphoneSubscriptionTerminated || state == LinphoneSubscriptionError) {
 			release();
 		}
 		unref();
 	}
+}
+
+void EventSubscribe::onNotifyReceived(Content *ct) {
+	linphone_core_notify_notify_received(getCore()->getCCore(), toC(), getName().c_str(), bellesip::toC(ct));
+	invokeListeners([this, ct](EventListener *l) {
+		l->notifyReceived(this->getSharedFromThis(), ct ? ct->getSharedFromThis() : nullptr);
+	});
 }
 
 LinphoneSubscriptionDir EventSubscribe::getDir() {

@@ -288,7 +288,7 @@ inline std::ostream &operator<<(std::ostream &os, const ParticipantDevice &devic
 std::ostream &operator<<(std::ostream &stream, ParticipantDevice::State state);
 
 class ParticipantDeviceCbs : public bellesip::HybridObject<LinphoneParticipantDeviceCbs, ParticipantDeviceCbs>,
-                             public Callbacks {
+                             public ListenerBase {
 public:
 	LinphoneParticipantDeviceCbsIsSpeakingChangedCb getIsSpeakingChanged() const;
 	void setIsSpeakingChanged(LinphoneParticipantDeviceCbsIsSpeakingChangedCb cb);

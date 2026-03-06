@@ -29,4 +29,24 @@ void UserDataAccessor::setUserData(void *ud) {
 	mUserData = ud;
 }
 
+void ListenerHolderBase::addListener(ListenerBase *listener) {
+	if (mListeners.find(listener) != mListeners.end()) {
+		lError() << "ListenerHolderBase::addListener(): illegal duplicate listener.";
+		return;
+	}
+	mListeners.insert(listener);
+}
+
+void ListenerHolderBase::removeListener(ListenerBase *listener) {
+	if (mListeners.erase(listener) == 0) {
+		lError() << "ListenerHolderBase::removeListener(): listener was not found.";
+		return;
+	}
+}
+
+void ListenerHolderBase::clear() {
+	mListeners.clear();
+	mCurrentListener = nullptr;
+}
+
 LINPHONE_END_NAMESPACE

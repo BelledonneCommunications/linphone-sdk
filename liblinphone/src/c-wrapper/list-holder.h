@@ -97,54 +97,6 @@ private:
 	mutable bctbx_list_t *mCList = nullptr;
 };
 
-/*
- * Template class for classes that hold callbacks (such as LinphoneCallCbs, LinphoneAccountCbs etc.
- * The invocation of callbacks can be done with the LINPHONE_HYBRID_OBJECT_INVOKE_CBS() macro.
- */
-template <typename _CppCbsType>
-class LINPHONE_PUBLIC CallbacksHolder {
-public:
-	void addCallbacks(const std::shared_ptr<_CppCbsType> &callbacks) {
-		if (find(mCallbacksList.mList.begin(), mCallbacksList.mList.end(), callbacks) == mCallbacksList.mList.end()) {
-			mCallbacksList.mList.push_back(callbacks);
-			callbacks->setActive(true);
-		} else {
-			lError() << "Rejected Callbacks " << typeid(_CppCbsType).name() << " [" << (void *)callbacks.get()
-			         << "] added twice.";
-		}
-	}
-	void removeCallbacks(const std::shared_ptr<_CppCbsType> &callbacks) {
-		auto it = find(mCallbacksList.mList.begin(), mCallbacksList.mList.end(), callbacks);
-		if (it != mCallbacksList.mList.end()) {
-			mCallbacksList.mList.erase(it);
-			callbacks->setActive(false);
-		} else {
-			lError() << "Attempt to remove " << typeid(_CppCbsType).name() << " [" << (void *)callbacks.get()
-			         << "] that does not exist.";
-		}
-	}
-	void setCurrentCallbacks(const std::shared_ptr<_CppCbsType> &callbacks) {
-		mCurrentCallbacks = callbacks;
-	}
-	std::shared_ptr<_CppCbsType> getCurrentCallbacks() const {
-		return mCurrentCallbacks;
-	}
-	const std::list<std::shared_ptr<_CppCbsType>> &getCallbacksList() const {
-		return mCallbacksList.mList;
-	}
-	const bctbx_list_t *getCCallbacksList() const {
-		return mCallbacksList.getCList();
-	}
-	void clearCallbacksList() {
-		mCallbacksList.mList.clear();
-		mCurrentCallbacks = nullptr;
-	}
-
-private:
-	ListHolder<_CppCbsType> mCallbacksList;
-	std::shared_ptr<_CppCbsType> mCurrentCallbacks;
-};
-
 LINPHONE_END_NAMESPACE
 
 #endif // _L_LIST_HOLDER_H_

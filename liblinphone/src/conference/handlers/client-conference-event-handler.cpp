@@ -343,6 +343,10 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 		// 4. Notify changes on users.
 		for (auto &user : users->getUser()) {
 			std::shared_ptr<Address> address = core->interpretUrl(user.getEntity().get(), false);
+			if (!address) {
+				lError() << "ClientConferenceEventHandler: could not parse " << user.getEntity().get();
+				continue;
+			}
 			const string &participantName = user.getDisplayText().present() ? user.getDisplayText().get() : "";
 			if (!participantName.empty()) address->setDisplayName(participantName);
 			StateType userState = user.getState();
@@ -390,8 +394,9 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 
 					continue;
 				} else {
-					lWarning() << *participant << " removed from " << *conference
+					lWarning() << *address << " removed from " << *conference
 					           << " but not in the list of participants!";
+					continue;
 				}
 			} else if (userState == StateType::full) {
 				if (isMe) {

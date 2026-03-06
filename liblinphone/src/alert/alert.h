@@ -68,7 +68,7 @@ inline std::ostream &operator<<(std::ostream &stream, const Alert &alert) {
 
 class AlertTimer {
 public:
-	AlertTimer() {};
+	AlertTimer(){};
 	AlertTimer(uint64_t delay);
 	bool isTimeout(bool autoreset = true);
 
@@ -155,7 +155,7 @@ private:
 	bool mNackSent = false;
 };
 
-class AlertCbs : public bellesip::HybridObject<LinphoneAlertCbs, AlertCbs>, public Callbacks {
+class AlertCbs : public bellesip::HybridObject<LinphoneAlertCbs, AlertCbs>, public ListenerBase {
 public:
 	LinphoneAlertCbsTerminatedCb getOnTerminated() const {
 		return mOnTerminated;

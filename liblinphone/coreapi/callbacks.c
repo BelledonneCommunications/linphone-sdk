@@ -1082,8 +1082,12 @@ static void notify(SalSubscribeOp *op, SalSubscribeStatus st, const char *eventn
 	if (linphone_event_get_subscription_state(lev) != LinphoneSubscriptionTerminated) {
 		{
 			LinphoneContent *ct = linphone_content_from_sal_body_handler(body_handler);
-			linphone_core_notify_notify_received(lc, lev, eventname, ct);
-			LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Event, Event::toCpp(lev), linphone_event_cbs_get_notify_received, ct);
+			EventSubscribe *evs = dynamic_cast<EventSubscribe *>(Event::toCpp(lev));
+			if (evs) {
+				evs->onNotifyReceived(bellesip::toCpp<Content>(ct));
+			} else {
+				lError() << "Bad cast attempt from Event to EventSubscribe, should never happen.";
+			}
 			if (ct) {
 				linphone_content_unref(ct);
 			}
@@ -1156,8 +1160,12 @@ static void publish_received(SalPublishOp *op, const char *eventname, const SalB
 	if (account && linphone_account_params_get_realm(linphone_account_get_params(account))) {
 		op->setRealm(linphone_account_params_get_realm(linphone_account_get_params(account)));
 	}
-	linphone_core_notify_publish_received(lc, lev, eventname, ct);
-	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Event, event, linphone_event_cbs_get_publish_received, ct);
+	EventPublish *evp = dynamic_cast<EventPublish *>(Event::toCpp(lev));
+	if (evp) {
+		evp->onPublishReceived(bellesip::toCpp<Content>(ct));
+	} else {
+		lError() << "Bad cast from Event to EventPublish, should never happen.";
+	}
 	if (ct) linphone_content_unref(ct);
 }
 

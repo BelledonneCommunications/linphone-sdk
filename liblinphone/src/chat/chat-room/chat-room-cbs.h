@@ -29,7 +29,7 @@
 
 LINPHONE_BEGIN_NAMESPACE
 
-class ChatRoomCbs : public bellesip::HybridObject<LinphoneChatRoomCbs, ChatRoomCbs>, public Callbacks {
+class ChatRoomCbs : public bellesip::HybridObject<LinphoneChatRoomCbs, ChatRoomCbs>, public ListenerBase {
 public:
 	LinphoneChatRoomCbsSessionStateChangedCb sessionStateChangedCb;
 	LinphoneChatRoomCbsIsComposingReceivedCb isComposingReceivedCb;

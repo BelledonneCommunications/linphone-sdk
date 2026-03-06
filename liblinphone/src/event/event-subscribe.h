@@ -79,6 +79,8 @@ public:
 
 	void terminate() override;
 
+	void onNotifyReceived(Content *ct);
+
 protected:
 	EventSubscribe(const std::shared_ptr<Core> &core,
 	               LinphoneSubscriptionDir dir,

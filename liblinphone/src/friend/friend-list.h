@@ -206,7 +206,7 @@ private:
 	bool mIsReadOnly = false;
 };
 
-class FriendListCbs : public bellesip::HybridObject<LinphoneFriendListCbs, FriendListCbs>, public Callbacks {
+class FriendListCbs : public bellesip::HybridObject<LinphoneFriendListCbs, FriendListCbs>, public ListenerBase {
 public:
 	// Getters
 	LinphoneFriendListCbsContactCreatedCb getContactCreated() const;

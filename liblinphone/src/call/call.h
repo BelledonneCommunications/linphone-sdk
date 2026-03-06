@@ -48,7 +48,7 @@ class MediaSessionPrivate;
 class AbstractChatRoom;
 class Player;
 
-class CallCbs : public bellesip::HybridObject<LinphoneCallCbs, CallCbs>, public Callbacks {
+class CallCbs : public bellesip::HybridObject<LinphoneCallCbs, CallCbs>, public ListenerBase {
 public:
 	LinphoneCallCbsDtmfReceivedCb dtmfReceivedCb;
 	LinphoneCallCbsGoClearAckSentCb goClearAckSentCb;

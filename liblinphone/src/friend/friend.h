@@ -227,7 +227,7 @@ private:
 	mutable std::list<std::shared_ptr<FriendDevice>> mDevices;
 };
 
-class FriendCbs : public bellesip::HybridObject<LinphoneFriendCbs, FriendCbs>, public Callbacks {
+class FriendCbs : public bellesip::HybridObject<LinphoneFriendCbs, FriendCbs>, public ListenerBase {
 public:
 	LinphoneFriendCbsPresenceReceivedCb getPresenceReceived() const;
 	void setPresenceReceived(LinphoneFriendCbsPresenceReceivedCb cb);

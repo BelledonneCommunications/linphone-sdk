@@ -48,11 +48,11 @@ void linphone_event_cbs_set_user_data(LinphoneEventCbs *cbs, void *ud) {
 }
 
 LinphoneEventCbsNotifyResponseCb linphone_event_cbs_get_notify_response(const LinphoneEventCbs *cbs) {
-	return EventCbs::toCpp(cbs)->notifyResponseCb;
+	return EventCbs::toCpp(cbs)->mNotifyResponseCb;
 }
 
 void linphone_event_cbs_set_notify_response(LinphoneEventCbs *cbs, LinphoneEventCbsNotifyResponseCb cb) {
-	EventCbs::toCpp(cbs)->notifyResponseCb = cb;
+	EventCbs::toCpp(cbs)->mNotifyResponseCb = cb;
 }
 
 LinphoneEventCbsNotifyReceivedCb linphone_event_cbs_get_notify_received(const LinphoneEventCbs *cbs) {

@@ -225,4 +225,28 @@ void Event::overridePrivacy(LinphonePrivacyMask privacy) {
 	mOp->setPrivacy(privacy);
 }
 
+//----------------------------------------------------------------------------------------------------
+
+// Map listener to callbacks.
+
+void EventCbs::notifyResponse(const std::shared_ptr<Event> &event) {
+	if (mNotifyResponseCb) mNotifyResponseCb(event->toC());
+}
+
+void EventCbs::notifyReceived(const std::shared_ptr<Event> &event, const std::shared_ptr<Content> &content) {
+	if (notifyReceivedCb) notifyReceivedCb(event->toC(), bellesip::toC(content));
+}
+
+void EventCbs::subscribeReceived(const std::shared_ptr<Event> &event) {
+	if (subscribeReceivedCb) subscribeReceivedCb(event->toC());
+}
+
+void EventCbs::subscribeStateChanged(const std::shared_ptr<Event> &event, LinphoneSubscriptionState state) {
+	if (subscribeStateChangedCb) subscribeStateChangedCb(event->toC(), state);
+}
+
+void EventCbs::publishStateChanged(const std::shared_ptr<Event> &event, LinphonePublishState state) {
+	if (publishStateChangedCb) publishStateChangedCb(event->toC(), state);
+}
+
 LINPHONE_END_NAMESPACE

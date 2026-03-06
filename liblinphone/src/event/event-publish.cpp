@@ -176,7 +176,7 @@ void EventPublish::setState(LinphonePublishState state) {
 
 		ref();
 		linphone_core_notify_publish_state_changed(getCore()->getCCore(), this->toC(), state);
-		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Event, this, linphone_event_cbs_get_publish_state_changed, state);
+		invokeListeners([this, state](EventListener *l) { l->publishStateChanged(this->getSharedFromThis(), state); });
 		switch (state) {
 			case LinphonePublishNone: /*this state is probably trigered by a network state change to DOWN, we should
 			                             release the op*/
@@ -253,6 +253,15 @@ void EventPublish::stopTimeoutHandling() {
 		}
 		mTimer = nullptr;
 	}
+}
+
+void EventPublish::onPublishReceived(Content *content) {
+	linphone_core_notify_publish_received(getCore()->getCCore(), toC(), getName().c_str(), bellesip::toC(content));
+	/* FIXME: add the publishReceived() listener method and invoke it.
+	invokeListeners([this, content](EventListener *l){
+	    l->publishReceived(content ? content->getSharedFromThis() : nullptr);
+	});
+	*/
 }
 
 LINPHONE_END_NAMESPACE
