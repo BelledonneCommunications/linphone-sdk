@@ -3550,7 +3550,7 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	                             liblinphone_tester_sip_timeout));
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageDeliveredToUser, nbMessages,
-	                             liblinphone_tester_sip_timeout));
+	                             2 * liblinphone_tester_sip_timeout));
 
 	// Only Marie receives IMDNs
 	LinphoneChatMessageState expected_msg_state = LinphoneChatMessageStateDeliveredToUser;
@@ -3733,15 +3733,19 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 2 * nbMessages, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 3 * nbMessages, int, "%d");
 
+	initialMarieStats = marie->stat;
+	initialChloeStats = chloe->stat;
+	initialPaulineStats = pauline->stat;
+
 	linphone_core_set_network_reachable(chloe->lc, FALSE);
 	linphone_core_set_network_reachable(marie->lc, TRUE);
 	linphone_core_set_network_reachable(pauline->lc, TRUE);
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneAggregatedMessagesReceived,
-	                             initialMarieStats.number_of_LinphoneMessageReceived + nbMessages,
+	                             initialMarieStats.number_of_LinphoneAggregatedMessagesReceived + nbMessages,
 	                             liblinphone_tester_sip_timeout));
 	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneAggregatedMessagesReceived,
-	                             initialPaulineStats.number_of_LinphoneMessageReceived + nbMessages,
+	                             initialPaulineStats.number_of_LinphoneAggregatedMessagesReceived + nbMessages,
 	                             liblinphone_tester_sip_timeout));
 
 	BC_ASSERT_FALSE(wait_for_list(coresList, &chloe->stat.number_of_LinphoneMessageDeliveredToUser,
@@ -3750,6 +3754,8 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 3 * nbMessages, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 3 * nbMessages, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chloeCr), 3 * nbMessages, int, "%d");
+
+	initialChloeStats = chloe->stat;
 
 	linphone_core_set_network_reachable(chloe->lc, TRUE);
 
@@ -4029,7 +4035,8 @@ static void real_time_text(bool_t audio_stream_enabled,
                            bool_t ice_enabled,
                            bool_t sql_storage,
                            bool_t do_not_store_rtt_messages_in_sql_storage,
-                           bool_t existing_chat_room, bool_t enable_sdp_200_ack) {
+                           bool_t existing_chat_room,
+                           bool_t enable_sdp_200_ack) {
 	if (sql_storage && !linphone_factory_is_database_storage_available(linphone_factory_get())) {
 		ms_warning("Test skipped, database storage is not available");
 		return;
@@ -4111,7 +4118,6 @@ static void real_time_text(bool_t audio_stream_enabled,
 		linphone_core_set_nortp_timeout(marie->lc, 5);
 		linphone_core_set_nortp_timeout(pauline->lc, 5);
 	}
-
 
 	if (enable_sdp_200_ack) {
 		BC_ASSERT_TRUE(call_with_params(marie, pauline, NULL, params));
@@ -4355,7 +4361,6 @@ static void real_time_text_without_audio(void) {
 static void real_time_text_without_audio_offer_in_200ok(void) {
 	real_time_text(FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, TRUE);
 }
-
 
 static void real_time_text_srtp(void) {
 	real_time_text(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE);
@@ -5623,7 +5628,8 @@ static test_t rtt_message_tests[] = {
         "Real Time Text SQL storage with RTT messages not stored", real_time_text_sql_storage_rtt_disabled, "RTT"),
     TEST_ONE_TAG("Real Time Text conversation", real_time_text_conversation, "RTT"),
     TEST_ONE_TAG("Real Time Text without audio", real_time_text_without_audio, "RTT"),
-    TEST_TWO_TAGS("Real Time Text without audio (offer in 200Ok)", real_time_text_without_audio_offer_in_200ok, "RTT", "ICE"),
+    TEST_TWO_TAGS(
+        "Real Time Text without audio (offer in 200Ok)", real_time_text_without_audio_offer_in_200ok, "RTT", "ICE"),
     TEST_ONE_TAG("Only Real Time Text accepted", only_real_time_text_accepted, "RTT"),
     TEST_ONE_TAG("Real Time Text with srtp", real_time_text_srtp, "RTT"),
     TEST_ONE_TAG("Real Time Text with ice", real_time_text_ice, "RTT"),

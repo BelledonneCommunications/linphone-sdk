@@ -510,16 +510,15 @@ void CorePrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom) {
 	L_Q();
 	L_ASSERT(chatRoom);
 	const auto &chatRoomParams = chatRoom->getCurrentParams();
-	// We are looking for a one to one chatroom which isn't basic
-	const ConferenceId &conferenceId = chatRoom->getConferenceId();
 	if (chatRoomParams->getChatParams()->getBackend() == LinphonePrivate::ChatParams::Backend::Basic) {
+		const ConferenceId &conferenceId = chatRoom->getConferenceId();
 		auto it = mBasicChatRoomsById.find(conferenceId);
 		L_ASSERT(it == mBasicChatRoomsById.end() || it->second == chatRoom);
 		bool addChatRoom = (it == mBasicChatRoomsById.end());
 		if (addChatRoom) {
 			// Remove chat room from workaround cache.
 			if (linphone_core_get_global_state(getCCore()) != LinphoneGlobalStartup) {
-				lInfo() << "Insert chat room " << chatRoom << " (id " << conferenceId << ") to core map";
+				lInfo() << "Insert " << *chatRoom << " to core map";
 			}
 			mBasicChatRoomsById[conferenceId] = chatRoom;
 		}
@@ -1109,8 +1108,8 @@ LinphoneReason Core::onSipMessageReceived(SalOp *op, const SalMessage *sal_msg) 
 		}
 	} else {
 		/* Server mode but chatroom not found. */
-		lError() << "The core has been configured as a conference server, therefore the chatroom must be created "
-		            "beforehand.";
+		lError() << "The core has been configured as a conference server, therefore the chatroom with " << conferenceId
+		         << " must be created beforehand.";
 		reason = LinphoneReasonNotFound;
 	}
 

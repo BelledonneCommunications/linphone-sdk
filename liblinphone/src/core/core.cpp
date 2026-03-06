@@ -3591,36 +3591,45 @@ end:
 	return foundAccount;
 }
 
-std::shared_ptr<Account> Core::findAccountByIdentityAddress(const std::shared_ptr<const Address> identity) const {
-	std::shared_ptr<Account> found = nullptr;
-	if (!identity) return found;
-
+std::shared_ptr<Account> Core::findAccountByContactAddress(const std::shared_ptr<const Address> contact) const {
+	if (!contact) return nullptr;
 	const auto accounts = mAccounts.mList;
-	for (const auto &account : accounts) {
+	auto it = std::find_if(accounts.begin(), accounts.end(), [&contact](const auto &account) {
+		const auto &address = account->getContactAddress();
+		return (address && (*contact == *address));
+	});
+	if (it != accounts.end()) {
+		return (*it);
+	}
+	return nullptr;
+}
+
+std::shared_ptr<Account> Core::findAccountByIdentityAddress(const std::shared_ptr<const Address> identity) const {
+	if (!identity) return nullptr;
+	const auto accounts = mAccounts.mList;
+	auto it = std::find_if(accounts.begin(), accounts.end(), [&identity](const auto &account) {
 		const auto &params = account->getAccountParams();
 		const auto &address = params->getIdentityAddress();
-		if (address && identity->weakEqual(address)) {
-			found = account;
-			break;
-		}
+		return (address && identity->weakEqual(address));
+	});
+	if (it != accounts.end()) {
+		return (*it);
 	}
-	return found;
+	return nullptr;
 }
 
 std::shared_ptr<Account> Core::findAccountByUsername(const std::string &username) const {
-	std::shared_ptr<Account> found = nullptr;
-	if (username.empty()) return found;
-
-	auto &accounts = mAccounts.mList;
-	for (const auto &account : accounts) {
+	if (username.empty()) return nullptr;
+	const auto accounts = mAccounts.mList;
+	auto it = std::find_if(accounts.begin(), accounts.end(), [&username](const auto &account) {
 		const auto &params = account->getAccountParams();
 		const auto &address = params->getIdentityAddress();
-		if (address && address->getUsername() == username) {
-			found = account;
-			break;
-		}
+		return (address && address->getUsername() == username);
+	});
+	if (it != accounts.end()) {
+		return (*it);
 	}
-	return found;
+	return nullptr;
 }
 
 void Core::notifyPublishStateChangedToAccount(const std::shared_ptr<Event> event, LinphonePublishState state) {

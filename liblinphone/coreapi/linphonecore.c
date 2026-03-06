@@ -2999,21 +2999,14 @@ static void linphone_core_internal_notify_received(LinphoneCore *lc,
 	} else if (strcasecmp(notified_event, "conference") == 0 || strcasecmp(notified_event, "ekt") == 0) {
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 		const auto ev = Event::getSharedFromThis(lev);
-		const auto resourceAddr = ev->getResource();
-		const auto resourceAddrUri = resourceAddr->asStringUriOnly();
-		const bctbx_list_t *elem;
-		for (elem = linphone_core_get_account_list(lc); elem != NULL; elem = elem->next) {
-			LinphoneAccount *account = (LinphoneAccount *)elem->data;
-			const char *factoryUri =
-			    linphone_account_params_get_conference_factory_uri(linphone_account_get_params(account));
-			if (factoryUri && (strcmp(resourceAddrUri.c_str(), factoryUri) == 0)) {
-				L_GET_PRIVATE_FROM_C_OBJECT(lc)->clientListEventHandler->notifyReceived(
-				    ev, body ? Content::toCpp(body)->getSharedFromThis() : nullptr);
-				return;
-			}
+		auto &clientListEventHandler = L_GET_PRIVATE_FROM_C_OBJECT(lc)->clientListEventHandler;
+		if (clientListEventHandler->handlesEvent(ev)) {
+			clientListEventHandler->notifyReceived(ev, body ? Content::toCpp(body)->getSharedFromThis() : nullptr);
+			return;
 		}
 
-		const auto fromAddr = ev->getFrom();
+		const auto &fromAddr = ev->getFrom();
+		const auto &resourceAddr = ev->getResource();
 		LinphonePrivate::ConferenceId conferenceId =
 		    LinphonePrivate::ConferenceId(resourceAddr, fromAddr, core->createConferenceIdParams());
 		shared_ptr<Conference> conference = core->findConference(conferenceId, false);
@@ -3026,8 +3019,8 @@ static void linphone_core_internal_notify_received(LinphoneCore *lc,
 				clientConference->notifyReceived(ev, content);
 			}
 		} else {
-			lError() << "Unable to handle NOTIFY message because no conference with id " << conferenceId
-			         << " has been found";
+			lError() << "Unable to handle NOTIFY message attached to event [" << ev
+			         << "] because no conference with id " << conferenceId << " has been found";
 		}
 #else
 		lWarning() << "Unable to handle NOTIFY because advanced IM such as group chat is disabled!";

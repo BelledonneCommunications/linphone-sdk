@@ -196,6 +196,9 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 		// The subscription has been accepted for at least one chatroom
 		ev->accept();
 		Xsd::Rlmi::List rlmiList("", 0, TRUE);
+		if (auto to = ev->getTo()) {
+			rlmiList.setUri(to->asStringUriOnly());
+		}
 		rlmiList.setResource(resources);
 		Xsd::XmlSchema::NamespaceInfomap map;
 		stringstream rlmiBody;

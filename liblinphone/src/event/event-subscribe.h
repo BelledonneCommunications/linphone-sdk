@@ -54,6 +54,12 @@ public:
 	               const std::string &event,
 	               int expires);
 
+	EventSubscribe(const std::shared_ptr<Core> &core,
+	               const Address &resource,
+	               const std::shared_ptr<Account> &account,
+	               const std::string &event,
+	               int expires);
+
 	virtual ~EventSubscribe() = default;
 
 	std::string toString() const override;

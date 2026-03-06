@@ -51,11 +51,15 @@ public:
 	bool subscribe(const ConferenceId &conferenceId);
 	bool alreadySubscribed() const;
 	bool needToSubscribe() const;
-	void notifyReceived(const Content &content);
-	void notifyReceived(std::shared_ptr<Event> notifyLev, const Content &content);
-	void multipartNotifyReceived(const Content &content);
-	void multipartNotifyReceived(std::shared_ptr<Event> notifyLev, const Content &content);
+	ClientConferenceEventHandlerBase::NotifyParsingResult notifyReceived(const Content &content);
+	ClientConferenceEventHandlerBase::NotifyParsingResult notifyReceived(std::shared_ptr<Event> notifyLev,
+	                                                                     const Content &content);
+	ClientConferenceEventHandlerBase::NotifyParsingResult multipartNotifyReceived(const Content &content);
+	ClientConferenceEventHandlerBase::NotifyParsingResult multipartNotifyReceived(std::shared_ptr<Event> notifyLev,
+	                                                                              const Content &content);
 	void unsubscribe() override;
+
+	void setEvent(const std::shared_ptr<EventSubscribe> &eventSubscribe);
 
 	void invalidateSubscription() override;
 	LinphoneSubscriptionState getSubscriptionState() const;
@@ -74,7 +78,7 @@ public:
 	static void subscribeStateChangedCb(LinphoneEvent *lev, LinphoneSubscriptionState state);
 
 protected:
-	void conferenceInfoNotifyReceived(const std::string &xmlBody);
+	ClientConferenceEventHandlerBase::NotifyParsingResult conferenceInfoNotifyReceived(const std::string &xmlBody);
 	void conferenceInfoLinphoneExtensionNotifyReceived(const std::string &xmlBody);
 	bool subscribe() override;
 
@@ -86,7 +90,8 @@ protected:
 	void onEnteringBackground() override;
 	void onEnteringForeground() override;
 
-	std::shared_ptr<EventSubscribe> ev = nullptr;
+private:
+	std::shared_ptr<EventSubscribe> mEvent = nullptr;
 	std::weak_ptr<Conference> conf;
 	ConferenceListener *confListener = nullptr;
 
@@ -95,7 +100,6 @@ protected:
 	bool fullStateRequested = false;
 	bool mInitialSubscriptionUnderWay = false;
 
-private:
 	void unsubscribePrivate();
 	time_t dateTimeToTimeT(const Xsd::XmlSchema::DateTime &xsdTime) const;
 	void fillParticipantAttributes(std::shared_ptr<Participant> &participant,

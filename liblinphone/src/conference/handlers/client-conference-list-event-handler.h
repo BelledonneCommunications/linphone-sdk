@@ -24,6 +24,8 @@
 #include <map>
 #include <unordered_map>
 
+#include "xml/resource-lists.h"
+
 #include "linphone/types.h"
 #include "linphone/utils/general.h"
 
@@ -46,29 +48,48 @@ public:
 	virtual ~ClientConferenceListEventHandler();
 
 	bool subscribe() override;
-	bool subscribe(const std::shared_ptr<Account> &account);
+	bool subscribe(const std::shared_ptr<Account> &account, bool unsubscribeFirst = true);
 	void unsubscribe() override;
 	void unsubscribe(const std::shared_ptr<Account> &account);
 	void invalidateSubscription() override;
-	bool alreadySubscribed(const std::shared_ptr<Address> &address) const;
-	LinphoneSubscriptionState getSubscriptionState(const std::shared_ptr<Address> &address) const;
+	bool alreadySubscribed(const std::shared_ptr<Address> &address, const std::shared_ptr<Address> &peer) const;
+	LinphoneSubscriptionState getSubscriptionState(const std::shared_ptr<Address> &address,
+	                                               const std::shared_ptr<Address> &peer) const;
 	void notifyReceived(std::shared_ptr<Event> notifyLev, const std::shared_ptr<const Content> &notifyContent);
 	void addHandler(std::shared_ptr<ClientConferenceEventHandler> handler);
 	void removeHandler(std::shared_ptr<ClientConferenceEventHandler> handler);
 	void clearHandlers();
 	std::shared_ptr<ClientConferenceEventHandler> findHandler(const ConferenceId &conferenceId) const;
+	bool handlesEvent(const std::shared_ptr<Event> &eventSubscribe) const;
 
 	static void subscribeStateChangedCb(LinphoneEvent *lev, LinphoneSubscriptionState state);
 
 private:
-	const std::shared_ptr<EventSubscribe> findEvent(const std::shared_ptr<Address> &address) const;
-	bool isHandlerInSameDomainAsCore(const ConferenceId &conferenceId) const;
-	std::unordered_map<ConferenceId,
-	                   std::weak_ptr<ClientConferenceEventHandler>,
-	                   ConferenceId::WeakHash,
-	                   ConferenceId::WeakEqual>
-	    handlers;
-	std::list<std::shared_ptr<EventSubscribe>> levs;
+	std::optional<std::list<std::shared_ptr<EventSubscribe>>> findEvents(const std::shared_ptr<Address> &address) const;
+	std::optional<std::shared_ptr<EventSubscribe>> findEvent(const std::shared_ptr<Address> &address,
+	                                                         const std::shared_ptr<Address> &resource) const;
+	std::optional<std::shared_ptr<EventSubscribe>> findEvent(const std::shared_ptr<Event> &eventSubscribe) const;
+
+	void deleteEvent(const std::shared_ptr<Event> &eventSubscribe);
+	void addEvent(const std::shared_ptr<EventSubscribe> &eventSubscribe);
+
+	std::optional<std::shared_ptr<EventSubscribe>>
+	subscribe(const std::shared_ptr<Account> &account, const Address &to, bool isFactoryUri);
+	std::optional<std::shared_ptr<EventSubscribe>>
+	subscribe(const std::shared_ptr<Event> &eventSubscribe,
+	          const std::map<std::string, std::shared_ptr<Address>> &addresses);
+
+	typedef std::unordered_map<ConferenceId,
+	                           std::weak_ptr<ClientConferenceEventHandler>,
+	                           ConferenceId::WeakHash,
+	                           ConferenceId::WeakEqual>
+	    handlerMap;
+	handlerMap mHandlers;
+	handlerMap mLegacyChatRoomHandlers;
+
+	std::unordered_map<Address, std::list<std::shared_ptr<EventSubscribe>>, Address::WeakHash, Address::WeakEqual>
+	    mEvents;
+	std::set<Address, Address::WeakLess> mUniqueFocuses;
 
 	std::map<std::string, std::shared_ptr<Address>> parseRlmi(const std::string &xmlBody) const;
 
@@ -80,7 +101,11 @@ private:
 	void onEnteringBackground() override;
 	void onEnteringForeground() override;
 	virtual void onNotifyWaitExpired() override;
-	void subscriptionDone(const std::shared_ptr<Address> &from);
+	void subscriptionDone(const std::shared_ptr<Address> &from,
+	                      const std::map<std::string, std::shared_ptr<Address>> &addresses = {});
+	bool populateAndSendEvent(std::shared_ptr<EventSubscribe> &evSub,
+	                          const std::shared_ptr<Address> &from,
+	                          Xsd::ResourceLists::ListType &l);
 };
 
 LINPHONE_END_NAMESPACE

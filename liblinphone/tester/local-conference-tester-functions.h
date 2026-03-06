@@ -327,6 +327,7 @@ void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,
                                                              bool restart_core_after_corruption);
 void group_chat_room_with_duplications_base(bool encrypted);
 void chat_rooms_with_deletion_spaced_out_base(bool encrypted);
+void legacy_and_new_chatrooms_mixed_up_base(bool encrypted);
 void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_remote_event_list_handler, bool encrypted);
 
 void sendEphemeralMessageInAdminMode(Focus &focus,
@@ -342,6 +343,10 @@ bool checkChatroomCreation(const ConfCoreManager &core,
                            const int participantNumber = -1,
                            const std::string subject = "");
 bool checkChatroom(Focus &focus, const ConfCoreManager &core, const time_t baseJoiningTime);
+void sendMessageAndCheckReception(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                                  std::map<LinphoneCoreManager *, int> members,
+                                  std::string text,
+                                  std::shared_ptr<AbstractChatRoom> chatRoom);
 
 // Conference
 struct SimpleConferenceMergingCallsParams {

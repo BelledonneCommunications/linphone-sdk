@@ -104,33 +104,33 @@ public:
 
 	/*
 	 * This fonction is called each time a new participant is added by the focus after full state notification.
-	 * @param[in] event informations related to the added participant.
+	 * @param[in] eventLog informations related to the added participant.
 	 * @param[in] participant participant added to conference or chat room.
 	 */
-	virtual void onParticipantAdded(const std::shared_ptr<ConferenceParticipantEvent> &event,
+	virtual void onParticipantAdded(const std::shared_ptr<ConferenceParticipantEvent> &eventLog,
 	                                const std::shared_ptr<Participant> &participant) override;
 
 	/*
 	 * This fonction is called each time a new participant is removed by the focus after full state notification.
-	 * @param[in] event informations related to the removed participant.
+	 * @param[in] eventLog informations related to the removed participant.
 	 * @param[in] participant participant removed from conference or chat room.
 	 */
-	virtual void onParticipantRemoved(const std::shared_ptr<ConferenceParticipantEvent> &event,
+	virtual void onParticipantRemoved(const std::shared_ptr<ConferenceParticipantEvent> &eventLog,
 	                                  const std::shared_ptr<Participant> &participant) override;
 
 	/*
 	 * This fonction is called each time a new admin is set by the focus after full state notification.
-	 * @param[in] event informations related to the new admin participant.
+	 * @param[in] eventLog informations related to the new admin participant.
 	 * @param[in] participant participant whose admin status changed.
 	 */
-	virtual void onParticipantSetAdmin(const std::shared_ptr<ConferenceParticipantEvent> &event,
+	virtual void onParticipantSetAdmin(const std::shared_ptr<ConferenceParticipantEvent> &eventLog,
 	                                   const std::shared_ptr<Participant> &participant) override;
 
 	/*
 	 * This fonction is called each time a new subject is set by the focus after full state notification.
-	 * @param[in] event informations related to the new subject.
+	 * @param[in] eventLog informations related to the new subject.
 	 */
-	virtual void onSubjectChanged(const std::shared_ptr<ConferenceSubjectEvent> &event) override;
+	virtual void onSubjectChanged(const std::shared_ptr<ConferenceSubjectEvent> &eventLog) override;
 
 	/*
 	 * This function is called each time a participant device starts or stops speaking.
@@ -149,71 +149,72 @@ public:
 
 	/*
 	 * This fonction is called each time list of available media is modified by the focus after full state notification.
-	 * @param[in] event informations related to the new subject.
+	 * @param[in] eventLog informations related to the new subject.
 	 */
-	virtual void onAvailableMediaChanged(const std::shared_ptr<ConferenceAvailableMediaEvent> &event) override;
+	virtual void onAvailableMediaChanged(const std::shared_ptr<ConferenceAvailableMediaEvent> &eventLog) override;
 
 	/*
 	 * This fonction is called each time a new participant device that is not in the allowed participants'list calls a
 	 * closed-list conference
-	 * @param[in] event informations related to the removed device's participant. @notnil
+	 * @param[in] eventLog informations related to the removed device's participant. @notnil
 	 * @param[in] device participant device that is not in the allowed participants'list. @notnil
 	 */
-	virtual void onParticipantDeviceJoiningRequest(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	virtual void onParticipantDeviceJoiningRequest(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
 	                                               const std::shared_ptr<ParticipantDevice> &device) override;
 
 	/*
 	 * This fonction is called each time a new participant device is added by the focus after full state notification.
-	 * @param[in] event informations related to the added participant's device.
+	 * @param[in] eventLog informations related to the added participant's device.
 	 * @param[in] device participant device added to the conference or chat room.
 	 */
-	virtual void onParticipantDeviceAdded(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	virtual void onParticipantDeviceAdded(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
 	                                      const std::shared_ptr<ParticipantDevice> &device) override;
 
 	/*
 	 * This fonction is called each time a new participant device is removed by the focus after full state notification.
-	 * @param[in] event informations related to the removed device's participant.
+	 * @param[in] eventLog informations related to the removed device's participant.
 	 * @param[in] device participant device removed from the conference or chat room.
 	 */
-	virtual void onParticipantDeviceRemoved(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	virtual void onParticipantDeviceRemoved(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
 	                                        const std::shared_ptr<ParticipantDevice> &device) override;
 
 	/*
 	 * This fonction is called each time a participant device changes its available media
-	 * @param[in] event informations related to the device's participant.
+	 * @param[in] eventLog informations related to the device's participant.
 	 * @param[in] device participant device that changed its media capabilities
 	 */
 	virtual void
-	onParticipantDeviceMediaCapabilityChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	onParticipantDeviceMediaCapabilityChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
 	                                          const std::shared_ptr<ParticipantDevice> &device) override;
 
 	/*
 	 * This fonction is called each time a participant device state changes
-	 * @param[in] event informations related to the device's participant whose state changed. @notnil
+	 * @param[in] eventLog informations related to the device's participant whose state changed. @notnil
 	 * @param[in] device participant device whose state changed. @notnil
 	 */
-	virtual void onParticipantDeviceStateChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
+	virtual void onParticipantDeviceStateChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
 	                                             const std::shared_ptr<ParticipantDevice> &device) override;
 
 	/*
 	 * This fonction is called each time a participant device starts or stops screen sharing
-	 * @param[in] event informations related to the device's participant who starts or stops screen sharing. @notnil
+	 * @param[in] eventLog informations related to the device's participant who starts or stops screen sharing. @notnil
 	 * @param[in] device participant device who starts or stops screen sharing @notnil
 	 */
-	virtual void onParticipantDeviceScreenSharingChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event,
-	                                                     const std::shared_ptr<ParticipantDevice> &device) override;
+	virtual void
+	onParticipantDeviceScreenSharingChanged(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
+	                                        const std::shared_ptr<ParticipantDevice> &device) override;
 
 	/*
 	 * This fonction is called each time a participant device changes the ephemeral settings
-	 * @param[in] event informations related to the device's participant.
+	 * @param[in] eventLog informations related to the device's participant.
 	 */
-	virtual void onEphemeralLifetimeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
+	virtual void onEphemeralLifetimeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &eventLog) override;
 
 	/*
 	 * This fonction is called each time a participant device changes the ephemeral mode
-	 * @param[in] event informations related to the device's participant.
+	 * @param[in] eventLog informations related to the device's participant.
 	 */
-	virtual void onEphemeralModeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
+	virtual void onEphemeralModeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &eventLog) override;
 
 	/*
 	 * This fonction is called each time the conference transitions to a new state

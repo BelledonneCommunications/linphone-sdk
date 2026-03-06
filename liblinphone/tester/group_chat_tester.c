@@ -925,7 +925,7 @@ static void group_chat_room_params(void) {
 	// Should create	a one-on-one flexisip chat
 	linphone_chat_room_params_set_backend(params, LinphoneChatRoomBackendFlexisipChat);
 	linphone_chat_room_params_enable_group(params, FALSE);
-	marieCr = linphone_core_create_chat_room_2(marie->lc, params, "One to one client group chat room subject",
+	marieCr = linphone_core_create_chat_room_2(marie->lc, params, "One on one client group chat room subject",
 	                                           participantsAddresses);
 	BC_ASSERT_PTR_NOT_NULL(marieCr);
 	if (marieCr) {

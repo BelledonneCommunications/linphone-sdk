@@ -5157,7 +5157,6 @@ void MainDb::updateChatRoomEphemeralLifetime(const ConferenceId &conferenceId,
 		const long long &dbChatRoomId = d->selectChatRoomId(conferenceId);
 		*d->dbSession.getBackendSession() << query, soci::use(lifetime), soci::use(notReadLifetime),
 		    soci::use(isEphemeralEnabled), soci::use(dbChatRoomId);
-
 		tr.commit();
 	};
 #endif

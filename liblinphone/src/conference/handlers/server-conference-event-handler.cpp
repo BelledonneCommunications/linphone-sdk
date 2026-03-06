@@ -1151,7 +1151,7 @@ void ServerConferenceEventHandler::notifyParticipantDevice(const shared_ptr<Cont
 	cbs->setUserData(this);
 	cbs->mNotifyResponseCb = notifyResponseCb;
 	ev->addCallbacks(cbs);
-	if (ev->notify(content) == 0) {
+	if (ev->notify(content) != 0) {
 		lError() << "Unable to send NOTIFY message to " << *device << " being subscribed to " << *conf << " through "
 		         << *ev;
 	}
@@ -1198,7 +1198,19 @@ LinphoneStatus ServerConferenceEventHandler::subscribeReceived(const shared_ptr<
 		auto oldEv = device->getConferenceSubscribeEvent();
 		device->setConferenceSubscribeEvent(ev);
 		if (oldEv) {
-			oldEv->terminate();
+			const auto conferenceAddress = conf->getConferenceAddress()->getUriWithoutGruu();
+			const auto oldEvTo = oldEv->getTo()->getUriWithoutGruu();
+			// Need to compare address string. In fact according to RFC3261
+			// (https://www.rfc-editor.org/rfc/rfc3261#page-153):
+			// -  All other uri-parameters appearing in only one URI are
+			//    ignored when comparing the URIs.
+			// This will cause false positives if the conference factory address is the same as the focus
+			// address. Under such scenario, we end up with a resource-list SUBSCRIBE sent to a factory address
+			// and the chatroom conference address being that very same factory address with a conf-id URI
+			// parameter.
+			if (oldEvTo.toStringUriOnlyOrdered() == conferenceAddress.toStringUriOnlyOrdered()) {
+				oldEv->terminate();
+			}
 		}
 		shared_ptr<Participant> participant = device->getParticipant();
 		if ((evLastNotify == 0) || (deviceState == ParticipantDevice::State::Joining)) {
@@ -1311,7 +1323,7 @@ std::shared_ptr<Content> ServerConferenceEventHandler::makeContent(const std::st
 void ServerConferenceEventHandler::onFullStateReceived() {
 }
 
-void ServerConferenceEventHandler::onParticipantAdded(const std::shared_ptr<ConferenceParticipantEvent> &event,
+void ServerConferenceEventHandler::onParticipantAdded(const std::shared_ptr<ConferenceParticipantEvent> &eventLog,
                                                       const std::shared_ptr<Participant> &participant) {
 	auto conf = getConference();
 	if (!conf) {
@@ -1327,7 +1339,7 @@ void ServerConferenceEventHandler::onParticipantAdded(const std::shared_ptr<Conf
 		// Enquire whether this conference belongs to a server group chat room
 		std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
 		if (chatRoom) {
-			_linphone_chat_room_notify_participant_added(chatRoom->toC(), L_GET_C_BACK_PTR(event));
+			_linphone_chat_room_notify_participant_added(chatRoom->toC(), L_GET_C_BACK_PTR(eventLog));
 		}
 	} else {
 		lWarning() << __func__ << ": Not sending notification of participant " << *pAddress
@@ -1335,7 +1347,7 @@ void ServerConferenceEventHandler::onParticipantAdded(const std::shared_ptr<Conf
 	}
 }
 
-void ServerConferenceEventHandler::onParticipantRemoved(const std::shared_ptr<ConferenceParticipantEvent> &event,
+void ServerConferenceEventHandler::onParticipantRemoved(const std::shared_ptr<ConferenceParticipantEvent> &eventLog,
                                                         const std::shared_ptr<Participant> &participant) {
 	auto conf = getConference();
 	if (!conf) {
@@ -1349,7 +1361,7 @@ void ServerConferenceEventHandler::onParticipantRemoved(const std::shared_ptr<Co
 		// Enquire whether this conference belongs to a server group chat room
 		std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
 		if (chatRoom) {
-			_linphone_chat_room_notify_participant_removed(chatRoom->toC(), L_GET_C_BACK_PTR(event));
+			_linphone_chat_room_notify_participant_removed(chatRoom->toC(), L_GET_C_BACK_PTR(eventLog));
 		}
 	} else {
 		lWarning() << __func__ << ": Not sending notification of participant " << *pAddress
@@ -1357,18 +1369,18 @@ void ServerConferenceEventHandler::onParticipantRemoved(const std::shared_ptr<Co
 	}
 }
 
-void ServerConferenceEventHandler::onParticipantSetAdmin(const std::shared_ptr<ConferenceParticipantEvent> &event,
+void ServerConferenceEventHandler::onParticipantSetAdmin(const std::shared_ptr<ConferenceParticipantEvent> &eventLog,
                                                          const std::shared_ptr<Participant> &participant) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
-	const bool isAdmin = (event->getType() == EventLog::Type::ConferenceParticipantSetAdmin);
+	const bool isAdmin = (eventLog->getType() == EventLog::Type::ConferenceParticipantSetAdmin);
 	const auto &pAddress = participant->getAddress();
 	if (conf) {
 		notifyAll(makeContent(createNotifyParticipantAdminStatusChanged(pAddress, isAdmin)));
 		// Enquire whether this conference belongs to a server group chat room
 		std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
 		if (chatRoom) {
-			_linphone_chat_room_notify_participant_admin_status_changed(chatRoom->toC(), L_GET_C_BACK_PTR(event));
+			_linphone_chat_room_notify_participant_admin_status_changed(chatRoom->toC(), L_GET_C_BACK_PTR(eventLog));
 		}
 	} else {
 		lWarning() << __func__ << ": Not sending notification of participant " << *pAddress
@@ -1376,20 +1388,20 @@ void ServerConferenceEventHandler::onParticipantSetAdmin(const std::shared_ptr<C
 	}
 }
 
-void ServerConferenceEventHandler::onSubjectChanged(const std::shared_ptr<ConferenceSubjectEvent> &event) {
+void ServerConferenceEventHandler::onSubjectChanged(const std::shared_ptr<ConferenceSubjectEvent> &eventLog) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	if (conf) {
-		const auto &subject = event->getSubject();
+		const auto &subject = eventLog->getSubject();
 		conf->updateSubjectInConferenceInfo(subject);
 		notifyAll(makeContent(createNotifySubjectChanged(subject)));
 		// Enquire whether this conference belongs to a server group chat room
 		std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
 		if (chatRoom) {
-			_linphone_chat_room_notify_subject_changed(chatRoom->toC(), L_GET_C_BACK_PTR(event));
+			_linphone_chat_room_notify_subject_changed(chatRoom->toC(), L_GET_C_BACK_PTR(eventLog));
 		}
 	} else {
-		lWarning() << __func__ << ": Not sending notification of conference subject to " << event->getSubject()
+		lWarning() << __func__ << ": Not sending notification of conference subject to " << eventLog->getSubject()
 		           << " change because pointer to conference is null";
 	}
 }
@@ -1403,7 +1415,7 @@ void ServerConferenceEventHandler::onParticipantDeviceIsMuted(const std::shared_
 }
 
 void ServerConferenceEventHandler::onAvailableMediaChanged(
-    const std::shared_ptr<ConferenceAvailableMediaEvent> &event) {
+    const std::shared_ptr<ConferenceAvailableMediaEvent> &eventLog) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	if (!conf) {
@@ -1411,7 +1423,7 @@ void ServerConferenceEventHandler::onAvailableMediaChanged(
 	}
 
 	if (conf) {
-		notifyAll(makeContent(createNotifyAvailableMediaChanged(event->getAvailableMediaType())));
+		notifyAll(makeContent(createNotifyAvailableMediaChanged(eventLog->getAvailableMediaType())));
 	} else {
 		lWarning() << __func__
 		           << ": Not sending notification of conference subject change because pointer to conference is null";
@@ -1419,7 +1431,7 @@ void ServerConferenceEventHandler::onAvailableMediaChanged(
 }
 
 void ServerConferenceEventHandler::onParticipantDeviceJoiningRequest(
-    BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event),
+    BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog),
     const std::shared_ptr<ParticipantDevice> &device) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
@@ -1435,7 +1447,8 @@ void ServerConferenceEventHandler::onParticipantDeviceJoiningRequest(
 }
 
 void ServerConferenceEventHandler::onParticipantDeviceAdded(
-    const std::shared_ptr<ConferenceParticipantDeviceEvent> &event, const std::shared_ptr<ParticipantDevice> &device) {
+    const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
+    const std::shared_ptr<ParticipantDevice> &device) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	const auto &dAddress = device->getAddress();
@@ -1453,7 +1466,7 @@ void ServerConferenceEventHandler::onParticipantDeviceAdded(
 		// Enquire whether this conference belongs to a server group chat room
 		std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
 		if (chatRoom) {
-			_linphone_chat_room_notify_participant_device_added(chatRoom->toC(), L_GET_C_BACK_PTR(event));
+			_linphone_chat_room_notify_participant_device_added(chatRoom->toC(), L_GET_C_BACK_PTR(eventLog));
 		}
 	} else {
 		lWarning() << __func__ << ": Not sending notification of participant device " << *dAddress
@@ -1462,7 +1475,8 @@ void ServerConferenceEventHandler::onParticipantDeviceAdded(
 }
 
 void ServerConferenceEventHandler::onParticipantDeviceRemoved(
-    const std::shared_ptr<ConferenceParticipantDeviceEvent> &event, const std::shared_ptr<ParticipantDevice> &device) {
+    const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
+    const std::shared_ptr<ParticipantDevice> &device) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	const auto &dAddress = device->getAddress();
@@ -1473,7 +1487,7 @@ void ServerConferenceEventHandler::onParticipantDeviceRemoved(
 		// Enquire whether this conference belongs to a server group chat room
 		std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
 		if (chatRoom) {
-			_linphone_chat_room_notify_participant_device_removed(chatRoom->toC(), L_GET_C_BACK_PTR(event));
+			_linphone_chat_room_notify_participant_device_removed(chatRoom->toC(), L_GET_C_BACK_PTR(eventLog));
 		}
 	} else {
 		lWarning() << __func__ << ": Not sending notification of participant device " << *dAddress
@@ -1482,7 +1496,8 @@ void ServerConferenceEventHandler::onParticipantDeviceRemoved(
 }
 
 void ServerConferenceEventHandler::onParticipantDeviceStateChanged(
-    const std::shared_ptr<ConferenceParticipantDeviceEvent> &event, const std::shared_ptr<ParticipantDevice> &device) {
+    const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog,
+    const std::shared_ptr<ParticipantDevice> &device) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	const auto &dAddress = device->getAddress();
@@ -1493,7 +1508,7 @@ void ServerConferenceEventHandler::onParticipantDeviceStateChanged(
 		std::shared_ptr<AbstractChatRoom> chatRoom = conf->getChatRoom();
 		if (chatRoom) {
 			_linphone_chat_room_notify_participant_device_state_changed(
-			    chatRoom->toC(), L_GET_C_BACK_PTR(event), (LinphoneParticipantDeviceState)device->getState());
+			    chatRoom->toC(), L_GET_C_BACK_PTR(eventLog), (LinphoneParticipantDeviceState)device->getState());
 		}
 	} else {
 		lWarning() << __func__ << ": Not sending notification of participant device " << *dAddress
@@ -1502,7 +1517,7 @@ void ServerConferenceEventHandler::onParticipantDeviceStateChanged(
 }
 
 void ServerConferenceEventHandler::onParticipantDeviceScreenSharingChanged(
-    BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event),
+    BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog),
     const std::shared_ptr<ParticipantDevice> &device) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
@@ -1517,7 +1532,7 @@ void ServerConferenceEventHandler::onParticipantDeviceScreenSharingChanged(
 }
 
 void ServerConferenceEventHandler::onParticipantDeviceMediaCapabilityChanged(
-    BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event),
+    BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantDeviceEvent> &eventLog),
     const std::shared_ptr<ParticipantDevice> &device) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
@@ -1532,25 +1547,25 @@ void ServerConferenceEventHandler::onParticipantDeviceMediaCapabilityChanged(
 }
 
 void ServerConferenceEventHandler::onEphemeralModeChanged(
-    const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) {
+    const std::shared_ptr<ConferenceEphemeralMessageEvent> &eventLog) {
 	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	if (conf) {
-		notifyAll(makeContent(createNotifyEphemeralMode(event->getType())));
+		notifyAll(makeContent(createNotifyEphemeralMode(eventLog->getType())));
 	} else {
-		lWarning() << __func__ << ": Not sending notification of ephemeral mode changed to " << event->getType();
+		lWarning() << __func__ << ": Not sending notification of ephemeral mode changed to " << eventLog->getType();
 	}
 }
 
 void ServerConferenceEventHandler::onEphemeralLifetimeChanged(
-    const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) {
+    const std::shared_ptr<ConferenceEphemeralMessageEvent> &eventLog) {
 	// Do not send notify if the conference pointer is null. It may mean that the conference has been terminated.
 	if (getConference()) {
-		notifyAll(makeContent(createNotifyEphemeralLifetime(event->getEphemeralMessageLifetime(),
-		                                                    event->getEphemeralMessageNotReadLifetime())));
+		notifyAll(makeContent(createNotifyEphemeralLifetime(eventLog->getEphemeralMessageLifetime(),
+		                                                    eventLog->getEphemeralMessageNotReadLifetime())));
 	} else {
 		lWarning() << __func__ << ": Not sending notification of ephemeral lifetime changed to "
-		           << event->getEphemeralMessageLifetime();
+		           << eventLog->getEphemeralMessageLifetime();
 	}
 }
 

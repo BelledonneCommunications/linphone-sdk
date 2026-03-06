@@ -21,6 +21,9 @@
 #include "client-conference-event-handler-base.h"
 
 #include "core/core-p.h"
+#include "event/event-subscribe.h"
+
+using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
@@ -72,6 +75,23 @@ void ClientConferenceEventHandlerBase::stopWaitNotifyTimer() {
 }
 
 void ClientConferenceEventHandlerBase::unsubscribe() {
+}
+
+std::shared_ptr<EventSubscribe>
+ClientConferenceEventHandlerBase::createEventSubscribe(const std::shared_ptr<Address> &to,
+                                                       const std::shared_ptr<Account> &account) const {
+	try {
+		const auto &core = getCore();
+		// This configuration parameter is not meant to be set by actual applications. It is widely used by tests in
+		// order to validate the behaviour of an expiring subscription event that has to be refreshed or simulate its
+		// expiration on the server side.
+		const int eventSubscribeExpire = linphone_config_get_int(linphone_core_get_config(core->getCCore()), "sip",
+		                                                         "conference_subscribe_expires", 600);
+		return dynamic_pointer_cast<EventSubscribe>(
+		    (new EventSubscribe(core, to, account, "conference", eventSubscribeExpire))->toSharedPtr());
+	} catch (const bad_weak_ptr &) {
+		return nullptr;
+	}
 }
 
 LINPHONE_END_NAMESPACE

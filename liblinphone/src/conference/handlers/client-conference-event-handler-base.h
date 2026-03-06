@@ -34,6 +34,7 @@
 LINPHONE_BEGIN_NAMESPACE
 
 class Core;
+class EventSubscribe;
 
 class LINPHONE_PUBLIC ClientConferenceEventHandlerBase : public CoreAccessor, public CoreListener {
 	friend class ClientChatRoom;
@@ -41,6 +42,8 @@ class LINPHONE_PUBLIC ClientConferenceEventHandlerBase : public CoreAccessor, pu
 public:
 	ClientConferenceEventHandlerBase(const std::shared_ptr<Core> &core);
 	virtual ~ClientConferenceEventHandlerBase();
+
+	enum class NotifyParsingResult { Success, Error, NeedFullState };
 
 	// virtual void publish() = 0;
 	virtual bool subscribe() = 0;
@@ -66,6 +69,10 @@ public:
 	void startWaitNotifyTimer();
 	void stopWaitNotifyTimer();
 	virtual void onNotifyWaitExpired() = 0;
+
+protected:
+	std::shared_ptr<EventSubscribe> createEventSubscribe(const std::shared_ptr<Address> &to,
+	                                                     const std::shared_ptr<Account> &account) const;
 
 private:
 	belle_sip_source_t *mWaitNotifyTimer = nullptr;

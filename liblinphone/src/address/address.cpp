@@ -20,11 +20,12 @@
 
 #include <bctoolbox/defs.h>
 
-#include "address-parser.h"
 #include "belle-sip/sip-uri.h"
 
+#include "address-parser.h"
 #include "address.h"
 #include "c-wrapper/c-wrapper.h"
+#include "conference/conference.h"
 #include "logger/logger.h"
 
 // =============================================================================
@@ -480,6 +481,13 @@ void Address::copyParams(const Address &other) {
 void Address::merge(const Address &other) {
 	copyParams(other);
 	copyUriParams(other);
+}
+
+size_t Address::getWeakHash() const {
+	Address address = getUriWithoutGruu();
+	address.removeUriParam(Conference::kSecurityModeParameter);
+	address.removeUriParam(Address::kTransportParameter);
+	return hash<string>{}(address.toStringUriOnlyOrdered(true));
 }
 
 void Address::removeFromLeakDetector(SalAddress *addr) {

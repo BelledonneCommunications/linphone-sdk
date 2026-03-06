@@ -25,6 +25,7 @@
 #include <unordered_map>
 
 #include "belle-sip/object++.hh"
+
 #include "c-wrapper/internal/c-sal.h"
 
 #include "enums.h"
@@ -148,6 +149,7 @@ public:
 	bool weakEqual(const Address &other) const;
 	bool weakEqual(const std::shared_ptr<const Address> address) const;
 	bool uriEqual(const Address &other) const;
+	size_t getWeakHash() const;
 
 	inline const SalAddress *getImpl() const {
 		return mImpl;
@@ -163,6 +165,11 @@ public:
 	struct WeakEqual {
 		bool operator()(const Address &address1, const Address &address2) const {
 			return address1.weakEqual(address2);
+		}
+	};
+	struct WeakHash {
+		size_t operator()(const Address &address) const {
+			return address.getWeakHash();
 		}
 	};
 

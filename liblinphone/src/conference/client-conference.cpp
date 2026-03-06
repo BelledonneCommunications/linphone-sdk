@@ -1480,15 +1480,20 @@ void ClientConference::onParticipantSetAdmin(const shared_ptr<ConferenceParticip
 
 void ClientConference::onParticipantSetRole(BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantEvent> &event),
                                             const std::shared_ptr<Participant> &participant) {
-	lInfo() << "Updating conference information of " << *this << " because the core has been notified that participant "
-	        << *participant->getAddress() << " has changed its role to " << participant->getRole();
-	updateAndSaveConferenceInformations();
+	if (supportsMedia()) {
+		lInfo() << "Updating conference information of " << *this
+		        << " because the core has been notified that participant " << *participant->getAddress()
+		        << " has changed its role to " << participant->getRole();
+		updateAndSaveConferenceInformations();
+	}
 }
 
 void ClientConference::onSubjectChanged(BCTBX_UNUSED(const std::shared_ptr<ConferenceSubjectEvent> &event)) {
-	lInfo() << "Updating conference information of " << *this
-	        << " because the core has been notified that the subject has been changed to " << getSubject();
-	updateAndSaveConferenceInformations();
+	if (supportsMedia()) {
+		lInfo() << "Updating conference information of " << *this
+		        << " because the core has been notified that the subject has been changed to " << getSubject();
+		updateAndSaveConferenceInformations();
+	}
 
 #ifdef HAVE_ADVANCED_IM
 	const auto &chatRoom = getChatRoom();

@@ -77,8 +77,16 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
                                const std::shared_ptr<Account> &account,
                                const string &event,
                                int expires)
+    : EventSubscribe(core, *resource, account, event, expires) {
+}
+
+EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
+                               const Address &resource,
+                               const std::shared_ptr<Account> &account,
+                               const string &event,
+                               int expires)
     : EventSubscribe(core, LinphoneSubscriptionOutgoing, event, expires) {
-	linphone_configure_op_with_account(core->getCCore(), mOp, resource->toC(), nullptr, TRUE, bellesip::toC(account));
+	linphone_configure_op_with_account(core->getCCore(), mOp, resource.toC(), nullptr, TRUE, bellesip::toC(account));
 	mOp->setManualRefresherMode(
 	    !linphone_config_get_int(core->getCCore()->config, "sip", "refresh_generic_subscribe", 1));
 }

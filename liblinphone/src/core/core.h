@@ -510,6 +510,7 @@ public:
 	std::shared_ptr<Account> lookupKnownAccount(const std::shared_ptr<const Address> uri, bool fallbackToDefault) const;
 	std::shared_ptr<Account> lookupKnownAccount(const Address &uri, bool fallbackToDefault) const;
 	std::shared_ptr<Account> findAccountByIdentityAddress(const std::shared_ptr<const Address> identity) const;
+	std::shared_ptr<Account> findAccountByContactAddress(const std::shared_ptr<const Address> contact) const;
 	std::shared_ptr<Account> findAccountByUsername(const std::string &username) const;
 	void releaseAccounts();
 	const bctbx_list_t *getProxyConfigList() const;
