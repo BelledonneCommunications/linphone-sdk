@@ -54,7 +54,7 @@ recache-get-from-branch:
   #     paths:
   #       - ccache/
   #     policy: pull
-  #   - key: ${CI_JOB_IMAGE}-master-4-non_protected
+  #   - key: ${CI_JOB_IMAGE}-master-6-non_protected
   #     paths:
   #       - ccache/
   #     policy: push
@@ -74,8 +74,8 @@ recache-get-from-branch:
     - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then echo -e "Host $LINUX_BUILD_MACHINE_ADMIN_HOST\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config; fi
     - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then chmod 700 ~/.ssh/config; fi
   script:
-    - ssh $LINUX_BUILD_MACHINE_ADMIN cp -rp "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_SOURCE_BRANCH-5-non_protected" "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CI_COMMIT_REF_SLUG-5-non_protected"
-    - if [ $SHOULD_DELETE_OLD_CACHE = true ]; then ssh $LINUX_BUILD_MACHINE_ADMIN rm -rf "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_SOURCE_BRANCH-5-non_protected"; fi
+    - ssh $LINUX_BUILD_MACHINE_ADMIN cp -rp "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_SOURCE_BRANCH-6-non_protected" "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CI_COMMIT_REF_SLUG-6-non_protected"
+    - if [ $SHOULD_DELETE_OLD_CACHE = true ]; then ssh $LINUX_BUILD_MACHINE_ADMIN rm -rf "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_SOURCE_BRANCH-6-non_protected"; fi
 
 # When the cache is updated, we don't want an old version to overwrite the new one.
 # We could have a newly created branch launching its jobs in the same time as the cache is being updated (just after a merge). In this case, the merge-request pipeline of the newly created branch could overwrite the updated cache if one job launches just before the cache udpate step is finished. In the worst scenario, cache could be corrupted...
@@ -118,7 +118,7 @@ recache-get-from-branch:
 
 .linux-prepare:
   variables:
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-5-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
 
     #Misleading name, means no compression at all
     CACHE_COMPRESSION_LEVEL: "fastest"
