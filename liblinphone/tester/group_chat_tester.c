@@ -1825,7 +1825,10 @@ static int im_encryption_engine_process_outgoing_message_cb(BCTBX_UNUSED(Linphon
 	return -1;
 }
 
-static void group_chat_room_message(bool_t encrypt, bool_t sal_error, bool_t im_encryption_mandatory) {
+static void group_chat_room_message(bool_t encrypt,
+                                    bool_t sal_error,
+                                    bool_t im_encryption_mandatory,
+                                    bool_t set_core_media_encryption) {
 	LinphoneCoreManager *marie = linphone_core_manager_create("marie_rc");
 	LinphoneCoreManager *pauline = linphone_core_manager_create("pauline_rc");
 	LinphoneCoreManager *chloe = linphone_core_manager_create("chloe_rc");
@@ -1836,6 +1839,17 @@ static void group_chat_room_message(bool_t encrypt, bool_t sal_error, bool_t im_
 	coresManagerList = bctbx_list_append(coresManagerList, chloe);
 	bctbx_list_t *coresList = init_core_for_conference(coresManagerList);
 	start_core_for_conference(coresManagerList);
+
+	if (set_core_media_encryption) {
+		bctbx_list_t *it = coresManagerList;
+		while (it) {
+				LinphoneCoreManager *manager = bctbx_list_get_data(it);
+				linphone_core_set_media_encryption_mandatory(manager->lc, TRUE);
+				linphone_core_set_media_encryption(manager->lc, LinphoneMediaEncryptionDTLS);
+				it = bctbx_list_next(it);
+			}
+	}
+
 	participantsAddresses =
 			bctbx_list_append(participantsAddresses, linphone_address_new(linphone_core_get_identity(pauline->lc)));
 	participantsAddresses =
@@ -2072,23 +2086,27 @@ end:
 }
 
 static void group_chat_room_send_message(void) {
-	group_chat_room_message(FALSE, FALSE, FALSE);
+	group_chat_room_message(FALSE, FALSE, FALSE, FALSE);
 }
 
 static void group_chat_room_send_message_im_encryption_mandatory(void) {
-	group_chat_room_message(FALSE, FALSE, TRUE);
+	group_chat_room_message(FALSE, FALSE, TRUE, FALSE);
+}
+
+static void group_chat_room_send_message_im_encryption_mandatory_and_core(void) {
+	group_chat_room_message(FALSE, FALSE, TRUE, TRUE);
 }
 
 static void group_chat_room_send_message_encrypted(void) {
-	group_chat_room_message(TRUE, FALSE, FALSE);
+	group_chat_room_message(TRUE, FALSE, FALSE, FALSE);
 }
 
 static void group_chat_room_send_message_encrypted_im_encryption_mandatory(void) {
-	group_chat_room_message(TRUE, FALSE, TRUE);
+	group_chat_room_message(TRUE, FALSE, TRUE, FALSE);
 }
 
 static void group_chat_room_send_message_with_error(void) {
-	group_chat_room_message(FALSE, TRUE, FALSE);
+	group_chat_room_message(FALSE, TRUE, FALSE, FALSE);
 }
 
 static void group_chat_room_invite_multi_register_account(void) {
@@ -10070,6 +10088,8 @@ test_t group_chat_tests[] = {
 	TEST_ONE_TAG("Add participant", group_chat_room_add_participant, "LeaksMemory"),
 	TEST_NO_TAG("Send message", group_chat_room_send_message),
 	TEST_NO_TAG("Send message IM encryption mandatory", group_chat_room_send_message_im_encryption_mandatory),
+	TEST_NO_TAG("Send message IM encryption mandatory and core",
+				group_chat_room_send_message_im_encryption_mandatory_and_core),
 	TEST_NO_TAG("Send encrypted message", group_chat_room_send_message_encrypted),
 	TEST_NO_TAG("Send encrypted message IM encryption mandatory",
 	            group_chat_room_send_message_encrypted_im_encryption_mandatory),

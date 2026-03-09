@@ -753,7 +753,7 @@ void MediaSessionPrivate::updated(bool isUpdate) {
 bool MediaSessionPrivate::incompatibleSecurity(const std::shared_ptr<SalMediaDescription> &finalMd,
                                                const std::shared_ptr<SalMediaDescription> &remoteMd) const {
 	L_Q();
-	if (isEncryptionMandatory()) {
+	if (remoteMd && isEncryptionMandatory()) {
 		const auto negotiatedEncryption = getNegotiatedMediaEncryption();
 		// zrtp-hash attribute is not mandatory, therefore the value returned by SalMediaDescription::hasZrtp() may be
 		// misleading
