@@ -51,6 +51,10 @@ public:
 	std::list<std::shared_ptr<MessageWaitingIndicationSummary>> getSummaries() const;
 	std::shared_ptr<MessageWaitingIndicationSummary>
 	getSummary(LinphoneMessageWaitingIndicationContextClass contextClass) const;
+	uint32_t getNbOld() const;
+	uint32_t getNbNew() const;
+	uint32_t getNbOldUrgent() const;
+	uint32_t getNbNewUrgent() const;
 
 	// Setters
 	void setMessageWaiting(bool messageWaiting);
