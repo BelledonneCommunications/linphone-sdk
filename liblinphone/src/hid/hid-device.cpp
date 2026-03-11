@@ -224,7 +224,7 @@ void HidDevice::handleEvents() {
 			return;
 		}
 
-		if (hasGoneOffHook) {
+		if (hasGoneOffHook && !wasHeld) {
 			if (wasRinging && currentCall) {
 				lInfo() << "HidDevice is requesting to answer a call";
 				currentCall->onHeadsetAnswerCallRequested(currentCall->getActiveSession());
@@ -347,7 +347,7 @@ std::shared_ptr<HidDevice> HidDevice::create(const std::shared_ptr<Core> &core,
 	switch (productId) {
 		CASE_HID_DEVICE(PRODUCT_ID_JABRA_ENGAGE_55, JabraEngage55HidDevice)
 		CASE_HID_DEVICE(PRODUCT_ID_JABRA_ENGAGE_55_TEAMS, JabraEngage55HidDevice)
-		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55_LINK_380, JabraEngage55HidDevice)
+		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55_LINK_380, JabraEvolve255HidDevice)
 		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55, JabraEvolve255HidDevice)
 		CASE_HID_DEVICE(PRODUCT_ID_JABRA_EVOLVE2_55_TEAMS, JabraEvolve255HidDevice)
 		default:
