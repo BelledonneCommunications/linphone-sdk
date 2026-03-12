@@ -208,10 +208,12 @@ bool MsScreenSharing_win::ScreenProcessor::initDisplay() {
 		// Create GUI drawing texture
 		DXGI_OUTDUPL_DESC outputDuplDesc;
 		deskDupl->GetDesc(&outputDuplDesc);
-		D3D11_TEXTURE2D_DESC desc;
+		D3D11_TEXTURE2D_DESC desc = {}; // Initialize all values
 		desc.Width = outputDuplDesc.ModeDesc.Width;
 		desc.Height = outputDuplDesc.ModeDesc.Height;
-		desc.Format = outputDuplDesc.ModeDesc.Format;
+		// Force to DXGI_FORMAT_B8G8R8A8_UNORM to be compliant with D3D11_RESOURCE_MISC_GDI_COMPATIBLE
+		// https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_resource_misc_flag
+		desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 		desc.ArraySize = 1;
 		desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_RENDER_TARGET;
 		desc.MiscFlags = D3D11_RESOURCE_MISC_GDI_COMPATIBLE;
@@ -223,7 +225,8 @@ bool MsScreenSharing_win::ScreenProcessor::initDisplay() {
 		ID3D11Texture2D *drawingImage;
 		hr = mDevice->CreateTexture2D(&desc, NULL, &drawingImage);
 		if (FAILED(hr) || !drawingImage) {
-			ms_warning("[MsScreenSharing_win] Cannot create drawing Texture2D on screen %d [%x]", i, hr);
+			ms_warning("[MsScreenSharing_win] Cannot create drawing Texture2D on screen %d Size=(%d/%d) [0x%x]", i,
+			           desc.Width, desc.Height, hr);
 			toRelease(dxgiOutput, dxgiOutput1, deskDupl);
 			continue;
 		}
@@ -269,20 +272,34 @@ bool MsScreenSharing_win::WindowProcessor::initDisplay() {
 }
 
 void MsScreenSharing_win::getWindowSize(int *windowX, int *windowY, int *windowWidth, int *windowHeight) const {
-	if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY &&
-	    mLastFormat.mScreenIndex < mScreenRects.size()) {
-		auto rect = mScreenRects[mLastFormat.mScreenIndex];
-		*windowX = rect.mX1;
-		*windowY = rect.mY1;
-		*windowWidth = rect.getWidth();
-		*windowHeight = rect.getHeight();
+	if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY) {
+		int screenIndex = mLastFormat.mScreenIndex;
+		if (screenIndex >= mScreenRects.size()) {
+			ms_warning("[MsScreenSharing_win] Display mode is selected but the chosen screen (%d) cannot be used. "
+			           "Check previous warning. Trying with screen index 0",
+			           mLastFormat.mScreenIndex);
+			screenIndex = 0;
+		}
+		if (screenIndex < mScreenRects.size()) {
+			auto rect = mScreenRects[screenIndex];
+			*windowX = rect.mX1;
+			*windowY = rect.mY1;
+			*windowWidth = rect.getWidth();
+			*windowHeight = rect.getHeight();
+		} else {
+			ms_error("[MsScreenSharing_win] The screen index 0 is not available. Set default to 400x400");
+			*windowX = 0;
+			*windowY = 0;
+			*windowWidth = 400;
+			*windowHeight = 400;
+		}
 	} else {
-		// Issue of GetWindowRect : it return shadow area. Use DwmGetWindowAttribute to get exactly the window size.
+		// Issue of GetWindowRect : it returns shadow area. Use DwmGetWindowAttribute to get exactly the window size.
 		RECT rect;
 		HRESULT result = DwmGetWindowAttribute(mWindowId, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(RECT));
 		if (S_OK != result) {                       // Win32
 			if (!GetWindowRect(mWindowId, &rect)) { // Fallback
-				ms_warning("[MsScreenSharing_win] Cannot get window size from %x. Set default to 400x400 [%x]",
+				ms_warning("[MsScreenSharing_win] Cannot get window size from %x. Set default to 400x400 [0x%x]",
 				           mWindowId, result);
 				rect.top = rect.left = 0;
 				rect.bottom = rect.right = 400;
