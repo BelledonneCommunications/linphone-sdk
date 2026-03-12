@@ -10065,10 +10065,11 @@ bool_t linphone_core_baudot_enabled(const LinphoneCore *lc) {
 
 void linphone_core_enable_gruu_in_conference_address(LinphoneCore *lc, bool_t enabled) {
 	linphone_config_set_int(linphone_core_get_config(lc), "misc", "keep_gruu_in_conference_address", enabled);
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->enableGruuInConferenceAddress(!!enabled);
 }
 
 bool_t linphone_core_gruu_in_conference_address_enabled(const LinphoneCore *lc) {
-	return !!linphone_config_get_bool(linphone_core_get_config(lc), "misc", "keep_gruu_in_conference_address", TRUE);
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->gruuInConferenceAddressEnabled();
 }
 
 void linphone_core_set_add_admin_information_to_contact(LinphoneCore *lc, bool_t enabled) {

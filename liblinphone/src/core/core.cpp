@@ -160,6 +160,9 @@ void CorePrivate::init() {
 		}
 	}
 
+	q->enableGruuInConferenceAddress(
+	    !!linphone_config_get_int(linphone_core_get_config(lc), "misc", "keep_gruu_in_conference_address", TRUE));
+
 	if (linphone_factory_is_database_storage_available(linphone_factory_get()) &&
 	    !!linphone_core_database_enabled(lc)) {
 		AbstractDb::Backend backend;
@@ -2340,7 +2343,7 @@ void Core::setConferenceCleanupPeriod(long seconds) {
 	L_D();
 	LinphoneConfig *config = linphone_core_get_config(getCCore());
 	linphone_config_set_int64(config, "misc", "conference_cleanup_period", seconds);
-	lInfo() << "Set conference clean window to " << seconds << " seconds";
+	lInfo() << "Set conference cleanup period to " << seconds << " seconds";
 	d->createConferenceCleanupTimer(seconds);
 }
 
@@ -3822,6 +3825,14 @@ std::shared_ptr<Account> Core::guessLocalAccountFromMalformedMessage(const std::
 	}
 
 	return nullptr;
+}
+
+void Core::enableGruuInConferenceAddress(bool enable) {
+	mGruuInConferenceAddress = enable;
+}
+
+bool Core::gruuInConferenceAddressEnabled() const {
+	return mGruuInConferenceAddress;
 }
 
 Address Core::getPrimaryContactAddress() const {
