@@ -570,4 +570,4 @@ test_suite_t audio_quality_test_suite = {"Audio Call quality",
                                          sizeof(audio_quality_tests) / sizeof(audio_quality_tests[0]),
                                          audio_quality_tests,
                                          1010,
-                                         1};
+                                         4};

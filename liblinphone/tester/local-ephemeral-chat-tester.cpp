@@ -253,7 +253,7 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_enabled_afte
 			BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(marieCr), 5, int, "%d");
 
 			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_NotifyReceived,
-									 pauline_stat.number_of_NotifyReceived + 1, liblinphone_tester_sip_timeout));
+			                             pauline_stat.number_of_NotifyReceived + 1, liblinphone_tester_sip_timeout));
 			BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(paulineCr), 5, int, "%d");
 
 			sendEphemeralMessageInAdminMode(focus, marie, pauline, marieCr, paulineCr, "Back online ", noMsg);
@@ -1025,6 +1025,6 @@ test_suite_t local_conference_test_suite_ephemeral_chat = {
     liblinphone_tester_after_each,
     sizeof(local_conference_ephemeral_chat_tests) / sizeof(local_conference_ephemeral_chat_tests[0]),
     local_conference_ephemeral_chat_tests,
-    167,
+    0,
     2 /*cpu_weight : chat uses more resources due to core restarts */
 };

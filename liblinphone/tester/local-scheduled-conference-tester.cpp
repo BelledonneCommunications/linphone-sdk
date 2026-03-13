@@ -9523,20 +9523,12 @@ static void client_changes_layout_in_conference_with_anonymous_participants() {
 static test_t local_conference_scheduled_conference_basic_tests[] = {
     TEST_NO_TAG("Conference joined multiple times", LinphoneTest::conference_joined_multiple_times),
     TEST_NO_TAG("Call to inexisting conference address", LinphoneTest::call_to_inexisting_conference_address),
-    TEST_NO_TAG("Conference with media lost on the client side",
-                LinphoneTest::conference_with_media_lost_on_the_client_side),
-    TEST_NO_TAG("Conference with media lost on the server side",
-                LinphoneTest::conference_with_media_lost_on_the_server_side),
-    TEST_ONE_TAG("Conference with server no RTP timeout",
-                 LinphoneTest::conference_with_server_no_rtp_timeout,
-                 "LeaksMemory"), /* due to Core restart */
 #ifndef HAVE_EKT_SERVER_PLUGIN
     TEST_NO_TAG("Encrypted conference on server without e2e support",
                 LinphoneTest::encrypted_conference_on_server_without_e2e_support),
 #endif // HAVE_EKT_SERVER_PLUGIN
     TEST_NO_TAG("Conference with participants are late except for one",
                 LinphoneTest::conference_with_participants_late_except_one),
-    TEST_NO_TAG("Create conference on unresponsive server", LinphoneTest::create_conference_on_unresponsive_server),
     TEST_NO_TAG("Create simple conference", LinphoneTest::create_simple_conference),
     TEST_NO_TAG("Create simple conference using DB conference scheduler",
                 LinphoneTest::create_simple_conference_db_conference_scheduler),
@@ -9560,7 +9552,17 @@ static test_t local_conference_scheduled_conference_basic_tests[] = {
     TEST_NO_TAG("Create conference starting immediately", LinphoneTest::create_conference_starting_immediately),
     TEST_NO_TAG("Create conference starting in the past", LinphoneTest::create_conference_starting_in_the_past),
     TEST_NO_TAG("Create conference with recvonly participant",
-                LinphoneTest::create_conference_with_recvonly_participant),
+                LinphoneTest::create_conference_with_recvonly_participant)};
+
+static test_t local_conference_scheduled_conference_media_problem_tests[] = {
+    TEST_NO_TAG("Create conference on unresponsive server", LinphoneTest::create_conference_on_unresponsive_server),
+    TEST_NO_TAG("Conference with media lost on the client side",
+                LinphoneTest::conference_with_media_lost_on_the_client_side),
+    TEST_NO_TAG("Conference with media lost on the server side",
+                LinphoneTest::conference_with_media_lost_on_the_server_side),
+    TEST_ONE_TAG("Conference with server no RTP timeout",
+                 LinphoneTest::conference_with_server_no_rtp_timeout,
+                 "LeaksMemory"), /* due to Core restart */
     TEST_NO_TAG("Create conference with participant codec mismatch",
                 LinphoneTest::create_conference_with_participant_codec_mismatch),
     TEST_NO_TAG("Create conference with organizer codec mismatch",
@@ -9714,6 +9716,19 @@ test_suite_t local_conference_test_suite_scheduled_conference_basic = {
     local_conference_scheduled_conference_basic_tests,
     0,
     5 /*cpu_weight : video conference uses more resources */
+};
+
+test_suite_t local_conference_test_suite_scheduled_conference_media_problem = {
+    "Local conference tester (Scheduled Conference with media issues)",
+    NULL,
+    NULL,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(local_conference_scheduled_conference_media_problem_tests) /
+        sizeof(local_conference_scheduled_conference_media_problem_tests[0]),
+    local_conference_scheduled_conference_media_problem_tests,
+    0,
+    4 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_advanced = {

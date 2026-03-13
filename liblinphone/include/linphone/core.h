@@ -8222,13 +8222,34 @@ LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *
 
 /**
  * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
- *in group chats.
+ * in group chats.
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
  * @warning it is only useful to set this property if `linphone_core_send_message_after_notify_enabled` returns false
  **/
 LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration);
+
+/**
+ * Returns the duration of the timer that delays the sending of chat messages,
+ * when the core is running inside an IOS app extension.
+ * @ingroup group_IOS
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return the duration of the timer in seconds
+ **/
+LINPHONE_PUBLIC int linphone_core_get_message_sending_delay_app_ext(const LinphoneCore *core);
+
+/**
+ * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
+ * in group chats, when the core is running inside an IOS app extension.
+ * @ingroup group_IOS
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
+ * @warning it is only useful to set this property if `linphone_core_send_message_after_notify_enabled` returns false
+ **/
+LINPHONE_PUBLIC void linphone_core_set_message_sending_delay_app_ext(LinphoneCore *core, int duration);
 
 /**
  * It sets the duration of the timer to resend a message when the channel is broken (i.e. the core gets an NoResponse or

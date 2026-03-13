@@ -2814,6 +2814,9 @@ void create_conference_base(time_t start_time,
 			});
 
 			for (auto mgr : conferenceMgrs) {
+				ms_message("Checking %s's conference and call parameters for conference %s after %s enters it again",
+				           linphone_core_get_identity(mgr->lc), conference_address_str,
+				           linphone_core_get_identity(marie.getLc()));
 				const LinphoneAddress *local_address = (mgr == focus.getCMgr()) ? confAddr : mgr->identity;
 				LinphoneConference *pconference =
 				    linphone_core_search_conference(mgr->lc, NULL, local_address, confAddr, NULL);
@@ -3892,6 +3895,9 @@ void create_conference_base(time_t start_time,
 			        : LinphoneParticipantDeviceStatePresent;
 			size_t no_devices = static_cast<size_t>(no_local_participants + extra_participants);
 			for (auto mgr : conferenceMgrs) {
+				ms_message("Checking %s's conference and call parameters for conference %s after %s enters it",
+				           linphone_core_get_identity(mgr->lc), conference_address_str,
+				           linphone_core_get_identity(michelle.getLc()));
 				const LinphoneAddress *local_address = (mgr == focus.getCMgr()) ? confAddr : mgr->identity;
 				LinphoneConference *pconference =
 				    linphone_core_search_conference(mgr->lc, NULL, local_address, confAddr, NULL);

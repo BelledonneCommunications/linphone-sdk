@@ -989,7 +989,7 @@ void ClientConferenceEventHandler::onAccountRegistrationStateChanged(std::shared
 	auto conference = getConference();
 	bool isChatOnly = conference && conference->isChatOnly();
 	if (localAddress && address->weakEqual(*localAddress) && (state == LinphoneRegistrationOk) &&
-	    (account->getPreviousState() != LinphoneRegistrationRefreshing) && isChatOnly) {
+	    !alreadySubscribed() && !managedByListEventHandler && isChatOnly) {
 		subscribe(conferenceId);
 	}
 }

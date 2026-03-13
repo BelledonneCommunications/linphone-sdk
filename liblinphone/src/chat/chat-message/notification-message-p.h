@@ -39,8 +39,6 @@ protected:
 	    : ChatMessagePrivate(chatRoom, dir) {
 	}
 
-	void setState(BCTBX_UNUSED(ChatMessage::State state), BCTBX_UNUSED(LinphoneReason reason)) override{};
-
 private:
 	void setDisplayNotificationRequired(BCTBX_UNUSED(bool value)) override {
 	}

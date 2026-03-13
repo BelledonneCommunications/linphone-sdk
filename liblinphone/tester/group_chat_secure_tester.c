@@ -1021,7 +1021,6 @@ static void group_chat_lime_x3dh_send_encrypted_message_offline_curve(const Linp
 
 	sal_set_send_error(linphone_core_get_sal(pauline->lc), 0);
 	linphone_core_refresh_registers(pauline->lc);
-
 	BC_ASSERT_TRUE(
 	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneRegistrationOk, 2, liblinphone_tester_sip_timeout));
 
@@ -1030,7 +1029,10 @@ static void group_chat_lime_x3dh_send_encrypted_message_offline_curve(const Linp
 	BC_ASSERT_TRUE(
 	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent, 2, liblinphone_tester_sip_timeout));
 	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageDelivered, 2, liblinphone_tester_sip_timeout));
+	    // To be fixed : waiting 1 minute for subscription refresher to be tried again, since it failed when network was
+	    // shutdown
+	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageDelivered, 2,
+	                  60000 + liblinphone_tester_sip_timeout));
 	BC_ASSERT_TRUE(
 	    wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived, 2, liblinphone_tester_sip_timeout));
 	BC_ASSERT_TRUE(

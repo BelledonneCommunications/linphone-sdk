@@ -48,6 +48,7 @@ class ChatMessagePrivate : public ObjectPrivate {
 	friend class EncryptionChatMessageModifier;
 	friend class MultipartChatMessageModifier;
 	friend class NotificationMessagePrivate;
+	friend class ImdnMessagePrivate;
 
 public:
 	enum Step : int {

@@ -184,7 +184,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 		                             liblinphone_tester_sip_timeout));
 	}
 
-	const int ephemeral_short_timer_timeout_ms = (ephemeral_short_time + 1)*1000;
+	const int ephemeral_short_timer_timeout_ms = (ephemeral_short_time + 1) * 1000;
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneChatRoomEphemeralDeleted,
 	                             initialMarieStats.number_of_LinphoneChatRoomEphemeralDeleted + 10,
 	                             ephemeral_short_timer_timeout_ms));
@@ -230,7 +230,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 		linphone_address_unref(localAddr);
 		linphone_address_unref(peerAddr);
 
-		const int ephemeral_long_timer_timeout_ms = (ephemeral_long_time + 1)*1000;
+		const int ephemeral_long_timer_timeout_ms = (ephemeral_long_time + 1) * 1000;
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneChatRoomEphemeralDeleted,
 		                             initialMarieStats.number_of_LinphoneChatRoomEphemeralDeleted + 20,
 		                             ephemeral_long_timer_timeout_ms));
@@ -247,7 +247,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 		if (!expired)
 			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageEphemeralDeleted,
 			                             initialPaulineStats.number_of_LinphoneMessageEphemeralDeleted + 10,
-		                             ephemeral_long_timer_timeout_ms));
+			                             ephemeral_long_timer_timeout_ms));
 
 		bctbx_list_free_with_data(history, (bctbx_list_free_func)linphone_chat_message_unref);
 	}
@@ -745,7 +745,8 @@ static void chat_room_ephemeral_settings(void) {
 	chat_room_ephemeral_settings_curve(C448);
 }
 
-static void ephemeral_group_message_test_curve_with_policy(const int curveId, bool_t restart_core_before_ephemeral_activation,
+static void ephemeral_group_message_test_curve_with_policy(const int curveId,
+                                                           bool_t restart_core_before_ephemeral_activation,
                                                            const LinphoneEphemeralChatMessagePolicy policy) {
 	LinphoneCoreManager *marie = linphone_core_manager_create("marie_rc");
 	LinphoneCoreManager *pauline = linphone_core_manager_create("pauline_rc");
@@ -1031,7 +1032,7 @@ test_suite_t ephemeral_group_chat_test_suite = {"Ephemeral group chat",
                                                 sizeof(ephemeral_group_chat_tests) /
                                                     sizeof(ephemeral_group_chat_tests[0]),
                                                 ephemeral_group_chat_tests,
-                                                643,
+                                                0,
                                                 1};
 
 test_suite_t ephemeral_group_chat_basic_test_suite = {"Ephemeral group chat (Basic)",
@@ -1042,7 +1043,7 @@ test_suite_t ephemeral_group_chat_basic_test_suite = {"Ephemeral group chat (Bas
                                                       sizeof(ephemeral_group_chat_basic_tests) /
                                                           sizeof(ephemeral_group_chat_basic_tests[0]),
                                                       ephemeral_group_chat_basic_tests,
-                                                      359,
+                                                      0,
                                                       1};
 
 #if __clang__ || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)

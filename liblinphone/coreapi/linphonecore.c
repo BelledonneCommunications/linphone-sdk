@@ -10130,6 +10130,14 @@ void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration) {
 	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_s", duration);
 }
 
+int linphone_core_get_message_sending_delay_app_ext(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "misc", "delay_message_send_app_ext_s", 3);
+}
+
+void linphone_core_set_message_sending_delay_app_ext(LinphoneCore *core, int duration) {
+	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_app_ext_s", duration);
+}
+
 int linphone_core_get_chat_room_load_chunk_size(const LinphoneCore *core) {
 	return linphone_config_get_int(linphone_core_get_config(core), "chat", "chat_room_load_chunk_size", -1);
 }

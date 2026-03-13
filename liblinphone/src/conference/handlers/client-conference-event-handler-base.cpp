@@ -45,8 +45,15 @@ ClientConferenceEventHandlerBase::~ClientConferenceEventHandlerBase() {
 }
 
 void ClientConferenceEventHandlerBase::startWaitNotifyTimer() {
-	if (mWaitNotifyTimer) return;
-	unsigned int timeout = (unsigned)linphone_core_get_message_sending_delay(getCore()->getCCore());
+	// Do not start the timer if the core config explicitely ask to wait for NOTIFY reception
+	if (mWaitNotifyTimer || linphone_core_send_message_after_notify_enabled(getCore()->getCCore())) return;
+
+	unsigned int timeout = 0;
+	if (getCore()->getCCore()->is_main_core) {
+		timeout = static_cast<unsigned>(linphone_core_get_message_sending_delay(getCore()->getCCore()));
+	} else {
+		timeout = static_cast<unsigned>(linphone_core_get_message_sending_delay_app_ext(getCore()->getCCore()));
+	}
 	if (timeout == 0) return;
 	mWaitNotifyTimer = getCore()->createTimer(
 	    [this]() -> bool {

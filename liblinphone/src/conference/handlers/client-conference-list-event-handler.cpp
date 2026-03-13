@@ -148,6 +148,11 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 	}
 	evSub->setProperty("event-handler-private", this);
 
+	shared_ptr<EventCbs> cbs = EventCbs::create();
+	cbs->setUserData(this);
+	cbs->subscribeStateChangedCb = subscribeStateChangedCb;
+	evSub->addCallbacks(cbs);
+
 	auto ret = evSub->send(content);
 	levs.push_back(evSub);
 	startWaitNotifyTimer();
@@ -194,6 +199,16 @@ ClientConferenceListEventHandler::getSubscriptionState(const std::shared_ptr<Add
 
 void ClientConferenceListEventHandler::invalidateSubscription() {
 	levs.clear();
+}
+
+void ClientConferenceListEventHandler::subscribeStateChangedCb(LinphoneEvent *lev, LinphoneSubscriptionState state) {
+	if (state == LinphoneSubscriptionError) {
+		auto ev = dynamic_pointer_cast<EventSubscribe>(Event::toCpp(lev)->getSharedFromThis());
+		const auto &from = ev->getFrom();
+		auto cbs = ev->getCurrentCallbacks();
+		ClientConferenceListEventHandler *handler = static_cast<ClientConferenceListEventHandler *>(cbs->getUserData());
+		handler->subscriptionDone(from);
+	}
 }
 
 void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> notifyLev,
@@ -252,17 +267,21 @@ void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> not
 				else if (contentType == ContentType::ConferenceInfo) handler->notifyReceived(content);
 			}
 
-			// Remove subscription underway flag from all handlers matching the account that sent the subscription
-			for (const auto &[key, handlerWkPtr] : handlers) {
-				try {
-					std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
-					const ConferenceId &conferenceId = handler->getConferenceId();
-					if (from->weakEqual(*conferenceId.getLocalAddress())) {
-						handler->notifySubscriptionUnderwayDone();
-					}
-				} catch (const bad_weak_ptr &) {
-				}
+			subscriptionDone(from);
+		}
+	}
+}
+
+void ClientConferenceListEventHandler::subscriptionDone(const std::shared_ptr<Address> &from) {
+	// Remove subscription underway flag from all handlers matching the account that sent the subscription
+	for (const auto &[key, handlerWkPtr] : handlers) {
+		try {
+			std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
+			const ConferenceId &conferenceId = handler->getConferenceId();
+			if (from->weakEqual(*conferenceId.getLocalAddress())) {
+				handler->notifySubscriptionUnderwayDone();
 			}
+		} catch (const bad_weak_ptr &) {
 		}
 	}
 }
