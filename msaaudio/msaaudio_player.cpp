@@ -106,6 +106,7 @@ struct AAudioOutputContext {
 		checkForDeviceChange = false;
 		adjustingBufferSize = false;
 		restartScheduled = false;
+		restartAttemptsCount = 0;
 	}
 
 	~AAudioOutputContext() {
@@ -177,6 +178,7 @@ struct AAudioOutputContext {
 	bool volumeHackRequired;
 	bool adjustingBufferSize;
 	bool restartScheduled;
+	int restartAttemptsCount;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -406,9 +408,9 @@ static bool_t aaudio_player_close(AAudioOutputContext *octx) {
 
 static bool_t aaudio_player_restart(AAudioOutputContext *octx) {
 	ms_message("[AAudio Player] Restarting stream");
-
 	aaudio_player_close(octx);
 	_aaudio_player_init(octx);
+
 	if (octx->stream != nullptr) {
 		ms_message("[AAudio Player] Stream was restarted");
 
@@ -417,8 +419,13 @@ static bool_t aaudio_player_restart(AAudioOutputContext *octx) {
 			octx->restartScheduled = false;
 			ms_mutex_unlock(&octx->stream_mutex);
 		}
+	} else if (octx->restartAttemptsCount > 2) {
+		ms_error("[AAudio Player] Tried [%i] times to restart the stream without success, aborting restart", octx->restartAttemptsCount);
 	} else {
 		ms_error("[AAudio Player] Failed to restart the stream, trying again");
+		ms_mutex_lock(&octx->stream_mutex);
+		octx->restartAttemptsCount += 1;
+		ms_mutex_unlock(&octx->stream_mutex);
 		ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 	}
 
@@ -482,6 +489,7 @@ static void android_snd_write_process(MSFilter *obj) {
 		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
 			if (!octx->restartScheduled) {
 				ms_warning("[AAudio Player] Player stream has disconnected, restarting it");
+				octx->restartAttemptsCount = 0;
 				ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 				octx->restartScheduled = true;
 			} else {
@@ -498,6 +506,7 @@ static void android_snd_write_process(MSFilter *obj) {
 				int id = (int)AAudioStream_getDeviceId(octx->stream);
 				if (id != octx->soundCard->internal_id) {
 					ms_warning("[AAudio Player] Device has changed, restarting stream");
+					octx->restartAttemptsCount = 0;
 					ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 				}
 				octx->checkForDeviceChange = false;
@@ -587,6 +596,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		ms_mutex_lock(&octx->stream_mutex);
 		if (octx->stream) {
 			ms_message("[AAudio Player] Requesting the stream to restart to apply new device ID");
+			octx->restartAttemptsCount = 0;
 			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
 		} else {
 			ms_warning("[AAudio Player] No stream, will check when stream will be running if device needs to be updated");
