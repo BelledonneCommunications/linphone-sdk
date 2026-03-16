@@ -818,9 +818,9 @@ static void edit_simple_conference_base(bool_t from_organizer,
 			linphone_participant_info_unref(info);
 		}
 
-		for (int attempt = 0; attempt < 3; attempt++) {
-			ms_message("%s is trying to update conference %s - attempt %0d - %s %s",
-			           linphone_core_get_identity(manager_editing->lc), conference_address_str, attempt,
+		for (int iteration = 0; iteration < 3; iteration++) {
+			ms_message("Iteration[%0d]: %s is trying to update conference %s - %s %s", iteration,
+			           linphone_core_get_identity(manager_editing->lc), conference_address_str,
 			           (add) ? "adding" : "removing", linphone_core_get_identity(michelle.getLc()));
 
 			stats focus_stat = focus.getStats();
@@ -838,7 +838,7 @@ static void edit_simple_conference_base(bool_t from_organizer,
 				size_t ics_participant_number = 0;
 				if (add) {
 					linphone_conference_info_add_participant(conf_info, michelle.getCMgr()->identity);
-					ics_participant_number = 4 + ((((attempt == 0) || !edit_successful) && join) ? 1 : 0);
+					ics_participant_number = 4 + ((((iteration == 0) || !edit_successful) && join) ? 1 : 0);
 				} else {
 					// If marie was in the list of participants, she will be removed as well but she will be kept as
 					// organizer
@@ -930,9 +930,9 @@ static void edit_simple_conference_base(bool_t from_organizer,
 								exp_sequence = 1;
 							}
 						} else if (mgr == lise.getCMgr()) {
-							exp_sequence = (attempt + 1);
+							exp_sequence = (iteration + 1);
 						} else {
-							exp_sequence = (sequence + attempt + 1);
+							exp_sequence = (sequence + iteration + 1);
 						}
 
 						LinphoneConferenceInfoState exp_state = LinphoneConferenceInfoStateNew;
@@ -978,7 +978,7 @@ static void edit_simple_conference_base(bool_t from_organizer,
 							                size_t, "%zu");
 
 							update_sequence_number(&participants_info, {michelle.getCMgr()->identity},
-							                       (mgr == focus.getCMgr()) ? 0 : (sequence + attempt + 1),
+							                       (mgr == focus.getCMgr()) ? 0 : (sequence + iteration + 1),
 							                       (mgr == focus.getCMgr()) ? -1 : 0);
 							LinphoneParticipantInfo *participant_info =
 							    linphone_participant_info_new(lise.getCMgr()->identity);
@@ -989,7 +989,7 @@ static void edit_simple_conference_base(bool_t from_organizer,
 							if (participant_info_it) {
 								LinphoneParticipantInfo *participant_info_found =
 								    (LinphoneParticipantInfo *)bctbx_list_get_data(participant_info_it);
-								linphone_participant_info_set_sequence_number(participant_info_found, (attempt + 1));
+								linphone_participant_info_set_sequence_number(participant_info_found, (iteration + 1));
 							}
 							linphone_participant_info_unref(participant_info);
 							check_conference_info_in_db(mgr, uid, confAddr, marie.getCMgr()->identity,
@@ -1130,9 +1130,9 @@ static void edit_simple_conference_base(bool_t from_organizer,
 									exp_sequence = 1;
 								}
 							} else if (mgr == lise.getCMgr()) {
-								exp_sequence = edit_successful ? (attempt + 1) : 0;
+								exp_sequence = edit_successful ? (iteration + 1) : 0;
 							} else {
-								exp_sequence = edit_successful ? (attempt + 2) : 1;
+								exp_sequence = edit_successful ? (iteration + 2) : 1;
 							}
 						}
 
@@ -1150,9 +1150,9 @@ static void edit_simple_conference_base(bool_t from_organizer,
 						int exp_sequence_number = 0;
 						if (edit_successful) {
 							if (is_focus) {
-								exp_sequence_number = (attempt + 1);
+								exp_sequence_number = (iteration + 1);
 							} else {
-								exp_sequence_number = (attempt + 2);
+								exp_sequence_number = (iteration + 2);
 							}
 						} else {
 							if (is_focus) {
@@ -1162,7 +1162,7 @@ static void edit_simple_conference_base(bool_t from_organizer,
 							}
 						}
 						std::list<LinphoneAddress *> new_participants{michelle.getCMgr()->identity};
-						if (!join || (is_focus && (!edit_successful || (attempt > 0)))) {
+						if (!join || (is_focus && (!edit_successful || (iteration > 0)))) {
 							new_participants.push_back(marie.getCMgr()->identity);
 						}
 						update_sequence_number(&participants_info2, new_participants, exp_sequence_number,
@@ -1178,9 +1178,9 @@ static void edit_simple_conference_base(bool_t from_organizer,
 							int exp_lise_sequence_number = 0;
 							if (edit_successful) {
 								if (is_focus) {
-									exp_lise_sequence_number = attempt;
+									exp_lise_sequence_number = iteration;
 								} else {
-									exp_lise_sequence_number = (attempt + 1);
+									exp_lise_sequence_number = (iteration + 1);
 								}
 							} else {
 								if (is_focus) {
@@ -1199,7 +1199,7 @@ static void edit_simple_conference_base(bool_t from_organizer,
 						if (!is_focus) {
 							int exp_organizer_sequence = 0;
 							if (edit_successful) {
-								exp_organizer_sequence = attempt + 2;
+								exp_organizer_sequence = iteration + 2;
 							} else {
 								exp_organizer_sequence = 1;
 							}

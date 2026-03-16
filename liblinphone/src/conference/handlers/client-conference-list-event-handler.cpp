@@ -104,7 +104,7 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 				shared_ptr<AbstractChatRoom> cr = getCore()->findChatRoom(conferenceId, false);
 				if (!cr) {
 					lError() << "Couldn't add chat room " << conferenceId
-					         << " in the chat room list subscription because chat room couldn't be found";
+					         << " to the chat room list subscription because chat room couldn't be found";
 					continue;
 				}
 				if (cr->hasBeenLeft()) continue;

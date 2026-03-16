@@ -1214,8 +1214,10 @@ std::shared_ptr<ConferenceParams> ChatRoom::getCurrentParams() const {
 	return params;
 }
 
-LinphoneStatus
-ChatRoom::enableEphemeral(BCTBX_UNUSED(long lifetime), BCTBX_UNUSED(long notReadLifetime), BCTBX_UNUSED(bool initiated), BCTBX_UNUSED(bool updateDb)) {
+LinphoneStatus ChatRoom::enableEphemeral(BCTBX_UNUSED(long lifetime),
+                                         BCTBX_UNUSED(long notReadLifetime),
+                                         BCTBX_UNUSED(bool initiated),
+                                         BCTBX_UNUSED(bool updateDb)) {
 	lDebug() << "Ephemeral message is only supported in conference based chat room!";
 	return -1;
 }

@@ -1140,7 +1140,10 @@ void ServerConferenceEventHandler::notifyParticipantDevice(const shared_ptr<Cont
 	cbs->setUserData(this);
 	cbs->notifyResponseCb = notifyResponseCb;
 	ev->addCallbacks(cbs);
-	ev->notify(content);
+	if (ev->notify(content) == 0) {
+		lError() << "Unable to send NOTIFY message to " << *device << " being subscribed to " << *conf << " through "
+		         << *ev;
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -1153,7 +1156,7 @@ LinphoneStatus ServerConferenceEventHandler::subscribeReceived(const shared_ptr<
 	const auto &contactAddr = ev->getRemoteContact();
 	shared_ptr<ParticipantDevice> device = getConference()->findParticipantDevice(contactAddr);
 	if (!device) {
-		lError() << "Device [" << *contactAddr << "] sending SUBSCRIBE [" << ev << "] is not part of " << *conf
+		lError() << "Device [" << *contactAddr << "] sending SUBSCRIBE " << *ev << " is not part of " << *conf
 		         << ", hence declining SUBSCRIBE";
 		ev->deny(LinphoneReasonDeclined);
 		return -1;
@@ -1161,7 +1164,7 @@ LinphoneStatus ServerConferenceEventHandler::subscribeReceived(const shared_ptr<
 
 	const auto deviceState = device->getState();
 	if ((deviceState != ParticipantDevice::State::Present) && (deviceState != ParticipantDevice::State::Joining)) {
-		lError() << "Device [" << *contactAddr << "] sending SUBSCRIBE [" << ev << "] to " << *conf
+		lError() << "Device [" << *contactAddr << "] sending SUBSCRIBE " << *ev << " to " << *conf
 		         << " cannot be sent NOTIFY messages because it is not in state "
 		         << Utils::toString(ParticipantDevice::State::Joining) << " or "
 		         << Utils::toString(ParticipantDevice::State::Present)

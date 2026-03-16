@@ -435,10 +435,10 @@ shared_ptr<AbstractChatRoom> CorePrivate::createChatRoom(const shared_ptr<Confer
 			}
 		}
 		if (chatRoomParameters->getChatParams()->getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged)
-			chatRoomParameters->getChatParams()->enableEphemeral(chatRoomParameters->getChatParams()->getEphemeralLifetime()
-		        , chatRoomParameters->getChatParams()->getEphemeralNotReadLifetime());
-		else
-			chatRoomParameters->getChatParams()->enableEphemeral(0, 0);
+			chatRoomParameters->getChatParams()->enableEphemeral(
+			    chatRoomParameters->getChatParams()->getEphemeralLifetime(),
+			    chatRoomParameters->getChatParams()->getEphemeralNotReadLifetime());
+		else chatRoomParameters->getChatParams()->enableEphemeral(0, 0);
 
 		ConferenceId conferenceId(nullptr, localAddr, q->createConferenceIdParams());
 		chatRoom = createClientChatRoom(conferenceFactoryUri, conferenceId, nullptr, chatRoomParameters);
@@ -1090,7 +1090,8 @@ LinphoneReason Core::onSipMessageReceived(SalOp *op, const SalMessage *sal_msg) 
 		const char *session_mode = sal_custom_header_find(op->getRecvCustomHeaders(), "Session-mode");
 		/* Client mode but check that it is really for basic chatroom before creating it.*/
 		if (session_mode && strcasecmp(session_mode, "true") == 0) {
-			lError() << "Message is received in the context of a client chatroom for which we have no context.";
+			lError() << "Message is received in the context of chatroom with " << conferenceId
+			         << " we have no context for.";
 			reason = LinphoneReasonNotAcceptable;
 		} else {
 			auto localAccount =

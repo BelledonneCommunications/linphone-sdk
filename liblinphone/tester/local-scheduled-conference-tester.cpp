@@ -2031,8 +2031,8 @@ static void create_simple_conference_with_chat_server_changing_gruu() {
 
 		const LinphoneMediaEncryption encryption = LinphoneMediaEncryptionNone;
 
-		int max_attempts = 3;
-		for (int attempt = 0; attempt < max_attempts; attempt++) {
+		int max_iterations = 3;
+		for (int iteration = 0; iteration < max_iterations; iteration++) {
 			std::list<LinphoneCoreManager *> addedMembers;
 			std::list<LinphoneCoreManager *> addedConferenceMgrs{focus.getCMgr()};
 			// The head of the members list enables screen sharing whereas the others join the conference without vidoe
@@ -2047,8 +2047,8 @@ static void create_simple_conference_with_chat_server_changing_gruu() {
 				linphone_call_params_set_media_encryption(new_params, encryption);
 				linphone_call_params_set_video_direction(new_params, LinphoneMediaDirectionSendRecv);
 				linphone_call_params_enable_video(new_params, is_first_member);
-				ms_message("Iteration[%0d]: %s is entering conference %s", attempt, linphone_core_get_identity(mgr->lc),
-				           conference_address_str);
+				ms_message("Iteration[%0d]: %s is entering conference %s", iteration,
+				           linphone_core_get_identity(mgr->lc), conference_address_str);
 				linphone_core_invite_address_with_params_2(mgr->lc, confAddr, new_params, NULL, nullptr);
 				linphone_call_params_unref(new_params);
 				LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
@@ -2081,7 +2081,7 @@ static void create_simple_conference_with_chat_server_changing_gruu() {
 				LinphoneCall *call = linphone_core_get_call_by_remote_address2(mgr->lc, focus.getCMgr()->identity);
 				BC_ASSERT_PTR_NOT_NULL(call);
 				if (call) {
-					ms_message("Iteration[%0d]: %s is terminating call with %s", attempt,
+					ms_message("Iteration[%0d]: %s is terminating call with %s", iteration,
 					           linphone_core_get_identity(mgr->lc), linphone_core_get_identity(focus.getLc()));
 					linphone_call_terminate(call);
 				}
@@ -2121,7 +2121,7 @@ static void create_simple_conference_with_chat_server_changing_gruu() {
 			                             focus_stat.number_of_LinphoneConferenceStateDeleted + 1,
 			                             liblinphone_tester_sip_timeout));
 
-			if (attempt < (max_attempts - 1)) {
+			if (iteration < (max_iterations - 1)) {
 				char *old_uuid = NULL;
 				if (linphone_config_get_string(linphone_core_get_config(focus.getLc()), "misc", "uuid", NULL)) {
 					old_uuid = bctbx_strdup(
@@ -2146,14 +2146,14 @@ static void create_simple_conference_with_chat_server_changing_gruu() {
 				                                 static_cast<int>(focus_account_count),
 				                             liblinphone_tester_sip_timeout));
 
-				ms_message("Iteration[%0d]: %s reinitializes its core and changes its GRUU", attempt,
+				ms_message("Iteration[%0d]: %s reinitializes its core and changes its GRUU", iteration,
 				           linphone_core_get_identity(focus.getLc()));
 				coresList = bctbx_list_remove(coresList, focus.getLc());
 				linphone_core_manager_reinit(focus.getCMgr());
 				focus.configureFocus();
 				linphone_config_set_string(linphone_core_get_config(focus.getLc()), "misc", "uuid", NULL);
 
-				ms_message("Iteration[%0d]: %s starts again its core", attempt,
+				ms_message("Iteration[%0d]: %s starts again its core", iteration,
 				           linphone_core_get_identity(focus.getLc()));
 				linphone_core_manager_start(focus.getCMgr(), TRUE);
 				coresList = bctbx_list_append(coresList, focus.getLc());

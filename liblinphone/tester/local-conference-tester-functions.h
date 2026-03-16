@@ -268,11 +268,16 @@ private:
 		switch (state) {
 			case LinphoneChatRoomStateInstantiated: {
 				LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
-				linphone_chat_room_cbs_set_participant_registration_subscription_requested(
-				    cbs, chat_room_participant_registration_subscription_requested);
 				setup_chat_room_callbacks(cbs);
+				// Wait for the core to reach the GlobalOn state before assigning the
+				// participant_registration_subscription_requested callback. This method, indeed, may be called before
+				// exiting the Focus constructor leading to a invalid pointer being set in the user data callback field
+				if (linphone_core_get_global_state(core) == LinphoneGlobalOn) {
+					linphone_chat_room_cbs_set_participant_registration_subscription_requested(
+					    cbs, chat_room_participant_registration_subscription_requested);
+					linphone_chat_room_cbs_set_user_data(cbs, focus);
+				}
 				linphone_chat_room_add_callbacks(cr, cbs);
-				linphone_chat_room_cbs_set_user_data(cbs, focus);
 				linphone_chat_room_cbs_unref(cbs);
 				break;
 			}
@@ -286,7 +291,7 @@ private:
 	                                             BCTBX_UNUSED(const char *message)) {
 		if (gstate == LinphoneGlobalOn) {
 			Focus *focus = (Focus *)(((LinphoneCoreManager *)linphone_core_get_user_data(core))->user_info);
-			// Restore chatroom callbacks
+			// Restore chatroom subscription requested callback
 			const bctbx_list_t *chat_rooms = linphone_core_get_chat_rooms(core);
 			for (const bctbx_list_t *it = chat_rooms; it; it = bctbx_list_next(it)) {
 				LinphoneChatRoom *chat_room = (LinphoneChatRoom *)it->data;
@@ -311,7 +316,7 @@ private:
 		}
 	}
 
-	std::multimap<Address, std::reference_wrapper<ClientConference>> mParticipantDevices;
+	std::multimap<Address, std::reference_wrapper<ClientConference>> mParticipantDevices{};
 };
 
 // Chat rooms
