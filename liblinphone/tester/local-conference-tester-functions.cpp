@@ -273,14 +273,14 @@ void check_delete_focus_conference_info(std::initializer_list<std::reference_wra
 				           focus_cleanup_period, linphone_core_get_identity(mgr->lc), conferenceAddressString,
 				           time_left);
 				BC_ASSERT_TRUE(CoreManagerAssert(coreMgrs).waitUntil(
-				    chrono::seconds(focus_cleanup_window), [&mgr, &confAddr, &time_left] {
+				    chrono::seconds(focus_cleanup_period), [&mgr, &confAddr, &time_left, &focus_cleanup_period] {
 					    LinphoneConferenceInfo *info =
 					        linphone_core_find_conference_information_from_uri(mgr->lc, confAddr);
-					    bool is_confernece_info_null = (info == NULL);
+					    bool is_conference_info_null = (info == NULL);
 					    if (info) {
 						    linphone_conference_info_unref(info);
 					    }
-					    return (time_left > 0) ? !is_confernece_info_null : is_confernece_info_null;
+					    return (time_left > focus_cleanup_period) ? !is_conference_info_null : is_conference_info_null;
 				    }));
 			} else {
 				BC_ASSERT_PTR_NOT_NULL(info);
@@ -2505,6 +2505,8 @@ void create_conference_base(time_t start_time,
 		    marie.getLc(), "sip:toto@sip.conference.org##sip:me@sip.local.org"));
 
 		for (auto mgr : conferenceMgrs) {
+			ms_message("Checking %s's conference and call parameters for conference %s",
+			           linphone_core_get_identity(mgr->lc), conference_address_str);
 			LinphoneConference *pconference = linphone_core_search_conference_2(mgr->lc, confAddr);
 			BC_ASSERT_PTR_NOT_NULL(pconference);
 			if (pconference) {
@@ -8508,14 +8510,14 @@ void conference_joined_multiple_times_base(LinphoneConferenceSecurityLevel secur
 		}
 		time_t joining_duration = 0;
 		// Client will join and leave the conference a number of times
-		for (int attempt = 1; attempt <= 5; attempt++) {
+		for (int iteration = 0; iteration <= 4; iteration++) {
 			time_t initial_time = ms_time(NULL);
 			if (end_joining_window > 0) {
 				if (end_joining_window <= (initial_time + joining_duration)) {
 					ms_message("Iteration[%0d]: conference %s is likely to expire before all participants join it",
-					           attempt, conference_address_str);
+					           iteration, conference_address_str);
 					// In order to verify the rejoining of conferences, the loop must have at least 2 iterations
-					BC_ASSERT_GREATER_STRICT(attempt, 2, int, "%0d");
+					BC_ASSERT_GREATER_STRICT(iteration, 1, int, "%0d");
 					break;
 				}
 			}
@@ -8527,8 +8529,8 @@ void conference_joined_multiple_times_base(LinphoneConferenceSecurityLevel secur
 				LinphoneCallParams *new_params = linphone_core_create_call_params(mgr->lc, nullptr);
 				linphone_call_params_set_media_encryption(new_params, encryption);
 				linphone_call_params_set_video_direction(new_params, LinphoneMediaDirectionSendRecv);
-				ms_message("Iteration[%0d]: %s is entering conference %s", attempt, linphone_core_get_identity(mgr->lc),
-				           conference_address_str);
+				ms_message("Iteration[%0d]: %s is entering conference %s", iteration,
+				           linphone_core_get_identity(mgr->lc), conference_address_str);
 				linphone_core_invite_address_with_params_2(mgr->lc, confAddr, new_params, nullptr, nullptr);
 				linphone_call_params_unref(new_params);
 				LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
@@ -8663,27 +8665,33 @@ void conference_joined_multiple_times_base(LinphoneConferenceSecurityLevel secur
 				}
 #endif // HAVE_ADVANCED_IM
 
+				stats mgr_stat = mgr->stat;
 				LinphoneCall *call = linphone_core_get_call_by_remote_address2(mgr->lc, focus.getCMgr()->identity);
 				BC_ASSERT_PTR_NOT_NULL(call);
 				if (call) {
-					ms_message("Iteration[%0d]: %s is terminating call to %s", attempt,
+					ms_message("Iteration[%0d]: %s is terminating call to %s", iteration,
 					           linphone_core_get_identity(mgr->lc), conference_address_str);
 					linphone_call_terminate(call);
 				}
 
-				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallEnd, attempt,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallReleased, attempt,
+				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallEnd,
+				                             mgr_stat.number_of_LinphoneCallEnd + 1, liblinphone_tester_sip_timeout));
+				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallReleased,
+				                             mgr_stat.number_of_LinphoneCallReleased + 1,
 				                             liblinphone_tester_sip_timeout));
 				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneSubscriptionTerminated,
-				                             attempt * nb_client_subscribes, liblinphone_tester_sip_timeout));
+				                             mgr_stat.number_of_LinphoneSubscriptionTerminated + nb_client_subscribes,
+				                             liblinphone_tester_sip_timeout));
 				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneConferenceStateTerminationPending,
-				                             attempt, liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneConferenceStateTerminated, attempt,
+				                             mgr_stat.number_of_LinphoneConferenceStateTerminationPending + 1,
+				                             liblinphone_tester_sip_timeout));
+				BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneConferenceStateTerminated,
+				                             mgr_stat.number_of_LinphoneConferenceStateTerminated + 1,
 				                             liblinphone_tester_sip_timeout));
 				if (!enable_chat) {
 					BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneConferenceStateDeleted,
-					                             attempt, liblinphone_tester_sip_timeout));
+					                             mgr_stat.number_of_LinphoneConferenceStateDeleted + 1,
+					                             liblinphone_tester_sip_timeout));
 				}
 
 				pconference = linphone_core_search_conference(mgr->lc, NULL, mgr->identity, confAddr, NULL);
@@ -8772,9 +8780,9 @@ void conference_joined_multiple_times_base(LinphoneConferenceSecurityLevel secur
 			                             liblinphone_tester_sip_timeout));
 
 			// Wait a little bit
-			ms_message("Iteration[%0d]: waiting that the conference information cleanup timer expires", attempt);
+			ms_message("Iteration[%0d]: waiting that the conference information cleanup timer expires", iteration);
 			CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe})
-			    .waitUntil(chrono::seconds(2 * focus_cleanup_period), [] { return false; });
+			    .waitUntil(chrono::seconds(focus_cleanup_period), [] { return false; });
 
 			for (auto mgr : conferenceMgrs) {
 				bool info_deleted = false;
@@ -8782,10 +8790,22 @@ void conference_joined_multiple_times_base(LinphoneConferenceSecurityLevel secur
 				    (end_joining_window > 0)) {
 					time_t now = ms_time(NULL);
 					time_t time_left = end_joining_window - now;
+
+					if ((time_left > 0) && (time_left <= focus_cleanup_period)) {
+						// Wait a little bit
+						ms_message("Iteration[%0d]: waiting that the conference %s will be deleted the next time the "
+						           "cleaup timer expires",
+						           iteration, conference_address_str);
+						CoreManagerAssert({focus, marie, pauline, laure, michelle, berthe})
+						    .waitUntil(chrono::seconds(focus_cleanup_period + 1), [] { return false; });
+					}
+
+					now = ms_time(NULL);
+					time_left = end_joining_window - now;
 					if (time_left <= 0) {
 						ms_message("Iteration[%0d]: conference information of conference %s was deleted on the server "
 						           "core %s because the conference expired %ld seconds ago",
-						           attempt, conference_address_str, linphone_core_get_identity(mgr->lc), -time_left);
+						           iteration, conference_address_str, linphone_core_get_identity(mgr->lc), -time_left);
 						info_deleted = true;
 					}
 				}

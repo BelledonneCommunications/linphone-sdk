@@ -2347,8 +2347,9 @@ void ServerConference::addParticipantDevice(BCTBX_UNUSED(const shared_ptr<Partic
 #ifdef HAVE_ADVANCED_IM
 	const auto &chatRoom = getChatRoom();
 	if (mConfParams->chatEnabled() && chatRoom) {
+		const auto &deviceAddress = deviceInfo->getAddress();
+		shared_ptr<ParticipantDevice> device = participant->findDevice(deviceAddress, false);
 		auto serverGroupChatRoom = dynamic_pointer_cast<ServerChatRoom>(chatRoom);
-		shared_ptr<ParticipantDevice> device = participant->findDevice(deviceInfo->getAddress(), false);
 		if (device) {
 			// Nothing to do, but set the name and capabilities because they are not known for the initiator device.
 			device->setName(deviceInfo->getName());
@@ -2359,7 +2360,7 @@ void ServerConference::addParticipantDevice(BCTBX_UNUSED(const shared_ptr<Partic
 			/*
 			 * This is a really new device.
 			 */
-			device = participant->addDevice(deviceInfo->getAddress(), deviceInfo->getName());
+			device = participant->addDevice(deviceAddress, deviceInfo->getName());
 			device->setCapabilityDescriptor(deviceInfo->getCapabilityDescriptor());
 			serverGroupChatRoom->updateProtocolVersionFromDevice(device);
 			[[maybe_unused]] shared_ptr<ConferenceParticipantDeviceEvent> event =
@@ -2368,7 +2369,7 @@ void ServerConference::addParticipantDevice(BCTBX_UNUSED(const shared_ptr<Partic
 				db.value().get()->addEvent(event);
 			}
 
-			if (serverGroupChatRoom->getProtocolVersion() < Utils::Version(1, 1) && !getCurrentParams()->isGroup() &&
+			if ((serverGroupChatRoom->getProtocolVersion() < Utils::Version(1, 1)) && !getCurrentParams()->isGroup() &&
 			    allDevLeft) {
 				/* If all other devices have left, let this new device to left state too, it will be invited to join if
 				 * a message is sent to it. */
@@ -2377,7 +2378,7 @@ void ServerConference::addParticipantDevice(BCTBX_UNUSED(const shared_ptr<Partic
 				setParticipantDeviceState(device, ParticipantDevice::State::ScheduledForJoining);
 			}
 		} else {
-			lWarning() << *this << ": " << *participant << " is not authorized to add a device";
+			lWarning() << *this << ": " << *participant << " is not authorized to add a device with " << *deviceAddress;
 		}
 	}
 #endif // HAVE_ADVANCED_IM
@@ -3650,6 +3651,7 @@ void ServerConference::removeParticipantDevice(BCTBX_UNUSED(const shared_ptr<Par
 			lInfo() << "Device " << *deviceAddress << " should be removed but it is not found in " << *this;
 			return;
 		}
+		lInfo() << *participantDevice << " is removed from " << *this;
 		// Notify to everyone the retirement of this device.
 		[[maybe_unused]] auto deviceEvent =
 		    notifyParticipantDeviceRemoved(time(nullptr), false, participant, participantDevice);
@@ -3854,7 +3856,7 @@ void ServerConference::updateParticipantDevices(
 			lError() << *this << " participant devices updated for unknown participant, ignored.";
 			return;
 		}
-		lInfo() << *this << ": Setting " << devices.size() << " participant device(s) for " << *participantAddress;
+		lInfo() << *this << ": Setting " << devices.size() << " participant device(s) for " << *participant;
 
 		// Remove devices that are in the chatroom but no longer in the given list
 		list<shared_ptr<ParticipantDevice>> devicesToRemove;
@@ -3864,7 +3866,7 @@ void ServerConference::updateParticipantDevices(
 			};
 			auto it = find_if(devices.cbegin(), devices.cend(), predicate);
 			if (it == devices.cend()) {
-				lInfo() << *this << ": device " << *device
+				lInfo() << *this << ": " << *device
 				        << " is no longer registered, it will be removed from the chatroom.";
 				devicesToRemove.push_back(device);
 			}
