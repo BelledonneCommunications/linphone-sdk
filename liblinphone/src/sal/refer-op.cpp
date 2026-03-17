@@ -83,7 +83,10 @@ void SalReferOp::processTransactionTerminatedCb(void *userCtx, const belle_sip_t
 	// forward them to the User-Agent once it registers. However, the conference server never registers to the proxy,
 	// therefore such messages are going to be lost. This should be fixed by JIRA
 	// https://linphone.atlassian.net/browse/FLEXISIP-812
-	if ((code >= 400) || (code == 202)) {
+	// if the last response received before termination was a temporary response (code >= 100 && code < 200), the
+	// far-end did not likely receive the message and the REFER operation is considered as failed. In fact, the timer F
+	// (https://www.rfc-editor.org/rfc/rfc3261.html#section-17.1.2.2) triggers after 64*T1 (i.e. 32s)
+	if ((code >= 400) || ((code >= 100) && (code < 200)) || (code == 202)) {
 		op->mRoot->mCallbacks.refer_failure(op);
 	} else if ((code >= 200) && (code < 300)) {
 		op->mRoot->mCallbacks.refer_success(op);

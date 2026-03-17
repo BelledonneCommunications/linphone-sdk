@@ -2932,11 +2932,11 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 		if (termination_failed) {
 			BC_ASSERT_TRUE(wait_for_list(coresList, &leaving_mgr->stat.number_of_conference_operation_failed,
 			                             initialLeavingMgrStats.number_of_conference_operation_failed + 1,
-			                             liblinphone_tester_sip_timeout));
+			                             liblinphone_tester_sip_timerF_timeout));
 
 			BC_ASSERT_TRUE(wait_for_list(coresList, &leaving_mgr->stat.number_of_chat_room_operation_failed,
 			                             initialLeavingMgrStats.number_of_chat_room_operation_failed + 1,
-			                             liblinphone_tester_sip_timeout));
+			                             liblinphone_tester_sip_timerF_timeout));
 
 			if (unresponsive_server) {
 				BC_ASSERT_TRUE(wait_for_list(coresList,
@@ -4520,19 +4520,19 @@ static void short_ephemeral_lifetime_messages_test(void) {
 
 		int ephemeral_lifetime = 2;
 		int ephemeral_not_read_lifetime = linphone_chat_params_get_ephemeral_lifetime(marie_chat_params);
-// Check initialization with default value on not read lifetime.
+		// Check initialization with default value on not read lifetime.
 		BC_ASSERT_FALSE(linphone_chat_params_activate_ephemeral(marie_chat_params, ephemeral_lifetime));
 		BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_lifetime(marie_chat_params), ephemeral_lifetime, int, "%i");
-		BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_not_read_lifetime(marie_chat_params)
-			, ephemeral_not_read_lifetime, int, "%i");// Not changed.
+		BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_not_read_lifetime(marie_chat_params),
+		                ephemeral_not_read_lifetime, int, "%i"); // Not changed.
 
-// Test activation and effective behavior
+		// Test activation and effective behavior
 		ephemeral_lifetime = 1;
-		BC_ASSERT_FALSE(linphone_chat_params_activate_ephemeral_2(marie_chat_params, ephemeral_lifetime, ephemeral_not_read_lifetime));
+		BC_ASSERT_FALSE(linphone_chat_params_activate_ephemeral_2(marie_chat_params, ephemeral_lifetime,
+		                                                          ephemeral_not_read_lifetime));
 		BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_lifetime(marie_chat_params), ephemeral_lifetime, int, "%i");
-		BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_not_read_lifetime(marie_chat_params)
-			, ephemeral_not_read_lifetime, int, "%i");
-
+		BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_not_read_lifetime(marie_chat_params),
+		                ephemeral_not_read_lifetime, int, "%i");
 
 		LinphoneChatRoom *marieCr =
 		    linphone_core_create_chat_room_7(marie.getLc(), marie_params, participantsAddresses);
@@ -4589,8 +4589,8 @@ static void short_ephemeral_lifetime_messages_test(void) {
 				BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_mode(chat_params), ephemeral_mode, int, "%i");
 				BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_lifetime(chat_params), ephemeral_lifetime, int,
 				                "%i");
-				BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_not_read_lifetime(chat_params), ephemeral_not_read_lifetime, int,
-								"%i");
+				BC_ASSERT_EQUAL(linphone_chat_params_get_ephemeral_not_read_lifetime(chat_params),
+				                ephemeral_not_read_lifetime, int, "%i");
 				bctbx_list_t *history = linphone_chat_room_get_history(cr, 0);
 				set_ephemeral_cbs(history);
 				bctbx_list_free_with_data(history, (bctbx_list_free_func)linphone_chat_message_unref);

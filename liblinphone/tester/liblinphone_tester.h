@@ -201,6 +201,7 @@ extern int manager_count;
 extern const char *liblinphone_tester_ipv6_probing_address;
 extern int liblinphone_tester_ipv6_available(void);
 extern int liblinphone_tester_ipv4_available(void);
+extern const int liblinphone_tester_sip_timerF_timeout;
 extern const int liblinphone_tester_sip_timeout;
 extern const int x3dhServer_creationTimeout;
 
