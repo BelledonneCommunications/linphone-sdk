@@ -132,9 +132,7 @@ public:
 
 	void markChatMessagesAsRead(const ConferenceId &conferenceId) const;
 	void invalidateChatMessageImdn(const std::shared_ptr<ChatMessage> &message) const;
-	void updateChatRoomEphemeralEnabled(const ConferenceId &conferenceId, bool ephemeralEnabled) const;
-	void updateChatRoomEphemeralLifetime(const ConferenceId &conferenceId, long lifetime) const;
-	void updateChatRoomEphemeralNotReadLifetime(const ConferenceId &conferenceId, long notReadLifetime) const;
+	void updateChatRoomEphemeralLifetime(const ConferenceId &conferenceId, long lifetime, long notReadLifetime) const;
 	std::list<std::shared_ptr<ChatMessage>> getUnreadChatMessages(const ConferenceId &conferenceId) const;
 	void updateEphemeralMessageInfos(const long long &eventId, const time_t &eTime) const;
 
