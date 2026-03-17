@@ -676,12 +676,9 @@ LinphoneStatus ClientChatRoom::enableEphemeral(long lifetime, long notReadLifeti
 	}
 
 	if (updateDb) {
-		// Update Enabled in database for backward compatibility
 		auto db = getCore()->getDatabase();
 		if (db) {
-			db.value().get()->updateChatRoomEphemeralEnabled(getConferenceId(), toEnable);
-			db.value().get()->updateChatRoomEphemeralLifetime(getConferenceId(), lifetime);
-			db.value().get()->updateChatRoomEphemeralNotReadLifetime(getConferenceId(), notReadLifetime);
+			db.value().get()->updateChatRoomEphemeralLifetime(getConferenceId(), lifetime, notReadLifetime);
 		}
 
 		// Prepare event to set: status change or time change.
