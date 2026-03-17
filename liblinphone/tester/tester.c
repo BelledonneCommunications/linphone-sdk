@@ -162,9 +162,10 @@ bool_t liblinphonetester_show_account_manager_logs = FALSE;
 bool_t liblinphonetester_no_account_creator = FALSE;
 unsigned int liblinphone_tester_max_cpu_count = 2;
 
-const int liblinphone_tester_sip_timeout = 10000; // in ms, use this value for default SIP operation timeout
-const int x3dhServer_creationTimeout = 20000;     // in ms, use this value for default lime user creation timeout
-                                                  //
+const int liblinphone_tester_sip_timerF_timeout = 33000; // in ms, use this value for default SIP Timer F timeout.
+const int liblinphone_tester_sip_timeout = 10000;        // in ms, use this value for default SIP operation timeout
+const int x3dhServer_creationTimeout = 20000;            // in ms, use this value for default lime user creation timeout
+
 int liblinphonetester_transport_timeout = 9000; /*milliseconds. it is set to such low value to workaround a problem with
             our Freebox v6 when connecting to Ipv6 addresses. It was found that the freebox sometimes block SYN-ACK
             packets, which prevents connection to be successful. Thanks to the timeout, it will fallback to IPv4*/
