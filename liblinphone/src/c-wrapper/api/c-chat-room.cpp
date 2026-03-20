@@ -294,10 +294,14 @@ void linphone_chat_room_enable_ephemeral(LinphoneChatRoom *chat_room, bool_t eph
 	ChatRoomLogContextualizer logContextualizer(chat_room);
 	if (ephem) {
 		LinphoneCore *core = linphone_chat_room_get_core(chat_room);
-		long defaultLifetime = linphone_core_get_default_ephemeral_lifetime(core);
-		long defaultNotReadLifetime = linphone_core_get_default_ephemeral_not_read_lifetime(core);
-		if (defaultLifetime == 0) defaultLifetime = 60;
-		AbstractChatRoom::toCpp(chat_room)->enableEphemeral(defaultLifetime, defaultNotReadLifetime, true, true);
+		LinphoneChatParams *chat_params =
+		    linphone_conference_params_get_chat_params(linphone_chat_room_get_params(chat_room));
+		long lifetime = linphone_chat_params_get_ephemeral_lifetime(chat_params);
+		if (lifetime == 0) lifetime = linphone_core_get_default_ephemeral_lifetime(core);
+		if (lifetime == 0) lifetime = 60;
+		long notReadLifetime = linphone_chat_params_get_ephemeral_not_read_lifetime(chat_params);
+		if (notReadLifetime == 0) notReadLifetime = linphone_core_get_default_ephemeral_not_read_lifetime(core);
+		AbstractChatRoom::toCpp(chat_room)->enableEphemeral(lifetime, notReadLifetime, true, true);
 	} else AbstractChatRoom::toCpp(chat_room)->enableEphemeral(0, 0, true, true);
 }
 
@@ -306,10 +310,14 @@ LinphoneStatus linphone_chat_room_activate_ephemeral(LinphoneChatRoom *chat_room
 	ChatRoomLogContextualizer logContextualizer(chat_room);
 	if (time > 0) {
 		LinphoneCore *core = linphone_chat_room_get_core(chat_room);
-		long defaultNotReadLifetime = linphone_core_get_default_ephemeral_not_read_lifetime(core);
-		return AbstractChatRoom::toCpp(chat_room)->enableEphemeral(time, defaultNotReadLifetime, true, true);
-	}else {
-		lWarning() << "Cannot activate ephemeral because default lifetime is not positive.";
+		LinphoneChatParams *chat_params =
+		    linphone_conference_params_get_chat_params(linphone_chat_room_get_params(chat_room));
+		long notReadLifetime = linphone_chat_params_get_ephemeral_not_read_lifetime(chat_params);
+		if (notReadLifetime == 0) notReadLifetime = linphone_core_get_default_ephemeral_not_read_lifetime(core);
+		return AbstractChatRoom::toCpp(chat_room)->enableEphemeral(time, notReadLifetime, true, true);
+	} else {
+		lWarning()
+		    << "Cannot activate ephemeral message because the requested message lifetime is a non positive value.";
 		return -1;
 	}
 }
@@ -317,23 +325,32 @@ LinphoneStatus linphone_chat_room_activate_ephemeral(LinphoneChatRoom *chat_room
 LinphoneStatus linphone_chat_room_activate_ephemeral_2(LinphoneChatRoom *chat_room) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
 	LinphoneCore *core = linphone_chat_room_get_core(chat_room);
-	long defaultLifetime = linphone_core_get_default_ephemeral_lifetime(core);
-	long defaultNotReadLifetime = linphone_core_get_default_ephemeral_not_read_lifetime(core);
-	if (defaultLifetime > 0 || defaultNotReadLifetime > 0)
-		return AbstractChatRoom::toCpp(chat_room)->enableEphemeral(defaultLifetime, defaultNotReadLifetime, true, true);
+	LinphoneChatParams *chat_params =
+	    linphone_conference_params_get_chat_params(linphone_chat_room_get_params(chat_room));
+	long lifetime = linphone_chat_params_get_ephemeral_lifetime(chat_params);
+	if (lifetime == 0) lifetime = linphone_core_get_default_ephemeral_lifetime(core);
+	if (lifetime == 0) lifetime = 60;
+	long notReadLifetime = linphone_chat_params_get_ephemeral_not_read_lifetime(chat_params);
+	if (notReadLifetime == 0) notReadLifetime = linphone_core_get_default_ephemeral_not_read_lifetime(core);
+	if (lifetime > 0 || notReadLifetime > 0)
+		return AbstractChatRoom::toCpp(chat_room)->enableEphemeral(lifetime, notReadLifetime, true, true);
 	else {
-		lWarning() << "Cannot activate ephemeral because default lifetime is not positive.";
+		lWarning() << "Cannot activate ephemeral messages because neither the message lifetime nor the message not "
+		              "read lifetime is a positive value.";
 		return -1;
 	}
 }
 
 // Note: Java wrapper doesn't like long parameters because it can be conflicts with native pointer.
-LinphoneStatus linphone_chat_room_activate_ephemeral_3(LinphoneChatRoom *chat_room, unsigned int lifetime, unsigned int notReadLifetime) {
+LinphoneStatus linphone_chat_room_activate_ephemeral_3(LinphoneChatRoom *chat_room,
+                                                       unsigned int lifetime,
+                                                       unsigned int notReadLifetime) {
 	ChatRoomLogContextualizer logContextualizer(chat_room);
-	if (lifetime > 0 || notReadLifetime >0) {
+	if (lifetime > 0 || notReadLifetime > 0) {
 		return AbstractChatRoom::toCpp(chat_room)->enableEphemeral(lifetime, notReadLifetime, true, true);
-	}else {
-		lWarning() << "Cannot activate ephemeral because nor lifetime nor not read lifetime are positive.";
+	} else {
+		lWarning() << "Cannot activate ephemeral messages because neither the message lifetime nor the message not "
+		              "read lifetime is a positive value.";
 		return -1;
 	}
 }
@@ -360,7 +377,9 @@ long linphone_chat_room_get_ephemeral_lifetime(const LinphoneChatRoom *chat_room
 
 // Deprecated
 void linphone_chat_room_set_ephemeral_not_read_lifetime(LinphoneChatRoom *chat_room, const long notReadLifetime) {
-	linphone_chat_room_activate_ephemeral_3(chat_room, static_cast<unsigned int>(linphone_chat_room_get_ephemeral_lifetime(chat_room)), static_cast<unsigned int>(notReadLifetime));
+	linphone_chat_room_activate_ephemeral_3(
+	    chat_room, static_cast<unsigned int>(linphone_chat_room_get_ephemeral_lifetime(chat_room)),
+	    static_cast<unsigned int>(notReadLifetime));
 }
 
 long linphone_chat_room_get_ephemeral_not_read_lifetime(const LinphoneChatRoom *chat_room) {
