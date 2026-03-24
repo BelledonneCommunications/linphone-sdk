@@ -355,6 +355,7 @@ std::shared_ptr<HidDevice> HidDevice::create(const std::shared_ptr<Core> &core,
 			if (!device) {
 				wcstombs(error, hid_error(nullptr), sizeof(error));
 				lError() << "Could not open Unknown HidDevice: " << error;
+				return nullptr;
 			}
 			return std::make_shared<UnknownHidDevice>(core, productId, serialNumber, device);
 	}
