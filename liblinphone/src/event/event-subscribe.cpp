@@ -84,8 +84,12 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
 }
 
 string EventSubscribe::toString() const {
+	const auto &from = getFrom();
+	const auto &to = getTo();
 	std::ostringstream ss;
-	ss << (mDir == LinphoneSubscriptionIncoming ? "Incoming Subscribe" : "Outgoing subscribe") << " of " << mName;
+	ss << (mDir == LinphoneSubscriptionIncoming ? "Incoming" : "Outgoing") << " SUBSCRIBE [" << this
+	   << "] to event package [" << mName << "] (from: " << (from ? from->toString() : std::string("sip:"))
+	   << " to:" << (to ? to->toString() : std::string("sip:")) << ")";
 	return ss.str();
 }
 
@@ -94,14 +98,14 @@ LinphoneStatus EventSubscribe::send(const std::shared_ptr<const Content> &body) 
 	int err;
 
 	if (mDir != LinphoneSubscriptionOutgoing) {
-		lError() << *this << ": cannot send or update something that is not an outgoing subscription.";
+		lError() << *this << " cannot send or update something that is not an outgoing subscription.";
 		return -1;
 	}
 	switch (mSubscriptionState) {
 		case LinphoneSubscriptionIncomingReceived:
 		case LinphoneSubscriptionTerminated:
 		case LinphoneSubscriptionOutgoingProgress:
-			lError() << "Event [" << this << "] cannot update subscription while in state ["
+			lError() << *this << " cannot update subscription while in state ["
 			         << linphone_subscription_state_to_string(mSubscriptionState) << "]";
 			return -1;
 		case LinphoneSubscriptionNone:
@@ -175,12 +179,14 @@ LinphoneStatus EventSubscribe::notify(const std::shared_ptr<const Content> &body
 	SalBodyHandler *body_handler;
 	if (mSubscriptionState != LinphoneSubscriptionActive &&
 	    mSubscriptionState != LinphoneSubscriptionIncomingReceived) {
-		lInfo() << *this << " cannot send NOTIFY message because the it is not active or just come in (actual state is "
+		lInfo() << *this
+		        << " cannot send NOTIFY message because the subscription is not active or didn't just come in (actual "
+		           "state is "
 		        << linphone_subscription_state_to_string(mSubscriptionState) << ")";
 		return -1;
 	}
 	if (mDir != LinphoneSubscriptionIncoming) {
-		lError() << *this << " cannot send NOTIFY message because it is not an incoming subscription.";
+		lError() << *this << " cannot send NOTIFY message because this is not an incoming subscription.";
 		return -1;
 	}
 	const LinphoneContent *cBody = (body && !body->isEmpty()) ? body->toC() : nullptr;
@@ -203,7 +209,9 @@ LinphoneSubscriptionState EventSubscribe::getState() const {
 
 void EventSubscribe::setState(LinphoneSubscriptionState state) {
 	if (mSubscriptionState != state) {
-		lInfo() << *this << ": moving to subscription state " << linphone_subscription_state_to_string(state);
+		lInfo() << "Changing state of " << *this << " from  ["
+		        << linphone_subscription_state_to_string(mSubscriptionState) << "] to ["
+		        << linphone_subscription_state_to_string(state) << "]";
 		mSubscriptionState = state;
 		ref();
 		try {

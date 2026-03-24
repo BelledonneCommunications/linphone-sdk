@@ -147,62 +147,82 @@ rocky8-python-wheel:
 bctoolbox-rocky8-test:
   extends: .test-bctoolbox
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  variables:
+    PLATFORM: linux-rocky8
 
 bctoolbox-rocky8-test-mr:
   extends: .test-bctoolbox-mr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  variables:
+    PLATFORM: linux-rocky8
 
 pqc-rocky8-test:
   extends: .test-pqc
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+  variables:
+    PLATFORM: linux-rocky8
 
 # pqc-rocky8-test-mr:
 #  extends: .test-pqc-mr
 #  <<: *docker_image_needs_platform_runner_tag_dev_toolset
 #  needs:
 #    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+#  variables:
+#    PLATFORM: linux-rocky8
 
 belr-rocky8-test:
   extends: .test-belr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
   variables:
+    PLATFORM: linux-rocky8
     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelr.so.1"
 
 belr-rocky8-test-mr:
   extends: .test-belr-mr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
   variables:
+    PLATFORM: linux-rocky8
     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelr.so.1"
 
 belcard-rocky8-test:
   extends: .test-belcard
   <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
   variables:
+    PLATFORM: linux-rocky8
     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelcard.so.1"
 
 belcard-rocky8-test-mr:
   extends: .test-belcard-mr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
   variables:
+    PLATFORM: linux-rocky8
     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelcard.so.1"
 
 bzrtp-rocky8-test:
   extends: .test-bzrtp
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  variables:
+    PLATFORM: linux-rocky8
 
 bzrtp-rocky8-test-mr:
   extends: .test-bzrtp-mr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  variables:
+    PLATFORM: linux-rocky8
 
 ortp-rocky8-test:
   extends: .test-ortp
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  variables:
+    PLATFORM: linux-rocky8
 
 ortp-rocky8-test-mr:
   extends: .test-ortp-mr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  variables:
+    PLATFORM: linux-rocky8
 
 .factorize_bs_rocky8: &docker_image_needs_tag_platform_devtoolset_bs
   image: !reference [ .rocky8_image_version, image ]
@@ -216,10 +236,14 @@ ortp-rocky8-test-mr:
 bellesip-rocky8-test:
   extends: .test-bellesip
   <<: *docker_image_needs_tag_platform_devtoolset_bs
+  variables:
+    PLATFORM: linux-rocky8
 
 # bellesip-rocky8-test-mr:
 #   extends: .test-bellesip-mr
 #   <<: *docker_image_needs_tag_platform_devtoolset_bs
+#  variables:
+#    PLATFORM: linux-rocky8
 
 .factorize_ms2_rocky8: &docker_image_needs_platform_devtoolset_ms
   image: !reference [ .rocky8_test_libl_image_version, image ]
@@ -231,10 +255,14 @@ bellesip-rocky8-test:
 mediastreamer-rocky8-test:
   extends: .test-mediastreamer
   <<: *docker_image_needs_platform_devtoolset_ms
+  variables:
+    PLATFORM: linux-rocky8
 
 #mediastreamer-rocky8-test-mr:
 #  extends: .test-mediastreamer-mr
 #  <<: *docker_image_needs_platform_devtoolset_ms
+#  variables:
+#    PLATFORM: linux-rocky8
 
 mediastreamer-rocky8-test-h264-mr:
   extends: .test-mediastreamer-mr
@@ -243,7 +271,6 @@ mediastreamer-rocky8-test-h264-mr:
     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
   variables:
     PLATFORM: linux-rocky8
-
 
 .factorize_liblinphone_rocky8: &docker_image_needs_platform_devtoolset_libl
   image: !reference [ .rocky8_test_libl_image_version, image ]
@@ -256,6 +283,7 @@ liblinphone-rocky8-test:
   extends: .test-liblinphone
   <<: *docker_image_needs_platform_devtoolset_libl
   variables:
+    PLATFORM: linux-rocky8
     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
 
 liblinphone-rocky8-test-nocov:
@@ -311,6 +339,7 @@ liblinphone-rocky8-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
   variables:
+    PLATFORM: linux-rocky8
     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
 
 .linphone-sdk-rocky8-coverage:
