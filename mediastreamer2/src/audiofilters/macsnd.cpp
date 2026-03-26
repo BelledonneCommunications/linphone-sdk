@@ -64,6 +64,8 @@ The BSD license below is for the original work.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msticker.h"
+#include <optional>
+#include <vector>
 
 #if __LP64__
 #define UINT32_PRINTF "u"
@@ -121,6 +123,7 @@ typedef struct AUCommon {
 	AudioUnit au;
 #endif
 	ms_mutex_t mutex;
+	MSSndCard *card;
 } AUCommon;
 
 typedef struct AURead {
@@ -136,10 +139,22 @@ typedef struct AUWrite {
 	MSFlowControlledBufferizer *buffer;
 } AUWrite;
 
+class LoopbackInfo {
+public:
+	int NbChannelsTotal;
+	int ChannelOffset;
+	LoopbackInfo(int nbChannels, int channelOffset) {
+		NbChannelsTotal = nbChannels;
+		ChannelOffset = channelOffset;
+	}
+};
+
 typedef struct AuCard {
 	char *uidname;
 	int removed;
 	int rate; /*the nominal rate of the device*/
+
+	std::optional<LoopbackInfo> loopback_info;
 } AuCard;
 
 static int au_get_default_device_id(AudioDeviceID *id, bool_t is_read) {
@@ -203,7 +218,7 @@ static void au_card_init(MSSndCard *card) {
 }
 
 static void au_card_uninit(MSSndCard *card) {
-	AuCard *d = (AuCard *)card->data;
+	AuCard *d = static_cast<AuCard *>(card->data);
 	if (d->uidname != NULL) ms_free(d->uidname);
 	ms_free(d);
 }
@@ -227,15 +242,12 @@ MSSndCardDesc ca_card_desc = {.driver_type = "AudioUnit",
                               .duplicate = au_card_duplicate};
 
 static MSSndCard *au_card_duplicate(MSSndCard *obj) {
-	AuCard *ca;
-	AuCard *cadup;
 	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
 	card->name = ms_strdup(obj->name);
 	card->data = ms_new0(AuCard, 1);
-	memcpy(card->data, obj->data, sizeof(AuCard));
-	ca = obj->data;
-	cadup = card->data;
-	cadup->uidname = ms_strdup(ca->uidname);
+	AuCard *ca = static_cast<AuCard *>(obj->data);
+	AuCard *cadup = static_cast<AuCard *>(card->data);
+	*cadup = *ca;
 	return card;
 }
 
@@ -291,7 +303,11 @@ static void ca_set_device_type(AudioDeviceID deviceId, MSSndCard *card) {
 	else card->device_type = MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
 }
 
-static MSSndCard *ca_card_new(const char *name, const char *uidname, AudioDeviceID dev, unsigned cap) {
+static MSSndCard *ca_card_new(const char *name,
+                              const char *uidname,
+                              AudioDeviceID dev,
+                              unsigned cap,
+                              std::optional<LoopbackInfo> loopback_info = {}) {
 	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
 	AuCard *d = (AuCard *)card->data;
 	bool is_read = cap & MS_SND_CARD_CAP_CAPTURE;
@@ -304,6 +320,7 @@ static MSSndCard *ca_card_new(const char *name, const char *uidname, AudioDevice
 		card->latency = 40; /* Sound card latency seems always not least than 40ms on mac*/
 	}
 	d->rate = 44100;
+	d->loopback_info = loopback_info;
 
 	// If default device, use the current device for the case it will not changed between now and using the device. That
 	// way, we get the correct rate from start.
@@ -311,6 +328,51 @@ static MSSndCard *ca_card_new(const char *name, const char *uidname, AudioDevice
 	au_get_device_sample_rate(dev, is_read, &d->rate);
 	ca_set_device_type(dev, card);
 	return card;
+}
+
+std::string CFStringToString(CFStringRef str) {
+	if (!str) return "";
+	CFIndex maxSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(str), kCFStringEncodingUTF8) + 1;
+	std::vector<char> buffer(maxSize);
+	if (CFStringGetCString(str, buffer.data(), maxSize, kCFStringEncodingUTF8)) {
+		return std::string(buffer.data());
+	} else {
+		return "";
+	}
+}
+
+bool_t isChannelLoopback(std::string const &channelName) {
+	std::string filtered_name;
+	// Only keep letters, and upper case them
+	for (unsigned char c : channelName) {
+		if (std::isalpha(c)) {
+			filtered_name += std::toupper(c);
+		}
+	}
+	return filtered_name.find("LOOPBACK") != std::string::npos;
+}
+
+UInt32 AudioDeviceGetNbChannels(AudioDeviceID deviceID) {
+	OSStatus err;
+	AudioObjectPropertyAddress addr = {kAudioDevicePropertyStreamConfiguration, kAudioDevicePropertyScopeInput,
+	                                   kAudioObjectPropertyElementMaster};
+
+	UInt32 size = 0;
+	err = AudioObjectGetPropertyDataSize(deviceID, &addr, 0, NULL, &size);
+	if (err != noErr) return 0;
+
+	auto *bufferList = static_cast<AudioBufferList *>(malloc(size));
+	err = AudioObjectGetPropertyData(deviceID, &addr, 0, NULL, &size, bufferList);
+	if (err != noErr) {
+		free(bufferList);
+		return 0;
+	}
+
+	UInt32 totalChannels = 0;
+	for (UInt32 i = 0; i < bufferList->mNumberBuffers; i++) {
+		totalChannels += bufferList->mBuffers[i].mNumberChannels;
+	}
+	return totalChannels;
 }
 
 static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char *devname, char *uidname, size_t name_len) {
@@ -336,7 +398,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char *dev
 		return FALSE;
 	}
 
-	AudioBufferList *buflist = ms_malloc(slen);
+	AudioBufferList *buflist = static_cast<AudioBufferList *>(ms_malloc(slen));
 
 	theAddress.mSelector = kAudioDevicePropertyStreamConfiguration;
 	err = AudioObjectGetPropertyData(id, &theAddress, 0, NULL, &slen, buflist);
@@ -347,8 +409,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char *dev
 		return FALSE;
 	}
 
-	UInt32 j;
-	for (j = 0; j < buflist->mNumberBuffers; j++) {
+	for (UInt32 j = 0; j < buflist->mNumberBuffers; j++) {
 		if (buflist->mBuffers[j].mNumberChannels > 0) {
 			ret = TRUE;
 			break;
@@ -416,8 +477,8 @@ static void au_card_detect(MSSndCardManager *m) {
 		ms_error("get kAudioHardwarePropertyDevices error %" UINT32_PRINTF, err);
 		return;
 	}
-	AudioDeviceID devices[slen / sizeof(AudioDeviceID)];
-	err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &theAddress, 0, NULL, &slen, &devices);
+	std::vector<AudioDeviceID> devices(slen / sizeof(AudioDeviceID));
+	err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &theAddress, 0, NULL, &slen, devices.data());
 	/*err =
 	AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &slen, devices);*/
 	if (err != kAudioHardwareNoError) {
@@ -432,17 +493,46 @@ static void au_card_detect(MSSndCardManager *m) {
 	for (i = 0; i < count; i++) {
 		MSSndCard *card;
 		char uidname[256] = {0}, devname[256] = {0};
+		AudioDeviceID deviceId = devices[i];
+		std::optional<LoopbackInfo> loopbackInfo;
 		int card_capacity = 0;
-		if (check_card_capability(devices[i], FALSE, devname, uidname, sizeof(uidname))) {
+		if (check_card_capability(deviceId, FALSE, devname, uidname, sizeof(uidname))) {
 			card_capacity |= MS_SND_CARD_CAP_PLAYBACK;
 		}
-		if (check_card_capability(devices[i], TRUE, devname, uidname, sizeof(uidname))) {
+		if (check_card_capability(deviceId, TRUE, devname, uidname, sizeof(uidname))) {
 			card_capacity |= MS_SND_CARD_CAP_CAPTURE;
+			UInt32 nb_channels = AudioDeviceGetNbChannels(deviceId);
+			if (nb_channels > 4) {
+				ms_warning("Device %s has more than 4 input channels (%d detected), unexpected behaviour could happen",
+				           devname, nb_channels);
+			}
+			for (UInt32 chanId = 1; chanId <= nb_channels; chanId++) {
+				AudioObjectPropertyAddress nameAddr = {kAudioObjectPropertyElementName, kAudioDevicePropertyScopeInput,
+				                                       chanId};
+				CFStringRef cfName = NULL;
+				UInt32 nameSize = sizeof(cfName);
+				std::string channelName;
+				if (AudioObjectGetPropertyData(deviceId, &nameAddr, 0, NULL, &nameSize, &cfName) == noErr &&
+				    cfName != NULL) {
+					channelName = CFStringToString(cfName);
+					CFRelease(cfName);
+				}
+				if (isChannelLoopback(channelName)) {
+					loopbackInfo = LoopbackInfo(static_cast<int>(nb_channels), static_cast<int>(chanId - 1));
+					break;
+				}
+			}
 		}
 
 		if (card_capacity) {
-			card = ca_card_new(devname, uidname, devices[i], card_capacity);
-			ms_snd_card_manager_add_card(m, card);
+			ms_snd_card_manager_add_card(m, ca_card_new(devname, uidname, deviceId, card_capacity));
+			if (loopbackInfo.has_value()) {
+				ms_message("Device %s has loopback channels, add an extra device with only capture capability",
+				           devname);
+				std::string loopbackDevName = std::string(devname) + " (Loopback)";
+				card = ca_card_new(loopbackDevName.c_str(), uidname, deviceId, MS_SND_CARD_CAP_CAPTURE, loopbackInfo);
+				ms_snd_card_manager_add_card(m, card);
+			}
 		}
 	}
 
@@ -465,15 +555,19 @@ static OSStatus readRenderProc(void *inRefCon,
                                UInt32 inNumFrames,
                                BCTBX_UNUSED(AudioBufferList *ioData)) {
 	AURead *d = (AURead *)inRefCon;
+	AuCard *au_card = static_cast<AuCard *>(d->common.card->data);
+
 	AudioBufferList lreadAudioBufferList = {0};
 	mblk_t *rm;
 	OSStatus err;
 
+	bool has_loopback = au_card->loopback_info.has_value();
+	int nb_channels = has_loopback ? au_card->loopback_info.value().NbChannelsTotal : d->common.nchannels;
 	lreadAudioBufferList.mNumberBuffers = 1;
-	lreadAudioBufferList.mBuffers[0].mDataByteSize = inNumFrames * sizeof(int16_t) * d->common.nchannels;
+	lreadAudioBufferList.mBuffers[0].mDataByteSize = inNumFrames * sizeof(int16_t) * nb_channels;
 	rm = allocb(lreadAudioBufferList.mBuffers[0].mDataByteSize, 0);
 	lreadAudioBufferList.mBuffers[0].mData = rm->b_wptr;
-	lreadAudioBufferList.mBuffers[0].mNumberChannels = d->common.nchannels;
+	lreadAudioBufferList.mBuffers[0].mNumberChannels = nb_channels;
 
 	err = AudioUnitRender(d->common.au, inActionFlags, inTimeStamp, inBusNumber, inNumFrames, &lreadAudioBufferList);
 
@@ -483,13 +577,35 @@ static OSStatus readRenderProc(void *inRefCon,
 		return 0;
 	}
 
+	mblk_t *rm_extracted;
+	if (has_loopback) {
+		// Example: NbChannelsTotal = 4, ChannelOffset = 2
+		// src buffer : [a, b, c, d] * inNumFrames
+		// dst buffer :       [c] * inNumFrames if d->common.nchannels == 1
+		//                    [c, d] * inNumFrames if d->common.nchannels == 2
+		rm_extracted = allocb(inNumFrames * sizeof(int16_t) * d->common.nchannels, 0);
+		int16_t *src = (int16_t *)rm->b_wptr;
+		int16_t *dst = (int16_t *)rm_extracted->b_wptr;
+		for (UInt32 i = 0; i < inNumFrames; i++) {
+			for (int i_channel = 0; i_channel < d->common.nchannels; i_channel++) {
+				dst[i * d->common.nchannels + i_channel] =
+				    src[i * nb_channels + au_card->loopback_info.value().ChannelOffset + i_channel];
+			}
+		}
+		rm_extracted->b_wptr += inNumFrames * sizeof(int16_t) * d->common.nchannels;
+	}
 	rm->b_wptr += lreadAudioBufferList.mBuffers[0].mDataByteSize;
 	ms_mutex_lock(&d->common.mutex);
 	if (inTimeStamp->mFlags & kAudioTimeStampSampleTimeValid) {
 		d->timestamp = inTimeStamp->mSampleTime;
 	}
 
-	putq(&d->rq, rm);
+	if (has_loopback) {
+		putq(&d->rq, rm_extracted);
+		freemsg(rm);
+	} else {
+		putq(&d->rq, rm);
+	}
 	ms_mutex_unlock(&d->common.mutex);
 
 	return 0;
@@ -507,7 +623,8 @@ static OSStatus writeRenderProc(void *inRefCon,
 	if (ioData->mNumberBuffers != 1)
 		ms_warning("[MSAU] writeRenderProc: %" UINT32_PRINTF " buffers", ioData->mNumberBuffers);
 	ms_mutex_lock(&d->common.mutex);
-	read = ms_flow_controlled_bufferizer_read(d->buffer, ioData->mBuffers[0].mData, ioData->mBuffers[0].mDataByteSize);
+	read = ms_flow_controlled_bufferizer_read(d->buffer, static_cast<uint8_t *>(ioData->mBuffers[0].mData),
+	                                          ioData->mBuffers[0].mDataByteSize);
 	ms_mutex_unlock(&d->common.mutex);
 	if (read == 0) {
 		ms_debug("[MSAU] Silence inserted in audio output unit (%" UINT32_PRINTF " bytes)",
@@ -647,8 +764,10 @@ static int audio_unit_open(MSFilter *f, AUCommon *d, bool_t is_read) {
 	// Keep this afftection in case where mSampleRate is 0. Getter can give 0 but setter doesn't accept it. Use the
 	// default rate.
 	asbd.mSampleRate = d->rate;
-	asbd.mBytesPerPacket = asbd.mBytesPerFrame = 2 * d->nchannels;
-	asbd.mChannelsPerFrame = d->nchannels;
+	AuCard *au_card = static_cast<AuCard *>(d->card->data);
+	int nbChannels = au_card->loopback_info.has_value() ? au_card->loopback_info.value().NbChannelsTotal : d->nchannels;
+	asbd.mBytesPerPacket = asbd.mBytesPerFrame = 2 * nbChannels;
+	asbd.mChannelsPerFrame = nbChannels;
 	asbd.mBitsPerChannel = 16;
 	asbd.mFormatID = kAudioFormatLinearPCM;
 	asbd.mFormatFlags = kAudioFormatFlagIsPacked | kAudioFormatFlagIsSignedInteger;
@@ -732,6 +851,7 @@ static void au_common_init(AUCommon *d) {
 }
 
 static void au_common_uninit(AUCommon *d) {
+	ms_snd_card_unref(d->card);
 	ms_mutex_destroy(&d->mutex);
 }
 
@@ -1016,6 +1136,7 @@ MSFilter *ms_au_read_new(MSSndCard *card) {
 	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &ms_au_read_desc);
 	AuCard *wc = (AuCard *)card->data;
 	AURead *d = (AURead *)f->data;
+	d->common.card = ms_snd_card_ref(card);
 	/*d->common.dev = wc->dev;*/
 	set_audio_device_id(wc, &d->common, TRUE);
 	AudioStreamBasicDescription asbd = au_get_stream_basic_description(&d->common, TRUE);
@@ -1028,6 +1149,7 @@ MSFilter *ms_au_write_new(MSSndCard *card) {
 	MSFilter *f = ms_factory_create_filter_from_desc(ms_snd_card_get_factory(card), &ms_au_write_desc);
 	AuCard *wc = (AuCard *)card->data;
 	AUWrite *d = (AUWrite *)f->data;
+	d->common.card = ms_snd_card_ref(card);
 	/*d->common.dev = wc->dev;*/
 	set_audio_device_id(wc, &d->common, FALSE);
 	AudioStreamBasicDescription asbd = au_get_stream_basic_description(&d->common, FALSE);
