@@ -53,6 +53,8 @@ ubuntu2004-makefile-clang:
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-ubuntu2004
 
 ubuntu2004-makefile-clang-pqc:
   variables:
