@@ -379,11 +379,11 @@ public:
 	inline long getCreationDurationMs() const {
 		return mCreationDurationMs;
 	}
-(SUBSCRIBE with)
 
-	protected : explicit Conference(const std::shared_ptr<Core> &core,
-	                                std::shared_ptr<CallSessionListener> callSessionListener,
-	                                const std::shared_ptr<const ConferenceParams> params);
+protected:
+	explicit Conference(const std::shared_ptr<Core> &core,
+	                    std::shared_ptr<CallSessionListener> callSessionListener,
+	                    const std::shared_ptr<const ConferenceParams> params);
 
 	std::list<std::shared_ptr<Participant>> mParticipants;
 	std::shared_ptr<Participant> mActiveParticipant;

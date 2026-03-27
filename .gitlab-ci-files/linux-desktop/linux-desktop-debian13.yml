@@ -36,6 +36,8 @@ debian13-makefile-gcc:
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-debian13
 
 
 debian13-makefile-clang:
@@ -48,6 +50,8 @@ debian13-makefile-clang:
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-debian13
 
 
 #################################################
@@ -103,6 +107,8 @@ debian13-ninja-clang:
     CXX: clang++
     CMAKE_OPTIONS: -DENABLE_LDAP=OFF
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-debian13
 
 debian13-ninja-clang-sanitizer:
   variables:

@@ -35,6 +35,8 @@ arch-latest-makefile-gcc:
     CC: gcc
     CXX: g++
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-archlinux
 
 
 arch-latest-makefile-clang:
@@ -46,6 +48,8 @@ arch-latest-makefile-clang:
     CC: clang
     CXX: clang++
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-archlinux
 
 
 #################################################
@@ -61,6 +65,8 @@ arch-latest-ninja-gcc:
     CC: gcc
     CXX: g++
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-archlinux
 
 arch-latest-ninja-gcc-novideo:
   variables:

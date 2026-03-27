@@ -301,7 +301,7 @@ void check_delete_focus_conference_info(std::initializer_list<std::reference_wra
 			           wait_time, conferenceAddressString, Utils::timeToIso8601(end_time).c_str(),
 			           Utils::timeToIso8601(now).c_str());
 			// wait for the conference to end
-			if (focus_cleanup_window > 0) {
+			if (focus_cleanup_period > 0) {
 				BC_ASSERT_TRUE(
 				    CoreManagerAssert(coreMgrs).waitUntil(chrono::seconds((wait_time + 1)), [&focus, &confAddr] {
 					    LinphoneConferenceInfo *focus_info =

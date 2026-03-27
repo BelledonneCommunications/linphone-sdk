@@ -139,6 +139,17 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 				continue;
 			}
 
+			char token[17];
+			belle_sip_random_token(token, sizeof(token));
+
+			// Add entry into the Rlmi content of the notify body
+			Xsd::Rlmi::Resource resource(addr->asStringUriOnly());
+			Xsd::Rlmi::Resource::InstanceSequence instances;
+			Xsd::Rlmi::Instance instance(token, Xsd::Rlmi::State::Value::active);
+			instances.push_back(instance);
+			resource.setInstance(instances);
+			resources.push_back(resource);
+
 			device->setConferenceSubscribeEvent((subscriptionState == LinphoneSubscriptionIncomingReceived) ? ev
 			                                                                                                : nullptr);
 

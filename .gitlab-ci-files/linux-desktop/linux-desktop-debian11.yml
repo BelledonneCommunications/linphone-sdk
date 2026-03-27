@@ -37,6 +37,8 @@ debian11-makefile-gcc:
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-debian11
 
 
 debian11-makefile-clang:
@@ -49,6 +51,8 @@ debian11-makefile-clang:
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-debian11
 
 
 #################################################
@@ -79,6 +83,8 @@ debian11-ninja-gcc-sequential:
     CXX: g++
     CMAKE_OPTIONS: -DBUILD_SHARED_LIBS=ON -DENABLE_STRICT=OFF
   extends: .linux-desktop-sequential
+  needs:
+    - wait-cache-synchro-debian11
 
 
 debian11-ninja-gcc-novideo:
@@ -106,6 +112,8 @@ debian11-ninja-clang:
     CXX: clang++
     CMAKE_OPTIONS: -DENABLE_LDAP=OFF
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-debian11
 
 debian11-ninja-clang-sanitizer:
   variables:
