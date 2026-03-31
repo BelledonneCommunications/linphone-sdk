@@ -151,7 +151,7 @@ public:
 	void enterBackground();
 	void enterForeground();
 	bool isInBackground() const;
-	void iterate() noexcept;
+	void iterate();
 
 	// ---------------------------------------------------------------------------
 	// C-Core.

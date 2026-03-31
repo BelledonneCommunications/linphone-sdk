@@ -1060,7 +1060,7 @@ void Core::toggleVideoPreview(bool enabled) {
 	}
 }
 
-void Core::iterate() noexcept {
+void Core::iterate() {
 	LinphoneCore *lc = L_GET_C_BACK_PTR(this);
 
 	CoreLogContextualizer logContextualizer(lc);
