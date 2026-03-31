@@ -3823,7 +3823,7 @@ void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
 			(*currentIt)->stopPollTimer();
 			d->hidDevices.erase(currentIt++);
 		} else {
-			// Device is present in both lists, remove it so that we don't add a du
+			// Device is present in both lists, remove it so that we don't add a duplicate.
 			devices.erase(it);
 			++currentIt;
 		}

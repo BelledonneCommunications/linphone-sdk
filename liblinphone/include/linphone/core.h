@@ -8254,6 +8254,20 @@ LINPHONE_PUBLIC void linphone_core_set_ekt_plugin_loaded(LinphoneCore *core, boo
  */
 LINPHONE_PUBLIC void linphone_core_upgrade_database(LinphoneCore *core);
 
+/**
+ * Start the HID devices detection.
+ * @param core the #LinphoneCore
+ * @ingroup group_misc
+ */
+LINPHONE_PUBLIC void linphone_core_start_hid_devices_detection(LinphoneCore *core);
+
+/**
+ * Stop the HID devices detection.
+ * @param core the #LinphoneCore
+ * @ingroup group_misc
+ */
+LINPHONE_PUBLIC void linphone_core_stop_hid_devices_detection(LinphoneCore *core);
+
 /************ */
 /* DEPRECATED */
 /* ********** */
