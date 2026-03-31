@@ -49,8 +49,8 @@ void Hid::startDeviceDetection(const std::shared_ptr<Core> &core) {
 	stopDeviceDetection();
 	mCore = core;
 	mTimer = mCore->createTimer(
-	    [this, core]() {
-		    core->updateHidDevices(getDevices(core));
+	    [this]() {
+		    mCore->updateHidDevices(getDevices(mCore));
 		    return true;
 	    },
 	    DETECTION_POLL_INTERVAL_MS, "HID device detection timer");

@@ -2720,18 +2720,24 @@ void linphone_core_set_state(LinphoneCore *lc, LinphoneGlobalState gstate, const
 	if (!coreFsmChecker.isValid(lc->state, gstate)) lFatal() << "Bad core state transition.";
 	lc->state = gstate;
 	linphone_core_notify_global_state_changed(lc, gstate, message);
+}
 
+void linphone_core_start_hid_devices_detection(LinphoneCore *lc) {
+	linphone_core_stop_hid_devices_detection(lc);
 #ifdef HAVE_HIDAPI
 	const auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
-	if (gstate == LinphoneGlobalOn) {
-		Factory::toCpp(linphone_factory_get())->getHid().startDeviceDetection(core);
-	} else if (gstate == LinphoneGlobalOff) {
-		Factory::toCpp(linphone_factory_get())->getHid().stopDeviceDetection();
-		for (const auto &hidDevice : core->getHidDevices()) {
-			hidDevice->stopPollTimer();
-		}
-		core->clearHidDevices();
+	Factory::toCpp(linphone_factory_get())->getHid().startDeviceDetection(core);
+#endif /* HAVE_HIDAPI */
+}
+
+void linphone_core_stop_hid_devices_detection(BCTBX_UNUSED(LinphoneCore *lc)) {
+#ifdef HAVE_HIDAPI
+	const auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
+	Factory::toCpp(linphone_factory_get())->getHid().stopDeviceDetection();
+	for (const auto &hidDevice : core->getHidDevices()) {
+		hidDevice->stopPollTimer();
 	}
+	core->clearHidDevices();
 #endif /* HAVE_HIDAPI */
 }
 
