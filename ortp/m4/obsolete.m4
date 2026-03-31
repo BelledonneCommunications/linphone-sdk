@@ -1,1 +1,0 @@
-AC_DEFUN([AM_PROG_MKDIR_P], [AC_PROG_MKDIR_P([$@])])
