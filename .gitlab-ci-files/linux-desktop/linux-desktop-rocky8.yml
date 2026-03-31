@@ -40,6 +40,8 @@ rocky8-makefile-gcc:
     CC: gcc
     CXX: g++
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-rocky8
 
 
 #################################################
@@ -93,6 +95,8 @@ rocky8-python-wheel:
     CXX: clang++
     ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.9 -DENABLE_VIDEO=OFF -DENABLE_SOUND=OFF
   extends: .linux-desktop-python
+  needs:
+    - wait-cache-synchro-rocky8
 
 #################################################
 # TESTS
