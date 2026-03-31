@@ -60,6 +60,7 @@ public:
 		}
 
 		MsScreenSharing_win *mParent;
+		unsigned int mWaitFrame = 0;
 	};
 	// API : Screen Duplication
 	class ScreenProcessor : public Processing {
@@ -91,6 +92,7 @@ public:
 			ID3D11Texture2D *mDestImage;
 			DXGI_OUTPUT_DESC mDescription;
 			DXGI_OUTDUPL_DESC mImageDescription;
+			bool mFrameAcquired = false;
 		};
 		std::vector<ScreenDuplication> mScreenDuplications;
 	};
