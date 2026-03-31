@@ -446,8 +446,17 @@ void Account::handleDeletion() {
 			cancelDeletion();
 			getCore()->removeDeletedAccount(getSharedFromThis());
 			if (mRemoveAuthInfoOnRegistrationCleared) {
-				if (const auto *authInfo = findAuthInfo(); authInfo != nullptr)
-					linphone_core_remove_auth_info(getCCore(), authInfo);
+				int attempts = 0;
+				while (auto *ai = findAuthInfo()) {
+					attempts++;
+					linphone_core_remove_auth_info(getCCore(), ai);
+					if (attempts > 100) {
+						/* of course this should not happen, but we prefer a warning than a full freeze in an infinite
+						 * loop */
+						lWarning() << "Possible infinite loop while clearning AuthInfo related to Account " << *this;
+						break;
+					}
+				}
 			}
 			break;
 		case LinphoneRegistrationNone:

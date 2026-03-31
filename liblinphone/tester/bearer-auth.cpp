@@ -163,6 +163,11 @@ static void provisioning_with_http_bearer_auth(void) {
 	}
 	BC_ASSERT_TRUE(wait_for(lcm->lc, nullptr, &lcm->stat.number_of_LinphoneRegistrationOk, 1));
 	BC_ASSERT_EQUAL(lcm->stat.number_of_authentication_info_requested, 0, int, "%i");
+
+	linphone_core_remove_account_with_data(lcm->lc, account);
+	BC_ASSERT_TRUE(wait_for(lcm->lc, nullptr, &lcm->stat.number_of_LinphoneRegistrationCleared, 1));
+	BC_ASSERT_EQUAL((int)bctbx_list_size(linphone_core_get_auth_info_list(lcm->lc)), 0, int, "%i");
+
 	linphone_core_manager_destroy(lcm);
 }
 
@@ -726,6 +731,7 @@ static void provisioning_with_http_bearer_then_register_with_digest_base(bool wi
 	linphone_core_start(lcm->lc);
 
 	linphone_core_manager_setup_dns(lcm);
+
 	BC_ASSERT_TRUE(wait_for(lcm->lc, NULL, &lcm->stat.number_of_LinphoneGlobalOn, 3));
 	BC_ASSERT_EQUAL(lcm->stat.number_of_LinphoneConfiguringFailed, 0, int, "%i");
 	BC_ASSERT_EQUAL(lcm->stat.number_of_LinphoneConfiguringSuccessful, 2, int, "%i");
@@ -735,6 +741,18 @@ static void provisioning_with_http_bearer_then_register_with_digest_base(bool wi
 	char *dump = linphone_config_dump(linphone_core_get_config(lcm->lc));
 	ms_message("dump of config after start \n: %s", dump);
 	bctbx_free(dump);
+	account = linphone_core_get_default_account(lcm->lc);
+
+	/* Test the clearning of the account */
+	linphone_core_remove_account_with_data(lcm->lc, account);
+	BC_ASSERT_TRUE(wait_for(lcm->lc, nullptr, &lcm->stat.number_of_LinphoneRegistrationCleared, 2));
+	if (!with_username_in_auth_info) {
+		/* only the TURN username/pass, that cannot be easily related to the account, should remain .*/
+		BC_ASSERT_EQUAL((int)bctbx_list_size(linphone_core_get_auth_info_list(lcm->lc)), 1, int, "%i");
+	} else {
+		/* The TURN auth info and the bearer one should remain. */
+		BC_ASSERT_EQUAL((int)bctbx_list_size(linphone_core_get_auth_info_list(lcm->lc)), 2, int, "%i");
+	}
 
 	linphone_core_cbs_unref(cbs);
 	linphone_core_manager_destroy(lcm);
