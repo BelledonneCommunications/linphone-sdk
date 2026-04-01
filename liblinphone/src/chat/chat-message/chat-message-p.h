@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -256,6 +256,8 @@ public:
 	bool hasFileTransferContent() const;
 	const std::shared_ptr<Content> getFileTransferContent() const;
 	const std::shared_ptr<Content> getFileTransferInformation() const;
+
+	bool hasCallLogJsonContent() const;
 
 	void addContent(std::shared_ptr<Content> content);
 	void removeContent(std::shared_ptr<Content> content);

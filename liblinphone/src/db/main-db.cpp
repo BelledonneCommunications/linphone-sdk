@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -888,7 +888,8 @@ long long MainDbPrivate::insertOrUpdateConferenceInfoParticipant(long long confe
 }
 
 long long MainDbPrivate::insertOrUpdateConferenceCall(const std::shared_ptr<CallLog> &callLog,
-                                                      const std::shared_ptr<ConferenceInfo> &conferenceInfo) {
+                                                      const std::shared_ptr<ConferenceInfo> &conferenceInfo,
+                                                      std::optional<std::reference_wrapper<bool>> updated) {
 #ifdef HAVE_DB_STORAGE
 	L_Q();
 	long long conferenceInfoId = -1;
@@ -914,9 +915,9 @@ long long MainDbPrivate::insertOrUpdateConferenceCall(const std::shared_ptr<Call
 	const string &refKey = callLog->getRefKey();
 	soci::indicator confInfoInd = conferenceInfoId > -1 ? soci::i_ok : soci::i_null;
 
-	long long conferenceCallId = selectConferenceCallId(callLog->getCallId());
+	long long conferenceCallId = selectConferenceCallId(callId);
 	if (conferenceCallId < 0) {
-		lInfo() << "Insert new conference call in database: " << callLog->getCallId();
+		lInfo() << "Insert new conference call in database: " << callId;
 
 		std::shared_ptr<Address> from = callLog->getFromAddress() ? callLog->getFromAddress() : nullptr;
 		const long long fromSipAddressId = insertSipAddress(from);
@@ -940,8 +941,10 @@ long long MainDbPrivate::insertOrUpdateConferenceCall(const std::shared_ptr<Call
 		    soci::use(conferenceInfoId, confInfoInd);
 
 		conferenceCallId = dbSession.getLastInsertId();
+		if (updated.has_value()) updated->get() = false;
+
 	} else {
-		lInfo() << "Update conference call in database: " << callLog->getCallId();
+		lInfo() << "Update conference call in database: " << callId;
 
 		*dbSession.getBackendSession()
 		    << "UPDATE conference_call SET"
@@ -952,6 +955,7 @@ long long MainDbPrivate::insertOrUpdateConferenceCall(const std::shared_ptr<Call
 		    soci::use(duration), soci::use(connectedTime.first, connectedTime.second), soci::use(status),
 		    soci::use(videoEnabled), soci::use(quality), soci::use(callId), soci::use(refKey),
 		    soci::use(conferenceInfoId, confInfoInd), soci::use(conferenceCallId);
+		if (updated.has_value()) updated->get() = true;
 	}
 
 	cache(callLog, conferenceCallId);
@@ -1676,7 +1680,8 @@ long long MainDbPrivate::insertConferenceEvent(const shared_ptr<EventLog> &event
 #endif
 }
 
-long long MainDbPrivate::insertConferenceCallEvent(const shared_ptr<EventLog> &eventLog) {
+long long MainDbPrivate::insertConferenceCallEvent(const shared_ptr<EventLog> &eventLog,
+                                                   std::optional<std::reference_wrapper<bool>> updated) {
 #ifdef HAVE_DB_STORAGE
 	shared_ptr<ConferenceCallEvent> conferenceCallEvent = static_pointer_cast<ConferenceCallEvent>(eventLog);
 
@@ -1713,7 +1718,7 @@ long long MainDbPrivate::insertConferenceCallEvent(const shared_ptr<EventLog> &e
 			return -1;
 	}
 
-	conferenceCallId = insertOrUpdateConferenceCall(callLog, conferenceInfo);
+	conferenceCallId = insertOrUpdateConferenceCall(callLog, conferenceInfo, updated);
 
 	eventId = insertEvent(eventLog);
 
@@ -3471,7 +3476,8 @@ void MainDbPrivate::updateSchema() {
 	}
 	// ephemeral_enabled is deprecated. Update ephemeral_messages_lifetime from the enable value to keep previous
 	// deactivation.
-	*session << "UPDATE chat_room SET ephemeral_messages_lifetime = 0, ephemeral_messages_not_read_lifetime=0 WHERE ephemeral_enabled = 0;";
+	*session << "UPDATE chat_room SET ephemeral_messages_lifetime = 0, ephemeral_messages_not_read_lifetime=0 WHERE "
+	            "ephemeral_enabled = 0;";
 
 #endif
 }
@@ -3822,7 +3828,7 @@ bool MainDbPrivate::importLegacyCallLogs(DbSession &inDbSession) {
 			ind = log.get_indicator(LegacyCallLogColRefKey);
 			if (ind == soci::i_ok) callLog->setRefKey(log.get<string>(LegacyCallLogColRefKey));
 
-			insertOrUpdateConferenceCall(callLog, nullptr);
+			insertOrUpdateConferenceCall(callLog, nullptr, nullopt);
 		}
 
 		tr.commit();
@@ -4738,7 +4744,7 @@ bool MainDb::addEvent(const shared_ptr<EventLog> &eventLog) {
 			case EventLog::Type::ConferenceCallStarted:
 			case EventLog::Type::ConferenceCallConnected:
 			case EventLog::Type::ConferenceCallEnded:
-				eventId = d->insertConferenceCallEvent(eventLog);
+				eventId = d->insertConferenceCallEvent(eventLog, nullopt);
 				break;
 
 			case EventLog::Type::ConferenceChatMessage:
@@ -5137,17 +5143,21 @@ void MainDb::markChatMessagesAsRead(const ConferenceId &conferenceId) const {
 #endif
 }
 
-void MainDb::updateChatRoomEphemeralLifetime(const ConferenceId &conferenceId, const long lifetime, const long notReadLifetime) const {
+void MainDb::updateChatRoomEphemeralLifetime(const ConferenceId &conferenceId,
+                                             const long lifetime,
+                                             const long notReadLifetime) const {
 #ifdef HAVE_DB_STORAGE
-	int isEphemeralEnabled = lifetime > 0  || notReadLifetime > 0 ? 1 : 0; // Only useful for backward compatibility
+	int isEphemeralEnabled = lifetime > 0 || notReadLifetime > 0 ? 1 : 0; // Only useful for backward compatibility
 	static const string query =
 	    "UPDATE chat_room"
-	    "  SET ephemeral_messages_lifetime = :ephemeralLifetime, ephemeral_messages_not_read_lifetime=:ephemeralNotReadLifetime, ephemeral_enabled = :ephemeralEnabled"
+	    "  SET ephemeral_messages_lifetime = :ephemeralLifetime, "
+	    "ephemeral_messages_not_read_lifetime=:ephemeralNotReadLifetime, ephemeral_enabled = :ephemeralEnabled"
 	    " WHERE id = :chatRoomId";
 	L_DB_TRANSACTION {
 		L_D();
 		const long long &dbChatRoomId = d->selectChatRoomId(conferenceId);
-		*d->dbSession.getBackendSession() << query, soci::use(lifetime), soci::use(notReadLifetime), soci::use(isEphemeralEnabled), soci::use(dbChatRoomId);
+		*d->dbSession.getBackendSession() << query, soci::use(lifetime), soci::use(notReadLifetime),
+		    soci::use(isEphemeralEnabled), soci::use(dbChatRoomId);
 
 		tr.commit();
 	};
@@ -8071,12 +8081,13 @@ void MainDb::deleteConferenceInfo(const std::shared_ptr<ConferenceInfo> &confere
 
 // -----------------------------------------------------------------------------
 
-long long MainDb::insertCallLog(const std::shared_ptr<CallLog> &callLog) {
+long long MainDb::insertOrUpdateCallLog(const std::shared_ptr<CallLog> &callLog,
+                                        std::optional<std::reference_wrapper<bool>> updated) {
 #ifdef HAVE_DB_STORAGE
 	return L_DB_TRANSACTION {
 		L_D();
 
-		long long id = d->insertOrUpdateConferenceCall(callLog, nullptr);
+		long long id = d->insertOrUpdateConferenceCall(callLog, nullptr, updated);
 		tr.commit();
 
 		return id;

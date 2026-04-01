@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -36,6 +36,10 @@ linphone_call_log_new(LinphoneCore *core, LinphoneCallDir dir, const LinphoneAdd
 	const auto cppFrom = Address::toCpp(from)->getSharedFromThis();
 	const auto cppTo = Address::toCpp(to)->getSharedFromThis();
 	return CallLog::createCObject(L_GET_CPP_PTR_FROM_C_OBJECT(core)->getSharedFromThis(), dir, cppFrom, cppTo);
+}
+
+LinphoneCallLog *linphone_call_log_clone(const LinphoneCallLog *call_log) {
+	return CallLog::toCpp(call_log)->clone()->toC();
 }
 
 LinphoneCallLog *linphone_call_log_ref(LinphoneCallLog *call_log) {
@@ -111,6 +115,15 @@ bool_t linphone_call_log_video_enabled(const LinphoneCallLog *call_log) {
 char *linphone_call_log_to_str(const LinphoneCallLog *call_log) {
 	std::string s = CallLog::toCpp(call_log)->toString();
 	return s.empty() ? NULL : bctbx_strdup(s.c_str());
+}
+
+char *linphone_call_log_to_json(const LinphoneCallLog *call_log) {
+	std::string s = CallLog::toCpp(call_log)->toJson();
+	return s.empty() ? NULL : bctbx_strdup(s.c_str());
+}
+
+int linphone_call_log_from_json(LinphoneCallLog *call_log, const char *json_text) {
+	return CallLog::toCpp(call_log)->fromJson(json_text);
 }
 
 bool_t linphone_call_log_was_conference(LinphoneCallLog *call_log) {
@@ -264,14 +277,34 @@ bctbx_list_t *linphone_core_read_call_logs_from_config_file(LinphoneCore *lc) {
 
 // =============================================================================
 
+static int _compare_call_log(LinphoneCallLog *stored_log, LinphoneCallLog *log) {
+	auto logCpp = CallLog::toCpp(log);
+	auto storedLogCpp = CallLog::toCpp(stored_log);
+	return !(storedLogCpp->getCallId() == logCpp->getCallId() &&
+	         storedLogCpp->getStartTime() == logCpp->getStartTime() &&
+	         storedLogCpp->getFromAddress()->weakEqual(logCpp->getFromAddress()) &&
+	         storedLogCpp->getToAddress()->weakEqual(logCpp->getToAddress()));
+}
+
 void linphone_core_store_call_log(LinphoneCore *lc, LinphoneCallLog *log) {
 	if (!lc) return;
-
+	bool updated = FALSE;
+#ifdef HAVE_DB_STORAGE
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
-		db.value().get()->insertCallLog(CallLog::toCpp(log)->getSharedFromThis());
+		db.value().get()->insertOrUpdateCallLog(CallLog::toCpp(log)->getSharedFromThis(), updated);
 	}
-
-	lc->call_logs = bctbx_list_prepend(lc->call_logs, linphone_call_log_ref(log));
+#endif
+	if (updated) {
+		auto oldLog = bctbx_list_find_custom(lc->call_logs, (bctbx_compare_func)_compare_call_log, log);
+		if (oldLog) { // Old log has been found in cache. Replace it with the new one.
+			linphone_call_log_unref((LinphoneCallLog *)oldLog->data);
+			oldLog->data = linphone_call_log_ref(log);
+		} else {
+			lc->call_logs = bctbx_list_prepend(lc->call_logs, linphone_call_log_ref(log));
+		}
+	} else {
+		lc->call_logs = bctbx_list_prepend(lc->call_logs, linphone_call_log_ref(log));
+	}
 }
 
 const bctbx_list_t *linphone_core_get_call_history(LinphoneCore *lc) {

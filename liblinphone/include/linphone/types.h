@@ -253,7 +253,7 @@ typedef enum _LinphoneSupportLevel {
  * @ingroup group_call_logs
  **/
 typedef enum _LinphoneCallStatus {
-	LinphoneCallSuccess = 0,  /**< The call was sucessful */
+	LinphoneCallSuccess = 0,  /**< The call was successful */
 	LinphoneCallAborted = 1,  /**< The call was aborted (caller hanged up) */
 	LinphoneCallMissed = 2,   /**< The call was missed (incoming call timed out without being answered or hanged up) */
 	LinphoneCallDeclined = 3, /**< The call was declined, either locally or by remote end */

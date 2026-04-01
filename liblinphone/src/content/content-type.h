@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -69,6 +69,7 @@ public:
 
 	LINPHONE_PUBLIC friend std::ostream &operator<<(std::ostream &os, const ContentType &header);
 
+	static const ContentType CallLogJson;
 	static const ContentType ConferenceInfo;
 	static const ContentType Cpim;
 	static const ContentType Encrypted;

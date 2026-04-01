@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -338,6 +338,10 @@ void linphone_content_set_file_duration(LinphoneContent *content, int duration) 
 	auto c = Content::toCpp(content);
 	if (c->isFile()) dynamic_cast<FileContent *>(c)->setFileDuration(duration);
 	else if (c->isFileTransfer()) dynamic_cast<FileTransferContent *>(c)->setFileDuration(duration);
+}
+
+bool_t linphone_content_is_call_log_json(const LinphoneContent *content) {
+	return Content::toCpp(content)->getContentType() == ContentType::CallLogJson;
 }
 
 bool_t linphone_content_is_text(const LinphoneContent *content) {

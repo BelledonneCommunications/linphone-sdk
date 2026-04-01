@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -179,6 +179,7 @@ extern test_suite_t turn_server_test_suite;
 extern test_suite_t refer_test_suite;
 extern test_suite_t dtmf_test_suite;
 extern test_suite_t friends_test_suite;
+extern test_suite_t sync_test_suite;
 
 #ifdef VCARD_ENABLED
 extern test_suite_t vcard_test_suite;
@@ -591,6 +592,7 @@ typedef struct _stats {
 	int number_of_LinphoneCoreAudioDeviceChanged;
 	int number_of_LinphoneCoreAudioDevicesListUpdated;
 	int number_of_LinphoneCoreVersionUpdateCheck;
+	int number_of_LinphoneCoreCallLogUpdated;
 
 	int number_of_LinphoneRemoteRecordingEnabled;
 	int number_of_LinphoneRemoteRecordingDisabled;

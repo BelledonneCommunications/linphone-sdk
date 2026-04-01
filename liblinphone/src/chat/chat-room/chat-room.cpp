@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -20,8 +20,7 @@
 
 #include <algorithm>
 
-#include <bctoolbox/defs.h>
-
+#include "bctoolbox/defs.h"
 #include "c-wrapper/c-wrapper.h"
 #include "call/call.h"
 #include "chat/chat-message/chat-message-p.h"
@@ -32,11 +31,13 @@
 #include "conference/conference.h"
 #include "content/content-manager.h"
 #include "core/core-p.h"
+#include "linphone/api/c-call-log.h"
 #include "linphone/api/c-chat-message.h"
 #include "linphone/api/c-event-log.h"
 #include "linphone/utils/algorithm.h"
 #include "linphone/utils/utils.h"
 #include "logger/logger.h"
+#include "json/json.h"
 
 // =============================================================================
 
@@ -699,6 +700,11 @@ void ChatRoom::onChatMessageReceived(const shared_ptr<ChatMessage> &chatMessage)
 	} else if (chatMessage->getPrivate()->getContentType() == ContentType::Imdn) {
 		onImdnReceived(chatMessage);
 		if (linphone_config_get_int(linphone_core_get_config(cCore), "sip", "deliver_imdn", 0) != 1) return;
+	}
+
+	if (chatMessage->getPrivate()->hasCallLogJsonContent()) {
+		getCore()->processJsonCallLog(chatMessage);
+		if (chatMessage->getContents().size() == 0) return;
 	}
 
 	const std::shared_ptr<Address> &fromAddress = chatMessage->getFromAddress();

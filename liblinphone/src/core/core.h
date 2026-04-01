@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -186,6 +186,8 @@ public:
 	static void
 	videoFilterCallbackNotTurningPreviewOff(void *userdata, BCTBX_UNUSED(MSFilter *f), unsigned int id, void *arg);
 #endif
+
+	void processJsonCallLog(const std::shared_ptr<ChatMessage> &chatMessage);
 
 	// ---------------------------------------------------------------------------
 	// Conference Call Event.

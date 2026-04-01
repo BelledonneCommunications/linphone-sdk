@@ -135,6 +135,12 @@ LINPHONE_PUBLIC void _linphone_core_add_callbacks(LinphoneCore *lc, LinphoneCore
 LINPHONE_PUBLIC bctbx_list_t *linphone_core_read_call_logs_from_config_file(LinphoneCore *lc);
 LINPHONE_PUBLIC bctbx_list_t **linphone_core_get_call_logs_attribute(LinphoneCore *lc);
 LINPHONE_PUBLIC void linphone_core_delete_call_log(LinphoneCore *lc, LinphoneCallLog *log);
+/**
+ * Clone the given call log
+ * @param call_log The given call log. @notnil
+ * @return A new call log with exactly same data as the argument. @notnil
+ */
+LINPHONE_PUBLIC LinphoneCallLog *linphone_call_log_clone(const LinphoneCallLog *call_log);
 
 LINPHONE_PUBLIC const MSList *linphone_core_get_call_history(LinphoneCore *lc);
 LINPHONE_PUBLIC void linphone_core_delete_call_history(LinphoneCore *lc);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -637,6 +637,7 @@ void liblinphone_tester_add_suites(void) {
 #endif
 	liblinphone_tester_add_suite_with_default_time(&mwi_test_suite, 0);
 	bc_tester_add_suite(&refer_test_suite);
+	bc_tester_add_suite(&sync_test_suite);
 	bc_tester_add_suite(&bearer_auth_test_suite);
 	bc_tester_add_suite(&call_twisted_cases_suite);
 	bc_tester_add_suite(&http_client_test_suite);
@@ -659,7 +660,8 @@ void liblinphone_tester_init(void (*ftester_printf)(int level, const char *fmt, 
 	bc_tester_set_logfile_func(logfile_arg_func);
 	bc_tester_init(ftester_printf, ORTP_MESSAGE, ORTP_ERROR, "rcfiles");
 	liblinphone_tester_add_suites();
-	bc_tester_set_max_parallel_suites(liblinphone_tester_max_parallel_suites); /* empiricaly defined as sustainable for our lab 12 threads machine.*/
+	bc_tester_set_max_parallel_suites(
+	    liblinphone_tester_max_parallel_suites); /* empiricaly defined as sustainable for our lab 12 threads machine.*/
 	bc_tester_set_global_timeout(32 * 60 * 32 / liblinphone_tester_max_parallel_suites); /* 32 mn max for 32 suites */
 }
 

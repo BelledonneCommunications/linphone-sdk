@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -126,6 +126,15 @@ LINPHONE_PUBLIC LinphoneChatMessage *linphone_chat_room_create_voice_recording_m
                                                                                        LinphoneRecorder *recorder);
 
 /**
+ * Creates a message attached to the given chat room with a call log json content filled with the given call log.
+ * @param chat_room the #LinphoneChatRoom object. @notnil
+ * @param call_log the call log. @notnil
+ * @return a new #LinphoneChatMessage @notnil
+ */
+LINPHONE_PUBLIC LinphoneChatMessage *linphone_chat_room_create_message_from_call_log(LinphoneChatRoom *chat_room,
+                                                                                     LinphoneCallLog *call_log);
+
+/**
  * Get the peer address associated to this chat room.
  * @warning This method returns an invalid address if the ChatRoom is in the Instantiated state
  * @param chat_room #LinphoneChatRoom object. @notnil
@@ -188,7 +197,9 @@ LINPHONE_PUBLIC void linphone_chat_room_mark_as_read(LinphoneChatRoom *chat_room
  * @param notReadLifetime The ephemeral not read lifetime strictly positive.
  * @return 0 if successful, -1 otherwise
  */
-LINPHONE_PUBLIC LinphoneStatus linphone_chat_room_activate_ephemeral_3(LinphoneChatRoom *chat_room, unsigned int lifetime, unsigned int notReadLifetime);
+LINPHONE_PUBLIC LinphoneStatus linphone_chat_room_activate_ephemeral_3(LinphoneChatRoom *chat_room,
+                                                                       unsigned int lifetime,
+                                                                       unsigned int notReadLifetime);
 
 /*
  * Implemented for convenience. See linphone_chat_room_activate_ephemeral_3().
@@ -202,15 +213,16 @@ LINPHONE_PUBLIC LinphoneStatus linphone_chat_room_activate_ephemeral_2(LinphoneC
 
 /*
  * See linphone_chat_room_activate_ephemeral_3() for more details.
- * Activate the ephemeral message feature in the chat room with a specified timeout and with the default not read lifetime
- * set by linphone_core_set_default_ephemeral_not_read_lifetime().
+ * Activate the ephemeral message feature in the chat room with a specified timeout and with the default not read
+ *lifetime set by linphone_core_set_default_ephemeral_not_read_lifetime().
  *
  * @param chat_room #LinphoneChatRoom object @notnil
  * @param lifetime The ephemeral lifetime strictly positive. To disable the feature, use
  ** linphone_chat_room_deactivate_ephemeral().
  * @return 0 if successful, -1 otherwise
  */
-LINPHONE_PUBLIC LinphoneStatus linphone_chat_room_activate_ephemeral(LinphoneChatRoom *chat_room, unsigned int lifetime);
+LINPHONE_PUBLIC LinphoneStatus linphone_chat_room_activate_ephemeral(LinphoneChatRoom *chat_room,
+                                                                     unsigned int lifetime);
 
 /**
  * Disable the ephemeral message feature in the chat room.
@@ -1046,7 +1058,8 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneChatMessage *linphone_chat_room_crea
  * @deprecated 20/02/2026. Use linphone_chat_room_activate_ephemeral_3() or linphone_chat_room_deactivate_ephemeral()
  * instead.
  */
-LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_room_enable_ephemeral(LinphoneChatRoom *chat_room, bool_t enable);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_room_enable_ephemeral(LinphoneChatRoom *chat_room,
+                                                                             bool_t enable);
 
 /**
  * Sets lifetime (in seconds) for all new ephemeral messages in the chat room.
@@ -1058,7 +1071,8 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_room_enable_ephemeral(Lin
  * @deprecated 20/02/2026. Use linphone_chat_room_activate_ephemeral_3() or linphone_chat_room_deactivate_ephemeral()
  * instead.
  */
-LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_room_set_ephemeral_lifetime(LinphoneChatRoom *chat_room, long time);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_room_set_ephemeral_lifetime(LinphoneChatRoom *chat_room,
+                                                                                   long time);
 
 /**
  * @}

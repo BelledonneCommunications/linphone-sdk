@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -285,7 +285,8 @@ public:
 	// Call log.
 	// ---------------------------------------------------------------------------
 
-	long long insertCallLog(const std::shared_ptr<CallLog> &callLog);
+	long long insertOrUpdateCallLog(const std::shared_ptr<CallLog> &callLog,
+	                                std::optional<std::reference_wrapper<bool>> updated);
 	void updateCallLog(const std::shared_ptr<CallLog> &callLog);
 	void deleteCallLog(const std::shared_ptr<CallLog> &callLog);
 

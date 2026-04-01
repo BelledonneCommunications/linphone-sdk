@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -751,6 +751,15 @@ const string &ChatMessagePrivate::getFileTransferFilepath() const {
 
 void ChatMessagePrivate::setFileTransferFilepath(const string &path) {
 	fileTransferFilePath = path;
+}
+
+bool ChatMessagePrivate::hasCallLogJsonContent() const {
+	for (const auto &c : getContents()) {
+		if (c->getContentType() == ContentType::CallLogJson) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void ChatMessagePrivate::setEphemeralExpireTime(time_t expireTime) {

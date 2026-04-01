@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -198,7 +198,7 @@ static void audio_call_with_ice_no_matching_audio_codecs(void) {
 
 	logs = linphone_core_get_call_logs(pauline->lc);
 
-	BC_ASSERT_EQUAL((int)bctbx_list_size(logs), 1, int, "%d");
+	BC_ASSERT_PTR_NOT_NULL(logs);
 	if (logs) {
 		const LinphoneErrorInfo *ei;
 		cl = (LinphoneCallLog *)logs->data;

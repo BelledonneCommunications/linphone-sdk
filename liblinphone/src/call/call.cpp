@@ -41,6 +41,18 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
+const std::map<LinphoneCallDir, std::string> Call::kCallDirStrings = {
+    {LinphoneCallDir::LinphoneCallIncoming, "incoming"}, {LinphoneCallDir::LinphoneCallOutgoing, "outgoing"}};
+
+const std::map<LinphoneCallStatus, std::string> Call::kCallStatusStrings = {
+    {LinphoneCallStatus::LinphoneCallSuccess, "success"},
+    {LinphoneCallStatus::LinphoneCallDeclined, "declined"},
+    {LinphoneCallStatus::LinphoneCallMissed, "missed"},
+    {LinphoneCallStatus::LinphoneCallAborted, "aborted"},
+    {LinphoneCallStatus::LinphoneCallAcceptedElsewhere, "accepted_elsewhere"},
+    {LinphoneCallStatus::LinphoneCallDeclinedElsewhere, "declined_elsewhere"},
+    {LinphoneCallStatus::LinphoneCallEarlyAborted, "early_aborted"}};
+
 // =============================================================================
 shared_ptr<CallSession> Call::getActiveSession() const {
 	return mParticipant->getSession();
@@ -1625,6 +1637,34 @@ std::shared_ptr<Event> Call::createNotify(const std::string &eventName) {
 	SalSubscribeOp *op = new SalSubscribeOp(callOp, eventName);
 	return (new EventSubscribe(getCore()->getSharedFromThis(), op, LinphoneSubscriptionIncoming, eventName))
 	    ->toSharedPtr();
+}
+
+// -----------------------------------------------------------------------------
+
+LinphoneCallDir Call::textToCallDir(const std::string &text) {
+	auto findResult =
+	    std::find_if(kCallDirStrings.cbegin(), kCallDirStrings.cend(),
+	                 [&](const std::pair<LinphoneCallDir, std::string> &pair) { return pair.second == text; });
+	if (findResult != kCallDirStrings.cend()) return findResult->first;
+	else return LinphoneCallIncoming;
+}
+
+std::string Call::callDirToText(const LinphoneCallDir &dir) {
+	if (auto it = kCallDirStrings.find(dir); it != kCallDirStrings.cend()) return it->second;
+	else return "";
+}
+
+LinphoneCallStatus Call::textToCallStatus(const std::string &text) {
+	auto findResult =
+	    std::find_if(kCallStatusStrings.cbegin(), kCallStatusStrings.cend(),
+	                 [&](const std::pair<LinphoneCallStatus, std::string> &pair) { return pair.second == text; });
+	if (findResult != kCallStatusStrings.cend()) return findResult->first;
+	else return LinphoneCallSuccess;
+}
+
+std::string Call::callStatusToText(const LinphoneCallStatus &status) {
+	if (auto it = kCallStatusStrings.find(status); it != kCallStatusStrings.cend()) return it->second;
+	else return "";
 }
 
 // -----------------------------------------------------------------------------

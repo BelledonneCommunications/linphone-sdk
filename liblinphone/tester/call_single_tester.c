@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -991,9 +991,9 @@ static void call_outbound_using_secondary_account(void) {
 
 	// Since call was made with secondary account,
 	// we should not have any changes when removing the primary account
-	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+	size_t oldLogsCount = bctbx_list_size(linphone_core_get_call_logs(marie->lc));
 	linphone_core_remove_account_with_data(marie->lc, linphone_core_get_default_account(marie->lc));
-	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == oldLogsCount);
 
 end:
 	linphone_core_manager_destroy(marie);
@@ -2200,6 +2200,11 @@ static void cancelled_ringing_call(void) {
 	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
 	const bctbx_list_t *call_history;
 	LinphoneCall *out_call;
+
+	// Wait for current account to synchronized with server logs.
+	wait_for_until(marie->lc, pauline->lc, NULL, 5, 1000);
+	linphone_account_clear_call_logs(linphone_core_get_default_account(marie->lc));   // Clean logs
+	linphone_account_clear_call_logs(linphone_core_get_default_account(pauline->lc)); // Clean logs
 
 	BC_ASSERT_EQUAL(linphone_core_get_missed_calls_count(pauline->lc), 0, int, "%d");
 	BC_ASSERT_EQUAL(linphone_account_get_missed_calls_count(linphone_core_get_default_account(pauline->lc)), 0, int,
@@ -5828,6 +5833,11 @@ static void incoming_invite_with_invalid_sdp(void) {
 	LinphoneCallLog *cl;
 	const bctbx_list_t *logs;
 
+	// Wait for current account to synchronized with server logs.
+	wait_for_until(caller->lc, callee->lc, NULL, 5, 2000);
+	linphone_account_clear_call_logs(linphone_core_get_default_account(caller->lc)); // Clean logs
+	linphone_account_clear_call_logs(linphone_core_get_default_account(callee->lc)); // Clean logs
+
 	callee_test_params.sdp_simulate_error = TRUE;
 	BC_ASSERT_FALSE(call_with_params2(caller, callee, &caller_test_params, &callee_test_params, FALSE));
 
@@ -6948,7 +6958,11 @@ static void call_logs_sqlite_storage(void) {
 	LinphoneCallLog *call_log = NULL;
 	LinphoneAddress *laure = NULL;
 	time_t start_time = 0;
-
+	// Workaround: wait for call log server to send us call-logs for missed calls that happened in past tests from this
+	// suite.
+	wait_for_until(marie->lc, pauline->lc, NULL, 5, 1000);
+	linphone_account_clear_call_logs(linphone_core_get_default_account(marie->lc));   // Clean logs
+	linphone_account_clear_call_logs(linphone_core_get_default_account(pauline->lc)); // Clean logs
 	bctbx_list_t *call_logs = linphone_account_get_call_logs(linphone_core_get_default_account(marie->lc));
 	BC_ASSERT_TRUE(bctbx_list_size(call_logs) == 0);
 	bctbx_list_free_with_data(call_logs, (bctbx_list_free_func)linphone_call_log_unref);
@@ -9110,8 +9124,12 @@ static test_t call2_tests[] = {
                 invite_without_sdp_accept_early_media)};
 
 static test_t call_not_established_tests[] = {
-    TEST_NO_TAG("Early declined call", early_declined_call),
-    TEST_NO_TAG("Call declined", call_declined),
+    // Run first to avoid conflicts with other tests
+    TEST_NO_TAG("Cancelled ringing call", cancelled_ringing_call),
+    TEST_NO_TAG("Incoming INVITE with invalid SDP", incoming_invite_with_invalid_sdp),
+    TEST_NO_TAG("Outgoing INVITE with invalid ACK SDP", outgoing_invite_with_invalid_sdp),
+    //---------------------------------------------
+    TEST_NO_TAG("Early declined call", early_declined_call), TEST_NO_TAG("Call declined", call_declined),
     TEST_NO_TAG("Call declined on timeout", call_declined_on_timeout),
     TEST_NO_TAG("Call declined in Early Media", call_declined_in_early_media),
     TEST_NO_TAG("Call declined on timeout in Early Media", call_declined_on_timeout_in_early_media),
@@ -9127,7 +9145,6 @@ static test_t call_not_established_tests[] = {
     TEST_NO_TAG("Udp call early cancelled with sal error", udp_call_early_cancelled_with_sal_error),
     TEST_NO_TAG("Udp call terminated with sal error", udp_call_terminated_with_sal_error),
     TEST_NO_TAG("Call with DNS timeout", call_with_dns_time_out),
-    TEST_NO_TAG("Cancelled ringing call", cancelled_ringing_call),
     TEST_NO_TAG("Call busy when calling self", call_busy_when_calling_self),
     TEST_NO_TAG("Call rejected because of wrong credential", call_rejected_because_wrong_credentials),
     TEST_NO_TAG("Call rejected without 403 because of wrong credential",
@@ -9144,8 +9161,6 @@ static test_t call_not_established_tests[] = {
     TEST_NO_TAG("Call established with complex rejected operation", call_established_with_complex_rejected_operation),
     TEST_NO_TAG("Call established with rejected info during re-invite",
                 call_established_with_rejected_info_during_reinvite),
-    TEST_NO_TAG("Incoming INVITE with invalid SDP", incoming_invite_with_invalid_sdp),
-    TEST_NO_TAG("Outgoing INVITE with invalid ACK SDP", outgoing_invite_with_invalid_sdp),
     TEST_NO_TAG("Unsuccessful call with transport change after released",
                 unsucessfull_call_with_transport_change_after_released),
     TEST_NO_TAG("Call with rtcp-mux not accepted", call_with_rtcp_mux_not_accepted),
