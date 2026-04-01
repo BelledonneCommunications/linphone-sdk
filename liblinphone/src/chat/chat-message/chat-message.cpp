@@ -60,7 +60,6 @@
 using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
-
 static FsmIntegrityChecker<ChatMessage::State> chatMessageFsmChecker{
     {{ChatMessage::State::Idle,
       {ChatMessage::State::PendingDelivery, ChatMessage::State::Queued, ChatMessage::State::InProgress,
@@ -264,11 +263,18 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 	    chatRoom->getCore()->getEphemeralChatMessagePolicy() == LinphoneEphemeralChatMessagePolicyIndividual) {
 		switch (newState) {
 			case ChatMessage::State::Displayed:
-				lInfo() << "Participant is in displayed state, starting ephemeral countdown";
-				startEphemeralCountDown(Normal);
+				if ((currentState == ChatMessage::State::Delivered) &&
+				    (direction == ChatMessage::Direction::Outgoing)) {
+					lInfo() << "Participant is in displayed state, NOT starting ephemeral countdown as it has already "
+					           "been started when entering the delivered state";
+				} else {
+					lInfo() << "Participant is in displayed state, starting ephemeral countdown";
+					startEphemeralCountDown(Normal);
+				}
 				break;
 			case ChatMessage::State::Delivered:
-				if (eventLog) { // Only start the countdown if the state has been stored
+				if (eventLog) {
+					// Only start the countdown if the state has been stored
 					if (direction == ChatMessage::Direction::Outgoing) {
 						lInfo() << "Sender is in delivered state, starting ephemeral countdown";
 						startEphemeralCountDown(Normal);
@@ -1052,7 +1058,6 @@ static void forceUtf8Content(Content &content) {
 	if (n == string::npos) return;
 
 	L_BEGIN_LOG_EXCEPTION
-
 	size_t begin = n + sizeof("charset");
 	size_t end = charset.find(";", begin);
 	charset = charset.substr(begin, end - begin);
@@ -1834,7 +1839,8 @@ void ChatMessagePrivate::send() {
 	if (internalContent.isEmpty()) {
 		if (!contents.empty()) {
 			internalContent = Content(*contents.front());
-		} else if (externalBodyUrl.empty()) { // When using external body url, there is no content
+		} else if (externalBodyUrl.empty()) {
+			// When using external body url, there is no content
 			lError() << "Trying to send a message without any content !";
 			return;
 		}
