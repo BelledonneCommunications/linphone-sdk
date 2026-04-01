@@ -1223,12 +1223,6 @@ LinphoneReason ChatMessagePrivate::receive() {
 		setDirection(ChatMessage::Direction::Outgoing);
 	}
 
-	// Check if this is a duplicate message.
-	if (!imdnId.empty() && chatRoom && chatRoom->findChatMessage(imdnId, direction)) {
-		lInfo() << "Duplicated SIP MESSAGE with Imdn-ID " << imdnId << ", ignored.";
-		return core->getCCore()->chat_deny_code;
-	}
-
 	if (errorCode <= 0) {
 		bool foundSupportContentType = false;
 		for (auto &c : contents) {
@@ -1253,6 +1247,12 @@ LinphoneReason ChatMessagePrivate::receive() {
 		reason = linphone_error_code_to_reason(errorCode);
 		setParticipantState(meAddress, ChatMessage::State::NotDelivered, ::ms_time(nullptr), reason);
 		return reason;
+	}
+
+	// Check if this is a duplicate message.
+	if (!imdnId.empty() && chatRoom && chatRoom->findChatMessage(imdnId, direction)) {
+		lInfo() << "Duplicated SIP MESSAGE with Imdn-ID " << imdnId << ", ignored.";
+		return core->getCCore()->chat_deny_code;
 	}
 
 	if (q->isReaction()) {
