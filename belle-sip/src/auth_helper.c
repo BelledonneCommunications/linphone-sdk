@@ -114,12 +114,14 @@ int belle_sip_auth_define_size(const char *algo) {
 
 int belle_sip_auth_helper_compute_ha1_for_algorithm(
     const char *userid, const char *realm, const char *password, char *ha1, size_t size, const char *algo) {
-	size_t compared_size;
-	compared_size = belle_sip_auth_define_size(algo);
-	if (compared_size != size) {
-		belle_sip_error("belle_sip_fill_authorization_header, size of ha1 must be 33 when MD5 or 65 when SHA-256 ");
+	size_t exact_size;
+	exact_size = belle_sip_auth_define_size(algo);
+	if (exact_size > size) {
+		belle_sip_error("belle_sip_fill_authorization_header, size of ha1 must be at least 33 when MD5 or at least 65 "
+		                "when SHA-256 ");
 		return -1;
 	}
+	size = exact_size;
 	size_t length_byte = (size - 1) / 2;
 	uint8_t out[MAX_LENGTH_BYTE];
 	size_t di;

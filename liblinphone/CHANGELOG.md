@@ -41,6 +41,8 @@ This changelog file was started on October 2019. Previous changes were more or l
 ### Fixed
 - race conditions leading to crashes when liblinphone is used in a multi-threaded application.
   Warning: the "one thread for one LinphoneCore at a time" rule remains valid.
+- Do not transform password into ha1 for LinphoneAuthInfo objects that have no algorithm specified and are not used for digest
+  This change is to permit the use of HTTPs basic authentication, still used by services such as CardDav.
 
 
 ### Removed
