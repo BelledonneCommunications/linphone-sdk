@@ -713,6 +713,16 @@ BCTBX_PUBLIC void
 bctbx_sockaddr_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len);
 
 /**
+ * This function will return TRUE if the sockaddr is a V6 NAT64 mapped address. It will return FALSE otherwise.
+ **/
+BCTBX_PUBLIC bool_t bctbx_sockaddr_is_nat64(const struct sockaddr *v6);
+
+/**
+ * This function will return TRUE if the sockaddr is a V4 mapped address. It will return FALSE otherwise.
+ **/
+BCTBX_PUBLIC bool_t bctbx_sockaddr_is_v4_mapped(const struct sockaddr *v6);
+
+/**
  * This function will transform a V6 NAT64 mapped address to a pure V4 and write it into result, or will just copy it
  *otherwise. The memory for v6 and result may be the same, in which case processing is done in place or no copy is done.
  * The pointer to result must have sufficient storage, typically a struct sockaddr_storage.

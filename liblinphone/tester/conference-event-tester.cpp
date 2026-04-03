@@ -2986,7 +2986,7 @@ test_t conference_event_tests[] = {
                  "Performance"),
     TEST_ONE_TAG("List subscribe with 100 chatrooms from existing database (100k chatrooms)",
                  list_subscribe_with_100_chatrooms_from_existing_database_100k,
-                 "Performance"),
+                 "NightlyPerformance"),
 #endif // defined(HAVE_DB_STORAGE) && defined(HAVE_SOCI)
 #endif // _WIN32
     TEST_NO_TAG("one-on-one keyword", one_on_one_keyword)};
