@@ -253,7 +253,7 @@ void ParticipantDevice::setUserData(void *ud) {
 	mUserData = ud;
 }
 
-const std::string &ParticipantDevice::getCallId() const{
+const std::string &ParticipantDevice::getCallId() const {
 	if (mCallId.empty() && mSession) {
 		const auto &log = mSession->getLog();
 		mCallId = log->getCallId();
@@ -811,21 +811,27 @@ void ParticipantDevice::videoDisplayErrorOccurred(int error_code) {
 void *ParticipantDevice::createWindowId(void *context) {
 	void *windowId = context;
 #ifdef VIDEO_ENABLED
-	const auto conference = getConference();
-	const auto session = getSession() ? getSession() : (conference ? conference->getMainSession() : nullptr);
-	if (session) {
-		auto s = static_pointer_cast<MediaSession>(session);
-		const auto &label = (s->requestThumbnail(getSharedFromThis())) ? getThumbnailStreamLabel()
-		                                                               : getStreamLabel(LinphoneStreamTypeVideo);
-		// Empty label is used only for main stream which is handled by the call.
-		if (label.empty() || !mGruu) {
-			lError() << "Unable to create a window ID for " << *this << " because no label is associated to it";
-		} else {
-			windowId = static_pointer_cast<MediaSession>(session)->createNativeVideoWindowId(
-			    label, conference->isMe(mGruu), true, context);
-		}
+	if (!mGruu) {
+		lError() << "Unable to create a window ID for " << *this << " because its address is not known";
 	} else {
-		lError() << "Unable to create a window ID for " << *this << " because no session is linked to this device";
+		const auto conference = getConference();
+		const auto session = getSession() ? getSession() : (conference ? conference->getMainSession() : nullptr);
+		if (session) {
+			auto s = static_pointer_cast<MediaSession>(session);
+			auto requestThumbnail = s->requestThumbnail(getSharedFromThis());
+			const auto &label =
+			    (requestThumbnail) ? getThumbnailStreamLabel() : getStreamLabel(LinphoneStreamTypeVideo);
+			// Empty label is used only for main stream which is handled by the call.
+			if (label.empty()) {
+				lError() << "Unable to create a window ID for " << *this << " because no "
+				         << ((requestThumbnail) ? "thumbnail " : "video") << " label is associated to it";
+			} else {
+				windowId = static_pointer_cast<MediaSession>(session)->createNativeVideoWindowId(
+				    label, conference->isMe(mGruu), true, context);
+			}
+		} else {
+			lError() << "Unable to create a window ID for " << *this << " because no session is linked to this device";
+		}
 	}
 #endif
 	return windowId;
@@ -908,15 +914,16 @@ bool ParticipantDevice::isMe() const {
 	auto callId = getCallId();
 	if (!callId.empty()) {
 		isMe = !!getCore()->getCallByCallId(callId);
-		if (!isMe){
+		if (!isMe) {
 			auto address = getAddress();
 			isMe = !!getCore()->findAccountByIdentityAddress(address);
 			if (!isMe) {
 				isMe = getCore()->getPrimaryContactAddress().weakEqual(address);
 			}
 		}
-	}else {
-		lError() << "[ParticipantDevice] Unexpected empty callId while checking 'is me' from participant device: " << *this;
+	} else {
+		lError() << "[ParticipantDevice] Unexpected empty callId while checking 'is me' from participant device: "
+		         << *this;
 	}
 
 	return isMe;

@@ -321,7 +321,9 @@ private:
 
 // Chat rooms
 void group_chat_room_lime_server_message(bool encrypted);
-void group_chat_room_with_client_restart_base(bool encrypted, bool server_restart_before_participant_addition);
+void group_chat_room_with_client_restart_base(bool encrypted,
+                                              bool server_restart_before_participant_addition,
+                                              bool change_conference_server_contact_address);
 void group_chat_room_with_sip_errors_base(bool invite_error, bool subscribe_error, bool encrypted);
 void one_on_one_group_chat_room_deletion_by_server_client_base(bool encrypted);
 void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,

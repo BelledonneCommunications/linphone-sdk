@@ -33,11 +33,11 @@
 namespace LinphoneTest {
 
 static void secure_group_chat_room_with_client_restart() {
-	group_chat_room_with_client_restart_base(true, false);
+	group_chat_room_with_client_restart_base(true, false, false);
 }
 
 static void secure_group_chat_room_with_client_restart_and_server_restarted_before_participant_addition() {
-	group_chat_room_with_client_restart_base(true, true);
+	group_chat_room_with_client_restart_base(true, true, false);
 }
 
 static void secure_group_chat_room_with_invite_error() {
