@@ -27,7 +27,7 @@
 \renewcommand{\tabular}{\footnotesize\oldtabular}
 
 
-\def\currentVersion{1.0}
+\def\currentVersion{1.1}
 
 
 \hypersetup{colorlinks=true, linkcolor=black, citecolor=olive, urlcolor=olive}
@@ -47,7 +47,8 @@
 \section{Changelog}
 \begin{versionhistory}
   %\vhEntry{\currentVersion}{\today}{JP}{TODO: list the modifications of this version here}
-  \vhEntry{1.0}{\today}{JP}{Initial version}
+  \vhEntry{1.1}{\today}{JP}{Instant messaging intergration and algorithm support update}
+  \vhEntry{1.0}{September 20, 2022}{JP}{Initial version}
 \end{versionhistory}
 
 \newpage
@@ -71,19 +72,19 @@
 
 \paragraph*{}In the current context, the Linphone SDK requires only key exchange PQC. No signature algorithms are needed.
 
-\paragraph*{}As of August 2022, \textit{liboqs} provides the following Key Encapsulation Mechanism (KEM) algorithms:
+\paragraph*{}As of April 2026, \textit{liboqs} provides the following Key Encapsulation Mechanism (KEM) algorithms:
 \begin{itemize}
   \item BIKE
   \item Classic McEliece
   \item FrodoKEM
   \item HQC
   \item Kyber
+  \item ML-KEM
   \item NTRU
   \item NTRU-Prime
-  \item Saber
 \end{itemize}
 
-\paragraph{}Kyber being the KEM algorithm first selected to be standardised by the NIST, linphone currently supports Kyber and HQC, specifically the variants Kyber512 and Kyber1024, HQC128 and HQC256. Other suitable, see \ref{subsec:zrtpRequirements}, algorithms provided by \textit{liboqs} can be included without major changes to the architecture.
+\paragraph{}Linphone currently supports ML-KEM, Kyber(deprecated) and HQC, specifically the variants ML-KEM512, ML-KEM768, MLKEM-1024, Kyber512 and Kyber1024, HQC128 and HQC256. Other suitable, see \ref{subsec:zrtpRequirements}, algorithms provided by \textit{liboqs} can be included without major changes to the architecture.
 
 \subsection{Hybrid KEM}
 \paragraph{}During the transition from traditional to post-quantum algorithms, it is recommended to combine both types of algorithm. The construction that combines a traditional key
@@ -219,15 +220,15 @@
   \end{algorithmic}
   \end{algorithm}
   \FloatBarrier
-\paragraph*{}Linphone provides several hybrid KEMs:
+\paragraph*{}This module allows to combine any number and any set of KEM algorithms. The ZRTP module produce the followind set:
 \begin{itemize}
-  \item two algorithms combined: X25519/Kyber512, X25519/HQC128, X448/Kyber1024, X448/HQC256
+  \item two algorithms combined: X25519/ML-KEM512, X25519/Kyber512, X25519/HQC128, X448/ML-KEM1024, X448/Kyber1024, X448/HQC256
   \item three algorithms combined: X25519/Kyber512/HQC128, X448/Kyber1024/HQC256
 \end{itemize}
-\paragraph*{}Kyber and HQC are based on different mathematical problems, hence the interest of combining them, with the classic ECDH exchange, should one of them be broken in the future.
+\paragraph*{}ML-KEM/Kyber and HQC are based on different mathematical problems, hence the interest of combining them, with the classic ECDH exchange, should one of them be broken in the future.
 
 \subsection{Enable PQC in linphone SDK}
-\paragraph*{}\textit{liboqs} is linked to a module called \href{https://gitlab.linphone.org/BC/private/postquantumcryptoengine}{PostQuantumCryptoEngine}. To build the requested part of \textit{liboqs} and this module, call the linphone-sdk build command with the option
+\paragraph*{}\textit{liboqs} is linked to a module called \href{https://gitlab.linphone.org/BC/public/linphone-sdk/-/tree/master/postquantumcryptoengine}{PostQuantumCryptoEngine}. To build the requested part of \textit{liboqs} and this module, call the linphone-sdk build command with the option
 \lstset{language=bash}
 \begin{lstlisting}
 -DENABLE_PQCRYPTO=On
@@ -411,9 +412,9 @@
 
 \newpage
 \section{Instant messaging}
-\paragraph*{}Instant messaging is end2end encrypted using Lime\citep{lime}, a Signal protocol derivative. This protocol relies on Elliptic-Curve Diffie-Hellman and EdDSA properties and no version using post-quantum cryptography is available yet.
-\paragraph*{}Instant messaging encryption is not encrypted using post-quantum cryptography, this is left for future work.
-
+\paragraph*{}Instant messaging is end2end encrypted using Lime\citep{lime}, a Signal protocol derivative. This protocol originally relied on Elliptic-Curve Diffie-Hellman and EdDSA properties.
+\paragraph*{}The PQ crypto support was then added to Lime before the publication by Signal of the PQXDH specification but it ended being very similar. Same goes for the PQ ratchet added to the Lime protocol ending being very similar to \href{https://security.apple.com/blog/imessage-pq3/}{PQ3} Apple protocol.
+\paragraph*{}The Lime protocol does not combine PQKEM and ECDHKEM as described in this document. See its documentation for implementation and protocol details.
 \newpage
 
 \bibliographystyle{te}

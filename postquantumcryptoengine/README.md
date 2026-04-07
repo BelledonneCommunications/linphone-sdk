@@ -5,7 +5,8 @@ PostQuantumCryptoEngine
 
 Extension to the bctoolbox lib providing Post Quantum Cryptography.
 Provides:
-- Kyber 512, 768 and 1024
+- ML-KEM 512, 768 and 1024
+- Kyber 512, 768 and 1024 (deprecated)
 - HQC 128, 192 and 256 (NIST round 3 version)
 - X25519 and X448 in KEM version
 and a way to combine two or more of theses.
@@ -28,43 +29,14 @@ Depends
 - **liboqs[1]**: implementation of a collection of Post Quantum algorithms
 - **bctoolbox[2]**
 
+Tests
+-----
+When build with the enable unit tests option, this module produces a pqcrypto-tester executable.
 
-To compile
-----------
-
-	cmake . -DCMAKE_INSTALL_PREFIX=<install prefix> -DCMAKE_PREFIX_PATH=<search prefix>
-
-	make
-	make install
-
-
-To make an rpm package
-----------------------
-
-	cmake . -DCMAKE_INSTALL_PREFIX=/usr -DCPACK_GENERATOR="RPM"
-
-	make package
-
-
-Options
--------
-
-- `CMAKE_INSTALL_PREFIX=<string>`: install prefix.
-- `CMAKE_PREFIX_PATH=<string>`: search path prefix for dependencies e.g. mbedtls.
-- `ENABLE_STRICT=NO`: do not build with strict compilator flags e.g. `-Wall -Werror`.
-- `ENABLE_UNIT_TESTS=NO`: do not build testing binaries.
-
-
-
-Note for packagers
-------------------
-
-Our CMake scripts may automatically add some paths into research paths of generated binaries.
-To ensure that the installed binaries are striped of any rpath, use `-DCMAKE_SKIP_INSTALL_RPATH=ON`
-while you invoke cmake.
+It tests against published KAT patterns for ML-KEM, Kyber and HQC and self-generated KAT patterns for combined KEM.
 
 --------------------
 
 - [1] <https://gitlab.linphone.org/BC/public/external/liboqs>
-- [2] <https://gitlab.linphone.org/BC/public/bctoolbox>
+- [2] <https://gitlab.linphone.org/BC/public/linphone-sdk/-/tree/master/bctoolbox>
 
