@@ -25,6 +25,10 @@
 
 #include <msaaudio/msaaudio.h>
 
+#ifndef AAudioStream_getSamplesPerFrame
+#define AAudioStream_getSamplesPerFrame AAudioStream_getChannelCount
+#endif
+
 static const int flowControlIntervalMs = 5000;
 static const int flowControlThresholdMs = 40;
 

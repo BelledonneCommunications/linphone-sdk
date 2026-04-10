@@ -24,6 +24,10 @@
 
 #include <msaaudio/msaaudio.h>
 
+#ifndef AAudioStream_getSamplesPerFrame
+#define AAudioStream_getSamplesPerFrame AAudioStream_getChannelCount
+#endif
+
 struct AAudioInputContext {
 	AAudioInputContext(MSFilter *f) {
 		sound_utils = ms_factory_get_android_sound_utils(f->factory);
