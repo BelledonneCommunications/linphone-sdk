@@ -906,10 +906,14 @@ void ServerConferenceEventHandler::notifyResponseCb(LinphoneEvent *lev) {
 	cbs->setUserData(nullptr);
 	cbs->mNotifyResponseCb = nullptr;
 
-	if (ev->getReason() != LinphoneReasonNone) return;
-
 	if (!handler) {
-		lInfo() << "Unable to process event " << ev << " because no handler has been found";
+		lInfo() << "Unable to process NOTIFY of " << *ev << " because no handler has been found";
+		return;
+	}
+
+	if (auto reason = ev->getReason(); (reason != LinphoneReasonNone)) {
+		lInfo() << "Unable to process NOTIFY of " << *ev << " in ServerConferenceEventHandler [" << handler
+		        << "] because its response reason is " << linphone_reason_to_string(reason);
 		return;
 	}
 
@@ -919,21 +923,20 @@ void ServerConferenceEventHandler::notifyResponseCb(LinphoneEvent *lev) {
 		if ((confState != ConferenceInterface::State::Deleted) &&
 		    (confState != ConferenceInterface::State::Terminated)) {
 			if (handler->confListener) {
-				for (const auto &p : conf->getParticipants()) {
-					for (const auto &d : p->getDevices()) {
-						if ((d->getConferenceSubscribeEvent() == ev) &&
-						    (d->getState() == ParticipantDevice::State::Joining)) {
-							// fixme confListener should be removed in the futur. On only relevant for server group
-							// chatroom
-							handler->confListener->onFirstNotifyReceived(d->getAddress());
-							return;
-						}
+				for (const auto &d : conf->getParticipantDevices()) {
+					if ((d->getConferenceSubscribeEvent() == ev) &&
+					    (d->getState() == ParticipantDevice::State::Joining)) {
+						// fixme confListener should be removed in the future. On only relevant for server group
+						// chatroom
+						handler->confListener->onFirstNotifyReceived(d->getAddress());
+						return;
 					}
 				}
 			}
 		}
 	} else {
-		lInfo() << "Unable to process event " << ev << " because conference was likely already terminated.";
+		lInfo() << "Unable to process NOTIFY of " << *ev << " in ServerConferenceEventHandler [" << handler
+		        << "] because conference was likely already terminated.";
 	}
 }
 
@@ -1198,21 +1201,19 @@ LinphoneStatus ServerConferenceEventHandler::subscribeReceived(const shared_ptr<
 			oldEv->terminate();
 		}
 		shared_ptr<Participant> participant = device->getParticipant();
-		const auto &pAddress = participant->getAddress();
-		const auto &dAddress = device->getAddress();
 		if ((evLastNotify == 0) || (deviceState == ParticipantDevice::State::Joining)) {
 			const auto &needToSyncDevice = device->isChangingSubscribeEvent();
 			if (needToSyncDevice) {
-				lInfo() << "Participant " << *dAddress << " is already part of " << *conf
+				lInfo() << *device << " is already part of " << *conf
 				        << " hence send full state to be sure the client and the server are on the same page";
 			}
-			lInfo() << "Sending initial notify of " << *conf << " to: " << *dAddress
+			lInfo() << "Sending initial notify of " << *conf << " to: " << *device
 			        << " with last notify version set to " << conf->getLastNotify();
 			notifyFullState(createNotifyFullState(ev), device);
 			device->clearChangingSubscribeEvent();
 		} else if (evLastNotify < lastNotify) {
 			lInfo() << "Sending all missed notify [" << evLastNotify << "-" << lastNotify << "] for " << *conf
-			        << " to: " << *pAddress;
+			        << " to: " << *participant;
 			const int fullStateTrigger =
 			    linphone_config_get_int(linphone_core_get_config(conf->getCore()->getCCore()), "misc",
 			                            "full_state_trigger_due_to_missing_updates", 10);
@@ -1222,13 +1223,13 @@ LinphoneStatus ServerConferenceEventHandler::subscribeReceived(const shared_ptr<
 			bool conferenceHasNotChatCapability = (conf && !conf->getCurrentParams()->chatEnabled());
 			if (conferenceHasNotChatCapability || forceFullState) {
 				if (forceFullState) {
-					lInfo() << "Sending a NOTIFY full state for " << *conf << " to " << *pAddress
+					lInfo() << "Sending a NOTIFY full state for " << *conf << " to " << *participant
 					        << " because the gap between the last notify ID [" << lastNotify
 					        << "] and the client's last notify ID [" << evLastNotify
 					        << "] is greater that the maximum allowed interval for multipart NOTIFYs ["
 					        << fullStateTrigger << "]";
 				} else if (conferenceHasNotChatCapability) {
-					lInfo() << "Sending a NOTIFY full state for " << *conf << " to " << *pAddress
+					lInfo() << "Sending a NOTIFY full state for " << *conf << " to " << *participant
 					        << " because the audio video conferences hasn't chat capabilitiy therefore events are not "
 					           "stored in the database";
 				}
@@ -1317,7 +1318,7 @@ void ServerConferenceEventHandler::onParticipantAdded(const std::shared_ptr<Conf
 		return;
 	}
 
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	const auto &pAddress = participant->getAddress();
 	if (conf) {
 		notifyAllExcept(makeContent(createNotifyParticipantAdded(pAddress)), participant);
@@ -1341,7 +1342,7 @@ void ServerConferenceEventHandler::onParticipantRemoved(const std::shared_ptr<Co
 		return;
 	}
 
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	const auto &pAddress = participant->getAddress();
 	if (conf) {
 		notifyAllExcept(makeContent(createNotifyParticipantRemoved(pAddress)), participant);
@@ -1358,7 +1359,7 @@ void ServerConferenceEventHandler::onParticipantRemoved(const std::shared_ptr<Co
 
 void ServerConferenceEventHandler::onParticipantSetAdmin(const std::shared_ptr<ConferenceParticipantEvent> &event,
                                                          const std::shared_ptr<Participant> &participant) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	const bool isAdmin = (event->getType() == EventLog::Type::ConferenceParticipantSetAdmin);
 	const auto &pAddress = participant->getAddress();
@@ -1376,7 +1377,7 @@ void ServerConferenceEventHandler::onParticipantSetAdmin(const std::shared_ptr<C
 }
 
 void ServerConferenceEventHandler::onSubjectChanged(const std::shared_ptr<ConferenceSubjectEvent> &event) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	if (conf) {
 		const auto &subject = event->getSubject();
@@ -1403,7 +1404,7 @@ void ServerConferenceEventHandler::onParticipantDeviceIsMuted(const std::shared_
 
 void ServerConferenceEventHandler::onAvailableMediaChanged(
     const std::shared_ptr<ConferenceAvailableMediaEvent> &event) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	if (!conf) {
 		return;
@@ -1435,7 +1436,7 @@ void ServerConferenceEventHandler::onParticipantDeviceJoiningRequest(
 
 void ServerConferenceEventHandler::onParticipantDeviceAdded(
     const std::shared_ptr<ConferenceParticipantDeviceEvent> &event, const std::shared_ptr<ParticipantDevice> &device) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	const auto &dAddress = device->getAddress();
 	if (conf) {
@@ -1462,7 +1463,7 @@ void ServerConferenceEventHandler::onParticipantDeviceAdded(
 
 void ServerConferenceEventHandler::onParticipantDeviceRemoved(
     const std::shared_ptr<ConferenceParticipantDeviceEvent> &event, const std::shared_ptr<ParticipantDevice> &device) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	const auto &dAddress = device->getAddress();
 	if (conf) {
@@ -1482,7 +1483,7 @@ void ServerConferenceEventHandler::onParticipantDeviceRemoved(
 
 void ServerConferenceEventHandler::onParticipantDeviceStateChanged(
     const std::shared_ptr<ConferenceParticipantDeviceEvent> &event, const std::shared_ptr<ParticipantDevice> &device) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	const auto &dAddress = device->getAddress();
 	if (conf) {
@@ -1503,7 +1504,7 @@ void ServerConferenceEventHandler::onParticipantDeviceStateChanged(
 void ServerConferenceEventHandler::onParticipantDeviceScreenSharingChanged(
     BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event),
     const std::shared_ptr<ParticipantDevice> &device) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	if (conf) {
 		auto participant = device->getParticipant();
@@ -1518,7 +1519,7 @@ void ServerConferenceEventHandler::onParticipantDeviceScreenSharingChanged(
 void ServerConferenceEventHandler::onParticipantDeviceMediaCapabilityChanged(
     BCTBX_UNUSED(const std::shared_ptr<ConferenceParticipantDeviceEvent> &event),
     const std::shared_ptr<ParticipantDevice> &device) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	const auto &dAddress = device->getAddress();
 	if (conf) {
@@ -1532,7 +1533,7 @@ void ServerConferenceEventHandler::onParticipantDeviceMediaCapabilityChanged(
 
 void ServerConferenceEventHandler::onEphemeralModeChanged(
     const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) {
-	// Do not send notify if conference pointer is null. It may mean that the confernece has been terminated
+	// Do not send notify if conference pointer is null. It may mean that the conference has been terminated
 	auto conf = getConference();
 	if (conf) {
 		notifyAll(makeContent(createNotifyEphemeralMode(event->getType())));

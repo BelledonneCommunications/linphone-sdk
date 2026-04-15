@@ -66,7 +66,16 @@ void ServerConferenceListEventHandler::notifyResponseCb(LinphoneEvent *lev) {
 	cbs->setUserData(nullptr);
 	cbs->mNotifyResponseCb = nullptr;
 
-	if (ev->getReason() != LinphoneReasonNone) return;
+	if (!listHandler) {
+		lInfo() << "Unable to process NOTIFY of " << *ev << " because no list handler has been found";
+		return;
+	}
+
+	if (auto reason = ev->getReason(); (reason != LinphoneReasonNone)) {
+		lInfo() << "Unable to process NOTIFY of " << *ev << " in ServerConferenceListEventHandler [" << listHandler
+		        << "] because its response reason is " << linphone_reason_to_string(reason);
+		return;
+	}
 
 	for (const auto &p : listHandler->handlers) {
 		try {
@@ -83,8 +92,6 @@ void ServerConferenceListEventHandler::notifyResponseCb(LinphoneEvent *lev) {
 
 void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<EventSubscribe> &ev,
                                                          const LinphoneContent *body) {
-	LinphoneSubscriptionState subscriptionState = ev->getState();
-
 	const string &xmlBody = string(linphone_content_get_utf8_text(body));
 	if (xmlBody.empty()) {
 		ev->deny(LinphoneReasonDeclined);
@@ -108,6 +115,7 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 		return;
 	}
 
+	LinphoneSubscriptionState subscriptionState = ev->getState();
 	auto core = getCore();
 	for (const auto &l : rl->getList()) {
 		for (const auto &entry : l.getEntry()) {
@@ -174,7 +182,7 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 
 	Content rlmiContent;
 	if (resources.empty()) {
-		lError() << "Unable to accept a subscription for any chatrooms that should be handled by event [" << ev << "] ";
+		lError() << "Unable to accept a subscription for any chatrooms that should be handled by " << *ev;
 		ev->deny(LinphoneReasonDeclined);
 		return;
 	} else {

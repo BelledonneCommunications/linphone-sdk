@@ -4231,8 +4231,8 @@ static void high_number_of_group_chat_rooms_with_client_restart_base(int nbChatR
 			for (auto chatRoom : laure.getCore().getChatRooms()) {
 				const auto &conferenceAddress = chatRoom->getConferenceAddress();
 				// Store conference ID to verify that no events are left matching it after restarting the core
-				std::string msg_text = std::string("Welcome to all to chatroom ") + conferenceAddress->toString() +
-				                       std::string(" - attempt ") + std::to_string(idx);
+				std::string msg_text = std::string("Message[") + std::to_string(idx) +
+				                       std::string("]: Welcome to all to chatroom ") + conferenceAddress->toString();
 				LinphoneChatMessage *msg = ClientConference::sendTextMsg(chatRoom->toC(), msg_text);
 
 				BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, laure}).wait([&msg] {
@@ -4822,6 +4822,10 @@ static void group_chat_room_with_client_removed_and_reinvinted_after_database_co
 
 static void group_chat_room_with_client_removed_and_reinvinted_after_database_corruption_and_core_restart(void) {
 	group_chat_room_with_client_removed_and_reinvinted_base(false, true, true);
+}
+
+static void chat_rooms_with_deletion_spaced_out() {
+	chat_rooms_with_deletion_spaced_out_base(false);
 }
 
 static void group_chat_room_with_small_number_of_participants_allowed_base(int max_participant_per_chatroom) {
@@ -5450,6 +5454,9 @@ static test_t local_conference_chat_basic_tests[] = {
                 LinphoneTest::one_on_one_chatroom_backward_compatibility),
     TEST_ONE_TAG(
         "Short ephemeral lifetime messages", LinphoneTest::short_ephemeral_lifetime_messages_test, "Ephemeral"),
+    TEST_ONE_TAG("Chat with deletion spaced out",
+                 LinphoneTest::chat_rooms_with_deletion_spaced_out,
+                 "LeaksMemory"), /* because of coreMgr restart*/
     TEST_ONE_TAG("Group chat Server chat room deletion with remote list event handler",
                  LinphoneTest::group_chat_room_server_deletion_with_rmt_lst_event_handler,
                  "LeaksMemory") /* because of coreMgr restart*/

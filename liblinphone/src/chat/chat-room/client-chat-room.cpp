@@ -95,6 +95,7 @@ void ClientChatRoom::handleMessageRejected(const std::shared_ptr<ChatMessage> &c
 	// If a message has been rejected, then leave the chatroom and set it as Terminated.
 	// The device may have been removed on the server side and it may have not received this information for whatever
 	// reason.
+	lInfo() << "Leaving " << *this << " because ChatMessage [" << chatMessage << "] has been rejected by the server.";
 	getConference()->leave();
 	setState(ConferenceInterface::State::Terminated);
 
@@ -104,8 +105,7 @@ void ClientChatRoom::handleMessageRejected(const std::shared_ptr<ChatMessage> &c
 	// may be replied with a 403 Forbidden response. A way to recover it is to initiate the destruction of the chatroom
 	// and then exhume it
 	if (!getCurrentParams()->isGroup()) {
-		lInfo() << "ChatMessage [" << chatMessage << "] could not be sent. Terminating chatroom [" << getConferenceId()
-		        << "] and retrying";
+		lInfo() << "ChatMessage [" << chatMessage << "] could not be sent. Terminating " << *this << " and retrying";
 		chatMessage->resetCurrentSteps();
 		sendChatMessage(chatMessage);
 	}
@@ -633,7 +633,7 @@ LinphoneStatus ClientChatRoom::enableEphemeral(long lifetime, long notReadLifeti
 	if (!lifeTimeChanged && !notReadLifetimeChanged) {
 		if (linphone_core_get_global_state(getCore()->getCCore()) != LinphoneGlobalStartup) {
 			lInfo() << *conference << ": no changes required for Ephemeral messages that are already set to "
-				<< lifetime << "s and " << notReadLifetime << "s";
+			        << lifetime << "s and " << notReadLifetime << "s";
 		}
 		return -1;
 	}
@@ -644,7 +644,7 @@ LinphoneStatus ClientChatRoom::enableEphemeral(long lifetime, long notReadLifeti
 	}
 
 	lDebug() << *conference << ": Ephemeral message try to change from " << (currentEnabled ? "enabled" : "disabled")
-			 << "/" << currentLifetime << " to " << (toEnable ? "enabled" : "disabled") << "/" << lifetime;
+	         << "/" << currentLifetime << " to " << (toEnable ? "enabled" : "disabled") << "/" << lifetime;
 
 	if (initiated && getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged) {
 		if (!conference->getMe()->isAdmin()) {
@@ -657,12 +657,12 @@ LinphoneStatus ClientChatRoom::enableEphemeral(long lifetime, long notReadLifeti
 	    (getState() == ConferenceInterface::State::CreationPending)) {
 		// Do not print this log when creating chat room from DB
 		if (updateDb) {
-			if ( lifeTimeChanged)
+			if (lifeTimeChanged)
 				lInfo() << *conference << ": Set new ephemeral lifetime to " << lifetime
-					<< " while creating the chat room, used to be " << currentLifetime << ".";
-			if ( notReadLifetimeChanged)
+				        << " while creating the chat room, used to be " << currentLifetime << ".";
+			if (notReadLifetimeChanged)
 				lInfo() << *conference << ": Set new ephemeral not read lifetime to " << notReadLifetime
-					<< " while creating the chat room, used to be " << currentNotReadLifetime << ".";
+				        << " while creating the chat room, used to be " << currentNotReadLifetime << ".";
 		}
 		getCurrentParams()->getChatParams()->enableEphemeral(lifetime, notReadLifetime);
 		return 0;
@@ -687,15 +687,14 @@ LinphoneStatus ClientChatRoom::enableEphemeral(long lifetime, long notReadLifeti
 			if (toEnable) eventType = EventLog::Type::ConferenceEphemeralMessageEnabled;
 			else eventType = EventLog::Type::ConferenceEphemeralMessageDisabled;
 		} else eventType = EventLog::Type::ConferenceEphemeralMessageLifetimeChanged;
-		shared_ptr<ConferenceEphemeralMessageEvent> event =
-		    make_shared<ConferenceEphemeralMessageEvent>(eventType, time(nullptr), getConferenceId(), lifetime, notReadLifetime);
+		shared_ptr<ConferenceEphemeralMessageEvent> event = make_shared<ConferenceEphemeralMessageEvent>(
+		    eventType, time(nullptr), getConferenceId(), lifetime, notReadLifetime);
 		addEvent(event);
 		_linphone_chat_room_notify_ephemeral_event(toC(), L_GET_C_BACK_PTR(event));
 	}
 
 	return 0;
 }
-
 
 bool ClientChatRoom::ephemeralEnabled() const {
 	return getCurrentParams()->getChatParams()->ephemeralEnabled();

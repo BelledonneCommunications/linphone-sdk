@@ -71,10 +71,6 @@ ParticipantDevice::ParticipantDevice(const std::shared_ptr<Participant> &partici
 	setStreamCapability(LinphoneMediaDirectionInactive, LinphoneStreamTypeText);
 }
 
-ParticipantDevice::~ParticipantDevice() {
-	if (mConferenceSubscribeEvent) mConferenceSubscribeEvent->unref();
-}
-
 bool ParticipantDevice::operator==(const ParticipantDevice &device) const {
 	return (*getAddress() == *device.getAddress());
 }
@@ -140,10 +136,8 @@ bool ParticipantDevice::isChangingSubscribeEvent() const {
 }
 
 void ParticipantDevice::setConferenceSubscribeEvent(const shared_ptr<EventSubscribe> &ev) {
-	if (ev) ev->ref();
 	if (mConferenceSubscribeEvent) {
 		mChangingSubscribeEvent = true;
-		mConferenceSubscribeEvent->unref();
 		mConferenceSubscribeEvent = nullptr;
 	}
 	mConferenceSubscribeEvent = ev;
@@ -253,7 +247,7 @@ void ParticipantDevice::setUserData(void *ud) {
 	mUserData = ud;
 }
 
-const std::string &ParticipantDevice::getCallId() const{
+const std::string &ParticipantDevice::getCallId() const {
 	if (mCallId.empty() && mSession) {
 		const auto &log = mSession->getLog();
 		mCallId = log->getCallId();
@@ -309,21 +303,29 @@ bool ParticipantDevice::isLeavingState(const ParticipantDevice::State &state) {
 
 void ParticipantDevice::setState(State newState, bool notify) {
 	if (mState != newState) {
-		const auto currentStateLeavingState = ParticipantDevice::isLeavingState(mState);
-		const auto newStateLeavingState = ParticipantDevice::isLeavingState(newState);
-		// Send NOTIFY only if not transitioning from a leaving state to another one
-		const bool sendNotify = !(newStateLeavingState && currentStateLeavingState) && notify;
-
 		if ((newState == ParticipantDevice::State::Present) && (mState != ParticipantDevice::State::OnHold)) {
 			setTimeOfJoining(time(nullptr));
 		}
+
+		// Send NOTIFY only if not transitioning from a leaving state to another one
+		const auto currentStateLeavingState = ParticipantDevice::isLeavingState(mState);
+		const auto newStateLeavingState = ParticipantDevice::isLeavingState(newState);
+		const bool sendNotify = !(newStateLeavingState && currentStateLeavingState) && notify;
+
+		const auto conference = getConference();
 		if (getCore() != nullptr && linphone_core_get_global_state(getCore()->getCCore()) !=
 		                                LinphoneGlobalStartup) { // When creating participant device from database
-			lInfo() << "Moving " << *this << " from state " << mState << " to " << newState;
+			if (conference) {
+				lInfo() << "Moving " << *this << " in " << *conference << " from state " << mState << " to "
+				        << newState;
+			} else {
+				lInfo() << "Moving " << *this << " not yet attached to a conference from state " << mState << " to "
+				        << newState;
+			}
 		}
 		mState = newState;
+
 		_linphone_participant_device_notify_state_changed(toC(), (LinphoneParticipantDeviceState)newState);
-		const auto conference = getConference();
 		if (conference && sendNotify) {
 			conference->notifyParticipantDeviceStateChanged(ms_time(nullptr), false, getParticipant(),
 			                                                getSharedFromThis());
@@ -908,15 +910,16 @@ bool ParticipantDevice::isMe() const {
 	auto callId = getCallId();
 	if (!callId.empty()) {
 		isMe = !!getCore()->getCallByCallId(callId);
-		if (!isMe){
+		if (!isMe) {
 			auto address = getAddress();
 			isMe = !!getCore()->findAccountByIdentityAddress(address);
 			if (!isMe) {
 				isMe = getCore()->getPrimaryContactAddress().weakEqual(address);
 			}
 		}
-	}else {
-		lError() << "[ParticipantDevice] Unexpected empty callId while checking 'is me' from participant device: " << *this;
+	} else {
+		lError() << "[ParticipantDevice] Unexpected empty callId while checking 'is me' from participant device: "
+		         << *this;
 	}
 
 	return isMe;
