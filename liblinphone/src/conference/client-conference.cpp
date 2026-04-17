@@ -383,11 +383,14 @@ void ClientConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 
 	auto remoteContact = Address::create(op->getRemoteContact());
 	auto clientGroupChatRoom = dynamic_pointer_cast<ClientChatRoom>(chatRoom);
-	auto previousConferenceIds = clientGroupChatRoom->getPreviousConferenceIds();
-	bool found = std::find_if(previousConferenceIds.cbegin(), previousConferenceIds.cend(),
-	                          [&remoteContact](const auto &confId) {
-		                          return (*confId.getPeerAddress() == *remoteContact);
-	                          }) != previousConferenceIds.cend();
+	bool found = false;
+	if (clientGroupChatRoom) {
+		auto previousConferenceIds = clientGroupChatRoom->getPreviousConferenceIds();
+		found = std::find_if(previousConferenceIds.cbegin(), previousConferenceIds.cend(),
+		                     [&remoteContact](const auto &confId) {
+			                     return (*confId.getPeerAddress() == *remoteContact);
+		                     }) != previousConferenceIds.cend();
+	}
 
 	if (previousSession && !found) {
 		// Prevents leak
@@ -1084,10 +1087,12 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 					if (!mConfParams->getAccount()) {
 						mConfParams->setAccount(session->getParams()->getAccount());
 					}
-					if (clientGroupChatRoom->isLocalExhumePending()) {
-						clientGroupChatRoom->onLocallyExhumedConference(session->getRemoteContactAddress());
-					} else {
-						clientGroupChatRoom->onChatRoomCreated(session->getRemoteContactAddress());
+					if (clientGroupChatRoom) {
+						if (clientGroupChatRoom->isLocalExhumePending()) {
+							clientGroupChatRoom->onLocallyExhumedConference(session->getRemoteContactAddress());
+						} else {
+							clientGroupChatRoom->onChatRoomCreated(session->getRemoteContactAddress());
+						}
 					}
 					getCore()->getPrivate()->insertChatRoomWithDb(chatRoom, getLastNotify());
 				} else if (mState == ConferenceInterface::State::TerminationPending) {
@@ -1116,15 +1121,17 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 				} else {
 					const auto &clientConferenceAddress = session->getRemoteAddress();
 					bool found = false;
-					auto previousConferenceIds = clientGroupChatRoom->getPreviousConferenceIds();
-					for (auto it = previousConferenceIds.begin(); it != previousConferenceIds.end(); it++) {
-						ConferenceId confId = static_cast<ConferenceId>(*it);
-						if (*confId.getPeerAddress() == *clientConferenceAddress) {
-							lInfo() << *this << ": found previous chat room conference ID [" << confId
-							        << "] for chat room with current ID [" << getConferenceId() << "]";
-							clientGroupChatRoom->removeConferenceIdFromPreviousList(confId);
-							found = true;
-							break;
+					if (clientGroupChatRoom) {
+						auto previousConferenceIds = clientGroupChatRoom->getPreviousConferenceIds();
+						for (auto it = previousConferenceIds.begin(); it != previousConferenceIds.end(); it++) {
+							ConferenceId confId = static_cast<ConferenceId>(*it);
+							if (*confId.getPeerAddress() == *clientConferenceAddress) {
+								lInfo() << *this << ": found previous chat room conference ID [" << confId
+								        << "] for chat room with current ID [" << getConferenceId() << "]";
+								clientGroupChatRoom->removeConferenceIdFromPreviousList(confId);
+								found = true;
+								break;
+							}
 						}
 					}
 					const auto isLocalExhume = clientGroupChatRoom && clientGroupChatRoom->isLocalExhumePending();
