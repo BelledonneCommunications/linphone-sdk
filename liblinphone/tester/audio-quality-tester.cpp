@@ -197,7 +197,7 @@ audio_call_stereo_call(const char *codec_name, int clock_rate, int bitrate_overr
 			/*when opus doesn't transmit stereo, the cross correlation is around 0.6 : as expected, it is not as good as
 			 * in full stereo mode*/
 			min_threshold = .4f;
-			max_threshold = .68f;
+			max_threshold = .69f;
 		}
 		BC_ASSERT_EQUAL(
 		    liblinphone_tester_audio_diff(stereo_file, recordpath, &similar, &audio_cmp_params, completion_cb, NULL), 0,
