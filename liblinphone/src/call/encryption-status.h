@@ -17,6 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef _L_ENCRYPTION_STATUS_H_
+#define _L_ENCRYPTION_STATUS_H_
 
 #include "mediastreamer2/ms_srtp.h"
 #include "mediastreamer2/zrtp.h"
@@ -44,13 +46,16 @@ struct _SrtpInfo {
 
 class EncryptionStatus {
 public:
-	EncryptionStatus() = default;
+	EncryptionStatus() : mError(LinphoneMediaEncryptionErrorNone) {
+	}
+
 	EncryptionStatus(const EncryptionStatus &other) = default;
 
 	EncryptionStatus &operator=(const EncryptionStatus &other) {
 		mZrtpAlgo = other.mZrtpAlgo;
 		mInnerSrtpInfo = other.mInnerSrtpInfo;
 		mSrtpInfo = other.mSrtpInfo;
+		mError = other.mError;
 		return *this;
 	}
 
@@ -92,6 +97,11 @@ public:
 
 	void setWorstSecurityAlgo(const EncryptionStatus &other);
 
+	/* Error status */
+	void setErrorStatus(LinphoneMediaEncryptionError error);
+	LinphoneMediaEncryptionError getErrorStatus() const;
+	std::string getErrorStatusString() const;
+
 private:
 	bool compareMediaEncryption(const EncryptionStatus &other) const;
 	bool compareZrtpCipherAlgo(const EncryptionStatus &other) const;
@@ -114,4 +124,6 @@ private:
 	                            on this stream for inner encryption when double encryption is on */
 	SrtpInfo mSrtpInfo{};      /**< information on the SRTP crypto suite and source of key material used on
 	                            this stream */
+	LinphoneMediaEncryptionError mError; /**< current error status */
 };
+#endif // _L_ENCRYPTION_STATUS_H_

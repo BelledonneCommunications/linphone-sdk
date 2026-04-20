@@ -52,8 +52,18 @@ void bctbx_clean(void *buffer, size_t size) {
 /*** Error code translation ***/
 void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 	if (error_code <= -0x70000000L && error_code > -0x80000000L) {
-		/* bctoolbox defined error codes are all in format -0x7XXXXXXX */
-		snprintf(buffer, buffer_length, "%s [-0x%x]", "bctoolbox defined error code", -error_code);
+		switch (error_code) {
+			case BCTBX_ERROR_CERT_VERIFY_FAILED:
+				snprintf(buffer, buffer_length, "%s [-0x%x]", "Certificate verification failed", -error_code);
+				break;
+			case BCTBX_ERROR_FATAL_ALERT_MSG:
+				snprintf(buffer, buffer_length, "%s [-0x%x]", "Fatal alert message from peer during (D)TLS handshake",
+				         -error_code);
+				break;
+			default:
+				snprintf(buffer, buffer_length, "%s [-0x%x]", "bctoolbox defined error code", -error_code);
+				break;
+		}
 	} else {
 		/* it's a openssl error code */
 		/* https://www.openssl.org/docs/man3.1/man3/ERR_put_error.html */
@@ -842,6 +852,19 @@ int32_t bctbx_ssl_read(bctbx_ssl_context_t *ssl_ctx, unsigned char *buf, size_t 
 	if (ret < 0) {
 		bctbx_warning("bctbx_ssl_read(%p, %p, %zu), ret: '%s', err:'%s'", ssl_ctx, buf, buf_length,
 		              bctbx_ssl_error_to_string(ret), ssl_error_to_string(err));
+		switch (err) {
+			case SSL_ERROR_NONE:
+				return 0;
+			case SSL_ERROR_WANT_READ:
+				return BCTBX_ERROR_NET_WANT_READ;
+			case SSL_ERROR_WANT_WRITE:
+				return BCTBX_ERROR_NET_WANT_WRITE;
+			case SSL_ERROR_SSL:
+				return BCTBX_ERROR_FATAL_ALERT_MSG; // this might be for other reasons but keep it this way
+			case SSL_ERROR_SYSCALL:
+			default:
+				return BCTBX_ERROR_NET_CONN_RESET;
+		}
 	}
 	return ret;
 }
@@ -924,11 +947,27 @@ int32_t bctbx_ssl_handshake(bctbx_ssl_context_t *ssl_ctx) {
 			return BCTBX_ERROR_NET_WANT_READ;
 		case SSL_ERROR_WANT_WRITE:
 			return BCTBX_ERROR_NET_WANT_WRITE;
-		case SSL_ERROR_SYSCALL:
 		case SSL_ERROR_SSL:
+			if (SSL_get_verify_result(ssl_ctx->ssl) != X509_V_OK) {
+				return BCTBX_ERROR_CERT_VERIFY_FAILED;
+			}
+			return BCTBX_ERROR_FATAL_ALERT_MSG; // this might be for other reasons but keep it this way
+		case SSL_ERROR_SYSCALL:
 		default:
 			return BCTBX_ERROR_NET_CONN_RESET;
 	}
+}
+
+int32_t bctbx_ssl_send_fatal_alert_message(bctbx_ssl_context_t *ssl_ctx, int message) {
+	switch (message) {
+		case BCTBX_TLS_ALERT_ACCESS_DENIED:
+			break;
+		default:
+			bctbx_error("bctbx_ssl_send_alert_message given unsupported message %d - silent drop", message);
+			return 0;
+	}
+	bctbx_warning("bctbx_ssl_send_alert_message unsupported by openssl, just close the connection instead");
+	return bctbx_ssl_close_notify(ssl_ctx);
 }
 
 int32_t

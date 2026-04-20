@@ -41,9 +41,13 @@ struct _OrtpEventData {
 		int sequence_number_diff;
 		int telephone_event;
 		int payload_type;
-		bool_t dtls_stream_encrypted;
 		bool_t zrtp_stream_encrypted;
 		bool_t ice_processing_successful;
+		struct _dtls_info {
+			bool_t dtls_stream_encrypted;
+			int errorCode; // when DTLS handshake failed, store the reason here
+
+		} dtls_info;
 		struct _zrtp_info {
 			char sas[32];              // up to 31 + null characters
 			char incorrect_sas[3][32]; // List of 3 half bad SAS. Up to 31 + null characters

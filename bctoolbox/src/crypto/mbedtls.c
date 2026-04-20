@@ -69,7 +69,19 @@ void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 		return;
 	}
 
-	snprintf(buffer, buffer_length, "%s [-0x%x]", "bctoolbox defined error code", -error_code);
+	switch (error_code) {
+		case BCTBX_ERROR_CERT_VERIFY_FAILED:
+			snprintf(buffer, buffer_length, "%s [-0x%x]", "Certificate verification failed", -error_code);
+			break;
+		case BCTBX_ERROR_FATAL_ALERT_MSG:
+			snprintf(buffer, buffer_length, "%s [-0x%x]", "Fatal alert message from peer during (D)TLS handshake",
+			         -error_code);
+			break;
+		default:
+			snprintf(buffer, buffer_length, "%s [-0x%x]", "bctoolbox defined error code", -error_code);
+			break;
+	}
+
 	return;
 }
 
@@ -923,10 +935,16 @@ int32_t bctbx_ssl_read(bctbx_ssl_context_t *ssl_ctx, unsigned char *buf, size_t 
 	/* remap some output code */
 	if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
 		ret = BCTBX_ERROR_SSL_PEER_CLOSE_NOTIFY;
-	}
-	if (ret == MBEDTLS_ERR_SSL_WANT_READ) {
+	} else if (ret == MBEDTLS_ERR_SSL_WANT_READ) {
 		ret = BCTBX_ERROR_NET_WANT_READ;
+	} else if (ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+		ret = BCTBX_ERROR_NET_WANT_WRITE;
+	} else if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
+		ret = BCTBX_ERROR_CERT_VERIFY_FAILED;
+	} else if (ret == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE) {
+		ret = BCTBX_ERROR_FATAL_ALERT_MSG;
 	}
+
 	return ret;
 }
 
@@ -939,6 +957,35 @@ int32_t bctbx_ssl_handshake(bctbx_ssl_context_t *ssl_ctx) {
 		ret = BCTBX_ERROR_NET_WANT_READ;
 	} else if (ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
 		ret = BCTBX_ERROR_NET_WANT_WRITE;
+	} else if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
+		ret = BCTBX_ERROR_CERT_VERIFY_FAILED;
+	} else if (ret == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE) {
+		ret = BCTBX_ERROR_FATAL_ALERT_MSG;
+	}
+
+	return (ret);
+}
+
+int32_t bctbx_ssl_send_fatal_alert_message(bctbx_ssl_context_t *ssl_ctx, int message) {
+	int msg = MBEDTLS_SSL_ALERT_MSG_ACCESS_DENIED;
+	switch (message) {
+		case BCTBX_TLS_ALERT_ACCESS_DENIED:
+			msg = MBEDTLS_SSL_ALERT_MSG_ACCESS_DENIED;
+			break;
+		default:
+			bctbx_error("bctbx_ssl_send_alert_message given unsupported message %d - silent drop", message);
+			return 0;
+	}
+	int ret = mbedtls_ssl_send_alert_message(&(ssl_ctx->ssl_ctx), MBEDTLS_SSL_ALERT_LEVEL_FATAL, msg);
+	/* remap some output codes */
+	if (ret == MBEDTLS_ERR_SSL_WANT_READ) {
+		ret = BCTBX_ERROR_NET_WANT_READ;
+	} else if (ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+		ret = BCTBX_ERROR_NET_WANT_WRITE;
+	} else if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
+		ret = BCTBX_ERROR_CERT_VERIFY_FAILED;
+	} else if (ret == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE) {
+		ret = BCTBX_ERROR_FATAL_ALERT_MSG;
 	}
 
 	return (ret);

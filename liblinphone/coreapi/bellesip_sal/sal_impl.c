@@ -208,7 +208,7 @@ void sal_signing_key_parse(SalAuthInfo *auth_info, const char *buffer, const cha
 }
 
 /**
- * Parse a directory to get a certificate with the given subject common name
+ * Parse a directory to get a certificate with the given subject as SAN or common name
  *
  */
 void sal_certificates_chain_parse_directory(char **certificate_pem,
@@ -227,13 +227,13 @@ void sal_certificates_chain_parse_directory(char **certificate_pem,
 	                                              (belle_sip_certificate_raw_format_t)format) == 0) {
 		*certificate_pem = belle_sip_certificates_chain_get_pem(certificate);
 		*key_pem = belle_sip_signing_key_get_pem(key);
-		ms_message("Retrieve certificate with CN=%s successful\n", subject);
+		ms_message("Retrieve certificate with SAN or CN %s successful in path %s", subject, path);
 	} else {
 		if (generate_certificate == TRUE) {
 			if (belle_sip_generate_self_signed_certificate(path, subject, &certificate, &key) == 0) {
 				*certificate_pem = belle_sip_certificates_chain_get_pem(certificate);
 				*key_pem = belle_sip_signing_key_get_pem(key);
-				ms_message("Generate self-signed certificate with CN=%s successful\n", subject);
+				ms_message("Generate self-signed certificate with CN=%s successful", subject);
 			} else {
 				ms_error("Self-signed certificate generation failed.");
 				return;
@@ -241,7 +241,7 @@ void sal_certificates_chain_parse_directory(char **certificate_pem,
 		}
 	}
 	/* generate the fingerprint as described in RFC4572 if needed */
-	if ((generate_dtls_fingerprint == TRUE) && (fingerprint != NULL)) {
+	if ((certificate != NULL) && (generate_dtls_fingerprint == TRUE) && (fingerprint != NULL)) {
 		if (*fingerprint != NULL) {
 			ms_free(*fingerprint);
 		}

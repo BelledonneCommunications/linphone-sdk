@@ -32,6 +32,10 @@ bool EncryptionStatus::isDowngradedComparedTo(const EncryptionStatus &other) con
 }
 
 LinphoneMediaEncryption EncryptionStatus::getMediaEncryption() const {
+	// When there is an errorCode -> something went wrong
+	if (mError != LinphoneMediaEncryptionErrorNone) {
+		return LinphoneMediaEncryptionFail;
+	}
 	// When send and receive source are different, setting is not complete (on going nego), returns invalid
 	auto sendSource = mSrtpInfo.send_source;
 	auto recvSource = mSrtpInfo.recv_source;
@@ -333,13 +337,19 @@ void EncryptionStatus::setWorstSecurityAlgo(const EncryptionStatus &other) {
 	}
 }
 
+/**
+ * return true if this media encryption is considered weaker than the one given as parameter
+ */
 bool EncryptionStatus::compareMediaEncryption(const EncryptionStatus &other) const {
 	const auto otherMediaEncryption = other.getMediaEncryption();
 	const auto thisMediaEncryption = getMediaEncryption();
 	bool ret = false;
 	switch (otherMediaEncryption) {
-		case LinphoneMediaEncryptionNone:
+		case LinphoneMediaEncryptionFail:
 			ret = false;
+			break;
+		case LinphoneMediaEncryptionNone:
+			ret = thisMediaEncryption == LinphoneMediaEncryptionFail;
 			break;
 		case LinphoneMediaEncryptionSRTP:
 		case LinphoneMediaEncryptionDTLS:
@@ -509,4 +519,26 @@ bool EncryptionStatus::compareInnerSrtpRecvSource(const EncryptionStatus &other)
 		lInfo() << __func__ << " : Inner SRTP recv source changed - [Actual] " << mInnerSrtpInfo.recv_source
 		        << " < [Before] " << other.mInnerSrtpInfo.recv_source;
 	return ret;
+}
+
+void EncryptionStatus::setErrorStatus(LinphoneMediaEncryptionError error) {
+	mError = error;
+}
+
+LinphoneMediaEncryptionError EncryptionStatus::getErrorStatus() const {
+	return mError;
+}
+
+std::string EncryptionStatus::getErrorStatusString() const {
+	switch (mError) {
+		case LinphoneMediaEncryptionErrorNone:
+			return std::string();
+		case LinphoneMediaEncryptionErrorDtlsCertificateVerificationFail:
+			return std::string("Dtls Handshake failed to verify peer's certificate");
+		case LinphoneMediaEncryptionErrorDtlsCertificateSubjectMismatch:
+			return std::string("Dtls Handshake success but peer certificate does not match the sip:uri given in SDP");
+		case LinphoneMediaEncryptionErrorDtlsHandshakeFail:
+			return std::string("Dtls Handshake failed for unspecified reason");
+	}
+	return std::string();
 }

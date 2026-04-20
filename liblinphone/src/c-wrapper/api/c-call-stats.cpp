@@ -310,3 +310,6 @@ int64_t linphone_call_stats_get_rtp_cum_packet_loss(const LinphoneCallStats *sta
 uint64_t linphone_call_stats_get_rtp_discarded(const LinphoneCallStats *stats) {
 	return CallStats::toCpp(stats)->getRtpDiscarded();
 }
+LinphoneMediaEncryptionError linphone_call_stats_get_media_encryption_error(const LinphoneCallStats *stats) {
+	return CallStats::toCpp(stats)->getEncryptionStatus().getErrorStatus();
+}

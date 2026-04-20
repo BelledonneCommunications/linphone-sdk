@@ -212,8 +212,14 @@ belle_sip_certificates_chain_t *belle_sip_certificates_chain_parse_file(const ch
 	return certificate;
 }
 
+/* Does this certificate have a SAN or CN matching the given subject? */
+bool_t belle_sip_certificate_subject_match(const belle_sip_certificates_chain_t *certificate, const char *subject) {
+	return bctbx_x509_certificate_subject_match(certificate->cert, subject);
+}
+
 /*
- * Parse all *.pem files in a given dir(non recursively) and return the one matching the given subject
+ * Parse all *.pem files in a given dir(non recursively) and return the first one matching the given subject (in SAN or
+ * CN)
  */
 int belle_sip_get_certificate_and_pkey_in_dir(const char *path,
                                               const char *subject,
@@ -227,37 +233,19 @@ int belle_sip_get_certificate_and_pkey_in_dir(const char *path,
 	file_list = belle_sip_list_pop_front(file_list, (void **)&filename);
 	while (filename != NULL) {
 		belle_sip_certificates_chain_t *found_certificate = belle_sip_certificates_chain_parse_file(filename, format);
-		if (found_certificate != NULL) { /* there is a certificate in this file */
-			char *subject_CNAME_begin, *subject_CNAME_end;
-			belle_sip_signing_key_t *found_key;
-			char name[500];
-			memset(name, 0, sizeof(name));
-			if (bctbx_x509_certificate_get_subject_dn(found_certificate->cert, name, sizeof(name)) > 0) {
-				/* parse subject to find the CN=xxx, field. There may be no , at the and but a \0 */
-				subject_CNAME_begin = strstr(name, "CN=");
-				if (subject_CNAME_begin != NULL) {
-					subject_CNAME_begin += 3;
-					subject_CNAME_end = strstr(subject_CNAME_begin, ",");
-					if (subject_CNAME_end != NULL) {
-						*subject_CNAME_end = '\0';
-					}
-					if (strcmp(subject_CNAME_begin, subject) == 0) { /* subject CNAME match the one we are looking for*/
-						/* do we have a key too ? */
-						found_key = belle_sip_signing_key_parse_file(filename, NULL);
-						if (found_key != NULL) {
-							*certificate = found_certificate;
-							*pkey = found_key;
-							belle_sip_free(filename);
-							belle_sip_list_free_with_data(file_list, belle_sip_free); /* free possible rest of list */
-							return 0;
-						}
-					} else { /* doesn't match, unref the created certificate */
-						belle_sip_object_unref(found_certificate);
-					}
-				}
-			} else { /* no DN, just free it then */
-				belle_sip_object_unref(found_certificate);
+		if (found_certificate != NULL &&
+		    belle_sip_certificate_subject_match(
+		        found_certificate, subject)) { /* there is a certificate in this file with a matching subject */
+			/* do we have a key too ? */
+			belle_sip_signing_key_t *found_key = belle_sip_signing_key_parse_file(filename, NULL);
+			if (found_key != NULL) {
+				*certificate = found_certificate;
+				*pkey = found_key;
+				belle_sip_free(filename);
+				belle_sip_list_free_with_data(file_list, belle_sip_free); /* free possible rest of list */
+				return 0;
 			}
+			belle_sip_object_unref(found_certificate);
 		}
 		belle_sip_free(filename);
 		file_list = belle_sip_list_pop_front(file_list, (void **)&filename);

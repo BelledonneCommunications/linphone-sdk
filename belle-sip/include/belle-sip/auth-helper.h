@@ -214,6 +214,14 @@ BELLESIP_EXPORT belle_sip_certificates_chain_t *
 belle_sip_certificates_chain_parse_file(const char *path, belle_sip_certificate_raw_format_t format);
 
 /**
+ * Check if the given certificate has a SAN or CN
+ * @param certificate	the certificate chain to look into, only the top certificate is explored
+ * @param subject	the subject to match
+ * @return TRUE when the given certificate has a SAN or CN matching the given subject, false otherwise
+ */
+BELLESIP_EXPORT bool_t belle_sip_certificate_subject_match(const belle_sip_certificates_chain_t *certificate,
+                                                           const char *subject);
+/**
  * Parse a directory for *.pem file containing a certificate and private key in PEM format or a single DER cert with
  * subject CNAME as given
  *

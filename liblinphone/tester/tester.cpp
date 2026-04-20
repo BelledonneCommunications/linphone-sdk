@@ -32,6 +32,7 @@
 #include <soci/soci.h>
 #endif // HAVE_SOCI
 
+#include "liblinphone_tester++.h"
 #include "liblinphone_tester.h"
 #include "logger/logger.h"
 
@@ -171,3 +172,109 @@ bool_t liblinphone_tester_is_lime_PQ_available(void) {
 	return FALSE;
 }
 #endif
+
+/* Functions linked to account creation with TLS clients certificates */
+// This function will add proxy and auth info to the core config. The proxy is set as the default one
+extern "C" void add_user_to_core_config(LinphoneCore *lc,
+                                        const char *identity,
+                                        const char *username,
+                                        const char *realm,
+                                        const char *server,
+                                        const char *password) {
+	// Create the account params
+	auto params = linphone_core_create_account_params(lc);
+	LinphoneAddress *server_address = linphone_factory_create_address(linphone_factory_get(), server);
+	linphone_account_params_set_server_address(params, server_address);
+	linphone_address_unref(server_address);
+	linphone_account_params_set_realm(params, realm);
+	linphone_account_params_enable_register(params, TRUE);
+	LinphoneAddress *identity_address = linphone_factory_create_address(linphone_factory_get(), identity);
+	linphone_account_params_set_identity_address(params, identity_address);
+	linphone_address_unref(identity_address);
+	// create the account and set it as default
+	auto account = linphone_core_create_account(lc, params);
+	linphone_core_add_account(lc, account);
+	linphone_core_set_default_account(lc, account);
+	linphone_account_params_unref(params);
+	linphone_account_unref(account);
+
+	// set its credential
+	LinphoneAuthInfo *auth_info = linphone_auth_info_new(username, username, password, NULL, realm, realm);
+	linphone_core_add_auth_info(lc, auth_info);
+	linphone_auth_info_unref(auth_info);
+}
+
+// Add tls information for given user into the linphone core
+extern "C" void add_tls_client_certificate(LinphoneCore *lc,
+                                           const char *username,
+                                           const char *realm,
+                                           const char *cert,
+                                           const char *key,
+                                           const certProvider method) {
+	// set a TLS client certificate
+	switch (method) {
+		// when using config_sip, no user name is set, we can set only one certificate anyway...
+		case CertProviderConfigSip:
+			if (cert && strlen(cert)) {
+				char *cert_path = bc_tester_res(cert);
+				linphone_config_set_string(linphone_core_get_config(lc), "sip", "client_cert_chain", cert_path);
+				bc_free(cert_path);
+			}
+			if (key && strlen(key)) {
+				char *key_path = bc_tester_res(key);
+				linphone_config_set_string(linphone_core_get_config(lc), "sip", "client_cert_key", key_path);
+				bc_free(key_path);
+			}
+			break;
+		case CertProviderConfigAuthInfoPath: {
+			// We shall already have an auth info for this username/realm, add the tls cert in it
+			LinphoneAuthInfo *auth_info =
+			    linphone_auth_info_clone(linphone_core_find_auth_info(lc, realm, username, realm));
+			// otherwise create it
+			if (auth_info == NULL) {
+				auth_info = linphone_auth_info_new(username, NULL, NULL, NULL, realm, realm);
+			}
+			if (cert && strlen(cert)) {
+				char *cert_path = bc_tester_res(cert);
+				linphone_auth_info_set_tls_cert_path(auth_info, cert_path);
+				bc_free(cert_path);
+			}
+			if (key && strlen(key)) {
+				char *key_path = bc_tester_res(key);
+				linphone_auth_info_set_tls_key_path(auth_info, key_path);
+				bc_free(key_path);
+			}
+			linphone_core_add_auth_info(lc, auth_info);
+			linphone_auth_info_unref(auth_info);
+		} break;
+		case CertProviderConfigAuthInfoBuffer: {
+			// We shall already have an auth info for this username/realm, add the tls cert in it
+			LinphoneAuthInfo *auth_info =
+			    linphone_auth_info_clone(linphone_core_find_auth_info(lc, realm, username, realm));
+			// otherwise create it
+			if (auth_info == NULL) {
+				auth_info = linphone_auth_info_new(username, NULL, NULL, NULL, realm, realm);
+			}
+			if (cert && strlen(cert)) {
+				char *cert_path = bc_tester_res(cert);
+				char *cert_buffer = NULL;
+				liblinphone_tester_load_text_file_in_buffer(cert_path, &cert_buffer);
+				linphone_auth_info_set_tls_cert(auth_info, cert_buffer);
+				bc_free(cert_path);
+				bctbx_free(cert_buffer);
+			}
+			if (key && strlen(key)) {
+				char *key_path = bc_tester_res(key);
+				char *key_buffer = NULL;
+				liblinphone_tester_load_text_file_in_buffer(key_path, &key_buffer);
+				linphone_auth_info_set_tls_key(auth_info, key_buffer);
+				bc_free(key_path);
+				bctbx_free(key_buffer);
+			}
+			linphone_core_add_auth_info(lc, auth_info);
+			linphone_auth_info_unref(auth_info);
+		} break;
+		case CertProviderCallback:
+			break;
+	}
+}

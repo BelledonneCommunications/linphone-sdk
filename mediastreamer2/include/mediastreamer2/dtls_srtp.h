@@ -31,6 +31,14 @@ extern "C" {
 /* defined in mediastream.h */
 struct _MSMediaStreamSessions;
 
+typedef enum _MSDtlsError {
+	MS_DTLS_ERROR_NONE,
+	MS_DTLS_ERROR_CERT_VERIFY_FAIL,
+	MS_DTLS_ERROR_CERT_SUBJECT_UNMATCHING,
+	MS_DTLS_ERROR_HANDSHAKE_FAIL_TO_GENERATE_SRTP_KEYS,
+	MS_DTLS_ERROR_HANDSHAKE_FAIL_FATAL_ALERT,
+} MSDtlsError;
+
 typedef enum {
 	MSDtlsSrtpRoleInvalid,
 	MSDtlsSrtpRoleIsServer,
@@ -41,9 +49,12 @@ typedef enum {
 typedef struct MSDtlsSrtpParams {
 	const char *pem_certificate; /**< Self certificate in pem format */
 	const char *pem_pkey;        /**< Private key associated to self certificate */
+	const char *root_ca;         /**< Path to root certicates authority */
 	MSDtlsSrtpRole role; /**< Unset(at caller init, role is then choosen by responder but we must still be able to
-	                        receive packets) */
+	                     receive packets) */
 	int mtu;
+	bool_t verify_certificate; /**< when set, accept only valid certificates */
+	const char *peer_uri;      /**< peer's uri retrieved from the SDP */
 } MSDtlsSrtpParams;
 
 /* an opaque structure containing all context data needed by DTLS-SRTP */

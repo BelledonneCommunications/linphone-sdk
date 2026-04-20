@@ -33,6 +33,28 @@ uint32_t bctbx_key_agreement_algo_list(void) {
 #endif /* HAVE_DECAF */
 	return ret;
 }
+/*****************************************************************************/
+/***** Certificate utility                                                ****/
+/*****************************************************************************/
+/**
+ * Check if the given certificate has a SAN or CN
+ * @param certificate	the certificate chain to look into, only the top certificate is explored
+ * @param subject	the subject to match
+ * @return TRUE when the given certificate has a SAN or CN matching the given subject, false otherwise
+ */
+BCTBX_PUBLIC bool_t bctbx_x509_certificate_subject_match(const bctbx_x509_certificate_t *certificate,
+                                                         const char *subject) {
+	bctbx_list_t *subjects = bctbx_x509_certificate_get_subjects(certificate);
+	bctbx_list_t *elem;
+	for (elem = subjects; elem != NULL; elem = elem->next) {
+		if (bctbx_strcmp((const char *)elem->data, subject) == 0) { // found a match
+			bctbx_list_free_with_data(subjects, bctbx_free);
+			return TRUE;
+		}
+	}
+	bctbx_list_free_with_data(subjects, bctbx_free);
+	return FALSE;
+}
 
 /*****************************************************************************/
 /***** AES GCM encrypt/decrypt chunk by chunk, needed for file encryption ****/

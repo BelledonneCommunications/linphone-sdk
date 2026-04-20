@@ -919,15 +919,39 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 
 		/* TODO : search for a certificate with CNAME=sip uri(retrieved from variable me) or default :
 		 * linphone-dtls-default-identity */
-		/* This will parse the directory to find a matching fingerprint or generate it if not found */
-		/* returned string must be freed */
 		char *certificate = nullptr;
 		char *key = nullptr;
 		char *fingerprint = nullptr;
+		auto localAddr = getMediaSession().getLocalAddress();
+		auto localAddrUri = localAddr->asStringUriOnlyCstr();
 
-		sal_certificates_chain_parse_directory(
-		    &certificate, &key, &fingerprint, linphone_core_get_user_certificates_path(getCCore()),
-		    "linphone-dtls-default-identity", SAL_CERTIFICATE_RAW_FORMAT_PEM, true, true);
+		/* first: do we have a certificate and key in our auth info matching the current local address */
+		if (linphone_core_find_tls_cert_in_indexed_auth_infos_with_subject(getCCore(), localAddr->getUsernameCstr(),
+		                                                                   localAddr->getDomainCstr(), localAddrUri,
+		                                                                   &certificate, &key, &fingerprint)) {
+			lInfo() << "DTLS-SRTP : user " << localAddrUri << " uses client certificate found in core auth info";
+		} else {
+			/* second: try to get certificate with a subject or CN matching the local sip uri in the user certificate
+			 * path set in core */
+			sal_certificates_chain_parse_directory(
+			    &certificate, &key, &fingerprint, linphone_core_get_user_certificates_path(getCCore()), localAddrUri,
+			    SAL_CERTIFICATE_RAW_FORMAT_PEM,
+			    false, // Do not generate a self signed certificate if we do not find it
+			    true);
+
+			/* third: fallback on the default selfsigned certificate in the user certificate path set in core */
+			if (certificate == nullptr || key == nullptr) {
+				lInfo() << "DTLS-SRTP : No client certificate found for user " << localAddrUri
+				        << " fallback on linphone-dtls-default-identity";
+				sal_certificates_chain_parse_directory(
+				    &certificate, &key, &fingerprint, linphone_core_get_user_certificates_path(getCCore()),
+				    "linphone-dtls-default-identity", SAL_CERTIFICATE_RAW_FORMAT_PEM, true, true);
+			} else {
+				lInfo() << "DTLS-SRTP : user " << localAddrUri << " uses client certificate found in "
+				        << linphone_core_get_user_certificates_path(getCCore());
+			}
+		}
+
 		if (fingerprint) {
 			if (getMediaSessionPrivate().getDtlsFingerprint().empty()) {
 				getMediaSessionPrivate().setDtlsFingerprint(fingerprint);
@@ -936,11 +960,22 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 			ms_free(fingerprint);
 		}
 		if (key && certificate) {
+			auto remoteUri = getMediaSession().getRemoteAddress()->asStringUriOnlyCstr();
+			const auto &localAccount = getMediaSessionPrivate().getDestAccount();
 			dtlsParams.pem_certificate = certificate;
 			dtlsParams.pem_pkey = key;
 			dtlsParams.role =
 			    MSDtlsSrtpRoleUnset; /* Default is unset, then check if we have a result SalMediaDescription */
+			if (localAccount) {
+				dtlsParams.verify_certificate =
+				    localAccount->getAccountParams()->dtlsSrtpVerifyCertEnabled() ? TRUE : FALSE;
+			} else {
+				dtlsParams.verify_certificate = FALSE;
+			}
+			dtlsParams.root_ca = getCCore()->sal->getRootCa().c_str();
+			dtlsParams.peer_uri = remoteUri;
 			media_stream_enable_dtls(ms, &dtlsParams);
+			bctbx_free(remoteUri);
 			ms_free(certificate);
 			ms_free(key);
 		} else {
@@ -956,6 +991,7 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 				lError() << "Unable to retrieve or generate DTLS certificate and key - DTLS disabled";
 			}
 		}
+		bctbx_free(localAddrUri);
 	}
 }
 

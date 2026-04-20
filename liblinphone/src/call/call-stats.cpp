@@ -127,6 +127,23 @@ void CallStats::fill(MediaStream *ms, OrtpEvent *ev) {
 					mEncryptionStatus.setSrtpRecvSource(evd->info.srtp_info.source);
 				}
 			}
+		} else if (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED) {
+			if (!evd->info.dtls_info.dtls_stream_encrypted) {
+				switch (evd->info.dtls_info.errorCode) {
+					case MS_DTLS_ERROR_CERT_VERIFY_FAIL:
+						mEncryptionStatus.setErrorStatus(LinphoneMediaEncryptionErrorDtlsCertificateVerificationFail);
+						break;
+					case MS_DTLS_ERROR_CERT_SUBJECT_UNMATCHING:
+						mEncryptionStatus.setErrorStatus(LinphoneMediaEncryptionErrorDtlsCertificateSubjectMismatch);
+						break;
+					case MS_DTLS_ERROR_HANDSHAKE_FAIL_TO_GENERATE_SRTP_KEYS:
+					case MS_DTLS_ERROR_HANDSHAKE_FAIL_FATAL_ALERT:
+						mEncryptionStatus.setErrorStatus(LinphoneMediaEncryptionErrorDtlsHandshakeFail);
+						break;
+					default:
+						break;
+				}
+			}
 		}
 	}
 }

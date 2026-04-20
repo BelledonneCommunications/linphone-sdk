@@ -194,6 +194,10 @@ AccountParams::AccountParams(LinphoneCore *lc, bool useDefaultValues) {
 	                           ? !!linphone_config_get_default_int(lc->config, "proxy", "rtp_bundle_assumption", false)
 	                           : false;
 
+	mDtlsSrtpVerifyCertEnabled =
+	    useDefaultValues ? !!linphone_config_get_default_int(lc->config, "proxy", "dtls_srtp_verify_cert", false)
+	                     : false;
+
 	string customContact =
 	    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "custom_contact", "") : "";
 	setCustomContact(customContact);
@@ -353,6 +357,8 @@ AccountParams::AccountParams(LinphoneCore *lc, int index) : AccountParams(lc, fa
 
 	mRtpBundleEnabled = !!linphone_config_get_bool(config, key, "rtp_bundle", linphone_core_rtp_bundle_enabled(lc));
 	mRtpBundleAssumption = !!linphone_config_get_bool(config, key, "rtp_bundle_assumption", FALSE);
+	enableDtlsSrtpVerifyCert(
+	    !!linphone_config_get_bool(config, key, "dtls_srtp_verify_cert", dtlsSrtpVerifyCertEnabled()));
 
 	setCustomContact(linphone_config_get_string(config, key, "custom_contact", ""));
 
@@ -455,6 +461,7 @@ AccountParams::AccountParams(const AccountParams &other) : HybridObject(other), 
 	mPushNotificationConfig = other.mPushNotificationConfig->clone();
 	mRtpBundleEnabled = other.mRtpBundleEnabled;
 	mRtpBundleAssumption = other.mRtpBundleAssumption;
+	mDtlsSrtpVerifyCertEnabled = other.mDtlsSrtpVerifyCertEnabled;
 	if (other.mCustomContact) {
 		mCustomContact = other.mCustomContact->clone()->toSharedPtr();
 	} else {
@@ -1022,6 +1029,14 @@ const std::string &AccountParams::getLimeAlgo() const {
 	return mLimeAlgo;
 }
 
+void AccountParams::enableDtlsSrtpVerifyCert(bool flag) {
+	mDtlsSrtpVerifyCertEnabled = flag;
+}
+
+bool AccountParams::dtlsSrtpVerifyCertEnabled() const {
+	return mDtlsSrtpVerifyCertEnabled;
+}
+
 void AccountParams::setPictureUri(const std::string &uri) {
 	mPictureUri = uri;
 }
@@ -1268,6 +1283,7 @@ void AccountParams::writeToConfigFile(LinphoneConfig *config, int index) {
 
 	linphone_config_set_int(config, key, "rtp_bundle", mRtpBundleEnabled);
 	linphone_config_set_int(config, key, "rtp_bundle_assumption", mRtpBundleAssumption);
+	linphone_config_set_int(config, key, "dtls_srtp_verify_cert", mDtlsSrtpVerifyCertEnabled);
 
 	writeCustomParamsToConfigFile(config, key);
 

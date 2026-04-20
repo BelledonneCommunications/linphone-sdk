@@ -181,6 +181,13 @@ void linphone_core_write_auth_info(LinphoneCore *lc, LinphoneAuthInfo *ai);
 void linphone_core_write_auth_infos(LinphoneCore *lc);
 void linphone_core_stop_tone_manager(LinphoneCore *lc);
 LinphoneAuthInfo *_linphone_core_find_tls_auth_info(LinphoneCore *lc);
+bool_t linphone_core_find_tls_cert_in_indexed_auth_infos_with_subject(LinphoneCore *lc,
+                                                                      const char *username,
+                                                                      const char *domain,
+                                                                      const char *subject,
+                                                                      char **certificate_pem,
+                                                                      char **key_pem,
+                                                                      char **fingerprint);
 LinphoneAuthInfo *_linphone_core_find_indexed_tls_auth_info(LinphoneCore *lc, const char *username, const char *domain);
 LinphoneAuthInfo *_linphone_core_find_auth_info(LinphoneCore *lc,
                                                 const char *realm,

@@ -347,6 +347,14 @@ LINPHONE_PUBLIC int64_t linphone_call_stats_get_rtp_cum_packet_loss(const Linpho
 LINPHONE_PUBLIC uint64_t linphone_call_stats_get_rtp_discarded(const LinphoneCallStats *stats);
 
 /**
+ * Get the media encryption error status
+ * @param stats #LinphoneCallStats object @notnil
+ * @return The #LinphoneMediaEncryptionError error status
+ */
+LINPHONE_PUBLIC LinphoneMediaEncryptionError
+linphone_call_stats_get_media_encryption_error(const LinphoneCallStats *stats);
+
+/**
  * @}
  */
 

@@ -1359,6 +1359,41 @@ int liblinphone_tester_audio_diff(const char *ref_file,
                                   MSAudioDiffProgressNotify func,
                                   void *user_data);
 
+// enum the different methods for the client to retrieve the certificate
+typedef enum _certProvider {
+	CertProviderConfigSip = 0, /**< in the sip section (client_cert_chain and client_cert_key) of the config file */
+	CertProviderConfigAuthInfoBuffer = 1, /**< in a dedicated auth_info section of the configuration file, set cert and
+	                                key in a buffer -> they won't be written in the core config file */
+	CertProviderConfigAuthInfoPath =
+	    2, /**< in a dedicated auth_info section of the configuration file, set path to cert and key
+	 -> these will be written in the core config file */
+	CertProviderCallback =
+	    3 /**< using a callback adding auth_info into the core :
+	NOT IMPLEMENTED, Client certificate for lime user identification shall already be accessible to the core as
+   user register to the flexisip server before. THIS IS NOT DONE THIS WAY IN THE TESTS SUITES : user register on
+   flexisip user http digest and tls cert on lime server for test purpose, it is very unlikely to proceed this way*/
+} certProvider;
+
+/**
+ * Create an account and set it as default in the given lc
+ * also add its credentials in auth_info
+ */
+void add_user_to_core_config(LinphoneCore *lc,
+                             const char *identity,
+                             const char *username,
+                             const char *realm,
+                             const char *server,
+                             const char *password);
+/**
+ * Add client certificate to the auth info or core config according the to certProvider method choosen
+ */
+void add_tls_client_certificate(LinphoneCore *lc,
+                                const char *username,
+                                const char *realm,
+                                const char *cert,
+                                const char *key,
+                                const certProvider method);
+
 #ifdef __cplusplus
 };
 #endif

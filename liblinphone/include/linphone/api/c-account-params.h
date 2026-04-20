@@ -1026,7 +1026,19 @@ linphone_account_params_get_supported_tags_list(const LinphoneAccountParams *par
  */
 LINPHONE_PUBLIC void linphone_account_params_set_supported_tags_list(LinphoneAccountParams *params,
                                                                      const bctbx_list_t *supported_tags);
+/**
+ * Returns whether the certificate verification during DTLS is enabled or not.
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @return TRUE if the certificate verification during DTLS is enabled.
+ **/
+LINPHONE_PUBLIC bool_t linphone_account_params_dtls_srtp_verify_cert_enabled(const LinphoneAccountParams *params);
 
+/**
+ * Indicates  either or not, certificate must be verified during DTLS when using this #LinphoneAccountParams.
+ * @param params #LinphoneAccountParams object. @notnil
+ * @param enable If TRUE, certificate will be verified during DTLS handshake.
+ */
+LINPHONE_PUBLIC void linphone_account_params_enable_dtls_srtp_verify_cert(LinphoneAccountParams *params, bool_t enable);
 /**
  * @}
  */

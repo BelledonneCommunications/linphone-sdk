@@ -93,7 +93,8 @@ public:
 	void setCustomContact(const std::shared_ptr<const Address> &contact);
 	void setLimeServerUrl(const std::string &url);
 	/**
-	 * valid algorithms are: c25519, c448 and c25519k512. Empty string is also valid, it will unset the value
+	 * valid algorithms are: c25519, c448, c25519k512(deprecated), c25519mlk512 and c448mlk1024.
+	 * Empty string is also valid, it will unset the value
 	 * @param algo 	The base algorithm to use for lime on this account
 	 */
 	void setLimeAlgo(const std::string &algo);
@@ -102,6 +103,7 @@ public:
 	void setVoicemailAddress(const std::shared_ptr<Address> &address);
 	void setInstantMessagingEncryptionMandatory(bool mandatory);
 	void setSupportedTagsList(const std::list<std::string> &supportedTagsList);
+	void enableDtlsSrtpVerifyCert(bool flag);
 
 	// Getters
 	int getExpires() const;
@@ -162,6 +164,7 @@ public:
 	const std::list<std::string> &getSupportedTagsList() const;
 	const bctbx_list_t *getSupportedTagsCList() const;
 	bool useSupportedTags() const;
+	bool dtlsSrtpVerifyCertEnabled() const;
 
 	// Other
 	LinphoneStatus setServerAddress(const std::shared_ptr<const Address> &serverAddr);
@@ -200,6 +203,7 @@ private:
 	bool mUseInternationalPrefixForCallsAndChats;
 	bool mRtpBundleEnabled;
 	bool mRtpBundleAssumption;
+	bool mDtlsSrtpVerifyCertEnabled;
 	bool mAllowCpimMessagesInBasicChatRooms;
 	bool mInstantMessagingEncryptionMandatory;
 

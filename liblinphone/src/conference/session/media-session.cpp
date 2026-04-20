@@ -3733,7 +3733,12 @@ void MediaSessionPrivate::propagateEncryptionChanged() {
 
 	mEncryptionStatus = getStreamsGroup().getEncryptionStatus();
 	if (mEncryptionStatus.isDowngradedComparedTo(oldEncryptionStatus)) {
-		lInfo() << __func__ << " : Security level downgraded";
+		if (mEncryptionStatus.getMediaEncryption() == LinphoneMediaEncryptionFail) {
+			lInfo() << __func__
+			        << " : Security level downgraded after failure: " << mEncryptionStatus.getErrorStatusString();
+		} else {
+			lInfo() << __func__ << " : Security level downgraded";
+		}
 		q->notifySecurityLevelDowngraded();
 	}
 }
@@ -4085,6 +4090,10 @@ void MediaSessionPrivate::updateCurrentParams() const {
 			validNegotiatedEncryption = ((activeStreams == 0) || allStreamsAreEncrypted);
 			break;
 		case LinphoneMediaEncryptionNone:
+			updateEncryption = true;
+			validNegotiatedEncryption = true;
+			break;
+		case LinphoneMediaEncryptionFail:
 			updateEncryption = true;
 			validNegotiatedEncryption = true;
 			break;

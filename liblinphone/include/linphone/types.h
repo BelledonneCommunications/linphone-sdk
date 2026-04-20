@@ -759,11 +759,27 @@ typedef enum _LinphoneMediaResourceMode {
  * @ingroup group_media_parameters
  **/
 typedef enum _LinphoneMediaEncryption {
-	LinphoneMediaEncryptionNone = 0, /**< No media encryption is used */
-	LinphoneMediaEncryptionSRTP = 1, /**< Use SRTP media encryption */
-	LinphoneMediaEncryptionZRTP = 2, /**< Use ZRTP media encryption */
-	LinphoneMediaEncryptionDTLS = 3  /**< Use DTLS media encryption */
+	LinphoneMediaEncryptionFail = -1, /**< Tried to encrypt media but something went wrong */
+	LinphoneMediaEncryptionNone = 0,  /**< No media encryption is used */
+	LinphoneMediaEncryptionSRTP = 1,  /**< Use SRTP media encryption */
+	LinphoneMediaEncryptionZRTP = 2,  /**< Use ZRTP media encryption */
+	LinphoneMediaEncryptionDTLS = 3   /**< Use DTLS media encryption */
 } LinphoneMediaEncryption;
+
+/**
+ * @brief Enum describing the error encountered by the media encryption layer
+ * @ingroup group_media_parameters
+ **/
+typedef enum _LinphoneMediaEncryptionError {
+	LinphoneMediaEncryptionErrorNone = 0,
+	LinphoneMediaEncryptionErrorDtlsCertificateVerificationFail =
+	    1, /**< Could not verify peer's certificate during DTLS handshake */
+	LinphoneMediaEncryptionErrorDtlsCertificateSubjectMismatch =
+	    2, /**< DTLS handshake went well and verified the certificate but it does not hold a SAN or CN matching peer's
+	          sip uri */
+	LinphoneMediaEncryptionErrorDtlsHandshakeFail =
+	    3, /**< DTLS handshake failure (could be from an alert received from peer)*/
+} LinphoneMediaEncryptionError;
 
 /**
  * @brief Enum describing type of SRTP encryption suite

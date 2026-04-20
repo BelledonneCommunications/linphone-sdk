@@ -18,8 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <filesystem>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <system_error>
 
 #include "bctoolbox/crypto.hh"
 
@@ -27,6 +29,7 @@
 
 #include "mediastreamer2/msutils.h"
 
+#include "liblinphone_tester++.h"
 #include "liblinphone_tester.h"
 #include "linphone/api/c-call-log.h"
 #include "linphone/api/c-call-stats.h"
@@ -42,6 +45,8 @@
 #define F_OK 00 /*visual studio does not define F_OK*/
 #endif
 #endif
+
+using namespace Linphone::Tester;
 
 static void srtp_call_non_zero_tag(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
@@ -1242,6 +1247,291 @@ static void zrtp_authtag_call(void) {
 	BC_ASSERT_EQUAL(zrtp_params_call(marieAlgo, paulineAlgo, res), 0, int, "%d");
 }
 
+static bool_t setup_dtls_srtp(LinphoneCoreManager *marie, LinphoneCoreManager *pauline) {
+	if (!linphone_core_media_encryption_supported(marie->lc, LinphoneMediaEncryptionDTLS)) {
+		BC_FAIL("SRTP-DTLS not supported.");
+		return FALSE;
+	}
+	linphone_core_set_media_encryption(marie->lc, LinphoneMediaEncryptionDTLS);
+	linphone_core_set_media_encryption(pauline->lc, LinphoneMediaEncryptionDTLS);
+	char *path = bc_tester_file("certificates-marie");
+	std::filesystem::create_directories(path);
+	linphone_core_set_user_certificates_path(marie->lc, path);
+	bc_free(path);
+	path = bc_tester_file("certificates-pauline");
+	linphone_core_set_user_certificates_path(pauline->lc, path);
+	std::filesystem::create_directories(path);
+	bc_free(path);
+	return TRUE;
+}
+
+static void setDtlsSrtpVerifyCertInDefaultAccount(LinphoneCore *lc, bool_t flag) {
+	LinphoneAccount *account = linphone_core_get_default_account(lc);
+	const LinphoneAccountParams *account_params = linphone_account_get_params(account);
+	LinphoneAccountParams *new_account_params = linphone_account_params_clone(account_params);
+	linphone_account_params_enable_dtls_srtp_verify_cert(new_account_params, flag);
+	linphone_account_set_params(account, new_account_params);
+	linphone_account_params_unref(new_account_params);
+}
+
+static bool isCurrentCallUsingDtls(LinphoneCoreManager *mgr) {
+	auto call = linphone_core_get_current_call(mgr->lc);
+	BC_ASSERT_PTR_NOT_NULL(call);
+	if (call) {
+		const LinphoneCallParams *call_param = linphone_call_get_current_params(call);
+		const LinphoneMediaEncryption enc = linphone_call_params_get_media_encryption(call_param);
+		return enc == LinphoneMediaEncryptionDTLS;
+	}
+	return false;
+}
+
+// Pauline and Marie both use valid client certificates for DTLS-SRTP and they verify peer certificates
+static void dtls_srtp_call_with_clients_certificates(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
+	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
+
+	add_user_to_core_config(marie->lc, "sip:user_1@sip.example.org", "user_1", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
+	                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBuffer);
+	setDtlsSrtpVerifyCertInDefaultAccount(marie->lc, TRUE);
+
+	add_user_to_core_config(pauline->lc, "sip:user_2@sip.example.org", "user_2", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_cert.pem",
+	                           "certificates/client/user2_key.pem", CertProviderConfigAuthInfoPath);
+	setDtlsSrtpVerifyCertInDefaultAccount(pauline->lc, TRUE);
+
+	LinphoneVideoActivationPolicy *vpol = linphone_factory_create_video_activation_policy(linphone_factory_get());
+	linphone_video_activation_policy_set_automatically_accept(vpol, FALSE);
+	linphone_video_activation_policy_set_automatically_initiate(vpol, FALSE);
+	linphone_core_set_video_activation_policy(pauline->lc, vpol);
+	linphone_core_set_video_activation_policy(marie->lc, vpol);
+	linphone_video_activation_policy_unref(vpol);
+
+	linphone_core_manager_start(marie, TRUE);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneRegistrationOk, 1));
+	linphone_core_manager_start(pauline, TRUE);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneRegistrationOk, 1));
+
+	if (setup_dtls_srtp(marie, pauline) == FALSE) {
+		lWarning() << "Test skipped because LinphoneMediaEncryptionDTLS not available";
+		linphone_core_manager_destroy(pauline);
+		linphone_core_manager_destroy(marie);
+		return;
+	}
+
+	auto initial_marie_stats = marie->stat;
+	auto initial_pauline_stats = pauline->stat;
+
+	linphone_core_invite_address(marie->lc, pauline->identity);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallOutgoingRinging, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallIncomingReceived, 1));
+	linphone_call_accept(linphone_core_get_current_call(pauline->lc));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallStreamsRunning, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1));
+
+	LinphoneCall *marie_call = linphone_core_get_current_call(marie->lc);
+	if (marie_call) {
+		// Check we are encrypted using DTLS
+		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallEncryptedOn,
+		                              initial_marie_stats.number_of_LinphoneCallEncryptedOn + 1, 4000));
+		BC_ASSERT_TRUE(wait_for_until(pauline->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallEncryptedOn,
+		                              initial_pauline_stats.number_of_LinphoneCallEncryptedOn + 1, 4000));
+		BC_ASSERT_TRUE(isCurrentCallUsingDtls(marie));
+		BC_ASSERT_TRUE(isCurrentCallUsingDtls(pauline));
+		end_call(marie, pauline);
+	} else {
+		BC_FAIL("Cannot complete call");
+	}
+
+	linphone_core_manager_destroy(pauline);
+	linphone_core_manager_destroy(marie);
+}
+
+// Marie uses a client certificate and verify Pauline's one but Pauline uses a self-signed one
+static void dtls_srtp_call_with_missing_client_certificate(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
+	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
+
+	add_user_to_core_config(marie->lc, "sip:user_1@sip.example.org", "user_1", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
+	                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBuffer);
+	setDtlsSrtpVerifyCertInDefaultAccount(marie->lc, TRUE);
+
+	// No client certificate for Pauline, she'll generated a self signed one
+	add_user_to_core_config(pauline->lc, "sip:user_2@sip.example.org", "user_2", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+
+	LinphoneVideoActivationPolicy *vpol = linphone_factory_create_video_activation_policy(linphone_factory_get());
+	linphone_video_activation_policy_set_automatically_accept(vpol, FALSE);
+	linphone_video_activation_policy_set_automatically_initiate(vpol, FALSE);
+	linphone_core_set_video_activation_policy(pauline->lc, vpol);
+	linphone_core_set_video_activation_policy(marie->lc, vpol);
+	linphone_video_activation_policy_unref(vpol);
+
+	linphone_core_manager_start(marie, TRUE);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneRegistrationOk, 1));
+	linphone_core_manager_start(pauline, TRUE);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneRegistrationOk, 1));
+
+	if (setup_dtls_srtp(marie, pauline) == FALSE) {
+		lWarning() << "Test skipped because LinphoneMediaEncryptionDTLS not available";
+		linphone_core_manager_destroy(pauline);
+		linphone_core_manager_destroy(marie);
+		return;
+	}
+
+	auto initial_marie_stats = marie->stat;
+	auto initial_pauline_stats = pauline->stat;
+
+	linphone_core_invite_address(marie->lc, pauline->identity);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallOutgoingRinging, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallIncomingReceived, 1));
+	linphone_call_accept(linphone_core_get_current_call(pauline->lc));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallStreamsRunning, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1));
+
+	LinphoneCall *marie_call = linphone_core_get_current_call(marie->lc);
+	if (marie_call) {
+		// Marie fails to be encrypted as Pauline didn't provide a valid certificate
+		// wait 4 seconds so if it worked it would have enough time
+		BC_ASSERT_FALSE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallEncryptedOn,
+		                               initial_marie_stats.number_of_LinphoneCallEncryptedOn + 1, 4000));
+		BC_ASSERT_FALSE(isCurrentCallUsingDtls(marie));
+		LinphoneCallStats *marie_stats = linphone_call_get_audio_stats(marie_call);
+		BC_ASSERT_TRUE(linphone_call_stats_get_srtp_source(marie_stats) == LinphoneMediaEncryptionFail);
+		BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(marie_stats) ==
+		               LinphoneMediaEncryptionErrorDtlsCertificateVerificationFail);
+		linphone_call_stats_unref(marie_stats);
+
+		// For Pauline this test may fail as Marie will send an DTLS fatal alert to Pauline but it is not repeated, so
+		// Pauline may never receive it if this test fails too much, comment the following code
+		BC_ASSERT_FALSE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallEncryptedOn,
+		                               initial_pauline_stats.number_of_LinphoneCallEncryptedOn + 1, 1000));
+		BC_ASSERT_FALSE(isCurrentCallUsingDtls(pauline));
+		LinphoneCallStats *pauline_stats = linphone_call_get_audio_stats(linphone_core_get_current_call(pauline->lc));
+		BC_ASSERT_TRUE(linphone_call_stats_get_srtp_source(marie_stats) == LinphoneMediaEncryptionFail);
+		// Pauline has no details on why the handshake failed
+		BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(marie_stats) ==
+		               LinphoneMediaEncryptionErrorDtlsHandshakeFail);
+		linphone_call_stats_unref(pauline_stats);
+		// end of part to be commented in case of too much failure
+
+		end_call(marie, pauline);
+	} else {
+		BC_FAIL("Cannot complete call");
+	}
+
+	linphone_core_manager_destroy(pauline);
+	linphone_core_manager_destroy(marie);
+}
+
+// Pauline and Marie both use valid client certificates for DTLS-SRTP, but Pauline's certificate does not hold her
+// userrname as SAN or CN
+static void dtls_srtp_call_with_unmatching_client_certificates(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
+	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
+
+	add_user_to_core_config(marie->lc, "sip:user_1@sip.example.org", "user_1", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
+	                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBuffer);
+	setDtlsSrtpVerifyCertInDefaultAccount(marie->lc, TRUE);
+
+	add_user_to_core_config(pauline->lc, "sip:user_2@sip.example.org", "user_2", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	// no client certificates for Pauline, use a valid one set in the client certs path
+	setDtlsSrtpVerifyCertInDefaultAccount(pauline->lc, TRUE);
+
+	LinphoneVideoActivationPolicy *vpol = linphone_factory_create_video_activation_policy(linphone_factory_get());
+	linphone_video_activation_policy_set_automatically_accept(vpol, FALSE);
+	linphone_video_activation_policy_set_automatically_initiate(vpol, FALSE);
+	linphone_core_set_video_activation_policy(pauline->lc, vpol);
+	linphone_core_set_video_activation_policy(marie->lc, vpol);
+	linphone_video_activation_policy_unref(vpol);
+
+	linphone_core_manager_start(marie, TRUE);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneRegistrationOk, 1));
+	linphone_core_manager_start(pauline, TRUE);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneRegistrationOk, 1));
+
+	if (setup_dtls_srtp(marie, pauline) == FALSE) {
+		lWarning() << "Test skipped because LinphoneMediaEncryptionDTLS not available";
+		linphone_core_manager_destroy(pauline);
+		linphone_core_manager_destroy(marie);
+		return;
+	}
+	// set pauline user certificate path to a dedicated one to avoid concurrency problem
+	char *path = bc_tester_file("certificates-pauline-fake-id");
+	std::filesystem::create_directories(path);
+	linphone_core_set_user_certificates_path(pauline->lc, path);
+	bc_free(path);
+
+	auto initial_marie_stats = marie->stat;
+
+	auto valid_cert_file_default_identity =
+	    std::string(bc_tester_get_resource_dir_prefix())
+	        .append("/certificates/client/valid-linphone-dtls-default-identity.pem");
+	auto cert_file_path = std::string(linphone_core_get_user_certificates_path(pauline->lc))
+	                          .append("/linphone-dtls-default-identity.pem");
+	std::error_code ec;
+	std::filesystem::copy(valid_cert_file_default_identity, cert_file_path,
+	                      std::filesystem::copy_options::overwrite_existing, ec);
+	if (ec) {
+		BC_FAIL("Unable to copy the valid dtls default identity certificate");
+		lError() << "Error in copying from " << valid_cert_file_default_identity << " to " << cert_file_path << " : "
+		         << ec.message();
+	}
+
+	linphone_core_invite_address(marie->lc, pauline->identity);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallOutgoingRinging, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallIncomingReceived, 1));
+	linphone_call_accept(linphone_core_get_current_call(pauline->lc));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallStreamsRunning, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1));
+
+	LinphoneCall *marie_call = linphone_core_get_current_call(marie->lc);
+
+	if (marie_call) {
+		// Check we are encrypted using DTLS: not ok for Marie as Pauline use a valid but not matching
+		// certificate
+		BC_ASSERT_FALSE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallEncryptedOn,
+		                               initial_marie_stats.number_of_LinphoneCallEncryptedOn + 1, 4000));
+		BC_ASSERT_FALSE(isCurrentCallUsingDtls(marie));
+		LinphoneCallStats *marie_stats = linphone_call_get_audio_stats(marie_call);
+		BC_ASSERT_TRUE(linphone_call_stats_get_srtp_source(marie_stats) == LinphoneMediaEncryptionFail);
+		BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(marie_stats) ==
+		               LinphoneMediaEncryptionErrorDtlsCertificateSubjectMismatch);
+		linphone_call_stats_unref(marie_stats);
+
+		// For Pauline the test may fail as Marie will send an DTLS fatal alert to Pauline but it is not repeated, so
+		// Pauline may never receive it Do not test for Pauline encrypted call on as she can notify the encryption is on
+		// (raising the count) but then receive the alert from Marie
+		// BC_ASSERT_FALSE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallEncryptedOn,
+		//                              initial_pauline_stats.number_of_LinphoneCallEncryptedOn + 1, 1000));
+		if (bctbx_ssl_get_implementation_type() !=
+		    BCTBX_OPENSSL) { // openssl implementation won't send an alert but just hang on the DTLS connection
+			                 // Pauline will not notice it as the SRTP keys are already extracted for her
+			BC_ASSERT_FALSE(isCurrentCallUsingDtls(pauline));
+			LinphoneCallStats *pauline_stats =
+			    linphone_call_get_audio_stats(linphone_core_get_current_call(pauline->lc));
+			BC_ASSERT_TRUE(linphone_call_stats_get_srtp_source(pauline_stats) == LinphoneMediaEncryptionFail);
+			// Pauline has no details on why the handshake failed
+			BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(pauline_stats) ==
+			               LinphoneMediaEncryptionErrorDtlsHandshakeFail);
+			linphone_call_stats_unref(pauline_stats);
+		}
+		end_call(marie, pauline);
+	} else {
+		BC_FAIL("Cannot complete call");
+	}
+
+	linphone_core_manager_destroy(pauline);
+	linphone_core_manager_destroy(marie);
+}
+
 static void dtls_srtp_call(void) {
 	call_base(LinphoneMediaEncryptionDTLS, FALSE, FALSE, LinphonePolicyNoFirewall, FALSE);
 }
@@ -2101,24 +2391,6 @@ end:
 	linphone_core_manager_destroy(pauline);
 }
 
-static bool_t setup_dtls_srtp(LinphoneCoreManager *marie, LinphoneCoreManager *pauline) {
-	if (!linphone_core_media_encryption_supported(marie->lc, LinphoneMediaEncryptionDTLS)) {
-		BC_FAIL("SRTP-DTLS not supported.");
-		return FALSE;
-	}
-	linphone_core_set_media_encryption(marie->lc, LinphoneMediaEncryptionDTLS);
-	linphone_core_set_media_encryption(pauline->lc, LinphoneMediaEncryptionDTLS);
-	char *path = bc_tester_file("certificates-marie");
-	linphone_core_set_user_certificates_path(marie->lc, path);
-	bc_free(path);
-	path = bc_tester_file("certificates-pauline");
-	linphone_core_set_user_certificates_path(pauline->lc, path);
-	bc_free(path);
-	bctbx_mkdir(linphone_core_get_user_certificates_path(marie->lc));
-	bctbx_mkdir(linphone_core_get_user_certificates_path(pauline->lc));
-	return TRUE;
-}
-
 static void _dtls_srtp_audio_call_with_rtcp_mux(bool_t rtcp_mux_not_accepted) {
 	LinphoneCoreManager *marie;
 	LinphoneCoreManager *pauline;
@@ -2392,6 +2664,17 @@ static test_t call_secure2_tests[] = {
     TEST_NO_TAG("Video SRTP call without audio", video_srtp_call_without_audio),
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux", dtls_srtp_audio_call_with_rtcp_mux, "DTLS"),
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux not accepted", dtls_srtp_audio_call_with_rtcp_mux_not_accepted, "DTLS"),
+    TEST_TWO_TAGS(
+        "DTLS SRTP call with valid client certificates", dtls_srtp_call_with_clients_certificates, "DTLS", "CRYPTO"),
+    TEST_TWO_TAGS("DTLS SRTP call with missing client certificate",
+                  dtls_srtp_call_with_missing_client_certificate,
+                  "DTLS",
+                  "CRYPTO"),
+    TEST_TWO_TAGS("DTLS SRTP call with client certificate holding unmatching name",
+                  dtls_srtp_call_with_unmatching_client_certificates,
+                  "DTLS",
+                  "CRYPTO"),
+
     TEST_NO_TAG("Call accepting all encryptions", call_accepting_all_encryptions),
     TEST_ONE_TAG("EKT call", ekt_call, "CRYPTO"),
     TEST_NO_TAG("EKT call with unmatching keys", unmatching_ekt_call),

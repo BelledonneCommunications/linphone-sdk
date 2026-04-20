@@ -416,6 +416,7 @@ bool_t request_video(LinphoneCoreManager *caller, LinphoneCoreManager *callee, b
 					wait_for(callee->lc, caller->lc, &caller->stat.number_of_LinphoneCallEncryptedOn,
 					         initial_caller_stat.number_of_LinphoneCallEncryptedOn + 1);
 					break;
+				case LinphoneMediaEncryptionFail:
 				case LinphoneMediaEncryptionNone:
 				case LinphoneMediaEncryptionSRTP:
 					break;
@@ -428,6 +429,7 @@ bool_t request_video(LinphoneCoreManager *caller, LinphoneCoreManager *callee, b
 					break;
 				case LinphoneMediaEncryptionNone:
 				case LinphoneMediaEncryptionSRTP:
+				case LinphoneMediaEncryptionFail:
 					break;
 			}
 

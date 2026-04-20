@@ -105,14 +105,18 @@ bctoolbox will fail to compile if these values are not in sync with the decaf on
 #define BCTBX_ERROR_NET_CONN_RESET -0x70030000
 #define BCTBX_ERROR_INVALID_SSL_CONFIG -0x70030001
 #define BCTBX_ERROR_INVALID_SSL_TRANSPORT -0x70030002
-#define BCTBX_ERROR_INVALID_SSL_ENDPOINT -0x70030004
-#define BCTBX_ERROR_INVALID_SSL_AUTHMODE -0x70030008
-#define BCTBX_ERROR_INVALID_SSL_CONTEXT -0x70030010
+#define BCTBX_ERROR_INVALID_SSL_ENDPOINT -0x70030003
+#define BCTBX_ERROR_INVALID_SSL_AUTHMODE -0x70030004
+#define BCTBX_ERROR_INVALID_SSL_CONTEXT -0x70030005
 
 #define BCTBX_ERROR_NO_CLIENT_CERTIFICATE -0x70031000
 #define BCTBX_ERROR_NET_WANT_READ -0x70032000
-#define BCTBX_ERROR_NET_WANT_WRITE -0x70034000
-#define BCTBX_ERROR_SSL_PEER_CLOSE_NOTIFY -0x70038000
+#define BCTBX_ERROR_NET_WANT_WRITE -0x70033000
+#define BCTBX_ERROR_SSL_PEER_CLOSE_NOTIFY -0x70034000
+#define BCTBX_ERROR_CERT_VERIFY_FAILED -0x70035000
+#define BCTBX_ERROR_FATAL_ALERT_MSG -0x70036000
+
+#define BCTBX_TLS_ALERT_ACCESS_DENIED -0x70030010
 
 /* Symmetric ciphers related */
 #define BCTBX_ERROR_AUTHENTICATION_FAILED -0x70040000
@@ -435,6 +439,15 @@ BCTBX_PUBLIC int32_t bctbx_x509_certificate_get_subject_dn(const bctbx_x509_cert
 BCTBX_PUBLIC bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t *cert);
 
 /**
+ * Check if the given certificate has a SAN or CN
+ * @param certificate	the certificate chain to look into, only the top certificate is explored
+ * @param subject	the subject to match
+ * @return TRUE when the given certificate has a SAN or CN matching the given subject, false otherwise
+ */
+BCTBX_PUBLIC bool_t bctbx_x509_certificate_subject_match(const bctbx_x509_certificate_t *certificate,
+                                                         const char *subject);
+
+/**
  * @brief Generate certificate fingerprint (hash of the DER format certificate) hexadecimal format in a null terminated
  *string
  *
@@ -537,6 +550,13 @@ BCTBX_PUBLIC int32_t bctbx_ssl_read(bctbx_ssl_context_t *ssl_ctx, unsigned char 
 BCTBX_PUBLIC int32_t bctbx_ssl_write(bctbx_ssl_context_t *ssl_ctx, const unsigned char *buf, size_t buf_length);
 BCTBX_PUBLIC int32_t bctbx_ssl_set_hostname(bctbx_ssl_context_t *ssl_ctx, const char *hostname);
 BCTBX_PUBLIC int32_t bctbx_ssl_handshake(bctbx_ssl_context_t *ssl_ctx);
+/**
+ * Send an alert message on the ssl connection
+ * @param[in/out]	ssl_ctx		The context to use
+ * @param[in]		message		The alert message, one of BCTBX_TLS_ALERT_ACCESS_DENIED
+ * @return 0 in case of success, an error code otherwise
+ */
+BCTBX_PUBLIC int32_t bctbx_ssl_send_fatal_alert_message(bctbx_ssl_context_t *ssl_ctx, int message);
 BCTBX_PUBLIC void bctbx_ssl_set_io_callbacks(
     bctbx_ssl_context_t *ssl_ctx,
     void *callback_data,

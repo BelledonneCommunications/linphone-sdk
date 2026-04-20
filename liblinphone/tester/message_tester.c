@@ -2083,36 +2083,6 @@ void transfer_message_base3(LinphoneCoreManager *marie,
 	                       random_filename("special-&_characters", "wav"));
 }
 
-// Add tls information for given user into the linphone core
-// cert and keys are path to the file, set them as buffer as it is the most likely method to be used
-static void add_tls_client_certificate(
-    LinphoneCore *lc, const char *username, const char *realm, const char *cert, const char *key) {
-	// We shall already have an auth info for this username/realm, add the tls cert in it
-	LinphoneAuthInfo *auth_info = linphone_auth_info_clone(linphone_core_find_auth_info(lc, realm, username, realm));
-	// otherwise create it
-	if (auth_info == NULL) {
-		auth_info = linphone_auth_info_new(username, NULL, NULL, NULL, realm, realm);
-	}
-	if (cert != NULL) {
-		char *cert_path = bc_tester_res(cert);
-		char *cert_buffer = NULL;
-		liblinphone_tester_load_text_file_in_buffer(cert_path, &cert_buffer);
-		linphone_auth_info_set_tls_cert(auth_info, cert_buffer);
-		bctbx_free(cert_path);
-		bctbx_free(cert_buffer);
-	}
-	if (key != NULL) {
-		char *key_path = bc_tester_res(key);
-		char *key_buffer = NULL;
-		liblinphone_tester_load_text_file_in_buffer(key_path, &key_buffer);
-		linphone_auth_info_set_tls_key(auth_info, key_buffer);
-		bctbx_free(key_path);
-		bctbx_free(key_buffer);
-	}
-	linphone_core_add_auth_info(lc, auth_info);
-	linphone_auth_info_unref(auth_info);
-}
-
 static void transfer_message_tls_client_auth(void) {
 	if (transport_supported(LinphoneTransportTls)) {
 		LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
@@ -2126,10 +2096,10 @@ static void transfer_message_tls_client_auth(void) {
 		LinphoneAddress *paulineAddr = linphone_address_new(linphone_core_get_identity(pauline->lc));
 		add_tls_client_certificate(marie->lc, linphone_address_get_username(marieAddr),
 		                           linphone_address_get_domain(marieAddr), "certificates/client/user1_cert.pem",
-		                           "certificates/client/user1_key.pem");
+		                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBuffer);
 		add_tls_client_certificate(pauline->lc, linphone_address_get_username(paulineAddr),
 		                           linphone_address_get_domain(paulineAddr), "certificates/client/user2_cert.pem",
-		                           "certificates/client/user2_key.pem");
+		                           "certificates/client/user2_key.pem", CertProviderConfigAuthInfoBuffer);
 		linphone_address_unref(marieAddr);
 		linphone_address_unref(paulineAddr);
 
