@@ -472,12 +472,12 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 	ms_message("[AAudio Recorder] Sound card is being changed from ID [%s], device ID [%0d] to ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", ictx->soundCard->id, ictx->deviceId, card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 	// Change device ID only if the new value is different from the previous one
 	if (ictx->deviceId != card->internal_id) {
-
-		if (ictx->soundCard) {
-			ms_snd_card_unref(ictx->soundCard);
-			ictx->soundCard = nullptr;
-		}
+		MSSndCard *previousSoundCard = ictx->soundCard;
 		ictx->soundCard = ms_snd_card_ref(card);
+		if (previousSoundCard) {
+			ms_snd_card_unref(previousSoundCard);
+		}
+
 		android_snd_read_set_internal_device_id(ictx, ictx->soundCard->internal_id);
 
 		bool bluetoothSoundDevice = ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
