@@ -1248,3 +1248,7 @@ void check_session_error(LinphoneConferenceScheduler *scheduler, LinphoneReason 
 		}
 	}
 }
+
+char *liblinphone_tester_filter_recv_fmtp(const char *recv_fmtp) {
+	return bctbx_strdup(L_STRING_TO_C(SalStreamDescription::filterRecvFmtp(recv_fmtp)));
+}

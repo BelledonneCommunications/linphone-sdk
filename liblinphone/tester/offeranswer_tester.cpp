@@ -1226,6 +1226,23 @@ end:
 
 #endif
 
+static void filter_recv_fmtp() {
+	char *filtered_recv_fmtp = liblinphone_tester_filter_recv_fmtp("stereo=1;sprop-stereo=1");
+	BC_ASSERT_STRING_EQUAL(filtered_recv_fmtp, "stereo=1;sprop-stereo=1");
+	bctbx_free(filtered_recv_fmtp);
+
+	filtered_recv_fmtp = liblinphone_tester_filter_recv_fmtp("stereo=1;sprop-stereo=1;_complexity=5");
+	BC_ASSERT_STRING_EQUAL(filtered_recv_fmtp, "stereo=1;sprop-stereo=1");
+	bctbx_free(filtered_recv_fmtp);
+
+	filtered_recv_fmtp = liblinphone_tester_filter_recv_fmtp("stereo=1; _complexity=7;  sprop-stereo=1;");
+	BC_ASSERT_STRING_EQUAL(filtered_recv_fmtp, "stereo=1;sprop-stereo=1");
+	bctbx_free(filtered_recv_fmtp);
+
+	filtered_recv_fmtp = liblinphone_tester_filter_recv_fmtp("_complexity=0    ");
+	BC_ASSERT_PTR_NULL(filtered_recv_fmtp);
+}
+
 static test_t offeranswer_tests[] = {
     TEST_NO_TAG("Start with no config", start_with_no_config),
     TEST_NO_TAG("Call failed because of codecs", call_failed_because_of_codecs),
@@ -1298,8 +1315,9 @@ static test_t offeranswer_tests[] = {
     TEST_NO_TAG("Call with unknown stream, accepted", call_with_unknown_stream_accepted),
     TEST_NO_TAG("Call with unknown stream, accepted 2", call_with_unknown_stream_accepted_2),
     TEST_NO_TAG("Call with 2 audio streams", call_with_two_audio_streams),
-    TEST_NO_TAG("Call with video codec priority policy auto", call_with_video_codec_priority_policy)
+    TEST_NO_TAG("Call with video codec priority policy auto", call_with_video_codec_priority_policy),
 #endif
+    TEST_NO_TAG("Filter recv fmtp", filter_recv_fmtp),
 };
 
 test_suite_t offeranswer_test_suite = {"Offer-answer",

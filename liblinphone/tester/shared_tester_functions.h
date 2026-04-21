@@ -126,6 +126,8 @@ void check_chat_message_properties(LinphoneChatMessage *msg);
 
 void check_session_error(LinphoneConferenceScheduler *scheduler, LinphoneReason reason);
 
+char *liblinphone_tester_filter_recv_fmtp(const char *recv_fmtp);
+
 #ifdef __cplusplus
 }
 #endif

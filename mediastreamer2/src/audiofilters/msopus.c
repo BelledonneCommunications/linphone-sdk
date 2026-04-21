@@ -737,6 +737,7 @@ typedef struct _OpusDecData {
 	int sequence_number;
 	int lastPacketLength;
 	bool_t plc;
+	int complexity;
 	int statsfec;
 	int statsplc;
 
@@ -755,6 +756,7 @@ static void ms_opus_dec_init(MSFilter *f) {
 	d->statsfec = 0;
 	d->statsplc = 0;
 	d->plc = 1;
+	d->complexity = 0;
 	f->data = d;
 }
 
@@ -765,9 +767,13 @@ static void ms_opus_dec_preprocess(MSFilter *f) {
 	if (error != OPUS_OK) {
 		ms_error("Opus decoder creation failed: %s", opus_strerror(error));
 	}
-	/* initialise the concealer context : allow concealment for 1400ms
+	error = opus_decoder_ctl(d->state, OPUS_SET_COMPLEXITY(d->complexity));
+	if (error != OPUS_OK) {
+		ms_error("Failed to set Opus decoder complexity: %s", opus_strerror(error));
+	}
+	/* Initialize the concealer context : allow concealment for 1400ms
 	 * - DTX/CNG packets are sent each 400ms
-	 * - concealment goes on for 1400ms so we can loose two consecutive DTX packets and keep doing CNG
+	 * - concealment goes on for 1400ms so we can lose two consecutive DTX packets and keep doing CNG
 	 */
 	d->concealer = ms_concealer_context_new(1400);
 }
@@ -900,6 +906,10 @@ static int ms_opus_dec_add_fmtp(MSFilter *f, void *arg) {
 	memset(buf, '\0', sizeof(buf));
 	if (fmtp_get_value(fmtp, "plc", buf, sizeof(buf))) {
 		d->plc = atoi(buf);
+	}
+	memset(buf, '\0', sizeof(buf));
+	if (fmtp_get_value(fmtp, "_complexity", buf, sizeof(buf))) {
+		d->complexity = atoi(buf);
 	}
 	return 0;
 }

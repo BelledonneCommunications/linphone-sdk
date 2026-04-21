@@ -1104,6 +1104,20 @@ void SalStreamDescription::setupRtcpXr(const OrtpRtcpXrConfiguration &rtcpXr) {
 	}
 }
 
+std::string SalStreamDescription::filterRecvFmtp(const char *cRecvFmtp) {
+	std::string recvFmtp = L_C_TO_STRING(cRecvFmtp);
+	std::stringstream ssRecvFmtp(recvFmtp);
+	std::ostringstream osRecvFmtp;
+	std::string token;
+	while (std::getline(ssRecvFmtp, token, ';')) {
+		token = Utils::trim(token);
+		if (token.find('_') != 0) osRecvFmtp << token << ";";
+	}
+	std::string nonPrivateRecvFmtp = osRecvFmtp.str();
+	if (!nonPrivateRecvFmtp.empty() && nonPrivateRecvFmtp.back() == ';') nonPrivateRecvFmtp.pop_back();
+	return nonPrivateRecvFmtp;
+}
+
 belle_sdp_media_description_t *
 SalStreamDescription::toSdpMediaDescription(const SalMediaDescription *salMediaDesc,
                                             belle_sdp_session_description_t *session_desc) const {
@@ -1121,7 +1135,7 @@ SalStreamDescription::toSdpMediaDescription(const SalMediaDescription *salMediaD
 		for (const auto &pt : actualCfg.payloads) {
 			mime_param = belle_sdp_mime_parameter_create(pt->mime_type, payload_type_get_number(pt), pt->clock_rate,
 			                                             pt->channels > 0 ? pt->channels : -1);
-			belle_sdp_mime_parameter_set_parameters(mime_param, pt->recv_fmtp);
+			belle_sdp_mime_parameter_set_parameters(mime_param, filterRecvFmtp(pt->recv_fmtp).c_str());
 			if (actualCfg.ptime > 0) {
 				belle_sdp_mime_parameter_set_ptime(mime_param, actualCfg.ptime);
 			}

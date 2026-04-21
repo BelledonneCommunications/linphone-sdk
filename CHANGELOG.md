@@ -16,6 +16,9 @@ changes made to these components.
 ### Added
 - [HIDAPI](https://github.com/libusb/hidapi) dependency for Jabra headsets support.
 
+### Changes
+- Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
+
 
 ## [5.5.0] 2025-12-01
 

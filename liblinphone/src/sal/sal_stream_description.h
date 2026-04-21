@@ -187,6 +187,8 @@ public:
 
 	unsigned int getFreeCfgIdx() const;
 
+	static std::string filterRecvFmtp(const char *cRecvFmtp);
+
 	std::string name; /*unique name of stream, in order to ease offer/answer model algorithm*/
 	SalStreamType type = SalAudio;
 	std::string typeother;

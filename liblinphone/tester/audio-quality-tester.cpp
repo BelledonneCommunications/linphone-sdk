@@ -129,8 +129,8 @@ end:
 	linphone_core_manager_destroy(pauline);
 }
 
-static void
-audio_call_stereo_call(const char *codec_name, int clock_rate, int bitrate_override, bool_t stereo, bool_t plc) {
+static void audio_call_stereo_call(
+    const char *codec_name, int clock_rate, int bitrate_override, bool_t stereo, bool_t plc, int complexity) {
 	LinphoneCoreManager *marie;
 	LinphoneCoreManager *pauline;
 	LinphonePayloadType *pt;
@@ -139,9 +139,13 @@ audio_call_stereo_call(const char *codec_name, int clock_rate, int bitrate_overr
 	bool_t audio_cmp_failed = FALSE;
 	OrtpNetworkSimulatorParams simparams = {0};
 	unlink(recordpath);
+	char *recv_fmtp = NULL;
 
 	marie = linphone_core_manager_new("marie_rc");
 	pauline = linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
+
+	if (stereo) recv_fmtp = bctbx_strcat_printf(recv_fmtp, "stereo=1;sprop-stereo=1;");
+	if (strcmp(codec_name, "opus") == 0) recv_fmtp = bctbx_strcat_printf(recv_fmtp, "_complexity=%d", complexity);
 
 	/*make sure we have the requested codec */
 	pt = linphone_core_get_payload_type(marie->lc, codec_name, clock_rate, 2);
@@ -149,13 +153,15 @@ audio_call_stereo_call(const char *codec_name, int clock_rate, int bitrate_overr
 		ms_warning("%s not available, stereo with %s not tested.", codec_name, codec_name);
 		goto end;
 	}
-	if (stereo) linphone_payload_type_set_recv_fmtp(pt, "stereo=1;sprop-stereo=1");
+	if (recv_fmtp) linphone_payload_type_set_recv_fmtp(pt, recv_fmtp);
 	if (bitrate_override) linphone_payload_type_set_normal_bitrate(pt, bitrate_override);
 	linphone_payload_type_unref(pt);
 	pt = linphone_core_get_payload_type(pauline->lc, codec_name, clock_rate, 2);
-	if (stereo) linphone_payload_type_set_recv_fmtp(pt, "stereo=1;sprop-stereo=1");
+	if (recv_fmtp) linphone_payload_type_set_recv_fmtp(pt, recv_fmtp);
 	if (bitrate_override) linphone_payload_type_set_normal_bitrate(pt, bitrate_override);
 	linphone_payload_type_unref(pt);
+
+	bctbx_free(recv_fmtp);
 
 	disable_all_audio_codecs_except_one(marie->lc, codec_name, clock_rate);
 	disable_all_audio_codecs_except_one(pauline->lc, codec_name, clock_rate);
@@ -218,19 +224,31 @@ end:
 }
 
 static void audio_stereo_call_l16(void) {
-	audio_call_stereo_call("L16", 44100, 0, TRUE, FALSE);
+	audio_call_stereo_call("L16", 44100, 0, TRUE, FALSE, 0);
 }
 static void audio_stereo_call_l16_plc(void) {
-	audio_call_stereo_call("L16", 44100, 0, TRUE, TRUE);
+	audio_call_stereo_call("L16", 44100, 0, TRUE, TRUE, 0);
 }
 
 static void audio_stereo_call_opus(void) {
-	audio_call_stereo_call("opus", 48000, 150, TRUE, FALSE);
+	audio_call_stereo_call("opus", 48000, 150, TRUE, FALSE, 0);
 }
 
 static void audio_mono_call_opus(void) {
 	/*actually a call where input/output is made with stereo but opus transmits everything as mono*/
-	audio_call_stereo_call("opus", 48000, 150, FALSE, FALSE);
+	audio_call_stereo_call("opus", 48000, 150, FALSE, FALSE, 0);
+}
+
+static void audio_steero_call_opus_deep_plc(void) {
+	audio_call_stereo_call("opus", 48000, 150, TRUE, FALSE, 5);
+}
+
+static void audio_stereo_call_opus_lace(void) {
+	audio_call_stereo_call("opus", 48000, 150, TRUE, FALSE, 6);
+}
+
+static void audio_stereo_call_opus_nolace(void) {
+	audio_call_stereo_call("opus", 48000, 150, TRUE, FALSE, 7);
 }
 
 #ifndef _MSC_VER
@@ -558,6 +576,9 @@ static test_t audio_quality_tests[] = {
     TEST_NO_TAG("Simple stereo call with L16 (PLC)", audio_stereo_call_l16_plc),
     TEST_NO_TAG("Simple stereo call with opus", audio_stereo_call_opus),
     TEST_NO_TAG("Simple mono call with opus", audio_mono_call_opus),
+    TEST_NO_TAG("Simple stereo call with opus & deep plc", audio_steero_call_opus_deep_plc),
+    TEST_NO_TAG("Simple stereo call with opus & LACE", audio_stereo_call_opus_lace),
+    TEST_NO_TAG("Simple stereo call with opus & NOLACE", audio_stereo_call_opus_nolace),
     TEST_NO_TAG("Audio bandwidth estimation", audio_bandwidth_estimation),
     TEST_NO_TAG("Audio bandwidth estimation on secure call", audio_bandwidth_estimation_on_secure_call),
     TEST_NO_TAG("Audio call with opus and soundcard", audio_call_with_opus_and_soundcard)};
