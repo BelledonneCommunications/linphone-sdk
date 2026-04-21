@@ -2485,15 +2485,18 @@ list<ParticipantImdnState> ChatMessage::getParticipantsState() const {
 
 	if (auto db = chatRoom->getCore()->getDatabase(); isValid() && db) {
 		shared_ptr<EventLog> eventLog = db.value().get()->getEvent(getStorageId());
-		list<MainDb::ParticipantState> dbResults = db.value().get()->getChatMessageParticipantStates(eventLog);
-		for (const auto &dbResult : dbResults) {
-			auto isMe = chatRoom->isMe(dbResult.address);
-			auto participant = isMe ? chatRoom->getMe() : chatRoom->findParticipant(dbResult.address);
-			if (participant) {
-				result.emplace_back(participant, dbResult.state, dbResult.timestamp);
-			} else {
-				lWarning() << "ChatMessage [" << this << "] is expected to be or have been sent to a participant with "
-				           << *(dbResult.address) << " but it is not part of " << *chatRoom;
+		if (eventLog) {
+			list<MainDb::ParticipantState> dbResults = db.value().get()->getChatMessageParticipantStates(eventLog);
+			for (const auto &dbResult : dbResults) {
+				auto isMe = chatRoom->isMe(dbResult.address);
+				auto participant = isMe ? chatRoom->getMe() : chatRoom->findParticipant(dbResult.address);
+				if (participant) {
+					result.emplace_back(participant, dbResult.state, dbResult.timestamp);
+				} else {
+					lWarning() << "ChatMessage [" << this
+					           << "] is expected to be or have been sent to a participant with " << *(dbResult.address)
+					           << " but it is not part of " << *chatRoom;
+				}
 			}
 		}
 	}
@@ -2509,17 +2512,19 @@ list<ParticipantImdnState> ChatMessage::getParticipantsByImdnState(ChatMessage::
 
 	if (auto db = chatRoom->getCore()->getDatabase(); isValid() && db) {
 		shared_ptr<EventLog> eventLog = db.value().get()->getEvent(getStorageId());
-		list<MainDb::ParticipantState> dbResults =
-		    db.value().get()->getChatMessageParticipantsByImdnState(eventLog, state);
-		const auto &from = getFromAddress();
-		const auto &me = chatRoom->getMe();
-		auto sender = chatRoom->isMe(from) ? me : chatRoom->findParticipant(from);
-		for (const auto &dbResult : dbResults) {
-			const auto &pAddress = dbResult.address;
-			auto participant = chatRoom->isMe(pAddress) ? me : chatRoom->findParticipant(pAddress);
-			// Do not add myself to the result list if I am the sender.
-			if (participant && (participant != sender))
-				result.emplace_back(participant, dbResult.state, dbResult.timestamp);
+		if (eventLog) {
+			list<MainDb::ParticipantState> dbResults =
+			    db.value().get()->getChatMessageParticipantsByImdnState(eventLog, state);
+			const auto &from = getFromAddress();
+			const auto &me = chatRoom->getMe();
+			auto sender = chatRoom->isMe(from) ? me : chatRoom->findParticipant(from);
+			for (const auto &dbResult : dbResults) {
+				const auto &pAddress = dbResult.address;
+				auto participant = chatRoom->isMe(pAddress) ? me : chatRoom->findParticipant(pAddress);
+				// Do not add myself to the result list if I am the sender.
+				if (participant && (participant != sender))
+					result.emplace_back(participant, dbResult.state, dbResult.timestamp);
+			}
 		}
 	}
 	return result;

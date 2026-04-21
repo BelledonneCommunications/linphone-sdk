@@ -765,7 +765,6 @@ void check_create_chat_room_client_side(bctbx_list_t *lcs,
 			BC_ASSERT_TRUE(wait_for_list(lcs, &lcm->stat.number_of_LinphoneChatRoomStateCreationPending,
 			                             initialStats->number_of_LinphoneChatRoomStateCreationPending + 1,
 			                             liblinphone_tester_sip_timeout));
-
 			BC_ASSERT_TRUE(wait_for_list(lcs, &lcm->stat.number_of_LinphoneChatRoomStateCreated,
 			                             initialStats->number_of_LinphoneChatRoomStateCreated + 1,
 			                             liblinphone_tester_sip_timeout));

@@ -524,7 +524,8 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_error, 500);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_imdn, 315);
 	bc_tester_add_suite(&local_conference_test_suite_ephemeral_chat);
-	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_secure_chat, 687);
+	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_secure_chat, 587);
+	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_secure_chat_error, 430);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_transferred_conference_basic, 100);
 #endif // HAVE_ADVANCED_IM
 	liblinphone_tester_add_suite_with_default_time(&tunnel_test_suite, 0);

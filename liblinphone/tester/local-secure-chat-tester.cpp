@@ -40,12 +40,24 @@ static void secure_group_chat_room_with_client_restart_and_server_restarted_befo
 	group_chat_room_with_client_restart_base(true, true, false);
 }
 
-static void secure_group_chat_room_with_invite_error() {
-	group_chat_room_with_sip_errors_base(true, false, true);
+static void secure_group_chat_room_with_invite_error_organizer() {
+	group_chat_room_with_sip_errors_base(true, false, true, true);
 }
 
-static void secure_group_chat_room_with_subscribe_error() {
-	group_chat_room_with_sip_errors_base(false, true, true);
+static void secure_group_chat_room_with_subscribe_error_organizer() {
+	group_chat_room_with_sip_errors_base(false, true, true, true);
+}
+
+static void secure_group_chat_room_with_invite_error_participant() {
+	group_chat_room_with_sip_errors_base(true, false, true, false);
+}
+
+static void secure_group_chat_room_with_subscribe_error_participant() {
+	group_chat_room_with_sip_errors_base(false, true, true, false);
+}
+
+void secure_group_chat_room_with_focus_shutdown_during_invitation() {
+	group_chat_room_with_focus_shutdown_during_invitation_base(true);
 }
 
 static void secure_chat_rooms_with_deletion_spaced_out() {
@@ -2955,12 +2967,6 @@ static test_t local_conference_secure_chat_tests[] = {
         LinphoneTest::secure_group_chat_room_with_client_restart_and_server_restarted_before_participant_addition,
         "LimeX3DH",
         "LeaksMemory"), /* beacause of coreMgr restart*/
-    TEST_ONE_TAG("Secure group chat with INVITE session error",
-                 LinphoneTest::secure_group_chat_room_with_invite_error,
-                 "LimeX3DH"),
-    TEST_ONE_TAG("Secure group chat with SUBSCRIBE session error",
-                 LinphoneTest::secure_group_chat_room_with_subscribe_error,
-                 "LimeX3DH"),
     TEST_TWO_TAGS("Secure chat with deletion spaced out",
                   LinphoneTest::secure_chat_rooms_with_deletion_spaced_out,
                   "LimeX3DH",
@@ -3057,21 +3063,42 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_one_on_one_chat_room_with_client_removed_from_server_chatroom_only,
                   "LimeX3DH",
                   "LeaksMemory"),
-    TEST_NO_TAG("Secure group chat with client removed and then reinvited",
-                LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted),
-    TEST_NO_TAG("Secure group chat with client removed and then reinvited after database corruption",
-                LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption),
+    TEST_ONE_TAG("Secure group chat with client removed and then reinvited",
+                 LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with client removed and then reinvited after database corruption",
+                 LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption,
+                 "LimeX3DH"),
     TEST_ONE_TAG("Secure one on one chat room deleted before 200Ok",
                  LinphoneTest::secure_one_on_one_chat_room_deleted_before_200ok,
                  "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("Secure one on one chat room deleted before 200Ok with server restart",
                  LinphoneTest::secure_one_on_one_chat_room_deleted_before_200ok_with_server_restart,
                  "LeaksMemory" /*due to core restart*/),
-    TEST_ONE_TAG(
+    TEST_TWO_TAGS(
         "Secure group chat with client removed and then reinvited after database corruption and core restart",
         LinphoneTest::
             secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption_and_core_restart,
+        "LimeX3DH",
         "LeaksMemory" /*due to core restart*/)};
+
+static test_t local_conference_secure_chat_error_tests[] = {
+    TEST_ONE_TAG("Secure group chat with INVITE session error (organizer)",
+                 LinphoneTest::secure_group_chat_room_with_invite_error_organizer,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with SUBSCRIBE session error (organizer)",
+                 LinphoneTest::secure_group_chat_room_with_subscribe_error_organizer,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with INVITE session error (participant)",
+                 LinphoneTest::secure_group_chat_room_with_invite_error_participant,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with SUBSCRIBE session error (participant)",
+                 LinphoneTest::secure_group_chat_room_with_subscribe_error_participant,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with focus shutdown during invitation",
+                 LinphoneTest::secure_group_chat_room_with_focus_shutdown_during_invitation,
+                 "LimeX3DH"),
+};
 
 test_suite_t local_conference_test_suite_secure_chat = {
     "Local conference tester (Secure Chat)",
@@ -3082,5 +3109,17 @@ test_suite_t local_conference_test_suite_secure_chat = {
     sizeof(local_conference_secure_chat_tests) / sizeof(local_conference_secure_chat_tests[0]),
     local_conference_secure_chat_tests,
     0,
+    2 /*cpu_weight : chat uses more resources due to core restarts */
+};
+
+test_suite_t local_conference_test_suite_secure_chat_error = {
+    "Local conference tester (Secure Chat Error)",
+    NULL,
+    NULL,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(local_conference_secure_chat_error_tests) / sizeof(local_conference_secure_chat_error_tests[0]),
+    local_conference_secure_chat_error_tests,
+    430,
     2 /*cpu_weight : chat uses more resources due to core restarts */
 };
