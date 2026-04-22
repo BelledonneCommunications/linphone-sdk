@@ -38,7 +38,8 @@ function(linphone_sdk_get_inherited_cmake_args OUTPUT_CONFIGURE_ARGS_VAR OUTPUT_
 	endif()
 	if(CMAKE_GENERATOR STREQUAL "Ninja Multi-Config" OR CMAKE_GENERATOR STREQUAL "Xcode" OR CMAKE_GENERATOR MATCHES "^Visual Studio")
 		list(APPEND _CMAKE_BUILD_ARGS "--config $<CONFIG>")
-	elseif(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "")
+	endif()
+	if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "")
 		list(APPEND _CMAKE_CONFIGURE_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 	endif()
 
