@@ -285,8 +285,8 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 								}
 								cgcr->enableEphemeral(lifetime, notReadLifetime, false, false);
 								if (!isFullState) {
-									conference->notifyEphemeralMessageEnabled(
-									    creationTime, isFullState, cgcr->ephemeralEnabled());
+									conference->notifyEphemeralMessageEnabled(creationTime, isFullState,
+									                                          cgcr->ephemeralEnabled());
 									conference->notifyEphemeralLifetimeChanged(
 									    creationTime, isFullState,
 									    cgcr->getCurrentParams()->getChatParams()->getEphemeralLifetime(),

@@ -100,8 +100,6 @@ public:
 	 * however it is possible to override it using this method.*/
 	void overridePrivacy(LinphonePrivacyMask privacy);
 
-	void setUnrefWhenTerminated(bool unrefWhenTerminated);
-
 	virtual void unpublish() = 0;
 
 	void release();
@@ -125,7 +123,6 @@ protected:
 	int mExpires;
 
 	bool mInternal = false;
-	bool mUnrefWhenTerminated = false;
 
 private:
 	mutable LinphoneErrorInfo *mEi = nullptr;

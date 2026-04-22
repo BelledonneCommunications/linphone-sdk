@@ -9711,7 +9711,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_basic = {
         sizeof(local_conference_scheduled_conference_basic_tests[0]),
     local_conference_scheduled_conference_basic_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_advanced = {
@@ -9724,7 +9724,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_advanced = {
         sizeof(local_conference_scheduled_conference_advanced_tests[0]),
     local_conference_scheduled_conference_advanced_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_audio_only_participant = {
@@ -9737,7 +9737,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_audio_only_partici
         sizeof(local_conference_scheduled_conference_audio_only_participant_tests[0]),
     local_conference_scheduled_conference_audio_only_participant_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_with_screen_sharing = {
@@ -9750,7 +9750,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_with_screen_sharin
         sizeof(local_conference_scheduled_conference_with_screen_sharing_tests[0]),
     local_conference_scheduled_conference_with_screen_sharing_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_with_chat = {
@@ -9763,7 +9763,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_with_chat = {
         sizeof(local_conference_scheduled_conference_with_chat_tests[0]),
     local_conference_scheduled_conference_with_chat_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_with_chat_anonymous_participants = {
@@ -9776,5 +9776,5 @@ test_suite_t local_conference_test_suite_scheduled_conference_with_chat_anonymou
         sizeof(local_conference_scheduled_conference_with_chat_anonymous_participants_tests[0]),
     local_conference_scheduled_conference_with_chat_anonymous_participants_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };

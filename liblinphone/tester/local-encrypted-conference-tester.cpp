@@ -1770,7 +1770,7 @@ test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_confere
         sizeof(local_conference_end_to_end_encryption_scheduled_conference_tests[0]),
     local_conference_end_to_end_encryption_scheduled_conference_tests,
     0,
-    4};
+    6};
 
 test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_conference_audio_only_participant = {
     "Local conference tester (Audio only participants End to end encryption)",
@@ -1782,7 +1782,7 @@ test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_confere
         sizeof(local_conference_end_to_end_encryption_scheduled_conference_audio_only_participant_tests[0]),
     local_conference_end_to_end_encryption_scheduled_conference_audio_only_participant_tests,
     0,
-    4};
+    6};
 
 test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_conference_with_chat = {
     "Local conference tester (End to end encryption Conference with chat)",
@@ -1794,7 +1794,7 @@ test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_confere
         sizeof(local_conference_end_to_end_encryption_scheduled_conference_with_chat_tests[0]),
     local_conference_end_to_end_encryption_scheduled_conference_with_chat_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    6 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_end_to_end_encryption_impromptu_conference = {
@@ -1807,4 +1807,4 @@ test_suite_t local_conference_test_suite_end_to_end_encryption_impromptu_confere
         sizeof(local_conference_end_to_end_encryption_impromptu_conference_tests[0]),
     local_conference_end_to_end_encryption_impromptu_conference_tests,
     0,
-    4};
+    6};

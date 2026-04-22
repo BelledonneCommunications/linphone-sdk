@@ -213,7 +213,7 @@ void EventSubscribe::setState(LinphoneSubscriptionState state) {
 		        << linphone_subscription_state_to_string(mSubscriptionState) << "] to ["
 		        << linphone_subscription_state_to_string(state) << "]";
 		mSubscriptionState = state;
-		ref();
+		auto ref = getSharedFromThis();
 		try {
 			linphone_core_notify_subscription_state_changed(getCore()->getCCore(), this->toC(), state);
 		} catch (const bad_weak_ptr &) {
@@ -222,7 +222,6 @@ void EventSubscribe::setState(LinphoneSubscriptionState state) {
 		if (state == LinphoneSubscriptionTerminated || state == LinphoneSubscriptionError) {
 			release();
 		}
-		unref();
 	}
 }
 

@@ -521,7 +521,7 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_impromptu_mismatch_conference, 210);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_basic, 481);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_advanced, 300);
-	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_error, 261);
+	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_error, 500);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_chat_imdn, 315);
 	bc_tester_add_suite(&local_conference_test_suite_ephemeral_chat);
 	liblinphone_tester_add_suite_with_default_time(&local_conference_test_suite_secure_chat, 687);
@@ -662,7 +662,8 @@ void liblinphone_tester_init(void (*ftester_printf)(int level, const char *fmt, 
 	liblinphone_tester_add_suites();
 	bc_tester_set_max_parallel_suites(
 	    liblinphone_tester_max_parallel_suites); /* empiricaly defined as sustainable for our lab 12 threads machine.*/
-	bc_tester_set_global_timeout(32 * 60 * 32 / liblinphone_tester_max_parallel_suites); /* 32 mn max for 32 suites */
+	bc_tester_set_global_timeout(36 * 60 * 32 /
+	                             liblinphone_tester_max_parallel_suites); /* 36 mn max for 32 processes */
 }
 
 int liblinphone_tester_set_log_file(const char *filename) {

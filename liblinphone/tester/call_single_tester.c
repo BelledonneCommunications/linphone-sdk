@@ -991,9 +991,16 @@ static void call_outbound_using_secondary_account(void) {
 
 	// Since call was made with secondary account,
 	// we should not have any changes when removing the primary account
-	size_t oldLogsCount = bctbx_list_size(linphone_core_get_call_logs(marie->lc));
-	linphone_core_remove_account_with_data(marie->lc, linphone_core_get_default_account(marie->lc));
-	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == oldLogsCount);
+	size_t old_logs_count = bctbx_list_size(linphone_core_get_call_logs(marie->lc));
+	LinphoneAccount *marie_default_account = linphone_core_get_default_account(marie->lc);
+	bctbx_list_t *marie_default_account_logs = linphone_account_get_call_logs(marie_default_account);
+	size_t marie_default_account_logs_count = bctbx_list_size(marie_default_account_logs);
+	bctbx_list_free_with_data(marie_default_account_logs, (bctbx_list_free_func)linphone_call_log_unref);
+	linphone_core_remove_account_with_data(marie->lc, marie_default_account);
+	// The number of call logs held by the core is the old count minus the number of call logs linked to the removed
+	// account
+	BC_ASSERT_EQUAL(bctbx_list_size(linphone_core_get_call_logs(marie->lc)),
+	                (old_logs_count - marie_default_account_logs_count), size_t, "%zu");
 
 end:
 	linphone_core_manager_destroy(marie);
@@ -2239,7 +2246,7 @@ static void cancelled_ringing_call(void) {
 
 	call_history = linphone_core_get_call_history(marie->lc);
 	if (BC_ASSERT_PTR_NOT_NULL(call_history)) {
-		BC_ASSERT_EQUAL((int)bctbx_list_size(call_history), 1, int, "%i");
+		BC_ASSERT_EQUAL(bctbx_list_size(call_history), 1, size_t, "%zu");
 		LinphoneCallLog *call_log = (LinphoneCallLog *)bctbx_list_get_data(call_history);
 		BC_ASSERT_EQUAL(linphone_call_log_get_status(call_log), LinphoneCallMissed, LinphoneCallStatus, "%i");
 		// Make sure the call log duration is 0 as the call wasn't connected
@@ -5847,7 +5854,7 @@ static void incoming_invite_with_invalid_sdp(void) {
 	BC_ASSERT_EQUAL(callee->stat.number_of_LinphoneCallIncomingReceived, 0, int, "%d");
 
 	logs = linphone_core_get_call_logs(callee->lc);
-	BC_ASSERT_EQUAL((int)bctbx_list_size(logs), 1, int, "%i");
+	BC_ASSERT_EQUAL(bctbx_list_size(logs), 1, size_t, "%zu");
 	if (logs) {
 		const LinphoneErrorInfo *ei;
 		cl = (LinphoneCallLog *)logs->data;
