@@ -3663,7 +3663,7 @@ void ServerConference::setParticipantDeviceState(BCTBX_UNUSED(const shared_ptr<P
 			if (auto db = getCore()->getDatabase()) {
 				db.value().get()->updateChatRoomParticipantDevice(chatRoom, device);
 			}
-			const auto participant = findParticipant(deviceAddress);
+			const auto participant = device->getParticipant();
 			switch (state) {
 				case ParticipantDevice::State::ScheduledForLeaving:
 				case ParticipantDevice::State::Leaving:

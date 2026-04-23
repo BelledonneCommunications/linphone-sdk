@@ -1167,7 +1167,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 						        << ". Try to create a new session to make sure the server really takes the client out "
 						           "of the chatroom";
 						auto session = createSession();
-						session->startInvite(nullptr, "", nullptr);
+						session->startInvite(nullptr, getUtf8Subject(), nullptr);
 						setMainSession(session);
 					} else {
 						// Go to state TerminationFailed and then back to Created since it has not been terminated
@@ -2463,7 +2463,7 @@ void ClientConference::join(const std::shared_ptr<Address> &) {
 			// Do not start a new INVITE if the session is still establishing
 			if ((mState != ConferenceInterface::State::TerminationPending) &&
 			    (sessionState == CallSession::State::Idle)) {
-				session->startInvite(nullptr, "", nullptr);
+				session->startInvite(nullptr, getUtf8Subject(), nullptr);
 			} else {
 				setState(ConferenceInterface::State::Created);
 			}
@@ -2511,7 +2511,7 @@ void ClientConference::leave(BCTBX_UNUSED(const LinphoneReason reason)) {
 			// No need to create a session if the creation already failed
 			mExitReason = reason;
 			session = createSession();
-			session->startInvite(nullptr, "", nullptr);
+			session->startInvite(nullptr, getUtf8Subject(), nullptr);
 		}
 		setState(ConferenceInterface::State::TerminationPending);
 		if (!session) {
