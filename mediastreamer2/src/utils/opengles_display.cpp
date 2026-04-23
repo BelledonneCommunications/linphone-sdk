@@ -961,6 +961,7 @@ void ogl_display_free_and_nullify(struct opengles_display **gldisp) {
 		ms_error("[ogl_display]:%p %s called with null struct opengles_display", (*gldisp), __FUNCTION__);
 		return;
 	}
+	ms_message("[ogl_display]:%p %s\n", *gldisp, __FUNCTION__);
 
 	for (i = 0; i < MAX_IMAGE; i++) {
 		if ((*gldisp)->yuv[i]) {
