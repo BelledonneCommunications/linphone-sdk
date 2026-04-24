@@ -137,9 +137,8 @@ The <i>sip</i> section represents a general configuration for SIP.
 	<table>
 		<caption id="video_parameters">Video parameters</caption>
 		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable video</td></tr>
-		<tr><td>capture</td><td>string</td><td>camera name</td><td>default</td><td>Video capture device</td></tr>
-		<tr><td>display</td><td>string</td><td>display name</td><td>default</td><td>Video display device</td></tr>
+		<tr><td>capture</td><td>integer</td><td>0 or 1</td><td>1</td><td>\copybrief linphone_core_enable_video_capture</td></tr>
+		<tr><td>display</td><td>integer</td><td>0 or 1</td><td>1</td><td>\copybrief linphone_core_enable_video_display</td></tr>
 		<tr><td>size</td><td>string</td><td>qcif, cif, vga, hd720</td><td>vga</td><td>Video resolution</td></tr>
 		<tr><td>framerate</td><td>integer</td><td>1-60 (fps)</td><td>30</td><td>Video framerate</td></tr>
 		<tr><td>bitrate</td><td>integer</td><td>64–10000 (kbps)</td><td>1024</td><td>Video bitrate</td></tr>
