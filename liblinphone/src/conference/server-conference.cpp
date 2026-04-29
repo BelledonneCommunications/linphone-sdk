@@ -192,7 +192,7 @@ void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
 				if (auto db = getCore()->getDatabase()) {
 					lInfo() << "Inserting new conference information to database in order to be able to recreate "
 					        << *this << " in case of restart";
-					db.value().get()->insertConferenceInfo(conferenceInfo);
+					db.value().get().insertConferenceInfo(conferenceInfo);
 				}
 			}
 		}
@@ -395,7 +395,7 @@ void ServerConference::updateConferenceInformation() {
 	if (auto db = getCore()->getDatabase()) {
 		lInfo() << "Inserting updated conference information to database in order to be able to recreate " << *this
 		        << " in case of restart";
-		mConferenceInfoId = db.value().get()->insertConferenceInfo(conferenceInfo);
+		mConferenceInfoId = db.value().get().insertConferenceInfo(conferenceInfo);
 	}
 }
 
@@ -442,7 +442,7 @@ void ServerConference::updateConferenceParams(SalCallOp *op) {
 std::pair<bool, std::shared_ptr<Address>> ServerConference::configure(SalCallOp *op) {
 	std::shared_ptr<ConferenceInfo> info = nullptr;
 	if (auto db = getCore()->getDatabase()) {
-		info = db.value().get()->getConferenceInfoFromURI(Address::create(op->getTo()));
+		info = db.value().get().getConferenceInfoFromURI(Address::create(op->getTo()));
 	}
 
 	// The participant is admin if:
@@ -690,11 +690,11 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 		shared_ptr<ConferenceParticipantDeviceEvent> deviceEvent =
 		    notifyParticipantDeviceAdded(time(nullptr), false, participant, device);
 		if (db) {
-			db.value().get()->addEvent(deviceEvent);
+			db.value().get().addEvent(deviceEvent);
 			if (getCurrentParams()->isGroup()) {
 				shared_ptr<ConferenceParticipantEvent> adminEvent =
 				    notifyParticipantSetAdmin(time(nullptr), false, participant, true);
-				db.value().get()->addEvent(adminEvent);
+				db.value().get().addEvent(adminEvent);
 			}
 		}
 	} else {
@@ -713,7 +713,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 			if (db) {
 				shared_ptr<ConferenceParticipantEvent> event =
 				    notifyParticipantAdded(time(nullptr), false, participant);
-				db.value().get()->addEvent(event);
+				db.value().get().addEvent(event);
 			}
 			if (serverGroupChatRoom) {
 				const std::list<std::shared_ptr<const Address>> participantAddress{from};
@@ -961,7 +961,7 @@ void ServerConference::confirmCreation() {
 			if (auto db = getCore()->getDatabase()) {
 				lInfo() << "Inserting conference information to database in order to be able to recreate " << *this
 				        << " in case of restart";
-				mConferenceInfoId = db.value().get()->insertConferenceInfo(conferenceInfo);
+				mConferenceInfoId = db.value().get().insertConferenceInfo(conferenceInfo);
 			}
 		}
 #endif // HAVE_DB_STORAGE
@@ -1051,7 +1051,7 @@ void ServerConference::finalizeCreation() {
 
 		auto db = getCore()->getDatabase();
 		if (db && (linphone_core_get_global_state(getCore()->getCCore()) == LinphoneGlobalOn)) {
-			info = db.value().get()->getConferenceInfoFromURI(getConferenceAddress());
+			info = db.value().get().getConferenceInfoFromURI(getConferenceAddress());
 		}
 		const bool createdConference = (info && info->isValidUri());
 		if (createdConference) {
@@ -1088,7 +1088,7 @@ void ServerConference::finalizeCreation() {
 					if (db) {
 						lInfo() << "Inserting conference information to database in order to be able to recreate "
 						        << *this << " in case of restart";
-						mConferenceInfoId = db.value().get()->insertConferenceInfo(conferenceInfo);
+						mConferenceInfoId = db.value().get().insertConferenceInfo(conferenceInfo);
 					}
 				}
 #endif // HAVE_DB_STORAGE
@@ -1173,7 +1173,7 @@ void ServerConference::subscribeReceived(const shared_ptr<EventSubscribe> &event
 	if (chatEnabled && chatRoom) {
 		// Store last notify ID in the database
 		if (auto db = getCore()->getDatabase()) {
-			db.value().get()->insertChatRoom(chatRoom, getLastNotify());
+			db.value().get().insertChatRoom(chatRoom, getLastNotify());
 		}
 	}
 #endif // HAVE_ADVANCED_IM
@@ -1319,14 +1319,14 @@ ServerConference::notifyParticipantDeviceStateChanged(time_t creationTime,
 				[[maybe_unused]] auto conferenceInfo = createOrGetConferenceInfo();
 				if (db) {
 					conferenceInfo->setExpiryTime(newExpiryTime);
-					db.value().get()->insertConferenceInfo(conferenceInfo);
+					db.value().get().insertConferenceInfo(conferenceInfo);
 				}
 			}
 		}
 	}
 
 	if (mConfParams->chatEnabled() && db) {
-		db.value().get()->addEvent(event);
+		db.value().get().addEvent(event);
 	}
 	return event;
 }
@@ -1342,7 +1342,7 @@ shared_ptr<ConferenceParticipantDeviceEvent> ServerConference::notifyParticipant
 	                                                                       participantDevice);
 #ifdef HAVE_DB_STORAGE
 	if (mConfParams->chatEnabled()) {
-		if (auto db = getCore()->getDatabase()) db.value().get()->addEvent(event);
+		if (auto db = getCore()->getDatabase()) db.value().get().addEvent(event);
 	}
 #endif // HAVE_DB_STORAGE
 	return event;
@@ -1881,7 +1881,7 @@ shared_ptr<Participant> ServerConference::addParticipantToList(BCTBX_UNUSED(cons
 			[[maybe_unused]] shared_ptr<ConferenceParticipantEvent> event =
 			    notifyParticipantAdded(time(nullptr), false, participant);
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->addEvent(event);
+				db.value().get().addEvent(event);
 			}
 		}
 	}
@@ -2095,7 +2095,7 @@ bool ServerConference::addParticipant(const std::shared_ptr<Call> call) {
 
 					auto db = getCore()->getDatabase();
 					if (success && conferenceAddress && db) {
-						auto conferenceInfo = db.value().get()->getConferenceInfoFromURI(conferenceAddress);
+						auto conferenceInfo = db.value().get().getConferenceInfoFromURI(conferenceAddress);
 						if (conferenceInfo) {
 							const auto &organizerAddress = conferenceInfo->getOrganizerAddress();
 							if (organizerAddress && organizerAddress->weakEqual(*participant->getAddress())) {
@@ -2332,7 +2332,7 @@ void ServerConference::addParticipantDevice(BCTBX_UNUSED(const shared_ptr<Partic
 			[[maybe_unused]] shared_ptr<ConferenceParticipantDeviceEvent> event =
 			    notifyParticipantDeviceAdded(time(nullptr), false, participant, device);
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->addEvent(event);
+				db.value().get().addEvent(event);
 			}
 
 			if ((serverGroupChatRoom->getProtocolVersion() < Utils::Version(1, 1)) && !getCurrentParams()->isGroup() &&
@@ -2594,7 +2594,7 @@ bool ServerConference::removeParticipant(const std::shared_ptr<Participant> &par
 			    notifyParticipantRemoved(creationTime, false, participant);
 			auto db = getCore()->getDatabase();
 			if (db) {
-				db.value().get()->addConferenceParticipantEventToDb(event);
+				db.value().get().addConferenceParticipantEventToDb(event);
 			}
 
 			serverGroupChatRoom->removeQueuedParticipantMessages(participant);
@@ -2609,7 +2609,7 @@ bool ServerConference::removeParticipant(const std::shared_ptr<Participant> &par
 				           "associated to it, unsubscribing";
 				serverGroupChatRoom->unSubscribeRegistrationForParticipant(participant->getAddress());
 				if (db) {
-					db.value().get()->deleteChatRoomParticipant(serverGroupChatRoom, participant->getAddress());
+					db.value().get().deleteChatRoomParticipant(serverGroupChatRoom, participant->getAddress());
 				}
 			}
 
@@ -2629,7 +2629,7 @@ LinphoneStatus ServerConference::setParticipantAdminStatus(const shared_ptr<Part
 		const auto &chatRoom = getChatRoom();
 		if (mConfParams->chatEnabled() && chatRoom && mConfParams->isGroup()) {
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->addEvent(event);
+				db.value().get().addEvent(event);
 			}
 		}
 	}
@@ -2716,7 +2716,7 @@ void ServerConference::setUtf8Subject(const std::string &subject) {
 		[[maybe_unused]] auto event = notifySubjectChanged(creationTime, false, getUtf8Subject());
 		if (isChatOnly()) {
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->addEvent(event);
+				db.value().get().addEvent(event);
 			}
 		}
 	}
@@ -3631,7 +3631,7 @@ void ServerConference::removeParticipantDevice(BCTBX_UNUSED(const shared_ptr<Par
 		[[maybe_unused]] auto deviceEvent =
 		    notifyParticipantDeviceRemoved(time(nullptr), false, participant, participantDevice);
 		if (auto db = getCore()->getDatabase()) {
-			db.value().get()->addEvent(deviceEvent);
+			db.value().get().addEvent(deviceEvent);
 		}
 
 		// First set it as left, so that it may eventually trigger the destruction of the chatroom if no device are
@@ -3661,7 +3661,7 @@ void ServerConference::setParticipantDeviceState(BCTBX_UNUSED(const shared_ptr<P
 			lInfo() << *this << ": Set " << *device << " state to " << state;
 			device->setState(state, notify);
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->updateChatRoomParticipantDevice(chatRoom, device);
+				db.value().get().updateChatRoomParticipantDevice(chatRoom, device);
 			}
 			const auto participant = device->getParticipant();
 			switch (state) {
@@ -3712,7 +3712,7 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 				lInfo() << *this << ": " << *participant << " has been removed and the last device left, unsubscribing";
 				serverGroupChatRoom->unSubscribeRegistrationForParticipant(participant->getAddress());
 				if (db) {
-					db.value().get()->deleteChatRoomParticipant(serverGroupChatRoom, participant->getAddress());
+					db.value().get().deleteChatRoomParticipant(serverGroupChatRoom, participant->getAddress());
 				}
 			}
 		}
@@ -3768,7 +3768,7 @@ void ServerConference::onParticipantDeviceLeft(BCTBX_UNUSED(const std::shared_pt
 				// retrieved in the future
 				lInfo() << "Delete " << *this << " from MainDB as last participant has left";
 				if (db) {
-					db.value().get()->deleteChatRoom(getConferenceId());
+					db.value().get().deleteChatRoom(getConferenceId());
 				}
 				if (getState() != ConferenceInterface::State::TerminationPending) {
 					setState(ConferenceInterface::State::TerminationPending);
@@ -3953,7 +3953,7 @@ void ServerConference::conclude() {
 				// This is necessary for protocol version < 1.1, and for backward compatibility in case these prior
 				// versions are subsequently used by device that gets joined to the chatroom.
 				if (auto db = getCore()->getDatabase()) {
-					db.value().get()->insertOneOnOneConferenceChatRoom(
+					db.value().get().insertOneOnOneConferenceChatRoom(
 					    chatRoom, getCurrentParams()->getChatParams()->isEncrypted());
 				}
 			}

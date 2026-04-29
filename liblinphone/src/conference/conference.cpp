@@ -1607,9 +1607,9 @@ std::shared_ptr<ConferenceInfo> Conference::createOrGetConferenceInfo() const {
 	if (isChatOnly()) return mConferenceInfo;
 	if (auto db = getCore()->getDatabase()) {
 		if (mConferenceInfoId == -1) {
-			mConferenceInfo = db.value().get()->getConferenceInfoFromURI(getConferenceAddress());
+			mConferenceInfo = db.value().get().getConferenceInfoFromURI(getConferenceAddress());
 		} else {
-			mConferenceInfo = db.value().get()->getConferenceInfo(mConferenceInfoId);
+			mConferenceInfo = db.value().get().getConferenceInfo(mConferenceInfoId);
 		}
 	}
 
@@ -1747,7 +1747,7 @@ void Conference::updateSecurityLevelInConferenceInfo(const ConferenceParams::Sec
 			if (auto db = getCore()->getDatabase()) {
 				lInfo() << "Updating conference information of " << *this
 				        << " because its security level has been changed to " << level;
-				db.value().get()->insertConferenceInfo(info);
+				db.value().get().insertConferenceInfo(info);
 			}
 		}
 	}
@@ -1766,7 +1766,7 @@ void Conference::updateSubjectInConferenceInfo(const std::string &subject) const
 			if (auto db = getCore()->getDatabase()) {
 				lInfo() << "Updating conference information of " << *this << " because its subject has been changed to "
 				        << subject;
-				db.value().get()->insertConferenceInfo(info);
+				db.value().get().insertConferenceInfo(info);
 			}
 		}
 	}
@@ -1792,7 +1792,7 @@ void Conference::updateParticipantRoleInConferenceInfo(const std::shared_ptr<Par
 				if (auto db = getCore()->getDatabase()) {
 					lInfo() << "Updating conference information of " << *this << " because the role of participant "
 					        << *address << " changed to " << newRole;
-					db.value().get()->insertConferenceInfo(info);
+					db.value().get().insertConferenceInfo(info);
 				}
 			} else {
 				lError() << "Unable to update role of participant " << *address << " to " << newRole
@@ -1849,7 +1849,7 @@ void Conference::updateParticipantInConferenceInfo(const std::shared_ptr<Partici
 			if (db && update) {
 				lInfo() << "Updating conference information of " << *this << " because participant "
 				        << *participantAddress << " has been added or has modified its informations";
-				db.value().get()->insertConferenceInfo(info);
+				db.value().get().insertConferenceInfo(info);
 			}
 		}
 	}

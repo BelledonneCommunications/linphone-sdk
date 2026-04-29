@@ -6148,7 +6148,32 @@ static void group_chat_lime_x3dh_edit_and_retract_sent_message(void) {
 	}
 }
 
-static void group_chat_lime_x3dh_edit_sent_message_with_file_base(const LinphoneTesterLimeAlgo curveId) {
+/* Check that where chatroom's history is deleted, file content from download path are also removed */
+static void check_chatroom_clearing(LinphoneChatRoom *cr, const char *filepath_to_check, bool_t expect_removal) {
+	LinphoneCore *lc = linphone_chat_room_get_core(cr);
+	LinphoneConfig *config = linphone_core_get_config(lc);
+	if (filepath_to_check) {
+		BC_ASSERT_TRUE(bctbx_file_exist(filepath_to_check) == 0);
+	}
+	linphone_chat_room_delete_history(cr);
+	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(cr), 0, int, "%i");
+	if (filepath_to_check) {
+		/* ensure consistency between config database and API */
+		int delete_files = linphone_config_get_int(config, "chat", "delete_contents", 0);
+		BC_ASSERT_EQUAL(delete_files, (int)linphone_core_chat_message_files_deletion_enabled(lc), int, "%i");
+		if (!delete_files) expect_removal = FALSE;
+		if (expect_removal) {
+			BC_ASSERT_FALSE(bctbx_file_exist(filepath_to_check) == 0);
+		} else {
+			BC_ASSERT_TRUE(bctbx_file_exist(filepath_to_check) == 0);
+		}
+	}
+}
+
+typedef enum _FileDeletionMode { DoNotDelete, DeleteFromClearHistory, DeleteFromChatRoomDeletion } FileDeletionMode;
+
+static void group_chat_lime_x3dh_edit_sent_message_with_file_base(const LinphoneTesterLimeAlgo curveId,
+                                                                  FileDeletionMode fileDeletionMode) {
 	LinphoneCoreManager *marie = linphone_core_manager_create("marie_rc");
 	LinphoneCoreManager *pauline = linphone_core_manager_create("pauline_rc");
 	bctbx_list_t *coresManagerList = NULL;
@@ -6192,6 +6217,13 @@ static void group_chat_lime_x3dh_edit_sent_message_with_file_base(const Linphone
 	linphone_account_params_set_instant_messaging_encryption_mandatory(marie_params, TRUE);
 	linphone_account_set_params(marie_account, marie_params);
 	linphone_account_params_unref(marie_params);
+
+	linphone_core_enable_chat_message_files_deletion(marie->lc, fileDeletionMode != DoNotDelete);
+	linphone_core_enable_chat_message_files_deletion(pauline->lc, fileDeletionMode != DoNotDelete);
+	bctbx_list_t *authorized_directories = bctbx_list_append(NULL, bctbx_strdup("./"));
+	linphone_core_set_chat_message_files_directories(marie->lc, authorized_directories);
+	linphone_core_set_chat_message_files_directories(pauline->lc, authorized_directories);
+	bctbx_list_free_with_data(authorized_directories, bctbx_free);
 
 	// Marie creates a new group chat room
 	const char *initialSubject = "Friends";
@@ -6322,15 +6354,30 @@ static void group_chat_lime_x3dh_edit_sent_message_with_file_base(const Linphone
 		}
 	}
 
+	if (fileDeletionMode == DeleteFromClearHistory) {
+		/* marie is the sender, its file is taken from resource directory, so shall not be removed */
+		check_chatroom_clearing(marieCr, sendFilepath, FALSE);
+		/* pauline is the recipient, its file is written into download directory, so shall be removed */
+		check_chatroom_clearing(paulineCr, receivePaulineFilepath, TRUE);
+	}
+
 	linphone_chat_message_unref(sentMessage);
+
 end:
-	remove(receivePaulineFilepath);
-	bc_free(receivePaulineFilepath);
-	bc_free(sendFilepath);
 
 	// Clean db from chat room
 	linphone_core_manager_delete_chat_room(marie, marieCr, coresList);
 	linphone_core_manager_delete_chat_room(pauline, paulineCr, coresList);
+	if (fileDeletionMode == DeleteFromChatRoomDeletion) {
+		BC_ASSERT_TRUE(bctbx_file_exist(sendFilepath) == 0);
+		BC_ASSERT_FALSE(bctbx_file_exist(receivePaulineFilepath) == 0);
+	} else if (fileDeletionMode == DoNotDelete) {
+		BC_ASSERT_TRUE(bctbx_file_exist(receivePaulineFilepath) == 0);
+	}
+
+	remove(receivePaulineFilepath);
+	bc_free(receivePaulineFilepath);
+	bc_free(sendFilepath);
 
 	bctbx_list_free(coresList);
 	bctbx_list_free(coresManagerList);
@@ -6340,12 +6387,12 @@ end:
 
 static void group_chat_lime_x3dh_edit_sent_message_with_file(void) {
 	if (liblinphone_tester_is_lime_PQ_available()) {
-		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519K512);
-		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519MLK512);
-		group_chat_lime_x3dh_edit_sent_message_with_file_base(C448MLK1024);
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519K512, DoNotDelete);
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519MLK512, DeleteFromChatRoomDeletion);
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C448MLK1024, DeleteFromClearHistory);
 	} else {
-		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519);
-		group_chat_lime_x3dh_edit_sent_message_with_file_base(C448);
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C25519, DoNotDelete);
+		group_chat_lime_x3dh_edit_sent_message_with_file_base(C448, DeleteFromChatRoomDeletion);
 	}
 }
 

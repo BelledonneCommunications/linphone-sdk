@@ -162,7 +162,7 @@ void ClientConference::init(SalCallOp *op, BCTBX_UNUSED(ConferenceListener *conf
 #ifdef HAVE_DB_STORAGE
 	if (conferenceAddress && supportsMedia()) {
 		if (auto db = core->getDatabase()) {
-			conferenceInfo = db.value().get()->getConferenceInfoFromURI(conferenceAddress);
+			conferenceInfo = db.value().get().getConferenceInfoFromURI(conferenceAddress);
 		}
 	}
 #endif // HAVE_DB_STORAGE
@@ -300,7 +300,7 @@ void ClientConference::updateAndSaveConferenceInformations() {
 	// address of the call
 	if (auto db = getCore()->getDatabase()) {
 		lInfo() << "Inserting or updating " << *conferenceInfo << " to database related to " << *this;
-		mConferenceInfoId = db.value().get()->insertConferenceInfo(conferenceInfo);
+		mConferenceInfoId = db.value().get().insertConferenceInfo(conferenceInfo);
 	}
 
 	auto callLog = getMainSession() ? getMainSession()->getLog() : nullptr;
@@ -914,7 +914,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 			           "support";
 
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->deleteConferenceInfo(getConferenceAddress(), false);
+				db.value().get().deleteConferenceInfo(getConferenceAddress(), false);
 			}
 			mConfParams->enableAudio(false);
 			mConfParams->enableVideo(false);
@@ -1599,7 +1599,7 @@ void ClientConference::onParticipantDeviceStateChanged(
 		if (event->getFullState()) return;
 		chatRoom->addEvent(event);
 		if (auto db = getCore()->getDatabase()) {
-			db.value().get()->updateChatRoomParticipantDevice(chatRoom, device);
+			db.value().get().updateChatRoomParticipantDevice(chatRoom, device);
 			_linphone_chat_room_notify_participant_device_state_changed(
 			    chatRoom->toC(), L_GET_C_BACK_PTR(event), (LinphoneParticipantDeviceState)device->getState());
 		}
@@ -2568,7 +2568,7 @@ const std::shared_ptr<Address> ClientConference::getOrganizer() const {
 
 	std::shared_ptr<Address> organizer = nullptr;
 	if (auto db = getCore()->getDatabase()) {
-		const auto &confInfo = db.value().get()->getConferenceInfoFromURI(getConferenceAddress());
+		const auto &confInfo = db.value().get().getConferenceInfoFromURI(getConferenceAddress());
 		// me is admin if the organizer is the same as me
 		if (confInfo) {
 			organizer = confInfo->getOrganizerAddress();
@@ -2894,8 +2894,8 @@ void ClientConference::onCallSessionSetReleased(const shared_ptr<CallSession> &s
 #ifdef HAVE_ADVANCED_IM
 		if (clientGroupChatRoom && clientGroupChatRoom->getDeletionOnTerminationEnabled()) {
 			shared_ptr<Conference> ref = getSharedFromThis();
-			Core::deleteChatRoom(clientGroupChatRoom);
 			clientGroupChatRoom->setDeletionOnTerminationEnabled(false);
+			clientGroupChatRoom->deleteFromDbWithoutLeaving();
 			setState(ConferenceInterface::State::Deleted);
 		}
 #endif // HAVE_ADVANCED_IM

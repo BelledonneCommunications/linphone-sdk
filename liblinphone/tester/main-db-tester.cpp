@@ -101,7 +101,7 @@ public:
 	}
 
 	MainDb &getMainDb() {
-		return *mCoreManager->lc->cppPtr->getDatabase().value().get();
+		return mCoreManager->lc->cppPtr->getDatabase().value().get();
 	}
 
 private:

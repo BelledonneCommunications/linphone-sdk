@@ -92,6 +92,13 @@ public:
 	~ListHolder() {
 		if (mCList) bctbx_list_free(mCList);
 	}
+	static std::list<std::string> buildFromCList(const bctbx_list_t *l) {
+		std::list<std::string> cppList;
+		for (const bctbx_list_t *elem = l; elem != nullptr; elem = elem->next) {
+			cppList.push_back((const char *)elem->data);
+		}
+		return cppList;
+	}
 
 private:
 	mutable bctbx_list_t *mCList = nullptr;

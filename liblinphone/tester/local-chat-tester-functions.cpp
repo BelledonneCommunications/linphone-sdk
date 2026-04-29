@@ -2540,7 +2540,7 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 					    ->getDatabase()
 					    .value()
 					    .get()
-					    ->deleteChatRoomParticipantDevice(chatRoom, device);
+					    .deleteChatRoomParticipantDevice(chatRoom, device);
 				}
 				ClientConference::deleteAllDevices(participant);
 			}
@@ -2871,9 +2871,9 @@ void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,
 				info->setCapability(LinphoneStreamTypeAudio, true);
 				info->setCapability(LinphoneStreamTypeVideo, true);
 				info->setCapability(LinphoneStreamTypeText, false);
-				laure.getDatabase().value().get()->insertConferenceInfo(info);
-				laure.getDatabase().value().get()->insertChatRoom(chatRoom, chatRoom->getConference()->getLastNotify(),
-				                                                  true);
+				laure.getDatabase().value().get().insertConferenceInfo(info);
+				laure.getDatabase().value().get().insertChatRoom(chatRoom, chatRoom->getConference()->getLastNotify(),
+				                                                 true);
 			}
 
 			if (restart_core_after_corruption) {
@@ -3611,7 +3611,7 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 
 		BC_ASSERT_EQUAL(laure.getCore().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 		auto laureMainDb = laure.getDatabase();
-		BC_ASSERT_EQUAL(laureMainDb.value().get()->getChatRooms().size(), nbChatRooms, size_t, "%zu");
+		BC_ASSERT_EQUAL(laureMainDb.value().get().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 
 		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores2{marie, pauline, laure, michelle};
 		for (const ConfCoreManager &core : cores2) {
@@ -3635,7 +3635,7 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 						                   return false;
 					                   }
 					                   auto coreMainDb = core.getDatabase();
-					                   if (coreMainDb.value().get()->getChatMessageCount(chatRoom->getConferenceId()) !=
+					                   if (coreMainDb.value().get().getChatMessageCount(chatRoom->getConferenceId()) !=
 					                       historySize) {
 						                   return false;
 					                   }
@@ -3649,8 +3649,8 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			BC_ASSERT_PTR_NOT_NULL(chatRoom);
 			if (chatRoom) {
 				BC_ASSERT_EQUAL(
-				    laureMainDb.value().get()->getConferenceNotifiedEvents(conferenceId, 0).size(),
-				    laureMainDb.value().get()->getConferenceNotifiedEvents(chatRoom->getConferenceId(), 0).size(),
+				    laureMainDb.value().get().getConferenceNotifiedEvents(conferenceId, 0).size(),
+				    laureMainDb.value().get().getConferenceNotifiedEvents(chatRoom->getConferenceId(), 0).size(),
 				    size_t, "%zu");
 			}
 		}
@@ -3665,8 +3665,8 @@ void group_chat_room_with_duplications_base(bool encrypted) {
 			    });
 			BC_ASSERT_TRUE(oldConferenceIdIt != oldConferenceIds.end());
 			if (oldConferenceIdIt != oldConferenceIds.end()) {
-				BC_ASSERT_EQUAL(laureMainDb.value().get()->getConferenceNotifiedEvents(conferenceId, 0).size(),
-				                laureMainDb.value().get()->getConferenceNotifiedEvents(*oldConferenceIdIt, 0).size(),
+				BC_ASSERT_EQUAL(laureMainDb.value().get().getConferenceNotifiedEvents(conferenceId, 0).size(),
+				                laureMainDb.value().get().getConferenceNotifiedEvents(*oldConferenceIdIt, 0).size(),
 				                size_t, "%zu");
 			}
 		}

@@ -4882,7 +4882,7 @@ bool MainDb::deleteEvent(const shared_ptr<const EventLog> &eventLog) {
 	shared_ptr<Core> core = dEventKey->core.lock();
 	L_ASSERT(core);
 
-	MainDb &mainDb = *core->getDatabase().value().get();
+	MainDb &mainDb = core->getDatabase().value().get();
 
 	return L_DB_TRANSACTION_C(&mainDb) {
 		MainDbPrivate *const d = mainDb.getPrivate();
@@ -4989,7 +4989,7 @@ shared_ptr<EventLog> MainDb::getEventFromKey(const MainDbKey &dbKey) {
 
 	auto db = dbKey.getPrivate()->core.lock()->getDatabase();
 	const long long &eventId = dbKey.getPrivate()->storageId;
-	return db.value().get()->getEvent(eventId);
+	return db.value().get().getEvent(eventId);
 #else
 	return nullptr;
 #endif
@@ -5362,6 +5362,34 @@ void MainDb::setChatMessageParticipantState(const shared_ptr<EventLog> &eventLog
 		d->setChatMessageParticipantState(eventLog, participantAddress, state, stateChangeTime);
 		tr.commit();
 	};
+#endif
+}
+
+list<string> MainDb::getContentPaths(const ConferenceId &conferenceId) const {
+	list<string> paths;
+
+#ifdef HAVE_DB_STORAGE
+	string query =
+	    "SELECT path"
+	    " FROM chat_message_file_content "
+	    " JOIN chat_message_content ON chat_message_content.id = chat_message_file_content.chat_message_content_id "
+	    " JOIN conference_chat_message_event ON conference_chat_message_event.event_id = chat_message_content.event_id"
+	    " JOIN conference_event ON conference_event.event_id = chat_message_content.event_id AND "
+	    " conference_event.chat_room_id = :chatRoomId ";
+
+	return L_DB_TRANSACTION {
+		L_D();
+
+		const long long &chatRoomId = d->selectChatRoomId(conferenceId);
+		soci::rowset<soci::row> rows = (d->dbSession.getBackendSession()->prepare << query, soci::use(chatRoomId));
+		for (const auto &row : rows) {
+			string path = row.get<string>(0);
+			paths.push_back(path);
+		}
+		return paths;
+	};
+#else
+	return paths;
 #endif
 }
 

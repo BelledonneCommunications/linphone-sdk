@@ -1133,8 +1133,8 @@ list<shared_ptr<CallLog>> Account::getCallLogs() const {
 
 	auto localAddress = mParams->mIdentityAddress;
 	if (auto db = getCore()->getDatabase()) {
-		return db.value().get()->getCallHistoryForLocalAddress(localAddress,
-		                                                       linphone_core_get_max_call_logs(getCore()->getCCore()));
+		return db.value().get().getCallHistoryForLocalAddress(localAddress,
+		                                                      linphone_core_get_max_call_logs(getCore()->getCCore()));
 	} else {
 		return list<shared_ptr<CallLog>>();
 	}
@@ -1153,8 +1153,8 @@ list<shared_ptr<CallLog>> Account::getCallLogsForAddress(const std::shared_ptr<c
 
 	auto localAddress = mParams->mIdentityAddress;
 	if (auto db = getCore()->getDatabase()) {
-		return db.value().get()->getCallHistory(remoteAddress, localAddress,
-		                                        linphone_core_get_max_call_logs(getCore()->getCCore()));
+		return db.value().get().getCallHistory(remoteAddress, localAddress,
+		                                       linphone_core_get_max_call_logs(getCore()->getCCore()));
 	} else {
 		return list<shared_ptr<CallLog>>();
 	}
@@ -1173,7 +1173,7 @@ void Account::deleteCallLogs() const {
 
 	auto localAddress = mParams->mIdentityAddress;
 	if (auto db = getCore()->getDatabase()) {
-		db.value().get()->deleteCallHistoryForLocalAddress(localAddress);
+		db.value().get().deleteCallHistoryForLocalAddress(localAddress);
 	}
 }
 
@@ -1190,7 +1190,7 @@ list<shared_ptr<ConferenceInfo>> Account::getConferenceInfos(const std::list<Lin
 
 	auto localAddress = mParams->mIdentityAddress;
 	if (auto db = getCore()->getDatabase()) {
-		mConferenceInfos = db.value().get()->getConferenceInfosWithParticipant(localAddress, capabilities);
+		mConferenceInfos = db.value().get().getConferenceInfosWithParticipant(localAddress, capabilities);
 	}
 
 	const auto ccmpServerUrl = mParams->getCcmpServerUrl();
@@ -2202,7 +2202,7 @@ void Account::handleResponseConferenceInformation(void *ctx, BCTBX_UNUSED(const 
 					account->addConferenceInfo(info);
 
 					if (auto db = account->getCore()->getDatabase()) {
-						db.value().get()->insertConferenceInfo(info);
+						db.value().get().insertConferenceInfo(info);
 					}
 				}
 			} catch (const std::bad_cast &e) {

@@ -919,7 +919,7 @@ void linphone_core_set_friends_database_path(LinphoneCore *lc, const char *path)
 		}
 
 		if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
-			if (db.value().get()->import(LinphonePrivate::MainDb::Sqlite3, path))
+			if (db.value().get().import(LinphonePrivate::MainDb::Sqlite3, path))
 				linphone_core_friends_storage_resync_friends_lists(lc);
 		} else {
 			ms_warning(
@@ -948,9 +948,9 @@ int linphone_core_friends_storage_resync_friends_lists(LinphoneCore *lc) {
 	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
 	if (!db) return 0;
 	// First remove all the orphan friends from the DB (friends that are not in a friend list)
-	db.value().get()->deleteOrphanFriends();
+	db.value().get().deleteOrphanFriends();
 
-	std::list<std::shared_ptr<FriendList>> friendLists = db.value().get()->getFriendLists();
+	std::list<std::shared_ptr<FriendList>> friendLists = db.value().get().getFriendLists();
 	if (!friendLists.empty()) {
 		LinphoneFriendList *default_friend_list = linphone_core_get_default_friend_list(lc);
 		linphone_friend_list_ref(default_friend_list);
@@ -981,7 +981,7 @@ int linphone_core_friends_storage_resync_friends_lists(LinphoneCore *lc) {
 bctbx_list_t *linphone_core_fetch_friends_from_db(LinphoneCore *lc, LinphoneFriendList *list) {
 	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
 	if (!db) return nullptr;
-	std::list<std::shared_ptr<Friend>> friends = db.value().get()->getFriends(FriendList::getSharedFromThis(list));
+	std::list<std::shared_ptr<Friend>> friends = db.value().get().getFriends(FriendList::getSharedFromThis(list));
 	bctbx_list_t *result = nullptr;
 	for (const auto &f : friends) {
 		result = bctbx_list_append(result, linphone_friend_ref(f->toC()));
@@ -993,7 +993,7 @@ bctbx_list_t *linphone_core_fetch_friends_lists_from_db(LinphoneCore *lc) {
 	auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
 	if (!db) return nullptr;
 
-	std::list<std::shared_ptr<FriendList>> friendLists = db.value().get()->getFriendLists();
+	std::list<std::shared_ptr<FriendList>> friendLists = db.value().get().getFriendLists();
 	bctbx_list_t *result = nullptr;
 	for (const auto &l : friendLists) {
 		result = bctbx_list_append(result, linphone_friend_list_ref(l->toC()));

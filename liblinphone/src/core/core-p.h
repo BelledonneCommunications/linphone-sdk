@@ -177,7 +177,7 @@ public:
 	// Cancel task scheduled on the main loop
 	void doLater(const std::function<void()> &something);
 	belle_sip_main_loop_t *getMainLoop();
-	std::optional<std::reference_wrapper<const std::unique_ptr<MainDb>>> getDatabase() const;
+	std::optional<std::reference_wrapper<MainDb>> getDatabase() const;
 	void uninitDatabase();
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	std::unique_ptr<ClientConferenceListEventHandler> clientListEventHandler;

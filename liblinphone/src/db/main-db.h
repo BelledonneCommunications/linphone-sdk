@@ -155,6 +155,8 @@ public:
 	int getMediaContentsSize(const ConferenceId &conferenceId) const;
 	std::list<std::shared_ptr<Content>> getDocumentContents(const ConferenceId &conferenceId, int begin, int end) const;
 	int getDocumentContentsSize(const ConferenceId &conferenceId) const;
+	/* Returns all file paths for content associated with a Chatroom or Conference */
+	std::list<std::string> getContentPaths(const ConferenceId &conferenceId) const;
 
 	std::list<std::shared_ptr<ChatMessage>> findChatMessages(const ConferenceId &conferenceId,
 	                                                         const std::string &imdnMessageId) const;
@@ -211,6 +213,7 @@ public:
 	void enableAllDeliveryNotificationRequired();
 	void disableDeliveryNotificationRequired(const std::shared_ptr<const EventLog> &eventLog);
 	void disableDisplayNotificationRequired(const std::shared_ptr<const EventLog> &eventLog);
+	void deleteMessageContents(long long chatMessageId);
 
 	// ---------------------------------------------------------------------------
 	// Chat rooms.

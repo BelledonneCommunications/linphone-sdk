@@ -7312,7 +7312,7 @@ static void rejoining_conference_after_end(int cleanup_period, bool_t enable_cha
 			                            memberList, confAddr, FALSE, security_level);
 			size_t nbChatRooms = (!!enable_chat) ? 1 : 0;
 			auto focusMainDb = focus.getDatabase();
-			BC_ASSERT_EQUAL(focusMainDb.value().get()->getChatRoomCount(), nbChatRooms, size_t, "%zu");
+			BC_ASSERT_EQUAL(focusMainDb.value().get().getChatRoomCount(), nbChatRooms, size_t, "%zu");
 			BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), 0, size_t, "%zu");
 			focus_stat = focus.getStats();
 			for (auto mgr : members) {
@@ -7428,14 +7428,14 @@ static void rejoining_conference_after_end(int cleanup_period, bool_t enable_cha
 			size_t nbChatRooms = 0;
 			BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 			auto focusMainDb = focus.getDatabase();
-			BC_ASSERT_EQUAL(focusMainDb.value().get()->getChatRoomCount(), nbChatRooms, size_t, "%zu");
+			BC_ASSERT_EQUAL(focusMainDb.value().get().getChatRoomCount(), nbChatRooms, size_t, "%zu");
 			coresList = bctbx_list_remove(coresList, focus.getLc());
 			ms_message("%s is restarting its core", linphone_core_get_identity(focus.getLc()));
 			// Restart flexisip
 			focus.reStart();
 			coresList = bctbx_list_append(coresList, focus.getLc());
 			focusMainDb = focus.getDatabase();
-			BC_ASSERT_EQUAL(focusMainDb.value().get()->getChatRoomCount(), nbChatRooms, size_t, "%zu");
+			BC_ASSERT_EQUAL(focusMainDb.value().get().getChatRoomCount(), nbChatRooms, size_t, "%zu");
 			BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 
 			ms_message("%s is calling expired conference %s after the server restarts",

@@ -503,7 +503,7 @@ std::shared_ptr<Content> ServerConferenceEventHandler::createNotifyMultipart(int
 
 	list<shared_ptr<EventLog>> events;
 	if (auto db = core->getDatabase()) {
-		events = db.value().get()->getConferenceNotifiedEvents(
+		events = db.value().get().getConferenceNotifiedEvents(
 		    ConferenceId(conf->getConferenceAddress(), conf->getConferenceAddress(), core->createConferenceIdParams()),
 		    static_cast<unsigned int>(notifyId));
 	}

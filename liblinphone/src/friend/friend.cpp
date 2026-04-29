@@ -521,7 +521,7 @@ const list<shared_ptr<FriendDevice>> Friend::getDevicesForAddress(BCTBX_UNUSED(c
 	list<shared_ptr<FriendDevice>> devicesList;
 
 	if (auto db = getCore()->getDatabase()) {
-		devicesList = db.value().get()->getDevices(Address::create(address));
+		devicesList = db.value().get().getDevices(Address::create(address));
 		lDebug() << "[Friend] Found [" << devicesList.size() << "] devices for address [" << address.asStringUriOnly()
 		         << "]";
 
@@ -1107,7 +1107,7 @@ void Friend::releaseOps() {
 
 void Friend::removeFromDb() {
 	if (auto db = getCore()->getDatabase()) {
-		db.value().get()->deleteFriend(getSharedFromThis());
+		db.value().get().deleteFriend(getSharedFromThis());
 	}
 	mStorageId = -1;
 }
@@ -1138,7 +1138,7 @@ void Friend::saveInDb() {
 	}
 	try {
 		if (auto db = getCore()->getDatabase()) {
-			mStorageId = db.value().get()->insertFriend(getSharedFromThis());
+			mStorageId = db.value().get().insertFriend(getSharedFromThis());
 		}
 	} catch (std::bad_weak_ptr &) {
 	}

@@ -2454,7 +2454,7 @@ static void group_chat_room_with_imdn_chat_room_deleted_on_client_side(void) {
 			auto chatRoomParams = chatRoom->getCurrentParams();
 			BC_ASSERT_TRUE(chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::FlexisipChat);
 			if (!chatRoomParams->isGroup()) {
-				marieMainDb.value().get()->deleteChatRoom(chatRoom->getConferenceId());
+				marieMainDb.value().get().deleteChatRoom(chatRoom->getConferenceId());
 			}
 		}
 

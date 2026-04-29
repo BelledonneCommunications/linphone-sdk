@@ -143,7 +143,7 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 									if (auto db = core->getDatabase()) {
 										lInfo() << "Inserting conference information to database related to conference "
 										        << *conferenceInfo->getUri();
-										db.value().get()->insertConferenceInfo(conferenceInfo);
+										db.value().get().insertConferenceInfo(conferenceInfo);
 									}
 									auto log = q->getLog();
 									log->setConferenceInfo(conferenceInfo);
@@ -517,7 +517,7 @@ void CallSessionPrivate::updateToFromAssertedIdentity() {
 			log->setToAddress(pAssertedIdAddr);
 
 			if (auto db = q->getCore()->getDatabase()) {
-				db.value().get()->updateCallLog(log);
+				db.value().get().updateCallLog(log);
 			}
 		} else {
 			lWarning() << "Unsupported P-Asserted-Identity header";
@@ -542,7 +542,7 @@ void CallSessionPrivate::replaceOp(SalCallOp *newOp) {
 	// Replace the call ID in the call log
 	log->setCallId(op->getCallId());
 	if (auto db = q->getCore()->getDatabase()) {
-		db.value().get()->updateCallLog(log);
+		db.value().get().updateCallLog(log);
 	}
 	switch (state) {
 		case CallSession::State::IncomingEarlyMedia:
@@ -1054,7 +1054,7 @@ void CallSessionPrivate::setContactOp(const std::optional<std::shared_ptr<Addres
 				        << " doesn't match the actual chatroom conference address " << *conferenceAddress;
 			} else {
 				if (auto db = q->getCore()->getDatabase()) {
-					const auto &confInfo = db.value().get()->getConferenceInfoFromURI(guessedConferenceAddress);
+					const auto &confInfo = db.value().get().getConferenceInfoFromURI(guessedConferenceAddress);
 					if (confInfo) {
 						// The conference may have already been terminated when setting the contact address.
 						// This happens when an admin cancel a conference by sending an INVITE with an empty resource

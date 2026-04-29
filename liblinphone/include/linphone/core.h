@@ -8042,6 +8042,57 @@ LINPHONE_PUBLIC int linphone_core_get_imdn_to_everybody_threshold(const Linphone
 LINPHONE_PUBLIC void linphone_core_set_imdn_to_everybody_threshold(LinphoneCore *core, int threshold);
 
 /**
+ * Enable automatic deletion of files attached to #LinphoneChatMessage .
+ * This deletion applies whatever the origin of chat message deletion is:
+ * - clearing history of a chatroom
+ * - automatic deletion of an ephemeral message
+ * - manual deletion of a message
+ * For security, only files contained in the directies listed by linphone_core_get_chat_message_files_directories()
+ * are considered for deletion.
+ * @param core A #LinphoneCore object @notnil
+ * @param enabled boolean value indicating whether files are to be deleted
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC void linphone_core_enable_chat_message_files_deletion(LinphoneCore *core, bool_t enabled);
+
+/**
+ * Returns whether automatic deletion of files attached to #LinphoneChatMessage is enabled.
+ * This deletion applies whatever the origin of chat message deletion is:
+ * - clearing history of a chatroom
+ * - automatic deletion of an ephemeral message
+ * - manual deletion of a message
+ * For security, only files contained in the directies listed by linphone_core_get_chat_message_files_directories()
+ * are considered for deletion.
+ * @param core A #LinphoneCore object @notnil
+ * @returns a boolean value indicating whether files are to be deleted.
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC bool_t linphone_core_chat_message_files_deletion_enabled(LinphoneCore *core);
+
+/**
+ * Sets the directories used by the application to contain files attached to chat messages.
+ * These directories are the ones for which the #LinphoneCore is authorized to suppress files
+ * when chat messages containing files are deleted.
+ * See linphone_core_enable_chat_message_files_deletion() for more information.
+ * @param core A #LinphoneCore object @notnil
+ * @param directories A list of directories where file deletion is authorized. \bctbx_list{const char *} @maybenil
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC void linphone_core_set_chat_message_files_directories(LinphoneCore *core,
+                                                                      const bctbx_list_t *directories);
+
+/**
+ * Gets the directories used by the application to contain files attached to chat messages.
+ * These directories are the ones for which the #LinphoneCore is authorized to suppress files
+ * when chat messages containing files are deleted.
+ * See linphone_core_enable_chat_message_files_deletion() for more information.
+ * @param core A #LinphoneCore object @notnil
+ * @returns list of directories where file deletion is authorized. \bctbx_list{const char *} @maybenil
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC const bctbx_list_t *linphone_core_get_chat_message_files_directories(const LinphoneCore *core);
+
+/**
  * Sets if accounts will wait for network to be connected before trying to REGISTER.
  * @param core the #LinphoneCore
  * @param register_only_when_network_is_up TRUE to wait for an internet connection before trying to REGISTER, FALSE to

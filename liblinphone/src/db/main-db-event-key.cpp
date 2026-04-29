@@ -31,7 +31,7 @@ LINPHONE_BEGIN_NAMESPACE
 
 // -----------------------------------------------------------------------------
 
-MainDbEventKey::MainDbEventKey() : MainDbKey() {};
+MainDbEventKey::MainDbEventKey() : MainDbKey(){};
 
 MainDbEventKey::MainDbEventKey(const shared_ptr<Core> &core, long long storageId) : MainDbKey(core, storageId) {
 }
@@ -47,7 +47,7 @@ void MainDbEventKey::resetStorageId() {
 		auto core = d->core.lock();
 		if (core) {
 			if (auto db = core->getDatabase()) {
-				db.value().get()->getPrivate()->storageIdToEvent.erase(d->storageId);
+				db.value().get().getPrivate()->storageIdToEvent.erase(d->storageId);
 			}
 		}
 	}

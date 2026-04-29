@@ -238,11 +238,11 @@ void ClientChatRoom::deleteFromDbWithoutLeaving() {
 list<shared_ptr<EventLog>> ClientChatRoom::getHistory(int nLast) const {
 	if (auto db = getCore()->getDatabase()) {
 		try {
-			return db.value().get()->getHistory(getConferenceId(), nLast,
-			                                    getCurrentParams()->isGroup()
-			                                        ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-			                                                              MainDb::Filter::ConferenceInfoNoDeviceFilter})
-			                                        : MainDb::Filter::ConferenceChatMessageSecurityFilter);
+			return db.value().get().getHistory(getConferenceId(), nLast,
+			                                   getCurrentParams()->isGroup()
+			                                       ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
+			                                                             MainDb::Filter::ConferenceInfoNoDeviceFilter})
+			                                       : MainDb::Filter::ConferenceChatMessageSecurityFilter);
 		} catch (const bad_weak_ptr &) {
 		}
 	}
@@ -257,7 +257,7 @@ list<shared_ptr<EventLog>> ClientChatRoom::getHistoryRange(int begin, int end) c
 
 	if (auto db = getCore()->getDatabase()) {
 		try {
-			return db.value().get()->getHistoryRange(
+			return db.value().get().getHistoryRange(
 			    getConferenceId(), begin, end,
 			    getCurrentParams()->isGroup() ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
 			                                                        MainDb::Filter::ConferenceInfoNoDeviceFilter})
@@ -275,7 +275,7 @@ list<shared_ptr<EventLog>> ClientChatRoom::getHistoryRange(int begin, int end, H
 int ClientChatRoom::getHistorySize() const {
 	if (auto db = getCore()->getDatabase()) {
 		try {
-			return db.value().get()->getHistorySize(
+			return db.value().get().getHistorySize(
 			    getConferenceId(), getCurrentParams()->isGroup()
 			                           ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
 			                                                 MainDb::Filter::ConferenceInfoNoDeviceFilter})
@@ -392,7 +392,7 @@ void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 		// Wait for chat room to have been updated before inserting the previous ID in db
 		if (oldConfId != newConfId) {
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->insertNewPreviousConferenceId(newConfId, oldConfId);
+				db.value().get().insertNewPreviousConferenceId(newConfId, oldConfId);
 			}
 		}
 	}
@@ -409,7 +409,7 @@ void ClientChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &chat
 	const auto &storageId = chatMessage->getStorageId();
 	L_ASSERT(storageId >= 0);
 	if (auto db = getCore()->getDatabase()) {
-		shared_ptr<EventLog> eventLog = db.value().get()->getEvent(storageId);
+		shared_ptr<EventLog> eventLog = db.value().get().getEvent(storageId);
 		_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
 	}
 }
@@ -695,7 +695,7 @@ LinphoneStatus ClientChatRoom::enableEphemeral(long lifetime, long notReadLifeti
 	if (updateDb) {
 		auto db = getCore()->getDatabase();
 		if (db) {
-			db.value().get()->updateChatRoomEphemeralLifetime(getConferenceId(), lifetime, notReadLifetime);
+			db.value().get().updateChatRoomEphemeralLifetime(getConferenceId(), lifetime, notReadLifetime);
 		}
 
 		// Prepare event to set: status change or time change.

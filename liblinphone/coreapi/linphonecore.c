@@ -6366,7 +6366,7 @@ void linphone_core_set_call_logs_database_path(LinphoneCore *lc, const char *pat
 	CoreLogContextualizer logContextualizer(lc);
 	if (!linphone_core_conference_server_enabled(lc)) {
 		if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
-			db.value().get()->import(LinphonePrivate::MainDb::Sqlite3, path);
+			db.value().get().import(LinphonePrivate::MainDb::Sqlite3, path);
 			linphone_core_migrate_logs_from_rc_to_db(lc);
 		} else {
 			ms_warning("%s() needs to be called once linphone_core_start() has been called or Database has not been "
@@ -8841,7 +8841,7 @@ void linphone_core_set_chat_database_path(LinphoneCore *lc, const char *path) {
 	CoreLogContextualizer logContextualizer(lc);
 	if (!linphone_core_conference_server_enabled(lc)) {
 		if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
-			db.value().get()->import(LinphonePrivate::MainDb::Sqlite3, path);
+			db.value().get().import(LinphonePrivate::MainDb::Sqlite3, path);
 			L_GET_PRIVATE_FROM_C_OBJECT(lc)->loadChatRooms();
 		} else {
 			ms_warning("%s() needs to be called once linphone_core_start() has been called or Database has not been "
@@ -9799,7 +9799,7 @@ const char *linphone_core_get_srtp_crypto_suites(LinphoneCore *core) {
 LinphoneConferenceInfo *linphone_core_find_conference_information_from_ccmp_uri(LinphoneCore *core, const char *uri) {
 	CoreLogContextualizer logContextualizer(core);
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
-		if (auto confInfo = db.value().get()->getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri))) {
+		if (auto confInfo = db.value().get().getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri))) {
 			// Take a ref as the value returned by the MainDB class is a clone of the cached one
 			return linphone_conference_info_ref(confInfo->toC());
 		}
@@ -9818,7 +9818,7 @@ LinphoneConferenceInfo *linphone_core_find_conference_information_from_uri(Linph
 	CoreLogContextualizer logContextualizer(core);
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
 		const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
-		if (auto confInfo = db.value().get()->getConferenceInfoFromURI(uri_addr)) {
+		if (auto confInfo = db.value().get().getConferenceInfoFromURI(uri_addr)) {
 			// Take a ref as the value returned by the MainDB class is a clone of the cached one
 			return linphone_conference_info_ref(confInfo->toC());
 		}
@@ -9844,7 +9844,7 @@ static bctbx_list_t *get_conference_information_list(LinphoneCore *core, time_t 
 			    static_cast<LinphoneStreamType>(LINPHONE_PTR_TO_INT(bctbx_list_get_data(capability))));
 		}
 	}
-	auto list = db.value().get()->getConferenceInfos(t, capabilityList);
+	auto list = db.value().get().getConferenceInfos(t, capabilityList);
 	bctbx_list_t *results = nullptr;
 	for (auto &info : list) {
 		results = bctbx_list_append(results, linphone_conference_info_ref(info->toC()));
@@ -9897,7 +9897,7 @@ bctbx_list_t *linphone_core_get_conference_informations_with_participant(Linphon
 	if (!db) return nullptr;
 
 	const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
-	auto list = db.value().get()->getConferenceInfosWithParticipant(uri_addr);
+	auto list = db.value().get().getConferenceInfosWithParticipant(uri_addr);
 
 	bctbx_list_t *results = nullptr;
 	for (auto &conf : list) {
@@ -10125,7 +10125,7 @@ void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int
 
 void linphone_core_upgrade_database(LinphoneCore *core) {
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
-		db.value().get()->updateSchema();
+		db.value().get().updateSchema();
 	} else {
 		ms_error("Trying to upgrade database before linphone_core_start() has been called, it has not been initialized "
 		         "yet.");

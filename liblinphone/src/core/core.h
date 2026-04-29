@@ -232,7 +232,7 @@ public:
 	std::shared_ptr<AbstractChatRoom> getOrCreateBasicChatRoomFromUri(const std::string &localAddressUri,
 	                                                                  const std::string &peerAddressUri);
 
-	static void deleteChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom);
+	void deleteChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom);
 
 	static const std::string ephemeralVersionAsString();
 	static const std::string groupChatVersionAsString();
@@ -264,6 +264,13 @@ public:
 
 	int getMaxDelayToEditRetractAlreadySentMessage();
 	void setMaxDelayToEditRetractAlreadySentMessage(int maxDelayInSeconds);
+
+	void enableChatMessageFileDeletion(bool enabled);
+	bool chatMessageFileDeletionEnabled() const;
+	bool fileContentIsToBeDeleted(const std::string &filepath);
+	void deleteFileContentsIfNecessary(const std::list<std::string> &paths);
+	void setFileContentsDirectories(const std::list<std::string> &directories);
+	const ListHolder<std::string> &getFileContentsDirectories() const;
 
 	// ---------------------------------------------------------------------------
 	// Conference.
@@ -439,7 +446,7 @@ public:
 	void setEphemeralChatMessagePolicy(LinphoneEphemeralChatMessagePolicy policy);
 	LinphoneEphemeralChatMessagePolicy getEphemeralChatMessagePolicy() const;
 
-	std::optional<std::reference_wrapper<const std::unique_ptr<MainDb>>> getDatabase() const;
+	std::optional<std::reference_wrapper<MainDb>> getDatabase() const;
 	void uninitDatabase();
 	// ---------------------------------------------------------------------------
 	// Signal informations
@@ -584,8 +591,10 @@ private:
 	unsigned int mRemainingUploadFileCount = 0;
 	unsigned int mAccountDeletionTimeout = 32;
 	int mMaxDelayToEditRetractAlreadySentMessage = -1;
+	mutable int mFileContentIsToBeDeleted = -1;
 
 	mutable bctbx_list_t *mCachedProxyConfigs = NULL;
+	ListHolder<std::string> mFileContentsDirs;
 
 	bool mEktPluginLoaded = false;
 

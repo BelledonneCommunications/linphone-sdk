@@ -240,7 +240,7 @@ void Imdn::parse(const shared_ptr<ChatMessage> &chatMessage) {
 	// ID
 	auto db = chatMessage->getCore()->getDatabase();
 	auto chatMessages =
-	    db ? db.value().get()->findChatMessagesFromImdnMessageId(messagesIds) : list<shared_ptr<ChatMessage>>();
+	    db ? db.value().get().findChatMessagesFromImdnMessageId(messagesIds) : list<shared_ptr<ChatMessage>>();
 	for (const auto &imdn : imdns) {
 		shared_ptr<ChatMessage> cm = nullptr;
 		for (const auto &chatMessage : chatMessages) {

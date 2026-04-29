@@ -454,7 +454,7 @@ void Core::reportConferenceCallEvent(EventLog::Type type,
 	if (db && confInfo == nullptr) {
 		// Let's see if we have a conference info in db with the corresponding URI
 		confInfo =
-		    callLog->wasConference() ? callLog->getConferenceInfo() : db.value().get()->getConferenceInfoFromURI(to);
+		    callLog->wasConference() ? callLog->getConferenceInfo() : db.value().get().getConferenceInfoFromURI(to);
 	}
 
 	// TODO: This is a workaround that has to be removed ASAP
@@ -496,7 +496,7 @@ void Core::reportConferenceCallEvent(EventLog::Type type,
 
 	if (db) {
 		auto event = make_shared<ConferenceCallEvent>(type, std::time(nullptr), callLog, confInfo);
-		db.value().get()->addEvent(event);
+		db.value().get().addEvent(event);
 	}
 
 	LinphoneCore *lc = getCCore();

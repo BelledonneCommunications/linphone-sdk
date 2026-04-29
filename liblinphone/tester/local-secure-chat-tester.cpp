@@ -503,7 +503,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 		           linphone_core_get_identity(michelle.getLc()),
 		           paulineUppercaseParticipant->getAddress()->toString().c_str(),
 		           michelleCppCr->getConferenceAddress()->toString().c_str());
-		michelleMainDb.value().get()->insertChatRoomParticipant(michelleCppCr, paulineUppercaseParticipant);
+		michelleMainDb.value().get().insertChatRoomParticipant(michelleCppCr, paulineUppercaseParticipant);
 		for (const auto &deviceCr : michelleCppCr->getConference()
 		                                ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 		                                ->getDevices()) {
@@ -513,7 +513,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 			           linphone_core_get_identity(michelle.getLc()), device->getAddress()->toString().c_str(),
 			           paulineUppercaseParticipant->getAddress()->toString().c_str(),
 			           michelleCppCr->getConferenceAddress()->toString().c_str());
-			michelleMainDb.value().get()->insertChatRoomParticipantDevice(michelleCppCr, device);
+			michelleMainDb.value().get().insertChatRoomParticipantDevice(michelleCppCr, device);
 		}
 
 		LinphoneAddress *michelleContact = linphone_account_get_contact_address(michelle.getDefaultAccount());
@@ -1293,10 +1293,10 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 				     focusCppCr->getConference()
 				         ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 				         ->getDevices()) {
-					focusMainDb.value().get()->deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
+					focusMainDb.value().get().deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
 				}
-				focusMainDb.value().get()->deleteChatRoomParticipant(focusCppCr,
-				                                                     Address::create(paulineAddr)->getSharedFromThis());
+				focusMainDb.value().get().deleteChatRoomParticipant(focusCppCr,
+				                                                    Address::create(paulineAddr)->getSharedFromThis());
 			}
 
 			stats initialFocusStats = focus.getStats();
@@ -1545,10 +1545,10 @@ static void secure_one_on_one_chat_room_recreates_chat_room_after_error(bool_t r
 				     focusCppCr->getConference()
 				         ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 				         ->getDevices()) {
-					focusMainDb.value().get()->deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
+					focusMainDb.value().get().deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
 				}
-				focusMainDb.value().get()->deleteChatRoomParticipant(focusCppCr,
-				                                                     Address::create(paulineAddr)->getSharedFromThis());
+				focusMainDb.value().get().deleteChatRoomParticipant(focusCppCr,
+				                                                    Address::create(paulineAddr)->getSharedFromThis());
 			}
 
 			initialPaulineStats = pauline.getStats();
@@ -1806,7 +1806,7 @@ static void secure_one_on_one_chat_room_created_twice(void) {
 		auto marieMainDb = marie.getDatabase();
 		// Delete all chatrooms from Marie's DB
 		for (auto chatRoom : marie.getCore().getChatRooms()) {
-			marieMainDb.value().get()->deleteChatRoom(chatRoom->getConferenceId());
+			marieMainDb.value().get().deleteChatRoom(chatRoom->getConferenceId());
 		}
 
 		// Restart Marie's core - No chatroom is loaded
@@ -2070,9 +2070,9 @@ static void secure_one_on_one_chat_room_with_client_sending_imdn_on_restart(void
 		// Simulate that chat message are still in state Delivered when restarting the core and the Delivery IMDN has
 		// not been sent yet
 		auto paulineMainDb = pauline.getDatabase();
-		paulineMainDb.value().get()->enableAllDeliveryNotificationRequired();
+		paulineMainDb.value().get().enableAllDeliveryNotificationRequired();
 		auto marieMainDb = marie.getDatabase();
-		marieMainDb.value().get()->enableAllDeliveryNotificationRequired();
+		marieMainDb.value().get().enableAllDeliveryNotificationRequired();
 
 		// Restart Marie
 		marie.reStart();

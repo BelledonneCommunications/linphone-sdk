@@ -119,7 +119,7 @@ public:
 	std::shared_ptr<LinphonePrivate::Call> getCurrentCall() {
 		return getCore().getCurrentCall();
 	}
-	std::optional<std::reference_wrapper<const std::unique_ptr<LinphonePrivate::MainDb>>> getDatabase() const {
+	std::optional<std::reference_wrapper<LinphonePrivate::MainDb>> getDatabase() const {
 		return getCore().getDatabase();
 	}
 

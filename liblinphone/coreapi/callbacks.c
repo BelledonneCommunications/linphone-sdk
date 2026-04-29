@@ -322,7 +322,7 @@ static void call_received(SalCallOp *h) {
 			}
 		} else {
 			auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
-			std::shared_ptr<ConferenceInfo> confInfo = db ? db.value().get()->getConferenceInfoFromURI(to) : nullptr;
+			std::shared_ptr<ConferenceInfo> confInfo = db ? db.value().get().getConferenceInfoFromURI(to) : nullptr;
 			if (confInfo) {
 				params->enableAudio(confInfo->getCapability(LinphoneStreamTypeAudio));
 				params->enableVideo(confInfo->getCapability(LinphoneStreamTypeVideo));
@@ -340,7 +340,7 @@ static void call_received(SalCallOp *h) {
 			} else {
 				if (hasStreams) {
 					if (sal_address_has_uri_param(h->getToAddress(), Conference::sConfIdParameter.c_str())) {
-						long long expiredConferenceId = db ? db.value().get()->findExpiredConferenceId(to) : -1;
+						long long expiredConferenceId = db ? db.value().get().findExpiredConferenceId(to) : -1;
 						SalErrorInfo sei;
 						memset(&sei, 0, sizeof(sei));
 						std::string msg = "Conference " + to->toString();
@@ -393,8 +393,8 @@ static void call_received(SalCallOp *h) {
 							}
 							const auto &participant = (*participantList.begin())->getAddress();
 							std::shared_ptr<Address> confAddr =
-							    db ? db.value().get()->findOneOnOneConferenceChatRoomAddress(fromOp, participant,
-							                                                                 encrypted)
+							    db ? db.value().get().findOneOnOneConferenceChatRoomAddress(fromOp, participant,
+							                                                                encrypted)
 							       : nullptr;
 							if (confAddr && confAddr->isValid()) {
 								shared_ptr<AbstractChatRoom> chatRoom =

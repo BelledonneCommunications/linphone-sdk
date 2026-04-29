@@ -2672,13 +2672,13 @@ char *list_subscribe_with_a_lot_of_chatrooms_from_existing_database_base(
 					    ->getDatabase()
 					    .value()
 					    .get()
-					    ->addEvent(localConf->notifyParticipantAdded(creationTime, false, participant));
+					    .addEvent(localConf->notifyParticipantAdded(creationTime, false, participant));
 					for (auto &device : participant->getDevices()) {
 						L_GET_CPP_PTR_FROM_C_OBJECT(pauline->lc)
 						    ->getDatabase()
 						    .value()
 						    .get()
-						    ->addEvent(
+						    .addEvent(
 						        localConf->notifyParticipantDeviceAdded(creationTime, false, participant, device));
 					}
 				}

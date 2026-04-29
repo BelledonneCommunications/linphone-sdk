@@ -611,7 +611,7 @@ static void group_chat_room_with_no_participants_following_database_corruption()
 						    ->getDatabase()
 						    .value()
 						    .get()
-						    ->deleteChatRoomParticipantDevice(chatRoom, device);
+						    .deleteChatRoomParticipantDevice(chatRoom, device);
 					}
 					auto participantAddress = participant->getAddress();
 					ms_message("Delete participant %s from %s's database", participantAddress->toString().c_str(),
@@ -620,7 +620,7 @@ static void group_chat_room_with_no_participants_following_database_corruption()
 					    ->getDatabase()
 					    .value()
 					    .get()
-					    ->deleteChatRoomParticipant(chatRoom, participantAddress);
+					    .deleteChatRoomParticipant(chatRoom, participantAddress);
 				}
 			}
 		}
@@ -2692,7 +2692,7 @@ static void group_chat_room_bulk_notify_to_participant_base(bool_t trigger_full_
 		BC_ASSERT_STRING_EQUAL(linphone_chat_room_get_subject(paulineCr), newSubject2);
 
 		auto paulineMainDb = pauline.getDatabase();
-		auto paulineDbChatRooms = paulineMainDb.value().get()->getChatRooms();
+		auto paulineDbChatRooms = paulineMainDb.value().get().getChatRooms();
 		BC_ASSERT_EQUAL(paulineDbChatRooms.size(), 1, size_t, "%zu");
 		for (auto chatRoom : paulineDbChatRooms) {
 			BC_ASSERT_STRING_EQUAL(chatRoom->getSubject().c_str(), newSubject2);
@@ -2706,7 +2706,7 @@ static void group_chat_room_bulk_notify_to_participant_base(bool_t trigger_full_
 		coresList = bctbx_list_append(coresList, pauline.getLc());
 
 		auto paulineMainDbAfterRestart = pauline.getDatabase();
-		auto paulineDbChatRoomsAfterRestart = paulineMainDbAfterRestart.value().get()->getChatRooms();
+		auto paulineDbChatRoomsAfterRestart = paulineMainDbAfterRestart.value().get().getChatRooms();
 		BC_ASSERT_EQUAL(paulineDbChatRooms.size(), paulineDbChatRoomsAfterRestart.size(), size_t, "%zu");
 		for (auto chatRoom : paulineDbChatRoomsAfterRestart) {
 			BC_ASSERT_STRING_EQUAL(chatRoom->getSubject().c_str(), newSubject2);
