@@ -1193,6 +1193,10 @@ static belle_sip_list_t *belle_sip_provider_get_auth_context_by_realm_or_call_id
 	return result;
 }
 
+static inline bool_t belle_sip_str_equal(const char *a, const char *b) {
+	return (a && b && strcmp(a, b) == 0) || (a == NULL && b == NULL);
+}
+
 static void belle_sip_provider_update_or_create_auth_context(belle_sip_provider_t *p,
                                                              belle_sip_header_call_id_t *call_id,
                                                              belle_sip_header_www_authenticate_t *authenticate,
@@ -1211,7 +1215,7 @@ static void belle_sip_provider_update_or_create_auth_context(belle_sip_provider_
 	         belle_sip_provider_get_auth_context_by_realm_or_call_id(p, call_id, from_uri, realm);
 	     auth_context_it != NULL; auth_context_it = auth_context_it->next) {
 		auth_context = (authorization_context_t *)auth_context_it->data;
-		if ((strcmp(auth_context->realm, belle_sip_header_www_authenticate_get_realm(authenticate)) == 0) &&
+		if (belle_sip_str_equal(auth_context->realm, belle_sip_header_www_authenticate_get_realm(authenticate)) &&
 		    ((auth_context->algorithm == NULL) || strcasecmp(auth_context->algorithm, algo) == 0)) {
 			authorization_context_fill_from_auth(auth_context, authenticate, from_uri);
 			goto end; /*only one realm is supposed to be found for now*/
@@ -1239,8 +1243,6 @@ end:
 	return;
 }
 
-#define STREQUAL(a, b) ((a && b && strcmp(a, b) == 0) || (a == NULL && b == NULL))
-
 /*
  * Insert auth_event into a list of belle_sip_auth_event_t avoiding duplicates and loss of password or ha1.
  */
@@ -1251,7 +1253,8 @@ static bool_t update_auth_event_list(belle_sip_list_t **auth_event_list, belle_s
 
 	for (elem = *auth_event_list; elem != NULL; elem = elem->next) {
 		ev = (belle_sip_auth_event_t *)elem->data;
-		if (STREQUAL(ev->realm, auth_event->realm) && STREQUAL(ev->username, auth_event->username)) {
+		if (belle_sip_str_equal(ev->realm, auth_event->realm) &&
+		    belle_sip_str_equal(ev->username, auth_event->username)) {
 			break;
 		}
 	}
