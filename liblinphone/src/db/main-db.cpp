@@ -5147,7 +5147,7 @@ void MainDb::updateChatRoomEphemeralLifetime(const ConferenceId &conferenceId,
                                              const long lifetime,
                                              const long notReadLifetime) const {
 #ifdef HAVE_DB_STORAGE
-	int isEphemeralEnabled = lifetime > 0 || notReadLifetime > 0 ? 1 : 0; // Only useful for backward compatibility
+	int isEphemeralEnabled = lifetime > 0 ? 1 : 0; // Only useful for backward compatibility
 	static const string query =
 	    "UPDATE chat_room"
 	    "  SET ephemeral_messages_lifetime = :ephemeralLifetime, "
