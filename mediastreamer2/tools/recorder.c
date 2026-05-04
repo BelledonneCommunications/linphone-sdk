@@ -103,7 +103,6 @@ int main(int argc, char *argv[]) {
 
 	if (audio_enabled) {
 		sndcard = ms_snd_card_manager_get_default_capture_card(ms_factory_get_snd_card_manager(factory));
-		;
 	}
 	if (video_enabled) {
 		webcam = ms_web_cam_manager_get_default_cam(ms_factory_get_web_cam_manager(factory));
