@@ -11,18 +11,14 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
-## Unreleased
 
-### Added
-- [HIDAPI](https://github.com/libusb/hidapi) dependency for Jabra headsets support.
-
-
-## [5.5.0] 2025-12-01
+## [5.5.0] 2026-05-25
 
 ### Added
 - [RNNoise](https://github.com/xiph/rnnoise) dependency for noise suppression feature.
 - GCC 15 support
 - New Swift wrapper test suite.
+- [HIDAPI](https://github.com/libusb/hidapi) dependency for Jabra headsets support.
 
 ### Changes
 - MAJOR CHANGE: most git submodules have been removed and incororated within the linphone-sdk git project.
