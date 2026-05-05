@@ -407,7 +407,8 @@ static int ogl_get_native_window_id(MSFilter *f, void *arg) {
 }
 
 static int ogl_create_native_window_id(BCTBX_UNUSED(MSFilter *f), void *arg) {
-	MSOglContextInfo *id = (MSOglContextInfo **)arg ? *(MSOglContextInfo **)arg : ms_new0(MSOglContextInfo, 1);
+	MSOglContextInfo *id = (MSOglContextInfo **)arg && *(MSOglContextInfo **)arg ? *(MSOglContextInfo **)arg
+	                                                                             : ms_new0(MSOglContextInfo, 1);
 #ifdef MS2_WINDOWS_UWP
 	Platform::Agile<CoreApplicationView> window_id;
 #else
