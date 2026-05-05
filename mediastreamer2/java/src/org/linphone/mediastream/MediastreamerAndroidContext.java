@@ -254,10 +254,10 @@ public class MediastreamerAndroidContext {
 		Log.i("[Audio Manager] Trying to workaround no sound issue on stream [" + stream + "] until volume has changed...");
 		try {
 			AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
-			if (stream == AudioManager.STREAM_RING) {
+			if (stream == AudioManager.STREAM_RING || stream == AudioManager.STREAM_DTMF) {
 				int ringerMode = audioManager.getRingerMode();
 				if (ringerMode == AudioManager.RINGER_MODE_SILENT || ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
-					Log.w("[Audio Manager] Device is either in silent or vibrate mode, do not apply volume workaround on RING stream!");
+					Log.w("[Audio Manager] Device is either in silent or vibrate mode, do not apply volume workaround on RING or DTMF stream!");
 					return;
 				}
 			}
