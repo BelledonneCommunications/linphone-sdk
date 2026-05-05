@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20260126_update_gcc_15
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20260126_update_gcc_16
 ###############################################################################
 
 FROM archlinux:latest
@@ -30,15 +30,63 @@ RUN pacman --noconfirm --noprogressbar -Syu && \
 
 # Install linphone & flexisip dependencies development packages
 RUN pacman --noconfirm --noprogressbar -Syu && \
-    pacman --noconfirm --noprogressbar -S alsa-lib ffmpeg glew gsm jansson libbsd libjpeg-turbo libsrtp libvpx libxml2 libxv mariadb mbedtls mesa net-snmp openssl opus postgresql protobuf pulseaudio qt5-base qt5-declarative qt5-quickcontrols2 qt5-speech qt5-svg qt5-tools speex speexdsp sqlite v4l-utils xerces-c xsd && \
+    pacman --noconfirm --noprogressbar -S alsa-lib ffmpeg glew gsm jansson libbsd libjpeg-turbo libsrtp libvpx libxml2 libxv mariadb mbedtls mesa net-snmp openssl opus postgresql protobuf pulseaudio qt5-base qt5-declarative qt5-quickcontrols2 qt5-speech qt5-svg qt5-tools speex speexdsp sqlite v4l-utils xerces-c && \
     pacman -Scc
-
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
     echo 'bc:cotcot' | chpasswd && \
     echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+# Install AUR makepkg tools
+RUN pacman --noconfirm --noprogressbar -Syu && \
+    pacman --noconfirm --noprogressbar -S debugedit fakeroot && \
+    pacman -Scc
+
+# Install AUR packages dependencies
+RUN pacman --noconfirm --noprogressbar -Syu && \
+    pacman --noconfirm --noprogressbar -S chrpath && \
+    pacman -Scc
+
+# Install AUR packages
+
+# build2
+USER bc
+RUN git clone https://aur.archlinux.org/build2.git /tmp/build2
+WORKDIR /tmp/build2
+RUN makepkg
+
+USER root
+RUN pacman --noconfirm --noprogressbar -U *.pkg.tar.zst
+
+# libcutl
+USER bc
+RUN git clone https://aur.archlinux.org/libcutl.git /tmp/libcutl
+WORKDIR /tmp/libcutl
+RUN makepkg
+
+USER root
+RUN pacman --noconfirm --noprogressbar -U *.pkg.tar.zst
+
+# libxsd-frontend
+USER bc
+RUN git clone https://aur.archlinux.org/libxsd-frontend.git /tmp/libxsd-frontend
+WORKDIR /tmp/libxsd-frontend
+RUN makepkg
+
+USER root
+RUN pacman --noconfirm --noprogressbar -U *.pkg.tar.zst
+
+# XSD
+USER bc
+RUN git clone https://aur.archlinux.org/xsd.git /tmp/xsd
+WORKDIR /tmp/xsd
+RUN makepkg
+
+USER root
+RUN pacman --noconfirm --noprogressbar -U *.pkg.tar.zst
+
 USER bc
 WORKDIR /home/bc
+
 CMD bash
 ENTRYPOINT /bin/bash

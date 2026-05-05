@@ -2081,8 +2081,7 @@ void rtp_session_unregister_event_queues(RtpSession *session) {
 
 void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev) {
 	OList *it;
-	int i;
-	for (i = 0, it = session->eventqs; it != NULL; it = it->next, ++i) {
+	for (it = session->eventqs; it != NULL; it = it->next) {
 		ortp_ev_queue_put((OrtpEvQueue *)it->data, ortp_event_dup(ev));
 	}
 	ortp_event_destroy(ev);

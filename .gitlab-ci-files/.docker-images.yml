@@ -7,10 +7,10 @@
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r27:20240717_update_ndk
 
 .archlinux_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20260126_update_gcc_15
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20260126_update_gcc_16
 
 .archlinux_test_libl_image_version:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:20260126_update_gcc_15
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:20260126_update_gcc_16
 
 .debian11_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:20260202_libudev
