@@ -9689,7 +9689,9 @@ static test_t local_conference_scheduled_conference_with_chat_tests[] = {
                 LinphoneTest::conference_with_chat_and_participants_dialing_in_after_end),
     TEST_NO_TAG("Rejoining conference with chat after end with cleanup period",
                 LinphoneTest::rejoining_conference_with_chat_after_end_with_cleanup_period),
-    TEST_NO_TAG("Conference with chat joined multiple times", LinphoneTest::conference_with_chat_joined_multiple_times),
+    TEST_ONE_TAG("Conference with chat joined multiple times",
+                 LinphoneTest::conference_with_chat_joined_multiple_times,
+                 "shaky"),
     TEST_NO_TAG("Alone in conference with chat exits and enters again",
                 LinphoneTest::alone_in_conference_with_chat_exits_enter)};
 
