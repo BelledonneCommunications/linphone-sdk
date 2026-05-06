@@ -1184,13 +1184,15 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 					setState(ConferenceInterface::State::CreationFailed);
 					// If there are chat message pending chat room creation, set state to NotDelivered and remove them
 					// from queue.
-					const std::list<std::shared_ptr<ChatMessage>> &pendingCreationMessages =
-					    clientGroupChatRoom->getPendingCreationMessages();
-					for (const auto &msg : pendingCreationMessages) {
-						msg->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
-						                                       ::ms_time(nullptr));
+					if (clientGroupChatRoom) {
+						const std::list<std::shared_ptr<ChatMessage>> &pendingCreationMessages =
+						    clientGroupChatRoom->getPendingCreationMessages();
+						for (const auto &msg : pendingCreationMessages) {
+							msg->getPrivate()->setParticipantState(
+							    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
+						}
+						clientGroupChatRoom->clearPendingCreationMessages();
 					}
-					clientGroupChatRoom->clearPendingCreationMessages();
 					if (reason == LinphoneReasonForbidden) {
 						setState(ConferenceInterface::State::Terminated);
 						chatRoom->deleteFromDb();
