@@ -171,7 +171,7 @@ void ServerChatRoom::notifyParticipantDeviceRegistration(const std::shared_ptr<c
 		return;
 	}
 	lInfo() << *this << " has been notified that " << *participantDevice << " has just registered";
-	static_pointer_cast<ServerConference>(getConference())->updateParticipantDeviceSession(pd, true);
+	static_pointer_cast<ServerConference>(getConference())->updateParticipantDevicesSession({pd}, true);
 }
 
 // -----------------------------------------------------------------------------
@@ -486,10 +486,10 @@ void ServerChatRoom::handleEphemeralSettingsChange(const shared_ptr<CallSession>
 	}
 	if (getCurrentParams()->getChatParams()->ephemeralAllowed()) {
 		const auto op = session->getPrivate()->getOp();
-		const string ephemeralLifetime =
-		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemeralLifeTimeHeader.c_str()));
-		const string ephemeralNotReadLifetime =
-		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemeralNotReadLifeTimeHeader.c_str()));
+		const string ephemeralLifetime = L_C_TO_STRING(
+		    sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemeralLifeTimeHeader.c_str()));
+		const string ephemeralNotReadLifetime = L_C_TO_STRING(
+		    sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemeralNotReadLifeTimeHeader.c_str()));
 		if (ephemeralLifetime.empty() && ephemeralNotReadLifetime.empty()) {
 			setEphemeralModeForDevice(AbstractChatRoom::EphemeralMode::DeviceManaged, session);
 		} else {

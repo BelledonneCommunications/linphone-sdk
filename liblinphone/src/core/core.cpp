@@ -2604,19 +2604,24 @@ shared_ptr<Conference> Core::searchConference(const std::shared_ptr<const Addres
 	L_D();
 
 	if (!conferenceAddress || !conferenceAddress->isValid()) return nullptr;
-	const auto it = std::find_if(d->mConferenceById.begin(), d->mConferenceById.end(), [&](const auto &p) {
-		// p is of type std::pair<ConferenceId, std::shared_ptr<Conference>
-		const auto &conference = p.second;
-		const auto curConferenceAddress = conference->getConferenceAddress();
-		return (*conferenceAddress == *curConferenceAddress);
-	});
+	if (mIsConferenceServer) {
+		return searchConference(nullptr, conferenceAddress, conferenceAddress, {});
+	} else {
+		const auto it =
+		    std::find_if(d->mConferenceById.begin(), d->mConferenceById.end(), [&conferenceAddress](const auto &p) {
+			    // p is of type std::pair<ConferenceId, std::shared_ptr<Conference>
+			    const auto &conference = p.second;
+			    const auto curConferenceAddress = conference->getConferenceAddress();
+			    return (*conferenceAddress == *curConferenceAddress);
+		    });
 
-	shared_ptr<Conference> conference = nullptr;
-	if (it != d->mConferenceById.cend()) {
-		conference = it->second;
+		shared_ptr<Conference> conference = nullptr;
+		if (it != d->mConferenceById.cend()) {
+			conference = it->second;
+		}
+
+		return conference;
 	}
-
-	return conference;
 }
 
 std::shared_ptr<Conference> Core::getCurrentLocalConference() const {

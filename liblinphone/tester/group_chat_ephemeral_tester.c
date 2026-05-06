@@ -125,7 +125,7 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 	static const int ephemeral_short_time = 5;
 	LinphoneChatMessage *messagef[10];
 	linphone_chat_room_activate_ephemeral_3(marieCr, ephemeral_short_time,
-	                                        use_not_read_lifetime > 0 ? liblinphone_tester_sip_timeout / 2000 : 0);
+	                                        use_not_read_lifetime ? liblinphone_tester_sip_timeout / 2000 : 0);
 
 	BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(marieCr));
 

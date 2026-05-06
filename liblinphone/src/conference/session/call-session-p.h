@@ -113,7 +113,9 @@ public:
 	setDestAccount(const std::shared_ptr<Account> &account); // Set destProxy and update the proxy of currentParams
 
 	void setBroken();
-	void setContactOp(const std::optional<std::shared_ptr<Address>> destination);
+	void setContactOp(const std::shared_ptr<Address> destination);
+	void setContactAddressForConference(std::shared_ptr<Address> &contactAddress,
+	                                    const std::shared_ptr<Address> destination) const;
 
 	virtual void reinviteToRecoverFromConnectionLoss();
 	virtual void repairByNewInvite(bool withReplaces);

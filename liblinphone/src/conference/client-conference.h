@@ -53,8 +53,8 @@ public:
 	                   SalCallOp *op = nullptr,
 	                   ConferenceListener *confListener = nullptr);
 	int inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
-	                    const LinphoneCallParams *params) override;
-	bool dialOutAddresses(const std::list<std::shared_ptr<Address>> &addressList) override;
+	                    const MediaSessionParams *params) override;
+	bool dialoutAddresses(const std::list<std::shared_ptr<Address>> &addressList) override;
 	bool addParticipant(const std::shared_ptr<ParticipantInfo> &info) override;
 	bool addParticipants(const std::list<std::shared_ptr<Call>> &call) override;
 	bool addParticipants(const std::list<std::shared_ptr<Address>> &addresses) override;
@@ -206,13 +206,13 @@ private:
 	std::shared_ptr<CallSession> getMainSession() const override;
 	std::shared_ptr<ConferenceInfo> createOrGetConferenceInfo() const override;
 	std::shared_ptr<ConferenceInfo> createConferenceInfo() const override;
+	MediaSessionParams createDefaultMediaParams(const std::shared_ptr<Call> &call = nullptr) override;
+	void modifyCallParamsForConference(MediaSessionParams &params) const;
 	void updateAndSaveConferenceInformations();
 	bool focusIsReady() const;
 	bool transferToFocus(std::shared_ptr<Call> call);
 	void reset();
 	void endConference();
-
-	MediaSessionParams *createDefaultMediaParams() const;
 
 	void onFocusCallStateChanged(CallSession::State state, const std::string &message);
 	void onPendingCallStateChanged(std::shared_ptr<Call> call, CallSession::State callState);

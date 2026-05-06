@@ -330,43 +330,40 @@ std::shared_ptr<ConferenceInfo> ClientConference::createConferenceInfo() const {
 	return createConferenceInfoWithCustomParticipantList(organizer, getFullParticipantList());
 }
 
-MediaSessionParams *ClientConference::createDefaultMediaParams() const {
-	MediaSessionParams *msp = new MediaSessionParams();
-	msp->initDefault(getCore(), LinphoneCallOutgoing);
-	if (mConfParams->chatEnabled()) {
-		msp->addCustomContactParameter(Conference::kTextParameter);
-		if (!mConfParams->isGroup()) {
-			msp->addCustomHeader(ChatRoom::kOneOnOneChatRoomHeader, "true");
+MediaSessionParams ClientConference::createDefaultMediaParams(const std::shared_ptr<Call> &call) {
+	MediaSessionParams msp;
+	if (call) {
+		auto newParams = call->createCallParams();
+		msp = *newParams;
+		delete newParams;
+	} else {
+		msp.initDefault(getCore(), LinphoneCallOutgoing);
+		const auto &account = getAccount();
+		if (account) {
+			msp.setAccount(account);
 		}
-		if (mConfParams->getChatParams()->isEncrypted()) {
-			msp->addCustomHeader(ChatRoom::kEndToEndEncryptedHeader, "true");
-		}
-		if (mConfParams->getChatParams()->getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged) {
-			msp->addCustomHeader(ChatRoom::kEphemerableHeader, "true");
-		}
-		msp->addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
-		                     to_string(mConfParams->getChatParams()->getEphemeralLifetime()));
-		msp->addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
-		                     to_string(mConfParams->getChatParams()->getEphemeralLifetime()));
-	}
-	if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
-		msp->addCustomContactParameter(Conference::kAdminParameter, Utils::toString(mMe->isAdmin()));
-	}
 
-	// Copy conference capabilities as the application didn't specify any parameter to pass on to the call
-	msp->enableAudio(mConfParams->audioEnabled());
-	msp->enableVideo(mConfParams->videoEnabled());
-	msp->enableRealtimeText(false);
-	msp->getPrivate()->disableRinging(!supportsMedia());
-	msp->getPrivate()->enableToneIndications(supportsMedia());
+		// Copy conference capabilities as the application didn't specify any parameter to pass on to the call
+		msp.enableAudio(mConfParams->audioEnabled());
+		msp.enableVideo(mConfParams->videoEnabled());
+		msp.enableRealtimeText(false);
+	}
+	modifyCallParamsForConference(msp);
 
 	return msp;
 }
 
+void ClientConference::modifyCallParamsForConference(MediaSessionParams &params) const {
+	Conference::modifyCallParamsForConference(params);
+
+	if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
+		params.addCustomContactParameter(Conference::kAdminParameter, Utils::toString(mMe->isAdmin()));
+	}
+}
+
 std::shared_ptr<CallSession> ClientConference::createSessionTo(const std::shared_ptr<const Address> &sessionTo) {
 	auto msp = createDefaultMediaParams();
-	shared_ptr<CallSession> session = mFocus->createSession(*this, msp, TRUE);
-	delete msp;
+	shared_ptr<CallSession> session = mFocus->createSession(*this, &msp, TRUE);
 	session->addListener(getSharedFromThis());
 	std::shared_ptr<Address> meCleanedAddress = Address::create(getMe()->getAddress()->getUriWithoutGruu());
 
@@ -555,10 +552,9 @@ void ClientConference::setUtf8Subject(const std::string &subject) {
 				if (session) {
 					lInfo() << "Sending re-INVITE to update subject from \"" << getUtf8Subject() << "\" to \""
 					        << subject << "\"";
-					const MediaSessionParams *params = session->getMediaParams();
-					MediaSessionParams *currentParams = params->clone();
-					auto ret = session->update(currentParams, CallSession::UpdateMethod::Default, false, subject);
-					delete currentParams;
+					MediaSessionParams *params = session->createMediaSessionParams();
+					auto ret = session->update(params, CallSession::UpdateMethod::Default, false, subject);
+					delete params;
 					if (ret != 0) {
 						lInfo() << "re-INVITE to update subject to \"" << subject << "\" cannot be sent right now";
 					}
@@ -638,16 +634,9 @@ void ClientConference::callFocus() {
 		std::shared_ptr<Address> focusAddress = mFocus->getAddress();
 		lInfo() << *this << ": Calling the conference focus (" << *focusAddress
 		        << ") as there is no session towards the focus yet";
-		LinphoneCallParams *params = linphone_core_create_call_params(getCore()->getCCore(), nullptr);
-		if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
-			// Participant with the focus call is admin
-			L_GET_CPP_PTR_FROM_C_OBJECT(params)->addCustomContactParameter(Conference::kAdminParameter,
-			                                                               Utils::toString(true));
-		}
-		linphone_call_params_enable_video(params, mConfParams->videoEnabled());
+		auto msp = createDefaultMediaParams();
 		Conference::setUtf8Subject(mPendingSubject);
-		inviteAddresses({}, params);
-		linphone_call_params_unref(params);
+		inviteAddresses({}, &msp);
 	}
 }
 
@@ -2140,7 +2129,7 @@ void ClientConference::notifyReceived(const std::shared_ptr<Event> &notifyLev, c
 #endif // _MSC_VER
 
 int ClientConference::inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
-                                      const LinphoneCallParams *params) {
+                                      const MediaSessionParams *params) {
 	const auto &account = mConfParams->getAccount();
 	const auto organizer =
 	    account ? account->getAccountParams()->getIdentityAddress() : Address::create(getCore()->getIdentityAddress());
@@ -2172,13 +2161,13 @@ int ClientConference::inviteAddresses(const std::list<std::shared_ptr<Address>> 
 	}
 	setMainSession(session);
 	if (params) {
-		mJoiningParams = L_GET_CPP_PTR_FROM_C_OBJECT(params)->clone();
+		mJoiningParams = params->clone();
 	}
 	return 0;
 }
 
-bool ClientConference::dialOutAddresses(BCTBX_UNUSED(const std::list<std::shared_ptr<Address>> &addressList)) {
-	lError() << *this << ": ClientConference::dialOutAddresses() not implemented";
+bool ClientConference::dialoutAddresses(BCTBX_UNUSED(const std::list<std::shared_ptr<Address>> &addressList)) {
+	lError() << *this << ": ClientConference::dialoutAddresses() not implemented";
 	return false;
 }
 
@@ -2334,35 +2323,34 @@ void ClientConference::setLocalParticipantStreamCapability(const LinphoneMediaDi
                                                            const LinphoneStreamType type) {
 	auto session = dynamic_pointer_cast<MediaSession>(getMainSession());
 	if (session) {
-		const MediaSessionParams *params = session->getMediaParams();
-		MediaSessionParams *currentParams = params->clone();
-		if (!currentParams->rtpBundleEnabled()) {
-			currentParams->enableRtpBundle(true);
+		MediaSessionParams *params = session->createMediaSessionParams();
+		if (!params->rtpBundleEnabled()) {
+			params->enableRtpBundle(true);
 		}
 		lInfo() << "Setting direction of stream of type " << std::string(linphone_stream_type_to_string(type)) << " to "
 		        << std::string(linphone_media_direction_to_string(direction)) << " of main session " << session;
 		switch (type) {
 			case LinphoneStreamTypeAudio:
-				currentParams->enableAudio((direction != LinphoneMediaDirectionInactive) &&
-				                           (direction != LinphoneMediaDirectionInvalid));
-				currentParams->setAudioDirection(direction);
+				params->enableAudio((direction != LinphoneMediaDirectionInactive) &&
+				                    (direction != LinphoneMediaDirectionInvalid));
+				params->setAudioDirection(direction);
 				break;
 			case LinphoneStreamTypeVideo:
-				currentParams->enableVideo((direction != LinphoneMediaDirectionInactive) &&
-				                           (direction != LinphoneMediaDirectionInvalid));
-				currentParams->setVideoDirection(direction);
+				params->enableVideo((direction != LinphoneMediaDirectionInactive) &&
+				                    (direction != LinphoneMediaDirectionInvalid));
+				params->setVideoDirection(direction);
 				break;
 			case LinphoneStreamTypeText:
-				currentParams->enableRealtimeText((direction != LinphoneMediaDirectionInactive) &&
-				                                  (direction != LinphoneMediaDirectionInvalid));
+				params->enableRealtimeText((direction != LinphoneMediaDirectionInactive) &&
+				                           (direction != LinphoneMediaDirectionInvalid));
 				break;
 			case LinphoneStreamTypeUnknown:
 				lError() << "Unable to set direction of stream of type "
 				         << std::string(linphone_stream_type_to_string(type));
 				return;
 		}
-		session->update(currentParams);
-		delete currentParams;
+		session->update(params);
+		delete params;
 	}
 }
 
@@ -2467,24 +2455,11 @@ int ClientConference::enter() {
 		}
 	} else {
 		/* Start a new call by indicating that it has to be put into the conference directly */
-		LinphoneCallParams *new_params = linphone_core_create_call_params(getCore()->getCCore(), nullptr);
-		linphone_call_params_enable_video(new_params, mConfParams->videoEnabled());
-		linphone_call_params_set_in_conference(new_params, FALSE);
-		if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
-			L_GET_CPP_PTR_FROM_C_OBJECT(new_params)
-			    ->addCustomContactParameter(Conference::kAdminParameter, Utils::toString(getMe()->isAdmin()));
-		}
-
-		const std::shared_ptr<Address> &address = getConferenceAddress();
-		const string &confId = address->getUriParamValue(Conference::kConfIdParameter);
-		linphone_call_params_set_conference_id(new_params, confId.c_str());
-
+		auto msp = createDefaultMediaParams();
 		std::string subject = getMe()->isAdmin() ? getUtf8Subject() : std::string();
-
-		linphone_core_invite_address_with_params_2(getCore()->getCCore(), address->toC(), new_params,
+		const std::shared_ptr<Address> &address = getConferenceAddress();
+		linphone_core_invite_address_with_params_2(getCore()->getCCore(), address->toC(), L_GET_C_BACK_PTR(&msp),
 		                                           L_STRING_TO_C(subject), nullptr);
-
-		linphone_call_params_unref(new_params);
 	}
 	return 0;
 }
@@ -2767,18 +2742,15 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 			getMe()->setConference(getSharedFromThis());
 
 			lInfo() << "Automatically rejoining " << *this;
-			shared_ptr<MediaSessionParams> dialoutParams = nullptr;
+			MediaSessionParams dialoutParams;
 			if (mJoiningParams) {
-				dialoutParams = shared_ptr<MediaSessionParams>(mJoiningParams->clone());
+				dialoutParams = *mJoiningParams;
+				modifyCallParamsForConference(dialoutParams);
 			} else {
-				dialoutParams = shared_ptr<MediaSessionParams>(createDefaultMediaParams());
-			}
-			if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
-				// Participant with the focus call is admin
-				dialoutParams->addCustomContactParameter(Conference::kAdminParameter, Utils::toString(true));
+				dialoutParams = createDefaultMediaParams();
 			}
 			if (mConfParams->chatEnabled()) {
-				dialoutParams->addCustomHeader("Require", "recipient-list-invite");
+				dialoutParams.addCustomHeader("Require", "recipient-list-invite");
 			}
 
 			std::list<Address> addressesList;
@@ -2807,31 +2779,11 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 				// For audio video conferences it is requires as the client has to initiate a media session. The chat
 				// room code, instead, makes the assumption that the participant list is the body itself
 				if (mediaSupported) {
-					dialoutParams->addCustomContent(resourceList);
+					dialoutParams.addCustomContent(resourceList);
 				} else {
 					content = resourceList;
 				}
 			}
-
-			if (!mediaSupported) {
-				dialoutParams->addCustomContactParameter(Conference::kTextParameter);
-				if (!mConfParams->isGroup()) {
-					dialoutParams->addCustomHeader(ChatRoom::kOneOnOneChatRoomHeader, "true");
-				}
-				if (mConfParams->getChatParams()->isEncrypted()) {
-					dialoutParams->addCustomHeader(ChatRoom::kEndToEndEncryptedHeader, "true");
-				}
-				if (mConfParams->getChatParams()->getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged) {
-					dialoutParams->addCustomHeader(ChatRoom::kEphemerableHeader, "true");
-					dialoutParams->addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
-					                               to_string(mConfParams->getChatParams()->getEphemeralLifetime()));
-					dialoutParams->addCustomHeader(
-					    ChatRoom::kEphemeralNotReadLifeTimeHeader,
-					    to_string(mConfParams->getChatParams()->getEphemeralNotReadLifetime()));
-				}
-			}
-			dialoutParams->getPrivate()->disableRinging(!mediaSupported);
-			dialoutParams->getPrivate()->enableToneIndications(mediaSupported);
 
 			// If one of the pending calls has the video enabled, then force the activation of the video. Otherwise it
 			// would be weird to be in a video call and once it is merged the participant has no video anymore
@@ -2842,7 +2794,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 			if (forceVideoEnabled) {
 				lInfo() << "Forcing " << *mMe << " to enable video capabilities when joining " << *this
 				        << " because at least one call that was merged had video capabilities on";
-				dialoutParams->enableVideo(true);
+				dialoutParams.enableVideo(true);
 			}
 
 			const auto cCore = getCore()->getCCore();
@@ -2850,7 +2802,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 			if (mediaSupported) {
 				auto inviteRemote = [this, remoteAddress, dialoutParams, subject, content]() -> LinphoneStatus {
 					LinphoneCall *call = linphone_core_invite_address_with_params_2(
-					    this->getCore()->getCCore(), remoteAddress->toC(), L_GET_C_BACK_PTR(dialoutParams.get()),
+					    this->getCore()->getCCore(), remoteAddress->toC(), L_GET_C_BACK_PTR(&dialoutParams),
 					    L_STRING_TO_C(subject), content ? content->toC() : nullptr);
 					if (call) {
 						lInfo() << "Client conference[" << this << "]: sucessful invite "
@@ -2893,7 +2845,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 					setMainSession(nullptr);
 					return;
 				}
-				auto session = mMe->createSession(getCore(), dialoutParams.get(), TRUE);
+				auto session = mMe->createSession(getCore(), &dialoutParams, TRUE);
 				setMainSession(session);
 				session->addListener(getSharedFromThis());
 				session->configure(LinphoneCallOutgoing, account, nullptr, from, remoteAddress);

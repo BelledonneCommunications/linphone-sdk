@@ -50,10 +50,11 @@ public:
 	virtual ~ServerConference();
 
 	int inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
-	                    const LinphoneCallParams *params) override;
-	bool dialOutAddresses(const std::list<std::shared_ptr<Address>> &addressList) override;
+	                    const MediaSessionParams *params) override;
+	bool dialoutAddresses(const std::list<std::shared_ptr<Address>> &addressList) override;
 	void inviteDevice(const std::shared_ptr<ParticipantDevice> &device);
 	void byeDevice(const std::shared_ptr<ParticipantDevice> &device);
+	void byeDevices(const std::list<std::shared_ptr<ParticipantDevice>> &devices);
 
 	std::shared_ptr<Participant> addParticipantToList(const std::shared_ptr<Address> &participantAddress);
 	void resumeParticipant(const std::shared_ptr<Participant> &participant);
@@ -202,8 +203,8 @@ public:
 	void setParticipantDeviceState(const std::shared_ptr<ParticipantDevice> &device,
 	                               ParticipantDevice::State state,
 	                               bool notify = true);
-	void updateParticipantDeviceSession(const std::shared_ptr<ParticipantDevice> &device,
-	                                    bool freslyRegistered = false);
+	void updateParticipantDevicesSession(const std::list<std::shared_ptr<ParticipantDevice>> devices,
+	                                     bool freslyRegistered = false);
 
 	static bool allDevicesLeft(const std::shared_ptr<Participant> &participant);
 
@@ -266,7 +267,7 @@ private:
 	std::list<std::shared_ptr<const Address>> getAllowedAddresses() const;
 	virtual std::pair<bool, std::shared_ptr<Address>> configure(SalCallOp *op) override;
 	void enableScreenSharing(const std::shared_ptr<LinphonePrivate::CallSession> &session, bool notify);
-	MediaSessionParams *updateParameterForParticipantRemoval(const std::shared_ptr<CallSession> &session) const;
+	MediaSessionParams *createParameterForParticipantRemoval(const std::shared_ptr<MediaSession> &session);
 	void terminateConferenceWithReason(std::shared_ptr<MediaSession> &session,
 	                                   LinphoneReason reason,
 	                                   int code,
@@ -275,6 +276,9 @@ private:
 
 	void addLocalEndpoint();
 	void removeLocalEndpoint();
+
+	MediaSessionParams createDefaultMediaParams(const std::shared_ptr<Call> &call = nullptr) override;
+	void modifyCallParamsForConference(MediaSessionParams &params) const;
 
 	std::shared_ptr<ConferenceInfo> createConferenceInfo() const override;
 	bool tryAddMeDevice();
