@@ -43,7 +43,14 @@ class AuthStack {
 public:
 	AuthStack(CorePrivate &core);
 	AuthStack(const AuthStack &ref) = delete;
+	/*
+	 * Request the authentication_requested callback to be possibly invoked at next Core::iterate(), if no
+	 * authentication information is found in the end.
+	 */
 	void pushAuthRequested(const std::shared_ptr<AuthInfo> &ai);
+	/*
+	 * When an authentication info is found during the iteration, invoke this method.
+	 */
 	void authFound(const std::shared_ptr<AuthInfo> &ai);
 	bool empty() const {
 		return mAuthQueue.empty();
@@ -52,6 +59,10 @@ public:
 
 private:
 	void notifyAuthFailures();
+	/*
+	 * Invoked from iterate to finally analyse whether it is required or not to invoke
+	 * the authentication_requested callback.
+	 */
 	void processAuthRequested();
 	bool wasFound(const std::shared_ptr<AuthInfo> &ai);
 	CorePrivate &mCore;

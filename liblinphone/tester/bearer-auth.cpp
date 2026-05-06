@@ -42,7 +42,6 @@ static void bearer_auth_info_requested(LinphoneCore *lc, LinphoneAuthInfo *info,
 }
 
 static void test_bearer_auth(void) {
-
 	bellesip::AuthenticatedRegistrar registrar({"sip:bob@sip.example.com;access_token=abcdefgh"}, "sip.example.com",
 	                                           "tcp");
 	registrar.addAuthMode(BELLE_SIP_AUTH_MODE_HTTP_BEARER);
@@ -80,6 +79,52 @@ static void test_bearer_auth(void) {
 		linphone_auth_info_unref(proposedAuthInfo);
 		proposedAuthInfo = nullptr;
 	}
+
+	linphone_core_manager_destroy(lcm);
+	linphone_core_cbs_unref(cbs);
+}
+
+static void test_failed_bearer_auth(void) {
+	bellesip::AuthenticatedRegistrar registrar({"sip:bob@sip.example.com;access_token=abcdefgh"}, "sip.example.com",
+	                                           "tcp");
+	registrar.addAuthMode(BELLE_SIP_AUTH_MODE_HTTP_BEARER);
+	registrar.setAuthzServer("auth.example.org");
+
+	LinphoneCoreManager *lcm = linphone_core_manager_new("empty_rc");
+	LinphoneAccountParams *account_params = linphone_core_create_account_params(lcm->lc);
+	LinphoneAddress *identity = linphone_factory_create_address(linphone_factory_get(), "sip:bob@sip.example.com");
+	LinphoneAddress *server_addr =
+	    linphone_factory_create_address(linphone_factory_get(), registrar.getAgent().getListeningUriAsString().c_str());
+	linphone_account_params_set_identity_address(account_params, identity);
+	linphone_account_params_set_server_address(account_params, server_addr);
+	linphone_account_params_enable_register(account_params, TRUE);
+	linphone_address_unref(identity);
+	linphone_address_unref(server_addr);
+
+	LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+	linphone_core_cbs_set_authentication_requested(cbs, bearer_auth_info_requested);
+	linphone_core_add_callbacks(lcm->lc, cbs);
+
+	LinphoneAccount *account = linphone_core_create_account(lcm->lc, account_params);
+	linphone_core_add_account(lcm->lc, account);
+	linphone_account_params_unref(account_params);
+	linphone_account_unref(account);
+
+	BC_ASSERT_TRUE(wait_for(lcm->lc, NULL, &lcm->stat.number_of_authentication_info_requested, 1));
+	if (BC_ASSERT_PTR_NOT_NULL(proposedAuthInfo)) {
+		/* The bearer token is not the one expected by the server */
+		LinphoneBearerToken *token =
+		    linphone_factory_create_bearer_token(linphone_factory_get(), "1234567", time(NULL) + 30);
+		linphone_auth_info_set_access_token(proposedAuthInfo, token);
+		linphone_bearer_token_unref(token);
+		linphone_core_add_auth_info(lcm->lc, proposedAuthInfo);
+		bctbx_message("Added AuthInfo.");
+		BC_ASSERT_FALSE(wait_for_until(lcm->lc, NULL, &lcm->stat.number_of_authentication_info_requested, 2, 2000));
+		BC_ASSERT_TRUE(wait_for(lcm->lc, NULL, &lcm->stat.number_of_LinphoneRegistrationFailed, 1));
+		linphone_auth_info_unref(proposedAuthInfo);
+		proposedAuthInfo = nullptr;
+	}
+	BC_ASSERT_EQUAL(lcm->stat.number_of_authentication_info_requested, 1, int, "%i");
 
 	linphone_core_manager_destroy(lcm);
 	linphone_core_cbs_unref(cbs);
@@ -800,6 +845,7 @@ static void provisioning_with_http_bearer_then_register_with_digest_with_usernam
 }
 static test_t bearer_auth_tests[] = {
     {"Bearer auth requested", test_bearer_auth},
+    {"Bearer auth requested but failed", test_failed_bearer_auth},
     {"Bearer auth set before", test_bearer_auth_set_before},
     {"Provisioning with http bearer auth", provisioning_with_http_bearer_auth},
     {"Provisioning with http bearer auth requested on demand", provisioning_with_http_bearer_auth_requested_on_demand},

@@ -1807,7 +1807,7 @@ static void lime_user_creation_after_registration(void) {
 	linphone_core_manager_destroy(marie);
 }
 
-test_t register_tests[] = {
+static test_t register_tests[] = {
     TEST_NO_TAG("Simple register", simple_register), TEST_NO_TAG("Simple register unregister", simple_unregister),
     TEST_NO_TAG("TCP register", simple_tcp_register), TEST_NO_TAG("TCP register 2", simple_tcp_register2),
     TEST_NO_TAG("UDP register", simple_udp_register),

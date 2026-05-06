@@ -25,7 +25,7 @@
 #include <unistd.h>
 #endif
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/mediastream.h"
 
@@ -628,14 +628,17 @@ static void auth_failure(SalOp *op, SalAuthInfo *info) {
 		ai = (LinphoneAuthInfo *)_linphone_core_find_auth_info(lc, info->realm, info->username, info->domain,
 		                                                       info->algorithm, TRUE);
 		if (ai) {
-			/* only HttpDigest Mode requests App for credentials, TLS client cert does not support callback so the
-			 * authentication credential MUST be provided by the application before the connection without prompt from
-			 * the library */
+			/* only HttpDigest mode requests App for credentials, TLS client cert does not support callback
+			 * so the authentication credential MUST be provided by the application before the connection without prompt
+			 * from the library.
+			 * For bearer, we consider there can't be user mystyping password, so no reason to request again.'
+			 */
 			ms_message("%s/%s/%s/%s authentication fails.", info->realm, info->username, info->domain,
 			           sal_auth_mode_to_string(info->mode));
 			if (info->mode == SalAuthModeHttpDigest) {
 				LinphoneAuthInfo *auth_info =
 				    linphone_core_create_auth_info(lc, info->username, NULL, NULL, NULL, info->realm, info->domain);
+				AuthInfo::toCpp(auth_info)->setRequestedMethod(AuthInfo::fromSalAuthMode(info->mode));
 				/*ask again for password if auth info was already supplied but apparently not working*/
 				L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack().pushAuthRequested(
 				    AuthInfo::toCpp(ai)->getSharedFromThis());
@@ -843,15 +846,21 @@ static bool_t fill_auth_info_with_client_certificate(LinphoneCore *lc, SalAuthIn
 
 static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 	LinphoneAuthInfo *ai = NULL;
+	bool notifyAuthStack = false;
+	AuthStack &as = L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack();
+	LinphoneAuthMethod requestedMethod = LinphoneAuthBasic;
 	switch (sai->mode) {
 		case SalAuthModeTls:
 			ai = _linphone_core_find_tls_auth_info(lc);
+			requestedMethod = LinphoneAuthTls;
 			break;
 		case SalAuthModeHttpDigest:
 			ai = _linphone_core_find_auth_info(lc, sai->realm, sai->username, sai->domain, sai->algorithm, FALSE);
+			requestedMethod = LinphoneAuthHttpDigest;
 			break;
 		case SalAuthModeBearer:
 			ai = _linphone_core_find_bearer_auth_info(lc, sai->realm, sai->username, sai->domain);
+			requestedMethod = LinphoneAuthBearer;
 			break;
 	}
 	if (ai) {
@@ -862,13 +871,7 @@ static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 				sai->password =
 				    linphone_auth_info_get_password(ai) ? ms_strdup(linphone_auth_info_get_password(ai)) : NULL;
 				sai->ha1 = linphone_auth_info_get_ha1(ai) ? ms_strdup(linphone_auth_info_get_ha1(ai)) : NULL;
-
-				AuthStack &as = L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack();
-				/* We have to construct the auth info as it was originally requested in auth_requested() below,
-				 * so that the matching is made correctly.
-				 */
-				as.authFound(AuthInfo::create(sai->username, "", "", "", sai->realm, sai->domain));
-
+				notifyAuthStack = true;
 			} break;
 			case SalAuthModeTls: {
 				if (linphone_auth_info_get_tls_cert(ai) && linphone_auth_info_get_tls_key(ai)) {
@@ -895,7 +898,16 @@ static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 					sai->bearer_token = cppAi->getAccessToken()->getImpl()->toC();
 					lInfo() << "Bearer token found.";
 				}
+				notifyAuthStack = true;
 			} break;
+		}
+
+		if (notifyAuthStack) {
+			/* Notify the auth stack about the originally requested AuthInfo that was finally found */
+			auto notifiedAI = AuthInfo::create(L_C_TO_STRING(sai->username), "", "", "", L_C_TO_STRING(sai->realm),
+			                                   L_C_TO_STRING(sai->domain));
+			notifiedAI->setRequestedMethod(requestedMethod);
+			as.authFound(notifiedAI);
 		}
 
 		if (sai->realm && (!linphone_auth_info_get_realm(ai) || !linphone_auth_info_get_algorithm(ai))) {
@@ -917,38 +929,33 @@ static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 }
 static bool_t auth_requested(Sal *sal, SalAuthInfo *sai) {
 	LinphoneCore *lc = (LinphoneCore *)sal->getUserPointer();
-	if (fill_auth_info(lc, sai)) {
-		return TRUE;
-	} else {
-		/* only HttpDigest and Bearer method request application for credentials, TLS client cert does not support
-		 * callback so the authentication credential MUST be provided by the application before the connection without
-		 * prompt from the library */
-		switch (sai->mode) {
-			case SalAuthModeHttpDigest: {
-				LinphoneAuthInfo *ai =
-				    linphone_core_create_auth_info(lc, sai->username, NULL, NULL, NULL, sai->realm, sai->domain);
-				linphone_auth_info_set_algorithm(ai, sai->algorithm);
-				/* Request app for new authentication information, but later. */
-				L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack().pushAuthRequested(
-				    AuthInfo::toCpp(ai)->getSharedFromThis());
-				linphone_auth_info_unref(ai);
-				if (fill_auth_info(lc, sai)) {
-					return TRUE;
-				}
-			} break;
-			case SalAuthModeBearer: {
-				LinphoneAuthInfo *ai =
-				    linphone_core_create_auth_info(lc, sai->username, NULL, NULL, NULL, sai->realm, sai->domain);
-				linphone_auth_info_set_authorization_server(ai, sai->authz_server);
-				linphone_core_notify_authentication_requested(lc, ai, LinphoneAuthBearer);
-				linphone_auth_info_unref(ai);
-			} break;
-			case SalAuthModeTls:
-				/* TLS Client based authentication is cannot be requested to the application.*/
-				break;
-		}
-		return FALSE;
+	LinphoneAuthInfo *ai = NULL;
+
+	/* only HttpDigest and Bearer method request application for credentials, TLS client cert does not support
+	 * callback so the authentication credential MUST be provided by the application before the connection without
+	 * prompt from the library */
+	switch (sai->mode) {
+		case SalAuthModeHttpDigest: {
+
+			ai = linphone_core_create_auth_info(lc, sai->username, NULL, NULL, NULL, sai->realm, sai->domain);
+			linphone_auth_info_set_algorithm(ai, sai->algorithm);
+			AuthInfo::toCpp(ai)->setRequestedMethod(LinphoneAuthHttpDigest);
+			/* Request app for new authentication information, but later. */
+		} break;
+		case SalAuthModeBearer: {
+			ai = linphone_core_create_auth_info(lc, sai->username, NULL, NULL, NULL, sai->realm, sai->domain);
+			linphone_auth_info_set_authorization_server(ai, sai->authz_server);
+			AuthInfo::toCpp(ai)->setRequestedMethod(LinphoneAuthBearer);
+		} break;
+		case SalAuthModeTls:
+			/* TLS Client based authentication cannot be requested to the application.*/
+			break;
 	}
+	if (ai) {
+		L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack().pushAuthRequested(AuthInfo::toCpp(ai)->getSharedFromThis());
+		linphone_auth_info_unref(ai);
+	}
+	return fill_auth_info(lc, sai);
 }
 
 static void notify_refer(SalOp *op, SalReferStatus status) {

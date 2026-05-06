@@ -579,6 +579,7 @@ AuthStatus linphone_core_fill_belle_sip_auth_event(LinphoneCore *lc,
 			                                      belle_sip_auth_event_get_userid(event), NULL, NULL, realm, ae_domain);
 			linphone_auth_info_set_algorithm(ai, belle_sip_auth_event_get_algorithm(event));
 			linphone_auth_info_set_authorization_server(ai, belle_sip_auth_event_get_authz_server(event));
+			AuthInfo::toCpp(ai)->setRequestedMethod(requestedMethod);
 			linphone_core_notify_authentication_requested(lc, ai, requestedMethod);
 			linphone_auth_info_unref(ai);
 			status = AuthStatus::Pending;
@@ -598,4 +599,18 @@ void linphone_core_set_digest_authentication_policy(LinphoneCore *core, Linphone
 const LinphoneDigestAuthenticationPolicy *linphone_core_get_digest_authentication_policy(const LinphoneCore *core) {
 	belle_sip_stack_t *stack = reinterpret_cast<belle_sip_stack_t *>(core->sal->getStackImpl());
 	return (const LinphoneDigestAuthenticationPolicy *)belle_sip_stack_get_digest_authentication_policy(stack);
+}
+
+const char *linphone_auth_method_to_string(LinphoneAuthMethod method) {
+	switch (method) {
+		case LinphoneAuthBasic:
+			return "basic";
+		case LinphoneAuthHttpDigest:
+			return "digest";
+		case LinphoneAuthBearer:
+			return "bearer";
+		case LinphoneAuthTls:
+			return "tls";
+	}
+	return "invalid auth method";
 }

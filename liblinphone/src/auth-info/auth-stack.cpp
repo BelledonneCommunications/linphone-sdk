@@ -20,7 +20,7 @@
 
 #include <algorithm>
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "auth-stack.h"
 
@@ -28,8 +28,6 @@
 #include "core/core-p.h"
 
 #include "private_functions.h"
-
-#include <algorithm>
 
 using namespace ::std;
 
@@ -47,7 +45,8 @@ AuthStack::~AuthStack() {
 }
 
 void AuthStack::pushAuthRequested(const std::shared_ptr<AuthInfo> &ai) {
-	if (mAuthBeingRequested || !ai) return;
+	if (!ai) return;
+	mAuthBeingRequested = true;
 	lInfo() << "AuthRequested pushed";
 	auto authIndex = std::find_if(mAuthQueue.begin(), mAuthQueue.end(),
 	                              [&ai](std::shared_ptr<AuthInfo> auth) { return ai->isEqualButAlgorithms(&(*auth)); });
@@ -61,10 +60,8 @@ void AuthStack::pushAuthRequested(const std::shared_ptr<AuthInfo> &ai) {
 
 void AuthStack::authFound(const std::shared_ptr<AuthInfo> &ai) {
 	lInfo() << "AuthStack::authFound() for " << ai->toString();
+	if (!mAuthBeingRequested) return;
 	mAuthFound.push_back(ai);
-	if (!mTimer) {
-		mTimer = mCore.getSal()->createTimer(&onTimeout, this, 0, "authentication requests");
-	}
 }
 
 void AuthStack::notifyAuthFailures() {
@@ -83,7 +80,9 @@ void AuthStack::notifyAuthFailures() {
 }
 
 bool AuthStack::wasFound(const std::shared_ptr<AuthInfo> &authInfo) {
-	for (auto &ai : mAuthFound) {
+	//lInfo() << "Checking for " << authInfo->toString();
+	for (auto ai : mAuthFound) {
+		//lInfo() << "Observing " << ai->toString();
 		if (authInfo->getRealm() == ai->getRealm() && authInfo->getUsername() == ai->getUsername() &&
 		    authInfo->getDomain() == ai->getDomain()) {
 			lInfo() << "Authentication request not needed.";
@@ -94,15 +93,12 @@ bool AuthStack::wasFound(const std::shared_ptr<AuthInfo> &authInfo) {
 }
 
 void AuthStack::processAuthRequested() {
-	/* The auth_info_requested() callback may cause the application to directly call linphone_core_add_auth_info(),
-	 * which will re-invoke the auth_requsted callback of the SAL, which may call authFound() here. The
-	 * mAuthBeingRequested flag is to inhinit this behavior.
-	 */
-	mAuthBeingRequested = true;
+	lInfo() << "enter AuthStack::processAuthRequested()";
 
 	for (const auto &authInfo : mAuthQueue) {
 		if (!wasFound(authInfo)) {
-			linphone_core_notify_authentication_requested(mCore.getCCore(), authInfo->toC(), LinphoneAuthHttpDigest);
+			linphone_core_notify_authentication_requested(mCore.getCCore(), authInfo->toC(),
+			                                              authInfo->getRequestedMethod());
 			// Deprecated callback:
 			linphone_core_notify_auth_info_requested(mCore.getCCore(), authInfo->getRealm().c_str(),
 			                                         authInfo->getUsername().c_str(), authInfo->getDomain().c_str());
@@ -117,6 +113,7 @@ void AuthStack::processAuthRequested() {
 		mTimer = nullptr;
 	}
 	mAuthBeingRequested = false;
+	lInfo() << "leave AuthStack::processAuthRequested()";
 }
 
 int AuthStack::onTimeout(void *data, BCTBX_UNUSED(unsigned int events)) {

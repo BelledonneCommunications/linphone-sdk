@@ -21,6 +21,7 @@
 #include "auth-info.h"
 #include "bellesip_sal/sal_impl.h"
 #include "linphone/lpconfig.h"
+#include "linphone/misc.h"
 #include "logger/logger.h"
 
 #include <algorithm>
@@ -66,6 +67,7 @@ AuthInfo::AuthInfo(const std::string &username, std::shared_ptr<BearerToken> tok
 	mUsername = username;
 	mAccessToken = token;
 	mRealm = realm;
+	mRequestedMethod = LinphoneAuthBearer;
 }
 
 void AuthInfo::init(const string &username,
@@ -99,6 +101,7 @@ void AuthInfo::init(const string &username,
 	init(username, userid, passwd, ha1, realm, domain, algorithm);
 	setAvailableAlgorithms(availableAlgorithms);
 }
+
 AuthInfo::AuthInfo(LpConfig *config, string key) {
 	const char *username, *userid, *passwd, *ha1, *realm, *domain, *tls_cert_path, *tls_key_path, *tls_key_password,
 	    *algo;
@@ -375,6 +378,7 @@ std::string AuthInfo::toString() const {
 	if (!mClientId.empty()) ss << "ClientID[" << mClientId << "];";
 	if (mAccessToken) ss << "AccessToken[" << mAccessToken->getToken().substr(0, 4) << "...];";
 	if (mRefreshToken) ss << "RefreshToken[" << mRefreshToken->getToken().substr(0, 4) << "...];";
+	ss << "Method[" << linphone_auth_method_to_string(mRequestedMethod) << "]";
 	return ss.str();
 }
 
@@ -383,4 +387,18 @@ bool AuthInfo::isEqualButAlgorithms(const AuthInfo *authInfo) const {
 	return authInfo && getUsername() == authInfo->getUsername() && getUserid() == authInfo->getUserid() &&
 	       getRealm() == authInfo->getRealm() && getDomain() == authInfo->getDomain();
 }
+
+LinphoneAuthMethod AuthInfo::fromSalAuthMode(SalAuthMode mode) {
+	switch (mode) {
+		case SalAuthModeHttpDigest:
+			return LinphoneAuthHttpDigest;
+		case SalAuthModeBearer:
+			return LinphoneAuthBearer;
+		case SalAuthModeTls:
+			return LinphoneAuthTls;
+	}
+	lError() << "Unhandled SalAuthMode with value " << mode;
+	return LinphoneAuthBasic;
+}
+
 LINPHONE_END_NAMESPACE
