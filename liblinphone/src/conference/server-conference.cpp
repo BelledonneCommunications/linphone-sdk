@@ -411,10 +411,13 @@ void ServerConference::updateConferenceParams(SalCallOp *op) {
 	const auto audioEnabled = (remoteMd && (remoteMd->nbActiveStreamsOfType(SalAudio) > 0));
 	const auto videoEnabled = (remoteMd && (remoteMd->nbActiveStreamsOfType(SalVideo) > 0));
 	auto recvCustomHeaders = op->getRecvCustomHeaders();
-	string endToEndEncrypted = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEndToEndEncryptedHeader.c_str()));
+	string endToEndEncrypted =
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEndToEndEncryptedHeader.c_str()));
 	string ephemerable = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemerableHeader.c_str()));
-	string ephemeralLifeTime = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemeralLifeTimeHeader.c_str()));
-	string oneOnOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kOneOnOneChatRoomHeader.c_str()));
+	string ephemeralLifeTime =
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemeralLifeTimeHeader.c_str()));
+	string oneOnOneChatRoom =
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kOneOnOneChatRoomHeader.c_str()));
 	const auto remoteContactAddress = op->getRemoteContactAddress();
 	const auto chatEnabled = (!ephemerable.empty() || !ephemeralLifeTime.empty() || !endToEndEncrypted.empty() ||
 	                          !oneOnOneChatRoom.empty() ||
@@ -504,8 +507,8 @@ std::pair<bool, std::shared_ptr<Address>> ServerConference::configure(SalCallOp 
 			securityLevel = ConferenceParams::getSecurityLevelFromAttribute(
 			    toAddr.getUriParamValue(Conference::kSecurityModeParameter));
 		} else {
-			string endToEndEncrypted =
-			    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEndToEndEncryptedHeader.c_str()));
+			string endToEndEncrypted = L_C_TO_STRING(
+			    sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEndToEndEncryptedHeader.c_str()));
 			bool encrypted = endToEndEncrypted == "true";
 			if (encrypted) {
 				securityLevel = ConferenceParams::SecurityLevel::EndToEnd;
@@ -775,7 +778,7 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 
 		if (rejectSession) {
 			lInfo() << *device << " is trying to establish a session with " << *this << ". However it is in state "
-			        << Utils::toString(deviceState) << "therefore the session is likely to be immediately terminated";
+			        << Utils::toString(deviceState) << " therefore the session is likely to be immediately terminated";
 		} else {
 			if (deviceSession) {
 				// Search for the matching cached device and update it as well. In fact cache devices are used in the
@@ -1047,7 +1050,8 @@ void ServerConference::finalizeCreation() {
 		}
 #endif // HAVE_ADVANCED_IM
 		const std::shared_ptr<Address> &conferenceAddress = getConferenceAddress();
-		setConferenceId(ConferenceId(conferenceAddress, conferenceAddress, getCore()->createConferenceIdParams()), true);
+		setConferenceId(ConferenceId(conferenceAddress, conferenceAddress, getCore()->createConferenceIdParams()),
+		                true);
 		std::shared_ptr<ConferenceInfo> info = nullptr;
 
 		auto db = getCore()->getDatabase();
@@ -1383,10 +1387,10 @@ int ServerConference::inviteAddresses(const std::list<std::shared_ptr<Address>> 
 		 */
 		if (getCore()->conferenceServerEnabled()) {
 			if (device) {
-				const auto &session = device->getSession();
+				auto session = device->getSession();
 				const auto sessionState = session ? session->getState() : CallSession::State::Idle;
-				const auto &callId = device->getCallId();
-				if (device->getState() == ParticipantDevice::State::Joining &&
+				const auto deviceState = device->getState();
+				if (deviceState == ParticipantDevice::State::Joining &&
 				    (sessionState == CallSession::State::OutgoingProgress ||
 				     sessionState == CallSession::State::Connected)) {
 					lInfo() << *this << ": outgoing INVITE " << *session << " already in progress.";
@@ -1397,6 +1401,7 @@ int ServerConference::inviteAddresses(const std::list<std::shared_ptr<Address>> 
 					return -1;
 				}
 				setParticipantDeviceState(device, ParticipantDevice::State::Joining);
+				const auto &callId = device->getCallId();
 				if (!callId.empty()) {
 					call = getCore()->getCallByCallId(callId);
 				} else if (session) {
@@ -1423,18 +1428,23 @@ int ServerConference::inviteAddresses(const std::list<std::shared_ptr<Address>> 
 				linphone_call_params_enable_audio(new_params, audioEnabled);
 				linphone_call_params_enable_video(new_params, videoEnabled);
 			}
+
 			linphone_call_params_disable_ringing(new_params, supportsMedia());
 			linphone_call_params_enable_tone_indications(new_params, !supportsMedia());
 			linphone_call_params_set_in_conference(new_params, TRUE);
+
+			const std::shared_ptr<Address> &conferenceAddress = getConferenceAddress();
+			const string &confId = conferenceAddress->getUriParamValue(Conference::kConfIdParameter);
+			linphone_call_params_set_conference_id(new_params, confId.c_str());
+
+			// Set the from header as the conference address to allow clients to associate a call session to a
+			// conference.
+			linphone_call_params_set_from_header(new_params, conferenceAddress->toString().c_str());
 
 			const auto &account = getAccount();
 			if (account) {
 				linphone_call_params_set_account(new_params, account->toC());
 			}
-
-			const std::shared_ptr<Address> &conferenceAddress = getConferenceAddress();
-			const string &confId = conferenceAddress->getUriParamValue(Conference::kConfIdParameter);
-			linphone_call_params_set_conference_id(new_params, confId.c_str());
 
 			std::shared_ptr<CallSession> session = nullptr;
 
@@ -1638,7 +1648,8 @@ void ServerConference::byeDevice(const std::shared_ptr<ParticipantDevice> &devic
 	csp.enableVideo(mConfParams->videoEnabled());
 	if (mConfParams->chatEnabled()) {
 		if (!getCurrentParams()->isGroup()) csp.addCustomHeader(ChatRoom::kOneOnOneChatRoomHeader, "true");
-		if (getCurrentParams()->getChatParams()->isEncrypted()) csp.addCustomHeader(ChatRoom::kEndToEndEncryptedHeader, "true");
+		if (getCurrentParams()->getChatParams()->isEncrypted())
+			csp.addCustomHeader(ChatRoom::kEndToEndEncryptedHeader, "true");
 		if (getCurrentParams()->getChatParams()->ephemeralAllowed()) {
 			csp.addCustomHeader(ChatRoom::kEphemerableHeader, "true");
 			csp.addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,

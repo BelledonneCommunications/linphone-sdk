@@ -81,7 +81,7 @@ void ClientConference::createFocus(const std::shared_ptr<const Address> &focusAd
 	if (focusSession) {
 		focusSession->addListener(getSharedFromThis());
 	}
-	lInfo() << *this << ": Create focus '" << *mFocus->getAddress() << "' from address : " << *focusAddr;
+	lInfo() << *this << ": Create focus '" << *mFocus;
 }
 
 std::pair<bool, std::shared_ptr<Address>> ClientConference::configure(SalCallOp *op) {
@@ -414,8 +414,21 @@ void ClientConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 			auto focusOpTo = Address::create(focusOp->getTo());
 			lInfo() << *this << ": Releasing focus session " << focusSession << " (from: " << *focusOpFrom << " to "
 			        << *focusOpTo << ")";
-			focusOp->terminate();
+			// Terminate just the op and not the call session as the subscription to the conference should stay alive
+			LinphoneErrorInfo *ei = linphone_error_info_new();
+			LinphoneReason reason = LinphoneReasonNoMatch;
+			linphone_error_info_set(ei, "SIP", reason, linphone_reason_to_error_code(reason), "Session replaced",
+			                        "Session replaced");
+			SalErrorInfo sei = {};
+			linphone_error_info_to_sal(ei, &sei);
+			focusOp->terminate(&sei);
+			sal_error_info_reset(&sei);
+			linphone_error_info_unref(ei);
 			focusOp->release();
+		}
+		mFocus->removeSession();
+		if (mMe->getSession() == focusSession) {
+			mMe->removeSession();
 		}
 	}
 
@@ -546,8 +559,6 @@ void ClientConference::setUtf8Subject(const std::string &subject) {
 					delete currentParams;
 					if (ret != 0) {
 						lInfo() << "re-INVITE to update subject to \"" << subject << "\" cannot be sent right now";
-					} else {
-						mPendingSubject.clear();
 					}
 					return ret;
 				}
@@ -564,7 +575,8 @@ void ClientConference::setUtf8Subject(const std::string &subject) {
 		session = dynamic_pointer_cast<MediaSession>(createSession());
 		if (session) {
 			session->startInvite(nullptr, subject, nullptr);
-			mPendingSubject.clear();
+			mPendingSubject = subject;
+			setMainSession(session);
 		}
 	} else {
 		mPendingSubject = subject;
@@ -1096,6 +1108,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 		auto clientGroupChatRoom = dynamic_pointer_cast<ClientChatRoom>(chatRoom);
 		switch (state) {
 			case CallSession::State::Connected: {
+				mPendingSubject.clear();
 				if ((mState == ConferenceInterface::State::Instantiated) ||
 				    (mState == ConferenceInterface::State::CreationPending)) {
 					if (!mConfParams->getAccount()) {
@@ -1132,6 +1145,16 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 					lWarning() << *this
 					           << ": received a BYE with reason: " << linphone_error_info_get_protocol_code(errorInfo)
 					           << ", not leaving it.";
+					if ((code == 481) && !Conference::isTerminationState(mState)) {
+						// If not terminating the chatroom, then try again to establish an INVITE session.
+						// In fact it may happen that the conference server restarted between the time the previous main
+						// session was establish and now. Hence an admin trying to send an INVITE will get a '481
+						// Call/transaction does not exist' answer
+						auto session = createSession();
+						auto subject = mPendingSubject.empty() ? getUtf8Subject() : mPendingSubject;
+						session->startInvite(nullptr, subject, nullptr);
+						setMainSession(session);
+					}
 				} else {
 					const auto &clientConferenceAddress = session->getRemoteAddress();
 					bool found = false;
@@ -2525,6 +2548,7 @@ void ClientConference::leave(BCTBX_UNUSED(const LinphoneReason reason)) {
 			mExitReason = reason;
 			session = createSession();
 			session->startInvite(nullptr, getUtf8Subject(), nullptr);
+			setMainSession(session);
 		}
 		setState(ConferenceInterface::State::TerminationPending);
 		if (!session) {
@@ -2812,7 +2836,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 				forceVideoEnabled |= call->getParams()->videoEnabled();
 			}
 			if (forceVideoEnabled) {
-				lInfo() << "Forcing " << *mMe->getAddress() << " to enable video capabilities when joining " << *this
+				lInfo() << "Forcing " << *mMe << " to enable video capabilities when joining " << *this
 				        << " because at least one call that was merged had video capabilities on";
 				dialoutParams->enableVideo(true);
 			}
@@ -2908,6 +2932,9 @@ void ClientConference::onCallSessionSetReleased(const shared_ptr<CallSession> &s
 #endif // HAVE_ADVANCED_IM
 		setMainSession(nullptr);
 		mFocus->removeSession();
+	}
+	if (session == mMe->getSession()) {
+		mMe->removeSession();
 	}
 }
 

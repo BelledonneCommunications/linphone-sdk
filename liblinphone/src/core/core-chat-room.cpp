@@ -952,9 +952,9 @@ shared_ptr<AbstractChatRoom> Core::getOrCreateBasicChatRoomFromUri(const std::st
 
 void Core::deleteChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom) {
 	L_D();
-	const ConferenceId &conferenceId = chatRoom->getConferenceId();
-	lInfo() << "Trying to delete chat room [" << chatRoom << "] with conference ID " << conferenceId << ".";
+	lInfo() << "Trying to delete " << *chatRoom;
 
+	const ConferenceId &conferenceId = chatRoom->getConferenceId();
 	auto chatRoomInCoreMap = findChatRoom(conferenceId, false);
 	if (chatRoomInCoreMap) {
 		d->mConferenceById.erase(conferenceId);
@@ -963,8 +963,7 @@ void Core::deleteChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom) {
 			db.value().get().deleteChatRoom(conferenceId);
 		}
 	} else {
-		lError() << "Unable to delete chat room [" << chatRoom << "] with conference ID " << conferenceId
-		         << " because it cannot be found.";
+		lError() << "Unable to delete " << *chatRoom << " because it cannot be found.";
 	}
 }
 

@@ -11,6 +11,7 @@
 #include "address/address.h"
 #include "c-wrapper/c-wrapper.h"
 #include "call/call.h"
+#include "conference/participant.h"
 #include "core/core.h"
 #include "linphone/core.h"
 #include "linphone/types.h"
@@ -158,6 +159,12 @@ public:
 		mMgr->user_info = this;
 		mPreStart(true);
 		start(true);
+	}
+
+	static void deleteAllDevices(std::shared_ptr<LinphonePrivate::Participant> &participant) {
+		if (participant) {
+			participant->clearDevices();
+		}
 	}
 
 	void reStart(bool check_for_proxies = true) {

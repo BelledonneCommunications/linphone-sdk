@@ -2520,12 +2520,12 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 			uuid_copy = bctbx_strdup(uuid);
 		}
 
-		ms_message("%s stops its core", linphone_core_get_identity(michelle.getLc()));
+		char *michelleIdentity = ms_strdup(linphone_core_get_identity(michelle.getLc()));
+		ms_message("%s stops its core", michelleIdentity);
 		coresList = bctbx_list_remove(coresList, michelle.getLc());
 		linphone_core_manager_stop(michelle.getCMgr());
 
-		char *michelleContactStr = linphone_address_as_string(michelleContact);
-		ms_message("All %s's devices are removed", michelleContactStr);
+		ms_message("All %s's devices are removed", michelleIdentity);
 		for (auto chatRoom : focus.getCore().getChatRooms()) {
 			auto participant =
 			    chatRoom->findParticipant(Address::toCpp(michelle.getCMgr()->identity)->getSharedFromThis());
@@ -2542,7 +2542,7 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 					    .get()
 					    .deleteChatRoomParticipantDevice(chatRoom, device);
 				}
-				ClientConference::deleteAllDevices(participant);
+				ConfCoreManager::deleteAllDevices(participant);
 			}
 		}
 
@@ -2587,8 +2587,8 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 			                              initialStats.number_of_participants_added + 1, 200));
 		}
 
-		ms_message("%s starts again its core", michelleContactStr);
-		ms_free(michelleContactStr);
+		ms_message("%s starts again its core", michelleIdentity);
+		ms_free(michelleIdentity);
 		linphone_core_manager_configure(michelle.getCMgr());
 		michelle.configure((!!use_remote_event_list_handler) ? focus.getConferenceFactoryAddress() : Address(),
 		                   lime_algo);
