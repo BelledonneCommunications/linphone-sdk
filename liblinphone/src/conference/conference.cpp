@@ -774,6 +774,36 @@ int Conference::terminate(BCTBX_UNUSED(const LinphoneReason reason)) {
 	return 0;
 }
 
+void Conference::modifyCallParamsForConference(MediaSessionParams &params) const {
+	if (!mConfParams->isHidden()) {
+		if (mConfParams->chatEnabled()) {
+			params.addCustomContactParameter(Conference::kTextParameter);
+			if (!mConfParams->isGroup()) {
+				params.addCustomHeader(ChatRoom::kOneOnOneChatRoomHeader, "true");
+			}
+			if (mConfParams->getChatParams()->isEncrypted()) {
+				params.addCustomHeader(ChatRoom::kEndToEndEncryptedHeader, "true");
+			}
+			if (getCurrentParams()->getChatParams()->ephemeralAllowed()) {
+				params.addCustomHeader(ChatRoom::kEphemerableHeader, "true");
+				params.addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
+				                       to_string(mConfParams->getChatParams()->getEphemeralLifetime()));
+				params.addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
+				                       to_string(mConfParams->getChatParams()->getEphemeralNotReadLifetime()));
+			}
+		}
+		const auto &conferenceAddress = getConferenceAddress();
+		if (conferenceAddress) {
+			const string &confId = conferenceAddress->getUriParamValue(Conference::kConfIdParameter);
+			params.getPrivate()->setConferenceId(confId);
+		}
+	}
+
+	auto mediaSupported = supportsMedia();
+	params.getPrivate()->disableRinging(!mediaSupported);
+	params.getPrivate()->enableToneIndications(mediaSupported);
+}
+
 LinphoneStatus Conference::updateMainSession(bool modifyParams) {
 	if (getCore()->getCCore()->sal->mediaDisabled()) {
 		lInfo() << "Core's SAL has disabled media, therefore the core of main session of " << *this

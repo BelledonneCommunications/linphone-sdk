@@ -1583,7 +1583,11 @@ void ServerConferenceEventHandler::onStateChanged(LinphonePrivate::ConferenceInt
 		case ConferenceInterface::State::Deleted:
 			break;
 		case ConferenceInterface::State::CreationFailed:
-			conf->getCore()->doLater([conf] { dynamic_pointer_cast<ServerConference>(conf)->requestDeletion(); });
+			conf->getCore()->doLater([conf] {
+				lInfo() << "Deleting " << *conf << " because it didn't create successfully";
+				dynamic_pointer_cast<ServerConference>(conf)->requestDeletion();
+				conf->terminate();
+			});
 			break;
 		case ConferenceInterface::State::CreationPending:
 			conf->finalizeCreation();

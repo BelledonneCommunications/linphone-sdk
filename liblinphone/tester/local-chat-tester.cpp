@@ -4693,6 +4693,10 @@ static void high_number_of_group_chat_rooms_with_client_restart_base(int nbChatR
                                                                      size_t initialNbServerChatRooms) {
 	Focus focus("chloe_rc", focus_source_db);
 	{ // to make sure focus is destroyed after clients.
+		ms_message("Executing the test with the following parameters: ");
+		ms_message("chatroom created: %0d", nbChatRooms);
+		ms_message("chat messages sent: %0d", nbChatMessages);
+		ms_message("initial server chatroom number: %0zu", initialNbServerChatRooms);
 		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
 		ClientConference michelle("michelle_rc", focus.getConferenceFactoryAddress());
 		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress());
@@ -4724,7 +4728,6 @@ static void high_number_of_group_chat_rooms_with_client_restart_base(int nbChatR
 		coresList = bctbx_list_append(coresList, michelle.getLc());
 
 		BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), initialNbServerChatRooms, size_t, "%zu");
-
 		BC_ASSERT_GREATER_STRICT(nbChatRooms, (focus_source_db.empty() ? 50 : 5), size_t, "%0zu");
 		long maxChatRoomCreationDurationMs = 40;
 		long maxChatRoomMessageProcessingDurationMs = 2;
@@ -4805,7 +4808,7 @@ static void high_number_of_group_chat_rooms_with_client_restart_base(int nbChatR
 					return true;
 				}));
 				auto chatRoomCreationDurationMs = chatRoom->getConference()->getCreationDurationMs();
-				ms_message("Chatroom %s (subject %s) took %ld to create (maximum allowed %ld)",
+				ms_message("Chatroom %s (subject %s) took %ld ms to create (maximum allowed %ld ms)",
 				           chatRoom->getConference()->getConferenceAddress()->toString().c_str(),
 				           chatRoom->getSubjectUtf8().c_str(), chatRoomCreationDurationMs,
 				           maxChatRoomCreationDurationMs);
@@ -4819,7 +4822,7 @@ static void high_number_of_group_chat_rooms_with_client_restart_base(int nbChatR
 		long totalChatRoomCreationDuration = 0;
 		for (const auto &chatRoom : focus.getCore().getChatRooms()) {
 			auto chatRoomCreationDurationMs = chatRoom->getConference()->getCreationDurationMs();
-			ms_message("Chatroom %s (subject %s) took %ld to create (maximum allowed %ld)",
+			ms_message("Chatroom %s (subject %s) took %ld ms to create (maximum allowed %ld ms)",
 			           chatRoom->getConference()->getConferenceAddress()->toString().c_str(),
 			           chatRoom->getSubjectUtf8().c_str(), chatRoomCreationDurationMs, maxChatRoomCreationDurationMs);
 			totalChatRoomCreationDuration += chatRoomCreationDurationMs;

@@ -362,7 +362,11 @@ LinphoneStatus linphone_conference_invite_participants(LinphoneConference *confe
 	ConferenceLogContextualizer logContextualizer(conference);
 	std::list<std::shared_ptr<LinphonePrivate::Address>> addressList =
 	    LinphonePrivate::Utils::bctbxListToCppSharedPtrList<LinphoneAddress, LinphonePrivate::Address>(addresses);
-	return Conference::toCpp(conference)->inviteAddresses(addressList, params);
+	const MediaSessionParams *msp = nullptr;
+	if (params) {
+		msp = L_GET_CPP_PTR_FROM_C_OBJECT(params);
+	}
+	return Conference::toCpp(conference)->inviteAddresses(addressList, msp);
 }
 
 LinphoneStatus linphone_conference_add_participants(LinphoneConference *conference, const bctbx_list_t *calls) {

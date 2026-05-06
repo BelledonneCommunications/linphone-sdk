@@ -87,8 +87,8 @@ public:
 	virtual ~Conference() override;
 
 	virtual int inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
-	                            const LinphoneCallParams *params) = 0;
-	virtual bool dialOutAddresses(const std::list<std::shared_ptr<Address>> &addressList) = 0;
+	                            const MediaSessionParams *params) = 0;
+	virtual bool dialoutAddresses(const std::list<std::shared_ptr<Address>> &addressList) = 0;
 	virtual bool finalizeParticipantAddition(std::shared_ptr<Call> call) = 0;
 
 	std::shared_ptr<Participant> getActiveParticipant() const;
@@ -420,6 +420,9 @@ protected:
 
 	ConferenceInterface::State mState = ConferenceInterface::State::None;
 	std::map<uint32_t, bool> mPendingParticipantsMutes;
+
+	virtual MediaSessionParams createDefaultMediaParams(const std::shared_ptr<Call> &call = nullptr) = 0;
+	void modifyCallParamsForConference(MediaSessionParams &params) const;
 
 	virtual std::shared_ptr<ConferenceInfo> createConferenceInfo() const = 0;
 	virtual std::shared_ptr<ConferenceInfo> createConferenceInfoWithCustomParticipantList(

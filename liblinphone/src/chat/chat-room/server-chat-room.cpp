@@ -171,7 +171,7 @@ void ServerChatRoom::notifyParticipantDeviceRegistration(const std::shared_ptr<c
 		return;
 	}
 	lInfo() << *this << " has been notified that " << *participantDevice << " has just registered";
-	static_pointer_cast<ServerConference>(getConference())->updateParticipantDeviceSession(pd, true);
+	static_pointer_cast<ServerConference>(getConference())->updateParticipantDevicesSession({pd}, true);
 }
 
 // -----------------------------------------------------------------------------

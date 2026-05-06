@@ -923,7 +923,7 @@ void Call::configure(LinphoneCallDir direction,
                      const std::shared_ptr<const Address> &to,
                      const std::shared_ptr<Account> &account,
                      SalCallOp *op,
-                     BCTBX_UNUSED(const MediaSessionParams *msp)) {
+                     const MediaSessionParams *msp) {
 
 	if (!mParticipant) {
 		// create session

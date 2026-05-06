@@ -1195,24 +1195,33 @@ void MediaSessionPrivate::fixCallParams(std::shared_ptr<SalMediaDescription> &rm
 void MediaSessionPrivate::initializeParamsAccordingToIncomingCallParams() {
 	L_Q();
 	CallSessionPrivate::initializeParamsAccordingToIncomingCallParams();
-	const auto remoteContactAddress = q->getRemoteContactAddress();
-	const auto localAddress = q->getLocalAddress();
-	const auto conference = q->getCore()->findConference(
-	    ConferenceId(localAddress, localAddress, q->getCore()->createConferenceIdParams()), false);
 	std::shared_ptr<SalMediaDescription> md = op->getRemoteMediaDescription();
 	if (md) {
 		/* It is implicit to receive an INVITE without SDP, in this case WE choose the media parameters according to
 		 * policy */
 		setCompatibleIncomingCallParams(md);
-	} else if ((q->getCore()->conferenceServerEnabled() && conference) ||
-	           (remoteContactAddress && remoteContactAddress->hasParam(Conference::kIsFocusParameter))) {
-		// We enter here when creating a group chat only conference
-		lInfo() << "CallSession [" << q
-		        << "]: disabling audio and video in our call params because the remote party didn't send a valid SDP";
-		getParams()->enableAudio(false);
-		getParams()->enableVideo(false);
-		getParams()->getPrivate()->disableRinging(true);
-		getParams()->getPrivate()->enableToneIndications(false);
+	} else {
+		bool isSessionForChat = false;
+		const auto &core = q->getCore();
+		if (core->conferenceServerEnabled()) {
+			const auto localAddress = q->getLocalAddress();
+			isSessionForChat =
+			    (core->findConference(ConferenceId(localAddress, localAddress, core->createConferenceIdParams()),
+			                          false) != nullptr);
+		} else {
+			const auto remoteContactAddress = q->getRemoteContactAddress();
+			isSessionForChat = (remoteContactAddress && remoteContactAddress->hasParam(Conference::kIsFocusParameter));
+		}
+		if (isSessionForChat) {
+			// We enter here when creating a group chat only conference
+			lInfo()
+			    << "CallSession [" << q
+			    << "]: disabling audio and video in our call params because the remote party didn't send a valid SDP";
+			getParams()->enableAudio(false);
+			getParams()->enableVideo(false);
+			getParams()->getPrivate()->disableRinging(true);
+			getParams()->getPrivate()->enableToneIndications(false);
+		}
 	}
 }
 
@@ -5169,18 +5178,21 @@ int MediaSession::startInvite(const std::shared_ptr<Address> &destination,
                               const string &subject,
                               const std::shared_ptr<const Content> content) {
 	L_D();
-
 	if (d->getOp() == nullptr) d->createOp();
 	linphone_core_stop_dtmf_stream(getCore()->getCCore());
-	if (getCore()->getCCore()->sound_conf.play_sndcard && getCore()->getCCore()->sound_conf.capt_sndcard) {
-		/* Give a chance to set card prefered sampling frequency */
-		if (d->localDesc && (d->localDesc->streams.size() > 0) && (d->localDesc->streams[0].getMaxRate() > 0))
-			ms_snd_card_set_preferred_sample_rate(getCore()->getCCore()->sound_conf.play_sndcard,
-			                                      d->localDesc->streams[0].getMaxRate());
-		d->getStreamsGroup().prepare();
-	}
-
 	if (d->localDesc) {
+		if (getCore()->getCCore()->sound_conf.play_sndcard && getCore()->getCCore()->sound_conf.capt_sndcard) {
+			/* Give a chance to set card prefered sampling frequency */
+			if (d->localDesc && (d->localDesc->streams.size() > 0)) {
+				if (d->localDesc->streams[0].getMaxRate() > 0) {
+					ms_snd_card_set_preferred_sample_rate(getCore()->getCCore()->sound_conf.play_sndcard,
+					                                      d->localDesc->streams[0].getMaxRate());
+				}
+
+				d->getStreamsGroup().prepare();
+			}
+		}
+
 		for (auto &stream : d->localDesc->streams) {
 			// In case of multicasting, choose a random port to send with the invite
 			if (ms_is_multicast(L_STRING_TO_C(stream.rtp_addr))) {
@@ -5192,7 +5204,6 @@ int MediaSession::startInvite(const std::shared_ptr<Address> &destination,
 	}
 
 	d->op->setLocalMediaDescription(d->localDesc);
-
 	int result = CallSession::startInvite(destination, subject, content);
 	if (result < 0) {
 		if (d->state == CallSession::State::Error) d->stopStreams();
