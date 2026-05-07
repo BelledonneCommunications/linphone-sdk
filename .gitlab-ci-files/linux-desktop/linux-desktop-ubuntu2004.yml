@@ -39,6 +39,9 @@ recache-ubuntu2004:
   variables:
     PLATFORM: linux-ubuntu2004
 
+.factorize_ubuntu_cache_size: &cache_size
+  CCACHE_SIZE: 5G
+
 #################################################
 # Makefile
 #################################################
@@ -50,6 +53,7 @@ ubuntu2004-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
+    <<: *cache_size
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .linux-desktop
@@ -79,6 +83,7 @@ ubuntu2004-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
+    <<: *cache_size
   before_script:
     - !reference [.linux-prepare, before_script]
     - eval "$(qtchooser -qt=5.15.2 -print-env)"

@@ -21,6 +21,9 @@ recache-archlinux:
   variables:
     PLATFORM: linux-arch
 
+.factorize_arch_cache_size: &cache_size
+  CCACHE_SIZE: 5G
+
 #################################################
 # Makefile
 #################################################
@@ -34,6 +37,7 @@ arch-latest-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
+    <<: *cache_size
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-archlinux
@@ -47,6 +51,7 @@ arch-latest-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
+    <<: *cache_size
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-archlinux
@@ -64,6 +69,7 @@ arch-latest-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
+    <<: *cache_size
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-archlinux
@@ -91,6 +97,7 @@ arch-latest-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
+    <<: *cache_size
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-archlinux
