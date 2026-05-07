@@ -21,6 +21,9 @@ recache-debian12:
   variables:
     PLATFORM: linux-debian12
 
+.factorize_debian_cache_size: &cache_size
+  CCACHE_SIZE: 5G
+
 #################################################
 # Makefile
 #################################################
@@ -34,6 +37,7 @@ debian12-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
+    <<: *cache_size
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .linux-desktop
   needs:
@@ -48,6 +52,7 @@ debian12-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
+    <<: *cache_size
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .linux-desktop
   needs:
@@ -68,6 +73,7 @@ debian12-ninja-gcc:
     CC: gcc
     CXX: g++
     CMAKE_OPTIONS: -DENABLE_LDAP=OFF
+    <<: *cache_size
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-debian12
@@ -106,6 +112,7 @@ debian12-ninja-clang:
     CC: clang
     CXX: clang++
     CMAKE_OPTIONS: -DENABLE_LDAP=OFF
+    <<: *cache_size
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-debian12
@@ -138,6 +145,7 @@ debian12-ninja-clang-python-wheel:
     CC: clang
     CXX: clang++
     ADDITIONAL_CMAKE_OPTIONS: -DENABLE_PYTHON_WRAPPER_TESTER=ON
+    <<: *cache_size
   extends: .linux-desktop-python
   needs:
     - wait-cache-synchro-debian12
@@ -152,6 +160,7 @@ debian12-ninja-java:
   variables:
     CMAKE_GENERATOR: Ninja
     ADDITIONAL_CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER_TESTER=ON
+    <<: *cache_size
   extends: .linux-desktop-java
 
 #################################################
