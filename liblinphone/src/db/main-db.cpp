@@ -3395,6 +3395,12 @@ void MainDbPrivate::updateSchema() {
 		            "event.id";
 	}
 
+	try {
+		*session << "ALTER TABLE chat_room ADD COLUMN to_migrate BOOLEAN NOT NULL DEFAULT 0";
+	} catch (const soci::soci_error &e) {
+		lDebug() << "Caught exception " << e.what() << ": Column 'to_migrate' already exists in table 'chat_room'";
+	}
+
 	// /!\ Warning : if varchar columns < 255 were to be indexed, their size must be set back to 191 = max indexable
 	// (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in column creation)
 	//
@@ -6811,6 +6817,8 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 			}
 		}
 
+		auto handlingMode = linphone_core_get_chat_rooms_handling_set(cCore);
+
 		// The offset needs to be incremented when the processing of the data retrieved for a chatroom starts.
 		// It has to be decremented when a chatroom is deleted from the database at start up. This could happen because
 		// it is found out it is just a duplicated of another one  (local or peer address has different gr parameters in
@@ -6899,6 +6907,36 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 				} else {
 					lAddress = Address::create(lAddressString, true);
 				}
+
+				bool serverMode = core->conferenceServerEnabled();
+				if (serverMode) {
+					switch (handlingMode) {
+						case LinphoneChatRoomHandlingSetAll:
+							break;
+						case LinphoneChatRoomHandlingSetLegacyOnly:
+							// Handle all chatrooms that do not have the <conf-id> parameter
+							if (pAddress->hasUriParam(Conference::kConfIdParameter)) {
+								continue;
+							}
+							break;
+						case LinphoneChatRoomHandlingSetAssociatedToFocusOnly:
+							// Handle all chatrooms whose peer address is the same as the contact of one of the account
+							// attached to the core
+							if (!core->findAccountByContactAddress(pAddress)) {
+								continue;
+							}
+							break;
+						case LinphoneChatRoomHandlingSetLegacyAndAssociatedToFocus:
+							// Handle all chatrooms whose peer address is the same as the contact of one of the account
+							// attached to the core or the <conf-id> parameter is not in their address
+							if (!core->findAccountByContactAddress(pAddress) &&
+							    pAddress->hasUriParam(Conference::kConfIdParameter)) {
+								continue;
+							}
+							break;
+					}
+				}
+
 				bool conferenceIdChanged = (!keepGruu && (pAddress->hasUriParam(Address::kGrParameter) ||
 				                                          lAddress->hasUriParam(Address::kGrParameter)));
 				if (!chatroomDomain.empty()) {
@@ -6942,7 +6980,6 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 					chatRoom->setUtf8Subject(subject);
 				} else if (backend == ChatParams::Backend::FlexisipChat) {
 #ifdef HAVE_ADVANCED_IM
-					bool serverMode = core->conferenceServerEnabled();
 					const auto &localAddress = conferenceId.getLocalAddress();
 					unsigned int lastNotifyId = d->dbSession.getUnsignedInt(chatRoomRow, 7, 0);
 

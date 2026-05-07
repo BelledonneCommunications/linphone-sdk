@@ -127,8 +127,19 @@ private:
 /* Core manager acting as a focus*/
 class Focus : public ConfCoreManager {
 public:
-	Focus(std::string rc, std::string source_db = {})
-	    : ConfCoreManager(rc, [this, source_db](bool) { configureFocus(source_db); }) {
+	Focus(std::string rc,
+	      std::string source_db = {},
+	      bool startCore = true,
+	      const char *linphone_db = nullptr,
+	      const char *lime_db = nullptr,
+	      const char *zrtp_secrets_db = nullptr)
+	    : ConfCoreManager(
+	          rc,
+	          [this, source_db](bool) { configureFocus(source_db); },
+	          startCore,
+	          linphone_db,
+	          lime_db,
+	          zrtp_secrets_db) {
 	}
 	~Focus() {
 		CoreManagerAssert({*this}).waitUntil(chrono::seconds(1), [] { return false; });
@@ -313,6 +324,18 @@ private:
 };
 
 // Chat rooms
+void legacy_server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state);
+LinphoneAccount *add_account_using_domain_registration(ConfCoreManager &core, bool set_as_default);
+void createChatRooms(int number,
+                     std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                     std::initializer_list<std::reference_wrapper<ClientConference>> participantMgrs,
+                     Focus &focus,
+                     LinphoneCoreManager *organizer,
+                     std::string baseSubject,
+                     bool encrypted,
+                     bool isLegacy,
+                     bool sendMessage);
+
 void group_chat_room_lime_server_message(bool encrypted);
 void group_chat_room_with_client_restart_base(bool encrypted,
                                               bool server_restart_before_participant_addition,
@@ -581,6 +604,7 @@ void create_simple_conference_dial_out_with_some_calls_declined_base(LinphoneRea
                                                                      LinphoneConferenceSecurityLevel securityLevel);
 
 void change_active_speaker_base(bool transfer_mode);
+
 } // namespace LinphoneTest
 
 #endif // LOCAL_CONFERENCE_TESTER_FUNCTIONS_H_

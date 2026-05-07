@@ -440,6 +440,7 @@ void linphone_core_enable_chat_room_address_unification(LinphoneCore *core, bool
 bool_t linphone_core_chat_room_address_unification_enabled(const LinphoneCore *core) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->chatRoomAddressUnificationEnabled();
 }
+
 void linphone_core_set_ephemeral_chat_message_policy(LinphoneCore *core,
                                                      const LinphoneEphemeralChatMessagePolicy policy) {
 	CoreLogContextualizer logContextualizer(core);
@@ -469,4 +470,13 @@ void linphone_core_set_chat_message_files_directories(LinphoneCore *core, const 
 const bctbx_list_t *linphone_core_get_chat_message_files_directories(const LinphoneCore *core) {
 	CoreLogContextualizer logContextualizer(core);
 	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->getFileContentsDirectories().getCList();
+}
+
+void linphone_core_set_chat_rooms_handling_set(LinphoneCore *lc, LinphoneChatRoomHandlingSet mode) {
+	linphone_config_set_int(linphone_core_get_config(lc), "chat", "chat_room_handling_set", (int)mode);
+}
+
+LinphoneChatRoomHandlingSet linphone_core_get_chat_rooms_handling_set(const LinphoneCore *lc) {
+	return (LinphoneChatRoomHandlingSet)linphone_config_get_int(
+	    linphone_core_get_config(lc), "chat", "chat_room_handling_set", (int)LinphoneChatRoomHandlingSetAll);
 }

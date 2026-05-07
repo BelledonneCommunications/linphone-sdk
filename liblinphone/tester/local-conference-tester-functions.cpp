@@ -818,7 +818,7 @@ void check_call_establishment(std::initializer_list<std::reference_wrapper<CoreM
 		LinphoneConference *conference = linphone_core_search_conference_2(mgr->lc, confAddr);
 		BC_ASSERT_PTR_NOT_NULL(conference);
 		int nb_chatrooms = 0;
-		if (ics_sent && !is_dialout) {
+		if (conference && ics_sent && !is_dialout) {
 			if (is_organizer) {
 				nb_chatrooms += nb_ics_sent;
 			} else {
@@ -1633,10 +1633,12 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 		BC_ASSERT_TRUE(participant_device_is_me_check);
 		if (!call_check) { // Print expected stream count on error
 			LinphoneCall *call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-			size_t nb_video_streams = compute_no_video_streams_2(participantCalls, participantInfos,
-			                                                     Call::getSharedFromThis(call), focus->lc->cppPtr);
-			BC_ASSERT_EQUAL(Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeVideo), nb_video_streams, size_t,
-			                "%zu");
+			if (call) {
+				size_t nb_video_streams = compute_no_video_streams_2(participantCalls, participantInfos,
+				                                                     Call::getSharedFromThis(call), focus->lc->cppPtr);
+				BC_ASSERT_EQUAL(Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeVideo), nb_video_streams, size_t,
+				                "%zu");
+			}
 		}
 	}
 #ifdef HAVE_ADVANCED_IM

@@ -395,8 +395,6 @@ void group_chat_room_with_client_restart_base(bool encrypted,
 			linphone_address_unref(new_contact_address);
 		}
 
-		focus.registerAsParticipantDevice(michelle2);
-
 		LinphoneAddress *michelle2Contact = linphone_address_clone(
 		    linphone_account_get_contact_address(linphone_core_get_default_account(michelle2.getLc())));
 		char *michelle2ContactString = linphone_address_as_string(michelle2Contact);
@@ -2299,6 +2297,7 @@ void group_chat_room_lime_server_message(bool encrypted) {
 		ms_message("%s configures and starts again its core", linphone_core_get_identity(focus.getLc()));
 		focus.configureFocus();
 		linphone_core_enable_lime_x3dh(focus.getLc(), true);
+		linphone_core_enable_update_db_at_startup(focus.getLc(), FALSE);
 		linphone_core_manager_start(focus.getCMgr(), TRUE);
 
 		focus.registerAsParticipantDevice(marie);
@@ -4917,8 +4916,7 @@ static void server_core_chat_room_conference_legacy_address_generation(LinphoneC
 	linphone_address_unref(conference_address);
 }
 
-static void
-legacy_server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state) {
+void legacy_server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state) {
 	Focus *focus = (Focus *)(((LinphoneCoreManager *)linphone_core_get_user_data(core))->user_info);
 	switch (state) {
 		case LinphoneChatRoomStateInstantiated: {
@@ -4948,7 +4946,7 @@ static std::string generate_random_alphanum_string(size_t length) {
 	return result;
 }
 
-static LinphoneAccount *add_account_using_domain_registration(ConfCoreManager &core, bool set_as_default) {
+LinphoneAccount *add_account_using_domain_registration(ConfCoreManager &core, bool set_as_default) {
 	int old_registration_ok = core.getStats().number_of_LinphoneRegistrationOk;
 	char *full_domain = ms_strdup_printf("test.%s.%s", generate_random_alphanum_string(20).c_str(),
 	                                     test_domain_registration_base_domain);
@@ -4998,6 +4996,7 @@ static LinphoneAccount *add_account_using_domain_registration(ConfCoreManager &c
 	linphone_account_params_enable_register(params, TRUE);
 
 	LinphoneAccount *account = linphone_core_create_account(core.getLc(), params);
+	linphone_account_set_contact_address(account, identity);
 	linphone_core_add_account(core.getLc(), account);
 	if (set_as_default) {
 		linphone_core_set_default_account(core.getLc(), account);
@@ -5016,15 +5015,15 @@ static LinphoneAccount *add_account_using_domain_registration(ConfCoreManager &c
 	return added_account;
 }
 
-static void createChatRooms(int number,
-                            std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
-                            std::initializer_list<std::reference_wrapper<ClientConference>> participantMgrs,
-                            Focus &focus,
-                            LinphoneCoreManager *organizer,
-                            std::string baseSubject,
-                            bool encrypted,
-                            bool isLegacy,
-                            bool sendMessage) {
+void createChatRooms(int number,
+                     std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                     std::initializer_list<std::reference_wrapper<ClientConference>> participantMgrs,
+                     Focus &focus,
+                     LinphoneCoreManager *organizer,
+                     std::string baseSubject,
+                     bool encrypted,
+                     bool isLegacy,
+                     bool sendMessage) {
 	bctbx_list_t *coresList = NULL;
 	for (CoreManager &core : coreMgrs) {
 		LinphoneCore *c_core = core.getCore().getCCore();

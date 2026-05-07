@@ -158,11 +158,20 @@ public:
 		mMgr->user_info = this;
 	}
 
-	ConfCoreManager(std::string rc, const std::function<void(bool initialStart)> &preStart)
-	    : CoreManager(owned(linphone_core_manager_create(rc.c_str()))), mPreStart(preStart) {
+	ConfCoreManager(std::string rc,
+	                const std::function<void(bool initialStart)> &preStart,
+	                bool startCore = true,
+	                const char *linphone_db = nullptr,
+	                const char *lime_db = nullptr,
+	                const char *zrtp_secrets_db = nullptr)
+	    : CoreManager(
+	          owned(linphone_core_manager_create_local(rc.c_str(), nullptr, linphone_db, lime_db, zrtp_secrets_db))),
+	      mPreStart(preStart) {
 		mMgr->user_info = this;
 		mPreStart(true);
-		start(true);
+		if (startCore) {
+			start(true);
+		}
 	}
 
 	static void deleteAllDevices(std::shared_ptr<LinphonePrivate::Participant> &participant) {

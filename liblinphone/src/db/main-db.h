@@ -330,6 +330,7 @@ public:
 	// ---------------------------------------------------------------------------
 
 	unsigned int getModuleVersion(const std::string &name);
+	void init() override;
 	void updateSchema() override;
 
 	// ---------------------------------------------------------------------------
@@ -340,9 +341,6 @@ public:
 	bool import(Backend backend, const std::string &parameters) override;
 
 	static FilterMask getFilterMaskFromHistoryFilterMask(AbstractChatRoom::HistoryFilterMask historyFilterMask);
-
-protected:
-	void init() override;
 
 private:
 	L_DECLARE_PRIVATE(MainDb);

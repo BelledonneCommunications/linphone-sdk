@@ -269,8 +269,6 @@ std::shared_ptr<Content> ServerConferenceEventHandler::createNotifyFullState(con
 		}
 	}
 
-	auto organizer = conf->getOrganizer();
-
 	for (const auto &participant : participants) {
 		UserType user = UserType();
 		UserRolesType roles;

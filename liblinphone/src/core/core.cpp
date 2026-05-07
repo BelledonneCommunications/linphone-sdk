@@ -191,10 +191,10 @@ void CorePrivate::init() {
 				lInfo() << "Setting sqlite3 synchronous mode to OFF.";
 				uri += " synchronous=OFF";
 			}
-			lInfo() << "Opening linphone database " << uri << " with backend " << backend;
-			bool updateDbAtInitialision = !!linphone_config_get_bool(linphone_core_get_config(lc), "storage",
-			                                                         "update_db_at_initialisation", true);
-			mainDb->setUpdateSchemaAtInitialisation(updateDbAtInitialision);
+			bool updateDbAtStartup = !!linphone_core_update_db_at_startup_enabled(lc);
+			lInfo() << "Opening linphone database " << uri << " with backend " << backend << " (Update at start up is "
+			        << std::string(updateDbAtStartup ? "enabled" : "disabled") << ")";
+			mainDb->setUpdateSchemaAtInitialisation(updateDbAtStartup);
 			uri = LinphonePrivate::Utils::localeToUtf8(uri); // `mainDb->connect` take a UTF8 string.
 			auto startMs = bctbx_get_cur_time_ms();
 			if (!mainDb->connect(backend, uri)) {

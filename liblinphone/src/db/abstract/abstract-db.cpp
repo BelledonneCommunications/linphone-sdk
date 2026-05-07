@@ -52,10 +52,12 @@ static void sqlite3Log(void *, int iErrCode, const char *zMsg) {
 void AbstractDbPrivate::safeInit() {
 #ifdef HAVE_DB_STORAGE
 	L_Q();
-	dbSession.enableForeignKeys(false);
-	q->init();
-	if (updateSchemaAtInitialisation) q->updateSchema();
-	dbSession.enableForeignKeys(true);
+	if (updateSchemaAtInitialisation) {
+		dbSession.enableForeignKeys(false);
+		q->init();
+		q->updateSchema();
+		dbSession.enableForeignKeys(true);
+	}
 	initialized = true;
 #endif
 }

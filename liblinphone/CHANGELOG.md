@@ -16,6 +16,7 @@ This changelog file was started on October 2019. Previous changes were more or l
 - Support to unify all chatroom addresses under the pattern focus@domain;conf-id=XXXX (applicable when the core is used as a conference servers)
 - Support of permanent activities in the presence. This enables the ability for the presence server to store
   activities permanently, even if the PUBLISH expires.
+- Allow multiple cores to work with a common chatroom database.
 
 ### Changes
 - Optimize contact importation by performing the vcards parsing asynchronously in a background thread, and by

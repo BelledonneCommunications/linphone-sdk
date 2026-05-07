@@ -216,4 +216,21 @@ typedef enum _LinphoneEphemeralChatMessagePolicy {
 	         the lifetime once this participant has read the message. */
 } LinphoneEphemeralChatMessagePolicy;
 
+/**
+ * Chatroom handling modes.
+ * This enum represents the different sets of chatroom that are loaded from the database at startup.
+ * @warning only applicable to conference servers
+ * @ingroup group_chatroom
+ */
+typedef enum _LinphoneChatRoomHandlingSet {
+	LinphoneChatRoomHandlingSetAll = 0,        /**< Handle any chatrooms */
+	LinphoneChatRoomHandlingSetLegacyOnly = 1, /**< Handle only legacy chatrooms (i.e. chatroom that do not have a
+	                                               conf-id URI parameter in their address) */
+	LinphoneChatRoomHandlingSetAssociatedToFocusOnly =
+	    2, /**< Handle only chatrooms whose address matching the focus of the conference server */
+	LinphoneChatRoomHandlingSetLegacyAndAssociatedToFocus =
+	    3, /**< Handle all chatrooms that do not have a conf-id URI patameter in their address or it can be associated
+	          to the focus address */
+} LinphoneChatRoomHandlingSet;
+
 #endif

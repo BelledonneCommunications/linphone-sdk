@@ -201,7 +201,7 @@ The <i>sip</i> section represents a general configuration for SIP.
 		<tr><td>max_calls</td><td>TYPE</td><td>1-10</td><td>1</td><td>Maximum simultaneous calls</td></tr>
 		<tr><td>user_agent</td><td>TYPE</td><td>a user agent</td><td>LinphoneSDK/5.5</td><td>SIP User-Agent</td></tr>
 		<tr><td>enable_timestamps</td><td>integer</td><td>0 or 1</td><td>1</td><td>Timestamp logs</td></tr>
-		<tr><td>empty_chat_room_deletion</td><td>0 or 1</td><td>1</td><td>Automatically delete empty chatrooms</td></tr>
+		<tr><td>empty_chat_room_deletion</td><td>0 or 1</td><td>1</td><td>Automatically delete empty #LinphoneChatRoom objects</td></tr>
 	</table>
 
 	<h2>Debug - section [<i>debug</i>]</h2>
@@ -312,6 +312,16 @@ Table \ref chat_parameters "chat parameters" lists all parameters one may find u
 	<tr><td>sender_name_hidden_in_forward_message</td><td>0 or 1</td><td>0</td><td>\copybrief linphone_core_enable_sender_name_hidden_in_forward_message</td></tr>
 	<tr><td>imdn_to_everybody_threshold</td><td>integer</td><td>any positive integer</td><td>5</td><td>\copybrief linphone_core_set_imdn_to_everybody_threshold</td></tr>
 	<tr><td>max_participants_per_chatroom</td><td>integer</td><td>any integer</td><td>-1</td><td>\copybrief linphone_core_set_max_participants_per_chatroom</td></tr>
+	<tr><td>chat_room_handling_set</td><td>integer</td><td>enumeration #LinphoneChatRoomHandlingSet</td><td>LinphoneChatRoomHandlingSetAll</td><td>\copybrief linphone_core_set_chat_rooms_handling_set</td></tr>
+</table>
+
+<h2>Storage - section [<i>storage</i>]</h2>
+The <i>storage</i> section represents the global storage configuration settings of a #LinphoneCore.
+Table \ref storage_parameters "storage parameters" lists all parameters one may find under section [<i>storage</i>] of a Linphone RC file.<br/>
+<table>
+	<caption id="storage_parameters">Storage parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th></tr>
+	<tr><td>update_db_at_initialisation</td><td>boolean</td><td>0 or 1</td><td>1</td><td>\copybrief linphone_core_enable_update_db_at_startup.</td></tr>
 </table>
 
 

@@ -484,7 +484,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 		std::shared_ptr<Participant> paulineUppercaseParticipant =
 		    Participant::create(michelleCppCr->getConference(), paulineUppercase);
 
-		// Add PAuline's address to the DB. It is not possible to add it through insertSipAddress as it checks there is
+		// Add Pauline's address to the DB. It is not possible to add it through insertSipAddress as it checks there is
 		// a similar address using case insensitive comparison
 		try {
 			soci::session sql("sqlite3", michelle.getCMgr()->database_path); // open the DB
@@ -3006,6 +3006,253 @@ static void legacy_secure_group_chat_migration_client_offline_with_server_restar
 	legacy_chat_room_migration_client_offline_base(params);
 }
 
+// Create a number of legacy chatroom and non-legacy chatrooms and verify that 2 conference servers that point to the
+// same database can load them independently
+static void secure_chatroom_loading_from_different_conference_servers() {
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		bool encrypted = true;
+		const LinphoneTesterLimeAlgo lime_algo = encrypted ? C25519 : UNSET;
+		linphone_core_enable_lime_x3dh(focus.getLc(), !!encrypted);
+
+		LinphoneAccount *domain_registration_account = add_account_using_domain_registration(focus, true);
+		BC_ASSERT_PTR_NOT_NULL(domain_registration_account);
+		if (domain_registration_account) {
+			linphone_account_ref(domain_registration_account);
+		}
+
+		ClientConference marie("marie_domain_registration_rc", focus.getConferenceFactoryAddress(), lime_algo);
+		ClientConference pauline("pauline_domain_registration_rc", focus.getConferenceFactoryAddress(), lime_algo);
+		ClientConference michelle("michelle_domain_registration_rc", focus.getConferenceFactoryAddress(), lime_algo);
+		ClientConference berthe("berthe_domain_registration_rc", focus.getConferenceFactoryAddress(), lime_algo);
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(pauline);
+		focus.registerAsParticipantDevice(michelle);
+		focus.registerAsParticipantDevice(berthe);
+
+		if (encrypted) {
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(marie.getLc()));
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(pauline.getLc()));
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(michelle.getLc()));
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(berthe.getLc()));
+		}
+
+		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
+		coresList = bctbx_list_append(coresList, marie.getLc());
+		coresList = bctbx_list_append(coresList, pauline.getLc());
+		coresList = bctbx_list_append(coresList, michelle.getLc());
+		coresList = bctbx_list_append(coresList, berthe.getLc());
+
+		LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+		linphone_core_cbs_set_chat_room_state_changed(cbs, legacy_server_core_chat_room_state_changed);
+		_linphone_core_add_callbacks(focus.getLc(), cbs, TRUE);
+
+		size_t nbLegacyChatRooms = 3;
+		const std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs{marie, pauline, focus, berthe,
+		                                                                          michelle};
+		const std::initializer_list<std::reference_wrapper<ClientConference>> participants{pauline, berthe, michelle};
+		createChatRooms(static_cast<int>(nbLegacyChatRooms), coreMgrs, participants, focus, marie.getCMgr(),
+		                std::string("Legacy"), encrypted, true, false);
+
+		// Remove callbacks so that chatroom are created with a conf-id parameter added to their address
+		linphone_core_remove_callbacks(focus.getLc(), cbs);
+		linphone_core_cbs_unref(cbs);
+
+		size_t nbNewChatRooms = 2;
+		createChatRooms(static_cast<int>(nbNewChatRooms), coreMgrs, participants, focus, marie.getCMgr(),
+		                std::string("Conf-id"), encrypted, false, false);
+
+		BC_ASSERT_NOT_EQUAL(nbNewChatRooms, nbLegacyChatRooms, size_t, "%0zu");
+
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, berthe})
+		                   .wait([&focus, nbNewChatRooms, nbLegacyChatRooms] {
+			                   return focus.getCore().getChatRooms().size() == (nbNewChatRooms + nbLegacyChatRooms);
+		                   }));
+
+		ms_message("%s stops its core to load all chatrooms", linphone_core_get_identity(focus.getLc()));
+		coresList = bctbx_list_remove(coresList, focus.getLc());
+		linphone_core_manager_reinit(focus.getCMgr());
+
+		ms_message("%s configures and starts again its core loading all chatrooms",
+		           linphone_core_get_identity(focus.getLc()));
+		focus.configureFocus();
+		linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
+		linphone_core_set_chat_rooms_handling_set(focus.getLc(), LinphoneChatRoomHandlingSetAll);
+		if (domain_registration_account) {
+			linphone_core_add_account(focus.getLc(), domain_registration_account);
+		}
+
+		linphone_core_manager_start(focus.getCMgr(), TRUE);
+		coresList = bctbx_list_append(coresList, focus.getLc());
+
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, berthe})
+		                   .wait([&focus, nbNewChatRooms, nbLegacyChatRooms] {
+			                   return focus.getCore().getChatRooms().size() == (nbNewChatRooms + nbLegacyChatRooms);
+		                   }));
+		BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), nbNewChatRooms + nbLegacyChatRooms, size_t, "%zu");
+
+		ms_message("%s stops its core to load only chatroom attached to its focus",
+		           linphone_core_get_identity(focus.getLc()));
+		coresList = bctbx_list_remove(coresList, focus.getLc());
+		linphone_core_manager_reinit(focus.getCMgr());
+
+		ms_message("%s configures and starts again its core loading only chatrooms associated to its focus",
+		           linphone_core_get_identity(focus.getLc()));
+		focus.configureFocus();
+		linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
+		linphone_core_set_chat_rooms_handling_set(focus.getLc(), LinphoneChatRoomHandlingSetAssociatedToFocusOnly);
+		if (domain_registration_account) {
+			linphone_core_add_account(focus.getLc(), domain_registration_account);
+		}
+
+		linphone_core_manager_start(focus.getCMgr(), TRUE);
+		coresList = bctbx_list_append(coresList, focus.getLc());
+
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, berthe}).wait([&focus, nbNewChatRooms] {
+			return focus.getCore().getChatRooms().size() == nbNewChatRooms;
+		}));
+		BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), nbNewChatRooms, size_t, "%zu");
+
+		// wait a bit longer to detect side effect if any
+		CoreManagerAssert({focus, marie, michelle, berthe, pauline}).waitUntil(chrono::seconds(1), [] {
+			return false;
+		});
+
+		Focus focus2("chloe_rc", {}, false, focus.getCMgr()->database_path, focus.getCMgr()->lime_database_path,
+		             focus.getCMgr()->zrtp_secrets_database_path);
+		{
+			linphone_core_enable_lime_x3dh(focus2.getLc(), encrypted);
+			linphone_core_set_chat_rooms_handling_set(focus2.getLc(), LinphoneChatRoomHandlingSetLegacyOnly);
+
+			for (auto chatRoom : focus2.getCore().getChatRooms()) {
+				for (auto participant : chatRoom->getParticipants()) {
+					//  force deletion by removing devices
+					std::shared_ptr<Address> participantAddress = participant->getAddress();
+					linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
+				}
+			}
+
+			ms_message("%s configures and starts a new core", linphone_core_get_identity(focus2.getLc()));
+			linphone_core_manager_start(focus2.getCMgr(), TRUE);
+			coresList = bctbx_list_append(coresList, focus2.getLc());
+
+			BC_ASSERT_TRUE(
+			    CoreManagerAssert({focus, focus2, marie, pauline, michelle, berthe}).wait([&focus2, nbLegacyChatRooms] {
+				    return focus2.getCore().getChatRooms().size() == nbLegacyChatRooms;
+			    }));
+			BC_ASSERT_EQUAL(focus2.getCore().getChatRooms().size(), nbLegacyChatRooms, size_t, "%zu");
+
+			// wait a bit longer to detect side effect if any
+			CoreManagerAssert({focus, focus2, marie, michelle, berthe, pauline}).waitUntil(chrono::seconds(1), [] {
+				return false;
+			});
+
+			BC_ASSERT_STRING_EQUAL(focus.getCMgr()->database_path, focus2.getCMgr()->database_path);
+
+			uint64_t chatRoomsInDb = 0;
+#ifdef HAVE_SOCI
+			// Verify that the number of chatrooms hasn't changed
+			try {
+				soci::session sql("sqlite3", focus.getCMgr()->database_path); // open the DB
+				sql << "SELECT COUNT(*) FROM chat_room", soci::into(chatRoomsInDb);
+			} catch (std::exception &e) { // swallow any error on DB
+				lWarning() << "Cannot retrieve the number of chatroom stored in database "
+				           << focus.getCMgr()->database_path << ". Error is " << e.what();
+			}
+#endif // HAVE_SOCI
+
+			BC_ASSERT_EQUAL(static_cast<size_t>(chatRoomsInDb), (nbNewChatRooms + nbLegacyChatRooms), size_t, "%zu");
+
+			for (auto chatRoom : focus2.getCore().getChatRooms()) {
+				for (auto participant : chatRoom->getParticipants()) {
+					//  force deletion by removing devices
+					std::shared_ptr<Address> participantAddress = participant->getAddress();
+					linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
+				}
+			}
+
+			// wait until chatroom is deleted server side
+			BC_ASSERT_TRUE(CoreManagerAssert({focus, focus2, marie, berthe, michelle, pauline}).wait([&focus2] {
+				return focus2.getCore().getChatRooms().size() == 0;
+			}));
+
+			// wait a bit longer to detect side effect if any
+			CoreManagerAssert({focus, focus2, marie, berthe, michelle, pauline}).waitUntil(chrono::seconds(2), [] {
+				return false;
+			});
+
+			// to avoid creation attempt of a new chatroom
+			auto focus2_account = focus2.getDefaultAccount();
+			LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(focus2_account));
+			linphone_account_params_set_conference_factory_uri(params, NULL);
+			linphone_account_set_params(focus2_account, params);
+			linphone_account_params_unref(params);
+
+			coresList = bctbx_list_remove(coresList, focus2.getLc());
+		}
+
+		uint64_t newChatRoomsInDb = 0;
+#ifdef HAVE_SOCI
+		// Verify that the number of chatrooms hasn't changed
+		try {
+			soci::session sql("sqlite3", focus.getCMgr()->database_path); // open the DB
+			sql << "SELECT COUNT(*) FROM chat_room", soci::into(newChatRoomsInDb);
+		} catch (std::exception &e) { // swallow any error on DB
+			lWarning() << "Cannot retrieve the number of chatroom stored in database " << focus.getCMgr()->database_path
+			           << ". Error is " << e.what();
+		}
+#endif // HAVE_SOCI
+
+		BC_ASSERT_EQUAL(static_cast<size_t>(newChatRoomsInDb), nbNewChatRooms, size_t, "%zu");
+
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			for (auto participant : chatRoom->getParticipants()) {
+				//  force deletion by removing devices
+				std::shared_ptr<Address> participantAddress = participant->getAddress();
+				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
+			}
+		}
+
+		// wait until chatroom is deleted server side
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, berthe, michelle, pauline}).wait([&focus] {
+			return focus.getCore().getChatRooms().size() == 0;
+		}));
+
+		newChatRoomsInDb = 0;
+#ifdef HAVE_SOCI
+		// Verify that the number of chatrooms hasn't changed
+		try {
+			soci::session sql("sqlite3", focus.getCMgr()->database_path); // open the DB
+			sql << "SELECT COUNT(*) FROM chat_room", soci::into(newChatRoomsInDb);
+		} catch (std::exception &e) { // swallow any error on DB
+			lWarning() << "Cannot retrieve the number of chatroom stored in database " << focus.getCMgr()->database_path
+			           << ". Error is " << e.what();
+		}
+#endif // HAVE_SOCI
+
+		BC_ASSERT_EQUAL(static_cast<size_t>(newChatRoomsInDb), 0, size_t, "%zu");
+
+		// wait a bit longer to detect side effect if any
+		CoreManagerAssert({focus, marie, berthe, michelle, pauline}).waitUntil(chrono::seconds(2), [] {
+			return false;
+		});
+
+		// to avoid creation attempt of a new chatroom
+		auto focus_account = focus.getDefaultAccount();
+		LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(focus_account));
+		linphone_account_params_set_conference_factory_uri(params, NULL);
+		linphone_account_set_params(focus_account, params);
+		linphone_account_params_unref(params);
+
+		if (domain_registration_account) {
+			linphone_account_unref(domain_registration_account);
+		}
+
+		bctbx_list_free(coresList);
+	}
+}
+
 } // namespace LinphoneTest
 
 static test_t local_conference_secure_chat_tests[] = {
@@ -3091,6 +3338,10 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_legacy_and_new_chatrooms_mixed_up,
                   "LimeX3DH",
                   "LeaksMemory"), /* because of coreMgr restart*/
+    TEST_TWO_TAGS("Secure chat room loading from different conference servers",
+                  LinphoneTest::secure_chatroom_loading_from_different_conference_servers,
+                  "LimeX3DH",
+                  "LeaksMemory"),
     TEST_TWO_TAGS(
         "Secure group chat with client removed and then reinvited after database corruption and core restart",
         LinphoneTest::

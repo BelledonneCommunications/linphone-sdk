@@ -1596,7 +1596,7 @@ LINPHONE_PUBLIC bool_t linphone_core_is_in_background(const LinphoneCore *core);
 LINPHONE_PUBLIC void linphone_core_set_label(LinphoneCore *core, const char *label);
 
 /**
- * Get the label assigned to the LinphoneCore. The default value is NULL (no label).
+ * Get the label assigned to the #LinphoneCore. The default value is NULL (no label).
  * @param core the #LinphoneCore
  * @return the assigned label.
  **/
@@ -1765,7 +1765,7 @@ linphone_core_interpret_url_2(LinphoneCore *core, const char *url, bool_t apply_
  * The application doesn't own a reference to the returned LinphoneCall object.
  * Use linphone_call_ref() to safely keep the LinphoneCall pointer valid within your application.
  *
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @param url The destination of the call (sip address, or phone number). @notnil
  * @return A #LinphoneCall object or NULL in case of failure. @maybenil
  * @ingroup group_call_control
@@ -1841,9 +1841,9 @@ LINPHONE_PUBLIC LinphoneCall *linphone_core_invite_address_with_params_2(Linphon
 /**
  * @brief Starts a new call as a consequence of a transfer request received from a call.
  *
- * This function is for advanced usage: the execution of transfers is automatically managed by the LinphoneCore. However
- *if an application wants to have control over the call parameters for the new call, it should call this function
- *immediately during the #LinphoneCallStateReferred notification.
+ * This function is for advanced usage: the execution of transfers is automatically managed by the #LinphoneCore.
+ * However if an application wants to have control over the call parameters for the new call, it should call this
+ * function immediately during the #LinphoneCallStateReferred notification.
  * @see #LinphoneCoreCbs
  * @param core #LinphoneCore object @notnil
  * @param call A #LinphoneCall that has just been notified about #LinphoneCallStateReferred state event. @notnil
@@ -1973,8 +1973,8 @@ LINPHONE_PUBLIC void linphone_core_set_guess_hostname(LinphoneCore *core, bool_t
 LINPHONE_PUBLIC bool_t linphone_core_get_guess_hostname(LinphoneCore *core);
 
 /**
- * Tells to LinphoneCore to use LIME X3DH
- * @param core LinphoneCore object @notnil
+ * Tells to #LinphoneCore to use LIME X3DH
+ * @param core #LinphoneCore object @notnil
  * @param enable A boolean value telling whether to enable or disable LIME X3DH
  * @ingroup group_chatroom
  */
@@ -1982,7 +1982,7 @@ LINPHONE_PUBLIC void linphone_core_enable_lime_x3dh(LinphoneCore *core, bool_t e
 
 /**
  * Tells wether LIME X3DH is enabled or not
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @return The current lime state
  * @ingroup group_chatroom
  **/
@@ -1992,7 +1992,7 @@ LINPHONE_PUBLIC bool_t linphone_core_lime_x3dh_enabled(const LinphoneCore *core)
  * Set the x3dh server url.
  * If empty, this function will disable LIME X3DH from core.
  * Otherwise, or if different from the existing value, this will (re-)initialize the LIME X3DH engine.
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @param url The x3dh server url. @maybenil
  * @ingroup group_misc
  * @deprecated 26/08/2022 Use linphone_account_params_set_lime_server_url() instead.
@@ -2001,7 +2001,7 @@ LINPHONE_DEPRECATED LINPHONE_PUBLIC void linphone_core_set_lime_x3dh_server_url(
 
 /**
  * Get the x3dh server url.
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @return The x3dh server url. @maybenil
  * @ingroup group_misc
  * @deprecated 26/08/2022 Use linphone_account_params_get_lime_server_url() instead.
@@ -2010,7 +2010,7 @@ LINPHONE_DEPRECATED LINPHONE_PUBLIC const char *linphone_core_get_lime_x3dh_serv
 
 /**
  * Tells if LIME X3DH is available
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @ingroup group_chatroom
  **/
 LINPHONE_PUBLIC bool_t linphone_core_lime_x3dh_available(const LinphoneCore *core);
@@ -4281,7 +4281,7 @@ LINPHONE_PUBLIC bool_t linphone_core_video_preview_enabled(const LinphoneCore *c
 /**
  * Controls QRCode scanning enablement. When enabled, several QRCodes can be decoded.
  * The recognized QR code are notified through the LinphoneCoreCbs interface (see linphone_core_cbs_set_qrcode_found())
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @param enable A boolean value telling whether to enable QRCode in the preview.
  * @ingroup group_media_parameters
  **/
@@ -4289,7 +4289,7 @@ LINPHONE_PUBLIC void linphone_core_enable_qrcode_video_preview(LinphoneCore *cor
 
 /**
  * Set the rectangle where the decoder will search a QRCode
- * @param core LinphoneCore* object @notnil
+ * @param core #LinphoneCore* object @notnil
  * @param x axis
  * @param y axis
  * @param w width
@@ -4301,7 +4301,7 @@ linphone_core_set_qrcode_decode_rect(LinphoneCore *core, const int x, const int 
 
 /**
  * Tells whether QRCode is enabled in the preview.
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @return A boolean value telling whether QRCode is enabled in the preview.
  * @ingroup group_media_parameters
  **/
@@ -6357,7 +6357,7 @@ LINPHONE_PUBLIC void linphone_core_add_content_type_support(LinphoneCore *core, 
 /**
  * Remove support for the specified content type.
  * It is the application responsibility to handle it correctly afterwards.
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @param content_type The content type to remove support for @notnil
  * @ingroup group_chatroom
  */
@@ -6492,7 +6492,7 @@ LINPHONE_PUBLIC LinphoneChatRoom *linphone_core_search_chat_room_by_identifier(c
                                                                                const char *identifier);
 
 /**
- * Removes a chatroom including all message history from the LinphoneCore.
+ * Removes a #LinphoneChatRoom object including all message history from the #LinphoneCore.
  * @param core A #LinphoneCore object @notnil
  * @param chat_room A #LinphoneChatRoom object @notnil
  **/
@@ -7908,7 +7908,7 @@ LINPHONE_PUBLIC LinphoneVcard *linphone_core_create_vcard_from_text(const Linpho
 
 /**
  * Tells if LDAP is available
- * @param core LinphoneCore object @notnil
+ * @param core #LinphoneCore object @notnil
  * @ingroup group_remote_contact_directory
  * @return TRUE if LDAP is available, FALSE otherwise
  **/
@@ -8137,7 +8137,7 @@ LINPHONE_PUBLIC void linphone_core_set_imdn_to_everybody_threshold(LinphoneCore 
 /**
  * Enable automatic deletion of files attached to #LinphoneChatMessage .
  * This deletion applies whatever the origin of chat message deletion is:
- * - clearing history of a chatroom
+ * - clearing history of a #LinphoneChatRoom object
  * - automatic deletion of an ephemeral message
  * - manual deletion of a message
  * For security, only files contained in the directies listed by linphone_core_get_chat_message_files_directories()
@@ -8151,7 +8151,7 @@ LINPHONE_PUBLIC void linphone_core_enable_chat_message_files_deletion(LinphoneCo
 /**
  * Returns whether automatic deletion of files attached to #LinphoneChatMessage is enabled.
  * This deletion applies whatever the origin of chat message deletion is:
- * - clearing history of a chatroom
+ * - clearing history of a #LinphoneChatRoom object
  * - automatic deletion of an ephemeral message
  * - manual deletion of a message
  * For security, only files contained in the directies listed by linphone_core_get_chat_message_files_directories()
@@ -8253,6 +8253,25 @@ LINPHONE_PUBLIC void linphone_core_enable_baudot(LinphoneCore *core, bool_t enab
 LINPHONE_PUBLIC bool_t linphone_core_baudot_enabled(const LinphoneCore *core);
 
 /**
+ * Returns whether the database is initialized at start up
+ * @param core the #LinphoneCore @notnil
+ * @return a boolean indicating whether the database should be initialized at start up
+ * @ingroup group_initializing
+ */
+LINPHONE_PUBLIC bool_t linphone_core_update_db_at_startup_enabled(LinphoneCore *lc);
+
+/**
+ * Enable or disable database initialization at start up
+ * If it is disabled, the database scheme will not be created during the SDK boot phase and the end user is responsible
+ * to ensure that it has been created beforehand.
+ * @param core the #LinphoneCore @notnil
+ * @param enable a boolean indicating whether the database should be initialized at start up.
+ * @ingroup group_initializing
+ * @warning it is only useful to set this property if `linphone_core_database_enabled` returns true
+ */
+LINPHONE_PUBLIC void linphone_core_enable_update_db_at_startup(LinphoneCore *lc, bool_t enable);
+
+/**
  * Returns whether the database is enabled.
  * @param core the #LinphoneCore @notnil
  * @return a boolean indicating the enablement of the database.
@@ -8283,6 +8302,24 @@ LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_download_file_count(Lin
  * @ingroup group_chatroom
  **/
 LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_upload_file_count(LinphoneCore *core);
+
+/**
+ * Set the category of chatrooms are handled by the core
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param mode A #LinphoneChatRoomHandlingSet enum
+ * @warning it is only applicable to conference servers
+ **/
+LINPHONE_PUBLIC void linphone_core_set_chat_rooms_handling_set(LinphoneCore *lc, LinphoneChatRoomHandlingSet mode);
+
+/**
+ * Return which chatrooms are handled by the core
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return A #LinphoneChatRoomHandlingSet enum
+ * @warning it is only applicable to conference servers
+ **/
+LINPHONE_PUBLIC LinphoneChatRoomHandlingSet linphone_core_get_chat_rooms_handling_set(const LinphoneCore *lc);
 
 /**
  * Returns the maximum duration, in seconds, that a chatroom waits for the NOTIFY carrying the
@@ -8323,7 +8360,6 @@ LINPHONE_PUBLIC int linphone_core_get_message_sending_delay_app_ext(const Linpho
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
- * @warning it is only useful to set this property if `linphone_core_send_message_after_notify_enabled` returns false
  **/
 LINPHONE_PUBLIC void linphone_core_set_message_sending_delay_app_ext(LinphoneCore *core, int duration);
 
@@ -8337,21 +8373,21 @@ LINPHONE_PUBLIC void linphone_core_set_message_sending_delay_app_ext(LinphoneCor
 LINPHONE_PUBLIC void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration);
 
 /**
- * It sets the maximum number of participants a chatroom on a server can support.
+ * It sets the maximum number of participants a #LinphoneChatRoom object on a server can support.
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
- * @param max_participants the maximum number of participants a chatroom is allowed to have at any given time. A 0 or
- * negative value means that there is no upper limit.
+ * @param max_participants the maximum number of participants a #LinphoneChatRoom object is allowed to have at any given
+ * time. A 0 or negative value means that there is no upper limit.
  * @warning it is only applicable to conference servers
  **/
 LINPHONE_PUBLIC void linphone_core_set_max_participants_per_chatroom(LinphoneCore *core, int max_participants);
 
 /**
- * Returns the maximum number of participants a conference server can support in a single chatroom
+ * Returns the maximum number of participants a conference server can support in a single #LinphoneChatRoom object
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
- * @return the maximum allowed participant number per chatroom. A 0 or negative value means that there is no upper
- * limit.
+ * @return the maximum allowed participant number per #LinphoneChatRoom object. A 0 or negative value means that there
+ * is no upper limit.
  * @warning it is only applicable to conference servers
  **/
 LINPHONE_PUBLIC int linphone_core_get_max_participants_per_chatroom(const LinphoneCore *core);
@@ -8573,8 +8609,8 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED const char *linphone_core_get_friends_databa
  * @param vtable a #LinphoneCoreVTable structure holding your application callbacks
  * @param config_path a path to a config file. If it does not exists it will be created.
  *        The config file is used to store all settings, call logs, friends, proxies... so that all these settings
- *        become persistent over the life of the LinphoneCore object.
- *        It is allowed to set a NULL config file. In that case LinphoneCore will not store any settings.
+ *        become persistent over the life of the #LinphoneCore object.
+ *        It is allowed to set a NULL config file. In that case #LinphoneCore will not store any settings.
  * @param factory_config_path a path to a read-only config file that can be used to
  *        to store hard-coded preference such as proxy settings or internal preferences.
  *        The settings in this factory file always override the one in the normal config file.
@@ -8747,7 +8783,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_accept_early_me
 /**
  * @brief Terminates a call.
  *
- * @param core LinphoneCore object
+ * @param core #LinphoneCore object
  * @param call The LinphoneCall object representing the call to be terminated
  * @return 0 on success, -1 on failure
  * @ingroup group_call_control
@@ -8814,7 +8850,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_pause_call(Linp
 LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneStatus linphone_core_resume_call(LinphoneCore *core, LinphoneCall *call);
 
 /**
- * @brief Updates a running call according to supplied call parameters or parameters changed in the LinphoneCore.
+ * @brief Updates a running call according to supplied call parameters or parameters changed in the #LinphoneCore.
  *
  * In this version this is limited to the following use cases:
  * - setting up/down the video stream according to the video parameter of the #LinphoneCallParams (see

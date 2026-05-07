@@ -9676,7 +9676,6 @@ void linphone_core_enable_conference_server(LinphoneCore *lc, bool_t enable) {
 #ifdef HAVE_LIME_X3DH
 	// We need to change the encryption engine if it has been instanciated before.
 	bool enabled = core->limeX3dhEnabled();
-
 	if (enabled) {
 		core->enableLimeX3dh(false);
 	}
@@ -10130,9 +10129,18 @@ void linphone_core_enable_account_strict_matching(LinphoneCore *core, bool_t ena
 
 void linphone_core_upgrade_database(LinphoneCore *core) {
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
+		db.value().get().init();
 		db.value().get().updateSchema();
 	} else {
 		ms_error("Trying to upgrade database before linphone_core_start() has been called, it has not been initialized "
 		         "yet.");
 	}
+}
+
+void linphone_core_enable_update_db_at_startup(LinphoneCore *lc, bool_t enable) {
+	linphone_config_set_bool(linphone_core_get_config(lc), "storage", "update_db_at_initialisation", enable);
+}
+
+bool_t linphone_core_update_db_at_startup_enabled(LinphoneCore *lc) {
+	return linphone_config_get_bool(linphone_core_get_config(lc), "storage", "update_db_at_initialisation", true);
 }
