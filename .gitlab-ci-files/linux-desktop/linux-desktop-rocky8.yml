@@ -83,6 +83,7 @@ rocky8-ninja-clang-mysql:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
+    CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DCMAKE_BUILD_TYPE=RelWithDebInfo
   extends: .linux-desktop
 
