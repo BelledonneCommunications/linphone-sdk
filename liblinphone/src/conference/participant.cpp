@@ -47,7 +47,7 @@ Participant::Participant(const std::shared_ptr<Conference> conference,
 }
 
 Participant::Participant(std::shared_ptr<Address> address) : mAddress(address) {
-	L_ASSERT(!address->hasUriParam("gr"));
+	L_ASSERT(!address->hasUriParam(Address::kGrParameter));
 }
 
 Participant::~Participant() {

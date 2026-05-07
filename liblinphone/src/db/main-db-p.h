@@ -116,6 +116,7 @@ private:
 	std::string selectSipAddressFromId(long long sipAddressId) const;
 	void deleteChatRoom(const long long &dbId) const;
 	void deleteChatRoom(const ConferenceId &conferenceId);
+	long long selectChatRoomIdByAlternativeAddress(long long peerSipAddressId) const;
 	long long selectChatRoomId(long long peerSipAddressId) const;
 	long long selectChatRoomId(long long peerSipAddressId, long long localSipAddressId) const;
 	long long selectChatRoomId(const ConferenceId &conferenceId) const;
@@ -168,6 +169,10 @@ private:
 	                                                                 EventLog::Type type,
 	                                                                 const soci::row &row) const;
 
+	std::shared_ptr<EventLog> selectConferenceAlternativeConferenceAddressChangedEvent(const ConferenceId &conferenceId,
+	                                                                                   EventLog::Type type,
+	                                                                                   const soci::row &row) const;
+
 	std::shared_ptr<EventLog>
 	selectConferenceSecurityEvent(const ConferenceId &conferenceId, EventLog::Type type, const soci::row &row) const;
 
@@ -194,6 +199,7 @@ private:
 	long long insertConferenceParticipantEvent(const std::shared_ptr<EventLog> &eventLog,
 	                                           long long *chatRoomId = nullptr,
 	                                           bool executeAction = true);
+	long long insertConferenceAlternativeConferenceAddressChangedEvent(const std::shared_ptr<EventLog> &eventLog);
 	long long insertConferenceParticipantDeviceEvent(const std::shared_ptr<EventLog> &eventLog);
 	long long insertConferenceSubjectEvent(const std::shared_ptr<EventLog> &eventLog);
 	long long insertConferenceSecurityEvent(const std::shared_ptr<EventLog> &eventLog);

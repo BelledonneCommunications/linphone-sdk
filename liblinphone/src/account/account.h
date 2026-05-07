@@ -187,6 +187,7 @@ public:
 
 	void handleCCMPResponseConferenceList(const HttpResponse &response);
 	void handleCCMPResponseConferenceInformation(const HttpResponse &response);
+
 	// CCMP request callback (conference list)
 	static void handleResponseConferenceList(void *ctx, const HttpResponse &event);
 	static void handleTimeoutConferenceList(void *ctx, const HttpResponse &event);

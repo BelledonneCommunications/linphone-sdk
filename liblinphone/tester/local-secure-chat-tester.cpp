@@ -2966,6 +2966,46 @@ static void secure_legacy_and_new_chatrooms_mixed_up(void) {
 	legacy_and_new_chatrooms_mixed_up_base(true);
 }
 
+static void legacy_secure_group_chat_migration(void) {
+	struct ChatRoomMigrationParams params;
+	params.encrypted = true;
+	params.unification_at_startup = false;
+	params.migration_method = ChatRoomMigrationMethod::API;
+	legacy_chat_room_migration_base(params);
+}
+
+static void legacy_secure_group_chat_migration_at_startup(void) {
+	struct ChatRoomMigrationParams params;
+	params.encrypted = true;
+	params.unification_at_startup = true;
+	params.migration_method = ChatRoomMigrationMethod::API;
+	legacy_chat_room_migration_base(params);
+}
+
+#ifdef HAVE_SOCI
+static void legacy_secure_group_chat_manual_migration_at_startup(void) {
+	struct ChatRoomMigrationParams params;
+	params.encrypted = true;
+	params.unification_at_startup = true;
+	params.migration_method = ChatRoomMigrationMethod::Database;
+	legacy_chat_room_migration_base(params);
+}
+#endif // HAVE_SOCI
+
+static void legacy_secure_group_chat_migration_client_offline(void) {
+	struct ChatRoomMigrationClientOfflineParams params;
+	params.encrypted = true;
+	params.server_restart = false;
+	legacy_chat_room_migration_client_offline_base(params);
+}
+
+static void legacy_secure_group_chat_migration_client_offline_with_server_restart(void) {
+	struct ChatRoomMigrationClientOfflineParams params;
+	params.encrypted = true;
+	params.server_restart = true;
+	legacy_chat_room_migration_client_offline_base(params);
+}
+
 } // namespace LinphoneTest
 
 static test_t local_conference_secure_chat_tests[] = {
@@ -3107,6 +3147,30 @@ static test_t local_conference_secure_one_on_one_chat_tests[] = {
                  "LeaksMemory" /*due to core restart*/),
 };
 
+static test_t local_conference_secure_chat_migration_tests[] = {
+    TEST_TWO_TAGS("Legacy secure group chat migration",
+                  LinphoneTest::legacy_secure_group_chat_migration,
+                  "LimeX3DH",
+                  "LeaksMemory"),
+    TEST_TWO_TAGS("Legacy secure group chat migration at startup",
+                  LinphoneTest::legacy_secure_group_chat_migration_at_startup,
+                  "LimeX3DH",
+                  "LeaksMemory"),
+#ifdef HAVE_SOCI
+    TEST_TWO_TAGS("Legacy secure group chat manual migration at startup",
+                  LinphoneTest::legacy_secure_group_chat_manual_migration_at_startup,
+                  "LimeX3DH",
+                  "LeaksMemory"),
+#endif // HAVE_SOCI
+    TEST_ONE_TAG("Legacy secure group chat migration (client offline)",
+                 LinphoneTest::legacy_secure_group_chat_migration_client_offline,
+                 "LimeX3DH"),
+    TEST_TWO_TAGS("Legacy secure group chat migration with server restart (client offline)",
+                  LinphoneTest::legacy_secure_group_chat_migration_client_offline_with_server_restart,
+                  "LimeX3DH",
+                  "LeaksMemory"),
+};
+
 static test_t local_conference_secure_chat_error_tests[] = {
     TEST_ONE_TAG("Secure group chat with INVITE session error (organizer)",
                  LinphoneTest::secure_group_chat_room_with_invite_error_organizer,
@@ -3134,6 +3198,18 @@ test_suite_t local_conference_test_suite_secure_chat = {
     sizeof(local_conference_secure_chat_tests) / sizeof(local_conference_secure_chat_tests[0]),
     local_conference_secure_chat_tests,
     0,
+    2 /*cpu_weight : chat uses more resources due to core restarts */
+};
+
+test_suite_t local_conference_test_suite_secure_chat_migration = {
+    "Local conference tester (Secure Chat Migration)",
+    NULL,
+    NULL,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(local_conference_secure_chat_migration_tests) / sizeof(local_conference_secure_chat_migration_tests[0]),
+    local_conference_secure_chat_migration_tests,
+    430,
     2 /*cpu_weight : chat uses more resources due to core restarts */
 };
 

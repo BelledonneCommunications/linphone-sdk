@@ -2528,11 +2528,6 @@ void one_on_one_keyword() {
 	    std::make_shared<ConferenceListenerInterfaceTester>();
 	localConf->addListener(confListener);
 
-	std::shared_ptr<Address> addr = Address::toCpp(pauline->identity)->getSharedFromThis();
-
-	// Create basic chat room with OneOnOne capability to ensure that one-on-one is added to notify
-	pauline->lc->cppPtr->getOrCreateBasicChatRoom(addr, addr);
-
 	LinphoneAddress *cBobAddr = linphone_core_interpret_url(marie->lc, bobUri);
 	std::shared_ptr<Address> bobAddr = Address::toCpp(cBobAddr)->getSharedFromThis();
 	linphone_address_unref(cBobAddr);
@@ -2540,8 +2535,9 @@ void one_on_one_keyword() {
 	ServerConferenceEventHandler *localHandler =
 	    (L_ATTR_GET(dynamic_pointer_cast<ServerConference>(localConf).get(), mEventHandler)).get();
 	auto content = localHandler->createNotifyFullState(NULL);
-	tester->setConferenceAddress(addr);
-	const_cast<ConferenceId &>(tester->handler->getConferenceId()).setPeerAddress(addr);
+	auto confAddr = localConf->getConferenceAddress();
+	tester->setConferenceAddress(confAddr);
+	const_cast<ConferenceId &>(tester->handler->getConferenceId()).setPeerAddress(confAddr);
 
 	tester->handler->notifyReceived(*content);
 
@@ -2796,8 +2792,7 @@ char *list_subscribe_with_a_lot_of_chatrooms_from_existing_database_base(
 	           conferenceAddress->toString().c_str());
 
 	start = chrono::high_resolution_clock::now();
-	auto unexistingChatRoom = pauline->lc->cppPtr->findChatRoom(
-	    ConferenceId(conferenceAddress, conferenceAddress, pauline->lc->cppPtr->createConferenceIdParams()));
+	auto unexistingChatRoom = pauline->lc->cppPtr->searchChatRoom(nullptr, conferenceAddress, conferenceAddress, {});
 	end = chrono::high_resolution_clock::now();
 	long searchMs = (long)chrono::duration_cast<chrono::milliseconds>(end - start).count();
 	BC_ASSERT_LOWER(searchMs, expectedSearchDurationMs, long, "%li");

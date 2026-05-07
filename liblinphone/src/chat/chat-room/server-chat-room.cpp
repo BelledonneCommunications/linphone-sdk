@@ -384,7 +384,7 @@ void ServerChatRoom::sendMessage(const shared_ptr<ServerChatRoom::Message> &mess
 	// Special custom header to identify MESSAGE that belong to server group chatroom
 	msg->getPrivate()->addSalCustomHeader("Session-mode", "true");
 	msg->setInternalContent(message->content);
-	msg->getPrivate()->forceFromAddress(getConference()->getConferenceAddress());
+	msg->getPrivate()->forceFromAddress(getConference()->getAssignedConferenceAddress());
 	msg->getPrivate()->forceToAddress(deviceAddr);
 	msg->getPrivate()->setApplyModifiers(false);
 	if (message->fromAddr->getUsername() == msg->getToAddress()->getUsername() &&

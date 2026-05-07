@@ -49,6 +49,9 @@ public:
 	                 const std::shared_ptr<ConferenceParams> params);
 	virtual ~ServerConference();
 
+	std::optional<std::reference_wrapper<const std::shared_ptr<Address>>>
+	getLocalAddress(const std::shared_ptr<Address> &peer) const override;
+
 	int inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
 	                    const MediaSessionParams *params) override;
 	bool dialoutAddresses(const std::list<std::shared_ptr<Address>> &addressList) override;
@@ -70,7 +73,7 @@ public:
 	std::shared_ptr<ParticipantDevice> createParticipantDevice(std::shared_ptr<Participant> &participant,
 	                                                           const std::shared_ptr<Call> &call) override;
 
-	int removeParticipant(const std::shared_ptr<CallSession> &session, const bool preserveSession) override;
+	int removeParticipant(const std::shared_ptr<CallSession> &session, bool preserveSession) override;
 	int removeParticipant(const std::shared_ptr<Address> &addr) override;
 	bool removeParticipant(const std::shared_ptr<Participant> &participant) override;
 
@@ -103,7 +106,7 @@ public:
 	void onConferenceTerminated(const std::shared_ptr<Address> &addr) override;
 	void onFirstNotifyReceived(const std::shared_ptr<Address> &addr) override;
 
-	const std::shared_ptr<Address> getOrganizer() const override;
+	const std::shared_ptr<Address> &getOrganizer() const override;
 
 	int enter() override;
 	void join(const std::shared_ptr<Address> &participantAddress) override;
@@ -112,59 +115,58 @@ public:
 	bool isIn() const override;
 
 	std::shared_ptr<ConferenceParticipantEvent> notifyParticipantAdded(
-	    time_t creationTime, const bool isFullState, const std::shared_ptr<Participant> &participant) override;
+	    time_t creationTime, bool isFullState, const std::shared_ptr<Participant> &participant) override;
 	std::shared_ptr<ConferenceParticipantEvent> notifyParticipantRemoved(
-	    time_t creationTime, const bool isFullState, const std::shared_ptr<Participant> &participant) override;
-	std::shared_ptr<ConferenceParticipantEvent>
-	notifyParticipantSetAdmin(time_t creationTime,
-	                          const bool isFullState,
-	                          const std::shared_ptr<Participant> &participant,
-	                          bool isAdmin) override;
+	    time_t creationTime, bool isFullState, const std::shared_ptr<Participant> &participant) override;
+	std::shared_ptr<ConferenceParticipantEvent> notifyParticipantSetAdmin(
+	    time_t creationTime, bool isFullState, const std::shared_ptr<Participant> &participant, bool isAdmin) override;
 	std::shared_ptr<ConferenceSubjectEvent>
-	notifySubjectChanged(time_t creationTime, const bool isFullState, const std::string subject) override;
+	notifySubjectChanged(time_t creationTime, bool isFullState, const std::string subject) override;
 	std::shared_ptr<ConferenceEphemeralMessageEvent>
-	notifyEphemeralModeChanged(time_t creationTime, const bool isFullState, const EventLog::Type type) override;
+	notifyEphemeralModeChanged(time_t creationTime, bool isFullState, const EventLog::Type type) override;
 	std::shared_ptr<ConferenceEphemeralMessageEvent>
-	notifyEphemeralMessageEnabled(time_t creationTime, const bool isFullState, const bool enable) override;
+	notifyEphemeralMessageEnabled(time_t creationTime, bool isFullState, bool enable) override;
 	std::shared_ptr<ConferenceEphemeralMessageEvent> notifyEphemeralLifetimeChanged(
-	    time_t creationTime, const bool isFullState, const long lifetime, const long notReadLifetime) override;
+	    time_t creationTime, bool isFullState, const long lifetime, const long notReadLifetime) override;
 
 	std::shared_ptr<ConferenceParticipantDeviceEvent>
 	notifyParticipantDeviceJoiningRequest(time_t creationTime,
-	                                      const bool isFullState,
+	                                      bool isFullState,
 	                                      const std::shared_ptr<Participant> &participant,
 	                                      const std::shared_ptr<ParticipantDevice> &participantDevice) override;
 
 	std::shared_ptr<ConferenceParticipantDeviceEvent>
 	notifyParticipantDeviceAdded(time_t creationTime,
-	                             const bool isFullState,
+	                             bool isFullState,
 	                             const std::shared_ptr<Participant> &participant,
 	                             const std::shared_ptr<ParticipantDevice> &participantDevice) override;
 	std::shared_ptr<ConferenceParticipantDeviceEvent>
 	notifyParticipantDeviceRemoved(time_t creationTime,
-	                               const bool isFullState,
+	                               bool isFullState,
 	                               const std::shared_ptr<Participant> &participant,
 	                               const std::shared_ptr<ParticipantDevice> &participantDevice) override;
 	std::shared_ptr<ConferenceParticipantDeviceEvent>
 	notifyParticipantDeviceStateChanged(time_t creationTime,
-	                                    const bool isFullState,
+	                                    bool isFullState,
 	                                    const std::shared_ptr<Participant> &participant,
 	                                    const std::shared_ptr<ParticipantDevice> &participantDevice) override;
 
 	std::shared_ptr<ConferenceAvailableMediaEvent>
 	notifyAvailableMediaChanged(time_t creationTime,
-	                            const bool isFullState,
+	                            bool isFullState,
 	                            const std::map<ConferenceMediaCapabilities, bool> mediaCapabilities) override;
 	std::shared_ptr<ConferenceParticipantDeviceEvent>
 	notifyParticipantDeviceMediaCapabilityChanged(time_t creationTime,
-	                                              const bool isFullState,
+	                                              bool isFullState,
 	                                              const std::shared_ptr<Participant> &participant,
 	                                              const std::shared_ptr<ParticipantDevice> &participantDevice) override;
 	std::shared_ptr<ConferenceParticipantDeviceEvent>
 	notifyParticipantDeviceScreenSharingChanged(time_t creationTime,
-	                                            const bool isFullState,
+	                                            bool isFullState,
 	                                            const std::shared_ptr<Participant> &participant,
 	                                            const std::shared_ptr<ParticipantDevice> &participantDevice) override;
+	std::shared_ptr<ConferenceAlternativeAddressEvent> notifyAlternativeAddressChanged(
+	    time_t creationTime, bool isFullState, const std::shared_ptr<Address> &address) override;
 
 	void confirmCreation();
 	void updateConferenceParams(SalCallOp *op);
@@ -236,6 +238,9 @@ public:
 	LinphoneMediaDirection verifyVideoDirection(const std::shared_ptr<CallSession> &session,
 	                                            const LinphoneMediaDirection suggestedVideoDirection) const override;
 
+	virtual bool unifyConferenceAddress() override;
+	virtual void scheduleAddressUnification() override;
+
 protected:
 	void onCallSessionStateChanged(const std::shared_ptr<CallSession> &session,
 	                               CallSession::State state,
@@ -243,6 +248,10 @@ protected:
 	void onCallSessionEarlyFailed(const std::shared_ptr<CallSession> &session, LinphoneErrorInfo *ei) override;
 
 	void onAckReceived(const std::shared_ptr<CallSession> &session, LinphoneHeaders *headers) override;
+
+	void onAccountRegistrationStateChanged(std::shared_ptr<Account> account,
+	                                       LinphoneRegistrationState state,
+	                                       BCTBX_UNUSED(const std::string &message)) override;
 
 	bool addParticipantDevice(const std::shared_ptr<Call> &call) override;
 
@@ -254,6 +263,7 @@ private:
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	std::unique_ptr<MixerSession> mMixerSession;
 	bool mIsIn = false;
+	bool mUnifyAddress = false;
 
 	bool initializeParticipants(const std::shared_ptr<Participant> &initiator, SalCallOp *op);
 	void addParticipantDevice(const std::shared_ptr<Participant> &participant,
@@ -277,7 +287,7 @@ private:
 	void addLocalEndpoint();
 	void removeLocalEndpoint();
 
-	MediaSessionParams createDefaultMediaParams(const std::shared_ptr<Call> &call = nullptr) override;
+	MediaSessionParams createDefaultMediaParams(const std::shared_ptr<MediaSession> &session = nullptr) override;
 	void modifyCallParamsForConference(MediaSessionParams &params) const;
 
 	std::shared_ptr<ConferenceInfo> createConferenceInfo() const override;

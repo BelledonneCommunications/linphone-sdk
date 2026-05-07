@@ -76,8 +76,11 @@ public:
 	void notifySubscriptionUnderwayDone();
 
 	void setManagedByListEventHandler(bool managed);
+	bool getManagedByListEventHandler() const;
 
 	static void subscribeStateChangedCb(LinphoneEvent *lev, LinphoneSubscriptionState state);
+
+	bool operator<(const ClientConferenceEventHandler &handler) const;
 
 protected:
 	ClientConferenceEventHandlerBase::NotifyParsingResult conferenceInfoNotifyReceived(const std::string &xmlBody);
@@ -97,9 +100,9 @@ private:
 	std::weak_ptr<Conference> conf;
 	ConferenceListener *confListener = nullptr;
 
-	bool managedByListEventHandler = false;
-	bool waitingFullState = false;
-	bool fullStateRequested = false;
+	bool mManagedByListEventHandler = false;
+	bool mWaitingFullState = false;
+	bool mFullStateRequested = false;
 	bool mInitialSubscriptionUnderWay = false;
 
 	void unsubscribePrivate();

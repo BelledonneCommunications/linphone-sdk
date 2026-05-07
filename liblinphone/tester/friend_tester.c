@@ -2157,12 +2157,12 @@ static void search_friend_chat_room_remote_with_fallback(bool_t check_ldap_fallb
 				                            LinphoneMagicSearchSourceChatRooms); // "pauline_***" *** is dynamic
 				_check_friend_result_list(marie->lc, resultList, 5, "sip:pauline@sip.example.org", NULL); // "Paupoche"
 			}
-			// marie_rc has an hardcoded friend for pauline
+			// marie_rc has a hardcoded friend for pauline
 		} else {
 			BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 2, int, "%d");
 			_check_friend_result_list(marie->lc, resultList, 0, addr, NULL);
 			_check_friend_result_list(marie->lc, resultList, 1, "sip:pauline@sip.example.org",
-			                          NULL); // marie_rc has an hardcoded friend for pauline
+			                          NULL); // marie_rc has a hardcoded friend for pauline
 		}
 		bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 	}
@@ -2333,7 +2333,7 @@ static void check_results(LinphoneCoreManager *manager, bctbx_list_t *resultList
 	    "sip:0601234567@ldap.example.org",   // LDAP - Marie
 	    "sip:marie@ldap.example.org",        // LDAP
 	    "sip:pauline@ldap.example.org",      // LDAP
-	    "sip:pauline@sip.example.org"        // marie_rc has an hardcoded friend for pauline
+	    "sip:pauline@sip.example.org"        // marie_rc has a hardcoded friend for pauline
 
 	};
 

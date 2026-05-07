@@ -92,7 +92,7 @@ public:
 	}
 
 	const SalAddress *getRequestAddress() {
-		return mRequestAddress.borrow();
+		return mRequestAddress;
 	}
 
 	void setRequestUri(const std::string &value) {
@@ -153,11 +153,10 @@ public:
 		mRealm = value;
 	}
 
+	void setSentCustomHeaders(SalCustomHeader *ch);
 	const SalCustomHeader *getSentCustomHeaders() const {
 		return mSentCustomHeaders;
 	}
-
-	void setSentCustomHeaders(SalCustomHeader *ch);
 
 	void enableCnxIpTo0000IfSendOnly(bool value) {
 		mCnxIpTo0000IfSendOnlyEnabled = value;
@@ -313,7 +312,7 @@ protected:
 	void setNetworkOriginAddress(SalAddress *value);
 	void setPrivacyFromMessage(belle_sip_message_t *message);
 	void setRemoteUserAgent(belle_sip_message_t *message);
-	void setRequestAddress(BorrowedMut<SalAddress> value);
+	void setRequestAddress(SalAddress *value);
 
 	belle_sip_response_t *createResponseFromRequest(belle_sip_request_t *request, int code) {
 		return mRoot->createResponseFromRequest(request, code);
@@ -361,7 +360,7 @@ protected:
 	SalAddress *mFromAddress = nullptr;
 	std::string mTo;
 	SalAddress *mToAddress = nullptr;
-	Owned<SalAddress> mRequestAddress = nullptr;
+	SalAddress *mRequestAddress = nullptr;
 	std::string mRequestUri;
 	std::string mOrigin;
 	SalAddress *mOriginAddress = nullptr;

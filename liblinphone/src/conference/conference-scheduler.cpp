@@ -519,7 +519,7 @@ void ConferenceScheduler::sendInvitations(shared_ptr<ConferenceParams> conferenc
 			remoteAddress = participant;
 		}
 		shared_ptr<AbstractChatRoom> chatRoom =
-		    getCore()->getPrivate()->searchChatRoom(conferenceParams, sender, remoteAddress, participantList);
+		    getCore()->searchChatRoom(conferenceParams, sender, remoteAddress, participantList);
 
 		if (!chatRoom) {
 			lInfo() << "[Conference Scheduler] [" << this << "] Existing chat room between [" << *sender << "] and ["

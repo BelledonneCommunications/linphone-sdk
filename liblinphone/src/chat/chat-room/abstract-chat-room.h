@@ -215,6 +215,8 @@ public:
 	virtual std::shared_ptr<Participant> getMe() const = 0;
 
 	virtual std::shared_ptr<Address> getConferenceAddress() const = 0;
+	virtual std::shared_ptr<Address> getAssignedConferenceAddress() const = 0;
+	virtual std::shared_ptr<Address> getAlternativeConferenceAddress() const = 0;
 	virtual std::shared_ptr<Participant> findParticipant(const std::shared_ptr<Address> &address) const = 0;
 	virtual std::list<std::shared_ptr<Participant>> getParticipants() const = 0;
 	virtual std::list<std::shared_ptr<Address>> getParticipantAddresses() const = 0;
@@ -292,6 +294,9 @@ public:
 	virtual const std::list<ConferenceId> &getPreviousConferenceIds() const = 0;
 
 	virtual long getLastMessageProcessingDurationMs() const = 0;
+
+	virtual bool unifyConferenceAddress() = 0;
+	virtual void scheduleAddressUnification() = 0;
 
 protected:
 	explicit AbstractChatRoom(const std::shared_ptr<Core> &core);

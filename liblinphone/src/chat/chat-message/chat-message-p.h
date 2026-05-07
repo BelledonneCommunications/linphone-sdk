@@ -43,7 +43,7 @@ LINPHONE_BEGIN_NAMESPACE
 
 class AbstractChatRoom;
 
-class ChatMessagePrivate : public ObjectPrivate {
+class LINPHONE_PUBLIC ChatMessagePrivate : public ObjectPrivate {
 	friend class CpimChatMessageModifier;
 	friend class EncryptionChatMessageModifier;
 	friend class MultipartChatMessageModifier;

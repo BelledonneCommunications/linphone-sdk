@@ -82,22 +82,31 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 	auto conference = dynamic_pointer_cast<ClientConference>(getConference());
 	conference->onConferenceCreated(remoteContact);
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
-	bool needToSubscribe = true;
-	auto &clientListHandler = getCore()->getPrivate()->clientListEventHandler;
-	auto handler = clientListHandler->findHandler(getConferenceId());
-	if (handler) {
-		if (handler->getSubscriptionState() == LinphoneSubscriptionError) {
-			lInfo() << "Detach " << *this << " from ClientConferenceListEventHandler [" << clientListHandler.get()
-			        << "] because the subscription errored out";
-			needToSubscribe = true;
-			clientListHandler->removeHandler(handler);
-		} else {
-			needToSubscribe = false;
-		}
+	std::shared_ptr<Core> core;
+	try {
+		core = getCore();
+	} catch (const bad_weak_ptr &) {
+		// Exception thrown by CoreAccessor::getCore()
 	}
-	if (needToSubscribe && remoteContact->hasParam(Conference::kIsFocusParameter)) {
-		mBgTask.start(getCore(), 32); // It will be stopped when receiving the first notify
-		conference->subscribe(false, false);
+
+	if (core) {
+		bool needToSubscribe = true;
+		auto handler = conference->getEventHandler();
+		if (handler && handler->getManagedByListEventHandler()) {
+			if (handler->getSubscriptionState() == LinphoneSubscriptionError) {
+				auto &clientListEventHandler = core->getPrivate()->clientListEventHandler;
+				lInfo() << "Detach " << *this << " from ClientConferenceListEventHandler ["
+				        << clientListEventHandler.get() << "] because the subscription errored out";
+				needToSubscribe = true;
+				clientListEventHandler->removeHandler(handler);
+			} else {
+				needToSubscribe = false;
+			}
+		}
+		if (needToSubscribe && remoteContact->hasParam(Conference::kIsFocusParameter)) {
+			mBgTask.start(core, 32); // It will be stopped when receiving the first notify
+			conference->subscribe(false, false);
+		}
 	}
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	sendPendingMessages();
@@ -345,7 +354,7 @@ void ClientChatRoom::exhume() {
 
 void ClientChatRoom::onExhumedConference(const ConferenceId &oldConfId, const ConferenceId &newConfId) {
 	const std::shared_ptr<Address> &addr = newConfId.getPeerAddress();
-	auto chatRoom = getCore()->findChatRoom(oldConfId, false);
+	auto chatRoom = getCore()->searchChatRoom(nullptr, oldConfId.getLocalAddress(), oldConfId.getPeerAddress(), {});
 	auto conference = getConference();
 	getCurrentParams()->setConferenceAddress(addr);
 	auto focus = static_pointer_cast<ClientConference>(conference)->mFocus;
@@ -476,7 +485,7 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 					            "(current state is "
 					         << linphone_subscription_state_to_string(eventSubscribeState)
 					         << ") or the event handler has not been instantiated (event handler [" << eventHandler
-					         << "]";
+					         << "])";
 					chatMessage->getPrivate()->setParticipantState(
 					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
 				} else if (eventSubscribeState != LinphoneSubscriptionActive) {
@@ -591,6 +600,15 @@ void ClientChatRoom::sendEphemeralUpdate() {
 		                     (ephemeralEnabled() ? to_string(getEphemeralLifetime()) : "0"));
 		csp->addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
 		                     (ephemeralEnabled() ? to_string(getEphemeralNotReadLifetime()) : "0"));
+		const auto &alternativeConferenceAddress = conference->getAlternativeConferenceAddress();
+		if (alternativeConferenceAddress) {
+			auto alternativeConferenceAddressUriString = alternativeConferenceAddress->toStringUriOnlyOrdered();
+			if (alternativeConferenceAddressUriString !=
+			    conference->getAssignedConferenceAddress()->toStringUriOnlyOrdered()) {
+				csp->addCustomHeader(Conference::kXAlternativeAddressClientHeaderName,
+				                     alternativeConferenceAddressUriString);
+			}
+		}
 		session->update(csp, CallSession::UpdateMethod::Default, false, utf8Subject);
 		delete csp;
 	} else {
@@ -633,6 +651,15 @@ void ClientChatRoom::setEphemeralMode(AbstractChatRoom::EphemeralMode mode, bool
 		if (mode == AbstractChatRoom::EphemeralMode::AdminManaged) {
 			csp->addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader, to_string(lifetime));
 			csp->addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader, to_string(notReadLifetime));
+		}
+		const auto &alternativeConferenceAddress = conference->getAlternativeConferenceAddress();
+		if (alternativeConferenceAddress) {
+			auto alternativeConferenceAddressUriString = alternativeConferenceAddress->toStringUriOnlyOrdered();
+			if (alternativeConferenceAddressUriString !=
+			    conference->getAssignedConferenceAddress()->toStringUriOnlyOrdered()) {
+				csp->addCustomHeader(Conference::kXAlternativeAddressClientHeaderName,
+				                     alternativeConferenceAddressUriString);
+			}
 		}
 		lInfo() << *conference << ": Changing ephemeral mode to " << Utils::toString(mode);
 		session->update(csp, CallSession::UpdateMethod::Default, false, utf8Subject);

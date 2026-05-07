@@ -6145,6 +6145,27 @@ void one_on_one_chat_room_recovery_after_404(void) {
 	}
 }
 
+static void legacy_group_chat_migration(void) {
+	struct ChatRoomMigrationParams params;
+	params.encrypted = false;
+	params.unification_at_startup = false;
+	params.migration_method = ChatRoomMigrationMethod::API;
+	legacy_chat_room_migration_base(params);
+}
+
+static void legacy_group_chat_migration_client_offline(void) {
+	struct ChatRoomMigrationClientOfflineParams params;
+	params.encrypted = false;
+	params.server_restart = false;
+	legacy_chat_room_migration_client_offline_base(params);
+}
+
+static void legacy_group_chat_migration_client_offline_with_server_restart(void) {
+	struct ChatRoomMigrationClientOfflineParams params;
+	params.encrypted = false;
+	params.server_restart = true;
+	legacy_chat_room_migration_client_offline_base(params);
+}
 } // namespace LinphoneTest
 
 static test_t local_conference_chat_basic_tests[] = {
@@ -6281,6 +6302,12 @@ static test_t local_conference_chat_advanced_tests[] = {
     TEST_ONE_TAG("Legacy and new chatrooms mixed up",
                  LinphoneTest::legacy_and_new_chatrooms_mixed_up,
                  "LeaksMemory"), /* because of coreMgr restart*/
+    TEST_ONE_TAG("Legacy group chat migration", LinphoneTest::legacy_group_chat_migration, "LeaksMemory"),
+    TEST_NO_TAG("Legacy group chat migration (client offline)",
+                LinphoneTest::legacy_group_chat_migration_client_offline),
+    TEST_ONE_TAG("Legacy group chat migration with server restart (client offline)",
+                 LinphoneTest::legacy_group_chat_migration_client_offline_with_server_restart,
+                 "LeaksMemory"),
     TEST_ONE_TAG(
         "Group chat with client removed and then reinvited after database corruption and core restart",
         LinphoneTest::group_chat_room_with_client_removed_and_reinvinted_after_database_corruption_and_core_restart,

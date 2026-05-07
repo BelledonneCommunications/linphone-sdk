@@ -367,10 +367,11 @@ bool CorePrivate::isShutdownDone() {
 }
 
 void CorePrivate::deleteConferenceInfo(const std::shared_ptr<Address> &conferenceAddress) {
+	L_Q();
 #ifdef HAVE_DB_STORAGE
 	mainDb->deleteConferenceInfo(conferenceAddress);
 #endif // HAVE_DB_STORAGE
-	auto chatRoom = searchChatRoom(nullptr, nullptr, conferenceAddress, {});
+	auto chatRoom = q->searchChatRoom(nullptr, nullptr, conferenceAddress, {});
 	if (chatRoom) {
 		chatRoom->deleteFromDb();
 	}
@@ -2487,27 +2488,28 @@ std::shared_ptr<Conference> Core::findConference(const std::shared_ptr<const Cal
 	return nullptr;
 }
 
-std::shared_ptr<Conference> Core::findConference(const ConferenceId &conferenceId, bool logIfNotFound) const {
-	L_D();
-	try {
-		auto conference = d->mConferenceById.at(conferenceId);
-		lInfo() << "Found " << *conference << " in RAM with conference ID " << conferenceId << ".";
-		return conference;
-	} catch (const out_of_range &) {
-		bool isStartup = (linphone_core_get_global_state(getCCore()) == LinphoneGlobalStartup);
-		if (logIfNotFound && !isStartup) {
-			lInfo() << "Unable to find conference with conference ID " << conferenceId << " in RAM.";
+void Core::insertConference(const shared_ptr<Conference> conference) {
+	auto conferenceIdParams = createConferenceIdParams();
+	// Add the conference to the map with all its addressable conference IDs
+	for (const auto &peerAddress :
+	     {conference->getAssignedConferenceAddress(), conference->getAlternativeConferenceAddress()}) {
+		if (const auto conferenceId = conference->buildConferenceId(peerAddress);
+		    conferenceId && conferenceId->isValid()) {
+			insertConference(conferenceId.value(), conference);
 		}
 	}
-	return nullptr;
 }
 
-void Core::insertConference(const shared_ptr<Conference> conference) {
+// This method allows the SDK to add a conference specifying its conference ID. It is particularly useful when the
+// address of a conference is migrated to the pattern <focus>:conf-id=<random-string>. In such a case, there are two
+// entries for a given conference in the conference map each of them is indexed by a different conference id. This way
+// the performance is not negatively impacted by the migration process as the complexity of search for a conference is
+// still constant on average.
+void Core::insertConference(const ConferenceId &conferenceId, const shared_ptr<Conference> conference) {
 	L_D();
 
 	L_ASSERT(conference);
 
-	const ConferenceId &conferenceId = conference->getConferenceId();
 	if (!conferenceId.isValid()) {
 		lInfo() << "Attempting to insert " << *conference << " with invalid conference ID " << conferenceId;
 		return;
@@ -2516,15 +2518,8 @@ void Core::insertConference(const shared_ptr<Conference> conference) {
 	bool isStartup = (linphone_core_get_global_state(getCCore()) == LinphoneGlobalStartup);
 	std::shared_ptr<Conference> conf;
 	if (!isStartup) {
-		if (conference->getCurrentParams()->chatEnabled()) {
-			// Handling of chat room exhume
-			const auto &chatRoom = findChatRoom(conferenceId, false);
-			if (chatRoom) {
-				conf = chatRoom->getConference();
-			}
-		} else {
-			conf = findConference(conferenceId, false);
-		}
+		conf = searchConference(nullptr, conferenceId.getLocalAddress(), conferenceId.getPeerAddress(), {});
+
 		// When starting the LinphoneCore, it may happen to have 2 audio video conferences or chat room that have the
 		// same conference ID apart from the GRUU which is not taken into the account for the comparison. In such a
 		// scenario, it is allowed to replace the pointer towards the audio video conference in the core map. Method
@@ -2553,8 +2548,14 @@ void Core::deleteConference(const ConferenceId &conferenceId) {
 }
 
 void Core::deleteConference(const shared_ptr<const Conference> &conference) {
-	const ConferenceId &conferenceId = conference->getConferenceId();
-	deleteConference(conferenceId);
+	auto conferenceIdParams = createConferenceIdParams();
+	for (const auto &peerAddress :
+	     {conference->getAssignedConferenceAddress(), conference->getAlternativeConferenceAddress()}) {
+		if (const auto conferenceId = conference->buildConferenceId(peerAddress);
+		    conferenceId && conferenceId->isValid()) {
+			deleteConference(conferenceId.value());
+		}
+	}
 }
 
 /*
@@ -2572,16 +2573,15 @@ void Core::deleteConference(const shared_ptr<const Conference> &conference) {
 std::shared_ptr<Conference> Core::searchConference(const std::shared_ptr<ConferenceParams> &params,
                                                    const std::shared_ptr<const Address> &localAddress,
                                                    const std::shared_ptr<const Address> &remoteAddress,
-                                                   const std::list<std::shared_ptr<Address>> &participants,
-                                                   bool logIfNotFound) const {
+                                                   const std::list<std::shared_ptr<Address>> &participants) const {
 	L_D();
 	decltype(d->mConferenceById) resultConferences;
 
 	if (remoteAddress && localAddress) {
 		ConferenceId conferenceId(remoteAddress, localAddress, createConferenceIdParams());
-		auto foundConference = findConference(conferenceId, logIfNotFound);
-		if (foundConference) {
-			resultConferences.insert(std::make_pair(conferenceId, foundConference));
+		auto conferenceIt = d->mConferenceById.find(conferenceId);
+		if (conferenceIt != d->mConferenceById.end()) {
+			resultConferences.insert(std::make_pair(conferenceIt->first, conferenceIt->second));
 		}
 	} else if (remoteAddress) {
 		auto remoteAddressWithoutGruu = remoteAddress->getUriWithoutGruu();
@@ -2593,7 +2593,7 @@ std::shared_ptr<Conference> Core::searchConference(const std::shared_ptr<Confere
 		*/
 		for (const auto &[id, conference] : d->mConferenceById) {
 			if (remoteAddressWithoutGruu.toStringUriOnlyOrdered(false) ==
-			    conference->getConferenceId().getPeerAddress()->getUriWithoutGruu().toStringUriOnlyOrdered(false)) {
+			    id.getPeerAddress()->getUriWithoutGruu().toStringUriOnlyOrdered(false)) {
 				resultConferences.insert(std::make_pair(id, conference));
 			}
 		}
@@ -2607,7 +2607,7 @@ std::shared_ptr<Conference> Core::searchConference(const std::shared_ptr<Confere
 		*/
 		for (const auto &[id, conference] : d->mConferenceById) {
 			if (localAddressWithoutGruu.toStringUriOnlyOrdered(false) ==
-			    conference->getConferenceId().getLocalAddress()->getUriWithoutGruu().toStringUriOnlyOrdered(false)) {
+			    id.getLocalAddress()->getUriWithoutGruu().toStringUriOnlyOrdered(false)) {
 				resultConferences.insert(std::make_pair(id, conference));
 			}
 		}
@@ -3342,8 +3342,8 @@ void Core::removeDependentAccount(const std::shared_ptr<Account> &account) {
 	auto &accounts = mAccounts.mList;
 	for (const auto &accountInList : accounts) {
 		if ((accountInList != account) && (accountInList->getDependency() == account)) {
-			lInfo() << "Updating dependent account " << *accountInList
-			        << " caused by removal of 'master' account idkey[" << accountIdKey << "]";
+			lInfo() << "Updating dependent " << *accountInList << " caused by removal of 'master' account idkey["
+			        << accountIdKey << "]";
 			accountInList->setDependency(NULL);
 			account->setNeedToRegister(account->getAccountParams()->getRegisterEnabled());
 			accountInList->update();
@@ -3404,6 +3404,8 @@ LinphoneStatus Core::addAccount(std::shared_ptr<Account> account) {
 	}
 	account->cancelDeletion(); // in case this account had been previously be removed from the Core.
 	mAccounts.mList.push_back(account);
+
+	lInfo() << *account << " has been successfully added";
 
 	// If there is no back pointer to a proxy config then create a proxy config that will depend on this account
 	// to ensure backward compatibility when using only proxy configs
@@ -3630,6 +3632,20 @@ std::shared_ptr<Account> Core::findAccountByUsername(const std::string &username
 		const auto &params = account->getAccountParams();
 		const auto &address = params->getIdentityAddress();
 		return (address && address->getUsername() == username);
+	});
+	if (it != accounts.end()) {
+		return (*it);
+	}
+	return nullptr;
+}
+
+std::shared_ptr<Account> Core::findAccountByDomain(const std::string &domain) const {
+	if (domain.empty()) return nullptr;
+	const auto accounts = mAccounts.mList;
+	auto it = std::find_if(accounts.begin(), accounts.end(), [&domain](const auto &account) {
+		const auto &params = account->getAccountParams();
+		const auto &address = params->getIdentityAddress();
+		return (address && address->getDomain() == domain);
 	});
 	if (it != accounts.end()) {
 		return (*it);
@@ -3912,23 +3928,23 @@ std::shared_ptr<Account> Core::guessLocalAccountFromMalformedMessage(const std::
 				// We have a match for the FROM domain and the TO username.
 				// We may face an IPBPX that sets the TO domain to our IP address, which is
 				// a terribly stupid idea.
-				lWarning() << "TO header [" << localAddress->asStringUriOnly()
+				lWarning() << "TO header [" << *localAddress
 				           << "] was probably ill-choosen, but an account that matches the username on "
 				              "the FROM ["
-				           << peerAddress->asStringUriOnly() << "] domain was found ["
-				           << account->getAccountParams()->getIdentityAddress()->asStringUriOnly() << "], using it";
+				           << *peerAddress << "] domain was found ["
+				           << *account->getAccountParams()->getIdentityAddress() << "], using it";
 				return account;
 			} else {
 				account = findAccountByUsername(toUser);
 				if (account) {
-					lWarning() << "TO header [" << localAddress->asStringUriOnly()
+					lWarning() << "TO header [" << *localAddress
 					           << "] was probably ill-choosen, but an account that matches the username "
 					              "was found ["
-					           << account->getAccountParams()->getIdentityAddress()->asStringUriOnly() << "], using it";
+					           << *account->getAccountParams()->getIdentityAddress() << "], using it";
 					return account;
 				} else {
-					lWarning() << "Failed to find an account matching TO header [" << localAddress->asStringUriOnly()
-					           << "], even by using FROM header [" << peerAddress->asStringUriOnly() << "] domain";
+					lWarning() << "Failed to find an account matching TO header [" << *localAddress
+					           << "], even by using FROM header [" << *peerAddress << "] domain";
 				}
 			}
 		} else {
@@ -3936,21 +3952,19 @@ std::shared_ptr<Account> Core::guessLocalAccountFromMalformedMessage(const std::
 			// Will be useful for cases where TO address domain doesn't match the account's one
 			account = lookupKnownAccount(localAddress, false);
 			if (account) {
-				lWarning() << "TO header [" << localAddress->asStringUriOnly()
-				           << "] was probably ill-choosen, but an account was found ["
-				           << account->getAccountParams()->getIdentityAddress()->asStringUriOnly() << "], using it";
+				lWarning() << "TO header [" << *localAddress << "] was probably ill-choosen, but an account was found ["
+				           << *account->getAccountParams()->getIdentityAddress() << "], using it";
 				return account;
 			} else {
 				account = findAccountByUsername(toUser);
 				if (account) {
-					lWarning() << "TO header [" << localAddress->asStringUriOnly()
+					lWarning() << "TO header [" << *localAddress
 					           << "] was probably ill-choosen, but an account that matches the username "
 					              "was found ["
-					           << account->getAccountParams()->getIdentityAddress()->asStringUriOnly() << "], using it";
+					           << *account->getAccountParams()->getIdentityAddress() << "], using it";
 					return account;
 				} else {
-					lWarning() << "Failed to find an account matching TO header [" << localAddress->asStringUriOnly()
-					           << "]";
+					lWarning() << "Failed to find an account matching TO header [" << *localAddress << "]";
 				}
 			}
 		}

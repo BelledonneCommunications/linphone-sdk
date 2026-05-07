@@ -175,6 +175,8 @@ public:
 	bool useSupportedTags() const;
 	bool dtlsSrtpVerifyCertEnabled() const;
 	bool echoedPresenceSubscriptionEnabled() const;
+	void useDomainRegistration(bool enable);
+	bool domainRegistrationUsed() const;
 
 	// Other
 	LinphoneStatus setServerAddress(const std::shared_ptr<const Address> &serverAddr);
@@ -221,6 +223,7 @@ private:
 	bool mAllowCpimMessagesInBasicChatRooms;
 	bool mInstantMessagingEncryptionMandatory;
 	bool mEchoedPresenceSubscriptionEnabled;
+	bool mUseDomainRegistration = false;
 
 	void *mUserData;
 
@@ -255,20 +258,20 @@ private:
 
 	LinphonePrivacyMask mPrivacy;
 
-	std::shared_ptr<Address> mIdentityAddress = nullptr;
-	std::shared_ptr<Address> mProxyAddress = nullptr;
+	std::shared_ptr<Address> mIdentityAddress;
+	std::shared_ptr<Address> mProxyAddress;
 
 	LinphoneAVPFMode mAvpfMode;
 
-	std::shared_ptr<NatPolicy> mNatPolicy = nullptr;
+	std::shared_ptr<NatPolicy> mNatPolicy;
 
-	PushNotificationConfig *mPushNotificationConfig;
+	PushNotificationConfig *mPushNotificationConfig = nullptr;
 
-	std::shared_ptr<Address> mConferenceFactoryAddress = nullptr;
-	std::shared_ptr<Address> mAudioVideoConferenceFactoryAddress = nullptr;
-	std::shared_ptr<Address> mCustomContact = nullptr;
-	std::shared_ptr<Address> mMwiServerAddress = nullptr;
-	std::shared_ptr<Address> mVoicemailAddress = nullptr;
+	std::shared_ptr<Address> mConferenceFactoryAddress;
+	std::shared_ptr<Address> mAudioVideoConferenceFactoryAddress;
+	std::shared_ptr<Address> mCustomContact;
+	std::shared_ptr<Address> mMwiServerAddress;
+	std::shared_ptr<Address> mVoicemailAddress;
 
 	ListHolder<std::string> mSupportedTagsList = {};
 	bool mUseSupportedTags = false;

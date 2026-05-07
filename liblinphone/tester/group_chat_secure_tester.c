@@ -3253,6 +3253,10 @@ group_chat_lime_x3dh_chatroom_security_level_downgrade_adding_participant_curve(
 	BC_ASSERT_EQUAL(linphone_chat_room_get_security_level(paulineCr), LinphoneChatRoomSecurityLevelSafe, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_security_level(laureCr), LinphoneChatRoomSecurityLevelSafe, int, "%d");
 
+	initialMarieStats = marie->stat;
+	initialPaulineStats = pauline->stat;
+	initialLaureStats = laure->stat;
+
 	// Marie adds Chloe to the chat room
 	participantsAddresses = NULL;
 	participantsAddresses =
@@ -3271,6 +3275,13 @@ group_chat_lime_x3dh_chatroom_security_level_downgrade_adding_participant_curve(
 	                             initialPaulineStats.number_of_participants_added + 1, 3000));
 	BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_participants_added,
 	                             initialLaureStats.number_of_participants_added + 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_participant_devices_added,
+	                             initialMarieStats.number_of_participant_devices_added + 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_participant_devices_added,
+	                             initialPaulineStats.number_of_participant_devices_added + 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_participant_devices_added,
+	                             initialLaureStats.number_of_participant_devices_added + 1, 3000));
+
 	BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(marieCr), 3, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(paulineCr), 3, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(laureCr), 3, int, "%d");

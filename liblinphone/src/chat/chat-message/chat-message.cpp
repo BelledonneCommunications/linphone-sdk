@@ -60,6 +60,7 @@
 using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
+
 static FsmIntegrityChecker<ChatMessage::State> chatMessageFsmChecker{
     {{ChatMessage::State::Idle,
       {ChatMessage::State::PendingDelivery, ChatMessage::State::Queued, ChatMessage::State::InProgress,
@@ -1472,9 +1473,9 @@ bool ChatMessagePrivate::retractExistingMessageUsingId(const string &messageId) 
 	// This check was already made by sender at the start of send() method, no need to do it again here
 	if (direction == ChatMessage::Direction::Incoming) {
 		if (!messageToRetract->getFromAddress()->weakEqual(q->getFromAddress())) {
-			lError() << "Retraction request was sent by [" << q->getFromAddress()->asStringUriOnly()
+			lError() << "Retraction request was sent by [" << *q->getFromAddress()
 			         << "] which is different than message about to be edited sender ["
-			         << messageToRetract->getFromAddress()->asStringUriOnly() << "], aborting";
+			         << *messageToRetract->getFromAddress() << "], aborting";
 			return false;
 		}
 	}
@@ -1530,9 +1531,9 @@ bool ChatMessagePrivate::replaceExistingMessageUsingId(const string &messageId) 
 	// This check was already made by sender at the start of send() method, no need to do it again here
 	if (direction == ChatMessage::Direction::Incoming) {
 		if (!messageToEdit->getFromAddress()->weakEqual(q->getFromAddress())) {
-			lError() << "Edit request was sent by [" << q->getFromAddress()->asStringUriOnly()
+			lError() << "Edit request was sent by [" << *q->getFromAddress()
 			         << "] which is different than message about to be edited sender ["
-			         << messageToEdit->getFromAddress()->asStringUriOnly() << "], aborting";
+			         << *messageToEdit->getFromAddress() << "], aborting";
 			return false;
 		}
 	}
@@ -1649,8 +1650,8 @@ void ChatMessagePrivate::send() {
 		auto editedMessageFromAddress = toEdit->getFromAddress();
 		if (!editedMessageFromAddress->weakEqual(q->getFromAddress())) {
 			lError() << "Message with ID [" << replacesExistingMessageId << "] doesn't have the same sender ["
-			         << editedMessageFromAddress->asStringUriOnly() << "] and this one ["
-			         << q->getFromAddress()->asStringUriOnly() << "], aborting message edit process!";
+			         << *editedMessageFromAddress << "] and this one [" << *q->getFromAddress()
+			         << "], aborting message edit process!";
 			return;
 		}
 	}
@@ -1673,8 +1674,8 @@ void ChatMessagePrivate::send() {
 		auto retractedMessageFromAddress = toRetract->getFromAddress();
 		if (!retractedMessageFromAddress->weakEqual(q->getFromAddress())) {
 			lError() << "Message with ID [" << retractsExistingMessageId << "] doesn't have the same sender ["
-			         << retractedMessageFromAddress->asStringUriOnly() << "] and this one ["
-			         << q->getFromAddress()->asStringUriOnly() << "], aborting message retraction process!";
+			         << *retractedMessageFromAddress << "] and this one [" << *q->getFromAddress()
+			         << "], aborting message retraction process!";
 			return;
 		}
 	}
@@ -1760,6 +1761,24 @@ void ChatMessagePrivate::send() {
 		}
 	}
 
+	bool isConferenceServer = core->conferenceServerEnabled();
+	const auto &conferenceAddress = chatRoom->getConferenceAddress();
+	const auto &alternativeConferenceAddress = chatRoom->getAlternativeConferenceAddress();
+	if (alternativeConferenceAddress) {
+		auto alternativeConferenceAddressUriString = alternativeConferenceAddress->toStringUriOnlyOrdered();
+		if (isConferenceServer) {
+			if (alternativeConferenceAddressUriString != mFromAddress->toStringUriOnlyOrdered()) {
+				addSalCustomHeader(Conference::kXAlternativeAddressServerHeaderName,
+				                   alternativeConferenceAddressUriString);
+			}
+		} else {
+			if (alternativeConferenceAddressUriString != mToAddress->toStringUriOnlyOrdered()) {
+				addSalCustomHeader(Conference::kXAlternativeAddressClientHeaderName,
+				                   alternativeConferenceAddressUriString);
+			}
+		}
+	}
+
 	if (!op) {
 		/* Sending out of call */
 		salOp = op = new SalMessageOp(core->getCCore()->sal.get());
@@ -1774,6 +1793,11 @@ void ChatMessagePrivate::send() {
 	}
 	op->setFromAddress(mFromAddress->getImpl());
 	op->setToAddress(mToAddress->getImpl());
+	// Set the request URI to the conference address. It may not be the same as the To address after running conference
+	// unification
+	if (!isConferenceServer) {
+		op->setRequestUri(conferenceAddress->asStringUriOnly());
+	}
 
 	// ---------------------------------------
 	// Start of message modification
@@ -1977,7 +2001,11 @@ void ChatMessagePrivate::storeInDb() {
 	if (!chatRoom) return;
 
 	chatRoom->addEvent(eventLog); // From this point going forward the chat message will have a valid dbKey
-	lInfo() << "ChatMessage [" << q << "] has been stored in database with storage id " << storageId;
+	if (storageId < 0) {
+		lInfo() << "ChatMessage [" << q << "] could not be stored in database";
+	} else {
+		lInfo() << "ChatMessage [" << q << "] has been stored in database with storage id " << storageId;
+	}
 	const auto &chatRoomParams = chatRoom->getCurrentParams();
 	const bool isFlexisipChatRoom =
 	    (chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::FlexisipChat);

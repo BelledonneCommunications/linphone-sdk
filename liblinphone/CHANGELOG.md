@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## Unreleased
+
+### Added
+- Grouping of chatroom SUBSCRIBEs per focus URI
+- Support to unify all chatroom addresses under the pattern focus@domain;conf-id=XXXX (applicable when the core is used as a conference servers)
+- Support of permanent activities in the presence. This enables the ability for the presence server to store
+  activities permanently, even if the PUBLISH expires.
+
+### Changes
+- Optimize contact importation by performing the vcards parsing asynchronously in a background thread, and by
+  optimizing the parser and the database storage.
 
 ## [5.5.0] 2026-05-25
 

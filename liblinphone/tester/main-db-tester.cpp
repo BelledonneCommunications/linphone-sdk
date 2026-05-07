@@ -489,10 +489,10 @@ static void load_chatroom_conference_base(bool_t keep_gruu) {
 			if (conferenceAddress) {
 				auto domain = conferenceAddress->getDomain();
 				BC_ASSERT_STRING_EQUAL(L_STRING_TO_C(domain), MainDbProvider::chatroom_domain);
-				auto hasGruu = conferenceAddress->hasUriParam("gr");
+				auto hasGruu = conferenceAddress->hasUriParam(Address::kGrParameter);
 				BC_ASSERT_TRUE(hasGruu == !!keep_gruu);
 				if (hasGruu) {
-					auto gr = conferenceAddress->getUriParamValue("gr");
+					auto gr = conferenceAddress->getUriParamValue(Address::kGrParameter);
 					BC_ASSERT_STRING_EQUAL(L_STRING_TO_C(gr), MainDbProvider::chatroom_gr);
 				}
 			}

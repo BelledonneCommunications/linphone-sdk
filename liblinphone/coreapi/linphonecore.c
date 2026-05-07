@@ -3063,9 +3063,7 @@ static void linphone_core_internal_notify_received(LinphoneCore *lc,
 
 		const auto &fromAddr = ev->getFrom();
 		const auto &resourceAddr = ev->getResource();
-		LinphonePrivate::ConferenceId conferenceId =
-		    LinphonePrivate::ConferenceId(resourceAddr, fromAddr, core->createConferenceIdParams());
-		shared_ptr<Conference> conference = core->findConference(conferenceId, false);
+		shared_ptr<Conference> conference = core->searchConference(nullptr, fromAddr, resourceAddr, {});
 		Content content = body ? *Content::toCpp(body) : Content();
 		if (conference) {
 			shared_ptr<ClientConference> clientConference = dynamic_pointer_cast<ClientConference>(conference);
@@ -3075,8 +3073,8 @@ static void linphone_core_internal_notify_received(LinphoneCore *lc,
 				clientConference->notifyReceived(ev, content);
 			}
 		} else {
-			lError() << "Unable to handle NOTIFY message attached to event [" << ev
-			         << "] because no conference with id " << conferenceId << " has been found";
+			lError() << "Unable to handle NOTIFY message attached to " << *ev << " because no conference with address "
+			         << *resourceAddr << " has been found";
 		}
 #else
 		lWarning() << "Unable to handle NOTIFY because advanced IM such as group chat is disabled!";
@@ -3105,12 +3103,11 @@ _linphone_core_conference_subscribe_received(LinphoneCore *lc, LinphoneEvent *le
 	auto evSub = dynamic_pointer_cast<EventSubscribe>(Event::toCpp(lev)->getSharedFromThis());
 	const std::shared_ptr<Address> conferenceAddress = evSub->getResource();
 	std::shared_ptr<Core> core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
-	LinphonePrivate::ConferenceId conferenceId =
-	    LinphonePrivate::ConferenceId(conferenceAddress, conferenceAddress, core->createConferenceIdParams());
-	shared_ptr<Conference> conference = core->findConference(conferenceId, false);
+	shared_ptr<Conference> conference = core->searchConference(nullptr, conferenceAddress, conferenceAddress, {});
 	if (conference) static_pointer_cast<ServerConference>(conference)->subscribeReceived(evSub);
 	else {
-		lError() << "Denying subscription because no conference with id " << conferenceId << " has been found";
+		lError() << "Denying " << *evSub << " because no conference with address " << *conferenceAddress
+		         << " has been found";
 		linphone_event_deny_subscription(lev, LinphoneReasonDeclined);
 	}
 #else  // !defined(HAVE_ADVANCED_IM) || !defined(HAVE_XERCESC)
@@ -3159,12 +3156,12 @@ static void _linphone_core_conference_subscription_state_changed(LinphoneCore *l
 		std::shared_ptr<Core> core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
 		LinphonePrivate::ConferenceId conferenceId =
 		    LinphonePrivate::ConferenceId(conferenceAddress, conferenceAddress, core->createConferenceIdParams());
-		shared_ptr<Conference> conference = core->findConference(conferenceId, false);
+		shared_ptr<Conference> conference = core->searchConference(nullptr, conferenceAddress, conferenceAddress, {});
 		if (conference) static_pointer_cast<ServerConference>(conference)->subscriptionStateChanged(evSub, state);
 		else {
 			lWarning() << "Unable to handle subscripton state changed to "
-			           << linphone_subscription_state_to_string(state) << " because no conference with id "
-			           << conferenceId << " has been found";
+			           << linphone_subscription_state_to_string(state) << " because no conference with address "
+			           << *conferenceAddress << " has been found";
 		}
 	}
 #else  // !defined(HAVE_ADVANCED_IM) || !defined(HAVE_XERCESC)
@@ -5484,15 +5481,6 @@ void linphone_core_set_auto_download_icalendars_enabled(LinphoneCore *lc, bool_t
 void linphone_core_enable_auto_download_icalendars(LinphoneCore *core, bool_t auto_download_icalendars) {
 	core->auto_download_incoming_icalendars = auto_download_icalendars;
 	linphone_config_set_bool(core->config, "app", "auto_download_incoming_icalendars", auto_download_icalendars);
-}
-
-bool_t linphone_core_is_sender_name_hidden_in_forward_message(LinphoneCore *lc) {
-	return lc->sender_name_hidden_in_forward_message;
-}
-
-void linphone_core_enable_sender_name_hidden_in_forward_message(LinphoneCore *lc, bool_t enable) {
-	lc->sender_name_hidden_in_forward_message = enable;
-	linphone_config_set_int(lc->config, "app", "sender_name_hidden_in_forward_message", enable);
 }
 
 bool_t linphone_core_is_record_aware_enabled(LinphoneCore *lc) {
@@ -9032,24 +9020,6 @@ long linphone_core_get_conference_availability_before_start(const LinphoneCore *
 	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getConferenceAvailabilityBeforeStart();
 }
 
-void linphone_core_set_queued_message_resend_period(LinphoneCore *lc, long seconds) {
-	CoreLogContextualizer logContextualizer(lc);
-	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setQueuedMessageResendPeriod(seconds);
-}
-
-long linphone_core_get_queued_message_resend_period(const LinphoneCore *lc) {
-	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getQueuedMessageResendPeriod();
-}
-
-void linphone_core_set_imdn_resend_period(LinphoneCore *lc, long seconds) {
-	CoreLogContextualizer logContextualizer(lc);
-	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setImdnResendPeriod(seconds);
-}
-
-long linphone_core_get_imdn_resend_period(const LinphoneCore *lc) {
-	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getImdnResendPeriod();
-}
-
 void linphone_core_set_conference_expire_period(LinphoneCore *lc, long seconds) {
 	CoreLogContextualizer logContextualizer(lc);
 	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setConferenceExpirePeriod(seconds);
@@ -9858,19 +9828,6 @@ void linphone_core_remove_content_type_support(LinphoneCore *lc, const char *con
 	lc->sal->removeContentTypeSupport(content_type);
 }
 
-int linphone_core_get_unread_chat_message_count(const LinphoneCore *lc) {
-	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getUnreadChatMessageCount();
-}
-
-int linphone_core_get_unread_chat_message_count_from_local(const LinphoneCore *lc, const LinphoneAddress *address) {
-	const auto addr = LinphonePrivate::Address::toCpp(address)->getSharedFromThis();
-	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getUnreadChatMessageCount(addr);
-}
-
-int linphone_core_get_unread_chat_message_count_from_active_locals(const LinphoneCore *lc) {
-	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getUnreadChatMessageCountFromActiveLocals();
-}
-
 bool_t linphone_core_has_crappy_opengl(LinphoneCore *lc) {
 	MSFactory *factory = linphone_core_get_ms_factory(lc);
 	MSDevicesInfo *devices = ms_factory_get_devices_info(factory);
@@ -10035,24 +9992,6 @@ LinphoneStatus linphone_core_config_sync(LinphoneCore *core) {
 	return linphone_config_sync(core->config);
 }
 
-int linphone_core_get_imdn_to_everybody_threshold(const LinphoneCore *core) {
-	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->getImdnToEverybodyThreshold();
-}
-
-void linphone_core_set_imdn_to_everybody_threshold(LinphoneCore *core, int threshold) {
-	linphone_config_set_int(core->config, "chat", "imdn_to_everybody_threshold", threshold);
-	L_GET_CPP_PTR_FROM_C_OBJECT(core)->setImdnToEverybodyThreshold(threshold);
-}
-
-bool_t linphone_core_empty_chatrooms_deletion_enabled(const LinphoneCore *core) {
-	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->emptyChatroomsDeletionEnabled();
-}
-
-void linphone_core_enable_empty_chatrooms_deletion(LinphoneCore *core, bool_t enable) {
-	linphone_config_set_bool(core->config, "misc", "empty_chat_room_deletion", enable);
-	L_GET_CPP_PTR_FROM_C_OBJECT(core)->enableEmptyChatroomsDeletion(enable);
-}
-
 const bctbx_list_t *linphone_core_get_loaded_plugins(LinphoneCore *core) {
 	if (core->plugin_list) {
 		bctbx_list_free_with_data(core->plugin_list, (bctbx_list_free_func)bctbx_free);
@@ -10187,54 +10126,6 @@ bool_t linphone_core_account_strict_matching_enabled(const LinphoneCore *core) {
 
 void linphone_core_enable_account_strict_matching(LinphoneCore *core, bool_t enable) {
 	linphone_config_set_bool(linphone_core_get_config(core), "sip", "account_strict_matching", enable);
-}
-
-bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core) {
-	return linphone_config_get_bool(linphone_core_get_config(core), "chat", "send_message_after_notify", 0);
-}
-
-void linphone_core_enable_send_message_after_notify(LinphoneCore *core, bool_t enable) {
-	linphone_config_set_bool(linphone_core_get_config(core), "chat", "send_message_after_notify", enable);
-}
-
-int linphone_core_get_message_sending_delay(const LinphoneCore *core) {
-	return linphone_config_get_int(linphone_core_get_config(core), "misc", "delay_message_send_s", 10);
-}
-
-void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration) {
-	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_s", duration);
-}
-
-int linphone_core_get_message_sending_delay_app_ext(const LinphoneCore *core) {
-	return linphone_config_get_int(linphone_core_get_config(core), "misc", "delay_message_send_app_ext_s", 3);
-}
-
-void linphone_core_set_message_sending_delay_app_ext(LinphoneCore *core, int duration) {
-	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_app_ext_s", duration);
-}
-
-int linphone_core_get_chat_room_load_chunk_size(const LinphoneCore *core) {
-	return linphone_config_get_int(linphone_core_get_config(core), "chat", "chat_room_load_chunk_size", -1);
-}
-
-void linphone_core_set_chat_room_load_chunk_size(LinphoneCore *core, int size) {
-	linphone_config_set_int(linphone_core_get_config(core), "chat", "chat_room_load_chunk_size", size);
-}
-
-int linphone_core_get_message_automatic_resending_delay(const LinphoneCore *core) {
-	return linphone_config_get_int(linphone_core_get_config(core), "chat", "message_automatic_resending_s", 10);
-}
-
-void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration) {
-	linphone_config_set_int(linphone_core_get_config(core), "chat", "message_automatic_resending_s", duration);
-}
-
-int linphone_core_get_max_participants_per_chatroom(const LinphoneCore *core) {
-	return linphone_config_get_int(linphone_core_get_config(core), "chat", "max_participants_per_chatroom", -1);
-}
-
-void linphone_core_set_max_participants_per_chatroom(LinphoneCore *core, int max_participants) {
-	linphone_config_set_int(linphone_core_get_config(core), "chat", "max_participants_per_chatroom", max_participants);
 }
 
 void linphone_core_upgrade_database(LinphoneCore *core) {

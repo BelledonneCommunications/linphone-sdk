@@ -590,3 +590,7 @@ bool_t linphone_account_params_echoed_presence_subscription_enabled(const Linpho
 void linphone_account_params_enable_echoed_presence_subscription(LinphoneAccountParams *params, bool_t enable) {
 	AccountParams::toCpp(params)->enableEchoedPresenceSubscription(enable == TRUE);
 }
+
+void linphone_account_params_use_domain_registrations(LinphoneAccountParams *params, bool_t enable) {
+	AccountParams::toCpp(params)->useDomainRegistration(!!enable);
+}

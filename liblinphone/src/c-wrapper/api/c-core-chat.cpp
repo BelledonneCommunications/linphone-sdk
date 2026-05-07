@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -20,14 +20,10 @@
 
 #include "bctoolbox/defs.h"
 
-#include "belle-sip/belle-sip.h"
-
 #include "c-wrapper/c-wrapper.h"
-#include "call/call.h"
 #include "chat/chat-room/abstract-chat-room.h"
 #include "chat/chat-room/basic-chat-room.h"
 #include "conference/conference-params.h"
-#include "content/content-type.h"
 #include "core/core-p.h"
 #include "linphone/api/c-address.h"
 #include "linphone/api/c-chat-room-params.h"
@@ -189,7 +185,7 @@ LinphoneChatRoom *linphone_core_search_chat_room_2(const LinphoneCore *lc,
 	    localAddr ? LinphonePrivate::Address::toCpp(localAddr)->getSharedFromThis() : nullptr;
 	shared_ptr<const LinphonePrivate::Address> remoteAddress =
 	    remoteAddr ? LinphonePrivate::Address::toCpp(remoteAddr)->getSharedFromThis() : nullptr;
-	shared_ptr<LinphonePrivate::AbstractChatRoom> room = L_GET_PRIVATE_FROM_C_OBJECT(lc)->searchChatRoom(
+	shared_ptr<LinphonePrivate::AbstractChatRoom> room = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->searchChatRoom(
 	    conferenceParams, localAddress, remoteAddress, participantsList);
 	if (room) return room->toC();
 	return NULL;
@@ -197,7 +193,7 @@ LinphoneChatRoom *linphone_core_search_chat_room_2(const LinphoneCore *lc,
 
 LinphoneChatRoom *linphone_core_search_chat_room_by_identifier(const LinphoneCore *lc, const char *identifier) {
 	shared_ptr<LinphonePrivate::AbstractChatRoom> room =
-	    L_GET_PRIVATE_FROM_C_OBJECT(lc)->searchChatRoom(L_C_TO_STRING(identifier));
+	    L_GET_CPP_PTR_FROM_C_OBJECT(lc)->searchChatRoom(L_C_TO_STRING(identifier));
 	if (room) return room->toC();
 	return NULL;
 }
@@ -308,4 +304,152 @@ unsigned int linphone_core_get_remaining_download_file_count(LinphoneCore *lc) {
 
 unsigned int linphone_core_get_remaining_upload_file_count(LinphoneCore *lc) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getRemainingUploadFileCount();
+}
+
+void linphone_core_set_queued_message_resend_period(LinphoneCore *lc, long seconds) {
+	CoreLogContextualizer logContextualizer(lc);
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setQueuedMessageResendPeriod(seconds);
+}
+
+long linphone_core_get_queued_message_resend_period(const LinphoneCore *lc) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getQueuedMessageResendPeriod();
+}
+
+void linphone_core_set_imdn_resend_period(LinphoneCore *lc, long seconds) {
+	CoreLogContextualizer logContextualizer(lc);
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setImdnResendPeriod(seconds);
+}
+
+long linphone_core_get_imdn_resend_period(const LinphoneCore *lc) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getImdnResendPeriod();
+}
+
+int linphone_core_get_imdn_to_everybody_threshold(const LinphoneCore *core) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->getImdnToEverybodyThreshold();
+}
+
+void linphone_core_set_imdn_to_everybody_threshold(LinphoneCore *core, int threshold) {
+	linphone_config_set_int(core->config, "chat", "imdn_to_everybody_threshold", threshold);
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->setImdnToEverybodyThreshold(threshold);
+}
+
+bool_t linphone_core_empty_chatrooms_deletion_enabled(const LinphoneCore *core) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->emptyChatroomsDeletionEnabled();
+}
+
+void linphone_core_enable_empty_chatrooms_deletion(LinphoneCore *core, bool_t enable) {
+	linphone_config_set_bool(core->config, "misc", "empty_chat_room_deletion", enable);
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->enableEmptyChatroomsDeletion(enable);
+}
+
+int linphone_core_get_max_participants_per_chatroom(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "chat", "max_participants_per_chatroom", -1);
+}
+
+void linphone_core_set_max_participants_per_chatroom(LinphoneCore *core, int max_participants) {
+	linphone_config_set_int(linphone_core_get_config(core), "chat", "max_participants_per_chatroom", max_participants);
+}
+
+bool_t linphone_core_is_sender_name_hidden_in_forward_message(LinphoneCore *lc) {
+	return lc->sender_name_hidden_in_forward_message;
+}
+
+void linphone_core_enable_sender_name_hidden_in_forward_message(LinphoneCore *lc, bool_t enable) {
+	lc->sender_name_hidden_in_forward_message = enable;
+	linphone_config_set_int(lc->config, "app", "sender_name_hidden_in_forward_message", enable);
+}
+
+int linphone_core_get_unread_chat_message_count(const LinphoneCore *lc) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getUnreadChatMessageCount();
+}
+
+int linphone_core_get_unread_chat_message_count_from_local(const LinphoneCore *lc, const LinphoneAddress *address) {
+	const auto addr = LinphonePrivate::Address::toCpp(address)->getSharedFromThis();
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getUnreadChatMessageCount(addr);
+}
+
+int linphone_core_get_unread_chat_message_count_from_active_locals(const LinphoneCore *lc) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getUnreadChatMessageCountFromActiveLocals();
+}
+
+bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core) {
+	return linphone_config_get_bool(linphone_core_get_config(core), "chat", "send_message_after_notify", 0);
+}
+
+void linphone_core_enable_send_message_after_notify(LinphoneCore *core, bool_t enable) {
+	linphone_config_set_bool(linphone_core_get_config(core), "chat", "send_message_after_notify", enable);
+}
+
+int linphone_core_get_message_sending_delay(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "misc", "delay_message_send_s", 10);
+}
+
+void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration) {
+	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_s", duration);
+}
+
+int linphone_core_get_message_sending_delay_app_ext(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "misc", "delay_message_send_app_ext_s", 3);
+}
+
+void linphone_core_set_message_sending_delay_app_ext(LinphoneCore *core, int duration) {
+	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_app_ext_s", duration);
+}
+
+int linphone_core_get_chat_room_load_chunk_size(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "chat", "chat_room_load_chunk_size", -1);
+}
+
+void linphone_core_set_chat_room_load_chunk_size(LinphoneCore *core, int size) {
+	linphone_config_set_int(linphone_core_get_config(core), "chat", "chat_room_load_chunk_size", size);
+}
+
+int linphone_core_get_message_automatic_resending_delay(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "chat", "message_automatic_resending_s", 10);
+}
+
+void linphone_core_set_message_automatic_resending_delay(LinphoneCore *core, int duration) {
+	linphone_config_set_int(linphone_core_get_config(core), "chat", "message_automatic_resending_s", duration);
+}
+
+bool_t linphone_core_unify_chat_rooms_address(LinphoneCore *core) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->unifyChatRoomAddresses();
+}
+
+void linphone_core_enable_chat_room_address_unification(LinphoneCore *core, bool_t enable) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->enableChatRoomAddressUnification(!!enable);
+}
+
+bool_t linphone_core_chat_room_address_unification_enabled(const LinphoneCore *core) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->chatRoomAddressUnificationEnabled();
+}
+void linphone_core_set_ephemeral_chat_message_policy(LinphoneCore *core,
+                                                     const LinphoneEphemeralChatMessagePolicy policy) {
+	CoreLogContextualizer logContextualizer(core);
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->setEphemeralChatMessagePolicy(policy);
+}
+
+LinphoneEphemeralChatMessagePolicy linphone_core_get_ephemeral_chat_message_policy(const LinphoneCore *core) {
+	CoreLogContextualizer logContextualizer(core);
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->getEphemeralChatMessagePolicy();
+}
+
+void linphone_core_enable_chat_message_files_deletion(LinphoneCore *core, bool_t enabled) {
+	CoreLogContextualizer logContextualizer(core);
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->enableChatMessageFileDeletion(!!enabled);
+}
+
+bool_t linphone_core_chat_message_files_deletion_enabled(LinphoneCore *core) {
+	CoreLogContextualizer logContextualizer(core);
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->chatMessageFileDeletionEnabled() ? TRUE : FALSE;
+}
+
+void linphone_core_set_chat_message_files_directories(LinphoneCore *core, const bctbx_list_t *directories) {
+	CoreLogContextualizer logContextualizer(core);
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->setFileContentsDirectories(ListHolder<string>::buildFromCList(directories));
+}
+
+const bctbx_list_t *linphone_core_get_chat_message_files_directories(const LinphoneCore *core) {
+	CoreLogContextualizer logContextualizer(core);
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->getFileContentsDirectories().getCList();
 }

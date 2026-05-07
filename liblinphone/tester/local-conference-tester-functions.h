@@ -216,6 +216,7 @@ public:
 		linphone_config_set_int(linphone_core_get_config(getLc()), "misc", "hide_empty_chat_rooms", 0);
 		linphone_config_set_int(linphone_core_get_config(getLc()), "sip", "reject_duplicated_calls", 0);
 		linphone_config_set_int(linphone_core_get_config(getLc()), "misc", "hide_chat_rooms_from_removed_proxies", 0);
+		linphone_core_enable_account_strict_matching(getLc(), TRUE);
 		linphone_core_enable_rtp_bundle(getLc(), TRUE);
 		linphone_core_set_conference_cleanup_period(getLc(), 1);
 		if (!source_db.empty()) {
@@ -328,6 +329,22 @@ void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,
 void group_chat_room_with_duplications_base(bool encrypted);
 void chat_rooms_with_deletion_spaced_out_base(bool encrypted);
 void legacy_and_new_chatrooms_mixed_up_base(bool encrypted);
+
+enum class ChatRoomMigrationMethod { API, Database };
+
+struct ChatRoomMigrationParams {
+	bool encrypted;
+	bool unification_at_startup;
+	ChatRoomMigrationMethod migration_method;
+};
+void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params);
+
+struct ChatRoomMigrationClientOfflineParams {
+	bool encrypted;
+	bool server_restart;
+};
+void legacy_chat_room_migration_client_offline_base(ChatRoomMigrationClientOfflineParams const &params);
+
 void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_remote_event_list_handler, bool encrypted);
 
 void sendEphemeralMessageInAdminMode(Focus &focus,

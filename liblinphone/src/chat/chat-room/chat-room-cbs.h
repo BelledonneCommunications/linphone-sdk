@@ -70,6 +70,7 @@ public:
 	LinphoneChatRoomCbsMessageContentEditedCb messageContentEditedCb;
 	LinphoneChatRoomCbsMessageRetractedCb messageRetractedCb;
 	LinphoneChatRoomCbsFullStateReceivedCb fullStateReceivedCb;
+	LinphoneChatRoomCbsAlternativeAddressChangedCb alternativeAddressChangedCb;
 };
 
 LINPHONE_END_NAMESPACE

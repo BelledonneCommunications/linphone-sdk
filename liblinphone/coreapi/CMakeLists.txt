@@ -37,7 +37,6 @@ set(LINPHONE_SOURCE_FILES_C
 	bellesip_sal/sal_op_impl.c
 	bellesip_sal/sal_sdp.c
 	callbacks.c
-	chat.c
 	contactprovider.c
 	ec-calibrator.c
 	echo-tester.c

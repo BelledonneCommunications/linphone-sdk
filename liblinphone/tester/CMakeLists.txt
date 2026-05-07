@@ -241,6 +241,10 @@ set(RC_FILES
 	rcfiles/marie_xml
 	rcfiles/marie_digest_auth_xml
 	rcfiles/remote_contact_directory_migration.rc
+	rcfiles/berthe_domain_registration_rc
+	rcfiles/marie_domain_registration_rc
+	rcfiles/michelle_domain_registration_rc
+	rcfiles/pauline_domain_registration_rc
 )
 
 set(IMAGE_FILES

@@ -237,9 +237,9 @@ void FriendList::exportFriendsAsVcard4File(const std::string &vcardFile) const {
 
 std::shared_ptr<Friend> FriendList::findFriendByAddress(const std::shared_ptr<const Address> &address) const {
 	string cleanUri;
-	if (address->hasUriParam("gr")) {
+	if (address->hasUriParam(Address::kGrParameter)) {
 		std::shared_ptr<Address> cleanAddress = address->clone()->toSharedPtr();
-		cleanAddress->removeUriParam("gr");
+		cleanAddress->removeUriParam(Address::kGrParameter);
 		cleanUri = cleanAddress->asStringUriOnly();
 	} else {
 		cleanUri = address->asStringUriOnly();
@@ -286,9 +286,9 @@ std::shared_ptr<Friend> FriendList::findFriendByUri(const std::string &uri) cons
 
 std::list<std::shared_ptr<Friend>>
 FriendList::findFriendsByAddress(const std::shared_ptr<const Address> &address) const {
-	if (address->hasUriParam("gr")) {
+	if (address->hasUriParam(Address::kGrParameter)) {
 		std::shared_ptr<Address> cleanAddress = address->clone()->toSharedPtr();
-		cleanAddress->removeUriParam("gr");
+		cleanAddress->removeUriParam(Address::kGrParameter);
 		std::list<std::shared_ptr<Friend>> result = findFriendsByUri(cleanAddress->asStringUriOnly());
 		return result;
 	}
@@ -911,8 +911,8 @@ void FriendList::parseMultipartRelatedBody(const std::shared_ptr<const Content> 
 							}
 
 							// Clean the URI
-							if (addr->hasUriParam("gr")) {
-								addr->removeUriParam("gr");
+							if (addr->hasUriParam(Address::kGrParameter)) {
+								addr->removeUriParam(Address::kGrParameter);
 							}
 							uri = addr->asStringUriOnly();
 

@@ -112,6 +112,7 @@ class LINPHONE_PUBLIC Core : public Object {
 #endif // HAVE_ADVANCED_IM
 	friend class ServerConference;
 	friend class MainDb;
+	friend class MainDbPrivate;
 	friend class MainDbEventKey;
 	friend class MS2Stream;
 	friend class MediaSessionPrivate;
@@ -207,9 +208,21 @@ public:
 	// ---------------------------------------------------------------------------
 	using ChatRoomWeakCompareMap = std::
 	    unordered_map<ConferenceId, std::shared_ptr<AbstractChatRoom>, ConferenceId::WeakHash, ConferenceId::WeakEqual>;
-	ChatRoomWeakCompareMap getRawChatRoomList(bool includeBasic = true, bool includeConference = true) const;
+	std::set<std::shared_ptr<AbstractChatRoom>> getRawChatRoomList(bool includeBasic = true,
+	                                                               bool includeConference = true) const;
 	std::list<std::shared_ptr<AbstractChatRoom>> &getChatRooms() const;
 	const bctbx_list_t *getChatRoomsCList() const;
+
+	std::shared_ptr<AbstractChatRoom>
+	searchBasicChatRoom(const std::shared_ptr<ConferenceParams> &params,
+	                    const std::shared_ptr<const Address> &localAddress,
+	                    const std::shared_ptr<const Address> &remoteAddress,
+	                    const std::list<std::shared_ptr<Address>> &participants) const;
+	std::shared_ptr<AbstractChatRoom> searchChatRoom(const std::string identifier) const;
+	std::shared_ptr<AbstractChatRoom> searchChatRoom(const std::shared_ptr<ConferenceParams> &params,
+	                                                 const std::shared_ptr<const Address> &localAddr,
+	                                                 const std::shared_ptr<const Address> &remoteAddr,
+	                                                 const std::list<std::shared_ptr<Address>> &participants) const;
 
 	std::shared_ptr<AbstractChatRoom> findChatRoom(const ConferenceId &conferenceId, bool logIfNotFound = true) const;
 	std::list<std::shared_ptr<AbstractChatRoom>> findChatRooms(const std::shared_ptr<Address> &peerAddress) const;
@@ -271,6 +284,10 @@ public:
 	void setFileContentsDirectories(const std::list<std::string> &directories);
 	const ListHolder<std::string> &getFileContentsDirectories() const;
 
+	bool unifyChatRoomAddresses();
+	void enableChatRoomAddressUnification(bool enable);
+	bool chatRoomAddressUnificationEnabled() const;
+
 	// ---------------------------------------------------------------------------
 	// Conference.
 	// ---------------------------------------------------------------------------
@@ -283,17 +300,15 @@ public:
 	void setConferenceExpirePeriod(long seconds);
 	long getConferenceExpirePeriod() const;
 	void insertConference(const std::shared_ptr<Conference> conference);
+	void insertConference(const ConferenceId &conferenceId, const std::shared_ptr<Conference> conference);
 	void invalidateAccountInConferencesAndChatRooms(const std::shared_ptr<Account> &account);
 	std::shared_ptr<Conference> findConference(const std::shared_ptr<const CallSession> &session,
 	                                           bool logIfNotFound = true) const;
-	std::shared_ptr<Conference> findConference(const ConferenceId &conferenceId, bool logIfNotFound = true) const;
 	void deleteConference(const std::shared_ptr<const Conference> &conference);
-	void deleteConference(const ConferenceId &conferenceId);
 	std::shared_ptr<Conference> searchConference(const std::shared_ptr<ConferenceParams> &params,
 	                                             const std::shared_ptr<const Address> &localAddress,
 	                                             const std::shared_ptr<const Address> &remoteAddress,
-	                                             const std::list<std::shared_ptr<Address>> &participants,
-	                                             bool logIfNotFound = true) const;
+	                                             const std::list<std::shared_ptr<Address>> &participants) const;
 	std::shared_ptr<Conference> searchConference(const std::shared_ptr<const Address> &conferenceAddress) const;
 	std::shared_ptr<Conference> searchConference(const std::string &identifier) const;
 
@@ -515,6 +530,7 @@ public:
 	std::shared_ptr<Account> findAccountByIdentityAddress(const std::shared_ptr<const Address> identity) const;
 	std::shared_ptr<Account> findAccountByContactAddress(const std::shared_ptr<const Address> contact) const;
 	std::shared_ptr<Account> findAccountByUsername(const std::string &username) const;
+	std::shared_ptr<Account> findAccountByDomain(const std::string &domain) const;
 	void releaseAccounts();
 	const bctbx_list_t *getProxyConfigList() const;
 	Address getPrimaryContactAddress() const;
@@ -564,6 +580,7 @@ private:
 	Core();
 	void updateChatRoomList() const;
 
+	bool mPerformChatRoomAddressUnification = false;
 	bool mIsConferenceServer = false;
 	bool mGruuInConferenceAddress = false;
 	bool mDeleteEmptyChatrooms = true;
@@ -574,6 +591,8 @@ private:
 
 	std::shared_ptr<Account> guessLocalAccountFromMalformedMessage(const std::shared_ptr<Address> &localAddress,
 	                                                               const std::shared_ptr<Address> &peerAddress);
+
+	void deleteConference(const ConferenceId &conferenceId);
 
 	std::list<std::string> plugins;
 #if defined(_WIN32) && !defined(_WIN32_WCE)

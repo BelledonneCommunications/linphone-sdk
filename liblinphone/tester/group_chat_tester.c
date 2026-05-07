@@ -323,6 +323,13 @@ static void chat_room_full_state_received(LinphoneChatRoom *cr) {
 	manager->stat.number_of_LinphoneChatRoomFullStateReceived++;
 }
 
+static void chat_room_alternative_address_changed(LinphoneChatRoom *cr,
+                                                  BCTBX_UNUSED(const LinphoneEventLog *event_log)) {
+	LinphoneCore *core = linphone_chat_room_get_core(cr);
+	LinphoneCoreManager *manager = (LinphoneCoreManager *)linphone_core_get_user_data(core);
+	manager->stat.number_of_LinphoneChatRoomAlternativeAddressChanged++;
+}
+
 void setup_chat_room_callbacks(LinphoneChatRoomCbs *cbs) {
 	linphone_chat_room_cbs_set_session_state_changed(cbs, chat_room_session_state_changed);
 	linphone_chat_room_cbs_set_is_composing_received(cbs, chat_room_is_composing_received);
@@ -342,6 +349,7 @@ void setup_chat_room_callbacks(LinphoneChatRoomCbs *cbs) {
 	linphone_chat_room_cbs_set_ephemeral_message_deleted(cbs, chat_room_message_ephemeral_deleted);
 	linphone_chat_room_cbs_set_message_early_failure(cbs, chat_room_message_early_failure);
 	linphone_chat_room_cbs_set_full_state_received(cbs, chat_room_full_state_received);
+	linphone_chat_room_cbs_set_alternative_address_changed(cbs, chat_room_alternative_address_changed);
 }
 
 void core_chat_room_state_changed(BCTBX_UNUSED(LinphoneCore *core), LinphoneChatRoom *cr, LinphoneChatRoomState state) {

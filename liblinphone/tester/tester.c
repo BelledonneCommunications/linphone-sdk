@@ -115,8 +115,10 @@ const char *flexisip_tester_dns_server = "fs-test-9.linphone.org";
 const char *mysql_username_password_string = "user='belledonne' password='cOmmu2015nicatiOns'";
 
 bctbx_list_t *flexisip_tester_dns_ip_addresses = NULL;
+const char *test_domain_registration_base_domain = "sip.domain-registration.example.org";
 const char *ccmp_server_url = "http://sip.example.org:3333/xml/";
 const char *test_domain = "sipopen.example.org";
+const char *domain_registration_auth_domain = "domain-registration.example.org:4068";
 const char *auth_domain = "sip.example.org";
 const char *test_username = "liblinphone_tester";
 const char *test_sha_username = "liblinphone_sha_tester";
@@ -4239,7 +4241,7 @@ void linphone_call_media_encryption_status_changed(LinphoneCore *lc,
 	char *to = linphone_address_as_string(linphone_call_log_get_to_address(calllog));
 	char *from = linphone_address_as_string(linphone_call_log_get_from_address(calllog));
 	stats *counters;
-	ms_message(" media encryption status on %s call from [%s] to [%s], is now [%s]",
+	ms_message("Media encryption status on %s call from [%s] to [%s], is now [%s]",
 	           linphone_call_log_get_dir(calllog) == LinphoneCallIncoming ? "Incoming" : "Outgoing", from, to,
 	           linphone_media_encryption_status_to_string(status));
 	ms_free(to);

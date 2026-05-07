@@ -389,3 +389,13 @@ void linphone_chat_room_cbs_set_full_state_received(LinphoneChatRoomCbs *cbs,
                                                     LinphoneChatRoomCbsFullStateReceivedCb cb) {
 	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->fullStateReceivedCb = cb;
 }
+
+LinphoneChatRoomCbsAlternativeAddressChangedCb
+linphone_chat_room_cbs_get_alternative_address_changed(const LinphoneChatRoomCbs *cbs) {
+	return LinphonePrivate::ChatRoomCbs::toCpp(cbs)->alternativeAddressChangedCb;
+}
+
+void linphone_chat_room_cbs_set_alternative_address_changed(LinphoneChatRoomCbs *cbs,
+                                                            LinphoneChatRoomCbsAlternativeAddressChangedCb cb) {
+	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->alternativeAddressChangedCb = cb;
+}

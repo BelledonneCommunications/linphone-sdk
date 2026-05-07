@@ -222,6 +222,8 @@ static void call_received(SalCallOp *h) {
 #endif
 	}
 
+	auto conferenceIdParams = core->createConferenceIdParams();
+	conferenceIdParams.enableExtractUri(true);
 	shared_ptr<Conference> conference;
 	if (chatCapabilities && !hasStreams && !isServer) {
 #ifdef HAVE_ADVANCED_IM
@@ -247,8 +249,6 @@ static void call_received(SalCallOp *h) {
 			}
 		}
 		auto remoteContact = Address::create(h->getRemoteContact());
-		auto conferenceIdParams = core->createConferenceIdParams();
-		conferenceIdParams.enableExtractUri(true);
 		ConferenceId conferenceId(remoteContact, to, conferenceIdParams);
 		shared_ptr<AbstractChatRoom> chatRoom = core->findChatRoom(conferenceId, false);
 		if (chatRoom && chatRoom->getCapabilities() & ChatRoom::Capabilities::Basic) {
@@ -277,8 +277,7 @@ static void call_received(SalCallOp *h) {
 		// latter check is required to be backward compatible as older versions of the flexisip conference server did
 		// not create chatroom addresses from a single conference focus but using the following pattern
 		// sip:chatroom-<random_string>@domain.com
-		const auto conferenceIdParams = core->createConferenceIdParams();
-		conference = core->findConference(ConferenceId(to, to, conferenceIdParams), false);
+		conference = core->searchConference(nullptr, to, to, {});
 		if (conference) {
 			auto serverConference = dynamic_pointer_cast<ServerConference>(conference);
 			if (serverConference) {
@@ -399,9 +398,11 @@ static void call_received(SalCallOp *h) {
 							       : nullptr;
 							if (confAddr && confAddr->isValid()) {
 								shared_ptr<AbstractChatRoom> chatRoom =
-								    core->findChatRoom(ConferenceId(confAddr, confAddr, conferenceIdParams));
-								static_pointer_cast<ServerChatRoom>(chatRoom)->confirmRecreation(h);
-								return;
+								    core->findChatRoom(ConferenceId(confAddr, confAddr, conferenceIdParams), false);
+								if (chatRoom) {
+									static_pointer_cast<ServerChatRoom>(chatRoom)->confirmRecreation(h);
+									return;
+								}
 							}
 						}
 						auto chatRoom = L_GET_PRIVATE_FROM_C_OBJECT(lc)->createServerChatRoom(to, h, params);
@@ -1291,12 +1292,11 @@ static void refer_received(SalOp *op,
 			std::shared_ptr<LinphonePrivate::Address> to = LinphonePrivate::Address::create(op->getTo());
 			std::shared_ptr<Conference> conference;
 			std::shared_ptr<Core> core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
-			const auto conferenceIdParams = core->createConferenceIdParams();
 			if (linphone_core_conference_server_enabled(lc)) {
 				// Removal of a participant at the server side
-				conference = core->findConference(ConferenceId(to, to, conferenceIdParams), false);
+				conference = core->searchConference(nullptr, to, to, {});
 			} else {
-				conference = core->findConference(ConferenceId(referToAddr, to, conferenceIdParams), false);
+				conference = core->searchConference(nullptr, to, referToAddr, {});
 			}
 			SalReferOp *referOp = dynamic_cast<SalReferOp *>(op);
 			if (conference && referOp) {
@@ -1351,8 +1351,7 @@ static void refer_success(SalOp *op) {
 	std::shared_ptr<Address> from = Address::create(op->getFrom());
 	LinphoneCore *lc = static_cast<LinphoneCore *>(op->getSal()->getUserPointer());
 	std::shared_ptr<Core> core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
-	const auto conferenceIdParams = core->createConferenceIdParams();
-	auto conference = core->findConference(ConferenceId(to, from, conferenceIdParams), false);
+	auto conference = core->searchConference(nullptr, from, to, {});
 	if (conference) {
 		conference->handleAcceptedRefer();
 	}
@@ -1363,8 +1362,7 @@ static void refer_failure(SalOp *op) {
 	std::shared_ptr<Address> from = Address::create(op->getFrom());
 	LinphoneCore *lc = static_cast<LinphoneCore *>(op->getSal()->getUserPointer());
 	std::shared_ptr<Core> core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
-	const auto conferenceIdParams = core->createConferenceIdParams();
-	auto conference = core->findConference(ConferenceId(to, from, conferenceIdParams), false);
+	auto conference = core->searchConference(nullptr, from, to, {});
 	if (conference) {
 		conference->handleRejectedRefer();
 	}

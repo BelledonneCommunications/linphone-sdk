@@ -912,6 +912,13 @@ void _linphone_chat_room_notify_new_events(LinphoneChatRoom *chat_room, const bc
 	                                  linphone_chat_room_cbs_get_new_events, event_logs);
 }
 
+void _linphone_chat_room_notify_alternative_address_changed(LinphoneChatRoom *chat_room,
+                                                            const LinphoneEventLog *event_log) {
+	_linphone_chat_room_notify_new_event(chat_room, event_log);
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(ChatRoom, AbstractChatRoom::toCpp(chat_room),
+	                                  linphone_chat_room_cbs_get_alternative_address_changed, event_log);
+}
+
 void _linphone_chat_room_notify_participant_added(LinphoneChatRoom *chat_room, const LinphoneEventLog *event_log) {
 	_linphone_chat_room_notify_new_event(chat_room, event_log);
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(ChatRoom, AbstractChatRoom::toCpp(chat_room),

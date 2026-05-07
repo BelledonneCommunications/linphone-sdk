@@ -169,4 +169,10 @@ std::list<std::shared_ptr<Address>> BasicChatRoom::getParticipantAddresses() con
 bool BasicChatRoom::canSendMessages() const {
 	return true;
 }
+
+bool BasicChatRoom::unifyConferenceAddress() {
+	// No need to unify basic chat room addresses
+	return false;
+}
+
 LINPHONE_END_NAMESPACE

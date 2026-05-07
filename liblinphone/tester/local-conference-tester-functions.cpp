@@ -1434,8 +1434,9 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 					const LinphoneAddress *device_address = linphone_participant_device_get_address(device);
 					if (device_address) {
 						// Check that the device address has either a GRUU (gr parameter) or it is an IP (no username)
-						device_check &= !!linphone_address_has_uri_param(device_address, "gr") ||
-						                !linphone_address_get_username(device_address);
+						device_check &=
+						    !!linphone_address_has_uri_param(device_address, Address::kGrParameter.c_str()) ||
+						    !linphone_address_get_username(device_address);
 					} else {
 						device_check = false;
 					}
@@ -1607,7 +1608,8 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 					if (participant) {
 						const LinphoneAddress *participant_address = linphone_participant_get_address(participant);
 						if (participant_address) {
-							participant_check &= !linphone_address_has_uri_param(participant_address, "gr");
+							participant_check &=
+							    !linphone_address_has_uri_param(participant_address, Address::kGrParameter.c_str());
 						} else {
 							participant_check = false;
 						}
@@ -2511,16 +2513,16 @@ void create_conference_base(time_t start_time,
 			// insensitive
 			if (mgr == marie.getCMgr()) {
 				// Convert conf-id to lowercase
-				const char *conf_id_param_name = "conf-id";
-				if (linphone_address_has_uri_param(confAddr2, conf_id_param_name)) {
-					const char *conf_id = linphone_address_get_uri_param(confAddr2, conf_id_param_name);
+				if (linphone_address_has_uri_param(confAddr2, Conference::kConfIdParameter.c_str())) {
+					const char *conf_id =
+					    linphone_address_get_uri_param(confAddr2, Conference::kConfIdParameter.c_str());
 					char *conf_id_lowercase = ms_strdup(conf_id);
 					// Convert uppercase letters to lowercase
 					for (size_t i = 0; i < strlen(conf_id_lowercase); i++) {
 						conf_id_lowercase[i] = (char)tolower(conf_id_lowercase[i]);
 					}
-					linphone_address_remove_uri_param(confAddr2, conf_id_param_name);
-					linphone_address_set_uri_param(confAddr2, conf_id_param_name, conf_id_lowercase);
+					linphone_address_remove_uri_param(confAddr2, Conference::kConfIdParameter.c_str());
+					linphone_address_set_uri_param(confAddr2, Conference::kConfIdParameter.c_str(), conf_id_lowercase);
 					ms_free(conf_id_lowercase);
 				}
 			}

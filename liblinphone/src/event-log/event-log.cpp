@@ -154,6 +154,9 @@ std::ostream &operator<<(std::ostream &lhs, EventLog::Type e) {
 		case EventLog::Type::ConferenceEphemeralMessageManagedByParticipants:
 			lhs << "ConferenceEphemeralMessageManagedByParticipants";
 			break;
+		case EventLog::Type::ConferenceAlternativeAddressChanged:
+			lhs << "ConferenceAlternativeAddressChanged";
+			break;
 	}
 	return lhs;
 }

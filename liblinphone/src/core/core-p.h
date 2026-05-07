@@ -159,13 +159,6 @@ public:
 	std::shared_ptr<AbstractChatRoom> createChatRoom(const std::shared_ptr<ConferenceParams> &params,
 	                                                 const std::shared_ptr<Address> &participant);
 	std::shared_ptr<AbstractChatRoom> createChatRoom(const std::shared_ptr<Address> &participant);
-
-	std::shared_ptr<AbstractChatRoom> searchChatRoom(const std::string identifier) const;
-	std::shared_ptr<AbstractChatRoom> searchChatRoom(const std::shared_ptr<ConferenceParams> &params,
-	                                                 const std::shared_ptr<const Address> &localAddr,
-	                                                 const std::shared_ptr<const Address> &remoteAddr,
-	                                                 const std::list<std::shared_ptr<Address>> &participants,
-	                                                 bool logIfNotFound = true) const;
 	std::shared_ptr<AbstractChatRoom>
 	searchBasicChatRoom(const std::shared_ptr<ConferenceParams> &params,
 	                    const std::shared_ptr<const Address> &localAddress,

@@ -75,7 +75,7 @@ const shared_ptr<Account> &Call::getDestAccount() const {
 
 /* This a test-only method.*/
 IceSession *Call::getIceSession() const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->getIceSession();
+	return getMediaSession()->getPrivate()->getIceSession();
 	return nullptr;
 }
 
@@ -88,7 +88,7 @@ std::shared_ptr<MediaSession> Call::getMediaSession() const {
 }
 
 MediaStream *Call::getMediaStream(int idx) const {
-	auto ms = static_pointer_cast<MediaSession>(getActiveSession())->getPrivate();
+	auto ms = getMediaSession()->getPrivate();
 	StreamsGroup &sg = ms->getStreamsGroup();
 	auto lambda = [](Stream *s, size_t idx) { return s->getIndex() == idx; };
 	auto s = sg.lookupStreamInterface<MS2Stream>(lambda, static_cast<size_t>(idx));
@@ -99,7 +99,7 @@ MediaStream *Call::getMediaStream(int idx) const {
 }
 
 MediaStream *Call::getMediaStream(LinphoneStreamType type) const {
-	auto ms = static_pointer_cast<MediaSession>(getActiveSession())->getPrivate();
+	auto ms = getMediaSession()->getPrivate();
 	StreamsGroup &sg = ms->getStreamsGroup();
 	MS2Stream *s = nullptr;
 	switch (type) {
@@ -122,7 +122,7 @@ MediaStream *Call::getMediaStream(LinphoneStreamType type) const {
 }
 
 int Call::getMediaStreamIndex(LinphoneStreamType type) const {
-	auto ms = static_pointer_cast<MediaSession>(getActiveSession())->getPrivate();
+	auto ms = getMediaSession()->getPrivate();
 	StreamsGroup &sg = ms->getStreamsGroup();
 	Stream *s = nullptr;
 	switch (type) {
@@ -146,7 +146,7 @@ int Call::getMediaStreamIndex(LinphoneStreamType type) const {
 
 size_t Call::getMediaStreamsNb(LinphoneStreamType type) const {
 	size_t nb = 0;
-	auto ms = static_pointer_cast<MediaSession>(getActiveSession())->getPrivate();
+	auto ms = getMediaSession()->getPrivate();
 	StreamsGroup &sg = ms->getStreamsGroup();
 	SalStreamType nType;
 	switch (type) {
@@ -179,15 +179,15 @@ SalCallOp *Call::getOp() const {
 }
 
 bool Call::getSpeakerMuted() const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->getSpeakerMuted();
+	return getMediaSession()->getPrivate()->getSpeakerMuted();
 }
 
 void Call::setSpeakerMuted(bool muted) {
-	static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->setSpeakerMuted(muted);
+	getMediaSession()->getPrivate()->setSpeakerMuted(muted);
 }
 
 bool Call::getMicrophoneMuted() const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->getMicrophoneMuted();
+	return getMediaSession()->getPrivate()->getMicrophoneMuted();
 }
 
 void Call::setMicrophoneMuted(bool muted) {
@@ -200,7 +200,7 @@ void Call::setMicrophoneMuted(bool muted) {
 		}
 	}
 #endif /* HAVE_HIDAPI */
-	static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->setMicrophoneMuted(muted);
+	getMediaSession()->getPrivate()->setMicrophoneMuted(muted);
 }
 
 shared_ptr<CallStats> Call::getPrivateStats(LinphoneStreamType type) const {
@@ -255,7 +255,7 @@ void Call::startBasicIncomingNotification() {
 }
 
 void Call::pauseForTransfer() {
-	static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->pauseForTransfer();
+	getMediaSession()->getPrivate()->pauseForTransfer();
 }
 
 int Call::startInvite(const std::shared_ptr<Address> &destination,
@@ -321,7 +321,7 @@ void Call::createPlayer() {
 void Call::terminateBecauseOfLostMedia() {
 	lInfo() << "Call [" << this << "]: Media connectivity with " << *getRemoteAddress()
 	        << " is lost, call is going to be terminated";
-	static_pointer_cast<MediaSession>(getActiveSession())->terminateBecauseOfLostMedia();
+	getMediaSession()->terminateBecauseOfLostMedia();
 }
 
 bool Call::setInputAudioDevicePrivate(const std::shared_ptr<AudioDevice> &audioDevice) {
@@ -335,7 +335,7 @@ bool Call::setInputAudioDevicePrivate(const std::shared_ptr<AudioDevice> &audioD
 	}
 	lInfo() << "Call's input audio device is " << audioDevice->getDeviceName();
 
-	return static_pointer_cast<MediaSession>(getActiveSession())->setInputAudioDevice(audioDevice);
+	return getMediaSession()->setInputAudioDevice(audioDevice);
 }
 
 bool Call::setOutputAudioDevicePrivate(const std::shared_ptr<AudioDevice> &audioDevice) {
@@ -347,7 +347,7 @@ bool Call::setOutputAudioDevicePrivate(const std::shared_ptr<AudioDevice> &audio
 		lError() << "Audio device [" << audioDevice << "] doesn't have Play capability";
 		return false;
 	}
-	bool ret = static_pointer_cast<MediaSession>(getActiveSession())->setOutputAudioDevice(audioDevice);
+	bool ret = getMediaSession()->setOutputAudioDevice(audioDevice);
 	switch (getState()) {
 		case CallSession::State::OutgoingRinging:
 		case CallSession::State::Pausing:
@@ -447,7 +447,7 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 	const auto op = session->getPrivate()->getOp();
 
 	bool remoteContactIsFocus = false;
-	std::shared_ptr<Conference> conference = nullptr;
+	std::shared_ptr<Conference> serverConference = nullptr;
 	if (op) {
 		if (op->getRemoteContactAddress()) {
 			Address remoteContactAddress;
@@ -457,13 +457,13 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 
 		if (!op->getTo().empty()) {
 			const auto to = Address::create(op->getTo());
-			conference = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->findConference(
-			    ConferenceId(to, to, getCore()->createConferenceIdParams()), false);
+			serverConference = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->searchConference(nullptr, to, to, {});
 		}
 	}
 
 	notifyStateChangeToHeadset(state);
 
+	auto conference = getConference();
 	switch (state) {
 		case CallSession::State::OutgoingInit:
 		case CallSession::State::IncomingReceived:
@@ -483,23 +483,22 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 			getPlatformHelpers(lc)->releaseCpuLock();
 			break;
 		case CallSession::State::Paused:
-			if (!getConference() && op && op->getRemoteContactAddress()) {
-				if (!op->getTo().empty() && conference) {
+			if (!conference && op && op->getRemoteContactAddress()) {
+				if (!op->getTo().empty() && serverConference) {
 					// This code is usually executed when the following scenario occurs:
 					// - ICE is enabled
 					// - during the ICE negotiations, the core receives a call, hence this one is paused
 					// - once ICE negotiation are concluded, the call is updated and the call goes back to the previous
 					// paused state
-					tryToAddToConference(conference, session);
+					tryToAddToConference(serverConference, session);
 				}
 			}
 			if (session->hasTransferPending()) scheduleTransfer();
 			break;
 		case CallSession::State::UpdatedByRemote: {
-			if (op && !getConference() && remoteContactIsFocus) {
+			if (op && !conference && remoteContactIsFocus) {
 				// Check if the request was sent by the focus (client conference)
-				createClientConference(session);
-				auto conference = getConference();
+				conference = createClientConference(session);
 				if (conference && conference->getState() == ConferenceInterface::State::CreationPending) {
 					conference->finalizeCreation();
 				}
@@ -512,11 +511,11 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 			break;
 		case CallSession::State::Connected:
 		case CallSession::State::StreamsRunning: {
-			if (op && !getConference()) {
-				if (!op->getTo().empty() && conference) {
+			if (op && !conference) {
+				if (!op->getTo().empty() && serverConference) {
 					const auto &resourceList = op->getContentInRemote(ContentType::ResourceLists);
 					if (!resourceList || resourceList.value().get().isEmpty()) {
-						tryToAddToConference(conference, session);
+						tryToAddToConference(serverConference, session);
 					}
 				} else if (op->getRemoteContactAddress()) {
 					const auto &confId = session->getPrivate()->getConferenceId();
@@ -526,13 +525,11 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 					} else if (!confId.empty()) {
 						auto localAddress = session->getContactAddress();
 						if (localAddress && localAddress->isValid()) {
-							ConferenceId serverConferenceId =
-							    ConferenceId(localAddress, localAddress, getCore()->createConferenceIdParams());
-							conference = getCore()->findConference(serverConferenceId, false);
-							if (conference) {
-								setConference(conference);
+							serverConference = getCore()->searchConference(nullptr, localAddress, localAddress, {});
+							if (serverConference) {
+								setConference(serverConference);
 								reenterLocalConference(session);
-								conference->addParticipantDevice(getSharedFromThis());
+								serverConference->addParticipantDevice(getSharedFromThis());
 							}
 						} else {
 							lError() << "Call " << this << " cannot be added to conference with ID " << confId
@@ -572,16 +569,13 @@ void Call::tryToAddToConference(shared_ptr<Conference> &conference, const shared
 	}
 }
 
-void Call::createClientConference(const shared_ptr<CallSession> &session) {
+std::shared_ptr<Conference> Call::createClientConference(const shared_ptr<CallSession> &session) {
 	// If the call is for a conference stored in the core, then add call to conference once ICE negotiations are
 	// terminated
 	const auto op = session->getPrivate()->getOp();
 	std::shared_ptr<Address> remoteContactAddress = Address::create();
 	remoteContactAddress->setImpl(op->getRemoteContactAddress());
-	ConferenceId conferenceId =
-	    ConferenceId(remoteContactAddress, getLocalAddress(), getCore()->createConferenceIdParams());
-
-	const auto &conference = getCore()->findConference(conferenceId, false);
+	const auto &conference = getCore()->searchConference(nullptr, getLocalAddress(), remoteContactAddress, {});
 
 	std::shared_ptr<ClientConference> clientConference = nullptr;
 
@@ -589,8 +583,7 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 		const auto &conferenceAddress = conference->getConferenceAddress();
 		const auto conferenceAddressStr = (conferenceAddress ? conferenceAddress->toString() : std::string("sip:"));
 		lInfo() << "Attaching call (local address " << *session->getLocalAddress() << " remote address "
-		        << *session->getRemoteAddress() << ") to conference " << conference << " (address "
-		        << conferenceAddressStr << ") ID " << conferenceId;
+		        << *session->getRemoteAddress() << ") to " << *conference;
 		clientConference = dynamic_pointer_cast<ClientConference>(conference);
 		if (clientConference) {
 			clientConference->attachCall(session);
@@ -625,6 +618,7 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 	if (clientConference && remoteContactAddress->hasUriParam(Conference::kConfIdParameter)) {
 		setConferenceId(remoteContactAddress->getUriParamValue(Conference::kConfIdParameter));
 	}
+	return clientConference;
 }
 
 void Call::onCallSessionTransferStateChanged(BCTBX_UNUSED(const shared_ptr<CallSession> &session),
@@ -777,7 +771,7 @@ void Call::onResetFirstVideoFrameDecoded(BCTBX_UNUSED(const shared_ptr<CallSessi
 }
 
 void Call::requestNotifyNextVideoFrameDecoded() {
-	static_pointer_cast<MediaSession>(getActiveSession())->requestNotifyNextVideoFrameDecoded();
+	getMediaSession()->requestNotifyNextVideoFrameDecoded();
 }
 
 void Call::onCameraNotWorking(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session), const char *camera_name) {
@@ -942,19 +936,19 @@ bool Call::isOpConfigured() const {
 // =============================================================================
 
 LinphoneStatus Call::accept(const MediaSessionParams *msp) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->accept(msp);
+	return getMediaSession()->accept(msp);
 }
 
 LinphoneStatus Call::acceptEarlyMedia(const MediaSessionParams *msp) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->acceptEarlyMedia(msp);
+	return getMediaSession()->acceptEarlyMedia(msp);
 }
 
 LinphoneStatus Call::acceptUpdate(const MediaSessionParams *msp) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->acceptUpdate(msp);
+	return getMediaSession()->acceptUpdate(msp);
 }
 
 void Call::cancelDtmfs() {
-	static_pointer_cast<MediaSession>(getActiveSession())->cancelDtmfs();
+	getMediaSession()->cancelDtmfs();
 }
 
 LinphoneStatus Call::decline(LinphoneReason reason) {
@@ -974,15 +968,15 @@ bool Call::hasTransferPending() const {
 }
 
 void Call::oglRender() const {
-	static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->oglRender();
+	getMediaSession()->getPrivate()->oglRender();
 }
 
 LinphoneStatus Call::pause() {
-	return static_pointer_cast<MediaSession>(getActiveSession())->pause();
+	return getMediaSession()->pause();
 }
 
 bool Call::canSoundResourcesBeFreed() const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->canSoundResourcesBeFreed();
+	return getMediaSession()->getPrivate()->canSoundResourcesBeFreed();
 }
 
 LinphoneStatus Call::redirect(const string &redirectUri) {
@@ -994,19 +988,19 @@ LinphoneStatus Call::redirect(const std::shared_ptr<Address> &redirectAddress) {
 }
 
 LinphoneStatus Call::resume() {
-	return static_pointer_cast<MediaSession>(getActiveSession())->resume();
+	return getMediaSession()->resume();
 }
 
 LinphoneStatus Call::sendDtmf(char dtmf) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->sendDtmf(dtmf);
+	return getMediaSession()->sendDtmf(dtmf);
 }
 
 LinphoneStatus Call::sendDtmfs(const string &dtmfs) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->sendDtmfs(dtmfs);
+	return getMediaSession()->sendDtmfs(dtmfs);
 }
 
 void Call::sendVfuRequest() {
-	static_pointer_cast<MediaSession>(getActiveSession())->sendVfuRequest();
+	getMediaSession()->sendVfuRequest();
 }
 
 void Call::updateRecordState(SalMediaRecord state) {
@@ -1014,38 +1008,38 @@ void Call::updateRecordState(SalMediaRecord state) {
 		if (getState() == CallSession::State::StreamsRunning) {
 			MediaSessionParams params(*getParams());
 			params.setRecordingState(state);
-			static_pointer_cast<MediaSession>(getActiveSession())->update(&params, CallSession::UpdateMethod::Update);
+			getMediaSession()->update(&params, CallSession::UpdateMethod::Update);
 		} else {
 			lWarning() << "Recording cannot sent an update when the call is not in StreamRunning";
 		}
 	} else {
 		MediaSessionParams *params = new MediaSessionParams(*getParams());
 		params->setRecordingState(state);
-		static_pointer_cast<MediaSession>(getActiveSession())->getPrivate()->setParams(params);
+		getMediaSession()->getPrivate()->setParams(params);
 	}
 }
 
 void Call::startRecording() {
-	if (static_pointer_cast<MediaSession>(getActiveSession())->startRecording()) {
+	if (getMediaSession()->startRecording()) {
 		updateRecordState(SalMediaRecordOn);
 	}
 }
 
 void Call::stopRecording() {
-	static_pointer_cast<MediaSession>(getActiveSession())->stopRecording();
+	getMediaSession()->stopRecording();
 	updateRecordState(SalMediaRecordOff);
 }
 
 bool Call::isRecording() {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getMediaParams()->isRecording();
+	return getMediaSession()->getMediaParams()->isRecording();
 }
 
 LinphoneStatus Call::takePreviewSnapshot(const string &file) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->takePreviewSnapshot(file);
+	return getMediaSession()->takePreviewSnapshot(file);
 }
 
 LinphoneStatus Call::takeVideoSnapshot(const string &file) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->takeVideoSnapshot(file);
+	return getMediaSession()->takeVideoSnapshot(file);
 }
 
 LinphoneStatus Call::terminate(const LinphoneErrorInfo *ei) {
@@ -1095,11 +1089,11 @@ LinphoneStatus Call::transfer(const Address &dest) {
 }
 
 LinphoneStatus Call::updateFromConference(const MediaSessionParams *msp) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->updateFromConference(msp);
+	return getMediaSession()->updateFromConference(msp);
 }
 
 LinphoneStatus Call::update(const MediaSessionParams *msp) {
-	return static_pointer_cast<MediaSession>(getActiveSession())->update(msp);
+	return getMediaSession()->update(msp);
 }
 
 void Call::zoomVideo(float zoomFactor, float *cx, float *cy) {
@@ -1107,7 +1101,7 @@ void Call::zoomVideo(float zoomFactor, float *cx, float *cy) {
 }
 
 void Call::zoomVideo(float zoomFactor, float cx, float cy) {
-	static_pointer_cast<MediaSession>(getActiveSession())->zoomVideo(zoomFactor, cx, cy);
+	getMediaSession()->zoomVideo(zoomFactor, cx, cy);
 }
 
 // -----------------------------------------------------------------------------
@@ -1125,15 +1119,15 @@ bool Call::echoLimiterEnabled() const {
 }
 
 void Call::enableCamera(bool value) {
-	static_pointer_cast<MediaSession>(getActiveSession())->enableCamera(value);
+	getMediaSession()->enableCamera(value);
 }
 
 void Call::enableEchoCancellation(bool value) {
-	static_pointer_cast<MediaSession>(getActiveSession())->enableEchoCancellation(value);
+	getMediaSession()->enableEchoCancellation(value);
 }
 
 void Call::enableEchoLimiter(bool value) {
-	static_pointer_cast<MediaSession>(getActiveSession())->enableEchoLimiter(value);
+	getMediaSession()->enableEchoLimiter(value);
 }
 
 bool Call::getAllMuted() const {
@@ -1201,7 +1195,7 @@ const string &Call::forgeRemoteAuthenticationToken() const {
 }
 
 void Call::storeAndSortRemoteAuthToken(const string &remoteAuthToken) const {
-	static_pointer_cast<MediaSession>(getActiveSession())->storeAndSortRemoteAuthToken(remoteAuthToken);
+	getMediaSession()->storeAndSortRemoteAuthToken(remoteAuthToken);
 }
 
 const list<string> &Call::getRemoteAuthenticationTokens() const {
@@ -1213,7 +1207,7 @@ const bctbx_list_t *Call::getCListRemoteAuthenticationTokens() const {
 }
 
 void Call::skipZrtpAuthentication() {
-	static_pointer_cast<MediaSession>(getActiveSession())->skipZrtpAuthentication();
+	getMediaSession()->skipZrtpAuthentication();
 }
 
 void Call::onMediaEncryptionStatusChanged(LinphoneMediaEncryptionStatus status) {
@@ -1233,7 +1227,7 @@ float Call::getAverageQuality() const {
 }
 
 const MediaSessionParams *Call::getCurrentParams() const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getCurrentParams();
+	return getMediaSession()->getCurrentParams();
 }
 
 float Call::getCurrentQuality() const {
@@ -1266,11 +1260,11 @@ shared_ptr<CallLog> Call::getLog() const {
 }
 
 RtpTransport *Call::getMetaRtcpTransport(int streamIndex) const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getMetaRtcpTransport(streamIndex);
+	return getMediaSession()->getMetaRtcpTransport(streamIndex);
 }
 
 RtpTransport *Call::getMetaRtpTransport(int streamIndex) const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getMetaRtpTransport(streamIndex);
+	return getMediaSession()->getMetaRtpTransport(streamIndex);
 }
 
 float Call::getMicrophoneVolumeGain() const {
@@ -1344,7 +1338,7 @@ const string &Call::getRemoteContact() const {
 }
 
 const MediaSessionParams *Call::getRemoteParams() const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getRemoteParams();
+	return getMediaSession()->getRemoteParams();
 }
 
 const string &Call::getRemoteUserAgent() {
@@ -1373,7 +1367,7 @@ shared_ptr<CallStats> Call::getStats(LinphoneStreamType type) const {
 }
 
 int Call::getStreamCount() const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getStreamCount();
+	return getMediaSession()->getStreamCount();
 }
 
 MSFormatType Call::getStreamType(int streamIndex) const {
@@ -1428,20 +1422,19 @@ bool Call::mediaInProgress() const {
 
 void Call::checkAuthenticationTokenSelected(const string &selectedValue) {
 	auto remoteHalfAuthToken = forgeRemoteAuthenticationToken();
-	static_pointer_cast<MediaSession>(getActiveSession())
-	    ->checkAuthenticationTokenSelected(selectedValue, remoteHalfAuthToken);
+	getMediaSession()->checkAuthenticationTokenSelected(selectedValue, remoteHalfAuthToken);
 }
 
 void Call::setAuthenticationTokenVerified(bool value) {
-	static_pointer_cast<MediaSession>(getActiveSession())->setAuthenticationTokenVerified(value);
+	getMediaSession()->setAuthenticationTokenVerified(value);
 }
 
 void Call::setMicrophoneVolumeGain(float value) {
-	static_pointer_cast<MediaSession>(getActiveSession())->setMicrophoneVolumeGain(value);
+	getMediaSession()->setMicrophoneVolumeGain(value);
 }
 
 void Call::setNativeVideoWindowId(void *id) {
-	static_pointer_cast<MediaSession>(getActiveSession())->setNativeVideoWindowId(id);
+	getMediaSession()->setNativeVideoWindowId(id);
 }
 
 void Call::setNextVideoFrameDecodedCallback(LinphoneCallCbFunc cb, void *user_data) {
@@ -1451,15 +1444,15 @@ void Call::setNextVideoFrameDecodedCallback(LinphoneCallCbFunc cb, void *user_da
 }
 
 void Call::setParams(const MediaSessionParams *msp) {
-	static_pointer_cast<MediaSession>(getActiveSession())->setParams(msp);
+	getMediaSession()->setParams(msp);
 }
 
 void Call::setSpeakerVolumeGain(float value) {
-	static_pointer_cast<MediaSession>(getActiveSession())->setSpeakerVolumeGain(value);
+	getMediaSession()->setSpeakerVolumeGain(value);
 }
 
 MediaSessionParams *Call::createCallParams() {
-	auto *params = static_pointer_cast<MediaSession>(getActiveSession())->createMediaSessionParams();
+	auto *params = getMediaSession()->createMediaSessionParams();
 
 	// Clear custom contents as we don't want them to be copied to another MediaSessionParams
 	params->clearCustomContents();
@@ -1488,7 +1481,7 @@ void Call::setOutputAudioDevice(const std::shared_ptr<AudioDevice> &audioDevice)
 }
 
 std::shared_ptr<AudioDevice> Call::getInputAudioDevice() const {
-	return static_pointer_cast<MediaSession>(getActiveSession())->getInputAudioDevice();
+	return getMediaSession()->getInputAudioDevice();
 }
 
 std::shared_ptr<AudioDevice> Call::getOutputAudioDevice() const {
@@ -1506,7 +1499,7 @@ std::shared_ptr<AudioDevice> Call::getOutputAudioDevice() const {
 			break;
 	}
 
-	return static_pointer_cast<MediaSession>(getActiveSession())->getOutputAudioDevice();
+	return getMediaSession()->getOutputAudioDevice();
 }
 
 const std::list<LinphoneMediaEncryption> Call::getSupportedEncryptions() const {

@@ -108,6 +108,11 @@ public:
 		return mAllowOneParticipantConference;
 	}
 
+	void setAlternativeConferenceAddress(const std::shared_ptr<Address> &conferenceAddress);
+	std::shared_ptr<Address> getAlternativeConferenceAddress() const {
+		return mAlternativeConferenceAddress;
+	};
+
 	virtual void setConferenceAddress(const std::shared_ptr<Address> &conferenceAddress) override;
 	std::shared_ptr<Address> getConferenceAddress() const {
 		return mConferenceAddress;
@@ -199,6 +204,8 @@ public:
 
 private:
 	void updateFromAccount(const std::shared_ptr<Account> &account); // Update Me and default factory from account.
+	void updateConferenceAddress(std::shared_ptr<Address> &addressToAssign,
+	                             const std::shared_ptr<Address> &newConferenceAddress);
 
 	bool mEnableVideo = false;
 	bool mEnableAudio = false;
@@ -207,14 +214,15 @@ private:
 	bool mAllowOneParticipantConference = false;
 	ParticipantListType mParticipantListType = ParticipantListType::Open;
 	JoiningMode mJoinMode = JoiningMode::DialIn;
-	std::shared_ptr<Address> mConferenceAddress = nullptr;
-	std::shared_ptr<Address> mFactoryAddress = nullptr;
+	std::shared_ptr<Address> mAlternativeConferenceAddress;
+	std::shared_ptr<Address> mConferenceAddress;
+	std::shared_ptr<Address> mFactoryAddress;
 	SecurityLevel mSecurityLevel = SecurityLevel::None;
 	bool mUseDefaultFactoryAddress = true;
-	mutable std::string mSubject = "";
-	std::string mUtf8Subject = "";
-	mutable std::string mDescription = "";
-	std::string mUtf8Description = "";
+	mutable std::string mSubject;
+	std::string mUtf8Subject;
+	mutable std::string mDescription;
+	std::string mUtf8Description;
 	time_t mEarlierJoiningTime = -1;
 	time_t mExpiryTime = -1;
 	time_t mStartTime = -1;
@@ -222,7 +230,7 @@ private:
 	bool mGroup = true; // group chat
 	std::weak_ptr<Account> mAccount;
 	bool mHidden = false;
-	mutable std::shared_ptr<ChatParams> mChatParams = nullptr;
+	mutable std::shared_ptr<ChatParams> mChatParams;
 };
 
 LINPHONE_END_NAMESPACE

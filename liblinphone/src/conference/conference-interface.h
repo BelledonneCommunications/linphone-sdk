@@ -290,6 +290,16 @@ public:
 	}
 
 	/*
+	 * This fonction is called each time the alternative address of a conference changes
+	 * @param[in] event informations related to the change of the alternative address
+	 * @param[in] address he new alternative address
+	 */
+	virtual void
+	onAlternativeAddressChanged(BCTBX_UNUSED(const std::shared_ptr<ConferenceAlternativeAddressEvent> &event),
+	                            BCTBX_UNUSED(const std::shared_ptr<Address> &address)) {
+	}
+
+	/*
 	 * This function is called each time the list of allowed participant is changed while the conference is active
 	 * @param[in] event informations related to the change of the participant allowed to join the conference. @notnil
 	 */

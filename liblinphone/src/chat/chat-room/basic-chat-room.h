@@ -62,6 +62,7 @@ public:
 	std::list<std::shared_ptr<Address>> getParticipantAddresses() const override;
 
 	bool canSendMessages() const override;
+	bool unifyConferenceAddress() override;
 
 	void addConferenceIdToPreviousList(const ConferenceId &confId) = delete;
 

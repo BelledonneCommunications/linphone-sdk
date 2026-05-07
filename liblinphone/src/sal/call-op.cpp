@@ -261,7 +261,7 @@ void SalCallOp::processIoErrorCb(void *userCtx, BCTBX_UNUSED(const belle_sip_io_
 
 	if (op->mPendingClientTransaction && (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(
 	                                          op->mPendingClientTransaction)) == BELLE_SIP_TRANSACTION_INIT)) {
-		sal_error_info_set(&op->mErrorInfo, SalReasonIOError, "SIP", 503, "IO error", nullptr);
+		sal_error_info_set(&op->mErrorInfo, SalReasonIOError, "SIP", 503, "I/O error", nullptr);
 		op->mRoot->mCallbacks.call_failure(op);
 
 		if (!op->mDialog || (belle_sip_dialog_get_state(op->mDialog) != BELLE_SIP_DIALOG_CONFIRMED)) {

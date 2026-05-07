@@ -163,8 +163,7 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 						const std::shared_ptr<Address> to = Address::create(op->getTo());
 						// Server conference
 						if (to->hasUriParam(Conference::kConfIdParameter)) {
-							shared_ptr<Conference> conference = core->findConference(
-							    ConferenceId(to, to, q->getCore()->createConferenceIdParams()), false);
+							shared_ptr<Conference> conference = core->searchConference(nullptr, to, to, {});
 
 							if (conference) {
 								// The call is for a conference stored in the core
@@ -1588,6 +1587,11 @@ void CallSession::assignAccount(const std::shared_ptr<Account> &account) {
 			d->setDestAccount(account);
 		}
 	}
+}
+
+SalCallOp *CallSession::getOp() const {
+	L_D();
+	return d->op;
 }
 
 bool CallSession::isOpConfigured() {

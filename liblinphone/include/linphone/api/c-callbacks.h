@@ -537,6 +537,14 @@ typedef void (*LinphoneChatRoomCbsChatMessageSendingCb)(LinphoneChatRoom *chat_r
 typedef void (*LinphoneChatRoomCbsChatMessageSentCb)(LinphoneChatRoom *chat_room, const LinphoneEventLog *event_log);
 
 /**
+ * Callback used to notify a chat room that has changed its alternative address.
+ * @param chat_room #LinphoneChatRoom object @notnil
+ * @param event_log #LinphoneEventLog The event to be notified @notnil
+ */
+typedef void (*LinphoneChatRoomCbsAlternativeAddressChangedCb)(LinphoneChatRoom *chat_room,
+                                                               const LinphoneEventLog *event_log);
+
+/**
  * Callback used to notify a chat room that a participant has been added.
  * @param chat_room #LinphoneChatRoom object @notnil
  * @param event_log #LinphoneEventLog The event to be notified @notnil

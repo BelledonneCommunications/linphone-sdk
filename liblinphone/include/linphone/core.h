@@ -226,7 +226,7 @@ typedef struct _LinphoneCoreVTable {
 	LinphoneCoreCbsReferReceivedCb refer_received; /**< Notifies when an out-of-call refer is received */
 	LinphoneCoreCbsCallGoClearAckSentCb call_goclear_ack_sent; /**< Notifies when a GoClear Ack is sent */
 	LinphoneCoreCbsCallMediaEncryptionStatusChangedCb
-	call_media_encryption_status_changed; /**< Notifies on change in the media encryption status of call streams */
+	    call_media_encryption_status_changed; /**< Notifies on change in the media encryption status of call streams */
 	LinphoneCoreCallEncryptionChangedCb
 	    call_encryption_changed; /**< Notifies when the encryption of call streams changes */
 	LinphoneCoreCbsCallSendMasterKeyChangedCb
@@ -1946,7 +1946,7 @@ LINPHONE_PUBLIC const char *linphone_core_get_primary_contact(LinphoneCore *core
 
 /**
  * Gets the default identity SIP address.
- * This is an helper function.
+ * This is a helper function.
  * If no default proxy is set, this will return the primary contact (see linphone_core_get_primary_contact()).
  * If a default proxy is set
  * it returns the registered identity on the proxy.
@@ -7549,15 +7549,20 @@ LINPHONE_PUBLIC bool_t linphone_core_conference_ics_in_message_body_enabled(cons
  * Sets the maximum number of thumbnails requested in the SDP during a conference call
  * @param core the #LinphoneCore. @notnil
  * @param max the maximum number of thumbnails requested in the SDP during a conference call
+ * @warning The client will not request any participant's camera stream if a higher number of participants than the
+ * requested maximum value is sending the camera stream.
+ * @note It is only applicable to clients
  * @ingroup group_conference
  **/
 LINPHONE_PUBLIC void linphone_core_set_conference_max_thumbnails(LinphoneCore *core, int max);
 
 /**
  * Gets the maximum number of thumbnails requested in the SDP during a conference call
- *linphone_account_get_call_logs().
  * @param core the #LinphoneCore. @notnil
  * @return the maximum number of thumbnails requested in the SDP during a conference call
+ * @warning The client will not request any participant's camera stream if a higher number of participants than the
+ * requested maximum value is sending the camera stream.
+ * @note It is only applicable to clients
  * @ingroup group_conference
  **/
 LINPHONE_PUBLIC int linphone_core_get_conference_max_thumbnails(const LinphoneCore *core);
@@ -7651,6 +7656,38 @@ LINPHONE_PUBLIC void linphone_core_set_imdn_resend_period(LinphoneCore *core, lo
  * @ingroup group_chatroom
  **/
 LINPHONE_PUBLIC long linphone_core_get_imdn_resend_period(const LinphoneCore *core);
+
+/**
+ * Make all chatrooms addressable with an address following the pattern <conference-focus>;conf-id=<random_string>
+ * Chatrooms are still addressable using the old address, though. Nevertheless a preference is given to the unified
+ * address to benefit of better routing. The unification process can only be started by conference servers.
+ * @param core the #LinphoneCore. @notnil
+ * @ingroup group_chatroom
+ * @warning This method can only be called by conference servers after their core has already started up.
+ * @note No migration is performed for chatrooms whose address is already following the migration pattern.
+ **/
+LINPHONE_PUBLIC bool_t linphone_core_unify_chat_rooms_address(LinphoneCore *core);
+
+/**
+ * Sets whether to unify chat room address unification at startup making them addressable using the same pattern as
+ * detailed in linphone_core_unify_chat_rooms_address().
+ * @param core #LinphoneCore object @notnil
+ * @param enabled TRUE if enabled, FALSE otherwise.
+ * @warning This setting is only taken into account only if set before the core starts up.
+ * @see linphone_core_unify_chat_rooms_address() if trying to unify all chatrooms after the core started up
+ * @note This flag is cleared after the address migration took place
+ * @ingroup group_chatroom
+ **/
+LINPHONE_PUBLIC void linphone_core_enable_chat_room_address_unification(LinphoneCore *core, bool_t enabled);
+
+/**
+ * Returns whether the chat room address unification has been enabled and not yet carried out.
+ * @param core #LinphoneCore object @notnil
+ * @return TRUE if the chat room address unification has been enabled and not yet carried out, FALSE otherwise.
+ * @see linphone_core_enable_chat_room_address_unification() for additional information
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC bool_t linphone_core_chat_room_address_unification_enabled(const LinphoneCore *core);
 
 /**
  * Set the conference expire period. It is the number of seconds after the end time or the last participant joined -
@@ -8090,9 +8127,9 @@ LINPHONE_PUBLIC bool_t linphone_core_empty_chatrooms_deletion_enabled(const Linp
 LINPHONE_PUBLIC int linphone_core_get_imdn_to_everybody_threshold(const LinphoneCore *core);
 
 /**
- * Sets the threshold for sending IMDN to all participants to a #LinphoneChatRoom
+ * Sets the threshold for sending IMDN to all participants in a group #LinphoneChatRoom
  * @param core A #LinphoneCore object @notnil
- * @param threshold the threshold for sending IMDN to all participants to a #LinphoneChatRoom
+ * @param threshold the threshold for sending IMDN to all participants in a group #LinphoneChatRoom
  * @ingroup group_chatroom
  */
 LINPHONE_PUBLIC void linphone_core_set_imdn_to_everybody_threshold(LinphoneCore *core, int threshold);
@@ -8266,7 +8303,7 @@ LINPHONE_PUBLIC void linphone_core_enable_send_message_after_notify(LinphoneCore
 LINPHONE_PUBLIC bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core);
 
 /**
- * Returns the duration of the timer that delays the sending of chat messages
+ * Returns the duration of the timer that delays the sending of chat messages while waiting for a NOTIFY message
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @return the duration of the timer in seconds
@@ -8274,8 +8311,9 @@ LINPHONE_PUBLIC bool_t linphone_core_send_message_after_notify_enabled(const Lin
 LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *core);
 
 /**
- * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
- * in group chats.
+ * It sets the duration of the timer to delay the sending of chat messages in flexisip based chatrooms after sending the
+ * SUBSCRIBE out. If a NOTIFY comes in before the timer expires, messages will be then sent at the time, otherwise when
+ * the timer expires.
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
@@ -8284,7 +8322,7 @@ LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *
 LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration);
 
 /**
- * Returns the duration of the timer that delays the sending of chat messages,
+ * Returns the duration of the timer that delays the sending of chat messages while waiting for a NOTIFY message,
  * when the core is running inside an IOS app extension.
  * @ingroup group_IOS
  * @ingroup group_chatroom
@@ -8294,8 +8332,9 @@ LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core,
 LINPHONE_PUBLIC int linphone_core_get_message_sending_delay_app_ext(const LinphoneCore *core);
 
 /**
- * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
- * in group chats, when the core is running inside an IOS app extension.
+ * It sets the duration of the timer to delay the sending of chat messages in flexisip based chatrooms after sending the
+ * SUBSCRIBE out. If a NOTIFY comes in before the timer expires, messages will be then sent at the time, otherwise when
+ * the timer expires, when the core is running inside an IOS app extension.
  * @ingroup group_IOS
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil

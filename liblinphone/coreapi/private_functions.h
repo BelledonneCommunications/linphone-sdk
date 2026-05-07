@@ -374,6 +374,7 @@ void linphone_account_set_presence_model_with_publish_toggle(LinphoneAccount *ac
                                                              LinphonePresenceModel *presence_model,
                                                              bool_t send_publish);
 void linphone_account_update(LinphoneAccount *account);
+LINPHONE_PUBLIC void linphone_account_params_use_domain_registrations(LinphoneAccountParams *params, bool_t enable);
 LinphoneProxyConfig *linphone_account_get_proxy_config(LinphoneAccount *account);
 
 LINPHONE_PUBLIC const bctbx_list_t *linphone_core_get_deleted_account_list(const LinphoneCore *lc);
@@ -392,7 +393,8 @@ LINPHONE_PUBLIC LinphoneAccount *linphone_core_lookup_known_account(LinphoneCore
 LinphoneAccount *
 linphone_core_lookup_known_account_2(LinphoneCore *lc, const LinphoneAddress *uri, bool_t fallback_to_default);
 
-LinphoneAccount *linphone_core_lookup_account_by_identity_strict(LinphoneCore *lc, const LinphoneAddress *uri);
+LINPHONE_PUBLIC LinphoneAccount *linphone_core_lookup_account_by_identity_strict(LinphoneCore *lc,
+                                                                                 const LinphoneAddress *uri);
 LinphoneAccount *linphone_core_lookup_account_by_conference_factory_strict(LinphoneCore *lc,
                                                                            const LinphoneAddress *uri);
 LinphoneAccount *linphone_core_lookup_account_by_identity(LinphoneCore *lc, const LinphoneAddress *uri);
@@ -534,6 +536,7 @@ void linphone_chat_room_notify_session_state_changed(LinphoneChatRoom *cr,
 void _linphone_chat_room_notify_is_composing_received(LinphoneChatRoom *cr,
                                                       const LinphoneAddress *remoteAddr,
                                                       bool_t isComposing);
+void _linphone_chat_room_notify_alternative_address_changed(LinphoneChatRoom *cr, const LinphoneEventLog *event_log);
 void _linphone_chat_room_notify_message_received(LinphoneChatRoom *cr, LinphoneChatMessage *msg);
 void _linphone_chat_room_notify_messages_received(LinphoneChatRoom *cr, const bctbx_list_t *chat_messages);
 void _linphone_chat_room_notify_new_event(LinphoneChatRoom *cr, const LinphoneEventLog *event_log);

@@ -92,7 +92,7 @@ std::shared_ptr<Address> ConferenceId::processAddress(const Address &addr) const
 		} else {
 			auto processedAddress = Address::create(addr);
 			if (!mParams.getKeepGruu()) {
-				processedAddress->removeUriParam("gr");
+				processedAddress->removeUriParam(Address::kGrParameter);
 			}
 			return processedAddress;
 		}

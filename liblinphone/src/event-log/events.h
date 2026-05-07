@@ -21,6 +21,7 @@
 #ifndef _L_EVENTS_H_
 #define _L_EVENTS_H_
 
+#include "conference/conference-alternative-address-event.h"
 #include "conference/conference-available-media-event.h"
 #include "conference/conference-call-event.h"
 #include "conference/conference-chat-message-event.h"

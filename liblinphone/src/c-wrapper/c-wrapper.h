@@ -270,6 +270,7 @@ LINPHONE_END_NAMESPACE
 	F(EventLog, ConferenceCallEvent)                                                                                   \
 	F(EventLog, ConferenceChatMessageEvent)                                                                            \
 	F(EventLog, ConferenceEvent)                                                                                       \
+	F(EventLog, ConferenceAlternativeAddressEvent)                                                                     \
 	F(EventLog, ConferenceNotifiedEvent)                                                                               \
 	F(EventLog, ConferenceParticipantDeviceEvent)                                                                      \
 	F(EventLog, ConferenceParticipantEvent)                                                                            \

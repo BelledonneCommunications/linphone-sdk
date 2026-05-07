@@ -156,6 +156,7 @@ extern test_suite_t local_conference_test_suite_chat_error;
 extern test_suite_t local_conference_test_suite_chat_imdn;
 extern test_suite_t local_conference_test_suite_ephemeral_chat;
 extern test_suite_t local_conference_test_suite_secure_chat;
+extern test_suite_t local_conference_test_suite_secure_chat_migration;
 extern test_suite_t local_conference_test_suite_secure_chat_error;
 extern test_suite_t local_conference_test_suite_secure_one_on_one_chat;
 extern test_suite_t local_conference_test_suite_conference_edition;
@@ -243,8 +244,10 @@ extern void liblinphone_tester_clear_accounts(void);
 extern const char *flexisip_tester_dns_server;
 extern const char *mysql_username_password_string;
 extern bctbx_list_t *flexisip_tester_dns_ip_addresses;
+extern const char *test_domain_registration_base_domain;
 extern const char *ccmp_server_url;
 extern const char *test_domain;
+extern const char *domain_registration_auth_domain;
 extern const char *auth_domain;
 extern const char *test_username;
 extern const char *test_sha_username;
@@ -404,6 +407,7 @@ typedef struct _stats {
 	int number_of_LinphoneChatRoomEphemeralDeleted;
 	int number_of_LinphoneChatRoomFullStateReceived;
 	int number_of_LinphoneChatRoomMessageEarlyFailure;
+	int number_of_LinphoneChatRoomAlternativeAddressChanged;
 
 	int number_of_X3dhUserCreationSuccess;
 	int number_of_X3dhUserCreationFailure;

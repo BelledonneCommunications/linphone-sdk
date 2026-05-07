@@ -79,6 +79,7 @@ public:
 	std::shared_ptr<Content> createNotifyMultipart(int notifyId);
 
 	// Conference
+	std::string createNotifyAlternativeAddressChanged(const std::shared_ptr<Address> &alternativeAddress);
 	std::string createNotifyAvailableMediaChanged(const std::map<ConferenceMediaCapabilities, bool> mediaCapabilities);
 	std::string createNotifySubjectChanged();
 
@@ -98,9 +99,15 @@ public:
 	static void notifyResponseCb(LinphoneEvent *lev);
 
 	/*
-	 * This fonction is called each time a full state notification is receied from the focus.
+	 * This fonction is called each time a full state notification is received from the focus.
 	 */
 	virtual void onFullStateReceived() override;
+
+	/*
+	 * This fonction is called each time the alternative address of a conference changes
+	 */
+	virtual void onAlternativeAddressChanged(const std::shared_ptr<ConferenceAlternativeAddressEvent> &event,
+	                                         const std::shared_ptr<Address> &address) override;
 
 	/*
 	 * This fonction is called each time a new participant is added by the focus after full state notification.
@@ -258,6 +265,8 @@ private:
 
 	void fillParticipantFields(const std::shared_ptr<Participant> &participant, Xsd::ConferenceInfo::UserType &user);
 	Xsd::XmlSchema::DateTime timeTToDateTime(const time_t &unixTime) const;
+
+	std::string getNotifyEntity() const;
 
 	std::shared_ptr<Conference> getConference() const;
 	L_DISABLE_COPY(ServerConferenceEventHandler);

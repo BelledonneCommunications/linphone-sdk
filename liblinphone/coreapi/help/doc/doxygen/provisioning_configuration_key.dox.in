@@ -201,6 +201,7 @@ The <i>sip</i> section represents a general configuration for SIP.
 		<tr><td>max_calls</td><td>TYPE</td><td>1-10</td><td>1</td><td>Maximum simultaneous calls</td></tr>
 		<tr><td>user_agent</td><td>TYPE</td><td>a user agent</td><td>LinphoneSDK/5.5</td><td>SIP User-Agent</td></tr>
 		<tr><td>enable_timestamps</td><td>integer</td><td>0 or 1</td><td>1</td><td>Timestamp logs</td></tr>
+		<tr><td>empty_chat_room_deletion</td><td>0 or 1</td><td>1</td><td>Automatically delete empty chatrooms</td></tr>
 	</table>
 
 	<h2>Debug - section [<i>debug</i>]</h2>
@@ -267,7 +268,7 @@ There are currently different types of friendlist:
 - friend list stored locally, but initally fetched from an HTTP server such as VCARD file, and re-captured at each Core or application start up
 - friend list stored locally, but synchronized in both directions with a CardDAV server. With this type of friend list, each change to the list and its contacts (#LinphoneFriend) performed by the local user is pushed on the server, and any change present on the server is pulled by the client. This typically allows synchronisation of contact lists between several client devices, or may simply be to pull down a contact list from a server, and get it refreshed from the server in a more efficient way than the VCARD file method.
 
-Table \ref friendlist_parameters "friendlist parameters" lists all remote contact directory parameters one may find under section [<i>friend_list_N</i>] of a Linphone RC file.<br/>
+Table \ref friendlist_parameters "friendlist parameters" lists all parameters one may find under section [<i>friend_list_N</i>] of a Linphone RC file.<br/>
 <table>
 	<caption id="friendlist_parameters">Friendlist parameters</caption>
 	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
@@ -282,7 +283,7 @@ Table \ref friendlist_parameters "friendlist parameters" lists all remote contac
 <h2>Authentication - section [<i>auth_info_N</i>]</h2>
 
 The auth_info sections provide authentication information to use for SIP as well as http services (typically remote provisioning, cardDav requests). They need to be supplied in the form of a #LinphoneAuthInfo object, whose configuration storage representation is of [<i>auth_info_N</i>] sections, numbered continuously from 0.<br/>
-Table \ref authinfo_parameters "authentication information parameters" lists all remote contact directory parameters one may find under section [<i>auth_info_N</i>] of a Linphone RC file.<br/>
+Table \ref authinfo_parameters "authentication information parameters" lists all parameters one may find under section [<i>auth_info_N</i>] of a Linphone RC file.<br/>
 <table>
 	<caption id="authinfo_parameters">Authentication information parameters</caption>
 	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
@@ -298,6 +299,21 @@ Table \ref authinfo_parameters "authentication information parameters" lists all
 	<tr><td>client_id</td><td>string</td><td>anything</td><td>""</td><td>OAUTH client ID</td></tr>
 	<tr><td>client_secret</td><td>string</td><td>anything</td><td>""</td><td>OAUTH client secret</td></tr>
 </table>
+
+<h2>Chat - section [<i>chat</i>]</h2>
+The <i>chat</i> section represents the global chat configuration settings of a #LinphoneCore.
+Table \ref chat_parameters "chat parameters" lists all parameters one may find under section [<i>chat</i>] of a Linphone RC file.<br/>
+<table>
+	<caption id="chat_parameters">Chat parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th></tr>
+	<tr><td>message_automatic_resending_s</td><td>integer</td><td>any positive integer or 0</td><td>10</td><td>\copybrief linphone_core_set_message_automatic_resending_delay</td></tr>
+	<tr><td>delay_message_send_s</td><td>integer</td><td>any positive integer or 0</td><td>10</td><td>\copybrief linphone_core_set_message_sending_delay</td></tr>
+	<tr><td>delay_message_send_app_ext_s</td><td>integer</td><td>any positive integer or 0</td><td>3</td><td>\copybrief linphone_core_set_message_sending_delay_app_ext</td></tr>
+	<tr><td>sender_name_hidden_in_forward_message</td><td>0 or 1</td><td>0</td><td>\copybrief linphone_core_enable_sender_name_hidden_in_forward_message</td></tr>
+	<tr><td>imdn_to_everybody_threshold</td><td>integer</td><td>any positive integer</td><td>5</td><td>\copybrief linphone_core_set_imdn_to_everybody_threshold</td></tr>
+	<tr><td>max_participants_per_chatroom</td><td>integer</td><td>any integer</td><td>-1</td><td>\copybrief linphone_core_set_max_participants_per_chatroom</td></tr>
+</table>
+
 
 <!--
 @internal

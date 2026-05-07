@@ -60,7 +60,7 @@ SalOp::~SalOp() {
 	if (mFromAddress) sal_address_unref(mFromAddress);
 	if (mToAddress) sal_address_unref(mToAddress);
 	if (mDiversionAddress) sal_address_unref(mDiversionAddress);
-	if (mRequestAddress) sal_address_unref(mRequestAddress.take());
+	if (mRequestAddress) sal_address_unref(mRequestAddress);
 	if (mServiceRoute) sal_address_unref(mServiceRoute);
 	if (mOriginAddress) sal_address_unref(mOriginAddress);
 	if (mContactAddress) sal_address_unref(mContactAddress);
@@ -721,7 +721,8 @@ belle_sip_header_contact_t *SalOp::createContact(bool forceSipInstance) {
 	if (mPrivacy != SalPrivacyNone) belle_sip_uri_set_user(contactUri, nullptr);
 
 	bool hasGruuContact = belle_sip_parameters_has_parameter(
-	    BELLE_SIP_PARAMETERS(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contactHeader))), "gr");
+	    BELLE_SIP_PARAMETERS(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contactHeader))),
+	    Address::kGrParameter.c_str());
 
 	// Automatic contact must be disabled if provided with a GRUU contact.
 	if (!hasGruuContact && !mContactMustBePreserved)
@@ -888,9 +889,9 @@ void SalOp::setRemoteUserAgent(belle_sip_message_t *message) {
 	}
 }
 
-void SalOp::setRequestAddress(ownership::BorrowedMut<SalAddress> value) {
-	if (mRequestAddress) sal_address_unref(mRequestAddress.take());
-	mRequestAddress = ownership::owned(sal_address_ref(value));
+void SalOp::setRequestAddress(SalAddress *value) {
+	if (mRequestAddress) sal_address_unref(mRequestAddress);
+	mRequestAddress = sal_address_ref(value);
 }
 
 string SalOp::toString(const Type type) {

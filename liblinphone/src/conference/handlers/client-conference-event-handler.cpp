@@ -68,7 +68,11 @@ ClientConferenceEventHandler::ClientConferenceEventHandler(const std::shared_ptr
 // -----------------------------------------------------------------------------
 
 void ClientConferenceEventHandler::setManagedByListEventHandler(bool managed) {
-	managedByListEventHandler = managed;
+	mManagedByListEventHandler = managed;
+}
+
+bool ClientConferenceEventHandler::getManagedByListEventHandler() const {
+	return mManagedByListEventHandler;
 }
 
 void ClientConferenceEventHandler::setInitialSubscriptionUnderWayFlag(bool on) {
@@ -138,12 +142,12 @@ ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xmlBody
 	try {
 		bool isFullState = (confInfo->getState() == StateType::full);
 		const auto conference = getConference();
-		if (waitingFullState && !isFullState) {
+		if (mWaitingFullState && !isFullState) {
 			// No need to do any processing if the client is waiting a full state
 			lError() << "Unable to process received NOTIFY because " << *conference << " is waiting a full state";
 			return ClientConferenceEventHandlerBase::NotifyParsingResult::Error;
 		} else {
-			waitingFullState = false;
+			mWaitingFullState = false;
 		}
 
 		const auto &core = getCore();
@@ -152,11 +156,54 @@ ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xmlBody
 		std::shared_ptr<Address> entityAddress = Address::create(confInfo->getEntity());
 		auto prunedEntityAddress = entityAddress ? entityAddress->getUriWithoutGruu() : Address();
 		auto prunedConferenceAddress = conferenceAddress ? conferenceAddress->getUriWithoutGruu() : Address();
+		bool entityMatchesConferenceAddress =
+		    (prunedEntityAddress.toStringUriOnlyOrdered() == prunedConferenceAddress.toStringUriOnlyOrdered());
 
-		if (!conferenceAddress || (prunedEntityAddress != prunedConferenceAddress)) {
+		auto &confDescription = confInfo->getConferenceDescription();
+
+		std::shared_ptr<Address> alternativeConferenceAddress = conference->getAlternativeConferenceAddress();
+		bool alternativeConferenceAddressMatchesConferenceAddress = false;
+		bool notifyAlternativeAddressChanged = false;
+		if (confDescription.present()) {
+			const auto &serviceUris = confDescription.get().getServiceUris();
+			if (serviceUris.present()) {
+				for (auto &uri : serviceUris.get().getEntry()) {
+					auto purpose = uri.getPurpose();
+					if (purpose.present()) {
+						if (purpose.get() == Conference::kAlternativeUriPurpose) {
+							auto newAlternativeConferenceAddress = Address::create(uri.getUri());
+							// Notify alternative address changed if the alternative address is to be set or if it is
+							// not the same as the one previously set
+							notifyAlternativeAddressChanged =
+							    newAlternativeConferenceAddress && newAlternativeConferenceAddress->isValid() &&
+							    (!alternativeConferenceAddress ||
+							     (alternativeConferenceAddress && alternativeConferenceAddress->isValid() &&
+							      (alternativeConferenceAddress->toStringUriOnlyOrdered() !=
+							       newAlternativeConferenceAddress->getUriWithoutGruu().toStringUriOnlyOrdered())));
+							if (notifyAlternativeAddressChanged) {
+								alternativeConferenceAddress = newAlternativeConferenceAddress;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (alternativeConferenceAddress && alternativeConferenceAddress->isValid()) {
+			alternativeConferenceAddressMatchesConferenceAddress =
+			    (prunedConferenceAddress.toStringUriOnlyOrdered() ==
+			     alternativeConferenceAddress->getUriWithoutGruu().toStringUriOnlyOrdered());
+		}
+
+		// Return immediately if the conference address is unknown or the conference address doesn't match  neither the
+		// NOTIFY's entity address nor the alternative conference address
+		if (!conferenceAddress ||
+		    !(entityMatchesConferenceAddress || alternativeConferenceAddressMatchesConferenceAddress)) {
 			lError() << "Unable to process received NOTIFY for conference " << *conference
 			         << " because the entity address " << prunedEntityAddress
-			         << " doesn't match the conference address " << prunedConferenceAddress
+			         << " doesn't match neither the entity address " << prunedConferenceAddress
+			         << " nor the alternative conference address "
+			         << (alternativeConferenceAddress ? alternativeConferenceAddress->toString() : "sip:")
 			         << " or the conference address is not valid";
 			return ClientConferenceEventHandlerBase::NotifyParsingResult::Error;
 		}
@@ -168,12 +215,10 @@ ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xmlBody
 		// The client is synchronizing when it requested a full state as there was a discrepancy between its last notify
 		// ID and the one from the server or the server sent a full state to catch up a big number of missed events
 		const auto currentNotifyVersion = getLastNotify();
-		bool synchronizing = fullStateRequested || (isFullState && (currentNotifyVersion != 0));
-		if (isFullState && fullStateRequested) {
-			fullStateRequested = false;
+		bool synchronizing = mFullStateRequested || (isFullState && (currentNotifyVersion != 0));
+		if (isFullState && mFullStateRequested) {
+			mFullStateRequested = false;
 		}
-
-		auto &confDescription = confInfo->getConferenceDescription();
 
 		// 1. Compute event time.
 		time_t creationTime = time(nullptr);
@@ -208,6 +253,14 @@ ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xmlBody
 		}
 
 		// 3. Notify ephemeral settings, media, subject and keywords.
+		if (notifyAlternativeAddressChanged) {
+			if (!entityMatchesConferenceAddress) {
+				conference->forceConferenceAddress(entityAddress);
+			}
+			conference->setAlternativeConferenceAddress(alternativeConferenceAddress);
+			conference->notifyAlternativeAddressChanged(creationTime, isFullState, alternativeConferenceAddress);
+		}
+
 		if (confDescription.present()) {
 			auto &subject = confDescription.get().getSubject();
 			if (subject.present() && !subject.get().empty()) {
@@ -811,8 +864,8 @@ bool ClientConferenceEventHandler::requestFullState() {
 	lInfo() << "Requesting full state for " << *conference;
 	unsubscribe();
 	conference->resetLastNotify();
-	fullStateRequested = subscribe(getConferenceId());
-	if (!fullStateRequested) {
+	mFullStateRequested = subscribe(getConferenceId());
+	if (!mFullStateRequested) {
 		const auto &chatRoom = conference->getChatRoom();
 		if (chatRoom) {
 			if (auto db = getCore()->getDatabase()) {
@@ -820,7 +873,7 @@ bool ClientConferenceEventHandler::requestFullState() {
 			}
 		}
 	}
-	return fullStateRequested;
+	return mFullStateRequested;
 }
 
 // -----------------------------------------------------------------------------
@@ -839,7 +892,7 @@ bool ClientConferenceEventHandler::needToSubscribe() const {
 		conferenceStateOk = (conferenceState == ConferenceInterface::State::CreationPending) ||
 		                    (conferenceState == ConferenceInterface::State::Created);
 	}
-	return !alreadySubscribed() && !managedByListEventHandler && conferenceStateOk;
+	return !alreadySubscribed() && !mManagedByListEventHandler && conferenceStateOk;
 }
 
 void ClientConferenceEventHandler::subscribeStateChangedCb(LinphoneEvent *lev, LinphoneSubscriptionState state) {
@@ -869,7 +922,7 @@ bool ClientConferenceEventHandler::subscribe() {
 		return false; // Conference has not been set
 	}
 
-	if (managedByListEventHandler) {
+	if (mManagedByListEventHandler) {
 		lDebug() << "ClientConferenceEventHandler [" << this << "] is unable to subscribe to " << *conference
 		         << " because it is managed by the list event handler";
 		return false; // Handler managed by the list event handler
@@ -958,7 +1011,7 @@ bool ClientConferenceEventHandler::subscribe() {
 // -----------------------------------------------------------------------------
 
 void ClientConferenceEventHandler::unsubscribePrivate() {
-	if (mEvent && !managedByListEventHandler) {
+	if (mEvent && !mManagedByListEventHandler) {
 		/* The following tricky code is to break a cycle. Indeed linphone_event_terminate() will change the event's
 		 * state, which will be notified to the core, that will call us immediately in invalidateSubscription(),
 		 * which resets 'mEvent' while we still have to unref it.*/
@@ -992,7 +1045,7 @@ void ClientConferenceEventHandler::onAccountRegistrationStateChanged(std::shared
 	auto conference = getConference();
 	bool isChatOnly = conference && conference->isChatOnly();
 	if (localAddress && address->weakEqual(*localAddress) && (state == LinphoneRegistrationOk) &&
-	    !alreadySubscribed() && !managedByListEventHandler && isChatOnly) {
+	    !alreadySubscribed() && !mManagedByListEventHandler && isChatOnly) {
 		subscribe(conferenceId);
 	}
 }
@@ -1024,13 +1077,11 @@ void ClientConferenceEventHandler::invalidateSubscription() {
 
 LinphoneSubscriptionState ClientConferenceEventHandler::getSubscriptionState() const {
 	auto state = LinphoneSubscriptionNone;
-	if (managedByListEventHandler) {
-		state = getCore()->getPrivate()->clientListEventHandler->getSubscriptionState(
-		    getConferenceId().getLocalAddress(), getConferenceId().getPeerAddress());
+	if (mEvent) {
+		state = mEvent->getState();
 	} else {
-		if (mEvent) {
-			state = mEvent->getState();
-		}
+		lWarning() << "No events are associated to ClientConferenceEventHandler [" << this
+		           << "] hence its state is unknown";
 	}
 	return state;
 }
@@ -1040,7 +1091,7 @@ bool ClientConferenceEventHandler::subscribe(BCTBX_UNUSED(const ConferenceId &co
 	// Do not send individual SUBSCRIBE messages if the event handler is managed by the list event handler
 	auto ret = subscribe();
 	if (ret) {
-		waitingFullState = (getLastNotify() == 0);
+		mWaitingFullState = (getLastNotify() == 0);
 	}
 	return ret;
 }
@@ -1140,4 +1191,7 @@ void ClientConferenceEventHandler::setEvent(const std::shared_ptr<EventSubscribe
 	mEvent = eventSubscribe;
 }
 
+bool ClientConferenceEventHandler::operator<(const ClientConferenceEventHandler &handler) const {
+	return getConference() < handler.getConference();
+}
 LINPHONE_END_NAMESPACE

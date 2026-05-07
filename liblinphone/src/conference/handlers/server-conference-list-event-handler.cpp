@@ -126,7 +126,10 @@ void ServerConferenceListEventHandler::subscribeReceived(const std::shared_ptr<E
 			addr->removeUriParam("Last-Notify");
 			ConferenceId conferenceId(addr, addr, core->createConferenceIdParams());
 			std::shared_ptr<ServerConferenceEventHandler> handler = findHandler(conferenceId);
-			if (!handler) continue;
+			if (!handler) {
+				lWarning() << "Unable to find handler associated to " << conferenceId;
+				continue;
+			}
 
 			shared_ptr<AbstractChatRoom> chatRoom = core->findChatRoom(conferenceId, false);
 			if (!chatRoom) {
@@ -248,25 +251,31 @@ void ServerConferenceListEventHandler::addHandler(std::shared_ptr<ServerConferen
 		return;
 	}
 
-	auto conf = handler->getConference();
-	if (!conf) {
+	auto conference = handler->getConference();
+	if (!conference) {
 		lError() << "Unable to add handler because it is not associated to any conference";
 		return;
 	}
 
-	const auto &id = conf->getConferenceId();
-
-	if (!id.isValid()) {
-		// Do not add the evetn handler if the conference ID is not valid as it might be changed later on and therefore
-		// the core ends up in a scenario where 2 entries point to the same handler
-		lError() << *conf << " associated to handler " << handler << " has an invalid " << id;
-		return;
-	}
-
-	auto [it, success] = handlers.insert(std::make_pair(id, handler));
-	if (!success) {
-		lError() << "Trying to insert an already present handler  with " << id << " associated to " << *conf
-		         << " in the server conference handler list";
+	auto conferenceIdParams = getCore()->createConferenceIdParams();
+	// Add the handler to the map with all its addressable conference IDs
+	for (const auto &peerAddress :
+	     {conference->getAssignedConferenceAddress(), conference->getAlternativeConferenceAddress()}) {
+		if (const auto &localAddress = conference->getLocalAddress(peerAddress); localAddress && peerAddress) {
+			if (const auto conferenceId = conference->buildConferenceId(peerAddress);
+			    conferenceId && conferenceId->isValid()) {
+				auto [it, success] = handlers.insert(std::make_pair(*conferenceId, handler));
+				if (!success) {
+					lError() << "Trying to insert an already present handler with " << *conferenceId
+					         << " associated to " << *conference << " in the server conference handler list";
+				}
+			} else {
+				// Do not add the event handler if the conference ID is not valid as it might be changed later on
+				// and therefore the core ends up in a scenario where 2 entries point to the same handler
+				lError() << *conference << " associated to handler " << handler << " has an invalid conference id";
+				return;
+			}
+		}
 	}
 }
 
@@ -275,16 +284,26 @@ void ServerConferenceListEventHandler::removeHandler(std::shared_ptr<ServerConfe
 		return;
 	}
 
-	auto conf = handler->getConference();
-	if (conf) {
-		const ConferenceId &conferenceId = conf->getConferenceId();
-		auto it = handlers.find(conferenceId);
-		if (it != handlers.end()) {
-			handlers.erase(it);
-			lInfo() << "Server Conference Event Handler with " << conferenceId << " [" << handler
-			        << "] has been removed.";
-		} else {
-			lError() << "Server Conference Event Handler with " << conferenceId << " has not been found.";
+	auto conference = handler->getConference();
+	if (conference) {
+		auto conferenceIdParams = getCore()->createConferenceIdParams();
+		for (const auto &peerAddress :
+		     {conference->getAssignedConferenceAddress(), conference->getAlternativeConferenceAddress()}) {
+			if (const auto conferenceId = conference->buildConferenceId(peerAddress);
+			    conferenceId && conferenceId->isValid()) {
+				auto it = handlers.find(*conferenceId);
+				if (it != handlers.end()) {
+					handlers.erase(it);
+					lInfo() << "Server Conference Event Handler [" << handler << "] with " << *conferenceId
+					        << " associated to " << *conference << " has been removed.";
+				} else {
+					lError() << "Server Conference Event Handler [" << handler << "] with " << *conferenceId
+					         << " associated to " << *conference << " has not been found.";
+				}
+			} else {
+				// Unable to find the event handler if the conference ID is not valid
+				lError() << *conference << " has an invalid conference id";
+			}
 		}
 	} else {
 		lInfo() << "Unable to remove handler " << handler << " from ServerConferenceListEventHandler [" << this

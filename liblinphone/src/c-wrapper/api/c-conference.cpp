@@ -606,7 +606,7 @@ void _linphone_conference_notify_full_state_received(LinphoneConference *confere
 }
 
 LinphoneChatRoom *linphone_conference_get_chat_room(const LinphoneConference *conference) {
-	auto &chatRoom = Conference::toCpp(conference)->getChatRoom();
+	const auto &chatRoom = Conference::toCpp(conference)->getChatRoom();
 	if (chatRoom) {
 		return chatRoom->toC();
 	}

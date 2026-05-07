@@ -7514,7 +7514,7 @@ static void rejoining_conference_after_end(int cleanup_period, bool_t enable_cha
 			for (auto mgr : participants) {
 				// Try search in the databse removing the gr parameter
 				LinphoneAddress *confAddr2 = linphone_address_clone(confAddr);
-				linphone_address_remove_uri_param(confAddr2, "gr");
+				linphone_address_remove_uri_param(confAddr2, Address::kGrParameter.c_str());
 				check_conference_info_in_db(mgr, NULL, confAddr2, marie.getCMgr()->identity, participants_info,
 				                            start_time, duration, initialSubject, description, 0,
 				                            LinphoneConferenceInfoStateNew, security_level, FALSE, TRUE, TRUE,

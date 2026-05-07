@@ -14,13 +14,9 @@ changes made to these components.
 ## Unreleased
 
 ### Added
-- Support of permanent activities in the presence. This enables the ability for the presence server to store
-  activities permanently, even if the PUBLISH expires.
 
 ### Changes
 - Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
-- Optimize contact importation by performing the vcards parsing asynchronously in a background thread, and by
-  optimizing the parser and the database storage.
 
 ## [5.5.0] 2026-05-25
 

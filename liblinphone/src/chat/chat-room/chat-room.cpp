@@ -348,7 +348,7 @@ std::optional<Address> ChatRoom::getImdnChatRoomPeerAddress(const shared_ptr<Cha
 std::shared_ptr<AbstractChatRoom> ChatRoom::getImdnChatRoom(const std::shared_ptr<Address> peerAddress) {
 	auto chatRoomPeerAddress = getPeerAddress();
 	std::shared_ptr<AbstractChatRoom> chatRoom;
-	if (*peerAddress == chatRoomPeerAddress->getUriWithoutGruu()) {
+	if (peerAddress && (*peerAddress == chatRoomPeerAddress->getUriWithoutGruu())) {
 		chatRoom = getSharedFromThis();
 	} else {
 		shared_ptr<ConferenceParams> params = ConferenceParams::create(getCore());
@@ -373,7 +373,7 @@ std::shared_ptr<AbstractChatRoom> ChatRoom::getImdnChatRoom(const std::shared_pt
 		}
 		params->setSecurityLevel(securityLevel);
 		auto localAddress = getLocalAddress();
-		chatRoom = getCore()->getPrivate()->searchChatRoom(params, localAddress, nullptr, {peerAddress});
+		chatRoom = getCore()->searchChatRoom(params, localAddress, nullptr, {peerAddress});
 		if (!chatRoom) {
 			lInfo() << "Unable to find an " << (isEncrypted ? "encrypted" : "unencrypted")
 			        << " one-on-one chatroom between " << *peerAddress << " and " << *localAddress
@@ -1192,10 +1192,26 @@ std::shared_ptr<Participant> ChatRoom::getMe() const {
 	return conference->getMe();
 }
 
-std::shared_ptr<Address> ChatRoom::getConferenceAddress() const {
+std::shared_ptr<Address> ChatRoom::getAssignedConferenceAddress() const {
+	const auto conference = getConference();
+	if (!conference) {
+		return getConferenceAddress();
+	}
+	return conference->getAssignedConferenceAddress();
+}
+
+std::shared_ptr<Address> ChatRoom::getAlternativeConferenceAddress() const {
 	const auto conference = getConference();
 	if (!conference) {
 		return nullptr;
+	}
+	return conference->getAlternativeConferenceAddress();
+}
+
+std::shared_ptr<Address> ChatRoom::getConferenceAddress() const {
+	const auto conference = getConference();
+	if (!conference) {
+		return getConferenceId().getPeerAddress();
 	}
 	return conference->getConferenceAddress();
 }
@@ -1342,6 +1358,22 @@ long ChatRoom::getLastMessageProcessingDurationMs() const {
 
 ChatRoomLogContextualizer::ChatRoomLogContextualizer(const LinphoneChatRoom *cr)
     : CoreLogContextualizer(*AbstractChatRoom::toCpp(cr)) {
+}
+
+bool ChatRoom::unifyConferenceAddress() {
+	const auto conference = getConference();
+	if (!conference) {
+		return false;
+	}
+	return conference->unifyConferenceAddress();
+}
+
+void ChatRoom::scheduleAddressUnification() {
+	const auto conference = getConference();
+	if (!conference) {
+		return;
+	}
+	conference->scheduleAddressUnification();
 }
 
 LINPHONE_END_NAMESPACE

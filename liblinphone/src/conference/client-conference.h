@@ -76,7 +76,7 @@ public:
 	void leave(const LinphoneReason reason = LinphoneReasonNone) override;
 	LinphoneStatus nominateAdminAndLeave(const std::shared_ptr<const Address> &newAdmin) override;
 	bool isIn() const override;
-	const std::shared_ptr<Address> getOrganizer() const override;
+	const std::shared_ptr<Address> &getOrganizer() const override;
 
 	int startRecording(const std::string &path) override;
 
@@ -114,6 +114,8 @@ public:
 	int getParticipantDeviceVolume(const std::shared_ptr<ParticipantDevice> &device) override;
 
 	void onStateChanged(ConferenceInterface::State state) override;
+	void onAlternativeAddressChanged(const std::shared_ptr<ConferenceAlternativeAddressEvent> &event,
+	                                 const std::shared_ptr<Address> &address) override;
 	void onParticipantAdded(const std::shared_ptr<ConferenceParticipantEvent> &event,
 	                        const std::shared_ptr<Participant> &participant) override;
 	void onParticipantRemoved(const std::shared_ptr<ConferenceParticipantEvent> &event,
@@ -159,16 +161,15 @@ public:
 	void onEphemeralMessageEnabled(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
 	void onEphemeralLifetimeChanged(const std::shared_ptr<ConferenceEphemeralMessageEvent> &event) override;
 
-#if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
-	std::shared_ptr<ClientConferenceEventHandler> mEventHandler;
-#endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
-
+	std::shared_ptr<ClientConferenceEventHandler> getEventHandler() const;
 	bool requestFullState();
 
 	/* Report the csrc included in the video stream, so that we can notify who is presented on the screen.*/
 	void notifyDisplayedSpeaker(uint32_t csrc);
 	void notifyLouderSpeaker(uint32_t ssrc);
 
+	std::optional<std::reference_wrapper<const std::shared_ptr<Address>>>
+	getLocalAddress(const std::shared_ptr<Address> &peer) const override;
 	void setConferenceId(const ConferenceId &conferenceId, bool storeInRAM);
 	void confirmJoining(SalCallOp *op);
 	void attachCall(const std::shared_ptr<CallSession> &session);
@@ -199,14 +200,13 @@ protected:
 	                                       CallSession::State state) override;
 
 private:
-	std::shared_ptr<ClientConferenceEventHandler> getEventHandler() const;
 	void acceptSession(const std::shared_ptr<CallSession> &session);
 	std::shared_ptr<CallSession> createSessionTo(const std::shared_ptr<const Address> &sessionTo);
 	std::shared_ptr<CallSession> createSession();
 	std::shared_ptr<CallSession> getMainSession() const override;
 	std::shared_ptr<ConferenceInfo> createOrGetConferenceInfo() const override;
 	std::shared_ptr<ConferenceInfo> createConferenceInfo() const override;
-	MediaSessionParams createDefaultMediaParams(const std::shared_ptr<Call> &call = nullptr) override;
+	MediaSessionParams createDefaultMediaParams(const std::shared_ptr<MediaSession> &session = nullptr) override;
 	void modifyCallParamsForConference(MediaSessionParams &params) const;
 	void updateAndSaveConferenceInformations();
 	bool focusIsReady() const;
@@ -223,6 +223,7 @@ private:
 	void createEventHandler(ConferenceListener *confListener = nullptr, bool addToListEventHandler = false) override;
 	void initializeHandlers(ConferenceListener *confListener, bool addToListEventHandler);
 
+	SalReferOp *createReferOp();
 	void handleRefer(SalReferOp *op,
 	                 const std::shared_ptr<LinphonePrivate::Address> &referAddr,
 	                 const std::string method) override;
@@ -243,6 +244,10 @@ private:
 	std::list<std::shared_ptr<Call>> mPendingCalls;
 	std::list<std::shared_ptr<Call>> mTransferingCalls;
 	MediaSessionParams *mJoiningParams = nullptr;
+
+#if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
+	std::shared_ptr<ClientConferenceEventHandler> mEventHandler;
+#endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 
 	LinphoneReason mExitReason = LinphoneReasonNone;
 

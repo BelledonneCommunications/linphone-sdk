@@ -391,7 +391,7 @@ private:
 	void cleanupSessionAndUnrefCObjectCall();
 
 	void updateRecordState(SalMediaRecord state);
-	void createClientConference(const std::shared_ptr<CallSession> &session);
+	std::shared_ptr<Conference> createClientConference(const std::shared_ptr<CallSession> &session);
 	void tryToAddToConference(std::shared_ptr<Conference> &conference, const std::shared_ptr<CallSession> &session);
 	void configureSoundCardsFromCore(const MediaSessionParams *msp);
 

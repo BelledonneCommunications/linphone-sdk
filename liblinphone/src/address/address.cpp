@@ -48,6 +48,7 @@ struct SalAddressDeleter {
 
 static thread_local std::unordered_map<std::string, std::unique_ptr<SalAddress, SalAddressDeleter>> sAddressCache;
 
+const std::string Address::kGrParameter = "gr";
 const std::string Address::kTransportParameter = "transport";
 
 SalAddress *Address::getSalAddressFromCache(const string &address, bool assumeGrUri) {
@@ -153,7 +154,7 @@ Address Address::getUri() const {
 
 Address Address::getUriWithoutGruu() const {
 	auto uri = getUri();
-	uri.removeUriParam("gr");
+	uri.removeUriParam(Address::kGrParameter);
 	return uri;
 }
 

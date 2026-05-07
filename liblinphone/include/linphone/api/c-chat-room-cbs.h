@@ -215,6 +215,23 @@ LINPHONE_PUBLIC void linphone_chat_room_cbs_set_chat_message_sent(LinphoneChatRo
                                                                   LinphoneChatRoomCbsChatMessageSentCb cb);
 
 /**
+ * Gets the alternative address changed callback.
+ * @param cbs #LinphoneChatRoomCbs object. @notnil
+ * @return The current alternative address changed callback.
+ */
+LINPHONE_PUBLIC LinphoneChatRoomCbsAlternativeAddressChangedCb
+linphone_chat_room_cbs_get_alternative_address_changed(const LinphoneChatRoomCbs *cbs);
+
+/**
+ * Sets the alternative address changed callback.
+ * @param cbs #LinphoneChatRoomCbs object. @notnil
+ * @param cb The alternative address changed callback to be used.
+ */
+LINPHONE_PUBLIC void
+linphone_chat_room_cbs_set_alternative_address_changed(LinphoneChatRoomCbs *cbs,
+                                                       LinphoneChatRoomCbsAlternativeAddressChangedCb cb);
+
+/**
  * Gets the participant added callback.
  * @param cbs #LinphoneChatRoomCbs object. @notnil
  * @return The current participant added callback.

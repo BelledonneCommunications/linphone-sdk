@@ -769,9 +769,17 @@ void AccountParams::setPrivacy(LinphonePrivacyMask privacy) {
 	mPrivacy = privacy;
 }
 
+void AccountParams::useDomainRegistration(bool enable) {
+	mUseDomainRegistration = enable;
+}
+
+bool AccountParams::domainRegistrationUsed() const {
+	return mUseDomainRegistration;
+}
+
 LinphoneStatus AccountParams::setIdentityAddress(const std::shared_ptr<const Address> &identityAddress) {
-	if (!identityAddress || identityAddress->getUsername().empty()) {
-		lWarning() << "Invalid sip identity: " << identityAddress->toString();
+	if (!identityAddress || (!domainRegistrationUsed() && identityAddress->getUsername().empty())) {
+		lWarning() << "Invalid sip identity: " << *identityAddress;
 		return -1;
 	}
 

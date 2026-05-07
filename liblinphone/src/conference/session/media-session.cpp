@@ -161,9 +161,8 @@ bool MediaSessionPrivate::tryEnterConference() {
 	L_Q();
 	q->updateContactAddressInOp();
 	const auto updatedContactAddress = q->getContactAddress();
-	ConferenceId serverConferenceId =
-	    ConferenceId(updatedContactAddress, updatedContactAddress, q->getCore()->createConferenceIdParams());
-	shared_ptr<Conference> conference = q->getCore()->findConference(serverConferenceId, false);
+	shared_ptr<Conference> conference =
+	    q->getCore()->searchConference(nullptr, updatedContactAddress, updatedContactAddress, {});
 	// If the call conference ID is not an empty string but no conference is linked to the call means that it was added
 	// to the conference after the INVITE session was started but before its completition
 	if (conference) {
@@ -903,8 +902,7 @@ void MediaSessionPrivate::updating(bool isUpdate) {
 		const auto videoEnabled = getParams()->videoEnabled();
 		const auto remoteContactAddress = q->getRemoteContactAddress();
 		const auto localAddress = q->getLocalAddress();
-		const auto conference = q->getCore()->findConference(
-		    ConferenceId(localAddress, localAddress, q->getCore()->createConferenceIdParams()), false);
+		const auto conference = q->getCore()->searchConference(nullptr, localAddress, localAddress, {});
 		// If the media session is in a conference, the remote media description is empty and audio video capabilities
 		// are disabled, then just call end the update
 		if (((q->getCore()->conferenceServerEnabled() && conference) ||
@@ -1205,9 +1203,7 @@ void MediaSessionPrivate::initializeParamsAccordingToIncomingCallParams() {
 		const auto &core = q->getCore();
 		if (core->conferenceServerEnabled()) {
 			const auto localAddress = q->getLocalAddress();
-			isSessionForChat =
-			    (core->findConference(ConferenceId(localAddress, localAddress, core->createConferenceIdParams()),
-			                          false) != nullptr);
+			isSessionForChat = (core->searchConference(nullptr, localAddress, localAddress, {}) != nullptr);
 		} else {
 			const auto remoteContactAddress = q->getRemoteContactAddress();
 			isSessionForChat = (remoteContactAddress && remoteContactAddress->hasParam(Conference::kIsFocusParameter));
@@ -5086,22 +5082,20 @@ std::shared_ptr<Conference> MediaSession::getLocalConference() const {
 	if (conferenceInfo) {
 		auto conferenceAddress = conferenceInfo->getUri();
 		serverConferenceId = ConferenceId(conferenceAddress, conferenceAddress, conferenceIdParams);
-		conference = getCore()->findConference(serverConferenceId, false);
+		conference = getCore()->searchConference(nullptr, conferenceAddress, conferenceAddress, {});
 	}
 	if (!conference) {
 		auto contactAddress = getContactAddress();
 		if (contactAddress) {
 			fillParametersIntoContactAddress(*contactAddress);
-			serverConferenceId = ConferenceId(contactAddress, contactAddress, conferenceIdParams);
-			conference = getCore()->findConference(serverConferenceId, false);
+			conference = getCore()->searchConference(nullptr, contactAddress, contactAddress, {});
 		}
 	}
 	if (!conference) {
 		const auto to = Address::create(d->op->getTo());
 		// Local conference
 		if (to->hasUriParam(Conference::kConfIdParameter)) {
-			serverConferenceId = ConferenceId(to, to, conferenceIdParams);
-			conference = getCore()->findConference(serverConferenceId, false);
+			conference = getCore()->searchConference(nullptr, to, to, {});
 		}
 	}
 	return conference;

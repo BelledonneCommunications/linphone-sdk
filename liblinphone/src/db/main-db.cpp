@@ -292,14 +292,16 @@ const std::string MainDb::sUnknownAddress = "sip:unknown@domain.invalid";
 
 shared_ptr<AbstractChatRoom> MainDbPrivate::findChatRoom(const ConferenceId &conferenceId) const {
 	L_Q();
-	shared_ptr<AbstractChatRoom> chatRoom = q->getCore()->findChatRoom(conferenceId, false);
+	shared_ptr<AbstractChatRoom> chatRoom =
+	    q->getCore()->searchChatRoom(nullptr, conferenceId.getLocalAddress(), conferenceId.getPeerAddress(), {});
 	if (!chatRoom) lError() << "Unable to find chat room: " << conferenceId << ".";
 	return chatRoom;
 }
 
 shared_ptr<Conference> MainDbPrivate::findConference(const ConferenceId &conferenceId) const {
 	L_Q();
-	shared_ptr<Conference> conference = q->getCore()->findConference(conferenceId, false);
+	shared_ptr<Conference> conference =
+	    q->getCore()->searchConference(nullptr, conferenceId.getLocalAddress(), conferenceId.getPeerAddress(), {});
 	if (!conference) lError() << "Unable to find audio video conference: " << conferenceId << ".";
 	return conference;
 }
@@ -445,10 +447,27 @@ long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chat
 		const long long &localSipAddressId = insertSipAddress(localAddress);
 		const long long &peerSipAddressNoGruuId = insertSipAddress(peerAddressNoGruu);
 		const long long &localSipAddressNoGruuId = insertSipAddress(localAddressNoGruu);
+
 		long long chatRoomId = selectChatRoomId(peerSipAddressId, localSipAddressId);
 		if (chatRoomId < 0) {
 			// If no chatroom has been found with the actual conference ID, try without the GRUU
 			chatRoomId = selectChatRoomId(peerSipAddressNoGruuId, localSipAddressNoGruuId);
+		}
+
+		std::shared_ptr<Address> alternativeConferenceAddress = chatRoom->getAlternativeConferenceAddress();
+		long long alternativeConferenceAddressId = 0;
+		long long alternativeConferenceAddressNoGruuId = 0;
+		if (alternativeConferenceAddress) {
+			alternativeConferenceAddressId = insertSipAddress(alternativeConferenceAddress);
+			if (chatRoomId < 0) {
+				// If no chatroom has been found with the actual conference ID, try the alternative address
+				chatRoomId = selectChatRoomId(alternativeConferenceAddressId, localSipAddressId);
+			}
+			alternativeConferenceAddressNoGruuId = insertSipAddress(alternativeConferenceAddress->getUriWithoutGruu());
+			if (chatRoomId < 0) {
+				// If no chatroom has been found with the actual conference ID, try the alternative address without GRUU
+				chatRoomId = selectChatRoomId(alternativeConferenceAddressNoGruuId, localSipAddressNoGruuId);
+			}
 		}
 
 		try {
@@ -462,6 +481,8 @@ long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chat
 			const int &capabilities =
 			    chatRoom->getCapabilities() & ~ChatRoom::CapabilitiesMask(ChatRoom::Capabilities::Proxy);
 
+			bool keepGruu = conferenceId.getParams().getKeepGruu();
+
 			const string &subject = chatRoomParams->getUtf8Subject();
 			int ephemeralEnabled = chatRoom->ephemeralEnabled() ? 1 : 0;
 			const long ephemeralLifetime = chatRoom->getEphemeralLifetime();
@@ -469,69 +490,80 @@ long long MainDbPrivate::insertChatRoom(const shared_ptr<AbstractChatRoom> &chat
 			const long long &dbConferenceInfoId = selectConferenceInfoId(peerSipAddressNoGruuId);
 			const long long conferenceInfoId = (dbConferenceInfoId <= 0) ? 0 : dbConferenceInfoId;
 
+			long long chatRoomAlternativeConferenceAddressId = -1;
+			long long chatRoomPeerSipAddressId = -1;
+			long long chatRoomLocalSipAddressId = -1;
+			if (keepGruu) {
+				chatRoomPeerSipAddressId = peerSipAddressId;
+				chatRoomLocalSipAddressId = localSipAddressId;
+				chatRoomAlternativeConferenceAddressId = alternativeConferenceAddressId;
+			} else {
+				chatRoomPeerSipAddressId = peerSipAddressNoGruuId;
+				chatRoomLocalSipAddressId = localSipAddressNoGruuId;
+				chatRoomAlternativeConferenceAddressId = alternativeConferenceAddressNoGruuId;
+			}
+
 			if (chatRoomId >= 0) {
 				if (rewriteAllInformations) {
 					lInfo() << "Update all informations in database related to " << *chatRoom;
-					*dbSession.getBackendSession() << "UPDATE chat_room SET"
-					                                  " creation_time = :creationTime, "
-					                                  " last_update_time = :lastUpdateTime, "
-					                                  " capabilities = :capabilities, "
-					                                  " subject = :subject, "
-					                                  " flags = :flags, "
-					                                  " last_notify_id = :lastNotifyId, "
-					                                  " ephemeral_enabled = :ephemeralEnabled, "
-					                                  " ephemeral_messages_lifetime = :ephemeralMessagesLifetime, "
-					                                  " conference_info_id = :conferenceInfoId "
-					                                  " WHERE id = :chatRoomId",
-					    soci::use(creationTime.first, creationTime.second),
+					*dbSession.getBackendSession()
+					    << "UPDATE chat_room SET"
+					       " peer_sip_address_id = :peerSipAddressId, creation_time = :creationTime, "
+					       " last_update_time = :lastUpdateTime, "
+					       " capabilities = :capabilities, "
+					       " subject = :subject, "
+					       " flags = :flags, "
+					       " last_notify_id = :lastNotifyId, "
+					       " ephemeral_enabled = :ephemeralEnabled, "
+					       " ephemeral_messages_lifetime = :ephemeralMessagesLifetime, "
+					       " conference_info_id = :conferenceInfoId, alternative_peer_address_id = "
+					       ":alternativePeerAddressId "
+					       " WHERE id = :chatRoomId",
+					    soci::use(chatRoomPeerSipAddressId), soci::use(creationTime.first, creationTime.second),
 					    soci::use(lastUpdateTime.first, lastUpdateTime.second), soci::use(capabilities),
 					    soci::use(subject), soci::use(flags), soci::use(notifyId), soci::use(ephemeralEnabled),
-					    soci::use(ephemeralLifetime), soci::use(conferenceInfoId), soci::use(chatRoomId);
+					    soci::use(ephemeralLifetime), soci::use(conferenceInfoId),
+					    soci::use(chatRoomAlternativeConferenceAddressId), soci::use(chatRoomId);
 				} else {
 					// The chat room is already stored in DB, but still update the notify id and the flags that might
 					// have changed
 					lInfo() << "Update " << *chatRoom << " in database";
-					*dbSession.getBackendSession() << "UPDATE chat_room SET"
-					                                  " last_notify_id = :lastNotifyId, "
-					                                  " flags = :flags "
-					                                  " WHERE id = :chatRoomId",
-					    soci::use(notifyId), soci::use(flags), soci::use(chatRoomId);
+					*dbSession.getBackendSession()
+					    << "UPDATE chat_room SET"
+					       " last_notify_id = :lastNotifyId, "
+					       " flags = :flags, alternative_peer_address_id = :alternativePeerAddressId "
+					       " WHERE id = :chatRoomId",
+					    soci::use(notifyId), soci::use(flags), soci::use(chatRoomAlternativeConferenceAddressId),
+					    soci::use(chatRoomId);
 				}
 			} else {
 				lInfo() << "Insert new " << *chatRoom << " in database";
-				long long chatRoomPeerSipAddressId = -1;
-				long long chatRoomLocalSipAddressId = -1;
-				bool keepGruu = conferenceId.getParams().getKeepGruu();
-				if (keepGruu) {
-					chatRoomPeerSipAddressId = peerSipAddressId;
-					chatRoomLocalSipAddressId = localSipAddressId;
-				} else {
-					chatRoomPeerSipAddressId = peerSipAddressNoGruuId;
-					chatRoomLocalSipAddressId = localSipAddressNoGruuId;
-				}
+
 				*dbSession.getBackendSession()
 				    << "INSERT INTO chat_room ("
 				       "  peer_sip_address_id, local_sip_address_id, creation_time,"
 				       "  last_update_time, capabilities, subject, flags, last_notify_id, "
 				       "ephemeral_enabled, ephemeral_messages_lifetime, "
-				       "ephemeral_messages_not_read_lifetime, conference_info_id"
+				       "ephemeral_messages_not_read_lifetime, conference_info_id, alternative_peer_address_id"
 				       ") VALUES ("
 				       "  :peerSipAddressId, :localSipAddressId, :creationTime,"
 				       "  :lastUpdateTime, :capabilities, :subject, :flags, :lastNotifyId, "
-				       ":ephemeralEnabled, :ephemeralLifeTime, :ephemeralNotReadLifeTime, :conferenceInfoId"
+				       ":ephemeralEnabled, :ephemeralLifeTime, :ephemeralNotReadLifeTime, :conferenceInfoId, "
+				       ":alternativePeerAddressId"
 				       ")",
 				    soci::use(chatRoomPeerSipAddressId), soci::use(chatRoomLocalSipAddressId),
 				    soci::use(creationTime.first, creationTime.second),
 				    soci::use(lastUpdateTime.first, lastUpdateTime.second), soci::use(capabilities), soci::use(subject),
 				    soci::use(flags), soci::use(notifyId), soci::use(ephemeralEnabled), soci::use(ephemeralLifetime),
-				    soci::use(ephemeralNotReadLifetime), soci::use(conferenceInfoId);
+				    soci::use(ephemeralNotReadLifetime), soci::use(conferenceInfoId),
+				    soci::use(chatRoomAlternativeConferenceAddressId);
 
 				chatRoomId = dbSession.getLastInsertId();
 			}
 
 			bool isBasic = (chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::Basic);
 			// Do not add 'me' when creating a server-chat-room.
-			if (*conferenceId.getLocalAddress() != *conferenceId.getPeerAddress()) {
+			if (!q->getCore()->conferenceServerEnabled()) {
 				shared_ptr<Participant> me = chatRoom->getMe();
 				long long meId =
 				    insertChatRoomParticipant(chatRoomId, insertSipAddress(me->getAddress()), me->isAdmin());
@@ -1205,11 +1237,11 @@ void MainDbPrivate::deleteChatRoom(const ConferenceId &conferenceId) {
 #endif
 }
 
-long long MainDbPrivate::selectChatRoomId(long long peerSipAddressId) const {
+long long MainDbPrivate::selectChatRoomIdByAlternativeAddress(long long peerSipAddressId) const {
 #ifdef HAVE_DB_STORAGE
 	long long chatRoomId;
 
-	std::string query = "SELECT id FROM chat_room WHERE peer_sip_address_id = :1";
+	std::string query = "SELECT id FROM chat_room WHERE alternative_peer_address_id = :1";
 
 	soci::session *session = dbSession.getBackendSession();
 	*session << query, soci::use(peerSipAddressId), soci::into(chatRoomId);
@@ -1219,6 +1251,26 @@ long long MainDbPrivate::selectChatRoomId(long long peerSipAddressId) const {
 	return -1;
 #endif
 }
+
+long long MainDbPrivate::selectChatRoomId(long long peerSipAddressId) const {
+#ifdef HAVE_DB_STORAGE
+	long long chatRoomId;
+
+	std::string query = "SELECT id FROM chat_room WHERE peer_sip_address_id = :1";
+
+	soci::session *session = dbSession.getBackendSession();
+	*session << query, soci::use(peerSipAddressId), soci::into(chatRoomId);
+
+	if (session->got_data()) {
+		return chatRoomId;
+	}
+
+	return selectChatRoomIdByAlternativeAddress(peerSipAddressId);
+#else
+	return -1;
+#endif
+}
+
 long long MainDbPrivate::selectChatRoomId(long long peerSipAddressId, long long localSipAddressId) const {
 #ifdef HAVE_DB_STORAGE
 	long long chatRoomId;
@@ -1227,7 +1279,11 @@ long long MainDbPrivate::selectChatRoomId(long long peerSipAddressId, long long 
 	*session << Statements::get(Statements::SelectChatRoomId), soci::use(peerSipAddressId),
 	    soci::use(localSipAddressId), soci::into(chatRoomId);
 
-	return session->got_data() ? chatRoomId : -1;
+	if (session->got_data()) {
+		return chatRoomId;
+	}
+
+	return selectChatRoomIdByAlternativeAddress(peerSipAddressId);
 #else
 	return -1;
 #endif
@@ -1475,6 +1531,10 @@ shared_ptr<EventLog> MainDbPrivate::selectConferenceInfoEvent(const ConferenceId
 			eventLog = selectConferenceParticipantDeviceEvent(conferenceId, type, row);
 			break;
 
+		case EventLog::Type::ConferenceAlternativeAddressChanged:
+			eventLog = selectConferenceAlternativeConferenceAddressChangedEvent(conferenceId, type, row);
+			break;
+
 		case EventLog::Type::ConferenceAvailableMediaChanged:
 			eventLog = selectConferenceAvailableMediaEvent(conferenceId, type, row);
 			break;
@@ -1574,6 +1634,15 @@ shared_ptr<EventLog> MainDbPrivate::selectConferenceParticipantEvent(const Confe
 	std::shared_ptr<Address> participantAddress = Address::create(row.get<string>(12));
 	std::shared_ptr<ConferenceParticipantEvent> event = make_shared<ConferenceParticipantEvent>(
 	    type, getConferenceEventCreationTimeFromRow(row), conferenceId, participantAddress);
+	event->setNotifyId(getConferenceEventNotifyIdFromRow(row));
+	return event;
+}
+
+shared_ptr<EventLog> MainDbPrivate::selectConferenceAlternativeConferenceAddressChangedEvent(
+    const ConferenceId &conferenceId, BCTBX_UNUSED(EventLog::Type type), const soci::row &row) const {
+	std::shared_ptr<Address> alternativeConferenceAddress = Address::create(row.get<string>(30));
+	shared_ptr<ConferenceAlternativeAddressEvent> event = make_shared<ConferenceAlternativeAddressEvent>(
+	    getConferenceEventCreationTimeFromRow(row), conferenceId, alternativeConferenceAddress);
 	event->setNotifyId(getConferenceEventNotifyIdFromRow(row));
 	return event;
 }
@@ -1978,6 +2047,33 @@ long long MainDbPrivate::insertConferenceNotifiedEvent(const shared_ptr<EventLog
 	    soci::use(curChatRoomId);
 
 	if (chatRoomId) *chatRoomId = curChatRoomId;
+
+	return eventId;
+#else
+	return -1;
+#endif
+}
+
+long long
+MainDbPrivate::insertConferenceAlternativeConferenceAddressChangedEvent(const shared_ptr<EventLog> &eventLog) {
+#ifdef HAVE_DB_STORAGE
+	long long curChatRoomId;
+	const long long &eventId = insertConferenceNotifiedEvent(eventLog, &curChatRoomId);
+	if (eventId < 0) return -1;
+
+	shared_ptr<ConferenceAlternativeAddressEvent> alternativeConferenceAddressEvent =
+	    static_pointer_cast<ConferenceAlternativeAddressEvent>(eventLog);
+
+	const long long &alternativeConferenceAddressId =
+	    insertSipAddress(alternativeConferenceAddressEvent->getAlternativeAddress());
+
+	*dbSession.getBackendSession() << "UPDATE chat_room SET alternative_peer_address_id = :1 WHERE id = :2",
+	    soci::use(alternativeConferenceAddressId), soci::use(curChatRoomId);
+
+	*dbSession.getBackendSession()
+	    << "INSERT INTO conference_alternative_conference_address_event (event_id, alternative_conference_address_id)"
+	       " VALUES (:eventId, :alternativeConferenceAddressId)",
+	    soci::use(eventId), soci::use(alternativeConferenceAddressId);
 
 	return eventId;
 #else
@@ -2770,6 +2866,8 @@ void MainDbPrivate::updateSchema() {
 	MainDb::Backend backend = q->getBackend();
 	const string charset = backend == MainDb::Backend::Mysql ? "DEFAULT CHARSET=utf8mb4" : "";
 
+	bool recreateConferenceEventView = false;
+
 	soci::session *session = dbSession.getBackendSession();
 	unsigned int eventsDbVersionInt = getModuleVersion("events");
 	Utils::Version eventDbVersion((eventsDbVersionInt >> 16) & 0xFF, (eventsDbVersionInt >> 8) & 0xFF,
@@ -2817,21 +2915,7 @@ void MainDbPrivate::updateSchema() {
 		*session << queryDisplay;
 	}
 	if (eventsDbVersionInt < makeVersion(1, 0, 6)) {
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, security_alert, faulty_device"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id";
+		recreateConferenceEventView = true;
 	}
 	if (eventsDbVersionInt < makeVersion(1, 0, 6) &&
 	    linphone_config_get_bool(linphone_core_get_config(q->getCore()->getCCore()), "lime", "migrate_to_secured_room",
@@ -2847,41 +2931,13 @@ void MainDbPrivate::updateSchema() {
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 8)) {
 		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN marked_as_read BOOLEAN NOT NULL DEFAULT 1";
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, security_alert, faulty_device, marked_as_read"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id";
+		recreateConferenceEventView = true;
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 9)) {
 		*session
 		    << "ALTER TABLE conference_chat_message_event ADD COLUMN forward_info VARCHAR(255) NOT NULL DEFAULT ''";
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id";
+		recreateConferenceEventView = true;
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 10)) {
@@ -2903,49 +2959,12 @@ void MainDbPrivate::updateSchema() {
 	if (eventsDbVersionInt < makeVersion(1, 0, 12)) {
 		*session << "ALTER TABLE chat_room ADD COLUMN ephemeral_enabled BOOLEAN NOT NULL DEFAULT 0";
 		*session << "ALTER TABLE chat_room ADD COLUMN ephemeral_messages_lifetime DOUBLE NOT NULL DEFAULT 86400";
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, "
-		            "security_alert, faulty_device, marked_as_read, forward_info, ephemeral_lifetime, expired_time, "
-		            "lifetime"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
-		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
-		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
-		            "event.id";
+		recreateConferenceEventView = true;
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 13)) {
 		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN call_id VARCHAR(255) DEFAULT ''";
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-		            "ephemeral_lifetime, expired_time, lifetime, call_id"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
-		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
-		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
-		            "event.id";
+		recreateConferenceEventView = true;
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 14)) {
@@ -2961,25 +2980,7 @@ void MainDbPrivate::updateSchema() {
 		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN reply_message_id VARCHAR(255) DEFAULT ''";
 		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN reply_sender_address_id " +
 		                dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " DEFAULT 0";
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-		            "ephemeral_lifetime, expired_time, lifetime, call_id, reply_message_id, reply_sender_address_id"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
-		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
-		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
-		            "event.id";
+		recreateConferenceEventView = true;
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 16)) {
@@ -3185,26 +3186,7 @@ void MainDbPrivate::updateSchema() {
 
 	try {
 		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN message_id VARCHAR(255) DEFAULT ''";
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-		            "ephemeral_lifetime, expired_time, lifetime, call_id, reply_message_id, reply_sender_address_id, "
-		            "message_id"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
-		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
-		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
-		            "event.id";
+		recreateConferenceEventView = true;
 	} catch (const soci::soci_error &e) {
 		lDebug() << "Caught exception " << e.what()
 		         << ": Column 'message_id' already exists in table 'conference_chat_message_event'";
@@ -3328,26 +3310,7 @@ void MainDbPrivate::updateSchema() {
 
 	try {
 		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN edited BOOLEAN NOT NULL DEFAULT 0";
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-		            "ephemeral_lifetime, expired_time, lifetime, call_id, reply_message_id, reply_sender_address_id, "
-		            "message_id, edited"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
-		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
-		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
-		            "event.id";
+		recreateConferenceEventView = true;
 	} catch (const soci::soci_error &e) {
 		lDebug() << "Caught exception " << e.what()
 		         << ": Column 'edited' already exists in table 'conference_chat_message_event'";
@@ -3355,26 +3318,7 @@ void MainDbPrivate::updateSchema() {
 
 	try {
 		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN retracted BOOLEAN NOT NULL DEFAULT 0";
-		*session << "DROP VIEW IF EXISTS conference_event_view";
-		*session << "CREATE VIEW conference_event_view AS"
-		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
-		            "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address_id, "
-		            "participant_sip_address_id, subject, delivery_notification_required, "
-		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-		            "ephemeral_lifetime, expired_time, lifetime, call_id, reply_message_id, reply_sender_address_id, "
-		            "message_id, edited, retracted"
-		            "  FROM event"
-		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
-		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
-		            "  LEFT JOIN conference_notified_event ON conference_notified_event.event_id = event.id"
-		            "  LEFT JOIN conference_participant_device_event ON conference_participant_device_event.event_id = "
-		            "event.id"
-		            "  LEFT JOIN conference_participant_event ON conference_participant_event.event_id = event.id"
-		            "  LEFT JOIN conference_subject_event ON conference_subject_event.event_id = event.id"
-		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
-		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
-		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
-		            "event.id";
+		recreateConferenceEventView = true;
 	} catch (const soci::soci_error &e) {
 		lDebug() << "Caught exception " << e.what()
 		         << ": Column 'retracted' already exists in table 'conference_chat_message_event'";
@@ -3398,6 +3342,33 @@ void MainDbPrivate::updateSchema() {
 	try {
 		*session << "ALTER TABLE chat_message_ephemeral_event ADD COLUMN ephemeral_not_read_lifetime DOUBLE NOT NULL "
 		            "DEFAULT 0";
+		recreateConferenceEventView = true;
+	} catch (const soci::soci_error &e) {
+		lDebug() << "Caught exception " << e.what()
+		         << ": Column 'ephemeral_not_read_lifetime' already exists in table 'chat_message_ephemeral_event'";
+	}
+
+	// ephemeral_enabled is deprecated. Update ephemeral_messages_lifetime from the enable value to keep previous
+	// deactivation.
+	*session << "UPDATE chat_room SET ephemeral_messages_lifetime = 0, ephemeral_messages_not_read_lifetime=0 WHERE "
+	            "ephemeral_enabled = 0;";
+
+	try {
+		*session << "ALTER TABLE chat_room ADD COLUMN alternative_peer_address_id " +
+		                dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " NOT NULL DEFAULT 0";
+		recreateConferenceEventView = true;
+	} catch (const soci::soci_error &e) {
+		lDebug() << "Caught exception " << e.what()
+		         << ": Column 'alternative_peer_address_id' already exists in table 'chat_rooms'";
+	}
+
+	try {
+		*session << "ALTER TABLE chat_room ADD COLUMN to_migrate BOOLEAN NOT NULL DEFAULT 0";
+	} catch (const soci::soci_error &e) {
+		lDebug() << "Caught exception " << e.what() << ": Column 'to_migrate' already exists in table 'chat_room'";
+	}
+
+	if (recreateConferenceEventView) {
 		*session << "DROP VIEW IF EXISTS conference_event_view";
 		*session << "CREATE VIEW conference_event_view AS"
 		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
@@ -3405,7 +3376,8 @@ void MainDbPrivate::updateSchema() {
 		            "participant_sip_address_id, subject, delivery_notification_required, "
 		            "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
 		            "ephemeral_lifetime, expired_time, lifetime, call_id, reply_message_id, reply_sender_address_id, "
-		            "message_id, edited, retracted, ephemeral_not_read_lifetime, not_read_lifetime"
+		            "message_id, edited, retracted, ephemeral_not_read_lifetime, not_read_lifetime, "
+		            "alternative_conference_address_id"
 		            "  FROM event"
 		            "  LEFT JOIN conference_event ON conference_event.event_id = event.id"
 		            "  LEFT JOIN conference_chat_message_event ON conference_chat_message_event.event_id = event.id"
@@ -3417,10 +3389,10 @@ void MainDbPrivate::updateSchema() {
 		            "  LEFT JOIN conference_security_event ON conference_security_event.event_id = event.id"
 		            "  LEFT JOIN chat_message_ephemeral_event ON chat_message_ephemeral_event.event_id = event.id"
 		            "  LEFT JOIN conference_ephemeral_message_event ON conference_ephemeral_message_event.event_id = "
+		            "event.id"
+		            "  LEFT JOIN conference_alternative_conference_address_event ON "
+		            "conference_alternative_conference_address_event.event_id = "
 		            "event.id";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'ephemeral_not_read_lifetime' already exists in table 'chat_message_ephemeral_event'";
 	}
 
 	// /!\ Warning : if varchar columns < 255 were to be indexed, their size must be set back to 191 = max indexable
@@ -3473,11 +3445,6 @@ void MainDbPrivate::updateSchema() {
 		                ") " +
 		                charset;
 	}
-	// ephemeral_enabled is deprecated. Update ephemeral_messages_lifetime from the enable value to keep previous
-	// deactivation.
-	*session << "UPDATE chat_room SET ephemeral_messages_lifetime = 0, ephemeral_messages_not_read_lifetime=0 WHERE "
-	            "ephemeral_enabled = 0;";
-
 #endif
 }
 
@@ -4064,6 +4031,24 @@ void MainDb::init() {
 		                "    REFERENCES conference_notified_event(event_id)"
 		                "    ON DELETE CASCADE,"
 		                "  FOREIGN KEY (participant_sip_address_id)"
+		                "    REFERENCES sip_address(id)"
+		                "    ON DELETE CASCADE"
+		                ") " +
+		                charset;
+
+		*session << "CREATE TABLE IF NOT EXISTS conference_alternative_conference_address_event ("
+		            "  event_id" +
+		                primaryKeyStr("BIGINT UNSIGNED") +
+		                ","
+
+		                " alternative_conference_address_id" +
+		                primaryKeyRefStr("BIGINT UNSIGNED") +
+		                " NOT NULL,"
+
+		                "  FOREIGN KEY (event_id)"
+		                "    REFERENCES conference_notified_event(event_id)"
+		                "    ON DELETE CASCADE,"
+		                "  FOREIGN KEY (alternative_conference_address_id)"
 		                "    REFERENCES sip_address(id)"
 		                "    ON DELETE CASCADE"
 		                ") " +
@@ -4754,6 +4739,10 @@ bool MainDb::addEvent(const shared_ptr<EventLog> &eventLog) {
 				eventId = d->insertConferenceChatMessageReactionEvent(eventLog);
 				break;
 
+			case EventLog::Type::ConferenceAlternativeAddressChanged:
+				eventId = d->insertConferenceAlternativeConferenceAddressChangedEvent(eventLog);
+				break;
+
 			case EventLog::Type::ConferenceParticipantAdded:
 			case EventLog::Type::ConferenceParticipantRemoved:
 			case EventLog::Type::ConferenceParticipantRoleUnknown:
@@ -4857,6 +4846,7 @@ bool MainDb::updateEvent(const shared_ptr<EventLog> &eventLog) {
 			case EventLog::Type::ConferenceEphemeralMessageManagedByAdmin:
 			case EventLog::Type::ConferenceEphemeralMessageManagedByParticipants:
 			case EventLog::Type::ConferenceAllowedParticipantListChanged:
+			case EventLog::Type::ConferenceAlternativeAddressChanged:
 				return false;
 		}
 
@@ -5014,7 +5004,6 @@ list<shared_ptr<EventLog>> MainDb::getConferenceNotifiedEvents(const ConferenceI
 		soci::session *session = d->dbSession.getBackendSession();
 
 		const long long &dbChatRoomId = d->selectChatRoomId(conferenceId);
-
 		list<shared_ptr<EventLog>> events;
 		soci::rowset<soci::row> rows = (session->prepare << query, soci::use(dbChatRoomId), soci::use(lastNotifyId));
 		for (const auto &row : rows)
@@ -5218,7 +5207,7 @@ list<shared_ptr<ChatMessage>> MainDb::getEphemeralMessages() const {
 	    "participant_sip_address.value, subject, delivery_notification_required, display_notification_required, "
 	    "security_alert, faulty_device, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
 	    "reply_message_id, reply_sender_address.value, message_id, edited, retracted, ephemeral_not_read_lifetime, "
-	    "not_read_lifetime, "
+	    "not_read_lifetime, alternative_conference_address.value, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -5227,6 +5216,8 @@ list<shared_ptr<ChatMessage>> MainDb::getEphemeralMessages() const {
 	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
 	    "participant_sip_address_id"
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
+	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
+	    "alternative_conference_address_id"
 	    " WHERE conference_event_view.id in ("
 	    " SELECT event_id"
 	    " FROM chat_message_ephemeral_event"
@@ -5594,7 +5585,7 @@ shared_ptr<ChatMessage> MainDb::getLastChatMessage(const ConferenceId &conferenc
 	    "delivery_notification_required, display_notification_required, peer_sip_address.value, "
 	    "local_sip_address.value, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
 	    "reply_message_id, reply_sender_address.value, message_id, edited, retracted, ephemeral_not_read_lifetime, "
-	    "not_read_lifetime"
+	    "not_read_lifetime, alternative_conference_address.value"
 	    " FROM conference_event_view"
 	    " JOIN chat_room ON chat_room.id = chat_room_id"
 	    " JOIN sip_address AS peer_sip_address ON peer_sip_address.id = peer_sip_address_id"
@@ -5605,6 +5596,8 @@ shared_ptr<ChatMessage> MainDb::getLastChatMessage(const ConferenceId &conferenc
 	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
 	    "participant_sip_address_id"
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
+	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
+	    "alternative_conference_address_id"
 	    " WHERE event_id = (SELECT last_message_id FROM chat_room WHERE id = :1)";
 
 	return L_DB_TRANSACTION {
@@ -5776,7 +5769,7 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromMessageId(const std::s
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
 	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, "
+	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -5784,6 +5777,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromMessageId(const std::s
 	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
 	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = participant_sip_address_id"
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
+	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
+	    "alternative_conference_address_id"
 	    " WHERE message_id = :messageId";
 
 	return L_DB_TRANSACTION {
@@ -5830,7 +5825,7 @@ MainDb::findChatMessagesFromImdnMessageId(const std::list<std::string> &imdnMess
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
 	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, "
+	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -5838,6 +5833,8 @@ MainDb::findChatMessagesFromImdnMessageId(const std::list<std::string> &imdnMess
 	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
 	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = participant_sip_address_id"
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
+	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
+	    "alternative_conference_address_id"
 	    " WHERE (imdn_message_id = ";
 
 	return L_DB_TRANSACTION {
@@ -5897,7 +5894,7 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromCallId(const std::stri
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
 	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, "
+	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -5906,6 +5903,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromCallId(const std::stri
 	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
 	    "participant_sip_address_id"
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
+	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
+	    "alternative_conference_address_id"
 	    " WHERE call_id = :callId";
 
 	return L_DB_TRANSACTION {
@@ -5957,7 +5956,7 @@ list<shared_ptr<ChatMessage>> MainDb::findQueuedChatMessages() const {
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
 	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, "
+	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -5966,6 +5965,8 @@ list<shared_ptr<ChatMessage>> MainDb::findQueuedChatMessages() const {
 	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
 	    "participant_sip_address_id"
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
+	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
+	    "alternative_conference_address_id"
 	    " WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE "
 	    "state = :queuedState AND direction = :direction AND CAST(" +
 	    timediffExpression + " As " + integerCastType + ") >= 0)";
@@ -6033,7 +6034,7 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesToBeNotifiedAsDelivered() 
 	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
 	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
 	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, "
+	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
 	    "chat_room_id"
 	    " FROM conference_event_view"
 	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
@@ -6042,6 +6043,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesToBeNotifiedAsDelivered() 
 	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
 	    "participant_sip_address_id"
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
+	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
+	    "alternative_conference_address_id"
 	    " WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE "
 	    "delivery_notification_required <> 0 AND direction = :direction AND CAST(" +
 	    timediffExpression + " As " + integerCastType + ") >= 0)";
@@ -6863,7 +6866,8 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 			    "SELECT chat_room.id, peer_sip_address.value, local_sip_address.value,"
 			    " creation_time, last_update_time, capabilities, subject, last_notify_id, flags, last_message_id,"
 			    " ephemeral_enabled, ephemeral_messages_lifetime, ephemeral_messages_not_read_lifetime,"
-			    " unread_messages_count.message_count, muted, conference_info_id"
+			    " unread_messages_count.message_count, muted, conference_info_id, alternative_peer_address_id, "
+			    "to_migrate"
 			    " FROM chat_room"
 			    " LEFT JOIN (SELECT conference_event.chat_room_id, count(*) as message_count"
 			    " FROM conference_chat_message_event, conference_event"
@@ -6873,7 +6877,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 			    " ON unread_messages_count.chat_room_id = chat_room.id"
 			    " , sip_address AS peer_sip_address, sip_address AS local_sip_address"
 			    " WHERE chat_room.peer_sip_address_id = peer_sip_address.id AND chat_room.local_sip_address_id = "
-			    "local_sip_address.id AND chat_room.id IN (" +
+			    "local_sip_address.id  AND chat_room.id IN (" +
 			    chatRoomIdsStr + ") ORDER BY last_update_time DESC";
 
 			soci::rowset<soci::row> chatRoomRows = (session->prepare << query);
@@ -6888,32 +6892,34 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 
 				std::string pAddressString = chatRoomRow.get<string>(1);
 				std::string lAddressString = chatRoomRow.get<string>(2);
-				Address pAddress(pAddressString, true);
-				Address lAddress;
+				std::shared_ptr<Address> pAddress = Address::create(pAddressString, true);
+				std::shared_ptr<Address> lAddress;
 				if (pAddressString == lAddressString) {
 					lAddress = pAddress;
 				} else {
-					lAddress = Address(lAddressString, true);
+					lAddress = Address::create(lAddressString, true);
 				}
-				bool conferenceIdChanged = (!keepGruu && (pAddress.hasUriParam("gr") || lAddress.hasUriParam("gr")));
+				bool conferenceIdChanged = (!keepGruu && (pAddress->hasUriParam(Address::kGrParameter) ||
+				                                          lAddress->hasUriParam(Address::kGrParameter)));
 				if (!chatroomDomain.empty()) {
-					if (chatroomDomain.compare(pAddress.getDomain()) != 0) {
-						pAddress.setDomain(chatroomDomain);
+					if (chatroomDomain.compare(pAddress->getDomain()) != 0) {
+						pAddress->setDomain(chatroomDomain);
 						conferenceIdChanged = true;
 					}
 					if (keepGruu) {
-						auto pAddressGr = pAddress.getUriParamValue("gr");
+						auto pAddressGr = pAddress->getUriParamValue(Address::kGrParameter);
 						if (!chatroomGr.empty() && (pAddressGr.empty() || chatroomGr.compare(pAddressGr) != 0)) {
-							pAddress.setUriParam("gr", chatroomGr);
+							pAddress->setUriParam(Address::kGrParameter, chatroomGr);
 							conferenceIdChanged = true;
 						}
 					}
 				}
 
-				ConferenceId conferenceId(std::move(pAddress), std::move(lAddress), conferenceIdParams);
+				ConferenceId conferenceId(pAddress, lAddress, conferenceIdParams);
 
 				const long long &dbChatRoomId = d->dbSession.resolveId(chatRoomRow, 0);
-				shared_ptr<AbstractChatRoom> chatRoom = core->findChatRoom(conferenceId, false);
+				shared_ptr<AbstractChatRoom> chatRoom =
+				    core->searchChatRoom(nullptr, conferenceId.getLocalAddress(), conferenceId.getPeerAddress(), {});
 				if (chatRoom) {
 					chatRoom->reload();
 					ChatRoomContext context(chatRoom, dbChatRoomId, false, false);
@@ -7030,6 +7036,11 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 							        << " as a server chat room is not expected to have it.";
 							deleteChatRoomParticipant(chatRoom, me->getAddress());
 						}
+
+						// Address unification flag applies only to conference based server chat rooms
+						if (!!chatRoomRow.get<int>(17)) {
+							chatRoom->scheduleAddressUnification();
+						}
 					} else {
 						if (!me) {
 							lError() << "Unable to find me (" << *localAddress << ") in: " << conferenceId;
@@ -7095,6 +7106,12 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 					}
 
 					conference->setInvitedParticipants(invitedParticipants);
+
+					if (auto alternativeAddressId = d->dbSession.resolveId(chatRoomRow, 16); alternativeAddressId > 0) {
+						conference->setAlternativeConferenceAddress(
+						    Address::create(d->selectSipAddressFromId(alternativeAddressId), true));
+					}
+
 #else
 					lWarning() << "Advanced IM such as group chat is disabled!";
 #endif
@@ -7647,7 +7664,7 @@ shared_ptr<EventLog> MainDb::searchChatMessagesByText(const ConferenceId &confer
 	    "  delivery_notification_required, display_notification_required, peer_sip_address.value, "
 	    "  local_sip_address.value, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
 	    "  reply_message_id, reply_sender_address.value, message_id, edited, retracted, ephemeral_not_read_lifetime, "
-	    " not_read_lifetime "
+	    " not_read_lifetime, alternative_conference_address.value "
 	    "FROM conference_event_view "
 	    "JOIN chat_room ON chat_room.id = chat_room_id "
 	    "JOIN sip_address AS peer_sip_address ON peer_sip_address.id = peer_sip_address_id "
@@ -7659,6 +7676,8 @@ shared_ptr<EventLog> MainDb::searchChatMessagesByText(const ConferenceId &confer
 	    "participant_sip_address_id "
 	    "LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id "
 	    "LEFT JOIN chat_message_content ON chat_message_content.event_id = conference_event_view.id "
+	    "LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
+	    "alternative_conference_address_id "
 	    "WHERE chat_room_id = :chatRoomId AND chat_message_content.content_type_id = 1 "
 	    "  AND chat_message_content.body LIKE '%" +
 	    patternToFind + "%' ";

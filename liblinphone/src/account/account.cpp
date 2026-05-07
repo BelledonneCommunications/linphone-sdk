@@ -175,7 +175,8 @@ LinphoneAccountAddressComparisonResult Account::isServerConfigChanged(std::share
 
 	result = compareLinphoneAddresses(oldProxy, newProxy);
 
-	if (mContactAddress && !mContactAddress->getUriParamValue("gr").empty() && result != LinphoneAccountAddressEqual) {
+	if (mContactAddress && !mContactAddress->getUriParamValue(Address::kGrParameter).empty() &&
+	    result != LinphoneAccountAddressEqual) {
 		// Returning weak equal to be sure no unregister will be done
 		result = LinphoneAccountAddressWeakEqual;
 		goto end;
@@ -1348,7 +1349,7 @@ void Account::update() {
 				auto gr = getCCore()->sal->getUuid();
 				if (gr.empty()) return;
 				addr = sip->clone()->toSharedPtr();
-				addr->setUriParam("gr", "urn:uuid:" + gr);
+				addr->setUriParam(Address::kGrParameter, "urn:uuid:" + gr);
 			}
 		}
 		auto account = this->getSharedFromThis();
@@ -1852,7 +1853,7 @@ void Account::onLimeAlgoChanged(const std::string &limeAlgo) {
 				auto gr = getCCore()->sal->getUuid();
 				if (gr.empty()) return;
 				addr = sip->clone()->toSharedPtr();
-				addr->setUriParam("gr", "urn:uuid:" + gr);
+				addr->setUriParam(Address::kGrParameter, "urn:uuid:" + gr);
 			}
 		}
 		auto account = this->getSharedFromThis();
