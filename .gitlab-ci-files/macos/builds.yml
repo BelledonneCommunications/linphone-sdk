@@ -7,6 +7,9 @@
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_MACOS_BUILDS != null
 
+  # Do not download artifacts from previous jobs
+  dependencies: []
+
   variables:
     DEFAULT_CMAKE_OPTIONS: -DPython3_ROOT_DIR=/opt/bc/pip-packages/
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
