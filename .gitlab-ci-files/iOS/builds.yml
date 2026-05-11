@@ -8,6 +8,8 @@
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
 
+  dependencies: []
+
   variables:
     CMAKE_PRESET: ios-sdk
 
@@ -255,7 +257,7 @@ ios-xcode-doc-arm64:
 # SPM Ninja
 #################################################
 
-  
+
 ios-ninja-spm:
   rules:
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_IOS == null

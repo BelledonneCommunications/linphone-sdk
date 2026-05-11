@@ -4,6 +4,8 @@
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
+  # Do not download artifacts from previous jobs
+  dependencies: []
   variables:
     BUILD_DIR: build/win
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
