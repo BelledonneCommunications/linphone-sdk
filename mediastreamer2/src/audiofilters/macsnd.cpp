@@ -234,8 +234,6 @@ MSSndCard *auCardDuplicate(MSSndCard *obj);
 
 MSSndCardDesc ca_card_desc = {.driver_type = "AudioUnit",
                               .detect = auCardDetect,
-                              .unload = auCardUnload,
-                              .reload_requested = auCardReloadRequested,
                               .init = auCardInit,
                               .set_level = auCardSetLevel,
                               .get_level = auCardGetLevel,
@@ -243,7 +241,9 @@ MSSndCardDesc ca_card_desc = {.driver_type = "AudioUnit",
                               .create_reader = msAuReadNew,
                               .create_writer = msAuWriteNew,
                               .uninit = auCardUninit,
-                              .duplicate = auCardDuplicate};
+                              .duplicate = auCardDuplicate,
+                              .unload = auCardUnload,
+                              .reload_requested = auCardReloadRequested};
 
 MSSndCard *auCardDuplicate(MSSndCard *obj) {
 	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
@@ -530,6 +530,13 @@ void auCardDetect(MSSndCardManager *m) {
 					loopbackInfo = LoopbackInfo(static_cast<int>(nb_channels), static_cast<int>(chanId - 1));
 					break;
 				}
+			}
+			if (!loopbackInfo.has_value() && nb_channels == 4 &&
+			    std::string(devname).find("EVO4") != std::string::npos) {
+				// When upgrading MacOS from Sequoia to Tahoe, channels names for the EVO4 became "3" and "4"
+				// While it used to be "Loop-back 1 (L)" and "Loop-back 2 (R)"
+				// This is a fallback until hopefully the firmware gets updated
+				loopbackInfo = LoopbackInfo(4, 2);
 			}
 		}
 
