@@ -8,6 +8,9 @@
   extends: .linux-prepare
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
+
+  # Do not download artifacts from previous jobs
+  dependencies: []
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
@@ -40,6 +43,8 @@
 
   stage: build
   extends: .linux-prepare
+  # Do not download artifacts from previous jobs
+  dependencies: []
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PYTHON_WRAPPER=ON -DENABLE_DOC=ON
   rules:
@@ -74,6 +79,8 @@
 
   stage: build
   extends: .linux-prepare
+  # Do not download artifacts from previous jobs
+  dependencies: []
   variables:
     CMAKE_OPTIONS: -DENABLE_DOC=ON
   rules:
@@ -107,6 +114,8 @@
   extends: .linux-prepare
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
+  # Do not download artifacts from previous jobs
+  dependencies: []
   rules:
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]

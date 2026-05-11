@@ -20,6 +20,9 @@ gentoo:
   tags: ["docker-flat"]
   image: !reference [.gentoo_image_version, image]
 
+  # Do not download artifacts from previous jobs
+  dependencies: []
+
   stage: build
 # Prevent repo fetching. The gentoo build system does its own fetching for each project.
   variables:
