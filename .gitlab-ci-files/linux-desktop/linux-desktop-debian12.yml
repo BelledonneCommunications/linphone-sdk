@@ -10,6 +10,18 @@ recache-debian12:
   extends: .recache-update-cache
   image: !reference [.debian12_image_version, image]
 
+wait-cache-synchro-debian12-java:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian12-java
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.wait-cache-synchro, rules]
+
+recache-debian12-java:
+  extends: .recache-update-cache
+  image: !reference [.debian12_java_image_version, image]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -163,7 +175,8 @@ debian12-ninja-java:
     ADDITIONAL_CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER_TESTER=ON
     <<: *cache_size
   extends: .linux-desktop-java
-
+  needs:
+    - wait-cache-synchro-debian12-java
 #################################################
 # TESTS
 #################################################
