@@ -11,6 +11,18 @@ recache-rocky8:
   extends: .recache-update-cache
   image: !reference [ .rocky8_image_version, image ]
 
+wait-cache-synchro-rocky8-python-wheel:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: rocky8-python-wheel
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [ .wait-cache-synchro, rules ]
+
+recache-rocky8-python-wheel:
+  extends: .recache-update-cache
+  image: !reference [ .rocky8_python_wrapper_image_version, image ]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -124,6 +136,8 @@ rocky8-ninja-clang-mysql:
     CXX: clang++
     CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+  needs:
+    - wait-cache-synchro-rocky8
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-rocky8
@@ -138,7 +152,7 @@ rocky8-python-wheel:
     ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.9 -DENABLE_VIDEO=OFF -DENABLE_SOUND=OFF
   extends: .linux-desktop-python
   needs:
-    - wait-cache-synchro-rocky8
+    -  wait-cache-synchro-rocky8-python-wheel
 
 #################################################
 # TESTS
