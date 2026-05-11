@@ -116,8 +116,10 @@ public:
 
 	void enableMandatoryMediaEncryption(bool value);
 	LinphoneMediaEncryption getMediaEncryption() const;
+	LinphoneMediaEncryptionStatus getMediaEncryptionStatus() const;
 	bool mandatoryMediaEncryptionEnabled() const;
 	void setMediaEncryption(LinphoneMediaEncryption encryption);
+	void setMediaEncryptionStatus(LinphoneMediaEncryptionStatus status);
 
 	SalMediaProto getMediaProto(const LinphoneMediaEncryption mediaEnc, const bool avpf) const;
 	SalMediaProto getMediaProto() const;

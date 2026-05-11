@@ -707,6 +707,10 @@ void Call::onEncryptionChanged(BCTBX_UNUSED(const shared_ptr<CallSession> &sessi
 	linphone_call_notify_encryption_changed(this->toC(), activated, L_STRING_TO_C(authToken));
 }
 
+void Call::onMediaEncryptionStatusChanged(LinphoneMediaEncryptionStatus status) {
+	linphone_call_notify_media_encryption_status_changed(this->toC(), status);
+}
+
 void Call::onAuthenticationTokenVerified(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session), bool verified) {
 	linphone_call_notify_authentication_token_verified(this->toC(), verified);
 }

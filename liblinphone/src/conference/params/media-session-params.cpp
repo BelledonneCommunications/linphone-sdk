@@ -65,6 +65,7 @@ void MediaSessionParamsPrivate::clone(const MediaSessionParamsPrivate *src) {
 	recordFilePath = src->recordFilePath;
 	earlyMediaSendingEnabled = src->earlyMediaSendingEnabled;
 	encryption = src->encryption;
+	encryptionStatus = src->encryptionStatus;
 	mandatoryMediaEncryptionEnabled = src->mandatoryMediaEncryptionEnabled;
 	_implicitRtcpFbEnabled = src->_implicitRtcpFbEnabled;
 	downBandwidth = src->downBandwidth;
@@ -296,6 +297,7 @@ void MediaSessionParams::initDefault(const std::shared_ptr<Core> &core, Linphone
 	d->realtimeTextEnabled = !!linphone_core_realtime_text_enabled(cCore);
 	d->realtimeTextKeepaliveInterval = linphone_core_get_realtime_text_keepalive_interval(cCore);
 	d->encryption = linphone_core_get_media_encryption(cCore);
+	d->encryptionStatus = LinphoneMediaEncryptionStatusInactive;
 	d->avpfEnabled = (linphone_core_get_avpf_mode(cCore) == LinphoneAVPFEnabled);
 	d->hasAvpfEnabledBeenSet = false;
 	d->_implicitRtcpFbEnabled =
@@ -580,6 +582,11 @@ LinphoneMediaEncryption MediaSessionParams::getMediaEncryption() const {
 	return d->encryption;
 }
 
+LinphoneMediaEncryptionStatus MediaSessionParams::getMediaEncryptionStatus() const {
+	L_D();
+	return d->encryptionStatus;
+}
+
 bool MediaSessionParams::mandatoryMediaEncryptionEnabled() const {
 	L_D();
 	return d->mandatoryMediaEncryptionEnabled;
@@ -588,6 +595,11 @@ bool MediaSessionParams::mandatoryMediaEncryptionEnabled() const {
 void MediaSessionParams::setMediaEncryption(LinphoneMediaEncryption encryption) {
 	L_D();
 	d->encryption = encryption;
+}
+
+void MediaSessionParams::setMediaEncryptionStatus(LinphoneMediaEncryptionStatus status) {
+	L_D();
+	d->encryptionStatus = status;
 }
 
 // -----------------------------------------------------------------------------

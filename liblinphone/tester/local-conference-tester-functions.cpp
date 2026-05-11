@@ -847,7 +847,7 @@ void check_call_establishment(std::initializer_list<std::reference_wrapper<CoreM
 			}));
 		}
 
-		if ((encryption == LinphoneMediaEncryptionDTLS) || (encryption == LinphoneMediaEncryptionZRTP)) {
+		if ((encryption != LinphoneMediaEncryptionNone)) {
 			BC_ASSERT_TRUE(wait_for_list(coresList, &mgr->stat.number_of_LinphoneCallEncryptedOn,
 			                             initial_stat.number_of_LinphoneCallEncryptedOn + 1,
 			                             liblinphone_tester_sip_timeout));

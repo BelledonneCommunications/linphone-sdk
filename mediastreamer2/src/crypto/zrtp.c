@@ -22,6 +22,7 @@
 
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/zrtp.h"
+#include "private.h"
 
 #ifdef _WIN32
 #include <malloc.h>
@@ -458,6 +459,10 @@ static int ms_zrtp_startSrtpSession(void *clientData, const bzrtpSrtpSecrets_t *
 		           bzrtp_algoToString(secrets->cipherAlgo), bzrtp_algoToString(secrets->keyAgreementAlgo),
 		           bzrtp_algoToString(secrets->hashAlgo), bzrtp_algoToString(secrets->authTagAlgo),
 		           bzrtp_algoToString(secrets->sasAlgo));
+		if (!verified) {
+			ms_media_stream_sessions_set_encryption_status(userData->stream_sessions, MediaStreamSendRecv,
+			                                               MSMediaEncryptionStatusZrtpSASCheckRequested);
+		}
 	}
 
 	ev = ortp_event_new(ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED);
@@ -899,6 +904,15 @@ int ms_zrtp_channel_start(MSZrtpContext *ctx) {
 		} else {
 			ms_message("Unable to start ZRTP channel, error code %x", retval);
 		}
+	} else {
+		ms_media_stream_sessions_set_encryption_status(ctx->stream_sessions, MediaStreamSendRecv,
+		                                               MSMediaEncryptionStatusInProgress);
+		// Send an event when we change the encryption status so when we add a stream, the change towards InProgress is
+		// processed
+		OrtpEvent *ev = ortp_event_new(ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED);
+		OrtpEventData *eventData = ortp_event_get_data(ev);
+		eventData->info.zrtp_stream_encrypted = 0;
+		rtp_session_dispatch_event(ctx->stream_sessions->rtp_session, ev);
 	}
 	return retval;
 }
@@ -919,6 +933,11 @@ void ms_zrtp_reset_transmition_timer(MSZrtpContext *ctx) {
 
 void ms_zrtp_sas_verified(MSZrtpContext *ctx) {
 	bzrtp_SASVerified(ctx->zrtpContext);
+	if (ms_media_stream_sessions_get_encryption_status(ctx->stream_sessions, MediaStreamSendRecv) ==
+	    MSMediaEncryptionStatusZrtpSASCheckRequested) {
+		ms_media_stream_sessions_set_encryption_status(ctx->stream_sessions, MediaStreamSendRecv,
+		                                               MSMediaEncryptionStatusActive);
+	}
 }
 
 uint8_t ms_zrtp_getAuxiliarySharedSecretMismatch(MSZrtpContext *ctx) {
@@ -927,6 +946,11 @@ uint8_t ms_zrtp_getAuxiliarySharedSecretMismatch(MSZrtpContext *ctx) {
 
 void ms_zrtp_sas_reset_verified(MSZrtpContext *ctx) {
 	bzrtp_resetSASVerified(ctx->zrtpContext);
+	if (ms_media_stream_sessions_get_encryption_status(ctx->stream_sessions, MediaStreamSendRecv) ==
+	    MSMediaEncryptionStatusActive) {
+		ms_media_stream_sessions_set_encryption_status(ctx->stream_sessions, MediaStreamSendRecv,
+		                                               MSMediaEncryptionStatusZrtpSASCheckRequested);
+	}
 }
 
 MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri, bctbx_mutex_t *dbMutex) {

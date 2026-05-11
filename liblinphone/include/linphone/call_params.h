@@ -303,6 +303,14 @@ LINPHONE_PUBLIC LinphoneMediaEncryption
 linphone_call_params_get_media_encryption(const LinphoneCallParams *call_params);
 
 /**
+ * Get the current status of media encryption for the call.
+ * @param call_params #LinphoneCallParams object @notnil
+ * @return The current #LinphoneMediaEncryptionStatus for the call.
+ **/
+LINPHONE_PUBLIC LinphoneMediaEncryptionStatus
+linphone_call_params_get_media_encryption_status(const LinphoneCallParams *call_params);
+
+/**
  * Get requested level of privacy for the call.
  * @param call_params #LinphoneCallParams object @notnil
  * @return The #LinphonePrivacyMask used for the call.

@@ -3731,9 +3731,14 @@ void MediaSessionPrivate::propagateEncryptionChanged() {
 		}
 	}
 
+	const auto currentStreamsGroupMediaEncryptionStatus = getStreamsGroup().getMediaEncryptionStatus();
+	if (currentStreamsGroupMediaEncryptionStatus != getCurrentParams()->getMediaEncryptionStatus()) {
+		getCurrentParams()->setMediaEncryptionStatus(currentStreamsGroupMediaEncryptionStatus);
+		q->notifyMediaEncryptionStatusChanged(currentStreamsGroupMediaEncryptionStatus);
+	}
 	mEncryptionStatus = getStreamsGroup().getEncryptionStatus();
 	if (mEncryptionStatus.isDowngradedComparedTo(oldEncryptionStatus)) {
-		if (mEncryptionStatus.getMediaEncryption() == LinphoneMediaEncryptionFail) {
+		if (mEncryptionStatus.getErrorStatus() != LinphoneMediaEncryptionErrorNone) {
 			lInfo() << __func__
 			        << " : Security level downgraded after failure: " << mEncryptionStatus.getErrorStatusString();
 		} else {
@@ -4071,6 +4076,11 @@ void MediaSessionPrivate::updateCurrentParams() const {
 	}
 
 	getCurrentParams()->setSrtpSuites(std::list<LinphoneSrtpSuite>{srtpSuite});
+	const auto currentStreamsGroupMediaEncryptionStatus = getStreamsGroup().getMediaEncryptionStatus();
+	if (currentStreamsGroupMediaEncryptionStatus != getCurrentParams()->getMediaEncryptionStatus()) {
+		getCurrentParams()->setMediaEncryptionStatus(currentStreamsGroupMediaEncryptionStatus);
+		q->notifyMediaEncryptionStatusChanged(currentStreamsGroupMediaEncryptionStatus);
+	}
 
 	bool updateEncryption = false;
 	bool validNegotiatedEncryption = false;
@@ -4090,10 +4100,6 @@ void MediaSessionPrivate::updateCurrentParams() const {
 			validNegotiatedEncryption = ((activeStreams == 0) || allStreamsAreEncrypted);
 			break;
 		case LinphoneMediaEncryptionNone:
-			updateEncryption = true;
-			validNegotiatedEncryption = true;
-			break;
-		case LinphoneMediaEncryptionFail:
 			updateEncryption = true;
 			validNegotiatedEncryption = true;
 			break;

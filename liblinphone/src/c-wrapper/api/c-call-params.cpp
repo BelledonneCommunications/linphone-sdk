@@ -306,6 +306,10 @@ LinphoneMediaEncryption linphone_call_params_get_media_encryption(const Linphone
 	return L_GET_CPP_PTR_FROM_C_OBJECT(params)->getMediaEncryption();
 }
 
+LinphoneMediaEncryptionStatus linphone_call_params_get_media_encryption_status(const LinphoneCallParams *params) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(params)->getMediaEncryptionStatus();
+}
+
 LinphonePrivacyMask linphone_call_params_get_privacy(const LinphoneCallParams *params) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(params)->getPrivacy();
 }

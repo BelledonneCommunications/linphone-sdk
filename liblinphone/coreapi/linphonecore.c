@@ -489,6 +489,16 @@ void linphone_core_cbs_set_call_encryption_changed(LinphoneCoreCbs *cbs, Linphon
 	cbs->vtable->call_encryption_changed = cb;
 }
 
+LinphoneCoreCbsCallMediaEncryptionStatusChangedCb
+linphone_core_cbs_get_call_media_encryption_status_changed(LinphoneCoreCbs *cbs) {
+	return cbs->vtable->call_media_encryption_status_changed;
+}
+
+void linphone_core_cbs_set_call_media_encryption_status_changed(LinphoneCoreCbs *cbs,
+                                                                LinphoneCoreCbsCallMediaEncryptionStatusChangedCb cb) {
+	cbs->vtable->call_media_encryption_status_changed = cb;
+}
+
 LinphoneCoreCbsCallSendMasterKeyChangedCb linphone_core_cbs_get_call_send_master_key_changed(LinphoneCoreCbs *cbs) {
 	return cbs->vtable->call_send_master_key_changed;
 }
@@ -8523,8 +8533,6 @@ int linphone_media_encryption_from_string(const char *value) {
 		return LinphoneMediaEncryptionZRTP;
 	} else if (strcmp(value, "LinphoneMediaEncryptionNone") == 0) {
 		return LinphoneMediaEncryptionNone;
-	} else if (strcmp(value, "LinphoneMediaEncryptionFail") == 0) {
-		return LinphoneMediaEncryptionFail;
 	} else {
 		ms_error("Unable to find LinphoneMediaEncryption for %s", value);
 		return -1;
@@ -8542,10 +8550,25 @@ const char *linphone_media_encryption_to_string(LinphoneMediaEncryption media_en
 			return "LinphoneMediaEncryptionZRTP";
 		case LinphoneMediaEncryptionNone:
 			return "LinphoneMediaEncryptionNone";
-		case LinphoneMediaEncryptionFail:
-			return "LinphoneMediaEncryptionFail";
 	}
 	ms_error("Invalid LinphoneMediaEncryption value %i", (int)media_encryption);
+	return "INVALID";
+}
+
+const char *linphone_media_encryption_status_to_string(LinphoneMediaEncryptionStatus status) {
+	switch (status) {
+		case LinphoneMediaEncryptionStatusFailed:
+			return "Media Encryption Failed";
+		case LinphoneMediaEncryptionStatusInactive:
+			return "Media Encryption Inactive";
+		case LinphoneMediaEncryptionStatusInProgress:
+			return "Media Encryption In Progress";
+		case LinphoneMediaEncryptionStatusZrtpSASCheckRequested:
+			return "Media Encryption Zrtp SAS check requested";
+		case LinphoneMediaEncryptionStatusActive:
+			return "Media Encryption Active";
+	}
+	ms_error("Invalid LinphoneMediaEncryptionSatus value %i", (int)status);
 	return "INVALID";
 }
 
@@ -8582,9 +8605,6 @@ bool_t linphone_core_media_encryption_supported(LinphoneCore *lc, LinphoneMediaE
 			menc_supported_by_library = ms_zrtp_available() && !lc->zrtp_not_available_simulation;
 			break;
 		case LinphoneMediaEncryptionNone:
-			menc_supported_by_library = TRUE;
-			break;
-		case LinphoneMediaEncryptionFail:
 			menc_supported_by_library = TRUE;
 			break;
 	}
@@ -8630,11 +8650,6 @@ LinphoneStatus linphone_core_set_media_encryption(LinphoneCore *lc, LinphoneMedi
 		case LinphoneMediaEncryptionNone:
 			type = "none";
 			ret = 0;
-			break;
-		case LinphoneMediaEncryptionFail:
-			ms_warning("Cannot set core media encryption to FAIL - fallback to None.");
-			type = "none";
-			ret = -1;
 			break;
 	}
 	linphone_config_set_string(lc->config, "sip", "media_encryption", type);

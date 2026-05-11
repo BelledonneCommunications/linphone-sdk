@@ -280,6 +280,13 @@ static void linphonec_call_encryption_changed(BCTBX_UNUSED(LinphoneCore *lc),
 	}
 }
 
+static void linphonec_call_media_encryption_status_changed(BCTBX_UNUSED(LinphoneCore *lc),
+                                                           LinphoneCall *call,
+                                                           LinphoneMediaEncryptionStatus status) {
+	linphonec_out("Call %i new media encryption status is %s.\n", id,
+	              linphone_media_encryption_status_to_string(status));
+}
+
 static void linphonec_call_state_changed(LinphoneCore *lc,
                                          LinphoneCall *call,
                                          LinphoneCallState st,
@@ -595,6 +602,7 @@ int main(int argc, char *argv[]) {
 	linphonec_vtable.refer_received = linphonec_display_refer;
 	linphonec_vtable.transfer_state_changed = linphonec_transfer_state_changed;
 	linphonec_vtable.call_encryption_changed = linphonec_call_encryption_changed;
+	linphonec_vtable.call_media_encryption_status_changed = linphonec_call_media_encryption_status_changed;
 
 	if (!linphonec_init(argc, argv)) exit(EXIT_FAILURE);
 

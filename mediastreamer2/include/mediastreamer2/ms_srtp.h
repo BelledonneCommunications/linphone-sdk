@@ -45,6 +45,19 @@ typedef enum _MSSrtpKeySource {
 	MSSrtpKeySourceUnavailable = 0xFF /**< The Srtp keys are not set for all sessions yet (stream is not secure)*/
 } MSSrtpKeySource;
 
+/**
+ * @brief Enum describing the current encryption status.
+ * keep theses definitions, some code rely on a comparison to establish which one is lowest in terms of security
+ **/
+typedef enum _MSMediaEncryptionStatus {
+	MSMediaEncryptionStatusFailed = -1,    /** media encryption handshake or negotiation failed */
+	MSMediaEncryptionStatusInactive = 0,   /**< No media encryption */
+	MSMediaEncryptionStatusInProgress = 1, /**< media encryption is negotiated, handshake is in progress */
+	MSMediaEncryptionStatusZrtpSASCheckRequested =
+	    2, /** specific to ZRTP: encryption succesfully negotiated but the SAS verification is needed */
+	MSMediaEncryptionStatusActive = 3 /**< media is encrypted */
+} MSMediaEncryptionStatus;
+
 /*
  * Crypto suite used configure encrypted stream*/
 typedef enum _MSCryptoSuite {
@@ -324,6 +337,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_ekt_full_tag_period(MSMediaStreamSes
  * returns the tag size in bytes
  */
 MS2_PUBLIC size_t ms_media_stream_sessions_get_auth_tag_size(const MSMediaStreamSessions *sessions);
+
 #ifdef __cplusplus
 }
 #endif

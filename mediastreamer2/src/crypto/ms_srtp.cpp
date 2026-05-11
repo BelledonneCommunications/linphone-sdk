@@ -137,7 +137,10 @@ size_t ms_srtp_get_auth_tag_size(MSCryptoSuite suite) {
 struct MSSrtpStreamStats {
 	MSSrtpKeySource mSource; /**< who provided the key (SDES, ZRTP, DTLS-SRTP) */
 	MSCryptoSuite mSuite;    /**< what crypto suite was set. Is set to MS_CRYPTO_SUITE_INVALID if setting fails */
-	MSSrtpStreamStats() : mSource{MSSrtpKeySourceUnavailable}, mSuite{MS_CRYPTO_SUITE_INVALID} {};
+	MSMediaEncryptionStatus mStatus;
+	MSSrtpStreamStats()
+	    : mSource{MSSrtpKeySourceUnavailable}, mSuite{MS_CRYPTO_SUITE_INVALID},
+	      mStatus{MSMediaEncryptionStatusInactive} {};
 };
 
 /**
@@ -1234,6 +1237,19 @@ int ms_add_srtp_stream(MSSrtpStreamContext *streamCtx,
 	return 0;
 }
 
+void ms_media_stream_srtp_stream_deactivate(MSSrtpStreamContext *streamCtx, bool is_inner) {
+	streamCtx->mSecured = false;
+	if (is_inner) {
+		streamCtx->mInnerStats.mSource = MSSrtpKeySourceUnavailable;
+		streamCtx->mInnerStats.mSuite = MS_CRYPTO_SUITE_INVALID;
+		streamCtx->mInnerStats.mStatus = MSMediaEncryptionStatusInactive;
+	} else {
+		streamCtx->mStats.mSource = MSSrtpKeySourceUnavailable;
+		streamCtx->mStats.mSuite = MS_CRYPTO_SUITE_INVALID;
+		streamCtx->mStats.mStatus = MSMediaEncryptionStatusInactive;
+	}
+}
+
 int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions,
                                           MSCryptoSuite suite,
                                           const uint8_t *key,
@@ -1261,46 +1277,27 @@ int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions,
 
 	/* When the key is NULL or suite set to INVALID, juste deactivate SRTP */
 	if (key == NULL || suite == MS_CRYPTO_SUITE_INVALID) {
-		if (is_inner) {
-			streamCtx->mInnerStats.mSource = MSSrtpKeySourceUnavailable;
-			streamCtx->mInnerStats.mSuite = MS_CRYPTO_SUITE_INVALID;
-		} else {
-			if (streamCtx->mSrtp) {
-				srtp_dealloc(streamCtx->mSrtp);
-				streamCtx->mSrtp = NULL;
-			}
-			streamCtx->mSecured = false;
-			streamCtx->mStats.mSource = MSSrtpKeySourceUnavailable;
-			streamCtx->mStats.mSuite = MS_CRYPTO_SUITE_INVALID;
+		ms_media_stream_srtp_stream_deactivate(streamCtx, is_inner);
+		if (!is_inner && streamCtx->mSrtp) {
+			srtp_dealloc(streamCtx->mSrtp);
+			streamCtx->mSrtp = NULL;
 		}
 	} else if ((error = ms_media_stream_session_fill_srtp_context(sessions, is_send, is_inner))) {
-		streamCtx->mSecured = false;
-		if (is_inner) {
-			streamCtx->mInnerStats.mSource = MSSrtpKeySourceUnavailable;
-			streamCtx->mInnerStats.mSuite = MS_CRYPTO_SUITE_INVALID;
-		} else {
-			streamCtx->mStats.mSource = MSSrtpKeySourceUnavailable;
-			streamCtx->mStats.mSuite = MS_CRYPTO_SUITE_INVALID;
-		}
+		ms_media_stream_srtp_stream_deactivate(streamCtx, is_inner);
 		ret = error;
 	} else if ((error = ms_add_srtp_stream(streamCtx, suite, key, key_length, is_send, is_inner, ssrc))) {
-		streamCtx->mSecured = false;
-		if (is_inner) {
-			streamCtx->mInnerStats.mSource = MSSrtpKeySourceUnavailable;
-			streamCtx->mInnerStats.mSuite = MS_CRYPTO_SUITE_INVALID;
-		} else {
-			streamCtx->mStats.mSource = MSSrtpKeySourceUnavailable;
-			streamCtx->mStats.mSuite = MS_CRYPTO_SUITE_INVALID;
-		}
+		ms_media_stream_srtp_stream_deactivate(streamCtx, is_inner);
 		ret = error;
 	} else {
 		if (is_inner) {
 			streamCtx->mInnerStats.mSource = source;
 			streamCtx->mInnerStats.mSuite = suite;
+			streamCtx->mInnerStats.mStatus = MSMediaEncryptionStatusActive;
 		} else {
 			streamCtx->mSecured = ms_srtp_is_crypto_policy_secure(suite);
 			streamCtx->mStats.mSource = source;
 			streamCtx->mStats.mSuite = suite;
+			streamCtx->mStats.mStatus = MSMediaEncryptionStatusActive;
 		}
 	}
 
@@ -1368,6 +1365,16 @@ void ms_media_stream_generate_and_set_srtp_keys_for_ekt(MSMediaStreamSessions *s
 }
 
 int srtp_init_done = 0;
+
+/** compare two encryption status and return the lowest in terms of security.
+ * this code rely on the enum definition order
+ */
+MSMediaEncryptionStatus MSMediaEncryptionStatus_Lowest(MSMediaEncryptionStatus one, MSMediaEncryptionStatus another) {
+	if (one == another) return one;
+	if (one < another) return one;
+	return another;
+}
+
 } // anonymous namespace
 
 /***********************************************/
@@ -1470,6 +1477,40 @@ extern "C" bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *
 	}
 
 	return FALSE;
+}
+
+extern "C" void ms_media_stream_sessions_set_encryption_status(MSMediaStreamSessions *sessions,
+                                                               MediaStreamDir dir,
+                                                               MSMediaEncryptionStatus status) {
+	check_and_create_srtp_context(sessions);
+	switch (dir) {
+		case MediaStreamSendRecv:
+			sessions->srtp_context->mSend.mStats.mStatus = status;
+			sessions->srtp_context->mRecv.mStats.mStatus = status;
+			break;
+		case MediaStreamSendOnly:
+			sessions->srtp_context->mSend.mStats.mStatus = status;
+			break;
+		case MediaStreamRecvOnly:
+			sessions->srtp_context->mRecv.mStats.mStatus = status;
+			break;
+	}
+}
+
+extern "C" MSMediaEncryptionStatus ms_media_stream_sessions_get_encryption_status(const MSMediaStreamSessions *sessions,
+                                                                                  MediaStreamDir dir) {
+	if (!sessions->srtp_context) return MSMediaEncryptionStatusInactive;
+
+	switch (dir) {
+		case MediaStreamSendRecv:
+			return MSMediaEncryptionStatus_Lowest(sessions->srtp_context->mSend.mStats.mStatus,
+			                                      sessions->srtp_context->mRecv.mStats.mStatus);
+		case MediaStreamSendOnly:
+			return sessions->srtp_context->mSend.mStats.mStatus;
+		case MediaStreamRecvOnly:
+			return sessions->srtp_context->mRecv.mStats.mStatus;
+	}
+	return MSMediaEncryptionStatusInactive;
 }
 
 extern "C" MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions,
@@ -1823,5 +1864,14 @@ extern "C" int ms_media_stream_sessions_set_ekt_full_tag_period(MSMediaStreamSes
 }
 extern "C" size_t ms_media_stream_sessions_get_auth_tag_size(const MSMediaStreamSessions *sessions) {
 	return 0;
+}
+extern "C" void ms_media_stream_sessions_set_encryption_status(MSMediaStreamSessions *sessions,
+                                                               MediaStreamDir dir,
+                                                               MSMediaEncryptionStatus status) {
+}
+
+extern "C" MSMediaEncryptionStatus ms_media_stream_sessions_get_encryption_status(const MSMediaStreamSessions *sessions,
+                                                                                  MediaStreamDir dir) {
+	return MSMediaEncryptionStatusInactive;
 }
 #endif

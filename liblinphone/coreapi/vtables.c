@@ -136,6 +136,13 @@ void linphone_core_notify_call_goclear_ack_sent(LinphoneCore *lc, LinphoneCall *
 	cleanup_dead_vtable_refs(lc);
 }
 
+void linphone_core_notify_call_media_encryption_status_changed(LinphoneCore *lc,
+                                                               LinphoneCall *call,
+                                                               LinphoneMediaEncryptionStatus status) {
+	NOTIFY_IF_EXIST(call_media_encryption_status_changed, lc, call, status);
+	cleanup_dead_vtable_refs(lc);
+}
+
 void linphone_core_notify_call_encryption_changed(LinphoneCore *lc,
                                                   LinphoneCall *call,
                                                   bool_t on,

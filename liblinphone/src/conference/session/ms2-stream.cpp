@@ -1686,6 +1686,32 @@ bool MS2Stream::isEncrypted() const {
 	return false;
 }
 
+LinphoneMediaEncryptionStatus MS2Stream::getMediaEncryptionStatus() const {
+	if (bundleEnabled() && !isTransportOwner()) {
+		if (mBundleOwner) {
+			return mBundleOwner->getMediaEncryptionStatus(); /* We must refer to the stream that owns the Rtp bundle.*/
+		} else {
+			lError() << "MS2Stream::getMediaEncryptionStatus(): no bundle owner !";
+		}
+	} else if (getMediaStream()) {
+		switch (ms_media_stream_get_encryption_status(getMediaStream())) {
+			case MSMediaEncryptionStatusFailed:
+				return LinphoneMediaEncryptionStatusFailed;
+			case MSMediaEncryptionStatusInProgress:
+				return LinphoneMediaEncryptionStatusInProgress;
+			case MSMediaEncryptionStatusZrtpSASCheckRequested:
+				return LinphoneMediaEncryptionStatusZrtpSASCheckRequested;
+			case MSMediaEncryptionStatusActive:
+				return LinphoneMediaEncryptionStatusActive;
+			case MSMediaEncryptionStatusInactive:
+			default:
+				return LinphoneMediaEncryptionStatusInactive;
+		}
+	}
+
+	return LinphoneMediaEncryptionStatusInactive;
+}
+
 bool MS2Stream::isMuted() const {
 	return mMuted;
 }

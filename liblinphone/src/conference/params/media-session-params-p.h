@@ -156,6 +156,7 @@ public:
 	bool earlyMediaSendingEnabled = false; /* Send real media even during early media (for outgoing calls) */
 
 	LinphoneMediaEncryption encryption = LinphoneMediaEncryptionNone;
+	LinphoneMediaEncryptionStatus encryptionStatus = LinphoneMediaEncryptionStatusInactive;
 	bool mandatoryMediaEncryptionEnabled = false;
 
 	bool rtpBundle = false;

@@ -110,16 +110,36 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_security_level_downgraded(LinphoneCal
  * Get the encryption changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current encryption changed callback.
+ * @deprecated 19/05/2026 use linphone_call_cbs_get_media_encryption_status_changed instead
  */
-LINPHONE_PUBLIC LinphoneCallCbsEncryptionChangedCb linphone_call_cbs_get_encryption_changed(LinphoneCallCbs *cbs);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneCallCbsEncryptionChangedCb
+linphone_call_cbs_get_encryption_changed(LinphoneCallCbs *cbs);
 
 /**
  * Set the encryption changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The encryption changed callback to be used.
+ * @deprecated 19/05/2026 use linphone_call_cbs_set_media_encryption_status_changed instead
  */
-LINPHONE_PUBLIC void linphone_call_cbs_set_encryption_changed(LinphoneCallCbs *cbs,
-                                                              LinphoneCallCbsEncryptionChangedCb cb);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void
+linphone_call_cbs_set_encryption_changed(LinphoneCallCbs *cbs, LinphoneCallCbsEncryptionChangedCb cb);
+
+/**
+ * Get the media encryption status changed callback.
+ * @param cbs #LinphoneCallCbs object. @notnil
+ * @return The current media encryption status changed callback.
+ */
+LINPHONE_PUBLIC LinphoneCallCbsMediaEncryptionStatusChangedCb
+linphone_call_cbs_get_media_encryption_status_changed(LinphoneCallCbs *cbs);
+
+/**
+ * Set the media encryption status changed callback.
+ * @param cbs #LinphoneCallCbs object. @notnil
+ * @param[in] cb The media encryption status changed callback to be used.
+ */
+LINPHONE_PUBLIC void
+linphone_call_cbs_set_media_encryption_status_changed(LinphoneCallCbs *cbs,
+                                                      LinphoneCallCbsMediaEncryptionStatusChangedCb cb);
 
 /**
  * Get the authentication token verified callback.

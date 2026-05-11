@@ -160,6 +160,13 @@ typedef void (*LinphoneCallCbsSecurityLevelDowngradedCb)(LinphoneCall *call);
 typedef void (*LinphoneCallCbsEncryptionChangedCb)(LinphoneCall *call, bool_t on, const char *authentication_token);
 
 /**
+ * Call media encryption status changed callback.
+ * @param call #LinphoneCall object whose encryption is changed. @notnil
+ * @param status the current media encryption status
+ */
+typedef void (*LinphoneCallCbsMediaEncryptionStatusChangedCb)(LinphoneCall *call, LinphoneMediaEncryptionStatus status);
+
+/**
  * Call authentication token verified callback.
  * @param call #LinphoneCall object whose authentication is verified. @notnil
  * @param verified Whether encryption is verified.

@@ -24,6 +24,10 @@
 #include "logger/logger.h"
 
 bool EncryptionStatus::isDowngradedComparedTo(const EncryptionStatus &other) const {
+	// When an error is present in current and not the other: downgrade
+	if (mError != LinphoneMediaEncryptionErrorNone && other.getErrorStatus() == LinphoneMediaEncryptionErrorNone) {
+		return true;
+	}
 	return compareMediaEncryption(other) || compareZrtpAuthTagAlgo(other) || compareZrtpCipherAlgo(other) ||
 	       compareZrtpHashAlgo(other) || compareZrtpKeyAgreementAlgo(other) || compareZrtpSasAlgo(other) ||
 	       compareSrtpSendSuite(other) || compareSrtpRecvSuite(other) || compareSrtpSendSource(other) ||
@@ -32,10 +36,6 @@ bool EncryptionStatus::isDowngradedComparedTo(const EncryptionStatus &other) con
 }
 
 LinphoneMediaEncryption EncryptionStatus::getMediaEncryption() const {
-	// When there is an errorCode -> something went wrong
-	if (mError != LinphoneMediaEncryptionErrorNone) {
-		return LinphoneMediaEncryptionFail;
-	}
 	// When send and receive source are different, setting is not complete (on going nego), returns invalid
 	auto sendSource = mSrtpInfo.send_source;
 	auto recvSource = mSrtpInfo.recv_source;
@@ -345,11 +345,8 @@ bool EncryptionStatus::compareMediaEncryption(const EncryptionStatus &other) con
 	const auto thisMediaEncryption = getMediaEncryption();
 	bool ret = false;
 	switch (otherMediaEncryption) {
-		case LinphoneMediaEncryptionFail:
-			ret = false;
-			break;
 		case LinphoneMediaEncryptionNone:
-			ret = thisMediaEncryption == LinphoneMediaEncryptionFail;
+			ret = false;
 			break;
 		case LinphoneMediaEncryptionSRTP:
 		case LinphoneMediaEncryptionDTLS:

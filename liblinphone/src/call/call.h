@@ -54,6 +54,7 @@ public:
 	LinphoneCallCbsGoClearAckSentCb goClearAckSentCb;
 	LinphoneCallCbsSecurityLevelDowngradedCb securityLevelDowngradedCb;
 	LinphoneCallCbsEncryptionChangedCb encryptionChangedCb;
+	LinphoneCallCbsMediaEncryptionStatusChangedCb mediaEncryptionStatusChangedCb;
 	LinphoneCallCbsAuthenticationTokenVerifiedCb authenticationTokenVerifiedCb;
 	LinphoneCallCbsSendMasterKeyChangedCb sendMasterKeyChangedCb;
 	LinphoneCallCbsReceiveMasterKeyChangedCb receiveMasterKeyChangedCb;
@@ -306,6 +307,7 @@ public:
 	void onEncryptionChanged(const std::shared_ptr<CallSession> &session,
 	                         bool activated,
 	                         const std::string &authToken) override;
+	void onMediaEncryptionStatusChanged(LinphoneMediaEncryptionStatus status) override;
 	void onAuthenticationTokenVerified(const std::shared_ptr<CallSession> &session, bool verified) override;
 	void onSendMasterKeyChanged(const std::shared_ptr<CallSession> &session, const std::string &masterKey) override;
 	void onReceiveMasterKeyChanged(const std::shared_ptr<CallSession> &session, const std::string &masterKey) override;

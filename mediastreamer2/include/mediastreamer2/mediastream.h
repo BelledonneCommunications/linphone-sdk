@@ -274,7 +274,7 @@ MS2_PUBLIC MSCryptoSuite media_stream_get_srtp_crypto_suite(const MediaStream *s
 
 /**
  * Get the source(SDES, ZRTP, DTLS-SRTP) of srtp key used to secure this stream
- * @param[in]		stream_sessions	Pointer to the stream session structure
+ * @param[in]		sessions	Pointer to the stream session structure
  * @param[in]		dir	stream direction (send, recv or both)
  * @param[in]		is_inner get the source of the inner encrytion if true
  * @return the srtp key source if they are consistent:
@@ -287,7 +287,7 @@ MS2_PUBLIC MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MS
 
 /**
  * Get the crypto suite used to secure this stream
- * @param[in]		stream_sessions	Pointer to the stream session structure
+ * @param[in]		sessions	Pointer to the stream session structure
  * @param[in]		dir	stream direction (send, recv or both)
  * @param[in]		is_inner get the suite of the inner encrytion if true
  * @return the srtp key crypto suite if they are consistent:
@@ -297,6 +297,13 @@ MS2_PUBLIC MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MS
 MS2_PUBLIC MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions,
                                                                         MediaStreamDir dir,
                                                                         bool_t is_inner);
+
+/**
+ * Get the encryption status, if this srtp context does not exists, returns inactive
+ * @param[in] 		stream MediaStream object
+ * @return		the encryption status(Fail, Inactive, InProgress, NeedZrtpSasVerify, Active)
+ */
+MS2_PUBLIC MSMediaEncryptionStatus ms_media_stream_get_encryption_status(const MediaStream *stream);
 
 /**
  * Tells whether AVPF is enabled or not.

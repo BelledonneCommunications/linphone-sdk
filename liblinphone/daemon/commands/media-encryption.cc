@@ -32,9 +32,6 @@ MediaEncryptionResponse::MediaEncryptionResponse(LinphoneCore *core) : Response(
 	ostringstream ost;
 	ost << "Encryption: ";
 	switch (encryption) {
-		case LinphoneMediaEncryptionFail:
-			ost << "fail\n";
-			break;
 		case LinphoneMediaEncryptionNone:
 			ost << "none\n";
 			break;

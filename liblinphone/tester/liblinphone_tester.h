@@ -483,6 +483,11 @@ typedef struct _stats {
 	int number_of_LinphoneCallSecurityLevelDowngraded;
 	int number_of_LinphoneCallEncryptedOn;
 	int number_of_LinphoneCallEncryptedOff;
+	int number_of_LinphoneCallMediaEncryptionFailed;
+	int number_of_LinphoneCallMediaEncryptionInactive;
+	int number_of_LinphoneCallMediaEncryptionInProgress;
+	int number_of_LinphoneCallMediaEncryptionZrtpSasCheckRequested;
+	int number_of_LinphoneCallMediaEncryptionActive;
 	int number_of_LinphoneCallAuthenticationTokenVerified;
 	int number_of_LinphoneCallIncorrectAuthenticationTokenSelected;
 	int number_of_LinphoneCallSendMasterKeyChanged;
@@ -826,6 +831,9 @@ void linphone_configuration_status(LinphoneCore *lc, LinphoneConfiguringState st
 void linphone_refer_asked(LinphoneCore *lc);
 void linphone_call_goclear_ack_sent(LinphoneCore *lc, LinphoneCall *call);
 void linphone_call_create_cbs_security_level_downgraded(LinphoneCall *call);
+void linphone_call_media_encryption_status_changed(LinphoneCore *lc,
+                                                   LinphoneCall *call,
+                                                   LinphoneMediaEncryptionStatus status);
 void linphone_call_encryption_changed(LinphoneCore *lc,
                                       LinphoneCall *call,
                                       bool_t on,

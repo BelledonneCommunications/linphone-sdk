@@ -735,6 +735,21 @@ MSCryptoSuite media_stream_get_srtp_crypto_suite(const MediaStream *stream, Medi
 	return MS_CRYPTO_SUITE_INVALID;
 }
 
+MSMediaEncryptionStatus ms_media_stream_get_encryption_status(const MediaStream *stream) {
+	if (stream->state != MSStreamStarted) return MSMediaEncryptionStatusInactive;
+
+	switch (stream->type) {
+		case MSAudio:
+		case MSText:
+		case MSVideo:
+			return ms_media_stream_sessions_get_encryption_status(&stream->sessions, stream->direction);
+		case MSUnknownMedia:
+		default:
+			break;
+	}
+	return MSMediaEncryptionStatusInactive;
+}
+
 bool_t media_stream_avpf_enabled(const MediaStream *stream) {
 	return rtp_session_avpf_enabled(stream->sessions.rtp_session);
 }

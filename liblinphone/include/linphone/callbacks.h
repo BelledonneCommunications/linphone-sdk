@@ -103,6 +103,16 @@ typedef void (*LinphoneCoreCbsCallReceiveMasterKeyChangedCb)(LinphoneCore *core,
                                                              const char *master_key);
 
 /**
+ * Call media encryption status changed callback.
+ * @param core the #LinphoneCore @notnil
+ * @param call the #LinphoneCall on which media encryption status is changed. @notnil
+ * @param status the current media encryption status.
+ */
+typedef void (*LinphoneCoreCbsCallMediaEncryptionStatusChangedCb)(LinphoneCore *core,
+                                                                  LinphoneCall *call,
+                                                                  LinphoneMediaEncryptionStatus status);
+
+/**
  * Call encryption changed callback.
  * @param core the #LinphoneCore @notnil
  * @param call the #LinphoneCall on which encryption is changed. @notnil

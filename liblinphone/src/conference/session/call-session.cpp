@@ -2845,6 +2845,19 @@ void CallSession::notifyEncryptionChanged(bool activated, const std::string &aut
 	}
 }
 
+void CallSession::notifyMediaEncryptionStatusChanged(LinphoneMediaEncryptionStatus status) const {
+	L_D();
+	// Copy list of listeners as the callback might delete one
+	auto listeners = d->listeners;
+	for (const auto &listener : listeners) {
+		auto listenerRef = listener.lock();
+		if (listenerRef) {
+			auto logContext = listenerRef->getLogContextualizer();
+			listenerRef->onMediaEncryptionStatusChanged(status);
+		}
+	}
+}
+
 void CallSession::notifyAuthenticationTokenVerified(bool verified) {
 	L_D();
 	// Copy list of listeners as the callback might delete one

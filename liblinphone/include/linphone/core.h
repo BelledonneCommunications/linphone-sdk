@@ -221,7 +221,9 @@ typedef struct _LinphoneCoreVTable {
 	LinphoneCoreDtmfReceivedCb dtmf_received;                  /**< A dtmf has been received received */
 	LinphoneCoreCbsReferReceivedCb refer_received;             /**< An out of call refer was received */
 	LinphoneCoreCbsCallGoClearAckSentCb call_goclear_ack_sent; /**< Notifies on sending of GoClear Ack */
-	LinphoneCoreCallEncryptionChangedCb
+	LinphoneCoreCbsCallMediaEncryptionStatusChangedCb
+	    call_media_encryption_status_changed; /**< Notifies on change in the media encryption status of call streams */
+	LinphoneCoreCbsCallEncryptionChangedCb
 	    call_encryption_changed; /**< Notifies on change in the encryption of call streams */
 	LinphoneCoreCbsCallSendMasterKeyChangedCb
 	    call_send_master_key_changed; /**< Notifies on change of the send master key of call streams */
@@ -779,17 +781,36 @@ LINPHONE_PUBLIC LinphoneCoreCbsCallGoClearAckSentCb linphone_core_cbs_get_call_g
  * Sets the #LinphoneCoreCbsCallEncryptionChangedCb callback.
  * @param cbs A #LinphoneCoreCbs. @notnil
  * @param cb The callback.
+ * @deprecated 19/05/2026 use linphone_core_cbs_set_call_media_encryption_status_changed instead
  */
-LINPHONE_PUBLIC void linphone_core_cbs_set_call_encryption_changed(LinphoneCoreCbs *cbs,
-                                                                   LinphoneCoreCbsCallEncryptionChangedCb cb);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void
+linphone_core_cbs_set_call_encryption_changed(LinphoneCoreCbs *cbs, LinphoneCoreCbsCallEncryptionChangedCb cb);
 
 /**
  * Gets the #LinphoneCoreCbsCallEncryptionChangedCb callback.
  * @param cbs A #LinphoneCoreCbs. @notnil
  * @return The callback.
+ * @deprecated 19/05/2026 use linphone_core_cbs_get_call_media_encryption_status_changed instead
  */
-LINPHONE_PUBLIC LinphoneCoreCbsCallEncryptionChangedCb
+LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneCoreCbsCallEncryptionChangedCb
 linphone_core_cbs_get_call_encryption_changed(LinphoneCoreCbs *cbs);
+
+/**
+ * Sets the #LinphoneCoreCbsCallMediaEncryptionStatusChangedCb callback.
+ * @param cbs A #LinphoneCoreCbs. @notnil
+ * @param cb The callback.
+ */
+LINPHONE_PUBLIC void
+linphone_core_cbs_set_call_media_encryption_status_changed(LinphoneCoreCbs *cbs,
+                                                           LinphoneCoreCbsCallMediaEncryptionStatusChangedCb cb);
+
+/**
+ * Gets the #LinphoneCoreCbsCallMediaEncryptionStatusChangedCb callback.
+ * @param cbs A #LinphoneCoreCbs. @notnil
+ * @return The callback.
+ */
+LINPHONE_PUBLIC LinphoneCoreCbsCallMediaEncryptionStatusChangedCb
+linphone_core_cbs_get_call_media_encryption_status_changed(LinphoneCoreCbs *cbs);
 
 /**
  * Sets the #LinphoneCoreCbsCallSendMasterKeyChangedCb callback.

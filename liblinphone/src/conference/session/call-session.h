@@ -236,6 +236,7 @@ public:
 	void notifyRemoteRecording(bool isRecording);
 	void notifySecurityLevelDowngraded();
 	void notifyEncryptionChanged(bool activated, const std::string &authToken);
+	void notifyMediaEncryptionStatusChanged(LinphoneMediaEncryptionStatus status) const;
 	void notifyAuthenticationTokenVerified(bool verified);
 	void notifyVideoDisplayErrorOccurred(int errorCode);
 

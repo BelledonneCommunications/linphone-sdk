@@ -121,6 +121,12 @@ void linphone_call_notify_encryption_changed(LinphoneCall *call, bool_t on, cons
 	linphone_core_notify_call_encryption_changed(linphone_call_get_core(call), call, on, authentication_token);
 }
 
+void linphone_call_notify_media_encryption_status_changed(LinphoneCall *call, LinphoneMediaEncryptionStatus status) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Call, Call::toCpp(call), linphone_call_cbs_get_media_encryption_status_changed,
+	                                  status);
+	linphone_core_notify_call_media_encryption_status_changed(linphone_call_get_core(call), call, status);
+}
+
 void linphone_call_notify_authentication_token_verified(LinphoneCall *call, bool_t verified) {
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Call, Call::toCpp(call), linphone_call_cbs_get_authentication_token_verified,
 	                                  verified);

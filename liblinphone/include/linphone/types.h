@@ -759,12 +759,25 @@ typedef enum _LinphoneMediaResourceMode {
  * @ingroup group_media_parameters
  **/
 typedef enum _LinphoneMediaEncryption {
-	LinphoneMediaEncryptionFail = -1, /**< Tried to encrypt media but something went wrong */
-	LinphoneMediaEncryptionNone = 0,  /**< No media encryption is used */
-	LinphoneMediaEncryptionSRTP = 1,  /**< Use SRTP media encryption */
-	LinphoneMediaEncryptionZRTP = 2,  /**< Use ZRTP media encryption */
-	LinphoneMediaEncryptionDTLS = 3   /**< Use DTLS media encryption */
+	LinphoneMediaEncryptionNone = 0, /**< No media encryption is used */
+	LinphoneMediaEncryptionSRTP = 1, /**< Use SRTP media encryption */
+	LinphoneMediaEncryptionZRTP = 2, /**< Use ZRTP media encryption */
+	LinphoneMediaEncryptionDTLS = 3  /**< Use DTLS media encryption */
 } LinphoneMediaEncryption;
+
+/**
+ * @brief Enum describing the status of media encryption types.
+ * Do not re-order or change the assigned values
+ * @ingroup group_media_parameters
+ **/
+typedef enum _LinphoneMediaEncryptionStatus {
+	LinphoneMediaEncryptionStatusFailed = -1,    /** media encryption handshake or negotiation failed */
+	LinphoneMediaEncryptionStatusInactive = 0,   /**< No media encryption */
+	LinphoneMediaEncryptionStatusInProgress = 1, /**< media encryption is negotiated, handshake is in progress */
+	LinphoneMediaEncryptionStatusZrtpSASCheckRequested =
+	    2, /** specific to ZRTP: encryption succesfully negotiated but the SAS verification is needed */
+	LinphoneMediaEncryptionStatusActive = 3 /**< media is encrypted */
+} LinphoneMediaEncryptionStatus;
 
 /**
  * @brief Enum describing the error encountered by the media encryption layer

@@ -105,6 +105,9 @@ public:
 	                                 BCTBX_UNUSED(bool activated),
 	                                 BCTBX_UNUSED(const std::string &authToken)) {
 	}
+	virtual void onMediaEncryptionStatusChanged(BCTBX_UNUSED(LinphoneMediaEncryptionStatus status)) {
+	}
+
 	virtual void onAuthenticationTokenVerified(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session),
 	                                           BCTBX_UNUSED(bool verified)) {
 	}

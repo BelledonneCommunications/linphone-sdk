@@ -148,6 +148,28 @@ extern MSOfferAnswerProvider h264_offer_answer_provider;
 
 /* compute current packet overhead */
 int ms_media_session_get_packet_overhead(const MSMediaStreamSessions *sessions);
+
+/**
+ * Set the encryption status, if this srtp context does not exists, create it unless we want to set the status to
+ * inactive
+ * @param[in/out]	sessions	The ms sessions holding srtp context
+ * @param[in]		dir		stream direction (send, recv or sendrecv)
+ * @param[in]		status		status to set in the context
+ */
+void ms_media_stream_sessions_set_encryption_status(MSMediaStreamSessions *sessions,
+                                                    MediaStreamDir dir,
+                                                    MSMediaEncryptionStatus status);
+
+/**
+ * Get the encryption status, if this srtp context does not exists, returns inactive
+ * @param[in]		sessions	The ms sessions holding srtp context
+ * @param[in]		dir		stream direction (send, recv or sendrecv). When sendrecv, returns the lowest status of both
+ * direction when they are different
+ * @return		the encryption status(Fail, Inactive, InProgress, NeedZrtpSasVerify, Active)
+ */
+MSMediaEncryptionStatus ms_media_stream_sessions_get_encryption_status(const MSMediaStreamSessions *sessions,
+                                                                       MediaStreamDir dir);
+
 #ifdef __cplusplus
 }
 #endif

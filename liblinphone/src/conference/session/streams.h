@@ -126,6 +126,7 @@ public:
 	virtual void goClearAckSent();
 	virtual void confirmGoClear();
 	virtual bool isEncrypted() const = 0;
+	virtual LinphoneMediaEncryptionStatus getMediaEncryptionStatus() const = 0;
 	virtual void tryEarlyMediaForking(const OfferAnswerContext &ctx) = 0;
 	virtual void finishEarlyMediaForking() = 0;
 	virtual float getCurrentQuality() = 0;
@@ -470,6 +471,9 @@ public:
 	bool isPortUsed(int port) const;
 	IceService &getIceService() const;
 	bool allStreamsEncrypted() const;
+	// return the lowest encryption status of the running streams, LinphoneMediaEncryptionStatus when no stream are
+	// running
+	LinphoneMediaEncryptionStatus getMediaEncryptionStatus() const;
 	// Returns true if at least one stream was started.
 	bool isStarted() const;
 	// Returns true if all streams are muted (from local source standpoint).

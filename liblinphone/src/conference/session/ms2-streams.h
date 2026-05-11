@@ -62,6 +62,7 @@ public:
 	virtual void stop() override;
 	virtual void finish() override;
 	virtual bool isEncrypted() const override;
+	virtual LinphoneMediaEncryptionStatus getMediaEncryptionStatus() const override;
 	/**
 	 * pass the given EKT to the underlying ms2 stream
 	 *
