@@ -4,10 +4,11 @@ wait-cache-synchro-debian12:
     BUILD_SUBTYPE: debian12
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
-    - !reference [.wait-cache-synchro, rules]
+    - !reference [.rules-merge-request-manual, rules]
 
 recache-debian12:
   extends: .recache-update-cache
+  allow_failure: true
   image: !reference [.debian12_image_version, image]
 
 wait-cache-synchro-debian12-java:
@@ -156,6 +157,8 @@ debian12-ninja-gcc-smallsdk:
   extends:
     - debian12-ninja-gcc
     - .smallsdk-cmake-options
+  needs:
+    - wait-cache-synchro-debian12-ninja-gcc-smallsdk
 
 debian12-ninja-gcc-openssl:
   rules:
@@ -172,6 +175,8 @@ debian12-ninja-gcc-openssl:
         - ccache/
   extends:
     - debian12-ninja-gcc
+  needs:
+    - wait-cache-synchro-debian12-ninja-gcc-openssl
 
 debian12-ninja-clang:
   tags: [ "docker" ]
@@ -226,7 +231,7 @@ debian12-ninja-clang-python-wheel:
   extends:
     - .linux-desktop-python
   needs:
-    - wait-cache-synchro-debian12
+    - wait-cache-synchro-debian12-ninja-clang-python-wheel
 
 debian12-ninja-java:
   tags: [ "docker" ]

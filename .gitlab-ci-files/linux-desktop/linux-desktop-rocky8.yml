@@ -18,10 +18,11 @@ wait-cache-synchro-rocky8-python-wheel:
     BUILD_SUBTYPE: rocky8-python-wheel
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
-    - !reference [ .wait-cache-synchro, rules ]
+    - !reference [.rules-merge-request-manual, rules]
 
 recache-rocky8-python-wheel:
   extends: .recache-update-cache
+  allow_failure: true
   image: !reference [ .rocky8_python_wrapper_image_version, image ]
 
 wait-cache-synchro-rocky8-ninja-gcc-tunnel-pq-h264-ekt:
