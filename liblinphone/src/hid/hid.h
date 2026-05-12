@@ -24,6 +24,7 @@
 #include <list>
 
 #include "hid-device.h"
+
 #include "linphone/utils/general.h"
 
 LINPHONE_BEGIN_NAMESPACE

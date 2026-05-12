@@ -401,6 +401,7 @@ endif()
 if(HidAPI_FOUND)
 	list(APPEND LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
 		hid/hid.h
+		hid/hid-descriptor.h
 		hid/hid-device.h
 	)
 endif()
@@ -748,6 +749,7 @@ endif()
 if(HidAPI_FOUND)
 	list(APPEND LINPHONE_CXX_OBJECTS_SOURCE_FILES
 		hid/hid.cpp
+		hid/hid-descriptor.cpp
 		hid/hid-device.cpp
 	)
 endif()

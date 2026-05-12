@@ -41,8 +41,6 @@
 #include "bctoolbox/defs.h"
 #include "bctoolbox/utils.hh"
 
-#include "json/json.h"
-
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/mseventqueue.h"
 #include "mediastreamer2/msjpegwriter.h"
@@ -82,11 +80,9 @@
 #include "linphone/api/c-account.h"
 #include "linphone/api/c-address.h"
 #include "linphone/lpconfig.h"
-#include "linphone/utils/algorithm.h"
 #include "linphone/utils/utils.h"
 #include "logger/logger.h"
 #include "paths/paths.h"
-#include "sal/sal_media_description.h"
 #include "search/remote-contact-directory.h"
 #include "vcard/carddav-params.h"
 
@@ -3819,7 +3815,7 @@ void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
 			return hidDevice->getSerialNumber() == device->getSerialNumber();
 		});
 		if (it == devices.end()) {
-			lInfo() << "HidDevice \"" << (*currentIt)->getName() << "\" has been unplugged";
+			lInfo() << "HidDevice \"" << (*currentIt)->getProductName() << "\" has been unplugged";
 			(*currentIt)->stopPollTimer();
 			d->hidDevices.erase(currentIt++);
 		} else {
@@ -3831,7 +3827,8 @@ void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
 
 	// Add devices that were not present before
 	for (const auto &device : devices) {
-		lInfo() << "Detected HidDevice \"" << device->getName() << "\"";
+		lInfo() << "Detected HidDevice \"" << device->getProductName() << "\"";
+		device->dumpDescriptor();
 		d->hidDevices.push_back(device);
 		device->startPollTimer();
 	}
