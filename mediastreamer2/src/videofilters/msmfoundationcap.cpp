@@ -715,7 +715,7 @@ task<bool> MSMFoundationUwpImpl::tryInitializeCaptureAsync() {
 			disposeMediaCapture();
 			return tryInitializeCaptureAsync();
 		} else {
-			ms_warning("[MSMFoundationCapUwp] 1. Failed to initialize media capture");
+			ms_warning("[MSMFoundationCapUwp] Failed to initialize media capture [0x%X]", e->HResult);
 			return task_from_result<bool>(false);
 		}
 	}
@@ -784,10 +784,10 @@ task<void> MSMFoundationUwpImpl::startReaderAsync() {
 			if (result == MediaFrameReaderStartStatus::Success) {
 				mStreaming = true;
 				ms_message("[MSMFoundationCapUwp] Start reader");
-			} else ms_warning("[MSMFoundationCapUwp] Cannot start Reader. Status is %X", result);
+			} else ms_warning("[MSMFoundationCapUwp] Cannot start Reader. Status is 0x%X", result);
 		} catch (Platform::Exception ^ e) {
 			std::wstring wsstrResult(e->Message->Data());
-			ms_warning("[MSMFoundationCapUwp] Exception on Reader StartAsync. Reader will not stream : %s [%X]",
+			ms_warning("[MSMFoundationCapUwp] Exception on Reader StartAsync. Reader will not stream : %s [0x%X]",
 			           make_string(wsstrResult).c_str(), e->HResult);
 		}
 		LeaveCriticalSection(&mCriticalSection);
@@ -808,7 +808,7 @@ void MSMFoundationUwpImpl::activate() {
 			        } catch (Platform::Exception ^ e) {
 				        std::wstring wsstr(mId->Data());
 				        std::wstring wsstrResult(e->Message->Data());
-				        ms_error("[MSMFoundationCapUwp] Cannot get Frame Source from %s : %s [%X]",
+				        ms_error("[MSMFoundationCapUwp] Cannot get Frame Source from %s : %s [0x%X]",
 				                 make_string(wsstr).c_str(), make_string(wsstrResult).c_str(), e->HResult);
 			        }
 			        return task_from_result();
@@ -872,7 +872,7 @@ void MSMFoundationUwpImpl::reader_FrameArrived(MediaFrameReader ^ reader, MediaF
 					if (frame) processFrame(frame);
 				} catch (Platform::Exception ^ e) {
 					std::wstring wsstrResult(e->Message->Data());
-					ms_error("[MSMFoundationCapUwp] Cannot acquire last frame : %s [%X]",
+					ms_error("[MSMFoundationCapUwp] Cannot acquire last frame : %s [0x%X]",
 					         make_string(wsstrResult).c_str(), e->HResult);
 				}
 			}
@@ -980,7 +980,7 @@ MSMFoundationUwpImpl::setMediaConfiguration(
 					if (mSource) create_task(mSource->SetFormatAsync(mediaFormat)).wait();
 				} catch (Platform::Exception ^ e) {
 					std::wstring wsstrResult(e->Message->Data());
-					ms_warning("[MSMFoundationCapUwp] SetFormatAsync failed : %s [%X]",
+					ms_warning("[MSMFoundationCapUwp] SetFormatAsync failed : %s [0x%X]",
 					           make_string(wsstrResult).c_str(), e->HResult);
 					ms_warning("%s", configsStr.c_str());
 					formatChanged = TRUE;
@@ -1010,7 +1010,7 @@ MSMFoundationUwpImpl::setMediaConfiguration(
 					           pixFmtToString(mVideoFormat), mFps);
 			});
 	} else if (!SUCCEEDED(hr)) {
-		ms_error("[MSMFoundationCapUwp] Cannot set the video format : %dx%d : %s, %f fps. [%X]", frameWidth,
+		ms_error("[MSMFoundationCapUwp] Cannot set the video format : %dx%d : %s, %f fps. [0x%X]", frameWidth,
 		         frameHeight, pixFmtToString(videoFormat), pFps, hr);
 		ms_error("%s", configsStr.c_str());
 	}
@@ -1025,7 +1025,7 @@ static MSMFoundationCap *ms_mfoundation_new() {
 static void ms_mfoundationcap_detect(MSWebCamManager *manager) {
 	HANDLE eventCompleted = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
 	if (!eventCompleted) {
-		ms_error("[MSMFoundationCapUwp] Could not create camera detection event [%X]", GetLastError());
+		ms_error("[MSMFoundationCapUwp] Could not create camera detection event [0x%X]", GetLastError());
 		return;
 	}
 	IAsyncOperation<DeviceInformationCollection ^> ^ enumOperation =
@@ -1134,7 +1134,7 @@ HRESULT MFDevices::getDevices() {
 			ms_warning("[MSMFoundationCapDesk] CoInitialize already call with different options [RPC_E_CHANGED_MODE]");
 			doUninitialize = false;
 		} else {
-			ms_error("[MSMFoundationCapDesk] Cannot get devices because of failed CoInitialize [%X]", hr);
+			ms_error("[MSMFoundationCapDesk] Cannot get devices because of failed CoInitialize [0x%X]", hr);
 			return hr;
 		}
 	}
@@ -1142,7 +1142,7 @@ HRESULT MFDevices::getDevices() {
 
 	hr = MFCreateAttributes(&mAttributes, 1);
 	if (FAILED(hr)) {
-		ms_error("[MSMFoundationCapDesk] Cannot get devices due to create enumeration attributes [%X]", hr);
+		ms_error("[MSMFoundationCapDesk] Cannot get devices due to create enumeration attributes [0x%X]", hr);
 		clean();
 		if (doUninitialize) CoUninitialize();
 		return hr;
@@ -1150,7 +1150,7 @@ HRESULT MFDevices::getDevices() {
 	// The attribute to be requested is devices that can capture video
 	hr = mAttributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
 	if (FAILED(hr)) {
-		ms_error("[MSMFoundationCapDesk] Cannot get devices due to capture attribute [%X]", hr);
+		ms_error("[MSMFoundationCapDesk] Cannot get devices due to capture attribute [0x%X]", hr);
 		clean();
 		if (doUninitialize) CoUninitialize();
 		return hr;
@@ -1158,7 +1158,7 @@ HRESULT MFDevices::getDevices() {
 	// Enummerate the video capture devices
 	hr = MFEnumDeviceSources(mAttributes, &mDevices, &mDevicesCount); //[desktop apps only]
 	if (FAILED(hr)) {
-		ms_error("[MSMFoundationCapDesk] Cannot enumerate capture devices from MFEnumDeviceSources [%X]", hr);
+		ms_error("[MSMFoundationCapDesk] Cannot enumerate capture devices from MFEnumDeviceSources [0x%X]", hr);
 		clean();
 	}
 	if (doUninitialize) CoUninitialize();
@@ -1497,7 +1497,7 @@ MSMFoundationDesktopImpl::setMediaConfiguration(
 						}
 					}
 					if (!SUCCEEDED(hr)) {
-						ms_error("[MSMFoundationCapDesk] Cannot restart device with the new configuration [%X]", hr);
+						ms_error("[MSMFoundationCapDesk] Cannot restart device with the new configuration [0x%X]", hr);
 					}
 				}
 				if (SUCCEEDED(hr)) getStride(mediaType, &stride);
@@ -1542,7 +1542,7 @@ MSMFoundationDesktopImpl::setMediaConfiguration(
 				ms_message("%s", configs.toString().c_str());
 			}
 		} else {
-			ms_error("[MSMFoundationCapDesk] Cannot set the video format : %dx%d : %s, %f fps. [%X]", frameWidth,
+			ms_error("[MSMFoundationCapDesk] Cannot set the video format : %dx%d : %s, %f fps. [0x%X]", frameWidth,
 			         frameHeight, pixFmtToString(videoFormat), pFps, hr);
 			ms_message("%s", configs.toString().c_str());
 		}
@@ -1565,19 +1565,20 @@ HRESULT MSMFoundationDesktopImpl::setSourceReader(IMFActivate *device) {
 	if (SUCCEEDED(hr)) // Allocate attributes
 		hr = MFCreateAttributes(&attributes, 2);
 	else
-		ms_error("[MSMFoundationCapDesk] Cannot create source reader because of failing attributes allocation [%X]",
+		ms_error("[MSMFoundationCapDesk] Cannot create source reader because of failing attributes allocation [0x%X]",
 		         hr);
 	if (SUCCEEDED(hr)) // get attributes
 		hr = attributes->SetUINT32(MF_READWRITE_DISABLE_CONVERTERS, TRUE);
-	else ms_error("[MSMFoundationCapDesk] Cannot create source reader because of failing attributes setting [%X]", hr);
+	else
+		ms_error("[MSMFoundationCapDesk] Cannot create source reader because of failing attributes setting [0x%X]", hr);
 	if (SUCCEEDED(hr)) // Set the callback pointer.
 		hr = attributes->SetUnknown(MF_SOURCE_READER_ASYNC_CALLBACK, this);
 	else
-		ms_error("[MSMFoundationCapDesk] Cannot create source reader because of failing callback initialization [%X]",
+		ms_error("[MSMFoundationCapDesk] Cannot create source reader because of failing callback initialization [0x%X]",
 		         hr);
 	if (SUCCEEDED(hr)) // Create the source reader
 		hr = MFCreateSourceReaderFromMediaSource(source, attributes, &mSourceReader);
-	else ms_error("[MSMFoundationCapDesk] Cannot create source reader from media source [%X]", hr);
+	else ms_error("[MSMFoundationCapDesk] Cannot create source reader from media source [0x%X]", hr);
 	if (SUCCEEDED(hr)) { // Try to find a suitable output type.
 		hr = setMediaConfiguration(mVideoFormat, mWidth, mHeight, mFps, TRUE);
 	}
@@ -1611,7 +1612,7 @@ HRESULT MSMFoundationDesktopImpl::restartWithNewConfiguration(GUID videoFormat,
 	hr = setMediaConfiguration(videoFormat, frameWidth, frameHeight, pFps, FALSE);
 	if (SUCCEEDED(hr)) {
 		start();
-	} else ms_error("[MSMFoundationCapDesk] Cannot restart device with the new configuration [%X]", hr);
+	} else ms_error("[MSMFoundationCapDesk] Cannot restart device with the new configuration [0x%X]", hr);
 	return hr;
 }
 

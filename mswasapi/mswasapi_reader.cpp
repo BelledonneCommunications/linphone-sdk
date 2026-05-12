@@ -74,11 +74,11 @@ int MSWASAPIReader::feed(MSFilter *f) {
 	if (isStarted()) {
 		result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
 		while (numFramesInNextPacket != 0) {
-			REPORT_ERROR("mswasapi: Could not get next packet size for the MSWASAPI audio input interface [%x]",
+			REPORT_ERROR("mswasapi: Could not get next packet size for the MSWASAPI audio input interface [0x%X]",
 			             result);
 
 			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, &devicePosition, NULL);
-			REPORT_ERROR("mswasapi: Could not get buffer from the MSWASAPI audio input interface [%x]", result);
+			REPORT_ERROR("mswasapi: Could not get buffer from the MSWASAPI audio input interface [0x%X]", result);
 			if (numFramesAvailable > 0) {
 				m = allocb(numFramesAvailable * bytesPerFrame, 0);
 				if (m == NULL) {
@@ -93,7 +93,7 @@ int MSWASAPIReader::feed(MSFilter *f) {
 					memcpy(m->b_wptr, pData, numFramesAvailable * bytesPerFrame);
 				}
 				result = mAudioCaptureClient->ReleaseBuffer(numFramesAvailable);
-				REPORT_ERROR("mswasapi: Could not release buffer of the MSWASAPI audio input interface [%x]", result);
+				REPORT_ERROR("mswasapi: Could not release buffer of the MSWASAPI audio input interface [0x%X]", result);
 
 				m->b_wptr += numFramesAvailable * bytesPerFrame;
 				// Ticker has been desynchronized either by not setting the device position, or by being erroneous.
