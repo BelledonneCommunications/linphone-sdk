@@ -90,6 +90,9 @@ public:
 	string asString(bool withRemoteSpecificParams = true) const;
 	void readPushParamsFromString(string const &serializedConfig);
 
+	void readFromConfig(LinphoneConfig *config, const std::string &section);
+	void writeToConfig(LinphoneConfig *config, const std::string &section, bool withRemoteSpecificParams);
+
 private:
 	string mTeamId;
 	string mBundleIdentifer;

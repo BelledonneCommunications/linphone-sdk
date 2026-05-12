@@ -121,6 +121,7 @@
 #include "friend/friend-list.h"
 #include "http/http-client.h"
 #include "presence/presence-model.h"
+#include "push-notification/push-notification-config.h"
 #include "sal/sal.h"
 #include "vcard/vcard-context.h"
 #ifdef HAVE_CONFIG_H
@@ -3252,9 +3253,19 @@ void linphone_core_set_push_notification_config(LinphoneCore *core, LinphonePush
 	}
 }
 
+void linphone_core_store_push_notification_config(LinphoneCore *lc) {
+	bool withRemoteSpecificParams = false;
+#if TARGET_OS_IPHONE
+	withRemoteSpecificParams = true;
+#endif
+	PushNotificationConfig::toCpp(lc->push_config)
+	    ->writeToConfig(lc->config, "push_notification", withRemoteSpecificParams);
+}
+
 void linphone_core_update_push_notification_information(LinphoneCore *core, const char *param, const char *prid) {
 	linphone_push_notification_config_set_param(core->push_config, param);
 	linphone_push_notification_config_set_prid(core->push_config, prid);
+	linphone_core_store_push_notification_config(core);
 
 	for (auto cppAccount : L_GET_CPP_PTR_FROM_C_OBJECT(core)->getAccounts()) {
 		LinphoneAccount *account = cppAccount->toC();
@@ -3491,6 +3502,9 @@ static void linphone_core_init(LinphoneCore *lc,
 
 	belr::GrammarLoader::get().addPath(
 	    std::string(linphone_factory_get_top_resources_dir(lfactory)).append("/belr/grammars"));
+
+	// Wait from GrammarLoader to read push config!
+	PushNotificationConfig::toCpp(lc->push_config)->readFromConfig(lc->config, "push_notification");
 
 	_linphone_core_init_account_creator_service(lc);
 
@@ -7353,6 +7367,7 @@ void sip_config_uninit(LinphoneCore *lc) {
 	lc->sip_conf = {0};
 
 	if (lc->push_config) {
+		linphone_core_store_push_notification_config(lc);
 		linphone_push_notification_config_unref(lc->push_config);
 		lc->push_config = nullptr;
 	}

@@ -61,7 +61,8 @@ void linphone_push_notification_config_set_provider(LinphonePushNotificationConf
 	PushNotificationConfig::toCpp(push_cfg)->setProvider(L_C_TO_STRING(provider));
 }
 
-void linphone_push_notification_config_set_remote_push_interval(LinphonePushNotificationConfig *push_cfg, const char *remote_push_interval) {
+void linphone_push_notification_config_set_remote_push_interval(LinphonePushNotificationConfig *push_cfg,
+                                                                const char *remote_push_interval) {
 	PushNotificationConfig::toCpp(push_cfg)->setRemotePushInterval(L_C_TO_STRING(remote_push_interval));
 }
 
