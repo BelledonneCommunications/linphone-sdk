@@ -143,6 +143,11 @@ void ChatMessagePrivate::setDirection(ChatMessage::Direction dir) {
 	direction = dir;
 }
 
+ChatMessage::Direction ChatMessagePrivate::getRawDirection() const {
+	return direction == ChatMessage::Direction::Outgoing && originallyReceived ? ChatMessage::Direction::Incoming
+	                                                                           : direction;
+}
+
 void ChatMessagePrivate::setTime(time_t t) {
 	time = t;
 }
@@ -208,11 +213,11 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 
 	if (!chatMessageFsmChecker.isValid(currentState, newState)) {
 		if (isBasicChatRoom) {
-			lWarning() << "Chat message " << sharedMessage << ": Invalid transaction of message in basic chat room "
+			lWarning() << "Chat message " << sharedMessage << ": Invalid transition of message in basic chat room "
 			           << conferenceAddressStr << " from state " << Utils::toString(currentState) << " to state "
 			           << Utils::toString(newState);
 		} else {
-			lWarning() << "Chat message " << sharedMessage << ": Invalid transaction of participant "
+			lWarning() << "Chat message " << sharedMessage << ": Invalid transition of participant "
 			           << *participantAddress << " from state " << Utils::toString(currentState) << " to state "
 			           << Utils::toString(newState);
 		}
@@ -224,8 +229,8 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 	         << " to state " << Utils::toString(newState);
 
 	const auto isMe = chatRoom->isMe(participantAddress);
-	// Send IMDN if the participant whose state changes is me
-	if (isMe) {
+	// Send IMDN if the participant whose state changes is me, and if the message was an incoming one of course.
+	if (isMe && getRawDirection() == ChatMessage::Direction::Incoming) {
 		switch (newState) {
 			case ChatMessage::State::Displayed:
 				chatRoom->sendDisplayNotification(sharedMessage);
@@ -1231,10 +1236,13 @@ LinphoneReason ChatMessagePrivate::receive() {
 	setParticipantState(meAddress, ChatMessage::State::Delivered, ::ms_time(nullptr));
 
 	// Check if this is in fact an outgoing message (case where this is a message sent by us from an other device).
+	// From application standpoint it is really outgoing message.
+	// The fact that it was originally a received message is kept in originallyReceived boolean.
 	const bool isFlexisipChatRoom =
 	    (chatRoomParams->getChatParams()->getBackend() == ChatParams::Backend::FlexisipChat);
 	if (isFlexisipChatRoom && (chatRoom->getLocalAddress()->weakEqual(*mFromAddress))) {
 		setDirection(ChatMessage::Direction::Outgoing);
+		originallyReceived = true;
 	}
 
 	if (errorCode <= 0) {

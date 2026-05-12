@@ -76,6 +76,8 @@ public:
 	void resetStorageId();
 
 	void setDirection(ChatMessage::Direction dir);
+	/* Returns the direction of the message from a protocol (not application) standpoint */
+	ChatMessage::Direction getRawDirection() const;
 
 	void setParticipantState(const std::shared_ptr<Address> &participantAddress,
 	                         ChatMessage::State newState,
@@ -326,7 +328,6 @@ private:
 	SalCustomHeader *salCustomHeaders = nullptr;
 	int currentSendStep = Step::None;
 	int currentRecvStep = Step::None;
-	bool applyModifiers = true;
 	FileTransferChatMessageModifier fileTransferChatMessageModifier;
 
 	// Cache for returned values, used for compatibility with previous C API
@@ -343,8 +344,6 @@ private:
 	std::shared_ptr<Address> mFromAddress;
 	std::shared_ptr<Address> mToAddress;
 	Address authenticatedFromAddress;
-	bool senderAuthenticationEnabled = true;
-	bool unencryptedContentWarning = false;
 
 	ChatMessage::State state = ChatMessage::State::Idle;
 	ChatMessage::Direction direction = ChatMessage::Direction::Incoming;
@@ -356,23 +355,25 @@ private:
 	std::shared_ptr<Address> replyingToMessageSender;
 	std::shared_ptr<Address> recipientAddress;
 
-	bool isEphemeral = false;
 	long ephemeralLifetime = 0;
 	long ephemeralNotReadLifetime = 0;
 	time_t ephemeralExpireTime = 0;
 
-	bool mDelayTimerExpired = false;
-
 	std::list<std::shared_ptr<Content>> contents;
 	mutable std::list<std::shared_ptr<ChatMessageReaction>> reactions;
+	std::set<std::shared_ptr<ChatMessageListener>, SharedPtrCompare<ChatMessageListener>> mListeners;
 
+	bool applyModifiers = true;
 	bool encryptionPrevented = false;
 	mutable bool contentsNotLoadedFromDatabase = false;
 	bool isInAggregationQueue = false;
 	bool isEdited = false;
 	bool isRetracted = false;
-
-	std::set<std::shared_ptr<ChatMessageListener>, SharedPtrCompare<ChatMessageListener>> mListeners;
+	bool originallyReceived = false;
+	bool mDelayTimerExpired = false;
+	bool isEphemeral = false;
+	bool senderAuthenticationEnabled = true;
+	bool unencryptedContentWarning = false;
 
 	L_DECLARE_PUBLIC(ChatMessage);
 };
