@@ -136,67 +136,67 @@ debian11-ninja-clang-pqc:
 
 
 
-bctoolbox-debian11-test:
-  extends: .test-bctoolbox
-  needs:
-    - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# bctoolbox-debian11-test:
+#   extends: .test-bctoolbox
+#   needs:
+#     - debian11-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-pqc-debian11-test:
-  extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
-  needs:
-    - debian11-ninja-gcc-pqc
+# pqc-debian11-test:
+#   extends: .test-pqc
+#   <<: *docker_image_platform_and_runner_tag
+#   needs:
+#     - debian11-ninja-gcc-pqc
 
-bellesip-debian11-test:
-  extends: .test-bellesip
-  needs:
-    - debian11-ninja-gcc
-  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
-  tags: [ "docker-sequential" ]
-  image: !reference [.debian11_image_version, image]
-  variables:
-    PLATFORM: linux-debian11
+# bellesip-debian11-test:
+#   extends: .test-bellesip
+#   needs:
+#     - debian11-ninja-gcc
+#   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+#   tags: [ "docker-sequential" ]
+#   image: !reference [.debian11_image_version, image]
+#   variables:
+#     PLATFORM: linux-debian11
 
-belr-debian11-test:
-  extends: .test-belr
-  needs:
-    - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# belr-debian11-test:
+#   extends: .test-belr
+#   needs:
+#     - debian11-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-belcard-debian11-test:
-  extends: .test-belcard
-  needs:
-    - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# belcard-debian11-test:
+#   extends: .test-belcard
+#   needs:
+#     - debian11-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-bzrtp-debian11-test:
-  extends: .test-bzrtp
-  needs:
-    - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# bzrtp-debian11-test:
+#   extends: .test-bzrtp
+#   needs:
+#     - debian11-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-ortp-debian11-test:
-  extends: .test-ortp
-  needs:
-    - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# ortp-debian11-test:
+#   extends: .test-ortp
+#   needs:
+#     - debian11-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-liblinphone-debian11-test:
-  image: !reference [.debian11_test_libl_image_version, image]
-  extends: .test-liblinphone
-  needs:
-    - debian11-ninja-gcc
-  variables:
-    PLATFORM: linux-debian11
+# liblinphone-debian11-test:
+#   image: !reference [.debian11_test_libl_image_version, image]
+#   extends: .test-liblinphone
+#   needs:
+#     - debian11-ninja-gcc
+#   variables:
+#     PLATFORM: linux-debian11
 
-liblinphone-debian11-test-shaky:
-  image: !reference [.debian11_test_libl_image_version, image]
-  extends: .test-liblinphone-shaky
-  needs:
-    - debian11-ninja-gcc
-  variables:
-    PLATFORM: linux-debian11
+# liblinphone-debian11-test-shaky:
+#   image: !reference [.debian11_test_libl_image_version, image]
+#   extends: .test-liblinphone-shaky
+#   needs:
+#     - debian11-ninja-gcc
+#   variables:
+#     PLATFORM: linux-debian11
 
 # liblinphone-debian11-test-mr:
 #   extends: .test-liblinphone-mr

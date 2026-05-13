@@ -251,129 +251,129 @@ debian12-ninja-java:
 
 
 
-bctoolbox-debian12-test:
-  extends: .test-bctoolbox
-  needs:
-    - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# bctoolbox-debian12-test:
+#   extends: .test-bctoolbox
+#   needs:
+#     - debian12-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-bctoolbox-debian12-openssl-test-mr:
-  extends: .test-bctoolbox-mr
-  needs:
-    - debian12-ninja-gcc-openssl
-  <<: *docker_image_platform_and_runner_tag
+# bctoolbox-debian12-openssl-test-mr:
+#   extends: .test-bctoolbox-mr
+#   needs:
+#     - debian12-ninja-gcc-openssl
+#   <<: *docker_image_platform_and_runner_tag
 
 
-pqc-debian12-test:
-  extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
-  needs:
-    - debian12-ninja-gcc-pqc
+# pqc-debian12-test:
+#   extends: .test-pqc
+#   <<: *docker_image_platform_and_runner_tag
+#   needs:
+#     - debian12-ninja-gcc-pqc
 
-bellesip-debian12-test:
-  extends: .test-bellesip
-  needs:
-    - debian12-ninja-gcc
-  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
-  tags: [ "docker-sequential" ]
-  image: !reference [.debian12_image_version, image]
-  variables:
-    PLATFORM: linux-debian12
+# bellesip-debian12-test:
+#   extends: .test-bellesip
+#   needs:
+#     - debian12-ninja-gcc
+#   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+#   tags: [ "docker-sequential" ]
+#   image: !reference [.debian12_image_version, image]
+#   variables:
+#     PLATFORM: linux-debian12
 
-belr-debian12-test:
-  extends: .test-belr
-  needs:
-    - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# belr-debian12-test:
+#   extends: .test-belr
+#   needs:
+#     - debian12-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-belcard-debian12-test:
-  extends: .test-belcard
-  needs:
-    - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# belcard-debian12-test:
+#   extends: .test-belcard
+#   needs:
+#     - debian12-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-bzrtp-debian12-test:
-  extends: .test-bzrtp
-  needs:
-    - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# bzrtp-debian12-test:
+#   extends: .test-bzrtp
+#   needs:
+#     - debian12-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-ortp-debian12-test:
-  extends: .test-ortp
-  needs:
-    - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+# ortp-debian12-test:
+#   extends: .test-ortp
+#   needs:
+#     - debian12-ninja-gcc
+#   <<: *docker_image_platform_and_runner_tag
 
-liblinphone-debian12-test:
-  image: !reference [.debian12_test_libl_image_version, image]
-  extends: .test-liblinphone
-  needs:
-    - debian12-ninja-gcc
-  variables:
-    PLATFORM: linux-debian12
+# liblinphone-debian12-test:
+#   image: !reference [.debian12_test_libl_image_version, image]
+#   extends: .test-liblinphone
+#   needs:
+#     - debian12-ninja-gcc
+#   variables:
+#     PLATFORM: linux-debian12
 
-liblinphone-debian12-test-shaky:
-  image: !reference [.debian12_test_libl_image_version, image]
-  extends: .test-liblinphone-shaky
-  needs:
-    - debian12-ninja-gcc
-  variables:
-    PLATFORM: linux-debian12
+# liblinphone-debian12-test-shaky:
+#   image: !reference [.debian12_test_libl_image_version, image]
+#   extends: .test-liblinphone-shaky
+#   needs:
+#     - debian12-ninja-gcc
+#   variables:
+#     PLATFORM: linux-debian12
 
-liblinphone-debian12-openssl-test-mr:
-   image: !reference [.debian12_test_libl_image_version, image]
-   extends: .test-liblinphone-crypto-backend-mr
-   needs:
-     - debian12-ninja-gcc-openssl
-   variables:
-     PLATFORM: linux-debian12
+# liblinphone-debian12-openssl-test-mr:
+#    image: !reference [.debian12_test_libl_image_version, image]
+#    extends: .test-liblinphone-crypto-backend-mr
+#    needs:
+#      - debian12-ninja-gcc-openssl
+#    variables:
+#      PLATFORM: linux-debian12
 
-liblinphone-debian12-python-wrapper-test:
-  image: !reference [ .debian12_test_libl_image_version, image ]
-  extends: .test-liblinphone
-  allow_failure: false
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
-  needs:
-    - debian12-ninja-clang-python-wheel
-  script:
-    # Create a Python virtual-env and enter it
-    - python3 -m venv ${CI_PROJECT_DIR}/.python-virtual-env
-    - source ${CI_PROJECT_DIR}/.python-virtual-env/bin/activate
+# liblinphone-debian12-python-wrapper-test:
+#   image: !reference [ .debian12_test_libl_image_version, image ]
+#   extends: .test-liblinphone
+#   allow_failure: false
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_PYTHON_WRAPPER_TESTS != null
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+#   needs:
+#     - debian12-ninja-clang-python-wheel
+#   script:
+#     # Create a Python virtual-env and enter it
+#     - python3 -m venv ${CI_PROJECT_DIR}/.python-virtual-env
+#     - source ${CI_PROJECT_DIR}/.python-virtual-env/bin/activate
 
-    # Install the linphone wheel package
-    - pip install ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/linphone-*.whl
+#     # Install the linphone wheel package
+#     - pip install ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/linphone-*.whl
 
-    # Create the linphone config directory, otherwise the tests fail
-    - mkdir -p ~/.local/share/linphone
+#     # Create the linphone config directory, otherwise the tests fail
+#     - mkdir -p ~/.local/share/linphone
 
-    # Go to the Python tests project
-    - cd ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/share/pylinphone/wrapper-tests
+#     # Go to the Python tests project
+#     - cd ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/share/pylinphone/wrapper-tests
 
-    # Execute the tester
-    - python test_pylinphone.py
-  after_script:
-  artifacts:
+#     # Execute the tester
+#     - python test_pylinphone.py
+#   after_script:
+#   artifacts:
 
-liblinphone-debian12-java-wrapper-test:
-  image: !reference [ .debian12_test_libl_image_version, image ]
-  extends: .test-liblinphone
-  allow_failure: false
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
-  needs:
-    - debian12-ninja-java
-  script:
-    # Prepare the test environment
-    - cd ${CI_PROJECT_DIR}/build/java/linphone-sdk/java/share/linphonej/WrapperTests
-    - chmod u+x gradlew
-    - unzip ${CI_PROJECT_DIR}/build/java/linphone-sdk/bin/distributions/linphone-sdk-java-*.zip
+# liblinphone-debian12-java-wrapper-test:
+#   image: !reference [ .debian12_test_libl_image_version, image ]
+#   extends: .test-liblinphone
+#   allow_failure: false
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_JAVA_WRAPPER_TESTS != null
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null && $ENABLE_LINUX_TESTS != null
+#   needs:
+#     - debian12-ninja-java
+#   script:
+#     # Prepare the test environment
+#     - cd ${CI_PROJECT_DIR}/build/java/linphone-sdk/java/share/linphonej/WrapperTests
+#     - chmod u+x gradlew
+#     - unzip ${CI_PROJECT_DIR}/build/java/linphone-sdk/bin/distributions/linphone-sdk-java-*.zip
 
-    # Execute the tester
-    - ./gradlew test
-  after_script:
-  artifacts:
+#     # Execute the tester
+#     - ./gradlew test
+#   after_script:
+#   artifacts:

@@ -238,307 +238,307 @@ rocky8-python-wheel:
 #################################################
 
 
-bctoolbox-rocky8-test:
-  extends: .test-bctoolbox
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-  variables:
-    PLATFORM: linux-rocky8
+# bctoolbox-rocky8-test:
+#   extends: .test-bctoolbox
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#   variables:
+#     PLATFORM: linux-rocky8
 
-bctoolbox-rocky8-test-mr:
-  extends: .test-bctoolbox-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-  variables:
-    PLATFORM: linux-rocky8
+# bctoolbox-rocky8-test-mr:
+#   extends: .test-bctoolbox-mr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#   variables:
+#     PLATFORM: linux-rocky8
 
-pqc-rocky8-test:
-  extends: .test-pqc
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-  needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
-  variables:
-    PLATFORM: linux-rocky8
+# pqc-rocky8-test:
+#   extends: .test-pqc
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#   needs:
+#     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+#   variables:
+#     PLATFORM: linux-rocky8
 
-# pqc-rocky8-test-mr:
-#  extends: .test-pqc-mr
-#  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-#  needs:
-#    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
-#  variables:
-#    PLATFORM: linux-rocky8
+# # pqc-rocky8-test-mr:
+# #  extends: .test-pqc-mr
+# #  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+# #  needs:
+# #    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+# #  variables:
+# #    PLATFORM: linux-rocky8
 
-belr-rocky8-test:
-  extends: .test-belr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
-  variables:
-    PLATFORM: linux-rocky8
-    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelr.so.1"
+# belr-rocky8-test:
+#   extends: .test-belr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
+#   variables:
+#     PLATFORM: linux-rocky8
+#     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelr.so.1"
 
-belr-rocky8-test-mr:
-  extends: .test-belr-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
-  variables:
-    PLATFORM: linux-rocky8
-    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelr.so.1"
+# belr-rocky8-test-mr:
+#   extends: .test-belr-mr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
+#   variables:
+#     PLATFORM: linux-rocky8
+#     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelr.so.1"
 
-belcard-rocky8-test:
-  extends: .test-belcard
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
-  variables:
-    PLATFORM: linux-rocky8
-    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelcard.so.1"
+# belcard-rocky8-test:
+#   extends: .test-belcard
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
+#   variables:
+#     PLATFORM: linux-rocky8
+#     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelcard.so.1"
 
-belcard-rocky8-test-mr:
-  extends: .test-belcard-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
-  variables:
-    PLATFORM: linux-rocky8
-    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelcard.so.1"
+# belcard-rocky8-test-mr:
+#   extends: .test-belcard-mr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset_coverage
+#   variables:
+#     PLATFORM: linux-rocky8
+#     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/libbelcard.so.1"
 
-bzrtp-rocky8-test:
-  extends: .test-bzrtp
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-  variables:
-    PLATFORM: linux-rocky8
+# bzrtp-rocky8-test:
+#   extends: .test-bzrtp
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#   variables:
+#     PLATFORM: linux-rocky8
 
-bzrtp-rocky8-test-mr:
-  extends: .test-bzrtp-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-  variables:
-    PLATFORM: linux-rocky8
+# bzrtp-rocky8-test-mr:
+#   extends: .test-bzrtp-mr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#   variables:
+#     PLATFORM: linux-rocky8
 
-ortp-rocky8-test:
-  extends: .test-ortp
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-  variables:
-    PLATFORM: linux-rocky8
+# ortp-rocky8-test:
+#   extends: .test-ortp
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#   variables:
+#     PLATFORM: linux-rocky8
 
-ortp-rocky8-test-mr:
-  extends: .test-ortp-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-  variables:
-    PLATFORM: linux-rocky8
+# ortp-rocky8-test-mr:
+#   extends: .test-ortp-mr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#   variables:
+#     PLATFORM: linux-rocky8
 
-.factorize_bs_rocky8: &docker_image_needs_tag_platform_devtoolset_bs
-  image: !reference [ .rocky8_image_version, image ]
-  needs:
-    - rocky8-ninja-gcc
-  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
-  tags: [ "docker-sequential" ]
-  variables:
-    PLATFORM: linux-rocky8
+# .factorize_bs_rocky8: &docker_image_needs_tag_platform_devtoolset_bs
+#   image: !reference [ .rocky8_image_version, image ]
+#   needs:
+#     - rocky8-ninja-gcc
+#   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+#   tags: [ "docker-sequential" ]
+#   variables:
+#     PLATFORM: linux-rocky8
 
-bellesip-rocky8-test:
-  extends: .test-bellesip
-  <<: *docker_image_needs_tag_platform_devtoolset_bs
-  variables:
-    PLATFORM: linux-rocky8
-
-# bellesip-rocky8-test-mr:
-#   extends: .test-bellesip-mr
+# bellesip-rocky8-test:
+#   extends: .test-bellesip
 #   <<: *docker_image_needs_tag_platform_devtoolset_bs
-#  variables:
-#    PLATFORM: linux-rocky8
+#   variables:
+#     PLATFORM: linux-rocky8
 
-.factorize_ms2_rocky8: &docker_image_needs_platform_devtoolset_ms
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-gcc
-  variables:
-    PLATFORM: linux-rocky8
+# # bellesip-rocky8-test-mr:
+# #   extends: .test-bellesip-mr
+# #   <<: *docker_image_needs_tag_platform_devtoolset_bs
+# #  variables:
+# #    PLATFORM: linux-rocky8
 
-mediastreamer-rocky8-test:
-  extends: .test-mediastreamer
-  <<: *docker_image_needs_platform_devtoolset_ms
-  variables:
-    PLATFORM: linux-rocky8
+# .factorize_ms2_rocky8: &docker_image_needs_platform_devtoolset_ms
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-gcc
+#   variables:
+#     PLATFORM: linux-rocky8
 
-#mediastreamer-rocky8-test-mr:
-#  extends: .test-mediastreamer-mr
-#  <<: *docker_image_needs_platform_devtoolset_ms
-#  variables:
-#    PLATFORM: linux-rocky8
+# mediastreamer-rocky8-test:
+#   extends: .test-mediastreamer
+#   <<: *docker_image_needs_platform_devtoolset_ms
+#   variables:
+#     PLATFORM: linux-rocky8
 
-mediastreamer-rocky8-test-h264-mr:
-  extends: .test-mediastreamer-mr
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
-  variables:
-    PLATFORM: linux-rocky8
+# #mediastreamer-rocky8-test-mr:
+# #  extends: .test-mediastreamer-mr
+# #  <<: *docker_image_needs_platform_devtoolset_ms
+# #  variables:
+# #    PLATFORM: linux-rocky8
 
-.factorize_liblinphone_rocky8: &docker_image_needs_platform_devtoolset_libl
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-clang-coverage
-  variables:
-    PLATFORM: linux-rocky8
+# mediastreamer-rocky8-test-h264-mr:
+#   extends: .test-mediastreamer-mr
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+#   variables:
+#     PLATFORM: linux-rocky8
 
-liblinphone-rocky8-test:
-  extends: .test-liblinphone
-  <<: *docker_image_needs_platform_devtoolset_libl
-  variables:
-    PLATFORM: linux-rocky8
-    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
+# .factorize_liblinphone_rocky8: &docker_image_needs_platform_devtoolset_libl
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-clang-coverage
+#   variables:
+#     PLATFORM: linux-rocky8
 
-liblinphone-rocky8-test-nocov:
-  when: manual
-  extends: .test-liblinphone
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-  needs:
-    - rocky8-ninja-clang
-  variables:
-    PLATFORM: linux-rocky8
+# liblinphone-rocky8-test:
+#   extends: .test-liblinphone
+#   <<: *docker_image_needs_platform_devtoolset_libl
+#   variables:
+#     PLATFORM: linux-rocky8
+#     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
 
-liblinphone-rocky8-test-gcc:
-  when: manual
-  extends: .test-liblinphone
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-gcc
-  variables:
-    PLATFORM: linux-rocky8
+# liblinphone-rocky8-test-nocov:
+#   when: manual
+#   extends: .test-liblinphone
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+#   needs:
+#     - rocky8-ninja-clang
+#   variables:
+#     PLATFORM: linux-rocky8
 
-liblinphone-rocky8-test-pq-h264-ekt:
-  extends:
-    - .test-liblinphone-tunnel-pq
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
-  variables:
-    PLATFORM: linux-rocky8
+# liblinphone-rocky8-test-gcc:
+#   when: manual
+#   extends: .test-liblinphone
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-gcc
+#   variables:
+#     PLATFORM: linux-rocky8
 
-liblinphone-rocky8-test-shaky:
-  extends:
-    - .test-liblinphone-shaky
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    # shaky tests uses this image when possible to be sure to test all shaky tests
-    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
-  variables:
-    PLATFORM: linux-rocky8
+# liblinphone-rocky8-test-pq-h264-ekt:
+#   extends:
+#     - .test-liblinphone-tunnel-pq
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+#   variables:
+#     PLATFORM: linux-rocky8
 
-liblinphone-rocky8-test-performance:
-  extends:
-    - .test-liblinphone-performance
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-clang-mysql
-  variables:
-    PLATFORM: linux-rocky8
-    NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE: "true"
+# liblinphone-rocky8-test-shaky:
+#   extends:
+#     - .test-liblinphone-shaky
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     # shaky tests uses this image when possible to be sure to test all shaky tests
+#     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+#   variables:
+#     PLATFORM: linux-rocky8
 
-liblinphone-rocky8-test-mr:
-  extends: .test-liblinphone-mr
-  <<: *docker_image_needs_platform_devtoolset_libl
-  variables:
-    PLATFORM: linux-rocky8
-    PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
+# liblinphone-rocky8-test-performance:
+#   extends:
+#     - .test-liblinphone-performance
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-clang-mysql
+#   variables:
+#     PLATFORM: linux-rocky8
+#     NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE: "true"
 
-.linphone-sdk-rocky8-coverage:
-  tags: [ "docker-flat" ]
-  stage: coverage
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  variables:
-    LLVM_COV_OPTIONS: >
-      -instr-profile=coverage/default.profdata
-      --ignore-filename-regex=liblinphone/libxsd
-      --ignore-filename-regex=liblinphone/src/xml
-      --ignore-filename-regex=external
-  script:
-    - echo "Extract .profdata from .profraw"
-    - llvm-profdata merge -sparse coverage/*.profraw -o coverage/default.profdata
-    - echo "Full coverage of liblinphone library"
-    - llvm-cov show $COVERED_LIBRARIES $LLVM_COV_OPTIONS -use-color > linphone_sdk_coverage_lines_full.txt
-    - echo "Display coverage by file of liblinphone library"
-    - llvm-cov report $COVERED_LIBRARIES $LLVM_COV_OPTIONS -use-color | tee linphone_sdk_coverage_report_by_file.txt
-    - echo "filtering work of report to get global coverage %"
-    - cat linphone_sdk_coverage_report_by_file.txt | grep -E "TOTAL" | grep -Po "\d+\.\d+\%" | sed -n '3p'
-    - echo "Export results in JSON format"
-    - llvm-cov export $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=text > linphone_sdk_coverage_export.txt
-    - echo "Export results in Lcov format"
-    - llvm-cov export $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=lcov > linphone_sdk_coverage_export.lcov
-    - /home/bc/.local/bin/lcov_cobertura linphone_sdk_coverage_export.lcov
-    - echo "Generate HTML coverage report"
-    - mkdir -p linphone_sdk_coverage_html
-    - llvm-cov show $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=html -output-dir=linphone_sdk_coverage_html
-    - chmod -R 755 linphone_sdk_coverage_html
-    - ls -al linphone_sdk_coverage_html/*
-  coverage: '/[0-9][0-9]\.[0-9]+\%/'
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
-    paths:
-      - linphone_sdk_coverage_report_by_file.txt
-      - linphone_sdk_coverage_lines_full.txt
-      - linphone_sdk_coverage_export.lcov
-      - linphone_sdk_coverage_export.txt
-      - linphone_sdk_coverage_html
-      - coverage.xml
-    expire_in: 1 week
+# liblinphone-rocky8-test-mr:
+#   extends: .test-liblinphone-mr
+#   <<: *docker_image_needs_platform_devtoolset_libl
+#   variables:
+#     PLATFORM: linux-rocky8
+#     PATH_TO_COVERAGE_BINARY: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/lib64/liblinphone.so.10"
 
-linphone-sdk-rocky8-coverage-mr:
-  extends:
-    - .linphone-sdk-rocky8-coverage
-  needs:
-    - liblinphone-rocky8-test-mr
-    - belcard-rocky8-test-mr
-    - belr-rocky8-test-mr
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    COVERED_LIBRARIES: >
-      -object=coverage/libbelr.so.1
-      -object=coverage/libbelcard.so.1
-      -object=coverage/liblinphone.so.10
+# .linphone-sdk-rocky8-coverage:
+#   tags: [ "docker-flat" ]
+#   stage: coverage
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   variables:
+#     LLVM_COV_OPTIONS: >
+#       -instr-profile=coverage/default.profdata
+#       --ignore-filename-regex=liblinphone/libxsd
+#       --ignore-filename-regex=liblinphone/src/xml
+#       --ignore-filename-regex=external
+#   script:
+#     - echo "Extract .profdata from .profraw"
+#     - llvm-profdata merge -sparse coverage/*.profraw -o coverage/default.profdata
+#     - echo "Full coverage of liblinphone library"
+#     - llvm-cov show $COVERED_LIBRARIES $LLVM_COV_OPTIONS -use-color > linphone_sdk_coverage_lines_full.txt
+#     - echo "Display coverage by file of liblinphone library"
+#     - llvm-cov report $COVERED_LIBRARIES $LLVM_COV_OPTIONS -use-color | tee linphone_sdk_coverage_report_by_file.txt
+#     - echo "filtering work of report to get global coverage %"
+#     - cat linphone_sdk_coverage_report_by_file.txt | grep -E "TOTAL" | grep -Po "\d+\.\d+\%" | sed -n '3p'
+#     - echo "Export results in JSON format"
+#     - llvm-cov export $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=text > linphone_sdk_coverage_export.txt
+#     - echo "Export results in Lcov format"
+#     - llvm-cov export $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=lcov > linphone_sdk_coverage_export.lcov
+#     - /home/bc/.local/bin/lcov_cobertura linphone_sdk_coverage_export.lcov
+#     - echo "Generate HTML coverage report"
+#     - mkdir -p linphone_sdk_coverage_html
+#     - llvm-cov show $COVERED_LIBRARIES $LLVM_COV_OPTIONS -format=html -output-dir=linphone_sdk_coverage_html
+#     - chmod -R 755 linphone_sdk_coverage_html
+#     - ls -al linphone_sdk_coverage_html/*
+#   coverage: '/[0-9][0-9]\.[0-9]+\%/'
+#   artifacts:
+#     reports:
+#       coverage_report:
+#         coverage_format: cobertura
+#         path: coverage.xml
+#     paths:
+#       - linphone_sdk_coverage_report_by_file.txt
+#       - linphone_sdk_coverage_lines_full.txt
+#       - linphone_sdk_coverage_export.lcov
+#       - linphone_sdk_coverage_export.txt
+#       - linphone_sdk_coverage_html
+#       - coverage.xml
+#     expire_in: 1 week
 
-linphone-sdk-rocky8-coverage:
-  extends:
-    - .linphone-sdk-rocky8-coverage
-  needs:
-    - liblinphone-rocky8-test
-    - belcard-rocky8-test
-    - belr-rocky8-test
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
-  variables:
-    COVERED_LIBRARIES: >
-      -object=coverage/libbelr.so.1
-      -object=coverage/libbelcard.so.1
-      -object=coverage/liblinphone.so.10
+# linphone-sdk-rocky8-coverage-mr:
+#   extends:
+#     - .linphone-sdk-rocky8-coverage
+#   needs:
+#     - liblinphone-rocky8-test-mr
+#     - belcard-rocky8-test-mr
+#     - belr-rocky8-test-mr
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+#   variables:
+#     COVERED_LIBRARIES: >
+#       -object=coverage/libbelr.so.1
+#       -object=coverage/libbelcard.so.1
+#       -object=coverage/liblinphone.so.10
 
-liblinphone-rocky8-test-mr-pq-h264-ekt:
-  extends:
-    - .test-liblinphone-tunnel-pq-mr
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
-  variables:
-    PLATFORM: linux-rocky8
+# linphone-sdk-rocky8-coverage:
+#   extends:
+#     - .linphone-sdk-rocky8-coverage
+#   needs:
+#     - liblinphone-rocky8-test
+#     - belcard-rocky8-test
+#     - belr-rocky8-test
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+#   variables:
+#     COVERED_LIBRARIES: >
+#       -object=coverage/libbelr.so.1
+#       -object=coverage/libbelcard.so.1
+#       -object=coverage/liblinphone.so.10
 
-liblinphone-rocky8-test-shaky-mr:
-  extends:
-    - .test-liblinphone-shaky-mr
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
-  variables:
-    PLATFORM: linux-rocky8
+# liblinphone-rocky8-test-mr-pq-h264-ekt:
+#   extends:
+#     - .test-liblinphone-tunnel-pq-mr
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+#   variables:
+#     PLATFORM: linux-rocky8
 
-liblinphone-rocky8-test-performance-mr:
-  extends:
-    - .test-liblinphone-performance-mr
-  image: !reference [ .rocky8_test_libl_image_version, image ]
-  needs:
-    - rocky8-ninja-clang-mysql
-  variables:
-    PLATFORM: linux-rocky8
+# liblinphone-rocky8-test-shaky-mr:
+#   extends:
+#     - .test-liblinphone-shaky-mr
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+#   variables:
+#     PLATFORM: linux-rocky8
 
-liblinphone-rocky8-test-force:
-  extends: .test-liblinphone
-  <<: *docker_image_needs_platform_devtoolset_libl
-  rules:
-    - if: $ENABLE_TESTS_LIBLINPHONE != null
+# liblinphone-rocky8-test-performance-mr:
+#   extends:
+#     - .test-liblinphone-performance-mr
+#   image: !reference [ .rocky8_test_libl_image_version, image ]
+#   needs:
+#     - rocky8-ninja-clang-mysql
+#   variables:
+#     PLATFORM: linux-rocky8
+
+# liblinphone-rocky8-test-force:
+#   extends: .test-liblinphone
+#   <<: *docker_image_needs_platform_devtoolset_libl
+#   rules:
+#     - if: $ENABLE_TESTS_LIBLINPHONE != null

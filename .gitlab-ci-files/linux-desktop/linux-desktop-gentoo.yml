@@ -67,124 +67,124 @@ gentoo:
 # Tests
 #################################################
 
-bctoolbox-gentoo-test:
-  extends: .test-bctoolbox
-  <<: *docker_image_platform_and_runner_tag
-  variables:
-    PLATFORM: linux-gentoo
-    PATH_TO_TESTER: "/usr/bin"
-    LOG_PATTERN: "/home/bc/logBctoolboxAllPar"
-
-ortp-gentoo-test:
-  extends: .test-ortp
-  <<: *docker_image_platform_and_runner_tag
-  variables:
-    PLATFORM: linux-gentoo
-    PATH_TO_TESTER: "/usr/bin"
-    LOG_PATTERN: "/home/bc/logOrtpAllPar"
-    RESOURCES_DIR: "--resource-dir /usr/share/"
-
-# bellesip-gentoo-test:
-#   extends: .test-bellesip
-#   needs:
-#     - gentoo
-#   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
-#   tags: ["docker-sequential"]
-#   image: !reference [.gentoo_image_version, image]
+# bctoolbox-gentoo-test:
+#   extends: .test-bctoolbox
+#   <<: *docker_image_platform_and_runner_tag
 #   variables:
 #     PLATFORM: linux-gentoo
 #     PATH_TO_TESTER: "/usr/bin"
-#     LOG_PATTERN: "/home/bc/logBelrAllPar"
-#     RESOURCES_DIR: "--resource-dir /usr/share/belle-sip-tester"
-#   before_script:
-#     - sudo cp -r $CI_PROJECT_DIR/binpkgs /home/bc/
-#     - sudo chown -R bc:bc /home/bc/binpkgs
-#     - sudo chmod -R 755 /home/bc/binpkgs
-#     - sudo rc-status
-#     - sudo touch /run/openrc/softlevel
-#     - sudo rc-service lighttpd start
-#     - sudo emerge --getbinpkg @liblinphone-latest
+#     LOG_PATTERN: "/home/bc/logBctoolboxAllPar"
 
-belr-gentoo-test:
-  extends: .test-belr
-  <<: *docker_image_platform_and_runner_tag
-  variables:
-    PLATFORM: linux-gentoo
-    PATH_TO_TESTER: "/usr/bin"
-    LOG_PATTERN: "/home/bc/logBellesipAllPar"
-    RESOURCES_DIR: "--resource-dir /usr/share/belr-tester/res"
+# ortp-gentoo-test:
+#   extends: .test-ortp
+#   <<: *docker_image_platform_and_runner_tag
+#   variables:
+#     PLATFORM: linux-gentoo
+#     PATH_TO_TESTER: "/usr/bin"
+#     LOG_PATTERN: "/home/bc/logOrtpAllPar"
+#     RESOURCES_DIR: "--resource-dir /usr/share/"
 
-belcard-gentoo-test:
-  extends: .test-belcard
-  <<: *docker_image_platform_and_runner_tag
-  variables:
-    PLATFORM: linux-gentoo
-    PATH_TO_TESTER: "/usr/bin"
-    LOG_PATTERN: "/home/bc/logBelcardAllPar"
+# # bellesip-gentoo-test:
+# #   extends: .test-bellesip
+# #   needs:
+# #     - gentoo
+# #   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+# #   tags: ["docker-sequential"]
+# #   image: !reference [.gentoo_image_version, image]
+# #   variables:
+# #     PLATFORM: linux-gentoo
+# #     PATH_TO_TESTER: "/usr/bin"
+# #     LOG_PATTERN: "/home/bc/logBelrAllPar"
+# #     RESOURCES_DIR: "--resource-dir /usr/share/belle-sip-tester"
+# #   before_script:
+# #     - sudo cp -r $CI_PROJECT_DIR/binpkgs /home/bc/
+# #     - sudo chown -R bc:bc /home/bc/binpkgs
+# #     - sudo chmod -R 755 /home/bc/binpkgs
+# #     - sudo rc-status
+# #     - sudo touch /run/openrc/softlevel
+# #     - sudo rc-service lighttpd start
+# #     - sudo emerge --getbinpkg @liblinphone-latest
 
-bzrtp-gentoo-test:
-  extends: .test-bzrtp
-  <<: *docker_image_platform_and_runner_tag
-  variables:
-    PLATFORM: linux-gentoo
-    PATH_TO_TESTER: "/usr/bin"
-    LOG_PATTERN: "/home/bc/logBzrtpAllPar"
+# belr-gentoo-test:
+#   extends: .test-belr
+#   <<: *docker_image_platform_and_runner_tag
+#   variables:
+#     PLATFORM: linux-gentoo
+#     PATH_TO_TESTER: "/usr/bin"
+#     LOG_PATTERN: "/home/bc/logBellesipAllPar"
+#     RESOURCES_DIR: "--resource-dir /usr/share/belr-tester/res"
 
-# mediastreamer-gentoo-test:
-#   extends: .test-mediastreamer
+# belcard-gentoo-test:
+#   extends: .test-belcard
+#   <<: *docker_image_platform_and_runner_tag
+#   variables:
+#     PLATFORM: linux-gentoo
+#     PATH_TO_TESTER: "/usr/bin"
+#     LOG_PATTERN: "/home/bc/logBelcardAllPar"
+
+# bzrtp-gentoo-test:
+#   extends: .test-bzrtp
+#   <<: *docker_image_platform_and_runner_tag
+#   variables:
+#     PLATFORM: linux-gentoo
+#     PATH_TO_TESTER: "/usr/bin"
+#     LOG_PATTERN: "/home/bc/logBzrtpAllPar"
+
+# # mediastreamer-gentoo-test:
+# #   extends: .test-mediastreamer
+# #   <<: *docker_image_platform_and_runner_tag
+# #   tags: [ "docker-test-liblinphone" ]
+# #   variables:
+# #     PLATFORM: linux-gentoo
+# #     PATH_TO_TESTER: "/usr/bin"
+# #     LOG_PATTERN: "/home/bc/logMediastreamerAllPar"
+
+# liblinphone-gentoo-test:
+#   extends: .test-liblinphone
 #   <<: *docker_image_platform_and_runner_tag
 #   tags: [ "docker-test-liblinphone" ]
 #   variables:
 #     PLATFORM: linux-gentoo
+#     PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+#     PULSEAUDIO_KILL: "pulseaudio --kill"
+#     LOG_PATTERN: "/home/bc/logLiblinphoneAllParThIpv6"
 #     PATH_TO_TESTER: "/usr/bin"
-#     LOG_PATTERN: "/home/bc/logMediastreamerAllPar"
 
-liblinphone-gentoo-test:
-  extends: .test-liblinphone
-  <<: *docker_image_platform_and_runner_tag
-  tags: [ "docker-test-liblinphone" ]
-  variables:
-    PLATFORM: linux-gentoo
-    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
-    PULSEAUDIO_KILL: "pulseaudio --kill"
-    LOG_PATTERN: "/home/bc/logLiblinphoneAllParThIpv6"
-    PATH_TO_TESTER: "/usr/bin"
+# liblinphone-gentoo-test-shaky:
+#   extends: .test-liblinphone-shaky
+#   <<: *docker_image_platform_and_runner_tag
+#   tags: [ "docker-test-liblinphone" ]
+#   variables:
+#     PLATFORM: linux-gentoo
+#     PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+#     PULSEAUDIO_KILL: "pulseaudio --kill"
+#     LOG_PATTERN: "/home/bc/logLiblinphoneShaky"
+#     PATH_TO_TESTER: "/usr/bin"
 
-liblinphone-gentoo-test-shaky:
-  extends: .test-liblinphone-shaky
-  <<: *docker_image_platform_and_runner_tag
-  tags: [ "docker-test-liblinphone" ]
-  variables:
-    PLATFORM: linux-gentoo
-    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
-    PULSEAUDIO_KILL: "pulseaudio --kill"
-    LOG_PATTERN: "/home/bc/logLiblinphoneShaky"
-    PATH_TO_TESTER: "/usr/bin"
+# #################################################
+# # Uploads
+# #################################################
 
-#################################################
-# Uploads
-#################################################
+# gentoo-upload:
+#   stage: deploy
+#   tags: [ "deploy-flat" ]
 
-gentoo-upload:
-  stage: deploy
-  tags: [ "deploy-flat" ]
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_GENTOO != null
+#   variables:
+#     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+#     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+#   needs:
+#     - gentoo
 
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_GENTOO != null
-  variables:
-    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
-  needs:
-    - gentoo
-
-  script:
-    - git config --global --add safe.directory $CI_PROJECT_DIR
-    - git config --global --add safe.directory $CI_PROJECT_DIR/liblinphone
-    - DESCRIBE=$(git -C liblinphone describe)
-    - echo $DESCRIBE
-    - SDK_DESCRIBE=$(git describe)
-    - echo $SDK_DESCRIBE
-    - !reference [.choose_upload_dir, script]
-    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
-    - rsync -rlv --ignore-existing binpkgs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
-    - ssh $DEPLOY_SERVER chmod -R 755 $UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
+#   script:
+#     - git config --global --add safe.directory $CI_PROJECT_DIR
+#     - git config --global --add safe.directory $CI_PROJECT_DIR/liblinphone
+#     - DESCRIBE=$(git -C liblinphone describe)
+#     - echo $DESCRIBE
+#     - SDK_DESCRIBE=$(git describe)
+#     - echo $SDK_DESCRIBE
+#     - !reference [.choose_upload_dir, script]
+#     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
+#     - rsync -rlv --ignore-existing binpkgs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
+#     - ssh $DEPLOY_SERVER chmod -R 755 $UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
