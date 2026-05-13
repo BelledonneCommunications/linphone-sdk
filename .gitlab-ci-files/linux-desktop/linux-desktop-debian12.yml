@@ -149,7 +149,7 @@ debian12-ninja-gcc-smallsdk:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
    #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-4-6-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-5-6-non_protected"
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
@@ -168,7 +168,7 @@ debian12-ninja-gcc-openssl:
     CMAKE_OPTIONS: -DENABLE_OPENSSL=ON -DENABLE_MBEDTLS=OFF -DENABLE_LDAP=ON
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-4-6-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-5-6-non_protected"
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
@@ -222,13 +222,12 @@ debian12-ninja-clang-python-wheel:
     <<: *cache_size
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-4-6-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-5-6-non_protected"
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
         - ccache/
-  extends:
-    - .linux-desktop-python
+  extends: .linux-desktop-python
   needs:
     - wait-cache-synchro-debian12-ninja-clang-python-wheel
 

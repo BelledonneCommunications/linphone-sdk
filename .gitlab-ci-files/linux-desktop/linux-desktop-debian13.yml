@@ -4,11 +4,66 @@ wait-cache-synchro-debian13:
     BUILD_SUBTYPE: debian13
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
-    - !reference [.wait-cache-synchro, rules]
+    - !reference [.rules-merge-request-manual, rules]
 
 recache-debian13:
   extends: .recache-update-cache
+  allow_failure: true
   image: !reference [.debian13_image_version, image]
+
+wait-cache-synchro-debian13-java:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian13-java
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.wait-cache-synchro, rules]
+
+recache-debian13-java:
+  extends: .recache-update-cache
+  image: !reference [.debian13_java_image_version, image]
+
+wait-cache-synchro-debian13-ninja-gcc-smallsdk:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian13-ninja-gcc-smallsdk
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [ .wait-cache-synchro, rules ]
+
+recache-debian13-ninja-gcc-smallsdk:
+  extends: .recache-update-cache
+  image: !reference [.debian13_image_version, image]
+  variables:
+    CACHE_JOB_NAME: debian13-ninja-gcc-smallsdk
+
+wait-cache-synchro-debian13-ninja-gcc-openssl:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian13-ninja-gcc-openssl
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [ .wait-cache-synchro, rules ]
+
+recache-debian13-ninja-gcc-openssl:
+  extends: .recache-update-cache
+  image: !reference [.debian13_image_version, image]
+  variables:
+    CACHE_JOB_NAME: debian13-ninja-gcc-openssl
+
+wait-cache-synchro-debian13-ninja-clang-python-wheel:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian13-ninja-clang-python-wheel
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [ .wait-cache-synchro, rules ]
+
+recache-debian13-ninja-clang-python-wheel:
+  extends: .recache-update-cache
+  image: !reference [.debian13_image_version, image]
+  variables:
+    CACHE_JOB_NAME: debian13-ninja-clang-python-wheel
 
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
@@ -86,9 +141,18 @@ debian13-ninja-gcc-smallsdk:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+   #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-5-6-non_protected"
+  cache:
+    - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
+      paths:
+        - ccache/
   extends:
-    - debian12-ninja-gcc
+    - debian13-ninja-gcc
     - .smallsdk-cmake-options
+  needs:
+    - wait-cache-synchro-debian13-ninja-gcc-smallsdk
 
 debian13-ninja-gcc-openssl:
   rules:
@@ -96,7 +160,17 @@ debian13-ninja-gcc-openssl:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_OPTIONS: -DENABLE_OPENSSL=ON -DENABLE_MBEDTLS=OFF -DENABLE_LDAP=ON
-  extends: debian13-ninja-gcc
+
+ #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-5-6-non_protected"
+  cache:
+    - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
+      paths:
+        - ccache/
+  extends:
+    - debian13-ninja-gcc
+  needs:
+    - wait-cache-synchro-debian13-ninja-gcc-openssl
 
 debian13-ninja-clang:
   tags: [ "docker-flat" ]
@@ -138,9 +212,15 @@ debian13-ninja-clang-python-wheel:
     CC: clang
     CXX: clang++
     ADDITIONAL_CMAKE_OPTIONS: -DENABLE_PYTHON_WRAPPER_TESTER=ON
+ #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-release-5-5-6-non_protected"
+  cache:
+    - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
+      paths:
+        - ccache/
   extends: .linux-desktop-python
   needs:
-    - wait-cache-synchro-debian13
+    - wait-cache-synchro-debian13-ninja-clang-python-wheel
 
 debian13-ninja-java:
   tags: [ "docker-flat" ]
@@ -153,7 +233,8 @@ debian13-ninja-java:
     CMAKE_GENERATOR: Ninja
     ADDITIONAL_CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER_TESTER=ON
   extends: .linux-desktop-java
-
+  needs:
+    - wait-cache-synchro-debian13-java
 #################################################
 # TESTS
 #################################################
