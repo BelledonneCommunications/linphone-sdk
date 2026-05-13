@@ -66,7 +66,7 @@ void AuthStack::authFound(const std::shared_ptr<AuthInfo> &ai) {
 
 void AuthStack::notifyAuthFailures() {
 	auto pendingAuths = mCore.getSal()->getPendingAuths();
-	for (const auto &op : pendingAuths) {
+	for (auto op : pendingAuths) {
 		/*account case*/
 		for (auto &acc : mCore.getPublic()->getAccounts()) {
 			if (acc->toC() == op->getUserPointer()) {
@@ -95,7 +95,7 @@ bool AuthStack::wasFound(const std::shared_ptr<AuthInfo> &authInfo) {
 void AuthStack::processAuthRequested() {
 	lInfo() << "enter AuthStack::processAuthRequested()";
 
-	for (const auto &authInfo : mAuthQueue) {
+	for (auto authInfo : mAuthQueue) {
 		if (!wasFound(authInfo)) {
 			linphone_core_notify_authentication_requested(mCore.getCCore(), authInfo->toC(),
 			                                              authInfo->getRequestedMethod());
