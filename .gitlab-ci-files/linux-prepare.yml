@@ -11,6 +11,7 @@ recache-get-from-branch:
   rules:
     - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_COMMIT_BRANCH =~ /^release/ && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_BRANCH == "fix/5.5_cache_issue_for_first_pipeline" && $CI_PIPELINE_SOURCE == "push"
   script:
     - curl --verbose --location --request GET "https://gitlab.linphone.org/api/v4/projects/411/merge_requests?state=merged&order_by=updated_at&target_branch=$CI_COMMIT_BRANCH&private_token=$UPDATE_CACHE_TOKEN" > temp_result.txt
     - cat temp_result.txt | jq ".[0].source_branch" > source_branch.txt
@@ -50,6 +51,7 @@ recache-get-from-branch:
   rules:
     - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_COMMIT_BRANCH =~ /^release/ && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_BRANCH == "fix/5.5_cache_issue_for_first_pipeline" && $CI_PIPELINE_SOURCE == "push"
   # We break abstraction if order to be able to automatically remove cache related to deleted mr branches, as this would eat CI machine disk space
   # cache:
   #   - key: $CI_JOB_IMAGE-master

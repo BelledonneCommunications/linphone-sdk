@@ -32,6 +32,7 @@ workflow:
   rules:
     - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_COMMIT_BRANCH =~ /^release/ && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_BRANCH == "fix/5.5_cache_issue_for_first_pipeline" && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "master" && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH !~ /^release/ && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
