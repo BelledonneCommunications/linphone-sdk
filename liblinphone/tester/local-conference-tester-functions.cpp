@@ -1639,7 +1639,7 @@ void toggle_screen_sharing(std::initializer_list<std::reference_wrapper<CoreMana
 		linphone_call_update(screen_sharing_mgr_call, screen_sharing_mgr_new_call_params);
 		LinphoneVideoSourceDescriptor *descriptor = linphone_video_source_descriptor_new();
 		if (!!screen_sharing_enabled) {
-			linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingWindow,
+			linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingDisplay,
 			                                                    NULL);
 		} else {
 			linphone_video_source_descriptor_set_camera_id(descriptor, liblinphone_tester_mire_id);

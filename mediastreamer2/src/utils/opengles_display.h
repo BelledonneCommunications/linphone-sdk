@@ -22,6 +22,7 @@
 #define OPENGLES_DISPLAY_H
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msogl.h" // To export public functions outside of mediastreamer2
 #include "mediastreamer2/msvideo.h"
 
 #include "opengl_functions.h"
@@ -48,12 +49,16 @@ MS2_PUBLIC struct opengles_display *ogl_display_new(void);
  */
 MS2_PUBLIC void ogl_display_free_and_nullify(struct opengles_display **gldisp);
 
-MS2_PUBLIC void ogl_display_set_default_functions(struct opengles_display *gldisp, const OpenGlFunctions *default_functions);
+MS2_PUBLIC void ogl_display_set_default_functions(struct opengles_display *gldisp,
+                                                  const OpenGlFunctions *default_functions);
 
 /**
  * Activate/deactivate threaded mode in order to avoid context reinitializations.
  */
 MS2_PUBLIC void ogl_display_set_threaded(struct opengles_display *gldisp, bool_t threaded);
+
+MS2_PUBLIC void ogl_display_library_init(struct opengles_display *gldisp, const OpenGlFunctions *f);
+MS2_PUBLIC void ogl_display_library_uninit(struct opengles_display *gldisp);
 
 /**
  * Perform initialization of opaque structure that will be auto-managed.
@@ -64,20 +69,19 @@ MS2_PUBLIC void ogl_display_set_threaded(struct opengles_display *gldisp, bool_t
  * @param window The native window where a Surface will be created
  * @param width Default width of the display area.
  * @param height Default Height of the display area.
+ * @return 0 for success and -1 on failure.
  */
-MS2_PUBLIC void ogl_display_library_init(struct opengles_display *gldisp, const OpenGlFunctions *f);
-MS2_PUBLIC void ogl_display_library_uninit(struct opengles_display *gldisp);
-MS2_PUBLIC void ogl_display_auto_init(
+MS2_PUBLIC int ogl_display_auto_init(
     struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window, int width, int height);
 
 /**
  * Perform initialization of opaque structure.
- *
  * @param f OpenGL functions to use. Can be NULL.
  * @param width Width of the display area
  * @param height Height of the display area.
+ * @return 0 for success and -1 on failure.
  */
-MS2_PUBLIC void ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f, int width, int height);
+MS2_PUBLIC int ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f, int width, int height);
 
 /**
  * Perform resize of opaque structure.
@@ -139,8 +143,9 @@ MS2_PUBLIC void ogl_display_set_preview_yuv_to_display(struct opengles_display *
  *
  * @param deviceAngleFromPortrait Angle of display. 0=Portrait, 90=Landscape
  * @param mode Method use for the video display.
+ * @return 0 if success or -1 on failure
  */
-MS2_PUBLIC void
+MS2_PUBLIC int
 ogl_display_render(struct opengles_display *gldisp, int deviceAngleFromPortrait, MSVideoDisplayMode mode);
 
 /**

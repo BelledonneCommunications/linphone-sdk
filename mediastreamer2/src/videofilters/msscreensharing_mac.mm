@@ -50,7 +50,7 @@
 - (void)stream:(SCStream *)stream
 	didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 				   ofType:(SCStreamOutputType)type;
-+ (SCContentFilter *)getFilter:(CGWindowID)windowId displayId:(CGDirectDisplayID)displayId;
++ (SCContentFilter *)getFilter:(CGWindowID)windowId displayId:(CGDirectDisplayID)displayId creatorTags:(bctbx_log_tags_t *)creatorTags;
 + (void)getWindowSize:(CGWindowID)windowId x:(int*)x y:(int*)y height:(int*)height width:(int*)width;
 + (void)getDisplaySize:(CGDirectDisplayID)displayId x:(int*)x y:(int*)y height:(int*)height width:(int*)width;
 @end
@@ -76,6 +76,14 @@ MsScreenSharing_mac::~MsScreenSharing_mac() {
 }
 
 void MsScreenSharing_mac::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData){
+	if (sourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY) {
+		CGDirectDisplayID displayId = *(CGDirectDisplayID *) (&sourceDesc.native_data);
+		if(displayId == 0) {// With ID=0, if the display cannot be retrieved, we use the Main Display.
+			SCContentFilter *filter = [StreamOutput getFilter:0 displayId:displayId creatorTags:mCreatorTags];
+			if(!filter)
+				sourceDesc.native_data = (void*)CGMainDisplayID();
+		}
+	}
 	MsScreenSharing::setSource(sourceDesc, formatData);
 	if (mLastFormat.mPixelFormat == MS_PIX_FMT_UNKNOWN) mLastFormat.mPixelFormat = MS_YUV420P;
 }
@@ -140,35 +148,42 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 @end
 
 @implementation StreamOutput
-+ (SCContentFilter *)getFilter:(CGWindowID)windowId displayId:(CGDirectDisplayID)displayId{
++ (SCContentFilter *)getFilter:(CGWindowID)windowId displayId:(CGDirectDisplayID)displayId creatorTags:(bctbx_log_tags_t *)creatorTags{
 	std::condition_variable condition;
 	std::mutex lock;
 	BOOL ended = FALSE;
 	__block SCContentFilter *filter = nil;
 	__block BOOL *_ended = &ended;
 	__block std::condition_variable *_condition = &condition;
-	ms_message("[MsScreenSharing_mac] Getting Filter");
+	ms_message("[MsScreenSharing_mac] Getting Filter for WindowID=%X x DisplayID=%X", windowId, displayId);
 	[SCShareableContent
 		getShareableContentWithCompletionHandler:^(SCShareableContent *shareableContent,
 												   NSError *error) {
+			bctbx_paste_log_tags(creatorTags);
 			if (!error || error.code == 0) {
+				ms_message("[MsScreenSharing_mac] Retrieved %d Windows and %d Displays", shareableContent.windows.count,  shareableContent.displays.count);
 				if(windowId) {
 					for (int i = 0; i < shareableContent.windows.count && !filter; ++i)
 						if (shareableContent.windows[i].windowID == windowId) {
 							ms_message("[MsScreenSharing_mac] Got a Window");
 							filter = [[SCContentFilter alloc] initWithDesktopIndependentWindow:shareableContent.windows[i]];
 						}
-				}else if( displayId) {
-					for (int i = 0; i < shareableContent.displays.count && !filter; ++i)
+				}else {
+					for (int i = 0; i < shareableContent.displays.count && !filter; ++i) {
+						ms_message("[MsScreenSharing_mac] Got a Display for %X", shareableContent.displays[i].displayID );
 						if( shareableContent.displays[i].displayID == displayId) {
 							ms_message("[MsScreenSharing_mac] Got a Display");
 							filter = [[SCContentFilter alloc] initWithDisplay:shareableContent.displays[i] excludingWindows:@[]];
 						}
 				}
 			}
-			*_ended = TRUE;
-			_condition->notify_all();
-		}];
+		}else{
+			ms_error("[MsScreenSharing_mac] Cannot get Filters: %s [0x%X]", [[error localizedFailureReason] cStringUsingEncoding:NSUTF8StringEncoding], (int)error.code);
+		}
+		bctbx_remove_log_tags(creatorTags);
+		*_ended = TRUE;
+		_condition->notify_all();
+	}];
 	std::unique_lock<std::mutex> locker(lock);
 	condition.wait(locker, [&ended]{ return ended; });
 	return filter;
@@ -277,8 +292,9 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 void MsScreenSharing_mac::getPermission() {
 	gPermissionGiven = PENDING_REQUEST;
 	//Requests event listening access if absent, potentially prompting
+
+	ms_message("[MsScreenSharing_mac] Getting permissions");
 	dispatch_async(dispatch_get_main_queue(), ^{
-		ms_message("[MsScreenSharing_mac] Getting permissions");
 		bool currentAccess = CGPreflightScreenCaptureAccess();
 		if(!currentAccess){
 			gPermissionGiven = CGRequestScreenCaptureAccess() ? PERMISSION_GRANTED : PERMISSION_DENIED;
@@ -289,6 +305,9 @@ void MsScreenSharing_mac::getPermission() {
 }
 
 void MsScreenSharing_mac::inputThread() {
+	if (mCreatorTags) {
+		bctbx_paste_log_tags(mCreatorTags);
+	}
 	ms_message("[MsScreenSharing_mac] Input thread started. %d", (int)mToStop);
 	if(mSourceDesc.type == MS_SCREEN_SHARING_EMPTY) return;
 	getPermission();
@@ -324,13 +343,13 @@ void MsScreenSharing_mac::inputThread() {
 	streamConfig = [[SCStreamConfiguration alloc] init];
 	if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY) {
 		CGDirectDisplayID displayId = *(CGDirectDisplayID *) (&mSourceDesc.native_data);
-		filter = [StreamOutput getFilter:0 displayId:displayId];
+		filter = [StreamOutput getFilter:0 displayId:displayId creatorTags:mCreatorTags];
 	} else if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_WINDOW) {
 		CGWindowID windowId = *(CGWindowID *) (&mSourceDesc.native_data);
-		filter = [StreamOutput getFilter:windowId displayId:0];
+		filter = [StreamOutput getFilter:windowId displayId:0 creatorTags:mCreatorTags];
 	}
 	if(!filter) {
-		ms_error("[MsScreenSharing_mac] Cannot instantiate a SCContentFilter");
+		ms_error("[MsScreenSharing_mac] Cannot instantiate a SCContentFilter. SourceType=%d", mSourceDesc.type);
 		dispatch_release(videoSampleBufferQueue);
 		doRelease(streamConfig,filter, streamOutput, streamDelegate);
 		return;

@@ -265,6 +265,7 @@ void opengl_functions_default_init(OpenGlFunctions *f) {
 		f->glInitialized &= ((f->glGetShaderInfoLog = CAST(resolveGlGetShaderInfoLog, glGetShaderInfoLog)) != NULL);
 		f->glInitialized &= ((f->glGetShaderiv = CAST(resolveGlGetShaderiv, glGetShaderiv)) != NULL);
 		f->glInitialized &= ((f->glGetString = CAST(resolveGlGetString, glGetString)) != NULL);
+		f->glInitialized &= ((f->glGetStringi = CAST(resolveGlGetStringi, glGetStringi)) != NULL);
 		f->glInitialized &=
 		    ((f->glGetUniformLocation = CAST(resolveGlGetUniformLocation, glGetUniformLocation)) != NULL);
 		f->glInitialized &= ((f->glLinkProgram = CAST(resolveGlLinkProgram, glLinkProgram)) != NULL);

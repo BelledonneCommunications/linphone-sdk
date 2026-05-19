@@ -159,6 +159,7 @@ typedef void(GL_APIENTRY *resolveGlGetShaderPrecisionFormat)(GLenum shadertype,
 typedef void(GL_APIENTRY *resolveGlGetShaderSource)(GLuint shader, GLsizei bufsize, GLsizei *length, char *source);
 typedef void(GL_APIENTRY *resolveGlGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
 typedef const GLubyte *(GL_APIENTRY *resolveGlGetString)(GLenum name);
+typedef const GLubyte *(GL_APIENTRY *resolveGlGetStringi)(GLenum name, GLuint index);
 typedef void(GL_APIENTRY *resolveGlGetTexParameterfv)(GLenum target, GLenum pname, GLfloat *params);
 typedef void(GL_APIENTRY *resolveGlGetTexParameteriv)(GLenum target, GLenum pname, GLint *params);
 typedef GLint(GL_APIENTRY *resolveGlGetUniformLocation)(GLuint program, const char *name);
@@ -397,6 +398,7 @@ struct OpenGlFunctions {
 	// resolveGlGetShaderSource glGetShaderSource;
 	resolveGlGetShaderiv glGetShaderiv;
 	resolveGlGetString glGetString;
+	resolveGlGetStringi glGetStringi;
 	// resolveGlGetTexParameterfv glGetTexParameterfv;
 	// resolveGlGetTexParameteriv glGetTexParameteriv;
 	resolveGlGetUniformLocation glGetUniformLocation;

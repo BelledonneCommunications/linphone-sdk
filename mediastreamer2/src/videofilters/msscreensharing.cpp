@@ -79,11 +79,16 @@ MsScreenSharing::MsScreenSharing() {
 	mSourceDesc.type = MS_SCREEN_SHARING_EMPTY;
 	mSourceDesc.native_data = NULL;
 	mLastIdleTime = std::chrono::nanoseconds(0);
+	mCreatorTags = bctbx_create_log_tags_copy();
 }
 
 MsScreenSharing::~MsScreenSharing() {
 	stop();
 	ms_message("[MsScreenSharing] Destroyed");
+	if (mCreatorTags) {
+		bctbx_log_tags_destroy(mCreatorTags);
+		mCreatorTags = nullptr;
+	}
 }
 
 void MsScreenSharing::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) {
@@ -286,6 +291,11 @@ void MsScreenSharing::getWindowSize(BCTBX_UNUSED(int *windowX),
 }
 
 void MsScreenSharing::inputThread() {
+	if (mCreatorTags) {
+		bctbx_paste_log_tags(mCreatorTags);
+		bctbx_log_tags_destroy(mCreatorTags);
+		mCreatorTags = nullptr;
+	}
 	ms_message("[MsScreenSharing] Input thread started. %d", (int)mToStop);
 	int grabX, grabY, grabWidth, grabHeight;
 	if (mRunnable) {

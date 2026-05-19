@@ -486,11 +486,9 @@ void MS2VideoStream::render(const OfferAnswerContext &ctx, CallSession::State ta
 			updateWindowId(participantDevice, label, isMe, contentIsThumbnail, false);
 			video_stream_set_label(mStream, L_STRING_TO_C(label));
 		}
-		if (!cameraChanged && !localScreenSharingChanged &&
-		    !displayModeChanged) { // Check only if mStream.State == Stopped?
-			if (isMe) {
+		if (!cameraChanged && !localScreenSharingChanged && !displayModeChanged) {
+			if (isMe && getState() == Stopped) // On Stopped, update ID.
 				updateWindowId(participantDevice, label, isMe, contentIsThumbnail, false);
-			}
 			return;
 		}
 	}

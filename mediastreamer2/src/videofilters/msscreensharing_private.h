@@ -65,6 +65,7 @@ public:
 	std::mutex mThreadLock;
 	FormatData mLastFormat;
 	bool mToStop = false;
+	bctbx_log_tags_t *mCreatorTags; // Store tags for logs in native threads.
 
 public:
 	MsScreenSharing();

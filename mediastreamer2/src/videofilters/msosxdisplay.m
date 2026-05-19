@@ -20,11 +20,15 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "opengles_display.h"
+#include "../utils/apple_utils.h"
+#include "msosxdisplay.h"
 
 #include <Cocoa/Cocoa.h>
 #include <OpenGL/glu.h>
 
 #import <QuartzCore/CATransaction.h>
+
+
 
 @interface CAMsGLLayer : CAOpenGLLayer {
 @public
@@ -191,6 +195,9 @@
 
 - (void)createWindowIfNeeded;
 - (void)resetContainers;
+// Return a NSWindow* and set a CALayer to layer (if not nil)
++ (void*)createWindow:(void **)layer;
++ (int)setWindowTitle:(void *)object title:(const char *)title;
 
 @end
 
@@ -283,30 +290,56 @@
 	}
 }
 
++ (void*)createWindow:(void **)layer {
+	NSWindow *awindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 100, 100) styleMask:(NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask) backing:NSBackingStoreBuffered defer:NO];
+	[awindow setBackgroundColor: [NSColor blueColor]];
+	[awindow makeKeyAndOrderFront:NSApp];
+	[awindow setTitle: @"Video"];
+	[awindow setMovable:YES];
+	[awindow setMovableByWindowBackground:YES];
+	[awindow setReleasedWhenClosed:NO];
+	CGFloat xPos = NSWidth([[awindow screen] frame])/2 - NSWidth([awindow frame])/2;
+	CGFloat yPos = NSHeight([[awindow screen] frame])/2 - NSHeight([awindow frame])/2;
+	[awindow setFrame:NSMakeRect(xPos, yPos, NSWidth([awindow frame]), NSHeight([awindow frame])) display:YES];
+
+	// Init view
+	NSView *innerView = [[NSView alloc] initWithFrame:[awindow frame]];
+	[innerView setWantsLayer:YES];
+	[innerView.layer setAutoresizingMask: kCALayerWidthSizable | kCALayerHeightSizable];
+	[innerView.layer setNeedsDisplayOnBoundsChange: YES];
+	[awindow setContentView: innerView];
+	if(awindow && layer){
+		*layer = innerView.layer;
+	}
+	[innerView release];
+
+	return awindow;
+}
+
+
 - (void)createWindowIfNeeded {
 	if(autoWindow && window == nil && layer == nil && view == nil) {
-		NSWindow *awindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 100, 100) styleMask:(NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask) backing:NSBackingStoreBuffered defer:NO];
-		[awindow setBackgroundColor: [NSColor blueColor]];
-		[awindow makeKeyAndOrderFront:NSApp];
-		[awindow setTitle: @"Video"];
-		[awindow setMovable:YES];
-		[awindow setMovableByWindowBackground:YES];
-		[awindow setReleasedWhenClosed:NO];
-		CGFloat xPos = NSWidth([[awindow screen] frame])/2 - NSWidth([awindow frame])/2;
-		CGFloat yPos = NSHeight([[awindow screen] frame])/2 - NSHeight([awindow frame])/2;
-		[awindow setFrame:NSMakeRect(xPos, yPos, NSWidth([awindow frame]), NSHeight([awindow frame])) display:YES];
-
-		// Init view
-		NSView *innerView = [[NSView alloc] initWithFrame:[window frame]];
-		[innerView setWantsLayer:YES];
-		[innerView.layer setAutoresizingMask: kCALayerWidthSizable | kCALayerHeightSizable];
-		[innerView.layer setNeedsDisplayOnBoundsChange: YES];
-		[awindow setContentView: innerView];
-		[innerView release];
-
+		NSWindow *awindow = [OSXDisplay createWindow:nil];// Old implementation didn't set layer.
 		self.window = awindow;
 		self.closeWindow = TRUE;
 	}
+}
+
++(int)setWindowTitle:(void *)object title:(const char *)title {
+	NSObject *obj = (NSObject *)object;
+	if([obj isKindOfClass:[NSWindow class]]) {
+		NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
+		DISPATCH_SYNC_MAIN(^{
+			[(NSWindow*)obj setTitle:[NSString stringWithUTF8String:title] ];
+		});
+		[loopPool drain];
+		return 0;
+	} else if([obj isKindOfClass:[NSView class]]) {
+		return [OSXDisplay setWindowTitle:[(NSView*)obj window] title:title];
+	} else if([obj isKindOfClass:[CALayer class]]) {
+		return [OSXDisplay setWindowTitle:((CALayer*)obj).delegate title:title];
+	}
+	return -1;
 }
 
 - (void)dealloc {
@@ -389,7 +422,7 @@ static void osx_gl_uninit(MSFilter* f) {
 	}
 }
 
-static int osx_gl_set_vsize(MSFilter* f, void* arg) {
+static int osx_gl_set_vsize(BCTBX_UNUSED(MSFilter* f), BCTBX_UNUSED(void* arg)) {
 	return -1;
 }
 
@@ -451,7 +484,23 @@ static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
 	return ret;
 }
 
-static int osx_gl_enable_mirroring(MSFilter* f, void* arg) {
+void* osx_gl_create_window(void **layer) {
+	NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
+	__block void *window;
+	DISPATCH_SYNC_MAIN(^{
+	  window = [OSXDisplay createWindow:layer];
+	});
+	[loopPool drain];
+	return window;
+}
+
+static int osx_gl_create_native_window_id(BCTBX_UNUSED(MSFilter *f), void *arg) {
+	*(NSWindow**)arg = (NSWindow*)osx_gl_create_window(nil);
+	return *(NSWindow**)arg == nil;
+}
+
+
+static int osx_gl_enable_mirroring(BCTBX_UNUSED(MSFilter* f), BCTBX_UNUSED(void* arg)) {
 	return -1;
 }
 
@@ -467,10 +516,26 @@ static int osx_gl_set_mode(MSFilter* f, void* arg) {
 	return 0;
 }
 
+
+void osx_gl_close_window(void **ns_window) {
+	if(ns_window){
+		NSWindow *window = (NSWindow*)*ns_window;
+		[window close];
+		[window release];
+		*ns_window = nil;
+	}
+}
+
+int osx_gl_set_window_title(void *window, const char *title) {
+	return [OSXDisplay setWindowTitle:window title:title];
+}
+
+
 static MSFilterMethod methods[]={
 	{MS_FILTER_SET_VIDEO_SIZE, osx_gl_set_vsize},
 	{MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, osx_gl_get_native_window_id},
 	{MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, osx_gl_set_native_window_id},
+	{MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, osx_gl_create_native_window_id},
 	{MS_VIDEO_DISPLAY_ENABLE_MIRRORING, osx_gl_enable_mirroring},
 	{MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, osx_gl_set_local_view_mode},
 	{MS_VIDEO_DISPLAY_SET_MODE, osx_gl_set_mode},

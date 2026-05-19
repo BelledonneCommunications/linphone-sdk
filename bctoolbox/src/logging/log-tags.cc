@@ -55,6 +55,9 @@ public:
 		} else {
 			if (--tagStack.top().mCount == 0) {
 				tagStack.pop();
+				if (tagStack.empty()) {
+					mTags.erase(tagType);
+				}
 				mTagsModfied = true;
 			}
 		}
@@ -101,6 +104,11 @@ public:
 			pushTag(p.first, p.second);
 		}
 	}
+	void remove(const ContextCopy &ctx) {
+		for (auto &p : ctx) {
+			popTag(p.first);
+		}
+	}
 	~LogTags() {
 		bctbx_list_free(mCurrentTagsCList);
 	}
@@ -140,6 +148,10 @@ bctbx_log_tags_t *bctbx_create_log_tags_copy(void) {
 
 BCTBX_PUBLIC void bctbx_paste_log_tags(const bctbx_log_tags_t *log_tags) {
 	bctoolbox::LogTags::get().paste(*(const bctoolbox::LogTags::ContextCopy *)log_tags);
+}
+
+BCTBX_PUBLIC void bctbx_remove_log_tags(const bctbx_log_tags_t *log_tags) {
+	bctoolbox::LogTags::get().remove(*(const bctoolbox::LogTags::ContextCopy *)log_tags);
 }
 
 BCTBX_PUBLIC void bctbx_log_tags_destroy(bctbx_log_tags_t *log_tags) {

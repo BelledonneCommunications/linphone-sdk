@@ -1323,23 +1323,24 @@ typedef struct _VideoStreamRecvBranch {
 
 struct _VideoStream {
 	MediaStream ms;
-	MSFilter *jpegwriter;
-	MSFilter *local_jpegwriter;
-	MSFilter *output;
-	MSFilter *output2;
-	MSFilter *pixconv;
-	MSFilter *qrcode;
+	MSFilter *jpegwriter;       /* MS_JPEG_WRITER_ID linked to tee2 */
+	MSFilter *local_jpegwriter; /* MS_JPEG_WRITER_ID linked to tee */
+	MSFilter *output;           /* Main display filter like MSOGL or MSVoidSink */
+	MSFilter *output2;          /* Preview display filter like MSOGL or MSVoidSink */
+	MSFilter *qrcode;           /* MS_QRCODE_READER_ID */
 	MSFilter *recorder_output; /*can be an ItcSink to send video to the audiostream's multimedia recorder, or directly a
-	                              MkvRecorder */
-	MSFilter *sizeconv;
-	MSFilter *source;
-	MSFilter *tee;
-	MSFilter *tee2;
-	MSFilter *tee3;
-	MSFilter *void_source;
-	MSFilter *itcsink;
-	MSFilter *forward_sink;
-	MSFilter *aggregator;
+	                             MkvRecorder */
+
+	MSFilter *pixconv;      /* Do pixel reformat with MS_PIX_CONV_ID */
+	MSFilter *sizeconv;     /*Do size reformat with MS_SIZE_CONV_ID */
+	MSFilter *source;       /* Source filter like MSScreenSharing, MSItcSource or MSVoidSource */
+	MSFilter *tee;          /* linked with local_jpegwriter, itcsink and output2 */
+	MSFilter *tee2;         /* linked with jpegwriter and forward_sink */
+	MSFilter *tee3;         /* linked with recorder_output */
+	MSFilter *void_source;  /* linked with ms.rtpsend */
+	MSFilter *itcsink;      /* MS_ITC_SINK_ID linked to tee */
+	MSFilter *forward_sink; /* MS_ITC_SINK_ID linked to tee2 */
+	MSFilter *aggregator;   /* MS_VIDEO_AGGREGATOR_ID linked to all branches.recv */
 	VideoStreamRecvBranch branches[VIDEO_STREAM_MAX_BRANCHES];
 	MSVideoSize sent_vsize;
 	MSVideoSize preview_vsize;
@@ -1356,8 +1357,8 @@ struct _VideoStream {
 	VideoStreamDisplayCallback displaycb;
 	void *display_pointer;
 	char *display_name;
-	void *window_id;
-	void *preview_window_id;
+	void *window_id;         /* Display Window ID for output */
+	void *preview_window_id; /* Display Window ID for output2 and source */
 	void *video_descriptor;
 	MediaStreamDir dir; /* Not used anymore, see direction in MediaStream */
 	MSRect decode_rect; // Used for the qrcode decoder
@@ -1400,7 +1401,7 @@ struct _VideoStream {
 	uint32_t new_csrc;
 	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
 	FecStream *fec_stream;
-	bool_t local_screen_sharing_enabled;
+	bool_t local_screen_sharing_enabled; /* Specific to current videostream */
 	bool_t active_speaker_mode;
 	bool_t csrc_change_received;
 };

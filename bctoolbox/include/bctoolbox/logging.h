@@ -199,9 +199,16 @@ BCTBX_PUBLIC bctbx_log_tags_t *bctbx_create_log_tags_copy(void);
 /**
  * Paste the logs to the current thread.
  * This is supposed to be done a on newly thread for which no tags were pushed yet.
- * The tags will remain until the thread exits.
+ * The tags will remain until the thread exits or manualy removed.
  */
 BCTBX_PUBLIC void bctbx_paste_log_tags(const bctbx_log_tags_t *log_tags);
+
+/**
+ * Remove logs to the current thread.
+ * This is supposed to be done after pasting them.
+ * The use case is for shared thread like main/Ui processing.
+ */
+BCTBX_PUBLIC void bctbx_remove_log_tags(const bctbx_log_tags_t *log_tags);
 
 /**
  * Destroy the opaque representation of the tag set state.

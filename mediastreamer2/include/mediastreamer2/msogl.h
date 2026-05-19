@@ -21,6 +21,8 @@
 #ifndef msogl_h
 #define msogl_h
 
+#include "mediastreamer2/mscommon.h"
+
 #define MS_OGL_RENDER MS_FILTER_METHOD_NO_ARG(MS_OGL_ID, 0)
 
 /**
@@ -60,5 +62,15 @@ struct _MSOglContextInfo {
 	void *(*getProcAddress)(const char *name); // Optional, set to NULL for using default OpenGL functions
 };
 typedef struct _MSOglContextInfo MSOglContextInfo;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+// Utility to set a title for a Window (X11/Windows)
+MS2_PUBLIC void ogl_set_window_title(void *window, const char *title);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

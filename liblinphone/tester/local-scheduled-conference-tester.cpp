@@ -122,7 +122,7 @@ static void conference_with_media_lost_base(bool_t server_drops) {
 			linphone_call_params_set_video_direction(new_params, LinphoneMediaDirectionSendRecv);
 			if (mgr == marie.getCMgr()) {
 				linphone_call_params_enable_screen_sharing(new_params, TRUE);
-				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingWindow,
+				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingDisplay,
 				                                                    NULL);
 			} else {
 				linphone_video_source_descriptor_set_camera_id(descriptor, liblinphone_tester_mire_id);
@@ -3088,7 +3088,7 @@ static void conference_with_two_participant_having_screen_sharing_enabled_since_
 			} else if (mgr == pauline.getCMgr()) {
 				linphone_call_params_enable_screen_sharing(new_params, TRUE);
 				linphone_call_params_enable_mic(new_params, FALSE);
-				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingWindow,
+				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingDisplay,
 				                                                    NULL);
 			} else {
 				linphone_video_source_descriptor_set_camera_id(descriptor, liblinphone_tester_mire_id);
@@ -3443,7 +3443,7 @@ static void conference_with_screen_sharing_participant_only() {
 			linphone_call_params_set_video_direction(new_params, LinphoneMediaDirectionSendRecv);
 			if (mgr == marie.getCMgr()) {
 				linphone_call_params_enable_screen_sharing(new_params, TRUE);
-				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingWindow,
+				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingDisplay,
 				                                                    NULL);
 			} else {
 				linphone_video_source_descriptor_set_camera_id(descriptor, liblinphone_tester_mire_id);
