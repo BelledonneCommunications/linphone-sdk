@@ -2693,25 +2693,25 @@ shared_ptr<CallSession> Core::createOrUpdateConferenceOnServer(const std::shared
 			return nullptr;
 		}
 		conferenceFactoryUri = conferenceFactoryUriRef->clone()->toSharedPtr();
-		conferenceFactoryUri->setUriParam(Conference::sSecurityModeParameter,
+		conferenceFactoryUri->setUriParam(Conference::kSecurityModeParameter,
 		                                  ConferenceParams::getSecurityLevelAttribute(confParams->getSecurityLevel()));
 	}
 
 	if (!!linphone_core_get_add_admin_information_to_contact(getCCore())) {
-		params.addCustomContactParameter(Conference::sAdminParameter, Utils::toString(true));
+		params.addCustomContactParameter(Conference::kAdminParameter, Utils::toString(true));
 	}
 
 	if (confParams->chatEnabled()) {
 		if (!mediaEnabled) {
-			params.addCustomContactParameter(Conference::sTextParameter);
+			params.addCustomContactParameter(Conference::kTextParameter);
 		}
 		params.addCustomHeader("Require", "recipient-list-invite");
-		params.addCustomHeader("One-To-One-Chat-Room", Utils::btos(!confParams->isGroup()));
-		params.addCustomHeader("End-To-End-Encrypted", Utils::btos(confParams->getChatParams()->isEncrypted()));
-		params.addCustomHeader("Ephemerable", Utils::btos(confParams->getChatParams()->getEphemeralMode() ==
+		params.addCustomHeader(ChatRoom::kOneOnOneChatRoomHeader, Utils::btos(!confParams->isGroup()));
+		params.addCustomHeader(ChatRoom::kEndToEndEncryptedHeader, Utils::btos(confParams->getChatParams()->isEncrypted()));
+		params.addCustomHeader(ChatRoom::kEphemerableHeader, Utils::btos(confParams->getChatParams()->getEphemeralMode() ==
 		                                                  AbstractChatRoom::EphemeralMode::AdminManaged));
-		params.addCustomHeader("Ephemeral-Life-Time", to_string(confParams->getChatParams()->getEphemeralLifetime()));
-		params.addCustomHeader("Ephemeral-Not-Read-Life-Time",
+		params.addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader, to_string(confParams->getChatParams()->getEphemeralLifetime()));
+		params.addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
 		                       to_string(confParams->getChatParams()->getEphemeralNotReadLifetime()));
 	}
 

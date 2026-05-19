@@ -452,7 +452,7 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 		if (op->getRemoteContactAddress()) {
 			Address remoteContactAddress;
 			remoteContactAddress.setImpl(op->getRemoteContactAddress());
-			remoteContactIsFocus = (remoteContactAddress.hasParam(Conference::sIsFocusParameter));
+			remoteContactIsFocus = (remoteContactAddress.hasParam(Conference::kIsFocusParameter));
 		}
 
 		if (!op->getTo().empty()) {
@@ -606,7 +606,7 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 			confParams->enableAudio(md->nbActiveStreamsOfType(SalAudio) > 0);
 			confParams->enableVideo(md->nbActiveStreamsOfType(SalVideo) > 0);
 		}
-		confParams->enableChat(remoteContactAddress && remoteContactAddress->hasParam(Conference::sTextParameter));
+		confParams->enableChat(remoteContactAddress && remoteContactAddress->hasParam(Conference::kTextParameter));
 
 		if (confParams->audioEnabled() || confParams->videoEnabled() || confParams->chatEnabled()) {
 			clientConference = dynamic_pointer_cast<ClientConference>(
@@ -622,8 +622,8 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 	setConference(clientConference);
 
 	// Record conf-id to be used later when terminating the client conference
-	if (clientConference && remoteContactAddress->hasUriParam(Conference::sConfIdParameter)) {
-		setConferenceId(remoteContactAddress->getUriParamValue(Conference::sConfIdParameter));
+	if (clientConference && remoteContactAddress->hasUriParam(Conference::kConfIdParameter)) {
+		setConferenceId(remoteContactAddress->getUriParamValue(Conference::kConfIdParameter));
 	}
 }
 

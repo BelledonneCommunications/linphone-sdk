@@ -170,7 +170,7 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 					if (call) {
 						const std::shared_ptr<Address> to = Address::create(op->getTo());
 						// Server conference
-						if (to->hasUriParam(Conference::sConfIdParameter)) {
+						if (to->hasUriParam(Conference::kConfIdParameter)) {
 							shared_ptr<Conference> conference = core->findConference(
 							    ConferenceId(to, to, q->getCore()->createConferenceIdParams()), false);
 
@@ -180,7 +180,7 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 							}
 						} else if (op->getRemoteContactAddress()) {
 							if (sal_address_has_param(op->getRemoteContactAddress(),
-							                          Conference::sIsFocusParameter.c_str())) {
+							                          Conference::kIsFocusParameter.c_str())) {
 								const auto &conferenceInfo = Utils::createConferenceInfoFromOp(op, true);
 								if (conferenceInfo->getUri()->isValid()) {
 									if (auto db = core->getDatabase()) {
@@ -1117,11 +1117,11 @@ bool CallSessionPrivate::reportEvents() const {
 	const auto &contactAddress = q->getContactAddress();
 	const auto localAddress = q->getLocalAddress();
 	const auto serverConferenceGuessedAddress =
-	    (contactAddress && contactAddress->hasUriParam(Conference::sConfIdParameter)) ? contactAddress : localAddress;
+	    (contactAddress && contactAddress->hasUriParam(Conference::kConfIdParameter)) ? contactAddress : localAddress;
 	const auto &remoteContactAddress = q->getRemoteContactAddress();
 	const auto remoteAddress = q->getRemoteAddress();
 	const auto clientConferenceGuessedAddress =
-	    (remoteContactAddress && remoteContactAddress->hasUriParam(Conference::sConfIdParameter)) ? remoteContactAddress
+	    (remoteContactAddress && remoteContactAddress->hasUriParam(Conference::kConfIdParameter)) ? remoteContactAddress
 	                                                                                              : remoteAddress;
 	const auto &peerAddress = isInConference() ? serverConferenceGuessedAddress : clientConferenceGuessedAddress;
 	const auto conference = q->getCore()->searchConference(nullptr, nullptr, peerAddress, {});

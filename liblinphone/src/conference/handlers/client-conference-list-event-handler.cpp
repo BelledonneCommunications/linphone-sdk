@@ -147,6 +147,7 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 		evSub->addCustomHeader("Accept-Encoding", "deflate");
 	}
 	evSub->setProperty("event-handler-private", this);
+
 	auto ret = evSub->send(content);
 	levs.push_back(evSub);
 	startWaitNotifyTimer();

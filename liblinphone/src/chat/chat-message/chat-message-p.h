@@ -122,7 +122,7 @@ public:
 		mToAddress = toAddress;
 	}
 
-	// Used by the ConferenceScheduler to keep track of the recipient Address in One-To-One Flexisip chat room
+	// Used by the ConferenceScheduler to keep track of the recipient Address in One-On-One Flexisip chat room
 	void setRecipientAddress(const std::shared_ptr<Address> &recipientAddress) {
 		this->recipientAddress = recipientAddress;
 	}

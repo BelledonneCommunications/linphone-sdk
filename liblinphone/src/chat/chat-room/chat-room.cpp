@@ -50,6 +50,12 @@ LINPHONE_BEGIN_NAMESPACE
 #define LF 0x0A
 #define CR 0x0D
 
+const std::string ChatRoom::kOneOnOneChatRoomHeader = "One-To-One-Chat-Room";
+const std::string ChatRoom::kEndToEndEncryptedHeader = "End-To-End-Encrypted";
+const std::string ChatRoom::kEphemerableHeader = "Ephemerable";
+const std::string ChatRoom::kEphemeralLifeTimeHeader = "Ephemeral-Life-Time";
+const std::string ChatRoom::kEphemeralNotReadLifeTimeHeader = "Ephemeral-Not-Read-Life-Time";
+
 // =============================================================================
 
 ChatRoom::ChatRoom(const shared_ptr<Core> &core, const std::shared_ptr<Conference> &conf) : AbstractChatRoom(core) {

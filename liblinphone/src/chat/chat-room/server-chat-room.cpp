@@ -96,7 +96,7 @@ void ServerChatRoom::confirmRecreation(SalCallOp *op) {
 	session->configure(LinphoneCallIncoming, nullptr, op, from, to);
 	session->startIncomingNotification(false);
 	auto redirectAddr = *confAddr;
-	redirectAddr.setParam(Conference::sIsFocusParameter);
+	redirectAddr.setParam(Conference::kIsFocusParameter);
 	session->redirect(redirectAddr);
 }
 
@@ -486,15 +486,22 @@ void ServerChatRoom::handleEphemeralSettingsChange(const shared_ptr<CallSession>
 	}
 	if (getCurrentParams()->getChatParams()->ephemeralAllowed()) {
 		const auto op = session->getPrivate()->getOp();
-		const string ephemeralLifeTime =
-		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), "Ephemeral-Life-Time"));
+		const string ephemeralLifetime =
+		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemeralLifeTimeHeader.c_str()));
 		const string ephemeralNotReadLifetime =
-		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), "Ephemeral-Not-Read-Life-Time"));
-		if (ephemeralLifeTime.empty() && ephemeralNotReadLifetime.empty()) {
+		    L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemeralNotReadLifeTimeHeader.c_str()));
+		if (ephemeralLifetime.empty() && ephemeralNotReadLifetime.empty()) {
 			setEphemeralModeForDevice(AbstractChatRoom::EphemeralMode::DeviceManaged, session);
 		} else {
-			setEphemeralLifetimeForDevice(std::stol(ephemeralLifeTime, nullptr),
-			                              std::stol(ephemeralNotReadLifetime, nullptr), session);
+			long lifetime = 0;
+			long notReadLifetime = 0;
+			if (!ephemeralLifetime.empty()) {
+				lifetime = std::stol(ephemeralLifetime, nullptr);
+			}
+			if (!ephemeralNotReadLifetime.empty()) {
+				notReadLifetime = std::stol(ephemeralNotReadLifetime, nullptr);
+			}
+			setEphemeralLifetimeForDevice(lifetime, notReadLifetime, session);
 		}
 	}
 }

@@ -68,14 +68,14 @@ class LINPHONE_PUBLIC Conference : public bellesip::HybridObject<LinphoneConfere
 	friend class ServerChatRoom;
 
 public:
-	static constexpr int sLabelLength = 10;
-	static const std::string sPAssertedIdentityHeader;
-	static const std::string sSecurityModeParameter;
-	static const std::string sConfIdParameter;
-	static const std::string sAdminParameter;
-	static const std::string sIsFocusParameter;
-	static const std::string sTextParameter;
-	static const std::string sAnonymousKeyword;
+	static constexpr int kLabelLength = 10;
+	static const std::string kPAssertedIdentityHeader;
+	static const std::string kSecurityModeParameter;
+	static const std::string kConfIdParameter;
+	static const std::string kAdminParameter;
+	static const std::string kIsFocusParameter;
+	static const std::string kTextParameter;
+	static const std::string kAnonymousKeyword;
 
 	static bool isTerminationState(ConferenceInterface::State state);
 	static Address createParticipantAddressForResourceList(const ConferenceInfo::participant_list_t::value_type &p);
@@ -372,7 +372,7 @@ public:
 
 	void resetLastNotify();
 
-	void setConferenceId(const ConferenceId &conferenceId);
+	void setConferenceId(const ConferenceId &conferenceId, bool storeInRAM);
 
 	inline long getCreationDurationMs() const {
 		return mCreationDurationMs;

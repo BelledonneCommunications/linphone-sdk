@@ -161,12 +161,12 @@ static void call_received(SalCallOp *h) {
 
 #ifdef HAVE_ADVANCED_IM
 	// Chat settings
-	string endToEndEncrypted = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "End-To-End-Encrypted"));
+	string endToEndEncrypted = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEndToEndEncryptedHeader.c_str()));
 	bool encrypted = endToEndEncrypted == "true";
-	string ephemerable = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemerable"));
-	string ephemeralLifeTime = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Life-Time"));
+	string ephemerable = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemerableHeader.c_str()));
+	string ephemeralLifeTime = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemeralLifeTimeHeader.c_str()));
 	string ephemeralNotReadLifeTime =
-	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Not-Read-Life-Time"));
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemeralNotReadLifeTimeHeader.c_str()));
 	auto ephemeralMode = (ephemerable == "true") && (!ephemeralLifeTime.empty() || !ephemeralNotReadLifeTime.empty())
 	                         ? AbstractChatRoom::EphemeralMode::AdminManaged
 	                         : AbstractChatRoom::EphemeralMode::DeviceManaged;
@@ -176,13 +176,13 @@ static void call_received(SalCallOp *h) {
 		if (!ephemeralLifeTime.empty()) parsedEphemeralLifeTime = stol(ephemeralLifeTime, nullptr);
 		if (!ephemeralNotReadLifeTime.empty()) parsedEphemeralNotReadLifeTime = stol(ephemeralNotReadLifeTime, nullptr);
 	}
-	string oneOnOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
+	string oneOnOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kOneOnOneChatRoomHeader.c_str()));
 	bool isOneOnOne = (oneOnOneChatRoom == "true");
 	// Chat capabilities are enabled if the text parameter is in the contact address or at least one chat configuration
 	// parameter is listed in the custom headers
 	chatCapabilities = !ephemerable.empty() || !ephemeralLifeTime.empty() || !endToEndEncrypted.empty() ||
 	                   !oneOnOneChatRoom.empty() ||
-	                   !!(sal_address_has_param(remoteContactAddress, Conference::sTextParameter.c_str()));
+	                   !!(sal_address_has_param(remoteContactAddress, Conference::kTextParameter.c_str()));
 #endif
 
 	auto params = ConferenceParams::create(L_GET_CPP_PTR_FROM_C_OBJECT(lc));
@@ -271,7 +271,7 @@ static void call_received(SalCallOp *h) {
 		h->release();
 #endif
 		return;
-	} else if (isServer && (chatCapabilities || to->hasUriParam(Conference::sConfIdParameter) || conferenceAccount)) {
+	} else if (isServer && (chatCapabilities || to->hasUriParam(Conference::kConfIdParameter) || conferenceAccount)) {
 		// Check if an account can be associated to a conference or the conference has chat capabilities. In fact, the
 		// latter check is required to be backward compatible as older versions of the flexisip conference server did
 		// not create chatroom addresses from a single conference focus but using the following pattern
@@ -339,7 +339,7 @@ static void call_received(SalCallOp *h) {
 				conference->init(h);
 			} else {
 				if (hasStreams) {
-					if (sal_address_has_uri_param(h->getToAddress(), Conference::sConfIdParameter.c_str())) {
+					if (sal_address_has_uri_param(h->getToAddress(), Conference::kConfIdParameter.c_str())) {
 						long long expiredConferenceId = db ? db.value().get().findExpiredConferenceId(to) : -1;
 						SalErrorInfo sei;
 						memset(&sei, 0, sizeof(sei));
@@ -466,7 +466,7 @@ static void call_received(SalCallOp *h) {
 	}
 
 	if (linphone_config_get_int(linphone_core_get_config(lc), "sip", "reject_duplicated_calls", 1) &&
-	    !sal_address_has_param(remoteContactAddress, Conference::sIsFocusParameter.c_str())) {
+	    !sal_address_has_param(remoteContactAddress, Conference::kIsFocusParameter.c_str())) {
 		/* Check if I'm the caller */
 		std::shared_ptr<Address> fromAddressToSearchIfMe = nullptr;
 		if (h->getPrivacy() == SalPrivacyNone) fromAddressToSearchIfMe = from->clone()->toSharedPtr();

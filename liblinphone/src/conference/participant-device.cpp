@@ -90,7 +90,7 @@ std::shared_ptr<Address> ParticipantDevice::getAddress() const {
 Address ParticipantDevice::pruneAddress(const std::shared_ptr<const Address> &address) {
 	auto newAddress = address->getUri();
 	// Not useful to keep the transport parameter in the participant device address
-	newAddress.removeUriParam(Address::sTransportParameter);
+	newAddress.removeUriParam(Address::kTransportParameter);
 	return newAddress;
 }
 
@@ -340,7 +340,7 @@ bool ParticipantDevice::enableScreenSharing(bool enabled) {
 		mIsScreenSharing = enabled;
 		if (mSession && mSession->getPrivate()->isInConference()) {
 			if (enabled) {
-				char label[LinphonePrivate::Conference::sLabelLength];
+				char label[LinphonePrivate::Conference::kLabelLength];
 				belle_sip_random_token(label, sizeof(label));
 				setStreamLabel(label, LinphoneStreamTypeVideo);
 			} else {

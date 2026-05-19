@@ -301,7 +301,7 @@ void MS2Stream::fillLocalMediaDescription(OfferAnswerContext &ctx) {
 		                             : session.getRemoteAddress();
 		confInfo = db.value().get().getConferenceInfoFromURI(conferenceAddress);
 	}
-	if ((address && address->hasParam(Conference::sIsFocusParameter)) || confInfo) {
+	if ((address && address->hasParam(Conference::kIsFocusParameter)) || confInfo) {
 		localDesc.cfgs[localDesc.getChosenConfigurationIndex()].conference_ssrc = rtp_ssrc;
 	}
 

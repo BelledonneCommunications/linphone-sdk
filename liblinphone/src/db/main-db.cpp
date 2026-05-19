@@ -7901,7 +7901,7 @@ Address MainDb::processConferenceAddress(const std::shared_ptr<Address> &uri) {
 		return Address();
 	}
 	auto conferenceAddress = uri->getUriWithoutGruu();
-	conferenceAddress.removeUriParam(Address::sTransportParameter);
+	conferenceAddress.removeUriParam(Address::kTransportParameter);
 	return conferenceAddress;
 }
 

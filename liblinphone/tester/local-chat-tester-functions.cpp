@@ -2896,22 +2896,20 @@ void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,
 				}
 				laureCr = linphone_core_search_chat_room(laure.getLc(), NULL, NULL, confAddr, NULL);
 				BC_ASSERT_PTR_NOT_NULL(laureCr);
-				if (corrupt_database) {
-					LinphoneConference *conference = linphone_core_search_conference_2(laure.getLc(), confAddr);
-					BC_ASSERT_PTR_NOT_NULL(conference);
-					if (conference) {
-						const LinphoneConferenceParams *conference_params =
-						    linphone_conference_get_current_params(conference);
-						BC_ASSERT_FALSE(linphone_conference_params_audio_enabled(conference_params));
-						BC_ASSERT_FALSE(linphone_conference_params_video_enabled(conference_params));
-						BC_ASSERT_TRUE(linphone_conference_params_chat_enabled(conference_params));
-						BC_ASSERT_EQUAL(linphone_conference_get_state(conference), LinphoneConferenceStateCreated, int,
-						                "%i");
-					}
-					BC_ASSERT_PTR_EQUAL(laureCr, linphone_conference_get_chat_room(conference));
-					if (laureCr) {
-						BC_ASSERT_FALSE(linphone_chat_room_has_been_left(laureCr));
-					}
+				LinphoneConference *conference = linphone_core_search_conference_2(laure.getLc(), confAddr);
+				BC_ASSERT_PTR_NOT_NULL(conference);
+				if (conference) {
+					const LinphoneConferenceParams *conference_params =
+					    linphone_conference_get_current_params(conference);
+					BC_ASSERT_FALSE(linphone_conference_params_audio_enabled(conference_params));
+					BC_ASSERT_FALSE(linphone_conference_params_video_enabled(conference_params));
+					BC_ASSERT_TRUE(linphone_conference_params_chat_enabled(conference_params));
+					BC_ASSERT_EQUAL(linphone_conference_get_state(conference), LinphoneConferenceStateCreated, int,
+							"%i");
+				}
+				BC_ASSERT_PTR_EQUAL(laureCr, linphone_conference_get_chat_room(conference));
+				if (laureCr) {
+					BC_ASSERT_FALSE(linphone_chat_room_has_been_left(laureCr));
 				}
 			}
 		}
@@ -3021,6 +3019,13 @@ void group_chat_room_with_client_removed_and_reinvinted_base(bool encrypted,
 					BC_ASSERT_FALSE(linphone_chat_room_has_been_left(laureCr));
 				}
 			}
+		}
+
+		if (corrupt_database && !restart_core_after_corruption) {
+			BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneSubscriptionError, 1,
+			               liblinphone_tester_sip_timeout));
+		} else {
+			BC_ASSERT_FALSE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneSubscriptionOutgoingProgress, 1, 1000));
 		}
 
 		initialMarieStats = marie.getStats();
