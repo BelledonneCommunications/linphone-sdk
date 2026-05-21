@@ -20,6 +20,8 @@
 #include "belle_sip_internal.h"
 #include "stream_channel.h"
 
+#include <inttypes.h>
+
 #include "bctoolbox/crypto.h"
 
 static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj);
@@ -378,6 +380,8 @@ struct belle_sip_tls_channel {
 	belle_tls_crypto_config_t *crypto_config;
 	int http_proxy_connected;
 	belle_sip_resolver_context_t *http_proxy_resolver_ctx;
+	uint64_t handshake_start_ms;
+	unsigned int handshake_started;
 };
 
 static void tls_channel_close(belle_sip_tls_channel_t *obj) {
@@ -511,15 +515,31 @@ static int tls_handle_postcheck(belle_sip_tls_channel_t *channel) {
 static int tls_process_handshake(belle_sip_channel_t *obj) {
 	belle_sip_tls_channel_t *channel = (belle_sip_tls_channel_t *)obj;
 	char tmp[128];
-	int err = bctbx_ssl_handshake(channel->sslctx);
+	uint64_t now_ms;
+	int err;
+
+	if (!channel->handshake_started) {
+		channel->handshake_started = 1;
+		channel->handshake_start_ms = belle_sip_time_ms();
+		belle_sip_message("[TLS] handshake started");
+		belle_sip_message("[TLS] handshake started for channel [%p]", obj);
+	}
+	err = bctbx_ssl_handshake(channel->sslctx);
+	now_ms = belle_sip_time_ms();
 
 	memset(tmp, '\0', sizeof(tmp));
 	if (err == 0) {
+		uint64_t duration_ms = now_ms - channel->handshake_start_ms;
 		belle_sip_message("Channel [%p]: SSL handshake finished, SSL version is [%s], selected ciphersuite is [%s]",
 		                  obj, bctbx_ssl_get_version(channel->sslctx), bctbx_ssl_get_ciphersuite(channel->sslctx));
 		err = tls_handle_postcheck(channel);
 		if (err != 0) {
 			snprintf(tmp, sizeof(tmp) - 1, "%s", "application level post-check failed.");
+		} else {
+			belle_sip_message("[TLS] handshake completed");
+			belle_sip_message("[TLS] handshake completed for channel [%p]", obj);
+			belle_sip_message("[TLS] handshake duration: %" PRIu64 " ms", duration_ms);
+			belle_sip_message("[TLS] handshake duration: %" PRIu64 " ms for channel [%p]", duration_ms, obj);
 		}
 	}
 
@@ -529,9 +549,12 @@ static int tls_process_handshake(belle_sip_channel_t *obj) {
 	} else if (err == BCTBX_ERROR_NET_WANT_READ || err == BCTBX_ERROR_NET_WANT_WRITE) {
 		belle_sip_message("Channel [%p]: SSL handshake in progress...", obj);
 	} else {
+		uint64_t duration_ms = now_ms - channel->handshake_start_ms;
 		if (tmp[0] == '\0') {
 			bctbx_strerror(err, tmp, sizeof(tmp));
 		}
+		belle_sip_error("[TLS] handshake failed: error=%d, reason=%s, channel=[%p]", err, tmp, obj);
+		belle_sip_message("[TLS] handshake duration: %" PRIu64 " ms for channel [%p]", duration_ms, obj);
 		belle_sip_error("Channel [%p]: SSL handshake failed : %s", obj, tmp);
 		return -1;
 	}
@@ -742,6 +765,7 @@ int belle_sip_verify_cb_error_wrapper(bctbx_x509_certificate_t *cert, int depth,
 		return 0;
 	}
 
+	belle_sip_message("[TLS] certificate verification callback started: depth=%d, flags=0x%x", depth, *flags);
 	belle_sip_message("belle_sip_verify_cb_error_wrapper: depth=[%d], flags=[0x%x]:\n", depth, *flags);
 
 	der_length = bctbx_x509_certificate_get_der_length(cert);
@@ -756,6 +780,7 @@ int belle_sip_verify_cb_error_wrapper(bctbx_x509_certificate_t *cert, int depth,
 
 	rc = tls_verify_cb_error_cb(der, der_length, depth, flags);
 
+	belle_sip_message("[TLS] certificate verification callback result: rc=%d, flags=0x%x", rc, *flags);
 	belle_sip_message("belle_sip_verify_cb_error_wrapper: callback return rc: %d, flags: 0x%x", rc, *flags);
 	belle_sip_free(der);
 	return rc;
@@ -785,9 +810,14 @@ static int belle_sip_ssl_verify(void *data, bctbx_x509_certificate_t *cert, int 
 	}
 
 	if (crypto_config->verify_cb) {
+		belle_sip_message("[TLS] certificate verification callback started: depth=%d, flags=0x%x", depth, *flags);
 		crypto_config->verify_cb(crypto_config->verify_cb_data, cert, depth, flags);
+		belle_sip_message("[TLS] certificate verification callback result: %s (depth=%d, flags=0x%x)",
+		                  (*flags == 0) ? "success" : "failure", depth, *flags);
 	}
 	ret = belle_sip_verify_cb_error_wrapper(cert, depth, flags);
+	belle_sip_message("[TLS] certificate verification result: %s (depth=%d, flags=0x%x)",
+	                  (*flags == 0 && ret == 0) ? "success" : "failure", depth, *flags);
 
 	belle_sip_free(flags_str);
 	belle_sip_free(tmp);
@@ -860,8 +890,14 @@ static void belle_sip_tls_channel_deinit_bctbx_ssl(belle_sip_tls_channel_t *obj)
 static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 	belle_sip_stream_channel_t *super = (belle_sip_stream_channel_t *)obj;
 	belle_tls_crypto_config_t *crypto_config = obj->crypto_config;
+	int has_root_ca_config = 0;
+	int has_client_cert_config = 0;
 
 	/* create and initialise ssl context and configuration */
+	obj->handshake_start_ms = 0;
+	obj->handshake_started = 0;
+	belle_sip_message("[TLS] creating TLS channel");
+	belle_sip_message("[TLS] creating TLS channel [%p]", obj);
 	obj->sslctx = bctbx_ssl_context_new();
 	obj->sslcfg = bctbx_ssl_config_new();
 	if (crypto_config->ssl_config == NULL) {
@@ -876,6 +912,7 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 		/* now if we do have one set it in the ssl config */
 		if (obj->client_cert_chain && obj->client_cert_key) {
 			char tmp[512] = {0};
+			has_client_cert_config = 1;
 
 			bctbx_x509_certificate_get_info_string(tmp, sizeof(tmp) - 1, "", obj->client_cert_chain->cert);
 			belle_sip_message("Channel [%p]  found client  certificate:\n%s", obj, tmp);
@@ -901,6 +938,12 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 	}
 
 	bctbx_ssl_config_set_rng(obj->sslcfg, random_generator, obj->rng);
+	has_root_ca_config = (crypto_config->root_ca_data != NULL) || (crypto_config->root_ca != NULL);
+	if (!has_client_cert_config) {
+		has_client_cert_config = (obj->client_cert_chain != NULL) || (obj->client_cert_key != NULL);
+	}
+	belle_sip_message("[TLS] root CA configuration present: %s", has_root_ca_config ? "yes" : "no");
+	belle_sip_message("[TLS] client certificate configuration present: %s", has_client_cert_config ? "yes" : "no");
 	if ((crypto_config->root_ca_data &&
 	     belle_sip_tls_channel_load_root_ca_from_buffer(obj, crypto_config->root_ca_data) == 0) ||
 	    (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj, crypto_config->root_ca) == 0)) {
@@ -929,6 +972,8 @@ belle_sip_channel_t *belle_sip_channel_new_tls(belle_sip_stack_t *stack,
 
 	obj->crypto_config = (belle_tls_crypto_config_t *)belle_sip_object_ref(crypto_config);
 	obj->rng = bctbx_rng_context_new();
+	obj->handshake_start_ms = 0;
+	obj->handshake_started = 0;
 	return (belle_sip_channel_t *)obj;
 }
 
