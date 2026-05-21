@@ -39,7 +39,7 @@ const int PayloadTypeHandler::rtpHeaderSize = 12;
 const int PayloadTypeHandler::ipv4HeaderSize = 20;
 
 const VbrCodecBitrate PayloadTypeHandler::defaultVbrCodecBitrates[] = {
-    {64, 44100, 50}, {64, 16000, 40}, {32, 16000, 32}, {32, 8000, 32}, {0, 8000, 24}, {0, 0, 0}};
+    {64, 44100, 60}, {64, 16000, 45}, {32, 16000, 32}, {32, 8000, 32}, {0, 8000, 24}, {0, 0, 0}};
 
 // =============================================================================
 
