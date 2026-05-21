@@ -153,7 +153,7 @@ static void belle_sip_source_init(belle_sip_source_t *s,
                                   void *data,
                                   belle_sip_fd_t fd,
                                   unsigned int events,
-                                  unsigned int timeout_value_ms) {
+                                  int64_t timeout_value_ms) {
 	static unsigned long global_id = 1;
 	s->node.data = s;
 	if (s->id == 0) s->id = global_id++;
@@ -189,7 +189,7 @@ void belle_sip_socket_source_init(belle_sip_source_t *s,
                                   void *data,
                                   belle_sip_socket_t sock,
                                   unsigned int events,
-                                  unsigned int timeout_value_ms) {
+                                  int64_t timeout_value_ms) {
 #ifdef _WIN32
 	/*on windows, the fd to poll is not the socket */
 	belle_sip_fd_t fd = (belle_sip_fd_t)-1;
@@ -209,32 +209,28 @@ void belle_sip_fd_source_init(belle_sip_source_t *s,
                               void *data,
                               belle_sip_fd_t fd,
                               unsigned int events,
-                              unsigned int timeout_value_ms) {
+                              int64_t timeout_value_ms) {
 	belle_sip_source_init(s, func, data, fd, events, timeout_value_ms);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_source_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t, belle_sip_object_t, belle_sip_source_destroy, NULL, NULL, FALSE);
 
-belle_sip_source_t *belle_sip_socket_source_new(belle_sip_source_func_t func,
-                                                void *data,
-                                                belle_sip_socket_t sock,
-                                                unsigned int events,
-                                                unsigned int timeout_value_ms) {
+belle_sip_source_t *belle_sip_socket_source_new(
+    belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, int64_t timeout_value_ms) {
 	belle_sip_source_t *s = belle_sip_object_new(belle_sip_source_t);
 	belle_sip_socket_source_init(s, func, data, sock, events, timeout_value_ms);
 	return s;
 }
 
 belle_sip_source_t *belle_sip_fd_source_new(
-    belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms) {
+    belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, int64_t timeout_value_ms) {
 	belle_sip_source_t *s = belle_sip_object_new(belle_sip_source_t);
 	belle_sip_fd_source_init(s, func, data, fd, events, timeout_value_ms);
 	return s;
 }
 
-belle_sip_source_t *
-belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms) {
+belle_sip_source_t *belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, int64_t timeout_value_ms) {
 	return belle_sip_socket_source_new(func, data, (belle_sip_socket_t)-1, 0, timeout_value_ms);
 }
 

@@ -140,7 +140,7 @@ BELLESIP_EXPORT void belle_sip_main_loop_do_later_with_name(belle_sip_main_loop_
  * Its pointer can be used to remove it from the source (that is cancelling it).
  **/
 BELLESIP_EXPORT belle_sip_source_t *
-belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
+belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, int64_t timeout_value_ms);
 
 /**
  * Set the timeout duration.
@@ -166,11 +166,8 @@ BELLESIP_EXPORT void belle_sip_source_cancel(belle_sip_source_t *src);
 BELLESIP_DEPRECATED BELLESIP_EXPORT unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
 BELLESIP_EXPORT int64_t belle_sip_source_get_timeout_int64(const belle_sip_source_t *s);
 
-BELLESIP_EXPORT belle_sip_source_t *belle_sip_socket_source_new(belle_sip_source_func_t func,
-                                                                void *data,
-                                                                belle_sip_socket_t fd,
-                                                                unsigned int events,
-                                                                unsigned int timeout_value_ms);
+BELLESIP_EXPORT belle_sip_source_t *belle_sip_socket_source_new(
+    belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, int64_t timeout_value_ms);
 /*
  * register a callback invoked once source is removed from mainloop
  */
