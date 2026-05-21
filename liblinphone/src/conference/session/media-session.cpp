@@ -3550,6 +3550,23 @@ void MediaSessionPrivate::updateFrozenPayloads(std::shared_ptr<SalMediaDescripti
 	}
 }
 
+void MediaSessionPrivate::setNegotiatedEncryption(const std::shared_ptr<SalMediaDescription> &newMd) {
+	L_Q();
+	if (newMd->isEmpty()) {
+		lInfo() << "All streams have been rejected, hence negotiated media encryption keeps being "
+		        << linphone_media_encryption_to_string(negotiatedEncryption);
+	} else {
+		negotiatedEncryption = getEncryptionFromMediaDescription(newMd);
+		lInfo() << "Negotiated media encryption is " << linphone_media_encryption_to_string(negotiatedEncryption);
+		// There is no way to signal that ZRTP was enabled in the SDP and it is automatically accepted by Linphone even
+		// if it was not offered in the first place Attribute zrtp-hash is not mandatory
+		if (!q->isCapabilityNegotiationEnabled() && (negotiatedEncryption == LinphoneMediaEncryptionZRTP) &&
+		    (getParams()->getMediaEncryption() == LinphoneMediaEncryptionNone)) {
+			getParams()->setMediaEncryption(negotiatedEncryption);
+		}
+	}
+}
+
 void MediaSessionPrivate::updateStreams(std::shared_ptr<SalMediaDescription> &newMd, CallSession::State targetState) {
 	L_Q();
 
@@ -3570,21 +3587,9 @@ void MediaSessionPrivate::updateStreams(std::shared_ptr<SalMediaDescription> &ne
 	resultDesc = newMd;
 
 	// Encryption may have changed during the offer answer process and not being the default one. Typical example of
-	// this scenario is when capability negotiation is enabled and if ZRTP is only enabled on one side and the other
-	// side supports it
-	if (newMd->isEmpty()) {
-		lInfo() << "All streams have been rejected, hence negotiated media encryption keeps being "
-		        << linphone_media_encryption_to_string(negotiatedEncryption);
-	} else {
-		negotiatedEncryption = getEncryptionFromMediaDescription(newMd);
-		lInfo() << "Negotiated media encryption is " << linphone_media_encryption_to_string(negotiatedEncryption);
-		// There is no way to signal that ZRTP was enabled in the SDP and it is automatically accepted by Linphone even
-		// if it was not offered in the first place Attribute zrtp-hash is not mandatory
-		if (!q->isCapabilityNegotiationEnabled() && (negotiatedEncryption == LinphoneMediaEncryptionZRTP) &&
-		    (getParams()->getMediaEncryption() == LinphoneMediaEncryptionNone)) {
-			getParams()->setMediaEncryption(negotiatedEncryption);
-		}
-	}
+	// this scenario is if ZRTP is only enabled on one side and the other side supports it with capability negotiation
+	// is enabled
+	setNegotiatedEncryption(newMd);
 
 	/* Notify the tone manager that we're about to transition to a future state.
 	 * This is important so that it can take stop pending tones, so that there is no audio resource conflict
@@ -3789,13 +3794,18 @@ LinphoneStatus MediaSessionPrivate::pause() {
 	L_Q();
 	if (state == CallSession::State::Paused) {
 		lWarning() << "Media session (local address " << *q->getLocalAddress() << " remote address "
-		           << *q->getRemoteAddress() << ") is in state " << Utils::toString(state) << " is already paused";
+		           << *q->getRemoteAddress() << ") in state " << Utils::toString(state) << " is already paused";
 		return 0;
 	} else if (state == CallSession::State::Pausing) {
 		lWarning() << "Media session (local address " << *q->getLocalAddress() << " remote address "
-		           << *q->getRemoteAddress() << ") is in state " << Utils::toString(state)
+		           << *q->getRemoteAddress() << ") in state " << Utils::toString(state)
 		           << " is already in the process of being paused";
 		return 0;
+	} else if (state == CallSession::State::Connected) {
+		lWarning() << "Media session (local address " << *q->getLocalAddress() << " remote address "
+		           << *q->getRemoteAddress() << ") in state " << Utils::toString(state)
+		           << " cannot be paused right now";
+		return -1;
 	} else if (!canSoundResourcesBeFreed()) {
 		lWarning() << "Media session (local address " << *q->getLocalAddress() << " remote address "
 		           << *q->getRemoteAddress() << ") is in state " << Utils::toString(state)
@@ -4570,6 +4580,16 @@ ConferenceLayout MediaSession::computeConferenceLayout(const std::shared_ptr<Sal
 	return layout;
 }
 
+void MediaSession::updateNegotiatedEncryption() {
+	L_D();
+	if (d->op) {
+		std::shared_ptr<SalMediaDescription> &md = d->op->getFinalMediaDescription();
+		if (md) {
+			d->setNegotiatedEncryption(md);
+		}
+	}
+}
+
 void MediaSession::acceptDefault() {
 	accept();
 }
@@ -4751,8 +4771,14 @@ void MediaSession::initiateIncoming() {
 	CallSession::initiateIncoming();
 
 	bool isOfferer = d->op->getRemoteMediaDescription() ? false : true;
-	// Only create a media description is an offer has been received as minimal checks can be done to ensure that the call can be accepted.
-	// If no SDP has been received (https://datatracker.ietf.org/doc/html/rfc6337#section-3.1.2), it is not possible to know at this stage the capabilities of the session nor which features will be enabled. The local media description will be created and configured once the call has been accepted because the application will have a chance to set the session parameters. Furthermore, if ICE is enabled, a ICE gathering will start based on the default media session parameters and it may lead to having complex code further down the line because the ICE gathering for some streams may be cancelled after accepting the call if the application disabled some capabilities that were enabled by default.
+	// Only create a media description is an offer has been received as minimal checks can be done to ensure that the
+	// call can be accepted. If no SDP has been received (https://datatracker.ietf.org/doc/html/rfc6337#section-3.1.2),
+	// it is not possible to know at this stage the capabilities of the session nor which features will be enabled. The
+	// local media description will be created and configured once the call has been accepted because the application
+	// will have a chance to set the session parameters. Furthermore, if ICE is enabled, a ICE gathering will start
+	// based on the default media session parameters and it may lead to having complex code further down the line
+	// because the ICE gathering for some streams may be cancelled after accepting the call if the application disabled
+	// some capabilities that were enabled by default.
 	if (!isOfferer) {
 		d->makeLocalMediaDescription(isOfferer, isCapabilityNegotiationEnabled(), false);
 
@@ -5210,7 +5236,12 @@ LinphoneStatus MediaSession::update(const MediaSessionParams *msp,
 	L_D();
 	CallSession::State nextState;
 	LinphoneStatus result = 0;
-	if (!d->isUpdateAllowed(nextState)) {
+	bool hasMedia = false;
+	const auto &params = msp ? msp : d->getParams();
+	if (params) {
+		hasMedia = params->audioEnabled() || params->videoEnabled();
+	}
+	if (!d->isUpdateAllowed(nextState, hasMedia)) {
 		return -1;
 	}
 
@@ -5249,12 +5280,13 @@ LinphoneStatus MediaSession::update(const MediaSessionParams *msp,
 		const auto &localDesc = d->localDesc;
 		const auto &contentList = msp->getCustomContents();
 
-		auto updateCompletionTask = [this, method, subject, localDesc, isOfferer, contentList]() -> LinphoneStatus {
+		auto updateCompletionTask = [this, method, subject, localDesc, isOfferer, contentList,
+		                             hasMedia]() -> LinphoneStatus {
 			L_D();
 
 			CallSession::State previousState = d->state;
 			CallSession::State newState;
-			if (!d->isUpdateAllowed(newState)) {
+			if (!d->isUpdateAllowed(newState, hasMedia)) {
 				return -1;
 			}
 

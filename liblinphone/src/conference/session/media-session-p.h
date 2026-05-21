@@ -373,6 +373,8 @@ private:
 	                                    const std::shared_ptr<SalMediaDescription> &oldMd);
 	std::list<unsigned int> getProtectedStreamNumbers(std::shared_ptr<SalMediaDescription> md);
 
+	void setNegotiatedEncryption(const std::shared_ptr<SalMediaDescription> &newMd);
+
 	static const std::string ecStateStore;
 	static const int ecStateMaxLen;
 	static constexpr const int rtpExtHeaderMidNumber = RTP_EXTENSION_MID;

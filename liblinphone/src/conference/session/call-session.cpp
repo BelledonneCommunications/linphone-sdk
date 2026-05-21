@@ -826,7 +826,7 @@ bool CallSessionPrivate::isReadyForInvite() const {
 	return pingReady;
 }
 
-bool CallSessionPrivate::isUpdateAllowed(CallSession::State &nextState) const {
+bool CallSessionPrivate::isUpdateAllowed(CallSession::State &nextState, bool hasMedia) const {
 	L_Q();
 	if (op->hasRetryFunction()) {
 		lWarning() << "Unable to send reINVITE or UPDATE request right now because " << *q << " (local address "
@@ -844,7 +844,6 @@ bool CallSessionPrivate::isUpdateAllowed(CallSession::State &nextState) const {
 		case CallSession::State::OutgoingEarlyMedia:
 			nextState = CallSession::State::EarlyUpdating;
 			break;
-		case CallSession::State::Connected:
 		case CallSession::State::StreamsRunning:
 		case CallSession::State::PausedByRemote:
 		case CallSession::State::UpdatedByRemote:
@@ -859,6 +858,18 @@ bool CallSessionPrivate::isUpdateAllowed(CallSession::State &nextState) const {
 		case CallSession::State::Updating:
 		case CallSession::State::EarlyUpdating:
 			nextState = state;
+			break;
+		case CallSession::State::Connected:
+			if (hasMedia) {
+				lError() << *q << " (local address " << *q->getLocalAddress() << " remote address "
+				         << (q->getRemoteAddress() ? q->getRemoteAddress()->toString() : "sip:")
+				         << "): Update is not allowed in [" << Utils::toString(state)
+				         << "] state when media is active. It has to be scheduled once the session moves into the "
+				            "StreamsRunning state";
+				return false;
+			} else {
+				nextState = CallSession::State::Updating;
+			}
 			break;
 		default:
 			lError() << *q << " (local address " << *q->getLocalAddress() << " remote address "
@@ -1925,7 +1936,7 @@ LinphoneStatus CallSession::update(const CallSessionParams *csp,
 	L_D();
 	CallSession::State nextState;
 	CallSession::State initialState = d->state;
-	if (!d->isUpdateAllowed(nextState)) {
+	if (!d->isUpdateAllowed(nextState, false)) {
 		return -1;
 	}
 	d->setState(nextState, "Updating call");

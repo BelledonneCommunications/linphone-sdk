@@ -212,6 +212,8 @@ public:
 	void setBaudotPauseTimeout(uint8_t seconds);
 	void sendBaudotCharacter(char character);
 
+	void updateNegotiatedEncryption();
+
 private:
 	L_DECLARE_PRIVATE(MediaSession);
 	L_DISABLE_COPY(MediaSession);

@@ -2319,6 +2319,80 @@ static void dtls_srtp_call_with_replaces(void) {
 	secure_call_with_replaces(LinphoneMediaEncryptionDTLS);
 }
 
+static void connected_call_state_changed(LinphoneCore *lc, LinphoneCall *call, LinphoneCallState cstate, BCTBX_UNUSED(const char *msg)) {
+	if (cstate == LinphoneCallConnected) {
+			ms_message("%s is updating call %p to enable video capabilities", linphone_core_get_identity(lc), call);
+			LinphoneCallParams *new_params = linphone_core_create_call_params(lc, call);
+			linphone_call_params_enable_video(new_params, TRUE);
+			linphone_call_update(call, new_params);
+			linphone_call_params_unref(new_params);
+	}
+}
+
+static void srtp_call_updated_as_soon_as_it_is_accepted(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	linphone_core_set_media_encryption(marie->lc, LinphoneMediaEncryptionSRTP);
+	linphone_core_set_media_encryption_mandatory(marie->lc, TRUE);
+	linphone_config_set_int(linphone_core_get_config(marie->lc), "rtp", "accept_any_encryption", 1);
+	LinphoneVideoActivationPolicy *pol = linphone_factory_create_video_activation_policy(linphone_factory_get());
+	linphone_video_activation_policy_set_automatically_accept(pol, TRUE);
+	linphone_video_activation_policy_set_automatically_initiate(pol, TRUE);
+	linphone_core_set_video_activation_policy(marie->lc, pol);
+	linphone_video_activation_policy_unref(pol);
+
+	linphone_core_set_video_device(marie->lc, liblinphone_tester_mire_id);
+	linphone_core_enable_video_capture(marie->lc, TRUE);
+	linphone_core_enable_video_display(marie->lc, TRUE);
+
+	LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+	linphone_core_cbs_set_call_state_changed(cbs, connected_call_state_changed);
+	linphone_core_add_callbacks(marie->lc, cbs);
+	linphone_core_cbs_unref(cbs);
+
+	LinphoneCoreManager *pauline =
+	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
+	linphone_core_set_media_encryption(pauline->lc, LinphoneMediaEncryptionSRTP);
+	linphone_core_set_media_encryption_mandatory(pauline->lc, TRUE);
+	linphone_config_set_int(linphone_core_get_config(pauline->lc), "rtp", "accept_any_encryption", 1);
+	pol =  linphone_factory_create_video_activation_policy(linphone_factory_get());
+	linphone_video_activation_policy_set_automatically_accept(pol, TRUE);
+	linphone_video_activation_policy_set_automatically_initiate(pol, TRUE);
+	linphone_core_set_video_activation_policy(pauline->lc, pol);
+	linphone_video_activation_policy_unref(pol);
+
+	linphone_core_set_video_device(pauline->lc, liblinphone_tester_mire_id);
+	linphone_core_enable_video_capture(pauline->lc, TRUE);
+	linphone_core_enable_video_display(pauline->lc, TRUE);
+
+	LinphoneCallParams *marie_params = linphone_core_create_call_params(marie->lc, NULL);
+	linphone_call_params_set_media_encryption(marie_params, LinphoneMediaEncryptionSRTP);
+	linphone_call_params_enable_video(marie_params, FALSE);
+
+	LinphoneCallParams *pauline_params = linphone_core_create_call_params(marie->lc, NULL);
+	linphone_call_params_set_media_encryption(pauline_params, LinphoneMediaEncryptionSRTP);
+	linphone_call_params_enable_video(pauline_params, FALSE);
+
+	BC_ASSERT_TRUE((call_with_params(marie, pauline, marie_params, pauline_params)));
+	linphone_call_params_unref(marie_params);
+	linphone_call_params_unref(pauline_params);
+
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallUpdating, 0));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallStreamsRunning, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1));
+
+	const LinphoneCallParams *params = NULL;
+	params = linphone_call_get_current_params(linphone_core_get_current_call(pauline->lc));
+	BC_ASSERT_EQUAL(linphone_call_params_get_media_encryption(params), LinphoneMediaEncryptionSRTP, int, "%d");
+	BC_ASSERT_EQUAL(linphone_call_params_video_enabled(params), FALSE, int, "%d");
+	params = linphone_call_get_current_params(linphone_core_get_current_call(marie->lc));
+	BC_ASSERT_EQUAL(linphone_call_params_get_media_encryption(params), LinphoneMediaEncryptionSRTP, int, "%d");
+	BC_ASSERT_EQUAL(linphone_call_params_video_enabled(params), FALSE, int, "%d");
+
+	end_call(pauline, marie);
+	linphone_core_manager_destroy(marie);
+	linphone_core_manager_destroy(pauline);
+}
+
 static test_t call_secure_tests[] = {
     TEST_ONE_TAG("SRTP call", srtp_call, "CRYPTO"),
     TEST_NO_TAG("SRTP call with non zero crypto suite tag", srtp_call_non_zero_tag),
@@ -2393,6 +2467,7 @@ static test_t call_secure2_tests[] = {
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux", dtls_srtp_audio_call_with_rtcp_mux, "DTLS"),
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux not accepted", dtls_srtp_audio_call_with_rtcp_mux_not_accepted, "DTLS"),
     TEST_NO_TAG("Call accepting all encryptions", call_accepting_all_encryptions),
+    TEST_NO_TAG("SRTP call updated as soon as it is accepted", srtp_call_updated_as_soon_as_it_is_accepted),
     TEST_ONE_TAG("EKT call", ekt_call, "CRYPTO"),
     TEST_NO_TAG("EKT call with unmatching keys", unmatching_ekt_call),
     TEST_NO_TAG("EKT call with EKT key update", updating_ekt_call)};
