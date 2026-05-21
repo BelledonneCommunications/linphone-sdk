@@ -100,7 +100,7 @@ public:
 	LinphoneStatus checkForAcceptation();
 	virtual void handleIncomingReceivedStateInIncomingNotification();
 	virtual bool isReadyForInvite() const;
-	bool isUpdateAllowed(CallSession::State &nextState) const;
+	bool isUpdateAllowed(CallSession::State &nextState, bool hasMedia) const;
 	virtual int restartInvite();
 	virtual void setReleased();
 	virtual void setTerminated();
