@@ -163,7 +163,7 @@ rocky8-ninja-clang-coverage:
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON -DENABLE_COVERAGE=ON
     CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZER=ON -DOPTIMIZE_SANITIZED_BUILD=ON
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-fix-cache-issue-for-first-pipeline-for-releases-6-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-master-6-non_protected"
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
@@ -178,7 +178,7 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-fix-cache-issue-for-first-pipeline-for-releases-6-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-master-6-non_protected"
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
@@ -202,7 +202,7 @@ rocky8-ninja-clang-mysql:
     CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-fix-cache-issue-for-first-pipeline-for-releases-6-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-master-6-non_protected"
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
@@ -223,7 +223,7 @@ rocky8-python-wheel:
     ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.9 -DENABLE_VIDEO=OFF -DENABLE_SOUND=OFF
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
-    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-fix-cache-issue-for-first-pipeline-for-releases-6-non_protected"
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-${CI_JOB_NAME}-master-6-non_protected"
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
