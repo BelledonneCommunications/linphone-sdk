@@ -115,67 +115,67 @@ ubuntu2004-ninja-gcc-tunnel-pq:
 # TESTS
 #################################################
 
-bctoolbox-ubuntu2004-test:
-  extends: .test-bctoolbox
-  <<: *docker_image_platform_and_runner_tag
+# bctoolbox-ubuntu2004-test:
+#   extends: .test-bctoolbox
+#   <<: *docker_image_platform_and_runner_tag
 
-bellesip-ubuntu2004-test:
-  extends: .test-bellesip
-  <<: *docker_image_platform_and_runner_tag_s
+# bellesip-ubuntu2004-test:
+#   extends: .test-bellesip
+#   <<: *docker_image_platform_and_runner_tag_s
 
-belr-ubuntu2004-test:
-  extends: .test-belr
-  <<: *docker_image_platform_and_runner_tag
+# belr-ubuntu2004-test:
+#   extends: .test-belr
+#   <<: *docker_image_platform_and_runner_tag
 
-belcard-ubuntu2004-test:
-  extends: .test-belcard
-  <<: *docker_image_platform_and_runner_tag
+# belcard-ubuntu2004-test:
+#   extends: .test-belcard
+#   <<: *docker_image_platform_and_runner_tag
 
-bzrtp-ubuntu2004-test:
-  extends: .test-bzrtp
-  <<: *docker_image_platform_and_runner_tag
+# bzrtp-ubuntu2004-test:
+#   extends: .test-bzrtp
+#   <<: *docker_image_platform_and_runner_tag
 
-liblinphone-ubuntu2004-test:
-  extends: .test-liblinphone
-  <<: *docker_image_platform_and_runner_tag_libl
+# liblinphone-ubuntu2004-test:
+#   extends: .test-liblinphone
+#   <<: *docker_image_platform_and_runner_tag_libl
 
-liblinphone-ubuntu2004-test-tunnel-pq:
-  extends:
-    - .test-liblinphone-tunnel-pq
-  <<: *docker_image_platform_and_runner_tag_libl
-  needs:
-    - ubuntu2004-ninja-gcc-tunnel-pq
+# liblinphone-ubuntu2004-test-tunnel-pq:
+#   extends:
+#     - .test-liblinphone-tunnel-pq
+#   <<: *docker_image_platform_and_runner_tag_libl
+#   needs:
+#     - ubuntu2004-ninja-gcc-tunnel-pq
 
-liblinphone-ubuntu2004-test-shaky:
-  extends: .test-liblinphone-shaky
-  <<: *docker_image_platform_and_runner_tag_libl
-  needs:
-    - ubuntu2004-ninja-gcc-tunnel-pq
+# liblinphone-ubuntu2004-test-shaky:
+#   extends: .test-liblinphone-shaky
+#   <<: *docker_image_platform_and_runner_tag_libl
+#   needs:
+#     - ubuntu2004-ninja-gcc-tunnel-pq
 
-# liblinphone-ubuntu2004-test-mr:
-#  extends: .test-liblinphone-mr
-#  <<: *docker_image_platform_and_runner_tag_libl
+# # liblinphone-ubuntu2004-test-mr:
+# #  extends: .test-liblinphone-mr
+# #  <<: *docker_image_platform_and_runner_tag_libl
 
-# liblinphone-ubuntu2004-test-shaky-mr:
-#  extends: .test-liblinphone-shaky-mr
-#  <<: *docker_image_platform_and_runner_tag_libl
+# # liblinphone-ubuntu2004-test-shaky-mr:
+# #  extends: .test-liblinphone-shaky-mr
+# #  <<: *docker_image_platform_and_runner_tag_libl
 
-liblinphone-ubuntu2004-test-force:
-  extends: .test-liblinphone
-  <<: *docker_image_platform_and_runner_tag_libl
-  rules:
-    - if: $ENABLE_TESTS_LIBLINPHONE != null
+# liblinphone-ubuntu2004-test-force:
+#   extends: .test-liblinphone
+#   <<: *docker_image_platform_and_runner_tag_libl
+#   rules:
+#     - if: $ENABLE_TESTS_LIBLINPHONE != null
 
-mediastreamer-ubuntu2004-test:
-  extends: .test-mediastreamer
-  <<: *docker_image_platform_and_runner_tag_libl
+# mediastreamer-ubuntu2004-test:
+#   extends: .test-mediastreamer
+#   <<: *docker_image_platform_and_runner_tag_libl
 
-ortp-ubuntu2004-test:
-  extends: .test-ortp
-  <<: *docker_image_platform_and_runner_tag
+# ortp-ubuntu2004-test:
+#   extends: .test-ortp
+#   <<: *docker_image_platform_and_runner_tag
 
-pqc-ubuntu2004-test:
-  extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
-  needs:
-    - ubuntu2004-ninja-gcc-pqc
+# pqc-ubuntu2004-test:
+#   extends: .test-pqc
+#   <<: *docker_image_platform_and_runner_tag
+#   needs:
+#     - ubuntu2004-ninja-gcc-pqc

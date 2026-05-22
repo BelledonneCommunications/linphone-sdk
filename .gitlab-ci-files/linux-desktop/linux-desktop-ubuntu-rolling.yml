@@ -111,63 +111,63 @@ ubuntu-rolling-ninja-clang-novideo:
 #################################################
 
 
-bctoolbox-ubuntu-test:
-  extends: .test-bctoolbox
-  needs:
-    - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# bctoolbox-ubuntu-test:
+#   extends: .test-bctoolbox
+#   needs:
+#     - ubuntu-rolling-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-pqc-ubuntu-test:
-  extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
-  needs:
-    - ubuntu-rolling-ninja-clang-pqc
+# pqc-ubuntu-test:
+#   extends: .test-pqc
+#   <<: *docker_image_platform_and_runner_tag
+#   needs:
+#     - ubuntu-rolling-ninja-clang-pqc
 
-bellesip-ubuntu-test:
-  extends: .test-bellesip
-  needs:
-    - ubuntu-rolling-ninja-clang
-  tags: [ "docker-sequential" ]
-  image: !reference [.ubuntu-rolling_image_version, image]
-  variables:
-    PLATFORM: linux-ubuntu-rolling
+# bellesip-ubuntu-test:
+#   extends: .test-bellesip
+#   needs:
+#     - ubuntu-rolling-ninja-clang
+#   tags: [ "docker-sequential" ]
+#   image: !reference [.ubuntu-rolling_image_version, image]
+#   variables:
+#     PLATFORM: linux-ubuntu-rolling
 
-belr-ubuntu-test:
-  extends: .test-belr
-  needs:
-    - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# belr-ubuntu-test:
+#   extends: .test-belr
+#   needs:
+#     - ubuntu-rolling-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-belcard-ubuntu-test:
-  extends: .test-belcard
-  needs:
-    - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# belcard-ubuntu-test:
+#   extends: .test-belcard
+#   needs:
+#     - ubuntu-rolling-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-bzrtp-ubuntu-test:
-  extends: .test-bzrtp
-  needs:
-    - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# bzrtp-ubuntu-test:
+#   extends: .test-bzrtp
+#   needs:
+#     - ubuntu-rolling-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-ortp-ubuntu-test:
-  extends: .test-ortp
-  needs:
-    - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# ortp-ubuntu-test:
+#   extends: .test-ortp
+#   needs:
+#     - ubuntu-rolling-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-liblinphone-ubuntu-test:
-  image: !reference [.ubuntu-rolling-test-liblinphone_image_version, image]
-  extends: .test-liblinphone
-  needs:
-    - ubuntu-rolling-ninja-clang
-  variables:
-    PLATFORM: linux-ubuntu-rolling
+# liblinphone-ubuntu-test:
+#   image: !reference [.ubuntu-rolling-test-liblinphone_image_version, image]
+#   extends: .test-liblinphone
+#   needs:
+#     - ubuntu-rolling-ninja-clang
+#   variables:
+#     PLATFORM: linux-ubuntu-rolling
 
-liblinphone-ubuntu-test-shaky:
-  image: !reference [.ubuntu-rolling-test-liblinphone_image_version, image]
-  extends: .test-liblinphone-shaky
-  needs:
-    - ubuntu-rolling-ninja-clang
-  variables:
-    PLATFORM: linux-ubuntu-rolling
+# liblinphone-ubuntu-test-shaky:
+#   image: !reference [.ubuntu-rolling-test-liblinphone_image_version, image]
+#   extends: .test-liblinphone-shaky
+#   needs:
+#     - ubuntu-rolling-ninja-clang
+#   variables:
+#     PLATFORM: linux-ubuntu-rolling

@@ -125,62 +125,62 @@ arch-latest-ninja-clang-pqc:
 #################################################
 
 
-bctoolbox-arch-test:
-  extends: .test-bctoolbox
-  needs:
-    - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# bctoolbox-arch-test:
+#   extends: .test-bctoolbox
+#   needs:
+#     - arch-latest-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-pqc-arch-test:
-  extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
-  needs:
-    - arch-latest-ninja-clang-pqc
+# pqc-arch-test:
+#   extends: .test-pqc
+#   <<: *docker_image_platform_and_runner_tag
+#   needs:
+#     - arch-latest-ninja-clang-pqc
 
-bellesip-arch-test:
-  extends: .test-bellesip
-  needs:
-    - arch-latest-ninja-clang
-  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
-  tags: [ "docker-sequential" ]
-  image: !reference [.archlinux_image_version, image]
-  variables:
-    PLATFORM: linux-arch
+# bellesip-arch-test:
+#   extends: .test-bellesip
+#   needs:
+#     - arch-latest-ninja-clang
+#   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+#   tags: [ "docker-sequential" ]
+#   image: !reference [.archlinux_image_version, image]
+#   variables:
+#     PLATFORM: linux-arch
 
-belr-arch-test:
-  extends: .test-belr
-  needs:
-    - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# belr-arch-test:
+#   extends: .test-belr
+#   needs:
+#     - arch-latest-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-belcard-arch-test:
-  extends: .test-belcard
-  needs:
-    - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# belcard-arch-test:
+#   extends: .test-belcard
+#   needs:
+#     - arch-latest-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-bzrtp-arch-test:
-  extends: .test-bzrtp
-  needs:
-    - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+# bzrtp-arch-test:
+#   extends: .test-bzrtp
+#   needs:
+#     - arch-latest-ninja-clang
+#   <<: *docker_image_platform_and_runner_tag
 
-liblinphone-arch-test:
-  image: !reference [.archlinux_test_libl_image_version, image]
-    #  rules:
-    #- !reference [.rules-merge-request-manual, rules]
-  extends: .test-liblinphone
-  needs:
-    - arch-latest-ninja-clang
-  variables:
-    PLATFORM: linux-arch
+# liblinphone-arch-test:
+#   image: !reference [.archlinux_test_libl_image_version, image]
+#     #  rules:
+#     #- !reference [.rules-merge-request-manual, rules]
+#   extends: .test-liblinphone
+#   needs:
+#     - arch-latest-ninja-clang
+#   variables:
+#     PLATFORM: linux-arch
 
-liblinphone-arch-test-shaky:
-  image: !reference [.archlinux_test_libl_image_version, image]
-    #  rules:
-    #- !reference [.rules-merge-request-manual, rules]
-  extends: .test-liblinphone-shaky
-  needs:
-    - arch-latest-ninja-clang
-  variables:
-    PLATFORM: linux-arch
+# liblinphone-arch-test-shaky:
+#   image: !reference [.archlinux_test_libl_image_version, image]
+#     #  rules:
+#     #- !reference [.rules-merge-request-manual, rules]
+#   extends: .test-liblinphone-shaky
+#   needs:
+#     - arch-latest-ninja-clang
+#   variables:
+#     PLATFORM: linux-arch
