@@ -1079,6 +1079,7 @@ struct bctbx_ssl_config_struct {
 	mbedtls_ssl_config *ssl_config;         /**< actual config structure */
 	uint8_t ssl_config_externally_provided; /**< a flag, on when the ssl_config was provided by callers and not created
 	                                           threw the new function */
+	char *crypto_provider_name;             /**< requested provider name */
 	int (*callback_cli_cert_function)(void *,
 	                                  bctbx_ssl_context_t *,
 	                                  const bctbx_list_t *); /**< pointer to the callback called to update client
@@ -1100,6 +1101,7 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 	/* allocate and init anyway a ssl_config, it may be then crashed by an externally provided one */
 	ssl_config->ssl_config = bctbx_malloc0(sizeof(mbedtls_ssl_config));
 	ssl_config->ssl_config_externally_provided = 0;
+	ssl_config->crypto_provider_name = NULL;
 	mbedtls_ssl_config_init(ssl_config->ssl_config);
 
 	mbedtls_ssl_conf_session_tickets(ssl_config->ssl_config, MBEDTLS_SSL_SESSION_TICKETS_DISABLED);
@@ -1117,6 +1119,32 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 
 bctbx_type_implementation_t bctbx_ssl_get_implementation_type(void) {
 	return BCTBX_MBEDTLS;
+}
+
+int32_t bctbx_ssl_config_set_crypto_provider(bctbx_ssl_config_t *ssl_config, const char *provider_name) {
+	const bctbx_crypto_provider_t *provider = NULL;
+	int32_t ret;
+
+	if (ssl_config == NULL) {
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
+	}
+
+	if (ssl_config->crypto_provider_name) {
+		bctbx_free(ssl_config->crypto_provider_name);
+		ssl_config->crypto_provider_name = NULL;
+	}
+
+	if (provider_name == NULL || provider_name[0] == '\0') {
+		bctbx_message("[CryptoProvider] no provider configured, using compiled backend: MbedTlsCryptoProvider");
+		return 0;
+	}
+
+	bctbx_message("[CryptoProvider] requested: %s", provider_name);
+	ret = bctbx_crypto_provider_resolve_for_implementation(provider_name, BCTBX_MBEDTLS, &provider);
+	if (ret == 0) {
+		ssl_config->crypto_provider_name = bctbx_strdup(bctbx_crypto_provider_get_name(provider));
+	}
+	return ret;
 }
 
 int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config) {
@@ -1152,6 +1180,9 @@ void bctbx_ssl_config_free(bctbx_ssl_config_t *ssl_config) {
 
 	if (ssl_config->ciphersuites) {
 		bctbx_free(ssl_config->ciphersuites);
+	}
+	if (ssl_config->crypto_provider_name) {
+		bctbx_free(ssl_config->crypto_provider_name);
 	}
 
 	bctbx_free(ssl_config);
@@ -1465,6 +1496,7 @@ int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(BCTBX_UNUSED(bctbx_ss
 /** DTLS SRTP functions **/
 
 int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t *ssl_config) {
+	const bctbx_crypto_provider_t *provider = NULL;
 	int ret;
 	/* Check validity of context and config */
 	if (ssl_config == NULL) {
@@ -1473,6 +1505,20 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 
 	if (ssl_ctx == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
+	}
+
+	if (ssl_config->crypto_provider_name && ssl_config->crypto_provider_name[0] != '\0') {
+		ret = bctbx_crypto_provider_resolve_for_implementation(ssl_config->crypto_provider_name, BCTBX_MBEDTLS,
+		                                                       &provider);
+		if (ret != 0) {
+			return ret;
+		}
+	} else {
+		provider = bctbx_crypto_provider_get_default();
+		bctbx_message("[CryptoProvider] no provider configured, using compiled backend: MbedTlsCryptoProvider");
+	}
+	if (provider) {
+		bctbx_message("[CryptoProvider] selected: %s", bctbx_crypto_provider_get_class_name(provider));
 	}
 
 	/* apply all valids settings to the ssl_context */

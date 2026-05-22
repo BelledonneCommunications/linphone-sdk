@@ -323,6 +323,15 @@ BELLESIP_EXPORT int belle_tls_crypto_config_set_root_ca(belle_tls_crypto_config_
 BELLESIP_EXPORT int belle_tls_crypto_config_set_root_ca_data(belle_tls_crypto_config_t *obj, const char *data);
 
 /**
+ * Set the requested crypto provider backend name.
+ * Supported values currently include "mbedtls" and "openssl".
+ * Passing NULL clears the explicit provider selection and lets the current build use its compiled-in backend.
+ *
+ * @return 0 on success
+ */
+BELLESIP_EXPORT int belle_tls_crypto_config_set_crypto_provider(belle_tls_crypto_config_t *obj, const char *provider);
+
+/**
  * Set the exception flags to manage exception overriding during peer certificate verification
  * @param[in/out]	obj		The crypto configuration object to set
  * @param[in]		flags	Flags value to set:

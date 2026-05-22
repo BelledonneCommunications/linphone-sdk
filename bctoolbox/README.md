@@ -51,6 +51,65 @@ For backward compatibility with distributions not having the required 2.8.12 cma
 It is maintained as a best effort and then should be used only in last resort.
 
 
+TLS CryptoProvider smoke validation
+-----------------------------------
+
+The current `crypto_provider` setting is propagated through the SIP/TLS configuration path:
+
+`LinphoneCore -> SAL -> belle_tls_crypto_config -> bctbx_ssl_config`
+
+Supported values are:
+
+- `crypto_provider=mbedtls`
+- `crypto_provider=openssl`
+
+Important limitation:
+
+- Runtime provider selection is limited to providers compiled into the current build.
+- In the current bctoolbox tree, OpenSSL and MbedTLS are not built together in one TLS build.
+- An explicit invalid or unavailable provider must fail clearly; it must not silently fall back.
+- If `crypto_provider` is omitted or empty, the current compiled backend remains in use.
+
+Expected logs:
+
+- `[CryptoProvider] requested: ...`
+- `[CryptoProvider] selected: MbedTlsCryptoProvider` or `OpenSslCryptoProvider`
+- `[CryptoProvider] unavailable: ... is not compiled in this build`
+- `[CryptoProvider] unknown provider: ...`
+- `[CryptoProvider] no provider configured, using compiled backend: ...`
+- `[TLS] handshake started`
+- `[TLS] handshake completed`
+- `[TLS] handshake duration: ... ms`
+- `[TLS] certificate verification result: success/failure`
+
+Manual smoke cases:
+
+Case A: `crypto_provider=mbedtls`
+
+- Expected: selected provider log shows `MbedTlsCryptoProvider`.
+- Expected: TLS handshake starts.
+- Expected: TLS handshake completes or fails with the same behavior as before the abstraction.
+- Expected: certificate verification behavior is unchanged.
+
+Case B: `crypto_provider=openssl`
+
+- Expected: selected provider log shows `OpenSslCryptoProvider` when OpenSSL is the compiled backend.
+- Expected: if OpenSSL is not compiled, the error clearly says the provider is unavailable.
+- Expected: no silent fallback occurs.
+
+Case C: `crypto_provider=invalid-provider`
+
+- Expected: clear unknown provider error.
+- Expected: no crash.
+- Expected: TLS does not silently fall back unless an explicit fallback mechanism is added in the future.
+
+Case D: `crypto_provider` omitted or empty
+
+- Expected: current build-selected backend behavior remains unchanged.
+- Expected: the compiled backend is logged when possible.
+- Expected: no certificate verification behavior change.
+
+
 Note for packagers
 ------------------
 
@@ -63,4 +122,3 @@ while you invoke cmake.
 - [1] <https://github.com/ARMmbed/mbedtls.git>
 - [2] git://git.linphone.org/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox/>
 - [3] <https://github.com/openssl/openssl.git>
-

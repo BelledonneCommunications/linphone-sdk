@@ -1446,8 +1446,59 @@ static void key_wrap_test() {
 	BC_ASSERT_TRUE(plaintext == unwrapped_pt);
 }
 
+static void crypto_provider_resolution_test() {
+	const bctbx_crypto_provider_t *default_provider = bctbx_crypto_provider_get_default();
+	const bctbx_crypto_provider_t *resolved_provider = NULL;
+
+	BC_ASSERT_PTR_NOT_NULL(default_provider);
+	BC_ASSERT_PTR_NOT_NULL(bctbx_crypto_provider_get_name(default_provider));
+	BC_ASSERT_PTR_NOT_NULL(bctbx_crypto_provider_get_class_name(default_provider));
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_is_available(default_provider), 1, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_get_implementation_type(default_provider),
+	                bctbx_ssl_get_implementation_type(), int, "%d");
+
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve(NULL, &resolved_provider), BCTBX_ERROR_INVALID_CRYPTO_PROVIDER, int,
+	                "%d");
+	BC_ASSERT_PTR_NULL(resolved_provider);
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("", &resolved_provider), BCTBX_ERROR_INVALID_CRYPTO_PROVIDER, int,
+	                "%d");
+	BC_ASSERT_PTR_NULL(resolved_provider);
+
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("invalid-provider", &resolved_provider),
+	                BCTBX_ERROR_INVALID_CRYPTO_PROVIDER, int, "%d");
+	BC_ASSERT_PTR_NULL(resolved_provider);
+
+#ifdef HAVE_MBEDTLS
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("mbedtls", &resolved_provider), 0, int, "%d");
+	BC_ASSERT_PTR_NOT_NULL(resolved_provider);
+	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_class_name(resolved_provider), "MbedTlsCryptoProvider");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve_for_implementation("mbedtls", BCTBX_MBEDTLS, &resolved_provider), 0,
+	                int, "%d");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve_for_implementation(NULL, BCTBX_MBEDTLS, &resolved_provider),
+	                BCTBX_ERROR_INVALID_CRYPTO_PROVIDER, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("openssl", &resolved_provider),
+	                BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve_for_implementation("openssl", BCTBX_MBEDTLS, &resolved_provider),
+	                BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+#endif
+#ifdef HAVE_OPENSSL
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("openssl", &resolved_provider), 0, int, "%d");
+	BC_ASSERT_PTR_NOT_NULL(resolved_provider);
+	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_class_name(resolved_provider), "OpenSslCryptoProvider");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve_for_implementation("openssl", BCTBX_OPENSSL, &resolved_provider), 0,
+	                int, "%d");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve_for_implementation(NULL, BCTBX_OPENSSL, &resolved_provider),
+	                BCTBX_ERROR_INVALID_CRYPTO_PROVIDER, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("mbedtls", &resolved_provider),
+	                BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve_for_implementation("mbedtls", BCTBX_OPENSSL, &resolved_provider),
+	                BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+#endif
+}
+
 static test_t crypto_tests[] = {
     TEST_NO_TAG("Diffie-Hellman Key exchange", DHM),
+    TEST_NO_TAG("Crypto provider resolution", crypto_provider_resolution_test),
     TEST_NO_TAG("Elliptic Curve Diffie-Hellman Key exchange", ECDH),
     TEST_NO_TAG("EdDSA sign and verify", EdDSA),
     TEST_NO_TAG("Ed25519 to X25519 key conversion", ed25519_to_x25519_keyconversion),

@@ -518,6 +518,7 @@ void Sal::setTlsProperties() {
 	else if (!mTlsVerifyCn) verifyExceptions = BELLE_TLS_VERIFY_CN_MISMATCH;
 	belle_tls_crypto_config_set_verify_exceptions(cryptoConfig, verifyExceptions);
 
+	if (!mCryptoProvider.empty()) belle_tls_crypto_config_set_crypto_provider(cryptoConfig, mCryptoProvider.c_str());
 	if (!mRootCa.empty()) belle_tls_crypto_config_set_root_ca(cryptoConfig, mRootCa.c_str());
 	if (!mRootCaData.empty()) belle_tls_crypto_config_set_root_ca_data(cryptoConfig, mRootCaData.c_str());
 	if (mSslConfig) belle_tls_crypto_config_set_ssl_config(cryptoConfig, mSslConfig);
@@ -764,6 +765,11 @@ void Sal::useRport(bool useRports) {
 
 void Sal::setRootCa(const string &value) {
 	mRootCa = value;
+	setTlsProperties();
+}
+
+void Sal::setCryptoProvider(const string &value) {
+	mCryptoProvider = value;
 	setTlsProperties();
 }
 

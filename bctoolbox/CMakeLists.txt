@@ -56,6 +56,8 @@ include("cmake/BCToolboxCMakeUtils.cmake")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 if(ENABLE_MBEDTLS AND ENABLE_OPENSSL)
+	# The current tree exposes runtime provider selection only among compiled backends.
+	# It does not support switching between OpenSSL and MbedTLS simultaneously in one bctoolbox build yet.
 	message(FATAL_ERROR "Cannot build bctoolbox with both openssl and mbedtls enabled")
 endif()
 

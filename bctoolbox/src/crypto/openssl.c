@@ -1149,6 +1149,7 @@ struct bctbx_ssl_config_struct {
 	                                 before OpenSSL 3.0 so have to store it here..)*/
 	SSL_CTX *ssl_ctx;             /**< actual config structure */
 	int ssl_verification_mode;    /**< BCTBX_SSL_VERIFY_NONE, BCTBX_SSL_VERIFY_OPTIONAL, BCTBX_SSL_VERIFY_REQUIRED */
+	char *crypto_provider_name;   /**< requested provider name */
 	uint8_t ssl_config_externally_provided; /**< a flag, on when the ssl_config was provided by callers and not created
 	                                           through bctbx_ssl_config_new() function */
 };
@@ -1157,6 +1158,7 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 	bctbx_ssl_config_t *ssl_config = bctbx_malloc0(sizeof(bctbx_ssl_config_t));
 	ssl_config->ssl_method = DTLS_method();
 	ssl_config->ssl_ctx = SSL_CTX_new(ssl_config->ssl_method);
+	ssl_config->crypto_provider_name = NULL;
 	ssl_config->ssl_config_externally_provided = 0;
 	bctbx_ssl_config_set_authmode(ssl_config, BCTBX_SSL_VERIFY_REQUIRED);
 	return ssl_config;
@@ -1164,6 +1166,32 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 
 bctbx_type_implementation_t bctbx_ssl_get_implementation_type(void) {
 	return BCTBX_OPENSSL;
+}
+
+int32_t bctbx_ssl_config_set_crypto_provider(bctbx_ssl_config_t *ssl_config, const char *provider_name) {
+	const bctbx_crypto_provider_t *provider = NULL;
+	int32_t ret;
+
+	if (ssl_config == NULL) {
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
+	}
+
+	if (ssl_config->crypto_provider_name) {
+		bctbx_free(ssl_config->crypto_provider_name);
+		ssl_config->crypto_provider_name = NULL;
+	}
+
+	if (provider_name == NULL || provider_name[0] == '\0') {
+		bctbx_message("[CryptoProvider] no provider configured, using compiled backend: OpenSslCryptoProvider");
+		return 0;
+	}
+
+	bctbx_message("[CryptoProvider] requested: %s", provider_name);
+	ret = bctbx_crypto_provider_resolve_for_implementation(provider_name, BCTBX_OPENSSL, &provider);
+	if (ret == 0) {
+		ssl_config->crypto_provider_name = bctbx_strdup(bctbx_crypto_provider_get_name(provider));
+	}
+	return ret;
 }
 
 int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config) {
@@ -1193,6 +1221,9 @@ void bctbx_ssl_config_free(bctbx_ssl_config_t *ssl_config) {
 	/* free mbedtls_ssl_config only when created internally */
 	if (ssl_config->ssl_config_externally_provided == 0) {
 		SSL_CTX_free(ssl_config->ssl_ctx);
+	}
+	if (ssl_config->crypto_provider_name) {
+		bctbx_free(ssl_config->crypto_provider_name);
 	}
 
 	bctbx_free(ssl_config);
@@ -1510,6 +1541,7 @@ int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *s
 /** DTLS SRTP functions **/
 
 int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t *ssl_config) {
+	const bctbx_crypto_provider_t *provider = NULL;
 	/* Check validity of context and config */
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
@@ -1517,6 +1549,20 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 
 	if (ssl_ctx == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
+	}
+
+	if (ssl_config->crypto_provider_name && ssl_config->crypto_provider_name[0] != '\0') {
+		int32_t ret = bctbx_crypto_provider_resolve_for_implementation(ssl_config->crypto_provider_name, BCTBX_OPENSSL,
+		                                                               &provider);
+		if (ret != 0) {
+			return ret;
+		}
+	} else {
+		provider = bctbx_crypto_provider_get_default();
+		bctbx_message("[CryptoProvider] no provider configured, using compiled backend: OpenSslCryptoProvider");
+	}
+	if (provider) {
+		bctbx_message("[CryptoProvider] selected: %s", bctbx_crypto_provider_get_class_name(provider));
 	}
 
 	if (ssl_ctx->ssl) {

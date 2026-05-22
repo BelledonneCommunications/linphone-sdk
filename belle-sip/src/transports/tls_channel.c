@@ -900,6 +900,29 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 	belle_sip_message("[TLS] creating TLS channel [%p]", obj);
 	obj->sslctx = bctbx_ssl_context_new();
 	obj->sslcfg = bctbx_ssl_config_new();
+	if (crypto_config->crypto_provider && crypto_config->crypto_provider[0] != '\0') {
+		int ret = bctbx_ssl_config_set_crypto_provider(obj->sslcfg, crypto_config->crypto_provider);
+		if (ret != 0) {
+			const bctbx_crypto_provider_t *requested_provider =
+			    bctbx_crypto_provider_get_by_name(crypto_config->crypto_provider);
+			const bctbx_crypto_provider_t *available_provider = bctbx_crypto_provider_get_default();
+			const char *requested_class_name = requested_provider
+			                                       ? bctbx_crypto_provider_get_class_name(requested_provider)
+			                                       : crypto_config->crypto_provider;
+			if (ret == BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER) {
+				belle_sip_error("[CryptoProvider] unavailable: %s is not compiled in this build", requested_class_name);
+			} else {
+				belle_sip_error("[CryptoProvider] unknown provider: %s", crypto_config->crypto_provider);
+			}
+			if (available_provider) {
+				belle_sip_message("[CryptoProvider] available provider: %s",
+				                  bctbx_crypto_provider_get_class_name(available_provider));
+			}
+			belle_sip_message("[CryptoProvider] no fallback configured");
+			belle_sip_error("[TLS] handshake failed: unavailable crypto provider");
+			return -1;
+		}
+	}
 	if (crypto_config->ssl_config == NULL) {
 		bctbx_ssl_config_defaults(obj->sslcfg, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_STREAM);
 		bctbx_ssl_config_set_authmode(obj->sslcfg, BCTBX_SSL_VERIFY_REQUIRED);

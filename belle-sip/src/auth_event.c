@@ -135,6 +135,7 @@ unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_polic
 static void crypto_config_uninit(belle_tls_crypto_config_t *obj) {
 	if (obj->root_ca) belle_sip_free(obj->root_ca);
 	if (obj->root_ca_data) belle_sip_free(obj->root_ca_data);
+	if (obj->crypto_provider) belle_sip_free(obj->crypto_provider);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_tls_crypto_config_t);
@@ -159,6 +160,7 @@ belle_tls_crypto_config_t *belle_tls_crypto_config_new(void) {
 #endif
 	obj->ssl_config = NULL;
 	obj->exception_flags = BELLE_TLS_VERIFY_NONE;
+	obj->crypto_provider = NULL;
 
 	return obj;
 }
@@ -191,6 +193,20 @@ int belle_tls_crypto_config_set_root_ca_data(belle_tls_crypto_config_t *obj, con
 		belle_sip_message("Root ca data set to %s", obj->root_ca_data);
 	} else {
 		belle_sip_message("Root ca data disabled");
+	}
+	return 0;
+}
+
+int belle_tls_crypto_config_set_crypto_provider(belle_tls_crypto_config_t *obj, const char *provider) {
+	if (obj->crypto_provider) {
+		belle_sip_free(obj->crypto_provider);
+		obj->crypto_provider = NULL;
+	}
+	if (provider && provider[0] != '\0') {
+		obj->crypto_provider = belle_sip_strdup(provider);
+		belle_sip_message("[CryptoProvider] requested: %s", obj->crypto_provider);
+	} else {
+		belle_sip_message("[CryptoProvider] no provider configured, compiled backend will be used");
 	}
 	return 0;
 }

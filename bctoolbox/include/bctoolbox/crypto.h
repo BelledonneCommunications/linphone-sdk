@@ -108,6 +108,8 @@ bctoolbox will fail to compile if these values are not in sync with the decaf on
 #define BCTBX_ERROR_INVALID_SSL_ENDPOINT -0x70030004
 #define BCTBX_ERROR_INVALID_SSL_AUTHMODE -0x70030008
 #define BCTBX_ERROR_INVALID_SSL_CONTEXT -0x70030010
+#define BCTBX_ERROR_INVALID_CRYPTO_PROVIDER -0x70030020
+#define BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER -0x70030040
 
 #define BCTBX_ERROR_NO_CLIENT_CERTIFICATE -0x70031000
 #define BCTBX_ERROR_NET_WANT_READ -0x70032000
@@ -524,8 +526,20 @@ BCTBX_PUBLIC int32_t bctbx_x509_certificate_unset_flag(uint32_t *flags, uint32_t
 /*****************************************************************************/
 /***** SSL                                                               *****/
 /*****************************************************************************/
+typedef struct bctbx_crypto_provider_struct bctbx_crypto_provider_t;
 typedef struct bctbx_ssl_context_struct bctbx_ssl_context_t;
 typedef struct bctbx_ssl_config_struct bctbx_ssl_config_t;
+BCTBX_PUBLIC const bctbx_crypto_provider_t *bctbx_crypto_provider_get_default(void);
+BCTBX_PUBLIC const bctbx_crypto_provider_t *bctbx_crypto_provider_get_by_name(const char *name);
+BCTBX_PUBLIC int32_t bctbx_crypto_provider_resolve(const char *name, const bctbx_crypto_provider_t **provider);
+BCTBX_PUBLIC int32_t bctbx_crypto_provider_resolve_for_implementation(const char *name,
+                                                                      bctbx_type_implementation_t implementation,
+                                                                      const bctbx_crypto_provider_t **provider);
+BCTBX_PUBLIC int32_t bctbx_crypto_provider_is_available(const bctbx_crypto_provider_t *provider);
+BCTBX_PUBLIC const char *bctbx_crypto_provider_get_name(const bctbx_crypto_provider_t *provider);
+BCTBX_PUBLIC const char *bctbx_crypto_provider_get_class_name(const bctbx_crypto_provider_t *provider);
+BCTBX_PUBLIC bctbx_type_implementation_t
+bctbx_crypto_provider_get_implementation_type(const bctbx_crypto_provider_t *provider);
 BCTBX_PUBLIC bctbx_type_implementation_t bctbx_ssl_get_implementation_type(void);
 BCTBX_PUBLIC bctbx_ssl_context_t *bctbx_ssl_context_new(void);
 BCTBX_PUBLIC void bctbx_ssl_context_free(bctbx_ssl_context_t *ssl_ctx);
@@ -551,6 +565,7 @@ BCTBX_PUBLIC int bctbx_ssl_get_ciphersuite_id(const char *ciphersuite);
 BCTBX_PUBLIC const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx);
 
 BCTBX_PUBLIC bctbx_ssl_config_t *bctbx_ssl_config_new(void);
+BCTBX_PUBLIC int32_t bctbx_ssl_config_set_crypto_provider(bctbx_ssl_config_t *ssl_config, const char *provider_name);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config);
 BCTBX_PUBLIC void bctbx_ssl_config_free(bctbx_ssl_config_t *ssl_config);
 BCTBX_PUBLIC void *bctbx_ssl_config_get_private_config(bctbx_ssl_config_t *ssl_config);

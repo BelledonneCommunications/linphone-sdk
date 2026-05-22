@@ -369,6 +369,7 @@ public:
 	// TLS parameters
 	// ---------------------------------------------------------------------------
 	void setSslConfig(void *sslConfig);
+	void setCryptoProvider(const std::string &value);
 	void setRootCa(const std::string &value);
 	void setRootCaData(const std::string &value);
 	const std::string &getRootCa() const {
@@ -507,6 +508,7 @@ private:
 	    BELLE_SIP_HEADER_SESSION_EXPIRES_UNSPECIFIED; // 0 = auto, 1 = uas, 2 = uac
 
 	unsigned int mKeepAlive = 0;
+	std::string mCryptoProvider;
 	std::string mRootCa;
 	std::string mRootCaData;
 	std::string mUuid;

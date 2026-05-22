@@ -1819,6 +1819,7 @@ static int _linphone_core_tls_postcheck_callback(void *data, const bctbx_x509_ce
 
 static void certificates_config_read(LinphoneCore *lc) {
 	string rootCaPath = static_cast<PlatformHelpers *>(lc->platform_helper)->getDataResource("rootca.pem");
+	const char *crypto_provider = linphone_config_get_string(lc->config, "sip", "crypto_provider", NULL);
 	const char *rootca = linphone_config_get_string(lc->config, "sip", "root_ca", nullptr);
 
 	// If rootca is not existing anymore, we try data_resources_dir/rootca.pem else default from belle-sip
@@ -1831,6 +1832,10 @@ static void certificates_config_read(LinphoneCore *lc) {
 
 	if (rootca) linphone_core_set_root_ca(lc, rootca);
 	// else use default value from belle-sip
+
+	lc->sal->setCryptoProvider(crypto_provider ? L_C_TO_STRING(crypto_provider) : "");
+	belle_tls_crypto_config_set_crypto_provider(L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getHttpClient().getCryptoConfig(),
+	                                            crypto_provider);
 
 	linphone_core_verify_server_certificates(lc,
 	                                         !!linphone_config_get_int(lc->config, "sip", "verify_server_certs", TRUE));

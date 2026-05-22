@@ -277,14 +277,15 @@ void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *o
 
 struct belle_tls_crypto_config {
 	belle_sip_object_t base;
-	char *root_ca;       /**< path to the trusted certificate chain used when verifiying peer certificate */
-	char *root_ca_data;  /**< content of the trusted certificate chain used when verifiying peer certificate */
-	int exception_flags; /**< override some exception raised during certificate verification, can be:
-	                       BELLE_TLS_VERIFY_NONE do not override any exception
-	                       BELLE_TLS_VERIFY_CN_MISMATCH ignore Common Name mismatch exception
-	                       BELLE_TLS_VERIFY_ANY_REASON(ignore any exception */
-	void *ssl_config;    /**< externally provided ssl configuration context, will be casted and given to the underlying
-	                        crypto library, use only if you really know what you're doing */
+	char *root_ca;         /**< path to the trusted certificate chain used when verifiying peer certificate */
+	char *root_ca_data;    /**< content of the trusted certificate chain used when verifiying peer certificate */
+	char *crypto_provider; /**< requested crypto provider name, such as mbedtls or openssl */
+	int exception_flags;   /**< override some exception raised during certificate verification, can be:
+	                         BELLE_TLS_VERIFY_NONE do not override any exception
+	                         BELLE_TLS_VERIFY_CN_MISMATCH ignore Common Name mismatch exception
+	                         BELLE_TLS_VERIFY_ANY_REASON(ignore any exception */
+	void *ssl_config; /**< externally provided ssl configuration context, will be casted and given to the underlying
+	                     crypto library, use only if you really know what you're doing */
 	belle_tls_crypto_config_verify_callback_t verify_cb;
 	void *verify_cb_data;
 	belle_tls_crypto_config_postcheck_callback_t postcheck_cb;
