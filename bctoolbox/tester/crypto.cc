@@ -1449,6 +1449,7 @@ static void key_wrap_test() {
 static void crypto_provider_resolution_test() {
 	const bctbx_crypto_provider_t *default_provider = bctbx_crypto_provider_get_default();
 	const bctbx_crypto_provider_t *resolved_provider = NULL;
+	const bctbx_type_implementation_t current_implementation = bctbx_ssl_get_implementation_type();
 
 	BC_ASSERT_PTR_NOT_NULL(default_provider);
 	BC_ASSERT_PTR_NOT_NULL(bctbx_crypto_provider_get_name(default_provider));
@@ -1467,6 +1468,18 @@ static void crypto_provider_resolution_test() {
 	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("invalid-provider", &resolved_provider),
 	                BCTBX_ERROR_INVALID_CRYPTO_PROVIDER, int, "%d");
 	BC_ASSERT_PTR_NULL(resolved_provider);
+
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("simulated-pqc", &resolved_provider), 0, int, "%d");
+	BC_ASSERT_PTR_NOT_NULL(resolved_provider);
+	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_class_name(resolved_provider), "SimulatedPqcCryptoProvider");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_is_available(resolved_provider), 1, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_get_implementation_type(resolved_provider), current_implementation, int,
+	                "%d");
+	BC_ASSERT_EQUAL(
+	    bctbx_crypto_provider_resolve_for_implementation("simulated-pqc", current_implementation, &resolved_provider),
+	    0, int, "%d");
+	BC_ASSERT_PTR_NOT_NULL(resolved_provider);
+	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_class_name(resolved_provider), "SimulatedPqcCryptoProvider");
 
 #ifdef HAVE_MBEDTLS
 	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("mbedtls", &resolved_provider), 0, int, "%d");

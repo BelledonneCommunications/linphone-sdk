@@ -35,10 +35,21 @@ struct bctbx_crypto_provider_struct {
 #define BCTBX_CRYPTO_PROVIDER_CAP_TLS 0x01
 #define BCTBX_CRYPTO_PROVIDER_CAP_X509 0x02
 
+#ifdef HAVE_MBEDTLS
+#define BCTBX_SIMULATED_PQC_IMPLEMENTATION BCTBX_MBEDTLS
+#elif defined(HAVE_OPENSSL)
+#define BCTBX_SIMULATED_PQC_IMPLEMENTATION BCTBX_OPENSSL
+#else
+#define BCTBX_SIMULATED_PQC_IMPLEMENTATION BCTBX_MBEDTLS
+#endif
+
 static const bctbx_crypto_provider_t mbedtls_crypto_provider = {
     "mbedtls", "MbedTlsCryptoProvider", BCTBX_MBEDTLS, BCTBX_CRYPTO_PROVIDER_CAP_TLS | BCTBX_CRYPTO_PROVIDER_CAP_X509};
 static const bctbx_crypto_provider_t openssl_crypto_provider = {
     "openssl", "OpenSslCryptoProvider", BCTBX_OPENSSL, BCTBX_CRYPTO_PROVIDER_CAP_TLS | BCTBX_CRYPTO_PROVIDER_CAP_X509};
+static const bctbx_crypto_provider_t simulated_pqc_crypto_provider = {
+    "simulated-pqc", "SimulatedPqcCryptoProvider", BCTBX_SIMULATED_PQC_IMPLEMENTATION,
+    BCTBX_CRYPTO_PROVIDER_CAP_TLS | BCTBX_CRYPTO_PROVIDER_CAP_X509};
 
 static int bctbx_crypto_provider_is_compiled_in(bctbx_type_implementation_t implementation) {
 	switch (implementation) {
@@ -99,6 +110,9 @@ const bctbx_crypto_provider_t *bctbx_crypto_provider_get_by_name(const char *nam
 	}
 	if (strcmp(name, openssl_crypto_provider.name) == 0) {
 		return &openssl_crypto_provider;
+	}
+	if (strcmp(name, simulated_pqc_crypto_provider.name) == 0) {
+		return &simulated_pqc_crypto_provider;
 	}
 	return NULL;
 }
