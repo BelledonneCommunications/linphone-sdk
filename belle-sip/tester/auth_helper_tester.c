@@ -26,6 +26,9 @@
 #include "belle_sip_tester.h"
 #include "register_tester.h"
 
+int belle_sip_tls_channel_apply_crypto_config_to_ssl_config(bctbx_ssl_config_t *ssl_config,
+                                                            const belle_tls_crypto_config_t *crypto_config);
+
 static void test_authentication(void) {
 	const char *l_raw_header = "WWW-Authenticate: Digest "
 	                           "algorithm=MD5, realm=\"sip.linphone.org\", opaque=\"1bc7f9097684320\","
@@ -374,6 +377,50 @@ static void test_crypto_mode_resolve_future_and_hybrid_fallback_to_classical(voi
 	BC_ASSERT_EQUAL(did_fallback, 1, int, "%d");
 }
 
+static void test_tls_crypto_config_future_pqc_group_smoke(void) {
+	belle_tls_crypto_config_t *crypto_config = belle_tls_crypto_config_new();
+	bctbx_ssl_config_t *ssl_config = bctbx_ssl_config_new();
+	bctbx_ssl_context_t *ssl_ctx = bctbx_ssl_context_new();
+	int ret;
+
+	belle_tls_crypto_config_set_crypto_provider(crypto_config, "future-pqc");
+	belle_tls_crypto_config_set_future_pqc_tls_group(crypto_config, "X25519MLKEM768");
+
+	ret = belle_sip_tls_channel_apply_crypto_config_to_ssl_config(ssl_config, crypto_config);
+	BC_ASSERT_EQUAL(ret, 0, int, "%d");
+
+	if (ret == 0) {
+		ret = bctbx_ssl_config_defaults(ssl_config, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_STREAM);
+		BC_ASSERT_TRUE(ret == 0 || ret == BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER ||
+		               ret == BCTBX_ERROR_UNAVAILABLE_FUNCTION);
+
+		if (ret == 0) {
+			ret = bctbx_ssl_context_setup(ssl_ctx, ssl_config);
+			BC_ASSERT_TRUE(ret == 0 || ret == BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER ||
+			               ret == BCTBX_ERROR_UNAVAILABLE_FUNCTION);
+		}
+	}
+
+	bctbx_ssl_context_free(ssl_ctx);
+	bctbx_ssl_config_free(ssl_config);
+	belle_sip_object_unref(crypto_config);
+}
+
+static void test_tls_crypto_config_invalid_provider_fails_without_fallback(void) {
+	belle_tls_crypto_config_t *crypto_config = belle_tls_crypto_config_new();
+	bctbx_ssl_config_t *ssl_config = bctbx_ssl_config_new();
+	int ret;
+
+	belle_tls_crypto_config_set_crypto_provider(crypto_config, "definitely-invalid-provider");
+	belle_tls_crypto_config_set_future_pqc_tls_group(crypto_config, "X25519MLKEM768");
+
+	ret = belle_sip_tls_channel_apply_crypto_config_to_ssl_config(ssl_config, crypto_config);
+	BC_ASSERT_NOT_EQUAL(ret, 0, int, "%d");
+
+	bctbx_ssl_config_free(ssl_config);
+	belle_sip_object_unref(crypto_config);
+}
+
 static test_t authentication_helper_tests[] = {
     TEST_NO_TAG("Proxy-Authenticate", test_proxy_authentication),
     TEST_NO_TAG("WWW-Authenticate", test_authentication),
@@ -393,7 +440,9 @@ static test_t authentication_helper_tests[] = {
     TEST_NO_TAG("Crypto mode resolve hybrid with simulated provider",
                 test_crypto_mode_resolve_hybrid_with_simulated_provider),
     TEST_NO_TAG("Crypto mode resolve fallback to classical",
-                test_crypto_mode_resolve_future_and_hybrid_fallback_to_classical)};
+                test_crypto_mode_resolve_future_and_hybrid_fallback_to_classical),
+    TEST_NO_TAG("TLS future-pqc group smoke", test_tls_crypto_config_future_pqc_group_smoke),
+    TEST_NO_TAG("TLS invalid provider no fallback", test_tls_crypto_config_invalid_provider_fails_without_fallback)};
 
 test_suite_t authentication_helper_test_suite = {"Authentication helper",
                                                  NULL,

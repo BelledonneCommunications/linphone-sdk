@@ -272,6 +272,8 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_tls_channel_t *obj,
                                                          belle_sip_certificates_chain_t *cert_chain);
 void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *obj, belle_sip_signing_key_t *key);
+int belle_sip_tls_channel_apply_crypto_config_to_ssl_config(bctbx_ssl_config_t *ssl_config,
+                                                            const belle_tls_crypto_config_t *crypto_config);
 
 #define BELLE_SIP_TLS_CHANNEL(obj) BELLE_SIP_CAST(obj, belle_sip_tls_channel_t)
 
