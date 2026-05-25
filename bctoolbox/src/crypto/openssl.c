@@ -1193,6 +1193,7 @@ struct bctbx_ssl_config_struct {
 	SSL_CTX *ssl_ctx;             /**< actual config structure */
 	int ssl_verification_mode;    /**< BCTBX_SSL_VERIFY_NONE, BCTBX_SSL_VERIFY_OPTIONAL, BCTBX_SSL_VERIFY_REQUIRED */
 	char *crypto_provider_name;   /**< requested provider name */
+	char *future_pqc_tls_group;   /**< requested future pqc tls group */
 	uint8_t ssl_config_externally_provided; /**< a flag, on when the ssl_config was provided by callers and not created
 	                                           through bctbx_ssl_config_new() function */
 };
@@ -1202,6 +1203,7 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 	ssl_config->ssl_method = DTLS_method();
 	ssl_config->ssl_ctx = SSL_CTX_new(ssl_config->ssl_method);
 	ssl_config->crypto_provider_name = NULL;
+	ssl_config->future_pqc_tls_group = NULL;
 	ssl_config->ssl_config_externally_provided = 0;
 	bctbx_ssl_config_set_authmode(ssl_config, BCTBX_SSL_VERIFY_REQUIRED);
 	return ssl_config;
@@ -1230,11 +1232,33 @@ int32_t bctbx_ssl_config_set_crypto_provider(bctbx_ssl_config_t *ssl_config, con
 	}
 
 	bctbx_message("[CryptoProvider] requested: %s", provider_name);
+	if (strcmp(provider_name, "future-pqc") == 0) {
+		ssl_config->crypto_provider_name = bctbx_strdup(provider_name);
+		bctbx_message("[FuturePQC] provider request accepted for configuration; runtime remains on classical backend");
+		return 0;
+	}
 	ret = bctbx_crypto_provider_resolve_for_implementation(provider_name, BCTBX_OPENSSL, &provider);
 	if (ret == 0) {
 		ssl_config->crypto_provider_name = bctbx_strdup(bctbx_crypto_provider_get_name(provider));
 	}
 	return ret;
+}
+
+int32_t bctbx_ssl_config_set_future_pqc_tls_group(bctbx_ssl_config_t *ssl_config, const char *group_name) {
+	if (ssl_config == NULL) {
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
+	}
+
+	if (ssl_config->future_pqc_tls_group) {
+		bctbx_free(ssl_config->future_pqc_tls_group);
+		ssl_config->future_pqc_tls_group = NULL;
+	}
+
+	if (group_name && group_name[0] != '\0') {
+		ssl_config->future_pqc_tls_group = bctbx_strdup(group_name);
+		bctbx_message("[FuturePQC] TLS group requested: %s", ssl_config->future_pqc_tls_group);
+	}
+	return 0;
 }
 
 int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config) {
@@ -1267,6 +1291,9 @@ void bctbx_ssl_config_free(bctbx_ssl_config_t *ssl_config) {
 	}
 	if (ssl_config->crypto_provider_name) {
 		bctbx_free(ssl_config->crypto_provider_name);
+	}
+	if (ssl_config->future_pqc_tls_group) {
+		bctbx_free(ssl_config->future_pqc_tls_group);
 	}
 
 	bctbx_free(ssl_config);
@@ -1564,6 +1591,40 @@ int32_t bctbx_ssl_config_set_groups(bctbx_ssl_config_t *ssl_config, const bctbx_
 	return 0;
 }
 
+static int32_t bctbx_ssl_configure_future_pqc_group(bctbx_ssl_config_t *ssl_config, int future_pqc_requested) {
+	const char *group = ssl_config->future_pqc_tls_group;
+	const char *effective_group = group;
+
+	if (!future_pqc_requested && (group == NULL || group[0] == '\0')) {
+		return 0;
+	}
+
+	if (group == NULL || group[0] == '\0') {
+		if (future_pqc_requested) {
+			effective_group = "X25519MLKEM768";
+			bctbx_message("[FuturePQC] future_pqc_tls_group not set, using default: %s", effective_group);
+		} else {
+			bctbx_warning("[FuturePQC] OpenSSL group configuration failed / unavailable: missing TLS group");
+			return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
+		}
+	}
+
+	bctbx_message("[FuturePQC] requested group: %s", effective_group);
+
+#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L) && !defined(LIBRESSL_VERSION_NUMBER)
+	if (SSL_CTX_set1_groups_list(ssl_config->ssl_ctx, effective_group) == 1) {
+		bctbx_message("[FuturePQC] OpenSSL group configuration applied: %s", effective_group);
+		return 0;
+	}
+	bctbx_warning("[FuturePQC] OpenSSL group configuration failed / unavailable");
+	return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
+#else
+	bctbx_warning(
+	    "[FuturePQC] OpenSSL group configuration failed / unavailable: API not supported by this OpenSSL build");
+	return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
+#endif
+}
+
 /** DTLS SRTP functions **/
 int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, uint8_t *output, size_t *output_length) {
 	int ret = 0;
@@ -1603,6 +1664,8 @@ int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *s
 
 int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t *ssl_config) {
 	const bctbx_crypto_provider_t *provider = NULL;
+	const int future_pqc_requested =
+	    (ssl_config->crypto_provider_name && strcmp(ssl_config->crypto_provider_name, "future-pqc") == 0);
 	/* Check validity of context and config */
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
@@ -1612,7 +1675,7 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
-	if (ssl_config->crypto_provider_name && ssl_config->crypto_provider_name[0] != '\0') {
+	if (ssl_config->crypto_provider_name && ssl_config->crypto_provider_name[0] != '\0' && !future_pqc_requested) {
 		int32_t ret = bctbx_crypto_provider_resolve_for_implementation(ssl_config->crypto_provider_name, BCTBX_OPENSSL,
 		                                                               &provider);
 		if (ret != 0) {
@@ -1624,6 +1687,15 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 	}
 	if (provider) {
 		bctbx_message("[CryptoProvider] selected: %s", bctbx_crypto_provider_get_class_name(provider));
+	}
+	if (ssl_config->future_pqc_tls_group && ssl_config->future_pqc_tls_group[0] != '\0') {
+		bctbx_message("[FuturePQC] TLS group validated: %s", ssl_config->future_pqc_tls_group);
+	}
+	{
+		int32_t ret = bctbx_ssl_configure_future_pqc_group(ssl_config, future_pqc_requested);
+		if (ret != 0) {
+			return ret;
+		}
 	}
 
 	if (ssl_ctx->ssl) {

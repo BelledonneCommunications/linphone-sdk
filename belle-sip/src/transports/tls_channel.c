@@ -967,6 +967,9 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 			return -1;
 		}
 	}
+	if (crypto_config->future_pqc_tls_group && crypto_config->future_pqc_tls_group[0] != '\0') {
+		bctbx_ssl_config_set_future_pqc_tls_group(obj->sslcfg, crypto_config->future_pqc_tls_group);
+	}
 	if (crypto_config->ssl_config == NULL) {
 		bctbx_ssl_config_defaults(obj->sslcfg, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_STREAM);
 		bctbx_ssl_config_set_authmode(obj->sslcfg, BCTBX_SSL_VERIFY_REQUIRED);

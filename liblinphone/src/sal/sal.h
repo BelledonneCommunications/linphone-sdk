@@ -370,6 +370,7 @@ public:
 	// ---------------------------------------------------------------------------
 	void setSslConfig(void *sslConfig);
 	void setCryptoProvider(const std::string &value);
+	void setFuturePqcTlsGroup(const std::string &value);
 	void setCryptoMode(belle_sip_crypto_mode_t mode);
 	void setRootCa(const std::string &value);
 	void setRootCaData(const std::string &value);
@@ -510,6 +511,7 @@ private:
 
 	unsigned int mKeepAlive = 0;
 	std::string mCryptoProvider;
+	std::string mFuturePqcTlsGroup;
 	belle_sip_crypto_mode_t mCryptoMode = BELLE_SIP_CRYPTO_MODE_CLASSICAL;
 	std::string mRootCa;
 	std::string mRootCaData;

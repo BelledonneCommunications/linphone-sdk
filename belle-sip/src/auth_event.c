@@ -137,6 +137,7 @@ static void crypto_config_uninit(belle_tls_crypto_config_t *obj) {
 	if (obj->root_ca) belle_sip_free(obj->root_ca);
 	if (obj->root_ca_data) belle_sip_free(obj->root_ca_data);
 	if (obj->crypto_provider) belle_sip_free(obj->crypto_provider);
+	if (obj->future_pqc_tls_group) belle_sip_free(obj->future_pqc_tls_group);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_tls_crypto_config_t);
@@ -162,6 +163,7 @@ belle_tls_crypto_config_t *belle_tls_crypto_config_new(void) {
 	obj->ssl_config = NULL;
 	obj->exception_flags = BELLE_TLS_VERIFY_NONE;
 	obj->crypto_provider = NULL;
+	obj->future_pqc_tls_group = NULL;
 	obj->crypto_mode = BELLE_SIP_CRYPTO_MODE_CLASSICAL;
 
 	return obj;
@@ -209,6 +211,18 @@ int belle_tls_crypto_config_set_crypto_provider(belle_tls_crypto_config_t *obj, 
 		belle_sip_message("[CryptoProvider] requested: %s", obj->crypto_provider);
 	} else {
 		belle_sip_message("[CryptoProvider] no provider configured, compiled backend will be used");
+	}
+	return 0;
+}
+
+int belle_tls_crypto_config_set_future_pqc_tls_group(belle_tls_crypto_config_t *obj, const char *group_name) {
+	if (obj->future_pqc_tls_group) {
+		belle_sip_free(obj->future_pqc_tls_group);
+		obj->future_pqc_tls_group = NULL;
+	}
+	if (group_name && group_name[0] != '\0') {
+		obj->future_pqc_tls_group = belle_sip_strdup(group_name);
+		belle_sip_message("[FuturePQC] TLS group requested: %s", obj->future_pqc_tls_group);
 	}
 	return 0;
 }

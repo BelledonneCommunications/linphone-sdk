@@ -27,6 +27,7 @@
 #include "bctoolbox_tester.h"
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <stdio.h>
 
 using namespace bctoolbox;
@@ -1516,9 +1517,132 @@ static void crypto_provider_resolution_test() {
 #endif
 }
 
+static void future_pqc_ssl_config_acceptance_test() {
+	static const char *kFuturePqcGroups[] = {"X25519MLKEM768", "p256_mlkem512", "p384_mlkem768",
+	                                         "mlkem512",       "mlkem768",      "mlkem1024"};
+	const char *enable_oqs_tests_env = std::getenv("BCTBX_ENABLE_OQS_TESTS");
+	const bool strict_oqs_required = (enable_oqs_tests_env && strcmp(enable_oqs_tests_env, "1") == 0);
+	for (const char *group : kFuturePqcGroups) {
+		bctbx_ssl_config_t *ssl_config = bctbx_ssl_config_new();
+		bctbx_ssl_context_t *ssl_ctx = bctbx_ssl_context_new();
+
+		BC_ASSERT_PTR_NOT_NULL(ssl_config);
+		BC_ASSERT_PTR_NOT_NULL(ssl_ctx);
+		if (!ssl_config || !ssl_ctx) {
+			if (ssl_ctx) bctbx_ssl_context_free(ssl_ctx);
+			if (ssl_config) bctbx_ssl_config_free(ssl_config);
+			return;
+		}
+
+		BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "future-pqc"), 0, int, "%d");
+		BC_ASSERT_EQUAL(bctbx_ssl_config_set_future_pqc_tls_group(ssl_config, group), 0, int, "%d");
+		{
+			int ret = bctbx_ssl_context_setup(ssl_ctx, ssl_config);
+			if (bctbx_ssl_get_implementation_type() == BCTBX_OPENSSL) {
+				if (strict_oqs_required) {
+					BC_ASSERT_EQUAL(ret, 0, int, "%d");
+				} else {
+					BC_ASSERT_TRUE(ret == 0 || ret == BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER);
+				}
+			} else {
+				BC_ASSERT_EQUAL(ret, BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+			}
+		}
+		bctbx_ssl_context_free(ssl_ctx);
+		bctbx_ssl_config_free(ssl_config);
+	}
+}
+
+static void future_pqc_default_group_when_missing_test() {
+	bctbx_ssl_config_t *ssl_config = bctbx_ssl_config_new();
+	bctbx_ssl_context_t *ssl_ctx = bctbx_ssl_context_new();
+	BC_ASSERT_PTR_NOT_NULL(ssl_config);
+	BC_ASSERT_PTR_NOT_NULL(ssl_ctx);
+	if (!ssl_config || !ssl_ctx) {
+		if (ssl_ctx) bctbx_ssl_context_free(ssl_ctx);
+		if (ssl_config) bctbx_ssl_config_free(ssl_config);
+		return;
+	}
+	BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "future-pqc"), 0, int, "%d");
+	{
+		int ret = bctbx_ssl_context_setup(ssl_ctx, ssl_config);
+		if (bctbx_ssl_get_implementation_type() == BCTBX_OPENSSL) {
+			BC_ASSERT_TRUE(ret == 0 || ret == BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER);
+		} else {
+			BC_ASSERT_EQUAL(ret, BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+		}
+	}
+	bctbx_ssl_context_free(ssl_ctx);
+	bctbx_ssl_config_free(ssl_config);
+}
+
+static void future_pqc_invalid_group_controlled_failure_test() {
+	bctbx_ssl_config_t *ssl_config = bctbx_ssl_config_new();
+	bctbx_ssl_context_t *ssl_ctx = bctbx_ssl_context_new();
+	BC_ASSERT_PTR_NOT_NULL(ssl_config);
+	BC_ASSERT_PTR_NOT_NULL(ssl_ctx);
+	if (!ssl_config || !ssl_ctx) {
+		if (ssl_ctx) bctbx_ssl_context_free(ssl_ctx);
+		if (ssl_config) bctbx_ssl_config_free(ssl_config);
+		return;
+	}
+	BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "future-pqc"), 0, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_ssl_config_set_future_pqc_tls_group(ssl_config, "definitely_invalid_group"), 0, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_ssl_context_setup(ssl_ctx, ssl_config), BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+	bctbx_ssl_context_free(ssl_ctx);
+	bctbx_ssl_config_free(ssl_config);
+}
+
+static void mbedtls_future_pqc_unavailable_test() {
+	if (bctbx_ssl_get_implementation_type() != BCTBX_MBEDTLS) return;
+	bctbx_ssl_config_t *ssl_config = bctbx_ssl_config_new();
+	bctbx_ssl_context_t *ssl_ctx = bctbx_ssl_context_new();
+	BC_ASSERT_PTR_NOT_NULL(ssl_config);
+	BC_ASSERT_PTR_NOT_NULL(ssl_ctx);
+	if (!ssl_config || !ssl_ctx) {
+		if (ssl_ctx) bctbx_ssl_context_free(ssl_ctx);
+		if (ssl_config) bctbx_ssl_config_free(ssl_config);
+		return;
+	}
+	BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "future-pqc"), 0, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_ssl_config_set_future_pqc_tls_group(ssl_config, "X25519MLKEM768"), 0, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_ssl_context_setup(ssl_ctx, ssl_config), BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+	bctbx_ssl_context_free(ssl_ctx);
+	bctbx_ssl_config_free(ssl_config);
+}
+
+static void provider_regression_ssl_setup_test() {
+	bctbx_ssl_config_t *ssl_config = bctbx_ssl_config_new();
+	BC_ASSERT_PTR_NOT_NULL(ssl_config);
+	if (!ssl_config) {
+		if (ssl_config) bctbx_ssl_config_free(ssl_config);
+		return;
+	}
+	BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, NULL), 0, int, "%d");
+
+	BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "simulated-pqc"), 0, int, "%d");
+
+	if (bctbx_ssl_get_implementation_type() == BCTBX_OPENSSL) {
+		BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "openssl"), 0, int, "%d");
+		BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "mbedtls"),
+		                BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+	} else {
+		BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "mbedtls"), 0, int, "%d");
+		BC_ASSERT_EQUAL(bctbx_ssl_config_set_crypto_provider(ssl_config, "openssl"),
+		                BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+	}
+
+	bctbx_ssl_config_free(ssl_config);
+}
+
 static test_t crypto_tests[] = {
     TEST_NO_TAG("Diffie-Hellman Key exchange", DHM),
     TEST_NO_TAG("Crypto provider resolution", crypto_provider_resolution_test),
+    TEST_NO_TAG("Future PQC SSL config acceptance", future_pqc_ssl_config_acceptance_test),
+    TEST_NO_TAG("Future PQC default group when missing", future_pqc_default_group_when_missing_test),
+    TEST_NO_TAG("Future PQC invalid group controlled failure", future_pqc_invalid_group_controlled_failure_test),
+    TEST_NO_TAG("mbedTLS future PQC unavailable", mbedtls_future_pqc_unavailable_test),
+    TEST_NO_TAG("Provider regression SSL setup", provider_regression_ssl_setup_test),
     TEST_NO_TAG("Elliptic Curve Diffie-Hellman Key exchange", ECDH),
     TEST_NO_TAG("EdDSA sign and verify", EdDSA),
     TEST_NO_TAG("Ed25519 to X25519 key conversion", ed25519_to_x25519_keyconversion),

@@ -1818,13 +1818,27 @@ static int _linphone_core_tls_postcheck_callback(void *data, const bctbx_x509_ce
 	return ret;
 }
 
+static bool_t linphone_future_pqc_tls_group_is_valid(const char *group) {
+	static const char *supported_groups[] = {"X25519MLKEM768", "p256_mlkem512", "p384_mlkem768",
+	                                         "mlkem512",       "mlkem768",      "mlkem1024"};
+	size_t i;
+	if (group == NULL || group[0] == '\0') return FALSE;
+	for (i = 0; i < (sizeof(supported_groups) / sizeof(supported_groups[0])); ++i) {
+		if (strcmp(group, supported_groups[i]) == 0) return TRUE;
+	}
+	return FALSE;
+}
+
 static void certificates_config_read(LinphoneCore *lc) {
 	string rootCaPath = static_cast<PlatformHelpers *>(lc->platform_helper)->getDataResource("rootca.pem");
 	const char *crypto_provider = linphone_config_get_string(lc->config, "sip", "crypto_provider", NULL);
 	const char *fallback_provider = linphone_config_get_string(lc->config, "sip", "fallback_provider", NULL);
+	const char *requested_future_pqc_tls_group =
+	    linphone_config_get_string(lc->config, "sip", "future_pqc_tls_group", NULL);
 	const char *crypto_mode = linphone_config_get_string(lc->config, "sip", "crypto_mode", NULL);
 	const char *rootca = linphone_config_get_string(lc->config, "sip", "root_ca", nullptr);
 	const char *selected_crypto_provider = crypto_provider;
+	const char *validated_future_pqc_tls_group = NULL;
 	int crypto_mode_is_valid = 1;
 	belle_sip_crypto_mode_t preferred_crypto_mode = belle_sip_crypto_mode_parse(crypto_mode, &crypto_mode_is_valid);
 	int crypto_mode_fallback = 0;
@@ -1858,7 +1872,34 @@ static void certificates_config_read(LinphoneCore *lc) {
 
 	if (crypto_provider && strcmp(crypto_provider, "future-pqc") == 0) {
 		const bctbx_crypto_provider_t *resolved_fallback_provider = NULL;
+		const bctbx_crypto_provider_t *resolved_default_provider = bctbx_crypto_provider_get_default();
 		ms_message("[CryptoProvider] requested: FuturePqcCryptoProvider");
+		ms_message("[FuturePQC] requested TLS group: %s",
+		           requested_future_pqc_tls_group ? requested_future_pqc_tls_group : "(none)");
+		if (requested_future_pqc_tls_group == NULL || requested_future_pqc_tls_group[0] == '\0') {
+			validated_future_pqc_tls_group = "X25519MLKEM768";
+			ms_message("[FuturePQC] future_pqc_tls_group not set, using default: %s", validated_future_pqc_tls_group);
+		} else if (linphone_future_pqc_tls_group_is_valid(requested_future_pqc_tls_group)) {
+			validated_future_pqc_tls_group = requested_future_pqc_tls_group;
+		} else {
+			ms_warning("[FuturePQC] invalid future_pqc_tls_group='%s', using controlled fallback provider path",
+			           requested_future_pqc_tls_group);
+			if (fallback_provider && fallback_provider[0] != '\0' && strcmp(fallback_provider, "none") != 0) {
+				int32_t ret = bctbx_crypto_provider_resolve(fallback_provider, &resolved_fallback_provider);
+				if (ret == 0 && resolved_fallback_provider) {
+					selected_crypto_provider = bctbx_crypto_provider_get_name(resolved_fallback_provider);
+					ms_message("[CryptoProvider] fallback selected: %s",
+					           bctbx_crypto_provider_get_class_name(resolved_fallback_provider));
+				}
+			} else if (resolved_default_provider) {
+				selected_crypto_provider = bctbx_crypto_provider_get_name(resolved_default_provider);
+				ms_message("[CryptoProvider] fallback selected: %s",
+				           bctbx_crypto_provider_get_class_name(resolved_default_provider));
+			}
+		}
+		if (validated_future_pqc_tls_group) {
+			ms_message("[FuturePQC] validated TLS group: %s", validated_future_pqc_tls_group);
+		}
 		ms_warning("[FuturePQC] external PQC backend not available");
 		if (fallback_provider && fallback_provider[0] != '\0' && strcmp(fallback_provider, "none") != 0) {
 			int32_t ret = bctbx_crypto_provider_resolve(fallback_provider, &resolved_fallback_provider);
@@ -1874,13 +1915,18 @@ static void certificates_config_read(LinphoneCore *lc) {
 			ms_error("[TLS] failed: FuturePqcCryptoProvider unavailable and fallback disabled");
 		}
 	}
+	ms_message("[CryptoProvider] requested: %s", crypto_provider ? crypto_provider : "(none)");
+	ms_message("[CryptoProvider] selected: %s", selected_crypto_provider ? selected_crypto_provider : "(default)");
 
 	lc->sal->setCryptoMode(selected_crypto_mode);
 	lc->sal->setCryptoProvider(selected_crypto_provider ? L_C_TO_STRING(selected_crypto_provider) : "");
+	lc->sal->setFuturePqcTlsGroup(validated_future_pqc_tls_group ? L_C_TO_STRING(validated_future_pqc_tls_group) : "");
 	belle_tls_crypto_config_set_crypto_mode(L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getHttpClient().getCryptoConfig(),
 	                                        selected_crypto_mode);
 	belle_tls_crypto_config_set_crypto_provider(L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getHttpClient().getCryptoConfig(),
 	                                            selected_crypto_provider);
+	belle_tls_crypto_config_set_future_pqc_tls_group(L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getHttpClient().getCryptoConfig(),
+	                                                 validated_future_pqc_tls_group);
 
 	linphone_core_verify_server_certificates(lc,
 	                                         !!linphone_config_get_int(lc->config, "sip", "verify_server_certs", TRUE));

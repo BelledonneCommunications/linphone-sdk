@@ -338,6 +338,8 @@ BELLESIP_EXPORT int belle_tls_crypto_config_set_root_ca_data(belle_tls_crypto_co
  * @return 0 on success
  */
 BELLESIP_EXPORT int belle_tls_crypto_config_set_crypto_provider(belle_tls_crypto_config_t *obj, const char *provider);
+BELLESIP_EXPORT int belle_tls_crypto_config_set_future_pqc_tls_group(belle_tls_crypto_config_t *obj,
+                                                                     const char *group_name);
 BELLESIP_EXPORT int belle_tls_crypto_config_set_crypto_mode(belle_tls_crypto_config_t *obj,
                                                             belle_sip_crypto_mode_t mode);
 BELLESIP_EXPORT belle_sip_crypto_mode_t belle_tls_crypto_config_get_crypto_mode(const belle_tls_crypto_config_t *obj);

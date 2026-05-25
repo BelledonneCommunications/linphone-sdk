@@ -519,6 +519,9 @@ void Sal::setTlsProperties() {
 	belle_tls_crypto_config_set_verify_exceptions(cryptoConfig, verifyExceptions);
 
 	if (!mCryptoProvider.empty()) belle_tls_crypto_config_set_crypto_provider(cryptoConfig, mCryptoProvider.c_str());
+	if (!mFuturePqcTlsGroup.empty()) {
+		belle_tls_crypto_config_set_future_pqc_tls_group(cryptoConfig, mFuturePqcTlsGroup.c_str());
+	}
 	belle_tls_crypto_config_set_crypto_mode(cryptoConfig, mCryptoMode);
 	if (!mRootCa.empty()) belle_tls_crypto_config_set_root_ca(cryptoConfig, mRootCa.c_str());
 	if (!mRootCaData.empty()) belle_tls_crypto_config_set_root_ca_data(cryptoConfig, mRootCaData.c_str());
@@ -771,6 +774,11 @@ void Sal::setRootCa(const string &value) {
 
 void Sal::setCryptoProvider(const string &value) {
 	mCryptoProvider = value;
+	setTlsProperties();
+}
+
+void Sal::setFuturePqcTlsGroup(const string &value) {
+	mFuturePqcTlsGroup = value;
 	setTlsProperties();
 }
 
