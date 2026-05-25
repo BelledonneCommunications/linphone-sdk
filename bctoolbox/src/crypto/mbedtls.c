@@ -125,6 +125,62 @@ struct bctbx_signing_key_struct {
 	mbedtls_ctr_drbg_context ctr_drbg; /**< rng context */
 };
 
+static int bctbx_mbedtls_pem_is_buffer_too_small(int ret) {
+	return (ret == MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL || ret == MBEDTLS_ERR_PK_BUFFER_TOO_SMALL);
+}
+
+static char *bctbx_mbedtls_write_private_key_pem_dynamic(mbedtls_pk_context *ctx) {
+	size_t pem_capacity = 4096;
+	while (pem_capacity <= (1024 * 1024)) {
+		char *pem_key = (char *)bctbx_malloc0(pem_capacity);
+		int ret = mbedtls_pk_write_key_pem(ctx, (unsigned char *)pem_key, pem_capacity);
+		if (ret == 0) {
+			return pem_key;
+		}
+		bctbx_free(pem_key);
+		if (!bctbx_mbedtls_pem_is_buffer_too_small(ret)) {
+			return NULL;
+		}
+		pem_capacity *= 2;
+	}
+	return NULL;
+}
+
+static int bctbx_mbedtls_write_cert_pem_dynamic(const unsigned char *der,
+                                                size_t der_length,
+                                                unsigned char **pem_buffer,
+                                                size_t *pem_buffer_capacity,
+                                                size_t offset,
+                                                size_t *olen) {
+	if (pem_buffer == NULL || pem_buffer_capacity == NULL || olen == NULL) {
+		return MBEDTLS_ERR_PEM_BAD_INPUT_DATA;
+	}
+	if (*pem_buffer == NULL || *pem_buffer_capacity <= offset + 1) {
+		size_t new_capacity = (*pem_buffer_capacity > 0) ? *pem_buffer_capacity : 4096;
+		while (new_capacity <= offset + 1 && new_capacity <= (1024 * 1024)) {
+			new_capacity *= 2;
+		}
+		if (new_capacity > (1024 * 1024)) return MBEDTLS_ERR_PEM_ALLOC_FAILED;
+		bctbx_free(*pem_buffer);
+		*pem_buffer = (unsigned char *)bctbx_malloc0(new_capacity);
+		*pem_buffer_capacity = new_capacity;
+	}
+	int ret;
+	while (1) {
+		ret = mbedtls_pem_write_buffer("-----BEGIN CERTIFICATE-----\n", "-----END CERTIFICATE-----\n", der, der_length,
+		                               *pem_buffer + offset, *pem_buffer_capacity - offset, olen);
+		if (!bctbx_mbedtls_pem_is_buffer_too_small(ret)) break;
+		size_t new_capacity = (*pem_buffer_capacity) * 2;
+		if (new_capacity > (1024 * 1024)) break;
+		unsigned char *new_buffer = (unsigned char *)bctbx_realloc(*pem_buffer, new_capacity);
+		if (new_buffer == NULL) return MBEDTLS_ERR_PEM_ALLOC_FAILED;
+		memset(new_buffer + *pem_buffer_capacity, 0, new_capacity - *pem_buffer_capacity);
+		*pem_buffer = new_buffer;
+		*pem_buffer_capacity = new_capacity;
+	}
+	return ret;
+}
+
 bctbx_signing_key_t *bctbx_signing_key_new(void) {
 	bctbx_signing_key_t *key = bctbx_malloc0(sizeof(bctbx_signing_key_t));
 	mbedtls_pk_init(&(key->ctx));
@@ -142,11 +198,8 @@ void bctbx_signing_key_free(bctbx_signing_key_t *key) {
 }
 
 char *bctbx_signing_key_get_pem(bctbx_signing_key_t *key) {
-	char *pem_key;
 	if (key == NULL) return NULL;
-	pem_key = (char *)bctbx_malloc0(4096);
-	mbedtls_pk_write_key_pem(&(key->ctx), (unsigned char *)pem_key, 4096);
-	return pem_key;
+	return bctbx_mbedtls_write_private_key_pem_dynamic(&(key->ctx));
 }
 
 int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key,
@@ -184,14 +237,17 @@ int32_t bctbx_signing_key_parse_file(bctbx_signing_key_t *key, const char *path,
 
 /*** Certificate ***/
 char *bctbx_x509_certificates_chain_get_pem(const bctbx_x509_certificate_t *cert) {
-	char *pem_certificate = NULL;
+	unsigned char *pem_certificate = NULL;
+	size_t pem_capacity = 4096;
 	size_t olen = 0;
-
-	pem_certificate = (char *)bctbx_malloc0(4096);
-	mbedtls_pem_write_buffer("-----BEGIN CERTIFICATE-----\n", "-----END CERTIFICATE-----\n",
-	                         ((mbedtls_x509_crt *)cert)->raw.p, ((mbedtls_x509_crt *)cert)->raw.len,
-	                         (unsigned char *)pem_certificate, 4096, &olen);
-	return pem_certificate;
+	int ret =
+	    bctbx_mbedtls_write_cert_pem_dynamic(((mbedtls_x509_crt *)cert)->raw.p, ((mbedtls_x509_crt *)cert)->raw.len,
+	                                         &pem_certificate, &pem_capacity, 0, &olen);
+	if (ret != 0) {
+		bctbx_free(pem_certificate);
+		return NULL;
+	}
+	return (char *)pem_certificate;
 }
 
 bctbx_x509_certificate_t *bctbx_x509_certificate_new(void) {
@@ -291,7 +347,8 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject,
 	int ret;
 	mbedtls_mpi serial;
 	mbedtls_x509write_cert crt;
-	char file_buffer[8192];
+	unsigned char *file_buffer = NULL;
+	size_t file_buffer_capacity = 0;
 	size_t file_buffer_len = 0;
 	char formatted_subject[512];
 
@@ -301,38 +358,56 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject,
 
 	mbedtls_entropy_init(&entropy);
 	mbedtls_ctr_drbg_init(&ctr_drbg);
+	mbedtls_mpi_init(&serial);
+	mbedtls_x509write_crt_init(&crt);
+
 	if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0)) != 0) {
 		bctbx_error("Certificate generation can't init ctr_drbg: [-0x%x]", -ret);
-		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		goto cleanup;
 	}
 
 	/* generate 3072 bits RSA public/private key */
 	if ((ret = mbedtls_pk_setup((mbedtls_pk_context *)pkey, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA))) != 0) {
 		bctbx_error("Certificate generation can't init pk_ctx: [-0x%x]", -ret);
-		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		goto cleanup;
 	}
 
 	if ((ret = mbedtls_rsa_gen_key(mbedtls_pk_rsa(*(mbedtls_pk_context *)pkey), mbedtls_ctr_drbg_random, &ctr_drbg,
 	                               3072, 65537)) != 0) {
 		bctbx_error("Certificate generation can't generate rsa key: [-0x%x]", -ret);
-		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		goto cleanup;
 	}
 
 	/* if there is no pem pointer, don't save the key in pem format */
 	if (pem != NULL) {
-		mbedtls_pk_write_key_pem((mbedtls_pk_context *)pkey, (unsigned char *)file_buffer, 4096);
-		file_buffer_len = strlen(file_buffer);
+		char *private_key_pem = bctbx_mbedtls_write_private_key_pem_dynamic((mbedtls_pk_context *)pkey);
+		if (private_key_pem == NULL) {
+			bctbx_error("Certificate generation can't write private key pem");
+			ret = BCTBX_ERROR_CERTIFICATE_WRITE_PEM;
+			goto cleanup;
+		}
+		file_buffer_len = strlen(private_key_pem);
+		file_buffer_capacity = file_buffer_len + 1;
+		file_buffer = (unsigned char *)private_key_pem;
+	} else {
+		file_buffer_capacity = 4096;
+		file_buffer = (unsigned char *)bctbx_malloc0(file_buffer_capacity);
+		if (file_buffer == NULL) {
+			ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+			goto cleanup;
+		}
 	}
 
 	/* generate the certificate */
-	mbedtls_x509write_crt_init(&crt);
 	mbedtls_x509write_crt_set_md_alg(&crt, MBEDTLS_MD_SHA256);
-
-	mbedtls_mpi_init(&serial);
 
 	if ((ret = mbedtls_mpi_read_string(&serial, 10, "1")) != 0) {
 		bctbx_error("Certificate generation can't read serial mpi: [-0x%x]", -ret);
-		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		goto cleanup;
 	}
 
 	mbedtls_x509write_crt_set_subject_key(&crt, (mbedtls_pk_context *)pkey);
@@ -340,56 +415,82 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject,
 
 	if ((ret = mbedtls_x509write_crt_set_subject_name(&crt, formatted_subject)) != 0) {
 		bctbx_error("Certificate generation can't set subject name: [-0x%x]", -ret);
-		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		goto cleanup;
 	}
 
 	if ((ret = mbedtls_x509write_crt_set_issuer_name(&crt, formatted_subject)) != 0) {
 		bctbx_error("Certificate generation can't set issuer name: -%x", -ret);
-		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		goto cleanup;
 	}
 
 	if ((ret = mbedtls_x509write_crt_set_serial(&crt, &serial)) != 0) {
 		bctbx_error("Certificate generation can't set serial: -%x", -ret);
-		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		goto cleanup;
 	}
 	mbedtls_mpi_free(&serial);
 
 	if ((ret = mbedtls_x509write_crt_set_validity(&crt, "20010101000000", "20300101000000")) != 0) {
 		bctbx_error("Certificate generation can't set validity: -%x", -ret);
-		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+		goto cleanup;
 	}
 
 	/* store anyway certificate in pem format in a string even if we do not have file to write as we need it to get it
 	 * in a x509_crt structure */
-	if ((ret = mbedtls_x509write_crt_pem(&crt, (unsigned char *)file_buffer + file_buffer_len, 4096,
-	                                     mbedtls_ctr_drbg_random, &ctr_drbg)) != 0) {
-		bctbx_error("Certificate generation can't write crt pem: -%x", -ret);
-		return BCTBX_ERROR_CERTIFICATE_WRITE_PEM;
+	size_t cert_olen = 0;
+	while ((ret = mbedtls_x509write_crt_pem(&crt, file_buffer + file_buffer_len, file_buffer_capacity - file_buffer_len,
+	                                        mbedtls_ctr_drbg_random, &ctr_drbg)) != 0) {
+		if (!bctbx_mbedtls_pem_is_buffer_too_small(ret) || file_buffer_capacity >= (1024 * 1024)) break;
+		size_t new_capacity = file_buffer_capacity * 2;
+		unsigned char *new_buffer = (unsigned char *)bctbx_realloc(file_buffer, new_capacity);
+		if (new_buffer == NULL) {
+			ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+			goto cleanup;
+		}
+		memset(new_buffer + file_buffer_capacity, 0, new_capacity - file_buffer_capacity);
+		file_buffer = new_buffer;
+		file_buffer_capacity = new_capacity;
 	}
-
-	mbedtls_x509write_crt_free(&crt);
-	mbedtls_ctr_drbg_free(&ctr_drbg);
-	mbedtls_entropy_free(&entropy);
+	if (ret != 0) {
+		bctbx_error("Certificate generation can't write crt pem: -%x", -ret);
+		ret = BCTBX_ERROR_CERTIFICATE_WRITE_PEM;
+		goto cleanup;
+	}
+	cert_olen = strlen((char *)file_buffer + file_buffer_len) + 1;
 
 	/* copy the key+cert in pem format into the given buffer */
 	if (pem != NULL) {
-		if (strlen(file_buffer) + 1 > pem_length) {
+		size_t total_len = file_buffer_len + cert_olen;
+		if (total_len > pem_length) {
 			bctbx_error(
 			    "Certificate generation can't copy the certificate to pem buffer: too short [%ld] but need [%ld] bytes",
-			    (long)pem_length, (long)strlen(file_buffer));
-			return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+			    (long)pem_length, (long)(total_len - 1));
+			ret = BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+			goto cleanup;
 		}
-		strncpy(pem, file_buffer, pem_length);
+		memcpy(pem, file_buffer, total_len);
 	}
 
 	/* +1 on strlen as crt_parse in PEM format, length must include the final \0 */
 	if ((ret = mbedtls_x509_crt_parse((mbedtls_x509_crt *)certificate, (unsigned char *)file_buffer,
-	                                  strlen(file_buffer) + 1)) != 0) {
+	                                  strlen((const char *)file_buffer) + 1)) != 0) {
 		bctbx_error("Certificate generation can't parse crt pem: -%x", -ret);
-		return BCTBX_ERROR_CERTIFICATE_PARSE_PEM;
+		ret = BCTBX_ERROR_CERTIFICATE_PARSE_PEM;
+		goto cleanup;
 	}
 
-	return 0;
+	ret = 0;
+
+cleanup:
+	mbedtls_x509write_crt_free(&crt);
+	mbedtls_mpi_free(&serial);
+	mbedtls_ctr_drbg_free(&ctr_drbg);
+	mbedtls_entropy_free(&entropy);
+	bctbx_free(file_buffer);
+	return ret;
 }
 
 int32_t bctbx_x509_certificate_get_signature_hash_function(const bctbx_x509_certificate_t *certificate,
@@ -1395,8 +1496,17 @@ int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config,
 	return mbedtls_ssl_conf_own_cert(ssl_config->ssl_config, (mbedtls_x509_crt *)cert, (mbedtls_pk_context *)key);
 }
 
-int32_t bctbx_ssl_config_set_groups(BCTBX_UNUSED(bctbx_ssl_config_t *ssl_config),
-                                    BCTBX_UNUSED(const bctbx_list_t *groups)) {
+int32_t bctbx_ssl_config_set_groups(bctbx_ssl_config_t *ssl_config, const bctbx_list_t *groups) {
+	if (ssl_config == NULL) {
+		bctbx_error("mbedTLS TLS group configuration failed: invalid SSL config.");
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
+	}
+	if (groups == NULL) {
+		bctbx_error("mbedTLS TLS group configuration failed: empty groups list.");
+		return BCTBX_ERROR_INVALID_INPUT_DATA;
+	}
+	bctbx_warning(
+	    "mbedTLS TLS group configuration is unsupported by this backend build; requested groups are ignored.");
 	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 

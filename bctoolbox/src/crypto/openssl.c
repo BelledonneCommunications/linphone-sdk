@@ -163,16 +163,20 @@ void bctbx_signing_key_free(bctbx_signing_key_t *key) {
 
 char *bctbx_signing_key_get_pem(bctbx_signing_key_t *key) {
 	if (!key && !key->evp_pkey) return NULL;
-	const int pem_key_length = 4096;
-	char *pem_key = (char *)bctbx_malloc0(pem_key_length);
 	BIO *buffer = BIO_new(BIO_s_mem());
-	if (PEM_write_bio_PrivateKey(buffer, key->evp_pkey, NULL, NULL, 0, NULL, NULL) &&
-	    BIO_read(buffer, pem_key, pem_key_length)) {
-		BIO_free(buffer);
-		return pem_key;
+	if (buffer == NULL) {
+		return NULL;
 	}
-	bctbx_clean(pem_key, pem_key_length);
-	bctbx_free(pem_key);
+	if (PEM_write_bio_PrivateKey(buffer, key->evp_pkey, NULL, NULL, 0, NULL, NULL)) {
+		BUF_MEM *buffer_mem = NULL;
+		BIO_get_mem_ptr(buffer, &buffer_mem);
+		if (buffer_mem != NULL && buffer_mem->data != NULL && buffer_mem->length > 0) {
+			char *pem_key = (char *)bctbx_malloc0(buffer_mem->length + 1);
+			memcpy(pem_key, buffer_mem->data, buffer_mem->length);
+			BIO_free(buffer);
+			return pem_key;
+		}
+	}
 	BIO_free(buffer);
 	return NULL;
 }
@@ -338,21 +342,46 @@ int32_t bctbx_x509_certificate_get_subject_dn(const bctbx_x509_certificate_t *ce
 	if (certStackSize < 1) {
 		return BCTBX_ERROR_INVALID_CERTIFICATE;
 	}
-	char name_buf[256];
-	X509 *certificate = sk_X509_value((STACK_OF(X509) *)cert, 0);
-	X509_NAME *subject_name = X509_get_subject_name(certificate);
-	X509_NAME_oneline(subject_name, name_buf, 256);
-	int offset = snprintf(dn, dn_length, "%s", name_buf);
-
-	for (int i = 1; i < certStackSize; i++) {
-		certificate = sk_X509_value((STACK_OF(X509) *)cert, i);
-		if (certificate != NULL) {
-			subject_name = X509_get_subject_name(certificate);
-			X509_NAME_oneline(subject_name, name_buf, 256);
-			offset += snprintf(dn + offset, dn_length - offset, "\n%s", name_buf);
-		}
+	if (dn == NULL || dn_length == 0) {
+		return BCTBX_ERROR_INVALID_INPUT_DATA;
 	}
-	return strlen(dn);
+
+	size_t offset = 0;
+	dn[0] = '\0';
+	for (int i = 0; i < certStackSize; i++) {
+		X509 *certificate = sk_X509_value((STACK_OF(X509) *)cert, i);
+		if (certificate == NULL) continue;
+		X509_NAME *subject_name = X509_get_subject_name(certificate);
+		if (subject_name == NULL) continue;
+
+		BIO *buffer = BIO_new(BIO_s_mem());
+		if (buffer == NULL) {
+			return ERR_get_error();
+		}
+		if (X509_NAME_print_ex(buffer, subject_name, 0, XN_FLAG_RFC2253) < 0) {
+			BIO_free(buffer);
+			return ERR_get_error();
+		}
+		BUF_MEM *bio_mem = NULL;
+		BIO_get_mem_ptr(buffer, &bio_mem);
+		size_t subject_length = (bio_mem != NULL) ? bio_mem->length : 0;
+		size_t needed = subject_length + 1 + ((i > 0 && subject_length > 0) ? 1 : 0);
+		if (offset + needed > dn_length) {
+			BIO_free(buffer);
+			dn[0] = '\0';
+			return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+		}
+		if (i > 0 && subject_length > 0) {
+			dn[offset++] = '\n';
+		}
+		if (subject_length > 0 && bio_mem != NULL && bio_mem->data != NULL) {
+			memcpy(dn + offset, bio_mem->data, subject_length);
+			offset += subject_length;
+		}
+		dn[offset] = '\0';
+		BIO_free(buffer);
+	}
+	return (int32_t)offset;
 }
 
 bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t *cert) {
@@ -362,22 +391,36 @@ bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t
 		X509 *certificate = sk_X509_value((STACK_OF(X509) *)cert, i);
 		if (certificate != NULL) {
 			X509_NAME *subject_name = X509_get_subject_name(certificate);
-			const size_t subject_name_buf_len = 256;
-			char *subject_name_buf = bctbx_malloc0(subject_name_buf_len);
-			X509_NAME_get_text_by_NID(subject_name, NID_commonName, subject_name_buf, subject_name_buf_len);
-			ret = bctbx_list_append(ret, subject_name_buf);
+			int current_cn_index = -1;
+			while ((current_cn_index = X509_NAME_get_index_by_NID(subject_name, NID_commonName, current_cn_index)) >=
+			       0) {
+				X509_NAME_ENTRY *cn_entry = X509_NAME_get_entry(subject_name, current_cn_index);
+				if (cn_entry == NULL) continue;
+				ASN1_STRING *cn_data = X509_NAME_ENTRY_get_data(cn_entry);
+				if (cn_data == NULL) continue;
+				unsigned char *utf8 = NULL;
+				int utf8_len = ASN1_STRING_to_UTF8(&utf8, cn_data);
+				if (utf8_len > 0 && utf8 != NULL) {
+					char *subject_name_buf = bctbx_malloc0((size_t)utf8_len + 1);
+					memcpy(subject_name_buf, utf8, (size_t)utf8_len);
+					ret = bctbx_list_append(ret, subject_name_buf);
+				}
+				OPENSSL_free(utf8);
+			}
 
 			GENERAL_NAMES *pSubAltNames = X509_get_ext_d2i(certificate, NID_subject_alt_name, NULL, NULL);
 			int nSubAltNames = pSubAltNames == NULL ? 0 : sk_GENERAL_NAME_num(pSubAltNames);
 			for (int j = 0; j < nSubAltNames; j++) {
-				GENERAL_NAME *subAltName = sk_GENERAL_NAME_value(pSubAltNames, i);
+				GENERAL_NAME *subAltName = sk_GENERAL_NAME_value(pSubAltNames, j);
 				if (subAltName && subAltName->type == GEN_DNS) {
-					BIO *buffer = BIO_new(BIO_s_mem());
-					char *subject_alt_name_buf = bctbx_malloc0(subject_name_buf_len);
-					ASN1_STRING_print(buffer, subAltName->d.ia5);
-					BIO_read(buffer, subject_alt_name_buf, subject_name_buf_len);
-					BIO_free(buffer);
-					ret = bctbx_list_append(ret, subject_alt_name_buf);
+					unsigned char *utf8 = NULL;
+					int utf8_len = ASN1_STRING_to_UTF8(&utf8, subAltName->d.ia5);
+					if (utf8_len > 0 && utf8 != NULL) {
+						char *subject_alt_name_buf = bctbx_malloc0((size_t)utf8_len + 1);
+						memcpy(subject_alt_name_buf, utf8, (size_t)utf8_len);
+						ret = bctbx_list_append(ret, subject_alt_name_buf);
+					}
+					OPENSSL_free(utf8);
 				}
 			}
 			GENERAL_NAMES_free(pSubAltNames);
@@ -1497,10 +1540,28 @@ int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config,
 }
 
 int32_t bctbx_ssl_config_set_groups(bctbx_ssl_config_t *ssl_config, const bctbx_list_t *groups) {
+	if (ssl_config == NULL) {
+		bctbx_error("OpenSSL TLS group configuration failed: invalid SSL config.");
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
+	}
+	if (groups == NULL) {
+		bctbx_error("OpenSSL TLS group configuration failed: empty groups list.");
+		return BCTBX_ERROR_INVALID_INPUT_DATA;
+	}
 	char *string_groups = join(groups, ":");
 	int ret = SSL_CTX_set1_groups_list(ssl_config->ssl_ctx, string_groups);
+	if (ret == 1) {
+		bctbx_message("OpenSSL TLS group configuration applied: [%s].", string_groups);
+	} else {
+		unsigned long err = ERR_get_error();
+		char err_buf[256] = {0};
+		ERR_error_string_n(err, err_buf, sizeof(err_buf));
+		bctbx_error("OpenSSL TLS group configuration failed for [%s]: %s.", string_groups, err_buf);
+		bctbx_free(string_groups);
+		return (int32_t)err;
+	}
 	bctbx_free(string_groups);
-	return ret == 1 ? 0 : ERR_get_error();
+	return 0;
 }
 
 /** DTLS SRTP functions **/

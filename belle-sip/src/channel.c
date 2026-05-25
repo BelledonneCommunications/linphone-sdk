@@ -1154,8 +1154,8 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj) {
 			                             belle_sip_object_ref(obj));
 			return;
 		} /*else we have already tried all the ip addresses, so give up and notify the error*/
-	}     /*else the channel was previously working good with the current ip address but now fails, so let's notify the
-	         error*/
+	} /*else the channel was previously working good with the current ip address but now fails, so let's notify the
+	     error*/
 
 	obj->state = BELLE_SIP_CHANNEL_ERROR;
 	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
@@ -1427,7 +1427,21 @@ static void _send_message(belle_sip_channel_t *obj) {
 		check_content_length(msg, body_len);
 		error = belle_sip_object_marshal((belle_sip_object_t *)msg, buffer, sizeof(buffer) - 1, &len);
 		if (error != BELLE_SIP_OK) {
-			belle_sip_error("channel [%p] _send_message: marshaling failed.", obj);
+			if (error == BELLE_SIP_BUFFER_OVERFLOW) {
+				char *full_marshaled_message = belle_sip_object_to_string((belle_sip_object_t *)msg);
+				size_t attempted_marshaled_size = full_marshaled_message ? strlen(full_marshaled_message) : 0;
+				belle_sip_error(
+				    "channel [%p]: cannot marshal SIP message into send buffer (limit=%zu bytes, attempted=%zu bytes, "
+				    "body_size=%zu bytes, transport=%s).",
+				    obj, sizeof(buffer) - 1, attempted_marshaled_size, body_len,
+				    belle_sip_channel_get_transport_name(obj));
+				if (full_marshaled_message != NULL) belle_sip_free(full_marshaled_message);
+			} else {
+				belle_sip_error(
+				    "channel [%p]: SIP message marshaling failed with error=%d (send_buffer_limit=%zu bytes, "
+				    "body_size=%zu bytes, transport=%s).",
+				    obj, error, sizeof(buffer) - 1, body_len, belle_sip_channel_get_transport_name(obj));
+			}
 			goto done;
 		}
 		/*send the headers and eventually the body if it fits in our buffer*/
@@ -1450,6 +1464,11 @@ static void _send_message(belle_sip_channel_t *obj) {
 					belle_sip_fatal("Sending bodies whose size is not known must be done in chunked mode, which is not "
 					                "supported yet.");
 				}
+				belle_sip_message(
+				    "channel [%p]: SIP message body exceeds inline send capacity; switching to streamed body mode "
+				    "(marshaled_headers=%zu bytes, inline_body_limit=%zu bytes, body_size=%zu bytes, "
+				    "send_buffer_limit=%zu bytes, transport=%s).",
+				    obj, len, max_body_len, body_len, sizeof(buffer) - 1, belle_sip_channel_get_transport_name(obj));
 				belle_sip_body_handler_begin_send_transfer(bh);
 				obj->out_state = OUTPUT_STREAM_SENDING_BODY;
 			}

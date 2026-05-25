@@ -232,14 +232,28 @@ int belle_sip_get_certificate_and_pkey_in_dir(const char *path,
 		if (found_certificate != NULL) { /* there is a certificate in this file */
 			char *subject_CNAME_begin, *subject_CNAME_end;
 			belle_sip_signing_key_t *found_key;
-			char name[500];
-			memset(name, 0, sizeof(name));
-			if (bctbx_x509_certificate_get_subject_dn(found_certificate->cert, name, sizeof(name)) > 0) {
-				/* parse subject to find the CN=xxx, field. There may be no , at the and but a \0 */
+			char *name = NULL;
+			size_t name_length = 512;
+			int dn_ret = BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+
+			while (dn_ret == BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL && name_length <= 16384) {
+				belle_sip_free(name);
+				name = (char *)belle_sip_malloc0(name_length);
+				dn_ret = bctbx_x509_certificate_get_subject_dn(found_certificate->cert, name, name_length);
+				/* Defensive check for providers returning success despite truncation. */
+				if (dn_ret >= 0 && ((size_t)dn_ret + 1) > name_length) {
+					dn_ret = BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+				}
+				name_length *= 2;
+			}
+
+			if (dn_ret > 0 && name != NULL) {
+				/* parse subject to find the CN=xxx, field. Delimiters can be ',' or '/' depending on provider format.
+				 */
 				subject_CNAME_begin = strstr(name, "CN=");
 				if (subject_CNAME_begin != NULL) {
 					subject_CNAME_begin += 3;
-					subject_CNAME_end = strstr(subject_CNAME_begin, ",");
+					subject_CNAME_end = strpbrk(subject_CNAME_begin, ",/");
 					if (subject_CNAME_end != NULL) {
 						*subject_CNAME_end = '\0';
 					}
@@ -249,6 +263,7 @@ int belle_sip_get_certificate_and_pkey_in_dir(const char *path,
 						if (found_key != NULL) {
 							*certificate = found_certificate;
 							*pkey = found_key;
+							belle_sip_free(name);
 							belle_sip_free(filename);
 							belle_sip_list_free_with_data(file_list, belle_sip_free); /* free possible rest of list */
 							return 0;
@@ -256,10 +271,13 @@ int belle_sip_get_certificate_and_pkey_in_dir(const char *path,
 					} else { /* doesn't match, unref the created certificate */
 						belle_sip_object_unref(found_certificate);
 					}
+				} else {
+					belle_sip_object_unref(found_certificate);
 				}
-			} else { /* no DN, just free it then */
+			} else { /* no DN or DN too large, just free it then */
 				belle_sip_object_unref(found_certificate);
 			}
+			belle_sip_free(name);
 		}
 		belle_sip_free(filename);
 		file_list = belle_sip_list_pop_front(file_list, (void **)&filename);
@@ -271,21 +289,33 @@ int belle_sip_generate_self_signed_certificate(const char *path,
                                                const char *subject,
                                                belle_sip_certificates_chain_t **certificate,
                                                belle_sip_signing_key_t **pkey) {
-	char pem_buffer[8192];
+	char *pem_buffer = NULL;
+	size_t pem_buffer_len = 8192;
 	int ret = 0;
 
 	/* allocate certificate and key */
 	*pkey = belle_sip_signing_key_new();
 	*certificate = belle_sip_certificate_chain_new();
 
-	ret = bctbx_x509_certificate_generate_selfsigned(subject, (*certificate)->cert, (*pkey)->key,
-	                                                 (path == NULL) ? NULL : pem_buffer, (path == NULL) ? 0 : 8192);
+	if (path != NULL) {
+		while (pem_buffer_len <= (1024 * 1024)) {
+			belle_sip_free(pem_buffer);
+			pem_buffer = (char *)belle_sip_malloc0(pem_buffer_len);
+			ret = bctbx_x509_certificate_generate_selfsigned(subject, (*certificate)->cert, (*pkey)->key, pem_buffer,
+			                                                 pem_buffer_len);
+			if (ret != BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL) break;
+			pem_buffer_len *= 2;
+		}
+	} else {
+		ret = bctbx_x509_certificate_generate_selfsigned(subject, (*certificate)->cert, (*pkey)->key, NULL, 0);
+	}
 	if (ret != 0) {
 		belle_sip_error("Unable to generate self signed certificate : -%x", -ret);
 		belle_sip_object_unref(*pkey);
 		belle_sip_object_unref(*certificate);
 		*pkey = NULL;
 		*certificate = NULL;
+		belle_sip_free(pem_buffer);
 		return ret;
 	}
 
@@ -324,12 +354,13 @@ int belle_sip_generate_self_signed_certificate(const char *path,
 			*pkey = NULL;
 			*certificate = NULL;
 			belle_sip_free(name_with_path);
+			belle_sip_free(pem_buffer);
 			return -1;
 		}
 		fclose(fd);
 		belle_sip_free(name_with_path);
 	}
-
+	belle_sip_free(pem_buffer);
 	return 0;
 }
 
