@@ -171,6 +171,7 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack) {
 	if (stack->http_proxy_host) belle_sip_free(stack->http_proxy_host);
 	if (stack->http_proxy_passwd) belle_sip_free(stack->http_proxy_passwd);
 	if (stack->http_proxy_username) belle_sip_free(stack->http_proxy_username);
+	if (stack->socks5_proxy_host) belle_sip_free(stack->socks5_proxy_host);
 	belle_sip_list_free_with_data(stack->dns_servers, belle_sip_free);
 #ifdef HAVE_DNS_SERVICE
 	if (stack->dns_service_queue) {
@@ -474,6 +475,8 @@ int belle_sip_stack_content_encoding_available(belle_sip_stack_t *stack, const c
 
 GET_SET_STRING(belle_sip_stack, http_proxy_host)
 GET_SET_INT(belle_sip_stack, http_proxy_port, int)
+GET_SET_STRING(belle_sip_stack, socks5_proxy_host)
+GET_SET_INT(belle_sip_stack, socks5_proxy_port, int)
 
 void belle_sip_set_log_handler(belle_sip_log_function_t func) {
 	bctbx_set_log_handler_for_domain(func, BCTBX_LOG_DOMAIN);

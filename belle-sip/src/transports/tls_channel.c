@@ -437,7 +437,7 @@ static int tls_channel_connect_to(belle_sip_channel_t *obj, const struct addrinf
 
 	if (belle_sip_tls_channel_init_bctbx_ssl((belle_sip_tls_channel_t *)obj) == -1) return -1;
 
-	err = stream_channel_connect((belle_sip_stream_channel_t *)obj, ai);
+	err = stream_channel_connect_to((belle_sip_stream_channel_t *)obj, ai);
 	if (err == 0) {
 		belle_sip_source_set_notify((belle_sip_source_t *)obj, (belle_sip_source_func_t)tls_process_data);
 		return 0;
@@ -461,9 +461,39 @@ static void http_proxy_res_done(void *data, belle_sip_resolver_results_t *result
 	}
 }
 
+static int tls_socks5_proxy_port(const belle_sip_stack_t *stack) {
+	return stack->socks5_proxy_port > 0 ? stack->socks5_proxy_port : 1080;
+}
+
+static void socks5_proxy_res_done(void *data, belle_sip_resolver_results_t *results) {
+	belle_sip_tls_channel_t *obj = (belle_sip_tls_channel_t *)data;
+	belle_sip_stream_channel_t *stream = (belle_sip_stream_channel_t *)obj;
+	const struct addrinfo *ai_list;
+	if (stream->socks5_proxy_resolver_ctx) {
+		belle_sip_object_unref(stream->socks5_proxy_resolver_ctx);
+		stream->socks5_proxy_resolver_ctx = NULL;
+	}
+	ai_list = belle_sip_resolver_results_get_addrinfos(results);
+	if (ai_list) {
+		tls_channel_connect_to((belle_sip_channel_t *)obj, ai_list);
+	} else {
+		belle_sip_error("%s: DNS resolution failed for SOCKS5 proxy %s", __FUNCTION__,
+		                belle_sip_resolver_results_get_name(results));
+		channel_set_state((belle_sip_channel_t *)obj, BELLE_SIP_CHANNEL_ERROR);
+	}
+}
+
 static int tls_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai) {
 	belle_sip_tls_channel_t *channel = (belle_sip_tls_channel_t *)obj;
-	if (obj->stack->http_proxy_host) {
+	if (stream_channel_socks5_proxy_enabled((belle_sip_stream_channel_t *)obj)) {
+		belle_sip_stream_channel_t *stream = (belle_sip_stream_channel_t *)obj;
+		belle_sip_message("Resolving SOCKS5 proxy addr [%s] for channel [%p]", obj->stack->socks5_proxy_host, obj);
+		stream->socks5_proxy_resolver_ctx =
+		    belle_sip_stack_resolve_a(obj->stack, obj->stack->socks5_proxy_host, tls_socks5_proxy_port(obj->stack),
+		                              ai->ai_family, socks5_proxy_res_done, obj);
+		if (stream->socks5_proxy_resolver_ctx) belle_sip_object_ref(stream->socks5_proxy_resolver_ctx);
+		return 0;
+	} else if (obj->stack->http_proxy_host) {
 		belle_sip_message("Resolving http proxy addr [%s] for channel [%p]", obj->stack->http_proxy_host, obj);
 		/*assume ai family is the same*/
 		channel->http_proxy_resolver_ctx =
@@ -600,6 +630,7 @@ static int tls_process_data(belle_sip_channel_t *obj, unsigned int revents) {
 	int err;
 
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING) {
+		belle_sip_stream_channel_t *stream = (belle_sip_stream_channel_t *)obj;
 		if (!channel->socket_connected) {
 			channel->socklen = sizeof(channel->ss);
 			if (finalize_stream_connection((belle_sip_stream_channel_t *)obj, revents, (struct sockaddr *)&channel->ss,
@@ -611,12 +642,23 @@ static int tls_process_data(belle_sip_channel_t *obj, unsigned int revents) {
 			belle_sip_source_set_events((belle_sip_source_t *)channel, BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_ERROR);
 			belle_sip_source_set_timeout_int64((belle_sip_source_t *)obj,
 			                                   belle_sip_stack_get_transport_timeout(obj->stack));
-			if (obj->stack->http_proxy_host) {
+			if (stream_channel_socks5_proxy_enabled(stream)) {
+				belle_sip_message("Channel [%p]: Connected at TCP level, now doing SOCKS5 proxy connect", obj);
+				if (stream_channel_start_socks5_connect(stream) == -1) goto process_error;
+			} else if (obj->stack->http_proxy_host) {
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing http proxy connect", obj);
 				if (tls_process_http_connect(channel)) goto process_error;
 			} else {
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake with cname=%s", obj,
 				                  obj->peer_cname ? obj->peer_cname : obj->peer_name);
+				if (tls_process_handshake(obj) == -1) goto process_error;
+			}
+		} else if (stream_channel_socks5_proxy_enabled(stream) && !stream->socks5_proxy_connected) {
+			err = stream_channel_process_socks5_response(stream);
+			if (err == -1) goto process_error;
+			if (err == 0) {
+				belle_sip_message("Channel [%p]: connected to SOCKS5 proxy, doing TLS handshake [%s:%i]", channel,
+				                  obj->stack->socks5_proxy_host, tls_socks5_proxy_port(obj->stack));
 				if (tls_process_handshake(obj) == -1) goto process_error;
 			}
 		} else if (obj->stack->http_proxy_host && !channel->http_proxy_connected) {

@@ -35,6 +35,7 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj, unsigned
 
 static void stream_channel_uninit(belle_sip_stream_channel_t *obj) {
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t *)obj);
+	if (obj->socks5_proxy_resolver_ctx) belle_sip_object_unref(obj->socks5_proxy_resolver_ctx);
 	if (sock != (belle_sip_socket_t)-1) stream_channel_close(obj);
 }
 
@@ -120,7 +121,96 @@ static void stream_channel_enable_ios_background_mode(belle_sip_stream_channel_t
 
 #endif
 
-int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinfo *ai) {
+int stream_channel_socks5_proxy_enabled(const belle_sip_stream_channel_t *obj) {
+	return obj->base.stack->socks5_proxy_host && obj->base.stack->socks5_proxy_host[0] != '\0';
+}
+
+static int socks5_proxy_port(const belle_sip_stack_t *stack) {
+	return stack->socks5_proxy_port > 0 ? stack->socks5_proxy_port : 1080;
+}
+
+int stream_channel_start_socks5_connect(belle_sip_stream_channel_t *obj) {
+	int ret;
+
+	ret = stream_channel_send(obj, "\x05\x01\x00", 3);
+	if (ret != 3) return -1;
+	obj->socks5_proxy_waiting_for_connect_response = 1;
+	obj->socks5_proxy_response_len = 0;
+	return 0;
+}
+
+static int socks5_recv_until(belle_sip_stream_channel_t *obj, size_t expected) {
+	int ret;
+
+	if (obj->socks5_proxy_response_len >= expected) return 0;
+	ret = stream_channel_recv(obj, obj->socks5_proxy_response + obj->socks5_proxy_response_len,
+	                          sizeof(obj->socks5_proxy_response) - obj->socks5_proxy_response_len);
+	if (ret <= 0) return -1;
+	obj->socks5_proxy_response_len += (size_t)ret;
+	return obj->socks5_proxy_response_len >= expected ? 0 : 1;
+}
+
+int stream_channel_process_socks5_response(belle_sip_stream_channel_t *obj) {
+	unsigned char request[4 + 255 + 2];
+	unsigned char atyp;
+	size_t hostlen;
+	size_t request_len;
+	size_t expected_len;
+	int ret;
+
+	if (obj->socks5_proxy_waiting_for_connect_response == 1) {
+		ret = socks5_recv_until(obj, 2);
+		if (ret != 0) return ret;
+		if (obj->socks5_proxy_response[0] != 0x05 || obj->socks5_proxy_response[1] != 0x00) {
+			belle_sip_error("SOCKS5 proxy [%s:%i] rejected authentication method", obj->base.stack->socks5_proxy_host,
+			                socks5_proxy_port(obj->base.stack));
+			return -1;
+		}
+		hostlen = strlen(obj->base.peer_name);
+		if (hostlen > 255) {
+			belle_sip_error("SOCKS5 proxy connect failed: peer hostname [%s] is too long", obj->base.peer_name);
+			return -1;
+		}
+		request[0] = 0x05; /* SOCKS version */
+		request[1] = 0x01; /* CONNECT */
+		request[2] = 0x00; /* reserved */
+		request[3] = 0x03; /* domain name */
+		request[4] = (unsigned char)hostlen;
+		memcpy(request + 5, obj->base.peer_name, hostlen);
+		request[5 + hostlen] = (unsigned char)((obj->base.peer_port >> 8) & 0xff);
+		request[6 + hostlen] = (unsigned char)(obj->base.peer_port & 0xff);
+		request_len = 7 + hostlen;
+		ret = stream_channel_send(obj, request, request_len);
+		if (ret != (int)request_len) return -1;
+		obj->socks5_proxy_waiting_for_connect_response = 2;
+		obj->socks5_proxy_response_len = 0;
+		return 1;
+	}
+	ret = socks5_recv_until(obj, 5);
+	if (ret != 0) return ret;
+	atyp = obj->socks5_proxy_response[3];
+	if (atyp == 0x01) expected_len = 10;
+	else if (atyp == 0x03) expected_len = 5 + obj->socks5_proxy_response[4] + 2;
+	else if (atyp == 0x04) expected_len = 22;
+	else {
+		belle_sip_error("SOCKS5 proxy [%s:%i] returned unsupported address type [%i]",
+		                obj->base.stack->socks5_proxy_host, socks5_proxy_port(obj->base.stack), atyp);
+		return -1;
+	}
+	ret = socks5_recv_until(obj, expected_len);
+	if (ret != 0) return ret;
+	if (obj->socks5_proxy_response[0] != 0x05 || obj->socks5_proxy_response[1] != 0x00) {
+		belle_sip_error("SOCKS5 proxy [%s:%i] rejected CONNECT to [%s:%i] with status [%i]",
+		                obj->base.stack->socks5_proxy_host, socks5_proxy_port(obj->base.stack), obj->base.peer_name,
+		                obj->base.peer_port, obj->socks5_proxy_response[1]);
+		return -1;
+	}
+	obj->socks5_proxy_connected = TRUE;
+	obj->socks5_proxy_waiting_for_connect_response = 0;
+	return 0;
+}
+
+int stream_channel_connect_to(belle_sip_stream_channel_t *obj, const struct addrinfo *ai) {
 	int err;
 	int tmp;
 	belle_sip_socket_t sock;
@@ -182,6 +272,37 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	                                   belle_sip_stack_get_transport_timeout(obj->base.stack));
 	belle_sip_main_loop_add_source(obj->base.stack->ml, (belle_sip_source_t *)obj);
 	return 0;
+}
+
+static void socks5_proxy_res_done(void *data, belle_sip_resolver_results_t *results) {
+	belle_sip_stream_channel_t *obj = (belle_sip_stream_channel_t *)data;
+	const struct addrinfo *ai_list;
+	if (obj->socks5_proxy_resolver_ctx) {
+		belle_sip_object_unref(obj->socks5_proxy_resolver_ctx);
+		obj->socks5_proxy_resolver_ctx = NULL;
+	}
+	ai_list = belle_sip_resolver_results_get_addrinfos(results);
+	if (ai_list) {
+		stream_channel_connect_to(obj, ai_list);
+	} else {
+		belle_sip_error("%s: DNS resolution failed for SOCKS5 proxy %s", __FUNCTION__,
+		                belle_sip_resolver_results_get_name(results));
+		channel_set_state((belle_sip_channel_t *)obj, BELLE_SIP_CHANNEL_ERROR);
+	}
+}
+
+int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinfo *ai) {
+	belle_sip_stack_t *stack = obj->base.stack;
+
+	if (stream_channel_socks5_proxy_enabled(obj)) {
+		belle_sip_message("Resolving SOCKS5 proxy addr [%s] for channel [%p]", stack->socks5_proxy_host, obj);
+		obj->socks5_proxy_resolver_ctx =
+		    belle_sip_stack_resolve_a(stack, stack->socks5_proxy_host, socks5_proxy_port(stack), ai->ai_family,
+		                              socks5_proxy_res_done, obj);
+		if (obj->socks5_proxy_resolver_ctx) belle_sip_object_ref(obj->socks5_proxy_resolver_ctx);
+		return 0;
+	}
+	return stream_channel_connect_to(obj, ai);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stream_channel_t);
@@ -253,6 +374,24 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj, unsigned
 	/*belle_sip_message("TCP channel process_data");*/
 
 	if (state == BELLE_SIP_CHANNEL_CONNECTING) {
+		if (obj->socks5_proxy_waiting_for_connect_response) {
+			int socks_ret = stream_channel_process_socks5_response(obj);
+			if (socks_ret == -1) {
+				channel_set_state(base, BELLE_SIP_CHANNEL_ERROR);
+				return BELLE_SIP_STOP;
+			}
+			if (socks_ret == 1) return BELLE_SIP_CONTINUE;
+			if (bctbx_getsockname(belle_sip_source_get_socket((belle_sip_source_t *)obj), (struct sockaddr *)&ss,
+			                      &addrlen) == -1) {
+				belle_sip_error("Failed to retrieve sockname for SOCKS5 proxied channel [%p]: %s", obj,
+				                belle_sip_get_socket_error_string());
+				channel_set_state(base, BELLE_SIP_CHANNEL_ERROR);
+				return BELLE_SIP_STOP;
+			}
+			belle_sip_source_set_timeout_int64((belle_sip_source_t *)obj, -1);
+			belle_sip_channel_set_ready(base, (struct sockaddr *)&ss, addrlen);
+			return BELLE_SIP_CONTINUE;
+		}
 		if (finalize_stream_connection(obj, revents, (struct sockaddr *)&ss, &addrlen)) {
 			belle_sip_error("Cannot connect to [%s://%s:%i]", belle_sip_channel_get_transport_name(base),
 			                base->peer_name, base->peer_port);
@@ -260,6 +399,13 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj, unsigned
 			return BELLE_SIP_STOP;
 		}
 		belle_sip_source_set_events((belle_sip_source_t *)obj, BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_ERROR);
+		if (stream_channel_socks5_proxy_enabled(obj) && !obj->socks5_proxy_connected) {
+			if (stream_channel_start_socks5_connect(obj) == -1) {
+				channel_set_state(base, BELLE_SIP_CHANNEL_ERROR);
+				return BELLE_SIP_STOP;
+			}
+			return BELLE_SIP_CONTINUE;
+		}
 		belle_sip_source_set_timeout_int64((belle_sip_source_t *)obj, -1);
 		belle_sip_channel_set_ready(base, (struct sockaddr *)&ss, addrlen);
 		return BELLE_SIP_CONTINUE;

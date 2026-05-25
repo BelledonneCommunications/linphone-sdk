@@ -6186,6 +6186,39 @@ LINPHONE_PUBLIC const char *linphone_core_get_http_proxy_host(const LinphoneCore
  */
 LINPHONE_PUBLIC int linphone_core_get_http_proxy_port(const LinphoneCore *core);
 
+/**
+ * Sets SOCKS5 proxy address to be used for TCP-based signaling during next channel connection. Use
+ * #linphone_core_set_network_reachable() FALSE/TRUE to force channel restart.
+ * @param core #LinphoneCore object @notnil
+ * @param host Hostname or IP address of the SOCKS5 proxy (can be NULL to disable). @maybenil
+ * @ingroup group_network_parameters
+ */
+LINPHONE_PUBLIC void linphone_core_set_socks5_proxy_host(LinphoneCore *core, const char *host);
+
+/**
+ * Sets SOCKS5 proxy port to be used for TCP-based signaling.
+ * @param core #LinphoneCore object @notnil
+ * @param port of the SOCKS5 proxy.
+ * @ingroup group_network_parameters
+ */
+LINPHONE_PUBLIC void linphone_core_set_socks5_proxy_port(LinphoneCore *core, int port);
+
+/**
+ * Gets SOCKS5 proxy address to be used for TCP-based signaling.
+ * @param core #LinphoneCore object @notnil
+ * @return hostname or IP address of the SOCKS5 proxy (can be NULL to disable). @maybenil
+ * @ingroup group_network_parameters
+ */
+LINPHONE_PUBLIC const char *linphone_core_get_socks5_proxy_host(const LinphoneCore *core);
+
+/**
+ * Gets SOCKS5 proxy port to be used for TCP-based signaling.
+ * @param core #LinphoneCore object @notnil
+ * @return port of the SOCKS5 proxy.
+ * @ingroup group_network_parameters
+ */
+LINPHONE_PUBLIC int linphone_core_get_socks5_proxy_port(const LinphoneCore *core);
+
 LINPHONE_PUBLIC LinphoneRingtonePlayer *linphone_core_get_ringtoneplayer(LinphoneCore *core);
 
 /**

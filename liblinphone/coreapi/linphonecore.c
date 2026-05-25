@@ -3403,6 +3403,8 @@ static void linphone_core_init(LinphoneCore *lc,
 	lc->sal->setRefresherRetryAfter(linphone_config_get_int(lc->config, "sip", "refresher_retry_after", 60000));
 	lc->sal->setHttpProxyHost(L_C_TO_STRING(linphone_core_get_http_proxy_host(lc)));
 	lc->sal->setHttpProxyPort(linphone_core_get_http_proxy_port(lc));
+	lc->sal->setSocks5ProxyHost(L_C_TO_STRING(linphone_core_get_socks5_proxy_host(lc)));
+	lc->sal->setSocks5ProxyPort(linphone_core_get_socks5_proxy_port(lc));
 
 	lc->sal->setUserPointer(lc);
 	lc->sal->setCallbacks(&linphone_sal_callbacks);
@@ -4337,6 +4339,10 @@ int _linphone_core_apply_transports(LinphoneCore *lc) {
 	if (linphone_core_get_http_proxy_host(lc)) {
 		sal->setHttpProxyHost(linphone_core_get_http_proxy_host(lc));
 		sal->setHttpProxyPort(linphone_core_get_http_proxy_port(lc));
+	}
+	if (linphone_core_get_socks5_proxy_host(lc)) {
+		sal->setSocks5ProxyHost(linphone_core_get_socks5_proxy_host(lc));
+		sal->setSocks5ProxyPort(linphone_core_get_socks5_proxy_port(lc));
 	}
 	if (lc->tunnel && linphone_tunnel_sip_enabled(lc->tunnel) && linphone_tunnel_get_activated(lc->tunnel)) {
 		sal->setListenPort(anyaddr, tr->udp_port, SalTransportUDP, TRUE);
@@ -9241,6 +9247,29 @@ const char *linphone_core_get_http_proxy_host(const LinphoneCore *lc) {
 
 int linphone_core_get_http_proxy_port(const LinphoneCore *lc) {
 	return linphone_config_get_int(lc->config, "sip", "http_proxy_port", 3128);
+}
+
+void linphone_core_set_socks5_proxy_host(LinphoneCore *lc, const char *host) {
+	CoreLogContextualizer logContextualizer(lc);
+	linphone_config_set_string(lc->config, "sip", "socks5_proxy_host", host);
+	if (lc->sal) {
+		lc->sal->setSocks5ProxyHost(L_C_TO_STRING(host));
+		lc->sal->setSocks5ProxyPort(linphone_core_get_socks5_proxy_port(lc));
+	}
+}
+
+void linphone_core_set_socks5_proxy_port(LinphoneCore *lc, int port) {
+	CoreLogContextualizer logContextualizer(lc);
+	linphone_config_set_int(lc->config, "sip", "socks5_proxy_port", port);
+	if (lc->sal) lc->sal->setSocks5ProxyPort(port);
+}
+
+const char *linphone_core_get_socks5_proxy_host(const LinphoneCore *lc) {
+	return linphone_config_get_string(lc->config, "sip", "socks5_proxy_host", NULL);
+}
+
+int linphone_core_get_socks5_proxy_port(const LinphoneCore *lc) {
+	return linphone_config_get_int(lc->config, "sip", "socks5_proxy_port", 1080);
 }
 
 const char *linphone_transport_to_string(LinphoneTransportType transport) {

@@ -728,6 +728,8 @@ struct belle_sip_stack {
 	int http_proxy_port;
 	char *http_proxy_username; /*for future use*/
 	char *http_proxy_passwd;   /*for future use*/
+	char *socks5_proxy_host;
+	int socks5_proxy_port;
 	belle_sip_digest_authentication_policy_t *digest_auth_policy;
 
 	int refresh_window_min; /*lower bound of the refresh window */

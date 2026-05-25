@@ -360,6 +360,15 @@ public:
 	int getHttpProxyPort() const {
 		return belle_sip_stack_get_http_proxy_port(mStack);
 	}
+	void setSocks5ProxyHost(const std::string &value);
+	const std::string &getSocks5ProxyHost() const;
+
+	void setSocks5ProxyPort(int value) {
+		belle_sip_stack_set_socks5_proxy_port(mStack, value);
+	}
+	int getSocks5ProxyPort() const {
+		return belle_sip_stack_get_socks5_proxy_port(mStack);
+	}
 
 	void unlistenPorts();
 	void resetTransports();
@@ -535,6 +544,7 @@ private:
 	// Cache values
 	mutable std::string mDnsUserHostsFile;
 	mutable std::string mHttpProxyHost;
+	mutable std::string mSocks5ProxyHost;
 	mutable std::string mSupported;
 	mutable std::string mUserAgent;
 

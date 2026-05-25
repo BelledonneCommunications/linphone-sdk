@@ -738,6 +738,15 @@ const string &Sal::getHttpProxyHost() const {
 	return mHttpProxyHost;
 }
 
+void Sal::setSocks5ProxyHost(const string &value) {
+	belle_sip_stack_set_socks5_proxy_host(mStack, L_STRING_TO_C(value));
+}
+
+const string &Sal::getSocks5ProxyHost() const {
+	mSocks5ProxyHost = L_C_TO_STRING(belle_sip_stack_get_socks5_proxy_host(mStack));
+	return mSocks5ProxyHost;
+}
+
 bool Sal::isContentEncodingAvailable(const string &contentEncoding) const {
 	return !!belle_sip_stack_content_encoding_available(mStack, L_STRING_TO_C(contentEncoding));
 }

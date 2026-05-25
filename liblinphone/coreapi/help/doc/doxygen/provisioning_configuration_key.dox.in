@@ -33,6 +33,8 @@ The <i>sip</i> section represents a general configuration for SIP.
 	<tr><td>guess_hostname</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_set_guess_hostname()</td><td>\copybrief linphone_core_set_guess_hostname</td></tr>
 	<tr><td>http_proxy_host</td><td>string</td><td>a hostname</td><td>""</td><td>linphone_core_set_http_proxy_host()</td><td>\copybrief linphone_core_set_http_proxy_host</td></tr>
 	<tr><td>http_proxy_port</td><td>integer</td><td>0 - 65535</td><td>3128</td><td>linphone_core_set_http_proxy_port()</td><td>\copybrief linphone_core_set_http_proxy_port</td></tr>
+	<tr><td>socks5_proxy_host</td><td>string</td><td>a hostname</td><td>""</td><td>linphone_core_set_socks5_proxy_host()</td><td>\copybrief linphone_core_set_socks5_proxy_host</td></tr>
+	<tr><td>socks5_proxy_port</td><td>integer</td><td>0 - 65535</td><td>1080</td><td>linphone_core_set_socks5_proxy_port()</td><td>\copybrief linphone_core_set_socks5_proxy_port</td></tr>
 	<tr><td>ice_enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_nat_policy_ice_enabled()</td><td>\copybrief linphone_nat_policy_ice_enabled</td></tr>
 	<tr><td>in_call_timeout</td><td>integer</td><td>0–86400 (s)</td><td>0</td><td>linphone_core_set_in_call_timeout()</td><td>\copybrief linphone_core_set_in_call_timeout</td></tr>
 	<tr><td>inc_timeout</td><td>integer</td><td>0–300 (s)</td><td>Android and IOS: 45. Else: 30</td><td>linphone_core_set_inc_timeout()</td><td>\copybrief linphone_core_set_inc_timeout</td></tr>
