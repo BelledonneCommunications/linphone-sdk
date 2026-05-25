@@ -17,6 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/crypto.h"
 #include "belle-sip/auth-helper.h"
 #include "belle_sip_internal.h"
 
@@ -161,6 +162,7 @@ belle_tls_crypto_config_t *belle_tls_crypto_config_new(void) {
 	obj->ssl_config = NULL;
 	obj->exception_flags = BELLE_TLS_VERIFY_NONE;
 	obj->crypto_provider = NULL;
+	obj->crypto_mode = BELLE_SIP_CRYPTO_MODE_CLASSICAL;
 
 	return obj;
 }
@@ -209,6 +211,61 @@ int belle_tls_crypto_config_set_crypto_provider(belle_tls_crypto_config_t *obj, 
 		belle_sip_message("[CryptoProvider] no provider configured, compiled backend will be used");
 	}
 	return 0;
+}
+
+int belle_tls_crypto_config_set_crypto_mode(belle_tls_crypto_config_t *obj, belle_sip_crypto_mode_t mode) {
+	obj->crypto_mode = (int)mode;
+	belle_sip_message("[CryptoPolicy] preferred mode: %s", belle_sip_crypto_mode_to_string(mode));
+	return 0;
+}
+
+belle_sip_crypto_mode_t belle_tls_crypto_config_get_crypto_mode(const belle_tls_crypto_config_t *obj) {
+	return (belle_sip_crypto_mode_t)obj->crypto_mode;
+}
+
+belle_sip_crypto_mode_t belle_sip_crypto_mode_parse(const char *value, int *is_valid) {
+	if (is_valid) *is_valid = 1;
+	if (value == NULL || value[0] == '\0') return BELLE_SIP_CRYPTO_MODE_CLASSICAL;
+	if (strcmp(value, "classical") == 0) return BELLE_SIP_CRYPTO_MODE_CLASSICAL;
+	if (strcmp(value, "future-algo") == 0) return BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO;
+	if (strcmp(value, "hybrid") == 0) return BELLE_SIP_CRYPTO_MODE_HYBRID;
+	if (is_valid) *is_valid = 0;
+	return BELLE_SIP_CRYPTO_MODE_CLASSICAL;
+}
+
+const char *belle_sip_crypto_mode_to_string(belle_sip_crypto_mode_t mode) {
+	switch (mode) {
+		case BELLE_SIP_CRYPTO_MODE_CLASSICAL:
+			return "classical";
+		case BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO:
+			return "future-algo";
+		case BELLE_SIP_CRYPTO_MODE_HYBRID:
+			return "hybrid";
+		default:
+			return "classical";
+	}
+}
+
+static int belle_sip_crypto_provider_is_future_available(const char *crypto_provider) {
+	const bctbx_crypto_provider_t *provider = NULL;
+	if (crypto_provider == NULL || crypto_provider[0] == '\0') return 0;
+	if (bctbx_crypto_provider_resolve(crypto_provider, &provider) != 0 || provider == NULL) return 0;
+	return strcmp(bctbx_crypto_provider_get_name(provider), "simulated-pqc") == 0;
+}
+
+belle_sip_crypto_mode_t
+belle_sip_crypto_mode_resolve(belle_sip_crypto_mode_t preferred_mode, const char *crypto_provider, int *did_fallback) {
+	if (did_fallback) *did_fallback = 0;
+	if (preferred_mode == BELLE_SIP_CRYPTO_MODE_CLASSICAL) return BELLE_SIP_CRYPTO_MODE_CLASSICAL;
+
+	/*
+	 * FUTURE_ALGO and HYBRID are policy preparation modes only.
+	 * Runtime remains classical TLS unless a future/simulated provider is selected and available.
+	 */
+	if (belle_sip_crypto_provider_is_future_available(crypto_provider)) return preferred_mode;
+
+	if (did_fallback) *did_fallback = 1;
+	return BELLE_SIP_CRYPTO_MODE_CLASSICAL;
 }
 
 void belle_tls_crypto_config_set_verify_exceptions(belle_tls_crypto_config_t *obj, int flags) {

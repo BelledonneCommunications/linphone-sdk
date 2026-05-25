@@ -283,6 +283,14 @@ BELLESIP_EXPORT belle_sip_signing_key_t *belle_sip_signing_key_parse_file(const 
 #define BELLE_TLS_VERIFY_NONE (0)
 #define BELLE_TLS_VERIFY_CN_MISMATCH (1)
 #define BELLE_TLS_VERIFY_ANY_REASON (0xff)
+
+typedef enum belle_sip_crypto_mode {
+	BELLE_SIP_CRYPTO_MODE_CLASSICAL = 0,
+	/* Preparation mode only: does not enable real PQ crypto yet. */
+	BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO = 1,
+	/* Preparation mode only: runtime behavior remains classical TLS for now. */
+	BELLE_SIP_CRYPTO_MODE_HYBRID = 2
+} belle_sip_crypto_mode_t;
 /* Set of functions deprecated on 2016/02/02 use the belle_tls_crypto_config_XXX ones */
 BELLESIP_DEPRECATED BELLESIP_EXPORT belle_tls_verify_policy_t *belle_tls_verify_policy_new(void);
 BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj,
@@ -330,6 +338,14 @@ BELLESIP_EXPORT int belle_tls_crypto_config_set_root_ca_data(belle_tls_crypto_co
  * @return 0 on success
  */
 BELLESIP_EXPORT int belle_tls_crypto_config_set_crypto_provider(belle_tls_crypto_config_t *obj, const char *provider);
+BELLESIP_EXPORT int belle_tls_crypto_config_set_crypto_mode(belle_tls_crypto_config_t *obj,
+                                                            belle_sip_crypto_mode_t mode);
+BELLESIP_EXPORT belle_sip_crypto_mode_t belle_tls_crypto_config_get_crypto_mode(const belle_tls_crypto_config_t *obj);
+BELLESIP_EXPORT belle_sip_crypto_mode_t belle_sip_crypto_mode_parse(const char *value, int *is_valid);
+BELLESIP_EXPORT const char *belle_sip_crypto_mode_to_string(belle_sip_crypto_mode_t mode);
+BELLESIP_EXPORT belle_sip_crypto_mode_t belle_sip_crypto_mode_resolve(belle_sip_crypto_mode_t preferred_mode,
+                                                                      const char *crypto_provider,
+                                                                      int *did_fallback);
 
 /**
  * Set the exception flags to manage exception overriding during peer certificate verification

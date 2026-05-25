@@ -297,6 +297,78 @@ static void test_certificate_fingerprint(void) {
 	belle_sip_object_unref(cert);
 }
 
+static void test_crypto_mode_default_is_classical(void) {
+	belle_tls_crypto_config_t *crypto_config = belle_tls_crypto_config_new();
+	BC_ASSERT_EQUAL(belle_tls_crypto_config_get_crypto_mode(crypto_config), BELLE_SIP_CRYPTO_MODE_CLASSICAL, int, "%d");
+	BC_ASSERT_STRING_EQUAL(belle_sip_crypto_mode_to_string(BELLE_SIP_CRYPTO_MODE_CLASSICAL), "classical");
+	belle_sip_object_unref(crypto_config);
+}
+
+static void test_crypto_mode_parse_valid_values(void) {
+	int is_valid = 0;
+	BC_ASSERT_EQUAL(belle_sip_crypto_mode_parse("classical", &is_valid), BELLE_SIP_CRYPTO_MODE_CLASSICAL, int, "%d");
+	BC_ASSERT_EQUAL(is_valid, 1, int, "%d");
+	BC_ASSERT_EQUAL(belle_sip_crypto_mode_parse("future-algo", &is_valid), BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO, int,
+	                "%d");
+	BC_ASSERT_EQUAL(is_valid, 1, int, "%d");
+	BC_ASSERT_EQUAL(belle_sip_crypto_mode_parse("hybrid", &is_valid), BELLE_SIP_CRYPTO_MODE_HYBRID, int, "%d");
+	BC_ASSERT_EQUAL(is_valid, 1, int, "%d");
+}
+
+static void test_crypto_mode_parse_invalid_value_falls_back_to_classical(void) {
+	int is_valid = 1;
+	belle_sip_crypto_mode_t mode = belle_sip_crypto_mode_parse("invalid-mode", &is_valid);
+	BC_ASSERT_EQUAL(mode, BELLE_SIP_CRYPTO_MODE_CLASSICAL, int, "%d");
+	BC_ASSERT_EQUAL(is_valid, 0, int, "%d");
+}
+
+static void test_crypto_mode_set_and_get(void) {
+	belle_tls_crypto_config_t *crypto_config = belle_tls_crypto_config_new();
+	belle_tls_crypto_config_set_crypto_mode(crypto_config, BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO);
+	BC_ASSERT_EQUAL(belle_tls_crypto_config_get_crypto_mode(crypto_config), BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO, int,
+	                "%d");
+	belle_tls_crypto_config_set_crypto_mode(crypto_config, BELLE_SIP_CRYPTO_MODE_HYBRID);
+	BC_ASSERT_EQUAL(belle_tls_crypto_config_get_crypto_mode(crypto_config), BELLE_SIP_CRYPTO_MODE_HYBRID, int, "%d");
+	belle_sip_object_unref(crypto_config);
+}
+
+static void test_crypto_mode_resolve_classical(void) {
+	int did_fallback = 1;
+	belle_sip_crypto_mode_t mode =
+	    belle_sip_crypto_mode_resolve(BELLE_SIP_CRYPTO_MODE_CLASSICAL, "simulated-pqc", &did_fallback);
+	BC_ASSERT_EQUAL(mode, BELLE_SIP_CRYPTO_MODE_CLASSICAL, int, "%d");
+	BC_ASSERT_EQUAL(did_fallback, 0, int, "%d");
+}
+
+static void test_crypto_mode_resolve_future_algo_with_simulated_provider(void) {
+	int did_fallback = 1;
+	belle_sip_crypto_mode_t mode =
+	    belle_sip_crypto_mode_resolve(BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO, "simulated-pqc", &did_fallback);
+	BC_ASSERT_EQUAL(mode, BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO, int, "%d");
+	BC_ASSERT_EQUAL(did_fallback, 0, int, "%d");
+}
+
+static void test_crypto_mode_resolve_hybrid_with_simulated_provider(void) {
+	int did_fallback = 1;
+	belle_sip_crypto_mode_t mode =
+	    belle_sip_crypto_mode_resolve(BELLE_SIP_CRYPTO_MODE_HYBRID, "simulated-pqc", &did_fallback);
+	BC_ASSERT_EQUAL(mode, BELLE_SIP_CRYPTO_MODE_HYBRID, int, "%d");
+	BC_ASSERT_EQUAL(did_fallback, 0, int, "%d");
+}
+
+static void test_crypto_mode_resolve_future_and_hybrid_fallback_to_classical(void) {
+	int did_fallback = 0;
+	belle_sip_crypto_mode_t mode =
+	    belle_sip_crypto_mode_resolve(BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO, "mbedtls", &did_fallback);
+	BC_ASSERT_EQUAL(mode, BELLE_SIP_CRYPTO_MODE_CLASSICAL, int, "%d");
+	BC_ASSERT_EQUAL(did_fallback, 1, int, "%d");
+
+	did_fallback = 0;
+	mode = belle_sip_crypto_mode_resolve(BELLE_SIP_CRYPTO_MODE_HYBRID, NULL, &did_fallback);
+	BC_ASSERT_EQUAL(mode, BELLE_SIP_CRYPTO_MODE_CLASSICAL, int, "%d");
+	BC_ASSERT_EQUAL(did_fallback, 1, int, "%d");
+}
+
 static test_t authentication_helper_tests[] = {
     TEST_NO_TAG("Proxy-Authenticate", test_proxy_authentication),
     TEST_NO_TAG("WWW-Authenticate", test_authentication),
@@ -305,7 +377,18 @@ static test_t authentication_helper_tests[] = {
     TEST_NO_TAG("WWW-Authenticate-MD5 RFC7616 patterns", test_authentication_md5_rfc7616),
     TEST_NO_TAG("WWW-Authenticate (with qop)", test_authentication_qop_auth),
     TEST_NO_TAG("generate and parse self signed certificates", test_generate_and_parse_certificates),
-    TEST_NO_TAG("generate certificate fingerprint", test_certificate_fingerprint)};
+    TEST_NO_TAG("generate certificate fingerprint", test_certificate_fingerprint),
+    TEST_NO_TAG("Crypto mode default", test_crypto_mode_default_is_classical),
+    TEST_NO_TAG("Crypto mode parse valid values", test_crypto_mode_parse_valid_values),
+    TEST_NO_TAG("Crypto mode parse invalid fallback", test_crypto_mode_parse_invalid_value_falls_back_to_classical),
+    TEST_NO_TAG("Crypto mode set/get", test_crypto_mode_set_and_get),
+    TEST_NO_TAG("Crypto mode resolve classical", test_crypto_mode_resolve_classical),
+    TEST_NO_TAG("Crypto mode resolve future-algo with simulated provider",
+                test_crypto_mode_resolve_future_algo_with_simulated_provider),
+    TEST_NO_TAG("Crypto mode resolve hybrid with simulated provider",
+                test_crypto_mode_resolve_hybrid_with_simulated_provider),
+    TEST_NO_TAG("Crypto mode resolve fallback to classical",
+                test_crypto_mode_resolve_future_and_hybrid_fallback_to_classical)};
 
 test_suite_t authentication_helper_test_suite = {"Authentication helper",
                                                  NULL,

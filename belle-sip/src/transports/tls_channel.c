@@ -896,8 +896,21 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 	/* create and initialise ssl context and configuration */
 	obj->handshake_start_ms = 0;
 	obj->handshake_started = 0;
+	belle_sip_crypto_mode_t preferred_mode = belle_tls_crypto_config_get_crypto_mode(crypto_config);
+	int mode_fallback = 0;
+	belle_sip_crypto_mode_t selected_mode =
+	    belle_sip_crypto_mode_resolve(preferred_mode, crypto_config->crypto_provider, &mode_fallback);
 	belle_sip_message("[TLS] creating TLS channel");
 	belle_sip_message("[TLS] creating TLS channel [%p]", obj);
+	if (mode_fallback && preferred_mode == BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO) {
+		belle_sip_warning(
+		    "[CryptoPolicy] future-algo requested but no future provider is available, falling back to classical");
+	} else if (mode_fallback && preferred_mode == BELLE_SIP_CRYPTO_MODE_HYBRID) {
+		belle_sip_warning(
+		    "[CryptoPolicy] hybrid requested but no future provider is available, falling back to classical");
+	}
+	belle_sip_message("[CryptoPolicy] selected mode: %s", belle_sip_crypto_mode_to_string(selected_mode));
+	belle_sip_message("[TLS] selected crypto mode: %s", belle_sip_crypto_mode_to_string(selected_mode));
 	obj->sslctx = bctbx_ssl_context_new();
 	obj->sslcfg = bctbx_ssl_config_new();
 	if (crypto_config->crypto_provider && crypto_config->crypto_provider[0] != '\0') {

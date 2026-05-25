@@ -280,6 +280,7 @@ struct belle_tls_crypto_config {
 	char *root_ca;         /**< path to the trusted certificate chain used when verifiying peer certificate */
 	char *root_ca_data;    /**< content of the trusted certificate chain used when verifiying peer certificate */
 	char *crypto_provider; /**< requested crypto provider name, such as mbedtls or openssl */
+	int crypto_mode;       /**< policy mode for future crypto negotiation; runtime remains classical TLS for now */
 	int exception_flags;   /**< override some exception raised during certificate verification, can be:
 	                         BELLE_TLS_VERIFY_NONE do not override any exception
 	                         BELLE_TLS_VERIFY_CN_MISMATCH ignore Common Name mismatch exception

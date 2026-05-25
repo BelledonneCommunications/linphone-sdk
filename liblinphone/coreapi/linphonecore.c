@@ -1820,7 +1820,13 @@ static int _linphone_core_tls_postcheck_callback(void *data, const bctbx_x509_ce
 static void certificates_config_read(LinphoneCore *lc) {
 	string rootCaPath = static_cast<PlatformHelpers *>(lc->platform_helper)->getDataResource("rootca.pem");
 	const char *crypto_provider = linphone_config_get_string(lc->config, "sip", "crypto_provider", NULL);
+	const char *crypto_mode = linphone_config_get_string(lc->config, "sip", "crypto_mode", NULL);
 	const char *rootca = linphone_config_get_string(lc->config, "sip", "root_ca", nullptr);
+	int crypto_mode_is_valid = 1;
+	belle_sip_crypto_mode_t preferred_crypto_mode = belle_sip_crypto_mode_parse(crypto_mode, &crypto_mode_is_valid);
+	int crypto_mode_fallback = 0;
+	belle_sip_crypto_mode_t selected_crypto_mode =
+	    belle_sip_crypto_mode_resolve(preferred_crypto_mode, crypto_provider, &crypto_mode_fallback);
 
 	// If rootca is not existing anymore, we try data_resources_dir/rootca.pem else default from belle-sip
 	if (!rootca || ((bctbx_file_exist(rootca) != 0) && !bctbx_directory_exists(rootca))) {
@@ -1833,7 +1839,24 @@ static void certificates_config_read(LinphoneCore *lc) {
 	if (rootca) linphone_core_set_root_ca(lc, rootca);
 	// else use default value from belle-sip
 
+	if (!crypto_mode || crypto_mode[0] == '\0') {
+		ms_message("[CryptoPolicy] crypto_mode is not set, using classical as default");
+	} else if (!crypto_mode_is_valid) {
+		ms_warning("[CryptoPolicy] invalid crypto_mode='%s', falling back to classical", crypto_mode);
+	}
+	if (crypto_mode_fallback && preferred_crypto_mode == BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO) {
+		ms_warning(
+		    "[CryptoPolicy] future-algo requested but no future provider is available, falling back to classical");
+	} else if (crypto_mode_fallback && preferred_crypto_mode == BELLE_SIP_CRYPTO_MODE_HYBRID) {
+		ms_warning("[CryptoPolicy] hybrid requested but no future provider is available, falling back to classical");
+	}
+	ms_message("[CryptoPolicy] preferred mode: %s", belle_sip_crypto_mode_to_string(preferred_crypto_mode));
+	ms_message("[CryptoPolicy] selected mode: %s", belle_sip_crypto_mode_to_string(selected_crypto_mode));
+
+	lc->sal->setCryptoMode(selected_crypto_mode);
 	lc->sal->setCryptoProvider(crypto_provider ? L_C_TO_STRING(crypto_provider) : "");
+	belle_tls_crypto_config_set_crypto_mode(L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getHttpClient().getCryptoConfig(),
+	                                        selected_crypto_mode);
 	belle_tls_crypto_config_set_crypto_provider(L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getHttpClient().getCryptoConfig(),
 	                                            crypto_provider);
 
