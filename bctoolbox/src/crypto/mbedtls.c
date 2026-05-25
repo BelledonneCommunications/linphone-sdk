@@ -126,7 +126,8 @@ struct bctbx_signing_key_struct {
 };
 
 static int bctbx_mbedtls_pem_is_buffer_too_small(int ret) {
-	return (ret == MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL || ret == MBEDTLS_ERR_PK_BUFFER_TOO_SMALL);
+	return (ret == MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL || ret == MBEDTLS_ERR_PK_BUFFER_TOO_SMALL ||
+	        ret == MBEDTLS_ERR_ASN1_BUF_TOO_SMALL);
 }
 
 static char *bctbx_mbedtls_write_private_key_pem_dynamic(mbedtls_pk_context *ctx) {
@@ -390,8 +391,15 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject,
 			goto cleanup;
 		}
 		file_buffer_len = strlen(private_key_pem);
-		file_buffer_capacity = file_buffer_len + 1;
-		file_buffer = (unsigned char *)private_key_pem;
+		file_buffer_capacity = file_buffer_len + 4096;
+		file_buffer = (unsigned char *)bctbx_malloc0(file_buffer_capacity);
+		if (file_buffer == NULL) {
+			bctbx_free(private_key_pem);
+			ret = BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
+			goto cleanup;
+		}
+		memcpy(file_buffer, private_key_pem, file_buffer_len + 1);
+		bctbx_free(private_key_pem);
 	} else {
 		file_buffer_capacity = 4096;
 		file_buffer = (unsigned char *)bctbx_malloc0(file_buffer_capacity);

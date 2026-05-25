@@ -43,6 +43,7 @@
 #endif
 
 #include "bctoolbox/charconv.h"
+#include "bctoolbox/crypto.h"
 #include "bctoolbox/defs.h"
 #include "bctoolbox/regex.h"
 
@@ -1820,8 +1821,10 @@ static int _linphone_core_tls_postcheck_callback(void *data, const bctbx_x509_ce
 static void certificates_config_read(LinphoneCore *lc) {
 	string rootCaPath = static_cast<PlatformHelpers *>(lc->platform_helper)->getDataResource("rootca.pem");
 	const char *crypto_provider = linphone_config_get_string(lc->config, "sip", "crypto_provider", NULL);
+	const char *fallback_provider = linphone_config_get_string(lc->config, "sip", "fallback_provider", NULL);
 	const char *crypto_mode = linphone_config_get_string(lc->config, "sip", "crypto_mode", NULL);
 	const char *rootca = linphone_config_get_string(lc->config, "sip", "root_ca", nullptr);
+	const char *selected_crypto_provider = crypto_provider;
 	int crypto_mode_is_valid = 1;
 	belle_sip_crypto_mode_t preferred_crypto_mode = belle_sip_crypto_mode_parse(crypto_mode, &crypto_mode_is_valid);
 	int crypto_mode_fallback = 0;
@@ -1853,12 +1856,31 @@ static void certificates_config_read(LinphoneCore *lc) {
 	ms_message("[CryptoPolicy] preferred mode: %s", belle_sip_crypto_mode_to_string(preferred_crypto_mode));
 	ms_message("[CryptoPolicy] selected mode: %s", belle_sip_crypto_mode_to_string(selected_crypto_mode));
 
+	if (crypto_provider && strcmp(crypto_provider, "future-pqc") == 0) {
+		const bctbx_crypto_provider_t *resolved_fallback_provider = NULL;
+		ms_message("[CryptoProvider] requested: FuturePqcCryptoProvider");
+		ms_warning("[FuturePQC] external PQC backend not available");
+		if (fallback_provider && fallback_provider[0] != '\0' && strcmp(fallback_provider, "none") != 0) {
+			int32_t ret = bctbx_crypto_provider_resolve(fallback_provider, &resolved_fallback_provider);
+			if (ret == 0 && resolved_fallback_provider) {
+				selected_crypto_provider = bctbx_crypto_provider_get_name(resolved_fallback_provider);
+				ms_message("[CryptoProvider] fallback selected: %s",
+				           bctbx_crypto_provider_get_class_name(resolved_fallback_provider));
+			} else {
+				ms_error("[TLS] failed: FuturePqcCryptoProvider unavailable and fallback provider '%s' is unavailable",
+				         fallback_provider);
+			}
+		} else {
+			ms_error("[TLS] failed: FuturePqcCryptoProvider unavailable and fallback disabled");
+		}
+	}
+
 	lc->sal->setCryptoMode(selected_crypto_mode);
-	lc->sal->setCryptoProvider(crypto_provider ? L_C_TO_STRING(crypto_provider) : "");
+	lc->sal->setCryptoProvider(selected_crypto_provider ? L_C_TO_STRING(selected_crypto_provider) : "");
 	belle_tls_crypto_config_set_crypto_mode(L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getHttpClient().getCryptoConfig(),
 	                                        selected_crypto_mode);
 	belle_tls_crypto_config_set_crypto_provider(L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getHttpClient().getCryptoConfig(),
-	                                            crypto_provider);
+	                                            selected_crypto_provider);
 
 	linphone_core_verify_server_certificates(lc,
 	                                         !!linphone_config_get_int(lc->config, "sip", "verify_server_certs", TRUE));

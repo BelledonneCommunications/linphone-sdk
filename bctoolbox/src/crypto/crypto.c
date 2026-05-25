@@ -50,6 +50,8 @@ static const bctbx_crypto_provider_t openssl_crypto_provider = {
 static const bctbx_crypto_provider_t simulated_pqc_crypto_provider = {
     "simulated-pqc", "SimulatedPqcCryptoProvider", BCTBX_SIMULATED_PQC_IMPLEMENTATION,
     BCTBX_CRYPTO_PROVIDER_CAP_TLS | BCTBX_CRYPTO_PROVIDER_CAP_X509};
+static const bctbx_crypto_provider_t future_pqc_crypto_provider = {"future-pqc", "FuturePqcCryptoProvider",
+                                                                   BCTBX_SIMULATED_PQC_IMPLEMENTATION, 0};
 
 static int bctbx_crypto_provider_is_compiled_in(bctbx_type_implementation_t implementation) {
 	switch (implementation) {
@@ -114,6 +116,9 @@ const bctbx_crypto_provider_t *bctbx_crypto_provider_get_by_name(const char *nam
 	if (strcmp(name, simulated_pqc_crypto_provider.name) == 0) {
 		return &simulated_pqc_crypto_provider;
 	}
+	if (strcmp(name, future_pqc_crypto_provider.name) == 0) {
+		return &future_pqc_crypto_provider;
+	}
 	return NULL;
 }
 
@@ -132,6 +137,9 @@ int32_t bctbx_crypto_provider_resolve(const char *name, const bctbx_crypto_provi
 	resolved_provider = bctbx_crypto_provider_get_by_name(name);
 	if (resolved_provider == NULL) {
 		return BCTBX_ERROR_INVALID_CRYPTO_PROVIDER;
+	}
+	if (strcmp(name, future_pqc_crypto_provider.name) == 0) {
+		return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
 	}
 	if (!bctbx_crypto_provider_is_compiled_in(resolved_provider->implementation)) {
 		return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;

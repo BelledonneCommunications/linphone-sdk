@@ -367,6 +367,11 @@ static void test_crypto_mode_resolve_future_and_hybrid_fallback_to_classical(voi
 	mode = belle_sip_crypto_mode_resolve(BELLE_SIP_CRYPTO_MODE_HYBRID, NULL, &did_fallback);
 	BC_ASSERT_EQUAL(mode, BELLE_SIP_CRYPTO_MODE_CLASSICAL, int, "%d");
 	BC_ASSERT_EQUAL(did_fallback, 1, int, "%d");
+
+	did_fallback = 0;
+	mode = belle_sip_crypto_mode_resolve(BELLE_SIP_CRYPTO_MODE_FUTURE_ALGO, "future-pqc", &did_fallback);
+	BC_ASSERT_EQUAL(mode, BELLE_SIP_CRYPTO_MODE_CLASSICAL, int, "%d");
+	BC_ASSERT_EQUAL(did_fallback, 1, int, "%d");
 }
 
 static test_t authentication_helper_tests[] = {

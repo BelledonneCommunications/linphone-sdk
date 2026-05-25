@@ -1481,6 +1481,13 @@ static void crypto_provider_resolution_test() {
 	BC_ASSERT_PTR_NOT_NULL(resolved_provider);
 	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_class_name(resolved_provider), "SimulatedPqcCryptoProvider");
 
+	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("future-pqc", &resolved_provider),
+	                BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+	BC_ASSERT_PTR_NULL(resolved_provider);
+	BC_ASSERT_PTR_NOT_NULL(bctbx_crypto_provider_get_by_name("future-pqc"));
+	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_class_name(bctbx_crypto_provider_get_by_name("future-pqc")),
+	                       "FuturePqcCryptoProvider");
+
 #ifdef HAVE_MBEDTLS
 	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("mbedtls", &resolved_provider), 0, int, "%d");
 	BC_ASSERT_PTR_NOT_NULL(resolved_provider);
