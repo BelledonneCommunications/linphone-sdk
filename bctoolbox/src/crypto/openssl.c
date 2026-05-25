@@ -1627,8 +1627,8 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 	}
 
 	if (ssl_ctx->ssl) {
-		SSL_free(ssl_ctx->ssl);
 		void *ex_data = SSL_get_ex_data(ssl_ctx->ssl, OPENSSL_CLIENT_CERT_CALLBACK_EX_DATA_IDX);
+		SSL_free(ssl_ctx->ssl);
 		if (ex_data) {
 			bctbx_free(ex_data);
 		}
