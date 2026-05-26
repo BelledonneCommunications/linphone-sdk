@@ -30,6 +30,9 @@ LINPHONE_BEGIN_NAMESPACE
 
 class AudioDevice : public bellesip::HybridObject<LinphoneAudioDevice, AudioDevice>, public CoreAccessor {
 public:
+	/*
+	 * Note: Values must be synchronized so that cast is safe.
+	 */
 	enum Type {
 		Unknown = LinphoneAudioDeviceTypeUnknown,
 		Microphone = LinphoneAudioDeviceTypeMicrophone,
@@ -46,6 +49,9 @@ public:
 		Hdmi = LinphoneAudioDeviceTypeHdmi
 	};
 
+	/*
+	 * Note: Values must be synchronized so that cast is safe.
+	 */
 	enum Capabilities {
 		Record = LinphoneAudioDeviceCapabilityRecord,
 		Play = LinphoneAudioDeviceCapabilityPlay,
@@ -60,6 +66,7 @@ public:
 	const std::string &getDeviceName() const;
 	const std::string &getDriverName() const;
 	Capabilities getCapabilities() const;
+	bool hasCapability(Capabilities capability) const;
 	Type getType() const;
 	bool getUseForRinging() const;
 	bool followsSystemRoutingPolicy() const;
@@ -82,8 +89,8 @@ private:
 	std::string mDeviceName;
 	std::string mDriverName;
 	Capabilities mCapabilities;
-	bool mUseForRinging = false;
 	mutable Type mDeviceType = Unknown;
+	bool mUseForRinging = false;
 };
 
 LINPHONE_END_NAMESPACE
