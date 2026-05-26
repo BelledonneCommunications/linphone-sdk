@@ -232,7 +232,7 @@ void CorePrivate::init() {
 		}
 
 		// Leave this part to import the legacy friends to MainDB
-		if (!lc->friends_db_file) {
+		if (lc->friends_db_file == nullptr) {
 			string friendsDbPath = L_C_TO_STRING(
 			    linphone_config_get_string(linphone_core_get_config(lc), "storage", "friends_db_uri", nullptr));
 			if (friendsDbPath.empty()) friendsDbPath = q->getDataPath() + "/" + LINPHONE_FRIENDS_DB;
@@ -246,6 +246,7 @@ void CorePrivate::init() {
 	}
 
 	createConferenceCleanupTimer(q->getConferenceCleanupPeriod());
+	createAsyncTasksCleanupTimer();
 
 #ifdef __ANDROID__
 	// On Android assume Core has been started in background,
@@ -481,6 +482,9 @@ void CorePrivate::unregisterAccounts() {
 void CorePrivate::uninit() {
 	L_Q();
 
+	stopAsyncTasksCleanupTimer();
+	waitForAsyncTasksToFinish();
+
 	const list<shared_ptr<AbstractChatRoom>> chatRooms = q->getChatRooms();
 	shared_ptr<ChatRoom> cr;
 	for (const auto &chatRoom : chatRooms) {
@@ -521,8 +525,8 @@ void CorePrivate::uninit() {
 	// If we have an encryption engine, destroy it after handling all chat message tasks.
 	// This way, the core will make a last attempt to send messages on encrypted chatrooms.
 	if (imee != nullptr) {
-		auto listener = dynamic_cast<CoreListener *>(q->getEncryptionEngine());
-		if (listener) unregisterListener(listener);
+		auto *listener = dynamic_cast<CoreListener *>(q->getEncryptionEngine());
+		if (listener != nullptr) unregisterListener(listener);
 		imee.reset();
 	}
 
@@ -652,7 +656,51 @@ void CorePrivate::doLater(const std::function<void()> &something) {
 		lError() << "Cannot schedule a task with doLater because the Sal is currently not initalized";
 		return;
 	}
-	return belle_sip_main_loop_cpp_do_later(getMainLoop(), something);
+	belle_sip_main_loop_cpp_do_later(getMainLoop(), something);
+}
+
+void CorePrivate::doAsync(const std::function<void()> &task) {
+	mAsyncTasks.push_back(std::async(std::launch::async, task));
+}
+
+void CorePrivate::createAsyncTasksCleanupTimer() {
+	L_Q();
+
+	stopAsyncTasksCleanupTimer();
+
+	// Cleanup the async tasks list, only keeping the tasks that are still running.
+	auto asyncTasksCleanup = [this]() -> bool {
+		for (auto it = mAsyncTasks.begin(); it != mAsyncTasks.end();) {
+			if (it->valid() && it->wait_for(0s) != future_status::ready) {
+				// If the future is still valid and still running, keep it.
+				++it;
+				continue;
+			}
+			// Otherwise, remove it from the list of async tasks.
+			it = mAsyncTasks.erase(it);
+		}
+
+		return BELLE_SIP_CONTINUE;
+	};
+
+	mAsyncTasksCleanupTimer = q->createTimer(asyncTasksCleanup, 1000, "AsyncTasks cleanup timer");
+}
+
+void CorePrivate::stopAsyncTasksCleanupTimer() {
+	L_Q();
+	if (mAsyncTasksCleanupTimer != nullptr) {
+		q->destroyTimer(mAsyncTasksCleanupTimer);
+		mAsyncTasksCleanupTimer = nullptr;
+	}
+}
+
+void CorePrivate::waitForAsyncTasksToFinish() {
+	for (auto &task : mAsyncTasks) {
+		if (task.valid()) {
+			task.wait();
+		}
+	}
+	mAsyncTasks.clear();
 }
 
 void CorePrivate::enableFriendListsSubscription(bool enable) {
@@ -2299,6 +2347,10 @@ void Core::doLater(const std::function<void()> &something) {
 	getPrivate()->doLater(something);
 }
 
+void Core::doAsync(const std::function<void()> &task) {
+	getPrivate()->doAsync(task);
+}
+
 void Core::performOnIterateThread(const std::function<void()> &something) {
 	unsigned long currentThreadId = bctbx_thread_self();
 	if (currentThreadId == getCCore()->iterate_thread_id) {
@@ -2310,10 +2362,9 @@ void Core::performOnIterateThread(const std::function<void()> &something) {
 
 belle_sip_source_t *
 Core::createTimer(const std::function<bool()> &something, unsigned int milliseconds, const string &name) {
-	const auto mainLoop = getPrivate()->getMainLoop();
-	return mainLoop
-	           ? belle_sip_main_loop_create_cpp_timeout_2(mainLoop, something, (unsigned)milliseconds, name.c_str())
-	           : nullptr;
+	auto *mainLoop = getPrivate()->getMainLoop();
+	return mainLoop == nullptr ? nullptr
+	                           : belle_sip_main_loop_create_cpp_timeout_2(mainLoop, something, milliseconds, name);
 }
 
 /* Stop and destroy a timer created by createTimer()*/

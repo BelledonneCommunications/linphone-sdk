@@ -636,6 +636,10 @@ typedef struct _stats {
 #endif /* HAVE_BAUDOT */
 
 	int number_of_out_of_dialog_refer_received;
+
+	int number_of_LinphoneFriendListSyncStarted;
+	int number_of_LinphoneFriendListSyncFailure;
+	int number_of_LinphoneFriendListSyncSuccessful;
 } stats;
 
 typedef enum _LinphoneCoreManagerSubscribePolicy {

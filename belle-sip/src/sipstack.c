@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 Belledonne Communications SARL.
+ * Copyright (c) 2012-2026 Belledonne Communications SARL.
  *
  * This file is part of belle-sip.
  *
@@ -467,7 +467,9 @@ int belle_sip_stack_tls_available(belle_sip_stack_t *stack) {
 
 int belle_sip_stack_content_encoding_available(belle_sip_stack_t *stack, const char *content_encoding) {
 #ifdef HAVE_ZLIB
-	if (strcmp(content_encoding, "deflate") == 0) return TRUE;
+	if ((strcmp(content_encoding, "deflate") == 0) || (strcmp(content_encoding, "gzip") == 0)) {
+		return TRUE;
+	}
 #endif
 	return FALSE;
 }

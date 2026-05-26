@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 Belledonne Communications SARL.
+ * Copyright (c) 2012-2026 Belledonne Communications SARL.
  *
  * This file is part of belle-sip.
  *
@@ -18,7 +18,6 @@
  */
 
 #include "bctoolbox/tester.h"
-#include "belle-sip/belle-sip.h"
 #include "belle-sip/object.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
@@ -45,7 +44,7 @@ static void test_object_data_string_destroy(void *data) {
 static void *test_object_data_string_clone(const char *name, void *data) {
 	clone_called++;
 	if (strcmp(name, "test_str") == 0) return belle_sip_strdup(data);
-	else return data;
+	return data;
 }
 
 static void test_object_data_foreach_cb(const char *name, void *data, void *udata) {
@@ -267,29 +266,48 @@ static void test_presence_marshal(void) {
 	belle_sip_object_unref(memory_mpbh);
 }
 
-static void test_compressed_body(void) {
+static void test_compressed_body(const char *encoding) {
 	belle_sip_memory_body_handler_t *mbh = belle_sip_memory_body_handler_new_copy_from_buffer(
 	    (void *)parts_content[0], strlen(parts_content[0]), NULL, NULL);
-	belle_sip_memory_body_handler_apply_encoding(mbh, "deflate");
-	BC_ASSERT_EQUAL(belle_sip_memory_body_handler_unapply_encoding(mbh, "deflate"), 0, int, "%i");
+	belle_sip_memory_body_handler_apply_encoding(mbh, encoding);
+	BC_ASSERT_EQUAL(belle_sip_memory_body_handler_unapply_encoding(mbh, encoding), 0, int, "%i");
 	belle_sip_object_unref(mbh);
 }
 
-static void test_truncated_compressed_body(void) {
+static void test_compressed_body_deflate(void) {
+	test_compressed_body("deflate");
+}
+
+static void test_compressed_body_gzip(void) {
+	test_compressed_body("gzip");
+}
+
+static void test_truncated_compressed_body(const char *encoding) {
 	belle_sip_memory_body_handler_t *mbh = belle_sip_memory_body_handler_new_copy_from_buffer(
 	    (void *)parts_content[0], strlen(parts_content[0]), NULL, NULL);
-	belle_sip_memory_body_handler_apply_encoding(mbh, "deflate");
+	belle_sip_memory_body_handler_apply_encoding(mbh, encoding);
 	/* Truncate the body */
 	belle_sip_body_handler_set_size(BELLE_SIP_BODY_HANDLER(mbh),
 	                                belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(mbh)) - 5);
-	BC_ASSERT_EQUAL(belle_sip_memory_body_handler_unapply_encoding(mbh, "deflate"), -1, int, "%i");
+	BC_ASSERT_EQUAL(belle_sip_memory_body_handler_unapply_encoding(mbh, encoding), -1, int, "%i");
 	belle_sip_object_unref(mbh);
 }
 
-static test_t core_tests[] = {TEST_NO_TAG("Object Data", test_object_data),
-                              TEST_NO_TAG("Presence marshal", test_presence_marshal),
-                              TEST_NO_TAG("Compressed body", test_compressed_body),
-                              TEST_NO_TAG("Truncated compressed body", test_truncated_compressed_body)};
+static void test_truncated_compressed_body_deflate(void) {
+	test_truncated_compressed_body("deflate");
+}
+
+static void test_truncated_compressed_body_gzip(void) {
+	test_truncated_compressed_body("gzip");
+}
+
+static test_t core_tests[] = {
+    TEST_NO_TAG("Object Data", test_object_data),
+    TEST_NO_TAG("Presence marshal", test_presence_marshal),
+    TEST_NO_TAG("Compressed body (deflate)", test_compressed_body_deflate),
+    TEST_NO_TAG("Compressed body (gzip)", test_compressed_body_gzip),
+    TEST_NO_TAG("Truncated compressed body (deflate)", test_truncated_compressed_body_deflate),
+    TEST_NO_TAG("Truncated compressed body (gzip)", test_truncated_compressed_body_gzip)};
 
 test_suite_t core_test_suite = {"Core",
                                 NULL,

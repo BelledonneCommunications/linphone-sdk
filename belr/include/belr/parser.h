@@ -24,6 +24,7 @@
 #include <functional>
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 
 #define BELR_THREAD_SAFE 1
@@ -376,10 +377,10 @@ public:
 	parseInput(const std::string &rulename, const std::string &input, size_t *parsed_size, bool full_match = false);
 
 private:
-	ParserHandlerBase<_parserElementT> *getHandler(unsigned int);
+	ParserHandlerBase<_parserElementT> *getHandler(unsigned int rule_id);
 	void installHandler(ParserHandlerBase<_parserElementT> *handler);
 	std::shared_ptr<Grammar> mGrammar;
-	std::map<unsigned int, std::unique_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
+	std::unordered_map<unsigned int, std::unique_ptr<ParserHandlerBase<_parserElementT>>> mHandlers;
 	std::unique_ptr<ParserHandlerBase<_parserElementT>> mNullHandler;
 	std::unique_ptr<CollectorBase<_parserElementT>> mNullCollector;
 };
@@ -784,7 +785,7 @@ _parserElementT Parser<_parserElementT>::parseInput(const std::string &rulename,
 	// auto t_end = std::chrono::high_resolution_clock::now();
 	// cout<<"Recognition done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()<<"
 	// milliseconds"<<std::endl;
-	if (parsed_size) *parsed_size = parsed;
+	if (parsed_size != nullptr) *parsed_size = parsed;
 
 	// If a full match has been asked and all the input has not been consumed, this is an error.
 	if (full_match && (parsed != input.length())) return nullptr;

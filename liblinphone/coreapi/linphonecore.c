@@ -7784,11 +7784,6 @@ void friends_config_uninit(LinphoneCore *lc) {
 }
 
 void misc_config_uninit(LinphoneCore *lc) {
-	if (lc->base_contacts_list_http_listener != NULL) {
-		belle_sip_object_unref(lc->base_contacts_list_http_listener);
-		lc->base_contacts_list_http_listener = NULL;
-	}
-
 	if (lc->base_contacts_list_for_synchronization != NULL) {
 		linphone_friend_list_unref(lc->base_contacts_list_for_synchronization);
 		lc->base_contacts_list_for_synchronization = NULL;

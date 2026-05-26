@@ -50,7 +50,6 @@
 #include "conference/server-conference.h"
 #include "core/core-p.h"
 #include "event-log/event-log-p.h"
-#include "event-log/events.h"
 #include "friend/friend-device.h"
 #include "friend/friend-list.h"
 #include "friend/friend.h"
@@ -8432,6 +8431,23 @@ long long MainDb::insertFriend(const std::shared_ptr<Friend> &f) {
 	};
 #else
 	return -1;
+#endif
+}
+
+std::list<long long> MainDb::batchInsertFriends(const std::list<std::shared_ptr<Friend>> &friends) {
+#ifdef HAVE_DB_STORAGE
+	return L_DB_TRANSACTION {
+		L_D();
+
+		auto ids = std::list<long long>{};
+		for (const auto &f : friends) {
+			ids.push_back(d->insertOrUpdateFriend(f));
+		}
+		tr.commit();
+		return ids;
+	};
+#else
+	return {};
 #endif
 }
 

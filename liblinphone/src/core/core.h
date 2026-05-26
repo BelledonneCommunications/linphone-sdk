@@ -47,7 +47,7 @@
 
 L_DECL_C_STRUCT(LinphoneCore);
 
-typedef struct belle_sip_source belle_sip_source_t;
+using belle_sip_source_t = struct belle_sip_source;
 
 class ServerConferenceTester;
 
@@ -205,9 +205,8 @@ public:
 	// ---------------------------------------------------------------------------
 	// ChatRoom.
 	// ---------------------------------------------------------------------------
-	typedef std::
-	    unordered_map<ConferenceId, std::shared_ptr<AbstractChatRoom>, ConferenceId::WeakHash, ConferenceId::WeakEqual>
-	        ChatRoomWeakCompareMap;
+	using ChatRoomWeakCompareMap = std::
+	    unordered_map<ConferenceId, std::shared_ptr<AbstractChatRoom>, ConferenceId::WeakHash, ConferenceId::WeakEqual>;
 	ChatRoomWeakCompareMap getRawChatRoomList(bool includeBasic = true, bool includeConference = true) const;
 	std::list<std::shared_ptr<AbstractChatRoom>> &getChatRooms() const;
 	const bctbx_list_t *getChatRoomsCList() const;
@@ -392,9 +391,8 @@ public:
 
 	void handleIncomingMessageWaitingIndication(std::shared_ptr<Event> event, const Content *content);
 
-	typedef std::set<std::shared_ptr<RemoteContactDirectory>,
-	                 RemoteContactDirectory::RemoteContactDirectorySharedPtrLess>
-	    RemoteContactDirectorySet;
+	using RemoteContactDirectorySet =
+	    std::set<std::shared_ptr<RemoteContactDirectory>, RemoteContactDirectory::RemoteContactDirectorySharedPtrLess>;
 	void loadRemoteContactDirectories();
 	void writeRemoteContactDirectories();
 	const RemoteContactDirectorySet &getRemoteContactDirectories() const;
@@ -413,6 +411,11 @@ public:
 	// Execure specified lambda now if this method is called on the same thread as linphone_core_iterate(), otherwise do
 	// the same as doLater() above.
 	void performOnIterateThread(const std::function<void()> &something);
+
+	/*
+	 * Execute specified lamba asynchronously in a background thread.
+	 */
+	void doAsync(const std::function<void()> &task);
 
 	/*
 	 * Run supplied std::function as a timer. It should return true if repeated, false otherwise.
@@ -595,7 +598,7 @@ private:
 	int mMaxDelayToEditRetractAlreadySentMessage = -1;
 	mutable int mFileContentIsToBeDeleted = -1;
 
-	mutable bctbx_list_t *mCachedProxyConfigs = NULL;
+	mutable bctbx_list_t *mCachedProxyConfigs = nullptr;
 	ListHolder<std::string> mFileContentsDirs;
 
 	bool mEktPluginLoaded = false;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -65,10 +65,35 @@ static void remote_provisioning_http(void) {
 	linphone_core_manager_destroy(marie);
 }
 
-static void remote_provisioning_contact_list_fetch_at_startup(void) {
+static void friend_list_sync_state_changed(LinphoneFriendList *friendList,
+                                           LinphoneFriendListSyncStatus status,
+                                           BCTBX_UNUSED(const char *message)) {
+	LinphoneCore *lc = linphone_friend_list_get_core(friendList);
+	stats *counters;
+	ms_message("New sync state %d for friend list \"%s\"\n", static_cast<int>(status),
+	           linphone_friend_list_get_display_name(friendList));
+	counters = get_stats(lc);
+	switch (status) {
+		case LinphoneFriendListSyncStarted:
+			counters->number_of_LinphoneFriendListSyncStarted++;
+			break;
+		case LinphoneFriendListSyncFailure:
+			counters->number_of_LinphoneFriendListSyncFailure++;
+			break;
+		case LinphoneFriendListSyncSuccessful:
+			counters->number_of_LinphoneFriendListSyncSuccessful++;
+			break;
+		default:
+			BC_FAIL("unexpected event");
+			break;
+	}
+}
+
+static void remote_provisioning_contact_list_fetch_at_startup(const std::string &vcardsUri,
+                                                              bool success,
+                                                              const unsigned int expectedNbFriends) {
 	LinphoneCoreManager *marie = linphone_core_manager_create("marie_remote_rc");
-	const char *vcard_file = "http://provisioning.example.org/vcards.vcf";
-	linphone_config_set_string(linphone_core_get_config(marie->lc), "misc", "contacts-vcard-list", vcard_file);
+	linphone_config_set_string(linphone_core_get_config(marie->lc), "misc", "contacts-vcard-list", vcardsUri.c_str());
 
 	// do not get vcard contact list from remote provisioning at startup
 	bool_t fetch_contact_list_at_startup = FALSE;
@@ -76,30 +101,57 @@ static void remote_provisioning_contact_list_fetch_at_startup(void) {
 	                         fetch_contact_list_at_startup);
 
 	linphone_core_manager_start(marie, FALSE);
-	BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneConfiguringSuccessful, 1));
-	BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneRegistrationOk, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, nullptr, &marie->stat.number_of_LinphoneConfiguringSuccessful, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, nullptr, &marie->stat.number_of_LinphoneRegistrationOk, 1));
 
 	std::string url =
-	    linphone_config_get_string(linphone_core_get_config(marie->lc), "misc", "contacts-vcard-list", NULL);
+	    linphone_config_get_string(linphone_core_get_config(marie->lc), "misc", "contacts-vcard-list", nullptr);
 	LinphoneFriendList *friendList = linphone_core_get_friend_list_by_name(marie->lc, url.c_str());
 	BC_ASSERT_PTR_NOT_NULL(friendList);
-	if (friendList) {
+	if (friendList != nullptr) {
 		BC_ASSERT_TRUE(linphone_friend_list_get_is_read_only(friendList));
-		unsigned int friends_list_size = (unsigned int)bctbx_list_size(linphone_friend_list_get_friends(friendList));
+		auto friends_list_size =
+		    static_cast<unsigned int>(bctbx_list_size(linphone_friend_list_get_friends(friendList)));
 		BC_ASSERT_EQUAL(friends_list_size, 0, unsigned int, "%u");
+
+		LinphoneFriendListCbs *cbs = linphone_factory_create_friend_list_cbs(linphone_factory_get());
+		linphone_friend_list_cbs_set_sync_status_changed(cbs, friend_list_sync_state_changed);
+		linphone_friend_list_add_callbacks(friendList, cbs);
+		linphone_friend_list_cbs_unref(cbs);
 	}
 
-	// check that the vcards file is not missing nor empty
 	linphone_friend_list_synchronize_friends_from_server(friendList);
-	wait_for_until(marie->lc, NULL, NULL, 1, 5000);
+	if (success) {
+		// check that the vcards file is not missing nor empty
+		BC_ASSERT_TRUE(wait_for(marie->lc, nullptr, &marie->stat.number_of_LinphoneFriendListSyncSuccessful, 1));
+		BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneFriendListSyncFailure, 0, int, "%d");
+	} else {
+		BC_ASSERT_TRUE(wait_for(marie->lc, nullptr, &marie->stat.number_of_LinphoneFriendListSyncFailure, 1));
+		BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneFriendListSyncSuccessful, 0, int, "%d");
+	}
 	BC_ASSERT_PTR_NOT_NULL(friendList);
-	if (friendList) {
+	if (friendList != nullptr) {
 		BC_ASSERT_TRUE(linphone_friend_list_get_is_read_only(friendList));
-		unsigned int friends_list_size = (unsigned int)bctbx_list_size(linphone_friend_list_get_friends(friendList));
-		BC_ASSERT_EQUAL(friends_list_size, 3, unsigned int, "%u");
+		auto friends_list_size =
+		    static_cast<unsigned int>(bctbx_list_size(linphone_friend_list_get_friends(friendList)));
+		BC_ASSERT_EQUAL(friends_list_size, expectedNbFriends, unsigned int, "%u");
 	}
 
 	linphone_core_manager_destroy(marie);
+}
+
+static void remote_provisioning_simple_contacts_list_fetch_at_startup() {
+	remote_provisioning_contact_list_fetch_at_startup("http://provisioning.example.org/vcards.vcf", true, 3);
+}
+
+static void remote_provisioning_thousand_contacts_list_fetch_at_startup() {
+	remote_provisioning_contact_list_fetch_at_startup("http://provisioning.example.org/thousand_vcards.vcf", true,
+	                                                  1000);
+}
+
+static void remote_provisioning_inexistent_contacts_list_fetch_at_startup() {
+	remote_provisioning_contact_list_fetch_at_startup("http://provisioning.example.org/inexistent_vcards.vcf", false,
+	                                                  0);
 }
 
 static void remote_provisioning_transient(void) {
@@ -557,17 +609,21 @@ test_t remote_provisioning_tests[] = {
     TEST_NO_TAG("Remote provisioning invalid URI", remote_provisioning_invalid_uri),
     TEST_NO_TAG("Remote provisioning check if push tokens are not lost", remote_provisioning_check_push_params),
     TEST_NO_TAG("Remote provisioning check if push tokens are not lost 2", remote_provisioning_check_push_params_2),
-    TEST_NO_TAG("Remote Provisioning Contacts List fetch at startup", remote_provisioning_contact_list_fetch_at_startup)
+    TEST_NO_TAG("Remote Provisioning Simple Contacts List fetch at startup",
+                remote_provisioning_simple_contacts_list_fetch_at_startup),
+    TEST_NO_TAG("Remote Provisioning Thousand Contacts List fetch at startup",
+                remote_provisioning_thousand_contacts_list_fetch_at_startup),
+    TEST_NO_TAG("Remote Provisioning inexistent contacts list fetch at startup",
+                remote_provisioning_inexistent_contacts_list_fetch_at_startup),
 #ifdef HAVE_FLEXIAPI
-        ,
     TEST_NO_TAG("Remote Provisioning Flow", flexiapi_remote_provisioning_flow),
     TEST_NO_TAG("Remote Provisioning Contacts List Flow", flexiapi_remote_provisioning_contacts_list_flow)
 #endif
 };
 
 test_suite_t remote_provisioning_test_suite = {"RemoteProvisioning",
-                                               NULL,
-                                               NULL,
+                                               nullptr,
+                                               nullptr,
                                                liblinphone_tester_before_each,
                                                liblinphone_tester_after_each,
                                                sizeof(remote_provisioning_tests) / sizeof(remote_provisioning_tests[0]),

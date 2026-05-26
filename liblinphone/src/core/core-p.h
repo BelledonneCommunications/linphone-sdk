@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -21,6 +21,7 @@
 #ifndef _L_CORE_P_H_
 #define _L_CORE_P_H_
 
+#include <future>
 #include <optional>
 #include <stdexcept>
 
@@ -191,6 +192,7 @@ public:
 
 	// Cancel task scheduled on the main loop
 	void doLater(const std::function<void()> &something);
+	void doAsync(const std::function<void()> &task);
 	belle_sip_main_loop_t *getMainLoop();
 	std::optional<std::reference_wrapper<MainDb>> getDatabase() const;
 	void uninitDatabase();
@@ -202,7 +204,7 @@ public:
 		return authStack;
 	}
 	Sal *getSal();
-	LinphoneCore *getCCore() const;
+	[[nodiscard]] LinphoneCore *getCCore() const;
 
 	void startEphemeralMessageTimer(time_t expireTime);
 	void stopEphemeralMessageTimer();
@@ -239,6 +241,10 @@ private:
 	static int ephemeralMessageTimerExpired(void *data, unsigned int revents);
 	static std::string getRingerDevIdKeyForConfig(int index);
 
+	void createAsyncTasksCleanupTimer();
+	void stopAsyncTasksCleanupTimer();
+	void waitForAsyncTasksToFinish();
+
 	std::set<CoreListener *> listeners;
 	std::set<CoreListener *> removedListeners;
 	bool nowRunningListeners = false;
@@ -254,9 +260,8 @@ private:
 
 	Core::ChatRoomWeakCompareMap mBasicChatRoomsById;
 
-	typedef std::
-	    unordered_map<ConferenceId, std::shared_ptr<Conference>, ConferenceId::WeakHash, ConferenceId::WeakEqual>
-	        ConferenceWeakCompareMap;
+	using ConferenceWeakCompareMap =
+	    std::unordered_map<ConferenceId, std::shared_ptr<Conference>, ConferenceId::WeakHash, ConferenceId::WeakEqual>;
 	ConferenceWeakCompareMap mConferenceById;
 
 	std::unique_ptr<EncryptionEngine> imee;
@@ -275,7 +280,7 @@ private:
 	BackgroundTask chatMessagesAggregationBackgroundTask{"Chat messages aggregation"};
 
 	BackgroundTask pushReceivedBackgroundTask{"Push received background task"};
-	std::string lastPushReceivedCallId = "";
+	std::string lastPushReceivedCallId;
 
 	std::list<std::shared_ptr<AudioDevice>> audioDevices;
 	bool stopAsyncEndEnabled = false;
@@ -291,6 +296,9 @@ private:
 
 	std::list<std::shared_ptr<FriendList>> friendLists;
 	bool mRemoteContactDirectoryMigrationNeeded = false;
+
+	std::list<std::future<void>> mAsyncTasks;
+	belle_sip_source_t *mAsyncTasksCleanupTimer = nullptr;
 
 #ifdef HAVE_HIDAPI
 	std::list<std::shared_ptr<HidDevice>> hidDevices;

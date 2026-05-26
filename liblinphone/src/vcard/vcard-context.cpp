@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -45,35 +45,45 @@ VcardContext *VcardContext::clone() const {
 // -----------------------------------------------------------------------------
 
 shared_ptr<Vcard> VcardContext::getVcardFromBuffer(const string &buffer) const {
-	if (buffer.empty()) return nullptr;
-	shared_ptr<belcard::BelCard> belCard = mParser->parseOne(buffer);
-	if (belCard) {
-		return Vcard::create(belCard);
-	} else {
-		lError() << "[vCard] Couldn't parse buffer " << buffer;
+	if (buffer.empty()) {
 		return nullptr;
 	}
+
+	if (shared_ptr<belcard::BelCard> belCard = mParser->parseOne(buffer)) {
+		return Vcard::create(belCard);
+	}
+
+	lError() << "[vCard] Couldn't parse buffer " << buffer;
+	return nullptr;
 }
 
-list<shared_ptr<Vcard>> VcardContext::getVcardListFromBuffer(const string &buffer) const {
-	list<shared_ptr<Vcard>> result;
-	if (!buffer.empty()) {
-		shared_ptr<belcard::BelCardList> belCards = mParser->parse(buffer);
-		if (belCards) {
-			for (const auto &belCard : belCards->getCards())
-				result.push_back(Vcard::create(belCard));
+vector<shared_ptr<Vcard>> VcardContext::getVcardListFromBuffer(const string &buffer) const {
+	if (buffer.empty()) {
+		return {};
+	}
+
+	vector<shared_ptr<Vcard>> result;
+	if (shared_ptr<belcard::BelCardList> belCards = mParser->parse(buffer)) {
+		auto cards = belCards->getCards();
+		result.reserve(cards.size());
+		for (const auto &belCard : cards) {
+			result.push_back(Vcard::create(belCard));
 		}
 	}
 	return result;
 }
 
-list<shared_ptr<Vcard>> VcardContext::getVcardListFromFile(const string &filename) const {
-	list<shared_ptr<Vcard>> result;
-	if (!filename.empty()) {
-		shared_ptr<belcard::BelCardList> belCards = mParser->parseFile(filename);
-		if (belCards) {
-			for (const auto &belCard : belCards->getCards())
-				result.push_back(Vcard::create(belCard));
+vector<shared_ptr<Vcard>> VcardContext::getVcardListFromFile(const string &filename) const {
+	if (filename.empty()) {
+		return {};
+	}
+
+	vector<shared_ptr<Vcard>> result;
+	if (shared_ptr<belcard::BelCardList> belCards = mParser->parseFile(filename)) {
+		auto cards = belCards->getCards();
+		result.reserve(cards.size());
+		for (const auto &belCard : belCards->getCards()) {
+			result.push_back(Vcard::create(belCard));
 		}
 	}
 	return result;

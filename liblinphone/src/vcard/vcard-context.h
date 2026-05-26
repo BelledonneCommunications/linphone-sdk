@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -28,7 +28,6 @@
 #endif /* VCARD_ENABLED */
 
 #include "c-wrapper/c-wrapper.h"
-#include "linphone/api/c-types.h"
 #include "tester_utils.h"
 
 // =============================================================================
@@ -42,7 +41,7 @@ class LINPHONE_PUBLIC VcardContext : public bellesip::HybridObject<LinphoneVcard
 public:
 	VcardContext(bool useVCard3Grammar = false);
 	VcardContext(const VcardContext &other) = delete;
-	virtual ~VcardContext() = default;
+	~VcardContext() override = default;
 
 	VcardContext *clone() const override;
 
@@ -56,8 +55,8 @@ public:
 
 	// Getters
 	std::shared_ptr<Vcard> getVcardFromBuffer(const std::string &buffer) const;
-	std::list<std::shared_ptr<Vcard>> getVcardListFromBuffer(const std::string &buffer) const;
-	std::list<std::shared_ptr<Vcard>> getVcardListFromFile(const std::string &filename) const;
+	std::vector<std::shared_ptr<Vcard>> getVcardListFromBuffer(const std::string &buffer) const;
+	std::vector<std::shared_ptr<Vcard>> getVcardListFromFile(const std::string &filename) const;
 
 private:
 #ifdef VCARD_ENABLED

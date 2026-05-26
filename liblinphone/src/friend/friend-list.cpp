@@ -28,7 +28,6 @@
 
 #include "c-wrapper/internal/c-tools.h"
 #include "content/content.h"
-#include "core/core-p.h"
 #include "core/core.h"
 #include "db/main-db.h"
 #include "event/event.h"
@@ -40,7 +39,6 @@
 #include "linphone/api/c-content.h"
 #include "linphone/types.h"
 #include "presence/presence-model.h"
-#include "private.h" // TODO: To remove if possible
 #include "private_functions.h"
 #include "vcard/carddav-context.h"
 #include "vcard/vcard-context.h"
@@ -307,11 +305,35 @@ std::list<std::shared_ptr<Friend>> FriendList::findFriendsByUri(const std::strin
 	return result;
 }
 
+std::pair<LinphoneStatus, std::vector<std::shared_ptr<Vcard>>>
+FriendList::getVcardListFromBuffer(const std::string &vcardBuffer) const {
+	std::vector<std::shared_ptr<Vcard>> vcards =
+	    VcardContext::toCpp(getCore()->getCCore()->vcard_context)->getVcardListFromBuffer(vcardBuffer);
+	if (vcards.empty()) {
+		lError() << "Failed to parse the buffer";
+		return std::make_pair(-1, std::vector<std::shared_ptr<Vcard>>{});
+	}
+	return std::make_pair(LinphoneFriendListOK, vcards);
+}
+
+std::pair<LinphoneStatus, std::vector<std::shared_ptr<Vcard>>>
+FriendList::getVcardListFromVcard4File(const std::string &vcardFile) const {
+	std::vector<std::shared_ptr<Vcard>> vcards =
+	    VcardContext::toCpp(getCore()->getCCore()->vcard_context)->getVcardListFromFile(vcardFile);
+	if (vcards.empty()) {
+		lError() << "Failed to parse the buffer";
+		return std::make_pair(-1, std::vector<std::shared_ptr<Vcard>>{});
+	}
+	return std::make_pair(LinphoneFriendListOK, vcards);
+}
+
 LinphoneStatus FriendList::importFriendsFromVcard4Buffer(const std::string &vcardBuffer) {
 	// We need this method to add friends for LinphoneFriendListTypeVCard4 lists
-	if (isReadOnly() && mType != LinphoneFriendListTypeVCard4) return LinphoneFriendListReadOnly;
+	if (isReadOnly() && mType != LinphoneFriendListTypeVCard4) {
+		return LinphoneFriendListReadOnly;
+	}
 
-	std::list<std::shared_ptr<Vcard>> vcards =
+	std::vector<std::shared_ptr<Vcard>> vcards =
 	    VcardContext::toCpp(getCore()->getCCore()->vcard_context)->getVcardListFromBuffer(vcardBuffer);
 	if (vcards.empty()) {
 		lError() << "Failed to parse the buffer";
@@ -321,9 +343,11 @@ LinphoneStatus FriendList::importFriendsFromVcard4Buffer(const std::string &vcar
 }
 
 LinphoneStatus FriendList::importFriendsFromVcard4File(const std::string &vcardFile) {
-	if (isReadOnly()) return LinphoneFriendListReadOnly;
+	if (isReadOnly()) {
+		return LinphoneFriendListReadOnly;
+	}
 
-	std::list<std::shared_ptr<Vcard>> vcards =
+	std::vector<std::shared_ptr<Vcard>> vcards =
 	    VcardContext::toCpp(getCore()->getCCore()->vcard_context)->getVcardListFromFile(vcardFile);
 	if (vcards.empty()) {
 		lError() << "Failed to parse the file " << vcardFile;
@@ -360,99 +384,115 @@ void FriendList::createCardDavContextIfNotDoneYet() {
 }
 
 void FriendList::synchronizeFriendsFromServer() {
-	LinphoneCore *lc = getCore()->getCCore();
-
-	// Vcard4.0 list synchronisation
-	if (mType == LinphoneFriendListTypeVCard4) {
-		if (mUri.empty()) {
-			lError() << "Can't synchronize vCard4 list [" << toC() << "](" << getDisplayName() << ") without an URI";
-			return;
-		}
-
-		ms_message("Starting downloading vCard 4 list using URI [%s], any existing friends will be removed first",
-		           mUri.c_str());
-		// Clear any previously existing friends
-		removeFriends(false);
-		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_sync_status_changed,
-		                                  LinphoneFriendListSyncStarted, nullptr);
-
-		belle_http_request_listener_callbacks_t belle_request_listener = {0};
-		belle_generic_uri_t *uri = belle_generic_uri_parse(mUri.c_str());
-		belle_request_listener.process_auth_requested = [](void *ctx, belle_sip_auth_event_t *event) {
-			LinphoneFriendList *list = (LinphoneFriendList *)ctx;
-			linphone_core_fill_belle_sip_auth_event(FriendList::toCpp(list)->getCore()->getCCore(), event, NULL, NULL);
-		};
-		belle_request_listener.process_response = [](void *ctx, const belle_http_response_event_t *event) {
-			LinphoneFriendList *list = (LinphoneFriendList *)ctx;
-			FriendList *friendList = FriendList::toCpp(list);
-			const char *body = belle_sip_message_get_body(BELLE_SIP_MESSAGE(event->response));
-			if (body) {
-				int importedFriends = friendList->importFriendsFromVcard4Buffer(body);
-				if (importedFriends > 0) {
-					ms_message("Successfully downloaded and imported [%i] friends", importedFriends);
-					LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList,
-					                                  linphone_friend_list_cbs_get_sync_status_changed,
-					                                  LinphoneFriendListSyncSuccessful, nullptr);
-				} else {
-					ms_error("Failed to import downloaded vCards!");
-					LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList,
-					                                  linphone_friend_list_cbs_get_sync_status_changed,
-					                                  LinphoneFriendListSyncFailure, nullptr);
-				}
-			} else {
-				ms_warning("No body was received...");
-				LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList,
-				                                  linphone_friend_list_cbs_get_sync_status_changed,
-				                                  LinphoneFriendListSyncSuccessful, nullptr);
-			}
-		};
-		belle_request_listener.process_io_error = [](void *ctx, BCTBX_UNUSED(const belle_sip_io_error_event_t *event)) {
-			FriendList *list = FriendList::toCpp((LinphoneFriendList *)ctx);
-			LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, list, linphone_friend_list_cbs_get_sync_status_changed,
-			                                  LinphoneFriendListSyncFailure, "IO error");
-		};
-		belle_request_listener.process_timeout = [](void *ctx, BCTBX_UNUSED(const belle_sip_timeout_event_t *event)) {
-			FriendList *list = FriendList::toCpp((LinphoneFriendList *)ctx);
-			LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, list, linphone_friend_list_cbs_get_sync_status_changed,
-			                                  LinphoneFriendListSyncFailure, "Timeout reached");
-		};
-
-		// We free-up the existing listeners if the previous request was not cancelled properly
-		if (lc->base_contacts_list_http_listener) {
-			belle_sip_object_unref(lc->base_contacts_list_http_listener);
-			lc->base_contacts_list_http_listener = nullptr;
-		}
-
-		lc->base_contacts_list_http_listener =
-		    belle_http_request_listener_create_from_callbacks(&belle_request_listener, toC());
-		belle_http_request_t *request = belle_http_request_create(
-		    "GET", uri, belle_sip_header_create("User-Agent", linphone_core_get_user_agent(lc)), nullptr);
-		const auto &account = getCore()->getDefaultAccount();
-
-		// https://datatracker.ietf.org/doc/id/draft-ietf-vcarddav-vcardrev-02.html#mime_type_registration
-		belle_sip_message_add_header(BELLE_SIP_MESSAGE(request), belle_http_header_create("Accept", "text/vcard"));
-
-		if (account) {
-			std::string uri = account->getAccountParams()->getIdentityAddress()->asStringUriOnly();
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(request), belle_http_header_create("From", uri.c_str()));
-		}
-
-		belle_http_provider_send_request(getCore()->getHttpClient().getProvider(), request,
-		                                 lc->base_contacts_list_http_listener);
-	} else if (mType == LinphoneFriendListTypeCardDAV) {
-		if (mUri.empty()) {
-			lError() << "Can't synchronize CardDAV list [" << toC() << "](" << getDisplayName() << ") without an URI";
-			return;
-		}
-
-		// CardDav synchronisation
-		createCardDavContextIfNotDoneYet();
-		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_sync_status_changed,
-		                                  LinphoneFriendListSyncStarted, nullptr);
-		mCardDavContext->synchronize();
-	} else {
-		lError() << "Failed to create a CardDAV context for friend list [" << toC() << "] with URI [" << mUri << "]";
+	switch (mType) {
+		case LinphoneFriendListTypeVCard4:
+			synchronizeFriendsFromServerVcard4();
+			break;
+		case LinphoneFriendListTypeCardDAV:
+			synchronizeFriendsFromServerCardDav();
+			break;
+		default:
+			lError() << "Synchronization of friends from server for friendlist type other than Vcard4 and CardDAV";
+			break;
 	}
+}
+
+// Vcard4.0 list synchronisation
+void FriendList::synchronizeFriendsFromServerVcard4() {
+	if (mUri.empty()) {
+		lError() << "Can't synchronize vCard4 list [" << toC() << "](" << getDisplayName() << ") without an URI";
+		return;
+	}
+
+	lInfo() << "Starting downloading vCard 4 list using URI [" << mUri
+	        << "], any existing friends will be removed first";
+	// Clear any previously existing friends
+	removeFriends(false);
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_sync_status_changed,
+	                                  LinphoneFriendListSyncStarted, nullptr);
+
+	auto notifyFailure = [](auto friendList) {
+		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList, linphone_friend_list_cbs_get_sync_status_changed,
+		                                  LinphoneFriendListSyncFailure, nullptr);
+	};
+	auto notifySuccess = [](auto friendList) {
+		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList, linphone_friend_list_cbs_get_sync_status_changed,
+		                                  LinphoneFriendListSyncSuccessful, nullptr);
+	};
+
+	try {
+		auto &httpRequest = getCore()->getHttpClient().createRequest("GET", mUri);
+		httpRequest.addHeader("User-Agent", linphone_core_get_user_agent(getCore()->getCCore()));
+		// https://datatracker.ietf.org/doc/id/draft-ietf-vcarddav-vcardrev-02.html#mime_type_registration
+		httpRequest.addHeader("Accept", "text/vcard");
+		httpRequest.addHeader("Accept-Encoding", "gzip");
+		const auto &account = getCore()->getDefaultAccount();
+		if (account != nullptr) {
+			httpRequest.addHeader("From", account->getAccountParams()->getIdentityAddress()->asStringUriOnly());
+		}
+		httpRequest.execute([this, &notifyFailure, &notifySuccess](const HttpResponse &response) {
+			switch (response.getStatus()) {
+				case HttpResponse::Timeout:
+				case HttpResponse::InvalidRequest:
+				case HttpResponse::IOError:
+					notifyFailure(this);
+					break;
+				case HttpResponse::Valid: {
+					int statusCode = response.getHttpStatusCode();
+					if (statusCode != 200) {
+						lError() << "Failed getting friends from the server, received status code " << statusCode;
+						notifyFailure(this);
+						return;
+					}
+
+					const auto &body = response.getBody();
+					if (body.isEmpty()) {
+						lWarning() << "No body was received...";
+						notifySuccess(this);
+						return;
+					}
+
+					/// Parse the vcards asynchronously in a background thread, and then import the friends and notify
+					/// the result in the Core thread.
+					getCore()->doAsync([this, body, &notifyFailure, &notifySuccess]() -> void {
+						auto result = getVcardListFromBuffer(body.getBodyAsString());
+						auto status = result.first;
+						auto vcards = result.second;
+						if (status == LinphoneFriendListOK) {
+							getCore()->doLater([this, vcards, &notifyFailure, &notifySuccess]() -> void {
+								int importedFriends = importFriendsFromVcard4(vcards);
+								if (importedFriends > 0) {
+									lInfo()
+									    << "Successfully downloaded and imported [" << importedFriends << "] friends";
+									notifySuccess(this);
+								} else {
+									lError() << "Failed to import downloaded vCards!";
+									notifyFailure(this);
+								}
+							});
+						} else {
+							getCore()->doLater([&notifyFailure, this]() -> void { notifyFailure(this); });
+						}
+					});
+				} break;
+			}
+		});
+	} catch (const std::exception &) {
+		notifyFailure(this);
+	}
+}
+
+void FriendList::synchronizeFriendsFromServerCardDav() {
+	if (mUri.empty()) {
+		lError() << "Can't synchronize CardDAV list [" << toC() << "](" << getDisplayName() << ") without an URI";
+		return;
+	}
+
+	// CardDav synchronisation
+	createCardDavContextIfNotDoneYet();
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_sync_status_changed,
+	                                  LinphoneFriendListSyncStarted, nullptr);
+	mCardDavContext->synchronize();
 }
 
 void FriendList::updateDirtyFriends() {
@@ -659,20 +699,22 @@ LinphoneFriendListStatus FriendList::importFriend(const std::shared_ptr<Friend> 
 	return LinphoneFriendListOK;
 }
 
-LinphoneStatus FriendList::importFriendsFromVcard4(const std::list<std::shared_ptr<Vcard>> &vcards) {
-	if (!linphone_core_vcard_supported()) {
+LinphoneStatus FriendList::importFriendsFromVcard4(const std::vector<std::shared_ptr<Vcard>> &vcards) {
+	if (linphone_core_vcard_supported() == FALSE) {
 		lError() << "vCard support wasn't enabled at compilation time";
 		return -1;
 	}
 	int count = 0;
 	for (const auto &vcard : vcards) {
-		if (vcard->getUid().empty()) vcard->generateUniqueId();
+		if (vcard->getUid().empty()) {
+			vcard->generateUniqueId();
+		}
 		std::shared_ptr<Friend> f = Friend::create(getCore(), vcard);
 		if (importFriend(f, true) == LinphoneFriendListOK) {
-			f->saveInDb(), count++;
+			count++;
 		}
 	}
-	saveInDb();
+	saveInDb(true);
 	return count;
 }
 
@@ -1050,18 +1092,30 @@ void FriendList::removeFromDb() {
 	mStorageId = -1;
 }
 
-void FriendList::saveInDb() {
+void FriendList::saveInDb(BCTBX_UNUSED(bool saveFriends)) {
 #ifdef HAVE_DB_STORAGE
 	try {
 		if (getCore() && databaseStorageEnabled()) {
 			if (auto db = getCore()->getDatabase()) {
+				auto friends = mFriendsList.mList;
 				mStorageId = db.value().get().insertFriendList(getSharedFromThis());
+				if (saveFriends) {
+					const auto ids = db.value().get().batchInsertFriends(friends);
+					auto idIt = ids.begin();
+					auto friendsIt = friends.begin();
+					while (idIt != ids.end() && friendsIt != friends.end()) {
+						(*friendsIt)->mStorageId = *idIt;
+						idIt++, friendsIt++;
+					}
+				}
 			}
 		} else {
-			if (!mInhibitDbStorage)
+			if (!mInhibitDbStorage) {
 				lWarning() << "Can't save friend list [" << getDisplayName()
 				           << "] in DB, either Core is not available or database storage is disabled";
+			}
 		}
+
 	} catch (std::bad_weak_ptr &) {
 	}
 #endif

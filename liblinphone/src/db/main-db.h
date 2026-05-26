@@ -71,7 +71,7 @@ public:
 		ConferenceChatMessageSecurityFilter = 1 << 4
 	};
 
-	typedef EnumMask<Filter> FilterMask;
+	using FilterMask = EnumMask<Filter>;
 
 	struct ParticipantState {
 		ParticipantState(const std::shared_ptr<Address> &address, ChatMessage::State state, time_t timestamp)
@@ -225,7 +225,7 @@ public:
 	                    unsigned int notifyId = 0,
 	                    bool rewriteAllInformations = false);
 	void deleteChatRoom(const ConferenceId &conferenceId);
-	void updateNotifyId(const std::shared_ptr<AbstractChatRoom> &chatRoom, const unsigned int lastNotify);
+	void updateNotifyId(const std::shared_ptr<AbstractChatRoom> &chatRoom, unsigned int lastNotify);
 	void updateChatRoomConferenceId(const ConferenceId &oldConferenceId, const ConferenceId &newConferenceId);
 	void updateChatRoomLastUpdatedTime(const ConferenceId &conferenceId, time_t lastUpdatedTime);
 	void updateChatRoomMutedState(const ConferenceId &conferenceId, bool isMuted);
@@ -245,7 +245,7 @@ public:
 
 	std::list<std::shared_ptr<Participant>>
 	selectChatRoomParticipants(const std::shared_ptr<AbstractChatRoom> &chatRoom) const;
-	std::list<std::shared_ptr<Participant>> selectChatRoomParticipants(const long long chatRoomId) const;
+	std::list<std::shared_ptr<Participant>> selectChatRoomParticipants(long long chatRoomId) const;
 	std::map<long long, std::list<std::shared_ptr<Participant>>>
 	selectChatRoomParticipants(const std::vector<long long> &chatRoomIds) const;
 	void insertChatRoomParticipant(const std::shared_ptr<AbstractChatRoom> &chatRoom,
@@ -265,11 +265,11 @@ public:
 	// Conference Info.
 	// ---------------------------------------------------------------------------
 
-	std::list<std::shared_ptr<ConferenceInfo>>
-	getConferenceInfos(time_t afterThisTime = -1, const std::list<LinphoneStreamType> capabilities = {});
+	std::list<std::shared_ptr<ConferenceInfo>> getConferenceInfos(time_t afterThisTime = -1,
+	                                                              std::list<LinphoneStreamType> capabilities = {});
 	std::list<std::shared_ptr<ConferenceInfo>>
 	getConferenceInfosWithParticipant(const std::shared_ptr<Address> &address,
-	                                  const std::list<LinphoneStreamType> capabilities = {});
+	                                  std::list<LinphoneStreamType> capabilities = {});
 	std::shared_ptr<ConferenceInfo> getConferenceInfo(long long conferenceInfoId);
 	std::shared_ptr<ConferenceInfo> getConferenceInfoFromURI(const std::shared_ptr<Address> &uri);
 	std::shared_ptr<ConferenceInfo> getConferenceInfoFromCcmpUri(const std::string &uri);
@@ -310,6 +310,7 @@ public:
 	// ---------------------------------------------------------------------------
 	// Friend & FriendList.
 	// ---------------------------------------------------------------------------
+	std::list<long long> batchInsertFriends(const std::list<std::shared_ptr<Friend>> &friends);
 	long long insertFriend(const std::shared_ptr<Friend> &f);
 	long long insertFriendList(const std::shared_ptr<FriendList> &list);
 	void deleteFriend(const std::shared_ptr<Friend> &f);
@@ -349,10 +350,10 @@ private:
 
 	void initCleanup();
 	static Address processConferenceAddress(const std::shared_ptr<Address> &uri);
-	void deleteConferenceInfo(const Address address, bool doCleanup = true);
+	void deleteConferenceInfo(Address address, bool doCleanup = true);
 
-	typedef std::unordered_map<ConferenceId, ChatRoomContext, ConferenceId::WeakHash, ConferenceId::WeakEqual>
-	    ChatRoomContextWeakCompareMap;
+	using ChatRoomContextWeakCompareMap =
+	    std::unordered_map<ConferenceId, ChatRoomContext, ConferenceId::WeakHash, ConferenceId::WeakEqual>;
 	bool addChatroomToList(ChatRoomContextWeakCompareMap &chatRoomsMap,
 	                       const std::shared_ptr<AbstractChatRoom> &chatRoom,
 	                       long long id,
