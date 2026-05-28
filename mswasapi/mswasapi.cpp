@@ -37,6 +37,7 @@
 static const int minBufferDurationMs = 200; // ms
 
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
+const IID IID_IAudioClock = __uuidof(IAudioClock);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 const IID IID_ISimpleAudioVolume = __uuidof(ISimpleAudioVolume);
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL) || defined(MS2_WINDOWS_UWP)
