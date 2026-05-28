@@ -284,6 +284,28 @@ BELLESIP_EXPORT void belle_sip_stack_enable_reconnect_to_primary_asap(belle_sip_
 BELLESIP_EXPORT int belle_sip_stack_reconnect_to_primary_asap_enabled(const belle_sip_stack_t *stack);
 
 /**
+ * Control how the TLS server certificate's Common Name (or Subject Alternative Name) is verified
+ * during TLS handshake.
+ * When set to 0 (the default), the verification is performed against the AUS (Address-of-record
+ * Used in SIP) domain, as required by RFC 5922.
+ * When set to 1, the verification is performed against the SRV target (the actual host name
+ * returned by the SRV DNS resolution). This is useful to connect to SIP networks whose TLS
+ * certificates do not conform to RFC 5922 section 7.3.
+ * @param stack
+ * @param enabled 0 to verify against the AUS domain (RFC 5922 compliant), 1 to verify against the
+ * SRV target.
+ **/
+BELLESIP_EXPORT void belle_sip_stack_enable_verify_server_cn_against_srv_target(belle_sip_stack_t *stack, int enabled);
+
+/**
+ * Returns whether the TLS server certificate's Common Name is verified against the SRV target
+ * rather than against the AUS domain.
+ * @param stack
+ * @see belle_sip_stack_enable_verify_server_cn_against_srv_target()
+ **/
+BELLESIP_EXPORT int belle_sip_stack_verify_server_cn_against_srv_target_enabled(const belle_sip_stack_t *stack);
+
+/**
  * Configure security policies for digest authentication.
  */
 BELLESIP_EXPORT void belle_sip_stack_set_digest_authentication_policy(belle_sip_stack_t *stack,

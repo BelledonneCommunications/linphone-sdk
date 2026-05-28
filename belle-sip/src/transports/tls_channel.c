@@ -910,7 +910,10 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 
 	bctbx_ssl_context_setup(obj->sslctx, obj->sslcfg);
 	bctbx_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
-	bctbx_ssl_set_hostname(obj->sslctx, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
+	if (super->base.stack->verify_server_cn_against_srv_target && super->base.current_peer_cname)
+		bctbx_ssl_set_hostname(obj->sslctx, super->base.current_peer_cname);
+	else bctbx_ssl_set_hostname(obj->sslctx, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
+
 	return 0;
 }
 
