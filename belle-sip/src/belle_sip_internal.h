@@ -737,6 +737,7 @@ struct belle_sip_stack {
 	unsigned char dns_search_enabled;
 	unsigned char reconnect_to_primary_asap;
 	unsigned char simulate_non_working_srv;
+	unsigned char verify_server_cn_against_srv_target;
 	unsigned char
 	    ai_family_preference; /* AF_INET or AF_INET6, the address family to try first for outgoing connections.*/
 #ifdef HAVE_DNS_SERVICE

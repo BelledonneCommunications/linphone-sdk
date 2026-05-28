@@ -487,6 +487,14 @@ int belle_sip_stack_reconnect_to_primary_asap_enabled(const belle_sip_stack_t *s
 	return stack->reconnect_to_primary_asap;
 }
 
+void belle_sip_stack_enable_verify_server_cn_against_srv_target(belle_sip_stack_t *stack, int enabled) {
+	stack->verify_server_cn_against_srv_target = enabled ? 1 : 0;
+}
+
+int belle_sip_stack_verify_server_cn_against_srv_target_enabled(const belle_sip_stack_t *stack) {
+	return stack->verify_server_cn_against_srv_target;
+}
+
 void belle_sip_stack_set_digest_authentication_policy(belle_sip_stack_t *stack,
                                                       belle_sip_digest_authentication_policy_t *policy) {
 	SET_OBJECT_PROPERTY(stack, digest_auth_policy, policy);
