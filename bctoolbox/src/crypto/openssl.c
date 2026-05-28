@@ -381,7 +381,7 @@ bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t
 			int nSubAltNames = pSubAltNames == NULL ? 0 : sk_GENERAL_NAME_num(pSubAltNames);
 			for (int j = 0; j < nSubAltNames; j++) {
 				GENERAL_NAME *subAltName = sk_GENERAL_NAME_value(pSubAltNames, i);
-				if (subAltName && subAltName->type == GEN_DNS) {
+				if (subAltName && (subAltName->type == GEN_DNS || subAltName->type == GEN_URI)) {
 					BIO *buffer = BIO_new(BIO_s_mem());
 					char *subject_alt_name_buf = bctbx_malloc0(subject_name_buf_len);
 					ASN1_STRING_print(buffer, subAltName->d.ia5);

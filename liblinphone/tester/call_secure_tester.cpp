@@ -1286,20 +1286,9 @@ static bool isCurrentCallUsingDtls(LinphoneCoreManager *mgr) {
 }
 
 // Pauline and Marie both use valid client certificates for DTLS-SRTP and they verify peer certificates
-static void dtls_srtp_call_with_clients_certificates(void) {
-	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
-	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
 
-	add_user_to_core_config(marie->lc, "sip:user_1@sip.example.org", "user_1", "sip.example.org",
-	                        "sip:sip.example.org; transport=tls", "secret");
-	add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
-	                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBuffer);
+static void dtls_srtp_call_with_clients_certificates_base(LinphoneCoreManager *marie, LinphoneCoreManager *pauline) {
 	setDtlsSrtpVerifyCertInDefaultAccount(marie->lc, TRUE);
-
-	add_user_to_core_config(pauline->lc, "sip:user_2@sip.example.org", "user_2", "sip.example.org",
-	                        "sip:sip.example.org; transport=tls", "secret");
-	add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_cert.pem",
-	                           "certificates/client/user2_key.pem", CertProviderConfigAuthInfoPath);
 	setDtlsSrtpVerifyCertInDefaultAccount(pauline->lc, TRUE);
 
 	LinphoneVideoActivationPolicy *vpol = linphone_factory_create_video_activation_policy(linphone_factory_get());
@@ -1357,6 +1346,38 @@ static void dtls_srtp_call_with_clients_certificates(void) {
 
 	linphone_core_manager_destroy(pauline);
 	linphone_core_manager_destroy(marie);
+}
+
+static void dtls_srtp_call_with_clients_certificates_in_SAN_DNS(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
+	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
+
+	add_user_to_core_config(marie->lc, "sip:user_1@sip.example.org", "user_1", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
+	                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBuffer);
+
+	add_user_to_core_config(pauline->lc, "sip:user_2@sip.example.org", "user_2", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_cert.pem",
+	                           "certificates/client/user2_key.pem", CertProviderConfigAuthInfoPath);
+	dtls_srtp_call_with_clients_certificates_base(marie, pauline);
+}
+static void dtls_srtp_call_with_clients_certificates_in_SAN_URI(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
+	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
+
+	add_user_to_core_config(marie->lc, "sip:user_1@sip.example.org", "user_1", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
+	                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBuffer);
+
+	add_user_to_core_config(pauline->lc, "sip:user_2@sip.example.org", "user_2", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_SAN_URI.pem",
+	                           "certificates/client/user2_SAN_URI_key.pem", CertProviderConfigAuthInfoPath);
+
+	dtls_srtp_call_with_clients_certificates_base(marie, pauline);
 }
 
 // Marie uses a client certificate and verify Pauline's one but Pauline uses a self-signed one
@@ -1433,6 +1454,8 @@ static void dtls_srtp_call_with_missing_client_certificate(void) {
 	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallMediaEncryptionFailed,
 	                              initial_pauline_stats.number_of_LinphoneCallMediaEncryptionFailed + 1, 1000));
 	BC_ASSERT_FALSE(isCurrentCallUsingDtls(pauline));
+	int dummy = 0;
+	wait_for_until(pauline->lc, marie->lc, &dummy, 1, 50); /* Wait stats to be updated. */
 	// Pauline has no details on why the handshake failed
 	LinphoneCallStats *pauline_stats = linphone_call_get_audio_stats(pauline_call);
 	BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(pauline_stats) ==
@@ -1550,6 +1573,8 @@ static void dtls_srtp_call_with_unmatching_client_certificates(void) {
 		                              initial_pauline_stats.number_of_LinphoneCallMediaEncryptionFailed + 1, 4000));
 		BC_ASSERT_FALSE(isCurrentCallUsingDtls(pauline));
 		// Pauline has no details on why the handshake failed
+		int dummy = 0;
+		wait_for_until(pauline->lc, marie->lc, &dummy, 1, 50); /* Wait stats to be updated. */
 		LinphoneCallStats *pauline_stats = linphone_call_get_audio_stats(pauline_call);
 		BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(pauline_stats) ==
 		               LinphoneMediaEncryptionErrorDtlsHandshakeFail);
@@ -2693,8 +2718,14 @@ static test_t call_secure2_tests[] = {
     TEST_NO_TAG("Video SRTP call without audio", video_srtp_call_without_audio),
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux", dtls_srtp_audio_call_with_rtcp_mux, "DTLS"),
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux not accepted", dtls_srtp_audio_call_with_rtcp_mux_not_accepted, "DTLS"),
-    TEST_TWO_TAGS(
-        "DTLS SRTP call with valid client certificates", dtls_srtp_call_with_clients_certificates, "DTLS", "CRYPTO"),
+    TEST_TWO_TAGS("DTLS SRTP call with valid client certificates, ID in SAN DNS",
+                  dtls_srtp_call_with_clients_certificates_in_SAN_DNS,
+                  "DTLS",
+                  "CRYPTO"),
+    TEST_TWO_TAGS("DTLS SRTP call with valid client certificates, ID in SAN URI",
+                  dtls_srtp_call_with_clients_certificates_in_SAN_URI,
+                  "DTLS",
+                  "CRYPTO"),
     TEST_TWO_TAGS("DTLS SRTP call with missing client certificate",
                   dtls_srtp_call_with_missing_client_certificate,
                   "DTLS",

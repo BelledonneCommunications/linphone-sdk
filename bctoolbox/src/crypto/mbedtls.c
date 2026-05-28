@@ -272,10 +272,15 @@ bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t
 		mbedtls_x509_crt *mbedtls_cert = (mbedtls_x509_crt *)cert;
 		/* parse subjectAltName if any */
 		if (mbedtls_x509_crt_has_ext_type(mbedtls_cert, MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) != 0) {
-			const mbedtls_x509_sequence *cur = &(mbedtls_cert->subject_alt_names);
-			while (cur != NULL) {
-				ret = bctbx_list_append(ret, bctbx_strndup((const char *)cur->buf.p, (int)cur->buf.len));
-				cur = cur->next;
+			for (const mbedtls_x509_sequence *cur = &(mbedtls_cert->subject_alt_names); cur != NULL; cur = cur->next) {
+				mbedtls_x509_subject_alternative_name san;
+				if (mbedtls_x509_parse_subject_alt_name(&cur->buf, &san) == 0) {
+					if (san.type == MBEDTLS_X509_SAN_DNS_NAME ||
+					    san.type == MBEDTLS_X509_SAN_UNIFORM_RESOURCE_IDENTIFIER) { // get only DNS or URI subjects
+						ret = bctbx_list_append(ret, bctbx_strndup((const char *)san.san.unstructured_name.p,
+						                                           (int)san.san.unstructured_name.len));
+					}
+				}
 			}
 		}
 

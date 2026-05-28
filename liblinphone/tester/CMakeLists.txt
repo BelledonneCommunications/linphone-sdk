@@ -123,6 +123,8 @@ set(CERTIFICATE_CLIENT_FILES
 	certificates/client/user2_revoked_cert.pem
 	certificates/client/user2_revoked_key.pem
 	certificates/client/valid-linphone-dtls-default-identity.pem
+	certificates/client/user2_SAN_URI.pem
+	certificates/client/user2_SAN_URI_key.pem
 )
 
 set(CERTIFICATE_FILES ${CERTIFICATE_ALT_FILES} ${CERTIFICATE_CN_FILES} ${CERTIFICATE_CLIENT_FILES})
