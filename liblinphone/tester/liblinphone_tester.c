@@ -27,6 +27,10 @@
 
 #include "liblinphone_tester.h"
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
+
 static FILE *log_file = NULL;
 
 static const char *liblinphone_helper =
@@ -556,9 +560,12 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&dtls_srtp_ice_capability_negotiation_test_suite, 101);
 #ifdef VIDEO_ENABLED
 	liblinphone_tester_add_suite_with_default_time(&video_test_suite, 19);
+#if defined(__ANDROID__) || TARGET_OS_IPHONE
 	liblinphone_tester_add_suite_with_default_time(&call_video_test_suite, 620);
+#else
 	liblinphone_tester_add_suite_with_default_time(&call_video_msogl_test_suite,
 	                                               577); // Conditionals are defined in suite
+#endif
 	liblinphone_tester_add_suite_with_default_time(&call_video_advanced_scenarios_test_suite, 168);
 	liblinphone_tester_add_suite_with_default_time(&call_video_quality_test_suite, 455);
 	liblinphone_tester_add_suite_with_default_time(&alerts_test_suite, 90);
