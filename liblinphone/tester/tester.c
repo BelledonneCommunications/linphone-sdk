@@ -208,7 +208,7 @@ int liblinphone_tester_audio_diff(const char *ref_file,
                                   MSAudioDiffProgressNotify func,
                                   void *user_data) {
 	int ret_value;
-#ifndef _WIN32
+#if 0
 	const int current_priority = getpriority(PRIO_PROCESS, 0);
 	/* be nice */
 	int err = setpriority(PRIO_PROCESS, 0, 5);
@@ -218,7 +218,7 @@ int liblinphone_tester_audio_diff(const char *ref_file,
 #endif
 
 	ret_value = ms_audio_diff(ref_file, matched_file, ret, params, func, user_data);
-#ifndef _WIN32
+#if 0
 	err = setpriority(PRIO_PROCESS, 0, current_priority);
 	if (err != 0) {
 		ms_warning("liblinphone_tester_audio_diff(): cannot restore priority to [%i]: %s", current_priority,
@@ -425,9 +425,7 @@ bool_t wait_for_list(bctbx_list_t *lcs, const int *counter, int value, int timeo
 			linphone_core_iterate((LinphoneCore *)(iterator->data));
 		}
 #ifdef LINPHONE_WINDOWS_UWP
-		{
-			bc_tester_process_events();
-		}
+		{ bc_tester_process_events(); }
 #elif defined(LINPHONE_WINDOWS_DESKTOP)
 		{
 			MSG msg;
@@ -457,9 +455,7 @@ bool_t wait_for_list_for_uint64(bctbx_list_t *lcs, const uint64_t *counter, uint
 			linphone_core_iterate((LinphoneCore *)(iterator->data));
 		}
 #ifdef LINPHONE_WINDOWS_UWP
-		{
-			bc_tester_process_events();
-		}
+		{ bc_tester_process_events(); }
 #elif defined(LINPHONE_WINDOWS_DESKTOP)
 		{
 			MSG msg;
