@@ -157,7 +157,7 @@ LINPHONE_PUBLIC void
 linphone_remote_contact_directory_set_timeout(LinphoneRemoteContactDirectory *remote_contact_directory,
                                               unsigned int seconds);
 /**
- * Set the delay between each search in milliseconds.
+ * Sets the delay between each search in milliseconds.
  * Only available for #LinphoneRemoteContactDirectoryTypeLdap
  * Default value : 500.
  *
@@ -168,7 +168,7 @@ LINPHONE_PUBLIC void
 linphone_remote_contact_directory_set_delay(LinphoneRemoteContactDirectory *remote_contact_directory, int milliseconds);
 
 /**
- * Get the delay between each search in milliseconds.
+ * Gets the delay between each search in milliseconds.
  * Only available for #LinphoneRemoteContactDirectoryTypeLdap
  * @param remote_contact_directory The #LinphoneRemoteContactDirectory object. @notnil
  * @return The delay in milliseconds.

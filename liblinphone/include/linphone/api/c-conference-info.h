@@ -33,7 +33,7 @@ extern "C" {
  */
 
 /**
- * Create a new #LinphoneConferenceInfo object.
+ * Creates a new #LinphoneConferenceInfo object.
  * @return The newly created #LinphoneConferenceInfo object. @notnil
  */
 LINPHONE_PUBLIC LinphoneConferenceInfo *linphone_conference_info_new(void);
@@ -243,9 +243,9 @@ LINPHONE_PUBLIC void linphone_conference_info_set_subject_utf8(LinphoneConferenc
 /**
  * Sets the CCMP URI of the conference.
  * @param conference_info The #LinphoneConferenceInfo object. @notnil
- * @param uri The URI of the conference in the CCMP server. @maybenil
+ * @param URI The URI of the conference in the CCMP server. @maybenil
  */
-LINPHONE_PUBLIC void linphone_conference_info_set_ccmp_uri(LinphoneConferenceInfo *conference_info, const char *uri);
+LINPHONE_PUBLIC void linphone_conference_info_set_ccmp_uri(LinphoneConferenceInfo *conference_info, const char *URI);
 
 /**
  * Retrieve the CCMP URI of the conference.
@@ -314,7 +314,7 @@ LINPHONE_PUBLIC void linphone_conference_info_set_capability(LinphoneConferenceI
                                                              bool_t enable);
 
 /**
- * Get the capability of the conference.
+ * Gets the capability of the conference.
  * The capability information represents the capability for the conference linked to the #LinphoneConferenceInfo to
  * handle a given stream type (audio, video or text).
  * @param conference_info A #LinphoneConferenceInfo object @notnil

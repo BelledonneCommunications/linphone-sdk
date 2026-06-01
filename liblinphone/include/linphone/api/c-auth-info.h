@@ -97,10 +97,10 @@ LINPHONE_PUBLIC void linphone_auth_info_set_available_algorithms(LinphoneAuthInf
                                                                  const bctbx_list_t *algorithms);
 
 /**
- * Add an unique algorithm in the the available algorithms list : Algorithms that already exist will not be added.
+ * Adds a unique algorithm to the available algorithms list. Algorithms that already exist will not be added.
  * @param auth_info The #LinphoneAuthInfo object. @notnil
  * @param algorithm The algorithm to add. @maybenil
- **/
+ */
 LINPHONE_PUBLIC void linphone_auth_info_add_available_algorithm(LinphoneAuthInfo *auth_info, const char *algorithm);
 
 /**
@@ -309,71 +309,71 @@ LINPHONE_PUBLIC void linphone_auth_info_set_access_token(LinphoneAuthInfo *auth_
 LINPHONE_PUBLIC void linphone_auth_info_set_refresh_token(LinphoneAuthInfo *auth_info, LinphoneBearerToken *token);
 
 /**
- * Set the authorization server uri.
+ * Sets the authorization server URI.
  * @param auth_info The #LinphoneAuthInfo object. @notnil
- * @param uri the authorization server uri. @maybenil
+ * @param uri The authorization server URI. @maybenil
  */
 LINPHONE_PUBLIC void linphone_auth_info_set_authorization_server(LinphoneAuthInfo *auth_info, const char *uri);
 
 /**
- * Get the previously set authorization server uri.
+ * Gets the previously set authorization server URI.
  * @param auth_info The #LinphoneAuthInfo object. @notnil
- * @return the authorization server uri. @maybenil
+ * @return The authorization server URI. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_auth_info_get_authorization_server(const LinphoneAuthInfo *auth_info);
 
 /**
- * Get the previously set token endpoint https uri (OAUTH2).
+ * Gets the previously set token endpoint HTTPS URI (OAUTH2).
  * @param auth_info The #LinphoneAuthInfo object. @notnil
- * @return the token endpoint uri. @maybenil
+ * @return The token endpoint URI. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_auth_info_get_token_endpoint_uri(const LinphoneAuthInfo *auth_info);
 
 /**
- * Set the token endpoint https uri (OAUTH2). The token endpoint uri is used
+ * Sets the token endpoint HTTPS URI (OAUTH2). The token endpoint URI is used
  * to renew access token from refresh token.
  * @see linphone_auth_info_set_refresh_token()
  * @param auth_info The #LinphoneAuthInfo object. @notnil
- * @param uri the token endpoint uri. @maybenil
+ * @param uri The token endpoint URI. @maybenil
  */
 LINPHONE_PUBLIC void linphone_auth_info_set_token_endpoint_uri(LinphoneAuthInfo *auth_info, const char *uri);
 
 /**
- * Get the previously set OAUTH2 client_id.
+ * Gets the previously set OAUTH2 client_id.
  * @param auth_info The #LinphoneAuthInfo object. @notnil
- * @return the client_id. @maybenil
+ * @return The client_id. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_auth_info_get_client_id(const LinphoneAuthInfo *auth_info);
 
 /**
- * Set the OAUTH2 client_id. The client_id may be used
+ * Sets the OAUTH2 client_id. The client_id may be used
  * to renew access token from refresh token.
  * If a client_secret is required, it has to be set through linphone_auth_info_set_client_secret().
  * @see linphone_auth_info_set_refresh_token()
  * @param auth_info The #LinphoneAuthInfo object. @notnil
- * @param client_id the client_id. @maybenil
+ * @param client_id The client_id. @maybenil
  */
 LINPHONE_PUBLIC void linphone_auth_info_set_client_id(LinphoneAuthInfo *auth_info, const char *client_id);
 
 /**
- * Get the previously set OAUTH2 client_secret.
+ * Gets the previously set OAUTH2 client_secret.
  * @param auth_info The #LinphoneAuthInfo object. @notnil
- * @return the client_secret. @maybenil
+ * @return The client_secret. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_auth_info_get_client_secret(const LinphoneAuthInfo *auth_info);
 
 /**
- * Set the OAUTH2 client_secret. The client_secret may be used
+ * Sets the OAUTH2 client_secret. The client_secret may be used
  * to renew access token from refresh token.
  *
  * @see linphone_auth_info_set_refresh_token()
  * @param auth_info The #LinphoneAuthInfo object. @notnil
- * @param client_secret the client_secret. @maybenil
+ * @param client_secret The client_secret. @maybenil
  */
 LINPHONE_PUBLIC void linphone_auth_info_set_client_secret(LinphoneAuthInfo *auth_info, const char *client_secret);
 
 /**
- * Get the expiration time for the current authentication information.
+ * Gets the expiration time for the current authentication information.
  * @param auth_info The #LinphoneAuthInfo object. @notnil
  * @return The expiration time as a number of seconds since the Epoch, 1970-01-01 00:00:00 +0000 (UTC)
  */

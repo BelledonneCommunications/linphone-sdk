@@ -35,7 +35,7 @@ extern "C" {
  * @{
  */
 /**
- * Create a new participant device callbacks object.
+ * Creates a new participant device callbacks object.
  * @return The #LinphoneParticipantDeviceCbs object. @notnil
  **/
 LinphoneParticipantDeviceCbs *linphone_participant_device_cbs_new(void);
@@ -68,7 +68,7 @@ LINPHONE_PUBLIC void *linphone_participant_device_cbs_get_user_data(const Linpho
 LINPHONE_PUBLIC void linphone_participant_device_cbs_set_user_data(LinphoneParticipantDeviceCbs *cbs, void *ud);
 
 /**
- * Get the is this participant device speaking changed callback.
+ * Gets the is this participant device speaking changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @return The current is this participant device speaking changed callback.
  */
@@ -76,7 +76,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsIsSpeakingChangedCb
 linphone_participant_device_cbs_get_is_speaking_changed(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the is this participant device speaking changed callback.
+ * Sets the is this participant device speaking changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @param[in] cb The is this participant device speaking changed callback to be used.
  */
@@ -85,7 +85,7 @@ linphone_participant_device_cbs_set_is_speaking_changed(LinphoneParticipantDevic
                                                         LinphoneParticipantDeviceCbsIsSpeakingChangedCb cb);
 
 /**
- * Get the is this participant device muted callback.
+ * Gets the is this participant device muted callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @return The current is this participant device muted callback.
  */
@@ -93,7 +93,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsIsMutedCb
 linphone_participant_device_cbs_get_is_muted(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the is this participant device muted callback.
+ * Sets the is this participant device muted callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @param[in] cb The is this participant device muted callback to be used.
  */
@@ -101,7 +101,7 @@ LINPHONE_PUBLIC void linphone_participant_device_cbs_set_is_muted(LinphonePartic
                                                                   LinphoneParticipantDeviceCbsIsMutedCb cb);
 
 /**
- * Get the is this participant device screen sharing changed callback.
+ * Gets the is this participant device screen sharing changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @return The current is this participant device screen sharing callback.
  */
@@ -109,7 +109,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsScreenSharingChangedCb
 linphone_participant_device_cbs_get_screen_sharing_changed(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the is this participant device screen sharing changed callback.
+ * Sets the is this participant device screen sharing changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @param[in] cb The is this participant device screen sharing callback to be used.
  */
@@ -118,7 +118,7 @@ linphone_participant_device_cbs_set_screen_sharing_changed(LinphoneParticipantDe
                                                            LinphoneParticipantDeviceCbsScreenSharingChangedCb cb);
 
 /**
- * Get the participant device conference state changed callback.
+ * Gets the participant device conference state changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @return The current participant device conference state changed callback.
  */
@@ -126,7 +126,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsStateChangedCb
 linphone_participant_device_cbs_get_state_changed(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the participant device conference state changed callback.
+ * Sets the participant device conference state changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @param[in] cb The participant device conference state changed callback to be used.
  */
@@ -134,7 +134,7 @@ LINPHONE_PUBLIC void linphone_participant_device_cbs_set_state_changed(LinphoneP
                                                                        LinphoneParticipantDeviceCbsStateChangedCb cb);
 
 /**
- * Get the participant device stream capability changed callback.
+ * Gets the participant device stream capability changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @return The current participant device stream capability changed callback.
  */
@@ -142,7 +142,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsStreamCapabilityChangedCb
 linphone_participant_device_cbs_get_stream_capability_changed(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the participant device stream capability changed callback.
+ * Sets the participant device stream capability changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @param[in] cb The participant device stream capability changed callback to be used.
  */
@@ -151,7 +151,7 @@ linphone_participant_device_cbs_set_stream_capability_changed(LinphoneParticipan
                                                               LinphoneParticipantDeviceCbsStreamCapabilityChangedCb cb);
 
 /**
- * Get the participant device thumbnail stream capability changed callback.
+ * Gets the participant device thumbnail stream capability changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @return The current participant device thumbnail stream capability changed callback.
  */
@@ -159,7 +159,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsThumbnailStreamCapabilityChangedCb
 linphone_participant_device_cbs_get_thumbnail_stream_capability_changed(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the participant device thumbnail stream capability changed callback.
+ * Sets the participant device thumbnail stream capability changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @param[in] cb The participant device thumbnail stream capability changed callback to be used.
  */
@@ -167,7 +167,7 @@ LINPHONE_PUBLIC void linphone_participant_device_cbs_set_thumbnail_stream_capabi
     LinphoneParticipantDeviceCbs *cbs, LinphoneParticipantDeviceCbsThumbnailStreamCapabilityChangedCb cb);
 
 /**
- * Get the participant device stream availability changed callback.
+ * Gets the participant device stream availability changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @return The current participant device stream availability changed callback.
  */
@@ -175,7 +175,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsStreamAvailabilityChangedCb
 linphone_participant_device_cbs_get_stream_availability_changed(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the participant device stream availability changed callback.
+ * Sets the participant device stream availability changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @param[in] cb The participant device stream availability changed callback to be used.
  */
@@ -183,7 +183,7 @@ LINPHONE_PUBLIC void linphone_participant_device_cbs_set_stream_availability_cha
     LinphoneParticipantDeviceCbs *cbs, LinphoneParticipantDeviceCbsStreamAvailabilityChangedCb cb);
 
 /**
- * Get the participant device thumbnail stream availability changed callback.
+ * Gets the participant device thumbnail stream availability changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @return The current participant device thumbnail stream availability changed callback.
  */
@@ -191,7 +191,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsThumbnailStreamAvailabilityChangedCb
 linphone_participant_device_cbs_get_thumbnail_stream_availability_changed(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the participant device thumbnail stream availability changed callback.
+ * Sets the participant device thumbnail stream availability changed callback.
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object @notnil
  * @param[in] cb The participant device thumbnail stream availability changed callback to be used.
  */
@@ -199,7 +199,7 @@ LINPHONE_PUBLIC void linphone_participant_device_cbs_set_thumbnail_stream_availa
     LinphoneParticipantDeviceCbs *cbs, LinphoneParticipantDeviceCbsThumbnailStreamAvailabilityChangedCb cb);
 
 /**
- * Get the callback that will be used to notify that there are errors from the video rendering of the participant
+ * Gets the callback that will be used to notify that there are errors from the video rendering of the participant
  * device. Check #LinphoneCallCbsVideoDisplayErrorOccurredCb for more details.
  *
  * @param[in] cbs The #LinphoneParticipantDeviceCbs object. @notnil
@@ -209,7 +209,7 @@ LINPHONE_PUBLIC LinphoneParticipantDeviceCbsVideoDisplayErrorOccurredCb
 linphone_participant_device_cbs_get_video_display_error_occurred(const LinphoneParticipantDeviceCbs *cbs);
 
 /**
- * Set the callback that will be used to notify that there are errors from the video rendering of the participant
+ * Sets the callback that will be used to notify that there are errors from the video rendering of the participant
  * device. Check #LinphoneCallCbsVideoDisplayErrorOccurredCb for more details.
  *
  * @param[in] cbs The #LinphoneCallCbs object. @notnil

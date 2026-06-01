@@ -267,8 +267,8 @@ typedef void (*LinphoneCoreCbsNewMessageReactionCb)(LinphoneCore *core,
  * @param core #LinphoneCore object @notnil
  * @param chat_room #LinphoneChatRoom involved in this conversation. Can be created by the framework in case the
  * From-URI is not present in any chat room. @notnil
- * @param message the #LinphoneChatMessage to which a reaction has been removed from @notnil
- * @param address the #LinphoneAddress of the person that removed it's reaction @notnil
+ * @param message the #LinphoneChatMessage from which a reaction has been removed @notnil
+ * @param address the #LinphoneAddress of the person that removed its reaction @notnil
  */
 typedef void (*LinphoneCoreCbsReactionRemovedCb)(LinphoneCore *core,
                                                  LinphoneChatRoom *chat_room,

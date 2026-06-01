@@ -336,25 +336,25 @@ LINPHONE_PUBLIC void linphone_tunnel_enable_sip(LinphoneTunnel *tunnel, bool_t e
 LINPHONE_PUBLIC bool_t linphone_tunnel_sip_enabled(const LinphoneTunnel *tunnel);
 
 /**
- * Set an optional http proxy to go through when connecting to tunnel server.
+ * Sets an optional HTTP proxy to go through when connecting to tunnel server.
  * @param tunnel #LinphoneTunnel object @notnil
- * @param host http proxy host @notnil
- * @param port http proxy port
- * @param username Optional http proxy username if the proxy request authentication. Currently only basic authentication
- *is supported. Use NULL if not needed. @maybenil
- * @param passwd Optional http proxy password. Use NULL if not needed. @maybenil
- **/
+ * @param host HTTP proxy host @notnil
+ * @param port HTTP proxy port
+ * @param username Optional HTTP proxy username if the proxy requests authentication. Currently only basic
+ * authentication is supported. Use NULL if not needed. @maybenil
+ * @param passwd Optional HTTP proxy password. Use NULL if not needed. @maybenil
+ */
 LINPHONE_PUBLIC void linphone_tunnel_set_http_proxy(
     LinphoneTunnel *tunnel, const char *host, int port, const char *username, const char *passwd);
 
 /**
- * Retrieve optional http proxy configuration previously set with linphone_tunnel_set_http_proxy().
+ * Retrieves optional HTTP proxy configuration previously set with linphone_tunnel_set_http_proxy().
  * @param tunnel #LinphoneTunnel object
- * @param host http proxy host
- * @param port http proxy port
- * @param username Optional http proxy username if the proxy request authentication. Currently only basic authentication
- *is supported. Use NULL if not needed. @maybenil
- * @param passwd Optional http proxy password. Use NULL if not needed. @maybenil
+ * @param host HTTP proxy host
+ * @param port HTTP proxy port
+ * @param username Optional HTTP proxy username if the proxy requests authentication. Currently only basic
+ *authentication is supported. Use NULL if not needed. @maybenil
+ * @param passwd Optional HTTP proxy password. Use NULL if not needed. @maybenil
  * @donotwrap
  **/
 LINPHONE_PUBLIC void linphone_tunnel_get_http_proxy(

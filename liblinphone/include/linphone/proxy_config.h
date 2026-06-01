@@ -502,22 +502,22 @@ LINPHONE_PUBLIC void linphone_proxy_config_set_privacy(LinphoneProxyConfig *prox
 LINPHONE_PUBLIC LinphonePrivacyMask linphone_proxy_config_get_privacy(const LinphoneProxyConfig *proxy_config);
 
 /**
- * Set the http file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml
- * Url may be like: "https://file.linphone.org/upload.php".
+ * Sets the HTTP file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml.
+ * URL may be like: "https://file.linphone.org/upload.php".
  * @param proxy_config #LinphoneProxyConfig object. @notnil
  * @param server_url URL of the file server. @maybenil
- * @warning That function isn't implemented yet.
+ * @warning This function isn't implemented yet.
  * @donotwrap
- * */
+ */
 LINPHONE_PUBLIC void linphone_proxy_config_set_file_transfer_server(LinphoneProxyConfig *proxy_config,
                                                                     const char *server_url);
 
 /**
- * Get the http file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml
- * Url may be like: "https://file.linphone.org/upload.php".
+ * Gets the HTTP file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml.
+ * URL may be like: "https://file.linphone.org/upload.php".
  * @param proxy_config #LinphoneProxyConfig object. @notnil
  * @return URL of the file server. @maybenil
- * @warning That function isn't implemented yet.
+ * @warning This function isn't implemented yet.
  * @donotwrap
  * */
 LINPHONE_PUBLIC const char *linphone_proxy_config_get_file_transfer_server(const LinphoneProxyConfig *proxy_config);

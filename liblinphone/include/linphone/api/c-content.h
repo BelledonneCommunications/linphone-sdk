@@ -322,14 +322,14 @@ LINPHONE_PUBLIC bool_t linphone_content_is_call_log_json(const LinphoneContent *
 LINPHONE_PUBLIC bool_t linphone_content_is_text(const LinphoneContent *content);
 
 /**
- * Tells whether or not this content contains a voice recording by checking it's content type.
+ * Tells whether or not this content contains a voice recording by checking its content type.
  * @param content #LinphoneContent object. @notnil
  * @return TRUE if this content type is 'audio/wav;voice-recording=yes', FALSE otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_content_is_voice_recording(const LinphoneContent *content);
 
 /**
- * Tells whether or not this content contains an icalendar by checking it's content type.
+ * Tells whether or not this content contains an iCalendar by checking its content type.
  * @param content #LinphoneContent object. @notnil
  * @return TRUE if this content type is 'text/calendar;conference-event=yes', FALSE otherwise.
  */

@@ -154,7 +154,7 @@ static void alert_call_base(OrtpNetworkSimulatorParams &networkParams, AlertCall
 		core->setSignalInformation(nullptr);
 	}
 	// TODO : remove this if to make this assert true
-	if (data.expectedType != LinphoneAlertQoSBurstOccured && data.expectedType != LinphoneAlertQoSCameraLowFramerate &&
+	if (data.expectedType != LinphoneAlertQoSBurstOccurred && data.expectedType != LinphoneAlertQoSCameraLowFramerate &&
 	    data.expectedType != LinphoneAlertQoSLowQualitySentVideo) {
 		/* the new bandwidth estimate might take time to converge to a higher value*/
 		BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &data.stopped, 1, 45000));
@@ -228,7 +228,7 @@ static void burst_occured_test(void) {
 	network_params.enabled = TRUE;
 	network_params.consecutive_loss_probability = 0.9f;
 	network_params.loss_rate = 15.;
-	AlertCallbackData data = {true, false, LinphoneAlertQoSBurstOccured};
+	AlertCallbackData data = {true, false, LinphoneAlertQoSBurstOccurred};
 	alert_call_base(network_params, data);
 }
 static void video_stalled_test(void) {

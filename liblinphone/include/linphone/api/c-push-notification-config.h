@@ -69,7 +69,7 @@ linphone_push_notification_config_ref(LinphonePushNotificationConfig *push_cfg);
 LINPHONE_PUBLIC void linphone_push_notification_config_unref(LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Gets the provider for "contact uri parameter".
+ * Gets the provider for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The provider if set, NULL otherwise. @maybenil
  */
@@ -77,7 +77,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_provider(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the provider for "contact uri parameter". If not set, the default value will be used for "contact uri
+ * Sets the provider for "contact URI parameter". If not set, the default value will be used for "contact URI
  *parameter", "firebase" for android or "apns" for ios.
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param provider The new provider set for push notification config. @maybenil
@@ -103,7 +103,7 @@ linphone_push_notification_config_set_remote_push_interval(LinphonePushNotificat
                                                            const char *remote_push_interval);
 
 /**
- * Gets the team id for "contact uri parameter".
+ * Gets the team id for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The team id if set, NULL otherwise. @maybenil
  */
@@ -111,7 +111,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_team_id(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the team id for "contact uri parameter". It's not necessary if param is set. See
+ * Sets the team id for "contact URI parameter". It's not necessary if param is set. See
  *#linphone_push_notification_config_set_param().
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param team_id The new team id set for push notification config. @maybenil
@@ -120,7 +120,7 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_team_id(LinphonePushN
                                                                    const char *team_id);
 
 /**
- * Gets the msg_str for "contact uri parameter".
+ * Gets the msg_str for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The msg_str, default value "IM_MSG". @notnil
  */
@@ -128,7 +128,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_msg_str(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the msg_str for "contact uri parameter", specific for remote push notification.
+ * Sets the msg_str for "contact URI parameter", specific for remote push notification.
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param msg_str The new msg_str set for push notification config. @notnil
  **/
@@ -136,7 +136,7 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_msg_str(LinphonePushN
                                                                    const char *msg_str);
 
 /**
- * Gets the call_str for "contact uri parameter".
+ * Gets the call_str for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The call_str, default value "IC_MSG". @notnil
  */
@@ -144,7 +144,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_call_str(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the call_str for "contact uri parameter", specific for remote push notification.
+ * Sets the call_str for "contact URI parameter", specific for remote push notification.
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param call_str The new call_str set for push notification config. @notnil
  **/
@@ -152,7 +152,7 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_call_str(LinphonePush
                                                                     const char *call_str);
 
 /**
- * Gets the groupchat_str for "contact uri parameter".
+ * Gets the groupchat_str for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The groupchat_str, default value "GC_MSG". @notnil
  */
@@ -160,7 +160,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_group_chat_str(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the group_chat_str for "contact uri parameter", specific for remote push notification.
+ * Sets the group_chat_str for "contact URI parameter", specific for remote push notification.
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param group_chat_str The new group_chat_str set for push notification config. @notnil
  **/
@@ -168,7 +168,7 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_group_chat_str(Linpho
                                                                           const char *group_chat_str);
 
 /**
- * Gets the call_snd for "contact uri parameter".
+ * Gets the call_snd for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The call_snd, default value "notes_of_the_optimistic.caf". @notnil
  */
@@ -176,7 +176,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_call_snd(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the call_snd for "contact uri parameter", specific for remote push notification.
+ * Sets the call_snd for "contact URI parameter", specific for remote push notification.
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param call_snd The new call_snd set for push notification config. @notnil
  **/
@@ -184,7 +184,7 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_call_snd(LinphonePush
                                                                     const char *call_snd);
 
 /**
- * Gets the msg_snd for "contact uri parameter".
+ * Gets the msg_snd for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The msg_snd, default value "msg.caf". @notnil
  */
@@ -192,7 +192,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_msg_snd(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the msg_snd for "contact uri parameter", specific for remote push notification.
+ * Sets the msg_snd for "contact URI parameter", specific for remote push notification.
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param msg_snd The new msg_snd set for push notification config. @notnil
  **/
@@ -200,7 +200,7 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_msg_snd(LinphonePushN
                                                                    const char *msg_snd);
 
 /**
- * Gets the app's bundle identifier for "contact uri parameter".
+ * Gets the app's bundle identifier for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The app's bundle identifier if set, NULL otherwise. @maybenil
  */
@@ -208,7 +208,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_bundle_identifier(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the bundle_identifier for "contact uri parameter". It's not necessary if param is set. See
+ * Sets the bundle_identifier for "contact URI parameter". It's not necessary if param is set. See
  *#linphone_push_notification_config_set_param().
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param bundle_identifier The new bundle_identifier set for push notification config. @maybenil
@@ -217,7 +217,7 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_bundle_identifier(Lin
                                                                              const char *bundle_identifier);
 
 /**
- * Gets the voip token for "contact uri parameter".
+ * Gets the voip token for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The voip token if set, NULL otherwise. @maybenil
  */
@@ -225,7 +225,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_voip_token(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the voip_token for "contact uri parameter", specific for voip push notification. It's not necessary if prid is
+ * Sets the voip_token for "contact URI parameter", specific for voip push notification. It's not necessary if prid is
  *set. See #linphone_push_notification_config_set_prid().
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param voip_token The new voip_token set for push notification config. @maybenil
@@ -234,7 +234,7 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_voip_token(LinphonePu
                                                                       const char *voip_token);
 
 /**
- * Gets the remote token for "contact uri parameter".
+ * Gets the remote token for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The remote token if set, NULL otherwise. @maybenil
  */
@@ -242,7 +242,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_config_get_remote_token(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the remote_token for "contact uri parameter", specific for remote push notification. It's not necessary if prid
+ * Sets the remote_token for "contact URI parameter", specific for remote push notification. It's not necessary if prid
  *is set. See linphone_push_notification_config_set_prid().
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param remote_token The new remote_token set for push notification config. @maybenil
@@ -251,14 +251,14 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_remote_token(Linphone
                                                                         const char *remote_token);
 
 /**
- * Gets the param for "contact uri parameter".
+ * Gets the param for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The param if set, NULL otherwise. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_push_notification_config_get_param(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the param for "contact uri parameter". If it's not set, "team_id.bundle_identifier.services" will be used.
+ * Sets the param for "contact URI parameter". If its not set, "team_id.bundle_identifier.services" will be used.
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param param The new param set for push notification config. @maybenil
  **/
@@ -266,14 +266,14 @@ LINPHONE_PUBLIC void linphone_push_notification_config_set_param(LinphonePushNot
                                                                  const char *param);
 
 /**
- * Gets the prid for "contact uri parameter".
+ * Gets the prid for "contact URI parameter".
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @return The prid if set, NULL otherwise. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_push_notification_config_get_prid(const LinphonePushNotificationConfig *push_cfg);
 
 /**
- * Sets the prid for "contact uri parameter". If it's not set, "voip_token&remote_token" will be used.
+ * Sets the prid for "contact URI parameter". If its not set, "voip_token&remote_token" will be used.
  * @param push_cfg The #LinphonePushNotificationConfig object @notnil
  * @param prid The new prid set for push notification config. @maybenil
  **/

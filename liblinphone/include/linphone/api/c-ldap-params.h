@@ -65,7 +65,7 @@ LINPHONE_PUBLIC void
 linphone_ldap_params_set_custom_value(LinphoneLdapParams *params, const char *key, const char *value);
 
 /**
- * @brief Get the value from field
+ * @brief Gets the value from field
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @param key The key string. @notnil
@@ -88,7 +88,7 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_custom_value(const Linphone
 LINPHONE_PUBLIC void linphone_ldap_params_set_server(LinphoneLdapParams *params, const char *server);
 
 /**
- * @brief Get the LDAP Server.
+ * @brief Gets the LDAP Server.
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return LDAP Server address. @notnil
@@ -107,7 +107,7 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_server(const LinphoneLdapPa
 LINPHONE_PUBLIC void linphone_ldap_params_set_bind_dn(LinphoneLdapParams *params, const char *bind_dn);
 
 /**
- * @brief Get the Bind DN to use for bindings. The bindDN DN is the credential that is used to authenticate against an
+ * @brief Gets the Bind DN to use for bindings. The bindDN DN is the credential that is used to authenticate against an
  *LDAP. If empty, the connection will be Anonymous. eg: cn=ausername,ou=people,dc=bc,dc=com
  *
  * @param params The #LinphoneLdapParams object. @notnil
@@ -128,9 +128,9 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_bind_dn(const LinphoneLdapP
 LINPHONE_PUBLIC void linphone_ldap_params_set_base_object(LinphoneLdapParams *params, const char *base_object);
 
 /**
- * @brief Get the BaseObject. It is a specification for LDAP Search Scopes that specifies that the Search Request should
- *only be performed against the entry specified as the search base DN. No entries above it will be considered. This
- *field is required.
+ * @brief Gets the BaseObject. It is a specification for LDAP Search Scopes that specifies that the Search Request
+ *should only be performed against the entry specified as the search base DN. No entries above it will be considered.
+ *This field is required.
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The specification. @notnil
@@ -150,7 +150,7 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_base_object(const LinphoneL
 LINPHONE_PUBLIC void linphone_ldap_params_set_timeout(LinphoneLdapParams *params, int timeout);
 
 /**
- * @brief Get the timeout for requests in seconds
+ * @brief Gets the timeout for requests in seconds
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The timeout in seconds.
@@ -168,7 +168,7 @@ LINPHONE_PUBLIC int linphone_ldap_params_get_timeout(const LinphoneLdapParams *p
 LINPHONE_PUBLIC void linphone_ldap_params_set_timeout_tls_ms(LinphoneLdapParams *params, int timeout);
 
 /**
- * @brief Get the timeout for TLS connection in milliseconds.
+ * @brief Gets the timeout for TLS connection in milliseconds.
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The timeout in milliseconds.
@@ -189,7 +189,7 @@ LINPHONE_PUBLIC int linphone_ldap_params_get_timeout_tls_ms(const LinphoneLdapPa
 LINPHONE_PUBLIC void linphone_ldap_params_set_max_results(LinphoneLdapParams *params, int max_results);
 
 /**
- * @brief Get the max results when requesting searches.
+ * @brief Gets the max results when requesting searches.
  * 0 means the results aren't limited (but magic search limitation may apply).
  *
  * @param params The #LinphoneLdapParams object. @notnil
@@ -211,7 +211,7 @@ LINPHONE_PUBLIC int linphone_ldap_params_get_max_results(const LinphoneLdapParam
 LINPHONE_PUBLIC void linphone_ldap_params_set_min_chars(LinphoneLdapParams *params, int min_chars);
 
 /**
- * @brief Get the minimum characters needed for doing a search on LDAP servers.
+ * @brief Gets the minimum characters needed for doing a search on LDAP servers.
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The minimum characters needed by a search.
@@ -232,7 +232,7 @@ LINPHONE_PUBLIC int linphone_ldap_params_get_min_chars(const LinphoneLdapParams 
 LINPHONE_PUBLIC void linphone_ldap_params_set_delay(LinphoneLdapParams *params, int delay);
 
 /**
- * @brief Get the delay between each search in milliseconds
+ * @brief Gets the delay between each search in milliseconds
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @deprecated 22/08/2025 use linphone_remote_contact_directory_get_delay() instead.
@@ -253,7 +253,7 @@ LINPHONE_PUBLIC void linphone_ldap_params_set_auth_method(LinphoneLdapParams *pa
                                                           LinphoneLdapAuthMethod auth_method);
 
 /**
- * @brief Get the authentification method. Check #LinphoneLdapAuthMethod for authentification values.
+ * @brief Gets the authentification method. Check #LinphoneLdapAuthMethod for authentification values.
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The #LinphoneLdapAuthMethod.
@@ -271,7 +271,7 @@ LINPHONE_PUBLIC LinphoneLdapAuthMethod linphone_ldap_params_get_auth_method(cons
 LINPHONE_PUBLIC void linphone_ldap_params_set_password(LinphoneLdapParams *params, const char *password);
 
 /**
- * @brief Get the password to pass to server when binding.
+ * @brief Gets the password to pass to server when binding.
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The password to pass to server when binding. @maybenil
@@ -289,7 +289,7 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_password(const LinphoneLdap
 LINPHONE_PUBLIC void linphone_ldap_params_set_filter(LinphoneLdapParams *params, const char *filter);
 
 /**
- * @brief Get the search is based on this filter to search contacts.
+ * @brief Gets the search is based on this filter to search contacts.
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The filter to use. @maybenil
@@ -307,7 +307,7 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_filter(const LinphoneLdapPa
 LINPHONE_PUBLIC void linphone_ldap_params_set_name_attribute(LinphoneLdapParams *params, const char *name_attribute);
 
 /**
- * @brief Get the list of LDAP attributes to check for the contact name, separated by a comma and the first being
+ * @brief Gets the list of LDAP attributes to check for the contact name, separated by a comma and the first being
  * the highest priority.
  *
  * @param params The #LinphoneLdapParams object. @notnil
@@ -327,7 +327,7 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_name_attribute(const Linpho
 LINPHONE_PUBLIC void linphone_ldap_params_set_sip_attribute(LinphoneLdapParams *params, const char *sip_attribute);
 
 /**
- * @brief Get the attributes to build the SIP username in address of Friend. Attributes are separated by a comma.
+ * @brief Gets the attributes to build the SIP username in address of Friend. Attributes are separated by a comma.
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The comma separated attributes for building Friend. @maybenil
@@ -347,7 +347,7 @@ LINPHONE_PUBLIC const char *linphone_ldap_params_get_sip_attribute(const Linphon
 LINPHONE_PUBLIC void linphone_ldap_params_set_sip_domain(LinphoneLdapParams *params, const char *sip_domain);
 
 /**
- * @brief Get the domain to the sip address(sip:username\@domain).
+ * @brief Gets the domain to the sip address(sip:username\@domain).
  *
  * @param params The #LinphoneLdapParams object. @notnil
  * @return The SIP domain for the friend. @maybenil

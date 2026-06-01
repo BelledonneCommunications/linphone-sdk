@@ -49,8 +49,8 @@ const char *linphone_alert_type_to_string(LinphoneAlertType type) {
 			return "LinphoneAlertQoSLowSignal";
 		case LinphoneAlertQoSLostSignal:
 			return "LinphoneAlertQoSLostSignal";
-		case LinphoneAlertQoSBurstOccured:
-			return "LinphoneAlertQoSBurstOccured";
+		case LinphoneAlertQoSBurstOccurred:
+			return "LinphoneAlertQoSBurstOccurred";
 	}
 	return "LinphoneAlertType not found";
 }

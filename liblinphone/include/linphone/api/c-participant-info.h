@@ -33,7 +33,7 @@ extern "C" {
  */
 
 /**
- * Create a new #LinphoneParticipantInfo object.
+ * Creates a new #LinphoneParticipantInfo object.
  * @param address The #LinphoneAddress of the #LinphoneParticipantInfo object. @notnil
  * @return The newly created #LinphoneParticipantInfo object. @notnil
  */
@@ -61,7 +61,7 @@ linphone_participant_info_clone(const LinphoneParticipantInfo *participant_info)
 LINPHONE_PUBLIC void linphone_participant_info_unref(LinphoneParticipantInfo *participant_info);
 
 /**
- * Get the address of the object #LinphoneParticipantInfo.
+ * Gets the address of the object #LinphoneParticipantInfo.
  * @param participant_info The #LinphoneParticipantInfo object. @notnil
  * @return the #LinphoneAddress of the #LinphoneParticipantInfo object. @notnil
  */
@@ -69,7 +69,7 @@ LINPHONE_PUBLIC const LinphoneAddress *
 linphone_participant_info_get_address(const LinphoneParticipantInfo *participant_info);
 
 /**
- * Set the role of the object #LinphoneParticipantInfo.
+ * Sets the role of the object #LinphoneParticipantInfo.
  * @param participant_info The #LinphoneParticipantInfo object. @notnil
  * @param role the #LinphoneParticipantRole of the #LinphoneParticipantInfo object. @notnil
  */
@@ -77,7 +77,7 @@ LINPHONE_PUBLIC void linphone_participant_info_set_role(LinphoneParticipantInfo 
                                                         LinphoneParticipantRole role);
 
 /**
- * Get the role of the object #LinphoneParticipantInfo.
+ * Gets the role of the object #LinphoneParticipantInfo.
  * @param participant_info The #LinphoneParticipantInfo object. @notnil
  * @return the #LinphoneParticipantRole of the #LinphoneParticipantInfo object. @notnil
  */
@@ -85,7 +85,7 @@ LINPHONE_PUBLIC LinphoneParticipantRole
 linphone_participant_info_get_role(const LinphoneParticipantInfo *participant_info);
 
 /**
- * Set the a custom parameter to object #LinphoneParticipantInfo.
+ * Sets the a custom parameter to object #LinphoneParticipantInfo.
  * @param participant_info The #LinphoneParticipantInfo object. @notnil
  * @param name the name of the parameter. @notnil
  * @param value the value of the parameter. @notnil
@@ -94,7 +94,7 @@ LINPHONE_PUBLIC void
 linphone_participant_info_add_parameter(LinphoneParticipantInfo *participant_info, const char *name, const char *value);
 
 /**
- * Get the value of a custom parameter of the object #LinphoneParticipantInfo.
+ * Gets the value of a custom parameter of the object #LinphoneParticipantInfo.
  * @param participant_info The #LinphoneParticipantInfo object. @notnil
  * @param name the name of the parameter. @notnil
  * @return value the value of the parameter. @notnil
@@ -120,9 +120,9 @@ LINPHONE_PUBLIC void linphone_participant_info_remove_parameter(LinphoneParticip
                                                                 const char *name);
 
 /**
- * Get the CCMP uri of the object #LinphoneParticipantInfo.
+ * Gets the CCMP URI of the object #LinphoneParticipantInfo.
  * @param participant_info The #LinphoneParticipantInfo object. @notnil
- * @return the CCMP uri of the #LinphoneParticipantInfo or NULL. @maybenil
+ * @return the CCMP URI of the #LinphoneParticipantInfo or NULL. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_participant_info_get_ccmp_uri(const LinphoneParticipantInfo *participant_info);
 /**

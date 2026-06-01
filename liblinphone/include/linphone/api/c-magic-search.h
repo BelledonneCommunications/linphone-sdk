@@ -82,42 +82,42 @@ LINPHONE_PUBLIC LinphoneMagicSearchCbs *
 linphone_magic_search_get_current_callbacks(const LinphoneMagicSearch *magic_search);
 
 /**
- * Set the minimum value used to calculate the weight in search
+ * Sets the minimum value used to calculate the weight in search
  * @param magic_search a #LinphoneMagicSearch object @notnil
  * @param weight minimum weight
  **/
 LINPHONE_PUBLIC void linphone_magic_search_set_min_weight(LinphoneMagicSearch *magic_search, unsigned int weight);
 
 /**
- * Get the minimum value used to calculate the weight in search
+ * Gets the minimum value used to calculate the weight in search
  * @param magic_search a #LinphoneMagicSearch object @notnil
  * @return the minimum value used to calculate the weight in search
  **/
 LINPHONE_PUBLIC unsigned int linphone_magic_search_get_min_weight(const LinphoneMagicSearch *magic_search);
 
 /**
- * Set the maximum value used to calculate the weight in search
+ * Sets the maximum value used to calculate the weight in search
  * @param magic_search a #LinphoneMagicSearch object @notnil
  * @param weight maximum weight
  **/
 LINPHONE_PUBLIC void linphone_magic_search_set_max_weight(LinphoneMagicSearch *magic_search, unsigned int weight);
 
 /**
- * Get the maximum value used to calculate the weight in search
+ * Gets the maximum value used to calculate the weight in search
  * @param magic_search a #LinphoneMagicSearch object @notnil
  * @return the maximum value used to calculate the weight in search
  **/
 LINPHONE_PUBLIC unsigned int linphone_magic_search_get_max_weight(const LinphoneMagicSearch *magic_search);
 
 /**
- * Get the delimiter used for the search.
+ * Gets the delimiter used for the search.
  * @param magic_search a #LinphoneMagicSearch object @notnil
  * @return the delimiter used to find matched filter word @maybenil
  **/
 LINPHONE_PUBLIC const char *linphone_magic_search_get_delimiter(const LinphoneMagicSearch *magic_search);
 
 /**
- * Set the delimiter used to find matched filter word
+ * Sets the delimiter used to find matched filter word
  * @param magic_search a #LinphoneMagicSearch object @notnil
  * @param delimiter delimiter (example "-_.,") @maybenil
  **/
@@ -177,7 +177,7 @@ LINPHONE_PUBLIC void linphone_magic_search_set_limited_search(LinphoneMagicSearc
 LINPHONE_PUBLIC void linphone_magic_search_reset_search_cache(LinphoneMagicSearch *magic_search);
 
 /**
- * Create a sorted list of SearchResult which match with a filter word, from SipUri in this order :
+ * Creates a sorted list of SearchResult which match with a filter word, from SipUri in this order :
  ** Contact's display name, address username, address domain and phone number.
  * The last item list will be an address formed with "filter" if a proxy config exist and requested in sourceFlags
  * During the first search, a cache is created and used for the next search
@@ -200,7 +200,7 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_magic_search_get_contacts_list(LinphoneMa
 
 /**
  * This is the asynchronous version of linphone_magic_search_get_contacts().
- * Create a sorted list of SearchResult which match with a filter word, from SipUri in this order :
+ * Creates a sorted list of SearchResult which match with a filter word, from SipUri in this order :
  ** Contact's display name, address username, address domain and phone number.
  * The last item list will be an address formed with "filter" if a proxy config exist and requested in sourceFlags
  * During the first search, a cache is created and used for the next search

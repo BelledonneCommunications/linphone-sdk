@@ -685,38 +685,39 @@ LINPHONE_PUBLIC LinphoneStatus linphone_call_transfer_to_another(LinphoneCall *c
  */
 
 /**
- * Get the native window handle of the video window, casted as an unsigned long.
+ * Gets the native window handle of the video window, cast as an unsigned long.
  * @see linphone_core_set_native_video_window_id() for a general discussion about window IDs.
  * @param call the #LinphoneCall object @notnil
- * @return the native video window id (type may vary depending on platform). @maybenil
- **/
+ * @return The native video window ID (type may vary depending on platform). @maybenil
+ */
 LINPHONE_PUBLIC void *linphone_call_get_native_video_window_id(const LinphoneCall *call);
 
 /**
- * Create a native video window id where the video is to be displayed.
+ * Creates a native video window ID where the video is to be displayed.
  * @see linphone_core_set_native_video_window_id() for a general discussion about window IDs.
  *
- * A context can be used to prevent Linphone from allocating the container (`MSOglContextInfo` for MSOGL). NULL if not
- *used.
+ * A context can be used to prevent Linphone from allocating the container (`MSOglContextInfo` for MSOGL). Use NULL if
+ * not used.
  *
  * @param call the #LinphoneCall object @notnil
- * @param context preallocated Window ID (Used only for MSOGL) @maybenil
- * @return the native video window id (type may vary depending on platform). @maybenil
- **/
+ * @param context Preallocated Window ID (used only for MSOGL) @maybenil
+ * @return The native video window ID (type may vary depending on platform). @maybenil
+ */
 LINPHONE_PUBLIC void *linphone_call_create_native_video_window_id_2(const LinphoneCall *call, void *context);
 
 /**
- * Create a native video window id where the video is to be displayed.
+ * Creates a native video window ID where the video is to be displayed.
  * @see linphone_core_set_native_video_window_id() for a general discussion about window IDs.
  *
  * @param call the #LinphoneCall object @notnil
- * @return the native video window id (type may vary depending on platform). @maybenil
- **/
+ * @return The native video window ID (type may vary depending on platform). @maybenil
+ */
 LINPHONE_PUBLIC void *linphone_call_create_native_video_window_id(const LinphoneCall *call);
 
 /**
- * Set the native video window id where the video is to be displayed.
- * For MacOS, Linux, Windows: if not set or 0 a window will be automatically created, unless the special id -1 is given.
+ * Sets the native video window ID where the video is to be displayed.
+ * For macOS, Linux, Windows: if not set or 0, a window will be automatically created, unless the special ID -1 is
+ *given.
  * @see linphone_core_set_native_video_window_id() for a general discussion about window IDs.
  * @param call the #LinphoneCall object @notnil
  * @param window_id the native video window id. @maybenil
@@ -1099,11 +1100,11 @@ LINPHONE_PUBLIC void linphone_call_confirm_go_clear(const LinphoneCall *call);
 LINPHONE_PUBLIC void linphone_call_accept_transfer(LinphoneCall *call);
 
 /**
- * Create a #LinphoneEvent in order to send NOTIFY requests through the SIP dialog created by the call.
+ * Creates a #LinphoneEvent in order to send NOTIFY requests through the SIP dialog created by the call.
  * The call state must have passed through #LinphoneCallStateConnected.
  * @param call The #LinphoneCall object @notnil
  * @param event The event type to be notified.
- * @return a new #LinphoneEvent @maybenil
+ * @return A new #LinphoneEvent @maybenil
  */
 LINPHONE_PUBLIC LinphoneEvent *linphone_call_create_notify(LinphoneCall *call, const char *event);
 
@@ -1132,9 +1133,8 @@ LINPHONE_PUBLIC void linphone_call_set_baudot_mode(LinphoneCall *call, LinphoneB
 LINPHONE_PUBLIC void linphone_call_set_baudot_sending_standard(LinphoneCall *call, LinphoneBaudotStandard standard);
 
 /**
- * Set the Baudot significant pause timeout after which a LETTERS tone is retransmitted before resuming transmission (in
- * seconds). Default is 5s.
- * The Baudot functionality is to be enabled first by calling linphone_core_enable_baudot().
+ * Sets the Baudot significant pause timeout after which a LETTERS tone is retransmitted before resuming transmission
+ * (in seconds). Default is 5s. The Baudot functionality must be enabled first by calling linphone_core_enable_baudot().
  * @param[in] call #LinphoneCall object. @notnil
  * @param[in] seconds The significant pause timeout in seconds.
  */

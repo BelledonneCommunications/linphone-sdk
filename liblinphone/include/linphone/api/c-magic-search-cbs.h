@@ -65,7 +65,7 @@ LINPHONE_PUBLIC void *linphone_magic_search_cbs_get_user_data(const LinphoneMagi
 LINPHONE_PUBLIC void linphone_magic_search_cbs_set_user_data(LinphoneMagicSearchCbs *cbs, void *user_data);
 
 /**
- * Get the received results callback.
+ * Gets the received results callback.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
  * @return The current result received callback.
  */
@@ -73,7 +73,7 @@ LINPHONE_PUBLIC LinphoneMagicSearchCbsSearchResultsReceivedCb
 linphone_magic_search_cbs_get_search_results_received(const LinphoneMagicSearchCbs *cbs);
 
 /**
- * Set the received results  callback.
+ * Sets the received results  callback.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
  * @param cb The received results callback to be used.
  */
@@ -82,7 +82,7 @@ linphone_magic_search_cbs_set_search_results_received(LinphoneMagicSearchCbs *cb
                                                       LinphoneMagicSearchCbsSearchResultsReceivedCb cb);
 
 /**
- * Get the ldap callback on having more results.
+ * Gets the ldap callback on having more results.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
  * @return The ldap callback on having more results.
  * @deprecated 18/11/2024 use linphone_magic_search_cbs_get_more_results_available() instead.
@@ -91,7 +91,7 @@ LINPHONE_PUBLIC LinphoneMagicSearchCbsLdapHaveMoreResultsCb
 linphone_magic_search_cbs_get_ldap_have_more_results(const LinphoneMagicSearchCbs *cbs);
 
 /**
- * Set the ldap callback on having more results.
+ * Sets the ldap callback on having more results.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
  * @param cb The ldap callback on having more results.
  * @deprecated 18/11/2024 use linphone_magic_search_cbs_set_more_results_available() instead.
@@ -122,7 +122,7 @@ linphone_magic_search_cbs_set_more_results_available(LinphoneMagicSearchCbs *cbs
 /**
  * Gets the callback notifying the search results limit has been reached,
  * which means more results are available for currently set query parameters
- * and thus user should refine it's request.
+ * and thus user should refine its request.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
  * @return The results limit reached callback.
  */
@@ -132,7 +132,7 @@ linphone_magic_search_cbs_get_results_limit_reached(const LinphoneMagicSearchCbs
 /**
  * Sets the callback notifying the search results limit has been reached,
  * which means more results are available for currently set query parameters
- * and thus user should refine it's request.
+ * and thus user should refine its request.
  * @param cbs #LinphoneMagicSearchCbs object. @notnil
  * @param cb The results limit reached callback.
  */

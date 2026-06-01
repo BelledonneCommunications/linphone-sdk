@@ -538,7 +538,7 @@ LINPHONE_PUBLIC bool_t linphone_chat_room_is_remote_composing(const LinphoneChat
 /**
  * Returns the content-type (if set) of what the remote is currently composing.
  * @param chat_room The #LinphoneChatRoom object corresponding to the conversation. @notnil
- * @return the content-type of what the remote is currently composing if set and if it's currently composing, NULL
+ * @return The content-type of what the remote is currently composing if set and if it is currently composing, NULL
  * otherwise. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_chat_room_get_remote_composing_content_type(const LinphoneChatRoom *chat_room);
@@ -619,7 +619,7 @@ LINPHONE_PUBLIC bool_t linphone_chat_room_has_been_left(const LinphoneChatRoom *
 
 /**
  * Returns whether or not a message can be sent using this chat room.
- * A chat room may be read only until it's created, or when it's a group you have left.
+ * A chat room may be read only until its created, or when its a group you have left.
  * @param chat_room #LinphoneChatRoom object @notnil
  * @return TRUE if a chat message can't be sent in it, FALSE otherwise.
  */

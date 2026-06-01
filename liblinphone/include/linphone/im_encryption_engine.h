@@ -224,7 +224,7 @@ LINPHONE_PUBLIC void linphone_im_encryption_engine_cbs_set_generate_file_transfe
     LinphoneImEncryptionEngineCbs *cbs, LinphoneImEncryptionEngineCbsGenerateFileTransferKeyCb cb);
 
 /**
- * Create the IM encryption engine
+ * Creates the IM encryption engine
  * @return The created the IM encryption engine
  * @donotwrap
  */

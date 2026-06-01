@@ -370,19 +370,19 @@ typedef void (*LinphoneChatMessageCbsNewMessageReactionCb)(LinphoneChatMessage *
 /**
  * Callback used to notify a reaction has been removed from a given message
  * @param message #LinphoneChatMessage object @notnil
- * @param address the #LinphoneAddress of the person that removed it's reaction @notnil
+ * @param address The #LinphoneAddress of the person that removed its reaction @notnil
  */
 typedef void (*LinphoneChatMessageCbsReactionRemovedCb)(LinphoneChatMessage *message, const LinphoneAddress *address);
 
 /**
- * Callback used to notify a message has been edited by it's sender after it was sent
+ * Callback used to notify when a message has been edited by its sender after it was sent.
  * @param message #LinphoneChatMessage object that has been edited @notnil
  */
 typedef void (*LinphoneChatMessageCbsContentEditedCb)(LinphoneChatMessage *message);
 
 /**
- * Callback used to notify a message has been retracted by it's sender after it was sent
- * @param message #LinphoneChatMessage object that has been edited @notnil
+ * Callback used to notify when a message has been retracted by its sender after it was sent.
+ * @param message #LinphoneChatMessage object that has been retracted @notnil
  */
 typedef void (*LinphoneChatMessageCbsRetractedCb)(LinphoneChatMessage *message);
 
@@ -708,7 +708,7 @@ typedef void (*LinphoneChatRoomCbsShouldChatMessageBeStoredCb)(LinphoneChatRoom 
 /**
  * Callback used to notify a participant state has changed in a message of this chat room.
  * @param chat_room #LinphoneChatRoom object @notnil
- * @param message The #LinphoneChatMessage for which a participant has it's state changed @notnil
+ * @param message The #LinphoneChatMessage for which a participant has its state changed @notnil
  * @param state The #LinphoneParticipantImdnState @notnil
  */
 typedef void (*LinphoneChatRoomCbsChatMessageParticipantImdnStateChangedCb)(LinphoneChatRoom *chat_room,
@@ -828,7 +828,7 @@ typedef void (*LinphoneMagicSearchCbsMoreResultsAvailableCb)(LinphoneMagicSearch
                                                              LinphoneMagicSearchSource source);
 
 /**
- * Callback used to notify when the configured search limit has been reached and thus user should refine it's search
+ * Callback used to notify when the configured search limit has been reached and thus user should refine its search
  * parameters.
  * @param magic_search #LinphoneMagicSearch object @notnil
  * @param sourcesFlag The source(s) flag indicating the request for which the limit has been reached.

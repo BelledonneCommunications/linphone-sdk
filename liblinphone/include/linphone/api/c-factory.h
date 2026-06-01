@@ -35,14 +35,14 @@ extern "C" {
  */
 
 /**
- * Create the #LinphoneFactory if that has not been done and return a pointer on it.
- * @return A pointer on the #LinphoneFactory @notnil
+ * Creates the #LinphoneFactory if that has not been done and returns a pointer to it.
+ * @return A pointer to the #LinphoneFactory @notnil
  */
 LINPHONE_PUBLIC LinphoneFactory *linphone_factory_get(void);
 
 /**
- * Clean the factory. This function is generally useless as the factory is unique per process, however
- * calling this function at the end avoid getting reports from belle-sip leak detector about memory leaked in
+ * Cleans the factory. This function is generally useless as the factory is unique per process; however,
+ * calling this function at the end avoids getting reports from belle-sip leak detector about memory leaked in
  * linphone_factory_get().
  */
 LINPHONE_PUBLIC void linphone_factory_clean(void);
@@ -188,10 +188,10 @@ LINPHONE_PUBLIC LinphoneCoreCbs *linphone_factory_create_core_cbs(const Linphone
 LINPHONE_PUBLIC LinphoneAddress *linphone_factory_create_address(const LinphoneFactory *factory, const char *addr);
 
 /**
- * Create a #LinphoneParticipantDeviceIdentity object.
+ * Creates a #LinphoneParticipantDeviceIdentity object.
  * @param factory The #LinphoneFactory singleton. @notnil
  * @param address #LinphoneAddress object. @notnil
- * @param name the name given to the device. @maybenil
+ * @param name The name given to the device. @maybenil
  * @return A new #LinphoneParticipantDeviceIdentity. @notnil
  */
 LINPHONE_PUBLIC LinphoneParticipantDeviceIdentity *linphone_factory_create_participant_device_identity(
@@ -280,22 +280,22 @@ LINPHONE_PUBLIC char *linphone_factory_compute_ha1_for_algorithm(
     const LinphoneFactory *factory, const char *userid, const char *password, const char *realm, const char *algorithm);
 
 /**
- * Create a #LinphoneCallCbs object that holds callbacks for events happening on a call.
- * @param factory #LinphoneFactory singletion object @notnil
+ * Creates a #LinphoneCallCbs object that holds callbacks for events happening on a call.
+ * @param factory #LinphoneFactory singleton object @notnil
  * @return A new #LinphoneCallCbs object @notnil
  */
 LINPHONE_PUBLIC LinphoneCallCbs *linphone_factory_create_call_cbs(const LinphoneFactory *factory);
 
 /**
- * Create a #LinphoneConferenceCbs object that holds callbacks for events happening on a conference.
- * @param[in] factory #LinphoneFactory singletion object @notnil
+ * Creates a #LinphoneConferenceCbs object that holds callbacks for events happening on a conference.
+ * @param[in] factory #LinphoneFactory singleton object @notnil
  * @return A new #LinphoneConferenceCbs object @notnil
  */
 LINPHONE_PUBLIC LinphoneConferenceCbs *linphone_factory_create_conference_cbs(const LinphoneFactory *factory);
 
 /**
- * Create a #LinphoneParticipantDeviceCbs object that holds callbacks for events happening on a participant device.
- * @param[in] factory #LinphoneFactory singletion object @notnil
+ * Creates a #LinphoneParticipantDeviceCbs object that holds callbacks for events happening on a participant device.
+ * @param[in] factory #LinphoneFactory singleton object @notnil
  * @return A new #LinphoneParticipantDeviceCbs object @notnil
  */
 LINPHONE_PUBLIC LinphoneParticipantDeviceCbs *
@@ -325,22 +325,22 @@ LINPHONE_PUBLIC LinphoneMagicSearchCbs *linphone_factory_create_magic_search_cbs
 LINPHONE_PUBLIC LinphoneDictionary *linphone_factory_create_dictionary(const LinphoneFactory *factory);
 
 /**
- * Create an empty #LinphoneEktInfo object.
- * @param factory #LinphoneFactory singletion object @notnil
+ * Creates an empty #LinphoneEktInfo object.
+ * @param factory #LinphoneFactory singleton object @notnil
  * @return A new #LinphoneEktInfo object @notnil
  */
 LINPHONE_PUBLIC LinphoneEktInfo *linphone_factory_create_ekt_info(const LinphoneFactory *factory);
 
 /**
- * Create an empty #LinphoneVcard.
- * @param factory #LinphoneFactory singletion object @notnil
- * @return a new #LinphoneVcard. @notnil
+ * Creates an empty #LinphoneVcard.
+ * @param factory #LinphoneFactory singleton object @notnil
+ * @return A new #LinphoneVcard. @notnil
  * @ingroup group_initializing
  */
 LINPHONE_PUBLIC LinphoneVcard *linphone_factory_create_vcard(LinphoneFactory *factory);
 
 /**
- * Create a #LinphoneVideoDefinition from a given width and height
+ * Creates a #LinphoneVideoDefinition from a given width and height.
  * @param factory #LinphoneFactory singleton object @notnil
  * @param width The width of the created video definition
  * @param height The height of the created video definition
@@ -350,7 +350,7 @@ LINPHONE_PUBLIC LinphoneVideoDefinition *
 linphone_factory_create_video_definition(const LinphoneFactory *factory, unsigned int width, unsigned int height);
 
 /**
- * Create a #LinphoneVideoDefinition from a given standard definition name
+ * Creates a #LinphoneVideoDefinition from a given standard definition name.
  * @param factory #LinphoneFactory singleton object @notnil
  * @param name The standard definition name of the video definition to create @notnil
  * @return A new #LinphoneVideoDefinition object @notnil
@@ -1027,12 +1027,12 @@ LINPHONE_PUBLIC bool_t linphone_factory_set_vfs_encryption(LinphoneFactory *fact
                                                            const size_t secretSize);
 
 /**
- * Create a #LinphoneDigestAuthenticationPolicy object.
+ * Creates a #LinphoneDigestAuthenticationPolicy object.
  *
- * The #LinphoneDigestAuthenticationPolicy object which is used to configure a policy for digest authentication,
+ * The #LinphoneDigestAuthenticationPolicy object is used to configure a policy for digest authentication,
  * such as allowing MD5 or mode without qop=auth.
  * @param factory The #LinphoneFactory @notnil
- * @return a new #LinphoneDigestAuthenticationPolicy . @notnil
+ * @return A new #LinphoneDigestAuthenticationPolicy. @notnil
  */
 LINPHONE_PUBLIC LinphoneDigestAuthenticationPolicy *
 linphone_factory_create_digest_authentication_policy(const LinphoneFactory *factory);

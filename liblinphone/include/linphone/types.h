@@ -302,11 +302,11 @@ typedef enum _LinphoneVideoSourceScreenSharingType {
 /**
  * @brief This object is used to store a SIP address.
  *
- * #LinphoneFriend is mainly used to implement an adressbook feature, and are used as data for the #LinphoneMagicSearch
+ * #LinphoneFriend is mainly used to implement an addressbook feature and is used as data for the #LinphoneMagicSearch
  * object. If your proxy supports it, you can also use it to subscribe to presence information.
  *
- * The objects are stored in a #LinphoneFriendList which are in turn stored inside the #LinphoneCore.
- * They can be stored inside a database if the path to it is configured, otherwise they will be lost after the
+ * Objects are stored in a #LinphoneFriendList, which is in turn stored inside the #LinphoneCore.
+ * They can be stored in a database if the path to it is configured; otherwise, they will be lost after the
  * #LinphoneCore is destroyed.
  *
  * Thanks to the vCard plugin, you can also store more information like phone numbers, organization, etc...
@@ -538,7 +538,7 @@ typedef struct _LinphoneTransports LinphoneTransports;
 typedef struct _LinphoneVideoActivationPolicy LinphoneVideoActivationPolicy;
 
 /**
- * @brief This object represents a video definition, eg. it's width, it's height and possibly it's name.
+ * @brief This object represents a video definition, e.g., its width, its height, and possibly its name.
  *
  * It is mostly used to configure the default video size sent by your camera during a video call with
  * linphone_core_set_preferred_video_definition() method.
@@ -639,10 +639,10 @@ typedef struct _LinphoneErrorInfo LinphoneErrorInfo;
  **/
 typedef enum _LinphoneFirewallPolicy {
 	LinphonePolicyNoFirewall = 0,    /**< Do not use any mechanism to pass through firewalls */
-	LinphonePolicyUseNatAddress = 1, /**< Use the specified public adress */
+	LinphonePolicyUseNatAddress = 1, /**< Use the specified public address */
 	LinphonePolicyUseStun = 2,       /**< Use a STUN server to get the public address */
 	LinphonePolicyUseIce = 3,        /**< Use the ICE protocol */
-	LinphonePolicyUseUpnp = 4,       /**< Use the uPnP protocol */
+	LinphonePolicyUseUpnp = 4,       /**< Use the UPnP protocol */
 } LinphoneFirewallPolicy;
 
 /**

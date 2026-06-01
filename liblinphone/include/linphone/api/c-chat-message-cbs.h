@@ -65,7 +65,7 @@ LINPHONE_PUBLIC void *linphone_chat_message_cbs_get_user_data(const LinphoneChat
 LINPHONE_PUBLIC void linphone_chat_message_cbs_set_user_data(LinphoneChatMessageCbs *cbs, void *user_data);
 
 /**
- * Get the message state changed callback.
+ * Gets the message state changed callback.
  * @param cbs #LinphoneChatMessageCbs object. @notnil
  * @return The current message state changed callback.
  */
@@ -73,7 +73,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsMsgStateChangedCb
 linphone_chat_message_cbs_get_msg_state_changed(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the message state changed callback.
+ * Sets the message state changed callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The message state changed callback to be used.
  */
@@ -81,7 +81,7 @@ LINPHONE_PUBLIC void linphone_chat_message_cbs_set_msg_state_changed(LinphoneCha
                                                                      LinphoneChatMessageCbsMsgStateChangedCb cb);
 
 /**
- * Get the new reaction callback.
+ * Gets the new reaction callback.
  * @param cbs #LinphoneChatMessageCbs object. @notnil
  * @return The current new reaction callback.
  */
@@ -89,7 +89,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsNewMessageReactionCb
 linphone_chat_message_cbs_get_new_message_reaction(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the new reaction callback.
+ * Sets the new reaction callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The new reaction callback to be used.
  */
@@ -145,7 +145,7 @@ LINPHONE_PUBLIC void linphone_chat_message_cbs_set_retracted(LinphoneChatMessage
                                                              LinphoneChatMessageCbsRetractedCb cb);
 
 /**
- * Get the download file transfer terminated callback.
+ * Gets the download file transfer terminated callback.
  * @warning this callback is called everytime a message attachment is downloaded. For a message with more than one
  * attachment, this callback will be called as many times as attachments in the message.
  * @param cbs LinphoneChatMessageCbs object. @notnil
@@ -155,7 +155,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsFileTransferTerminatedCb
 linphone_chat_message_cbs_get_file_transfer_terminated(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the file transfer terminated callback.
+ * Sets the file transfer terminated callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The file transfer terminated callback to be used.
  */
@@ -164,7 +164,7 @@ linphone_chat_message_cbs_set_file_transfer_terminated(LinphoneChatMessageCbs *c
                                                        LinphoneChatMessageCbsFileTransferTerminatedCb cb);
 
 /**
- * Get the file transfer receive callback.
+ * Gets the file transfer receive callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @return The current file transfer receive callback.
  */
@@ -172,7 +172,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsFileTransferRecvCb
 linphone_chat_message_cbs_get_file_transfer_recv(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the file transfer receive callback.
+ * Sets the file transfer receive callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The file transfer receive callback to be used.
  */
@@ -180,7 +180,7 @@ LINPHONE_PUBLIC void linphone_chat_message_cbs_set_file_transfer_recv(LinphoneCh
                                                                       LinphoneChatMessageCbsFileTransferRecvCb cb);
 
 /**
- * Get the file transfer send callback.
+ * Gets the file transfer send callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @return The current file transfer send callback.
  * @deprecated 17/08/2020 Use #linphone_chat_message_cbs_get_file_transfer_send_chunk() instead.
@@ -189,7 +189,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsFileTransferSendCb
 linphone_chat_message_cbs_get_file_transfer_send(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the file transfer send callback.
+ * Sets the file transfer send callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The file transfer send callback to be used.
  * @deprecated 17/08/2020 Use #linphone_chat_message_cbs_set_file_transfer_send_chunk() instead.
@@ -198,7 +198,7 @@ LINPHONE_PUBLIC void linphone_chat_message_cbs_set_file_transfer_send(LinphoneCh
                                                                       LinphoneChatMessageCbsFileTransferSendCb cb);
 
 /**
- * Get the file transfer send callback.
+ * Gets the file transfer send callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @return The current file transfer send callback.
  */
@@ -206,7 +206,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsFileTransferSendChunkCb
 linphone_chat_message_cbs_get_file_transfer_send_chunk(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the file transfer send callback.
+ * Sets the file transfer send callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The file transfer send callback to be used.
  */
@@ -215,7 +215,7 @@ linphone_chat_message_cbs_set_file_transfer_send_chunk(LinphoneChatMessageCbs *c
                                                        LinphoneChatMessageCbsFileTransferSendChunkCb cb);
 
 /**
- * Get the file transfer progress indication callback.
+ * Gets the file transfer progress indication callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @return The current file transfer progress indication callback.
  */
@@ -223,7 +223,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsFileTransferProgressIndicationCb
 linphone_chat_message_cbs_get_file_transfer_progress_indication(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the file transfer progress indication callback.
+ * Sets the file transfer progress indication callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The file transfer progress indication callback to be used.
  */
@@ -231,7 +231,7 @@ LINPHONE_PUBLIC void linphone_chat_message_cbs_set_file_transfer_progress_indica
     LinphoneChatMessageCbs *cbs, LinphoneChatMessageCbsFileTransferProgressIndicationCb cb);
 
 /**
- * Get the participant IMDN state changed callback.
+ * Gets the participant IMDN state changed callback.
  * @param cbs #LinphoneChatMessageCbs object. @notnil
  * @return The current participant IMDN state changed callback.
  */
@@ -239,7 +239,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsParticipantImdnStateChangedCb
 linphone_chat_message_cbs_get_participant_imdn_state_changed(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the participant IMDN state changed callback.
+ * Sets the participant IMDN state changed callback.
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The participant IMDN state changed callback to be used.
  */
@@ -248,7 +248,7 @@ linphone_chat_message_cbs_set_participant_imdn_state_changed(LinphoneChatMessage
                                                              LinphoneChatMessageCbsParticipantImdnStateChangedCb cb);
 
 /**
- * Get the current "ephemeral message timer started" callback. This callback is called when the message deletion timer
+ * Gets the current "ephemeral message timer started" callback. This callback is called when the message deletion timer
  * starts (the message has been viewed).
  * @param cbs #LinphoneChatMessageCbs object. @notnil
  * @return The current ephemeral message timer started callback.
@@ -257,7 +257,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsEphemeralMessageTimerStartedCb
 linphone_chat_message_cbs_get_ephemeral_message_timer_started(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the ephemeral message timer started callback. This callback will be used when new message deletion timer starts
+ * Sets the ephemeral message timer started callback. This callback will be used when new message deletion timer starts
  * (the message has been viewed).
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The ephemeral message timer started callback to be used.
@@ -267,7 +267,7 @@ linphone_chat_message_cbs_set_ephemeral_message_timer_started(LinphoneChatMessag
                                                               LinphoneChatMessageCbsEphemeralMessageTimerStartedCb cb);
 
 /**
- * Get the ephemeral message deleted callback. This callback is used when a message deletion timer runs out (message is
+ * Gets the ephemeral message deleted callback. This callback is used when a message deletion timer runs out (message is
  * deleted).
  * @param cbs #LinphoneChatMessageCbs object. @notnil
  * @return The current ephemeral message deleted callback.
@@ -276,7 +276,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbsEphemeralMessageDeletedCb
 linphone_chat_message_cbs_get_ephemeral_message_deleted(const LinphoneChatMessageCbs *cbs);
 
 /**
- * Set the ephemeral message deleted callback. This callback is used when new message deletion timer runs out (message
+ * Sets the ephemeral message deleted callback. This callback is used when new message deletion timer runs out (message
  * is deleted).
  * @param cbs LinphoneChatMessageCbs object. @notnil
  * @param cb The ephemeral message deleted callback to be used.

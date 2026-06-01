@@ -63,7 +63,7 @@ LINPHONE_PUBLIC void linphone_participant_imdn_state_set_user_data(LinphoneParti
                                                                    void *user_data);
 
 /**
- * Get the participant concerned by a LinphoneParticipantImdnState.
+ * Gets the participant concerned by a LinphoneParticipantImdnState.
  * @param state A LinphoneParticipantImdnState object @notnil
  * @return The #LinphoneParticipant concerned by the LinphoneParticipantImdnState @notnil
  */
@@ -71,7 +71,7 @@ LINPHONE_PUBLIC const LinphoneParticipant *
 linphone_participant_imdn_state_get_participant(const LinphoneParticipantImdnState *state);
 
 /**
- * Get the chat message state the participant is in.
+ * Gets the chat message state the participant is in.
  * @param state A LinphoneParticipantImdnState object @notnil
  * @return The #LinphoneChatMessageState the participant is in
  */
@@ -79,7 +79,7 @@ LINPHONE_PUBLIC LinphoneChatMessageState
 linphone_participant_imdn_state_get_state(const LinphoneParticipantImdnState *state);
 
 /**
- * Get the timestamp at which a participant has reached the state described by a LinphoneParticipantImdnState.
+ * Gets the timestamp at which a participant has reached the state described by a LinphoneParticipantImdnState.
  * @param state A LinphoneParticipantImdnState object @notnil
  * @return The timestamp at which the participant has reached the state described in the LinphoneParticipantImdnState
  */

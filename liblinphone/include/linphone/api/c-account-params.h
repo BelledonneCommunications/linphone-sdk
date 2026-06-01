@@ -519,20 +519,20 @@ LINPHONE_PUBLIC void linphone_account_params_set_privacy(LinphoneAccountParams *
 LINPHONE_PUBLIC LinphonePrivacyMask linphone_account_params_get_privacy(const LinphoneAccountParams *params);
 
 /**
- * Set the http file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml
+ * Sets the HTTP file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml.
  * @param params The #LinphoneAccountParams object. @notnil
- * @param server_url URL of the file server (like https://file.linphone.org/upload.php ) @maybenil
- * @warning That function isn't implemented yet.
+ * @param server_url URL of the file server (like https://file.linphone.org/upload.php) @maybenil
+ * @warning This function isn't implemented yet.
  * @donotwrap
- * */
+ */
 LINPHONE_PUBLIC void linphone_account_params_set_file_transfer_server(LinphoneAccountParams *params,
                                                                       const char *server_url);
 
 /**
- * Get the http file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml
+ * Gets the HTTP file transfer server to be used for content type application/vnd.gsma.rcs-ft-http+xml.
  * @param params The #LinphoneAccountParams object. @notnil
- * @return URL of the file server (like https://file.linphone.org/upload.php ) @maybenil
- * @warning That function isn't implemented yet.
+ * @return URL of the file server (like https://file.linphone.org/upload.php) @maybenil
+ * @warning This function isn't implemented yet.
  * @donotwrap
  * */
 LINPHONE_PUBLIC const char *linphone_account_params_get_file_transfer_server(const LinphoneAccountParams *params);

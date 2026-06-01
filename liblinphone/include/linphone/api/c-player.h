@@ -118,21 +118,21 @@ LINPHONE_PUBLIC LinphoneStatus linphone_player_pause(LinphonePlayer *player);
 LINPHONE_PUBLIC LinphoneStatus linphone_player_seek(LinphonePlayer *player, int time_ms);
 
 /**
- * Get the current state of a player.
+ * Gets the current state of a player.
  * @param player #LinphonePlayer object @notnil
  * @return The current #LinphonePlayerState of the player.
  */
 LINPHONE_PUBLIC LinphonePlayerState linphone_player_get_state(LinphonePlayer *player);
 
 /**
- * Get the duration of the opened file.
+ * Gets the duration of the opened file.
  * @param player #LinphonePlayer object @notnil
  * @return The duration of the opened file
  */
 LINPHONE_PUBLIC int linphone_player_get_duration(LinphonePlayer *player);
 
 /**
- * Get the current position in the opened file.
+ * Gets the current position in the opened file.
  * @param player #LinphonePlayer object @notnil
  * @return The current position in the opened file
  */
@@ -152,7 +152,7 @@ LINPHONE_PUBLIC void linphone_player_close(LinphonePlayer *player);
 LINPHONE_PUBLIC void linphone_player_set_window_id(LinphonePlayer *player, void *window_id);
 
 /**
- * Create a window id to be used to display video if any.
+ * Creates a window id to be used to display video if any.
  * A context can be used to prevent Linphone from allocating the container (`MSOglContextInfo` for MSOGL). NULL if not
  * used.
  *
@@ -163,7 +163,7 @@ LINPHONE_PUBLIC void linphone_player_set_window_id(LinphonePlayer *player, void 
 LINPHONE_PUBLIC void *linphone_player_create_window_id_2(LinphonePlayer *player, void *context);
 
 /**
- * Create a window id to be used to display video if any.
+ * Creates a window id to be used to display video if any.
  * @param player #LinphonePlayer object @notnil
  * @return window_id The window id pointer to use. @maybenil
  */
@@ -177,14 +177,14 @@ LINPHONE_PUBLIC void *linphone_player_create_window_id(LinphonePlayer *player);
 LINPHONE_PUBLIC bool_t linphone_player_get_is_video_available(LinphonePlayer *player);
 
 /**
- * Set the volume gain of the player.
+ * Sets the volume gain of the player.
  * @param player #LinphonePlayer object @notnil
  * @param gain Percentage of the gain. Valid values are in [ 0.0 : 1.0 ].
  */
 LINPHONE_PUBLIC void linphone_player_set_volume_gain(LinphonePlayer *player, float gain);
 
 /**
- * Get the volume gain of the player.
+ * Gets the volume gain of the player.
  * @param player #LinphonePlayer object @notnil
  * @return Percentage of the gain. Valid values are in [ 0.0 : 1.0 ].
  */
@@ -225,14 +225,14 @@ LINPHONE_PUBLIC void *linphone_player_cbs_get_user_data(const LinphonePlayerCbs 
 LINPHONE_PUBLIC void linphone_player_cbs_set_user_data(LinphonePlayerCbs *cbs, void *user_data);
 
 /**
- * Get the end-of-file reached callback.
+ * Gets the end-of-file reached callback.
  * @param cbs #LinphonePlayerCbs object. @notnil
  * @return The current end-of-file reached callback.
  */
 LINPHONE_PUBLIC LinphonePlayerCbsEofReachedCb linphone_player_cbs_get_eof_reached(const LinphonePlayerCbs *cbs);
 
 /**
- * Set the end-of-file reached callback.
+ * Sets the end-of-file reached callback.
  * @param cbs #LinphonePlayerCbs object. @notnil
  * @param cb The end-of-file reached callback to be used.
  */
