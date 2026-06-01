@@ -3666,55 +3666,51 @@ void MediaSessionPrivate::propagateEncryptionChanged() {
 		const bool authTokenVerified = getStreamsGroup().getAuthenticationTokenVerified();
 		const bool cacheMismatch = getStreamsGroup().getZrtpCacheMismatch();
 		const bool zrtpCheckDone = getStreamsGroup().getAuthenticationTokenCheckDone();
-		if (!authToken.empty()) {
-			/* ZRTP only is using auth_token */
-			getCurrentParams()->setMediaEncryption(LinphoneMediaEncryptionZRTP);
-			if (!isInConference) {
-				q->getCore()->getPrivate()->getToneManager().stopSecurityAlert();
-			}
-			auto encryptionEngine = q->getCore()->getEncryptionEngine();
-			if (encryptionEngine && authTokenVerified && !cacheMismatch) {
-				if (const SalAddress *remoteAddress = getOp()->getRemoteContactAddress()) {
-					char *peerDeviceId = sal_address_as_string_uri_only(remoteAddress);
-					if (Stream *stream = getStreamsGroup().lookupMainStream(SalAudio)) {
-						if (const auto ms2s = dynamic_cast<MS2Stream *>(stream)) {
-							encryptionEngine->authenticationVerified(ms2s->getZrtpContext(),
-							                                         op->getRemoteMediaDescription(), peerDeviceId);
-						} else {
-							lError() << "Could not dynamic_cast to MS2Stream in propagateEncryptionChanged().";
-						}
-					}
-					ms_free(peerDeviceId);
-				} else {
-					/* This typically happens if the ZRTP session starts during early-media when receiving a 183
-					 * response. Indeed, the Contact header is not mandatory in 183 (and liblinphone does not set it).
-					 */
-					lError() << "EncryptionEngine cannot be notified of verified status because remote contact address "
-					            "is unknown.";
-				}
-				q->notifyEncryptionChanged(true, callbackAuthToken);
-			} else {
-				// ZRTP is enabled and we need to check the SAS, a security alert tones
+		const auto mediaEncryption = getStreamsGroup().getMediaEncryption();
+		getCurrentParams()->setMediaEncryption(mediaEncryption);
+		if (mediaEncryption == LinphoneMediaEncryptionZRTP) {
+			if (!authToken.empty()) {
+				/* ZRTP only is using auth_token */
 				if (!isInConference) {
-					q->getCore()->getPrivate()->getToneManager().notifySecurityAlert(q->getSharedFromThis());
+					q->getCore()->getPrivate()->getToneManager().stopSecurityAlert();
 				}
-				if (!zrtpCheckDone) {
+				auto encryptionEngine = q->getCore()->getEncryptionEngine();
+				if (encryptionEngine && authTokenVerified && !cacheMismatch) {
+					if (const SalAddress *remoteAddress = getOp()->getRemoteContactAddress()) {
+						char *peerDeviceId = sal_address_as_string_uri_only(remoteAddress);
+						if (Stream *stream = getStreamsGroup().lookupMainStream(SalAudio)) {
+							if (const auto ms2s = dynamic_cast<MS2Stream *>(stream)) {
+								encryptionEngine->authenticationVerified(ms2s->getZrtpContext(),
+								                                         op->getRemoteMediaDescription(), peerDeviceId);
+							} else {
+								lError() << "Could not dynamic_cast to MS2Stream in propagateEncryptionChanged().";
+							}
+						}
+						ms_free(peerDeviceId);
+					} else {
+						/* This typically happens if the ZRTP session starts during early-media when receiving a 183
+						 * response. Indeed, the Contact header is not mandatory in 183 (and liblinphone does not set
+						 * it).
+						 */
+						lError()
+						    << "EncryptionEngine cannot be notified of verified status because remote contact address "
+						       "is unknown.";
+					}
 					q->notifyEncryptionChanged(true, callbackAuthToken);
+				} else {
+					// ZRTP is enabled and we need to check the SAS, a security alert tones
+					if (!isInConference) {
+						q->getCore()->getPrivate()->getToneManager().notifySecurityAlert(q->getSharedFromThis());
+					}
+					if (!zrtpCheckDone) {
+						q->notifyEncryptionChanged(true, callbackAuthToken);
+					}
 				}
-			}
-		} else {
-			const int srtpRecvSource = getStreamsGroup().getEncryptionStatus().getSrtpRecvSource();
-			const int srtpSendSource = getStreamsGroup().getEncryptionStatus().getSrtpSendSource();
-			if (srtpRecvSource == srtpSendSource) {
-				if (srtpRecvSource == MSSrtpKeySourceDTLS) {
-					getCurrentParams()->setMediaEncryption(LinphoneMediaEncryptionDTLS);
-				} else if (srtpRecvSource == MSSrtpKeySourceSDES) {
-					getCurrentParams()->setMediaEncryption(LinphoneMediaEncryptionSRTP);
-				}
+			} else {
+				lError() << "propagateEncryptionChange: media encryption is ZRTP but SAS is not available yet";
 			}
 		}
 
-		const auto mediaEncryption = q->getCurrentParams()->getMediaEncryption();
 		lInfo() << "All streams are encrypted, key exchanged using "
 		        << (mediaEncryption == LinphoneMediaEncryptionZRTP   ? "ZRTP"
 		            : mediaEncryption == LinphoneMediaEncryptionDTLS ? "DTLS"
@@ -4017,7 +4013,7 @@ void MediaSessionPrivate::updateCurrentParams() const {
 	 * not.
 	 */
 
-	string authToken = getStreamsGroup().getAuthenticationToken();
+	const string authToken = getStreamsGroup().getAuthenticationToken();
 
 	const std::shared_ptr<SalMediaDescription> &md = resultDesc;
 

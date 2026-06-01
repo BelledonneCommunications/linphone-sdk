@@ -1712,6 +1712,38 @@ LinphoneMediaEncryptionStatus MS2Stream::getMediaEncryptionStatus() const {
 	return LinphoneMediaEncryptionStatusInactive;
 }
 
+LinphoneMediaEncryption MS2Stream::getMediaEncryption() const {
+	if (bundleEnabled() && !isTransportOwner()) {
+		if (mBundleOwner) {
+			return mBundleOwner->getMediaEncryption(); /* We must refer to the stream that owns the Rtp bundle.*/
+		} else {
+			lError() << "MS2Stream::getMediaEncryption(): no bundle owner !";
+		}
+	} else {
+		auto stream = getMediaStream();
+		if (stream) {
+			switch (media_stream_get_srtp_key_source(stream, stream->direction, false)) {
+				case MSSrtpKeySourceSDES:
+					return LinphoneMediaEncryptionSRTP;
+				case MSSrtpKeySourceZRTP:
+					return LinphoneMediaEncryptionZRTP;
+				case MSSrtpKeySourceDTLS:
+					return LinphoneMediaEncryptionDTLS;
+				case MSSrtpKeySourceEKT:
+					lError() << "MS2Stream::getMediaEncryption(): media_stream_get_srtp_key_source() returns EKT on a "
+					            "outer SRTP layer...";
+					return LinphoneMediaEncryptionNone;
+				case MSSrtpKeySourceUnknown:
+				case MSSrtpKeySourceUnavailable:
+				default:
+					return LinphoneMediaEncryptionNone;
+			}
+		}
+	}
+
+	return LinphoneMediaEncryptionNone;
+}
+
 bool MS2Stream::isMuted() const {
 	return mMuted;
 }

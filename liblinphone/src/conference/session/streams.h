@@ -127,6 +127,7 @@ public:
 	virtual void confirmGoClear();
 	virtual bool isEncrypted() const = 0;
 	virtual LinphoneMediaEncryptionStatus getMediaEncryptionStatus() const = 0;
+	virtual LinphoneMediaEncryption getMediaEncryption() const = 0;
 	virtual void tryEarlyMediaForking(const OfferAnswerContext &ctx) = 0;
 	virtual void finishEarlyMediaForking() = 0;
 	virtual float getCurrentQuality() = 0;
@@ -474,6 +475,8 @@ public:
 	// return the lowest encryption status of the running streams, LinphoneMediaEncryptionStatus when no stream are
 	// running
 	LinphoneMediaEncryptionStatus getMediaEncryptionStatus() const;
+	// return the current encryption used by stream if they are all the same
+	LinphoneMediaEncryption getMediaEncryption() const;
 	// Returns true if at least one stream was started.
 	bool isStarted() const;
 	// Returns true if all streams are muted (from local source standpoint).

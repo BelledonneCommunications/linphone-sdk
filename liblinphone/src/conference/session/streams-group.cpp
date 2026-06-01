@@ -373,6 +373,30 @@ bool StreamsGroup::allStreamsEncrypted() const {
 }
 
 /**
+ * when all the active stream use the same encryption, return it
+ * return LinphoneMediaEncryptionNone otherwise
+ */
+LinphoneMediaEncryption StreamsGroup::getMediaEncryption() const {
+	LinphoneMediaEncryption currentEncryption = LinphoneMediaEncryptionNone;
+	bool encryptionSet = false;
+	for (auto &stream : mStreams) {
+		if (!stream) continue;
+		if (stream->getState() == Stream::Running) {
+			const auto streamEncryption = stream->getMediaEncryption();
+			if (encryptionSet) {
+				if (currentEncryption != streamEncryption) {
+					currentEncryption = LinphoneMediaEncryptionNone;
+				}
+			} else {
+				currentEncryption = streamEncryption;
+				encryptionSet = true;
+			}
+		}
+	}
+	return currentEncryption;
+}
+
+/**
  * return the lowest status of the running stream, Inactive when no stream is running
  */
 LinphoneMediaEncryptionStatus StreamsGroup::getMediaEncryptionStatus() const {
