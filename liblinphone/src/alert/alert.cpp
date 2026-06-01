@@ -266,7 +266,7 @@ NetworkQualityAlertMonitor::NetworkQualityAlertMonitor(MediaSession &mediaSessio
 	getTimer(LinphoneAlertQoSHighLossLateRate, "network"s, "loss_rate_interval"s, 5000);
 	getTimer(LinphoneAlertQoSHighRemoteLossRate, "network"s, "remote_loss_rate_interval"s, 5000);
 	getTimer(LinphoneAlertQoSLostSignal, "network"s, "lost_signal_interval"s, 1000);
-	getTimer(LinphoneAlertQoSBurstOccured, "network"s, "burst_occured_interval"s, 1000);
+	getTimer(LinphoneAlertQoSBurstOccurred, "network"s, "burst_occured_interval"s, 1000);
 	getTimer(LinphoneAlertQoSRetransmissionFailures, "network"s, "nack_check_interval"s, 2000);
 	getTimer(LinphoneAlertQoSLowSignal, "network"s, "low_signal_interval"s, 1000);
 	auto config = linphone_core_get_config(mMediaSession.getCore()->getCCore());
@@ -326,7 +326,7 @@ void NetworkQualityAlertMonitor::reset() {
 void NetworkQualityAlertMonitor::checkBurstOccurence(const bool burstOccured) {
 	mBurstCount += burstOccured;
 	bool condition = (mBurstCount > 0);
-	handleAlert(LinphoneAlertQoSBurstOccured, condition);
+	handleAlert(LinphoneAlertQoSBurstOccurred, condition);
 }
 
 float NetworkQualityAlertMonitor::computeNackIndicator(uint64_t lostBeforeNack, uint64_t cumPacketLoss) {

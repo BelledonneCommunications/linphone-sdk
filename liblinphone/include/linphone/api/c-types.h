@@ -73,7 +73,7 @@ extern "C" {
  * Use linphone_core_add_auth_info() for that purpose.
  *
  * The #LinphoneCore object can take the initiative to request authentication information
- * when needed to the application through the authentication_requested() callback of it's #LinphoneCoreCbs.
+ * when needed from the application through the authentication_requested() callback of its #LinphoneCoreCbs.
  *
  * The application can respond to this information request later using
  * linphone_core_add_auth_info(). This will unblock all pending authentication

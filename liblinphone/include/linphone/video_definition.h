@@ -69,28 +69,28 @@ LINPHONE_PUBLIC LinphoneVideoDefinition *
 linphone_video_definition_clone(const LinphoneVideoDefinition *video_definition);
 
 /**
- * Get the width of the video definition.
+ * Gets the width of the video definition.
  * @param video_definition #LinphoneVideoDefinition object @notnil
  * @return The width of the video definition
  */
 LINPHONE_PUBLIC unsigned int linphone_video_definition_get_width(const LinphoneVideoDefinition *video_definition);
 
 /**
- * Set the width of the video definition.
+ * Sets the width of the video definition.
  * @param video_definition #LinphoneVideoDefinition object @notnil
  * @param width The width of the video definition
  */
 LINPHONE_PUBLIC void linphone_video_definition_set_width(LinphoneVideoDefinition *video_definition, unsigned int width);
 
 /**
- * Get the height of the video definition.
+ * Gets the height of the video definition.
  * @param video_definition #LinphoneVideoDefinition object @notnil
  * @return The height of the video definition
  */
 LINPHONE_PUBLIC unsigned int linphone_video_definition_get_height(const LinphoneVideoDefinition *video_definition);
 
 /**
- * Set the height of the video definition.
+ * Sets the height of the video definition.
  * @param video_definition #LinphoneVideoDefinition object @notnil
  * @param height The height of the video definition
  */
@@ -98,7 +98,7 @@ LINPHONE_PUBLIC void linphone_video_definition_set_height(LinphoneVideoDefinitio
                                                           unsigned int height);
 
 /**
- * Set the width and the height of the video definition.
+ * Sets the width and the height of the video definition.
  * @param video_definition #LinphoneVideoDefinition object @notnil
  * @param width The width of the video definition
  * @param height The height of the video definition
@@ -108,14 +108,14 @@ LINPHONE_PUBLIC void linphone_video_definition_set_definition(LinphoneVideoDefin
                                                               unsigned int height);
 
 /**
- * Get the name of the video definition.
+ * Gets the name of the video definition.
  * @param video_definition #LinphoneVideoDefinition object @notnil
  * @return The name of the video definition @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_video_definition_get_name(const LinphoneVideoDefinition *video_definition);
 
 /**
- * Set the name of the video definition.
+ * Sets the name of the video definition.
  * @param video_definition #LinphoneVideoDefinition object @notnil
  * @param name The name of the video definition @maybenil
  */

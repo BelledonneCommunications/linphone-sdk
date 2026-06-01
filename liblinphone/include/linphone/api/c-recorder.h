@@ -111,10 +111,10 @@ LINPHONE_PUBLIC int linphone_recorder_get_duration(const LinphoneRecorder *recor
 LINPHONE_PUBLIC float linphone_recorder_get_capture_volume(const LinphoneRecorder *recorder);
 
 /**
- * Create a #LinphoneContent object from the recording, for example to send it within a #LinphoneChatMessage.
+ * Creates a #LinphoneContent object from the recording, for example to send it within a #LinphoneChatMessage.
  * @warning Recorder must be in Closed state!
  * @param recorder The #LinphoneRecorder object. @notnil
- * @return the #LinphoneContent matching the recording, or NULL. @maybenil
+ * @return The #LinphoneContent matching the recording, or NULL. @maybenil
  */
 LINPHONE_PUBLIC LinphoneContent *linphone_recorder_create_content(LinphoneRecorder *recorder);
 

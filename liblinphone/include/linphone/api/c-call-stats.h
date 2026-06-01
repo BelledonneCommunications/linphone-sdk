@@ -79,14 +79,14 @@ LINPHONE_PUBLIC void *linphone_call_stats_get_user_data(const LinphoneCallStats 
 LINPHONE_PUBLIC void linphone_call_stats_set_user_data(LinphoneCallStats *stats, void *data);
 
 /**
- * Get the type of the stream the stats refer to.
+ * Gets the type of the stream the stats refer to.
  * @param stats #LinphoneCallStats object @notnil
  * @return The #LinphoneStreamType the stats refer to
  */
 LINPHONE_PUBLIC LinphoneStreamType linphone_call_stats_get_type(const LinphoneCallStats *stats);
 
 /**
- * Get the local loss rate since last report, expressed as a percentage.
+ * Gets the local loss rate since last report, expressed as a percentage.
  * @param stats #LinphoneCallStats object @notnil
  * @return The sender loss rate
  **/
@@ -100,7 +100,7 @@ LINPHONE_PUBLIC float linphone_call_stats_get_sender_loss_rate(const LinphoneCal
 LINPHONE_PUBLIC float linphone_call_stats_get_receiver_loss_rate(const LinphoneCallStats *stats);
 
 /**
- * Get the local loss rate since last report, expressed as a percentage.
+ * Gets the local loss rate since last report, expressed as a percentage.
  * @param stats #LinphoneCallStats object @notnil
  * @return The local loss rate
  **/
@@ -153,21 +153,21 @@ LINPHONE_PUBLIC uint64_t linphone_call_stats_get_fec_cumulative_lost_packets_num
 LINPHONE_PUBLIC uint64_t linphone_call_stats_get_fec_repaired_packets_number(const LinphoneCallStats *stats);
 
 /**
- * Get the bandwidth measurement of the received stream, expressed in kbit/s, including IP/UDP/RTP headers.
+ * Gets the bandwidth measurement of the received stream, expressed in kbit/s, including IP/UDP/RTP headers.
  * @param stats #LinphoneCallStats object @notnil
  * @return The bandwidth measurement of the received stream in kbit/s.
  */
 LINPHONE_PUBLIC float linphone_call_stats_get_download_bandwidth(const LinphoneCallStats *stats);
 
 /**
- * Get the bandwidth measurement of the sent stream, expressed in kbit/s, including IP/UDP/RTP headers.
+ * Gets the bandwidth measurement of the sent stream, expressed in kbit/s, including IP/UDP/RTP headers.
  * @param stats #LinphoneCallStats object @notnil
  * @return The bandwidth measurement of the sent stream in kbit/s.
  */
 LINPHONE_PUBLIC float linphone_call_stats_get_upload_bandwidth(const LinphoneCallStats *stats);
 
 /**
- * Get the bandwidth measurement of the part of the received stream dedicated to FEC, expressed in kbit/s, including
+ * Gets the bandwidth measurement of the part of the received stream dedicated to FEC, expressed in kbit/s, including
  * IP/UDP/RTP headers.
  * @param stats #LinphoneCallStats object @notnil
  * @return The bandwidth measurement of the received FEC stream in kbit/s.
@@ -175,7 +175,7 @@ LINPHONE_PUBLIC float linphone_call_stats_get_upload_bandwidth(const LinphoneCal
 LINPHONE_PUBLIC float linphone_call_stats_get_fec_download_bandwidth(const LinphoneCallStats *stats);
 
 /**
- * Get the bandwidth measurement of the part of the sent stream dedicated to FEC, expressed in kbit/s, including
+ * Gets the bandwidth measurement of the part of the sent stream dedicated to FEC, expressed in kbit/s, including
  * IP/UDP/RTP headers.
  * @param stats #LinphoneCallStats object @notnil
  * @return The bandwidth measurement of the sent stream in kbit/s.
@@ -183,56 +183,56 @@ LINPHONE_PUBLIC float linphone_call_stats_get_fec_download_bandwidth(const Linph
 LINPHONE_PUBLIC float linphone_call_stats_get_fec_upload_bandwidth(const LinphoneCallStats *stats);
 
 /**
- * Get the bandwidth measurement of the received RTCP, expressed in kbit/s, including IP/UDP/RTP headers.
+ * Gets the bandwidth measurement of the received RTCP, expressed in kbit/s, including IP/UDP/RTP headers.
  * @param stats #LinphoneCallStats object @notnil
  * @return The bandwidth measurement of the received RTCP in kbit/s.
  */
 LINPHONE_PUBLIC float linphone_call_stats_get_rtcp_download_bandwidth(const LinphoneCallStats *stats);
 
 /**
- * Get the bandwidth measurement of the sent RTCP, expressed in kbit/s, including IP/UDP/RTP headers.
+ * Gets the bandwidth measurement of the sent RTCP, expressed in kbit/s, including IP/UDP/RTP headers.
  * @param stats #LinphoneCallStats object @notnil
  * @return The bandwidth measurement of the sent RTCP in kbit/s.
  */
 LINPHONE_PUBLIC float linphone_call_stats_get_rtcp_upload_bandwidth(const LinphoneCallStats *stats);
 
 /**
- * Get the state of ICE processing.
+ * Gets the state of ICE processing.
  * @param stats #LinphoneCallStats object @notnil
  * @return The #LinphoneIceState of ICE processing
  */
 LINPHONE_PUBLIC LinphoneIceState linphone_call_stats_get_ice_state(const LinphoneCallStats *stats);
 
 /**
- * Get the state of uPnP processing.
+ * Gets the state of uPnP processing.
  * @param stats #LinphoneCallStats object @notnil
  * @return The #LinphoneUpnpState of uPnP processing.
  */
 LINPHONE_PUBLIC LinphoneUpnpState linphone_call_stats_get_upnp_state(const LinphoneCallStats *stats);
 
 /**
- * Get the IP address family of the remote peer.
+ * Gets the IP address family of the remote peer.
  * @param stats #LinphoneCallStats object @notnil
  * @return The IP address family #LinphoneAddressFamily of the remote peer.
  */
 LINPHONE_PUBLIC LinphoneAddressFamily linphone_call_stats_get_ip_family_of_remote(const LinphoneCallStats *stats);
 
 /**
- * Get the jitter buffer size in ms.
+ * Gets the jitter buffer size in ms.
  * @param stats #LinphoneCallStats object @notnil
  * @return The jitter buffer size in ms.
  */
 LINPHONE_PUBLIC float linphone_call_stats_get_jitter_buffer_size_ms(const LinphoneCallStats *stats);
 
 /**
- * Get the round trip delay in s.
+ * Gets the round trip delay in s.
  * @param stats #LinphoneCallStats object @notnil
  * @return The round trip delay in s.
  */
 LINPHONE_PUBLIC float linphone_call_stats_get_round_trip_delay(const LinphoneCallStats *stats);
 
 /**
- * Get the estimated bandwidth measurement of the received stream, expressed in kbit/s, including IP/UDP/RTP headers.
+ * Gets the estimated bandwidth measurement of the received stream, expressed in kbit/s, including IP/UDP/RTP headers.
  * @param stats #LinphoneCallStats object @notnil
  * @return The estimated bandwidth measurement of the received stream in kbit/s.
  */
@@ -241,14 +241,14 @@ LINPHONE_PUBLIC float linphone_call_stats_get_estimated_download_bandwidth(const
 void linphone_call_stats_set_estimated_download_bandwidth(LinphoneCallStats *stats, float estimated_value);
 
 /**
- * Get the ZRTP algorithm statistics details (cipher)
+ * Gets the ZRTP algorithm statistics details (cipher)
  * @param stats #LinphoneCallStats object @notnil
  * @return The cipher algo
  */
 LINPHONE_PUBLIC const char *linphone_call_stats_get_zrtp_cipher_algo(const LinphoneCallStats *stats);
 
 /**
- * Get the ZRTP algorithm statistics details (key agreeement)
+ * Gets the ZRTP algorithm statistics details (key agreeement)
  * @param stats #LinphoneCallStats object @notnil
  * @return The key agreement algo
  */
@@ -263,84 +263,84 @@ LINPHONE_PUBLIC const char *linphone_call_stats_get_zrtp_key_agreement_algo(cons
 LINPHONE_PUBLIC bool_t linphone_call_stats_is_zrtp_key_agreement_algo_post_quantum(const LinphoneCallStats *stats);
 
 /**
- * Get the ZRTP algorithm statistics details (hash function)
+ * Gets the ZRTP algorithm statistics details (hash function)
  * @param stats #LinphoneCallStats object @notnil
  * @return The hash algo
  */
 LINPHONE_PUBLIC const char *linphone_call_stats_get_zrtp_hash_algo(const LinphoneCallStats *stats);
 
 /**
- * Get the ZRTP algorithm statistics details (authentication method)
+ * Gets the ZRTP algorithm statistics details (authentication method)
  * @param stats #LinphoneCallStats object @notnil
  * @return The auth tag algo
  */
 LINPHONE_PUBLIC const char *linphone_call_stats_get_zrtp_auth_tag_algo(const LinphoneCallStats *stats);
 
 /**
- * Get the ZRTP algorithm statistics details (SAS display)
+ * Gets the ZRTP algorithm statistics details (SAS display)
  * @param stats #LinphoneCallStats object @notnil
  * @return The sas algo
  */
 LINPHONE_PUBLIC const char *linphone_call_stats_get_zrtp_sas_algo(const LinphoneCallStats *stats);
 
 /**
- * Get the SRTP Cryto suite in use
+ * Gets the SRTP Cryto suite in use
  * @param stats #LinphoneCallStats object @notnil
  * @return The SRTP crypto suite currently in use #LinphoneSrtpSuite @notnil
  */
 LINPHONE_PUBLIC LinphoneSrtpSuite linphone_call_stats_get_srtp_suite(const LinphoneCallStats *stats);
 
 /**
- * Get the method used for SRTP key exchange
+ * Gets the method used for SRTP key exchange
  * @param stats #LinphoneCallStats object @notnil
  * @return The #LinphoneMediaEncryption method used to exchange the SRTP keys @notnil
  */
 LINPHONE_PUBLIC LinphoneMediaEncryption linphone_call_stats_get_srtp_source(const LinphoneCallStats *stats);
 
 /**
- * Get the number of RTP outgoing packets
+ * Gets the number of RTP outgoing packets
  * @param stats #LinphoneCallStats object @notnil
  * @return The number of RTP outgoing packets
  */
 LINPHONE_PUBLIC uint64_t linphone_call_stats_get_rtp_packet_sent(const LinphoneCallStats *stats);
 
 /**
- * Get the number of RTP received packets
+ * Gets the number of RTP received packets
  * @param stats #LinphoneCallStats object @notnil
  * @return The number of RTP received packets
  */
 LINPHONE_PUBLIC uint64_t linphone_call_stats_get_rtp_packet_recv(const LinphoneCallStats *stats);
 
 /**
- * Get the RTP outgoing sent_bytes (excluding IP header)
+ * Gets the RTP outgoing sent_bytes (excluding IP header)
  * @param stats #LinphoneCallStats object @notnil
  * @return The number of outgoing sent_bytes (excluding IP header)
  */
 LINPHONE_PUBLIC uint64_t linphone_call_stats_get_rtp_sent(const LinphoneCallStats *stats);
 
 /**
- * Get the RTP incoming recv_bytes of payload and delivered in time to the application
+ * Gets the RTP incoming recv_bytes of payload and delivered in time to the application
  * @param stats #LinphoneCallStats object @notnil
  * @return The number of recv_bytes of payload and delivered in time to the application
  */
 LINPHONE_PUBLIC uint64_t linphone_call_stats_get_rtp_recv(const LinphoneCallStats *stats);
 
 /**
- * Get the number of received bytes excluding IPv4/IPv6/UDP headers and including late and duplicate packets
+ * Gets the number of received bytes excluding IPv4/IPv6/UDP headers and including late and duplicate packets
  * @param stats #LinphoneCallStats object @notnil
  * @return the number of received bytes excluding IPv4/IPv6/UDP headers and including late and duplicate packets
  */
 LINPHONE_PUBLIC uint64_t linphone_call_stats_get_rtp_hw_recv(const LinphoneCallStats *stats);
 
 /**
- * Get the RTP cumulative number of incoming packet lost
+ * Gets the RTP cumulative number of incoming packet lost
  * @param stats #LinphoneCallStats object @notnil
  * @return The number of RTP cumulative number of incoming packet lost
  */
 LINPHONE_PUBLIC int64_t linphone_call_stats_get_rtp_cum_packet_loss(const LinphoneCallStats *stats);
 
 /**
- * Get the RTP incoming packets discarded because the queue exceeds its max size
+ * Gets the RTP incoming packets discarded because the queue exceeds its max size
  * @param stats #LinphoneCallStats object @notnil
  * @return The RTP incoming packets discarded because the queue exceeds its max size
  */

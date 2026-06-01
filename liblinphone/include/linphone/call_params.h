@@ -68,17 +68,17 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneCallParams *
 linphone_call_params_copy(const LinphoneCallParams *call_params);
 
 /**
- * Check if call parameters are valid
+ * Checks if call parameters are valid.
  * @param params the #LinphoneCallParams @notnil
- * @return TRUE if the parameters are valid; FALSE otherwise.
+ * @return TRUE if the parameters are valid, FALSE otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_is_valid(const LinphoneCallParams *params);
 
 /**
- * Indicate whether sending of early media was enabled.
+ * Indicates whether sending of early media was enabled.
  * @param call_params #LinphoneCallParams object @notnil
  * @return A boolean value telling whether sending of early media was enabled.
- **/
+ */
 LINPHONE_PUBLIC bool_t linphone_call_params_early_media_sending_enabled(const LinphoneCallParams *call_params);
 
 /**
@@ -89,124 +89,124 @@ LINPHONE_PUBLIC bool_t linphone_call_params_early_media_sending_enabled(const Li
 LINPHONE_PUBLIC void linphone_call_params_enable_early_media_sending(LinphoneCallParams *call_params, bool_t enabled);
 
 /**
- * Indicate low bandwith mode.
- * Configuring a call to low bandwidth mode will result in the core to activate several settings for the call in order
- *to ensure that bitrate usage is lowered to the minimum possible. Typically, ptime (packetization time) will be
- *increased, audio codec's output bitrate will be targetted to 20kbit/s provided that it is achievable by the codec
- *selected after SDP handshake. Video is automatically disabled.
+ * Indicates low bandwidth mode.
+ * Configuring a call to low bandwidth mode will cause the core to activate several settings for the call in order
+ * to ensure that bitrate usage is lowered to the minimum possible. Typically, ptime (packetization time) will be
+ * increased, audio codec's output bitrate will be targeted to 20kbit/s, provided that it is achievable by the codec
+ * selected after SDP handshake. Video is automatically disabled.
  * @param call_params #LinphoneCallParams object @notnil
  * @param enabled A boolean value telling whether to activate the low bandwidth mode or not.
- **/
+ */
 LINPHONE_PUBLIC void linphone_call_params_enable_low_bandwidth(LinphoneCallParams *call_params, bool_t enabled);
 
 /**
- * Enable audio stream.
+ * Enables the audio stream.
  * @param call_params #LinphoneCallParams object @notnil
  * @param enabled A boolean value telling whether to enable audio or not.
- **/
+ */
 LINPHONE_PUBLIC void linphone_call_params_enable_audio(LinphoneCallParams *call_params, bool_t enabled);
 
 /**
- * Check if ringing is disabled
+ * Checks if ringing is disabled.
  * @param params the #LinphoneCallParams @notnil
- * @return TRUE if ringing is disabled; FALSE otherwise.
+ * @return TRUE if ringing is disabled, FALSE otherwise.
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_ringing_disabled(const LinphoneCallParams *params);
 
 /**
- * Define whether ringing is disabled
+ * Defines whether ringing is disabled.
  * @param params the #LinphoneCallParams @notnil
- * @param disable TRUE to disable ringing; FALSE otherwise.
+ * @param disable TRUE to disable ringing, FALSE otherwise.
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC void linphone_call_params_disable_ringing(LinphoneCallParams *params, bool_t disable);
 
 /**
- * Check if tone indications are enabled
+ * Checks if tone indications are enabled.
  * @param params the #LinphoneCallParams @notnil
- * @return TRUE if tone indications are enabled; FALSE otherwise.
+ * @return TRUE if tone indications are enabled, FALSE otherwise.
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_tone_indications_enabled(const LinphoneCallParams *params);
 
 /**
- * Define whether tone indications are enabled
+ * Defines whether tone indications are enabled.
  * @param params the #LinphoneCallParams @notnil
- * @param enable TRUE to enable tone indications; FALSE otherwise.
+ * @param enable TRUE to enable tone indications, FALSE otherwise.
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC void linphone_call_params_enable_tone_indications(LinphoneCallParams *params, bool_t enable);
 
 /**
- * Check if the capability negotiation (RFC5939) reINVITE is enabled or not.
+ * Checks if the capability negotiation (RFC5939) reINVITE is enabled.
  * @param params the #LinphoneCallParams @notnil
- * @return TRUE if capability negotiation reINVITE is enabled; FALSE otherwise.
+ * @return TRUE if capability negotiation reINVITE is enabled, FALSE otherwise.
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_capability_negotiation_reinvite_enabled(const LinphoneCallParams *params);
 
 /**
- * Define whether capability negotiation (RFC5939) reINVITE is enabled
+ * Defines whether capability negotiation (RFC5939) reINVITE is enabled.
  * @param params the #LinphoneCallParams @notnil
- * @param enable TRUE to enable capability negotiation reINVITE; FALSE otherwise.
+ * @param enable TRUE to enable capability negotiation reINVITE, FALSE otherwise.
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC void linphone_call_params_enable_capability_negotiation_reinvite(LinphoneCallParams *params,
                                                                                  bool_t enable);
 
 /**
- * Indicates whether capability negotiations (RFC5939) is enabled.
+ * Indicates whether capability negotiations (RFC5939) are enabled.
  * @param params the #LinphoneCallParams @notnil
- * @return a boolean indicating the enablement of capability negotiations.
+ * @return A boolean indicating the enablement of capability negotiations.
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_capability_negotiations_enabled(const LinphoneCallParams *params);
 
 /**
- * Enable capability negotiations (RFC5939).
+ * Enables capability negotiations (RFC5939).
  * @param params #LinphoneCallParams object @notnil
  * @param enabled A boolean value telling whether to enable capability negotiations or not.
- **/
+ */
 LINPHONE_PUBLIC void linphone_call_params_enable_capability_negotiations(LinphoneCallParams *params, bool_t enabled);
 
 /**
  * Indicates whether cfg lines with consecutive indexes are going to be merged or not if capability negotiations
- * (RFC5939) is enabled.
+ * (RFC5939) are enabled.
  * @param params the #LinphoneCallParams @notnil
- * @return a boolean indicating the enablement of pcfg and acfg line merging
+ * @return A boolean indicating the enablement of pcfg and acfg line merging
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_cfg_lines_merged(const LinphoneCallParams *params);
 
 /**
- * Enable merging of cfg lines with consecutive indexes if capability negotiations (RFC5939) is enabled.
+ * Enables merging of cfg lines with consecutive indexes if capability negotiations (RFC5939) are enabled.
  * @param params #LinphoneCallParams object @notnil
  * @param enabled A boolean value telling whether to merge pcfg and acfg lines
- **/
+ */
 LINPHONE_PUBLIC void linphone_call_params_enable_cfg_lines_merging(LinphoneCallParams *params, bool_t enabled);
 
 /**
  * Indicates whether tcap lines with consecutive indexes are going to be merged or not if capability negotiations
- * (RFC5939) is enabled.
+ * (RFC5939) are enabled.
  * @param params the #LinphoneCallParams @notnil
- * @return a boolean indicating the enablement of tcap line merging
+ * @return A boolean indicating the enablement of tcap line merging
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_tcap_lines_merged(const LinphoneCallParams *params);
 
 /**
- * Enable merging of tcap lines with consecutive indexes if capability negotiations (RFC5939) is enabled.
+ * Enables merging of tcap lines with consecutive indexes if capability negotiations (RFC5939) are enabled.
  * @param params #LinphoneCallParams object @notnil
  * @param enabled A boolean value telling whether to merge tcap lines
- **/
+ */
 LINPHONE_PUBLIC void linphone_call_params_enable_tcap_line_merging(LinphoneCallParams *params, bool_t enabled);
 
 /**
- * Returns the encryption is supported
+ * Checks if a media encryption is supported.
  * @param params the #LinphoneCallParams @notnil
- * @param encryption The #LinphoneMediaEncryption to check whether is supported
- * @return a boolean indicating whether the encryption is supported
+ * @param encryption The #LinphoneMediaEncryption to check whether it is supported
+ * @return A boolean indicating whether the encryption is supported
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC bool_t linphone_call_params_is_media_encryption_supported(const LinphoneCallParams *params,

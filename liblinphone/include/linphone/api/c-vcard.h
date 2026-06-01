@@ -295,7 +295,7 @@ LINPHONE_PUBLIC void linphone_vcard_set_url(LinphoneVcard *vCard, const char *ur
 LINPHONE_PUBLIC const char *linphone_vcard_get_url(const LinphoneVcard *vCard);
 
 /**
- * Get the vCard extended properties values per property name
+ * Gets the vCard extended properties values per property name
  * @param vCard the #LinphoneVcard @notnil
  * @param name the name to filter the extended properties on. @notnil
  * @return The extended properties values as string. \bctbx_list{char *} @maybenil @tobefreed

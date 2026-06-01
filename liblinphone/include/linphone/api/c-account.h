@@ -72,16 +72,16 @@ LINPHONE_PUBLIC LinphoneAccount *linphone_account_ref(LinphoneAccount *account);
 LINPHONE_PUBLIC void linphone_account_unref(LinphoneAccount *account);
 
 /**
- * Set the #LinphoneAccountParams used by this #LinphoneAccount.
+ * Sets the #LinphoneAccountParams used by this #LinphoneAccount.
  * @param account The #LinphoneAccount object. @notnil
  * @param params The #LinphoneAccountParams object. @notnil
  */
 LINPHONE_PUBLIC int linphone_account_set_params(LinphoneAccount *account, LinphoneAccountParams *params);
 
 /**
- * Get the #LinphoneAccountParams as read-only object.
+ * Gets the #LinphoneAccountParams as a read-only object.
  * To make changes, clone the returned object using linphone_account_params_clone() method,
- * make your changes on it and apply them using with linphone_account_set_params().
+ * make your changes on it, and apply them using linphone_account_set_params().
  * @param account The #LinphoneAccount object. @notnil
  * @return The #LinphoneAccountParams attached to this account. @notnil
  */
@@ -160,10 +160,10 @@ LINPHONE_PUBLIC void linphone_account_set_dependency(LinphoneAccount *account, L
 LINPHONE_PUBLIC LinphoneAccount *linphone_account_get_dependency(LinphoneAccount *account);
 
 /**
- * Get the #LinphoneCore object to which is associated the #LinphoneAccount.
+ * Gets the #LinphoneCore object to which the #LinphoneAccount is associated.
  * @param account The #LinphoneAccount object. @notnil
- * @return The #LinphoneCore object to which is associated the #LinphoneAccount. @notnil
- **/
+ * @return The #LinphoneCore object to which the #LinphoneAccount is associated. @notnil
+ */
 LINPHONE_PUBLIC LinphoneCore *linphone_account_get_core(LinphoneAccount *account);
 
 /**

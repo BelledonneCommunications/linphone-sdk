@@ -151,7 +151,7 @@ LINPHONE_PUBLIC unsigned int linphone_logging_service_get_log_level_mask(const L
 /**
  * @brief Enables logging in a file.
  *
- * That function enables an internal log handler that writes log messages in
+ * This function enables an internal log handler that writes log messages to
  * log-rotated files.
  *
  * @param log_service the #LinphoneLoggingService object @notnil

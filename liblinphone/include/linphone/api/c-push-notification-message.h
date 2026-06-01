@@ -60,9 +60,9 @@ linphone_push_notification_message_ref(LinphonePushNotificationMessage *message)
 LINPHONE_PUBLIC void linphone_push_notification_message_unref(LinphonePushNotificationMessage *message);
 
 /**
- * Gets the call id.
+ * Gets the call ID.
  * @param message The #LinphonePushNotificationMessage object @notnil
- * @return The call id. @notnil
+ * @return The call ID. @notnil
  */
 LINPHONE_PUBLIC const char *
 linphone_push_notification_message_get_call_id(const LinphonePushNotificationMessage *message);
@@ -123,7 +123,7 @@ LINPHONE_PUBLIC const char *
 linphone_push_notification_message_get_reaction_content(const LinphonePushNotificationMessage *message);
 
 /**
- * Tells whether or not this message contains an icalendar by checking it's content type.
+ * Tells whether or not this message contains an icalendar by checking its content type.
  * @param message The #LinphonePushNotificationMessage object @notnil
  * @return TRUE if this content type is 'text/calendar;conference-event=yes', FALSE otherwise.
  */

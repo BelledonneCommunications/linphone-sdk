@@ -60,10 +60,10 @@ typedef enum _LinphoneAlertTypes {
 	 */
 	LinphoneAlertQoSHighRemoteLossRate,
 	/** Packet Burst phenomenon
-	 *  @note Use the key "burst_occured_interval" in the section "alerts::network" to set or get the interval at which
+	 *  @note Use the key "burst_occurred_interval" in the section "alerts::network" to set or get the interval at which
 	 * the problem is checked in a #LinphoneConfig.
 	 */
-	LinphoneAlertQoSBurstOccured,
+	LinphoneAlertQoSBurstOccurred,
 	/** Loss rate is significant but retransmissions fail to arrive on time.
 	 * Information provided: nack-performance (float) the fraction of lost packets recovered thanks to nack-triggered
 	 * retransmissions.

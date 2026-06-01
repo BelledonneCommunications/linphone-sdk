@@ -63,35 +63,35 @@ LINPHONE_PUBLIC void *linphone_call_cbs_get_user_data(const LinphoneCallCbs *cbs
 LINPHONE_PUBLIC void linphone_call_cbs_set_user_data(LinphoneCallCbs *cbs, void *user_data);
 
 /**
- * Get the dtmf received callback.
+ * Gets the dtmf received callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current dtmf received callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsDtmfReceivedCb linphone_call_cbs_get_dtmf_received(LinphoneCallCbs *cbs);
 
 /**
- * Set the dtmf received callback.
+ * Sets the dtmf received callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The dtmf received callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_dtmf_received(LinphoneCallCbs *cbs, LinphoneCallCbsDtmfReceivedCb cb);
 
 /**
- * Get the GoClear Ack sent callback.
+ * Gets the GoClear Ack sent callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The GoClear Ack sent callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsGoClearAckSentCb linphone_call_cbs_get_goclear_ack_sent(LinphoneCallCbs *cbs);
 
 /**
- * Set the GoClear Ack sent callback.
+ * Sets the GoClear Ack sent callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The GoClear Ack sent callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_goclear_ack_sent(LinphoneCallCbs *cbs, LinphoneCallCbsGoClearAckSentCb cb);
 
 /**
- * Get the security level downgraded callback.
+ * Gets the security level downgraded callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current security level downgraded callback.
  */
@@ -99,7 +99,7 @@ LINPHONE_PUBLIC LinphoneCallCbsSecurityLevelDowngradedCb
 linphone_call_cbs_get_security_level_downgraded(LinphoneCallCbs *cbs);
 
 /**
- * Set the security level downgraded callback.
+ * Sets the security level downgraded callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The security level downgraded callback to be used.
  */
@@ -107,14 +107,14 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_security_level_downgraded(LinphoneCal
                                                                      LinphoneCallCbsSecurityLevelDowngradedCb cb);
 
 /**
- * Get the encryption changed callback.
+ * Gets the encryption changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current encryption changed callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsEncryptionChangedCb linphone_call_cbs_get_encryption_changed(LinphoneCallCbs *cbs);
 
 /**
- * Set the encryption changed callback.
+ * Sets the encryption changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The encryption changed callback to be used.
  */
@@ -122,7 +122,7 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_encryption_changed(LinphoneCallCbs *c
                                                               LinphoneCallCbsEncryptionChangedCb cb);
 
 /**
- * Get the authentication token verified callback.
+ * Gets the authentication token verified callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current authentication token verified callback.
  */
@@ -130,7 +130,7 @@ LINPHONE_PUBLIC LinphoneCallCbsAuthenticationTokenVerifiedCb
 linphone_call_cbs_get_authentication_token_verified(LinphoneCallCbs *cbs);
 
 /**
- * Set the authentication token verified callback.
+ * Sets the authentication token verified callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The authentication token verified callback to be used.
  */
@@ -139,7 +139,7 @@ linphone_call_cbs_set_authentication_token_verified(LinphoneCallCbs *cbs,
                                                     LinphoneCallCbsAuthenticationTokenVerifiedCb cb);
 
 /**
- * Get the send master key changed callback.
+ * Gets the send master key changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current send master key changed callback.
  */
@@ -147,7 +147,7 @@ LINPHONE_PUBLIC LinphoneCallCbsSendMasterKeyChangedCb
 linphone_call_cbs_get_send_master_key_changed(LinphoneCallCbs *cbs);
 
 /**
- * Set the send master key changed callback.
+ * Sets the send master key changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The send master key changed callback to be used.
  */
@@ -155,7 +155,7 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_send_master_key_changed(LinphoneCallC
                                                                    LinphoneCallCbsSendMasterKeyChangedCb cb);
 
 /**
- * Get the receive master key changed callback.
+ * Gets the receive master key changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current receive master key changed callback.
  */
@@ -163,7 +163,7 @@ LINPHONE_PUBLIC LinphoneCallCbsReceiveMasterKeyChangedCb
 linphone_call_cbs_get_receive_master_key_changed(LinphoneCallCbs *cbs);
 
 /**
- * Set the receive master key changed callback.
+ * Sets the receive master key changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The receive master key changed callback to be used.
  */
@@ -171,14 +171,14 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_receive_master_key_changed(LinphoneCa
                                                                       LinphoneCallCbsReceiveMasterKeyChangedCb cb);
 
 /**
- * Get the info message received callback.
+ * Gets the info message received callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current info message received callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsInfoMessageReceivedCb linphone_call_cbs_get_info_message_received(LinphoneCallCbs *cbs);
 
 /**
- * Set the info message received callback.
+ * Sets the info message received callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The info message received callback to be used.
  */
@@ -186,35 +186,35 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_info_message_received(LinphoneCallCbs
                                                                  LinphoneCallCbsInfoMessageReceivedCb cb);
 
 /**
- * Get the state changed callback.
+ * Gets the state changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current state changed callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsStateChangedCb linphone_call_cbs_get_state_changed(LinphoneCallCbs *cbs);
 
 /**
- * Set the state changed callback.
+ * Sets the state changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The state changed callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_state_changed(LinphoneCallCbs *cbs, LinphoneCallCbsStateChangedCb cb);
 
 /**
- * Get the stats updated callback.
+ * Gets the stats updated callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current stats updated callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsStatsUpdatedCb linphone_call_cbs_get_stats_updated(LinphoneCallCbs *cbs);
 
 /**
- * Set the stats updated callback.
+ * Sets the stats updated callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The stats updated callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_stats_updated(LinphoneCallCbs *cbs, LinphoneCallCbsStatsUpdatedCb cb);
 
 /**
- * Get the transfer state changed callback.
+ * Gets the transfer state changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current transfer state changed callback.
  */
@@ -222,7 +222,7 @@ LINPHONE_PUBLIC LinphoneCallCbsTransferStateChangedCb
 linphone_call_cbs_get_transfer_state_changed(LinphoneCallCbs *cbs);
 
 /**
- * Set the transfer state changed callback.
+ * Sets the transfer state changed callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The transfer state changed callback to be used.
  */
@@ -230,21 +230,21 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_transfer_state_changed(LinphoneCallCb
                                                                   LinphoneCallCbsTransferStateChangedCb cb);
 
 /**
- * Get the refer requested callback.
+ * Gets the refer requested callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The refer requested callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsReferRequestedCb linphone_call_cbs_get_refer_requested(LinphoneCallCbs *cbs);
 
 /**
- * Set the refer requested callback.
+ * Sets the refer requested callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @param[in] cb The refer requested callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_refer_requested(LinphoneCallCbs *cbs, LinphoneCallCbsReferRequestedCb cb);
 
 /**
- * Get the ACK processing callback.
+ * Gets the ACK processing callback.
  * @param cbs #LinphoneCallCbs object. @notnil
  * @return The current ack processing callback.
  */
@@ -258,35 +258,35 @@ LINPHONE_PUBLIC LinphoneCallCbsAckProcessingCb linphone_call_cbs_get_ack_process
 LINPHONE_PUBLIC void linphone_call_cbs_set_ack_processing(LinphoneCallCbs *cbs, LinphoneCallCbsAckProcessingCb cb);
 
 /**
- * Get the TMMBR received callback.
+ * Gets the TMMBR received callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @return The current TMMBR received callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsTmmbrReceivedCb linphone_call_cbs_get_tmmbr_received(LinphoneCallCbs *cbs);
 
 /**
- * Set the TMMBR received callback.
+ * Sets the TMMBR received callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The TMMBR received callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_tmmbr_received(LinphoneCallCbs *cbs, LinphoneCallCbsTmmbrReceivedCb cb);
 
 /**
- * Get the snapshot taken callback.
+ * Gets the snapshot taken callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @return The current snapshot taken callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsSnapshotTakenCb linphone_call_cbs_get_snapshot_taken(LinphoneCallCbs *cbs);
 
 /**
- * Set the snapshot taken callback.
+ * Sets the snapshot taken callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The snapshot taken callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_snapshot_taken(LinphoneCallCbs *cbs, LinphoneCallCbsSnapshotTakenCb cb);
 
 /**
- * Get the next video frame decoded callback.
+ * Gets the next video frame decoded callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @return The current next video frame decoded callback.
  */
@@ -294,7 +294,7 @@ LINPHONE_PUBLIC LinphoneCallCbsNextVideoFrameDecodedCb
 linphone_call_cbs_get_next_video_frame_decoded(LinphoneCallCbs *cbs);
 
 /**
- * Set the next video frame decoded callback.
+ * Sets the next video frame decoded callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The next video frame decoded callback to be used.
  */
@@ -302,14 +302,14 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_next_video_frame_decoded(LinphoneCall
                                                                     LinphoneCallCbsNextVideoFrameDecodedCb cb);
 
 /**
- * Get the camera not working callback.
+ * Gets the camera not working callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @return The camera not working callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsCameraNotWorkingCb linphone_call_cbs_get_camera_not_working(LinphoneCallCbs *cbs);
 
 /**
- * Set the camera not working callback.
+ * Sets the camera not working callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The camera not working callback to be used.
  */
@@ -317,7 +317,7 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_camera_not_working(LinphoneCallCbs *c
                                                               LinphoneCallCbsCameraNotWorkingCb cb);
 
 /**
- * Get the callback that will be used to notify that there are errors from the video rendering.
+ * Gets the callback that will be used to notify that there are errors from the video rendering.
  * Check #LinphoneCallCbsVideoDisplayErrorOccurredCb for more details.
  *
  * @param cbs The #LinphoneCallCbs object. @notnil
@@ -327,7 +327,7 @@ LINPHONE_PUBLIC LinphoneCallCbsVideoDisplayErrorOccurredCb
 linphone_call_cbs_get_video_display_error_occurred(LinphoneCallCbs *cbs);
 
 /**
- * Set the callback that will be used to notify that there are errors from the video rendering.
+ * Sets the callback that will be used to notify that there are errors from the video rendering.
  * Check #LinphoneCallCbsVideoDisplayErrorOccurredCb for more details.
  *
  * @param cbs The #LinphoneCallCbs object. @notnil
@@ -337,14 +337,14 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_video_display_error_occurred(Linphone
                                                                         LinphoneCallCbsVideoDisplayErrorOccurredCb cb);
 
 /**
- * Get the audio device changed callback.
+ * Gets the audio device changed callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @return The audio device changed callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsAudioDeviceChangedCb linphone_call_cbs_get_audio_device_changed(LinphoneCallCbs *cbs);
 
 /**
- * Set the audio device changed callback.
+ * Sets the audio device changed callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The audio device changedcallback to be used.
  */
@@ -352,35 +352,35 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_audio_device_changed(LinphoneCallCbs 
                                                                 LinphoneCallCbsAudioDeviceChangedCb cb);
 
 /**
- * Set the call remote recording callback.
+ * Sets the call remote recording callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The call remote recording callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_remote_recording(LinphoneCallCbs *cbs, LinphoneCallCbsRemoteRecordingCb cb);
 
 /**
- * Get the call remote recording callback.
+ * Gets the call remote recording callback.
  * @param cbs The #LinphoneCallCbs object. @notnil
  * @return The call remote recording callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsRemoteRecordingCb linphone_call_cbs_get_remote_recording(LinphoneCallCbs *cbs);
 
 /**
- * Set the Baudot detected callback.
+ * Sets the Baudot detected callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb the Baudot detected callback to be used.
  */
 LINPHONE_PUBLIC void linphone_call_cbs_set_baudot_detected(LinphoneCallCbs *cbs, LinphoneCallCbsBaudotDetectedCb cb);
 
 /**
- * Get the Baudot detected callback.
+ * Gets the Baudot detected callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @return The Baudot detected callback.
  */
 LINPHONE_PUBLIC LinphoneCallCbsBaudotDetectedCb linphone_call_cbs_get_baudot_detected(LinphoneCallCbs *cbs);
 
 /**
- * Set the headset answer call requested callback.
+ * Sets the headset answer call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The headset answer call requested callback to be used.
  */
@@ -389,7 +389,7 @@ linphone_call_cbs_set_headset_answer_call_requested(LinphoneCallCbs *cbs,
                                                     LinphoneCallCbsHeadsetAnswerCallRequestedCb cb);
 
 /**
- * Get the headset answer call requested callback.
+ * Gets the headset answer call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @return The headset answer call requested callback.
  */
@@ -397,7 +397,7 @@ LINPHONE_PUBLIC LinphoneCallCbsHeadsetAnswerCallRequestedCb
 linphone_call_cbs_get_headset_answer_call_requested(LinphoneCallCbs *cbs);
 
 /**
- * Set the headset end call requested callback.
+ * Sets the headset end call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The headset end call requested callback to be used.
  */
@@ -405,7 +405,7 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_headset_end_call_requested(LinphoneCa
                                                                       LinphoneCallCbsHeadsetEndCallRequestedCb cb);
 
 /**
- * Get the headset end call requested callback.
+ * Gets the headset end call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @return The headset end call requested callback.
  */
@@ -413,7 +413,7 @@ LINPHONE_PUBLIC LinphoneCallCbsHeadsetEndCallRequestedCb
 linphone_call_cbs_get_headset_end_call_requested(LinphoneCallCbs *cbs);
 
 /**
- * Set the headset hold call requested callback.
+ * Sets the headset hold call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The headset hold call requested callback to be used.
  */
@@ -421,7 +421,7 @@ LINPHONE_PUBLIC void linphone_call_cbs_set_headset_hold_call_requested(LinphoneC
                                                                        LinphoneCallCbsHeadsetHoldCallRequestedCb cb);
 
 /**
- * Get the headset hold call requested callback.
+ * Gets the headset hold call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @return The headset hold call requested callback.
  */
@@ -429,7 +429,7 @@ LINPHONE_PUBLIC LinphoneCallCbsHeadsetHoldCallRequestedCb
 linphone_call_cbs_get_headset_hold_call_requested(LinphoneCallCbs *cbs);
 
 /**
- * Set the headset microphone mute toggled callback.
+ * Sets the headset microphone mute toggled callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The headset microphone mute toggled callback to be used.
  */
@@ -438,7 +438,7 @@ linphone_call_cbs_set_headset_microphone_mute_toggled(LinphoneCallCbs *cbs,
                                                       LinphoneCallCbsHeadsetMicrophoneMuteToggledCb cb);
 
 /**
- * Get the headset microphone mute toggled callback.
+ * Gets the headset microphone mute toggled callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @return The headset microphone mute toggled callback.
  */
@@ -446,7 +446,7 @@ LINPHONE_PUBLIC LinphoneCallCbsHeadsetMicrophoneMuteToggledCb
 linphone_call_cbs_get_headset_microphone_mute_toggled(LinphoneCallCbs *cbs);
 
 /**
- * Set the headset reject call requested callback.
+ * Sets the headset reject call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The headset reject call requested callback to be used.
  */
@@ -455,7 +455,7 @@ linphone_call_cbs_set_headset_reject_call_requested(LinphoneCallCbs *cbs,
                                                     LinphoneCallCbsHeadsetRejectCallRequestedCb cb);
 
 /**
- * Get the headset reject call requested callback.
+ * Gets the headset reject call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @return The headset reject call requested callback.
  */
@@ -463,7 +463,7 @@ LINPHONE_PUBLIC LinphoneCallCbsHeadsetRejectCallRequestedCb
 linphone_call_cbs_get_headset_reject_call_requested(LinphoneCallCbs *cbs);
 
 /**
- * Set the headset resume call requested callback.
+ * Sets the headset resume call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @param[in] cb The headset resume call requested callback to be used.
  */
@@ -472,7 +472,7 @@ linphone_call_cbs_set_headset_resume_call_requested(LinphoneCallCbs *cbs,
                                                     LinphoneCallCbsHeadsetResumeCallRequestedCb cb);
 
 /**
- * Get the headset resume call requested callback.
+ * Gets the headset resume call requested callback.
  * @param[in] cbs The #LinphoneCallCbs object. @notnil
  * @return The headset resume call requested callback.
  */

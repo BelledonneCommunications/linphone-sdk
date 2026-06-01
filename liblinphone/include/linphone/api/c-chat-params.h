@@ -49,7 +49,7 @@ extern "C" {
  */
 
 /**
- * Create an object of type a #LinphoneChatParams.
+ * Creates an object of type a #LinphoneChatParams.
  * @param core The #LinphoneCore to pass to the constructor. @notnil
  * @return The created #LinphoneChatParams. @notnil
  */
@@ -76,14 +76,14 @@ LINPHONE_PUBLIC void linphone_chat_params_unref(LinphoneChatParams *params);
 LINPHONE_PUBLIC LinphoneChatParams *linphone_chat_params_clone(const LinphoneChatParams *params);
 
 /**
- * Get the backend implementation of the text capabilities of the chat associated with the given parameters.
+ * Gets the backend implementation of the text capabilities of the chat associated with the given parameters.
  * @param params The #LinphoneChatParams object. @notnil
  * @return the #LinphoneChatRoomBackend
  **/
 LINPHONE_PUBLIC LinphoneChatRoomBackend linphone_chat_params_get_backend(const LinphoneChatParams *params);
 
 /**
- * Get the encryption implementation of the text capabilities of the chat associated with the given parameters.
+ * Gets the encryption implementation of the text capabilities of the chat associated with the given parameters.
  * @param params The #LinphoneChatParams object. @notnil
  * @return the #LinphoneChatRoomEncryptionBackend
  **/
@@ -91,7 +91,7 @@ LINPHONE_PUBLIC LinphoneChatRoomEncryptionBackend
 linphone_chat_params_get_encryption_backend(const LinphoneChatParams *params);
 
 /**
- * Get the ephemeral message mode of the text capabilities of the chat associated with the given parameters.
+ * Gets the ephemeral message mode of the text capabilities of the chat associated with the given parameters.
  * @param params The #LinphoneChatParams object. @notnil
  * @return the ephemeral message mode #LinphoneChatRoomEphemeralMode
  **/
@@ -107,7 +107,8 @@ LINPHONE_PUBLIC LinphoneChatRoomEphemeralMode linphone_chat_params_get_ephemeral
  * @param params The #LinphoneChatParams object. @notnil
  * @param lifetime The ephemeral lifetime, strictly positive
  */
-LINPHONE_PUBLIC LinphoneStatus linphone_chat_params_activate_ephemeral(LinphoneChatParams *params, unsigned int lifetime);
+LINPHONE_PUBLIC LinphoneStatus linphone_chat_params_activate_ephemeral(LinphoneChatParams *params,
+                                                                       unsigned int lifetime);
 
 /**
  * Set lifetime (in seconds) for all new ephemeral messages in the text capabilities of the chat.
@@ -118,7 +119,9 @@ LINPHONE_PUBLIC LinphoneStatus linphone_chat_params_activate_ephemeral(LinphoneC
  * @param lifetime The ephemeral lifetime, strictly positive
  * @param notReadLifetime The ephemeral not read lifetime, strictly positive
  */
-LINPHONE_PUBLIC LinphoneStatus linphone_chat_params_activate_ephemeral_2(LinphoneChatParams *params, unsigned int lifetime, unsigned int notReadLifetime);
+LINPHONE_PUBLIC LinphoneStatus linphone_chat_params_activate_ephemeral_2(LinphoneChatParams *params,
+                                                                         unsigned int lifetime,
+                                                                         unsigned int notReadLifetime);
 
 /**
  * Deactivate new ephemeral messages in the text capabilities of the chat.
@@ -146,28 +149,28 @@ LINPHONE_PUBLIC long linphone_chat_params_get_ephemeral_lifetime(const LinphoneC
 LINPHONE_PUBLIC long linphone_chat_params_get_ephemeral_not_read_lifetime(const LinphoneChatParams *params);
 
 /**
- * Get the encryption status of the text capabilities of the chat associated with the given parameters.
+ * Gets the encryption status of the text capabilities of the chat associated with the given parameters.
  * @param params The #LinphoneChatParams object. @notnil
  * @return TRUE if encryption is enabled, FALSE otherwise
  **/
 LINPHONE_PUBLIC bool_t linphone_chat_params_encryption_enabled(const LinphoneChatParams *params);
 
 /**
- * Get the real time text status of the text capabilities of the chat associated with the given parameters.
+ * Gets the real time text status of the text capabilities of the chat associated with the given parameters.
  * @param params The #LinphoneChatParams object. @notnil
  * @return TRUE if real time text is enabled, FALSE otherwise
  **/
 LINPHONE_PUBLIC bool_t linphone_chat_params_rtt_enabled(const LinphoneChatParams *params);
 
 /**
- * Set the backend implementation of these text capabilities of the chat parameters.
+ * Sets the backend implementation of these text capabilities of the chat parameters.
  * @param params The #LinphoneChatParams object. @notnil
  * @param backend The #LinphoneChatRoomBackend enum value
  **/
 LINPHONE_PUBLIC void linphone_chat_params_set_backend(LinphoneChatParams *params, LinphoneChatRoomBackend backend);
 
 /**
- * Set the encryption backend implementation of these text capabilities of the chat parameters.
+ * Sets the encryption backend implementation of these text capabilities of the chat parameters.
  * @param params The #LinphoneChatParams object. @notnil
  * @param backend The #LinphoneChatRoomEncryptionBackend enum value
  **/
@@ -199,7 +202,8 @@ LINPHONE_PUBLIC void linphone_chat_params_enable_rtt(LinphoneChatParams *params,
  * @deprecated 20/02/2026 Use linphone_chat_params_activate_ephemeral() or linphone_chat_params_deactivate_ephemeral()
  * instead.
  */
-LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_params_set_ephemeral_lifetime(LinphoneChatParams *params, long time);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_params_set_ephemeral_lifetime(LinphoneChatParams *params,
+                                                                                     long time);
 
 /**
  * @}

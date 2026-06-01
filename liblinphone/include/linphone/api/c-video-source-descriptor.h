@@ -71,7 +71,7 @@ linphone_video_source_descriptor_get_type(const LinphoneVideoSourceDescriptor *d
 /**
  * Gets the call of a #LinphoneVideoSourceDescriptor.
  * @param descriptor The #LinphoneVideoSourceDescriptor object. @notnil
- * @return The #LinphoneCall of the video source descriptor if it's type is LinphoneVideoSourceCall, NULL otherwise.
+ * @return The #LinphoneCall of the video source descriptor if its type is LinphoneVideoSourceCall, NULL otherwise.
  * @maybenil
  */
 LINPHONE_PUBLIC LinphoneCall *
@@ -93,7 +93,7 @@ LINPHONE_PUBLIC void linphone_video_source_descriptor_set_call(LinphoneVideoSour
 /**
  * Gets the camera id of a #LinphoneVideoSourceDescriptor.
  * @param descriptor The #LinphoneVideoSourceDescriptor object. @notnil
- * @return The camera id of the video source descriptor if it's type is LinphoneVideoSourceCamera, NULL otherwise.
+ * @return The camera ID of the video source descriptor if its type is LinphoneVideoSourceCamera, NULL otherwise.
  * @maybenil
  */
 LINPHONE_PUBLIC const char *
@@ -110,7 +110,7 @@ LINPHONE_PUBLIC void linphone_video_source_descriptor_set_camera_id(LinphoneVide
 /**
  * Gets the image path of a #LinphoneVideoSourceDescriptor.
  * @param descriptor The #LinphoneVideoSourceDescriptor object. @notnil
- * @return The image path of the video source descriptor if it's type is LinphoneVideoSourceImage, NULL otherwise.
+ * @return The image path of the video source descriptor if its type is LinphoneVideoSourceImage, NULL otherwise.
  * @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_video_source_descriptor_get_image(const LinphoneVideoSourceDescriptor *descriptor);

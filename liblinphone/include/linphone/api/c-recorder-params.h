@@ -34,33 +34,33 @@ extern "C" {
  */
 
 /**
- * Create a new #LinphoneRecorderParams object.
- * @return the newly created #LinphoneRecorderParams object. @notnil
+ * Creates a new #LinphoneRecorderParams object.
+ * @return The newly created #LinphoneRecorderParams object. @notnil
  */
 LINPHONE_PUBLIC LinphoneRecorderParams *linphone_recorder_params_new(void);
 
 /**
- * Clone a #LinphoneRecorderParams object.
+ * Clones a #LinphoneRecorderParams object.
  * @param params The #LinphoneRecorderParams object. @notnil
- * @return the cloned #LinphoneRecorderParams object. @notnil
+ * @return The cloned #LinphoneRecorderParams object. @notnil
  */
 LINPHONE_PUBLIC LinphoneRecorderParams *linphone_recorder_params_clone(const LinphoneRecorderParams *params);
 
 /**
- * Take a reference on a #LinphoneRecorderParams object.
+ * Takes a reference on a #LinphoneRecorderParams object.
  * @param params The #LinphoneRecorderParams object. @notnil
- * @return the same #LinphoneRecorderParams object. @notnil
+ * @return The same #LinphoneRecorderParams object. @notnil
  */
 LINPHONE_PUBLIC LinphoneRecorderParams *linphone_recorder_params_ref(LinphoneRecorderParams *params);
 
 /**
- * Release a #LinphoneRecorderParams object.
+ * Releases a #LinphoneRecorderParams object.
  * @param params The #LinphoneRecorderParams object. @notnil
  */
 LINPHONE_PUBLIC void linphone_recorder_params_unref(LinphoneRecorderParams *params);
 
 /**
- * Set the #LinphoneAudioDevice object.
+ * Sets the #LinphoneAudioDevice object.
  * @param params The #LinphoneRecorderParams object. @notnil
  * @param device The #LinphoneAudioDevice object to set. @maybenil
  */
@@ -68,15 +68,15 @@ LINPHONE_PUBLIC void linphone_recorder_params_set_audio_device(LinphoneRecorderP
                                                                const LinphoneAudioDevice *device);
 
 /**
- * Retrieve the #LinphoneAudioDevice object.
+ * Retrieves the #LinphoneAudioDevice object.
  * @param params The #LinphoneRecorderParams object. @notnil
- * @return the #LinphoneAudioDevice object. @maybenil
+ * @return The #LinphoneAudioDevice object. @maybenil
  */
 LINPHONE_PUBLIC const LinphoneAudioDevice *
 linphone_recorder_params_get_audio_device(const LinphoneRecorderParams *params);
 
 /**
- * Set the webcam name.
+ * Sets the webcam name.
  * @param params The #LinphoneRecorderParams object. @notnil
  * @param webcam_name The webcam name to set. @maybenil
  */
@@ -85,12 +85,12 @@ LINPHONE_PUBLIC void linphone_recorder_params_set_webcam_name(LinphoneRecorderPa
 /**
  * Retrieves the webcam name.
  * @param params The #LinphoneRecorderParams object. @notnil
- * @return the webcam name. @maybenil
+ * @return The webcam name. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_recorder_params_get_webcam_name(const LinphoneRecorderParams *params);
 
 /**
- * Set the video codec.
+ * Sets the video codec.
  * @param params The #LinphoneRecorderParams object. @notnil
  * @param video_codec The video codec to set. @maybenil
  */
@@ -99,12 +99,12 @@ LINPHONE_PUBLIC void linphone_recorder_params_set_video_codec(LinphoneRecorderPa
 /**
  * Retrieves the video codec.
  * @param params The #LinphoneRecorderParams object. @notnil
- * @return the video codec. @maybenil
+ * @return The video codec. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_recorder_params_get_video_codec(const LinphoneRecorderParams *params);
 
 /**
- * Set the #LinphoneMediaFileFormat.
+ * Sets the #LinphoneMediaFileFormat.
  * @see linphone_core_get_supported_file_formats_list() for information about supported file formats.
  * @param params The #LinphoneRecorderParams object. @notnil
  * @param format The #LinphoneMediaFileFormat to set.

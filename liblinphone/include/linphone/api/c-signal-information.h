@@ -53,7 +53,7 @@ linphone_signal_information_ref(LinphoneSignalInformation *signalInformation);
  */
 LINPHONE_PUBLIC void linphone_signal_information_unref(LinphoneSignalInformation *signalInformation);
 /**
- * Get the value of the #LinphoneSignalInformation.
+ * Gets the value of the #LinphoneSignalInformation.
  * @param signalInformation The #LinphoneSignalInformation object. @notnil
  * @return A float containing the value.
  */

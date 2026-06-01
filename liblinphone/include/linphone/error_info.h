@@ -33,7 +33,7 @@ extern "C" {
  */
 
 /**
- * Create an empty #LinphoneErrorInfo object.
+ * Creates an empty #LinphoneErrorInfo object.
  * The #LinphoneErrorInfo object carries these fields:
  * - a #LinphoneReason enum member giving overall signification of the error reported.
  * - the "protocol" name in which the protocol reason code has meaning, for example SIP or Q.850
@@ -104,7 +104,7 @@ LINPHONE_PUBLIC const char *linphone_error_info_get_protocol(const LinphoneError
 LINPHONE_PUBLIC const char *linphone_error_info_get_warnings(const LinphoneErrorInfo *error_info);
 
 /**
- * Get the status code from the low level protocol (ex a SIP status code).
+ * Gets the status code from the low level protocol (ex a SIP status code).
  * @param error_info #LinphoneErrorInfo object @notnil
  * @return The status code
  **/
@@ -127,7 +127,7 @@ LINPHONE_PUBLIC void linphone_error_info_set(LinphoneErrorInfo *error_info,
                                              const char *warning);
 
 /**
- * Set the sub_ei in #LinphoneErrorInfo to another #LinphoneErrorInfo.
+ * Sets the sub_ei in #LinphoneErrorInfo to another #LinphoneErrorInfo.
  * Used when a reason header is to be added in a SIP response. The first level #LinphoneErrorInfo defines the SIP
  * response code and phrase, the second (sub) #LinphoneErrorInfo defining the content of the Reason header.
  * @param error_info #LinphoneErrorInfo object to which the other #LinphoneErrorInfo will be appended as ei->sub_ei.

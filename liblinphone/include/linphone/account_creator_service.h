@@ -42,7 +42,7 @@ typedef LinphoneAccountCreatorStatus (*LinphoneAccountCreatorRequestFunc)(Linpho
 /************************** Start Account Creator Requests **************************/
 
 /**
- * Create a new #LinphoneAccountCreatorService object.
+ * Creates a new #LinphoneAccountCreatorService object.
  * @return a new #LinphoneAccountCreatorService object.
  * @donotwrap
  **/
@@ -89,7 +89,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_constructor_cb(Linphon
                                                                          LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the constructor of account creator requests.
+ * Gets the constructor of account creator requests.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current constructor of create account request.
  * @donotwrap
@@ -107,7 +107,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_destructor_cb(Linphone
                                                                         LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the destructor of create account request.
+ * Gets the destructor of create account request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current destructor of create account request.
  * @donotwrap
@@ -116,7 +116,7 @@ LINPHONE_PUBLIC LinphoneAccountCreatorRequestFunc
 linphone_account_creator_service_get_destructor_cb(const LinphoneAccountCreatorService *service);
 
 /**
- * Get the create account request.
+ * Gets the create account request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current create account request.
  * @donotwrap
@@ -133,7 +133,7 @@ linphone_account_creator_service_get_create_account_cb(const LinphoneAccountCrea
 LINPHONE_PUBLIC void linphone_account_creator_service_set_create_account_cb(LinphoneAccountCreatorService *service,
                                                                             LinphoneAccountCreatorRequestFunc cb);
 /**
- * Get the create account request.
+ * Gets the create account request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current create account request.
  * @donotwrap
@@ -151,7 +151,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_create_push_account_cb
                                                                                  LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the is account exist request.
+ * Gets the is account exist request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current is account exist request.
  * @donotwrap
@@ -169,7 +169,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_is_account_exist_cb(Li
                                                                               LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the activate account request.
+ * Gets the activate account request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current activate account request.
  * @donotwrap
@@ -187,7 +187,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_activate_account_cb(Li
                                                                               LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the is account activated request.
+ * Gets the is account activated request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current is account activated request.
  * @donotwrap
@@ -206,7 +206,7 @@ linphone_account_creator_service_set_is_account_activated_cb(LinphoneAccountCrea
                                                              LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the link account request.
+ * Gets the link account request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current link account request.
  * @donotwrap
@@ -224,7 +224,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_link_account_cb(Linpho
                                                                           LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the activate alias request.
+ * Gets the activate alias request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current link account request.
  * @donotwrap
@@ -242,7 +242,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_activate_alias_cb(Linp
                                                                             LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the is alias used request.
+ * Gets the is alias used request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current is alias used request.
  * @donotwrap
@@ -260,7 +260,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_is_alias_used_cb(Linph
                                                                            LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the is account linked request.
+ * Gets the is account linked request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current is account linked request.
  * @donotwrap
@@ -278,7 +278,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_is_account_linked_cb(L
                                                                                LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the recover account request.
+ * Gets the recover account request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current recover account request.
  * @donotwrap
@@ -296,7 +296,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_recover_account_cb(Lin
                                                                              LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the update account request.
+ * Gets the update account request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current update account request.
  * @donotwrap
@@ -314,7 +314,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_update_account_cb(Linp
                                                                             LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the confirmation key request.
+ * Gets the confirmation key request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current confirmation key request.
  * @donotwrap
@@ -332,7 +332,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_confirmation_key_cb(Li
                                                                               LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the login linphone account request.
+ * Gets the login linphone account request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current login linphone account request.
  * @donotwrap
@@ -351,7 +351,7 @@ linphone_account_creator_service_set_login_linphone_account_cb(LinphoneAccountCr
                                                                LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the send token request.
+ * Gets the send token request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current login linphone account request.
  * @donotwrap
@@ -369,7 +369,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_send_token_cb(Linphone
                                                                         LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the account creation request token request.
+ * Gets the account creation request token request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The request token cb to be used.
  * @donotwrap
@@ -378,7 +378,7 @@ LINPHONE_PUBLIC LinphoneAccountCreatorRequestFunc
 linphone_account_creator_service_get_account_creation_request_token_cb(const LinphoneAccountCreatorService *service);
 
 /**
- * Set the account creation request token request.
+ * Sets the account creation request token request.
  * @param service #LinphoneAccountCreatorService object.
  * @param cb The request token cb to be used.
  * @donotwrap
@@ -388,7 +388,7 @@ linphone_account_creator_service_set_account_creation_request_token_cb(LinphoneA
                                                                        LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the account creation token request.
+ * Gets the account creation token request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The request token cb to be used.
  * @donotwrap
@@ -398,7 +398,7 @@ linphone_account_creator_service_get_account_creation_token_using_request_token_
     const LinphoneAccountCreatorService *service);
 
 /**
- * Set the account creation token request.
+ * Sets the account creation token request.
  * @param service #LinphoneAccountCreatorService object.
  * @param cb The request token cb to be used.
  * @donotwrap
@@ -407,7 +407,7 @@ LINPHONE_PUBLIC void linphone_account_creator_service_set_account_creation_token
     LinphoneAccountCreatorService *service, LinphoneAccountCreatorRequestFunc cb);
 
 /**
- * Get the create account with token request.
+ * Gets the create account with token request.
  * @param service #LinphoneAccountCreatorService object.
  * @return The current create account with token request.
  * @donotwrap

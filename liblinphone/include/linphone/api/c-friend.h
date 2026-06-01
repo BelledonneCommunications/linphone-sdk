@@ -463,7 +463,7 @@ LINPHONE_PUBLIC float linphone_friend_get_capability_version(const LinphoneFrien
                                                              const LinphoneFriendCapability capability);
 
 /**
- * Removes a friend from it's friend list and from the rc if exists
+ * Removes a friend from its friend list and from the resource list if it exists.
  * @param linphone_friend #LinphoneFriend object to delete @notnil
  */
 LINPHONE_PUBLIC void linphone_friend_remove(LinphoneFriend *linphone_friend);
@@ -519,25 +519,25 @@ LINPHONE_PUBLIC const char *linphone_friend_get_native_uri(const LinphoneFriend 
 LINPHONE_PUBLIC void linphone_friend_set_organization(LinphoneFriend *linphone_friend, const char *organization);
 
 /**
- * Gets the contact's organization from it's vCard.
- * It's a shortcut to linphone_friend_get_vcard() and linphone_vcard_get_organization().
- * @param linphone_friend the #LinphoneFriend object.
- * @return the organization set if any & vCard is available, NULL otherwise. @maybenil
+ * Gets the contact's organization from its vCard.
+ * This is a shortcut to linphone_friend_get_vcard() and linphone_vcard_get_organization().
+ * @param linphone_friend The #LinphoneFriend object.
+ * @return The organization set if any and vCard is available, NULL otherwise. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_friend_get_organization(const LinphoneFriend *linphone_friend);
 
 /**
  * Sets the contact's job title.
- * It's a shortcut to linphone_friend_get_vcard() and linphone_vcard_set_job_title().
- * @param linphone_friend the #LinphoneFriend object.
- * @param job_title the job title to store in Friend's vCard. @maybenil
+ * This is a shortcut to linphone_friend_get_vcard() and linphone_vcard_set_job_title().
+ * @param linphone_friend The #LinphoneFriend object.
+ * @param job_title The job title to store in Friend's vCard. @maybenil
  */
 LINPHONE_PUBLIC void linphone_friend_set_job_title(LinphoneFriend *linphone_friend, const char *job_title);
 
 /**
- * Gets the contact's job title from it's vCard.
- * It's a shortcut to linphone_friend_get_vcard() and linphone_vcard_get_job_title().
- * @param linphone_friend the #LinphoneFriend object.
+ * Gets the contact's job title from its vCard.
+ * This is a shortcut to linphone_friend_get_vcard() and linphone_vcard_get_job_title().
+ * @param linphone_friend The #LinphoneFriend object.
  * @return the job_title set if any & vCard is available, NULL otherwise. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_friend_get_job_title(const LinphoneFriend *linphone_friend);

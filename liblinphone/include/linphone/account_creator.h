@@ -37,12 +37,12 @@ extern "C" {
 /**************/
 
 /**
- * Callback to notify a response of server.
+ * Callback to notify of a server response.
  * @param creator #LinphoneAccountCreator object @notnil
  * @param status The status of the #LinphoneAccountCreator test existence operation that has just finished
- * @param response The response has a string @maybenil
- * @deprecated 11/06/2024 use #LinphoneAccountManagerServices instead
- **/
+ * @param response The response as a string @maybenil
+ * @deprecated 11/06/2024 Use #LinphoneAccountManagerServices instead
+ */
 typedef void (*LinphoneAccountCreatorCbsStatusCb)(LinphoneAccountCreator *creator,
                                                   LinphoneAccountCreatorStatus status,
                                                   const char *response);
@@ -50,61 +50,61 @@ typedef void (*LinphoneAccountCreatorCbsStatusCb)(LinphoneAccountCreator *creato
 /************************** Start Account Creator data **************************/
 
 /**
- * Create a #LinphoneAccountCreator and set Linphone Request callbacks.
+ * Creates a #LinphoneAccountCreator and sets Linphone Request callbacks.
  * @param core The #LinphoneCore used for the XML-RPC communication @notnil
  * @return The new #LinphoneAccountCreator object. @notnil
- * @deprecated 11/06/2024 use #LinphoneAccountManagerServices instead
- **/
+ * @deprecated 11/06/2024 Use #LinphoneAccountManagerServices instead
+ */
 LINPHONE_PUBLIC LinphoneAccountCreator *linphone_account_creator_create(LinphoneCore *core);
 
 /**
- * Create a #LinphoneAccountCreator and set Linphone Request callbacks.
+ * Creates a #LinphoneAccountCreator and sets Linphone Request callbacks.
  * @param core The #LinphoneCore used for the XML-RPC communication @notnil
  * @param xmlrpc_url The URL to the XML-RPC server. @maybenil
  * @return The new #LinphoneAccountCreator object. @notnil
  * @deprecated 13/04/2020 Use linphone_account_creator_create() instead
- **/
+ */
 LINPHONE_PUBLIC LinphoneAccountCreator *linphone_account_creator_new(LinphoneCore *core, const char *xmlrpc_url);
 
 /**
- * Reset the account creator entries like username, password, phone number...
+ * Resets the account creator entries (username, password, phone number...).
  * @param creator #LinphoneAccountCreator object @notnil
- * @deprecated 11/06/2024 use #LinphoneAccountManagerServices instead
- **/
+ * @deprecated 11/06/2024 Use #LinphoneAccountManagerServices instead
+ */
 LINPHONE_PUBLIC void linphone_account_creator_reset(LinphoneAccountCreator *creator);
 
 /**
- * Send a request to know the existence of account on server.
+ * Sends a request to check if an account exists on the server.
  * @param creator #LinphoneAccountCreator object @notnil
- * @return #LinphoneAccountCreatorStatusRequestOk if the request has been sent,
- *#LinphoneAccountCreatorStatusRequestFailed otherwise
- * @deprecated 11/06/2024 use #LinphoneAccountManagerServices instead
- **/
+ * @return #LinphoneAccountCreatorStatusRequestOk if the request has been sent, otherwise
+ * #LinphoneAccountCreatorStatusRequestFailed
+ * @deprecated 11/06/2024 Use #LinphoneAccountManagerServices instead
+ */
 LINPHONE_PUBLIC LinphoneAccountCreatorStatus linphone_account_creator_is_account_exist(LinphoneAccountCreator *creator);
 
 /**
- * Send a request to create an account on server.
+ * Sends a request to create an account on the server.
  * @param creator #LinphoneAccountCreator object @notnil
- * @return #LinphoneAccountCreatorStatusRequestOk if the request has been sent,
- *#LinphoneAccountCreatorStatusRequestFailed otherwise
- * @deprecated 11/06/2024 use #LinphoneAccountManagerServices instead
- **/
+ * @return #LinphoneAccountCreatorStatusRequestOk if the request has been sent, otherwise
+ * #LinphoneAccountCreatorStatusRequestFailed
+ * @deprecated 11/06/2024 Use #LinphoneAccountManagerServices instead
+ */
 LINPHONE_PUBLIC LinphoneAccountCreatorStatus linphone_account_creator_create_account(LinphoneAccountCreator *creator);
 
 /**
- * Send a request to create a push account on server. Push accounts are used in account dependent situation when account
- *cannot send push notifications. A username and password are automatically generated, an account is automatically
- *activated.
+ * Sends a request to create a push account on the server. Push accounts are used in account-dependent situations when
+ * an account cannot send push notifications. A username and password are automatically generated, and an account is
+ * automatically activated.
  * @param creator #LinphoneAccountCreator object @notnil
- * @return #LinphoneAccountCreatorStatusRequestOk if the request has been sent,
- *#LinphoneAccountCreatorStatusRequestFailed otherwise
- * @deprecated 11/06/2024 use #LinphoneAccountManagerServices instead
- **/
+ * @return #LinphoneAccountCreatorStatusRequestOk if the request has been sent, otherwise
+ * #LinphoneAccountCreatorStatusRequestFailed
+ * @deprecated 11/06/2024 Use #LinphoneAccountManagerServices instead
+ */
 LINPHONE_PUBLIC LinphoneAccountCreatorStatus
 linphone_account_creator_create_push_account(LinphoneAccountCreator *creator);
 
 /**
- * Send a request to know if an account is activated on server.
+ * Sends a request to check if an account is activated on the server.
  * @param creator #LinphoneAccountCreator object @notnil
  * @return #LinphoneAccountCreatorStatusRequestOk if the request has been sent,
  *#LinphoneAccountCreatorStatusRequestFailed otherwise

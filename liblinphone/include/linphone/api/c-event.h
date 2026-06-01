@@ -138,10 +138,10 @@ LINPHONE_PUBLIC void linphone_event_pause_publish(LinphoneEvent *linphone_event)
 LINPHONE_PUBLIC LinphoneReason linphone_event_get_reason(const LinphoneEvent *linphone_event);
 
 /**
- * Get full details about an error occured.
+ * Gets full details about an error that occurred.
  * @param linphone_event #LinphoneEvent object. @notnil
- * @return a #LinphoneErrorInfo object. @notnil
- **/
+ * @return A #LinphoneErrorInfo object. @notnil
+ */
 LINPHONE_PUBLIC const LinphoneErrorInfo *linphone_event_get_error_info(const LinphoneEvent *linphone_event);
 
 /**

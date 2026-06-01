@@ -63,7 +63,7 @@ LINPHONE_PUBLIC bool_t
 linphone_message_waiting_indication_has_message_waiting(const LinphoneMessageWaitingIndication *mwi);
 
 /**
- * Get the address of the message account concerned by this message waiting indication.
+ * Gets the address of the message account concerned by this message waiting indication.
  * @param mwi The #LinphoneMessageWaitingIndication object. @notnil
  * @return The address of the message account concerned by this message waiting indication. @maybenil
  **/
@@ -71,7 +71,7 @@ LINPHONE_PUBLIC const LinphoneAddress *
 linphone_message_waiting_indication_get_account_address(const LinphoneMessageWaitingIndication *mwi);
 
 /**
- * Set the address of the message account concerned by this message waiting indication.
+ * Sets the address of the message account concerned by this message waiting indication.
  * @param mwi the #LinphoneMessageWaitingIndication object. @notnil
  * @param address The address of the message account concerned by this message waiting indication. @maybenil
  */
@@ -79,7 +79,7 @@ LINPHONE_PUBLIC void linphone_message_waiting_indication_set_account_address(Lin
                                                                              LinphoneAddress *address);
 
 /**
- * Get the message waiting indication summaries
+ * Gets the message waiting indication summaries
  * @param mwi the #LinphoneMessageWaitingIndication @notnil
  * @return The message waiting indication summaries. \bctbx_list{LinphoneMessageWaitingIndicationSummary} @maybenil
  */
@@ -87,7 +87,7 @@ LINPHONE_PUBLIC const bctbx_list_t *
 linphone_message_waiting_indication_get_summaries(const LinphoneMessageWaitingIndication *mwi);
 
 /**
- * Get the message waiting indication summary for a given context class.
+ * Gets the message waiting indication summary for a given context class.
  * @param mwi the #LinphoneMessageWaitingIndication @notnil
  * @param contextClass the #LinphoneMessageWaitingIndicationContextClass for which we want to get the summary.
  * @return The #LinphoneMessageWaitingIndicationSummary for the given context class. @maybenil
@@ -97,21 +97,21 @@ linphone_message_waiting_indication_get_summary(const LinphoneMessageWaitingIndi
                                                 LinphoneMessageWaitingIndicationContextClass contextClass);
 
 /**
- * Get the total number of old messages (for all the summaries).
+ * Gets the total number of old messages (for all the summaries).
  * @param mwi the #LinphoneMessageWaitingIndication @notnil
  * @return The total number of old messages.
  */
 LINPHONE_PUBLIC uint32_t linphone_message_waiting_indication_get_nb_old(const LinphoneMessageWaitingIndication *mwi);
 
 /**
- * Get the total number of new messages (for all the summaries).
+ * Gets the total number of new messages (for all the summaries).
  * @param mwi the #LinphoneMessageWaitingIndication @notnil
  * @return The total number of new messages.
  */
 LINPHONE_PUBLIC uint32_t linphone_message_waiting_indication_get_nb_new(const LinphoneMessageWaitingIndication *mwi);
 
 /**
- * Get the total number of old urgent messages (for all the summaries).
+ * Gets the total number of old urgent messages (for all the summaries).
  * @param mwi the #LinphoneMessageWaitingIndication @notnil
  * @return The total number of old urgent messages.
  */
@@ -119,7 +119,7 @@ LINPHONE_PUBLIC uint32_t
 linphone_message_waiting_indication_get_nb_old_urgent(const LinphoneMessageWaitingIndication *mwi);
 
 /**
- * Get the total number of new urgent messages (for all the summaries).
+ * Gets the total number of new urgent messages (for all the summaries).
  * @param mwi the #LinphoneMessageWaitingIndication @notnil
  * @return The total number of new urgent messages.
  */
@@ -150,7 +150,7 @@ LINPHONE_PUBLIC void
 linphone_message_waiting_indication_summary_unref(LinphoneMessageWaitingIndicationSummary *summary);
 
 /**
- * Get the context class of the message waiting indication summary.
+ * Gets the context class of the message waiting indication summary.
  * @param summary A #LinphoneMessageWaitingIndicationSummary object @notnil
  * @return The #LinphoneMessageWaitingIndicationContextClass.
  */
@@ -158,7 +158,7 @@ LINPHONE_PUBLIC LinphoneMessageWaitingIndicationContextClass
 linphone_message_waiting_indication_summary_get_context_class(const LinphoneMessageWaitingIndicationSummary *summary);
 
 /**
- * Get the number of old messages.
+ * Gets the number of old messages.
  * @param summary A #LinphoneMessageWaitingIndicationSummary object @notnil
  * @return The number of old messages.
  */
@@ -166,7 +166,7 @@ LINPHONE_PUBLIC uint32_t
 linphone_message_waiting_indication_summary_get_nb_old(const LinphoneMessageWaitingIndicationSummary *summary);
 
 /**
- * Get the number of new messages.
+ * Gets the number of new messages.
  * @param summary A #LinphoneMessageWaitingIndicationSummary object @notnil
  * @return The number of new messages.
  */
@@ -174,7 +174,7 @@ LINPHONE_PUBLIC uint32_t
 linphone_message_waiting_indication_summary_get_nb_new(const LinphoneMessageWaitingIndicationSummary *summary);
 
 /**
- * Get the number of old urgent messages.
+ * Gets the number of old urgent messages.
  * @param summary A #LinphoneMessageWaitingIndicationSummary object @notnil
  * @return The number of old urgent messages.
  */
@@ -182,7 +182,7 @@ LINPHONE_PUBLIC uint32_t
 linphone_message_waiting_indication_summary_get_nb_old_urgent(const LinphoneMessageWaitingIndicationSummary *summary);
 
 /**
- * Get the number of new urgent messages.
+ * Gets the number of new urgent messages.
  * @param summary A #LinphoneMessageWaitingIndicationSummary object @notnil
  * @return The number of new urgent messages.
  */

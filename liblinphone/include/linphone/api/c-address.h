@@ -133,25 +133,25 @@ LINPHONE_PUBLIC int linphone_address_get_port(const LinphoneAddress *address);
 LINPHONE_PUBLIC LinphoneStatus linphone_address_set_port(LinphoneAddress *address, int port);
 
 /**
- * Get the transport.
+ * Gets the transport.
  * @param address a #LinphoneAddress object. @notnil
- * @return a #LinphoneTransportType, default value if not set is UDP.
- **/
+ * @return A #LinphoneTransportType (default value if not set is UDP).
+ */
 LINPHONE_PUBLIC LinphoneTransportType linphone_address_get_transport(const LinphoneAddress *address);
 
 /**
- * Set a transport.
+ * Sets a transport.
  * @param address a #LinphoneAddress object. @notnil
- * @param transport a #LinphoneTransportType
- **/
+ * @param transport A #LinphoneTransportType
+ */
 LINPHONE_PUBLIC LinphoneStatus linphone_address_set_transport(LinphoneAddress *address,
                                                               LinphoneTransportType transport);
 
 /**
- * Returns whether the address refers to a secure location (sips) or not
+ * Returns whether the address refers to a secure location (sips) or not.
  * @param address a #LinphoneAddress object. @notnil
  * @return TRUE if address refers to a secure location, FALSE otherwise
- **/
+ */
 LINPHONE_PUBLIC bool_t linphone_address_get_secure(const LinphoneAddress *address);
 
 /**

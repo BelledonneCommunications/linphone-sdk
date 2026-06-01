@@ -64,7 +64,7 @@ LINPHONE_PUBLIC void *linphone_participant_get_user_data(const LinphoneParticipa
 LINPHONE_PUBLIC void linphone_participant_set_user_data(LinphoneParticipant *participant, void *user_data);
 
 /**
- * Get the address of a conference participant.
+ * Gets the address of a conference participant.
  * @param participant A #LinphoneParticipant object @notnil
  * @return The #LinphoneAddress of the participant @notnil
  */
@@ -93,7 +93,7 @@ LINPHONE_PUBLIC bool_t linphone_participant_is_focus(const LinphoneParticipant *
 LINPHONE_PUBLIC bool_t linphone_participant_is_me(const LinphoneParticipant *participant);
 
 /**
- * Get the security level of a participant.
+ * Gets the security level of a participant.
  * @param participant A #LinphoneParticipant object @notnil
  * @return The #LinphoneChatRoomSecurityLevel of the participant
  */
@@ -126,7 +126,7 @@ LINPHONE_PUBLIC LinphoneParticipantDevice *linphone_participant_find_device(cons
                                                                             const LinphoneAddress *address);
 
 /**
- * Get the timestamp of the creation of the participant.
+ * Gets the timestamp of the creation of the participant.
  * @param participant A #LinphoneParticipant object @notnil
  * @return time of creation of the participant as returned by time(nullptr). For UNIX based systems it is the number of
  * seconds since 00:00hours of the 1st of January 1970
@@ -134,7 +134,7 @@ LINPHONE_PUBLIC LinphoneParticipantDevice *linphone_participant_find_device(cons
 LINPHONE_PUBLIC time_t linphone_participant_get_creation_time(const LinphoneParticipant *participant);
 
 /**
- * Get the role of the participant within the conference
+ * Gets the role of the participant within the conference
  * @param participant A #LinphoneParticipant object @notnil
  * @return role within the conference #LinphoneParticipantRole
  */

@@ -68,7 +68,7 @@ LINPHONE_PUBLIC void linphone_chat_room_params_unref(LinphoneChatRoomParams *par
 LINPHONE_PUBLIC bool_t linphone_chat_room_params_is_valid(const LinphoneChatRoomParams *params);
 
 /**
- * Get the backend implementation of the chat room associated with the given parameters.
+ * Gets the backend implementation of the chat room associated with the given parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @return the #LinphoneChatRoomBackend
  * @deprecated 20/05/2024. Use linphone_chat_params_get_backend() instead.
@@ -76,7 +76,7 @@ LINPHONE_PUBLIC bool_t linphone_chat_room_params_is_valid(const LinphoneChatRoom
 LINPHONE_PUBLIC LinphoneChatRoomBackend linphone_chat_room_params_get_backend(const LinphoneChatRoomParams *params);
 
 /**
- * Get the encryption implementation of the chat room associated with the given parameters.
+ * Gets the encryption implementation of the chat room associated with the given parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @return the #LinphoneChatRoomEncryptionBackend
  * @deprecated 20/05/2024. Use linphone_chat_params_get_encryption_backend() instead.
@@ -85,7 +85,7 @@ LINPHONE_PUBLIC LinphoneChatRoomEncryptionBackend
 linphone_chat_room_params_get_encryption_backend(const LinphoneChatRoomParams *params);
 
 /**
- * Get the group chat status of the chat room associated with the given parameters.
+ * Gets the group chat status of the chat room associated with the given parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @return TRUE if group chat is enabled, FALSE if one-on-one
  * @deprecated 20/05/2024. Use linphone_conference_params_group_enabled() instead.
@@ -93,7 +93,7 @@ linphone_chat_room_params_get_encryption_backend(const LinphoneChatRoomParams *p
 LINPHONE_PUBLIC bool_t linphone_chat_room_params_group_enabled(const LinphoneChatRoomParams *params);
 
 /**
- * Get the ephemeral message mode of the chat room associated with the given parameters.
+ * Gets the ephemeral message mode of the chat room associated with the given parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @return the ephemeral message mode #LinphoneChatRoomEphemeralMode
  * @deprecated 20/05/2024. Use linphone_chat_params_get_ephemeral_mode() instead.
@@ -122,7 +122,7 @@ LINPHONE_PUBLIC void linphone_chat_room_params_set_ephemeral_lifetime(LinphoneCh
 LINPHONE_PUBLIC long linphone_chat_room_params_get_ephemeral_lifetime(const LinphoneChatRoomParams *params);
 
 /**
- * Get the encryption status of the chat room associated with the given parameters.
+ * Gets the encryption status of the chat room associated with the given parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @return TRUE if encryption is enabled, FALSE otherwise
  * @deprecated 20/05/2024. Use linphone_chat_params_encryption_enabled() instead.
@@ -130,7 +130,7 @@ LINPHONE_PUBLIC long linphone_chat_room_params_get_ephemeral_lifetime(const Linp
 LINPHONE_PUBLIC bool_t linphone_chat_room_params_encryption_enabled(const LinphoneChatRoomParams *params);
 
 /**
- * Get the real time text status of the chat room associated with the given parameters.
+ * Gets the real time text status of the chat room associated with the given parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @return TRUE if real time text is enabled, FALSE otherwise
  * @deprecated 20/05/2024. Use linphone_chat_params_rtt_enabled() instead.
@@ -138,7 +138,7 @@ LINPHONE_PUBLIC bool_t linphone_chat_room_params_encryption_enabled(const Linpho
 LINPHONE_PUBLIC bool_t linphone_chat_room_params_rtt_enabled(const LinphoneChatRoomParams *params);
 
 /**
- * Set the backend implementation of these chat room parameters.
+ * Sets the backend implementation of these chat room parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @param backend The #LinphoneChatRoomBackend enum value
  * @deprecated 20/05/2024. Use linphone_chat_params_set_backend() instead.
@@ -147,7 +147,7 @@ LINPHONE_PUBLIC void linphone_chat_room_params_set_backend(LinphoneChatRoomParam
                                                            LinphoneChatRoomBackend backend);
 
 /**
- * Set the encryption backend implementation of these chat room parameters.
+ * Sets the encryption backend implementation of these chat room parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @param backend The #LinphoneChatRoomEncryptionBackend enum value
  * @deprecated 20/05/2024. Use linphone_chat_params_set_encryption_backend() instead.
@@ -189,7 +189,7 @@ LINPHONE_PUBLIC void linphone_chat_room_params_enable_encryption(LinphoneChatRoo
 LINPHONE_PUBLIC void linphone_chat_room_params_enable_rtt(LinphoneChatRoomParams *params, bool_t rtt);
 
 /**
- * Get the subject of the chat room.
+ * Gets the subject of the chat room.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @return The subject. @maybenil
  * @deprecated 20/05/2024. Use linphone_conference_params_get_subject() instead.
@@ -197,7 +197,7 @@ LINPHONE_PUBLIC void linphone_chat_room_params_enable_rtt(LinphoneChatRoomParams
 LINPHONE_PUBLIC const char *linphone_chat_room_params_get_subject(const LinphoneChatRoomParams *params);
 
 /**
- * Set the subject of the chat room.
+ * Sets the subject of the chat room.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @param subject The subject to set. @maybenil
  * @deprecated 20/05/2024. Use linphone_conference_params_set_subject() instead.

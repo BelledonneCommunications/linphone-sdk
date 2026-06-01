@@ -478,14 +478,14 @@ LINPHONE_PUBLIC void linphone_friend_list_enable_subscriptions(LinphoneFriendLis
 LINPHONE_PUBLIC bool_t linphone_friend_list_subscriptions_enabled(LinphoneFriendList *friend_list);
 
 /**
- * Gets whether this friend list and it's friends will be stored in DB or not
+ * Gets whether this friend list and its friends will be stored in the database or not.
  * @param list the #LinphoneFriendList object @notnil
- * @return Whether the list and it's friends will be saved in database or not
+ * @return Whether the list and its friends will be saved in the database or not
  */
 LINPHONE_PUBLIC bool_t linphone_friend_list_database_storage_enabled(const LinphoneFriendList *list);
 
 /**
- * Sets whether this friend list and it's friends will be stored in DB or not
+ * Sets whether this friend list and its friends will be stored in the database or not.
  * @param list the #LinphoneFriendList object @notnil
  * @param enable TRUE to enable this friend list storage in DB, FALSE to disable it.
  */

@@ -70,7 +70,7 @@ LINPHONE_PUBLIC void linphone_alert_cbs_set_user_data(LinphoneAlertCbs *cbs, voi
 LINPHONE_PUBLIC void linphone_alert_cbs_set_terminated(LinphoneAlertCbs *cbs, LinphoneAlertCbsTerminatedCb terminated);
 
 /**
- * Get the callback for when the alert is terminated
+ * Gets the callback for when the alert is terminated
  * @param cbs The #LinphoneAlertCbs object. @notnil
  * @return The #LinphoneAlertCbsTerminatedCb callback to execute. @maybenil
  */
