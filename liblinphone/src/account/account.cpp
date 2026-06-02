@@ -512,7 +512,8 @@ void Account::setState(LinphoneRegistrationState state, const std::string &messa
 		    mPreviousState != state) {
 			linphone_core_update_friends_subscriptions(core);
 		}
-		if (state == LinphoneRegistrationOk && mPreviousState != state) {
+		if (mPreviousState != LinphoneRegistrationRefreshing && state == LinphoneRegistrationOk &&
+		    mPreviousState != state) {
 			subscribeToMessageWaitingIndication();
 		}
 
