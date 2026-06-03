@@ -5672,10 +5672,11 @@ end:
 	linphone_core_manager_delete_chat_room(pauline, paulineCr, coresList);
 
 	wait_for_list(coresList, 0, 1, 2000);
-	BC_ASSERT_EQUAL(linphone_core_get_call_history_size(marie->lc), 0, int, "%i");
-	BC_ASSERT_EQUAL(linphone_core_get_call_history_size(pauline->lc), 0, int, "%i");
-	BC_ASSERT_PTR_NULL(linphone_core_get_call_logs(marie->lc));
-	BC_ASSERT_PTR_NULL(linphone_core_get_call_logs(pauline->lc));
+	// Checks that the history size via a call to linphone_core_get_call_history_size() is 0 is not reliable due to the
+	// call log server. In fact the number of call logs is not actually known as previous tests may make calls
+	// The same applies to linphone_core_get_call_logs().
+	BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneCallCreated, 0, int, "%i");
+	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneCallCreated, 0, int, "%i");
 
 	linphone_address_unref(confAddr);
 	bctbx_list_free(coresList);

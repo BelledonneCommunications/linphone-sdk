@@ -73,6 +73,8 @@ public:
 	static const std::string memberParametersToString(const participant_params_t &params);
 	static const participant_params_t stringToMemberParameters(const std::string &params);
 
+	bool isValid() const;
+
 private:
 	std::string mCcmpUri;
 	std::shared_ptr<Address> mAddress;

@@ -186,4 +186,7 @@ const ParticipantInfo::participant_params_t ParticipantInfo::stringToMemberParam
 	return params;
 }
 
+bool ParticipantInfo::isValid() const {
+	return !mCcmpUri.empty() || (mAddress && mAddress->isValid());
+}
 LINPHONE_END_NAMESPACE
