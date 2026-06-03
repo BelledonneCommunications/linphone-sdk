@@ -108,6 +108,13 @@ void Av1Encoder::start() {
 		ms_error("Av1Encoder: Failed to initialize encoder.");
 	} else {
 		aom_codec_control(&mCodec, AOME_SET_CPUUSED, 11);
+		if (mScreenContentMode) {
+			ms_message("AV1Encoder: enable screen content mode.");
+			int err;
+			if ((err = aom_codec_control(&mCodec, AV1E_SET_TUNE_CONTENT, AOM_CONTENT_SCREEN)) != AOM_CODEC_OK) {
+				ms_warning("Av1Encoder: AV1E_SET_TUNE_CONTENT failed: %i", err);
+			}
+		}
 
 		mIsRunning = true;
 		mEncodeThread = std::thread(&Av1Encoder::encoderThread, this);

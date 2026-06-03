@@ -50,6 +50,10 @@ public:
 
 	void enableDivideIntoPacketsEqualSize(bool enable) override;
 
+	void enableScreenContentMode(BCTBX_UNUSED(bool enable)) override {
+		// TODO
+	}
+
 protected:
 	H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *vconfList);
 

@@ -44,6 +44,7 @@ public:
 	virtual void notifySli() = 0;
 
 	virtual void enableDivideIntoPacketsEqualSize(bool enable) = 0;
+	virtual void enableScreenContentMode(bool enable) = 0;
 };
 
 } // namespace mediastreamer

@@ -50,6 +50,7 @@ public:
 	void notifySli() override;
 
 	void enableDivideIntoPacketsEqualSize(bool enable) override;
+	void enableScreenContentMode(bool enable) override;
 
 protected:
 	MSVideoConfiguration mVconf;

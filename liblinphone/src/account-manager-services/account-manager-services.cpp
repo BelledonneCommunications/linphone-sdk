@@ -93,6 +93,10 @@ shared_ptr<AccountManagerServicesRequest> AccountManagerServices::createRequest(
 			path = string("accounts/me/devices/" + params["device_uuid"].asString());
 			httpType = "DELETE";
 			break;
+		/*
+		 * The *AsAdmin kind of requests are not supposed to be used by apps, but are
+		 * implemented for the needs of liblinphone-tester.
+		 */
 		case LinphoneAccountManagerServicesRequestTypeGetCreationTokenAsAdmin:
 			path = "account_creation_tokens";
 			break;
