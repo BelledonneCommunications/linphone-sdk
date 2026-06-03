@@ -3982,7 +3982,7 @@ void ServerConference::conclude() {
 
 		const auto device = findParticipantDevice(session);
 		if (getParticipants().size() < 2) {
-			lError() << *this << ": there are less than 2 participants in this chatroom, refusing creation.";
+			lError() << "There are less than 2 participants in " << *this << ", refusing creation.";
 			declineSession(session, LinphoneReasonNotAcceptable);
 			requestDeletion();
 		} else if (!device || (device->getState() != ParticipantDevice::State::Joining)) {
@@ -3994,9 +3994,7 @@ void ServerConference::conclude() {
 			// devices allowed to join the chatroom in method
 			// ServerConference::subscribeRegistrationForParticipants(). Since "groupchat" capability was not there,
 			// then the server doesn't allow to conclude the creation of the chatroom
-			// -
-			lError() << *this
-			         << ": Declining session because it looks like the device creating the chatroom is not allowed to "
+			lError() <<"Declining " << *session << " because it looks like the device creating " << *this << " is not allowed to "
 			            "be part of this chatroom";
 			declineSession(session, LinphoneReasonForbidden);
 			requestDeletion();

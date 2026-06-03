@@ -781,16 +781,16 @@ void group_chat_room_with_client_restart_base(bool encrypted,
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 
 		if (marieCr) {
-			std::string marieMsgText("> It's me again");
+			std::string marieMsgText("> It's me again after restarting my core");
 			msg = ClientConference::sendTextMsg(marieCr, marieMsgText);
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, michelle2, laure, berthe}).wait([msg] {
 				return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateDelivered);
 			}));
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, michelle2, laure, berthe}).wait([michelleCr] {
-				return linphone_chat_room_get_unread_messages_count(michelleCr) == 3;
+				return linphone_chat_room_get_unread_messages_count(michelleCr) == 4;
 			}));
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, michelle2, laure, berthe}).wait([michelle2Cr] {
-				return linphone_chat_room_get_unread_messages_count(michelle2Cr) == 3;
+				return linphone_chat_room_get_unread_messages_count(michelle2Cr) == 4;
 			}));
 			linphone_chat_message_unref(msg);
 			msg = NULL;

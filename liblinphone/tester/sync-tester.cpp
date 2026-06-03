@@ -38,7 +38,7 @@
 using namespace LinphonePrivate;
 using namespace LinphonePrivate::Utils;
 
-static void _check_call_log(LinphoneCoreManager *account, const std::shared_ptr<CallLog> &target) {
+static bool _check_call_log(LinphoneCoreManager *account, const std::shared_ptr<CallLog> &target) {
 	auto callLogs = linphone_core_get_call_logs(account->lc);
 	if (bctbx_list_size(callLogs) > 0) {
 		auto callLog = CallLog::toCpp((LinphoneCallLog *)bctbx_list_get_data(callLogs));
@@ -51,10 +51,12 @@ static void _check_call_log(LinphoneCoreManager *account, const std::shared_ptr<
 		if (error) {
 			ms_error("%s\n\tVS\n%s", target->toJson().c_str(), callLog->toJson().c_str());
 		}
+		return !error;
 	}
+	return true;
 }
 
-static void _check_call_log_count(LinphoneCoreManager *account, size_t count) {
+static bool _check_call_log_count(LinphoneCoreManager *account, size_t count) {
 	auto logs = linphone_core_get_call_logs(account->lc);
 	if (!BC_ASSERT_TRUE(bctbx_list_size(logs) == count)) {
 		// Debug assert
@@ -65,7 +67,9 @@ static void _check_call_log_count(LinphoneCoreManager *account, size_t count) {
 			lWarning() << log->toString();
 			it = bctbx_list_next(it);
 		}
+		return false;
 	}
+	return true;
 }
 
 static void sync_message_api(void) {
@@ -184,9 +188,9 @@ static void sync_message_call_logs(bool_t with_call_log_server) {
 		    wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallOutgoingProgress, outgoingCount + 1, 5000));
 		wait_for_list(lcs, NULL, 0, 1000);
 
-		_check_call_log_count(offlineMarie, offlineLogCount);
-		_check_call_log_count(onlineMarie, onlineLogCount + 1);
-		_check_call_log_count(pauline, paulineLogCount + 1);
+		BC_ASSERT_TRUE(_check_call_log_count(offlineMarie, offlineLogCount));
+		BC_ASSERT_TRUE(_check_call_log_count(onlineMarie, onlineLogCount + 1));
+		BC_ASSERT_TRUE(_check_call_log_count(pauline, paulineLogCount + 1));
 
 		LinphoneCall *marieCall = linphone_core_get_current_call(onlineMarie->lc);
 
@@ -207,8 +211,8 @@ static void sync_message_call_logs(bool_t with_call_log_server) {
 			}
 		}
 
-		_check_call_log_count(offlineMarie, offlineLogCount);
-		_check_call_log_count(onlineMarie, onlineLogCount + 1);
+		BC_ASSERT_TRUE(_check_call_log_count(offlineMarie, offlineLogCount));
+		BC_ASSERT_TRUE(_check_call_log_count(onlineMarie, onlineLogCount + 1));
 
 		auto paulineCallLog = CallLog::toCpp(linphone_call_get_call_log(paulineCall));
 		wait_for_list(lcs, NULL, 0, 1000); // 1s to be able to check if start_time has changed
@@ -265,8 +269,8 @@ static void sync_message_call_logs(bool_t with_call_log_server) {
 			linphone_chat_message_unref(chatMessage);
 		}
 		// Check log count before reconnection
-		_check_call_log_count(offlineMarie, offlineLogCount);
-		_check_call_log_count(onlineMarie, onlineLogCount + 1);
+		BC_ASSERT_TRUE(_check_call_log_count(offlineMarie, offlineLogCount));
+		BC_ASSERT_TRUE(_check_call_log_count(onlineMarie, onlineLogCount + 1));
 
 		// RECONNECTION
 		int offlineRegisterCount = offlineMarie->stat.number_of_LinphoneRegistrationOk;
@@ -285,8 +289,8 @@ static void sync_message_call_logs(bool_t with_call_log_server) {
 		BC_ASSERT_TRUE(!!(room = linphone_core_get_chat_room(onlineMarie->lc, onlineMarie->identity)));
 		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(room), 0, int, "%i");
 		// Check: Log count
-		_check_call_log_count(offlineMarie, offlineLogCount + 1);
-		_check_call_log_count(onlineMarie, onlineLogCount + 1);
+		BC_ASSERT_TRUE(_check_call_log_count(offlineMarie, offlineLogCount + 1));
+		BC_ASSERT_TRUE(_check_call_log_count(onlineMarie, onlineLogCount + 1));
 
 		// Duration can be different (duration at 0 first and then having updated data)
 		const bctbx_list_t *offlineMarieLogs = linphone_core_get_call_logs(offlineMarie->lc);
@@ -299,8 +303,8 @@ static void sync_message_call_logs(bool_t with_call_log_server) {
 			onlineCallLogRef->setDuration(
 			    CallLog::toCpp(static_cast<LinphoneCallLog *>(bctbx_list_get_data(onlineMarieLogs)))->getDuration());
 		}
-		_check_call_log(offlineMarie, offlineCallLogRef);
-		_check_call_log(onlineMarie, onlineCallLogRef);
+		BC_ASSERT_TRUE(_check_call_log(offlineMarie, offlineCallLogRef));
+		BC_ASSERT_TRUE(_check_call_log(onlineMarie, onlineCallLogRef));
 	}
 
 	bctbx_list_free(lcs);

@@ -1884,7 +1884,7 @@ bool Conference::updateMinatureRequestedFlag() const {
 	for (const auto &p : mParticipants) {
 		for (const auto &d : p->getDevices()) {
 			// Even if the request of thumbnails has not changed, it may be possible that the stream availabilities
-			// have changed if one participant devices stqrts or stops sharing its screen
+			// have changed if one participant devices starts or stops sharing its screen
 			auto availabilityChanges = d->updateStreamAvailabilities();
 			changed |= (availabilityChanges.find(LinphoneStreamTypeVideo) != availabilityChanges.cend());
 		}

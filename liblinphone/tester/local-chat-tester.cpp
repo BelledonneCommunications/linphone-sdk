@@ -4603,6 +4603,8 @@ static void group_chat_room_with_only_participant_with_invalid_address() {
 		                             initialMarieStats.number_of_LinphoneChatRoomStateCreationFailed + 1,
 		                             liblinphone_tester_sip_timeout));
 
+		linphone_core_delete_chat_room(marie.getLc(), marieCr);
+
 		// to avoid creation attempt of a new chatroom
 		auto focus_account = focus.getDefaultAccount();
 		LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(focus_account));

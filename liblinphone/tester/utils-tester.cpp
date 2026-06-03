@@ -28,6 +28,11 @@
 #include "linphone/utils/utils.h"
 #include "tester_utils.h"
 #include "utils/payload-type-handler.h"
+#ifndef _WIN32
+#ifdef HAVE_XERCESC
+#include "xml/resource-lists.h"
+#endif // HAVE_XERCESC
+#endif // _WIN32
 
 // =============================================================================
 
@@ -267,6 +272,49 @@ static void conferenceId_comparisons() {
 	BC_ASSERT_FALSE(c7 == c5);
 }
 
+#ifndef _WIN32
+#ifdef HAVE_XERCESC
+static const char *empty_resource_list = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n\
+				    <p1:resource-lists xmlns:p1=\"urn:ietf:params:xml:ns:resource-lists\">\n\
+<p1:list>\n\
+  <p1:entry uri=\"\"/>\n\
+</p1:list>\n\
+</p1:resource-lists>";
+
+static const char *resource_list = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n\
+				    <p1:resource-lists xmlns:p1=\"urn:ietf:params:xml:ns:resource-lists\">\n\
+<p1:list>\n\
+  <p1:entry uri=\"sip:laure@sip.example.org\"/>\n\
+  <p1:entry uri=\"sip:michelle@sip.example.org\"/>\n\
+  <p1:entry uri=\"sip:pauline@sip.example.org\"/>\n\
+</p1:list>\n\
+</p1:resource-lists>";
+
+static void parse_resource_list(void) {
+	ContentType contentType = LinphonePrivate::ContentType::ResourceLists;
+
+	xercesc::XMLPlatformUtils::Initialize();
+
+	Content content1;
+	content1.setBodyFromLocale(empty_resource_list);
+	content1.setContentType(contentType);
+	content1.setContentDisposition(ContentDisposition::RecipientList);
+	auto list1 = Utils::parseResourceLists(content1);
+	BC_ASSERT_TRUE(list1.empty());
+
+	Content content2;
+	content2.setBodyFromLocale(resource_list);
+	content2.setContentType(contentType);
+	content2.setContentDisposition(ContentDisposition::RecipientList);
+	auto list2 = Utils::parseResourceLists(content2);
+	BC_ASSERT_FALSE(list2.empty());
+	BC_ASSERT_EQUAL(list2.size(), 3, size_t, "%0zu");
+
+	xercesc::XMLPlatformUtils::Terminate();
+}
+#endif // HAVE_XERCESC
+#endif // _WIN32
+
 static void parse_capabilities(void) {
 	auto caps = Utils::parseCapabilityDescriptor("groupchat,lime,ephemeral");
 	BC_ASSERT_TRUE(caps.find("groupchat") != caps.end());
@@ -289,6 +337,11 @@ static test_t utils_tests[] = {
     TEST_NO_TAG("Address comparisons", address_comparisons),
     TEST_NO_TAG("Address serialization", address_serialization),
     TEST_NO_TAG("Conference ID comparisons", conferenceId_comparisons),
+#ifndef _WIN32
+#ifdef HAVE_XERCESC
+    TEST_NO_TAG("Parse resource list", parse_resource_list),
+#endif // HAVE_XERCESC
+#endif // _WIN32
     TEST_NO_TAG("Parse capabilities", parse_capabilities)
 };
 // clang-format on

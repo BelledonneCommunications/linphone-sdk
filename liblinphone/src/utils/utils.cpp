@@ -583,7 +583,9 @@ ConferenceInfo::participant_list_t Utils::parseResourceLists(const Content &cont
 					}
 					auto participantInfo = ParticipantInfo::create(basicAddress);
 					participantInfo->setParameters(params);
-					resources.push_back(participantInfo);
+					if (participantInfo->isValid()) {
+						resources.push_back(participantInfo);
+					}
 				}
 			}
 		}

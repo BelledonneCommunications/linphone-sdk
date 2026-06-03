@@ -68,6 +68,11 @@ bool ClientConferenceListEventHandler::subscribe() {
 }
 
 bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &account) {
+	if (!account) {
+		lError() << "Unable to subscribe to the conference event package (RFC 4575) because the account the event handler is trying to subscribe for is NULL";
+		return false;
+	}
+
 	unsubscribe(account);
 
 	if (handlers.empty()) {
@@ -85,7 +90,25 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 	}
 
 	const auto &accountParams = account->getAccountParams();
+	if (!accountParams) {
+		lError() << "Unable to subscribe to the conference event package (RFC 4575) of all chatrooms linked to "
+		         << *account << " because the account parameters are unknown";
+		return false;
+	}
+
 	auto identityAddress = accountParams->getIdentityAddress();
+	if (!identityAddress ||!identityAddress->isValid()) {
+		lError() << "Unable to subscribe to the conference event package (RFC 4575) of all chatrooms linked to "
+		         << *account << " because the account identity is unknown";
+		return false;
+	}
+
+	const auto &from = account->getContactAddress();
+	if (!from ||!from->isValid()) {
+		lError() << "Unable to subscribe to the conference event package (RFC 4575) of all chatrooms linked to "
+		         << *account << " because the account contact address is unknown, hence the SUBSCRIBE from header cannot be set";
+		return false;
+	}
 
 	const auto &factoryUri = accountParams->getConferenceFactoryAddress();
 	if (!factoryUri || !factoryUri->isValid()) {
@@ -135,7 +158,6 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 	                                                         "conference_subscribe_expires", 600);
 	auto evSub = dynamic_pointer_cast<EventSubscribe>(
 	    (new EventSubscribe(getCore(), factoryUri, "conference", eventSubscribeExpire))->toSharedPtr());
-	const auto &from = account->getContactAddress();
 	evSub->getOp()->setFromAddress(from->getImpl());
 	evSub->setInternal(true);
 	evSub->addCustomHeader("Require", "recipient-list-subscribe");
