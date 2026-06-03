@@ -52,6 +52,10 @@ public:
 	};
 	void setBitrate(int bitrate) override;
 
+	void enableScreenContentMode(bool enable) {
+		mScreenContentMode = enable;
+	}
+
 	bool isRunning() override {
 		return mIsRunning;
 	};
@@ -81,6 +85,7 @@ protected:
 	int mBitrate = 0;
 	bool mIsRunning = false;
 	bool mIframeRequested = false;
+	bool mScreenContentMode = false;
 
 	unsigned int mFrameCount = 0;
 

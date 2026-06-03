@@ -962,7 +962,11 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 	}
 	stream->configured_fps = vconf.fps;
 
-	if (stream->ms.encoder) ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
+	if (stream->ms.encoder) {
+		bool_t screen_content_mode = ms_filter_get_id(stream->source) == MS_SCREEN_SHARING_ID;
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
+		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_ENABLE_SCREEN_CONTENT_MODE, &screen_content_mode);
+	}
 
 	encoder_supports_source_format.supported = FALSE;
 	encoder_supports_source_format.pixfmt = format;

@@ -145,6 +145,10 @@ void Av1EncoderFilter::enableDivideIntoPacketsEqualSize(bool enable) {
 	mPacker.enableDivideIntoEqualSize(enable);
 }
 
+void Av1EncoderFilter::enableScreenContentMode(bool enable) {
+	mEncoder->enableScreenContentMode(enable);
+}
+
 const MSVideoConfiguration *Av1EncoderFilter::getVideoConfigurations() const {
 	return mVconfList;
 }

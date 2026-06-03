@@ -110,4 +110,13 @@ int EncodingFilterWrapper::onEnableDivideIntoPacketsEqualSizeCall(MSFilter *f, v
 	}
 }
 
+int EncodingFilterWrapper::onEnableScreenContentMode(MSFilter *f, void *arg) {
+	try {
+		static_cast<EncoderFilter *>(f->data)->enableScreenContentMode(*static_cast<bool *>(arg));
+		return 0;
+	} catch (const EncoderFilter::MethodCallFailed &) {
+		return -1;
+	}
+}
+
 } // namespace mediastreamer

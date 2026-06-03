@@ -96,14 +96,15 @@ typedef struct EncState {
 	int last_fir_seq_nr;
 	uint16_t picture_id;
 	uint16_t last_sli_id;
-	bool_t force_keyframe;
-	bool_t invalid_frame_reported;
-	bool_t avpf_enabled;
-	bool_t ready;
 	MSWorkerThread *process_thread;
 	queue_t entry_q;
 	MSQueue *exit_q;
 	ms_mutex_t vp8_mutex;
+	bool_t force_keyframe;
+	bool_t invalid_frame_reported;
+	bool_t avpf_enabled;
+	bool_t ready;
+	bool_t screen_content_mode;
 } EncState;
 
 #define MIN_KEY_FRAME_DIST 4 /*since one i-frame is allowed to be 4 times bigger of the target bitrate*/
@@ -225,6 +226,12 @@ static void enc_init_impl(MSFilter *f) {
 		                  2 /*VP8_ONE_TOKENPARTITION*/); /* Output 4 partition per frame */
 	} else {
 		vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0);
+	}
+	if (s->screen_content_mode) {
+		ms_message("VP8: screen content mode enabled.");
+		if ((res = vpx_codec_control(&s->codec, VP8E_SET_SCREEN_CONTENT_MODE, 1)) != VPX_CODEC_OK) {
+			ms_warning("VP8: VP8E_SET_SCREEN_CONTENT_MODE error: %i", (int)res);
+		}
 	}
 }
 
@@ -850,6 +857,12 @@ static int enc_enable_avpf(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int enc_enable_screen_content_mode(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	s->screen_content_mode = *(bool_t *)data;
+	return 0;
+}
+
 static MSFilterMethod enc_methods[] = {{MS_FILTER_REQ_VFU, enc_req_vfu},
                                        {MS_VIDEO_ENCODER_REQ_VFU, enc_req_vfu},
                                        {MS_VIDEO_ENCODER_NOTIFY_PLI, enc_notify_pli},
@@ -860,6 +873,7 @@ static MSFilterMethod enc_methods[] = {{MS_FILTER_REQ_VFU, enc_req_vfu},
                                        {MS_VIDEO_ENCODER_GET_CONFIGURATION, enc_get_configuration},
                                        {MS_VIDEO_ENCODER_SET_CONFIGURATION, enc_set_configuration},
                                        {MS_VIDEO_ENCODER_ENABLE_AVPF, enc_enable_avpf},
+                                       {MS_VIDEO_ENCODER_ENABLE_SCREEN_CONTENT_MODE, enc_enable_screen_content_mode},
                                        {0, NULL}};
 
 #define MS_VP8_ENC_NAME "MSVp8Enc"

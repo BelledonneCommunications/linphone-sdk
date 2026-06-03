@@ -43,6 +43,7 @@ public:
 	static int onNotifySliCall(MSFilter *f, void *arg);
 
 	static int onEnableDivideIntoPacketsEqualSizeCall(MSFilter *f, void *arg);
+	static int onEnableScreenContentMode(MSFilter *f, void *arg);
 };
 
 } // namespace mediastreamer
@@ -60,6 +61,7 @@ public:
 	    {MS_VIDEO_ENCODER_SET_CONFIGURATION, EncodingFilterWrapper::onSetConfigurationCall},                           \
 	    {MS_VIDEO_ENCODER_ENABLE_DIVIDE_PACKETS_EQUAL_SIZE,                                                            \
 	     EncodingFilterWrapper::onEnableDivideIntoPacketsEqualSizeCall},                                               \
+	    {MS_VIDEO_ENCODER_ENABLE_SCREEN_CONTENT_MODE, EncodingFilterWrapper::onEnableScreenContentMode},               \
 	    {0, nullptr}}
 
 #define MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags)                        \
