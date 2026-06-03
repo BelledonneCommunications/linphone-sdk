@@ -1085,6 +1085,10 @@ const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx) {
 }
 
 int32_t bctbx_ssl_set_hostname(bctbx_ssl_context_t *ssl_ctx, const char *hostname) {
+	X509_VERIFY_PARAM *param = SSL_get0_param(ssl_ctx->ssl);
+	if (X509_VERIFY_PARAM_set1_host(param, hostname, 0) == 0) {
+		return ERR_get_error();
+	}
 	return SSL_set_tlsext_host_name(ssl_ctx->ssl, hostname) == 1 ? 0 : ERR_get_error();
 }
 
