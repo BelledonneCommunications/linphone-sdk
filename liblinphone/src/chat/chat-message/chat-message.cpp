@@ -639,8 +639,8 @@ void ChatMessagePrivate::disableDeliveryNotificationRequiredInDatabase() {
 
 	if (auto db = chatRoom->getCore()->getDatabase()) {
 		if (q->isValid()) {
-			MainDb &mainDb = db.value();
-			mainDb.disableDeliveryNotificationRequired(mainDb.getEvent(q->getStorageId()));
+			const std::shared_ptr<const EventLog> &eventLog = db.value().get().getEvent(q->getStorageId());
+			if (eventLog) db.value().get().disableDeliveryNotificationRequired(eventLog);
 		}
 	}
 }
