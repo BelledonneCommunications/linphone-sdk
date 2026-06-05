@@ -1261,6 +1261,29 @@ int32_t bctbx_ssl_config_set_future_pqc_tls_group(bctbx_ssl_config_t *ssl_config
 	return 0;
 }
 
+int32_t bctbx_ssl_future_pqc_group_is_supported(const char *group_name) {
+	const char *effective_group = group_name;
+#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L) && !defined(LIBRESSL_VERSION_NUMBER)
+	SSL_CTX *probe_ctx = NULL;
+	if (effective_group == NULL || effective_group[0] == '\0') {
+		effective_group = "X25519MLKEM768";
+	}
+	probe_ctx = SSL_CTX_new(TLS_method());
+	if (probe_ctx == NULL) {
+		return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
+	}
+	if (SSL_CTX_set1_groups_list(probe_ctx, effective_group) == 1) {
+		SSL_CTX_free(probe_ctx);
+		return 0;
+	}
+	SSL_CTX_free(probe_ctx);
+	return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
+#else
+	(void)effective_group;
+	return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
+#endif
+}
+
 int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config) {
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
@@ -1681,6 +1704,12 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 		if (ret != 0) {
 			return ret;
 		}
+	} else if (future_pqc_requested) {
+		int32_t ret = bctbx_crypto_provider_resolve_for_implementation("future-pqc", BCTBX_OPENSSL, &provider);
+		if (ret != 0) {
+			bctbx_warning("[FuturePQC] provider unavailable: OpenSSL/OQS runtime does not support requested path");
+			return ret;
+		}
 	} else {
 		provider = bctbx_crypto_provider_get_default();
 		bctbx_message("[CryptoProvider] no provider configured, using compiled backend: OpenSslCryptoProvider");
@@ -1694,7 +1723,16 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 	{
 		int32_t ret = bctbx_ssl_configure_future_pqc_group(ssl_config, future_pqc_requested);
 		if (ret != 0) {
+			if (future_pqc_requested) {
+				bctbx_warning("[FuturePQC] provider unavailable: requested TLS group is not supported by OpenSSL/OQS");
+			}
 			return ret;
+		}
+		if (future_pqc_requested) {
+			const char *group = (ssl_config->future_pqc_tls_group && ssl_config->future_pqc_tls_group[0] != '\0')
+			                        ? ssl_config->future_pqc_tls_group
+			                        : "X25519MLKEM768";
+			bctbx_message("[FuturePQC] provider resolved through OpenSSL/OQS path with TLS group: %s", group);
 		}
 	}
 

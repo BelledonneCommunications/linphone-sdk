@@ -262,9 +262,11 @@ const char *belle_sip_crypto_mode_to_string(belle_sip_crypto_mode_t mode) {
 
 static int belle_sip_crypto_provider_is_future_available(const char *crypto_provider) {
 	const bctbx_crypto_provider_t *provider = NULL;
+	const char *provider_name = NULL;
 	if (crypto_provider == NULL || crypto_provider[0] == '\0') return 0;
 	if (bctbx_crypto_provider_resolve(crypto_provider, &provider) != 0 || provider == NULL) return 0;
-	return strcmp(bctbx_crypto_provider_get_name(provider), "simulated-pqc") == 0;
+	provider_name = bctbx_crypto_provider_get_name(provider);
+	return (strcmp(provider_name, "simulated-pqc") == 0) || (strcmp(provider_name, "future-pqc") == 0);
 }
 
 belle_sip_crypto_mode_t

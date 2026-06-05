@@ -845,6 +845,30 @@ static void test_tls_to_tcp(void) {
 	belle_sip_stack_set_transport_timeout(stack, orig);
 }
 
+static void test_tls_future_pqc_to_tcp(void) {
+	belle_sip_request_t *req;
+	belle_sip_tls_listening_point_t *s =
+	    BELLE_SIP_TLS_LISTENING_POINT(belle_sip_provider_get_listening_point(prov, "tls"));
+	belle_tls_crypto_config_t *crypto_config = belle_sip_tls_listening_point_get_crypto_config(s);
+	int orig = belle_sip_stack_get_transport_timeout(stack);
+
+	io_error_count = 0;
+	belle_tls_crypto_config_set_crypto_provider(crypto_config, "future-pqc");
+	belle_tls_crypto_config_set_crypto_mode(crypto_config, BELLE_SIP_CRYPTO_MODE_HYBRID);
+	belle_tls_crypto_config_set_future_pqc_tls_group(crypto_config, "X25519MLKEM768");
+	belle_sip_stack_set_transport_timeout(stack, 2000);
+	req = try_register_user_at_domain(stack, prov, "TLS", 1, "tester", belle_sip_test_domain,
+	                                  belle_sip_auth_domain_tls_to_tcp, 0);
+	if (req) {
+		BC_ASSERT_GREATER(io_error_count, 1, int, "%d");
+		belle_sip_object_unref(req);
+	}
+	belle_sip_stack_set_transport_timeout(stack, orig);
+	belle_tls_crypto_config_set_crypto_provider(crypto_config, NULL);
+	belle_tls_crypto_config_set_crypto_mode(crypto_config, BELLE_SIP_CRYPTO_MODE_CLASSICAL);
+	belle_tls_crypto_config_set_future_pqc_tls_group(crypto_config, NULL);
+}
+
 static void register_dns_srv_tcp(void) {
 	belle_sip_request_t *req;
 	io_error_count = 0;
@@ -1391,6 +1415,7 @@ static test_t register_tests[] = {
     TEST_NO_TAG("TCP connection too long", test_connection_too_long_tcp),
     TEST_NO_TAG("TLS connection too long", test_connection_too_long_tls),
     TEST_NO_TAG("TLS connection to TCP server", test_tls_to_tcp),
+    TEST_NO_TAG("TLS future-pqc connection to TCP server", test_tls_future_pqc_to_tcp),
     TEST_NO_TAG("Register with DNS SRV failover TCP", register_dns_srv_tcp),
     TEST_NO_TAG("Register with DNS SRV failover TLS", register_dns_srv_tls),
     TEST_NO_TAG("Register with DNS SRV failover TLS with http proxy", register_dns_srv_tls_with_http_proxy),

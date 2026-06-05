@@ -567,6 +567,7 @@ BCTBX_PUBLIC const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx);
 BCTBX_PUBLIC bctbx_ssl_config_t *bctbx_ssl_config_new(void);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_crypto_provider(bctbx_ssl_config_t *ssl_config, const char *provider_name);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_future_pqc_tls_group(bctbx_ssl_config_t *ssl_config, const char *group_name);
+BCTBX_PUBLIC int32_t bctbx_ssl_future_pqc_group_is_supported(const char *group_name);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config);
 BCTBX_PUBLIC void bctbx_ssl_config_free(bctbx_ssl_config_t *ssl_config);
 BCTBX_PUBLIC void *bctbx_ssl_config_get_private_config(bctbx_ssl_config_t *ssl_config);

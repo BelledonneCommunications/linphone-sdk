@@ -1871,8 +1871,10 @@ static void certificates_config_read(LinphoneCore *lc) {
 	ms_message("[CryptoPolicy] selected mode: %s", belle_sip_crypto_mode_to_string(selected_crypto_mode));
 
 	if (crypto_provider && strcmp(crypto_provider, "future-pqc") == 0) {
+		const bctbx_crypto_provider_t *resolved_future_provider = NULL;
 		const bctbx_crypto_provider_t *resolved_fallback_provider = NULL;
 		const bctbx_crypto_provider_t *resolved_default_provider = bctbx_crypto_provider_get_default();
+		int32_t future_provider_ret = BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
 		ms_message("[CryptoProvider] requested: FuturePqcCryptoProvider");
 		ms_message("[FuturePQC] requested TLS group: %s",
 		           requested_future_pqc_tls_group ? requested_future_pqc_tls_group : "(none)");
@@ -1900,19 +1902,26 @@ static void certificates_config_read(LinphoneCore *lc) {
 		if (validated_future_pqc_tls_group) {
 			ms_message("[FuturePQC] validated TLS group: %s", validated_future_pqc_tls_group);
 		}
-		ms_warning("[FuturePQC] external PQC backend not available");
-		if (fallback_provider && fallback_provider[0] != '\0' && strcmp(fallback_provider, "none") != 0) {
-			int32_t ret = bctbx_crypto_provider_resolve(fallback_provider, &resolved_fallback_provider);
-			if (ret == 0 && resolved_fallback_provider) {
-				selected_crypto_provider = bctbx_crypto_provider_get_name(resolved_fallback_provider);
-				ms_message("[CryptoProvider] fallback selected: %s",
-				           bctbx_crypto_provider_get_class_name(resolved_fallback_provider));
-			} else {
-				ms_error("[TLS] failed: FuturePqcCryptoProvider unavailable and fallback provider '%s' is unavailable",
-				         fallback_provider);
-			}
+		future_provider_ret = bctbx_crypto_provider_resolve("future-pqc", &resolved_future_provider);
+		if (future_provider_ret == 0 && resolved_future_provider) {
+			selected_crypto_provider = bctbx_crypto_provider_get_name(resolved_future_provider);
+			ms_message("[FuturePQC] provider available through OpenSSL/OQS runtime");
 		} else {
-			ms_error("[TLS] failed: FuturePqcCryptoProvider unavailable and fallback disabled");
+			ms_warning("[FuturePQC] provider unavailable: OpenSSL/OQS runtime does not support requested path");
+			if (fallback_provider && fallback_provider[0] != '\0' && strcmp(fallback_provider, "none") != 0) {
+				int32_t ret = bctbx_crypto_provider_resolve(fallback_provider, &resolved_fallback_provider);
+				if (ret == 0 && resolved_fallback_provider) {
+					selected_crypto_provider = bctbx_crypto_provider_get_name(resolved_fallback_provider);
+					ms_message("[CryptoProvider] fallback selected: %s",
+					           bctbx_crypto_provider_get_class_name(resolved_fallback_provider));
+				} else {
+					ms_error(
+					    "[TLS] failed: FuturePqcCryptoProvider unavailable and fallback provider '%s' is unavailable",
+					    fallback_provider);
+				}
+			} else {
+				ms_error("[TLS] failed: FuturePqcCryptoProvider unavailable and fallback disabled");
+			}
 		}
 	}
 	ms_message("[CryptoProvider] requested: %s", crypto_provider ? crypto_provider : "(none)");

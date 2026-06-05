@@ -1451,6 +1451,8 @@ static void crypto_provider_resolution_test() {
 	const bctbx_crypto_provider_t *default_provider = bctbx_crypto_provider_get_default();
 	const bctbx_crypto_provider_t *resolved_provider = NULL;
 	const bctbx_type_implementation_t current_implementation = bctbx_ssl_get_implementation_type();
+	const char *enable_oqs_tests_env = std::getenv("BCTBX_ENABLE_OQS_TESTS");
+	const bool strict_oqs_required = (enable_oqs_tests_env && strcmp(enable_oqs_tests_env, "1") == 0);
 
 	BC_ASSERT_PTR_NOT_NULL(default_provider);
 	BC_ASSERT_PTR_NOT_NULL(bctbx_crypto_provider_get_name(default_provider));
@@ -1482,9 +1484,20 @@ static void crypto_provider_resolution_test() {
 	BC_ASSERT_PTR_NOT_NULL(resolved_provider);
 	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_class_name(resolved_provider), "SimulatedPqcCryptoProvider");
 
-	BC_ASSERT_EQUAL(bctbx_crypto_provider_resolve("future-pqc", &resolved_provider),
-	                BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
-	BC_ASSERT_PTR_NULL(resolved_provider);
+	{
+		int ret = bctbx_crypto_provider_resolve("future-pqc", &resolved_provider);
+		if (current_implementation == BCTBX_OPENSSL) {
+			if (strict_oqs_required) {
+				BC_ASSERT_EQUAL(ret, 0, int, "%d");
+				BC_ASSERT_PTR_NOT_NULL(resolved_provider);
+			} else {
+				BC_ASSERT_TRUE(ret == 0 || ret == BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER);
+			}
+		} else {
+			BC_ASSERT_EQUAL(ret, BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER, int, "%d");
+			BC_ASSERT_PTR_NULL(resolved_provider);
+		}
+	}
 	BC_ASSERT_PTR_NOT_NULL(bctbx_crypto_provider_get_by_name("future-pqc"));
 	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_class_name(bctbx_crypto_provider_get_by_name("future-pqc")),
 	                       "FuturePqcCryptoProvider");
@@ -1520,6 +1533,7 @@ static void crypto_provider_resolution_test() {
 static void future_pqc_ssl_config_acceptance_test() {
 	static const char *kFuturePqcGroups[] = {"X25519MLKEM768", "p256_mlkem512", "p384_mlkem768",
 	                                         "mlkem512",       "mlkem768",      "mlkem1024"};
+	static const char *kStrictOqsRequiredGroup = "X25519MLKEM768";
 	const char *enable_oqs_tests_env = std::getenv("BCTBX_ENABLE_OQS_TESTS");
 	const bool strict_oqs_required = (enable_oqs_tests_env && strcmp(enable_oqs_tests_env, "1") == 0);
 	for (const char *group : kFuturePqcGroups) {
@@ -1539,7 +1553,7 @@ static void future_pqc_ssl_config_acceptance_test() {
 		{
 			int ret = bctbx_ssl_context_setup(ssl_ctx, ssl_config);
 			if (bctbx_ssl_get_implementation_type() == BCTBX_OPENSSL) {
-				if (strict_oqs_required) {
+				if (strict_oqs_required && strcmp(group, kStrictOqsRequiredGroup) == 0) {
 					BC_ASSERT_EQUAL(ret, 0, int, "%d");
 				} else {
 					BC_ASSERT_TRUE(ret == 0 || ret == BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER);

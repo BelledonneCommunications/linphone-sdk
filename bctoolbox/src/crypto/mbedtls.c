@@ -1280,6 +1280,10 @@ int32_t bctbx_ssl_config_set_future_pqc_tls_group(bctbx_ssl_config_t *ssl_config
 	return 0;
 }
 
+int32_t bctbx_ssl_future_pqc_group_is_supported(BCTBX_UNUSED(const char *group_name)) {
+	return BCTBX_ERROR_UNAVAILABLE_CRYPTO_PROVIDER;
+}
+
 int32_t bctbx_ssl_config_set_crypto_library_config(bctbx_ssl_config_t *ssl_config, void *internal_config) {
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
