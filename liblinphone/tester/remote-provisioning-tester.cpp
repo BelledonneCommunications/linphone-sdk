@@ -19,6 +19,7 @@
  */
 
 #include "bctoolbox/defs.h"
+#include "core_private.h"
 
 #ifdef HAVE_FLEXIAPI
 #include <json/json.h>
@@ -508,9 +509,9 @@ static void remote_provisioning_check_push_params_2(void) {
 
 	LinphonePushNotificationConfig *marie_push_cfg =
 	    linphone_push_notification_config_clone(linphone_core_get_push_notification_config(marie->lc));
-	linphone_push_notification_config_set_voip_token(marie_push_cfg, "token:voip");
-	linphone_push_notification_config_set_bundle_identifier(marie_push_cfg, "linphone-tester");
-	linphone_push_notification_config_set_param(marie_push_cfg, "param");
+	linphone_push_notification_config_set_param(marie_push_cfg, "teamid.example.bundle.id.voip");
+	linphone_push_notification_config_set_prid(marie_push_cfg, "example_voip_token:voip");
+	linphone_push_notification_config_set_provider(marie_push_cfg, "liblinphone_tester");
 	linphone_core_set_push_notification_config(marie->lc, marie_push_cfg);
 	linphone_push_notification_config_unref(marie_push_cfg);
 
@@ -531,13 +532,13 @@ static void remote_provisioning_check_push_params_2(void) {
 
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_voip_token(
 	                           linphone_account_params_get_push_notification_config(marie_params)),
-	                       "token:voip");
+	                       "example_voip_token");
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_bundle_identifier(
 	                           linphone_account_params_get_push_notification_config(marie_params)),
-	                       "linphone-tester");
+	                       "example.bundle.id");
 	BC_ASSERT_STRING_EQUAL(
 	    linphone_push_notification_config_get_param(linphone_account_params_get_push_notification_config(marie_params)),
-	    "param");
+	    "teamid.example.bundle.id.voip");
 	linphone_account_params_unref(marie_params);
 
 	linphone_core_manager_destroy(marie);

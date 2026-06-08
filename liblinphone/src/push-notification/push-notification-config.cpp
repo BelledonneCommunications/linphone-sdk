@@ -21,6 +21,7 @@
 #include "push-notification-config.h"
 #include "address/address.h"
 #include "linphone/lpconfig.h"
+#include "logger/logger.h"
 
 using namespace std;
 
@@ -203,8 +204,16 @@ void PushNotificationConfig::generatePushParams(bool voipPushAllowed, bool remot
 	/* Push notification may be allowed and requested to the system, but sometimes the tokens are not
 	 * yet available. Modify the enablement so that we don't generate an ill-formed push parameter line.
 	 */
-	if (mRemoteToken.empty()) remotePushAllowed = false;
-	if (mVoipToken.empty()) voipPushAllowed = false;
+	if (mRemoteToken.empty() && remotePushAllowed) {
+		lWarning() << "[PushNotificationConfig::generatePushParams]: remote push is enabled but no remote token is "
+		              "set, so we have disable it for push param generation";
+		remotePushAllowed = false;
+	}
+	if (mVoipToken.empty() && voipPushAllowed) {
+		lWarning() << "[PushNotificationConfig::generatePushParams]: voip push is enabled but no voip token is set, so "
+		              "we have disable it for push param generation";
+		voipPushAllowed = false;
+	}
 
 	if (mPushParams[PushConfigParamKey].empty() ||
 	    doesParamNeedUpdate(mPushParams[PushConfigParamKey], voipPushAllowed, remotePushAllowed) ||
@@ -266,7 +275,53 @@ void PushNotificationConfig::readPushParamsFromString(string const &serializedCo
 	std::shared_ptr<Address> pushParamsWrapper = Address::create("sip:dummy;" + serializedConfig);
 	for (auto &param : mPushParams) {
 		string paramValue = pushParamsWrapper->getUriParamValue(param.first);
+		std::string key = param.first;
 		if (!paramValue.empty()) param.second = paramValue;
+
+		if (key == PushConfigPridKey) {
+			// pn-prid can be of the form "token:remote", "token:voip", or "token:voip&token:remote"
+			size_t voipPos = paramValue.find(":voip");
+			if (voipPos != string::npos) {
+				mVoipToken = paramValue.substr(0, voipPos);
+			}
+			size_t remotePos = paramValue.find(":remote");
+			if (remotePos != string::npos) {
+				size_t remoteTokenStartPos = 0;
+				if (voipPos != string::npos) {
+					remoteTokenStartPos = paramValue.find("&", voipPos) + 1;
+				}
+				mRemoteToken = paramValue.substr(remoteTokenStartPos, remotePos - remoteTokenStartPos);
+			}
+			if (mVoipToken.empty() && mRemoteToken.empty()) {
+				lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push parameter "
+				            "string: pn-prid '"
+				         << paramValue << "' could not find push tokens";
+			}
+		} else if (key == PushConfigParamKey) {
+			// According to RFC8599: https://datatracker.ietf.org/doc/html/rfc8599#page-30
+			// pn-param must be of the form "TeamId.BundleID.services
+			// Example: pn-param=DEF123GHIJ.com.example.yourexampleapp.voip
+			size_t firstDotPos = paramValue.find_first_of(".");
+			size_t lastDotPos = paramValue.find_last_of(".");
+			if (firstDotPos == string::npos || firstDotPos == lastDotPos) {
+				lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push parameter "
+				            "string: pn-param '"
+				         << paramValue << "' should be of the form teamID.bundleIdentifier.services";
+			} else {
+				mTeamId = paramValue.substr(0, firstDotPos);
+				if (mTeamId.empty()) {
+					lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push "
+					            "parameter string: empty team ID in pn-param '"
+					         << paramValue << "'";
+				}
+				mBundleIdentifer = paramValue.substr(firstDotPos + 1, lastDotPos - firstDotPos - 1);
+				if (mBundleIdentifer.empty()) {
+					lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push "
+					            "parameter string: empty bundle identifier in pn-param '"
+					         << paramValue << "'";
+				}
+			}
+		}
 	}
 }
 
@@ -274,22 +329,7 @@ void PushNotificationConfig::readFromConfig(LinphoneConfig *config, const std::s
 	const char *c_section = section.c_str();
 	if (linphone_config_has_section(config, c_section)) {
 		readPushParamsFromString(linphone_config_get_string(config, c_section, "push_parameters", ""));
-		setVoipToken(linphone_config_get_string(config, c_section, "voip_token", ""));
-		setRemoteToken(linphone_config_get_string(config, c_section, "remote_token", ""));
-		setBundleIdentifer(linphone_config_get_string(config, c_section, "bundle_identifier", ""));
-		setTeamId(linphone_config_get_string(config, c_section, "team_id", ""));
 	}
-}
-
-void PushNotificationConfig::writeToConfig(LinphoneConfig *config,
-                                           const std::string &section,
-                                           bool withRemoteSpecificParams) {
-	const char *c_section = section.c_str();
-	linphone_config_set_string(config, c_section, "push_parameters", asString(withRemoteSpecificParams).c_str());
-	linphone_config_set_string(config, c_section, "voip_token", getVoipToken().c_str());
-	linphone_config_set_string(config, c_section, "remote_token", getRemoteToken().c_str());
-	linphone_config_set_string(config, c_section, "bundle_identifier", getBundleIdentifer().c_str());
-	linphone_config_set_string(config, c_section, "team_id", getTeamId().c_str());
 }
 
 LINPHONE_END_NAMESPACE

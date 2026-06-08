@@ -3259,8 +3259,9 @@ void linphone_core_store_push_notification_config(LinphoneCore *lc) {
 #if TARGET_OS_IPHONE
 	withRemoteSpecificParams = true;
 #endif
-	PushNotificationConfig::toCpp(lc->push_config)
-	    ->writeToConfig(lc->config, "push_notification", withRemoteSpecificParams);
+	linphone_config_set_string(
+	    lc->config, "push_notification", "push_parameters",
+	    PushNotificationConfig::toCpp(lc->push_config)->asString(withRemoteSpecificParams).c_str());
 }
 
 void linphone_core_update_push_notification_information(LinphoneCore *core, const char *param, const char *prid) {

@@ -85,13 +85,11 @@ public:
 	map<string, string> const &getPushParamsMap();
 
 	/* Write the mPushParams map in the form : "param1=param1value;param2=param2value;"                         *
-	 * MsgStr, CallStr, GroupChatStr, CallSnd and MsgSnd will only be saved if withRemoteSpecificParams == true *
-	 * /!\ TeamId, BundleId, VoipToken and RemoteToken will not be saved /!\                                    */
+	 * MsgStr, CallStr, GroupChatStr, CallSnd and MsgSnd will only be saved if withRemoteSpecificParams == true *     */
 	string asString(bool withRemoteSpecificParams = true) const;
 	void readPushParamsFromString(string const &serializedConfig);
 
 	void readFromConfig(LinphoneConfig *config, const std::string &section);
-	void writeToConfig(LinphoneConfig *config, const std::string &section, bool withRemoteSpecificParams);
 
 private:
 	string mTeamId;
