@@ -175,16 +175,6 @@ AccountParams::AccountParams(LinphoneCore *lc, bool useDefaultValues) {
 		mPushNotificationConfig = new PushNotificationConfig();
 		mPushNotificationConfig->readPushParamsFromString(string(
 		    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "push_parameters", "") : ""));
-		mPushNotificationConfig->setVoipToken(
-		    string(useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "voip_token", "") : ""));
-		mPushNotificationConfig->setRemoteToken(string(
-		    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "remote_token", "") : ""));
-		mPushNotificationConfig->setBundleIdentifer(string(
-		    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "bundle_identifier", "") : ""));
-		mPushNotificationConfig->setTeamId(
-		    string(useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "team_id",
-		                                                                 PushNotificationConfig::kDefaultTeamId.c_str())
-		                            : ""));
 	}
 
 	mRtpBundleEnabled = useDefaultValues ? !!linphone_config_get_default_int(lc->config, "proxy", "rtp_bundle",
@@ -277,11 +267,6 @@ AccountParams::AccountParams(LinphoneCore *lc, int index) : AccountParams(lc, fa
 	mContactUriParameters =
 	    linphone_config_get_string(config, key, "contact_uri_parameters", mContactUriParameters.c_str());
 	string pushParameters = linphone_config_get_string(config, key, "push_parameters", "");
-	mPushNotificationConfig->setVoipToken(linphone_config_get_string(config, key, "voip_token", ""));
-	mPushNotificationConfig->setRemoteToken(linphone_config_get_string(config, key, "remote_token", ""));
-	mPushNotificationConfig->setBundleIdentifer(linphone_config_get_string(config, key, "bundle_identifier", ""));
-	mPushNotificationConfig->setTeamId(
-	    linphone_config_get_string(config, key, "team_id", PushNotificationConfig::kDefaultTeamId.c_str()));
 	// mPushNotificationConfig can't be null because it is always created in AccountParams(lc) called previously
 	if (linphone_core_is_push_notification_enabled(lc) && !pushParameters.empty()) {
 		mPushNotificationConfig->readPushParamsFromString(pushParameters);
@@ -1223,7 +1208,8 @@ void AccountParams::writeToConfigFile(LinphoneConfig *config, int index) {
 	}
 
 	if (mPushNotificationAllowed || mRemotePushNotificationAllowed) {
-		mPushNotificationConfig->writeToConfig(config, key, mRemotePushNotificationAllowed);
+		linphone_config_set_string(config, key, "push_parameters",
+		                           mPushNotificationConfig->asString(mRemotePushNotificationAllowed).c_str());
 	}
 
 	linphone_config_set_int(config, key, "quality_reporting_enabled", (int)mQualityReportingEnabled);
