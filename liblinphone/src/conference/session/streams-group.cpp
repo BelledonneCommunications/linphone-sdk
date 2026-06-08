@@ -373,6 +373,28 @@ bool StreamsGroup::allStreamsEncrypted() const {
 }
 
 /**
+ * return the lowest status of the running stream, Inactive when no stream is running
+ */
+LinphoneMediaEncryptionStatus StreamsGroup::getMediaEncryptionStatus() const {
+	int activeStreamsCount = 0;
+	LinphoneMediaEncryptionStatus currentStatus = LinphoneMediaEncryptionStatusActive;
+	for (auto &stream : mStreams) {
+		if (!stream) continue;
+		if (stream->getState() == Stream::Running) {
+			++activeStreamsCount;
+			const auto streamEncryptionStatus = stream->getMediaEncryptionStatus();
+			if (streamEncryptionStatus < currentStatus) {
+				currentStatus = streamEncryptionStatus;
+			}
+		}
+	}
+	if (activeStreamsCount > 0) {
+		return currentStatus;
+	}
+	return LinphoneMediaEncryptionStatusInactive;
+}
+
+/**
  * when all the active stream use the same encryption, return it
  * return LinphoneMediaEncryptionNone otherwise
  */
@@ -394,28 +416,6 @@ LinphoneMediaEncryption StreamsGroup::getMediaEncryption() const {
 		}
 	}
 	return currentEncryption;
-}
-
-/**
- * return the lowest status of the running stream, Inactive when no stream is running
- */
-LinphoneMediaEncryptionStatus StreamsGroup::getMediaEncryptionStatus() const {
-	int activeStreamsCount = 0;
-	LinphoneMediaEncryptionStatus currentStatus = LinphoneMediaEncryptionStatusActive;
-	for (auto &stream : mStreams) {
-		if (!stream) continue;
-		if (stream->getState() == Stream::Running) {
-			++activeStreamsCount;
-			const auto streamEncryptionStatus = stream->getMediaEncryptionStatus();
-			if (streamEncryptionStatus < currentStatus) {
-				currentStatus = streamEncryptionStatus;
-			}
-		}
-	}
-	if (activeStreamsCount > 0) {
-		return currentStatus;
-	}
-	return LinphoneMediaEncryptionStatusInactive;
 }
 
 void StreamsGroup::goClearAckSent() {

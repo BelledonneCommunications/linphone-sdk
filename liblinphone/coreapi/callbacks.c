@@ -25,7 +25,7 @@
 #include <unistd.h>
 #endif
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/mediastream.h"
 
@@ -161,12 +161,14 @@ static void call_received(SalCallOp *h) {
 
 #ifdef HAVE_ADVANCED_IM
 	// Chat settings
-	string endToEndEncrypted = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "End-To-End-Encrypted"));
+	string endToEndEncrypted =
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEndToEndEncryptedHeader.c_str()));
 	bool encrypted = endToEndEncrypted == "true";
-	string ephemerable = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemerable"));
-	string ephemeralLifeTime = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Life-Time"));
+	string ephemerable = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemerableHeader.c_str()));
+	string ephemeralLifeTime =
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemeralLifeTimeHeader.c_str()));
 	string ephemeralNotReadLifeTime =
-	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "Ephemeral-Not-Read-Life-Time"));
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kEphemeralNotReadLifeTimeHeader.c_str()));
 	auto ephemeralMode = (ephemerable == "true") && (!ephemeralLifeTime.empty() || !ephemeralNotReadLifeTime.empty())
 	                         ? AbstractChatRoom::EphemeralMode::AdminManaged
 	                         : AbstractChatRoom::EphemeralMode::DeviceManaged;
@@ -176,13 +178,14 @@ static void call_received(SalCallOp *h) {
 		if (!ephemeralLifeTime.empty()) parsedEphemeralLifeTime = stol(ephemeralLifeTime, nullptr);
 		if (!ephemeralNotReadLifeTime.empty()) parsedEphemeralNotReadLifeTime = stol(ephemeralNotReadLifeTime, nullptr);
 	}
-	string oneOnOneChatRoom = L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, "One-To-One-Chat-Room"));
+	string oneOnOneChatRoom =
+	    L_C_TO_STRING(sal_custom_header_find(recvCustomHeaders, ChatRoom::kOneOnOneChatRoomHeader.c_str()));
 	bool isOneOnOne = (oneOnOneChatRoom == "true");
 	// Chat capabilities are enabled if the text parameter is in the contact address or at least one chat configuration
 	// parameter is listed in the custom headers
 	chatCapabilities = !ephemerable.empty() || !ephemeralLifeTime.empty() || !endToEndEncrypted.empty() ||
 	                   !oneOnOneChatRoom.empty() ||
-	                   !!(sal_address_has_param(remoteContactAddress, Conference::sTextParameter.c_str()));
+	                   !!(sal_address_has_param(remoteContactAddress, Conference::kTextParameter.c_str()));
 #endif
 
 	auto params = ConferenceParams::create(L_GET_CPP_PTR_FROM_C_OBJECT(lc));
@@ -271,7 +274,7 @@ static void call_received(SalCallOp *h) {
 		h->release();
 #endif
 		return;
-	} else if (isServer && (chatCapabilities || to->hasUriParam(Conference::sConfIdParameter) || conferenceAccount)) {
+	} else if (isServer && (chatCapabilities || to->hasUriParam(Conference::kConfIdParameter) || conferenceAccount)) {
 		// Check if an account can be associated to a conference or the conference has chat capabilities. In fact, the
 		// latter check is required to be backward compatible as older versions of the flexisip conference server did
 		// not create chatroom addresses from a single conference focus but using the following pattern
@@ -322,7 +325,7 @@ static void call_received(SalCallOp *h) {
 			}
 		} else {
 			auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase();
-			std::shared_ptr<ConferenceInfo> confInfo = db ? db.value().get()->getConferenceInfoFromURI(to) : nullptr;
+			std::shared_ptr<ConferenceInfo> confInfo = db ? db.value().get().getConferenceInfoFromURI(to) : nullptr;
 			if (confInfo) {
 				params->enableAudio(confInfo->getCapability(LinphoneStreamTypeAudio));
 				params->enableVideo(confInfo->getCapability(LinphoneStreamTypeVideo));
@@ -339,8 +342,8 @@ static void call_received(SalCallOp *h) {
 				conference->init(h);
 			} else {
 				if (hasStreams) {
-					if (sal_address_has_uri_param(h->getToAddress(), Conference::sConfIdParameter.c_str())) {
-						long long expiredConferenceId = db ? db.value().get()->findExpiredConferenceId(to) : -1;
+					if (sal_address_has_uri_param(h->getToAddress(), Conference::kConfIdParameter.c_str())) {
+						long long expiredConferenceId = db ? db.value().get().findExpiredConferenceId(to) : -1;
 						SalErrorInfo sei;
 						memset(&sei, 0, sizeof(sei));
 						std::string msg = "Conference " + to->toString();
@@ -393,8 +396,8 @@ static void call_received(SalCallOp *h) {
 							}
 							const auto &participant = (*participantList.begin())->getAddress();
 							std::shared_ptr<Address> confAddr =
-							    db ? db.value().get()->findOneOnOneConferenceChatRoomAddress(fromOp, participant,
-							                                                                 encrypted)
+							    db ? db.value().get().findOneOnOneConferenceChatRoomAddress(fromOp, participant,
+							                                                                encrypted)
 							       : nullptr;
 							if (confAddr && confAddr->isValid()) {
 								shared_ptr<AbstractChatRoom> chatRoom =
@@ -466,7 +469,7 @@ static void call_received(SalCallOp *h) {
 	}
 
 	if (linphone_config_get_int(linphone_core_get_config(lc), "sip", "reject_duplicated_calls", 1) &&
-	    !sal_address_has_param(remoteContactAddress, Conference::sIsFocusParameter.c_str())) {
+	    !sal_address_has_param(remoteContactAddress, Conference::kIsFocusParameter.c_str())) {
 		/* Check if I'm the caller */
 		std::shared_ptr<Address> fromAddressToSearchIfMe = nullptr;
 		if (h->getPrivacy() == SalPrivacyNone) fromAddressToSearchIfMe = from->clone()->toSharedPtr();
@@ -628,14 +631,17 @@ static void auth_failure(SalOp *op, SalAuthInfo *info) {
 		ai = (LinphoneAuthInfo *)_linphone_core_find_auth_info(lc, info->realm, info->username, info->domain,
 		                                                       info->algorithm, TRUE);
 		if (ai) {
-			/* only HttpDigest Mode requests App for credentials, TLS client cert does not support callback so the
-			 * authentication credential MUST be provided by the application before the connection without prompt from
-			 * the library */
+			/* only HttpDigest mode requests App for credentials, TLS client cert does not support callback
+			 * so the authentication credential MUST be provided by the application before the connection without prompt
+			 * from the library.
+			 * For bearer, we consider there can't be user mystyping password, so no reason to request again.'
+			 */
 			ms_message("%s/%s/%s/%s authentication fails.", info->realm, info->username, info->domain,
 			           sal_auth_mode_to_string(info->mode));
 			if (info->mode == SalAuthModeHttpDigest) {
 				LinphoneAuthInfo *auth_info =
 				    linphone_core_create_auth_info(lc, info->username, NULL, NULL, NULL, info->realm, info->domain);
+				AuthInfo::toCpp(auth_info)->setRequestedMethod(AuthInfo::fromSalAuthMode(info->mode));
 				/*ask again for password if auth info was already supplied but apparently not working*/
 				L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack().pushAuthRequested(
 				    AuthInfo::toCpp(ai)->getSharedFromThis());
@@ -843,15 +849,21 @@ static bool_t fill_auth_info_with_client_certificate(LinphoneCore *lc, SalAuthIn
 
 static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 	LinphoneAuthInfo *ai = NULL;
+	bool notifyAuthStack = false;
+	AuthStack &as = L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack();
+	LinphoneAuthMethod requestedMethod = LinphoneAuthBasic;
 	switch (sai->mode) {
 		case SalAuthModeTls:
 			ai = _linphone_core_find_tls_auth_info(lc);
+			requestedMethod = LinphoneAuthTls;
 			break;
 		case SalAuthModeHttpDigest:
 			ai = _linphone_core_find_auth_info(lc, sai->realm, sai->username, sai->domain, sai->algorithm, FALSE);
+			requestedMethod = LinphoneAuthHttpDigest;
 			break;
 		case SalAuthModeBearer:
 			ai = _linphone_core_find_bearer_auth_info(lc, sai->realm, sai->username, sai->domain);
+			requestedMethod = LinphoneAuthBearer;
 			break;
 	}
 	if (ai) {
@@ -862,13 +874,7 @@ static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 				sai->password =
 				    linphone_auth_info_get_password(ai) ? ms_strdup(linphone_auth_info_get_password(ai)) : NULL;
 				sai->ha1 = linphone_auth_info_get_ha1(ai) ? ms_strdup(linphone_auth_info_get_ha1(ai)) : NULL;
-
-				AuthStack &as = L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack();
-				/* We have to construct the auth info as it was originally requested in auth_requested() below,
-				 * so that the matching is made correctly.
-				 */
-				as.authFound(AuthInfo::create(sai->username, "", "", "", sai->realm, sai->domain));
-
+				notifyAuthStack = true;
 			} break;
 			case SalAuthModeTls: {
 				if (linphone_auth_info_get_tls_cert(ai) && linphone_auth_info_get_tls_key(ai)) {
@@ -895,7 +901,16 @@ static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 					sai->bearer_token = cppAi->getAccessToken()->getImpl()->toC();
 					lInfo() << "Bearer token found.";
 				}
+				notifyAuthStack = true;
 			} break;
+		}
+
+		if (notifyAuthStack) {
+			/* Notify the auth stack about the originally requested AuthInfo that was finally found */
+			auto notifiedAI = AuthInfo::create(L_C_TO_STRING(sai->username), "", "", "", L_C_TO_STRING(sai->realm),
+			                                   L_C_TO_STRING(sai->domain));
+			notifiedAI->setRequestedMethod(requestedMethod);
+			as.authFound(notifiedAI);
 		}
 
 		if (sai->realm && (!linphone_auth_info_get_realm(ai) || !linphone_auth_info_get_algorithm(ai))) {
@@ -917,38 +932,33 @@ static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 }
 static bool_t auth_requested(Sal *sal, SalAuthInfo *sai) {
 	LinphoneCore *lc = (LinphoneCore *)sal->getUserPointer();
-	if (fill_auth_info(lc, sai)) {
-		return TRUE;
-	} else {
-		/* only HttpDigest and Bearer method request application for credentials, TLS client cert does not support
-		 * callback so the authentication credential MUST be provided by the application before the connection without
-		 * prompt from the library */
-		switch (sai->mode) {
-			case SalAuthModeHttpDigest: {
-				LinphoneAuthInfo *ai =
-				    linphone_core_create_auth_info(lc, sai->username, NULL, NULL, NULL, sai->realm, sai->domain);
-				linphone_auth_info_set_algorithm(ai, sai->algorithm);
-				/* Request app for new authentication information, but later. */
-				L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack().pushAuthRequested(
-				    AuthInfo::toCpp(ai)->getSharedFromThis());
-				linphone_auth_info_unref(ai);
-				if (fill_auth_info(lc, sai)) {
-					return TRUE;
-				}
-			} break;
-			case SalAuthModeBearer: {
-				LinphoneAuthInfo *ai =
-				    linphone_core_create_auth_info(lc, sai->username, NULL, NULL, NULL, sai->realm, sai->domain);
-				linphone_auth_info_set_authorization_server(ai, sai->authz_server);
-				linphone_core_notify_authentication_requested(lc, ai, LinphoneAuthBearer);
-				linphone_auth_info_unref(ai);
-			} break;
-			case SalAuthModeTls:
-				/* TLS Client based authentication is cannot be requested to the application.*/
-				break;
-		}
-		return FALSE;
+	LinphoneAuthInfo *ai = NULL;
+
+	/* only HttpDigest and Bearer method request application for credentials, TLS client cert does not support
+	 * callback so the authentication credential MUST be provided by the application before the connection without
+	 * prompt from the library */
+	switch (sai->mode) {
+		case SalAuthModeHttpDigest: {
+
+			ai = linphone_core_create_auth_info(lc, sai->username, NULL, NULL, NULL, sai->realm, sai->domain);
+			linphone_auth_info_set_algorithm(ai, sai->algorithm);
+			AuthInfo::toCpp(ai)->setRequestedMethod(LinphoneAuthHttpDigest);
+			/* Request app for new authentication information, but later. */
+		} break;
+		case SalAuthModeBearer: {
+			ai = linphone_core_create_auth_info(lc, sai->username, NULL, NULL, NULL, sai->realm, sai->domain);
+			linphone_auth_info_set_authorization_server(ai, sai->authz_server);
+			AuthInfo::toCpp(ai)->setRequestedMethod(LinphoneAuthBearer);
+		} break;
+		case SalAuthModeTls:
+			/* TLS Client based authentication cannot be requested to the application.*/
+			break;
 	}
+	if (ai) {
+		L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack().pushAuthRequested(AuthInfo::toCpp(ai)->getSharedFromThis());
+		linphone_auth_info_unref(ai);
+	}
+	return fill_auth_info(lc, sai);
 }
 
 static void notify_refer(SalOp *op, SalReferStatus status) {
@@ -1058,32 +1068,38 @@ static void notify(SalSubscribeOp *op, SalSubscribeStatus st, const char *eventn
 	LinphoneEvent *lev = (LinphoneEvent *)op->getUserPointer();
 	LinphoneCore *lc = (LinphoneCore *)op->getSal()->getUserPointer();
 	bool_t out_of_dialog = (lev == NULL);
+	std::shared_ptr<EventSubscribe> ev;
 	if (out_of_dialog) {
 		/*out of dialog notify */
-		lev = linphone_event_new_subscribe_with_out_of_dialog_op(lc, op, LinphoneSubscriptionOutgoing, eventname);
-		Event::toCpp(lev)->setUnrefWhenTerminated(TRUE);
+		ev = EventSubscribe::create<EventSubscribe>(L_GET_CPP_PTR_FROM_C_OBJECT(lc), op, LinphoneSubscriptionOutgoing,
+		                                            L_C_TO_STRING(eventname), true);
 
 		if (Utils::iequals(eventname, "message-summary")) {
 			lInfo() << "Set out-of-dialog MWI event as internal";
-			linphone_event_set_internal(lev, true);
+			ev->setInternal(true);
+		}
+	} else {
+		ev = dynamic_pointer_cast<EventSubscribe>(Event::toCpp(lev)->getSharedFromThis());
+		if (!ev) {
+			lError() << "Op [" << op << "] is not associated to an EventSubscribe object";
+			return;
 		}
 	}
 
-	linphone_event_ref(lev);
+	auto subscriptionState = ev->getState();
 	if ((!out_of_dialog) && (st != SalSubscribeNone)) {
-		if (linphone_event_get_subscription_state(lev) != LinphoneSubscriptionTerminated) {
-			linphone_event_set_state(lev, linphone_subscription_state_from_sal(st));
+		if (subscriptionState != LinphoneSubscriptionTerminated) {
+			ev->setState(linphone_subscription_state_from_sal(st));
 		}
 	}
 
 	/* Take into account that the subscription may have been closed by app already within the callback of
 	 * linphone_event_set_state() */
-	if (linphone_event_get_subscription_state(lev) != LinphoneSubscriptionTerminated) {
+	if (subscriptionState != LinphoneSubscriptionTerminated) {
 		{
 			LinphoneContent *ct = linphone_content_from_sal_body_handler(body_handler);
-			EventSubscribe *evs = dynamic_cast<EventSubscribe *>(Event::toCpp(lev));
-			if (evs) {
-				evs->onNotifyReceived(bellesip::toCpp<Content>(ct));
+			if (ev) {
+				ev->onNotifyReceived(bellesip::toCpp<Content>(ct));
 			} else {
 				lError() << "Bad cast attempt from Event to EventSubscribe, should never happen.";
 			}
@@ -1093,10 +1109,9 @@ static void notify(SalSubscribeOp *op, SalSubscribeStatus st, const char *eventn
 		}
 		if (out_of_dialog) {
 			/*out of dialog NOTIFY do not create an implicit subscription*/
-			linphone_event_set_state(lev, LinphoneSubscriptionTerminated);
+			ev->setState(LinphoneSubscriptionTerminated);
 		}
 	}
-	linphone_event_unref(lev);
 }
 
 static void subscribe_received(SalSubscribeOp *op, const char *eventname, const SalBodyHandler *body_handler) {
@@ -1139,18 +1154,21 @@ static void publish_received(SalPublishOp *op, const char *eventname, const SalB
 	Core::ETagStatus ret = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->eTagHandler(op, body_handler);
 	if (ret == Core::ETagStatus::Error) return;
 
+	std::shared_ptr<EventPublish> event;
 	if (lev == NULL) {
-		lev = linphone_event_new_publish_with_op(lc, op, eventname);
-		Event::toCpp(lev)->setUnrefWhenTerminated(TRUE);
-		linphone_event_set_publish_state(lev, LinphonePublishIncomingReceived);
+		event = EventPublish::create<EventPublish>(L_GET_CPP_PTR_FROM_C_OBJECT(lc), op, L_C_TO_STRING(eventname));
+		event->setState(LinphonePublishIncomingReceived);
 	} else {
-		linphone_event_set_publish_state(lev, LinphonePublishRefreshing);
+		event = dynamic_pointer_cast<EventPublish>(Event::toCpp(lev)->getSharedFromThis());
+		if (event) {
+			event->setState(LinphonePublishRefreshing);
+		} else {
+			lError() << "Op [" << op << "] is not associated to an EventPublish object";
+			return;
+		}
 	}
 
-	auto event = Event::toCpp(lev)->getSharedFromThis();
-
-	if (ret == Core::ETagStatus::AddOrUpdateETag)
-		L_GET_CPP_PTR_FROM_C_OBJECT(lc)->addOrUpdatePublishByEtag(op, dynamic_pointer_cast<EventPublish>(event));
+	if (ret == Core::ETagStatus::AddOrUpdateETag) L_GET_CPP_PTR_FROM_C_OBJECT(lc)->addOrUpdatePublishByEtag(op, event);
 
 	LinphoneContent *ct = linphone_content_from_sal_body_handler(body_handler);
 	Address to(op->getTo());
@@ -1158,9 +1176,8 @@ static void publish_received(SalPublishOp *op, const char *eventname, const SalB
 	if (account && linphone_account_params_get_realm(linphone_account_get_params(account))) {
 		op->setRealm(linphone_account_params_get_realm(linphone_account_get_params(account)));
 	}
-	EventPublish *evp = dynamic_cast<EventPublish *>(Event::toCpp(lev));
-	if (evp) {
-		evp->onPublishReceived(bellesip::toCpp<Content>(ct));
+	if (event) {
+		event->onPublishReceived(bellesip::toCpp<Content>(ct));
 	} else {
 		lError() << "Bad cast from Event to EventPublish, should never happen.";
 	}

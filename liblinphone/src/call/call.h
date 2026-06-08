@@ -364,6 +364,15 @@ public:
 
 	std::shared_ptr<Event> createNotify(const std::string &eventName);
 
+	// Enums translations
+	static const std::map<LinphoneCallDir, std::string> kCallDirStrings;
+	static LinphoneCallDir textToCallDir(const std::string &text);
+	static std::string callDirToText(const LinphoneCallDir &dir);
+
+	static const std::map<LinphoneCallStatus, std::string> kCallStatusStrings;
+	static LinphoneCallStatus textToCallStatus(const std::string &text);
+	static std::string callStatusToText(const LinphoneCallStatus &status);
+
 private:
 	std::shared_ptr<Participant> mParticipant;
 	mutable std::shared_ptr<Player> mPlayer = nullptr;

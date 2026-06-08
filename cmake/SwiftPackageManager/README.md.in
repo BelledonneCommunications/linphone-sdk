@@ -9,7 +9,7 @@
 	import linphonesw
 	
 	[...]
-	print("Linphone SDK informations = \(linphonesw.sdkVersion) (\(linphonesw.sdkBranch))")
+	print("Linphone SDK informations = \(LinphoneSdkInfos.version) (\(LinphoneSdkInfos.branch))")
 	if let config = try?Factory.Instance.createConfig(path: "sometpath"),
 	   let core = try?Factory.Instance.createCoreWithConfig(config: config, systemContext: nil),
 	   let address = try?Factory.Instance.createAddress(addr: "sip:user@domain") {

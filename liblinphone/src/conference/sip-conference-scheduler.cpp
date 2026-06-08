@@ -103,7 +103,7 @@ void SIPConferenceScheduler::onCallSessionSetTerminated(const std::shared_ptr<Ca
 		setConferenceAddress(remoteAddress);
 		// Update conference info in database with updated conference information
 		if (auto db = getCore()->getDatabase()) {
-			db.value().get()->insertConferenceInfo(mConferenceInfo);
+			db.value().get().insertConferenceInfo(mConferenceInfo);
 		}
 	}
 	getCore()->removeConferenceScheduler(getSharedFromThis());

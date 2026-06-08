@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -42,7 +42,9 @@ public:
 	        LinphoneCallDir direction,
 	        const std::shared_ptr<const Address> &from,
 	        const std::shared_ptr<const Address> &to);
+	explicit CallLog(const CallLog &other);
 	virtual ~CallLog();
+	CallLog *clone() const override;
 
 	LinphoneCallDir getDirection() const;
 	void setDirection(LinphoneCallDir direction);
@@ -101,6 +103,9 @@ public:
 	const std::shared_ptr<AbstractChatRoom> getChatRoom() const;
 
 	std::string toString() const override;
+	std::string toJson() const;
+	int fromJson(const std::string &json);                   // return -1 in case of parsing error else 0.
+	static std::map<std::string, std::string> getJsonHelp(); // Return a map of available fields with the meaning.
 
 private:
 	void *mUserData = nullptr;

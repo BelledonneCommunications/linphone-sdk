@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -221,6 +221,16 @@ LinphoneChatMessage *linphone_chat_room_create_voice_recording_message(LinphoneC
 		linphone_chat_message_add_content(chat_message, c_content);
 		linphone_content_unref(c_content);
 	}
+
+	return chat_message;
+}
+
+LinphoneChatMessage *linphone_chat_room_create_message_from_call_log(LinphoneChatRoom *chat_room,
+                                                                     LinphoneCallLog *call_log) {
+	ChatRoomLogContextualizer logContextualizer(chat_room);
+	LinphoneChatMessage *chat_message = linphone_chat_room_create_empty_message(chat_room);
+	linphone_chat_message_set_content_type(chat_message, ContentType::CallLogJson.getValue().c_str());
+	linphone_chat_message_add_call_log_content(chat_message, call_log);
 
 	return chat_message;
 }

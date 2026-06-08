@@ -41,8 +41,6 @@
 #include "bctoolbox/defs.h"
 #include "bctoolbox/utils.hh"
 
-#include "json/json.h"
-
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/mseventqueue.h"
 #include "mediastreamer2/msjpegwriter.h"
@@ -82,11 +80,9 @@
 #include "linphone/api/c-account.h"
 #include "linphone/api/c-address.h"
 #include "linphone/lpconfig.h"
-#include "linphone/utils/algorithm.h"
 #include "linphone/utils/utils.h"
 #include "logger/logger.h"
 #include "paths/paths.h"
-#include "sal/sal_media_description.h"
 #include "search/remote-contact-directory.h"
 #include "vcard/carddav-params.h"
 
@@ -641,10 +637,10 @@ belle_sip_main_loop_t *CorePrivate::getMainLoop() {
 	           : nullptr;
 }
 
-optional<reference_wrapper<const unique_ptr<MainDb>>> CorePrivate::getDatabase() const {
+optional<reference_wrapper<MainDb>> CorePrivate::getDatabase() const {
 #ifdef HAVE_DB_STORAGE
 	if (mainDb != nullptr && mainDb->isInitialized()) {
-		return mainDb;
+		return *mainDb;
 	}
 #endif
 	return std::nullopt;
@@ -1056,7 +1052,7 @@ void Core::toggleVideoPreview(bool enabled) {
 	}
 }
 
-void Core::iterate() noexcept {
+void Core::iterate() {
 	LinphoneCore *lc = L_GET_C_BACK_PTR(this);
 
 	CoreLogContextualizer logContextualizer(lc);
@@ -2002,7 +1998,7 @@ void Core::healNetworkConnections() {
 
 int Core::getUnreadChatMessageCount() const {
 	if (auto db = getDatabase()) {
-		return db.value().get()->getUnreadChatMessageGlobalCount();
+		return db.value().get().getUnreadChatMessageGlobalCount();
 	}
 	return -1;
 }
@@ -2064,7 +2060,7 @@ std::shared_ptr<ChatRoom> Core::getPushNotificationChatRoom(const std::string &c
 std::shared_ptr<ChatMessage> Core::findChatMessageFromCallId(const std::string &callId) const {
 	std::list<std::shared_ptr<ChatMessage>> chatMessages;
 	if (auto db = getDatabase()) {
-		chatMessages = db.value().get()->findChatMessagesFromCallId(callId);
+		chatMessages = db.value().get().findChatMessagesFromCallId(callId);
 	}
 	return chatMessages.empty() ? nullptr : chatMessages.front();
 }
@@ -2697,25 +2693,28 @@ shared_ptr<CallSession> Core::createOrUpdateConferenceOnServer(const std::shared
 			return nullptr;
 		}
 		conferenceFactoryUri = conferenceFactoryUriRef->clone()->toSharedPtr();
-		conferenceFactoryUri->setUriParam(Conference::sSecurityModeParameter,
+		conferenceFactoryUri->setUriParam(Conference::kSecurityModeParameter,
 		                                  ConferenceParams::getSecurityLevelAttribute(confParams->getSecurityLevel()));
 	}
 
 	if (!!linphone_core_get_add_admin_information_to_contact(getCCore())) {
-		params.addCustomContactParameter(Conference::sAdminParameter, Utils::toString(true));
+		params.addCustomContactParameter(Conference::kAdminParameter, Utils::toString(true));
 	}
 
 	if (confParams->chatEnabled()) {
 		if (!mediaEnabled) {
-			params.addCustomContactParameter(Conference::sTextParameter);
+			params.addCustomContactParameter(Conference::kTextParameter);
 		}
 		params.addCustomHeader("Require", "recipient-list-invite");
-		params.addCustomHeader("One-To-One-Chat-Room", Utils::btos(!confParams->isGroup()));
-		params.addCustomHeader("End-To-End-Encrypted", Utils::btos(confParams->getChatParams()->isEncrypted()));
-		params.addCustomHeader("Ephemerable", Utils::btos(confParams->getChatParams()->getEphemeralMode() ==
-		                                                  AbstractChatRoom::EphemeralMode::AdminManaged));
-		params.addCustomHeader("Ephemeral-Life-Time", to_string(confParams->getChatParams()->getEphemeralLifetime()));
-		params.addCustomHeader("Ephemeral-Not-Read-Life-Time",
+		params.addCustomHeader(ChatRoom::kOneOnOneChatRoomHeader, Utils::btos(!confParams->isGroup()));
+		params.addCustomHeader(ChatRoom::kEndToEndEncryptedHeader,
+		                       Utils::btos(confParams->getChatParams()->isEncrypted()));
+		params.addCustomHeader(ChatRoom::kEphemerableHeader,
+		                       Utils::btos(confParams->getChatParams()->getEphemeralMode() ==
+		                                   AbstractChatRoom::EphemeralMode::AdminManaged));
+		params.addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
+		                       to_string(confParams->getChatParams()->getEphemeralLifetime()));
+		params.addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
 		                       to_string(confParams->getChatParams()->getEphemeralNotReadLifetime()));
 	}
 
@@ -3819,7 +3818,7 @@ void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
 			return hidDevice->getSerialNumber() == device->getSerialNumber();
 		});
 		if (it == devices.end()) {
-			lInfo() << "HidDevice \"" << (*currentIt)->getName() << "\" has been unplugged";
+			lInfo() << "HidDevice \"" << (*currentIt)->getProductName() << "\" has been unplugged";
 			(*currentIt)->stopPollTimer();
 			d->hidDevices.erase(currentIt++);
 		} else {
@@ -3831,7 +3830,8 @@ void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
 
 	// Add devices that were not present before
 	for (const auto &device : devices) {
-		lInfo() << "Detected HidDevice \"" << device->getName() << "\"";
+		lInfo() << "Detected HidDevice \"" << device->getProductName() << "\"";
+		device->dumpDescriptor();
 		d->hidDevices.push_back(device);
 		device->startPollTimer();
 	}
@@ -3952,7 +3952,7 @@ LinphoneEphemeralChatMessagePolicy Core::getEphemeralChatMessagePolicy() const {
 	return d->ephemeralChatMessagePolicy;
 }
 
-std::optional<std::reference_wrapper<const unique_ptr<MainDb>>> Core::getDatabase() const {
+std::optional<std::reference_wrapper<MainDb>> Core::getDatabase() const {
 	return getPrivate()->getDatabase();
 }
 

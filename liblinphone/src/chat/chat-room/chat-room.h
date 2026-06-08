@@ -44,6 +44,12 @@ public:
 	friend class ImdnMessagePrivate;
 	friend class CorePrivate;
 
+	static const std::string kOneOnOneChatRoomHeader;
+	static const std::string kEndToEndEncryptedHeader;
+	static const std::string kEphemerableHeader;
+	static const std::string kEphemeralLifeTimeHeader;
+	static const std::string kEphemeralNotReadLifeTimeHeader;
+
 	virtual ~ChatRoom();
 
 	const std::shared_ptr<Address> &getPeerAddress() const override;

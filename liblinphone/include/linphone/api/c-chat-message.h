@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -430,11 +430,20 @@ LINPHONE_PUBLIC void linphone_chat_message_remove_callbacks(LinphoneChatMessage 
 LINPHONE_PUBLIC LinphoneChatMessageCbs *linphone_chat_message_get_current_callbacks(const LinphoneChatMessage *message);
 
 /**
+ * Adds a call log content to the ChatMessage.
+ * @param message #LinphoneChatMessage object. @notnil
+ * @param call_log the #LinphoneCallLog object to add. @notnil
+ */
+LINPHONE_PUBLIC void linphone_chat_message_add_call_log_content(LinphoneChatMessage *msg,
+                                                                const LinphoneCallLog *call_log);
+
+/**
  * Adds a file content to the ChatMessage.
  * @param message #LinphoneChatMessage object. @notnil
  * @param content the #LinphoneContent object to add. @notnil
  */
-LINPHONE_PUBLIC void linphone_chat_message_add_file_content(LinphoneChatMessage *message, LinphoneContent *content);
+LINPHONE_PUBLIC void linphone_chat_message_add_file_content(LinphoneChatMessage *message,
+                                                            const LinphoneContent *content);
 
 /**
  * Creates a #LinphoneContent of type text/plain with the provided string, and attach it to the message.
@@ -511,6 +520,13 @@ linphone_chat_message_get_own_reaction(const LinphoneChatMessage *message);
  * @return TRUE if it has one, FALSE otherwise.
  */
 LINPHONE_PUBLIC bool_t linphone_chat_message_has_conference_invitation_content(const LinphoneChatMessage *message);
+
+/**
+ * Indicates whether the chat message contains a call log in JSON format.
+ * @param message #LinphoneChatMessage object. @notnil
+ * @return TRUE if it has one, FALSE otherwise.
+ */
+LINPHONE_PUBLIC bool_t linphone_chat_message_has_call_log_json_content(const LinphoneChatMessage *message);
 
 /**
  * Creates a emoji reaction for the given chat mesage.

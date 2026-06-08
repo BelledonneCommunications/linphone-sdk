@@ -57,9 +57,9 @@ int MSWASAPIWriter::feed(MSFilter *f) {
 	if (!isStarted()) goto error;
 
 	result = mAudioClient->GetCurrentPadding(&numFramesPadding);
-	REPORT_ERROR("mswasapi: Could not get current buffer padding for the MSWASAPI audio output interface [%x]", result);
+	REPORT_ERROR("mswasapi: Could not get current buffer padding for the MSWASAPI audio output interface [0x%X]", result);
 	numFramesWritable = mBufferFrameCount - numFramesPadding;
-	REPORT_ERROR("mswasapi: Could not get the frame size for the MSWASAPI audio output interface [%x]", result);
+	REPORT_ERROR("mswasapi: Could not get the frame size for the MSWASAPI audio output interface [0x%X]", result);
 
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		int inputFrames = (int)(msgdsize(im) / mNBlockAlign);
@@ -81,7 +81,7 @@ int MSWASAPIWriter::feed(MSFilter *f) {
 				memcpy(buffer, im->b_rptr, im->b_wptr - im->b_rptr);
 				result = mAudioRenderClient->ReleaseBuffer(writtenFrames, 0); // Use only the needed frame
 			} else {
-				ms_error("mswasapi: Could not get buffer from the MSWASAPI audio output interface %i [%x]", inputFrames,
+				ms_error("mswasapi: Could not get buffer from the MSWASAPI audio output interface %i [0x%X]", inputFrames,
 				         result);
 			}
 		}

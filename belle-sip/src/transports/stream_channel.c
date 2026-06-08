@@ -41,7 +41,7 @@ static void stream_channel_uninit(belle_sip_stream_channel_t *obj) {
 int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t buflen) {
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t *)obj);
 	int err = (int)bctbx_send(sock, buf, buflen, 0);
-	if (err == (belle_sip_socket_t)-1) {
+	if (err == -1) {
 		int errnum = get_socket_error();
 		if (!belle_sip_error_code_is_would_block(errnum)) {
 			belle_sip_error("Could not send stream packet on channel [%p]: %s", obj,
@@ -56,7 +56,7 @@ int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t bufle
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t *)obj);
 	int err = (int)bctbx_recv(sock, buf, buflen, 0);
 
-	if (err == (belle_sip_socket_t)-1) {
+	if (err == -1) {
 		int errnum = get_socket_error();
 		if (errnum == BCTBX_ENOTCONN) { // Do NOT treat it as an error
 			belle_sip_message("Socket is not connected because of IOS10 background policy");

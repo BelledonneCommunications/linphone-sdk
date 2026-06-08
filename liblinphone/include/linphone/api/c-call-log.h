@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -163,6 +163,37 @@ LINPHONE_PUBLIC bool_t linphone_call_log_video_enabled(const LinphoneCallLog *ca
  * @return A human readable string describing the call. @notnil @tobefreed
  **/
 LINPHONE_PUBLIC char *linphone_call_log_to_str(const LinphoneCallLog *call_log);
+
+/**
+ * Gets a Json representation of the call log.
+ * @see linphone_call_log_from_json() for details.
+ *
+ * @param call_log #LinphoneCallLog object @notnil
+ * @return A Json format string describing the call. @notnil @tobefreed
+ **/
+LINPHONE_PUBLIC char *linphone_call_log_to_json(const LinphoneCallLog *call_log);
+
+/**
+ * Update the call log from a text in Json.
+ *<table>
+ *<caption>JSON format of Call Logs. Version 1</caption>
+ *<tr><th>Key<th>Value type<th>Possible values<th>Description</th></tr>
+ *<tr><td>version</td><td>integer</td><td>1</td><td>The version number of the JSON.</td></tr>
+ *<tr><td>direction</td><td>string</td><td>"incoming"/"outgoing"</td><td>The text value of #LinphoneCallDir</td></tr>
+ *<tr><td>call_id</td><td>string</td><td>"bPTe-qv5ps"</td><td>The call ID</td></tr>
+ *<tr><td>start_dt</td><td>string</td><td>"2026-04-20T09:04:51Z"</td><td>The start date time in ISO8601</td></tr>
+ *<tr><td>from</td><td>string</td><td>"sip:example1@sip.example.org"</td><td>The FROM SIP address of the call
+ *log</td></tr> <tr><td>to</td><td>string</td><td>"sip:example2@sip.example.org"</td><td>The TO SIP address of the call
+ *log</td></tr>
+ *<tr><td>status</td><td>string</td><td>"success"/"declined"/"missed"/"aborted"/"accepted_elsewhere"/"declined_elsewhere"/"early_aborted"</td><td>The
+ *text value of #LinphoneCallStatus</td></tr> <tr><td>duration_s</td><td>integer</td><td>10</td><td>The duration in
+ *seconds</td></tr>
+ *</table>
+ * @param call_log #LinphoneCallLog object to update @notnil
+ * @param json_text the Json to parse  @notnil
+ * @return -1 if json_text couldn't be parsed else 0.
+ **/
+LINPHONE_PUBLIC int linphone_call_log_from_json(LinphoneCallLog *call_log, const char *json_text);
 
 /**
  * Tells whether that call was part of a conference

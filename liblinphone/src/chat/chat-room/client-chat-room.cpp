@@ -82,8 +82,20 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 	auto conference = dynamic_pointer_cast<ClientConference>(getConference());
 	conference->onConferenceCreated(remoteContact);
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
-	if (remoteContact->hasParam(Conference::sIsFocusParameter) &&
-	    !getCore()->getPrivate()->clientListEventHandler->findHandler(getConferenceId())) {
+	bool needToSubscribe = true;
+	auto &clientListHandler = getCore()->getPrivate()->clientListEventHandler;
+	auto handler = clientListHandler->findHandler(getConferenceId());
+	if (handler) {
+		if (handler->getSubscriptionState() == LinphoneSubscriptionError) {
+			lInfo() << "Detach " << *this << " from ClientConferenceListEventHandler [" << clientListHandler.get()
+			        << "] because the subscription errored out";
+			needToSubscribe = true;
+			clientListHandler->removeHandler(handler);
+		} else {
+			needToSubscribe = false;
+		}
+	}
+	if (needToSubscribe && remoteContact->hasParam(Conference::kIsFocusParameter)) {
 		mBgTask.start(getCore(), 32); // It will be stopped when receiving the first notify
 		conference->subscribe(false, false);
 	}
@@ -202,12 +214,29 @@ bool ClientChatRoom::isReadOnly() const {
 
 void ClientChatRoom::deleteChatRoomFromDb(bool leaveChatRoom) {
 	auto ref = getSharedFromThis();
-	if (leaveChatRoom && !hasBeenLeft()) {
-		setDeletionOnTerminationEnabled(true);
-		getConference()->leave();
-		return;
+	auto state = getState();
+	switch (state) {
+		case ConferenceInterface::State::Terminated:
+		case ConferenceInterface::State::Deleted:
+			ChatRoom::deleteFromDb();
+			break;
+		case ConferenceInterface::State::TerminationPending:
+			lError() << "Unable to delete " << *this
+			         << " because its termination is already underway. It will be deleted only when the termination "
+			            "process completes";
+			setDeletionOnTerminationEnabled(true);
+			break;
+		default:
+			if (leaveChatRoom) {
+				lInfo() << "Leaving " << *this << " before deleting it from the database";
+				setDeletionOnTerminationEnabled(true);
+				getConference()->leave();
+			} else {
+				lInfo() << "Delete " << *this << " from the database without leaving it";
+				ChatRoom::deleteFromDb();
+			}
+			break;
 	}
-	ChatRoom::deleteFromDb();
 }
 
 void ClientChatRoom::deleteFromDb() {
@@ -221,11 +250,11 @@ void ClientChatRoom::deleteFromDbWithoutLeaving() {
 list<shared_ptr<EventLog>> ClientChatRoom::getHistory(int nLast) const {
 	if (auto db = getCore()->getDatabase()) {
 		try {
-			return db.value().get()->getHistory(getConferenceId(), nLast,
-			                                    getCurrentParams()->isGroup()
-			                                        ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-			                                                              MainDb::Filter::ConferenceInfoNoDeviceFilter})
-			                                        : MainDb::Filter::ConferenceChatMessageSecurityFilter);
+			return db.value().get().getHistory(getConferenceId(), nLast,
+			                                   getCurrentParams()->isGroup()
+			                                       ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
+			                                                             MainDb::Filter::ConferenceInfoNoDeviceFilter})
+			                                       : MainDb::Filter::ConferenceChatMessageSecurityFilter);
 		} catch (const bad_weak_ptr &) {
 		}
 	}
@@ -240,7 +269,7 @@ list<shared_ptr<EventLog>> ClientChatRoom::getHistoryRange(int begin, int end) c
 
 	if (auto db = getCore()->getDatabase()) {
 		try {
-			return db.value().get()->getHistoryRange(
+			return db.value().get().getHistoryRange(
 			    getConferenceId(), begin, end,
 			    getCurrentParams()->isGroup() ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
 			                                                        MainDb::Filter::ConferenceInfoNoDeviceFilter})
@@ -258,7 +287,7 @@ list<shared_ptr<EventLog>> ClientChatRoom::getHistoryRange(int begin, int end, H
 int ClientChatRoom::getHistorySize() const {
 	if (auto db = getCore()->getDatabase()) {
 		try {
-			return db.value().get()->getHistorySize(
+			return db.value().get().getHistorySize(
 			    getConferenceId(), getCurrentParams()->isGroup()
 			                           ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
 			                                                 MainDb::Filter::ConferenceInfoNoDeviceFilter})
@@ -323,7 +352,7 @@ void ClientChatRoom::onExhumedConference(const ConferenceId &oldConfId, const Co
 	focus->clearDevices();
 	focus->addDevice(addr);
 
-	conference->setConferenceId(newConfId);
+	conference->setConferenceId(newConfId, false);
 	getCore()->getPrivate()->updateChatRoomConferenceId(chatRoom, oldConfId);
 
 	conference->resetLastNotify();
@@ -375,7 +404,7 @@ void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 		// Wait for chat room to have been updated before inserting the previous ID in db
 		if (oldConfId != newConfId) {
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->insertNewPreviousConferenceId(newConfId, oldConfId);
+				db.value().get().insertNewPreviousConferenceId(newConfId, oldConfId);
 			}
 		}
 	}
@@ -389,11 +418,14 @@ void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 void ClientChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &chatMessage) {
 	chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
 	                                               ::ms_time(nullptr));
+	// Cover the case where the failure happens on notification messages such as IMDN and is-composing. In such a case,
+	// the storage ID is a negative integer.
 	const auto &storageId = chatMessage->getStorageId();
-	L_ASSERT(storageId >= 0);
-	if (auto db = getCore()->getDatabase()) {
-		shared_ptr<EventLog> eventLog = db.value().get()->getEvent(storageId);
-		_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
+	if (storageId >= 0) {
+		if (auto db = getCore()->getDatabase()) {
+			shared_ptr<EventLog> eventLog = db.value().get().getEvent(storageId);
+			_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
+		}
 	}
 }
 
@@ -425,10 +457,10 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 			} else if (encryptionEngine->participantListRequired()) {
 				LinphoneGlobalState coreGlobalState = linphone_core_get_global_state(getCore()->getCCore());
 				auto eventSubscribeState = LinphoneSubscriptionNone;
-				bool alreadySubscribed = false;
+				bool subscriptionUnderway = true;
 				if (eventHandler) {
-					alreadySubscribed = eventHandler->alreadySubscribed();
 					eventSubscribeState = eventHandler->getSubscriptionState();
+					subscriptionUnderway = eventHandler->getInitialSubscriptionUnderWayFlag();
 				}
 				bool coreRunning = (coreGlobalState == LinphoneGlobalOn);
 				if (!conference->supportsConferenceEventPackage()) {
@@ -446,14 +478,13 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 					         << "]";
 					chatMessage->getPrivate()->setParticipantState(
 					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
-				} else if (!alreadySubscribed) {
+				} else if (eventSubscribeState != LinphoneSubscriptionActive) {
 					lInfo() << *this << ": Delaying sending of message [" << chatMessage
-					        << "] in an encrypted chat room because no subscription has been sent yet";
+					        << "] in an encrypted chat room because subscription is not active yet";
 					queueMessage = true;
-				} else if (!alreadySubscribed || conference->getParticipantDevices().empty()) {
+				} else if (subscriptionUnderway) {
 					lInfo() << *this << ": Delaying sending of message [" << chatMessage
-					        << "] in an encrypted chat room because the list of participant devices has not been "
-					           "received yet "
+					        << "] in an encrypted chat room because the subscription is still underway "
 					           "and the encryption engine ["
 					        << encryptionEngine << "] requires it";
 					queueMessage = true;
@@ -491,9 +522,10 @@ bool ClientChatRoom::canSendMessages() const {
 	// participants. However, if the core is shutting down, the message should be sent anyway even though we are
 	// potentially send it to an incomplete list of devices
 	const auto &chatBackend = chatRoomParams->getChatParams()->getBackend();
+	const auto &isEncrypted = chatRoomParams->getChatParams()->isEncrypted();
 	bool subscriptionUnderway = false;
 	LinphoneGlobalState coreGlobalState = linphone_core_get_global_state(getCore()->getCCore());
-	bool coreShuttingDown = ((coreGlobalState == LinphoneGlobalOff) || (coreGlobalState == LinphoneGlobalShutdown));
+	bool coreOff = (coreGlobalState == LinphoneGlobalOff);
 	const auto conference = getConference();
 	if (conference) {
 		subscriptionUnderway = conference->isSubscriptionUnderWay();
@@ -501,13 +533,23 @@ bool ClientChatRoom::canSendMessages() const {
 	bool sendMessagesAfterNotify = !!linphone_core_send_message_after_notify_enabled(core->getCCore());
 	bool handlerAllowsMessageSending = sendMessagesAfterNotify ? !subscriptionUnderway : true;
 	// Chat message can be sent only after the subscription has been finalized and the first NOTIFY received
+	// For encrypted chat rooms, the participant list cannot be empty
 	bool canMessageBeSent =
-	    (handlerAllowsMessageSending && !coreShuttingDown && (chatBackend == ChatParams::Backend::FlexisipChat) &&
-	     (chatRoomState == ConferenceInterface::State::Created));
+	    (handlerAllowsMessageSending && !coreOff && (chatBackend == ChatParams::Backend::FlexisipChat) &&
+	     (chatRoomState == ConferenceInterface::State::Created) &&
+	     (!isEncrypted || !mConference->getParticipantDevices(false).empty()));
 	if (!canMessageBeSent) {
 		lInfo() << *conference << " cannot yet send messages: ";
-		lInfo() << " - the chat room is not in the created state (actual state " << Utils::toString(chatRoomState)
-		        << ")";
+		if (chatRoomState != ConferenceInterface::State::Created) {
+			lInfo() << " - the chat room is not in the created state (actual state " << Utils::toString(chatRoomState)
+			        << ")";
+		}
+		if (coreOff) {
+			lInfo() << " - the core is in state GlobalOff";
+		}
+		if (chatBackend != ChatParams::Backend::FlexisipChat) {
+			lInfo() << " - chat backend is not FlexisipChat";
+		}
 		if (sendMessagesAfterNotify) {
 			lInfo() << " - subscription is underway (actually subscription is"
 			        << std::string(subscriptionUnderway ? " " : " not ") << "underway)";
@@ -537,17 +579,16 @@ void ClientChatRoom::sendPendingMessages() {
 void ClientChatRoom::sendEphemeralUpdate() {
 	auto conference = static_pointer_cast<ClientConference>(getConference());
 	auto utf8Subject = conference->getUtf8Subject();
+	lInfo() << "Sending an INVITE message because ephemeral settings of " << *conference << " have changed";
 	auto focus = conference->mFocus;
 	shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(focus->getSession());
-	const std::shared_ptr<Address> &remoteParticipant = getParticipants().front()->getAddress();
-	lInfo() << "Re-INVITing " << *remoteParticipant << " because ephemeral settings of chat room " << *conference
-	        << " have changed";
 	if (session) {
 		auto csp = session->getMediaParams()->clone();
-		csp->removeCustomHeader("Ephemeral-Life-Time");
-		csp->removeCustomHeader("Ephemeral-Not-Read-Life-Time");
-		csp->addCustomHeader("Ephemeral-Life-Time", (ephemeralEnabled() ? to_string(getEphemeralLifetime()) : "0"));
-		csp->addCustomHeader("Ephemeral-Not-Read-Life-Time",
+		csp->removeCustomHeader(ChatRoom::kEphemeralLifeTimeHeader);
+		csp->removeCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader);
+		csp->addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
+		                     (ephemeralEnabled() ? to_string(getEphemeralLifetime()) : "0"));
+		csp->addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
 		                     (ephemeralEnabled() ? to_string(getEphemeralNotReadLifetime()) : "0"));
 		session->update(csp, CallSession::UpdateMethod::Default, false, utf8Subject);
 		delete csp;
@@ -586,11 +627,11 @@ void ClientChatRoom::setEphemeralMode(AbstractChatRoom::EphemeralMode mode, bool
 		auto focus = conference->mFocus;
 		shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(focus->getSession());
 		auto csp = session->getMediaParams()->clone();
-		csp->removeCustomHeader("Ephemeral-Life-Time");
-		csp->removeCustomHeader("Ephemeral-Not-Read-Life-Time");
+		csp->removeCustomHeader(ChatRoom::kEphemeralLifeTimeHeader);
+		csp->removeCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader);
 		if (mode == AbstractChatRoom::EphemeralMode::AdminManaged) {
-			csp->addCustomHeader("Ephemeral-Life-Time", to_string(lifetime));
-			csp->addCustomHeader("Ephemeral-Not-Read-Life-Time", to_string(notReadLifetime));
+			csp->addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader, to_string(lifetime));
+			csp->addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader, to_string(notReadLifetime));
 		}
 		lInfo() << *conference << ": Changing ephemeral mode to " << Utils::toString(mode);
 		session->update(csp, CallSession::UpdateMethod::Default, false, utf8Subject);
@@ -678,7 +719,7 @@ LinphoneStatus ClientChatRoom::enableEphemeral(long lifetime, long notReadLifeti
 	if (updateDb) {
 		auto db = getCore()->getDatabase();
 		if (db) {
-			db.value().get()->updateChatRoomEphemeralLifetime(getConferenceId(), lifetime, notReadLifetime);
+			db.value().get().updateChatRoomEphemeralLifetime(getConferenceId(), lifetime, notReadLifetime);
 		}
 
 		// Prepare event to set: status change or time change.

@@ -156,8 +156,8 @@ void ConferenceScheduler::setInfo(const std::shared_ptr<ConferenceInfo> &info) {
 	bool isUpdate = conferenceAddress && conferenceAddress->isValid();
 	auto db = getCore()->getDatabase();
 	if (isUpdate && db) {
-		db.value().get()->invalidateConferenceInfoCacheIfNeeded(info);
-		auto confInfo = db.value().get()->getConferenceInfoFromURI(conferenceAddress);
+		db.value().get().invalidateConferenceInfoCacheIfNeeded(info);
+		auto confInfo = db.value().get().getConferenceInfoFromURI(conferenceAddress);
 		if (confInfo) {
 			lInfo() << "[Conference Scheduler] [" << this
 			        << "] Found matching conference info in database for address [" << *conferenceAddress << "]";
@@ -339,7 +339,7 @@ void ConferenceScheduler::setConferenceAddress(const std::shared_ptr<Address> &c
 	if (auto db = getCore()->getDatabase()) {
 		lInfo() << "[Conference Scheduler] [" << this << "] Conference address " << *conferenceAddress
 		        << " is known, inserting conference info [" << mConferenceInfo << "] in database";
-		error = (db.value().get()->insertConferenceInfo(mConferenceInfo) < 0);
+		error = (db.value().get().insertConferenceInfo(mConferenceInfo) < 0);
 	}
 
 	auto newState = error ? State::Error : State::Ready;
@@ -376,7 +376,7 @@ shared_ptr<ChatMessage> ConferenceScheduler::createInvitationChatMessage(shared_
 	}
 
 	// Update conference info in database with new sequence and uid
-	if (auto db = getCore()->getDatabase()) db.value().get()->insertConferenceInfo(mConferenceInfo);
+	if (auto db = getCore()->getDatabase()) db.value().get().insertConferenceInfo(mConferenceInfo);
 	message->addListener(getSharedFromThis());
 	return message;
 }
@@ -426,7 +426,7 @@ void ConferenceScheduler::sendInvitations(shared_ptr<ConferenceParams> conferenc
 	std::shared_ptr<ConferenceInfo> dbConferenceInfo = nullptr;
 	auto db = getCore()->getDatabase();
 	if (conferenceAddress && db) {
-		dbConferenceInfo = db.value().get()->getConferenceInfoFromURI(conferenceAddress);
+		dbConferenceInfo = db.value().get().getConferenceInfoFromURI(conferenceAddress);
 	}
 
 	std::list<std::shared_ptr<Address>> invitees;

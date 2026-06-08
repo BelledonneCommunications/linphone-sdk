@@ -48,7 +48,6 @@ class EncryptionStatus {
 public:
 	EncryptionStatus() : mError(LinphoneMediaEncryptionErrorNone) {
 	}
-
 	EncryptionStatus(const EncryptionStatus &other) = default;
 
 	EncryptionStatus &operator=(const EncryptionStatus &other) {

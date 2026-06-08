@@ -1222,23 +1222,9 @@ void AccountParams::writeToConfigFile(LinphoneConfig *config, int index) {
 		linphone_config_set_string(config, key, "quality_reporting_collector", mQualityReportingCollector.c_str());
 	}
 
-	string pushParams;
-	string teamId;
-	string bundleIdentifier;
-	string voipToken;
-	string remoteToken;
 	if (mPushNotificationAllowed || mRemotePushNotificationAllowed) {
-		pushParams = mPushNotificationConfig->asString(mRemotePushNotificationAllowed);
-		voipToken = mPushNotificationConfig->getVoipToken();
-		remoteToken = mPushNotificationConfig->getRemoteToken();
-		bundleIdentifier = mPushNotificationConfig->getBundleIdentifer();
-		teamId = mPushNotificationConfig->getTeamId();
+		mPushNotificationConfig->writeToConfig(config, key, mRemotePushNotificationAllowed);
 	}
-	linphone_config_set_string(config, key, "push_parameters", pushParams.c_str());
-	linphone_config_set_string(config, key, "voip_token", voipToken.c_str());
-	linphone_config_set_string(config, key, "remote_token", remoteToken.c_str());
-	linphone_config_set_string(config, key, "bundle_identifier", bundleIdentifier.c_str());
-	linphone_config_set_string(config, key, "team_id", teamId.c_str());
 
 	linphone_config_set_int(config, key, "quality_reporting_enabled", (int)mQualityReportingEnabled);
 	linphone_config_set_int(config, key, "quality_reporting_interval", mQualityReportingInterval);

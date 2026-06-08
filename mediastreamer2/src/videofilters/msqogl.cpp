@@ -63,6 +63,13 @@ static void removeLink(FilterData *data, MSQOGLLink link) {
 		case QtLink:
 			qInfo() << "[MSQOGL] Unlink Qt from: " << data;
 			data->is_qt_linked = FALSE;
+			if (data->mRenderingThread && data->display) {
+				// Not BlockingConnection because we can have a deadlock here, but we prefer to have a direct connection
+				// if possible.
+				QMetaObject::invokeMethod(
+				    data->mRenderingThread, [display = data->display]() { ogl_display_uninit(display, TRUE); },
+				    Qt::AutoConnection);
+			}
 			if (data->renderer) data->renderer->mParent = NULL;
 			data->renderer = NULL;
 			break;
@@ -70,7 +77,19 @@ static void removeLink(FilterData *data, MSQOGLLink link) {
 			qInfo() << "[MSQOGL] Unlink MS from: " << data;
 			data->is_ms_linked = FALSE;
 			ms_filter_lock(data->parent);
-			ogl_display_free_and_nullify(&data->display);
+			if (data->mRenderingThread) {
+				// Not BlockingConnection because we can have a deadlock here, but we prefer to have a direct connection
+				// if possible.
+				struct opengles_display *display = data->display;
+				QMetaObject::invokeMethod(
+				    data->mRenderingThread,
+				    [display]() mutable {
+					    ogl_display_uninit(display, TRUE); // mRenderingThread exists then it was initialized
+					    ogl_display_free_and_nullify(&display);
+				    },
+				    Qt::AutoConnection);
+				data->display = NULL; // Make sure to not use the display anymore
+			} else ogl_display_free_and_nullify(&data->display);
 			ms_filter_unlock(data->parent);
 			break;
 	}
@@ -140,8 +159,7 @@ void BufferRenderer::synchronize(QQuickFramebufferObject *item) {
 	// No mutex needed here. It's a synchronized area.
 	auto new_win = item->window();
 	if (new_win == mWindow) return;
-
-	if (mParent) {
+	if (mParent && mParent->display) {
 		ogl_display_uninit(mParent->display, TRUE);
 		ogl_display_set_default_functions(mParent->display,
 		                                  &mParent->functions); // Synchronize functions with the current context
@@ -334,6 +352,7 @@ static int qogl_call_render(MSFilter *f, void *arg) {
 	if (data->display) {
 		if (data->show_video && data->renderer) {
 			if (data->update_context) {
+				data->mRenderingThread = QThread::currentThread(); // When uninit, use the same thread.
 				ogl_display_init(data->display, &data->functions, data->renderer->mWidth, data->renderer->mHeight);
 				data->update_context = FALSE;
 			}

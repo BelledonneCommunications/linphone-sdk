@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "account/account.h"
 #include "address/address.h"
@@ -81,6 +81,49 @@ void CallSessionPrivate::restorePreviousState() {
 	setState(prevState, prevMessageState);
 }
 
+void CallSessionPrivate::setCallLogStatusOnTermination() {
+	L_Q();
+	switch (linphone_error_info_get_reason(q->getErrorInfo())) {
+		case LinphoneReasonDeclined:
+			if (log->getStatus() != LinphoneCallMissed) // Do not re-change the status of a call if it's already set
+				log->setStatus(LinphoneCallDeclined);
+			break;
+		case LinphoneReasonNotAnswered:
+			if (log->getDirection() == LinphoneCallIncoming) log->setStatus(LinphoneCallMissed);
+			break;
+		case LinphoneReasonUnknown:
+		case LinphoneReasonNone:
+			/* case of CANCEL */
+			if (terminatedFromRemote && (prevState == CallSession::State::IncomingReceived ||
+			                             prevState == CallSession::State::IncomingEarlyMedia)) {
+				log->setStatus(LinphoneCallMissed); // Assuming it is a missed call
+				if (ei && linphone_error_info_get_protocol(ei) != NULL) {
+					int code = linphone_error_info_get_protocol_code(ei);
+					if (strcasecmp(linphone_error_info_get_protocol(ei), "SIP") == 0 &&
+					    ((code >= 200) && (code < 300))) {
+						log->setStatus(LinphoneCallAcceptedElsewhere);
+						// a 487 code clearly indicates a missed call (cancelled by caller).
+					} else {
+						lWarning() << "Unsupported reason header in CANCEL - assuming it is a missed call.";
+					}
+				}
+			}
+			break;
+		case LinphoneReasonDoNotDisturb:
+			if (log->getDirection() == LinphoneCallIncoming) {
+				if (ei) {
+					int code = linphone_error_info_get_protocol_code(ei);
+					if ((code >= 600) && (code < 700)) log->setStatus(LinphoneCallDeclinedElsewhere);
+				}
+			} else {
+				log->setStatus(LinphoneCallDeclined);
+			}
+			break;
+		default:
+			break;
+	}
+}
+
 void CallSessionPrivate::setState(CallSession::State newState, const string &message) {
 	L_Q();
 	// Keep a ref on the CallSession, otherwise it might get destroyed before the end of the method
@@ -127,7 +170,7 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 					if (call) {
 						const std::shared_ptr<Address> to = Address::create(op->getTo());
 						// Server conference
-						if (to->hasUriParam(Conference::sConfIdParameter)) {
+						if (to->hasUriParam(Conference::kConfIdParameter)) {
 							shared_ptr<Conference> conference = core->findConference(
 							    ConferenceId(to, to, q->getCore()->createConferenceIdParams()), false);
 
@@ -137,13 +180,13 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 							}
 						} else if (op->getRemoteContactAddress()) {
 							if (sal_address_has_param(op->getRemoteContactAddress(),
-							                          Conference::sIsFocusParameter.c_str())) {
+							                          Conference::kIsFocusParameter.c_str())) {
 								const auto &conferenceInfo = Utils::createConferenceInfoFromOp(op, true);
 								if (conferenceInfo->getUri()->isValid()) {
 									if (auto db = core->getDatabase()) {
 										lInfo() << "Inserting conference information to database related to conference "
 										        << *conferenceInfo->getUri();
-										db.value().get()->insertConferenceInfo(conferenceInfo);
+										db.value().get().insertConferenceInfo(conferenceInfo);
 									}
 									auto log = q->getLog();
 									log->setConferenceInfo(conferenceInfo);
@@ -155,35 +198,7 @@ void CallSessionPrivate::setState(CallSession::State newState, const string &mes
 			} break;
 			case CallSession::State::End:
 			case CallSession::State::Error:
-				switch (linphone_error_info_get_reason(q->getErrorInfo())) {
-					case LinphoneReasonDeclined:
-						if (log->getStatus() !=
-						    LinphoneCallMissed) // Do not re-change the status of a call if it's already set
-							log->setStatus(LinphoneCallDeclined);
-						break;
-					case LinphoneReasonNotAnswered:
-						if (log->getDirection() == LinphoneCallIncoming) log->setStatus(LinphoneCallMissed);
-						break;
-					case LinphoneReasonNone:
-						if (log->getDirection() == LinphoneCallIncoming) {
-							if (ei) {
-								int code = linphone_error_info_get_protocol_code(ei);
-								if ((code >= 200) && (code < 300)) log->setStatus(LinphoneCallAcceptedElsewhere);
-								else if (code == 487) log->setStatus(LinphoneCallMissed);
-							}
-						}
-						break;
-					case LinphoneReasonDoNotDisturb:
-						if (log->getDirection() == LinphoneCallIncoming) {
-							if (ei) {
-								int code = linphone_error_info_get_protocol_code(ei);
-								if ((code >= 600) && (code < 700)) log->setStatus(LinphoneCallDeclinedElsewhere);
-							}
-						}
-						break;
-					default:
-						break;
-				}
+				setCallLogStatusOnTermination();
 				break;
 			case CallSession::State::Connected:
 				log->setStatus(LinphoneCallSuccess);
@@ -517,7 +532,7 @@ void CallSessionPrivate::updateToFromAssertedIdentity() {
 			log->setToAddress(pAssertedIdAddr);
 
 			if (auto db = q->getCore()->getDatabase()) {
-				db.value().get()->updateCallLog(log);
+				db.value().get().updateCallLog(log);
 			}
 		} else {
 			lWarning() << "Unsupported P-Asserted-Identity header";
@@ -542,7 +557,7 @@ void CallSessionPrivate::replaceOp(SalCallOp *newOp) {
 	// Replace the call ID in the call log
 	log->setCallId(op->getCallId());
 	if (auto db = q->getCore()->getDatabase()) {
-		db.value().get()->updateCallLog(log);
+		db.value().get().updateCallLog(log);
 	}
 	switch (state) {
 		case CallSession::State::IncomingEarlyMedia:
@@ -587,23 +602,15 @@ void CallSessionPrivate::replaceOp(SalCallOp *newOp) {
 }
 
 void CallSessionPrivate::terminated() {
-	L_Q();
 	switch (state) {
 		case CallSession::State::End:
 		case CallSession::State::Error:
 			lWarning() << "terminated: already terminated, ignoring";
 			return;
-		case CallSession::State::IncomingReceived:
-		case CallSession::State::IncomingEarlyMedia:
-			if (!op->getReasonErrorInfo()->protocol || strcmp(op->getReasonErrorInfo()->protocol, "") == 0) {
-				lWarning() << "Session [" << q << "] has not been answered by the remote party";
-				linphone_error_info_set(ei, nullptr, LinphoneReasonNotAnswered, 0, "Incoming call cancelled", nullptr);
-				nonOpError = true;
-			}
-			break;
 		default:
 			break;
 	}
+	terminatedFromRemote = true;
 	setState(CallSession::State::End, "Call ended");
 }
 
@@ -732,7 +739,7 @@ void CallSession::setOpPrivacy() {
 void CallSessionPrivate::accept(const CallSessionParams *csp) {
 	L_Q();
 	/* Try to be best-effort in giving real local or routable contact address */
-	setContactOp();
+	setContactOp({});
 	if (csp) setParams(new CallSessionParams(*csp));
 	if (mParams) {
 		op->enableCapabilityNegotiation(q->isCapabilityNegotiationEnabled());
@@ -805,7 +812,7 @@ LinphoneStatus CallSessionPrivate::checkForAcceptation() {
 void CallSessionPrivate::handleIncomingReceivedStateInIncomingNotification() {
 	L_Q();
 	/* Try to be best-effort in giving real local or routable contact address for 100Rel case */
-	setContactOp();
+	setContactOp({});
 	if (notifyRinging && state != CallSession::State::IncomingEarlyMedia)
 		op->notifyRinging(false, linphone_core_get_tag_100rel_support_level(q->getCore()->getCCore()));
 	acceptOrTerminateReplacedSessionInIncomingNotification();
@@ -1012,7 +1019,7 @@ void CallSessionPrivate::setBroken() {
 	}
 }
 
-void CallSessionPrivate::setContactOp() {
+void CallSessionPrivate::setContactOp(const std::optional<std::shared_ptr<Address>> destination) {
 	L_Q();
 	auto contactInfo = chooseContact();
 	// Do not try to set contact address if it is not valid
@@ -1030,8 +1037,12 @@ void CallSessionPrivate::setContactOp() {
 			// the core. For example, flexisip tchat servers based on SDK 5.3, will create chatroom with username
 			// chatroom-XXXXX which doesn't match any of the account held by the core so the To or From header have the
 			// chatroom address
-			auto guessedConferenceAddress =
-			    Address::create((direction == LinphoneCallIncoming) ? op->getTo() : op->getFrom());
+			std::shared_ptr<Address> guessedConferenceAddress;
+			if (direction == LinphoneCallIncoming) {
+				guessedConferenceAddress = destination ? destination.value() : log->getToAddress();
+			} else {
+				guessedConferenceAddress = log->getFromAddress();
+			}
 			std::shared_ptr<Conference> guessedConference = core->findConference(
 			    ConferenceId(guessedConferenceAddress, guessedConferenceAddress, conferenceIdParams), false);
 			std::shared_ptr<Address> conferenceAddress;
@@ -1050,7 +1061,7 @@ void CallSessionPrivate::setContactOp() {
 				        << " doesn't match the actual chatroom conference address " << *conferenceAddress;
 			} else {
 				if (auto db = q->getCore()->getDatabase()) {
-					const auto &confInfo = db.value().get()->getConferenceInfoFromURI(guessedConferenceAddress);
+					const auto &confInfo = db.value().get().getConferenceInfoFromURI(guessedConferenceAddress);
 					if (confInfo) {
 						// The conference may have already been terminated when setting the contact address.
 						// This happens when an admin cancel a conference by sending an INVITE with an empty resource
@@ -1106,11 +1117,11 @@ bool CallSessionPrivate::reportEvents() const {
 	const auto &contactAddress = q->getContactAddress();
 	const auto localAddress = q->getLocalAddress();
 	const auto serverConferenceGuessedAddress =
-	    (contactAddress && contactAddress->hasUriParam(Conference::sConfIdParameter)) ? contactAddress : localAddress;
+	    (contactAddress && contactAddress->hasUriParam(Conference::kConfIdParameter)) ? contactAddress : localAddress;
 	const auto &remoteContactAddress = q->getRemoteContactAddress();
 	const auto remoteAddress = q->getRemoteAddress();
 	const auto clientConferenceGuessedAddress =
-	    (remoteContactAddress && remoteContactAddress->hasUriParam(Conference::sConfIdParameter)) ? remoteContactAddress
+	    (remoteContactAddress && remoteContactAddress->hasUriParam(Conference::kConfIdParameter)) ? remoteContactAddress
 	                                                                                              : remoteAddress;
 	const auto &peerAddress = isInConference() ? serverConferenceGuessedAddress : clientConferenceGuessedAddress;
 	const auto conference = q->getCore()->searchConference(nullptr, nullptr, peerAddress, {});
@@ -1604,7 +1615,7 @@ LinphoneStatus CallSession::decline(const LinphoneErrorInfo *ei) {
 		lError() << "Cannot decline a CallSession that is in state " << Utils::toString(d->state);
 		return -1;
 	}
-	if (ei) {
+	if (ei && linphone_error_info_get_reason(ei) != LinphoneReasonNone) {
 		linphone_error_info_set(d->ei, nullptr, linphone_error_info_get_reason(ei),
 		                        linphone_error_info_get_protocol_code(ei), linphone_error_info_get_phrase(ei), nullptr);
 		linphone_error_info_to_sal(ei, &sei);
@@ -1809,11 +1820,6 @@ int CallSession::startInvite(const std::shared_ptr<Address> &destination,
                              const std::shared_ptr<const Content> content) {
 	L_D();
 	d->subject = subject;
-	/* Try to be best-effort in giving real local or routable contact address */
-	d->setContactOp();
-	const SalAddress *destinationAddress;
-	if (destination) destinationAddress = destination->getImpl();
-	else destinationAddress = d->log->getToAddress()->getImpl();
 	/* Take a ref because sal_call() may destroy the CallSession if no SIP transport is available */
 	shared_ptr<CallSession> ref = getSharedFromThis();
 	d->op->setLocalBodies({});
@@ -1821,12 +1827,19 @@ int CallSession::startInvite(const std::shared_ptr<Address> &destination,
 		d->op->addLocalBody(*content);
 	}
 
+	/* Try to be best-effort in giving real local or routable contact address */
+	std::shared_ptr<Address> destinationAddress;
+	if (destination) destinationAddress = destination;
+	else destinationAddress = d->log->getToAddress();
+
+	d->setContactOp(destinationAddress);
+
 	// If a custom Content has been set in the call mParams, create a multipart body for the INVITE
 	for (auto &c : d->mParams->getCustomContents()) {
 		d->op->addLocalBody(*c);
 	}
 
-	int result = d->op->call(d->log->getFromAddress()->getImpl(), destinationAddress, subject);
+	int result = d->op->call(d->log->getFromAddress()->getImpl(), destinationAddress->getImpl(), subject);
 	if (result < 0) {
 		if ((d->state != CallSession::State::Error) && (d->state != CallSession::State::Released)) {
 			// sal_call() may invoke call_failure() and call_released() SAL callbacks synchronously,

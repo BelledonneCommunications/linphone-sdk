@@ -52,6 +52,7 @@ void bctbx_clean(void *buffer, size_t size) {
 /*** Error code translation ***/
 void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 	if (error_code <= -0x70000000L && error_code > -0x80000000L) {
+		/* bctoolbox defined error codes are all in format -0x7XXXXXXX */
 		switch (error_code) {
 			case BCTBX_ERROR_CERT_VERIFY_FAILED:
 				snprintf(buffer, buffer_length, "%s [-0x%x]", "Certificate verification failed", -error_code);

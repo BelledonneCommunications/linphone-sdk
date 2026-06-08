@@ -274,6 +274,14 @@ LINPHONE_PUBLIC void linphone_range_set_min(LinphoneRange *range, int min);
  */
 LINPHONE_PUBLIC void linphone_range_set_max(LinphoneRange *range, int max);
 
+/**
+ * Returns a string descrbing the #LinphoneAuthMethod value.
+ * @param the authentication method
+ * @return a string describing the authentication method.
+ * @ingroup group_misc
+ */
+LINPHONE_PUBLIC const char *linphone_auth_method_to_string(LinphoneAuthMethod method);
+
 /************ */
 /* DEPRECATED */
 /* ********** */

@@ -21,6 +21,7 @@
 #include "auth-info.h"
 #include "bellesip_sal/sal_impl.h"
 #include "linphone/lpconfig.h"
+#include "linphone/misc.h"
 #include "logger/logger.h"
 
 #include <algorithm>
@@ -66,6 +67,7 @@ AuthInfo::AuthInfo(const std::string &username, std::shared_ptr<BearerToken> tok
 	mUsername = username;
 	mAccessToken = token;
 	mRealm = realm;
+	mRequestedMethod = LinphoneAuthBearer;
 }
 
 void AuthInfo::init(const string &username,
@@ -99,6 +101,7 @@ void AuthInfo::init(const string &username,
 	init(username, userid, passwd, ha1, realm, domain, algorithm);
 	setAvailableAlgorithms(availableAlgorithms);
 }
+
 AuthInfo::AuthInfo(LpConfig *config, string key) {
 	const char *username, *userid, *passwd, *ha1, *realm, *domain, *tls_cert_path, *tls_key_path, *tls_key_password,
 	    *algo;
@@ -215,7 +218,7 @@ void AuthInfo::setUsername(const string &username) {
 
 void AuthInfo::setAlgorithm(const string &algorithm) { // Select algorithm
 	if (!algorithm.empty() && algorithm != "MD5" && algorithm != "SHA-256") {
-		lError() << "Given algorithm is not correct. Set algorithm failed";
+		lError() << "Given algorithm [" << algorithm << "] is not correct. Set algorithm failed";
 	}
 	if (!algorithm.empty() && mAlgorithm != algorithm && !mHa1.empty()) {
 		setNeedToRenewHa1(true);
@@ -230,7 +233,7 @@ void AuthInfo::setAvailableAlgorithms(const list<string> &algorithms) {
 
 void AuthInfo::addAvailableAlgorithm(const string &algorithm) {
 	if (!algorithm.empty() && algorithm != "MD5" && algorithm != "SHA-256") {
-		lError() << "Given algorithm is not correct. Add algorithm failed";
+		lError() << "Given algorithm [" << algorithm << "] is not correct. Add algorithm failed";
 	} else if (find(mAvailableAlgorithms.begin(), mAvailableAlgorithms.end(), algorithm) == mAvailableAlgorithms.end())
 		mAvailableAlgorithms.push_back(algorithm);
 }
@@ -288,7 +291,6 @@ void AuthInfo::setTlsKeyPassword(const string &tlsKeyPassword) {
 
 void AuthInfo::writeConfig(LpConfig *config, int pos) {
 	char key[50];
-	char *myHa1;
 	bool_t store_ha1_passwd = !!linphone_config_get_int(config, "sip", "store_ha1_passwd", 1);
 	bctbx_list_t *algos = NULL;
 
@@ -300,24 +302,14 @@ void AuthInfo::writeConfig(LpConfig *config, int pos) {
 	}
 	if ((getNeedToRenewHa1() || getHa1().empty()) && !getRealm().empty() && !getPassword().empty() &&
 	    (!getUsername().empty() || !getUserid().empty()) && store_ha1_passwd) {
-		/* Default algorithm is MD5 if it's NULL */
-		if (getAlgorithm().empty() || getAlgorithm().compare("MD5") == 0) {
-			myHa1 = reinterpret_cast<char *>(ms_malloc(33));
-			sal_auth_compute_ha1(getUserid().empty() ? getUsername().c_str() : getUserid().c_str(), getRealm().c_str(),
-			                     getPassword().c_str(), myHa1);
-			setHa1(myHa1);
-			ms_free(myHa1);
-		}
-
-		/* If algorithm is SHA-256, calcul ha1 by sha256*/
-		else if (getAlgorithm().compare("SHA-256") == 0) {
-			myHa1 = reinterpret_cast<char *>(ms_malloc(65));
+		if (!getAlgorithm().empty()) {
+			char myHa1[65] = {};
 			sal_auth_compute_ha1_for_algorithm(getUserid().empty() ? getUsername().c_str() : getUserid().c_str(),
-			                                   getRealm().c_str(), getPassword().c_str(), myHa1, 65,
+			                                   getRealm().c_str(), getPassword().c_str(), myHa1, sizeof(myHa1),
 			                                   getAlgorithm().c_str());
 			setHa1(myHa1);
-			ms_free(myHa1);
 		}
+		/* if algorithm is not set, do not compute HA1: this auth info may be used for basic authentication */
 	}
 	linphone_config_set_string(config, key, "username", getUsername().c_str());
 	linphone_config_set_string(config, key, "userid", getUserid().c_str());
@@ -386,6 +378,7 @@ std::string AuthInfo::toString() const {
 	if (!mClientId.empty()) ss << "ClientID[" << mClientId << "];";
 	if (mAccessToken) ss << "AccessToken[" << mAccessToken->getToken().substr(0, 4) << "...];";
 	if (mRefreshToken) ss << "RefreshToken[" << mRefreshToken->getToken().substr(0, 4) << "...];";
+	ss << "Method[" << linphone_auth_method_to_string(mRequestedMethod) << "]";
 	return ss.str();
 }
 
@@ -394,4 +387,18 @@ bool AuthInfo::isEqualButAlgorithms(const AuthInfo *authInfo) const {
 	return authInfo && getUsername() == authInfo->getUsername() && getUserid() == authInfo->getUserid() &&
 	       getRealm() == authInfo->getRealm() && getDomain() == authInfo->getDomain();
 }
+
+LinphoneAuthMethod AuthInfo::fromSalAuthMode(SalAuthMode mode) {
+	switch (mode) {
+		case SalAuthModeHttpDigest:
+			return LinphoneAuthHttpDigest;
+		case SalAuthModeBearer:
+			return LinphoneAuthBearer;
+		case SalAuthModeTls:
+			return LinphoneAuthTls;
+	}
+	lError() << "Unhandled SalAuthMode with value " << mode;
+	return LinphoneAuthBasic;
+}
+
 LINPHONE_END_NAMESPACE

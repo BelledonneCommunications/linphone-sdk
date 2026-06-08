@@ -21,48 +21,57 @@
 #ifndef LINPHONE_HID_DEVICE_H
 #define LINPHONE_HID_DEVICE_H
 
-#include "core/core-accessor.h"
-#include "core/platform-helpers/platform-helpers.h"
+#include "hid-descriptor.h"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 
+#include "core/core-accessor.h"
+#include "core/platform-helpers/platform-helpers.h"
 #include "linphone/utils/general.h"
 
 LINPHONE_BEGIN_NAMESPACE
 
 /**
+ * Base for data exchanged between the headset and the application.
+ */
+class HidDeviceData {
+public:
+	uint8_t mReportId = 0;
+	size_t mDataSize = 0;
+};
+
+/**
  * The data received from a headset.
  */
-class HidDeviceInputData {
+class HidDeviceInputData : public HidDeviceData {
 public:
-	uint16_t mHookSwitch = 0;
-	uint16_t mHookFlash = 0;
-	uint16_t mPhoneMute = 0;
-	uint16_t mProgrammableButton = 0;
+	uint32_t mHookSwitch = 0;
+	uint32_t mHookFlash = 0;
+	uint32_t mPhoneMute = 0;
+	uint32_t mProgrammableButton = 0;
 };
 
 /**
  * The data sent to a headset.
  */
-class HidDeviceOutputData {
+class HidDeviceOutputData : public HidDeviceData {
 public:
-	uint8_t mOffHook = 0;
-	uint8_t mMute = 0;
-	uint8_t mRinger = 0;
-	uint8_t mHold = 0;
+	uint32_t mOffHook = 0;
+	uint32_t mMute = 0;
+	uint32_t mRinger = 0;
+	uint32_t mHold = 0;
 };
 
 class HidDevice : public CoreAccessor {
 public:
 	HidDevice(const std::shared_ptr<Core> &core,
-	          const std::string &name,
-	          const std::wstring &serialNumber,
+	          unsigned short productId,
+	          std::string productName,
+	          std::string serialNumber,
 	          void *device,
-	          HidDeviceInputData inputData,
-	          HidDeviceOutputData outputData);
-	virtual ~HidDevice();
+	          const std::shared_ptr<HidReportDescriptor> &descriptor);
+	~HidDevice() override;
 
 	void startPollTimer();
 	void stopPollTimer();
@@ -72,12 +81,17 @@ public:
 	 */
 	void handleEvents();
 
-	const std::string &getName() const {
-		return mName;
+	[[nodiscard]] unsigned short getProductId() const {
+		return mProductId;
+	}
+	[[nodiscard]] const std::string &getProductName() const {
+		return mProductName;
 	};
-	const std::wstring &getSerialNumber() const {
+	[[nodiscard]] const std::string &getSerialNumber() const {
 		return mSerialNumber;
 	}
+
+	void dumpDescriptor() const;
 
 	void answerCall(bool hasPausedCalls);
 	void endCall();
@@ -91,130 +105,34 @@ public:
 
 	static std::shared_ptr<HidDevice> create(const std::shared_ptr<Core> &core,
 	                                         unsigned short productId,
-	                                         const std::wstring &serialNumber,
+	                                         const std::string &productName,
+	                                         const std::string &serialNumber,
 	                                         const char *path);
 
-protected:
-	int read(uint8_t &reportId, uint16_t &value) const;
-	void write(uint8_t data) const;
-	void addToState(uint8_t bits);
-	void removeFromState(uint8_t bits);
-	bool stateHas(uint8_t bits) const;
-	std::string stateStr() const;
-	static bool valueHas(uint16_t value, uint16_t bits);
-
-	uint8_t mState = 0;
-	std::string mName;
-
 private:
-	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55 = 0x1131;           // Jabra Link 400
-	static constexpr uint16_t PRODUCT_ID_JABRA_ENGAGE_55_TEAMS = 0x1132;     // Jabra Link 400
-	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55_LINK_380 = 0x24c8; // Jabra Link 380
-	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55 = 0x2e56;          // Jabra Link 390
-	static constexpr uint16_t PRODUCT_ID_JABRA_EVOLVE2_55_TEAMS = 0x2e57;    // Jabra Link 390
-
 	static constexpr int EVENT_POLL_INTERVAL_MS = 20;
 
-	belle_sip_source_t *mTimer = nullptr;
-	std::wstring mSerialNumber;
+	static bool valueHas(uint32_t value, uint32_t bits);
+
+	void initializeFromReportDescriptor();
+
+	int read(uint32_t &value) const;
+	void write(uint32_t data) const;
+
+	void addToState(uint32_t bits);
+	void removeFromState(uint32_t bits);
+	[[nodiscard]] bool stateHas(uint32_t bits) const;
+	[[nodiscard]] std::string stateStr() const;
+
+	unsigned short mProductId;
+	std::string mProductName;
+	std::string mSerialNumber;
 	void *mDevice;
+	std::shared_ptr<HidReportDescriptor> mDescriptor;
+	belle_sip_source_t *mTimer = nullptr;
+	uint32_t mState = 0;
 	HidDeviceInputData mInputData;
 	HidDeviceOutputData mOutputData;
-};
-
-/**
- * Unknown HID device
- * Try to use common values in the hope that it will work.
- *
- * Input data:
- *   0x0100 => hook switch
- *   0x0200 => line busy
- *   0x0400 => line
- *   0x0800 => phone mute
- *   0x1000 => hook flash
- *   0x8000 => programmable button
- *
- * Output data:
- *   0x00 => on-hook
- *   0x01 => off-hook
- *   0x02 => mute
- *   0x04 => ringing
- *   0x08 => hold
- */
-class UnknownHidDevice : public HidDevice {
-public:
-	UnknownHidDevice(const std::shared_ptr<Core> &core,
-	                 const uint16_t productId,
-	                 const std::wstring &serialNumber,
-	                 void *device)
-	    : HidDevice(core,
-	                "",
-	                serialNumber,
-	                device,
-	                HidDeviceInputData{0x0100, 0x1000, 0x0800, 0x8000},
-	                HidDeviceOutputData{0x01, 0x02, 0x04, 0x08}) {
-		std::stringstream nameFormat;
-		nameFormat << "Unknown HidDevice with product ID " << productId;
-		mName = nameFormat.str();
-	};
-};
-
-/**
- * Jabra Engage 55 - Jabra Link 400
- *
- * Input data:
- *   0x0100 => hook switch
- *   0x0200 => line busy
- *   0x0400 => line
- *   0x0800 => phone mute
- *   0x1000 => hook flash
- *   0x8000 => programmable button
- *
- * Output data:
- *   0x00 => on-hook (blue base)
- *   0x01 => off-hook (green base & red headset)
- *   0x02 => mute (red base when muted)
- *   0x04 => ringing (blinking green base & blinking green headset)
- *   0x08 => hold (yellow base)
- */
-class JabraEngage55HidDevice : public HidDevice {
-public:
-	JabraEngage55HidDevice(const std::shared_ptr<Core> &core, const std::wstring &serialNumber, void *device)
-	    : HidDevice(core,
-	                "Jabra Engage 55",
-	                serialNumber,
-	                device,
-	                HidDeviceInputData{0x0100, 0x1000, 0x0800, 0x8000},
-	                HidDeviceOutputData{0x01, 0x02, 0x04, 0x08}) {};
-};
-
-/**
- * Jabra Evolve 2 55 - Jabra Link 390
- *
- * Input data:
- *   0x0100 => hook switch
- *   0x0200 => line busy
- *   0x0400 => line
- *   0x0800 => phone mute
- *   0x1000 => hook flash
- *   0x0008 => programmable button
- *
- * Output data:
- *   0x00 => on-hook (blue base)
- *   0x01 => off-hook (green base & red headset)
- *   0x02 => mute (red base when muted)
- *   0x04 => ringing (blinking green base & blinking green headset)
- *   0x08 => hold
- */
-class JabraEvolve255HidDevice : public HidDevice {
-public:
-	JabraEvolve255HidDevice(const std::shared_ptr<Core> &core, const std::wstring &serialNumber, void *device)
-	    : HidDevice(core,
-	                "Jabra Evolve 2 55",
-	                serialNumber,
-	                device,
-	                HidDeviceInputData{0x0100, 0x1000, 0x0800, 0x0008},
-	                HidDeviceOutputData{0x01, 0x02, 0x04, 0x08}) {};
 };
 
 LINPHONE_END_NAMESPACE

@@ -32,9 +32,10 @@ LINPHONE_BEGIN_NAMESPACE
 
 // -----------------------------------------------------------------------------
 
-void ImdnMessagePrivate::setState(ChatMessage::State newState, BCTBX_UNUSED(LinphoneReason reason)) {
+void ImdnMessagePrivate::setState(ChatMessage::State newState, LinphoneReason reason) {
 	L_Q();
 
+	ChatMessagePrivate::setState(newState, reason);
 	if (newState == ChatMessage::State::Delivered) {
 		for (const auto &message : context.deliveredMessages)
 			message->getPrivate()->updateInDb();

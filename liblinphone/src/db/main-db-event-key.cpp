@@ -47,7 +47,7 @@ void MainDbEventKey::resetStorageId() {
 		auto core = d->core.lock();
 		if (core) {
 			if (auto db = core->getDatabase()) {
-				db.value().get()->getPrivate()->storageIdToEvent.erase(d->storageId);
+				db.value().get().getPrivate()->storageIdToEvent.erase(d->storageId);
 			}
 		}
 	}

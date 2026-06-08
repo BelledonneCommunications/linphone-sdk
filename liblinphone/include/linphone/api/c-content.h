@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -306,6 +306,13 @@ LINPHONE_PUBLIC int linphone_content_get_file_duration(const LinphoneContent *co
  * @param duration the duration of the file, in milliseconds.
  */
 LINPHONE_PUBLIC void linphone_content_set_file_duration(LinphoneContent *content, int duration);
+
+/**
+ * Tells whether or not this content contains a call log in json.
+ * @param content #LinphoneContent object. @notnil
+ * @return TRUE if this content type is 'application/vnd.linphone.call-log+json', FALSE otherwise.
+ */
+LINPHONE_PUBLIC bool_t linphone_content_is_call_log_json(const LinphoneContent *content);
 
 /**
  * Tells whether or not this content contains text.

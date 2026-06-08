@@ -93,7 +93,7 @@ static LinphoneAuthInfo *find_auth_info(LinphoneCore *lc,
                                         const char *realm,
                                         const char *domain,
                                         const char *algorithm,
-                                        bool_t ignore_realm) {
+                                        bool_t may_ignore_realm) {
 	bctbx_list_t *elem;
 	LinphoneAuthInfo *ret = NULL;
 
@@ -125,9 +125,9 @@ static LinphoneAuthInfo *find_auth_info(LinphoneCore *lc,
 				}
 			} else if (domain && linphone_auth_info_get_domain(pinfo) &&
 			           strcmp(domain, linphone_auth_info_get_domain(pinfo)) == 0 &&
-			           (linphone_auth_info_get_ha1(pinfo) == NULL || ignore_realm)) {
+			           (linphone_auth_info_get_ha1(pinfo) == NULL || may_ignore_realm)) {
 				return pinfo;
-			} else if (!domain && (linphone_auth_info_get_ha1(pinfo) == NULL || ignore_realm)) {
+			} else if (!domain && (linphone_auth_info_get_ha1(pinfo) == NULL || may_ignore_realm)) {
 				return pinfo;
 			}
 		}
@@ -222,7 +222,7 @@ LinphoneAuthInfo *_linphone_core_find_auth_info(LinphoneCore *lc,
                                                 const char *username,
                                                 const char *domain,
                                                 const char *algorithm,
-                                                bool_t ignore_realm) {
+                                                bool_t may_ignore_realm) {
 	LinphoneAuthInfo *ai = NULL;
 	if (realm) {
 		ai = find_auth_info(lc, username, realm, NULL, algorithm, FALSE);
@@ -231,10 +231,10 @@ LinphoneAuthInfo *_linphone_core_find_auth_info(LinphoneCore *lc,
 		}
 	}
 	if (ai == NULL && domain != NULL) {
-		ai = find_auth_info(lc, username, NULL, domain, algorithm, ignore_realm);
+		ai = find_auth_info(lc, username, NULL, domain, algorithm, may_ignore_realm);
 	}
 	if (ai == NULL) {
-		ai = find_auth_info(lc, username, NULL, NULL, algorithm, ignore_realm);
+		ai = find_auth_info(lc, username, NULL, NULL, algorithm, may_ignore_realm);
 	}
 	if (ai && ((linphone_auth_info_get_expires(ai) != 0) && (linphone_auth_info_get_expires(ai) <= time(nullptr)))) {
 		lc->auth_info = bctbx_list_remove(lc->auth_info, ai);
@@ -516,21 +516,23 @@ AuthStatus linphone_core_fill_belle_sip_auth_event(LinphoneCore *lc,
 	int max_tries = 2;
 	switch (belle_sip_auth_event_get_mode(event)) {
 		case BELLE_SIP_AUTH_MODE_HTTP_DIGEST: {
-			const char *algorithm = belle_sip_auth_event_get_algorithm(event);
-
+			std::string algorithm = belle_sip_auth_event_get_algorithm(event);
 			const LinphoneAuthInfo *auth_info =
-			    _linphone_core_find_auth_info(lc, realm, ae_username, ae_domain, algorithm, TRUE);
+			    _linphone_core_find_auth_info(lc, realm, ae_username, ae_domain, algorithm.c_str(), TRUE);
 			if (auth_info) {
+				auto cppAi = const_cast<AuthInfo *>(AuthInfo::toCpp(auth_info));
 				linphone_auth_info_fill_belle_sip_event(auth_info, event);
+				/* If the the algorithm was not set in the auth-info, now set it so that the clear text
+				 * password can be transformed in ha1 during auth-info storage. */
+				if (cppAi->getAlgorithm().empty()) cppAi->setAlgorithm(algorithm);
 				status = AuthStatus::Done;
 			}
 			max_tries = 2; /* server nonce may change, we can two consecutive 401.*/
 			requestedMethod = LinphoneAuthHttpDigest;
 		} break;
 		case BELLE_SIP_AUTH_MODE_HTTP_BASIC: {
-			const char *algorithm = belle_sip_auth_event_get_algorithm(event);
 			const LinphoneAuthInfo *auth_info =
-			    _linphone_core_find_auth_info(lc, realm, ae_username, ae_domain, algorithm, FALSE);
+			    _linphone_core_find_auth_info(lc, realm, ae_username, ae_domain, NULL, FALSE);
 			if (auth_info) {
 				linphone_auth_info_fill_belle_sip_event(auth_info, event);
 				status = AuthStatus::Done;
@@ -642,6 +644,7 @@ AuthStatus linphone_core_fill_belle_sip_auth_event(LinphoneCore *lc,
 			                                      belle_sip_auth_event_get_userid(event), NULL, NULL, realm, ae_domain);
 			linphone_auth_info_set_algorithm(ai, belle_sip_auth_event_get_algorithm(event));
 			linphone_auth_info_set_authorization_server(ai, belle_sip_auth_event_get_authz_server(event));
+			AuthInfo::toCpp(ai)->setRequestedMethod(requestedMethod);
 			linphone_core_notify_authentication_requested(lc, ai, requestedMethod);
 			linphone_auth_info_unref(ai);
 			status = AuthStatus::Pending;
@@ -661,4 +664,18 @@ void linphone_core_set_digest_authentication_policy(LinphoneCore *core, Linphone
 const LinphoneDigestAuthenticationPolicy *linphone_core_get_digest_authentication_policy(const LinphoneCore *core) {
 	belle_sip_stack_t *stack = reinterpret_cast<belle_sip_stack_t *>(core->sal->getStackImpl());
 	return (const LinphoneDigestAuthenticationPolicy *)belle_sip_stack_get_digest_authentication_policy(stack);
+}
+
+const char *linphone_auth_method_to_string(LinphoneAuthMethod method) {
+	switch (method) {
+		case LinphoneAuthBasic:
+			return "basic";
+		case LinphoneAuthHttpDigest:
+			return "digest";
+		case LinphoneAuthBearer:
+			return "bearer";
+		case LinphoneAuthTls:
+			return "tls";
+	}
+	return "invalid auth method";
 }

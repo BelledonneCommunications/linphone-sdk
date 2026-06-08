@@ -25,6 +25,10 @@
 
 #include <msaaudio/msaaudio.h>
 
+#ifndef AAudioStream_getSamplesPerFrame
+#define AAudioStream_getSamplesPerFrame AAudioStream_getChannelCount
+#endif
+
 static const int flowControlIntervalMs = 5000;
 static const int flowControlThresholdMs = 40;
 
@@ -574,11 +578,11 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 	ms_message("[AAudio Player] Requesting to output card. Current [%s] (device ID %0d) and requested [%s] (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
 	// Change device ID only if the new value is different from the previous one
 	if (octx->soundCard->internal_id != card->internal_id) {
-		if (octx->soundCard) {
-			ms_snd_card_unref(octx->soundCard);
-			octx->soundCard = nullptr;
-		}
+		MSSndCard *previousSoundCard = octx->soundCard;
 		octx->soundCard = ms_snd_card_ref(card);
+		if (previousSoundCard) {
+			ms_snd_card_unref(previousSoundCard);
+		}
 
 		bool bluetoothSoundDevice = ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
 									ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID;

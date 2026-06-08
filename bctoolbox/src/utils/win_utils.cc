@@ -18,6 +18,7 @@
  */
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
+#include "bctoolbox/utils.hh"
 
 #include <dbghelp.h>
 #include <eh.h>
@@ -40,12 +41,12 @@ using namespace std;
 //-------------------------------------------------
 #ifdef BCTBX_WINDOWS_UWP
 
-std::string GetBackTrace(int SkipFrames) {
+std::string bctoolbox::Utils::getStackTraceAsString(int skipFrames) {
 	std::stringstream result;
 	constexpr unsigned int TRACE_MAX_STACK_FRAMES = 99;
 	void *stack[TRACE_MAX_STACK_FRAMES];
 	ULONG hash;
-	const int numFrames = CaptureStackBackTrace(SkipFrames + 1, TRACE_MAX_STACK_FRAMES, stack, &hash);
+	const int numFrames = CaptureStackBackTrace(skipFrames + 1, TRACE_MAX_STACK_FRAMES, stack, &hash);
 	constexpr auto MODULE_BUF_SIZE = 4096U;
 	char modulePath[MODULE_BUF_SIZE];
 	result << "Stack hash: " << hash << "\n";
@@ -66,7 +67,7 @@ std::string GetBackTrace(int SkipFrames) {
 // Hooks
 void _signal_hook(int u) {
 	// Skip 8 useless stack frames
-	bctbx_error("UWP Stack trace %d :\n%s\n", u, GetBackTrace(8).c_str());
+	bctbx_error("UWP Stack trace %d :\n%s\n", u, bctoolbox::Utils::getStackTraceAsString(8).c_str());
 }
 
 //------------------------------------
@@ -175,18 +176,21 @@ std::vector<StackFrame> getStackTrace() {
 
 	return frames;
 }
-
+std::string bctoolbox::Utils::getStackTraceAsString(int skipFrames) {
+	std::stringstream buff;
+	std::vector<StackFrame> stack = getStackTrace();
+	buff << "StackTrace: \n";
+	for (unsigned int i = 0; i < stack.size(); i++)
+		buff << "0x" << std::hex << stack[i].address << ": " << stack[i].name << "(" << std::dec << stack[i].line
+		     << " l) in " << stack[i].module << "\n";
+	return buff.str();
+}
 // Hooks
 void _signal_hook(int u) {
 	std::stringstream buff;
 	buff << __FUNCTION__ << ":  General Fault: '" << std::to_string(u) << "'! \n";
 	buff << "\n";
-
-	std::vector<StackFrame> stack = getStackTrace();
-	buff << "Callstack: \n";
-	for (unsigned int i = 0; i < stack.size(); i++)
-		buff << "0x" << std::hex << stack[i].address << ": " << stack[i].name << "(" << stack[i].line << ") in "
-		     << stack[i].module << "\n";
+	buff << bctoolbox::Utils::getStackTraceAsString(0);
 	bctbx_error(buff.str().c_str());
 }
 

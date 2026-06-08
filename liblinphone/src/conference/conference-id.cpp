@@ -54,6 +54,7 @@ ConferenceId::ConferenceId(const ConferenceId &other) {
 	setLocalAddress(other.mLocalAddress, true);
 	mHash = other.mHash;
 	mWeakHash = other.mWeakHash;
+	mIdentifier.clear();
 }
 
 ConferenceId &ConferenceId::operator=(const ConferenceId &other) {
@@ -62,6 +63,7 @@ ConferenceId &ConferenceId::operator=(const ConferenceId &other) {
 	setLocalAddress(other.mLocalAddress, true);
 	mHash = other.mHash;
 	mWeakHash = other.mWeakHash;
+	mIdentifier.clear();
 	return *this;
 }
 
@@ -153,15 +155,15 @@ const std::string &ConferenceId::getIdentifier() const {
 	if (mIdentifier.empty()) {
 		const auto &pAddress = mPeerAddress ? reducedAddress(*mPeerAddress).toStringUriOnlyOrdered(false) : "sip:";
 		const auto &lAddress = mLocalAddress ? reducedAddress(*mLocalAddress).toStringUriOnlyOrdered(false) : "sip:";
-		mIdentifier += pAddress + ConferenceId::IdentifierDelimiter + lAddress;
+		mIdentifier = pAddress + ConferenceId::IdentifierDelimiter + lAddress;
 	}
 	return mIdentifier;
 }
 
 Address ConferenceId::reducedAddress(const Address &addr) {
 	Address ret = addr.getUriWithoutGruu();
-	ret.removeUriParam(Conference::sSecurityModeParameter);
-	ret.removeUriParam(Address::sTransportParameter);
+	ret.removeUriParam(Conference::kSecurityModeParameter);
+	ret.removeUriParam(Address::kTransportParameter);
 	return ret;
 }
 

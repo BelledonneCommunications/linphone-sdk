@@ -57,7 +57,7 @@ public:
 	LinphoneStatus deny(LinphoneReason reason) override;
 	void pause();
 
-	void setOneshot(bool oneshot);
+	void setOneShot(bool oneshot);
 
 	LinphonePublishState getState() const;
 	void setState(LinphonePublishState state);
@@ -81,7 +81,7 @@ private:
 
 	LinphonePublishState mPublishState = LinphonePublishNone;
 
-	bool mOneshot = false;
+	bool mOneShot = false;
 };
 
 LINPHONE_END_NAMESPACE

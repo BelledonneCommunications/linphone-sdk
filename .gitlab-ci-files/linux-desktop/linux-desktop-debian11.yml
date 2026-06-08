@@ -74,7 +74,6 @@ debian11-ninja-gcc:
     - wait-cache-synchro-debian11
 
 debian11-ninja-gcc-sequential:
-
   tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
   variables:

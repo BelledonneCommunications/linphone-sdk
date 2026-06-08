@@ -367,6 +367,7 @@ set(SOURCE_FILES_CXX
 	http-client-tester.cpp
 	http-server-utils.cpp
 	refer-tester.cpp
+	sync-tester.cpp
 )
 
 if(ENABLE_LIME_X3DH)

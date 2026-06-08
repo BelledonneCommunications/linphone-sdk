@@ -765,7 +765,6 @@ void check_create_chat_room_client_side(bctbx_list_t *lcs,
 			BC_ASSERT_TRUE(wait_for_list(lcs, &lcm->stat.number_of_LinphoneChatRoomStateCreationPending,
 			                             initialStats->number_of_LinphoneChatRoomStateCreationPending + 1,
 			                             liblinphone_tester_sip_timeout));
-
 			BC_ASSERT_TRUE(wait_for_list(lcs, &lcm->stat.number_of_LinphoneChatRoomStateCreated,
 			                             initialStats->number_of_LinphoneChatRoomStateCreated + 1,
 			                             liblinphone_tester_sip_timeout));
@@ -3238,6 +3237,7 @@ static void group_chat_room_reinvited_after_removed_base(bool_t offline_when_rem
 			coresList = bctbx_list_concat(coresList, tmpCoresList);
 			coresManagerList = bctbx_list_append(coresManagerList, laure);
 			previousLaureChatRoomStateTerminated = 0;
+
 			if (restart_after_reinvited)
 				BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_LinphoneSubscriptionActive, 1,
 				                             liblinphone_tester_sip_timeout));
@@ -6727,7 +6727,7 @@ static void find_one_on_one_chat_room(void) {
 	LinphoneChatRoom *basicCR = linphone_core_create_chat_room_6(marie->lc, params, marieAddr, participantsAddresses);
 	linphone_chat_room_params_unref(params);
 
-	// Check it returns the One-To-One chat room (flexisip based)
+	// Check it returns the One-On-One chat room (flexisip based)
 	oneOnOneChatRoom = linphone_core_find_one_to_one_chat_room(marie->lc, marieAddr, paulineAddr);
 	BC_ASSERT_PTR_NOT_NULL(oneOnOneChatRoom);
 	BC_ASSERT_PTR_EQUAL(oneOnOneChatRoom, marieOneOnOneCr);
@@ -6744,7 +6744,7 @@ static void find_one_on_one_chat_room(void) {
 	BC_ASSERT_PTR_NOT_NULL(oneOnOneChatRoom);
 	BC_ASSERT_PTR_EQUAL(oneOnOneChatRoom, basicCR);
 
-	// Check it returns the One-To-One chat room (flexisip based)
+	// Check it returns the One-On-One chat room (flexisip based)
 	linphone_chat_room_params_set_backend(params, LinphoneChatRoomBackendFlexisipChat);
 	oneOnOneChatRoom = linphone_core_search_chat_room(marie->lc, params, marieAddr, NULL, participantsAddresses);
 	BC_ASSERT_PTR_NOT_NULL(oneOnOneChatRoom);

@@ -88,9 +88,11 @@ public:
 	void setTlsKeyPassword(const std::string &tlsKeyPassword);
 	void setAccessToken(const std::shared_ptr<BearerToken> &accessToken) {
 		mAccessToken = accessToken;
+		mRequestedMethod = LinphoneAuthBearer;
 	};
 	void setRefreshToken(const std::shared_ptr<BearerToken> &refreshToken) {
 		mRefreshToken = refreshToken;
+		mRequestedMethod = LinphoneAuthBearer;
 	};
 	void setAuthorizationServer(const std::string &uri) {
 		mAuthServer = uri;
@@ -100,6 +102,7 @@ public:
 	}
 	void setClientId(const std::string &client_id) {
 		mClientId = client_id;
+		mRequestedMethod = LinphoneAuthBearer;
 	}
 	void setClientSecret(const std::string &client_secret) {
 		mClientSecret = client_secret;
@@ -149,6 +152,13 @@ public:
 	std::string toString() const override;
 	// Check if Authinfos are the same without taking account algorithms
 	bool isEqualButAlgorithms(const AuthInfo *authInfo) const;
+	void setRequestedMethod(LinphoneAuthMethod method) {
+		mRequestedMethod = method;
+	}
+	LinphoneAuthMethod getRequestedMethod() const {
+		return mRequestedMethod;
+	}
+	static LinphoneAuthMethod fromSalAuthMode(SalAuthMode mode);
 
 private:
 	std::string mUsername;
@@ -171,6 +181,7 @@ private:
 	std::string mClientId;
 	std::string mClientSecret;
 	time_t mExpires = 0;
+	LinphoneAuthMethod mRequestedMethod = LinphoneAuthHttpDigest;
 	bool mNeedToRenewHa1 = false;
 
 	void setNeedToRenewHa1(bool needToRenewHa1);

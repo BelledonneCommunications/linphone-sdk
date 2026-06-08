@@ -446,8 +446,17 @@ void Account::handleDeletion() {
 			cancelDeletion();
 			getCore()->removeDeletedAccount(getSharedFromThis());
 			if (mRemoveAuthInfoOnRegistrationCleared) {
-				if (const auto *authInfo = findAuthInfo(); authInfo != nullptr)
-					linphone_core_remove_auth_info(getCCore(), authInfo);
+				int attempts = 0;
+				while (auto *ai = findAuthInfo()) {
+					attempts++;
+					linphone_core_remove_auth_info(getCCore(), ai);
+					if (attempts > 100) {
+						/* of course this should not happen, but we prefer a warning than a full freeze in an infinite
+						 * loop */
+						lWarning() << "Possible infinite loop while clearning AuthInfo related to Account " << *this;
+						break;
+					}
+				}
 			}
 			break;
 		case LinphoneRegistrationNone:
@@ -1124,8 +1133,8 @@ list<shared_ptr<CallLog>> Account::getCallLogs() const {
 
 	auto localAddress = mParams->mIdentityAddress;
 	if (auto db = getCore()->getDatabase()) {
-		return db.value().get()->getCallHistoryForLocalAddress(localAddress,
-		                                                       linphone_core_get_max_call_logs(getCore()->getCCore()));
+		return db.value().get().getCallHistoryForLocalAddress(localAddress,
+		                                                      linphone_core_get_max_call_logs(getCore()->getCCore()));
 	} else {
 		return list<shared_ptr<CallLog>>();
 	}
@@ -1144,8 +1153,8 @@ list<shared_ptr<CallLog>> Account::getCallLogsForAddress(const std::shared_ptr<c
 
 	auto localAddress = mParams->mIdentityAddress;
 	if (auto db = getCore()->getDatabase()) {
-		return db.value().get()->getCallHistory(remoteAddress, localAddress,
-		                                        linphone_core_get_max_call_logs(getCore()->getCCore()));
+		return db.value().get().getCallHistory(remoteAddress, localAddress,
+		                                       linphone_core_get_max_call_logs(getCore()->getCCore()));
 	} else {
 		return list<shared_ptr<CallLog>>();
 	}
@@ -1164,7 +1173,7 @@ void Account::deleteCallLogs() const {
 
 	auto localAddress = mParams->mIdentityAddress;
 	if (auto db = getCore()->getDatabase()) {
-		db.value().get()->deleteCallHistoryForLocalAddress(localAddress);
+		db.value().get().deleteCallHistoryForLocalAddress(localAddress);
 	}
 }
 
@@ -1181,7 +1190,7 @@ list<shared_ptr<ConferenceInfo>> Account::getConferenceInfos(const std::list<Lin
 
 	auto localAddress = mParams->mIdentityAddress;
 	if (auto db = getCore()->getDatabase()) {
-		mConferenceInfos = db.value().get()->getConferenceInfosWithParticipant(localAddress, capabilities);
+		mConferenceInfos = db.value().get().getConferenceInfosWithParticipant(localAddress, capabilities);
 	}
 
 	const auto ccmpServerUrl = mParams->getCcmpServerUrl();
@@ -1304,10 +1313,10 @@ int Account::done() {
 
 	if (computePublishParamsHash()) {
 		lInfo() << "Publish params have changed on " << *this;
-
 		if (mPresencePublishEvent) {
 			/*publish is terminated*/
 			mPresencePublishEvent->terminate();
+			mPresencePublishEvent = nullptr;
 		}
 		if (mParams->mPublishEnabled) setSendPublish(true);
 	} else {
@@ -1394,8 +1403,7 @@ shared_ptr<EventPublish> Account::createPublish(const std::string &event, int ex
 		lError() << "Cannot create publish from " << *this << " not attached to any core";
 		return nullptr;
 	}
-	return dynamic_pointer_cast<EventPublish>(
-	    (new EventPublish(getCore(), getSharedFromThis(), nullptr, event, expires))->toSharedPtr());
+	return EventPublish::create<EventPublish>(getCore(), getSharedFromThis(), nullptr, event, expires);
 }
 
 void Account::setPresenceModel(const std::shared_ptr<PresenceModel> &presenceModel, bool needToSendPublish) {
@@ -1447,8 +1455,9 @@ int Account::sendPublish() {
 			LinphonePublishState state = mPresencePublishEvent->getState();
 			if (state != LinphonePublishOk && state != LinphonePublishOutgoingProgress &&
 			    state != LinphonePublishRefreshing) {
-				lInfo() << "Presence publish state is [" << linphone_publish_state_to_string(state)
+				lInfo() << *mPresencePublishEvent << " state is [" << linphone_publish_state_to_string(state)
 				        << "], destroying it and creating a new one instead";
+				mPresencePublishEvent->terminate();
 				mPresencePublishEvent = nullptr;
 			}
 		}
@@ -2193,7 +2202,7 @@ void Account::handleResponseConferenceInformation(void *ctx, BCTBX_UNUSED(const 
 					account->addConferenceInfo(info);
 
 					if (auto db = account->getCore()->getDatabase()) {
-						db.value().get()->insertConferenceInfo(info);
+						db.value().get().insertConferenceInfo(info);
 					}
 				}
 			} catch (const std::bad_cast &e) {

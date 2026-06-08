@@ -8,13 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
-## Unreleased
 
-### Added
-- Support of Jabra headsets (currently for the Engage 55 & Evolve 2 55 models).
-
-
-## [5.5.0] 2025-12-01
+## [5.5.0] 2026-05-25
 
 ### Added
 - Feature to edit/retract a chat message for both sender and receiver.
@@ -28,6 +23,7 @@ This changelog file was started on October 2019. Previous changes were more or l
   * linphone_chat_room_nominate_admin_and_leave() to nominate a new admin and leave (useful when an admin wants to leave)
   * linphone_chat_room_close() to request the conference server to definitely close the chatroom.
 - Documentation of internal configuration key/values used for remote provisioning (work in progres).
+- Support of Jabra headsets (currently for the Engage 55 & Evolve 2 55 models).
 
 ### Changed
 - Acoustic Echo Canceller upgraded to the AEC3 from a recent version of WebRTC.
@@ -41,6 +37,8 @@ This changelog file was started on October 2019. Previous changes were more or l
 ### Fixed
 - race conditions leading to crashes when liblinphone is used in a multi-threaded application.
   Warning: the "one thread for one LinphoneCore at a time" rule remains valid.
+- Do not transform password into ha1 for LinphoneAuthInfo objects that have no algorithm specified and are not used for digest
+  This change is to permit the use of HTTPs basic authentication, still used by services such as CardDav.
 
 
 ### Removed

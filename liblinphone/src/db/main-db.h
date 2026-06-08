@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -155,6 +155,8 @@ public:
 	int getMediaContentsSize(const ConferenceId &conferenceId) const;
 	std::list<std::shared_ptr<Content>> getDocumentContents(const ConferenceId &conferenceId, int begin, int end) const;
 	int getDocumentContentsSize(const ConferenceId &conferenceId) const;
+	/* Returns all file paths for content associated with a Chatroom or Conference */
+	std::list<std::string> getContentPaths(const ConferenceId &conferenceId) const;
 
 	std::list<std::shared_ptr<ChatMessage>> findChatMessages(const ConferenceId &conferenceId,
 	                                                         const std::string &imdnMessageId) const;
@@ -211,6 +213,7 @@ public:
 	void enableAllDeliveryNotificationRequired();
 	void disableDeliveryNotificationRequired(const std::shared_ptr<const EventLog> &eventLog);
 	void disableDisplayNotificationRequired(const std::shared_ptr<const EventLog> &eventLog);
+	void deleteMessageContents(long long chatMessageId);
 
 	// ---------------------------------------------------------------------------
 	// Chat rooms.
@@ -285,7 +288,8 @@ public:
 	// Call log.
 	// ---------------------------------------------------------------------------
 
-	long long insertCallLog(const std::shared_ptr<CallLog> &callLog);
+	long long insertOrUpdateCallLog(const std::shared_ptr<CallLog> &callLog,
+	                                std::optional<std::reference_wrapper<bool>> updated);
 	void updateCallLog(const std::shared_ptr<CallLog> &callLog);
 	void deleteCallLog(const std::shared_ptr<CallLog> &callLog);
 

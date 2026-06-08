@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -20,8 +20,7 @@
 
 #include <algorithm>
 
-#include <bctoolbox/defs.h>
-
+#include "bctoolbox/defs.h"
 #include "c-wrapper/c-wrapper.h"
 #include "call/call.h"
 #include "chat/chat-message/chat-message-p.h"
@@ -32,11 +31,13 @@
 #include "conference/conference.h"
 #include "content/content-manager.h"
 #include "core/core-p.h"
+#include "linphone/api/c-call-log.h"
 #include "linphone/api/c-chat-message.h"
 #include "linphone/api/c-event-log.h"
 #include "linphone/utils/algorithm.h"
 #include "linphone/utils/utils.h"
 #include "logger/logger.h"
+#include "json/json.h"
 
 // =============================================================================
 
@@ -48,6 +49,12 @@ LINPHONE_BEGIN_NAMESPACE
 #define CRLF 0x0D0A
 #define LF 0x0A
 #define CR 0x0D
+
+const std::string ChatRoom::kOneOnOneChatRoomHeader = "One-To-One-Chat-Room";
+const std::string ChatRoom::kEndToEndEncryptedHeader = "End-To-End-Encrypted";
+const std::string ChatRoom::kEphemerableHeader = "Ephemerable";
+const std::string ChatRoom::kEphemeralLifeTimeHeader = "Ephemeral-Life-Time";
+const std::string ChatRoom::kEphemeralNotReadLifeTimeHeader = "Ephemeral-Not-Read-Life-Time";
 
 // =============================================================================
 
@@ -168,7 +175,7 @@ void ChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &) {
 void ChatRoom::onChatMessageSent(const shared_ptr<ChatMessage> &chatMessage) {
 	LinphoneChatRoom *cr = getCChatRoom();
 	if (auto db = getCore()->getDatabase()) {
-		shared_ptr<EventLog> eventLog = db.value().get()->getEvent(chatMessage->getStorageId());
+		shared_ptr<EventLog> eventLog = db.value().get().getEvent(chatMessage->getStorageId());
 		_linphone_chat_room_notify_chat_message_sent(cr, L_GET_C_BACK_PTR(eventLog));
 	}
 	linphone_core_notify_message_sent(getCore()->getCCore(), cr, L_GET_C_BACK_PTR(chatMessage));
@@ -201,7 +208,7 @@ void ChatRoom::addEvent(const shared_ptr<EventLog> &eventLog) {
 	EventLog::Type type = eventLog->getType();
 
 	auto db = getCore()->getDatabase();
-	if (!db || !db.value().get()->addEvent(eventLog)) {
+	if (!db || !db.value().get().addEvent(eventLog)) {
 		lWarning() << "Failed to add event of type " << type << " to the database";
 	}
 
@@ -210,7 +217,7 @@ void ChatRoom::addEvent(const shared_ptr<EventLog> &eventLog) {
 		// because they are visible and may cause the chat room to move
 		// up in the list, so the user will know why.
 		setLastUpdateTime(eventLog->getCreationTime());
-		if (db) db.value().get()->updateChatRoomLastUpdatedTime(getConferenceId(), lastUpdateTime);
+		if (db) db.value().get().updateChatRoomLastUpdatedTime(getConferenceId(), lastUpdateTime);
 
 		if (type == EventLog::Type::ConferenceChatMessage) {
 			setIsEmpty(false);
@@ -466,7 +473,7 @@ shared_ptr<ChatMessage> ChatRoom::findChatMessage(const string &messageId) const
 
 shared_ptr<EventLog> ChatRoom::findChatMessageEventLog(const string &messageId) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->findEventLog(getConferenceId(), messageId) : nullptr;
+	return db ? db.value().get().findEventLog(getConferenceId(), messageId) : nullptr;
 }
 
 shared_ptr<ChatMessage> ChatRoom::findChatMessage(const string &messageId, ChatMessage::Direction direction) const {
@@ -477,7 +484,7 @@ shared_ptr<ChatMessage> ChatRoom::findChatMessage(const string &messageId, ChatM
 
 shared_ptr<ChatMessage> ChatRoom::findChatMessageFromMessageId(const std::string &messageId) const {
 	if (auto db = getCore()->getDatabase()) {
-		auto chatMessages = db.value().get()->findChatMessagesFromMessageId(messageId);
+		auto chatMessages = db.value().get().findChatMessagesFromMessageId(messageId);
 		return chatMessages.empty() ? nullptr : chatMessages.front();
 	} else {
 		return nullptr;
@@ -486,7 +493,7 @@ shared_ptr<ChatMessage> ChatRoom::findChatMessageFromMessageId(const std::string
 
 shared_ptr<ChatMessage> ChatRoom::findChatMessageFromCallId(const std::string &callId) const {
 	if (auto db = getCore()->getDatabase()) {
-		auto chatMessages = db.value().get()->findChatMessagesFromCallId(callId);
+		auto chatMessages = db.value().get().findChatMessagesFromCallId(callId);
 		return chatMessages.empty() ? nullptr : chatMessages.front();
 	} else {
 		return nullptr;
@@ -506,7 +513,7 @@ void ChatRoom::markAsRead() {
 	}
 
 	if (auto db = getCore()->getDatabase()) {
-		for (auto &chatMessage : db.value().get()->getUnreadChatMessages(getConferenceId())) {
+		for (auto &chatMessage : db.value().get().getUnreadChatMessages(getConferenceId())) {
 			chatMessage->getPrivate()->markAsRead();
 			// Do not set the message state has displayed if it contains a file transfer (to prevent imdn sending)
 			if (!chatMessage->getPrivate()->hasFileTransferContent()) {
@@ -515,7 +522,7 @@ void ChatRoom::markAsRead() {
 			}
 		}
 
-		db.value().get()->markChatMessagesAsRead(getConferenceId());
+		db.value().get().markChatMessagesAsRead(getConferenceId());
 	}
 	_linphone_chat_room_notify_chat_room_read(getCChatRoom());
 	linphone_core_notify_chat_room_read(getCore()->getCCore(), getCChatRoom());
@@ -523,19 +530,19 @@ void ChatRoom::markAsRead() {
 
 list<shared_ptr<ChatMessage>> ChatRoom::findChatMessages(const string &messageId) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->findChatMessages(getConferenceId(), messageId) : list<shared_ptr<ChatMessage>>();
+	return db ? db.value().get().findChatMessages(getConferenceId(), messageId) : list<shared_ptr<ChatMessage>>();
 }
 
 list<shared_ptr<ChatMessage>> ChatRoom::findChatMessages(const list<string> &messageIds) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->findChatMessages(getConferenceId(), messageIds) : list<shared_ptr<ChatMessage>>();
+	return db ? db.value().get().findChatMessages(getConferenceId(), messageIds) : list<shared_ptr<ChatMessage>>();
 }
 
 std::shared_ptr<EventLog> ChatRoom::searchChatMessageByText(const std::string &text,
                                                             const std::shared_ptr<const EventLog> &from,
                                                             LinphoneSearchDirection direction) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->searchChatMessagesByText(getConferenceId(), text, from, direction) : nullptr;
+	return db ? db.value().get().searchChatMessagesByText(getConferenceId(), text, from, direction) : nullptr;
 }
 
 // -----------------------------------------------------------------------------
@@ -634,9 +641,14 @@ void ChatRoom::handleMessageRejected(BCTBX_UNUSED(const std::shared_ptr<ChatMess
 std::shared_ptr<ChatMessage> ChatRoom::getMessageFromSal(SalOp *op, const SalMessage *message) {
 	shared_ptr<ChatMessage> msg;
 
-	auto from = Address::create(op->getFrom());
-	msg = createChatMessage((*from == *getLocalAddress()) ? ChatMessage::Direction::Outgoing
-	                                                      : ChatMessage::Direction::Incoming);
+	const bool isBasicChatRoom = (getCurrentParams()->getChatParams()->getBackend() == ChatParams::Backend::Basic);
+	ChatMessage::Direction messageDirection = ChatMessage::Direction::Incoming;
+	if (!isBasicChatRoom) {
+		auto from = Address::create(op->getFrom());
+		messageDirection =
+		    ((*from == *getLocalAddress()) ? ChatMessage::Direction::Outgoing : ChatMessage::Direction::Incoming);
+	}
+	msg = createChatMessage(messageDirection);
 
 	Content content;
 	if (message->url && ContentType(message->content_type) == ContentType::ExternalBody) {
@@ -664,7 +676,6 @@ std::shared_ptr<ChatMessage> ChatRoom::getMessageFromSal(SalOp *op, const SalMes
 	// Don't do it for flexisip backend chat rooms, we need to know if the real message id from CPIM was retrieved or
 	// not Based on that we will send IMDNs or not In case CPIM was enabled on a Basic chat room, IMDN message ID will
 	// be overwritten by real one
-	const bool isBasicChatRoom = (getCurrentParams()->getChatParams()->getBackend() == ChatParams::Backend::Basic);
 	if (isBasicChatRoom) {
 		msg->getPrivate()->setImdnMessageId(messageId.str());
 	}
@@ -695,6 +706,11 @@ void ChatRoom::onChatMessageReceived(const shared_ptr<ChatMessage> &chatMessage)
 	} else if (chatMessage->getPrivate()->getContentType() == ContentType::Imdn) {
 		onImdnReceived(chatMessage);
 		if (linphone_config_get_int(linphone_core_get_config(cCore), "sip", "deliver_imdn", 0) != 1) return;
+	}
+
+	if (chatMessage->getPrivate()->hasCallLogJsonContent()) {
+		getCore()->processJsonCallLog(chatMessage);
+		if (chatMessage->getContents().size() == 0) return;
 	}
 
 	const std::shared_ptr<Address> &fromAddress = chatMessage->getFromAddress();
@@ -849,84 +865,84 @@ ChatRoom::SecurityLevel ChatRoom::getSecurityLevel() const {
 
 list<shared_ptr<Content>> ChatRoom::getMediaContents() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getMediaContents(getConferenceId(), 0, 0) : list<shared_ptr<Content>>();
+	return db ? db.value().get().getMediaContents(getConferenceId(), 0, 0) : list<shared_ptr<Content>>();
 }
 
 list<shared_ptr<Content>> ChatRoom::getMediaContentsRange(int begin, int end) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getMediaContents(getConferenceId(), begin, end) : list<shared_ptr<Content>>();
+	return db ? db.value().get().getMediaContents(getConferenceId(), begin, end) : list<shared_ptr<Content>>();
 }
 
 int ChatRoom::getMediaContentsSize() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getMediaContentsSize(getConferenceId()) : 0;
+	return db ? db.value().get().getMediaContentsSize(getConferenceId()) : 0;
 }
 
 list<shared_ptr<Content>> ChatRoom::getDocumentContents() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getDocumentContents(getConferenceId(), 0, 0) : list<shared_ptr<Content>>();
+	return db ? db.value().get().getDocumentContents(getConferenceId(), 0, 0) : list<shared_ptr<Content>>();
 }
 
 list<shared_ptr<Content>> ChatRoom::getDocumentContentsRange(int begin, int end) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getDocumentContents(getConferenceId(), begin, end) : list<shared_ptr<Content>>();
+	return db ? db.value().get().getDocumentContents(getConferenceId(), begin, end) : list<shared_ptr<Content>>();
 }
 
 int ChatRoom::getDocumentContentsSize() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getDocumentContentsSize(getConferenceId()) : 0;
+	return db ? db.value().get().getDocumentContentsSize(getConferenceId()) : 0;
 }
 
 list<shared_ptr<EventLog>> ChatRoom::getMessageHistory(int nLast) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistory(getConferenceId(), nLast, MainDb::Filter::ConferenceChatMessageFilter)
+	return db ? db.value().get().getHistory(getConferenceId(), nLast, MainDb::Filter::ConferenceChatMessageFilter)
 	          : list<shared_ptr<EventLog>>();
 }
 
 list<shared_ptr<EventLog>> ChatRoom::getMessageHistoryRange(int begin, int end) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistoryRange(getConferenceId(), begin, end,
-	                                              MainDb::Filter::ConferenceChatMessageFilter)
+	return db ? db.value().get().getHistoryRange(getConferenceId(), begin, end,
+	                                             MainDb::Filter::ConferenceChatMessageFilter)
 	          : list<shared_ptr<EventLog>>();
 }
 
 list<shared_ptr<ChatMessage>> ChatRoom::getUnreadChatMessages() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getUnreadChatMessages(getConferenceId()) : list<shared_ptr<ChatMessage>>();
+	return db ? db.value().get().getUnreadChatMessages(getConferenceId()) : list<shared_ptr<ChatMessage>>();
 }
 
 int ChatRoom::getMessageHistorySize() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistorySize(getConferenceId(), MainDb::Filter::ConferenceChatMessageFilter) : 0;
+	return db ? db.value().get().getHistorySize(getConferenceId(), MainDb::Filter::ConferenceChatMessageFilter) : 0;
 }
 
 list<shared_ptr<EventLog>> ChatRoom::getHistory(int nLast) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistory(getConferenceId(), nLast,
-	                                         MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-	                                                             MainDb::Filter::ConferenceInfoNoDeviceFilter}))
+	return db ? db.value().get().getHistory(getConferenceId(), nLast,
+	                                        MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
+	                                                            MainDb::Filter::ConferenceInfoNoDeviceFilter}))
 	          : list<shared_ptr<EventLog>>();
 }
 
 list<shared_ptr<EventLog>> ChatRoom::getHistory(int nLast, HistoryFilterMask filters) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistory(getConferenceId(), nLast,
-	                                         MainDb::getFilterMaskFromHistoryFilterMask(filters))
+	return db ? db.value().get().getHistory(getConferenceId(), nLast,
+	                                        MainDb::getFilterMaskFromHistoryFilterMask(filters))
 	          : list<shared_ptr<EventLog>>();
 }
 
 list<shared_ptr<EventLog>> ChatRoom::getHistoryRange(int begin, int end) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistoryRange(getConferenceId(), begin, end,
-	                                              MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-	                                                                  MainDb::Filter::ConferenceInfoNoDeviceFilter}))
+	return db ? db.value().get().getHistoryRange(getConferenceId(), begin, end,
+	                                             MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
+	                                                                 MainDb::Filter::ConferenceInfoNoDeviceFilter}))
 	          : list<shared_ptr<EventLog>>();
 }
 
 list<shared_ptr<EventLog>> ChatRoom::getHistoryRange(int begin, int end, HistoryFilterMask filters) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistoryRange(getConferenceId(), begin, end,
-	                                              MainDb::getFilterMaskFromHistoryFilterMask(filters))
+	return db ? db.value().get().getHistoryRange(getConferenceId(), begin, end,
+	                                             MainDb::getFilterMaskFromHistoryFilterMask(filters))
 	          : list<shared_ptr<EventLog>>();
 }
 
@@ -935,8 +951,8 @@ list<shared_ptr<EventLog>> ChatRoom::getHistoryRangeNear(unsigned int before,
                                                          const shared_ptr<EventLog> &event,
                                                          HistoryFilterMask filters) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistoryRangeNear(getConferenceId(), before, after, event,
-	                                                  MainDb::getFilterMaskFromHistoryFilterMask(filters))
+	return db ? db.value().get().getHistoryRangeNear(getConferenceId(), before, after, event,
+	                                                 MainDb::getFilterMaskFromHistoryFilterMask(filters))
 	          : list<shared_ptr<EventLog>>();
 }
 
@@ -944,28 +960,34 @@ list<shared_ptr<EventLog>> ChatRoom::getHistoryRangeBetween(const shared_ptr<Eve
                                                             const shared_ptr<EventLog> &lastEvent,
                                                             HistoryFilterMask filters) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistoryRangeBetween(getConferenceId(), firstEvent, lastEvent,
-	                                                     MainDb::getFilterMaskFromHistoryFilterMask(filters))
+	return db ? db.value().get().getHistoryRangeBetween(getConferenceId(), firstEvent, lastEvent,
+	                                                    MainDb::getFilterMaskFromHistoryFilterMask(filters))
 	          : list<shared_ptr<EventLog>>();
 }
 
 int ChatRoom::getHistorySize() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistorySize(getConferenceId()) : 0;
+	return db ? db.value().get().getHistorySize(getConferenceId()) : 0;
 }
 
 int ChatRoom::getHistorySize(HistoryFilterMask filters) const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getHistorySize(getConferenceId(), MainDb::getFilterMaskFromHistoryFilterMask(filters))
+	return db ? db.value().get().getHistorySize(getConferenceId(), MainDb::getFilterMaskFromHistoryFilterMask(filters))
 	          : 0;
 }
 
 void ChatRoom::deleteFromDb() {
-	// Keep a ref, otherwise the object might be destroyed before we can set the Deleted state
-	shared_ptr<AbstractChatRoom> ref = this->getSharedFromThis();
-	Core::deleteChatRoom(ref);
-	setState(ConferenceInterface::State::Deleted);
-
+	// Keep a ref, otherwise the object might be destroyed before we exit from this method.
+	shared_ptr<AbstractChatRoom> ownRef = this->getSharedFromThis();
+	lInfo() << "Deleting " << *this << " from the core RAM and the database";
+	try {
+		auto core = getCore();
+		deleteHistory();
+		core->deleteChatRoom(ownRef);
+		setState(ConferenceInterface::State::Deleted);
+	} catch (...) {
+		lWarning() << "Core has been destroyed already, give up.";
+	}
 	// Clear all transient events after deleting the chatroom.
 	// The application might still keep a reference to the chatroom, therefore the destructor may not be called
 	// immediately after the chatroom reference is freed by the core
@@ -980,18 +1002,27 @@ void ChatRoom::deleteFromDbWithoutLeaving() {
 }
 
 void ChatRoom::deleteHistory() {
-	if (auto db = getCore()->getDatabase()) {
-		db.value().get()->cleanHistory(getConferenceId());
+	if (auto opt = getCore()->getDatabase()) {
+		MainDb &db = opt.value();
+		auto paths = db.getContentPaths(getConferenceId());
+		db.cleanHistory(getConferenceId());
+		getCore()->deleteFileContentsIfNecessary(paths);
 	}
 	setIsEmpty(true);
 }
 
 void ChatRoom::deleteMessageFromHistory(const shared_ptr<ChatMessage> &message) {
 	if (auto db = getCore()->getDatabase()) {
-		shared_ptr<LinphonePrivate::EventLog> event = db.value().get()->getEvent(message->getStorageId());
+		shared_ptr<LinphonePrivate::EventLog> event = message->getEventLog();
 		if (event) {
+			/* Possibly delete file contents as well */
+			list<string> paths;
+			for (auto content : message->getContents()) {
+				paths.push_back(content->getFilePath());
+			}
+			if (!paths.empty()) getCore()->deleteFileContentsIfNecessary(paths);
 			LinphonePrivate::EventLog::deleteFromDatabase(event);
-			setIsEmpty(db.value().get()->isChatRoomEmpty(getConferenceId()));
+			setIsEmpty(db.value().get().isChatRoomEmpty(getConferenceId()));
 		}
 	}
 }
@@ -1006,7 +1037,7 @@ void ChatRoom::retractMessage(const shared_ptr<ChatMessage> &msg) {
 
 shared_ptr<ChatMessage> ChatRoom::getLastChatMessageInHistory() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getLastChatMessage(getConferenceId()) : nullptr;
+	return db ? db.value().get().getLastChatMessage(getConferenceId()) : nullptr;
 }
 
 bool ChatRoom::isEmpty() const {
@@ -1015,12 +1046,12 @@ bool ChatRoom::isEmpty() const {
 
 int ChatRoom::getChatMessageCount() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getChatMessageCount(getConferenceId()) : 0;
+	return db ? db.value().get().getChatMessageCount(getConferenceId()) : 0;
 }
 
 int ChatRoom::getUnreadChatMessageCount() const {
 	auto db = getCore()->getDatabase();
-	return db ? db.value().get()->getUnreadChatMessageCount(getConferenceId()) : 0;
+	return db ? db.value().get().getUnreadChatMessageCount(getConferenceId()) : 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -1284,7 +1315,7 @@ void ChatRoom::setIsMuted(const bool muted, const bool updateDb) {
 		mIsMuted = muted;
 		if (updateDb) {
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->updateChatRoomMutedState(getConferenceId(), muted);
+				db.value().get().updateChatRoomMutedState(getConferenceId(), muted);
 			}
 		}
 	}
@@ -1293,7 +1324,7 @@ void ChatRoom::setIsMuted(const bool muted, const bool updateDb) {
 void ChatRoom::removeConferenceIdFromPreviousList(const ConferenceId &confId) {
 	mPreviousConferenceIds.remove(confId);
 	if (auto db = getCore()->getDatabase()) {
-		db.value().get()->removePreviousConferenceId(confId);
+		db.value().get().removePreviousConferenceId(confId);
 	}
 }
 

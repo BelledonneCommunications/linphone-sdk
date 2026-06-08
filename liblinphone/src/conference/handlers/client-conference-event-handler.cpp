@@ -200,7 +200,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 				if (chatRoom) {
 					// Update last notify ID in the DB just in case the notify does not generate any further event
 					if (auto db = core->getDatabase()) {
-						db.value().get()->updateNotifyId(chatRoom, getLastNotify());
+						db.value().get().updateNotifyId(chatRoom, getLastNotify());
 					}
 				}
 			}
@@ -285,8 +285,8 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 								}
 								cgcr->enableEphemeral(lifetime, notReadLifetime, false, false);
 								if (!isFullState) {
-									conference->notifyEphemeralMessageEnabled(
-									    creationTime, isFullState, cgcr->ephemeralEnabled());
+									conference->notifyEphemeralMessageEnabled(creationTime, isFullState,
+									                                          cgcr->ephemeralEnabled());
 									conference->notifyEphemeralLifetimeChanged(
 									    creationTime, isFullState,
 									    cgcr->getCurrentParams()->getChatParams()->getEphemeralLifetime(),
@@ -385,7 +385,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 						if (auto db = core->getDatabase()) {
 							// TODO FIXME: Remove later when devices for friends will be notified through presence
 							lInfo() << "[Friend] Removing device with address [" << *address << "]";
-							db.value().get()->removeDevice(address);
+							db.value().get().removeDevice(address);
 						}
 					}
 
@@ -712,7 +712,7 @@ void ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xm
 							// TODO FIXME: Remove later when devices for friends will be notified through presence
 							lInfo() << "[Friend] Inserting new device with name [" << name << "] and address ["
 							        << gruu->asStringUriOnly() << "]";
-							db.value().get()->insertDevice(gruu, name);
+							db.value().get().insertDevice(gruu, name);
 						}
 
 						// For chat rooms, the session is handled by the participant
@@ -811,7 +811,7 @@ bool ClientConferenceEventHandler::requestFullState() {
 		const auto &chatRoom = conference->getChatRoom();
 		if (chatRoom) {
 			if (auto db = getCore()->getDatabase()) {
-				db.value().get()->updateNotifyId(chatRoom, conference->getLastNotify());
+				db.value().get().updateNotifyId(chatRoom, conference->getLastNotify());
 			}
 		}
 	}
@@ -994,7 +994,7 @@ void ClientConferenceEventHandler::onAccountRegistrationStateChanged(std::shared
 	auto conference = getConference();
 	bool isChatOnly = conference && conference->isChatOnly();
 	if (localAddress && address->weakEqual(*localAddress) && (state == LinphoneRegistrationOk) &&
-	    (account->getPreviousState() != LinphoneRegistrationRefreshing) && isChatOnly) {
+	    !alreadySubscribed() && !managedByListEventHandler && isChatOnly) {
 		subscribe(conferenceId);
 	}
 }

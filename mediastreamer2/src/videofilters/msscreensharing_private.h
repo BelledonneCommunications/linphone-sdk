@@ -65,6 +65,7 @@ public:
 	std::mutex mThreadLock;
 	FormatData mLastFormat;
 	bool mToStop = false;
+	bctbx_log_tags_t *mCreatorTags; // Store tags for logs in native threads.
 
 public:
 	MsScreenSharing();
@@ -89,7 +90,7 @@ public:
 	virtual bool prepareImage() {
 		return true;
 	};
-	virtual void finalizeImage(){};
+	virtual void finalizeImage() {};
 	// Get cropped rectangle in Window from all screen rectangles.
 	// When the area is splitted in multiple screens, the algo choose the crop with the highest area.
 	// @return Global coordinate
@@ -99,6 +100,12 @@ public:
 
 	double getFps();
 	virtual void setFps(const float &pFps);
+	// Check if timeFrame is reached from lastTime or code are differents. Apply new values to old one.
+	// It is used to pool messages to avoid spamming logs with the same message.
+	static bool checkTimeFrameReached(std::chrono::time_point<std::chrono::system_clock> &lastTime,
+	                                  long &lastCode,
+	                                  long code,
+	                                  const std::chrono::duration<int64_t> &timeFrame = std::chrono::seconds(1));
 
 	virtual void inputThread();
 	// Client API will change the mFrameData. The feed() implementation use mFrameToSend.
@@ -112,6 +119,7 @@ public:
 	MSFilter *mFilter = nullptr;
 	MSYuvBufAllocator *mAllocator = nullptr;
 	MSScreenSharingDesc mSourceDesc;
+	std::chrono::nanoseconds mLastIdleTime;
 };
 
 #endif

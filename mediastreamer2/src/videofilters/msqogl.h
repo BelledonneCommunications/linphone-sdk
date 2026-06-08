@@ -51,9 +51,10 @@ struct _FilterData {
 	bool_t is_qt_linked;
 
 	mblk_t *prev_inm;
-	MSFilter *parent;      // Used to call render with the Filter in order to use lock mecanisms
+	MSFilter *parent; // Used to call render with the Filter in order to use lock mecanisms
 	// Must be a pointer because of C-initialization.
-	std::mutex *link_lock; // Avoid to use MSFilter lock when freeing data
+	std::mutex *link_lock;               // Avoid to use MSFilter lock when freeing data
+	QThread *mRenderingThread = nullptr; // If not null, use it to clean data
 };
 typedef struct _FilterData FilterData;
 

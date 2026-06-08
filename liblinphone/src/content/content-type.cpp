@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -40,6 +40,7 @@ public:
 
 // -----------------------------------------------------------------------------
 
+const ContentType ContentType::CallLogJson("application/vnd.linphone.call-log+json");
 const ContentType ContentType::ConferenceInfo("application/conference-info+xml");
 const ContentType ContentType::Cpim("message/cpim");
 const ContentType ContentType::Encrypted("multipart/encrypted");

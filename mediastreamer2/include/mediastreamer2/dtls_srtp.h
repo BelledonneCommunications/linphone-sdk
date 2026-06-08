@@ -51,7 +51,7 @@ typedef struct MSDtlsSrtpParams {
 	const char *pem_pkey;        /**< Private key associated to self certificate */
 	const char *root_ca;         /**< Path to root certicates authority */
 	MSDtlsSrtpRole role; /**< Unset(at caller init, role is then choosen by responder but we must still be able to
-	                     receive packets) */
+	                    receive packets) */
 	int mtu;
 	bool_t verify_certificate; /**< when set, accept only valid certificates */
 	const char *peer_uri;      /**< peer's uri retrieved from the SDP */

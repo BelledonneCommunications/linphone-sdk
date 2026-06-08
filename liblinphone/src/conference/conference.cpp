@@ -56,15 +56,15 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
-const std::string Conference::sPAssertedIdentityHeader = "P-Preferred-Identity";
+const std::string Conference::kPAssertedIdentityHeader = "P-Preferred-Identity";
 // TODO: Uncomment when ticket https://linphone.atlassian.net/browse/FLEXISIP-614 will be resolved
-// const std::string Conference::sPAssertedIdentityHeader = "P-Asserted-Identity";
-const std::string Conference::sSecurityModeParameter = "conference-security-mode";
-const std::string Conference::sConfIdParameter = "conf-id";
-const std::string Conference::sAdminParameter = "admin";
-const std::string Conference::sIsFocusParameter = "isfocus";
-const std::string Conference::sTextParameter = "text";
-const std::string Conference::sAnonymousKeyword = "anonymous";
+// const std::string Conference::kPAssertedIdentityHeader = "P-Asserted-Identity";
+const std::string Conference::kSecurityModeParameter = "conference-security-mode";
+const std::string Conference::kConfIdParameter = "conf-id";
+const std::string Conference::kAdminParameter = "admin";
+const std::string Conference::kIsFocusParameter = "isfocus";
+const std::string Conference::kTextParameter = "text";
+const std::string Conference::kAnonymousKeyword = "anonymous";
 
 Conference::Conference(const shared_ptr<Core> &core,
                        std::shared_ptr<CallSessionListener> callSessionListener,
@@ -197,12 +197,12 @@ void Conference::clearParticipants() {
 }
 
 bool Conference::isAnonymousParticipant(const std::shared_ptr<Address> &address) {
-	auto displayName = sAnonymousKeyword;
+	auto displayName = kAnonymousKeyword;
 	std::transform(displayName.begin(), displayName.begin() + 1, displayName.begin(),
 	               [](unsigned char c) { return std::toupper(c); });
 	return address && ((address->getDisplayName().find(displayName) != std::string::npos) ||
-	                   (address->getUsername().find(sAnonymousKeyword) != std::string::npos) ||
-	                   (address->getDomain().find(sAnonymousKeyword) != std::string::npos));
+	                   (address->getUsername().find(kAnonymousKeyword) != std::string::npos) ||
+	                   (address->getDomain().find(kAnonymousKeyword) != std::string::npos));
 }
 
 bool Conference::isAnonymousParticipant(const std::shared_ptr<Call> &call) {
@@ -216,7 +216,7 @@ std::string Conference::getFreeAnonymousUsername() const {
 	bool found = false;
 	std::string username;
 	do {
-		username = std::string(sAnonymousKeyword + std::to_string(idx));
+		username = std::string(kAnonymousKeyword + std::to_string(idx));
 		auto it = std::find_if(mParticipants.cbegin(), mParticipants.cend(), [&username](const auto &participant) {
 			return (participant->getAddress()->getUsername() == username);
 		});
@@ -334,11 +334,11 @@ void Conference::fillParticipantAttributes(std::shared_ptr<Participant> &p, cons
 		if (isAnonymous) {
 			const auto remoteParams = call->getActiveSession()->getRemoteParams();
 			if (remoteParams) {
-				const auto pAssertedIdentity = remoteParams->getCustomHeader(sPAssertedIdentityHeader);
+				const auto pAssertedIdentity = remoteParams->getCustomHeader(kPAssertedIdentityHeader);
 				if (pAssertedIdentity) {
 					const auto assertedIdentityAddress = Address::create(pAssertedIdentity);
 					if (assertedIdentityAddress) {
-						lInfo() << *this << ": Using value of header " << sPAssertedIdentityHeader << " "
+						lInfo() << *this << ": Using value of header " << kPAssertedIdentityHeader << " "
 						        << pAssertedIdentity << " to search the role of " << *p
 						        << " in the list of invited participants because it has an anonymous address "
 						        << *pAddress;
@@ -434,7 +434,7 @@ std::shared_ptr<Participant> Conference::createParticipant(const std::shared_ptr
 		}
 	}
 	if (toAddr && toAddr->isValid()) {
-		participant->setPreserveSession(!toAddr->hasUriParam(Conference::sConfIdParameter));
+		participant->setPreserveSession(!toAddr->hasUriParam(Conference::kConfIdParameter));
 	} else {
 		participant->setPreserveSession(true);
 	}
@@ -1235,9 +1235,11 @@ void Conference::resetLastNotify() {
 	setLastNotify(0);
 }
 
-void Conference::setConferenceId(const ConferenceId &conferenceId) {
+void Conference::setConferenceId(const ConferenceId &conferenceId, bool storeInRAM) {
 	mConferenceId = conferenceId;
-	getCore()->insertConference(getSharedFromThis());
+	if (storeInRAM) {
+		getCore()->insertConference(getSharedFromThis());
+	}
 }
 
 const ConferenceId &Conference::getConferenceId() const {
@@ -1617,9 +1619,9 @@ std::shared_ptr<ConferenceInfo> Conference::createOrGetConferenceInfo() const {
 	if (isChatOnly()) return mConferenceInfo;
 	if (auto db = getCore()->getDatabase()) {
 		if (mConferenceInfoId == -1) {
-			mConferenceInfo = db.value().get()->getConferenceInfoFromURI(getConferenceAddress());
+			mConferenceInfo = db.value().get().getConferenceInfoFromURI(getConferenceAddress());
 		} else {
-			mConferenceInfo = db.value().get()->getConferenceInfo(mConferenceInfoId);
+			mConferenceInfo = db.value().get().getConferenceInfo(mConferenceInfoId);
 		}
 	}
 
@@ -1757,7 +1759,7 @@ void Conference::updateSecurityLevelInConferenceInfo(const ConferenceParams::Sec
 			if (auto db = getCore()->getDatabase()) {
 				lInfo() << "Updating conference information of " << *this
 				        << " because its security level has been changed to " << level;
-				db.value().get()->insertConferenceInfo(info);
+				db.value().get().insertConferenceInfo(info);
 			}
 		}
 	}
@@ -1776,7 +1778,7 @@ void Conference::updateSubjectInConferenceInfo(const std::string &subject) const
 			if (auto db = getCore()->getDatabase()) {
 				lInfo() << "Updating conference information of " << *this << " because its subject has been changed to "
 				        << subject;
-				db.value().get()->insertConferenceInfo(info);
+				db.value().get().insertConferenceInfo(info);
 			}
 		}
 	}
@@ -1802,7 +1804,7 @@ void Conference::updateParticipantRoleInConferenceInfo(const std::shared_ptr<Par
 				if (auto db = getCore()->getDatabase()) {
 					lInfo() << "Updating conference information of " << *this << " because the role of participant "
 					        << *address << " changed to " << newRole;
-					db.value().get()->insertConferenceInfo(info);
+					db.value().get().insertConferenceInfo(info);
 				}
 			} else {
 				lError() << "Unable to update role of participant " << *address << " to " << newRole
@@ -1859,7 +1861,7 @@ void Conference::updateParticipantInConferenceInfo(const std::shared_ptr<Partici
 			if (db && update) {
 				lInfo() << "Updating conference information of " << *this << " because participant "
 				        << *participantAddress << " has been added or has modified its informations";
-				db.value().get()->insertConferenceInfo(info);
+				db.value().get().insertConferenceInfo(info);
 			}
 		}
 	}
@@ -2162,7 +2164,7 @@ ConferenceLogContextualizer::~ConferenceLogContextualizer() {
 void ConferenceLogContextualizer::pushTag(const Conference &conference) {
 	auto address = conference.getConferenceAddress();
 	if (address) {
-		const char *value = address->getUriParamValueCstr(Conference::sConfIdParameter);
+		const char *value = address->getUriParamValueCstr(Conference::kConfIdParameter);
 		if (!value) value = address->getUsernameCstr();
 		if (!value) value = address->getDomainCstr();
 		if (value) {

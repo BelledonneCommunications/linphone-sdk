@@ -37,7 +37,7 @@ LINPHONE_BEGIN_NAMESPACE
 class LINPHONE_PUBLIC Dictionary : public bellesip::HybridObject<LinphoneDictionary, Dictionary>,
                                    public PropertyContainer {
 public:
-	Dictionary *clone() const override;// It doesn't do a clone.
+	Dictionary *clone() const override; // It doesn't do a clone.
 
 	float getFloat(const std::string &name) const;
 	void setProperty(const std::string &name, const float value);

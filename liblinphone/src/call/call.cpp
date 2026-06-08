@@ -41,6 +41,18 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
+const std::map<LinphoneCallDir, std::string> Call::kCallDirStrings = {
+    {LinphoneCallDir::LinphoneCallIncoming, "incoming"}, {LinphoneCallDir::LinphoneCallOutgoing, "outgoing"}};
+
+const std::map<LinphoneCallStatus, std::string> Call::kCallStatusStrings = {
+    {LinphoneCallStatus::LinphoneCallSuccess, "success"},
+    {LinphoneCallStatus::LinphoneCallDeclined, "declined"},
+    {LinphoneCallStatus::LinphoneCallMissed, "missed"},
+    {LinphoneCallStatus::LinphoneCallAborted, "aborted"},
+    {LinphoneCallStatus::LinphoneCallAcceptedElsewhere, "accepted_elsewhere"},
+    {LinphoneCallStatus::LinphoneCallDeclinedElsewhere, "declined_elsewhere"},
+    {LinphoneCallStatus::LinphoneCallEarlyAborted, "early_aborted"}};
+
 // =============================================================================
 shared_ptr<CallSession> Call::getActiveSession() const {
 	return mParticipant->getSession();
@@ -440,7 +452,7 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 		if (op->getRemoteContactAddress()) {
 			Address remoteContactAddress;
 			remoteContactAddress.setImpl(op->getRemoteContactAddress());
-			remoteContactIsFocus = (remoteContactAddress.hasParam(Conference::sIsFocusParameter));
+			remoteContactIsFocus = (remoteContactAddress.hasParam(Conference::kIsFocusParameter));
 		}
 
 		if (!op->getTo().empty()) {
@@ -594,7 +606,7 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 			confParams->enableAudio(md->nbActiveStreamsOfType(SalAudio) > 0);
 			confParams->enableVideo(md->nbActiveStreamsOfType(SalVideo) > 0);
 		}
-		confParams->enableChat(remoteContactAddress && remoteContactAddress->hasParam(Conference::sTextParameter));
+		confParams->enableChat(remoteContactAddress && remoteContactAddress->hasParam(Conference::kTextParameter));
 
 		if (confParams->audioEnabled() || confParams->videoEnabled() || confParams->chatEnabled()) {
 			clientConference = dynamic_pointer_cast<ClientConference>(
@@ -610,8 +622,8 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 	setConference(clientConference);
 
 	// Record conf-id to be used later when terminating the client conference
-	if (clientConference && remoteContactAddress->hasUriParam(Conference::sConfIdParameter)) {
-		setConferenceId(remoteContactAddress->getUriParamValue(Conference::sConfIdParameter));
+	if (clientConference && remoteContactAddress->hasUriParam(Conference::kConfIdParameter)) {
+		setConferenceId(remoteContactAddress->getUriParamValue(Conference::kConfIdParameter));
 	}
 }
 
@@ -705,10 +717,6 @@ void Call::onEncryptionChanged(BCTBX_UNUSED(const shared_ptr<CallSession> &sessi
                                bool activated,
                                const string &authToken) {
 	linphone_call_notify_encryption_changed(this->toC(), activated, L_STRING_TO_C(authToken));
-}
-
-void Call::onMediaEncryptionStatusChanged(LinphoneMediaEncryptionStatus status) {
-	linphone_call_notify_media_encryption_status_changed(this->toC(), status);
 }
 
 void Call::onAuthenticationTokenVerified(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session), bool verified) {
@@ -1208,6 +1216,10 @@ void Call::skipZrtpAuthentication() {
 	static_pointer_cast<MediaSession>(getActiveSession())->skipZrtpAuthentication();
 }
 
+void Call::onMediaEncryptionStatusChanged(LinphoneMediaEncryptionStatus status) {
+	linphone_call_notify_media_encryption_status_changed(this->toC(), status);
+}
+
 bool Call::getAuthenticationTokenVerified() const {
 	return static_pointer_cast<const MediaSession>(getActiveSession())->getAuthenticationTokenVerified();
 }
@@ -1629,6 +1641,34 @@ std::shared_ptr<Event> Call::createNotify(const std::string &eventName) {
 	SalSubscribeOp *op = new SalSubscribeOp(callOp, eventName);
 	return (new EventSubscribe(getCore()->getSharedFromThis(), op, LinphoneSubscriptionIncoming, eventName))
 	    ->toSharedPtr();
+}
+
+// -----------------------------------------------------------------------------
+
+LinphoneCallDir Call::textToCallDir(const std::string &text) {
+	auto findResult =
+	    std::find_if(kCallDirStrings.cbegin(), kCallDirStrings.cend(),
+	                 [&](const std::pair<LinphoneCallDir, std::string> &pair) { return pair.second == text; });
+	if (findResult != kCallDirStrings.cend()) return findResult->first;
+	else return LinphoneCallIncoming;
+}
+
+std::string Call::callDirToText(const LinphoneCallDir &dir) {
+	if (auto it = kCallDirStrings.find(dir); it != kCallDirStrings.cend()) return it->second;
+	else return "";
+}
+
+LinphoneCallStatus Call::textToCallStatus(const std::string &text) {
+	auto findResult =
+	    std::find_if(kCallStatusStrings.cbegin(), kCallStatusStrings.cend(),
+	                 [&](const std::pair<LinphoneCallStatus, std::string> &pair) { return pair.second == text; });
+	if (findResult != kCallStatusStrings.cend()) return findResult->first;
+	else return LinphoneCallSuccess;
+}
+
+std::string Call::callStatusToText(const LinphoneCallStatus &status) {
+	if (auto it = kCallStatusStrings.find(status); it != kCallStatusStrings.cend()) return it->second;
+	else return "";
 }
 
 // -----------------------------------------------------------------------------

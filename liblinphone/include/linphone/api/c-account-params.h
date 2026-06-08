@@ -1039,6 +1039,7 @@ LINPHONE_PUBLIC bool_t linphone_account_params_dtls_srtp_verify_cert_enabled(con
  * @param enable If TRUE, certificate will be verified during DTLS handshake.
  */
 LINPHONE_PUBLIC void linphone_account_params_enable_dtls_srtp_verify_cert(LinphoneAccountParams *params, bool_t enable);
+
 /**
  * @}
  */

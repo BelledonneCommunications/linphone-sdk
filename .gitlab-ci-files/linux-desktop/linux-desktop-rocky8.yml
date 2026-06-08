@@ -11,6 +11,65 @@ recache-rocky8:
   extends: .recache-update-cache
   image: !reference [ .rocky8_image_version, image ]
 
+wait-cache-synchro-rocky8-python-wheel:
+  extends: .wait-cache-synchro
+  stage: prior-wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: rocky8-python-wheel
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
+
+recache-rocky8-python-wheel:
+  extends: .recache-update-cache
+  allow_failure: true
+  image: !reference [ .rocky8_python_wrapper_image_version, image ]
+
+wait-cache-synchro-rocky8-ninja-gcc-tunnel-pq-h264-ekt:
+  extends: .wait-cache-synchro
+  stage: prior-wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: rocky8-ninja-gcc-tunnel-pq-h264-ekt
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [ .wait-cache-synchro, rules ]
+
+recache-rocky8-ninja-gcc-tunnel-pq-h264-ekt:
+  extends: .recache-update-cache
+  image: !reference [ .rocky8_image_version, image ]
+  variables:
+    CACHE_JOB_NAME: rocky8-ninja-gcc-tunnel-pq-h264-ekt
+
+wait-cache-synchro-rocky8-ninja-clang-mysql:
+  extends: .wait-cache-synchro
+  stage: prior-wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: rocky8-ninja-clang-mysql
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [ .wait-cache-synchro, rules ]
+
+recache-rocky8-ninja-clang-mysql:
+  extends: .recache-update-cache
+  image: !reference [ .rocky8_image_version, image ]
+  variables:
+    CACHE_JOB_NAME: rocky8-ninja-clang-mysql
+
+wait-cache-synchro-rocky8-ninja-clang-coverage:
+  extends: .wait-cache-synchro
+  stage: prior-wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: rocky8-ninja-clang-coverage
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [ .wait-cache-synchro, rules ]
+
+recache-rocky8-ninja-clang-coverage:
+  extends: .recache-update-cache
+  image: !reference [ .rocky8_image_version, image ]
+  variables:
+    CACHE_JOB_NAME: rocky8-ninja-clang-coverage
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -103,14 +162,31 @@ rocky8-ninja-clang-coverage:
     CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON -DENABLE_COVERAGE=ON
     CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZER=ON -DOPTIMIZE_SANITIZED_BUILD=ON
+ #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
+  cache:
+    - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
+      paths:
+        - ccache/
+
   extends: .linux-desktop
   needs:
-    - wait-cache-synchro-rocky8
+    - wait-cache-synchro-rocky8-ninja-clang-coverage
 
 rocky8-ninja-gcc-tunnel-pq-h264-ekt:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
-  extends: rocky8-ninja-gcc
+
+ #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
+  cache:
+    - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
+      paths:
+        - ccache/
+  extends:
+    - rocky8-ninja-gcc
+  needs:
+    - wait-cache-synchro-rocky8-ninja-gcc-tunnel-pq-h264-ekt
 
 rocky8-ninja-clang-mysql:
   tags: [ "docker-flat" ]
@@ -122,10 +198,20 @@ rocky8-ninja-clang-mysql:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
+    CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DCMAKE_BUILD_TYPE=RelWithDebInfo
-  extends: .linux-desktop
+
+ #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
+  cache:
+    - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
+      paths:
+        - ccache/
   needs:
-    - wait-cache-synchro-rocky8
+    - wait-cache-synchro-rocky8-ninja-clang-mysql
+  extends:
+    - .linux-desktop
+
 
 rocky8-python-wheel:
   tags: [ "docker-flat" ]
@@ -134,10 +220,18 @@ rocky8-python-wheel:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-    ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.9 -DENABLE_VIDEO=OFF -DENABLE_SOUND=OFF
+    ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.12 -DENABLE_VIDEO=OFF -DENABLE_SOUND=OFF
+
+ #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
+  cache:
+    - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
+      paths:
+        - ccache/
+
   extends: .linux-desktop-python
   needs:
-    - wait-cache-synchro-rocky8
+    - wait-cache-synchro-rocky8-python-wheel
 
 #################################################
 # TESTS
@@ -397,8 +491,8 @@ linphone-sdk-rocky8-coverage-mr:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     COVERED_LIBRARIES: >
-      -object=coverage/libbelr.so.1 
-      -object=coverage/libbelcard.so.1 
+      -object=coverage/libbelr.so.1
+      -object=coverage/libbelcard.so.1
       -object=coverage/liblinphone.so.10
 
 linphone-sdk-rocky8-coverage:
@@ -412,8 +506,8 @@ linphone-sdk-rocky8-coverage:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
   variables:
     COVERED_LIBRARIES: >
-      -object=coverage/libbelr.so.1 
-      -object=coverage/libbelcard.so.1 
+      -object=coverage/libbelr.so.1
+      -object=coverage/libbelcard.so.1
       -object=coverage/liblinphone.so.10
 
 liblinphone-rocky8-test-mr-pq-h264-ekt:

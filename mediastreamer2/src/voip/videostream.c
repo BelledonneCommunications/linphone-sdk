@@ -2299,10 +2299,15 @@ void video_stream_set_native_preview_window_id(VideoStream *stream, void *id) {
 	if (stream) {
 		stream->preview_window_id = id;
 #if !TARGET_OS_IPHONE
+		// Note about ID conflicts with MSOGL:
+		// Source and output2 can use the same identifier because, by construction, msogl cannot be a source
+		// There is no need to free memory by calling MS_FILTER_VIDEO_NONE on filters there.
 		if (stream->output2) {
 			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &id);
 		}
 #endif
+		// Useful for Mobile where Capture API need a View to display the preview.
+		// Be careful when implementing Capture/Display Filters to avoid conflicts with ID.
 		if (stream->source) {
 			ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &id);
 		}

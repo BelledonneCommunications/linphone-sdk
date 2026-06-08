@@ -47,7 +47,7 @@ struct SalAddressDeleter {
 
 static thread_local std::unordered_map<std::string, std::unique_ptr<SalAddress, SalAddressDeleter>> sAddressCache;
 
-const std::string Address::sTransportParameter = "transport";
+const std::string Address::kTransportParameter = "transport";
 
 SalAddress *Address::getSalAddressFromCache(const string &address, bool assumeGrUri) {
 	auto &ptr = sAddressCache[address];

@@ -20,6 +20,7 @@
 
 #include "push-notification-config.h"
 #include "address/address.h"
+#include "linphone/lpconfig.h"
 
 using namespace std;
 
@@ -267,6 +268,28 @@ void PushNotificationConfig::readPushParamsFromString(string const &serializedCo
 		string paramValue = pushParamsWrapper->getUriParamValue(param.first);
 		if (!paramValue.empty()) param.second = paramValue;
 	}
+}
+
+void PushNotificationConfig::readFromConfig(LinphoneConfig *config, const std::string &section) {
+	const char *c_section = section.c_str();
+	if (linphone_config_has_section(config, c_section)) {
+		readPushParamsFromString(linphone_config_get_string(config, c_section, "push_parameters", ""));
+		setVoipToken(linphone_config_get_string(config, c_section, "voip_token", ""));
+		setRemoteToken(linphone_config_get_string(config, c_section, "remote_token", ""));
+		setBundleIdentifer(linphone_config_get_string(config, c_section, "bundle_identifier", ""));
+		setTeamId(linphone_config_get_string(config, c_section, "team_id", ""));
+	}
+}
+
+void PushNotificationConfig::writeToConfig(LinphoneConfig *config,
+                                           const std::string &section,
+                                           bool withRemoteSpecificParams) {
+	const char *c_section = section.c_str();
+	linphone_config_set_string(config, c_section, "push_parameters", asString(withRemoteSpecificParams).c_str());
+	linphone_config_set_string(config, c_section, "voip_token", getVoipToken().c_str());
+	linphone_config_set_string(config, c_section, "remote_token", getRemoteToken().c_str());
+	linphone_config_set_string(config, c_section, "bundle_identifier", getBundleIdentifer().c_str());
+	linphone_config_set_string(config, c_section, "team_id", getTeamId().c_str());
 }
 
 LINPHONE_END_NAMESPACE

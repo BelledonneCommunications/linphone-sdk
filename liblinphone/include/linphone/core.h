@@ -4805,10 +4805,13 @@ LINPHONE_PUBLIC void linphone_core_set_session_expires_min_value(const LinphoneC
 LINPHONE_PUBLIC int linphone_core_get_session_expires_min_value(const LinphoneCore *core);
 
 /**
- * This method is called by the application to notify the linphone core library when network is reachable.
- * Calling this method with true trigger linphone to initiate a registration process for all proxies.
- * Calling this method disables the automatic network detection mode. It means you must call this method after each
- * network state changes.
+ * This method can be used by the application to notify the Core when network is reachable.
+ * By default, the #LinphoneCore automatically detects network's presence, but an application
+ * may override its detection using this method.
+ * It may also use it when automatic network monitoring is turned off, using
+ * [sip]/auto_net_state_mon property to zero in #LinphoneConfig .
+ * When the network becomes reachable, liblinphone takes care of reconnecting and re-registering
+ * all SIP accounts. When it becomes unreachable, all network connections are closed.
  * @ingroup group_network_parameters
  * @param core the #LinphoneCore object @notnil
  * @param reachable TRUE if network is reachable, FALSE otherwise
@@ -5300,6 +5303,7 @@ LINPHONE_PUBLIC bool_t linphone_core_fec_enabled(const LinphoneCore *core);
  * Selects whether the default conference participant list is open or closed
  * @param core A #LinphoneCore object @notnil
  * @param type A #LinphoneConferenceParticipantListType participant list type
+ * @note It is only applicable to conference servers
  */
 LINPHONE_PUBLIC void linphone_core_set_conference_participant_list_type(LinphoneCore *core,
                                                                         LinphoneConferenceParticipantListType type);
@@ -5308,6 +5312,7 @@ LINPHONE_PUBLIC void linphone_core_set_conference_participant_list_type(Linphone
  * Tells whether the default conference participant list is open or closed
  * @param core A #LinphoneCore object @notnil
  * @return A #LinphoneConferenceParticipantListType participant list type
+ * @note It is only applicable to conference servers
  */
 LINPHONE_PUBLIC LinphoneConferenceParticipantListType
 linphone_core_get_conference_participant_list_type(const LinphoneCore *core);
@@ -8067,6 +8072,57 @@ LINPHONE_PUBLIC int linphone_core_get_imdn_to_everybody_threshold(const Linphone
 LINPHONE_PUBLIC void linphone_core_set_imdn_to_everybody_threshold(LinphoneCore *core, int threshold);
 
 /**
+ * Enable automatic deletion of files attached to #LinphoneChatMessage .
+ * This deletion applies whatever the origin of chat message deletion is:
+ * - clearing history of a chatroom
+ * - automatic deletion of an ephemeral message
+ * - manual deletion of a message
+ * For security, only files contained in the directies listed by linphone_core_get_chat_message_files_directories()
+ * are considered for deletion.
+ * @param core A #LinphoneCore object @notnil
+ * @param enabled boolean value indicating whether files are to be deleted
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC void linphone_core_enable_chat_message_files_deletion(LinphoneCore *core, bool_t enabled);
+
+/**
+ * Returns whether automatic deletion of files attached to #LinphoneChatMessage is enabled.
+ * This deletion applies whatever the origin of chat message deletion is:
+ * - clearing history of a chatroom
+ * - automatic deletion of an ephemeral message
+ * - manual deletion of a message
+ * For security, only files contained in the directies listed by linphone_core_get_chat_message_files_directories()
+ * are considered for deletion.
+ * @param core A #LinphoneCore object @notnil
+ * @returns a boolean value indicating whether files are to be deleted.
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC bool_t linphone_core_chat_message_files_deletion_enabled(LinphoneCore *core);
+
+/**
+ * Sets the directories used by the application to contain files attached to chat messages.
+ * These directories are the ones for which the #LinphoneCore is authorized to suppress files
+ * when chat messages containing files are deleted.
+ * See linphone_core_enable_chat_message_files_deletion() for more information.
+ * @param core A #LinphoneCore object @notnil
+ * @param directories A list of directories where file deletion is authorized. \bctbx_list{const char *} @maybenil
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC void linphone_core_set_chat_message_files_directories(LinphoneCore *core,
+                                                                      const bctbx_list_t *directories);
+
+/**
+ * Gets the directories used by the application to contain files attached to chat messages.
+ * These directories are the ones for which the #LinphoneCore is authorized to suppress files
+ * when chat messages containing files are deleted.
+ * See linphone_core_enable_chat_message_files_deletion() for more information.
+ * @param core A #LinphoneCore object @notnil
+ * @returns list of directories where file deletion is authorized. \bctbx_list{const char *} @maybenil
+ * @ingroup group_chatroom
+ */
+LINPHONE_PUBLIC const bctbx_list_t *linphone_core_get_chat_message_files_directories(const LinphoneCore *core);
+
+/**
  * Sets if accounts will wait for network to be connected before trying to REGISTER.
  * @param core the #LinphoneCore
  * @param register_only_when_network_is_up TRUE to wait for an internet connection before trying to REGISTER, FALSE to
@@ -8193,13 +8249,34 @@ LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *
 
 /**
  * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
- *in group chats.
+ * in group chats.
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
  * @warning it is only useful to set this property if `linphone_core_send_message_after_notify_enabled` returns false
  **/
 LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration);
+
+/**
+ * Returns the duration of the timer that delays the sending of chat messages,
+ * when the core is running inside an IOS app extension.
+ * @ingroup group_IOS
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return the duration of the timer in seconds
+ **/
+LINPHONE_PUBLIC int linphone_core_get_message_sending_delay_app_ext(const LinphoneCore *core);
+
+/**
+ * It sets the duration of the timer that starts just after the SUBSCRIBE is sent to delay the sending of chat messages
+ * in group chats, when the core is running inside an IOS app extension.
+ * @ingroup group_IOS
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
+ * @warning it is only useful to set this property if `linphone_core_send_message_after_notify_enabled` returns false
+ **/
+LINPHONE_PUBLIC void linphone_core_set_message_sending_delay_app_ext(LinphoneCore *core, int duration);
 
 /**
  * It sets the duration of the timer to resend a message when the channel is broken (i.e. the core gets an NoResponse or

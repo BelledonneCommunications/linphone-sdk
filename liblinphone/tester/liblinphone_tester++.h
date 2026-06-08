@@ -11,6 +11,7 @@
 #include "address/address.h"
 #include "c-wrapper/c-wrapper.h"
 #include "call/call.h"
+#include "conference/participant.h"
 #include "core/core.h"
 #include "linphone/core.h"
 #include "linphone/types.h"
@@ -119,7 +120,7 @@ public:
 	std::shared_ptr<LinphonePrivate::Call> getCurrentCall() {
 		return getCore().getCurrentCall();
 	}
-	std::optional<std::reference_wrapper<const std::unique_ptr<LinphonePrivate::MainDb>>> getDatabase() const {
+	std::optional<std::reference_wrapper<LinphonePrivate::MainDb>> getDatabase() const {
 		return getCore().getDatabase();
 	}
 
@@ -158,6 +159,12 @@ public:
 		mMgr->user_info = this;
 		mPreStart(true);
 		start(true);
+	}
+
+	static void deleteAllDevices(std::shared_ptr<LinphonePrivate::Participant> &participant) {
+		if (participant) {
+			participant->clearDevices();
+		}
 	}
 
 	void reStart(bool check_for_proxies = true) {

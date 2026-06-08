@@ -549,13 +549,14 @@ BCTBX_PUBLIC int32_t bctbx_ssl_session_reset(bctbx_ssl_context_t *ssl_ctx);
 BCTBX_PUBLIC int32_t bctbx_ssl_read(bctbx_ssl_context_t *ssl_ctx, unsigned char *buf, size_t buf_length);
 BCTBX_PUBLIC int32_t bctbx_ssl_write(bctbx_ssl_context_t *ssl_ctx, const unsigned char *buf, size_t buf_length);
 BCTBX_PUBLIC int32_t bctbx_ssl_set_hostname(bctbx_ssl_context_t *ssl_ctx, const char *hostname);
-BCTBX_PUBLIC int32_t bctbx_ssl_handshake(bctbx_ssl_context_t *ssl_ctx);
-/**
- * Send an alert message on the ssl connection
- * @param[in/out]	ssl_ctx		The context to use
- * @param[in]		message		The alert message, one of BCTBX_TLS_ALERT_ACCESS_DENIED
- * @return 0 in case of success, an error code otherwise
- */
+BCTBX_PUBLIC int32_t bctbx_ssl_handshake(
+    bctbx_ssl_context_t
+        *ssl_ctx); /**
+                    * Send an alert message on the ssl connection
+                    * @param[in/out]	ssl_ctx		The context to use
+                    * @param[in]		message		The alert message, one of BCTBX_TLS_ALERT_ACCESS_DENIED
+                    * @return 0 in case of success, an error code otherwise
+                    */
 BCTBX_PUBLIC int32_t bctbx_ssl_send_fatal_alert_message(bctbx_ssl_context_t *ssl_ctx, int message);
 BCTBX_PUBLIC void bctbx_ssl_set_io_callbacks(
     bctbx_ssl_context_t *ssl_ctx,

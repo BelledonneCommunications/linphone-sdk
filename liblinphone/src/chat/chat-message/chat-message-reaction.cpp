@@ -77,7 +77,7 @@ void ChatMessageReaction::onChatMessageStateChanged(const shared_ptr<ChatMessage
 			        << "] to remove any previously existing reaction";
 			const LinphoneAddress *address = mFromAddress->toC();
 			if (auto db = message->getChatRoom()->getCore()->getDatabase()) {
-				db.value().get()->removeConferenceChatMessageReactionEvent(mMessageId, mFromAddress);
+				db.value().get().removeConferenceChatMessageReactionEvent(mMessageId, mFromAddress);
 			}
 
 			_linphone_chat_message_notify_reaction_removed(msg, address);

@@ -85,7 +85,6 @@ static void linphone_stun_test_grab_ip(void) {
 	linphone_core_enable_ipv6(lc_stun->lc, FALSE);
 	linphone_core_enable_realtime_text(lc_stun->lc, TRUE);
 	linphone_core_set_stun_server(lc_stun->lc, stun_address);
-
 	BC_ASSERT_STRING_EQUAL(stun_address, linphone_core_get_stun_server(lc_stun->lc));
 	wait_for(lc_stun->lc, lc_stun->lc, &tmp, 1);
 

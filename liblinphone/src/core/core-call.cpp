@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -378,6 +378,67 @@ LinphoneStatus Core::terminateAllCalls() {
 	return 0;
 }
 
+// It will store a new call log, or update one.
+// Cases for storage:
+// - CallID doesn't exist.
+// - CallID exists AND From header are different in the two call logs, or To header are different
+// Case for update:
+// - CallID exists AND From/To headers are egal in the two call logs AND same Status
+// Note that we don't update nor create one if Status is different because if the Log already exists, we suppose that
+// this log is not for this device. DeclinedElsewhere => Declined, AcceptedElsewhere => Accepted, EarlyAborted=>Missed.
+void Core::processJsonCallLog(const shared_ptr<ChatMessage> &chatMessage) {
+	Json::Reader reader;
+	auto contents = chatMessage->getContents();
+	for (auto content : contents) {
+		if (content->getContentType() != ContentType::CallLogJson) continue;
+		auto text = content->getBodyAsString();
+		// Note: CallDirection will be overwritten by fromJson()
+		auto callLog = CallLog::create(getSharedFromThis(), LinphoneCallDir::LinphoneCallIncoming, nullptr, nullptr);
+		if (!callLog->fromJson(text)) {
+			auto callId = callLog->getCallId();
+			if (!callId.empty()) {
+				LinphoneCallLog *callLogToStore = callLog->toC();
+				LinphoneCallLog *callLogC =
+				    linphone_core_find_call_log_from_call_id(getCCore(), callLog->getCallId().c_str());
+				if (callLogC) { // Exist?
+					auto dbCallLog = CallLog::toCpp(callLogC);
+					if (dbCallLog->getFromAddress()->weakEqual(callLog->getFromAddress()) &&
+					    dbCallLog->getToAddress()->weakEqual(callLog->getToAddress())) { // Update?
+						if (dbCallLog->getStatus() == callLog->getStatus()) {
+							lDebug() << "[CallLog] Update CallLog :\n"
+							         << dbCallLog->toString() << "\t=>\n"
+							         << callLog->toString();
+							dbCallLog->fromJson(text); // Update the DB Call Log with JSON data.
+							callLogToStore = callLogC;
+						} else {
+							callLogToStore = nullptr;
+							lInfo() << "[CallLog] This call log will not be taken into account because it already "
+							           "exists with a different Status ("
+							        << Call::callStatusToText(dbCallLog->getStatus()) << "):\n"
+							        << callLog->toString();
+						}
+					}
+				}
+				if (callLogToStore) {
+					linphone_core_store_call_log(getCCore(), callLogToStore);
+					linphone_core_notify_call_log_updated(getCCore(), callLogToStore);
+				}
+				if (callLogC) linphone_call_log_unref(callLogC);
+			}
+		}
+		chatMessage->removeContent(content);
+	}
+	if (chatMessage->getContents().size() == 0) {
+		chatMessage->getChatRoom()->deleteMessageFromHistory(chatMessage);
+		chatMessage->deleteChatMessageFromCache();
+	} else {
+		// Multi contents case: Update processed contents.
+		// chatMessage->storeInDb(); //  TODO? storeInDb is private
+		lWarning() << __func__
+		           << ": Multi-content types detected in message along call logs. Chat Message will not be cleaned";
+	}
+}
+
 // =============================================================================
 
 #ifndef _MSC_VER
@@ -393,7 +454,7 @@ void Core::reportConferenceCallEvent(EventLog::Type type,
 	if (db && confInfo == nullptr) {
 		// Let's see if we have a conference info in db with the corresponding URI
 		confInfo =
-		    callLog->wasConference() ? callLog->getConferenceInfo() : db.value().get()->getConferenceInfoFromURI(to);
+		    callLog->wasConference() ? callLog->getConferenceInfo() : db.value().get().getConferenceInfoFromURI(to);
 	}
 
 	// TODO: This is a workaround that has to be removed ASAP
@@ -435,7 +496,7 @@ void Core::reportConferenceCallEvent(EventLog::Type type,
 
 	if (db) {
 		auto event = make_shared<ConferenceCallEvent>(type, std::time(nullptr), callLog, confInfo);
-		db.value().get()->addEvent(event);
+		db.value().get().addEvent(event);
 	}
 
 	LinphoneCore *lc = getCCore();

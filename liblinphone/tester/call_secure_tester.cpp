@@ -1286,7 +1286,6 @@ static bool isCurrentCallUsingDtls(LinphoneCoreManager *mgr) {
 }
 
 // Pauline and Marie both use valid client certificates for DTLS-SRTP and they verify peer certificates
-
 static void dtls_srtp_call_with_clients_certificates_base(LinphoneCoreManager *marie, LinphoneCoreManager *pauline) {
 	setDtlsSrtpVerifyCertInDefaultAccount(marie->lc, TRUE);
 	setDtlsSrtpVerifyCertInDefaultAccount(pauline->lc, TRUE);
@@ -1324,6 +1323,7 @@ static void dtls_srtp_call_with_clients_certificates_base(LinphoneCoreManager *m
 		linphone_core_manager_destroy(marie);
 		return;
 	}
+
 	// Encryption status is inactive
 	BC_ASSERT_TRUE(linphone_call_params_get_media_encryption_status(linphone_call_get_current_params(marie_call)) ==
 	               LinphoneMediaEncryptionStatusInactive);
@@ -1443,19 +1443,18 @@ static void dtls_srtp_call_with_missing_client_certificate(void) {
 	// Marie fails to be encrypted as Pauline didn't provide a valid certificate
 	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallMediaEncryptionFailed,
 	                              initial_marie_stats.number_of_LinphoneCallMediaEncryptionFailed + 1, 4000));
-	BC_ASSERT_FALSE(isCurrentCallUsingDtls(marie));
+	BC_ASSERT_FALSE(isCurrentCallUsingDtls(marie)); /* Wait stats to be updated. */
 	LinphoneCallStats *marie_stats = linphone_call_get_audio_stats(marie_call);
 	BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(marie_stats) ==
 	               LinphoneMediaEncryptionErrorDtlsCertificateVerificationFail);
 	linphone_call_stats_unref(marie_stats);
-
 	// For Pauline this test may fail as Marie will send an DTLS fatal alert to Pauline but it is not repeated, so
 	// Pauline may never receive it if this test fails too much, comment the following code
 	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallMediaEncryptionFailed,
 	                              initial_pauline_stats.number_of_LinphoneCallMediaEncryptionFailed + 1, 1000));
 	BC_ASSERT_FALSE(isCurrentCallUsingDtls(pauline));
 	int dummy = 0;
-	wait_for_until(pauline->lc, marie->lc, &dummy, 1, 50); /* Wait stats to be updated. */
+	wait_for_until(pauline->lc, marie->lc, &dummy, 1, 50);
 	// Pauline has no details on why the handshake failed
 	LinphoneCallStats *pauline_stats = linphone_call_get_audio_stats(pauline_call);
 	BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(pauline_stats) ==
@@ -1567,14 +1566,14 @@ static void dtls_srtp_call_with_unmatching_client_certificates(void) {
 	//                              initial_pauline_stats.number_of_LinphoneCallEncryptedOn + 1, 1000));
 	if (bctbx_ssl_get_implementation_type() !=
 	    BCTBX_OPENSSL) { // openssl implementation won't send an alert but just hang on the DTLS connection
-		                 // Pauline will not notice it as the SRTP keys are already extracted for her
+		// Pauline will not notice it as the SRTP keys are already extracted for her
 		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc,
 		                              &pauline->stat.number_of_LinphoneCallMediaEncryptionFailed,
 		                              initial_pauline_stats.number_of_LinphoneCallMediaEncryptionFailed + 1, 4000));
 		BC_ASSERT_FALSE(isCurrentCallUsingDtls(pauline));
-		// Pauline has no details on why the handshake failed
 		int dummy = 0;
 		wait_for_until(pauline->lc, marie->lc, &dummy, 1, 50); /* Wait stats to be updated. */
+		// Pauline has no details on why the handshake failed
 		LinphoneCallStats *pauline_stats = linphone_call_get_audio_stats(pauline_call);
 		BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(pauline_stats) ==
 		               LinphoneMediaEncryptionErrorDtlsHandshakeFail);
@@ -2734,7 +2733,6 @@ static test_t call_secure2_tests[] = {
                   dtls_srtp_call_with_unmatching_client_certificates,
                   "DTLS",
                   "CRYPTO"),
-
     TEST_NO_TAG("Call accepting all encryptions", call_accepting_all_encryptions),
     TEST_ONE_TAG("EKT call", ekt_call, "CRYPTO"),
     TEST_NO_TAG("EKT call with unmatching keys", unmatching_ekt_call),

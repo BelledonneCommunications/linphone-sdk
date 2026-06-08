@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -121,6 +121,7 @@
 #include "friend/friend-list.h"
 #include "http/http-client.h"
 #include "presence/presence-model.h"
+#include "push-notification/push-notification-config.h"
 #include "sal/sal.h"
 #include "vcard/vcard-context.h"
 #ifdef HAVE_CONFIG_H
@@ -3263,9 +3264,19 @@ void linphone_core_set_push_notification_config(LinphoneCore *core, LinphonePush
 	}
 }
 
+void linphone_core_store_push_notification_config(LinphoneCore *lc) {
+	bool withRemoteSpecificParams = false;
+#if TARGET_OS_IPHONE
+	withRemoteSpecificParams = true;
+#endif
+	PushNotificationConfig::toCpp(lc->push_config)
+	    ->writeToConfig(lc->config, "push_notification", withRemoteSpecificParams);
+}
+
 void linphone_core_update_push_notification_information(LinphoneCore *core, const char *param, const char *prid) {
 	linphone_push_notification_config_set_param(core->push_config, param);
 	linphone_push_notification_config_set_prid(core->push_config, prid);
+	linphone_core_store_push_notification_config(core);
 
 	for (auto cppAccount : L_GET_CPP_PTR_FROM_C_OBJECT(core)->getAccounts()) {
 		LinphoneAccount *account = cppAccount->toC();
@@ -3502,6 +3513,9 @@ static void linphone_core_init(LinphoneCore *lc,
 
 	belr::GrammarLoader::get().addPath(
 	    std::string(linphone_factory_get_top_resources_dir(lfactory)).append("/belr/grammars"));
+
+	// Wait from GrammarLoader to read push config!
+	PushNotificationConfig::toCpp(lc->push_config)->readFromConfig(lc->config, "push_notification");
 
 	_linphone_core_init_account_creator_service(lc);
 
@@ -6383,7 +6397,7 @@ void linphone_core_set_call_logs_database_path(LinphoneCore *lc, const char *pat
 	CoreLogContextualizer logContextualizer(lc);
 	if (!linphone_core_conference_server_enabled(lc)) {
 		if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
-			db.value().get()->import(LinphonePrivate::MainDb::Sqlite3, path);
+			db.value().get().import(LinphonePrivate::MainDb::Sqlite3, path);
 			linphone_core_migrate_logs_from_rc_to_db(lc);
 		} else {
 			ms_warning("%s() needs to be called once linphone_core_start() has been called or Database has not been "
@@ -6794,8 +6808,10 @@ LinphoneStatus linphone_core_set_video_device(LinphoneCore *lc, const char *id) 
 	}
 	if (lc->video_conf.device == NULL)
 		lc->video_conf.device = ms_web_cam_manager_get_default_cam(ms_factory_get_web_cam_manager(lc->factory));
-	if (olddev != NULL && olddev != lc->video_conf.device) {
+	if (lc->previewstream && lc->previewstream->cam != lc->video_conf.device) {
 		relaunch_video_preview(lc);
+		L_GET_PRIVATE_FROM_C_OBJECT(lc)->updateVideoDevice();
+	} else if (olddev != NULL && olddev != lc->video_conf.device) {
 		L_GET_PRIVATE_FROM_C_OBJECT(lc)->updateVideoDevice();
 	}
 	if (linphone_core_ready(lc) && lc->video_conf.device) {
@@ -7364,6 +7380,7 @@ void sip_config_uninit(LinphoneCore *lc) {
 	lc->sip_conf = {0};
 
 	if (lc->push_config) {
+		linphone_core_store_push_notification_config(lc);
 		linphone_push_notification_config_unref(lc->push_config);
 		lc->push_config = nullptr;
 	}
@@ -8875,7 +8892,7 @@ void linphone_core_set_chat_database_path(LinphoneCore *lc, const char *path) {
 	CoreLogContextualizer logContextualizer(lc);
 	if (!linphone_core_conference_server_enabled(lc)) {
 		if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getDatabase()) {
-			db.value().get()->import(LinphonePrivate::MainDb::Sqlite3, path);
+			db.value().get().import(LinphonePrivate::MainDb::Sqlite3, path);
 			L_GET_PRIVATE_FROM_C_OBJECT(lc)->loadChatRooms();
 		} else {
 			ms_warning("%s() needs to be called once linphone_core_start() has been called or Database has not been "
@@ -9772,12 +9789,14 @@ LinphoneImEncryptionEngine *linphone_core_get_im_encryption_engine(const Linphon
 }
 
 void linphone_core_initialize_supported_content_types(LinphoneCore *lc) {
-	lc->sal->addContentTypeSupport("text/plain");
-	lc->sal->addContentTypeSupport("message/external-body");
-	lc->sal->addContentTypeSupport("application/vnd.gsma.rcs-ft-http+xml");
-	lc->sal->addContentTypeSupport("application/im-iscomposing+xml");
-	lc->sal->addContentTypeSupport("message/imdn+xml");
-	lc->sal->addContentTypeSupport("text/calendar");
+	lc->sal->addContentTypeSupport(ContentType::PlainText.getValue());
+	lc->sal->addContentTypeSupport(ContentType::ExternalBody.getValue());
+	lc->sal->addContentTypeSupport(ContentType::FileTransfer.getValue());
+	lc->sal->addContentTypeSupport(ContentType::ImIsComposing.getValue());
+	lc->sal->addContentTypeSupport(ContentType::Imdn.getValue());
+	lc->sal->addContentTypeSupport(
+	    "text/calendar"); // Note: ContentType::Icalendar == "text/calendar;conference-event=yes"
+	lc->sal->addContentTypeSupport(ContentType::CallLogJson.getValue());
 }
 
 bool_t linphone_core_is_content_type_supported(const LinphoneCore *lc, const char *content_type) {
@@ -9831,7 +9850,7 @@ const char *linphone_core_get_srtp_crypto_suites(LinphoneCore *core) {
 LinphoneConferenceInfo *linphone_core_find_conference_information_from_ccmp_uri(LinphoneCore *core, const char *uri) {
 	CoreLogContextualizer logContextualizer(core);
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
-		if (auto confInfo = db.value().get()->getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri))) {
+		if (auto confInfo = db.value().get().getConferenceInfoFromCcmpUri(L_C_TO_STRING(uri))) {
 			// Take a ref as the value returned by the MainDB class is a clone of the cached one
 			return linphone_conference_info_ref(confInfo->toC());
 		}
@@ -9850,7 +9869,7 @@ LinphoneConferenceInfo *linphone_core_find_conference_information_from_uri(Linph
 	CoreLogContextualizer logContextualizer(core);
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
 		const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
-		if (auto confInfo = db.value().get()->getConferenceInfoFromURI(uri_addr)) {
+		if (auto confInfo = db.value().get().getConferenceInfoFromURI(uri_addr)) {
 			// Take a ref as the value returned by the MainDB class is a clone of the cached one
 			return linphone_conference_info_ref(confInfo->toC());
 		}
@@ -9876,7 +9895,7 @@ static bctbx_list_t *get_conference_information_list(LinphoneCore *core, time_t 
 			    static_cast<LinphoneStreamType>(LINPHONE_PTR_TO_INT(bctbx_list_get_data(capability))));
 		}
 	}
-	auto list = db.value().get()->getConferenceInfos(t, capabilityList);
+	auto list = db.value().get().getConferenceInfos(t, capabilityList);
 	bctbx_list_t *results = nullptr;
 	for (auto &info : list) {
 		results = bctbx_list_append(results, linphone_conference_info_ref(info->toC()));
@@ -9929,7 +9948,7 @@ bctbx_list_t *linphone_core_get_conference_informations_with_participant(Linphon
 	if (!db) return nullptr;
 
 	const auto uri_addr = uri ? LinphonePrivate::Address::getSharedFromThis(uri) : nullptr;
-	auto list = db.value().get()->getConferenceInfosWithParticipant(uri_addr);
+	auto list = db.value().get().getConferenceInfosWithParticipant(uri_addr);
 
 	bctbx_list_t *results = nullptr;
 	for (auto &conf : list) {
@@ -10139,6 +10158,14 @@ void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration) {
 	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_s", duration);
 }
 
+int linphone_core_get_message_sending_delay_app_ext(const LinphoneCore *core) {
+	return linphone_config_get_int(linphone_core_get_config(core), "misc", "delay_message_send_app_ext_s", 3);
+}
+
+void linphone_core_set_message_sending_delay_app_ext(LinphoneCore *core, int duration) {
+	linphone_config_set_int(linphone_core_get_config(core), "misc", "delay_message_send_app_ext_s", duration);
+}
+
 int linphone_core_get_chat_room_load_chunk_size(const LinphoneCore *core) {
 	return linphone_config_get_int(linphone_core_get_config(core), "chat", "chat_room_load_chunk_size", -1);
 }
@@ -10165,7 +10192,7 @@ void linphone_core_set_max_participants_per_chatroom(LinphoneCore *core, int max
 
 void linphone_core_upgrade_database(LinphoneCore *core) {
 	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
-		db.value().get()->updateSchema();
+		db.value().get().updateSchema();
 	} else {
 		ms_error("Trying to upgrade database before linphone_core_start() has been called, it has not been initialized "
 		         "yet.");

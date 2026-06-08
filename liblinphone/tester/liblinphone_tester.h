@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -156,8 +156,11 @@ extern test_suite_t local_conference_test_suite_chat_error;
 extern test_suite_t local_conference_test_suite_chat_imdn;
 extern test_suite_t local_conference_test_suite_ephemeral_chat;
 extern test_suite_t local_conference_test_suite_secure_chat;
+extern test_suite_t local_conference_test_suite_secure_chat_error;
+extern test_suite_t local_conference_test_suite_secure_one_on_one_chat;
 extern test_suite_t local_conference_test_suite_conference_edition;
 extern test_suite_t local_conference_test_suite_scheduled_conference_basic;
+extern test_suite_t local_conference_test_suite_scheduled_conference_media_problem;
 extern test_suite_t local_conference_test_suite_scheduled_conference_advanced;
 extern test_suite_t local_conference_test_suite_scheduled_conference_audio_only_participant;
 extern test_suite_t local_conference_test_suite_scheduled_conference_with_screen_sharing;
@@ -179,6 +182,7 @@ extern test_suite_t turn_server_test_suite;
 extern test_suite_t refer_test_suite;
 extern test_suite_t dtmf_test_suite;
 extern test_suite_t friends_test_suite;
+extern test_suite_t sync_test_suite;
 
 #ifdef VCARD_ENABLED
 extern test_suite_t vcard_test_suite;
@@ -596,6 +600,7 @@ typedef struct _stats {
 	int number_of_LinphoneCoreAudioDeviceChanged;
 	int number_of_LinphoneCoreAudioDevicesListUpdated;
 	int number_of_LinphoneCoreVersionUpdateCheck;
+	int number_of_LinphoneCoreCallLogUpdated;
 
 	int number_of_LinphoneRemoteRecordingEnabled;
 	int number_of_LinphoneRemoteRecordingDisabled;

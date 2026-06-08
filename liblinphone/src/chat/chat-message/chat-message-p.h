@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -48,6 +48,7 @@ class ChatMessagePrivate : public ObjectPrivate {
 	friend class EncryptionChatMessageModifier;
 	friend class MultipartChatMessageModifier;
 	friend class NotificationMessagePrivate;
+	friend class ImdnMessagePrivate;
 
 public:
 	enum Step : int {
@@ -76,6 +77,8 @@ public:
 	void resetStorageId();
 
 	void setDirection(ChatMessage::Direction dir);
+	/* Returns the direction of the message from a protocol (not application) standpoint */
+	ChatMessage::Direction getRawDirection() const;
 
 	void setParticipantState(const std::shared_ptr<Address> &participantAddress,
 	                         ChatMessage::State newState,
@@ -120,7 +123,7 @@ public:
 		mToAddress = toAddress;
 	}
 
-	// Used by the ConferenceScheduler to keep track of the recipient Address in One-To-One Flexisip chat room
+	// Used by the ConferenceScheduler to keep track of the recipient Address in One-On-One Flexisip chat room
 	void setRecipientAddress(const std::shared_ptr<Address> &recipientAddress) {
 		this->recipientAddress = recipientAddress;
 	}
@@ -257,6 +260,8 @@ public:
 	const std::shared_ptr<Content> getFileTransferContent() const;
 	const std::shared_ptr<Content> getFileTransferInformation() const;
 
+	bool hasCallLogJsonContent() const;
+
 	void addContent(std::shared_ptr<Content> content);
 	void removeContent(std::shared_ptr<Content> content);
 	void replaceContent(std::shared_ptr<Content> contentToRemove, std::shared_ptr<Content> contentToAdd);
@@ -324,7 +329,6 @@ private:
 	SalCustomHeader *salCustomHeaders = nullptr;
 	int currentSendStep = Step::None;
 	int currentRecvStep = Step::None;
-	bool applyModifiers = true;
 	FileTransferChatMessageModifier fileTransferChatMessageModifier;
 
 	// Cache for returned values, used for compatibility with previous C API
@@ -341,8 +345,6 @@ private:
 	std::shared_ptr<Address> mFromAddress;
 	std::shared_ptr<Address> mToAddress;
 	Address authenticatedFromAddress;
-	bool senderAuthenticationEnabled = true;
-	bool unencryptedContentWarning = false;
 
 	ChatMessage::State state = ChatMessage::State::Idle;
 	ChatMessage::Direction direction = ChatMessage::Direction::Incoming;
@@ -354,23 +356,25 @@ private:
 	std::shared_ptr<Address> replyingToMessageSender;
 	std::shared_ptr<Address> recipientAddress;
 
-	bool isEphemeral = false;
 	long ephemeralLifetime = 0;
 	long ephemeralNotReadLifetime = 0;
 	time_t ephemeralExpireTime = 0;
 
-	bool mDelayTimerExpired = false;
-
 	std::list<std::shared_ptr<Content>> contents;
 	mutable std::list<std::shared_ptr<ChatMessageReaction>> reactions;
+	std::set<std::shared_ptr<ChatMessageListener>, SharedPtrCompare<ChatMessageListener>> mListeners;
 
+	bool applyModifiers = true;
 	bool encryptionPrevented = false;
 	mutable bool contentsNotLoadedFromDatabase = false;
 	bool isInAggregationQueue = false;
 	bool isEdited = false;
 	bool isRetracted = false;
-
-	std::set<std::shared_ptr<ChatMessageListener>, SharedPtrCompare<ChatMessageListener>> mListeners;
+	bool originallyReceived = false;
+	bool mDelayTimerExpired = false;
+	bool isEphemeral = false;
+	bool senderAuthenticationEnabled = true;
+	bool unencryptedContentWarning = false;
 
 	L_DECLARE_PUBLIC(ChatMessage);
 };

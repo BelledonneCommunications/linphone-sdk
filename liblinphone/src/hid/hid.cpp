@@ -18,13 +18,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "hid.h"
+
 #ifdef HIDAPI_USE_BUILD_INTERFACE
 #include <hidapi.h>
 #else
 #include <hidapi/hidapi.h>
 #endif
 
-#include "hid.h"
 #include "logger/logger.h"
 
 LINPHONE_BEGIN_NAMESPACE
@@ -78,13 +79,19 @@ std::list<std::shared_ptr<HidDevice>> Hid::getDevices(const std::shared_ptr<Core
 		    (current_device->usage_page == USAGE_PAGE_TELEPHONY) &&
 		    (current_device->usage == USAGE_TELEPHONY_HANDSET)) {
 			const auto productId = current_device->product_id;
+			char serialNumberStr[512];
 			char manufacturerStr[512];
 			char productStr[512];
+			wcstombs(serialNumberStr, current_device->serial_number ? current_device->serial_number : L"",
+			         sizeof(serialNumberStr));
 			wcstombs(manufacturerStr, current_device->manufacturer_string ? current_device->manufacturer_string : L"",
 			         sizeof(manufacturerStr));
 			wcstombs(productStr, current_device->product_string ? current_device->product_string : L"",
 			         sizeof(productStr));
-			const auto hidDevice = HidDevice::create(core, productId, serialNumber, current_device->path);
+			std::ostringstream name;
+			name << manufacturerStr << " " << productStr;
+			const auto hidDevice =
+			    HidDevice::create(core, productId, Utils::trim(name.str()), serialNumberStr, current_device->path);
 			if (hidDevice) result.push_back(hidDevice);
 		}
 	}

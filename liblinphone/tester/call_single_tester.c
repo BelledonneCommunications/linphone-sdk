@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -991,9 +991,16 @@ static void call_outbound_using_secondary_account(void) {
 
 	// Since call was made with secondary account,
 	// we should not have any changes when removing the primary account
-	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
-	linphone_core_remove_account_with_data(marie->lc, linphone_core_get_default_account(marie->lc));
-	BC_ASSERT_TRUE(bctbx_list_size(linphone_core_get_call_logs(marie->lc)) == 1);
+	size_t old_logs_count = bctbx_list_size(linphone_core_get_call_logs(marie->lc));
+	LinphoneAccount *marie_default_account = linphone_core_get_default_account(marie->lc);
+	bctbx_list_t *marie_default_account_logs = linphone_account_get_call_logs(marie_default_account);
+	size_t marie_default_account_logs_count = bctbx_list_size(marie_default_account_logs);
+	bctbx_list_free_with_data(marie_default_account_logs, (bctbx_list_free_func)linphone_call_log_unref);
+	linphone_core_remove_account_with_data(marie->lc, marie_default_account);
+	// The number of call logs held by the core is the old count minus the number of call logs linked to the removed
+	// account
+	BC_ASSERT_EQUAL(bctbx_list_size(linphone_core_get_call_logs(marie->lc)),
+	                (old_logs_count - marie_default_account_logs_count), size_t, "%zu");
 
 end:
 	linphone_core_manager_destroy(marie);
@@ -1569,138 +1576,145 @@ static void call_declined_with_reasons(void) {
 		LinphoneCoreManager *caller_mgr =
 		    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
 
+		ms_message("Test ASSERT with LinphoneReason %s ", linphone_reason_to_string(reasonToTest));
 		LinphoneCall *in_call = NULL;
 		LinphoneCall *out_call = linphone_core_invite_address(caller_mgr->lc, callee_mgr->identity);
 		//------------------------------------------------------------------
 		//						Reasons Checklist
 		//------------------------------------------------------------------
-		int incall_reason_target = reasonToTest, incall_log_status_target = reasonToTest;
-		int outcall_reason_target = reasonToTest, outcall_log_status_target = reasonToTest;
+		LinphoneReason incall_reason_target = (LinphoneReason)reasonToTest;
+		LinphoneCallStatus incall_log_status_target = LinphoneCallDeclined;
+		LinphoneReason outcall_reason_target = (LinphoneReason)reasonToTest;
+		LinphoneCallStatus outcall_log_status_target = LinphoneCallDeclined;
+
 		bool_t caller_end = TRUE;
 		bool_t caller_release = TRUE;
 		switch (reasonToTest) {
 			case LinphoneReasonNone:
 				caller_end = FALSE;
 				incall_reason_target = LinphoneReasonDeclined;
-				incall_log_status_target = LinphoneReasonDeclined;
+				outcall_reason_target = LinphoneReasonDeclined;
+				incall_log_status_target = LinphoneCallDeclined;
 				break;
 			case LinphoneReasonNoResponse:
 				caller_end = FALSE;
 				outcall_reason_target = LinphoneReasonUnknown;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonForbidden:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonDeclined: // Default
 				break;
 			case LinphoneReasonNotFound:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonNotAnswered:
 				caller_end = FALSE;
 				incall_reason_target = LinphoneReasonNone;
 				outcall_reason_target = LinphoneReasonUnknown;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonBusy:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonUnsupportedContent:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonBadEvent:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonIOError:
 				caller_end = FALSE;
 				caller_release = FALSE;
 				outcall_reason_target = LinphoneReasonNone;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonDoNotDisturb:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonBusy;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallDeclinedElsewhere;
+				outcall_log_status_target = LinphoneCallDeclined;
 				break;
 			case LinphoneReasonUnauthorized:
 				caller_end = FALSE;
 				outcall_reason_target = LinphoneReasonNone;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonNotAcceptable:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonNoMatch:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonMovedPermanently:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonGone:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonTemporarilyUnavailable:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonAddressIncomplete:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonNotImplemented:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonBadGateway:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonSessionIntervalTooSmall:
 				caller_end = FALSE;
 				outcall_reason_target = LinphoneReasonUnknown;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonServerTimeout:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonUnknown:
 				caller_end = FALSE;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 			case LinphoneReasonTransferred:
 				caller_end = FALSE;
 				outcall_reason_target = LinphoneReasonUnknown;
-				incall_log_status_target = LinphoneReasonNoResponse;
-				outcall_log_status_target = LinphoneReasonNoResponse;
+				incall_log_status_target = LinphoneCallAborted;
+				outcall_log_status_target = LinphoneCallAborted;
 				break;
 		} // No default because we want to have all use cases from Reasons
 		  //------------------------------------------------------------------
@@ -1726,12 +1740,12 @@ static void call_declined_with_reasons(void) {
 			BC_ASSERT_TRUE(wait_for(caller_mgr->lc, callee_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallReleased,
 			                        (caller_release ? 1 : 0)));
 
-			BC_ASSERT_EQUAL(linphone_call_get_reason(in_call), incall_reason_target, int, "%d");
-			BC_ASSERT_EQUAL(linphone_call_get_reason(out_call), outcall_reason_target, int, "%d");
-			BC_ASSERT_EQUAL(linphone_call_log_get_status(linphone_call_get_call_log(in_call)), incall_log_status_target,
-			                int, "%d");
-			BC_ASSERT_EQUAL(linphone_call_log_get_status(linphone_call_get_call_log(out_call)),
-			                outcall_log_status_target, int, "%d");
+			BC_ASSERT_EQUAL((int)linphone_call_get_reason(in_call), (int)incall_reason_target, int, "%d");
+			BC_ASSERT_EQUAL((int)linphone_call_get_reason(out_call), (int)outcall_reason_target, int, "%d");
+			BC_ASSERT_EQUAL((int)linphone_call_log_get_status(linphone_call_get_call_log(in_call)),
+			                (int)incall_log_status_target, int, "%d");
+			BC_ASSERT_EQUAL((int)linphone_call_log_get_status(linphone_call_get_call_log(out_call)),
+			                (int)outcall_log_status_target, int, "%d");
 
 			linphone_call_unref(in_call);
 		}
@@ -1792,8 +1806,8 @@ static void terminate_call_with_error(void) {
 		BC_ASSERT_STRING_EQUAL(linphone_error_info_get_phrase(rei), "Call refused for security reason");
 		BC_ASSERT_STRING_EQUAL(linphone_error_info_get_protocol(ei), "SIP");
 	}
-	BC_ASSERT_EQUAL(linphone_call_log_get_status(linphone_call_get_call_log(call_callee)),
-	                LinphoneCallAcceptedElsewhere, int, "%d");
+	BC_ASSERT_EQUAL(linphone_call_log_get_status(linphone_call_get_call_log(call_callee)), LinphoneCallSuccess, int,
+	                "%d");
 
 	BC_ASSERT_TRUE(wait_for(caller_mgr->lc, callee_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallReleased, 1));
 
@@ -1849,6 +1863,58 @@ static void cancel_call_with_error(void) {
 	}
 	BC_ASSERT_EQUAL(linphone_call_log_get_status(linphone_call_get_call_log(call_callee)),
 	                LinphoneCallDeclinedElsewhere, int, "%d");
+
+	BC_ASSERT_TRUE(wait_for(caller_mgr->lc, callee_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallReleased, 1));
+
+	linphone_error_info_unref(ei);
+	linphone_call_unref(out_call);
+	linphone_call_unref(call_callee);
+	linphone_core_manager_destroy(callee_mgr);
+	linphone_core_manager_destroy(caller_mgr);
+}
+
+/* The objective of this test is to ensure that an invalid reason header does not
+ * lead to bad CallLog classification: it must appear as a missed call as any cancelled
+ * call sent without reason header.
+ */
+static void call_cancelled_with_invalid_reason_header(void) {
+	LinphoneCall *call_callee;
+	LinphoneErrorInfo *ei;
+	const LinphoneErrorInfo *rei = NULL;
+	LinphoneCoreManager *callee_mgr = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *caller_mgr =
+	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
+
+	LinphoneCall *out_call = linphone_core_invite_address(caller_mgr->lc, callee_mgr->identity);
+
+	linphone_call_ref(out_call);
+	ei = linphone_error_info_new();
+	linphone_error_info_set(ei, "Q.850", LinphoneReasonUnknown, 1, "", NULL);
+
+	BC_ASSERT_TRUE(wait_for(caller_mgr->lc, callee_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallOutgoingInit, 1));
+	BC_ASSERT_TRUE(
+	    wait_for(caller_mgr->lc, callee_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallIncomingReceived, 1));
+	BC_ASSERT_TRUE(
+	    wait_for(caller_mgr->lc, callee_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallOutgoingProgress, 1));
+
+	call_callee = linphone_core_get_current_call(callee_mgr->lc);
+	linphone_call_ref(call_callee);
+
+	BC_ASSERT_PTR_NOT_NULL(call_callee);
+	BC_ASSERT_PTR_NOT_NULL(ei);
+
+	linphone_call_terminate_with_error_info(out_call, ei);
+	BC_ASSERT_TRUE(wait_for(caller_mgr->lc, callee_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallEnd, 1));
+	BC_ASSERT_TRUE(wait_for(caller_mgr->lc, callee_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallReleased, 1));
+
+	rei = linphone_call_get_error_info(call_callee);
+	BC_ASSERT_PTR_NOT_NULL(rei);
+	if (rei) {
+		BC_ASSERT_EQUAL(linphone_error_info_get_protocol_code(rei), 1, int, "%d");
+		BC_ASSERT_STRING_EQUAL(linphone_error_info_get_protocol(rei), "Q.850");
+	}
+	BC_ASSERT_EQUAL(linphone_call_log_get_status(linphone_call_get_call_log(call_callee)), LinphoneCallMissed, int,
+	                "%d");
 
 	BC_ASSERT_TRUE(wait_for(caller_mgr->lc, callee_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallReleased, 1));
 
@@ -2201,6 +2267,11 @@ static void cancelled_ringing_call(void) {
 	const bctbx_list_t *call_history;
 	LinphoneCall *out_call;
 
+	// Wait for current account to synchronized with server logs.
+	wait_for_until(marie->lc, pauline->lc, NULL, 5, 1000);
+	linphone_account_clear_call_logs(linphone_core_get_default_account(marie->lc));   // Clean logs
+	linphone_account_clear_call_logs(linphone_core_get_default_account(pauline->lc)); // Clean logs
+
 	BC_ASSERT_EQUAL(linphone_core_get_missed_calls_count(pauline->lc), 0, int, "%d");
 	BC_ASSERT_EQUAL(linphone_account_get_missed_calls_count(linphone_core_get_default_account(pauline->lc)), 0, int,
 	                "%d");
@@ -2234,7 +2305,7 @@ static void cancelled_ringing_call(void) {
 
 	call_history = linphone_core_get_call_history(marie->lc);
 	if (BC_ASSERT_PTR_NOT_NULL(call_history)) {
-		BC_ASSERT_EQUAL((int)bctbx_list_size(call_history), 1, int, "%i");
+		BC_ASSERT_EQUAL(bctbx_list_size(call_history), 1, size_t, "%zu");
 		LinphoneCallLog *call_log = (LinphoneCallLog *)bctbx_list_get_data(call_history);
 		BC_ASSERT_EQUAL(linphone_call_log_get_status(call_log), LinphoneCallMissed, LinphoneCallStatus, "%i");
 		// Make sure the call log duration is 0 as the call wasn't connected
@@ -2466,7 +2537,10 @@ static void call_declined_base(bool_t use_timeout, bool_t use_earlymedia, bool_t
 		                                                 : pauline->stat.number_of_LinphoneCallEnd,
 		                1, int, "%d");
 		BC_ASSERT_TRUE(wait_for(pauline->lc, marie->lc, (int *)&paulineToneManagerStats->number_of_stopTone, 1));
-		BC_ASSERT_EQUAL(linphone_call_get_reason(in_call), reason, int, "%d");
+		/* the incoming call receives a Cancel without reason header, it cannot guess whether the outgoing call received
+		 * a request timeout */
+		LinphoneReason expected_in_call_reason = reason != LinphoneReasonNotAnswered ? reason : LinphoneReasonNone;
+		BC_ASSERT_EQUAL(linphone_call_get_reason(in_call), expected_in_call_reason, int, "%d");
 		BC_ASSERT_EQUAL(linphone_call_log_get_status(linphone_call_get_call_log(in_call)),
 		                (use_timeout || request_timeout) ? LinphoneCallMissed : LinphoneCallDeclined, int, "%d");
 		BC_ASSERT_EQUAL(linphone_call_get_reason(out_call), reason, int, "%d");
@@ -5828,6 +5902,11 @@ static void incoming_invite_with_invalid_sdp(void) {
 	LinphoneCallLog *cl;
 	const bctbx_list_t *logs;
 
+	// Wait for current account to synchronized with server logs.
+	wait_for_until(caller->lc, callee->lc, NULL, 5, 2000);
+	linphone_account_clear_call_logs(linphone_core_get_default_account(caller->lc)); // Clean logs
+	linphone_account_clear_call_logs(linphone_core_get_default_account(callee->lc)); // Clean logs
+
 	callee_test_params.sdp_simulate_error = TRUE;
 	BC_ASSERT_FALSE(call_with_params2(caller, callee, &caller_test_params, &callee_test_params, FALSE));
 
@@ -5837,7 +5916,7 @@ static void incoming_invite_with_invalid_sdp(void) {
 	BC_ASSERT_EQUAL(callee->stat.number_of_LinphoneCallIncomingReceived, 0, int, "%d");
 
 	logs = linphone_core_get_call_logs(callee->lc);
-	BC_ASSERT_EQUAL((int)bctbx_list_size(logs), 1, int, "%i");
+	BC_ASSERT_EQUAL(bctbx_list_size(logs), 1, size_t, "%zu");
 	if (logs) {
 		const LinphoneErrorInfo *ei;
 		cl = (LinphoneCallLog *)logs->data;
@@ -6948,7 +7027,11 @@ static void call_logs_sqlite_storage(void) {
 	LinphoneCallLog *call_log = NULL;
 	LinphoneAddress *laure = NULL;
 	time_t start_time = 0;
-
+	// Workaround: wait for call log server to send us call-logs for missed calls that happened in past tests from this
+	// suite.
+	wait_for_until(marie->lc, pauline->lc, NULL, 5, 1000);
+	linphone_account_clear_call_logs(linphone_core_get_default_account(marie->lc));   // Clean logs
+	linphone_account_clear_call_logs(linphone_core_get_default_account(pauline->lc)); // Clean logs
 	bctbx_list_t *call_logs = linphone_account_get_call_logs(linphone_core_get_default_account(marie->lc));
 	BC_ASSERT_TRUE(bctbx_list_size(call_logs) == 0);
 	bctbx_list_free_with_data(call_logs, (bctbx_list_free_func)linphone_call_log_unref);
@@ -9110,8 +9193,12 @@ static test_t call2_tests[] = {
                 invite_without_sdp_accept_early_media)};
 
 static test_t call_not_established_tests[] = {
-    TEST_NO_TAG("Early declined call", early_declined_call),
-    TEST_NO_TAG("Call declined", call_declined),
+    // Run first to avoid conflicts with other tests
+    TEST_NO_TAG("Cancelled ringing call", cancelled_ringing_call),
+    TEST_NO_TAG("Incoming INVITE with invalid SDP", incoming_invite_with_invalid_sdp),
+    TEST_NO_TAG("Outgoing INVITE with invalid ACK SDP", outgoing_invite_with_invalid_sdp),
+    //---------------------------------------------
+    TEST_NO_TAG("Early declined call", early_declined_call), TEST_NO_TAG("Call declined", call_declined),
     TEST_NO_TAG("Call declined on timeout", call_declined_on_timeout),
     TEST_NO_TAG("Call declined in Early Media", call_declined_in_early_media),
     TEST_NO_TAG("Call declined on timeout in Early Media", call_declined_on_timeout_in_early_media),
@@ -9127,7 +9214,6 @@ static test_t call_not_established_tests[] = {
     TEST_NO_TAG("Udp call early cancelled with sal error", udp_call_early_cancelled_with_sal_error),
     TEST_NO_TAG("Udp call terminated with sal error", udp_call_terminated_with_sal_error),
     TEST_NO_TAG("Call with DNS timeout", call_with_dns_time_out),
-    TEST_NO_TAG("Cancelled ringing call", cancelled_ringing_call),
     TEST_NO_TAG("Call busy when calling self", call_busy_when_calling_self),
     TEST_NO_TAG("Call rejected because of wrong credential", call_rejected_because_wrong_credentials),
     TEST_NO_TAG("Call rejected without 403 because of wrong credential",
@@ -9144,12 +9230,11 @@ static test_t call_not_established_tests[] = {
     TEST_NO_TAG("Call established with complex rejected operation", call_established_with_complex_rejected_operation),
     TEST_NO_TAG("Call established with rejected info during re-invite",
                 call_established_with_rejected_info_during_reinvite),
-    TEST_NO_TAG("Incoming INVITE with invalid SDP", incoming_invite_with_invalid_sdp),
-    TEST_NO_TAG("Outgoing INVITE with invalid ACK SDP", outgoing_invite_with_invalid_sdp),
     TEST_NO_TAG("Unsuccessful call with transport change after released",
                 unsucessfull_call_with_transport_change_after_released),
     TEST_NO_TAG("Call with rtcp-mux not accepted", call_with_rtcp_mux_not_accepted),
     TEST_NO_TAG("Call cancelled with reason", cancel_call_with_error),
+    TEST_NO_TAG("Call cancelled with invalid reason header", call_cancelled_with_invalid_reason_header),
     TEST_NO_TAG("Call declined, other ringing device receive CANCEL with reason", cancel_other_device_after_decline),
     TEST_NO_TAG("Call with malformed from", call_with_maformed_from),
     TEST_NO_TAG("Call rejected with 403", call_rejected_with_403),

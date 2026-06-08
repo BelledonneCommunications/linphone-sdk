@@ -499,6 +499,50 @@ static void remote_provisioning_check_push_params(void) {
 	linphone_core_manager_destroy(marie);
 }
 
+static void remote_provisioning_check_push_params_2(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_create("marie_remote_rc");
+
+	linphone_core_manager_start(marie, FALSE);
+	BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneConfiguringSuccessful, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneRegistrationOk, 1));
+
+	LinphonePushNotificationConfig *marie_push_cfg =
+	    linphone_push_notification_config_clone(linphone_core_get_push_notification_config(marie->lc));
+	linphone_push_notification_config_set_voip_token(marie_push_cfg, "token:voip");
+	linphone_push_notification_config_set_bundle_identifier(marie_push_cfg, "linphone-tester");
+	linphone_push_notification_config_set_param(marie_push_cfg, "param");
+	linphone_core_set_push_notification_config(marie->lc, marie_push_cfg);
+	linphone_push_notification_config_unref(marie_push_cfg);
+
+	linphone_core_stop(marie->lc);
+	linphone_core_start(marie->lc);
+
+	BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneConfiguringSuccessful, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneGlobalOn, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneRegistrationOk, 1));
+
+	/*make sure proxy config is not added in double, one time at core init, next time at configuring successful*/
+	BC_ASSERT_EQUAL((int)bctbx_list_size(linphone_core_get_proxy_config_list(marie->lc)), 1, int, "%i");
+
+	LinphoneAccount *marie_account = linphone_core_get_default_account(marie->lc);
+	BC_ASSERT_PTR_NOT_NULL(marie_account);
+
+	LinphoneAccountParams *marie_params = linphone_account_params_clone(linphone_account_get_params(marie_account));
+
+	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_voip_token(
+	                           linphone_account_params_get_push_notification_config(marie_params)),
+	                       "token:voip");
+	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_bundle_identifier(
+	                           linphone_account_params_get_push_notification_config(marie_params)),
+	                       "linphone-tester");
+	BC_ASSERT_STRING_EQUAL(
+	    linphone_push_notification_config_get_param(linphone_account_params_get_push_notification_config(marie_params)),
+	    "param");
+	linphone_account_params_unref(marie_params);
+
+	linphone_core_manager_destroy(marie);
+}
+
 test_t remote_provisioning_tests[] = {
     TEST_NO_TAG("Remote provisioning skipped", remote_provisioning_skipped),
     TEST_NO_TAG("Remote provisioning successful behind http", remote_provisioning_http),
@@ -511,6 +555,7 @@ test_t remote_provisioning_tests[] = {
     TEST_NO_TAG("Remote provisioning from file", remote_provisioning_file),
     TEST_NO_TAG("Remote provisioning invalid URI", remote_provisioning_invalid_uri),
     TEST_NO_TAG("Remote provisioning check if push tokens are not lost", remote_provisioning_check_push_params),
+    TEST_NO_TAG("Remote provisioning check if push tokens are not lost 2", remote_provisioning_check_push_params_2),
     TEST_NO_TAG("Remote Provisioning Contacts List fetch at startup", remote_provisioning_contact_list_fetch_at_startup)
 #ifdef HAVE_FLEXIAPI
         ,

@@ -1632,7 +1632,7 @@ void bctbx_sockaddr_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr
 	}
 }
 
-void bctbx_sockaddr_remove_nat64_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len) {
+bool_t bctbx_sockaddr_is_nat64(const struct sockaddr *v6) {
 	if (v6->sa_family == AF_INET6) {
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)v6;
 
@@ -1645,13 +1645,29 @@ void bctbx_sockaddr_remove_nat64_mapping(const struct sockaddr *v6, struct socka
 		    in6->sin6_addr.s6_addr32[0]
 #endif
 		) {
-			struct sockaddr_in *in = (struct sockaddr_in *)result;
-			result->sa_family = AF_INET;
-			in->sin_addr.s_addr = IN6_GET_ADDR_V4MAPPED(&in6->sin6_addr);
-			in->sin_port = in6->sin6_port;
-			*result_len = sizeof(struct sockaddr_in);
-			return;
+			return TRUE;
 		}
+	}
+	return FALSE;
+}
+
+bool_t bctbx_sockaddr_is_v4_mapped(const struct sockaddr *v6) {
+	if (v6->sa_family == AF_INET6) {
+		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)v6;
+		return (IN6_IS_ADDR_V4MAPPED(&in6->sin6_addr));
+	}
+	return FALSE;
+}
+
+void bctbx_sockaddr_remove_nat64_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len) {
+	if (bctbx_sockaddr_is_nat64(v6)) {
+		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)v6;
+		struct sockaddr_in *in = (struct sockaddr_in *)result;
+		result->sa_family = AF_INET;
+		in->sin_addr.s_addr = IN6_GET_ADDR_V4MAPPED(&in6->sin6_addr);
+		in->sin_port = in6->sin6_port;
+		*result_len = sizeof(struct sockaddr_in);
+		return;
 	}
 	/* it was not a NAT64 address: just copy the source address as is, whatever it is.*/
 	*result_len = v6->sa_family == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);

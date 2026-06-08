@@ -1365,7 +1365,6 @@ void ms_media_stream_generate_and_set_srtp_keys_for_ekt(MSMediaStreamSessions *s
 }
 
 int srtp_init_done = 0;
-
 /** compare two encryption status and return the lowest in terms of security.
  * this code rely on the enum definition order
  */
@@ -1864,14 +1863,5 @@ extern "C" int ms_media_stream_sessions_set_ekt_full_tag_period(MSMediaStreamSes
 }
 extern "C" size_t ms_media_stream_sessions_get_auth_tag_size(const MSMediaStreamSessions *sessions) {
 	return 0;
-}
-extern "C" void ms_media_stream_sessions_set_encryption_status(MSMediaStreamSessions *sessions,
-                                                               MediaStreamDir dir,
-                                                               MSMediaEncryptionStatus status) {
-}
-
-extern "C" MSMediaEncryptionStatus ms_media_stream_sessions_get_encryption_status(const MSMediaStreamSessions *sessions,
-                                                                                  MediaStreamDir dir) {
-	return MSMediaEncryptionStatusInactive;
 }
 #endif

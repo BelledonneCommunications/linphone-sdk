@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -109,6 +109,7 @@ const MSAudioDiffParams audio_cmp_params = {10, 200};
 
 /* Default test server infrastructure. You may change to sandbox infrastructure to test changes to the infrastructure
  * first. */
+
 const char *flexisip_tester_dns_server = "fs-test-9.linphone.org";
 // const char *flexisip_tester_dns_server = "fs-test-sandbox-3.linphone.org";
 const char *mysql_username_password_string = "user='belledonne' password='cOmmu2015nicatiOns'";
@@ -207,7 +208,7 @@ int liblinphone_tester_audio_diff(const char *ref_file,
                                   MSAudioDiffProgressNotify func,
                                   void *user_data) {
 	int ret_value;
-#ifndef _WIN32
+#if 0
 	const int current_priority = getpriority(PRIO_PROCESS, 0);
 	/* be nice */
 	int err = setpriority(PRIO_PROCESS, 0, 5);
@@ -217,7 +218,7 @@ int liblinphone_tester_audio_diff(const char *ref_file,
 #endif
 
 	ret_value = ms_audio_diff(ref_file, matched_file, ret, params, func, user_data);
-#ifndef _WIN32
+#if 0
 	err = setpriority(PRIO_PROCESS, 0, current_priority);
 	if (err != 0) {
 		ms_warning("liblinphone_tester_audio_diff(): cannot restore priority to [%i]: %s", current_priority,
@@ -2721,6 +2722,11 @@ static void call_created(LinphoneCore *lc, BCTBX_UNUSED(LinphoneCall *call)) {
 	counters->number_of_LinphoneCallCreated++;
 }
 
+static void call_log_updated(LinphoneCore *lc, BCTBX_UNUSED(LinphoneCallLog *call_log)) {
+	stats *counters = get_stats(lc);
+	++counters->number_of_LinphoneCoreCallLogUpdated;
+}
+
 #if __clang__ || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic push
 #endif
@@ -2769,6 +2775,7 @@ void linphone_core_manager_init2(LinphoneCoreManager *mgr, BCTBX_UNUSED(const ch
 	linphone_core_cbs_set_last_call_ended(mgr->cbs, last_call_ended);
 	linphone_core_cbs_set_audio_device_changed(mgr->cbs, audio_device_changed);
 	linphone_core_cbs_set_audio_devices_list_updated(mgr->cbs, audio_devices_list_updated);
+	linphone_core_cbs_set_call_log_updated(mgr->cbs, call_log_updated);
 	linphone_core_cbs_set_imee_user_registration(mgr->cbs, liblinphone_tester_x3dh_user_created);
 	linphone_core_cbs_set_conference_state_changed(mgr->cbs, core_conference_state_changed);
 	linphone_core_cbs_set_default_account_changed(mgr->cbs, default_account_changed);

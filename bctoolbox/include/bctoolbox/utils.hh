@@ -48,10 +48,17 @@ BCTBX_PUBLIC std::string unfold(const std::string &str);
 BCTBX_PUBLIC void
 replace(std::string &source, const std::string &from, const std::string &to, const bool recursive = true);
 
+#ifndef WIN32
+//  Demangle symbol for non Windows OS
+BCTBX_PUBLIC std::string demangle(const char *symbol);
+#endif
+
 // Return the current state of memory as a string. This is currently implemented only for Windows.
 BCTBX_PUBLIC std::string getMemoryReportAsString();
+// Return the stacktrace with skipping 'skipFrames' frames from the start of the trace (Windows/Linux)
+BCTBX_PUBLIC std::string getStackTraceAsString(int skipFrames = 0);
 
-// Replace const_cast in order to be adapted from types. Be carefull when using it.
+// Replace const_cast in order to be adapted from types. Be careful when using it.
 template <typename From>
 class auto_cast {
 public:

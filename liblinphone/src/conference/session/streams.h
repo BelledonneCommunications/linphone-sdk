@@ -471,12 +471,12 @@ public:
 	}
 	bool isPortUsed(int port) const;
 	IceService &getIceService() const;
+	// return the current encryption used by stream if they are all the same
+	LinphoneMediaEncryption getMediaEncryption() const;
 	bool allStreamsEncrypted() const;
 	// return the lowest encryption status of the running streams, LinphoneMediaEncryptionStatus when no stream are
 	// running
 	LinphoneMediaEncryptionStatus getMediaEncryptionStatus() const;
-	// return the current encryption used by stream if they are all the same
-	LinphoneMediaEncryption getMediaEncryption() const;
 	// Returns true if at least one stream was started.
 	bool isStarted() const;
 	// Returns true if all streams are muted (from local source standpoint).

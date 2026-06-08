@@ -2440,7 +2440,12 @@ void send_device_added_notify() {
 		linphone_content_unref(notify_content);
 	}
 
+	linphone_event_terminate(lev);
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, NULL, &pauline->stat.number_of_LinphoneSubscriptionTerminated,
+	                              (initial_pauline_stats.number_of_LinphoneSubscriptionTerminated + 1),
+	                              liblinphone_tester_sip_timeout));
 	linphone_event_unref(lev);
+
 	localConf = nullptr;
 	linphone_core_manager_destroy(pauline);
 }
@@ -2667,13 +2672,13 @@ char *list_subscribe_with_a_lot_of_chatrooms_from_existing_database_base(
 					    ->getDatabase()
 					    .value()
 					    .get()
-					    ->addEvent(localConf->notifyParticipantAdded(creationTime, false, participant));
+					    .addEvent(localConf->notifyParticipantAdded(creationTime, false, participant));
 					for (auto &device : participant->getDevices()) {
 						L_GET_CPP_PTR_FROM_C_OBJECT(pauline->lc)
 						    ->getDatabase()
 						    .value()
 						    .get()
-						    ->addEvent(
+						    .addEvent(
 						        localConf->notifyParticipantDeviceAdded(creationTime, false, participant, device));
 					}
 				}
@@ -2986,7 +2991,7 @@ test_t conference_event_tests[] = {
                  "Performance"),
     TEST_ONE_TAG("List subscribe with 100 chatrooms from existing database (100k chatrooms)",
                  list_subscribe_with_100_chatrooms_from_existing_database_100k,
-                 "Performance"),
+                 "NightlyPerformance"),
 #endif // defined(HAVE_DB_STORAGE) && defined(HAVE_SOCI)
 #endif // _WIN32
     TEST_NO_TAG("one-on-one keyword", one_on_one_keyword)};

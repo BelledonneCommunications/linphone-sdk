@@ -81,7 +81,6 @@ void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 			snprintf(buffer, buffer_length, "%s [-0x%x]", "bctoolbox defined error code", -error_code);
 			break;
 	}
-
 	return;
 }
 

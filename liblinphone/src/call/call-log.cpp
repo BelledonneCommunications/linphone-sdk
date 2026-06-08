@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -25,6 +25,7 @@
 
 #include "address/address.h"
 #include "c-wrapper/internal/c-tools.h"
+#include "call/call.h"
 #include "chat/chat-room/abstract-chat-room.h"
 #include "core/core-p.h"
 #include "linphone/types.h"
@@ -43,8 +44,8 @@ CallLog::CallLog(shared_ptr<Core> core,
                  const std::shared_ptr<const Address> &to)
     : CoreAccessor(core) {
 	mDirection = direction;
-	setFromAddress(from);
-	setToAddress(to);
+	if (from) setFromAddress(from);
+	if (to) setToAddress(to);
 
 	mStartTime = std::time(nullptr);
 	mStartDate = Utils::getTimeAsString("%c", mStartTime);
@@ -52,6 +53,16 @@ CallLog::CallLog(shared_ptr<Core> core,
 	mReporting.reports[LINPHONE_CALL_STATS_AUDIO] = linphone_reporting_new();
 	mReporting.reports[LINPHONE_CALL_STATS_VIDEO] = linphone_reporting_new();
 	mReporting.reports[LINPHONE_CALL_STATS_TEXT] = linphone_reporting_new();
+}
+
+CallLog::CallLog(const CallLog &other) : HybridObject(other), CoreAccessor(other.getCore()) {
+	mCallId = other.mCallId;
+	mStartTime = other.mStartTime;
+	mFrom = other.mFrom->clone()->toSharedPtr();
+	mTo = other.mTo->clone()->toSharedPtr();
+	mDirection = other.mDirection;
+	mStatus = other.mStatus;
+	mDuration = other.mDuration;
 }
 
 CallLog::~CallLog() {
@@ -64,6 +75,9 @@ CallLog::~CallLog() {
 	if (mErrorInfo != nullptr) linphone_error_info_unref(mErrorInfo);
 }
 
+CallLog *CallLog::clone() const {
+	return new CallLog(*this);
+}
 // =============================================================================
 
 LinphoneCallDir CallLog::getDirection() const {
@@ -216,12 +230,12 @@ std::shared_ptr<ConferenceInfo> CallLog::getConferenceInfo() const {
 	// in the database.
 	if (auto db = getCore()->getDatabase()) {
 		if (mConferenceInfoId != -1) {
-			mConferenceInfo = db.value().get()->getConferenceInfo(mConferenceInfoId);
+			mConferenceInfo = db.value().get().getConferenceInfo(mConferenceInfoId);
 		} else if (mTo && !mConferenceInfo) {
 			// Try to find the conference info based on the to address
 			// We enter this branch of the if-else statement only if the call cannot be started right away, for example
 			// when ICE candidates need to be gathered first
-			mConferenceInfo = db.value().get()->getConferenceInfoFromURI(getRemoteAddress());
+			mConferenceInfo = db.value().get().getConferenceInfoFromURI(getRemoteAddress());
 		}
 	}
 
@@ -240,36 +254,75 @@ const std::shared_ptr<AbstractChatRoom> CallLog::getChatRoom() const {
 
 string CallLog::toString() const {
 	ostringstream os;
-
-	os << (mDirection == LinphoneCallIncoming ? "Incoming call" : "Outgoing call") << " with call-id: " << mCallId
-	   << " at " << mStartDate << "\n";
+	std::string direction = Call::callDirToText(mDirection);
+	direction[0] = (char)toupper(direction[0]);
+	os << direction << " call" << " with call-id: " << mCallId << " at " << mStartDate << "\n";
 
 	os << "From: " << *mFrom << "\nTo: " << *mTo << "\n";
 
-	string status;
-	switch (mStatus) {
-		case LinphoneCallAborted:
-			status = "aborted";
-			break;
-		case LinphoneCallSuccess:
-			status = "completed";
-			break;
-		case LinphoneCallMissed:
-			status = "missed";
-			break;
-		case LinphoneCallAcceptedElsewhere:
-			status = "answered elsewhere";
-			break;
-		case LinphoneCallDeclinedElsewhere:
-			status = "declined elsewhere";
-			break;
-		default:
-			status = "unknown";
-	}
-
-	os << "Status: " << status << "\nDuration: " << (mDuration / 60) << " mn " << (mDuration % 60) << " sec\n";
+	os << "Status: " << Call::callStatusToText(mStatus) << "\nDuration: " << (mDuration / 60) << " mn "
+	   << (mDuration % 60) << " sec\n";
 
 	return os.str();
+}
+
+// See getJsonHelp() for definitions
+string CallLog::toJson() const {
+	Json::StreamWriterBuilder builder;
+	Json::Value json;
+	json["call_id"] = mCallId;
+	json["start_dt"] = Utils::timeToIso8601(mStartTime);
+	json["from"] = mFrom->asStringUriOnly();
+	json["to"] = mTo->asStringUriOnly();
+	json["direction"] = Call::callDirToText(mDirection);
+	json["status"] = Call::callStatusToText(mStatus);
+	json["duration_s"] = mDuration;
+	json["version"] = 1;
+	return string(Json::writeString(builder, json));
+}
+
+// Only overwrite if JSON item exists.
+int CallLog::fromJson(const string &json) {
+	Json::CharReaderBuilder builder;
+	Json::Value root;
+	JSONCPP_STRING err;
+
+	const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+
+	if (!reader->parse(json.c_str(), json.c_str() + json.length(), &root, &err)) {
+		lError() << err;
+		return -1;
+	} else {
+		// It's JSON that can be written by external. We need to check the validity.
+		int version = 1;
+		if (root.isMember("version")) version = root["version"].asInt();
+		else {
+			lWarning() << "Parsing JSON for CallLog: `version` key is missing. Parsing like a version 1.";
+		}
+		if (version >= 1) {
+			if (root.isMember("direction")) setDirection(Call::textToCallDir(root["direction"].asString()));
+			if (root.isMember("call_id")) setCallId(root["call_id"].asString());
+			if (root.isMember("start_dt")) setStartTime(Utils::iso8601ToTime(root["start_dt"].asString()));
+			if (root.isMember("from")) setFromAddress(Address::create(root["from"].asString()));
+			if (root.isMember("to")) setToAddress(Address::create(root["to"].asString()));
+			if (root.isMember("status")) setStatus(Call::textToCallStatus(root["status"].asString()));
+			if (root.isMember("duration_s")) setDuration(root["duration_s"].asInt());
+		}
+	}
+	return 0;
+}
+
+std::map<std::string, std::string> CallLog::getJsonHelp() {
+	std::map<std::string, std::string> help;
+	help["version"] = "The version number of the JSON. (Currently V1)";
+	help["direction"] = "The text value of LinphoneCallDir";
+	help["call_id"] = "The call ID";
+	help["start_dt"] = "The start date time in ISO8601";
+	help["from"] = "The FROM address of the call log";
+	help["to"] = "The TO address of the call log";
+	help["status"] = "The text value of LinphoneCallStatus";
+	help["duration_s"] = "The duration in seconds";
+	return help;
 }
 
 LINPHONE_END_NAMESPACE

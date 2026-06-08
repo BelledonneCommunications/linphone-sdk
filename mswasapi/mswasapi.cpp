@@ -37,6 +37,7 @@
 static const int minBufferDurationMs = 200; // ms
 
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
+const IID IID_IAudioClock = __uuidof(IAudioClock);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 const IID IID_ISimpleAudioVolume = __uuidof(ISimpleAudioVolume);
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL) || defined(MS2_WINDOWS_UWP)
@@ -84,7 +85,7 @@ void MSWasapi::changePolicies(IMMDevice *device) {
 		IPolicyConfig *policyConfig;
 		result = CoCreateInstance(CLSID_PolicyConfig, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&policyConfig));
 		REPORT_ERROR(("mswasapi: Disabling audio enhancements requested but could not get policy config for audio " +
-		              mMediaDirectionStr + " [%x]")
+		              mMediaDirectionStr + " [0x%X]")
 		                 .c_str(),
 		             result);
 		PROPVARIANT var;
@@ -222,7 +223,7 @@ int MSWasapi::prepareInitialize(bool isCapture,
 				format->pUsedWfx = format->pSupportedWfx2;
 			} else if (result != S_OK) {
 				REPORT_ERROR(("mswasapi: Audio format doesn't support 16bits frames by the MSWASAPI audio " +
-				              mMediaDirectionStr + "  interface [%x]")
+				              mMediaDirectionStr + "  interface [0x%X]")
 				                 .c_str(),
 				             result);
 			}
@@ -247,7 +248,7 @@ int MSWasapi::prepareInitialize(bool isCapture,
 		if (formatNotExpected) ms_filter_notify_no_arg(mFilter, MS_FILTER_OUTPUT_FMT_CHANGED);
 	} else {
 		REPORT_ERROR(
-		    ("mswasapi: Audio format not supported by the MSWASAPI audio " + mMediaDirectionStr + "interface [%x]")
+		    ("mswasapi: Audio format not supported by the MSWASAPI audio " + mMediaDirectionStr + "interface [0x%X]")
 		        .c_str(),
 		    result);
 	}
@@ -286,7 +287,7 @@ int MSWasapi::activate(bool isCapture, void **audioClient) {
 	}
 	if (result != S_OK) {
 		REPORT_ERROR(
-		    ("mswasapi: Could not initialize the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
+		    ("mswasapi: Could not initialize the MSWASAPI audio " + mMediaDirectionStr + " interface [0x%X]").c_str(),
 		    result);
 	}
 	mNBlockAlign = format.pUsedWfx->nBlockAlign;
@@ -294,29 +295,29 @@ int MSWasapi::activate(bool isCapture, void **audioClient) {
 	mCurrentNChannels = mTargetNChannels;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR(
-	    ("mswasapi: Could not get buffer size for the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]")
+	    ("mswasapi: Could not get buffer size for the MSWASAPI audio " + mMediaDirectionStr + " interface [0x%X]")
 	        .c_str(),
 	    result);
 	ms_message("mswasapi: audio %s interface buffer size: %i", mMediaDirectionStr.c_str(), mBufferFrameCount);
 	result =
 	    mAudioClient->GetService(isCapture ? IID_IAudioCaptureClient : IID_IAudioRenderClient, (void **)audioClient);
 	REPORT_ERROR(
-	    ("mswasapi: Could not get service from the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
+	    ("mswasapi: Could not get service from the MSWASAPI audio " + mMediaDirectionStr + " interface [0x%X]").c_str(),
 	    result);
 	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeController);
 	REPORT_ERROR_NOGOTO(("mswasapi: Could not get volume control service from the MSWASAPI audio " +
-	                     mMediaDirectionStr + " interface [%x]")
+	                     mMediaDirectionStr + " interface [0x%X]")
 	                        .c_str(),
 	                    result);
 	result = mAudioClient->GetService(__uuidof(IAudioSessionControl), (void **)&mAudioSessionControl);
 	REPORT_ERROR_NOGOTO(("mswasapi: Could not get audio session control service from the MSWASAPI audio " +
-	                     mMediaDirectionStr + " interface [%x]")
+	                     mMediaDirectionStr + " interface [0x%X]")
 	                        .c_str(),
 	                    result);
 	if (mAudioSessionControl != nullptr) {
 		result = mAudioSessionControl->RegisterAudioSessionNotification(this);
 		REPORT_ERROR_NOGOTO(("mswasapi: Could not register to Audio Session from the MSWASAPI audio " +
-		                     mMediaDirectionStr + " interface [%x]")
+		                     mMediaDirectionStr + " interface [0x%X]")
 		                        .c_str(),
 		                    result);
 	}
@@ -350,7 +351,7 @@ void MSWasapi::start() {
 	if (!isStarted() && mIsActivated) {
 		result = mAudioClient->Start();
 		if (result != S_OK) {
-			ms_error("mswasapi: Could not start MSWASAPI audio %s interface [%x]", mMediaDirectionStr.c_str(), result);
+			ms_error("mswasapi: Could not start MSWASAPI audio %s interface [0x%X]", mMediaDirectionStr.c_str(), result);
 			return;
 		}
 		mIsStarted = true;
@@ -364,7 +365,7 @@ void MSWasapi::stop() {
 		mIsStarted = false;
 		result = mAudioClient->Stop();
 		if (result != S_OK) {
-			ms_error("mswasapi: Could not stop MSWASAPI audio %s interface [%x]", mMediaDirectionStr.c_str(), result);
+			ms_error("mswasapi: Could not stop MSWASAPI audio %s interface [0x%X]", mMediaDirectionStr.c_str(), result);
 		}
 	}
 }
@@ -378,7 +379,7 @@ float MSWasapi::getVolumeLevel() {
 		goto error;
 	}
 	result = mVolumeController->GetMasterVolume(&volume);
-	REPORT_ERROR(("mswasapi: Could not get the " + mMediaDirectionStr + " master volume [%x]").c_str(), result);
+	REPORT_ERROR(("mswasapi: Could not get the " + mMediaDirectionStr + " master volume [0x%X]").c_str(), result);
 	return volume;
 
 error:
@@ -393,7 +394,7 @@ void MSWasapi::setVolumeLevel(float volume) {
 		goto error;
 	}
 	result = mVolumeController->SetMasterVolume(volume, NULL);
-	REPORT_ERROR(("mswasapi: Could not set the " + mMediaDirectionStr + " master volume [%x]").c_str(), result);
+	REPORT_ERROR(("mswasapi: Could not set the " + mMediaDirectionStr + " master volume [0x%X]").c_str(), result);
 
 error:
 	return;
@@ -514,7 +515,7 @@ int MSWasapi::createAudioClient() {
 	AudioClientProperties properties = {0};
 	IActivateAudioInterfaceAsyncOperation *asyncOp;
 	HRESULT result = ActivateAudioInterfaceAsync(mDeviceId->Data(), IID_IAudioClient2, NULL, this, &asyncOp);
-	REPORT_ERROR(("mswasapi: Could not activate the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
+	REPORT_ERROR(("mswasapi: Could not activate the MSWASAPI audio " + mMediaDirectionStr + " interface [0x%X]").c_str(),
 	             result);
 	WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
 	if (mAudioClient == NULL) {
@@ -524,7 +525,7 @@ int MSWasapi::createAudioClient() {
 #elif defined(MS2_WINDOWS_PHONE)
 	AudioClientProperties properties = {0};
 	HRESULT result = ActivateAudioInterface(mDeviceId, IID_IAudioClient2, (void **)&mAudioClient);
-	REPORT_ERROR(("mswasapi: Could not activate the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
+	REPORT_ERROR(("mswasapi: Could not activate the MSWASAPI audio " + mMediaDirectionStr + " interface [0x%X]").c_str(),
 	             result);
 #else
 #ifdef ENABLE_MICROSOFT_STORE_APP
@@ -536,7 +537,7 @@ int MSWasapi::createAudioClient() {
 	IActivateAudioInterfaceAsyncOperation *asyncOp = NULL;
 	if (mIsDefaultDevice) {
 		HRESULT result = ActivateAudioInterfaceAsync(mDeviceId, __uuidof(IAudioClient2), NULL, this, &asyncOp);
-		REPORT_ERROR(("mswasapi: Could not async activate the MSWASAPI audio " + mMediaDirectionStr + " [%x]").c_str(),
+		REPORT_ERROR(("mswasapi: Could not async activate the MSWASAPI audio " + mMediaDirectionStr + " [0x%X]").c_str(),
 		             result);
 		WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
 		SAFE_RELEASE(asyncOp); // If not call, "this" will keep a ref count. This is not documented.
@@ -550,14 +551,14 @@ int MSWasapi::createAudioClient() {
 		IMMDevice *pDevice = NULL;
 		HRESULT result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator,
 		                                  (void **)&pEnumerator);
-		REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator [%x]", result);
+		REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator [0x%X]", result);
 		result = pEnumerator->GetDevice(mDeviceId, &pDevice);
 		SAFE_RELEASE(pEnumerator);
-		REPORT_ERROR("mswasapi: Could not get the device [%x]", result);
+		REPORT_ERROR("mswasapi: Could not get the device [0x%X]", result);
 		changePolicies(pDevice);
 		result = pDevice->Activate(__uuidof(IAudioClient2), CLSCTX_ALL, NULL, (void **)&mAudioClient);
 		SAFE_RELEASE(pDevice);
-		REPORT_ERROR("mswasapi: Could not activate the device [%x]", result);
+		REPORT_ERROR("mswasapi: Could not activate the device [0x%X]", result);
 	}
 #endif
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
@@ -566,7 +567,7 @@ int MSWasapi::createAudioClient() {
 	properties.eCategory = AudioCategory_Communications;
 	result = mAudioClient->SetClientProperties(&properties);
 	REPORT_ERROR(
-	    ("mswasapi: Could not set properties of the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
+	    ("mswasapi: Could not set properties of the MSWASAPI audio " + mMediaDirectionStr + " interface [0x%X]").c_str(),
 	    result);
 #endif
 	if (cleanCo) CoUninitialize();
@@ -624,7 +625,7 @@ bool MSWasapi::isFormatUpdated() {
 	if (!mAudioClient) return true;
 	HRESULT result = mAudioClient->GetMixFormat(&pWfx); // Get best format for shared mode.
 	REPORT_ERROR(
-	    ("mswasapi: Could not get the mix format of the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]")
+	    ("mswasapi: Could not get the mix format of the MSWASAPI audio " + mMediaDirectionStr + " interface [0x%X]")
 	        .c_str(),
 	    result);
 	changed = mForceNChannels == OverwriteState::TO_DO || mForceRate == OverwriteState::TO_DO ||
@@ -643,7 +644,7 @@ void MSWasapi::updateFormat(bool useBestFormat) {
 		WAVEFORMATEX *pWfx = NULL;
 		HRESULT result = mAudioClient->GetMixFormat(&pWfx); // Get best format for shared mode.
 		REPORT_ERROR(
-		    ("mswasapi: Could not get the mix format of the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]")
+		    ("mswasapi: Could not get the mix format of the MSWASAPI audio " + mMediaDirectionStr + " interface [0x%X]")
 		        .c_str(),
 		    result);
 		if (mForceRate == OverwriteState::DO_NOTHING && mTargetRate != pWfx->nSamplesPerSec) {
@@ -800,7 +801,7 @@ HRESULT MSWasapi::ActivateCompleted(IActivateAudioInterfaceAsyncOperation *opera
 			}
 		}
 	} else
-		ms_error("mswasapi: Could not activate the MSWASAPI audio %s interface [%x]", mMediaDirectionStr.c_str(),
+		ms_error("mswasapi: Could not activate the MSWASAPI audio %s interface [0x%X]", mMediaDirectionStr.c_str(),
 		         hrActivateResult);
 exit:
 	SAFE_RELEASE(audioInterface);

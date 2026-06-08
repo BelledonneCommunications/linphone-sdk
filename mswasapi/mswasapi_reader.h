@@ -50,6 +50,7 @@ private:
 	void silence(MSFilter *f);
 
 	IAudioCaptureClient *mAudioCaptureClient;
+	IAudioClock *mAudioClock;
 	MSTickerSynchronizer *mTickerSynchronizer;
 	// If timestamp cannot be retrieved from API, use it to count timestamp for ticker synchronizer: -1=not used
 	UINT64 mSampleTime = (UINT64)-1;

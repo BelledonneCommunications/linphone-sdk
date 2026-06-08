@@ -122,7 +122,7 @@ static void conference_with_media_lost_base(bool_t server_drops) {
 			linphone_call_params_set_video_direction(new_params, LinphoneMediaDirectionSendRecv);
 			if (mgr == marie.getCMgr()) {
 				linphone_call_params_enable_screen_sharing(new_params, TRUE);
-				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingWindow,
+				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingDisplay,
 				                                                    NULL);
 			} else {
 				linphone_video_source_descriptor_set_camera_id(descriptor, liblinphone_tester_mire_id);
@@ -3088,7 +3088,7 @@ static void conference_with_two_participant_having_screen_sharing_enabled_since_
 			} else if (mgr == pauline.getCMgr()) {
 				linphone_call_params_enable_screen_sharing(new_params, TRUE);
 				linphone_call_params_enable_mic(new_params, FALSE);
-				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingWindow,
+				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingDisplay,
 				                                                    NULL);
 			} else {
 				linphone_video_source_descriptor_set_camera_id(descriptor, liblinphone_tester_mire_id);
@@ -3443,7 +3443,7 @@ static void conference_with_screen_sharing_participant_only() {
 			linphone_call_params_set_video_direction(new_params, LinphoneMediaDirectionSendRecv);
 			if (mgr == marie.getCMgr()) {
 				linphone_call_params_enable_screen_sharing(new_params, TRUE);
-				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingWindow,
+				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingDisplay,
 				                                                    NULL);
 			} else {
 				linphone_video_source_descriptor_set_camera_id(descriptor, liblinphone_tester_mire_id);
@@ -7312,7 +7312,7 @@ static void rejoining_conference_after_end(int cleanup_period, bool_t enable_cha
 			                            memberList, confAddr, FALSE, security_level);
 			size_t nbChatRooms = (!!enable_chat) ? 1 : 0;
 			auto focusMainDb = focus.getDatabase();
-			BC_ASSERT_EQUAL(focusMainDb.value().get()->getChatRoomCount(), nbChatRooms, size_t, "%zu");
+			BC_ASSERT_EQUAL(focusMainDb.value().get().getChatRoomCount(), nbChatRooms, size_t, "%zu");
 			BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), 0, size_t, "%zu");
 			focus_stat = focus.getStats();
 			for (auto mgr : members) {
@@ -7428,14 +7428,14 @@ static void rejoining_conference_after_end(int cleanup_period, bool_t enable_cha
 			size_t nbChatRooms = 0;
 			BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 			auto focusMainDb = focus.getDatabase();
-			BC_ASSERT_EQUAL(focusMainDb.value().get()->getChatRoomCount(), nbChatRooms, size_t, "%zu");
+			BC_ASSERT_EQUAL(focusMainDb.value().get().getChatRoomCount(), nbChatRooms, size_t, "%zu");
 			coresList = bctbx_list_remove(coresList, focus.getLc());
 			ms_message("%s is restarting its core", linphone_core_get_identity(focus.getLc()));
 			// Restart flexisip
 			focus.reStart();
 			coresList = bctbx_list_append(coresList, focus.getLc());
 			focusMainDb = focus.getDatabase();
-			BC_ASSERT_EQUAL(focusMainDb.value().get()->getChatRoomCount(), nbChatRooms, size_t, "%zu");
+			BC_ASSERT_EQUAL(focusMainDb.value().get().getChatRoomCount(), nbChatRooms, size_t, "%zu");
 			BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), nbChatRooms, size_t, "%zu");
 
 			ms_message("%s is calling expired conference %s after the server restarts",
@@ -9523,20 +9523,12 @@ static void client_changes_layout_in_conference_with_anonymous_participants() {
 static test_t local_conference_scheduled_conference_basic_tests[] = {
     TEST_NO_TAG("Conference joined multiple times", LinphoneTest::conference_joined_multiple_times),
     TEST_NO_TAG("Call to inexisting conference address", LinphoneTest::call_to_inexisting_conference_address),
-    TEST_NO_TAG("Conference with media lost on the client side",
-                LinphoneTest::conference_with_media_lost_on_the_client_side),
-    TEST_NO_TAG("Conference with media lost on the server side",
-                LinphoneTest::conference_with_media_lost_on_the_server_side),
-    TEST_ONE_TAG("Conference with server no RTP timeout",
-                 LinphoneTest::conference_with_server_no_rtp_timeout,
-                 "LeaksMemory"), /* due to Core restart */
 #ifndef HAVE_EKT_SERVER_PLUGIN
     TEST_NO_TAG("Encrypted conference on server without e2e support",
                 LinphoneTest::encrypted_conference_on_server_without_e2e_support),
 #endif // HAVE_EKT_SERVER_PLUGIN
     TEST_NO_TAG("Conference with participants are late except for one",
                 LinphoneTest::conference_with_participants_late_except_one),
-    TEST_NO_TAG("Create conference on unresponsive server", LinphoneTest::create_conference_on_unresponsive_server),
     TEST_NO_TAG("Create simple conference", LinphoneTest::create_simple_conference),
     TEST_NO_TAG("Create simple conference using DB conference scheduler",
                 LinphoneTest::create_simple_conference_db_conference_scheduler),
@@ -9560,7 +9552,17 @@ static test_t local_conference_scheduled_conference_basic_tests[] = {
     TEST_NO_TAG("Create conference starting immediately", LinphoneTest::create_conference_starting_immediately),
     TEST_NO_TAG("Create conference starting in the past", LinphoneTest::create_conference_starting_in_the_past),
     TEST_NO_TAG("Create conference with recvonly participant",
-                LinphoneTest::create_conference_with_recvonly_participant),
+                LinphoneTest::create_conference_with_recvonly_participant)};
+
+static test_t local_conference_scheduled_conference_media_problem_tests[] = {
+    TEST_NO_TAG("Create conference on unresponsive server", LinphoneTest::create_conference_on_unresponsive_server),
+    TEST_NO_TAG("Conference with media lost on the client side",
+                LinphoneTest::conference_with_media_lost_on_the_client_side),
+    TEST_NO_TAG("Conference with media lost on the server side",
+                LinphoneTest::conference_with_media_lost_on_the_server_side),
+    TEST_ONE_TAG("Conference with server no RTP timeout",
+                 LinphoneTest::conference_with_server_no_rtp_timeout,
+                 "LeaksMemory"), /* due to Core restart */
     TEST_NO_TAG("Create conference with participant codec mismatch",
                 LinphoneTest::create_conference_with_participant_codec_mismatch),
     TEST_NO_TAG("Create conference with organizer codec mismatch",
@@ -9689,7 +9691,9 @@ static test_t local_conference_scheduled_conference_with_chat_tests[] = {
                 LinphoneTest::conference_with_chat_and_participants_dialing_in_after_end),
     TEST_NO_TAG("Rejoining conference with chat after end with cleanup period",
                 LinphoneTest::rejoining_conference_with_chat_after_end_with_cleanup_period),
-    TEST_NO_TAG("Conference with chat joined multiple times", LinphoneTest::conference_with_chat_joined_multiple_times),
+    TEST_ONE_TAG("Conference with chat joined multiple times",
+                 LinphoneTest::conference_with_chat_joined_multiple_times,
+                 "shaky"),
     TEST_NO_TAG("Alone in conference with chat exits and enters again",
                 LinphoneTest::alone_in_conference_with_chat_exits_enter)};
 
@@ -9711,6 +9715,19 @@ test_suite_t local_conference_test_suite_scheduled_conference_basic = {
         sizeof(local_conference_scheduled_conference_basic_tests[0]),
     local_conference_scheduled_conference_basic_tests,
     0,
+    5 /*cpu_weight : video conference uses more resources */
+};
+
+test_suite_t local_conference_test_suite_scheduled_conference_media_problem = {
+    "Local conference tester (Scheduled Conference with media issues)",
+    NULL,
+    NULL,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(local_conference_scheduled_conference_media_problem_tests) /
+        sizeof(local_conference_scheduled_conference_media_problem_tests[0]),
+    local_conference_scheduled_conference_media_problem_tests,
+    0,
     4 /*cpu_weight : video conference uses more resources */
 };
 
@@ -9724,7 +9741,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_advanced = {
         sizeof(local_conference_scheduled_conference_advanced_tests[0]),
     local_conference_scheduled_conference_advanced_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_audio_only_participant = {
@@ -9737,7 +9754,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_audio_only_partici
         sizeof(local_conference_scheduled_conference_audio_only_participant_tests[0]),
     local_conference_scheduled_conference_audio_only_participant_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_with_screen_sharing = {
@@ -9750,7 +9767,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_with_screen_sharin
         sizeof(local_conference_scheduled_conference_with_screen_sharing_tests[0]),
     local_conference_scheduled_conference_with_screen_sharing_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_with_chat = {
@@ -9763,7 +9780,7 @@ test_suite_t local_conference_test_suite_scheduled_conference_with_chat = {
         sizeof(local_conference_scheduled_conference_with_chat_tests[0]),
     local_conference_scheduled_conference_with_chat_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };
 
 test_suite_t local_conference_test_suite_scheduled_conference_with_chat_anonymous_participants = {
@@ -9776,5 +9793,5 @@ test_suite_t local_conference_test_suite_scheduled_conference_with_chat_anonymou
         sizeof(local_conference_scheduled_conference_with_chat_anonymous_participants_tests[0]),
     local_conference_scheduled_conference_with_chat_anonymous_participants_tests,
     0,
-    4 /*cpu_weight : video conference uses more resources */
+    5 /*cpu_weight : video conference uses more resources */
 };

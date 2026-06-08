@@ -20,7 +20,7 @@
 
 #include <iterator>
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "linphone/utils/algorithm.h"
 
@@ -36,6 +36,7 @@
 #include "conference/participant.h"
 #include "conference/server-conference.h"
 #include "core-p.h"
+#include "factory/factory.h"
 #include "linphone/api/c-account-params.h"
 #include "linphone/api/c-account.h"
 #include "linphone/api/c-chat-message-cbs.h"
@@ -181,7 +182,7 @@ CorePrivate::createClientChatRoom(const std::shared_ptr<const Address> &conferen
 	    (new ClientConference(q->getSharedFromThis(), nullptr, params))->toSharedPtr());
 	conference->initWithFocus(conferenceFactoryUri, nullptr, op, conference.get());
 	if (conferenceId.isValid()) {
-		conference->setConferenceId(conferenceId);
+		conference->setConferenceId(conferenceId, true);
 	}
 	lInfo() << *conference << " with id " << conferenceId
 	        << " and chat only capabilities has been successfully created";
@@ -589,10 +590,10 @@ void CorePrivate::handleEphemeralMessages(time_t currentTime) {
 		shared_ptr<ChatMessage> msg = ephemeralMessages.front();
 		time_t expireTime = msg->getEphemeralExpireTime();
 		if (currentTime > expireTime) {
-			shared_ptr<LinphonePrivate::EventLog> event = mainDb->getEvent(msg->getStorageId());
+			shared_ptr<LinphonePrivate::EventLog> event = msg->getEventLog();
 			shared_ptr<AbstractChatRoom> chatRoom = msg->getChatRoom();
 			if (chatRoom && event) {
-				LinphonePrivate::EventLog::deleteFromDatabase(event);
+				chatRoom->deleteMessageFromHistory(msg);
 				lInfo() << "[Ephemeral] Message " << msg << " (call ID " << msg->getPrivate()->getCallId()
 				        << ") deleted from database";
 
@@ -950,22 +951,19 @@ shared_ptr<AbstractChatRoom> Core::getOrCreateBasicChatRoomFromUri(const std::st
 }
 
 void Core::deleteChatRoom(const shared_ptr<AbstractChatRoom> &chatRoom) {
-	auto core = chatRoom->getCore();
+	L_D();
+	lInfo() << "Trying to delete " << *chatRoom;
 
 	const ConferenceId &conferenceId = chatRoom->getConferenceId();
-	lInfo() << "Trying to delete chat room [" << chatRoom << "] with conference ID " << conferenceId << ".";
-
-	auto chatRoomInCoreMap = core->findChatRoom(conferenceId, false);
+	auto chatRoomInCoreMap = findChatRoom(conferenceId, false);
 	if (chatRoomInCoreMap) {
-		CorePrivate *d = core->getPrivate();
 		d->mConferenceById.erase(conferenceId);
 		d->mBasicChatRoomsById.erase(conferenceId);
-		if (auto db = core->getDatabase()) {
-			db.value().get()->deleteChatRoom(conferenceId);
+		if (auto db = getDatabase()) {
+			db.value().get().deleteChatRoom(conferenceId);
 		}
 	} else {
-		lError() << "Unable to delete chat room [" << chatRoom << "] with conference ID " << conferenceId
-		         << " because it cannot be found.";
+		lError() << "Unable to delete " << *chatRoom << " because it cannot be found.";
 	}
 }
 
@@ -1073,7 +1071,7 @@ LinphoneReason Core::onSipMessageReceived(SalOp *op, const SalMessage *sal_msg) 
 				conferenceId.setLocalAddress(localAccount->getAccountParams()->getIdentityAddress(), true);
 
 				if (auto db = getDatabase()) {
-					db.value().get()->updateChatRoomConferenceId(oldConfId, conferenceId);
+					db.value().get().updateChatRoomConferenceId(oldConfId, conferenceId);
 				}
 				auto basicChatRoom = dynamic_pointer_cast<BasicChatRoom>(chatRoom);
 				basicChatRoom->setConferenceId(conferenceId);
@@ -1212,6 +1210,60 @@ void Core::setMaxDelayToEditRetractAlreadySentMessage(int maxDelayInSeconds) {
 	LinphoneConfig *config = linphone_core_get_config(cCore);
 	linphone_config_set_int(config, "chat", "max_delay_to_edit_retract_already_sent_message", maxDelayInSeconds);
 	mMaxDelayToEditRetractAlreadySentMessage = maxDelayInSeconds;
+}
+
+void Core::enableChatMessageFileDeletion(bool enabled) {
+	mFileContentIsToBeDeleted = enabled;
+	if (linphone_core_ready(getCCore())) {
+		LinphoneConfig *config = linphone_core_get_config(getCCore());
+		linphone_config_set_int(config, "chat", "delete_contents", enabled ? 1 : 0);
+	}
+}
+
+void Core::setFileContentsDirectories(const std::list<std::string> &directories) {
+	mFileContentsDirs.mList = directories;
+}
+
+const ListHolder<std::string> &Core::getFileContentsDirectories() const {
+	return mFileContentsDirs;
+}
+
+bool Core::chatMessageFileDeletionEnabled() const {
+	if (mFileContentIsToBeDeleted == -1) {
+		LinphoneConfig *config = linphone_core_get_config(getCCore());
+		mFileContentIsToBeDeleted = linphone_config_get_int(config, "chat", "delete_contents", 0);
+	}
+	return mFileContentIsToBeDeleted == 1 ? true : false;
+}
+
+/*
+ * For security, only files within the directories specified by setFileContentsDirectories() are considered
+ * for deletion. .
+ * The [chat]/delete_contents controls enablement of this feature, which FALSE by default.
+ */
+bool Core::fileContentIsToBeDeleted(const std::string &filepath) {
+	if (!chatMessageFileDeletionEnabled()) return false;
+	for (const auto &directory : mFileContentsDirs.mList) {
+		if (filepath.find(directory) == 0) {
+			return true;
+		}
+	}
+	lInfo() << "'" << filepath << "' will not be deleted because it is not in the authorized directories.";
+	return false;
+}
+
+/* This method calls fileContentIsToBeDeleted() for each element in the path list.
+ * It can be used for deleting files from a single ChatMessage, or a whole ChatRoom */
+void Core::deleteFileContentsIfNecessary(const std::list<std::string> &paths) {
+	for (auto &path : paths) {
+		if (fileContentIsToBeDeleted(path)) {
+			if (::remove(path.c_str()) != 0) {
+				lWarning() << "Cannot remove file '" << path << "': " << strerror(errno);
+			} else {
+				lInfo() << "'" << path << " deleted.";
+			}
+		}
+	}
 }
 
 LINPHONE_END_NAMESPACE

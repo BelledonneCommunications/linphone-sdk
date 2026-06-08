@@ -78,11 +78,17 @@ std::condition_variable MsScreenSharing::mThreadIterator;
 MsScreenSharing::MsScreenSharing() {
 	mSourceDesc.type = MS_SCREEN_SHARING_EMPTY;
 	mSourceDesc.native_data = NULL;
+	mLastIdleTime = std::chrono::nanoseconds(0);
+	mCreatorTags = bctbx_create_log_tags_copy();
 }
 
 MsScreenSharing::~MsScreenSharing() {
 	stop();
 	ms_message("[MsScreenSharing] Destroyed");
+	if (mCreatorTags) {
+		bctbx_log_tags_destroy(mCreatorTags);
+		mCreatorTags = nullptr;
+	}
 }
 
 void MsScreenSharing::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) {
@@ -100,6 +106,7 @@ void MsScreenSharing::init() {
 	mLastFormat.mScreenIndex = screenIndex;
 	mLastFormat.mLastTimeSizeChanged = std::chrono::system_clock::now();
 	ms_video_init_framerate_controller(&mIdleFramerateController, 3.0);
+	ms_message("[MsScreenSharing] Initialized for %d", mSourceDesc.type);
 }
 
 void MsScreenSharing::uninit() {
@@ -284,6 +291,11 @@ void MsScreenSharing::getWindowSize(BCTBX_UNUSED(int *windowX),
 }
 
 void MsScreenSharing::inputThread() {
+	if (mCreatorTags) {
+		bctbx_paste_log_tags(mCreatorTags);
+		bctbx_log_tags_destroy(mCreatorTags);
+		mCreatorTags = nullptr;
+	}
 	ms_message("[MsScreenSharing] Input thread started. %d", (int)mToStop);
 	int grabX, grabY, grabWidth, grabHeight;
 	if (mRunnable) {
@@ -315,10 +327,10 @@ void MsScreenSharing::inputThread() {
 			auto targetTimeFrame = std::chrono::milliseconds(
 			    MIN((int)(1000.0 / mFps), 333)); // Get potential new value. Cap to around 3fps
 			auto workTimeFrame = (std::chrono::system_clock::now() - startTime);
-
+			mLastIdleTime = targetTimeFrame - workTimeFrame;
 			if (targetTimeFrame > workTimeFrame) {
 				std::unique_lock<std::mutex> lock(mThreadLock);
-				mThreadIterator.wait_for(lock, targetTimeFrame - workTimeFrame, [this] { return this->mToStop; });
+				mThreadIterator.wait_for(lock, mLastIdleTime, [this] { return this->mToStop; });
 			}
 			startTime = std::chrono::system_clock::now();
 		}
@@ -369,6 +381,21 @@ void MsScreenSharing::feed(MSFilter *filter) {
 		mFrameLock.unlock();
 	}
 }
+
+bool MsScreenSharing::checkTimeFrameReached(std::chrono::time_point<std::chrono::system_clock> &lastTime,
+                                            long &lastCode,
+                                            long code,
+                                            const std::chrono::duration<int64_t> &timeFrame) {
+	auto currentTime = std::chrono::system_clock::now();
+	auto workTimeFrame = (currentTime - lastTime);
+	if (lastCode != code || workTimeFrame > timeFrame) {
+		lastTime = currentTime;
+		lastCode = code;
+		return true;
+	}
+	return false;
+}
+
 //------------------------------------------------------------------------------------------------------------
 //											C INTERFACE
 //------------------------------------------------------------------------------------------------------------

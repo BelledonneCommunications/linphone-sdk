@@ -500,6 +500,12 @@ belle_sip_stack_get_digest_authentication_policy(const belle_sip_stack_t *stack)
 int belle_sip_stack_check_digest_compatibility(const belle_sip_stack_t *stack,
                                                const belle_sip_header_www_authenticate_t *authenticate) {
 	const char *algo = belle_sip_header_www_authenticate_get_algorithm(authenticate);
+	const char *realm = belle_sip_header_www_authenticate_get_realm(authenticate);
+
+	if (realm == NULL) {
+		belle_sip_warning("Rejecting authentication because of missing realm parameter.");
+		return -1;
+	}
 
 	if (!stack->digest_auth_policy->allow_md5) {
 		if (!algo || strcasecmp(algo, "MD5") == 0) {

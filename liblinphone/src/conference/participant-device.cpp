@@ -90,7 +90,7 @@ std::shared_ptr<Address> ParticipantDevice::getAddress() const {
 Address ParticipantDevice::pruneAddress(const std::shared_ptr<const Address> &address) {
 	auto newAddress = address->getUri();
 	// Not useful to keep the transport parameter in the participant device address
-	newAddress.removeUriParam(Address::sTransportParameter);
+	newAddress.removeUriParam(Address::kTransportParameter);
 	return newAddress;
 }
 
@@ -340,7 +340,7 @@ bool ParticipantDevice::enableScreenSharing(bool enabled) {
 		mIsScreenSharing = enabled;
 		if (mSession && mSession->getPrivate()->isInConference()) {
 			if (enabled) {
-				char label[LinphonePrivate::Conference::sLabelLength];
+				char label[LinphonePrivate::Conference::kLabelLength];
 				belle_sip_random_token(label, sizeof(label));
 				setStreamLabel(label, LinphoneStreamTypeVideo);
 			} else {
@@ -813,21 +813,27 @@ void ParticipantDevice::videoDisplayErrorOccurred(int error_code) {
 void *ParticipantDevice::createWindowId(void *context) {
 	void *windowId = context;
 #ifdef VIDEO_ENABLED
-	const auto conference = getConference();
-	const auto session = getSession() ? getSession() : (conference ? conference->getMainSession() : nullptr);
-	if (session) {
-		auto s = static_pointer_cast<MediaSession>(session);
-		const auto &label = (s->requestThumbnail(getSharedFromThis())) ? getThumbnailStreamLabel()
-		                                                               : getStreamLabel(LinphoneStreamTypeVideo);
-		// Empty label is used only for main stream which is handled by the call.
-		if (label.empty() || !mGruu) {
-			lError() << "Unable to create a window ID for " << *this << " because no label is associated to it";
-		} else {
-			windowId = static_pointer_cast<MediaSession>(session)->createNativeVideoWindowId(
-			    label, conference->isMe(mGruu), true, context);
-		}
+	if (!mGruu) {
+		lError() << "Unable to create a window ID for " << *this << " because its address is not known";
 	} else {
-		lError() << "Unable to create a window ID for " << *this << " because no session is linked to this device";
+		const auto conference = getConference();
+		const auto session = getSession() ? getSession() : (conference ? conference->getMainSession() : nullptr);
+		if (session) {
+			auto s = static_pointer_cast<MediaSession>(session);
+			auto requestThumbnail = s->requestThumbnail(getSharedFromThis());
+			const auto &label =
+			    (requestThumbnail) ? getThumbnailStreamLabel() : getStreamLabel(LinphoneStreamTypeVideo);
+			// Empty label is used only for main stream which is handled by the call.
+			if (label.empty()) {
+				lError() << "Unable to create a window ID for " << *this << " because no "
+				         << ((requestThumbnail) ? "thumbnail " : "video") << " label is associated to it";
+			} else {
+				windowId = static_pointer_cast<MediaSession>(session)->createNativeVideoWindowId(
+				    label, conference->isMe(mGruu), true, context);
+			}
+		} else {
+			lError() << "Unable to create a window ID for " << *this << " because no session is linked to this device";
+		}
 	}
 #endif
 	return windowId;

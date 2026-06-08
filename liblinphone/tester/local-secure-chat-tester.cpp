@@ -33,19 +33,31 @@
 namespace LinphoneTest {
 
 static void secure_group_chat_room_with_client_restart() {
-	group_chat_room_with_client_restart_base(true, false);
+	group_chat_room_with_client_restart_base(true, false, false);
 }
 
 static void secure_group_chat_room_with_client_restart_and_server_restarted_before_participant_addition() {
-	group_chat_room_with_client_restart_base(true, true);
+	group_chat_room_with_client_restart_base(true, true, false);
 }
 
-static void secure_group_chat_room_with_invite_error() {
-	group_chat_room_with_sip_errors_base(true, false, true);
+static void secure_group_chat_room_with_invite_error_organizer() {
+	group_chat_room_with_sip_errors_base(true, false, true, true);
 }
 
-static void secure_group_chat_room_with_subscribe_error() {
-	group_chat_room_with_sip_errors_base(false, true, true);
+static void secure_group_chat_room_with_subscribe_error_organizer() {
+	group_chat_room_with_sip_errors_base(false, true, true, true);
+}
+
+static void secure_group_chat_room_with_invite_error_participant() {
+	group_chat_room_with_sip_errors_base(true, false, true, false);
+}
+
+static void secure_group_chat_room_with_subscribe_error_participant() {
+	group_chat_room_with_sip_errors_base(false, true, true, false);
+}
+
+void secure_group_chat_room_with_focus_shutdown_during_invitation() {
+	group_chat_room_with_focus_shutdown_during_invitation_base(true);
 }
 
 static void secure_chat_rooms_with_deletion_spaced_out() {
@@ -383,8 +395,8 @@ static void group_chat_room_lime_server_encrypted_message() {
 	group_chat_room_lime_server_message(TRUE);
 }
 
-static void secure_one_on_one_group_chat_room_deletion_by_server_client() {
-	one_on_one_group_chat_room_deletion_by_server_client_base(TRUE);
+static void secure_one_on_one_chat_room_deletion_by_server_client() {
+	one_on_one_chat_room_deletion_by_server_client_base(TRUE);
 }
 
 static void secure_group_chat_room_with_client_with_uppercase_username() {
@@ -491,7 +503,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 		           linphone_core_get_identity(michelle.getLc()),
 		           paulineUppercaseParticipant->getAddress()->toString().c_str(),
 		           michelleCppCr->getConferenceAddress()->toString().c_str());
-		michelleMainDb.value().get()->insertChatRoomParticipant(michelleCppCr, paulineUppercaseParticipant);
+		michelleMainDb.value().get().insertChatRoomParticipant(michelleCppCr, paulineUppercaseParticipant);
 		for (const auto &deviceCr : michelleCppCr->getConference()
 		                                ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 		                                ->getDevices()) {
@@ -501,7 +513,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 			           linphone_core_get_identity(michelle.getLc()), device->getAddress()->toString().c_str(),
 			           paulineUppercaseParticipant->getAddress()->toString().c_str(),
 			           michelleCppCr->getConferenceAddress()->toString().c_str());
-			michelleMainDb.value().get()->insertChatRoomParticipantDevice(michelleCppCr, device);
+			michelleMainDb.value().get().insertChatRoomParticipantDevice(michelleCppCr, device);
 		}
 
 		LinphoneAddress *michelleContact = linphone_account_get_contact_address(michelle.getDefaultAccount());
@@ -1281,10 +1293,10 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 				     focusCppCr->getConference()
 				         ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 				         ->getDevices()) {
-					focusMainDb.value().get()->deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
+					focusMainDb.value().get().deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
 				}
-				focusMainDb.value().get()->deleteChatRoomParticipant(focusCppCr,
-				                                                     Address::create(paulineAddr)->getSharedFromThis());
+				focusMainDb.value().get().deleteChatRoomParticipant(focusCppCr,
+				                                                    Address::create(paulineAddr)->getSharedFromThis());
 			}
 
 			stats initialFocusStats = focus.getStats();
@@ -1533,10 +1545,10 @@ static void secure_one_on_one_chat_room_recreates_chat_room_after_error(bool_t r
 				     focusCppCr->getConference()
 				         ->findParticipant(Address::toCpp(paulineAddr.toC())->getSharedFromThis())
 				         ->getDevices()) {
-					focusMainDb.value().get()->deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
+					focusMainDb.value().get().deleteChatRoomParticipantDevice(focusCppCr, deviceCr);
 				}
-				focusMainDb.value().get()->deleteChatRoomParticipant(focusCppCr,
-				                                                     Address::create(paulineAddr)->getSharedFromThis());
+				focusMainDb.value().get().deleteChatRoomParticipant(focusCppCr,
+				                                                    Address::create(paulineAddr)->getSharedFromThis());
 			}
 
 			initialPaulineStats = pauline.getStats();
@@ -1794,7 +1806,7 @@ static void secure_one_on_one_chat_room_created_twice(void) {
 		auto marieMainDb = marie.getDatabase();
 		// Delete all chatrooms from Marie's DB
 		for (auto chatRoom : marie.getCore().getChatRooms()) {
-			marieMainDb.value().get()->deleteChatRoom(chatRoom->getConferenceId());
+			marieMainDb.value().get().deleteChatRoom(chatRoom->getConferenceId());
 		}
 
 		// Restart Marie's core - No chatroom is loaded
@@ -2058,9 +2070,9 @@ static void secure_one_on_one_chat_room_with_client_sending_imdn_on_restart(void
 		// Simulate that chat message are still in state Delivered when restarting the core and the Delivery IMDN has
 		// not been sent yet
 		auto paulineMainDb = pauline.getDatabase();
-		paulineMainDb.value().get()->enableAllDeliveryNotificationRequired();
+		paulineMainDb.value().get().enableAllDeliveryNotificationRequired();
 		auto marieMainDb = marie.getDatabase();
-		marieMainDb.value().get()->enableAllDeliveryNotificationRequired();
+		marieMainDb.value().get().enableAllDeliveryNotificationRequired();
 
 		// Restart Marie
 		marie.reStart();
@@ -2125,6 +2137,10 @@ static void secure_one_on_one_chat_room_with_subscribe_not_replied(void) {
 		linphone_core_enable_lime_x3dh(focus.getLc(), lime_algo);
 		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress(), lime_algo);
 		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress(), lime_algo);
+
+		// Avoid having the message sending to be automatically triggered
+		// when core config variable 'delay_message_send_s' is expired
+		linphone_core_enable_send_message_after_notify(marie.getLc(), TRUE);
 
 		focus.registerAsParticipantDevice(marie);
 		focus.registerAsParticipantDevice(pauline);
@@ -2935,6 +2951,14 @@ static void secure_group_chat_room_with_duplications(void) {
 	group_chat_room_with_duplications_base(true);
 }
 
+void secure_one_on_one_chat_room_deleted_before_200ok(void) {
+	one_on_one_chat_room_deleted_before_200ok_base(true, false);
+}
+
+void secure_one_on_one_chat_room_deleted_before_200ok_with_server_restart(void) {
+	one_on_one_chat_room_deleted_before_200ok_base(true, true);
+}
+
 } // namespace LinphoneTest
 
 static test_t local_conference_secure_chat_tests[] = {
@@ -2947,22 +2971,12 @@ static test_t local_conference_secure_chat_tests[] = {
         LinphoneTest::secure_group_chat_room_with_client_restart_and_server_restarted_before_participant_addition,
         "LimeX3DH",
         "LeaksMemory"), /* beacause of coreMgr restart*/
-    TEST_ONE_TAG("Secure group chat with INVITE session error",
-                 LinphoneTest::secure_group_chat_room_with_invite_error,
-                 "LimeX3DH"),
-    TEST_ONE_TAG("Secure group chat with SUBSCRIBE session error",
-                 LinphoneTest::secure_group_chat_room_with_subscribe_error,
-                 "LimeX3DH"),
     TEST_TWO_TAGS("Secure chat with deletion spaced out",
                   LinphoneTest::secure_chat_rooms_with_deletion_spaced_out,
                   "LimeX3DH",
                   "LeaksMemory"),
     TEST_TWO_TAGS("Secure group chat with chat room deleted before server restart",
                   LinphoneTest::secure_group_chat_room_with_chat_room_deleted_before_server_restart,
-                  "LimeX3DH",
-                  "LeaksMemory"), /* because of network up and down */
-    TEST_TWO_TAGS("Secure one-on-one group chat deletion initiated by server and client",
-                  LinphoneTest::secure_one_on_one_group_chat_room_deletion_by_server_client,
                   "LimeX3DH",
                   "LeaksMemory"), /* because of network up and down */
     TEST_TWO_TAGS("Secure group chat with client removed while stopped (Remote Conference List Event Handler)",
@@ -2988,22 +3002,6 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_group_chat_message_sent_during_conference_creation,
                   "LimeX3DH",
                   "LeaksMemory" /*due to core restart*/),
-    TEST_TWO_TAGS("Secure one-on-one chat send message after restart",
-                  LinphoneTest::secure_one_on_one_chat_room_send_message_after_restart,
-                  "LimeX3DH",
-                  "LeaksMemory"), /* because of network up and down */
-    TEST_TWO_TAGS("Secure one-on-one chat send message after restart (no empty notify)",
-                  LinphoneTest::secure_one_on_one_chat_room_send_message_after_restart_no_empty_notify,
-                  "LimeX3DH",
-                  "LeaksMemory"), /* because of network up and down */
-    TEST_TWO_TAGS("Secure one-on-one chat sends message to recreate chatroom",
-                  LinphoneTest::secure_one_on_one_chat_room_sends_message_to_recreate_chat_room,
-                  "LimeX3DH",
-                  "LeaksMemory"), /* because of network up and down */
-    TEST_TWO_TAGS("Secure one-on-one chat sends SUBSCRIBE to recreate chatroom",
-                  LinphoneTest::secure_one_on_one_chat_room_sends_subscribe_to_recreate_chat_room,
-                  "LimeX3DH",
-                  "LeaksMemory"), /* because of network up and down */
     TEST_TWO_TAGS("Secure group chat sends SUBSCRIBE after being removed from the server database",
                   LinphoneTest::secure_group_chat_room_sends_subscribe_after_being_removed_from_server_database,
                   "LimeX3DH",
@@ -3024,6 +3022,49 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_group_chat_message_cannot_be_sent_immediately_with_replaces,
                   "LimeX3DH",
                   "LeaksMemory" /*due to core restart*/),
+    TEST_THREE_TAGS("Secure group chat with duplications",
+                    LinphoneTest::secure_group_chat_room_with_duplications,
+                    "LimeX3DH",
+                    "LeaksMemory", /* beacause of coreMgr restart*/
+                    "shaky"),
+    TEST_TWO_TAGS("Secure group chat with client sending messages without receiving NOTIFY",
+                  LinphoneTest::secure_group_chat_room_with_client_sending_messages_without_receiving_notify,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* because of network up and down */
+    TEST_ONE_TAG("Secure group chat with client removed and then reinvited",
+                 LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with client removed and then reinvited after database corruption",
+                 LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption,
+                 "LimeX3DH"),
+    TEST_TWO_TAGS(
+        "Secure group chat with client removed and then reinvited after database corruption and core restart",
+        LinphoneTest::
+            secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption_and_core_restart,
+        "LimeX3DH",
+        "LeaksMemory" /*due to core restart*/)};
+
+static test_t local_conference_secure_one_on_one_chat_tests[] = {
+    TEST_TWO_TAGS("Secure one-on-one chat deletion initiated by server and client",
+                  LinphoneTest::secure_one_on_one_chat_room_deletion_by_server_client,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* because of network up and down */
+    TEST_TWO_TAGS("Secure one-on-one chat send message after restart",
+                  LinphoneTest::secure_one_on_one_chat_room_send_message_after_restart,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* because of network up and down */
+    TEST_TWO_TAGS("Secure one-on-one chat send message after restart (no empty notify)",
+                  LinphoneTest::secure_one_on_one_chat_room_send_message_after_restart_no_empty_notify,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* because of network up and down */
+    TEST_TWO_TAGS("Secure one-on-one chat sends message to recreate chatroom",
+                  LinphoneTest::secure_one_on_one_chat_room_sends_message_to_recreate_chat_room,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* because of network up and down */
+    TEST_TWO_TAGS("Secure one-on-one chat sends SUBSCRIBE to recreate chatroom",
+                  LinphoneTest::secure_one_on_one_chat_room_sends_subscribe_to_recreate_chat_room,
+                  "LimeX3DH",
+                  "LeaksMemory"), /* because of network up and down */
     TEST_TWO_TAGS("Secure one-on-one chat created twice",
                   LinphoneTest::secure_one_on_one_chat_room_created_twice,
                   "LimeX3DH",
@@ -3032,11 +3073,6 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_one_on_one_chat_room_with_client_sending_imdn_on_restart,
                   "LimeX3DH",
                   "LeaksMemory"),
-    TEST_THREE_TAGS("Secure group chat with duplications",
-                    LinphoneTest::secure_group_chat_room_with_duplications,
-                    "LimeX3DH",
-                    "LeaksMemory", /* beacause of coreMgr restart*/
-                    "shaky"),
     TEST_TWO_TAGS("Secure one-on-one chat with subscribe not replied",
                   LinphoneTest::secure_one_on_one_chat_room_with_subscribe_not_replied,
                   "LimeX3DH",
@@ -3049,15 +3085,31 @@ static test_t local_conference_secure_chat_tests[] = {
                   LinphoneTest::secure_one_on_one_chat_room_with_client_removed_from_server_chatroom_only,
                   "LimeX3DH",
                   "LeaksMemory"),
-    TEST_NO_TAG("Secure group chat with client removed and then reinvited",
-                LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted),
-    TEST_NO_TAG("Secure group chat with client removed and then reinvited after database corruption",
-                LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption),
-    TEST_ONE_TAG(
-        "Secure group chat with client removed and then reinvited after database corruption and core restart",
-        LinphoneTest::
-            secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption_and_core_restart,
-        "LeaksMemory" /*due to core restart*/)};
+    TEST_ONE_TAG("Secure one on one chat room deleted before 200Ok",
+                 LinphoneTest::secure_one_on_one_chat_room_deleted_before_200ok,
+                 "LeaksMemory" /*due to core restart*/),
+    TEST_ONE_TAG("Secure one on one chat room deleted before 200Ok with server restart",
+                 LinphoneTest::secure_one_on_one_chat_room_deleted_before_200ok_with_server_restart,
+                 "LeaksMemory" /*due to core restart*/),
+};
+
+static test_t local_conference_secure_chat_error_tests[] = {
+    TEST_ONE_TAG("Secure group chat with INVITE session error (organizer)",
+                 LinphoneTest::secure_group_chat_room_with_invite_error_organizer,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with SUBSCRIBE session error (organizer)",
+                 LinphoneTest::secure_group_chat_room_with_subscribe_error_organizer,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with INVITE session error (participant)",
+                 LinphoneTest::secure_group_chat_room_with_invite_error_participant,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with SUBSCRIBE session error (participant)",
+                 LinphoneTest::secure_group_chat_room_with_subscribe_error_participant,
+                 "LimeX3DH"),
+    TEST_ONE_TAG("Secure group chat with focus shutdown during invitation",
+                 LinphoneTest::secure_group_chat_room_with_focus_shutdown_during_invitation,
+                 "LimeX3DH"),
+};
 
 test_suite_t local_conference_test_suite_secure_chat = {
     "Local conference tester (Secure Chat)",
@@ -3067,6 +3119,30 @@ test_suite_t local_conference_test_suite_secure_chat = {
     liblinphone_tester_after_each,
     sizeof(local_conference_secure_chat_tests) / sizeof(local_conference_secure_chat_tests[0]),
     local_conference_secure_chat_tests,
+    0,
+    2 /*cpu_weight : chat uses more resources due to core restarts */
+};
+
+test_suite_t local_conference_test_suite_secure_chat_error = {
+    "Local conference tester (Secure Chat Error)",
+    NULL,
+    NULL,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(local_conference_secure_chat_error_tests) / sizeof(local_conference_secure_chat_error_tests[0]),
+    local_conference_secure_chat_error_tests,
+    430,
+    2 /*cpu_weight : chat uses more resources due to core restarts */
+};
+
+test_suite_t local_conference_test_suite_secure_one_on_one_chat = {
+    "Local conference tester (Secure one-on-one Chat)",
+    NULL,
+    NULL,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(local_conference_secure_one_on_one_chat_tests) / sizeof(local_conference_secure_one_on_one_chat_tests[0]),
+    local_conference_secure_one_on_one_chat_tests,
     0,
     2 /*cpu_weight : chat uses more resources due to core restarts */
 };

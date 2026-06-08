@@ -89,6 +89,7 @@ static void update_turn_configuration_test() {
 	check_nb_media_starts(AUDIO_START, pauline, marie, 1, 1);
 
 	liblinphone_tester_check_rtcp(marie, pauline);
+
 	// Reset TTL to remove auth after the call
 	std::string marieUsername = check_turn_credentials(marie, 10);
 	std::string paulineUsername = check_turn_credentials(pauline, 10);

@@ -10,8 +10,9 @@ recache-get-from-branch:
   image: !reference [.debian12_image_version, image]
   rules:
     - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_BRANCH =~ /^release/ && $CI_PIPELINE_SOURCE == "push"
   script:
-    - curl --verbose --location --request GET "https://gitlab.linphone.org/api/v4/projects/411/merge_requests?state=merged&order_by=updated_at&target_branch=master&private_token=$UPDATE_CACHE_TOKEN" > temp_result.txt
+    - curl --verbose --location --request GET "https://gitlab.linphone.org/api/v4/projects/411/merge_requests?state=merged&order_by=updated_at&target_branch=$CI_COMMIT_BRANCH&private_token=$UPDATE_CACHE_TOKEN" > temp_result.txt
     - cat temp_result.txt | jq ".[0].source_branch" > source_branch.txt
     - cat temp_result.txt | jq ".[0].force_remove_source_branch" > force_remove_source_branch.txt
     - echo source_branch.txt
@@ -48,6 +49,7 @@ recache-get-from-branch:
     GIT_STRATEGY: none
   rules:
     - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_BRANCH =~ /^release/ && $CI_PIPELINE_SOURCE == "push"
   # We break abstraction if order to be able to automatically remove cache related to deleted mr branches, as this would eat CI machine disk space
   # cache:
   #   - key: $CI_JOB_IMAGE-master
@@ -74,8 +76,12 @@ recache-get-from-branch:
     - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then echo -e "Host $LINUX_BUILD_MACHINE_ADMIN_HOST\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config; fi
     - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then chmod 700 ~/.ssh/config; fi
   script:
-    - ssh $LINUX_BUILD_MACHINE_ADMIN cp -rp "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_SOURCE_BRANCH-6-non_protected" "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CI_COMMIT_REF_SLUG-6-non_protected"
-    - if [ $SHOULD_DELETE_OLD_CACHE = true ]; then ssh $LINUX_BUILD_MACHINE_ADMIN rm -rf "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_SOURCE_BRANCH-6-non_protected"; fi
+    # if CACHE_JOB_NAME is defined, include it in the string
+    - echo $CACHE_JOB_NAME
+    - if [ ! -z "$CACHE_JOB_NAME" ]; then CACHE_JOB_NAME=$CACHE_JOB_NAME-; fi;
+    - echo $CACHE_JOB_NAME
+    - ssh $LINUX_BUILD_MACHINE_ADMIN cp -rp "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CACHE_SOURCE_BRANCH-6-non_protected" "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CI_COMMIT_REF_SLUG-6-non_protected"
+    - if [ $SHOULD_DELETE_OLD_CACHE = true ]; then ssh $LINUX_BUILD_MACHINE_ADMIN rm -rf "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CACHE_SOURCE_BRANCH-6-non_protected"; fi
 
 # When the cache is updated, we don't want an old version to overwrite the new one.
 # We could have a newly created branch launching its jobs in the same time as the cache is being updated (just after a merge). In this case, the merge-request pipeline of the newly created branch could overwrite the updated cache if one job launches just before the cache udpate step is finished. In the worst scenario, cache could be corrupted...
@@ -90,12 +96,12 @@ recache-get-from-branch:
     GIT_STRATEGY: none
   # we use this image to avoid the need to add jq in every docker image
   image: !reference [.debian12_image_version, image]
-  # we can't set different rules between needed jobs (here wait-cache -synchro and build jobs). As launching wait-cache-synchro on master if useless, if we are on master branch, we launch the job but exits immediately.
+  # we can't set different rules between needed jobs (here wait-cache -synchro and build jobs). As launching wait-cache-synchro on master or release branch is useless, if we are on master or release branch, we launch the job but exits immediately.
   rules:
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event")
   script:
     - |
-     if [ $CI_COMMIT_REF_SLUG == "master" ]; then exit 0; fi;
+     if [ $CI_COMMIT_REF_SLUG == "master" ] || [ $CI_COMMIT_REF_SLUG =~ /^release-/ ] ; then exit 0; fi;
      while true; do
       set -o errexit
       set -o nounset

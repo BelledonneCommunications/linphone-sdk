@@ -113,7 +113,7 @@ public:
 	setDestAccount(const std::shared_ptr<Account> &account); // Set destProxy and update the proxy of currentParams
 
 	void setBroken();
-	void setContactOp();
+	void setContactOp(const std::optional<std::shared_ptr<Address>> destination);
 
 	virtual void reinviteToRecoverFromConnectionLoss();
 	virtual void repairByNewInvite(bool withReplaces);
@@ -164,6 +164,8 @@ protected:
 	std::shared_ptr<CallSession> referer;
 	std::shared_ptr<CallSession> transferTarget;
 
+	std::queue<std::function<LinphoneStatus()>> pendingActions;
+
 	bool broken = false;
 	bool deferIncomingNotification = false;
 	bool deferUpdate = false;
@@ -173,13 +175,14 @@ protected:
 	bool notifyRinging = true;
 	bool referPending = false;
 	bool reinviteOnCancelResponseRequested = false;
-	std::queue<std::function<LinphoneStatus()>> pendingActions;
+	bool terminatedFromRemote = false;
 
 private:
 	void completeLog();
 	void createOpTo(const std::shared_ptr<Address> &to);
 	void executePendingActions();
 	void refreshContactAddress();
+	void setCallLogStatusOnTermination();
 
 	struct ContactInfo {
 		std::shared_ptr<Address> mAddress;

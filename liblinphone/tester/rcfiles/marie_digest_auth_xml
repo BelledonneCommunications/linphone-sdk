@@ -56,5 +56,11 @@
     <entry name="passwd">toto</entry>
     <entry name="algorithm">MD5</entry>
   </section>
+  <!--Dummy auth info for hypothetical carddav server  -->
+  <section name="auth_info_2">
+    <entry name="realm">carddav.example.org</entry>
+    <entry name="username">marie</entry>
+    <entry name="passwd">toto</entry>
+  </section>
 
 </config>

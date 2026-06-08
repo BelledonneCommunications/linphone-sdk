@@ -183,7 +183,7 @@ if(ENABLE_ARTSC)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/arts.c)
 endif()
 if(ENABLE_MACSND)
-	list(APPEND VOIP_SOURCE_FILES_C audiofilters/macsnd.c)
+	list(APPEND VOIP_SOURCE_FILES_CXX audiofilters/macsnd.cpp)
 endif()
 if(ENABLE_MACAQSND)
 	list(APPEND VOIP_SOURCE_FILES_OBJC audiofilters/aqsnd.m)
@@ -393,23 +393,14 @@ if(ENABLE_VIDEO)
 			set_source_files_properties("videofilters/zxing_qrcode.cpp" PROPERTIES COMPILE_DEFINITIONS "ZXING_USE_BUILD_INTERFACE")
 		endif()
 	endif()
-	if(WIN32)
+	if(WIN32 OR OPENGL_FOUND OR QtAngle_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengl_functions.c
 			utils/shader_util.c
 		)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			utils/opengles_display.cpp
-			videofilters/generic_opengl_display.c
-		)
-	elseif(OPENGL_FOUND OR QtAngle_FOUND)
-		list(APPEND VOIP_SOURCE_FILES_C
-			utils/opengl_functions.c
-			utils/shader_util.c
-			videofilters/generic_opengl_display.c
-		)
-		list(APPEND VOIP_SOURCE_FILES_CXX
-			utils/opengles_display.cpp
+			videofilters/generic_opengl_display.cpp
 		)
 	endif()
 	if(OpenGL_GLX_FOUND)

@@ -82,6 +82,11 @@ AudioDevice::Capabilities AudioDevice::getCapabilities() const {
 	return mCapabilities;
 }
 
+bool AudioDevice::hasCapability(Capabilities capability) const {
+	// returns true only if all requested capabilities are present.
+	return !!((capability & mCapabilities) == capability);
+}
+
 AudioDevice::Type AudioDevice::getType() const {
 	MSSndCardDeviceType type = ms_snd_card_get_device_type(mSoundCard);
 	switch (type) {

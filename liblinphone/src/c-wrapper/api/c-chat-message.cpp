@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -21,6 +21,7 @@
 #include "linphone/api/c-chat-message.h"
 #include "address/address.h"
 #include "c-wrapper/c-wrapper.h"
+#include "call/call-log.h"
 #include "chat/chat-message/chat-message-p.h"
 #include "chat/chat-room/chat-room.h"
 #include "chat/notification/imdn.h"
@@ -385,7 +386,16 @@ LinphoneStatus linphone_chat_message_put_char(LinphoneChatMessage *msg, uint32_t
 	return ((LinphoneStatus)L_GET_CPP_PTR_FROM_C_OBJECT(msg)->putCharacter(character));
 }
 
-void linphone_chat_message_add_file_content(LinphoneChatMessage *msg, LinphoneContent *c_content) {
+void linphone_chat_message_add_call_log_content(LinphoneChatMessage *msg, const LinphoneCallLog *call_log) {
+	LinphonePrivate::ChatMessageLogContextualizer logContextualizer(msg);
+	auto content = LinphonePrivate::Content::create();
+	LinphonePrivate::ContentType contentType = LinphonePrivate::ContentType::CallLogJson;
+	content->setContentType(contentType);
+	content->setBodyFromLocale(LinphonePrivate::CallLog::toCpp(call_log)->toJson());
+	L_GET_CPP_PTR_FROM_C_OBJECT(msg)->addContent(content);
+}
+
+void linphone_chat_message_add_file_content(LinphoneChatMessage *msg, const LinphoneContent *c_content) {
 	LinphonePrivate::ChatMessageLogContextualizer logContextualizer(msg);
 	auto fileContent = LinphonePrivate::FileContent::create<LinphonePrivate::FileContent>();
 	auto content = LinphonePrivate::Content::toCpp(c_content);
@@ -468,7 +478,6 @@ bool_t linphone_chat_message_has_text_content(const LinphoneChatMessage *msg) {
 	LinphonePrivate::ChatMessageLogContextualizer logContextualizer(msg);
 	return L_GET_PRIVATE_FROM_C_OBJECT(msg)->hasTextContent();
 }
-
 const char *linphone_chat_message_get_text_content(const LinphoneChatMessage *msg) {
 	LinphonePrivate::ChatMessageLogContextualizer logContextualizer(msg);
 	const auto content = L_GET_PRIVATE_FROM_C_OBJECT(msg)->getTextContent();
@@ -480,6 +489,11 @@ const char *linphone_chat_message_get_text_content(const LinphoneChatMessage *ms
 bool_t linphone_chat_message_has_conference_invitation_content(const LinphoneChatMessage *message) {
 	LinphonePrivate::ChatMessageLogContextualizer logContextualizer(message);
 	return L_GET_PRIVATE_FROM_C_OBJECT(message)->hasConferenceInvitationContent();
+}
+
+bool_t linphone_chat_message_has_call_log_json_content(const LinphoneChatMessage *msg) {
+	LinphonePrivate::ChatMessageLogContextualizer logContextualizer(msg);
+	return L_GET_PRIVATE_FROM_C_OBJECT(msg)->hasCallLogJsonContent();
 }
 
 bool_t linphone_chat_message_is_file_transfer_in_progress(const LinphoneChatMessage *msg) {

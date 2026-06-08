@@ -401,6 +401,7 @@ endif()
 if(HidAPI_FOUND)
 	list(APPEND LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
 		hid/hid.h
+		hid/hid-descriptor.h
 		hid/hid-device.h
 	)
 endif()
@@ -748,6 +749,7 @@ endif()
 if(HidAPI_FOUND)
 	list(APPEND LINPHONE_CXX_OBJECTS_SOURCE_FILES
 		hid/hid.cpp
+		hid/hid-descriptor.cpp
 		hid/hid-device.cpp
 	)
 endif()
@@ -809,7 +811,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
 		AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12
-		AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 16)
+		AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
 	set_source_files_properties(sal/potential_config_graph.cpp
 			nat/nat-policy.cpp
 			utils/version.cpp

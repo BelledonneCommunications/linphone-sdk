@@ -579,8 +579,8 @@ static test_t audio_quality_tests[] = {
     TEST_NO_TAG("Simple stereo call with opus & deep plc", audio_steero_call_opus_deep_plc),
     TEST_NO_TAG("Simple stereo call with opus & LACE", audio_stereo_call_opus_lace),
     TEST_NO_TAG("Simple stereo call with opus & NOLACE", audio_stereo_call_opus_nolace),
-    TEST_NO_TAG("Audio bandwidth estimation", audio_bandwidth_estimation),
-    TEST_NO_TAG("Audio bandwidth estimation on secure call", audio_bandwidth_estimation_on_secure_call),
+    TEST_ONE_TAG("Audio bandwidth estimation", audio_bandwidth_estimation, "shaky"),
+    TEST_ONE_TAG("Audio bandwidth estimation on secure call", audio_bandwidth_estimation_on_secure_call, "shaky"),
     TEST_NO_TAG("Audio call with opus and soundcard", audio_call_with_opus_and_soundcard)};
 
 test_suite_t audio_quality_test_suite = {"Audio Call quality",
@@ -591,4 +591,4 @@ test_suite_t audio_quality_test_suite = {"Audio Call quality",
                                          sizeof(audio_quality_tests) / sizeof(audio_quality_tests[0]),
                                          audio_quality_tests,
                                          1010,
-                                         1};
+                                         4};

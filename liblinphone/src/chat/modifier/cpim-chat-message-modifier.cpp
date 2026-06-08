@@ -45,8 +45,6 @@ LINPHONE_BEGIN_NAMESPACE
 // Following https://tools.ietf.org/html/rfc4151
 const string linphoneNamespaceTag = "tag:linphone.org,2020:params:groupchat";
 const string linphoneNamespace = "linphone";
-const string linphoneEphemeralHeader = "Ephemeral-Time";
-const string linphoneEphemeralNotReadHeader = "Ephemeral-Not-Read-Time";
 const string linphoneReplyingToMessageIdHeader = "Replying-To-Message-ID";
 const string linphoneReplyingToMessageSenderHeader = "Replying-To-Sender";
 const string linphoneReactionToMessageIdHeader = "In-Reply-To";
@@ -97,10 +95,10 @@ ChatMessageModifier::Result CpimChatMessageModifier::encode(const shared_ptr<Cha
 			const string &ephemeralLifeTimeBuf = Utils::toString(ephemeralLifeTime);
 			const string &ephemeralNotReadLifeTimeBuf = Utils::toString(ephemeralNotReadLifeTime);
 			cpimMessage.addMessageHeader(Cpim::NsHeader(linphoneNamespaceTag, linphoneNamespace));
-			cpimMessage.addMessageHeader(
-			    Cpim::GenericHeader(linphoneNamespace + "." + linphoneEphemeralHeader, ephemeralLifeTimeBuf));
-			cpimMessage.addMessageHeader(Cpim::GenericHeader(linphoneNamespace + "." + linphoneEphemeralNotReadHeader,
-			                                                 ephemeralNotReadLifeTimeBuf));
+			cpimMessage.addMessageHeader(Cpim::GenericHeader(
+			    linphoneNamespace + "." + ChatRoom::kEphemeralLifeTimeHeader, ephemeralLifeTimeBuf));
+			cpimMessage.addMessageHeader(Cpim::GenericHeader(
+			    linphoneNamespace + "." + ChatRoom::kEphemeralNotReadLifeTimeHeader, ephemeralNotReadLifeTimeBuf));
 			linphoneNamespaceHeaderSet = true;
 		}
 
@@ -295,8 +293,9 @@ ChatMessageModifier::Result CpimChatMessageModifier::decode(const shared_ptr<Cha
 	}
 
 	if (!linphoneNsName.empty()) {
-		auto lifetimeHeader = cpimMessage->getMessageHeader(linphoneEphemeralHeader, linphoneNsName);
-		auto notReadLifetimeHeader = cpimMessage->getMessageHeader(linphoneEphemeralNotReadHeader, linphoneNsName);
+		auto lifetimeHeader = cpimMessage->getMessageHeader(ChatRoom::kEphemeralLifeTimeHeader, linphoneNsName);
+		auto notReadLifetimeHeader =
+		    cpimMessage->getMessageHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader, linphoneNsName);
 		if (lifetimeHeader) {
 			long lifetime = static_cast<long>(Utils::stod(lifetimeHeader->getValue()));
 			long notReadLifetime = 0;

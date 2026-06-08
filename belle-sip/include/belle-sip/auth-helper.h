@@ -221,6 +221,7 @@ belle_sip_certificates_chain_parse_file(const char *path, belle_sip_certificate_
  */
 BELLESIP_EXPORT bool_t belle_sip_certificate_subject_match(const belle_sip_certificates_chain_t *certificate,
                                                            const char *subject);
+
 /**
  * Parse a directory for *.pem file containing a certificate and private key in PEM format or a single DER cert with
  * subject CNAME as given
