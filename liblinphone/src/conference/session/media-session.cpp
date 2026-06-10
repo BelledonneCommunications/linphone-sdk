@@ -4069,11 +4069,6 @@ void MediaSessionPrivate::updateCurrentParams() const {
 	}
 
 	getCurrentParams()->setSrtpSuites(std::list<LinphoneSrtpSuite>{srtpSuite});
-	const auto currentStreamsGroupMediaEncryptionStatus = getStreamsGroup().getMediaEncryptionStatus();
-	if (currentStreamsGroupMediaEncryptionStatus != getCurrentParams()->getMediaEncryptionStatus()) {
-		getCurrentParams()->setMediaEncryptionStatus(currentStreamsGroupMediaEncryptionStatus);
-		q->notifyMediaEncryptionStatusChanged(currentStreamsGroupMediaEncryptionStatus);
-	}
 
 	bool updateEncryption = false;
 	bool validNegotiatedEncryption = false;
@@ -4082,7 +4077,7 @@ void MediaSessionPrivate::updateCurrentParams() const {
 	switch (enc) {
 		case LinphoneMediaEncryptionZRTP:
 			updateEncryption = atLeastOneStreamStarted();
-			validNegotiatedEncryption = (allStreamsAreEncrypted && !authToken.empty());
+			validNegotiatedEncryption = allStreamsAreEncrypted;
 			break;
 		case LinphoneMediaEncryptionSRTP:
 			updateEncryption = atLeastOneStreamStarted();
@@ -4108,6 +4103,13 @@ void MediaSessionPrivate::updateCurrentParams() const {
 			getCurrentParams()->setMediaEncryption(LinphoneMediaEncryptionNone);
 		}
 	} /* else don't update the state if all streams are shutdown */
+
+	// Set and update Status after set MediaEncryption in order to give listeners the correct encryption.
+	const auto currentStreamsGroupMediaEncryptionStatus = getStreamsGroup().getMediaEncryptionStatus();
+	if (currentStreamsGroupMediaEncryptionStatus != getCurrentParams()->getMediaEncryptionStatus()) {
+		getCurrentParams()->setMediaEncryptionStatus(currentStreamsGroupMediaEncryptionStatus);
+		q->notifyMediaEncryptionStatusChanged(currentStreamsGroupMediaEncryptionStatus);
+	}
 
 	const auto conference = q->getCore()->findConference(q->getSharedFromThis(), false);
 	if (md) {

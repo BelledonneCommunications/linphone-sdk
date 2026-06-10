@@ -5158,8 +5158,15 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
 		BC_ASSERT_EQUAL(caller_enc, callee_enc, int, "%d");
 
 		if (matched_enc == LinphoneMediaEncryptionZRTP) {
-			const char *callee_token = linphone_call_get_authentication_token(callee_call);
-			const char *caller_token = linphone_call_get_authentication_token(caller_call);
+			int tryCount = 0;
+			const char *callee_token = NULL;
+			const char *caller_token = NULL;
+			// SAS are coming from ORTP and may not be available at the moment. Wait some time till we got one.
+			do {
+				if (!callee_token) callee_token = linphone_call_get_authentication_token(callee_call);
+				if (!caller_token) caller_token = linphone_call_get_authentication_token(caller_call);
+				wait_for_until(callee_mgr->lc, caller_mgr->lc, NULL, 0, 50);
+			} while (++tryCount < 20 && (!callee_token || !caller_token));
 			BC_ASSERT_PTR_NOT_NULL(callee_token);
 			BC_ASSERT_PTR_NOT_NULL(caller_token);
 			if (caller_token && callee_token) {
