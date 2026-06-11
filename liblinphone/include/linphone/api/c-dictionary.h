@@ -27,7 +27,7 @@
 extern "C" {
 #endif
 /**
- * @addtogroup group_dictionary
+ * @addtogroup group_misc
  * @{
  */
 /**

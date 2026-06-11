@@ -104,7 +104,7 @@ typedef enum _LinphoneAlertTypes {
 
 /**
  * All signal types that a device can use.
- * @ingroup group_signalInformation
+ * @ingroup group_misc
  */
 typedef enum _LinphoneSignalType {
 	LinphoneSignalTypeWifi = 0,
@@ -113,7 +113,7 @@ typedef enum _LinphoneSignalType {
 } LinphoneSignalType;
 /**
  * All signal units that a device can use.
- * @ingroup group_signalInformation
+ * @ingroup group_misc
  */
 typedef enum _LinphoneSignalStrengthUnit {
 	LinphoneSignalStrengthUnitRssi = 0,
@@ -154,7 +154,7 @@ typedef enum _LinphoneSecurityLevel {
 /**
  * List of all supported #LinphoneAccountManagerServicesRequest requests,
  * allowing to know which one triggered either a callback from the #LinphoneAccountManagerServicesRequestCbs.
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  */
 typedef enum _LinphoneAccountManagerServicesRequestType {
 	LinphoneAccountManagerServicesRequestTypeSendAccountCreationTokenByPush =

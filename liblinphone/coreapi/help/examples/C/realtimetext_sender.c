@@ -20,8 +20,7 @@
  */
 
 /**
- * @defgroup group_real_time_text_sender Real Time Text Sender
- * @ingroup group_tutorials
+ * \page realtimetext_sender Sending Real-Time Text
  This program just send chat message in real time to dest uri. Use realtimetext_receiver to receive  message.
  usage: ./realtimetext_sender sip:localhost:5060
 

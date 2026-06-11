@@ -20,8 +20,7 @@
  */
 
 /**
- * @defgroup group_buddy_tutorials Basic buddy status notification
- * @ingroup group_tutorials
+ * \page presence_example Presence
  *This program is a _very_ simple usage example of liblinphone,
  *demonstrating how to initiate  SIP subscriptions and receive notifications from a sip uri identity passed from the
  command line.

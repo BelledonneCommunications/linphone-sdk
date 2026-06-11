@@ -20,12 +20,11 @@
  */
 
 /**
- * @defgroup group_real_time_text Real Time Text Receiver
- * @ingroup group_tutorials
- This program is able to receive chat message in real time on port 5060. Use realtimetext_sender to generate chat
- message usage: ./realtimetext_receiver
+ * \page realtimetext_receiver Receiving Real-Time Text
+ * This program is able to receive chat message in real time on port 5060. Use realtimetext_sender to generate chat
+ * message usage: ./realtimetext_receiver
 
- @include realtimetext_sender.c
+ @include realtimetext_receiver.c
  */
 
 #include "linphone/core.h"

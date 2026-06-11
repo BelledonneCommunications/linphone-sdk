@@ -20,17 +20,15 @@
  */
 
 /**
- * @defgroup group_registration_tutorials Basic registration
- * @ingroup group_tutorials
+ * \page registration Registration
  *This program is a _very_ simple usage example of liblinphone.
  *Desmonstrating how to  initiate a SIP registration from a sip uri identity passed from the command line.
- *first argument must be like sip:jehan@sip.linphone.org , second must be password .
+ *first argument must be like sip:bob@sip.example.org , second must be password .
  *<br>
- *ex registration sip:jehan@sip.linphone.org secret
+ *ex registration sip:bob@sip.example.org secret
  *<br>Registration is cleared on SIGINT
  *<br>
  *@include registration.c
-
  *
  */
 

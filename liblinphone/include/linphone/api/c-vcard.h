@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup group_carddav_vcard
+ * @addtogroup group_contacts
  * @{
  */
 

@@ -1882,7 +1882,7 @@ LINPHONE_PUBLIC LinphoneCall *linphone_core_get_call_by_remote_address2(const Li
  * Sets the local "from" SIP identity used for calls made out of any configured #LinphoneAccount.
  * Not using a SIP account is not recommended.
  *
- * @ingroup group_proxies
+ * @ingroup group_account
  * This data is used in absence of any proxy configuration or when no
  * account configuration is set. See #LinphoneAccount
  * @param core the Core @notnil
@@ -1895,7 +1895,7 @@ LINPHONE_PUBLIC LinphoneStatus linphone_core_set_primary_contact(LinphoneCore *c
  * Returns the default identity when no account is used.
  * This SIP address usually contains a private ip address, and may not be routable globally.
  *
- * @ingroup group_proxies
+ * @ingroup group_initializing
  * @param core the Core @notnil
  * @return the primary contact identity @notnil
  **/
@@ -1909,13 +1909,13 @@ LINPHONE_PUBLIC const char *linphone_core_get_primary_contact(LinphoneCore *core
  * it returns the registered identity on the proxy.
  * @param core #LinphoneCore object @notnil
  * @return The default identity SIP address. @notnil
- * @ingroup group_proxies
+ * @ingroup group_account
  **/
 LINPHONE_PUBLIC const char *linphone_core_get_identity(LinphoneCore *core);
 
 /**
  * Tells #LinphoneCore to guess local hostname automatically in primary contact.
- * @ingroup group_proxies
+ * @ingroup group_group_initializingaccount
  * @param core the #LinphoneCore @notnil
  * @param enable whether to enable the guess hostname feature or not
  **/
@@ -1923,7 +1923,7 @@ LINPHONE_PUBLIC void linphone_core_set_guess_hostname(LinphoneCore *core, bool_t
 
 /**
  * Returns TRUE if hostname part of primary contact is guessed automatically.
- * @ingroup group_proxies
+ * @ingroup group_initializing
  * @param core the #LinphoneCore @notnil
  * @return TRUE if guess hostname enabled, FALSE otherwise.
  **/
@@ -2033,7 +2033,7 @@ LINPHONE_PUBLIC void linphone_core_enable_wifi_only(LinphoneCore *core, bool_t e
  * instead of const char *.
  * @param core the #LinphoneCore @notnil
  * @return a #LinphoneAddress object. @maybenil
- * @ingroup group_proxies
+ * @ingroup group_initializing
  * @deprecated prefer using linphone_core_get_primary_contact_address()
  **/
 LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneAddress *linphone_core_create_primary_contact_parsed(LinphoneCore *core);
@@ -2395,7 +2395,7 @@ LINPHONE_PUBLIC LinphonePayloadType *
 linphone_core_get_payload_type(LinphoneCore *core, const char *type, int rate, int channels);
 
 /**
- * @addtogroup group_proxies
+ * @addtogroup group_deprecated
  * @{
  */
 
@@ -2661,7 +2661,7 @@ linphone_core_get_digest_authentication_policy(const LinphoneCore *core);
  * Sets the #LinphoneAccountCreator url on the #LinphoneCore
  * @param core The #LinphoneCore @notnil
  * @param url The URL to reach @maybenil
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC void linphone_core_set_account_creator_url(LinphoneCore *core, const char *url);
 
@@ -2669,7 +2669,7 @@ LINPHONE_PUBLIC void linphone_core_set_account_creator_url(LinphoneCore *core, c
  * Gets the #LinphoneAccountCreator url on the #LinphoneCore
  * @param core The #LinphoneCore @notnil
  * @return url The URL to reach. @maybenil
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC const char *linphone_core_get_account_creator_url(LinphoneCore *core);
 
@@ -2677,7 +2677,7 @@ LINPHONE_PUBLIC const char *linphone_core_get_account_creator_url(LinphoneCore *
  * Sets the #LinphoneAccountCreator backend on the #LinphoneCore
  * @param core The #LinphoneCore  @notnil
  * @param backend The #LinphoneAccountCreatorBackend
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC void linphone_core_set_account_creator_backend(LinphoneCore *core,
                                                                LinphoneAccountCreatorBackend backend);
@@ -2686,7 +2686,7 @@ LINPHONE_PUBLIC void linphone_core_set_account_creator_backend(LinphoneCore *cor
  * Gets the #LinphoneAccountCreator backend set for the #LinphoneCore
  * @param core The #LinphoneCore @notnil
  * @return The #LinphoneAccountCreatorBackend
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC LinphoneAccountCreatorBackend linphone_core_get_account_creator_backend(const LinphoneCore *core);
 
@@ -4957,7 +4957,7 @@ LINPHONE_PUBLIC LinphoneGlobalState linphone_core_get_global_state(const Linphon
 
 /**
  * Forces registration refresh to be initiated upon next iterate
- * @ingroup group_proxies
+ * @ingroup group_account
  * @param core The #LinphoneCore object @notnil
  */
 LINPHONE_PUBLIC void linphone_core_refresh_registers(LinphoneCore *core);
@@ -6604,7 +6604,7 @@ linphone_core_create_one_shot_publish(LinphoneCore *core, LinphoneAddress *resou
  */
 
 /**
- * @addtogroup group_buddy_list
+ * @addtogroup group_contacts
  * @{
  */
 
@@ -7063,7 +7063,7 @@ LINPHONE_PUBLIC LinphoneNatPolicy *linphone_core_create_nat_policy(LinphoneCore 
  * @param core The #LinphoneCore used for the XML-RPC communication @notnil
  * @param xmlrpc_url The URL to the XML-RPC server. @maybenil
  * @return The new #LinphoneAccountCreator object. @notnil
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  * @deprecated 04/09/2024: The #LinphoneAccountCreator interface is replaced by the #LinphoneAccountManagerServices
  * interface.
  */
@@ -7074,7 +7074,7 @@ LINPHONE_PUBLIC LinphoneAccountCreator *linphone_core_create_account_creator(Lin
  * Creates a #LinphoneAccountManagerServices.
  * @param core The #LinphoneCore to use @notnil
  * @return The new #LinphoneAccountManagerServices object. @notnil
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC LinphoneAccountManagerServices *linphone_core_create_account_manager_services(LinphoneCore *core);
 
@@ -7757,7 +7757,7 @@ LINPHONE_PUBLIC void linphone_core_enable_gruu_in_conference_address(LinphoneCor
 LINPHONE_PUBLIC bool_t linphone_core_gruu_in_conference_address_enabled(const LinphoneCore *core);
 
 /**
- * @addtogroup group_contacts
+ * @addtogroup group_remote_contact_directory
  * @{
  */
 
@@ -7831,24 +7831,20 @@ LINPHONE_PUBLIC LinphoneVcard *linphone_core_create_vcard_from_text(const Linpho
 /**
  * Tells if LDAP is available
  * @param core LinphoneCore object @notnil
- * @ingroup group_misc
+ * @ingroup group_remote_contact_directory
  * @return TRUE if LDAP is available, FALSE otherwise
  **/
 LINPHONE_PUBLIC bool_t linphone_core_ldap_available(LinphoneCore *core);
 
 /**
- * @addtogroup group_ldap
- * @{
- */
-
-/**
  * Create a LDAP params using default values from Linphone core.
  * Check #LinphoneLdapParams to update values.
  * In order to add a new LDAP configuration to #LinphoneMagicSearch, these parameters must be passed to
- * linphone_core_create_ldap_with_params. Or, use linphone_ldap_set_params().
+ * linphone_core_create_ldap_remote_contact_directory().
  *
  * @param core #LinphoneCore object @notnil
  * @return #LinphoneLdapParams with default values set. @notnil @tobefreed
+ * @ingroup group_remote_contact_directory
  */
 LINPHONE_PUBLIC LinphoneLdapParams *linphone_core_create_ldap_params(LinphoneCore *core);
 
@@ -7860,6 +7856,7 @@ LINPHONE_PUBLIC LinphoneLdapParams *linphone_core_create_ldap_params(LinphoneCor
  * @param core #LinphoneCore object @notnil
  * @return #LinphoneLdap with default values set @notnil @tobefreed
  * @deprecated 18/11/2024 use linphone_core_create_ldap_remote_contact_directory() instead.
+ * @ingroup group_deprecated
  */
 LINPHONE_PUBLIC LinphoneLdap *linphone_core_create_ldap(LinphoneCore *core);
 
@@ -7869,6 +7866,7 @@ LINPHONE_PUBLIC LinphoneLdap *linphone_core_create_ldap(LinphoneCore *core);
  * @param params #LinphoneLdapParams object @notnil
  * @return #LinphoneLdap object @notnil @tobefreed
  * @deprecated 18/11/2024 use linphone_core_create_ldap_remote_contact_directory() instead.
+ * @ingroup group_deprecated
  */
 LINPHONE_PUBLIC LinphoneLdap *linphone_core_create_ldap_with_params(LinphoneCore *core, LinphoneLdapParams *params);
 
@@ -7876,7 +7874,7 @@ LINPHONE_PUBLIC LinphoneLdap *linphone_core_create_ldap_with_params(LinphoneCore
  * Erases all LDAP from the configuration.
  * @param core #LinphoneCore object @notnil
  * @deprecated 18/11/2024 use linphone_core_remove_remote_contact_directory() instead.
- *
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC void linphone_core_clear_ldaps(LinphoneCore *core);
 
@@ -7885,6 +7883,7 @@ LINPHONE_PUBLIC void linphone_core_clear_ldaps(LinphoneCore *core);
  * @param core #LinphoneCore object @notnil
  * @param ldap The #LinphoneLdap object to add/update. @notnil
  * @deprecated 18/11/2024 use linphone_core_add_remote_contact_directory() instead.
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC void linphone_core_add_ldap(LinphoneCore *core, LinphoneLdap *ldap);
 
@@ -7893,6 +7892,7 @@ LINPHONE_PUBLIC void linphone_core_add_ldap(LinphoneCore *core, LinphoneLdap *ld
  * @param core #LinphoneCore object @notnil
  * @param ldap The #LinphoneLdap object to remove. @notnil
  * @deprecated 18/11/2024 use linphone_core_remove_remote_contact_directory() instead.
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC void linphone_core_remove_ldap(LinphoneCore *core, LinphoneLdap *ldap);
 
@@ -7901,13 +7901,9 @@ LINPHONE_PUBLIC void linphone_core_remove_ldap(LinphoneCore *core, LinphoneLdap 
  * @param core The #LinphoneCore object @notnil
  * @return \bctbx_list{LinphoneLdap} @maybenil @tobefreed
  * @deprecated 18/11/2024 use linphone_core_get_remote_contact_directories() instead.
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC bctbx_list_t *linphone_core_get_ldap_list(LinphoneCore *core);
-
-/**
- * @}
- * End of group ldap
- */
 
 /**
  * Returns whether chat messages grouping is enabled or not.
@@ -8156,7 +8152,7 @@ linphone_core_get_ephemeral_chat_message_policy(const LinphoneCore *core);
  * instead of a string.
  * @param core the #LinphoneCore @notnil
  * @return a #LinphoneAddress object. @maybenil @tobefreed
- * @ingroup group_proxies
+ * @ingroup group_deprecated
  **/
 LINPHONE_PUBLIC LinphoneAddress *linphone_core_get_primary_contact_address(LinphoneCore *core);
 
@@ -8289,7 +8285,7 @@ LINPHONE_PUBLIC int linphone_core_get_message_automatic_resending_delay(const Li
  * @param core the #LinphoneCore
  * @param xml_body the string containing the XML body @notnil
  * @return The #LinphoneEktInfo @maybenil
- * @ingroup group_ekt_api
+ * @ingroup group_misc
  */
 LINPHONE_PUBLIC const LinphoneEktInfo *linphone_core_create_ekt_info_from_xml(const LinphoneCore *core,
                                                                               const char *xml_body);
@@ -8300,7 +8296,7 @@ LINPHONE_PUBLIC const LinphoneEktInfo *linphone_core_create_ekt_info_from_xml(co
  * @param ekt_info the #LinphoneEktInfo @notnil
  * @param account the #LinphoneAccount associated with the conference @maybenil
  * @return The XML body @maybenil @tobefreed
- * @ingroup group_ekt_api
+ * @ingroup group_misc
  */
 LINPHONE_PUBLIC char *linphone_core_create_xml_from_ekt_info_2(const LinphoneCore *core,
                                                                const LinphoneEktInfo *ekt_info,
@@ -8310,7 +8306,7 @@ LINPHONE_PUBLIC char *linphone_core_create_xml_from_ekt_info_2(const LinphoneCor
  * Gets if the EKT plugin is currently loaded in the Linphone core instance.
  * @param core the #LinphoneCore
  * @return true if the EKT plugin is loaded
- * @ingroup group_ekt_api
+ * @ingroup group_misc
  */
 LINPHONE_PUBLIC bool_t linphone_core_is_ekt_plugin_loaded(const LinphoneCore *core);
 
@@ -8318,7 +8314,7 @@ LINPHONE_PUBLIC bool_t linphone_core_is_ekt_plugin_loaded(const LinphoneCore *co
  * sets the state of the EKT plugin in the Linphone core instance.
  * @param core the #LinphoneCore
  * @param ekt_plugin_loaded whether the EKT plugin is loaded or not
- * @ingroup group_ekt_api
+ * @ingroup group_misc
  */
 LINPHONE_PUBLIC void linphone_core_set_ekt_plugin_loaded(LinphoneCore *core, bool_t ekt_plugin_loaded);
 
@@ -8817,7 +8813,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_send_dtmf(LinphoneCore *c
  * instead of const char *.
  * @param core the #LinphoneCore @notnil
  * @return a #LinphoneAddress object. @maybenil @tobefreed
- * @ingroup group_proxies
+ * @ingroup group_deprecated
  * @deprecated 22/10/2018 Use linphone_core_create_primary_contact_parsed() instead.
  **/
 LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneAddress *linphone_core_get_primary_contact_parsed(LinphoneCore *core);
@@ -9818,7 +9814,7 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED const char *linphone_core_get_call_logs_data
  * @param ekt_info the #LinphoneEktInfo @notnil
  * @return The XML body @maybenil @tobefreed
  * @deprecated 06/02/2025 use linphone_core_create_xml_from_ekt_info_2().
- * @ingroup group_ekt_api
+ * @ingroup group_misc
  */
 LINPHONE_PUBLIC LINPHONE_DEPRECATED char *linphone_core_create_xml_from_ekt_info(const LinphoneCore *core,
                                                                                  const LinphoneEktInfo *ekt_info);

@@ -71,7 +71,7 @@ typedef void (*LinphoneAccountCbsConferenceInformationUpdatedCb)(LinphoneAccount
  **/
 
 /**
- * @addtogroup group_account_creator
+ * @addtogroup group_deprecated
  * @{
  **/
 

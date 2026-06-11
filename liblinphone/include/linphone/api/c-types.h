@@ -113,19 +113,19 @@ typedef struct _LinphoneAccountCbs LinphoneAccountCbs;
 /**
  * Creates and manage SIP user accounts remotely, using the REST API of the Flexisip Account Manager.
  * @see https://gitlab.linphone.org/BC/public/flexisip-account-manager
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  */
 typedef struct _LinphoneAccountManagerServices LinphoneAccountManagerServices;
 
 /**
  * Request object created by #LinphoneAccountManagerServices.
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  */
 typedef struct _LinphoneAccountManagerServicesRequest LinphoneAccountManagerServicesRequest;
 
 /**
  * An object to handle the callbacks for #LinphoneAccountManagerServicesRequest object.
- * @ingroup group_account_creator
+ * @ingroup group_deprecated
  */
 typedef struct _LinphoneAccountManagerServicesRequestCbs LinphoneAccountManagerServicesRequestCbs;
 
@@ -399,7 +399,7 @@ typedef struct _LinphoneVideoSourceDescriptor LinphoneVideoSourceDescriptor;
  * To get the list of available devices, use linphone_core_get_audio_devices(). This list will be limited to one device
  *of each type. Use linphone_core_get_extended_audio_devices() for a complete list.
  *
- * @ingroup group_audio
+ * @ingroup group_audio_devices
  **/
 typedef struct _LinphoneAudioDevice LinphoneAudioDevice;
 
@@ -536,7 +536,7 @@ typedef struct _LinphoneComposingParticipant LinphoneComposingParticipant;
 // -----------------------------------------------------------------------------
 /**
  * @brief Object representing all informations present in an Encrypted Key Transport event.
- * @ingroup group_ekt_api
+ * @ingroup group_misc
  */
 typedef struct _LinphoneEktInfo LinphoneEktInfo;
 
@@ -549,13 +549,13 @@ typedef struct _LinphoneEktInfo LinphoneEktInfo;
  *
  * @see linphone_core_publish()
  * @see linphone_core_subscribe()
- * @ingroup group_events
+ * @ingroup group_event_api
  **/
 typedef struct _LinphoneEvent LinphoneEvent;
 
 /**
  * @brief An object to handle the callbacks for handling the LinphoneEvent operations.
- * @ingroup group_events
+ * @ingroup group_event_api
  **/
 typedef struct _LinphoneEventCbs LinphoneEventCbs;
 
@@ -579,20 +579,20 @@ typedef struct _LinphoneEventLog LinphoneEventLog;
 /**
  * Object that represents a LDAP connection.
  * Use a #LinphoneLdapParams object to configure it.
- * @ingroup group_ldap
+ * @ingroup group_remote_contact_directory
  * @deprecated 18/11/2024 #LinphoneLdap object is no longer used, use #LinphoneRemoteContactDirectory instead.
  */
 typedef struct _LinphoneLdap LinphoneLdap;
 
 /**
  * Object that is used to set the different parameters of a #LinphoneLdap.
- * @ingroup group_ldap
+ * @ingroup group_remote_contact_directory
  */
 typedef struct _LinphoneLdapParams LinphoneLdapParams;
 
 /**
  * @brief Enum Debug verbosity for OpenLdap
- * @ingroup group_ldap
+ * @ingroup group_remote_contact_directory
  **/
 typedef enum _LinphoneLdapDebugLevel {
 	LinphoneLdapDebugLevelOff = 0,     /**< Set OpenLdap verbosity to none */
@@ -601,7 +601,7 @@ typedef enum _LinphoneLdapDebugLevel {
 
 /**
  * @brief Enum describing how the authentification will be made.
- * @ingroup group_ldap
+ * @ingroup group_remote_contact_directory
  **/
 typedef enum _LinphoneLdapAuthMethod {
 	LinphoneLdapAuthMethodAnonymous = 0, /**< Connection without passwords */
@@ -610,7 +610,7 @@ typedef enum _LinphoneLdapAuthMethod {
 
 /**
  * @brief Enum describing server certificates verification modes.
- * @ingroup group_ldap
+ * @ingroup group_remote_contact_directory
  **/
 typedef enum _LinphoneLdapCertVerificationMode {
 	LinphoneLdapCertVerificationDefault = -1, /**< Use default value defined on core */
@@ -620,7 +620,7 @@ typedef enum _LinphoneLdapCertVerificationMode {
 
 /**
  * @brief Enum describing errors in LDAP parameters.
- * @ingroup group_ldap
+ * @ingroup group_remote_contact_directory
  **/
 typedef enum _LinphoneLdapCheck {
 	LinphoneLdapCheckOk = 0, /**< No error */
@@ -762,7 +762,7 @@ typedef struct _LinphoneFriendDevice LinphoneFriendDevice;
 
 /**
  *  Object that represents key-value pair container.
- * @ingroup group_dictionary
+ * @ingroup group_misc
  */
 typedef struct _LinphoneDictionary LinphoneDictionary;
 // -----------------------------------------------------------------------------
