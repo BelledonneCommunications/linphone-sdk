@@ -152,7 +152,9 @@ void NativeTester::initialize(const Platform::Array<Platform::String ^> ^ pParam
 	}
 	_args[countArgs] = NULL;
 	for (int i = 1; i < countArgs;) {
-		i += (size_t)bc_tester_parse_args(countArgs, _args, i);
+		int read = bc_tester_parse_args(countArgs, _args, i);
+		if (read > 0) i += (size_t)read;
+		else ++i;
 	}
 	if (!haveLogFile) {
 		char *logFile = bc_tester_file("LibLinphoneWindows10.log");

@@ -768,7 +768,10 @@ static int start_sub_process(const char *suite_name, PROCESS_INFORMATION *pi) {
 
 	/* Serialize the command line with its arguments */
 	for (i = 0; argv[i] != NULL; ++i) {
-		commandLineTemp = bctbx_strdup_printf("%s %s", commandLine, argv[i]);
+		int j = 0;
+		while (argv[i][j] && argv[i][j] != ' ') ++j;// Add quotes if contains space.
+		if(argv[i][j]) commandLineTemp = bctbx_strdup_printf("%s \"%s\"", commandLine, argv[i]);
+		else commandLineTemp = bctbx_strdup_printf("%s %s", commandLine, argv[i]);
 		bctbx_free(commandLine);
 		commandLine = commandLineTemp;
 		commandLineTemp = NULL;
@@ -1519,7 +1522,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid) {
 		CHECK_ARG("--writable-dir", ++i, argc);
 		if (bc_tester_writable_dir_prefix) bctbx_free(bc_tester_writable_dir_prefix);
 		bc_tester_writable_dir_prefix = strdup(argv[i]);
-	} else if (strcmp(argv[i], "--child") == 0) { // Switch off this parameter as it is used for external processing
+	} else if (strcmp(argv[i], "--delegate") == 0) { // Switch off this parameter as it is used for external processing
 	} else {
 		bc_tester_printf(bc_printf_verbosity_error, "Unknown option \"%s\"", argv[i]);
 		return -1;
