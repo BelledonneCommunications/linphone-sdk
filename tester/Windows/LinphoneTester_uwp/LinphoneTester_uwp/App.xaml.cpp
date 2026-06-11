@@ -57,11 +57,14 @@ App::App()
 		mQuitApp = true;
 	}else{
 		Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);
-		mArgs = ref new Platform::Array<Platform::String^>(__argc);
+		//std::vector<Platform::String^> args;
+		mArgs = ref new Platform::Array<Platform::String^>(__argc+1);
 		if (! AttachConsole(ATTACH_PARENT_PROCESS))   // try to hijack existing console of command line
 			AllocConsole();
 		freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
 		wprintf(L"Parsed command-line arguments:\n");
+		int lastValueIndex = -1;
+		int removeDelegateIndex = -1;
 		for (int i = 0; i < __argc; i++)
 		{
 			wprintf(L"__argv[%d] = %S\n", i, __argv[i]);
@@ -75,23 +78,61 @@ App::App()
 			}
 			std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
 			const wchar_t* w_char = wid_str.c_str();
+			bool isKey = s_str.length() > 1 && s_str.substr(0,2) == "--";
+			bool removeCurrent = false;
 			if( s_str == "--keep"){
 				mIsExitOnEnd = false;
-				mArgs[i] = "";
-			}else if( s_str == "--child"){
+				removeCurrent = true;
+			}else if( s_str == "--delegate"){
 				mDelegate = true;
-				mArgs[i] = "";
+				removeDelegateIndex = i;
 			}else{
-				if( s_str == "--suite" || s_str == "--test")
+				if( s_str == "--suite" || s_str == "--test"){
 					mSpecificTest = true;
+					lastValueIndex = i+1;
+				}
 				if (s_str == "--verbose")
 					mVerbose = true;
-				mArgs[i]  = ref new Platform::String(w_char);
 			}
+
+			if(lastValueIndex >= 0 && lastValueIndex<=i){
+				if( isKey ){
+					lastValueIndex = -1;
+				}else{
+					if(i == lastValueIndex)
+						mArgs[lastValueIndex] =  ref new Platform::String(w_char);
+					else {
+						mArgs[lastValueIndex] += " " + ref new Platform::String(w_char);
+						removeCurrent = true;
+					}
+				}
+			}
+			if(i != lastValueIndex){
+				if (removeCurrent)
+					mArgs[i] = "";
+				else
+					mArgs[i] = ref new Platform::String(w_char);
+			}
+		}
+		
+		if (!mSpecificTest) {
+			// No tests are specified. BCToolbox will create its processes, we need to set them as delegate.
+			if (removeDelegateIndex == -1) {
+				mArgs[__argc] = "--delegate";
+			}
+		}
+		else if (mSpecificTest) {
+			// A test has been specified: remove the flag for next forward.
+			if (removeDelegateIndex >= 0) mArgs[removeDelegateIndex] = "";
 		}
 		if( mDelegate)
 			StartNewProcess();
+		auto args = Windows::ApplicationModel::AppInstance::GetActivatedEventArgs();
+		if (args == nullptr) {
+			wprintf(L"Not Started like an UWP application.\n");
+		}
 	}
+	
 }
 
 /// <summary>
@@ -192,10 +233,7 @@ void App::OnActivated(IActivatedEventArgs^ e)
 		if (rootFrame == nullptr)
 		{
 			rootFrame = ref new Frame();
-			rootFrame->NavigationFailed += ref new Windows::UI::Xaml::Navigation::NavigationFailedEventHandler(this, &App::OnNavigationFailed);
-			if (e->PreviousExecutionState == ApplicationExecutionState::Terminated)
-			{
-			}
+			rootFrame->NavigationFailed += ref new Windows::UI::Xaml::Navigation::NavigationFailedEventHandler(this, &App::OnNavigationFailed);			
 		}
 		if (rootFrame->Content == nullptr)
 		{
