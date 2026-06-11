@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup group_buddy_list
+ * @addtogroup group_contacts
  * @{
  */
 

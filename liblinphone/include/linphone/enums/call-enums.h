@@ -57,7 +57,7 @@ typedef enum _LinphoneCallState {
 
 /**
  * #LinphoneAudioDeviceType enum represents the different types of an audio device.
- * @ingroup group_audio
+ * @ingroup group_audio_devices
  */
 typedef enum _LinphoneAudioDeviceType {
 	LinphoneAudioDeviceTypeUnknown = 0,       /**< Unknown */
@@ -77,7 +77,7 @@ typedef enum _LinphoneAudioDeviceType {
 
 /**
  * #LinphoneAudioDeviceCapabilities enum represents whether a device can record audio, play audio or both
- * @ingroup group_audio
+ * @ingroup group_audio_devices
  */
 typedef enum _LinphoneAudioDeviceCapabilities {
 	LinphoneAudioDeviceCapabilityRecord = 1 << 0, /**< Can record audio */

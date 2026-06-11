@@ -20,14 +20,13 @@
  */
 
 /**
- * @defgroup group_notify_tutorials Generic subscribe/notify example
- * @ingroup group_tutorials
+ * \page subscribe_notify_example SUBSCRIBE/NOTIFY
  *This program is a _very_ simple usage example of liblinphone.
  *It demonstrates how to listen to a SIP subscription.
  *It then sends notify requests back periodically.
- *first argument must be like sip:jehan@sip.linphone.org , second must be password .
+ *first argument must be like sip:bob@sip.example.org , second must be password .
  *<br>
- *ex registration sip:jehan@sip.linphone.org secret
+ *ex registration sip:bob@sip.example.org secret
  *<br>Registration is cleared on SIGINT
  *<br>
  *@include registration.c

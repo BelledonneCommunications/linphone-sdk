@@ -857,7 +857,7 @@ typedef void (*LinphoneCoreCbsPreviewDisplayErrorOccurredCb)(LinphoneCore *core,
  **/
 
 /**
- * @addtogroup group_buddy_list
+ * @addtogroup group_contacts
  * @{
  */
 

@@ -24,7 +24,7 @@
 #include "linphone/api/c-types.h"
 
 /**
- * @addtogroup group_audio
+ * @addtogroup group_audio_devices
  * @{
  */
 

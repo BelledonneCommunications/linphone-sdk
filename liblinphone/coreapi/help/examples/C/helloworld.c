@@ -20,8 +20,7 @@
  */
 
 /**
- * @defgroup group_basic_call_tutorials Basic call
- * @ingroup group_tutorials
+ * \page helloworld Hello world
  This program is a _very_ simple usage example of liblinphone.
  It just takes a sip-uri as first argument and attempts to call it
 

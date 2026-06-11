@@ -66,7 +66,7 @@ LINPHONE_PUBLIC const char *linphone_stream_type_to_string(const LinphoneStreamT
  * Human readable version of the #LinphoneRegistrationState
  * @param state #LinphoneRegistrationState the value for which we want a string representation
  * @return a string representation of the #LinphoneRegistrationState @notnil
- * @ingroup group_proxies
+ * @ingroup group_account
  */
 LINPHONE_PUBLIC const char *linphone_registration_state_to_string(LinphoneRegistrationState state);
 

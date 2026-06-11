@@ -78,9 +78,20 @@
  * Symmetrically, applications can subscribe to the presence server to get notified of the presence status of a contact list.
  * This is to be done thanks to the #LinphoneFriendList and #LinphoneFriend object.
  *
- * @subsection configuration Liblinphone Configuration Parameters
- * Liblinphone supports a variety of configuration parameters that allow the end user to customize the behaviour of its application depending on its needs.
- * - \ref group_provisioning_configuration_key "Provisioning Configuration Key"
+ * @subsection examples C program examples
+ *
+ * Small C programs showing basic use-cases are available:
+ *
+ * - \subpage helloworld Basic hello world
+ * - \subpage registration Doing a SIP REGISTER
+ * - \subpage chatroom_example Sending a chat message
+ * - \subpage presence_example Using presence
+ * - \subpage subscribe_notify_example Handling generic SUBSCRIBE/NOTIFY
+ * - \subpage realtimetext_receiver Receiving real-time text
+ * - \subpage realtimetext_sender Sending real-time text
+ *
+ * @warning these program are not up-to-date and may use deprecated functions.
+ *
 **/
 
 /**
@@ -89,14 +100,22 @@
 **/
 
 /**
+ * @defgroup group_logging Debug logs
+ * @brief Getting and managing debug logs issued by liblinphone and underlying libraries.
+ */
+
+/**
+ * @defgroup group_linphone_address Linphone address
+ * @brief SIP address parser API.
+
+ * This api is useful for manipulating SIP addresses ('from' or 'to' headers or SIP URIs).
+**/
+
+/**
  * @defgroup group_account Accounts
  * @brief Management of SIP accounts, including various SIP service settings.
 **/
 
-/**
- * @defgroup group_logging Logging
- * @brief Logging service of Linphone.
- */
 
 /**
  * @defgroup group_call_control Call control
@@ -107,7 +126,7 @@
 **/
 
 /**
- * @defgroup group_call_misc Call misc
+ * @defgroup group_call_misc Call advanced information
  * @brief Obtaining information about a running call: sound volumes, quality indicators.
  *
  * When a call is running, it is possible to retrieve in real time current measured volumes and quality indicator.
@@ -127,6 +146,11 @@
 **/
 
 /**
+ * @defgroup group_audio_devices Audio devices
+ * @brief Enumerate and and discover audio devices available on the system.
+ */
+
+/**
  * @defgroup group_network_parameters Network parameters
  * @brief Controlling network parameters (ports, mtu...).
 **/
@@ -137,10 +161,15 @@
 **/
 
 /**
- * @defgroup group_chatroom Chatroom
- * @brief Instant messaging
+ * @defgroup group_chatroom Instant messaging
+ * @brief Chatrooms and chat messages.
  *
 **/
+
+/**
+ * @defgroup group_events Groupchat and conference events
+ * @brief Unified representation of group chat and conference events.
+ */
 
 /**
  * @defgroup group_call_logs Call logs
@@ -148,59 +177,50 @@
 **/
 
 /**
- * @defgroup group_alert Alert
- * @brief Managing Alerts.
-**/
-
-/**
- * @defgroup group_dictionary Dictionary
- * @brief Managing Dictionary.
-**/
-
-/**
- * @defgroup group_linphone_address Linphone address
- * @brief SIP address parser API.
-
- * This api is useful for manipulating SIP addresses ('from' or 'to' headers or SIP URIs).
-**/
-
-/**
  * @defgroup group_conference Conferencing
- * @brief Making a audio/video conferences.
+ * @brief Scheduling, creating and joining audio/video conferences.
  *
  *
 **/
 
 /**
- * @defgroup group_signalInformation Signal Information
- * @brief Providing information about the network signal
- *
- *
-**/
-
-/**
- * @defgroup group_contacts Contacts
+ * @defgroup group_contacts Contacts, contact lists and presence
  * @brief Create, manage and search contacts.
  *
  *
 **/
 
 /**
- * @defgroup group_ekt_api Ekt
- * @brief Managing Ekt
- */
-
-/**
- * @defgroup group_event_api Event api
- * @brief Managing generic subscriptions and publishes.
- *
- * The LinphoneEvent api allows application to control subscriptions, receive notifications and make publish to peers, in a generic manner.
- */
-
-/**
- * @defgroup group_ldap LDAP server interaction
- * @brief Making LDAP searches to lookup contacts.
+ * @defgroup group_remote_contact_directory Remote contact directories
+ * @brief Using LDAP or CardDav remote contact directories to lookup contacts.
 **/
+
+/**
+ * @defgroup group_account_management Account management services
+ * @brief Manage end-user accounts using the Flexisip Account Manager REST API
+ *
+ *
+**/
+
+/**
+ * @defgroup group_event_api Generic SUBSCRIBE/NOTIFY/PUBLISH flows
+ * @brief Managing generic subscriptions and publish.
+ *
+ * The #LinphoneEvent api allows application to control subscriptions, receive notifications and make publish to peers, in a generic manner.
+ */
+
+
+/**
+ * @defgroup group_alert Alerts for QoS incidents
+ * @brief Alerts are raised to signal various QoS incidents during calls.
+**/
+
+/**
+ * @defgroup group_IOS IOS
+ * @brief iOS specific functions
+ *
+ * These functions handle specific aspects of iOS, mainly CallKit integration.
+ */
 
 /**
  * @defgroup group_misc Misc
@@ -216,8 +236,14 @@
  */
 
 /**
- * @defgroup group_IOS IOS
- * @brief iOS specific functions
+ * @defgroup group_tunnel Tunneling SIP and RTP traffic
+ * @brief Tunneling SIP and RTP traffic
  *
- * These functions handle specific aspects of iOS, mainly CallKit integration.
+ * This feature is not available in open-source version.
  */
+
+/**
+ * @defgroup group_deprecated Deprecated APIs
+ * @brief Deprecated objects and APIs.
+ */
+

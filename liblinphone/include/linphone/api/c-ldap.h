@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 /**
- * @addtogroup group_ldap
+ * @addtogroup group_deprecated
  * @{
  */
 
