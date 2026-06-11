@@ -47,12 +47,30 @@ macos-ninja-spm-upload:
           TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}${SPM_DEPLOY_TARGET_BRANCH}"
         fi
     - VERSION=$(tr -d '\n\r' < build/mac/linphone-sdk-swift-macos/VERSION)
-    - PUBLIC_SPM_VERSION_URL="https://gitlab.linphone.org/BC/public/linphone-sdk-swift-macos/-/raw/$TARGET_BRANCH/VERSION"
-    - PUBLIC_SPM_VERSION="$(v=$(curl -sfL "$PUBLIC_SPM_VERSION_URL" | tr -d '\n\r'); echo "${v:-none}")"
     - |
-      if [ "$PUBLIC_SPM_VERSION" = "$VERSION" ]; then
-        echo "Skipping public spm deployment as version $VERSION is already deployed."
+      if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        echo "Skipping public spm deployment as version $VERSION is not a final x.y.z release."
         exit 0
+      fi
+      VERSION_MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
+      if [ -n "$SWIFT_PACKAGE_FLAVOR" ]; then
+        FLAVOR_SUFFIX="-$(echo "$SWIFT_PACKAGE_FLAVOR" | sed 's/\///g')"
+      else
+        FLAVOR_SUFFIX=""
+      fi
+      TAG_REGEX="^${VERSION_MAJOR_MINOR//./\\.}\\.[0-9]+${FLAVOR_SUFFIX}\$"
+      LATEST_LINE_VERSION=$(git ls-remote --tags --refs git@gitlab.linphone.org:BC/public/linphone-sdk-swift-macos.git \
+        | sed 's#.*refs/tags/##' \
+        | grep -E "$TAG_REGEX" \
+        | sed "s#${FLAVOR_SUFFIX}\$##" \
+        | sort -V | tail -n1)
+      echo "Latest deployed version on the ${VERSION_MAJOR_MINOR} line: ${LATEST_LINE_VERSION:-none}"
+      if [ -n "$LATEST_LINE_VERSION" ]; then
+        HIGHEST_VERSION=$(printf '%s\n%s\n' "$VERSION" "$LATEST_LINE_VERSION" | sort -V | tail -n1)
+        if [ "$VERSION" = "$LATEST_LINE_VERSION" ] || [ "$HIGHEST_VERSION" != "$VERSION" ]; then
+          echo "Skipping public spm deployment as deployed version $LATEST_LINE_VERSION on the $VERSION_MAJOR_MINOR line is greater than or equal to $VERSION."
+          exit 0
+        fi
       fi
     - echo "Uploading SPM $VERSION to $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR"
     - rsync -ar build/mac/linphone-sdk-swift-macos/ $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR/linphone-sdk-swift-macos-$VERSION/
