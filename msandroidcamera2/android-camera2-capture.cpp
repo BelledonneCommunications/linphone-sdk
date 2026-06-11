@@ -177,6 +177,8 @@ static SharedAndroidCamera2Context sharedContext = {};
 
 static void android_camera2_capture_stop(AndroidCamera2Context *d);
 
+static void android_camera2_capture_create_surface_from_surface_texture(AndroidCamera2Context *d);
+
 static void android_camera2_capture_device_on_disconnected(void *context, ACameraDevice *device) {
     ms_warning("[Camera2 Capture] Camera %s is disconnected", ACameraDevice_getId(device));
 
@@ -470,6 +472,17 @@ static void android_camera2_check_configuration_ok(AndroidCamera2Context *d) {
 }
 
 static void android_camera2_retry_capture_start_once_in_case_of_error(AndroidCamera2Context *d) {
+	if (d->nativeWindowId) {
+		ms_warning("[Camera2 Capture] Destroying preview surface and re-creating a new one, just in case");
+		if (d->surface) {
+			JNIEnv *env = ms_get_jni_env();
+			env->DeleteGlobalRef(d->surface);
+			d->surface = nullptr;
+			ms_message("[Camera2 Capture] Preview surface destroyed");
+		}
+		android_camera2_capture_create_surface_from_surface_texture(d);
+	}
+
 	if (d->retry_starting_capture) {
 		ms_error("[Camera2 Capture] We tried twice to start capture, considering configuration is wrong");
 		d->configured = false;
