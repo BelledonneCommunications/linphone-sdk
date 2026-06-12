@@ -251,7 +251,19 @@ public class MediastreamerAndroidContext {
 			return;
 		}
 
-		Log.i("[Audio Manager] Trying to workaround no sound issue on stream [" + stream + "] until volume has changed...");
+		String streamName = String.valueOf(stream);
+		if (stream == AudioManager.STREAM_DTMF) {
+			streamName = "DTMF";
+		} else if (stream == AudioManager.STREAM_RING) {
+			streamName = "RING";
+		} else if (stream == AudioManager.STREAM_MUSIC) {
+			streamName = "MUSIC";
+		} else if (stream == AudioManager.STREAM_NOTIFICATION) {
+			streamName = "NOTIFICATION";
+		}  else if (stream == AudioManager.STREAM_VOICE_CALL) {
+			streamName = "VOICE_CALL";
+		}
+		Log.i("[Audio Manager] Trying to workaround no sound issue on stream [" + streamName + "] until volume has changed...");
 		try {
 			AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
 			if (stream == AudioManager.STREAM_RING || stream == AudioManager.STREAM_DTMF) {
@@ -267,8 +279,8 @@ public class MediastreamerAndroidContext {
 				Log.w("[Audio Manager] Device's volume is fixed, workaround will probably fail!");
 			}
 
-			int maxVolume = audioManager.getStreamMaxVolume(stream);
 			int currentVolume = audioManager.getStreamVolume(stream);
+			int maxVolume = audioManager.getStreamMaxVolume(stream);
 			Log.i("[Audio Manager] Max volume for stream is " + maxVolume + ", current volume is " + currentVolume);
 			int timeInMills = 50;
 			if (maxVolume == currentVolume) {
@@ -285,6 +297,7 @@ public class MediastreamerAndroidContext {
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0);
 				SystemClock.sleep(timeInMills);
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0);
+				SystemClock.sleep(timeInMills);
 			} else {
 				// It seems the following API may result in volume not being the same as it was before the operation
 				/*try {
@@ -299,12 +312,17 @@ public class MediastreamerAndroidContext {
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0);
 				SystemClock.sleep(timeInMills);
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0);
+				SystemClock.sleep(timeInMills);
 			}
 			
 			int newCurrentVolume = audioManager.getStreamVolume(stream);
 			Log.i("[Audio Manager] Workaround was applied, current volume is " + newCurrentVolume);
 			if (newCurrentVolume != currentVolume) {
 				Log.e("[Audio Manager] Volume level isn't the same after applying the workaround [" + newCurrentVolume + "] than it was before [" + currentVolume + "]!");
+				if (newCurrentVolume == 0) {
+					Log.w("[Audio Manager] Newly detected volume is 0, trying to restore previous volume to prevent device in silent mode");
+					audioManager.setStreamVolume(stream, currentVolume, 0);
+				}
 			}
 		} catch (Exception e) {
 			Log.e("[Audio Manager] Failed to adjust volume: ", e);
