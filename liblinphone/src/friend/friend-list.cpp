@@ -247,6 +247,15 @@ std::shared_ptr<Friend> FriendList::findFriendByAddress(const std::shared_ptr<co
 		cleanUri = address->asStringUriOnly();
 	}
 	std::shared_ptr<Friend> lf = findFriendByUri(cleanUri);
+	if (lf) return lf;
+
+	// Fallback: if the username looks like a phone number, try matching with normalization.
+	// This handles cases where the caller uses local format (e.g. 0123456789) but the
+	// CardDAV contact stores the number in international format (e.g. +49123456789 or 0049123456789).
+	const std::string username = address->getUsername();
+	if (!username.empty() && linphone_account_is_phone_number(nullptr, username.c_str())) {
+		lf = findFriendByPhoneNumber(username);
+	}
 	return lf;
 }
 
@@ -288,14 +297,23 @@ std::shared_ptr<Friend> FriendList::findFriendByUri(const std::string &uri) cons
 
 std::list<std::shared_ptr<Friend>>
 FriendList::findFriendsByAddress(const std::shared_ptr<const Address> &address) const {
+	std::list<std::shared_ptr<Friend>> result;
 	if (address->hasUriParam("gr")) {
 		std::shared_ptr<Address> cleanAddress = address->clone()->toSharedPtr();
 		cleanAddress->removeUriParam("gr");
-		std::list<std::shared_ptr<Friend>> result = findFriendsByUri(cleanAddress->asStringUriOnly());
-		return result;
+		result = findFriendsByUri(cleanAddress->asStringUriOnly());
+	} else {
+		result = findFriendsByUri(address->asStringUriOnly());
 	}
 
-	std::list<std::shared_ptr<Friend>> result = findFriendsByUri(address->asStringUriOnly());
+	// Fallback: if the username looks like a phone number, try matching with normalization.
+	if (result.empty()) {
+		const std::string username = address->getUsername();
+		if (!username.empty() && linphone_account_is_phone_number(nullptr, username.c_str())) {
+			std::shared_ptr<Friend> lf = findFriendByPhoneNumber(username);
+			if (lf) result.push_back(lf);
+		}
+	}
 	return result;
 }
 
