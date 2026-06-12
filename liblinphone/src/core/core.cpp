@@ -259,13 +259,13 @@ void CorePrivate::registerListener(CoreListener *listener) {
 		lError() << __func__ << " : Ignoring attempt to register a null listener";
 		return;
 	}
-
 	listeners.insert(listener);
 }
 
 void CorePrivate::unregisterListener(CoreListener *listener) {
 	if (auto it = listeners.find(listener); it != listeners.end()) {
 		listeners.erase(it);
+		if (nowRunningListeners) removedListeners.insert(listener);
 	}
 }
 
@@ -584,50 +584,37 @@ void CorePrivate::notifyGlobalStateChanged(LinphoneGlobalState state) {
 			/* nothing to do here */
 			break;
 	}
-	auto listenersCopy = listeners; // Allow removal of a listener in its own call
-	for (const auto &listener : listenersCopy)
-		listener->onGlobalStateChanged(state);
+	invokeListeners([state](CoreListener *l) { l->onGlobalStateChanged(state); });
 }
 
 void CorePrivate::notifyNetworkReachable(bool sipNetworkReachable, bool mediaNetworkReachable) {
-	auto listenersCopy = listeners; // Allow removal of a listener in its own call
-	for (const auto &listener : listenersCopy)
-		listener->onNetworkReachable(sipNetworkReachable, mediaNetworkReachable);
+	invokeListeners(
+	    [=](CoreListener *listener) { listener->onNetworkReachable(sipNetworkReachable, mediaNetworkReachable); });
 }
 
 void CorePrivate::notifyCallStateChanged(LinphoneCall *call, LinphoneCallState state, const string &message) {
-	auto listenersCopy = listeners; // Allow removal of a listener in its own call
-	for (const auto &listener : listenersCopy)
-		listener->onCallStateChanged(call, state, message);
+	invokeListeners([=](CoreListener *listener) { listener->onCallStateChanged(call, state, message); });
 }
 
 void CorePrivate::notifyRegistrationStateChanged(std::shared_ptr<Account> account,
                                                  LinphoneRegistrationState state,
                                                  const string &message) {
-	auto listenersCopy = listeners; // Allow removal of a listener in its own call
-	for (const auto &listener : listenersCopy)
-		listener->onAccountRegistrationStateChanged(account, state, message);
+	invokeListeners(
+	    [=](CoreListener *listener) { listener->onAccountRegistrationStateChanged(account, state, message); });
 }
 
 void CorePrivate::notifyRegistrationStateChanged(LinphoneProxyConfig *cfg,
                                                  LinphoneRegistrationState state,
                                                  const string &message) {
-	auto listenersCopy = listeners; // Allow removal of a listener in its own call
-	for (const auto &listener : listenersCopy)
-		listener->onRegistrationStateChanged(cfg, state, message);
+	invokeListeners([=](CoreListener *listener) { listener->onRegistrationStateChanged(cfg, state, message); });
 }
 
 void CorePrivate::notifyEnteringBackground() {
-
-	auto listenersCopy = listeners; // Allow removal of a listener in its own call
-	for (const auto &listener : listenersCopy)
-		listener->onEnteringBackground();
+	invokeListeners([=](CoreListener *listener) { listener->onEnteringBackground(); });
 }
 
 void CorePrivate::notifyEnteringForeground() {
-	auto listenersCopy = listeners; // Allow removal of a listener in its own call
-	for (const auto &listener : listenersCopy)
-		listener->onEnteringForeground();
+	invokeListeners([=](CoreListener *listener) { listener->onEnteringForeground(); });
 }
 
 belle_sip_main_loop_t *CorePrivate::getMainLoop() {
@@ -2707,10 +2694,13 @@ shared_ptr<CallSession> Core::createOrUpdateConferenceOnServer(const std::shared
 		}
 		params.addCustomHeader("Require", "recipient-list-invite");
 		params.addCustomHeader(ChatRoom::kOneOnOneChatRoomHeader, Utils::btos(!confParams->isGroup()));
-		params.addCustomHeader(ChatRoom::kEndToEndEncryptedHeader, Utils::btos(confParams->getChatParams()->isEncrypted()));
-		params.addCustomHeader(ChatRoom::kEphemerableHeader, Utils::btos(confParams->getChatParams()->getEphemeralMode() ==
-		                                                  AbstractChatRoom::EphemeralMode::AdminManaged));
-		params.addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader, to_string(confParams->getChatParams()->getEphemeralLifetime()));
+		params.addCustomHeader(ChatRoom::kEndToEndEncryptedHeader,
+		                       Utils::btos(confParams->getChatParams()->isEncrypted()));
+		params.addCustomHeader(ChatRoom::kEphemerableHeader,
+		                       Utils::btos(confParams->getChatParams()->getEphemeralMode() ==
+		                                   AbstractChatRoom::EphemeralMode::AdminManaged));
+		params.addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
+		                       to_string(confParams->getChatParams()->getEphemeralLifetime()));
 		params.addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
 		                       to_string(confParams->getChatParams()->getEphemeralNotReadLifetime()));
 	}

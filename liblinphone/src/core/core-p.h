@@ -79,6 +79,21 @@ public:
 	                                    const std::string &message);
 	void notifyEnteringBackground();
 	void notifyEnteringForeground();
+	/* Wrapper function for listener invocation.
+	 * It is mandatory to use it to protect against invocation on destroyed objects.
+	 */
+	template <typename _lambdaT>
+	void invokeListeners(_lambdaT lambda) {
+		auto listenersCopy = listeners;
+		nowRunningListeners = true;
+		for (auto listener : listenersCopy) {
+			if (removedListeners.find(listener) == removedListeners.end()) {
+				lambda(listener);
+			}
+		}
+		nowRunningListeners = false;
+		removedListeners.clear();
+	}
 
 	void enableFriendListsSubscription(bool enable);
 	void enableMessageWaitingIndicationSubscription(bool enable);
@@ -225,6 +240,8 @@ private:
 	static std::string getRingerDevIdKeyForConfig(int index);
 
 	std::set<CoreListener *> listeners;
+	std::set<CoreListener *> removedListeners;
+	bool nowRunningListeners = false;
 
 	// This list holds the last reference to a Call object after it reaches the End state. In fact a call is a listener
 	// of the CallSession object which doesn't hold a strong reference to it
