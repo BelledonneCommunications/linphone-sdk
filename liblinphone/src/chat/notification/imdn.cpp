@@ -416,7 +416,14 @@ void Imdn::send() {
 		if (message->getPrivate()->getContents().empty()) {
 			lWarning() << "Not sending IMDN delivery/displayed message [" << message << "] as it contains no content";
 		} else {
-			sentImdnMessages.push_back(message);
+			auto msgChatroom = message->getChatRoom();
+			if (msgChatroom.get() != chatRoom) {
+				lInfo() << "Trying to send IMDN delivery/displayed message [" << message << "] for chatroom "
+				        << *chatRoom << ", but the message is actually associated with chatroom " << *msgChatroom
+				        << " instead. This is a normal occurrence in a group chatroom, where IMDN get sent through a "
+				           "specific 1-to-1 chatroom instead of using the whole group chat";
+			}
+			msgChatroom->getImdnHandler()->sentImdnMessages.push_back(message);
 			message->getChatRoom()->sendChatMessage(message);
 		}
 	}
