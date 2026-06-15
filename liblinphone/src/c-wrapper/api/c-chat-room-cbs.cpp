@@ -380,3 +380,12 @@ LinphoneChatRoomCbsMessageRetractedCb linphone_chat_room_cbs_get_message_retract
 void linphone_chat_room_cbs_set_message_retracted(LinphoneChatRoomCbs *cbs, LinphoneChatRoomCbsMessageRetractedCb cb) {
 	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->messageRetractedCb = cb;
 }
+
+LinphoneChatRoomCbsFullStateReceivedCb linphone_chat_room_cbs_get_full_state_received(const LinphoneChatRoomCbs *cbs) {
+	return LinphonePrivate::ChatRoomCbs::toCpp(cbs)->fullStateReceivedCb;
+}
+
+void linphone_chat_room_cbs_set_full_state_received(LinphoneChatRoomCbs *cbs,
+                                                    LinphoneChatRoomCbsFullStateReceivedCb cb) {
+	LinphonePrivate::ChatRoomCbs::toCpp(cbs)->fullStateReceivedCb = cb;
+}

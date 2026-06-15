@@ -574,6 +574,7 @@ void _linphone_chat_room_notify_new_reaction_received(LinphoneChatRoom *cr,
                                                       const LinphoneChatMessageReaction *reaction);
 void _linphone_chat_room_notify_message_content_edited(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
 void _linphone_chat_room_notify_message_retracted(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
+void _linphone_chat_room_notify_full_state_received(LinphoneChatRoom *chat_room);
 void _linphone_chat_room_clear_callbacks(LinphoneChatRoom *cr);
 
 void _linphone_chat_message_notify_msg_state_changed(LinphoneChatMessage *msg, LinphoneChatMessageState state);

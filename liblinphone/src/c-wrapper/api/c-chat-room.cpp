@@ -1103,6 +1103,10 @@ void _linphone_chat_room_notify_message_retracted(LinphoneChatRoom *chat_room, L
 	                                  linphone_chat_room_cbs_get_message_retracted, message);
 }
 
+void _linphone_chat_room_notify_full_state_received(LinphoneChatRoom *chat_room) {
+	LINPHONE_HYBRID_OBJECT_INVOKE_CBS_NO_ARG(ChatRoom, AbstractChatRoom::toCpp(chat_room),
+	                                         linphone_chat_room_cbs_get_full_state_received);
+}
 // =============================================================================
 // Reference and user data handling functions.
 // =============================================================================

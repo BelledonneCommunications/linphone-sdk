@@ -746,6 +746,12 @@ typedef void (*LinphoneChatRoomCbsMessageContentEditedCb)(LinphoneChatRoom *chat
 typedef void (*LinphoneChatRoomCbsMessageRetractedCb)(LinphoneChatRoom *chat_room, LinphoneChatMessage *message);
 
 /**
+ * Callback used to notify that the full state of the chatroom has been received
+ * @param chat_room #LinphoneChatRoom object @notnil
+ */
+typedef void (*LinphoneChatRoomCbsFullStateReceivedCb)(LinphoneChatRoom *chat_room);
+
+/**
  * @}
  **/
 
