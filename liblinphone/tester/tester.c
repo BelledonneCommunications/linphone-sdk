@@ -2027,15 +2027,15 @@ LinphoneStatus add_calls_to_local_conference(bctbx_list_t *lcs,
 		    conf_initial_stats.number_of_LinphoneCallStreamsRunning + (int)bctbx_list_size(new_participants), 50000));
 	}
 
-	check_participant_added_to_conference(lcs, conf_mgr, conf_initial_stats, new_participants,
-	                                      new_participants_initial_stats, call_paused, participants,
-	                                      participants_initial_stats, conference_used);
-
 	// Add local participant device is needed
 	size_t no_parts =
 	    initial_device_count + bctbx_list_size(new_participants) + (linphone_conference_is_in(conference_used) ? 1 : 0);
 	wait_for_conference_stable_state(lcs, conf_mgr, no_parts, new_participants,
 	                                 linphone_conference_get_conference_address(conference_used));
+
+	check_participant_added_to_conference(lcs, conf_mgr, conf_initial_stats, new_participants,
+	                                      new_participants_initial_stats, call_paused, participants,
+	                                      participants_initial_stats, conference_used);
 
 	ms_free(call_paused);
 	ms_free(participants_initial_stats);
