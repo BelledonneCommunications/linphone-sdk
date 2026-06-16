@@ -24,7 +24,13 @@
 #include "belle_sip_tester_utils.h"
 
 #ifndef _WIN32
+#include <arpa/inet.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #endif // _WIN32
 
 #include "register_tester.h"
@@ -535,6 +541,278 @@ static void stateful_register_tcp(void) {
 
 static void stateful_register_tls(void) {
 	register_test("tls", 1);
+}
+
+static void log_future_pqc_register_smoke_config(const char *requested_provider,
+                                                 const bctbx_crypto_provider_t *resolved_provider,
+                                                 int provider_ret,
+                                                 belle_sip_crypto_mode_t requested_mode,
+                                                 belle_sip_crypto_mode_t selected_mode,
+                                                 int mode_fallback,
+                                                 const char *requested_group,
+                                                 int group_ret) {
+	belle_sip_message("[FuturePQC smoke] requested crypto provider: %s", requested_provider);
+	belle_sip_message("[FuturePQC smoke] selected/resolved crypto provider: %s%s%s",
+	                  resolved_provider ? bctbx_crypto_provider_get_name(resolved_provider) : "unavailable",
+	                  resolved_provider ? " / " : "",
+	                  resolved_provider ? bctbx_crypto_provider_get_class_name(resolved_provider) : "");
+	belle_sip_message("[FuturePQC smoke] crypto provider resolution status: %d", provider_ret);
+	belle_sip_message("[FuturePQC smoke] preferred crypto mode: %s", belle_sip_crypto_mode_to_string(requested_mode));
+	belle_sip_message("[FuturePQC smoke] selected/resolved crypto mode: %s",
+	                  belle_sip_crypto_mode_to_string(selected_mode));
+	belle_sip_message("[FuturePQC smoke] requested future_pqc_tls_group: %s", requested_group);
+	belle_sip_message("[FuturePQC smoke] future_pqc_tls_group support status: %d", group_ret);
+	belle_sip_message("[FuturePQC smoke] fallback to classical: %s", mode_fallback ? "yes" : "no");
+}
+
+#ifndef _WIN32
+typedef struct future_pqc_smoke_tls_server {
+	int listen_fd;
+	int port;
+	int handshake_status;
+	int register_seen;
+	int response_sent;
+} future_pqc_smoke_tls_server_t;
+
+static int future_pqc_smoke_socket_recv(void *data, unsigned char *buf, size_t len) {
+	int fd = *(int *)data;
+	int ret = (int)recv(fd, buf, len, 0);
+	if (ret < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) return BCTBX_ERROR_NET_WANT_READ;
+		return BCTBX_ERROR_NET_CONN_RESET;
+	}
+	if (ret == 0) return BCTBX_ERROR_SSL_PEER_CLOSE_NOTIFY;
+	return ret;
+}
+
+static int future_pqc_smoke_socket_send(void *data, const unsigned char *buf, size_t len) {
+	int fd = *(int *)data;
+	int ret = (int)send(fd, buf, len, 0);
+	if (ret < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) return BCTBX_ERROR_NET_WANT_WRITE;
+		return BCTBX_ERROR_NET_CONN_RESET;
+	}
+	return ret;
+}
+
+static int future_pqc_smoke_create_listener(future_pqc_smoke_tls_server_t *server) {
+	struct sockaddr_in addr;
+	socklen_t addr_len = sizeof(addr);
+	int opt = 1;
+
+	server->listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (server->listen_fd < 0) return -1;
+	setsockopt(server->listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	addr.sin_port = 0;
+	if (bind(server->listen_fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) return -1;
+	if (listen(server->listen_fd, 1) != 0) return -1;
+	if (getsockname(server->listen_fd, (struct sockaddr *)&addr, &addr_len) != 0) return -1;
+	server->port = ntohs(addr.sin_port);
+	return 0;
+}
+
+static std::string future_pqc_smoke_copy_header(const std::string &request, const char *header_name) {
+	std::string header(header_name);
+	std::string::size_type pos = 0;
+	while (pos < request.size()) {
+		std::string::size_type line_end = request.find("\r\n", pos);
+		if (line_end == std::string::npos) break;
+		std::string line = request.substr(pos, line_end - pos);
+		if (line.size() > header.size() && strncasecmp(line.c_str(), header.c_str(), header.size()) == 0 &&
+		    line[header.size()] == ':') {
+			return line + "\r\n";
+		}
+		pos = line_end + 2;
+	}
+	return "";
+}
+
+static std::string future_pqc_smoke_build_register_response(const std::string &request) {
+	std::string response = "SIP/2.0 200 OK\r\n";
+	response += future_pqc_smoke_copy_header(request, "Via");
+	response += future_pqc_smoke_copy_header(request, "From");
+	response += future_pqc_smoke_copy_header(request, "To");
+	response += future_pqc_smoke_copy_header(request, "Call-ID");
+	response += future_pqc_smoke_copy_header(request, "CSeq");
+	response += "Content-Length: 0\r\n\r\n";
+	return response;
+}
+
+static void future_pqc_smoke_tls_server_run(future_pqc_smoke_tls_server_t *server,
+                                            const char *requested_provider,
+                                            const char *requested_group) {
+	int client_fd = -1;
+	bctbx_ssl_config_t *ssl_config = NULL;
+	bctbx_ssl_context_t *ssl_ctx = NULL;
+	bctbx_x509_certificate_t *cert = NULL;
+	bctbx_signing_key_t *key = NULL;
+	fd_set readfds;
+	struct timeval timeout;
+	std::string request;
+	unsigned char buffer[2048];
+	int ret;
+
+	FD_ZERO(&readfds);
+	FD_SET(server->listen_fd, &readfds);
+	timeout.tv_sec = 10;
+	timeout.tv_usec = 0;
+	if (select(server->listen_fd + 1, &readfds, NULL, NULL, &timeout) <= 0) goto cleanup;
+
+	client_fd = accept(server->listen_fd, NULL, NULL);
+	if (client_fd < 0) goto cleanup;
+
+	ssl_config = bctbx_ssl_config_new();
+	ssl_ctx = bctbx_ssl_context_new();
+	cert = bctbx_x509_certificate_new();
+	key = bctbx_signing_key_new();
+	if (ssl_config == NULL || ssl_ctx == NULL || cert == NULL || key == NULL) goto cleanup;
+	if (bctbx_x509_certificate_parse(cert, belle_sip_tester_client_cert, strlen(belle_sip_tester_client_cert) + 1) != 0)
+		goto cleanup;
+	if (bctbx_signing_key_parse(key, belle_sip_tester_private_key, strlen(belle_sip_tester_private_key) + 1,
+	                            (const unsigned char *)belle_sip_tester_private_key_passwd,
+	                            strlen(belle_sip_tester_private_key_passwd)) != 0)
+		goto cleanup;
+	if (bctbx_ssl_config_defaults(ssl_config, BCTBX_SSL_IS_SERVER, BCTBX_SSL_TRANSPORT_STREAM) != 0) goto cleanup;
+	bctbx_ssl_config_set_authmode(ssl_config, BCTBX_SSL_VERIFY_NONE);
+	if (bctbx_ssl_config_set_crypto_provider(ssl_config, requested_provider) != 0) goto cleanup;
+	if (bctbx_ssl_config_set_future_pqc_tls_group(ssl_config, requested_group) != 0) goto cleanup;
+	if (bctbx_ssl_config_set_own_cert(ssl_config, cert, key) != 0) goto cleanup;
+	if (bctbx_ssl_context_setup(ssl_ctx, ssl_config) != 0) goto cleanup;
+	bctbx_ssl_set_io_callbacks(ssl_ctx, &client_fd, future_pqc_smoke_socket_send, future_pqc_smoke_socket_recv);
+
+	do {
+		ret = bctbx_ssl_handshake(ssl_ctx);
+	} while (ret == BCTBX_ERROR_NET_WANT_READ || ret == BCTBX_ERROR_NET_WANT_WRITE);
+	server->handshake_status = ret;
+	if (ret != 0) goto cleanup;
+
+	do {
+		ret = bctbx_ssl_read(ssl_ctx, buffer, sizeof(buffer) - 1);
+		if (ret > 0) {
+			buffer[ret] = '\0';
+			request.append((const char *)buffer, ret);
+		}
+	} while ((ret == BCTBX_ERROR_NET_WANT_READ || ret == BCTBX_ERROR_NET_WANT_WRITE ||
+	          request.find("\r\n\r\n") == std::string::npos) &&
+	         ret != BCTBX_ERROR_SSL_PEER_CLOSE_NOTIFY && ret != BCTBX_ERROR_NET_CONN_RESET);
+
+	server->register_seen = request.find("REGISTER") != std::string::npos;
+	if (server->register_seen) {
+		std::string response = future_pqc_smoke_build_register_response(request);
+		size_t written = 0;
+		while (written < response.size()) {
+			ret = bctbx_ssl_write(ssl_ctx, (const unsigned char *)response.data() + written, response.size() - written);
+			if (ret > 0) written += (size_t)ret;
+			else if (ret != BCTBX_ERROR_NET_WANT_READ && ret != BCTBX_ERROR_NET_WANT_WRITE) break;
+		}
+		server->response_sent = (written == response.size());
+	}
+
+cleanup:
+	if (ssl_ctx) {
+		bctbx_ssl_close_notify(ssl_ctx);
+		bctbx_ssl_context_free(ssl_ctx);
+	}
+	if (ssl_config) bctbx_ssl_config_free(ssl_config);
+	if (cert) bctbx_x509_certificate_free(cert);
+	if (key) bctbx_signing_key_free(key);
+	if (client_fd >= 0) close(client_fd);
+	if (server->listen_fd >= 0) {
+		close(server->listen_fd);
+		server->listen_fd = -1;
+	}
+}
+#endif
+
+static void local_sip_tls_register_future_pqc_hybrid_smoke(void) {
+	static const char *requested_provider = "future-pqc";
+	static const char *requested_group = "X25519MLKEM768";
+	const bctbx_crypto_provider_t *resolved_provider = NULL;
+	belle_sip_tls_listening_point_t *client_lp =
+	    BELLE_SIP_TLS_LISTENING_POINT(belle_sip_provider_get_listening_point(prov, "tls"));
+	belle_tls_crypto_config_t *client_crypto_config = NULL;
+	belle_sip_crypto_mode_t requested_mode = BELLE_SIP_CRYPTO_MODE_HYBRID;
+	int mode_fallback = 0;
+	belle_sip_crypto_mode_t selected_mode;
+	int provider_ret;
+	int group_ret;
+	int configured = FALSE;
+	int previous_verify_exceptions = 0;
+
+	if (client_lp == NULL) {
+		belle_sip_error("No TLS support, test skipped.");
+		return;
+	}
+
+	provider_ret = bctbx_crypto_provider_resolve(requested_provider, &resolved_provider);
+	group_ret = bctbx_ssl_future_pqc_group_is_supported(requested_group);
+	selected_mode = belle_sip_crypto_mode_resolve(requested_mode, requested_provider, &mode_fallback);
+
+	log_future_pqc_register_smoke_config(requested_provider, resolved_provider, provider_ret, requested_mode,
+	                                     selected_mode, mode_fallback, requested_group, group_ret);
+
+	if (provider_ret != 0 || group_ret != 0 || resolved_provider == NULL) {
+		belle_sip_warning("[FuturePQC smoke] OpenSSL/OQS runtime or requested TLS group unavailable, test skipped.");
+		return;
+	}
+
+	if (!BC_ASSERT_PTR_NOT_NULL(resolved_provider)) return;
+	BC_ASSERT_STRING_EQUAL(bctbx_crypto_provider_get_name(resolved_provider), requested_provider);
+	BC_ASSERT_EQUAL(selected_mode, BELLE_SIP_CRYPTO_MODE_HYBRID, int, "%d");
+	BC_ASSERT_FALSE(mode_fallback);
+
+	client_crypto_config = belle_sip_tls_listening_point_get_crypto_config(client_lp);
+	if (!BC_ASSERT_PTR_NOT_NULL(client_crypto_config)) return;
+	belle_sip_provider_clean_channels(prov);
+
+	belle_tls_crypto_config_set_crypto_provider(client_crypto_config, requested_provider);
+	belle_tls_crypto_config_set_crypto_mode(client_crypto_config, requested_mode);
+	belle_tls_crypto_config_set_future_pqc_tls_group(client_crypto_config, requested_group);
+	previous_verify_exceptions = client_crypto_config->exception_flags;
+	belle_tls_crypto_config_set_verify_exceptions(client_crypto_config, BELLE_TLS_VERIFY_ANY_REASON);
+	configured = TRUE;
+
+#ifdef _WIN32
+	belle_sip_warning("[FuturePQC smoke] local bctoolbox TLS responder not implemented on Windows, test skipped.");
+#else
+	future_pqc_smoke_tls_server_t tls_server = {-1, 0, -1, 0, 0};
+	int listener_ret = future_pqc_smoke_create_listener(&tls_server);
+	int previous_well_known_port;
+	int previous_tls_well_known_port;
+	belle_sip_request_t *req;
+	BC_ASSERT_EQUAL(listener_ret, 0, int, "%d");
+	if (listener_ret == 0) {
+		std::thread server_thread(
+		    [&tls_server]() { future_pqc_smoke_tls_server_run(&tls_server, requested_provider, requested_group); });
+
+		previous_well_known_port = belle_sip_stack_get_well_known_port();
+		previous_tls_well_known_port = belle_sip_stack_get_well_known_port_tls();
+		belle_sip_stack_set_well_known_port_tls(tls_server.port);
+
+		req = register_user_at_domain(stack, prov, "tls", 1, "tester", belle_sip_auth_domain, NULL);
+		if (req) belle_sip_object_unref(req);
+
+		belle_sip_stack_set_well_known_port(previous_well_known_port);
+		belle_sip_stack_set_well_known_port_tls(previous_tls_well_known_port);
+		server_thread.join();
+		BC_ASSERT_EQUAL(tls_server.handshake_status, 0, int, "%d");
+		BC_ASSERT_TRUE(tls_server.register_seen);
+		BC_ASSERT_TRUE(tls_server.response_sent);
+	} else if (tls_server.listen_fd >= 0) {
+		close(tls_server.listen_fd);
+	}
+#endif
+	belle_sip_provider_clean_channels(prov);
+	if (configured) {
+		belle_tls_crypto_config_set_crypto_provider(client_crypto_config, NULL);
+		belle_tls_crypto_config_set_crypto_mode(client_crypto_config, BELLE_SIP_CRYPTO_MODE_CLASSICAL);
+		belle_tls_crypto_config_set_future_pqc_tls_group(client_crypto_config, NULL);
+		belle_tls_crypto_config_set_verify_exceptions(client_crypto_config, previous_verify_exceptions);
+	}
 }
 
 static void stateful_register_tls_with_wrong_cname(void) {
@@ -1396,6 +1674,7 @@ static test_t register_tests[] = {
     TEST_NO_TAG("Stateful UDP with outbound proxy", stateful_register_udp_with_outbound_proxy),
     TEST_NO_TAG("Stateful TCP", stateful_register_tcp),
     TEST_NO_TAG("Stateful TLS", stateful_register_tls),
+    TEST_NO_TAG("Local SIP TLS REGISTER future-pqc hybrid smoke", local_sip_tls_register_future_pqc_hybrid_smoke),
     TEST_NO_TAG("Stateful TLS with wrong cname", stateful_register_tls_with_wrong_cname),
     TEST_NO_TAG("Stateful TLS with http proxy", stateful_register_tls_with_http_proxy),
     TEST_NO_TAG("Stateful TLS with wrong http proxy", stateful_register_tls_with_wrong_http_proxy),
