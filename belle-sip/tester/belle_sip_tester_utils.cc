@@ -292,7 +292,7 @@ bool AuthenticatedRegistrar::onRequest(const belle_sip_request_event_t *event) {
 HttpServer::HttpServer() {
 	Get("/", [](const httplib::Request &, httplib::Response &res) { res.set_content("Hello World!", "text/plain"); });
 	mListeningPort = std::to_string(bind_to_any_port("127.0.0.1"));
-	mRootUrl = "http://localhost:" + mListeningPort;
+	mRootUrl = "http://127.0.0.1:" + mListeningPort;
 	set_idle_interval(0, 10000);
 	set_keep_alive_max_count(1); // process one request and close - done to avoid to wait for connection timeout.
 	set_keep_alive_timeout(1);
