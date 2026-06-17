@@ -21,6 +21,7 @@
 #include "mediastreamer2/mspacketrouter.h"
 
 #include "conference/conference-info.h"
+#include "conference/participant-info.h"
 #include "db/main-db.h"
 #include "linphone/api/c-call-log.h"
 #include "linphone/api/c-conference-info.h"
@@ -1810,14 +1811,16 @@ static void create_simple_srtp_conference() {
 	                       FALSE, UNSET);
 }
 
-static void connected_conference_call_state_changed(LinphoneCore *lc, LinphoneCall *call, LinphoneCallState cstate, BCTBX_UNUSED(const char *msg)) {
+static void connected_conference_call_state_changed(LinphoneCore *lc,
+                                                    LinphoneCall *call,
+                                                    LinphoneCallState cstate,
+                                                    BCTBX_UNUSED(const char *msg)) {
 	if (cstate == LinphoneCallConnected) {
-			ms_message("%s is updating call %p to enable video capabilities", linphone_core_get_identity(lc), call);
-			LinphoneCallParams *new_params = linphone_core_create_call_params(lc, call);
-			linphone_call_params_enable_video(new_params, TRUE);
-			linphone_call_update(call, new_params);
-			linphone_call_params_unref(new_params);
-		
+		ms_message("%s is updating call %p to enable video capabilities", linphone_core_get_identity(lc), call);
+		LinphoneCallParams *new_params = linphone_core_create_call_params(lc, call);
+		linphone_call_params_enable_video(new_params, TRUE);
+		linphone_call_update(call, new_params);
+		linphone_call_params_unref(new_params);
 	}
 }
 
@@ -1871,7 +1874,9 @@ static void create_srtp_conference_with_encryption_mandatory_and_call_update_on_
 				linphone_core_set_media_encryption(mgr->lc, LinphoneMediaEncryptionSRTP);
 				linphone_config_set_int(linphone_core_get_config(mgr->lc), "rtp", "accept_any_encryption", 1);
 				linphone_core_set_media_encryption_mandatory(mgr->lc, TRUE);
-				participantList.insert(std::make_pair(mgr, add_participant_info_to_list(&participants_info, mgr->identity, LinphoneParticipantRoleSpeaker, -1)));
+				participantList.insert(
+				    std::make_pair(mgr, add_participant_info_to_list(&participants_info, mgr->identity,
+				                                                     LinphoneParticipantRoleSpeaker, -1)));
 				LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
 				linphone_core_cbs_set_call_state_changed(cbs, connected_conference_call_state_changed);
 				linphone_core_add_callbacks(mgr->lc, cbs);
@@ -1887,12 +1892,13 @@ static void create_srtp_conference_with_encryption_mandatory_and_call_update_on_
 		linphone_core_set_conference_participant_list_type(focus.getLc(), LinphoneConferenceParticipantListTypeOpen);
 
 		stats focus_stat = focus.getStats();
-		std::list<LinphoneCoreManager *> participants{pauline.getCMgr(), laure.getCMgr(), michelle.getCMgr(), berthe.getCMgr(),
-		                                              lise.getCMgr()};
-		std::list<LinphoneCoreManager *> conferenceMgrs{focus.getCMgr(), pauline.getCMgr(), laure.getCMgr(),  michelle.getCMgr(),
-		                                                marie.getCMgr(), berthe.getCMgr(), lise.getCMgr()};
-		std::list<LinphoneCoreManager *> members{pauline.getCMgr(), michelle.getCMgr(), lise.getCMgr(), laure.getCMgr(), marie.getCMgr(),
-		                                         berthe.getCMgr()};
+		std::list<LinphoneCoreManager *> participants{pauline.getCMgr(), laure.getCMgr(), michelle.getCMgr(),
+		                                              berthe.getCMgr(), lise.getCMgr()};
+		std::list<LinphoneCoreManager *> conferenceMgrs{focus.getCMgr(),    pauline.getCMgr(), laure.getCMgr(),
+		                                                michelle.getCMgr(), marie.getCMgr(),   berthe.getCMgr(),
+		                                                lise.getCMgr()};
+		std::list<LinphoneCoreManager *> members{pauline.getCMgr(), michelle.getCMgr(), lise.getCMgr(),
+		                                         laure.getCMgr(),   marie.getCMgr(),    berthe.getCMgr()};
 
 		LinphoneConferenceSecurityLevel security_level = LinphoneConferenceSecurityLevelNone;
 		time_t start_time(ms_time(NULL) - 3);
@@ -4043,6 +4049,9 @@ void create_conference_with_recvonly_participant(void) {
 			    return marie_call && (linphone_call_get_duration(marie_call) > nortp_timeout);
 		    });
 
+		auto allCalls = getCallsFromConferenceAddress(conferenceMgrs, Address::getSharedFromThis(confAddr));
+		auto participantInfos = mapSharedFromThisValues<ParticipantInfo>(memberList);
+
 		for (auto mgr : conferenceMgrs) {
 			LinphoneConference *pconference = linphone_core_search_conference_2(mgr->lc, confAddr);
 			BC_ASSERT_PTR_NOT_NULL(pconference);
@@ -4103,10 +4112,11 @@ void create_conference_with_recvonly_participant(void) {
 					BC_ASSERT_PTR_NOT_NULL(participant_call);
 					if (participant_call) {
 						no_streams_audio = compute_no_audio_streams(participant_call, pconference);
-						no_active_streams_video = compute_no_video_streams(enabled, participant_call, pconference);
+						no_active_streams_video = compute_no_video_streams(allCalls, participantInfos,
+						                                                   Call::getSharedFromThis(participant_call));
 						video_negotiated = enabled && (no_active_streams_video > 0);
-						_linphone_call_check_nb_active_streams(participant_call, no_streams_audio,
-						                                       no_active_streams_video, no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(
+						    participant_call, no_streams_audio, no_active_streams_video, no_streams_text));
 						const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), enabled, int, "%0d");
 						const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(participant_call);
@@ -4117,8 +4127,8 @@ void create_conference_with_recvonly_participant(void) {
 					LinphoneCall *ccall = linphone_core_get_call_by_remote_address2(focus.getLc(), mgr->identity);
 					BC_ASSERT_PTR_NOT_NULL(ccall);
 					if (ccall) {
-						_linphone_call_check_nb_active_streams(ccall, no_streams_audio, no_active_streams_video,
-						                                       no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(
+						    ccall, no_streams_audio, no_active_streams_video, no_streams_text));
 						const LinphoneCallParams *call_cparams = linphone_call_get_current_params(ccall);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_cparams), video_negotiated, int, "%0d");
 					}
@@ -4822,6 +4832,9 @@ static void create_conference_with_codec_mismatch_base(bool_t organizer_codec_mi
 			return false;
 		});
 
+		auto allCalls = getCallsFromConferenceAddress(conferenceMgrs, Address::getSharedFromThis(confAddr));
+		auto participantInfos = mapSharedFromThisValues<ParticipantInfo>(memberList);
+
 		for (auto mgr : conferenceMgrs) {
 			LinphoneConference *pconference = linphone_core_search_conference_2(mgr->lc, confAddr);
 			BC_ASSERT_PTR_NOT_NULL(pconference);
@@ -4874,10 +4887,10 @@ static void create_conference_with_codec_mismatch_base(bool_t organizer_codec_mi
 					LinphoneCall *participant_call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
 					BC_ASSERT_PTR_NOT_NULL(participant_call);
 					if (participant_call) {
-						no_active_streams_video =
-						    static_cast<int>(compute_no_video_streams(enabled, participant_call, pconference));
-						_linphone_call_check_nb_active_streams(participant_call, no_streams_audio,
-						                                       no_active_streams_video, no_streams_text);
+						no_active_streams_video = static_cast<int>(compute_no_video_streams(
+						    allCalls, participantInfos, Call::getSharedFromThis(participant_call)));
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(
+						    participant_call, no_streams_audio, no_active_streams_video, no_streams_text));
 						const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), enabled, int, "%0d");
 						const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(participant_call);
@@ -4890,8 +4903,8 @@ static void create_conference_with_codec_mismatch_base(bool_t organizer_codec_mi
 					LinphoneCall *ccall = linphone_core_get_call_by_remote_address2(focus.getLc(), mgr->identity);
 					BC_ASSERT_PTR_NOT_NULL(ccall);
 					if (ccall) {
-						_linphone_call_check_nb_active_streams(ccall, no_streams_audio, no_active_streams_video,
-						                                       no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(
+						    ccall, no_streams_audio, no_active_streams_video, no_streams_text));
 						const LinphoneCallParams *call_cparams = linphone_call_get_current_params(ccall);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_cparams),
 						                enabled && (no_active_streams_video > 0), int, "%0d");
@@ -5142,6 +5155,9 @@ static void create_conference_with_server_restart_base(bool_t organizer_first) {
 		// wait a bit longer to detect side effect if any
 		CoreManagerAssert({focus, marie, pauline, laure}).waitUntil(chrono::seconds(2), [] { return false; });
 
+		auto allCalls = getCallsFromConferenceAddress(conferenceMgrs, Address::getSharedFromThis(confAddr));
+		auto participantInfos = mapSharedFromThisValues<ParticipantInfo>(memberList);
+
 		for (auto mgr : conferenceMgrs) {
 			LinphoneConference *pconference = linphone_core_search_conference_2(mgr->lc, confAddr);
 			BC_ASSERT_PTR_NOT_NULL(pconference);
@@ -5183,11 +5199,12 @@ static void create_conference_with_server_restart_base(bool_t organizer_first) {
 					BC_ASSERT_PTR_NOT_NULL(participant_call);
 					if (participant_call) {
 						no_streams_audio = compute_no_audio_streams(participant_call, pconference);
-						no_active_streams_video = compute_no_video_streams(enabled, participant_call, pconference);
+						no_active_streams_video = compute_no_video_streams(allCalls, participantInfos,
+						                                                   Call::getSharedFromThis(participant_call));
 						_linphone_call_check_max_nb_streams(participant_call, no_streams_audio, no_streams_video,
 						                                    no_streams_text);
-						_linphone_call_check_nb_active_streams(participant_call, no_streams_audio,
-						                                       no_active_streams_video, no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(
+						    participant_call, no_streams_audio, no_active_streams_video, no_streams_text));
 						const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), enabled, int, "%0d");
 						const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(participant_call);
@@ -5199,8 +5216,8 @@ static void create_conference_with_server_restart_base(bool_t organizer_first) {
 					BC_ASSERT_PTR_NOT_NULL(ccall);
 					if (ccall) {
 						_linphone_call_check_max_nb_streams(ccall, no_streams_audio, no_streams_video, no_streams_text);
-						_linphone_call_check_nb_active_streams(ccall, no_streams_audio, no_active_streams_video,
-						                                       no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(
+						    ccall, no_streams_audio, no_active_streams_video, no_streams_text));
 						const LinphoneCallParams *call_lparams = linphone_call_get_params(ccall);
 						BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), enabled, int, "%0d");
 						const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(ccall);
@@ -7840,14 +7857,14 @@ static void create_simple_conference_in_sfu_payload_mode() {
 						no_streams_audio = compute_no_audio_streams(participant_call, pconference);
 						_linphone_call_check_max_nb_streams(participant_call, no_streams_audio, no_streams_video,
 						                                    no_streams_text);
-						_linphone_call_check_nb_active_streams(participant_call, no_streams_audio, no_streams_video,
-						                                       no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(participant_call, no_streams_audio,
+						                                                      no_streams_video, no_streams_text));
 					}
 					LinphoneCall *ccall = linphone_core_get_call_by_remote_address2(focus.getLc(), mgr->identity);
 					BC_ASSERT_PTR_NOT_NULL(ccall);
 					if (ccall) {
-						_linphone_call_check_nb_active_streams(ccall, no_streams_audio, no_streams_video,
-						                                       no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(ccall, no_streams_audio, no_streams_video,
+						                                                      no_streams_text));
 						_linphone_call_check_max_nb_streams(ccall, no_streams_audio, no_streams_video, no_streams_text);
 
 						// Check that the we are correctly linked with the PacketRouter and that it is in payload
@@ -9780,7 +9797,8 @@ static test_t local_conference_scheduled_conference_media_problem_tests[] = {
 
 static test_t local_conference_scheduled_conference_advanced_tests[] = {
     TEST_NO_TAG("Create simple SRTP conference", LinphoneTest::create_simple_srtp_conference),
-    TEST_NO_TAG("Create SRTP conference with encryption mandatory and call update on connection", LinphoneTest::create_srtp_conference_with_encryption_mandatory_and_call_update_on_connection),
+    TEST_NO_TAG("Create SRTP conference with encryption mandatory and call update on connection",
+                LinphoneTest::create_srtp_conference_with_encryption_mandatory_and_call_update_on_connection),
     TEST_NO_TAG("Create simple ZRTP conference", LinphoneTest::create_simple_zrtp_conference),
     TEST_NO_TAG("Create simple DTLS conference", LinphoneTest::create_simple_dtls_conference),
     TEST_NO_TAG("Create conference with server restart (participant first)",

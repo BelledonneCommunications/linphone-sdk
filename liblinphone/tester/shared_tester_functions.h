@@ -28,6 +28,9 @@
 #include "liblinphone_tester.h"
 
 #ifdef __cplusplus
+namespace LinphonePrivate {
+class SalMediaDescription;
+}
 extern "C" {
 #endif
 
@@ -74,10 +77,11 @@ void check_local_desc_stream(LinphoneCall *call);
 void check_result_desc_rtp_rtcp_ports(LinphoneCall *call, int rtp_port, int rtcp_port);
 
 void _check_call_media_ip_consistency(LinphoneCall *call);
-void _linphone_call_check_nb_active_streams(const LinphoneCall *call,
-                                            const size_t nb_audio_streams,
-                                            const size_t nb_video_streams,
-                                            const size_t nb_text_streams);
+bool_t _linphone_call_check_nb_active_streams(const LinphoneCall *call,
+                                              const size_t nb_audio_streams,
+                                              const size_t nb_video_streams,
+                                              const size_t nb_text_streams);
+
 void _linphone_call_check_nb_streams(const LinphoneCall *call,
                                      const size_t nb_audio_streams,
                                      const size_t nb_video_streams,

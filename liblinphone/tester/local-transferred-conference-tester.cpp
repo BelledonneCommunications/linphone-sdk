@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "conference/conference-info.h"
+#include "conference/participant-info.h"
 #include "linphone/api/c-call-log.h"
 #include "linphone/api/c-conference-params.h"
 #include "linphone/api/c-participant-info.h"
@@ -198,6 +199,9 @@ void create_transfer_conference_base(time_t start_time,
 			    return marie_call && (linphone_call_get_duration(marie_call) > nortp_timeout);
 		    });
 
+		auto allCalls = getCallsFromConferenceAddress(conferenceMgrs, Address::getSharedFromThis(confAddr));
+		auto participantInfos = mapSharedFromThisValues<ParticipantInfo>(memberList);
+
 		for (auto mgr : conferenceMgrs) {
 			LinphoneConference *pconference = linphone_core_search_conference_2(mgr->lc, confAddr);
 			BC_ASSERT_PTR_NOT_NULL(pconference);
@@ -239,11 +243,12 @@ void create_transfer_conference_base(time_t start_time,
 					BC_ASSERT_PTR_NOT_NULL(participant_call);
 					if (participant_call) {
 						no_streams_audio = compute_no_audio_streams(participant_call, pconference);
-						no_streams_video = compute_no_video_streams(video_transfer, participant_call, pconference);
+						no_streams_video = compute_no_video_streams(allCalls, participantInfos,
+						                                            Call::getSharedFromThis(participant_call));
 						_linphone_call_check_max_nb_streams(participant_call, no_streams_audio, no_streams_video,
 						                                    no_streams_text);
-						_linphone_call_check_nb_active_streams(participant_call, no_streams_audio, no_streams_video,
-						                                       no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(participant_call, no_streams_audio,
+						                                                      no_streams_video, no_streams_text));
 						if (security_level == LinphoneConferenceSecurityLevelEndToEnd) {
 							auto *callStats = linphone_call_get_stats(participant_call, LinphoneStreamTypeAudio);
 							auto *srtpInfo = linphone_call_stats_get_srtp_info(
@@ -256,8 +261,8 @@ void create_transfer_conference_base(time_t start_time,
 					LinphoneCall *ccall = linphone_core_get_call_by_remote_address2(focus.getLc(), mgr->identity);
 					BC_ASSERT_PTR_NOT_NULL(ccall);
 					if (ccall) {
-						_linphone_call_check_nb_active_streams(ccall, no_streams_audio, no_streams_video,
-						                                       no_streams_text);
+						BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(ccall, no_streams_audio, no_streams_video,
+						                                                      no_streams_text));
 						_linphone_call_check_max_nb_streams(ccall, no_streams_audio, no_streams_video, no_streams_text);
 					}
 				}
