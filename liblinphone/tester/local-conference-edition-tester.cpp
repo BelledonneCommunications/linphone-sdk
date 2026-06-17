@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "conference/participant-info.h"
 #include "linphone/api/c-chat-room.h"
 #include "linphone/api/c-conference-info.h"
 #include "linphone/api/c-conference-params.h"
@@ -638,8 +639,6 @@ static void edit_simple_conference_base(bool_t from_organizer,
 			    fill_member_list(members, participantList, marie.getCMgr(), participants_info_tmp);
 			wait_for_conference_streams({focus, marie, pauline, laure, michelle, lise}, conferenceMgrs, focus.getCMgr(),
 			                            memberList, confAddr, TRUE, security_level);
-			bctbx_list_free_with_data(participants_info_tmp, (bctbx_list_free_func)linphone_participant_info_unref);
-
 			LinphoneConference *fconference = linphone_core_search_conference_2(focus.getLc(), confAddr);
 			BC_ASSERT_PTR_NOT_NULL(fconference);
 
@@ -647,6 +646,9 @@ static void edit_simple_conference_base(bool_t from_organizer,
 			CoreManagerAssert({focus, marie, pauline, laure, michelle, lise}).waitUntil(chrono::seconds(2), [] {
 				return false;
 			});
+
+			auto allCalls = getCallsFromConferenceAddress(conferenceMgrs, Address::getSharedFromThis(confAddr));
+			auto participantInfos = mapSharedFromThisValues<ParticipantInfo>(memberList);
 
 			for (auto mgr : conferenceMgrs) {
 				LinphoneConference *pconference = linphone_core_search_conference_2(mgr->lc, confAddr);
@@ -707,11 +709,12 @@ static void edit_simple_conference_base(bool_t from_organizer,
 						BC_ASSERT_PTR_NOT_NULL(participant_call);
 						if (participant_call) {
 							no_streams_audio = compute_no_audio_streams(participant_call, pconference);
-							no_active_streams_video = compute_no_video_streams(enabled, participant_call, pconference);
+							no_active_streams_video = compute_no_video_streams(
+							    allCalls, participantInfos, Call::getSharedFromThis(participant_call));
 							_linphone_call_check_max_nb_streams(participant_call, no_streams_audio, no_streams_video,
 							                                    no_streams_text);
-							_linphone_call_check_nb_active_streams(participant_call, no_streams_audio,
-							                                       no_active_streams_video, no_streams_text);
+							BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(
+							    participant_call, no_streams_audio, no_active_streams_video, no_streams_text));
 							const LinphoneCallParams *call_lparams = linphone_call_get_params(participant_call);
 							BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), enabled, int, "%0d");
 							const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(participant_call);
@@ -724,8 +727,8 @@ static void edit_simple_conference_base(bool_t from_organizer,
 						if (ccall) {
 							_linphone_call_check_max_nb_streams(ccall, no_streams_audio, no_streams_video,
 							                                    no_streams_text);
-							_linphone_call_check_nb_active_streams(ccall, no_streams_audio, no_active_streams_video,
-							                                       no_streams_text);
+							BC_ASSERT_TRUE(_linphone_call_check_nb_active_streams(
+							    ccall, no_streams_audio, no_active_streams_video, no_streams_text));
 							const LinphoneCallParams *call_lparams = linphone_call_get_params(ccall);
 							BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_lparams), enabled, int, "%0d");
 							const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(ccall);
@@ -755,6 +758,7 @@ static void edit_simple_conference_base(bool_t from_organizer,
 					}
 				}
 			}
+			bctbx_list_free_with_data(participants_info_tmp, (bctbx_list_free_func)linphone_participant_info_unref);
 		}
 
 		if (server_restart) {

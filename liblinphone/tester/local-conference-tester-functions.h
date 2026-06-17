@@ -514,7 +514,20 @@ void set_video_settings_in_conference(LinphoneCoreManager *focus,
                                       bool_t answer_enable_video,
                                       LinphoneMediaDirection answer_video_direction);
 
-size_t compute_no_video_streams(bool_t enable_video, LinphoneCall *call, LinphoneConference *conference);
+size_t compute_no_video_streams(const std::list<std::shared_ptr<Call>> &calls,
+                                const std::list<std::shared_ptr<ParticipantInfo>> &participants,
+                                const std::shared_ptr<Call> &currentCall);
+std::list<std::shared_ptr<Call>> getCallsFromConferenceAddress(std::list<LinphoneCoreManager *> coreManagers,
+                                                               const std::shared_ptr<const Address> &confAddr);
+
+template <typename C, typename K, typename V>
+std::list<std::shared_ptr<C>> mapSharedFromThisValues(const std::map<K, V> &mapToParse) {
+	std::list<std::shared_ptr<C>> valuesList;
+	for (const auto &[k, v] : mapToParse) {
+		valuesList.push_back(C::getSharedFromThis(v));
+	}
+	return valuesList;
+}
 
 std::map<LinphoneCoreManager *, LinphoneParticipantInfo *>
 fill_member_list(std::list<LinphoneCoreManager *> members,

@@ -526,13 +526,17 @@ bool_t _linphone_participant_device_get_real_time_text_enabled(const LinphonePar
 	return FALSE;
 }
 
-void _linphone_call_check_nb_active_streams(const LinphoneCall *call,
-                                            const size_t nb_audio_streams,
-                                            const size_t nb_video_streams,
-                                            const size_t nb_text_streams) {
+bool_t _linphone_call_check_nb_active_streams(const LinphoneCall *call,
+                                              const size_t nb_audio_streams,
+                                              const size_t nb_video_streams,
+                                              const size_t nb_text_streams) {
+	bool_t check = Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeAudio) == nb_audio_streams;
 	BC_ASSERT_EQUAL(Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeAudio), nb_audio_streams, size_t, "%zu");
+	check &= Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeVideo) == nb_video_streams;
 	BC_ASSERT_EQUAL(Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeVideo), nb_video_streams, size_t, "%zu");
+	check &= Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeText) == nb_text_streams;
 	BC_ASSERT_EQUAL(Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeText), nb_text_streams, size_t, "%zu");
+	return check;
 }
 
 void check_video_conference(bctbx_list_t *lcs,
