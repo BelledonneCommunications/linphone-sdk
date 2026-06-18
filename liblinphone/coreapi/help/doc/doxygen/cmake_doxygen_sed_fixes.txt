@@ -4,7 +4,7 @@
 #
 ############################################################################
 #
-# This file is part of Liblinphone 
+# This file is part of Liblinphone
 # (see https://gitlab.linphone.org/BC/public/liblinphone).
 #
 # This program is free software: you can redistribute it and/or modify
@@ -38,7 +38,7 @@ else()
 	set(SED_QUOTES "'")
 endif()
 
-if(APPLE)
+if("${CMAKE_HOST_SYSTEM_NAME}" MATCHES "Darwin")
 	set(SED_IN_PLACE_EDIT_ARG "-i ''")
 else()
 	set(SED_IN_PLACE_EDIT_ARG "-i")
