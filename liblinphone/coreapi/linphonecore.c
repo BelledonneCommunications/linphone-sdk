@@ -278,6 +278,14 @@ void linphone_core_cbs_set_registration_state_changed(LinphoneCoreCbs *cbs,
 	cbs->vtable->registration_state_changed = cb;
 }
 
+LinphoneCoreCbsTlsExtSignCb linphone_core_cbs_get_tls_ext_signature(LinphoneCoreCbs *cbs) {
+	return cbs->vtable->tls_ext_sign;
+}
+
+void linphone_core_cbs_set_tls_ext_signature(LinphoneCoreCbs *cbs, LinphoneCoreCbsTlsExtSignCb cb) {
+	cbs->vtable->tls_ext_sign = cb;
+}
+
 void linphone_core_cbs_set_conference_info_received(LinphoneCoreCbs *cbs, LinphoneCoreCbsConferenceInfoReceivedCb cb) {
 	cbs->vtable->conference_info_received = cb;
 }
@@ -1828,6 +1836,53 @@ static int _linphone_core_tls_postcheck_callback(void *data, const bctbx_x509_ce
 	return ret;
 }
 
+static int _linphone_core_tls_ext_sign_callback(void *user_data,
+                                                const void *key_ref,
+                                                bctbx_key_sign_type_t sign_algo,
+                                                bctbx_md_type_t hash_algo,
+                                                const uint8_t *hash,
+                                                size_t hash_size,
+                                                size_t signature_buffer_size,
+                                                uint8_t *signature,
+                                                size_t *signature_size) {
+	LinphoneCore *lc = (LinphoneCore *)user_data;
+	LinphoneKeySignAlgo l_sign_algo = LinphoneKeySignUndefined;
+	switch (sign_algo) {
+		case BCTBX_KEYSIGN_RSA_PKCS1_V15:
+			l_sign_algo = LinphoneKeySignRsaPkcs1v15;
+			break;
+		case BCTBX_KEYSIGN_RSA_PSS:
+			l_sign_algo = LinphoneKeySignRsaPss;
+			break;
+		case BCTBX_KEYSIGN_ECDSA:
+			l_sign_algo = LinphoneKeySignEcdsa;
+			break;
+		default:
+			l_sign_algo = LinphoneKeySignUndefined;
+			break;
+	}
+	LinphoneHashAlgo l_hash_algo = LinphoneHashUndefined;
+	switch (hash_algo) {
+		case BCTBX_MD_SHA256:
+			l_hash_algo = LinphoneHashSha256;
+			break;
+		case BCTBX_MD_SHA384:
+			l_hash_algo = LinphoneHashSha384;
+			break;
+		case BCTBX_MD_SHA512:
+			l_hash_algo = LinphoneHashSha512;
+			break;
+		default:
+			l_hash_algo = LinphoneHashUndefined;
+			break;
+	}
+
+	int ret = -1;
+	linphone_core_notify_tls_ext_sign_requested(lc, key_ref, l_sign_algo, l_hash_algo, hash, hash_size,
+	                                            signature_buffer_size, signature, signature_size, &ret);
+	return ret;
+}
+
 static void certificates_config_read(LinphoneCore *lc) {
 	string rootCaPath = static_cast<PlatformHelpers *>(lc->platform_helper)->getDataResource("rootca.pem");
 	const char *rootca = linphone_config_get_string(lc->config, "sip", "root_ca", nullptr);
@@ -1848,6 +1903,7 @@ static void certificates_config_read(LinphoneCore *lc) {
 	linphone_core_verify_server_cn(lc, !!linphone_config_get_int(lc->config, "sip", "verify_server_cn", TRUE));
 
 	lc->sal->setTlsPostcheckCallback(_linphone_core_tls_postcheck_callback, lc);
+	lc->sal->setTlsExtSignCallback(_linphone_core_tls_ext_sign_callback, lc);
 }
 
 static void bodyless_config_read(LinphoneCore *lc) {

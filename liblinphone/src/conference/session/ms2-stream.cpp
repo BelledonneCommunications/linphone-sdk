@@ -903,42 +903,106 @@ void MS2Stream::setupDtlsParams(MediaStream *ms) {
 	}
 }
 
+namespace {
+int dtls_ext_sign_cb(void *user_data,
+                     const void *key_ref,
+                     bctbx_key_sign_type_t sign_algo,
+                     bctbx_md_type_t hash_algo,
+                     const uint8_t *hash,
+                     size_t hash_size,
+                     size_t signature_buffer_size,
+                     uint8_t *signature,
+                     size_t *signature_size) {
+	LinphoneCore *lc = (LinphoneCore *)user_data;
+	LinphoneKeySignAlgo l_sign_algo = LinphoneKeySignUndefined;
+	switch (sign_algo) {
+		case BCTBX_KEYSIGN_RSA_PKCS1_V15:
+			l_sign_algo = LinphoneKeySignRsaPkcs1v15;
+			break;
+		case BCTBX_KEYSIGN_RSA_PSS:
+			l_sign_algo = LinphoneKeySignRsaPss;
+			break;
+		case BCTBX_KEYSIGN_ECDSA:
+			l_sign_algo = LinphoneKeySignEcdsa;
+			break;
+		default:
+			l_sign_algo = LinphoneKeySignUndefined;
+			break;
+	}
+	LinphoneHashAlgo l_hash_algo = LinphoneHashUndefined;
+	switch (hash_algo) {
+		case BCTBX_MD_SHA256:
+			l_hash_algo = LinphoneHashSha256;
+			break;
+		case BCTBX_MD_SHA384:
+			l_hash_algo = LinphoneHashSha384;
+			break;
+		case BCTBX_MD_SHA512:
+			l_hash_algo = LinphoneHashSha512;
+			break;
+		default:
+			l_hash_algo = LinphoneHashUndefined;
+			break;
+	}
+	int ret = -1;
+	linphone_core_notify_tls_ext_sign_requested(lc, key_ref, l_sign_algo, l_hash_algo, hash, hash_size,
+	                                            signature_buffer_size, signature, signature_size, &ret);
+	return ret;
+}
+} // namespace
+  //
 void MS2Stream::initDtlsParams(MediaStream *ms) {
 	if (ms) {
-		MSDtlsSrtpParams dtlsParams = {0};
-
 		/* TODO : search for a certificate with CNAME=sip uri(retrieved from variable me) or default :
 		 * linphone-dtls-default-identity */
-		char *certificate = nullptr;
-		char *key = nullptr;
+		bctbx_x509_certificate_t *certificate = nullptr;
+		bctbx_signing_key_t *key = nullptr;
+		bctbx_ext_signing_key_ref_t *key_ref = nullptr;
+
 		char *fingerprint = nullptr;
 		auto localAddr = getMediaSession().getLocalAddress();
 		auto localAddrUri = localAddr->asStringUriOnlyCstr();
 
 		/* first: do we have a certificate and key in our auth info matching the current local address */
-		if (linphone_core_find_tls_cert_in_indexed_auth_infos_with_subject(getCCore(), localAddr->getUsernameCstr(),
-		                                                                   localAddr->getDomainCstr(), localAddrUri,
-		                                                                   &certificate, &key, &fingerprint)) {
+		if (linphone_core_find_tls_cert_in_indexed_auth_infos_with_subject(
+		        getCCore(), localAddr->getUsernameCstr(), localAddr->getDomainCstr(), localAddrUri, &certificate, &key,
+		        &key_ref, &fingerprint)) {
 			lInfo() << "DTLS-SRTP : user " << localAddrUri << " uses client certificate found in core auth info";
 		} else {
 			/* second: try to get certificate with a subject or CN matching the local sip uri in the user certificate
 			 * path set in core */
-			sal_certificates_chain_parse_directory(
-			    &certificate, &key, &fingerprint, linphone_core_get_user_certificates_path(getCCore()), localAddrUri,
-			    SAL_CERTIFICATE_RAW_FORMAT_PEM,
-			    false, // Do not generate a self signed certificate if we do not find it
-			    true);
-
-			/* third: fallback on the default selfsigned certificate in the user certificate path set in core */
-			if (certificate == nullptr || key == nullptr) {
+			auto user_certificates_path = linphone_core_get_user_certificates_path(getCCore());
+			if (bctbx_get_certificate_and_pkey_in_dir(user_certificates_path, localAddrUri, &certificate, &key) != 0) {
 				lInfo() << "DTLS-SRTP : No client certificate found for user " << localAddrUri
 				        << " fallback on linphone-dtls-default-identity";
-				sal_certificates_chain_parse_directory(
-				    &certificate, &key, &fingerprint, linphone_core_get_user_certificates_path(getCCore()),
-				    "linphone-dtls-default-identity", SAL_CERTIFICATE_RAW_FORMAT_PEM, true, true);
+				/* third: fallback on the default selfsigned certificate in the user certificate path set in core */
+				if (bctbx_get_certificate_and_pkey_in_dir(user_certificates_path, "linphone-dtls-default-identity",
+				                                          &certificate, &key) != 0) {
+					lInfo() << "DTLS-SRTP : No default client certificate found with linphone-dtls-default-identity in "
+					        << user_certificates_path << " generate one";
+					certificate = bctbx_x509_certificate_new();
+					key = bctbx_signing_key_new();
+					bctbx_x509_certificate_generate_selfsigned("linphone-dtls-default-identity", certificate, key, NULL,
+					                                           0, user_certificates_path);
+				} else {
+					lInfo() << "DTLS-SRTP : user " << localAddrUri
+					        << " uses linphone-dtls-default-identity client certificate found in "
+					        << user_certificates_path;
+				}
 			} else {
-				lInfo() << "DTLS-SRTP : user " << localAddrUri << " uses client certificate found in "
-				        << linphone_core_get_user_certificates_path(getCCore());
+				lInfo() << "DTLS-SRTP : user " << localAddrUri << " uses dedicated client certificate found in "
+				        << user_certificates_path;
+			}
+			/* if we have key and certificate: generate fingerprint */
+			if (certificate && (key || key_ref)) {
+				fingerprint = (char *)bctbx_malloc0(200);
+				/* compute the certificate using the hash algorithm used in the certificate signature */
+				int ret = bctbx_x509_certificate_get_fingerprint(certificate, fingerprint, 200, BCTBX_MD_UNDEFINED);
+				if (ret <= 0) {
+					lInfo() << "DTLS-SRTP Unable to generate fingerprint from certificate -" << (-ret);
+					bctbx_free(fingerprint);
+					fingerprint = nullptr;
+				}
 			}
 		}
 
@@ -947,13 +1011,17 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 				getMediaSessionPrivate().setDtlsFingerprint(fingerprint);
 			}
 			mDtlsFingerPrint = fingerprint;
-			ms_free(fingerprint);
+			bctbx_free(fingerprint);
 		}
-		if (key && certificate) {
+		if (certificate && (key || key_ref)) {
 			auto remoteUri = getMediaSession().getRemoteAddress()->asStringUriOnlyCstr();
 			const auto &localAccount = getMediaSessionPrivate().getDestAccount();
-			dtlsParams.pem_certificate = certificate;
-			dtlsParams.pem_pkey = key;
+			MSDtlsSrtpParams dtlsParams = {0};
+			dtlsParams.certificate = certificate;
+			dtlsParams.key = key;
+			dtlsParams.key_ref = key_ref;
+			dtlsParams.ext_sign_cb = dtls_ext_sign_cb;
+			dtlsParams.ext_sign_cb_data = (void *)getCCore();
 			dtlsParams.role =
 			    MSDtlsSrtpRoleUnset; /* Default is unset, then check if we have a result SalMediaDescription */
 			if (localAccount) {
@@ -964,10 +1032,9 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 			}
 			dtlsParams.root_ca = getCCore()->sal->getRootCa().c_str();
 			dtlsParams.peer_uri = remoteUri;
-			media_stream_enable_dtls(ms, &dtlsParams);
+			media_stream_enable_dtls(
+			    ms, &dtlsParams); // ownership of certificate, key and key_ref is moved to the ms2 dtls context
 			bctbx_free(remoteUri);
-			ms_free(certificate);
-			ms_free(key);
 		} else {
 			/* Check if encryption forced, if yes, stop call */
 			if (linphone_core_is_media_encryption_mandatory(getCCore())) {
@@ -980,6 +1047,9 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 			} else {
 				lError() << "Unable to retrieve or generate DTLS certificate and key - DTLS disabled";
 			}
+			bctbx_x509_certificate_free(certificate);
+			bctbx_signing_key_free(key);
+			bctbx_ext_signing_key_ref_free(key_ref);
 		}
 		bctbx_free(localAddrUri);
 	}

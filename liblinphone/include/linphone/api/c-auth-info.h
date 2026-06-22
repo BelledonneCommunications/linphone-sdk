@@ -21,6 +21,7 @@
 #ifndef LINPHONE_AUTH_INFO_H
 #define LINPHONE_AUTH_INFO_H
 
+#include "bctoolbox/crypto.h"
 #include "linphone/api/c-types.h"
 
 /**
@@ -149,6 +150,15 @@ LINPHONE_PUBLIC void linphone_auth_info_set_tls_cert(LinphoneAuthInfo *auth_info
 LINPHONE_PUBLIC void linphone_auth_info_set_tls_key(LinphoneAuthInfo *auth_info, const char *tls_key);
 
 /**
+ * Sets the TLS key refence.
+ * This reference is served back to the callback in charge of the signing operation during a (D)TLS handshake
+ * @param auth_info The #LinphoneAuthInfo object. @notnil
+ * @param tls_key_ref The TLS key. @maybenil
+ * @donotwrap
+ **/
+LINPHONE_PUBLIC void linphone_auth_info_set_ext_tls_key_ref(LinphoneAuthInfo *auth_info, const void *tls_key_ref);
+
+/**
  * Sets the TLS certificate path.
  * @param auth_info The #LinphoneAuthInfo object. @notnil
  * @param tls_cert_path The TLS certificate path. @maybenil
@@ -244,6 +254,15 @@ LINPHONE_PUBLIC const char *linphone_auth_info_get_tls_cert(const LinphoneAuthIn
  * @return The TLS key. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_auth_info_get_tls_key(const LinphoneAuthInfo *auth_info);
+
+/**
+ * Gets the ext TLS key ref.
+ * @param auth_info The #LinphoneAuthInfo object. @notnil
+ * @return The ext TLS key ref. May be an empty ref
+ * @donotwrap
+ */
+LINPHONE_PUBLIC const bctbx_ext_signing_key_ref_t *
+linphone_auth_info_get_ext_tls_key_ref(const LinphoneAuthInfo *auth_info);
 
 /**
  * Gets the TLS certificate path.

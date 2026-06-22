@@ -20,9 +20,12 @@
 #ifndef AUTH_INFO_H
 #define AUTH_INFO_H
 
+#include "bctoolbox/crypto.h"
 #include "bearer-token.h"
 #include "belle-sip/object++.hh"
 #include "linphone/api/c-types.h"
+#include <optional>
+#include <string>
 
 LINPHONE_BEGIN_NAMESPACE
 
@@ -83,6 +86,7 @@ public:
 	void setHa1(const std::string &ha1);
 	void setTlsCert(const std::string &tlsCert);
 	void setTlsKey(const std::string &tlsKey);
+	void setExtTlsKeyRef(const void *tlsKeyRef);
 	void setTlsCertPath(const std::string &tlsCertPath);
 	void setTlsKeyPath(const std::string &tlsKeyPath);
 	void setTlsKeyPassword(const std::string &tlsKeyPassword);
@@ -120,6 +124,7 @@ public:
 	const std::string &getHa1() const;
 	const std::string &getTlsCert() const;
 	const std::string &getTlsKey() const;
+	const bctbx_ext_signing_key_ref_t &getExtTlsKeyRef() const;
 	const std::string &getTlsCertPath() const;
 	const std::string &getTlsKeyPath() const;
 	const std::string &getTlsKeyPassword() const;
@@ -171,6 +176,7 @@ private:
 	std::list<std::string> mAvailableAlgorithms; // Pool of available algorithms for this AuthInfo
 	std::string mTlsCert;
 	std::string mTlsKey;
+	bctbx_ext_signing_key_ref_t mExtTlsKeyRef;
 	std::string mTlsCertPath;
 	std::string mTlsKeyPath;
 	std::string mTlsKeyPassword;

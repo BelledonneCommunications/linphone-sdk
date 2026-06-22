@@ -70,6 +70,7 @@ import org.linphone.core.tools.network.NetworkManagerInterface;
 import org.linphone.core.tools.network.NetworkSignalMonitor;
 import org.linphone.core.tools.receiver.DozeReceiver;
 import org.linphone.core.tools.receiver.InteractivityReceiver;
+import org.linphone.core.tools.security.KeystoreSigner;
 import org.linphone.core.tools.service.ActivityMonitor;
 import org.linphone.core.tools.service.CoreService;
 import org.linphone.core.tools.service.PushService;
@@ -232,6 +233,7 @@ public class AndroidPlatformHelper {
         mHandler = new Handler(myLooper);
 
         MediastreamerAndroidContext.setContext(mContext);
+        KeystoreSigner.setContext(mContext);
         mPowerManager = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
 
         Thread thread = myLooper.getThread();

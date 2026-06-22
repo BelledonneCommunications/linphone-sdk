@@ -83,6 +83,7 @@ if (IOS)
 	set(USE_BUNDLE MACOSX_BUNDLE)
 endif()
 add_library(libbelle-sip-tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
+set_target_properties(libbelle-sip-tester PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 target_compile_definitions(libbelle-sip-tester PRIVATE "BELLESIP_EXPORTS")
 target_link_libraries(libbelle-sip-tester PRIVATE ${BCToolbox_tester_TARGET} belle-sip)
 target_link_libraries(libbelle-sip-tester PUBLIC httplib)
@@ -121,6 +122,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_library(belle-sip-tester-static STATIC ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
 	target_link_libraries(belle-sip-tester-static PUBLIC ${BCToolbox_tester_TARGET} belle-sip httplib)
 	target_compile_definitions(belle-sip-tester-static PRIVATE "BELLESIP_EXPORTS")
+	set_target_properties(belle-sip-tester-static PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp

@@ -17,6 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "openssl.h"
 #include "bctoolbox/crypto.h"
 #include "bctoolbox/defs.h"
 #include "bctoolbox/logging.h"
@@ -31,6 +32,8 @@
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
 #include "openssl/x509v3.h"
+#include <openssl/ec.h>
+#include <openssl/rsa.h>
 
 #include <dirent.h>
 #include <string.h>
@@ -208,6 +211,91 @@ int32_t bctbx_signing_key_parse_file(bctbx_signing_key_t *key, const char *path,
 		fclose(key_file);
 	}
 	return ret == NULL ? BCTBX_ERROR_UNABLE_TO_PARSE_KEY : 0;
+}
+
+int32_t bctbx_signing_key_sign(bctbx_signing_key_t *key,
+                               bctbx_key_sign_type_t sign_algo,
+                               bctbx_md_type_t hash_algo,
+                               const uint8_t *hash,
+                               size_t hash_len,
+                               uint8_t *sig,
+                               size_t sig_max,
+                               size_t *sig_len) {
+
+	if (!key || !key->evp_pkey) return BCTBX_ERROR_INVALID_INPUT_DATA;
+
+	/* Consistency check */
+	int key_type = EVP_PKEY_base_id(key->evp_pkey);
+	if (sign_algo == BCTBX_KEYSIGN_ECDSA && key_type != EVP_PKEY_EC) {
+		return BCTBX_ERROR_UNABLE_TO_APPLY_REQUESTED_PADDING;
+	}
+	if ((sign_algo == BCTBX_KEYSIGN_RSA_PSS || sign_algo == BCTBX_KEYSIGN_RSA_PKCS1_V15) && key_type != EVP_PKEY_RSA) {
+		return BCTBX_ERROR_UNABLE_TO_APPLY_REQUESTED_PADDING;
+	}
+
+	const EVP_MD *md = NULL;
+	switch (hash_algo) {
+		case BCTBX_MD_SHA384:
+			md = EVP_sha384();
+			break;
+		case BCTBX_MD_SHA512:
+			md = EVP_sha512();
+			break;
+		case BCTBX_MD_SHA256:
+			md = EVP_sha256();
+			break;
+		default:
+			bctbx_error("bctbx_signing_key_sign unsupported hash algo %d", hash_algo);
+			return BCTBX_ERROR_INVALID_INPUT_DATA;
+	}
+
+	EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(key->evp_pkey, NULL);
+	if (!ctx) return BCTBX_ERROR_UNABLE_TO_PARSE_KEY;
+
+	if (EVP_PKEY_sign_init(ctx) <= 0) {
+		EVP_PKEY_CTX_free(ctx);
+		return BCTBX_ERROR_UNABLE_TO_PARSE_KEY;
+	}
+
+	if (EVP_PKEY_CTX_set_signature_md(ctx, md) <= 0) {
+		EVP_PKEY_CTX_free(ctx);
+		return BCTBX_ERROR_UNABLE_TO_PARSE_KEY;
+	}
+
+	/* Padding is for RSA only */
+	if (key_type == EVP_PKEY_RSA) {
+		if (sign_algo == BCTBX_KEYSIGN_RSA_PSS) {
+			if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PSS_PADDING) <= 0) {
+				EVP_PKEY_CTX_free(ctx);
+				return BCTBX_ERROR_UNABLE_TO_APPLY_REQUESTED_PADDING;
+			}
+			if (EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx, RSA_PSS_SALTLEN_DIGEST) <= 0) {
+				EVP_PKEY_CTX_free(ctx);
+				return BCTBX_ERROR_UNABLE_TO_APPLY_REQUESTED_PADDING;
+			}
+		} else {
+			if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING) <= 0) {
+				EVP_PKEY_CTX_free(ctx);
+				return BCTBX_ERROR_UNABLE_TO_APPLY_REQUESTED_PADDING;
+			}
+		}
+	}
+
+	/* Verify signature buffer bounds */
+	size_t req_len = 0;
+	if (EVP_PKEY_sign(ctx, NULL, &req_len, hash, hash_len) <= 0 || req_len > sig_max) {
+		EVP_PKEY_CTX_free(ctx);
+		return BCTBX_ERROR_INVALID_INPUT_DATA;
+	}
+
+	*sig_len = sig_max;
+	if (EVP_PKEY_sign(ctx, sig, sig_len, hash, hash_len) <= 0) {
+		EVP_PKEY_CTX_free(ctx);
+		return BCTBX_ERROR_UNABLE_TO_PARSE_KEY;
+	}
+
+	EVP_PKEY_CTX_free(ctx);
+	return 0;
 }
 
 /*** Certificate ***/
@@ -434,7 +522,9 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject,
                                                    bctbx_x509_certificate_t *certificate,
                                                    bctbx_signing_key_t *pkey,
                                                    char *pem,
-                                                   size_t pem_length) {
+                                                   size_t pem_length,
+                                                   const char *path) {
+
 	pkey->evp_pkey = EVP_RSA_gen(3072); // 'e' defaults to 65537
 	if (pkey->evp_pkey == NULL) {
 		bctbx_error("Couldn't generate an rsa key.");
@@ -455,17 +545,57 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject,
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 
-	size_t pem_minimum_length = strlen(self_signed_cert_pem) + strlen(private_key_pem) + 1;
+	if (pem != NULL) {
+		size_t pem_minimum_length = strlen(self_signed_cert_pem) + strlen(private_key_pem) + 1;
 
-	if (pem_length <= pem_minimum_length) {
-		bctbx_error(
-		    "Certificate generation can't copy the certificate to pem buffer: too short [%ld] but need [%ld] bytes",
-		    (long)pem_length, (long)pem_minimum_length);
-		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+		if (pem_length <= pem_minimum_length) {
+			bctbx_error(
+			    "Certificate generation can't copy the certificate to pem buffer: too short [%ld] but need [%ld] bytes",
+			    (long)pem_length, (long)pem_minimum_length);
+			return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+		}
+
+		strncpy(pem, private_key_pem, pem_length);
+		strncat(pem, self_signed_cert_pem, pem_length);
 	}
 
-	strncpy(pem, private_key_pem, pem_length);
-	strncat(pem, self_signed_cert_pem, pem_length);
+	if (path != NULL) {
+		FILE *fd;
+		char *name_with_path;
+		size_t path_length;
+
+		name_with_path =
+		    (char *)bctbx_malloc(strlen(path) + 257); /* max filename is 256 bytes in dirent structure, +1 for / */
+		path_length = strlen(path);
+		memcpy(name_with_path, path, path_length);
+		name_with_path[path_length] = '/';
+		path_length++;
+		memcpy(name_with_path + path_length, subject, strlen(subject));
+		memcpy(name_with_path + path_length + strlen(subject), ".pem", 5);
+
+		/* check if directory exists and if not, create it */
+		bctbx_mkdir(path);
+
+		if ((fd = fopen(name_with_path, "w")) == NULL) {
+			bctbx_error("Certificate generation can't open/create file %s", name_with_path);
+			bctbx_free(name_with_path);
+			return BCTBX_ERROR_CERTIFICATE_WRITE_PEM;
+		}
+		if (fwrite(self_signed_cert_pem, 1, strlen(self_signed_cert_pem), fd) != strlen(self_signed_cert_pem)) {
+			bctbx_error("Certificate generation can't write into file %s", name_with_path);
+			fclose(fd);
+			bctbx_free(name_with_path);
+			return BCTBX_ERROR_CERTIFICATE_WRITE_PEM;
+		}
+		if (fwrite(private_key_pem, 1, strlen(private_key_pem), fd) != strlen(private_key_pem)) {
+			bctbx_error("Certificate generation can't write into file %s", name_with_path);
+			fclose(fd);
+			bctbx_free(name_with_path);
+			return BCTBX_ERROR_CERTIFICATE_WRITE_PEM;
+		}
+		fclose(fd);
+		bctbx_free(name_with_path);
+	}
 
 	return 0;
 }
@@ -1188,14 +1318,26 @@ bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_c
 /** DTLS SRTP functions **/
 
 /** config **/
-struct bctbx_ssl_config_struct {
-	const SSL_METHOD *ssl_method; /**< current tls method used by ssl_ctx (cannot retrieve it from the SSL_CTX object
-	                                 before OpenSSL 3.0 so have to store it here..)*/
-	SSL_CTX *ssl_ctx;             /**< actual config structure */
-	int ssl_verification_mode;    /**< BCTBX_SSL_VERIFY_NONE, BCTBX_SSL_VERIFY_OPTIONAL, BCTBX_SSL_VERIFY_REQUIRED */
-	uint8_t ssl_config_externally_provided; /**< a flag, on when the ssl_config was provided by callers and not created
-	                                           through bctbx_ssl_config_new() function */
-};
+int32_t bctbx_ssl_config_set_callback_external_signing(bctbx_ssl_config_t *ssl_config,
+                                                       bctbx_ssl_config_ext_sign_callback_t cb,
+                                                       void *cb_data,
+                                                       const bctbx_ext_signing_key_ref_t *ext_key_ref) {
+	if (ssl_config == NULL) {
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
+	}
+
+	if (bctbx_ext_signing_key_ref_empty(ext_key_ref)) {
+		bctbx_error("Trying to set an external key reference but it is empty");
+		return BCTBX_ERROR_INVALID_SSL_CONFIG;
+	}
+	/* copy the key ref into the ssl_config so the caller do not need to hold it */
+	bctbx_ext_signing_key_ref_free(ssl_config->ext_key_ref);
+	ssl_config->ext_key_ref = bctbx_ext_signing_key_ref_clone(ext_key_ref);
+	ssl_config->callback_ext_signing_function = cb;
+	ssl_config->callback_ext_signing_data = cb_data;
+
+	return 0;
+}
 
 bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 	bctbx_ssl_config_t *ssl_config = bctbx_malloc0(sizeof(bctbx_ssl_config_t));

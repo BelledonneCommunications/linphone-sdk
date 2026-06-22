@@ -755,6 +755,29 @@ typedef enum _LinphoneMediaResourceMode {
 } LinphoneMediaResourceMode;
 
 /**
+ * @brief Enum describing type of signature algorithm used in (D)TLS handshake.
+ * @ingroup group_misc
+ **/
+typedef enum _LinphoneKeySignAlgo {
+	LinphoneKeySignUndefined = 0,   /**< No signature algorithm defined */
+	LinphoneKeySignRsaPss = 1,      /**< Signature scheme used in TLS1.3 */
+	LinphoneKeySignRsaPkcs1v15 = 2, /**< Signature scheme used in TLS1.2 */
+	LinphoneKeySignEcdsa = 3,       /**< Signature scheme based on elliptic curve */
+} LinphoneKeySignAlgo;
+
+/**
+ * @brief Enum describing a message digest (hash) algorithm.
+ * MD5 and SHA1 are not defined as they are obsolete and not used
+ * @ingroup group_misc
+ **/
+typedef enum _LinphoneHashAlgo {
+	LinphoneHashUndefined = 0, /**< No hash algorithm defined */
+	LinphoneHashSha256 = 1,    /**< SHA-256 */
+	LinphoneHashSha384 = 2,    /**< SHA-384 */
+	LinphoneHashSha512 = 3,    /**< SHA-512 */
+} LinphoneHashAlgo;
+
+/**
  * @brief Enum describing type of media encryption types.
  * @ingroup group_media_parameters
  **/

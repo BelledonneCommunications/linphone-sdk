@@ -34,8 +34,15 @@
 using namespace Linphone::Tester;
 
 // Helper to loop on all certificate providing methods availables
-static std::array<certProvider, 3> availCertProv{
-    {CertProviderConfigSip, CertProviderConfigAuthInfoBuffer, CertProviderConfigAuthInfoPath}};
+static std::array<certProvider, 4> availCertProv() {
+	if (bctbx_ssl_get_implementation_type() == BCTBX_OPENSSL) { // openssl backend does not support yet external signing
+		return std::array<certProvider, 4>{CertProviderConfigSip, CertProviderConfigAuthInfoBuffer,
+		                                   CertProviderConfigAuthInfoPath};
+	} else {
+		return std::array<certProvider, 4>{CertProviderConfigSip, CertProviderConfigAuthInfoBuffer,
+		                                   CertProviderConfigAuthInfoBufferExtKeyRef, CertProviderConfigAuthInfoPath};
+	}
+};
 
 static void TLS_mandatory_two_users_curve(const LinphoneTesterLimeAlgo curveId) {
 	LinphoneCoreManager *lcm = linphone_core_manager_create(NULL);
@@ -90,7 +97,29 @@ static void create_user_sip_client_cert_chain(const LinphoneTesterLimeAlgo curve
 	                        "sip:sip.example.org; transport=tls", "secret");
 
 	// add client certificate
-	add_tls_client_certificate(lcm->lc, username.c_str(), realm.c_str(), cert.c_str(), key.c_str(), method);
+	auto key_ref =
+	    add_tls_client_certificate(lcm->lc, username.c_str(), realm.c_str(), cert.c_str(), key.c_str(), method);
+
+	if (method == CertProviderConfigAuthInfoBufferExtKeyRef) {
+		LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+		linphone_core_cbs_set_tls_ext_signature(
+		    cbs, [](BCTBX_UNUSED(LinphoneCore * core), const void *key_ref, BCTBX_UNUSED(LinphoneKeySignAlgo sign_algo),
+		            BCTBX_UNUSED(LinphoneHashAlgo hash_algo), BCTBX_UNUSED(const uint8_t *hash_ptr),
+		            BCTBX_UNUSED(size_t hash_size), BCTBX_UNUSED(size_t signature_buffer_size),
+		            BCTBX_UNUSED(uint8_t *signature_ptr), BCTBX_UNUSED(size_t *signature_size_out), int *ret_out) {
+			    auto key = Linphone::Tester::KeyStore::getInstance().getKey((const char *)key_ref);
+			    if (Linphone::Tester::KeyStore::getInstance().sign((const char *)key_ref, sign_algo, hash_algo,
+			                                                       hash_ptr, hash_size, signature_buffer_size,
+			                                                       signature_ptr, signature_size_out)) {
+				    *ret_out = 0;
+			    } else {
+				    *ret_out = -1;
+			    }
+		    });
+
+		linphone_core_add_callbacks(lcm->lc, cbs);
+		linphone_core_cbs_unref(cbs);
+	}
 
 	bctbx_list_t *coresManagerList = NULL;
 	coresManagerList = bctbx_list_append(coresManagerList, lcm);
@@ -106,6 +135,10 @@ static void create_user_sip_client_cert_chain(const LinphoneTesterLimeAlgo curve
 		BC_ASSERT_EQUAL(lcm->stat.number_of_X3dhUserCreationSuccess, 0, int, "%d");
 	}
 
+	if (key_ref) {
+		Linphone::Tester::KeyStore::getInstance().deleteKey(key_ref);
+		bctbx_free(key_ref);
+	}
 	bctbx_list_free(coresList);
 	bctbx_list_free(coresManagerList);
 	linphone_core_manager_destroy(lcm);
@@ -117,7 +150,7 @@ static void create_user_sip_client_cert_chain(const LinphoneTesterLimeAlgo curve
 static void identity_in_altName_one_DNS_entry(void) {
 	const std::string cert_path{"certificates/client/user1_cert.pem"};
 	const std::string key_path{"certificates/client/user1_key.pem"};
-	for (const auto &certProv : availCertProv) {
+	for (const auto &certProv : availCertProv()) {
 		create_user_sip_client_cert_chain(C25519, tls_mandatory, certProv, cert_path, key_path, false);
 		create_user_sip_client_cert_chain(C448, tls_mandatory, certProv, cert_path, key_path, false);
 		if (liblinphone_tester_is_lime_PQ_available()) {
@@ -134,7 +167,7 @@ static void identity_in_altName_one_DNS_entry(void) {
 static void identity_in_subject_CN(void) {
 	const std::string cert_path{"certificates/client/user2_CN_cert.pem"};
 	const std::string key_path{"certificates/client/user2_CN_key.pem"};
-	for (const auto &certProv : availCertProv) {
+	for (const auto &certProv : availCertProv()) {
 		create_user_sip_client_cert_chain(C25519, tls_mandatory, certProv, cert_path, key_path, false, "user_2");
 		create_user_sip_client_cert_chain(C448, tls_mandatory, certProv, cert_path, key_path, false, "user_2");
 		if (liblinphone_tester_is_lime_PQ_available()) {
@@ -149,13 +182,37 @@ static void identity_in_subject_CN(void) {
 }
 
 /**
+ * Create a user, successfully identify with the correct certificate holding the sip:uri in subject CN
+ */
+static void use_ECDSA_certificate(std::string cert_path, std::string key_path) {
+	for (const auto &certProv : availCertProv()) {
+		create_user_sip_client_cert_chain(C25519, tls_mandatory, certProv, cert_path, key_path, false, "user_2");
+		create_user_sip_client_cert_chain(C448, tls_mandatory, certProv, cert_path, key_path, false, "user_2");
+		if (liblinphone_tester_is_lime_PQ_available()) {
+			create_user_sip_client_cert_chain(C25519K512, tls_mandatory, certProv, cert_path, key_path, false,
+			                                  "user_2");
+			create_user_sip_client_cert_chain(C25519MLK512, tls_mandatory, certProv, cert_path, key_path, false,
+			                                  "user_2");
+			create_user_sip_client_cert_chain(C448MLK1024, tls_mandatory, certProv, cert_path, key_path, false,
+			                                  "user_2");
+		}
+	}
+}
+
+static void use_ECDSA_certificate(void) {
+	use_ECDSA_certificate("certificates/client/user2_ECDSA_cert.pem", "certificates/client/user2_ECDSA_key.pem");
+	use_ECDSA_certificate("certificates/client/user2_ECDSA_521_cert.pem",
+	                      "certificates/client/user2_ECDSA_521_key.pem");
+}
+
+/**
  * Create a user, successfully identify with the correct certificate holding the sip:uri in altName:DNS1 (4 DNS entry in
  * the altName)
  */
 static void identity_in_altName_multiple_DNS_entry(void) {
 	const std::string cert_path{"certificates/client/user1_multiple_aliases_cert.pem"};
 	const std::string key_path{"certificates/client/user1_multiple_aliases_key.pem"};
-	for (const auto &certProv : availCertProv) {
+	for (const auto &certProv : availCertProv()) {
 		create_user_sip_client_cert_chain(C25519, tls_mandatory, certProv, cert_path, key_path, false);
 		create_user_sip_client_cert_chain(C448, tls_mandatory, certProv, cert_path, key_path, false);
 		if (liblinphone_tester_is_lime_PQ_available()) {
@@ -172,7 +229,7 @@ static void identity_in_altName_multiple_DNS_entry(void) {
 static void revoked_certificate(void) {
 	const std::string cert_path{"certificates/client/user2_revoked_cert.pem"};
 	const std::string key_path{"certificates/client/user2_revoked_key.pem"};
-	for (const auto &certProv : availCertProv) {
+	for (const auto &certProv : availCertProv()) {
 		create_user_sip_client_cert_chain(C25519, tls_mandatory, certProv, cert_path, key_path, true, "user_2");
 		create_user_sip_client_cert_chain(C448, tls_mandatory, certProv, cert_path, key_path, true, "user_2");
 		if (liblinphone_tester_is_lime_PQ_available()) {
@@ -192,7 +249,7 @@ static void revoked_certificate(void) {
 static void TLS_mandatory_CN_UserId_mismatch(void) {
 	const std::string cert_path{"certificates/client/cert2.pem"};
 	const std::string key_path{"certificates/client/key2.pem"};
-	for (const auto &certProv : availCertProv) {
+	for (const auto &certProv : availCertProv()) {
 		create_user_sip_client_cert_chain(C25519, tls_mandatory, certProv, cert_path, key_path, true);
 		create_user_sip_client_cert_chain(C448, tls_mandatory, certProv, cert_path, key_path, true);
 		if (liblinphone_tester_is_lime_PQ_available()) {
@@ -210,7 +267,7 @@ static void TLS_mandatory_CN_UserId_mismatch(void) {
 static void TLS_optional_CN_UserId_mismatch(void) {
 	const std::string cert_path{"certificates/client/cert2.pem"};
 	const std::string key_path{"certificates/client/key2.pem"};
-	for (const auto &certProv : availCertProv) {
+	for (const auto &certProv : availCertProv()) {
 		create_user_sip_client_cert_chain(C25519, tls_optional, certProv, cert_path, key_path, true);
 		create_user_sip_client_cert_chain(C448, tls_optional, certProv, cert_path, key_path, true);
 		if (liblinphone_tester_is_lime_PQ_available()) {
@@ -410,6 +467,7 @@ static void invalid_lime_server_in_account() {
 test_t lime_server_auth_tests[] = {
     TEST_TWO_TAGS("Invalid LIME server in account parameters", invalid_lime_server_in_account, "LimeX3DH", "CRYPTO"),
     TEST_TWO_TAGS("sip:uri in altname DNS", identity_in_altName_one_DNS_entry, "LimeX3DH", "CRYPTO"),
+    TEST_TWO_TAGS("sip:uri in altname DNS certificate using ECDSA", use_ECDSA_certificate, "LimeX3DH", "CRYPTO"),
     TEST_TWO_TAGS("sip:uri in subject CN", identity_in_subject_CN, "LimeX3DH", "CRYPTO"),
     TEST_TWO_TAGS(
         "sip:uri in altname DNS with multiple entries", identity_in_altName_multiple_DNS_entry, "LimeX3DH", "CRYPTO"),

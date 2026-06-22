@@ -883,6 +883,11 @@ static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 					sal_certificates_chain_parse_file(sai, linphone_auth_info_get_tls_cert_path(ai),
 					                                  SAL_CERTIFICATE_RAW_FORMAT_PEM);
 					sal_signing_key_parse_file(sai, linphone_auth_info_get_tls_key_path(ai), "");
+				} else if (linphone_auth_info_get_tls_cert(ai) &&
+				           !bctbx_ext_signing_key_ref_empty(linphone_auth_info_get_ext_tls_key_ref(ai))) {
+					sal_certificates_chain_parse(sai, linphone_auth_info_get_tls_cert(ai),
+					                             SAL_CERTIFICATE_RAW_FORMAT_PEM);
+					sal_set_signing_key_ref(sai, linphone_auth_info_get_ext_tls_key_ref(ai));
 				} else {
 					fill_auth_info_with_client_certificate(lc, sai);
 				}

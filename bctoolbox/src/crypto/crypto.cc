@@ -26,6 +26,8 @@
 #include "bctoolbox/exception.hh"
 
 #include <array>
+#include <optional>
+#include <string>
 
 namespace bctoolbox {
 
@@ -217,4 +219,47 @@ extern "C" unsigned int bctbx_random(void) {
 
 extern "C" void bctbx_random_bytes(unsigned char *ret, size_t size) {
 	bctoolbox::RNG::cRandomize(ret, size);
+}
+
+/*****************************************************************************/
+/***       External signing key reference holders                          ***/
+/*****************************************************************************/
+bctbx_ext_signing_key_ref_t::bctbx_ext_signing_key_ref_t() : value(std::nullopt) {
+}
+bctbx_ext_signing_key_ref_t::bctbx_ext_signing_key_ref_t(const void *ref) {
+	if (ref == nullptr) {
+		value = std::nullopt;
+		return;
+	}
+
+#if defined(__ANDROID__) // on android the ref is a string
+	value = std::string(static_cast<const char *>(ref));
+#else // we're not building for a platform on which external key ref is supported
+	value = std::string(static_cast<const char *>(ref)); // for testing purpose use a string as ref
+#endif
+}
+
+extern "C" bctbx_ext_signing_key_ref_t *bctbx_ext_signing_key_ref_new(const void *ref) {
+	auto *obj = new bctbx_ext_signing_key_ref_t(ref);
+	return obj;
+}
+
+extern "C" void bctbx_ext_signing_key_ref_free(bctbx_ext_signing_key_ref_t *extKeyRef) {
+	if (!extKeyRef) {
+		return;
+	}
+	delete extKeyRef;
+}
+
+extern "C" bctbx_ext_signing_key_ref_t *bctbx_ext_signing_key_ref_clone(const bctbx_ext_signing_key_ref_t *other) {
+	return new bctbx_ext_signing_key_ref_t(*other);
+}
+
+extern "C" bool_t bctbx_ext_signing_key_ref_empty(const bctbx_ext_signing_key_ref_t *ref) {
+	if (!ref) return FALSE;
+	return ref->value.has_value() ? FALSE : TRUE;
+}
+// TODO Remove me, just for debug on desktop
+extern "C" const char *bctbx_ext_signing_key_ref_getString(const bctbx_ext_signing_key_ref_t *ref) {
+	return ref->value.has_value() ? ref->value.value().c_str() : "NONE";
 }

@@ -40,15 +40,15 @@ namespace {
 class DtlsCrypto {
 public:
 	bctbx_x509_certificate_t *crt;
+	bctbx_signing_key_t *pkey;
 	bctbx_ssl_config_t *ssl_config;
 	bctbx_ssl_context_t *ssl;
 	bctbx_rng_context_t *rng;
-	bctbx_signing_key_t *pkey;
 	bctbx_x509_certificate_t *root_ca;
 
 	DtlsCrypto()
-	    : crt(bctbx_x509_certificate_new()), ssl_config(bctbx_ssl_config_new()), ssl(nullptr),
-	      rng(bctbx_rng_context_new()), pkey(bctbx_signing_key_new()), root_ca(bctbx_x509_certificate_new()) {
+	    : crt(nullptr), pkey(nullptr), ssl_config(bctbx_ssl_config_new()), ssl(nullptr), rng(bctbx_rng_context_new()),
+	      root_ca(bctbx_x509_certificate_new()) {
 	}
 	~DtlsCrypto() {
 		bctbx_rng_context_free(rng);
@@ -457,21 +457,14 @@ void ms_dtls_srtp_set_transport(MSDtlsSrtpContext *ctx, RtpSession *s) {
 /***** MSDtlsSrtpContext methods           *****/
 /***********************************************/
 int MSDtlsSrtpContext::initialiseDtlsCryptoContext(MSDtlsSrtpParams *params) {
-	int ret;
 	bctbx_dtls_srtp_profile_t dtls_srtp_protection_profiles[2] = {BCTBX_SRTP_AES128_CM_HMAC_SHA1_80,
 	                                                              BCTBX_SRTP_AES128_CM_HMAC_SHA1_32};
 
-	/* initialise certificate */
-	ret = bctbx_x509_certificate_parse(mDtlsCryptoContext.crt, (const char *)params->pem_certificate,
-	                                   strlen(params->pem_certificate) + 1);
-	if (ret < 0) {
-		return ret;
-	}
-
-	ret = bctbx_signing_key_parse(mDtlsCryptoContext.pkey, (const char *)params->pem_pkey, strlen(params->pem_pkey) + 1,
-	                              NULL, 0);
-	if (ret != 0) {
-		return ret;
+	/* initialise certificate : ownership og certificate, key and key_ref is moved to mDtlsCryptoContext */
+	mDtlsCryptoContext.crt = params->certificate;
+	mDtlsCryptoContext.pkey = params->key;
+	if (mDtlsCryptoContext.crt == nullptr || (mDtlsCryptoContext.pkey == nullptr && params->key_ref == nullptr)) {
+		return BCTBX_ERROR_NO_CLIENT_CERTIFICATE;
 	}
 
 	/* Load root ca from given path */
@@ -513,7 +506,23 @@ int MSDtlsSrtpContext::initialiseDtlsCryptoContext(MSDtlsSrtpParams *params) {
 	 * certificate to the client as we need it to compute the fingerprint even if we won't verify it */
 	bctbx_ssl_config_set_authmode(mDtlsCryptoContext.ssl_config,
 	                              mVerifyCertificate ? BCTBX_SSL_VERIFY_REQUIRED : BCTBX_SSL_VERIFY_OPTIONAL);
-	bctbx_ssl_config_set_own_cert(mDtlsCryptoContext.ssl_config, mDtlsCryptoContext.crt, mDtlsCryptoContext.pkey);
+	if (mDtlsCryptoContext.pkey != nullptr) { /* we do have an actual key, pass it */
+		bctbx_ssl_config_set_own_cert(mDtlsCryptoContext.ssl_config, mDtlsCryptoContext.crt, mDtlsCryptoContext.pkey);
+	} else { /* we are using a key reference */
+		int ret = bctbx_ssl_config_set_callback_external_signing(mDtlsCryptoContext.ssl_config, params->ext_sign_cb,
+		                                                         params->ext_sign_cb_data, params->key_ref);
+		if (ret < 0) {
+			bctbx_error("Unable to set external signing callback in config for SSL context at DTLS channel "
+			            "creation ret [-0x%x]",
+			            -ret);
+			return -1;
+		}
+		// Set the certificate without key as we already set the key ref in the ssl_conf - we must do that when
+		// the key ref is already there
+		bctbx_ssl_config_set_own_cert(mDtlsCryptoContext.ssl_config, mDtlsCryptoContext.crt, NULL);
+		bctbx_ext_signing_key_ref_free(
+		    params->key_ref); // key ref is cloned by bctbx_ssl_config_set_callback_external_signing
+	}
 	/* Load root ca from given path */
 	bctbx_ssl_config_set_ca_chain(mDtlsCryptoContext.ssl_config, mDtlsCryptoContext.root_ca);
 

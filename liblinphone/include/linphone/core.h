@@ -304,6 +304,7 @@ typedef struct _LinphoneCoreVTable {
 	LinphoneCoreCbsMessageContentEditedCb message_content_edited;
 	LinphoneCoreCbsMessageRetractedCb message_retracted;
 	void *user_data; /**< User data associated with the above callbacks */
+	LinphoneCoreCbsTlsExtSignCb tls_ext_sign;
 } LinphoneCoreVTable;
 
 /**
@@ -381,6 +382,27 @@ LINPHONE_PUBLIC void *linphone_core_cbs_get_user_data(const LinphoneCoreCbs *cbs
  * @return The #LinphoneCoreCbs that has called the last callback @maybenil
  */
 LINPHONE_PUBLIC LinphoneCoreCbs *linphone_core_get_current_callbacks(const LinphoneCore *core);
+
+/**
+ * @brief Set the Tls external signature callback
+ *
+ * @param cbs A #LinphoneCoreCbs. @notnil
+ * @param ext_sign_cb The #LinphoneCoreCbsTlsExtSignCb callback to call. @notnil
+ * @ingroup group_misc
+ * @donotwrap
+ **/
+LINPHONE_PUBLIC void linphone_core_cbs_set_tls_ext_signature(LinphoneCoreCbs *cbs,
+                                                             LinphoneCoreCbsTlsExtSignCb ext_sign_cb);
+
+/**
+ * @brief Set the Tls external signature callback
+ *
+ * @param cbs A #LinphoneCoreCbs. @notnil
+ * @return The callback.
+ * @ingroup group_misc
+ * @donotwrap
+ **/
+LINPHONE_PUBLIC LinphoneCoreCbsTlsExtSignCb linphone_core_cbs_get_tls_ext_signature(LinphoneCoreCbs *cbs);
 
 /**
  * Sets the #LinphoneCoreGlobalStateChangedCb callback.

@@ -926,6 +926,30 @@ typedef void (*LinphoneFriendCbsPresenceReceivedCb)(LinphoneFriend *linphone_fri
  * @addtogroup group_misc
  * @{
  */
+/**
+ * @brief Function prototype used by #linphone_core_cbs_set_tls_ext_sign().
+ * @param core 		The #LinphoneCore. @notnil
+ * @param key_ref	Reference to the key given by the external secure enclave
+ * @param sign_algo	algo to use for this signature (RSA-PSS, PSA-PKCS1, ECDSA)
+ * @param hash_algo	algo to use to hash the signature (SHA256, SHA384, SHA512)
+ * @param hash 		The hash to be signed
+ * @param hash_size 	size of the hash to be signed
+ * @param signature_buffer_size		size of the buffer allocated to write the signature
+ * @param signature	the output buffer to write the signature
+ * @param signature_size		actual size of data written in the buffer
+ * @param ret		return value: 0 on success
+ * @donotwrap
+ */
+typedef void (*LinphoneCoreCbsTlsExtSignCb)(LinphoneCore *core,
+                                            const void *key_ref,
+                                            LinphoneKeySignAlgo sign_algo,
+                                            LinphoneHashAlgo hash_algo,
+                                            const uint8_t *hash,
+                                            size_t hash_size,
+                                            size_t signature_buffer_size,
+                                            uint8_t *signature,
+                                            size_t *signature_size,
+                                            int *ret);
 
 /**
  * @brief Function prototype used by #linphone_core_cbs_set_ec_calibration_result().

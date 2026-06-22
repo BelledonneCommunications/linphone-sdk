@@ -21,6 +21,7 @@
 #ifndef ms_dtls_srtp_h
 #define ms_dtls_srtp_h
 
+#include "bctoolbox/crypto.h"
 #include "mediastreamer2/mscommon.h"
 #include <ortp/rtpsession.h>
 
@@ -47,9 +48,12 @@ typedef enum {
 } MSDtlsSrtpRole;
 
 typedef struct MSDtlsSrtpParams {
-	const char *pem_certificate; /**< Self certificate in pem format */
-	const char *pem_pkey;        /**< Private key associated to self certificate */
-	const char *root_ca;         /**< Path to root certicates authority */
+	bctbx_x509_certificate_t *certificate;            /**< Self certificate */
+	bctbx_signing_key_t *key;                         /**< Private key associated to self certificate */
+	bctbx_ext_signing_key_ref_t *key_ref;             /**< reference to the private key associated to self certificate*/
+	bctbx_ssl_config_ext_sign_callback_t ext_sign_cb; /**< a callback to request external signing during handshake*/
+	void *ext_sign_cb_data;                           /**< user data for the previous callback */
+	const char *root_ca;                              /**< Path to root certicates authority */
 	MSDtlsSrtpRole role; /**< Unset(at caller init, role is then choosen by responder but we must still be able to
 	                    receive packets) */
 	int mtu;

@@ -42,6 +42,53 @@ Json::CharReader &JsonDocument::getReader() {
 	return *sReader;
 }
 
+namespace {
+int HttpClient_tls_ext_sign_cb(void *user_data,
+                               const void *key_ref,
+                               bctbx_key_sign_type_t sign_algo,
+                               bctbx_md_type_t hash_algo,
+                               const uint8_t *hash,
+                               size_t hash_size,
+                               size_t signature_buffer_size,
+                               uint8_t *signature,
+                               size_t *signature_size) {
+	LinphoneCore *lc = (LinphoneCore *)user_data;
+	LinphoneKeySignAlgo l_sign_algo = LinphoneKeySignUndefined;
+	switch (sign_algo) {
+		case BCTBX_KEYSIGN_RSA_PKCS1_V15:
+			l_sign_algo = LinphoneKeySignRsaPkcs1v15;
+			break;
+		case BCTBX_KEYSIGN_RSA_PSS:
+			l_sign_algo = LinphoneKeySignRsaPss;
+			break;
+		case BCTBX_KEYSIGN_ECDSA:
+			l_sign_algo = LinphoneKeySignEcdsa;
+			break;
+		default:
+			l_sign_algo = LinphoneKeySignUndefined;
+			break;
+	}
+	LinphoneHashAlgo l_hash_algo = LinphoneHashUndefined;
+	switch (hash_algo) {
+		case BCTBX_MD_SHA256:
+			l_hash_algo = LinphoneHashSha256;
+			break;
+		case BCTBX_MD_SHA384:
+			l_hash_algo = LinphoneHashSha384;
+			break;
+		case BCTBX_MD_SHA512:
+			l_hash_algo = LinphoneHashSha512;
+			break;
+		default:
+			l_hash_algo = LinphoneHashUndefined;
+			break;
+	}
+	int ret = -1;
+	linphone_core_notify_tls_ext_sign_requested(lc, key_ref, l_sign_algo, l_hash_algo, hash, hash_size,
+	                                            signature_buffer_size, signature, signature_size, &ret);
+	return ret;
+}
+} // namespace
 HttpClient::HttpClient(const std::shared_ptr<Core> &core) : CoreAccessor(core) {
 	LinphoneCore *lc = core->getCCore();
 	/* Create the http provider in dual stack mode  if ipv6 enabled for sip (ipv4 and ipv6.
@@ -57,6 +104,7 @@ HttpClient::HttpClient(const std::shared_ptr<Core> &core) : CoreAccessor(core) {
 	    reinterpret_cast<belle_sip_stack_t *>(lc->sal->getStackImpl()), (use_ipv6_for_sip ? "::0" : "0.0.0.0"),
 	    transports);
 	mCryptoConfig = belle_tls_crypto_config_new();
+	belle_tls_crypto_config_set_ext_sign_callback(mCryptoConfig, HttpClient_tls_ext_sign_cb, lc);
 	belle_http_provider_set_tls_crypto_config(mProvider, mCryptoConfig);
 }
 

@@ -186,8 +186,9 @@ bool_t linphone_core_find_tls_cert_in_indexed_auth_infos_with_subject(LinphoneCo
                                                                       const char *username,
                                                                       const char *domain,
                                                                       const char *subject,
-                                                                      char **certificate_pem,
-                                                                      char **key_pem,
+                                                                      bctbx_x509_certificate_t **certificate,
+                                                                      bctbx_signing_key_t **key,
+                                                                      bctbx_ext_signing_key_ref_t **key_ref,
                                                                       char **fingerprint);
 LinphoneAuthInfo *_linphone_core_find_indexed_tls_auth_info(LinphoneCore *lc, const char *username, const char *domain);
 LinphoneAuthInfo *_linphone_core_find_auth_info(LinphoneCore *lc,
@@ -492,6 +493,16 @@ void linphone_conference_scheduler_notify_invitations_sent(LinphoneConferenceSch
 
 void _linphone_participant_device_notify_video_display_error_occurred(LinphoneParticipantDevice *participant_device,
                                                                       int error_code);
+void linphone_core_notify_tls_ext_sign_requested(LinphoneCore *lc,
+                                                 const void *key_ref,
+                                                 LinphoneKeySignAlgo sign_algo,
+                                                 LinphoneHashAlgo hash_algo,
+                                                 const uint8_t *hash,
+                                                 size_t hash_size,
+                                                 size_t signature_buffer_size,
+                                                 uint8_t *signature,
+                                                 size_t *signature_size,
+                                                 int *ret);
 
 LINPHONE_PUBLIC void linphone_participant_device_set_state(LinphoneParticipantDevice *participant_device,
                                                            LinphoneParticipantDeviceState state);

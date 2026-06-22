@@ -205,6 +205,13 @@ belle_sip_certificates_chain_parse(const char *buff, size_t size, belle_sip_cert
 BELLESIP_EXPORT belle_sip_signing_key_t *belle_sip_signing_key_parse(const char *buff, size_t size, const char *passwd);
 
 /**
+ * create a sip signing key and set a reference to an external key in it
+ * @param ref	The reference to the external key (copied in the created object)
+ * @return an object holding a reference to the external key
+ */
+BELLESIP_EXPORT belle_sip_signing_key_t *belle_sip_signing_new_key_ref(const bctbx_ext_signing_key_ref_t *ref);
+
+/**
  * Parse a pather containing either a certificate chain order in PEM format or a single DER cert
  * @param path file
  * @param format either PEM or DER
@@ -377,6 +384,39 @@ typedef void (*belle_tls_crypto_config_verify_callback_t)(void *user_data,
 BELLESIP_EXPORT void belle_tls_crypto_config_set_verify_callback(belle_tls_crypto_config_t *obj,
                                                                  belle_tls_crypto_config_verify_callback_t cb,
                                                                  void *cb_data);
+
+/**
+ * Callback prototype to perform the tls signature in a external secure enclave
+ * @param user_data the user pointer passed to belle_tls_crypto_config_set_ext_sign_callback()
+ * @param key_ref	Reference to the key given by the external secure enclave
+ * @param sign_algo	algo to use for this signature (RSA-PSS, PSA-PKCS1, ECDSA)
+ * @param hash_algo	algo to use to hash the signature (SHA256, SHA384, SHA512)
+ * @param hash 		The hash to be signed
+ * @param hash_size 	size of the hash to be signed
+ * @param signature_buffer_size		size of the buffer allocated to write the signature
+ * @param signature	the output buffer to write the signature
+ * @param signature_size		actual size of data written in the buffer
+ * @return 0 on success
+ */
+typedef int (*belle_tls_crypto_config_ext_sign_callback_t)(void *user_data,
+                                                           const void *key_ref,
+                                                           bctbx_key_sign_type_t sign_algo,
+                                                           bctbx_md_type_t hash_algo,
+                                                           const uint8_t *hash,
+                                                           size_t hash_size,
+                                                           size_t signature_buffer_size,
+                                                           uint8_t *signature,
+                                                           size_t *signature_size);
+
+/**
+ * Set a callback function to call during each TLS handshake in perform an external signature.
+ * @param obj the crypto config object
+ * @param cb the application callback
+ * @param cb_data an application data pointer that will be passed to callback when invoked.
+ **/
+BELLESIP_EXPORT void belle_tls_crypto_config_set_ext_sign_callback(belle_tls_crypto_config_t *obj,
+                                                                   belle_tls_crypto_config_ext_sign_callback_t cb,
+                                                                   void *cb_data);
 
 /**
  * Callback prototype to check remote certificate once hanshake is completed (post-check).

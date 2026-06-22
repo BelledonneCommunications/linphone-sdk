@@ -289,6 +289,8 @@ struct belle_tls_crypto_config {
 	void *verify_cb_data;
 	belle_tls_crypto_config_postcheck_callback_t postcheck_cb;
 	void *postcheck_cb_data;
+	belle_tls_crypto_config_ext_sign_callback_t ext_sign_cb;
+	void *ext_sign_cb_data;
 };
 
 typedef struct _belle_sip_channel_bank belle_sip_channel_bank_t;

@@ -143,6 +143,10 @@ void linphone_auth_info_set_tls_key(LinphoneAuthInfo *info, const char *tls_key)
 	AuthInfo::toCpp(info)->setTlsKey(L_C_TO_STRING(tls_key));
 }
 
+void linphone_auth_info_set_ext_tls_key_ref(LinphoneAuthInfo *info, const void *tls_key_ref) {
+	AuthInfo::toCpp(info)->setExtTlsKeyRef(tls_key_ref);
+}
+
 void linphone_auth_info_set_tls_cert_path(LinphoneAuthInfo *info, const char *tls_cert_path) {
 	AuthInfo::toCpp(info)->setTlsCertPath(L_C_TO_STRING(tls_cert_path));
 }
@@ -214,6 +218,10 @@ const char *linphone_auth_info_get_tls_cert(const LinphoneAuthInfo *info) {
 const char *linphone_auth_info_get_tls_key(const LinphoneAuthInfo *info) {
 	const char *tlsKey = AuthInfo::toCpp(info)->getTlsKey().c_str();
 	return strlen(tlsKey) != 0 ? tlsKey : NULL;
+}
+
+const bctbx_ext_signing_key_ref_t *linphone_auth_info_get_ext_tls_key_ref(const LinphoneAuthInfo *info) {
+	return &(AuthInfo::toCpp(info)->getExtTlsKeyRef());
 }
 
 const char *linphone_auth_info_get_tls_cert_path(const LinphoneAuthInfo *info) {

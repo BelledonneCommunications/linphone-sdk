@@ -84,6 +84,10 @@ void belle_sip_auth_event_set_signing_key(belle_sip_auth_event_t *event, belle_s
 	SET_OBJECT_PROPERTY(event, key, value);
 }
 
+void belle_sip_auth_event_set_ext_signing_key_ref(belle_sip_auth_event_t *event, belle_sip_signing_key_t *value) {
+	SET_OBJECT_PROPERTY(event, key, value);
+}
+
 belle_sip_auth_mode_t belle_sip_auth_event_get_mode(const belle_sip_auth_event_t *event) {
 	return event->mode;
 }
@@ -159,6 +163,9 @@ belle_tls_crypto_config_t *belle_tls_crypto_config_new(void) {
 #endif
 	obj->ssl_config = NULL;
 	obj->exception_flags = BELLE_TLS_VERIFY_NONE;
+	obj->verify_cb = NULL;
+	obj->postcheck_cb = NULL;
+	obj->ext_sign_cb = NULL;
 
 	return obj;
 }
@@ -212,6 +219,13 @@ void belle_tls_crypto_config_set_verify_callback(belle_tls_crypto_config_t *obj,
                                                  void *cb_data) {
 	obj->verify_cb = cb;
 	obj->verify_cb_data = cb_data;
+}
+
+void belle_tls_crypto_config_set_ext_sign_callback(belle_tls_crypto_config_t *obj,
+                                                   belle_tls_crypto_config_ext_sign_callback_t cb,
+                                                   void *cb_data) {
+	obj->ext_sign_cb = cb;
+	obj->ext_sign_cb_data = cb_data;
 }
 
 void belle_tls_crypto_config_set_postcheck_callback(belle_tls_crypto_config_t *obj,

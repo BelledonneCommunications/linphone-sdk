@@ -20,6 +20,7 @@
 
 #include <array>
 #include <exception>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -205,12 +206,12 @@ extern "C" void add_user_to_core_config(LinphoneCore *lc,
 }
 
 // Add tls information for given user into the linphone core
-extern "C" void add_tls_client_certificate(LinphoneCore *lc,
-                                           const char *username,
-                                           const char *realm,
-                                           const char *cert,
-                                           const char *key,
-                                           const certProvider method) {
+extern "C" char *add_tls_client_certificate(LinphoneCore *lc,
+                                            const char *username,
+                                            const char *realm,
+                                            const char *cert,
+                                            const char *key,
+                                            const certProvider method) {
 	// set a TLS client certificate
 	switch (method) {
 		// when using config_sip, no user name is set, we can set only one certificate anyway...
@@ -274,7 +275,151 @@ extern "C" void add_tls_client_certificate(LinphoneCore *lc,
 			linphone_core_add_auth_info(lc, auth_info);
 			linphone_auth_info_unref(auth_info);
 		} break;
+		case CertProviderConfigAuthInfoBufferExtKeyRef: {
+			// We shall already have an auth info for this username/realm, add the tls cert in it
+			LinphoneAuthInfo *auth_info =
+			    linphone_auth_info_clone(linphone_core_find_auth_info(lc, realm, username, realm));
+			// otherwise create it
+			if (auth_info == NULL) {
+				auth_info = linphone_auth_info_new(username, NULL, NULL, NULL, realm, realm);
+			}
+			if (cert && strlen(cert)) {
+				char *cert_path = bc_tester_res(cert);
+				char *cert_buffer = NULL;
+				liblinphone_tester_load_text_file_in_buffer(cert_path, &cert_buffer);
+				linphone_auth_info_set_tls_cert(auth_info, cert_buffer);
+				bc_free(cert_path);
+				bctbx_free(cert_buffer);
+			}
+			std::string ref{};
+			if (key && strlen(key)) {
+				char *key_path = bc_tester_res(key);
+				char *key_buffer = NULL;
+				liblinphone_tester_load_text_file_in_buffer(key_path, &key_buffer);
+				bctbx_free(key_path);
+				ref = Linphone::Tester::KeyStore::getInstance().setKey(key_buffer);
+				bctbx_free(key_buffer);
+				linphone_auth_info_set_ext_tls_key_ref(auth_info, (void *)(ref.c_str()));
+			}
+			linphone_core_add_auth_info(lc, auth_info);
+			linphone_auth_info_unref(auth_info);
+			return bctbx_strdup(ref.c_str());
+		} break;
+
 		case CertProviderCallback:
 			break;
 	}
+	return NULL;
 }
+
+/*** Key Store ***/
+namespace Linphone {
+namespace Tester {
+
+KeyStore &KeyStore::getInstance() {
+	static KeyStore instance;
+	return instance;
+}
+// register a key, returns a random key reference token
+std::string KeyStore::setKey(const std::string &key) {
+	std::unique_lock<std::shared_mutex> lock(mMutex);
+	std::string ref;
+	do {
+		static thread_local std::mt19937 generator(std::random_device{}());
+		std::uniform_int_distribution<uint32_t> distribution(0, 0xFFFFFFFF);
+		std::stringstream ss;
+		ss << std::hex << std::setw(8) << std::setfill('0') << distribution(generator);
+		ref = ss.str();
+	} while (mKeys.find(ref) != mKeys.end());
+	lInfo() << "[Tester Keystore] insert a key " << key.substr(0, 64) << " with ref " << ref;
+	mKeys[ref] = key;
+	return ref;
+}
+// key lookup from reference
+std::string KeyStore::getKey(const std::string &ref) {
+	std::shared_lock<std::shared_mutex> lock(mMutex);
+	auto it = mKeys.find(ref);
+	if (it != mKeys.end()) {
+		return it->second;
+	}
+	return ""; // return an empty string when the ref is not found
+}
+// delete key from register
+void KeyStore::deleteKey(const std::string &ref) {
+	std::shared_lock<std::shared_mutex> lock(mMutex);
+	mKeys.erase(ref);
+	lInfo() << "[Tester Keystore] delete a key with ref " << ref;
+}
+
+bool KeyStore::sign(const std::string &keyRef,
+                    LinphoneKeySignAlgo sign_algo,
+                    LinphoneHashAlgo hash_algo,
+                    const uint8_t *hash_ptr,
+                    size_t hash_size,
+                    size_t signature_buffer_size,
+                    uint8_t *signature_ptr,
+                    size_t *signature_size_out) {
+	auto it = mKeys.find(keyRef);
+	if (it == mKeys.end()) {
+		lError() << "[Tester Keystore] Error: Key reference not found: " << keyRef;
+		return false;
+	}
+	const std::string &pem_private_key = it->second;
+
+	// Mapping direct Linphone -> bcToolbox MD
+	bctbx_md_type_t bctbx_md = BCTBX_MD_UNDEFINED;
+	switch (hash_algo) {
+		case LinphoneHashSha384:
+			bctbx_md = BCTBX_MD_SHA384;
+			break;
+		case LinphoneHashSha512:
+			bctbx_md = BCTBX_MD_SHA512;
+			break;
+		case LinphoneHashSha256:
+			bctbx_md = BCTBX_MD_SHA256;
+			break;
+		default:
+			lError() << "[Tester Keystore] Error: Unknown hash algo " << hash_algo;
+			return false;
+	}
+
+	bctbx_key_sign_type_t bctbx_key_sign = BCTBX_KEYSIGN_UNDEFINED;
+	switch (sign_algo) {
+		case LinphoneKeySignRsaPss:
+			bctbx_key_sign = BCTBX_KEYSIGN_RSA_PSS;
+			break;
+		case LinphoneKeySignRsaPkcs1v15:
+			bctbx_key_sign = BCTBX_KEYSIGN_RSA_PKCS1_V15;
+			break;
+		case LinphoneKeySignEcdsa:
+			bctbx_key_sign = BCTBX_KEYSIGN_ECDSA;
+			break;
+		default:
+			lError() << "[Tester Keystore] Error: Unknown key sign algo " << sign_algo;
+			return false;
+	}
+
+	bctbx_signing_key_t *pkey = bctbx_signing_key_new();
+	int ret = bctbx_signing_key_parse(pkey, pem_private_key.c_str(), pem_private_key.length() + 1, nullptr, 0);
+	if (ret != 0) {
+		lError() << "[Tester Keystore] Error: Failed to parse PEM key, code: " << ret << std::endl;
+		bctbx_signing_key_free(pkey);
+		return false;
+	}
+
+	ret = bctbx_signing_key_sign(pkey, bctbx_key_sign, bctbx_md, hash_ptr, hash_size, signature_ptr,
+	                             signature_buffer_size, signature_size_out);
+
+	bctbx_signing_key_free(pkey);
+
+	if (ret != 0) {
+		lError() << "[Tester Keystore] Error: Signing failed: " << ret;
+		return false;
+	}
+
+	lInfo() << "[Tester Keystore] Signed successfully using key ref " << keyRef << ". Max size was "
+	        << signature_buffer_size << " Size: " << *signature_size_out << " bytes.";
+	return true;
+}
+} // namespace Tester
+} // namespace Linphone

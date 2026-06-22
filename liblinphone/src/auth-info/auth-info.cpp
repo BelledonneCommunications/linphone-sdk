@@ -190,6 +190,10 @@ const string &AuthInfo::getTlsKey() const {
 	return mTlsKey;
 }
 
+const bctbx_ext_signing_key_ref_t &AuthInfo::getExtTlsKeyRef() const {
+	return mExtTlsKeyRef;
+}
+
 const string &AuthInfo::getTlsCertPath() const {
 	return mTlsCertPath;
 }
@@ -275,6 +279,10 @@ void AuthInfo::setTlsCert(const string &tlsCert) {
 
 void AuthInfo::setTlsKey(const string &tlsKey) {
 	mTlsKey = tlsKey;
+}
+
+void AuthInfo::setExtTlsKeyRef(const void *tlsKeyRef) {
+	mExtTlsKeyRef = bctbx_ext_signing_key_ref_t(tlsKeyRef);
 }
 
 void AuthInfo::setTlsCertPath(const string &tlsCertPath) {

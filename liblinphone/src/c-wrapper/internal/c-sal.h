@@ -438,27 +438,11 @@ void sal_certificates_chain_parse(SalAuthInfo *auth_info, const char *buffer, Sa
 void sal_signing_key_parse(SalAuthInfo *auth_info, const char *buffer, const char *passwd);
 
 /**
- * Parse a directory for files containing certificate with the given subject CNAME
- * @param[out]	certificate_pem				the address of a string to store the certificate in PEM format. To be freed
- * by caller
- * @param[out]	key_pem						the address of a string to store the key in PEM format. To be freed by
- * caller
- * @param[in]	path						directory to parse
- * @param[in]	subject						subject CNAME
- * @param[in]	format 						either PEM or DER
- * @param[in]	generate_certificate		if true, if matching certificate and key can't be found, generate it and
- * store it into the given dir, filename will be subject.pem
- * @param[in]	generate_dtls_fingerprint	if true and we have a certificate, generate the dtls fingerprint as
- * described in rfc4572
+ * Clone a key reference into the Sal Auth Info
+ * @param auth_info structure where to store the cloned key reference
+ * @param key_ref	the key ref to be cloned
  */
-void sal_certificates_chain_parse_directory(char **certificate_pem,
-                                            char **key_pem,
-                                            char **fingerprint,
-                                            const char *path,
-                                            const char *subject,
-                                            SalCertificateRawFormat format,
-                                            bool_t generate_certificate,
-                                            bool_t generate_dtls_fingerprint);
+void sal_set_signing_key_ref(SalAuthInfo *auth_info, const bctbx_ext_signing_key_ref_t *key_ref);
 
 void sal_certificates_chain_delete(belle_sip_certificates_chain_t *chain);
 void sal_signing_key_delete(belle_sip_signing_key_t *key);

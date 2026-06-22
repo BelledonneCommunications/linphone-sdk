@@ -42,8 +42,7 @@ uint32_t bctbx_key_agreement_algo_list(void) {
  * @param subject	the subject to match
  * @return TRUE when the given certificate has a SAN or CN matching the given subject, false otherwise
  */
-BCTBX_PUBLIC bool_t bctbx_x509_certificate_subject_match(const bctbx_x509_certificate_t *certificate,
-                                                         const char *subject) {
+bool_t bctbx_x509_certificate_subject_match(const bctbx_x509_certificate_t *certificate, const char *subject) {
 	bctbx_list_t *subjects = bctbx_x509_certificate_get_subjects(certificate);
 	bctbx_list_t *elem;
 	for (elem = subjects; elem != NULL; elem = elem->next) {
@@ -54,6 +53,39 @@ BCTBX_PUBLIC bool_t bctbx_x509_certificate_subject_match(const bctbx_x509_certif
 	}
 	bctbx_list_free_with_data(subjects, bctbx_free);
 	return FALSE;
+}
+
+int32_t bctbx_get_certificate_and_pkey_in_dir(const char *path,
+                                              const char *subject,
+                                              bctbx_x509_certificate_t **certificate,
+                                              bctbx_signing_key_t **pkey) {
+	/* get all *.pem file from given path */
+	bctbx_list_t *file_list = bctbx_parse_directory(path, ".pem");
+	char *filename = NULL;
+
+	file_list = bctbx_list_pop_front(file_list, (void **)&filename);
+	while (filename != NULL) {
+		bctbx_x509_certificate_t *found_certificate = bctbx_x509_certificate_new();
+		if (bctbx_x509_certificate_parse_file(found_certificate, filename) == 0) {
+			if (bctbx_x509_certificate_subject_match(
+			        found_certificate, subject)) { /* there is a certificate in this file with a matching subject */
+				/* do we have a key too ? */
+				bctbx_signing_key_t *found_key = bctbx_signing_key_new();
+				if (bctbx_signing_key_parse_file(found_key, filename, NULL) == 0) {
+					*certificate = found_certificate;
+					*pkey = found_key;
+					bctbx_free(filename);
+					bctbx_list_free_with_data(file_list, bctbx_free); /* free possible rest of list */
+					return 0;
+				}
+				bctbx_signing_key_free(found_key);
+			}
+		}
+		bctbx_x509_certificate_free(found_certificate);
+		bctbx_free(filename);
+		file_list = bctbx_list_pop_front(file_list, (void **)&filename);
+	}
+	return -1;
 }
 
 /*****************************************************************************/

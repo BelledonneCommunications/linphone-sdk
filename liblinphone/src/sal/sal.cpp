@@ -526,6 +526,7 @@ void Sal::setTlsProperties() {
 	if (mSslConfig) belle_tls_crypto_config_set_ssl_config(cryptoConfig, mSslConfig);
 	if (mTlsPostcheckCb)
 		belle_tls_crypto_config_set_postcheck_callback(cryptoConfig, mTlsPostcheckCb, mTlsPostcheckCbData);
+	if (mTlsExtSignCb) belle_tls_crypto_config_set_ext_sign_callback(cryptoConfig, mTlsExtSignCb, mTlsExtSignCbData);
 	auto tlsListeningPoint = BELLE_SIP_TLS_LISTENING_POINT(listeningPoint);
 	belle_sip_tls_listening_point_set_crypto_config(tlsListeningPoint, cryptoConfig);
 	belle_sip_object_unref(cryptoConfig);
@@ -793,6 +794,11 @@ void Sal::setSslConfig(void *sslConfig) {
 void Sal::setTlsPostcheckCallback(int (*cb)(void *, const bctbx_x509_certificate_t *), void *data) {
 	mTlsPostcheckCb = cb;
 	mTlsPostcheckCbData = data;
+}
+
+void Sal::setTlsExtSignCallback(belle_tls_crypto_config_ext_sign_callback_t cb, void *data) {
+	mTlsExtSignCb = cb;
+	mTlsExtSignCbData = data;
 }
 
 string Sal::createUuid() {

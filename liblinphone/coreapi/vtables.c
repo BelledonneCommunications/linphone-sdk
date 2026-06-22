@@ -204,6 +204,22 @@ void linphone_core_notify_new_subscription_requested(LinphoneCore *lc, LinphoneF
 	cleanup_dead_vtable_refs(lc);
 }
 
+void linphone_core_notify_tls_ext_sign_requested(LinphoneCore *lc,
+                                                 const void *key_ref,
+                                                 LinphoneKeySignAlgo sign_algo,
+                                                 LinphoneHashAlgo hash_algo,
+                                                 const uint8_t *hash,
+                                                 size_t hash_size,
+                                                 size_t signature_buffer_size,
+                                                 uint8_t *signature,
+                                                 size_t *signature_size,
+                                                 int *ret) {
+	*ret = -1; // So if the callback is not implemented, return -1 (fail)
+	NOTIFY_IF_EXIST(tls_ext_sign, lc, key_ref, sign_algo, hash_algo, hash, hash_size, signature_buffer_size, signature,
+	                signature_size, ret);
+	cleanup_dead_vtable_refs(lc);
+}
+
 void linphone_core_notify_authentication_requested(LinphoneCore *lc, LinphoneAuthInfo *ai, LinphoneAuthMethod method) {
 	NOTIFY_IF_EXIST(authentication_requested, lc, ai, method);
 	cleanup_dead_vtable_refs(lc);

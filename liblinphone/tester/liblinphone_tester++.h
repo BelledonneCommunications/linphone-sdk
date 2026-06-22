@@ -23,6 +23,10 @@
 #include "lime/lime.hpp"
 #endif // HAVE_LIME_X3DH
 
+#include <shared_mutex>
+#include <string>
+#include <unordered_map>
+
 namespace {
 
 constexpr const auto _call = call;
@@ -308,6 +312,32 @@ private:
 #ifdef HAVE_LIME_X3DH
 	std::vector<lime::CurveId> m_limeAlgoList; // list the currently set of lime curve
 #endif                                         // HAVE_LIME_X3DH
+};
+
+/** a simulated key store used to set/get crypto secret keys indexed by a string */
+class KeyStore {
+public:
+	static KeyStore &getInstance();             // create/access singleton
+	std::string setKey(const std::string &key); // register a key, returns a random key reference token
+	std::string getKey(const std::string &ref); // key lookup from reference
+	void deleteKey(const std::string &ref);     // delete key from register
+	bool sign(const std::string &keyRef,
+	          LinphoneKeySignAlgo sign_algo,
+	          LinphoneHashAlgo hash_algo,
+	          const uint8_t *hash_ptr,
+	          size_t hash_size,
+	          size_t signature_buffer_size,
+	          uint8_t *signature_ptr,
+	          size_t *signature_size_out);
+
+private:
+	KeyStore() = default;
+	~KeyStore() = default;
+	KeyStore(const KeyStore &) = delete;
+	KeyStore &operator=(const KeyStore &) = delete;
+
+	mutable std::shared_mutex mMutex;
+	std::unordered_map<std::string, std::string> mKeys; // ref -> key
 };
 
 } // namespace Tester

@@ -381,6 +381,7 @@ public:
 	void verifyServerCertificates(bool value);
 	void verifyServerCn(bool value);
 	void setTlsPostcheckCallback(int (*cb)(void *, const bctbx_x509_certificate_t *), void *data);
+	void setTlsExtSignCallback(belle_tls_crypto_config_ext_sign_callback_t cb, void *data);
 
 	// ---------------------------------------------------------------------------
 	// DNS resolution
@@ -533,6 +534,8 @@ private:
 	std::string mLinphoneSpecs;
 	belle_tls_crypto_config_postcheck_callback_t mTlsPostcheckCb;
 	void *mTlsPostcheckCbData;
+	belle_tls_crypto_config_ext_sign_callback_t mTlsExtSignCb;
+	void *mTlsExtSignCbData;
 	OfferAnswerEngine mOfferAnswerEngine;
 
 	// Cache values

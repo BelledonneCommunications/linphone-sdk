@@ -20,24 +20,33 @@
 #include "config.h"
 #endif
 
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
 #include <mbedtls/base64.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/hkdf.h>
 #include <mbedtls/md.h>
+#include <mbedtls/psa_util.h>
+#include <mbedtls/ssl.h>
 #include <psa/crypto.h>
+#include <psa/crypto_se_driver.h>
 
 #include "bctoolbox/crypto.hh"
+#include "bctoolbox/defs.h"
 #include "bctoolbox/exception.hh"
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
 
+#include "mbedtls.h"
 #include <array>
 #include <memory>
 
 namespace bctoolbox {
 
 namespace {
+/*****************************************************************************/
+/***                      Threading mutexes                                ***/
+/*****************************************************************************/
 // This is also defined in mbedtls source code by a custom modification
 using mbedtls_threading_mutex_t = void *;
 
@@ -71,7 +80,150 @@ int threading_mutex_unlock_cpp(mbedtls_threading_mutex_t *mutex) {
 	static_cast<std::mutex *>(*mutex)->unlock();
 	return 0;
 }
+/*****************************************************************************/
+/***                      External key signing                             ***/
+/*****************************************************************************/
+psa_status_t bctbx_psa_validate_key_cb(BCTBX_UNUSED(psa_drv_se_context_t *drv_ctx),
+                                       BCTBX_UNUSED(void *persistent_data),
+                                       BCTBX_UNUSED(const psa_key_attributes_t *attributes),
+                                       BCTBX_UNUSED(psa_key_creation_method_t method),
+                                       BCTBX_UNUSED(psa_key_slot_number_t key_slot)) {
+	// We don't allocate anything real — the caller has already put
+	// the pointer/handle into *key_slot via psa_set_key_slot_number().
+	// Just accept it as-is.
+	return PSA_SUCCESS;
+}
 
+psa_status_t bctbx_psa_import_key_cb(BCTBX_UNUSED(psa_drv_se_context_t *drv_ctx),
+                                     BCTBX_UNUSED(psa_key_slot_number_t slot),
+                                     BCTBX_UNUSED(const psa_key_attributes_t *attributes),
+                                     BCTBX_UNUSED(const uint8_t *data),
+                                     BCTBX_UNUSED(size_t data_len),
+                                     size_t *bits) {
+	*bits = psa_get_key_bits(attributes);
+	return PSA_SUCCESS;
+}
+
+bctbx_md_type_t bctbx_psa2bctbx_md(psa_algorithm_t psa_hash_alg) {
+	switch (psa_hash_alg) {
+		case PSA_ALG_SHA_256:
+			return BCTBX_MD_SHA256;
+		case PSA_ALG_SHA_384:
+			return BCTBX_MD_SHA384;
+		case PSA_ALG_SHA_512:
+			return BCTBX_MD_SHA512;
+		default:
+			return BCTBX_MD_UNDEFINED;
+	}
+}
+psa_status_t bctbx_psa_sign_cb(BCTBX_UNUSED(psa_drv_se_context_t *drv_ctx),
+                               psa_key_slot_number_t slot,
+                               psa_algorithm_t alg,
+                               const uint8_t *hash,
+                               size_t hash_len,
+                               uint8_t *sig,
+                               size_t sig_max,
+                               size_t *sig_len) {
+	const bctbx_ssl_config_t *ssl_config = (const bctbx_ssl_config_t *)(uintptr_t)slot;
+
+	// retrieve requested algo characteristics
+	psa_algorithm_t psa_hash_alg = PSA_ALG_GET_HASH(alg);
+
+	// Check we have an actual hash algo, otherwise fallback on detection based on size
+	if (psa_hash_alg == PSA_ALG_ANY_HASH || psa_hash_alg == 0) {
+		switch (hash_len) {
+			case 32:
+				psa_hash_alg = PSA_ALG_SHA_256;
+				break;
+			case 48:
+				psa_hash_alg = PSA_ALG_SHA_384;
+				break;
+			case 64:
+				psa_hash_alg = PSA_ALG_SHA_512;
+				break;
+			default:
+				bctbx_error("Unspecified algorithm and hash_len %ld matching no known algo in bctbx_psa_sign_cb",
+				            hash_len);
+				return PSA_ERROR_INVALID_ARGUMENT;
+		}
+	}
+
+	bctbx_md_type_t hash_alg = bctbx_psa2bctbx_md(psa_hash_alg);
+	bctbx_key_sign_type_t key_sign_alg = BCTBX_KEYSIGN_UNDEFINED;
+	if (PSA_ALG_IS_RSA_PSS(alg)) {
+		if (ssl_config->ssl_config->max_tls_version <= MBEDTLS_SSL_VERSION_TLS1_2) {
+			bctbx_warning("mebdtls ext signing request RSA_PSS padding but uses TLS1.2: force PKCS1v1.5");
+			key_sign_alg = BCTBX_KEYSIGN_RSA_PKCS1_V15;
+		} else {
+			key_sign_alg = BCTBX_KEYSIGN_RSA_PSS;
+		}
+	} else if (PSA_ALG_IS_RSA_PKCS1V15_SIGN(alg)) {
+		key_sign_alg = BCTBX_KEYSIGN_RSA_PKCS1_V15;
+	} else if (PSA_ALG_IS_ECDSA(alg)) {
+		key_sign_alg = BCTBX_KEYSIGN_ECDSA;
+	} else {
+		bctbx_error("Unrecognised key sign algorithm in bctbx_psa_sign_cb");
+		return PSA_ERROR_INVALID_ARGUMENT;
+	}
+	if (ssl_config->callback_ext_signing_function) {
+		const void *ext_key_ref = nullptr;
+		if (ssl_config->ext_key_ref->value.has_value()) {
+#if defined(__ANDROID__) // on android the ref is a string
+			ext_key_ref = reinterpret_cast<const void *>(ssl_config->ext_key_ref->value.value().c_str());
+#else // we're not building for a platform on which external key ref is supported, use a string
+			ext_key_ref = reinterpret_cast<const void *>(ssl_config->ext_key_ref->value.value().c_str());
+#endif
+		}
+
+		auto ret =
+		    ssl_config->callback_ext_signing_function(ssl_config->callback_ext_signing_data, ext_key_ref, key_sign_alg,
+		                                              hash_alg, hash, hash_len, sig_max, sig, sig_len);
+		if (ret != 0) {
+			return PSA_ERROR_INVALID_ARGUMENT;
+		}
+
+		// signing succesfull - ECDSA returns a DER formatted buffer, we need to convert it to raw R||S signature
+		if (key_sign_alg == BCTBX_KEYSIGN_ECDSA) {
+			uint8_t raw_sig[132]; // max size should be for P-521 which leads to a 132 bytes signatures
+			size_t raw_sig_len = 0;
+
+			// Convert DER to raw R || S
+			int conv_ret = mbedtls_ecdsa_der_to_raw(ssl_config->ext_key_size, sig, *sig_len, raw_sig, sizeof(raw_sig),
+			                                        &raw_sig_len);
+			if (conv_ret == 0) {
+				memcpy(sig, raw_sig, raw_sig_len);
+				bctbx_message("[PSA] Successfully converted ECDSA signature from DER (%zu bytes) to RAW (%zu bytes)",
+				              *sig_len, raw_sig_len);
+				*sig_len = raw_sig_len;
+			} else {
+				bctbx_error("[PSA] Failed to convert ECDSA signature from ASN.1 DER, error: -0x%04X", -conv_ret);
+				return PSA_ERROR_CORRUPTION_DETECTED;
+			}
+		}
+
+		return PSA_SUCCESS;
+	} else {
+		bctbx_error("TLS ext sign: no callback set to provide signing");
+	}
+
+	return PSA_ERROR_INVALID_ARGUMENT;
+}
+
+psa_drv_se_key_management_t bctbx_psa_key_mgmt = {
+    NULL, bctbx_psa_validate_key_cb, bctbx_psa_import_key_cb, NULL, NULL, NULL, NULL};
+psa_drv_se_asymmetric_t bctbx_psa_signing = {bctbx_psa_sign_cb, NULL, NULL, NULL};
+psa_drv_se_t bctbx_se_signing_driver = {PSA_DRV_SE_HAL_VERSION,
+                                        0, // no driver-global state at all
+                                        NULL,
+                                        &bctbx_psa_key_mgmt,
+                                        NULL,
+                                        NULL,
+                                        NULL,
+                                        &bctbx_psa_signing,
+                                        NULL};
+/*****************************************************************************/
+/***                      Static context and init                          ***/
+/*****************************************************************************/
 class mbedtlsStaticContexts {
 public:
 	void randomize(uint8_t *buffer, size_t size) {
@@ -80,11 +232,17 @@ public:
 
 	std::unique_ptr<RNG> sRNG;
 	mbedtlsStaticContexts() {
+		psa_status_t ret = psa_register_se_driver(BCTBX_SE_SIGNING_LOCATION, &bctbx_se_signing_driver);
+		if (ret != PSA_SUCCESS) {
+			bctbx_error("MbedTLS PSA register driver failed -%d", -ret);
+		}
+
 		mbedtls_threading_set_alt(threading_mutex_init_cpp, threading_mutex_free_cpp, threading_mutex_lock_cpp,
 		                          threading_mutex_unlock_cpp);
 		if (psa_crypto_init() != PSA_SUCCESS) {
 			bctbx_error("MbedTLS PSA init fail");
 		}
+
 		// Now that mbedtls is ready, instanciate the static RNG
 		sRNG = std::make_unique<RNG>();
 	}
@@ -96,6 +254,7 @@ public:
 	}
 };
 static const auto mbedtlsStaticContextsInstance = std::make_unique<mbedtlsStaticContexts>();
+
 }; // namespace
 
 /*****************************************************************************/

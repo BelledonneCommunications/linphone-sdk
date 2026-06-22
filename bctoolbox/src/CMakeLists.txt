@@ -85,11 +85,13 @@ endif()
 if(OPENSSL_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/openssl.c)
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES crypto/openssl.cc)
+	list(APPEND BCTOOLBOX_PRIVATE_HEADER_FILES crypto/openssl.h)
 endif()
 
 if(MbedTLS_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES crypto/mbedtls.cc)
+	list(APPEND BCTOOLBOX_PRIVATE_HEADER_FILES crypto/mbedtls.h)
 endif()
 
 if(ENABLE_TESTS_COMPONENT)

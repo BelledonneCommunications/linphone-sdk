@@ -1363,6 +1363,73 @@ static void dtls_srtp_call_with_clients_certificates_in_SAN_DNS(void) {
 	                           "certificates/client/user2_key.pem", CertProviderConfigAuthInfoPath);
 	dtls_srtp_call_with_clients_certificates_base(marie, pauline);
 }
+
+static void dtls_srtp_call_with_clients_certificates_in_SAN_DNS_and_ext_signing(void) {
+	if (bctbx_ssl_get_implementation_type() == BCTBX_OPENSSL) {
+		lWarning() << "Test skipped because Openssl backend does not support ext signing";
+		return;
+	}
+
+	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
+	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
+
+	add_user_to_core_config(marie->lc, "sip:user_1@sip.example.org", "user_1", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	auto key_ref_m =
+	    add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
+	                               "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBufferExtKeyRef);
+	LinphoneCoreCbs *cbs_m = linphone_factory_create_core_cbs(linphone_factory_get());
+	linphone_core_cbs_set_tls_ext_signature(
+	    cbs_m, [](BCTBX_UNUSED(LinphoneCore * core), const void *key_ref, LinphoneKeySignAlgo sign_algo,
+	              LinphoneHashAlgo hash_algo, const uint8_t *hash_ptr, size_t hash_size, size_t signature_buffer_size,
+	              uint8_t *signature_ptr, size_t *signature_size_out, int *ret_out) {
+		    auto key = Linphone::Tester::KeyStore::getInstance().getKey((const char *)key_ref);
+		    if (Linphone::Tester::KeyStore::getInstance().sign((const char *)key_ref, sign_algo, hash_algo, hash_ptr,
+		                                                       hash_size, signature_buffer_size, signature_ptr,
+		                                                       signature_size_out)) {
+			    *ret_out = 0;
+		    } else {
+			    *ret_out = -1;
+		    }
+	    });
+
+	linphone_core_add_callbacks(marie->lc, cbs_m);
+	linphone_core_cbs_unref(cbs_m);
+
+	add_user_to_core_config(pauline->lc, "sip:user_2@sip.example.org", "user_2", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	auto key_ref_p =
+	    add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_cert.pem",
+	                               "certificates/client/user2_key.pem", CertProviderConfigAuthInfoBufferExtKeyRef);
+	LinphoneCoreCbs *cbs_p = linphone_factory_create_core_cbs(linphone_factory_get());
+	linphone_core_cbs_set_tls_ext_signature(
+	    cbs_p, [](BCTBX_UNUSED(LinphoneCore * core), const void *key_ref, LinphoneKeySignAlgo sign_algo,
+	              LinphoneHashAlgo hash_algo, const uint8_t *hash_ptr, size_t hash_size, size_t signature_buffer_size,
+	              uint8_t *signature_ptr, size_t *signature_size_out, int *ret_out) {
+		    auto key = Linphone::Tester::KeyStore::getInstance().getKey((const char *)key_ref);
+		    if (Linphone::Tester::KeyStore::getInstance().sign((const char *)key_ref, sign_algo, hash_algo, hash_ptr,
+		                                                       hash_size, signature_buffer_size, signature_ptr,
+		                                                       signature_size_out)) {
+			    *ret_out = 0;
+		    } else {
+			    *ret_out = -1;
+		    }
+	    });
+
+	linphone_core_add_callbacks(pauline->lc, cbs_p);
+	linphone_core_cbs_unref(cbs_p);
+
+	dtls_srtp_call_with_clients_certificates_base(marie, pauline);
+
+	if (key_ref_p) {
+		Linphone::Tester::KeyStore::getInstance().deleteKey(key_ref_p);
+		bctbx_free(key_ref_p);
+	}
+	if (key_ref_m) {
+		Linphone::Tester::KeyStore::getInstance().deleteKey(key_ref_m);
+		bctbx_free(key_ref_m);
+	}
+}
 static void dtls_srtp_call_with_clients_certificates_in_SAN_URI(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
 	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
@@ -2644,13 +2711,16 @@ static void dtls_srtp_call_with_replaces(void) {
 	secure_call_with_replaces(LinphoneMediaEncryptionDTLS);
 }
 
-static void connected_call_state_changed(LinphoneCore *lc, LinphoneCall *call, LinphoneCallState cstate, BCTBX_UNUSED(const char *msg)) {
+static void connected_call_state_changed(LinphoneCore *lc,
+                                         LinphoneCall *call,
+                                         LinphoneCallState cstate,
+                                         BCTBX_UNUSED(const char *msg)) {
 	if (cstate == LinphoneCallConnected) {
-			ms_message("%s is updating call %p to enable video capabilities", linphone_core_get_identity(lc), call);
-			LinphoneCallParams *new_params = linphone_core_create_call_params(lc, call);
-			linphone_call_params_enable_video(new_params, TRUE);
-			linphone_call_update(call, new_params);
-			linphone_call_params_unref(new_params);
+		ms_message("%s is updating call %p to enable video capabilities", linphone_core_get_identity(lc), call);
+		LinphoneCallParams *new_params = linphone_core_create_call_params(lc, call);
+		linphone_call_params_enable_video(new_params, TRUE);
+		linphone_call_update(call, new_params);
+		linphone_call_params_unref(new_params);
 	}
 }
 
@@ -2679,7 +2749,7 @@ static void srtp_call_updated_as_soon_as_it_is_accepted(void) {
 	linphone_core_set_media_encryption(pauline->lc, LinphoneMediaEncryptionSRTP);
 	linphone_core_set_media_encryption_mandatory(pauline->lc, TRUE);
 	linphone_config_set_int(linphone_core_get_config(pauline->lc), "rtp", "accept_any_encryption", 1);
-	pol =  linphone_factory_create_video_activation_policy(linphone_factory_get());
+	pol = linphone_factory_create_video_activation_policy(linphone_factory_get());
 	linphone_video_activation_policy_set_automatically_accept(pol, TRUE);
 	linphone_video_activation_policy_set_automatically_initiate(pol, TRUE);
 	linphone_core_set_video_activation_policy(pauline->lc, pol);
@@ -2793,6 +2863,10 @@ static test_t call_secure2_tests[] = {
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux not accepted", dtls_srtp_audio_call_with_rtcp_mux_not_accepted, "DTLS"),
     TEST_TWO_TAGS("DTLS SRTP call with valid client certificates, ID in SAN DNS",
                   dtls_srtp_call_with_clients_certificates_in_SAN_DNS,
+                  "DTLS",
+                  "CRYPTO"),
+    TEST_TWO_TAGS("DTLS SRTP call with valid client certificates external signing, ID in SAN DNS",
+                  dtls_srtp_call_with_clients_certificates_in_SAN_DNS_and_ext_signing,
                   "DTLS",
                   "CRYPTO"),
     TEST_TWO_TAGS("DTLS SRTP call with valid client certificates, ID in SAN URI",

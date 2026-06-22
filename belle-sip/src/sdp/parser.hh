@@ -19,22 +19,22 @@
 
 #include <belr/abnf.h>
 #include <belr/grammarbuilder.h>
-
-using namespace std;
+#include <memory>
+#include <string>
 
 namespace bellesip {
 namespace SDP {
 class Parser {
 public:
 	static Parser *getInstance();
-	void *parse(const string &input, const string &rule);
+	void *parse(const std::string &input, const std::string &rule);
 
 private:
 	static Parser *instance;
 	Parser();
 	~Parser();
-	shared_ptr<belr::Grammar> loadGrammar();
-	shared_ptr<belr::Parser<void *>> _parser;
+	std::shared_ptr<belr::Grammar> loadGrammar();
+	std::shared_ptr<belr::Parser<void *>> _parser;
 };
 } // namespace SDP
 } // namespace bellesip
