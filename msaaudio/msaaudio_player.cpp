@@ -32,6 +32,8 @@
 static const int flowControlIntervalMs = 5000;
 static const int flowControlThresholdMs = 40;
 
+static const int maxRetriesWhenPlayerStreamFails = 2;
+
 static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error);
 
 static std::string aaudio_content_type_to_string(aaudio_content_type_t contentType) {
@@ -264,6 +266,8 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;	
 }
 
+static bool_t aaudio_player_init(AAudioOutputContext *octx);
+
 static void _aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
 	AAudioStream *stream = nullptr;
@@ -332,12 +336,22 @@ static void _aaudio_player_init(AAudioOutputContext *octx) {
 	octx->bufferSize = AAudioStream_getBufferSizeInFrames(stream);
 
 	result = AAudioStream_requestStart(stream);
+	bool restartStream = false;
 
 	if (result != AAUDIO_OK) {
 		ms_error("[AAudio Player] Start stream for player failed: %s (%i)", AAudio_convertResultToText(result), result);
 		result = AAudioStream_close(stream);
 		if (result != AAUDIO_OK) {
 			ms_error("[AAudio Player] Player stream close failed: %s (%i)", AAudio_convertResultToText(result), result);
+			if (result == AAUDIO_STREAM_STATE_DISCONNECTED) {
+				if (octx->restartAttemptsCount > maxRetriesWhenPlayerStreamFails) {
+					ms_error("[AAudio Player] Tried [%i] times to start the stream without success, not trying again", octx->restartAttemptsCount);
+				} else {
+					ms_warning("[AAudio Player] Player stream wasn't started, trying again");
+					restartStream = true;
+					octx->restartAttemptsCount += 1;
+				}
+			}
 		} else {
 			ms_message("[AAudio Player] Player stream closed");
 		}
@@ -348,6 +362,10 @@ static void _aaudio_player_init(AAudioOutputContext *octx) {
 
 	AAudioStreamBuilder_delete(builder);
 	if (stream == nullptr) {
+		if (restartStream) {
+			ms_message("[AAudio Player] Scheduling player stream re-initialization");
+			ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_init, octx);
+		}
 		return;
 	}
 
@@ -373,6 +391,7 @@ static void _aaudio_player_init(AAudioOutputContext *octx) {
 	}
 
 	octx->volumeHackRequired = true;
+	octx->restartAttemptsCount = 0;
 	ms_mutex_lock(&octx->stream_mutex);
 	octx->stream = stream;
 	ms_mutex_unlock(&octx->stream_mutex);
@@ -423,7 +442,7 @@ static bool_t aaudio_player_restart(AAudioOutputContext *octx) {
 			octx->restartScheduled = false;
 			ms_mutex_unlock(&octx->stream_mutex);
 		}
-	} else if (octx->restartAttemptsCount > 2) {
+	} else if (octx->restartAttemptsCount > maxRetriesWhenPlayerStreamFails) {
 		ms_error("[AAudio Player] Tried [%i] times to restart the stream without success, aborting restart", octx->restartAttemptsCount);
 	} else {
 		ms_error("[AAudio Player] Failed to restart the stream, trying again");
