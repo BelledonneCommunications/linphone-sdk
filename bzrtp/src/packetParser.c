@@ -184,6 +184,15 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
 		uint16_t offset = ((uint16_t)input[16])<<8 | input[17];
 		uint16_t fragmentLength = ((uint16_t)input[18])<<8 | input[19];
 
+		/* Reject any fragment whose write window escapes the allocation that
+		 * was (or will be) sized from messageTotalLength. */
+		if (messageTotalLength == 0 ||
+		    (uint32_t)4u * offset + ((uint32_t)*inputLength - ZRTP_FRAGMENTEDPACKET_OVERHEAD) >
+		        (uint32_t)messageTotalLength * 4u) {
+			*exitCode = BZRTP_PARSER_ERROR_INVALIDPACKET;
+			return NULL;
+		}
+
 		uint16_t storedMessageId = zrtpChannelContext->incomingFragmentedPacket.messageId;
 		if (storedMessageId > messageId) { /* incoming message is a fragment of an old one, discard */
 			*exitCode = BZRTP_PARSER_ERROR_OUTOFORDER;
@@ -202,6 +211,15 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
 		}
 
 		bool_t fragmentInserted = FALSE;
+		/* SECURITY: a fragment for the current message id can arrive before the
+		 * allocation branch above has run (e.g. the very first fragment carries
+		 * messageId == the initial stored id 0), leaving packetString NULL.
+		 * Guard the destination buffer before the memcpy() calls below. */
+		if (zrtpChannelContext->incomingFragmentedPacket.packetString == NULL) {
+			*exitCode = BZRTP_PARSER_ERROR_INVALIDPACKET;
+			return NULL;
+		}
+
 		if (storedMessageId == messageId) { /* This is a fragment of the message we are re-assembling */
 			bctbx_list_t *fragment = zrtpChannelContext->incomingFragmentedPacket.fragments;
 			while (fragment != NULL && fragmentInserted == FALSE) {
