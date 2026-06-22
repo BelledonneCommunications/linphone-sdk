@@ -2767,11 +2767,11 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 			getMe()->setConference(getSharedFromThis());
 
 			lInfo() << "Automatically rejoining " << *this;
-			MediaSessionParams *dialoutParams = nullptr;
+			shared_ptr<MediaSessionParams> dialoutParams = nullptr;
 			if (mJoiningParams) {
-				dialoutParams = mJoiningParams->clone();
+				dialoutParams = shared_ptr<MediaSessionParams>(mJoiningParams->clone());
 			} else {
-				dialoutParams = createDefaultMediaParams();
+				dialoutParams = shared_ptr<MediaSessionParams>(createDefaultMediaParams());
 			}
 			if (!!linphone_core_get_add_admin_information_to_contact(getCore()->getCCore())) {
 				// Participant with the focus call is admin
@@ -2848,12 +2848,39 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 			const auto cCore = getCore()->getCCore();
 			const auto &subject = mConfParams->getUtf8Subject();
 			if (mediaSupported) {
-				LinphoneCall *call = linphone_core_invite_address_with_params_2(
-				    cCore, remoteAddress->toC(), L_GET_C_BACK_PTR(dialoutParams), L_STRING_TO_C(subject),
-				    content ? content->toC() : nullptr);
-				auto session = Call::toCpp(call)->getActiveSession();
-				setMainSession(session);
-				session->addListener(getSharedFromThis());
+				auto inviteRemote = [this, remoteAddress, dialoutParams, subject, content]() -> LinphoneStatus {
+					LinphoneCall *call = linphone_core_invite_address_with_params_2(
+					    this->getCore()->getCCore(), remoteAddress->toC(), L_GET_C_BACK_PTR(dialoutParams.get()),
+					    L_STRING_TO_C(subject), content ? content->toC() : nullptr);
+					if (call) {
+						lInfo() << "Client conference[" << this << "]: sucessful invite "
+						        << remoteAddress->asStringUriOnly();
+						auto callSession = Call::toCpp(call)->getActiveSession();
+						setMainSession(callSession);
+						callSession->addListener(getSharedFromThis());
+						return 0;
+					} else {
+						lInfo() << "Client conference[" << this << "]: Failed to invite "
+						        << remoteAddress->asStringUriOnly() << ", will try again later";
+						setMainSession(nullptr);
+						return -1;
+					}
+				};
+				if (inviteRemote() != 0) {
+					if (auto currentCall = getCore()->getCurrentCall()) {
+						if (auto activeSession = currentCall->getActiveSession()) {
+							activeSession->addPendingAction(inviteRemote);
+						} else {
+							lError() << "Client conference[" << this << "]: Unexpected error when trying to invite "
+							         << remoteAddress->asStringUriOnly() << " for local conference merge: current call["
+							         << currentCall << "] does not have an active session.";
+						}
+					} else {
+						lError() << "Client conference[" << this << "]: Unexpected error when trying to invite "
+						         << remoteAddress->asStringUriOnly()
+						         << " for local conference merge: current call is nil.";
+					}
+				}
 			} else {
 				const auto &confAccount = mConfParams->getAccount();
 				const auto &account =
@@ -2864,10 +2891,9 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 					lError() << "Unable to find account used to join " << *this;
 					setState(ConferenceInterface::State::CreationFailed);
 					setMainSession(nullptr);
-					delete dialoutParams;
 					return;
 				}
-				auto session = mMe->createSession(getCore(), dialoutParams, TRUE);
+				auto session = mMe->createSession(getCore(), dialoutParams.get(), TRUE);
 				setMainSession(session);
 				session->addListener(getSharedFromThis());
 				session->configure(LinphoneCallOutgoing, account, nullptr, from, remoteAddress);
@@ -2876,7 +2902,6 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 					session->startInvite(nullptr, subject, content);
 				}
 			}
-			delete dialoutParams;
 		}
 	}
 }

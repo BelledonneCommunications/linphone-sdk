@@ -10916,7 +10916,7 @@ static void send_text_message_and_check(std::initializer_list<std::reference_wra
 	}
 }
 
-void create_simple_conference_merging_calls_base(SimpleConferenceMergincCallsParams const &params) {
+void create_simple_conference_merging_calls_base(SimpleConferenceMergingCallsParams const &params) {
 	bool_t enable_ice = params.enable_ice;
 	LinphoneConferenceLayout layout = params.layout;
 	bool_t toggle_video = params.toggle_video;
@@ -10925,9 +10925,11 @@ void create_simple_conference_merging_calls_base(SimpleConferenceMergincCallsPar
 	LinphoneConferenceSecurityLevel security_level = params.security_level;
 	bool_t enable_screen_sharing = params.enable_screen_sharing;
 	bool_t enable_chat = params.enable_chat;
+	bool_t network_toggle_on_invite = params.network_toggle_on_invite;
 
 	Focus focus("chloe_rc");
-	{ // to make sure focus is destroyed after clients.
+	{
+		// to make sure focus is destroyed after clients.
 		bool is_encrypted = (security_level == LinphoneConferenceSecurityLevelEndToEnd);
 		const LinphoneTesterLimeAlgo lime_algo = is_encrypted ? C25519 : UNSET;
 		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress(), lime_algo);
@@ -11003,7 +11005,16 @@ void create_simple_conference_merging_calls_base(SimpleConferenceMergincCallsPar
 		// linphone_call_set_microphone_muted (pauline_called_by_marie, TRUE);
 		BC_ASSERT_TRUE(pause_call_1(marie.getCMgr(), marie_call_pauline, pauline.getCMgr(), pauline_called_by_marie));
 
-		BC_ASSERT_TRUE(call(marie.getCMgr(), laure.getCMgr()));
+		LinphoneCallTestParams marie_test_params = {0};
+		LinphoneCallTestParams laure_test_params = {0};
+		if (network_toggle_on_invite) {
+			linphone_core_set_network_reachable(laure.getLc(), false);
+			laure_test_params.sdp_simulate_error = true;
+		}
+		auto successful_laure_call =
+		    call_with_test_params(marie.getCMgr(), laure.getCMgr(), &marie_test_params, &laure_test_params);
+		BC_ASSERT_EQUAL(successful_laure_call, !network_toggle_on_invite, int, "%d");
+
 		LinphoneCall *marie_call_laure = linphone_core_get_current_call(marie.getLc());
 		BC_ASSERT_PTR_NOT_NULL(marie_call_laure);
 
@@ -11043,6 +11054,30 @@ void create_simple_conference_merging_calls_base(SimpleConferenceMergincCallsPar
 				LinphoneCall *call = (LinphoneCall *)it->data;
 				linphone_conference_add_participant(conf, call);
 			}
+		}
+		if (network_toggle_on_invite) {
+			auto laure_stats = laure.getStats();
+			auto marie_stats = marie.getStats();
+
+			linphone_core_set_network_reachable(laure.getLc(), true);
+			BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneCallIncomingReceived,
+			                             laure_stats.number_of_LinphoneCallIncomingReceived + 1,
+			                             liblinphone_tester_sip_timeout));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallOutgoingRinging,
+			                             marie_stats.number_of_LinphoneCallOutgoingRinging + 1,
+			                             liblinphone_tester_sip_timeout));
+
+			auto laure_call = linphone_core_get_current_call(laure.getLc());
+			BC_ASSERT_PTR_NOT_NULL(laure_call);
+			if (laure_call) {
+				linphone_call_accept(laure_call);
+			}
+			BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneCallStreamsRunning,
+			                             laure_stats.number_of_LinphoneCallStreamsRunning + 1,
+			                             liblinphone_tester_sip_timeout));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallStreamsRunning,
+			                             marie_stats.number_of_LinphoneCallStreamsRunning + 1,
+			                             liblinphone_tester_sip_timeout));
 		}
 
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneConferenceStateCreationPending, 1,
