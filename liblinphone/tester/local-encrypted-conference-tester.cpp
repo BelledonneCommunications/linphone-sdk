@@ -1071,8 +1071,16 @@ static void create_simple_end_to_end_encrypted_conference_terminated_early() {
 }
 
 static void create_simple_end_to_end_encrypted_conference_with_chat_merging_calls() {
-	create_simple_conference_merging_calls_base(FALSE, LinphoneConferenceLayoutActiveSpeaker, FALSE, FALSE, FALSE,
-	                                            LinphoneConferenceSecurityLevelEndToEnd, FALSE, TRUE);
+	SimpleConferenceMergincCallsParams params;
+	params.enable_ice = FALSE;
+	params.layout = LinphoneConferenceLayoutActiveSpeaker;
+	params.toggle_video = FALSE;
+	params.toggle_all_manager_video = FALSE;
+	params.change_layout = FALSE;
+	params.security_level = LinphoneConferenceSecurityLevelEndToEnd;
+	params.enable_screen_sharing = FALSE;
+	params.enable_chat = TRUE;
+	create_simple_conference_merging_calls_base(params);
 }
 
 static void encrypted_conference_joined_multiple_times() {

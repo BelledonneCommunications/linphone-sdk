@@ -344,14 +344,17 @@ bool checkChatroomCreation(const ConfCoreManager &core,
 bool checkChatroom(Focus &focus, const ConfCoreManager &core, const time_t baseJoiningTime);
 
 // Conference
-void create_simple_conference_merging_calls_base(bool_t enable_ice,
-                                                 LinphoneConferenceLayout layout,
-                                                 bool_t toggle_video,
-                                                 bool_t toggle_all_mananger_video,
-                                                 bool_t change_layout,
-                                                 LinphoneConferenceSecurityLevel security_level,
-                                                 bool_t enable_screen_sharing,
-                                                 bool_t enable_chat);
+struct SimpleConferenceMergincCallsParams {
+	bool_t enable_ice;
+	LinphoneConferenceLayout layout;
+	bool_t toggle_video;
+	bool_t toggle_all_manager_video;
+	bool_t change_layout;
+	LinphoneConferenceSecurityLevel security_level;
+	bool_t enable_screen_sharing;
+	bool_t enable_chat;
+};
+void create_simple_conference_merging_calls_base(SimpleConferenceMergincCallsParams const &params);
 
 void conference_joined_multiple_times_base(LinphoneConferenceSecurityLevel security_level,
                                            bool_t enable_chat,

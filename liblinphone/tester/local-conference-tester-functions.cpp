@@ -10916,14 +10916,16 @@ static void send_text_message_and_check(std::initializer_list<std::reference_wra
 	}
 }
 
-void create_simple_conference_merging_calls_base(bool_t enable_ice,
-                                                 LinphoneConferenceLayout layout,
-                                                 bool_t toggle_video,
-                                                 bool_t toggle_all_mananger_video,
-                                                 bool_t change_layout,
-                                                 LinphoneConferenceSecurityLevel security_level,
-                                                 bool_t enable_screen_sharing,
-                                                 bool_t enable_chat) {
+void create_simple_conference_merging_calls_base(SimpleConferenceMergincCallsParams const &params) {
+	bool_t enable_ice = params.enable_ice;
+	LinphoneConferenceLayout layout = params.layout;
+	bool_t toggle_video = params.toggle_video;
+	bool_t toggle_all_manager_video = params.toggle_all_manager_video;
+	bool_t change_layout = params.change_layout;
+	LinphoneConferenceSecurityLevel security_level = params.security_level;
+	bool_t enable_screen_sharing = params.enable_screen_sharing;
+	bool_t enable_chat = params.enable_chat;
+
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
 		bool is_encrypted = (security_level == LinphoneConferenceSecurityLevelEndToEnd);
@@ -11404,7 +11406,7 @@ void create_simple_conference_merging_calls_base(bool_t enable_ice,
 		}
 
 		std::list<LinphoneCoreManager *> mgrList = {pauline.getCMgr()};
-		if (toggle_all_mananger_video) {
+		if (toggle_all_manager_video) {
 			mgrList.push_back(marie.getCMgr());
 			mgrList.push_back(laure.getCMgr());
 		}

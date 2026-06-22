@@ -224,33 +224,81 @@ static void two_overlapping_dialout_conferences_from_different_organizers(void) 
 }
 
 static void create_simple_conference_merging_calls(void) {
-	create_simple_conference_merging_calls_base(FALSE, LinphoneConferenceLayoutActiveSpeaker, FALSE, FALSE, FALSE,
-	                                            LinphoneConferenceSecurityLevelNone, FALSE, FALSE);
+	SimpleConferenceMergincCallsParams params;
+	params.enable_ice = FALSE;
+	params.layout = LinphoneConferenceLayoutActiveSpeaker;
+	params.toggle_video = FALSE;
+	params.toggle_all_manager_video = FALSE;
+	params.change_layout = FALSE;
+	params.security_level = LinphoneConferenceSecurityLevelNone;
+	params.enable_screen_sharing = FALSE;
+	params.enable_chat = FALSE;
+	create_simple_conference_merging_calls_base(params);
 }
 
 static void create_simple_conference_with_chat_merging_calls(void) {
-	create_simple_conference_merging_calls_base(FALSE, LinphoneConferenceLayoutActiveSpeaker, FALSE, FALSE, FALSE,
-	                                            LinphoneConferenceSecurityLevelNone, FALSE, TRUE);
+	SimpleConferenceMergincCallsParams params;
+	params.enable_ice = FALSE;
+	params.layout = LinphoneConferenceLayoutActiveSpeaker;
+	params.toggle_video = FALSE;
+	params.toggle_all_manager_video = FALSE;
+	params.change_layout = FALSE;
+	params.security_level = LinphoneConferenceSecurityLevelNone;
+	params.enable_screen_sharing = FALSE;
+	params.enable_chat = TRUE;
+	create_simple_conference_merging_calls_base(params);
 }
 
 static void create_simple_ice_conference_merging_calls(void) {
-	create_simple_conference_merging_calls_base(TRUE, LinphoneConferenceLayoutActiveSpeaker, TRUE, FALSE, TRUE,
-	                                            LinphoneConferenceSecurityLevelNone, FALSE, FALSE);
+	SimpleConferenceMergincCallsParams params;
+	params.enable_ice = TRUE;
+	params.layout = LinphoneConferenceLayoutActiveSpeaker;
+	params.toggle_video = TRUE;
+	params.toggle_all_manager_video = FALSE;
+	params.change_layout = TRUE;
+	params.security_level = LinphoneConferenceSecurityLevelNone;
+	params.enable_screen_sharing = FALSE;
+	params.enable_chat = FALSE;
+	create_simple_conference_merging_calls_base(params);
 }
 
 static void create_simple_conference_merging_calls_with_screen_sharing(void) {
-	create_simple_conference_merging_calls_base(FALSE, LinphoneConferenceLayoutActiveSpeaker, TRUE, FALSE, FALSE,
-	                                            LinphoneConferenceSecurityLevelNone, TRUE, FALSE);
+	SimpleConferenceMergincCallsParams params;
+	params.enable_ice = FALSE;
+	params.layout = LinphoneConferenceLayoutActiveSpeaker;
+	params.toggle_video = TRUE;
+	params.toggle_all_manager_video = FALSE;
+	params.change_layout = FALSE;
+	params.security_level = LinphoneConferenceSecurityLevelNone;
+	params.enable_screen_sharing = TRUE;
+	params.enable_chat = FALSE;
+	create_simple_conference_merging_calls_base(params);
 }
 
 static void create_simple_conference_merging_calls_with_video_toggling(void) {
-	create_simple_conference_merging_calls_base(FALSE, LinphoneConferenceLayoutGrid, TRUE, TRUE, TRUE,
-	                                            LinphoneConferenceSecurityLevelNone, FALSE, FALSE);
+	SimpleConferenceMergincCallsParams params;
+	params.enable_ice = FALSE;
+	params.layout = LinphoneConferenceLayoutGrid;
+	params.toggle_video = TRUE;
+	params.toggle_all_manager_video = TRUE;
+	params.change_layout = TRUE;
+	params.security_level = LinphoneConferenceSecurityLevelNone;
+	params.enable_screen_sharing = FALSE;
+	params.enable_chat = FALSE;
+	create_simple_conference_merging_calls_base(params);
 }
 
 static void create_simple_conference_merging_calls_with_video_toggling_after_screen_sharing(void) {
-	create_simple_conference_merging_calls_base(FALSE, LinphoneConferenceLayoutGrid, TRUE, TRUE, TRUE,
-	                                            LinphoneConferenceSecurityLevelNone, FALSE, FALSE);
+	SimpleConferenceMergincCallsParams params;
+	params.enable_ice = FALSE;
+	params.layout = LinphoneConferenceLayoutGrid;
+	params.toggle_video = TRUE;
+	params.toggle_all_manager_video = TRUE;
+	params.change_layout = TRUE;
+	params.security_level = LinphoneConferenceSecurityLevelNone;
+	params.enable_screen_sharing = TRUE;
+	params.enable_chat = FALSE;
+	create_simple_conference_merging_calls_base(params);
 }
 
 static void create_dial_out_conference_with_active_call(void) {
