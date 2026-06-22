@@ -1071,7 +1071,7 @@ static void create_simple_end_to_end_encrypted_conference_terminated_early() {
 }
 
 static void create_simple_end_to_end_encrypted_conference_with_chat_merging_calls() {
-	SimpleConferenceMergincCallsParams params;
+	SimpleConferenceMergingCallsParams params;
 	params.enable_ice = FALSE;
 	params.layout = LinphoneConferenceLayoutActiveSpeaker;
 	params.toggle_video = FALSE;

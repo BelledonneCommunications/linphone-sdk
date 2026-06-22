@@ -344,7 +344,7 @@ bool checkChatroomCreation(const ConfCoreManager &core,
 bool checkChatroom(Focus &focus, const ConfCoreManager &core, const time_t baseJoiningTime);
 
 // Conference
-struct SimpleConferenceMergincCallsParams {
+struct SimpleConferenceMergingCallsParams {
 	bool_t enable_ice;
 	LinphoneConferenceLayout layout;
 	bool_t toggle_video;
@@ -353,8 +353,9 @@ struct SimpleConferenceMergincCallsParams {
 	LinphoneConferenceSecurityLevel security_level;
 	bool_t enable_screen_sharing;
 	bool_t enable_chat;
+	bool_t network_toggle_on_invite = false;
 };
-void create_simple_conference_merging_calls_base(SimpleConferenceMergincCallsParams const &params);
+void create_simple_conference_merging_calls_base(SimpleConferenceMergingCallsParams const &params);
 
 void conference_joined_multiple_times_base(LinphoneConferenceSecurityLevel security_level,
                                            bool_t enable_chat,
