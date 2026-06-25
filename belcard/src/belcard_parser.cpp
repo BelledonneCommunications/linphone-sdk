@@ -133,7 +133,16 @@ shared_ptr<BelCardGeneric> BelCardParser::_parse(const string &input, const stri
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = _parser->parseInput(rule, input, &parsedSize);
 	if (parsedSize < input.size()) {
-		bctbx_error("[BelCard] Parsing ended prematuraly at pos %llu", (unsigned long long)parsedSize);
+		// Find the line that caused the failure
+		size_t lineStart = (parsedSize > 0) ? input.rfind('\n', parsedSize - 1) : string::npos;
+		lineStart = (lineStart == string::npos) ? 0 : lineStart + 1;
+		size_t lineEnd = input.find('\n', parsedSize);
+		if (lineEnd == string::npos) lineEnd = input.size();
+		string failedLine = input.substr(lineStart, lineEnd - lineStart);
+		// Truncate very long lines (e.g. base64 PHOTO data) for logging
+		if (failedLine.size() > 200) failedLine = failedLine.substr(0, 200) + "...(truncated)";
+		bctbx_error("[BelCard] Parsing ended prematurely at pos %llu, failed at line: '%s'",
+			(unsigned long long)parsedSize, failedLine.c_str());
 	}
 	return ret;
 }
