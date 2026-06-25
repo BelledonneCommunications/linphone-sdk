@@ -59,6 +59,7 @@ static string getPath(void *context, const char *jMethodName) {
 
 	jmethodID jMethodId = getStaticMethodId(env, klass, jMethodName, "(Landroid/content/Context;)Ljava/lang/String;");
 	jstring jPath = (jstring)env->CallStaticObjectMethod(klass, jMethodId, jContext);
+	env->DeleteLocalRef(klass);
 
 	const char *cPath = GetStringUTFChars(env, jPath);
 	string path = L_C_TO_STRING(cPath);
