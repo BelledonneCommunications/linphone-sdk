@@ -199,6 +199,7 @@ JNIEXPORT void JNICALL setMediastreamerAndroidContext(JNIEnv *env, void *context
 	jclass ms_class = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 	jmethodID set_context = env->GetStaticMethodID(ms_class, "setContext", "(Ljava/lang/Object;)V");
 	env->CallStaticVoidMethod(ms_class, set_context, (jobject)context);
+	env->DeleteLocalRef(ms_class);
 }
 #endif
 
