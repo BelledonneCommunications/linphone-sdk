@@ -127,7 +127,6 @@ void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
 
 	createEventHandler(confListener);
 	const auto &core = getCore();
-	LinphoneCore *lc = core->getCCore();
 	std::shared_ptr<Address> conferenceAddress;
 	bool isUpdate = false;
 	if (op) {
@@ -139,22 +138,7 @@ void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
 		if (!account) {
 			account = core->lookupKnownAccount(mOrganizer, true);
 		}
-		char *contactAddressStr = nullptr;
-		if (account && account->getOp()) {
-			contactAddressStr = sal_address_as_string(account->getOp()->getContactAddress());
-		} else {
-			LinphoneAddress *cAddress = mOrganizer->toC();
-			contactAddressStr =
-			    ms_strdup(linphone_core_find_best_identity(lc, const_cast<LinphoneAddress *>(cAddress)));
-		}
-		conferenceAddress = Address::create(contactAddressStr);
-		char confId[ServerConference::sConfIdLength];
-		belle_sip_random_token(confId, sizeof(confId));
-		conferenceAddress->setUriParam(Conference::kConfIdParameter, confId);
-		if (contactAddressStr) {
-			ms_free(contactAddressStr);
-		}
-
+		conferenceAddress = prepareConferenceAddress(account);
 		auto eventLogEnabled = supportsConferenceEventPackage();
 		if (!eventLogEnabled) {
 			setConferenceId(ConferenceId(conferenceAddress, conferenceAddress, core->createConferenceIdParams()), true);
@@ -629,6 +613,23 @@ void ServerConference::setConferenceTimes(time_t startTime, time_t endTime) {
 	mConfParams->setExpiryTime(expiryTime);
 }
 
+std::shared_ptr<Address> ServerConference::prepareConferenceAddress(const std::shared_ptr<Account> &account) const {
+	std::shared_ptr<Address> conferenceAddress;
+	if (account) {
+		if (auto contactAddress = account->getContactAddress(); contactAddress->hasUriParam("gr")) {
+			conferenceAddress = contactAddress->clone()->toSharedPtr();
+		} else {
+			conferenceAddress = account->getAccountParams()->getIdentityAddress()->clone()->toSharedPtr();
+		}
+	} else {
+		conferenceAddress = getCore()->getPrimaryContactAddress().clone()->toSharedPtr();
+	}
+	char confId[ServerConference::kConfIdLength];
+	belle_sip_random_token(confId, sizeof(confId));
+	conferenceAddress->setUriParam(Conference::kConfIdParameter, confId);
+	return conferenceAddress;
+}
+
 std::list<std::shared_ptr<const Address>> ServerConference::getAllowedAddresses() const {
 	auto allowedAddresses = getInvitedAddresses();
 	if (mOrganizer && !findInvitedParticipant(mOrganizer)) {
@@ -955,13 +956,8 @@ void ServerConference::confirmCreation() {
 		if (!account) {
 			account = getCore()->getDefaultAccount();
 		}
-
+		setConferenceAddress(prepareConferenceAddress(account));
 		if (account) {
-			std::shared_ptr<Address> conferenceAddress = account->getContactAddress()->clone()->toSharedPtr();
-			char confId[ServerConference::sConfIdLength];
-			belle_sip_random_token(confId, sizeof(confId));
-			conferenceAddress->setUriParam(Conference::kConfIdParameter, confId);
-			setConferenceAddress(conferenceAddress);
 			mConfParams->setAccount(account);
 		}
 
@@ -3994,8 +3990,8 @@ void ServerConference::conclude() {
 			// devices allowed to join the chatroom in method
 			// ServerConference::subscribeRegistrationForParticipants(). Since "groupchat" capability was not there,
 			// then the server doesn't allow to conclude the creation of the chatroom
-			lError() <<"Declining " << *session << " because it looks like the device creating " << *this << " is not allowed to "
-			            "be part of this chatroom";
+			lError() << "Declining " << *session << " because it looks like the device creating " << *this
+			         << " is not allowed to be part of this chatroom";
 			declineSession(session, LinphoneReasonForbidden);
 			requestDeletion();
 		} else {
