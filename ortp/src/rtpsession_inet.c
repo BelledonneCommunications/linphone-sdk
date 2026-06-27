@@ -82,7 +82,12 @@
 #if defined(_WIN32) || defined(_WIN32_WCE)
 #ifndef WSAID_WSARECVMSG
 /* http://source.winehq.org/git/wine.git/blob/HEAD:/include/mswsock.h */
-#define WSAID_WSARECVMSG {0xf689d7c8, 0x6f1f, 0x436b, {0x8a, 0x53, 0xe5, 0x4f, 0xe3, 0x51, 0xc3, 0x22}}
+#define WSAID_WSARECVMSG                                                                                               \
+	{                                                                                                                  \
+		0xf689d7c8, 0x6f1f, 0x436b, {                                                                                  \
+			0x8a, 0x53, 0xe5, 0x4f, 0xe3, 0x51, 0xc3, 0x22                                                             \
+		}                                                                                                              \
+	}
 #ifndef MAX_NATURAL_ALIGNMENT
 #define MAX_NATURAL_ALIGNMENT sizeof(DWORD)
 #endif
@@ -985,11 +990,11 @@ static int _rtp_session_set_remote_addr_full(
 			session->flags &= ~RTCP_SOCKET_CONNECTED;
 		}
 
-		ortp_message("RtpSession [%p] sending to rtp %s rtcp %s %s", session, rtp_printable_addr, rtcp_printable_addr,
-		             is_aux ? "as auxiliary destination" : "");
+		ortp_message("RtpSession [%p] sending to rtp %s rtcp %s %s rtcp-mux: %s", session, rtp_printable_addr,
+		             rtcp_printable_addr, is_aux ? "as auxiliary destination" : "", session->rtcp_mux ? "yes" : "no");
 	} else {
-		ortp_message("RtpSession [%p] sending to rtp %s %s", session, rtp_printable_addr,
-		             is_aux ? "as auxiliary destination" : "");
+		ortp_message("RtpSession [%p] sending to rtp %s %s rtcp-mux: %s", session, rtp_printable_addr,
+		             is_aux ? "as auxiliary destination" : "", session->rtcp_mux ? "yes" : "no");
 	}
 	/*Apply DSCP setting. On windows the destination address is required for doing this.*/
 	rtp_session_set_dscp(session, -1);

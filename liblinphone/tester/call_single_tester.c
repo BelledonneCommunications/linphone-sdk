@@ -7217,6 +7217,14 @@ void _call_with_rtcp_mux(bool_t caller_rtcp_mux, bool_t callee_rtcp_mux, bool_t 
 	if (callee_rtcp_mux) {
 		linphone_config_set_int(linphone_core_get_config(pauline->lc), "rtp", "rtcp_mux", 1);
 	}
+	/*
+	 * uncomment the lines below to test the case of rtcp-mux with a fixed port policy.
+	 * unfortunately it cannot be used in CI because of port conflict risk that may
+	 * cause any test to fail.
+	 */
+	// linphone_core_set_audio_port(marie->lc, 8000);
+	// linphone_core_set_audio_port(pauline->lc, 9000);
+
 	if (with_ice) {
 		linphone_core_set_user_agent(pauline->lc, "Natted Linphone", NULL);
 		linphone_core_set_user_agent(marie->lc, "Natted Linphone", NULL);
