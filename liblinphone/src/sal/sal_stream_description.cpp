@@ -162,14 +162,11 @@ void SalStreamDescription::fillStreamDescriptionFromSdp(const SalMediaDescriptio
 
 	createActualCfg(salMediaDesc, sdp, media_desc);
 
-	/* Get media specific RTCP attribute */
 	rtcp_addr = rtp_addr;
-	// Set here the RTCP port because we must know if rtcp_mux is enabled or not
-	if (getActualConfiguration().rtcp_mux) {
-		rtcp_port = rtp_port;
-	} else {
-		rtcp_port = rtp_port + 1;
-	}
+	rtcp_port = rtp_port + 1;
+
+	/* Get media specific RTCP attribute, that may override rtcp address and port */
+
 	attribute = belle_sdp_media_description_get_attribute(media_desc, "rtcp");
 	if (attribute && (value = belle_sdp_attribute_get_value(attribute)) != NULL) {
 		char *tmp = (char *)ms_malloc0(strlen(value));
