@@ -31,10 +31,13 @@ LINPHONE_BEGIN_NAMESPACE
 
 AccountManagerServices::AccountManagerServices(LinphoneCore *lc)
     : CoreAccessor(lc ? L_GET_CPP_PTR_FROM_C_OBJECT(lc) : nullptr) {
-	mAccountManagerUrl = linphone_core_get_account_creator_url(lc);
-	if (mAccountManagerUrl.compare(mAccountManagerUrl.length() - 1, 1, "/") != 0) {
-		lInfo() << "[Account Manager Services] Appending '/' to URL [" << mAccountManagerUrl << "]";
-		mAccountManagerUrl = mAccountManagerUrl.append("/");
+	const char *accountCreatorUrl = linphone_core_get_account_creator_url(lc);
+	if (accountCreatorUrl) {
+		mAccountManagerUrl = string(accountCreatorUrl);
+		if (mAccountManagerUrl.compare(mAccountManagerUrl.length() - 1, 1, "/") != 0) {
+			lInfo() << "[Account Manager Services] Appending '/' to URL [" << mAccountManagerUrl << "]";
+			mAccountManagerUrl = mAccountManagerUrl.append("/");
+		}
 	}
 
 	mTesterEnv = !!linphone_config_get_int(linphone_core_get_config(lc), "tester", "test_env", FALSE);
