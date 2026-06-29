@@ -616,7 +616,8 @@ void ServerConference::setConferenceTimes(time_t startTime, time_t endTime) {
 std::shared_ptr<Address> ServerConference::prepareConferenceAddress(const std::shared_ptr<Account> &account) const {
 	std::shared_ptr<Address> conferenceAddress;
 	if (account) {
-		if (auto contactAddress = account->getContactAddress(); contactAddress->hasUriParam("gr")) {
+		auto contactAddress = account->getContactAddress();
+		if (contactAddress && contactAddress->hasUriParam("gr")) {
 			conferenceAddress = contactAddress->clone()->toSharedPtr();
 		} else {
 			conferenceAddress = account->getAccountParams()->getIdentityAddress()->clone()->toSharedPtr();
