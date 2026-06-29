@@ -95,6 +95,17 @@ static void account_manager_services_request_on_error(const LinphoneAccountManag
 
 // =============================================================================
 
+static void no_account_manager_server_url_configured(void) {
+	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("arthur_rc", FALSE);
+	LinphoneAccountManagerServices *ams = linphone_core_create_account_manager_services(manager->lc);
+	LinphoneAccountManagerServicesRequestCbs *cbs =
+	    linphone_factory_create_account_manager_services_request_cbs(linphone_factory_get());
+
+	linphone_account_manager_services_request_cbs_unref(cbs);
+	linphone_account_manager_services_unref(ams);
+	linphone_core_manager_destroy(manager);
+}
+
 static void desktop_request_account_creation_request_token_fail_use(void) {
 	LinphoneCoreManager *manager = linphone_core_manager_new_with_proxies_check("account_manager_services_rc", FALSE);
 	LinphoneAccountManagerServices *ams = linphone_core_create_account_manager_services(manager->lc);
@@ -586,6 +597,7 @@ static void account_devices_list_without_user_agent(void) {
 // =============================================================================
 
 test_t account_manager_services_tests[] = {
+    TEST_NO_TAG("No account manager server URL configured", no_account_manager_server_url_configured),
     TEST_NO_TAG("Desktop - Request account creation request token fail use",
                 desktop_request_account_creation_request_token_fail_use),
     TEST_NO_TAG("Desktop - Create account & activate using email address",
