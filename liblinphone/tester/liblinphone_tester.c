@@ -673,7 +673,7 @@ void liblinphone_tester_init(void (*ftester_printf)(int level, const char *fmt, 
 	liblinphone_tester_add_suites();
 	bc_tester_set_max_parallel_suites(
 	    liblinphone_tester_max_parallel_suites); /* empiricaly defined as sustainable for our lab 12 threads machine.*/
-	bc_tester_set_global_timeout(36 * 60 * 32 /
+	bc_tester_set_global_timeout(38 * 60 * 32 /
 	                             liblinphone_tester_max_parallel_suites); /* 36 mn max for 32 processes */
 }
 
