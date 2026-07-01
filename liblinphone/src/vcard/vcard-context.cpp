@@ -104,12 +104,12 @@ shared_ptr<Vcard> VcardContext::getVcardFromBuffer(BCTBX_UNUSED(const string &bu
 	return nullptr;
 }
 
-list<shared_ptr<Vcard>> VcardContext::getVcardListFromBuffer(BCTBX_UNUSED(const string &buffer)) const {
-	return list<shared_ptr<Vcard>>();
+vector<shared_ptr<Vcard>> VcardContext::getVcardListFromBuffer(BCTBX_UNUSED(const string &buffer)) const {
+	return {};
 }
 
-list<shared_ptr<Vcard>> VcardContext::getVcardListFromFile(BCTBX_UNUSED(const string &filename)) const {
-	return list<shared_ptr<Vcard>>();
+vector<shared_ptr<Vcard>> VcardContext::getVcardListFromFile(BCTBX_UNUSED(const string &filename)) const {
+	return {};
 }
 
 #endif /* VCARD_ENABLED */
