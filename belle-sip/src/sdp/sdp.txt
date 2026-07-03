@@ -399,7 +399,7 @@ stat-flag      = "loss"
                 / "TTL"
                 / "HL"
 voip-metrics   = "voip-metrics"
-max-size       = text; 1*DIGIT ; maximum block size in octets
+max-size       = 1*DIGIT ; maximum block size in octets
 ;DIGIT         = %x30-39
 format-ext     = text; non-ws-string
 
