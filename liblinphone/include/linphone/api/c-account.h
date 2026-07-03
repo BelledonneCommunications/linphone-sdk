@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -388,6 +388,16 @@ LINPHONE_PUBLIC LinphoneConsolidatedPresence linphone_account_get_consolidated_p
  */
 LINPHONE_PUBLIC void linphone_account_set_consolidated_presence(LinphoneAccount *account,
                                                                 LinphoneConsolidatedPresence presence);
+
+/**
+ * Gets the echoed presence model for the given account.
+ * The echoed presence model reflects the presence information received from the presence server,
+ * including permanent activities, when the echoed presence subscription is enabled.
+ * @param account The #LinphoneAccount object. @notnil
+ * @return The #LinphonePresenceModel for the echoed presence, or NULL if echoed presence subscription is not enabled.
+ * @maybenil
+ */
+LINPHONE_PUBLIC LinphonePresenceModel *linphone_account_get_echoed_presence_model(const LinphoneAccount *account);
 
 /**
  * Detect if the given input is a phone number or not.

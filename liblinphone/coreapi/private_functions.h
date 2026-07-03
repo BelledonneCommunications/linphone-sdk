@@ -1021,7 +1021,7 @@ LINPHONE_PUBLIC void linphone_core_set_add_admin_information_to_contact(Linphone
 LinphonePresenceModel *
 linphone_core_create_presence_model_for_consolidated_presence(BCTBX_UNUSED(LinphoneCore *lc),
                                                               LinphoneConsolidatedPresence presence);
-char *linphone_presence_model_to_xml(LinphonePresenceModel *model);
+LINPHONE_PUBLIC char *linphone_presence_model_to_xml(LinphonePresenceModel *model);
 
 LinphoneVideoDefinition *linphone_video_definition_new(unsigned int width, unsigned int height, const char *name);
 

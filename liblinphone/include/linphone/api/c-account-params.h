@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -1039,6 +1039,27 @@ LINPHONE_PUBLIC bool_t linphone_account_params_dtls_srtp_verify_cert_enabled(con
  * @param enable If TRUE, certificate will be verified during DTLS handshake.
  */
 LINPHONE_PUBLIC void linphone_account_params_enable_dtls_srtp_verify_cert(LinphoneAccountParams *params, bool_t enable);
+
+/**
+ * Returns whether the echoed presence subscription is enabled or not.
+ * The echoed presence is the presence as it is returned by the presence server. If a user has multiple devices, one of
+ * these devices may set some permanent activities. This echoed presence will reflect these permanent activities on the
+ * other devices that did not set the permanent activities.
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @return TRUE if the echoed presence subscription is enabled.
+ **/
+LINPHONE_PUBLIC bool_t
+linphone_account_params_echoed_presence_subscription_enabled(const LinphoneAccountParams *params);
+
+/**
+ * Enables or disables the echoed presence subscription on the given #LinphoneAccountParams.
+ * Enabling does NOT trigger an additional SUBSCRIBE or PUBLISH; it modifies the existing
+ * presence SUBSCRIBE (adding local account identity).
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @param enable TRUE to enable, FALSE to disable.
+ */
+LINPHONE_PUBLIC void linphone_account_params_enable_echoed_presence_subscription(LinphoneAccountParams *params,
+                                                                                 bool_t enable);
 
 /**
  * @}

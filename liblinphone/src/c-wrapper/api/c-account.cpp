@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -25,7 +25,6 @@
 #include "account/account-params.h"
 #include "account/account.h"
 #include "c-wrapper/c-wrapper.h"
-#include "core/core-p.h"
 #include "dial-plan/dial-plan.h"
 #include "linphone/api/c-account-cbs.h"
 #include "linphone/api/c-account-params.h"
@@ -302,6 +301,14 @@ LinphoneConsolidatedPresence linphone_account_get_consolidated_presence(const Li
 void linphone_account_set_consolidated_presence(LinphoneAccount *account, LinphoneConsolidatedPresence presence) {
 
 	Account::toCpp(account)->setConsolidatedPresence(presence);
+}
+
+LinphonePresenceModel *linphone_account_get_echoed_presence_model(const LinphoneAccount *account) {
+	const auto &presenceModel = Account::toCpp(account)->getEchoedPresenceModel();
+	if (presenceModel) {
+		return presenceModel->toC();
+	}
+	return nullptr;
 }
 
 void linphone_account_set_presence_model(LinphoneAccount *account, LinphonePresenceModel *presence_model) {

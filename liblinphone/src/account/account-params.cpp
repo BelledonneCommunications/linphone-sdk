@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -19,8 +19,6 @@
  */
 
 #include "account-params.h"
-
-#include <set>
 
 #include "c-wrapper/internal/c-tools.h"
 #include "core/core.h"
@@ -220,6 +218,11 @@ AccountParams::AccountParams(LinphoneCore *lc, bool useDefaultValues) {
 	mInstantMessagingEncryptionMandatory =
 	    useDefaultValues ? !!linphone_config_get_default_int(lc->config, "proxy", "im_encryption_mandatory", 0) : 0;
 
+	mEchoedPresenceSubscriptionEnabled =
+	    useDefaultValues
+	        ? linphone_config_get_default_int(lc->config, "proxy", "echoed_presence_subscription", FALSE) == TRUE
+	        : false;
+
 	string supportedTags = lc ? linphone_config_get_default_string(lc->config, "proxy", "supported", "empty") : "empty";
 	if (useDefaultValues && supportedTags != "empty") {
 		vector<string> splitTags = bctoolbox::Utils::split(supportedTags, ",");
@@ -352,6 +355,10 @@ AccountParams::AccountParams(LinphoneCore *lc, int index) : AccountParams(lc, fa
 
 	setPictureUri(linphone_config_get_string(config, key, "picture_uri", mPictureUri.c_str()));
 
+	enableEchoedPresenceSubscription(linphone_config_get_bool(config, key, "echoed_presence_subscription",
+	                                                          echoedPresenceSubscriptionEnabled() ? TRUE : FALSE) ==
+	                                 TRUE);
+
 	string mwiServerUri = linphone_config_get_string(config, key, "mwi_server_uri", "");
 	mMwiServerAddress = nullptr;
 	if (!mwiServerUri.empty()) {
@@ -470,6 +477,8 @@ AccountParams::AccountParams(const AccountParams &other) : HybridObject(other), 
 
 	mSupportedTagsList = other.mSupportedTagsList;
 	mUseSupportedTags = other.mUseSupportedTags;
+
+	mEchoedPresenceSubscriptionEnabled = other.mEchoedPresenceSubscriptionEnabled;
 }
 
 AccountParams::~AccountParams() {
@@ -1046,6 +1055,14 @@ std::shared_ptr<const Address> AccountParams::getVoicemailAddress() const {
 	return mVoicemailAddress;
 }
 
+bool AccountParams::echoedPresenceSubscriptionEnabled() const {
+	return mEchoedPresenceSubscriptionEnabled;
+}
+
+void AccountParams::enableEchoedPresenceSubscription(bool enabled) {
+	mEchoedPresenceSubscriptionEnabled = enabled;
+}
+
 // -----------------------------------------------------------------------------
 
 LinphoneStatus AccountParams::setServerAddress(const std::shared_ptr<const Address> &serverAddr) {
@@ -1268,6 +1285,8 @@ void AccountParams::writeToConfigFile(LinphoneConfig *config, int index) {
 	if (mVoicemailAddress) {
 		linphone_config_set_string(config, key, "voicemail_uri", getVoicemailAddressCstr());
 	}
+	linphone_config_set_bool(config, key, "echoed_presence_subscription",
+	                         mEchoedPresenceSubscriptionEnabled ? TRUE : FALSE);
 
 	linphone_config_set_bool(config, key, "im_encryption_mandatory", mInstantMessagingEncryptionMandatory);
 

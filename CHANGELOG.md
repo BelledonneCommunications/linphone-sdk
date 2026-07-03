@@ -11,6 +11,11 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
+## Unreleased
+
+### Added
+- Support of permanent activities in the presence. This enables the ability for the presence server to store
+  activities permanently, even if the PUBLISH expires.
 
 ### Changes
 - Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).

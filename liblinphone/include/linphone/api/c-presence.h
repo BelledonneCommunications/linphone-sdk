@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -584,6 +584,72 @@ LINPHONE_PUBLIC LinphoneStatus linphone_presence_person_add_activities_note(Linp
  */
 LINPHONE_PUBLIC LinphoneStatus linphone_presence_person_clear_activities_notes(LinphonePresencePerson *person);
 
+/**
+ * Adds a permanent activity to a presence person.
+ * @param person The #LinphonePresencePerson object for which to add a permanent activity. @notnil
+ * @param activity The #LinphonePresenceActivity object to add to the person. @notnil
+ * @return 0 if successful, a value < 0 in case of error.
+ */
+LINPHONE_PUBLIC LinphoneStatus linphone_presence_person_add_permanent_activity(LinphonePresencePerson *person,
+                                                                               LinphonePresenceActivity *activity);
+
+/**
+ * Gets the nth permanent activity of a presence person.
+ * @param person The #LinphonePresencePerson object to get the activity from. @notnil
+ * @param index The index of the permanent activity to get (the first activity having the index 0).
+ * @return A pointer to a #LinphonePresenceActivity object if successful, NULL otherwise. @maybenil
+ */
+LINPHONE_PUBLIC LinphonePresenceActivity *
+linphone_presence_person_get_nth_permanent_activity(const LinphonePresencePerson *person, unsigned int index);
+
+/**
+ * Gets the number of permanent activities included in the presence person.
+ * @param person The #LinphonePresencePerson object to get the number of permanent activities from. @notnil
+ * @return The number of permanent activities included in the #LinphonePresencePerson object.
+ */
+LINPHONE_PUBLIC unsigned int linphone_presence_person_get_nb_permanent_activities(const LinphonePresencePerson *person);
+
+/**
+ * Clears all the permanent activities of a presence person.
+ * @param person The #LinphonePresencePerson object for which to clear the permanent activities. @notnil
+ * @return 0 if successful, a value < 0 in case of error.
+ */
+LINPHONE_PUBLIC LinphoneStatus linphone_presence_person_clear_permanent_activities(LinphonePresencePerson *person);
+
+/**
+ * Adds a permanent activities note to a presence person.
+ * @param person The #LinphonePresencePerson object for which to add a permanent activities note. @notnil
+ * @param note The #LinphonePresenceNote object to add to the person. @notnil
+ * @return 0 if successful, a value < 0 in case of error.
+ */
+LINPHONE_PUBLIC LinphoneStatus linphone_presence_person_add_permanent_activities_note(LinphonePresencePerson *person,
+                                                                                      LinphonePresenceNote *note);
+
+/**
+ * Gets the nth permanent activities note of a presence person.
+ * @param person The #LinphonePresencePerson object to get the activities note from. @notnil
+ * @param index The index of the permanent activities note to get (the first note having the index 0).
+ * @return A pointer to a #LinphonePresenceNote object if successful, NULL otherwise. @maybenil
+ */
+LINPHONE_PUBLIC LinphonePresenceNote *
+linphone_presence_person_get_nth_permanent_activities_note(const LinphonePresencePerson *person, unsigned int index);
+
+/**
+ * Gets the number of permanent activities notes included in the presence person.
+ * @param person The #LinphonePresencePerson object to get the number of permanent activities notes from. @notnil
+ * @return The number of permanent activities notes included in the #LinphonePresencePerson object.
+ */
+LINPHONE_PUBLIC unsigned int
+linphone_presence_person_get_nb_permanent_activities_notes(const LinphonePresencePerson *person);
+
+/**
+ * Clears all the permanent activities notes of a presence person.
+ * @param person The #LinphonePresencePerson object for which to clear the permanent activities notes. @notnil
+ * @return 0 if successful, a value < 0 in case of error.
+ */
+LINPHONE_PUBLIC LinphoneStatus
+linphone_presence_person_clear_permanent_activities_notes(LinphonePresencePerson *person);
+
 /*****************************************************************************
  * PRESENCE ACTIVITY FUNCTIONS TO GET ACCESS TO ALL FUNCTIONALITIES          *
  ****************************************************************************/
@@ -730,7 +796,7 @@ LINPHONE_PUBLIC int linphone_presence_model_get_capabilities(const LinphonePrese
  * @return whether or not the #LinphonePresenceModel object has a given capability.
  */
 LINPHONE_PUBLIC bool_t linphone_presence_model_has_capability(const LinphonePresenceModel *model,
-                                                              const LinphoneFriendCapability capability);
+                                                              LinphoneFriendCapability capability);
 
 /**
  * Returns whether or not the #LinphonePresenceModel object has a given capability with a certain version.
@@ -740,7 +806,7 @@ LINPHONE_PUBLIC bool_t linphone_presence_model_has_capability(const LinphonePres
  * @return whether or not the #LinphonePresenceModel object has a given capability with a certain version.
  */
 LINPHONE_PUBLIC bool_t linphone_presence_model_has_capability_with_version(const LinphonePresenceModel *model,
-                                                                           const LinphoneFriendCapability capability,
+                                                                           LinphoneFriendCapability capability,
                                                                            float version);
 
 /**
@@ -750,8 +816,9 @@ LINPHONE_PUBLIC bool_t linphone_presence_model_has_capability_with_version(const
  * @param version The wanted version to test.
  * @return whether or not the #LinphonePresenceModel object has a given capability with a certain version or more.
  */
-LINPHONE_PUBLIC bool_t linphone_presence_model_has_capability_with_version_or_more(
-    const LinphonePresenceModel *model, const LinphoneFriendCapability capability, float version);
+LINPHONE_PUBLIC bool_t linphone_presence_model_has_capability_with_version_or_more(const LinphonePresenceModel *model,
+                                                                                   LinphoneFriendCapability capability,
+                                                                                   float version);
 
 /**
  * Returns the version of the capability of a #LinphonePresenceModel.
@@ -760,7 +827,7 @@ LINPHONE_PUBLIC bool_t linphone_presence_model_has_capability_with_version_or_mo
  * @return the version of the capability of a #LinphonePresenceModel or -1.0 if the model has not the capability.
  */
 LINPHONE_PUBLIC float linphone_presence_model_get_capability_version(const LinphonePresenceModel *model,
-                                                                     const LinphoneFriendCapability capability);
+                                                                     LinphoneFriendCapability capability);
 
 /**
  * Increase the reference count of the #LinphonePresenceService object.

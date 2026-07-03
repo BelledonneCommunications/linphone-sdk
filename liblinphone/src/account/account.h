@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -101,6 +101,7 @@ public:
 	void setPresenceModel(const std::shared_ptr<PresenceModel> &presence, bool needToSendPublish = true);
 	void setConsolidatedPresence(LinphoneConsolidatedPresence presence);
 	void setRemoveAuthInfoOnRegistrationCleared(bool removeAuthOnCleared);
+	void setEchoedPresenceModel(const std::shared_ptr<PresenceModel> &presenceModel);
 
 	// Getters
 	int getAuthFailure() const;
@@ -121,6 +122,7 @@ public:
 	LimeUserAccountStatus getLimeUserAccountStatus() const;
 	const std::shared_ptr<PresenceModel> &getPresenceModel() const;
 	LinphoneConsolidatedPresence getConsolidatedPresence() const;
+	const std::shared_ptr<PresenceModel> &getEchoedPresenceModel() const;
 
 	int getUnreadChatMessageCount() const;
 	const std::list<std::shared_ptr<AbstractChatRoom>> &getChatRooms() const;
@@ -131,7 +133,7 @@ public:
 	std::list<std::shared_ptr<CallLog>> getCallLogs() const;
 	std::list<std::shared_ptr<CallLog>> getCallLogsForAddress(const std::shared_ptr<const Address> &) const;
 	std::list<std::shared_ptr<ConferenceInfo>>
-	getConferenceInfos(const std::list<LinphoneStreamType> capabilities = {}) const;
+	getConferenceInfos(std::list<LinphoneStreamType> capabilities = {}) const;
 	void addConferenceInfo(const std::shared_ptr<ConferenceInfo> &info);
 	void ccmpConferenceInformationResponseReceived();
 	void ccmpConferenceInformationRequestSent();
@@ -173,7 +175,7 @@ public:
 	static LinphoneAccountAddressComparisonResult compareLinphoneAddresses(const std::shared_ptr<const Address> &a,
 	                                                                       const std::shared_ptr<const Address> &b);
 
-	static void writeAllToConfigFile(const std::shared_ptr<Core> core);
+	static void writeAllToConfigFile(std::shared_ptr<Core> core);
 	static void writeToConfigFile(LpConfig *config, const std::shared_ptr<Account> &account, int index);
 
 	// To be removed when not using proxy config anymore
@@ -252,6 +254,7 @@ private:
 
 	std::shared_ptr<EventPublish> mPresencePublishEvent;
 	std::shared_ptr<PresenceModel> mPresenceModel;
+	std::shared_ptr<PresenceModel> mEchoedPresenceModel;
 
 	std::shared_ptr<Account> mDependency;
 	std::weak_ptr<Account> mDependee;
@@ -292,7 +295,7 @@ private:
 class AccountLogContextualizer : public CoreLogContextualizer {
 public:
 	AccountLogContextualizer(const LinphoneAccount *account)
-	    : CoreLogContextualizer(account ? Account::toCpp(account) : nullptr) {
+	    : CoreLogContextualizer((account != nullptr) ? Account::toCpp(account) : nullptr) {
 	}
 };
 

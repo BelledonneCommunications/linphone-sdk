@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -82,7 +82,7 @@ public:
 	std::shared_ptr<PresenceActivity> getActivity() const;
 	LinphonePresenceBasicStatus getBasicStatus() const;
 	int getCapabilities() const;
-	float getCapabilityVersion(const LinphoneFriendCapability capability) const;
+	float getCapabilityVersion(LinphoneFriendCapability capability) const;
 	LinphoneConsolidatedPresence getConsolidatedPresence() const;
 	const std::string &getContact() const;
 	time_t getLatestActivityTimestamp() const;
@@ -106,26 +106,27 @@ public:
 	void clearNotes();
 	void clearPersons();
 	void clearServices();
-	bool hasCapability(const LinphoneFriendCapability capability) const;
-	bool hasCapabilityWithVersion(const LinphoneFriendCapability capability, float version) const;
-	bool hasCapabilityWithVersionOrMore(const LinphoneFriendCapability capability, float version) const;
+	bool hasCapability(LinphoneFriendCapability capability) const;
+	bool hasCapabilityWithVersion(LinphoneFriendCapability capability, float version) const;
+	bool hasCapabilityWithVersionOrMore(LinphoneFriendCapability capability, float version) const;
 	bool isOnline() const;
+	void hasBeenPublished();
 
 #ifdef HAVE_XML2
 	int parsePidfXmlPresenceNotes(XmlParsingContext &xmlContext);
 	int parsePidfXmlPresencePersons(XmlParsingContext &xmlContext);
 	int parsePidfXmlPresenceServices(XmlParsingContext &xmlContext);
+
 #endif /* HAVE_XML2 */
+
+	static SalPresenceModel *
+	parsePresence(const std::string &contentType, const std::string &contentSubtype, const std::string &body);
 
 private:
 	std::shared_ptr<PresenceNote> findNoteWithLang(const std::string &lang) const;
 	std::string toXml() const;
-	static std::string basicStatusToString(const LinphonePresenceBasicStatus status);
+	static std::string basicStatusToString(LinphonePresenceBasicStatus status);
 	static std::string generatePresenceId();
-	static void parsePresence(const std::string &contentType,
-	                          const std::string &contentSubtype,
-	                          const std::string &body,
-	                          SalPresenceModel **result);
 	static time_t parseTimestamp(const std::string &timestamp);
 
 #ifdef HAVE_XML2

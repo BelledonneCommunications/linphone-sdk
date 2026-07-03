@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -22,31 +22,21 @@
 
 #include "account.h"
 
+#include "c-wrapper/c-wrapper.h"
+#include "c-wrapper/internal/c-tools.h"
 #include "chat/ics/ics.h"
 #include "conference/client-conference.h"
 #include "content/content.h"
-#include "core/core.h"
-#include "linphone/api/c-account-params.h"
-#include "linphone/api/c-account.h"
-#include "linphone/api/c-address.h"
-#include "linphone/utils/algorithm.h"
-#include "push-notification/push-notification-config.h"
-#ifdef HAVE_ADVANCED_IM
-#ifdef HAVE_LIME_X3DH
-#include "chat/encryption/lime-x3dh-encryption-engine.h"
-#endif // HAVE_LIME_X3DH
-#endif // HAVE_ADVANCED_IM
-#include "c-wrapper/c-wrapper.h"
-#include "c-wrapper/internal/c-tools.h"
 #include "core/core-p.h"
+#include "core/core.h"
 #include "db/main-db-p.h"
 #include "event/event-publish.h"
 #include "friend/friend.h"
 #include "linphone/core.h"
+#include "linphone/utils/algorithm.h"
 #include "presence/presence-model.h"
 #include "presence/presence-service.h"
-#include "private.h"
-#include "utils/custom-params.h"
+#include "push-notification/push-notification-config.h"
 #include "utils/fsm-integrity-checker.h"
 #include "utils/xml-utils.h"
 #ifdef HAVE_XERCESC
@@ -1447,6 +1437,14 @@ LinphoneConsolidatedPresence Account::getConsolidatedPresence() const {
 	                                                                   : LinphoneConsolidatedPresenceOffline;
 }
 
+const std::shared_ptr<PresenceModel> &Account::getEchoedPresenceModel() const {
+	return mEchoedPresenceModel;
+}
+
+void Account::setEchoedPresenceModel(const std::shared_ptr<PresenceModel> &presenceModel) {
+	mEchoedPresenceModel = presenceModel;
+}
+
 int Account::sendPublish() {
 	if (!mPresenceModel) {
 		lError() << "No presence model has been set for " << *this << ", can't send the PUBLISH";
@@ -1483,7 +1481,7 @@ int Account::sendPublish() {
 
 		LinphoneConfig *config = linphone_core_get_config(getCCore());
 		if (linphone_config_get_bool(config, "sip", "update_presence_model_timestamp_before_publish_expires_refresh",
-		                             FALSE)) {
+		                             FALSE) == TRUE) {
 			unsigned int nbServices = mPresenceModel->getNbServices();
 			if (nbServices > 0) {
 				std::shared_ptr<PresenceService> latestService = mPresenceModel->getNthService(nbServices - 1);
@@ -1531,6 +1529,7 @@ int Account::sendPublish() {
 		content->setContentType(contentType);
 
 		err = mPresencePublishEvent->send(content);
+		mPresenceModel->hasBeenPublished();
 
 		if (presentityAddress) {
 			lInfo() << "Restoring previous presentity address " << *presentityAddress << " for model ["
@@ -1538,8 +1537,9 @@ int Account::sendPublish() {
 			mPresenceModel->setPresentity(presentityAddress);
 			mPresenceModel->setContact(contact);
 		}
-	} else
+	} else {
 		setSendPublish(true); /*otherwise do not send publish if registration is in progress, this will be done later*/
+	}
 
 	return err;
 }

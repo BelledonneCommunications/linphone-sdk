@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -59,26 +59,37 @@ public:
 	unsigned int getNbActivities() const;
 	unsigned int getNbActivitiesNotes() const;
 	unsigned int getNbNotes() const;
-	const std::shared_ptr<PresenceActivity> getNthActivity(unsigned int idx) const;
-	const std::shared_ptr<PresenceNote> getNthActivitiesNote(unsigned int idx) const;
-	const std::shared_ptr<PresenceNote> getNthNote(unsigned int idx) const;
+	unsigned int getNbPermanentActivities() const;
+	unsigned int getNbPermanentActivitiesNotes() const;
+	std::shared_ptr<PresenceActivity> getNthActivity(unsigned int idx) const;
+	std::shared_ptr<PresenceNote> getNthActivitiesNote(unsigned int idx) const;
+	std::shared_ptr<PresenceNote> getNthNote(unsigned int idx) const;
+	std::shared_ptr<PresenceActivity> getNthPermanentActivity(unsigned int idx) const;
+	std::shared_ptr<PresenceNote> getNthPermanentActivitiesNote(unsigned int idx) const;
 	time_t getTimestamp() const;
 
 	// Other
 	LinphoneStatus addActivity(const std::shared_ptr<PresenceActivity> &activity);
 	LinphoneStatus addActivitiesNote(const std::shared_ptr<PresenceNote> &note);
 	LinphoneStatus addNote(const std::shared_ptr<PresenceNote> &note);
+	LinphoneStatus addPermanentActivity(const std::shared_ptr<PresenceActivity> &activity);
+	LinphoneStatus addPermanentActivitiesNote(const std::shared_ptr<PresenceNote> &note);
 	void clearActivities();
 	void clearActivitiesNotes();
 	void clearNotes();
+	void clearPermanentActivities();
+	void clearPermanentActivitiesNotes();
 	bool hasActivities() const;
 	bool hasActivitiesNotes() const;
 	bool hasNotes() const;
+	bool hasPermanentActivities() const;
+	bool hasPermanentActivitiesNotes() const;
 
 private:
 #ifdef HAVE_XML2
 	int parsePidfXmlPresenceActivities(XmlParsingContext &xmlContext, unsigned int personIdx);
 	int parsePidfXmlPresenceNotes(XmlParsingContext &xmlContext, unsigned int personIdx);
+	int parsePidfXmlPresencePermanentActivities(XmlParsingContext &xmlContext, unsigned int personIdx);
 	int toXml(xmlTextWriterPtr writer) const;
 
 	static constexpr std::string_view pidfXmlPrefix = "/pidf:presence/dm:person";
@@ -89,6 +100,9 @@ private:
 	std::vector<std::shared_ptr<PresenceActivity>> mActivities;
 	std::vector<std::shared_ptr<PresenceNote>> mActivitiesNotes;
 	std::vector<std::shared_ptr<PresenceNote>> mNotes;
+	std::vector<std::shared_ptr<PresenceActivity>> mPermanentActivities;
+	std::vector<std::shared_ptr<PresenceNote>> mPermanentActivitiesNotes;
+	bool mPermanentActivitiesToBePublished = false;
 };
 
 LINPHONE_END_NAMESPACE

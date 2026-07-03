@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -18,6 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef _MSC_VER
+// Prevent compilation error with std::max, because Visual Studio defines a max macro.
+// This define prevents Visual Studio from defining with max macro.
+#define NOMINMAX
+#endif
+
+#include <algorithm>
 #include <numeric>
 
 #include <bctoolbox/defs.h>
@@ -127,7 +134,9 @@ std::shared_ptr<PresenceActivity> PresenceModel::getActivity() const {
 /* Suppose that if at least one service is open, then the model is open. */
 LinphonePresenceBasicStatus PresenceModel::getBasicStatus() const {
 	for (const auto &service : mServices) {
-		if (service->getBasicStatus() == LinphonePresenceBasicStatusOpen) return LinphonePresenceBasicStatusOpen;
+		if (service->getBasicStatus() == LinphonePresenceBasicStatusOpen) {
+			return LinphonePresenceBasicStatusOpen;
+		}
 	}
 	return LinphonePresenceBasicStatusClosed;
 }
@@ -137,7 +146,9 @@ int PresenceModel::getCapabilities() const {
 	for (const auto &service : mServices) {
 		for (const auto &pair : service->mCapabilities) {
 			LinphoneFriendCapability capability = Friend::nameToCapability(pair.first);
-			if (capability != LinphoneFriendCapabilityNone) capabilities |= capability;
+			if (capability != LinphoneFriendCapabilityNone) {
+				capabilities |= capability;
+			}
 		}
 	}
 	return capabilities;
@@ -147,15 +158,21 @@ float PresenceModel::getCapabilityVersion(const LinphoneFriendCapability capabil
 	auto it = std::max_element(mServices.cbegin(), mServices.cend(), [&](const auto &a, const auto &b) {
 		return a->getCapabilityVersion(capability) < b->getCapabilityVersion(capability);
 	});
-	if (it == mServices.cend()) return -1;
+	if (it == mServices.cend()) {
+		return -1;
+	}
 	return (*it)->getCapabilityVersion(capability);
 }
 
 LinphoneConsolidatedPresence PresenceModel::getConsolidatedPresence() const {
-	if (isOnline()) return LinphoneConsolidatedPresenceOnline;
+	if (isOnline()) {
+		return LinphoneConsolidatedPresenceOnline;
+	}
 	if (getBasicStatus() == LinphonePresenceBasicStatusClosed) {
 		unsigned int nbActivities = getNbActivities();
-		if (nbActivities == 0) return LinphoneConsolidatedPresenceOffline;
+		if (nbActivities == 0) {
+			return LinphoneConsolidatedPresenceOffline;
+		}
 		return LinphoneConsolidatedPresenceDoNotDisturb;
 	}
 	return LinphoneConsolidatedPresenceBusy;
@@ -164,7 +181,9 @@ LinphoneConsolidatedPresence PresenceModel::getConsolidatedPresence() const {
 const std::string &PresenceModel::getContact() const {
 	for (const auto &service : mServices) {
 		const std::string &contact = service->getContact();
-		if (!contact.empty()) return contact;
+		if (!contact.empty()) {
+			return contact;
+		}
 	}
 	return emptyString;
 }
@@ -172,12 +191,14 @@ const std::string &PresenceModel::getContact() const {
 time_t PresenceModel::getLatestActivityTimestamp() const {
 	auto it = std::max_element(mPersons.cbegin(), mPersons.cend(),
 	                           [](const auto &a, const auto &b) { return a->getTimestamp() < b->getTimestamp(); });
-	if (it == mPersons.cend()) return static_cast<time_t>(-1);
+	if (it == mPersons.cend()) {
+		return static_cast<time_t>(-1);
+	}
 	return (*it)->getTimestamp();
 }
 
 unsigned int PresenceModel::getNbActivities() const {
-	return std::accumulate(mPersons.cbegin(), mPersons.cend(), 0u,
+	return std::accumulate(mPersons.cbegin(), mPersons.cend(), 0U,
 	                       [](unsigned int a, const auto &person) { return a + person->getNbActivities(); });
 }
 
@@ -192,22 +213,32 @@ unsigned int PresenceModel::getNbServices() const {
 std::shared_ptr<PresenceNote> PresenceModel::getNote(const std::string &lang) const {
 	/* First try to find a note in the specified language exactly. */
 	std::shared_ptr<PresenceNote> note = findNoteWithLang(lang);
-	if (note) return note;
+	if (note) {
+		return note;
+	}
 
 	/* No notes in the specified language has been found, try to find one without language. */
 	note = findNoteWithLang(std::string());
-	if (note) return note;
+	if (note) {
+		return note;
+	}
 
 	/* Still no result, so get the first note even if it is not in the specified language. */
 	for (const auto &person : mPersons) {
 		note = person->getNthActivitiesNote(0);
-		if (note) return note;
+		if (note) {
+			return note;
+		}
 		note = person->getNthNote(0);
-		if (note) return note;
+		if (note) {
+			return note;
+		}
 	}
 	for (const auto &service : mServices) {
 		note = service->getNthNote(0);
-		if (note) return note;
+		if (note) {
+			return note;
+		}
 	}
 	return getNthNote(0);
 }
@@ -252,12 +283,12 @@ const std::shared_ptr<Address> &PresenceModel::getPresentity() const {
 }
 
 time_t PresenceModel::getTimestamp() const {
-	time_t timestamp = static_cast<time_t>(-1);
+	auto timestamp = static_cast<time_t>(-1);
 	for (const auto &service : mServices) {
-		if (service->getTimestamp() > timestamp) timestamp = service->getTimestamp();
+		timestamp = std::max(service->getTimestamp(), timestamp);
 	}
 	for (const auto &person : mPersons) {
-		if (person->getTimestamp() > timestamp) timestamp = person->getTimestamp();
+		timestamp = std::max(person->getTimestamp(), timestamp);
 	}
 	return timestamp;
 }
@@ -265,7 +296,9 @@ time_t PresenceModel::getTimestamp() const {
 // -----------------------------------------------------------------------------
 
 LinphoneStatus PresenceModel::addActivity(const std::shared_ptr<PresenceActivity> &activity) {
-	if (!activity) return -1;
+	if (!activity) {
+		return -1;
+	}
 	std::shared_ptr<PresencePerson> person;
 	if (getNbPersons() == 0) {
 		/* There is no person in the presence model, add one. */
@@ -280,7 +313,9 @@ LinphoneStatus PresenceModel::addActivity(const std::shared_ptr<PresenceActivity
 }
 
 LinphoneStatus PresenceModel::addNote(const std::string &content, const std::string &lang) {
-	if (content.empty()) return -1;
+	if (content.empty()) {
+		return -1;
+	}
 	/* Will put the note in the first service. */
 	std::shared_ptr<PresenceService> service = getNthService(0);
 	if (!service) {
@@ -302,7 +337,9 @@ LinphoneStatus PresenceModel::addNote(const std::string &content, const std::str
 }
 
 LinphoneStatus PresenceModel::addPerson(const std::shared_ptr<PresencePerson> &person) {
-	if (!person) return -1;
+	if (!person) {
+		return -1;
+	}
 	auto it = std::lower_bound(mPersons.cbegin(), mPersons.cend(), person->getTimestamp(),
 	                           [](const auto &person, time_t timestamp) { return person->getTimestamp() < timestamp; });
 	mPersons.insert(it, person);
@@ -310,21 +347,26 @@ LinphoneStatus PresenceModel::addPerson(const std::shared_ptr<PresencePerson> &p
 }
 
 LinphoneStatus PresenceModel::addService(const std::shared_ptr<PresenceService> &service) {
-	if (!service) return -1;
+	if (!service) {
+		return -1;
+	}
 	mServices.push_back(service);
 	return 0;
 }
 
 void PresenceModel::clearActivities() {
-	for (auto &person : mPersons)
+	for (auto &person : mPersons) {
 		person->clearActivities();
+	}
 }
 
 void PresenceModel::clearNotes() {
-	for (auto &person : mPersons)
+	for (auto &person : mPersons) {
 		person->clearNotes();
-	for (auto &service : mServices)
+	}
+	for (auto &service : mServices) {
 		service->clearNotes();
+	}
 	mNotes.clear();
 }
 
@@ -337,25 +379,29 @@ void PresenceModel::clearServices() {
 }
 
 bool PresenceModel::hasCapability(const LinphoneFriendCapability capability) const {
-	return getCapabilities() & capability;
+	return (getCapabilities() & capability) != 0;
 }
 
 bool PresenceModel::hasCapabilityWithVersion(const LinphoneFriendCapability capability, float version) const {
-	for (const auto &service : mServices) {
-		if (service->hasCapabilityWithVersion(capability, version)) return true;
-	}
-	return false;
+	return std::any_of(mServices.begin(), mServices.end(), [capability, version](const auto &service) {
+		return service->hasCapabilityWithVersion(capability, version);
+	});
 }
 
 bool PresenceModel::hasCapabilityWithVersionOrMore(const LinphoneFriendCapability capability, float version) const {
-	for (const auto &service : mServices) {
-		if (service->hasCapabilityWithVersionOrMore(capability, version)) return true;
-	}
-	return false;
+	return std::any_of(mServices.begin(), mServices.end(), [capability, version](const auto &service) {
+		return service->hasCapabilityWithVersionOrMore(capability, version);
+	});
 }
 
 bool PresenceModel::isOnline() const {
 	return (mIsOnline || ((getBasicStatus() == LinphonePresenceBasicStatusOpen) && (getNbActivities() == 0)));
+}
+
+void PresenceModel::hasBeenPublished() {
+	for (const auto &person : mPersons) {
+		person->mPermanentActivitiesToBePublished = false;
+	}
 }
 
 #ifdef HAVE_XML2
@@ -363,42 +409,59 @@ bool PresenceModel::isOnline() const {
 int PresenceModel::parsePidfXmlPresenceNotes(XmlParsingContext &xmlContext) {
 	std::stringstream ss;
 	xmlXPathObjectPtr noteObject = xmlContext.getXpathObjectForNodeList("/pidf:presence/pidf:note");
-	if (noteObject && noteObject->nodesetval) {
+	if ((noteObject != nullptr) && (noteObject->nodesetval != nullptr)) {
 		for (int i = 1; i <= noteObject->nodesetval->nodeNr; i++) {
 			ss.clear(), ss.str(std::string()), ss << "/pidf:presence/pidf:note[" << i << "]";
 			std::string noteStr = xmlContext.getTextContent(ss.str());
-			if (noteStr.empty()) continue;
+			if (noteStr.empty()) {
+				continue;
+			}
 			ss.clear(), ss.str(std::string()), ss << "/pidf:presence/pidf:note[" << i << "]/@xml:lang";
 			std::string lang = xmlContext.getTextContent(ss.str());
 			std::shared_ptr<PresenceNote> note = PresenceNote::create(noteStr, lang);
 			mNotes.push_back(note);
 		}
 	}
-	if (noteObject) xmlXPathFreeObject(noteObject);
+	if (noteObject != nullptr) {
+		xmlXPathFreeObject(noteObject);
+	}
 	return 0;
 }
 
 int PresenceModel::parsePidfXmlPresencePersons(XmlParsingContext &xmlContext) {
 	stringstream ss;
-	time_t timestamp = static_cast<time_t>(-1);
+	auto timestamp = static_cast<time_t>(-1);
 	int err = 0;
-	xmlXPathObjectPtr personObject = xmlContext.getXpathObjectForNodeList(PresencePerson::pidfXmlPrefix.data());
-	if (personObject && personObject->nodesetval) {
+	xmlXPathObjectPtr personObject = xmlContext.getXpathObjectForNodeList(std::string(PresencePerson::pidfXmlPrefix));
+	if ((personObject != nullptr) && (personObject->nodesetval != nullptr)) {
 		for (int i = 1; i <= personObject->nodesetval->nodeNr; i++) {
 			ss.clear(), ss.str(std::string()), ss << PresencePerson::pidfXmlPrefix.data() << "[" << i << "]/@id";
 			std::string personIdStr = xmlContext.getTextContent(ss.str());
 			ss.clear(), ss.str(std::string()),
 			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << i << "]/dm:timestamp";
 			std::string personTimestampStr = xmlContext.getTextContent(ss.str());
-			if (!personTimestampStr.empty()) timestamp = PresenceModel::parseTimestamp(personTimestampStr);
+			if (!personTimestampStr.empty()) {
+				timestamp = PresenceModel::parseTimestamp(personTimestampStr);
+			}
 			std::shared_ptr<PresencePerson> person = PresencePerson::create(personIdStr, timestamp);
 			err = person->parsePidfXmlPresenceActivities(xmlContext, (unsigned int)i);
-			if (err == 0) err = person->parsePidfXmlPresenceNotes(xmlContext, (unsigned int)i);
-			if (err == 0) addPerson(person);
-			if (err != 0) break;
+			if (err == 0) {
+				err = person->parsePidfXmlPresencePermanentActivities(xmlContext, (unsigned int)i);
+			}
+			if (err == 0) {
+				err = person->parsePidfXmlPresenceNotes(xmlContext, (unsigned int)i);
+			}
+			if (err == 0) {
+				addPerson(person);
+			}
+			if (err != 0) {
+				break;
+			}
 		}
 	}
-	if (personObject) xmlXPathFreeObject(personObject);
+	if (personObject != nullptr) {
+		xmlXPathFreeObject(personObject);
+	}
 	if (err < 0) {
 		/* Remove all the persons added since there was an error. */
 		clearPersons();
@@ -410,22 +473,30 @@ int PresenceModel::parsePidfXmlPresenceServices(XmlParsingContext &xmlContext) {
 	stringstream ss;
 	LinphonePresenceBasicStatus basicStatus;
 
-	xmlXPathObjectPtr serviceObject = xmlContext.getXpathObjectForNodeList(PresenceService::pidfXmlPrefix.data());
-	if (serviceObject && serviceObject->nodesetval) {
+	xmlXPathObjectPtr serviceObject = xmlContext.getXpathObjectForNodeList(std::string(PresenceService::pidfXmlPrefix));
+	if ((serviceObject != nullptr) && (serviceObject->nodesetval != nullptr)) {
 		for (int i = 1; i <= serviceObject->nodesetval->nodeNr; i++) {
 			ss.clear(), ss.str(std::string()),
 			    ss << PresenceService::pidfXmlPrefix.data() << "[" << i << "]/pidf:status/pidf:basic";
 			std::string basicStatusStr = xmlContext.getTextContent(ss.str());
-			if (basicStatusStr.empty()) continue;
-			if (basicStatusStr == "open") basicStatus = LinphonePresenceBasicStatusOpen;
-			else if (basicStatusStr == "closed") basicStatus = LinphonePresenceBasicStatusClosed;
-			else return -1; /* Invalid value for basic status. */
+			if (basicStatusStr.empty()) {
+				continue;
+			}
+			if (basicStatusStr == "open") {
+				basicStatus = LinphonePresenceBasicStatusOpen;
+			} else if (basicStatusStr == "closed") {
+				basicStatus = LinphonePresenceBasicStatusClosed;
+			} else {
+				return -1; /* Invalid value for basic status. */
+			}
 
 			ss.clear(), ss.str(std::string()),
 			    ss << PresenceService::pidfXmlPrefix.data() << "[" << i << "]/pidf:status/pidfonline:online";
 			xmlXPathObjectPtr pidfonlineObject = xmlContext.getXpathObjectForNodeList(ss.str());
-			if (pidfonlineObject) {
-				if (pidfonlineObject->nodesetval && pidfonlineObject->nodesetval->nodeNr > 0) mIsOnline = true;
+			if (pidfonlineObject != nullptr) {
+				if ((pidfonlineObject->nodesetval != nullptr) && pidfonlineObject->nodesetval->nodeNr > 0) {
+					mIsOnline = true;
+				}
 				xmlXPathFreeObject(pidfonlineObject);
 			}
 
@@ -445,8 +516,8 @@ int PresenceModel::parsePidfXmlPresenceServices(XmlParsingContext &xmlContext) {
 			    ss << PresenceService::pidfXmlPrefix.data() << "[" << i << "]/oma-pres:service-description";
 			xmlXPathObjectPtr descriptionsObject = xmlContext.getXpathObjectForNodeList(ss.str());
 			std::list<std::string> descriptions;
-			if (descriptionsObject) {
-				if (descriptionsObject->nodesetval) {
+			if (descriptionsObject != nullptr) {
+				if (descriptionsObject->nodesetval != nullptr) {
 					for (int j = 1; j <= descriptionsObject->nodesetval->nodeNr; j++) {
 						xmlContext.setXpathContextNode(xmlXPathNodeSetItem(descriptionsObject->nodesetval, j - 1));
 						std::string serviceId = xmlContext.getTextContent("./oma-pres:service-id");
@@ -460,14 +531,22 @@ int PresenceModel::parsePidfXmlPresenceServices(XmlParsingContext &xmlContext) {
 				xmlXPathFreeObject(descriptionsObject);
 			}
 
-			if (!timestampStr.empty()) service->setTimestamp(PresenceModel::parseTimestamp(timestampStr));
-			if (!contactStr.empty()) service->setContact(contactStr);
-			if (!descriptions.empty()) service->setDescriptions(descriptions);
+			if (!timestampStr.empty()) {
+				service->setTimestamp(PresenceModel::parseTimestamp(timestampStr));
+			}
+			if (!contactStr.empty()) {
+				service->setContact(contactStr);
+			}
+			if (!descriptions.empty()) {
+				service->setDescriptions(descriptions);
+			}
 			service->parsePidfXmlPresenceNotes(xmlContext, (unsigned int)i);
 			addService(service);
 		}
 	}
-	if (serviceObject) xmlXPathFreeObject(serviceObject);
+	if (serviceObject != nullptr) {
+		xmlXPathFreeObject(serviceObject);
+	}
 
 	return 0;
 }
@@ -482,20 +561,28 @@ std::shared_ptr<PresenceNote> PresenceModel::findNoteWithLang(const std::string 
 		const auto activityNoteIterator =
 		    std::find_if(person->mActivitiesNotes.cbegin(), person->mActivitiesNotes.cend(),
 		                 [&](const auto &note) { return note->getLang() == lang; });
-		if (activityNoteIterator != person->mActivitiesNotes.cend()) return *activityNoteIterator;
+		if (activityNoteIterator != person->mActivitiesNotes.cend()) {
+			return *activityNoteIterator;
+		}
 		/* ... then look in the person notes. */
 		const auto noteIterator = std::find_if(person->mNotes.cbegin(), person->mNotes.cend(),
 		                                       [&](const auto &note) { return note->getLang() == lang; });
-		if (noteIterator != person->mNotes.cend()) return *noteIterator;
+		if (noteIterator != person->mNotes.cend()) {
+			return *noteIterator;
+		}
 	}
 	for (const auto &service : mServices) {
 		const auto it = std::find_if(service->mNotes.cbegin(), service->mNotes.cend(),
 		                             [&](const auto &note) { return note->getLang() == lang; });
-		if (it != service->mNotes.cend()) return *it;
+		if (it != service->mNotes.cend()) {
+			return *it;
+		}
 	}
 	const auto noteIterator =
 	    std::find_if(mNotes.cbegin(), mNotes.cend(), [&](const auto &note) { return note->getLang() == lang; });
-	if (noteIterator != mNotes.cend()) return *noteIterator;
+	if (noteIterator != mNotes.cend()) {
+		return *noteIterator;
+	}
 	return nullptr;
 }
 
@@ -519,12 +606,17 @@ std::string PresenceModel::toXml() const {
 	std::string content;
 
 	try {
-		if (!getPresentity())
+		if (!getPresentity()) {
 			throw PresenceModelXmlException("Cannot convert presence model to xml because no presentity set");
+		}
 		buf = xmlBufferCreate();
-		if (!buf) throw PresenceModelXmlException("Error creating the XML buffer");
+		if (buf == nullptr) {
+			throw PresenceModelXmlException("Error creating the XML buffer");
+		}
 		writer = xmlNewTextWriterMemory(buf, 0);
-		if (!writer) throw PresenceModelXmlException("Error creating the XML writer");
+		if (writer == nullptr) {
+			throw PresenceModelXmlException("Error creating the XML writer");
+		}
 		xmlTextWriterSetIndent(writer, 1);
 
 		int err = xmlTextWriterStartDocument(writer, "1.0", "UTF-8", nullptr);
@@ -556,18 +648,24 @@ std::string PresenceModel::toXml() const {
 				err = PresenceService::toXml(nullptr, writer, contact, false);
 			} else {
 				for (const auto &service : mServices) {
-					if (err >= 0) err = service->toXml(writer, contact, isOnline());
+					if (err >= 0) {
+						err = service->toXml(writer, contact, isOnline());
+					}
 				}
 			}
 		}
 		if (err >= 0) {
 			for (const auto &person : mPersons) {
-				if (err >= 0) err = person->toXml(writer);
+				if (err >= 0) {
+					err = person->toXml(writer);
+				}
 			}
 		}
 		if (err >= 0) {
 			for (const auto &note : mNotes) {
-				if (err >= 0) err = note->toXml(writer, "");
+				if (err >= 0) {
+					err = note->toXml(writer, "");
+				}
 			}
 		}
 
@@ -586,8 +684,12 @@ std::string PresenceModel::toXml() const {
 		ms_error("%s", e.what());
 	}
 
-	if (writer) xmlFreeTextWriter(writer);
-	if (buf) xmlBufferFree(buf);
+	if (writer != nullptr) {
+		xmlFreeTextWriter(writer);
+	}
+	if (buf != nullptr) {
+		xmlBufferFree(buf);
+	}
 	return content;
 }
 
@@ -595,7 +697,7 @@ std::string PresenceModel::toXml() const {
 
 std::string PresenceModel::toXml() const {
 	ms_warning("PresenceModel::toXml(): stubbed.");
-	return std::string();
+	return {};
 }
 
 #endif /* HAVE_XML2 */
@@ -627,33 +729,35 @@ std::string PresenceModel::generatePresenceId() {
 
 #ifdef HAVE_XML2
 
-void PresenceModel::parsePresence(const std::string &contentType,
-                                  const std::string &contentSubtype,
-                                  const std::string &body,
-                                  SalPresenceModel **result) {
+SalPresenceModel *PresenceModel::parsePresence(const std::string &contentType,
+                                               const std::string &contentSubtype,
+                                               const std::string &body) {
 	if (contentType != "application") {
-		*result = nullptr;
-		return;
+		return nullptr;
 	}
 	if (contentSubtype != "pidf+xml") {
-		*result = nullptr;
 		ms_error("Unknown content type '%s/%s' for presence", L_STRING_TO_C(contentType),
 		         L_STRING_TO_C(contentSubtype));
-		return;
+		return nullptr;
 	}
 
 	std::shared_ptr<PresenceModel> model = nullptr;
 	XmlParsingContext xmlContext = XmlParsingContext(body);
-	if (xmlContext.isValid()) model = PresenceModel::parsePidfXmlPresence(xmlContext);
-	else ms_warning("Wrongly formatted presence XML: %s", xmlContext.getError().c_str());
+	if (xmlContext.isValid()) {
+		model = PresenceModel::parsePidfXmlPresence(xmlContext);
+	} else {
+		ms_warning("Wrongly formatted presence XML: %s", xmlContext.getError().c_str());
+	}
 
-	*result = (SalPresenceModel *)(model ? linphone_presence_model_ref(model->toC()) : nullptr);
+	return (SalPresenceModel *)(model ? linphone_presence_model_ref(model->toC()) : nullptr);
 }
 
 std::shared_ptr<PresenceModel> PresenceModel::parsePidfXmlPresence(XmlParsingContext &xmlContext) {
 	int err;
 
-	if (xmlContext.createXpathContext() < 0) return nullptr;
+	if (xmlContext.createXpathContext() < 0) {
+		return nullptr;
+	}
 
 	std::shared_ptr<PresenceModel> model = PresenceModel::create();
 	xmlXPathRegisterNs(xmlContext.getXpathContext(), reinterpret_cast<const xmlChar *>("pidf"),
@@ -674,7 +778,9 @@ std::shared_ptr<PresenceModel> PresenceModel::parsePidfXmlPresence(XmlParsingCon
 		err = model->parsePidfXmlPresenceNotes(xmlContext);
 	}
 
-	if (err < 0) model = nullptr;
+	if (err < 0) {
+		model = nullptr;
+	}
 	return model;
 }
 
@@ -708,12 +814,11 @@ time_t PresenceModel::parseTimestamp(const std::string &timestamp) {
 
 #else
 
-void PresenceModel::parsePresence(BCTBX_UNUSED(const std::string &contentType),
-                                  BCTBX_UNUSED(const std::string &contentSubtype),
-                                  BCTBX_UNUSED(const std::string &body),
-                                  SalPresenceModel **result) {
-	if (result) *result = nullptr;
+SalPresenceModel *PresenceModel::parsePresence(BCTBX_UNUSED(const std::string &contentType),
+                                               BCTBX_UNUSED(const std::string &contentSubtype),
+                                               BCTBX_UNUSED(const std::string &body)) {
 	ms_warning("PresenceModel::parsePresence(): stubbed.");
+	return nullptr;
 }
 
 #endif /* HAVE_XML2 */
@@ -728,7 +833,9 @@ int PresenceModel::timestampToXml(xmlTextWriterPtr writer, time_t timestamp, con
 		err = xmlTextWriterWriteElementNS(writer, (const xmlChar *)L_STRING_TO_C(ns), (const xmlChar *)"timestamp",
 		                                  nullptr, (const xmlChar *)timestamp_str);
 	}
-	if (timestamp_str) ms_free(timestamp_str);
+	if (timestamp_str != nullptr) {
+		ms_free(timestamp_str);
+	}
 	return err;
 }
 #endif /* HAVE_XML2 */

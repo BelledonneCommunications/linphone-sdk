@@ -299,7 +299,6 @@ set(SOURCE_FILES_C
 	log_file_tester.c
 	message_tester.c
 	player_tester.c
-	presence_server_tester.c
 	presence_tester.c
 	proxy_config_tester.c
 	quality_reporting_tester.c
@@ -363,6 +362,7 @@ set(SOURCE_FILES_CXX
 	local-secure-chat-tester.cpp
 	local-ephemeral-chat-tester.cpp
 	potential_configuration_tester.cpp
+	presence_server_tester.cpp
 	turn-server-tester.cpp
 	vcard_tester.cpp
 	vfs-encryption-tester.cpp

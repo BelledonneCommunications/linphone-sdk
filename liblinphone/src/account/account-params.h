@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -25,7 +25,6 @@
 
 #include "address/address.h"
 #include "c-wrapper/list-holder.h"
-#include "linphone/api/c-push-notification-config.h"
 #include "linphone/api/c-types.h"
 #include "linphone/types.h"
 #include "utils/custom-params.h"
@@ -104,6 +103,7 @@ public:
 	void setInstantMessagingEncryptionMandatory(bool mandatory);
 	void setSupportedTagsList(const std::list<std::string> &supportedTagsList);
 	void enableDtlsSrtpVerifyCert(bool flag);
+	void enableEchoedPresenceSubscription(bool enabled);
 
 	// Getters
 	int getExpires() const;
@@ -165,6 +165,7 @@ public:
 	const bctbx_list_t *getSupportedTagsCList() const;
 	bool useSupportedTags() const;
 	bool dtlsSrtpVerifyCertEnabled() const;
+	bool echoedPresenceSubscriptionEnabled() const;
 
 	// Other
 	LinphoneStatus setServerAddress(const std::shared_ptr<const Address> &serverAddr);
@@ -206,6 +207,7 @@ private:
 	bool mDtlsSrtpVerifyCertEnabled;
 	bool mAllowCpimMessagesInBasicChatRooms;
 	bool mInstantMessagingEncryptionMandatory;
+	bool mEchoedPresenceSubscriptionEnabled;
 
 	void *mUserData;
 

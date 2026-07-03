@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -18,8 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <cmath>
-
 #include <bctoolbox/defs.h>
 #include <bctoolbox/map.h>
 
@@ -28,7 +26,6 @@
 #include "linphone/api/c-address.h"
 #include "linphone/core.h"
 #include "linphone/lpconfig.h"
-#include "linphone/presence.h"
 #include "linphone/types.h"
 #include "presence/presence-activity.h"
 #include "presence/presence-model.h"
@@ -408,6 +405,70 @@ LinphoneStatus linphone_presence_person_clear_activities_notes(LinphonePresenceP
 	return 0;
 }
 
+unsigned int linphone_presence_person_get_nb_permanent_activities(const LinphonePresencePerson *person) {
+	if (person == nullptr) {
+		return 0;
+	}
+	return PresencePerson::toCpp(person)->getNbPermanentActivities();
+}
+
+LinphonePresenceActivity *linphone_presence_person_get_nth_permanent_activity(const LinphonePresencePerson *person,
+                                                                              unsigned int index) {
+	if (person == nullptr) {
+		return nullptr;
+	}
+	std::shared_ptr<PresenceActivity> activity = PresencePerson::toCpp(person)->getNthPermanentActivity(index);
+	return activity ? activity->toC() : nullptr;
+}
+
+LinphoneStatus linphone_presence_person_add_permanent_activity(LinphonePresencePerson *person,
+                                                               LinphonePresenceActivity *activity) {
+	if (person == nullptr || activity == nullptr) {
+		return -1;
+	}
+	return PresencePerson::toCpp(person)->addPermanentActivity(PresenceActivity::getSharedFromThis(activity));
+}
+
+LinphoneStatus linphone_presence_person_clear_permanent_activities(LinphonePresencePerson *person) {
+	if (person == nullptr) {
+		return -1;
+	}
+	PresencePerson::toCpp(person)->clearPermanentActivities();
+	return 0;
+}
+
+unsigned int linphone_presence_person_get_nb_permanent_activities_notes(const LinphonePresencePerson *person) {
+	if (person == nullptr) {
+		return 0;
+	}
+	return PresencePerson::toCpp(person)->getNbPermanentActivitiesNotes();
+}
+
+LinphonePresenceNote *linphone_presence_person_get_nth_permanent_activities_note(const LinphonePresencePerson *person,
+                                                                                 unsigned int index) {
+	if (person == nullptr) {
+		return nullptr;
+	}
+	std::shared_ptr<PresenceNote> note = PresencePerson::toCpp(person)->getNthPermanentActivitiesNote(index);
+	return note ? note->toC() : nullptr;
+}
+
+LinphoneStatus linphone_presence_person_add_permanent_activities_note(LinphonePresencePerson *person,
+                                                                      LinphonePresenceNote *note) {
+	if (person == nullptr || note == nullptr) {
+		return -1;
+	}
+	return PresencePerson::toCpp(person)->addPermanentActivitiesNote(PresenceNote::getSharedFromThis(note));
+}
+
+LinphoneStatus linphone_presence_person_clear_permanent_activities_notes(LinphonePresencePerson *person) {
+	if (person == nullptr) {
+		return -1;
+	}
+	PresencePerson::toCpp(person)->clearPermanentActivitiesNotes();
+	return 0;
+}
+
 /*****************************************************************************
  * PRESENCE ACTIVITY FUNCTIONS TO GET ACCESS TO ALL FUNCTIONALITIES          *
  ****************************************************************************/
@@ -707,8 +768,10 @@ void linphone_notify_parse_presence(const char *content_type,
                                     const char *content_subtype,
                                     const char *body,
                                     SalPresenceModel **result) {
-	PresenceModel::parsePresence(L_C_TO_STRING(content_type), L_C_TO_STRING(content_subtype), L_C_TO_STRING(body),
-	                             result);
+	if (result != nullptr) {
+		*result = PresenceModel::parsePresence(L_C_TO_STRING(content_type), L_C_TO_STRING(content_subtype),
+		                                       L_C_TO_STRING(body));
+	}
 }
 
 void linphone_notify_recv(LinphoneCore *lc, SalOp *op, SalSubscribeStatus ss, SalPresenceModel *model) {

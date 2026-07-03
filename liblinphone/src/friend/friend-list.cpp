@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -581,46 +581,79 @@ std::string FriendList::createResourceListXml() const {
 	std::string xmlContent;
 	if (mFriendsMapByUri.empty()) {
 		lWarning() << __FUNCTION__ << ": Empty list in subscription, ignored.";
-		return std::string();
+		return {};
 	}
 	xmlBufferPtr buf = xmlBufferCreate();
-	if (!buf) {
+	if (buf == nullptr) {
 		lError() << __FUNCTION__ << ": Error creating the XML buffer";
-		return std::string();
+		return {};
 	}
 	xmlTextWriterPtr writer = xmlNewTextWriterMemory(buf, 0);
-	if (!writer) {
+	if (writer == nullptr) {
 		lError() << __FUNCTION__ << ": Error creating the XML writer";
 		xmlBufferFree(buf);
-		return std::string();
+		return {};
 	}
 	xmlTextWriterSetIndent(writer, 1);
 	int err = xmlTextWriterStartDocument(writer, "1.0", "UTF-8", nullptr);
-	if (err >= 0)
+	if (err >= 0) {
 		err = xmlTextWriterStartElementNS(writer, nullptr, (const xmlChar *)"resource-lists",
 		                                  (const xmlChar *)"urn:ietf:params:xml:ns:resource-lists");
-	if (err >= 0)
+	}
+	if (err >= 0) {
 		err = xmlTextWriterWriteAttributeNS(writer, (const xmlChar *)"xmlns", (const xmlChar *)"xsi", nullptr,
 		                                    (const xmlChar *)"http://www.w3.org/2001/XMLSchema-instance");
+	}
 	if (err >= 0) {
 		err = xmlTextWriterStartElement(writer, (const xmlChar *)"list");
+	}
+
+	// Add local identify urls if echoed presence subscription is enabled to get the echoed model from the presence
+	// server. This is to be able to get a coherent view of the permanent activities across all the devices.
+	for (const auto &account : getCore()->getAccounts()) {
+		if (account->getAccountParams()->echoedPresenceSubscriptionEnabled()) {
+			const std::shared_ptr<Address> localIdentity = account->getAccountParams()->getIdentityAddress();
+			if (localIdentity && !localIdentity->asStringUriOnly().empty()) {
+				if (err >= 0) {
+					err = xmlTextWriterStartElement(writer, (const xmlChar *)"entry");
+				}
+				if (err >= 0) {
+					err = xmlTextWriterWriteAttribute(writer, (const xmlChar *)"uri",
+					                                  (const xmlChar *)localIdentity->asStringUriOnly().c_str());
+				}
+				if (err >= 0) {
+					err = xmlTextWriterEndElement(writer); // Close the "entry" element.
+				}
+			}
+		}
 	}
 
 	std::string previousEntry;
 	for (const auto &entry : mFriendsMapByUri) {
 		// Map is sorted, prevent duplicates
 		if (previousEntry.empty() || (previousEntry != entry.first)) {
-			if (err >= 0) err = xmlTextWriterStartElement(writer, (const xmlChar *)"entry");
-			if (err >= 0)
+			if (err >= 0) {
+				err = xmlTextWriterStartElement(writer, (const xmlChar *)"entry");
+			}
+			if (err >= 0) {
 				err = xmlTextWriterWriteAttribute(writer, (const xmlChar *)"uri", (const xmlChar *)entry.first.c_str());
-			if (err >= 0) err = xmlTextWriterEndElement(writer); // Close the "entry" element.
+			}
+			if (err >= 0) {
+				err = xmlTextWriterEndElement(writer); // Close the "entry" element.
+			}
 		}
 		previousEntry = entry.first;
 	}
 
-	if (err >= 0) err = xmlTextWriterEndElement(writer); // Close the "list" element.
-	if (err >= 0) err = xmlTextWriterEndElement(writer); // Close the "resource-lists" element.
-	if (err >= 0) err = xmlTextWriterEndDocument(writer);
+	if (err >= 0) {
+		err = xmlTextWriterEndElement(writer); // Close the "list" element.
+	}
+	if (err >= 0) {
+		err = xmlTextWriterEndElement(writer); // Close the "resource-lists" element.
+	}
+	if (err >= 0) {
+		err = xmlTextWriterEndDocument(writer);
+	}
 	if (err > 0) {
 		// xmlTextWriterEndDocument returns the size of the content.
 		xmlContent = (char *)buf->content;
@@ -634,7 +667,7 @@ std::string FriendList::createResourceListXml() const {
 
 std::string FriendList::createResourceListXml() const {
 	lWarning() << "FriendList::createResourceListXml() is stubbed.";
-	return std::string();
+	return {};
 }
 
 #endif
@@ -764,7 +797,7 @@ class FriendListXmlException : public std::exception {
 public:
 	FriendListXmlException(const char *msg) : mMessage(msg) {
 	}
-	const char *what() const throw() override {
+	[[nodiscard]] const char *what() const noexcept override {
 		return mMessage;
 	}
 
@@ -785,7 +818,9 @@ void FriendList::parseMultipartRelatedBody(const std::shared_ptr<const Content> 
 		xmlXPathRegisterNs(xmlCtx.getXpathContext(), reinterpret_cast<const xmlChar *>("rlmi"),
 		                   reinterpret_cast<const xmlChar *>("urn:ietf:params:xml:ns:rlmi"));
 		std::string versionStr = xmlCtx.getAttributeTextContent("/rlmi:list", "version");
-		if (versionStr.empty()) throw FriendListXmlException("rlmi+xml: No version attribute in list");
+		if (versionStr.empty()) {
+			throw FriendListXmlException("rlmi+xml: No version attribute in list");
+		}
 		int version = atoi(versionStr.c_str());
 		if (version < mExpectedNotificationVersion) {
 			// No longer an error as dialog may be silently restarting by the refresher
@@ -793,42 +828,54 @@ void FriendList::parseMultipartRelatedBody(const std::shared_ptr<const Content> 
 			           << mExpectedNotificationVersion << ", dialog may have been reseted";
 		}
 		std::string fullStateStr = xmlCtx.getAttributeTextContent("/rlmi:list", "fullState");
-		if (fullStateStr.empty()) throw FriendListXmlException("rlmi+xml: No fullState attribute in list");
+		if (fullStateStr.empty()) {
+			throw FriendListXmlException("rlmi+xml: No fullState attribute in list");
+		}
 		bool fullState = false;
 		std::string fullStateString(fullStateStr);
 		if ((fullStateString == "true") || (fullStateString == "1")) {
 			fullState = true;
-			for (const auto &lf : mFriendsList.mList)
+			for (const auto &lf : mFriendsList.mList) {
 				lf->clearPresenceModels();
+			}
 		}
-		if ((mExpectedNotificationVersion == 0) && !fullState)
+		if ((mExpectedNotificationVersion == 0) && !fullState) {
 			throw FriendListXmlException("rlmi+xml: Notification with version 0 is not full state, this is not valid");
+		}
 		mExpectedNotificationVersion = version + 1;
 
 		xmlXPathObjectPtr nameObject = xmlCtx.getXpathObjectForNodeList("/rlmi:list/rlmi:resource/rlmi:name/..");
-		if (nameObject && nameObject->nodesetval) {
+		if (nameObject != nullptr && nameObject->nodesetval != nullptr) {
 			for (int i = 1; i <= nameObject->nodesetval->nodeNr; i++) {
 				xmlCtx.setXpathContextNode(xmlXPathNodeSetItem(nameObject->nodesetval, i - 1));
 				std::string name = xmlCtx.getTextContent("./rlmi:name");
 				std::string uri = xmlCtx.getTextContent("./@uri");
-				if (uri.empty()) continue;
+				if (uri.empty()) {
+					continue;
+				}
 				std::shared_ptr<Address> addr = Address::create(uri);
-				if (!addr) continue;
+				if (!addr) {
+					continue;
+				}
 				std::shared_ptr<Friend> lf = findFriendByAddress(addr);
 				if (!lf && mBodylessSubscription) {
 					lf = Friend::create(getCore(), uri);
 					addFriend(lf);
 				}
-				if (!name.empty()) lf->setName(name);
+				if (!name.empty()) {
+					lf->setName(name);
+				}
 			}
 		}
-		if (nameObject) xmlXPathFreeObject(nameObject);
+		if (nameObject != nullptr) {
+			xmlXPathFreeObject(nameObject);
+		}
 
 		std::set<std::shared_ptr<Friend>> listFriendsPresenceReceived;
 		bctbx_list_t *parts = linphone_content_get_parts(content->toC());
 		xmlXPathObjectPtr resourceObject =
 		    xmlCtx.getXpathObjectForNodeList("/rlmi:list/rlmi:resource/rlmi:instance[@state=\"active\"]/..");
-		if (resourceObject && resourceObject->nodesetval) {
+		if (resourceObject != nullptr && resourceObject->nodesetval != nullptr) {
 			for (int i = 1; i <= resourceObject->nodesetval->nodeNr; i++) {
 				xmlCtx.setXpathContextNode(xmlXPathNodeSetItem(resourceObject->nodesetval, i - 1));
 				std::string cid = xmlCtx.getTextContent("./rlmi:instance/@cid");
@@ -836,9 +883,9 @@ void FriendList::parseMultipartRelatedBody(const std::shared_ptr<const Content> 
 					std::shared_ptr<Content> presencePart = nullptr;
 					bctbx_list_t *it = parts;
 					while (it != nullptr) {
-						LinphoneContent *content = (LinphoneContent *)it->data;
+						auto *content = (LinphoneContent *)it->data;
 						const char *header = linphone_content_get_custom_header(content, "Content-Id");
-						if (header && Utils::iequalsIgnoreBrakets(header, cid)) {
+						if (header != nullptr && Utils::iequalsIgnoreBrakets(header, cid)) {
 							presencePart = Content::toCpp(content)->getSharedFromThis();
 							break;
 						}
@@ -847,21 +894,26 @@ void FriendList::parseMultipartRelatedBody(const std::shared_ptr<const Content> 
 					if (!presencePart) {
 						lWarning() << "rlmi+xml: Cannot find part with Content-Id: " << cid;
 					} else {
-						SalPresenceModel *presence = nullptr;
 						const ContentType &presencePartContentType = presencePart->getContentType();
-						PresenceModel::parsePresence(presencePartContentType.getType(),
-						                             presencePartContentType.getSubType(),
-						                             presencePart->getBodyAsUtf8String(), &presence);
-						if (presence) {
+						SalPresenceModel *presence = PresenceModel::parsePresence(presencePartContentType.getType(),
+						                                                          presencePartContentType.getSubType(),
+						                                                          presencePart->getBodyAsUtf8String());
+						if (presence != nullptr) {
 							// Try to reduce CPU cost of linphone_address_new and find_friend_by_address by only doing
 							// it when we know for sure we have a presence to notify
 							std::string uri = xmlCtx.getTextContent("./@uri");
-							if (uri.empty()) continue;
+							if (uri.empty()) {
+								continue;
+							}
 							std::shared_ptr<Address> addr = Address::create(uri);
-							if (!addr) continue;
+							if (!addr) {
+								continue;
+							}
 
 							// Clean the URI
-							if (addr->hasUriParam("gr")) addr->removeUriParam("gr");
+							if (addr->hasUriParam("gr")) {
+								addr->removeUriParam("gr");
+							}
 							uri = addr->asStringUriOnly();
 
 							const auto [first, last] = mFriendsMapByUri.equal_range(uri);
@@ -873,13 +925,27 @@ void FriendList::parseMultipartRelatedBody(const std::shared_ptr<const Content> 
 									    getSharedFromThis(), uri,
 									    PresenceModel::toCpp((LinphonePresenceModel *)presence)->getSharedFromThis());
 									listFriendsPresenceReceived.insert(lf);
+								} else {
+									for (const auto &account : getCore()->getAccounts()) {
+										if (account->getAccountParams()->echoedPresenceSubscriptionEnabled()) {
+											const std::shared_ptr<Address> localIdentity =
+											    account->getAccountParams()->getIdentityAddress();
+											if (localIdentity && localIdentity->asStringUriOnly() == uri) {
+												account->setEchoedPresenceModel(
+												    PresenceModel::toCpp(
+												        reinterpret_cast<LinphonePresenceModel *>(presence))
+												        ->getSharedFromThis());
+											}
+										}
+									}
 								}
 							} else {
 								// Save the equal_range iterators for looping because mFriendsMapByUri might
 								// change during the loop, leading to wrong presence notifications
 								std::list<std::multimap<std::string, std::shared_ptr<Friend>>::iterator> its;
-								for (auto it = first; it != last; it++)
+								for (auto it = first; it != last; it++) {
 									its.push_back(it);
+								}
 								for (const auto &it : its) {
 									it->second->presenceReceived(
 									    getSharedFromThis(), uri,
@@ -897,15 +963,18 @@ void FriendList::parseMultipartRelatedBody(const std::shared_ptr<const Content> 
 			// Notify list with all friends for which we received presence information
 			if (!listFriendsPresenceReceived.empty()) {
 				bctbx_list_t *l = nullptr;
-				for (const auto &lf : listFriendsPresenceReceived)
+				for (const auto &lf : listFriendsPresenceReceived) {
 					l = bctbx_list_append(l, lf->toC());
+				}
 				LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_presence_received, l);
 				bctbx_list_free(l);
 			}
 		}
 
 		bctbx_list_free_with_data(parts, (void (*)(void *))linphone_content_unref);
-		if (resourceObject) xmlXPathFreeObject(resourceObject);
+		if (resourceObject != nullptr) {
+			xmlXPathFreeObject(resourceObject);
+		}
 	} catch (FriendListXmlException &e) {
 		lWarning() << e.what();
 	}

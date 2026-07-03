@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -536,4 +536,12 @@ bool_t linphone_account_params_dtls_srtp_verify_cert_enabled(const LinphoneAccou
 
 void linphone_account_params_enable_dtls_srtp_verify_cert(LinphoneAccountParams *params, bool_t enable) {
 	AccountParams::toCpp(params)->enableDtlsSrtpVerifyCert(enable);
+}
+
+bool_t linphone_account_params_echoed_presence_subscription_enabled(const LinphoneAccountParams *params) {
+	return AccountParams::toCpp(params)->echoedPresenceSubscriptionEnabled() ? TRUE : FALSE;
+}
+
+void linphone_account_params_enable_echoed_presence_subscription(LinphoneAccountParams *params, bool_t enable) {
+	AccountParams::toCpp(params)->enableEchoedPresenceSubscription(enable == TRUE);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -47,8 +47,11 @@ PresencePerson *PresencePerson::clone() const {
 // -----------------------------------------------------------------------------
 
 void PresencePerson::setId(const std::string &id) {
-	if (id.empty()) mId = PresenceModel::generatePresenceId();
-	else mId = id;
+	if (id.empty()) {
+		mId = PresenceModel::generatePresenceId();
+	} else {
+		mId = id;
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -69,7 +72,15 @@ unsigned int PresencePerson::getNbNotes() const {
 	return static_cast<unsigned int>(mNotes.size());
 }
 
-const std::shared_ptr<PresenceActivity> PresencePerson::getNthActivity(unsigned int idx) const {
+unsigned int PresencePerson::getNbPermanentActivities() const {
+	return static_cast<unsigned int>(mPermanentActivities.size());
+}
+
+unsigned int PresencePerson::getNbPermanentActivitiesNotes() const {
+	return static_cast<unsigned int>(mPermanentActivitiesNotes.size());
+}
+
+std::shared_ptr<PresenceActivity> PresencePerson::getNthActivity(unsigned int idx) const {
 	try {
 		return mActivities.at(idx);
 	} catch (std::out_of_range &) {
@@ -77,7 +88,7 @@ const std::shared_ptr<PresenceActivity> PresencePerson::getNthActivity(unsigned 
 	}
 }
 
-const std::shared_ptr<PresenceNote> PresencePerson::getNthActivitiesNote(unsigned int idx) const {
+std::shared_ptr<PresenceNote> PresencePerson::getNthActivitiesNote(unsigned int idx) const {
 	try {
 		return mActivitiesNotes.at(idx);
 	} catch (std::out_of_range &) {
@@ -85,9 +96,25 @@ const std::shared_ptr<PresenceNote> PresencePerson::getNthActivitiesNote(unsigne
 	}
 }
 
-const std::shared_ptr<PresenceNote> PresencePerson::getNthNote(unsigned int idx) const {
+std::shared_ptr<PresenceNote> PresencePerson::getNthNote(unsigned int idx) const {
 	try {
 		return mNotes.at(idx);
+	} catch (std::out_of_range &) {
+		return nullptr;
+	}
+}
+
+std::shared_ptr<PresenceActivity> PresencePerson::getNthPermanentActivity(unsigned int idx) const {
+	try {
+		return mPermanentActivities.at(idx);
+	} catch (std::out_of_range &) {
+		return nullptr;
+	}
+}
+
+std::shared_ptr<PresenceNote> PresencePerson::getNthPermanentActivitiesNote(unsigned int idx) const {
+	try {
+		return mPermanentActivitiesNotes.at(idx);
 	} catch (std::out_of_range &) {
 		return nullptr;
 	}
@@ -100,21 +127,46 @@ time_t PresencePerson::getTimestamp() const {
 // -----------------------------------------------------------------------------
 
 LinphoneStatus PresencePerson::addActivity(const std::shared_ptr<PresenceActivity> &activity) {
-	if (activity == nullptr) return -1;
+	if (activity == nullptr) {
+		return -1;
+	}
 	// Insert in first position since its the most recent activity!
 	mActivities.insert(mActivities.cbegin(), activity);
 	return 0;
 }
 
 LinphoneStatus PresencePerson::addActivitiesNote(const std::shared_ptr<PresenceNote> &note) {
-	if (note == nullptr) return -1;
+	if (note == nullptr) {
+		return -1;
+	}
 	mNotes.insert(mActivitiesNotes.cbegin(), note);
 	return 0;
 }
 
 LinphoneStatus PresencePerson::addNote(const std::shared_ptr<PresenceNote> &note) {
-	if (note == nullptr) return -1;
+	if (note == nullptr) {
+		return -1;
+	}
 	mNotes.insert(mNotes.cbegin(), note);
+	return 0;
+}
+
+LinphoneStatus PresencePerson::addPermanentActivity(const std::shared_ptr<PresenceActivity> &activity) {
+	if (activity == nullptr) {
+		return -1;
+	}
+	// Insert in first position since its the most recent activity!
+	mPermanentActivities.insert(mPermanentActivities.cbegin(), activity);
+	mPermanentActivitiesToBePublished = true;
+	return 0;
+}
+
+LinphoneStatus PresencePerson::addPermanentActivitiesNote(const std::shared_ptr<PresenceNote> &note) {
+	if (note == nullptr) {
+		return -1;
+	}
+	mPermanentActivitiesNotes.insert(mPermanentActivitiesNotes.cbegin(), note);
+	mPermanentActivitiesToBePublished = true;
 	return 0;
 }
 
@@ -130,6 +182,20 @@ void PresencePerson::clearNotes() {
 	mNotes.clear();
 }
 
+void PresencePerson::clearPermanentActivities() {
+	if (!mPermanentActivities.empty()) {
+		mPermanentActivities.clear();
+		mPermanentActivitiesToBePublished = true;
+	}
+}
+
+void PresencePerson::clearPermanentActivitiesNotes() {
+	if (!mPermanentActivitiesNotes.empty()) {
+		mPermanentActivitiesNotes.clear();
+		mPermanentActivitiesToBePublished = true;
+	}
+}
+
 bool PresencePerson::hasActivities() const {
 	return !mActivities.empty();
 }
@@ -142,6 +208,14 @@ bool PresencePerson::hasNotes() const {
 	return !mNotes.empty();
 }
 
+bool PresencePerson::hasPermanentActivities() const {
+	return !mPermanentActivities.empty();
+}
+
+bool PresencePerson::hasPermanentActivitiesNotes() const {
+	return !mPermanentActivitiesNotes.empty();
+}
+
 // -----------------------------------------------------------------------------
 
 #ifdef HAVE_XML2
@@ -150,36 +224,47 @@ int PresencePerson::parsePidfXmlPresenceActivities(XmlParsingContext &xmlContext
 	int err = 0;
 	ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:activities";
 	xmlXPathObjectPtr activitiesNodesObject = xmlContext.getXpathObjectForNodeList(ss.str());
-	if (activitiesNodesObject && activitiesNodesObject->nodesetval) {
+	if ((activitiesNodesObject != nullptr) && (activitiesNodesObject->nodesetval != nullptr)) {
 		for (int i = 1; i <= activitiesNodesObject->nodesetval->nodeNr; i++) {
 			ss.clear(), ss.str(std::string()),
 			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:activities[" << i
 			       << "]/rpid:*";
 			xmlXPathObjectPtr activitiesObject = xmlContext.getXpathObjectForNodeList(ss.str());
-			if (activitiesObject && activitiesObject->nodesetval) {
+			if ((activitiesObject != nullptr) && (activitiesObject->nodesetval != nullptr)) {
 				for (int j = 0; j < activitiesObject->nodesetval->nodeNr; j++) {
 					xmlNodePtr activityNode = activitiesObject->nodesetval->nodeTab[j];
-					if (activityNode->name && PresenceActivity::isValidActivityName((const char *)activityNode->name)) {
+					if ((activityNode->name != nullptr) &&
+					    PresenceActivity::isValidActivityName((const char *)activityNode->name)) {
 						LinphonePresenceActivityType activityType;
 						char *description = (char *)xmlNodeGetContent(activityNode);
-						if (description && (description[0] == '\0')) {
+						if ((description != nullptr) && (description[0] == '\0')) {
 							xmlFree(description);
 							description = nullptr;
 						}
 						err = PresenceActivity::activityNameToType((const char *)activityNode->name, &activityType);
-						if (err < 0) break;
+						if (err < 0) {
+							break;
+						}
 						std::shared_ptr<PresenceActivity> activity =
 						    PresenceActivity::create(activityType, L_C_TO_STRING(description));
 						addActivity(activity);
-						if (description) xmlFree(description);
+						if (description != nullptr) {
+							xmlFree(description);
+						}
 					}
 				}
 			}
-			if (activitiesObject) xmlXPathFreeObject(activitiesObject);
-			if (err < 0) break;
+			if (activitiesObject != nullptr) {
+				xmlXPathFreeObject(activitiesObject);
+			}
+			if (err < 0) {
+				break;
+			}
 		}
 	}
-	if (activitiesNodesObject) xmlXPathFreeObject(activitiesNodesObject);
+	if (activitiesNodesObject != nullptr) {
+		xmlXPathFreeObject(activitiesNodesObject);
+	}
 
 	return err;
 }
@@ -188,13 +273,15 @@ int PresencePerson::parsePidfXmlPresenceNotes(XmlParsingContext &xmlContext, uns
 	stringstream ss;
 	ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:activities/rpid:note";
 	xmlXPathObjectPtr noteObject = xmlContext.getXpathObjectForNodeList(ss.str());
-	if (noteObject && noteObject->nodesetval) {
+	if ((noteObject != nullptr) && (noteObject->nodesetval != nullptr)) {
 		for (int i = 1; i <= noteObject->nodesetval->nodeNr; i++) {
 			ss.clear(), ss.str(std::string()),
 			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:activities/rpid:note[" << i
 			       << "]";
 			std::string noteStr = xmlContext.getTextContent(ss.str());
-			if (noteStr.empty()) continue;
+			if (noteStr.empty()) {
+				continue;
+			}
 			ss.clear(), ss.str(std::string()),
 			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:activities/rpid:note[" << i
 			       << "]/@xml:lang";
@@ -203,15 +290,42 @@ int PresencePerson::parsePidfXmlPresenceNotes(XmlParsingContext &xmlContext, uns
 			addActivitiesNote(note);
 		}
 	}
-	if (noteObject) xmlXPathFreeObject(noteObject);
+	if (noteObject != nullptr) {
+		xmlXPathFreeObject(noteObject);
+	}
+	ss.clear(), ss.str(std::string()),
+	    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:permanent-activities/rpid:note";
+	noteObject = xmlContext.getXpathObjectForNodeList(ss.str());
+	if ((noteObject != nullptr) && (noteObject->nodesetval != nullptr)) {
+		for (int i = 1; i <= noteObject->nodesetval->nodeNr; i++) {
+			ss.clear(), ss.str(std::string()),
+			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx
+			       << "]/rpid:permanent-activities/rpid:note[" << i << "]";
+			std::string noteStr = xmlContext.getTextContent(ss.str());
+			if (noteStr.empty()) {
+				continue;
+			}
+			ss.clear(), ss.str(std::string()),
+			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx
+			       << "]/rpid:permanent-activities/rpid:note[" << i << "]/@xml:lang";
+			std::string lang = xmlContext.getTextContent(ss.str());
+			std::shared_ptr<PresenceNote> note = PresenceNote::create(noteStr, lang);
+			addPermanentActivitiesNote(note);
+		}
+	}
+	if (noteObject != nullptr) {
+		xmlXPathFreeObject(noteObject);
+	}
 	ss.clear(), ss.str(std::string()), ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/dm:note";
 	noteObject = xmlContext.getXpathObjectForNodeList(ss.str());
-	if (noteObject && noteObject->nodesetval) {
+	if ((noteObject != nullptr) && (noteObject->nodesetval != nullptr)) {
 		for (int i = 1; i <= noteObject->nodesetval->nodeNr; i++) {
 			ss.clear(), ss.str(std::string()),
 			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/dm:note[" << i << "]";
 			std::string noteStr = xmlContext.getTextContent(ss.str());
-			if (noteStr.empty()) continue;
+			if (noteStr.empty()) {
+				continue;
+			}
 			ss.clear(), ss.str(std::string()),
 			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/dm:note[" << i << "]/@xml:lang";
 			std::string lang = xmlContext.getTextContent(ss.str());
@@ -219,27 +333,85 @@ int PresencePerson::parsePidfXmlPresenceNotes(XmlParsingContext &xmlContext, uns
 			addNote(note);
 		}
 	}
-	if (noteObject) xmlXPathFreeObject(noteObject);
+	if (noteObject != nullptr) {
+		xmlXPathFreeObject(noteObject);
+	}
 	return 0;
+}
+
+int PresencePerson::parsePidfXmlPresencePermanentActivities(XmlParsingContext &xmlContext, unsigned int personIdx) {
+	stringstream ss;
+	int err = 0;
+	ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:permanent-activities";
+	xmlXPathObjectPtr permanentActivitiesNodesObject = xmlContext.getXpathObjectForNodeList(ss.str());
+	if ((permanentActivitiesNodesObject != nullptr) && (permanentActivitiesNodesObject->nodesetval != nullptr)) {
+		for (int i = 1; i <= permanentActivitiesNodesObject->nodesetval->nodeNr; i++) {
+			ss.clear(), ss.str(std::string()),
+			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:permanent-activities[" << i
+			       << "]/rpid:*";
+			xmlXPathObjectPtr permanentActivitiesObject = xmlContext.getXpathObjectForNodeList(ss.str());
+			if ((permanentActivitiesObject != nullptr) && (permanentActivitiesObject->nodesetval != nullptr)) {
+				for (int j = 0; j < permanentActivitiesObject->nodesetval->nodeNr; j++) {
+					xmlNodePtr activityNode = permanentActivitiesObject->nodesetval->nodeTab[j];
+					if ((activityNode->name != nullptr) &&
+					    PresenceActivity::isValidActivityName((const char *)activityNode->name)) {
+						LinphonePresenceActivityType activityType;
+						char *description = (char *)xmlNodeGetContent(activityNode);
+						if ((description != nullptr) && (description[0] == '\0')) {
+							xmlFree(description);
+							description = nullptr;
+						}
+						err = PresenceActivity::activityNameToType((const char *)activityNode->name, &activityType);
+						if (err < 0) {
+							break;
+						}
+						std::shared_ptr<PresenceActivity> activity =
+						    PresenceActivity::create(activityType, L_C_TO_STRING(description));
+						addPermanentActivity(activity);
+						if (description != nullptr) {
+							xmlFree(description);
+						}
+					}
+				}
+			}
+			if (permanentActivitiesObject != nullptr) {
+				xmlXPathFreeObject(permanentActivitiesObject);
+			}
+			if (err < 0) {
+				break;
+			}
+		}
+	}
+	if (permanentActivitiesNodesObject != nullptr) {
+		xmlXPathFreeObject(permanentActivitiesNodesObject);
+	}
+
+	return err;
 }
 
 int PresencePerson::toXml(xmlTextWriterPtr writer) const {
 	int err = xmlTextWriterStartElementNS(writer, (const xmlChar *)"dm", (const xmlChar *)"person", nullptr);
 	if (err >= 0) {
 		std::string id = getId();
-		if (id.empty()) id = PresenceModel::generatePresenceId();
+		if (id.empty()) {
+			id = PresenceModel::generatePresenceId();
+		}
 		err = xmlTextWriterWriteAttribute(writer, (const xmlChar *)"id", (const xmlChar *)L_STRING_TO_C(id));
 	}
 	if ((err >= 0) && (hasActivitiesNotes() || hasActivities())) {
 		err = xmlTextWriterStartElementNS(writer, (const xmlChar *)"rpid", (const xmlChar *)"activities", nullptr);
 		if ((err >= 0) && hasActivitiesNotes()) {
 			for (const auto &note : mActivitiesNotes) {
-				if (err >= 0) err = note->toXml(writer, "rpid");
+				if (err >= 0) {
+					err = note->toXml(writer, "rpid");
+				}
 			}
 		}
 		if ((err >= 0) && hasActivities()) {
 			for (const auto &activity : mActivities) {
-				if (err >= 0) err = activity->toXml(writer);
+				if (err >= 0) {
+					err = activity->toXml(writer);
+				}
 			}
 		}
 		if (err >= 0) {
@@ -247,9 +419,33 @@ int PresencePerson::toXml(xmlTextWriterPtr writer) const {
 			err = xmlTextWriterEndElement(writer);
 		}
 	}
+	if ((err >= 0) && mPermanentActivitiesToBePublished) {
+		err = xmlTextWriterStartElementNS(writer, (const xmlChar *)"rpid", (const xmlChar *)"permanent-activities",
+		                                  nullptr);
+		if ((err >= 0) && hasPermanentActivitiesNotes()) {
+			for (const auto &note : mPermanentActivitiesNotes) {
+				if (err >= 0) {
+					err = note->toXml(writer, "rpid");
+				}
+			}
+		}
+		if ((err >= 0) && hasPermanentActivities()) {
+			for (const auto &activity : mPermanentActivities) {
+				if (err >= 0) {
+					err = activity->toXml(writer);
+				}
+			}
+		}
+		if (err >= 0) {
+			/* Close the "permanent-activities" element. */
+			err = xmlTextWriterEndElement(writer);
+		}
+	}
 	if ((err >= 0) && hasNotes()) {
 		for (const auto &note : mNotes) {
-			if (err >= 0) err = note->toXml(writer, "dm");
+			if (err >= 0) {
+				err = note->toXml(writer, "dm");
+			}
 		}
 	}
 	if (err >= 0) {

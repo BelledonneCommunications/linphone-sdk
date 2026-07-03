@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -18,6 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/charconv.h"
+#include "bctoolbox/tester.h"
+#include "belle-sip/object.h"
 #include "liblinphone_tester.h"
 #include "linphone/api/c-account-params.h"
 #include "linphone/api/c-account.h"
@@ -25,9 +28,12 @@
 #include "linphone/api/c-dial-plan.h"
 #include "linphone/api/c-friend.h"
 #include "linphone/api/c-magic-search.h"
+#include "linphone/api/c-presence.h"
 #include "linphone/api/c-search-result.h"
 #include "linphone/core.h"
-#include "linphone/core_utils.h"
+#include "linphone/types.h"
+#include "presence/presence-model.h"
+#include "private_functions.h"
 #include "tester_utils.h"
 
 // List coming from dialplan
@@ -135,10 +141,10 @@ char *generate_random_e164_phone(void) {
 	       !check_phone_country(atoi(linphone_dial_plan_get_country_calling_code(dialPlan))) ||
 	       (strcmp("52", linphone_dial_plan_get_country_calling_code(dialPlan)) == 0))
 		; // fixme Linphone Mexican's dialplan has 2 ccc
-	belle_sip_object_remove_from_leak_detector((void *)genericDialPlan);
+	belle_sip_object_remove_from_leak_detector((belle_sip_object_t *)genericDialPlan);
 	belle_sip_object_remove_from_leak_detector(
-	    (void *)dialPlan); // because mostCommon dial plan is a static object freed at the end of the process. This f is
-	                       // only to avoid wrong leak detection.
+	    (belle_sip_object_t *)dialPlan); // because mostCommon dial plan is a static object freed at the end of the
+	                                     // process. This f is only to avoid wrong leak detection.
 
 	return generate_random_e164_phone_from_dial_plan(dialPlan);
 }
@@ -501,6 +507,7 @@ static void test_presence_list_base(bool_t enable_compression) {
 	const char *pauline_identity;
 	bctbx_list_t *lcs = NULL;
 	LinphonePresenceModel *presence;
+	int previous_laure_number_of_NotifyPresenceReceived = 0;
 
 	enable_publish_verified(marie, TRUE);
 	enable_publish_verified(pauline, TRUE);
@@ -634,7 +641,7 @@ static void test_presence_list_base(bool_t enable_compression) {
 	linphone_core_set_presence_model(marie->lc, presence);
 	linphone_presence_model_unref(presence);
 
-	int previous_laure_number_of_NotifyPresenceReceived = laure->stat.number_of_NotifyPresenceReceived;
+	previous_laure_number_of_NotifyPresenceReceived = laure->stat.number_of_NotifyPresenceReceived;
 	wait_for_list(lcs, &laure->stat.number_of_NotifyPresenceReceived,
 	              previous_laure_number_of_NotifyPresenceReceived + 1, liblinphone_tester_sip_timeout);
 	BC_ASSERT_EQUAL(laure->stat.number_of_NotifyPresenceReceived, previous_laure_number_of_NotifyPresenceReceived + 1,
@@ -809,6 +816,8 @@ static void test_presence_list_same_friend_two_addresses(void) {
 	LinphoneFriend *lf;
 	const char *marie_identity;
 	bctbx_list_t *lcs = NULL;
+	const LinphonePresenceModel *marie_presence_model = nullptr;
+	LinphoneConsolidatedPresence marie_presence = LinphoneConsolidatedPresenceOffline;
 
 	enable_publish_verified(marie, TRUE);
 	enable_publish_verified(pauline, TRUE);
@@ -851,11 +860,9 @@ static void test_presence_list_same_friend_two_addresses(void) {
 	BC_ASSERT_EQUAL(linphone_friend_get_consolidated_presence(lf), LinphoneConsolidatedPresenceOnline, int, "%d");
 	if (!BC_ASSERT_TRUE(linphone_friend_is_presence_received(lf))) goto end;
 
-	const LinphonePresenceModel *marie_presence_model =
-	    linphone_friend_get_presence_model_for_uri_or_tel(lf, marie_identity);
+	marie_presence_model = linphone_friend_get_presence_model_for_uri_or_tel(lf, marie_identity);
 	BC_ASSERT_PTR_NOT_NULL(marie_presence_model);
-	LinphoneConsolidatedPresence marie_presence =
-	    linphone_presence_model_get_consolidated_presence(marie_presence_model);
+	marie_presence = linphone_presence_model_get_consolidated_presence(marie_presence_model);
 	BC_ASSERT_EQUAL(marie_presence, LinphoneConsolidatedPresenceBusy, int, "%d");
 
 end:
@@ -1010,19 +1017,19 @@ static void test_presence_list_subscribe_with_error(bool_t io_error) {
 	    wait_for_until(laure->lc, pauline->lc, &laure->stat.number_of_LinphonePresenceActivityVacation, 2, 6000));
 	if (io_error) {
 		ms_message("Simulating socket error");
-		sal_set_recv_error(linphone_core_get_sal(laure->lc), -1);
+		linphone_core_get_sal(laure->lc)->setRecvError(-1);
 		wait_for_list(lcs, &dummy, 1, 500); /* just time for socket to be closed */
 	} else {
 		ms_message("Simulating in/out packets losses");
-		sal_set_send_error(linphone_core_get_sal(laure->lc),
-		                   1500); /*make sure no refresh is sent, trash the message without generating error*/
-		sal_set_recv_error(linphone_core_get_sal(laure->lc),
-		                   1500);             /*make sure server notify to close the dialog is also ignored*/
+		linphone_core_get_sal(laure->lc)->setSendError(
+		    1500); /*make sure no refresh is sent, trash the message without generating error*/
+		linphone_core_get_sal(laure->lc)->setRecvError(
+		    1500);                            /*make sure server notify to close the dialog is also ignored*/
 		wait_for_list(lcs, &dummy, 1, 32000); /* Wait a little bit for the subscribe transaction to timeout */
 	}
 	/*restart normal behavior*/
-	sal_set_send_error(linphone_core_get_sal(laure->lc), 0);
-	sal_set_recv_error(linphone_core_get_sal(laure->lc), 1);
+	linphone_core_get_sal(laure->lc)->setSendError(0);
+	linphone_core_get_sal(laure->lc)->setRecvError(1);
 	/*a new subscribe should be sent */
 
 	BC_ASSERT_TRUE(
@@ -1436,9 +1443,9 @@ static void long_term_presence_with_phone_without_sip(void) {
 
 		linphone_friend_unref(friend2);
 		belle_sip_object_remove_from_leak_detector(
-		    (void *)dialPlan); // because mostCommon dial plan is a static object freed at the end of the process. This
-		                       // f is only to avoid wrong leak detection.
-		belle_sip_object_remove_from_leak_detector((void *)genericDialPlan);
+		    (belle_sip_object_t *)dialPlan); // because mostCommon dial plan is a static object freed at the end of the
+		                                     // process. This f is only to avoid wrong leak detection.
+		belle_sip_object_remove_from_leak_detector((belle_sip_object_t *)genericDialPlan);
 		linphone_core_manager_destroy(pauline);
 		bctbx_free(e164);
 		bctbx_free(phone);
@@ -2426,8 +2433,8 @@ static void notify_friend_capabilities_after_publish(void) {
 	bctbx_list_t *lcs = NULL;
 	bctbx_list_t *specs = NULL;
 
-	specs = bctbx_list_append(specs, "groupchat/1.1");
-	specs = bctbx_list_append(specs, "lime/1.5");
+	specs = bctbx_list_append(specs, (char *)"groupchat/1.1");
+	specs = bctbx_list_append(specs, (char *)"lime/1.5");
 	linphone_core_set_linphone_specs_list(pauline->lc, specs);
 	bctbx_list_free(specs);
 
@@ -2559,8 +2566,8 @@ static void notify_friend_capabilities_with_alias(void) {
 		marie = linphone_core_manager_create2("marie_rc", e164Marie);
 		linphone_config_set_bool(linphone_core_get_config(marie->lc), "lime", "enabled", FALSE);
 		linphone_core_set_user_agent(marie->lc, "full-presence-support-bypass", NULL);
-		specs = bctbx_list_append(specs, "groupchat/1.1");
-		specs = bctbx_list_append(specs, "lime/1.5");
+		specs = bctbx_list_append(specs, (char *)"groupchat/1.1");
+		specs = bctbx_list_append(specs, (char *)"lime/1.5");
 		linphone_core_set_linphone_specs_list(marie->lc, specs);
 		bctbx_list_free(specs);
 		linphone_core_manager_start(marie, TRUE);
@@ -2613,9 +2620,9 @@ static void notify_friend_capabilities_with_alias(void) {
 		linphone_friend_unref(marieFriend);
 		linphone_friend_unref(laureFriend);
 		belle_sip_object_remove_from_leak_detector(
-		    (void *)dialPlan); // because mostCommon dial plan is a static object freed at the end of the process.
-		                       // This f is only to avoid wrong leak detection.
-		belle_sip_object_remove_from_leak_detector((void *)genericDialPlan);
+		    (belle_sip_object_t *)dialPlan); // because mostCommon dial plan is a static object freed at the end of the
+		                                     // process. This f is only to avoid wrong leak detection.
+		belle_sip_object_remove_from_leak_detector((belle_sip_object_t *)genericDialPlan);
 		linphone_core_manager_destroy(pauline);
 		bctbx_free(e164Laure);
 		bctbx_free(phoneLaure);
@@ -2648,8 +2655,8 @@ static void notify_search_result_capabilities_with_alias(void) {
 
 		marie = linphone_core_manager_create2("marie_rc", e164Marie);
 		linphone_core_set_user_agent(marie->lc, "full-presence-support-bypass", NULL);
-		specs = bctbx_list_append(specs, "groupchat/1.1");
-		specs = bctbx_list_append(specs, "lime/1.5");
+		specs = bctbx_list_append(specs, (char *)"groupchat/1.1");
+		specs = bctbx_list_append(specs, (char *)"lime/1.5");
 		linphone_core_set_linphone_specs_list(marie->lc, specs);
 		bctbx_list_free(specs);
 		linphone_core_manager_start(marie, TRUE);
@@ -2679,7 +2686,7 @@ static void notify_search_result_capabilities_with_alias(void) {
 
 		if (BC_ASSERT_PTR_NOT_NULL(resultList)) {
 			BC_ASSERT_EQUAL((int)bctbx_list_size(resultList), 1, int, "%d");
-			const LinphoneSearchResult *sr = bctbx_list_nth_data(resultList, 0);
+			const auto *sr = reinterpret_cast<const LinphoneSearchResult *>(bctbx_list_nth_data(resultList, 0));
 			BC_ASSERT_TRUE(linphone_search_result_has_capability(sr, LinphoneFriendCapabilityGroupChat));
 			BC_ASSERT_TRUE(linphone_search_result_has_capability(sr, LinphoneFriendCapabilityLimeX3dh));
 
@@ -2699,9 +2706,9 @@ static void notify_search_result_capabilities_with_alias(void) {
 		linphone_friend_unref(marieFriend);
 
 		belle_sip_object_remove_from_leak_detector(
-		    (void *)dialPlan); // because mostCommon dial plan is a static object freed at the end of the process.
-		                       // This f is only to avoid wrong leak detection.
-		belle_sip_object_remove_from_leak_detector((void *)genericDialPlan);
+		    (belle_sip_object_t *)dialPlan); // because mostCommon dial plan is a static object freed at the end of the
+		                                     // process. This f is only to avoid wrong leak detection.
+		belle_sip_object_remove_from_leak_detector((belle_sip_object_t *)genericDialPlan);
 		linphone_core_manager_destroy(pauline);
 
 		bctbx_free(e164Marie);
@@ -2712,6 +2719,181 @@ static void notify_search_result_capabilities_with_alias(void) {
 	} else ms_warning("Test skipped, no vcard support");
 }
 #endif
+
+static void enable_echoed_presence_subscription(LinphoneCoreManager *mgr) {
+	LinphoneAccountParams *account_params =
+	    linphone_account_params_clone(linphone_account_get_params(linphone_core_get_default_account(mgr->lc)));
+	linphone_account_params_enable_echoed_presence_subscription(account_params, TRUE);
+	linphone_account_set_params(linphone_core_get_default_account(mgr->lc), account_params);
+	linphone_account_params_unref(account_params);
+}
+
+/*
+ * It is not possible to test a whole path of permanent activities since flexisip-presence does not handle it.
+ * Test only the SUBSCRIBE path here, by checking that we get a NOTIFY for the local identity when the echoed presence
+ * subscription is enabled. That validates that the local identity has correctly been added to the SUBSCRIBE.
+ * Also check that we have an echoed presence model after receiving the NOTIFY.
+ */
+void permanent_activities_subscribe() {
+	LinphoneCoreManager *laure = linphone_core_presence_manager_new("laure_tcp_rc");
+	LinphoneCoreManager *pauline = linphone_core_presence_manager_new(
+	    transport_supported(LinphoneTransportTls) == TRUE ? "pauline_rc" : "pauline_tcp_rc");
+	linphone_core_set_user_agent(laure->lc, "bypass", nullptr);
+	linphone_core_set_user_agent(pauline->lc, "bypass", nullptr);
+
+	enable_echoed_presence_subscription(laure);
+	enable_publish_verified(laure, TRUE);
+	enable_publish_verified(pauline, TRUE);
+
+	const char *rls_uri = "sip:rls@sip.example.org";
+	const char *pauline_identity = get_identity(pauline);
+	bctbx_list_t *lcs = nullptr;
+	lcs = bctbx_list_append(lcs, laure->lc);
+	lcs = bctbx_list_append(lcs, pauline->lc);
+
+	LinphoneFriendList *lfl = linphone_core_create_friend_list(laure->lc);
+	linphone_friend_list_set_rls_uri(lfl, rls_uri);
+	LinphoneFriend *lf = linphone_core_create_friend_with_address(laure->lc, pauline_identity);
+	linphone_friend_list_add_friend(lfl, lf);
+	linphone_friend_unref(lf);
+	linphone_core_add_friend_list(laure->lc, lfl);
+	linphone_friend_list_update_subscriptions(lfl);
+	linphone_friend_list_unref(lfl);
+
+	wait_for_list(lcs, &laure->stat.number_of_NotifyPresenceReceived, 2, liblinphone_tester_sip_timeout);
+
+	BC_ASSERT_PTR_NOT_NULL(linphone_account_get_echoed_presence_model(linphone_core_get_default_account(laure->lc)));
+
+	bctbx_list_free(lcs);
+	linphone_core_manager_destroy(pauline);
+	linphone_core_manager_destroy(laure);
+}
+
+/*
+ * It is not possible to test a whole path of permanent activities since flexisip-presence does not handle it.
+ * Test only the PUBLISH path here, more precisely test the presence XML generation when adding and removing permanent
+ * activities.
+ */
+void permanent_activities_publish() {
+	LinphoneCoreManager *laure = linphone_core_manager_new("laure_tcp_rc");
+
+	LinphonePresenceModel *presence_model =
+	    linphone_presence_model_new_with_activity(LinphonePresenceActivityDinner, nullptr);
+	linphone_presence_model_set_presentity(
+	    presence_model, linphone_account_params_get_identity_address(
+	                        linphone_account_get_params(linphone_core_get_default_account(laure->lc))));
+
+	auto check_permanent_activities = [laure, presence_model](std::string lookup, bool expected_to_be_found) {
+		char *xml = linphone_presence_model_to_xml(presence_model);
+		if (expected_to_be_found) {
+			BC_ASSERT(std::string(xml).find(lookup) != std::string::npos);
+		} else {
+			BC_ASSERT(std::string(xml).find(lookup) == std::string::npos);
+		}
+		bctbx_free(xml), xml = nullptr;
+		linphone_account_set_presence_model(linphone_core_get_default_account(laure->lc), presence_model);
+	};
+
+	// Check that there is no permanent activities at the start.
+	check_permanent_activities("<rpid:permanent-activities>", false);
+
+	// Check that the permanent activities are present in the XML when adding one.
+	auto *activity = linphone_presence_activity_new(LinphonePresenceActivityAway, nullptr);
+	linphone_presence_person_add_permanent_activity(linphone_presence_model_get_nth_person(presence_model, 0),
+	                                                activity);
+	linphone_presence_activity_unref(activity);
+	check_permanent_activities("<rpid:permanent-activities>", true);
+
+	// Check that modifying something other than the permanent activities in the model does not put the permanent
+	// activities section in the XML.
+	auto *person = linphone_presence_model_get_nth_person(presence_model, 0);
+	linphone_presence_person_clear_activities(person);
+	activity = linphone_presence_activity_new(LinphonePresenceActivityMeeting, nullptr);
+	linphone_presence_person_add_activity(person, activity);
+	linphone_presence_activity_unref(activity);
+	check_permanent_activities("<rpid:permanent-activities>", false);
+
+	// Check that the permanent activities are present in the XML when adding another one.
+	activity = linphone_presence_activity_new(LinphonePresenceActivityInTransit, nullptr);
+	linphone_presence_person_add_permanent_activity(linphone_presence_model_get_nth_person(presence_model, 0),
+	                                                activity);
+	linphone_presence_activity_unref(activity);
+	check_permanent_activities("<rpid:permanent-activities>", true);
+
+	// Check that the permanent activities are present in the XML when adding a permanent activity note.
+	auto *note = linphone_presence_note_new("A simple note", "en");
+	linphone_presence_person_add_permanent_activities_note(linphone_presence_model_get_nth_person(presence_model, 0),
+	                                                       note);
+	linphone_presence_note_unref(note);
+	check_permanent_activities("<rpid:permanent-activities>", true);
+
+	// Check that the permanent activities section is still present in the XML when clearing the permanent activities,
+	// because the previously added permanent activity note is still there.
+	linphone_presence_person_clear_permanent_activities(linphone_presence_model_get_nth_person(presence_model, 0));
+	check_permanent_activities("<rpid:permanent-activities>", true);
+
+	// Check that the permanent activities section is present but empty in the XML when clearing the permanent
+	// activities notes.
+	linphone_presence_person_clear_permanent_activities_notes(
+	    linphone_presence_model_get_nth_person(presence_model, 0));
+	check_permanent_activities("<rpid:permanent-activities/>", true);
+
+	// Check one more time that modifying something other than the permanent activities in the model does not put the
+	// permanent activities section in the XML.
+	linphone_presence_person_clear_activities(linphone_presence_model_get_nth_person(presence_model, 0));
+	check_permanent_activities("<rpid:permanent-activities>", false);
+
+	linphone_presence_model_unref(presence_model);
+
+	linphone_core_manager_destroy(laure);
+}
+
+/*
+ * It is not possible to test a whole path of permanent activities since flexisip-presence does not handle it.
+ * Test only the NOTIFY path here, more precisely test the presence XML with permanent activities parsing.
+ */
+void permanent_activities_notify() {
+	auto *presence_model = reinterpret_cast<LinphonePresenceModel *>(LinphonePrivate::PresenceModel::parsePresence(
+	    "application", "pidf+xml",
+	    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+	    "<presence xmlns:dm=\"urn:ietf:params:xml:ns:pidf:data-model\" xmlns:rpid=\"urn:ietf:params:xml:ns:pidf:rpid\" "
+	    "entity=\"sip:laure_agmtzpl@sip.example.org\" xmlns=\"urn:ietf:params:xml:ns:pidf\">\n"
+	    " <tuple id=\"ictb4s\">\n"
+	    "  <status>\n"
+	    "   <basic>open</basic>\n"
+	    "  </status>\n"
+	    "  <contact priority=\"0.8\">sip:laure_agmtzpl@sip.example.org</contact>\n"
+	    "  <timestamp>2026-07-09T14:21:48Z</timestamp>\n"
+	    " </tuple>\n"
+	    " <dm:person id=\"xtashx\">"
+	    "  <rpid:activities>\n"
+	    "   <rpid:meeting/>\n"
+	    "  </rpid:activities>\n"
+	    "  <rpid:permanent-activities>\n"
+	    "   <rpid:note xml:lang=\"en\">A simple note</rpid:note>\n"
+	    "   <rpid:in-transit/>\n"
+	    "   <rpid:away/>\n"
+	    "  </rpid:permanent-activities>\n"
+	    "  <dm:timestamp>2026-07-09T14:21:48Z</dm:timestamp>\n"
+	    " </dm:person>\n"
+	    "</presence>"));
+	BC_ASSERT_PTR_NOT_NULL(presence_model);
+	auto *person = linphone_presence_model_get_nth_person(presence_model, 0);
+	BC_ASSERT_PTR_NOT_NULL(person);
+	BC_ASSERT_EQUAL(linphone_presence_person_get_nb_permanent_activities(person), 2, int, "%d");
+	auto *activity = linphone_presence_person_get_nth_permanent_activity(person, 0);
+	BC_ASSERT_PTR_NOT_NULL(activity);
+	BC_ASSERT_EQUAL(linphone_presence_activity_get_type(activity), LinphonePresenceActivityAway, int, "%d");
+	activity = linphone_presence_person_get_nth_permanent_activity(person, 1);
+	BC_ASSERT_PTR_NOT_NULL(activity);
+	BC_ASSERT_EQUAL(linphone_presence_activity_get_type(activity), LinphonePresenceActivityInTransit, int, "%d");
+	BC_ASSERT_EQUAL(linphone_presence_person_get_nb_permanent_activities_notes(person), 1, int, "%d");
+	auto *note = linphone_presence_person_get_nth_permanent_activities_note(person, 0);
+	BC_ASSERT_PTR_NOT_NULL(note);
+	BC_ASSERT_STRING_EQUAL(linphone_presence_note_get_content(note), "A simple note");
+	BC_ASSERT_STRING_EQUAL(linphone_presence_note_get_lang(note), "en");
+	linphone_presence_model_unref(presence_model);
+}
 
 test_t presence_server_tests[] = {
     TEST_NO_TAG("Simple Publish", simple_publish),
@@ -2767,11 +2949,14 @@ test_t presence_server_tests[] = {
     TEST_ONE_TAG(
         "Notify search result capabilities with alias", notify_search_result_capabilities_with_alias, "capabilities"),
 #endif
+    TEST_ONE_TAG("Permanent activities SUBSCRIBE", permanent_activities_subscribe, "permanent-activities"),
+    TEST_ONE_TAG("Permanent activities PUBLISH", permanent_activities_publish, "permanent-activities"),
+    TEST_ONE_TAG("Permanent activities NOTIFY", permanent_activities_notify, "permanent-activities"),
 };
 
 test_suite_t presence_server_test_suite = {"Presence using server",
-                                           NULL,
-                                           NULL,
+                                           nullptr,
+                                           nullptr,
                                            liblinphone_tester_before_each,
                                            liblinphone_tester_after_each,
                                            sizeof(presence_server_tests) / sizeof(presence_server_tests[0]),
