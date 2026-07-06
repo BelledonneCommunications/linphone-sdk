@@ -27,6 +27,7 @@
 #include "linphone/api/c-auth-info.h"
 #include "linphone/api/c-digest-authentication-policy.h"
 #include "linphone/core.h"
+#include "shared_tester_functions.h"
 #include "tester_utils.h"
 
 static void
@@ -1850,6 +1851,35 @@ static void lime_user_creation_after_registration(void) {
 	linphone_core_manager_destroy(marie);
 }
 
+static void register_add_and_remove_custom_headers(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneAccount *marie_account = linphone_core_get_default_account(marie->lc);
+	int marie_stat_current_register = marie->stat.number_of_LinphoneRegistrationOk;
+
+	const char *header_name = "X-Custom-Header-Test";
+	const char *header_value = "custom-header-test-val";
+	BC_ASSERT_PTR_NULL(find_custom_header_in_account_sal(marie_account, header_name));
+
+	linphone_account_add_custom_header(marie_account, header_name, header_value);
+	linphone_account_refresh_register(marie_account);
+	BC_ASSERT_TRUE(
+	    wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneRegistrationOk, marie_stat_current_register + 1));
+	++marie_stat_current_register;
+	const char *found_header = find_custom_header_in_account_sal(marie_account, header_name);
+	if (BC_ASSERT_PTR_NOT_NULL(found_header)) {
+		BC_ASSERT_STRING_EQUAL(found_header, header_value);
+	}
+
+	linphone_account_remove_custom_header(marie_account, header_name);
+	linphone_account_refresh_register(marie_account);
+	BC_ASSERT_TRUE(
+	    wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneRegistrationOk, marie_stat_current_register + 1));
+	++marie_stat_current_register;
+	BC_ASSERT_PTR_NULL(find_custom_header_in_account_sal(marie_account, header_name));
+
+	linphone_core_manager_destroy(marie);
+}
+
 static test_t register_tests[] = {
     TEST_NO_TAG("Simple register", simple_register), TEST_NO_TAG("Simple register unregister", simple_unregister),
     TEST_NO_TAG("TCP register", simple_tcp_register), TEST_NO_TAG("TCP register 2", simple_tcp_register2),
@@ -1916,7 +1946,8 @@ static test_t register_tests[] = {
     TEST_NO_TAG("MD5-based digest rejected by policy", md5_digest_rejected),
     TEST_NO_TAG("Registration with custom contact", registration_with_custom_contact),
     TEST_NO_TAG("Registration with IP version preference", registration_with_ip_version_preference),
-    TEST_NO_TAG("Lime user creation after registration", lime_user_creation_after_registration)};
+    TEST_NO_TAG("Lime user creation after registration", lime_user_creation_after_registration),
+    TEST_NO_TAG("Adding and removing custom headers between registers", register_add_and_remove_custom_headers)};
 
 test_suite_t register_test_suite = {"Register",
                                     NULL,

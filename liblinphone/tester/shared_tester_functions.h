@@ -125,6 +125,7 @@ bool_t check_custom_m_line(LinphoneCall *call, const char *m_line);
 void check_chat_message_properties(LinphoneChatMessage *msg);
 
 void check_session_error(LinphoneConferenceScheduler *scheduler, LinphoneReason reason);
+const char *find_custom_header_in_account_sal(LinphoneAccount *account, const char *header_name);
 
 char *liblinphone_tester_filter_recv_fmtp(const char *recv_fmtp);
 

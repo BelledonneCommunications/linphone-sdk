@@ -520,7 +520,7 @@ extern "C" {
 SalCustomHeader *sal_custom_header_ref(SalCustomHeader *ch);
 LINPHONE_PUBLIC void sal_custom_header_unref(SalCustomHeader *ch);
 LINPHONE_PUBLIC SalCustomHeader *sal_custom_header_append(SalCustomHeader *ch, const char *name, const char *value);
-const char *sal_custom_header_find(const SalCustomHeader *ch, const char *name);
+LINPHONE_PUBLIC const char *sal_custom_header_find(const SalCustomHeader *ch, const char *name);
 bool_t sal_custom_sdp_attribute_is_present(const SalCustomSdpAttribute *csa, const char *name);
 SalCustomHeader *sal_custom_header_remove(SalCustomHeader *ch, const char *name);
 LINPHONE_PUBLIC void sal_custom_header_free(SalCustomHeader *ch);

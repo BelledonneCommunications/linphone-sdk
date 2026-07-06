@@ -531,8 +531,13 @@ void Account::setOp(SalRegisterOp *op) {
 	mOp = op;
 }
 
-void Account::setCustomheader(const std::string &headerName, const std::string &headerValue) {
+void Account::addCustomheader(const std::string &headerName, const std::string &headerValue) {
 	mSentHeaders = sal_custom_header_append(mSentHeaders, headerName.c_str(), headerValue.c_str());
+	mRegisterChanged = true;
+}
+
+void Account::removeCustomheader(const std::string &headerName) {
+	mSentHeaders = sal_custom_header_remove(mSentHeaders, headerName.c_str());
 	mRegisterChanged = true;
 }
 
@@ -831,6 +836,7 @@ void Account::refreshRegister() {
 	}
 
 	if (mParams->mRegisterEnabled && mOp && mState != LinphoneRegistrationProgress) {
+		mOp->setSentCustomHeaders(mSentHeaders);
 		if (mOp->refreshRegister(mParams->mExpires) == 0) {
 			setState(LinphoneRegistrationRefreshing, "Refresh registration");
 		}
