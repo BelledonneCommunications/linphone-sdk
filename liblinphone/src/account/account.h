@@ -92,7 +92,8 @@ public:
 	void setServiceRouteAddress(std::shared_ptr<Address> serviceRoute);
 	void setState(LinphoneRegistrationState state, const std::string &message);
 	void setOp(SalRegisterOp *op);
-	void setCustomheader(const std::string &headerName, const std::string &headerValue);
+	void addCustomheader(const std::string &headerName, const std::string &headerValue);
+	void removeCustomheader(const std::string &headerName);
 	void setPresencePublishEvent(const std::shared_ptr<EventPublish> &presencePublishEvent);
 	void setDependency(std::shared_ptr<Account> dependency);
 	void setDependee(std::shared_ptr<Account> dependency);

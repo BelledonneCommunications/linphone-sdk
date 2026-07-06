@@ -118,10 +118,27 @@ LINPHONE_PUBLIC void linphone_account_set_user_data(LinphoneAccount *account, vo
 LINPHONE_PUBLIC void *linphone_account_get_user_data(LinphoneAccount *account);
 
 /**
+ * Add the value of a custom header and its value to be sent to the server in REGISTERs request.
+ * @param account The #LinphoneAccount object. @notnil
+ * @param header_name The header name. @notnil
+ * @param header_value The header value. @maybenil
+ */
+LINPHONE_PUBLIC void
+linphone_account_add_custom_header(LinphoneAccount *account, const char *header_name, const char *header_value);
+
+/**
+ * Remove a custom header and stop sending it to the server in REGISTERs request.
+ * @param account The #LinphoneAccount object. @notnil
+ * @param header_name The header name. @notnil
+ */
+LINPHONE_PUBLIC void linphone_account_remove_custom_header(LinphoneAccount *account, const char *header_name);
+
+/**
  * Set the value of a custom header sent to the server in REGISTERs request.
  * @param account The #LinphoneAccount object. @notnil
  * @param header_name The header name. @notnil
  * @param header_value The header value. @maybenil
+ * @deprecated 03/07/2026 Use linphone_account_add_custom_header() instead.
  */
 LINPHONE_PUBLIC void
 linphone_account_set_custom_header(LinphoneAccount *account, const char *header_name, const char *header_value);

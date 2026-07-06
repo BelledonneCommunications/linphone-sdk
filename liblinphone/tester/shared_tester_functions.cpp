@@ -180,7 +180,7 @@ static void check_ice_from_rtp(LinphoneCall *c1, LinphoneCall *c2, LinphoneStrea
 				if ((expected_addr.find(':') == std::string::npos) &&
 				    (astream->ms.sessions.rtp_session->rtp.gs.rem_addr.ss_family == AF_INET6)) {
 					bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&astream->ms.sessions.rtp_session->rtp.gs.rem_addr,
-								    (struct sockaddr *)&remaddr, &remaddrlen);
+					                            (struct sockaddr *)&remaddr, &remaddrlen);
 				} else {
 					memcpy(&remaddr, &astream->ms.sessions.rtp_session->rtp.gs.rem_addr,
 					       astream->ms.sessions.rtp_session->rtp.gs.rem_addrlen);
@@ -1249,4 +1249,13 @@ void check_session_error(LinphoneConferenceScheduler *scheduler, LinphoneReason 
 			}
 		}
 	}
+}
+
+const char *find_custom_header_in_account_sal(LinphoneAccount *account, const char *header_name) {
+	const char *header = NULL;
+	auto op = Account::toCpp(account)->getOp();
+	if (op) {
+		header = sal_custom_header_find(op->getSentCustomHeaders(), header_name);
+	}
+	return header;
 }

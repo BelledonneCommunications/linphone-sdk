@@ -109,7 +109,17 @@ void *linphone_account_get_user_data(LinphoneAccount *account) {
 
 void linphone_account_set_custom_header(LinphoneAccount *account, const char *header_name, const char *header_value) {
 	AccountLogContextualizer logContextualizer(account);
-	Account::toCpp(account)->setCustomheader(std::string(header_name), std::string(header_value));
+	// Deprecated - setCustomHeader has been renamed to addCustomHeader
+	Account::toCpp(account)->addCustomheader(std::string(header_name), std::string(header_value));
+}
+
+void linphone_account_add_custom_header(LinphoneAccount *account, const char *header_name, const char *header_value) {
+	AccountLogContextualizer logContextualizer(account);
+	Account::toCpp(account)->addCustomheader(std::string(header_name), std::string(header_value));
+}
+void linphone_account_remove_custom_header(LinphoneAccount *account, const char *header_name) {
+	AccountLogContextualizer logContextualizer(account);
+	Account::toCpp(account)->removeCustomheader(std::string(header_name));
 }
 
 const char *linphone_account_get_custom_header(LinphoneAccount *account, const char *header_name) {

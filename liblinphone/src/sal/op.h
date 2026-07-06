@@ -153,6 +153,10 @@ public:
 		mRealm = value;
 	}
 
+	const SalCustomHeader *getSentCustomHeaders() const {
+		return mSentCustomHeaders;
+	}
+
 	void setSentCustomHeaders(SalCustomHeader *ch);
 
 	void enableCnxIpTo0000IfSendOnly(bool value) {
