@@ -29,27 +29,13 @@
 #endif
 
 struct AAudioInputContext {
-	AAudioInputContext(MSFilter *f) {
+	AAudioInputContext(MSFilter *f) : mFilter(f) {
 		sound_utils = ms_factory_get_android_sound_utils(f->factory);
-		aaudio_context = nullptr;
-		stream = nullptr;
-		mFilter = f;
 		sample_rate = ms_android_sound_utils_get_preferred_sample_rate(sound_utils);
 		qinit(&q);
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
 		process_thread = ms_worker_thread_new("AAudio Recorder");
-		mTickerSynchronizer = nullptr;
-		mAvSkew = 0;
-		session_id = AAUDIO_SESSION_ID_NONE;
-		soundCard = nullptr;
-		deviceId = -1;
-		aec = NULL;
-		aecEnabled = true;
-		voiceRecognitionMode = false;
-		bluetoothScoStarted = false;
-		streamRunning = false;
-		task = nullptr;
 	}
 
 	~AAudioInputContext() {
@@ -63,29 +49,29 @@ struct AAudioInputContext {
 		aaudio_context = context;
 	}
 	
-	AndroidSoundUtils* sound_utils;
-	AAudioContext *aaudio_context;
-	AAudioStream *stream;
+	AndroidSoundUtils* sound_utils = nullptr;
+	AAudioContext *aaudio_context = nullptr;
+	AAudioStream *stream = nullptr;
 	ms_mutex_t stream_mutex;
-	MSWorkerThread *process_thread;
+	MSWorkerThread *process_thread = nullptr;
 
 	queue_t q;
 	ms_mutex_t mutex;
-	MSTickerSynchronizer *mTickerSynchronizer;
-	MSSndCard *soundCard;
-	int deviceId;
-	MSFilter *mFilter;
-	int sample_rate;
-	int64_t read_samples;
-	int32_t samplesPerFrame;
-	double mAvSkew;
-	aaudio_session_id_t session_id;
-	jobject aec;
-	bool aecEnabled;
-	bool voiceRecognitionMode;
-	bool bluetoothScoStarted;
-	bool streamRunning;
-	MSTask *task;
+	MSTickerSynchronizer *mTickerSynchronizer = nullptr;
+	MSSndCard *soundCard = nullptr;
+	int deviceId = -1;
+	MSFilter *mFilter = nullptr;
+	int sample_rate = 0;
+	int64_t read_samples = 0;
+	int32_t samplesPerFrame = 0;
+	double mAvSkew = 0;
+	aaudio_session_id_t session_id = AAUDIO_SESSION_ID_NONE;
+	jobject aec = NULL;
+	bool aecEnabled = true;
+	bool voiceRecognitionMode = false;
+	bool bluetoothScoStarted = false;
+	bool streamRunning = false;
+	MSTask *task = nullptr;
 };
 
 static AAudioInputContext* aaudio_input_context_init(MSFilter *f) {
