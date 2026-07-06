@@ -89,30 +89,13 @@ static std::string aaudio_usage_to_string(aaudio_usage_t usage) {
 }
 
 struct AAudioOutputContext {
-	AAudioOutputContext(MSFilter *f) {
+	AAudioOutputContext(MSFilter *f) : mFilter(f) {
 		sound_utils = ms_factory_get_android_sound_utils(f->factory);
-		aaudio_context = nullptr;
-		stream = nullptr;
-		mFilter = f;
 		sample_rate = ms_android_sound_utils_get_preferred_sample_rate(sound_utils);
 		ms_flow_controlled_bufferizer_init(&buffer, f, sample_rate, 1);
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
 		process_thread = ms_worker_thread_new("AAudio Player");
-		soundCard = nullptr;
-		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
-		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
-		prevXRunCount = 0;
-		bufferCapacity = 0;
-		bufferSize = 0;
-		framesPerBurst = 0;
-		bluetoothScoStarted = false;
-		volumeHackRequired = false;
-		task = nullptr;
-		checkForDeviceChange = false;
-		adjustingBufferSize = false;
-		restartScheduled = false;
-		restartAttemptsCount = 0;
 	}
 
 	~AAudioOutputContext() {
@@ -159,32 +142,32 @@ struct AAudioOutputContext {
 		}
 	}
 
-	AndroidSoundUtils* sound_utils;
-	AAudioContext *aaudio_context;
-	AAudioStream *stream;
+	AndroidSoundUtils* sound_utils = nullptr;
+	AAudioContext *aaudio_context = nullptr;
+	AAudioStream *stream = nullptr;
 	ms_mutex_t stream_mutex;
-	MSWorkerThread *process_thread;
+	MSWorkerThread *process_thread = nullptr;
 
-	MSSndCard *soundCard;
-	MSFilter *mFilter;
+	MSSndCard *soundCard = nullptr;
+	MSFilter *mFilter = nullptr;
 	MSFlowControlledBufferizer buffer;
-	int32_t samplesPerFrame;
+	int32_t samplesPerFrame = 0;
 	ms_mutex_t mutex;
-	aaudio_usage_t usage;
-	aaudio_content_type_t content_type;
+	aaudio_usage_t usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
+	aaudio_content_type_t content_type = AAUDIO_CONTENT_TYPE_SPEECH;
 
-	int sample_rate;
-	int32_t bufferCapacity;
-	int32_t prevXRunCount;
-	int32_t bufferSize;
-	int32_t framesPerBurst;
-	bool bluetoothScoStarted;
-	MSTask *task;
-	bool checkForDeviceChange;
-	bool volumeHackRequired;
-	bool adjustingBufferSize;
-	bool restartScheduled;
-	int restartAttemptsCount;
+	int sample_rate = 0;
+	int32_t bufferCapacity = 0;
+	int32_t prevXRunCount = 0;
+	int32_t bufferSize = 0;
+	int32_t framesPerBurst = 0;
+	bool bluetoothScoStarted = false;
+	MSTask *task = nullptr;
+	bool checkForDeviceChange = false;
+	bool volumeHackRequired = false;
+	bool adjustingBufferSize = false;
+	bool restartScheduled = false;
+	int restartAttemptsCount = 0;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -340,22 +323,24 @@ static void _aaudio_player_init(AAudioOutputContext *octx) {
 
 	if (result != AAUDIO_OK) {
 		ms_error("[AAudio Player] Start stream for player failed: %s (%i)", AAudio_convertResultToText(result), result);
+		bool disconnected = result == AAUDIO_ERROR_DISCONNECTED;
 		result = AAudioStream_close(stream);
 		if (result != AAUDIO_OK) {
 			ms_error("[AAudio Player] Player stream close failed: %s (%i)", AAudio_convertResultToText(result), result);
-			if (result == AAUDIO_STREAM_STATE_DISCONNECTED) {
-				if (octx->restartAttemptsCount > maxRetriesWhenPlayerStreamFails) {
-					ms_error("[AAudio Player] Tried [%i] times to start the stream without success, not trying again", octx->restartAttemptsCount);
-				} else {
-					ms_warning("[AAudio Player] Player stream wasn't started, trying again");
-					restartStream = true;
-					octx->restartAttemptsCount += 1;
-				}
-			}
 		} else {
 			ms_message("[AAudio Player] Player stream closed");
 		}
 		stream = nullptr;
+
+		if (disconnected) {
+			if (octx->restartAttemptsCount > maxRetriesWhenPlayerStreamFails) {
+				ms_error("[AAudio Player] Tried [%i] times to start the stream without success, not trying again", octx->restartAttemptsCount);
+			} else {
+				ms_warning("[AAudio Player] Player stream wasn't started, trying again");
+				restartStream = true;
+				octx->restartAttemptsCount += 1;
+			}
+		}
 	} else {
 		ms_message("[AAudio Player] Player stream started");
 	}
