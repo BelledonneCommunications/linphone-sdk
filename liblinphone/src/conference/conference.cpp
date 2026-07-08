@@ -196,7 +196,7 @@ void Conference::clearParticipants() {
 	mParticipants.clear();
 }
 
-bool Conference::isAnonymousParticipant(const std::shared_ptr<Address> &address) {
+bool Conference::isAnonymousParticipant(const std::shared_ptr<const Address> &address) {
 	auto displayName = kAnonymousKeyword;
 	std::transform(displayName.begin(), displayName.begin() + 1, displayName.begin(),
 	               [](unsigned char c) { return std::toupper(c); });
@@ -1159,11 +1159,17 @@ shared_ptr<ParticipantDevice> Conference::findParticipantDeviceBySsrc(uint32_t s
 	return nullptr;
 }
 
-shared_ptr<ParticipantDevice> Conference::findParticipantDevice(const std::shared_ptr<const Address> &dAddr) const {
+shared_ptr<ParticipantDevice> Conference::findParticipantDevice(const std::shared_ptr<const Address> &pAddr,
+                                                                const std::shared_ptr<const Address> &dAddr) const {
 	for (const auto &participant : mParticipants) {
-		auto device = participant->findDevice(dAddr, false);
-		if (device) {
-			return device;
+		// Do not take into account anonymous participant addresses as the guessed participant address may not match the
+		// actual one. For instance, the actual anonymous participant address is sip:anonymous<number>@<domain> whereas
+		// the one guessed from a call is sip:anonymous@<domain>
+		if (!pAddr || Conference::isAnonymousParticipant(pAddr) || pAddr->weakEqual(*participant->getAddress())) {
+			auto device = participant->findDevice(dAddr, false);
+			if (device) {
+				return device;
+			}
 		}
 	}
 

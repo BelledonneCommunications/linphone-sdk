@@ -2775,14 +2775,11 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t set_con
 			}));
 			linphone_chat_message_unref(msg);
 
-			if (expected_state == LinphoneChatMessageStateNotDelivered) {
-				BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageNotDelivered,
-				                             initialMichelleStats.number_of_LinphoneMessageNotDelivered + 1,
-				                             liblinphone_tester_sip_timeout));
-				if (!encrypted) {
-					BC_ASSERT_FALSE(
-					    wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
-					                  initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1, 3000));
+			if (encrypted) {
+				if (set_conference_factory_on_restart) {
+					BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageNotDelivered,
+					                             initialMichelleStats.number_of_LinphoneMessageNotDelivered + 1,
+					                             liblinphone_tester_sip_timeout));
 				} else {
 					BC_ASSERT_TRUE(wait_for_list(coresList,
 					                             &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
@@ -2790,9 +2787,11 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t set_con
 					                             liblinphone_tester_sip_timeout));
 				}
 			} else {
-				BC_ASSERT_TRUE(wait_for_list(coresList,
-				                             &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
-				                             initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
+				BC_ASSERT_FALSE(
+				    wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
+				                  initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1, 3000));
+				BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageNotDelivered,
+				                             initialMichelleStats.number_of_LinphoneMessageNotDelivered + 1,
 				                             liblinphone_tester_sip_timeout));
 			}
 		}
