@@ -1340,6 +1340,11 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 				}));
 				linphone_chat_message_unref(msg);
 				msg = NULL;
+
+				BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateTerminated,
+				                             initialPaulineStats.number_of_LinphoneChatRoomStateTerminated + 1,
+				                             liblinphone_tester_sip_timeout));
+				BC_ASSERT_TRUE(linphone_chat_room_is_read_only(paulineCr));
 			} else {
 				char *confAddressString = linphone_address_as_string(confAddr);
 				ms_message("%s is waiting for the subscription to chatroom %s to expire",
@@ -1349,12 +1354,12 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 				BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionError,
 				                             initialPaulineStats.number_of_LinphoneSubscriptionError + 1,
 				                             liblinphone_tester_sip_timeout));
+
+				BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateTerminated,
+				                              initialPaulineStats.number_of_LinphoneChatRoomStateTerminated + 1, 1000));
+				BC_ASSERT_FALSE(linphone_chat_room_is_read_only(paulineCr));
 			}
 
-			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateTerminated,
-			                             initialPaulineStats.number_of_LinphoneChatRoomStateTerminated + 1,
-			                             liblinphone_tester_sip_timeout));
-			BC_ASSERT_TRUE(linphone_chat_room_is_read_only(paulineCr));
 			msg = ClientConference::sendTextMsg(marieCr, "Can you receive my messages?");
 
 			BC_ASSERT_FALSE(CoreManagerAssert({focus, marie, pauline, berthe}).wait([paulineCr] {
@@ -3032,10 +3037,10 @@ static test_t local_conference_secure_chat_tests[] = {
                   "LimeX3DH",
                   "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("Secure group chat with client removed and then reinvited",
-                LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted,
+                 LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted,
                  "LimeX3DH"),
     TEST_ONE_TAG("Secure group chat with client removed and then reinvited after database corruption",
-                LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption,
+                 LinphoneTest::secure_group_chat_room_with_client_removed_and_reinvinted_after_database_corruption,
                  "LimeX3DH"),
     TEST_TWO_TAGS(
         "Secure group chat with client removed and then reinvited after database corruption and core restart",

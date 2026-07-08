@@ -839,8 +839,9 @@ void ClientConferenceEventHandler::subscribeStateChangedCb(LinphoneEvent *lev, L
 		ClientConferenceEventHandler *handler = static_cast<ClientConferenceEventHandler *>(cbs->getUserData());
 		handler->setInitialSubscriptionUnderWayFlag(false);
 		auto conf = handler->getConference();
-		if (conf && (ev->getReason() == LinphoneReasonDeclined)) {
-			lInfo() << "Leave " << *conf << " because the subscription [" << ev << "] errored out";
+		// Leave only one on one chatrooms if a SUBSCRIBE is declined
+		if (conf && !conf->getCurrentParams()->isGroup() && (ev->getReason() == LinphoneReasonDeclined)) {
+			lInfo() << "Leave " << *conf << " because " << *ev << " errored out";
 			auto mainSession = conf->getMainSession();
 			if (mainSession) {
 				mainSession->terminate();

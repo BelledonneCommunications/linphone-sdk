@@ -1156,7 +1156,7 @@ LinphoneStatus ServerConferenceEventHandler::subscribeReceived(const shared_ptr<
 		return -1;
 	}
 	const auto &contactAddr = ev->getRemoteContact();
-	shared_ptr<ParticipantDevice> device = getConference()->findParticipantDevice(contactAddr);
+	shared_ptr<ParticipantDevice> device = getConference()->findParticipantDevice(ev->getFrom(), contactAddr);
 	if (!device) {
 		lError() << "Device [" << *contactAddr << "] sending SUBSCRIBE " << *ev << " is not part of " << *conf
 		         << ", hence declining SUBSCRIBE";

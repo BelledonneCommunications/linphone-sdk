@@ -325,13 +325,13 @@ bool ServerConference::updateConferenceInformation(SalCallOp *op) {
 	}
 	auto remoteContact = op->getRemoteContactAddress();
 	if (remoteContact) {
-		char *salAddress = sal_address_as_string(remoteContact);
-		std::shared_ptr<Address> address = Address::create(std::string(salAddress));
-		if (salAddress) {
-			ms_free(salAddress);
-		}
-		auto invited = (findInvitedParticipant(address) != nullptr);
-		if (findParticipantDevice(address) || invited || address->weakEqual(*mOrganizer)) {
+		std::shared_ptr<Address> remoteContactAddress = Address::create(remoteContact);
+		auto invited = (findInvitedParticipant(remoteContactAddress) != nullptr);
+		std::shared_ptr<Address> remoteAddress =
+		    Address::create((op->getDir() == SalOp::Dir::Incoming) ? op->getFrom() : op->getTo());
+
+		if (findParticipantDevice(remoteAddress, remoteContactAddress) || invited ||
+		    remoteContactAddress->weakEqual(*mOrganizer)) {
 			bool previousChatEnablement = mConfParams->chatEnabled();
 			bool previousVideoEnablement = mConfParams->videoEnabled();
 			bool previousAudioEnablement = mConfParams->audioEnabled();
@@ -357,7 +357,7 @@ bool ServerConference::updateConferenceInformation(SalCallOp *op) {
 
 			updateConferenceInformation();
 		} else {
-			lWarning() << "Device with address " << *address
+			lWarning() << "Device with address " << *remoteContactAddress
 			           << " is not allowed to update the conference because they have not been invited nor are "
 			              "participants to "
 			           << *this << " nor are the organizer";
@@ -1119,9 +1119,9 @@ void ServerConference::subscribeReceived(const shared_ptr<EventSubscribe> &event
 	if (!event) return;
 
 	const auto &contactAddr = event->getRemoteContact();
-	auto device = findParticipantDevice(contactAddr);
+	auto device = findParticipantDevice(event->getFrom(), contactAddr);
 	if (!device) {
-		lError() << "Declining SUBSCRIBE [" << event << "] because " << *contactAddr << " is not a member of " << *this;
+		lError() << "Declining " << *event << " because " << *contactAddr << " is not a member of " << *this;
 		event->deny(LinphoneReasonDeclined);
 		return;
 	}
@@ -1370,7 +1370,7 @@ int ServerConference::inviteAddresses(const std::list<std::shared_ptr<Address>> 
 
 	for (const auto &address : addresses) {
 		std::shared_ptr<Call> call = nullptr;
-		const auto &device = findParticipantDevice(address);
+		const auto &device = findParticipantDevice(nullptr, address);
 
 		/*
 		 * In the case of a conference server, it is enough to look if there is already a participant with the same
@@ -1996,7 +1996,7 @@ bool ServerConference::addParticipant(const std::shared_ptr<Call> call) {
 		const auto &state = call->getState();
 
 		auto participantDevice = (remoteContactAddress && remoteContactAddress->isValid())
-		                             ? findParticipantDevice(remoteContactAddress)
+		                             ? findParticipantDevice(session->getRemoteAddress(), remoteContactAddress)
 		                             : nullptr;
 		if (participantDevice) {
 			auto deviceSession = participantDevice->getSession();

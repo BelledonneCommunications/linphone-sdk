@@ -996,7 +996,11 @@ static void call_outbound_using_secondary_account(void) {
 	bctbx_list_t *marie_default_account_logs = linphone_account_get_call_logs(marie_default_account);
 	size_t marie_default_account_logs_count = bctbx_list_size(marie_default_account_logs);
 	bctbx_list_free_with_data(marie_default_account_logs, (bctbx_list_free_func)linphone_call_log_unref);
+
+	stats initial_marie_stat = marie->stat;
 	linphone_core_remove_account_with_data(marie->lc, marie_default_account);
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneRegistrationCleared,
+	                        initial_marie_stat.number_of_LinphoneRegistrationCleared + 1));
 	// The number of call logs held by the core is the old count minus the number of call logs linked to the removed
 	// account
 	BC_ASSERT_EQUAL(bctbx_list_size(linphone_core_get_call_logs(marie->lc)),

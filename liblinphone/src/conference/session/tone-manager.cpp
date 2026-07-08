@@ -535,42 +535,48 @@ bool ToneManager::shouldPlayWaitingTone(const std::shared_ptr<CallSession> &sess
 }
 
 void ToneManager::notifyIncomingCall(const std::shared_ptr<CallSession> &session) {
-	shared_ptr<Call> currentCall = getCore().getCurrentCall();
-	LinphoneCore *lc = getCore().getCCore();
-	shared_ptr<MediaSession> mediaSession = dynamic_pointer_cast<MediaSession>(session);
 	if (mSessionRinging && mSessionRinging != session) {
 		// Already a session in ringing state.
 		return;
 	}
 
-	if (shouldPlayWaitingTone(session)) {
-		/* already in a call or in a local conference. A tone indication will be used. */
-		if (mediaSession && mediaSession->toneIndicationsEnabled()) {
-			startNamedTone(session, LinphoneToneCallWaiting);
-			/* Set up the way this incoming call notification has to be stopped */
-			mSessionRingingStopFunction = [this]() { this->stopTone(); };
-		}
-	} else {
-		if (mediaSession && !mediaSession->ringingDisabled()) {
-			/* Not already in a call or conference, so play the normal ringtone. */
-			/*
-			 * For ios, only one write sound card is allowed. To ensure this, free audio resources before a new incoming
-			 * call. It may be a call-end tone from a previous call, if a new call arrives closely after ending the
-			 * current one.
-			 */
-			freeAudioResources();
-			if (linphone_core_is_native_ringing_enabled(lc)) {
-				lInfo() << "Native (ie platform dependant) ringing is enabled, so not ringing from liblinphone.";
-				return;
+	shared_ptr<MediaSession> mediaSession = dynamic_pointer_cast<MediaSession>(session);
+	if (mediaSession) {
+		if (shouldPlayWaitingTone(session)) {
+			/* already in a call or in a local conference. A tone indication will be used. */
+			if (mediaSession->toneIndicationsEnabled()) {
+				startNamedTone(session, LinphoneToneCallWaiting);
+				/* Set up the way this incoming call notification has to be stopped */
+				mSessionRingingStopFunction = [this]() { this->stopTone(); };
+			} else {
+				lWarning() << "Do not start the waiting tone because " << *mediaSession
+				           << "'s tone indications are disabled";
 			}
-			if (linphone_core_callkit_enabled(lc)) {
-				lInfo() << "Callkit mode is enabled, will not play ring tone from liblinphone.";
-				return;
-			}
+		} else {
+			if (!mediaSession->ringingDisabled()) {
+				/* Not already in a call or conference, so play the normal ringtone. */
+				/*
+				 * For ios, only one write sound card is allowed. To ensure this, free audio resources before a new
+				 * incoming call. It may be a call-end tone from a previous call, if a new call arrives closely after
+				 * ending the current one.
+				 */
+				freeAudioResources();
+				LinphoneCore *lc = getCore().getCCore();
+				if (linphone_core_is_native_ringing_enabled(lc)) {
+					lInfo() << "Native (ie platform dependant) ringing is enabled, so not ringing from liblinphone.";
+					return;
+				}
+				if (linphone_core_callkit_enabled(lc)) {
+					lInfo() << "Callkit mode is enabled, will not play ring tone from liblinphone.";
+					return;
+				}
 
-			startRingtone();
-			/* Set up the way this incoming call notification has to be stopped */
-			mSessionRingingStopFunction = [this]() { this->stopRingtone(); };
+				startRingtone();
+				/* Set up the way this incoming call notification has to be stopped */
+				mSessionRingingStopFunction = [this]() { this->stopRingtone(); };
+			} else {
+				lWarning() << "Do not start ringtone because ringing is disabled in " << *mediaSession;
+			}
 		}
 	}
 	mSessionRinging = session;

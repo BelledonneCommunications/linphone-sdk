@@ -82,7 +82,7 @@ public:
 	static Address createParticipantAddressForResourceList(const std::shared_ptr<Participant> &p);
 
 	static bool isAnonymousParticipant(const std::shared_ptr<Call> &call);
-	static bool isAnonymousParticipant(const std::shared_ptr<Address> &address);
+	static bool isAnonymousParticipant(const std::shared_ptr<const Address> &address);
 
 	virtual ~Conference() override;
 
@@ -96,7 +96,8 @@ public:
 	void setInvitedParticipants(const std::list<std::shared_ptr<Participant>> &invitedParticipants);
 
 	std::shared_ptr<ParticipantDevice> findParticipantDevice(const std::shared_ptr<const CallSession> &session) const;
-	std::shared_ptr<ParticipantDevice> findParticipantDevice(const std::shared_ptr<const Address> &dAddr) const;
+	std::shared_ptr<ParticipantDevice> findParticipantDevice(const std::shared_ptr<const Address> &pAddr,
+	                                                         const std::shared_ptr<const Address> &dAddr) const;
 	std::shared_ptr<ParticipantDevice> findParticipantDeviceBySsrc(uint32_t ssrc, LinphoneStreamType type) const;
 	std::shared_ptr<ParticipantDevice> findParticipantDeviceByLabel(LinphoneStreamType type,
 	                                                                const std::string &label) const;
