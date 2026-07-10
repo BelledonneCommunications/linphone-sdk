@@ -22,6 +22,7 @@
 
 #include "account/account-params.h"
 #include "c-wrapper/internal/c-tools.h"
+#include "dictionary/dictionary.h"
 #include "linphone/core.h"
 #include "linphone/lpconfig.h"
 #include "linphone/utils/utils.h"
@@ -226,21 +227,65 @@ bool_t linphone_account_params_register_enabled(const LinphoneAccountParams *par
 	return AccountParams::toCpp(params)->getRegisterEnabled();
 }
 
+//-------------------------		CONTACT PARAMETERS		-----------------------
+
+// Deprecated
 const char *linphone_account_params_get_contact_parameters(const LinphoneAccountParams *params) {
-	return L_STRING_TO_C(AccountParams::toCpp(params)->getContactParameters());
+	return L_STRING_TO_C(AccountParams::toCpp(params)->getContactParametersStr());
 }
 
+// Deprecated
 void linphone_account_params_set_contact_parameters(LinphoneAccountParams *params, const char *contact_params) {
 	AccountParams::toCpp(params)->setContactParameters(L_C_TO_STRING(contact_params));
 }
 
+// Deprecated
 void linphone_account_params_set_contact_uri_parameters(LinphoneAccountParams *params, const char *contact_uri_params) {
 	AccountParams::toCpp(params)->setContactUriParameters(L_C_TO_STRING(contact_uri_params));
 }
 
+// Deprecated
 const char *linphone_account_params_get_contact_uri_parameters(const LinphoneAccountParams *params) {
-	return L_STRING_TO_C(AccountParams::toCpp(params)->getContactUriParameters());
+	return L_STRING_TO_C(AccountParams::toCpp(params)->getContactUriParametersStr());
 }
+
+const LinphoneDictionary *
+linphone_account_params_get_contact_parameters_dictionary(const LinphoneAccountParams *params) {
+	return AccountParams::toCpp(params)->getContactParameters()->toC();
+}
+
+const LinphoneDictionary *
+linphone_account_params_get_contact_uri_parameters_dictionary(const LinphoneAccountParams *params) {
+	return AccountParams::toCpp(params)->getContactUriParameters()->toC();
+}
+
+void linphone_account_params_add_contact_parameter(LinphoneAccountParams *params, const char *key, const char *value) {
+	AccountParams::toCpp(params)->addContactParameter(L_C_TO_STRING(key), L_C_TO_STRING(value));
+}
+
+void linphone_account_params_add_contact_uri_parameter(LinphoneAccountParams *params,
+                                                       const char *key,
+                                                       const char *value) {
+	AccountParams::toCpp(params)->addContactUriParameter(L_C_TO_STRING(key), L_C_TO_STRING(value));
+}
+
+void linphone_account_params_remove_contact_parameter(LinphoneAccountParams *params, const char *key) {
+	AccountParams::toCpp(params)->removeContactParameter(L_C_TO_STRING(key));
+}
+
+void linphone_account_params_remove_contact_uri_parameter(LinphoneAccountParams *params, const char *key) {
+	AccountParams::toCpp(params)->removeContactUriParameter(L_C_TO_STRING(key));
+}
+
+void linphone_account_params_clear_contact_parameters(LinphoneAccountParams *params) {
+	AccountParams::toCpp(params)->clearContactParameters();
+}
+
+void linphone_account_params_clear_contact_uri_parameters(LinphoneAccountParams *params) {
+	AccountParams::toCpp(params)->clearContactUriParameters();
+}
+
+//----------------------------------------------------------------------------------------------
 
 bool_t linphone_account_params_get_dial_escape_plus_enabled(const LinphoneAccountParams *params) {
 	return linphone_account_params_dial_escape_plus_enabled(params);

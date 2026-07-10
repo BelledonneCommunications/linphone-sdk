@@ -426,8 +426,10 @@ LINPHONE_PUBLIC bool_t linphone_account_params_register_enabled(const LinphoneAc
  * Returns the contact parameters.
  * @param params The #LinphoneAccountParams object. @notnil
  * @return The previously set contact parameters. @maybenil
+ * @deprecated 22/07/2026 Use linphone_account_params_get_contact_parameters_dictionary() instead.
  **/
-LINPHONE_PUBLIC const char *linphone_account_params_get_contact_parameters(const LinphoneAccountParams *params);
+LINPHONE_DEPRECATED LINPHONE_PUBLIC const char *
+linphone_account_params_get_contact_parameters(const LinphoneAccountParams *params);
 
 /**
  * Set optional contact parameters that will be added to the contact information sent in the registration.
@@ -438,9 +440,10 @@ LINPHONE_PUBLIC const char *linphone_account_params_get_contact_parameters(const
  * The main use case for this function is provide the proxy additional information regarding the user agent, like for
  *example unique identifier or apple push id. As an example, the contact address in the SIP register sent will look like
  *<sip:joe@15.128.128.93:50421>;apple-push-id=43143-DFE23F-2323-FA2232.
+ * @deprecated 22/07/2026 Use linphone_account_params_add_contact_parameters() instead.
  **/
-LINPHONE_PUBLIC void linphone_account_params_set_contact_parameters(LinphoneAccountParams *params,
-                                                                    const char *contact_params);
+LINPHONE_DEPRECATED LINPHONE_PUBLIC void linphone_account_params_set_contact_parameters(LinphoneAccountParams *params,
+                                                                                        const char *contact_params);
 
 /**
  * Set optional contact parameters that will be added to the contact information sent in the registration, inside the
@@ -452,16 +455,92 @@ LINPHONE_PUBLIC void linphone_account_params_set_contact_parameters(LinphoneAcco
  * The main use case for this function is provide the proxy additional information regarding the user agent, like for
  *example unique identifier or apple push id. As an example, the contact address in the SIP register sent will look like
  *<sip:joe@15.128.128.93:50421;apple-push-id=43143-DFE23F-2323-FA2232>.
+ * @deprecated 22/07/2026 Use linphone_account_params_add_contact_uri_parameters() instead.
  **/
-LINPHONE_PUBLIC void linphone_account_params_set_contact_uri_parameters(LinphoneAccountParams *params,
-                                                                        const char *contact_uri_params);
+LINPHONE_DEPRECATED LINPHONE_PUBLIC void
+linphone_account_params_set_contact_uri_parameters(LinphoneAccountParams *params, const char *contact_uri_params);
 
 /**
  * Return the contact URI parameters.
  * @param params The #LinphoneAccountParams object. @notnil
  * @return The previously set contact URI parameters. @maybenil
+ * @deprecated 22/07/2026 Use linphone_account_params_get_contact_uri_parameters_dictionary() instead.
  **/
-LINPHONE_PUBLIC const char *linphone_account_params_get_contact_uri_parameters(const LinphoneAccountParams *params);
+LINPHONE_DEPRECATED LINPHONE_PUBLIC const char *
+linphone_account_params_get_contact_uri_parameters(const LinphoneAccountParams *params);
+
+/**
+ * Returns the dictionary for contact parameters.
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @return The previously set contact parameters. @maybenil
+ **/
+LINPHONE_PUBLIC const LinphoneDictionary *
+linphone_account_params_get_contact_parameters_dictionary(const LinphoneAccountParams *params);
+
+/**
+ * Add an optional contact parameter that will be added to the contact information sent in the registration.
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @param key A string containing the key of the additional parameter @notnil
+ * @param value A string containing the value of the additional parameter. If null or empty, there will be only the key
+ * in contact information @maybenil
+ *
+ * The main use case for this function is provide the proxy additional information regarding the user agent, like for
+ *example unique identifier or apple push id. As an example, the contact address in the SIP register sent will look like
+ *<sip:joe@15.128.128.93:50421>;apple-push-id=43143-DFE23F-2323-FA2232.
+ **/
+LINPHONE_PUBLIC void
+linphone_account_params_add_contact_parameter(LinphoneAccountParams *params, const char *key, const char *value);
+
+/**
+ * Remove the parameter from the optional contact parameters.
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @param key The key string to remove. @notnil
+ */
+LINPHONE_PUBLIC void linphone_account_params_remove_contact_parameter(LinphoneAccountParams *params, const char *key);
+
+/**
+ * Remove all parameters from the optional contact parameters.
+ * @param params The #LinphoneAccountParams object. @notnil
+ */
+LINPHONE_PUBLIC void linphone_account_params_clear_contact_parameters(LinphoneAccountParams *params);
+
+/**
+ * Return the dictionary of contact URI parameters.
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @return The previously set contact URI parameters. @maybenil
+ **/
+
+LINPHONE_PUBLIC const LinphoneDictionary *
+linphone_account_params_get_contact_uri_parameters_dictionary(const LinphoneAccountParams *params);
+
+/**
+ * Add optional contact parameter that will be added to the contact information sent in the registration, inside the
+ *URI.
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @param key A string containing the key of the additional parameter @notnil
+ * @param value A string containing the value of the additional parameter. If null or empty, there will be only the key
+ * in contact information @maybenil
+ *
+ * The main use case for this function is provide the proxy additional information regarding the user agent, like for
+ *example unique identifier or apple push id. As an example, the contact address in the SIP register sent will look like
+ *<sip:joe@15.128.128.93:50421;apple-push-id=43143-DFE23F-2323-FA2232>.
+ **/
+LINPHONE_PUBLIC void
+linphone_account_params_add_contact_uri_parameter(LinphoneAccountParams *params, const char *key, const char *value);
+
+/**
+ * Remove the parameter from the optional contact parameters.
+ * @param params The #LinphoneAccountParams object. @notnil
+ * @param key The key string to remove. @notnil
+ */
+LINPHONE_PUBLIC void linphone_account_params_remove_contact_uri_parameter(LinphoneAccountParams *params,
+                                                                          const char *key);
+
+/**
+ * Remove all parameters from the optional contact parameters.
+ * @param params The #LinphoneAccountParams object. @notnil
+ */
+LINPHONE_PUBLIC void linphone_account_params_clear_contact_uri_parameters(LinphoneAccountParams *params);
 
 /**
  * Return whether or not the + should be replaced by the International Call Prefix.
