@@ -34,6 +34,7 @@
 LINPHONE_BEGIN_NAMESPACE
 class PushNotificationConfig;
 class NatPolicy;
+class Dictionary;
 
 class LINPHONE_PUBLIC AccountParams : public bellesip::HybridObject<LinphoneAccountParams, AccountParams>,
                                       public CustomParams {
@@ -69,8 +70,14 @@ public:
 	void setProxy(const std::string &proxy);
 	void setRealm(const std::string &realm);
 	void setQualityReportingCollector(const std::string &qualityReportingCollector);
-	void setContactParameters(const std::string &contactParameters);
-	void setContactUriParameters(const std::string &contactUriParameters);
+	void setContactParameters(const std::string &contactParameters);       // Deprecated
+	void setContactUriParameters(const std::string &contactUriParameters); // Deprecated
+	void addContactParameter(const std::string &key, const std::string &value);
+	void addContactUriParameter(const std::string &key, const std::string &value);
+	void removeContactParameter(const std::string &key);
+	void removeContactUriParameter(const std::string &key);
+	void clearContactParameters();
+	void clearContactUriParameters();
 	void setRefKey(const std::string &refKey);
 	void setDependsOn(const std::string &dependsOn);
 	void setIdKey(const std::string &idKey);
@@ -128,8 +135,10 @@ public:
 	const std::string &getProxy() const;
 	const std::string &getRealm() const;
 	const std::string &getQualityReportingCollector() const;
-	const std::string &getContactParameters() const;
-	const std::string &getContactUriParameters() const;
+	const std::string &getContactParametersStr() const;    // Deprecated
+	const std::string &getContactUriParametersStr() const; // Deprecated
+	std::shared_ptr<const Dictionary> getContactParameters() const;
+	std::shared_ptr<const Dictionary> getContactUriParameters() const;
 	const std::string &getRefKey() const;
 	const std::string &getDependsOn() const;
 	const std::string &getIdKey() const;
@@ -186,6 +195,10 @@ private:
 	void setCustomContact(const std::string &contact);
 	const char *getMwiServerAddressCstr() const;
 	const char *getVoicemailAddressCstr() const;
+	// Return field0=value0;...;fieldn=valuen
+	// Warning: '=' or ';' inside values are not encoded.
+	std::string serializeParameters(const std::shared_ptr<Dictionary> &dictionary);
+	void parseParameters(std::shared_ptr<Dictionary> &dictionary, const std::string &parameters);
 
 	int mExpires;
 	int mQualityReportingInterval;
@@ -222,8 +235,10 @@ private:
 	std::string mProxy;
 	std::string mRealm;
 	std::string mQualityReportingCollector;
-	std::string mContactParameters;
-	std::string mContactUriParameters;
+	std::string mContactParameters;    // Deprecated build from mContactParametersMap
+	std::string mContactUriParameters; // Deprecated build from mContactUriParametersMap
+	std::shared_ptr<Dictionary> mContactParametersMap;
+	std::shared_ptr<Dictionary> mContactUriParametersMap;
 	std::string mRefKey;
 	std::string mDependsOn;
 	std::string mIdKey;

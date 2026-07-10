@@ -49,6 +49,7 @@ public:
 
 	bool hasKey(const std::string &name) const;
 	std::ostream &toStream(std::ostream &stream) const;
+	std::ostream &toStream(std::ostream &stream, const std::string &separator, const std::string &op) const;
 
 	const std::map<std::string, Variant> &getProperties() const;
 	void setProperties(const std::map<std::string, Variant> &properties);

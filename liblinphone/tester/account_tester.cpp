@@ -20,6 +20,8 @@
 
 #include "bctoolbox/defs.h"
 #include <bctoolbox/vfs.h>
+#include <map>
+#include <string>
 
 #include "liblinphone_tester.h"
 #include "linphone/api/c-account-cbs.h"
@@ -28,6 +30,31 @@
 #include "linphone/api/c-address.h"
 #include "linphone/api/c-chat-room.h"
 #include "tester_utils.h"
+
+//---------------------------------------	TOOLS	-------------------------------------------------------------
+
+// Check if the dictionary match a given map
+static void check_dictionary(const LinphoneDictionary *dictionary,
+                             const std::map<std::string, std::string> &paramsMap) {
+	bctbx_list_t *keys = linphone_dictionary_get_keys(dictionary);
+	int count = 0;
+	BC_ASSERT_EQUAL(bctbx_list_size(keys), paramsMap.size(), size_t, "%zu");
+	for (const auto &[key, value] : paramsMap) {
+		BC_ASSERT_STRING_EQUAL(static_cast<const char *>(bctbx_list_nth_data(keys, count++)), key.c_str());
+		BC_ASSERT_STRING_EQUAL(linphone_dictionary_get_string(dictionary, key.c_str()), value.c_str());
+	}
+	bctbx_list_free_with_data(keys, ms_free);
+}
+
+// Check if contact parameters and URI parameters match given maps.
+static void check_contact_parameters(LinphoneAccountParams *params,
+                                     const std::map<std::string, std::string> &paramsMap,
+                                     const std::map<std::string, std::string> &uriParamsMap) {
+	check_dictionary(linphone_account_params_get_contact_parameters_dictionary(params), paramsMap);
+	check_dictionary(linphone_account_params_get_contact_uri_parameters_dictionary(params), uriParamsMap);
+}
+
+//-----------------------------------------------------------------------------------------------------
 
 static void
 simple_account_creation_base(bool_t remove_accounts, bool_t bring_offline_while_removal, bool_t quick_shutdown) {
@@ -151,7 +178,7 @@ simple_account_creation_base(bool_t remove_accounts, bool_t bring_offline_while_
 		// Verify that the custom parameters are written to the rc file
 		bctbx_vfs_file_t *cfg_file = bctbx_file_open(bctbx_vfs_get_default(), local_rc, "r");
 		size_t cfg_file_size = (size_t)bctbx_file_size(cfg_file);
-		char *buf = bctbx_malloc(cfg_file_size);
+		char *buf = static_cast<char *>(bctbx_malloc(cfg_file_size));
 		bctbx_file_read(cfg_file, buf, cfg_file_size, 0);
 		BC_ASSERT_PTR_NOT_NULL(strstr(buf, "x-custom-property:main-account"));
 		BC_ASSERT_PTR_NOT_NULL(strstr(buf, "x-custom-property:default"));
@@ -192,8 +219,51 @@ static void simple_account_params_creation(void) {
 
 	LinphoneAccountParams *params = linphone_core_create_account_params(marie->lc);
 	linphone_account_params_set_custom_contact(params, NULL);
-
 	BC_ASSERT_PTR_NULL(linphone_account_params_get_custom_contact(params));
+
+	linphone_account_params_unref(params);
+
+	linphone_core_manager_destroy(marie);
+}
+
+// Test contact parameters and uri parameters on add/remove/clean.
+static void simple_account_params_with_contact_parameters(void) {
+	std::map<std::string, std::string> contactParameters = {{"empty", ""}, {"message-expires", "42"}};
+	std::map<std::string, std::string> contactUriParameters = {
+	    {"message-expires", "66"}, {"zanzibar", ""}, {"Batman", "Robin"}};
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+
+	LinphoneAccountParams *params = linphone_core_create_account_params(marie->lc);
+	linphone_account_params_set_custom_contact(params, NULL);
+	BC_ASSERT_PTR_NULL(linphone_account_params_get_custom_contact(params));
+	// Initialize all
+	for (const auto &[key, value] : contactParameters)
+		linphone_account_params_add_contact_parameter(params, key.c_str(), value.c_str());
+	for (const auto &[key, value] : contactUriParameters)
+		linphone_account_params_add_contact_uri_parameter(params, key.c_str(), value.c_str());
+	check_contact_parameters(params, contactParameters, contactUriParameters);
+
+	// Remove one element
+	linphone_account_params_remove_contact_parameter(params, contactParameters.begin()->first.c_str());
+	contactParameters.erase(contactParameters.begin());
+	linphone_account_params_remove_contact_uri_parameter(params, contactUriParameters.rbegin()->first.c_str());
+	contactUriParameters.erase(std::prev(contactUriParameters.end()));
+	check_contact_parameters(params, contactParameters, contactUriParameters);
+
+	// Should not impact uri contact parameters
+	linphone_account_params_clear_contact_parameters(params);
+	check_contact_parameters(params, {}, contactUriParameters);
+
+	for (const auto &[key, value] : contactParameters)
+		linphone_account_params_add_contact_parameter(params, key.c_str(), value.c_str());
+
+	// Should not impact contact parameters
+	linphone_account_params_clear_contact_uri_parameters(params);
+	check_contact_parameters(params, contactParameters, {});
+
+	// Check for cleaning all
+	linphone_account_params_clear_contact_parameters(params);
+	check_contact_parameters(params, {}, {});
 
 	linphone_account_params_unref(params);
 
@@ -513,6 +583,9 @@ static void account_dependency_to_self(void) {
 }
 
 static void supported_tags_handled_by_account_test(bool_t empty_list) {
+	const char *replaceToken = "replaces";
+	const char *outboundToken = "outbound";
+	const char *pathToken = "path";
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneAccount *marie_account = linphone_core_get_default_account(marie->lc);
 
@@ -529,9 +602,9 @@ static void supported_tags_handled_by_account_test(bool_t empty_list) {
 	// Define a new list of supported tags
 	bctbx_list_t *list = NULL;
 	if (!empty_list) {
-		list = bctbx_list_append(list, "replaces");
-		list = bctbx_list_append(list, "outbound");
-		list = bctbx_list_append(list, "path");
+		list = bctbx_list_append(list, const_cast<char *>(replaceToken));
+		list = bctbx_list_append(list, const_cast<char *>(outboundToken));
+		list = bctbx_list_append(list, const_cast<char *>(pathToken));
 	}
 	// Apply the new list of supported tags to Marie's account
 	linphone_account_params_set_supported_tags_list(marie_account_params, list);
@@ -751,6 +824,8 @@ static test_t account_tests[] = {
     TEST_NO_TAG("Added account removal (while REGISTERing)", added_account_removal_while_registering),
     TEST_NO_TAG("Added account removal (no REGISTER)", added_account_removal_no_register),
     TEST_NO_TAG("Simple account params creation", simple_account_params_creation),
+    TEST_NO_TAG("Simple account params creation with contact parameters",
+                simple_account_params_with_contact_parameters),
     TEST_NO_TAG("Account dependency to self", account_dependency_to_self),
     TEST_NO_TAG("Registration state changed callback on account", registration_state_changed_callback_on_account),
     TEST_NO_TAG("No unregister when changing transport", no_unregister_when_changing_transport),

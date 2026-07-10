@@ -89,6 +89,19 @@ std::ostream &PropertyContainer::toStream(std::ostream &stream) const {
 	return stream;
 }
 
+std::ostream &
+PropertyContainer::toStream(std::ostream &stream, const std::string &separator, const std::string &op) const {
+	for (auto p = mProperties.begin(); p != mProperties.end(); ++p) {
+		if (p != mProperties.begin()) stream << separator;
+		stream << p->first;
+		if (p->second.isValid()) {
+			stream << op;
+			p->second.toStream(stream);
+		}
+	}
+	return stream;
+}
+
 const std::map<std::string, Variant> &PropertyContainer::getProperties() const {
 	return mProperties;
 }

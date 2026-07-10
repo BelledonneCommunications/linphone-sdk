@@ -22,6 +22,7 @@
 
 #include "c-wrapper/internal/c-tools.h"
 #include "core/core.h"
+#include "dictionary/dictionary.h"
 #include "linphone/types.h"
 #include "nat/nat-policy.h"
 #include "private.h"
@@ -44,6 +45,8 @@ AccountParams::AccountParams(LinphoneCore *lc, bool useDefaultValues) {
 		lWarning() << "Unable to apply proxy default values: LinphoneCore is null.";
 		useDefaultValues = false;
 	}
+	mContactParametersMap = LinphonePrivate::Dictionary::create();
+	mContactUriParametersMap = LinphonePrivate::Dictionary::create();
 
 	mExpires = useDefaultValues ? linphone_config_get_default_int(lc->config, "proxy", "reg_expires", 3600) : 3600;
 	mRegisterEnabled =
@@ -80,10 +83,10 @@ AccountParams::AccountParams(LinphoneCore *lc, bool useDefaultValues) {
 	                     : "";
 	mQualityReportingInterval =
 	    useDefaultValues ? linphone_config_get_default_int(lc->config, "proxy", "quality_reporting_interval", 0) : 0;
-	mContactParameters =
-	    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "contact_parameters", "") : "";
-	mContactUriParameters =
-	    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "contact_uri_parameters", "") : "";
+	setContactParameters(
+	    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "contact_parameters", "") : "");
+	setContactUriParameters(
+	    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "contact_uri_parameters", "") : "");
 	mAllowCpimMessagesInBasicChatRooms =
 	    useDefaultValues
 	        ? !!linphone_config_get_default_int(lc->config, "proxy", "cpim_in_basic_chat_rooms_enabled", false)
@@ -266,9 +269,9 @@ AccountParams::AccountParams(LinphoneCore *lc, int index) : AccountParams(lc, fa
 	    linphone_config_get_string(config, key, "quality_reporting_collector", mQualityReportingCollector.c_str());
 	mQualityReportingInterval =
 	    linphone_config_get_int(config, key, "quality_reporting_interval", mQualityReportingInterval);
-	mContactParameters = linphone_config_get_string(config, key, "contact_parameters", mContactParameters.c_str());
-	mContactUriParameters =
-	    linphone_config_get_string(config, key, "contact_uri_parameters", mContactUriParameters.c_str());
+	setContactParameters(linphone_config_get_string(config, key, "contact_parameters", mContactParameters.c_str()));
+	setContactUriParameters(
+	    linphone_config_get_string(config, key, "contact_uri_parameters", mContactUriParameters.c_str()));
 	string pushParameters = linphone_config_get_string(config, key, "push_parameters", "");
 	// mPushNotificationConfig can't be null because it is always created in AccountParams(lc) called previously
 	if (linphone_core_is_push_notification_enabled(lc) && !pushParameters.empty()) {
@@ -411,6 +414,8 @@ AccountParams::AccountParams(const AccountParams &other) : HybridObject(other), 
 	mQualityReportingCollector = other.mQualityReportingCollector;
 	mContactParameters = other.mContactParameters;
 	mContactUriParameters = other.mContactUriParameters;
+	mContactParametersMap = other.mContactParametersMap->clone()->toSharedPtr();
+	mContactUriParametersMap = other.mContactParametersMap->clone()->toSharedPtr();
 	mRefKey = other.mRefKey;
 	mDependsOn = other.mDependsOn;
 	mIdKey = other.mIdKey;
@@ -622,13 +627,66 @@ void AccountParams::setQualityReportingCollector(const std::string &qualityRepor
 		}
 	}
 }
-
+// Deprecated
 void AccountParams::setContactParameters(const std::string &contactParameters) {
+	mContactParametersMap->clear(); // Synchronize dictionary and old parameters.
+	parseParameters(mContactParametersMap, contactParameters);
 	mContactParameters = contactParameters;
 }
 
+// Deprecated
 void AccountParams::setContactUriParameters(const std::string &contactUriParameters) {
+	mContactUriParametersMap->clear(); // Synchronize dictionary and old parameters.
+	parseParameters(mContactUriParametersMap, contactUriParameters);
 	mContactUriParameters = contactUriParameters;
+}
+
+std::string AccountParams::serializeParameters(const std::shared_ptr<Dictionary> &dictionary) {
+	std::stringstream parameters;
+	dictionary->toStream(parameters, ";", "=");
+	return parameters.str();
+}
+
+// Do not clear dictionary if merging parameters with existent dictionary is needed
+void AccountParams::parseParameters(std::shared_ptr<Dictionary> &dictionary, const std::string &parameters) {
+	if (parameters.empty()) return;
+	for (auto field : bctoolbox::Utils::split(parameters, ";")) {
+		// Find only first "=" and ignore others
+		auto endOfKey = field.find_first_of("=");
+		if (endOfKey == std::string::npos) {
+			dictionary->setProperty(field, "");
+		} else dictionary->setProperty(field.substr(0, endOfKey), field.substr(endOfKey + 1));
+	}
+}
+
+void AccountParams::addContactParameter(const std::string &key, const std::string &value) {
+	mContactParametersMap->setProperty(key, value);
+	mContactParameters = serializeParameters(mContactParametersMap);
+}
+
+void AccountParams::addContactUriParameter(const std::string &key, const std::string &value) {
+	mContactUriParametersMap->setProperty(key, value);
+	mContactUriParameters = serializeParameters(mContactUriParametersMap);
+}
+
+void AccountParams::removeContactParameter(const std::string &key) {
+	mContactParametersMap->remove(key);
+	mContactParameters = serializeParameters(mContactParametersMap);
+}
+
+void AccountParams::removeContactUriParameter(const std::string &key) {
+	mContactUriParametersMap->remove(key);
+	mContactUriParameters = serializeParameters(mContactUriParametersMap);
+}
+
+void AccountParams::clearContactParameters() {
+	mContactParametersMap->clear();
+	mContactParameters = "";
+}
+
+void AccountParams::clearContactUriParameters() {
+	mContactUriParametersMap->clear();
+	mContactUriParameters = "";
 }
 
 void AccountParams::setRefKey(const std::string &refKey) {
@@ -867,12 +925,20 @@ const std::string &AccountParams::getQualityReportingCollector() const {
 	return mQualityReportingCollector;
 }
 
-const std::string &AccountParams::getContactParameters() const {
+const std::string &AccountParams::getContactParametersStr() const {
 	return mContactParameters;
 }
 
-const std::string &AccountParams::getContactUriParameters() const {
+const std::string &AccountParams::getContactUriParametersStr() const {
 	return mContactUriParameters;
+}
+
+std::shared_ptr<const Dictionary> AccountParams::getContactParameters() const {
+	return mContactParametersMap;
+}
+
+std::shared_ptr<const Dictionary> AccountParams::getContactUriParameters() const {
+	return mContactUriParametersMap;
 }
 
 const std::string &AccountParams::getRefKey() const {

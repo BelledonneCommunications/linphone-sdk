@@ -271,7 +271,6 @@ set(IOS_RESOURCES_FILES
 )
 
 set(SOURCE_FILES_C
-	account_tester.c
 	account_creator_local_tester.c
 	account_creator_xmlrpc_tester.c
 	account_manager_services_tester.c
@@ -322,6 +321,7 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 endif()
 
 set(SOURCE_FILES_CXX
+	account_tester.cpp
 	tester.cpp
 	alerts_tester.cpp
 	audio-quality-tester.cpp

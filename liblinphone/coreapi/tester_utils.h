@@ -419,6 +419,7 @@ LINPHONE_PUBLIC LinphoneCore *linphone_participant_device_get_core(const Linphon
 #else
 LINPHONE_PUBLIC LinphonePrivate::Sal *linphone_core_get_sal(const LinphoneCore *lc);
 LINPHONE_PUBLIC void sal_default_set_sdp_handling(LinphonePrivate::Sal *h, SalOpSDPHandling handling_method);
+LINPHONE_PUBLIC void sal_set_send_error(LinphonePrivate::Sal *sal, int value);
 #endif // !defined(__cplusplus)
 
 LINPHONE_PUBLIC bool_t linphone_tunnel_is_tunnel_rtp_transport(const LinphoneTunnel *tunnel, const RtpTransport *tp);
