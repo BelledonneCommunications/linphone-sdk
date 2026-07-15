@@ -2692,24 +2692,19 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 			}));
 			linphone_chat_message_unref(msg);
 
+			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageNotDelivered,
+			                             initialMichelleStats.number_of_LinphoneMessageNotDelivered + 1,
+			                             liblinphone_tester_sip_timeout));
 			if (encrypted) {
-				if (use_remote_event_list_handler) {
-					BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageNotDelivered,
-					                             initialMichelleStats.number_of_LinphoneMessageNotDelivered + 1,
-					                             liblinphone_tester_sip_timeout));
-				} else {
-					BC_ASSERT_TRUE(wait_for_list(coresList,
-					                             &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
-					                             initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
-					                             liblinphone_tester_sip_timeout));
-				}
+				BC_ASSERT_TRUE(wait_for_list(coresList,
+				                             &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
+				                             initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
+				                             liblinphone_tester_sip_timeout));
 			} else {
+				// We no longer quit group chatrooms when receiving 403/404, so we should not receive an early failure
 				BC_ASSERT_FALSE(
 				    wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
 				                  initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1, 3000));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneMessageNotDelivered,
-				                             initialMichelleStats.number_of_LinphoneMessageNotDelivered + 1,
-				                             liblinphone_tester_sip_timeout));
 			}
 		}
 
@@ -2794,9 +2789,15 @@ void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_rem
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, berthe, berthe2}).wait([msg] {
 			return (linphone_chat_message_get_state(msg) == LinphoneChatMessageStateNotDelivered);
 		}));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
-		                             initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
-		                             liblinphone_tester_sip_timeout));
+
+		if (encrypted) {
+			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
+			                             initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1, 3000));
+		} else {
+			BC_ASSERT_FALSE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneChatRoomMessageEarlyFailure,
+			                              initialMichelleStats.number_of_LinphoneChatRoomMessageEarlyFailure + 1,
+			                              3000));
+		}
 
 		linphone_chat_message_unref(msg);
 		msg = NULL;
