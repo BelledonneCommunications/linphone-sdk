@@ -1331,8 +1331,7 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 
 			if (!!sends_message) {
 				// Pauline sends a message now. The server should reply with a 403 Forbidden as she is no longer a
-				// participant of the chatroom. Nonetheless, she'll be able to overcome that sending an INVITE and
-				// therefore rejoin the chatroom.
+				// participant of the chatroom.
 				msg = ClientConference::sendTextMsg(paulineCr, "Not sure.");
 
 				BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, berthe}).wait([msg] {
@@ -1340,11 +1339,6 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 				}));
 				linphone_chat_message_unref(msg);
 				msg = NULL;
-
-				BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateTerminated,
-				                             initialPaulineStats.number_of_LinphoneChatRoomStateTerminated + 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(linphone_chat_room_is_read_only(paulineCr));
 			} else {
 				char *confAddressString = linphone_address_as_string(confAddr);
 				ms_message("%s is waiting for the subscription to chatroom %s to expire",
@@ -1354,11 +1348,15 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 				BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionError,
 				                             initialPaulineStats.number_of_LinphoneSubscriptionError + 1,
 				                             liblinphone_tester_sip_timeout));
-
-				BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateTerminated,
-				                              initialPaulineStats.number_of_LinphoneChatRoomStateTerminated + 1, 1000));
-				BC_ASSERT_FALSE(linphone_chat_room_is_read_only(paulineCr));
 			}
+
+			// Behaviour was changed to be more tolerant of 403/404 error in group chatroom:
+			// Since they could possibly happen due to some errors in server configuration,
+			// We no longer terminate the group chatroom when receiveing 403/404
+			BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateTerminated,
+			                              initialPaulineStats.number_of_LinphoneChatRoomStateTerminated + 1,
+			                              liblinphone_tester_sip_timeout));
+			BC_ASSERT_FALSE(linphone_chat_room_is_read_only(paulineCr));
 
 			msg = ClientConference::sendTextMsg(marieCr, "Can you receive my messages?");
 

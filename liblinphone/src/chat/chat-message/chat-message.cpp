@@ -365,8 +365,9 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 			if (mFromAddress->weakEqual(*participantAddress) && (newState == ChatMessage::State::DeliveredToUser)) {
 				setParticipantState(participantAddress, ChatMessage::State::Displayed, ::ms_time(nullptr));
 			}
-			if ((newState == ChatMessage::State::NotDelivered) && (reason == LinphoneReasonForbidden)) {
-				// Try to recover from a situation where the server replied 403 to an outgoing message
+			if ((newState == ChatMessage::State::NotDelivered) &&
+			    (reason == LinphoneReasonForbidden || reason == LinphoneReasonNotFound)) {
+				// Try to recover from a situation where the server replied 403 or 404 to an outgoing message
 				chatRoom->handleMessageRejected(sharedMessage);
 			}
 		}
