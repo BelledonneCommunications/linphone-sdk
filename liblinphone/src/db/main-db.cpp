@@ -5950,6 +5950,8 @@ list<shared_ptr<ChatMessage>> MainDb::findQueuedChatMessages() const {
 	const std::string timediffExpression = (getBackend() == MainDb::Backend::Sqlite3)
 	                                           ? "(julianday(time) - julianday(:maxExpireTime)) * 24 * 60 * 60"
 	                                           : "TIMESTAMPDIFF(SECOND, :maxExpireTime, time)";
+	// Sqlite3 expects Integer as cast target, whereas MySQL only accepts SIGNED or UNSIGNED.
+	const std::string integerCastType = (getBackend() == MainDb::Backend::Sqlite3) ? "Integer" : "SIGNED";
 
 	static const string query =
 	    "SELECT conference_event_view.id AS event_id, type, creation_time, from_sip_address.value, "
@@ -5968,7 +5970,7 @@ list<shared_ptr<ChatMessage>> MainDb::findQueuedChatMessages() const {
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
 	    " WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE "
 	    "state = :queuedState AND direction = :direction AND CAST(" +
-	    timediffExpression + " As Integer) >= 0)";
+	    timediffExpression + " As " + integerCastType + ") >= 0)";
 
 	/*
 	DurationLogger durationLogger(
@@ -6024,6 +6026,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesToBeNotifiedAsDelivered() 
 	const std::string timediffExpression = (getBackend() == MainDb::Backend::Sqlite3)
 	                                           ? "(julianday(time) - julianday(:maxExpireTime)) * 24 * 60 * 60"
 	                                           : "TIMESTAMPDIFF(SECOND, :maxExpireTime, time)";
+	// Sqlite3 expects Integer as cast target, whereas MySQL only accepts SIGNED or UNSIGNED.
+	const std::string integerCastType = (getBackend() == MainDb::Backend::Sqlite3) ? "Integer" : "SIGNED";
 
 	static const string query =
 	    "SELECT conference_event_view.id AS event_id, type, creation_time, from_sip_address.value, "
@@ -6042,7 +6046,7 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesToBeNotifiedAsDelivered() 
 	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
 	    " WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE "
 	    "delivery_notification_required <> 0 AND direction = :direction AND CAST(" +
-	    timediffExpression + " As Integer) >= 0)";
+	    timediffExpression + " As " + integerCastType + ") >= 0)";
 
 	/*
 	DurationLogger durationLogger(
@@ -7969,10 +7973,12 @@ void MainDb::cleanupConferenceInfo(time_t expiredBeforeThisTime) {
 		    (getBackend() == MainDb::Backend::Sqlite3)
 		        ? "(julianday(:maxExpireTime) - julianday(conference_info.expiry_time)) * 24 * 60 * 60"
 		        : "TIMESTAMPDIFF(SECOND, conference_info.expiry_time, :maxExpireTime)";
+		// Sqlite3 expects Integer as cast target, whereas MySQL only accepts SIGNED or UNSIGNED.
+		const std::string integerCastType = (getBackend() == MainDb::Backend::Sqlite3) ? "Integer" : "SIGNED";
 		std::string findQuery = "SELECT conference_info.id, uri_sip_address.value FROM conference_info, sip_address AS "
 		                        "uri_sip_address WHERE CAST(" +
-		                        timediffExpression +
-		                        " As Integer) >= 0 AND conference_info.uri_sip_address_id = uri_sip_address.id";
+		                        timediffExpression + " As " + integerCastType +
+		                        ") >= 0 AND conference_info.uri_sip_address_id = uri_sip_address.id";
 		L_DB_TRANSACTION {
 			L_D();
 			soci::session *session = d->dbSession.getBackendSession();
