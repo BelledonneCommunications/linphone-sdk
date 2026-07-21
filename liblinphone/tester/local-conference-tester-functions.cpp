@@ -3308,7 +3308,8 @@ void create_conference_base(time_t start_time,
 						}
 
 						linphone_conference_enter(paulineConference);
-
+						// on Resume, INVITE shouldn't contains a subject header
+						BC_ASSERT_STRING_EQUAL(linphone_call_get_op(pauline_call)->getSubject().c_str(), "");
 						int participant_streams_running = 0;
 						int pauline_streams_running = 0;
 						int focus_streams_running = 0;
