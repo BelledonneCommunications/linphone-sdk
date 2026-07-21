@@ -46,6 +46,13 @@
 #pragma warning(disable : 4996)
 #endif
 
+static const char *malformed_content =
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE file [<!ENTITY xxe SYSTEM "
+    "\"https://127.0.0.1/xxe-oob-001\">]><file xmlns=\"urn:gsma:params:xml:ns:rcs:rcs:fthttp\"><file-info "
+    "type=\"file\"><playing-length></playing-length><file-size></file-size><file-name>&xxe;</"
+    "file-name><content-type>text/plain</content-type><data "
+    "url=\"https://127.0.0.1/dummy-file.txt\" until=\"2026-12-31T23:59:59Z\"/></file-info></file>";
+
 void liblinphone_tester_chat_message_state_change(LinphoneChatMessage *msg,
                                                   LinphoneChatMessageState state,
                                                   BCTBX_UNUSED(void *ud)) {
@@ -757,6 +764,54 @@ static void message_with_two_attachments(void) {
 	bc_free(send_filepath2);
 	linphone_core_manager_destroy(laure);
 	linphone_core_manager_destroy(pauline);
+}
+
+// Send file transfer message with a xml that have no data and xxe injection.
+// No crashes should occur during parsing, and no file transfer should be done.
+static void message_with_xxe_injection(void) {
+	LinphoneCoreManager *laure = linphone_core_manager_new("laure_tcp_rc");
+	// Disable autodownload
+	linphone_core_set_max_size_for_auto_download_incoming_files(laure->lc, -1);
+	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_tcp_rc");
+	linphone_core_set_file_transfer_server(pauline->lc, file_transfer_url);
+
+	LinphoneChatRoom *chat_room = linphone_core_get_chat_room(pauline->lc, laure->identity);
+	linphone_chat_room_allow_multipart(chat_room);
+
+	LinphoneChatMessage *message = linphone_chat_room_create_empty_message(chat_room);
+	BC_ASSERT_TRUE(linphone_chat_message_get_to_be_stored(message));
+	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(message);
+	BC_ASSERT_PTR_NULL(event_log);
+
+	LinphoneContent *file_transfer_content_malformed =
+	    linphone_core_create_content(linphone_chat_room_get_core(chat_room));
+	linphone_content_set_type(file_transfer_content_malformed, "application/vnd.gsma.rcs-ft-http+xml");
+	linphone_content_set_utf8_text(file_transfer_content_malformed, malformed_content);
+	linphone_chat_message_add_content(message, file_transfer_content_malformed);
+	// Set Message to file transfer in order to parse it.
+	linphone_chat_message_set_content_type(message, "application/vnd.gsma.rcs-ft-http+xml");
+
+	const bctbx_list_t *contents = linphone_chat_message_get_contents(message);
+	size_t nb_of_contents = bctbx_list_size(contents);
+	BC_ASSERT_EQUAL(nb_of_contents, 1, size_t, "%zu");
+
+	LinphoneChatMessageCbs *send_cbs = linphone_chat_message_get_callbacks(message);
+	linphone_chat_message_cbs_set_msg_state_changed(send_cbs, liblinphone_tester_chat_message_msg_state_changed);
+	linphone_chat_message_cbs_set_file_transfer_recv(send_cbs, file_transfer_received);
+	linphone_chat_message_cbs_set_file_transfer_progress_indication(send_cbs, file_transfer_progress_indication);
+	linphone_chat_message_send(message);
+
+	BC_ASSERT_TRUE(wait_for(pauline->lc, laure->lc, &pauline->stat.number_of_LinphoneMessageDelivered, 1));
+	// Wait some time to ensure that no more processes are done
+	wait_for_until(pauline->lc, laure->lc, NULL, 0, 1000);
+	// No file transfers have been initiated
+	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneMessageFileTransferInProgress, 0, int, "%d");
+	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneMessageReceivedWithFile, 0, int, "%d");
+
+	linphone_content_unref(file_transfer_content_malformed);
+	linphone_chat_message_unref(message);
+	linphone_core_manager_destroy(pauline);
+	linphone_core_manager_destroy(laure);
 }
 
 static void create_two_basic_chat_room_with_same_remote(void) {
@@ -4059,7 +4114,8 @@ static void real_time_text(bool_t audio_stream_enabled,
                            bool_t ice_enabled,
                            bool_t sql_storage,
                            bool_t do_not_store_rtt_messages_in_sql_storage,
-                           bool_t existing_chat_room, bool_t enable_sdp_200_ack) {
+                           bool_t existing_chat_room,
+                           bool_t enable_sdp_200_ack) {
 	if (sql_storage && !linphone_factory_is_database_storage_available(linphone_factory_get())) {
 		ms_warning("Test skipped, database storage is not available");
 		return;
@@ -4141,7 +4197,6 @@ static void real_time_text(bool_t audio_stream_enabled,
 		linphone_core_set_nortp_timeout(marie->lc, 5);
 		linphone_core_set_nortp_timeout(pauline->lc, 5);
 	}
-
 
 	if (enable_sdp_200_ack) {
 		BC_ASSERT_TRUE(call_with_params(marie, pauline, NULL, params));
@@ -4385,7 +4440,6 @@ static void real_time_text_without_audio(void) {
 static void real_time_text_without_audio_offer_in_200ok(void) {
 	real_time_text(FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, TRUE);
 }
-
 
 static void real_time_text_srtp(void) {
 	real_time_text(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE);
@@ -5641,7 +5695,10 @@ static test_t message_tests[] = {
     TEST_NO_TAG("Crash during file transfer", crash_during_file_transfer),
     TEST_NO_TAG("Text status after destroying chat room", text_status_after_destroying_chat_room),
     TEST_NO_TAG("Transfer success after destroying chatroom", file_transfer_success_after_destroying_chatroom),
-    TEST_NO_TAG("Migration from messages db", migration_from_messages_db)};
+    TEST_NO_TAG("Migration from messages db", migration_from_messages_db),
+    TEST_NO_TAG("Message with xxe injection", message_with_xxe_injection)
+
+};
 
 static test_t rtt_message_tests[] = {
     TEST_ONE_TAG("Real Time Text message", real_time_text_message, "RTT"),
@@ -5653,7 +5710,8 @@ static test_t rtt_message_tests[] = {
         "Real Time Text SQL storage with RTT messages not stored", real_time_text_sql_storage_rtt_disabled, "RTT"),
     TEST_ONE_TAG("Real Time Text conversation", real_time_text_conversation, "RTT"),
     TEST_ONE_TAG("Real Time Text without audio", real_time_text_without_audio, "RTT"),
-    TEST_TWO_TAGS("Real Time Text without audio (offer in 200Ok)", real_time_text_without_audio_offer_in_200ok, "RTT", "ICE"),
+    TEST_TWO_TAGS(
+        "Real Time Text without audio (offer in 200Ok)", real_time_text_without_audio_offer_in_200ok, "RTT", "ICE"),
     TEST_ONE_TAG("Only Real Time Text accepted", only_real_time_text_accepted, "RTT"),
     TEST_ONE_TAG("Real Time Text with srtp", real_time_text_srtp, "RTT"),
     TEST_ONE_TAG("Real Time Text with ice", real_time_text_ice, "RTT"),
