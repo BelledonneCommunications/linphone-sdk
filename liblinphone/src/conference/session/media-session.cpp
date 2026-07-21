@@ -4935,10 +4935,14 @@ LinphoneStatus MediaSession::resume() {
 	 * prevents the participants to hear it while the 200OK comes back. */
 	Stream *as = d->getStreamsGroup().lookupMainStream(SalAudio);
 	if (as) as->stop();
-
-	string subject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::Resuming);
-	if (d->getParams()->getPrivate()->getInConference() && !getCurrentParams()->getPrivate()->getInConference()) {
-		subject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::Conference);
+	const auto conference = getCore()->findConference(getSharedFromThis(), false);
+	string subject;
+	// Set a predefined subject only if not attached to a conference.
+	if (!conference) {
+		subject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::Resuming);
+		if (d->getParams()->getPrivate()->getInConference() && !getCurrentParams()->getPrivate()->getInConference()) {
+			subject = CallSession::sPredefinedSubject.at(CallSession::PredefinedSubjectType::Conference);
+		}
 	}
 
 	updateContactAddressInOp();
