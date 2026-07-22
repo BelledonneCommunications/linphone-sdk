@@ -745,9 +745,9 @@ static int publish_report(LinphoneCall *call, const char *event_type) {
 	for (const auto &idx :
 	     {_linphone_call_get_main_audio_stream_index(call), _linphone_call_get_main_video_stream_index(call),
 	      _linphone_call_get_main_text_stream_index(call)}) {
-		int stream_index = idx == _linphone_call_get_main_audio_stream_index(call) ? LINPHONE_CALL_STATS_AUDIO
-		                   : _linphone_call_get_main_video_stream_index(call)      ? LINPHONE_CALL_STATS_VIDEO
-		                                                                           : LINPHONE_CALL_STATS_TEXT;
+		int stream_index = idx == _linphone_call_get_main_audio_stream_index(call)   ? LINPHONE_CALL_STATS_AUDIO
+		                   : idx == _linphone_call_get_main_video_stream_index(call) ? LINPHONE_CALL_STATS_VIDEO
+		                                                                             : LINPHONE_CALL_STATS_TEXT;
 		if (media_report_enabled(call, stream_index)) {
 			int sndret;
 			linphone_reporting_update_media_info(call, stream_index);
