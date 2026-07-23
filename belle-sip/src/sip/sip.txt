@@ -543,6 +543,6 @@ refresher-param        = "refresher" EQUAL ("uas" / "uac")
 ; Rules from RFC 5806 ;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
-header-diversion = "Diversion" ":" diversion-spec
+header-diversion = "Diversion" HCOLON diversion-spec
 diversion-spec   = name-addr-with-generic-uri *( SEMI diversion-params) ; Initially 1# (name-addr *( ";" diversion_params ))
 diversion-params = generic-param
