@@ -19,6 +19,7 @@
  */
 
 #include "liblinphone_tester.h"
+#include "linphone/api/c-account.h"
 #include "linphone/api/c-address.h"
 #include "linphone/api/c-friend.h"
 #include "linphone/core.h"
@@ -341,6 +342,57 @@ end:
 	linphone_core_manager_destroy(pauline);
 }
 
+static void check_presence_model_activity(const LinphonePresenceModel *model,
+                                          LinphonePresenceActivityType expected_activity) {
+	if (!BC_ASSERT_PTR_NOT_NULL(model)) return;
+	LinphonePresenceActivity *activity = linphone_presence_model_get_activity(model);
+	if (BC_ASSERT_PTR_NOT_NULL(activity)) {
+		BC_ASSERT_EQUAL(linphone_presence_activity_get_type(activity), expected_activity, int, "%d");
+	}
+}
+
+static void multiple_accounts_with_distinct_presence_models(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_dual_proxy_rc");
+	const bctbx_list_t *accounts = linphone_core_get_account_list(marie->lc);
+
+	BC_ASSERT_EQUAL((int)bctbx_list_size(accounts), 2, int, "%d");
+	if (bctbx_list_size(accounts) == 2) {
+		LinphoneAccount *first_account = (LinphoneAccount *)bctbx_list_nth_data((bctbx_list_t *)accounts, 0);
+		LinphoneAccount *second_account = (LinphoneAccount *)bctbx_list_nth_data((bctbx_list_t *)accounts, 1);
+
+		LinphonePresenceModel *core_model = linphone_core_get_presence_model(marie->lc);
+		BC_ASSERT_PTR_NOT_NULL(core_model);
+		/* By default, accounts have no dedicated presence model: the core one is used when publishing. */
+		BC_ASSERT_PTR_NULL(linphone_account_get_presence_model(first_account));
+		BC_ASSERT_PTR_NULL(linphone_account_get_presence_model(second_account));
+
+		/* Give each account its own presence model. */
+		LinphonePresenceModel *first_model = linphone_presence_model_new();
+		linphone_account_set_presence_model(first_account, first_model);
+		BC_ASSERT_PTR_EQUAL(linphone_account_get_presence_model(first_account), first_model);
+		LinphonePresenceModel *second_model = linphone_presence_model_new();
+		linphone_account_set_presence_model(second_account, second_model);
+		BC_ASSERT_PTR_EQUAL(linphone_account_get_presence_model(second_account), second_model);
+
+		/* Apply a different modification to each account's model and to the core's one. */
+		linphone_presence_model_set_activity(first_model, LinphonePresenceActivityDinner, NULL);
+		linphone_presence_model_set_activity(second_model, LinphonePresenceActivityMeeting, NULL);
+		linphone_presence_model_set_activity(core_model, LinphonePresenceActivityVacation, NULL);
+
+		/* Each model must only carry its own activity: modifying one of them must not alter the others. */
+		check_presence_model_activity(linphone_account_get_presence_model(first_account),
+		                              LinphonePresenceActivityDinner);
+		check_presence_model_activity(linphone_account_get_presence_model(second_account),
+		                              LinphonePresenceActivityMeeting);
+		check_presence_model_activity(core_model, LinphonePresenceActivityVacation);
+
+		linphone_presence_model_unref(first_model);
+		linphone_presence_model_unref(second_model);
+	}
+
+	linphone_core_manager_destroy(marie);
+}
+
 static void subscribe_presence_forked(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneCoreManager *pauline1 =
@@ -465,6 +517,7 @@ static test_t presence_tests[] = {
     TEST_ONE_TAG("App managed presence failure", subscribe_failure_handle_by_app, "presence"),
     TEST_NO_TAG("Presence SUBSCRIBE forked", subscribe_presence_forked),
     TEST_NO_TAG("Presence SUBSCRIBE expired", subscribe_presence_expired),
+    TEST_NO_TAG("Multiple accounts with distinct presence models", multiple_accounts_with_distinct_presence_models),
 };
 
 test_suite_t presence_test_suite = {"Presence",
