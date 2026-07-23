@@ -59,6 +59,7 @@ SalOp::~SalOp() {
 
 	if (mFromAddress) sal_address_unref(mFromAddress);
 	if (mToAddress) sal_address_unref(mToAddress);
+	if (mDiversionAddress) sal_address_unref(mDiversionAddress);
 	if (mRequestAddress) sal_address_unref(mRequestAddress.take());
 	if (mServiceRoute) sal_address_unref(mServiceRoute);
 	if (mOriginAddress) sal_address_unref(mOriginAddress);

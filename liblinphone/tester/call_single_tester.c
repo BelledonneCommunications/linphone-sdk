@@ -3065,6 +3065,42 @@ end:
 	linphone_core_manager_destroy(pauline);
 }
 
+static void call_with_diversion_header(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *pauline =
+	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
+	LinphoneCall *call_marie;
+	LinphoneCallParams *params;
+	const LinphoneAddress *diversion_address;
+
+	/* Pauline sets a Diversion header in the INVITE.
+	 * A display name is used so that the address is serialized in its name-addr form (with angle
+	 * brackets), which is the only form accepted by the diversion-spec grammar rule on the callee side. */
+	params = linphone_core_create_call_params(pauline->lc, NULL);
+	linphone_call_params_add_custom_header(params, "Diversion", "\"Diverted User\" <sip:diverted@sip.example.org>");
+
+	if (!BC_ASSERT_TRUE(call_with_caller_params(pauline, marie, params))) goto end;
+
+	/* Marie must have parsed the Diversion header from the received INVITE. */
+	call_marie = linphone_core_get_current_call(marie->lc);
+	BC_ASSERT_PTR_NOT_NULL(call_marie);
+	if (call_marie) {
+		diversion_address = linphone_call_get_diversion_address(call_marie);
+		BC_ASSERT_PTR_NOT_NULL(diversion_address);
+		if (diversion_address) {
+			BC_ASSERT_STRING_EQUAL(linphone_address_get_username(diversion_address), "diverted");
+			BC_ASSERT_STRING_EQUAL(linphone_address_get_domain(diversion_address), "sip.example.org");
+		}
+	}
+
+	end_call(pauline, marie);
+
+end:
+	linphone_call_params_unref(params);
+	linphone_core_manager_destroy(marie);
+	linphone_core_manager_destroy(pauline);
+}
+
 static void call_with_custom_reserved_headers(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneCoreManager *pauline =
@@ -9141,6 +9177,7 @@ static test_t call_tests[] = {
 
 static test_t call2_tests[] = {
     TEST_NO_TAG("Call with custom headers", call_with_custom_headers),
+    TEST_NO_TAG("Call with diversion header", call_with_diversion_header),
     TEST_NO_TAG("Call with custom reserved headers", call_with_custom_reserved_headers),
     TEST_NO_TAG("Call with custom SDP attributes", call_with_custom_sdp_attributes),
     TEST_NO_TAG("Call caller with custom header or sdp", call_caller_with_custom_header_or_sdp_attributes),
