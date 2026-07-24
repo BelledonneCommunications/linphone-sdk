@@ -24,7 +24,7 @@
 #include "belr/grammarbuilder.h"
 #include "chat/chat-message/chat-message.h"
 #include "chat/chat-room/basic-chat-room.h"
-#include "chat/cpim/cpim.h"
+#include "chat/cpim/message/cpim-message.h"
 #include "content/content-type.h"
 #include "content/content.h"
 #include "core/core.h"

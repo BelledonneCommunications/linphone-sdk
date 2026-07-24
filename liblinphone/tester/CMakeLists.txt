@@ -312,7 +312,7 @@ set(SOURCE_FILES_C
 	video_tester.c
 )
 
-if(ENABLE_LIME_X3DH)
+if(ENABLE_ADVANCED_IM AND ENABLE_LIME_X3DH)
 	list(APPEND SOURCE_FILES_C group_chat_secure_tester.c)
 endif()
 

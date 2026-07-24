@@ -163,19 +163,11 @@ set(LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
 	chat/chat-room/chat-room.h
 	chat/chat-room/chat-params.h
 	chat/chat-room/composing-participant.h
-	chat/cpim/cpim.h
-	chat/cpim/header/cpim-core-headers.h
-	chat/cpim/header/cpim-generic-header.h
-	chat/cpim/header/cpim-header-p.h
-	chat/cpim/header/cpim-header.h
-	chat/cpim/message/cpim-message.h
-	chat/cpim/parser/cpim-parser.h
 	chat/encryption/encryption-engine.h
 	chat/encryption/legacy-encryption-engine.h
 	chat/ics/ics.h
 	chat/ics/parser/ics-parser.h
 	chat/modifier/chat-message-modifier.h
-	chat/modifier/cpim-chat-message-modifier.h
 	chat/modifier/encryption-chat-message-modifier.h
 	chat/modifier/file-transfer-chat-message-modifier.h
 	chat/modifier/multipart-chat-message-modifier.h
@@ -332,13 +324,14 @@ set(LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
 if(ENABLE_XERCESC)
 	list(APPEND LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
 		conference/ccmp-conference-scheduler.h
+		xml/xml.h
 		xml/patch-ops.h
 		xml/conference-info.h
 		xml/xcon-conference-info.h
 		xml/xcon-ccmp.h
+		xml/resource-lists.h
 	)
 endif()
-
 
 if(ENABLE_ADVANCED_IM)
 	list(APPEND LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES
@@ -346,6 +339,14 @@ if(ENABLE_ADVANCED_IM)
 		chat/chat-room/server-chat-room.h
 		conference/encryption/client-ekt-manager.h
 		conference/encryption/ekt-info.h
+		chat/modifier/cpim-chat-message-modifier.h
+		chat/cpim/header/cpim-core-headers.h
+		chat/cpim/header/cpim-generic-header.h
+		chat/cpim/header/cpim-header-p.h
+		chat/cpim/header/cpim-header.h
+		chat/cpim/message/cpim-message.h
+		chat/cpim/parser/cpim-parser.h
+		chat/encryption/lime-x3dh-server-engine.h
 	)
 
 	if(ENABLE_XERCESC)
@@ -360,9 +361,7 @@ if(ENABLE_ADVANCED_IM)
 			xml/imdn.h
 			xml/is-composing.h
 			xml/linphone-imdn.h
-			xml/resource-lists.h
 			xml/rlmi.h
-			xml/xml.h
 		)
 	endif()
 
@@ -663,10 +662,12 @@ set(LINPHONE_CXX_OBJECTS_SOURCE_FILES
 if(ENABLE_XERCESC)
 	list(APPEND LINPHONE_CXX_OBJECTS_SOURCE_FILES
 		conference/ccmp-conference-scheduler.cpp
+		xml/xml.cpp
 		xml/patch-ops.cpp
 		xml/conference-info.cpp
 		xml/xcon-conference-info.cpp
 		xml/xcon-ccmp.cpp
+		xml/resource-lists.cpp
 	)
 endif()
 
@@ -717,9 +718,9 @@ if(ENABLE_ADVANCED_IM)
 		chat/cpim/header/cpim-header.cpp
 		chat/cpim/message/cpim-message.cpp
 		chat/cpim/parser/cpim-parser.cpp
+		chat/encryption/lime-x3dh-server-engine.cpp
 	)
-	list(APPEND LINPHONE_CXX_OBJECTS_PRIVATE_HEADER_FILES chat/encryption/lime-x3dh-server-engine.h)
-	list(APPEND LINPHONE_CXX_OBJECTS_SOURCE_FILES chat/encryption/lime-x3dh-server-engine.cpp)
+
 	if(ENABLE_XERCESC)
 		list(APPEND LINPHONE_CXX_OBJECTS_SOURCE_FILES
 			conference/handlers/server-conference-event-handler.cpp
@@ -732,9 +733,7 @@ if(ENABLE_ADVANCED_IM)
 			xml/imdn.cpp
 			xml/is-composing.cpp
 			xml/linphone-imdn.cpp
-			xml/resource-lists.cpp
 			xml/rlmi.cpp
-			xml/xml.cpp
 		)
 	endif()
 endif()

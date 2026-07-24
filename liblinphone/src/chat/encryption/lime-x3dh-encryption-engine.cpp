@@ -34,8 +34,8 @@
 #include "chat/chat-room/chat-room.h"
 #ifdef HAVE_ADVANCED_IM
 #include "chat/chat-room/client-chat-room.h"
-#endif // HAVE_ADVANCED_IM
 #include "chat/modifier/cpim-chat-message-modifier.h"
+#endif // HAVE_ADVANCED_IM
 #include "conference/client-conference.h"
 #include "conference/conference-params.h"
 #include "conference/conference.h"
@@ -331,6 +331,7 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processOutgoingMessage(con
 		lWarning() << "[LIME] encrypting message [" << message
 		           << "] for excessive number of devices, message discarded";
 
+#ifdef HAVE_ADVANCED_IM
 		// Check the last 2 events for security alerts before sending a new security event
 		bool recentSecurityAlert = false;
 		list<shared_ptr<EventLog>> eventList = chatRoom->getHistory(2);
@@ -346,7 +347,6 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processOutgoingMessage(con
 			}
 		}
 
-#ifdef HAVE_ADVANCED_IM
 		// If there is no recent security alert send a new one
 		if (!recentSecurityAlert) {
 			ConferenceSecurityEvent::SecurityEventType securityEventType =
@@ -410,11 +410,12 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processOutgoingMessage(con
 				list<shared_ptr<Content>> contents;
 
 				// ---------------------------------------------- CPIM
-
+#ifdef HAVE_ADVANCED_IM
 				// Replaces SIPFRAG since version 4.4.0
 				CpimChatMessageModifier ccmm;
 				auto cpimContent = ccmm.createMinimalCpimContentForLimeMessage(message);
 				contents.push_back(std::move(cpimContent));
+#endif // HAVE_ADVANCED_IM
 
 				// ---------------------------------------------- SIPFRAG
 
@@ -544,6 +545,8 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processIncomingMessage(con
 
 	string senderDeviceId;
 	bool cpimFound = false;
+
+#ifdef HAVE_ADVANCED_IM
 	for (const auto &content : contentList) { // 4.4.x new behavior
 		if (content.getContentType() != ContentType::Cpim) continue;
 
@@ -556,6 +559,7 @@ ChatMessageModifier::Result LimeX3dhEncryptionEngine::processIncomingMessage(con
 			break;
 		}
 	}
+#endif // HAVE_ADVANCED_IM
 
 	// ---------------------------------------------- SIPFRAG
 

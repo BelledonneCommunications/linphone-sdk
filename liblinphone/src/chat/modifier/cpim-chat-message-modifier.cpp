@@ -26,7 +26,7 @@
 #include "address/address.h"
 #include "chat/chat-message/chat-message-p.h"
 #include "chat/chat-room/chat-room.h"
-#include "chat/cpim/cpim.h"
+#include "chat/cpim/message/cpim-message.h"
 #include "conference/conference-params.h"
 #include "content/content-disposition.h"
 #include "content/content-manager.h"

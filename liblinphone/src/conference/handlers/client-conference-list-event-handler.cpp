@@ -34,9 +34,11 @@
 #include "core/core-p.h"
 #include "event/event-subscribe.h"
 #include "logger/logger.h"
+#ifdef HAVE_XERCESC
 #include "xml/conference-info.h"
 #include "xml/resource-lists.h"
 #include "xml/rlmi.h"
+#endif // HAVE_XERCESC
 
 // TODO: Remove me later.
 #include "private.h"
@@ -261,7 +263,6 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 	}
 	const auto &factoryUri = accountParams->getConferenceFactoryAddress();
 	bool factoryUriIsValid = factoryUri && factoryUri->isValid();
-
 	const auto &from = account->getContactAddress();
 	if (!from || !from->isValid()) {
 		lError() << "ClientConferenceListEventHandler [" << this << "]: ClientConferenceListEventHandler [" << this

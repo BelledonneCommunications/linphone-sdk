@@ -1136,7 +1136,9 @@ LinphoneReason ChatMessagePrivate::receive() {
 			if (from != nullptr) {
 				q->getPrivate()->forceFromAddress(from);
 			}
-#endif
+#else
+			lWarning() << "Do not parse Cpim because its support is disabled.";
+#endif // HAVE_ADVANCED_IM
 			chatRoom->notifyUndecryptableChatMessageReceived(q->getSharedFromThis());
 			reason = linphone_error_code_to_reason(errorCode);
 			if (!chatRoom) return reason;
@@ -1176,8 +1178,8 @@ LinphoneReason ChatMessagePrivate::receive() {
 			CpimChatMessageModifier ccmm;
 			ccmm.decode(q->getSharedFromThis(), errorCode);
 #else
-			lWarning() << "Cpim support disabled.";
-#endif
+			lWarning() << "Do not decode Cpim as its support is disabled.";
+#endif // HAVE_ADVANCED_IM
 			q->initializeToBeStored();
 		}
 		currentRecvStep |= ChatMessagePrivate::Step::Cpim;
