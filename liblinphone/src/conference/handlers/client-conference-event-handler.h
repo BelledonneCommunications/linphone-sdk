@@ -26,8 +26,10 @@
 #include "chat/chat-room/client-chat-room.h"
 #include "client-conference-event-handler-base.h"
 #include "conference/conference-id.h"
+#ifdef HAVE_XERCESC
 #include "xml/conference-info-linphone-extension.h"
 #include "xml/conference-info.h"
+#endif // HAVE_XERCESC
 
 // =============================================================================
 

@@ -37,8 +37,10 @@
 #include "logger/logger.h"
 #include "server-conference-event-handler.h"
 #include "server-conference-list-event-handler.h"
+#ifdef HAVE_XERCESC
 #include "xml/resource-lists.h"
 #include "xml/rlmi.h"
+#endif // HAVE_XERCESC
 
 // TODO: Remove me later.
 #include "private.h"

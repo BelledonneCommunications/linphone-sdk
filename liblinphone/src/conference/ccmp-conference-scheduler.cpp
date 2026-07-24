@@ -33,9 +33,11 @@
 #include "linphone/core.h"
 #include "private_functions.h"
 #include "utils/xml-utils.h"
+#ifdef HAVE_XERCESC
 #include "xml/conference-info.h"
 #include "xml/xcon-ccmp.h"
 #include "xml/xcon-conference-info.h"
+#endif // HAVE_XERCESC
 
 // =============================================================================
 

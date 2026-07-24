@@ -39,8 +39,6 @@
 #include "server-conference-event-handler.h"
 #include "utils/xml-utils.h"
 
-#include <xsd/cxx/xml/dom/serialization-source.hxx>
-
 // TODO: remove me.
 #include "private.h"
 

@@ -26,7 +26,7 @@
 #include "address/address.h"
 #include "chat/chat-message/chat-message-p.h"
 #include "chat/chat-room/chat-room.h"
-#include "chat/cpim/cpim.h"
+#include "chat/cpim/message/cpim-message.h"
 #include "conference/conference-params.h"
 #include "content/content-disposition.h"
 #include "content/content-manager.h"
@@ -95,10 +95,10 @@ ChatMessageModifier::Result CpimChatMessageModifier::encode(const shared_ptr<Cha
 			const string &ephemeralLifeTimeBuf = Utils::toString(ephemeralLifeTime);
 			const string &ephemeralNotReadLifeTimeBuf = Utils::toString(ephemeralNotReadLifeTime);
 			cpimMessage.addMessageHeader(Cpim::NsHeader(linphoneNamespaceTag, linphoneNamespace));
-			cpimMessage.addMessageHeader(
-			    Cpim::GenericHeader(linphoneNamespace + "." + ChatRoom::kEphemeralLifeTimeHeader, ephemeralLifeTimeBuf));
-			cpimMessage.addMessageHeader(Cpim::GenericHeader(linphoneNamespace + "." + ChatRoom::kEphemeralNotReadLifeTimeHeader,
-			                                                 ephemeralNotReadLifeTimeBuf));
+			cpimMessage.addMessageHeader(Cpim::GenericHeader(
+			    linphoneNamespace + "." + ChatRoom::kEphemeralLifeTimeHeader, ephemeralLifeTimeBuf));
+			cpimMessage.addMessageHeader(Cpim::GenericHeader(
+			    linphoneNamespace + "." + ChatRoom::kEphemeralNotReadLifeTimeHeader, ephemeralNotReadLifeTimeBuf));
 			linphoneNamespaceHeaderSet = true;
 		}
 
@@ -294,7 +294,8 @@ ChatMessageModifier::Result CpimChatMessageModifier::decode(const shared_ptr<Cha
 
 	if (!linphoneNsName.empty()) {
 		auto lifetimeHeader = cpimMessage->getMessageHeader(ChatRoom::kEphemeralLifeTimeHeader, linphoneNsName);
-		auto notReadLifetimeHeader = cpimMessage->getMessageHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader, linphoneNsName);
+		auto notReadLifetimeHeader =
+		    cpimMessage->getMessageHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader, linphoneNsName);
 		if (lifetimeHeader) {
 			long lifetime = static_cast<long>(Utils::stod(lifetimeHeader->getValue()));
 			long notReadLifetime = 0;

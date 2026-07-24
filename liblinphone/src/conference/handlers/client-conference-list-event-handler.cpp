@@ -34,9 +34,11 @@
 #include "core/core-p.h"
 #include "event/event-subscribe.h"
 #include "logger/logger.h"
+#ifdef HAVE_XERCESC
 #include "xml/conference-info.h"
 #include "xml/resource-lists.h"
 #include "xml/rlmi.h"
+#endif // HAVE_XERCESC
 
 // TODO: Remove me later.
 #include "private.h"
@@ -69,7 +71,8 @@ bool ClientConferenceListEventHandler::subscribe() {
 
 bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &account) {
 	if (!account) {
-		lError() << "Unable to subscribe to the conference event package (RFC 4575) because the account the event handler is trying to subscribe for is NULL";
+		lError() << "Unable to subscribe to the conference event package (RFC 4575) because the account the event "
+		            "handler is trying to subscribe for is NULL";
 		return false;
 	}
 
@@ -97,16 +100,17 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 	}
 
 	auto identityAddress = accountParams->getIdentityAddress();
-	if (!identityAddress ||!identityAddress->isValid()) {
+	if (!identityAddress || !identityAddress->isValid()) {
 		lError() << "Unable to subscribe to the conference event package (RFC 4575) of all chatrooms linked to "
 		         << *account << " because the account identity is unknown";
 		return false;
 	}
 
 	const auto &from = account->getContactAddress();
-	if (!from ||!from->isValid()) {
+	if (!from || !from->isValid()) {
 		lError() << "Unable to subscribe to the conference event package (RFC 4575) of all chatrooms linked to "
-		         << *account << " because the account contact address is unknown, hence the SUBSCRIBE from header cannot be set";
+		         << *account
+		         << " because the account contact address is unknown, hence the SUBSCRIBE from header cannot be set";
 		return false;
 	}
 
