@@ -809,6 +809,10 @@ void linphone_reporting_call_state_updated(LinphoneCall *call) {
 			linphone_reporting_update_ip(call);
 			if (media_report_enabled(call, LINPHONE_CALL_STATS_VIDEO) &&
 			    log->getQualityReporting()->was_video_running) {
+				// Populate the report before sending it (call id, addresses, timestamps, session description...).
+				// Without this the "media changed" video report is published with null identifiers and no
+				// timestamps, unlike every other send_report path which goes through update_media_info first.
+				linphone_reporting_update_media_info(call, LINPHONE_CALL_STATS_VIDEO);
 				send_report(call, log->getQualityReporting()->reports[LINPHONE_CALL_STATS_VIDEO], "VQSessionReport");
 			}
 			log->getQualityReporting()->was_video_running =
