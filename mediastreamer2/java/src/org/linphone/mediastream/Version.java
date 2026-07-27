@@ -67,6 +67,7 @@ public class Version {
 	public static final int API34_ANDROID_14_UPSIDE_DOWN_CAKE = 34;
 	public static final int API35_ANDROID_15_VANILLA_ICE_CREAM = 35;
 	public static final int API36_ANDROID_16_BAKLAVA = 36;
+	public static final int API37_ANDROID_17_CINNAMON_BUN = 37;
 
 	private static native boolean nativeHasZrtp();
 	private static native boolean nativeHasNeon();
