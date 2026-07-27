@@ -100,6 +100,7 @@ struct AAudioOutputContext {
 
 	~AAudioOutputContext() {
 		ms_worker_thread_destroy(process_thread, TRUE);
+		process_thread = nullptr;
 		ms_flow_controlled_bufferizer_uninit(&buffer);
 		ms_mutex_destroy(&mutex);
 		ms_mutex_destroy(&stream_mutex);
@@ -114,31 +115,35 @@ struct AAudioOutputContext {
 	}
 
 	void updateStreamTypeFromMsSndCard() {
-		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
-		switch (type) {
-			case MS_SND_CARD_STREAM_RING:
-				usage = AAUDIO_USAGE_NOTIFICATION_RINGTONE;
-				content_type = AAUDIO_CONTENT_TYPE_MUSIC;
-				ms_message("[AAudio Player] Using RING mode");
-				break;
-			case MS_SND_CARD_STREAM_MEDIA:
-				usage = AAUDIO_USAGE_MEDIA;
-				content_type = AAUDIO_CONTENT_TYPE_MUSIC;
-				ms_message("[AAudio Player] Using MEDIA mode");
-				break;
-			case MS_SND_CARD_STREAM_DTMF:
-				usage = AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING;
-				content_type = AAUDIO_CONTENT_TYPE_SONIFICATION;
-				ms_message("[AAudio Player] Using DTMF mode");
-				break;
-			case MS_SND_CARD_STREAM_VOICE:
-				usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
-				content_type = AAUDIO_CONTENT_TYPE_SPEECH;
-				ms_message("[AAudio Player] Using COMMUNICATION mode");
-				break;
-			default:
-				ms_error("[AAudio Player] Unknown stream type %0d", type);
-				break;
+		if (soundCard) {
+			MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
+			switch (type) {
+				case MS_SND_CARD_STREAM_RING:
+					usage = AAUDIO_USAGE_NOTIFICATION_RINGTONE;
+					content_type = AAUDIO_CONTENT_TYPE_MUSIC;
+					ms_message("[AAudio Player] Using RING mode");
+					break;
+				case MS_SND_CARD_STREAM_MEDIA:
+					usage = AAUDIO_USAGE_MEDIA;
+					content_type = AAUDIO_CONTENT_TYPE_MUSIC;
+					ms_message("[AAudio Player] Using MEDIA mode");
+					break;
+				case MS_SND_CARD_STREAM_DTMF:
+					usage = AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING;
+					content_type = AAUDIO_CONTENT_TYPE_SONIFICATION;
+					ms_message("[AAudio Player] Using DTMF mode");
+					break;
+				case MS_SND_CARD_STREAM_VOICE:
+					usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
+					content_type = AAUDIO_CONTENT_TYPE_SPEECH;
+					ms_message("[AAudio Player] Using COMMUNICATION mode");
+					break;
+				default:
+					ms_error("[AAudio Player] Unknown stream type %0d", type);
+					break;
+			}
+		} else {
+			ms_error("[AAudio Player] No soundcard configured!");
 		}
 	}
 
@@ -224,7 +229,7 @@ static int android_snd_write_get_nchannels(MSFilter *obj, void *data) {
 
 static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)userData;
-	if (!octx || !stream) {
+	if (!octx || !octx->process_thread || !stream) {
 		ms_error("[AAudio Player] aaudio_player_callback received when either no context or stream");
 		return AAUDIO_CALLBACK_RESULT_STOP;
 	}
