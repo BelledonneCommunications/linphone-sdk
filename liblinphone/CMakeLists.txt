@@ -145,7 +145,12 @@ endif()
 
 if(ENABLE_XERCESC)
 	bc_find_package(XercesC XercesC::XercesC xerces-c REQUIRED)
-	set(LIBXSD_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/libxsd")
+	if(TARGET xsd)
+		get_target_property(LIBXSD_INCLUDE_DIRS xsd INTERFACE_INCLUDE_DIRECTORIES)
+	else()# Fallback
+		set(LIBXSD_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/external/xsd/libxsd")
+	endif()
+
 	add_definitions(-DHAVE_XERCESC)
 endif()
 

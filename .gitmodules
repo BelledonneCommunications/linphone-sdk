@@ -91,3 +91,6 @@
 [submodule "external/hidapi"]
 	path = external/hidapi
 	url = https://github.com/libusb/hidapi.git
+[submodule "external/xsd"]
+	path = external/xsd
+	url = https://gitlab.linphone.org/BC/public/external/xsd.git

@@ -978,6 +978,14 @@ if(BUILD_LIBXML2)
 	add_xml2()
 endif()
 
+function(add_xsd)
+	add_custom_target(xsd)
+	set_target_properties(xsd PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/external/xsd/libxsd/")
+	add_dependencies(sdk xsd)
+endfunction()
+add_xsd()
+
+
 if(BUILD_LIBYUV)
 	function(add_libyuv)
 		set(BUILD_SHARED_LIBS ${BUILD_LIBYUV_SHARED_LIBS})
