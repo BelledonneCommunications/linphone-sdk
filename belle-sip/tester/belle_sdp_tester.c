@@ -372,6 +372,14 @@ static void test_rtcp_xr_attribute(void) {
 	BC_ASSERT_EQUAL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_max_size(lAttribute), 10, int, "%d");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 
+	lAttribute =
+	    belle_sdp_rtcp_xr_attribute_parse("a=rtcp-xr:rcvr-rtt=all:10000 stat-summary=loss,dup,jitt,TTL voip-metrics");
+	BC_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
+	BC_ASSERT_STRING_EQUAL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_mode(lAttribute), "all");
+	BC_ASSERT_EQUAL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_max_size(lAttribute), 10000, int, "%d");
+	BC_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_voip_metrics(lAttribute));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
 	lAttribute = belle_sdp_rtcp_xr_attribute_parse("a=rtcp-xr:stat-summary");
 	BC_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
 	BC_ASSERT_PTR_NULL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_mode(lAttribute));

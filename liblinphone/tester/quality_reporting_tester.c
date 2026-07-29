@@ -95,13 +95,15 @@ static void on_report_send_mandatory(BCTBX_UNUSED(const LinphoneCall *call),
 }
 
 static const char *on_report_send_verify_metrics(const reporting_content_metrics_t *metrics, const char *body) {
+	// Note: From rfc6035, these fields are optional
 	if (metrics->rtcp_xr_count) {
 		BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "SessionDesc:"));
 		BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "JitterBuffer:"));
 		BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "PacketLoss:"));
 	}
 	if (metrics->rtcp_sr_count + metrics->rtcp_xr_count > 0) BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "Delay:"));
-	if (metrics->rtcp_xr_count) BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "QualityEst:"));
+	if (metrics->rtcp_xr_count && metrics->quality_estimates.moscq >= 0)
+		BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "QualityEst:"));
 
 	return body;
 }
