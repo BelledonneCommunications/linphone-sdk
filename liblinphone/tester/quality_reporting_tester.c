@@ -35,11 +35,32 @@
 /* Avoid crash if x is NULL on libc versions <4.5.26 */
 #define __strstr(x, y) ((x == NULL) ? NULL : strstr(x, y))
 
+static int s_report_audio_count = 0;
+static int s_report_text_count = 0;
+static int s_report_video_count = 0;
+
 static void on_report_send_mandatory(BCTBX_UNUSED(const LinphoneCall *call),
                                      BCTBX_UNUSED(SalStreamType stream_type),
                                      const LinphoneContent *content) {
 	const char *body = linphone_content_get_utf8_text(content);
 	char *remote_metrics_start = __strstr(body, "RemoteMetrics:");
+	bool isIntervalReport = (__strstr(body, "VQIntervalReport\r\n") == body);
+	if (isIntervalReport) {
+		switch (stream_type) {
+			case SalVideo:
+				++s_report_video_count;
+				break;
+			case SalAudio:
+				++s_report_audio_count;
+				break;
+			case SalText:
+				++s_report_text_count;
+				break;
+			default: {
+			}
+		}
+	}
+
 	BC_ASSERT_TRUE((__strstr(body, "VQIntervalReport\r\n") == body) ||
 	               (__strstr(body, "VQSessionReport\r\n") == body) ||
 	               (__strstr(body, "VQSessionReport: CallTerm\r\n") == body));
@@ -59,9 +80,9 @@ static void on_report_send_mandatory(BCTBX_UNUSED(const LinphoneCall *call),
 	BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "SSRC="));
 	BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "LocalMetrics:"));
 	BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "Timestamps:"));
+	// Note: if no data then START doesn't exist. So this assert check also contents.
 	BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "START="));
 	BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "STOP="));
-
 	BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "SessionDesc:"));
 	BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "PT="));
 	BC_ASSERT_PTR_NOT_NULL(body = __strstr(body, "PD="));
@@ -444,6 +465,7 @@ static void quality_reporting_interval_report_video_and_rtt_base(bool_t enable_v
 	if (create_call_for_quality_reporting_tests(marie, pauline, &call_marie, &call_pauline, marie_params,
 	                                            pauline_params)) {
 		linphone_reporting_set_on_report_send(call_marie, on_report_send_mandatory);
+		stats marieStats = marie->stat;
 		LinphoneAccount *account = linphone_call_get_dest_account(call_marie);
 		LinphoneAccountParams *account_params = linphone_account_params_clone(linphone_account_get_params(account));
 		linphone_account_params_set_quality_reporting_interval(account_params, 3);
@@ -459,9 +481,10 @@ static void quality_reporting_interval_report_video_and_rtt_base(bool_t enable_v
 		BC_ASSERT_PTR_NOT_NULL(linphone_core_get_current_call(pauline->lc));
 
 		// PUBLISH submission to the collector should be ok
-		BC_ASSERT_TRUE(
-		    wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphonePublishOutgoingProgress, 1, 5000));
-		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphonePublishOk, 1, 10000));
+		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphonePublishOutgoingProgress,
+		                              marieStats.number_of_LinphonePublishOutgoingProgress + 1, 5000));
+		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphonePublishOk,
+		                              marieStats.number_of_LinphonePublishOk + 1, 10000));
 
 		pauline_chat_room = linphone_call_get_chat_room(call_pauline);
 		BC_ASSERT_PTR_NOT_NULL(pauline_chat_room);
@@ -481,6 +504,27 @@ static void quality_reporting_interval_report_video_and_rtt_base(bool_t enable_v
 			}
 			linphone_chat_message_send(rtt_message);
 		}
+
+		// Switch off regular reports
+		account_params = linphone_account_params_clone(linphone_account_get_params(account));
+		linphone_account_params_set_quality_reporting_interval(account_params, 0);
+		linphone_account_set_params(account, account_params);
+		linphone_account_params_unref(account_params);
+
+		// Update parameters
+		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, NULL, 0, 100));
+
+		// Force a report and check count
+		s_report_audio_count = 0;
+		s_report_text_count = 0;
+		s_report_video_count = 0;
+		linphone_reporting_publish_interval_report(call_marie);
+
+		// Let some idle time to send reports and make checks without waiting.
+		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, NULL, 0, 1000));
+		BC_ASSERT_EQUAL(s_report_audio_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(s_report_text_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(s_report_video_count, enable_video ? 1 : 0, int, "%d");
 
 		end_call(marie, pauline);
 		/* Wait that all publish complete */
