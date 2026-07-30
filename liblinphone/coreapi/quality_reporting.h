@@ -191,7 +191,7 @@ int linphone_reporting_publish_session_report(LinphoneCall *call, bool_t call_te
  * @return error code. 0 for success, positive value otherwise.
  *
  */
-int linphone_reporting_publish_interval_report(LinphoneCall *call);
+LINPHONE_PUBLIC int linphone_reporting_publish_interval_report(LinphoneCall *call);
 
 /**
  * Update publish reports with newly sent/received RTCP-XR packets (if available).
