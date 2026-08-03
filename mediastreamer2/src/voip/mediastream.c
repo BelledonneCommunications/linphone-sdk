@@ -22,7 +22,7 @@
 #include "mediastreamer-config.h"
 #endif
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msrtp.h"
@@ -1016,19 +1016,22 @@ static int update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit) {
 void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr) {
 	int br_int;
 
-	ms_message("MediaStream[%p]: received a TMMBR for bitrate %llu kbits/s", ms,
-	           (unsigned long long)(tmmbr_mxtbr / 1000));
+	ms_message("MediaStream[%p]: received a TMMBR or Goog-remb for bitrate %f kbits/s", ms,
+	           ((float)tmmbr_mxtbr / 1000.0f));
 
-	/* When audio estimator is on, the actual output will be increased so reduce the incoming TMMBR */
-	if (ms->type == MSAudio && media_stream_get_rtp_session(ms)->audio_bandwidth_estimator_enabled &&
-	    media_stream_get_rtp_session(ms)->rtp.audio_bw_estimator) {
-		tmmbr_mxtbr -=
-		    tmmbr_mxtbr / rtp_session_get_audio_bandwidth_estimator_duplicate_rate(media_stream_get_rtp_session(ms));
-	}
-	if (tmmbr_mxtbr < (uint64_t)INT_MAX) {
+	if (tmmbr_mxtbr < (uint64_t)1000) {
+		ms_warning("Requested bitrate is too low, ignoring");
+		return;
+	} else if (tmmbr_mxtbr < (uint64_t)INT_MAX) {
 		br_int = (int)tmmbr_mxtbr;
 	} else {
 		br_int = INT_MAX;
+	}
+
+	RtpSession *rtp_session = media_stream_get_rtp_session(ms);
+	/* When audio estimator is on, the actual output will be increased so reduce the incoming TMMBR */
+	if (ms->type == MSAudio && rtp_session->audio_bandwidth_estimator_enabled && rtp_session->rtp.audio_bw_estimator) {
+		br_int -= br_int / rtp_session_get_audio_bandwidth_estimator_duplicate_rate(rtp_session);
 	}
 
 	br_int = update_bitrate_limit_from_tmmbr(ms, br_int);
