@@ -28,11 +28,11 @@
 
 #include <inttypes.h>
 
+#include "bctoolbox/defs.h"
+#include "bctoolbox/port.h"
 #include "mediastreamer2/ice.h"
 #include "mediastreamer2/stun.h"
 #include "ortp/ortp.h"
-#include <bctoolbox/defs.h>
-#include <bctoolbox/port.h>
 
 #define ICE_MAX_NB_CANDIDATES 32
 #define ICE_MAX_NB_CANDIDATE_PAIRS 128
@@ -1748,6 +1748,7 @@ static int ice_get_componentID_from_rtp_session(const OrtpEventData *evt_data) {
 	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
 		return 2;
 	}
+	ms_error("ice: invalid OrtpEventData");
 	return -1;
 }
 
@@ -2831,6 +2832,7 @@ static void ice_handle_received_create_permission_success_response(IceCheckList 
                                                                    const MSStunMessage *msg,
                                                                    BCTBX_UNUSED(const MSStunAddress *remote_addr)) {
 	int componentID = ice_get_componentID_from_rtp_session(evt_data);
+	if (componentID == -1) return;
 	UInt96 tr_id = ms_stun_message_get_tr_id(msg);
 	IceStunServerRequest *request = ice_check_list_get_stun_server_request(cl, &tr_id);
 	if (request != NULL) {
@@ -2846,10 +2848,20 @@ static void ice_handle_received_turn_refresh_success_response(IceCheckList *cl,
                                                               const OrtpEventData *evt_data,
                                                               const MSStunMessage *msg,
                                                               BCTBX_UNUSED(const MSStunAddress *remote_addr)) {
+	MSTurnContext *context;
+	UInt96 tr_id;
 	int componentID = ice_get_componentID_from_rtp_session(evt_data);
-	MSTurnContext *context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
-	UInt96 tr_id = ms_stun_message_get_tr_id(msg);
+
+	if (componentID == -1) return;
+
+	context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
+	tr_id = ms_stun_message_get_tr_id(msg);
 	ice_check_list_remove_stun_server_request(cl, &tr_id);
+	if (!context) {
+		ms_warning("ice: no turn context while receiving refresh success response");
+		return;
+	}
+
 	if (ms_turn_context_get_lifetime(context) == 0) {
 		/* TURN deallocation success */
 		ms_turn_context_set_state(context, MS_TURN_CONTEXT_STATE_IDLE);
@@ -2867,7 +2879,7 @@ static void ice_handle_received_turn_channel_bind_success_response(IceCheckList 
 	int componentID = ice_get_componentID_from_rtp_session(evt_data);
 	UInt96 tr_id = ms_stun_message_get_tr_id(msg);
 	IceStunServerRequest *request = ice_check_list_get_stun_server_request(cl, &tr_id);
-	if (request != NULL) {
+	if (request != NULL && componentID != -1) {
 		uint16_t channel_number = request->channel_number;
 		MSStunAddress peer_address = request->peer_address;
 		MSTurnContext *context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
