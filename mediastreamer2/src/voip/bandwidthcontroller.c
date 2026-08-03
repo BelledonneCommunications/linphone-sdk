@@ -41,14 +41,27 @@ void ms_bandwidth_controller_reset_state(MSBandwidthController *obj) {
 	obj->congestion_detected = 0;
 }
 
-static void ms_bandwidth_controller_send_bitrate(MSBandwidthController *obj, struct _MediaStream *stream) {
+static void ms_bandwidth_controller_send_bitrate_request(MSBandwidthController *obj, struct _MediaStream *stream) {
 	RtpSession *session = stream->sessions.rtp_session;
 	float bandwidth = 0;
+	size_t num_streams = bctbx_list_size(obj->controlled_streams);
+
+	if (num_streams == 0) {
+		/* This should never happen but let's avoid the fatal division by zero that will follow. */
+		ms_error("MSBandwidthController[%p]: no controlled streams", obj);
+		return;
+	}
+
 	if (obj->currently_requested_stream_bandwidth > 0 && obj->maximum_bw_usage > 0 &&
 	    obj->maximum_bw_usage < obj->currently_requested_stream_bandwidth) {
-		bandwidth = obj->maximum_bw_usage / bctbx_list_size(obj->controlled_streams);
+		bandwidth = obj->maximum_bw_usage / num_streams;
 	} else {
-		bandwidth = obj->currently_requested_stream_bandwidth / bctbx_list_size(obj->controlled_streams);
+		bandwidth = obj->currently_requested_stream_bandwidth / num_streams;
+	}
+
+	if (bandwidth < 1000) {
+		ms_warning("MSBandwidthController[%p]: not sending too low bitrate request (%f bit/s)", obj, bandwidth);
+		return;
 	}
 
 	// Send a goog-remb if the feature is enabled
@@ -77,7 +90,7 @@ void ms_bandwidth_controller_set_maximum_bandwidth_usage(MSBandwidthController *
 		bctbx_list_t *elem;
 		for (elem = obj->controlled_streams; elem != NULL; elem = elem->next) {
 			MediaStream *ms = (MediaStream *)elem->data;
-			ms_bandwidth_controller_send_bitrate(obj, ms);
+			ms_bandwidth_controller_send_bitrate_request(obj, ms);
 		}
 	}
 	/* If there is not yet currently_requested_stream_bandwidth (means no congestion detected yet and no bandwidth
@@ -200,7 +213,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 	}
 
 	obj->currently_requested_stream_bandwidth = controlled_stream_bandwidth_requested;
-	ms_bandwidth_controller_send_bitrate(obj, ms);
+	ms_bandwidth_controller_send_bitrate_request(obj, ms);
 	obj->download_video_bandwidth_available_estimated = 0;
 	obj->download_audio_bandwidth_available_estimated = 0;
 	rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &video_bandwidth_estimator_params);
@@ -236,7 +249,7 @@ static void send_bitrate_for_controlled_video_streams(MSBandwidthController *obj
 	/* send a TMMBR request for each one of the controlled video streams. */
 	for (elem = obj->controlled_streams; elem != NULL; elem = elem->next) {
 		MediaStream *ms = (MediaStream *)elem->data;
-		ms_bandwidth_controller_send_bitrate(obj, ms);
+		ms_bandwidth_controller_send_bitrate_request(obj, ms);
 	}
 }
 
@@ -290,7 +303,7 @@ static void on_audio_bandwidth_estimation_available(const OrtpEventData *evd, vo
 		           (int)bctbx_list_size(obj->controlled_streams));
 		obj->download_audio_bandwidth_available_estimated = estimated_bitrate;
 		obj->currently_requested_stream_bandwidth = estimated_bitrate;
-		ms_bandwidth_controller_send_bitrate(obj, ms);
+		ms_bandwidth_controller_send_bitrate_request(obj, ms);
 	}
 }
 

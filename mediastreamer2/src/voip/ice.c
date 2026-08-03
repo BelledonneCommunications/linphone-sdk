@@ -1748,7 +1748,7 @@ static int ice_get_componentID_from_rtp_session(const OrtpEventData *evt_data) {
 	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
 		return 2;
 	}
-	ms_error("ice: invalid OrtpEventData");
+	ms_error("ice: invalid OrtpEventData (socket_type=%i)", (int)evt_data->info.socket_type);
 	return -1;
 }
 
@@ -2854,9 +2854,11 @@ static void ice_handle_received_turn_refresh_success_response(IceCheckList *cl,
 
 	if (componentID == -1) return;
 
-	context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
+	/* First remove the now terminated STUN transaction */
 	tr_id = ms_stun_message_get_tr_id(msg);
 	ice_check_list_remove_stun_server_request(cl, &tr_id);
+	/* Then Update related TURN context */
+	context = ice_get_turn_context_from_check_list_componentID(cl, componentID);
 	if (!context) {
 		ms_warning("ice: no turn context while receiving refresh success response");
 		return;
