@@ -77,10 +77,6 @@ int MSWASAPIReader::feed(MSFilter *f) {
 	UINT32 numFramesAvailable = 0;
 	UINT32 numFramesInNextPacket = 0;
 	UINT64 bufferDevicePosition = (UINT64)-1; // Coming from GetBuffer
-	UINT64 deviceFrequency = 0;
-	UINT64 realDevicePosition = (UINT64)-1;  // Coming from AudioClock
-	UINT64 finalDevicePosition = (UINT64)-1; // AudioClock (best precision, based on hardware capability) > Buffer
-	                                         // position (less reliable) > manual counting (in case of error)
 
 	mblk_t *m;
 	int bytesPerFrame = mNBlockAlign;
@@ -94,35 +90,13 @@ int MSWASAPIReader::feed(MSFilter *f) {
 			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, &bufferDevicePosition, NULL);
 			REPORT_ERROR("mswasapi: Could not get buffer from the MSWASAPI audio input interface [0x%X]", result);
 			if (numFramesAvailable > 0) {
-				finalDevicePosition = bufferDevicePosition;
-				// Ticker has been desynchronized either by not setting the device position, or by being erroneous.
-				// It's supposed that when having an error, the position from Clock/GetBuffer cannot be reliable.
-				// Frame counting is done since then.
+// The position obtained via Clock/GetBuffer cannot be considered reliable, just like the one derived from GetFrequency/GetPosition with USB devices.
+// We decided to manually count the position.
 				if (mSampleTime != (UINT64)-1) {
 					mSampleTime += numFramesAvailable;
-					finalDevicePosition = mSampleTime;
 				} else {
-					bool_t haveDevicePosition = FALSE;
-					if (mAudioClock) {
-						// Frequency and Position must be get from Audio Clock both because they are meaning only
-						// between them:  The device position from Buffer() can be decorrelated from the AudioClock.
-						result = mAudioClock->GetFrequency(&deviceFrequency);
-						if (result == S_OK && deviceFrequency > 0) {
-							result = mAudioClock->GetPosition(&realDevicePosition, NULL);
-							if (result == S_OK) {
-								finalDevicePosition =
-									(UINT64)(realDevicePosition * mCurrentRate / (long double)deviceFrequency);
-								haveDevicePosition = TRUE;
-							}
-						}
-					}
-					if (!haveDevicePosition &&
-						((flags & AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR) || bufferDevicePosition == (UINT64)-1)) {
-						ms_warning("mswasapi: Timestamp is erroneous. Switch to frame counting.");
-						mSampleTime = numFramesAvailable;
-						finalDevicePosition = mSampleTime;
-						ms_ticker_synchronizer_resync(mTickerSynchronizer);
-					}
+					mSampleTime = numFramesAvailable;
+					ms_ticker_synchronizer_resync(mTickerSynchronizer);
 				}
 				m = allocb(numFramesAvailable * bytesPerFrame, 0);
 				if (m == NULL) {
@@ -141,7 +115,7 @@ int MSWASAPIReader::feed(MSFilter *f) {
 
 				m->b_wptr += numFramesAvailable * bytesPerFrame;
 				ms_queue_put(f->outputs[0], m);
-				ms_ticker_synchronizer_update(mTickerSynchronizer, finalDevicePosition, (unsigned int)mCurrentRate);
+				ms_ticker_synchronizer_update(mTickerSynchronizer, mSampleTime, (unsigned int)mCurrentRate);
 				result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
 			}
 		}
