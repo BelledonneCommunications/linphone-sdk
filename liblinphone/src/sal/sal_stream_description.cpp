@@ -1501,8 +1501,13 @@ void SalStreamDescription::sdpParseMediaIceParameters(const belle_sdp_media_desc
 			char foundation[SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_LEN] = {0};
 			char type[SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_LEN] = {0};
 			char proto[4] = {0};
-			int nb = sscanf(value, "%s %u %3s %u %s %d typ %s raddr %s rport %d", foundation, &candidate.componentID,
-			                proto, &candidate.priority, addr, &candidate.port, type, raddr, &candidate.rport);
+			int nb = sscanf(value,
+			                SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_FMT " %u %3s %u " SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_FMT
+			                                                       " %d typ " SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_FMT
+			                                                       " raddr " SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_FMT
+			                                                       " rport %d",
+			                foundation, &candidate.componentID, proto, &candidate.priority, addr, &candidate.port, type,
+			                raddr, &candidate.rport);
 			candidate.addr = addr;
 			candidate.raddr = raddr;
 			candidate.foundation = foundation;
@@ -1518,7 +1523,8 @@ void SalStreamDescription::sdpParseMediaIceParameters(const belle_sdp_media_desc
 			int offset;
 			const char *ptr = value;
 			const char *endptr = value + strlen(ptr);
-			while (3 == sscanf(ptr, "%u %s %u%n", &componentID, addr, &candidate.port, &offset)) {
+			while (3 == sscanf(ptr, "%u " SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_FMT " %u%n", &componentID, addr,
+			                   &candidate.port, &offset)) {
 				candidate.addr = addr;
 				if (componentID > 0) {
 					SalIceRemoteCandidate remote_candidate;
@@ -1771,6 +1777,7 @@ void SalStreamDescription::setZrtpHash(const uint8_t enable, uint8_t *zrtphash) 
 	}
 	cfgs[getChosenConfigurationIndex()].haveZrtpHash = enable;
 }
+
 void SalStreamDescription::setDtls(const SalDtlsRole role, const std::string &fingerprint) {
 	cfgs[getChosenConfigurationIndex()].dtls_role = role;
 	cfgs[getChosenConfigurationIndex()].dtls_fingerprint = fingerprint;
@@ -1878,4 +1885,5 @@ bool SalStreamDescription::hasIceParams() const {
 	// Return true if ice pwd and ufrag as well as candidates are defined
 	return (!ice_ufrag.empty() && !ice_pwd.empty() && hasIceCandidates());
 }
+
 LINPHONE_END_NAMESPACE
