@@ -39,8 +39,17 @@ static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, 
 	belle_sip_socket_t sock = SOCKET_NOT_SET;
 	if (belle_sip_listening_point_get_port(lp) != BELLE_SIP_LISTENING_POINT_DONT_BIND) sock = (int)udp_lp->sock;
 	belle_sip_channel_t *chan = belle_sip_channel_new_udp(
-	    lp->stack, (int)sock, belle_sip_uri_get_host(lp->listening_uri), belle_sip_uri_get_port(lp->listening_uri),
+	    lp->stack, (int)sock, belle_sip_uri_get_host(lp->listening_uri),
+	    sock == SOCKET_NOT_SET ? BELLE_SIP_LISTENING_POINT_DONT_BIND
+	                           : belle_sip_uri_get_port(lp->listening_uri), /* see note below */
 	    hop->host, hop->port, hop->port_is_explicit);
+	/*
+	 * The local port of the listenering URI is useless for a client channel whose socket is created.
+	 * Indeed, the local port will be determined by the system and obtained afterwards
+	 * using getsockname() in belle_sip_channel_set_ready().
+	 * When the client channel re-uses the socket of the listening point, the local port of the listening point is used,
+	 * of course.
+	 **/
 	return chan;
 }
 
