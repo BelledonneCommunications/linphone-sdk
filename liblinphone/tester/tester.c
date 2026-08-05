@@ -3222,6 +3222,41 @@ void linphone_core_manager_delete_chat_room(LinphoneCoreManager *mgr, LinphoneCh
 	}
 }
 
+bctbx_list_t *linphone_core_manager_get_cores(bctbx_list_t *coreManagers) {
+	bctbx_list_t *cores = NULL;
+	while (coreManagers) {
+		cores = bctbx_list_append(cores, ((LinphoneCoreManager *)bctbx_list_get_data(coreManagers))->lc);
+		coreManagers = bctbx_list_next(coreManagers);
+	}
+	return cores;
+}
+
+LinphoneCoreManager *linphone_core_manager_find_organizer(bctbx_list_t *allCoreManagers,
+                                                          bctbx_list_t *participantManagers,
+                                                          LinphoneAddress *conferenceAddress) {
+	//------------------
+	// Get info from a participant
+	LinphoneCoreManager *organizerCoreManager = (LinphoneCoreManager *)bctbx_list_get_data(participantManagers);
+	// Get the real organizer address
+	LinphoneConferenceInfo *mainInfo =
+	    linphone_core_find_conference_information_from_uri(organizerCoreManager->lc, conferenceAddress);
+	const LinphoneAddress *organizerAddress = linphone_conference_info_get_organizer(mainInfo);
+	// Find the organizer core manager
+	organizerCoreManager = (LinphoneCoreManager *)bctbx_list_get_data(bctbx_list_find_custom(
+	    allCoreManagers, (bctbx_compare_func)linphone_core_manager_address_match, organizerAddress));
+	// Cleanup
+	if (mainInfo) linphone_conference_info_unref(mainInfo);
+	// void linphone_conference_server_refer_received(LinphoneCore *core, const char *refer_to);
+	return organizerCoreManager;
+}
+
+int linphone_core_manager_core_match(const LinphoneCoreManager *manager, const LinphoneCore *core) {
+	return !(manager->lc == core); // 0 is a match
+}
+int linphone_core_manager_address_match(const LinphoneCoreManager *manager, const LinphoneAddress *address) {
+	return !(linphone_address_weak_equal(manager->identity, address)); // 0 is a match
+}
+
 int liblinphone_tester_ipv6_available(void) {
 	if (liblinphonetester_ipv6) {
 		struct addrinfo *ai =
@@ -6204,8 +6239,8 @@ void check_conference_info_against_db(LinphoneCoreManager *mgr,
 
 void check_conference_info_members(const LinphoneConferenceInfo *info,
                                    const char *uid,
-                                   LinphoneAddress *confAddr,
-                                   LinphoneAddress *organizer,
+                                   const LinphoneAddress *confAddr,
+                                   const LinphoneAddress *organizer,
                                    bctbx_list_t *participantList,
                                    long long start_time,
                                    int duration, // in minutes
@@ -6384,4 +6419,21 @@ bool_t liblinphone_tester_call_check_video_source_filter(const LinphoneCall *cal
 	}
 	BC_ASSERT_EQUAL(counter, expected_counter, int, "%0d");
 	return (counter == expected_counter);
+}
+
+bool_t liblinphone_tester_check_subject_in_conferences(bctbx_list_t *coreManagers,
+                                                       const LinphoneAddress *conferenceAddress,
+                                                       const char *subject) {
+	bool_t ok = TRUE;
+	while (coreManagers) {
+		LinphoneCoreManager *manager = (LinphoneCoreManager *)bctbx_list_get_data(coreManagers);
+		LinphoneConference *conference = linphone_core_search_conference_2(manager->lc, conferenceAddress);
+
+		if (conference && strcmp(linphone_conference_get_subject(conference), subject)) {
+			BC_ASSERT_STRING_EQUAL(linphone_conference_get_subject(conference), subject);
+			ok = FALSE;
+		}
+		coreManagers = bctbx_list_next(coreManagers);
+	}
+	return ok;
 }

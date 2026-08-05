@@ -175,17 +175,21 @@ extern int CU_assertImplementation(int bValue,
  */
 BCTBX_PUBLIC int bc_assert(const char *file, int line, int predicate, const char *format);
 
-#define _BC_ASSERT_PRED(name, pred, actual, expected, type, ...)                                                       \
+#if defined(__GNUC__) || defined(__clang__)
+#define _BC_STMT_EXPR(...) ({ __VA_ARGS__; })
+#else
+#define _BC_STMT_EXPR(...)                                                                                             \
 	do {                                                                                                               \
-		char format[4096] = {0};                                                                                       \
-		type cactual = (actual);                                                                                       \
-		type cexpected = (expected);                                                                                   \
-		int status = snprintf(format, 4096, name "(" #actual ", " #expected ") - " __VA_ARGS__);                       \
-		if (status < 0) { /* We can't really do anything on truncation, but we cannot ignore errors */                 \
-			abort();                                                                                                   \
-		}                                                                                                              \
-		bc_assert(__FILE__, __LINE__, pred, format);                                                                   \
+		__VA_ARGS__;                                                                                                   \
 	} while (0)
+#endif
+
+#define _BC_ASSERT_PRED(name, pred, actual, expected, type, ...)                                                       \
+	_BC_STMT_EXPR(char format[4096] = {0}; type cactual = (actual); type cexpected = (expected);                       \
+	              int status = snprintf(format, 4096, name "(" #actual ", " #expected ") - " __VA_ARGS__);             \
+	              if (status < 0) { /* We can't really do anything on truncation, but we cannot ignore errors */       \
+		                            abort();                                                                           \
+	              } bc_assert(__FILE__, __LINE__, pred, format);)
 
 #define BC_PASS(msg) bc_assert(__FILE__, __LINE__, TRUE, "BC_PASS(" #msg ").")
 #define BC_FAIL(msg) bc_assert(__FILE__, __LINE__, FALSE, "BC_FAIL(" #msg ").")
@@ -230,7 +234,7 @@ BCTBX_PUBLIC int bc_assert(const char *file, int line, int predicate, const char
 	                "Expected NOT " type_format " but it was.", cexpected)
 #define BC_ASSERT_STRING_EQUAL(actual, expected)                                                                       \
 	_BC_ASSERT_PRED("BC_ASSERT_STRING_EQUAL",                                                                          \
-	                cactual && cexpected && !(strcmp((const char *)(cactual), (const char *)(cexpected))), actual,     \
+	                cactual &&cexpected && !(strcmp((const char *)(cactual), (const char *)(cexpected))), actual,      \
 	                expected, const char *, "Expected %s but was %s.", cexpected ? cexpected : "nullptr",              \
 	                cactual ? cactual : "nullptr")
 #define BC_ASSERT_GREATER(actual, min, type, type_format)                                                              \

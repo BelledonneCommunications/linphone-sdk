@@ -338,7 +338,8 @@ create_conference_on_server(Focus &focus,
                             LinphoneConferenceSecurityLevel security_level,
                             bool_t enable_video,
                             bool_t enable_chat,
-                            LinphoneConferenceParams *ics_chat_room_params) {
+                            LinphoneConferenceParams *ics_chat_room_params,
+                            bool_t use_ccmp) {
 	bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
 	coresList = bctbx_list_append(coresList, organizer.getLc());
 	std::vector<stats> participant_stats;
@@ -494,7 +495,9 @@ create_conference_on_server(Focus &focus,
 		}
 
 		// The organizer creates a conference scheduler
-		conference_scheduler = linphone_core_create_sip_conference_scheduler(organizer.getLc(), default_account);
+		if (use_ccmp)
+			conference_scheduler = linphone_core_create_ccmp_conference_scheduler(organizer.getLc(), default_account);
+		else conference_scheduler = linphone_core_create_sip_conference_scheduler(organizer.getLc(), default_account);
 		LinphoneConferenceSchedulerCbs *cbs = linphone_factory_create_conference_scheduler_cbs(linphone_factory_get());
 		linphone_conference_scheduler_cbs_set_state_changed(cbs, conference_scheduler_state_changed);
 		linphone_conference_scheduler_cbs_set_invitations_sent(cbs, conference_scheduler_invitations_sent);

@@ -3392,7 +3392,8 @@ void ServerConference::onCallSessionStateChanged(const std::shared_ptr<CallSessi
 					enableScreenSharing(session, true);
 					const auto op = session->getPrivate()->getOp();
 					// The remote participant requested to change subject
-					if (sal_custom_header_find(op->getRecvCustomHeaders(), "Subject")) {
+					if (device->getParticipant()->isAdmin() &&
+					    sal_custom_header_find(op->getRecvCustomHeaders(), "Subject")) {
 						const auto &subject = op->getSubject();
 						auto protocols = Utils::parseCapabilityDescriptor(device->getCapabilityDescriptor());
 						auto conferenceProtocol = protocols.find("conference");

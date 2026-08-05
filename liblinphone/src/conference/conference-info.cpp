@@ -459,8 +459,8 @@ void ConferenceInfo::updateFrom(const std::shared_ptr<ConferenceInfo> &info) {
 
 		if (otherParticipantIt != participants.cend()) {
 			const auto &otherParticipant = (*otherParticipantIt);
-			// Copy sequence number in order to keep it inceasing.
-			// IF this is not done, the sequence number may be arbitrarly changed and clients could get out of sync
+			// Copy sequence number in order to keep it increasing.
+			// IF this is not done, the sequence number may be arbitrary changed and clients could get out of sync
 			participant->setSequenceNumber(otherParticipant->getSequenceNumber());
 		}
 	}

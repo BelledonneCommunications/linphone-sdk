@@ -2469,7 +2469,7 @@ static void participant_joins_simple_conference_with_screen_sharing() {
 
 		std::list<LinphoneCoreManager *> addedMembers;
 		std::list<LinphoneCoreManager *> addedConferenceMgrs{focus.getCMgr()};
-		// The head of the members list enables screen sharing whereas the others join the conference without vidoe
+		// The head of the members list enables screen sharing whereas the others join the conference without video
 		// capabilities and then they add it later on
 		for (auto mgr : members) {
 			focus_stat = focus.getStats();

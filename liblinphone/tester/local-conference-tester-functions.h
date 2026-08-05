@@ -503,7 +503,8 @@ create_conference_on_server(Focus &focus,
                             LinphoneConferenceSecurityLevel security_level,
                             bool_t enable_video,
                             bool_t enable_chat,
-                            LinphoneConferenceParams *ics_chat_room_params);
+                            LinphoneConferenceParams *ics_chat_room_params,
+                            bool_t use_ccmp = FALSE);
 
 void set_video_settings_in_conference(LinphoneCoreManager *focus,
                                       LinphoneCoreManager *participant,

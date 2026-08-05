@@ -701,18 +701,21 @@ void MediaSessionPrivate::terminated() {
 bool MediaSessionPrivate::isPausedByRemoteAllowed() {
 	L_Q();
 	const auto conferenceInfo = (log) ? log->getConferenceInfo() : nullptr;
-	bool updatingConference = conferenceInfo && (conferenceInfo->getState() == ConferenceInfo::State::Updated);
-
 	const auto conference = q->getCore()->findConference(q->getSharedFromThis(), false);
 	std::shared_ptr<Address> remoteContactAddress = Address::create();
 	remoteContactAddress->setImpl(op->getRemoteContactAddress());
 	// Paused by remote state is not allowed when the call is in a conference. In fact, a conference server is not
 	// allowed to paused a call unilaterally. This assumption also aims at simplifying the management of the
 	// PausedByRemote state as it is simply triggered by SIP messages without really knowing the will of the other party
+
+	// Is Conference server check
 	return !((conference && !isInConference() && remoteContactAddress &&
-	          remoteContactAddress->hasParam(Conference::kIsFocusParameter)) ||
-	         updatingConference ||
-	         ((prevState != CallSession::State::PausedByRemote) && (state == CallSession::State::Updating)));
+	          remoteContactAddress->hasParam(Conference::kIsFocusParameter))
+	         // Updating conference when not server check
+	         || ((!conference || conference->isIn()) && conferenceInfo &&
+	             (conferenceInfo->getState() == ConferenceInfo::State::Updated))
+	         // States flow check
+	         || ((prevState != CallSession::State::PausedByRemote) && (state == CallSession::State::Updating)));
 }
 
 /* This callback is called when an incoming re-INVITE/ SIP UPDATE modifies the session */

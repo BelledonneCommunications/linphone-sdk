@@ -764,16 +764,47 @@ void linphone_core_manager_delete_chat_room(LinphoneCoreManager *mgr, LinphoneCh
 
 bctbx_list_t *init_core_for_conference(bctbx_list_t *coreManagerList);
 
-bctbx_list_t *init_core_for_conference_with_factori_uri(bctbx_list_t *coreManagerList, const char *factoryUri);
-
 void start_core_for_conference(bctbx_list_t *coreManagerList);
-
+// Return LinphoneCore list
 bctbx_list_t *init_core_for_conference_with_factory_uri(bctbx_list_t *coreManagerList, const char *factoryUri);
+// Return LinphoneCore list
 
 bctbx_list_t *init_core_for_conference_with_groupchat_version(bctbx_list_t *coreManagerList,
                                                               const char *groupchat_version);
+/* Extract all LinphoneCore from a list of LinphoneCoreManager
+ *
+ *@param coreManagers List of LinphoneCoreManager
+ *@return a list of LinphoneCore @maybenil @tobefreed
+ */
+bctbx_list_t *linphone_core_manager_get_cores(bctbx_list_t *coreManagers);
 
-// void linphone_conference_server_refer_received(LinphoneCore *core, const char *refer_to);
+/* Find the LinphoneCoreManager in global list from a list of participant and a conference address.
+ *
+ *@param allCoreManagers the list of LinphoneCoreManager where we must find the organizer.
+ *@param participantManagers the list of participants that are in a conference.
+ *@param conferenceAddress the conference address to search in participants.
+ *@return the LinphoneCoreManager in allCoreManagers that is the organizer of conferenceAddress
+ */
+LinphoneCoreManager *linphone_core_manager_find_organizer(bctbx_list_t *allCoreManagers,
+                                                          bctbx_list_t *participantManagers,
+                                                          LinphoneAddress *conferenceAddress);
+/**
+ * @brief linphone_core_manager_core_match compare managers with LinphoneCore
+ *
+ * @param manager the LinphoneCoreManager to compare @notnil
+ * @param core the LinphoneCore to find in manager
+ * @return 0 on match
+ */
+int linphone_core_manager_core_match(const LinphoneCoreManager *manager, const LinphoneCore *core);
+
+/**
+ * @brief linphone_core_manager_address_match compare managers with LinphoneAddress on identity.
+ *
+ * @param manager the LinphoneCoreManager to compare @notnil
+ * @param address the LinphoneAddress to find in manager
+ * @return 0 on match
+ */
+int linphone_core_manager_address_match(const LinphoneCoreManager *manager, const LinphoneAddress *address);
 
 void reset_counters(stats *counters);
 
@@ -1136,6 +1167,10 @@ void _call_with_ice_base(LinphoneCoreManager *pauline,
 bool_t
 liblinphone_tester_call_check_video_source_filter(const LinphoneCall *call, MSFilterId filter_id, int expected_counter);
 
+bool_t liblinphone_tester_check_subject_in_conferences(bctbx_list_t *coreManagers,
+                                                       const LinphoneAddress *conferenceAddress,
+                                                       const char *subject);
+
 void record_call(const char *filename, bool_t enableVideo, const char *video_codec);
 
 void on_muted_notified(LinphoneParticipantDevice *participant_device, bool_t is_muted);
@@ -1211,6 +1246,82 @@ void _configure_core_for_conference(LinphoneCoreManager *lcm, const LinphoneAddr
 
 void _configure_core_for_audio_video_conference(LinphoneCoreManager *lcm, const LinphoneAddress *factoryAddr);
 
+/* Create a conference using CCMP
+ *
+ * @param allCoreManagers list of all LinphoneCoreManagers. It is used for wait() or looping on all cores.
+ * @param organizer the organizer of the conference
+ * @param initialParticipants Participants of the conference. If needed, use create_mgr_for_conference() and
+ * init_core_for_conference() to init them. Besides organizer, the first will be a speaker and the second a listener.
+ * @param conferenceAddress Set the created address conference. @notnil @tobefreed
+ * @param participantsInfo Set the participant infos list created from add_participant_info_to_list().
+ * Free memory with bctbx_list_free_with_data(). @notnil @tobefreed
+ * @param subject Conference information.
+ * @param description Conference information.
+ * @param startTime Conference information.
+ * @param duration Conference information.
+ * @param securityLevel Conference information.
+ */
+void liblinphone_tester_create_conference(bctbx_list_t *allCoreManagers,
+                                          bool_t useCCMP,
+                                          LinphoneCoreManager *organizer,
+                                          bctbx_list_t *initialParticipants,
+                                          LinphoneAddress **conferenceAddress,
+                                          bctbx_list_t **participantsInfo,
+                                          const char *subject,
+                                          const char *description,
+                                          const time_t start_time,
+                                          const int duration,
+                                          LinphoneConferenceSecurityLevel securityLevel);
+
+/* Update a conference using CCMP
+ *
+ * @param allCoreManagers list of all LinphoneCoreManagers. It is used for wait() or looping on all cores.
+ * @param initialParticipants Participants of the conference. If needed, use create_mgr_for_conference() and
+ * init_core_for_conference() to init them. @notnil
+ * @param addedParticipants LinphoneCoreManager of participant to add into the conference.
+ * @param conferenceAddress The conference address
+ * @param participantsInfo Add the participant infos list created from add_participant_info_to_list().
+ * Free memory with bctbx_list_free_with_data(). @notnil @tobefreed
+ * @param subject Conference information.
+ * @param description Conference information.
+ * @param startTime Conference information.
+ * @param duration Conference information.
+ * @param securityLevel Conference information.
+ */
+void liblinphone_tester_update_conference_info(bctbx_list_t *allCoreManagers,
+                                               bool_t useCCMP,
+                                               bctbx_list_t *initialParticipants,
+                                               bctbx_list_t *addedParticipants,
+                                               LinphoneAddress *conferenceAddress,
+                                               bctbx_list_t **participantsInfo,
+                                               const char *subject,
+                                               const char *description,
+                                               const time_t startTime,
+                                               const int duration,
+                                               LinphoneConferenceSecurityLevel securityLevel);
+
+/* Cancel a conference using CCMP
+ *
+ * @param allCoreManagers list of all LinphoneCoreManagers. It is used for wait() or looping on all cores.
+ * @param participantManagers LinphoneCoreManager of participants of the conference. If needed, use
+ * create_mgr_for_conference() and init_core_for_conference() to init them.
+ * @param conferenceAddress the conference address of the conference to cancel
+ */
+void liblinphone_tester_cancel_conference(bctbx_list_t *allCoreManagers,
+                                          bool_t useCCMP,
+                                          bctbx_list_t *participantManagers,
+                                          LinphoneAddress *conferenceAddress);
+
+/* Make all participant to join the conference.
+ *
+ * @param allCoreManagers list of all LinphoneCoreManagers. It is used for wait() or looping on all cores.
+ * @param participantManagers the list of LinphoneCoreManager to join
+ * @param conferenceAddress the conference address to join
+ */
+void liblinphone_tester_enter_conference(bctbx_list_t *allCoreManagers,
+                                         bctbx_list_t *participantManagers,
+                                         LinphoneAddress *conferenceAddress);
+
 LinphoneParticipantInfo *add_participant_info_to_list(bctbx_list_t **participants_info,
                                                       const LinphoneAddress *address,
                                                       const LinphoneParticipantRole role,
@@ -1247,8 +1358,8 @@ void check_conference_info_in_db(LinphoneCoreManager *mgr,
 
 void check_conference_info_members(const LinphoneConferenceInfo *info,
                                    const char *uid,
-                                   LinphoneAddress *confAddr,
-                                   LinphoneAddress *organizer,
+                                   const LinphoneAddress *confAddr,
+                                   const LinphoneAddress *organizer,
                                    bctbx_list_t *participantList,
                                    long long start_time,
                                    int duration,
