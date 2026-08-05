@@ -194,6 +194,7 @@ static void android_snd_write_uninit(MSFilter *obj){
 	ms_usleep(10000);
 
 	if (octx->soundCard) {
+		ms_message("[AAudio Player] Filter is being destroyed, releasing sound card ref");
 		ms_snd_card_unref(octx->soundCard);
 		octx->soundCard = nullptr;
 	}
@@ -259,6 +260,11 @@ static bool_t aaudio_player_init(AAudioOutputContext *octx);
 static void _aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder *builder;
 	AAudioStream *stream = nullptr;
+
+	if (!octx->soundCard) {
+		ms_warning("[AAudio Player] No soundcard configured, can't init player at this time");
+		return;
+	}
 
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
 	if (result != AAUDIO_OK && !builder) {
@@ -469,15 +475,19 @@ static void anroid_snd_write_require_volume_hack_depending_on_stream(AAudioOutpu
 static void android_snd_write_preprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 	
-	if (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
-		ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID)
-	{
-		ms_message("[AAudio Player] We were asked to use a bluetooth sound device (or hearing aid), starting SCO in Android's AudioManager");
-		octx->bluetoothScoStarted = true;
-		ms_android_sound_utils_enable_bluetooth(octx->sound_utils, octx->bluetoothScoStarted);
-	}
+	if (octx->soundCard) {
+		if (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
+			ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID)
+		{
+			ms_message("[AAudio Player] We were asked to use a bluetooth sound device (or hearing aid), starting SCO in Android's AudioManager");
+			octx->bluetoothScoStarted = true;
+			ms_android_sound_utils_enable_bluetooth(octx->sound_utils, octx->bluetoothScoStarted);
+		}
 
-	ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_init, octx);
+		ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_init, octx);
+	} else {
+		ms_warning("[AAudio Player] No soundcard configured, don't try to init player yet");
+	}
 }
 
 static bool_t android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
@@ -517,7 +527,7 @@ static void android_snd_write_process(MSFilter *obj) {
 
 			if (octx->checkForDeviceChange) {
 				int id = (int)AAudioStream_getDeviceId(octx->stream);
-				if (id != octx->soundCard->internal_id) {
+				if (octx->soundCard && id != octx->soundCard->internal_id) {
 					ms_warning("[AAudio Player] Device has changed, restarting stream");
 					octx->restartAttemptsCount = 0;
 					ms_worker_thread_add_task(octx->process_thread, (MSTaskFunc)aaudio_player_restart, octx);
@@ -564,6 +574,7 @@ static void android_snd_write_process(MSFilter *obj) {
 static void android_snd_write_postprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
+	octx->restartScheduled = false;
 	octx->adjustingBufferSize = false;
 	octx->task = ms_worker_thread_add_waitable_task(octx->process_thread, (MSTaskFunc)aaudio_player_close, octx);
 	
@@ -586,7 +597,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 
 	ms_message("[AAudio Player] Requesting to output card. Current [%s] (device ID %0d) and requested [%s] (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
 	// Change device ID only if the new value is different from the previous one
-	if (octx->soundCard->internal_id != card->internal_id) {
+	if (!octx->soundCard || octx->soundCard->internal_id != card->internal_id) {
 		MSSndCard *previousSoundCard = octx->soundCard;
 		octx->soundCard = ms_snd_card_ref(card);
 		if (previousSoundCard) {
@@ -624,7 +635,9 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 static int android_snd_write_get_device_id(MSFilter *obj, void *data) {
 	int *n = (int*)data;
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-	*n = octx->soundCard->internal_id;
+	if (octx->soundCard) {
+		*n = octx->soundCard->internal_id;
+	}
 	return 0;
 }
 
