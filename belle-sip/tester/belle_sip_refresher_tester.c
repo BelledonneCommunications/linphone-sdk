@@ -391,6 +391,20 @@ static belle_sip_tester_endpoint_t *create_tcp_endpoint(int port, belle_sip_list
 	return endpoint;
 }
 
+static void assert_via_ip_port_consistency(belle_sip_response_t *response) {
+	if (BC_ASSERT_PTR_NOT_NULL(response)) {
+		belle_sip_header_via_t *via =
+		    belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(response), belle_sip_header_via_t);
+		const char *host = belle_sip_header_via_get_host(via);
+		int port = belle_sip_header_via_get_port(via);
+		const char *received = belle_sip_header_via_get_received(via);
+		int rport = belle_sip_header_via_get_rport(via);
+		/* For all those tests, the via host and port shall be correct, so no received/rport should be given */
+		if (received) BC_ASSERT_STRING_EQUAL(host, received);
+		if (rport != -1) BC_ASSERT_EQUAL(port, rport, int, "%i");
+	}
+}
+
 static belle_sip_refresher_t *refresher_base_with_body2(belle_sip_tester_endpoint_t *client,
                                                         belle_sip_tester_endpoint_t *server,
                                                         const char *method,
@@ -448,6 +462,7 @@ static belle_sip_refresher_t *refresher_base_with_body2(belle_sip_tester_endpoin
 		if (server->auth == none) {
 			BC_ASSERT_TRUE(
 			    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.twoHundredOk, 1, 1000));
+			assert_via_ip_port_consistency(belle_sip_transaction_get_response((belle_sip_transaction_t *)trans));
 		} else {
 			if (strcasecmp("REGISTER", belle_sip_request_get_method(req)) == 0) {
 				BC_ASSERT_TRUE(
@@ -468,6 +483,7 @@ static belle_sip_refresher_t *refresher_base_with_body2(belle_sip_tester_endpoin
 			} else {
 				BC_ASSERT_TRUE(
 				    belle_sip_tester_wait_for(server->stack, client->stack, &client->stat.twoHundredOk, 1, 1000));
+				assert_via_ip_port_consistency(belle_sip_transaction_get_response((belle_sip_transaction_t *)trans));
 			}
 		}
 		client->refresher = refresher = belle_sip_client_transaction_create_refresher(trans);
@@ -1233,6 +1249,14 @@ static void register_tcp_test_ipv6_to_ipv4(void) {
 	register_test_with_interfaces("tcp", "::0", "0.0.0.0", AF_INET);
 }
 
+static void register_tcp_with_specific_bind_address_test(void) {
+	if (!belle_sip_tester_ipv6_available()) {
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
+	register_test_with_interfaces("tcp", "127.0.0.1", "127.0.0.1", AF_INET);
+}
+
 static void register_tcp_test_ipv4_to_ipv6(void) {
 	if (!belle_sip_tester_ipv6_available()) {
 		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
@@ -1535,6 +1559,7 @@ static test_t refresher_tests[] = {
     TEST_NO_TAG("REGISTER TCP from ipv4 to ipv6", register_tcp_test_ipv4_to_ipv6),
     TEST_NO_TAG("REGISTER TCP from ipv6 to ipv6 with ipv4", register_tcp_test_ipv6_to_ipv6_with_ipv4),
     TEST_NO_TAG("REGISTER TCP from ipv6 to ipv6 with ipv6", register_tcp_test_ipv6_to_ipv6_with_ipv6),
+    TEST_NO_TAG("REGISTER TCP with specific bind addresses", register_tcp_with_specific_bind_address_test),
     TEST_NO_TAG("REGISTER UDP from random port using AF_INET", register_udp_test_ipv4_random_port),
     TEST_NO_TAG("REGISTER UDP from random port using AF_INET6", register_udp_test_ipv6_random_port),
     TEST_NO_TAG("REGISTER TCP from random port using AF_INET", register_tcp_test_ipv4_random_port),

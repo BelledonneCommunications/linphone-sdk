@@ -39,8 +39,13 @@ static void belle_sip_stream_listening_point_uninit(belle_sip_stream_listening_p
 
 static belle_sip_channel_t *stream_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop) {
 	belle_sip_channel_t *chan = belle_sip_stream_channel_new_client(
-	    lp->stack, belle_sip_uri_get_host(lp->listening_uri), belle_sip_uri_get_port(lp->listening_uri), hop->cname,
-	    hop->host, hop->port, hop->port_is_explicit);
+	    lp->stack, belle_sip_uri_get_host(lp->listening_uri), 0 /* local port, see note below */, hop->cname, hop->host,
+	    hop->port, hop->port_is_explicit);
+	/*
+	 * The local port of the listenering URI is useless for a client channel.
+	 * Indeed, the local port will be determined by the system and obtained afterwards
+	 * using getsockname() in belle_sip_channel_set_ready().
+	 **/
 	return chan;
 }
 

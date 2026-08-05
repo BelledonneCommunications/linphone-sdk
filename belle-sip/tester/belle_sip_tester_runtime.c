@@ -201,7 +201,7 @@ const char *belle_sip_tester_root_ca = "-----BEGIN CERTIFICATE-----\n"
 
 int belle_sip_leaked_objects_count;
 char *belle_sip_tester_all_leaks_buffer = NULL;
-int belle_sip_ipv6_available = 0;
+int belle_sip_ipv6_available = -1;
 const char *belle_sip_userhostsfile;
 
 void belle_sip_tester_before_each(void) {
