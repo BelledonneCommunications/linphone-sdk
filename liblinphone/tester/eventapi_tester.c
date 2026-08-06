@@ -57,7 +57,6 @@ static void subscribe_test_declined(void) {
 	pauline->subscribe_policy = DenySubscription;
 
 	lev = linphone_core_subscribe(marie->lc, pauline->identity, "dodo", 600, content);
-	linphone_event_ref(lev);
 
 	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
 	                             liblinphone_tester_sip_timeout));
@@ -150,7 +149,6 @@ static void subscribe_test_with_args(bool_t terminated_by_subscriber,
 	} else {
 		lev = linphone_core_subscribe(marie->lc, pauline->identity, "dodo", expires, content);
 	}
-	linphone_event_ref(lev);
 	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
 	                             liblinphone_tester_sip_timeout));
 	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
@@ -230,7 +228,6 @@ static void subscribe_test_destroy_core_before_event_terminate(void) {
 	linphone_content_set_buffer(content, (const uint8_t *)subscribe_content, strlen(subscribe_content));
 
 	lev = linphone_core_subscribe(marie->lc, pauline->identity, "dodo", expires, content);
-	linphone_event_ref(lev);
 	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
 	                             liblinphone_tester_sip_timeout));
 	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
@@ -255,16 +252,12 @@ static void subscribe_test_destroy_core_before_event_terminate(void) {
 		BC_ASSERT_EQUAL(linphone_event_get_subscription_state(pauline->lev), LinphoneSubscriptionActive, int, "%d");
 	}
 
-	/*linphone_event_terminate(lev);
-	BC_ASSERT_TRUE(wait_for_list(lcs,&marie->stat.number_of_LinphoneSubscriptionTerminated,1,liblinphone_tester_sip_timeout));
-	BC_ASSERT_TRUE(wait_for_list(lcs,&pauline->stat.number_of_LinphoneSubscriptionTerminated,1,liblinphone_tester_sip_timeout));*/
+	/* Intentionnally destroy the core before calling linphone_event_terminate(), to make sure it does not crash */
 
 	bctbx_list_free(lcs);
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
 
-	int dummy = 0;
-	wait_for_until(NULL, NULL, &dummy, 1, 5000);
 	linphone_event_terminate(lev);
 	linphone_event_unref(lev);
 	linphone_content_unref(content);
@@ -872,10 +865,7 @@ static void publish_test_with_args(bool_t refresh, int expires) {
 
 	linphone_config_set_int(linphone_core_get_config(marie->lc), "sip", "refresh_generic_publish", refresh);
 
-	lev = linphone_core_create_publish(marie->lc, pauline->identity, "dodo", expires);
-
-	linphone_event_add_custom_header(lev, "CustomHeader", "someValue");
-	linphone_event_send_publish(lev, content);
+	lev = linphone_core_publish(marie->lc, pauline->identity, "dodo", expires, content);
 
 	BC_ASSERT_TRUE(
 	    wait_for_list(lcs, &marie->stat.number_of_LinphonePublishOutgoingProgress, 1, liblinphone_tester_sip_timeout));
@@ -1100,6 +1090,70 @@ static void subscribe_notify_not_handled(void) {
 	bctbx_list_free(lcs);
 }
 
+static void subscription_timeout_and_retry(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_tcp_rc");
+	LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+	linphone_core_cbs_set_subscription_state_changed(cbs, linphone_subscription_state_change_take_ref);
+	linphone_core_add_callbacks(pauline->lc, cbs);
+	linphone_core_cbs_unref(cbs);
+
+	LinphoneContent *content;
+	LinphoneEvent *lev;
+	int expires = 4;
+	bctbx_list_t *lcs = bctbx_list_append(NULL, marie->lc);
+
+	belle_sip_timer_config_t timer_config;
+
+	timer_config.T1 = 50; /*to have timer F = 3s*/
+	timer_config.T2 = 4000;
+	timer_config.T3 = 0;
+	timer_config.T4 = 5000;
+
+	belle_sip_stack_set_timer_config(sal_get_stack_impl(linphone_core_get_sal(marie->lc)), &timer_config);
+
+	content = linphone_core_create_content(marie->lc);
+	linphone_content_set_type(content, "application");
+	linphone_content_set_subtype(content, "somexml");
+	linphone_content_set_buffer(content, (const uint8_t *)subscribe_content, strlen(subscribe_content));
+
+	lev = linphone_core_create_subscribe(marie->lc, pauline->identity, "dodo", expires);
+	linphone_event_add_custom_header(lev, "My-Header", "pouet");
+	linphone_event_add_custom_header(lev, "My-Header2", "pimpon");
+	linphone_event_send_subscribe(lev, content);
+
+	BC_ASSERT_TRUE(wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionOutgoingProgress, 1,
+	                             liblinphone_tester_sip_timeout));
+
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionError, 1, liblinphone_tester_sip_timeout));
+
+	/* the refresher shall retry, but this time, let pauline receive the retry */
+	linphone_core_set_network_reachable(pauline->lc, FALSE);
+	linphone_core_set_network_reachable(pauline->lc, TRUE);
+
+	lcs = bctbx_list_append(lcs, pauline->lc);
+
+	BC_ASSERT_TRUE(wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionIncomingReceived, 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionActive, 1, liblinphone_tester_sip_timeout));
+
+	linphone_event_terminate(lev);
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &marie->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_list(lcs, &pauline->stat.number_of_LinphoneSubscriptionTerminated, 1, liblinphone_tester_sip_timeout));
+
+	bctbx_list_free(lcs);
+	linphone_event_unref(lev);
+	linphone_content_unref(content);
+	linphone_core_manager_destroy(marie);
+	linphone_core_manager_destroy(pauline);
+}
+
 static test_t event_tests[] = {
     TEST_ONE_TAG("Subscribe declined", subscribe_test_declined, "presence"),
     TEST_ONE_TAG("Subscribe terminated by subscriber", subscribe_test_terminated_by_subscriber, "presence"),
@@ -1127,7 +1181,8 @@ static test_t event_tests[] = {
     TEST_ONE_TAG("Out of dialog notify", out_of_dialog_notify, "presence"),
     TEST_NO_TAG("Subscription terminated, late incoming NOTIFY", subscribe_terminated_before_receiving_2nd_notify),
     TEST_NO_TAG("Subscription terminated, late first incoming NOTIFY",
-                subscribe_terminated_before_receiving_1st_notify)};
+                subscribe_terminated_before_receiving_1st_notify),
+    TEST_NO_TAG("Subscription timeout, and retry", subscription_timeout_and_retry)};
 
 test_suite_t event_test_suite = {"Event",
                                  NULL,

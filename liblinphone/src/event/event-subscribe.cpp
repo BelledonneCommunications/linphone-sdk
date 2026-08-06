@@ -30,11 +30,9 @@ using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
 
-EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
-                               LinphoneSubscriptionDir dir,
-                               const string &name,
-                               int expires)
-    : EventSubscribe(core, new SalSubscribeOp(core->getCCore()->sal.get()), dir, name) {
+EventSubscribe::EventSubscribe(
+    const shared_ptr<Core> &core, LinphoneSubscriptionDir dir, const string &name, int expires, bool isOutOfDialog)
+    : EventSubscribe(core, new SalSubscribeOp(core->getCCore()->sal.get()), dir, name, isOutOfDialog) {
 	mExpires = expires;
 }
 
@@ -47,6 +45,10 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
 	mDir = dir;
 	mOp = op;
 	mName = name;
+	if (dir == LinphoneSubscriptionIncoming && !isOutOfDialog) {
+		/* the Op was created by the Sal Layer. Give the reference of the EventSubscribe to the op in this case. */
+		ref();
+	}
 	mOp->setUserPointer(this->toC());
 	if (mOp->isDialogEstablished()) {
 		/*already established dialog */
@@ -55,14 +57,14 @@ EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
 	mIsOutOfDialogOp = isOutOfDialog;
 }
 
+// Out of dialog, subscription-less outgoing NOTIFY
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
                                const std::shared_ptr<const Address> &resource,
                                const string &event)
-    : EventSubscribe(core, LinphoneSubscriptionIncoming, event, -1) {
+    : EventSubscribe(core, LinphoneSubscriptionIncoming, event, -1, true) {
 	linphone_configure_op(core->getCCore(), mOp, resource->toC(), nullptr, TRUE);
 	setState(LinphoneSubscriptionIncomingReceived);
 	mOp->setEvent(event);
-	setIsOutOfDialogOp(true);
 }
 
 EventSubscribe::EventSubscribe(const shared_ptr<Core> &core,
@@ -219,8 +221,11 @@ void EventSubscribe::setState(LinphoneSubscriptionState state) {
 		} catch (const bad_weak_ptr &) {
 		}
 		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Event, this, linphone_event_cbs_get_subscribe_state_changed, state);
-		if (state == LinphoneSubscriptionTerminated || state == LinphoneSubscriptionError) {
-			release();
+		if (state == LinphoneSubscriptionTerminated) {
+			if (mDir == LinphoneSubscriptionIncoming && !mIsOutOfDialogOp) {
+				mOp->setUserPointer(nullptr);
+				unref();
+			}
 		}
 	}
 }
@@ -233,10 +238,6 @@ bool EventSubscribe::isOutOfDialogOp() const {
 	return mIsOutOfDialogOp;
 }
 
-void EventSubscribe::setIsOutOfDialogOp(bool isOutOfDialogOp) {
-	mIsOutOfDialogOp = isOutOfDialogOp;
-}
-
 void EventSubscribe::unpublish() {
 	if (mOp) {
 		auto op = dynamic_cast<SalPublishOp *>(mOp);
@@ -246,8 +247,9 @@ void EventSubscribe::unpublish() {
 
 void EventSubscribe::terminate() {
 	// If the event has already been terminated (including due to an error),
-	// we must avoid terminating it again to prevent it from being unreferenced twice.
-	if (mSubscriptionState == LinphoneSubscriptionError || mSubscriptionState == LinphoneSubscriptionTerminated) {
+	// we must avoid terminating it again.
+	if (!coreExists() || mSubscriptionState == LinphoneSubscriptionError ||
+	    mSubscriptionState == LinphoneSubscriptionTerminated) {
 		return;
 	}
 

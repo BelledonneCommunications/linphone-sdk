@@ -42,6 +42,7 @@ public:
 	// Same but do not throw exception, just returns nullptr.
 	std::shared_ptr<Core> tryGetCore() const;
 	void setCore(const std::shared_ptr<Core> &core);
+	bool coreExists() const;
 
 private:
 	std::weak_ptr<Core> mCore;

@@ -75,10 +75,10 @@ protected:
 	virtual ~EventPublish();
 
 private:
+	void linkWithOp();
+	void unlinkWithOp();
 	belle_sip_source_t *mTimer = nullptr;
-
 	LinphonePublishState mPublishState = LinphonePublishNone;
-
 	bool mOneShot = false;
 };
 

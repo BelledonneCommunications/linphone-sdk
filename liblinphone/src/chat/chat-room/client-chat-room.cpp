@@ -20,7 +20,7 @@
 
 #include <algorithm>
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "client-chat-room.h"
 
@@ -86,7 +86,8 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 	auto &clientListHandler = getCore()->getPrivate()->clientListEventHandler;
 	auto handler = clientListHandler->findHandler(getConferenceId());
 	if (handler) {
-		if (handler->getSubscriptionState() == LinphoneSubscriptionError) {
+		if (handler->getSubscriptionState() == LinphoneSubscriptionError ||
+		    handler->getSubscriptionState() == LinphoneSubscriptionTerminated) {
 			lInfo() << "Detach " << *this << " from ClientConferenceListEventHandler [" << clientListHandler.get()
 			        << "] because the subscription errored out";
 			needToSubscribe = true;
@@ -470,7 +471,8 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 					            "retrieve the list of participants";
 					chatMessage->getPrivate()->setParticipantState(
 					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
-				} else if (coreRunning && (!eventHandler || (eventSubscribeState == LinphoneSubscriptionError))) {
+				} else if (coreRunning && (!eventHandler || (eventSubscribeState == LinphoneSubscriptionError) ||
+				                           (eventSubscribeState == LinphoneSubscriptionTerminated))) {
 					lError() << *this << ": Unable to send chat message [" << chatMessage
 					         << "] because the subscription to retrieve the list of participant devices errored out "
 					            "(current state is "

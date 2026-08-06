@@ -21,7 +21,7 @@
 #ifndef _L_SAL_EVENT_OP_H_
 #define _L_SAL_EVENT_OP_H_
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "sal/op.h"
 

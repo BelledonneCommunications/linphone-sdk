@@ -61,18 +61,7 @@ void SalSubscribeOp::subscribeResponseEventCb(void *userCtx, const belle_sip_res
 				break;
 			case BELLE_SIP_DIALOG_CONFIRMED:
 				if (strcmp("SUBSCRIBE", belle_sip_request_get_method(request)) == 0) {
-					auto expiresHeader = belle_sip_message_get_header_by_type(request, belle_sip_header_expires_t);
-					if (op->mRefresher) {
-						belle_sip_refresher_stop(op->mRefresher);
-						belle_sip_object_unref(op->mRefresher);
-						op->mRefresher = nullptr;
-					}
-					if (expiresHeader && (belle_sip_header_expires_get_expires(expiresHeader) > 0)) {
-						op->mRefresher = belle_sip_client_transaction_create_refresher(clientTransaction);
-						belle_sip_refresher_set_listener(op->mRefresher, subscribeRefresherListenerCb, op);
-						belle_sip_refresher_set_realm(op->mRefresher, L_STRING_TO_C(op->mRealm));
-						belle_sip_refresher_enable_manual_mode(op->mRefresher, op->mManualRefresher);
-					}
+					lInfo() << "SalSubscribeOp [" << op << "] dialog is confirmed.";
 				}
 				break;
 			default:
@@ -291,12 +280,13 @@ void SalSubscribeOp::subscribeRefresherListenerCb(
 	auto op = static_cast<SalSubscribeOp *>(userCtx);
 	auto transaction = BELLE_SIP_TRANSACTION(belle_sip_refresher_get_transaction(refresher));
 	if (op->mOwnsDialog) op->setOrUpdateDialog(belle_sip_transaction_get_dialog(transaction));
+	if (transaction) op->assignRecvHeaders(BELLE_SIP_MESSAGE(belle_sip_transaction_get_response(transaction)));
 	lInfo() << "Subscribe refresher [" << statusCode << "] reason [" << (reasonPhrase ? reasonPhrase : "none") << "]";
 	op->handleSubscribeResponse(statusCode, reasonPhrase, willRetry);
 }
 
 void SalSubscribeOp::handleSubscribeResponse(unsigned int statusCode, const char *reasonPhrase, int willRetry) {
-	SalSubscribeStatus sss = SalSubscribeTerminated;
+	SalSubscribeStatus sss = SalSubscribeFailed;
 	if ((statusCode >= 200) && (statusCode < 300)) {
 		if (statusCode == 200) sss = SalSubscribeActive;
 		else if (statusCode == 202) sss = SalSubscribePending;
@@ -314,7 +304,15 @@ void SalSubscribeOp::handleSubscribeResponse(unsigned int statusCode, const char
 
 int SalSubscribeOp::subscribe(const string &eventName, int expires, const SalBodyHandler *bodyHandler) {
 	mDir = Dir::Outgoing;
-	if (!mDialog) {
+
+	if (mRefresher) {
+		auto transaction =
+		    reinterpret_cast<const belle_sip_transaction_t *>(belle_sip_refresher_get_transaction(mRefresher));
+		auto lastRequest = belle_sip_transaction_get_request(transaction);
+		// Modify last request to update body
+		belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(lastRequest), BELLE_SIP_BODY_HANDLER(bodyHandler));
+		return belle_sip_refresher_refresh(mRefresher, expires);
+	} else {
 		fillCallbacks();
 		auto request = buildRequest("SUBSCRIBE");
 		if (!request) return -1;
@@ -323,20 +321,8 @@ int SalSubscribeOp::subscribe(const string &eventName, int expires, const SalBod
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),
 		                             BELLE_SIP_HEADER(belle_sip_header_expires_create(expires)));
 		belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(request), BELLE_SIP_BODY_HANDLER(bodyHandler));
-		// It is not possible to transfer control of the transaction to a refresher until dialog in state confirmed
-		// because in case of Notify received befor 200ok and subscribed challanged handled by the refresher, op set in
-		// the intial transaction app data is lost.
-		return sendRequest(request);
-	} else if (mRefresher) {
-		auto transaction =
-		    reinterpret_cast<const belle_sip_transaction_t *>(belle_sip_refresher_get_transaction(mRefresher));
-		auto lastRequest = belle_sip_transaction_get_request(transaction);
-		// Modify last request to update body
-		belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(lastRequest), BELLE_SIP_BODY_HANDLER(bodyHandler));
-		return belle_sip_refresher_refresh(mRefresher, expires);
+		return sendRequestAndCreateRefresher(request, expires, subscribeRefresherListenerCb);
 	}
-
-	lWarning() << "SalSubscribeOp::subscribe(): no dialog and no refresher?";
 	return -1;
 }
 

@@ -59,7 +59,23 @@ LinphoneStatus EventPublish::sendPublish(const std::shared_ptr<const Content> &b
 	return err;
 }
 
-// -----------------------------------------------------------------------------
+void EventPublish::linkWithOp() {
+	if (mOp->getUserPointer() == nullptr) {
+		ref(); // give a ref to the mOp.
+		mOp->setUserPointer(this->toC());
+	} else {
+		lError() << "EventPublish::linkWithOp() error: op is already linked.";
+	}
+}
+
+void EventPublish::unlinkWithOp() {
+	if (mOp->getUserPointer() != nullptr) {
+		mOp->setUserPointer(nullptr);
+		unref();
+	} else {
+		lError() << "EventPublish::unlinkWithOp() error: op is not linked.";
+	}
+}
 
 EventPublish::EventPublish(const shared_ptr<Core> &core) : Event(core) {
 }
@@ -69,7 +85,7 @@ EventPublish::EventPublish(const shared_ptr<Core> &core, LinphonePrivate::SalPub
 	mOp = op;
 	mExpires = op->getExpires();
 	mName = name;
-	mOp->setUserPointer(this->toC());
+	linkWithOp();
 }
 
 EventPublish::EventPublish(const shared_ptr<Core> &core,
@@ -183,17 +199,20 @@ void EventPublish::setState(LinphonePublishState state) {
 		linphone_core_notify_publish_state_changed(getCore()->getCCore(), this->toC(), state);
 		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(Event, this, linphone_event_cbs_get_publish_state_changed, state);
 		switch (state) {
-			case LinphonePublishNone: /*this state is probably trigered by a network state change to DOWN, we should
-			                             release the op*/
-				release();
+			case LinphonePublishNone:
+				if (mOp) mOp->stopRefreshing();
+				unlinkWithOp();
 				break;
 			case LinphonePublishOk:
-				if (mOneShot) release();
+				if (mOneShot) {
+					if (mOp) mOp->stopRefreshing();
+					unlinkWithOp();
+				}
 				break;
 			case LinphonePublishCleared:
 			case LinphonePublishError:
 				getCore()->removePublishByEtag(dynamic_cast<SalPublishOp *>(mOp));
-				release();
+				unlinkWithOp();
 				break;
 			case LinphonePublishOutgoingProgress:
 			case LinphonePublishIncomingReceived:

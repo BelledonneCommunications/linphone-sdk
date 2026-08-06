@@ -6512,7 +6512,7 @@ LINPHONE_PUBLIC LinphoneContent *linphone_core_create_content(LinphoneCore *core
  * @param event the event name @notnil
  * @param expires the whished duration of the subscription
  * @param body an optional body, may be NULL. @maybenil
- * @return a #LinphoneEvent holding the context of the created subcription. @notnil
+ * @return a #LinphoneEvent holding the context of the created subcription. @notnil @tobefreed
  **/
 LINPHONE_PUBLIC LinphoneEvent *linphone_core_subscribe(
     LinphoneCore *core, LinphoneAddress *resource, const char *event, int expires, LinphoneContent *body);
@@ -6567,7 +6567,7 @@ linphone_core_create_notify(LinphoneCore *core, LinphoneAddress *resource, const
  * @param expires the lifetime of event being published, -1 if no associated duration, in which case it will not be
  *refreshed.
  * @param body the actual published data @notnil
- * @return the #LinphoneEvent holding the context of the publish. @maybenil
+ * @return the #LinphoneEvent holding the context of the publish. @maybenil @tobefreed
  **/
 LINPHONE_PUBLIC LinphoneEvent *linphone_core_publish(
     LinphoneCore *core, LinphoneAddress *resource, const char *event, int expires, LinphoneContent *body);

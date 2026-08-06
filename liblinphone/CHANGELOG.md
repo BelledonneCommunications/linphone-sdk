@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## [5.5.16] 2026-08-18
+
+### Fixed
+- Fix an issue where the LinphoneEvent goes indefinitely stuck in LinphoneSubscriptionOutgoingProgress state when the SUBSCRIBE is not answered.
+  This issue was causing random loss of ChatRoom event notification until software restart.
+- LinphoneSubscriptionError state is notifed to application upon getting an error while sending a SUBSCRIBE. If the error is not recoverable/retryable,
+  the LinphoneEvent immediately enters the LinphoneSubscriptionTerminated state.
+- Change linphone_core_subscribe() and linphone_core_publish() returned LinphoneEvent object ownership policy: a reference is now given to the caller,
+  making it consistent with linphone_core_create_subscribe() and linphone_core_create_publish().
+  This change impacts only direct users of the C API.
 
 ## [5.5.0] 2026-05-25
 
