@@ -35,6 +35,7 @@
 #include "linphone/api/c-chat-room-cbs.h"
 #include "logger/logger.h"
 #include "participant.h"
+#include "sal/call-op.h"
 #include "sal/refer-op.h"
 #include "server-conference.h"
 #ifdef HAVE_ADVANCED_IM
@@ -1522,10 +1523,20 @@ int ServerConference::inviteAddresses(const std::list<std::shared_ptr<Address>> 
 }
 
 bool ServerConference::dialoutAddresses(const std::list<std::shared_ptr<Address>> &addressList) {
+	return dialoutAddresses(addressList, nullptr);
+}
+
+bool ServerConference::dialoutAddresses(const std::list<std::shared_ptr<Address>> &addressList,
+                                        const std::shared_ptr<CallSession> &referer) {
 	if (addressList.empty()) {
 		return false;
 	}
 	auto msp = createDefaultMediaParams();
+	// Attaching the referrer to the outgoing sessions makes them notify it of their progress, as RFC 3515 requires
+	// from the recipient of a REFER.
+	if (referer) {
+		L_GET_PRIVATE(&msp)->setReferer(referer);
+	}
 	std::list<Address> addresses;
 	for (const auto &p : getInvitedAddresses()) {
 		addresses.push_back(*p);
@@ -2159,6 +2170,11 @@ bool ServerConference::addParticipant(const std::shared_ptr<Address> &participan
 }
 
 bool ServerConference::addParticipant(const std::shared_ptr<ParticipantInfo> &info) {
+	return addParticipant(info, nullptr);
+}
+
+bool ServerConference::addParticipant(const std::shared_ptr<ParticipantInfo> &info,
+                                      const std::shared_ptr<CallSession> &referer) {
 	const auto &participantAddress = info->getAddress();
 	const auto devices = getParticipantDevices(false);
 	bool hasActiveDevices = (devices.size() > 0);
@@ -2175,14 +2191,16 @@ bool ServerConference::addParticipant(const std::shared_ptr<ParticipantInfo> &in
 				    allowedAddresses.begin(), allowedAddresses.end(),
 				    [&participantAddress](const auto &address) { return (participantAddress->weakEqual(*address)); });
 				if (p == allowedAddresses.end()) {
-					auto participant = Participant::create(participantAddress);
+					// The address a participant is referred with may be a gruu, which does not belong to its
+					// identity: this constructor drops it, the one taking an address only asserts against it.
+					auto participant = Participant::create(getSharedFromThis(), participantAddress);
 					participant->setRole(info->getRole());
 					participant->setSequenceNumber(-1);
 					mInvitedParticipants.push_back(participant);
 				}
 
 				std::list<std::shared_ptr<Address>> addressesList{participantAddress};
-				return dialoutAddresses(addressesList);
+				return dialoutAddresses(addressesList, referer);
 			}
 		} else {
 #ifdef HAVE_ADVANCED_IM
@@ -3960,12 +3978,29 @@ std::shared_ptr<Player> ServerConference::getPlayer() const {
 }
 
 void ServerConference::handleRefer(SalReferOp *op,
+                                   const std::shared_ptr<CallSession> &referer,
                                    const std::shared_ptr<LinphonePrivate::Address> &referAddr,
-                                   const std::string method) {
-	std::shared_ptr<Address> from = Address::create(op->getFrom());
+                                   const std::string &method) {
+	L_ASSERT(op || referer);
+
+	// An in-dialog REFER was accepted by the transaction layer before reaching this point, so a refusal can only be
+	// reported by notifying the referrer; a success needs nothing, the session created for it reports its progress.
+	auto answerReferrer = [op, &referer](SalReason reason, const std::string &refusalPhrase = "") {
+		if (op) {
+			op->reply(reason);
+		} else if (reason != SalReasonNone) {
+			if (auto *refererOp = L_GET_PRIVATE(referer)->getOp()) {
+				refererOp->notifyReferRefused(toSipCode(reason), refusalPhrase);
+			}
+		}
+	};
+
+	// The referrer is the remote party of an in-dialog REFER's session, the sender of an out of dialog one.
+	std::shared_ptr<Address> from = referer ? referer->getRemoteAddress() : Address::create(op->getFrom());
 	std::shared_ptr<Participant> fromParticipant = findParticipant(from);
 	if (!fromParticipant || !fromParticipant->isAdmin()) {
-		op->reply(SalReasonForbidden);
+		lError() << *this << ": " << *from << " is not allowed to refer " << *referAddr;
+		answerReferrer(SalReasonForbidden, "Forbidden");
 		return;
 	}
 
@@ -3992,7 +4027,7 @@ void ServerConference::handleRefer(SalReferOp *op,
 			auto participantInfo = Factory::get()->createParticipantInfo(referAddr);
 			// Participants invited after the start of a conference through the address can only listen to it
 			participantInfo->setRole(Participant::Role::Speaker);
-			ret = addParticipant(participantInfo);
+			ret = addParticipant(participantInfo, referer);
 			if (allowedParticipantNotFound) {
 				notifyAllowedParticipantListChanged(ms_time(NULL), false);
 			}
@@ -4006,7 +4041,8 @@ void ServerConference::handleRefer(SalReferOp *op,
 			}
 		}
 	}
-	op->reply(ret ? SalReasonNone : SalReasonNotAcceptable);
+	if (ret) answerReferrer(SalReasonNone);
+	else answerReferrer(SalReasonNotAcceptable, "Not Acceptable");
 }
 
 bool ServerConference::sessionParamsAllowThumbnails() const {

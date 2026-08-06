@@ -52,6 +52,8 @@ public:
 	int inviteAddresses(const std::list<std::shared_ptr<Address>> &addresses,
 	                    const MediaSessionParams *params) override;
 	bool dialoutAddresses(const std::list<std::shared_ptr<Address>> &addressList) override;
+	bool dialoutAddresses(const std::list<std::shared_ptr<Address>> &addressList,
+	                      const std::shared_ptr<CallSession> &referer);
 	void inviteDevice(const std::shared_ptr<ParticipantDevice> &device);
 	void byeDevice(const std::shared_ptr<ParticipantDevice> &device);
 	void byeDevices(const std::list<std::shared_ptr<ParticipantDevice>> &devices);
@@ -66,6 +68,11 @@ public:
 	bool addParticipant(const std::shared_ptr<Call> call) override;
 	bool addParticipant(const std::shared_ptr<ParticipantInfo> &info) override;
 	bool addParticipant(const std::shared_ptr<Address> &participantAddress) override;
+	bool addParticipant(const std::shared_ptr<ParticipantInfo> &info, const std::shared_ptr<CallSession> &referer);
+	void handleRefer(SalReferOp *op,
+	                 const std::shared_ptr<CallSession> &referer,
+	                 const std::shared_ptr<LinphonePrivate::Address> &referAddr,
+	                 const std::string &method) override;
 	bool finalizeParticipantAddition(std::shared_ptr<Call> call) override;
 	std::shared_ptr<ParticipantDevice> createParticipantDevice(std::shared_ptr<Participant> &participant,
 	                                                           const std::shared_ptr<Call> &call) override;
@@ -300,9 +307,6 @@ private:
 	                              const std::shared_ptr<Address> &remoteContactAddress,
 	                              bool incomingReceived) const;
 
-	void handleRefer(SalReferOp *op,
-	                 const std::shared_ptr<LinphonePrivate::Address> &referAddr,
-	                 const std::string method) override;
 	bool sessionParamsAllowThumbnails() const override;
 	void setConferenceTimes(time_t startTime, time_t endTime);
 	std::shared_ptr<Address> prepareConferenceAddress(const std::shared_ptr<Account> &account) const;

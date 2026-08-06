@@ -1915,6 +1915,12 @@ int SalCallOp::notifyReferState(SalCallOp *newCallOp) {
 	return 0;
 }
 
+int SalCallOp::notifyReferRefused(int code, const string &reason) {
+	if (!mDialog || (belle_sip_dialog_get_state(mDialog) == BELLE_SIP_DIALOG_TERMINATED)) return 0;
+
+	return sendNotifyForRefer(code, reason, "terminated", "noresource");
+}
+
 void SalCallOp::setReplaces(const string &callId, const string &fromTag, const string &toTag) {
 	auto replacesHeader = belle_sip_header_replaces_create(callId.c_str(), fromTag.c_str(), toTag.c_str());
 	SalOp::setReplaces(replacesHeader);
@@ -1951,7 +1957,7 @@ void SalCallOp::processRefer(const belle_sip_request_event_t *event,
 	if (referToHeader) {
 		auto referToUri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(referToHeader));
 		const char *replaces = nullptr;
-		if (referToUri) replaces = belle_sip_uri_get_header(referToUri, " Replaces");
+		if (referToUri) replaces = belle_sip_uri_get_header(referToUri, "Replaces");
 		if (replaces) {
 			SalOp::setReplaces(belle_sip_header_replaces_create2(replaces));
 			belle_sip_uri_remove_header(referToUri, "Replaces");

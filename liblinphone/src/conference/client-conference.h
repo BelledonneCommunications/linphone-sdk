@@ -224,8 +224,9 @@ private:
 	void initializeHandlers(ConferenceListener *confListener, bool addToListEventHandler);
 
 	void handleRefer(SalReferOp *op,
+	                 const std::shared_ptr<CallSession> &referer,
 	                 const std::shared_ptr<LinphonePrivate::Address> &referAddr,
-	                 const std::string method) override;
+	                 const std::string &method) override;
 	void handleAcceptedRefer() override;
 	void handleRejectedRefer() override;
 

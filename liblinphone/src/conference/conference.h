@@ -365,9 +365,14 @@ public:
 	bool isChatOnly() const;
 	bool supportsMedia() const;
 
+	/*
+	 * Handles a REFER asking this conference to update its participant list. Exactly one of op and referer is set:
+	 * the operation to reply to when it was received out of dialog, the referring session when it was in dialog.
+	 */
 	virtual void handleRefer(SalReferOp *op,
+	                         const std::shared_ptr<CallSession> &referer,
 	                         const std::shared_ptr<LinphonePrivate::Address> &referAddr,
-	                         const std::string method) = 0;
+	                         const std::string &method) = 0;
 	virtual void handleAcceptedRefer();
 	virtual void handleRejectedRefer();
 
