@@ -86,6 +86,9 @@ public:
 		return mSdpOffering;
 	}
 	int notifyReferState(SalCallOp *newCallOp);
+	/* Tells the referrer that the REFER it sent on this dialog will not be honoured. Unlike notifyReferState(), it
+	 * needs no operation to report the state of, as no session is created when the request is refused. */
+	int notifyReferRefused(int code, const std::string &reason);
 	bool compareOp(const SalCallOp *otherCallOp) const;
 	bool dialogRequestPending() const {
 		return (belle_sip_dialog_request_pending(mDialog) != 0);

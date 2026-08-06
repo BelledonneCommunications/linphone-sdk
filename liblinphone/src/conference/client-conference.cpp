@@ -2689,8 +2689,10 @@ SalReferOp *ClientConference::createReferOp() {
 }
 
 void ClientConference::handleRefer(SalReferOp *op,
+                                   BCTBX_UNUSED(const std::shared_ptr<CallSession> &referer),
                                    const std::shared_ptr<LinphonePrivate::Address> &referAddr,
-                                   const std::string method) {
+                                   const std::string &method) {
+	// A client conference is only ever referred out of dialog: an in-dialog REFER is a call transfer, handled as such.
 	if (method == "BYE") {
 		lInfo() << "The server requested " << *referAddr << " to leave " << *this;
 		// The server asks a participant to leave a chat room

@@ -317,6 +317,238 @@ static void create_simple_conference_merging_calls_with_video_toggling_after_scr
 	create_simple_conference_merging_calls_base(params);
 }
 
+static void add_participant_to_conference_by_transferring_call_to_focus(void) {
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
+		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress());
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(pauline);
+
+		setup_conference_info_cbs(marie.getCMgr());
+
+		bctbx_list_t *coresList = NULL;
+		for (auto mgr : {focus.getCMgr(), marie.getCMgr(), pauline.getCMgr()}) {
+			coresList = bctbx_list_append(coresList, mgr->lc);
+		}
+
+		// marie calls pauline. This is the call that will later on be moved into the conference.
+		BC_ASSERT_TRUE(call(marie.getCMgr(), pauline.getCMgr()));
+
+		// marie creates a conference hosted by the focus and dials in it.
+		const char *initialSubject = "Conference a call is transferred to";
+		std::map<LinphoneCoreManager *, LinphoneParticipantInfo *> participantList;
+		LinphoneAddress *confAddr =
+		    create_conference_on_server(focus, marie, participantList, -1, -1, initialSubject, initialSubject, FALSE,
+		                                LinphoneConferenceSecurityLevelNone, FALSE, FALSE, NULL);
+		BC_ASSERT_PTR_NOT_NULL(confAddr);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneConferenceStateCreated, 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NotifyFullStateReceived, 1,
+		                             liblinphone_tester_sip_timeout));
+
+		LinphoneConference *fconference =
+		    linphone_core_search_conference(focus.getLc(), NULL, confAddr, confAddr, NULL);
+		BC_ASSERT_PTR_NOT_NULL(fconference);
+		if (fconference) {
+			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(20), [&fconference] {
+				return linphone_conference_get_participant_count(fconference) == 1;
+			}));
+		}
+
+		// marie transfers the call it has with pauline to the conference. The focus receives an in-dialog REFER on
+		// the dialog of the conference call, whose Refer-To has a Replaces header referring to the call between
+		// marie and pauline.
+		LinphoneCall *marie_call_focus = linphone_core_get_call_by_remote_address2(marie.getLc(), confAddr);
+		BC_ASSERT_PTR_NOT_NULL(marie_call_focus);
+		LinphoneCall *marie_call_pauline =
+		    linphone_core_get_call_by_remote_address2(marie.getLc(), pauline.getCMgr()->identity);
+		BC_ASSERT_PTR_NOT_NULL(marie_call_pauline);
+
+		stats pauline_stat = pauline.getStats();
+		if (marie_call_focus && marie_call_pauline) {
+			ms_message("%s transfers the call it has with %s to conference %s",
+			           linphone_core_get_identity(marie.getLc()), linphone_core_get_identity(pauline.getLc()),
+			           Address::toCpp(confAddr)->toString().c_str());
+			linphone_call_transfer_to_another(marie_call_focus, marie_call_pauline);
+		}
+
+		// The focus calls pauline, which replaces its call with marie by the one with the conference server.
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallIncomingReceived,
+		                             pauline_stat.number_of_LinphoneCallIncomingReceived + 1,
+		                             liblinphone_tester_sip_timeout));
+		// The focus creates the device of the referred participant when it sends that INVITE, that is before her
+		// contact address is known, hence with an address derived from the one she was referred with. It is notified
+		// to the other participants as the entity of an endpoint, so it must not carry the Replaces either. Here is
+		// the only deterministic opportunity to check it: her 200 Ok substitutes her contact address to it.
+		if (fconference) {
+			LinphoneParticipant *referred_participant =
+			    linphone_conference_find_participant(fconference, pauline.getCMgr()->identity);
+			BC_ASSERT_PTR_NOT_NULL(referred_participant);
+			if (referred_participant) {
+				bctbx_list_t *devices = linphone_participant_get_devices(referred_participant);
+				BC_ASSERT_EQUAL(bctbx_list_size(devices), 1, size_t, "%zu");
+				for (bctbx_list_t *it = devices; it != NULL; it = it->next) {
+					LinphoneParticipantDevice *d = (LinphoneParticipantDevice *)it->data;
+					BC_ASSERT_PTR_NULL(
+					    linphone_address_get_header(linphone_participant_device_get_address(d), "Replaces"));
+				}
+				if (devices) {
+					bctbx_list_free_with_data(devices, (bctbx_list_free_func)linphone_participant_device_unref);
+				}
+			}
+		}
+
+		LinphoneCall *pauline_call_focus = linphone_core_get_call_by_remote_address2(pauline.getLc(), confAddr);
+		BC_ASSERT_PTR_NOT_NULL(pauline_call_focus);
+		if (pauline_call_focus && (linphone_call_get_state(pauline_call_focus) == LinphoneCallStateIncomingReceived)) {
+			linphone_call_accept(pauline_call_focus);
+		}
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallStreamsRunning,
+		                             pauline_stat.number_of_LinphoneCallStreamsRunning + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		// The focus must report the progress of the addition to the referrer, whose transfer would otherwise never
+		// leave the state it entered when it sent the REFER.
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneTransferCallConnected, 1,
+		                             liblinphone_tester_sip_timeout));
+
+		if (fconference) {
+			// pauline has joined the conference and marie, which is only the referrer, has not been taken out of it
+			// by the transfer.
+			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(20), [&fconference] {
+				return linphone_conference_get_participant_count(fconference) == 2;
+			}));
+
+			LinphoneParticipant *pauline_participant =
+			    linphone_conference_find_participant(fconference, pauline.getCMgr()->identity);
+			BC_ASSERT_PTR_NOT_NULL(pauline_participant);
+			if (pauline_participant) {
+				// The Replaces header of the Refer-To is meant for the INVITE sent to pauline, it must not be kept
+				// by the identity she is known by in the conference, which is notified to every participant.
+				BC_ASSERT_PTR_NULL(
+				    linphone_address_get_header(linphone_participant_get_address(pauline_participant), "Replaces"));
+
+				bctbx_list_t *devices = linphone_participant_get_devices(pauline_participant);
+				BC_ASSERT_EQUAL(bctbx_list_size(devices), 1, size_t, "%zu");
+				for (bctbx_list_t *it = devices; it != NULL; it = it->next) {
+					LinphoneParticipantDevice *d = (LinphoneParticipantDevice *)it->data;
+					// ... but the streams group of its session must also have joined the mixer session of the
+					// conference, otherwise none of its media is mixed. The volume of a device is computed by the
+					// MSAudioConference its audio stream is connected to, hence it is only known once the stream
+					// reached the audio mixer.
+					BC_ASSERT_TRUE(
+					    CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(20), [&fconference, d] {
+						    return linphone_conference_get_participant_device_volume(fconference, d) !=
+						           AUDIOSTREAMVOLUMES_NOT_FOUND;
+					    }));
+				}
+				if (devices) {
+					bctbx_list_free_with_data(devices, (bctbx_list_free_func)linphone_participant_device_unref);
+				}
+			}
+		}
+
+		for (auto mgr : {marie.getCMgr(), pauline.getCMgr()}) {
+			linphone_core_terminate_all_calls(mgr->lc);
+		}
+		for (auto mgr : {focus.getCMgr(), marie.getCMgr(), pauline.getCMgr()}) {
+			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(30), [mgr] {
+				return linphone_core_get_calls(mgr->lc) == NULL;
+			}));
+		}
+
+		linphone_address_unref(confAddr);
+		bctbx_list_free(coresList);
+	}
+}
+
+static void refuse_transfer_of_a_call_to_a_conference_by_a_non_admin(void) {
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
+		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress());
+		ClientConference laure("laure_tcp_rc", focus.getConferenceFactoryAddress());
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(pauline);
+		focus.registerAsParticipantDevice(laure);
+
+		setup_conference_info_cbs(marie.getCMgr());
+
+		bctbx_list_t *coresList = NULL;
+		for (auto mgr : {focus.getCMgr(), marie.getCMgr(), pauline.getCMgr(), laure.getCMgr()}) {
+			coresList = bctbx_list_append(coresList, mgr->lc);
+		}
+
+		// laure calls pauline. This is the call laure will later on try to move into the conference.
+		BC_ASSERT_TRUE(call(laure.getCMgr(), pauline.getCMgr()));
+
+		// marie organizes a conference laure is invited to, hence laure is a participant of it but not an admin.
+		const char *initialSubject = "Conference a participant may not bring a call into";
+		bctbx_list_t *participants_info = NULL;
+		std::map<LinphoneCoreManager *, LinphoneParticipantInfo *> participantList;
+		participantList.insert(
+		    std::make_pair(laure.getCMgr(), add_participant_info_to_list(&participants_info, laure.getCMgr()->identity,
+		                                                                 LinphoneParticipantRoleSpeaker, -1)));
+		LinphoneAddress *confAddr =
+		    create_conference_on_server(focus, marie, participantList, -1, -1, initialSubject, initialSubject, FALSE,
+		                                LinphoneConferenceSecurityLevelNone, FALSE, FALSE, NULL);
+		BC_ASSERT_PTR_NOT_NULL(confAddr);
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneCallIncomingReceived, 1,
+		                             liblinphone_tester_sip_timeout));
+		LinphoneCall *laure_call_focus = linphone_core_get_call_by_remote_address2(laure.getLc(), confAddr);
+		BC_ASSERT_PTR_NOT_NULL(laure_call_focus);
+		if (laure_call_focus) {
+			linphone_call_accept(laure_call_focus);
+		}
+		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_NotifyFullStateReceived, 1,
+		                             liblinphone_tester_sip_timeout));
+
+		LinphoneConference *fconference =
+		    linphone_core_search_conference(focus.getLc(), NULL, confAddr, confAddr, NULL);
+		BC_ASSERT_PTR_NOT_NULL(fconference);
+
+		LinphoneCall *laure_call_pauline =
+		    linphone_core_get_call_by_remote_address2(laure.getLc(), pauline.getCMgr()->identity);
+		BC_ASSERT_PTR_NOT_NULL(laure_call_pauline);
+
+		stats focus_stat = focus.getStats();
+		if (laure_call_focus && laure_call_pauline) {
+			ms_message("%s, which is not an admin, transfers the call it has with %s to conference %s",
+			           linphone_core_get_identity(laure.getLc()), linphone_core_get_identity(pauline.getLc()),
+			           Address::toCpp(confAddr)->toString().c_str());
+			linphone_call_transfer_to_another(laure_call_focus, laure_call_pauline);
+		}
+
+		// The focus refuses the addition and notifies the referrer of it, so that its transfer ends in error rather
+		// than remaining forever in the state it entered when it sent the REFER.
+		BC_ASSERT_TRUE(wait_for_list(coresList, &laure.getStats().number_of_LinphoneTransferCallError, 1,
+		                             liblinphone_tester_sip_timeout));
+		// The focus has not called pauline, hence has not added her to the conference either.
+		BC_ASSERT_EQUAL(focus.getStats().number_of_LinphoneCallOutgoingInit,
+		                focus_stat.number_of_LinphoneCallOutgoingInit, int, "%d");
+		if (fconference) {
+			BC_ASSERT_EQUAL(linphone_conference_get_participant_count(fconference), 2, int, "%d");
+		}
+
+		for (auto mgr : {marie.getCMgr(), pauline.getCMgr(), laure.getCMgr()}) {
+			linphone_core_terminate_all_calls(mgr->lc);
+		}
+		for (auto mgr : {focus.getCMgr(), marie.getCMgr(), pauline.getCMgr(), laure.getCMgr()}) {
+			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, laure}).waitUntil(chrono::seconds(30), [mgr] {
+				return linphone_core_get_calls(mgr->lc) == NULL;
+			}));
+		}
+
+		bctbx_list_free_with_data(participants_info, (bctbx_list_free_func)linphone_participant_info_unref);
+		linphone_address_unref(confAddr);
+		bctbx_list_free(coresList);
+	}
+}
+
 static void create_dial_out_conference_with_active_call(void) {
 	create_conference_with_active_call_base(TRUE);
 }
@@ -1392,6 +1624,10 @@ static test_t local_conference_impromptu_conference_tests[] = {
                 LinphoneTest::create_simple_conference_merging_calls_with_screen_sharing),
     TEST_NO_TAG("Create simple conference by merging calls with video toggling after screen sharing",
                 LinphoneTest::create_simple_conference_merging_calls_with_video_toggling_after_screen_sharing),
+    TEST_NO_TAG("Add participant to conference by transferring call to focus",
+                LinphoneTest::add_participant_to_conference_by_transferring_call_to_focus),
+    TEST_NO_TAG("Refuse transfer of a call to a conference by a non admin",
+                LinphoneTest::refuse_transfer_of_a_call_to_a_conference_by_a_non_admin),
     TEST_NO_TAG("Create dial out conference with active call",
                 LinphoneTest::create_dial_out_conference_with_active_call),
     TEST_NO_TAG("Organizer creates 2 dialout conferences", LinphoneTest::organizer_creates_two_dialout_conferences),
