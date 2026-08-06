@@ -38,6 +38,10 @@ std::shared_ptr<Core> CoreAccessor::tryGetCore() const {
 	return mCore.lock();
 }
 
+bool CoreAccessor::coreExists() const {
+	return !mCore.expired();
+}
+
 shared_ptr<Core> CoreAccessor::getCore() const {
 	shared_ptr<Core> core = mCore.lock();
 	if (!core) {

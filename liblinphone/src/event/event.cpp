@@ -36,7 +36,6 @@ LINPHONE_BEGIN_NAMESPACE
 Event::Event(const shared_ptr<Core> &core) : CoreAccessor(core) {
 	mEi = linphone_error_info_new();
 	lInfo() << "Created Event [" << this << "]";
-	ref();
 }
 
 Event::~Event() {
@@ -187,17 +186,6 @@ std::shared_ptr<Address> Event::cacheRequestAddress() const {
 		mRequestAddress->setImpl(mOp->getRequestAddress());
 	}
 	return mRequestAddress;
-}
-
-void Event::release() {
-	try {
-		if (mOp) {
-			/*this will stop the refresher*/
-			mOp->stopRefreshing();
-		}
-	} catch (const bad_weak_ptr &) {
-	}
-	unref();
 }
 
 LinphonePrivate::SalEventOp *Event::getOp() const {

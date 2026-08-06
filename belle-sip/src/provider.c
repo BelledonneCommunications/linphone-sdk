@@ -196,6 +196,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t *prov, bell
 			ev.source = (belle_sip_object_t *)prov;
 			ev.server_transaction = NULL;
 			ev.request = req;
+			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->internal_listeners, process_request_event, &ev);
 			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners, process_request_event, &ev);
 		}
 	}

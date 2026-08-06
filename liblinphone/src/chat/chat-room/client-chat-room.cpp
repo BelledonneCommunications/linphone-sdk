@@ -20,7 +20,7 @@
 
 #include <algorithm>
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "client-chat-room.h"
 
@@ -82,6 +82,7 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 	auto conference = dynamic_pointer_cast<ClientConference>(getConference());
 	conference->onConferenceCreated(remoteContact);
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
+
 	std::shared_ptr<Core> core;
 	try {
 		core = getCore();
@@ -93,7 +94,8 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 		bool needToSubscribe = true;
 		auto handler = conference->getEventHandler();
 		if (handler && handler->getManagedByListEventHandler()) {
-			if (handler->getSubscriptionState() == LinphoneSubscriptionError) {
+			if (handler->getSubscriptionState() == LinphoneSubscriptionError
+				|| handler->getSubscriptionState() == LinphoneSubscriptionTerminated){
 				auto &clientListEventHandler = core->getPrivate()->clientListEventHandler;
 				lInfo() << "Detach " << *this << " from ClientConferenceListEventHandler ["
 				        << clientListEventHandler.get() << "] because the subscription errored out";
@@ -479,7 +481,8 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 					            "retrieve the list of participants";
 					chatMessage->getPrivate()->setParticipantState(
 					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
-				} else if (coreRunning && (!eventHandler || (eventSubscribeState == LinphoneSubscriptionError))) {
+				} else if (coreRunning && (!eventHandler || (eventSubscribeState == LinphoneSubscriptionError) ||
+				                           (eventSubscribeState == LinphoneSubscriptionTerminated))) {
 					lError() << *this << ": Unable to send chat message [" << chatMessage
 					         << "] because the subscription to retrieve the list of participant devices errored out "
 					            "(current state is "

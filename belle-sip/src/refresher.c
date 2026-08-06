@@ -17,7 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "belle-sip/refresher.h"
 #include "belle_sip_internal.h"
@@ -407,6 +407,9 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 				will_retry = FALSE;
 				break;
 			}
+			case 489: /* bad event - no chance it can work */
+				will_retry = FALSE;
+				break;
 			case 491: {
 				if (refresher->target_expires > 0) {
 					int delay = belle_sip_random() % 10000; /*schedule a retry between 0 and 10 seconds*/
@@ -478,6 +481,28 @@ static void process_auth_requested(belle_sip_listener_t *l, belle_sip_auth_event
 }
 
 static void process_request_event(belle_sip_listener_t *user_ctx, const belle_sip_request_event_t *event) {
+	belle_sip_refresher_t *refresher = (belle_sip_refresher_t *)user_ctx;
+	belle_sip_request_t *request;
+	belle_sip_dialog_t *dialog;
+
+	/* Handle the case of a NOTIFY that comes before the 200 Ok */
+
+	if (refresher->dialog) return; /* not interested, dialog is already known. */
+	if (!refresher->transaction) return;
+	dialog = belle_sip_request_event_get_dialog(event);
+	if (!dialog) return; /* this incoming transaction is not part of a dialog */
+	request = belle_sip_request_event_get_request(event);
+
+	if (belle_sip_transaction_get_dialog((belle_sip_transaction_t *)refresher->transaction) == dialog &&
+	    strcmp(belle_sip_transaction_get_method((belle_sip_transaction_t *)refresher->transaction), "SUBSCRIBE") == 0 &&
+	    strcmp(belle_sip_request_get_method(request), "NOTIFY") == 0) {
+		/* It's a match ! (works because the provider already linked our initial SUBSCRIBE transaction with the dialog)
+		 */
+		set_or_update_dialog(refresher, dialog);
+		/* Invoke the refresher listener as if a 200 Ok was received. */
+		if (refresher->listener)
+			refresher->listener(refresher, refresher->user_data, 200, "Subscription established from NOTIFY", FALSE);
+	}
 }
 
 static void destroy(belle_sip_refresher_t *refresher) {

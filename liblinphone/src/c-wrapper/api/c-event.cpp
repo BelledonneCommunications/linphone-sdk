@@ -79,6 +79,7 @@ LinphoneEvent *linphone_core_publish(
 		ev->terminate();
 		return nullptr;
 	}
+	ev->ref(); /* give ownership to the caller */
 	return ev->toC();
 }
 
@@ -102,6 +103,7 @@ LinphoneEvent *linphone_core_subscribe(
 	const auto cppBody =
 	    (body && (linphone_content_get_size(body) > 0)) ? Content::toCpp(body)->getSharedFromThis() : nullptr;
 	ev->send(cppBody);
+	ev->ref(); // give ownership of the object to the caller.
 	return ev->toC();
 }
 
@@ -182,6 +184,8 @@ LinphoneSubscriptionState linphone_subscription_state_from_sal(SalSubscribeStatu
 			return LinphoneSubscriptionTerminated;
 		case SalSubscribeActive:
 			return LinphoneSubscriptionActive;
+		case SalSubscribeFailed:
+			return LinphoneSubscriptionError;
 	}
 	return LinphoneSubscriptionNone;
 }

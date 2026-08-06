@@ -120,8 +120,6 @@ public:
 
 	virtual void unpublish() = 0;
 
-	void release();
-
 	virtual void terminate() = 0;
 
 protected:
@@ -137,9 +135,7 @@ protected:
 	LinphonePrivate::SalEventOp *mOp = nullptr;
 	SalCustomHeader *mSendCustomHeaders = nullptr;
 	std::string mName;
-
 	int mExpires;
-
 	bool mInternal = false;
 
 private:

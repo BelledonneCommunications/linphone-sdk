@@ -1042,7 +1042,7 @@ static void info_received(SalOp *op, SalBodyHandler *body_handler) {
 static void subscribe_response(SalOp *op, SalSubscribeStatus status, int will_retry) {
 	LinphoneEvent *lev = (LinphoneEvent *)op->getUserPointer();
 	LinphoneCore *lc = (LinphoneCore *)op->getSal()->getUserPointer();
-
+	std::shared_ptr<LinphonePrivate::EventSubscribe> cppLEv;
 	if (lev == NULL) return;
 	if (linphone_event_get_subscription_state(lev) == LinphoneSubscriptionTerminated) {
 		/* no longer interested in the subscription. Ignore, the NOTIFY will be later rejected with 481. */
@@ -1050,21 +1050,30 @@ static void subscribe_response(SalOp *op, SalSubscribeStatus status, int will_re
 		return;
 	}
 
-	if (status == SalSubscribeActive) {
-		linphone_event_set_state(lev, LinphoneSubscriptionActive);
-	} else if (status == SalSubscribePending) {
-		linphone_event_set_state(lev, LinphoneSubscriptionPending);
-	} else {
-		if (will_retry && (linphone_core_get_global_state(lc) != LinphoneGlobalShutdown)) {
-			linphone_event_set_state(lev, LinphoneSubscriptionOutgoingProgress);
-		} else {
-			// If it is in GlobalShutDown state, the client conference event handler may be destroyed by the time this
-			// event reaches the state changed callback Subscriptipn are terminated by destructors
-			if (linphone_core_get_global_state(lc) == LinphoneGlobalShutdown) {
-				linphone_event_set_user_data(lev, NULL);
+	cppLEv = dynamic_pointer_cast<LinphonePrivate::EventSubscribe>(Event::toCpp(lev)->getSharedFromThis());
+
+	switch (status) {
+		case SalSubscribeActive:
+			cppLEv->setState(LinphoneSubscriptionActive);
+			break;
+		case SalSubscribePending:
+			cppLEv->setState(LinphoneSubscriptionPending);
+			break;
+		case SalSubscribeTerminated:
+			if (linphone_core_get_global_state(lc) != LinphoneGlobalShutdown)
+				cppLEv->setState(LinphoneSubscriptionTerminated);
+			break;
+		case SalSubscribeFailed:
+			cppLEv->setState(LinphoneSubscriptionError);
+			if (will_retry) {
+				cppLEv->setState(LinphoneSubscriptionOutgoingProgress);
+			} else {
+				cppLEv->setState(LinphoneSubscriptionTerminated);
 			}
-			linphone_event_set_state(lev, LinphoneSubscriptionError);
-		}
+			break;
+		case SalSubscribeNone:
+			/*ignored */
+			break;
 	}
 }
 
@@ -1147,6 +1156,9 @@ static void incoming_subscribe_closed(SalOp *op) {
 	LinphoneEvent *lev = (LinphoneEvent *)op->getUserPointer();
 
 	if (lev) linphone_event_set_state(lev, LinphoneSubscriptionTerminated);
+	else {
+		lWarning() << "Incoming subscribe closed for unknown LinphoneEvent";
+	}
 }
 
 static void publish_received(SalPublishOp *op, const char *eventname, const SalBodyHandler *body_handler) {
@@ -1250,6 +1262,9 @@ static void on_expire(SalOp *op) {
 static void on_notify_response(SalOp *op) {
 	LinphoneEvent *lev = (LinphoneEvent *)op->getUserPointer();
 	if (!lev) return;
+	int protocol_code = op->getErrorInfo()->protocol_code;
+
+	if (protocol_code >= 100 && protocol_code < 200) return; /* ignore provisional responses */
 
 	if (linphone_event_is_out_of_dialog_op(lev)) {
 		switch (linphone_event_get_subscription_state(lev)) {

@@ -192,7 +192,6 @@ std::optional<std::shared_ptr<EventSubscribe>> ClientConferenceListEventHandler:
 		}
 	}
 	if (!entryAdded) {
-		evSub->unref();
 		return std::nullopt;
 	}
 	if (populateAndSendEvent(evSub, from, l)) {

@@ -350,7 +350,8 @@ typedef enum SalSubscribeStatus {
 	SalSubscribeNone = 0,
 	SalSubscribePending = 1,
 	SalSubscribeActive = 2,
-	SalSubscribeTerminated = 3
+	SalSubscribeTerminated = 3,
+	SalSubscribeFailed = 4
 } SalSubscribeStatus;
 
 typedef enum SalMessageDeliveryStatus {

@@ -79,7 +79,6 @@ public:
 	LinphoneSubscriptionDir getDir();
 
 	bool isOutOfDialogOp() const;
-	void setIsOutOfDialogOp(bool isOutOfDialogOp);
 
 	void unpublish() override;
 
@@ -91,7 +90,8 @@ protected:
 	EventSubscribe(const std::shared_ptr<Core> &core,
 	               LinphoneSubscriptionDir dir,
 	               const std::string &name,
-	               int expires);
+	               int expires,
+	               bool isOutOfDialog = false);
 
 private:
 	LinphoneSubscriptionDir mDir = LinphoneSubscriptionInvalidDir;
