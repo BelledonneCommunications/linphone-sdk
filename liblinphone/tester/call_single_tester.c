@@ -688,14 +688,16 @@ static void _direct_call_well_known_port(int iptype) {
 	marie = linphone_core_manager_new_with_proxies_check("marie_well_known_port_rc", FALSE);
 	pauline = linphone_core_manager_new_with_proxies_check("pauline_well_known_port_rc", FALSE);
 
-	if (iptype == 6) { // if ipv6 wanted
+	if (iptype == 6) {
+		// if ipv6 wanted
 		if (liblinphone_tester_ipv6_available()) {
 			pauline_dest = linphone_address_new("sip:[::1];transport=tcp");
 		} else {
 			ms_warning("Test skipped, no ipv6 available");
 		}
 
-	} else { // assumes ipv4
+	} else {
+		// assumes ipv4
 		pauline_dest = linphone_address_new("sip:127.0.0.1;transport=tcp");
 		linphone_core_enable_ipv6(marie->lc, FALSE);
 		linphone_core_enable_ipv6(pauline->lc, FALSE);
@@ -1261,8 +1263,9 @@ static void call_with_specified_codec_bitrate(void) {
 	int max_bw = 50;
 
 #ifdef __arm__
-	if (ms_factory_get_cpu_count(linphone_core_get_ms_factory(marie->lc)) <
-	    2) { /*2 opus codec channel + resampler is too much for a single core*/
+	if (ms_factory_get_cpu_count(linphone_core_get_ms_factory(marie->lc)) < 2) {
+
+		/*2 opus codec channel + resampler is too much for a single core*/
 #ifndef __ANDROID__
 		codec = "speex";
 		rate = 8000;
@@ -1308,6 +1311,7 @@ end:
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
 }
+
 static void call_with_maxptime(void) {
 
 	LinphoneCoreManager *marie = linphone_core_manager_create("marie_rc");
@@ -1379,6 +1383,7 @@ void disable_all_codecs(const bctbx_list_t *elem, LinphoneCoreManager *call) {
 		linphone_core_enable_payload_type(call->lc, pt, FALSE);
 	}
 }
+
 /***
  Disable all audio codecs , sends an INVITE with RTP port 0 and payload 0.
  Wait for SIP  488 unacceptable.
@@ -1721,9 +1726,9 @@ static void call_declined_with_reasons(void) {
 				outcall_log_status_target = LinphoneCallAborted;
 				break;
 		} // No default because we want to have all use cases from Reasons
-		  //------------------------------------------------------------------
-		  //						Call test
-		  //------------------------------------------------------------------
+		//------------------------------------------------------------------
+		//						Call test
+		//------------------------------------------------------------------
 		BC_ASSERT_TRUE(
 		    wait_for(caller_mgr->lc, callee_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallIncomingReceived, 1));
 		BC_ASSERT_PTR_NOT_NULL(in_call = linphone_core_get_current_call(callee_mgr->lc));
@@ -4062,21 +4067,21 @@ pause_call_1(LinphoneCoreManager *mgr_1, LinphoneCall *call_1, LinphoneCoreManag
 }
 #if 0
 void concurrent_paused_resumed_base(void) {
-	LinphoneCoreManager* marie = linphone_core_manager_new("marie_rc");
-	LinphoneCoreManager* pauline = linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
-	LinphoneCall* call_pauline,call_marie;
-	const rtp_stats_t * stats;
-
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *pauline = linphone_core_manager_new(
+		transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
+	LinphoneCall *call_pauline, call_marie;
+	const rtp_stats_t *stats;
 
 	BC_ASSERT_TRUE(call(pauline,marie));
 
 	call_pauline = linphone_core_get_current_call(pauline->lc);
 	call_marie = linphone_core_get_current_call(marie->lc);
 
-	linphone_core_pause_call(pauline->lc,call_pauline);
+	linphone_core_pause_call(pauline->lc, call_pauline);
 	BC_ASSERT_TRUE(wait_for(pauline->lc,marie->lc,&pauline->stat.number_of_LinphoneCallPausing,1));
 
-	linphone_core_pause_call(marie->lc,call_marie);
+	linphone_core_pause_call(marie->lc, call_marie);
 
 	BC_ASSERT_TRUE(wait_for(pauline->lc,marie->lc,&marie->stat.number_of_LinphoneCallPausedByRemote,1));
 	BC_ASSERT_TRUE(wait_for(pauline->lc,marie->lc,&pauline->stat.number_of_LinphoneCallPaused,1));
@@ -4084,7 +4089,7 @@ void concurrent_paused_resumed_base(void) {
 	/*stay in pause a little while in order to generate traffic*/
 	wait_for_until(pauline->lc, marie->lc, NULL, 5, 2000);
 
-	linphone_core_resume_call(pauline->lc,call_pauline);
+	linphone_core_resume_call(pauline->lc, call_pauline);
 
 	BC_ASSERT_TRUE(wait_for(pauline->lc,marie->lc,&pauline->stat.number_of_LinphoneCallStreamsRunning,2));
 	BC_ASSERT_TRUE(wait_for(pauline->lc,marie->lc,&marie->stat.number_of_LinphoneCallStreamsRunning,2));
@@ -4095,11 +4100,9 @@ void concurrent_paused_resumed_base(void) {
 	stats = rtp_session_get_stats(call_pauline->sessions->rtp_session);
 	BC_ASSERT_EQUAL(stats->cum_packet_loss, 0, int, "%d");
 
-
 	linphone_core_terminate_all_calls(pauline->lc);
 	BC_ASSERT_TRUE(wait_for(pauline->lc,marie->lc,&pauline->stat.number_of_LinphoneCallEnd,1));
 	BC_ASSERT_TRUE(wait_for(pauline->lc,marie->lc,&marie->stat.number_of_LinphoneCallEnd,1));
-
 
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
@@ -4603,8 +4606,9 @@ static void _call_base_with_configfile(LinphoneMediaEncryption mode,
 	if (linphone_core_media_encryption_supported(marie->lc, mode)) {
 		linphone_core_set_media_encryption(marie->lc, mode);
 		linphone_core_set_media_encryption(pauline->lc, mode);
-		if (mode == LinphoneMediaEncryptionDTLS) { /* for DTLS we must access certificates or at least have a directory
-			                                          to store them */
+		if (mode == LinphoneMediaEncryptionDTLS) {
+			/* for DTLS we must access certificates or at least have a directory
+			                                                     to store them */
 			char *path = bc_tester_file("certificates-marie");
 			linphone_core_set_user_certificates_path(marie->lc, path);
 			bc_free(path);
@@ -5734,6 +5738,7 @@ end:
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
 }
+
 static void call_with_very_early_call_update(void) {
 	LinphoneCoreManager *marie;
 	LinphoneCoreManager *pauline;
@@ -5816,9 +5821,11 @@ end:
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
 }
+
 static void call_with_in_dialog_codec_change(void) {
 	call_with_in_dialog_codec_change_base(FALSE);
 }
+
 static void call_with_in_dialog_codec_change_no_sdp(void) {
 	call_with_in_dialog_codec_change_base(TRUE);
 }
@@ -6336,6 +6343,7 @@ static void call_with_transport_change_base(bool_t successfull_call) {
 static void call_with_transport_change_after_released(void) {
 	call_with_transport_change_base(TRUE);
 }
+
 static void unsucessfull_call_with_transport_change_after_released(void) {
 	call_with_transport_change_base(FALSE);
 }
@@ -6794,7 +6802,8 @@ static void custom_rtp_modifier(bool_t pauseResumeTest, bool_t recordTest) {
 	linphone_core_add_callbacks(marie->lc, cbs);
 	linphone_core_cbs_unref(cbs);
 
-	if (recordTest) { // When we do the record test, we need a file player to play the content of a sound file
+	if (recordTest) {
+		// When we do the record test, we need a file player to play the content of a sound file
 		/*make sure the record file doesn't already exists, otherwise this test will append new samples to it*/
 		unlink(recordpath);
 
@@ -8161,6 +8170,7 @@ static void call_with_same_codecs_ordered_differently(void) {
 	linphone_core_manager_destroy(marie);
 	linphone_core_manager_destroy(pauline);
 }
+
 static void call_rejected_with_403(void) {
 	const LinphoneErrorInfo *error;
 	LinphoneCoreManager *mgr = linphone_core_manager_new("empty_rc");
@@ -8318,6 +8328,60 @@ static void call_received_with_tel_uri(void) {
 	BC_ASSERT_TRUE(wait_for_until(laure->lc, NULL, &laure->stat.number_of_LinphoneCallReleased, 1,
 	                              liblinphone_tester_sip_timeout));
 	*/
+	linphone_core_manager_destroy(laure);
+}
+
+static void call_received_with_long_candidate(void) {
+	const char *invite = "INVITE sip:49.14.153.62:34247;transport=udp SIP/2.0\r\n"
+	                     "Via: SIP/2.0/UDP 127.0.0.1:80;branch=z9hG4bKd1615h3de26kgeh6k1202gzb4T12045\r\n"
+	                     "Call-ID: asbc16ja7z3sau4j2u2jzdx063zj6zj6336n@10.191.176.18\r\n"
+	                     "From: <tel:+123456789>;tag=sbc0502naux6xjz\r\n"
+	                     "To: <tel:+1234567890>\r\n"
+	                     "CSeq: 1 INVITE\r\n"
+	                     "Allow: UPDATE,INFO,PRACK,NOTIFY,OPTIONS,INVITE,ACK,BYE,CANCEL\r\n"
+	                     "Contact: <sip:127.0.0.1:80;Dpt=eb7a-200>\r\n"
+	                     "Max-Forwards: 66\r\n"
+	                     "Supported: timer,100rel,histinfo,early-session\r\n"
+	                     "Session-Expires: 1800\r\n"
+	                     "Min-SE: 600\r\n"
+	                     "P-Asserted-Identity: <tel:+919599936258>\r\n"
+	                     "P-Called-Party-ID: <tel:+919403993402>\r\n"
+	                     "P-Notification: caller-control\r\n"
+	                     "Content-Length: 426\r\n"
+	                     "Content-Type: application/sdp\r\n"
+	                     "Content-Disposition: session\r\n"
+	                     "\r\n"
+	                     "v=0\r\n"
+	                     "o=- 213464062 213464062 IN IP4 127.0.0.1\r\n"
+	                     "s=SBC call\r\n"
+	                     "c=IN IP4 127.0.0.1\r\n"
+	                     "t=0 0\r\n"
+	                     "m=audio 1023 RTP/AVP 8 96 0\r\n"
+	                     "b=AS:80\r\n"
+	                     "a=rtpmap:8 PCMA/8000\r\n"
+	                     "a=rtpmap:96 telephone-event/8000\r\n"
+	                     "a=ptime:20\r\n"
+	                     "a=maxptime:20\r\n"
+	                     "a=rtpmap:0 PCMU/8000\r\n"
+	                     "a=candidate:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	                     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	                     " 1 UDP 2130706431 127.0.0.1 1023 typ host\r\n"
+	                     "\r\n";
+
+	LinphoneCoreManager *laure = linphone_core_manager_new("laure_rc_udp");
+
+	LinphoneTransports *tp = linphone_core_get_transports_used(laure->lc);
+
+	BC_ASSERT_TRUE(liblinphone_tester_send_data(invite, strlen(invite), "127.0.0.1",
+	                                            linphone_transports_get_udp_port(tp), SOCK_DGRAM) > 0);
+	linphone_transports_unref(tp);
+
+	BC_ASSERT_TRUE(wait_for(laure->lc, NULL, &laure->stat.number_of_LinphoneCallIncomingReceived, 1));
+	linphone_call_accept(linphone_core_get_current_call(laure->lc));
+	BC_ASSERT_TRUE(wait_for(laure->lc, NULL, &laure->stat.number_of_LinphoneCallStreamsRunning, 1));
+	linphone_call_terminate(linphone_core_get_current_call(laure->lc));
+	BC_ASSERT_TRUE(wait_for(laure->lc, NULL, &laure->stat.number_of_LinphoneCallEnd, 1));
+
 	linphone_core_manager_destroy(laure);
 }
 
@@ -9236,6 +9300,7 @@ static test_t call2_tests[] = {
     TEST_NO_TAG("Call with local account identity in request URI and not in to header, enable account strict matching",
                 call_with_correct_local_account_in_request_uri_enable_account_strict_matching),
     TEST_NO_TAG("Call with tel uri", call_received_with_tel_uri),
+    TEST_NO_TAG("Call with long candidate", call_received_with_long_candidate),
     TEST_NO_TAG("Call with long uri", call_received_with_long_uri),
     TEST_NO_TAG("Two accounts not sharing same connection", two_accounts_use_different_connections),
     TEST_NO_TAG("Call with accept early media while receiving an INVITE without SDP",

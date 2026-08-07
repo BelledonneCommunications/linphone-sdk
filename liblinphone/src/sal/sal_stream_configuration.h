@@ -30,6 +30,7 @@
 #include "linphone/utils/general.h"
 
 #define SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_LEN 64
+#define SAL_MEDIA_DESCRIPTION_MAX_ICE_ADDR_FMT "%63s"
 #define SAL_MEDIA_DESCRIPTION_MAX_ICE_FOUNDATION_LEN 32
 #define SAL_MEDIA_DESCRIPTION_MAX_ICE_TYPE_LEN 6
 
@@ -78,42 +79,65 @@ class LINPHONE_PUBLIC SalStreamConfiguration {
 
 public:
 	SalStreamConfiguration();
+
 	SalStreamConfiguration(const SalStreamConfiguration &other);
+
 	virtual ~SalStreamConfiguration();
+
 	SalStreamConfiguration &operator=(const SalStreamConfiguration &other);
+
 	int equal(const SalStreamConfiguration &other) const;
+
 	bool operator==(const SalStreamConfiguration &other) const;
+
 	bool operator!=(const SalStreamConfiguration &other) const;
+
 	void disable();
 
 	/*these are switch case, so that when a new proto is added we can't forget to modify this function*/
 	bool hasAvpf() const;
+
 	bool hasIpv6() const;
+
 	bool hasImplicitAvpf() const;
 
 	/*these are switch case, so that when a new proto is added we can't forget to modify this function*/
 	bool hasSrtp() const;
+
 	bool hasDtls() const;
+
 	bool hasZrtp() const;
+
 	bool hasLimeIk() const;
 
 	bool hasZrtpHash() const;
+
 	const uint8_t *getZrtpHash() const;
 
 	const std::list<OrtpPayloadType *> &getPayloads() const;
+
 	const int &getMaxRate() const;
+
 	const std::string &getMid() const;
+
 	const int &getMidRtpExtHeaderId() const;
 
 	const SalStreamType &getType() const;
+
 	const std::string getTypeAsString() const;
+
 	const SalMediaProto &getProto() const;
+
 	const std::string getProtoAsString() const;
+
 	SalStreamDir getDirection() const;
+
 	std::string getSdpString() const;
 
 	const int &getMixerToClientExtensionId() const;
+
 	const int &getClientToMixerExtensionId() const;
+
 	const int &getFrameMarkingExtensionId() const;
 
 	void replacePayloads(const std::list<OrtpPayloadType *> &newPayloads);
@@ -121,10 +145,13 @@ public:
 	void addToSdpMediaDescription(belle_sdp_media_description_t *media_desc) const;
 
 	void mergeAcaps(const std::list<std::list<unsigned int>> &acaps);
+
 	const std::list<std::list<unsigned int>> &getAcapIndexes() const;
+
 	const unsigned int &getTcapIndex() const;
 
 	static std::string cryptoToSdpValue(const SalSrtpCryptoAlgo &crypto);
+
 	static SalSrtpCryptoAlgo fillStrpCryptoAlgoFromString(const std::string &value);
 
 private:
@@ -166,15 +193,21 @@ private:
 	std::list<std::list<unsigned int>> acapIndexes;
 
 	static bool isRecvOnly(const OrtpPayloadType *p);
+
 	static bool isSamePayloadType(const OrtpPayloadType *p1, const OrtpPayloadType *p2);
+
 	static bool isSamePayloadList(const std::list<OrtpPayloadType *> &l1, const std::list<OrtpPayloadType *> &l2);
+
 	static std::string getSetupAttributeForDtlsRole(const SalDtlsRole &role);
+
 	static SalDtlsRole getDtlsRoleFromSetupAttribute(const std::string setupAtte);
 
 	bool isBundleOnly() const {
 		return bundle_only;
 	}
+
 	void enableAvpfForStream();
+
 	void disableAvpfForStream();
 };
 
