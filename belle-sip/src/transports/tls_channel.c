@@ -212,6 +212,11 @@ belle_sip_certificates_chain_t *belle_sip_certificates_chain_parse_file(const ch
 	return certificate;
 }
 
+/* Does this certificate have a SAN or CN matching the given subject? */
+bool_t belle_sip_certificate_subject_match(const belle_sip_certificates_chain_t *certificate, const char *subject) {
+	return bctbx_x509_certificate_subject_match(certificate->cert, subject);
+}
+
 /*
  * Parse all *.pem files in a given dir(non recursively) and return the one matching the given subject
  */

@@ -380,7 +380,7 @@ void FriendList::synchronizeFriendsFromServer() {
 		belle_generic_uri_t *uri = belle_generic_uri_parse(mUri.c_str());
 		belle_request_listener.process_auth_requested = [](void *ctx, belle_sip_auth_event_t *event) {
 			LinphoneFriendList *list = (LinphoneFriendList *)ctx;
-			linphone_core_fill_belle_sip_auth_event(FriendList::toCpp(list)->getCore()->getCCore(), event, NULL, NULL);
+			toCpp(list)->getCore()->fillBelleSipAuthEvent(event, "", "");
 		};
 		belle_request_listener.process_response = [](void *ctx, const belle_http_response_event_t *event) {
 			LinphoneFriendList *list = (LinphoneFriendList *)ctx;

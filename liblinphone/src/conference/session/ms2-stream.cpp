@@ -914,10 +914,37 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 		char *certificate = nullptr;
 		char *key = nullptr;
 		char *fingerprint = nullptr;
+		auto localAddr = getMediaSession().getLocalAddress();
+		auto localAddrUri = localAddr->asStringUriOnly();
 
-		sal_certificates_chain_parse_directory(
-		    &certificate, &key, &fingerprint, linphone_core_get_user_certificates_path(getCCore()),
-		    "linphone-dtls-default-identity", SAL_CERTIFICATE_RAW_FORMAT_PEM, true, true);
+		/* first: do we have a certificate and key in our auth info matching the current local address */
+		if (auto tlsCertificate = getCore().findTlsCertInIndexedAuthInfosWithSubject(
+		        localAddr->getUsername(), localAddr->getDomain(), localAddrUri)) {
+			certificate = bctbx_strdup(tlsCertificate->certificatePem.c_str());
+			key = bctbx_strdup(tlsCertificate->keyPem.c_str());
+			fingerprint = bctbx_strdup(tlsCertificate->fingerprint.c_str());
+			lInfo() << "DTLS-SRTP : user " << localAddrUri << " uses client certificate found in core auth info";
+		} else {
+			/* second: try to get certificate with a subject or CN matching the local sip uri in the user certificate
+			 * path set in core */
+			sal_certificates_chain_parse_directory(
+			    &certificate, &key, &fingerprint, linphone_core_get_user_certificates_path(getCCore()),
+			    localAddrUri.c_str(), SAL_CERTIFICATE_RAW_FORMAT_PEM,
+			    false, // Do not generate a self signed certificate if we do not find it
+			    true);
+
+			/* third: fallback on the default selfsigned certificate in the user certificate path set in core */
+			if (certificate == nullptr || key == nullptr) {
+				lInfo() << "DTLS-SRTP : No client certificate found for user " << localAddrUri
+				        << " fallback on linphone-dtls-default-identity";
+				sal_certificates_chain_parse_directory(
+				    &certificate, &key, &fingerprint, linphone_core_get_user_certificates_path(getCCore()),
+				    "linphone-dtls-default-identity", SAL_CERTIFICATE_RAW_FORMAT_PEM, true, true);
+			} else {
+				lInfo() << "DTLS-SRTP : user " << localAddrUri << " uses client certificate found in "
+				        << linphone_core_get_user_certificates_path(getCCore());
+			}
+		}
 		if (fingerprint) {
 			if (getMediaSessionPrivate().getDtlsFingerprint().empty()) {
 				getMediaSessionPrivate().setDtlsFingerprint(fingerprint);

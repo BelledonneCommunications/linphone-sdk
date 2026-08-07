@@ -624,30 +624,26 @@ static void call_cancel_done(SalOp *op) {
 }
 
 static void auth_failure(SalOp *op, SalAuthInfo *info) {
+	if (info == NULL) return;
 	LinphoneCore *lc = static_cast<LinphoneCore *>(op->getSal()->getUserPointer());
-	LinphoneAuthInfo *ai = NULL;
 
-	if (info != NULL) {
-		ai = (LinphoneAuthInfo *)_linphone_core_find_auth_info(lc, info->realm, info->username, info->domain,
-		                                                       info->algorithm, TRUE);
-		if (ai) {
-			/* only HttpDigest mode requests App for credentials, TLS client cert does not support callback
-			 * so the authentication credential MUST be provided by the application before the connection without prompt
-			 * from the library.
-			 * For bearer, we consider there can't be user mystyping password, so no reason to request again.'
-			 */
-			ms_message("%s/%s/%s/%s authentication fails.", info->realm, info->username, info->domain,
-			           sal_auth_mode_to_string(info->mode));
-			if (info->mode == SalAuthModeHttpDigest) {
-				LinphoneAuthInfo *auth_info =
-				    linphone_core_create_auth_info(lc, info->username, NULL, NULL, NULL, info->realm, info->domain);
-				AuthInfo::toCpp(auth_info)->setRequestedMethod(AuthInfo::fromSalAuthMode(info->mode));
-				/*ask again for password if auth info was already supplied but apparently not working*/
-				L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack().pushAuthRequested(
-				    AuthInfo::toCpp(ai)->getSharedFromThis());
-				linphone_auth_info_unref(auth_info);
-			}
-		}
+	const auto method = AuthInfo::fromSalAuthMode(info->mode);
+	auto authInfo = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->findBestAuthInfoForChallenge(
+	    method, L_C_TO_STRING(info->username), L_C_TO_STRING(info->realm), L_C_TO_STRING(info->domain),
+	    L_C_TO_STRING(info->algorithm));
+
+	if (!authInfo) return;
+	/* only HttpDigest mode requests App for credentials, TLS client cert does not support callback
+	 * so the authentication credential MUST be provided by the application before the connection without prompt
+	 * from the library.
+	 * For bearer, we consider there can't be user mystyping password, so no reason to request again.
+	 */
+	lInfo() << info->realm << "/" << info->username << "/" << info->domain << "/" << sal_auth_mode_to_string(info->mode)
+	        << " authentication fails.";
+
+	if (info->mode == SalAuthModeHttpDigest) {
+		/*ask again for password if auth info was already supplied but apparently not working*/
+		L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack().pushAuthRequested(authInfo);
 	}
 }
 
@@ -870,24 +866,13 @@ static bool_t fill_auth_info_with_client_certificate(LinphoneCore *lc, SalAuthIn
 }
 
 static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
-	LinphoneAuthInfo *ai = NULL;
+	auto requestedMethod = AuthInfo::fromSalAuthMode(sai->mode);
+	auto bestAuthInfo = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->findBestAuthInfoForChallenge(
+	    requestedMethod, L_C_TO_STRING(sai->username), L_C_TO_STRING(sai->realm), L_C_TO_STRING(sai->domain),
+	    L_C_TO_STRING(sai->algorithm));
+	LinphoneAuthInfo *ai = bestAuthInfo ? bestAuthInfo->toC() : nullptr;
 	bool notifyAuthStack = false;
 	AuthStack &as = L_GET_PRIVATE_FROM_C_OBJECT(lc)->getAuthStack();
-	LinphoneAuthMethod requestedMethod = LinphoneAuthBasic;
-	switch (sai->mode) {
-		case SalAuthModeTls:
-			ai = _linphone_core_find_tls_auth_info(lc);
-			requestedMethod = LinphoneAuthTls;
-			break;
-		case SalAuthModeHttpDigest:
-			ai = _linphone_core_find_auth_info(lc, sai->realm, sai->username, sai->domain, sai->algorithm, FALSE);
-			requestedMethod = LinphoneAuthHttpDigest;
-			break;
-		case SalAuthModeBearer:
-			ai = _linphone_core_find_bearer_auth_info(lc, sai->realm, sai->username, sai->domain);
-			requestedMethod = LinphoneAuthBearer;
-			break;
-	}
 	if (ai) {
 		switch (sai->mode) {
 			case SalAuthModeHttpDigest: {
@@ -941,7 +926,7 @@ static bool_t fill_auth_info(LinphoneCore *lc, SalAuthInfo *sai) {
 			LinphoneAuthInfo *wai = (LinphoneAuthInfo *)ai;
 			linphone_auth_info_set_realm(wai, sai->realm);
 			linphone_auth_info_set_algorithm(wai, sai->algorithm);
-			linphone_core_write_auth_info(lc, wai);
+			L_GET_CPP_PTR_FROM_C_OBJECT(lc)->writeAuthInfo(AuthInfo::toCpp(wai)->getSharedFromThis());
 		}
 		return TRUE;
 	} else {

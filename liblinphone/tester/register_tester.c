@@ -685,7 +685,7 @@ static void authenticated_register_with_provided_credentials_and_username_with_s
 	linphone_proxy_config_set_server_addr(cfg, test_route);
 	linphone_address_unref(from);
 
-	LinphoneAuthInfo *ai = linphone_auth_info_new(username, NULL, test_password, NULL, NULL, test_route);
+	LinphoneAuthInfo *ai = linphone_auth_info_new(username, NULL, test_password, NULL, NULL, auth_domain);
 	linphone_core_add_auth_info(lcm->lc, ai);
 	linphone_auth_info_unref(ai);
 	linphone_core_add_proxy_config(lcm->lc, cfg);
@@ -697,6 +697,25 @@ static void authenticated_register_with_provided_credentials_and_username_with_s
 	BC_ASSERT_PTR_NOT_NULL(linphone_config_get_string(linphone_core_get_config(lcm->lc), "auth_info_0", "ha1", NULL));
 
 	linphone_proxy_config_unref(cfg);
+	linphone_core_manager_destroy(lcm);
+}
+
+static void authenticated_register_with_wrong_domain(void) {
+	LinphoneCoreManager *lcm = create_lcm();
+	stats *counters;
+	char route[256];
+
+	/* authInfo stored with a domain that doesn't match the register domain */
+	LinphoneAuthInfo *info = linphone_auth_info_new(test_username, NULL, test_password, NULL, NULL, "wrong-domain.org");
+	linphone_core_add_auth_info(lcm->lc, info);
+	linphone_auth_info_unref(info);
+
+	sprintf(route, "sip:%s", test_route);
+	counters = &lcm->stat;
+
+	register_with_refresh_base_3(lcm->lc, FALSE, auth_domain, route, FALSE, NULL, LinphoneRegistrationFailed);
+	BC_ASSERT_EQUAL(counters->number_of_LinphoneRegistrationFailed, 1, int, "%d");
+	BC_ASSERT_EQUAL(counters->number_of_LinphoneRegistrationOk, 0, int, "%d");
 	linphone_core_manager_destroy(lcm);
 }
 
@@ -1903,6 +1922,7 @@ static test_t register_tests[] = {
     TEST_NO_TAG("Ha1 authenticated register", ha1_authenticated_register),
     TEST_ONE_TAG("Ha1 authenticated register SHA-256", ha1_authenticated_register_for_algorithm, "CRYPTO"),
     TEST_NO_TAG("Digest auth without initial credentials", authenticated_register_with_no_initial_credentials),
+    TEST_NO_TAG("Authenticated register with wrong domain", authenticated_register_with_wrong_domain),
     TEST_NO_TAG("Digest auth with wrong credentials", authenticated_register_with_wrong_credentials),
     TEST_NO_TAG("Digest auth with wrong credentials, check if registration attempts are stopped",
                 authenticated_register_with_wrong_credentials_2),

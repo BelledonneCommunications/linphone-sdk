@@ -280,7 +280,7 @@ void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> not
 
 				string cid = content.getHeader("Content-Id").getValue();
 				if (cid.empty()) continue;
-				cid = Utils::unquote(cid, '<');
+				cid = Utils::unquote(cid, '<', '>');
 				map<string, std::shared_ptr<Address>>::const_iterator it = addresses.find(cid);
 				if (it == addresses.cend()) continue;
 
@@ -442,7 +442,7 @@ map<string, std::shared_ptr<Address>> ClientConferenceListEventHandler::parseRlm
 		for (const auto &instance : resource.getInstance()) {
 			string cid = string(instance.getId());
 			if (cid.empty()) continue;
-			cid = Utils::unquote(cid, '<');
+			cid = Utils::unquote(cid, '<', '>');
 
 			addresses.emplace(cid, peer);
 		}

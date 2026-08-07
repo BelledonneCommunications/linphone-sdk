@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "auth-info/auth-info.h"
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
@@ -204,12 +205,14 @@ int TunnelManager::tlsUpdateClientCertificate() {
 	int error;
 
 	if (!getCertificate() || !getKey()) {
-		const LinphoneAuthInfo *authInfo =
-		    _linphone_core_find_indexed_tls_auth_info(getLinphoneCore(), getUsername().c_str(), getDomain().c_str());
-		if (authInfo == NULL) {
+		const auto cppAuthInfo =
+		    L_GET_CPP_PTR_FROM_C_OBJECT(getLinphoneCore())
+		        ->findBestAuthInfoForChallenge(LinphoneAuthTls, getUsername(), "", getDomain(), "");
+		if (!cppAuthInfo) {
 			ms_error("TunnelManager: Cannot find auth info for user '%s'", getUsername().c_str());
 			return -1;
 		}
+		const LinphoneAuthInfo *authInfo = cppAuthInfo->toC();
 
 		if (!getCertificate()) {
 			bctbx_x509_certificate_t *cert = bctbx_x509_certificate_new();

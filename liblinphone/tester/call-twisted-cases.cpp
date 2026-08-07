@@ -150,7 +150,9 @@ static void call_challenged_after_180_base(bool_t with_account) {
 	LinphoneCall *call;
 
 	LinphoneAuthInfo *ai =
-	    linphone_factory_create_auth_info(linphone_factory_get(), "bob", NULL, "secret", NULL, NULL, "sip.example.org");
+
+	    linphone_factory_create_auth_info(linphone_factory_get(), "bob", NULL, "secret", NULL, "sip.example.org",
+	                                      !!with_account ? "sip.example.org" : NULL);
 	linphone_core_enable_video_capture(marie->lc, FALSE);
 	linphone_core_enable_video_display(marie->lc, FALSE);
 	linphone_core_add_auth_info(marie->lc, ai);
@@ -204,7 +206,7 @@ static void call_challenged_after_180_base(bool_t with_account) {
 			        belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(tr)), 401);
 			    belle_sip_header_www_authenticate_t *auth = belle_sip_header_www_authenticate_new();
 			    belle_sip_header_www_authenticate_set_scheme(BELLE_SIP_HEADER_WWW_AUTHENTICATE(auth), "Digest");
-			    belle_sip_header_www_authenticate_set_realm(BELLE_SIP_HEADER_WWW_AUTHENTICATE(auth), "sip.example.com");
+			    belle_sip_header_www_authenticate_set_realm(BELLE_SIP_HEADER_WWW_AUTHENTICATE(auth), "sip.example.org");
 			    belle_sip_header_www_authenticate_set_algorithm(BELLE_SIP_HEADER_WWW_AUTHENTICATE(auth), "MD5");
 			    belle_sip_header_www_authenticate_set_nonce(BELLE_SIP_HEADER_WWW_AUTHENTICATE(auth),
 			                                                "abcdefghijklmnopqrstuvwxyz");

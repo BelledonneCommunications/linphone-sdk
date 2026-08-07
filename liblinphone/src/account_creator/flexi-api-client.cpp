@@ -588,10 +588,9 @@ void FlexiAPIClient::processAuthRequested(void *ctx, belle_sip_auth_event_t *eve
 	auto cb = static_cast<shared_ptr<Callbacks> *>(ctx);
 
 	try {
-		const char *username = belle_sip_auth_event_get_username(event);
-		const char *domain = belle_sip_auth_event_get_domain(event);
-
-		linphone_core_fill_belle_sip_auth_event((*cb)->core, event, username, domain);
+		const std::string username = L_C_TO_STRING(belle_sip_auth_event_get_username(event));
+		const std::string domain = L_C_TO_STRING(belle_sip_auth_event_get_domain(event));
+		L_GET_CPP_PTR_FROM_C_OBJECT((*cb)->core)->fillBelleSipAuthEvent(event, username, domain);
 	} catch (const std::exception &e) {
 		lError() << e.what();
 	}

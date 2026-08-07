@@ -241,7 +241,7 @@ void sal_certificates_chain_parse_directory(char **certificate_pem,
 		}
 	}
 	/* generate the fingerprint as described in RFC4572 if needed */
-	if ((generate_dtls_fingerprint == TRUE) && (fingerprint != NULL)) {
+	if ((generate_dtls_fingerprint == TRUE) && (fingerprint != NULL) && (certificate != NULL)) {
 		if (*fingerprint != NULL) {
 			ms_free(*fingerprint);
 		}

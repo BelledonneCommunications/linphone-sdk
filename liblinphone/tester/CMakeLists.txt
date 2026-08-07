@@ -324,6 +324,7 @@ set(SOURCE_FILES_CXX
 	tester.cpp
 	alerts_tester.cpp
 	audio-quality-tester.cpp
+    auth-info-tester.cpp
 	bearer-auth.cpp
 	call-twisted-cases.cpp
 	call_video_tester.cpp

@@ -216,7 +216,8 @@ void AuthInfo::setUsername(const string &username) {
 	mUsername = username;
 }
 
-void AuthInfo::setAlgorithm(const string &algorithm) { // Select algorithm
+void AuthInfo::setAlgorithm(const string &algorithm) {
+	// Select algorithm
 	if (!algorithm.empty() && algorithm != "MD5" && algorithm != "SHA-256") {
 		lError() << "Given algorithm [" << algorithm << "] is not correct. Set algorithm failed";
 	}
@@ -386,6 +387,101 @@ std::string AuthInfo::toString() const {
 bool AuthInfo::isEqualButAlgorithms(const AuthInfo *authInfo) const {
 	return authInfo && getUsername() == authInfo->getUsername() && getUserid() == authInfo->getUserid() &&
 	       getRealm() == authInfo->getRealm() && getDomain() == authInfo->getDomain();
+}
+
+bool AuthInfo::isAlgorithmCompatible(const std::string &algorithm) const {
+	if (algorithm.empty()) return true;
+	if (!getPassword().empty()) {
+		// We have plain text password, if the user didn't requested a specific algorithm, we can satisfy all.
+		if (getAlgorithm().empty()) return true;
+	} else if (!getHa1().empty()) {
+		/* If we don't have the clear text password but the ha1, and if algorithm is empty in LinphoneAuthInfo
+		 * for backward compatibility, we assume it is MD5. */
+		if (getAlgorithm().empty() && Utils::iequals(algorithm, "MD5")) return true;
+	} /*else*/
+	/* In all other cases, algorithm must match. */
+	return !getAlgorithm().empty() && Utils::iequals(algorithm, getAlgorithm());
+}
+
+int AuthInfo::isSuitableForChallenge(LinphoneAuthMethod method,
+                                     const std::string &username,
+                                     const std::string &realm,
+                                     const std::string &domain,
+                                     const std::string &algorithm) const {
+	if (method != LinphoneAuthTls) {
+		if (username.empty() && realm.empty() && domain.empty() && algorithm.empty()) {
+			lError() << "AuthInfo::isSuitableForChallenge: Looking for an auth info but all search criteria are null!";
+			return 0;
+		}
+	}
+	if (getExpires() != 0 && getExpires() <= time(nullptr)) return 0;
+	int score = 0;
+	if (!domain.empty() && !getDomain().empty()) {
+		if (!Utils::isDomainMatchingWildcard(getDomain(), domain)) return 0;
+		score += 1;
+	}
+	if (!realm.empty() && !getRealm().empty()) {
+		if ((Utils::unquote(realm, '"', '"')) != getRealm()) return 0;
+		score += 1;
+	}
+	switch (method) {
+		case LinphoneAuthBasic: {
+			if (!username.empty()) {
+				if (username != getUsername()) return 0;
+				score += 1;
+			}
+			if (!getPassword().empty()) score += 1;
+			return score;
+		}
+		case LinphoneAuthHttpDigest: {
+			if (getPassword().empty() && getHa1().empty()) return 0;
+			if (!isAlgorithmCompatible(algorithm)) return 0;
+			score += 1;
+			if (!username.empty()) {
+				if (username != getUsername()) return 0;
+				score += 1;
+			}
+			return score;
+		}
+		case LinphoneAuthBearer: {
+			const auto refreshToken = getRefreshToken();
+			if (!getAccessToken() && !getRefreshToken()) return 0;
+			score += 1;
+			if (!getUsername().empty() && !username.empty()) {
+				if (username != getUsername()) return 0;
+				score += 1;
+			}
+			if (refreshToken && !refreshToken->isExpired()) score += 1;
+			return score;
+		}
+		case LinphoneAuthTls: {
+			if ((getTlsCert().empty() || getTlsKey().empty()) &&
+			    (getTlsCertPath().empty() || getTlsKeyPath().empty())) {
+				return 0;
+			}
+			score += 1;
+			if (!username.empty()) {
+				if (username != getUsername()) return 0;
+				score += 1;
+			}
+			return score;
+		}
+		default: {
+			lError() << "AuthInfo::isSuitableForChallenge: unknown method ";
+			return 0;
+		}
+	}
+}
+
+void AuthInfo::fillBelleSipEvent(belle_sip_auth_event *event) const {
+	belle_sip_auth_event_set_username(event, L_STRING_TO_C(getUsername()));
+	belle_sip_auth_event_set_userid(event, L_STRING_TO_C(getUserid()));
+	belle_sip_auth_event_set_passwd(event, L_STRING_TO_C(getPassword()));
+	belle_sip_auth_event_set_ha1(event, L_STRING_TO_C(getHa1()));
+	belle_sip_auth_event_set_algorithm(event, L_STRING_TO_C(getAlgorithm()));
+	if (const auto accessToken = getAccessToken()) {
+		belle_sip_auth_event_set_bearer_token(event, accessToken->getImpl()->toC());
+	}
 }
 
 LinphoneAuthMethod AuthInfo::fromSalAuthMode(SalAuthMode mode) {

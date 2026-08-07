@@ -62,15 +62,32 @@ bool Utils::iequals(const string &a, const string &b) {
 	return true;
 }
 
-string Utils::unquote(const string &input, int quoteChar) {
-	if (input.size() >= 2 && input[0] == quoteChar) {
-		return input.substr(1, input.size() - 2);
+string Utils::unquote(const string &input, int openChar, int closeChar) {
+	string newInput = input;
+	if (input.size() >= 2 && input[0] == openChar) {
+		newInput = input.substr(1, input.size() - 1);
 	}
-	return input;
+	if (newInput.size() >= 2 && newInput[newInput.size() - 1] == closeChar) {
+		newInput = newInput.substr(0, newInput.size() - 1);
+	}
+	return newInput;
 }
 
 bool Utils::iequalsIgnoreBrakets(const std::string &a, const std::string &b) {
-	return iequals(unquote(a, '<'), unquote(b, '<'));
+	return iequals(unquote(a, '<', '>'), unquote(b, '<', '>'));
+}
+
+bool Utils::isDomainMatchingWildcard(const std::string &authDomain, const std::string &requestedDomain) {
+	if (iequals(authDomain, requestedDomain)) return true;
+	// Checking if the domain is a wildcard (e.g "*.linphone.org")
+	if (authDomain.size() > 2 && authDomain[0] == '*' && authDomain[1] == '.') {
+		if (iequals(authDomain.substr(2), requestedDomain)) return true; // Match "linphone.org"
+		const std::string suffix = authDomain.substr(1);
+		if (requestedDomain.size() > suffix.size()) {
+			return iequals(requestedDomain.substr(requestedDomain.size() - suffix.size()), suffix);
+		}
+	}
+	return false;
 }
 
 // -----------------------------------------------------------------------------

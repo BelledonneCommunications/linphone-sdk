@@ -568,6 +568,7 @@ set(LINPHONE_CXX_OBJECTS_SOURCE_FILES
 	core/core-accessor.cpp
 	core/core-call.cpp
 	core/core-chat-room.cpp
+        core/core-auth-info.cpp
 	core/core.cpp
 	core/paths/paths.cpp
 	core/platform-helpers/platform-helpers.cpp

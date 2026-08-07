@@ -58,6 +58,7 @@ class Account;
 class Address;
 class AudioDevice;
 class AuthInfo;
+struct TlsCertificate;
 class Call;
 class CallLog;
 class CallSession;
@@ -516,7 +517,41 @@ public:
 	// ---------------------------------------------------------------------------
 	// AuthInfos
 	// ---------------------------------------------------------------------------
+	void addAuthInfo(const std::shared_ptr<AuthInfo> &authInfo);
+	void abortAuthentication(const std::shared_ptr<AuthInfo> &authInfo);
+	static std::shared_ptr<AuthInfo> createAuthInfo(const std::string &username,
+	                                                const std::string &userid,
+	                                                const std::string &password,
+	                                                const std::string &ha1,
+	                                                const std::string &realm,
+	                                                const std::string &domain);
+	void clearAuthInfos();
+	int cleanAuthInfos();
+	std::shared_ptr<AuthInfo>
+	findAuthInfo(const std::string &username, const std::string &realm, const std::string &domain);
+	std::shared_ptr<AuthInfo> findAuthInfoToBeReplaced(const std::shared_ptr<AuthInfo> &authInfo) const;
+	std::shared_ptr<AuthInfo> findBestAuthInfoForChallenge(LinphoneAuthMethod method,
+	                                                       const std::string &username,
+	                                                       const std::string &realm,
+	                                                       const std::string &domain,
+	                                                       const std::string &algorithm);
+	std::optional<TlsCertificate> findTlsCertInIndexedAuthInfosWithSubject(const std::string &username,
+	                                                                       const std::string &domain,
+	                                                                       const std::string &subject) const;
+	const std::list<std::shared_ptr<AuthInfo>> &getAuthInfos() const;
+	const bctbx_list_t *getAuthInfosCList() const;
+	AuthStatus
+	fillBelleSipAuthEvent(belle_sip_auth_event *event, const std::string &username, const std::string &domain);
 	bool refreshTokens(const std::shared_ptr<AuthInfo> &ai);
+	void removeAuthInfo(const std::shared_ptr<AuthInfo> &authInfo);
+	void writeAuthInfo(const std::shared_ptr<AuthInfo> &authInfo) const;
+	void writeAuthInfos() const;
+
+	// ---------------------------------------------------------------------------
+	// Authentication policy
+	// ---------------------------------------------------------------------------
+	void setDigestAuthenticationPolicy(LinphoneDigestAuthenticationPolicy *policy);
+	const LinphoneDigestAuthenticationPolicy *getDigestAuthenticationPolicy() const;
 
 	// ---------------------------------------------------------------------------
 	// HTTP services
@@ -588,6 +623,8 @@ private:
 	mutable ListHolder<Account> mAccounts;
 	mutable ListHolder<Account> mDeletedAccounts;
 	std::shared_ptr<Account> mDefaultAccount;
+
+	mutable ListHolder<AuthInfo> mAuthInfos;
 
 	unsigned int mRemainingDownloadFileCount = 0;
 	unsigned int mRemainingUploadFileCount = 0;

@@ -521,6 +521,15 @@ BCTBX_PUBLIC uint32_t bctbx_x509_certificate_remap_flag(uint32_t flags);
  */
 BCTBX_PUBLIC int32_t bctbx_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to_unset);
 
+/**
+ * Check if the given certificate has a SAN or CN
+ * @param certificate	the certificate chain to look into, only the top certificate is explored
+ * @param subject	the subject to match
+ * @return TRUE when the given certificate has a SAN or CN matching the given subject, false otherwise
+ */
+BCTBX_PUBLIC bool_t bctbx_x509_certificate_subject_match(const bctbx_x509_certificate_t *certificate,
+                                                         const char *subject);
+
 /*****************************************************************************/
 /***** SSL                                                               *****/
 /*****************************************************************************/

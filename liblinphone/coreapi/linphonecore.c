@@ -1143,8 +1143,8 @@ static void process_auth_requested_upload_log_collection(void *data, BCTBX_UNUSE
 	 * the requested auth info shall thus be present in linphone core
 	 * This request will thus not use the auth requested callback to get the information
 	 * - Stored auth information in linphone core are indexed by username/domain */
-	linphone_core_fill_belle_sip_auth_event(core, event, linphone_address_get_username(address),
-	                                        linphone_address_get_domain(address));
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->fillBelleSipAuthEvent(event, linphone_address_get_username(address),
+	                                                         linphone_address_get_domain(address));
 	linphone_address_unref(address);
 }
 
@@ -2881,7 +2881,7 @@ void linphone_configuring_terminated(LinphoneCore *lc, LinphoneConfiguringState 
 	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->loadRemoteContactDirectories();
 	linphone_core_set_state(lc, LinphoneGlobalOn, "On");
 	/* Auth infos may be altered by remote provisionning, immediately sync it to the config */
-	linphone_core_write_auth_infos(lc);
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->writeAuthInfos();
 	L_GET_PRIVATE_FROM_C_OBJECT(lc)->doConfigurationMigration();
 }
 
