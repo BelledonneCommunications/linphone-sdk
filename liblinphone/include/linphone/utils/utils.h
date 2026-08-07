@@ -84,8 +84,14 @@ LINPHONE_PUBLIC bool iequals(const std::string &a, const std::string &b);
  * The function assumes the quoting character if present is the first one,
  * and also assumes that if present, the last one is also the quoting character.
  */
-LINPHONE_PUBLIC std::string unquote(const std::string &input, int quoteChar);
+LINPHONE_PUBLIC std::string unquote(const std::string &input, int openChar, int closeChar);
 LINPHONE_PUBLIC bool iequalsIgnoreBrakets(const std::string &a, const std::string &b);
+
+/*
+ * Checks if requestedDomain is equal to authDomain, treating a leading wildcard
+ * in authDomain (e.g. "*.example.com") as matching any subdomain.
+ */
+LINPHONE_PUBLIC bool isDomainMatchingWildcard(const std::string &authDomain, const std::string &requestedDomain);
 
 LINPHONE_PUBLIC std::string toString(int val);
 LINPHONE_PUBLIC std::string toString(long val);

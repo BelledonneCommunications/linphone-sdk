@@ -26,7 +26,7 @@
 
 LINPHONE_BEGIN_NAMESPACE
 
-class BearerToken : public bellesip::HybridObject<LinphoneBearerToken, BearerToken> {
+class LINPHONE_PUBLIC BearerToken : public bellesip::HybridObject<LinphoneBearerToken, BearerToken> {
 public:
 	// Instanciate from LinphoneConfig value (token SP expire-time)
 	static BearerToken *createFromConfig(const std::string &configString);

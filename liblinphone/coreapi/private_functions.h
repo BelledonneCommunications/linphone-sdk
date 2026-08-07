@@ -178,39 +178,13 @@ void _linphone_core_uninit(LinphoneCore *lc);
 
 void linphone_auth_info_write_config(LpConfig *config, LinphoneAuthInfo *auth_info, int pos);
 LinphoneAuthInfo *linphone_auth_info_new_from_config_file(LpConfig *config, int pos);
-void linphone_core_write_auth_info(LinphoneCore *lc, LinphoneAuthInfo *ai);
-void linphone_core_write_auth_infos(LinphoneCore *lc);
 void linphone_core_stop_tone_manager(LinphoneCore *lc);
-LinphoneAuthInfo *_linphone_core_find_tls_auth_info(LinphoneCore *lc);
-bool_t linphone_core_find_tls_cert_in_indexed_auth_infos_with_subject(LinphoneCore *lc,
-                                                                      const char *username,
-                                                                      const char *domain,
-                                                                      const char *subject,
-                                                                      bctbx_x509_certificate_t **certificate,
-                                                                      bctbx_signing_key_t **key,
-                                                                      bctbx_ext_signing_key_ref_t **key_ref,
-                                                                      char **fingerprint);
-LinphoneAuthInfo *_linphone_core_find_indexed_tls_auth_info(LinphoneCore *lc, const char *username, const char *domain);
-LinphoneAuthInfo *_linphone_core_find_auth_info(LinphoneCore *lc,
-                                                const char *realm,
-                                                const char *username,
-                                                const char *domain,
-                                                const char *algorithm,
-                                                bool_t ignore_realm);
-const LinphoneAuthInfo *linphone_core_find_auth_info_to_be_replaced(LinphoneCore *lc, const LinphoneAuthInfo *other);
-LinphoneAuthInfo *
-_linphone_core_find_bearer_auth_info(LinphoneCore *lc, const char *realm, const char *username, const char *domain);
 
 enum class AuthStatus {
 	NoAuth, // No authentication is possible at this time.
 	Done,   // Authentication information could be provided.
 	Pending // Authentication information will arrive later.
 };
-
-AuthStatus linphone_core_fill_belle_sip_auth_event(LinphoneCore *lc,
-                                                   belle_sip_auth_event *event,
-                                                   const char *username,
-                                                   const char *domain);
 
 void linphone_core_update_proxy_register(LinphoneCore *lc);
 const char *linphone_core_get_nat_address_resolved(LinphoneCore *lc);

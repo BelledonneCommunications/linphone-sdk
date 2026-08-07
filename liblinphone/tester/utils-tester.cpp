@@ -423,6 +423,35 @@ static void parse_capabilities(void) {
 	BC_ASSERT_TRUE(caps["ephemeral"] == Version(1, 0));
 }
 
+static void auth_domain_wildcard_matching() {
+	// Exact match
+	BC_ASSERT_TRUE(Utils::isDomainMatchingWildcard("linphone.org", "linphone.org"));
+	BC_ASSERT_FALSE(Utils::isDomainMatchingWildcard("linphone.org", "sip.linphone.org"));
+
+	// Wildcard matches subdomains
+	BC_ASSERT_TRUE(Utils::isDomainMatchingWildcard("*.linphone.org", "sip.linphone.org"));
+	BC_ASSERT_TRUE(Utils::isDomainMatchingWildcard("*.linphone.org", "a.b.linphone.org"));
+
+	// Wildcard also matches the base domain (no subdomain)
+	BC_ASSERT_TRUE(Utils::isDomainMatchingWildcard("*.linphone.org", "linphone.org"));
+
+	// Case insensitivity
+	BC_ASSERT_TRUE(Utils::isDomainMatchingWildcard("*.Linphone.org", "SIP.linphone.ORG"));
+	BC_ASSERT_TRUE(Utils::isDomainMatchingWildcard("*.linphone.org", "LINPHONE.ORG"));
+
+	// Malicious Domain must not match
+	BC_ASSERT_FALSE(Utils::isDomainMatchingWildcard("*.linphone.org", "notlinphone.org"));
+
+	// Different domain
+	BC_ASSERT_FALSE(Utils::isDomainMatchingWildcard("*.linphone.org", "sip.example.org"));
+	BC_ASSERT_FALSE(Utils::isDomainMatchingWildcard("linphone.org", "example.org"));
+
+	// Empty string
+	BC_ASSERT_FALSE(Utils::isDomainMatchingWildcard("*.linphone.org", ""));
+	BC_ASSERT_FALSE(Utils::isDomainMatchingWildcard("", "linphone.org"));
+	BC_ASSERT_TRUE(Utils::isDomainMatchingWildcard("", ""));
+}
+
 // clang-format off
 static test_t utils_tests[] = {
     TEST_NO_TAG("split", split),
@@ -440,7 +469,8 @@ static test_t utils_tests[] = {
     TEST_NO_TAG("parsing XML blind XXE prevention", parsing_xml_blind_xxe_prevention),
 #endif // HAVE_XERCESC
 #endif // _WIN32
-    TEST_NO_TAG("Parse capabilities", parse_capabilities)
+    TEST_NO_TAG("Parse capabilities", parse_capabilities),
+	TEST_NO_TAG("Domain wildcard matching", auth_domain_wildcard_matching)
 };
 // clang-format on
 

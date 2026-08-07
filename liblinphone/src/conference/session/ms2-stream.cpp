@@ -964,9 +964,12 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 		auto localAddrUri = localAddr->asStringUriOnlyCstr();
 
 		/* first: do we have a certificate and key in our auth info matching the current local address */
-		if (linphone_core_find_tls_cert_in_indexed_auth_infos_with_subject(
-		        getCCore(), localAddr->getUsernameCstr(), localAddr->getDomainCstr(), localAddrUri, &certificate, &key,
-		        &key_ref, &fingerprint)) {
+		if (auto tlsCertificate = getCore().findTlsCertInIndexedAuthInfosWithSubject(
+		        localAddr->getUsername(), localAddr->getDomain(), L_C_TO_STRING(localAddrUri))) {
+			certificate = tlsCertificate->certificatePem;
+			key = tlsCertificate->keyPem;
+			key_ref = tlsCertificate->keyRef;
+			fingerprint = bctbx_strdup(tlsCertificate->fingerprint.c_str());
 			lInfo() << "DTLS-SRTP : user " << localAddrUri << " uses client certificate found in core auth info";
 		} else {
 			/* second: try to get certificate with a subject or CN matching the local sip uri in the user certificate

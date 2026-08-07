@@ -31,7 +31,6 @@ list(APPEND LINPHONE_PRIVATE_HEADER_FILES
 )
 
 set(LINPHONE_SOURCE_FILES_C
-	authentication.c
 	bellesip_sal/sal_address_impl.c
 	bellesip_sal/sal_impl.c
 	bellesip_sal/sal_op_impl.c

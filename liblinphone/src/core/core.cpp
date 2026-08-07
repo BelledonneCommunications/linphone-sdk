@@ -3753,6 +3753,19 @@ bool Core::refreshTokens(const std::shared_ptr<AuthInfo> &ai) {
 	return true;
 }
 
+void Core::setDigestAuthenticationPolicy(LinphoneDigestAuthenticationPolicy *policy) {
+	belle_sip_stack_t *stack = reinterpret_cast<belle_sip_stack_t *>(getPrivate()->getSal()->getStackImpl());
+	belle_sip_stack_set_digest_authentication_policy(stack, (belle_sip_digest_authentication_policy_t *)policy);
+	if (linphone_core_ready(getCCore())) {
+		linphone_digest_authentication_policy_save(policy, getCCore()->config);
+	}
+}
+const LinphoneDigestAuthenticationPolicy *Core::getDigestAuthenticationPolicy() const {
+	belle_sip_stack_t *stack =
+	    reinterpret_cast<belle_sip_stack_t *>(const_cast<CorePrivate *>(getPrivate())->getSal()->getStackImpl());
+	return (const LinphoneDigestAuthenticationPolicy *)belle_sip_stack_get_digest_authentication_policy(stack);
+}
+
 HttpClient &Core::getHttpClient() {
 	L_D();
 	if (!d->httpClient) {

@@ -2645,7 +2645,7 @@ LINPHONE_PUBLIC const bctbx_list_t *linphone_core_get_auth_info_list(const Linph
  *supposed to be unique), then domain is added to the search.
  * @param core the #LinphoneCore @notnil
  * @param realm the authentication 'realm' (optional) @maybenil
- * @param username the SIP username to be authenticated (mandatory) @notnil
+ * @param username the SIP username to be authenticated (optional) @maybenil
  * @param sip_domain the SIP domain name (optional) @maybenil
  * @return a #LinphoneAuthInfo if found. @maybenil
  * @ingroup group_authentication

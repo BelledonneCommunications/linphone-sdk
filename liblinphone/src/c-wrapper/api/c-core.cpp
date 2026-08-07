@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
+#include "auth-info/auth-info.h"
 #include "c-wrapper/c-wrapper.h"
 #include "call/audio-device/audio-device.h"
 #include "chat/encryption/encryption-engine.h"
@@ -389,4 +389,72 @@ LinphoneVcard *linphone_core_create_vcard_from_text(const LinphoneCore *core, co
 	(void)core;
 	return NULL;
 #endif
+}
+
+// ---------------------------------------------------------------------------
+// AuthInfo.
+// ---------------------------------------------------------------------------
+
+void linphone_core_add_auth_info(LinphoneCore *lc, const LinphoneAuthInfo *info) {
+
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->addAuthInfo(
+	    AuthInfo::toCpp(const_cast<LinphoneAuthInfo *>(info))->getSharedFromThis());
+}
+
+void linphone_core_abort_authentication(LinphoneCore *lc, BCTBX_UNUSED(const LinphoneAuthInfo *info)) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->abortAuthentication(
+	    info ? AuthInfo::toCpp(const_cast<LinphoneAuthInfo *>(info))->getSharedFromThis() : nullptr);
+}
+
+LinphoneAuthInfo *linphone_core_create_auth_info(BCTBX_UNUSED(LinphoneCore *lc),
+                                                 const char *username,
+                                                 const char *userid,
+                                                 const char *passwd,
+                                                 const char *ha1,
+                                                 const char *realm,
+                                                 const char *domain) {
+	auto authInfo = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->createAuthInfo(L_C_TO_STRING(username), L_C_TO_STRING(userid),
+	                                                                L_C_TO_STRING(passwd), L_C_TO_STRING(ha1),
+	                                                                L_C_TO_STRING(realm), L_C_TO_STRING(domain));
+	LinphoneAuthInfo *cObj = authInfo->toC();
+	if (cObj) {
+		belle_sip_object_ref(cObj);
+	}
+	return cObj;
+}
+
+const LinphoneAuthInfo *
+linphone_core_find_auth_info(LinphoneCore *lc, const char *realm, const char *username, const char *domain) {
+	auto authInfo = L_GET_CPP_PTR_FROM_C_OBJECT(lc)->findAuthInfo(L_C_TO_STRING(username), L_C_TO_STRING(realm),
+	                                                              L_C_TO_STRING(domain));
+	return authInfo ? authInfo->toC() : nullptr;
+}
+
+const bctbx_list_t *linphone_core_get_auth_info_list(const LinphoneCore *lc) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->getAuthInfosCList();
+}
+
+void linphone_core_clear_all_auth_info(LinphoneCore *lc) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->clearAuthInfos();
+}
+
+int linphone_core_clean_auth_infos(LinphoneCore *lc) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(lc)->cleanAuthInfos();
+}
+
+void linphone_core_remove_auth_info(LinphoneCore *lc, const LinphoneAuthInfo *info) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->removeAuthInfo(
+	    AuthInfo::toCpp(const_cast<LinphoneAuthInfo *>(info))->getSharedFromThis());
+}
+
+// ---------------------------------------------------------------------------
+// Authentication policy
+// ---------------------------------------------------------------------------
+
+void linphone_core_set_digest_authentication_policy(LinphoneCore *core, LinphoneDigestAuthenticationPolicy *policy) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->setDigestAuthenticationPolicy(policy);
+}
+
+const LinphoneDigestAuthenticationPolicy *linphone_core_get_digest_authentication_policy(const LinphoneCore *core) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDigestAuthenticationPolicy();
 }

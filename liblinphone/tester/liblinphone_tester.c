@@ -650,6 +650,7 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&mwi_test_suite, 0);
 	bc_tester_add_suite(&refer_test_suite);
 	liblinphone_tester_add_suite_with_default_time(&sync_test_suite, 19);
+	liblinphone_tester_add_suite_with_default_time(&auth_info_test_suite, 0);
 	liblinphone_tester_add_suite_with_default_time(&bearer_auth_test_suite, 10);
 	liblinphone_tester_add_suite_with_default_time(&call_twisted_cases_suite, 11);
 	liblinphone_tester_add_suite_with_default_time(&http_client_test_suite, 5);
@@ -795,9 +796,8 @@ int liblinphone_tester_sound_detection(LinphoneCoreManager *a,
 	MSTimeSpec start;
 
 	liblinphone_tester_clock_start(&start);
-	while (have_sound_count < 2 &&
-	       !liblinphone_tester_clock_elapsed(
-	           &start, timeout_ms)) { // We want to avoid potential sound spikes while disconnection.
+	while (have_sound_count < 2 && !liblinphone_tester_clock_elapsed(&start, timeout_ms)) {
+		// We want to avoid potential sound spikes while disconnection.
 		float record_levels[2] = {linphone_call_get_record_volume(calls[0]), linphone_call_get_record_volume(calls[1])};
 		float playback_levels[2] = {linphone_call_get_play_volume(calls[0]), linphone_call_get_play_volume(calls[1])};
 		bool_t have_sounds[2] = {record_levels[1] > silence_threshold && playback_levels[0] > silence_threshold,

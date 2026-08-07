@@ -484,8 +484,7 @@ void FileTransferChatMessageModifier::processAuthRequestedUpload(belle_sip_auth_
 	 * the requested auth info shall thus be present in linphone core
 	 * This request will thus not use the auth requested callback to get the information
 	 * - Stored auth information in linphone core are indexed by username/domain */
-	linphone_core_fill_belle_sip_auth_event(message->getCore()->getCCore(), event, address->getUsername().data(),
-	                                        address->getDomain().data());
+	message->getCore()->fillBelleSipAuthEvent(event, address->getUsername(), address->getDomain());
 
 	// For digest auth: If there is no body handler, now it is a good time to add it
 	if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
@@ -953,8 +952,7 @@ void FileTransferChatMessageModifier::processAuthRequestedDownload(belle_sip_aut
 	 * the requested auth info shall thus be present in linphone core
 	 * This request will thus not use the auth requested callback to get the information
 	 * - Stored auth information in linphone core are indexed by username/domain */
-	linphone_core_fill_belle_sip_auth_event(message->getCore()->getCCore(), event, address->getUsername().data(),
-	                                        address->getDomain().data());
+	message->getCore()->fillBelleSipAuthEvent(event, address->getUsername(), address->getDomain());
 }
 
 static void _chat_message_process_io_error_download(void *data, const belle_sip_io_error_event_t *event) {

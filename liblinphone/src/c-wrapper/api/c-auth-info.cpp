@@ -299,3 +299,21 @@ const char *linphone_auth_info_get_client_secret(const LinphoneAuthInfo *auth_in
 void linphone_auth_info_set_client_secret(LinphoneAuthInfo *auth_info, const char *client_secret) {
 	AuthInfo::toCpp(auth_info)->setClientSecret(L_C_TO_STRING(client_secret));
 }
+
+void linphone_auth_info_destroy(LinphoneAuthInfo *auth_info) {
+	belle_sip_object_unref(auth_info);
+}
+
+const char *linphone_auth_method_to_string(LinphoneAuthMethod method) {
+	switch (method) {
+		case LinphoneAuthBasic:
+			return "basic";
+		case LinphoneAuthHttpDigest:
+			return "digest";
+		case LinphoneAuthBearer:
+			return "bearer";
+		case LinphoneAuthTls:
+			return "tls";
+	}
+	return "invalid auth method";
+}

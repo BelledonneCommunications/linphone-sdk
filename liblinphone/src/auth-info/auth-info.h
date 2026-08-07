@@ -29,7 +29,14 @@
 
 LINPHONE_BEGIN_NAMESPACE
 
-class AuthInfo : public bellesip::HybridObject<LinphoneAuthInfo, AuthInfo> {
+struct TlsCertificate {
+	bctbx_x509_certificate_t *certificatePem;
+	bctbx_signing_key_t *keyPem;
+	bctbx_ext_signing_key_ref_t *keyRef;
+	std::string fingerprint;
+};
+
+class LINPHONE_PUBLIC AuthInfo : public bellesip::HybridObject<LinphoneAuthInfo, AuthInfo> {
 public:
 	AuthInfo(const std::string &username = "",
 	         const std::string &userid = "",
@@ -55,7 +62,6 @@ public:
 	AuthInfo(const std::string &username, const std::string &realm, const std::string &domain);
 	AuthInfo(const std::string &username, std::shared_ptr<BearerToken> accessToken, const std::string &realm);
 	AuthInfo(const AuthInfo &other) = default;
-
 	AuthInfo(LpConfig *config, std::string key);
 	AuthInfo *clone() const override;
 	void init(const std::string &username,
@@ -153,10 +159,17 @@ public:
 	void setExpires(time_t expires) {
 		mExpires = expires;
 	}
-
 	std::string toString() const override;
-	// Check if Authinfos are the same without taking account algorithms
+	// Check if Auth-info are the same without taking account algorithms
 	bool isEqualButAlgorithms(const AuthInfo *authInfo) const;
+	bool isAlgorithmCompatible(const std::string &algorithm) const;
+	int isSuitableForChallenge(LinphoneAuthMethod method,
+	                           const std::string &username,
+	                           const std::string &realm,
+	                           const std::string &domain,
+	                           const std::string &algorithm) const;
+
+	void fillBelleSipEvent(belle_sip_auth_event *event) const;
 	void setRequestedMethod(LinphoneAuthMethod method) {
 		mRequestedMethod = method;
 	}

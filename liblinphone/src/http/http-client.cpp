@@ -276,7 +276,10 @@ void HttpRequest::processAuthRequested(belle_sip_auth_event_t *event) {
 				belle_sip_auth_event_set_domain(event, authDomain);
 			}
 		}
-		auto status = linphone_core_fill_belle_sip_auth_event(core->getCCore(), event, authUsername, authDomain);
+		// for test to remove
+		std::string username = L_C_TO_STRING(authUsername);
+		std::string domain = L_C_TO_STRING(authDomain);
+		auto status = core->fillBelleSipAuthEvent(event, username, domain);
 		switch (status) {
 			case AuthStatus::NoAuth:
 			case AuthStatus::Done:

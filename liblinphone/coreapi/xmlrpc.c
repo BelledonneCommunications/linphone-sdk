@@ -218,8 +218,7 @@ static void process_io_error_from_post_xml_rpc_request(void *data,
 
 static void process_auth_requested_from_post_xml_rpc_request(void *data, belle_sip_auth_event_t *event) {
 	LinphoneXmlRpcRequest *request = (LinphoneXmlRpcRequest *)data;
-
-	linphone_core_fill_belle_sip_auth_event(request->core, event, NULL, NULL);
+	L_GET_CPP_PTR_FROM_C_OBJECT(request->core)->fillBelleSipAuthEvent(event, "", "");
 }
 
 #ifdef HAVE_XML2
