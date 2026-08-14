@@ -554,7 +554,14 @@ create_conference_on_server(Focus &focus,
 		}
 	}
 
-	info = linphone_core_find_conference_information_from_uri(organizer.getLc(), conference_address);
+	// The organizer inserts the conference information into its database when its own conference is created, which is
+	// asynchronous. Dialing at least one participant leaves that insertion the time to land before this point, but a
+	// conference with none to dial reaches it in a few milliseconds, hence waiting for it rather than reading it right
+	// away.
+	CoreManagerAssert({focus, organizer}).waitUntil(chrono::seconds(2), [&organizer, &conference_address, &info] {
+		info = linphone_core_find_conference_information_from_uri(organizer.getLc(), conference_address);
+		return (info != nullptr);
+	});
 	if (BC_ASSERT_PTR_NOT_NULL(info)) {
 		uid = ms_strdup(linphone_conference_info_get_ics_uid(info));
 		if (will_send_ics) {
