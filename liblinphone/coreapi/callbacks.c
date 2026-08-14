@@ -737,7 +737,7 @@ static void dtmf_received(SalOp *op, char dtmf) {
  * Builds the Refer-To address of a received REFER and the method its uri asks for, if any. The address is not
  * necessarily a valid SIP one, it can be an absolute URI.
  */
-static std::pair<std::shared_ptr<Address>, string> refer_to_address(const SalAddress *refer_to) {
+static std::pair<std::shared_ptr<Address>, string> extract_method_from_sal(const SalAddress *refer_to) {
 	std::shared_ptr<Address> referToAddr = Address::create(refer_to);
 	return {referToAddr, referToAddr->isValid() ? referToAddr->getMethodParam() : string()};
 }
@@ -759,7 +759,7 @@ static void call_refer_received(SalOp *op,
                                 const SalCustomHeader *custom_headers,
                                 const SalBodyHandler *body_handler) {
 	LinphonePrivate::CallSession *session = static_cast<LinphonePrivate::CallSession *>(op->getUserPointer());
-	auto [referToAddr, method] = refer_to_address(referTo);
+	auto [referToAddr, method] = extract_method_from_sal(referTo);
 
 	LinphoneCore *lc = static_cast<LinphoneCore *>(op->getSal()->getUserPointer());
 	if (session && (method.empty() || (method == "INVITE"))) {
@@ -1300,7 +1300,7 @@ static void refer_received(SalOp *op,
                            const SalAddress *refer_to,
                            const SalCustomHeader *custom_headers,
                            const SalBodyHandler *body_handler) {
-	auto [referToAddr, method] = refer_to_address(refer_to);
+	auto [referToAddr, method] = extract_method_from_sal(refer_to);
 	LinphoneCore *lc = static_cast<LinphoneCore *>(op->getSal()->getUserPointer());
 
 	if (referToAddr->isValid()) {
