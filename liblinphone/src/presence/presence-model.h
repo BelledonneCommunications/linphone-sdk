@@ -125,6 +125,7 @@ public:
 private:
 	std::shared_ptr<PresenceNote> findNoteWithLang(const std::string &lang) const;
 	std::string toXml() const;
+	bool hasPermanentActivitiesToBePublished() const;
 	static std::string basicStatusToString(LinphonePresenceBasicStatus status);
 	static std::string generatePresenceId();
 	static time_t parseTimestamp(const std::string &timestamp);

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		targetNamespace="http://www.linphone.org/xsds/rpid-pa.xsd"
+		xmlns:tns="http://www.linphone.org/xsds/rpid-pa.xsd"
+		xmlns:dm="urn:ietf:params:xml:ns:pidf:data-model"
+		elementFormDefault="qualified"
+		attributeFormDefault="unqualified">
+
+	<xs:element name="permanent-activities">
+	   <xs:complexType>
+         <xs:sequence>
+           <xs:element name="note" type="Note_t" minOccurs="0" maxOccurs="unbounded" />
+           <xs:choice>
+             <xs:element name="unknown" type="empty" minOccurs="0"/>
+             <xs:sequence maxOccurs="unbounded">
+               <xs:choice>
+                 <xs:element name="appointment" type="empty" />
+                 <xs:element name="away" type="empty" />
+                 <xs:element name="breakfast" type="empty" />
+                 <xs:element name="busy" type="empty" />
+                 <xs:element name="dinner" type="empty" />
+                 <xs:element name="holiday" type="empty" />
+                 <xs:element name="in-transit" type="empty" />
+                 <xs:element name="looking-for-work" type="empty" />
+                 <xs:element name="meal" type="empty" />
+                 <xs:element name="meeting" type="empty" />
+                 <xs:element name="on-the-phone" type="empty" />
+                 <xs:element name="performance" type="empty" />
+                 <xs:element name="permanent-absence" type="empty" />
+                 <xs:element name="playing" type="empty" />
+                 <xs:element name="presentation" type="empty" />
+                 <xs:element name="shopping" type="empty" />
+                 <xs:element name="sleeping" type="empty" />
+                 <xs:element name="spectator" type="empty" />
+                 <xs:element name="steering" type="empty" />
+                 <xs:element name="travel" type="empty" />
+                 <xs:element name="tv" type="empty" />
+                 <xs:element name="vacation" type="empty" />
+                 <xs:element name="working" type="empty" />
+                 <xs:element name="worship" type="empty" />
+                 <xs:element name="other" type="Note_t" />
+                 <xs:any namespace="##other" maxOccurs="unbounded" processContents="lax"/>
+               </xs:choice>
+             </xs:sequence>
+           </xs:choice>
+         </xs:sequence>
+         <xs:attributeGroup ref="fromUntil"/>
+         <xs:attribute name="id" type="xs:ID"/>
+         <xs:anyAttribute namespace="##any" processContents="lax"/>
+       </xs:complexType>
+     </xs:element>
+	</xs:element>
+
+</xs:schema>

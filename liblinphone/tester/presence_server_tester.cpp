@@ -2786,8 +2786,12 @@ void permanent_activities_publish() {
 	auto check_permanent_activities = [laure, presence_model](std::string lookup, bool expected_to_be_found) {
 		char *xml = linphone_presence_model_to_xml(presence_model);
 		if (expected_to_be_found) {
+			BC_ASSERT(std::string(xml).find("xmlns:rpid-pa=\"http://www.linphone.org/xsds/rpid-pa.xsd\"") !=
+			          std::string::npos);
 			BC_ASSERT(std::string(xml).find(lookup) != std::string::npos);
 		} else {
+			BC_ASSERT(std::string(xml).find("xmlns:rpid-pa=\"http://www.linphone.org/xsds/rpid-pa.xsd\"") ==
+			          std::string::npos);
 			BC_ASSERT(std::string(xml).find(lookup) == std::string::npos);
 		}
 		bctbx_free(xml), xml = nullptr;
@@ -2795,14 +2799,14 @@ void permanent_activities_publish() {
 	};
 
 	// Check that there is no permanent activities at the start.
-	check_permanent_activities("<rpid:permanent-activities>", false);
+	check_permanent_activities("<rpid-pa:permanent-activities>", false);
 
 	// Check that the permanent activities are present in the XML when adding one.
 	auto *activity = linphone_presence_activity_new(LinphonePresenceActivityAway, nullptr);
 	linphone_presence_person_add_permanent_activity(linphone_presence_model_get_nth_person(presence_model, 0),
 	                                                activity);
 	linphone_presence_activity_unref(activity);
-	check_permanent_activities("<rpid:permanent-activities>", true);
+	check_permanent_activities("<rpid-pa:permanent-activities>", true);
 
 	// Check that modifying something other than the permanent activities in the model does not put the permanent
 	// activities section in the XML.
@@ -2811,37 +2815,37 @@ void permanent_activities_publish() {
 	activity = linphone_presence_activity_new(LinphonePresenceActivityMeeting, nullptr);
 	linphone_presence_person_add_activity(person, activity);
 	linphone_presence_activity_unref(activity);
-	check_permanent_activities("<rpid:permanent-activities>", false);
+	check_permanent_activities("<rpid-pa:permanent-activities>", false);
 
 	// Check that the permanent activities are present in the XML when adding another one.
 	activity = linphone_presence_activity_new(LinphonePresenceActivityInTransit, nullptr);
 	linphone_presence_person_add_permanent_activity(linphone_presence_model_get_nth_person(presence_model, 0),
 	                                                activity);
 	linphone_presence_activity_unref(activity);
-	check_permanent_activities("<rpid:permanent-activities>", true);
+	check_permanent_activities("<rpid-pa:permanent-activities>", true);
 
 	// Check that the permanent activities are present in the XML when adding a permanent activity note.
 	auto *note = linphone_presence_note_new("A simple note", "en");
 	linphone_presence_person_add_permanent_activities_note(linphone_presence_model_get_nth_person(presence_model, 0),
 	                                                       note);
 	linphone_presence_note_unref(note);
-	check_permanent_activities("<rpid:permanent-activities>", true);
+	check_permanent_activities("<rpid-pa:permanent-activities>", true);
 
 	// Check that the permanent activities section is still present in the XML when clearing the permanent activities,
 	// because the previously added permanent activity note is still there.
 	linphone_presence_person_clear_permanent_activities(linphone_presence_model_get_nth_person(presence_model, 0));
-	check_permanent_activities("<rpid:permanent-activities>", true);
+	check_permanent_activities("<rpid-pa:permanent-activities>", true);
 
 	// Check that the permanent activities section is present but empty in the XML when clearing the permanent
 	// activities notes.
 	linphone_presence_person_clear_permanent_activities_notes(
 	    linphone_presence_model_get_nth_person(presence_model, 0));
-	check_permanent_activities("<rpid:permanent-activities/>", true);
+	check_permanent_activities("<rpid-pa:permanent-activities/>", true);
 
 	// Check one more time that modifying something other than the permanent activities in the model does not put the
 	// permanent activities section in the XML.
 	linphone_presence_person_clear_activities(linphone_presence_model_get_nth_person(presence_model, 0));
-	check_permanent_activities("<rpid:permanent-activities>", false);
+	check_permanent_activities("<rpid-pa:permanent-activities>", false);
 
 	linphone_presence_model_unref(presence_model);
 
@@ -2857,7 +2861,8 @@ void permanent_activities_notify() {
 	    "application", "pidf+xml",
 	    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 	    "<presence xmlns:dm=\"urn:ietf:params:xml:ns:pidf:data-model\" xmlns:rpid=\"urn:ietf:params:xml:ns:pidf:rpid\" "
-	    "entity=\"sip:laure_agmtzpl@sip.example.org\" xmlns=\"urn:ietf:params:xml:ns:pidf\">\n"
+	    "entity=\"sip:laure_agmtzpl@sip.example.org\" xmlns=\"urn:ietf:params:xml:ns:pidf\" "
+	    "xmlns:rpid-pa=\"http://www.linphone.org/xsds/rpid-pa.xsd\">\n"
 	    " <tuple id=\"ictb4s\">\n"
 	    "  <status>\n"
 	    "   <basic>open</basic>\n"
@@ -2869,11 +2874,11 @@ void permanent_activities_notify() {
 	    "  <rpid:activities>\n"
 	    "   <rpid:meeting/>\n"
 	    "  </rpid:activities>\n"
-	    "  <rpid:permanent-activities>\n"
+	    "  <rpid-pa:permanent-activities>\n"
 	    "   <rpid:note xml:lang=\"en\">A simple note</rpid:note>\n"
 	    "   <rpid:in-transit/>\n"
 	    "   <rpid:away/>\n"
-	    "  </rpid:permanent-activities>\n"
+	    "  </rpid-pa:permanent-activities>\n"
 	    "  <dm:timestamp>2026-07-09T14:21:48Z</dm:timestamp>\n"
 	    " </dm:person>\n"
 	    "</presence>"));

@@ -294,20 +294,20 @@ int PresencePerson::parsePidfXmlPresenceNotes(XmlParsingContext &xmlContext, uns
 		xmlXPathFreeObject(noteObject);
 	}
 	ss.clear(), ss.str(std::string()),
-	    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:permanent-activities/rpid:note";
+	    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid-pa:permanent-activities/rpid:note";
 	noteObject = xmlContext.getXpathObjectForNodeList(ss.str());
 	if ((noteObject != nullptr) && (noteObject->nodesetval != nullptr)) {
 		for (int i = 1; i <= noteObject->nodesetval->nodeNr; i++) {
 			ss.clear(), ss.str(std::string()),
 			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx
-			       << "]/rpid:permanent-activities/rpid:note[" << i << "]";
+			       << "]/rpid-pa:permanent-activities/rpid:note[" << i << "]";
 			std::string noteStr = xmlContext.getTextContent(ss.str());
 			if (noteStr.empty()) {
 				continue;
 			}
 			ss.clear(), ss.str(std::string()),
 			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx
-			       << "]/rpid:permanent-activities/rpid:note[" << i << "]/@xml:lang";
+			       << "]/rpid-pa:permanent-activities/rpid:note[" << i << "]/@xml:lang";
 			std::string lang = xmlContext.getTextContent(ss.str());
 			std::shared_ptr<PresenceNote> note = PresenceNote::create(noteStr, lang);
 			addPermanentActivitiesNote(note);
@@ -342,12 +342,12 @@ int PresencePerson::parsePidfXmlPresenceNotes(XmlParsingContext &xmlContext, uns
 int PresencePerson::parsePidfXmlPresencePermanentActivities(XmlParsingContext &xmlContext, unsigned int personIdx) {
 	stringstream ss;
 	int err = 0;
-	ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:permanent-activities";
+	ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid-pa:permanent-activities";
 	xmlXPathObjectPtr permanentActivitiesNodesObject = xmlContext.getXpathObjectForNodeList(ss.str());
 	if ((permanentActivitiesNodesObject != nullptr) && (permanentActivitiesNodesObject->nodesetval != nullptr)) {
 		for (int i = 1; i <= permanentActivitiesNodesObject->nodesetval->nodeNr; i++) {
 			ss.clear(), ss.str(std::string()),
-			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid:permanent-activities[" << i
+			    ss << PresencePerson::pidfXmlPrefix.data() << "[" << personIdx << "]/rpid-pa:permanent-activities[" << i
 			       << "]/rpid:*";
 			xmlXPathObjectPtr permanentActivitiesObject = xmlContext.getXpathObjectForNodeList(ss.str());
 			if ((permanentActivitiesObject != nullptr) && (permanentActivitiesObject->nodesetval != nullptr)) {
@@ -420,7 +420,7 @@ int PresencePerson::toXml(xmlTextWriterPtr writer) const {
 		}
 	}
 	if ((err >= 0) && mPermanentActivitiesToBePublished) {
-		err = xmlTextWriterStartElementNS(writer, (const xmlChar *)"rpid", (const xmlChar *)"permanent-activities",
+		err = xmlTextWriterStartElementNS(writer, (const xmlChar *)"rpid-pa", (const xmlChar *)"permanent-activities",
 		                                  nullptr);
 		if ((err >= 0) && hasPermanentActivitiesNotes()) {
 			for (const auto &note : mPermanentActivitiesNotes) {

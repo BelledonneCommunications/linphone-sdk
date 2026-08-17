@@ -398,6 +398,11 @@ bool PresenceModel::isOnline() const {
 	return (mIsOnline || ((getBasicStatus() == LinphonePresenceBasicStatusOpen) && (getNbActivities() == 0)));
 }
 
+bool PresenceModel::hasPermanentActivitiesToBePublished() const {
+	return std::any_of(mPersons.cbegin(), mPersons.cend(),
+	                   [](const auto &person) { return person->mPermanentActivitiesToBePublished; });
+}
+
 void PresenceModel::hasBeenPublished() {
 	for (const auto &person : mPersons) {
 		person->mPermanentActivitiesToBePublished = false;
@@ -632,6 +637,10 @@ std::string PresenceModel::toXml() const {
 			err = xmlTextWriterWriteAttributeNS(writer, (const xmlChar *)"xmlns", (const xmlChar *)"rpid", nullptr,
 			                                    (const xmlChar *)"urn:ietf:params:xml:ns:pidf:rpid");
 		}
+		if ((err >= 0) && hasPermanentActivitiesToBePublished()) {
+			err = xmlTextWriterWriteAttributeNS(writer, (const xmlChar *)"xmlns", (const xmlChar *)"rpid-pa", nullptr,
+			                                    (const xmlChar *)"http://www.linphone.org/xsds/rpid-pa.xsd");
+		}
 		if ((err >= 0) && isOnline()) {
 			err =
 			    xmlTextWriterWriteAttributeNS(writer, (const xmlChar *)"xmlns", (const xmlChar *)"pidfonline", nullptr,
@@ -768,6 +777,8 @@ std::shared_ptr<PresenceModel> PresenceModel::parsePidfXmlPresence(XmlParsingCon
 	                   reinterpret_cast<const xmlChar *>("urn:ietf:params:xml:ns:pidf:rpid"));
 	xmlXPathRegisterNs(xmlContext.getXpathContext(), reinterpret_cast<const xmlChar *>("pidfonline"),
 	                   reinterpret_cast<const xmlChar *>("http://www.linphone.org/xsds/pidfonline.xsd"));
+	xmlXPathRegisterNs(xmlContext.getXpathContext(), reinterpret_cast<const xmlChar *>("rpid-pa"),
+	                   reinterpret_cast<const xmlChar *>("http://www.linphone.org/xsds/rpid-pa.xsd"));
 	xmlXPathRegisterNs(xmlContext.getXpathContext(), reinterpret_cast<const xmlChar *>("oma-pres"),
 	                   reinterpret_cast<const xmlChar *>("urn:oma:xml:prs:pidf:oma-pres"));
 	err = model->parsePidfXmlPresenceServices(xmlContext);
