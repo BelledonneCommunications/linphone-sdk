@@ -83,8 +83,40 @@ LinphoneAccount *linphone_call_get_dest_account(const LinphoneCall *call) {
 	return Call::toCpp(call)->getDestAccount()->toC();
 }
 
-IceSession *linphone_call_get_ice_session(const LinphoneCall *call) {
-	return Call::toCpp(call)->getIceSession();
+bool_t linphone_call_has_ice_session(const LinphoneCall *call) {
+	return (Call::toCpp(call)->getIceSession() == nullptr) ? FALSE : TRUE;
+}
+
+bool_t linphone_call_has_ice_check_list(const LinphoneCall *call, unsigned int index) {
+	const auto session = Call::toCpp(call)->getIceSession();
+	if (session == nullptr) {
+		return FALSE;
+	}
+	return (session->getCheckList(index) == nullptr) ? FALSE : TRUE;
+}
+
+MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call, unsigned int index) {
+	const auto session = Call::toCpp(call)->getIceSession();
+	if (session == nullptr) {
+		return nullptr;
+	}
+	const auto checklist = session->getCheckList(index);
+	if (checklist == nullptr) {
+		return nullptr;
+	}
+	return checklist->getRtpTurnContext();
+}
+
+MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call, unsigned int index) {
+	const auto session = Call::toCpp(call)->getIceSession();
+	if (session == nullptr) {
+		return nullptr;
+	}
+	const auto checklist = session->getCheckList(index);
+	if (checklist == nullptr) {
+		return nullptr;
+	}
+	return checklist->getRtcpTurnContext();
 }
 
 bool_t linphone_call_get_all_muted(const LinphoneCall *call) {

@@ -21,6 +21,8 @@
 #ifndef _L_CALL_CALL_H_
 #define _L_CALL_CALL_H_
 
+#include "mediastreamer2/ice-session.h"
+
 #include "alert/alert.h"
 #include "c-wrapper/c-wrapper.h"
 #include "call/call-log.h"
@@ -241,7 +243,7 @@ public:
 	std::shared_ptr<CallSession> getActiveSession() const;
 	std::shared_ptr<AbstractChatRoom> getChatRoom();
 	const std::shared_ptr<Account> &getDestAccount() const;
-	IceSession *getIceSession() const;
+	const std::shared_ptr<ms2::IceSession> &getIceSession() const;
 	unsigned int getAudioStartCount() const;
 	unsigned int getAudioStopCount() const;
 	unsigned int getVideoStartCount() const;

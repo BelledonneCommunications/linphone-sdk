@@ -31,6 +31,8 @@
 #include <ctype.h>
 #include <limits.h>
 
+#include "ice/ice-private.h"
+
 #if __APPLE__
 #include "TargetConditionals.h"
 #endif

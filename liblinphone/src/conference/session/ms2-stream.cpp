@@ -189,16 +189,17 @@ RtpBundle *MS2Stream::createOrGetRtpBundle(const SalStreamDescription &sd) {
 	return mRtpBundle;
 }
 
-void MS2Stream::setIceCheckList(IceCheckList *cl) {
-	mIceCheckList = cl;
+void MS2Stream::setIceCheckList(const std::shared_ptr<ms2::IceCheckList> &checklist) {
+	mIceCheckList = checklist;
 	MediaStream *stream = getMediaStream();
 	if (stream) {
-		rtp_session_set_pktinfo(mSessions.rtp_session, cl != nullptr);
+		rtp_session_set_pktinfo(mSessions.rtp_session, checklist != nullptr);
 		rtp_session_set_symmetric_rtp(mSessions.rtp_session,
-		                              (cl == nullptr) ? linphone_core_symmetric_rtp_enabled(getCCore()) : false);
-		media_stream_set_ice_check_list(stream, cl);
+		                              (checklist == nullptr) ? linphone_core_symmetric_rtp_enabled(getCCore()) : false);
+		media_stream_set_ice_check_list(
+		    stream, (checklist == nullptr) ? nullptr : reinterpret_cast<::IceCheckList *>(checklist.get()));
 	}
-	if (!cl) {
+	if (!checklist) {
 		updateIceInStats();
 	}
 }
@@ -1579,31 +1580,26 @@ void MS2Stream::updateIceInStats() {
 		updateIceInStats(LinphoneIceStateNotActivated);
 		return;
 	}
-	if (ice_check_list_state(mIceCheckList) == ICL_Failed) {
+	if (mIceCheckList->getState() == ms2::IceCheckList::State::Failed) {
 		updateIceInStats(LinphoneIceStateFailed);
 		return;
 	}
-	if (ice_check_list_state(mIceCheckList) == ICL_Running) {
+	if (mIceCheckList->getState() == ms2::IceCheckList::State::Running) {
 		updateIceInStats(LinphoneIceStateInProgress);
 		return;
 	}
 	/* Otherwise we are in ICL_Completed state. */
 
-	switch (ice_check_list_selected_valid_candidate_type(mIceCheckList)) {
-		case ICT_HostCandidate:
+	switch (mIceCheckList->getSelectedValidCandidateType()) {
+		case ms2::IceCandidate::Type::Host:
 			updateIceInStats(LinphoneIceStateHostConnection);
 			break;
-		case ICT_ServerReflexiveCandidate:
-		case ICT_PeerReflexiveCandidate:
+		case ms2::IceCandidate::Type::ServerReflexive:
+		case ms2::IceCandidate::Type::PeerReflexive:
 			updateIceInStats(LinphoneIceStateReflexiveConnection);
 			break;
-		case ICT_RelayedCandidate:
+		case ms2::IceCandidate::Type::Relayed:
 			updateIceInStats(LinphoneIceStateRelayConnection);
-			break;
-		case ICT_CandidateInvalid:
-		case ICT_CandidateTypeMax:
-			// Shall not happen.
-			L_ASSERT(false);
 			break;
 	}
 }

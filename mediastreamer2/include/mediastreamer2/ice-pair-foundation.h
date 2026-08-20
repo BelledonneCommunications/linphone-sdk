@@ -18,20 +18,34 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ice_h
-#define ice_h
+#pragma once
 
-#include <mediastreamer2/stun.h>
+#include <string>
 
-/**
- * @file ice.h
- * @brief mediastreamer2 ice.h include file
- *
- * This file provides the API to handle the ICE protocol defined in the RFC 5245.
- *
- * This is a C compatibility layer.
- */
+namespace ms2 {
 
-typedef struct _IceCheckList IceCheckList;
+class IcePairFoundation {
+public:
+	friend class IceCheckList;
 
-#endif
+	~IcePairFoundation() = default;
+
+	bool operator==(const IcePairFoundation &other) const;
+	bool operator<(const IcePairFoundation &other) const;
+
+private:
+	IcePairFoundation(std::string local, std::string remote);
+
+	void dump() const;
+	[[nodiscard]] const std::string &getLocal() const {
+		return mLocal;
+	}
+	[[nodiscard]] const std::string &getRemote() const {
+		return mRemote;
+	}
+
+	std::string mLocal;  /**< Foundation of the local candidate */
+	std::string mRemote; /**< Foundation of the remote candidate */
+};
+
+} // namespace ms2

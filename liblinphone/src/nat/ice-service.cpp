@@ -18,11 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define NOMINMAX
+
 #include <bctoolbox/defs.h>
 
-#include "private.h"
+#include "mediastreamer2/ice-credentials.h"
+#include "mediastreamer2/ice-transport-address.h"
 
-#include "c-wrapper/internal/c-tools.h"
 #include "conference/session/media-session-p.h"
 #include "conference/session/streams.h"
 #include "ice-service.h"
@@ -37,10 +39,11 @@ using namespace ::std;
 LINPHONE_BEGIN_NAMESPACE
 
 IceService::IceService(StreamsGroup &sg) : mStreamsGroup(sg) {
-	LinphoneConfig *config = linphone_core_get_config(getCCore());
-	mAllowLateIce = !!linphone_config_get_int(config, "net", "allow_late_ice", 0);
-	mEnableIntegrityCheck = !!linphone_config_get_int(config, "net", "ice_session_enable_message_integrity_check", 1);
-	mDontDefaultToStunCandidates = linphone_config_get_int(config, "net", "dont_default_to_stun_candidates", 0);
+	const LinphoneConfig *config = linphone_core_get_config(getCCore());
+	mAllowLateIce = linphone_config_get_int(config, "net", "allow_late_ice", 0) != 0;
+	mEnableIntegrityCheck =
+	    linphone_config_get_int(config, "net", "ice_session_enable_message_integrity_check", 1) != 0;
+	mDontDefaultToStunCandidates = linphone_config_get_int(config, "net", "dont_default_to_stun_candidates", 0) != 0;
 }
 
 IceService::~IceService() {
@@ -52,13 +55,17 @@ bool IceService::isActive() const {
 }
 
 bool IceService::isRunning() const {
-	if (!isActive()) return false; // No running because it is not active
-	return ice_session_state(mIceSession) == IS_Running;
+	if (!isActive()) {
+		return false; // No running because it is not active
+	}
+	return mIceSession->getState() == ms2::IceSession::State::Running;
 }
 
 bool IceService::hasCompleted() const {
-	if (!isActive()) return true; // Completed because nothing to do.
-	return ice_session_state(mIceSession) == IS_Completed;
+	if (!isActive()) {
+		return true; // Completed because nothing to do.
+	}
+	return mIceSession->getState() == ms2::IceSession::State::Completed;
 }
 
 MediaSessionPrivate &IceService::getMediaSessionPrivate() const {
@@ -66,16 +73,14 @@ MediaSessionPrivate &IceService::getMediaSessionPrivate() const {
 }
 
 bool IceService::iceFoundInMediaDescription(const std::shared_ptr<SalMediaDescription> &md) {
-	if ((!md->ice_pwd.empty()) && (!md->ice_ufrag.empty())) return true;
-	for (const auto &stream : md->streams) {
-		if ((!stream.getIcePwd().empty()) && (!stream.getIceUfrag().empty())) {
-			return true;
-		}
+	if ((!md->ice_pwd.empty()) && (!md->ice_ufrag.empty())) {
+		return true;
 	}
-	return false;
+	return std::any_of(md->streams.begin(), md->streams.end(),
+	                   [](const auto &stream) { return !stream.getIcePwd().empty() && !stream.getIceUfrag().empty(); });
 }
 
-void IceService::checkSession(IceRole role, bool preferIpv6DefaultCandidates) {
+void IceService::checkSession(const ms2::IceRole role, const bool preferIpv6DefaultCandidates) {
 	const auto natPolicy = getMediaSessionPrivate().getNatPolicy();
 	if (!natPolicy || !natPolicy->iceEnabled()) {
 		return;
@@ -86,60 +91,59 @@ void IceService::checkSession(IceRole role, bool preferIpv6DefaultCandidates) {
 		 * No ICE session because it was disabled previously.
 		 * Unless allow_late_ice is TRUE, don't re-create the session.
 		 */
-		if (!mAllowLateIce) return;
+		if (!mAllowLateIce) {
+			return;
+		}
 	}
 
 	// Already created.
-	if (mIceSession) return;
+	if (mIceSession) {
+		return;
+	}
 
-	mIceSession = ice_session_new();
-	ice_session_set_default_candidates_ip_version(mIceSession, (bool_t)preferIpv6DefaultCandidates);
+	mIceSession = std::make_shared<ms2::IceSession>();
+	mIceSession->setDefaultCandidatesPreferIpv6(preferIpv6DefaultCandidates);
 	// For backward compatibility purposes, shall be enabled by default in the future.
-	ice_session_enable_message_integrity_check(mIceSession, mEnableIntegrityCheck);
-	ice_session_set_role(mIceSession, role);
+	mIceSession->enableMessageIntegrityCheck(mEnableIntegrityCheck);
+	mIceSession->setRole(role);
 }
 
-bool IceService::hasRelayCandidates(const SalMediaDescription &md) const {
-	for (size_t i = 0; i < md.streams.size(); i++) {
-		const auto &stream = md.streams[i];
-		if (stream.rtp_port == 0) continue;
-		bool goodForStream = false;
-		for (const auto &candidate : stream.ice_candidates) {
-			if (candidate.type == "relay") {
-				goodForStream = true;
-				break;
-			}
+bool IceService::hasRelayCandidates(const SalMediaDescription &md) {
+	for (const auto &stream : md.streams) {
+		if (stream.rtp_port == 0) {
+			continue;
 		}
-		if (!goodForStream) return false;
+		if (std::none_of(stream.ice_candidates.begin(), stream.ice_candidates.end(),
+		                 [](const auto &candidate) { return candidate.type == "relay"; })) {
+			return false;
+		}
 	}
 	return true;
 }
 
-void IceService::chooseDefaultCandidates(const OfferAnswerContext &ctx) {
-	IceCandidateType types[ICT_CandidateTypeMax];
+void IceService::chooseDefaultCandidates(const OfferAnswerContext &ctx) const {
+	std::vector<ms2::IceCandidate::Type> candidatesTypes;
 
 	if (mDontDefaultToStunCandidates) {
-		types[0] = ICT_HostCandidate;
-		types[1] = ICT_RelayedCandidate;
-		types[2] = ICT_CandidateInvalid;
+		candidatesTypes.push_back(ms2::IceCandidate::Type::Host);
+		candidatesTypes.push_back(ms2::IceCandidate::Type::Relayed);
 	} else {
 		/* In the case of an offer from remote, if the offer has relay candidates, prefer STUN as default candidate
 		 * so that the TURN relay is used one side only.
 		 * Otherwise, prefer the Relay as default candidate since it is supposed to always work.
 		 */
 		if (!ctx.localIsOfferer && ctx.remoteMediaDescription && hasRelayCandidates(*ctx.remoteMediaDescription)) {
-			types[0] = ICT_ServerReflexiveCandidate;
-			types[1] = ICT_RelayedCandidate;
+			candidatesTypes.push_back(ms2::IceCandidate::Type::ServerReflexive);
+			candidatesTypes.push_back(ms2::IceCandidate::Type::Relayed);
 		} else {
-			types[0] = ICT_RelayedCandidate;
-			types[1] = ICT_ServerReflexiveCandidate;
+			candidatesTypes.push_back(ms2::IceCandidate::Type::Relayed);
+			candidatesTypes.push_back(ms2::IceCandidate::Type::ServerReflexive);
 		}
-		types[2] = ICT_HostCandidate;
-		types[3] = ICT_CandidateInvalid;
+		candidatesTypes.push_back(ms2::IceCandidate::Type::Host);
 	}
-	ice_session_set_default_candidates_types(mIceSession, types);
+	mIceSession->setDefaultCandidatesTypes(candidatesTypes);
 
-	ice_session_choose_default_candidates(mIceSession);
+	mIceSession->chooseDefaultLocalCandidates();
 }
 
 void IceService::fillLocalMediaDescription(OfferAnswerContext &ctx) {
@@ -157,11 +161,12 @@ void IceService::fillLocalMediaDescription(OfferAnswerContext &ctx) {
 	}
 
 	if (mGatheringFinished) {
-		if (ctx.remoteMediaDescription)
+		if (ctx.remoteMediaDescription) {
 			clearUnusedIceCandidates(ctx.localMediaDescription, ctx.remoteMediaDescription, ctx.localIsOfferer);
+		}
 
-		ice_session_compute_candidates_foundations(mIceSession);
-		ice_session_eliminate_redundant_candidates(mIceSession);
+		mIceSession->computeCandidatesFoundations();
+		mIceSession->eliminateRedundantCandidates();
 		chooseDefaultCandidates(ctx);
 		mGatheringFinished = false;
 	}
@@ -169,18 +174,23 @@ void IceService::fillLocalMediaDescription(OfferAnswerContext &ctx) {
 }
 
 void IceService::createStreams(const OfferAnswerContext &params) {
-	checkSession(params.localIsOfferer ? IR_Controlling : IR_Controlled, getMediaSessionPrivate().getAf() == AF_INET6);
+	checkSession(params.localIsOfferer ? ms2::IceRole::Controlling : ms2::IceRole::Controlled,
+	             getMediaSessionPrivate().getAf() == AF_INET6);
 
-	if (!mIceSession) return;
+	if (!mIceSession) {
+		return;
+	}
 
 	const auto &streams = mStreamsGroup.getStreams();
-	for (auto &stream : streams) {
-		if (!stream) continue;
+	for (const auto &stream : streams) {
+		if (!stream) {
+			continue;
+		}
 
 		size_t index = stream->getIndex();
 		params.scopeStreamToIndex(index);
 
-		const auto streamDesc = params.getLocalStreamDescription();
+		const auto &streamDesc = params.getLocalStreamDescription();
 		bool streamActive = streamDesc.enabled() && (streamDesc.getDirection() != SalStreamInactive);
 
 		/* When rtp bundle is activated or going to be activated, we don't need ICE for the stream.*/
@@ -193,24 +203,24 @@ void IceService::createStreams(const OfferAnswerContext &params) {
 				streamActive = false;
 			}
 		} else {
-			RtpInterface *i = dynamic_cast<RtpInterface *>(stream.get());
-			if (streamDesc.isBundleOnly() || (i && !i->isTransportOwner())) {
+			auto *i = dynamic_cast<RtpInterface *>(stream.get());
+			if (streamDesc.isBundleOnly() || ((i != nullptr) && !i->isTransportOwner())) {
 				lInfo() << *stream << " is currently part of a bundle as secondary stream, ICE not needed.";
 				streamActive = false;
 			}
 		}
 
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)index);
+		auto checklist = mIceSession->getCheckList(index);
 
-		if (!cl && streamActive) {
-			cl = ice_check_list_new();
-			ice_session_add_check_list(mIceSession, cl, static_cast<unsigned int>(index));
-			lInfo() << "Created new ICE check list " << cl << " for stream #" << index;
-		} else if (cl && !streamActive) {
-			ice_session_remove_check_list_from_idx(mIceSession, static_cast<unsigned int>(index));
-			cl = nullptr;
+		if (!checklist && streamActive) {
+			checklist = std::make_shared<ms2::IceCheckList>();
+			mIceSession->addCheckList(checklist, index);
+			lInfo() << "Created new ICE check list " << checklist << " for stream #" << index;
+		} else if (checklist && !streamActive) {
+			mIceSession->removeCheckList(index);
+			checklist = nullptr;
 		}
-		stream->setIceCheckList(cl);
+		stream->setIceCheckList(checklist);
 		stream->iceStateChanged();
 	}
 
@@ -228,14 +238,15 @@ void IceService::createStreams(const OfferAnswerContext &params) {
 
 bool IceService::needIceGathering() {
 	// Start ICE gathering if needed.
-	if (!ice_session_candidates_gathered(mIceSession)) {
+	if (!mIceSession->areCandidatesGathered()) {
 		mInsideGatherIceCandidates = true;
 		int err = gatherIceCandidates();
 		mInsideGatherIceCandidates = false;
 		if (err == 0) {
 			// Ice candidates gathering wasn't started, but we can proceed with the call anyway.
 			return false;
-		} else if (err == -1) {
+		}
+		if (err == -1) {
 			deleteSession();
 			return false;
 		}
@@ -245,17 +256,19 @@ bool IceService::needIceGathering() {
 }
 
 bool IceService::prepare() {
-
-	if (!mIceSession) return false;
+	if (!mIceSession) {
+		return false;
+	}
 
 	const auto natPolicy = getMediaSessionPrivate().getNatPolicy();
 	if (natPolicy && (natPolicy->turnEnabled() || natPolicy->stunEnabled()) &&
 	    natPolicy->needToUpdateTurnConfiguration()) {
-		auto account = getMediaSessionPrivate().getDestAccount();
+		const auto account = getMediaSessionPrivate().getDestAccount();
 		natPolicy->updateTurnConfiguration(account ? account->getAccountParams()->getIdentityAddress() : nullptr,
 		                                   [this](BCTBX_UNUSED(bool ignored)) {
-			                                   bool ret = needIceGathering();
-			                                   if (!ret) notifyEndOfPrepare();
+			                                   if (!needIceGathering()) {
+				                                   notifyEndOfPrepare();
+			                                   }
 		                                   });
 		return true;
 	}
@@ -266,9 +279,9 @@ LinphoneCore *IceService::getCCore() const {
 	return mStreamsGroup.getCCore();
 }
 
-int IceService::gatherLocalCandidates() {
+int IceService::gatherLocalCandidates() const {
 	list<string> localAddrs = IfAddrs::fetchLocalAddresses();
-	bool ipv6Allowed = linphone_core_ipv6_enabled(getCCore());
+	const bool ipv6Allowed = linphone_core_ipv6_enabled(getCCore()) != FALSE;
 	const auto &mediaLocalIp = getMediaSessionPrivate().getMediaLocalIp();
 	const auto it = std::find(localAddrs.cbegin(), localAddrs.cend(), mediaLocalIp);
 	if (it == localAddrs.cend()) {
@@ -282,24 +295,32 @@ int IceService::gatherLocalCandidates() {
 		return -1;
 #endif
 	const auto &streams = mStreamsGroup.getStreams();
-	for (auto &stream : streams) {
-		if (!stream) continue;
-		size_t index = stream->getIndex();
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)index);
-		if (cl) {
+	for (const auto &stream : streams) {
+		if (!stream) {
+			continue;
+		}
+		const size_t index = stream->getIndex();
+		auto checklist = mIceSession->getCheckList(index);
+		if (checklist) {
 			if (getMediaSessionPrivate().mandatoryRtpBundleEnabled()) {
 				lInfo() << "Rtp bundle is mandatory, rtcp-mux enabled and RTCP candidates skipped.";
-				rtp_session_enable_rtcp_mux(cl->rtp_session, TRUE);
+				rtp_session_enable_rtcp_mux(checklist->getRtpSession(), TRUE);
 			}
-			if ((ice_check_list_state(cl) != ICL_Completed) && !ice_check_list_candidates_gathered(cl)) {
+			if ((checklist->getState() != ms2::IceCheckList::State::Completed) && !checklist->areCandidatesGathered()) {
 				for (const string &addr : localAddrs) {
-					int family = addr.find(':') != string::npos ? AF_INET6 : AF_INET;
-					if (family == AF_INET6 && !ipv6Allowed) continue;
-					ice_add_local_candidate(cl, "host", family, L_STRING_TO_C(addr), stream->getPortConfig().rtpPort, 1,
-					                        nullptr);
-					if (!rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
-						ice_add_local_candidate(cl, "host", family, L_STRING_TO_C(addr),
-						                        stream->getPortConfig().rtcpPort, 2, nullptr);
+					const int family = addr.find(':') != string::npos ? AF_INET6 : AF_INET;
+					if (family == AF_INET6 && !ipv6Allowed) {
+						continue;
+					}
+					checklist->addLocalCandidate(
+					    ms2::IceCandidate::Type::Host,
+					    ms2::IceTransportAddress(family, addr, stream->getPortConfig().rtpPort),
+					    ms2::ICE_RTP_COMPONENT_ID, nullptr);
+					if (rtp_session_rtcp_mux_enabled(checklist->getRtpSession()) == FALSE) {
+						checklist->addLocalCandidate(
+						    ms2::IceCandidate::Type::Host,
+						    ms2::IceTransportAddress(family, addr, stream->getPortConfig().rtcpPort),
+						    ms2::ICE_RTCP_COMPONENT_ID, nullptr);
 					}
 				}
 			}
@@ -308,80 +329,97 @@ int IceService::gatherLocalCandidates() {
 	return 0;
 }
 
-void IceService::addPredefinedSflrxCandidates(const std::shared_ptr<NatPolicy> &natPolicy) {
-	if (!natPolicy) return;
-	bool ipv6Allowed = linphone_core_ipv6_enabled(getCCore());
+void IceService::addPredefinedSflrxCandidates(const std::shared_ptr<NatPolicy> &natPolicy) const {
+	if (!natPolicy) {
+		return;
+	}
+	const bool ipv6Allowed = linphone_core_ipv6_enabled(getCCore()) != FALSE;
 	const string &ipv4 = natPolicy->getNatV4Address();
 	const string &ipv6 = natPolicy->getNatV6Address();
-	if (ipv4.empty() && ipv6.empty()) return;
+	if (ipv4.empty() && ipv6.empty()) {
+		return;
+	}
 	const auto &streams = mStreamsGroup.getStreams();
-	for (auto &stream : streams) {
-		if (!stream) continue;
-		size_t index = stream->getIndex();
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)index);
-		if (cl && ice_check_list_state(cl) != ICL_Completed && !ice_check_list_candidates_gathered(cl)) {
+	for (const auto &stream : streams) {
+		if (!stream) {
+			continue;
+		}
+		const size_t index = stream->getIndex();
+		const auto checklist = mIceSession->getCheckList(index);
+		if (checklist && checklist->getState() != ms2::IceCheckList::State::Completed &&
+		    !checklist->areCandidatesGathered()) {
 			if (!ipv4.empty()) {
-				ice_add_local_candidate(cl, "srflx", AF_INET, L_STRING_TO_C(ipv4), stream->getPortConfig().rtpPort,
-				                        ICE_RTP_COMPONENT_ID, nullptr);
+				checklist->addLocalCandidate(ms2::IceCandidate::Type::ServerReflexive,
+				                             ms2::IceTransportAddress(AF_INET, ipv4, stream->getPortConfig().rtpPort),
+				                             ms2::ICE_RTP_COMPONENT_ID, nullptr);
 			}
 			if (!ipv6.empty() && ipv6Allowed) {
-				ice_add_local_candidate(cl, "srflx", AF_INET6, L_STRING_TO_C(ipv6), stream->getPortConfig().rtpPort,
-				                        ICE_RTP_COMPONENT_ID, nullptr);
+				checklist->addLocalCandidate(ms2::IceCandidate::Type::ServerReflexive,
+				                             ms2::IceTransportAddress(AF_INET6, ipv6, stream->getPortConfig().rtpPort),
+				                             ms2::ICE_RTP_COMPONENT_ID, nullptr);
 			}
-			if (!rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
+			if (rtp_session_rtcp_mux_enabled(checklist->getRtpSession()) == FALSE) {
 				if (!ipv4.empty()) {
-					ice_add_local_candidate(cl, "srflx", AF_INET, L_STRING_TO_C(ipv4), stream->getPortConfig().rtcpPort,
-					                        ICE_RTCP_COMPONENT_ID, nullptr);
+					checklist->addLocalCandidate(
+					    ms2::IceCandidate::Type::ServerReflexive,
+					    ms2::IceTransportAddress(AF_INET, ipv4, stream->getPortConfig().rtcpPort),
+					    ms2::ICE_RTCP_COMPONENT_ID, nullptr);
 				}
 				if (!ipv6.empty() && ipv6Allowed) {
-					ice_add_local_candidate(cl, "srflx", AF_INET6, L_STRING_TO_C(ipv6),
-					                        stream->getPortConfig().rtcpPort, ICE_RTCP_COMPONENT_ID, nullptr);
+					checklist->addLocalCandidate(
+					    ms2::IceCandidate::Type::ServerReflexive,
+					    ms2::IceTransportAddress(AF_INET6, ipv6, stream->getPortConfig().rtcpPort),
+					    ms2::ICE_RTCP_COMPONENT_ID, nullptr);
 				}
 			}
 		}
 	}
-	ice_session_set_base_for_srflx_candidates(mIceSession);
+	mIceSession->setBaseForSrflxCandidates();
 	lInfo() << "Configuration-defined server reflexive candidates added to check lists.";
 }
 
 int IceService::gatherSflrxIceCandidates(const struct addrinfo *stunServerAi) {
 	int err = 0;
 	const auto &natPolicy = getMediaSessionPrivate().getNatPolicy();
-	if (stunServerAi) stunServerAi = getIcePreferredStunServerAddrinfo(stunServerAi);
-	else lWarning() << "Failed to resolve STUN server for ICE gathering, continuing without STUN";
-	if (stunServerAi) {
+	if (stunServerAi != nullptr) {
+		stunServerAi = getIcePreferredStunServerAddrinfo(stunServerAi);
+	} else {
+		lWarning() << "Failed to resolve STUN server for ICE gathering, continuing without STUN";
+	}
+	if (stunServerAi != nullptr) {
 		LinphoneCore *core = getCCore();
 		const string &server = natPolicy->getStunServer();
 		lInfo() << "ICE: gathering candidates from [" << server << "] using "
 		        << (natPolicy->turnEnabled() ? "TURN" : "STUN");
 		// Gather local srflx candidates.
 		if (natPolicy->turnEnabled()) {
-			ice_session_enable_turn(mIceSession, TRUE);
+			mIceSession->enableTurn(true);
 
 			if (natPolicy->turnTlsEnabled()) {
-				ice_session_set_turn_transport(mIceSession, "tls");
+				mIceSession->setTurnTransport("tls");
 			} else if (natPolicy->turnTcpEnabled()) {
-				ice_session_set_turn_transport(mIceSession, "tcp");
+				mIceSession->setTurnTransport("tcp");
 			} else {
-				ice_session_set_turn_transport(mIceSession, "udp");
+				mIceSession->setTurnTransport("udp");
 			}
 
-			ice_session_set_turn_root_certificate(mIceSession, linphone_core_get_root_ca(core));
+			mIceSession->setTurnRootCertificate(linphone_core_get_root_ca(core));
 
 			char host[NI_MAXHOST];
 			int port = 0;
 			linphone_parse_host_port(server.c_str(), host, sizeof(host), &port);
-			ice_session_set_turn_cn(mIceSession, host);
+			mIceSession->setTurnCn(host);
 		}
-		ice_session_set_stun_auth_requested_cb(mIceSession, MediaSessionPrivate::stunAuthRequestedCb,
-		                                       &getMediaSessionPrivate());
-		err = ice_session_gather_candidates(mIceSession, stunServerAi->ai_addr, (socklen_t)stunServerAi->ai_addrlen)
+		mIceSession->setStunAuthRequestedCb(MediaSessionPrivate::stunAuthRequestedCb, &getMediaSessionPrivate());
+		err = mIceSession->gatherCandidates(stunServerAi->ai_addr, static_cast<socklen_t>(stunServerAi->ai_addrlen))
 		          ? 1
 		          : 0;
 	} else {
 		lInfo() << "ICE: bypass server-reflexive candidates gathering";
 	}
-	if (err == 0) gatheringFinished();
+	if (err == 0) {
+		gatheringFinished();
+	}
 	return err;
 }
 
@@ -392,15 +430,15 @@ int IceService::gatherSflrxIceCandidates(const struct addrinfo *stunServerAi) {
  * no way to start the ICE session.
  */
 int IceService::gatherIceCandidates() {
-	LinphoneCore *core = getCCore();
+	const LinphoneCore *core = getCCore();
 
 	// Gather local host candidates.
 	if (gatherLocalCandidates() == -1) {
 		lError() << "Local network permission is not granted, ICE must be disabled.";
 		return -1;
 	}
-	ice_session_enable_forced_relay(mIceSession, core->forced_ice_relay);
-	ice_session_enable_short_turn_refresh(mIceSession, core->short_turn_refresh);
+	mIceSession->enableForcedRelay(core->forced_ice_relay != FALSE);
+	mIceSession->enableShortTurnRefresh(core->short_turn_refresh != FALSE);
 
 	const auto &natPolicy = getMediaSessionPrivate().getNatPolicy();
 	addPredefinedSflrxCandidates(natPolicy);
@@ -416,66 +454,63 @@ int IceService::gatherIceCandidates() {
 			}
 		});
 		return mSflrxGatheringStatus;
-	} else {
-		lInfo() << "ICE is used without STUN server";
-		gatheringFinished();
 	}
+
+	lInfo() << "ICE is used without STUN server";
+	gatheringFinished();
 	return 0;
 }
 
 bool IceService::checkForIceRestartAndSetRemoteCredentials(const std::shared_ptr<SalMediaDescription> &md,
-                                                           bool isOffer) {
+                                                           const bool isOffer) {
 	bool iceRestarted = false;
-	string addr = md->addr;
-	if ((addr == "0.0.0.0") || (addr == "::0")) {
-		restartSession(isOffer ? IR_Controlled : IR_Controlling);
+	if ((md->addr == "0.0.0.0") || (md->addr == "::0")) {
+		restartSession(isOffer ? ms2::IceRole::Controlled : ms2::IceRole::Controlling);
 		iceRestarted = true;
 	} else {
 		for (size_t i = 0; i < md->streams.size(); i++) {
 			const auto &stream = md->streams[i];
-			IceCheckList *cl = ice_session_check_list(mIceSession, (int)i);
-			string rtpAddr = stream.rtp_addr;
-			if (cl && (rtpAddr == "0.0.0.0")) {
-				restartSession(isOffer ? IR_Controlled : IR_Controlling);
+			const auto checklist = mIceSession->getCheckList(i);
+			if (checklist && (stream.rtp_addr == "0.0.0.0")) {
+				restartSession(isOffer ? ms2::IceRole::Controlled : ms2::IceRole::Controlling);
 				iceRestarted = true;
 				break;
 			}
 		}
 	}
-	if (!ice_session_remote_ufrag(mIceSession) && !ice_session_remote_pwd(mIceSession)) {
+	const auto remoteCredentials = ms2::IceCredentials(md->ice_ufrag, md->ice_pwd);
+	if (mIceSession->getRemoteCredentials() == std::nullopt) {
 		if (!md->ice_ufrag.empty() && !md->ice_pwd.empty()) {
-			ice_session_set_remote_credentials(mIceSession, L_STRING_TO_C(md->ice_ufrag), L_STRING_TO_C(md->ice_pwd));
+			mIceSession->setRemoteCredentials(remoteCredentials);
 		}
-	} else if (ice_session_remote_credentials_changed(mIceSession, L_STRING_TO_C(md->ice_ufrag),
-	                                                  L_STRING_TO_C(md->ice_pwd))) {
+	} else if (mIceSession->haveRemoteCredentialsChanged(remoteCredentials)) {
 		if (!iceRestarted) {
-			restartSession(isOffer ? IR_Controlled : IR_Controlling);
+			restartSession(isOffer ? ms2::IceRole::Controlled : ms2::IceRole::Controlling);
 			iceRestarted = true;
 		}
 		if (!md->ice_ufrag.empty() && !md->ice_pwd.empty()) {
-			ice_session_set_remote_credentials(mIceSession, L_STRING_TO_C(md->ice_ufrag), L_STRING_TO_C(md->ice_pwd));
+			mIceSession->setRemoteCredentials(remoteCredentials);
 		}
 	}
 	for (size_t i = 0; i < md->streams.size(); i++) {
 		const auto &stream = md->streams[i];
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)i);
-		if (cl && (!stream.getIcePwd().empty()) && (!stream.getIceUfrag().empty())) {
-			if (ice_check_list_remote_credentials_changed(cl, L_STRING_TO_C(stream.getIceUfrag()),
-			                                              L_STRING_TO_C(stream.getIcePwd()))) {
-				if (!iceRestarted && ice_check_list_get_remote_ufrag(cl) && ice_check_list_get_remote_pwd(cl)) {
+		const auto checklist = mIceSession->getCheckList(i);
+		if (checklist && (!stream.getIcePwd().empty()) && (!stream.getIceUfrag().empty())) {
+			const auto remoteCredentials = ms2::IceCredentials(stream.getIceUfrag(), stream.getIcePwd());
+			if (checklist->haveRemoteCredentialsChanged(remoteCredentials)) {
+				if (!iceRestarted && (checklist->getRemoteCredentials() != std::nullopt)) {
 					// Restart only if remote ufrag/paswd was already set.
-					restartSession(isOffer ? IR_Controlled : IR_Controlling);
+					restartSession(isOffer ? ms2::IceRole::Controlled : ms2::IceRole::Controlling);
 					iceRestarted = true;
 				}
-				ice_check_list_set_remote_credentials(cl, L_STRING_TO_C(stream.getIceUfrag()),
-				                                      L_STRING_TO_C(stream.getIcePwd()));
+				checklist->setRemoteCredentials(remoteCredentials);
 			}
 		}
 	}
 	return iceRestarted;
 }
 
-void IceService::getIceDefaultAddrAndPort(uint16_t componentID,
+void IceService::getIceDefaultAddrAndPort(const uint16_t componentID,
                                           const std::shared_ptr<SalMediaDescription> &md,
                                           const SalStreamDescription &stream,
                                           std::string &addr,
@@ -486,75 +521,103 @@ void IceService::getIceDefaultAddrAndPort(uint16_t componentID,
 	} else if (componentID == 2) {
 		addr = stream.rtcp_addr;
 		port = stream.rtcp_port;
-	} else return;
-	if (addr.empty() == true) addr = md->addr;
+	} else {
+		return;
+	}
+	if (addr.empty()) {
+		addr = md->addr;
+	}
 }
 
 void IceService::createIceCheckListsAndParseIceAttributes(const std::shared_ptr<SalMediaDescription> &md,
-                                                          bool iceRestarted) {
+                                                          const bool iceRestarted) const {
 	for (size_t i = 0; i < md->streams.size(); i++) {
 		const auto &stream = md->streams[i];
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)i);
-		if (!cl) continue;
+		const auto checklist = mIceSession->getCheckList(i);
+		if (!checklist) {
+			continue;
+		}
 		if (stream.getIceMismatch()) {
-			ice_check_list_set_state(cl, ICL_Failed);
+			checklist->setState(ms2::IceCheckList::State::Failed);
 			continue;
 		}
 		if ((stream.rtp_port == 0) || (stream.getDirection() == SalStreamInactive)) {
-			ice_session_remove_check_list(mIceSession, cl);
+			mIceSession->removeCheckList(checklist);
 			mStreamsGroup.getStream(i)->setIceCheckList(nullptr);
 			continue;
 		}
-		if ((!stream.getIcePwd().empty()) && (!stream.getIceUfrag().empty()))
-			ice_check_list_set_remote_credentials(cl, L_STRING_TO_C(stream.getIceUfrag()),
-			                                      L_STRING_TO_C(stream.getIcePwd()));
+		if ((!stream.getIcePwd().empty()) && (!stream.getIceUfrag().empty())) {
+			checklist->setRemoteCredentials(ms2::IceCredentials(stream.getIceUfrag(), stream.getIcePwd()));
+		}
 		for (const auto &candidate : stream.ice_candidates) {
 			bool defaultCandidate = false;
-			if (candidate.addr[0] == '\0') break;
-			if ((candidate.componentID == 0) || (candidate.componentID > 2)) continue;
-			std::string addr = std::string();
+			if (candidate.addr[0] == '\0') {
+				break;
+			}
+			if ((candidate.componentID == 0) || (candidate.componentID > 2)) {
+				continue;
+			}
+			auto addr = std::string();
 			int port = 0;
 			getIceDefaultAddrAndPort(static_cast<uint16_t>(candidate.componentID), md, stream, addr, port);
-			if ((addr.empty() == false) && (candidate.port == port) && (addr.compare(candidate.addr) == 0))
+			if (!addr.empty() && (candidate.port == port) && (addr == candidate.addr)) {
 				defaultCandidate = true;
+			}
 			int family = AF_INET;
-			if (candidate.addr.find(":") != std::string::npos) family = AF_INET6;
-			ice_add_remote_candidate(cl, L_STRING_TO_C(candidate.type), family, L_STRING_TO_C(candidate.addr),
-			                         candidate.port, static_cast<uint16_t>(candidate.componentID), candidate.priority,
-			                         L_STRING_TO_C(candidate.foundation), defaultCandidate);
+			if (candidate.addr.find(':') != std::string::npos) {
+				family = AF_INET6;
+			}
+			const auto optionalCandidateType = ms2::IceCandidate::getTypeFromStr(candidate.type);
+			checklist->addRemoteCandidate(optionalCandidateType.has_value() ? *optionalCandidateType
+			                                                                : ms2::IceCandidate::Type::Relayed,
+			                              ms2::IceTransportAddress(family, candidate.addr, candidate.port),
+			                              static_cast<uint16_t>(candidate.componentID), candidate.priority,
+			                              candidate.foundation, defaultCandidate);
 		}
 		if (!iceRestarted) {
 			bool losingPairsAdded = false;
 			for (int j = 0; j < static_cast<int>(stream.ice_remote_candidates.size()); j++) {
 				const auto &remoteCandidate = stream.getIceRemoteCandidateAtIndex(static_cast<size_t>(j));
-				std::string addr = std::string();
+				auto addr = std::string();
 				int port = 0;
-				int componentID = j + 1;
-				if (remoteCandidate.addr.empty()) break;
+				const int componentID = j + 1;
+				if (remoteCandidate.addr.empty()) {
+					break;
+				}
 				getIceDefaultAddrAndPort(static_cast<uint16_t>(componentID), md, stream, addr, port);
 
 				// If we receive a re-invite with remote-candidates, supply these pairs to the ice check list.
 				// They might be valid pairs already selected, or losing pairs.
 
 				int remoteFamily = AF_INET;
-				if (remoteCandidate.addr.find(":") != std::string::npos) remoteFamily = AF_INET6;
+				if (remoteCandidate.addr.find(':') != std::string::npos) {
+					remoteFamily = AF_INET6;
+				}
 				int family = AF_INET;
-				if (addr.find(':') != std::string::npos) family = AF_INET6;
-				ice_add_losing_pair(cl, static_cast<uint16_t>(j + 1), remoteFamily, L_STRING_TO_C(remoteCandidate.addr),
-				                    remoteCandidate.port, family, L_STRING_TO_C(addr), port);
+				if (addr.find(':') != std::string::npos) {
+					family = AF_INET6;
+				}
+				checklist->addLosingPair(
+				    static_cast<uint16_t>(j + 1),
+				    ms2::IceTransportAddress(remoteFamily, remoteCandidate.addr, remoteCandidate.port),
+				    ms2::IceTransportAddress(family, addr, port));
 				losingPairsAdded = true;
 			}
-			if (losingPairsAdded) ice_check_list_check_completed(cl);
+			if (losingPairsAdded) {
+				checklist->checkCompleted();
+			}
 		}
 	}
 }
 
 void IceService::clearUnusedIceCandidates(const std::shared_ptr<SalMediaDescription> &localDesc,
                                           const std::shared_ptr<SalMediaDescription> &remoteDesc,
-                                          bool localIsOfferer) {
-	for (size_t i = 0; i < MIN(remoteDesc->streams.size(), localDesc->streams.size()); i++) {
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)i);
-		if (!cl) continue;
+                                          const bool localIsOfferer) const {
+	for (size_t i = 0; i < std::min(remoteDesc->streams.size(), localDesc->streams.size()); i++) {
+		const auto checklist = mIceSession->getCheckList(i);
+		if (!checklist) {
+			continue;
+		}
 		const auto &localStream = localDesc->streams[i];
 		const auto &stream = remoteDesc->streams[i];
 		if ((stream.getChosenConfiguration().rtcp_mux && localStream.getChosenConfiguration().rtcp_mux) ||
@@ -565,16 +628,18 @@ void IceService::clearUnusedIceCandidates(const std::shared_ptr<SalMediaDescript
 			 * - when answering to an offer, when rtcp_mux is advertised together with RTP bundle remotely and we accept
 			 * RTP bundle (because rtcp-mux is mandatory with bundles)
 			 */
-			ice_check_list_remove_rtcp_candidates(cl);
-			rtp_session_enable_rtcp_mux(cl->rtp_session, TRUE);
+			checklist->removeRtcpCandidates();
+			rtp_session_enable_rtcp_mux(checklist->getRtpSession(), TRUE);
 		}
 	}
 }
 
 void IceService::updateFromRemoteMediaDescription(const std::shared_ptr<SalMediaDescription> &localDesc,
                                                   const std::shared_ptr<SalMediaDescription> &remoteDesc,
-                                                  bool isOffer) {
-	if (!mIceSession) return;
+                                                  const bool isOffer) {
+	if (!mIceSession) {
+		return;
+	}
 
 	if (!iceFoundInMediaDescription(remoteDesc)) {
 		// Response from remote does not contain mandatory ICE attributes, delete the session.
@@ -583,14 +648,15 @@ void IceService::updateFromRemoteMediaDescription(const std::shared_ptr<SalMedia
 	}
 
 	// Check for ICE restart and set remote credentials.
-	bool iceRestarted = checkForIceRestartAndSetRemoteCredentials(remoteDesc, isOffer);
+	const bool iceRestarted = checkForIceRestartAndSetRemoteCredentials(remoteDesc, isOffer);
 
 	// Create ICE check lists if needed and parse ICE attributes.
 	createIceCheckListsAndParseIceAttributes(remoteDesc, iceRestarted);
-	size_t i;
-	for (i = 0; i < mStreamsGroup.getStreams().size(); i++) {
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)i);
-		if (!cl) continue;
+	for (size_t i = 0; i < mStreamsGroup.getStreams().size(); i++) {
+		const auto checklist = mIceSession->getCheckList(i);
+		if (!checklist) {
+			continue;
+		}
 		if (i < remoteDesc->streams.size()) {
 			const auto &remoteDescStream = remoteDesc->streams[i];
 			if (remoteDescStream.enabled() && remoteDescStream.getRtpPort() != 0 &&
@@ -603,139 +669,164 @@ void IceService::updateFromRemoteMediaDescription(const std::shared_ptr<SalMedia
 			}
 		}
 		/* This stream is unused or no longer needs ICE, remove its check list */
-		ice_session_remove_check_list_from_idx(mIceSession, static_cast<unsigned int>(i));
-		auto stream = mStreamsGroup.getStream(i);
+		mIceSession->removeCheckList(i);
+		auto *stream = mStreamsGroup.getStream(i);
 		stream->setIceCheckList(nullptr);
 		stream->iceStateChanged();
 	}
 	clearUnusedIceCandidates(localDesc, remoteDesc, !isOffer);
-	ice_session_check_mismatch(mIceSession);
+	mIceSession->checkMismatch();
 
-	if (ice_session_nb_check_lists(mIceSession) == 0) {
+	if (mIceSession->getNbCheckLists() == 0) {
 		deleteSession();
 	}
 }
 
-void IceService::updateLocalMediaDescriptionFromIce(std::shared_ptr<SalMediaDescription> &desc) {
-	if (!mIceSession) return;
-	IceCandidate *rtpCandidate = nullptr;
-	IceCandidate *rtcpCandidate = nullptr;
+void IceService::updateLocalMediaDescriptionFromIce(std::shared_ptr<SalMediaDescription> &desc) const {
+	if (!mIceSession) {
+		return;
+	}
+	std::shared_ptr<ms2::IceCandidate> rtpCandidate = nullptr;
+	std::shared_ptr<ms2::IceCandidate> rtcpCandidate = nullptr;
 	bool result = false;
-	IceSessionState sessionState = ice_session_state(mIceSession);
-	bool usePerStreamUfragPassword = linphone_config_get_bool(linphone_core_get_config(getCCore()), "sip",
-	                                                          "ice_password_ufrag_in_media_description", false);
+	const bool usePerStreamUfragPassword =
+	    linphone_config_get_bool(linphone_core_get_config(getCCore()), "sip", "ice_password_ufrag_in_media_description",
+	                             FALSE) != FALSE;
 
-	if (sessionState == IS_Completed) {
-		IceCheckList *firstCl = nullptr;
+	if (mIceSession->getState() == ms2::IceSession::State::Completed) {
+		std::shared_ptr<ms2::IceCheckList> firstChecklist = nullptr;
 		for (size_t i = 0; i < desc->streams.size(); i++) {
-			IceCheckList *cl = ice_session_check_list(mIceSession, (int)i);
-			if (cl) {
-				firstCl = cl;
+			const auto checklist = mIceSession->getCheckList(i);
+			if (checklist) {
+				firstChecklist = checklist;
 				break;
 			}
 		}
-		if (firstCl) result = !!ice_check_list_selected_valid_local_candidate(firstCl, &rtpCandidate, nullptr);
-		if (result) {
-			desc->addr = rtpCandidate->taddr.ip;
+		if (firstChecklist) {
+			rtpCandidate = firstChecklist->getSelectedValidLocalCandidateForRtp();
+		}
+		if (rtpCandidate != nullptr) {
+			desc->addr = rtpCandidate->getTransportAddress().getIp();
 		} else {
 			lWarning() << "If ICE has completed successfully, rtp_candidate should be set!";
-			ice_dump_valid_list(firstCl);
+			firstChecklist->dumpValidList();
 		}
 	}
 
 	if (!usePerStreamUfragPassword) {
-		desc->ice_pwd = L_C_TO_STRING(ice_session_local_pwd(mIceSession));
-		desc->ice_ufrag = L_C_TO_STRING(ice_session_local_ufrag(mIceSession));
+		desc->ice_ufrag = mIceSession->getLocalCredentials().getUfrag();
+		desc->ice_pwd = mIceSession->getLocalCredentials().getPwd();
 	}
 
 	for (size_t i = 0; i < desc->streams.size(); i++) {
 		auto &stream = desc->streams[i];
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)i);
+		const auto checklist = mIceSession->getCheckList(i);
 		rtpCandidate = rtcpCandidate = nullptr;
-		if (!stream.enabled() || !cl || (stream.getRtpPort() == 0) || (stream.getDirection() == SalStreamInactive))
+		if (!stream.enabled() || !checklist || (stream.getRtpPort() == 0) ||
+		    (stream.getDirection() == SalStreamInactive)) {
 			continue;
-		if (ice_check_list_state(cl) == ICL_Completed) {
-			result = !!ice_check_list_selected_valid_local_candidate(ice_session_check_list(mIceSession, (int)i),
-			                                                         &rtpCandidate, &rtcpCandidate);
-			if (!result) lError() << "No selected valid local candidate but check list is completed, this is a bug.";
+		}
+		if (checklist->getState() == ms2::IceCheckList::State::Completed) {
+			rtpCandidate = checklist->getSelectedValidLocalCandidateForRtp();
+			auto optionalRtcpCandidate = checklist->getSelectedValidLocalCandidateForRtcp();
+			result = ((rtpCandidate != nullptr) &&
+			          (!optionalRtcpCandidate.has_value() || (*optionalRtcpCandidate != nullptr)));
+			if (optionalRtcpCandidate.has_value()) {
+				rtcpCandidate = *optionalRtcpCandidate;
+			}
+			if (!result) {
+				lError() << "No selected valid local candidate but check list is completed, this is a bug.";
+			}
 		} else {
-			result = !!ice_check_list_default_local_candidate(ice_session_check_list(mIceSession, (int)i),
-			                                                  &rtpCandidate, &rtcpCandidate);
+			rtpCandidate = checklist->getDefaultLocalCandidateForRtp();
+			auto optionalRtcpCandidate = checklist->getDefaultLocalCandidateForRtcp();
+			result = ((rtpCandidate != nullptr) &&
+			          (!optionalRtcpCandidate.has_value() || (*optionalRtcpCandidate != nullptr)));
+			if (optionalRtcpCandidate.has_value()) {
+				rtcpCandidate = *optionalRtcpCandidate;
+			}
 			if (result) {
-				lInfo() << "RTP default candidate is " << L_C_TO_STRING(rtpCandidate->taddr.ip);
+				lInfo() << "RTP default candidate is " << rtpCandidate->getTransportAddress().getIp();
 			} else {
 				lWarning() << "No RTP default candidate.";
 			}
 		}
 		if (result) {
-			stream.rtp_addr = L_C_TO_STRING(rtpCandidate->taddr.ip);
-			stream.rtp_port = rtpCandidate->taddr.port;
+			stream.rtp_addr = rtpCandidate->getTransportAddress().getIp();
+			stream.rtp_port = rtpCandidate->getTransportAddress().getPort();
 			if (rtcpCandidate) {
-				stream.rtcp_addr = L_C_TO_STRING(rtcpCandidate->taddr.ip);
-				stream.rtcp_port = rtcpCandidate->taddr.port;
+				stream.rtcp_addr = rtcpCandidate->getTransportAddress().getIp();
+				stream.rtcp_port = rtcpCandidate->getTransportAddress().getPort();
 			}
 		} else {
 			stream.rtp_addr.clear();
 			stream.rtcp_addr.clear();
 		}
 
-		if (desc->ice_pwd.compare(ice_check_list_local_pwd(cl)) != 0 || usePerStreamUfragPassword) {
-			stream.ice_pwd = L_C_TO_STRING(ice_check_list_local_pwd(cl));
+		if (desc->ice_pwd != checklist->getLocalCredentials().getPwd() || usePerStreamUfragPassword) {
+			stream.ice_pwd = checklist->getLocalCredentials().getPwd();
 		} else {
 			stream.ice_pwd.clear();
 		}
 
-		if (desc->ice_ufrag.compare(ice_check_list_local_ufrag(cl)) != 0 || usePerStreamUfragPassword) {
-			stream.ice_ufrag = L_C_TO_STRING(ice_check_list_local_ufrag(cl));
+		if (desc->ice_ufrag != checklist->getLocalCredentials().getUfrag() || usePerStreamUfragPassword) {
+			stream.ice_ufrag = checklist->getLocalCredentials().getUfrag();
 		} else {
 			stream.ice_ufrag.clear();
 		}
 
-		stream.ice_mismatch = ice_check_list_is_mismatch(cl);
-		list<IceCandidate *> candidatesToInclude;
-		if ((ice_check_list_state(cl) == ICL_Running)) {
+		stream.ice_mismatch = checklist->isMismatch();
+		std::list<std::shared_ptr<ms2::IceCandidate>> candidatesToInclude;
+		if ((checklist->getState() == ms2::IceCheckList::State::Running)) {
 			// Include all candidates
-			for (bctbx_list_t *elem = cl->local_candidates; elem != nullptr; elem = elem->next) {
-				IceCandidate *iceCandidate = static_cast<IceCandidate *>(elem->data);
-				candidatesToInclude.push_back(iceCandidate);
-			}
-		} else if (ice_check_list_state(cl) == ICL_Completed) {
+			candidatesToInclude = checklist->getLocalCandidates();
+		} else if (checklist->getState() == ms2::IceCheckList::State::Completed) {
 			// Only include the nominated candidates.
-			if (rtpCandidate) candidatesToInclude.push_back(rtpCandidate);
+			if (rtpCandidate) {
+				candidatesToInclude.push_back(rtpCandidate);
+			}
 			/* In rtcp-mux or bundle mode, the rtcpCandidate returned as the same componentID as the rtpCandidate. It
 			 * doesn't need to be included in the offer.*/
-			if (rtcpCandidate && (!rtpCandidate || rtcpCandidate->componentID != rtpCandidate->componentID))
+			if (rtcpCandidate && (!rtpCandidate || rtcpCandidate->getComponentId() != rtpCandidate->getComponentId())) {
 				candidatesToInclude.push_back(rtcpCandidate);
+			}
 		}
 		if (!candidatesToInclude.empty()) {
 			stream.ice_candidates.clear();
-			for (auto iceCandidate : candidatesToInclude) {
+			for (const auto &iceCandidate : candidatesToInclude) {
 				SalIceCandidate salCandidate;
-				salCandidate.foundation = L_C_TO_STRING(iceCandidate->foundation);
-				salCandidate.componentID = iceCandidate->componentID;
-				salCandidate.priority = iceCandidate->priority;
-				salCandidate.type = L_C_TO_STRING(ice_candidate_type(iceCandidate));
-				salCandidate.addr = L_C_TO_STRING(iceCandidate->taddr.ip);
-				salCandidate.port = iceCandidate->taddr.port;
-				if (iceCandidate->base && (iceCandidate->base != iceCandidate)) {
-					salCandidate.raddr = L_C_TO_STRING(iceCandidate->base->taddr.ip);
-					salCandidate.rport = iceCandidate->base->taddr.port;
+				salCandidate.foundation = iceCandidate->getFoundation();
+				salCandidate.componentID = iceCandidate->getComponentId();
+				salCandidate.priority = iceCandidate->getPriority();
+				salCandidate.type = iceCandidate->getTypeStr();
+				salCandidate.addr = iceCandidate->getTransportAddress().getIp();
+				salCandidate.port = iceCandidate->getTransportAddress().getPort();
+				if (iceCandidate->getBase() && (iceCandidate->getBase() != iceCandidate)) {
+					salCandidate.raddr = iceCandidate->getBase()->getTransportAddress().getIp();
+					salCandidate.rport = iceCandidate->getBase()->getTransportAddress().getPort();
 				}
 				stream.ice_candidates.push_back(salCandidate);
 			}
 		}
 
-		if ((ice_check_list_state(cl) == ICL_Completed) && (ice_session_role(mIceSession) == IR_Controlling)) {
+		if ((checklist->getState() == ms2::IceCheckList::State::Completed) &&
+		    (mIceSession->getRole() == ms2::IceRole::Controlling)) {
 			stream.ice_remote_candidates.clear();
-			if (ice_check_list_selected_valid_remote_candidate(cl, &rtpCandidate, &rtcpCandidate)) {
+			rtpCandidate = checklist->getSelectedValidRemoteCandidateForRtp();
+			auto optionalRtcpCandidate = checklist->getSelectedValidRemoteCandidateForRtcp();
+			if (optionalRtcpCandidate.has_value()) {
+				rtcpCandidate = *optionalRtcpCandidate;
+			}
+			if ((rtpCandidate != nullptr) &&
+			    (!optionalRtcpCandidate.has_value() || (*optionalRtcpCandidate != nullptr))) {
 				SalIceRemoteCandidate rtp_remote_candidate;
-				rtp_remote_candidate.addr = L_C_TO_STRING(rtpCandidate->taddr.ip);
-				rtp_remote_candidate.port = rtpCandidate->taddr.port;
+				rtp_remote_candidate.addr = rtpCandidate->getTransportAddress().getIp();
+				rtp_remote_candidate.port = rtpCandidate->getTransportAddress().getPort();
 				stream.ice_remote_candidates.push_back(rtp_remote_candidate);
 				if (rtcpCandidate) {
 					SalIceRemoteCandidate rtcp_remote_candidate;
-					rtcp_remote_candidate.addr = L_C_TO_STRING(rtcpCandidate->taddr.ip);
-					rtcp_remote_candidate.port = rtcpCandidate->taddr.port;
+					rtcp_remote_candidate.addr = rtcpCandidate->getTransportAddress().getIp();
+					rtcp_remote_candidate.port = rtcpCandidate->getTransportAddress().getPort();
 					stream.ice_remote_candidates.push_back(rtcp_remote_candidate);
 				}
 			} else {
@@ -752,9 +843,12 @@ void IceService::updateLocalMediaDescriptionFromIce(std::shared_ptr<SalMediaDesc
 }
 
 void IceService::gatheringFinished() {
-	if (!mIceSession) return;
+	if (!mIceSession) {
+		return;
+	}
 
-	int pingTime = ice_session_average_gathering_round_trip_time(mIceSession);
+	const auto averageRoundTripTime = mIceSession->getAverageGatheringRoundTripTime();
+	const int pingTime = (averageRoundTripTime == std::nullopt) ? 0 : static_cast<int>(averageRoundTripTime->count());
 	if (pingTime >= 0) {
 		/* FIXME: is ping time still useful for the MediaSession ? */
 		getMediaSessionPrivate().setPingTime(pingTime);
@@ -780,49 +874,58 @@ const struct addrinfo *IceService::getIcePreferredStunServerAddrinfo(const struc
 		char ip_port[128] = {0};
 		bctbx_addrinfo_to_printable_ip_address(it, ip_port, sizeof(ip_port) - 1);
 		if (it->ai_family == AF_INET) {
-			if (!ipv4) {
+			if (ipv4 == nullptr) {
 				ipv4 = it;
 			}
-		} else if (bctbx_sockaddr_is_nat64(it->ai_addr)) {
-			if (!ipv6_nat64) {
+		} else if (bctbx_sockaddr_is_nat64(it->ai_addr) != FALSE) {
+			if (ipv6_nat64 == nullptr) {
 				ipv6_nat64 = it;
 			}
-		} else if (bctbx_sockaddr_is_v4_mapped(it->ai_addr)) {
-			if (!ipv6_v4_mapped) {
+		} else if (bctbx_sockaddr_is_v4_mapped(it->ai_addr) != FALSE) {
+			if (ipv6_v4_mapped == nullptr) {
 				ipv6_v4_mapped = it;
 			}
 		} else if (it->ai_family == AF_INET6) {
-			if (!ipv6) {
+			if (ipv6 == nullptr) {
 				ipv6 = it;
 			}
 		}
 	}
 
-	if (ipv4) {
+	if (ipv4 != nullptr) {
 		return ipv4;
-	} else if (ipv6_nat64) {
+	}
+	if (ipv6_nat64 != nullptr) {
 		return ipv6_nat64;
-	} else if (ipv6_v4_mapped) {
+	}
+	if (ipv6_v4_mapped != nullptr) {
 		return ipv6_v4_mapped;
-	} else if (ipv6) {
+	}
+	if (ipv6 != nullptr) {
 		return ipv6;
 	}
 	return nullptr;
 }
 
 void IceService::finishPrepare() {
-	if (!mIceSession) return;
-	auto natPolicy = getMediaSessionPrivate().getNatPolicy();
-	if (natPolicy) natPolicy->cancelTurnConfigurationUpdate();
+	if (!mIceSession) {
+		return;
+	}
+	const auto natPolicy = getMediaSessionPrivate().getNatPolicy();
+	if (natPolicy) {
+		natPolicy->cancelTurnConfigurationUpdate();
+	}
 	gatheringFinished();
 }
 
 void IceService::render(const OfferAnswerContext &ctx, BCTBX_UNUSED(CallSession::State state)) {
-	if (!mIceSession) return;
+	if (!mIceSession) {
+		return;
+	}
 
 	updateFromRemoteMediaDescription(ctx.localMediaDescription, ctx.remoteMediaDescription, !ctx.localIsOfferer);
-	if (mIceSession && ice_session_state(mIceSession) != IS_Completed) {
-		ice_session_start_connectivity_checks(mIceSession);
+	if (mIceSession && mIceSession->getState() != ms2::IceSession::State::Completed) {
+		mIceSession->startConnectivityChecks();
 	}
 
 	if (!mIceSession) {
@@ -843,19 +946,22 @@ void IceService::finish() {
 }
 
 void IceService::deleteSession() {
-	if (!mIceSession) return;
+	if (!mIceSession) {
+		return;
+	}
 	if (mAsyncStunResolverHandle != 0) {
-		auto natPolicy = getMediaSessionPrivate().getNatPolicy();
-		if (natPolicy) natPolicy->cancelAsync(mAsyncStunResolverHandle);
+		const auto natPolicy = getMediaSessionPrivate().getNatPolicy();
+		if (natPolicy) {
+			natPolicy->cancelAsync(mAsyncStunResolverHandle);
+		}
 		mAsyncStunResolverHandle = 0;
 	}
 	/* clear all check lists */
-	for (auto &stream : mStreamsGroup.getStreams()) {
+	for (const auto &stream : mStreamsGroup.getStreams()) {
 		if (stream) {
 			stream->setIceCheckList(nullptr);
 		}
 	}
-	ice_session_destroy(mIceSession);
 	mIceSession = nullptr;
 }
 
@@ -863,27 +969,33 @@ void IceService::setListener(IceServiceListener *listener) {
 	mListener = listener;
 }
 
-void IceService::restartSession(IceRole role) {
-	if (!mIceSession) return;
+void IceService::restartSession(const ms2::IceRole role) const {
+	if (!mIceSession) {
+		return;
+	}
 	/* We use ice_session_reset(), which is similar to ice_session_restart() but it also clears local candidates.
 	 * Indeed, the local candidates are always added back after restart.
 	 * This avoids previously discovered and possibly non-working peer-reflexive candidates to be accumulated after
 	 * successive restarts.
 	 */
-	ice_session_reset(mIceSession, role);
+	mIceSession->reset(role);
 }
 
-void IceService::resetSession() {
-	if (!mIceSession) return;
-	ice_session_reset(mIceSession, IR_Controlling);
+void IceService::resetSession() const {
+	if (!mIceSession) {
+		return;
+	}
+	mIceSession->reset(ms2::IceRole::Controlling);
 }
 
 bool IceService::hasCompletedCheckList() const {
-	if (!mIceSession) return false;
-	switch (ice_session_state(mIceSession)) {
-		case IS_Completed:
-		case IS_Failed:
-			return !!ice_session_has_completed_check_list(mIceSession);
+	if (!mIceSession) {
+		return false;
+	}
+	switch (mIceSession->getState()) {
+		case ms2::IceSession::State::Completed:
+		case ms2::IceSession::State::Failed:
+			return mIceSession->hasCompletedCheckList();
 		default:
 			return false;
 	}
@@ -891,30 +1003,38 @@ bool IceService::hasCompletedCheckList() const {
 
 void IceService::notifyEndOfPrepare() {
 	mStreamsGroup.finishPrepare();
-	if (mListener) mListener->onGatheringFinished(*this);
+	if (mListener != nullptr) {
+		mListener->onGatheringFinished(*this);
+	}
 }
 
 void IceService::handleIceEvent(const OrtpEvent *ev) {
-	OrtpEventType evt = ortp_event_get_type(ev);
+	const OrtpEventType evt = ortp_event_get_type(ev);
 	const OrtpEventData *evd = ortp_event_get_data(const_cast<OrtpEvent *>(ev));
 	switch (evt) {
 		case ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED:
 			if (hasCompletedCheckList()) {
-				if (mListener) mListener->onIceCompleted(*this);
+				if (mListener != nullptr) {
+					mListener->onIceCompleted(*this);
+				}
 			}
 			break;
 		case ORTP_EVENT_ICE_GATHERING_FINISHED:
-			if (!evd->info.ice_processing_successful) {
+			if (evd->info.ice_processing_successful == FALSE) {
 				lWarning() << "No STUN answer from [" << getMediaSessionPrivate().getNatPolicy()->getStunServer()
 				           << "], continuing without STUN";
 			}
 			notifyEndOfPrepare();
 			break;
 		case ORTP_EVENT_ICE_LOSING_PAIRS_COMPLETED:
-			if (mListener) mListener->onLosingPairsCompleted(*this);
+			if (mListener != nullptr) {
+				mListener->onLosingPairsCompleted(*this);
+			}
 			break;
 		case ORTP_EVENT_ICE_RESTART_NEEDED:
-			if (mListener) mListener->onIceRestartNeeded(*this);
+			if (mListener != nullptr) {
+				mListener->onIceRestartNeeded(*this);
+			}
 			break;
 		case ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED:
 		case ORTP_EVENT_ICE_CHECK_LIST_DEFAULT_CANDIDATE_VERIFIED:
@@ -924,32 +1044,43 @@ void IceService::handleIceEvent(const OrtpEvent *ev) {
 			break;
 	}
 	/* Notify all the streams of the ICE state change, so that they can update their stats and so on. */
-	for (auto &stream : mStreamsGroup.getStreams()) {
-		if (!stream) continue;
-		stream->iceStateChanged();
+	for (const auto &stream : mStreamsGroup.getStreams()) {
+		if (stream) {
+			stream->iceStateChanged();
+		}
 	}
 }
 
 bool IceService::isControlling() const {
-	if (!mIceSession) return false;
-	return ice_session_role(mIceSession) == IR_Controlling;
+	if (!mIceSession) {
+		return false;
+	}
+	return mIceSession->getRole() == ms2::IceRole::Controlling;
 }
 
-bool IceService::reinviteNeedsDeferedResponse(const std::shared_ptr<SalMediaDescription> &remoteMd) {
-	if (!mIceSession || (ice_session_state(mIceSession) != IS_Running)) return false;
+bool IceService::reinviteNeedsDeferedResponse(const std::shared_ptr<SalMediaDescription> &remoteMd) const {
+	if (!mIceSession || (mIceSession->getState() != ms2::IceSession::State::Running)) {
+		return false;
+	}
 
 	for (size_t i = 0; i < remoteMd->streams.size(); i++) {
 		const auto &stream = remoteMd->streams[i];
-		IceCheckList *cl = ice_session_check_list(mIceSession, (int)i);
-		if (!cl) continue;
+		const auto checklist = mIceSession->getCheckList(i);
+		if (!checklist) {
+			continue;
+		}
 
 		if (stream.getIceMismatch()) {
 			return false;
 		}
-		if ((stream.rtp_port == 0) || (ice_check_list_state(cl) != ICL_Running)) continue;
+		if ((stream.rtp_port == 0) || (checklist->getState() != ms2::IceCheckList::State::Running)) {
+			continue;
+		}
 
 		for (const auto &ice_remote_candidate : stream.ice_remote_candidates) {
-			if (!ice_remote_candidate.addr.empty()) return true;
+			if (!ice_remote_candidate.addr.empty()) {
+				return true;
+			}
 		}
 	}
 	return false;
@@ -960,14 +1091,13 @@ bool IceService::hasLocalNetworkPermission() {
 }
 
 bool IceService::checkLocalNetworkPermission(const string &localAddr) {
-	ssize_t error;
 	struct addrinfo *res = nullptr;
 	struct addrinfo hints = {0};
-	bctbx_socket_t sock = (ortp_socket_t)-1;
+	auto sock = static_cast<ortp_socket_t>(-1);
 	struct sockaddr_storage selfAddr;
 	socklen_t selfAddrLen = sizeof(selfAddr);
 	static const int timeout = 200; /*ms*/
-	string message("coucou");
+	const string message("coucou");
 	uint64_t begin;
 	bool result = false;
 
@@ -977,24 +1107,24 @@ bool IceService::checkLocalNetworkPermission(const string &localAddr) {
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_flags = AI_NUMERICHOST;
 
-	error = bctbx_getaddrinfo(localAddr.c_str(), "0", &hints, &res);
+	ssize_t error = bctbx_getaddrinfo(localAddr.c_str(), "0", &hints, &res);
 	if (error != 0) {
-		lError() << "bctbx_getaddrinfo() failed with error [" << gai_strerror((int)error)
+		lError() << "bctbx_getaddrinfo() failed with error [" << gai_strerror(static_cast<int>(error))
 		         << "], unable to check local network permission.";
 		goto end;
 	}
 	sock = bctbx_socket(res->ai_family, res->ai_socktype, IPPROTO_UDP);
-	if (sock == (ortp_socket_t)-1) {
+	if (sock == static_cast<ortp_socket_t>(-1)) {
 		lError() << "Socket creation failed: " << getSocketError();
 		goto end;
 	}
 	bctbx_socket_set_non_blocking(sock);
-	error = bctbx_bind(sock, res->ai_addr, (socklen_t)res->ai_addrlen);
+	error = bctbx_bind(sock, res->ai_addr, static_cast<socklen_t>(res->ai_addrlen));
 	if (error == -1) {
 		lError() << "Cannot bind socket:" << getSocketError();
 		goto end;
 	}
-	error = bctbx_getsockname(sock, (struct sockaddr *)&selfAddr, &selfAddrLen);
+	error = bctbx_getsockname(sock, reinterpret_cast<struct sockaddr *>(&selfAddr), &selfAddrLen);
 	if (error == -1) {
 		lError() << "getsockname() failed:" << getSocketError();
 		goto end;
@@ -1006,25 +1136,31 @@ bool IceService::checkLocalNetworkPermission(const string &localAddr) {
 		struct sockaddr_storage ss;
 		socklen_t slen = sizeof(ss);
 
-		error = bctbx_sendto(sock, message.c_str(), message.size(), 0, (struct sockaddr *)&selfAddr, selfAddrLen);
+		error = bctbx_sendto(sock, message.c_str(), message.size(), 0, reinterpret_cast<struct sockaddr *>(&selfAddr),
+		                     selfAddrLen);
 		if (error == -1) {
 			lError() << "Cannot sendto():" << getSocketError();
 			goto end;
 		}
 		ms_usleep(1000);
-		error = bctbx_recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&ss, &slen);
+		error = bctbx_recvfrom(sock, buffer, sizeof(buffer), 0, reinterpret_cast<struct sockaddr *>(&ss), &slen);
 		if (error > 0) {
 			result = true;
 			break;
-		} else if (error == -1 && !(getSocketErrorCode() == BCTBX_EWOULDBLOCK || getSocketErrorCode() == EAGAIN)) {
+		}
+		if (error == -1 && (getSocketErrorCode() != BCTBX_EWOULDBLOCK) && (getSocketErrorCode() != EAGAIN)) {
 			lError() << "recvfrom() failed: " << getSocketError();
 			break;
 		}
 
 	} while (ms_get_cur_time_ms() - begin < timeout);
 end:
-	if (sock != 1) bctbx_socket_close(sock);
-	if (res) bctbx_freeaddrinfo(res);
+	if (sock != 1) {
+		bctbx_socket_close(sock);
+	}
+	if (res != nullptr) {
+		bctbx_freeaddrinfo(res);
+	}
 	return result;
 }
 
@@ -1032,18 +1168,19 @@ end:
  * The local network permission check is done by simply sending a packet to itself.
  */
 bool IceService::hasLocalNetworkPermission(const std::list<std::string> &localAddrs) {
-	string localAddr4, localAddr6;
+	string localAddr4;
+	string localAddr6;
 
 	if (localAddrs.empty()) {
 		lError() << "Cannot check the local network permission because the local network addresses are unknown.";
 		return false;
 	}
 	/* Select the first IPv4 and IPv6 addresses */
-	for (auto addr : localAddrs) {
+	for (const auto &addr : localAddrs) {
 		if (addr.find(':') == string::npos && localAddr4.empty()) {
 			/* not an IPv6 address */
 			localAddr4 = addr;
-		} else if (addr.find(":") != string::npos && localAddr6.empty()) {
+		} else if (addr.find(':') != string::npos && localAddr6.empty()) {
 			localAddr6 = addr;
 		}
 	}

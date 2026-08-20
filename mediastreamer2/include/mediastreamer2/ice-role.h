@@ -18,20 +18,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ice_h
-#define ice_h
+#pragma once
 
-#include <mediastreamer2/stun.h>
+namespace ms2 {
 
 /**
- * @file ice.h
- * @brief mediastreamer2 ice.h include file
+ * ICE agent role.
  *
- * This file provides the API to handle the ICE protocol defined in the RFC 5245.
- *
- * This is a C compatibility layer.
+ * See the terminology in paragraph 3 of the RFC 5245 for more details.
  */
+enum class IceRole { Controlling, Controlled };
 
-typedef struct _IceCheckList IceCheckList;
-
-#endif
+} // namespace ms2

@@ -102,9 +102,6 @@ LINPHONE_PUBLIC MediaStream *linphone_call_get_stream(LinphoneCall *call, Linpho
 LINPHONE_PUBLIC VideoStream *linphone_core_get_preview_stream(LinphoneCore *call);
 
 // FIXME: Remove this declaration, use LINPHONE_PUBLIC as ugly workaround, already defined in tester_utils.h
-LINPHONE_PUBLIC IceSession *linphone_call_get_ice_session(const LinphoneCall *call);
-
-// FIXME: Remove this declaration, use LINPHONE_PUBLIC as ugly workaround, already defined in tester_utils.h
 LINPHONE_PUBLIC bool_t linphone_call_get_all_muted(const LinphoneCall *call);
 
 LINPHONE_PUBLIC void linphone_core_set_keep_stream_direction_for_rejected_stream(LinphoneCore *lc, bool_t yesno);

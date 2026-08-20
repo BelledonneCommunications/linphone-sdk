@@ -172,7 +172,10 @@ static void ice_turn_call_base(const CallConfig *config) {
 	LinphoneIceState expected_ice_state = LinphoneIceStateHostConnection;
 	LinphoneMediaDirection expected_video_dir = LinphoneMediaDirectionInactive;
 	bctbx_list_t *lcs = NULL;
-	IceCheckList *cl1 = NULL, *cl2 = NULL;
+	MSTurnContext *rtp_turn_context1 = NULL;
+	MSTurnContext *rtp_turn_context2 = NULL;
+	MSTurnContext *rtcp_turn_context1 = NULL;
+	MSTurnContext *rtcp_turn_context2 = NULL;
 
 	marie = linphone_core_manager_create(transport_supported(LinphoneTransportTls) ? "marie_sips_rc" : "marie_rc");
 	lcs = bctbx_list_append(lcs, marie->lc);
@@ -254,32 +257,28 @@ static void ice_turn_call_base(const CallConfig *config) {
 	lcall = linphone_core_get_current_call(marie->lc);
 	BC_ASSERT_PTR_NOT_NULL(lcall);
 	if (lcall != NULL) {
-		IceSession *ice_session = linphone_call_get_ice_session(lcall);
-		BC_ASSERT_PTR_NOT_NULL(ice_session);
-		if (ice_session != NULL) {
-			cl1 = ice_session_check_list(ice_session, 0);
-			BC_ASSERT_PTR_NOT_NULL(cl1);
-		}
+		BC_ASSERT_TRUE(linphone_call_has_ice_session(lcall));
+		BC_ASSERT_TRUE(linphone_call_has_ice_check_list(lcall, 0));
+		rtp_turn_context1 = linphone_call_get_ice_checklist_rtp_turn_context(lcall, 0);
+		rtcp_turn_context1 = linphone_call_get_ice_checklist_rtcp_turn_context(lcall, 0);
 	}
 	lcall = linphone_core_get_current_call(pauline->lc);
 	BC_ASSERT_PTR_NOT_NULL(lcall);
 	if (lcall != NULL) {
-		IceSession *ice_session = linphone_call_get_ice_session(lcall);
-		BC_ASSERT_PTR_NOT_NULL(ice_session);
-		if (ice_session != NULL) {
-			cl2 = ice_session_check_list(ice_session, 0);
-			BC_ASSERT_PTR_NOT_NULL(cl2);
-		}
+		BC_ASSERT_TRUE(linphone_call_has_ice_session(lcall));
+		BC_ASSERT_TRUE(linphone_call_has_ice_check_list(lcall, 0));
+		rtp_turn_context2 = linphone_call_get_ice_checklist_rtp_turn_context(lcall, 0);
+		rtcp_turn_context2 = linphone_call_get_ice_checklist_rtcp_turn_context(lcall, 0);
 	}
 	/*
 	 * We perform turn context checks to both ends at the same time.
 	 * Indeed, we cannot predict which relay candidates will be used, since both sides are proposing them.
 	 * We have to check that turn channel is used by either marie or pauline.
 	 */
-	if (!config->wrong_password && cl1 && cl2) {
-		check_turn_context_statistics(cl1->rtp_turn_context, cl2->rtp_turn_context, config->forced_relay);
+	if (!config->wrong_password && rtp_turn_context1 && rtcp_turn_context1 && rtp_turn_context2 && rtcp_turn_context2) {
+		check_turn_context_statistics(rtp_turn_context1, rtp_turn_context2, config->forced_relay);
 		if (!config->rtcp_mux_enabled)
-			check_turn_context_statistics(cl1->rtcp_turn_context, cl2->rtcp_turn_context, config->forced_relay);
+			check_turn_context_statistics(rtcp_turn_context1, rtcp_turn_context2, config->forced_relay);
 	}
 
 	end_call(marie, pauline);

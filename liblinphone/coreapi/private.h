@@ -85,7 +85,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "mediastreamer2/ice.h"
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msconference.h"
 

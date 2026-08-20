@@ -98,7 +98,7 @@ void Stream::stop() {
 	mInternalStats.number_of_stops++;
 }
 
-void Stream::setIceCheckList(BCTBX_UNUSED(IceCheckList *cl)) {
+void Stream::setIceCheckList(BCTBX_UNUSED(const std::shared_ptr<ms2::IceCheckList> &checklist)) {
 }
 
 void Stream::iceStateChanged() {

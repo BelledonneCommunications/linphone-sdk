@@ -74,9 +74,8 @@ const shared_ptr<Account> &Call::getDestAccount() const {
 }
 
 /* This a test-only method.*/
-IceSession *Call::getIceSession() const {
+const std::shared_ptr<ms2::IceSession> &Call::getIceSession() const {
 	return getMediaSession()->getPrivate()->getIceSession();
-	return nullptr;
 }
 
 const LinphoneStreamInternalStats *Call::getStreamInternalStats(LinphoneStreamType type) const {

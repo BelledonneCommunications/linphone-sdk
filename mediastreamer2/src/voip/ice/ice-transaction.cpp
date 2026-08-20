@@ -18,20 +18,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ice_h
-#define ice_h
+#include "mediastreamer2/ice-transaction.h"
 
-#include <mediastreamer2/stun.h>
+#include "mediastreamer2/ice-utils.h"
 
-/**
- * @file ice.h
- * @brief mediastreamer2 ice.h include file
- *
- * This file provides the API to handle the ICE protocol defined in the RFC 5245.
- *
- * This is a C compatibility layer.
- */
+namespace ms2 {
 
-typedef struct _IceCheckList IceCheckList;
+IceTransaction::IceTransaction(const std::shared_ptr<IceCandidatePair> &pair, const UInt96 transactionId)
+    : mId(transactionId), mPair(pair) {
+}
 
-#endif
+std::string IceTransaction::getIdStr() const {
+	return IceUtils::getTransactionIdStr(mId);
+}
+
+} // namespace ms2

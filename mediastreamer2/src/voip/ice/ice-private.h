@@ -18,20 +18,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ice_h
-#define ice_h
+#ifndef ICE_PRIVATE_H
+#define ICE_PRIVATE_H
 
-#include <mediastreamer2/stun.h>
+#include <mediastreamer2/ice.h>
 
-/**
- * @file ice.h
- * @brief mediastreamer2 ice.h include file
- *
- * This file provides the API to handle the ICE protocol defined in the RFC 5245.
- *
- * This is a C compatibility layer.
- */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-typedef struct _IceCheckList IceCheckList;
+void ice_check_list_set_rtp_session(IceCheckList *cl, RtpSession *rtp_session);
+
+void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session);
+
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data);
+
+void ice_check_list_print_route(const IceCheckList *cl, const char *message);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

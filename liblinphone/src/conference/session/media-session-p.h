@@ -194,7 +194,7 @@ public:
 	void performMutualAuthentication();
 	void lossOfMediaDetected();
 	/* test function */
-	IceSession *getIceSession() const;
+	const std::shared_ptr<ms2::IceSession> &getIceSession() const;
 
 	void setState(CallSession::State newState, const std::string &message) override;
 

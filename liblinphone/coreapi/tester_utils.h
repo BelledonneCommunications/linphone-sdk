@@ -109,7 +109,10 @@ LINPHONE_PUBLIC int linphone_core_get_local_ip_for(int type, const char *dest, c
 LINPHONE_PUBLIC void linphone_core_enable_forced_ice_relay(LinphoneCore *lc, bool_t enable);
 LINPHONE_PUBLIC void linphone_core_set_zrtp_not_available_simulation(LinphoneCore *lc, bool_t enabled);
 LINPHONE_PUBLIC belle_http_provider_t *linphone_core_get_http_provider(LinphoneCore *lc);
-LINPHONE_PUBLIC IceSession *linphone_call_get_ice_session(const LinphoneCall *call);
+LINPHONE_PUBLIC bool_t linphone_call_has_ice_session(const LinphoneCall *call);
+LINPHONE_PUBLIC bool_t linphone_call_has_ice_check_list(const LinphoneCall *call, unsigned int index);
+LINPHONE_PUBLIC MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call, unsigned int index);
+LINPHONE_PUBLIC MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call, unsigned int index);
 LINPHONE_PUBLIC const struct addrinfo *linphone_core_get_stun_server_addrinfo(LinphoneCore *lc);
 LINPHONE_PUBLIC void linphone_core_enable_send_call_stats_periodical_updates(LinphoneCore *lc, bool_t enabled);
 LINPHONE_PUBLIC LinphoneAccount *linphone_core_lookup_known_account(LinphoneCore *lc, const LinphoneAddress *uri);

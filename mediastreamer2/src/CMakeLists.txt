@@ -107,7 +107,6 @@ set(VOIP_SOURCE_FILES_C
 	voip/bandwidthcontroller.c
 	voip/bitratecontrol.c
 	voip/bitratedriver.c
-	voip/ice.c
 	voip/mediastream.c
 	voip/msiframerequestslimiter.c
 	voip/msmediaplayer.c
@@ -139,6 +138,17 @@ set(VOIP_SOURCE_FILES_CXX
 	videofilters/smff/smff.h
 	videofilters/packet-router.cpp
 	voip/audiostreamvolumes.cpp
+	voip/ice/ice.cpp
+	voip/ice/ice-candidate.cpp
+	voip/ice/ice-candidate-pair.cpp
+	voip/ice/ice-checklist.cpp
+	voip/ice/ice-pair-foundation.cpp
+	voip/ice/ice-session.cpp
+	voip/ice/ice-stun-request.cpp
+	voip/ice/ice-transaction.cpp
+	voip/ice/ice-transport-address.cpp
+	voip/ice/ice-utils.cpp
+	voip/ice/ice-valid-candidate-pair.cpp
 	voip/turn_tcp.cpp
 	voip/video-conference.cpp
 	voip/video-endpoint.cpp

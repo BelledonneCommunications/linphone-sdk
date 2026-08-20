@@ -1,5 +1,5 @@
 ############################################################################
-# Copyright (c) 2010-2022 Belledonne Communications SARL.
+# Copyright (c) 2010-2026 Belledonne Communications SARL.
 #
 # This file is part of mediastreamer2 
 # (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -34,6 +34,18 @@ set(HEADER_FILES
 	flowcontrol.h
 	formats.h
 	ice.h
+	ice-candidate.h
+	ice-candidate-pair.h
+	ice-checklist.h
+	ice-constants.h
+	ice-credentials.h
+	ice-pair-foundation.h
+	ice-session.h
+	ice-stun-request.h
+	ice-transaction.h
+	ice-transport-address.h
+	ice-utils.h
+	ice-valid-candidate-pair.h
 	mediastream.h
 	ms_srtp.h
 	msaudiomixer.h

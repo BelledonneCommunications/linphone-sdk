@@ -3524,7 +3524,7 @@ void MediaSessionPrivate::onLosingPairsCompleted(BCTBX_UNUSED(IceService &servic
 
 void MediaSessionPrivate::onIceRestartNeeded(BCTBX_UNUSED(IceService &service)) {
 	L_Q();
-	getStreamsGroup().getIceService().restartSession(IR_Controlling);
+	getStreamsGroup().getIceService().restartSession(ms2::IceRole::Controlling);
 	MediaSessionParams newParams(*getParams());
 	q->update(&newParams, CallSession::UpdateMethod::Default, q->isCapabilityNegotiationEnabled());
 }
@@ -4547,7 +4547,7 @@ void MediaSessionPrivate::stunAuthRequestedCb(const char *realm,
 	*username = user;
 }
 
-IceSession *MediaSessionPrivate::getIceSession() const {
+const std::shared_ptr<ms2::IceSession> &MediaSessionPrivate::getIceSession() const {
 	return getIceService().getSession();
 }
 
