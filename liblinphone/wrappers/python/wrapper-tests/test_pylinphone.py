@@ -62,6 +62,9 @@ class LinphoneCoreCreationTestCase(unittest.TestCase):
         factory = linphone.Factory.get()
         factory.top_resources_dir = os.path.join(os.path.dirname(os.path.abspath(linphone.__file__)), "share")
 
+        auth_info = factory.create_auth_info("dummy", None, "password", None, None, "sip.example.org")
+        self.assertIsNotNone(auth_info)
+
         core = factory.create_core(None, None, None)
         core_listener = factory.create_core_listener()
         core_listener.on_global_state_changed = self.on_global_state_changed
