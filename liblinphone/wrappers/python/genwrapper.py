@@ -37,6 +37,7 @@ class PythonTranslator(object):
         self.nameTranslator = metaname.Translator.get('Python')
         self.langTranslator = AbsApi.Translator.get('Python')
         self.forbidden_keywords = ['type', 'file', 'list', 'from', 'id', 'filter', 'dir', 'max', 'range', 'min']
+        self.parsed_methods = []
 
     def translate_c_type(self, _ctype, ctypedef = False):
         if isinstance(_ctype, AbsApi.ClassType):
@@ -400,6 +401,7 @@ class PythonTranslator(object):
                 getterDict['c_return_type'] = getter.returnType.containedTypeDesc.name
                 getterDict['doc_return_type'] = "list[" + getterDict['python_return_type'] + "]"
 
+        self.parsed_methods.append(getterDict['python_name'])
         propertyDict['getter'] = getterDict
 
         if setter is not None:
@@ -429,6 +431,7 @@ class PythonTranslator(object):
                 setterDict['python_value_type'] = setter.args[0].type.containedTypeDesc.desc.name.translate(self.nameTranslator)
                 setterDict['doc_value_type'] = "list[" + setterDict['python_value_type'] + "]"
 
+            self.parsed_methods.append(setterDict['python_name'])
             propertyDict['setter'] = setterDict
 
         return propertyDict
@@ -439,6 +442,10 @@ class PythonTranslator(object):
         methodDict['is_static'] = is_static
         methodDict['c_name'] = _method.name.to_c()
         methodDict['python_name'] = _method.name.to_snake_case()
+
+        if methodDict['c_name'][-1].isdigit() and methodDict['python_name'] in self.parsed_methods :
+            methodDict['python_name'] = _method.name.to_snake_case() + "_" + str(methodDict['c_name'][-1])
+        
         methodDict['briefDoc'] = _method.briefDescription.translate(self.docTranslator)
         methodDict['detailedDoc'] = _method.detailedDescription.translate(self.docTranslator) if _method.detailedDescription is not None else None
 
@@ -519,6 +526,7 @@ class PythonTranslator(object):
                 argType = 'Union[' + argType + ', None]'
             methodDict['doc_python_params'] += paramDict['python_param_name'] + ": " + argType
 
+        self.parsed_methods.append(methodDict['python_name'])
         return methodDict
 
     def translate_object(self, _obj, is_interface=False):
