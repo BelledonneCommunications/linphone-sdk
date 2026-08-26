@@ -119,6 +119,7 @@ public:
 	int globalEqual(const SalMediaDescription &otherMd) const;
 	int compareToChosenConfiguration(const SalMediaDescription &otherMd) const;
 	int compareToActualConfiguration(const SalMediaDescription &otherMd) const;
+	bool hasAcfg() const;
 
 	static const std::string printDifferences(int result);
 

@@ -1126,13 +1126,19 @@ void MS2Stream::updateCryptoParameters(const OfferAnswerContext &params) {
 	}
 
 	if (resultStreamDesc.hasDtls()) {
+
+		if (mDtlsStarted && mSessions.dtls_context) {
+			// Update DTLS on started state so reset context
+			ms_dtls_srtp_reset_context(mSessions.dtls_context);
+			mDtlsStarted = false;
+			mSessions.dtls_context = NULL;
+		}
 		if (!mSessions.dtls_context) {
 			ms = getMediaStream();
 			initDtlsParams(ms);
 			// Copy newly created dtls context into mSessions
 			media_stream_reclaim_sessions(ms, &mSessions);
 		}
-
 		startDtls(params);
 	} else {
 		if (mSessions.dtls_context) {

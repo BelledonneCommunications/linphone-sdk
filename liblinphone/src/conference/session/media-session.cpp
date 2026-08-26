@@ -379,13 +379,11 @@ void MediaSessionPrivate::accepted() {
 					    (getStreamsGroup().getIceService().getSession() &&
 					     (!isUpdateSentWhenIceCompleted() ||
 					      getStreamsGroup().getIceService().hasCompletedCheckList()))) {
-						// Compare the chosen final configuration with the actual configuration in the local decription
-						const auto diff = md->compareToActualConfiguration(*localDesc);
-						const bool potentialConfigurationChosen = (diff & SAL_MEDIA_DESCRIPTION_CRYPTO_TYPE_CHANGED);
-						if (potentialConfigurationChosen) {
-							lInfo() << "Sending a reINVITE because the actual configuraton was not chosen in the "
-							           "capability negotiation procedure. Detected differences "
-							        << SalMediaDescription::printDifferences(diff);
+						// Check if remote configuration has choosen a potential configuration.
+						// In this case, we have to send a ReINVITE to confirm it.
+						if (rmd && rmd->hasAcfg()) {
+							lInfo() << "Sending a reINVITE because a potential configuration was chosen in the "
+							           "capability negotiation procedure.";
 							MediaSessionParams newParams(*getParams());
 							newParams.getPrivate()->setInternalCallUpdate(true);
 							q->update(&newParams, CallSession::UpdateMethod::Default, true);

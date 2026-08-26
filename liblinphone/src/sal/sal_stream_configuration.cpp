@@ -209,12 +209,14 @@ int SalStreamConfiguration::equal(const SalStreamConfiguration &other) const {
 	if (dir != other.dir) result |= SAL_MEDIA_DESCRIPTION_DIRECTION_CHANGED;
 
 	/*DTLS*/
-	if (dtls_role != other.dtls_role) result |= SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
-
-	if (((dtls_role == SalDtlsRoleInvalid) && (other.dtls_role != SalDtlsRoleInvalid)) ||
-	    ((dtls_role != SalDtlsRoleInvalid) && (other.dtls_role == SalDtlsRoleInvalid)))
-		result |= SAL_MEDIA_DESCRIPTION_CRYPTO_TYPE_CHANGED;
-	if (dtls_fingerprint.compare(other.dtls_fingerprint) != 0) result |= SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
+	// Role is considered as changed if initialized and different.
+	if (other.dtls_role != SalDtlsRoleUnset && dtls_role != SalDtlsRoleUnset) {
+		if (dtls_role != other.dtls_role && (dtls_role == SalDtlsRoleInvalid || other.dtls_role == SalDtlsRoleInvalid))
+			result |= SAL_MEDIA_DESCRIPTION_CRYPTO_TYPE_CHANGED;
+		if (dtls_fingerprint.compare(other.dtls_fingerprint) != 0) {
+			result |= SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
+		}
+	}
 
 	/*ZRTP*/
 	if (haveZrtpHash != other.haveZrtpHash) {

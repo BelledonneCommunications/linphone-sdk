@@ -822,6 +822,14 @@ int SalMediaDescription::globalEqual(const SalMediaDescription &otherMd) const {
 	return result;
 }
 
+bool SalMediaDescription::hasAcfg() const {
+	for (auto stream1 = streams.cbegin(); stream1 != streams.cend(); ++stream1) {
+		if (!stream1->enabled()) continue;
+		if (stream1->hasAcfg()) return true;
+	}
+	return false;
+}
+
 const std::string SalMediaDescription::printDifferences(int result) {
 	std::string out = std::string();
 	if (result & SAL_MEDIA_DESCRIPTION_DIRECTION_CHANGED) {

@@ -134,6 +134,7 @@ public:
 	bool hasDtls() const;
 	bool hasZrtp() const;
 	bool hasLimeIk() const;
+	bool hasAcfg() const;
 
 	const std::string &getRtcpAddress() const;
 	const int &getRtcpPort() const;
