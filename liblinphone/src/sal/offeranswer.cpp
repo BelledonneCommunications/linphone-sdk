@@ -508,7 +508,6 @@ SalStreamDescription OfferAnswerEngine::initiateOutgoingStream(const SalStreamDe
 						break;
 					} else {
 						localCfgIdx = cfg.first;
-						const auto cfgLine = cfg.second;
 						// Perform negotiations only with acfg
 						resultNegCfg = OfferAnswerEngine::initiateOutgoingConfiguration(
 						    local_offer, remote_answer, result, localCfgIdx, remoteCfgIdx);

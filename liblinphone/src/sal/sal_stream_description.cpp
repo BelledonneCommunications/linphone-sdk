@@ -937,6 +937,15 @@ bool SalStreamDescription::hasImplicitAvpf() const {
 	return getChosenConfiguration().hasImplicitAvpf();
 }
 
+bool SalStreamDescription::hasAcfg() const {
+	for (auto cfg : unparsed_cfgs) {
+		if (cfg.second.find("a=acfg") != std::string::npos) {
+			return true;
+		}
+	}
+	return false;
+}
+
 bool SalStreamDescription::supportSrtp() const {
 	for (const auto &cfgEl : cfgs) {
 		const auto &cfg = cfgEl.second;
