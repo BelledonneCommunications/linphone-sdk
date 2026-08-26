@@ -87,6 +87,7 @@ cmake_dependent_option(BUILD_OPENLDAP "Build openldap library source code from s
 cmake_dependent_option(BUILD_OPENLDAP_SHARED_LIBS "Choose to build shared or static openldap library." ${BUILD_SHARED_LIBS} "BUILD_OPENLDAP" OFF)
 
 cmake_dependent_option(BUILD_OPUS "Build opus library source code from submodule instead of searching it in system libraries." ON "ENABLE_OPUS" OFF)
+cmake_dependent_option(BUILD_OPUS_OSCE "Enable OSCE when building the opus library." ON "BUILD_OPUS" OFF)
 cmake_dependent_option(BUILD_OPUS_SHARED_LIBS "Choose to build shared or static opus library." ${BUILD_SHARED_LIBS} "BUILD_OPUS" OFF)
 
 cmake_dependent_option(BUILD_RNNOISE "Build rnnoise library source code from submodule instead of searching it in system libraries." ON "ENABLE_RNNOISE" OFF)
@@ -1374,7 +1375,7 @@ if(BUILD_OPUS)
 		else()
 			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
 		endif()
-		set(OPUS_OSCE ON)
+		set(OPUS_OSCE ${BUILD_OPUS_OSCE})
 		set(BUILD_SHARED_LIBS ${BUILD_OPUS_SHARED_LIBS})
 
 		set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # Prevent project from overriding the options we just set here

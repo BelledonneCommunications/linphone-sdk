@@ -438,8 +438,7 @@
         "ENABLE_SCREENSHARING": "OFF",
         "ENABLE_STRICT": "OFF",
         "ENABLE_WEBRTC_AEC": "ON",
-        "LINPHONESDK_PLATFORM": "Raspberry",
-        "OPUS_FIXED_POINT": "ON"
+        "LINPHONESDK_PLATFORM": "Raspberry"
       }
     },
     {
@@ -448,7 +447,10 @@
       "displayName": "Config for Raspberry PI Zero/W/WH & 1 Model A/B/A+/B+",
       "description": "Build for Raspberry PI Zero/W/WH & 1 Model A/B/A+/B+ using Unix Makefiles",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-raspberrypi-0-1.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-raspberrypi-0-1.cmake",
+        "BUILD_OPUS_OSCE": "OFF",
+        "OPUS_FIXED_POINT": "ON",
+        "OPUS_DISABLE_INTRINSICS": "ON"
       }
     },
     {
