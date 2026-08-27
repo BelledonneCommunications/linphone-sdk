@@ -10120,11 +10120,28 @@ void linphone_core_enable_account_strict_matching(LinphoneCore *core, bool_t ena
 }
 
 bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core) {
-	return linphone_config_get_bool(linphone_core_get_config(core), "chat", "send_message_after_notify", 0);
+#if TARGET_OS_IPHONE
+	if (!core->is_main_core) {
+		return (linphone_core_get_message_sending_delay_app_ext(core) > 0);
+	}
+#endif // TARGET_OS_IPHONE
+	return (linphone_core_get_message_sending_delay(core) > 0);
 }
 
 void linphone_core_enable_send_message_after_notify(LinphoneCore *core, bool_t enable) {
-	linphone_config_set_bool(linphone_core_get_config(core), "chat", "send_message_after_notify", enable);
+	const int duration = enable ? 10 : 0;
+	auto get_delay_fn = linphone_core_get_message_sending_delay;
+	auto set_delay_fn = linphone_core_set_message_sending_delay;
+#if TARGET_OS_IPHONE
+	/* iOS App extensions have their own delay setting. */
+	if (!core->is_main_core) {
+		get_delay_fn = linphone_core_get_message_sending_delay_app_ext;
+		set_delay_fn = linphone_core_set_message_sending_delay_app_ext;
+	}
+#endif // TARGET_OS_IPHONE
+	if ((enable && get_delay_fn(core) == 0) || !enable) {
+		set_delay_fn(core, duration);
+	}
 }
 
 int linphone_core_get_message_sending_delay(const LinphoneCore *core) {
