@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## [5.5.20] 2026-08-29
+
+### Changed
+- Noise suppression using RNNoise disabled for all platforms
+
 ## [5.5.16] 2026-08-18
 
 ### Fixed

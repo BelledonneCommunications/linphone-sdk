@@ -1771,7 +1771,7 @@ static void sound_config_read(LinphoneCore *lc) {
 	/* The software noise suppression is not enabled on Android nor iOS devices, as they have efficient hardware noise
 	 * suppressor. On other systems, the noise suppression can be enabled only if the MSNoiseSuppressor filter is
 	 * available, that is the case if the RNNoise library has been built. */
-	int noise_suppression_enable_default = 1;
+	int noise_suppression_enable_default = 0;
 #if defined(__ANDROID__) || TARGET_OS_IPHONE
 	noise_suppression_enable_default = 0;
 #endif
