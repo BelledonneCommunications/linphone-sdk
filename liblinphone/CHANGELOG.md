@@ -22,6 +22,10 @@ This changelog file was started on October 2019. Previous changes were more or l
 - Optimize contact importation by performing the vcards parsing asynchronously in a background thread, and by
   optimizing the parser and the database storage.
 
+## [5.5.20] 2026-08-29
+
+### Changed
+- Noise suppression using RNNoise disabled for all platforms
 
 ## [5.5.16] 2026-08-18
 
@@ -33,7 +37,6 @@ This changelog file was started on October 2019. Previous changes were more or l
 - Change linphone_core_subscribe() and linphone_core_publish() returned LinphoneEvent object ownership policy: a reference is now given to the caller,
   making it consistent with linphone_core_create_subscribe() and linphone_core_create_publish().
   This change impacts only direct users of the C API.
-
 
 ## [5.5.0] 2026-05-25
 
