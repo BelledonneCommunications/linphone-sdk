@@ -8285,25 +8285,8 @@ LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_download_file_count(Lin
 LINPHONE_PUBLIC unsigned int linphone_core_get_remaining_upload_file_count(LinphoneCore *core);
 
 /**
- * Enable sending of chat message on group chats only after receiving the NOTIFY full state
- * If it is disabled, as it is the default value, message will be sent after the delay set by
- *`linphone_core_get_message_sending_delay`
- * @ingroup group_chatroom
- * @param core #LinphoneCore object @notnil
- * @param enabled TRUE if enabled, FALSE otherwise.
- **/
-LINPHONE_PUBLIC void linphone_core_enable_send_message_after_notify(LinphoneCore *core, bool_t enabled);
-
-/**
- * Returns enablement of sending chat messages on group chats after receiving the NOTIFY full state
- * @ingroup group_chatroom
- * @param core #LinphoneCore object @notnil
- * @return TRUE if the core waits for the NOTIFY full statet before sending messages to group chats, FALSE otherwise.
- **/
-LINPHONE_PUBLIC bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core);
-
-/**
- * Returns the duration of the timer that delays the sending of chat messages while waiting for a NOTIFY message
+ * Returns the maximum duration, in seconds, that a chatroom waits for the NOTIFY carrying the
+ * full state of an encrypted chatroom before sending chat messages anyway.
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @return the duration of the timer in seconds
@@ -8311,19 +8294,20 @@ LINPHONE_PUBLIC bool_t linphone_core_send_message_after_notify_enabled(const Lin
 LINPHONE_PUBLIC int linphone_core_get_message_sending_delay(const LinphoneCore *core);
 
 /**
- * It sets the duration of the timer to delay the sending of chat messages in flexisip based chatrooms after sending the
- * SUBSCRIBE out. If a NOTIFY comes in before the timer expires, messages will be then sent at the time, otherwise when
- * the timer expires.
+
+ * Sets the maximum duration, in seconds, that a chatroom will wait for the NOTIFY carrying the
+ * full state of an encrypted chatroom before sending the chat message anyway. The timer starts
+ * when the SUBSCRIBE is sent and is cancelled as soon as the NOTIFY is received.
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
- * @warning it is only useful to set this property if `linphone_core_send_message_after_notify_enabled` returns false
  **/
 LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core, int duration);
 
 /**
- * Returns the duration of the timer that delays the sending of chat messages while waiting for a NOTIFY message,
- * when the core is running inside an IOS app extension.
+ * Returns the maximum duration, in seconds, that the chatroom waits for the NOTIFY carrying the
+ * full state of an encrypted chatroom before sending chat messages anyway, when the core is
+ * running inside an iOS app extension.
  * @ingroup group_IOS
  * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
@@ -8442,6 +8426,29 @@ LINPHONE_PUBLIC void linphone_core_stop_hid_devices_detection(LinphoneCore *core
 /************ */
 /* DEPRECATED */
 /* ********** */
+
+/**
+ * Enable sending of chat message on group chats only after receiving the NOTIFY full state
+ * If it is disabled, as it is the default value, message will be sent after the delay set by
+ *`linphone_core_get_message_sending_delay`
+ * When enabled, the delay defaults to 10 seconds if no value has already been set using
+ * linphone_core_set_message_sending_delay().
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @param enabled TRUE if enabled, FALSE otherwise.
+ * @deprecated 26/08/2026. Use linphone_core_set_message_sending_delay instead
+ **/
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_enable_send_message_after_notify(LinphoneCore *core,
+                                                                                        bool_t enabled);
+
+/**
+ * Returns enablement of sending chat messages on group chats after receiving the NOTIFY full state
+ * @ingroup group_chatroom
+ * @param core #LinphoneCore object @notnil
+ * @return TRUE if the core waits for the NOTIFY full state before sending messages to group chats, FALSE otherwise.
+ *  @deprecated 26/08/2026. Use linphone_core_get_message_sending_delay instead
+ **/
+LINPHONE_PUBLIC LINPHONE_DEPRECATED bool_t linphone_core_send_message_after_notify_enabled(const LinphoneCore *core);
 
 /**
  * Search from the list of current calls if a remote address match uri

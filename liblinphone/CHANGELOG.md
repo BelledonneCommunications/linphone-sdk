@@ -44,6 +44,11 @@ This changelog file was started on October 2019. Previous changes were more or l
 - Refactored LDAP and CardDav integration: the new LinphoneRemoteContactDirectory object unifies both methods.
   LinphoneLdap object is deprecated.
 - Improved reliability of chat - pending messages are now immediately stored.
+- Simplification of the mechanism for queuing messages in encrypted chats while waiting for the initial NOTIFY.
+  Messages are now sent as soon as the NOTIFY notification is received, or when the timeout specified by
+  linphone_core_get_message_sending_delay() expires, whichever comes first.
+- Deprecate linphone_core_enable_send_message_after_notify() and linphone_core_send_message_after_notify_enabled():
+  linphone_core_set_message_sending_delay() is now the only setting needed to control this behavior.
 
 ### Fixed
 - race conditions leading to crashes when liblinphone is used in a multi-threaded application.

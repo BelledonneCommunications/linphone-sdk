@@ -99,7 +99,7 @@ public:
 		_configure_core_for_audio_video_conference(mMgr.get(), factoryUri.toC());
 		linphone_core_enable_gruu_in_conference_address(getLc(), FALSE);
 		linphone_core_set_add_admin_information_to_contact(getLc(), FALSE);
-		linphone_core_enable_send_message_after_notify(getLc(), TRUE);
+		linphone_core_set_message_sending_delay(getLc(), 0);
 		setupMgrForConference();
 		LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
 		linphone_core_cbs_set_chat_room_state_changed(cbs, core_chat_room_state_changed);

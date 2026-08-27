@@ -540,12 +540,10 @@ bool ClientChatRoom::canSendMessages() const {
 	if (conference) {
 		subscriptionUnderway = conference->isSubscriptionUnderWay();
 	}
-	bool sendMessagesAfterNotify = !!linphone_core_send_message_after_notify_enabled(core->getCCore());
-	bool handlerAllowsMessageSending = sendMessagesAfterNotify ? !subscriptionUnderway : true;
 	// Chat message can be sent only after the subscription has been finalized and the first NOTIFY received
 	// For encrypted chat rooms, the participant list cannot be empty
 	bool canMessageBeSent =
-	    (handlerAllowsMessageSending && !coreOff && (chatBackend == ChatParams::Backend::FlexisipChat) &&
+	    (!subscriptionUnderway && !coreOff && (chatBackend == ChatParams::Backend::FlexisipChat) &&
 	     (chatRoomState == ConferenceInterface::State::Created) &&
 	     (!isEncrypted || !mConference->getParticipantDevices(false).empty()));
 	if (!canMessageBeSent) {
@@ -560,7 +558,7 @@ bool ClientChatRoom::canSendMessages() const {
 		if (chatBackend != ChatParams::Backend::FlexisipChat) {
 			lInfo() << " - chat backend is not FlexisipChat";
 		}
-		if (sendMessagesAfterNotify) {
+		if (subscriptionUnderway) {
 			lInfo() << " - subscription is underway (actually subscription is"
 			        << std::string(subscriptionUnderway ? " " : " not ") << "underway)";
 		}
