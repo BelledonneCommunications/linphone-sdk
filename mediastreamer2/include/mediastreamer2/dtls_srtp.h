@@ -88,6 +88,12 @@ MS2_PUBLIC MSDtlsSrtpContext *ms_dtls_srtp_context_new(struct _MSMediaStreamSess
 MS2_PUBLIC void ms_dtls_srtp_start(MSDtlsSrtpContext *context);
 
 /**
+ * Is the DTLS-SRTP channel started?
+ * @param[in/out]	context		the DTLS-SRTP context
+ */
+MS2_PUBLIC bool_t ms_dtls_srtp_started(MSDtlsSrtpContext *context);
+
+/**
  * Free ressources used by DTLS-SRTP context
  * @param[in/out]	context		the DTLS-SRTP context
  */

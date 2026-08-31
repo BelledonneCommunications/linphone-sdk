@@ -811,6 +811,15 @@ int MSDtlsSrtpContext::processDtlsPacket(mblk_t *msg) {
 			setRole(MSDtlsSrtpRoleIsServer); /* this call will update role and complete server setup */
 			start();                         /* complete the ssl setup and change channel_status to handshake ongoing */
 			ssl = mDtlsCryptoContext.ssl;
+			ms_media_stream_sessions_set_encryption_status(mStreamSessions, MediaStreamSendRecv,
+			                                               MSMediaEncryptionStatusInProgress);
+			// Send an event when we change the encryption status so when we add a stream, the change towards InProgress
+			// is processed
+			OrtpEvent *ev = ortp_event_new(ORTP_EVENT_DTLS_ENCRYPTION_CHANGED);
+			OrtpEventData *eventData = ortp_event_get_data(ev);
+			eventData->info.dtls_info.dtls_stream_encrypted = 0;
+			eventData->info.dtls_info.errorCode = MS_DTLS_ERROR_NONE;
+			rtp_session_dispatch_event(mStreamSessions->rtp_session, ev);
 		}
 		/* process the packet and store result */
 		ret = bctbx_ssl_handshake(ssl);
@@ -945,8 +954,7 @@ extern "C" void ms_dtls_srtp_reset_context(MSDtlsSrtpContext *context) {
 
 		ms_message("Reseting DTLS context [%p] and SSL connections", context);
 
-		if ((context->mChannelStatus == DtlsStatus::HandshakeOngoing) ||
-		    (context->mChannelStatus == DtlsStatus::HandshakeOver)) {
+		if (context->mChannelStatus >= DtlsStatus::HandshakeOngoing) {
 			bctbx_ssl_session_reset(context->mDtlsCryptoContext.ssl);
 		}
 
@@ -989,6 +997,15 @@ extern "C" MSDtlsSrtpContext *ms_dtls_srtp_context_new(MSMediaStreamSessions *se
 
 	context->mChannelStatus = DtlsStatus::ContextReady;
 	return context;
+}
+
+extern "C" bool_t ms_dtls_srtp_started(MSDtlsSrtpContext *context) {
+	if (context == NULL) {
+		return FALSE;
+	}
+	std::lock_guard<std::mutex> lock(context->mtx);
+	if (context->mChannelStatus < DtlsStatus::HandshakeOngoing) return FALSE;
+	return TRUE;
 }
 
 extern "C" void ms_dtls_srtp_start(MSDtlsSrtpContext *context) {

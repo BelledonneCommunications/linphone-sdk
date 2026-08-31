@@ -1087,11 +1087,14 @@ void MS2Stream::startDtls(const OfferAnswerContext &params) {
 		ms_dtls_srtp_set_peer_fingerprint(
 		    mSessions.dtls_context,
 		    L_STRING_TO_C(params.getRemoteStreamDescription().getChosenConfiguration().dtls_fingerprint));
-		ms_dtls_srtp_set_role(mSessions.dtls_context,
-		                      (resultStreamDesc.getChosenConfiguration().dtls_role == SalDtlsRoleIsClient)
-		                          ? MSDtlsSrtpRoleIsClient
-		                          : MSDtlsSrtpRoleIsServer); /* Set the role to client */
-		ms_dtls_srtp_start(mSessions.dtls_context); /* Then start the engine, it will send the DTLS client Hello */
+		if (ms_dtls_srtp_started(mSessions.dtls_context) ==
+		    FALSE) { // DTLS auto start upon client hello reception so we may already be running
+			ms_dtls_srtp_set_role(mSessions.dtls_context,
+			                      (resultStreamDesc.getChosenConfiguration().dtls_role == SalDtlsRoleIsClient)
+			                          ? MSDtlsSrtpRoleIsClient
+			                          : MSDtlsSrtpRoleIsServer); /* Set the role to client */
+			ms_dtls_srtp_start(mSessions.dtls_context); /* Then start the engine, it will send the DTLS client Hello */
+		}
 		mDtlsStarted = true;
 		mInternalStats.number_of_dtls_starts++;
 	}
