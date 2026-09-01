@@ -1076,7 +1076,13 @@ struct belle_sip_dialog {
 	unsigned char is_internal;          /*Internal dialogs are those created by refreshers. */
 	unsigned char simulate_lost_ack;    /*used by testers*/
 	unsigned char got_initial_ack;      /* used for server dialogs only */
+
+	belle_sip_transaction_t **prack_transactions;
+	int num_prack_transactions;
 };
+int add_prack_transaction(belle_sip_dialog_t *dialog, belle_sip_transaction_t *tr);
+int find_prack_transaction(belle_sip_dialog_t *dialog, belle_sip_transaction_t *tr);
+void remove_prack_transaction(belle_sip_dialog_t *dialog, int idx);
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
 belle_sip_dialog_t *belle_sip_provider_create_dialog_internal(belle_sip_provider_t *prov,

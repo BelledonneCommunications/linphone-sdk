@@ -259,6 +259,23 @@ int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t
 
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t) {
 	belle_sip_object_ref(t);
+
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t, belle_sip_client_transaction_t)) {
+		belle_sip_dialog_t *dialog = belle_sip_transaction_get_dialog(t);
+		int idx;
+
+		if (dialog && ((idx = find_prack_transaction(dialog, t)) >= 0)) { // found in the prack_transactions list?
+			belle_sip_request_t *req = belle_sip_transaction_get_request(t);
+
+			if (req && strcmp(belle_sip_request_get_method(req), "PRACK") == 0) {
+				belle_sip_message("Terminating PRACK transaction [%p], releasing dialog reference idx = %d", t, idx);
+
+				belle_sip_object_unref(BELLE_SIP_CLIENT_TRANSACTION(t));
+				remove_prack_transaction(dialog, idx); // unref / remove from the prack_transactions list
+			}
+		}
+	}
+
 	if (t->call_repair_timer) {
 		belle_sip_transaction_stop_timer(t, t->call_repair_timer);
 		belle_sip_object_unref(t->call_repair_timer);

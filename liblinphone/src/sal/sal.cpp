@@ -392,6 +392,31 @@ void Sal::processTimeoutCb(BCTBX_UNUSED(void *userCtx), const belle_sip_timeout_
 	auto clientTransaction = belle_sip_timeout_event_get_client_transaction(event);
 	auto op =
 	    static_cast<SalOp *>(belle_sip_transaction_get_application_data(BELLE_SIP_TRANSACTION(clientTransaction)));
+
+	if (clientTransaction) {
+		belle_sip_request_t *request = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(clientTransaction));
+		const char *method = request ? belle_sip_request_get_method(request) : nullptr;
+		if ((method) && (strcmp(method, "PRACK") == 0)) {
+			auto dlg = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(clientTransaction));
+			if (dlg) {
+				op = static_cast<SalOp *>(belle_sip_dialog_get_application_data(dlg));
+				if (op) {
+					sal_error_info_set(&op->mErrorInfo, SalReasonRequestTimeout, "SIP", 408, "PRACK Handshake Timeout",
+					                   nullptr);
+					SalCallOp *callOp = dynamic_cast<SalCallOp *>(op);
+					if (callOp) {
+						lInfo() << "processTimeoutCb for PRACK";
+						sal_error_info_set(&callOp->mErrorInfo, SalReasonRequestTimeout, "SIP", 408,
+						                   "PRACK Handshake Timeout", nullptr);
+						callOp->mRoot->mCallbacks.call_failure(callOp);
+						callOp->terminate(&op->mErrorInfo);
+					}
+				}
+			}
+			return;
+		}
+	}
+
 	if (op && op->mCallbacks && op->mCallbacks->process_timeout) op->mCallbacks->process_timeout(op, event);
 	else lError() << "Unhandled event timeout [" << event << "]";
 }
@@ -408,8 +433,17 @@ void Sal::processTransactionTerminatedCb(BCTBX_UNUSED(void *userCtx),
 		op->mCallbacks->process_transaction_terminated(op, event);
 	else lInfo() << "Unhandled transaction terminated [" << transaction << "]";
 
+	auto request = belle_sip_transaction_get_request(transaction);
+	const char *method = request ? belle_sip_request_get_method(request) : nullptr;
+	if ((method) && (strcmp(method, "PRACK") == 0)) {
+		belle_sip_transaction_set_application_data(transaction, NULL);
+		lInfo() << "processTransactionTerminatedCb for PRACK: skipping op-unref for transaction [" << transaction
+		        << "]";
+		return;
+	}
+
 	if (op) {
-		op->unref(); // Because every transaction ref op
+		op->unref(); // Because every transaction ref op (except PRACK and belle_sip_internal transactions)
 		belle_sip_transaction_set_application_data(
 		    transaction,
 		    nullptr); // No longer reference something we do not ref to avoid future access of a released op

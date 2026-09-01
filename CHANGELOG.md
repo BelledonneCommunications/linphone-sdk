@@ -14,6 +14,7 @@ changes made to these components.
 ## Unreleased
 
 ### Added
+- Add stateful PRACK sending [RFC3262](https://www.rfc-editor.org/info/rfc3262)
 - MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
 
 ### Changes
@@ -26,7 +27,7 @@ changes made to these components.
 - MKV: Add checks on buffer to avoid Out-of-bounds reads.
 - VP8: Fix a cast to avoid losing data.
 
-## [5.5.29]
+## [5.5.29] 2026-09-30
 
 ### Fixed
 - iOS : fix possible audio route bug when switching audio device during call

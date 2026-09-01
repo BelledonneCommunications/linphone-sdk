@@ -20,6 +20,33 @@
 #include "bctoolbox/defs.h"
 #include "belle_sip_internal.h"
 
+/* helper functions to administer the prack_transactions list */
+int add_prack_transaction(belle_sip_dialog_t *dialog, belle_sip_transaction_t *tr) {
+	dialog->num_prack_transactions++;
+	dialog->prack_transactions = (belle_sip_transaction_t **)realloc(
+	    dialog->prack_transactions, dialog->num_prack_transactions * sizeof(belle_sip_client_transaction_t *));
+	dialog->prack_transactions[dialog->num_prack_transactions - 1] = tr;
+	return dialog->num_prack_transactions - 1;
+}
+int find_prack_transaction(belle_sip_dialog_t *dialog, belle_sip_transaction_t *tr) {
+	for (int i = 0; i < dialog->num_prack_transactions; i++)
+		if (dialog->prack_transactions[i] == tr) return i;
+	return -1; // not found
+}
+void remove_prack_transaction(belle_sip_dialog_t *dialog, int idx) {
+	if (!dialog->num_prack_transactions) return;
+	for (int i = idx; i < (dialog->num_prack_transactions - 1); i++)
+		dialog->prack_transactions[i] = dialog->prack_transactions[i + 1];
+	dialog->num_prack_transactions--;
+	if (dialog->num_prack_transactions)
+		dialog->prack_transactions = (belle_sip_transaction_t **)realloc(
+		    dialog->prack_transactions, dialog->num_prack_transactions * sizeof(belle_sip_client_transaction_t *));
+	else {
+		free(dialog->prack_transactions);
+		dialog->prack_transactions = NULL;
+	}
+}
+
 static void belle_sip_dialog_init_200Ok_retrans(belle_sip_dialog_t *obj, belle_sip_response_t *resp);
 static int belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_response_t *msg);
 static void belle_sip_dialog_process_queue(belle_sip_dialog_t *dialog);
@@ -515,7 +542,26 @@ belle_sip_dialog_create_prack(belle_sip_dialog_t *dialog, unsigned int rseq, uns
 }
 
 static void belle_sip_dialog_send_prack(belle_sip_dialog_t *dialog, belle_sip_request_t *request) {
-	belle_sip_provider_send_request(dialog->provider, request);
+	belle_sip_client_transaction_t *tr;
+	tr = belle_sip_provider_create_client_transaction(dialog->provider, request);
+	if (!tr) {
+		belle_sip_error("Dialog [%p]: Could not instantiate client transaction for PRACK. Falling back to stateless.",
+		                dialog);
+		belle_sip_provider_send_request(dialog->provider, request);
+		return;
+	}
+	belle_sip_transaction_set_dialog(BELLE_SIP_TRANSACTION(tr), dialog);
+	belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(tr), NULL);
+
+	int idx = add_prack_transaction(dialog, BELLE_SIP_TRANSACTION(belle_sip_object_ref(
+	                                            tr))); // must happen before belle_sip_client_transaction_send_request!
+	if (belle_sip_client_transaction_send_request(tr) != 0) {
+		belle_sip_error("Dialog [%p]: Failed to transmit stateful PRACK.", dialog);
+		belle_sip_object_unref(tr);
+		remove_prack_transaction(dialog, idx);
+		return;
+	}
+	belle_sip_message("Sent new stateful PRACK [%p], idx in prack_transactions = %d", tr, idx);
 }
 
 /*return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it*/
@@ -594,6 +640,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t *tr
 	int is_subscribe = strcmp(belle_sip_request_get_method(req), "SUBSCRIBE") == 0;
 	int is_notify = strcmp(belle_sip_request_get_method(req), "NOTIFY") == 0;
 	belle_sip_transaction_t *previous_transaction = NULL;
+
+	if (find_prack_transaction(obj, transaction) >= 0) {
+		belle_sip_message("Skipping belle_sip_dialog_update for PRACK transaction");
+		return 1;
+	}
 
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].", obj, transaction);
 
@@ -1131,6 +1182,14 @@ void belle_sip_dialog_delete(belle_sip_dialog_t *obj) {
 		                  (unsigned int)dropped_transactions);
 	belle_sip_list_for_each(obj->queued_ct, (void (*)(void *))belle_sip_transaction_terminate);
 	obj->queued_ct = belle_sip_list_free_with_data(obj->queued_ct, belle_sip_object_unref);
+
+	while (obj->prack_transactions) {
+		belle_sip_message("belle_sip_dialog_delete: Have prack_transaction [%p], removing it",
+		                  obj->prack_transactions[0]);
+		belle_sip_transaction_terminate(
+		    BELLE_SIP_TRANSACTION(obj->prack_transactions[0])); // removes it from the obj->prack_transactions
+	}
+
 	belle_sip_provider_remove_dialog(obj->provider, obj);
 }
 
