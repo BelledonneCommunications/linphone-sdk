@@ -288,29 +288,9 @@ int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus) {
       *dst++ = 0;
       *dst++ = 0;
       *dst++ = 1;
-    	*dst++ = *src++;
-    	while (src < (im->b_wptr - 5)) {
-/*  RBSP (Raw Byte Sequence Payload) and SODB (String of Data Bits).
- *	RBSP has any of 0x000000, 0x000001, 0x000002, and 0x000003
- *	SODB has 0x00000300, 0x00000301, 0x00000302, and 0x00000303
- *
- *  An encoder has to insert an “emulation prevention byte” 0x03 while a decoder has to remove emulation prevention bytes.
- *	Encoder : RBSP => SODB
- *	Decoder : SODB => RBSP
- *
- *	Details:
- *		- https://wenchy.github.io/blogs/2015-12-11-H.264-stream-structure.html
- *		- https://videonerd.website/start-code-emulation/
-*/
-    		if ((src[0] == 0) && (src[1] == 0) && (src[2] == 3) && (src[3] == 0) && (src[4] <= 3) ) {
-    			*dst++ = 0;
-    			*dst++ = 0;
-    			*dst++ = src[4];
-    			src += 5;
-    		}else
-    			*dst++ = *src++;
-    	}
-
+      /* The RTP payload is the NAL unit as present in the bitstream, emulation prevention
+       * bytes included. OpenH264 parses Annex-B and removes them itself: copy the NAL
+       * verbatim, do not add nor remove emulation prevention bytes here. */
       while (src < im->b_wptr) {
         *dst++ = *src++;
       }
