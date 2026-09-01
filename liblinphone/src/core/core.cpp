@@ -452,7 +452,19 @@ void CorePrivate::shutdown() {
 
 	unregisterAccounts();
 
-	static_cast<PlatformHelpers *>(getCCore()->platform_helper)->stopPushService();
+	auto *platformHelpers = static_cast<PlatformHelpers *>(getCCore()->platform_helper);
+
+#if TARGET_OS_IPHONE
+	/* Release the chat room invite held by the shared core helpers now, while the Sal and the belle-sip stack are
+	 * still alive. Destroying a ClientChatRoom cascades into ~ClientConference -> unsubscribePrivate() ->
+	 * SalOp::release(), which unrefs the SUBSCRIBE dialog. uninitSharedCore() used to drop that last reference at
+	 * the very end of _linphone_core_stop_async_end(), long after uninit() and sip_config_uninit() had destroyed
+	 * the stack, which crashed in belle_sip_dialog_uninit(). Doing it here also lets the remaining iterate() calls
+	 * carry the unsubscribe to completion. */
+	platformHelpers->getSharedCoreHelpers()->setChatRoomInvite(nullptr);
+#endif
+
+	platformHelpers->stopPushService();
 	pushReceivedBackgroundTask.stop();
 }
 
