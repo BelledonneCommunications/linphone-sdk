@@ -248,7 +248,7 @@ static void call_received(SalCallOp *h) {
 				}
 			}
 		}
-		auto remoteContact = Address::create(h->getRemoteContact());
+		auto remoteContact = ClientConference::getConferenceAddressFromResourceOrContact(h);
 		ConferenceId conferenceId(remoteContact, to, conferenceIdParams);
 		shared_ptr<AbstractChatRoom> chatRoom = core->findChatRoom(conferenceId, false);
 		if (chatRoom && chatRoom->getCapabilities() & ChatRoom::Capabilities::Basic) {

@@ -40,8 +40,8 @@ LINPHONE_BEGIN_NAMESPACE
  */
 class LINPHONE_PUBLIC Address : public bellesip::HybridObject<LinphoneAddress, Address> {
 public:
-	static const std::string kTransportParameter;
 	static const std::string kGrParameter;
+	static const std::string kTransportParameter;
 
 	explicit Address(const std::string &address, bool assumeGrUri = false, bool logError = true);
 	Address();

@@ -282,7 +282,10 @@ void group_chat_room_with_client_restart_base(bool encrypted,
 		focus.registerAsParticipantDevice(laure);
 		focus.registerAsParticipantDevice(berthe);
 
-		linphone_core_enable_gruu_in_conference_address(focus.getLc(), TRUE);
+		linphone_core_enable_gruu_in_conference_address(marie.getLc(), TRUE);
+		linphone_core_enable_gruu_in_conference_address(berthe.getLc(), TRUE);
+		linphone_core_enable_gruu_in_conference_address(focus.getLc(), FALSE);
+
 		linphone_core_set_add_admin_information_to_contact(marie.getLc(), TRUE);
 		linphone_core_set_add_admin_information_to_contact(laure.getLc(), TRUE);
 
@@ -325,6 +328,10 @@ void group_chat_room_with_client_restart_base(bool encrypted,
 		    coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses, initialSubject, 2, encrypted,
 		    LinphoneChatRoomEphemeralModeDeviceManaged);
 		LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
+		BC_ASSERT_PTR_NULL(linphone_address_get_uri_param(confAddr, "gr"));
+		char *confAddrString = linphone_address_as_string(confAddr);
+		ms_message("[confAddr] %s", confAddrString);
+		ms_free(confAddrString);
 
 		// Check that the chat room is correctly created on Michelle's side and that the participants are added
 		LinphoneChatRoom *michelleCr = check_creation_chat_room_client_side(
@@ -371,6 +378,8 @@ void group_chat_room_with_client_restart_base(bool encrypted,
 		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(marieCr), 2, int, "%d");
 		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 2, int, "%d");
 		BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(bertheCr), 2, int, "%d");
+
+		BC_ASSERT_PTR_NULL(linphone_address_get_uri_param(linphone_chat_room_get_conference_address(marieCr), "gr"));
 
 		const std::initializer_list<std::reference_wrapper<ConfCoreManager>> cores2{focus, marie, michelle, berthe};
 		for (const ConfCoreManager &core : cores2) {
@@ -5346,6 +5355,10 @@ void check_media_session_after_migration(LinphoneChatRoom *cr,
 	// - the value of custom header Conference::kXAlternativeAddressClientHeaderName if the call is outgoing,
 	// Conference::kXAlternativeAddressServerHeaderName otherwise The INVITE remote address is expected to match:
 	// - the legacy conference address
+	if (!cr) {
+		BC_FAIL("check_media_session_after_migration: chatRoom is null");
+		return;
+	}
 	auto cppCr = AbstractChatRoom::toCpp(cr);
 	auto mainSession = cppCr->getConference()->getMainSession();
 	if (mainSession) {

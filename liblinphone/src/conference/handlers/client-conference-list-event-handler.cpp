@@ -143,8 +143,10 @@ std::optional<std::shared_ptr<EventSubscribe>> ClientConferenceListEventHandler:
 
 	bool entryAdded = false;
 	auto &handlers = (isFactoryUri) ? mLegacyChatRoomHandlers : mHandlers;
+
 	for (const auto &handlerWkPtr : handlers) {
-		const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
+		const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr.lock());
+		if (!handler) continue;
 		const ConferenceId &conferenceId = handler->getConferenceId();
 		const auto &localAddress = conferenceId.getLocalAddress();
 		if (from->weakEqual(*localAddress)) {

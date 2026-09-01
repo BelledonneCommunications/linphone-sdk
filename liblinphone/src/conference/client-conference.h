@@ -43,6 +43,10 @@ public:
 	                 const std::shared_ptr<const ConferenceParams> params);
 	virtual ~ClientConference();
 
+	static std::shared_ptr<Address> getConferenceAddressFromResourceOrContact(const SalCallOp *op);
+	static std::shared_ptr<Address>
+	getConferenceAddressFromResourceOrContact(const std::shared_ptr<CallSession> &session);
+
 	void reload() override;
 	void initFromDb(const std::shared_ptr<Participant> &me,
 	                const ConferenceId &conferenceId,

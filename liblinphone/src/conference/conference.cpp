@@ -48,6 +48,7 @@
 #endif // HAVE_XERCESC
 #endif // HAVE_ADVANCED_IM
 
+#include "chat/chat-room/client-chat-room.h"
 #include "linphone/utils/utils.h"
 
 // =============================================================================
@@ -64,6 +65,7 @@ const std::string Conference::kConfIdParameter = "conf-id";
 const std::string Conference::kAdminParameter = "admin";
 const std::string Conference::kIsFocusParameter = "isfocus";
 const std::string Conference::kTextParameter = "text";
+const std::string Conference::kTransportParameter = "transport";
 const std::string Conference::kAnonymousKeyword = "anonymous";
 const std::string Conference::kAlternativeUriPurpose = "alternative-uri";
 
@@ -221,6 +223,29 @@ bool Conference::isAnonymousParticipant(const std::shared_ptr<Call> &call) {
 	const std::shared_ptr<Address> &address =
 	    call->isInConference() ? call->getRemoteAddress() : call->getLocalAddress();
 	return isAnonymousParticipant(address);
+}
+
+std::shared_ptr<Address>
+Conference::getConferenceAddressFromResourceOrContact(const std::shared_ptr<Address> &resource,
+                                                      const std::shared_ptr<Address> &contact) {
+
+	if (!resource) return nullptr;
+
+	auto conferenceAddress = resource->clone()->toSharedPtr();
+
+	// Flexisip 2.5 and below doesn't add the conf-id parameter to the From header of all INVITE sessions and the client
+	//  was therefore obliged to rely on the contact header. However, the contact header's only purpose is to route a
+	//  request to the server. This issues being fixed in flexisip 2.6 has nonetheless to be worked around to be
+	//  compatible with older flexisip versions.
+	if (!conferenceAddress->hasUriParam(Conference::kConfIdParameter) && contact &&
+	    contact->hasUriParam(Conference::kConfIdParameter) && resource->weakEqual(*contact)) {
+		conferenceAddress->setUriParam(Conference::kConfIdParameter,
+		                               contact->getUriParamValue(Conference::kConfIdParameter));
+	}
+	if (conferenceAddress->hasUriParam(Conference::kTransportParameter)) {
+		conferenceAddress->removeUriParam(kTransportParameter);
+	}
+	return conferenceAddress;
 }
 
 std::string Conference::getFreeAnonymousUsername() const {
@@ -912,9 +937,16 @@ void Conference::forceConferenceAddress(const std::shared_ptr<Address> &conferen
 		}
 	}
 }
-void Conference::setConferenceAddress(const std::shared_ptr<Address> &conferenceAddress) {
+
+bool Conference::setConferenceAddress(const std::shared_ptr<Address> &conferenceAddress) {
 	const auto state = getState();
-	if ((state == ConferenceInterface::State::Instantiated) || (state == ConferenceInterface::State::CreationPending)) {
+	bool isExhume = false;
+#ifdef HAVE_ADVANCED_IM
+	auto clientChatRoom = dynamic_pointer_cast<ClientChatRoom>(getChatRoom());
+	if (clientChatRoom) isExhume = clientChatRoom->isLocalExhumePending();
+#endif // HAVE_ADVANCED_IM
+	if ((state == ConferenceInterface::State::Instantiated) || (state == ConferenceInterface::State::CreationPending) ||
+	    isExhume) {
 		if (!conferenceAddress || !conferenceAddress->isValid()) {
 			lError() << "Cannot set the conference address to " << *conferenceAddress;
 			shared_ptr<CallSession> session = getMe()->getSession();
@@ -924,12 +956,14 @@ void Conference::setConferenceAddress(const std::shared_ptr<Address> &conference
 				session->decline(ei);
 				linphone_error_info_unref(ei);
 			}
-			setState(ConferenceInterface::State::CreationFailed);
-			return;
+			if (!isExhume) {
+				setState(ConferenceInterface::State::CreationFailed);
+			}
+			return false;
 		}
 
 		mConfParams->setConferenceAddress(conferenceAddress);
-		setState(ConferenceInterface::State::CreationPending);
+		if (!isExhume) setState(ConferenceInterface::State::CreationPending);
 		if (linphone_core_get_global_state(getCore()->getCCore()) == LinphoneGlobalStartup) {
 			lDebug() << "Conference " << this << " has been given the address " << *mConfParams->getConferenceAddress();
 		} else {
@@ -938,8 +972,9 @@ void Conference::setConferenceAddress(const std::shared_ptr<Address> &conference
 	} else {
 		lDebug() << "Cannot set the conference address of the Conference in state " << state << " to "
 		         << *conferenceAddress;
-		return;
+		return false;
 	}
+	return true;
 }
 
 void Conference::setAlternativeConferenceAddress(const std::shared_ptr<Address> &conferenceAddress) {

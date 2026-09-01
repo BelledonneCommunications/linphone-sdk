@@ -76,6 +76,7 @@ public:
 	static const std::string kAdminParameter;
 	static const std::string kIsFocusParameter;
 	static const std::string kTextParameter;
+	static const std::string kTransportParameter;
 	static const std::string kAnonymousKeyword;
 	static const std::string kAlternativeUriPurpose;
 
@@ -89,6 +90,9 @@ public:
 
 	static bool isAnonymousParticipant(const std::shared_ptr<Call> &call);
 	static bool isAnonymousParticipant(const std::shared_ptr<const Address> &address);
+
+	static std::shared_ptr<Address> getConferenceAddressFromResourceOrContact(const std::shared_ptr<Address> &resource,
+	                                                                          const std::shared_ptr<Address> &contact);
 
 	virtual ~Conference() override;
 
@@ -188,7 +192,7 @@ public:
 	virtual std::shared_ptr<Address> getConferenceAddress() const override;
 
 	// Set conference address sets the assigned conference address before the chatroom reaches the Created state
-	void setConferenceAddress(const std::shared_ptr<Address> &conferenceAddress);
+	bool setConferenceAddress(const std::shared_ptr<Address> &conferenceAddress);
 
 	// This method forces the assigned conference address to a value. Typically it is called when a user adds a new
 	// device or is invited to a migrated chatroom upon reception of the NOTIFY full state.

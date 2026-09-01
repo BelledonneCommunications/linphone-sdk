@@ -78,9 +78,11 @@ void ClientChatRoom::deletePendingMessage(const std::shared_ptr<ChatMessage> &ch
 	if (it != mPendingCreationMessages.end()) mPendingCreationMessages.erase(it);
 }
 
-void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteContact) {
+void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteAddress,
+                                       const std::shared_ptr<Address> &remoteContact) {
 	auto conference = dynamic_pointer_cast<ClientConference>(getConference());
-	conference->onConferenceCreated(remoteContact);
+	auto conferenceAddress = Conference::getConferenceAddressFromResourceOrContact(remoteAddress, remoteContact);
+	conference->onConferenceCreated(conferenceAddress);
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 
 	std::shared_ptr<Core> core;
@@ -94,8 +96,8 @@ void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteCon
 		bool needToSubscribe = true;
 		auto handler = conference->getEventHandler();
 		if (handler && handler->getManagedByListEventHandler()) {
-			if (handler->getSubscriptionState() == LinphoneSubscriptionError
-				|| handler->getSubscriptionState() == LinphoneSubscriptionTerminated){
+			if (handler->getSubscriptionState() == LinphoneSubscriptionError ||
+			    handler->getSubscriptionState() == LinphoneSubscriptionTerminated) {
 				auto &clientListEventHandler = core->getPrivate()->clientListEventHandler;
 				lInfo() << "Detach " << *this << " from ClientConferenceListEventHandler ["
 				        << clientListEventHandler.get() << "] because the subscription errored out";
@@ -351,7 +353,6 @@ void ClientChatRoom::exhume() {
 	}
 	auto session = static_pointer_cast<ClientConference>(conference)->createSessionTo(conferenceFactoryAddress);
 	session->startInvite(nullptr, conference->getUtf8Subject(), content);
-	setState(ConferenceInterface::State::CreationPending);
 }
 
 void ClientChatRoom::onExhumedConference(const ConferenceId &oldConfId, const ConferenceId &newConfId) {
@@ -394,8 +395,9 @@ void ClientChatRoom::onLocallyExhumedConference(const std::shared_ptr<Address> &
 void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 	const auto &conference = static_pointer_cast<ClientConference>(getConference());
 	ConferenceId oldConfId = getConferenceId();
-	ConferenceId newConfId = ConferenceId(Address::create(op->getRemoteContact()), oldConfId.getLocalAddress(),
-	                                      getCore()->createConferenceIdParams());
+	auto conferenceAddress = ClientConference::getConferenceAddressFromResourceOrContact(op);
+	ConferenceId newConfId =
+	    ConferenceId(conferenceAddress, oldConfId.getLocalAddress(), getCore()->createConferenceIdParams());
 
 	if (getState() != Conference::State::Terminated) {
 		lWarning() << *conference << " is being exhumed but wasn't terminated first!";
@@ -545,10 +547,9 @@ bool ClientChatRoom::canSendMessages() const {
 	}
 	// Chat message can be sent only after the subscription has been finalized and the first NOTIFY received
 	// For encrypted chat rooms, the participant list cannot be empty
-	bool canMessageBeSent =
-	    (!subscriptionUnderway && !coreOff && (chatBackend == ChatParams::Backend::FlexisipChat) &&
-	     (chatRoomState == ConferenceInterface::State::Created) &&
-	     (!isEncrypted || !mConference->getParticipantDevices(false).empty()));
+	bool canMessageBeSent = (!subscriptionUnderway && !coreOff && (chatBackend == ChatParams::Backend::FlexisipChat) &&
+	                         (chatRoomState == ConferenceInterface::State::Created) &&
+	                         (!isEncrypted || !mConference->getParticipantDevices(false).empty()));
 	if (!canMessageBeSent) {
 		lInfo() << *conference << " cannot yet send messages: ";
 		if (chatRoomState != ConferenceInterface::State::Created) {

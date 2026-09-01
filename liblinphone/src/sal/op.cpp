@@ -91,6 +91,14 @@ void SalOp::resetErrorInfo() {
 	sal_error_info_reset(&mErrorInfo);
 }
 
+const SalAddress *SalOp::getRemoteAddress() const {
+	const auto &dir = getDir();
+	if (dir == SalOp::Dir::Incoming) {
+		return getFromAddress();
+	}
+	return getToAddress();
+}
+
 void SalOp::setContactAddressFromHeader(belle_sip_header_contact_t *contactHeader) {
 	auto contactHeaderParams = BELLE_SIP_PARAMETERS(contactHeader);
 	const char *gruu = belle_sip_parameters_get_parameter(contactHeaderParams, "pub-gruu");
