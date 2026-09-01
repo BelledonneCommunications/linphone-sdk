@@ -246,7 +246,7 @@ static void call_received(SalCallOp *h) {
 				}
 			}
 		}
-		auto remoteContact = Address::create(h->getRemoteContact());
+		auto remoteContact = ClientConference::getConferenceAddressFromResourceOrContact(h);
 		auto conferenceIdParams = core->createConferenceIdParams();
 		conferenceIdParams.enableExtractUri(true);
 		ConferenceId conferenceId(remoteContact, to, conferenceIdParams);

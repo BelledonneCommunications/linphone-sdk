@@ -577,11 +577,8 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 	// terminated
 	const auto op = session->getPrivate()->getOp();
 	std::shared_ptr<Address> remoteContactAddress = Address::create();
-	remoteContactAddress->setImpl(op->getRemoteContactAddress());
-	ConferenceId conferenceId =
-	    ConferenceId(remoteContactAddress, getLocalAddress(), getCore()->createConferenceIdParams());
-
-	const auto &conference = getCore()->findConference(conferenceId, false);
+	std::shared_ptr<Address> remoteAddress = ClientConference::getConferenceAddressFromResourceOrContact(session);
+	const auto &conference = getCore()->searchConference(nullptr, getLocalAddress(), remoteAddress, {});
 
 	std::shared_ptr<ClientConference> clientConference = nullptr;
 
@@ -589,8 +586,7 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 		const auto &conferenceAddress = conference->getConferenceAddress();
 		const auto conferenceAddressStr = (conferenceAddress ? conferenceAddress->toString() : std::string("sip:"));
 		lInfo() << "Attaching call (local address " << *session->getLocalAddress() << " remote address "
-		        << *session->getRemoteAddress() << ") to conference " << conference << " (address "
-		        << conferenceAddressStr << ") ID " << conferenceId;
+		        << *remoteAddress << ") to " << *conference;
 		clientConference = dynamic_pointer_cast<ClientConference>(conference);
 		if (clientConference) {
 			clientConference->attachCall(session);
@@ -606,12 +602,13 @@ void Call::createClientConference(const shared_ptr<CallSession> &session) {
 			confParams->enableAudio(md->nbActiveStreamsOfType(SalAudio) > 0);
 			confParams->enableVideo(md->nbActiveStreamsOfType(SalVideo) > 0);
 		}
+		remoteContactAddress->setImpl(op->getRemoteContactAddress());
 		confParams->enableChat(remoteContactAddress && remoteContactAddress->hasParam(Conference::kTextParameter));
 
 		if (confParams->audioEnabled() || confParams->videoEnabled() || confParams->chatEnabled()) {
 			clientConference = dynamic_pointer_cast<ClientConference>(
 			    (new ClientConference(getCore(), nullptr, confParams))->toSharedPtr());
-			clientConference->initWithFocus(remoteContactAddress, session, op);
+			clientConference->initWithFocus(remoteAddress, session, op);
 		} else {
 			lError() << "Unable to attach call (local address " << *session->getLocalAddress() << " remote address "
 			         << *session->getRemoteAddress()

@@ -91,6 +91,8 @@ public:
 		return mToAddress;
 	}
 
+	const SalAddress *getRemoteAddress() const;
+
 	const SalAddress *getRequestAddress() {
 		return mRequestAddress.borrow();
 	}

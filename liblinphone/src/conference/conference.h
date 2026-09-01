@@ -75,6 +75,7 @@ public:
 	static const std::string kAdminParameter;
 	static const std::string kIsFocusParameter;
 	static const std::string kTextParameter;
+	static const std::string kTransportParameter;
 	static const std::string kAnonymousKeyword;
 
 	static bool isTerminationState(ConferenceInterface::State state);
@@ -83,6 +84,9 @@ public:
 
 	static bool isAnonymousParticipant(const std::shared_ptr<Call> &call);
 	static bool isAnonymousParticipant(const std::shared_ptr<const Address> &address);
+
+	static std::shared_ptr<Address> getConferenceAddressFromResourceOrContact(const std::shared_ptr<Address> &resource,
+	                                                                          const std::shared_ptr<Address> &contact);
 
 	virtual ~Conference() override;
 
@@ -169,7 +173,9 @@ public:
 	}
 
 	virtual std::shared_ptr<Address> getConferenceAddress() const override;
-	void setConferenceAddress(const std::shared_ptr<Address> &conferenceAddress);
+
+	// Set conference address sets the assigned conference address before the chatroom reaches the Created state
+	bool setConferenceAddress(const std::shared_ptr<Address> &conferenceAddress);
 
 	void setSubject(const std::string &subject);
 	void setUtf8Subject(const std::string &subject) override;

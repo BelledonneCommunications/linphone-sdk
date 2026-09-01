@@ -129,7 +129,8 @@ bool ClientConferenceListEventHandler::subscribe(const shared_ptr<Account> &acco
 
 	for (const auto &[key, handlerWkPtr] : handlers) {
 		try {
-			const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr);
+			const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr.lock());
+			if (!handler) continue;
 			const ConferenceId &conferenceId = handler->getConferenceId();
 			if (identityAddress->weakEqual(*conferenceId.getLocalAddress())) {
 				shared_ptr<AbstractChatRoom> cr = getCore()->findChatRoom(conferenceId, false);

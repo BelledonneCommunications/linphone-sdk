@@ -78,9 +78,11 @@ void ClientChatRoom::deletePendingMessage(const std::shared_ptr<ChatMessage> &ch
 	if (it != mPendingCreationMessages.end()) mPendingCreationMessages.erase(it);
 }
 
-void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteContact) {
+void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteAddress,
+                                       const std::shared_ptr<Address> &remoteContact) {
 	auto conference = dynamic_pointer_cast<ClientConference>(getConference());
-	conference->onConferenceCreated(remoteContact);
+	auto conferenceAddress = Conference::getConferenceAddressFromResourceOrContact(remoteAddress, remoteContact);
+	conference->onConferenceCreated(conferenceAddress);
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	bool needToSubscribe = true;
 	auto &clientListHandler = getCore()->getPrivate()->clientListEventHandler;
@@ -341,7 +343,6 @@ void ClientChatRoom::exhume() {
 	}
 	auto session = static_pointer_cast<ClientConference>(conference)->createSessionTo(conferenceFactoryAddress);
 	session->startInvite(nullptr, conference->getUtf8Subject(), content);
-	setState(ConferenceInterface::State::CreationPending);
 }
 
 void ClientChatRoom::onExhumedConference(const ConferenceId &oldConfId, const ConferenceId &newConfId) {
@@ -384,8 +385,9 @@ void ClientChatRoom::onLocallyExhumedConference(const std::shared_ptr<Address> &
 void ClientChatRoom::onRemotelyExhumedConference(SalCallOp *op) {
 	const auto &conference = static_pointer_cast<ClientConference>(getConference());
 	ConferenceId oldConfId = getConferenceId();
-	ConferenceId newConfId = ConferenceId(Address::create(op->getRemoteContact()), oldConfId.getLocalAddress(),
-	                                      getCore()->createConferenceIdParams());
+	auto conferenceAddress = ClientConference::getConferenceAddressFromResourceOrContact(op);
+	ConferenceId newConfId =
+	    ConferenceId(conferenceAddress, oldConfId.getLocalAddress(), getCore()->createConferenceIdParams());
 
 	if (getState() != Conference::State::Terminated) {
 		lWarning() << *conference << " is being exhumed but wasn't terminated first!";
