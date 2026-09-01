@@ -161,7 +161,7 @@ const string &PushNotificationConfig::getRemoteToken() const {
 	return mRemoteToken;
 }
 void PushNotificationConfig::setRemoteToken(const string &remoteToken) {
-	if (mVoipToken != remoteToken) {
+	if (mRemoteToken != remoteToken) {
 		mTokensHaveChanged = true;
 		mRemoteToken = remoteToken;
 	}
