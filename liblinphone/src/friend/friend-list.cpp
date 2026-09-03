@@ -579,7 +579,7 @@ void FriendList::closeSubscriptions() {
 
 std::string FriendList::createResourceListXml() const {
 	std::string xmlContent;
-	if (mFriendsMapByUri.empty()) {
+	if (mFriendsMapByUri.empty() && !getCore()->hasAccountWithEchoedPresenceSubscriptionEnabled()) {
 		lWarning() << __FUNCTION__ << ": Empty list in subscription, ignored.";
 		return {};
 	}
@@ -1196,7 +1196,7 @@ void FriendList::sendListSubscription() {
 		lWarning() << "Friend list's [" << toC() << "] has no RLS address, can't send subscription";
 		return;
 	}
-	if (!hasSubscribeInactive()) {
+	if (!hasSubscribeInactive() && !getCore()->hasAccountWithEchoedPresenceSubscriptionEnabled()) {
 		lWarning() << "Friend list's [" << toC() << "] subscribe is inactive, can't send subscription";
 		return;
 	}

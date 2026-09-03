@@ -4017,4 +4017,11 @@ void Core::uninitDatabase() {
 	getPrivate()->uninitDatabase();
 }
 
+bool Core::hasAccountWithEchoedPresenceSubscriptionEnabled() const {
+	auto accounts = getAccounts();
+	return std::any_of(accounts.begin(), accounts.end(), [](const auto &account) {
+		return account->getAccountParams()->echoedPresenceSubscriptionEnabled();
+	});
+}
+
 LINPHONE_END_NAMESPACE

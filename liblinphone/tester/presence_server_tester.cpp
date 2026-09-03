@@ -2734,7 +2734,7 @@ static void enable_echoed_presence_subscription(LinphoneCoreManager *mgr) {
  * subscription is enabled. That validates that the local identity has correctly been added to the SUBSCRIBE.
  * Also check that we have an echoed presence model after receiving the NOTIFY.
  */
-void permanent_activities_subscribe() {
+void permanent_activities_subscribe(bool withFriends) {
 	LinphoneCoreManager *laure = linphone_core_presence_manager_new("laure_tcp_rc");
 	LinphoneCoreManager *pauline = linphone_core_presence_manager_new(
 	    transport_supported(LinphoneTransportTls) == TRUE ? "pauline_rc" : "pauline_tcp_rc");
@@ -2753,9 +2753,11 @@ void permanent_activities_subscribe() {
 
 	LinphoneFriendList *lfl = linphone_core_create_friend_list(laure->lc);
 	linphone_friend_list_set_rls_uri(lfl, rls_uri);
-	LinphoneFriend *lf = linphone_core_create_friend_with_address(laure->lc, pauline_identity);
-	linphone_friend_list_add_friend(lfl, lf);
-	linphone_friend_unref(lf);
+	if (withFriends) {
+		LinphoneFriend *lf = linphone_core_create_friend_with_address(laure->lc, pauline_identity);
+		linphone_friend_list_add_friend(lfl, lf);
+		linphone_friend_unref(lf);
+	}
 	linphone_core_add_friend_list(laure->lc, lfl);
 	linphone_friend_list_update_subscriptions(lfl);
 	linphone_friend_list_unref(lfl);
@@ -2767,6 +2769,14 @@ void permanent_activities_subscribe() {
 	bctbx_list_free(lcs);
 	linphone_core_manager_destroy(pauline);
 	linphone_core_manager_destroy(laure);
+}
+
+void permanent_activities_subscribe_with_friends() {
+	permanent_activities_subscribe(true);
+}
+
+void permanent_activities_subscribe_without_friends() {
+	permanent_activities_subscribe(false);
 }
 
 /*
@@ -2954,7 +2964,12 @@ test_t presence_server_tests[] = {
     TEST_ONE_TAG(
         "Notify search result capabilities with alias", notify_search_result_capabilities_with_alias, "capabilities"),
 #endif
-    TEST_ONE_TAG("Permanent activities SUBSCRIBE", permanent_activities_subscribe, "permanent-activities"),
+    TEST_ONE_TAG("Permanent activities SUBSCRIBE with friends",
+                 permanent_activities_subscribe_with_friends,
+                 "permanent-activities"),
+    TEST_ONE_TAG("Permanent activities SUBSCRIBE without friends",
+                 permanent_activities_subscribe_without_friends,
+                 "permanent-activities"),
     TEST_ONE_TAG("Permanent activities PUBLISH", permanent_activities_publish, "permanent-activities"),
     TEST_ONE_TAG("Permanent activities NOTIFY", permanent_activities_notify, "permanent-activities"),
 };

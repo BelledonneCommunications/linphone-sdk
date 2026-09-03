@@ -451,6 +451,9 @@ public:
 
 	std::optional<std::reference_wrapper<MainDb>> getDatabase() const;
 	void uninitDatabase();
+
+	bool hasAccountWithEchoedPresenceSubscriptionEnabled() const;
+
 	// ---------------------------------------------------------------------------
 	// Signal informations
 	// ---------------------------------------------------------------------------
