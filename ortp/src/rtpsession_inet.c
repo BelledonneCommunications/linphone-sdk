@@ -82,12 +82,7 @@
 #if defined(_WIN32) || defined(_WIN32_WCE)
 #ifndef WSAID_WSARECVMSG
 /* http://source.winehq.org/git/wine.git/blob/HEAD:/include/mswsock.h */
-#define WSAID_WSARECVMSG                                                                                               \
-	{                                                                                                                  \
-		0xf689d7c8, 0x6f1f, 0x436b, {                                                                                  \
-			0x8a, 0x53, 0xe5, 0x4f, 0xe3, 0x51, 0xc3, 0x22                                                             \
-		}                                                                                                              \
-	}
+#define WSAID_WSARECVMSG {0xf689d7c8, 0x6f1f, 0x436b, {0x8a, 0x53, 0xe5, 0x4f, 0xe3, 0x51, 0xc3, 0x22}}
 #ifndef MAX_NATURAL_ALIGNMENT
 #define MAX_NATURAL_ALIGNMENT sizeof(DWORD)
 #endif
@@ -1789,6 +1784,7 @@ static void compute_rtcp_xr_statistics(RtpSession *session, const mblk_t *block,
 }
 
 static void handle_rtcp_rtpfb_packet(RtpSession *session, const mblk_t *block) {
+	if (!rtcp_is_RTPFB_valid(block, NULL)) return;
 	switch (rtcp_RTPFB_get_type(block)) {
 		case RTCP_RTPFB_TMMBR:
 			if (session->rtcp.tmmbr_info.received) freemsg(session->rtcp.tmmbr_info.received);
@@ -1797,12 +1793,14 @@ static void handle_rtcp_rtpfb_packet(RtpSession *session, const mblk_t *block) {
 			break;
 		case RTCP_RTPFB_TMMBN:
 			if (session->rtcp.tmmbr_info.sent) {
-				rtcp_fb_tmmbr_fci_t *tmmbn_fci = rtcp_RTPFB_tmmbr_get_fci(block);
 				rtcp_fb_tmmbr_fci_t *tmmbr_fci = rtcp_RTPFB_tmmbr_get_fci(session->rtcp.tmmbr_info.sent);
-				if ((ntohl(tmmbn_fci->ssrc) == rtp_session_get_send_ssrc(session)) &&
-				    (tmmbn_fci->value == tmmbr_fci->value)) {
-					freemsg(session->rtcp.tmmbr_info.sent);
-					session->rtcp.tmmbr_info.sent = NULL;
+				if (tmmbr_fci) {
+					rtcp_fb_tmmbr_fci_t *tmmbn_fci = rtcp_RTPFB_tmmbr_get_fci(block); // RFC 5104: FCI can be empty
+					if (tmmbn_fci && (ntohl(tmmbn_fci->ssrc) == rtp_session_get_send_ssrc(session)) &&
+					    (tmmbn_fci->value == tmmbr_fci->value)) {
+						freemsg(session->rtcp.tmmbr_info.sent);
+						session->rtcp.tmmbr_info.sent = NULL;
+					}
 				}
 			}
 			break;
