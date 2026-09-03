@@ -38,7 +38,8 @@ static mblk_t *find_packet_with_sequence_number(const queue_t *q, const uint16_t
 }
 
 static void generic_nack_received(const OrtpEventData *evd, OrtpNackContext *ctx) {
-	if (rtcp_is_RTPFB(evd->packet) && rtcp_RTPFB_get_type(evd->packet) == RTCP_RTPFB_NACK) {
+	if (rtcp_is_RTPFB(evd->packet) && rtcp_RTPFB_get_type(evd->packet) == RTCP_RTPFB_NACK &&
+	    rtcp_is_RTPFB_valid(evd->packet, NULL)) {
 		RtpTransport *rtpt = NULL;
 		rtcp_fb_generic_nack_fci_t *fci;
 		uint16_t pid, blp, seq;

@@ -2760,6 +2760,7 @@ int rtp_get_extension_header(const mblk_t *packet, int id, uint8_t **data) {
 	uint8_t *ext_header, *tmp;
 	uint16_t profile;
 	size_t ext_header_size, size;
+	uint8_t *last_headers;
 
 	if (!rtp_get_extbit(packet)) return -1;
 
@@ -2772,8 +2773,9 @@ int rtp_get_extension_header(const mblk_t *packet, int id, uint8_t **data) {
 	// If the profile is set to 0xBEDE then all extensions are represented by a 1-byte header
 	// If not then by a 2-byte header (cf RFC 8285)
 	tmp = ext_header;
+	last_headers = ext_header + ext_header_size;
 	if (profile == 0xBEDE) {
-		while (tmp < ext_header + ext_header_size) {
+		while (tmp + 1 < last_headers) {
 			if ((int)*tmp == RTP_EXTENSION_MAX) break;
 
 			if ((int)*tmp == RTP_EXTENSION_NONE) {
@@ -2790,7 +2792,7 @@ int rtp_get_extension_header(const mblk_t *packet, int id, uint8_t **data) {
 			}
 		}
 	} else {
-		while (tmp < ext_header + ext_header_size) {
+		while (tmp + 2 < last_headers) {
 			if ((int)*tmp == RTP_EXTENSION_NONE) {
 				tmp += 1;
 			} else {

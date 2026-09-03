@@ -820,6 +820,39 @@ static void add_existing_extensions_to_packet(void) {
 	freemsg(packet);
 }
 
+static void robustness_on_malformed_packet(void) {
+	// Last ID/Length will go to outside of buffer
+	uint8_t raw_packet_bad_length_1byte[20] = {0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0x8a, 0x1a, 0x76
+												, 0xbe, 0xde// profile - 1 byte
+												, 0x00, 0x01//length
+												, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, 0x11};
+
+	uint8_t raw_packet_bad_length_2byte[20] = {0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0x8a, 0x1a, 0x76
+												, 0x00, 0x01// profile - 2 bytes
+												, 0x00, 0x01//length
+												, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, 0x01};
+
+	uint8_t *raw_packets[2] = {raw_packet_bad_length_1byte, raw_packet_bad_length_2byte};
+	mblk_t *packet;
+	uint8_t *data;
+	int size;
+
+	for (int i = 0; i < 2; ++i) {
+		ortp_message("Run on pattern %d", i);
+		packet = rtp_create_packet(raw_packets[i], 20);
+
+		/* check ext bit and size - expected to be 1 */
+		BC_ASSERT_EQUAL(rtp_get_extbit(packet), 1, uint16_t, "%d");
+
+		/* check the extensions */
+		size = rtp_get_extheader(packet, NULL, NULL);
+		BC_ASSERT_GREATER(size, 0, size_t, "%zu");
+		size = rtp_get_extension_header(packet, 1, &data);
+		BC_ASSERT_EQUAL(size, -1, int, "%d");
+		freemsg(packet);
+	}
+}
+
 static test_t tests[] = {
     TEST_NO_TAG("Create packet with payload in a bundled session", create_packet_with_payload_in_bundled_session),
     TEST_NO_TAG("Insert an extension header into a packet", insert_extension_header_into_packet),
@@ -915,7 +948,10 @@ static test_t tests[] = {
                 insert_frame_marking_into_packet_with_payload_in_bundled_session),
     TEST_NO_TAG("Padding", padding_test),
     TEST_NO_TAG("Remap extension header ids from packet", remap_extension_header_ids_from_packet),
-    TEST_NO_TAG("Adding existing extensions into packet", add_existing_extensions_to_packet)};
+    TEST_NO_TAG("Adding existing extensions into packet", add_existing_extensions_to_packet),
+    TEST_NO_TAG("Robustness on malformed packet", robustness_on_malformed_packet),
+
+};
 
 test_suite_t extension_header_test_suite = {
     "Extension header",               // Name of test suite

@@ -603,6 +603,34 @@ rtcp_rtpfb_type_t rtcp_RTPFB_get_type(const mblk_t *m) {
 	return (rtcp_rtpfb_type_t)rtcp_common_header_get_rc(ch);
 }
 
+bool_t rtcp_is_RTPFB_valid(const mblk_t *packet, size_t *header_size) {
+	bool_t result = TRUE;
+	rtcp_rtpfb_type_t rtpfb_type = rtcp_RTPFB_get_type(packet);
+	size_t rtcp_size = rtcp_get_size(packet);
+	size_t size;
+	switch (rtpfb_type) {
+		case RTCP_RTPFB_NACK: {
+			size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_generic_nack_fci_t);
+			if (header_size) *header_size = size - sizeof(rtcp_fb_generic_nack_fci_t);
+			result = (size <= rtcp_size);
+			break;
+		}
+		case RTCP_RTPFB_TMMBR: {
+			size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_tmmbr_fci_t);
+			if (header_size) *header_size = size - sizeof(rtcp_fb_tmmbr_fci_t);
+			result = (size <= rtcp_size);
+			break;
+		}
+		case RTCP_RTPFB_TMMBN:
+		default: { // Unknown. Use minimal header size.
+			size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t);
+			if (header_size) *header_size = size;
+			result = (size <= rtcp_size);
+		}
+	}
+	return result;
+}
+
 uint32_t rtcp_RTPFB_get_packet_sender_ssrc(const mblk_t *m) {
 	rtcp_fb_header_t *fbh = (rtcp_fb_header_t *)(m->b_rptr + sizeof(rtcp_common_header_t));
 	return ntohl(fbh->packet_sender_ssrc);
@@ -614,21 +642,15 @@ uint32_t rtcp_RTPFB_get_media_source_ssrc(const mblk_t *m) {
 }
 
 rtcp_fb_generic_nack_fci_t *rtcp_RTPFB_generic_nack_get_fci(const mblk_t *m) {
-	size_t size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_generic_nack_fci_t);
-	size_t rtcp_size = rtcp_get_size(m);
-	if (size > rtcp_size) {
-		return NULL;
-	}
-	return (rtcp_fb_generic_nack_fci_t *)(m->b_rptr + size - sizeof(rtcp_fb_generic_nack_fci_t));
+	size_t header_size;
+	if (!rtcp_is_RTPFB_valid(m, &header_size)) return NULL;
+	return (rtcp_fb_generic_nack_fci_t *)(m->b_rptr + header_size);
 }
 
 rtcp_fb_tmmbr_fci_t *rtcp_RTPFB_tmmbr_get_fci(const mblk_t *m) {
-	size_t size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_tmmbr_fci_t);
-	size_t rtcp_size = rtcp_get_size(m);
-	if (size > rtcp_size) {
-		return NULL;
-	}
-	return (rtcp_fb_tmmbr_fci_t *)(m->b_rptr + size - sizeof(rtcp_fb_tmmbr_fci_t));
+	size_t header_size;
+	if (!rtcp_is_RTPFB_valid(m, &header_size)) return NULL;
+	return (rtcp_fb_tmmbr_fci_t *)(m->b_rptr + header_size);
 }
 
 uint64_t rtcp_RTPFB_tmmbr_get_max_bitrate(const mblk_t *m) {
