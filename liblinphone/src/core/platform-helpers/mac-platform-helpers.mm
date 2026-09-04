@@ -132,7 +132,7 @@ string MacPlatformHelpers::getBundleResourceDirPath(const string &framework, con
 		if (bundleUrl) {
 			CFURLRef resourceUrl = CFURLCreateCopyAppendingPathComponent(NULL, bundleUrl, cfResource, true);
 			CFStringRef cfSystemPath = CFURLCopyFileSystemPath(resourceUrl, kCFURLPOSIXPathStyle);
-			path = CFStringGetCStringPtr(cfSystemPath, encodingMethod);
+			path = toString(cfSystemPath, encodingMethod);
 			CFRelease(cfSystemPath);
 			CFRelease(bundleUrl);
 			CFRelease(resourceUrl);
