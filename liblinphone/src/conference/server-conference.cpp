@@ -815,7 +815,10 @@ void ServerConference::confirmJoining(BCTBX_UNUSED(SalCallOp *op)) {
 			contactAddress = account->getContactAddress();
 		}
 		std::shared_ptr<Address> addr = getConferenceAddress()->clone()->toSharedPtr();
-		if (contactAddress && contactAddress->hasUriParam(Address::kGrParameter)) {
+		// Do not overwrite the gruu the chat room was created with: it is the address the clients and the proxy know
+		// it by. Only fall back on the one of the account when the conference address carries none.
+		if (contactAddress && contactAddress->hasUriParam(Address::kGrParameter) &&
+		    !addr->hasUriParam(Address::kGrParameter)) {
 			addr->setUriParam(Address::kGrParameter, contactAddress->getUriParamValue(Address::kGrParameter));
 		}
 		addr->setParam(Conference::kIsFocusParameter);

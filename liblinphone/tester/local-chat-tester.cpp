@@ -1685,6 +1685,199 @@ static void group_chat_room_with_client_restart_and_focus_changing_contact_addre
 	group_chat_room_with_client_restart_base(false, false, true);
 }
 
+static void group_chat_room_with_conference_server_restarting_with_new_uuid() {
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
+		ClientConference michelle("michelle_rc", focus.getConferenceFactoryAddress());
+		ClientConference berthe("berthe_rc", focus.getConferenceFactoryAddress());
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(michelle);
+		focus.registerAsParticipantDevice(berthe);
+
+		// The conference server puts its gruu in the address of the chat rooms it creates, and every client keeps it
+		// in the address it holds, as they do in production.
+		linphone_core_enable_gruu_in_conference_address(focus.getLc(), TRUE);
+		linphone_core_enable_gruu_in_conference_address(marie.getLc(), TRUE);
+		linphone_core_enable_gruu_in_conference_address(michelle.getLc(), TRUE);
+		linphone_core_enable_gruu_in_conference_address(berthe.getLc(), TRUE);
+
+		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
+		coresList = bctbx_list_append(coresList, marie.getLc());
+		coresList = bctbx_list_append(coresList, michelle.getLc());
+		coresList = bctbx_list_append(coresList, berthe.getLc());
+		bctbx_list_t *participantsAddresses = NULL;
+		Address michelleAddr = michelle.getIdentity();
+		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(michelleAddr.toC()));
+		Address bertheAddr = berthe.getIdentity();
+		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(bertheAddr.toC()));
+
+		stats initialMarieStats = marie.getStats();
+		stats initialMichelleStats = michelle.getStats();
+		stats initialBertheStats = berthe.getStats();
+
+		// Marie creates a group chat room while the conference server runs under its initial uuid
+		const char *initialSubject = "Colleagues";
+		LinphoneChatRoom *marieCr = create_chat_room_client_side_with_expected_number_of_participants(
+		    coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses, initialSubject, 2, FALSE,
+		    LinphoneChatRoomEphemeralModeDeviceManaged);
+		BC_ASSERT_PTR_NOT_NULL(marieCr);
+		LinphoneAddress *confAddr =
+		    marieCr ? linphone_address_clone(linphone_chat_room_get_conference_address(marieCr)) : NULL;
+		BC_ASSERT_PTR_NOT_NULL(confAddr);
+		BC_ASSERT_PTR_NOT_NULL(check_creation_chat_room_client_side(
+		    coresList, michelle.getCMgr(), &initialMichelleStats, confAddr, initialSubject, 2, FALSE));
+		BC_ASSERT_PTR_NOT_NULL(check_creation_chat_room_client_side(coresList, berthe.getCMgr(), &initialBertheStats,
+		                                                            confAddr, initialSubject, 2, FALSE));
+
+		// The conference server has put its gruu in the address of the chat room it just created. Marie and Berthe
+		// strip it on their own side, so the check has to be made on the server itself.
+		BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), 1, size_t, "%zu");
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			const LinphoneAddress *createdConfAddr = linphone_chat_room_get_conference_address(chatRoom->toC());
+			BC_ASSERT_PTR_NOT_NULL(createdConfAddr);
+			if (createdConfAddr) {
+				BC_ASSERT_TRUE(linphone_address_has_uri_param(createdConfAddr, "gr"));
+			}
+		}
+
+		// The conference server restarts under a different uuid, as one having lost its uuid file would.
+		// linphone_core_manager_reinit() deliberately carries the uuid over to the new core, so it is cleared
+		// between the reinit and the start. The chat room keeps in database the gruu it was created with, which
+		// puts it in the situation of the legacy chat rooms this test is about.
+		const char *currentUuid =
+		    linphone_config_get_string(linphone_core_get_config(focus.getLc()), "misc", "uuid", NULL);
+		BC_ASSERT_PTR_NOT_NULL(currentUuid);
+		char *previousUuid = currentUuid ? bctbx_strdup(currentUuid) : NULL;
+		// Unregister the focus before restarting it under another uuid. linphone_core_manager_reinit() deliberately
+		// avoids unregistering, which is harmless when the uuid is kept, the new REGISTER then replacing the binding.
+		// Here the instance id changes, so the binding of the previous one would be left behind on the registrar, and
+		// the test account is shared with the tests that follow in the same process: they would then take ten seconds
+		// longer to create their chat rooms.
+		stats focusStatsBeforeUnregister = focus.getStats();
+		LinphoneAccount *focusAccount = linphone_core_get_default_account(focus.getLc());
+		LinphoneAccountParams *focusAccountParams =
+		    linphone_account_params_clone(linphone_account_get_params(focusAccount));
+		linphone_account_params_enable_register(focusAccountParams, FALSE);
+		linphone_account_set_params(focusAccount, focusAccountParams);
+		linphone_account_params_unref(focusAccountParams);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneRegistrationCleared,
+		                             focusStatsBeforeUnregister.number_of_LinphoneRegistrationCleared + 1,
+		                             liblinphone_tester_sip_timeout));
+		coresList = bctbx_list_remove(coresList, focus.getLc());
+		linphone_core_manager_reinit(focus.getCMgr());
+		linphone_config_set_string(linphone_core_get_config(focus.getLc()), "misc", "uuid", NULL);
+		focus.configureFocus();
+		linphone_core_enable_gruu_in_conference_address(focus.getLc(), TRUE);
+		linphone_core_manager_start(focus.getCMgr(), TRUE);
+		coresList = bctbx_list_append(coresList, focus.getLc());
+		const char *newUuid = linphone_config_get_string(linphone_core_get_config(focus.getLc()), "misc", "uuid", NULL);
+		BC_ASSERT_PTR_NOT_NULL(newUuid);
+		if (previousUuid && newUuid) {
+			ms_message("%s restarted with a new uuid: %s -> %s", linphone_core_get_identity(focus.getLc()),
+			           previousUuid, newUuid);
+			BC_ASSERT_STRING_NOT_EQUAL(newUuid, previousUuid);
+		}
+		if (previousUuid) bctbx_free(previousUuid);
+		BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), 1, size_t, "%zu");
+
+		// A second device of Michelle registers, and the conference server invites it to the chat room
+		ClientConference michelle2("michelle_rc", focus.getConferenceFactoryAddress());
+		linphone_core_enable_gruu_in_conference_address(michelle2.getLc(), TRUE);
+		stats initialMichelle2Stats = michelle2.getStats();
+		coresList = bctbx_list_append(coresList, michelle2.getLc());
+		focus.registerAsParticipantDevice(michelle2);
+
+		// Notify the chat room that a new device of Michelle has registered
+		bctbx_list_t *devices = NULL;
+		const LinphoneAddress *deviceAddr = linphone_proxy_config_get_contact(michelle.getDefaultProxyConfig());
+		LinphoneParticipantDeviceIdentity *identity =
+		    linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddr, "");
+		bctbx_list_t *specs = linphone_core_get_linphone_specs_list(michelle.getLc());
+		linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
+		bctbx_list_free_with_data(specs, ms_free);
+		devices = bctbx_list_append(devices, identity);
+
+		deviceAddr = linphone_proxy_config_get_contact(michelle2.getDefaultProxyConfig());
+		identity = linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddr, "");
+		specs = linphone_core_get_linphone_specs_list(michelle2.getLc());
+		linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
+		bctbx_list_free_with_data(specs, ms_free);
+		devices = bctbx_list_append(devices, identity);
+
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			linphone_chat_room_set_participant_devices(chatRoom->toC(), michelle.getCMgr()->identity, devices);
+		}
+		bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle2.getStats().number_of_LinphoneConferenceStateCreated,
+		                             initialMichelle2Stats.number_of_LinphoneConferenceStateCreated + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		// The conference server advertises the chat room address in the Contact header of the sessions it
+		// establishes, and a client takes that address as being the one of the chat room. It must therefore carry the
+		// gruu stored with the chat room, and not one rebuilt from the uuid the server has had since its restart: that
+		// one is unknown to the proxy and is not routable.
+		//
+		// Only michelle2 is load-bearing here: it is the device that learned the address from the Contact header of
+		// the INVITE the server sent after its restart. The other three joined before it and nothing re-sends them the
+		// address, so their check guards against a future path pushing a stale one to already joined devices.
+		BC_ASSERT_EQUAL(focus.getCore().getChatRooms().size(), 1, size_t, "%zu");
+		const LinphoneAddress *serverConfAddr = NULL;
+		for (auto serverChatRoom : focus.getCore().getChatRooms()) {
+			serverConfAddr = linphone_chat_room_get_conference_address(serverChatRoom->toC());
+		}
+		BC_ASSERT_PTR_NOT_NULL(serverConfAddr);
+		if (serverConfAddr) {
+			BC_ASSERT_TRUE(linphone_address_has_uri_param(serverConfAddr, "gr"));
+			const std::initializer_list<std::reference_wrapper<ConfCoreManager>> clients{marie, michelle, berthe,
+			                                                                             michelle2};
+			for (const ConfCoreManager &client : clients) {
+				BC_ASSERT_EQUAL(client.getCore().getChatRooms().size(), 1, size_t, "%zu");
+				for (auto clientChatRoom : client.getCore().getChatRooms()) {
+					const LinphoneAddress *clientConfAddr =
+					    linphone_chat_room_get_conference_address(clientChatRoom->toC());
+					BC_ASSERT_PTR_NOT_NULL(clientConfAddr);
+					if (clientConfAddr) {
+						BC_ASSERT_TRUE(linphone_address_has_uri_param(clientConfAddr, "gr"));
+						if (linphone_address_has_uri_param(clientConfAddr, "gr")) {
+							BC_ASSERT_STRING_EQUAL(linphone_address_get_uri_param(clientConfAddr, "gr"),
+							                       linphone_address_get_uri_param(serverConfAddr, "gr"));
+						}
+					}
+				}
+			}
+		}
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			for (auto participant : chatRoom->getParticipants()) {
+				//  force deletion by removing devices
+				std::shared_ptr<Address> participantAddress = participant->getAddress();
+				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
+			}
+		}
+
+		// wait until chatroom is deleted server side
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, michelle2, berthe}).wait([&focus] {
+			return focus.getCore().getChatRooms().size() == 0;
+		}));
+
+		// wait a bit longer to detect side effect if any
+		CoreManagerAssert({focus, marie, michelle, michelle2, berthe}).waitUntil(chrono::seconds(2), [] {
+			return false;
+		});
+
+		// to avoid creation attempt of a new chatroom
+		auto config = focus.getDefaultProxyConfig();
+		linphone_proxy_config_edit(config);
+		linphone_proxy_config_set_conference_factory_uri(config, NULL);
+		linphone_proxy_config_done(config);
+
+		if (confAddr) linphone_address_unref(confAddr);
+		bctbx_list_free(coresList);
+	}
+}
+
 static void group_chat_room_with_client_registering_with_short_register_expires() {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
@@ -6245,6 +6438,9 @@ static test_t local_conference_chat_basic_tests[] = {
     TEST_ONE_TAG("Group chat with client restart and focus changing contact address",
                  LinphoneTest::group_chat_room_with_client_restart_and_focus_changing_contact_address,
                  "LeaksMemory"), /* beacause of coreMgr restart*/
+    TEST_ONE_TAG("Group chat room with conference server restarting with a new uuid",
+                 LinphoneTest::group_chat_room_with_conference_server_restarting_with_new_uuid,
+                 "LeaksMemory"), /* because of coreMgr restart*/
     TEST_ONE_TAG("Group chat room bulk notify to participant",
                  LinphoneTest::group_chat_room_bulk_notify_to_participant,
                  "LeaksMemory"), /* beacause of coreMgr restart*/
