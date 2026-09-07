@@ -154,12 +154,16 @@ void ConferenceParams::setUtf8Subject(const std::string &subject) {
 
 void ConferenceParams::updateConferenceAddress(std::shared_ptr<Address> &addressToAssign,
                                                const std::shared_ptr<Address> &newConferenceAddress) {
-	auto cCore = getCore()->getCCore();
-	bool keepGruu = !!linphone_core_gruu_in_conference_address_enabled(cCore);
-	if (keepGruu) {
-		addressToAssign = Address::create(newConferenceAddress->getUri());
+	if (newConferenceAddress) {
+		auto cCore = getCore()->getCCore();
+		bool keepGruu = !!linphone_core_gruu_in_conference_address_enabled(cCore);
+		if (keepGruu) {
+			addressToAssign = Address::create(newConferenceAddress->getUri());
+		} else {
+			addressToAssign = Address::create(newConferenceAddress->getUriWithoutGruu());
+		}
 	} else {
-		addressToAssign = Address::create(newConferenceAddress->getUriWithoutGruu());
+		addressToAssign = nullptr;
 	}
 };
 

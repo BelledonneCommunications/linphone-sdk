@@ -353,6 +353,18 @@ void group_chat_room_with_duplications_base(bool encrypted);
 void chat_rooms_with_deletion_spaced_out_base(bool encrypted);
 void legacy_and_new_chatrooms_mixed_up_base(bool encrypted);
 
+LinphoneAccount *add_account_using_domain_registration(ConfCoreManager &core, bool set_as_default);
+void legacy_server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state);
+void createChatRooms(int number,
+                     std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                     std::initializer_list<std::reference_wrapper<ClientConference>> participantMgrs,
+                     Focus &focus,
+                     LinphoneCoreManager *organizer,
+                     std::string baseSubject,
+                     bool encrypted,
+                     bool isLegacy,
+                     bool sendMessage);
+
 enum class ChatRoomMigrationMethod { API, Database };
 
 struct ChatRoomMigrationParams {
@@ -367,6 +379,12 @@ struct ChatRoomMigrationClientOfflineParams {
 	bool server_restart;
 };
 void legacy_chat_room_migration_client_offline_base(ChatRoomMigrationClientOfflineParams const &params);
+
+struct ExhumeOneOnOneChatRoomMigrationParams {
+	bool client_offline;
+};
+void legacy_secure_one_on_one_chatroom_exhumed_after_migration_base(
+    ExhumeOneOnOneChatRoomMigrationParams const &params);
 
 void group_chat_room_with_client_removed_while_stopped_base(const bool_t use_remote_event_list_handler, bool encrypted);
 

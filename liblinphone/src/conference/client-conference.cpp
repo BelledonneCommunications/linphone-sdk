@@ -355,8 +355,7 @@ MediaSessionParams ClientConference::createDefaultMediaParams(const std::shared_
 		}
 	}
 
-	const auto &alternativeConferenceAddress = getAlternativeConferenceAddress();
-	if (alternativeConferenceAddress) {
+	if (const auto &alternativeConferenceAddress = getAlternativeConferenceAddress(); alternativeConferenceAddress) {
 		auto alternativeConferenceAddressUriString = alternativeConferenceAddress->toStringUriOnlyOrdered();
 		if (alternativeConferenceAddressUriString != getAssignedConferenceAddress()->toStringUriOnlyOrdered()) {
 			msp.addCustomHeader(Conference::kXAlternativeAddressClientHeaderName,
@@ -584,8 +583,8 @@ void ClientConference::setUtf8Subject(const std::string &subject) {
 					lInfo() << "Sending re-INVITE to update subject from \"" << getUtf8Subject() << "\" to \""
 					        << subject << "\"";
 					MediaSessionParams *params = session->createMediaSessionParams();
-					const auto &alternativeConferenceAddress = getAlternativeConferenceAddress();
-					if (alternativeConferenceAddress) {
+					if (const auto &alternativeConferenceAddress = getAlternativeConferenceAddress();
+					    alternativeConferenceAddress) {
 						auto alternativeConferenceAddressUriString =
 						    alternativeConferenceAddress->toStringUriOnlyOrdered();
 						if (alternativeConferenceAddressUriString !=
@@ -1751,6 +1750,9 @@ void ClientConference::onConferenceCreated(BCTBX_UNUSED(const std::shared_ptr<Ad
 	if (!getCore()->getPrivate()->findExhumedChatRoomFromPreviousConferenceId(newConferenceId)) {
 		setConferenceId(newConferenceId, true);
 	}
+	// A conference has been created or exhumed, hence the alternative address is reset as it can only be assigned after
+	// creation
+	mConfParams->setAlternativeConferenceAddress(nullptr);
 	setConferenceAddress(addr);
 	lInfo() << *this << " has been created";
 
@@ -2674,8 +2676,7 @@ SalReferOp *ClientConference::createReferOp() {
 	const auto &account = getAccount();
 	linphone_configure_op_with_account(cCore, referOp, lAddr, nullptr, true, account ? account->toC() : nullptr);
 	referOp->setRequestUri(getConferenceAddress()->asStringUriOnly());
-	const auto &alternativeConferenceAddress = getAlternativeConferenceAddress();
-	if (alternativeConferenceAddress) {
+	if (const auto &alternativeConferenceAddress = getAlternativeConferenceAddress(); alternativeConferenceAddress) {
 		auto alternativeConferenceAddressUriString = alternativeConferenceAddress->toStringUriOnlyOrdered();
 		if (alternativeConferenceAddressUriString != getAssignedConferenceAddress()->toStringUriOnlyOrdered()) {
 			auto customHeaders =
@@ -2804,8 +2805,8 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 			if (mJoiningParams) {
 				dialoutParams = *mJoiningParams;
 				modifyCallParamsForConference(dialoutParams);
-				const auto &alternativeConferenceAddress = getAlternativeConferenceAddress();
-				if (alternativeConferenceAddress) {
+				if (const auto &alternativeConferenceAddress = getAlternativeConferenceAddress();
+				    alternativeConferenceAddress) {
 					auto alternativeConferenceAddressUriString = alternativeConferenceAddress->toStringUriOnlyOrdered();
 					if (alternativeConferenceAddressUriString !=
 					    getAssignedConferenceAddress()->toStringUriOnlyOrdered()) {

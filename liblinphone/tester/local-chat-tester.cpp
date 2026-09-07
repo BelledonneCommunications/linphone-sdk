@@ -4005,8 +4005,7 @@ static void one_on_one_chatroom_exhumed_while_offline() {
 		linphone_core_set_network_reachable(pauline.getLc(), FALSE);
 		linphone_core_set_network_reachable(pauline.getLc(), TRUE);
 
-		paulineDeviceAddr = linphone_address_clone(
-		    linphone_proxy_config_get_contact(linphone_core_get_default_proxy_config(pauline.getLc())));
+		paulineDeviceAddr = linphone_address_clone(linphone_account_get_contact_address(pauline.getDefaultAccount()));
 		// Notify chat room that a participant has registered
 		focus.notifyParticipantDeviceRegistration(confAddr, paulineDeviceAddr);
 
