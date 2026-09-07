@@ -69,7 +69,7 @@ public:
 	          unsigned short productId,
 	          std::string productName,
 	          std::string serialNumber,
-	          void *device,
+	          std::string path,
 	          const std::shared_ptr<HidReportDescriptor> &descriptor);
 	~HidDevice() override;
 
@@ -113,8 +113,13 @@ private:
 	static constexpr int EVENT_POLL_INTERVAL_MS = 20;
 
 	static bool valueHas(uint32_t value, uint32_t bits);
+	static void *openDevice(const std::string &path, const std::string &productName);
+	static void closeDevice(void *device);
 
 	void initializeFromReportDescriptor();
+
+	void openDevice();
+	void closeDevice();
 
 	int read(uint32_t &value) const;
 	void write(uint32_t data) const;
@@ -125,9 +130,10 @@ private:
 	[[nodiscard]] std::string stateStr() const;
 
 	unsigned short mProductId;
+	std::string mPath;
 	std::string mProductName;
 	std::string mSerialNumber;
-	void *mDevice;
+	void *mDevice = nullptr;
 	std::shared_ptr<HidReportDescriptor> mDescriptor;
 	belle_sip_source_t *mTimer = nullptr;
 	uint32_t mState = 0;

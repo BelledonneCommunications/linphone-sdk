@@ -1575,9 +1575,11 @@ void Call::notifyStateChangeToHeadset(const CallSession::State state) {
 	for (const auto &hidDevice : getCore()->getHidDevices()) {
 		switch (state) {
 			case CallSession::State::IncomingReceived:
+				hidDevice->startPollTimer();
 				hidDevice->startRinging();
 				break;
 			case CallSession::State::OutgoingInit:
+				hidDevice->startPollTimer();
 				hidDevice->startCall();
 				break;
 			case CallSession::State::End:
@@ -1611,6 +1613,11 @@ void Call::notifyStateChangeToHeadset(const CallSession::State state) {
 			} break;
 			case CallSession::State::Resuming:
 				hidDevice->resumeCall();
+				break;
+			case CallSession::State::Released:
+				if (linphone_core_get_calls_nb(lc) == 0) {
+					hidDevice->stopPollTimer();
+				}
 				break;
 			default:
 				break;

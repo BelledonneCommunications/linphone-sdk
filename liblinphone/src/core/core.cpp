@@ -3855,7 +3855,6 @@ void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
 		lInfo() << "Detected HidDevice \"" << device->getProductName() << "\"";
 		device->dumpDescriptor();
 		d->hidDevices.push_back(device);
-		device->startPollTimer();
 	}
 }
 #endif /* HAVE_HIDAPI */
