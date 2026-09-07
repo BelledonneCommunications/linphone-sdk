@@ -1071,10 +1071,19 @@ void CallSessionPrivate::setContactAddressForConference(std::shared_ptr<Address>
 		if (conferenceAddress && conferenceAddress->isValid()) {
 			if (contactAddress->isValid()) {
 				// Copy all parameters of the guessed contact address into the conference address. Here, it is
-				// interesting to pass the GRUU parameter on
+				// interesting to pass the GRUU parameter on, but only when the conference address has none of its
+				// own: the gruu of the guessed contact address is the one of the account the server currently runs
+				// with, and it must not replace the one the conference was created with, which is the address the
+				// clients and the proxy know it by.
+				const bool keepConferenceGruu = conferenceAddress->hasUriParam(Address::kGrParameter);
+				const std::string conferenceGruu =
+				    keepConferenceGruu ? conferenceAddress->getUriParamValue(Address::kGrParameter) : std::string();
 				lInfo() << "Copying all parameters of the guessed contact address " << *contactAddress
 				        << " to found conference address " << *conferenceAddress;
 				conferenceAddress->merge(*contactAddress);
+				if (keepConferenceGruu) {
+					conferenceAddress->setUriParam(Address::kGrParameter, conferenceGruu);
+				}
 			}
 			contactAddress = conferenceAddress;
 		}
