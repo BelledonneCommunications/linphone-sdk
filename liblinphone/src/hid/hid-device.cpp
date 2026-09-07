@@ -38,22 +38,24 @@ HidDevice::HidDevice(const std::shared_ptr<Core> &core,
                      const unsigned short productId,
                      std::string productName,
                      std::string serialNumber,
-                     void *device,
+                     std::string path,
                      const std::shared_ptr<HidReportDescriptor> &descriptor)
-    : CoreAccessor(core), mProductId(productId), mProductName(std::move(productName)),
-      mSerialNumber(std::move(serialNumber)), mDevice(device), mDescriptor(descriptor) {
+    : CoreAccessor(core), mProductId(productId), mPath(std::move(path)), mProductName(std::move(productName)),
+      mSerialNumber(std::move(serialNumber)), mDescriptor(descriptor) {
 	if (core == nullptr) lFatal() << "Cannot create HidDevice without Core.";
-	hid_set_nonblocking(static_cast<hid_device *>(mDevice), TRUE);
 	initializeFromReportDescriptor();
 }
 
 HidDevice::~HidDevice() {
 	stopPollTimer();
-	hid_close(static_cast<hid_device *>(mDevice));
 }
 
 void HidDevice::startPollTimer() {
-	this->stopPollTimer();
+	if (mTimer != nullptr) {
+		return;
+	}
+
+	openDevice();
 	mTimer = getCore()->createTimer(
 	    [this]() {
 		    this->handleEvents();
@@ -63,7 +65,10 @@ void HidDevice::startPollTimer() {
 }
 
 void HidDevice::stopPollTimer() {
-	if (mTimer) getCore()->destroyTimer(mTimer);
+	closeDevice();
+	if (mTimer != nullptr) {
+		getCore()->destroyTimer(mTimer);
+	}
 	mTimer = nullptr;
 }
 
@@ -275,25 +280,23 @@ std::shared_ptr<HidDevice> HidDevice::create(const std::shared_ptr<Core> &core,
                                              const std::string &productName,
                                              const std::string &serialNumber,
                                              const char *path) {
-	char error[512];
-
-	hid_device *device = hid_open_path(path);
+	auto *device = openDevice(path, productName);
 	if (!device) {
-		wcstombs(error, hid_error(nullptr), sizeof(error));
-		lError() << "Could not open HidDevice \"" << productName << "\": " << error;
 		return nullptr;
 	}
 
 	unsigned char buf[HID_API_MAX_REPORT_DESCRIPTOR_SIZE];
-	const int length = hid_get_report_descriptor(device, buf, sizeof(buf));
+	const int length = hid_get_report_descriptor(static_cast<hid_device *>(device), buf, sizeof(buf));
 	if (length < 0) {
+		char error[512];
 		wcstombs(error, hid_error(nullptr), sizeof(error));
 		lError() << "Could not get report descriptor of HidDevice \"" << productName << "\": " << error;
 		return nullptr;
 	}
+	closeDevice(device);
 
 	const auto descriptor = std::make_shared<HidReportDescriptor>(buf, static_cast<size_t>(length));
-	return std::make_shared<HidDevice>(core, productId, productName, serialNumber, device, descriptor);
+	return std::make_shared<HidDevice>(core, productId, productName, serialNumber, path, descriptor);
 }
 
 /**
@@ -375,6 +378,21 @@ void HidDevice::initializeFromReportDescriptor() {
 	mOutputData.mDataSize = outputOffset / 8;
 }
 
+void HidDevice::openDevice() {
+	closeDevice();
+	mDevice = openDevice(mPath, mProductName);
+	if (mDevice != nullptr) {
+		hid_set_nonblocking(static_cast<hid_device *>(mDevice), TRUE);
+	}
+}
+
+void HidDevice::closeDevice() {
+	if (mDevice != nullptr) {
+		hid_close(static_cast<hid_device *>(mDevice));
+		mDevice = nullptr;
+	}
+}
+
 int HidDevice::read(uint32_t &value) const {
 	uint8_t buffer[64] = {0};
 	const auto result = hid_read(static_cast<hid_device *>(mDevice), buffer, sizeof(buffer));
@@ -441,6 +459,21 @@ std::string HidDevice::stateStr() const {
 
 bool HidDevice::valueHas(const uint32_t value, const uint32_t bits) {
 	return (value & bits) == bits;
+}
+
+void *HidDevice::openDevice(const std::string &path, const std::string &productName) {
+	auto *device = hid_open_path(path.c_str());
+	if (device == nullptr) {
+		char error[512];
+		wcstombs(error, hid_error(nullptr), sizeof(error));
+		lError() << "Could not open HidDevice \"" << productName << "\": " << error;
+		return nullptr;
+	}
+	return device;
+}
+
+void HidDevice::closeDevice(void *device) {
+	hid_close(static_cast<hid_device *>(device));
 }
 
 LINPHONE_END_NAMESPACE
