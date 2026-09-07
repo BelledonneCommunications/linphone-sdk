@@ -32,6 +32,44 @@ static int get_packetization_mode(const char *fmtp) {
 	} else return 0; // default value
 }
 
+static bool_t get_profile_level_id(const char *fmtp, char *plid, size_t plid_size) {
+	return fmtp && fmtp_get_value(fmtp, "profile-level-id", plid, plid_size) && strlen(plid) == 6;
+}
+
+static bool_t has_main_profile(const char *fmtp) {
+	char plid[16];
+	return get_profile_level_id(fmtp, plid, sizeof(plid)) && strncasecmp(plid, "4d", 2) == 0;
+}
+
+/*
+ * RFC 6184 8.2.2: the profile is part of the payload type identity, so the answer must carry the offered
+ * profile and constraints; only the level part remains ours.
+ */
+static void mirror_remote_profile(PayloadType *pt, const char *remote_fmtp) {
+	char remote_plid[16];
+	char local_plid[16];
+	char answered_plid[7];
+	char *new_fmtp;
+
+	if (!get_profile_level_id(remote_fmtp, remote_plid, sizeof(remote_plid))) return;
+	if (get_profile_level_id(pt->recv_fmtp, local_plid, sizeof(local_plid))) {
+		const char *found;
+		memcpy(answered_plid, remote_plid, 4);
+		memcpy(answered_plid + 4, local_plid + 4, 2);
+		answered_plid[6] = 0;
+		found = strstr(pt->recv_fmtp, local_plid);
+		if (found == NULL || strcmp(local_plid, answered_plid) == 0) return;
+		new_fmtp = ms_strdup_printf("%.*s%s%s", (int)(found - pt->recv_fmtp), pt->recv_fmtp, answered_plid,
+		                            found + strlen(local_plid));
+	} else if (pt->recv_fmtp) {
+		new_fmtp = ms_strdup_printf("%s; profile-level-id=%s", pt->recv_fmtp, remote_plid);
+	} else {
+		new_fmtp = ms_strdup_printf("profile-level-id=%s", remote_plid);
+	}
+	payload_type_set_recv_fmtp(pt, new_fmtp);
+	ms_free(new_fmtp);
+}
+
 /*
  * To start with, only implement case where a remote contains an H264 payload type with  packetization-mode=1. In such
  * case, if mime type match, answer packetization-mode=1 regardless of the local configuration.
@@ -40,22 +78,28 @@ static PayloadType *h264_match(BCTBX_UNUSED(MSOfferAnswerContext *ctx),
                                const bctbx_list_t *local_payloads,
                                const PayloadType *refpt,
                                const bctbx_list_t *remote_payloads,
-                               BCTBX_UNUSED(bool_t reading_response)) {
+                               bool_t reading_response) {
 	PayloadType *pt = NULL;
 	const bctbx_list_t *it;
 	PayloadType *local_h264_with_packetization_mode_1_pt = NULL;
 	bctbx_list_t *local_h264_list = NULL;
 	PayloadType *remote_h264_with_packetization_mode_1_pt = NULL;
+	PayloadType *remote_h264_main_profile_pt = NULL;
 	PayloadType *matching_pt = NULL;
 
-	// extract h264 from remote list and get first one with packetization-mode=1 if any
+	// extract h264 from remote list and get first one with packetization-mode=1 if any,
+	// giving precedence to a main profile payload type over a baseline one
 	for (it = remote_payloads; it != NULL; it = it->next) {
 		pt = (PayloadType *)it->data;
 		if (strcasecmp(pt->mime_type, "h264") == 0) {
-			if (remote_h264_with_packetization_mode_1_pt == NULL && get_packetization_mode(pt->send_fmtp) == 1)
-				remote_h264_with_packetization_mode_1_pt = pt;
+			if (get_packetization_mode(pt->send_fmtp) == 1) {
+				if (remote_h264_with_packetization_mode_1_pt == NULL) remote_h264_with_packetization_mode_1_pt = pt;
+				if (remote_h264_main_profile_pt == NULL && has_main_profile(pt->send_fmtp))
+					remote_h264_main_profile_pt = pt;
+			}
 		}
 	}
+	if (remote_h264_main_profile_pt != NULL) remote_h264_with_packetization_mode_1_pt = remote_h264_main_profile_pt;
 	// same for local
 	for (it = local_payloads; it != NULL; it = it->next) {
 		pt = (PayloadType *)it->data;
@@ -112,7 +156,10 @@ end:
 		bctbx_list_free(local_h264_list);
 	}
 
-	return matching_pt ? payload_type_clone(matching_pt) : NULL;
+	if (matching_pt == NULL) return NULL;
+	pt = payload_type_clone(matching_pt);
+	if (!reading_response) mirror_remote_profile(pt, refpt->send_fmtp);
+	return pt;
 }
 
 static MSOfferAnswerContext *h264_offer_answer_create_context(void) {
