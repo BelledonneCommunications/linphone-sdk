@@ -203,7 +203,7 @@ LINPHONE_PUBLIC void linphone_chat_params_enable_rtt(LinphoneChatParams *params,
  * instead.
  */
 LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_chat_params_set_ephemeral_lifetime(LinphoneChatParams *params,
-                                                                                     long time);
+                                                                                     long lifetime);
 
 /**
  * @}

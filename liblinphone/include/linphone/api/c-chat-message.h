@@ -434,7 +434,7 @@ LINPHONE_PUBLIC LinphoneChatMessageCbs *linphone_chat_message_get_current_callba
  * @param message #LinphoneChatMessage object. @notnil
  * @param call_log the #LinphoneCallLog object to add. @notnil
  */
-LINPHONE_PUBLIC void linphone_chat_message_add_call_log_content(LinphoneChatMessage *msg,
+LINPHONE_PUBLIC void linphone_chat_message_add_call_log_content(LinphoneChatMessage *message,
                                                                 const LinphoneCallLog *call_log);
 
 /**

@@ -31,7 +31,7 @@ add_custom_command(OUTPUT LinphoneWrapper.cs
 	wrapper_impl.mustache
 	${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml/index.xml
 	liblinphone-doc
-	COMMENT "Generating C# wrapper"
+	COMMENT "Generating C# wrapper at ${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml/"
 )
 
 add_custom_target(liblinphone-csharp ALL DEPENDS LinphoneWrapper.cs)
