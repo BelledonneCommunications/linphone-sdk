@@ -225,7 +225,7 @@
 libl-rocky8-mr-test-upload:
   extends: .test-report-upload
   needs:
-    - liblinphone-rocky8-test-mr
+    - liblinphone-rocky8-test-mr-2nd-chance
   variables:
     PLATFORM: "linux-rocky8"
     TESTER: "liblinphone"

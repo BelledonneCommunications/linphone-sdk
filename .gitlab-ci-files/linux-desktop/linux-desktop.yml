@@ -31,6 +31,7 @@
   artifacts:
     paths:
       - sanitizer_ignore.txt
+      - .gitlab-ci-files/retry_failed_tests.py
       - build/default/gitdescribe.txt
       - build/default/linphone-sdk/desktop/bin/*
       - build/default/linphone-sdk/desktop/lib/*
@@ -199,6 +200,7 @@
   artifacts:
     paths:
       - sanitizer_ignore.txt
+      - .gitlab-ci-files/retry_failed_tests.py
       - build/gitdescribe.txt
       - build/linphone-sdk/desktop/bin/*
       - build/linphone-sdk/desktop/lib/*
@@ -421,6 +423,7 @@
       - ${CI_PROJECT_DIR}/results/*
       - ${CI_PROJECT_DIR}/build/default/gitdescribe.txt
       - ${CI_PROJECT_DIR}/coverage
+      - sanitizer_ignore.txt
     when: always
     reports:
       junit:
