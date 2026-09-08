@@ -3962,12 +3962,12 @@ void ServerConference::conclude() {
 			return;
 		}
 
-		const auto device = findParticipantDevice(session);
 		if (getParticipants().size() < 2) {
 			lError() << "There are less than 2 participants in " << *this << ", refusing creation.";
 			declineSession(session, LinphoneReasonNotAcceptable);
 			requestDeletion();
-		} else if (!device || (device->getState() != ParticipantDevice::State::Joining)) {
+		} else if (const auto device = findParticipantDevice(session);
+		           !device || (device->getState() != ParticipantDevice::State::Joining)) {
 			// We may end up here if a client successfully created a chat room but the conference server thinks it
 			// should be allowed to be part of a conference. A scenario where this branch is hit is the following.
 			// The client creating the chatroom registered into the server without the groupchat capability.

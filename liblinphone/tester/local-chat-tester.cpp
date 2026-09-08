@@ -4637,7 +4637,14 @@ static void group_chat_room_add_participant_with_invalid_address() {
 	}
 }
 
-static void group_chat_room_with_only_participant_with_invalid_address() {
+struct ChatRoomInvalidParticipantAddressParams {
+	Address participant_address;
+};
+
+static void
+group_chat_room_with_only_participant_with_invalid_address_base(ChatRoomInvalidParticipantAddressParams const &params) {
+	Address invalidAddr = params.participant_address;
+
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
 		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
@@ -4646,7 +4653,6 @@ static void group_chat_room_with_only_participant_with_invalid_address() {
 
 		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
 		coresList = bctbx_list_append(coresList, marie.getLc());
-		Address invalidAddr = Address();
 		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(invalidAddr.toC()));
 
 		stats initialMarieStats = marie.getStats();
@@ -4684,6 +4690,20 @@ static void group_chat_room_with_only_participant_with_invalid_address() {
 
 		bctbx_list_free(coresList);
 	}
+}
+
+static void group_chat_room_with_only_participant_with_invalid_address() {
+	struct ChatRoomInvalidParticipantAddressParams params;
+	params.participant_address = Address();
+	group_chat_room_with_only_participant_with_invalid_address_base(params);
+}
+
+static void group_chat_room_only_with_unregistered_participant() {
+	struct ChatRoomInvalidParticipantAddressParams params;
+	char *invalid_address = ms_strdup_printf("%s@sip.example.org", generate_random_alphanum_string(20).c_str());
+	params.participant_address = Address(invalid_address);
+	ms_free(invalid_address);
+	group_chat_room_with_only_participant_with_invalid_address_base(params);
 }
 
 static void high_number_of_group_chat_rooms_with_client_restart_base(int nbChatRooms,
@@ -6327,6 +6347,8 @@ static test_t local_conference_chat_error_tests[] = {
                 LinphoneTest::group_chat_room_add_participant_with_invalid_address),
     TEST_NO_TAG("Group chat only participant with invalid address",
                 LinphoneTest::group_chat_room_with_only_participant_with_invalid_address),
+    TEST_NO_TAG("Group chat only with unregistered participant",
+                LinphoneTest::group_chat_room_only_with_unregistered_participant),
     TEST_ONE_TAG("Group chat with INVITE session error when updating subject",
                  LinphoneTest::group_chat_room_with_invite_error_when_updating_subject,
                  "LeaksMemory"), /* because of network up and down */

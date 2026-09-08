@@ -4934,7 +4934,7 @@ void legacy_server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChat
 	}
 }
 
-static std::string generate_random_alphanum_string(size_t length) {
+std::string generate_random_alphanum_string(size_t length) {
 	const std::string characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	std::random_device randomDevice;
 	std::mt19937 generator(randomDevice());

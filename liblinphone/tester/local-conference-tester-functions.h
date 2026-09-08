@@ -623,6 +623,7 @@ void create_simple_conference_dial_out_with_some_calls_declined_base(LinphoneRea
 
 void change_active_speaker_base(bool transfer_mode);
 
+std::string generate_random_alphanum_string(size_t length);
 } // namespace LinphoneTest
 
 #endif // LOCAL_CONFERENCE_TESTER_FUNCTIONS_H_
