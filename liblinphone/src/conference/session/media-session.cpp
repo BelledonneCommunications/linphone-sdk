@@ -2371,6 +2371,12 @@ void MediaSessionPrivate::addConferenceParticipantStreams(std::shared_ptr<SalMed
 				        << std::string(sal_stream_type_to_string(type)) << " because the layout is not known yet";
 				return;
 			}
+			if (isVideoStream && (parameters->getVideoDirection() & LinphoneMediaDirectionRecvOnly) == 0) {
+				lInfo() << "MediaSession [" << q << "] (local address " << *q->getLocalAddress() << " remote address "
+				        << *q->getRemoteAddress() << "] in " << *conference
+				        << " is not adding video streams because video direction has not Recv flag";
+				return;
+			}
 			const auto &confLayout = parameters->getConferenceVideoLayout();
 			bool isConferenceLayoutActiveSpeaker = (confLayout == ConferenceLayout::ActiveSpeaker);
 			if (localIsOfferer && !conferenceServerEnabled) {

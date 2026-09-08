@@ -1060,17 +1060,19 @@ size_t compute_no_video_streams_2(const std::list<std::shared_ptr<Call>> &calls,
 		                                                               : (*itCurrentParticipant)->getRole());
 		auto currentVideoDirection = currentCallParams->getVideoDirection();
 		auto currentConference = currentCall->getConference();
-		bool_t haveParticipantStreams =
-		    (currentConference
-		         ? are_participants_camera_streams_requested(
-		               currentCore->getCCore(), static_cast<LinphoneConference *>(currentConference->getCPtr()))
-		         : TRUE);
 		auto localParams = currentCall->getParams();
 		auto localVideoLayout = localParams->getConferenceVideoLayout();
+		auto localVideoDirection = localParams->getVideoDirection();
 		bool isConferenceServer = currentCore->conferenceServerEnabled();
 		bool isScreenSharing = currentCallParams->screenSharingEnabled();
 		// Get Focus to detect screen sharing in remote parameters.
 		bool remoteFocusScreenSharing = false;
+		bool_t haveParticipantStreams =
+		    (currentConference
+		         ? are_participants_camera_streams_requested(
+		               currentCore->getCCore(), static_cast<LinphoneConference *>(currentConference->getCPtr()))
+		         : TRUE) &&
+		    (localVideoDirection & LinphoneMediaDirectionRecvOnly);
 		if (focus) {
 			auto currentFocusCall = focus->getCallByCallId(currentCall->getLog()->getCallId());
 			if (currentFocusCall)
