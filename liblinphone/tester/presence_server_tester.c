@@ -1818,9 +1818,12 @@ static void publish_with_expire_timestamp_refresh_base(bool_t refresh_timestamps
 	const LinphonePresenceModel *model = linphone_friend_get_presence_model(pauline_marie_friend);
 	time_t first_timestamp = linphone_presence_model_get_timestamp(model);
 
+	stats marie_stat = marie->stat;
+	stats pauline_stat = pauline->stat;
+
 	// Wait for PUBLISH refresh
-	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphonePublishOk, 3));
-	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneConsolidatedPresenceOnline, 3));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphonePublishOk, marie_stat.number_of_LinphonePublishOk + 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneConsolidatedPresenceOnline, pauline_stat.number_of_LinphoneConsolidatedPresenceOnline + 1));
 	model = linphone_friend_get_presence_model(pauline_marie_friend);
 	time_t next_timestamp = linphone_presence_model_get_timestamp(model);
 	if (refresh_timestamps) {
@@ -1829,9 +1832,12 @@ static void publish_with_expire_timestamp_refresh_base(bool_t refresh_timestamps
 		BC_ASSERT_TRUE(first_timestamp == next_timestamp);
 	}
 
+	marie_stat = marie->stat;
+	pauline_stat = pauline->stat;
+
 	// Wait for PUBLISH refresh
-	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphonePublishOk, 4));
-	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneConsolidatedPresenceOnline, 4));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphonePublishOk, marie_stat.number_of_LinphonePublishOk + 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneConsolidatedPresenceOnline, pauline_stat.number_of_LinphoneConsolidatedPresenceOnline + 1));
 	model = linphone_friend_get_presence_model(pauline_marie_friend);
 	next_timestamp = linphone_presence_model_get_timestamp(model);
 	if (refresh_timestamps) {
