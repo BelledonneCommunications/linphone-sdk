@@ -786,7 +786,7 @@ static void account_set_params_with_core_off(void) {
 }
 
 static void account_params_push_config_loaded(void) {
-	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc_all_push_enabled");
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc_ios_push_enabled");
 	LinphoneAccount *account = linphone_core_get_default_account(marie->lc);
 	LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(account));
 	LinphonePushNotificationConfig *push_config = linphone_account_params_get_push_notification_config(params);
@@ -802,8 +802,9 @@ static void account_params_push_config_loaded(void) {
 	BC_ASSERT_TRUE(linphone_account_params_get_push_notification_allowed(params));
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_team_id(push_config), "teamid");
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_bundle_identifier(push_config), "example.bundle.id");
-	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_remote_token(push_config), "example_remote_token");
-	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_voip_token(push_config), "example_voip_token");
+	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_remote_token(push_config),
+	                       "example_remote_token:remote");
+	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_voip_token(push_config), "example_voip_token:voip");
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_param(push_config),
 	                       "teamid.example.bundle.id.voip&remote");
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_prid(push_config),
@@ -811,6 +812,80 @@ static void account_params_push_config_loaded(void) {
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_provider(push_config), "liblinphone_tester");
 
 	linphone_account_params_unref(params);
+	linphone_core_manager_destroy(marie);
+}
+
+static void account_params_android_push_config_loaded(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc_android_push_enabled");
+	LinphoneAccount *account = linphone_core_get_default_account(marie->lc);
+	LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(account));
+	LinphonePushNotificationConfig *push_config = linphone_account_params_get_push_notification_config(params);
+
+	// Checked after the REGISTER: the push parameters generated for it are saved back to the account and its config
+	const char *loaded_push_params =
+	    linphone_config_get_string(linphone_core_get_config(marie->lc), "proxy_0", "push_parameters", "");
+	BC_ASSERT_TRUE(strstr(loaded_push_params, "pn-prid=example_instance_id:example_remote_token") != NULL);
+	BC_ASSERT_TRUE(strstr(loaded_push_params, "pn-param=example_remote_project_id") != NULL);
+
+	// An FCM token is opaque: the ':' it contains is not a ':voip' or ':remote' suffix, and pn-param is a project ID,
+	// not "teamID.bundleIdentifier.services". Nothing APNs-specific must be derived from them, even when they contain
+	// the name of a service, as both do here with "remote".
+	BC_ASSERT_TRUE(linphone_core_push_notification_enabled(marie->lc));
+	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_prid(push_config),
+	                       "example_instance_id:example_remote_token");
+	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_param(push_config), "example_remote_project_id");
+	// The provider is replaced when generating the push parameters in a tester environment
+	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_provider(push_config), "liblinphone_tester");
+	BC_ASSERT_PTR_NULL(linphone_push_notification_config_get_voip_token(push_config));
+	BC_ASSERT_PTR_NULL(linphone_push_notification_config_get_remote_token(push_config));
+	BC_ASSERT_PTR_NULL(linphone_push_notification_config_get_bundle_identifier(push_config));
+
+	linphone_account_params_unref(params);
+	linphone_core_manager_destroy(marie);
+}
+
+static LinphoneAccountParams *
+account_params_new_with_push_parameters(LinphoneCore *lc, int index, const char *push_parameters) {
+	char section[50];
+	snprintf(section, sizeof(section), "proxy_%i", index);
+	linphone_config_set_string(linphone_core_get_config(lc), section, "push_parameters", push_parameters);
+	return linphone_account_params_new_with_config(lc, index);
+}
+
+static void account_params_push_config_parsing(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc_ios_push_enabled");
+	const char *default_team_id =
+	    linphone_push_notification_config_get_team_id(linphone_core_get_push_notification_config(marie->lc));
+	BC_ASSERT_PTR_NOT_NULL(default_team_id);
+
+	// The tokens are found whatever their order
+	LinphoneAccountParams *params = account_params_new_with_push_parameters(
+	    marie->lc, 1,
+	    "pn-prid=example_remote_token:remote&example_voip_token:voip;pn-provider="
+	    "apns;pn-param=teamid.example.bundle.id.remote&voip;");
+	if (BC_ASSERT_PTR_NOT_NULL(params)) {
+		LinphonePushNotificationConfig *push_config = linphone_account_params_get_push_notification_config(params);
+		BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_voip_token(push_config),
+		                       "example_voip_token:voip");
+		BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_remote_token(push_config),
+		                       "example_remote_token:remote");
+		BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_team_id(push_config), "teamid");
+		BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_bundle_identifier(push_config),
+		                       "example.bundle.id");
+		linphone_account_params_unref(params);
+	}
+
+	// A service suffix with no token before it is not a token
+	params = account_params_new_with_push_parameters(
+	    marie->lc, 2,
+	    "pn-prid=:voip&example_remote_token:remote;pn-provider=apns;pn-param=teamid.example.bundle.id.remote;");
+	if (BC_ASSERT_PTR_NOT_NULL(params)) {
+		LinphonePushNotificationConfig *push_config = linphone_account_params_get_push_notification_config(params);
+		BC_ASSERT_PTR_NULL(linphone_push_notification_config_get_voip_token(push_config));
+		BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_remote_token(push_config),
+		                       "example_remote_token:remote");
+		linphone_account_params_unref(params);
+	}
 	linphone_core_manager_destroy(marie);
 }
 
@@ -842,6 +917,9 @@ static test_t account_tests[] = {
                 account_no_unnecessary_register_on_push_token_reception),
     TEST_NO_TAG("Trying to set account params after core has been stopped", account_set_params_with_core_off),
     TEST_NO_TAG("Load a config with push parameters set", account_params_push_config_loaded),
+    TEST_NO_TAG("Load a config with Android push parameters set", account_params_android_push_config_loaded),
+    TEST_NO_TAG("Load a config with unordered, partial or malformed push parameters",
+                account_params_push_config_parsing),
 };
 
 test_suite_t account_test_suite = {"Account",

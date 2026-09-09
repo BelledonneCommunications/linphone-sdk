@@ -92,6 +92,10 @@ public:
 	void readFromConfig(LinphoneConfig *config, const std::string &section);
 
 private:
+	bool isApnsProvider() const;
+	void readTokensFromPrid(const string &prid);
+	void readTeamIdAndBundleIdentifierFromParam(const string &param);
+
 	string mTeamId;
 	string mBundleIdentifer;
 	string mVoipToken;
