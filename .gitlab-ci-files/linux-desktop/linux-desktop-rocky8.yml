@@ -462,17 +462,14 @@ liblinphone-rocky8-test-mr-2nd-chance:
     - echo $EXPORT_DISPLAY
     - ls -la
     - echo $TESTER_BIN
-    # Remove file capabilities on the tester binary before launching it through python.
-    # Otherwise, the Linux kernel sets AT_SECURE=1 (privilege elevation), which causes
-    # AddressSanitizer/LeakSanitizer to refuse running external symbolizers (llvm-symbolizer),
-    # preventing memory leak suppressions from matching.
-    - sudo setcap -r ${PATH_TO_TESTER}/${TESTER_BIN} || true
+    - echo $SET_CAP_SYS_NICE_LIN
+    - $SET_CAP_SYS_NICE_LIN || true
     - getcap $PATH_TO_TESTER/$TESTER_BIN || true
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
     - cp ${CI_PROJECT_DIR}/results/BCUnitAutomated-Results.xml ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml || true
-    - python3 ${CI_PROJECT_DIR}/.gitlab-ci-files/retry_failed_tests.py --xml ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml --xml-out ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml --tester-bin ${PATH_TO_TESTER}/${TESTER_BIN} --extra-args "--tag !shaky --tag !NightlyPerformance --tag !Performance $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt"
+    - python3 ${CI_PROJECT_DIR}/.gitlab-ci-files/retry_failed_tests.py --xml ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml --xml-out ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml --tester-bin ${PATH_TO_TESTER}/${TESTER_BIN} --log-dir ${CI_PROJECT_DIR}/results --extra-args "--parallel --tag !shaky --tag !NightlyPerformance --tag !Performance $RESOURCES_DIR $ADDITIONNAL_OPTIONS"
     - $PULSEAUDIO_KILL
 
 .linphone-sdk-rocky8-coverage:
@@ -552,11 +549,47 @@ linphone-sdk-rocky8-coverage:
 liblinphone-rocky8-test-mr-pq-h264-ekt:
   extends:
     - .test-liblinphone-tunnel-pq-mr
+  allow_failure: true
   image: !reference [ .rocky8_test_libl_image_version, image ]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264-ekt
   variables:
     PLATFORM: linux-rocky8
+
+liblinphone-rocky8-test-mr-pq-h264-ekt-2nd-chance:
+  extends:
+    - .test-liblinphone-tunnel-pq-mr
+  allow_failure: false
+  image: !reference [ .rocky8_test_libl_image_version, image ]
+  needs:
+    - rocky8-ninja-gcc-tunnel-pq-h264-ekt
+    - liblinphone-rocky8-test-mr-pq-h264-ekt
+  variables:
+    PLATFORM: linux-rocky8
+  script:
+    - export LSAN_OPTIONS="exitcode=255:suppressions=${CI_PROJECT_DIR}/sanitizer_ignore.txt:print_suppressions=1:fast_unwind_on_malloc=0"
+    - export ASAN_OPTIONS="exitcode=255"
+    - export ASAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
+    - export LLVM_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
+    - export LLVM_PROFILE_FILE=${CI_JOB_NAME}%p.profraw
+    - echo $PATH_TO_TESTER
+    - $PULSEAUDIO
+    - echo $PULSEAUDIO
+    - $XVFB &
+    - echo $XVFB
+    - $EXPORT_DISPLAY
+    - echo $EXPORT_DISPLAY
+    - ls -la
+    - echo $TESTER_BIN
+    - echo $SET_CAP_SYS_NICE_LIN
+    - $SET_CAP_SYS_NICE_LIN || true
+    - getcap $PATH_TO_TESTER/$TESTER_BIN || true
+    - echo $RESOURCES_DIR
+    - echo $ADDITIONNAL_OPTIONS
+    - echo $LOG_PATTERN.txt
+    - cp ${CI_PROJECT_DIR}/results/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml ${CI_PROJECT_DIR}/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml || true
+    - python3 ${CI_PROJECT_DIR}/.gitlab-ci-files/retry_failed_tests.py --xml ${CI_PROJECT_DIR}/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml --xml-out ${CI_PROJECT_DIR}/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml --tester-bin ${PATH_TO_TESTER}/${TESTER_BIN} --log-dir ${CI_PROJECT_DIR}/results --extra-args "--parallel --tag H264 --tag End2EndConf --tag LimeX3DH --tag PQCalls --tag !shaky $RESOURCES_DIR $ADDITIONNAL_OPTIONS"
+    - $PULSEAUDIO_KILL
 
 liblinphone-rocky8-test-shaky-mr:
   extends:
