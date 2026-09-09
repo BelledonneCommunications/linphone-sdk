@@ -532,7 +532,7 @@ static void remote_provisioning_check_push_params_2(void) {
 
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_voip_token(
 	                           linphone_account_params_get_push_notification_config(marie_params)),
-	                       "example_voip_token");
+	                       "example_voip_token:voip");
 	BC_ASSERT_STRING_EQUAL(linphone_push_notification_config_get_bundle_identifier(
 	                           linphone_account_params_get_push_notification_config(marie_params)),
 	                       "example.bundle.id");

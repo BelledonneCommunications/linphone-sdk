@@ -21,7 +21,10 @@
 #include "push-notification-config.h"
 #include "address/address.h"
 #include "linphone/lpconfig.h"
+#include "linphone/utils/utils.h"
 #include "logger/logger.h"
+
+#include <algorithm>
 
 using namespace std;
 
@@ -181,16 +184,31 @@ void PushNotificationConfig::setRemotePushInterval(const string &remotePushInter
 	mPushParams[PushConfigRemotePushIntervalKey] = remotePushInterval;
 }
 
-bool doesParamNeedUpdate(string const &paramVal, bool voipPushAllowed, bool remotePushAllowed) {
-	bool foundVoipInParam = paramVal.find("voip") != string::npos;
-	if (voipPushAllowed && !foundVoipInParam) return true;
-	if (!voipPushAllowed && foundVoipInParam) return true;
+// An APNs token is suffixed with the service it is for, like "hextoken:voip".
+static bool isPushTokenForService(string const &token, string const &service) {
+	string suffix = ":" + service;
+	return token.size() > suffix.size() && Utils::endsWith(token, suffix);
+}
 
-	bool foundRemoteInParam = paramVal.find("remote") != string::npos;
-	if (remotePushAllowed && !foundRemoteInParam) return true;
-	if (!remotePushAllowed && foundRemoteInParam) return true;
-
+// iOS: pn-prid is made of '&'-separated APNs tokens suffixed with their service, like "hextoken:voip&hextoken:remote".
+// Android: An opaque FCM token has no specific suffix.
+static bool pridHasTokenForService(string const &prid, string const &service) {
+	for (const auto &token : bctoolbox::Utils::split(prid, "&"))
+		if (isPushTokenForService(token, service)) return true;
 	return false;
+}
+
+// iOS: pn-param="teamId.bundleId.${SERVICES}" (RFC 8599), with SERVICES being like "voip", "remote", or "voip&remote".
+// Android: An FCM project has no services and no "."
+static bool pnParamHasService(string const &pnParam, string const &service) {
+	size_t lastDotPos = pnParam.find_last_of('.');
+	if (lastDotPos == string::npos) return false;
+	auto services = bctoolbox::Utils::split(pnParam.substr(lastDotPos + 1), "&");
+	return find(services.begin(), services.end(), service) != services.end();
+}
+
+static bool doesParamNeedUpdate(bool hasVoip, bool hasRemote, bool voipPushAllowed, bool remotePushAllowed) {
+	return hasVoip != voipPushAllowed || hasRemote != remotePushAllowed;
 }
 
 void PushNotificationConfig::generatePushParams(bool voipPushAllowed, bool remotePushAllowed) {
@@ -215,8 +233,10 @@ void PushNotificationConfig::generatePushParams(bool voipPushAllowed, bool remot
 		voipPushAllowed = false;
 	}
 
-	if (mPushParams[PushConfigParamKey].empty() ||
-	    doesParamNeedUpdate(mPushParams[PushConfigParamKey], voipPushAllowed, remotePushAllowed) ||
+	const string &pnParam = mPushParams[PushConfigParamKey];
+	if (pnParam.empty() ||
+	    doesParamNeedUpdate(pnParamHasService(pnParam, "voip"), pnParamHasService(pnParam, "remote"), voipPushAllowed,
+	                        remotePushAllowed) ||
 	    (mTokensHaveChanged && (!mVoipToken.empty() || !mRemoteToken.empty()))) {
 		string services;
 		if (voipPushAllowed) {
@@ -228,8 +248,10 @@ void PushNotificationConfig::generatePushParams(bool voipPushAllowed, bool remot
 		mPushParams[PushConfigParamKey] = mTeamId + "." + mBundleIdentifer + "." + services;
 	}
 
-	if (mPushParams[PushConfigPridKey].empty() ||
-	    doesParamNeedUpdate(mPushParams[PushConfigPridKey], voipPushAllowed, remotePushAllowed) ||
+	const string &prid = mPushParams[PushConfigPridKey];
+	if (prid.empty() ||
+	    doesParamNeedUpdate(pridHasTokenForService(prid, "voip"), pridHasTokenForService(prid, "remote"),
+	                        voipPushAllowed, remotePushAllowed) ||
 	    (mTokensHaveChanged && (!mVoipToken.empty() || !mRemoteToken.empty()))) {
 		string newPrid;
 		if (voipPushAllowed) {
@@ -271,58 +293,76 @@ string PushNotificationConfig::asString(bool withRemoteSpecificParams) const {
 	return serializedConfig;
 }
 
+bool PushNotificationConfig::isApnsProvider() const {
+	// "apns" or "apns.dev"
+	return getProvider().rfind("apns", 0) == 0;
+}
+
+void PushNotificationConfig::readTokensFromPrid(const string &prid) {
+	// iOS: pn-prid is made of the '&'-separated tokens "hextoken:voip" and "hextoken:remote", in any order.
+	// Android: no token to extract.
+	string voipToken;
+	string remoteToken;
+	for (const auto &element : bctoolbox::Utils::split(prid, "&")) {
+		if (isPushTokenForService(element, "voip")) voipToken = element;
+		else if (isPushTokenForService(element, "remote")) remoteToken = element;
+	}
+	if (!voipToken.empty()) mVoipToken = voipToken;
+	if (!remoteToken.empty()) mRemoteToken = remoteToken;
+
+	if (voipToken.empty() && remoteToken.empty() && isApnsProvider()) {
+		lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push parameter string: "
+		            "pn-prid '"
+		         << prid << "' could not find push tokens";
+	}
+}
+
+void PushNotificationConfig::readTeamIdAndBundleIdentifierFromParam(const string &param) {
+	// According to RFC8599: https://datatracker.ietf.org/doc/html/rfc8599#page-30
+	// iOS: pn-param must be of the form "TeamId.BundleID.services"
+	// Example: pn-param=DEF123GHIJ.com.example.yourexampleapp.voip
+	// Android: pn-param is a project ID with no specific suffix.
+	size_t firstDotPos = param.find_first_of(".");
+	size_t lastDotPos = param.find_last_of(".");
+	if (firstDotPos == string::npos || firstDotPos == lastDotPos) {
+		if (isApnsProvider()) {
+			lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push parameter "
+			            "string: pn-param '"
+			         << param << "' should be of the form teamID.bundleIdentifier.services";
+		}
+		return;
+	}
+
+	string teamId = param.substr(0, firstDotPos);
+	string bundleIdentifier = param.substr(firstDotPos + 1, lastDotPos - firstDotPos - 1);
+	if (teamId.empty() || bundleIdentifier.empty()) {
+		lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push parameter string: "
+		            "empty team ID or bundle identifier in pn-param '"
+		         << param << "'";
+		return;
+	}
+	mTeamId = teamId;
+	mBundleIdentifer = bundleIdentifier;
+}
+
 void PushNotificationConfig::readPushParamsFromString(string const &serializedConfig) {
+	if (serializedConfig.empty()) return;
+
 	std::shared_ptr<Address> pushParamsWrapper = Address::create("sip:dummy;" + serializedConfig);
+	if (!pushParamsWrapper || !pushParamsWrapper->isValid()) {
+		lError() << "[PushNotificationConfig::readPushParamsFromString]: could not parse the push parameter string '"
+		         << serializedConfig << "'";
+		return;
+	}
 	for (auto &param : mPushParams) {
 		string paramValue = pushParamsWrapper->getUriParamValue(param.first);
-		std::string key = param.first;
 		if (!paramValue.empty()) param.second = paramValue;
-
-		if (key == PushConfigPridKey) {
-			// pn-prid can be of the form "token:remote", "token:voip", or "token:voip&token:remote"
-			size_t voipPos = paramValue.find(":voip");
-			if (voipPos != string::npos) {
-				mVoipToken = paramValue.substr(0, voipPos);
-			}
-			size_t remotePos = paramValue.find(":remote");
-			if (remotePos != string::npos) {
-				size_t remoteTokenStartPos = 0;
-				if (voipPos != string::npos) {
-					remoteTokenStartPos = paramValue.find("&", voipPos) + 1;
-				}
-				mRemoteToken = paramValue.substr(remoteTokenStartPos, remotePos - remoteTokenStartPos);
-			}
-			if (mVoipToken.empty() && mRemoteToken.empty()) {
-				lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push parameter "
-				            "string: pn-prid '"
-				         << paramValue << "' could not find push tokens";
-			}
-		} else if (key == PushConfigParamKey) {
-			// According to RFC8599: https://datatracker.ietf.org/doc/html/rfc8599#page-30
-			// pn-param must be of the form "TeamId.BundleID.services
-			// Example: pn-param=DEF123GHIJ.com.example.yourexampleapp.voip
-			size_t firstDotPos = paramValue.find_first_of(".");
-			size_t lastDotPos = paramValue.find_last_of(".");
-			if (firstDotPos == string::npos || firstDotPos == lastDotPos) {
-				lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push parameter "
-				            "string: pn-param '"
-				         << paramValue << "' should be of the form teamID.bundleIdentifier.services";
-			} else {
-				mTeamId = paramValue.substr(0, firstDotPos);
-				if (mTeamId.empty()) {
-					lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push "
-					            "parameter string: empty team ID in pn-param '"
-					         << paramValue << "'";
-				}
-				mBundleIdentifer = paramValue.substr(firstDotPos + 1, lastDotPos - firstDotPos - 1);
-				if (mBundleIdentifer.empty()) {
-					lError() << "[PushNotificationConfig::readPushParamsFromString]: error when parsing the push "
-					            "parameter string: empty bundle identifier in pn-param '"
-					         << paramValue << "'";
-				}
-			}
-		}
 	}
+
+	string prid = pushParamsWrapper->getUriParamValue(PushConfigPridKey);
+	if (!prid.empty()) readTokensFromPrid(prid);
+	string param = pushParamsWrapper->getUriParamValue(PushConfigParamKey);
+	if (!param.empty()) readTeamIdAndBundleIdentifierFromParam(param);
 }
 
 void PushNotificationConfig::readFromConfig(LinphoneConfig *config, const std::string &section) {
