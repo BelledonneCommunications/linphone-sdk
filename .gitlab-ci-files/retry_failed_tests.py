@@ -10,6 +10,7 @@ Exits with 0 if all tests pass (or if there were no failures to begin with), or 
 
 import argparse
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -76,19 +77,63 @@ def find_failed_tests(tree):
     return failed_tests
 
 
-def run_single_test(tester_bin, suite_name, test_name, extra_args=None, env=None):
+def sanitize_name(name):
+    """
+    Sanitizes a suite or test name to be safely used in filenames.
+    Replaces spaces and path/special/shell characters with underscores.
+    """
+    sanitized = re.sub(r'[\s/\\:*?"<>|()]+', '_', name.strip())
+    sanitized = re.sub(r'_+', '_', sanitized)
+    return sanitized.strip('_')
+
+
+def generate_log_filename(suite_name, test_name, log_dir=None):
+    """
+    Generates a log filename based on suite name and test name:
+    <clean_suite>_<clean_test>.log
+    """
+    clean_suite = sanitize_name(suite_name)
+    clean_test = sanitize_name(test_name)
+    filename = f"{clean_suite}_{clean_test}.log"
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+        return os.path.join(log_dir, filename)
+    return filename
+
+
+def strip_log_file_arg(args_list):
+    """
+    Removes any existing --log-file or --log-file= arguments from the list.
+    """
+    filtered = []
+    skip_next = False
+    for arg in args_list:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg == "--log-file":
+            skip_next = True
+            continue
+        if arg.startswith("--log-file="):
+            continue
+        filtered.append(arg)
+    return filtered
+
+
+def run_single_test(tester_bin, suite_name, test_name, extra_args_list=None, log_dir=None, env=None):
     """
     Executes a single test sequentially using tester_bin:
-    <tester_bin> --verbose --suite "<suite_name>" --test "<test_name>" <extra_args>
+    <tester_bin> --verbose --parallel --suite "<suite_name>" --test "<test_name>" --log-file "<log_file>" <extra_args>
     Returns (returncode, stdout + stderr, duration_seconds)
     """
-    cmd = [tester_bin, "--verbose", "--suite", suite_name, "--test", test_name]
-    if extra_args:
-        # Split extra_args taking into account quotes
-        cmd.extend(shlex.split(extra_args))
+    log_file = generate_log_filename(suite_name, test_name, log_dir=log_dir)
+    cmd = [tester_bin, "--verbose", "--parallel", "--suite", suite_name, "--test", test_name, "--log-file", log_file]
+    if extra_args_list:
+        cmd.extend([a for a in extra_args_list if a != "--parallel"])
 
     print(f"\n==================================================")
     print(f"Running retry for: suite='{suite_name}' test='{test_name}'")
+    print(f"Log file: {log_file}")
     print(f"Command: {' '.join(shlex.quote(c) for c in cmd)}")
     print(f"==================================================")
 
@@ -175,6 +220,7 @@ def main():
     parser.add_argument("--xml-out", help="Path to save updated JUnit XML (defaults to --xml).")
     parser.add_argument("--tester-bin", required=True, help="Path to tester binary (e.g. liblinphone-tester).")
     parser.add_argument("--max-retries", type=int, default=5, help="Maximum number of failed tests allowed to retry (default: 5). If exceeded, fails immediately without retrying.")
+    parser.add_argument("--log-dir", help="Directory where per-test log files should be written.")
     parser.add_argument("--extra-args", default="", help="Extra arguments string to pass to tester binary.")
     parser.add_argument("tester_options", nargs=argparse.REMAINDER, help="Any additional tester options.")
 
@@ -184,12 +230,14 @@ def main():
     output_xml_path = args.xml_out or xml_path
     tester_bin = args.tester_bin
     max_retries = args.max_retries
-    extra_args_list = []
+    log_dir = args.log_dir
+
+    raw_extra_args = []
     if args.extra_args:
-        extra_args_list.extend(shlex.split(args.extra_args))
+        raw_extra_args.extend(shlex.split(args.extra_args))
     if args.tester_options:
-        extra_args_list.extend(args.tester_options)
-    extra_args = " ".join(shlex.quote(a) for a in extra_args_list)
+        raw_extra_args.extend(args.tester_options)
+    extra_args_list = strip_log_file_arg(raw_extra_args)
 
     if not os.path.exists(xml_path):
         print(f"Error: JUnit XML report '{xml_path}' not found!")
@@ -248,7 +296,8 @@ def main():
             tester_bin=tester_bin,
             suite_name=suite_name,
             test_name=test_name,
-            extra_args=extra_args
+            extra_args_list=extra_args_list,
+            log_dir=log_dir,
         )
 
         if retcode == 0:
