@@ -126,6 +126,7 @@
 #include "vcard/vcard-context.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+#include "gitversion.h"
 #endif
 
 // For migration purpose.
