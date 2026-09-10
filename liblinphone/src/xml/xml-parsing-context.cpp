@@ -122,7 +122,7 @@ void XmlParsingContext::initCarddavNs() {
 }
 
 void XmlParsingContext::readDocument(const std::string &body) {
-	mDoc = xmlReadDoc(reinterpret_cast<const unsigned char *>(body.c_str()), 0, nullptr, 0);
+	mDoc = xmlReadDoc(reinterpret_cast<const unsigned char *>(body.c_str()), 0, nullptr, XML_PARSE_NO_XXE);
 }
 
 xmlXPathObjectPtr XmlParsingContext::getXpathObjectForNodeList(const std::string &xpathExpression) {

@@ -1249,7 +1249,7 @@ void FileTransferChatMessageModifier::parseFileTransferXmlIntoContent(
 	xmlDocPtr xmlMessageBody;
 	xmlNodePtr cur;
 	/* parse the msg body to get all information from it */
-	xmlMessageBody = xmlParseDoc((const xmlChar *)xml);
+	xmlMessageBody = xmlReadDoc((const xmlChar *)xml, NULL, NULL, XML_PARSE_NO_XXE);
 
 	cur = xmlDocGetRootElement(xmlMessageBody);
 	if (cur) {

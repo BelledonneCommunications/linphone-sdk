@@ -3586,7 +3586,7 @@ typedef const xmlChar *XmlCharPtr;
 
 static string extractLegacyFileContentType(const string &xml) {
 #ifdef HAVE_XML2
-	XmlDocObject xmlMessageBody(xmlParseDoc(XmlCharPtr(xml.c_str())));
+	XmlDocObject xmlMessageBody(xmlReadDoc(XmlCharPtr(xml.c_str()), NULL, NULL, XML_PARSE_NO_XXE));
 	xmlNodePtr xmlElement = xmlDocGetRootElement(xmlMessageBody.get());
 	if (!xmlElement) return "";
 

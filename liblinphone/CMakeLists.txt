@@ -175,7 +175,7 @@ if(ENABLE_SQLITE)
 endif()
 
 if(ENABLE_XML2)
-	bc_find_package(LibXml2 LibXml2::LibXml2 xml2 REQUIRED)
+	bc_find_package(LibXml2 LibXml2::LibXml2 LibXml2 REQUIRED)
 	add_definitions(-DHAVE_XML2)
 endif()
 
