@@ -462,14 +462,13 @@ liblinphone-rocky8-test-mr-2nd-chance:
     - echo $EXPORT_DISPLAY
     - ls -la
     - echo $TESTER_BIN
-    - echo $SET_CAP_SYS_NICE_LIN
-    - $SET_CAP_SYS_NICE_LIN || true
-    - getcap $PATH_TO_TESTER/$TESTER_BIN || true
+    - sudo setcap -r ${PATH_TO_TESTER}/${TESTER_BIN} 2>/dev/null || true
+    - sudo prlimit --pid=$$ --rtprio=99:99 --nice=-20:-20 || true
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
     - cp ${CI_PROJECT_DIR}/results/BCUnitAutomated-Results.xml ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml || true
-    - python3 ${CI_PROJECT_DIR}/.gitlab-ci-files/retry_failed_tests.py --xml ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml --xml-out ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml --tester-bin ${PATH_TO_TESTER}/${TESTER_BIN} --log-dir ${CI_PROJECT_DIR}/results --extra-args "--parallel --tag !shaky --tag !NightlyPerformance --tag !Performance $RESOURCES_DIR $ADDITIONNAL_OPTIONS"
+    - python3 ${CI_PROJECT_DIR}/.gitlab-ci-files/retry_failed_tests.py --xml ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml --xml-out ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml --tester-bin ${PATH_TO_TESTER}/${TESTER_BIN} --log-dir ${CI_PROJECT_DIR}/results --extra-args "--tag !shaky --tag !NightlyPerformance --tag !Performance $RESOURCES_DIR $ADDITIONNAL_OPTIONS"
     - $PULSEAUDIO_KILL
 
 .linphone-sdk-rocky8-coverage:
@@ -581,14 +580,13 @@ liblinphone-rocky8-test-mr-pq-h264-ekt-2nd-chance:
     - echo $EXPORT_DISPLAY
     - ls -la
     - echo $TESTER_BIN
-    - echo $SET_CAP_SYS_NICE_LIN
-    - $SET_CAP_SYS_NICE_LIN || true
-    - getcap $PATH_TO_TESTER/$TESTER_BIN || true
+    - sudo setcap -r ${PATH_TO_TESTER}/${TESTER_BIN} 2>/dev/null || true
+    - sudo prlimit --pid=$$ --rtprio=99:99 --nice=-20:-20 || true
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
     - cp ${CI_PROJECT_DIR}/results/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml ${CI_PROJECT_DIR}/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml || true
-    - python3 ${CI_PROJECT_DIR}/.gitlab-ci-files/retry_failed_tests.py --xml ${CI_PROJECT_DIR}/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml --xml-out ${CI_PROJECT_DIR}/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml --tester-bin ${PATH_TO_TESTER}/${TESTER_BIN} --log-dir ${CI_PROJECT_DIR}/results --extra-args "--parallel --tag H264 --tag End2EndConf --tag LimeX3DH --tag PQCalls --tag !shaky $RESOURCES_DIR $ADDITIONNAL_OPTIONS"
+    - python3 ${CI_PROJECT_DIR}/.gitlab-ci-files/retry_failed_tests.py --xml ${CI_PROJECT_DIR}/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml --xml-out ${CI_PROJECT_DIR}/BCUnitAutomatedH264PQCallsMessagesConferencesTags-Results.xml --tester-bin ${PATH_TO_TESTER}/${TESTER_BIN} --log-dir ${CI_PROJECT_DIR}/results --extra-args "--tag H264 --tag End2EndConf --tag LimeX3DH --tag PQCalls --tag !shaky $RESOURCES_DIR $ADDITIONNAL_OPTIONS"
     - $PULSEAUDIO_KILL
 
 liblinphone-rocky8-test-shaky-mr:

@@ -123,13 +123,13 @@ def strip_log_file_arg(args_list):
 def run_single_test(tester_bin, suite_name, test_name, extra_args_list=None, log_dir=None, env=None):
     """
     Executes a single test sequentially using tester_bin:
-    <tester_bin> --verbose --parallel --suite "<suite_name>" --test "<test_name>" --log-file "<log_file>" <extra_args>
+    <tester_bin> --verbose --suite "<suite_name>" --test "<test_name>" --log-file "<log_file>" <extra_args>
     Returns (returncode, stdout + stderr, duration_seconds)
     """
     log_file = generate_log_filename(suite_name, test_name, log_dir=log_dir)
-    cmd = [tester_bin, "--verbose", "--parallel", "--suite", suite_name, "--test", test_name, "--log-file", log_file]
+    cmd = [tester_bin, "--verbose", "--suite", suite_name, "--test", test_name, "--log-file", log_file]
     if extra_args_list:
-        cmd.extend([a for a in extra_args_list if a != "--parallel"])
+        cmd.extend(extra_args_list)
 
     print(f"\n==================================================")
     print(f"Running retry for: suite='{suite_name}' test='{test_name}'")
