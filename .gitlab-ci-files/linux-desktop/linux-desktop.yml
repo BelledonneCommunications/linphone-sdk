@@ -254,19 +254,9 @@
 
     - ls -la
 
-    #enabling SYS_NICE cap for ms2 and liblinphone testers
-
-    - echo $TESTER_BIN
-    - echo ${TESTER_BIN}
-
-    - echo $SET_CAP_SYS_NICE_LIN
-    - $SET_CAP_SYS_NICE_LIN || true
-
-    - echo $SET_CAP_SYS_NICE_NET_ADMIN_MS
-    - $SET_CAP_SYS_NICE_NET_ADMIN_MS || true
-
-    #checking if the tester has SYS_NICE cap
-    - getcap $PATH_TO_TESTER/$TESTER_BIN || true
+    # Set high priority limits (rtprio and nice) for audio/video processing threads without setcap
+    - sudo setcap -r ${PATH_TO_TESTER}/${TESTER_BIN} 2>/dev/null || true
+    - sudo prlimit --pid=$$ --rtprio=99:99 --nice=-20:-20 || true
 
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
@@ -570,7 +560,6 @@
     PULSEAUDIO_KILL: "pulseaudio --kill"
     LOG_PATTERN: "logMediastreamerAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
-    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ${PATH_TO_TESTER}/${TESTER_BIN}"
     TESTER: "mediastreamer"
 
 .test-mediastreamer-mr:
@@ -592,7 +581,6 @@
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     ADDITIONNAL_OPTIONS: "--show-account-manager-logs --dns-server $LIBLINPHONE_TESTER_DNS"
-    SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ${PATH_TO_TESTER}/${TESTER_BIN}"
     TESTER: "liblinphone"
     #false
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
