@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -18,12 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MS_TURN_TCP_H
-#define MS_TURN_TCP_H
+#pragma once
 
 #include <condition_variable>
 #include <list>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -31,7 +29,7 @@
 
 #include "bctoolbox/crypto.h"
 #include "mediastreamer2/mscommon.h"
-#include "mediastreamer2/stun.h"
+#include "mediastreamer2/turn-context.h"
 
 #ifdef WIN32
 
@@ -53,14 +51,14 @@
 
 #endif
 
-namespace ms2 {
+namespace ms2::nat {
 
-namespace turn {
+class TurnContext;
 
 /* A simple class that encapsulate the mblk_t for the purpose of our Turn client/sockets */
 class Packet {
 public:
-	Packet(size_t size);
+	explicit Packet(size_t size);
 	Packet(const uint8_t *buffer, size_t size);
 	/* Create a packet from a mblk_t, possibly adding necessary padding (because STUN/TURN packets must be 4-bytes
 	 * padded). */
@@ -68,24 +66,24 @@ public:
 
 	~Packet();
 
-	uint8_t *data() const {
+	[[nodiscard]] uint8_t *data() const {
 		return mMblk->b_rptr;
 	}
 
-	void addReadOffset(size_t off) {
+	void addReadOffset(const size_t off) const {
 		mMblk->b_rptr += off;
 	}
 
-	size_t length() const {
+	[[nodiscard]] size_t length() const {
 		return msgdsize(mMblk);
 	}
-	void setLength(size_t size) {
+	void setLength(const size_t size) const {
 		mMblk->b_wptr = mMblk->b_rptr + size;
 	}
 
-	void concat(const std::unique_ptr<Packet> &other, size_t size = -1);
+	void concat(const std::unique_ptr<Packet> &other, size_t size = static_cast<size_t>(-1)) const;
 
-	uint64_t timestamp() const {
+	[[nodiscard]] uint64_t timestamp() const {
 		return mTimestamp;
 	}
 	void setTimestampCurrent();
@@ -97,7 +95,7 @@ private:
 
 class PacketReader {
 public:
-	PacketReader(MSTurnContext *context);
+	explicit PacketReader(TurnContext *context);
 	~PacketReader() = default;
 
 	PacketReader(const PacketReader &) = delete;
@@ -115,11 +113,11 @@ private:
 	int parsePacket(std::unique_ptr<Packet> packet);
 	int processContinuationPacket(std::unique_ptr<Packet> packet);
 
-	MSTurnContext *mContext;
+	TurnContext *mContext = nullptr;
 
-	std::unique_ptr<Packet> mCurPacket;
+	std::unique_ptr<Packet> mCurPacket = nullptr;
 	std::list<std::unique_ptr<Packet>> mTurnPackets;
-	size_t mRemainingBytes = 0; /*when in continuation state*/
+	size_t mRemainingBytes = 0; // When in continuation state
 };
 
 // -------------------------------------------------------------------------------------------------------
@@ -128,17 +126,20 @@ class SslContext {
 	friend class TurnSocket;
 
 public:
-	SslContext(ortp_socket_t socket, std::string rootCertificatePath, std::string cn, bctbx_rng_context_t *rng);
+	SslContext(ortp_socket_t socket,
+	           const std::string &rootCertificatePath,
+	           const std::string &cn,
+	           bctbx_rng_context_t *rng);
 	~SslContext();
 
 	SslContext(const SslContext &) = delete;
 	SslContext(SslContext &&) = delete;
 
-	int connect();
-	int close();
+	[[nodiscard]] int connect();
+	[[nodiscard]] int close() const;
 
-	int read(unsigned char *buffer, size_t length);
-	int write(const unsigned char *buffer, size_t length);
+	[[nodiscard]] int read(unsigned char *buffer, size_t length) const;
+	[[nodiscard]] int write(const unsigned char *buffer, size_t length) const;
 
 private:
 	bctbx_ssl_context_t *mContext;
@@ -173,36 +174,37 @@ private:
 	bool ready = false;
 };
 
-class TurnClient;
+class TurnTcpClient;
 
 class SocketException : public std::runtime_error {
 public:
-	SocketException(const char *message);
+	explicit SocketException(const char *message);
 };
 
 class ControlSocketPair {
 public:
 	ControlSocketPair();
 	~ControlSocketPair();
-	void notifyEvent();
-	void cleanEvent();
-	ortp_socket_t getSocket();
+
+	void cleanEvent() const;
+	[[nodiscard]] ortp_socket_t getSocket() const;
+	void notifyEvent() const;
 
 private:
 	ortp_socket_t mEmitter = INVALID_SOCKET, mReaderMother = INVALID_SOCKET, mReader = INVALID_SOCKET;
 };
 
 class TurnSocket {
-	friend class TurnClient;
+	friend class TurnTcpClient;
 
 public:
-	TurnSocket(TurnClient *client, int port);
+	TurnSocket(TurnTcpClient *client);
 	~TurnSocket();
 
 	TurnSocket(const TurnSocket &) = delete;
 	TurnSocket(TurnSocket &&) = delete;
 
-	int connect();
+	[[nodiscard]] int connect();
 	void close();
 
 	void start();
@@ -210,18 +212,16 @@ public:
 
 	void processRead();
 
-	int send(std::unique_ptr<Packet> p);
+	[[nodiscard]] int send(const std::unique_ptr<Packet> &p);
 
 	void addToSendingQueue(std::unique_ptr<Packet> p);
 	void addToReceivingQueue(std::unique_ptr<Packet> p);
 
-	int getPort() const {
-		return mPort;
-	}
-	bool isRunning() const {
+	[[nodiscard]] int getPort() const;
+	[[nodiscard]] bool isRunning() const {
 		return mRunning;
 	}
-	static int turnPoll(ortp_socket_t socket, int milliseconds, int events);
+	[[nodiscard]] static int turnPoll(ortp_socket_t socket, int milliseconds, int events);
 
 private:
 	/* wait an event on the supplied socket.
@@ -229,14 +229,15 @@ private:
 	 * simply calling ControlSocketPair::notify().
 	 * return value: 1-> something happened on the socket;  0->timeout; -1; controller has been notified.
 	 */
-	int waitSocketEvent(ControlSocketPair &controller, ortp_socket_t socket, int milliseconds, int events);
+	[[nodiscard]] static int
+	waitSocketEvent(const ControlSocketPair &controller, ortp_socket_t socket, int milliseconds, int events);
+
 	void runSend();
 	void runRead();
 
-	/* the control socket pair is just to control the recv thread */
+	// The control socket pair is just to control the recv thread
 	ControlSocketPair mRecvControlSocket;
-	TurnClient *mClient;
-	int mPort;
+	TurnTcpClient *mClient = nullptr;
 
 	bool mRunning = false;
 	bool mSendThreadSleeping = false;
@@ -249,7 +250,7 @@ private:
 	ortp_socket_t mSocket = INVALID_SOCKET;
 
 	std::mutex mSslLock;
-	std::unique_ptr<SslContext> mSsl;
+	std::unique_ptr<SslContext> mSsl = nullptr;
 
 	std::mutex mSendingLock;
 	Condition mQueueCond;
@@ -259,44 +260,7 @@ private:
 	std::queue<std::unique_ptr<Packet>> mReceivingQueue;
 
 	PacketReader mPacketReader;
-	static const constexpr int defaultPollTimeoutMs = 30000;
+	static constexpr int defaultPollTimeoutMs = 30000;
 };
 
-class TurnClient {
-	friend class TurnSocket;
-
-public:
-	TurnClient(MSTurnContext *context, bool useSsl, std::string rootCertificatePath = "");
-	~TurnClient();
-
-	TurnClient(const TurnClient &) = delete;
-	TurnClient(TurnClient &&) = delete;
-
-	void connect();
-
-	int recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen);
-	int sendto(mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen);
-
-private:
-	void runRead();
-
-	MSTurnContext *mContext;
-
-	std::unique_ptr<TurnSocket> mTurnConnection;
-
-	MSStunAddress mTurnAddress;
-	std::string mTurnServerCn;
-	std::string mTurnServerIp;
-	int mTurnServerPort;
-
-	bool mUseSsl;
-	std::string mRootCertificatePath;
-
-	bctbx_rng_context_t *mRng;
-};
-
-} // namespace turn
-
-} // namespace ms2
-
-#endif /* MS_TURN_TCP_H */
+} // namespace ms2::nat

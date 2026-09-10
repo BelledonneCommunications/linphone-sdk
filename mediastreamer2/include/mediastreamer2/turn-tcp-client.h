@@ -20,32 +20,46 @@
 
 #pragma once
 
-#include <string>
+#include <memory>
+
+#include <bctoolbox/crypto.h>
+
+#include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/stun-address.h"
+#include "mediastreamer2/turn-socket.h"
 
 namespace ms2::nat {
 
-class IcePairFoundation {
+class TurnContext;
+class TurnSocket;
+
+class MS2_PUBLIC TurnTcpClient {
+	friend class TurnSocket;
+
 public:
-	friend class IceCheckList;
+	TurnTcpClient(TurnContext *context);
+	~TurnTcpClient();
 
-	~IcePairFoundation() = default;
+	TurnTcpClient(const TurnTcpClient &) = delete;
+	TurnTcpClient(TurnTcpClient &&) = delete;
 
-	bool operator==(const IcePairFoundation &other) const;
-	bool operator<(const IcePairFoundation &other) const;
+	void connect();
+
+	int recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen);
+	int sendto(mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen);
 
 private:
-	IcePairFoundation(std::string local, std::string remote);
-
-	void dump() const;
-	[[nodiscard]] const std::string &getLocal() const {
-		return mLocal;
+	[[nodiscard]] const TurnContext *getContext() const {
+		return mContext;
 	}
-	[[nodiscard]] const std::string &getRemote() const {
-		return mRemote;
+	[[nodiscard]] bctbx_rng_context_t *getRng() const {
+		return mRng;
 	}
 
-	std::string mLocal;  /**< Foundation of the local candidate */
-	std::string mRemote; /**< Foundation of the remote candidate */
+	TurnContext *mContext = nullptr;
+	std::unique_ptr<TurnSocket> mTurnConnection = nullptr;
+	StunAddress mTurnAddress;
+	bctbx_rng_context_t *mRng = nullptr;
 };
 
 } // namespace ms2::nat

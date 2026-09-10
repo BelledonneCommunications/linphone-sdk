@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <memory>
+
 #include "bctoolbox/crypto.h"
 #include "bctoolbox/defs.h"
 
@@ -26,12 +28,15 @@
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvolume.h"
+#include "mediastreamer2/stun-message.h"
+#include "mediastreamer2/stun-raw-message.h"
 
 #include "ortp/telephonyevents.h"
 #if defined(__cplusplus)
 #define B64_NO_NAMESPACE
 #endif
-#include "mediastreamer2/stun.h"
+
+using namespace ms2::nat;
 
 static const int default_dtmf_duration_ms = 100; /*in milliseconds*/
 
@@ -83,11 +88,8 @@ typedef struct SenderData SenderData;
 
 /* Send dummy STUN packet to open NAT ports ASAP. */
 static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtcp) {
-	MSStunMessage *msg;
 	mblk_t *mp;
 	RtpSession *s = d->session;
-	char *buf = NULL;
-	size_t len;
 
 	if (!d->stun_enabled && !d->stun_forced_enabled) return;
 	if (ms_is_multicast_addr((const struct sockaddr *)&s->rtcp.gs.loc_addr)) {
@@ -95,29 +97,28 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 		return;
 	}
 
-	msg = ms_stun_binding_request_create();
-	len = ms_stun_message_encode(msg, &buf);
-	if (len > 0) {
+	const auto msg = StunMessage::createStunBindingRequest();
+	const auto stunRawMessage = msg->encode();
+	const auto data = stunRawMessage->getData();
+	if (data.size() > 0) {
 		if (enable_rtp) {
-			mp = allocb(len, BPRI_MED);
-			memcpy(mp->b_wptr, buf, len);
-			mp->b_wptr += len;
+			mp = allocb(data.size(), BPRI_MED);
+			memcpy(mp->b_wptr, data.data(), data.size());
+			mp->b_wptr += data.size();
 
-			ms_message("Stun packet of length %0zd sent on rtp for session [%p] %s", len, s,
+			ms_message("Stun packet of length %0zd sent on rtp for session [%p] %s", data.size(), s,
 			           d->stun_forced_enabled ? "(forced)" : "");
 			rtp_session_sendm_with_ts(s, mp, 0);
 		}
 		if (enable_rtcp) {
-			mp = allocb(len, BPRI_MED);
-			memcpy(mp->b_wptr, buf, len);
-			mp->b_wptr += len;
-			ms_message("Stun packet of length %0zd sent on rtcp for session [%p] %s", len, s,
+			mp = allocb(data.size(), BPRI_MED);
+			memcpy(mp->b_wptr, data.data(), data.size());
+			mp->b_wptr += data.size();
+			ms_message("Stun packet of length %0zd sent on rtcp for session [%p] %s", data.size(), s,
 			           d->stun_forced_enabled ? "(forced)" : "");
 			rtp_session_rtcp_sendm_raw(s, mp);
 		}
 	}
-	if (buf != NULL) ms_free(buf);
-	ms_stun_message_destroy(msg);
 }
 
 static void sender_init(MSFilter *f) {
@@ -235,7 +236,7 @@ static int sender_set_relay_session_id(MSFilter *f, void *arg) {
 	SenderData *d = (SenderData *)f->data;
 	const char *tmp = (const char *)arg;
 	size_t id_size = sizeof(d->relay_session_id);
-	bctbx_base64_decode((void *)d->relay_session_id, &id_size, (const unsigned char *)tmp, strlen(tmp));
+	bctbx_base64_decode((unsigned char *)d->relay_session_id, &id_size, (const unsigned char *)tmp, strlen(tmp));
 	d->relay_session_id_size = (int)id_size;
 	return 0;
 }

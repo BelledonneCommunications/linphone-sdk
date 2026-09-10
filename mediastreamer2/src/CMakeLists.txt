@@ -86,7 +86,6 @@ set(VOIP_SOURCE_FILES_C
 	audiofilters/ulaw.c
 	audiofilters/waveheader.h
 	crypto/zrtp.c
-	otherfilters/msrtp.c
 	utils/_kiss_fft_guts.h
 	utils/audiodiff.c
 	utils/box-plot.c
@@ -121,7 +120,6 @@ set(VOIP_SOURCE_FILES_C
 	otherfilters/msudp.c
 	voip/rfc4103_textstream.c
 	voip/ringstream.c
-	voip/stun.c
 	voip/offeranswer.c
 	voip/private.h
 )
@@ -129,6 +127,7 @@ set(VOIP_SOURCE_FILES_CXX
 	audiofilters/tonedetector.cpp
 	crypto/ms_srtp.cpp
 	crypto/dtls_srtp.cpp
+	otherfilters/msrtp.cpp
 	utils/filter-wrapper/decoding-filter-wrapper.cpp
 	utils/filter-wrapper/encoding-filter-wrapper.cpp
 	utils/goertzel_state.cpp
@@ -149,7 +148,14 @@ set(VOIP_SOURCE_FILES_CXX
 	voip/ice/ice-transport-address.cpp
 	voip/ice/ice-utils.cpp
 	voip/ice/ice-valid-candidate-pair.cpp
-	voip/turn_tcp.cpp
+	voip/sockaddr.cpp
+	voip/stun/stun-address.cpp
+	voip/stun/stun-message.cpp
+	voip/stun/stun-raw-message.cpp
+	voip/stun/stun-transaction-id.cpp
+	voip/stun/turn-context.cpp
+	voip/stun/turn-socket.cpp
+	voip/stun/turn-tcp-client.cpp
 	voip/video-conference.cpp
 	voip/video-endpoint.cpp
 )

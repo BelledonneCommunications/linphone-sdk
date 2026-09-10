@@ -25,19 +25,23 @@
 #include <functional>
 #include <optional>
 
+#include <ortp/port.h>
+
 #include "mediastreamer2/ice-candidate.h"
 #include "mediastreamer2/ice-checklist.h"
 #include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-credentials.h"
 #include "mediastreamer2/ice-role.h"
-#include "ortp/port.h"
+#include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/sockaddr.h"
+#include "mediastreamer2/stun-auth-listener.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 /**
  * Represents an ICE session.
  */
-class IceSession {
+class MS2_PUBLIC IceSession {
 public:
 	friend class IceCheckList;
 
@@ -50,39 +54,39 @@ public:
 	 * Allocate a new ICE session.
 	 * This must be performed for each media session that is to use ICE.
 	 */
-	MS2_PUBLIC IceSession();
+	IceSession();
 
 	/**
 	 * Destroy a previously allocated ICE session.
 	 * To be used when a media session using ICE is tore down.
 	 */
-	MS2_PUBLIC ~IceSession() = default;
+	~IceSession() = default;
 
 	/**
 	 * Add an ICE check list to an ICE session.
 	 * @param checklist The check list to assign to the session
 	 * @param index The index of the check list to add
 	 */
-	MS2_PUBLIC void addCheckList(const std::shared_ptr<IceCheckList> &checklist, size_t index);
+	void addCheckList(const std::shared_ptr<IceCheckList> &checklist, size_t index);
 
 	/**
 	 * Tell whether ICE local candidates have been gathered for an ICE session or not.
 	 * @return true if local candidates have been gathered for the session, false otherwise.
 	 */
-	[[nodiscard]] MS2_PUBLIC bool areCandidatesGathered() const;
+	[[nodiscard]] bool areCandidatesGathered() const;
 
 	/**
 	 * Check whether all the ICE check lists of the session includes a default candidate for each component ID in its
 	 * remote candidates list.
 	 */
-	MS2_PUBLIC void checkMismatch() const;
+	void checkMismatch() const;
 
 	/**
 	 * Choose the default candidates of an ICE session.
 	 * This function is to be called at the end of the local candidates gathering process, before sending
 	 * the SDP to the remote agent.
 	 */
-	MS2_PUBLIC void chooseDefaultLocalCandidates() const;
+	void chooseDefaultLocalCandidates() const;
 
 	/**
 	 * Choose the default remote candidates of an ICE session.
@@ -90,33 +94,33 @@ public:
 	 * when creating them with IceCheckList::addRemoteCandidate().
 	 * However, this function is used by mediastream for testing purpose.
 	 */
-	MS2_PUBLIC void chooseDefaultRemoteCandidates() const;
+	void chooseDefaultRemoteCandidates() const;
 
 	/**
 	 * Compute the foundations of the local candidates of an ICE session.
 	 * This function is to be called at the end of the local candidates gathering process, before sending
 	 * the SDP to the remote agent.
 	 */
-	MS2_PUBLIC void computeCandidatesFoundations() const;
+	void computeCandidatesFoundations() const;
 
 	/**
 	 * Dump an ICE session in the traces (debug function).
 	 */
-	MS2_PUBLIC void dump() const;
+	void dump() const;
 
 	/**
 	 * Eliminate the redundant candidates of an ICE session.
 	 * This function is to be called at the end of the local candidates gathering process, before sending
 	 * the SDP to the remote agent.
 	 */
-	MS2_PUBLIC void eliminateRedundantCandidates() const;
+	void eliminateRedundantCandidates() const;
 
 	/**
 	 * Enable forced relay for tests.
 	 * @param enable A boolean value telling whether to force relay or not.
 	 * The local and reflexive candidates are changed so that these paths do not work to force the use of the relay.
 	 */
-	MS2_PUBLIC void enableForcedRelay(bool enable) {
+	void enableForcedRelay(bool enable) {
 		mForcedRelay = enable;
 	}
 
@@ -125,7 +129,7 @@ public:
 	 * It is enabled by default.
 	 * @param enable Boolean value telling whether to enable message integrity check or not.
 	 */
-	MS2_PUBLIC void enableMessageIntegrityCheck(bool enable) {
+	void enableMessageIntegrityCheck(bool enable) {
 		mCheckMessageIntegrity = enable;
 	}
 
@@ -134,7 +138,7 @@ public:
 	 * @param enable A boolean value telling whether to use short turn refresh.
 	 * This changes the delay to send allocation refresh, create permission, and channel bind requests.
 	 */
-	MS2_PUBLIC void enableShortTurnRefresh(bool enable) {
+	void enableShortTurnRefresh(bool enable) {
 		mShortTurnRefresh = enable;
 	}
 
@@ -142,41 +146,40 @@ public:
 	 * Enable TURN protocol.
 	 * @param enable A boolean value telling whether to enable TURN protocol or not.
 	 */
-	MS2_PUBLIC void enableTurn(bool enable);
+	void enableTurn(bool enable);
 
 	/**
 	 * Gather ICE local candidates for an ICE session.
-	 * @param ss The STUN server address
-	 * @param ssLen The length of the STUN server address
+	 * @param stunServerAddress The STUN server address
 	 * @return true if the gathering is in progress, false if no gathering is happening.
 	 */
-	MS2_PUBLIC bool gatherCandidates(const struct sockaddr *ss, socklen_t ssLen);
+	bool gatherCandidates(const SockAddr &stunServerAddress);
 
 	/**
 	 * Tell the average round trip time during the gathering process for an ICE session in milliseconds.
 	 * @return std::nullopt if gathering has not been run, the average round trip time in milliseconds otherwise.
 	 */
-	[[nodiscard]] MS2_PUBLIC std::optional<std::chrono::milliseconds> getAverageGatheringRoundTripTime() const;
+	[[nodiscard]] std::optional<std::chrono::milliseconds> getAverageGatheringRoundTripTime() const;
 
 	/**
 	 * Get the nth check list of an ICE session.
 	 * @param n The index of the check list to access
 	 * @return A pointer to the nth check list of the session if it exists, nullptr otherwise
 	 */
-	[[nodiscard]] MS2_PUBLIC std::shared_ptr<IceCheckList> getCheckList(size_t n) const;
+	[[nodiscard]] std::shared_ptr<IceCheckList> getCheckList(size_t n) const;
 
 	/**
 	 * Tell the duration of the gathering process for an ICE session in ms.
 	 * @return std::nullopt if gathering has not been run, the duration of the gathering process in milliseconds
 	 * otherwise.
 	 */
-	[[nodiscard]] MS2_PUBLIC std::optional<std::chrono::milliseconds> getGatheringDuration() const;
+	[[nodiscard]] std::optional<std::chrono::milliseconds> getGatheringDuration() const;
 
 	/**
 	 * Get the timeout between each keepalive packet in seconds.
 	 * @return The duration of the keepalive timeout in seconds
 	 */
-	[[nodiscard]] MS2_PUBLIC std::chrono::seconds getKeepAliveTimeout() const {
+	[[nodiscard]] std::chrono::seconds getKeepAliveTimeout() const {
 		return mKeepAliveTimeout;
 	}
 
@@ -184,7 +187,7 @@ public:
 	 * Get the local credentials of an ICE session.
 	 * @return A reference to the local credentials of the session
 	 */
-	[[nodiscard]] MS2_PUBLIC const IceCredentials &getLocalCredentials() const {
+	[[nodiscard]] const IceCredentials &getLocalCredentials() const {
 		return mLocalCredentials;
 	}
 
@@ -192,19 +195,19 @@ public:
 	 * Get the number of check lists in an ICE session.
 	 * @return The number of check lists in the ICE session
 	 */
-	[[nodiscard]] MS2_PUBLIC size_t getNbCheckLists() const;
+	[[nodiscard]] size_t getNbCheckLists() const;
 
 	/**
 	 * Get the number of losing candidate pairs for an ICE session.
 	 * @return The number of losing candidate pairs for the session.
 	 */
-	[[nodiscard]] MS2_PUBLIC unsigned int getNbLosingPairs() const;
+	[[nodiscard]] unsigned int getNbLosingPairs() const;
 
 	/**
 	 * Get the remote username fragment of an ICE session.
 	 * @return A reference to the remote credentials of the session
 	 */
-	[[nodiscard]] MS2_PUBLIC const std::optional<IceCredentials> &getRemoteCredentials() const {
+	[[nodiscard]] const std::optional<IceCredentials> &getRemoteCredentials() const {
 		return mRemoteCredentials;
 	}
 
@@ -212,7 +215,7 @@ public:
 	 * Get the role of the agent for an ICE session.
 	 * @return The role of the agent for the session
 	 */
-	[[nodiscard]] MS2_PUBLIC IceRole getRole() const {
+	[[nodiscard]] IceRole getRole() const {
 		return mRole;
 	}
 
@@ -220,13 +223,13 @@ public:
 	 * Get the role of the agent for an ICE session as a human-readable string.
 	 * @return The role of the agent for the session as a human-readable string.
 	 */
-	[[nodiscard]] MS2_PUBLIC const std::string &getRoleStr() const;
+	[[nodiscard]] const std::string &getRoleStr() const;
 
 	/**
 	 * Get the state of an ICE session.
 	 * @return The state of the session
 	 */
-	[[nodiscard]] MS2_PUBLIC State getState() const {
+	[[nodiscard]] State getState() const {
 		return mState;
 	}
 
@@ -234,45 +237,45 @@ public:
 	 * Tell whether an ICE session has at least one completed check list.
 	 * @return true if the session has at least one completed check list, false otherwise
 	 */
-	[[nodiscard]] MS2_PUBLIC bool hasCompletedCheckList() const;
+	[[nodiscard]] bool hasCompletedCheckList() const;
 
 	/**
 	 * Tell if remote credentials of an ICE session have changed or not.
 	 * @param newCredentials The new remote credentials
 	 * @return true if the remote credentials of the session have changed, false otherwise.
 	 */
-	[[nodiscard]] MS2_PUBLIC bool haveRemoteCredentialsChanged(const IceCredentials &newCredentials) const;
+	[[nodiscard]] bool haveRemoteCredentialsChanged(const IceCredentials &newCredentials) const;
 
 	/**
 	 * Remove an ICE check list from an ICE session.
 	 * @param checklistToRemove The check list to remove from the session
 	 */
-	MS2_PUBLIC void removeCheckList(const std::shared_ptr<IceCheckList> &checklistToRemove);
+	void removeCheckList(const std::shared_ptr<IceCheckList> &checklistToRemove);
 
 	/**
 	 * Remove an ICE check list from an ICE session given its index.
 	 * @param index The index of the check list in the ICE session
 	 */
-	MS2_PUBLIC void removeCheckList(size_t index);
+	void removeCheckList(size_t index);
 
 	/**
 	 * Reset an ICE session.
 	 * It has the same effect as a session restart but also clears the local candidates.
 	 * @param role The role of the agent after the session restart
 	 */
-	MS2_PUBLIC void reset(IceRole role);
+	void reset(IceRole role);
 
 	/**
 	 * Restart an ICE session.
 	 * @param role The role of the agent after the session restart
 	 */
-	MS2_PUBLIC void restart(IceRole role);
+	void restart(IceRole role);
 
 	/**
 	 * Select ICE candidates that will be used and notified in the SDP.
 	 * This function is to be used by the Controlling agent when ICE processing has finished.
 	 */
-	MS2_PUBLIC void selectCandidates() const;
+	void selectCandidates() const;
 
 	/**
 	 * Set the base for the local server reflexive candidates of an ICE session.
@@ -285,19 +288,19 @@ public:
 	 *   when ICE is used in a server software deployed behind a NAT.
 	 * It is to be called before starting the connectivity checks.
 	 */
-	MS2_PUBLIC void setBaseForSrflxCandidates() const;
+	void setBaseForSrflxCandidates() const;
 
 	/**
 	 * Set the AF_INET/AF_INET6 preference for electing the default candidates, when both are available.
 	 */
-	MS2_PUBLIC void setDefaultCandidatesPreferIpv6(bool preferIpv6) {
+	void setDefaultCandidatesPreferIpv6(bool preferIpv6) {
 		mDefaultCandidatesPreferIpv6 = preferIpv6;
 	}
 
 	/**
 	 * Set the preferred type for default candidates, as defined in rfc5245#section-4.1.4.
 	 **/
-	MS2_PUBLIC void setDefaultCandidatesTypes(const std::vector<IceCandidate::Type> &candidatesTypes) {
+	void setDefaultCandidatesTypes(const std::vector<IceCandidate::Type> &candidatesTypes) {
 		mDefaultCandidatesTypes = candidatesTypes;
 	}
 
@@ -306,14 +309,14 @@ public:
 	 * @param keepAliveTimeout The duration of the keepalive timeout in seconds
 	 * The default keepalive timeout is set to 15 seconds.
 	 */
-	MS2_PUBLIC void setKeepAliveTimeout(std::chrono::seconds keepAliveTimeout);
+	void setKeepAliveTimeout(std::chrono::seconds keepAliveTimeout);
 
 	/**
 	 * Set the local credentials of an ICE session.
 	 * This method SHOULD not be used. However, it is used by mediastream for testing purpose to
 	 * apply the same credentials for local and remote agents because the SDP exchange is bypassed.
 	 */
-	MS2_PUBLIC void setLocalCredentials(const IceCredentials &credentials) {
+	void setLocalCredentials(const IceCredentials &credentials) {
 		mLocalCredentials = credentials;
 	}
 
@@ -323,7 +326,7 @@ public:
 	 * This function is to be called just after the creation of the session, before any connectivity check is performed.
 	 * The default number of connectivity checks is 128.
 	 */
-	MS2_PUBLIC void setMaxConnectivityChecks(const uint8_t value) {
+	void setMaxConnectivityChecks(const uint8_t value) {
 		mMaxConnectivityChecks = value;
 	}
 
@@ -332,7 +335,7 @@ public:
 	 * @param credentials The remote credentials
 	 * This function is to be called once the remote credentials have been received via SDP.
 	 */
-	MS2_PUBLIC void setRemoteCredentials(const IceCredentials &credentials) {
+	void setRemoteCredentials(const IceCredentials &credentials) {
 		mRemoteCredentials = credentials;
 	}
 
@@ -340,32 +343,34 @@ public:
 	 * Set the role of the agent for an ICE session.
 	 * @param role The role to set the session to
 	 */
-	MS2_PUBLIC void setRole(IceRole role);
+	void setRole(IceRole role);
 
-	MS2_PUBLIC void setStunAuthRequestedCb(MSStunAuthRequestedCb cb, void *userdata);
+	void setStunAuthListener(StunAuthListener *listener) {
+		mStunAuthListener = listener;
+	}
 
 	/**
 	 * Set TURN CN when using TLS.
 	 * @param cn The CN.
 	 */
-	MS2_PUBLIC void setTurnCn(const std::string &cn) const;
+	void setTurnCn(const std::string &cn) const;
 
 	/**
 	 * Set TURN root certificate path when using TLS.
-	 * @param rootCertificate The path of the root certificate.
+	 * @param rootCertificatePath The path of the root certificate.
 	 */
-	MS2_PUBLIC void setTurnRootCertificate(const std::string &rootCertificate) const;
+	void setTurnRootCertificatePath(const std::string &rootCertificatePath) const;
 
 	/**
 	 * Set TURN transport.
-	 * @param transportStr The transport that TURN should use (should be UDP, TCP or TLS).
+	 * @param transport The transport that TURN should use.
 	 */
-	MS2_PUBLIC void setTurnTransport(const std::string &transportStr) const;
+	void setTurnTransport(TurnContext::Transport transport) const;
 
 	/**
 	 * Pair the local and the remote candidates for an ICE session and start sending connectivity checks.
 	 */
-	MS2_PUBLIC void startConnectivityChecks();
+	void startConnectivityChecks();
 
 private:
 	void computePairPriorities() const;
@@ -394,7 +399,7 @@ private:
 		return mMaxConnectivityChecks;
 	}
 
-	[[nodiscard]] const IceUtils::SockAddr &getSockAddr() const {
+	[[nodiscard]] const SockAddr &getSockAddr() const {
 		return mSockAddr;
 	}
 	[[nodiscard]] std::chrono::milliseconds getTa() const {
@@ -432,10 +437,8 @@ private:
 
 	std::array<std::shared_ptr<IceCheckList>, ICE_MAX_NB_CHECK_LISTS> mChecklists; /**< Table of IceChecklist structure
 	                                                          pointers. Each element represents a media stream */
-	MSStunAuthRequestedCb mStunAuthRequestedCb = nullptr; /**< Callback called when authentication is
+	StunAuthListener *mStunAuthListener = nullptr; /**< Listener called when authentication is
 	 requested */
-	void *mStunAuthRequestedUserdata = nullptr;           /**< Userdata to pass to the STUN authentication requested
-	              callback */
 	IceCredentials mLocalCredentials; /**< Local credentials for the session (assigned during the session creation) */
 	std::optional<IceCredentials> mRemoteCredentials =
 	    std::nullopt;                     /**< Remote credentials for the session (provided via SDP by the peer) */
@@ -448,7 +451,7 @@ private:
 	int mEventValue = 0;                                     /** Value of the event to send */
 
 	std::chrono::steady_clock::time_point mEventTime; /**< Time when an event must be sent */
-	IceUtils::SockAddr mSockAddr; /**< STUN server address to use for the candidates gathering process */
+	SockAddr mSockAddr; /**< STUN server address to use for the candidates gathering process */
 	std::chrono::steady_clock::time_point mGatheringStartTs;
 	std::chrono::steady_clock::time_point mGatheringEndTs;
 	std::chrono::steady_clock::time_point mConnectivityChecksStartTs;
@@ -467,4 +470,4 @@ private:
 	                                          equivalent as "default candidate" */
 };
 
-} // namespace ms2
+} // namespace ms2::nat

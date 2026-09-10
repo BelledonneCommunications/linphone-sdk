@@ -39,6 +39,8 @@
 // TODO: Remove me later.
 #include "private.h"
 
+using namespace ms2::nat;
+
 // =============================================================================
 
 LINPHONE_BEGIN_NAMESPACE
@@ -243,7 +245,7 @@ public:
 	std::shared_ptr<CallSession> getActiveSession() const;
 	std::shared_ptr<AbstractChatRoom> getChatRoom();
 	const std::shared_ptr<Account> &getDestAccount() const;
-	const std::shared_ptr<ms2::IceSession> &getIceSession() const;
+	const std::shared_ptr<IceSession> &getIceSession() const;
 	unsigned int getAudioStartCount() const;
 	unsigned int getAudioStopCount() const;
 	unsigned int getVideoStartCount() const;

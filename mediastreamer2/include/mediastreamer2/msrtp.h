@@ -121,7 +121,15 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
  */
 #define MS_RTP_SEND_SET_TICKER_OFFSET MS_FILTER_METHOD(MS_RTP_SEND_ID, 20, uint64_t)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern MSFilterDesc ms_rtp_send_desc;
 extern MSFilterDesc ms_rtp_recv_desc;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

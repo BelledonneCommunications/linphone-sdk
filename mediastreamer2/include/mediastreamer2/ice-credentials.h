@@ -25,22 +25,22 @@
 #include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
-class IceCredentials {
+class MS2_PUBLIC IceCredentials {
 public:
-	MS2_PUBLIC IceCredentials(const std::string &ufrag, const std::string &pwd) {
+	IceCredentials(const std::string &ufrag, const std::string &pwd) {
 		mUfrag = ufrag.substr(0, ICE_MAX_UFRAG_LEN);
 		mPwd = pwd.substr(0, ICE_MAX_PWD_LEN);
 	}
-	MS2_PUBLIC IceCredentials(const IceCredentials &other) = default;
-	MS2_PUBLIC IceCredentials() = default;
-	MS2_PUBLIC ~IceCredentials() = default;
+	IceCredentials(const IceCredentials &other) = default;
+	IceCredentials() = default;
+	~IceCredentials() = default;
 
-	MS2_PUBLIC bool operator==(const IceCredentials &other) const {
+	bool operator==(const IceCredentials &other) const {
 		return (mUfrag == other.mUfrag) && (mPwd == other.mPwd);
 	}
-	MS2_PUBLIC bool operator!=(const IceCredentials &other) const {
+	bool operator!=(const IceCredentials &other) const {
 		return !(*this == other);
 	}
 
@@ -49,7 +49,7 @@ public:
 	 *
 	 * @return A reference to the password of the ICE credentials
 	 */
-	[[nodiscard]] MS2_PUBLIC const std::string &getPwd() const {
+	[[nodiscard]] const std::string &getPwd() const {
 		return mPwd;
 	}
 
@@ -58,7 +58,7 @@ public:
 	 *
 	 * @return A reference to the username fragment of the ICE credentials
 	 */
-	[[nodiscard]] MS2_PUBLIC const std::string &getUfrag() const {
+	[[nodiscard]] const std::string &getUfrag() const {
 		return mUfrag;
 	};
 
@@ -67,4 +67,4 @@ private:
 	std::string mPwd;   /**< Password */
 };
 
-} // namespace ms2
+} // namespace ms2::nat

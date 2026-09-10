@@ -18,8 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ice_service_h
-#define ice_service_h
+#pragma once
 
 #include <memory>
 
@@ -28,6 +27,8 @@
 #include "conference/session/call-session.h"
 #include "conference/session/media-description-renderer.h"
 #include "nat/nat-policy.h"
+
+using namespace ms2::nat;
 
 LINPHONE_BEGIN_NAMESPACE
 
@@ -55,13 +56,13 @@ public:
 	[[nodiscard]] bool isControlling() const;
 
 	/* The ICE restart procedure as in RFC */
-	void restartSession(ms2::IceRole role) const;
+	void restartSession(IceRole role) const;
 
 	/* Called after a network connectivity change, to restart ICE from the beginning.*/
 	void resetSession() const;
 
 	/* Returns true if the incoming offer requires a defered response, due to check-list(s) not yet completed.*/
-	bool reinviteNeedsDeferedResponse(const std::shared_ptr<SalMediaDescription> &remoteMd) const;
+	[[nodiscard]] bool reinviteNeedsDeferedResponse(const std::shared_ptr<SalMediaDescription> &remoteMd) const;
 
 	void createStreams(const OfferAnswerContext &params);
 	/**
@@ -115,7 +116,7 @@ public:
 	/**
 	 * used by non-regression tests only.
 	 */
-	[[nodiscard]] const std::shared_ptr<ms2::IceSession> &getSession() const {
+	[[nodiscard]] const std::shared_ptr<IceSession> &getSession() const {
 		return mIceSession;
 	}
 	/**
@@ -124,19 +125,19 @@ public:
 	 * address. In addition the source address specification (with sendmsg()/recvmsg() and control data block) does not
 	 * work.
 	 */
-	static bool hasLocalNetworkPermission(const std::list<std::string> &localAddrs);
-	static bool hasLocalNetworkPermission();
+	[[nodiscard]] static bool hasLocalNetworkPermission(const std::list<std::string> &localAddrs);
+	[[nodiscard]] static bool hasLocalNetworkPermission();
 
 private:
-	static bool checkLocalNetworkPermission(const std::string &localAddr);
-	static bool iceFoundInMediaDescription(const std::shared_ptr<SalMediaDescription> &md);
-	static bool hasRelayCandidates(const SalMediaDescription &md);
+	[[nodiscard]] static bool checkLocalNetworkPermission(const std::string &localAddr);
+	[[nodiscard]] static bool iceFoundInMediaDescription(const std::shared_ptr<SalMediaDescription> &md);
+	[[nodiscard]] static bool hasRelayCandidates(const SalMediaDescription &md);
 	static void getIceDefaultAddrAndPort(uint16_t componentID,
 	                                     const std::shared_ptr<SalMediaDescription> &md,
 	                                     const SalStreamDescription &stream,
 	                                     std::string &addr,
 	                                     int &port);
-	static const struct addrinfo *getIcePreferredStunServerAddrinfo(const struct addrinfo *ai);
+	[[nodiscard]] static const struct addrinfo *getIcePreferredStunServerAddrinfo(const struct addrinfo *ai);
 
 	[[nodiscard]] MediaSessionPrivate &getMediaSessionPrivate() const;
 	[[nodiscard]] LinphoneCore *getCCore() const;
@@ -144,7 +145,8 @@ private:
 	void clearUnusedIceCandidates(const std::shared_ptr<SalMediaDescription> &localDesc,
 	                              const std::shared_ptr<SalMediaDescription> &remoteDesc,
 	                              bool localIsOfferer) const;
-	bool checkForIceRestartAndSetRemoteCredentials(const std::shared_ptr<SalMediaDescription> &md, bool isOffer);
+	[[nodiscard]] bool checkForIceRestartAndSetRemoteCredentials(const std::shared_ptr<SalMediaDescription> &md,
+	                                                             bool isOffer) const;
 	void createIceCheckListsAndParseIceAttributes(const std::shared_ptr<SalMediaDescription> &md,
 	                                              bool iceRestarted) const;
 	void updateFromRemoteMediaDescription(const std::shared_ptr<SalMediaDescription> &localDesc,
@@ -153,15 +155,16 @@ private:
 	bool needIceGathering();
 	void gatheringFinished();
 	void deleteSession();
-	void checkSession(ms2::IceRole role, bool preferIpv6DefaultCandidates);
-	int gatherIceCandidates();
-	int gatherSflrxIceCandidates(const struct addrinfo *stunServerAi);
-	int gatherLocalCandidates() const;
+	void checkSession(IceRole role, bool preferIpv6DefaultCandidates);
+	[[nodiscard]] int gatherIceCandidates();
+	[[nodiscard]] int gatherSflrxIceCandidates(const struct addrinfo *stunServerAi);
+	[[nodiscard]] int gatherLocalCandidates() const;
 	void addPredefinedSflrxCandidates(const std::shared_ptr<NatPolicy> &natPolicy) const;
 	void chooseDefaultCandidates(const OfferAnswerContext &ctx) const;
 	void notifyEndOfPrepare();
+
 	StreamsGroup &mStreamsGroup;
-	std::shared_ptr<ms2::IceSession> mIceSession = nullptr;
+	std::shared_ptr<IceSession> mIceSession = nullptr;
 	IceServiceListener *mListener = nullptr;
 	NatPolicy::AsyncHandle mAsyncStunResolverHandle{};
 	int mSflrxGatheringStatus = 0;
@@ -183,5 +186,3 @@ public:
 };
 
 LINPHONE_END_NAMESPACE
-
-#endif

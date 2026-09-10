@@ -22,14 +22,14 @@
 
 #include "mediastreamer2/ice-utils.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
-IceTransaction::IceTransaction(const std::shared_ptr<IceCandidatePair> &pair, const UInt96 transactionId)
+IceTransaction::IceTransaction(const std::shared_ptr<IceCandidatePair> &pair, const StunTransactionId transactionId)
     : mId(transactionId), mPair(pair) {
 }
 
 std::string IceTransaction::getIdStr() const {
-	return IceUtils::getTransactionIdStr(mId);
+	return mId.asString();
 }
 
-} // namespace ms2
+} // namespace ms2::nat

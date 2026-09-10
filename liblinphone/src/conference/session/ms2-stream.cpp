@@ -189,7 +189,7 @@ RtpBundle *MS2Stream::createOrGetRtpBundle(const SalStreamDescription &sd) {
 	return mRtpBundle;
 }
 
-void MS2Stream::setIceCheckList(const std::shared_ptr<ms2::IceCheckList> &checklist) {
+void MS2Stream::setIceCheckList(const std::shared_ptr<::ms2::nat::IceCheckList> &checklist) {
 	mIceCheckList = checklist;
 	MediaStream *stream = getMediaStream();
 	if (stream) {
@@ -1580,25 +1580,25 @@ void MS2Stream::updateIceInStats() {
 		updateIceInStats(LinphoneIceStateNotActivated);
 		return;
 	}
-	if (mIceCheckList->getState() == ms2::IceCheckList::State::Failed) {
+	if (mIceCheckList->getState() == ::ms2::nat::IceCheckList::State::Failed) {
 		updateIceInStats(LinphoneIceStateFailed);
 		return;
 	}
-	if (mIceCheckList->getState() == ms2::IceCheckList::State::Running) {
+	if (mIceCheckList->getState() == ::ms2::nat::IceCheckList::State::Running) {
 		updateIceInStats(LinphoneIceStateInProgress);
 		return;
 	}
 	/* Otherwise we are in ICL_Completed state. */
 
 	switch (mIceCheckList->getSelectedValidCandidateType()) {
-		case ms2::IceCandidate::Type::Host:
+		case IceCandidate::Type::Host:
 			updateIceInStats(LinphoneIceStateHostConnection);
 			break;
-		case ms2::IceCandidate::Type::ServerReflexive:
-		case ms2::IceCandidate::Type::PeerReflexive:
+		case IceCandidate::Type::ServerReflexive:
+		case IceCandidate::Type::PeerReflexive:
 			updateIceInStats(LinphoneIceStateReflexiveConnection);
 			break;
-		case ms2::IceCandidate::Type::Relayed:
+		case IceCandidate::Type::Relayed:
 			updateIceInStats(LinphoneIceStateRelayConnection);
 			break;
 	}

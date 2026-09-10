@@ -18,25 +18,33 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mediastreamer2/ice.h"
+#include <cstdint>
 
-#include "mediastreamer2/ice-checklist.h"
+#include "mediastreamer2/stun-transaction-id.h"
 
-extern "C" {
+namespace ms2::nat {
 
-void ice_check_list_set_rtp_session(IceCheckList *cl, RtpSession *rtp_session) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->setRtpSession(rtp_session);
+std::string StunTransactionId::asString() const {
+	std::ostringstream oss;
+	const auto *bytes = reinterpret_cast<const unsigned char *>(&mId);
+	for (int i = 0; i < 12; i++) {
+		oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(bytes[i]);
+	}
+	return oss.str();
 }
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->handleStunPacket(rtp_session, evt_data);
+StunTransactionId StunTransactionId::random() {
+	StunTransactionId transactionId;
+
+	for (size_t i = 0; i < 12; i += 4) {
+		const unsigned int r = bctbx_random();
+		transactionId.mId.octet[i + 0] = r >> 0;
+		transactionId.mId.octet[i + 1] = r >> 8;
+		transactionId.mId.octet[i + 2] = r >> 16;
+		transactionId.mId.octet[i + 3] = r >> 24;
+	}
+
+	return transactionId;
 }
 
-void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->process(rtp_session);
-}
-
-void ice_check_list_print_route(const IceCheckList *cl, const char *message) {
-	reinterpret_cast<const ms2::nat::IceCheckList *>(cl)->printRoute(message);
-}
-}
+} // namespace ms2::nat

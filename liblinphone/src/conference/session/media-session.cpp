@@ -42,6 +42,7 @@
 #include "linphone/api/c-auth-info.h"
 #include "linphone/core.h"
 #include "logger/logger.h"
+#include "mediastreamer2/stun-auth-listener.h"
 #include "private.h"
 #include "sal/call-op.h"
 #include "sal/params/sal_media_description_params.h"
@@ -93,16 +94,6 @@ void MediaSessionPrivate::setDtlsFingerprint(const std::string &fingerPrint) {
 
 const std::string &MediaSessionPrivate::getDtlsFingerprint() const {
 	return dtlsCertificateFingerprint;
-}
-
-void MediaSessionPrivate::stunAuthRequestedCb(void *userData,
-                                              const char *realm,
-                                              const char *nonce,
-                                              const char **username,
-                                              const char **password,
-                                              const char **ha1) {
-	MediaSessionPrivate *msp = static_cast<MediaSessionPrivate *>(userData);
-	msp->stunAuthRequestedCb(realm, nonce, username, password, ha1);
 }
 
 LinphoneMediaEncryption
@@ -3524,9 +3515,61 @@ void MediaSessionPrivate::onLosingPairsCompleted(BCTBX_UNUSED(IceService &servic
 
 void MediaSessionPrivate::onIceRestartNeeded(BCTBX_UNUSED(IceService &service)) {
 	L_Q();
-	getStreamsGroup().getIceService().restartSession(ms2::IceRole::Controlling);
+	getStreamsGroup().getIceService().restartSession(IceRole::Controlling);
 	MediaSessionParams newParams(*getParams());
 	q->update(&newParams, CallSession::UpdateMethod::Default, q->isCapabilityNegotiationEnabled());
+}
+
+StunAuthResponse MediaSessionPrivate::onStunAuthRequested(const std::string &realm,
+                                                          BCTBX_UNUSED(const std::string &nonce)) {
+	L_Q();
+
+	// Get the username from the nat policy or the proxy config
+	std::shared_ptr<Account> stunAccount;
+	const auto &account = getDestAccount();
+	if (account) {
+		stunAccount = account;
+	} else {
+		stunAccount = q->getCore()->getDefaultAccount();
+	}
+	if (!stunAccount) {
+		return {};
+	}
+	const char *user = nullptr;
+	const auto &accountParams = stunAccount->getAccountParams();
+	const auto &proxyNatPolicy = accountParams->getNatPolicy();
+	if (proxyNatPolicy) {
+		user = L_STRING_TO_C(proxyNatPolicy->getStunServerUsername());
+	} else if (natPolicy) {
+		user = L_STRING_TO_C(natPolicy->getStunServerUsername());
+	}
+	if (user == nullptr) {
+		// If the username has not been found in the nat_policy, take the username from the currently used proxy config
+		const auto identityAddress = accountParams->getIdentityAddress();
+		if (!identityAddress) {
+			return {};
+		}
+		user = L_STRING_TO_C(identityAddress->getUsername());
+	}
+	if (user == nullptr) {
+		return {};
+	}
+
+	const LinphoneAuthInfo *authInfo =
+	    linphone_core_find_auth_info(q->getCore()->getCCore(), realm.c_str(), user, nullptr);
+	if (authInfo == nullptr) {
+		lWarning() << "No auth info found for STUN auth request";
+		return {};
+	}
+	auto authResponse = StunAuthResponse();
+	const char *hash = linphone_auth_info_get_ha1(authInfo);
+	if (hash != nullptr) {
+		authResponse.ha1 = hash;
+	} else {
+		authResponse.password = linphone_auth_info_get_password(authInfo);
+	}
+	authResponse.username = user;
+	return authResponse;
 }
 
 void MediaSessionPrivate::tryEarlyMediaForking(std::shared_ptr<SalMediaDescription> &md) {
@@ -4508,46 +4551,8 @@ int MediaSessionPrivate::sendDtmf() {
 }
 
 // -----------------------------------------------------------------------------
-void MediaSessionPrivate::stunAuthRequestedCb(const char *realm,
-                                              BCTBX_UNUSED(const char *nonce),
-                                              const char **username,
-                                              const char **password,
-                                              const char **ha1) {
-	L_Q();
-	/* Get the username from the nat policy or the proxy config */
-	std::shared_ptr<Account> stunAccount;
-	const auto &account = getDestAccount();
-	if (account) stunAccount = account;
-	else {
-		stunAccount = q->getCore()->getDefaultAccount();
-	}
-	if (!stunAccount) return;
-	const char *user = NULL;
-	const auto &accountParams = stunAccount->getAccountParams();
-	const auto &proxyNatPolicy = accountParams->getNatPolicy();
-	if (proxyNatPolicy) user = L_STRING_TO_C(proxyNatPolicy->getStunServerUsername());
-	else if (natPolicy) user = L_STRING_TO_C(natPolicy->getStunServerUsername());
-	if (!user) {
-		/* If the username has not been found in the nat_policy, take the username from the currently used proxy config
-		 */
-		const auto identityAddress = accountParams->getIdentityAddress();
-		if (!identityAddress) return;
-		user = L_STRING_TO_C(identityAddress->getUsername());
-	}
-	if (!user) return;
 
-	const LinphoneAuthInfo *authInfo = linphone_core_find_auth_info(q->getCore()->getCCore(), realm, user, nullptr);
-	if (!authInfo) {
-		lWarning() << "No auth info found for STUN auth request";
-		return;
-	}
-	const char *hash = linphone_auth_info_get_ha1(authInfo);
-	if (hash) *ha1 = hash;
-	else *password = linphone_auth_info_get_password(authInfo);
-	*username = user;
-}
-
-const std::shared_ptr<ms2::IceSession> &MediaSessionPrivate::getIceSession() const {
+const std::shared_ptr<IceSession> &MediaSessionPrivate::getIceSession() const {
 	return getIceService().getSession();
 }
 

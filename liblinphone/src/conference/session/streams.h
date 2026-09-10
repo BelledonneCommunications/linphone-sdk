@@ -37,6 +37,8 @@
 #include "port-config.h"
 #include "tester_utils.h"
 
+using namespace ms2::nat;
+
 LINPHONE_BEGIN_NAMESPACE
 
 class StreamsGroup;
@@ -119,7 +121,7 @@ public:
 	/**
 	 * Called by the IceService to setup the check list to run with the stream.
 	 */
-	virtual void setIceCheckList(const std::shared_ptr<ms2::IceCheckList> &checklist);
+	virtual void setIceCheckList(const std::shared_ptr<::ms2::nat::IceCheckList> &checklist);
 	/**
 	 * Called by the IceService to notify the stream of a state change in the ICE check list or the ICE session.
 	 */

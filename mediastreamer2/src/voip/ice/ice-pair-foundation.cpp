@@ -23,7 +23,7 @@
 #include "mediastreamer2/ice-pair-foundation.h"
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 bool IcePairFoundation::operator==(const IcePairFoundation &other) const {
 	return (mLocal == other.mLocal) && (mRemote == other.mRemote);
@@ -40,7 +40,7 @@ IcePairFoundation::IcePairFoundation(std::string local, std::string remote)
 }
 
 void IcePairFoundation::dump() const {
-	ms_message("\t%s\t%s", mLocal.c_str(), mRemote.c_str());
+	BCTBX_SLOGM << "\t" << mLocal << "\t" << mRemote;
 }
 
-} // namespace ms2
+} // namespace ms2::nat

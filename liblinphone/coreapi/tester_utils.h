@@ -32,6 +32,7 @@ typedef struct _sqlite3 sqlite3;
 #include "linphone/core.h"
 #include "linphone/tunnel.h"
 #include "mediastreamer2/msmire.h"
+#include "mediastreamer2/stun.h"
 #include "quality_reporting.h"
 
 #ifndef __cplusplus
@@ -111,8 +112,8 @@ LINPHONE_PUBLIC void linphone_core_set_zrtp_not_available_simulation(LinphoneCor
 LINPHONE_PUBLIC belle_http_provider_t *linphone_core_get_http_provider(LinphoneCore *lc);
 LINPHONE_PUBLIC bool_t linphone_call_has_ice_session(const LinphoneCall *call);
 LINPHONE_PUBLIC bool_t linphone_call_has_ice_check_list(const LinphoneCall *call, unsigned int index);
-LINPHONE_PUBLIC MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call, unsigned int index);
-LINPHONE_PUBLIC MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call, unsigned int index);
+LINPHONE_PUBLIC const MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call, unsigned int index);
+LINPHONE_PUBLIC const MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call, unsigned int index);
 LINPHONE_PUBLIC const struct addrinfo *linphone_core_get_stun_server_addrinfo(LinphoneCore *lc);
 LINPHONE_PUBLIC void linphone_core_enable_send_call_stats_periodical_updates(LinphoneCore *lc, bool_t enabled);
 LINPHONE_PUBLIC LinphoneAccount *linphone_core_lookup_known_account(LinphoneCore *lc, const LinphoneAddress *uri);

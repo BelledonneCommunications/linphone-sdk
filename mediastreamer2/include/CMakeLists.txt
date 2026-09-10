@@ -90,7 +90,17 @@ set(HEADER_FILES
 	mswebcam.h
 	qualityindicator.h
 	rfc3984.h
+	sockaddr.h
 	stun.h
+	stun-address.h
+	stun-auth-listener.h
+	stun-error.h
+	stun-message.h
+	stun-raw-message.h
+	stun-transaction-id.h
+	turn-context.h
+	turn-socket.h
+	turn-tcp-client.h
 	upnp_igd.h
 	x11_helper.h
 	zrtp.h

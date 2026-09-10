@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2010-2026 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2
- * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ * This file is part of Liblinphone
+ * (see https://gitlab.linphone.org/BC/public/liblinphone).
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -20,13 +20,30 @@
 
 #pragma once
 
+#include <bctoolbox/defs.h>
+
+#include "mediastreamer2/mscommon.h"
+
 namespace ms2::nat {
 
-/**
- * ICE agent role.
- *
- * See the terminology in paragraph 3 of the RFC 5245 for more details.
- */
-enum class IceRole { Controlling, Controlled };
+class MS2_PUBLIC StunAuthResponse {
+public:
+	StunAuthResponse() = default;
+	~StunAuthResponse() = default;
 
-} // namespace ms2::nat
+	std::string username;
+	std::string password;
+	std::string ha1;
+};
+
+class MS2_PUBLIC StunAuthListener {
+public:
+	virtual ~StunAuthListener() = default;
+
+	virtual StunAuthResponse onStunAuthRequested(BCTBX_UNUSED(const std::string &realm),
+	                                             BCTBX_UNUSED(const std::string &nonce)) {
+		return {};
+	}
+};
+
+}; // namespace ms2::nat

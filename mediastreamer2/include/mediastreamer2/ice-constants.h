@@ -22,7 +22,7 @@
 
 #include <chrono>
 
-namespace ms2 {
+namespace ms2::nat {
 
 static constexpr auto ICE_DEFAULT_RTO_DURATION = std::chrono::milliseconds(200);
 static constexpr auto ICE_DEFAULT_TA_DURATION = std::chrono::milliseconds(40);
@@ -41,4 +41,4 @@ static constexpr uint8_t ICE_MAX_RETRANSMISSIONS = 7;
 static constexpr size_t ICE_MAX_UFRAG_LEN = 256;
 static constexpr size_t ICE_MAX_PWD_LEN = 256;
 
-} // namespace ms2
+} // namespace ms2::nat

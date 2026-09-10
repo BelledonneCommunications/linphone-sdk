@@ -23,7 +23,7 @@
 
 #include "mediastreamer2/ice-transport-address.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 constexpr size_t IP_STRING_SIZE = 64;
 
@@ -33,15 +33,15 @@ IceTransportAddress::IceTransportAddress(const int family, std::string ip, const
 
 IceTransportAddress::IceTransportAddress(const struct sockaddr *addr, const socklen_t addrlen)
     : mIp(IP_STRING_SIZE, '\0') {
-	init(addr, addrlen);
+	init(SockAddr(addr, addrlen));
 }
 
-IceTransportAddress::IceTransportAddress(const MSStunAddress *stunAddress) : mIp(IP_STRING_SIZE, '\0') {
-	struct sockaddr_storage addr;
-	socklen_t addrlen = sizeof(addr);
-	memset(&addr, 0, addrlen);
-	ms_stun_address_to_sockaddr(stunAddress, reinterpret_cast<struct sockaddr *>(&addr), &addrlen);
-	init(reinterpret_cast<struct sockaddr *>(&addr), addrlen);
+IceTransportAddress::IceTransportAddress(const SockAddr &sockAddr) {
+	init(sockAddr);
+}
+
+IceTransportAddress::IceTransportAddress(const StunAddress &stunAddress) : mIp(IP_STRING_SIZE, '\0') {
+	init(stunAddress.toSockAddr());
 }
 
 bool IceTransportAddress::operator==(const IceTransportAddress &other) const {
@@ -52,8 +52,9 @@ std::string IceTransportAddress::asString() const {
 	struct addrinfo *ai = bctbx_ip_address_to_addrinfo(mFamily, SOCK_DGRAM, mIp.c_str(), mPort);
 	if (ai != nullptr) {
 		std::string strRepr(IP_STRING_SIZE, '\0');
-		bctbx_addrinfo_to_printable_ip_address(ai, strRepr.data(), strRepr.size());
+		bctbx_addrinfo_to_printable_ip_address(ai, strRepr.data(), strRepr.capacity());
 		bctbx_freeaddrinfo(ai);
+		strRepr.erase(std::find(strRepr.begin(), strRepr.end(), '\0'), strRepr.end());
 		return strRepr;
 	}
 	return {};
@@ -61,14 +62,15 @@ std::string IceTransportAddress::asString() const {
 
 //------------------------------------------------------------------------------
 
-void IceTransportAddress::init(const struct sockaddr *addr, const socklen_t addrlen) {
-	bctbx_sockaddr_to_ip_address(addr, addrlen, mIp.data(), mIp.capacity(), &mPort);
-	mIp.erase(std::find(mIp.begin(), mIp.end(), '\0'), mIp.end());
-	mFamily = addr->sa_family;
+void IceTransportAddress::init(const SockAddr &sockAddr) {
+	const auto [ip, port] = sockAddr.getIpPort();
+	mIp = ip;
+	mPort = port;
+	mFamily = sockAddr.getFamily();
 }
 
-MSStunAddress IceTransportAddress::toStunAddress() const {
-	return ms_ip_address_to_stun_address(mFamily, SOCK_DGRAM, mIp.c_str(), mPort);
+StunAddress IceTransportAddress::toStunAddress() const {
+	return {mFamily, SOCK_DGRAM, mIp, mPort};
 }
 
-} // namespace ms2
+} // namespace ms2::nat

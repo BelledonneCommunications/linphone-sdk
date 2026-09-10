@@ -21,31 +21,37 @@
 #pragma once
 
 #include <string>
+#include <utility>
+
+#include <ortp/rtpsession.h>
+
+#include "mediastreamer2/mscommon.h"
 
 namespace ms2::nat {
 
-class IcePairFoundation {
+class MS2_PUBLIC SockAddr {
 public:
-	friend class IceCheckList;
+	SockAddr() = default;
+	SockAddr(const struct sockaddr *addr, socklen_t addrLen);
+	explicit SockAddr(const ortp_recv_addr *ortpRecvAddr);
+	~SockAddr() = default;
 
-	~IcePairFoundation() = default;
-
-	bool operator==(const IcePairFoundation &other) const;
-	bool operator<(const IcePairFoundation &other) const;
+	[[nodiscard]] std::string asString() const;
+	[[nodiscard]] const struct sockaddr *asStructSockAddr() const {
+		return reinterpret_cast<const struct sockaddr *>(&mAddr);
+	};
+	[[nodiscard]] int getFamily() const;
+	[[nodiscard]] std::pair<std::string, int> getIpPort() const;
+	[[nodiscard]] socklen_t getLen() const {
+		return mLen;
+	}
+	[[nodiscard]] SockAddr ipv4ToIpv6() const;
+	[[nodiscard]] SockAddr ipv6toIpv4() const;
+	[[nodiscard]] SockAddr removeV4Mapping() const;
 
 private:
-	IcePairFoundation(std::string local, std::string remote);
-
-	void dump() const;
-	[[nodiscard]] const std::string &getLocal() const {
-		return mLocal;
-	}
-	[[nodiscard]] const std::string &getRemote() const {
-		return mRemote;
-	}
-
-	std::string mLocal;  /**< Foundation of the local candidate */
-	std::string mRemote; /**< Foundation of the remote candidate */
+	struct sockaddr_storage mAddr{};
+	socklen_t mLen = sizeof(mAddr);
 };
 
-} // namespace ms2::nat
+}; // namespace ms2::nat

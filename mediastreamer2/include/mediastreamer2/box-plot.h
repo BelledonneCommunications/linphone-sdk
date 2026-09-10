@@ -23,6 +23,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _MSBoxPlot {
 	int64_t min;
 	int64_t max;
@@ -56,5 +60,9 @@ double ms_u_box_plot_get_variance(const MSUBoxPlot *bp);
 double ms_u_box_plot_get_standard_deviation(const MSUBoxPlot *bp);
 
 char *ms_u_box_plot_to_string(const MSUBoxPlot *bp, const char *unit);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _MS2_BOX_PLOT_H

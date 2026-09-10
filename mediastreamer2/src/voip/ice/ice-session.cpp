@@ -28,7 +28,7 @@
 #include "mediastreamer2/ice-credentials.h"
 #include "mediastreamer2/ice-session.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 IceSession::IceSession() {
 	mChecklists.fill(nullptr);
@@ -42,11 +42,11 @@ IceSession::IceSession() {
 
 void IceSession::addCheckList(const std::shared_ptr<IceCheckList> &checklist, const size_t index) {
 	if (index >= mChecklists.size()) {
-		ms_error("IceSession::addCheckList: Wrong index parameter");
+		BCTBX_SLOGE << "IceSession::addCheckList: Wrong index parameter";
 		return;
 	}
 	if (mChecklists[index] != nullptr) {
-		ms_error("IceSession::addCheckList: Existing check list at index %zu, remove it first", index);
+		BCTBX_SLOGE << "IceSession::addCheckList: Existing check list at index " << index << ", remove it first";
 		return;
 	}
 	mChecklists[index] = checklist;
@@ -79,13 +79,12 @@ void IceSession::computeCandidatesFoundations() const {
 }
 
 void IceSession::dump() const {
-	ms_message("Session:\n"
-	           "\trole=%s tie-breaker=%" PRIx64 "\n"
-	           "\tlocal_ufrag=%s local_pwd=%s\n\tremote_ufrag=%s remote_pwd=%s",
-	           getRoleStr().c_str(), mTieBreaker, mLocalCredentials.getUfrag().c_str(),
-	           mLocalCredentials.getPwd().c_str(),
-	           mRemoteCredentials.has_value() ? mRemoteCredentials->getUfrag().c_str() : "",
-	           mRemoteCredentials.has_value() ? mRemoteCredentials->getPwd().c_str() : "");
+	BCTBX_SLOGM << "Session:\n"
+	            << "\trole=" << getRoleStr() << " tie-breaker=" << mTieBreaker << "\n"
+	            << "\tlocal_ufrag=" << mLocalCredentials.getUfrag() << " local_pwd=" << mLocalCredentials.getPwd()
+	            << "\n"
+	            << "\tremote_ufrag=" << (mRemoteCredentials.has_value() ? mRemoteCredentials->getUfrag().c_str() : "")
+	            << " remote_pwd=" << (mRemoteCredentials.has_value() ? mRemoteCredentials->getPwd().c_str() : "");
 }
 
 void IceSession::eliminateRedundantCandidates() const {
@@ -99,10 +98,10 @@ void IceSession::enableTurn(const bool enable) {
 	}
 }
 
-bool IceSession::gatherCandidates(const struct sockaddr *ss, const socklen_t ssLen) {
+bool IceSession::gatherCandidates(const SockAddr &stunServerAddress) {
 	bool gatheringInProgress = false;
 
-	mSockAddr = IceUtils::SockAddr(ss, ssLen);
+	mSockAddr = stunServerAddress;
 	mGatheringStartTs = std::chrono::steady_clock::now();
 	if (isGatheringNeeded()) {
 		size_t index = 0;
@@ -202,7 +201,7 @@ void IceSession::removeCheckList(const std::shared_ptr<IceCheckList> &checklistT
 
 void IceSession::removeCheckList(const size_t index) {
 	if (index >= mChecklists.size()) {
-		ms_error("IceSession::removeCheckList: Wrong index parameter");
+		BCTBX_SLOGE << "IceSession::removeCheckList: Wrong index parameter";
 		return;
 	}
 	removeCheckList(mChecklists[index]);
@@ -217,7 +216,7 @@ void IceSession::reset(const IceRole role) {
 }
 
 void IceSession::restart(const IceRole role) {
-	ms_warning("ICE session restart");
+	BCTBX_SLOGW << "ICE session restart";
 
 	mState = State::Stopped;
 	generateTieBreaker();
@@ -251,49 +250,43 @@ void IceSession::setRole(const IceRole role) {
 	}
 }
 
-void IceSession::setStunAuthRequestedCb(MSStunAuthRequestedCb cb, void *userdata) {
-	mStunAuthRequestedCb = cb;
-	mStunAuthRequestedUserdata = userdata;
-}
-
 void IceSession::setTurnCn(const std::string &cn) const {
 	if (!mTurnEnabled) {
 		return;
 	}
 
 	forEachValidCheckList([cn](const auto &checklist) {
-		for (const auto context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
+		for (const auto &context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
 			if (context != nullptr) {
-				ms_turn_context_set_cn(context, cn.c_str());
+				context->setCn(cn);
 			}
 		}
 	});
 }
 
-void IceSession::setTurnRootCertificate(const std::string &rootCertificate) const {
+void IceSession::setTurnRootCertificatePath(const std::string &rootCertificatePath) const {
 	if (!mTurnEnabled) {
 		return;
 	}
 
-	forEachValidCheckList([rootCertificate](const auto &checklist) {
-		for (const auto context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
+	forEachValidCheckList([rootCertificatePath](const auto &checklist) {
+		for (const auto &context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
 			if (context != nullptr) {
-				ms_turn_context_set_root_certificate(context, rootCertificate.c_str());
+				context->setRootCertificatePath(rootCertificatePath);
 			}
 		}
 	});
 }
 
-void IceSession::setTurnTransport(const std::string &transportStr) const {
+void IceSession::setTurnTransport(const TurnContext::Transport transport) const {
 	if (!mTurnEnabled) {
 		return;
 	}
 
-	const auto transport = ms_turn_get_transport_from_string(transportStr.c_str());
 	forEachValidCheckList([transport](const auto &checklist) {
-		for (const auto context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
+		for (const auto &context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
 			if (context != nullptr) {
-				ms_turn_context_set_transport(context, transport);
+				context->setTransport(transport);
 			}
 		}
 	});
@@ -416,4 +409,4 @@ void IceSession::setGatheringEndTs(const ortpTimeSpec ts) {
 	    std::chrono::duration_cast<std::chrono::steady_clock::duration>(duration)};
 }
 
-} // namespace ms2
+} // namespace ms2::nat

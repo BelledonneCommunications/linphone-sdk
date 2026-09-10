@@ -30,6 +30,7 @@
 #include "linphone/api/c-call-log.h"
 #include "linphone/api/c-call-stats.h"
 #include "linphone/wrapper_utils.h"
+#include "mediastreamer2/stun.h"
 #include "player/call-player.h"
 #include "private_functions.h"
 
@@ -95,7 +96,7 @@ bool_t linphone_call_has_ice_check_list(const LinphoneCall *call, unsigned int i
 	return (session->getCheckList(index) == nullptr) ? FALSE : TRUE;
 }
 
-MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call, unsigned int index) {
+const MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call, unsigned int index) {
 	const auto session = Call::toCpp(call)->getIceSession();
 	if (session == nullptr) {
 		return nullptr;
@@ -104,10 +105,11 @@ MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCa
 	if (checklist == nullptr) {
 		return nullptr;
 	}
-	return checklist->getRtpTurnContext();
+	return reinterpret_cast<const MSTurnContext *>(
+	    (checklist->getRtpTurnContext() == nullptr) ? nullptr : checklist->getRtpTurnContext().get());
 }
 
-MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call, unsigned int index) {
+const MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call, unsigned int index) {
 	const auto session = Call::toCpp(call)->getIceSession();
 	if (session == nullptr) {
 		return nullptr;
@@ -116,7 +118,8 @@ MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneC
 	if (checklist == nullptr) {
 		return nullptr;
 	}
-	return checklist->getRtcpTurnContext();
+	return reinterpret_cast<const MSTurnContext *>(
+	    (checklist->getRtcpTurnContext() == nullptr) ? nullptr : checklist->getRtcpTurnContext().get());
 }
 
 bool_t linphone_call_get_all_muted(const LinphoneCall *call) {

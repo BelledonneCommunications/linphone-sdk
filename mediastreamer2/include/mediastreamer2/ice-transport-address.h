@@ -24,14 +24,15 @@
 
 #include <bctoolbox/port.h>
 
-#include "mediastreamer2/stun.h"
+#include "mediastreamer2/sockaddr.h"
+#include "mediastreamer2/stun-address.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 /**
  * Represents an ICE transport address.
  */
-class IceTransportAddress {
+class MS2_PUBLIC IceTransportAddress {
 public:
 	friend class IceCheckList;
 	friend class IceCandidatePair;
@@ -42,27 +43,28 @@ public:
 	 * @param ip The IP address as a string (eg. 192.168.0.10)
 	 * @param port The port number
 	 */
-	MS2_PUBLIC IceTransportAddress(int family, std::string ip, int port);
-	MS2_PUBLIC IceTransportAddress(const struct sockaddr *addr, socklen_t addrlen);
-	explicit MS2_PUBLIC IceTransportAddress(const MSStunAddress *stunAddress);
+	IceTransportAddress(int family, std::string ip, int port);
+	IceTransportAddress(const struct sockaddr *addr, socklen_t addrlen);
+	explicit IceTransportAddress(const SockAddr &sockAddr);
+	explicit IceTransportAddress(const StunAddress &stunAddress);
 	~IceTransportAddress() = default;
 
-	MS2_PUBLIC bool operator==(const IceTransportAddress &other) const;
+	bool operator==(const IceTransportAddress &other) const;
 
-	[[nodiscard]] MS2_PUBLIC std::string asString() const;
-	[[nodiscard]] MS2_PUBLIC int getFamily() const {
+	[[nodiscard]] std::string asString() const;
+	[[nodiscard]] int getFamily() const {
 		return mFamily;
 	}
-	[[nodiscard]] MS2_PUBLIC const std::string &getIp() const {
+	[[nodiscard]] const std::string &getIp() const {
 		return mIp;
 	}
-	[[nodiscard]] MS2_PUBLIC int getPort() const {
+	[[nodiscard]] int getPort() const {
 		return mPort;
 	}
 
 private:
-	void init(const struct sockaddr *addr, socklen_t addrlen);
-	[[nodiscard]] MSStunAddress toStunAddress() const;
+	void init(const SockAddr &sockAddr);
+	[[nodiscard]] StunAddress toStunAddress() const;
 
 	std::string mIp;
 	int mPort = 0;
@@ -70,4 +72,4 @@ private:
 	// TODO: Handling of transport type: TCP, UDP...
 };
 
-} // namespace ms2
+} // namespace ms2::nat

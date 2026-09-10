@@ -25,7 +25,7 @@
 
 #include "mediastreamer2/ice-candidate-pair.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 class IceValidCandidatePair {
 public:
@@ -63,4 +63,4 @@ private:
 	bool mSelected = false; /**< Boolean value telling whether this valid candidate pair has been selected or not */
 };
 
-} // namespace ms2
+} // namespace ms2::nat

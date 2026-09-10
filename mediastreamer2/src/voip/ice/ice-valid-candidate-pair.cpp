@@ -20,7 +20,7 @@
 
 #include "mediastreamer2/ice-valid-candidate-pair.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 IceValidCandidatePair::IceValidCandidatePair(const std::shared_ptr<IceCandidatePair> &valid,
                                              const std::shared_ptr<IceCandidatePair> &generatedFrom)
@@ -39,8 +39,8 @@ void IceValidCandidatePair::checkKeepAlive(const std::chrono::steady_clock::time
 void IceValidCandidatePair::dump(const unsigned int index) const {
 	mValid->dump(index);
 	if (mSelected) {
-		ms_message("\t--> selected");
+		BCTBX_SLOGM << "\t--> selected";
 	}
 }
 
-} // namespace ms2
+} // namespace ms2::nat

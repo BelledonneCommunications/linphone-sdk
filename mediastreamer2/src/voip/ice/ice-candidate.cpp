@@ -22,7 +22,7 @@
 
 #include "mediastreamer2/ice-candidate.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 /**
  * ICE candidate type preference values as recommended in 4.1.1.2.
@@ -37,16 +37,6 @@ static constexpr std::array<uint8_t, 4> TYPE_PREFERENCE_VALUES = {
 bool IceCandidate::operator==(const IceCandidate &other) const {
 	return (mType == other.mType) && (mComponentId == other.mComponentId) && (mPriority == other.mPriority) &&
 	       (mTransportAddress == other.mTransportAddress);
-}
-
-const std::string &IceCandidate::getTypeStr() const {
-	static const std::array<std::string, 4> typeStrs = {
-	    "host",
-	    "srflx",
-	    "prflx",
-	    "relay",
-	};
-	return typeStrs[static_cast<size_t>(mType)];
 }
 
 bool IceCandidate::isRelay() const {
@@ -112,10 +102,10 @@ void IceCandidate::computePriority() {
 
 void IceCandidate::dump(const std::string &prefix) const {
 	const auto base = mBase.lock();
-	ms_message("%s[%p]: %stype=%s ip=%s port=%u componentID=%d priority=%u foundation=%s base=%p", prefix.c_str(), this,
-	           (isDefault() ? "* " : "  "), getTypeStr().c_str(), mTransportAddress.getIp().c_str(),
-	           mTransportAddress.getPort(), mComponentId, mPriority, mFoundation.c_str(),
-	           (base == nullptr) ? nullptr : base.get());
+	BCTBX_SLOGM << prefix << "[" << this << "]: " << (isDefault() ? "*" : " ") << " type=" << getTypeStr()
+	            << " ip=" << mTransportAddress.getIp() << " port=" << mTransportAddress.getPort()
+	            << " componentID=" << mComponentId << " priority=" << mPriority << " foundation=" << mFoundation
+	            << " base=" << ((base == nullptr) ? nullptr : base.get());
 }
 
 std::shared_ptr<IceCandidate> IceCandidate::getBase() const {
@@ -126,4 +116,14 @@ uint8_t IceCandidate::getTypePreferenceValue(Type type) {
 	return TYPE_PREFERENCE_VALUES[static_cast<int>(type)];
 }
 
-} // namespace ms2
+const std::string &IceCandidate::getTypeStr(Type type) {
+	static const std::array<std::string, 4> typeStrs = {
+	    "host",
+	    "srflx",
+	    "prflx",
+	    "relay",
+	};
+	return typeStrs[static_cast<size_t>(type)];
+}
+
+} // namespace ms2::nat

@@ -21,8 +21,6 @@
 #ifndef ice_h
 #define ice_h
 
-#include <mediastreamer2/stun.h>
-
 /**
  * @file ice.h
  * @brief mediastreamer2 ice.h include file

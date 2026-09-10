@@ -18,7 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef _MSC_VER
 #define NOMINMAX
+#endif
 
 #include <algorithm>
 #include <array>
@@ -29,8 +31,10 @@
 
 #include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-utils.h"
+#include "mediastreamer2/stun-message.h"
+#include "mediastreamer2/stun-raw-message.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 bool IceCandidatePair::operator==(const IceCandidatePair &other) const {
 	return (mLocalCandidate == other.mLocalCandidate) && (mRemoteCandidate == other.mRemoteCandidate);
@@ -69,8 +73,9 @@ void IceCandidatePair::computePriority(const IceRole role) {
 }
 
 void IceCandidatePair::dump(const unsigned int index) const {
-	ms_message("\t%u [%p]: %sstate=%s use=%d nominated=%d priority=%" PRIu64, index, this, isDefault() ? "* " : "  ",
-	           getStateStr().c_str(), mUseCandidate ? 1 : 0, mIsNominated ? 1 : 0, mPriority);
+	BCTBX_SLOGM << "\t" << index << " [" << this << "]: " << (isDefault() ? "*" : " ") << "state=" << getStateStr()
+	            << " use=" << (mUseCandidate ? 1 : 0) << " nominated=" << (mIsNominated ? 1 : 0)
+	            << " priority=" << mPriority;
 	mLocalCandidate->dump("\t\tLocal: ");
 	mRemoteCandidate->dump("\t\tRemote: ");
 }
@@ -119,27 +124,24 @@ void IceCandidatePair::sendIndication(const RtpSession *rtpSession) {
 	const auto sourceStunAddress = localCandidateTransportAddress.toStunAddress();
 	const auto remoteCandidateTransportAddress = mRemoteCandidate->getTransportAddress();
 	const auto destStunAddress = remoteCandidateTransportAddress.toStunAddress();
-	auto *indication = ms_stun_binding_indication_create();
-	ms_stun_message_enable_fingerprint(indication, TRUE);
+	const auto indication = StunMessage::createStunBindingIndication();
+	indication->enableFingerprint(true);
 	// For backward compatibility
-	ms_stun_message_enable_dummy_message_integrity(indication, mUseDummyHmac ? TRUE : FALSE);
+	indication->enableDummyMessageIntegrity(mUseDummyHmac);
 
-	char *buf = nullptr;
-	const auto len = ms_stun_message_encode(indication, &buf);
-	if (len > 0) {
-		ms_message("ice: Send indication for pair %p: %s:%s --> %s:%s", this,
-		           localCandidateTransportAddress.asString().c_str(), mLocalCandidate->getTypeStr().c_str(),
-		           remoteCandidateTransportAddress.asString().c_str(), mRemoteCandidate->getTypeStr().c_str());
-		IceUtils::sendMessageToStunAddress(rtpTransport, buf, len, sourceStunAddress, destStunAddress);
+	const auto stunRawMessage = indication->encode();
+	if (stunRawMessage != nullptr) {
+		BCTBX_SLOGM << "ice: Send indication for pair " << this << ": " << localCandidateTransportAddress.asString()
+		            << ":" << mLocalCandidate->getTypeStr() << " --> " << remoteCandidateTransportAddress.asString()
+		            << ":" << mRemoteCandidate->getTypeStr();
+		const auto data = stunRawMessage->getData();
+		sendMessageToStunAddress(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		                         sourceStunAddress, destStunAddress);
 	}
-	if (buf != nullptr) {
-		ms_free(buf);
-	}
-	ms_free(indication);
 }
 
 void IceCandidatePair::setState(const State state) {
 	mState = state;
 }
 
-} // namespace ms2
+} // namespace ms2::nat

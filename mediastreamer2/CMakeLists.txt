@@ -159,8 +159,11 @@ endif()
 
 check_library_exists("dl" "dlopen" "" HAVE_DLOPEN)
 
-include(TestBigEndian)
-test_big_endian(WORDS_BIGENDIAN)
+if(CMAKE_C_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+  set(WORDS_BIGENDIAN TRUE)
+else()
+  set(WORDS_BIGENDIAN FALSE)
+endif()
 
 find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 find_package(Ortp 5.3.0 REQUIRED)

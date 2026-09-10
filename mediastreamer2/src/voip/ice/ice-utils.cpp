@@ -23,43 +23,12 @@
 #include "mediastreamer2/ice-utils.h"
 
 #include "mediastreamer2/ice-constants.h"
+#include "mediastreamer2/sockaddr.h"
+#include "mediastreamer2/stun-error.h"
+#include "mediastreamer2/stun-message.h"
+#include "mediastreamer2/stun-raw-message.h"
 
-namespace ms2::IceUtils {
-
-SockAddr::SockAddr(const ortp_recv_addr *ortpRecvAddr) {
-	ortp_recvaddr_to_sockaddr(const_cast<ortp_recv_addr *>(ortpRecvAddr), reinterpret_cast<struct sockaddr *>(&mAddr),
-	                          &mLen);
-}
-
-SockAddr::SockAddr(const struct sockaddr *addr, const socklen_t addrLen) : mLen(addrLen) {
-	memcpy(&mAddr, addr, addrLen);
-}
-
-SockAddr::SockAddr(const MSStunAddress &stunAddr) {
-	ms_stun_address_to_sockaddr(&stunAddr, reinterpret_cast<struct sockaddr *>(&mAddr), &mLen);
-}
-
-SockAddr SockAddr::ipv6toIpv4() const {
-	SockAddr result;
-	bctbx_sockaddr_ipv6_to_ipv4(reinterpret_cast<const struct sockaddr *>(&mAddr),
-	                            reinterpret_cast<struct sockaddr *>(&result.mAddr), &result.mLen);
-	return result;
-}
-
-std::string SockAddr::asString() const {
-	std::string output;
-	output.resize(64, '\0');
-	bctbx_sockaddr_to_printable_ip_address(
-	    const_cast<struct sockaddr *>(reinterpret_cast<const struct sockaddr *>(&mAddr)), mLen, output.data(),
-	    output.size());
-	return output;
-}
-
-MSStunAddress SockAddr::toStunAddress() const {
-	MSStunAddress stunAddr;
-	ms_sockaddr_to_stun_address(asStructSockAddr(), &stunAddr);
-	return stunAddr;
-}
+namespace ms2::nat {
 
 uint16_t getComponentIdFromEventData(const OrtpEventData *eventData) {
 	if (eventData->info.socket_type == OrtpRTPSocket) {
@@ -68,7 +37,7 @@ uint16_t getComponentIdFromEventData(const OrtpEventData *eventData) {
 	if (eventData->info.socket_type == OrtpRTCPSocket) {
 		return ICE_RTCP_COMPONENT_ID;
 	}
-	ms_error("ice: Invalid OrtpEventData (socket_type=%i)", static_cast<int>(eventData->info.socket_type));
+	BCTBX_SLOGE << "ice: Invalid OrtpEventData (socket_type=" << static_cast<int>(eventData->info.socket_type) << ")";
 	return ICE_INVALID_COMPONENT_ID;
 }
 
@@ -80,15 +49,6 @@ OrtpStream *getOrtpStreamFromRtpSessionAndComponentId(RtpSession *rtpSession, ui
 		return &rtpSession->rtcp.gs;
 	}
 	return nullptr;
-}
-
-std::string getTransactionIdStr(const UInt96 transactionId) {
-	std::ostringstream oss;
-	const auto *bytes = reinterpret_cast<const unsigned char *>(&transactionId);
-	for (int i = 0; i < 12; i++) {
-		oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(bytes[i]);
-	}
-	return oss.str();
 }
 
 RtpTransport *getTransportFromRtpSession(const RtpSession *rtpSession, const OrtpEventData *eventData) {
@@ -103,36 +63,30 @@ RtpTransport *getTransportFromRtpSession(const RtpSession *rtpSession, const Ort
 
 void sendErrorResponse(const RtpSession *rtpSession,
                        const OrtpEventData *eventData,
-                       const MSStunMessage *msg,
-                       const MSStunAddress &destStunAddress,
-                       const uint16_t errorNum,
-                       const std::string &errorMsg) {
+                       const std::shared_ptr<StunMessage> &msg,
+                       const StunAddress &destStunAddress,
+                       const StunError &error) {
 	RtpTransport *rtpTransport = getTransportFromRtpSession(rtpSession, eventData);
 	if (rtpTransport == nullptr) {
 		return;
 	}
 
 	// Create the error response, copying the transaction ID from the request.
-	const UInt96 transactionId = ms_stun_message_get_tr_id(msg);
-	MSStunMessage *response = ms_stun_binding_error_response_create();
-	ms_stun_message_enable_fingerprint(response, TRUE);
-	ms_stun_message_set_error_code(response, errorNum, errorMsg.c_str());
+	const auto transactionId = msg->getTransactionId();
+	const auto response = StunMessage::createStunBindingErrorResponse();
+	response->enableFingerprint(true);
+	response->setError(error);
 
-	char *buf = nullptr;
-	const size_t len = ms_stun_message_encode(response, &buf);
-	if (len > 0) {
-		const auto destAddr = SockAddr(destStunAddress);
+	const auto rawStunMessage = response->encode();
+	if (rawStunMessage != nullptr) {
+		const auto destAddr = destStunAddress.toSockAddr();
 		const auto sourceAddr = SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
-		ms_message("IceCheckList::sendErrorResponse: Send error response: %s --> %s [%s]",
-		           sourceAddr.asString().c_str(), destAddr.asString().c_str(),
-		           getTransactionIdStr(transactionId).c_str());
-		sendMessageToSocket(rtpTransport, buf, len, sourceAddr.asStructSockAddr(), destAddr.asStructSockAddr(),
-		                    destAddr.getLen());
+		const auto data = rawStunMessage->getData();
+		BCTBX_SLOGM << "IceCheckList::sendErrorResponse: Send error response: " << sourceAddr.asString() << " --> "
+		            << destAddr.asString() << " [" << transactionId.asString() << "]";
+		sendMessageToSocket(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		                    sourceAddr.asStructSockAddr(), destAddr.asStructSockAddr(), destAddr.getLen());
 	}
-	if (buf != nullptr) {
-		ms_free(buf);
-	}
-	ms_stun_message_destroy(response);
 }
 
 int sendMessageToSocket(RtpTransport *rtpTransport,
@@ -164,15 +118,12 @@ int sendMessageToSocket(RtpTransport *rtpTransport,
 	return err;
 }
 
-int sendMessageToStunAddress(RtpTransport *rtpTransport,
-                             const char *buf,
-                             const size_t len,
-                             const MSStunAddress &source,
-                             const MSStunAddress &dest) {
-	const auto sourceAddr = SockAddr(source);
-	const auto destAddr = SockAddr(dest);
+int sendMessageToStunAddress(
+    RtpTransport *rtpTransport, const char *buf, const size_t len, const StunAddress &source, const StunAddress &dest) {
+	const auto sourceAddr = source.toSockAddr();
+	const auto destAddr = dest.toSockAddr();
 	return sendMessageToSocket(rtpTransport, buf, len, sourceAddr.asStructSockAddr(), destAddr.asStructSockAddr(),
 	                           destAddr.getLen());
 }
 
-} // namespace ms2::IceUtils
+} // namespace ms2::nat

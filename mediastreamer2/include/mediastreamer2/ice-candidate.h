@@ -25,13 +25,14 @@
 #include <string>
 
 #include "mediastreamer2/ice-transport-address.h"
+#include "mediastreamer2/mscommon.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 /**
  * Represents an ICE candidate.
  */
-class IceCandidate {
+class MS2_PUBLIC IceCandidate {
 public:
 	friend class IceCandidatePair;
 	friend class IceCheckList;
@@ -48,21 +49,21 @@ public:
 		Relayed,
 	};
 
-	MS2_PUBLIC ~IceCandidate() = default;
+	~IceCandidate() = default;
 
-	MS2_PUBLIC bool operator==(const IceCandidate &other) const;
+	bool operator==(const IceCandidate &other) const;
 
 	/**
 	 * Get the base candidate of an ICE candidate.
 	 * @return A pointer to the base candidate of the ICE candidate.
 	 */
-	[[nodiscard]] MS2_PUBLIC std::shared_ptr<IceCandidate> getBase() const;
+	[[nodiscard]] std::shared_ptr<IceCandidate> getBase() const;
 
 	/**
 	 * Get the component ID of an ICE candidate.
 	 * @return The component ID of the ICE candidate.
 	 */
-	[[nodiscard]] MS2_PUBLIC uint16_t getComponentId() const {
+	[[nodiscard]] uint16_t getComponentId() const {
 		return mComponentId;
 	}
 
@@ -70,7 +71,7 @@ public:
 	 * Get the foundation of an ICE candidate.
 	 * @return The foundation of the ICE candidate.
 	 */
-	[[nodiscard]] MS2_PUBLIC const std::string &getFoundation() const {
+	[[nodiscard]] const std::string &getFoundation() const {
 		return mFoundation;
 	}
 
@@ -78,7 +79,7 @@ public:
 	 * Get the priority of an ICE candidate.
 	 * @return The priority of the ICE candidate.
 	 */
-	[[nodiscard]] MS2_PUBLIC uint32_t getPriority() const {
+	[[nodiscard]] uint32_t getPriority() const {
 		return mPriority;
 	}
 
@@ -86,7 +87,7 @@ public:
 	 * Get the transport address of an ICE candidate.
 	 * @return The transport address of the ICE candidate.
 	 */
-	[[nodiscard]] MS2_PUBLIC const IceTransportAddress &getTransportAddress() const {
+	[[nodiscard]] const IceTransportAddress &getTransportAddress() const {
 		return mTransportAddress;
 	}
 
@@ -94,7 +95,7 @@ public:
 	 * Get the type of an ICE candidate.
 	 * @return The type of the ICE candidate.
 	 */
-	[[nodiscard]] MS2_PUBLIC Type getType() const {
+	[[nodiscard]] Type getType() const {
 		return mType;
 	}
 
@@ -102,20 +103,23 @@ public:
 	 * Get the candidate type as a string.
 	 * @return The candidate type as a string
 	 */
-	[[nodiscard]] MS2_PUBLIC const std::string &getTypeStr() const;
+	[[nodiscard]] const std::string &getTypeStr() const {
+		return getTypeStr(mType);
+	}
 
-	[[nodiscard]] MS2_PUBLIC bool isDefault() const {
+	[[nodiscard]] bool isDefault() const {
 		return mIsDefault;
 	}
-	[[nodiscard]] MS2_PUBLIC bool isHost() const {
+	[[nodiscard]] bool isHost() const {
 		return mType == Type::Host;
 	}
-	[[nodiscard]] MS2_PUBLIC bool isRelay() const;
-	MS2_PUBLIC void setBase(const std::shared_ptr<IceCandidate> &base);
+	[[nodiscard]] bool isRelay() const;
+	void setBase(const std::shared_ptr<IceCandidate> &base);
 
-	static MS2_PUBLIC std::shared_ptr<IceCandidate>
+	[[nodiscard]] static std::shared_ptr<IceCandidate>
 	create(Type type, const IceTransportAddress &transportAddress, uint16_t componentId);
-	static MS2_PUBLIC std::optional<Type> getTypeFromStr(const std::string &typeStr);
+	[[nodiscard]] static std::optional<Type> getTypeFromStr(const std::string &typeStr);
+	[[nodiscard]] static const std::string &getTypeStr(Type type);
 
 private:
 	IceCandidate(Type type, const IceTransportAddress &transportAddress, uint16_t componentId);
@@ -143,4 +147,4 @@ private:
 	bool mIsDefault = false; /**< Boolean value telling whether this candidate is a default candidate or not */
 };
 
-} // namespace ms2
+} // namespace ms2::nat

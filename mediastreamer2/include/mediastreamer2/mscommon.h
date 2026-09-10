@@ -125,6 +125,11 @@ time_t ms_time(time_t *t);
 #define ms_debug(fmt, ...)
 #endif
 
+#ifdef _WIN32
+// Disable C4251 triggered by need to export all stl template classes
+#pragma warning(disable : 4251)
+#endif // ifdef _WIN32
+
 #define ms_message bctbx_message
 #define ms_warning bctbx_warning
 #define ms_error bctbx_error

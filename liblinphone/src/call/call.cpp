@@ -74,7 +74,7 @@ const shared_ptr<Account> &Call::getDestAccount() const {
 }
 
 /* This a test-only method.*/
-const std::shared_ptr<ms2::IceSession> &Call::getIceSession() const {
+const std::shared_ptr<IceSession> &Call::getIceSession() const {
 	return getMediaSession()->getPrivate()->getIceSession();
 }
 

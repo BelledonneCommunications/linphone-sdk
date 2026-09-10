@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "bctoolbox/crypto.hh"
+#include "mediastreamer2/stun-auth-listener.h"
 
 #include "call-session-p.h"
 #include "ms2-streams.h"
@@ -39,11 +40,13 @@
 
 // =============================================================================
 
+using namespace ms2::nat;
+
 LINPHONE_BEGIN_NAMESPACE
 
 class PayloadTypeHandler;
 
-class LINPHONE_INTERNAL_PUBLIC MediaSessionPrivate : public CallSessionPrivate, private IceServiceListener {
+class LINPHONE_INTERNAL_PUBLIC MediaSessionPrivate : public CallSessionPrivate, private IceServiceListener, public StunAuthListener {
 	friend class StreamsGroup;
 
 public:
@@ -56,12 +59,6 @@ public:
 
 	static bool isMainStreamContent(const std::string &content);
 	static int resumeAfterFailedTransfer(void *userData, unsigned int);
-	static void stunAuthRequestedCb(void *userData,
-	                                const char *realm,
-	                                const char *nonce,
-	                                const char **username,
-	                                const char **password,
-	                                const char **ha1);
 
 	void accepted() override;
 	void ackReceived(LinphoneHeaders *headers) override;
@@ -194,7 +191,7 @@ public:
 	void performMutualAuthentication();
 	void lossOfMediaDetected();
 	/* test function */
-	const std::shared_ptr<ms2::IceSession> &getIceSession() const;
+	const std::shared_ptr<IceSession> &getIceSession() const;
 
 	void setState(CallSession::State newState, const std::string &message) override;
 
@@ -224,6 +221,10 @@ private:
 	virtual void onIceCompleted(IceService &service) override;
 	virtual void onLosingPairsCompleted(IceService &service) override;
 	virtual void onIceRestartNeeded(IceService &service) override;
+
+	// StunAuthListener methods:
+	virtual StunAuthResponse onStunAuthRequested(const std::string &realm,
+                                      const std::string &nonce) override;
 
 #ifdef TEST_EXT_RENDERER
 	static void extRendererCb(void *userData, const MSPicture *local, const MSPicture *remote);
@@ -342,8 +343,6 @@ private:
 	void realTimeTextCharacterReceived(MSFilter *f, unsigned int id, void *arg);
 	int sendDtmf();
 
-	void stunAuthRequestedCb(
-	    const char *realm, const char *nonce, const char **username, const char **password, const char **ha1);
 	Stream *getStream(LinphoneStreamType type) const;
 	int portFromStreamIndex(int index);
 	SalMediaProto getMdProto(SalStreamType type,

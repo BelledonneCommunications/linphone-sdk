@@ -30,11 +30,15 @@
 
 #include "mediastreamer2/ice-transport-address.h"
 #include "mediastreamer2/ice-utils.h"
-#include "mediastreamer2/stun.h"
+#include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/sockaddr.h"
+#include "mediastreamer2/stun-message.h"
+#include "mediastreamer2/stun-transaction-id.h"
+#include "mediastreamer2/turn-context.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
-class IceStunRequest {
+class MS2_PUBLIC IceStunRequest {
 public:
 	friend class IceCheckList;
 
@@ -69,12 +73,12 @@ public:
 
 	class Transaction {
 	public:
-		explicit Transaction(const UInt96 transactionId)
+		explicit Transaction(const StunTransactionId transactionId)
 		    : mId(transactionId), mRequestTime(std::chrono::steady_clock::now()) {
 		}
 		~Transaction() = default;
 
-		[[nodiscard]] const UInt96 &getId() const {
+		[[nodiscard]] const StunTransactionId &getId() const {
 			return mId;
 		}
 		[[nodiscard]] std::string getIdStr() const;
@@ -82,74 +86,74 @@ public:
 		[[nodiscard]] std::optional<std::chrono::milliseconds> getRoundTripTime() const;
 
 	private:
-		UInt96 mId;
+		StunTransactionId mId;
 		std::chrono::steady_clock::time_point mRequestTime;
 		std::optional<std::chrono::steady_clock::time_point> mResponseTime = std::nullopt;
 	};
 
-	MS2_PUBLIC ~IceStunRequest();
+	~IceStunRequest();
 
-	[[nodiscard]] MS2_PUBLIC uint16_t getChannelNumber() const {
+	[[nodiscard]] uint16_t getChannelNumber() const {
 		return mChannelNumber;
 	}
-	[[nodiscard]] MS2_PUBLIC std::vector<RoundTripTime> getGatheringRoundTripTimes() const;
-	[[nodiscard]] MS2_PUBLIC const MSStunAddress &getPeerAddress() const {
+	[[nodiscard]] std::vector<RoundTripTime> getGatheringRoundTripTimes() const;
+	[[nodiscard]] const StunAddress &getPeerAddress() const {
 		return mPeerAddress;
 	}
-	[[nodiscard]] MS2_PUBLIC RtpTransport *getRtpTransport() const {
+	[[nodiscard]] RtpTransport *getRtpTransport() const {
 		return mRtpTransport;
 	}
-	[[nodiscard]] MS2_PUBLIC struct addrinfo *getSourceAddrInfo() const {
+	[[nodiscard]] struct addrinfo *getSourceAddrInfo() const {
 		return mSourceAddrInfo;
 	}
-	[[nodiscard]] MS2_PUBLIC MSTurnContext *getTurnContext() const {
+	[[nodiscard]] const std::shared_ptr<TurnContext> &getTurnContext() const {
 		return mTurnContext;
 	}
-	[[nodiscard]] MS2_PUBLIC bool isGathering() const {
+	[[nodiscard]] bool isGathering() const {
 		return mGathering;
 	}
-	[[nodiscard]] MS2_PUBLIC bool isResponded() const {
+	[[nodiscard]] bool isResponded() const {
 		return mResponded;
 	}
-	static MS2_PUBLIC std::shared_ptr<IceStunRequest> create(MSTurnContext *turnContext,
-	                                                         RtpTransport *rtpTransport,
-	                                                         const IceTransportAddress &transportAddress,
-	                                                         uint16_t stunMethod);
+	static std::shared_ptr<IceStunRequest> create(const std::shared_ptr<TurnContext> &turnContext,
+	                                              RtpTransport *rtpTransport,
+	                                              const IceTransportAddress &transportAddress,
+	                                              StunMessage::Method stunMethod);
 
 private:
-	IceStunRequest(MSTurnContext *turnContext,
+	IceStunRequest(const std::shared_ptr<TurnContext> &turnContext,
 	               RtpTransport *rtpTransport,
 	               const IceTransportAddress &transportAddress,
-	               uint16_t stunMethod);
+	               StunMessage::Method stunMethod);
 
 	void addTransaction(const std::shared_ptr<Transaction> &transaction);
-	void fillStunMessageAuthenticationFromTurnContext(MSStunMessage *msg) const;
+	void fillStunMessageAuthenticationFromTurnContext(const std::shared_ptr<StunMessage> &msg) const;
 	[[nodiscard]] size_t getNbTransactions() const {
 		return mTransactions.size();
 	}
 	[[nodiscard]] std::chrono::steady_clock::time_point getNextTransmissionTime() const {
 		return mNextTransmissionTime;
 	}
-	[[nodiscard]] std::shared_ptr<Transaction> getTransaction(const UInt96 &transactionId) const;
+	[[nodiscard]] std::shared_ptr<Transaction> getTransaction(const StunTransactionId &transactionId) const;
 	[[nodiscard]] bool needRetransmission() const;
 	void programNextTransmission(const std::chrono::steady_clock::time_point nextTransmissionTime) {
 		mNextTransmissionTime = nextTransmissionTime;
 	}
-	[[nodiscard]] std::shared_ptr<Transaction> send(const IceUtils::SockAddr &server);
+	[[nodiscard]] std::shared_ptr<Transaction> send(const SockAddr &server);
 	[[nodiscard]] std::shared_ptr<Transaction>
-	send(const IceUtils::SockAddr &server, const MSStunMessage *msg, const std::string &requestType) const;
-	[[nodiscard]] std::shared_ptr<Transaction> sendStunBindingRequest(const IceUtils::SockAddr &server) const;
-	[[nodiscard]] std::shared_ptr<Transaction> sendTurnAllocateRequest(const IceUtils::SockAddr &server);
-	[[nodiscard]] std::shared_ptr<Transaction> sendTurnChannelBindRequest(const IceUtils::SockAddr &server);
-	[[nodiscard]] std::shared_ptr<Transaction> sendTurnCreatePermissionRequest(const IceUtils::SockAddr &server);
-	[[nodiscard]] std::shared_ptr<Transaction> sendTurnRefreshRequest(const IceUtils::SockAddr &server);
+	send(const SockAddr &server, const std::shared_ptr<StunMessage> &msg, const std::string &requestType) const;
+	[[nodiscard]] std::shared_ptr<Transaction> sendStunBindingRequest(const SockAddr &server) const;
+	[[nodiscard]] std::shared_ptr<Transaction> sendTurnAllocateRequest(const SockAddr &server);
+	[[nodiscard]] std::shared_ptr<Transaction> sendTurnChannelBindRequest(const SockAddr &server);
+	[[nodiscard]] std::shared_ptr<Transaction> sendTurnCreatePermissionRequest(const SockAddr &server);
+	[[nodiscard]] std::shared_ptr<Transaction> sendTurnRefreshRequest(const SockAddr &server);
 	void setChannelNumber(const uint16_t channelNumber) {
 		mChannelNumber = channelNumber;
 	}
 	void setGathering(const bool gathering) {
 		mGathering = gathering;
 	}
-	void setPeerAddress(const MSStunAddress &peerAddress) {
+	void setPeerAddress(const StunAddress &peerAddress) {
 		mPeerAddress = peerAddress;
 	}
 	void setResponded(const bool responded) {
@@ -157,15 +161,15 @@ private:
 	}
 
 	RtpTransport *mRtpTransport = nullptr;
-	MSTurnContext *mTurnContext = nullptr;
+	std::shared_ptr<TurnContext> mTurnContext = nullptr;
 	struct addrinfo *mSourceAddrInfo = nullptr;
 	std::vector<std::shared_ptr<Transaction>> mTransactions;
 	std::chrono::steady_clock::time_point mNextTransmissionTime;
-	MSStunAddress mPeerAddress{};
+	StunAddress mPeerAddress;
 	uint16_t mChannelNumber = 0;
-	uint16_t mStunMethod = MS_STUN_METHOD_BINDING;
+	StunMessage::Method mStunMethod = StunMessage::Method::Binding;
 	bool mGathering = false;
 	bool mResponded = false;
 };
 
-} // namespace ms2
+} // namespace ms2::nat

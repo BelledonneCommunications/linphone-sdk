@@ -18,25 +18,36 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mediastreamer2/ice.h"
+#pragma once
 
-#include "mediastreamer2/ice-checklist.h"
+#include "mediastreamer2/mscommon.h"
 
-extern "C" {
+namespace ms2::nat {
 
-void ice_check_list_set_rtp_session(IceCheckList *cl, RtpSession *rtp_session) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->setRtpSession(rtp_session);
-}
+class MS2_PUBLIC StunTransactionId {
+public:
+	explicit StunTransactionId(const UInt96 &id) : mId(id) {
+	}
+	~StunTransactionId() = default;
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->handleStunPacket(rtp_session, evt_data);
-}
+	bool operator==(const StunTransactionId &other) const {
+		return memcmp(&mId, &other.mId, sizeof(UInt96)) == 0;
+	}
+	bool operator!=(const StunTransactionId &other) const {
+		return !(*this == other);
+	}
 
-void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->process(rtp_session);
-}
+	[[nodiscard]] std::string asString() const;
+	[[nodiscard]] const UInt96 &asUInt96() const {
+		return mId;
+	}
 
-void ice_check_list_print_route(const IceCheckList *cl, const char *message) {
-	reinterpret_cast<const ms2::nat::IceCheckList *>(cl)->printRoute(message);
-}
-}
+	static StunTransactionId random();
+
+private:
+	StunTransactionId() = default;
+
+	UInt96 mId{};
+};
+
+}; // namespace ms2::nat

@@ -23,16 +23,19 @@
 #include <chrono>
 #include <memory>
 
+#include <ortp/rtpsession.h>
+
 #include "mediastreamer2/ice-candidate.h"
 #include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-role.h"
+#include "mediastreamer2/mscommon.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 /**
  * Represents an ICE candidate pair.
  */
-class IceCandidatePair {
+class MS2_PUBLIC IceCandidatePair {
 public:
 	friend class IceCheckList;
 	friend class IceValidCandidatePair;
@@ -44,17 +47,17 @@ public:
 	 */
 	enum class State { Waiting, InProgress, Succeeded, Failed, Frozen };
 
-	MS2_PUBLIC ~IceCandidatePair() = default;
+	~IceCandidatePair() = default;
 
-	MS2_PUBLIC bool operator==(const IceCandidatePair &other) const;
+	bool operator==(const IceCandidatePair &other) const;
 
-	[[nodiscard]] MS2_PUBLIC uint64_t getPriority() const {
+	[[nodiscard]] uint64_t getPriority() const {
 		return mPriority;
 	}
-	[[nodiscard]] MS2_PUBLIC bool isDefault() const {
+	[[nodiscard]] bool isDefault() const {
 		return mIsDefault;
 	}
-	[[nodiscard]] MS2_PUBLIC bool isNominated() const {
+	[[nodiscard]] bool isNominated() const {
 		return mIsNominated;
 	}
 
@@ -170,4 +173,4 @@ private:
 	bool mUseDummyHmac = false;                   /* Don't compute real hmac. Used for backward compatibility. */
 };
 
-} // namespace ms2
+} // namespace ms2::nat

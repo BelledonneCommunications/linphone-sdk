@@ -18,8 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _L_STUN_CLIENT_H_
-#define _L_STUN_CLIENT_H_
+#pragma once
 
 #include <string>
 
@@ -43,27 +42,28 @@ class StunClient : public CoreAccessor {
 	};
 
 public:
-	StunClient(const std::shared_ptr<Core> &core) : CoreAccessor(core) {
+	explicit StunClient(const std::shared_ptr<Core> &core) : CoreAccessor(core) {
 	}
 
 	int run(int audioPort, int videoPort, int textPort);
-	void updateMediaDescription(std::shared_ptr<SalMediaDescription> &md) const;
+	void updateMediaDescription(const std::shared_ptr<SalMediaDescription> &md) const;
 
-	const Candidate &getAudioCandidate() const {
+	[[nodiscard]] const Candidate &getAudioCandidate() const {
 		return audioCandidate;
 	}
 
-	const Candidate &getVideoCandidate() const {
+	[[nodiscard]] const Candidate &getVideoCandidate() const {
 		return videoCandidate;
 	}
 
-	const Candidate &getTextCandidate() const {
+	[[nodiscard]] const Candidate &getTextCandidate() const {
 		return textCandidate;
 	}
 
-	ortp_socket_t createStunSocket(int localPort);
-	int recvStunResponse(ortp_socket_t sock, Candidate &candidate, int &id);
-	int sendStunRequest(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int id, bool changeAddr);
+	static ortp_socket_t createStunSocket(int localPort);
+	static int recvStunResponse(ortp_socket_t sock, Candidate &candidate, int &id);
+	static int
+	sendStunRequest(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int id, bool changeAddr);
 
 private:
 	Candidate audioCandidate;
@@ -73,5 +73,3 @@ private:
 };
 
 LINPHONE_END_NAMESPACE
-
-#endif // ifndef _L_STUN_CLIENT_H_

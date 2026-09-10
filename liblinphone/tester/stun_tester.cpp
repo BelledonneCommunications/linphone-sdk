@@ -18,9 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mediastreamer2/stun.h"
-
 #include "ortp/port.h"
+
+#include "mediastreamer2/stun-message.h"
+#include "mediastreamer2/stun-raw-message.h"
+#include "mediastreamer2/stun.h"
+#include "mediastreamer2/turn-context.h"
 
 #include "liblinphone_tester.h"
 #include "linphone/api/c-auth-info.h"
@@ -28,6 +31,8 @@
 #include "linphone/core.h"
 #include "shared_tester_functions.h"
 #include "tester_utils.h"
+
+using namespace ms2::nat;
 
 static const char *stun_address = "stun.example.org";
 
@@ -49,26 +54,23 @@ static void call_config_init(CallConfig *config) {
 	config->ipv6 = liblinphone_tester_ipv6_available();
 }
 
-static size_t test_stun_encode(char **buffer) {
-	MSStunMessage *req = ms_stun_binding_request_create();
-	UInt96 tr_id = ms_stun_message_get_tr_id(req);
-	tr_id.octet[0] = 11;
-	ms_stun_message_set_tr_id(req, tr_id);
-	size_t size = ms_stun_message_encode(req, buffer);
-	ms_stun_message_destroy(req);
-	return size;
+static std::shared_ptr<StunRawMessage> test_stun_encode() {
+	const auto request = StunMessage::createStunBindingRequest();
+	auto transactionId = request->getTransactionId().asUInt96();
+	transactionId.octet[0] = 11;
+	request->setTransactionId(StunTransactionId(transactionId));
+	return request->encode();
 }
 
-static void linphone_stun_test_encode(void) {
-	char *buffer = NULL;
-	size_t len = test_stun_encode(&buffer);
-	BC_ASSERT(len > 0);
-	BC_ASSERT_PTR_NOT_NULL(buffer);
-	if (buffer != NULL) ms_free(buffer);
-	ms_message("STUN message encoded in %i bytes", (int)len);
+static void linphone_stun_test_encode() {
+	const auto stunRawMessage = test_stun_encode();
+	BC_ASSERT_PTR_NOT_NULL(stunRawMessage);
+	const auto data = stunRawMessage->getData();
+	BC_ASSERT(data.size() > 0);
+	BCTBX_SLOGM << "STUN message encoded in " << data.size() << "bytes";
 }
 
-static void linphone_stun_test_grab_ip(void) {
+static void linphone_stun_test_grab_ip() {
 	LinphoneCoreManager *lc_stun = linphone_core_manager_new_with_proxies_check("stun_rc", FALSE);
 	int ping_time;
 	int tmp = 0;
@@ -144,24 +146,27 @@ configure_nat_policy(LinphoneCore *lc, bool_t turn_enabled, bool_t turn_tcp, boo
 }
 
 static void
-check_turn_context_statistics(MSTurnContext *turn_context1, MSTurnContext *turn_context2, bool_t forced_relay) {
-	BC_ASSERT_TRUE(turn_context1->stats.nb_successful_allocate > 0);
-	if (turn_context2) BC_ASSERT_TRUE(turn_context2->stats.nb_successful_allocate > 0);
+check_turn_context_statistics(const TurnContext *turn_context1, const TurnContext *turn_context2, bool_t forced_relay) {
+	BC_ASSERT_TRUE(turn_context1->getStatistics().nb_successful_allocate > 0);
+	if (turn_context2 != nullptr) {
+		BC_ASSERT_TRUE(turn_context2->getStatistics().nb_successful_allocate > 0);
+	}
 	if (forced_relay == TRUE) {
-		BC_ASSERT_TRUE(turn_context1->stats.nb_send_indication > 0 ||
-		               (turn_context2 && turn_context2->stats.nb_send_indication > 0));
-		BC_ASSERT_TRUE(turn_context1->stats.nb_data_indication > 0 ||
-		               (turn_context2 && turn_context2->stats.nb_data_indication > 0));
-		BC_ASSERT_TRUE(turn_context1->stats.nb_received_channel_msg > 0 ||
-		               (turn_context2 && turn_context2->stats.nb_received_channel_msg > 0));
-		BC_ASSERT_TRUE(turn_context1->stats.nb_sent_channel_msg > 0 ||
-		               (turn_context2 && turn_context2->stats.nb_sent_channel_msg > 0));
-		BC_ASSERT_TRUE(turn_context1->stats.nb_successful_refresh > 0 ||
-		               (turn_context2 && turn_context2->stats.nb_successful_refresh > 0));
-		BC_ASSERT_TRUE(turn_context1->stats.nb_successful_create_permission > 0 ||
-		               (turn_context2 && turn_context2->stats.nb_successful_create_permission > 0));
-		BC_ASSERT_TRUE(turn_context1->stats.nb_successful_channel_bind > 0 ||
-		               (turn_context2 && turn_context2->stats.nb_successful_channel_bind > 0));
+		BC_ASSERT_TRUE((turn_context1->getStatistics().nb_send_indication > 0) ||
+		               ((turn_context2 != nullptr) && (turn_context2->getStatistics().nb_send_indication > 0)));
+		BC_ASSERT_TRUE((turn_context1->getStatistics().nb_data_indication > 0) ||
+		               ((turn_context2 != nullptr) && (turn_context2->getStatistics().nb_data_indication > 0)));
+		BC_ASSERT_TRUE((turn_context1->getStatistics().nb_received_channel_msg > 0) ||
+		               ((turn_context2 != nullptr) && (turn_context2->getStatistics().nb_received_channel_msg > 0)));
+		BC_ASSERT_TRUE((turn_context1->getStatistics().nb_sent_channel_msg > 0) ||
+		               ((turn_context2 != nullptr) && (turn_context2->getStatistics().nb_sent_channel_msg > 0)));
+		BC_ASSERT_TRUE((turn_context1->getStatistics().nb_successful_refresh > 0) ||
+		               ((turn_context2 != nullptr) && (turn_context2->getStatistics().nb_successful_refresh > 0)));
+		BC_ASSERT_TRUE(
+		    (turn_context1->getStatistics().nb_successful_create_permission > 0) ||
+		    ((turn_context2 != nullptr) && (turn_context2->getStatistics().nb_successful_create_permission > 0)));
+		BC_ASSERT_TRUE((turn_context1->getStatistics().nb_successful_channel_bind > 0) ||
+		               ((turn_context2 != nullptr) && (turn_context2->getStatistics().nb_successful_channel_bind > 0)));
 	}
 }
 
@@ -172,10 +177,10 @@ static void ice_turn_call_base(const CallConfig *config) {
 	LinphoneIceState expected_ice_state = LinphoneIceStateHostConnection;
 	LinphoneMediaDirection expected_video_dir = LinphoneMediaDirectionInactive;
 	bctbx_list_t *lcs = NULL;
-	MSTurnContext *rtp_turn_context1 = NULL;
-	MSTurnContext *rtp_turn_context2 = NULL;
-	MSTurnContext *rtcp_turn_context1 = NULL;
-	MSTurnContext *rtcp_turn_context2 = NULL;
+	const MSTurnContext *rtp_turn_context1 = NULL;
+	const MSTurnContext *rtp_turn_context2 = NULL;
+	const MSTurnContext *rtcp_turn_context1 = NULL;
+	const MSTurnContext *rtcp_turn_context2 = NULL;
 
 	marie = linphone_core_manager_create(transport_supported(LinphoneTransportTls) ? "marie_sips_rc" : "marie_rc");
 	lcs = bctbx_list_append(lcs, marie->lc);
@@ -276,9 +281,12 @@ static void ice_turn_call_base(const CallConfig *config) {
 	 * We have to check that turn channel is used by either marie or pauline.
 	 */
 	if (!config->wrong_password && rtp_turn_context1 && rtcp_turn_context1 && rtp_turn_context2 && rtcp_turn_context2) {
-		check_turn_context_statistics(rtp_turn_context1, rtp_turn_context2, config->forced_relay);
+		check_turn_context_statistics(reinterpret_cast<const TurnContext *>(rtp_turn_context1),
+		                              reinterpret_cast<const TurnContext *>(rtp_turn_context2), config->forced_relay);
 		if (!config->rtcp_mux_enabled)
-			check_turn_context_statistics(rtcp_turn_context1, rtcp_turn_context2, config->forced_relay);
+			check_turn_context_statistics(reinterpret_cast<const TurnContext *>(rtcp_turn_context1),
+			                              reinterpret_cast<const TurnContext *>(rtcp_turn_context2),
+			                              config->forced_relay);
 	}
 
 	end_call(marie, pauline);
@@ -288,7 +296,7 @@ static void ice_turn_call_base(const CallConfig *config) {
 	bctbx_list_free(lcs);
 }
 
-static void basic_ice_turn_call(void) {
+static void basic_ice_turn_call() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.caller_turn_enabled = TRUE;
@@ -298,7 +306,7 @@ static void basic_ice_turn_call(void) {
 
 /* In this test, TURN won't finally be used because of wrong password. This checks that in this case
  * all goes well with ICE and things terminate properly.*/
-static void basic_ice_turn_call_wrong_password(void) {
+static void basic_ice_turn_call_wrong_password() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.caller_turn_enabled = TRUE;
@@ -307,7 +315,7 @@ static void basic_ice_turn_call_wrong_password(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void basic_ipv6_ice_turn_call(void) {
+static void basic_ipv6_ice_turn_call() {
 	if (liblinphone_tester_ipv6_available()) {
 		CallConfig cfg;
 		call_config_init(&cfg);
@@ -320,7 +328,7 @@ static void basic_ipv6_ice_turn_call(void) {
 	}
 }
 
-static void basic_ice_turn_call_tcp(void) {
+static void basic_ice_turn_call_tcp() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.caller_turn_enabled = TRUE;
@@ -329,7 +337,7 @@ static void basic_ice_turn_call_tcp(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void basic_ice_turn_call_tls(void) {
+static void basic_ice_turn_call_tls() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.caller_turn_enabled = TRUE;
@@ -339,7 +347,7 @@ static void basic_ice_turn_call_tls(void) {
 }
 
 #ifdef VIDEO_ENABLED
-static void video_ice_turn_call(void) {
+static void video_ice_turn_call() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.video_enabled = TRUE;
@@ -349,7 +357,7 @@ static void video_ice_turn_call(void) {
 }
 #endif
 
-static void relayed_ice_turn_call(void) {
+static void relayed_ice_turn_call() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -358,7 +366,7 @@ static void relayed_ice_turn_call(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void relayed_ice_turn_call_with_tcp(void) {
+static void relayed_ice_turn_call_with_tcp() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -368,7 +376,7 @@ static void relayed_ice_turn_call_with_tcp(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void relayed_ice_turn_call_with_tls(void) {
+static void relayed_ice_turn_call_with_tls() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -379,7 +387,7 @@ static void relayed_ice_turn_call_with_tls(void) {
 }
 
 #ifdef VIDEO_ENABLED
-static void relayed_video_ice_turn_call(void) {
+static void relayed_video_ice_turn_call() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.video_enabled = TRUE;
@@ -390,7 +398,7 @@ static void relayed_video_ice_turn_call(void) {
 }
 #endif
 
-static void relayed_ice_turn_call_with_rtcp_mux(void) {
+static void relayed_ice_turn_call_with_rtcp_mux() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -399,7 +407,7 @@ static void relayed_ice_turn_call_with_rtcp_mux(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void relayed_ice_turn_to_ice_stun_call(void) {
+static void relayed_ice_turn_to_ice_stun_call() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -407,7 +415,7 @@ static void relayed_ice_turn_to_ice_stun_call(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void relayed_ice_turn_call_with_srtp(void) {
+static void relayed_ice_turn_call_with_srtp() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -416,7 +424,7 @@ static void relayed_ice_turn_call_with_srtp(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void relayed_ice_turn_tls_with_srtp(void) {
+static void relayed_ice_turn_tls_with_srtp() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -427,7 +435,7 @@ static void relayed_ice_turn_tls_with_srtp(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void relayed_ice_turn_tls_to_ice_with_srtp(void) {
+static void relayed_ice_turn_tls_to_ice_with_srtp() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -438,7 +446,7 @@ static void relayed_ice_turn_tls_to_ice_with_srtp(void) {
 	ice_turn_call_base(&cfg);
 }
 
-static void relayed_ice_turn_to_ice_with_dtls_srtp(void) {
+static void relayed_ice_turn_to_ice_with_dtls_srtp() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -565,7 +573,7 @@ end:
 	bctbx_list_free(lcs);
 }
 
-static void relayed_ice_turn_to_turn_with_dtls_srtp(void) {
+static void relayed_ice_turn_to_turn_with_dtls_srtp() {
 	CallConfig cfg;
 	call_config_init(&cfg);
 	cfg.forced_relay = TRUE;
@@ -601,8 +609,8 @@ static test_t stun_tests[] = {
         "Relayed ICE+TURN relayed call with DTLS-SRTP", relayed_ice_turn_to_turn_with_dtls_srtp, "ICE", "TURN")};
 
 test_suite_t stun_test_suite = {"Stun",
-                                NULL,
-                                NULL,
+                                nullptr,
+                                nullptr,
                                 liblinphone_tester_before_each,
                                 liblinphone_tester_after_each,
                                 sizeof(stun_tests) / sizeof(stun_tests[0]),

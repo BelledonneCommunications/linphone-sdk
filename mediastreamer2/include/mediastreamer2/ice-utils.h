@@ -22,47 +22,23 @@
 
 #include <ortp/rtpsession.h>
 
-#include "mediastreamer2/stun.h"
+#include "mediastreamer2/stun-address.h"
+#include "mediastreamer2/stun-error.h"
+#include "mediastreamer2/stun-message.h"
 
-namespace ms2::IceUtils {
-
-class SockAddr {
-public:
-	SockAddr() = default;
-	SockAddr(const struct sockaddr *addr, socklen_t addrLen);
-	explicit SockAddr(const ortp_recv_addr *ortpRecvAddr);
-	explicit SockAddr(const MSStunAddress &stunAddr);
-	~SockAddr() = default;
-
-	[[nodiscard]] std::string asString() const;
-	[[nodiscard]] const struct sockaddr *asStructSockAddr() const {
-		return reinterpret_cast<const struct sockaddr *>(&mAddr);
-	};
-	[[nodiscard]] socklen_t getLen() const {
-		return mLen;
-	}
-	[[nodiscard]] SockAddr ipv6toIpv4() const;
-	[[nodiscard]] MSStunAddress toStunAddress() const;
-
-private:
-	struct sockaddr_storage mAddr{};
-	socklen_t mLen = sizeof(mAddr);
-};
+namespace ms2::nat {
 
 uint16_t getComponentIdFromEventData(const OrtpEventData *eventData);
 
 OrtpStream *getOrtpStreamFromRtpSessionAndComponentId(RtpSession *rtpSession, uint16_t componentId);
 
-std::string getTransactionIdStr(UInt96 transactionId);
-
 RtpTransport *getTransportFromRtpSession(const RtpSession *rtpSession, const OrtpEventData *eventData);
 
 void sendErrorResponse(const RtpSession *rtpSession,
                        const OrtpEventData *eventData,
-                       const MSStunMessage *msg,
-                       const MSStunAddress &destStunAddress,
-                       uint16_t errorNum,
-                       const std::string &errorMsg);
+                       const std::shared_ptr<StunMessage> &msg,
+                       const StunAddress &destStunAddress,
+                       const StunError &error);
 
 int sendMessageToSocket(RtpTransport *rtpTransport,
                         const char *buf,
@@ -72,6 +48,6 @@ int sendMessageToSocket(RtpTransport *rtpTransport,
                         socklen_t toLen);
 
 int sendMessageToStunAddress(
-    RtpTransport *rtpTransport, const char *buf, size_t len, const MSStunAddress &source, const MSStunAddress &dest);
+    RtpTransport *rtpTransport, const char *buf, size_t len, const StunAddress &source, const StunAddress &dest);
 
-} // namespace ms2::IceUtils
+} // namespace ms2::nat

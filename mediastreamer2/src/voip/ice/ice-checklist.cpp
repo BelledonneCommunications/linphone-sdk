@@ -27,8 +27,13 @@
 #include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-session.h"
 #include "mediastreamer2/ice-utils.h"
+#include "mediastreamer2/stun-address.h"
+#include "mediastreamer2/stun-error.h"
+#include "mediastreamer2/stun-message.h"
+#include "mediastreamer2/stun-raw-message.h"
+#include "mediastreamer2/turn-context.h"
 
-namespace ms2 {
+namespace ms2::nat {
 
 IceCheckList::~IceCheckList() {
 	destroyTurnContexts();
@@ -39,7 +44,7 @@ std::shared_ptr<IceCandidate> IceCheckList::addLocalCandidate(const IceCandidate
                                                               const uint16_t componentId,
                                                               const std::shared_ptr<IceCandidate> &base) {
 	if (mLocalCandidates.size() >= ICE_MAX_NB_CANDIDATES) {
-		ms_error("ice: Candidate list limited to %d candidates", ICE_MAX_NB_CANDIDATES);
+		BCTBX_SLOGE << "ice: Candidate list limited to " << ICE_MAX_NB_CANDIDATES << " candidates";
 		return nullptr;
 	}
 
@@ -95,10 +100,10 @@ void IceCheckList::addLosingPair(const uint16_t componentId,
 				           (candidate->getType() == IceCandidate::Type::ServerReflexive);
 			    });
 			if (itSrflxCandidate == mRemoteCandidates.end()) {
-				ms_warning("ice: Local candidate %s should have been found", localTransportAddress.asString().c_str());
+				BCTBX_SLOGW << "ice: Local candidate " << localTransportAddress.asString() << " should have been found";
 				return;
 			}
-			ms_message("ice: Add missing local candidate %s:relay", localTransportAddress.asString().c_str());
+			BCTBX_SLOGM << "ice: Add missing local candidate " << localTransportAddress.asString() << ":relay";
 			addedMissingRelayCandidate = true;
 			localCandidate =
 			    addLocalCandidate(IceCandidate::Type::Relayed, localTransportAddress, componentId, *itSrflxCandidate);
@@ -114,7 +119,7 @@ void IceCheckList::addLosingPair(const uint16_t componentId,
 		                                                   (candidate->getTransportAddress() == remoteTransportAddress);
 	                                            });
 	if (itRemoteCandidate == mRemoteCandidates.end()) {
-		ms_warning("ice: Remote candidate %s should have been found", remoteTransportAddress.asString().c_str());
+		BCTBX_SLOGW << "ice: Remote candidate " << remoteTransportAddress.asString() << " should have been found";
 		return;
 	}
 	remoteCandidate = *itRemoteCandidate;
@@ -172,21 +177,22 @@ void IceCheckList::addLosingPair(const uint16_t componentId,
 		if (!inProgressCandidates && failedCandidates) {
 			// A network failure, such as a network partition or serious packet loss has most likely occurred, restart
 			// ICE after some delay.
-			ms_warning("ice: ICE restart is needed!");
+			BCTBX_SLOGW << "ice: ICE restart is needed!";
 			mSession->programEventSending(ORTP_EVENT_ICE_RESTART_NEEDED, std::chrono::milliseconds(1000));
 		} else if (inProgressCandidates) {
 			// Wait for the in progress checks to complete.
-			ms_message("ice: Added losing pair, wait for InProgress checks to complete");
+			BCTBX_SLOGM << "ice: Added losing pair, wait for InProgress checks to complete";
 			if (std::find(mLosingPairs.begin(), mLosingPairs.end(), candidatePair) == mLosingPairs.end()) {
 				mLosingPairs.push_back(candidatePair);
 			}
 		}
 	} else {
 		setSelectedValidCandidatePair(*itValidCandidatePair);
-		ms_message("ice: Select losing valid pair: cl=%p, componentID=%u, local_addr=%s, local_port=%d, "
-		           "remote_addr=%s, remote_port=%d",
-		           this, componentId, localTransportAddress.getIp().c_str(), localTransportAddress.getPort(),
-		           remoteTransportAddress.getIp().c_str(), remoteTransportAddress.getPort());
+		BCTBX_SLOGM << "ice: Select losing valid pair: cl=" << this << ", componentID=" << componentId
+		            << ", local_addr=" << localTransportAddress.getIp()
+		            << ", local_port=" << localTransportAddress.getPort()
+		            << ", remote_addr=" << remoteTransportAddress.getIp()
+		            << ", remote_port=" << remoteTransportAddress.getPort();
 	}
 }
 
@@ -197,7 +203,7 @@ std::shared_ptr<IceCandidate> IceCheckList::addRemoteCandidate(const IceCandidat
                                                                const std::string &foundation,
                                                                const bool isDefault) {
 	if (mRemoteCandidates.size() >= ICE_MAX_NB_CANDIDATES) {
-		ms_error("ice: Candidate list limited to %d candidates", ICE_MAX_NB_CANDIDATES);
+		BCTBX_SLOGE << "ice: Candidate list limited to " << ICE_MAX_NB_CANDIDATES << " candidates";
 		return nullptr;
 	}
 
@@ -247,42 +253,42 @@ void IceCheckList::checkCompleted() {
 
 void IceCheckList::dumpCandidatePairs() const {
 	unsigned int index = 1;
-	ms_message("Candidate pairs:");
+	BCTBX_SLOGM << "Candidate pairs:";
 	for (const auto &pair : mPairs) {
 		pair->dump(index++);
 	}
 }
 
 void IceCheckList::dumpCandidatePairsFoundations() const {
-	ms_message("Candidate pairs foundations:");
+	BCTBX_SLOGM << "Candidate pairs foundations:";
 	for_each(mFoundations.begin(), mFoundations.end(), [](const auto &foundation) { foundation.dump(); });
 }
 
 void IceCheckList::dumpCandidates() const {
-	ms_message("Local candidates:");
+	BCTBX_SLOGM << "Local candidates:";
 	for_each(mLocalCandidates.begin(), mLocalCandidates.end(), [](const auto &candidate) { candidate->dump("\t"); });
-	ms_message("Remote candidates:");
+	BCTBX_SLOGM << "Remote candidates:";
 	for_each(mRemoteCandidates.begin(), mRemoteCandidates.end(), [](const auto &candidate) { candidate->dump("\t"); });
 }
 
 void IceCheckList::dumpCheckList() const {
 	unsigned int index = 1;
-	ms_message("Check list:");
+	BCTBX_SLOGM << "Check list:";
 	for (const auto &pair : mCheckList) {
 		pair->dump(index++);
 	}
 }
 
 void IceCheckList::dumpComponentIds() const {
-	ms_message("Component IDs:");
+	BCTBX_SLOGM << "Component IDs:";
 	for (const auto &componentId : mLocalComponentsIds) {
-		ms_message("\t%u", componentId);
+		BCTBX_SLOGM << "\t" << componentId;
 	}
 }
 
 void IceCheckList::dumpTriggeredChecksQueue() const {
 	int index = 1;
-	ms_message("Triggered checks queue:");
+	BCTBX_SLOGM << "Triggered checks queue:";
 	for (const auto &pair : mTriggeredChecksQueue) {
 		pair->dump(index++);
 	}
@@ -290,7 +296,7 @@ void IceCheckList::dumpTriggeredChecksQueue() const {
 
 void IceCheckList::dumpValidList() const {
 	int index = 1;
-	ms_message("Valid list:");
+	BCTBX_SLOGM << "Valid list:";
 	for (const auto &validPair : mValidList) {
 		validPair->dump(index++);
 	}
@@ -404,7 +410,7 @@ std::optional<std::shared_ptr<IceCandidate>> IceCheckList::getSelectedValidLocal
 std::shared_ptr<IceCandidate> IceCheckList::getSelectedValidLocalCandidateForRtp() const {
 	const auto &validCandidatePair = getSelectedValidCandidatePair(ICE_RTP_COMPONENT_ID);
 	if (validCandidatePair == nullptr) {
-		ms_warning("No selected valid RTP local candidate.");
+		BCTBX_SLOGW << "No selected valid RTP local candidate.";
 		return nullptr;
 	}
 	return validCandidatePair->getValid()->getLocalCandidate();
@@ -417,7 +423,7 @@ std::optional<std::shared_ptr<IceCandidate>> IceCheckList::getSelectedValidRemot
 
 	const auto &validCandidatePair = getSelectedValidCandidatePair(ICE_RTCP_COMPONENT_ID);
 	if (validCandidatePair == nullptr) {
-		ms_error("Rtcp-mux is not used but there is no selected valid RTCP remote candidate.");
+		BCTBX_SLOGE << "Rtcp-mux is not used but there is no selected valid RTCP remote candidate.";
 		return nullptr;
 	}
 	return validCandidatePair->getValid()->getRemoteCandidate();
@@ -426,7 +432,7 @@ std::optional<std::shared_ptr<IceCandidate>> IceCheckList::getSelectedValidRemot
 std::shared_ptr<IceCandidate> IceCheckList::getSelectedValidRemoteCandidateForRtp() const {
 	const auto &validCandidatePair = getSelectedValidCandidatePair(ICE_RTP_COMPONENT_ID);
 	if (validCandidatePair == nullptr) {
-		ms_error("There are no selected valid remote candidates for RTP.");
+		BCTBX_SLOGE << "There are no selected valid remote candidates for RTP.";
 		return nullptr;
 	}
 	return validCandidatePair->getValid()->getRemoteCandidate();
@@ -447,73 +453,71 @@ void IceCheckList::handleStunPacket(RtpSession *rtpSession, const OrtpEventData 
 	}
 
 	const mblk_t *mp = eventData->packet;
-	auto *msg = ms_stun_message_create_from_buffer_parsing(mp->b_rptr, static_cast<ssize_t>(mp->b_wptr - mp->b_rptr));
+	const auto msg =
+	    StunMessage::parse(reinterpret_cast<const char *>(mp->b_rptr), static_cast<ssize_t>(mp->b_wptr - mp->b_rptr));
 	if (msg == nullptr) {
-		ms_warning("ice: Received an invalid STUN packet");
+		BCTBX_SLOGW << "ice: Received an invalid STUN packet";
 		return;
 	}
 
-	const auto transactionId = ms_stun_message_get_tr_id(msg);
-	const auto transactionIdStr = IceUtils::getTransactionIdStr(transactionId);
-	const auto recvAddress = IceUtils::SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
+	const auto transactionId = msg->getTransactionId();
+	const auto transactionIdStr = transactionId.asString();
+	const auto recvAddress = SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
 	const auto recvAddressStr = recvAddress.asString();
-	const auto sourceAddress = IceUtils::SockAddr(reinterpret_cast<const struct sockaddr *>(&eventData->source_addr),
-	                                              eventData->source_addrlen)
-	                               .ipv6toIpv4();
+	const auto sourceAddress =
+	    SockAddr(reinterpret_cast<const struct sockaddr *>(&eventData->source_addr), eventData->source_addrlen)
+	        .ipv6toIpv4();
 	const auto sourceAddressStr = sourceAddress.asString();
-	const auto sourceStunAddress = sourceAddress.toStunAddress();
+	const auto sourceStunAddress = StunAddress(sourceAddress);
 
-	if (ms_stun_message_is_request(msg) == TRUE) {
-		ms_message("ice: Recv binding request: %s <-- %s [%s] (flags:%s)", recvAddressStr.c_str(),
-		           sourceAddressStr.c_str(), transactionIdStr.c_str(),
-		           (ms_stun_message_use_candidate_enabled(msg) == TRUE) ? "use-candidate" : "none");
+	if (msg->isRequest()) {
+		BCTBX_SLOGM << "ice: Recv binding request: " << recvAddressStr << " <-- " << sourceAddressStr << " ["
+		            << transactionIdStr << "] (flags:" << (msg->getUseCandidate() ? "use-candidate" : "none") << ")";
 		handleReceivedBindingRequest(rtpSession, eventData, msg, sourceStunAddress);
-	} else if (ms_stun_message_is_success_response(msg) == TRUE) {
+	} else if (msg->isSuccessResponse()) {
 		setTransactionResponseTime(transactionId, eventData->ts);
-		switch (ms_stun_message_get_method(msg)) {
-			case MS_STUN_METHOD_BINDING:
-				ms_message("ice: Recv binding response: %s <-- %s [%s]", recvAddressStr.c_str(),
-				           sourceAddressStr.c_str(), transactionIdStr.c_str());
+		switch (msg->getMethod()) {
+			case StunMessage::Method::Binding:
+				BCTBX_SLOGM << "ice: Recv binding response: " << recvAddressStr << " <-- " << sourceAddressStr << " ["
+				            << transactionIdStr << "]";
 				handleReceivedBindingResponse(rtpSession, eventData, msg, sourceStunAddress);
 				break;
-			case MS_TURN_METHOD_ALLOCATE:
-				ms_message("ice: Recv TURN allocate success response: %s <-- %s [%s]", recvAddressStr.c_str(),
-				           sourceAddressStr.c_str(), transactionIdStr.c_str());
+			case StunMessage::Method::TurnAllocate:
+				BCTBX_SLOGM << "ice: Recv TURN allocate success response: " << recvAddressStr << " <-- "
+				            << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedTurnAllocateSuccessResponse(rtpSession, eventData, msg, sourceStunAddress);
 				break;
-			case MS_TURN_METHOD_CREATE_PERMISSION:
-				ms_message("ice: Recv TURN create permission success response: %s <-- %s [%s]", recvAddressStr.c_str(),
-				           sourceAddressStr.c_str(), transactionIdStr.c_str());
+			case StunMessage::Method::TurnCreatePermission:
+				BCTBX_SLOGM << "ice: Recv TURN create permission success response: " << recvAddressStr << " <-- "
+				            << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedTurnCreatePermissionSuccessResponse(eventData, msg);
 				break;
-			case MS_TURN_METHOD_REFRESH:
-				ms_message("ice: Recv TURN refresh success response: %s <-- %s [%s]", recvAddressStr.c_str(),
-				           sourceAddressStr.c_str(), transactionIdStr.c_str());
+			case StunMessage::Method::TurnRefresh:
+				BCTBX_SLOGM << "ice: Recv TURN refresh success response: " << recvAddressStr << " <-- "
+				            << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedTurnRefreshSuccessResponse(eventData, msg);
 				break;
-			case MS_TURN_METHOD_CHANNEL_BIND:
-				ms_message("ice: Recv TURN channel bind success response: %s <-- %s [%s]", recvAddressStr.c_str(),
-				           sourceAddressStr.c_str(), transactionIdStr.c_str());
+			case StunMessage::Method::TurnChannelBind:
+				BCTBX_SLOGM << "ice: Recv TURN channel bind success response: " << recvAddressStr << " <-- "
+				            << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedTurnChannelBindSuccessResponse(eventData, msg);
 				break;
 			default:
-				ms_warning("ice: Recv unknown STUN success response: %s <-- %s [%s]", recvAddressStr.c_str(),
-				           sourceAddressStr.c_str(), transactionIdStr.c_str());
+				BCTBX_SLOGW << "ice: Recv unknown STUN success response: " << recvAddressStr << " <-- "
+				            << sourceAddressStr << " [" << transactionIdStr << "]";
 				break;
 		}
-	} else if (ms_stun_message_is_error_response(msg) == TRUE) {
+	} else if (msg->isErrorResponse()) {
 		setTransactionResponseTime(transactionId, eventData->ts);
-		ms_message("ice: Recv error response: %s <-- %s [%s]", recvAddressStr.c_str(), sourceAddressStr.c_str(),
-		           transactionIdStr.c_str());
+		BCTBX_SLOGM << "ice: Recv error response: " << recvAddressStr << " <-- " << sourceAddressStr << " ["
+		            << transactionIdStr << "]";
 		handleReceivedErrorResponse(rtpSession, eventData, msg);
-	} else if (ms_stun_message_is_indication(msg) == TRUE) {
-		ms_message("ice: Recv indication: %s <-- %s [%s]", recvAddressStr.c_str(), sourceAddressStr.c_str(),
-		           transactionIdStr.c_str());
+	} else if (msg->isIndication()) {
+		BCTBX_SLOGM << "ice: Recv indication: " << recvAddressStr << " <-- " << sourceAddressStr << " ["
+		            << transactionIdStr << "]";
 	} else {
-		ms_warning("ice: STUN message type not handled");
+		BCTBX_SLOGW << "ice: STUN message type not handled";
 	}
-
-	ms_stun_message_destroy(msg);
 }
 
 bool IceCheckList::haveRemoteCredentialsChanged(const IceCredentials &newCredentials) const {
@@ -539,9 +543,11 @@ void IceCheckList::printRoute(const std::string &message) const {
 		}
 	}
 
-	ms_message("%s", message.c_str());
-	ms_message("\tRTP: %s --> %s", localRtpTransportAddress.c_str(), remoteRtpTransportAddress.c_str());
-	ms_message("\tRTCP: %s --> %s", localRtcpTransportAddress.c_str(), remoteRtcpTransportAddress.c_str());
+	BCTBX_SLOGM << message;
+	BCTBX_SLOGM << "\tRTP: " << localRtpTransportAddress << " --> " << remoteRtpTransportAddress;
+	if (!localRtcpTransportAddress.empty() || !remoteRtcpTransportAddress.empty()) {
+		BCTBX_SLOGM << "\tRTCP: " << localRtcpTransportAddress << " --> " << remoteRtcpTransportAddress;
+	}
 }
 
 // Schedule checks as defined in 5.8.
@@ -554,7 +560,7 @@ void IceCheckList::process(RtpSession *rtpSession) {
 
 	// Check for gathering timeout
 	if (mGatheringCandidates && checkGatheringTimeout(rtpSession, currentTime)) {
-		ms_message("ice: Gathering timeout for checklist [%p]", this);
+		BCTBX_SLOGM << "ice: Gathering timeout for checklist [" << this << "]";
 	}
 
 	// Send STUN/TURN server requests (to gather candidates, create/refresh TURN permissions, refresh TURN allocations
@@ -600,7 +606,7 @@ void IceCheckList::process(RtpSession *rtpSession) {
 
 			// Check nomination delay.
 			if (mNominationDelayRunning && ((currentTime - mNominationDelayStartTime) >= ICE_NOMINATION_DELAY)) {
-				ms_message("ice: Nomination delay timeout, select the potential relayed candidate anyway");
+				BCTBX_SLOGM << "ice: Nomination delay timeout, select the potential relayed candidate anyway";
 				concludeProcessing(rtpSession, true);
 				if (mSession->getState() == IceSession::State::Completed) {
 					return;
@@ -647,9 +653,9 @@ void IceCheckList::process(RtpSession *rtpSession) {
 				// Check if there are some retransmissions pending.
 				if (std::none_of(mCheckList.begin(), mCheckList.end(),
 				                 [](const auto &candidatePair) { return candidatePair->isRetransmissionPending(); })) {
-					ms_message("ice: There is no connectivity check left to be sent and no retransmissions pending, "
-					           "concluding checklist [%p]",
-					           this);
+					BCTBX_SLOGM << "ice: There is no connectivity check left to be sent and no retransmissions "
+					               "pending, concluding checklist ["
+					            << this << "]";
 					concludeProcessing(rtpSession, false);
 				}
 			}
@@ -734,8 +740,8 @@ void IceCheckList::checkMismatch() {
 			    return candidate->isDefault() && (candidate->getComponentId() == componentId);
 		    });
 		if (it == mRemoteCandidates.end()) {
-			ms_error("ICE mismatch for checklist [%p], due to default remote candidate not found for component ID [%i]",
-			         this, componentId);
+			BCTBX_SLOGE << "ICE mismatch for checklist [" << this
+			            << "], due to default remote candidate not found for component ID [" << componentId << "]";
 			mMismatch = true;
 			mState = State::Failed;
 		}
@@ -745,36 +751,37 @@ void IceCheckList::checkMismatch() {
 // Check that the mandatory attributes of a connectivity check binding request are present.
 bool IceCheckList::checkReceivedBindingRequestAttributes(const RtpSession *rtpSession,
                                                          const OrtpEventData *eventData,
-                                                         const MSStunMessage *msg,
-                                                         const MSStunAddress &remoteStunAddress) {
-	if (ms_stun_message_message_integrity_enabled(msg) == FALSE) {
-		ms_warning("ice: Received binding request missing MESSAGE-INTEGRITY attribute");
-		IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_STUN_ERROR_CODE_BAD_REQUEST,
-		                            "Missing MESSAGE-INTEGRITY attribute");
+                                                         const std::shared_ptr<StunMessage> &msg,
+                                                         const StunAddress &remoteStunAddress) {
+	if (!msg->hasMessageIntegrity()) {
+		BCTBX_SLOGW << "ice: Received binding request missing MESSAGE-INTEGRITY attribute";
+		sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
+		                  StunError(StunError::Code::StunBadRequest, "Missing MESSAGE-INTEGRITY attribute"));
 		return false;
 	}
-	if (ms_stun_message_get_username(msg) == nullptr) {
-		ms_warning("ice: Received binding request missing USERNAME attribute");
-		IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_STUN_ERROR_CODE_BAD_REQUEST,
-		                            "Missing USERNAME attribute");
+	if (msg->getUsername() == std::nullopt) {
+		BCTBX_SLOGW << "ice: Received binding request missing USERNAME attribute";
+		sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
+		                  StunError(StunError::Code::StunBadRequest, "Missing USERNAME attribute"));
 		return false;
 	}
-	if (ms_stun_message_fingerprint_enabled(msg) == FALSE) {
-		ms_warning("ice: Received binding request missing FINGERPRINT attribute");
-		IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_STUN_ERROR_CODE_BAD_REQUEST,
-		                            "Missing FINGERPRINT attribute");
+	if (!msg->hasFingerprint()) {
+		BCTBX_SLOGW << "ice: Received binding request missing FINGERPRINT attribute";
+		sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
+		                  StunError(StunError::Code::StunBadRequest, "Missing FINGERPRINT attribute"));
 		return false;
 	}
-	if (ms_stun_message_has_priority(msg) == FALSE) {
-		ms_warning("ice: Received binding request missing PRIORITY attribute");
-		IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_STUN_ERROR_CODE_BAD_REQUEST,
-		                            "Missing PRIORITY attribute");
+	if (msg->getPriority() == std::nullopt) {
+		BCTBX_SLOGW << "ice: Received binding request missing PRIORITY attribute";
+		sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
+		                  StunError(StunError::Code::StunBadRequest, "Missing PRIORITY attribute"));
 		return false;
 	}
-	if ((ms_stun_message_has_ice_controlling(msg) == FALSE) && (ms_stun_message_has_ice_controlled(msg) == FALSE)) {
-		ms_warning("ice: Received binding request missing ICE-CONTROLLING or ICE-CONTROLLED attribute");
-		IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_STUN_ERROR_CODE_BAD_REQUEST,
-		                            "Missing ICE-CONTROLLING or ICE-CONTROLLED attribute");
+	if ((msg->getIceControlling() == std::nullopt) && (msg->getIceControlled() == std::nullopt)) {
+		BCTBX_SLOGW << "ice: Received binding request missing ICE-CONTROLLING or ICE-CONTROLLED attribute";
+		sendErrorResponse(
+		    rtpSession, eventData, msg, remoteStunAddress,
+		    StunError(StunError::Code::StunBadRequest, "Missing ICE-CONTROLLING or ICE-CONTROLLED attribute"));
 		return false;
 	}
 	return true;
@@ -782,59 +789,47 @@ bool IceCheckList::checkReceivedBindingRequestAttributes(const RtpSession *rtpSe
 
 bool IceCheckList::checkReceivedBindingRequestIntegrity(const RtpSession *rtpSession,
                                                         const OrtpEventData *eventData,
-                                                        const MSStunMessage *msg,
-                                                        const MSStunAddress &remoteStunAddress) {
-	bool result = true;
-	const mblk_t *mp = eventData->packet;
-
-	// Check the message integrity: first remove length of fingerprint...
-	char *lenPos = reinterpret_cast<char *>(mp->b_rptr) + sizeof(uint16_t);
-	uint16_t newLen = htons(ms_stun_message_get_length(msg) - 8);
-	memcpy(lenPos, &newLen, sizeof(uint16_t));
-	auto *hmac = ms_stun_calculate_integrity_short_term(reinterpret_cast<char *>(mp->b_rptr),
-	                                                    static_cast<size_t>(mp->b_wptr - mp->b_rptr - 24 - 8),
-	                                                    mSession->getLocalCredentials().getPwd().c_str());
-
-	// ... and then restore the length with fingerprint.
-	newLen = htons(ms_stun_message_get_length(msg));
-	memcpy(lenPos, &newLen, sizeof(uint16_t));
-	if (strcmp(ms_stun_message_get_message_integrity(msg), hmac) != 0) {
-		ms_error("ice: Wrong MESSAGE-INTEGRITY in received binding request");
-		if (!mSession->isMessageIntegrityCheckEnabled() &&
-		    (ms_stun_message_dummy_message_integrity_enabled(msg) == TRUE)) {
-			ms_message("ice: skipping message integrity check for cl [%p]", this);
-		} else {
-			IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_STUN_ERROR_CODE_UNAUTHORIZED,
-			                            "Wrong MESSAGE-INTEGRITY attribute");
-			result = false;
-		}
+                                                        const std::shared_ptr<StunMessage> &msg,
+                                                        const StunAddress &remoteStunAddress) {
+	auto stunRawMessage = msg->getRawMessage();
+	const auto messageIntegrity = msg->getMessageIntegrity();
+	if (messageIntegrity.has_value() &&
+	    stunRawMessage->checkShortTermIntegrity(mSession->getLocalCredentials().getPwd(), messageIntegrity.value())) {
+		return true;
 	}
-	ms_free(hmac);
-	return result;
+
+	BCTBX_SLOGE << "ice: Wrong MESSAGE-INTEGRITY in received binding request";
+	if (!mSession->isMessageIntegrityCheckEnabled() && msg->hasDummyMessageIntegrity()) {
+		BCTBX_SLOGM << "ice: skipping message integrity check for cl [" << this << "]";
+		return true;
+	}
+	sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
+	                  StunError(StunError::Code::StunUnauthorized, "Wrong MESSAGE-INTEGRITY attribute"));
+	return false;
 }
 
 bool IceCheckList::checkReceivedBindingRequestRoleConflict(const RtpSession *rtpSession,
                                                            const OrtpEventData *eventData,
-                                                           const MSStunMessage *msg,
-                                                           const MSStunAddress &remoteStunAddress) const {
+                                                           const std::shared_ptr<StunMessage> &msg,
+                                                           const StunAddress &remoteStunAddress) const {
 	// Detect and repair role conflicts according to 7.2.1.1.
-	if ((mSession->getRole() == IceRole::Controlling) && (ms_stun_message_has_ice_controlling(msg) == TRUE)) {
-		ms_warning("ice: Role conflict, both agents are CONTROLLING");
-		if (mSession->getTieBreaker() >= ms_stun_message_get_ice_controlling(msg)) {
-			IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_ICE_ERROR_CODE_ROLE_CONFLICT,
-			                            "Role Conflict");
+	if ((mSession->getRole() == IceRole::Controlling) && msg->getIceControlling().has_value()) {
+		BCTBX_SLOGW << "ice: Role conflict, both agents are CONTROLLING";
+		if (mSession->getTieBreaker() >= msg->getIceControlling().value()) {
+			sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
+			                  StunError(StunError::Code::IceRoleConflict, "Role Conflict"));
 			return false;
 		}
-		ms_message("ice: Switch to the CONTROLLED role");
+		BCTBX_SLOGM << "ice: Switch to the CONTROLLED role";
 		mSession->setRole(IceRole::Controlled);
-	} else if ((mSession->getRole() == IceRole::Controlled) && (ms_stun_message_has_ice_controlled(msg) == TRUE)) {
-		ms_warning("ice: Role conflict, both agents are CONTROLLED");
-		if (mSession->getTieBreaker() >= ms_stun_message_get_ice_controlled(msg)) {
-			ms_message("ice: Switch to the CONTROLLING role");
+	} else if ((mSession->getRole() == IceRole::Controlled) && msg->getIceControlled().has_value()) {
+		BCTBX_SLOGW << "ice: Role conflict, both agents are CONTROLLED";
+		if (mSession->getTieBreaker() >= msg->getIceControlled().value()) {
+			BCTBX_SLOGM << "ice: Switch to the CONTROLLING role";
 			mSession->setRole(IceRole::Controlling);
 		} else {
-			IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_ICE_ERROR_CODE_ROLE_CONFLICT,
-			                            "Role Conflict");
+			sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
+			                  StunError(StunError::Code::IceRoleConflict, "Role Conflict"));
 			return false;
 		}
 	}
@@ -843,15 +838,15 @@ bool IceCheckList::checkReceivedBindingRequestRoleConflict(const RtpSession *rtp
 
 bool IceCheckList::checkReceivedBindingRequestUsername(const RtpSession *rtpSession,
                                                        const OrtpEventData *eventData,
-                                                       const MSStunMessage *msg,
-                                                       const MSStunAddress &remoteStunAddress) const {
-	const std::string username = ms_stun_message_get_username(msg);
+                                                       const std::shared_ptr<StunMessage> &msg,
+                                                       const StunAddress &remoteStunAddress) const {
+	const std::string username = msg->getUsername().has_value() ? msg->getUsername().value() : "";
 	const auto colonPos = username.find(':');
 	if ((colonPos == std::string::npos) ||
 	    (username.substr(0, colonPos) != mSession->getLocalCredentials().getUfrag())) {
-		ms_error("ice: Wrong USERNAME attribute");
-		IceUtils::sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress, MS_STUN_ERROR_CODE_UNAUTHORIZED,
-		                            "Wrong USERNAME attribute");
+		BCTBX_SLOGE << "ice: Wrong USERNAME attribute";
+		sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
+		                  StunError(StunError::Code::StunUnauthorized, "Wrong USERNAME attribute"));
 		return false;
 	}
 	return true;
@@ -859,33 +854,32 @@ bool IceCheckList::checkReceivedBindingRequestUsername(const RtpSession *rtpSess
 
 bool IceCheckList::checkReceivedBindingResponseAddresses(const OrtpEventData *eventData,
                                                          const std::shared_ptr<IceCandidatePair> &candidatePair,
-                                                         const MSStunAddress &remoteStunAddress) {
+                                                         const StunAddress &remoteStunAddress) {
 	const auto pairRemoteStunAddress = candidatePair->getRemoteCandidate()->getTransportAddress().toStunAddress();
 	const auto pairLocalStunAddress = candidatePair->getLocalCandidate()->getTransportAddress().toStunAddress();
-	const auto recvStunAddress = IceUtils::SockAddr(&eventData->packet->recv_addr).ipv6toIpv4().toStunAddress();
-	if ((ms_compare_stun_addresses(&remoteStunAddress, &pairRemoteStunAddress) != FALSE) ||
-	    (ms_compare_stun_addresses(&recvStunAddress, &pairLocalStunAddress) != FALSE)) {
+	const auto recvStunAddress = StunAddress(SockAddr(&eventData->packet->recv_addr).ipv6toIpv4());
+	if ((remoteStunAddress != pairRemoteStunAddress) || (recvStunAddress != pairLocalStunAddress)) {
 		// Non-symmetric addresses, set the state of the pair to Failed as defined in 7.1.3.1.
-		ms_warning("ice: Non symmetric addresses, set state of pair %p to Failed", candidatePair.get());
+		BCTBX_SLOGW << "ice: Non symmetric addresses, set state of pair " << candidatePair.get() << " to Failed";
 		candidatePair->setState(IceCandidatePair::State::Failed);
 		return false;
 	}
 	return true;
 }
 
-bool IceCheckList::checkReceivedBindingResponseAttributes(const MSStunMessage *msg) const {
-	if (ms_stun_message_message_integrity_enabled(msg) != TRUE) {
-		ms_warning("ice: Received binding response missing MESSAGE-INTEGRITY attribute");
+bool IceCheckList::checkReceivedBindingResponseAttributes(const std::shared_ptr<StunMessage> &msg) const {
+	if (!msg->hasMessageIntegrity()) {
+		BCTBX_SLOGW << "ice: Received binding response missing MESSAGE-INTEGRITY attribute";
 		if (mSession->isMessageIntegrityCheckEnabled()) {
 			return false;
 		}
 	}
-	if (ms_stun_message_fingerprint_enabled(msg) != TRUE) {
-		ms_warning("ice: Received binding response missing FINGERPRINT attribute");
+	if (!msg->hasFingerprint()) {
+		BCTBX_SLOGW << "ice: Received binding response missing FINGERPRINT attribute";
 		return false;
 	}
-	if (ms_stun_message_get_xor_mapped_address(msg) == nullptr) {
-		ms_warning("ice: Received binding response missing XOR-MAPPED-ADDRESS attribute");
+	if (msg->getXorMappedAddress() == std::nullopt) {
+		BCTBX_SLOGW << "ice: Received binding response missing XOR-MAPPED-ADDRESS attribute";
 		return false;
 	}
 	return true;
@@ -923,9 +917,8 @@ void IceCheckList::chooseLocalOrRemoteDefaultCandidates(
 		if (candidate != nullptr) {
 			candidate->setDefault(true);
 			if (mSession->isTurnEnabled()) {
-				ms_turn_context_set_force_rtp_sending_via_relay(
-				    getTurnContextFromComponentId(componentId),
-				    (candidate->getType() == IceCandidate::Type::Relayed) ? TRUE : FALSE);
+				getTurnContextFromComponentId(componentId)
+				    ->enableForcedRtpSendingViaRelay(candidate->getType() == IceCandidate::Type::Relayed);
 			}
 		}
 	}
@@ -1075,7 +1068,7 @@ void IceCheckList::concludeProcessing(RtpSession *rtpSession, bool nominationDel
 	mNominationInProgress = false;
 	mNominationDelayRunning = false;
 	selectCandidates();
-	ms_message("ice: Finished ICE check list [%p] processing successfully!", this);
+	BCTBX_SLOGM << "ice: Finished ICE check list [" << this << "] processing successfully!";
 	mConnectivityChecksRunning = false;
 	dumpValidList();
 	// Initialise keepalive time.
@@ -1087,7 +1080,7 @@ void IceCheckList::concludeProcessing(RtpSession *rtpSession, bool nominationDel
 	const auto optionalRtcpRemoteCandidate = getSelectedValidRemoteCandidateForRtcp();
 	if ((rtpRemoteCandidate == nullptr) ||
 	    (optionalRtcpRemoteCandidate.has_value() && (*optionalRtcpRemoteCandidate == nullptr))) {
-		ms_error("Cannot get remote candidate for check list [%p]", this);
+		BCTBX_SLOGE << "Cannot get remote candidate for check list [" << this << "]";
 	} else {
 		// Switch the destination of the mediastream to the destination selected by ICE
 		const std::shared_ptr<IceCandidate> rtcpRemoteCandidate =
@@ -1108,28 +1101,30 @@ void IceCheckList::concludeProcessing(RtpSession *rtpSession, bool nominationDel
 		if (mSession->isTurnEnabled()) {
 			rtpLocalCandidate = getSelectedValidLocalCandidateForRtp();
 			if (rtpLocalCandidate != nullptr) {
-				ms_turn_context_set_force_rtp_sending_via_relay(getTurnContextFromComponentId(ICE_RTP_COMPONENT_ID),
-				                                                rtpLocalCandidate->isRelay() ? TRUE : FALSE);
+				getTurnContextFromComponentId(ICE_RTP_COMPONENT_ID)
+				    ->enableForcedRtpSendingViaRelay(rtpLocalCandidate->isRelay());
 				if (rtpLocalCandidate->isRelay()) {
 					RtpTransport *rtpTransport = nullptr;
 					rtp_session_get_transports(mRtpSession, &rtpTransport, nullptr);
-					createTurnChannel(rtpTransport, reinterpret_cast<struct sockaddr *>(&mRtpSession->rtp.gs.loc_addr),
-					                  mRtpSession->rtp.gs.loc_addrlen, rtpRemoteCandidate->getTransportAddress(),
-					                  ICE_RTP_COMPONENT_ID);
+					createTurnChannel(rtpTransport,
+					                  SockAddr(reinterpret_cast<struct sockaddr *>(&mRtpSession->rtp.gs.loc_addr),
+					                           mRtpSession->rtp.gs.loc_addrlen),
+					                  rtpRemoteCandidate->getTransportAddress(), ICE_RTP_COMPONENT_ID);
 				} else {
 					deallocateRtpTurnCandidate();
 				}
 			}
 			rtcpLocalCandidate = getSelectedValidLocalBaseCandidateForRtcp();
 			if (rtcpLocalCandidate != nullptr) {
-				ms_turn_context_set_force_rtp_sending_via_relay(getTurnContextFromComponentId(ICE_RTCP_COMPONENT_ID),
-				                                                rtcpLocalCandidate->isRelay() ? TRUE : FALSE);
+				getTurnContextFromComponentId(ICE_RTCP_COMPONENT_ID)
+				    ->enableForcedRtpSendingViaRelay(rtcpLocalCandidate->isRelay());
 				if (rtcpLocalCandidate->isRelay() && optionalRtcpRemoteCandidate.has_value() &&
 				    (*optionalRtcpRemoteCandidate != nullptr)) {
 					RtpTransport *rtpTransport = nullptr;
 					rtp_session_get_transports(mRtpSession, nullptr, &rtpTransport);
-					createTurnChannel(rtpTransport, reinterpret_cast<struct sockaddr *>(&mRtpSession->rtcp.gs.loc_addr),
-					                  mRtpSession->rtcp.gs.loc_addrlen,
+					createTurnChannel(rtpTransport,
+					                  SockAddr(reinterpret_cast<struct sockaddr *>(&mRtpSession->rtcp.gs.loc_addr),
+					                           mRtpSession->rtcp.gs.loc_addrlen),
 					                  (*optionalRtcpRemoteCandidate)->getTransportAddress(), ICE_RTCP_COMPONENT_ID);
 				} else {
 					deallocateRtcpTurnCandidate();
@@ -1176,7 +1171,7 @@ IceCheckList::constructValidPair(RtpSession *rtpSession,
 	});
 	if (itValidPair == mValidList.end()) {
 		if (candidatePair->isDefault()) {
-			ms_message("ice: succeeded pair with the local default candidate.");
+			BCTBX_SLOGM << "ice: succeeded pair with the local default candidate.";
 			// Notify the application that a pair using the default local candidate was verified, which is helpful to
 			// know that stream should be now working.
 			auto *event = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_DEFAULT_CANDIDATE_VERIFIED);
@@ -1186,9 +1181,9 @@ IceCheckList::constructValidPair(RtpSession *rtpSession,
 		std::sort(mValidList.begin(), mValidList.end(), [](const auto &a, const auto &b) {
 			return a->getValid()->getPriority() > b->getValid()->getPriority();
 		});
-		ms_message("ice: Added pair %p to the valid list: %s:%s --> %s:%s", candidatePair.get(),
-		           localAddressStr.c_str(), candidatePair->getLocalCandidate()->getTypeStr().c_str(),
-		           remoteAddressStr.c_str(), candidatePair->getRemoteCandidate()->getTypeStr().c_str());
+		BCTBX_SLOGM << "ice: Added pair " << candidatePair.get() << " to the valid list: " << localAddressStr << ":"
+		            << candidatePair->getLocalCandidate()->getTypeStr() << " --> " << remoteAddressStr << ":"
+		            << candidatePair->getRemoteCandidate()->getTypeStr();
 		// dumpValidList();
 		const auto itLosingPair =
 		    std::find_if(mLosingPairs.begin(), mLosingPairs.end(), [candidate, succeededPair](const auto &losingPair) {
@@ -1210,35 +1205,34 @@ IceCheckList::constructValidPair(RtpSession *rtpSession,
 		return candidatePair;
 	}
 
-	ms_message("ice: Pair already in the valid list: %s:%s --> %s:%s", localAddressStr.c_str(),
-	           candidatePair->getLocalCandidate()->getTypeStr().c_str(), remoteAddressStr.c_str(),
-	           candidatePair->getRemoteCandidate()->getTypeStr().c_str());
+	BCTBX_SLOGM << "ice: Pair already in the valid list: " << localAddressStr << ":"
+	            << candidatePair->getLocalCandidate()->getTypeStr() << " --> " << remoteAddressStr << ":"
+	            << candidatePair->getRemoteCandidate()->getTypeStr();
 	return (*itValidPair)->getValid();
 }
 
 std::shared_ptr<IceTransaction> IceCheckList::createTransaction(const std::shared_ptr<IceCandidatePair> &candidatePair,
-                                                                const UInt96 transactionId) {
+                                                                const StunTransactionId transactionId) {
 	auto transaction = std::shared_ptr<IceTransaction>(new IceTransaction(candidatePair, transactionId));
 	mTransactionList.push_front(transaction);
 	return transaction;
 }
 
 void IceCheckList::createTurnChannel(RtpTransport *rtpTransport,
-                                     const struct sockaddr *localAddress,
-                                     const socklen_t localAddressLen,
+                                     const SockAddr &localAddress,
                                      const IceTransportAddress &remoteTransportAddress,
                                      const uint16_t componentId) {
-	auto *const turnContext = getTurnContextFromComponentId(componentId);
-	const auto transportAddress = IceTransportAddress(localAddress, localAddressLen);
+	const auto turnContext = getTurnContextFromComponentId(componentId);
+	const auto transportAddress = IceTransportAddress(localAddress);
 	const auto request =
-	    IceStunRequest::create(turnContext, rtpTransport, transportAddress, MS_TURN_METHOD_CHANNEL_BIND);
+	    IceStunRequest::create(turnContext, rtpTransport, transportAddress, StunMessage::Method::TurnChannelBind);
 	if (request == nullptr) {
 		return;
 	}
 	request->setPeerAddress(remoteTransportAddress.toStunAddress());
 	request->setChannelNumber(0x4000 | componentId);
-	ms_turn_context_set_channel_number(turnContext, request->getChannelNumber());
-	ms_turn_context_set_state(turnContext, MS_TURN_CONTEXT_STATE_BINDING_CHANNEL);
+	turnContext->setChannelNumber(request->getChannelNumber());
+	turnContext->setState(TurnContext::State::BindingChannel);
 	request->programNextTransmission(std::chrono::steady_clock::now() + ICE_DEFAULT_RTO_DURATION);
 	request->addTransaction(request->send(mSession->getSockAddr()));
 	addStunRequest(request);
@@ -1246,10 +1240,10 @@ void IceCheckList::createTurnChannel(RtpTransport *rtpTransport,
 
 void IceCheckList::createTurnContexts() {
 	if (mRtpTurnContext == nullptr) {
-		mRtpTurnContext = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTP, mRtpSession);
+		mRtpTurnContext = std::make_shared<TurnContext>(TurnContext::Type::Rtp, mRtpSession);
 	}
 	if (mRtcpTurnContext == nullptr) {
-		mRtcpTurnContext = ms_turn_context_new(MS_TURN_CONTEXT_TYPE_RTCP, mRtpSession);
+		mRtcpTurnContext = std::make_shared<TurnContext>(TurnContext::Type::Rtcp, mRtpSession);
 	}
 }
 
@@ -1263,31 +1257,27 @@ void IceCheckList::createTurnPermissions() {
 		    findCandidate(mLocalCandidates, IceCandidate::Type::Relayed, remoteCandidate->getComponentId(),
 		                  remoteCandidate->getTransportAddress().getFamily());
 		if (localCandidate == nullptr) {
-			ms_message("ice: no relay candidate to reach %s for checklist [%p]",
-			           remoteCandidate->getTransportAddress().getIp().c_str(), this);
+			BCTBX_SLOGM << "ice: no relay candidate to reach " << remoteCandidate->getTransportAddress().getIp()
+			            << " for checklist [" << this << "]";
 		} else {
 			if (localCandidate->getBase() == nullptr) {
-				ms_error("ice: Local relay candidate has no base!");
+				BCTBX_SLOGE << "ice: Local relay candidate has no base!";
 				continue;
 			}
 
 			RtpTransport *rtpTransport = getRtpTransport(remoteCandidate->getComponentId());
 			if (rtpTransport == nullptr) {
-				ms_error("ice: No RTP transport");
+				BCTBX_SLOGE << "ice: No RTP transport";
 				continue;
 			}
 
-			MSStunAddress peerAddress = remoteCandidate->getTransportAddress().toStunAddress();
-			if (peerAddress.family == MS_STUN_ADDR_FAMILY_IPV6) {
-				peerAddress.ip.v6.port = 0;
-			} else {
-				peerAddress.ip.v4.port = 0;
-			}
+			StunAddress peerAddress = remoteCandidate->getTransportAddress().toStunAddress();
+			peerAddress.setPort(0);
 			auto request = IceStunRequest::create(getTurnContextFromComponentId(remoteCandidate->getComponentId()),
 			                                      rtpTransport, localCandidate->getBase()->getTransportAddress(),
-			                                      MS_TURN_METHOD_CREATE_PERMISSION);
+			                                      StunMessage::Method::TurnCreatePermission);
 			if (request == nullptr) {
-				ms_error("ice: could not build turn request for checklist [%p]", this);
+				BCTBX_SLOGE << "ice: could not build turn request for checklist [" << this << "]";
 			} else {
 				request->setPeerAddress(peerAddress);
 				request->programNextTransmission(std::chrono::steady_clock::now() + ICE_DEFAULT_RTO_DURATION);
@@ -1310,7 +1300,7 @@ void IceCheckList::deallocateRtpTurnCandidate() const {
 	deallocateTurnCandidate(mRtpTurnContext, rtpTransport, &mRtpSession->rtp.gs);
 }
 
-void IceCheckList::deallocateTurnCandidate(MSTurnContext *turnContext,
+void IceCheckList::deallocateTurnCandidate(const std::shared_ptr<TurnContext> &turnContext,
                                            RtpTransport *rtpTransport,
                                            OrtpStream *stream) const {
 	if (turnContext == nullptr) {
@@ -1318,18 +1308,18 @@ void IceCheckList::deallocateTurnCandidate(MSTurnContext *turnContext,
 	}
 
 	if (rtpTransport == nullptr) {
-		ms_error("ice: no rtp socket found for session [%p]", mRtpSession);
+		BCTBX_SLOGE << "ice: no rtp socket found for session [" << mRtpSession << "]";
 		return;
 	}
 
-	if (ms_turn_context_get_state(turnContext) >= MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED) {
-		ms_turn_context_set_lifetime(turnContext, 0);
+	if (turnContext->getState() >= TurnContext::State::AllocationCreated) {
+		turnContext->setLifetime(0);
 		const auto transportAddress =
 		    IceTransportAddress(reinterpret_cast<struct sockaddr *>(&stream->loc_addr), stream->loc_addrlen);
-		ms_message("ice: about to deallocate turn candidate for %s:%i", transportAddress.getIp().c_str(),
-		           transportAddress.getPort());
+		BCTBX_SLOGM << "ice: about to deallocate turn candidate for " << transportAddress.getIp() << ":"
+		            << transportAddress.getPort();
 		const auto request =
-		    IceStunRequest::create(turnContext, rtpTransport, transportAddress, MS_TURN_METHOD_REFRESH);
+		    IceStunRequest::create(turnContext, rtpTransport, transportAddress, StunMessage::Method::TurnRefresh);
 		if (request != nullptr) {
 			const auto _transaction = request->send(mSession->getSockAddr());
 		}
@@ -1337,7 +1327,7 @@ void IceCheckList::deallocateTurnCandidate(MSTurnContext *turnContext,
 	meta_rtp_transport_set_endpoint(rtpTransport, nullptr); // Endpoint is later freed
 }
 
-void IceCheckList::deallocateTurnCandidates() {
+void IceCheckList::deallocateTurnCandidates() const {
 	deallocateRtpTurnCandidate();
 	deallocateRtcpTurnCandidate();
 }
@@ -1345,19 +1335,17 @@ void IceCheckList::deallocateTurnCandidates() {
 void IceCheckList::destroyTurnContexts() {
 	deallocateTurnCandidates();
 	if (mRtpTurnContext != nullptr) {
-		ms_turn_context_destroy(mRtpTurnContext);
 		mRtpTurnContext = nullptr;
 	}
 	if (mRtcpTurnContext != nullptr) {
-		ms_turn_context_destroy(mRtcpTurnContext);
 		mRtcpTurnContext = nullptr;
 	}
 }
 
 std::shared_ptr<IceCandidate>
 IceCheckList::discoverPeerReflexiveCandidate(const std::shared_ptr<IceCandidatePair> &candidatePair,
-                                             const MSStunMessage *msg) {
-	const MSStunAddress *xorMappedAddress = ms_stun_message_get_xor_mapped_address(msg);
+                                             const std::shared_ptr<StunMessage> &msg) {
+	const auto xorMappedAddress = msg->getXorMappedAddress().value();
 	const auto transportAddress = IceTransportAddress(xorMappedAddress);
 	std::shared_ptr<IceCandidate> candidate = nullptr;
 	const auto itCandidate = std::find_if(mLocalCandidates.begin(), mLocalCandidates.end(),
@@ -1367,8 +1355,8 @@ IceCheckList::discoverPeerReflexiveCandidate(const std::shared_ptr<IceCandidateP
 		                                             (localCandidate->getTransportAddress() == transportAddress);
 	                                      });
 	if (itCandidate == mLocalCandidates.end()) {
-		ms_message("ice: Discovered peer reflexive candidate %s for componentID %d",
-		           transportAddress.asString().c_str(), candidatePair->getLocalCandidate()->getComponentId());
+		BCTBX_SLOGM << "ice: Discovered peer reflexive candidate " << transportAddress.asString() << " for componentID "
+		            << candidatePair->getLocalCandidate()->getComponentId();
 		// Add peer reflexive candidate to the local candidates list.
 		candidate =
 		    addLocalCandidate(IceCandidate::Type::PeerReflexive, transportAddress,
@@ -1447,8 +1435,8 @@ void IceCheckList::formCandidatePairs() {
 bool IceCheckList::gatherCandidates(size_t &checkListIndex) {
 	if ((mRtpSession == nullptr) || mGatheringCandidates || (mState == State::Completed) || !isGatheringNeeded()) {
 		if (!mGatheringCandidates) {
-			ms_message("ice: candidate gathering skipped for rtp session [%p] with check list [%p] in state [%s]",
-			           mRtpSession, this, getStateStr().c_str());
+			BCTBX_SLOGM << "ice: candidate gathering skipped for rtp session [" << mRtpSession << "] with check list ["
+			            << this << "] in state [" << getStateStr() << "]";
 		}
 
 		return mGatheringCandidates;
@@ -1461,31 +1449,24 @@ bool IceCheckList::gatherCandidates(size_t &checkListIndex) {
 	RtpTransport *rtpTransport = nullptr;
 	rtp_session_get_transports(mRtpSession, &rtpTransport, nullptr);
 	if (rtpTransport == nullptr) {
-		ms_error("ice: no RTP socket found for session [%p]", mRtpSession);
+		BCTBX_SLOGE << "ice: no RTP socket found for session [" << mRtpSession << "]";
 	} else {
 		if (mSession->isTurnEnabled()) {
 			// Define the RTP endpoint that will perform STUN encapsulation/decapsulation for TURN data
-			meta_rtp_transport_set_endpoint(rtpTransport, ms_turn_context_create_endpoint(mRtpTurnContext));
-			ms_turn_context_set_server_addr(mRtpTurnContext,
-			                                const_cast<struct sockaddr *>(mSession->getSockAddr().asStructSockAddr()),
-			                                mSession->getSockAddr().getLen());
+			meta_rtp_transport_set_endpoint(rtpTransport, mRtpTurnContext->createEndpoint());
+			mRtpTurnContext->setServerAddress(mSession->getSockAddr());
 
 			// Start turn tcp client now if needed
-			if (mRtpTurnContext->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
-				if (mRtpTurnContext->turn_tcp_client == nullptr) {
-					mRtpTurnContext->turn_tcp_client = ms_turn_tcp_client_new(
-					    mRtpTurnContext, (mRtpTurnContext->transport == MS_TURN_CONTEXT_TRANSPORT_TLS) ? TRUE : FALSE,
-					    mRtpTurnContext->root_certificate);
-				}
-				ms_turn_tcp_client_connect(mRtpTurnContext->turn_tcp_client);
+			if (mRtpTurnContext->getTransport() != TurnContext::Transport::Udp) {
+				mRtpTurnContext->getOrCreateTcpClient()->connect();
 			}
 		}
 
 		const auto transportAddress = IceTransportAddress(
 		    reinterpret_cast<struct sockaddr *>(&mRtpSession->rtp.gs.loc_addr), mRtpSession->rtp.gs.loc_addrlen);
-		const auto request =
-		    IceStunRequest::create(mRtpTurnContext, rtpTransport, transportAddress,
-		                           mSession->isTurnEnabled() ? MS_TURN_METHOD_ALLOCATE : MS_STUN_METHOD_BINDING);
+		const auto request = IceStunRequest::create(mRtpTurnContext, rtpTransport, transportAddress,
+		                                            mSession->isTurnEnabled() ? StunMessage::Method::TurnAllocate
+		                                                                      : StunMessage::Method::Binding);
 		if (request == nullptr) {
 			mGatheringCandidates = false;
 			return mGatheringCandidates;
@@ -1495,7 +1476,7 @@ bool IceCheckList::gatherCandidates(size_t &checkListIndex) {
 		if (checkListIndex == 0) {
 			request->programNextTransmission(currentTime + ICE_DEFAULT_RTO_DURATION);
 			if (mSession->isTurnEnabled()) {
-				ms_turn_context_set_state(mRtpTurnContext, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
+				mRtpTurnContext->setState(TurnContext::State::CreatingAllocation);
 			}
 			request->addTransaction(request->send(mSession->getSockAddr()));
 		} else {
@@ -1507,31 +1488,24 @@ bool IceCheckList::gatherCandidates(size_t &checkListIndex) {
 	rtpTransport = nullptr;
 	rtp_session_get_transports(mRtpSession, nullptr, &rtpTransport);
 	if ((rtp_session_rtcp_mux_enabled(mRtpSession) == TRUE) || (rtpTransport == nullptr)) {
-		ms_message("ice: no RTCP socket for session [%p]", mRtpSession);
+		BCTBX_SLOGM << "ice: no RTCP socket for session [" << mRtpSession << "]";
 	} else {
 		if (mSession->isTurnEnabled()) {
 			// Define the RTP endpoint that will perform STUN encapsulation/decapsulation for TURN data
-			meta_rtp_transport_set_endpoint(rtpTransport, ms_turn_context_create_endpoint(mRtcpTurnContext));
-			ms_turn_context_set_server_addr(mRtcpTurnContext,
-			                                const_cast<struct sockaddr *>(mSession->getSockAddr().asStructSockAddr()),
-			                                mSession->getSockAddr().getLen());
+			meta_rtp_transport_set_endpoint(rtpTransport, mRtcpTurnContext->createEndpoint());
+			mRtcpTurnContext->setServerAddress(mSession->getSockAddr());
 
 			// Start turn tcp client now if needed
-			if (mRtcpTurnContext->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
-				if (mRtcpTurnContext->turn_tcp_client == nullptr) {
-					mRtcpTurnContext->turn_tcp_client = ms_turn_tcp_client_new(
-					    mRtcpTurnContext, (mRtcpTurnContext->transport == MS_TURN_CONTEXT_TRANSPORT_TLS) ? TRUE : FALSE,
-					    mRtcpTurnContext->root_certificate);
-				}
-				ms_turn_tcp_client_connect(mRtcpTurnContext->turn_tcp_client);
+			if (mRtcpTurnContext->getTransport() != TurnContext::Transport::Udp) {
+				mRtcpTurnContext->getOrCreateTcpClient()->connect();
 			}
 		}
 
 		const auto transportAddress = IceTransportAddress(
 		    reinterpret_cast<struct sockaddr *>(&mRtpSession->rtcp.gs.loc_addr), mRtpSession->rtcp.gs.loc_addrlen);
-		const auto request =
-		    IceStunRequest::create(mRtcpTurnContext, rtpTransport, transportAddress,
-		                           mSession->isTurnEnabled() ? MS_TURN_METHOD_ALLOCATE : MS_STUN_METHOD_BINDING);
+		const auto request = IceStunRequest::create(mRtcpTurnContext, rtpTransport, transportAddress,
+		                                            mSession->isTurnEnabled() ? StunMessage::Method::TurnAllocate
+		                                                                      : StunMessage::Method::Binding);
 		if (request == nullptr) {
 			mGatheringCandidates = false;
 			return mGatheringCandidates;
@@ -1540,7 +1514,7 @@ bool IceCheckList::gatherCandidates(size_t &checkListIndex) {
 		request->programNextTransmission(currentTime + (2 * checkListIndex * ICE_DEFAULT_TA_DURATION) +
 		                                 ICE_DEFAULT_TA_DURATION);
 		if (mSession->isTurnEnabled()) {
-			ms_turn_context_set_state(mRtcpTurnContext, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
+			mRtcpTurnContext->setState(TurnContext::State::CreatingAllocation);
 		}
 		addStunRequest(request);
 	}
@@ -1586,7 +1560,7 @@ std::shared_ptr<IceValidCandidatePair> IceCheckList::getSelectedValidCandidatePa
 	return *it;
 }
 
-std::shared_ptr<IceStunRequest> IceCheckList::getStunRequest(const UInt96 &transactionId) const {
+std::shared_ptr<IceStunRequest> IceCheckList::getStunRequest(const StunTransactionId &transactionId) const {
 	const auto it = std::find_if(mStunRequests.begin(), mStunRequests.end(), [transactionId](const auto &request) {
 		return request->getTransaction(transactionId) != nullptr;
 	});
@@ -1596,7 +1570,7 @@ std::shared_ptr<IceStunRequest> IceCheckList::getStunRequest(const UInt96 &trans
 	return *it;
 }
 
-MSTurnContext *IceCheckList::getTurnContextFromComponentId(const uint16_t componentId) const {
+std::shared_ptr<TurnContext> IceCheckList::getTurnContextFromComponentId(const uint16_t componentId) const {
 	if (componentId == ICE_RTP_COMPONENT_ID) {
 		return mRtpTurnContext;
 	}
@@ -1632,8 +1606,8 @@ MSTurnContext *IceCheckList::getTurnContextFromComponentId(const uint16_t compon
 
 void IceCheckList::handleReceivedBindingRequest(RtpSession *rtpSession,
                                                 const OrtpEventData *eventData,
-                                                const MSStunMessage *msg,
-                                                const MSStunAddress &remoteAddress) {
+                                                const std::shared_ptr<StunMessage> &msg,
+                                                const StunAddress &remoteAddress) {
 	if (!checkReceivedBindingRequestAttributes(rtpSession, eventData, msg, remoteAddress) ||
 	    !checkReceivedBindingRequestIntegrity(rtpSession, eventData, msg, remoteAddress) ||
 	    !checkReceivedBindingRequestUsername(rtpSession, eventData, msg, remoteAddress) ||
@@ -1641,7 +1615,7 @@ void IceCheckList::handleReceivedBindingRequest(RtpSession *rtpSession,
 		return;
 	}
 
-	const auto transportAddress = IceTransportAddress(&remoteAddress);
+	const auto transportAddress = IceTransportAddress(remoteAddress);
 	auto peerReflexiveCandidate = learnPeerReflexiveCandidate(eventData, msg, transportAddress);
 	auto candidatePair = triggerConnectivityCheckOnBindingRequest(eventData, peerReflexiveCandidate, transportAddress);
 	if (candidatePair != nullptr) {
@@ -1653,14 +1627,14 @@ void IceCheckList::handleReceivedBindingRequest(RtpSession *rtpSession,
 
 void IceCheckList::handleReceivedBindingResponse(RtpSession *rtpSession,
                                                  const OrtpEventData *eventData,
-                                                 const MSStunMessage *msg,
-                                                 const MSStunAddress &remoteAddress) {
+                                                 const std::shared_ptr<StunMessage> &msg,
+                                                 const StunAddress &remoteAddress) {
 	if (mGatheringCandidates && handleReceivedTurnAllocateSuccessResponse(rtpSession, eventData, msg, remoteAddress)) {
 		return;
 	}
 
-	const UInt96 transactionId = ms_stun_message_get_tr_id(msg);
-	const auto transactionIdStr = IceUtils::getTransactionIdStr(transactionId);
+	const auto transactionId = msg->getTransactionId();
+	const auto transactionIdStr = transactionId.asString();
 	const auto itTransaction =
 	    std::find_if(mTransactionList.begin(), mTransactionList.end(), [transactionId](const auto &transaction) {
 		    const auto id = transaction->getId();
@@ -1668,14 +1642,14 @@ void IceCheckList::handleReceivedBindingResponse(RtpSession *rtpSession,
 	    });
 	if (itTransaction == mTransactionList.end()) {
 		// We received an a binding response concerning an unknown binding request, ignore it...
-		ms_warning("ice: Received a binding response for an unknown transaction ID: %s", transactionIdStr.c_str());
+		BCTBX_SLOGW << "ice: Received a binding response for an unknown transaction ID: " << transactionIdStr;
 		return;
 	}
 
 	const auto &transaction = *itTransaction;
 	if (transaction->isCanceled()) {
 		// We received a binding response concerning a canceled binding request transaction
-		ms_message("ice: Received a binding response for a canceled transaction ID: %s", transactionIdStr.c_str());
+		BCTBX_SLOGM << "ice: Received a binding response for a canceled transaction ID: " << transactionIdStr;
 		// It has to be processed anyway. According to 7.3.1.4 , cancelation just stops retransmission and do not
 		// consider the lack of response as a failure.
 	}
@@ -1694,11 +1668,11 @@ void IceCheckList::handleReceivedBindingResponse(RtpSession *rtpSession,
 
 void IceCheckList::handleReceivedErrorResponse(RtpSession *rtpSession,
                                                const OrtpEventData *eventData,
-                                               const MSStunMessage *msg) {
+                                               const std::shared_ptr<StunMessage> &msg) {
 	if (mGatheringCandidates) {
 		handleStunErrorResponse(rtpSession, eventData, msg);
 	} else {
-		const auto transactionId = ms_stun_message_get_tr_id(msg);
+		const auto transactionId = msg->getTransactionId();
 		const auto itTransaction =
 		    std::find_if(mTransactionList.begin(), mTransactionList.end(), [transactionId](const auto &transaction) {
 			    auto id = transaction->getId();
@@ -1710,33 +1684,32 @@ void IceCheckList::handleReceivedErrorResponse(RtpSession *rtpSession,
 		}
 
 		const auto candidatePair = (*itTransaction)->getPair();
-		if ((ms_stun_message_has_error_code(msg) == TRUE) &&
-		    (ms_stun_message_get_error_code(msg, nullptr) == MS_STUN_ERROR_CODE_UNAUTHORIZED) &&
+		const auto error = msg->getError();
+		if (error.has_value() && (error.value().getErrorCode() == StunError::Code::StunUnauthorized) &&
 		    candidatePair->shouldRetryWithDummyMessageIntegrity()) {
-			ms_warning("ice pair [%p], retry skipping message integrity for compatibility with older version",
-			           candidatePair.get());
+			BCTBX_SLOGW << "ice pair [" << candidatePair.get()
+			            << "], retry skipping message integrity for compatibility with older version";
 			candidatePair->setRetryWithDummyMessageIntegrity(false);
 			candidatePair->setUseDummyHmac(true);
 			return;
 		}
 
 		candidatePair->setState(IceCandidatePair::State::Failed);
-		ms_message("ice: Error response, set state to Failed for pair %p: %s:%s --> %s:%s", candidatePair.get(),
-		           candidatePair->getLocalCandidate()->getTransportAddress().asString().c_str(),
-		           candidatePair->getLocalCandidate()->getTypeStr().c_str(),
-		           candidatePair->getRemoteCandidate()->getTransportAddress().asString().c_str(),
-		           candidatePair->getRemoteCandidate()->getTypeStr().c_str());
+		BCTBX_SLOGM << "ice: Error response, set state to Failed for pair " << candidatePair.get() << ": "
+		            << candidatePair->getLocalCandidate()->getTransportAddress().asString() << ":"
+		            << candidatePair->getLocalCandidate()->getTypeStr() << " --> "
+		            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
+		            << candidatePair->getRemoteCandidate()->getTypeStr();
 
-		if ((ms_stun_message_has_error_code(msg) == TRUE) &&
-		    (ms_stun_message_get_error_code(msg, nullptr) == MS_ICE_ERROR_CODE_ROLE_CONFLICT)) {
+		if (error.has_value() && (error.value().getErrorCode() == StunError::Code::IceRoleConflict)) {
 			// Handle error 487 (Role Conflict) according to 7.1.3.1.
 			switch (candidatePair->getRole()) {
 				case IceRole::Controlling:
-					ms_message("ice: Switch to the CONTROLLED role");
+					BCTBX_SLOGM << "ice: Switch to the CONTROLLED role";
 					mSession->setRole(IceRole::Controlled);
 					break;
 				case IceRole::Controlled:
-					ms_message("ice: Switch to the CONTROLLING role");
+					BCTBX_SLOGM << "ice: Switch to the CONTROLLING role";
 					mSession->setRole(IceRole::Controlling);
 					break;
 			}
@@ -1752,31 +1725,31 @@ void IceCheckList::handleReceivedErrorResponse(RtpSession *rtpSession,
 
 bool IceCheckList::handleReceivedTurnAllocateSuccessResponse(RtpSession *rtpSession,
                                                              const OrtpEventData *eventData,
-                                                             const MSStunMessage *msg,
-                                                             const MSStunAddress &remoteStunAddress) {
+                                                             const std::shared_ptr<StunMessage> &msg,
+                                                             const StunAddress &remoteStunAddress) {
 	bool stunServerResponse = false;
-	const auto servStunAddress = mSession->getSockAddr().ipv6toIpv4().toStunAddress();
-	if (ms_compare_stun_addresses(&remoteStunAddress, &servStunAddress) == TRUE) {
+	const auto servStunAddress = StunAddress(mSession->getSockAddr().ipv6toIpv4());
+	if (remoteStunAddress != servStunAddress) {
 		return false;
 	}
 
-	const UInt96 transactionId = ms_stun_message_get_tr_id(msg);
+	const auto transactionId = msg->getTransactionId();
 	const auto request = getStunRequest(transactionId);
 	if (request != nullptr) {
-		const auto componentId = IceUtils::getComponentIdFromEventData(eventData);
+		const auto componentId = getComponentIdFromEventData(eventData);
 		const auto [serverReflexiveStunAddress, relayStunAddress] = parseStunResponse(msg);
-		if ((componentId != ICE_INVALID_COMPONENT_ID) && (serverReflexiveStunAddress != nullptr)) {
-			const auto recvAddr = IceUtils::SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
+		if ((componentId != ICE_INVALID_COMPONENT_ID) && (serverReflexiveStunAddress.has_value())) {
+			const auto recvAddr = SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
 			const auto transportAddress = IceTransportAddress(recvAddr.asStructSockAddr(), recvAddr.getLen());
 			auto itBaseCandidate = std::find_if(mLocalCandidates.begin(), mLocalCandidates.end(),
 			                                    [componentId, transportAddress](const auto &candidate) {
 				                                    return (candidate->getComponentId() == componentId) &&
 				                                           (candidate->getTransportAddress() == transportAddress);
 			                                    });
-			if ((mRtpTurnContext != nullptr) &&
-			    (ms_turn_context_get_transport(mRtpTurnContext) != MS_TURN_CONTEXT_TRANSPORT_UDP)) {
+			if ((mRtpTurnContext != nullptr) && (mRtpTurnContext->getTransport() != TurnContext::Transport::Udp)) {
 				// Fallback code for TCP/TLS, where recvAddr is not needed
-				int family = (serverReflexiveStunAddress->family == MS_STUN_ADDR_FAMILY_IPV6) ? AF_INET6 : AF_INET;
+				int family =
+				    (serverReflexiveStunAddress.value().getFamily() == StunAddress::Family::IpV6) ? AF_INET6 : AF_INET;
 				itBaseCandidate = std::find_if(mLocalCandidates.begin(), mLocalCandidates.end(),
 				                               [componentId, family](const auto &candidate) {
 					                               return (candidate->getType() == IceCandidate::Type::Host) &&
@@ -1796,39 +1769,40 @@ bool IceCheckList::handleReceivedTurnAllocateSuccessResponse(RtpSession *rtpSess
 			}
 
 			if (itBaseCandidate == mLocalCandidates.end()) {
-				ms_error("Received allocate response through an unknown local interface.");
+				BCTBX_SLOGE << "Received allocate response through an unknown local interface.";
 			} else {
 				const auto &baseCandidate = *itBaseCandidate;
-				const auto serverReflexiveTransportAddress = IceTransportAddress(serverReflexiveStunAddress);
+				const auto serverReflexiveTransportAddress = IceTransportAddress(serverReflexiveStunAddress.value());
 				if (serverReflexiveTransportAddress.getPort() != 0) {
 					addLocalCandidate(IceCandidate::Type::ServerReflexive, serverReflexiveTransportAddress, componentId,
 					                  baseCandidate);
-					ms_message("ice: Add candidate obtained by STUN/TURN: %s:srflx",
-					           serverReflexiveTransportAddress.asString().c_str());
+					BCTBX_SLOGM << "ice: Add candidate obtained by STUN/TURN: "
+					            << serverReflexiveTransportAddress.asString() << ":srflx";
 
 					if (mSession->isTurnEnabled()) {
-						request->getTurnContext()->stats.nb_successful_allocate++;
-						scheduleTurnAllocationRefresh(componentId, ms_stun_message_get_lifetime(msg));
+						request->getTurnContext()->mStatistics.nb_successful_allocate++;
+						scheduleTurnAllocationRefresh(componentId,
+						                              msg->getLifetime().has_value() ? msg->getLifetime().value() : 0);
 					}
-					if ((relayStunAddress != nullptr) && (relayStunAddress->family != 0)) {
-						const auto relayTransportAddress = IceTransportAddress(relayStunAddress);
+					if (relayStunAddress.has_value()) {
+						const auto relayTransportAddress = IceTransportAddress(relayStunAddress.value());
 						if (relayTransportAddress.getPort() != 0) {
 							if (mSession->isTurnEnabled()) {
-								ms_turn_context_set_allocated_relay_addr(request->getTurnContext(), *relayStunAddress);
+								request->getTurnContext()->setAllocatedRelayAddress(relayStunAddress.value());
 							}
 							addLocalCandidate(IceCandidate::Type::Relayed, relayTransportAddress, componentId,
 							                  baseCandidate);
-							ms_message("ice: Add candidate obtained by STUN/TURN: %s:relay",
-							           relayTransportAddress.asString().c_str());
+							BCTBX_SLOGM << "ice: Add candidate obtained by STUN/TURN: "
+							            << relayTransportAddress.asString() << ":relay";
 						}
 					}
 				}
 			}
 			request->setResponded(true);
 			if (mSession->isTurnEnabled()) {
-				ms_turn_context_set_state(request->getTurnContext(), MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED);
-				if (ms_stun_message_has_lifetime(msg) == TRUE) {
-					ms_turn_context_set_lifetime(request->getTurnContext(), ms_stun_message_get_lifetime(msg));
+				request->getTurnContext()->setState(TurnContext::State::AllocationCreated);
+				if (msg->getLifetime().has_value()) {
+					request->getTurnContext()->setLifetime(msg->getLifetime().value());
 				}
 			}
 		}
@@ -1838,7 +1812,7 @@ bool IceCheckList::handleReceivedTurnAllocateSuccessResponse(RtpSession *rtpSess
 	if (std::none_of(mStunRequests.begin(), mStunRequests.end(),
 	                 [](const auto &request) { return request->isGathering() && !request->isResponded(); })) {
 		stopGathering();
-		ms_message("ice: Finished candidates gathering for check list %p", this);
+		BCTBX_SLOGM << "ice: Finished candidates gathering for check list " << this;
 		dumpCandidates();
 		if (mSession->findCheckListGatheringCandidates() == nullptr) {
 			// Notify the application when there is no longer any check list gathering candidates.
@@ -1853,26 +1827,26 @@ bool IceCheckList::handleReceivedTurnAllocateSuccessResponse(RtpSession *rtpSess
 }
 
 void IceCheckList::handleReceivedTurnChannelBindSuccessResponse(const OrtpEventData *eventData,
-                                                                const MSStunMessage *msg) {
-	const auto componentId = IceUtils::getComponentIdFromEventData(eventData);
-	const auto transactionId = ms_stun_message_get_tr_id(msg);
+                                                                const std::shared_ptr<StunMessage> &msg) {
+	const auto componentId = getComponentIdFromEventData(eventData);
+	const auto transactionId = msg->getTransactionId();
 	const auto request = getStunRequest(transactionId);
 	if ((request == nullptr) || (componentId == ICE_INVALID_COMPONENT_ID)) {
 		return;
 	}
-	auto *turnContext = getTurnContextFromComponentId(componentId);
-	ms_turn_context_set_state(turnContext, MS_TURN_CONTEXT_STATE_CHANNEL_BOUND);
+	const auto turnContext = getTurnContextFromComponentId(componentId);
+	turnContext->setState(TurnContext::State::ChannelBound);
 	removeStunRequest(transactionId);
 	scheduleTurnChannelBindRefresh(componentId, request->getChannelNumber(), request->getPeerAddress());
 }
 
 void IceCheckList::handleReceivedTurnCreatePermissionSuccessResponse(const OrtpEventData *eventData,
-                                                                     const MSStunMessage *msg) {
-	const auto componentId = IceUtils::getComponentIdFromEventData(eventData);
+                                                                     const std::shared_ptr<StunMessage> &msg) {
+	const auto componentId = getComponentIdFromEventData(eventData);
 	if (componentId == ICE_INVALID_COMPONENT_ID) {
 		return;
 	}
-	const UInt96 transactionId = ms_stun_message_get_tr_id(msg);
+	const auto transactionId = msg->getTransactionId();
 	const auto request = getStunRequest(transactionId);
 	if (request == nullptr) {
 		return;
@@ -1880,39 +1854,40 @@ void IceCheckList::handleReceivedTurnCreatePermissionSuccessResponse(const OrtpE
 
 	const auto peerAddress = request->getPeerAddress();
 	removeStunRequest(transactionId);
-	ms_turn_context_allow_peer_address(getTurnContextFromComponentId(componentId), &peerAddress);
+	getTurnContextFromComponentId(componentId)->allowPeerAddress(peerAddress);
 	scheduleTurnPermissionRefresh(componentId, peerAddress);
 }
 
-void IceCheckList::handleReceivedTurnRefreshSuccessResponse(const OrtpEventData *eventData, const MSStunMessage *msg) {
-	const auto componentId = IceUtils::getComponentIdFromEventData(eventData);
+void IceCheckList::handleReceivedTurnRefreshSuccessResponse(const OrtpEventData *eventData,
+                                                            const std::shared_ptr<StunMessage> &msg) {
+	const auto componentId = getComponentIdFromEventData(eventData);
 	if (componentId == ICE_INVALID_COMPONENT_ID) {
 		return;
 	}
 
 	// First remove the now terminated STUN transaction
-	const auto transactionId = ms_stun_message_get_tr_id(msg);
+	const auto transactionId = msg->getTransactionId();
 	removeStunRequest(transactionId);
 	// Then Update related TURN context
-	auto *const turnContext = getTurnContextFromComponentId(componentId);
+	const auto turnContext = getTurnContextFromComponentId(componentId);
 	if (turnContext == nullptr) {
-		ms_warning("ice: no turn context while receiving refresh success response");
+		BCTBX_SLOGW << "ice: no turn context while receiving refresh success response";
 		return;
 	}
 
-	if (ms_turn_context_get_lifetime(turnContext) == 0) {
+	if (turnContext->getLifetime() == 0) {
 		// TURN deallocation success
-		ms_turn_context_set_state(turnContext, MS_TURN_CONTEXT_STATE_IDLE);
+		turnContext->setState(TurnContext::State::Idle);
 	} else {
-		scheduleTurnAllocationRefresh(componentId, ms_stun_message_get_lifetime(msg));
-		turnContext->stats.nb_successful_refresh++;
+		scheduleTurnAllocationRefresh(componentId, msg->getLifetime().has_value() ? msg->getLifetime().value() : 0);
+		turnContext->mStatistics.nb_successful_refresh++;
 	}
 }
 
 void IceCheckList::handleStunErrorResponse(const RtpSession *rtpSession,
                                            const OrtpEventData *eventData,
-                                           const MSStunMessage *msg) {
-	auto *rtpTransport = IceUtils::getTransportFromRtpSession(rtpSession, eventData);
+                                           const std::shared_ptr<StunMessage> &msg) {
+	auto *rtpTransport = getTransportFromRtpSession(rtpSession, eventData);
 	const auto itRequest =
 	    std::find_if(mStunRequests.begin(), mStunRequests.end(),
 	                 [rtpTransport](const auto &request) { return request->getRtpTransport() == rtpTransport; });
@@ -1921,26 +1896,35 @@ void IceCheckList::handleStunErrorResponse(const RtpSession *rtpSession,
 	}
 
 	const auto &request = *itRequest;
-	if ((ms_stun_message_get_error_code(msg, nullptr) != 401) || (mSession->mStunAuthRequestedCb == nullptr)) {
+	const auto error = msg->getError();
+	if (!error.has_value() || (error.value().getErrorCode() != StunError::Code::StunUnauthorized) ||
+	    (mSession->mStunAuthListener == nullptr)) {
 		return;
 	}
 
-	const char *username = nullptr;
-	const char *password = nullptr;
-	const char *ha1 = nullptr;
-	const char *realm = ms_stun_message_get_realm(msg);
-	const char *nonce = ms_stun_message_get_nonce(msg);
-	mSession->mStunAuthRequestedCb(mSession->mStunAuthRequestedUserdata, realm, nonce, &username, &password, &ha1);
-	if ((username == nullptr) || !mSession->isTurnEnabled()) {
+	const std::string realm = msg->getRealm().has_value() ? msg->getRealm().value() : "";
+	const std::string nonce = msg->getNonce().has_value() ? msg->getNonce().value() : "";
+	const auto authResponse = mSession->mStunAuthListener->onStunAuthRequested(realm, nonce);
+	if (authResponse.username.empty() || !mSession->isTurnEnabled()) {
 		return;
 	}
 
-	auto *turnContext = getTurnContextFromComponentId(IceUtils::getComponentIdFromEventData(eventData));
-	ms_turn_context_set_realm(turnContext, realm);
-	ms_turn_context_set_nonce(turnContext, nonce);
-	ms_turn_context_set_username(turnContext, username);
-	ms_turn_context_set_password(turnContext, password);
-	ms_turn_context_set_ha1(turnContext, ha1);
+	const auto turnContext = getTurnContextFromComponentId(getComponentIdFromEventData(eventData));
+	if (!realm.empty()) {
+		turnContext->setRealm(realm);
+	}
+	if (!nonce.empty()) {
+		turnContext->setNonce(nonce);
+	}
+	if (!authResponse.username.empty()) {
+		turnContext->setUsername(authResponse.username);
+	}
+	if (!authResponse.password.empty()) {
+		turnContext->setPassword(authResponse.password);
+	}
+	if (!authResponse.ha1.empty()) {
+		turnContext->setHa1(authResponse.ha1);
+	}
 	request->programNextTransmission(std::chrono::steady_clock::now() + ICE_DEFAULT_RTO_DURATION);
 	request->addTransaction(request->sendTurnAllocateRequest(mSession->getSockAddr()));
 }
@@ -1956,9 +1940,9 @@ bool IceCheckList::isFrozen() const {
 }
 
 std::shared_ptr<IceCandidate> IceCheckList::learnPeerReflexiveCandidate(const OrtpEventData *eventData,
-                                                                        const MSStunMessage *msg,
+                                                                        const std::shared_ptr<StunMessage> &msg,
                                                                         const IceTransportAddress &transportAddress) {
-	const auto componentId = IceUtils::getComponentIdFromEventData(eventData);
+	const auto componentId = getComponentIdFromEventData(eventData);
 	if (componentId == ICE_INVALID_COMPONENT_ID) {
 		return nullptr;
 	}
@@ -1969,12 +1953,12 @@ std::shared_ptr<IceCandidate> IceCheckList::learnPeerReflexiveCandidate(const Or
 		                                                   (candidate->getTransportAddress() == transportAddress);
 	                                            });
 	if (itRemoteCandidate == mRemoteCandidates.end()) {
-		ms_message("ice: Learned peer reflexive candidate %s:%d for componentID %d", transportAddress.getIp().c_str(),
-		           transportAddress.getPort(), componentId);
+		BCTBX_SLOGM << "ice: Learned peer reflexive candidate " << transportAddress.getIp() << ":"
+		            << transportAddress.getPort() << " for componentID " << componentId;
 		// Add peer reflexive candidate to the remote candidates list.
 		const auto foundation = generateArbitraryFoundation();
 		return addRemoteCandidate(IceCandidate::Type::PeerReflexive, transportAddress, componentId,
-		                          ms_stun_message_get_priority(msg), foundation, false);
+		                          msg->getPriority().has_value() ? msg->getPriority().value() : 0, foundation, false);
 	}
 	return nullptr;
 }
@@ -1986,8 +1970,8 @@ IceCheckList::lookupPossibleValidPair(const std::shared_ptr<IceCandidatePair> &c
 			return candidatePair;
 		}
 		if (validPair->getGeneratedFrom() == candidatePair) {
-			ms_message("ice: found the reflexive candidate corresponding to the candidate pair on which the binding "
-			           "request was received.");
+			BCTBX_SLOGM << "ice: found the reflexive candidate corresponding to the candidate pair on which the "
+			               "binding request was received.";
 			return validPair->getValid();
 		}
 	}
@@ -2011,7 +1995,7 @@ void IceCheckList::pairCandidates() {
 
 	mConnectivityChecksRunning = true;
 	createTurnPermissions();
-	ms_message("ice: connectivity checks are going to start for check list %p", this);
+	BCTBX_SLOGM << "ice: connectivity checks are going to start for check list " << this;
 	formCandidatePairs();
 	pruneCandidatePairs();
 
@@ -2039,8 +2023,8 @@ void IceCheckList::performNominations(const bool nominationDelayExpired) {
 			             return validCandidatePair->getValid()->getLocalCandidate()->getComponentId() == componentId;
 		             });
 		if (validCandidatePairs.empty()) {
-			ms_message("IceCheckList::performNominations(cl=%p): no valid pairs yet for componentID %i", this,
-			           componentId);
+			BCTBX_SLOGM << "IceCheckList::performNominations(cl=" << this << "): no valid pairs yet for componentID "
+			            << componentId;
 			concludable = false;
 			break;
 		}
@@ -2053,14 +2037,14 @@ void IceCheckList::performNominations(const bool nominationDelayExpired) {
 		for (const auto &pair : validCandidatePairs) {
 			validCandidatePair = pair;
 			if (pair->getGeneratedFrom()->isNominationFailing()) {
-				ms_message("IceCheckList::performNominations: a nominated pair is not responding");
+				BCTBX_SLOGM << "IceCheckList::performNominations: a nominated pair is not responding";
 			} else {
 				break;
 			}
 		}
 		if (validCandidatePair == nullptr) {
-			ms_warning("IceCheckList::performNominations(cl=%p): no more pair to nominate for componentID %i", this,
-			           componentId);
+			BCTBX_SLOGW << "IceCheckList::performNominations(cl=" << this
+			            << "): no more pair to nominate for componentID " << componentId;
 		} else {
 			if ((validCandidatePair->getGeneratedFrom()->getRemoteCandidate()->getType() ==
 			     IceCandidate::Type::Relayed) ||
@@ -2076,17 +2060,17 @@ void IceCheckList::performNominations(const bool nominationDelayExpired) {
 	}
 
 	if (concludable && (nbNominationsToDo > 0)) {
-		ms_message("IceCheckList::performNominations: check list is concludable");
+		BCTBX_SLOGM << "IceCheckList::performNominations: check list is concludable";
 		if (needMoreTime && !mNominationDelayRunning) {
-			ms_message("IceCheckList::performNominations(cl=%p): for a component, the best candidate is a relay one, "
-			           "let's wait a bit before performing nomination",
-			           this);
+			BCTBX_SLOGM << "IceCheckList::performNominations(cl=" << this
+			            << "): for a component, the best candidate is a relay one, let's wait a bit before performing "
+			               "nomination";
 			mNominationDelayRunning = true;
 			mNominationDelayStartTime = std::chrono::steady_clock::now();
 		}
 		if (nominationDelayExpired || !needMoreTime) {
-			ms_message("IceCheckList::performNominations(cl=%p): nominating the best valid pair for each component",
-			           this);
+			BCTBX_SLOGM << "IceCheckList::performNominations(cl=" << this
+			            << "): nominating the best valid pair for each component";
 			mNominationDelayRunning = false;
 			nominate(bestValidCandidatePairs);
 		}
@@ -2171,7 +2155,7 @@ void IceCheckList::removeRtcpCandidatePairs() {
 	}
 }
 
-void IceCheckList::removeStunRequest(const UInt96 &transactionId) {
+void IceCheckList::removeStunRequest(const StunTransactionId &transactionId) {
 	for (auto it = mStunRequests.begin(); it != mStunRequests.end();) {
 		if ((*it)->getTransaction(transactionId) != nullptr) {
 			it = mStunRequests.erase(it);
@@ -2231,12 +2215,13 @@ void IceCheckList::retransmitConnectivityChecks(const std::chrono::steady_clock:
 }
 
 void IceCheckList::scheduleTurnAllocationRefresh(const uint16_t componentId, const uint32_t lifetime) {
-	auto *turnContext = getTurnContextFromComponentId(componentId);
+	const auto turnContext = getTurnContextFromComponentId(componentId);
 	auto *rtpTransport = getRtpTransport(componentId);
-	const auto *stream = IceUtils::getOrtpStreamFromRtpSessionAndComponentId(mRtpSession, componentId);
+	const auto *stream = getOrtpStreamFromRtpSessionAndComponentId(mRtpSession, componentId);
 	const auto transportAddress =
 	    IceTransportAddress(reinterpret_cast<const struct sockaddr *>(&stream->loc_addr), stream->loc_addrlen);
-	const auto request = IceStunRequest::create(turnContext, rtpTransport, transportAddress, MS_TURN_METHOD_REFRESH);
+	const auto request =
+	    IceStunRequest::create(turnContext, rtpTransport, transportAddress, StunMessage::Method::TurnRefresh);
 	if (request == nullptr) {
 		return;
 	}
@@ -2252,14 +2237,14 @@ void IceCheckList::scheduleTurnAllocationRefresh(const uint16_t componentId, con
 
 void IceCheckList::scheduleTurnChannelBindRefresh(const uint16_t componentId,
                                                   const uint16_t channelNumber,
-                                                  const MSStunAddress &peerAddress) {
-	auto *turnContext = getTurnContextFromComponentId(componentId);
+                                                  const StunAddress &peerAddress) {
+	const auto turnContext = getTurnContextFromComponentId(componentId);
 	auto *rtpTransport = getRtpTransport(componentId);
-	const auto *stream = IceUtils::getOrtpStreamFromRtpSessionAndComponentId(mRtpSession, componentId);
+	const auto *stream = getOrtpStreamFromRtpSessionAndComponentId(mRtpSession, componentId);
 	const auto transportAddress =
 	    IceTransportAddress(reinterpret_cast<const struct sockaddr *>(&stream->loc_addr), stream->loc_addrlen);
 	const auto request =
-	    IceStunRequest::create(turnContext, rtpTransport, transportAddress, MS_TURN_METHOD_CHANNEL_BIND);
+	    IceStunRequest::create(turnContext, rtpTransport, transportAddress, StunMessage::Method::TurnChannelBind);
 	if (request == nullptr) {
 		return;
 	}
@@ -2274,14 +2259,14 @@ void IceCheckList::scheduleTurnChannelBindRefresh(const uint16_t componentId,
 	addStunRequest(request);
 }
 
-void IceCheckList::scheduleTurnPermissionRefresh(const uint16_t componentId, const MSStunAddress &peerAddress) {
-	auto *turnContext = getTurnContextFromComponentId(componentId);
+void IceCheckList::scheduleTurnPermissionRefresh(const uint16_t componentId, const StunAddress &peerAddress) {
+	const auto turnContext = getTurnContextFromComponentId(componentId);
 	auto *const rtpTransport = getRtpTransport(componentId);
-	auto *const stream = IceUtils::getOrtpStreamFromRtpSessionAndComponentId(mRtpSession, componentId);
+	auto *const stream = getOrtpStreamFromRtpSessionAndComponentId(mRtpSession, componentId);
 	const auto transportAddress =
 	    IceTransportAddress(reinterpret_cast<struct sockaddr *>(&stream->loc_addr), stream->loc_addrlen);
 	const auto request =
-	    IceStunRequest::create(turnContext, rtpTransport, transportAddress, MS_TURN_METHOD_CREATE_PERMISSION);
+	    IceStunRequest::create(turnContext, rtpTransport, transportAddress, StunMessage::Method::TurnCreatePermission);
 	if (request == nullptr) {
 		return;
 	}
@@ -2321,7 +2306,7 @@ void IceCheckList::sendBindingRequest(const std::shared_ptr<IceCandidatePair> &c
 
 	if (candidatePair->getState() == IceCandidatePair::State::InProgress) {
 		if (transaction == nullptr) {
-			ms_error("ice: No transaction found for InProgress pair");
+			BCTBX_SLOGE << "ice: No transaction found for InProgress pair";
 			return;
 		}
 		// This is a retransmission: update the number of retransmissions, the retransmission timer value, and the
@@ -2359,78 +2344,76 @@ void IceCheckList::sendBindingRequest(const std::shared_ptr<IceCandidatePair> &c
 
 	const auto sourceStunAddress = candidatePair->getLocalCandidate()->getTransportAddress().toStunAddress();
 	const auto destStunAddress = candidatePair->getRemoteCandidate()->getTransportAddress().toStunAddress();
-	auto *msg = ms_stun_binding_request_create();
-	const auto username = (getRemoteCredentials().has_value() ? getRemoteCredentials()->getUfrag() : "") + ":" +
-	                      getLocalCredentials().getUfrag();
-	ms_stun_message_set_username(msg, username.c_str());
-	ms_stun_message_set_password(msg,
-	                             getRemoteCredentials().has_value() ? getRemoteCredentials()->getPwd().c_str() : "");
-	ms_stun_message_enable_message_integrity(msg, TRUE);
-	ms_stun_message_enable_fingerprint(msg, TRUE);
+	const auto msg = StunMessage::createStunBindingRequest();
+	msg->setUsername((getRemoteCredentials().has_value() ? getRemoteCredentials()->getUfrag() : "") + ":" +
+	                 getLocalCredentials().getUfrag());
+	msg->setPassword(getRemoteCredentials().has_value() ? getRemoteCredentials()->getPwd().c_str() : "");
+	msg->enableMessageIntegrity(true);
+	msg->enableFingerprint(true);
 
 	// Set the PRIORITY attribute as defined in 7.1.2.1.
-	ms_stun_message_set_priority(msg,
-	                             (candidatePair->getLocalCandidate()->getPriority() & 0x00ffffff) |
-	                                 (IceCandidate::getTypePreferenceValue(IceCandidate::Type::PeerReflexive) << 24));
+	msg->setPriority((candidatePair->getLocalCandidate()->getPriority() & 0x00ffffff) |
+	                 (IceCandidate::getTypePreferenceValue(IceCandidate::Type::PeerReflexive) << 24));
 
 	// Include the USE-CANDIDATE attribute if the pair is nominated and the agent has the controlling role, as
 	// defined in 7.1.2.1.
 	if ((mSession->getRole() == IceRole::Controlling) && candidatePair->hasUseCandidate()) {
-		ms_stun_message_enable_use_candidate(msg, TRUE);
+		msg->setUseCandidate(true);
 	}
 
 	// Include the ICE-CONTROLLING or ICE-CONTROLLED attribute depending on the role of the agent, as defined
 	// in 7.1.2.2.
 	switch (mSession->getRole()) {
 		case IceRole::Controlling:
-			ms_stun_message_set_ice_controlling(msg, mSession->getTieBreaker());
+			msg->setIceControlling(mSession->getTieBreaker());
 			break;
 		case IceRole::Controlled:
-			ms_stun_message_set_ice_controlled(msg, mSession->getTieBreaker());
+			msg->setIceControlled(mSession->getTieBreaker());
 			break;
 	}
 
 	// Keep the same transaction ID for retransmission.
 	if (candidatePair->getState() == IceCandidatePair::State::InProgress) {
-		ms_stun_message_set_tr_id(msg, transaction->getId());
+		msg->setTransactionId(transaction->getId());
 	} else {
-		transaction = createTransaction(candidatePair, ms_stun_message_get_tr_id(msg));
+		transaction = createTransaction(candidatePair, msg->getTransactionId());
 	}
 
 	// For backward compatibility
-	ms_stun_message_enable_dummy_message_integrity(msg, candidatePair->shouldUseDummyHmac() ? TRUE : FALSE);
+	msg->enableDummyMessageIntegrity(candidatePair->shouldUseDummyHmac());
 
-	char *buf = nullptr;
-	auto len = ms_stun_message_encode(msg, &buf);
-	if (len > 0) {
+	const auto stunRawMessage = msg->encode();
+	const auto data = stunRawMessage->getData();
+	if (!data.empty()) {
 		if (candidatePair->getState() == IceCandidatePair::State::InProgress) {
-			ms_message("ice: Retransmit (%d) binding request for pair %p: %s:%s --> %s:%s [%s]",
-			           candidatePair->getNbRetransmissions(), candidatePair.get(),
-			           candidatePair->getLocalCandidate()->getTransportAddress().asString().c_str(),
-			           candidatePair->getLocalCandidate()->getTypeStr().c_str(),
-			           candidatePair->getRemoteCandidate()->getTransportAddress().asString().c_str(),
-			           candidatePair->getRemoteCandidate()->getTypeStr().c_str(), transaction->getIdStr().c_str());
+			BCTBX_SLOGM << "ice: Retransmit (" << candidatePair->getNbRetransmissions() << ") binding request for pair "
+			            << candidatePair.get() << ": "
+			            << candidatePair->getLocalCandidate()->getTransportAddress().asString() << ":"
+			            << candidatePair->getLocalCandidate()->getTypeStr() << " --> "
+			            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
+			            << candidatePair->getRemoteCandidate()->getTypeStr() << " [" << transaction->getIdStr() << "]";
 		} else {
-			ms_message("ice: Send binding request for %s pair %p: %s:%s --> %s:%s [%s] (flags:%s)",
-			           candidatePair->getStateStr().c_str(), candidatePair.get(),
-			           candidatePair->getLocalCandidate()->getTransportAddress().asString().c_str(),
-			           candidatePair->getLocalCandidate()->getTypeStr().c_str(),
-			           candidatePair->getRemoteCandidate()->getTransportAddress().asString().c_str(),
-			           candidatePair->getRemoteCandidate()->getTypeStr().c_str(), transaction->getIdStr().c_str(),
-			           candidatePair->hasUseCandidate() ? "use-candidate" : "none");
+			BCTBX_SLOGM << "ice: Send binding request for " << candidatePair->getStateStr() << " pair "
+			            << candidatePair.get() << ": "
+			            << candidatePair->getLocalCandidate()->getTransportAddress().asString() << ":"
+			            << candidatePair->getLocalCandidate()->getTypeStr() << " --> "
+			            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
+			            << candidatePair->getRemoteCandidate()->getTypeStr() << " [" << transaction->getIdStr()
+			            << "] (flags:" << (candidatePair->hasUseCandidate() ? "use-candidate" : "none") << ")";
 		}
 
 		if (mSession->isForcedRelayEnabled() &&
 		    (candidatePair->getRemoteCandidate()->getType() != IceCandidate::Type::Relayed) &&
 		    (candidatePair->getLocalCandidate()->getType() != IceCandidate::Type::Relayed)) {
-			ms_message("ice: Forced relay, did not send binding request for %s pair %p: %s:%s --> %s:%s [%s]",
-			           candidatePair->getStateStr().c_str(), candidatePair.get(),
-			           candidatePair->getLocalCandidate()->getTransportAddress().asString().c_str(),
-			           candidatePair->getLocalCandidate()->getTypeStr().c_str(),
-			           candidatePair->getRemoteCandidate()->getTransportAddress().asString().c_str(),
-			           candidatePair->getRemoteCandidate()->getTypeStr().c_str(), transaction->getIdStr().c_str());
+			BCTBX_SLOGM << "ice: Forced relay, did not send binding request for " << candidatePair->getStateStr()
+			            << " pair " << candidatePair.get() << ": "
+			            << candidatePair->getLocalCandidate()->getTransportAddress().asString() << ":"
+			            << candidatePair->getLocalCandidate()->getTypeStr() << " --> "
+			            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
+			            << candidatePair->getRemoteCandidate()->getTypeStr() << " [" << transaction->getIdStr() << "]";
 		} else {
-			IceUtils::sendMessageToStunAddress(rtpTransport, buf, len, sourceStunAddress, destStunAddress);
+			sendMessageToStunAddress(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+			                         sourceStunAddress, destStunAddress);
 		}
 
 		if (candidatePair->getState() != IceCandidatePair::State::InProgress) {
@@ -2442,64 +2425,56 @@ void IceCheckList::sendBindingRequest(const std::shared_ptr<IceCandidatePair> &c
 			candidatePair->setState(IceCandidatePair::State::InProgress);
 		}
 	}
-	if (buf != nullptr) {
-		ms_free(buf);
-	}
-	ms_stun_message_destroy(msg);
 }
 
 void IceCheckList::sendBindingResponse(const RtpSession *rtpSession,
                                        const OrtpEventData *eventData,
-                                       const MSStunMessage *msg,
-                                       const MSStunAddress &remoteAddress) const {
+                                       const std::shared_ptr<StunMessage> &msg,
+                                       const StunAddress &remoteAddress) const {
 
-	auto *const rtpTransport = IceUtils::getTransportFromRtpSession(rtpSession, eventData);
+	auto *const rtpTransport = getTransportFromRtpSession(rtpSession, eventData);
 	if (rtpTransport == nullptr) {
 		return;
 	}
 
 	// Create the binding response, copying the transaction ID from the request.
-	const UInt96 transactionId = ms_stun_message_get_tr_id(msg);
-	auto *response = ms_stun_binding_success_response_create();
-	ms_stun_message_set_tr_id(response, transactionId);
-	ms_stun_message_enable_message_integrity(response, TRUE);
-	ms_stun_message_enable_fingerprint(response, TRUE);
+	const auto transactionId = msg->getTransactionId();
+	const auto response = StunMessage::createStunBindingSuccessResponse();
+	response->setTransactionId(transactionId);
+	response->enableMessageIntegrity(true);
+	response->enableFingerprint(true);
 	// For backward compatibility
-	ms_stun_message_enable_dummy_message_integrity(response, ms_stun_message_dummy_message_integrity_enabled(msg));
+	response->enableDummyMessageIntegrity(msg->hasDummyMessageIntegrity());
 
 	// Add username for message integrity
-	auto username = mSession->getLocalCredentials().getUfrag() + ":" +
-	                (mSession->getRemoteCredentials().has_value() ? mSession->getRemoteCredentials()->getUfrag() : "");
-	ms_stun_message_set_username(response, username.c_str());
-	if ((ms_stun_message_dummy_message_integrity_enabled(msg) == TRUE) && !mSession->isMessageIntegrityCheckEnabled()) {
+	response->setUsername(
+	    mSession->getLocalCredentials().getUfrag() + ":" +
+	    (mSession->getRemoteCredentials().has_value() ? mSession->getRemoteCredentials()->getUfrag() : ""));
+	if (msg->hasDummyMessageIntegrity() && !mSession->isMessageIntegrityCheckEnabled()) {
 		// Legacy case, include username for backward compatibility
 	} else {
-		ms_stun_message_include_username_attribute(response, FALSE);
+		response->includeUsernameAttribute(false);
 	}
 
 	// Add password for message integrity
-	ms_stun_message_set_password(response, mSession->getLocalCredentials().getPwd().c_str());
+	response->setPassword(mSession->getLocalCredentials().getPwd());
 
 	// Add the mapped address to the response.
-	ms_stun_message_set_xor_mapped_address(response, remoteAddress);
+	response->setXorMappedAddress(remoteAddress);
 
-	char *buf = nullptr;
-	auto len = ms_stun_message_encode(response, &buf);
-	if (len > 0) {
-		const auto destAddress = IceUtils::SockAddr(remoteAddress);
-		const auto sourceAddress = IceUtils::SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
-		ms_message("ice: Send binding response: %s --> %s [%s]", sourceAddress.asString().c_str(),
-		           destAddress.asString().c_str(), IceUtils::getTransactionIdStr(transactionId).c_str());
-		IceUtils::sendMessageToSocket(rtpTransport, buf, len, sourceAddress.asStructSockAddr(),
-		                              destAddress.asStructSockAddr(), destAddress.getLen());
+	const auto stunRawMessage = response->encode();
+	const auto data = stunRawMessage->getData();
+	if (!data.empty()) {
+		const auto destAddress = remoteAddress.toSockAddr();
+		const auto sourceAddress = SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
+		BCTBX_SLOGM << "ice: Send binding response: " << sourceAddress.asString() << " --> " << destAddress.asString()
+		            << " [" << transactionId.asString() << "]";
+		sendMessageToSocket(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		                    sourceAddress.asStructSockAddr(), destAddress.asStructSockAddr(), destAddress.getLen());
 	}
-	if (buf != nullptr) {
-		ms_free(buf);
-	}
-	ms_stun_message_destroy(response);
 }
 
-void IceCheckList::sendKeepAlivePackets(RtpSession *rtpSession) const {
+void IceCheckList::sendKeepAlivePackets(const RtpSession *rtpSession) const {
 	if (mState == State::Completed) {
 		for (const auto componentId : mLocalComponentsIds) {
 			const auto selectedValidCandidatePair = getSelectedValidCandidatePair(componentId);
@@ -2521,7 +2496,7 @@ void IceCheckList::sendStunRequests() {
 		const auto stunRequest = *it;
 		const auto currentTime = std::chrono::steady_clock::now();
 		if (stunRequest->isResponded() || (currentTime < stunRequest->getNextTransmissionTime())) {
-			it++;
+			++it;
 			continue;
 		}
 		if (stunRequest->getNbTransactions() < ICE_MAX_STUN_REQUEST_RETRANSMISSIONS) {
@@ -2531,10 +2506,10 @@ void IceCheckList::sendStunRequests() {
 				it = mStunRequests.erase(it);
 			} else {
 				stunRequest->addTransaction(transaction);
-				it++;
+				++it;
 			}
 		} else {
-			it++;
+			++it;
 		}
 	}
 }
@@ -2590,7 +2565,7 @@ void IceCheckList::setSelectedValidCandidatePair(
 	validCandidatePair->setSelected(true);
 }
 
-void IceCheckList::setTransactionResponseTime(const UInt96 &transactionId, const MSTimeSpec responseTime) {
+void IceCheckList::setTransactionResponseTime(const StunTransactionId &transactionId, const MSTimeSpec responseTime) {
 	const auto it = std::find_if(mStunRequests.begin(), mStunRequests.end(), [&transactionId](const auto &request) {
 		return request->getTransaction(transactionId) != nullptr;
 	});
@@ -2624,14 +2599,14 @@ std::shared_ptr<IceCandidatePair>
 IceCheckList::triggerConnectivityCheckOnBindingRequest(const OrtpEventData *eventData,
                                                        const std::shared_ptr<IceCandidate> &peerReflexiveCandidate,
                                                        const IceTransportAddress &remoteTransportAddress) {
-	const auto recvAddr = IceUtils::SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
+	const auto recvAddr = SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
 	const auto localTransportAddress = IceTransportAddress(recvAddr.asStructSockAddr(), recvAddr.getLen());
 	const auto itLocalCandidate =
 	    std::find_if(mLocalCandidates.begin(), mLocalCandidates.end(), [localTransportAddress](const auto &candidate) {
 		    return candidate->getTransportAddress() == localTransportAddress;
 	    });
 	if (itLocalCandidate == mLocalCandidates.end()) {
-		ms_error("ice: Local candidate %s not found!", localTransportAddress.asString().c_str());
+		BCTBX_SLOGE << "ice: Local candidate " << localTransportAddress.asString() << " not found!";
 		return nullptr;
 	}
 
@@ -2647,7 +2622,7 @@ IceCheckList::triggerConnectivityCheckOnBindingRequest(const OrtpEventData *even
 			                        (candidate->getTransportAddress() == remoteTransportAddress);
 		                 });
 		if (itRemoteCandidate == mRemoteCandidates.end()) {
-			ms_error("ice: Remote candidate %s not found!", remoteTransportAddress.asString().c_str());
+			BCTBX_SLOGE << "ice: Remote candidate " << remoteTransportAddress.asString() << " not found!";
 			return nullptr;
 		}
 		remoteCandidate = *itRemoteCandidate;
@@ -2661,8 +2636,8 @@ IceCheckList::triggerConnectivityCheckOnBindingRequest(const OrtpEventData *even
 	                                    });
 	if (itCandidatePair == mCheckList.end()) {
 		// The pair is not in the check list yet.
-		ms_message("ice: Add new candidate pair [%p - %p] in the check list", localCandidate.get(),
-		           remoteCandidate.get());
+		BCTBX_SLOGM << "ice: Add new candidate pair [" << localCandidate.get() << " - " << remoteCandidate.get()
+		            << "] in the check list";
 		// Check if the pair is in the list of pairs even if it is not in the check list.
 		itCandidatePair =
 		    std::find_if(mPairs.begin(), mPairs.end(), [localCandidate, remoteCandidate](const auto &candidatePair) {
@@ -2696,14 +2671,13 @@ IceCheckList::triggerConnectivityCheckOnBindingRequest(const OrtpEventData *even
 				queueTriggeredCheck(candidatePair);
 				break;
 			case IceCandidatePair::State::InProgress:
-				ms_message("ice: we are receiving a STUN request on pair %p, for which an outgoing STUN transaction is "
-				           "running.",
-				           candidatePair.get());
+				BCTBX_SLOGM << "ice: we are receiving a STUN request on pair " << candidatePair.get()
+				            << ", for which an outgoing STUN transaction is running.";
 				if (!candidatePair->hasCanceledTransaction()) {
 					// Cancel the transaction, but this may happen only once
 					auto transaction = findTransaction(candidatePair);
 					if (transaction != nullptr) {
-						ms_message("ice: transaction is canceled, a new binding request sent.");
+						BCTBX_SLOGM << "ice: transaction is canceled, a new binding request sent.";
 						transaction->cancel();
 						// And queue a new triggered check
 						candidatePair->setState(IceCandidatePair::State::Waiting);
@@ -2722,9 +2696,9 @@ IceCheckList::triggerConnectivityCheckOnBindingRequest(const OrtpEventData *even
 }
 
 // Update the nominated flag of a candidate pair according to 7.2.1.5.
-void IceCheckList::updateNominatedFlagOnBindingRequest(const MSStunMessage *msg,
-                                                       const std::shared_ptr<IceCandidatePair> &candidatePair) {
-	if ((ms_stun_message_use_candidate_enabled(msg) == FALSE) || (mSession->getRole() == IceRole::Controlling)) {
+void IceCheckList::updateNominatedFlagOnBindingRequest(const std::shared_ptr<StunMessage> &msg,
+                                                       const std::shared_ptr<IceCandidatePair> &candidatePair) const {
+	if (!msg->getUseCandidate() || (mSession->getRole() == IceRole::Controlling)) {
 		return;
 	}
 
@@ -2732,11 +2706,11 @@ void IceCheckList::updateNominatedFlagOnBindingRequest(const MSStunMessage *msg,
 	switch (candidatePair->getState()) {
 		case IceCandidatePair::State::Succeeded:
 			if (validPair == nullptr) {
-				ms_warning("ice: receiving a binding request with use-candidate flag on succeeded pair that is not "
-				           "in the valid list.");
+				BCTBX_SLOGW << "ice: receiving a binding request with use-candidate flag on succeeded pair that is not "
+				               "in the valid list.";
 				candidatePair->setIsNominated(true);
 			} else {
-				ms_message("ice: receiving a binding request with use-candidate flag on succeeded pair");
+				BCTBX_SLOGM << "ice: receiving a binding request with use-candidate flag on succeeded pair";
 				validPair->setIsNominated(true);
 			}
 			break;
@@ -2744,13 +2718,14 @@ void IceCheckList::updateNominatedFlagOnBindingRequest(const MSStunMessage *msg,
 		case IceCandidatePair::State::Frozen:
 		case IceCandidatePair::State::InProgress:
 			// Normally valid should be null if go here
-			ms_message("ice: receiving a binding request with nominated flag on non-succeeded pair");
+			BCTBX_SLOGM << "ice: receiving a binding request with nominated flag on non-succeeded pair";
 			// We cannot accept the nomination immediately. We will wait for our pair to complete its bind requests, and
 			// then the pair will be officially nominated
 			candidatePair->setNominationPending(true);
 			break;
 		case IceCandidatePair::State::Failed:
-			ms_error("ice: receiving a binding request with nominated flag on failed pair. This should not happen.");
+			BCTBX_SLOGE
+			    << "ice: receiving a binding request with nominated flag on failed pair. This should not happen.";
 			break;
 	}
 }
@@ -2785,7 +2760,7 @@ void IceCheckList::updatePairStatesOnBindingResponse(const std::shared_ptr<IceCa
 		if ((pair != candidatePair) && (pair->getState() == IceCandidatePair::State::Frozen) &&
 		    (pair->getLocalCandidate()->getFoundation() == candidatePair->getLocalCandidate()->getFoundation()) &&
 		    (pair->getRemoteCandidate()->getFoundation() == candidatePair->getRemoteCandidate()->getFoundation())) {
-			ms_message("ice: Change state of pair %p from Frozen to Waiting", pair.get());
+			BCTBX_SLOGM << "ice: Change state of pair " << pair.get() << " from Frozen to Waiting";
 			pair->setState(IceCandidatePair::State::Waiting);
 		}
 	}
@@ -2803,17 +2778,18 @@ std::shared_ptr<IceCandidate> IceCheckList::findCandidate(const std::list<std::s
 	return (itInet == candidates.end()) ? nullptr : *itInet;
 }
 
-std::pair<const MSStunAddress *, const MSStunAddress *> IceCheckList::parseStunResponse(const MSStunMessage *msg) {
-	std::pair<const MSStunAddress *, const MSStunAddress *> result = {nullptr, nullptr};
-	result.first = ms_stun_message_get_xor_mapped_address(msg);
-	if (result.first == nullptr) {
-		result.first = ms_stun_message_get_mapped_address(msg);
+std::pair<std::optional<StunAddress>, std::optional<StunAddress>>
+IceCheckList::parseStunResponse(const std::shared_ptr<StunMessage> &msg) {
+	std::pair<std::optional<StunAddress>, std::optional<StunAddress>> result = {std::nullopt, std::nullopt};
+	result.first = msg->getXorMappedAddress();
+	if (result.first == std::nullopt) {
+		result.first = msg->getMappedAddress();
 	}
-	if (result.first == nullptr) {
+	if (result.first == std::nullopt) {
 		return result;
 	}
-	result.second = ms_stun_message_get_xor_relayed_address(msg);
+	result.second = msg->getXorRelayedAddress();
 	return result;
 }
 
-} // namespace ms2
+} // namespace ms2::nat
