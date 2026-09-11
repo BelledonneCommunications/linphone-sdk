@@ -241,84 +241,93 @@ const MSFmtDescriptor *MSOpenH264Decoder::getOutFmt() const {
 }
 
 int MSOpenH264Decoder::nalusToFrame(MSQueue *nalus) {
-  mblk_t *im;
-  uint8_t *dst = mBitstream;
-  uint8_t *end = mBitstream + mBitstreamSize;
-  bool startPicture = true;
+	mblk_t *im;
+	uint8_t *dst = mBitstream;
+	uint8_t *end = mBitstream + mBitstreamSize;
+	bool startPicture = true;
 
-  while ((im = ms_queue_get(nalus)) != NULL) {
-    uint8_t *src = im->b_rptr;
-    int nalLen = im->b_wptr - src;
-    if ((dst + nalLen + 128) > end) {
-      int pos = dst - mBitstream;
-      enlargeBitstream(mBitstreamSize + nalLen + 128);
-      dst = mBitstream + pos;
-      end = mBitstream + mBitstreamSize;
-    }
-    if ((src[0] == 0) && (src[1] == 0) && (src[2] == 0) && (src[3] == 1)) {
-      // Workaround for stupid RTP H264 sender that includes nal markers
+	while ((im = ms_queue_get(nalus)) != NULL) {
+		uint8_t *src = im->b_rptr;
+		int nalLen = im->b_wptr - src;
+		if (nalLen == 0) {
+			freemsg(im);
+			continue;
+		}
+		// Already have a NAL: Annex-B/EBSP. No need to convert.
+		if ((nalLen >= 4 && src[0] == 0 && src[1] == 0 && src[2] == 0 && src[3] == 1)
+			|| nalLen >= 3 && src[0] == 0 && src[1] == 0 && src[2] == 1
+		) {
+			if ((dst + nalLen ) > end) {
+				int pos = dst - mBitstream;
+				enlargeBitstream(mBitstreamSize + nalLen );
+				dst = mBitstream + pos;
+				end = mBitstream + mBitstreamSize;
+			}
 #if MSOPENH264_DEBUG
-      ms_warning("OpenH264 decoder: stupid RTP H264 encoder");
+			ms_warning("OpenH264 decoder: RTP H264 encoder");
 #endif
-      int size = im->b_wptr - src;
-      memcpy(dst, src, size);
-      dst += size;
-    } else {
-      uint8_t naluType = *src & 0x1f;
+			memcpy(dst, src, nalLen);
+			dst += nalLen;
+		} else {
+			uint8_t naluType = *src & 0x1f;
 #if MSOPENH264_DEBUG
-      if ((naluType != 1) && (naluType != 7) && (naluType != 8)) {
-        ms_message("OpenH264 decoder: naluType=%d", naluType);
-      }
-      if (naluType == 7) {
-        ms_message("OpenH264 decoder: Got SPS");
-      }
-      if (naluType == 8) {
-        ms_message("OpenH264 decoder: Got PPS");
-      }
+			if ((naluType != 1) && (naluType != 7) && (naluType != 8)) {
+				ms_message("OpenH264 decoder: naluType=%d", naluType);
+			}
+			if (naluType == 7) {
+				ms_message("OpenH264 decoder: Got SPS");
+			}
+			if (naluType == 8) {
+				ms_message("OpenH264 decoder: Got PPS");
+			}
 #endif
-      if (startPicture || (naluType == 6)              // SEI
-          || (naluType == 7)                           // SPS
-          || (naluType == 8)                           // PPS
-          || ((naluType >= 14) && (naluType <= 18))) { // Reserved
-        *dst++ = 0;
-        startPicture = false;
-      }
+			// Without NAL, we have RBSP : add a start code and escape.
+			// Destination size need enough space : Each pair of 00 can lead to add another byte for escaping
+			size_t maxNewSize = nalLen + nalLen / 2 + 4;//  CurrentSize + Escaping + StartCode
 
-      // Prepend nal marker
-      *dst++ = 0;
-      *dst++ = 0;
-      *dst++ = 1;
-    	*dst++ = *src++;
-    	while (src < (im->b_wptr - 5)) {
-/*  RBSP (Raw Byte Sequence Payload) and SODB (String of Data Bits).
- *	RBSP has any of 0x000000, 0x000001, 0x000002, and 0x000003
- *	SODB has 0x00000300, 0x00000301, 0x00000302, and 0x00000303
- *
- *  An encoder has to insert an “emulation prevention byte” 0x03 while a decoder has to remove emulation prevention bytes.
- *	Encoder : RBSP => SODB
- *	Decoder : SODB => RBSP
- *
- *	Details:
- *		- https://wenchy.github.io/blogs/2015-12-11-H.264-stream-structure.html
- *		- https://videonerd.website/start-code-emulation/
-*/
-    		if ((src[0] == 0) && (src[1] == 0) && (src[2] == 3) && (src[3] == 0) && (src[4] <= 3) ) {
-    			*dst++ = 0;
-    			*dst++ = 0;
-    			*dst++ = src[4];
-    			src += 5;
-    		}else
-    			*dst++ = *src++;
-    	}
+			if ((dst + maxNewSize ) > end) {
+				int pos = dst - mBitstream;
+				enlargeBitstream(mBitstreamSize + maxNewSize );
+				dst = mBitstream + pos;
+				end = mBitstream + mBitstreamSize;
+			}
 
-      while (src < im->b_wptr) {
-        *dst++ = *src++;
-      }
-    }
-    freemsg(im);
-  }
-  return dst - mBitstream;
+			if (startPicture || (naluType == 6)              // SEI
+					|| (naluType == 7)                           // SPS
+					|| (naluType == 8)                           // PPS
+					|| ((naluType >= 14) && (naluType <= 18))) { // Reserved
+				*dst++ = 0;// 4 bytes
+				startPicture = false;
+			}
+
+			// Annex-B start code.
+			*dst++ = 0x00;
+			*dst++ = 0x00;
+			*dst++ = 0x01;
+			// NAL header. Do not encode it.
+			*dst++ = *src++;
+
+			// RBSP -> EBSP = Insert 03 for escaping if a pair of 0 and a value lesser than 3
+			int zeroCount = 0;
+			while (src < im->b_wptr) {
+				uint8_t value = *src++;
+				if (zeroCount == 2 && value <= 3) {
+					*dst++ = 3;
+					zeroCount = 0;
+				}
+				*dst++ = value;
+				if (value == 0)
+					++zeroCount;
+				else
+					zeroCount = 0;
+			}
+
+		}
+		freemsg(im);
+	}
+	return dst - mBitstream;
 }
+
 
 void MSOpenH264Decoder::enlargeBitstream(int newSize) {
   mBitstreamSize = newSize;
