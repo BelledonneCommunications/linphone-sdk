@@ -23,7 +23,7 @@
 #include "belle_sip_internal.h"
 
 #define DEFAULT_RETRY_AFTER 60000
-#define DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR 500
+#define DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR 0
 
 static void belle_sip_refresher_stop_internal(belle_sip_refresher_t *refresher, int cancel_pending_transaction);
 
@@ -93,9 +93,9 @@ static void retry_later(belle_sip_refresher_t *refresher) {
 }
 
 static void retry_later_on_io_error(belle_sip_refresher_t *refresher) {
-	/*if first retry, sent it immediately. */
+	/*if first retry, sent it sooner. */
 	if (refresher->number_of_retry < 1) {
-		schedule_timer_at(refresher, 0, RETRY);
+		schedule_timer_at(refresher, DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR, RETRY);
 		refresher->number_of_retry++;
 	} else {
 		retry_later(refresher);
@@ -160,33 +160,43 @@ static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_
 		if (refresher->state == started) retry_later_on_io_error(refresher);
 		if (refresher->listener)
 			refresher->listener(refresher, refresher->user_data, 503, "io error", refresher->state == started);
-
-		return;
-	} else if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(belle_sip_io_error_event_get_source(event), belle_sip_provider_t)) {
-		/*something went wrong on this provider, checking if my channel is still up*/
-		if (refresher->state == started /*refresher started or trying to refresh */
-		    && belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) ==
-		           BELLE_SIP_TRANSACTION_TERMINATED /*else we are notified by transaction error*/
-		    && refresher->transaction->base.channel /*transaction may not have any channel*/) {
-			switch (belle_sip_channel_get_state(refresher->transaction->base.channel)) {
-				case BELLE_SIP_CHANNEL_DISCONNECTED:
-				case BELLE_SIP_CHANNEL_ERROR:
-				case BELLE_SIP_CHANNEL_RETRY:
-					belle_sip_message("refresher [%p] has channel [%p] in state [%s], reporting error", refresher,
-					                  refresher->transaction->base.channel,
-					                  belle_sip_channel_state_to_string(
-					                      belle_sip_channel_get_state(refresher->transaction->base.channel)));
-					if (refresher->state == started) retry_later_on_io_error(refresher);
+		;
+	} else if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(belle_sip_io_error_event_get_source(event), belle_sip_provider_t) &&
+	           refresher->transaction && refresher->state == started) {
+		/* Something went wrong on this provider, checking if my channel is still up. */
+		belle_sip_transaction_state_t tr_state =
+		    belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction));
+		belle_sip_channel_t *channel = refresher->transaction->base.channel;
+		if (!channel) return;
+		switch (belle_sip_channel_get_state(channel)) {
+			case BELLE_SIP_CHANNEL_DISCONNECTED:
+			case BELLE_SIP_CHANNEL_ERROR:
+				if (tr_state == BELLE_SIP_TRANSACTION_TERMINATED) {
+					belle_sip_message("refresher [%p]: has channel [%p] in state [%s], reporting error", refresher,
+					                  channel, belle_sip_channel_state_to_string(belle_sip_channel_get_state(channel)));
+					retry_later_on_io_error(refresher);
 					if (refresher->listener)
 						refresher->listener(refresher, refresher->user_data, 503, "io error",
 						                    refresher->state == started);
 					refresher->on_io_error = 1;
-					break;
-				default:
-					break;
-			}
+				}
+				break;
+			case BELLE_SIP_CHANNEL_RETRY:
+				if (tr_state == BELLE_SIP_TRANSACTION_COMPLETED) {
+					/* The transaction just completed, but we are now informed that the channel is going to reconnect
+					 * (SRV failover). Request a refresh to happen immediately, whatever the Retry-After value was
+					 * given in the last response.
+					 * The retry-after value is given after all targets of SRV record have been tried.
+					 */
+					belle_sip_message(
+					    "refresher [%p]: channel is going to retry, finally scheduling immediate transaction retry.",
+					    refresher);
+					schedule_timer_at(refresher, 0, RETRY);
+				}
+				break;
+			default:
+				break;
 		}
-		return;
 	}
 }
 
@@ -257,6 +267,11 @@ static void enable_ping_pong_crlf(belle_sip_refresher_t *refresher,
 	}
 }
 
+static int get_retry_after_randomized(int duration_ms) {
+	/* randomize between 3/4 and 5/4 of DEFAULT_RETRY_AFTER */
+	return (3 * duration_ms / 4) + (belle_sip_random() % (duration_ms / 2));
+}
+
 static void process_response_event(belle_sip_listener_t *user_ctx, const belle_sip_response_event_t *event) {
 	belle_sip_client_transaction_t *client_transaction = belle_sip_response_event_get_client_transaction(event);
 	belle_sip_response_t *response = belle_sip_response_event_get_response(event);
@@ -267,8 +282,9 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	belle_sip_header_retry_after_t *retry_after_header;
 	int will_retry = TRUE; /*most error codes are retryable*/
 	retry_after_header = belle_sip_message_get_header_by_type(response, belle_sip_header_retry_after_t);
-	int retry_after_time =
-	    retry_after_header ? belle_sip_header_retry_after_get_retry_after(retry_after_header) : DEFAULT_RETRY_AFTER;
+	int retry_after_time_ms = retry_after_header
+	                              ? belle_sip_header_retry_after_get_retry_after(retry_after_header) * 1000
+	                              : refresher->retry_after;
 
 	if (refresher && (client_transaction != refresher->transaction)) return; /*not for me*/
 
@@ -422,7 +438,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			case 480:
 			case 500: {
 				if (refresher->target_expires > 0 && retry_after_header) {
-					schedule_timer_at(refresher, retry_after_time * 1000, RETRY);
+					schedule_timer_at(refresher, retry_after_time_ms, RETRY);
 					return; /*do not notify this kind of error*/
 				}
 			} break;
@@ -431,7 +447,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 				if (refresher->target_expires > 0) {
 					if (refresher->dialog) retry_later_on_io_error(refresher);
 					else {
-						schedule_timer_at(refresher, retry_after_time * 1000, RETRY);
+						schedule_timer_at(refresher, retry_after_time_ms, RETRY);
 					}
 				} else will_retry = FALSE;
 				break;
@@ -466,6 +482,7 @@ static void process_transaction_terminated(belle_sip_listener_t *user_ctx,
 	belle_sip_refresher_t *refresher = (belle_sip_refresher_t *)user_ctx;
 	belle_sip_client_transaction_t *client_transaction =
 	    belle_sip_transaction_terminated_event_get_client_transaction(event);
+
 	if (refresher && (client_transaction != refresher->transaction)) return; /*not for me*/
 
 	if (refresher->publish_pending && refresher->state == started) {
@@ -916,7 +933,7 @@ belle_sip_refresher_t *belle_sip_refresher_new(belle_sip_client_transaction_t *t
 	refresher->state = stopped;
 	refresher->number_of_retry = 0;
 	belle_sip_object_ref(transaction);
-	refresher->retry_after = DEFAULT_RETRY_AFTER;
+	refresher->retry_after = get_retry_after_randomized(DEFAULT_RETRY_AFTER);
 
 	if (belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(transaction))) {
 		set_or_update_dialog(refresher, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(transaction)));
@@ -953,7 +970,7 @@ int belle_sip_refresher_get_retry_after(const belle_sip_refresher_t *refresher) 
 }
 
 void belle_sip_refresher_set_retry_after(belle_sip_refresher_t *refresher, int delay_ms) {
-	refresher->retry_after = delay_ms;
+	refresher->retry_after = get_retry_after_randomized(delay_ms);
 }
 
 const char *belle_sip_refresher_get_realm(const belle_sip_refresher_t *refresher) {
