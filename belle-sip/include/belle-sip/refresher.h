@@ -79,6 +79,7 @@ BELLESIP_EXPORT int belle_sip_refresher_get_retry_after(const belle_sip_refreshe
 
 /**
  * Delay in ms after which the refresher will retry in case of recoverable error (I.E 408, 480, 503, 504, io error);
+ * To smooth request arrival from server standpoint, the provided value is automatically randomized by +/- 25 % .
  */
 BELLESIP_EXPORT void belle_sip_refresher_set_retry_after(belle_sip_refresher_t *refresher, int delay_ms);
 
