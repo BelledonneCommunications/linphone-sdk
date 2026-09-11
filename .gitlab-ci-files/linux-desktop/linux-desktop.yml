@@ -340,6 +340,8 @@
     - ROCKY_VERSION=$(cat /etc/rocky-release) || true
     - echo ${ROCKY_VERSION}
     - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 8')" ]; then source /opt/rh/gcc-toolset-12/enable; fi
+    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 9')" ]; then source /opt/rh/gcc-toolset-15/enable; fi
+    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 10')" ]; then source /opt/rh/gcc-toolset-15/enable; fi
 
     # searching for core files and if there are some, launch gdb on all of it
     # xargs -L1 means that the command in argument will be executed for each line (core dump) found in find output

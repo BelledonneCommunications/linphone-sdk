@@ -70,10 +70,3 @@ rocky8-ninja-gcc-newdocker:
   extends: rocky8-ninja-gcc
   <<: *docker_image_rule_no_cache
 
-liblinphone-rocky8-test-newdocker:
-  extends: liblinphone-rocky8-test
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_ROCKY8
-  needs:
-    - rocky8-makefile-gcc-newdocker

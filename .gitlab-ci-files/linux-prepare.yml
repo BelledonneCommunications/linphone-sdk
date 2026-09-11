@@ -183,6 +183,8 @@ recache-get-from-branch:
 
     - ROCKY_VERSION=$(cat /etc/rocky-release) || true
     - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 8')" ]; then source /opt/rh/gcc-toolset-12/enable; fi
+    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 9')" ]; then source /opt/rh/gcc-toolset-15/enable; fi
+    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 10')" ]; then gcc-toolset-15-env bash -c 'declare -px' > /tmp/gcc-toolset-env; source /tmp/gcc-toolset-env; fi
     - export GRADLE_USER_HOME=`pwd`/.gradle
 
     #debug empty value on updated arch

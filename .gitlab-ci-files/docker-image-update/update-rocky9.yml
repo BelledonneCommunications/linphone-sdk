@@ -1,0 +1,79 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+.factorize_rocky9_newdocker: &docker_image_rule_no_cache
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9:latestupdated
+  rules:
+    - if: $DOCKER_UPDATE_ROCKY9
+  cache:
+    - !reference [.no-cache, cache]
+
+
+rocky9-image-docker-rebuild:
+  stage: docker-update-build
+  tags: [ "linux-deploy-flat" ]
+  rules:
+    - if: $DOCKER_UPDATE_ROCKY9
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - docker pull rockylinux:9
+    - cd docker-files
+    - docker build -f ./bc-dev-rocky9 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9:latestupdated
+
+rocky9-image-docker-rebuild-ms-test:
+  stage: docker-update-build-ms
+  tags: [ "linux-deploy-flat" ]
+  rules:
+    - if: $DOCKER_UPDATE_ROCKY9
+  needs:
+    - rocky9-image-docker-rebuild
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9:latestupdated
+    - cd docker-files
+    - docker build -f ./bc-dev-rocky9-test-mediastreamer --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9-test-mediastreamer:latestupdated
+
+rocky9-image-docker-rebuild-liblinphone-test:
+  stage: docker-update-build-liblinphone
+  tags: [ "linux-deploy-flat" ]
+  rules:
+    - if: $DOCKER_UPDATE_ROCKY9
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  needs:
+    - rocky9-image-docker-rebuild-ms-test
+  script:
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9-test-mediastreamer:latestupdated
+    - cd docker-files
+    - docker build -f ./bc-dev-rocky9-test-liblinphone --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9-test-liblinphone:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9-test-liblinphone:latestupdated
+
+rocky9-makefile-gcc-newdocker:
+  extends: rocky9-makefile-gcc
+  <<: *docker_image_rule_no_cache
+
+rocky9-ninja-gcc-newdocker:
+  extends: rocky9-ninja-gcc
+  <<: *docker_image_rule_no_cache
+
+liblinphone-rocky9-test-newdocker:
+  extends: liblinphone-rocky9-test
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9-test-liblinphone:latestupdated
+  rules:
+    - if: $DOCKER_UPDATE_ROCKY9
+  needs:
+    - rocky9-makefile-gcc-newdocker

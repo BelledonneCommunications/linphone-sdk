@@ -1,0 +1,49 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+.factorize_rocky10_newdocker: &docker_image_rule_no_cache
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky10:latestupdated
+  rules:
+    - if: $DOCKER_UPDATE_ROCKY10
+  cache:
+    - !reference [.no-cache, cache]
+
+
+rocky10-image-docker-rebuild:
+  stage: docker-update-build
+  tags: [ "linux-deploy-flat" ]
+  rules:
+    - if: $DOCKER_UPDATE_ROCKY10
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - docker pull rockylinux/rockylinux:10
+    - cd docker-files
+    - docker build -f ./bc-dev-rocky10 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky10:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky10:latestupdated
+
+rocky10-image-docker-rebuild-ms-test:
+  stage: docker-update-build-ms
+  tags: [ "linux-deploy-flat" ]
+  rules:
+    - if: $DOCKER_UPDATE_ROCKY10
+  needs:
+    - rocky10-image-docker-rebuild
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky10:latestupdated
+    - cd docker-files
+    - docker build -f ./bc-dev-rocky10-test-mediastreamer --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky10-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky10-test-mediastreamer:latestupdated
+
+rocky10-ninja-gcc-newdocker:
+  extends: rocky10-ninja-gcc
+  <<: *docker_image_rule_no_cache

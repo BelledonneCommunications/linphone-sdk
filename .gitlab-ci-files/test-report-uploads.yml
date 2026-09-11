@@ -222,31 +222,31 @@
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_ANDROID_TESTS != null
     - !reference [.rules-merge-request-manual, rules]
 
-libl-rocky8-mr-test-upload:
+libl-rocky9-mr-test-upload:
   extends: .test-report-upload
   needs:
-    - liblinphone-rocky8-test-mr-2nd-chance
+    - liblinphone-rocky9-test-mr-2nd-chance
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "liblinphone"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
 
-libl-rocky8-schedule-test-upload:
+libl-rocky9-schedule-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - liblinphone-rocky8-test
+    - liblinphone-rocky9-test
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "liblinphone"
 
-libl-rocky8-forced-test-upload:
+libl-rocky9-forced-test-upload:
   extends: .test-report-upload
   needs:
-    - liblinphone-rocky8-test-force
+    - liblinphone-rocky9-test-force
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "liblinphone"
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_TESTS_LIBLINPHONE != null
@@ -309,12 +309,12 @@ libl-macos-schedule-test-upload:
     TESTER: "liblinphone"
 
 
-bct-rocky8-test-upload:
+bct-rocky9-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bctoolbox-rocky8-test
+    - bctoolbox-rocky9-test
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "bctoolbox"
 
 bct-debian13-test-upload:
@@ -349,12 +349,12 @@ bct-arch-test-upload:
 #    PLATFORM: "linux-ubuntu2004"
 #    TESTER: "bctoolbox"
 
-bellesip-rocky8-test-upload:
+bellesip-rocky9-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bellesip-rocky8-test
+    - bellesip-rocky9-test
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "bellesip"
 
 bellesip-debian13-test-upload:
@@ -392,9 +392,9 @@ bellesip-arch-test-upload:
 ms2-arch-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - mediastreamer-rocky8-test
+    - mediastreamer-rocky9-test
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "mediastreamer"
 
 #commented as long as ms2 testers aren't running everywhere
@@ -432,12 +432,12 @@ ms2-arch-test-upload:
 #     TESTER: "mediastreamer"
 
 
-belr-rocky8-test-upload:
+belr-rocky9-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - belr-rocky8-test
+    - belr-rocky9-test
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "belr"
 
 belr-debian13-test-upload:
@@ -472,12 +472,12 @@ belr-arch-test-upload:
 #    PLATFORM: "linux-ubuntu2004"
 #    TESTER: "belr"
 
-belcard-rocky8-test-upload:
+belcard-rocky9-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - belcard-rocky8-test
+    - belcard-rocky9-test
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "belcard"
 
 belcard-debian13-test-upload:
@@ -512,12 +512,12 @@ belcard-arch-test-upload:
 #    PLATFORM: "linux-ubuntu2004"
 #    TESTER: "belcard"
 
-bzrtp-rocky8-test-upload:
+bzrtp-rocky9-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bzrtp-rocky8-test
+    - bzrtp-rocky9-test
   variables:
-    PLATFORM: "linux-rocky8"
+    PLATFORM: "linux-rocky9"
     TESTER: "bzrtp"
 
 bzrtp-debian13-test-upload:

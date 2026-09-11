@@ -1,0 +1,52 @@
+wait-cache-synchro-rocky10:
+  extends: .wait-cache-synchro
+  stage: wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: rocky10
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [ .wait-cache-synchro, rules ]
+
+recache-rocky10:
+  extends: .recache-update-cache
+  image: !reference [ .rocky10_image_version, image ]
+
+
+.factorize_rocky10: &docker_image_needs_platform_runner_tag_dev_toolset
+  tags: [ "docker-test" ]
+  image: !reference [ .rocky10_image_version, image ]
+  needs:
+    - rocky10-ninja-gcc
+  variables:
+    PLATFORM: linux-rocky10
+
+.factorize_rocky10_coverage: &docker_image_needs_platform_runner_tag_dev_toolset_coverage
+  tags: [ "docker-test" ]
+  image: !reference [ .rocky10_image_version, image ]
+  needs:
+    - rocky10-ninja-clang-coverage
+  variables:
+    PLATFORM: linux-rocky10
+
+#################################################
+# Ninja
+#################################################
+
+
+rocky10-ninja-gcc:
+  stage: build
+  tags: [ "docker-flat" ]
+  image: !reference [ .rocky10_image_version, image ]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+    CCACHE_SIZE: 15G
+    CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON
+    CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZER=ON
+  extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-rocky10

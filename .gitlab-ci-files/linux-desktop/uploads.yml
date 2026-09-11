@@ -158,7 +158,7 @@ lime-doc-upload:
 # --- WHEEL UPLOAD
 #################################################
 
-rocky8-python-wheel-upload:
+rocky9-python-wheel-upload:
   stage: deploy
   tags: [ "deploy-flat" ]
 
@@ -167,7 +167,7 @@ rocky8-python-wheel-upload:
     - !reference [.rules-merge-request-manual, rules]
   
   needs:
-    - rocky8-python-wheel
+    - rocky9-python-wheel
 
   script:
     #getting the version number to push the right version of the wheel
