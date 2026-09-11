@@ -12,4 +12,112 @@ All comments and discussions between reviewers and developers must remain respec
 By grounding discussions in shared references, code reviews should help foster constructive debate and contribute to the collective adoption and dissemination of good practices across the team.
 
 
+<table>
+<tbody>
+<tr>
+<td>JIRA ticket number in title</td>
+<td>
 
+- [ ] done
+
+</td>
+<td>
+
+- [ ] N.A.
+
+</td>
+</tr>
+<tr>
+<td><p>Merge request pipeline succeeded</p><p>(Review process cannot begin if there is at least one non-shaky test failing)</p></td>
+<td>
+
+- [ ] done
+
+</td>
+<td>
+
+- [ ] N.A.
+
+</td>
+</tr>
+<tr>
+<td>Tests added</td>
+<td>
+
+- [ ] done
+
+</td>
+<td>
+
+- [ ] N.A.
+
+</td>
+</tr>
+<tr>
+<td>CHANGELOG updated</td>
+<td>
+
+- [ ] done
+
+</td>
+<td>
+
+- [ ] N.A.
+
+</td>
+</tr>
+<tr>
+<td><p>Remote provisioning documentation updated</p>
+<p>(only if new configuration parameters are added to the RC file)</p></td>
+<td>
+
+- [ ] done
+
+</td>
+<td>
+
+- [ ] N.A.
+
+</td>
+</tr>
+<tr>
+<td>Internal documentation updated</td>
+<td>
+
+- [ ] done
+
+</td>
+<td>
+
+- [ ] N.A.
+
+</td>
+</tr>
+<tr>
+<td>Public documentation updated (wiki)</td>
+<td>
+
+- [ ] done
+
+</td>
+<td>
+
+- [ ] N.A.
+
+</td>
+</tr>
+<tr>
+<td>Tag added (only for release branches)</td>
+<td>
+
+- [ ] done
+
+</td>
+<td>
+
+- [ ] N.A.
+
+</td>
+</tr>
+</tbody>
+</table>
