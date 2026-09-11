@@ -276,7 +276,7 @@ LINPHONE_PUBLIC void linphone_range_set_max(LinphoneRange *range, int max);
 
 /**
  * Returns a string descrbing the #LinphoneAuthMethod value.
- * @param the authentication method
+ * @param method the authentication method
  * @return a string describing the authentication method.
  * @ingroup group_misc
  */

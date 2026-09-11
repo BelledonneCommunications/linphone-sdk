@@ -1958,7 +1958,7 @@ LINPHONE_PUBLIC const char *linphone_core_get_identity(LinphoneCore *core);
 
 /**
  * Tells #LinphoneCore to guess local hostname automatically in primary contact.
- * @ingroup group_group_initializingaccount
+ * @ingroup group_initializing
  * @param core the #LinphoneCore @notnil
  * @param enable whether to enable the guess hostname feature or not
  **/
@@ -4456,7 +4456,7 @@ LINPHONE_PUBLIC void *linphone_core_get_native_video_window_id(const LinphoneCor
  * @ingroup group_media_parameters
  * For MacOS, Linux, Windows: core will create its own window
  * @internal
- *	Must be the same value as #MS_FILTER_VIDEO_AUTO
+ *	Must be the same value as MS_FILTER_VIDEO_AUTO
  * @endinternal
  */
 #define LINPHONE_VIDEO_DISPLAY_AUTO (void *)(-1)
@@ -4465,7 +4465,7 @@ LINPHONE_PUBLIC void *linphone_core_get_native_video_window_id(const LinphoneCor
  * @ingroup group_media_parameters
  * For MacOS, Linux, Windows: do nothing
  * @internal
- *	Must be the same value as #MS_FILTER_VIDEO_NONE
+ *	Must be the same value as MS_FILTER_VIDEO_NONE
  * @endinternal
  */
 #define LINPHONE_VIDEO_DISPLAY_NONE (void *)(0)
@@ -8346,7 +8346,6 @@ LINPHONE_PUBLIC void linphone_core_set_message_sending_delay(LinphoneCore *core,
  * full state of an encrypted chatroom before sending chat messages anyway, when the core is
  * running inside an iOS app extension.
  * @ingroup group_IOS
- * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @return the duration of the timer in seconds
  **/
@@ -8357,7 +8356,6 @@ LINPHONE_PUBLIC int linphone_core_get_message_sending_delay_app_ext(const Linpho
  * SUBSCRIBE out. If a NOTIFY comes in before the timer expires, messages will be then sent at the time, otherwise when
  * the timer expires, when the core is running inside an IOS app extension.
  * @ingroup group_IOS
- * @ingroup group_chatroom
  * @param core #LinphoneCore object @notnil
  * @param duration the duration of the timer in seconds. A 0 or negative number deactivates the feature.
  **/

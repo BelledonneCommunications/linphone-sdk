@@ -63,6 +63,7 @@ add_custom_command(OUTPUT "${PROVISIONING_DOC_OUTPUT_FILE}"
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_2} ${PROVISIONING_DOC_OUTPUT_FILE}
 	DEPENDS ${PROVISIONING_DOC_OUTPUT_FILE}.raw
 	liblinphone-doc
+	COMMENT "Generating C# wrapper at ${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml/"
 )
 
 add_custom_target(liblinphone-csharp-wrapper ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/LinphoneWrapper.cs")
