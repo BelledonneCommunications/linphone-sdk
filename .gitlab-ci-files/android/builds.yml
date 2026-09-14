@@ -8,7 +8,7 @@ wait-cache-synchro-android:
 
 recache-android:
   extends: .recache-update-cache
-  image: !reference [.android_r27_image_version, image]
+  image: !reference [.android_r30_image_version, image]
 
 .android:
 
@@ -76,7 +76,7 @@ android-ninja-r27:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
-  image: !reference [.android_r27_image_version, image]
+  image: !reference [.android_r30_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -92,7 +92,7 @@ bundled-android-ninja-r27:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
-  image: !reference [.android_r27_image_version, image]
+  image: !reference [.android_r30_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -135,7 +135,7 @@ android-ninja-r27-minimal-size:
 
 android-ninja-r27-no-video:
 
-  image: !reference [.android_r27_image_version, image]
+  image: !reference [.android_r30_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null

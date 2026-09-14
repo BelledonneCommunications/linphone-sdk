@@ -48,7 +48,7 @@ private:
 
 	mblk_t *_lastSps = nullptr;
 	bool _resetOnPsReceiving = false;
-	static const std::vector<const DeviceInfo>
+	static const std::vector<DeviceInfo>
 	    _tvDevices; // List of devices whose H264 hardware decoder needs to be initialized with the right definition
 };
 
