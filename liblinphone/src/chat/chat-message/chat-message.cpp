@@ -2582,6 +2582,13 @@ void ChatMessage::markAsRead() {
 		         << "]";
 		return;
 	}
+	auto messageState = getState();
+	if (messageState != ChatMessage::State::Delivered && messageState != ChatMessage::State::FileTransferDone &&
+	    messageState != ChatMessage::State::DeliveredToUser) {
+		lError() << __func__ << ": Cannot change state from " << getState() << " to "
+		         << "Displayed. Message must be Delivered first.";
+		return;
+	}
 
 	shared_ptr<AbstractChatRoom> chatRoom = getChatRoom();
 

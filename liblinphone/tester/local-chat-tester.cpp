@@ -5453,6 +5453,10 @@ void one_on_one_chat_room_recovery_after_404(void) {
 			// and the message is sent once more.
 			const char *recovery_msg_text = "Are you still there?";
 			msg = ClientConference::sendTextMsg(marieCr, recovery_msg_text);
+			// Manually set the message status to Displayed to check that an undelivered message cannot be set to
+			// delivered.
+			linphone_chat_message_mark_as_read(msg);
+			BC_ASSERT_TRUE(L_GET_CPP_PTR_FROM_C_OBJECT(msg)->getState() != ChatMessage::State::Displayed);
 
 			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageNotDelivered,
 			                             marie_stat.number_of_LinphoneMessageNotDelivered + 1,
