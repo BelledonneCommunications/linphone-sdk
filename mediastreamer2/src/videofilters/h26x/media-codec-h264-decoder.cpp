@@ -215,7 +215,7 @@ private:
 	mblk_t *_pps = nullptr;
 };
 
-const std::vector<const MediaCodecH264Decoder::DeviceInfo> MediaCodecH264Decoder::_tvDevices = {
+const std::vector<MediaCodecH264Decoder::DeviceInfo> MediaCodecH264Decoder::_tvDevices = {
     {"Amlogic", "Quad-Core Enjoy TV Box", "gxl"},
     {"rockchip", "X9-LX", "rk3288"},
     {"rockchip", "rk3288", "rk3288"},

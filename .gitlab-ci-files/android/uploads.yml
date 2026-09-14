@@ -1,7 +1,7 @@
 .android-upload-common:
   stage: deploy
   tags: [ "docker-flat" ]
-  image: !reference [.android_r27_image_version, image]
+  image: !reference [.android_r30_image_version, image]
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_ANDROID != null
@@ -36,7 +36,7 @@
 android-doc-upload:
   stage: deploy
   tags: [ "docker-flat" ]
-  image: !reference [.android_r27_image_version, image]
+  image: !reference [.android_r30_image_version, image]
 
   rules:
     - if: $DEPLOY_RUN_ANDROID != null
