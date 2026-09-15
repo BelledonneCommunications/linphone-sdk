@@ -11,7 +11,7 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
-## Unreleased
+## [Unreleased]
 ### Added
 - Add stateful PRACK sending [RFC3262](https://www.rfc-editor.org/info/rfc3262)
 - MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
@@ -23,6 +23,10 @@ changes made to these components.
 - Updated Sqlite3 dependency to 3.54.0
 - Updated decaf dependency to 1.0.5
 - Updated SRTP library dependency to 2.8.1
+
+[latest]
+### Fixed
+- Remove provisioning configuration keys parsing if generation of documentation has not been requested.
 
 ## [5.5.35] 2026-10-19
 

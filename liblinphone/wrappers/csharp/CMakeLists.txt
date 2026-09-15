@@ -35,52 +35,54 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/LinphoneWrapper.cs
 		liblinphone-doc
 		COMMENT "Generating C# wrapper"
 )
+if(ENABLE_DOC)
+	include("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/cmake_doxygen_sed_fixes.txt")
 
-include("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/cmake_doxygen_sed_fixes.txt")
+	#Replacing linphone_core_set_tag_100rel_support_level
+	set(SED_FUNCTION_CASE_1 "${SED_QUOTES}s/linphone_core_set_tag_100rel_support_level/Linphone.Core.Tag100RelSupportLevel/g${SED_QUOTES}" )
+	#Replacing linphone_core_set_refresh_window
+	set(SED_FUNCTION_CASE_2 "${SED_QUOTES}s/linphone_core_set_refresh_window/Linphone.Core.SetRefreshWindow/g${SED_QUOTES}" )
 
-#Replacing linphone_core_set_tag_100rel_support_level
-set(SED_FUNCTION_CASE_1 "${SED_QUOTES}s/linphone_core_set_tag_100rel_support_level/Linphone.Core.Tag100RelSupportLevel/g${SED_QUOTES}" )
-#Replacing linphone_core_set_refresh_window
-set(SED_FUNCTION_CASE_2 "${SED_QUOTES}s/linphone_core_set_refresh_window/Linphone.Core.SetRefreshWindow/g${SED_QUOTES}" )
+	# Replacing linphone_nat_policy_***
+	#-r ':a;s/linphone_nat_policy_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.NatPolicy.\u\2/g;s/(Linphone.NatPolicy.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+	set(SED_CLASS_CASE_1 "${SED_QUOTES}:a\;s/linphone_nat_policy_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.NatPolicy.\\u\\2/g\;s/(Linphone.NatPolicy.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+	#Replacing linphone_core_***
+	#-r ':a;s/linphone_core_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.Core.\u\2/g;s/(Linphone.Core.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+	set(SED_CLASS_CASE_2 "${SED_QUOTES}:a\;s/linphone_core_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.Core.\\u\\2/g\;s/(Linphone.Core.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+	# Replacing linphone_account_params_***
+	#-r ':a;s/linphone_account_params_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.AccountParams.\u\2/g;s/(Linphone.AccountParams.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+	set(SED_CLASS_CASE_3 "${SED_QUOTES}:a\;s/linphone_account_params_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.AccountParams.\\u\\2/g\;s/(Linphone.AccountParams.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+	# Replacing linphone_auth_info_***
+	#-r ':a;s/linphone_auth_info_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.AuthInfo.\u\2/g;s/(Linphone.AuthInfo.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+	set(SED_CLASS_CASE_4 "${SED_QUOTES}:a\;s/linphone_auth_info_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.AuthInfo.\\u\\2/g\;s/(Linphone.AuthInfo.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+	# Replacing linphone_transports_***
+	#-r ':a;s/linphone_transports_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.Transports.\u\2/g;s/(Linphone.Transports.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+	set(SED_CLASS_CASE_5 "${SED_QUOTES}:a\;s/linphone_transports_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.Transports.\\u\\2/g\;s/(Linphone.Transports.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+	# Replacing linphone_remote_contact_directory_***
+	#-r ':a;s/linphone_remote_contact_directory_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.RemoteContactDirectory.\u\2/g;s/(Linphone.RemoteContactDirectory.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+	set(SED_CLASS_CASE_6 "${SED_QUOTES}:a\;s/linphone_remote_contact_directory_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.RemoteContactDirectory.\\u\\2/g\;s/(Linphone.RemoteContactDirectory.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
 
-# Replacing linphone_nat_policy_***
-#-r ':a;s/linphone_nat_policy_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.NatPolicy.\u\2/g;s/(Linphone.NatPolicy.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
-set(SED_CLASS_CASE_1 "${SED_QUOTES}:a\;s/linphone_nat_policy_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.NatPolicy.\\u\\2/g\;s/(Linphone.NatPolicy.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
-#Replacing linphone_core_***
-#-r ':a;s/linphone_core_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.Core.\u\2/g;s/(Linphone.Core.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
-set(SED_CLASS_CASE_2 "${SED_QUOTES}:a\;s/linphone_core_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.Core.\\u\\2/g\;s/(Linphone.Core.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
-# Replacing linphone_account_params_***
-#-r ':a;s/linphone_account_params_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.AccountParams.\u\2/g;s/(Linphone.AccountParams.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
-set(SED_CLASS_CASE_3 "${SED_QUOTES}:a\;s/linphone_account_params_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.AccountParams.\\u\\2/g\;s/(Linphone.AccountParams.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
-# Replacing linphone_auth_info_***
-#-r ':a;s/linphone_auth_info_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.AuthInfo.\u\2/g;s/(Linphone.AuthInfo.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
-set(SED_CLASS_CASE_4 "${SED_QUOTES}:a\;s/linphone_auth_info_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.AuthInfo.\\u\\2/g\;s/(Linphone.AuthInfo.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
-# Replacing linphone_transports_***
-#-r ':a;s/linphone_transports_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.Transports.\u\2/g;s/(Linphone.Transports.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
-set(SED_CLASS_CASE_5 "${SED_QUOTES}:a\;s/linphone_transports_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.Transports.\\u\\2/g\;s/(Linphone.Transports.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
-# Replacing linphone_remote_contact_directory_***
-#-r ':a;s/linphone_remote_contact_directory_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.RemoteContactDirectory.\u\2/g;s/(Linphone.RemoteContactDirectory.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
-set(SED_CLASS_CASE_6 "${SED_QUOTES}:a\;s/linphone_remote_contact_directory_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.RemoteContactDirectory.\\u\\2/g\;s/(Linphone.RemoteContactDirectory.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+	set(PROVISIONING_DOC_OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox)
+	configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${PROVISIONING_DOC_OUTPUT_FILE}.raw")
 
-set(PROVISIONING_DOC_OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox)
-configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${PROVISIONING_DOC_OUTPUT_FILE}.raw")
-
-add_custom_command(OUTPUT "${PROVISIONING_DOC_OUTPUT_FILE}"
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r 's/\#Linphone\(\[A-Za-z\]+\)/Linphone\.\\1/g' ${PROVISIONING_DOC_OUTPUT_FILE}.raw > ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_GENERIC_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_FUNCTION_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_FUNCTION_CASE_2} ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_2} ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_3} ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_4} ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_5} ${PROVISIONING_DOC_OUTPUT_FILE}
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_6} ${PROVISIONING_DOC_OUTPUT_FILE}
-	DEPENDS ${PROVISIONING_DOC_OUTPUT_FILE}.raw
-	liblinphone-doc
-	COMMENT "Generating C# wrapper at ${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml/"
-)
+	add_custom_command(OUTPUT "${PROVISIONING_DOC_OUTPUT_FILE}"
+		COMMAND ${CMAKE_COMMAND} -E remove -f ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r 's/\#Linphone\(\[A-Za-z\]+\)/Linphone\.\\1/g' ${PROVISIONING_DOC_OUTPUT_FILE}.raw > ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_GENERIC_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_FUNCTION_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_FUNCTION_CASE_2} ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_2} ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_3} ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_4} ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_5} ${PROVISIONING_DOC_OUTPUT_FILE}
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_6} ${PROVISIONING_DOC_OUTPUT_FILE}
+		DEPENDS ${PROVISIONING_DOC_OUTPUT_FILE}.raw
+		liblinphone-doc
+		COMMENT "Generating C# wrapper at ${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml/"
+	)
+	set(DOC_INPUT_FILES ${PROVISIONING_DOC_OUTPUT_FILE})
+endif()
 
 add_custom_target(liblinphone-csharp-wrapper ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/LinphoneWrapper.cs")
 
@@ -117,7 +119,9 @@ if(ENABLE_DOC OR ENABLE_CSHARP_WRAPPER)
 		set(DOXYFILE_INPUT "")
 		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/LinphoneWrapper.cs\"")
 		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox\"")
-		string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${PROVISIONING_DOC_OUTPUT_FILE}\"")
+		if(ENABLE_DOC)
+			string(CONCAT DOXYFILE_INPUT ${DOXYFILE_INPUT} " \"${PROVISIONING_DOC_OUTPUT_FILE}\"")
+		endif()
 		set(DOXYFILE_OPTIMIZE_OUTPUT_FOR_C NO)
 		set(DOXYFILE_FILE_PATTERNS "*.hh *.dox" )
 		set(DOXYFILE_EXAMPLE_PATH "")
@@ -134,7 +138,7 @@ if(ENABLE_DOC OR ENABLE_CSHARP_WRAPPER)
 		set(DOC_INPUT_FILES ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 				"${CMAKE_CURRENT_BINARY_DIR}/LinphoneWrapper.cs"
 				${CMAKE_CURRENT_BINARY_DIR}/doxygen.dox
-				${PROVISIONING_DOC_OUTPUT_FILE}
+				${DOC_INPUT_FILES}
 		)
 
 		set(CSHARP_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/cs")
