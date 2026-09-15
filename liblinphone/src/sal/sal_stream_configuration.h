@@ -110,6 +110,8 @@ public:
 
 	bool hasLimeIk() const;
 
+	bool hasRtcpMux() const;
+
 	bool hasZrtpHash() const;
 
 	const uint8_t *getZrtpHash() const;

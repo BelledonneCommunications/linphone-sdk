@@ -323,6 +323,10 @@ bool SalStreamConfiguration::hasLimeIk() const {
 	return false;
 }
 
+bool SalStreamConfiguration::hasRtcpMux() const {
+	return rtcp_mux;
+}
+
 const SalMediaProto &SalStreamConfiguration::getProto() const {
 	return proto;
 }

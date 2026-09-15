@@ -7264,22 +7264,45 @@ static void call_with_http_proxy_v4(void) {
 	_call_with_http_proxy(TRUE);
 }
 
-void _call_with_rtcp_mux(bool_t caller_rtcp_mux, bool_t callee_rtcp_mux, bool_t with_ice, bool_t with_ice_reinvite) {
+void _call_with_rtcp_mux(CallRtcpMuxParams const *params) {
+	bool caller_rtcp_mux = params->caller_rtcp_mux;
+	bool callee_rtcp_mux = params->callee_rtcp_mux;
+	bool caller_accept_rtcp_mux = params->caller_accept_rtcp_mux;
+	bool callee_accept_rtcp_mux = params->callee_accept_rtcp_mux;
+	bool leave_accept_rtcp_mux_unset = params->leave_accept_rtcp_mux_unset;
+	bool with_ice = params->with_ice;
+	bool with_ice_reinvite = params->with_ice_reinvite;
+
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneCoreManager *pauline =
 	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
-	const LinphoneCallParams *params;
+	const LinphoneCallParams *callParams;
 	bctbx_list_t *lcs = NULL;
 
 	lcs = bctbx_list_append(lcs, marie->lc);
 	lcs = bctbx_list_append(lcs, pauline->lc);
 
+	BC_ASSERT_FALSE(linphone_core_rtcp_mux_enabled(marie->lc));
+	BC_ASSERT_FALSE(linphone_core_rtcp_mux_enabled(pauline->lc));
+	BC_ASSERT_TRUE(linphone_core_accept_rtcp_mux_enabled(marie->lc));
+	BC_ASSERT_TRUE(linphone_core_accept_rtcp_mux_enabled(pauline->lc));
+
 	if (caller_rtcp_mux) {
-		linphone_config_set_int(linphone_core_get_config(marie->lc), "rtp", "rtcp_mux", 1);
+		linphone_core_enable_rtcp_mux(marie->lc, true);
+		BC_ASSERT_TRUE(linphone_core_rtcp_mux_enabled(marie->lc));
 	}
 	if (callee_rtcp_mux) {
-		linphone_config_set_int(linphone_core_get_config(pauline->lc), "rtp", "rtcp_mux", 1);
+		linphone_core_enable_rtcp_mux(pauline->lc, true);
+		BC_ASSERT_TRUE(linphone_core_rtcp_mux_enabled(pauline->lc));
 	}
+	// when [rtp]/accept_rtcp_mux is unset -> fall back to the hardcoded default (TRUE).
+	if (!leave_accept_rtcp_mux_unset) {
+		linphone_core_enable_accept_rtcp_mux(marie->lc, caller_accept_rtcp_mux ? true : false);
+		linphone_core_enable_accept_rtcp_mux(pauline->lc, callee_accept_rtcp_mux ? true : false);
+		BC_ASSERT_EQUAL(linphone_core_accept_rtcp_mux_enabled(marie->lc), caller_accept_rtcp_mux, bool_t, "%d");
+		BC_ASSERT_EQUAL(linphone_core_accept_rtcp_mux_enabled(pauline->lc), callee_accept_rtcp_mux, bool_t, "%d");
+	}
+
 	/*
 	 * uncomment the lines below to test the case of rtcp-mux with a fixed port policy.
 	 * unfortunately it cannot be used in CI because of port conflict risk that may
@@ -7302,13 +7325,15 @@ void _call_with_rtcp_mux(bool_t caller_rtcp_mux, bool_t callee_rtcp_mux, bool_t 
 
 	if (!BC_ASSERT_TRUE(call(marie, pauline))) goto end;
 
-	params = linphone_call_get_remote_params(linphone_core_get_current_call(pauline->lc));
-	BC_ASSERT_TRUE(caller_rtcp_mux == (linphone_call_params_get_custom_sdp_media_attribute(
-	                                       params, LinphoneStreamTypeAudio, "rtcp-mux") != NULL));
 	if (caller_rtcp_mux) {
-		params = linphone_call_get_remote_params(linphone_core_get_current_call(marie->lc));
-		BC_ASSERT_TRUE(callee_rtcp_mux == (linphone_call_params_get_custom_sdp_media_attribute(
-		                                       params, LinphoneStreamTypeAudio, "rtcp-mux") != NULL));
+		callParams = linphone_call_get_remote_params(linphone_core_get_current_call(marie->lc));
+		const bool expected_rtcp_mux = callee_rtcp_mux || (leave_accept_rtcp_mux_unset ? TRUE : callee_accept_rtcp_mux);
+		BC_ASSERT_TRUE(expected_rtcp_mux == (linphone_call_params_get_custom_sdp_media_attribute(
+		                                         callParams, LinphoneStreamTypeAudio, "rtcp-mux") != NULL));
+	} else {
+		callParams = linphone_call_get_remote_params(linphone_core_get_current_call(marie->lc));
+		BC_ASSERT_PTR_NULL(
+		    linphone_call_params_get_custom_sdp_media_attribute(callParams, LinphoneStreamTypeAudio, "rtcp-mux"));
 	}
 
 	if (with_ice) {
@@ -7316,7 +7341,7 @@ void _call_with_rtcp_mux(bool_t caller_rtcp_mux, bool_t callee_rtcp_mux, bool_t 
 	}
 	liblinphone_tester_check_rtcp(marie, pauline);
 
-	if (caller_rtcp_mux && callee_rtcp_mux) {
+	if (caller_rtcp_mux && (callee_rtcp_mux || (leave_accept_rtcp_mux_unset ? TRUE : callee_accept_rtcp_mux))) {
 		BC_ASSERT_EQUAL(marie->stat.number_of_rtcp_received_via_mux, marie->stat.number_of_rtcp_received, int, "%i");
 
 		BC_ASSERT_EQUAL(pauline->stat.number_of_rtcp_received_via_mux, pauline->stat.number_of_rtcp_received, int,
@@ -7338,11 +7363,44 @@ end:
 }
 
 static void call_with_rtcp_mux(void) {
-	_call_with_rtcp_mux(TRUE, TRUE, FALSE, TRUE);
+	CallRtcpMuxParams params = {0};
+	params.caller_rtcp_mux = TRUE;
+	params.callee_rtcp_mux = TRUE;
+	params.with_ice_reinvite = TRUE;
+	_call_with_rtcp_mux(&params);
+}
+
+static void call_with_rtcp_mux_accepted_without_activation(void) {
+	CallRtcpMuxParams params = {0};
+	params.caller_rtcp_mux = TRUE;
+	params.callee_accept_rtcp_mux = TRUE;
+	params.with_ice_reinvite = TRUE;
+	_call_with_rtcp_mux(&params);
+}
+
+static void call_with_rtcp_mux_accepted_due_default(void) {
+	CallRtcpMuxParams params = {0};
+	params.caller_rtcp_mux = TRUE;
+	params.leave_accept_rtcp_mux_unset = TRUE;
+	params.with_ice_reinvite = TRUE;
+	_call_with_rtcp_mux(&params);
 }
 
 static void call_with_rtcp_mux_not_accepted(void) {
-	_call_with_rtcp_mux(TRUE, FALSE, FALSE, TRUE);
+	CallRtcpMuxParams params = {0};
+	params.caller_rtcp_mux = TRUE;
+	params.with_ice_reinvite = TRUE;
+	_call_with_rtcp_mux(&params);
+}
+
+static void call_with_rtcp_mux_disabled_both_sides(void) {
+	CallRtcpMuxParams params = {0};
+	// Leave accept_rtcp_mux unset (defaults to TRUE) to make sure that default
+	// doesn't leak into the offer construction: the caller must still not
+	// propose rtcp-mux.
+	params.leave_accept_rtcp_mux_unset = TRUE;
+	params.with_ice_reinvite = TRUE;
+	_call_with_rtcp_mux(&params);
 }
 
 static void v6_to_v4_call_without_relay(void) {
@@ -9287,6 +9345,8 @@ static test_t call2_tests[] = {
     TEST_NO_TAG("Call paused resumed with custom RTP Modifier", call_paused_resumed_with_custom_rtp_modifier),
     TEST_NO_TAG("Call record with custom RTP Modifier", call_record_with_custom_rtp_modifier),
     TEST_NO_TAG("Call with rtcp-mux", call_with_rtcp_mux),
+    TEST_NO_TAG("Call with rtcp-mux accepted without activation", call_with_rtcp_mux_accepted_without_activation),
+    TEST_NO_TAG("Call with rtcp-mux accepted due default", call_with_rtcp_mux_accepted_due_default),
     TEST_NO_TAG("Call with network reachable down in callback", call_with_network_reachable_down_in_callback),
     TEST_NO_TAG("Call terminated with reason", terminate_call_with_error),
     TEST_NO_TAG("Call accepted, other ringing device receive CANCEL with reason", cancel_other_device_after_accept),
@@ -9361,6 +9421,7 @@ static test_t call_not_established_tests[] = {
     TEST_NO_TAG("Unsuccessful call with transport change after released",
                 unsucessfull_call_with_transport_change_after_released),
     TEST_NO_TAG("Call with rtcp-mux not accepted", call_with_rtcp_mux_not_accepted),
+    TEST_NO_TAG("Call with rtcp-mux disabled both sides", call_with_rtcp_mux_disabled_both_sides),
     TEST_NO_TAG("Call cancelled with reason", cancel_call_with_error),
     TEST_NO_TAG("Call cancelled with invalid reason header", call_cancelled_with_invalid_reason_header),
     TEST_NO_TAG("Call declined, other ringing device receive CANCEL with reason", cancel_other_device_after_decline),

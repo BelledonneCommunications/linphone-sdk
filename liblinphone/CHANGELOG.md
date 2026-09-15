@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
-
 ## Unreleased
 
 ### Added
@@ -17,10 +16,16 @@ This changelog file was started on October 2019. Previous changes were more or l
 - Support of permanent activities in the presence. This enables the ability for the presence server to store
   activities permanently, even if the PUBLISH expires.
 - Allow multiple cores to work with a common chatroom database.
+- Core-level API to control rtcp-mux [RFC 5761](https://datatracker.ietf.org/doc/html/rfc5761): `linphone_core_enable_rtcp_mux()` to propose it in outgoing offers, and
+  `linphone_core_enable_accept_rtcp_mux()` to accept it in incoming offers even when it is not enabled locally.
+  Corresponding linphonerc keys are `[rtp]/rtcp_mux` (default 0) and `[rtp]/accept_rtcp_mux` (default 1).
 
 ### Changes
 - Optimize contact importation by performing the vcards parsing asynchronously in a background thread, and by optimizing the parser and the database storage.
 - Default UDP, TCP, TLS listening ports are set to DONTBIND (-2) for all platforms, in order to prevent any listening socket to be created by default. Users that expect a listening socket on port 5060 should make it explicit programmatically using linphone_core_set_sip_transports() or by setting the sip_port, sip_tcp_port and sip_tls_port configuration keys from the [sip] section of the linphonerc file.
+- rtcp-mux is now accepted by default when proposed in an incoming offer, even if it is not enabled locally. Before, it
+    was only used in answers if enabled locally, or if RTP bundle mode or DTLS-SRTP was in use. To get the previous behavior,
+    disable this with `linphone_core_enable_accept_rtcp_mux(core, FALSE)` or `[rtp]/accept_rtcp_mux=0` (`rtcp_mux` being disabled, which is its default).
 
 ## [5.5.20] 2026-08-29
 

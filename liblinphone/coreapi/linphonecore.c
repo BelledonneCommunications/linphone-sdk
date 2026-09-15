@@ -9226,6 +9226,21 @@ bool_t linphone_core_rtp_bundle_enabled(const LinphoneCore *lc) {
 void linphone_core_enable_rtp_bundle(LinphoneCore *lc, bool_t value) {
 	linphone_config_set_bool(lc->config, "rtp", "bundle", value);
 }
+bool_t linphone_core_rtcp_mux_enabled(const LinphoneCore *core) {
+	return linphone_config_get_bool(core->config, "rtp", "rtcp_mux", FALSE);
+}
+
+void linphone_core_enable_rtcp_mux(LinphoneCore *core, bool_t value) {
+	linphone_config_set_bool(core->config, "rtp", "rtcp_mux", value);
+}
+
+bool_t linphone_core_accept_rtcp_mux_enabled(const LinphoneCore *core) {
+	return linphone_config_get_bool(core->config, "rtp", "accept_rtcp_mux", TRUE);
+}
+
+void linphone_core_enable_accept_rtcp_mux(LinphoneCore *core, bool_t value) {
+	linphone_config_set_bool(core->config, "rtp", "accept_rtcp_mux", value);
+}
 
 void linphone_core_set_video_preset(LinphoneCore *lc, const char *preset) {
 	linphone_config_set_string(lc->config, "video", "preset", preset);

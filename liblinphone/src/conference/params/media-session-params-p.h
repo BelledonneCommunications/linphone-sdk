@@ -161,6 +161,8 @@ public:
 
 	bool rtpBundle = false;
 
+	bool rtcpMux = false;
+
 	bool recordAware = false;
 	SalMediaRecord recordState = SalMediaRecordNone;
 

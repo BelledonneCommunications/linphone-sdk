@@ -983,6 +983,10 @@ bool SalStreamDescription::hasLimeIk() const {
 	return getChosenConfiguration().hasLimeIk();
 }
 
+bool SalStreamDescription::hasRtcpMux() const {
+	return getChosenConfiguration().hasRtcpMux();
+}
+
 const std::string &SalStreamDescription::getRtcpAddress() const {
 	return rtcp_addr;
 }

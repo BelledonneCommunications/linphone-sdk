@@ -237,15 +237,28 @@ static void zrtp_ice_call(void) {
 }
 
 static void call_with_ice_and_rtcp_mux(void) {
-	_call_with_rtcp_mux(TRUE, TRUE, TRUE, TRUE);
+	CallRtcpMuxParams params = {0};
+	params.caller_rtcp_mux = TRUE;
+	params.callee_rtcp_mux = TRUE;
+	params.with_ice = TRUE;
+	params.with_ice_reinvite = TRUE;
+	_call_with_rtcp_mux(&params);
 }
 
 static void call_with_ice_and_rtcp_mux_without_reinvite(void) {
-	_call_with_rtcp_mux(TRUE, TRUE, TRUE, FALSE);
+	CallRtcpMuxParams params = {0};
+	params.caller_rtcp_mux = TRUE;
+	params.callee_rtcp_mux = TRUE;
+	params.with_ice = TRUE;
+	_call_with_rtcp_mux(&params);
 }
 
 static void call_with_ice_and_rtcp_mux_not_accepted(void) {
-	_call_with_rtcp_mux(TRUE, FALSE, TRUE, TRUE);
+	CallRtcpMuxParams params = {0};
+	params.caller_rtcp_mux = TRUE;
+	params.with_ice = TRUE;
+	params.with_ice_reinvite = TRUE;
+	_call_with_rtcp_mux(&params);
 }
 
 static bool_t is_matching_a_local_address(const std::string &ip, const bctbx_list_t *addresses) {

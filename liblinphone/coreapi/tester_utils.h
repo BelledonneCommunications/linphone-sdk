@@ -180,6 +180,7 @@ LINPHONE_PUBLIC int _linphone_call_get_main_video_stream_index(const LinphoneCal
 
 LINPHONE_PUBLIC void linphone_call_params_set_no_user_consent(LinphoneCallParams *params, bool_t value);
 LINPHONE_PUBLIC bool_t linphone_call_params_get_update_call_when_ice_completed(const LinphoneCallParams *params);
+LINPHONE_PUBLIC bool_t linphone_call_params_rtcp_mux_enabled(const LinphoneCallParams *params);
 LINPHONE_PUBLIC void linphone_call_params_set_video_download_bandwidth(LinphoneCallParams *params, int bw);
 
 LINPHONE_PUBLIC int _linphone_call_stats_get_updated(const LinphoneCallStats *stats);

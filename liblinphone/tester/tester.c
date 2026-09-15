@@ -4945,6 +4945,14 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
 
 	if (!did_receive_call) return 0;
 
+	const LinphoneCallParams *current_params = linphone_call_get_params(caller_call);
+	if (linphone_call_params_rtcp_mux_enabled(current_params)) {
+		const LinphoneCallParams *remote_params =
+		    linphone_call_get_remote_params(linphone_core_get_current_call(callee_mgr->lc));
+		BC_ASSERT_TRUE((linphone_call_params_get_custom_sdp_media_attribute(remote_params, LinphoneStreamTypeAudio,
+		                                                                    "rtcp-mux") != NULL));
+	}
+
 	int calls_nb = linphone_core_get_calls_nb(callee_mgr->lc);
 	if (calls_nb <= 1) BC_ASSERT_TRUE(linphone_core_is_incoming_invite_pending(callee_mgr->lc));
 	BC_ASSERT_GREATER(caller_mgr->stat.number_of_LinphoneCallOutgoingProgress,

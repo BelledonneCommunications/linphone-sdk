@@ -720,6 +720,10 @@ void linphone_call_params_enable_rtp_bundle(LinphoneCallParams *params, bool_t v
 	L_GET_CPP_PTR_FROM_C_OBJECT(params)->enableRtpBundle(!!value);
 }
 
+bool_t linphone_call_params_rtcp_mux_enabled(const LinphoneCallParams *params) {
+	return (bool_t)L_GET_CPP_PTR_FROM_C_OBJECT(params)->rtcpMuxEnabled();
+}
+
 bool_t linphone_call_params_is_recording(const LinphoneCallParams *params) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(params)->isRecording();
 }

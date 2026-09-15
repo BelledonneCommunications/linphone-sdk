@@ -187,6 +187,8 @@ The <i>rtp</i> section represents the RTP configuration.
 	<tr><td>video_rtp_port</td><td>integer</td><td>1024–65535</td><td>-1 (random)</td><td>linphone_core_set_video_port_range()</td><td>\copybrief linphone_core_set_video_port_range</td></tr>
 	<tr><td>nortp_timeout</td><td>integer</td><td>0–300 (s)</td><td>30</td><td>linphone_core_set_nortp_timeout()</td><td>\copybrief linphone_core_set_nortp_timeout</td></tr>
 	<tr><td>rtp_no_xmit_on_audio_mute</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_set_rtp_no_xmit_on_audio_mute()</td><td>\copybrief linphone_core_set_rtp_no_xmit_on_audio_mute</td></tr>
+	<tr><td>rtcp_mux</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_enable_rtcp_mux()</td><td>\copybrief linphone_core_enable_rtcp_mux</td></tr>
+    <tr><td>accept_rtcp_mux</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_accept_rtcp_mux()</td><td>\copybrief linphone_core_enable_accept_rtcp_mux</td></tr>
 </table>
 \if DOXYFILE_USE_DETAILS
 <details>
