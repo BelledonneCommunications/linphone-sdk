@@ -756,7 +756,7 @@ static void ms_opus_dec_init(MSFilter *f) {
 	d->statsfec = 0;
 	d->statsplc = 0;
 	d->plc = 1;
-	d->complexity = 0;
+	d->complexity = 5; // 5 is the minimum to benefit from DeepPLC, see https://opus-codec.org/demo/opus-1.5/
 	f->data = d;
 }
 
