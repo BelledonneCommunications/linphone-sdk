@@ -136,6 +136,9 @@ public:
 	void enableRtpBundle(bool value);
 	bool rtpBundleEnabled() const;
 
+	void enableRtcpMux(bool value);
+	bool rtcpMuxEnabled() const;
+
 	bool recordAwareEnabled() const;
 	void enableRecordAware(bool value);
 

@@ -6072,14 +6072,60 @@ LINPHONE_PUBLIC bool_t linphone_core_rtp_bundle_enabled(const LinphoneCore *core
  * Enables or disables RTP bundle mode (Media Multiplexing).
  * See https://datatracker.ietf.org/doc/html/rfc8843 for more information about the feature.
  * When enabled, liblinphone will try to negociate the use of a single port for all streams when doing an outgoing call.
- * It automatically enables rtcp-mux.
- * This feature can also be enabled per-call using #LinphoneCallParams.
- * RTP Bundle mode is required for video conferencing.
+ * It automatically enables rtcp-mux. This feature can also be enabled per-call using #LinphoneCallParams. RTP Bundle
+ * mode is required for video conferencing.
  * @param core the #LinphoneCore @notnil
  * @param value a boolean to indicate whether the feature is to be enabled.
  * @ingroup group_media_parameters
  */
 LINPHONE_PUBLIC void linphone_core_enable_rtp_bundle(LinphoneCore *core, bool_t value);
+
+/**
+ * Returns whether rtcp-mux is enabled.
+ * See https://datatracker.ietf.org/doc/html/rfc5761 for more information about the feature.
+ * Whether an incoming offer proposing rtcp-mux is accepted is controlled independently,
+ * see linphone_core_accept_rtcp_mux_enabled().
+ * @param core the #LinphoneCore @notnil
+ * @return a boolean indicating whether rtcp-mux is enabled.
+ * @ingroup group_media_parameters
+ */
+LINPHONE_PUBLIC bool_t linphone_core_rtcp_mux_enabled(const LinphoneCore *core);
+
+/**
+ * Enables or disables rtcp-mux.
+ * See https://datatracker.ietf.org/doc/html/rfc5761 for more information about the feature.
+ * When enabled, liblinphone will propose to multiplex RTP and RTCP traffic on the same port
+ * when doing an outgoing call, instead of using a separate port for RTCP.
+ * rtcp-mux is automatically enabled when RTP bundle mode or DTLS-SRTP is used, regardless of this setting.
+ * Even when disabled here, an incoming offer proposing rtcp-mux may still be honored,
+ * see linphone_core_accept_rtcp_mux_enabled().
+ * This feature can also be enabled per-call using #LinphoneCallParams.
+ * @param core the #LinphoneCore @notnil
+ * @param value a boolean to indicate whether the feature is to be enabled.
+ * @ingroup group_media_parameters
+ */
+LINPHONE_PUBLIC void linphone_core_enable_rtcp_mux(LinphoneCore *core, bool_t value);
+
+/**
+ * Returns whether an incoming offer proposing rtcp-mux is accepted when rtcp-mux
+ * is not otherwise already enabled locally, see linphone_core_rtcp_mux_enabled().
+ * It is enabled by default.
+ * @param core the #LinphoneCore @notnil
+ * @return a boolean indicating whether an incoming rtcp-mux proposal is accepted.
+ * @ingroup group_media_parameters
+ */
+LINPHONE_PUBLIC bool_t linphone_core_accept_rtcp_mux_enabled(const LinphoneCore *core);
+
+/**
+ * Enables or disables the acceptance of rtcp-mux when proposed in an incoming offer.
+ * See https://datatracker.ietf.org/doc/html/rfc5761 for more information about rtcp-mux.
+ * This is enabled by default, so that liblinphone always accepts rtcp-mux when a remote party
+ * proposes it, even if it wasn't proposed locally (see linphone_core_enable_rtcp_mux()).
+ * @param core the #LinphoneCore @notnil
+ * @param value a boolean to indicate whether the feature is to be enabled.
+ * @ingroup group_media_parameters
+ */
+LINPHONE_PUBLIC void linphone_core_enable_accept_rtcp_mux(LinphoneCore *core, bool_t value);
 
 /**
  * @brief Set the network simulator parameters.

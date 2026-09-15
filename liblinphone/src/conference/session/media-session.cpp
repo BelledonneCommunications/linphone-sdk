@@ -1182,14 +1182,20 @@ void MediaSessionPrivate::fixCallParams(std::shared_ptr<SalMediaDescription> &rm
 		// conference. If bundle mode has been accepted, then future reINVITEs or UPDATEs must reoffer bundle mode
 		// unless the user has explicitely requested to disable it.
 		bool rtpBundleEnabled = false;
+		bool rtcpMuxEnabled = false;
+		auto localCallParams = getParams();
 		if (fromOffer) {
 			rtpBundleEnabled = (rcp->rtpBundleEnabled() && linphone_config_get_bool(linphone_core_get_config(cCore),
 			                                                                        "rtp", "accept_bundle", TRUE));
+			rtcpMuxEnabled = localCallParams->rtcpMuxEnabled() ||
+			                 (rcp->rtcpMuxEnabled() && linphone_core_accept_rtcp_mux_enabled(cCore));
 		} else {
 			// Case of a SDP response
-			rtpBundleEnabled = getParams()->rtpBundleEnabled() && rcp->rtpBundleEnabled();
+			rtpBundleEnabled = localCallParams->rtpBundleEnabled() && rcp->rtpBundleEnabled();
+			rtcpMuxEnabled = localCallParams->rtcpMuxEnabled() && rcp->rtcpMuxEnabled();
 		}
-		getParams()->enableRtpBundle(rtpBundleEnabled);
+		localCallParams->enableRtpBundle(rtpBundleEnabled);
+		localCallParams->enableRtcpMux(rtcpMuxEnabled);
 	}
 }
 
@@ -1805,10 +1811,8 @@ void MediaSessionPrivate::fillRtpParameters(SalStreamDescription &stream) const 
 
 	auto &cfg = stream.cfgs[stream.getActualConfigurationIndex()];
 	if (cfg.dir != SalStreamInactive) {
-		bool rtcpMux =
-		    !!linphone_config_get_int(linphone_core_get_config(q->getCore()->getCCore()), "rtp", "rtcp_mux", 0);
 		/* rtcp-mux must be enabled when bundle mode is proposed or we're using DTLS-SRTP.*/
-		cfg.rtcp_mux = rtcpMux || getParams()->rtpBundleEnabled() ||
+		cfg.rtcp_mux = getParams()->rtcpMuxEnabled() || getParams()->rtpBundleEnabled() ||
 		               (getNegotiatedMediaEncryption() == LinphoneMediaEncryptionDTLS);
 		cfg.rtcp_cname = getMe()->getAddress()->asStringUriOnly();
 
@@ -5867,6 +5871,7 @@ const MediaSessionParams *MediaSession::getRemoteParams() const {
 			if (md->name[0] != '\0') params->setSessionName(md->name);
 			params->getPrivate()->setCustomSdpAttributes(md->custom_sdp_attributes);
 			params->enableRtpBundle(!md->bundles.empty());
+			params->enableRtcpMux(md->oneStreamHasRtcpMux());
 			params->setRecordingState(md->record);
 
 			const auto &times = md->times;

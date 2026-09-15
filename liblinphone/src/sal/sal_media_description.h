@@ -110,6 +110,7 @@ public:
 	bool hasZrtp() const;
 	bool hasLimeIk() const;
 	bool hasIpv6() const;
+	bool oneStreamHasRtcpMux() const;
 	const SalMediaDescriptionParams &getParams() const;
 
 	SalMediaDescription &operator=(const SalMediaDescription &other);

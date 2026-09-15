@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## [5.5.26] 2026-09-29
+
+### Added
+- Core-level API to control rtcp-mux [RFC 5761](https://datatracker.ietf.org/doc/html/rfc5761): `linphone_core_enable_rtcp_mux()` to propose it in outgoing offers, and
+  `linphone_core_enable_accept_rtcp_mux()` to accept it in incoming offers even when it is not enabled locally.
+  Corresponding linphonerc keys are `[rtp]/rtcp_mux` (default 0) and `[rtp]/accept_rtcp_mux` (default 1).
+
+### Changes
+- rtcp-mux is now accepted by default when proposed in an incoming offer, even if it is not enabled locally. Before, it
+  was only used in answers if enabled locally, or if RTP bundle mode or DTLS-SRTP was in use. To get the previous behavior,
+  disable this with `linphone_core_enable_accept_rtcp_mux(core, FALSE)` or `[rtp]/accept_rtcp_mux=0` (`rtcp_mux` being disabled, which is its default).
+
 ## [5.5.20] 2026-08-29
 
 ### Changed

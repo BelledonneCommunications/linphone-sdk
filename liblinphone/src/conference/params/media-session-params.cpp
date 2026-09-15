@@ -79,6 +79,7 @@ void MediaSessionParamsPrivate::clone(const MediaSessionParamsPrivate *src) {
 			customSdpMediaAttributes[i] = sal_custom_sdp_attribute_clone(src->customSdpMediaAttributes[i]);
 	}
 	rtpBundle = src->rtpBundle;
+	rtcpMux = src->rtcpMux;
 	recordAware = src->recordAware;
 	recordState = src->recordState;
 	videoDownloadBandwidth = src->videoDownloadBandwidth;
@@ -321,6 +322,7 @@ void MediaSessionParams::initDefault(const std::shared_ptr<Core> &core, Linphone
 	                                                                 "update_call_when_ice_completed_with_dtls", false);
 	d->mandatoryMediaEncryptionEnabled = !!linphone_core_is_media_encryption_mandatory(cCore);
 	d->rtpBundle = linphone_core_rtp_bundle_enabled(cCore);
+	d->rtcpMux = linphone_core_rtcp_mux_enabled(cCore);
 	enableRecordAware(linphone_core_is_record_aware_enabled(cCore));
 
 	d->micEnabled = true; /* always enabled by default. This switch is unrelated to the Core's mic enablement.*/
@@ -646,6 +648,16 @@ void MediaSessionParams::enableRtpBundle(bool value) {
 bool MediaSessionParams::rtpBundleEnabled() const {
 	L_D();
 	return d->rtpBundle;
+}
+
+void MediaSessionParams::enableRtcpMux(bool value) {
+	L_D();
+	d->rtcpMux = value;
+}
+
+bool MediaSessionParams::rtcpMuxEnabled() const {
+	L_D();
+	return d->rtcpMux;
 }
 
 bool MediaSessionParams::isRecording() const {

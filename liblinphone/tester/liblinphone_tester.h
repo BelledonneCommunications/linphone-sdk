@@ -1099,7 +1099,17 @@ void simple_call_base_with_rcs(const char *caller_rc,
                                bool_t use_multipart_invite_body,
                                bool_t double_call);
 
-void _call_with_rtcp_mux(bool_t caller_rtcp_mux, bool_t callee_rtcp_mux, bool_t with_ice, bool_t with_ice_reinvite);
+typedef struct _CallRtcpMuxParams {
+	bool_t caller_rtcp_mux;
+	bool_t callee_rtcp_mux;
+	bool_t caller_accept_rtcp_mux;
+	bool_t callee_accept_rtcp_mux;
+	bool_t leave_accept_rtcp_mux_unset;
+	bool_t with_ice;
+	bool_t with_ice_reinvite;
+} CallRtcpMuxParams;
+
+void _call_with_rtcp_mux(CallRtcpMuxParams const *params);
 
 void call_base_with_configfile(LinphoneMediaEncryption mode,
                                bool_t enable_video,

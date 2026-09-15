@@ -765,6 +765,15 @@ bool SalMediaDescription::hasIpv6() const {
 	return true;
 }
 
+bool SalMediaDescription::oneStreamHasRtcpMux() const {
+	if (streams.empty()) return false;
+	for (const auto &stream : streams) {
+		if (!stream.enabled()) continue;
+		if (stream.hasRtcpMux()) return true;
+	}
+	return false;
+}
+
 bool SalMediaDescription::operator==(const SalMediaDescription &other) const {
 	return (equal(other) == SAL_MEDIA_DESCRIPTION_UNCHANGED);
 }
