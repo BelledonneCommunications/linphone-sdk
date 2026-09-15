@@ -73,44 +73,46 @@ if(ENABLE_DOC OR ENABLE_CSHARP_WRAPPER)
 			"${CMAKE_CURRENT_SOURCE_DIR}/version.txt.in"
 			"${CMAKE_CURRENT_BINARY_DIR}/version.txt"
 		)
+		if(ENABLE_DOC)
+			if(WIN32)
+				set(SED_BACKSLASH "\\\\\\")
+				set(SED_ESCAPE_CHARACTER "\^")
+				set(SED_BINARY_MODE "-b")
+			else()
+				set(SED_BACKSLASH "\\\\")
+				set(SED_ESCAPE_CHARACTER "")
+				set(SED_BINARY_MODE "")
+			endif()
 
-		if(WIN32)
-			set(SED_BACKSLASH "\\\\\\")
-			set(SED_ESCAPE_CHARACTER "\^")
-			set(SED_BINARY_MODE "-b")
-		else()
-			set(SED_BACKSLASH "\\\\")
-			set(SED_ESCAPE_CHARACTER "")
-			set(SED_BINARY_MODE "")
+			if(APPLE)
+				set(SED_IN_PLACE_EDIT_ARG "-i ''")
+			else()
+				set(SED_IN_PLACE_EDIT_ARG "-i")
+			endif()
+
+			configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md.raw")
+			add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md"
+				COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+
+				COMMAND sed -r 's/\#Linphone\(\[A-Za-z\]+\)/\@Linphone\.\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md.raw > ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*\\\*\[\[:space:\]\]*//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*${SED_BACKSLASH}defgroup\[\[:space:\]\]+\[A-Za-z\\_\]+\[\[:space:\]\]+\(\[A-Za-z\[:space:\]\]+\)/\# \\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<h2${SED_ESCAPE_CHARACTER}\>\(\.+\)${SED_ESCAPE_CHARACTER}\<\\/h2${SED_ESCAPE_CHARACTER}\>/\\\#\\\# \\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<li${SED_ESCAPE_CHARACTER}\>\(\.\*\)${SED_ESCAPE_CHARACTER}\<\\/li${SED_ESCAPE_CHARACTER}\>/\- \\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<ul${SED_ESCAPE_CHARACTER}\>//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<\\/ul${SED_ESCAPE_CHARACTER}\>//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/Table ${SED_BACKSLASH}ref \[A-Za-z\\_\]\+ \\\"\[A-Za-z\[:space:\]\\_\]\+\\\"/The table below/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::/\@Linphone::/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/::/\./g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
+				DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md.raw
+				liblinphone-doc
+			)
+			set(DOC_INPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md")
 		endif()
-
-		if(APPLE)
-			set(SED_IN_PLACE_EDIT_ARG "-i ''")
-		else()
-			set(SED_IN_PLACE_EDIT_ARG "-i")
-		endif()
-
-		configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md.raw")
-		add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md"
-			COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-
-			COMMAND sed -r 's/\#Linphone\(\[A-Za-z\]+\)/\@Linphone\.\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md.raw > ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*\\\*\[\[:space:\]\]*//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*${SED_BACKSLASH}defgroup\[\[:space:\]\]+\[A-Za-z\\_\]+\[\[:space:\]\]+\(\[A-Za-z\[:space:\]\]+\)/\# \\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<h2${SED_ESCAPE_CHARACTER}\>\(\.+\)${SED_ESCAPE_CHARACTER}\<\\/h2${SED_ESCAPE_CHARACTER}\>/\\\#\\\# \\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<li${SED_ESCAPE_CHARACTER}\>\(\.\*\)${SED_ESCAPE_CHARACTER}\<\\/li${SED_ESCAPE_CHARACTER}\>/\- \\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<ul${SED_ESCAPE_CHARACTER}\>//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/${SED_ESCAPE_CHARACTER}\<\\/ul${SED_ESCAPE_CHARACTER}\>//g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/Table ${SED_BACKSLASH}ref \[A-Za-z\\_\]\+ \\\"\[A-Za-z\[:space:\]\\_\]\+\\\"/The table below/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::/\@Linphone::/g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/::/\./g' ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md
-			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md.raw
-			liblinphone-doc
-		)
 
 		add_custom_command(OUTPUT "docfx_project/_site/index.html"
 			COMMAND ${CMAKE_COMMAND} -E copy
@@ -119,7 +121,7 @@ if(ENABLE_DOC OR ENABLE_CSHARP_WRAPPER)
 			COMMAND ${DOCFX_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/docfx_project/docfx.json"
 			DEPENDS LinphoneWrapper.cs
 			"${CMAKE_CURRENT_BINARY_DIR}/docfx_project/index.md"
-			"${CMAKE_CURRENT_BINARY_DIR}/docfx_project/provisioning_configuration_key.md"
+			${DOC_INPUT_FILE}
 		)
 
 		add_custom_target(

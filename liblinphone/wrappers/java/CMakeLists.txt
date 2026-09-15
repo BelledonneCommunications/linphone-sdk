@@ -34,46 +34,57 @@ else()
 	set(_wrapper_platform "desktop")
 endif()
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-	set(SED_BACKSLASH "\\\\\\")
-	set(SED_ESCAPE_CHARACTER "\^")
-	set(SED_BINARY_MODE "-b")
-else()
-	set(SED_BACKSLASH "\\\\")
-	set(SED_ESCAPE_CHARACTER "")
-	set(SED_BINARY_MODE "")
-endif()
+if(ENABLE_DOC)
+	if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+		set(SED_BACKSLASH "\\\\\\")
+		set(SED_ESCAPE_CHARACTER "\^")
+		set(SED_BINARY_MODE "-b")
+	else()
+		set(SED_BACKSLASH "\\\\")
+		set(SED_ESCAPE_CHARACTER "")
+		set(SED_BINARY_MODE "")
+	endif()
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-	set(SED_IN_PLACE_EDIT_ARG "-i ''")
-else()
-	set(SED_IN_PLACE_EDIT_ARG "-i")
-endif()
+	if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+		set(SED_IN_PLACE_EDIT_ARG "-i ''")
+	else()
+		set(SED_IN_PLACE_EDIT_ARG "-i")
+	endif()
 
-configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw")
-configure_file("${PROJECT_SOURCE_DIR}/wrappers/java/overview.mustache.in" "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in")
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache"
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\"${SED_ESCAPE_CHARACTER}\>Linphone\.\\1${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/@//' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*\\\*//' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*\\\*\[\[:space:\]\]*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*${SED_BACKSLASH}defgroup\[\[:space:\]\]+\[A-Za-z\\_\]+\[\[:space:\]\]+\(\[A-Za-z\[:space:\]\]+\)/${SED_ESCAPE_CHARACTER}\<h1${SED_ESCAPE_CHARACTER}\>\\1${SED_ESCAPE_CHARACTER}\<\\/h1${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/Table ${SED_BACKSLASH}ref \[A-Za-z\\_\]\+ \"\[A-Za-z\[:space:\]\\_\]\+\"/The table below/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::\(\[\[:alnum:\]\]+\)::\(\[\[:alnum:\]\]+\)\(\\\(\\\)\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\#\\2--\"${SED_ESCAPE_CHARACTER}\>\\1\.\\2\\3${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
-	COMMAND awk "NR>n{print a[NR%n]}{a[NR%n]=\$0}" n=2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
-	COMMAND cat ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
-	COMMAND tail -2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw
-	${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in
-	liblinphone-doc
-)
+	configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw")
+	configure_file("${PROJECT_SOURCE_DIR}/wrappers/java/overview.mustache.in" "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in")
+	add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache"
+		COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} 's/\#Linphone\(\[A-Za-z\]+\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\"${SED_ESCAPE_CHARACTER}\>Linphone\.\\1${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw > ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/@//' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*\\\*//' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\/\\\*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\\*\\///g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*\\\*\[\[:space:\]\]*//g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\[\[:space:\]\]*${SED_BACKSLASH}defgroup\[\[:space:\]\]+\[A-Za-z\\_\]+\[\[:space:\]\]+\(\[A-Za-z\[:space:\]\]+\)/${SED_ESCAPE_CHARACTER}\<h1${SED_ESCAPE_CHARACTER}\>\\1${SED_ESCAPE_CHARACTER}\<\\/h1${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/Table ${SED_BACKSLASH}ref \[A-Za-z\\_\]\+ \"\[A-Za-z\[:space:\]\\_\]\+\"/The table below/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/\\_\\\#\(\[\[:alnum:\]\]\)/\\U\\1/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} 's/linphone::\(\[\[:alnum:\]\]+\)::\(\[\[:alnum:\]\]+\)\(\\\(\\\)\)/${SED_ESCAPE_CHARACTER}\<a href\=\"org\\\/linphone\\\/core\\\/\\1.html\#\\2--\"${SED_ESCAPE_CHARACTER}\>\\1\.\\2\\3${SED_ESCAPE_CHARACTER}\<\\\/a${SED_ESCAPE_CHARACTER}\>/g' ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache
+		COMMAND awk "NR>n{print a[NR%n]}{a[NR%n]=\$0}" n=2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+		COMMAND cat ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+		COMMAND tail -2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+		DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.mustache.raw
+		${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in
+		liblinphone-doc
+	)
+else()
+	configure_file("${PROJECT_SOURCE_DIR}/wrappers/java/overview.mustache.in" "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in")
+	add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/overview.mustache"
+			COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+			COMMAND awk "NR>n{print a[NR%n]}{a[NR%n]=\$0}" n=2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+			COMMAND tail -2 ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in >> ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
+			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/overview.mustache.in
+			liblinphone-doc
+	)
+endif()
 
 add_custom_command(OUTPUT "${jni_sources}"
 	COMMAND ${CMAKE_COMMAND} -E remove -f java/org/linphone/core/* src/*
@@ -88,7 +99,7 @@ add_custom_command(OUTPUT "${jni_sources}"
 	java_interface_stub.mustache
 	java_interface.mustache
 	jni.mustache
-	overview.mustache
+	${CMAKE_CURRENT_BINARY_DIR}/overview.mustache
 	proguard.mustache
 	liblinphone-doc
 	COMMENT "Generating java wrapper"
