@@ -3014,6 +3014,8 @@ static void call_with_custom_headers(void) {
 	linphone_call_params_add_custom_header(params, "Weather", "bad");
 	linphone_call_params_add_custom_header(params, "Working", "yes");
 
+	linphone_config_set_int(linphone_core_get_config(marie->lc), "sip", "set_p_asserted_identity_in_responses", 1);
+
 	linphone_core_cbs_set_call_created(core_cbs, call_created);
 	linphone_core_add_callbacks(marie->lc, core_cbs);
 	linphone_core_add_callbacks(pauline->lc, core_cbs);
@@ -3033,6 +3035,18 @@ static void call_with_custom_headers(void) {
 	hvalue = linphone_call_params_get_custom_header(marie_remote_params, "uriHeader");
 	BC_ASSERT_PTR_NOT_NULL(hvalue);
 	BC_ASSERT_STRING_EQUAL(hvalue, "myUriHeader");
+
+	hvalue =
+	    linphone_call_params_get_custom_header(linphone_call_get_remote_params(call_pauline), "P-Asserted-Identity");
+	if (BC_ASSERT_PTR_NOT_NULL(hvalue)) {
+		LinphoneAccount *marie_account = linphone_core_get_default_account(marie->lc);
+		char *marie_uri = linphone_address_as_string_uri_only(
+		    linphone_account_params_get_identity_address(linphone_account_get_params(marie_account)));
+		char expected_pai[256];
+		snprintf(expected_pai, sizeof(expected_pai), "<%s>", marie_uri);
+		BC_ASSERT_STRING_EQUAL(hvalue, expected_pai);
+		ms_free(marie_uri);
+	}
 
 	// FIXME: we have to strdup because successive calls to get_remote_params erase the returned const char*!!
 	pauline_remote_contact = ms_strdup(linphone_call_get_remote_contact(call_pauline));

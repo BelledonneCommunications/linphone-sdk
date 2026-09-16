@@ -495,6 +495,13 @@ static void call_received(SalCallOp *h) {
 		if (conference) {
 			call->getActiveSession()->addListener(conference);
 		}
+		if (linphone_config_get_int(linphone_core_get_config(lc), "sip", "set_p_asserted_identity_in_responses", 0) &&
+		    params && params->getAccount() && params->getAccount()->getAccountParams()) {
+			auto address = params->getAccount()->getAccountParams()->getIdentityAddress();
+			if (address) {
+				h->setResponsePAI(address->asStringUriOnly());
+			}
+		}
 		call->startIncomingNotification();
 	}
 }

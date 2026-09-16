@@ -88,12 +88,13 @@ The <i>sip</i> section represents a general configuration for SIP signaling feat
 		<tr><td>reconnect_to_primary_asap</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enable the reconnection to the primary server when it is up again asap.</td></tr>
 		<tr><td>refresher_retry_after</td><td>integer</td><td>Milliseconds</td><td>60000</td><td>After a REGISTER connection failure, define the default retry-after period, if not given by server.</td></tr>
 		<tr><td>save_auth_info</td><td>integer</td><td>0 or 1</td><td>1</td><td>if true, auth infos will be write in the config file when they are added to the list</td></tr>
+		<tr><td>set_p_asserted_identity_in_responses</td><td>integer</td><td>0 or 1</td><td>0</td><td>Include a P-Asserted-Identity (PAI) header in responses to incoming SIP calls.</td></tr>
 		<tr><td>sip_tls_well_known_port</td><td>integer</td><td>0 - 65535</td><td>5061</td><td>The well known TLS port</td></tr>
 		<tr><td>sip_well_known_port</td><td>integer</td><td>0 - 65535</td><td>5060</td><td>The well known TCP/UDP port</td></tr>
 		<tr><td>tcp_tls_keepalive</td><td>integer</td><td>milliseconds</td><td>30000</td><td>SIP keep-alive interval on TLS.</td></tr>
 		<tr><td>tls_certificate_subject_regexp</td><td>string</td><td>regex</td><td>""</td><td>the purpose of this handling is to a peer certificate for which there is no single subject matching the regexp given in the "tls_certificate_subject_regexp" property</td></tr>
 		<tr><td>unreliable_connection_timeout</td><td>integer</td><td>seconds</td><td>120</td><td>Set the time interval in seconds after which a connection is considered to be unreliable because no data was received over it. belle_sip_stack_set_unreliable_connection_timeout().</td></tr>
-		<tr><td>g</td><td>integer</td><td>0 or 1</td><td>0</td><td>Use no initial route header</td></tr>
+		<tr><td>use_no_initial_route</td><td>integer</td><td>0 or 1</td><td>0</td><td>Use no initial route header</td></tr>
 		<tr><td>use_rport</td><td>integer</td><td>0 or 1</td><td>1</td><td>Use rport parameter in via</td></tr>
 		<tr><td>vfu_with_info</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable VFU request using SIP INFO</td></tr>
 	</table>

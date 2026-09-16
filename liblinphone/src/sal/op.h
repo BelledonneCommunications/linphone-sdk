@@ -21,15 +21,15 @@
 #ifndef _L_SAL_OP_H_
 #define _L_SAL_OP_H_
 
-#include <bctoolbox/list.h>
-#include <bctoolbox/ownership.hh>
-#include <belle-sip/types.h>
+#include "belle-sip/types.h"
 
 #include "c-wrapper/internal/c-sal.h"
 #include "content/content.h"
 #include "logger/logger.h"
 #include "sal/sal.h"
 #include "sal/sal_media_description.h"
+
+#include "bctoolbox/ownership.hh"
 
 using namespace ownership;
 
@@ -176,6 +176,9 @@ public:
 	}
 	const std::string &getCallId() const {
 		return mCallId;
+	}
+	void setResponsePAI(const std::string &value) {
+		mResponsePAI = value;
 	}
 	std::string getDialogId() const;
 	int getAddressFamily() const;
@@ -369,7 +372,8 @@ protected:
 	SalAddress *mRemoteContactAddress = nullptr;
 	std::string mRemoteContact;
 	void *mUserPointer = nullptr;
-	std::string mCallId = std::string();
+	std::string mCallId;
+	std::string mResponsePAI;
 	std::string mRealm;
 	SalAddress *mServiceRoute = nullptr; // As defined by rfc3608, might be a list
 	SalCustomHeader *mSentCustomHeaders = nullptr;

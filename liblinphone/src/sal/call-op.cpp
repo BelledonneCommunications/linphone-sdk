@@ -1267,6 +1267,11 @@ int SalCallOp::notifyRinging(bool earlyMedia, const LinphoneSupportLevel support
 	auto request = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(mPendingServerTransaction));
 	belle_sip_response_t *ringingResponse = createResponseFromRequest(request, statusCode);
 
+	if (ringingResponse && !mResponsePAI.empty()) {
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(ringingResponse),
+		                             belle_sip_header_create("P-Asserted-Identity", mResponsePAI.c_str()));
+	}
+
 	if (earlyMedia) {
 		handleOfferAnswerResponse(ringingResponse);
 		addCustomHeaders(BELLE_SIP_MESSAGE(ringingResponse));
@@ -1349,6 +1354,11 @@ int SalCallOp::accept() {
 	if (!response) {
 		lError() << "Failed to build answer for call";
 		return -1;
+	}
+
+	if (!mResponsePAI.empty()) {
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(response),
+		                             belle_sip_header_create("P-Asserted-Identity", mResponsePAI.c_str()));
 	}
 
 	belle_sip_message_t *message = BELLE_SIP_MESSAGE(response);
