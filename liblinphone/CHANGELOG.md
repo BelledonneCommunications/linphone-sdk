@@ -19,8 +19,8 @@ This changelog file was started on October 2019. Previous changes were more or l
 - Allow multiple cores to work with a common chatroom database.
 
 ### Changes
-- Optimize contact importation by performing the vcards parsing asynchronously in a background thread, and by
-  optimizing the parser and the database storage.
+- Optimize contact importation by performing the vcards parsing asynchronously in a background thread, and by optimizing the parser and the database storage.
+- Default UDP, TCP, TLS listening ports are set to DONTBIND (-2) for all platforms, in order to prevent any listening socket to be created by default. Users that expect a listening socket on port 5060 should make it explicit programmatically using linphone_core_set_sip_transports() or by setting the sip_port, sip_tcp_port and sip_tls_port configuration keys from the [sip] section of the linphonerc file.
 
 ## [5.5.20] 2026-08-29
 

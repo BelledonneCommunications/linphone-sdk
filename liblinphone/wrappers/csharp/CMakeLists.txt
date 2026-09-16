@@ -49,6 +49,18 @@ set(SED_CLASS_CASE_1 "${SED_QUOTES}:a\;s/linphone_nat_policy_(set_|get_|)([a-z0-
 #Replacing linphone_core_***
 #-r ':a;s/linphone_core_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.Core.\u\2/g;s/(Linphone.Core.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
 set(SED_CLASS_CASE_2 "${SED_QUOTES}:a\;s/linphone_core_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.Core.\\u\\2/g\;s/(Linphone.Core.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+# Replacing linphone_account_params_***
+#-r ':a;s/linphone_account_params_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.AccountParams.\u\2/g;s/(Linphone.AccountParams.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+set(SED_CLASS_CASE_3 "${SED_QUOTES}:a\;s/linphone_account_params_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.AccountParams.\\u\\2/g\;s/(Linphone.AccountParams.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+# Replacing linphone_auth_info_***
+#-r ':a;s/linphone_auth_info_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.AuthInfo.\u\2/g;s/(Linphone.AuthInfo.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+set(SED_CLASS_CASE_4 "${SED_QUOTES}:a\;s/linphone_auth_info_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.AuthInfo.\\u\\2/g\;s/(Linphone.AuthInfo.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+# Replacing linphone_transports_***
+#-r ':a;s/linphone_transports_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.Transports.\u\2/g;s/(Linphone.Transports.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+set(SED_CLASS_CASE_5 "${SED_QUOTES}:a\;s/linphone_transports_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.Transports.\\u\\2/g\;s/(Linphone.Transports.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
+# Replacing linphone_remote_contact_directory_***
+#-r ':a;s/linphone_remote_contact_directory_(set_|get_|)([a-z0-9_\(\)]*)/Linphone.RemoteContactDirectory.\u\2/g;s/(Linphone.RemoteContactDirectory.[^()]+)_([a-z0-9_\(\)])/\1\u\2/g;ta'
+set(SED_CLASS_CASE_6 "${SED_QUOTES}:a\;s/linphone_remote_contact_directory_(set_|get_|)([a-z0-9_\\(\\)]*)/Linphone.RemoteContactDirectory.\\u\\2/g\;s/(Linphone.RemoteContactDirectory.[^()]+)_([a-z0-9_\\(\\)])/\\1\\u\\2/g\;ta${SED_QUOTES}")
 
 set(PROVISIONING_DOC_OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/provisioning_configuration_key.dox)
 configure_file("${PROJECT_SOURCE_DIR}/coreapi/help/doc/doxygen/provisioning_configuration_key.dox.in" "${PROVISIONING_DOC_OUTPUT_FILE}.raw")
@@ -61,6 +73,10 @@ add_custom_command(OUTPUT "${PROVISIONING_DOC_OUTPUT_FILE}"
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_FUNCTION_CASE_2} ${PROVISIONING_DOC_OUTPUT_FILE}
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_1} ${PROVISIONING_DOC_OUTPUT_FILE}
 	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_2} ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_3} ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_4} ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_5} ${PROVISIONING_DOC_OUTPUT_FILE}
+	COMMAND sed -r ${SED_BINARY_MODE} ${SED_IN_PLACE_EDIT_ARG} ${SED_CLASS_CASE_6} ${PROVISIONING_DOC_OUTPUT_FILE}
 	DEPENDS ${PROVISIONING_DOC_OUTPUT_FILE}.raw
 	liblinphone-doc
 	COMMENT "Generating C# wrapper at ${PROJECT_BINARY_DIR}/coreapi/help/doc/doxygen/xml/"

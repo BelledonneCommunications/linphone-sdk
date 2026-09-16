@@ -11,7 +11,7 @@ support for remote provisioning Linphone or linphone-sdk based client applicatio
 <!-- TODO: ordering by feature group -->
 
 <h2>SIP - section [<i>sip</i>]</h2>
-The <i>sip</i> section represents a general configuration for SIP.
+The <i>sip</i> section represents a general configuration for SIP signaling features.
 <table>
 	<caption id="sip_parameters">SIP parameters</caption>
 	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
@@ -19,6 +19,10 @@ The <i>sip</i> section represents a general configuration for SIP.
 		<th>Description</th>
 	\endif
 	</tr>
+	<tr><td>sip_port</td><td>integer</td><td>-2 - 65535</td><td>-2=Don't Bind</td><td>linphone_core_set_transports() with linphone_transports_set_udp_port()</td><td>\copybrief linphone_transports_set_udp_port</td></tr>
+	<tr><td>sip_tcp_port</td><td>integer</td><td>-2 - 65535</td><td>-2=Don't Bind</td><td>linphone_core_set_transports() with linphone_transports_set_tcp_port()</td><td>\copybrief linphone_transports_set_tcp_port</td></tr>
+	<tr><td>sip_tls_port</td><td>integer</td><td>-2 - 65535</td><td>-2=Don't Bind</td><td>linphone_core_set_transports() with linphone_transports_set_tls_port()</td><td>\copybrief linphone_transports_set_tls_port</td></tr>
+	<tr><td>default_proxy</td><td>integer</td><td>-1 - INT_MAX</td><td>-1</td><td>linphone_core_set_default_account()</td><td>\copybrief linphone_core_set_default_account</td></tr>
 	<tr><td>100rel_support_level</td><td>integer</td><td>#LinphoneSupportLevel</td><td>NoSupport</td><td>linphone_core_set_tag_100rel_support_level()</td><td>\copybrief linphone_core_set_tag_100rel_support_level</td></tr>
 	<tr><td>auto_send_ringing</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_auto_send_ringing_enabled()</td><td>\copybrief linphone_core_auto_send_ringing_enabled</td></tr>
 	<tr><td>automatic_http_proxy_detection</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_automatic_http_proxy_detection_enabled()</td><td>\copybrief linphone_core_automatic_http_proxy_detection_enabled</td></tr>
@@ -26,20 +30,15 @@ The <i>sip</i> section represents a general configuration for SIP.
 	<tr><td>cfg_lines_merge</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_cfg_lines_merging_enabled()</td><td>\copybrief linphone_core_cfg_lines_merging_enabled</td></tr>
 	<tr><td>client_cert_chain</td><td>string</td><td>A path</td><td>""</td><td>linphone_core_set_tls_cert_path()</td><td>\copybrief linphone_core_set_tls_cert_path</td></tr>
 	<tr><td>client_cert_key</td><td>string</td><td>A key</td><td>""</td><td>linphone_core_set_tls_key_path()</td><td>\copybrief linphone_core_set_tls_key_path</td></tr>
-	<tr><td>contact</td><td>string</td><td>SIP URI (e.g. sip:user\@host)</td><td>""</td><td>linphone_core_set_primary_contact()</td><td>\copybrief linphone_core_set_primary_contact</td></tr>
-	<tr><td>delayed_timeout</td><td>integer</td><td>seconds</td><td>4</td><td>linphone_core_set_delayed_timeout()</td><td>\copybrief linphone_core_set_delayed_timeout</td></tr>
 	<tr><td>dscp</td><td>integer</td><td>DSCP</td><td>0</td><td>linphone_core_set_sip_dscp()</td><td>\copybrief linphone_core_set_sip_dscp</td></tr>
-	<tr><td>enable_go_clear</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_zrtp_go_clear_enabled()</td><td>\copybrief linphone_core_zrtp_go_clear_enabled</td></tr>
-	<tr><td>guess_hostname</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_set_guess_hostname()</td><td>\copybrief linphone_core_set_guess_hostname</td></tr>
 	<tr><td>http_proxy_host</td><td>string</td><td>a hostname</td><td>""</td><td>linphone_core_set_http_proxy_host()</td><td>\copybrief linphone_core_set_http_proxy_host</td></tr>
 	<tr><td>http_proxy_port</td><td>integer</td><td>0 - 65535</td><td>3128</td><td>linphone_core_set_http_proxy_port()</td><td>\copybrief linphone_core_set_http_proxy_port</td></tr>
-	<tr><td>ice_enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_nat_policy_ice_enabled()</td><td>\copybrief linphone_nat_policy_ice_enabled</td></tr>
 	<tr><td>in_call_timeout</td><td>integer</td><td>0–86400 (s)</td><td>0</td><td>linphone_core_set_in_call_timeout()</td><td>\copybrief linphone_core_set_in_call_timeout</td></tr>
 	<tr><td>inc_timeout</td><td>integer</td><td>0–300 (s)</td><td>Android and IOS: 45. Else: 30</td><td>linphone_core_set_inc_timeout()</td><td>\copybrief linphone_core_set_inc_timeout</td></tr>
 	<tr><td>keepalive_period</td><td>integer</td><td>0–60000 (ms)</td><td>30000</td><td>linphone_core_keep_alive_enabled()</td><td>\copybrief linphone_core_keep_alive_enabled</td></tr>
 	<tr><td>linphone_specs</td><td>string</td><td>"groupchat/1.1"</td><td>""</td><td>linphone_core_set_linphone_specs_list()</td><td>\copybrief linphone_core_set_linphone_specs_list</td></tr>
 	<tr><td>media_encryption_mandatory</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_is_media_encryption_mandatory()</td><td>\copybrief linphone_core_is_media_encryption_mandatory</td></tr>
-	<tr><td>media_encryption</td><td>string</td><td>none, srtp, zrtp</td><td>none</td><td>linphone_core_set_media_encryption()</td><td>\copybrief linphone_core_set_media_encryption</td></tr>
+	<tr><td>media_encryption</td><td>string</td><td>none, srtp, zrtp, dtls</td><td>none</td><td>linphone_core_set_media_encryption()</td><td>\copybrief linphone_core_set_media_encryption</td></tr>
 	<tr><td>push_incoming_call_timeout</td><td>integer</td><td>seconds</td><td>15</td><td>linphone_core_set_push_incoming_call_timeout()</td><td>\copybrief linphone_core_set_push_incoming_call_timeout</td></tr>
 	<tr><td>refresh_window</td><td>range</td><td>Range of seconds</td><td>90-90</td><td>linphone_core_set_refresh_window()</td><td>\copybrief linphone_core_set_refresh_window</td></tr>
 	<tr><td>register_only_when_network_is_up</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_set_register_only_when_network_is_up()</td><td>\copybrief linphone_core_set_register_only_when_network_is_up</td></tr>
@@ -51,8 +50,6 @@ The <i>sip</i> section represents a general configuration for SIP.
 	<tr><td>session_expires_value</td><td>integer</td><td>0 or not lower than session_expires_min_value</td><td>0</td><td>linphone_core_set_session_expires_value()</td><td>\copybrief linphone_core_set_session_expires_value</td></tr>
 	<tr><td>sip_update</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_set_enable_sip_update()</td><td>\copybrief linphone_core_set_enable_sip_update</td></tr>
 	<tr><td>srtp_crypto_suites</td><td>string</td><td>List</td><td>"AEAD_AES_128_GCM, AES_CM_128_HMAC_SHA1_80, AEAD_AES_256_GCM, AES_256_CM_HMAC_SHA1_80"</td><td>linphone_core_set_srtp_crypto_suites()</td><td>\copybrief linphone_core_set_srtp_crypto_suites</td></tr>
-	<tr><td>stun_enabled</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_nat_policy_stun_enabled()</td><td>\copybrief linphone_nat_policy_stun_enabled</td></tr>
-	<tr><td>stun_server</td><td>string</td><td>hostname or IP</td><td>""</td><td>linphone_nat_policy_set_stun_server()</td><td>\copybrief linphone_nat_policy_set_stun_server</td></tr>
 	<tr><td>support_capability_negotiations</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_capability_negociation_enabled()</td><td>\copybrief linphone_core_capability_negociation_enabled</td></tr>
 	<tr><td>supported</td><td>string</td><td>Tags</td><td>"replaces, outbound, gruu, path"</td><td>linphone_core_set_supported_tag()</td><td>\copybrief linphone_core_set_supported_tag</td></tr>
 	<tr><td>tcap_line_merge</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_tcap_lines_merging_enabled()</td><td>\copybrief linphone_core_tcap_lines_merging_enabled</td></tr>
@@ -71,163 +68,200 @@ The <i>sip</i> section represents a general configuration for SIP.
 	<table>
 		<caption id="private_sip_parameters">Private SIP parameters</caption>
 		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>accounts_channel_isolation</td><td>integer</td><td>0 or 1</td><td>0</td><td>Restrict the use of connections for this op, see in belle-sip. Used for tests.</td></tr>
+		<tr><td>mwi_expires</td><td>integer</td><td>0 - 9999999</td><td>86400</td><td>The expiry time (in seconds) for message waiting indications (MWI) subscriptions</td></tr>
+		<tr><td>accounts_channel_isolation</td><td>integer</td><td>0 or 1</td><td>0</td><td>Always use one SIP connection per account.</td></tr>
 		<tr><td>account_strict_matching</td><td>integer</td><td>0 or 1</td><td>0</td><td>Only for tests. linphone_core_account_strict_matching_enabled()</td></tr>
 		<tr><td>answer_with_own_numbering</td><td>integer</td><td>0 or 1</td><td>0</td><td>Set answer with own numbering policy</td></tr>
 		<tr><td>auto_answer_replacing_calls</td><td>integer</td><td>0 or 1</td><td>0</td><td>Automatically answer replacing calls. Used for tests</td></tr>
 		<tr><td>auto_net_state_mon</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable automatic network state monitoring</td></tr>
-		<tr><td>bind_address</td><td>string</td><td>IP address</td><td>0.0.0.0</td><td>Set listen address on SAL</td></tr>
+		<tr><td>bind_address</td><td>string</td><td>IP address</td><td>::0</td><td>Set SIP listening address</td></tr>
 		<tr><td>bodyless_lists</td><td>string</td><td>SIP URI separated by ','</td><td>""</td><td>Bodyless friend list</td></tr>
-		<tr><td>cnx_ip_to_0000_if_sendonly_enabled</td><td>integer</td><td>0 or 1</td><td>0</td><td>Salop::enableCnxIpTo0000IfSendOnly()</td></tr>
-		<tr><td>default_proxy</td><td>integer</td><td>An index</td><td>-1</td><td>linphone_core_get_default_account_index()</td></tr>
+		<tr><td>cnx_ip_to_0000_if_sendonly_enabled</td><td>integer</td><td>0 or 1</td><td>0</td><td>Use legacy method for send-only streams (use of 0.0.0.0 connection address)</td></tr>
 		<tr><td>disable_media</td><td>integer</td><td>0 or 1</td><td>0</td><td>Disable media by ignoring SDP</td></tr>
-		<tr><td>force_name_addr</td><td>integer</td><td>0 or 1</td><td>0</td><td>belle_sip_stack_force_name_addr()</td></tr>
+		<tr><td>force_name_addr</td><td>integer</td><td>0 or 1</td><td>0</td><td>Force all SIP headers enclosing addresses to use the name-addr ABNF serialization</td></tr>
 		<tr><td>handle_content_encoding</td><td>string</td><td>none, deflate, ...</td><td>deflate</td><td>Tells whether the given transport type is supported by the library..linphone_core_content_encoding_supported()</td></tr>
-		<tr><td>ipv6_migration_done</td><td>integer</td><td>0 or 1</td><td>0</td><td>Internal usage to know if ipv6 migration has been done: it will clean use_ipv6</td></tr>
-		<tr><td>notify_all_ringings</td><td>integer</td><td>0 or 1</td><td>0</td><td>SalOp::setNotifyAllRingings()</td></tr>
-		<tr><td>only_one_codec</td><td>integer</td><td>0 or 1</td><td>0</td><td>Set one codec policy</td></tr>
-		<tr><td>ping_pong_verification</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable check with Ping-Pong. belle_sip_stack_ping_pong_verification_enabled()</td></tr>
-		<tr><td>ping_with_options</td><td>integer</td><td>0 or 1</td><td>0</td><td>Defer the start of the call after the OPTIONS ping for outgoing call or send an option request back to the caller so that we get a chance to discover our nat'd address before answering for incoming call</td></tr>
-		<tr><td>pong_timeout</td><td>integer</td><td>seconds</td><td>10</td><td>Pong Timeout. belle_sip_stack_get_pong_timeout()</td></tr>
-		<tr><td>prefer_ipv6</td><td>integer</td><td>0 or 1</td><td>1</td><td>Set IPV6 preference on SAL. belle_sip_stack_get_ip_version_preference()</td></tr>
-		<tr><td>put_date</td><td>integer</td><td>0 or 1</td><td>0</td><td>Use Date in SAL</td></tr>
-		<tr><td>reconnect_to_primary_asap</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enable the reconnection to the primary server when it is up again asap. belle_sip_stack_reconnect_to_primary_asap_enabled()</td></tr>
-		<tr><td>refresher_retry_after</td><td>integer</td><td>Milliseconds</td><td>60000</td><td>sal_get_refresher_retry_after()</td></tr>
-		<tr><td>register_only_when_upnp_is_ok</td><td>integer</td><td>0 or 1</td><td>1</td><td>Sets if accounts will wait for UPNP to be connected before trying to REGISTER.</td></tr>
+		<tr><td>notify_all_ringings</td><td>integer</td><td>0 or 1</td><td>0</td><td></td></tr>
+		<tr><td>only_one_codec</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enforce one codec selection policy during SDP offer/answer</td></tr>
+		<tr><td>ping_pong_verification</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable check with Ping-Pong (RFC5626)</td></tr>
+		<tr><td>pong_timeout</td><td>integer</td><td>seconds</td><td>10</td><td>Pong Timeout.</td></tr>
+		<tr><td>prefer_ipv6</td><td>integer</td><td>0 or 1</td><td>1</td><td>Set IPV6 preference for SIP connections.</td></tr>
+		<tr><td>reconnect_to_primary_asap</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enable the reconnection to the primary server when it is up again asap.</td></tr>
+		<tr><td>refresher_retry_after</td><td>integer</td><td>Milliseconds</td><td>60000</td><td>After a REGISTER connection failure, define the default retry-after period, if not given by server.</td></tr>
 		<tr><td>save_auth_info</td><td>integer</td><td>0 or 1</td><td>1</td><td>if true, auth infos will be write in the config file when they are added to the list</td></tr>
-		<tr><td>sip_port</td><td>integer</td><td>-2 - 65535</td><td>Mac or Android:-2=Don't Bind. Else: 5060</td><td>SIP listening port (UDP)</td></tr>
-		<tr><td>sip_random_port</td><td>integer</td><td>0 or 1</td><td>0</td><td>Legacy random mode. _linphone_core_get_sip_transports()</td></tr>
-		<tr><td>sip_tcp_port</td><td>integer</td><td>-2 - 65535</td><td>Mac or Android:-2=Don't Bind. Else: 5060</td><td>SIP listening port (TCP)</td></tr>
-		<tr><td>sip_tls_port</td><td>integer</td><td>-2 - 65535</td><td>-1=Random</td><td>SIP listening port (TLS)</td></tr>
 		<tr><td>sip_tls_well_known_port</td><td>integer</td><td>0 - 65535</td><td>5061</td><td>The well known TLS port</td></tr>
 		<tr><td>sip_well_known_port</td><td>integer</td><td>0 - 65535</td><td>5060</td><td>The well known TCP/UDP port</td></tr>
-		<tr><td>srtp</td><td>integer</td><td>0 or 1</td><td></td><td>linphone_core_get_srtp_enabled(). Not used.</td></tr>
-		<tr><td>supported_encryptions</td><td>list</td><td>List of encryptions</td><td>""</td><td>linphone_core_get_supported_media_encryptions()</td></tr>
 		<tr><td>tcp_tls_keepalive</td><td>integer</td><td>milliseconds</td><td>30000</td><td>SIP keep-alive interval on TLS.</td></tr>
 		<tr><td>tls_certificate_subject_regexp</td><td>string</td><td>regex</td><td>""</td><td>the purpose of this handling is to a peer certificate for which there is no single subject matching the regexp given in the "tls_certificate_subject_regexp" property</td></tr>
 		<tr><td>unreliable_connection_timeout</td><td>integer</td><td>seconds</td><td>120</td><td>Set the time interval in seconds after which a connection is considered to be unreliable because no data was received over it. belle_sip_stack_set_unreliable_connection_timeout().</td></tr>
-		<tr><td>use_no_initial_route</td><td>integer</td><td>0 or 1</td><td>0</td><td>Use no initial route</td></tr>
-		<tr><td>use_rport</td><td>integer</td><td>0 or 1</td><td>1</td><td>Use RPort</td></tr>
-		<tr><td>vfu_with_info</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable VFU request using SIP</td></tr>
-	</table>
-</details>
-
-
-<details>
-	<summary>Unverified variables</summary>
-	<h2>Audio - section [<i>audio</i>]</h2>
-	The <i>audio</i> section represents the audio configurations.
-	<table>
-		<caption id="audio_parameters">Audio parameters</caption>
-		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>soundcard</td><td>string</td><td>device name</td><td>default</td><td>Playback/record sound device</td></tr>
-		<tr><td>playback_gain_db</td><td>integer</td><td>-30 to +30 (dB)</td><td>0</td><td>Playback gain</td></tr>
-		<tr><td>mic_gain_db</td><td>integer</td><td>-30 to +30 (dB)</td><td>0</td><td>Microphone gain</td></tr>
-		<tr><td>echo_cancellation</td><td>integer</td><td>0 or 1</td><td>1</td><td>Acoustic echo cancellation</td></tr>
-		<tr><td>echo_limiter</td><td>integer</td><td>0 or 1</td><td>1</td><td>Echo limiter</td></tr>
-		<tr><td>adaptive_rate_control</td><td>integer</td><td>0 or 1</td><td>1</td><td>Adaptive bitrate control</td></tr>
-		<tr><td>jitter_buffer_size</td><td>integer</td><td>20–500 (ms)</td><td>60</td><td>Audio jitter buffer</td></tr>
-		<tr><td>codec_priority</td><td>string</td><td>codec list</td><td>opus,pcmu,pcma</td><td>Audio codec priority</td></tr>
-		<tr><td>use_files</td><td>integer</td><td>0 or 1</td><td>0</td><td>Use audio files instead of devices</td></tr>
-		<tr><td>rtp_no_xmit_on_audio_mute</td><td>integer</td><td>0 or 1</td><td>1</td><td>Stop RTP when muted</td></tr>
-	</table>
-
-	<h2>Video - section [<i>video</i>]</h2>
-	The <i>video</i> section represents the video configuration.
-	<table>
-		<caption id="video_parameters">Video parameters</caption>
-		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>capture</td><td>integer</td><td>0 or 1</td><td>1</td><td>\copybrief linphone_core_enable_video_capture</td></tr>
-		<tr><td>display</td><td>integer</td><td>0 or 1</td><td>1</td><td>\copybrief linphone_core_enable_video_display</td></tr>
-		<tr><td>size</td><td>string</td><td>qcif, cif, vga, hd720</td><td>vga</td><td>Video resolution</td></tr>
-		<tr><td>framerate</td><td>integer</td><td>1-60 (fps)</td><td>30</td><td>Video framerate</td></tr>
-		<tr><td>bitrate</td><td>integer</td><td>64–10000 (kbps)</td><td>1024</td><td>Video bitrate</td></tr>
-		<tr><td>codec_priority</td><td>string</td><td>codec list</td><td>vp8,h264</td><td>Video codec priority</td></tr>
-		<tr><td>auto_resize</td><td>integer</td><td>0 or 1</td><td>1</td><td>Auto resize video</td></tr>
-		<tr><td>self_view</td><td>integer</td><td>0 or 1</td><td>1</td><td>Show local preview</td></tr>
-	</table>
-
-	<h2>Network - section [<i>network</i>]</h2>
-	The <i>network</i> section represents the network configuration.
-	<table>
-		<caption id="network_parameters">Network parameters</caption>
-		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>mtu</td><td>integer</td><td>576–1500</td><td>1300</td><td>RTP MTU size</td></tr>
-		<tr><td>dns_servers</td><td>string</td><td>IP list</td><td>""</td><td>Custom DNS servers</td></tr>
-		<tr><td>protocol</td><td>TYPE</td><td>udp, tcp, tls</td><td>udp</td><td>Default SIP transport</td></tr>
-		<tr><td>ipv6_enabled</td><td>TYPE</td><td>0 or 1</td><td>0</td><td>Enable IPv6 networking</td></tr>
-	</table>
-
-	<h2>RTP - section [<i>rtp</i>]</h2>
-	The <i>rtp</i> section represents the RTP configuration.
-	<table>
-		<caption id="rtp_parameters">RTP parameters</caption>
-		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>audio_rtp_port</td><td>integer</td><td>1024–65535</td><td>7078</td><td>RTP audio base port</td></tr>
-		<tr><td>video_rtp_port</td><td>integer</td><td>1024–65535</td><td>9078</td><td>RTP video base port</td></tr>
-		<tr><td>symmetric</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable symmetric RTP</td></tr>
-		<tr><td>timeout</td><td>integer</td><td>0–300 (s)</td><td>60</td><td>RTP inactivity timeout</td></tr>
-		<tr><td>use_rtcp</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable RTCP</td></tr>
-	</table>
-
-	<h2>Encryption - section [<i>encryption</i>]</h2>
-	The <i>encryption</i> section represents the encryption configuration.
-	<table>
-		<caption id="encryption_parameters">Encryption parameters</caption>
-		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>srtp_enable</td><td>TYPE</td><td>0 or 1</td><td>0</td><td>Enable SRTP</td></tr>
-		<tr><td>zrtp_enable</td><td>TYPE</td><td>0 or 1</td><td>0</td><td>Enable ZRTP</td></tr>
-		<tr><td>zrtp_sas_validation</td><td>TYPE</td><td>0 or 1</td><td>0</td><td>Require SAS validation</td></tr>
-	</table>
-
-	<h2>ICE - section [<i>ice</i>]</h2>
-	The <i>ice</i> section represents the ICE configuration.
-	<table>
-		<caption id="ice_parameters">ICE parameters</caption>
-		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable ICE</td></tr>
-		<tr><td>prefer_ipv6</td><td>integer</td><td>0 or 1</td><td>0</td><td>Prefer IPv6 candidates</td></tr>
-		<tr><td>timeout</td><td>integer</td><td>5–60 (s)</td><td>20</td><td>ICE gathering timeout</td></tr>
-		<tr><td>aggressive_nomination</td><td>integer</td><td>0 or 1</td><td>1</td><td>Aggressive ICE nomination</td></tr>
-	</table>
-
-	<h2>Miscellaneous - section [<i>misc</i>]</h2>
-	The <i>misc</i> section represents unspecific options.
-	<table>
-		<caption id="misc_parameters">Miscellaneous parameters</caption>
-		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>log_level</td><td>integer</td><td>0-6</td><td>3</td><td>Log verbosity</td></tr>
-		<tr><td>log_file</td><td>string</td><td>file path</td><td>""</td><td>Log output file</td></tr>
-		<tr><td>max_calls</td><td>TYPE</td><td>1-10</td><td>1</td><td>Maximum simultaneous calls</td></tr>
-		<tr><td>user_agent</td><td>TYPE</td><td>a user agent</td><td>LinphoneSDK/5.5</td><td>SIP User-Agent</td></tr>
-		<tr><td>enable_timestamps</td><td>integer</td><td>0 or 1</td><td>1</td><td>Timestamp logs</td></tr>
-		<tr><td>empty_chat_room_deletion</td><td>0 or 1</td><td>1</td><td>Automatically delete empty #LinphoneChatRoom objects</td></tr>
-	</table>
-
-	<h2>Debug - section [<i>debug</i>]</h2>
-	The <i>debug</i> section represents the debug mode configuration.
-	<table>
-		<caption id="debug_parameters">Debug parameters</caption>
-		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-		<tr><td>enable</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enable debug mode</td></tr>
-		<tr><td>sip_trace</td><td>integer</td><td>0 or 1</td><td>0</td><td>SIP message tracing</td></tr>
-		<tr><td>rtp_trace</td><td>integer</td><td>0 or 1</td><td>0</td><td>RTP packet tracing</td></tr>
+		<tr><td>g</td><td>integer</td><td>0 or 1</td><td>0</td><td>Use no initial route header</td></tr>
+		<tr><td>use_rport</td><td>integer</td><td>0 or 1</td><td>1</td><td>Use rport parameter in via</td></tr>
+		<tr><td>vfu_with_info</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable VFU request using SIP INFO</td></tr>
 	</table>
 </details>
 \endif
+
+<h2>Audio - section [<i>sound</i>]</h2>
+The <i>sound</i> section represents the audio configurations.
+<table>
+	<caption id="audio_parameters">Audio parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>playback_gain_db</td><td>float</td><td>-30 to +30 (dB)</td><td>0</td><td>linphone_core_set_playback_gain_db()</td><td>\copybrief linphone_core_set_playback_gain_db</td></tr>
+	<tr><td>mic_gain_db</td><td>float</td><td>-30 to +30 (dB)</td><td>0</td><td>linphone_core_set_mic_gain_db()</td><td>\copybrief linphone_core_set_mic_gain_db</td></tr>
+	<tr><td>echocancellation</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_echo_cancellation()</td><td>\copybrief linphone_core_enable_echo_cancellation</td></tr>
+	<tr><td>use_files</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_set_use_files()</td><td>\copybrief linphone_core_set_use_files</td></tr>
+</table>
+
+<h2>Video - section [<i>video</i>]</h2>
+The <i>video</i> section represents the video configuration.
+<table>
+	<caption id="video_parameters">Video parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>capture</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_video_capture()</td><td>\copybrief linphone_core_enable_video_capture</td></tr>
+	<tr><td>display</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_video_display()</td><td>\copybrief linphone_core_enable_video_display</td></tr>
+	<tr><td>size</td><td>string</td><td>qcif, cif, vga, 720p</td><td>vga</td><td>linphone_core_set_preferred_video_definition_by_name()</td><td>\copybrief linphone_core_set_preferred_video_definition_by_name</td></tr>
+</table>
+
+<h2>Network - section [<i>net</i>]</h2>
+The <i>net</i> section represents the network configuration.
+<table>
+	<caption id="network_parameters">Network parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>adaptive_rate_control</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_adaptive_rate_control()</td><td>\copybrief linphone_core_enable_adaptive_rate_control</td></tr>
+	<tr><td>adaptive_rate_algorithm</td><td>string</td><td>"advanced", "basic"</td><td>"advanced"</td><td>linphone_core_set_adaptive_rate_algorithm()</td><td>\copybrief linphone_core_set_adaptive_rate_algorithm</td></tr>
+	<tr><td>download_bw</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>linphone_core_set_download_bandwidth()</td><td>\copybrief linphone_core_set_download_bandwidth</td></tr>
+	<tr><td>upload_bw</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>linphone_core_set_upload_bandwidth()</td><td>\copybrief linphone_core_set_upload_bandwidth</td></tr>
+	<tr><td>mtu</td><td>integer</td><td>576–1500</td><td>1300</td><td>linphone_core_set_mtu()</td><td>\copybrief linphone_core_set_mtu</td></tr>
+	<tr><td>dns_srv_enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_dns_srv()</td><td>\copybrief linphone_core_enable_dns_srv</td></tr>
+	<tr><td>dns_search_enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_dns_search()</td><td>\copybrief linphone_core_enable_dns_search</td></tr>
+	<tr><td>push_notification</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_enable_push_notification()</td><td>\copybrief linphone_core_enable_push_notification</td></tr>
+	<tr><td>wifi_only</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_enable_wifi_only()</td><td>\copybrief linphone_core_enable_wifi_only</td></tr>
+	<tr><td>friendlist_subscription_enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_friend_list_subscription()</td><td>\copybrief linphone_core_enable_friend_list_subscription</td></tr>
+	<tr><td>nat_policy_ref</td><td>string</td><td>a NAT policy section name</td><td>""</td><td>linphone_core_set_nat_policy()</td><td>\copybrief linphone_core_set_nat_policy</td></tr>
+	</table>
+\if DOXYFILE_USE_DETAILS
+<details>
+	<summary>Show private variables</summary>
+	<table>
+		<caption id="private_network_parameters">Private Network parameters</caption>
+		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
+		<tr><td>download_ptime</td><td>integer</td><td>positive integer</td><td>-1</td><td>Packetization time for download in milliseconds (deprecated in favor of [rtp] download_ptime)</td></tr>
+		<tr><td>enable_nat_helper</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable or disable the SIP provider NAT helper</td></tr>
+		<tr><td>nat_sdp_only</td><td>integer</td><td>0 or 1</td><td>0</td><td>Obsolete parameter to force NAT address only in SDP</td></tr>
+		<tr><td>activate_edge_workarounds</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enable 2G/EDGE workarounds when STUN ping exceeds threshold</td></tr>
+		<tr><td>edge_ping_time</td><td>integer</td><td>positive integer</td><td>500</td><td>STUN ping time threshold in milliseconds to trigger EDGE workarounds</td></tr>
+		<tr><td>edge_bw</td><td>integer</td><td>positive integer</td><td>20</td><td>Bandwidth limit in kbit/s applied in EDGE low bandwidth mode</td></tr>
+		<tr><td>edge_ptime</td><td>integer</td><td>positive integer</td><td>100</td><td>Packetization time in milliseconds applied in EDGE low bandwidth mode</td></tr>
+		<tr><td>recreate_sockets_when_network_is_up</td><td>integer</td><td>0 or 1</td><td>0</td><td>Recreate media sockets when network connectivity is recovered</td></tr>
+		<tr><td>dtmf_delay_ms</td><td>integer</td><td>positive integer</td><td>200</td><td>Delay between DTMF tones in milliseconds for a DTMF sequence</td></tr>
+		<tr><td>android_ignore_network_background_restriction</td><td>integer</td><td>0 or 1</td><td>0</td><td>Ignore Android background network restrictions</td></tr>
+		<tr><td>allow_late_ice</td><td>integer</td><td>0 or 1</td><td>0</td><td>Allow late ICE negotiation after call establishment</td></tr>
+		<tr><td>ice_session_enable_message_integrity_check</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable message integrity checks on ICE STUN packets</td></tr>
+		<tr><td>dont_default_to_stun_candidates</td><td>integer</td><td>0 or 1</td><td>0</td><td>Do not default to STUN reflexive candidates in ICE session</td></tr>
+	</table>
+</details>
+\endif
+
+<h2>RTP - section [<i>rtp</i>]</h2>
+The <i>rtp</i> section represents the RTP configuration.
+<table>
+	<caption id="rtp_parameters">RTP parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>audio_rtp_port</td><td>integer</td><td>1024–65535</td><td>-1 (random)</td><td>linphone_core_set_audio_port_range()</td><td>\copybrief linphone_core_set_audio_port_range</td></tr>
+	<tr><td>video_rtp_port</td><td>integer</td><td>1024–65535</td><td>-1 (random)</td><td>linphone_core_set_video_port_range()</td><td>\copybrief linphone_core_set_video_port_range</td></tr>
+	<tr><td>nortp_timeout</td><td>integer</td><td>0–300 (s)</td><td>30</td><td>linphone_core_set_nortp_timeout()</td><td>\copybrief linphone_core_set_nortp_timeout</td></tr>
+	<tr><td>rtp_no_xmit_on_audio_mute</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_set_rtp_no_xmit_on_audio_mute()</td><td>\copybrief linphone_core_set_rtp_no_xmit_on_audio_mute</td></tr>
+</table>
+\if DOXYFILE_USE_DETAILS
+<details>
+	<summary>Show private variables</summary>
+	<table>
+		<caption id="private_rtp_parameters">Private RTP parameters</caption>
+		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
+		<tr><td>rtp_symmetric</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enable symmetric RTP assumption</td></tr>
+		<tr><td>rtcp_enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable RTCP</td></tr>
+		<tr><td>csrc_usage_allowed</td><td>integer</td><td>0 or 1</td><td>0</td><td>Allow CSRC usage in RTP streams generated by mixers, typically in conferences.</td></tr>
+	</table>
+</details>
+\endif
+
+<h2>Chat - section [<i>chat</i>]</h2>
+The <i>chat</i> section represents the global chat configuration settings of a #LinphoneCore.
+Table \ref chat_parameters "chat parameters" lists all parameters one may find under section [<i>chat</i>] of a Linphone RC file.<br/>
+<table>
+	<caption id="chat_parameters">Chat parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>delete_contents</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_enable_chat_message_files_deletion()</td><td>\copybrief linphone_core_enable_chat_message_files_deletion</td></tr>
+	<tr><td>ephemeral_message_policy</td><td>integer</td><td>#LinphoneEphemeralChatMessagePolicy</td><td>LinphoneEphemeralChatMessagePolicyDisabled</td><td>linphone_core_set_ephemeral_chat_message_policy()</td><td>\copybrief linphone_core_set_ephemeral_chat_message_policy</td></tr>
+	<tr><td>message_automatic_resending_s</td><td>integer</td><td>any positive integer or 0</td><td>10</td><td>linphone_core_set_message_automatic_resending_delay()</td><td>\copybrief linphone_core_set_message_automatic_resending_delay</td></tr>
+	<tr><td>delay_message_send_s</td><td>integer</td><td>any positive integer or 0</td><td>10</td><td>linphone_core_set_message_sending_delay()</td><td>\copybrief linphone_core_set_message_sending_delay</td></tr>
+	<tr><td>delay_message_send_app_ext_s</td><td>integer</td><td>any positive integer or 0</td><td>3</td><td>linphone_core_set_message_sending_delay_app_ext()</td><td>\copybrief linphone_core_set_message_sending_delay_app_ext</td></tr>
+	<tr><td>sender_name_hidden_in_forward_message</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_enable_sender_name_hidden_in_forward_message()</td><td>\copybrief linphone_core_enable_sender_name_hidden_in_forward_message</td></tr>
+	<tr><td>imdn_to_everybody_threshold</td><td>integer</td><td>any positive integer</td><td>5</td><td>linphone_core_set_imdn_to_everybody_threshold()</td><td>\copybrief linphone_core_set_imdn_to_everybody_threshold</td></tr>
+	<tr><td>max_participants_per_chatroom</td><td>integer</td><td>any integer</td><td>-1</td><td>linphone_core_set_max_participants_per_chatroom()</td><td>\copybrief linphone_core_set_max_participants_per_chatroom</td></tr>
+	<tr><td>chat_room_handling_set</td><td>integer</td><td>enumeration #LinphoneChatRoomHandlingSet</td><td>LinphoneChatRoomHandlingSetAll</td><td>linphone_core_set_chat_rooms_handling_set()</td><td>\copybrief linphone_core_set_chat_rooms_handling_set</td></tr>
+</table>
+\if DOXYFILE_USE_DETAILS
+<details>
+	<summary>Show private variables</summary>
+	<table>
+		<caption id="private_chat_parameters">Private chat parameters</caption>
+		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
+		<tr><td>max_delay_to_edit_retract_already_sent_message</td><td>integer</td><td>0 - INT_MAX</td><td>84600</td><td>Maximum delay in seconds to edit or retract a sent message.</td></tr>
+	</table>
+</details>
+\endif
+
+<h2>Miscellaneous - section [<i>misc</i>]</h2>
+The <i>misc</i> section represents unspecific options.
+<table>
+	<caption id="misc_parameters">Miscellaneous parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>max_calls</td><td>integer</td><td>0 - INT_MAX</td><td>10</td><td>linphone_core_set_max_calls()</td><td>\copybrief linphone_core_set_max_calls</td></tr>
+	<tr><td>user_agent</td><td>string</td><td>RFC3261 compatible user-agent value</td><td>""</td><td>linphone_core_set_user_agent()</td><td>\copybrief linphone_core_set_user_agent</td></tr>
+	<tr><td>empty_chat_room_deletion</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_enable_empty_chatrooms_deletion()</td><td>\copybrief linphone_core_enable_empty_chatrooms_deletion</td></tr>
+</table>
+
 <h2>SIP accounts - section [<i>proxy_N</i>]</h2>
 The <i>proxy_N</i> sections represents SIP accounts.<br/>
 Their name inherits from the legacy object name #LinphoneProxyConfig in liblinphone, that is now superseeded by
 by the #LinphoneAccount and #LinphoneAccountParams object, but the linphonerc section name was left unchanged to preserve configuration file compatibility.
 <table>
 	<caption id="sip_account_parameters">SIP account parameters</caption>
-	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-	<tr><td>reg_identity</td><td>string</td><td>SIP address</td><td>""</td><td>The SIP address of the user, as to be sent in the From header of the REGISTER request</td></tr>
-	<tr><td>reg_proxy</td><td>string</td><td>SIP address</td><td>""</td><td>The address of the SIP server</td></tr>
-	<tr><td>reg_route</td><td>string</td><td>SIP address</td><td>""</td><td>An optional SIP address to include as a route</td></tr>
-	<tr><td>reg_sendregister</td><td>boolean</td><td>0 or 1</td><td>1</td><td>Whether to send a REGISTER request</td></tr>
-	<tr><td>reg_expires</td><td>integer</td><td>any strictly positive integer</td><td>3600</td><td>The expiry of the REGISTER, in seconds</td></tr>
-	<tr><td>realm</td><td>string</td><td>any string</td><td>""</td><td>The authentication realm of the SIP service, used to match with authentication information</td></tr>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>reg_identity</td><td>string</td><td>SIP address</td><td>""</td><td>linphone_account_params_set_identity_address()</td><td>\copybrief linphone_account_params_set_identity_address</td></tr>
+	<tr><td>reg_proxy</td><td>string</td><td>SIP address</td><td>""</td><td>linphone_account_params_set_server_address()</td><td>\copybrief linphone_account_params_set_server_address</td></tr>
+	<tr><td>reg_route</td><td>string</td><td>SIP address</td><td>""</td><td>linphone_account_params_set_routes_addresses()</td><td>\copybrief linphone_account_params_set_routes_addresses</td></tr>
+	<tr><td>reg_sendregister</td><td>boolean</td><td>0 or 1</td><td>1</td><td>linphone_account_params_enable_register()</td><td>\copybrief linphone_account_params_enable_register</td></tr>
+	<tr><td>reg_expires</td><td>integer</td><td>any strictly positive integer</td><td>3600</td><td>linphone_account_params_set_expires()</td><td>\copybrief linphone_account_params_set_expires</td></tr>
+	<tr><td>realm</td><td>string</td><td>any string</td><td>""</td><td>linphone_account_params_set_realm()</td><td>\copybrief linphone_account_params_set_realm</td></tr>
 </table>
 
 <h2>Remote contact directories - section [<i>remote_contact_directory_N</i>]</h2>
@@ -238,26 +272,39 @@ LDAP connection configuration has it is own password key, and it is not relying 
 Table \ref remote_contact_directory_parameters "remote contact directory parameters" lists all remote contact directory parameters one may find under section [<i>remote_contact_directory_N</i>] of a Linphone RC file.<br/>
 <table>
 	<caption id="remote_contact_directory_parameters">Remote Contact directory parameters</caption>
-	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-	<tr><td>enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>Whether the remote contact directory is enabled</td></tr>
-	<tr><td>type</td><td>string</td><td>carddav or ldap</td><td>""</td><td>The type (protocol) used by the remote contact directory</td></tr>
-	<tr><td>uri</td><td>string</td><td>a URI</td><td>""</td><td>The server URI, typically ldap://example.org or https://carddav.example.org</td></tr>
-	<tr><td>min_characters</td><td>integer</td><td>any positive integer or 0</td><td>3</td><td>The minimum number of characters needed to submit the request</td></tr>
-	<tr><td>results_limit</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>Limit on the number of returned results. 0 means returns all results</td></tr>
-	<tr><td>timeout</td><td>integer</td><td>any positive integer or 0</td><td>5</td><td>Request timeout in seconds</td></tr>
-	<tr><td>delay</td><td>integer</td><td>any positive integer or 0</td><td>500</td><td>Delay in milliseconds before submitting the request</td></tr>
-	<tr><td>carddav_fields_for_user_input</td><td>string</td><td></td><td>""</td><td>List of comma separated VCard fields to match with the user input</td></tr>
-	<tr><td>carddav_fields_for_domain</td><td>string</td><td></td><td>""</td><td>List of comma separated VCard fields to match for SIP domain</td></tr>
-	<tr><td>carddav_use_exact_match_policy</td><td>integer</td><td>0 or 1</td><td>0</td><td>Whether the match must be exact or approximate (ignoring accents, case, ...)</td></tr>
-	<tr><td>ldap_bind_dn</td><td>string</td><td></td><td>""</td><td>LDAP bind distinguished name</td></tr>
-	<tr><td rowspan="2">ldap_auth_method</td><td rowspan="2">integer</td><td>0: anonymous</td><td rowspan="2">1</td><td rowspan="2">LDAP authentication method</td></tr>
-	<tr><td>1: simple</td></tr>
-	<tr><td>ldap_base_object</td><td>string</td><td></td><td>""</td><td>LDAP base object</td></tr>
-	<tr><td>ldap_name_attribute</td><td>string</td><td></td><td>"sn"</td><td>LDAP attribute(s) to browse for contact names</td></tr>
-	<tr><td>ldap_sip_attribute</td><td>string</td><td></td><td>"mobile,telephonenumber,homephone,sn"</td><td>LDAP attribute(s) to use to create SIP URIs associated with this remote contact directory</td></tr>
-	<tr><td>ldap_sip_domain</td><td>string</td><td></td><td>""</td><td>A SIP domain to filter results</td></tr>
-	<tr><td>ldap_filter</td><td>string</td><td></td><td>"(sn=%s)"</td><td>A LDAP search filter</td></tr>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>enabled</td><td>integer</td><td>0 or 1</td><td>1</td><td>linphone_remote_contact_directory_enable()</td><td>\copybrief linphone_remote_contact_directory_enable</td></tr>
+	<tr><td>type</td><td>string</td><td>carddav or ldap</td><td>""</td><td>linphone_remote_contact_directory_get_type()</td><td>\copybrief linphone_remote_contact_directory_get_type</td></tr>
+	<tr><td>uri</td><td>string</td><td>a URI</td><td>""</td><td>linphone_remote_contact_directory_set_server_url()</td><td>\copybrief linphone_remote_contact_directory_set_server_url</td></tr>
+	<tr><td>min_characters</td><td>integer</td><td>any positive integer or 0</td><td>3</td><td>linphone_remote_contact_directory_set_min_characters()</td><td>\copybrief linphone_remote_contact_directory_set_min_characters</td></tr>
+	<tr><td>results_limit</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>linphone_remote_contact_directory_set_limit()</td><td>\copybrief linphone_remote_contact_directory_set_limit</td></tr>
+	<tr><td>timeout</td><td>integer</td><td>any positive integer or 0</td><td>5</td><td>linphone_remote_contact_directory_set_timeout()</td><td>\copybrief linphone_remote_contact_directory_set_timeout</td></tr>
+	<tr><td>delay</td><td>integer</td><td>any positive integer or 0</td><td>500</td><td>linphone_remote_contact_directory_set_delay()</td><td>\copybrief linphone_remote_contact_directory_set_delay</td></tr>
 </table>
+\if DOXYFILE_USE_DETAILS
+<details>
+	<summary>Show private variables</summary>
+	<table>
+		<caption id="private_remote_contact_directory_parameters">Private Remote Contact directory parameters</caption>
+		<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
+		<tr><td>carddav_fields_for_user_input</td><td>string</td><td></td><td>""</td><td>List of comma separated VCard fields to match with the user input</td></tr>
+		<tr><td>carddav_fields_for_domain</td><td>string</td><td></td><td>""</td><td>List of comma separated VCard fields to match for SIP domain</td></tr>
+		<tr><td>carddav_use_exact_match_policy</td><td>integer</td><td>0 or 1</td><td>0</td><td>Whether the match must be exact or approximate (ignoring accents, case, ...)</td></tr>
+		<tr><td>ldap_bind_dn</td><td>string</td><td></td><td>""</td><td>LDAP bind distinguished name</td></tr>
+		<tr><td rowspan="2">ldap_auth_method</td><td rowspan="2">integer</td><td>0: anonymous</td><td rowspan="2">1</td><td rowspan="2">LDAP authentication method</td></tr>
+		<tr><td>1: simple</td></tr>
+		<tr><td>ldap_base_object</td><td>string</td><td></td><td>""</td><td>LDAP base object</td></tr>
+		<tr><td>ldap_name_attribute</td><td>string</td><td></td><td>"sn"</td><td>LDAP attribute(s) to browse for contact names</td></tr>
+		<tr><td>ldap_sip_attribute</td><td>string</td><td></td><td>"mobile,telephonenumber,homephone,sn"</td><td>LDAP attribute(s) to use to create SIP URIs associated with this remote contact directory</td></tr>
+		<tr><td>ldap_sip_domain</td><td>string</td><td></td><td>""</td><td>A SIP domain to filter results</td></tr>
+		<tr><td>ldap_filter</td><td>string</td><td></td><td>"(sn=%s)"</td><td>A LDAP search filter</td></tr>
+	</table>
+</details>
+\endif
 
 <!--
 <h2>FriendLists - section [<i>friend_list_N</i>]</h2>
@@ -286,33 +333,21 @@ The auth_info sections provide authentication information to use for SIP as well
 Table \ref authinfo_parameters "authentication information parameters" lists all parameters one may find under section [<i>auth_info_N</i>] of a Linphone RC file.<br/>
 <table>
 	<caption id="authinfo_parameters">Authentication information parameters</caption>
-	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>Description</th></tr>
-	<tr><td>username</td><td>string</td><td>anything</td><td>""</td><td>The username to use for authenticating</td></tr>
-	<tr><td>domain</td><td>string</td><td>anything</td><td>""</td><td>A SIP domain to which the use of thie #LinphoneAuthInfo is scoped to</td></tr>
-	<tr><td>passwd</td><td>string</td><td>anything</td><td>""</td><td>The clear-text password</td></tr>
-	<tr><td>realm</td><td>string</td><td>anything</td><td>""</td><td>The realm advertised by the server, it may be left empty if unknown</td></tr>
-	<tr><td>ha1</td><td>string</td><td>anything</td><td>""</td><td>A digest HA1 of the password</td></tr>
-	<tr><td rowspan="2">algorithm</td><td rowspan="2">string</td><td>MD5</td><td rowspan="2">MD5</td><td rowspan="2">The digest algorithm</td></tr>
-	<tr><td>SHA-256</td></tr>
-	<tr><td>authorization_server</td><td>string</td><td>any HTTP/HTTPS URI</td><td>""</td><td>An OAUTH/OpenID connect authorization server URI to use to autheticate</td></tr>
-	<tr><td>token_endpoint</td><td>string</td><td>any HTTP/HTTPS URI</td><td>""</td><td>URI of endpoint to refresh tokens</td></tr>
-	<tr><td>client_id</td><td>string</td><td>anything</td><td>""</td><td>OAUTH client ID</td></tr>
-	<tr><td>client_secret</td><td>string</td><td>anything</td><td>""</td><td>OAUTH client secret</td></tr>
-</table>
-
-<h2>Chat - section [<i>chat</i>]</h2>
-The <i>chat</i> section represents the global chat configuration settings of a #LinphoneCore.
-Table \ref chat_parameters "chat parameters" lists all parameters one may find under section [<i>chat</i>] of a Linphone RC file.<br/>
-<table>
-	<caption id="chat_parameters">Chat parameters</caption>
-	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th></tr>
-	<tr><td>message_automatic_resending_s</td><td>integer</td><td>any positive integer or 0</td><td>10</td><td>\copybrief linphone_core_set_message_automatic_resending_delay</td></tr>
-	<tr><td>delay_message_send_s</td><td>integer</td><td>any positive integer or 0</td><td>10</td><td>\copybrief linphone_core_set_message_sending_delay</td></tr>
-	<tr><td>delay_message_send_app_ext_s</td><td>integer</td><td>any positive integer or 0</td><td>3</td><td>\copybrief linphone_core_set_message_sending_delay_app_ext</td></tr>
-	<tr><td>sender_name_hidden_in_forward_message</td><td>0 or 1</td><td>0</td><td>\copybrief linphone_core_enable_sender_name_hidden_in_forward_message</td></tr>
-	<tr><td>imdn_to_everybody_threshold</td><td>integer</td><td>any positive integer</td><td>5</td><td>\copybrief linphone_core_set_imdn_to_everybody_threshold</td></tr>
-	<tr><td>max_participants_per_chatroom</td><td>integer</td><td>any integer</td><td>-1</td><td>\copybrief linphone_core_set_max_participants_per_chatroom</td></tr>
-	<tr><td>chat_room_handling_set</td><td>integer</td><td>enumeration #LinphoneChatRoomHandlingSet</td><td>LinphoneChatRoomHandlingSetAll</td><td>\copybrief linphone_core_set_chat_rooms_handling_set</td></tr>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>username</td><td>string</td><td>anything</td><td>""</td><td>linphone_auth_info_set_username()</td><td>\copybrief linphone_auth_info_set_username</td></tr>
+	<tr><td>domain</td><td>string</td><td>anything</td><td>""</td><td>linphone_auth_info_set_domain()</td><td>\copybrief linphone_auth_info_set_domain</td></tr>
+	<tr><td>passwd</td><td>string</td><td>anything</td><td>""</td><td>linphone_auth_info_set_password()</td><td>\copybrief linphone_auth_info_set_password</td></tr>
+	<tr><td>realm</td><td>string</td><td>anything</td><td>""</td><td>linphone_auth_info_set_realm()</td><td>\copybrief linphone_auth_info_set_realm</td></tr>
+	<tr><td>ha1</td><td>string</td><td>anything</td><td>""</td><td>linphone_auth_info_set_ha1()</td><td>\copybrief linphone_auth_info_set_ha1</td></tr>
+	<tr><td>algorithm</td><td>string</td><td>MD5</td><td>MD5</td><td>linphone_auth_info_set_algorithm()</td><td>\copybrief linphone_auth_info_set_algorithm</td></tr>
+	<tr><td>authorization_server</td><td>string</td><td>any HTTP/HTTPS URI</td><td>""</td><td>linphone_auth_info_set_authorization_server()</td><td>\copybrief linphone_auth_info_set_authorization_server</td></tr>
+	<tr><td>token_endpoint</td><td>string</td><td>any HTTP/HTTPS URI</td><td>""</td><td>linphone_auth_info_set_token_endpoint_uri()</td><td>\copybrief linphone_auth_info_set_token_endpoint_uri</td></tr>
+	<tr><td>client_id</td><td>string</td><td>anything</td><td>""</td><td>linphone_auth_info_set_client_id()</td><td>\copybrief linphone_auth_info_set_client_id</td></tr>
+	<tr><td>client_secret</td><td>string</td><td>anything</td><td>""</td><td>linphone_auth_info_set_client_secret()</td><td>\copybrief linphone_auth_info_set_client_secret</td></tr>
 </table>
 
 <h2>Storage - section [<i>storage</i>]</h2>
@@ -320,8 +355,12 @@ The <i>storage</i> section represents the global storage configuration settings 
 Table \ref storage_parameters "storage parameters" lists all parameters one may find under section [<i>storage</i>] of a Linphone RC file.<br/>
 <table>
 	<caption id="storage_parameters">Storage parameters</caption>
-	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th></tr>
-	<tr><td>update_db_at_initialisation</td><td>boolean</td><td>0 or 1</td><td>1</td><td>\copybrief linphone_core_enable_update_db_at_startup.</td></tr>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>update_db_at_initialisation</td><td>boolean</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_update_db_at_startup()</td><td>\copybrief linphone_core_enable_update_db_at_startup</td></tr>
 </table>
 
 
