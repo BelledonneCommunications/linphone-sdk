@@ -256,21 +256,6 @@ void CorePrivate::init() {
 #endif
 }
 
-void CorePrivate::registerListener(CoreListener *listener) {
-	if (!listener) {
-		lError() << __func__ << " : Ignoring attempt to register a null listener";
-		return;
-	}
-	listeners.insert(listener);
-}
-
-void CorePrivate::unregisterListener(CoreListener *listener) {
-	if (auto it = listeners.find(listener); it != listeners.end()) {
-		listeners.erase(it);
-		if (nowRunningListeners) removedListeners.insert(listener);
-	}
-}
-
 void CorePrivate::writeNatPolicyConfigurations() {
 	L_Q();
 	int index = 0;
@@ -539,11 +524,10 @@ void CorePrivate::uninit() {
 	// This way, the core will make a last attempt to send messages on encrypted chatrooms.
 	if (imee != nullptr) {
 		auto *listener = dynamic_cast<CoreListener *>(q->getEncryptionEngine());
-		if (listener != nullptr) unregisterListener(listener);
+		if (listener != nullptr) removeListener(listener);
 		imee.reset();
 	}
 
-	listeners.clear();
 	static_cast<PlatformHelpers *>(getCCore()->platform_helper)->stopPushService();
 	pushReceivedBackgroundTask.stop();
 	mRemoteContactDirectories.clear();
@@ -1242,7 +1226,7 @@ void Core::setEncryptionEngine(EncryptionEngine *imee) {
 	L_D();
 	CoreListener *listener = dynamic_cast<CoreListener *>(getEncryptionEngine());
 	if (listener) {
-		d->unregisterListener(listener);
+		d->removeListener(listener);
 	}
 	d->imee.reset(imee);
 }
@@ -1263,7 +1247,7 @@ void Core::enableLimeX3dh(bool enable) {
 		if (d->imee != nullptr) {
 			CoreListener *listener = dynamic_cast<CoreListener *>(getEncryptionEngine());
 			if (listener) {
-				d->unregisterListener(listener);
+				d->removeListener(listener);
 			}
 			d->imee.reset();
 		}
@@ -1276,7 +1260,7 @@ void Core::enableLimeX3dh(bool enable) {
 		lWarning() << "Enabling LIME X3DH over previous non LIME X3DH encryption engine";
 		CoreListener *listener = dynamic_cast<CoreListener *>(getEncryptionEngine());
 		if (listener) {
-			d->unregisterListener(listener);
+			d->removeListener(listener);
 		}
 		d->imee.reset();
 	}
@@ -1302,7 +1286,7 @@ void Core::enableLimeX3dh(bool enable) {
 			LimeX3dhEncryptionEngine *engine = new LimeX3dhEncryptionEngine(dbAccess, getSharedFromThis());
 			if (engine->getEngineType() == EncryptionEngine::EngineType::LimeX3dh) {
 				setEncryptionEngine(engine);
-				d->registerListener(engine);
+				d->addListener(engine);
 				if (!hasSpec(Core::limeSpec)) {
 					addSpec(Core::limeSpec);
 				}
@@ -1317,7 +1301,7 @@ void Core::enableLimeX3dh(bool enable) {
 			/* Server mode does not need the lime library dependency. */
 			LimeX3dhEncryptionServerEngine *engine = new LimeX3dhEncryptionServerEngine(getSharedFromThis());
 			setEncryptionEngine(engine);
-			d->registerListener(engine);
+			d->addListener(engine);
 #endif
 		}
 	}

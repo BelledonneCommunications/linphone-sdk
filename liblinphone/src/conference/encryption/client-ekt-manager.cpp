@@ -140,7 +140,7 @@ ClientEktManager::ClientEktManager(const shared_ptr<EktContext> &ektCtx) : mEktC
 void ClientEktManager::init(shared_ptr<ClientConference> &rc) {
 	lInfo() << "Init ClientEktManager [" << this << "]";
 	mClientConf = rc;
-	L_GET_PRIVATE_FROM_C_OBJECT(rc->getCore()->getCCore())->registerListener(this);
+	L_GET_PRIVATE_FROM_C_OBJECT(rc->getCore()->getCCore())->addListener(this);
 	rc->addListener(this->shared_from_this());
 }
 
@@ -152,7 +152,7 @@ ClientEktManager::~ClientEktManager() {
 		if (core) {
 			auto cCore = core->getCCore();
 			if (cCore) {
-				L_GET_PRIVATE_FROM_C_OBJECT(cCore)->unregisterListener(this);
+				L_GET_PRIVATE_FROM_C_OBJECT(cCore)->removeListener(this);
 			}
 		}
 	}
@@ -198,7 +198,7 @@ void ClientEktManager::onStateChanged(ConferenceInterface::State newState) {
 				if (core) {
 					auto cCore = core->getCCore();
 					if (cCore) {
-						L_GET_PRIVATE_FROM_C_OBJECT(cCore)->unregisterListener(this);
+						L_GET_PRIVATE_FROM_C_OBJECT(cCore)->removeListener(this);
 					}
 				}
 				rc->removeListener(shared_from_this());

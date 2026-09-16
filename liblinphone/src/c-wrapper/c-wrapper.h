@@ -123,7 +123,7 @@ private:
 /*
  * Base class for all listeners, including '*Cbs' classes.
  */
-class LINPHONE_PUBLIC ListenerBase : public UserDataAccessor {
+class LINPHONE_PUBLIC ListenerBase {
 public:
 	virtual ~ListenerBase() = default;
 	inline void setActive(bool active) {
@@ -155,6 +155,8 @@ public:
 protected:
 	ListenerBase *mCurrentListener = nullptr;
 	UnderlyingContainer mListeners;
+	UnderlyingContainer mRemovedListeners;
+	bool mRunningListeners = false; // set to true when listeners are in the process of being invoked.
 };
 
 /*
@@ -166,7 +168,12 @@ public:
 	template <typename _lambdaT>
 	void invokeListeners(_lambdaT lambda) {
 		std::list<ListenerBase *> listenersCopy(mListeners.begin(), mListeners.end());
+		mRunningListeners = true;
 		for (auto l : listenersCopy) {
+			/* Do not invoke a listener that has been removed during iteration.*/
+			if (mRemovedListeners.find(l) != mRemovedListeners.end()) {
+				continue;
+			}
 			/*
 			 * This could be a static_cast<> to get better performance.
 			 * Dynamic_cast is here for safety.
@@ -180,6 +187,8 @@ public:
 				lError() << "ListenerHolder::invokeListeners(): could not dynamic_cast listener " << l << " to type "
 				         << typeid(_listenerT).name();
 		}
+		mRunningListeners = false;
+		mRemovedListeners.clear();
 	}
 };
 
@@ -187,13 +196,15 @@ public:
  * Template class for classes that hold callbacks (such as LinphoneCallCbs, LinphoneAccountCbs etc.
  * and internal listeners.
  * The invocation of all listeners (including callback objects) must be done using
- * the invokeListeners() memeber function, inherited from ListenerHolder.
+ * the invokeListeners() member function, inherited from ListenerHolder.
  * For this to work, the callback object (ex EventCbs, AccountCbs...) must inherit from
  * an abtract listener class, that can be used internally for pure C++ code.
  * See src/event/event.h for a working example of the new way to manage listeners and Cbs objects.
  *
  * Former method: for objects not yet using a listener interface on top of their Cbs object,
  * it can be done with the LINPHONE_HYBRID_OBJECT_INVOKE_CBS() macro.
+ * the addCallbacks() and removeCallbacks() can be simplified once the LINPHONE_HYBRID_OBJECT_INVOKE_CBS
+ * macros are dropped. The setActive() will no longer be necessary.
  */
 template <typename _CppCbsType, typename _ListenerType = ListenerBase>
 class LINPHONE_PUBLIC CallbacksHolder : public ListenerHolder<_ListenerType> {

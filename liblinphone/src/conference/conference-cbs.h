@@ -30,7 +30,9 @@
 
 LINPHONE_BEGIN_NAMESPACE
 
-class ConferenceCbs : public bellesip::HybridObject<LinphoneConferenceCbs, ConferenceCbs>, public ListenerBase {
+class ConferenceCbs : public bellesip::HybridObject<LinphoneConferenceCbs, ConferenceCbs>,
+                      public ListenerBase,
+                      public UserDataAccessor {
 public:
 	LinphoneConferenceCbsAllowedParticipantListChangedCb allowedParticipantListChangedCb;
 	LinphoneConferenceCbsParticipantAddedCb participantAddedCb;

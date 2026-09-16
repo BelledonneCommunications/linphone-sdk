@@ -30,7 +30,7 @@ LINPHONE_BEGIN_NAMESPACE
 ClientConferenceEventHandlerBase::ClientConferenceEventHandlerBase(const std::shared_ptr<Core> &core)
     : CoreAccessor(core) {
 	try {
-		getCore()->getPrivate()->registerListener(this);
+		getCore()->getPrivate()->addListener(this);
 	} catch (const std::bad_weak_ptr &) {
 		lError() << "ClientConferenceEventHandler [" << this
 		         << "]: Unable to register listener as the core has already been destroyed";
@@ -39,7 +39,7 @@ ClientConferenceEventHandlerBase::ClientConferenceEventHandlerBase(const std::sh
 
 ClientConferenceEventHandlerBase::~ClientConferenceEventHandlerBase() {
 	try {
-		getCore()->getPrivate()->unregisterListener(this);
+		getCore()->getPrivate()->removeListener(this);
 		stopWaitNotifyTimer();
 	} catch (const std::bad_weak_ptr &) {
 		// Unable to unregister listener here. Core is destroyed and the listener doesn't exist.

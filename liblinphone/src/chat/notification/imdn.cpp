@@ -46,7 +46,7 @@ LINPHONE_BEGIN_NAMESPACE
 // -----------------------------------------------------------------------------
 
 Imdn::Imdn(ChatRoom *chatRoom) : chatRoom(chatRoom) {
-	chatRoom->getCore()->getPrivate()->registerListener(this);
+	chatRoom->getCore()->getPrivate()->addListener(this);
 	auto config = linphone_core_get_config(chatRoom->getCore()->getCCore());
 	aggregationAllowed = linphone_config_get_bool(config, "misc", "aggregate_imdn", TRUE);
 }
@@ -55,7 +55,7 @@ Imdn::~Imdn() {
 	// getCore may no longer be available when deleting, specially in case of managed enviroment like java
 	try {
 		stopTimer();
-		chatRoom->getCore()->getPrivate()->unregisterListener(this);
+		chatRoom->getCore()->getPrivate()->removeListener(this);
 	} catch (const bad_weak_ptr &) {
 	}
 }

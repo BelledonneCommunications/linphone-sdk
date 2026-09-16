@@ -90,7 +90,7 @@ void ServerConference::initFromDb(const std::shared_ptr<Participant> &me,
 	}
 	setLastNotify(lastNotifyId);
 	mConferenceId = conferenceId;
-	getCore()->getPrivate()->registerListener(this);
+	getCore()->getPrivate()->addListener(this);
 #ifdef HAVE_ADVANCED_IM
 	auto chatRoom =
 	    dynamic_pointer_cast<ServerChatRoom>((new ServerChatRoom(getCore(), getSharedFromThis()))->toSharedPtr());
@@ -153,7 +153,7 @@ void ServerConference::init(SalCallOp *op, ConferenceListener *confListener) {
 
 	if (mConfParams->chatEnabled()) {
 		mConfParams->enableLocalParticipant(false);
-		core->getPrivate()->registerListener(this);
+		core->getPrivate()->addListener(this);
 #ifdef HAVE_ADVANCED_IM
 		auto chatRoom =
 		    dynamic_pointer_cast<ServerChatRoom>((new ServerChatRoom(core, getSharedFromThis()))->toSharedPtr());
@@ -2791,7 +2791,7 @@ void ServerConference::cleanup() {
 			serverListEventHandler->removeHandler(mEventHandler);
 		}
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
-		getCore()->getPrivate()->unregisterListener(this);
+		getCore()->getPrivate()->removeListener(this);
 	} catch (const bad_weak_ptr &) {
 		// Unable to unregister listener here. Core is destroyed and the listener doesn't exist.
 	}

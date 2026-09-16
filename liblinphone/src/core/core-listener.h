@@ -25,6 +25,7 @@
 
 #include "linphone/types.h"
 
+#include "c-wrapper/c-wrapper.h"
 #include "linphone/utils/general.h"
 
 // =============================================================================
@@ -33,7 +34,7 @@ LINPHONE_BEGIN_NAMESPACE
 
 class Account;
 
-class LINPHONE_PUBLIC CoreListener {
+class LINPHONE_PUBLIC CoreListener : public ListenerBase {
 public:
 	virtual ~CoreListener() = default;
 

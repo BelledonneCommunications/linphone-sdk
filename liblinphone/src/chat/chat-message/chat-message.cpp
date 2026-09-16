@@ -563,7 +563,7 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 	}
 
 	if (q->needsToBeResent()) {
-		chatRoom->getCore()->getPrivate()->registerListener(q);
+		chatRoom->getCore()->getPrivate()->addListener(q);
 		int resendTimerDurationSeconds = linphone_core_get_message_automatic_resending_delay(q->getCore()->getCCore());
 		if ((direction == ChatMessage::Direction::Outgoing) && !hasBeenAutomaticallyResent && needResend &&
 		    !q->getResendTimer() && (resendTimerDurationSeconds > 0)) {
@@ -2107,7 +2107,7 @@ ChatMessage::~ChatMessage() {
 	std::shared_ptr<Core> core = nullptr;
 	try {
 		core = getCore();
-		core->getPrivate()->unregisterListener(this);
+		core->getPrivate()->removeListener(this);
 	} catch (const bad_weak_ptr &) {
 	}
 }

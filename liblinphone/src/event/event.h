@@ -35,7 +35,7 @@ LINPHONE_BEGIN_NAMESPACE
 class Event;
 
 /* Use this class to inherint a listener used internally */
-class EventListener : public ListenerBase {
+class EventListener : public ListenerBase, public UserDataAccessor {
 public:
 	virtual ~EventListener() = default;
 	virtual void notifyResponse(const std::shared_ptr<Event> &) {};

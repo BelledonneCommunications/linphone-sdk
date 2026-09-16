@@ -19,6 +19,7 @@
  */
 
 #include "c-wrapper/c-wrapper.h"
+#include <utility>
 
 LINPHONE_BEGIN_NAMESPACE
 
@@ -41,6 +42,9 @@ void ListenerHolderBase::removeListener(ListenerBase *listener) {
 	if (mListeners.erase(listener) == 0) {
 		lError() << "ListenerHolderBase::removeListener(): listener was not found.";
 		return;
+	}
+	if (mRunningListeners) {
+		mRemovedListeners.insert(listener);
 	}
 }
 

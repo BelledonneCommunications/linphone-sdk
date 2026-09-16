@@ -67,7 +67,7 @@ LINPHONE_BEGIN_NAMESPACE
 static const std::regex charactersToEscape(R"([\.\^\$\+\(\)\[\]\{\}\|\?\*])");
 
 MagicSearch::MagicSearch(const shared_ptr<Core> &core) : CoreAccessor(core) {
-	L_GET_PRIVATE(core)->registerListener(this);
+	L_GET_PRIVATE(core)->addListener(this);
 }
 
 void MagicSearch::onGlobalStateChanged(LinphoneGlobalState state) {
@@ -78,7 +78,7 @@ void MagicSearch::onGlobalStateChanged(LinphoneGlobalState state) {
 
 MagicSearch::~MagicSearch() {
 	try {
-		L_GET_PRIVATE(getCore())->unregisterListener(this);
+		L_GET_PRIVATE(getCore())->removeListener(this);
 		destroyIterateTimer();
 	} catch (...) {
 		// The core is gone already, nothing to do.

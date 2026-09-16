@@ -407,7 +407,9 @@ private:
 	std::list<std::shared_ptr<MagicSearchPlugin>> mPlugins;
 };
 
-class MagicSearchCbs : public bellesip::HybridObject<LinphoneMagicSearchCbs, MagicSearchCbs>, public ListenerBase {
+class MagicSearchCbs : public bellesip::HybridObject<LinphoneMagicSearchCbs, MagicSearchCbs>,
+                       public ListenerBase,
+                       public UserDataAccessor {
 public:
 	LinphoneMagicSearchCbsSearchResultsReceivedCb getResultsReceived() const {
 		return mResultsAvailableCb;

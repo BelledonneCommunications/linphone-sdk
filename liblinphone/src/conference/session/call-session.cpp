@@ -1413,7 +1413,7 @@ void CallSessionPrivate::repairIfBroken() {
 CallSession::CallSession(const shared_ptr<Core> &core, const CallSessionParams *params)
     : Object(*new CallSessionPrivate), CoreAccessor(core) {
 	L_D();
-	getCore()->getPrivate()->registerListener(d);
+	getCore()->getPrivate()->addListener(d);
 	if (params) d->setParams(new CallSessionParams(*params));
 	d->init();
 	lInfo() << "New " << *this << " initialized (LinphoneCore version: " << linphone_core_get_version() << ")";
@@ -1421,14 +1421,14 @@ CallSession::CallSession(const shared_ptr<Core> &core, const CallSessionParams *
 
 CallSession::CallSession(CallSessionPrivate &p, const shared_ptr<Core> &core) : Object(p), CoreAccessor(core) {
 	L_D();
-	getCore()->getPrivate()->registerListener(d);
+	getCore()->getPrivate()->addListener(d);
 	d->init();
 }
 
 CallSession::~CallSession() {
 	L_D();
 	try { // getCore may no longuer be available when deleting, specially in case of managed enviroment like java
-		getCore()->getPrivate()->unregisterListener(d);
+		getCore()->getPrivate()->removeListener(d);
 	} catch (const bad_weak_ptr &) {
 	}
 	if (d->currentParams) delete d->currentParams;

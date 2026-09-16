@@ -278,7 +278,9 @@ private:
 	std::shared_ptr<Mwi::MessageWaitingIndication> mLatestReceivedMwiInfo;
 };
 
-class AccountCbs : public bellesip::HybridObject<LinphoneAccountCbs, AccountCbs>, public ListenerBase {
+class AccountCbs : public bellesip::HybridObject<LinphoneAccountCbs, AccountCbs>,
+                   public ListenerBase,
+                   public UserDataAccessor {
 public:
 	LinphoneAccountCbsRegistrationStateChangedCb getRegistrationStateChanged() const;
 	void setRegistrationStateChanged(LinphoneAccountCbsRegistrationStateChangedCb cb);
