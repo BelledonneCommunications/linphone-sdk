@@ -296,7 +296,7 @@ bool SalMediaDescription::containsStreamWithDir(const SalStreamDir &stream_dir) 
 }
 
 bool SalMediaDescription::isNullAddress(const std::string &addr) const {
-	return addr.compare("0.0.0.0") == 0 || addr.compare("::0") == 0;
+	return (addr == "0.0.0.0") || (addr == "::0");
 }
 
 void SalMediaDescription::addNewBundle(const SalStreamBundle &bundle) {
@@ -307,7 +307,7 @@ int SalMediaDescription::lookupMid(const std::string mid) const {
 	size_t index;
 	for (index = 0; index < streams.size(); ++index) {
 		const auto &sd = streams[index];
-		if (sd.getChosenConfiguration().getMid().compare(mid) == 0) {
+		if (sd.getChosenConfiguration().getMid() == mid) {
 			return static_cast<int>(index);
 		}
 	}
@@ -393,7 +393,7 @@ int SalMediaDescription::findIdxStream(SalMediaProto proto, SalStreamType type) 
 std::vector<SalStreamDescription>::const_iterator
 SalMediaDescription::findStreamItWithLabel(SalStreamType type, const std::string label) const {
 	const auto &streamIt = std::find_if(streams.cbegin(), streams.cend(), [&type, &label](const auto &stream) {
-		return ((stream.getLabel().compare(label) == 0) && (stream.getType() == type));
+		return ((stream.getLabel() == label) && (stream.getType() == type));
 	});
 	return streamIt;
 }
@@ -417,9 +417,8 @@ int SalMediaDescription::findIdxStreamWithLabel(SalStreamType type, const std::s
 
 std::vector<SalStreamDescription>::const_iterator
 SalMediaDescription::findStreamItWithContent(const std::string content) const {
-	const auto &streamIt = std::find_if(streams.cbegin(), streams.cend(), [&content](const auto &stream) {
-		return (stream.getContent().compare(content) == 0);
-	});
+	const auto &streamIt = std::find_if(streams.cbegin(), streams.cend(),
+	                                    [&content](const auto &stream) { return (stream.getContent() == content); });
 	return streamIt;
 }
 
@@ -443,8 +442,7 @@ int SalMediaDescription::findIdxStreamWithContent(const std::string content) con
 std::vector<SalStreamDescription>::const_iterator
 SalMediaDescription::findStreamItWithContent(const std::string content, const SalStreamDir direction) const {
 	const auto &streamIt = std::find_if(streams.cbegin(), streams.cend(), [&content, &direction](const auto &stream) {
-		return (stream.enabled() && (stream.getContent().compare(content) == 0) &&
-		        (stream.getDirection() == direction));
+		return (stream.enabled() && (stream.getContent() == content) && (stream.getDirection() == direction));
 	});
 	return streamIt;
 }
@@ -469,8 +467,8 @@ int SalMediaDescription::findIdxStreamWithContent(const std::string content, con
 std::vector<SalStreamDescription>::const_iterator
 SalMediaDescription::findStreamItWithContent(const std::string content, const std::string label) const {
 	const auto &streamIt = std::find_if(streams.cbegin(), streams.cend(), [&content, &label](const auto &stream) {
-		return ((content.empty() && stream.getContent().empty()) || stream.getContent().compare(content) == 0) &&
-		       ((label.empty() && stream.getLabel().empty()) || (stream.getLabel().compare(label) == 0));
+		return ((content.empty() && stream.getContent().empty()) || stream.getContent() == content) &&
+		       ((label.empty() && stream.getLabel().empty()) || (stream.getLabel() == label));
 	});
 	return streamIt;
 }
@@ -815,18 +813,31 @@ int SalMediaDescription::equal(const SalMediaDescription &otherMd) const {
 int SalMediaDescription::globalEqual(const SalMediaDescription &otherMd) const {
 	int result = SAL_MEDIA_DESCRIPTION_UNCHANGED;
 
-	if (addr.compare(otherMd.addr) != 0) result |= SAL_MEDIA_DESCRIPTION_NETWORK_CHANGED;
-	if (addr.empty() == false && otherMd.addr.empty() == false &&
-	    ms_is_multicast(L_STRING_TO_C(addr)) != ms_is_multicast(L_STRING_TO_C(otherMd.addr)))
+	if (origin_addr != otherMd.origin_addr) {
+		result |= SAL_MEDIA_DESCRIPTION_ORIGIN_ADDRESS_CHANGED;
+	}
+
+	if (addr != otherMd.addr) {
+		result |= SAL_MEDIA_DESCRIPTION_NETWORK_CHANGED;
+	}
+	if (!addr.empty() && !otherMd.addr.empty() &&
+	    ms_is_multicast(L_STRING_TO_C(addr)) != ms_is_multicast(L_STRING_TO_C(otherMd.addr))) {
 		result |= SAL_MEDIA_DESCRIPTION_NETWORK_XXXCAST_CHANGED;
-	if (streams.size() != otherMd.streams.size()) result |= SAL_MEDIA_DESCRIPTION_STREAMS_CHANGED;
-	if (bandwidth != otherMd.bandwidth) result |= SAL_MEDIA_DESCRIPTION_BANDWIDTH_CHANGED;
+	}
+	if (streams.size() != otherMd.streams.size()) {
+		result |= SAL_MEDIA_DESCRIPTION_STREAMS_CHANGED;
+	}
+	if (bandwidth != otherMd.bandwidth) {
+		result |= SAL_MEDIA_DESCRIPTION_BANDWIDTH_CHANGED;
+	}
 
 	/* ICE */
-	if (ice_ufrag.compare(otherMd.ice_ufrag) != 0 && !otherMd.ice_ufrag.empty())
+	if (!otherMd.ice_ufrag.empty() && (ice_ufrag != otherMd.ice_ufrag)) {
 		result |= SAL_MEDIA_DESCRIPTION_ICE_RESTART_DETECTED;
-	if (ice_pwd.compare(otherMd.ice_pwd) != 0 && !otherMd.ice_pwd.empty())
+	}
+	if (!otherMd.ice_pwd.empty() && (ice_pwd != otherMd.ice_pwd)) {
 		result |= SAL_MEDIA_DESCRIPTION_ICE_RESTART_DETECTED;
+	}
 
 	return result;
 }
@@ -906,8 +917,12 @@ const std::string SalMediaDescription::printDifferences(int result) {
 		result &= ~SAL_MEDIA_DESCRIPTION_BANDWIDTH_CHANGED;
 	}
 	if (result & SAL_MEDIA_DESCRIPTION_CONTENT_CHANGED) {
-		out.append("CONTENT_CHANGED");
+		out.append("CONTENT_CHANGED ");
 		result &= ~SAL_MEDIA_DESCRIPTION_CONTENT_CHANGED;
+	}
+	if (result & SAL_MEDIA_DESCRIPTION_ORIGIN_ADDRESS_CHANGED) {
+		out.append("ORIGIN_ADDRESS_CHANGED ");
+		result &= ~SAL_MEDIA_DESCRIPTION_ORIGIN_ADDRESS_CHANGED;
 	}
 	if (result) {
 		ms_fatal("There are unhandled result bitmasks in SalMediaDescription::printDifferences(), fix it");

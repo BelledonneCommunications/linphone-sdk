@@ -73,11 +73,22 @@ const OfferAnswerContext &OfferAnswerContext::scopeStreamToIndexWithDiff(size_t 
 	scopeStreamToIndex(index);
 	previousCtx.scopeStreamToIndex(index);
 
+	// Local
 	if (previousCtx.localMediaDescription &&
 	    (previousCtx.getLocalStreamDescription() != Utils::getEmptyConstRefObject<SalStreamDescription>())) {
 		localStreamDescriptionChanges = previousCtx.localMediaDescription->globalEqual(*localMediaDescription) |
 		                                previousCtx.getLocalStreamDescription().equal(getLocalStreamDescription());
 	} else localStreamDescriptionChanges = 0;
+
+	// Remote
+	if (previousCtx.remoteMediaDescription && remoteMediaDescription &&
+	    (previousCtx.getRemoteStreamDescription() != Utils::getEmptyConstRefObject<SalStreamDescription>()) &&
+	    (getRemoteStreamDescription() != Utils::getEmptyConstRefObject<SalStreamDescription>())) {
+		remoteStreamDescriptionChanges = previousCtx.remoteMediaDescription->globalEqual(*remoteMediaDescription) |
+		                                 previousCtx.getRemoteStreamDescription().equal(getRemoteStreamDescription());
+	} else remoteStreamDescriptionChanges = 0;
+
+	// Result
 	if (previousCtx.resultMediaDescription && resultMediaDescription &&
 	    (previousCtx.getResultStreamDescription() != Utils::getEmptyConstRefObject<SalStreamDescription>()) &&
 	    (getResultStreamDescription() != Utils::getEmptyConstRefObject<SalStreamDescription>())) {
@@ -92,6 +103,7 @@ void OfferAnswerContext::clear() {
 	remoteMediaDescription.reset();
 	resultMediaDescription.reset();
 	localStreamDescriptionChanges = 0;
+	remoteStreamDescriptionChanges = 0;
 	resultStreamDescriptionChanges = 0;
 }
 

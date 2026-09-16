@@ -135,7 +135,8 @@ void StreamsGroup::createStreams(const OfferAnswerContext &params) {
 				auto localTypeString = sal_stream_type_to_string(localType);
 				auto rtpPort = params.getLocalStreamDescription().getRtpPort();
 				// The RTP port is set to 0 when the stream is inactive
-				// The RTP port is set to SAL_STREAM_DESCRIPTION_PORT_TO_BE_DETERMINED (i.e. 35536) after being configured but before being put down in an SDP
+				// The RTP port is set to SAL_STREAM_DESCRIPTION_PORT_TO_BE_DETERMINED (i.e. 35536) after being
+				// configured but before being put down in an SDP
 				if ((rtpPort == 0) || (rtpPort == SAL_STREAM_DESCRIPTION_PORT_TO_BE_DETERMINED)) {
 					lInfo() << *this << ": Restarting stream at index " << index
 					        << " because its type has changed from " << typeString << " to " << localTypeString << "!";
@@ -216,6 +217,11 @@ void StreamsGroup::render(const OfferAnswerContext &constParams, CallSession::St
 		if (params.localStreamDescriptionChanges) {
 			const std::string differences = SalMediaDescription::printDifferences(params.localStreamDescriptionChanges);
 			lInfo() << *this << ": Local stream description has changed: " << differences;
+		}
+		if (params.remoteStreamDescriptionChanges) {
+			const std::string differences =
+			    SalMediaDescription::printDifferences(params.remoteStreamDescriptionChanges);
+			lInfo() << *this << ": Remote stream description has changed: " << differences;
 		}
 		if (params.resultStreamDescriptionChanges) {
 			const std::string differences =

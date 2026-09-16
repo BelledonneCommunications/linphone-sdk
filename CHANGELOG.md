@@ -11,7 +11,12 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
-## [Unreleased]
+## [5.5.33]
+
+### Fixed
+- Reinitialize encrypton contexts when the encryption keys or the origin address put down in the SDP changes
+
+## [5.5.32]
 
 ### Fixed
 - Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
