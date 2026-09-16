@@ -612,18 +612,10 @@ void SalStreamDescription::createActualCfg(const SalMediaDescription *salMediaDe
 
 	/*copy dtls attributes from session descriptiun, might be overwritten stream by stream*/
 	/*DTLS attributes can be defined at session level.*/
-	SalDtlsRole session_role = SalDtlsRoleInvalid;
 	value = belle_sdp_session_description_get_attribute_value(sdp, "setup");
 	if (value) {
-		if (strncmp(value, "actpass", 7) == 0) {
-			session_role = SalDtlsRoleUnset;
-		} else if (strncmp(value, "active", 6) == 0) {
-			session_role = SalDtlsRoleIsClient;
-		} else if (strncmp(value, "passive", 7) == 0) {
-			session_role = SalDtlsRoleIsServer;
-		}
+		actualCfg.dtls_role = SalStreamConfiguration::getDtlsRoleFromSetupAttribute(value);
 	}
-	actualCfg.dtls_role = session_role;
 
 	value = belle_sdp_session_description_get_attribute_value(sdp, "fingerprint");
 	if (value) {
@@ -637,13 +629,7 @@ void SalStreamDescription::createActualCfg(const SalMediaDescription *salMediaDe
 	if (((actualCfg.proto == SalProtoUdpTlsRtpSavpf) || (actualCfg.proto == SalProtoUdpTlsRtpSavp))) {
 		attribute = belle_sdp_media_description_get_attribute(media_desc, "setup");
 		if (attribute && (value = belle_sdp_attribute_get_value(attribute)) != NULL) {
-			if (strncmp(value, "actpass", 7) == 0) {
-				actualCfg.dtls_role = SalDtlsRoleUnset;
-			} else if (strncmp(value, "active", 6) == 0) {
-				actualCfg.dtls_role = SalDtlsRoleIsClient;
-			} else if (strncmp(value, "passive", 7) == 0) {
-				actualCfg.dtls_role = SalDtlsRoleIsServer;
-			}
+			actualCfg.dtls_role = SalStreamConfiguration::getDtlsRoleFromSetupAttribute(value);
 		}
 		if (actualCfg.dtls_role != SalDtlsRoleInvalid &&
 		    (attribute = belle_sdp_media_description_get_attribute(media_desc, "fingerprint"))) {
@@ -868,10 +854,9 @@ int SalStreamDescription::equal(const SalStreamDescription &other) const {
 	}
 
 	/* ICE */
-	if (ice_ufrag.compare(other.ice_ufrag) != 0 && !other.ice_ufrag.empty())
+	if (!other.ice_ufrag.empty() && (ice_ufrag != other.ice_ufrag))
 		result |= SAL_MEDIA_DESCRIPTION_ICE_RESTART_DETECTED;
-	if (ice_pwd.compare(other.ice_pwd) != 0 && !other.ice_pwd.empty())
-		result |= SAL_MEDIA_DESCRIPTION_ICE_RESTART_DETECTED;
+	if (!other.ice_pwd.empty() && (ice_pwd != other.ice_pwd)) result |= SAL_MEDIA_DESCRIPTION_ICE_RESTART_DETECTED;
 
 	return result;
 }
@@ -880,12 +865,12 @@ int SalStreamDescription::globalEqual(const SalStreamDescription &other) const {
 	int result = SAL_MEDIA_DESCRIPTION_UNCHANGED;
 
 	if (type != other.type) result |= SAL_MEDIA_DESCRIPTION_CODEC_CHANGED;
-	if (content.compare(other.content) != 0) result |= SAL_MEDIA_DESCRIPTION_CONTENT_CHANGED;
+	if (content != other.content) result |= SAL_MEDIA_DESCRIPTION_CONTENT_CHANGED;
 
 	// RTP
-	if ((rtp_addr.compare(other.rtp_addr) != 0) && ((rtp_port != 0) || (other.rtp_port != 0)))
+	if (((rtp_port != 0) || (other.rtp_port != 0)) && (rtp_addr != other.rtp_addr))
 		result |= SAL_MEDIA_DESCRIPTION_NETWORK_CHANGED;
-	if ((rtp_addr.empty() == false) && (other.rtp_addr.empty() == false) &&
+	if (!rtp_addr.empty() && !other.rtp_addr.empty() &&
 	    ms_is_multicast(L_STRING_TO_C(rtp_addr)) != ms_is_multicast(L_STRING_TO_C(other.rtp_addr)))
 		result |= SAL_MEDIA_DESCRIPTION_NETWORK_XXXCAST_CHANGED;
 	if (rtp_port != other.rtp_port) {
@@ -894,7 +879,7 @@ int SalStreamDescription::globalEqual(const SalStreamDescription &other) const {
 	}
 
 	// RTCP
-	if ((rtcp_addr.compare(other.rtcp_addr) != 0) && (rtcp_port != 0) && (other.rtcp_port != 0))
+	if ((rtcp_addr != other.rtcp_addr) && (rtcp_port != 0) && (other.rtcp_port != 0))
 		result |= SAL_MEDIA_DESCRIPTION_NETWORK_CHANGED;
 	if ((rtcp_addr.empty() == false) && (other.rtcp_addr.empty() == false) &&
 	    ms_is_multicast(L_STRING_TO_C(rtcp_addr)) != ms_is_multicast(L_STRING_TO_C(other.rtcp_addr)))
@@ -1247,7 +1232,7 @@ SalStreamDescription::toSdpMediaDescription(const SalMediaDescription *salMediaD
 	}
 
 	if (rtp_port != 0) {
-		different_rtp_and_rtcp_addr = (rtcp_addr.empty() == false) && (rtp_addr.compare(rtcp_addr) != 0);
+		different_rtp_and_rtcp_addr = !rtcp_addr.empty() && (rtp_addr != rtcp_addr);
 		if ((rtcp_port != 0) && ((rtcp_port != (rtp_port + 1)) || (different_rtp_and_rtcp_addr == true))) {
 			std::string rtcpAttrValue = std::to_string(rtcp_port);
 			if (different_rtp_and_rtcp_addr == true) {

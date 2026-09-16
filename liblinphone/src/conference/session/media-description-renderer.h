@@ -41,6 +41,7 @@ public:
 	bool localIsOfferer = false;
 
 	mutable int localStreamDescriptionChanges = 0;
+	mutable int remoteStreamDescriptionChanges = 0;
 	mutable int resultStreamDescriptionChanges = 0;
 	mutable size_t streamIndex = 0;
 

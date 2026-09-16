@@ -218,6 +218,11 @@ void StreamsGroup::render(const OfferAnswerContext &constParams, CallSession::St
 			const std::string differences = SalMediaDescription::printDifferences(params.localStreamDescriptionChanges);
 			lInfo() << *this << ": Local stream description has changed: " << differences;
 		}
+		if (params.remoteStreamDescriptionChanges) {
+			const std::string differences =
+			    SalMediaDescription::printDifferences(params.remoteStreamDescriptionChanges);
+			lInfo() << *this << ": Remote stream description has changed: " << differences;
+		}
 		if (params.resultStreamDescriptionChanges) {
 			const std::string differences =
 			    SalMediaDescription::printDifferences(params.resultStreamDescriptionChanges);

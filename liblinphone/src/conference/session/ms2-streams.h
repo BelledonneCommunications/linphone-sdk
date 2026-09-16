@@ -117,7 +117,7 @@ protected:
 	                        bool applyProfile = true);
 	int getIdealAudioBandwidth(const std::shared_ptr<SalMediaDescription> &md, const SalStreamDescription &desc);
 	RtpSession *createRtpIoSession();
-	void updateCryptoParameters(const OfferAnswerContext &params);
+	void updateCryptoParameters(const OfferAnswerContext &params, bool reinitialize);
 	void updateDestinations(const OfferAnswerContext &params);
 	bool updateRtpProfile(const OfferAnswerContext &params);
 	bool canIgnorePtimeChange(const OfferAnswerContext &params);
@@ -159,6 +159,7 @@ private:
 	void setupSrtp(const OfferAnswerContext &params);
 	void setupDtlsParams(MediaStream *ms);
 	void initDtlsParams(MediaStream *ms);
+	void stopZrtp(MediaStream *ms);
 	void configureRtpSessionForRtcpFb(const OfferAnswerContext &params);
 	void configureRtpSessionForRtcpXr(const OfferAnswerContext &params);
 	void configureAdaptiveRateControl(const OfferAnswerContext &params);

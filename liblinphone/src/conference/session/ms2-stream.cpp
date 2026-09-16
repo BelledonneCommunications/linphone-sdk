@@ -726,8 +726,24 @@ bool MS2Stream::handleBasicChanges(const OfferAnswerContext &params, BCTBX_UNUSE
 			updateDestinations(params);
 			changesToHandle &= ~SAL_MEDIA_DESCRIPTION_NETWORK_CHANGED;
 		}
-		if (params.resultStreamDescriptionChanges & SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED) {
-			updateCryptoParameters(params);
+		bool reinitializeEncryptionContext = false;
+		if (params.remoteStreamDescriptionChanges & SAL_MEDIA_DESCRIPTION_ORIGIN_ADDRESS_CHANGED) {
+			// The encryption session must be reinitialized if the remote party changed (i.e. the origin address in the
+			// SDP changed). For any encryption, the context must be deleted to take into account the new keys. Even
+			// though, resetting may not be the best solution for all scenarios, it is the safest as the SDK doesn't
+			// know what the remote party did with its context
+			reinitializeEncryptionContext = true;
+		} else if (stream.hasDtls() || stream.hasZrtp()) {
+			// The encryption session must be reinitialized if the negotiated encryption is ZRTP or DTLS and the remote
+			// changed the DTLS fingerprint or the ZRTP hash. The ZRTP hash is not mandatory though
+			// The change in the crypto type is picked up by the result description changes
+			reinitializeEncryptionContext =
+			    (params.remoteStreamDescriptionChanges & SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED) &&
+			    !(params.remoteStreamDescriptionChanges & SAL_MEDIA_DESCRIPTION_CRYPTO_TYPE_CHANGED);
+		}
+		if ((params.resultStreamDescriptionChanges & SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED) ||
+		    reinitializeEncryptionContext) {
+			updateCryptoParameters(params, reinitializeEncryptionContext);
 			changesToHandle &= ~SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
 		}
 		if (params.resultStreamDescriptionChanges & SAL_MEDIA_DESCRIPTION_PTIME_CHANGED &&
@@ -1211,13 +1227,36 @@ void MS2Stream::setupSrtp(const OfferAnswerContext &params) {
 	}
 }
 
-void MS2Stream::updateCryptoParameters(const OfferAnswerContext &params) {
+void MS2Stream::stopZrtp(MediaStream *ms) {
+	if ((mZrtpState == ZrtpState::Started) || (mZrtpState == ZrtpState::Restarted)) {
+		if (mSessions.zrtp_context) {
+			ms_zrtp_send_go_clear(mSessions.zrtp_context);
+		}
+		mZrtpState = ZrtpState::TurnedOff;
+		media_stream_reclaim_sessions(ms, &mSessions);
+	}
+}
+
+void MS2Stream::updateCryptoParameters(const OfferAnswerContext &params, bool reinitialize) {
 	const auto &resultStreamDesc = params.getResultStreamDescription();
 	MediaStream *ms = getMediaStream();
 
+	if (reinitialize && resultStreamDesc.hasSrtp() && mSessions.srtp_context) {
+		mSendMasterKey.clear();
+		mReceiveMasterKey.clear();
+		ms_srtp_context_delete(ms->sessions.srtp_context);
+		ms->sessions.srtp_context = NULL;
+		media_stream_reclaim_sessions(ms, &mSessions);
+	}
 	setupSrtp(params);
 
 	if (resultStreamDesc.hasZrtp()) {
+		if (reinitialize && mSessions.zrtp_context) {
+			stopZrtp(ms);
+			ms_zrtp_context_destroy(ms->sessions.zrtp_context);
+			ms->sessions.zrtp_context = NULL;
+			media_stream_reclaim_sessions(ms, &mSessions);
+		}
 		if (!mSessions.zrtp_context) {
 			initZrtp();
 			// Copy newly created zrtp context into mSessions
@@ -1230,21 +1269,14 @@ void MS2Stream::updateCryptoParameters(const OfferAnswerContext &params) {
 			mZrtpState = ZrtpState::Started;
 		}
 	} else {
-		if ((mZrtpState == ZrtpState::Started) || (mZrtpState == ZrtpState::Restarted)) {
-			if (mSessions.zrtp_context) {
-				ms_zrtp_send_go_clear(mSessions.zrtp_context);
-			}
-			mZrtpState = ZrtpState::TurnedOff;
-		}
+		stopZrtp(ms);
 	}
 
 	if (resultStreamDesc.hasDtls()) {
-
-		if (mDtlsStarted && mSessions.dtls_context) {
+		if (reinitialize && mDtlsStarted && mSessions.dtls_context) {
 			// Update DTLS on started state so reset context
-			ms_dtls_srtp_reset_context(mSessions.dtls_context);
+			ms_dtls_srtp_reset_context(ms->sessions.dtls_context);
 			mDtlsStarted = false;
-			mSessions.dtls_context = NULL;
 		}
 		if (!mSessions.dtls_context) {
 			ms = getMediaStream();

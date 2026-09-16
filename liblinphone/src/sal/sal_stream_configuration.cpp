@@ -183,7 +183,7 @@ int SalStreamConfiguration::equal(const SalStreamConfiguration &other) const {
 		if ((crypto1->tag != crypto2->tag) || (crypto1->algo != crypto2->algo)) {
 			result |= SAL_MEDIA_DESCRIPTION_CRYPTO_POLICY_CHANGED;
 		}
-		if (crypto1->master_key.compare(crypto2->master_key)) {
+		if (crypto1->master_key != crypto2->master_key) {
 			result |= SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
 		}
 	}
@@ -210,12 +210,11 @@ int SalStreamConfiguration::equal(const SalStreamConfiguration &other) const {
 
 	/*DTLS*/
 	// Role is considered as changed if initialized and different.
-	if (other.dtls_role != SalDtlsRoleUnset && dtls_role != SalDtlsRoleUnset) {
-		if (dtls_role != other.dtls_role && (dtls_role == SalDtlsRoleInvalid || other.dtls_role == SalDtlsRoleInvalid))
-			result |= SAL_MEDIA_DESCRIPTION_CRYPTO_TYPE_CHANGED;
-		if (dtls_fingerprint.compare(other.dtls_fingerprint) != 0) {
-			result |= SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
-		}
+	if (dtls_role != other.dtls_role && (dtls_role == SalDtlsRoleInvalid || other.dtls_role == SalDtlsRoleInvalid)) {
+		result |= SAL_MEDIA_DESCRIPTION_CRYPTO_TYPE_CHANGED;
+	}
+	if (dtls_fingerprint != other.dtls_fingerprint) {
+		result |= SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
 	}
 
 	/*ZRTP*/
@@ -223,8 +222,9 @@ int SalStreamConfiguration::equal(const SalStreamConfiguration &other) const {
 		result |= SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
 		result |= SAL_MEDIA_DESCRIPTION_CRYPTO_TYPE_CHANGED;
 	}
-	if (haveZrtpHash && other.haveZrtpHash && (strcmp((const char *)zrtphash, (const char *)other.zrtphash) != 0))
+	if (haveZrtpHash && other.haveZrtpHash && (strcmp((const char *)zrtphash, (const char *)other.zrtphash) != 0)) {
 		result |= SAL_MEDIA_DESCRIPTION_CRYPTO_KEYS_CHANGED;
+	}
 
 	/* Extensions */
 	if (mixer_to_client_extension_id != other.mixer_to_client_extension_id)
@@ -498,11 +498,11 @@ std::string SalStreamConfiguration::getSetupAttributeForDtlsRole(const SalDtlsRo
 
 SalDtlsRole SalStreamConfiguration::getDtlsRoleFromSetupAttribute(const std::string setupAttr) {
 	SalDtlsRole role = SalDtlsRoleInvalid;
-	if (setupAttr.compare("actpass") == 0) {
+	if (setupAttr == "actpass") {
 		role = SalDtlsRoleUnset;
-	} else if (setupAttr.compare("active") == 0) {
+	} else if (setupAttr == "active") {
 		role = SalDtlsRoleIsClient;
-	} else if (setupAttr.compare("passive") == 0) {
+	} else if (setupAttr == "passive") {
 		role = SalDtlsRoleIsServer;
 	}
 	return role;
