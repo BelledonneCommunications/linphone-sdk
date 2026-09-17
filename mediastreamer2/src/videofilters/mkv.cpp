@@ -259,41 +259,48 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	*data = result;
 }
 
-static void H264Private_load(H264Private *obj, const uint8_t *data) {
-	int i, N;
-	const uint8_t *r_ptr = NULL;
+static void H264Private_load(H264Private *obj, const uint8_t *data, size_t length) {
+	size_t i, N;
+	const uint8_t *r_ptr = NULL, *end = data + length;
 	uint16_t nalu_size;
 	mblk_t *nalu = NULL;
-
 	_H264Private_uninit(obj);
 	_H264Private_init(obj);
-
+	if (length <= 6) return;
 	N = data[5] & 0x1F;
 	r_ptr = data + 6;
-	for (i = 0; i < N; i++) {
+	for (i = 0; i < N; ++i) {
+		// If there are just 16 bits to read, there will be no memcpy: no need to continue
+		if (sizeof(uint16_t) >= static_cast<std::size_t>(end - r_ptr)) break;
 		memcpy(&nalu_size, r_ptr, sizeof(uint16_t));
 		r_ptr += sizeof(uint16_t);
 		nalu_size = ntohs(nalu_size);
+		// Read of [ r_ptr ; r_ptr+nalu_size ]
+		if (nalu_size > static_cast<std::size_t>(end - r_ptr)) break;
 		nalu = allocb(nalu_size, 0);
 		memcpy(nalu->b_wptr, r_ptr, nalu_size);
 		nalu->b_wptr += nalu_size;
 		r_ptr += nalu_size;
 		obj->sps_list = bctbx_list_append(obj->sps_list, nalu);
 	}
-
-	N = *r_ptr;
-	r_ptr += 1;
-	for (i = 0; i < N; i++) {
-		memcpy(&nalu_size, r_ptr, sizeof(uint16_t));
-		r_ptr += sizeof(uint16_t);
-		nalu_size = ntohs(nalu_size);
-		nalu = allocb(nalu_size, 0);
-		memcpy(nalu->b_wptr, r_ptr, nalu_size);
-		nalu->b_wptr += nalu_size;
-		r_ptr += nalu_size;
-		obj->pps_list = bctbx_list_append(obj->pps_list, nalu);
+	if (r_ptr < end) {
+		N = *r_ptr;
+		r_ptr += 1;
+		for (i = 0; i < N; ++i) {
+			// If there are just 16 bits to read, there will be no memcpy: no need to continue
+			if (sizeof(uint16_t) >= static_cast<std::size_t>(end - r_ptr)) break;
+			memcpy(&nalu_size, r_ptr, sizeof(uint16_t));
+			r_ptr += sizeof(uint16_t);
+			nalu_size = ntohs(nalu_size);
+			// Read of [ r_ptr ; r_ptr+nalu_size ]
+			if (nalu_size > static_cast<std::size_t>(end - r_ptr)) break;
+			nalu = allocb(nalu_size, 0);
+			memcpy(nalu->b_wptr, r_ptr, nalu_size);
+			nalu->b_wptr += nalu_size;
+			r_ptr += nalu_size;
+			obj->pps_list = bctbx_list_append(obj->pps_list, nalu);
+		}
 	}
-
 	if (obj->sps_list != NULL) {
 		const mblk_t *firstSPS = (const mblk_t *)bctbx_list_nth_data(obj->sps_list, 0);
 		obj->profile = firstSPS->b_rptr[1];
@@ -472,7 +479,7 @@ static void h264_module_reverse(BCTBX_UNUSED(MSFactory *factory),
                                 MSQueue *output,
                                 ms_bool_t isFirstFrame,
                                 const uint8_t *codecPrivateData,
-                                BCTBX_UNUSED(size_t codecPrivateSize)) {
+                                size_t codecPrivateSize) {
 	mblk_t *buffer = NULL, *bufferFrag = NULL;
 	H264Module *obj = (H264Module *)data;
 	MSQueue queue;
@@ -480,12 +487,15 @@ static void h264_module_reverse(BCTBX_UNUSED(MSFactory *factory),
 	H264Private *codecPrivate = NULL, *selectedCodecPrivate = NULL;
 
 	ms_queue_init(&queue);
-	while (input->b_rptr != input->b_wptr) {
+	// Need uint32_t + something else
+	while (sizeof(uint32_t) < static_cast<std::size_t>(input->b_wptr - input->b_rptr)) {
 		uint32_t naluSize;
 		mblk_t *nalu;
 		memcpy(&naluSize, input->b_rptr, sizeof(uint32_t));
 		input->b_rptr += sizeof(uint32_t);
 		naluSize = ntohl(naluSize);
+		// Read of [ b_rptr ; b_rptr+naluSize ]
+		if (naluSize > static_cast<std::size_t>(input->b_wptr - input->b_rptr)) break;
 		nalu = allocb(naluSize, 0);
 		memcpy(nalu->b_wptr, input->b_rptr, naluSize);
 		nalu->b_wptr += naluSize;
@@ -500,7 +510,7 @@ static void h264_module_reverse(BCTBX_UNUSED(MSFactory *factory),
 		selectedCodecPrivate = obj->codecPrivate;
 	} else if (codecPrivateData != NULL) {
 		codecPrivate = H264Private_new();
-		H264Private_load(codecPrivate, codecPrivateData);
+		H264Private_load(codecPrivate, codecPrivateData, codecPrivateSize);
 		selectedCodecPrivate = codecPrivate;
 	}
 	if (selectedCodecPrivate != NULL) {
@@ -537,10 +547,10 @@ static void h264_module_get_private_data(const void *o, uint8_t **data, size_t *
 	}
 }
 
-static void h264_module_load_private_data(void *o, const uint8_t *data, BCTBX_UNUSED(size_t size)) {
+static void h264_module_load_private_data(void *o, const uint8_t *data, size_t size) {
 	H264Module *obj = (H264Module *)o;
 	obj->codecPrivate = H264Private_new();
-	H264Private_load(obj->codecPrivate, data);
+	H264Private_load(obj->codecPrivate, data, size);
 }
 
 /* h264 module description */

@@ -285,7 +285,7 @@ static bool_t parse_frame_header(Vp8RtpFmtFrame *frame) {
 	nb_partitions = (1 << vp8_read_literal(&bc, 2));
 	if (nb_partitions > 8) return FALSE;
 	frame->partitions_info.nb_partitions = nb_partitions;
-	partition_size = (uint16_t)(data + first_partition_length_in_bytes - m->b_rptr + (3 * (nb_partitions - 1)));
+	partition_size = (uint32_t)(data + first_partition_length_in_bytes - m->b_rptr + (3 * (nb_partitions - 1)));
 	if (msgdsize(m) < partition_size) return FALSE;
 	frame->partitions_info.partition_sizes[0] = partition_size;
 	for (i = 1; i < nb_partitions; i++) {

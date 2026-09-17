@@ -11,7 +11,13 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
-## [5.5.29]
+## [5.5.30] 2026-10-05
+
+### Fixed
+- MKV: Add checks on buffer to avoid Out-of-bounds reads.
+- VP8: Fix a cast to avoid losing data.
+
+## [5.5.29] 2026-09-30
 
 ### Fixed
 - iOS : fix possible audio route bug when switching audio device during call
