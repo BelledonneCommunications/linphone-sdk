@@ -7,8 +7,13 @@ vcard = "BEGIN" ":" "VCARD" [CR] LF
 
 property = (NAME / PROFILE / SOURCE / FN / N / NICKNAME / PHOTO / IMPP /
 			BDAY / ADR / LABEL / TEL / EMAIL / MAILER / TZ / GEO / TITLE /
-			ROLE / LOGO / AGENT / ORG / CATEGORIES / NOTE / PRODID / REV / 
-			SORT-STRING / SOUND / UID / URL / CLASS / KEY / KIND) [CR] LF
+			ROLE / LOGO / AGENT / ORG / CATEGORIES / NOTE / PRODID / REV /
+			SORT-STRING / SOUND / UID / URL / CLASS / KEY / KIND / X-PROPERTY) [CR] LF
+
+X-PROPERTY = [group "."] X-PROPERTY-name *(";" X-PROPERTY-param) ":" X-PROPERTY-value
+X-PROPERTY-name = x-name
+X-PROPERTY-param = any-param
+X-PROPERTY-value = text
 
 NAME = [group "."] "NAME" *(";") ":" NAME-VALUE
 NAME-VALUE = text-value
