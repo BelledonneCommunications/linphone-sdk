@@ -4238,9 +4238,13 @@ ServerConference::verifyVideoDirection(const std::shared_ptr<CallSession> &sessi
 	return videoDir;
 }
 
-bool ServerConference::unifyConferenceAddress() {
+bool ServerConference::canBeMigrated() const {
 	const auto &conferenceAddress = getConferenceAddress();
-	if (!conferenceAddress->hasUriParam(Conference::kConfIdParameter)) {
+	return conferenceAddress && !conferenceAddress->hasUriParam(Conference::kConfIdParameter);
+}
+
+bool ServerConference::unifyConferenceAddress() {
+	if (canBeMigrated()) {
 		lWarning() << "Migrating the address of " << *this << " to one following the pattern <focus>;"
 		           << Conference::kConfIdParameter << "=<random-string>";
 		// TODO: use unified conference address creation method once available
@@ -4281,6 +4285,9 @@ bool ServerConference::unifyConferenceAddress() {
 			serverListEventHandler->addHandler(mEventHandler);
 		}
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
+	} else {
+		lInfo() << *this << " has already been migrated to one following the pattern <focus>;"
+		        << Conference::kConfIdParameter << "=<random-string>";
 	}
 	return true;
 }

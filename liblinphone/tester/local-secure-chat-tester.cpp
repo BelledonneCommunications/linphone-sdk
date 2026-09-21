@@ -496,6 +496,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 		} catch (std::exception &e) { // swallow any error on DB
 			lWarning() << "Cannot insert address " << *paulineUppercase << " to the database "
 			           << michelle.getCMgr()->database_path << ". Error is " << e.what();
+			BC_FAIL("Unable to insert address into the database.");
 		}
 
 		auto michelleMainDb = michelle.getDatabase();
@@ -2969,16 +2970,14 @@ static void secure_legacy_and_new_chatrooms_mixed_up(void) {
 static void legacy_secure_group_chat_migration(void) {
 	struct ChatRoomMigrationParams params;
 	params.encrypted = true;
-	params.unification_at_startup = false;
-	params.migration_method = ChatRoomMigrationMethod::API;
+	params.migration_method = ChatRoomMigrationMethod::AllChatroomsOnTheFly;
 	legacy_chat_room_migration_base(params);
 }
 
 static void legacy_secure_group_chat_migration_at_startup(void) {
 	struct ChatRoomMigrationParams params;
 	params.encrypted = true;
-	params.unification_at_startup = true;
-	params.migration_method = ChatRoomMigrationMethod::API;
+	params.migration_method = ChatRoomMigrationMethod::AllChatroomsAtStartup;
 	legacy_chat_room_migration_base(params);
 }
 
@@ -2986,8 +2985,7 @@ static void legacy_secure_group_chat_migration_at_startup(void) {
 static void legacy_secure_group_chat_manual_migration_at_startup(void) {
 	struct ChatRoomMigrationParams params;
 	params.encrypted = true;
-	params.unification_at_startup = true;
-	params.migration_method = ChatRoomMigrationMethod::Database;
+	params.migration_method = ChatRoomMigrationMethod::SelectedChatroomsThroughDatabaseFlag;
 	legacy_chat_room_migration_base(params);
 }
 #endif // HAVE_SOCI
@@ -3159,6 +3157,7 @@ static void secure_chatroom_loading_from_different_conference_servers() {
 			} catch (std::exception &e) { // swallow any error on DB
 				lWarning() << "Cannot retrieve the number of chatroom stored in database "
 				           << focus.getCMgr()->database_path << ". Error is " << e.what();
+				BC_FAIL("Unable to retrieve number of chatroom stored in the database");
 			}
 #endif // HAVE_SOCI
 
@@ -3201,6 +3200,7 @@ static void secure_chatroom_loading_from_different_conference_servers() {
 		} catch (std::exception &e) { // swallow any error on DB
 			lWarning() << "Cannot retrieve the number of chatroom stored in database " << focus.getCMgr()->database_path
 			           << ". Error is " << e.what();
+			BC_FAIL("Unable to retrieve number of chatroom stored in the database");
 		}
 #endif // HAVE_SOCI
 
@@ -3228,6 +3228,7 @@ static void secure_chatroom_loading_from_different_conference_servers() {
 		} catch (std::exception &e) { // swallow any error on DB
 			lWarning() << "Cannot retrieve the number of chatroom stored in database " << focus.getCMgr()->database_path
 			           << ". Error is " << e.what();
+			BC_FAIL("Unable to retrieve number of chatroom stored in the database");
 		}
 #endif // HAVE_SOCI
 

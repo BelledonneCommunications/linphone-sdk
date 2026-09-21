@@ -5518,6 +5518,14 @@ void sendMesageAndCheckHistory(std::initializer_list<std::reference_wrapper<Core
 	}
 }
 
+std::string get_migration_sql_query(const std::shared_ptr<Address> &address) {
+	std::string addressString = address->asStringUriOnly();
+	ms_message("Manually migrating chatroom %s", addressString.c_str());
+	return std::string("UPDATE chat_room SET to_migrate = 1 FROM sip_address WHERE chat_room.peer_sip_address_id = "
+	                   "sip_address.id AND sip_address.value = \"") +
+	       addressString + std::string("\"");
+}
+
 // Test the following:
 // - migration of a chatroom with 3 members
 // - addition of a participant after migration
@@ -5527,7 +5535,6 @@ void sendMesageAndCheckHistory(std::initializer_list<std::reference_wrapper<Core
 // - designate another admin (REFER message testing)
 void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 	bool encrypted = params.encrypted;
-	bool unification_at_startup = params.unification_at_startup;
 	ChatRoomMigrationMethod method = params.migration_method;
 
 	Focus focus("chloe_rc");
@@ -5613,79 +5620,7 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 		initialPaulineStats = pauline.getStats();
 		initialMichelleStats = michelle.getStats();
 		// Start chatroom migration
-		if (unification_at_startup) {
-			coresList = bctbx_list_remove(coresList, focus.getLc());
-			ms_message("%s reinitializes its core to unify the chat room addresses",
-			           linphone_core_get_identity(focus.getLc()));
-			linphone_core_manager_reinit(focus.getCMgr());
-
-			if (method == ChatRoomMigrationMethod::API) {
-				linphone_core_enable_chat_room_address_unification(focus.getLc(), TRUE);
-				for (const auto &address : addresses) {
-					migratedAddresses.insert(address);
-				}
-			} else {
-#ifdef HAVE_SOCI
-				try {
-					soci::session sql("sqlite3", focus.getCMgr()->database_path); // open the DB
-					if (const auto &address = addresses.front(); address) {
-						std::string addressString = address->asStringUriOnly();
-						ms_message("%s is manually migrating chatroom %s", linphone_core_get_identity(focus.getLc()),
-						           addressString.c_str());
-						sql << "UPDATE chat_room SET to_migrate = 1 FROM sip_address WHERE "
-						       "chat_room.peer_sip_address_id = sip_address.id AND sip_address.value = \""
-						    << addressString << "\"";
-						migratedAddresses.insert(address);
-					}
-				} catch (std::exception &e) { // swallow any error on DB
-					lWarning() << "Cannot manually trigger chat room migration in database "
-					           << focus.getCMgr()->database_path << ". Error is " << e.what();
-				}
-				BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
-#endif // HAVE_SOCI
-			}
-			if (domain_registration_account) {
-				linphone_core_add_account(focus.getLc(), domain_registration_account);
-				linphone_core_set_default_account(focus.getLc(), domain_registration_account);
-			}
-
-			ms_message("%s configures and starts again its core", linphone_core_get_identity(focus.getLc()));
-			focus.configureFocus();
-			linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
-			if (method == ChatRoomMigrationMethod::API) {
-				BC_ASSERT_TRUE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
-			} else {
-				BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
-			}
-			linphone_core_manager_start(focus.getCMgr(), TRUE);
-			coresList = bctbx_list_append(coresList, focus.getLc());
-
-			// The chat room address unification flag is cleared after the action takes place
-			BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
-
-			// Wait for all subscription transaction to expire
-			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
-			                             3 * nbLegacyChatRooms, 80000));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
-			                             initialMarieStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
-			                             (subscribe_expires_s * 1000)));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionActive,
-			                             initialMichelleStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
-			                             (subscribe_expires_s * 1000)));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionActive,
-			                             initialPaulineStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
-			                             (subscribe_expires_s * 1000)));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NotifyFullStateReceived,
-			                             initialMarieStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
-			                             (subscribe_expires_s * 1000)));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_NotifyFullStateReceived,
-			                             initialMichelleStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
-			                             (subscribe_expires_s * 1000)));
-			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_NotifyFullStateReceived,
-			                             initialPaulineStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
-			                             (subscribe_expires_s * 1000)));
-
-		} else {
+		if (method == ChatRoomMigrationMethod::AllChatroomsOnTheFly) {
 			BC_ASSERT_TRUE(linphone_core_unify_chat_rooms_address(focus.getLc()));
 			// The chat room address unification flag is cleared after the action takes place
 			BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
@@ -5710,6 +5645,88 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 			for (const auto &address : addresses) {
 				migratedAddresses.insert(address);
 			}
+		} else {
+			coresList = bctbx_list_remove(coresList, focus.getLc());
+			ms_message("%s reinitializes its core to unify the chat room addresses",
+			           linphone_core_get_identity(focus.getLc()));
+			linphone_core_manager_reinit(focus.getCMgr());
+
+			if (method == ChatRoomMigrationMethod::AllChatroomsAtStartup) {
+				linphone_core_enable_chat_room_address_unification(focus.getLc(), TRUE);
+				for (const auto &address : addresses) {
+					migratedAddresses.insert(address);
+				}
+			} else if (method == ChatRoomMigrationMethod::SelectedChatroomsThroughDatabaseFlag) {
+#ifdef HAVE_SOCI
+				try {
+					soci::session sql("sqlite3", focus.getCMgr()->database_path); // open the DB
+					if (const auto &address = addresses.front(); address) {
+						sql << get_migration_sql_query(address);
+						migratedAddresses.insert(address);
+					}
+				} catch (std::exception &e) { // swallow any error on DB
+					lWarning() << "Cannot manually trigger chat room migration in database "
+					           << focus.getCMgr()->database_path << ". Error is " << e.what();
+					BC_FAIL("Manual migration failed");
+				}
+				BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
+#endif // HAVE_SOCI
+			}
+			if (domain_registration_account) {
+				linphone_core_add_account(focus.getLc(), domain_registration_account);
+				linphone_core_set_default_account(focus.getLc(), domain_registration_account);
+			}
+
+			ms_message("%s configures and starts again its core", linphone_core_get_identity(focus.getLc()));
+			focus.configureFocus();
+			linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
+			if (method == ChatRoomMigrationMethod::AllChatroomsAtStartup) {
+				BC_ASSERT_TRUE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
+			} else {
+				BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
+			}
+			linphone_core_manager_start(focus.getCMgr(), TRUE);
+			coresList = bctbx_list_append(coresList, focus.getLc());
+
+			// The chat room address unification flag is cleared after the action takes place
+			BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
+
+			uint64_t chatRoomsToMigrate = -1;
+#ifdef HAVE_SOCI
+			// Verify that the number of chatrooms hasn't changed
+			try {
+				soci::session sql("sqlite3", focus.getCMgr()->database_path); // open the DB
+				sql << "SELECT COUNT(*) FROM chat_room WHERE to_migrate = 1", soci::into(chatRoomsToMigrate);
+			} catch (std::exception &e) { // swallow any error on DB
+				lWarning() << "Cannot retrieve the number of chatroom still to be migrated in database "
+				           << focus.getCMgr()->database_path << ". Error is " << e.what();
+				BC_FAIL("Unable to retrieve number of chatroom yet to migrate");
+			}
+#endif // HAVE_SOCI
+
+			BC_ASSERT_EQUAL(static_cast<long long unsigned int>(chatRoomsToMigrate), 0, long long unsigned int, "%llu");
+
+			// Wait for all subscription transaction to expire
+			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
+			                             3 * nbLegacyChatRooms, 80000));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialMarieStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialMichelleStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialPaulineStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NotifyFullStateReceived,
+			                             initialMarieStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_NotifyFullStateReceived,
+			                             initialMichelleStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_NotifyFullStateReceived,
+			                             initialPaulineStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
 		}
 
 		BC_ASSERT_EQUAL(marie.getCore().getChatRooms().size(), nbLegacyChatRooms, size_t, "%zu");

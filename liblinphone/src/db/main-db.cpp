@@ -6752,6 +6752,18 @@ shared_ptr<AbstractChatRoom> MainDb::mergeChatRooms(const shared_ptr<AbstractCha
 #endif
 }
 
+void MainDb::resetChatRoomMigrateFlag(const long long &dbId) const {
+#ifdef HAVE_DB_STORAGE
+	const string query = "UPDATE chat_room SET to_migrate = 0 WHERE id = :dbChatRoomId";
+
+	L_DB_TRANSACTION {
+		L_D();
+		*d->dbSession.getBackendSession() << query, soci::use(dbId);
+		tr.commit();
+	};
+#endif
+}
+
 size_t MainDb::getChatRoomCount() const {
 #ifdef HAVE_DB_STORAGE
 	const string query = "SELECT COUNT(*) FROM chat_room";
@@ -7076,7 +7088,10 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 
 						// Address unification flag applies only to conference based server chat rooms
 						if (!!chatRoomRow.get<int>(17)) {
-							chatRoom->scheduleAddressUnification();
+							core->doLater([this, chatRoom, dbChatRoomId] {
+								chatRoom->scheduleAddressUnification();
+								resetChatRoomMigrateFlag(dbChatRoomId);
+							});
 						}
 					} else {
 						if (!me) {

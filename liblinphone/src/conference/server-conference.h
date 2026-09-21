@@ -317,6 +317,8 @@ private:
 	                              const std::shared_ptr<Address> &remoteContactAddress,
 	                              bool incomingReceived) const;
 
+	bool canBeMigrated() const;
+
 	bool sessionParamsAllowThumbnails() const override;
 	void setConferenceTimes(time_t startTime, time_t endTime);
 	std::shared_ptr<Address> prepareConferenceAddress(const std::shared_ptr<Account> &account) const;

@@ -362,6 +362,7 @@ private:
 	                                                 long long id1,
 	                                                 long long id2,
 	                                                 int unreadMessageCount) const;
+	void resetChatRoomMigrateFlag(const long long &dbId) const;
 
 	std::string getConferenceInfoTypeQuery(const std::list<LinphoneStreamType> &capabilities) const;
 };

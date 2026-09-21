@@ -365,11 +365,16 @@ void createChatRooms(int number,
                      bool isLegacy,
                      bool sendMessage);
 
-enum class ChatRoomMigrationMethod { API, Database };
+std::string get_migration_sql_query(const std::shared_ptr<Address> &address);
+
+enum class ChatRoomMigrationMethod {
+	AllChatroomsAtStartup,
+	SelectedChatroomsThroughDatabaseFlag,
+	AllChatroomsOnTheFly
+};
 
 struct ChatRoomMigrationParams {
 	bool encrypted;
-	bool unification_at_startup;
 	ChatRoomMigrationMethod migration_method;
 };
 void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params);
