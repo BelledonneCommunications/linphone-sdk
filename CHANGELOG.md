@@ -11,13 +11,19 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
+## [Unreleased]
+
+### Fixed
+- Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
+
 ## [5.5.30] 2026-10-05
 
 ### Fixed
 - MKV: Add checks on buffer to avoid Out-of-bounds reads.
 - VP8: Fix a cast to avoid losing data.
 
-## [5.5.29] 2026-09-30
+## [5.5.29]
+>>>>>>> 0b59879bd8 (In iOS platform helper: getNetworkType() now properly check the current network rather than relying on mCurrentFlags, which is not used when monitoring is off)
 
 ### Fixed
 - iOS : fix possible audio route bug when switching audio device during call
