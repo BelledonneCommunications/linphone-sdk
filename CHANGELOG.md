@@ -15,6 +15,7 @@ changes made to these components.
 
 ### Changes
 - Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
+- Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
 
 ## [5.5.30] 2026-10-05
 

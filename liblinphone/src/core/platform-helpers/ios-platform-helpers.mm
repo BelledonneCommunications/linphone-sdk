@@ -30,6 +30,7 @@
 #include <SystemConfiguration/CaptiveNetwork.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #include <belr/grammarbuilder.h>
+#include <netinet/in.h>
 #include <notify_keys.h>
 
 #include "c-wrapper/c-wrapper.h"
@@ -659,10 +660,34 @@ void IosPlatformHelpers::kickOffConnectivity() {
       });
 }
 
-PlatformHelpers::NetworkType IosPlatformHelpers::getNetworkType() const {
-  return (mCurrentFlags & kSCNetworkReachabilityFlagsIsWWAN)
-             ? NetworkType::MobileData
-             : NetworkType::Wifi;
+// Reachability flags of the zero address, a special token describing the general routing status of the device (IPv4
+// and IPv6). Unlike a host name, it needs no DNS resolution, so the query does not block.
+static bool getDefaultRouteFlags(SCNetworkReachabilityFlags *flags) {
+	struct sockaddr_in zeroAddress = {};
+	zeroAddress.sin_len = sizeof(zeroAddress);
+	zeroAddress.sin_family = AF_INET;
+
+	SCNetworkReachabilityRef reachability =
+	    SCNetworkReachabilityCreateWithAddress(NULL, (const struct sockaddr *)&zeroAddress);
+	if (!reachability) return false;
+	bool result = SCNetworkReachabilityGetFlags(reachability, flags);
+	CFRelease(reachability);
+	return result;
+}
+
+PlatformHelpers::NetworkType IosPlatformHelpers::getNetworkType()const{
+	// Read the default route flags on each call: mCurrentFlags lags behind network changes and is never updated with
+	// auto_net_state_mon=0, so it would report Wifi while the addresses probed by the local network permission check
+	// are already cellular ones. It is only a fallback if the flags cannot be read (then Wifi, as before).
+	SCNetworkReachabilityFlags flags;
+	if (!getDefaultRouteFlags(&flags)) {
+		ms_warning("[IosPlatformHelpers] Cannot get the default route reachability flags, using the last known ones");
+		flags = mCurrentFlags;
+	}
+	NetworkType type = (flags & kSCNetworkReachabilityFlagsIsWWAN) ? NetworkType::MobileData : NetworkType::Wifi;
+	ms_message("[IosPlatformHelpers] Network type is [%s] (reachability flags [0x%x])",
+	           type == NetworkType::MobileData ? "MobileData" : "Wifi", (unsigned int)flags);
+	return type;
 }
 
 void IosPlatformHelpers::setWifiSSID(const string &ssid) {
