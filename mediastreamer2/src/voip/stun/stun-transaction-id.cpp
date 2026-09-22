@@ -22,7 +22,7 @@
 
 #include "mediastreamer2/stun-transaction-id.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 std::string StunTransactionId::asString() const {
 	std::ostringstream oss;
@@ -47,4 +47,4 @@ StunTransactionId StunTransactionId::random() {
 	return transactionId;
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

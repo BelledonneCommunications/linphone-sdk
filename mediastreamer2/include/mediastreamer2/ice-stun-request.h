@@ -22,11 +22,11 @@
 
 #include <chrono>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <vector>
 
-#include <numeric>
-#include <ortp/rtpsession.h>
+#include "ortp/rtpsession.h"
 
 #include "mediastreamer2/ice-transport-address.h"
 #include "mediastreamer2/ice-utils.h"
@@ -36,7 +36,7 @@
 #include "mediastreamer2/stun-transaction-id.h"
 #include "mediastreamer2/turn-context.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class MS2_PUBLIC IceStunRequest {
 public:
@@ -161,7 +161,7 @@ private:
 	}
 
 	RtpTransport *mRtpTransport = nullptr;
-	std::shared_ptr<TurnContext> mTurnContext = nullptr;
+	std::shared_ptr<TurnContext> mTurnContext;
 	struct addrinfo *mSourceAddrInfo = nullptr;
 	std::vector<std::shared_ptr<Transaction>> mTransactions;
 	std::chrono::steady_clock::time_point mNextTransmissionTime;
@@ -172,4 +172,4 @@ private:
 	bool mResponded = false;
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

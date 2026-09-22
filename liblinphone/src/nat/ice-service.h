@@ -22,13 +22,11 @@
 
 #include <memory>
 
-#include <mediastreamer2/ice-session.h>
+#include "mediastreamer2/ice-session.h"
 
 #include "conference/session/call-session.h"
 #include "conference/session/media-description-renderer.h"
 #include "nat/nat-policy.h"
-
-using namespace ms2::nat;
 
 LINPHONE_BEGIN_NAMESPACE
 
@@ -56,7 +54,7 @@ public:
 	[[nodiscard]] bool isControlling() const;
 
 	/* The ICE restart procedure as in RFC */
-	void restartSession(IceRole role) const;
+	void restartSession(mediastreamer::nat::IceRole role) const;
 
 	/* Called after a network connectivity change, to restart ICE from the beginning.*/
 	void resetSession() const;
@@ -116,7 +114,7 @@ public:
 	/**
 	 * used by non-regression tests only.
 	 */
-	[[nodiscard]] const std::shared_ptr<IceSession> &getSession() const {
+	[[nodiscard]] const std::shared_ptr<mediastreamer::nat::IceSession> &getSession() const {
 		return mIceSession;
 	}
 	/**
@@ -155,7 +153,7 @@ private:
 	bool needIceGathering();
 	void gatheringFinished();
 	void deleteSession();
-	void checkSession(IceRole role, bool preferIpv6DefaultCandidates);
+	void checkSession(mediastreamer::nat::IceRole role, bool preferIpv6DefaultCandidates);
 	[[nodiscard]] int gatherIceCandidates();
 	[[nodiscard]] int gatherSflrxIceCandidates(const struct addrinfo *stunServerAi);
 	[[nodiscard]] int gatherLocalCandidates() const;
@@ -164,7 +162,7 @@ private:
 	void notifyEndOfPrepare();
 
 	StreamsGroup &mStreamsGroup;
-	std::shared_ptr<IceSession> mIceSession = nullptr;
+	std::shared_ptr<mediastreamer::nat::IceSession> mIceSession;
 	IceServiceListener *mListener = nullptr;
 	NatPolicy::AsyncHandle mAsyncStunResolverHandle{};
 	int mSflrxGatheringStatus = 0;

@@ -26,7 +26,7 @@
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 std::string IceStunRequest::Transaction::getIdStr() const {
 	return mId.asString();
@@ -165,8 +165,9 @@ std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::send(const SockAddr
 		    SockAddr(mSourceAddrInfo->ai_addr, static_cast<socklen_t>(mSourceAddrInfo->ai_addrlen));
 		BCTBX_SLOGM << "ice: Send " << requestType << ": " << sourceAddress.asString() << " --> "
 		            << destAddress.asString() << " [" << transaction->getIdStr() << "]";
-		sendMessageToSocket(mRtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
-		                    sourceAddress.asStructSockAddr(), destAddress.asStructSockAddr(), destAddress.getLen());
+		std::ignore =
+		    sendMessageToSocket(mRtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		                        sourceAddress.asStructSockAddr(), destAddress.asStructSockAddr(), destAddress.getLen());
 	} else {
 		BCTBX_SLOGE << "ice: encoding " << requestType << " failed";
 	}
@@ -210,4 +211,4 @@ std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnRefreshRequ
 	return nullptr;
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

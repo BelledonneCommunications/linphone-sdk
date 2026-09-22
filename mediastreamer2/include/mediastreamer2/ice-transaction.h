@@ -25,7 +25,7 @@
 #include "mediastreamer2/ice-candidate-pair.h"
 #include "mediastreamer2/stun-transaction-id.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class IceTransaction {
 public:
@@ -50,10 +50,12 @@ private:
 		return mCanceled;
 	}
 
+	[[nodiscard]] static std::shared_ptr<IceTransaction> create(const std::shared_ptr<IceCandidatePair> &pair,
+	                                                            StunTransactionId transactionId);
+
 	StunTransactionId mId; /**< Transaction ID of the connectivity check sent for the candidate pair */
-	std::shared_ptr<IceCandidatePair> mPair =
-	    nullptr; /**< A pointer to the candidate pair associated with the transaction. */
+	std::shared_ptr<IceCandidatePair> mPair; /**< A pointer to the candidate pair associated with the transaction. */
 	bool mCanceled = false;
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

@@ -22,7 +22,7 @@
 
 #include <string>
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class IcePairFoundation {
 public:
@@ -48,4 +48,4 @@ private:
 	std::string mRemote; /**< Foundation of the remote candidate */
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

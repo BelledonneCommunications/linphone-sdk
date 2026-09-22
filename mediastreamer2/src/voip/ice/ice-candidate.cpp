@@ -22,12 +22,12 @@
 
 #include "mediastreamer2/ice-candidate.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 /**
- * ICE candidate type preference values as recommended in 4.1.1.2.
+ * ICE candidate type preference values as recommended in 4.1.1.2 of RFC5245.
  */
-static constexpr std::array<uint8_t, 4> TYPE_PREFERENCE_VALUES = {
+static constexpr std::array<uint8_t, 4> kTypePreferenceValues = {
     126, // Type::Host
     100, // Type::ServerReflexive
     110, // Type::PeerReflexive
@@ -60,7 +60,7 @@ void IceCandidate::setBase(const std::shared_ptr<IceCandidate> &base) {
 }
 
 std::shared_ptr<IceCandidate>
-IceCandidate::create(const Type type, const IceTransportAddress &transportAddress, const uint16_t componentId) {
+IceCandidate::create(const Type type, const IceTransportAddress &transportAddress, const ComponentId componentId) {
 	auto candidate = std::shared_ptr<IceCandidate>(new IceCandidate(type, transportAddress, componentId));
 
 	if (candidate->isHost()) {
@@ -88,24 +88,25 @@ std::optional<IceCandidate::Type> IceCandidate::getTypeFromStr(const std::string
 
 //------------------------------------------------------------------------------
 
-IceCandidate::IceCandidate(const Type type, const IceTransportAddress &transportAddress, const uint16_t componentId)
+IceCandidate::IceCandidate(const Type type, const IceTransportAddress &transportAddress, const ComponentId componentId)
     : mType(type), mTransportAddress(transportAddress), mComponentId(componentId) {
 	computePriority();
 }
 
 void IceCandidate::computePriority() {
 	// TODO: Handle local preferences for multihomed hosts.
-	constexpr uint32_t localPreference = 65535; // Value recommended for non-multihomed hosts in 4.1.2.1
+	constexpr uint32_t localPreference = 65535; // Value recommended for non-multihomed hosts in 4.1.2.1 of RFC5245
 	const uint32_t afPreference = (mTransportAddress.getFamily() == AF_INET6) ? 1 << 7 : 0;
-	mPriority = (getTypePreferenceValue(mType) << 24) | (localPreference << 8) | afPreference | (128 - mComponentId);
+	mPriority = (getTypePreferenceValue(mType) << 24) | (localPreference << 8) | afPreference |
+	            (128 - static_cast<int>(mComponentId));
 }
 
 void IceCandidate::dump(const std::string &prefix) const {
 	const auto base = mBase.lock();
 	BCTBX_SLOGM << prefix << "[" << this << "]: " << (isDefault() ? "*" : " ") << " type=" << getTypeStr()
 	            << " ip=" << mTransportAddress.getIp() << " port=" << mTransportAddress.getPort()
-	            << " componentID=" << mComponentId << " priority=" << mPriority << " foundation=" << mFoundation
-	            << " base=" << ((base == nullptr) ? nullptr : base.get());
+	            << " componentID=" << static_cast<int>(mComponentId) << " priority=" << mPriority
+	            << " foundation=" << mFoundation << " base=" << ((base == nullptr) ? nullptr : base.get());
 }
 
 std::shared_ptr<IceCandidate> IceCandidate::getBase() const {
@@ -113,7 +114,7 @@ std::shared_ptr<IceCandidate> IceCandidate::getBase() const {
 }
 
 uint8_t IceCandidate::getTypePreferenceValue(Type type) {
-	return TYPE_PREFERENCE_VALUES[static_cast<int>(type)];
+	return kTypePreferenceValues[static_cast<int>(type)];
 }
 
 const std::string &IceCandidate::getTypeStr(Type type) {
@@ -126,4 +127,4 @@ const std::string &IceCandidate::getTypeStr(Type type) {
 	return typeStrs[static_cast<size_t>(type)];
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

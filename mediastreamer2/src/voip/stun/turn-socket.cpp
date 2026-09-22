@@ -30,7 +30,7 @@
 #include <winsock2.h>
 #endif
 
-#include <bctoolbox/crypto.h>
+#include "bctoolbox/crypto.h"
 
 #include "mediastreamer2/turn-socket.h"
 
@@ -40,7 +40,7 @@
 static constexpr unsigned int MTU_MAX = 1500;
 static constexpr uint64_t FLOW_CONTROL_MAX_TIME = 3000;
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 Packet::Packet(const size_t size) : mTimestamp(0) {
 	mMblk = allocb(size, 0);
@@ -459,7 +459,7 @@ int TurnSocket::connect() {
 
 	bctbx_freeaddrinfo(ai);
 
-	error = waitSocketEvent(mRecvControlSocket, mSocket, defaultPollTimeoutMs, POLLIN | POLLOUT);
+	error = waitSocketEvent(mRecvControlSocket, mSocket, kDefaultPollTimeoutMs, POLLIN | POLLOUT);
 	if (error == 0) {
 		BCTBX_SLOGE << "TurnSocket [" << this << "]: connect time-out";
 		close();
@@ -498,7 +498,7 @@ int TurnSocket::connect() {
 		do {
 			error = mSsl->connect();
 			if (error == BCTBX_ERROR_NET_WANT_READ || error == BCTBX_ERROR_NET_WANT_WRITE) {
-				int waitError = waitSocketEvent(mRecvControlSocket, mSocket, defaultPollTimeoutMs,
+				int waitError = waitSocketEvent(mRecvControlSocket, mSocket, kDefaultPollTimeoutMs,
 				                                error == BCTBX_ERROR_NET_WANT_READ ? POLLIN : POLLOUT);
 				if (waitError == -1) {
 					BCTBX_SLOGM << "TurnSocket::connect(): need to abort TLS handshake";
@@ -667,7 +667,7 @@ int TurnSocket::waitSocketEvent(const ControlSocketPair &controller,
 }
 
 void TurnSocket::processRead() {
-	const int err = waitSocketEvent(mRecvControlSocket, mSocket, defaultPollTimeoutMs, POLLIN);
+	const int err = waitSocketEvent(mRecvControlSocket, mSocket, kDefaultPollTimeoutMs, POLLIN);
 	if (err == 1) {
 		int bytes = -1;
 		auto p = std::make_unique<Packet>(MTU_MAX);
@@ -814,4 +814,4 @@ int TurnSocket::getPort() const {
 	return port;
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

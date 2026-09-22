@@ -40,13 +40,13 @@
 
 // =============================================================================
 
-using namespace ms2::nat;
-
 LINPHONE_BEGIN_NAMESPACE
 
 class PayloadTypeHandler;
 
-class LINPHONE_INTERNAL_PUBLIC MediaSessionPrivate : public CallSessionPrivate, private IceServiceListener, public StunAuthListener {
+class LINPHONE_INTERNAL_PUBLIC MediaSessionPrivate : public CallSessionPrivate,
+                                                     private IceServiceListener,
+                                                     public StunAuthListener {
 	friend class StreamsGroup;
 
 public:
@@ -223,8 +223,7 @@ private:
 	virtual void onIceRestartNeeded(IceService &service) override;
 
 	// StunAuthListener methods:
-	virtual StunAuthResponse onStunAuthRequested(const std::string &realm,
-                                      const std::string &nonce) override;
+	virtual StunAuthResponse onStunAuthRequested(const std::string &realm, const std::string &nonce) override;
 
 #ifdef TEST_EXT_RENDERER
 	static void extRendererCb(void *userData, const MSPicture *local, const MSPicture *remote);

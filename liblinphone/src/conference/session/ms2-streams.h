@@ -84,7 +84,7 @@ public:
 	virtual void refreshSockets() override;
 	virtual void updateBandwidthReports() override;
 	virtual float getCpuUsage() const override;
-	virtual void setIceCheckList(const std::shared_ptr<ms2::nat::IceCheckList> &checklist) override;
+	virtual void setIceCheckList(const std::shared_ptr<mediastreamer::nat::IceCheckList> &checklist) override;
 	virtual void iceStateChanged() override;
 	virtual void goClearAckSent() override;
 	virtual void confirmGoClear() override;
@@ -173,7 +173,7 @@ private:
 	bool networkChanged(const OfferAnswerContext &params);
 	belle_sip_source_t *mTimer = nullptr;
 	belle_sip_source_t *mMonitorTimer = nullptr;
-	std::shared_ptr<ms2::nat::IceCheckList> mIceCheckList = nullptr;
+	std::shared_ptr<mediastreamer::nat::IceCheckList> mIceCheckList = nullptr;
 	RtpBundle *mRtpBundle = nullptr;
 	MS2Stream *mBundleOwner = nullptr;
 	ZrtpState mZrtpState = ZrtpState::Off;

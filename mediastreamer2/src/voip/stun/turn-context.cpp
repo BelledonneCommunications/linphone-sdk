@@ -26,7 +26,7 @@
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 TurnContext::~TurnContext() {
 	if (mEndpoint != nullptr) {
@@ -338,4 +338,4 @@ void TurnContext::rtpEndpointDestroy(RtpTransport *rtpTransport) {
 	delete rtpTransport;
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

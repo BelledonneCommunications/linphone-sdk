@@ -24,10 +24,11 @@
 #include <optional>
 #include <string>
 
+#include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-transport-address.h"
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 /**
  * Represents an ICE candidate.
@@ -63,7 +64,7 @@ public:
 	 * Get the component ID of an ICE candidate.
 	 * @return The component ID of the ICE candidate.
 	 */
-	[[nodiscard]] uint16_t getComponentId() const {
+	[[nodiscard]] ComponentId getComponentId() const {
 		return mComponentId;
 	}
 
@@ -117,12 +118,12 @@ public:
 	void setBase(const std::shared_ptr<IceCandidate> &base);
 
 	[[nodiscard]] static std::shared_ptr<IceCandidate>
-	create(Type type, const IceTransportAddress &transportAddress, uint16_t componentId);
+	create(Type type, const IceTransportAddress &transportAddress, ComponentId componentId);
 	[[nodiscard]] static std::optional<Type> getTypeFromStr(const std::string &typeStr);
 	[[nodiscard]] static const std::string &getTypeStr(Type type);
 
 private:
-	IceCandidate(Type type, const IceTransportAddress &transportAddress, uint16_t componentId);
+	IceCandidate(Type type, const IceTransportAddress &transportAddress, ComponentId componentId);
 
 	void computePriority();
 	void dump(const std::string &prefix) const;
@@ -142,9 +143,10 @@ private:
 	Type mType;              /**< Type of the candidate */
 	IceTransportAddress mTransportAddress; /**< Transport address of the candidate */
 	uint32_t mPriority = 0;                /**< Priority of the candidate */
-	uint16_t mComponentId; /**< component ID between 1 and 256: usually 1 for RTP component and 2 for RTCP component */
+	ComponentId
+	    mComponentId; /**< component ID between 1 and 256: usually 1 for RTP component and 2 for RTCP component */
 	std::weak_ptr<IceCandidate> mBase; /**< Pointer to the candidate that is the base of the current one */
 	bool mIsDefault = false; /**< Boolean value telling whether this candidate is a default candidate or not */
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

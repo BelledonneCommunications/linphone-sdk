@@ -93,7 +93,7 @@ bool_t linphone_call_has_ice_check_list(const LinphoneCall *call, unsigned int i
 	if (session == nullptr) {
 		return FALSE;
 	}
-	return (session->getCheckList(index) == nullptr) ? FALSE : TRUE;
+	return (session->getNthCheckList(index) == nullptr) ? FALSE : TRUE;
 }
 
 const MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call, unsigned int index) {
@@ -101,7 +101,7 @@ const MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const Linp
 	if (session == nullptr) {
 		return nullptr;
 	}
-	const auto checklist = session->getCheckList(index);
+	const auto checklist = session->getNthCheckList(index);
 	if (checklist == nullptr) {
 		return nullptr;
 	}
@@ -114,7 +114,7 @@ const MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const Lin
 	if (session == nullptr) {
 		return nullptr;
 	}
-	const auto checklist = session->getCheckList(index);
+	const auto checklist = session->getNthCheckList(index);
 	if (checklist == nullptr) {
 		return nullptr;
 	}

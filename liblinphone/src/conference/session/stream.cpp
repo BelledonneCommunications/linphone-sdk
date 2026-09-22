@@ -33,7 +33,7 @@
 #include "linphone/core.h"
 
 using namespace ::std;
-using namespace ms2::nat;
+using namespace mediastreamer::nat;
 
 LINPHONE_BEGIN_NAMESPACE
 
@@ -99,7 +99,7 @@ void Stream::stop() {
 	mInternalStats.number_of_stops++;
 }
 
-void Stream::setIceCheckList(BCTBX_UNUSED(const std::shared_ptr<::ms2::nat::IceCheckList> &checklist)) {
+void Stream::setIceCheckList(BCTBX_UNUSED(const std::shared_ptr<::mediastreamer::nat::IceCheckList> &checklist)) {
 }
 
 void Stream::iceStateChanged() {

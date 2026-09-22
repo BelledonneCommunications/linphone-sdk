@@ -22,7 +22,7 @@
 
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class MS2_PUBLIC StunTransactionId {
 public:
@@ -50,4 +50,4 @@ private:
 	UInt96 mId{};
 };
 
-}; // namespace ms2::nat
+}; // namespace mediastreamer::nat

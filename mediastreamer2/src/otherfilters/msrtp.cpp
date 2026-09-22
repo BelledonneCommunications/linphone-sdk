@@ -36,7 +36,7 @@
 #define B64_NO_NAMESPACE
 #endif
 
-using namespace ms2::nat;
+using namespace mediastreamer::nat;
 
 static const int default_dtmf_duration_ms = 100; /*in milliseconds*/
 

@@ -23,11 +23,11 @@
 #include <string>
 #include <utility>
 
-#include <ortp/rtpsession.h>
+#include "ortp/rtpsession.h"
 
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class MS2_PUBLIC SockAddr {
 public:
@@ -54,4 +54,4 @@ private:
 	socklen_t mLen = sizeof(mAddr);
 };
 
-}; // namespace ms2::nat
+}; // namespace mediastreamer::nat

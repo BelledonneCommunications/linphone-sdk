@@ -18,13 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/port.h>
 #include <variant>
 
+#include "bctoolbox/port.h"
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/stun-address.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 StunAddress::StunAddress(const struct sockaddr *addr) {
 	init(addr);
@@ -137,4 +137,4 @@ void StunAddress::init(const struct sockaddr *addr) {
 	}
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

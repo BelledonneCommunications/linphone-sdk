@@ -21,9 +21,9 @@
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
-static constexpr uint8_t IANA_PROTOCOL_NUMBERS_UDP = 17;
+static constexpr uint8_t kIanaProtocolNumbersUdp = 17;
 
 std::shared_ptr<StunRawMessage> StunMessage::encode() {
 	mRawMessage = std::shared_ptr<StunRawMessage>(new StunRawMessage());
@@ -34,8 +34,8 @@ std::shared_ptr<StunRawMessage> StunMessage::encode() {
 	}
 	if (mHasChangeIp || mHasChangePort) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::StunChangeRequest,
-		                          (mHasChangeIp ? StunRawMessage::FLAG_CHANGE_IP : 0) |
-		                              (mHasChangePort ? StunRawMessage::FLAG_CHANGE_PORT : 0));
+		                          (mHasChangeIp ? StunRawMessage::kFlagChangeIp : 0) |
+		                              (mHasChangePort ? StunRawMessage::kFlagChangePort : 0));
 	}
 	if (mUsername.has_value() && mIncludeUsernameAttribute) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::StunUsername, mUsername.value());
@@ -118,27 +118,27 @@ void StunMessage::setData(const char *data, size_t length) {
 
 void StunMessage::setNonce(const std::string &nonce) {
 	mNonce = nonce;
-	if (mNonce->size() > StunRawMessage::MAX_NONCE_LENGTH) {
-		mNonce->resize(StunRawMessage::MAX_NONCE_LENGTH);
+	if (mNonce->size() > StunRawMessage::kMaxNonceLength) {
+		mNonce->resize(StunRawMessage::kMaxNonceLength);
 	}
 }
 
 void StunMessage::setRealm(const std::string &realm) {
 	mRealm = realm;
-	if (mRealm->size() > StunRawMessage::MAX_REALM_LENGTH) {
-		mRealm->resize(StunRawMessage::MAX_REALM_LENGTH);
+	if (mRealm->size() > StunRawMessage::kMaxRealmLength) {
+		mRealm->resize(StunRawMessage::kMaxRealmLength);
 	}
 }
 
 void StunMessage::setUsername(const std::string &username) {
 	mUsername = username;
-	if (mUsername->size() > StunRawMessage::MAX_USERNAME_LENGTH) {
-		mUsername->resize(StunRawMessage::MAX_USERNAME_LENGTH);
+	if (mUsername->size() > StunRawMessage::kMaxUsernameLength) {
+		mUsername->resize(StunRawMessage::kMaxUsernameLength);
 	}
 }
 
 std::shared_ptr<StunMessage> StunMessage::parse(const char *data, size_t len) {
-	if (len < StunRawMessage::MESSAGE_HEADER_LENGTH) {
+	if (len < StunRawMessage::kMessageHeaderLength) {
 		BCTBX_SLOGW << "STUN message too short!";
 		return nullptr;
 	}
@@ -154,7 +154,7 @@ std::shared_ptr<StunMessage> StunMessage::parse(const char *data, size_t len) {
 std::shared_ptr<StunMessage> StunMessage::createTurnAllocateRequest() {
 	auto stunMessage =
 	    std::shared_ptr<StunMessage>(new StunMessage(StunMessage::Type::Request, StunMessage::Method::TurnAllocate));
-	stunMessage->mRequestedTransport = IANA_PROTOCOL_NUMBERS_UDP;
+	stunMessage->mRequestedTransport = kIanaProtocolNumbersUdp;
 	return stunMessage;
 }
 
@@ -188,4 +188,4 @@ std::shared_ptr<StunMessage> StunMessage::createTurnSendIndication(const StunAdd
 	return stunMessage;
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

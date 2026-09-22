@@ -30,7 +30,7 @@
 #include "mediastreamer2/stun-error.h"
 #include "mediastreamer2/stun-transaction-id.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class StunRawMessage;
 
@@ -56,9 +56,10 @@ public:
 		TurnChannelBind = 0x09,
 	};
 
-	static constexpr size_t MESSAGE_INTEGRITY_LENGTH = 20;
-	static constexpr std::array<uint8_t, MESSAGE_INTEGRITY_LENGTH> DUMMY_MESSAGE_INTEGRITY = {
+	static constexpr size_t kMessageIntegrityLength = 20;
+	static constexpr std::array<uint8_t, kMessageIntegrityLength> kDummyMessageIntegrity = {
 	    'h', 'm', 'a', 'c', '-', 'n', 'o', 't', '-', 'i', 'm', 'p', 'l', 'e', 'm', 'e', 'n', 't', 'e', 'd'};
+	static constexpr uint16_t kFirstChannelNumber = 0x4000;
 
 	virtual ~StunMessage() = default;
 
@@ -102,7 +103,7 @@ public:
 	[[nodiscard]] const std::optional<StunAddress> &getMappedAddress() const {
 		return mMappedAddress;
 	}
-	[[nodiscard]] const std::optional<std::array<uint8_t, MESSAGE_INTEGRITY_LENGTH>> &getMessageIntegrity() const {
+	[[nodiscard]] const std::optional<std::array<uint8_t, kMessageIntegrityLength>> &getMessageIntegrity() const {
 		return mMessageIntegrity;
 	}
 	[[nodiscard]] Method getMethod() const {
@@ -274,7 +275,7 @@ private:
 	std::optional<std::string> mRealm = std::nullopt;
 	std::optional<std::string> mNonce = std::nullopt;
 	std::optional<std::string> mSoftware = std::nullopt;
-	std::optional<std::array<uint8_t, MESSAGE_INTEGRITY_LENGTH>> mMessageIntegrity = std::nullopt;
+	std::optional<std::array<uint8_t, kMessageIntegrityLength>> mMessageIntegrity = std::nullopt;
 	std::optional<StunError> mError = std::nullopt;
 	std::optional<StunAddress> mMappedAddress = std::nullopt;
 	std::optional<StunAddress> mXorMappedAddress = std::nullopt;
@@ -294,7 +295,7 @@ private:
 	bool mHasMessageIntegrity = false;
 	bool mHasUseCandidate = false;
 	bool mIncludeUsernameAttribute = true;
-	std::shared_ptr<StunRawMessage> mRawMessage = nullptr;
+	std::shared_ptr<StunRawMessage> mRawMessage;
 };
 
-}; // namespace ms2::nat
+}; // namespace mediastreamer::nat

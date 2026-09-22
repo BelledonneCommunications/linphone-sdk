@@ -23,8 +23,8 @@
 #include <sstream>
 #include <stdexcept>
 
-#include <bctoolbox/crypto.h>
-#include <bctoolbox/defs.h>
+#include "bctoolbox/crypto.h"
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/stun-address.h"
 #include "mediastreamer2/stun-message.h"
@@ -43,13 +43,13 @@ static BCTBX_INLINE uint64_t ntohq(uint64_t v) {
 }
 #endif /* little endian */
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
-static constexpr size_t DEFAULT_STUN_RAW_MESSAGE_SIZE = 128;
-static constexpr size_t STUN_MESSAGE_LENGTH_INDEX = 2;
+static constexpr size_t kDefaultStunRawMessageSize = 128;
+static constexpr size_t kStunMessageLengthIndex = 2;
 
 bool StunRawMessage::checkShortTermIntegrity(
-    const std::string &password, const std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> &expectedIntegrity) {
+    const std::string &password, const std::array<uint8_t, StunMessage::kMessageIntegrityLength> &expectedIntegrity) {
 	const auto initialMessageLength = getMessageLength();
 	// First remove length of fingerprint...
 	setMessageLength(initialMessageLength - 8);
@@ -63,7 +63,7 @@ bool StunRawMessage::checkShortTermIntegrity(
 }
 
 StunRawMessage::StunRawMessage() {
-	mData.reserve(DEFAULT_STUN_RAW_MESSAGE_SIZE);
+	mData.reserve(kDefaultStunRawMessageSize);
 }
 
 StunRawMessage::StunRawMessage(const char *data, const size_t len) {
@@ -117,7 +117,7 @@ void StunRawMessage::addAttribute(const Attribute attribute, const std::vector<u
 }
 
 void StunRawMessage::addAttribute(const Attribute attribute,
-                                  const std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> &value) {
+                                  const std::array<uint8_t, StunMessage::kMessageIntegrityLength> &value) {
 	encodeAttribute(attribute);
 	encode16(static_cast<uint16_t>(value.size()));
 	encode(value.data(), value.size());
@@ -190,9 +190,9 @@ void StunRawMessage::addLongTermIntegrityFromHa1(const std::string &ha1) {
 
 void StunRawMessage::addShortTermIntegrity(const std::string &password, const bool hasDummyMessageIntegrity) {
 	updateMessageLength(24);
-	std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> hmac{};
+	std::array<uint8_t, StunMessage::kMessageIntegrityLength> hmac{};
 	if (hasDummyMessageIntegrity) {
-		hmac = StunMessage::DUMMY_MESSAGE_INTEGRITY;
+		hmac = StunMessage::kDummyMessageIntegrity;
 		BCTBX_SLOGW << "hmac not implemented by remote, using dummy integrity hash for stun message";
 	} else {
 		hmac = calculateShortTermIntegrity(password);
@@ -240,19 +240,19 @@ uint32_t StunRawMessage::calculateFingerprint() const {
 	return crc ^ ~0;
 }
 
-std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> StunRawMessage::calculateLongTermIntegrity(
+std::array<uint8_t, StunMessage::kMessageIntegrityLength> StunRawMessage::calculateLongTermIntegrity(
     const std::string &realm, const std::string &username, const std::string &password) const {
 	std::array<uint8_t, 16> ha1Bytes{};
 	const std::string ha1 = username + ":" + realm + ":" + password;
 	bctbx_md5(reinterpret_cast<const uint8_t *>(ha1.data()), ha1.size(), ha1Bytes.data());
 	// SHA1 output length is 20 bytes, get them all
-	std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> hmac{};
+	std::array<uint8_t, StunMessage::kMessageIntegrityLength> hmac{};
 	bctbx_hmacSha1(ha1Bytes.data(), ha1Bytes.size(), reinterpret_cast<const uint8_t *>(mData.data()), mData.size(),
 	               static_cast<uint8_t>(hmac.size()), reinterpret_cast<uint8_t *>(hmac.data()));
 	return hmac;
 }
 
-std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH>
+std::array<uint8_t, StunMessage::kMessageIntegrityLength>
 StunRawMessage::calculateLongTermIntegrityFromHa1(const std::string &ha1) const {
 	std::array<uint8_t, 16> ha1Bytes{};
 	for (size_t i = 0, j = 0; (i < ha1.size()) && (j < ha1Bytes.size()); i += 2, j++) {
@@ -260,19 +260,19 @@ StunRawMessage::calculateLongTermIntegrityFromHa1(const std::string &ha1) const 
 		ha1Bytes[j] = static_cast<uint8_t>(strtol(buf, nullptr, 16));
 	}
 	// SHA1 output length is 20 bytes, get them all
-	std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> hmac{};
+	std::array<uint8_t, StunMessage::kMessageIntegrityLength> hmac{};
 	bctbx_hmacSha1(ha1Bytes.data(), ha1Bytes.size(), reinterpret_cast<const uint8_t *>(mData.data()), mData.size(),
 	               static_cast<uint8_t>(hmac.size()), reinterpret_cast<uint8_t *>(hmac.data()));
 	return hmac;
 }
 
-std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH>
+std::array<uint8_t, StunMessage::kMessageIntegrityLength>
 StunRawMessage::calculateShortTermIntegrity(const std::string &password, size_t length) const {
 	if (length == 0) {
 		length = mData.size();
 	}
 	// SHA1 output length is 20 bytes, get them all
-	std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> hmac{};
+	std::array<uint8_t, StunMessage::kMessageIntegrityLength> hmac{};
 	bctbx_hmacSha1(reinterpret_cast<const uint8_t *>(password.data()), password.size(),
 	               reinterpret_cast<const uint8_t *>(mData.data()), length, static_cast<uint8_t>(hmac.size()),
 	               reinterpret_cast<uint8_t *>(hmac.data()));
@@ -392,11 +392,11 @@ uint32_t StunRawMessage::decodeLifetime(const size_t length) {
 	return decode32();
 }
 
-std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> StunRawMessage::decodeMessageIntegrity(const size_t length) {
-	if (length != StunMessage::MESSAGE_INTEGRITY_LENGTH) {
+std::array<uint8_t, StunMessage::kMessageIntegrityLength> StunRawMessage::decodeMessageIntegrity(const size_t length) {
+	if (length != StunMessage::kMessageIntegrityLength) {
 		throw std::runtime_error("STUN message integrity attribute with wrong length");
 	}
-	auto result = std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH>{};
+	auto result = std::array<uint8_t, StunMessage::kMessageIntegrityLength>{};
 	memcpy(reinterpret_cast<uint8_t *>(result.data()), getDecodePtr(), length);
 	mDecodeIndex += length;
 	return result;
@@ -481,29 +481,26 @@ void StunRawMessage::ensureEnoughDataForDecoding(const size_t size) const {
 
 size_t StunRawMessage::getMessageLength() const {
 	uint16_t networkLength = 0;
-	memcpy(&networkLength, &mData[STUN_MESSAGE_LENGTH_INDEX], sizeof(uint16_t));
+	memcpy(&networkLength, &mData[kStunMessageLengthIndex], sizeof(uint16_t));
 	return ntohs(networkLength);
 }
 
 std::shared_ptr<StunMessage> StunRawMessage::parse() {
 	try {
 		auto stunMessage = parseHeader();
-		// BCTBX_SLOGW << "GMA: TransactionId: " << stunMessage->getTransactionId().asString();
 
 		while (mDecodeIndex < mData.size()) {
 			const auto [attribute, length] = decodeAttributeHeader();
 			switch (attribute) {
 				case Attribute::StunMappedAddress:
-					// BCTBX_SLOGW << "\tStunMappedAddress";
 					stunMessage->setMappedAddress(decodeAddress(length));
 					break;
 				case Attribute::StunChangeRequest: {
-					// BCTBX_SLOGW << "\tStunChangeRequest";
 					uint32_t changeRequest = decodeChangeRequest(length);
-					if ((changeRequest & FLAG_CHANGE_IP) == FLAG_CHANGE_IP) {
+					if ((changeRequest & kFlagChangeIp) == kFlagChangeIp) {
 						stunMessage->enableChangeIp(true);
 					}
-					if ((changeRequest & FLAG_CHANGE_PORT) == FLAG_CHANGE_PORT) {
+					if ((changeRequest & kFlagChangePort) == kFlagChangePort) {
 						stunMessage->enableChangePort(true);
 					}
 				} break;
@@ -514,102 +511,61 @@ std::shared_ptr<StunMessage> StunRawMessage::parse() {
 					std::ignore = decodeAddress(length);
 					break;
 				case Attribute::StunUsername:
-					stunMessage->setUsername(decodeString(length, MAX_USERNAME_LENGTH));
-					// BCTBX_SLOGW << "\tStunUsername: " << stunMessage->getUsername().value();
+					stunMessage->setUsername(decodeString(length, kMaxUsernameLength));
 					break;
 				case Attribute::StunPassword:
-					// BCTBX_SLOGW << "\tStunPassword";
 					// Ignore this deprecated attribute.
-					std::ignore = decodeString(length, MAX_USERNAME_LENGTH);
+					std::ignore = decodeString(length, kMaxUsernameLength);
 					break;
 				case Attribute::StunMessageIntegrity: {
 					stunMessage->mMessageIntegrity = decodeMessageIntegrity(length);
 					stunMessage->enableMessageIntegrity(true);
-					if (stunMessage->mMessageIntegrity == StunMessage::DUMMY_MESSAGE_INTEGRITY) {
+					if (stunMessage->mMessageIntegrity == StunMessage::kDummyMessageIntegrity) {
 						stunMessage->enableDummyMessageIntegrity(true);
 					}
-					// BCTBX_SLOGW << "\tStunMessageIntegrity: " << std::hex << std::setfill('0') << std::setw(2)
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[0])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[1])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[2])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[3])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[4])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[5])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[6])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[7])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[8])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[9])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[10])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[11])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[12])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[13])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[14])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[15])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[16])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[17])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[18])
-					//             << static_cast<int>(stunMessage->mMessageIntegrity.value()[19]);
 				} break;
 				case Attribute::StunErrorCode:
-					// BCTBX_SLOGW << "\tStunErrorCode";
 					stunMessage->setError(decodeErrorCode(length));
 					break;
 				case Attribute::StunXorMappedAddress:
-					// BCTBX_SLOGW << "\tStunXorMappedAddress";
 					stunMessage->setXorMappedAddress(decodeAddress(length).toXor(stunMessage->getTransactionId()));
 					break;
 				case Attribute::StunSoftware:
-					// BCTBX_SLOGW << "\tStunSoftware";
-					stunMessage->setSoftware(decodeString(length, MAX_SOFTWARE_LENGTH));
+					stunMessage->setSoftware(decodeString(length, kMaxSoftwareLength));
 					break;
 				case Attribute::StunFingerprint: {
 					std::ignore = decodeFingerprint(length);
-					// const auto fingerprint = decodeFingerprint(length);
 					stunMessage->enableFingerprint(true);
-					// BCTBX_SLOGW << "\tStunFingerprint: " << std::hex << std::setfill('0') << std::setw(8)
-					//             << fingerprint;
 				} break;
 				case Attribute::StunRealm:
-					// BCTBX_SLOGW << "\tStunRealm";
-					stunMessage->setRealm(decodeString(length, MAX_REALM_LENGTH));
+					stunMessage->setRealm(decodeString(length, kMaxRealmLength));
 					break;
 				case Attribute::StunNonce:
-					// BCTBX_SLOGW << "\tStunNonce";
-					stunMessage->setNonce(decodeString(length, MAX_NONCE_LENGTH));
+					stunMessage->setNonce(decodeString(length, kMaxNonceLength));
 					break;
 				case Attribute::TurnXorPeerAddress:
-					// BCTBX_SLOGW << "\tTurnXorPeerAddress";
 					stunMessage->setXorPeerAddress(decodeAddress(length).toXor(stunMessage->getTransactionId()));
 					break;
 				case Attribute::TurnXorRelayedAddress:
-					// BCTBX_SLOGW << "\tTurnXorRelayedAddress";
 					stunMessage->setXorRelayedAddress(decodeAddress(length).toXor(stunMessage->getTransactionId()));
 					break;
 				case Attribute::TurnLifetime:
-					// BCTBX_SLOGW << "\tTurnLifetime";
 					stunMessage->setLifetime(decodeLifetime(length));
 					break;
 				case Attribute::TurnData:
-					// BCTBX_SLOGW << "\tTurnData";
 					stunMessage->setData(reinterpret_cast<const char *>(decode(length)), length);
 					break;
 				case Attribute::IcePriority:
 					stunMessage->setPriority(decodePriority(length));
-					// BCTBX_SLOGW << "\tIcePriority: " << std::dec << stunMessage->getPriority().value();
 					break;
 				case Attribute::IceUseCandidate:
-					// BCTBX_SLOGW << "\tIceUseCandidate";
 					stunMessage->setUseCandidate(true);
 					break;
 				case Attribute::IceControlled:
 					stunMessage->setIceControlled(decodeIceControlled(length));
-					// BCTBX_SLOGW << "\tIceControlled: " << std::hex << std::setfill('0') << std::setw(16)
-					// << stunMessage->getIceControlled().value();
 					break;
 				case Attribute::IceControlling:
 					stunMessage->setIceControlling(decodeIceControlling(length));
-					// BCTBX_SLOGW << "\tIceControlling: " << std::hex << std::setfill('0') << std::setw(16)
-					//             << stunMessage->getIceControlling().value();
 					break;
 				default:
 					if (static_cast<uint16_t>(attribute) <= 0x7FFF) {
@@ -647,7 +603,7 @@ std::shared_ptr<StunMessage> StunRawMessage::parseHeader() {
 	const auto type = static_cast<StunMessage::Type>(value & 0x0110);
 	const auto method = static_cast<StunMessage::Method>(value & 0x3EEF);
 	const auto length = static_cast<size_t>(decode16());
-	if ((length + MESSAGE_HEADER_LENGTH) != mData.size()) {
+	if ((length + kMessageHeaderLength) != mData.size()) {
 		std::ostringstream oss;
 		oss << "STUN message header length does not match message size: " << length << " - " << mData.size();
 		throw std::runtime_error(oss.str());
@@ -665,11 +621,11 @@ std::shared_ptr<StunMessage> StunRawMessage::parseHeader() {
 
 void StunRawMessage::setMessageLength(const size_t length) {
 	const uint16_t networkLength = htons(static_cast<uint16_t>(length));
-	memcpy(&mData[STUN_MESSAGE_LENGTH_INDEX], &networkLength, sizeof(networkLength));
+	memcpy(&mData[kStunMessageLengthIndex], &networkLength, sizeof(networkLength));
 }
 
 void StunRawMessage::updateMessageLength(const size_t additionalLength) {
-	setMessageLength(mData.size() - MESSAGE_HEADER_LENGTH + additionalLength);
+	setMessageLength(mData.size() - kMessageHeaderLength + additionalLength);
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

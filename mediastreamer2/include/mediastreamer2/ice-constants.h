@@ -22,23 +22,25 @@
 
 #include <chrono>
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
-static constexpr auto ICE_DEFAULT_RTO_DURATION = std::chrono::milliseconds(200);
-static constexpr auto ICE_DEFAULT_TA_DURATION = std::chrono::milliseconds(40);
-static constexpr auto ICE_DEFAULT_KEEPALIVE_TIMEOUT = std::chrono::seconds(15);
-static constexpr auto ICE_GATHERING_CANDIDATES_TIMEOUT = std::chrono::milliseconds(3500);
-static constexpr auto ICE_NOMINATION_DELAY = std::chrono::milliseconds(1000);
-static constexpr uint8_t ICE_MAX_NB_CANDIDATE_PAIRS = 128;
-static constexpr uint8_t ICE_MAX_NB_CANDIDATES = 32;
-static constexpr size_t ICE_MAX_NB_CHECK_LISTS = 8;
-static constexpr uint16_t ICE_INVALID_COMPONENT_ID = 0;
-static constexpr uint16_t ICE_RTP_COMPONENT_ID = 1;
-static constexpr uint16_t ICE_RTCP_COMPONENT_ID = 2;
-static constexpr size_t ICE_MAX_STUN_REQUEST_RETRANSMISSIONS = 7;
-static constexpr uint8_t ICE_MAX_RETRANSMISSIONS_FOR_NOMINATIONS = 5;
-static constexpr uint8_t ICE_MAX_RETRANSMISSIONS = 7;
-static constexpr size_t ICE_MAX_UFRAG_LEN = 256;
-static constexpr size_t ICE_MAX_PWD_LEN = 256;
+static constexpr auto kIceDefaultRtoDuration = std::chrono::milliseconds(200);
+static constexpr auto kIceDefaultTaDuration = std::chrono::milliseconds(40);
+static constexpr auto kIceDefaultKeepaliveTimeout = std::chrono::seconds(15);
+static constexpr auto kIceGatheringCandidatesTimeout = std::chrono::milliseconds(3500);
+static constexpr auto kIceNominationDelay = std::chrono::milliseconds(1000);
+static constexpr uint8_t kIceMaxNbCandidatePairs = 128;
+static constexpr uint8_t kIceMaxNbCandidates = 32;
+static constexpr size_t kIceMaxNbCheckLists = 8;
+static constexpr size_t kIceMaxStunRequestRetransmissions = 7;
+static constexpr uint8_t kIceMaxRetransmissionsForNominations = 5;
+static constexpr uint8_t kIceMaxRetransmissions = 7;
+static constexpr size_t kIceMaxUfragLen = 256;
+static constexpr size_t kIceMaxPwdLen = 256;
 
-} // namespace ms2::nat
+enum class ComponentId {
+	Rtp = 1,
+	Rtcp = 2,
+};
+
+} // namespace mediastreamer::nat

@@ -24,7 +24,7 @@
 
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class MS2_PUBLIC StunError {
 public:
@@ -68,4 +68,4 @@ private:
 	std::string mReason{};
 };
 
-}; // namespace ms2::nat
+}; // namespace mediastreamer::nat

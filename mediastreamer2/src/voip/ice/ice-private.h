@@ -21,7 +21,7 @@
 #ifndef ICE_PRIVATE_H
 #define ICE_PRIVATE_H
 
-#include <mediastreamer2/ice.h>
+#include "mediastreamer2/ice.h"
 
 #ifdef __cplusplus
 extern "C" {

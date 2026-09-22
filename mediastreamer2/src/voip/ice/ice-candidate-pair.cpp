@@ -34,10 +34,10 @@
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 bool IceCandidatePair::operator==(const IceCandidatePair &other) const {
-	return (mLocalCandidate == other.mLocalCandidate) && (mRemoteCandidate == other.mRemoteCandidate);
+	return (*mLocalCandidate == *other.mLocalCandidate) && (*mRemoteCandidate == *other.mRemoteCandidate);
 }
 
 //------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ void IceCandidatePair::computePriority(const IceRole role) {
 
 void IceCandidatePair::dump(const unsigned int index) const {
 	BCTBX_SLOGM << "\t" << index << " [" << this << "]: " << (isDefault() ? "*" : " ") << "state=" << getStateStr()
-	            << " use=" << (mUseCandidate ? 1 : 0) << " nominated=" << (mIsNominated ? 1 : 0)
+	            << " use=" << (mUseCandidate ? 1 : 0) << " nominated=" << (isNominated() ? 1 : 0)
 	            << " priority=" << mPriority;
 	mLocalCandidate->dump("\t\tLocal: ");
 	mRemoteCandidate->dump("\t\tRemote: ");
@@ -87,21 +87,25 @@ void IceCandidatePair::dump(const unsigned int index) const {
 	return stateStrs[static_cast<size_t>(mState)];
 }
 
+[[nodiscard]] bool
+IceCandidatePair::hasSameComponentIdAndTransportAddress(const std::shared_ptr<IceCandidatePair> &otherPair) {
+	return (getLocalCandidate()->getComponentId() == otherPair->getLocalCandidate()->getComponentId()) &&
+	       (getRemoteCandidate()->getComponentId() == otherPair->getRemoteCandidate()->getComponentId()) &&
+	       (getLocalCandidate()->getTransportAddress() == otherPair->getLocalCandidate()->getTransportAddress()) &&
+	       (getRemoteCandidate()->getTransportAddress() == otherPair->getRemoteCandidate()->getTransportAddress());
+}
+
 void IceCandidatePair::increaseRetransmissionTimer() {
 	mRto = mRto * 2;
 }
 
 void IceCandidatePair::initializeRetransmissionTimer() {
-	mRto = ICE_DEFAULT_RTO_DURATION;
+	mRto = kIceDefaultRtoDuration;
 	mRetransmissions = 0;
 }
 
-void IceCandidatePair::initializeTransmissionTime() {
-	mTransmissionTime = std::chrono::steady_clock::now();
-}
-
 bool IceCandidatePair::isRetransmissionPending() const {
-	return (mState == State::InProgress) && (mRetransmissions <= ICE_MAX_RETRANSMISSIONS);
+	return (mState == State::InProgress) && (mRetransmissions <= kIceMaxRetransmissions);
 }
 
 void IceCandidatePair::replaceSrflxCandidateByBase() {
@@ -111,12 +115,8 @@ void IceCandidatePair::replaceSrflxCandidateByBase() {
 }
 
 void IceCandidatePair::sendIndication(const RtpSession *rtpSession) {
-	RtpTransport *rtpTransport = nullptr;
-	if (mLocalCandidate->getComponentId() == ICE_RTP_COMPONENT_ID) {
-		rtp_session_get_transports(rtpSession, &rtpTransport, nullptr);
-	} else if (mLocalCandidate->getComponentId() == ICE_RTCP_COMPONENT_ID) {
-		rtp_session_get_transports(rtpSession, nullptr, &rtpTransport);
-	} else {
+	auto *rtpTransport = getRtpTransport(rtpSession, mLocalCandidate->getComponentId());
+	if (rtpTransport == nullptr) {
 		return;
 	}
 
@@ -135,8 +135,8 @@ void IceCandidatePair::sendIndication(const RtpSession *rtpSession) {
 		            << ":" << mLocalCandidate->getTypeStr() << " --> " << remoteCandidateTransportAddress.asString()
 		            << ":" << mRemoteCandidate->getTypeStr();
 		const auto data = stunRawMessage->getData();
-		sendMessageToStunAddress(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
-		                         sourceStunAddress, destStunAddress);
+		std::ignore = sendMessageToStunAddress(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		                                       sourceStunAddress, destStunAddress);
 	}
 }
 
@@ -144,4 +144,12 @@ void IceCandidatePair::setState(const State state) {
 	mState = state;
 }
 
-} // namespace ms2::nat
+std::shared_ptr<IceCandidatePair> IceCandidatePair::create(const std::shared_ptr<IceCandidate> &localCandidate,
+                                                           const std::shared_ptr<IceCandidate> &remoteCandidate,
+                                                           const IceRole role,
+                                                           const bool retryWithDummyMessageIntegrity) {
+	return std::shared_ptr<IceCandidatePair>(
+	    new IceCandidatePair(localCandidate, remoteCandidate, role, retryWithDummyMessageIntegrity));
+}
+
+} // namespace mediastreamer::nat

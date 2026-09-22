@@ -27,12 +27,12 @@
 #include <winsock2.h>
 #endif
 
-#include <bctoolbox/crypto.h>
-#include <bctoolbox/defs.h>
+#include "bctoolbox/crypto.h"
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/turn-tcp-client.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 TurnTcpClient::TurnTcpClient(TurnContext *context) : mContext(context) {
 
@@ -120,4 +120,4 @@ int TurnTcpClient::sendto(mblk_t *msg,
 	return length;
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

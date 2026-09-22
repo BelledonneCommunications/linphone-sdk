@@ -22,12 +22,12 @@
 
 #include <string>
 
-#include <bctoolbox/port.h>
+#include "bctoolbox/port.h"
 
 #include "mediastreamer2/sockaddr.h"
 #include "mediastreamer2/stun-address.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 /**
  * Represents an ICE transport address.
@@ -72,4 +72,4 @@ private:
 	// TODO: Handling of transport type: TCP, UDP...
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

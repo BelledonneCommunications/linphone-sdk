@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/port.h>
+#include "bctoolbox/port.h"
 
 #include "mediastreamer2/ice-utils.h"
 
@@ -28,30 +28,52 @@
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
-uint16_t getComponentIdFromEventData(const OrtpEventData *eventData) {
+std::optional<ComponentId> getComponentIdFromEventData(const OrtpEventData *eventData) {
 	if (eventData->info.socket_type == OrtpRTPSocket) {
-		return ICE_RTP_COMPONENT_ID;
+		return ComponentId::Rtp;
 	}
 	if (eventData->info.socket_type == OrtpRTCPSocket) {
-		return ICE_RTCP_COMPONENT_ID;
+		return ComponentId::Rtcp;
 	}
 	BCTBX_SLOGE << "ice: Invalid OrtpEventData (socket_type=" << static_cast<int>(eventData->info.socket_type) << ")";
-	return ICE_INVALID_COMPONENT_ID;
+	return std::nullopt;
 }
 
-OrtpStream *getOrtpStreamFromRtpSessionAndComponentId(RtpSession *rtpSession, uint16_t componentId) {
-	if (componentId == ICE_RTP_COMPONENT_ID) {
-		return &rtpSession->rtp.gs;
+std::optional<ComponentId> getComponentIdFromInt(uint16_t value) {
+	if (value == 1) {
+		return ComponentId::Rtp;
 	}
-	if (componentId == ICE_RTCP_COMPONENT_ID) {
-		return &rtpSession->rtcp.gs;
+	if (value == 2) {
+		return ComponentId::Rtcp;
 	}
-	return nullptr;
+	return std::nullopt;
 }
 
-RtpTransport *getTransportFromRtpSession(const RtpSession *rtpSession, const OrtpEventData *eventData) {
+SockAddr getLocalSockAddr(const RtpSession *rtpSession, const ComponentId componentId) {
+	switch (componentId) {
+		default:
+		case ComponentId::Rtp:
+			return {reinterpret_cast<const struct sockaddr *>(&rtpSession->rtp.gs.loc_addr),
+			        rtpSession->rtp.gs.loc_addrlen};
+		case ComponentId::Rtcp:
+			return {reinterpret_cast<const struct sockaddr *>(&rtpSession->rtcp.gs.loc_addr),
+			        rtpSession->rtcp.gs.loc_addrlen};
+	}
+}
+
+OrtpStream *getOrtpStreamFromRtpSessionAndComponentId(RtpSession *rtpSession, const ComponentId componentId) {
+	switch (componentId) {
+		default:
+		case ComponentId::Rtp:
+			return &rtpSession->rtp.gs;
+		case ComponentId::Rtcp:
+			return &rtpSession->rtcp.gs;
+	}
+}
+
+RtpTransport *getRtpTransport(const RtpSession *rtpSession, const OrtpEventData *eventData) {
 	RtpTransport *rtpTransport = nullptr;
 	if (eventData->info.socket_type == OrtpRTPSocket) {
 		rtp_session_get_transports(rtpSession, &rtpTransport, nullptr);
@@ -61,12 +83,25 @@ RtpTransport *getTransportFromRtpSession(const RtpSession *rtpSession, const Ort
 	return rtpTransport;
 }
 
+RtpTransport *getRtpTransport(const RtpSession *rtpSession, const ComponentId componentId) {
+	RtpTransport *rtpTransport = nullptr;
+	switch (componentId) {
+		case ComponentId::Rtp:
+			rtp_session_get_transports(rtpSession, &rtpTransport, nullptr);
+			break;
+		case ComponentId::Rtcp:
+			rtp_session_get_transports(rtpSession, nullptr, &rtpTransport);
+			break;
+	}
+	return rtpTransport;
+}
+
 void sendErrorResponse(const RtpSession *rtpSession,
                        const OrtpEventData *eventData,
                        const std::shared_ptr<StunMessage> &msg,
                        const StunAddress &destStunAddress,
                        const StunError &error) {
-	RtpTransport *rtpTransport = getTransportFromRtpSession(rtpSession, eventData);
+	RtpTransport *rtpTransport = getRtpTransport(rtpSession, eventData);
 	if (rtpTransport == nullptr) {
 		return;
 	}
@@ -84,8 +119,9 @@ void sendErrorResponse(const RtpSession *rtpSession,
 		const auto data = rawStunMessage->getData();
 		BCTBX_SLOGM << "IceCheckList::sendErrorResponse: Send error response: " << sourceAddr.asString() << " --> "
 		            << destAddr.asString() << " [" << transactionId.asString() << "]";
-		sendMessageToSocket(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
-		                    sourceAddr.asStructSockAddr(), destAddr.asStructSockAddr(), destAddr.getLen());
+		std::ignore =
+		    sendMessageToSocket(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		                        sourceAddr.asStructSockAddr(), destAddr.asStructSockAddr(), destAddr.getLen());
 	}
 }
 
@@ -126,4 +162,4 @@ int sendMessageToStunAddress(
 	                           destAddr.getLen());
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

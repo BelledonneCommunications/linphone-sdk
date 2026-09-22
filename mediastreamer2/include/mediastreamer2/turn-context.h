@@ -23,7 +23,7 @@
 #include <optional>
 #include <vector>
 
-#include <ortp/rtpsession.h>
+#include "ortp/rtpsession.h"
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/sockaddr.h"
@@ -31,7 +31,7 @@
 #include "mediastreamer2/stun.h"
 #include "mediastreamer2/turn-tcp-client.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class IceCheckList;
 class TurnTcpClient;
@@ -182,7 +182,7 @@ private:
 	SockAddr mServerSockAddr;
 	bool mForcedRtpSendingViaRelay = false;
 	MSTurnContextStatistics mStatistics{};
-	std::shared_ptr<TurnTcpClient> mTurnTcpClient = nullptr;
+	std::shared_ptr<TurnTcpClient> mTurnTcpClient;
 };
 
-}; // namespace ms2::nat
+}; // namespace mediastreamer::nat

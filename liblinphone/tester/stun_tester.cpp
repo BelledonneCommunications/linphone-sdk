@@ -32,7 +32,7 @@
 #include "shared_tester_functions.h"
 #include "tester_utils.h"
 
-using namespace ms2::nat;
+using namespace mediastreamer::nat;
 
 static const char *stun_address = "stun.example.org";
 
@@ -266,6 +266,13 @@ static void ice_turn_call_base(const CallConfig *config) {
 		BC_ASSERT_TRUE(linphone_call_has_ice_check_list(lcall, 0));
 		rtp_turn_context1 = linphone_call_get_ice_checklist_rtp_turn_context(lcall, 0);
 		rtcp_turn_context1 = linphone_call_get_ice_checklist_rtcp_turn_context(lcall, 0);
+		if ((config->caller_turn_enabled == TRUE) && (config->wrong_password == FALSE)) {
+			BC_ASSERT_PTR_NOT_NULL(rtp_turn_context1);
+			BC_ASSERT_PTR_NOT_NULL(rtcp_turn_context1);
+		} else {
+			BC_ASSERT_PTR_NULL(rtp_turn_context1);
+			BC_ASSERT_PTR_NULL(rtcp_turn_context1);
+		}
 	}
 	lcall = linphone_core_get_current_call(pauline->lc);
 	BC_ASSERT_PTR_NOT_NULL(lcall);
@@ -274,6 +281,13 @@ static void ice_turn_call_base(const CallConfig *config) {
 		BC_ASSERT_TRUE(linphone_call_has_ice_check_list(lcall, 0));
 		rtp_turn_context2 = linphone_call_get_ice_checklist_rtp_turn_context(lcall, 0);
 		rtcp_turn_context2 = linphone_call_get_ice_checklist_rtcp_turn_context(lcall, 0);
+		if (config->callee_turn_enabled == TRUE) {
+			BC_ASSERT_PTR_NOT_NULL(rtp_turn_context2);
+			BC_ASSERT_PTR_NOT_NULL(rtcp_turn_context2);
+		} else {
+			BC_ASSERT_PTR_NULL(rtp_turn_context2);
+			BC_ASSERT_PTR_NULL(rtcp_turn_context2);
+		}
 	}
 	/*
 	 * We perform turn context checks to both ends at the same time.

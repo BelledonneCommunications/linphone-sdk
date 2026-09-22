@@ -25,13 +25,13 @@
 #include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class MS2_PUBLIC IceCredentials {
 public:
 	IceCredentials(const std::string &ufrag, const std::string &pwd) {
-		mUfrag = ufrag.substr(0, ICE_MAX_UFRAG_LEN);
-		mPwd = pwd.substr(0, ICE_MAX_PWD_LEN);
+		mUfrag = ufrag.substr(0, kIceMaxUfragLen);
+		mPwd = pwd.substr(0, kIceMaxPwdLen);
 	}
 	IceCredentials(const IceCredentials &other) = default;
 	IceCredentials() = default;
@@ -67,4 +67,4 @@ private:
 	std::string mPwd;   /**< Password */
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

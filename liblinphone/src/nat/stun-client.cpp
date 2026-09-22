@@ -18,8 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <mediastreamer2/stun-message.h>
-#include <mediastreamer2/stun-raw-message.h>
+#include "mediastreamer2/stun-message.h"
+#include "mediastreamer2/stun-raw-message.h"
 
 #include "logger/logger.h"
 
@@ -29,7 +29,7 @@
 // =============================================================================
 
 using namespace std;
-using namespace ms2::nat;
+using namespace mediastreamer::nat;
 
 LINPHONE_BEGIN_NAMESPACE
 
@@ -225,7 +225,7 @@ ortp_socket_t StunClient::createStunSocket(int localPort) {
 }
 
 int StunClient::recvStunResponse(const ortp_socket_t sock, Candidate &candidate, int &id) {
-	std::array<uint8_t, StunRawMessage::MAX_RAW_MESSAGE_LENGTH> buf{};
+	std::array<uint8_t, StunRawMessage::kMaxRawMessageLength> buf{};
 
 	ssize_t len = recv(sock, reinterpret_cast<char *>(buf.data()), static_cast<int>(buf.size()), 0);
 	if (len > 0) {

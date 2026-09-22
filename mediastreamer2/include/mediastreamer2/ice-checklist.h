@@ -22,6 +22,7 @@
 
 #include <chrono>
 #include <deque>
+#include <functional>
 #include <list>
 #include <optional>
 #include <set>
@@ -39,7 +40,7 @@
 #include "mediastreamer2/stun-transaction-id.h"
 #include "mediastreamer2/turn-context.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class IceSession;
 
@@ -47,7 +48,7 @@ class IceSession;
  * Represents an ICE check list.
  *
  * Each media stream must be assigned a check list.
- * Check lists are added to an ICE session using the ice_session_add_check_list() function.
+ * Check lists are added to an ICE session using the IceSession::addCheckList() method.
  */
 class MS2_PUBLIC IceCheckList {
 public:
@@ -58,6 +59,16 @@ public:
 	 * See paragraph 5.7.4 ("Computing states") of RFC 5245 for more details.
 	 */
 	enum class State { Running, Completed, Failed };
+
+	enum class Phase {
+		Initial,
+		GatheringCandidates,
+		CandidatesGathered,
+		CheckingConnectivity,
+		Nominating,
+		Completed,
+		Failed
+	};
 
 	/**
 	 * Allocate a new ICE check list.
@@ -81,7 +92,7 @@ public:
 	 */
 	std::shared_ptr<IceCandidate> addLocalCandidate(IceCandidate::Type type,
 	                                                const IceTransportAddress &transportAddress,
-	                                                uint16_t componentId,
+	                                                ComponentId componentId,
 	                                                const std::shared_ptr<IceCandidate> &base);
 
 	/**
@@ -91,7 +102,7 @@ public:
 	 * @param remoteTransportAddress The transport address of the remote candidate of the pair to add
 	 * This function is to be called when a RE-INVITE with an SDP containing a remote-candidates attribute is received.
 	 */
-	void addLosingPair(uint16_t componentId,
+	void addLosingPair(ComponentId componentId,
 	                   const IceTransportAddress &localTransportAddress,
 	                   const IceTransportAddress &remoteTransportAddress);
 
@@ -107,7 +118,7 @@ public:
 	 */
 	std::shared_ptr<IceCandidate> addRemoteCandidate(IceCandidate::Type type,
 	                                                 const IceTransportAddress &transportAddress,
-	                                                 uint16_t componentId,
+	                                                 ComponentId componentId,
 	                                                 uint32_t priority,
 	                                                 const std::string &foundation,
 	                                                 bool isDefault);
@@ -117,7 +128,7 @@ public:
 	 * @return true if local candidates have been gathered for the check list, false otherwise.
 	 */
 	[[nodiscard]] bool areCandidatesGathered() const {
-		return mGatheringFinished;
+		return (mPhase > Phase::GatheringCandidates);
 	}
 
 	/**
@@ -258,8 +269,8 @@ public:
 	 */
 	[[nodiscard]] std::shared_ptr<IceCandidate> getSelectedValidRemoteCandidateForRtp() const;
 
-	[[nodiscard]] IceSession *getSession() const {
-		return mSession;
+	[[nodiscard]] std::shared_ptr<IceSession> getSession() const {
+		return mSession.lock();
 	}
 
 	/**
@@ -281,13 +292,6 @@ public:
 	 * This function is called from the audiostream or the videostream and is NOT to be called by the user.
 	 */
 	void handleStunPacket(RtpSession *rtpSession, const OrtpEventData *eventData);
-
-	/**
-	 * Tell if remote credentials of an ICE check list have changed or not.
-	 * @param newCredentials The new remote credentials
-	 * @return true if the remote credentials of the check list have changed, false otherwise.
-	 */
-	[[nodiscard]] bool haveRemoteCredentialsChanged(const IceCredentials &newCredentials) const;
 
 	/**
 	 * Get the mismatch property of an ICE check list.
@@ -339,9 +343,6 @@ public:
 	 */
 	void setState(State state);
 
-	static constexpr uint16_t MIN_COMPONENT_ID = 1;
-	static constexpr uint16_t MAX_COMPONENT_ID = 256;
-
 private:
 	void addStunRequest(const std::shared_ptr<IceStunRequest> &request);
 	bool checkGatheringTimeout(RtpSession *rtpSession, std::chrono::steady_clock::time_point currentTime) const;
@@ -373,7 +374,7 @@ private:
 		mLocalCandidates.clear();
 	}
 	void clearLocalComponentsIds() {
-		mLocalComponentsIds.clear();
+		mLocalComponentIds.clear();
 	}
 	void collectGatheringRoundTripTimes();
 	void computeCandidateFoundation(const std::shared_ptr<IceCandidate> &candidate);
@@ -390,14 +391,10 @@ private:
 	void createTurnChannel(RtpTransport *rtpTransport,
 	                       const SockAddr &localAddress,
 	                       const IceTransportAddress &remoteTransportAddress,
-	                       uint16_t componentId);
+	                       ComponentId componentId);
 	void createTurnContexts();
 	void createTurnPermissions();
-	void deallocateRtcpTurnCandidate() const;
-	void deallocateRtpTurnCandidate() const;
-	void deallocateTurnCandidate(const std::shared_ptr<TurnContext> &turnContext,
-	                             RtpTransport *rtpTransport,
-	                             OrtpStream *stream) const;
+	void deallocateTurnCandidate(ComponentId componentId) const;
 	void deallocateTurnCandidates() const;
 	void destroyTurnContexts();
 	std::shared_ptr<IceCandidate> discoverPeerReflexiveCandidate(const std::shared_ptr<IceCandidatePair> &candidatePair,
@@ -405,7 +402,10 @@ private:
 	void eliminateRedundantCandidates();
 	std::shared_ptr<IceTransaction> findTransaction(const std::shared_ptr<IceCandidatePair> &candidatePair);
 	void formCandidatePairs();
-	bool gatherCandidates(size_t &checkListIndex);
+	[[nodiscard]] bool gatherCandidates(size_t &checkListIndex);
+	[[nodiscard]] bool gatherCandidates(ComponentId componentId,
+	                                    std::chrono::steady_clock::time_point nextTransmissionTime,
+	                                    bool sendRequest = false);
 	[[nodiscard]] std::string generateArbitraryFoundation() const;
 	[[nodiscard]] std::chrono::steady_clock::time_point getGatheringStartTime() const {
 		return mGatheringStartTime;
@@ -416,12 +416,16 @@ private:
 	[[nodiscard]] IceStunRequest::RoundTripTime getRoundTripTime() const {
 		return mRtt;
 	}
-	[[nodiscard]] RtpTransport *getRtpTransport(uint16_t componentId) const;
-	[[nodiscard]] std::shared_ptr<IceValidCandidatePair> getSelectedValidCandidatePair(uint16_t componentId) const;
+	[[nodiscard]] std::shared_ptr<IceCandidate> getSelectedCandidate(
+	    ComponentId componentId,
+	    const std::function<std::shared_ptr<IceCandidate>(const std::shared_ptr<IceValidCandidatePair> &)>
+	        &getCandidateFromValidPair,
+	    const std::string &errorMessage = "") const;
+	[[nodiscard]] std::shared_ptr<IceValidCandidatePair> getSelectedValidCandidatePair(ComponentId componentId) const;
 	[[nodiscard]] std::shared_ptr<IceStunRequest> getStunRequest(const StunTransactionId &transactionId) const;
-	[[nodiscard]] std::shared_ptr<TurnContext> getTurnContextFromComponentId(uint16_t componentId) const;
+	[[nodiscard]] std::shared_ptr<TurnContext> getTurnContextFromComponentId(ComponentId componentId) const;
 	[[nodiscard]] std::vector<std::shared_ptr<IceCandidatePair>> getValidPairs() const;
-	[[nodiscard]] std::vector<std::shared_ptr<IceCandidatePair>> getValidPairs(uint16_t componentId) const;
+	[[nodiscard]] std::vector<std::shared_ptr<IceCandidatePair>> getValidPairs(ComponentId componentId) const;
 	void handleReceivedBindingRequest(RtpSession *rtpSession,
 	                                  const OrtpEventData *eventData,
 	                                  const std::shared_ptr<StunMessage> &msg,
@@ -446,13 +450,13 @@ private:
 	void handleStunErrorResponse(const RtpSession *rtpSession,
 	                             const OrtpEventData *eventData,
 	                             const std::shared_ptr<StunMessage> &msg);
-	[[nodiscard]] bool hasLocalComponentId(uint16_t componentId) const;
+	[[nodiscard]] bool hasLocalComponentId(ComponentId componentId) const;
 	[[nodiscard]] bool isFrozen() const;
 	[[nodiscard]] bool isGatheringCandidates() const {
-		return mGatheringCandidates;
+		return (mPhase == Phase::GatheringCandidates);
 	}
 	[[nodiscard]] bool isGatheringNeeded() const {
-		return !mGatheringFinished;
+		return (mPhase == Phase::Initial);
 	}
 	std::shared_ptr<IceCandidate> learnPeerReflexiveCandidate(const OrtpEventData *eventData,
 	                                                          const std::shared_ptr<StunMessage> &msg,
@@ -470,9 +474,15 @@ private:
 	void removeTransactionUsingPair(const std::shared_ptr<IceCandidatePair> &pair);
 	void restart();
 	void retransmitConnectivityChecks(std::chrono::steady_clock::time_point currentTime, const RtpSession *rtpSession);
-	void scheduleTurnAllocationRefresh(uint16_t componentId, uint32_t lifetime);
-	void scheduleTurnChannelBindRefresh(uint16_t componentId, uint16_t channelNumber, const StunAddress &peerAddress);
-	void scheduleTurnPermissionRefresh(uint16_t componentId, const StunAddress &peerAddress);
+	void scheduleTurnAllocationRefresh(ComponentId componentId, uint32_t lifetime);
+	void
+	scheduleTurnChannelBindRefresh(ComponentId componentId, uint16_t channelNumber, const StunAddress &peerAddress);
+	void scheduleTurnPermissionRefresh(ComponentId componentId, const StunAddress &peerAddress);
+	[[nodiscard]] std::shared_ptr<IceStunRequest>
+	scheduleTurnRequest(ComponentId componentId,
+	                    StunMessage::Method method,
+	                    std::chrono::milliseconds nextTransmission,
+	                    std::chrono::milliseconds shortTurnRefreshNextTransmission);
 	void selectCandidates();
 	void sendBindingRequest(const std::shared_ptr<IceCandidatePair> &candidatePair, const RtpSession *rtpSession);
 	void sendBindingResponse(const RtpSession *rtpSession,
@@ -483,11 +493,10 @@ private:
 	void sendStunRequests();
 	std::shared_ptr<IceCandidatePair> sendTriggeredCheck(const RtpSession *rtpSession);
 	void setBaseForSrflxCandidates();
-	void setBaseForSrflxCandidates(uint16_t componentId);
+	void setBaseForSrflxCandidates(ComponentId componentId);
+	void setPhase(Phase phase);
 	void setSelectedValidCandidatePair(const std::shared_ptr<IceValidCandidatePair> &validCandidatePair) const;
-	void setSession(IceSession *session) {
-		mSession = session;
-	}
+	void setSession(const std::shared_ptr<IceSession> &session);
 	void setTransactionResponseTime(const StunTransactionId &transactionId, MSTimeSpec responseTime);
 	void stopGathering();
 	void stopRetransmissions();
@@ -500,16 +509,27 @@ private:
 	void updateNominatedFlagOnBindingResponse(const std::shared_ptr<IceCandidatePair> &validPair,
 	                                          const std::shared_ptr<IceCandidatePair> &succeededPair) const;
 	void updatePairStatesOnBindingResponse(const std::shared_ptr<IceCandidatePair> &candidatePair) const;
+
+	static std::shared_ptr<IceCandidate>
+	addCandidate(IceCandidate::Type type,
+	             const IceTransportAddress &transportAddress,
+	             ComponentId componentId,
+	             std::list<std::shared_ptr<IceCandidate>> &candidatesList,
+	             std::set<ComponentId> &componentIdsList,
+	             const std::function<void(const std::shared_ptr<IceCandidate> &)> &setIceCandidateProperties);
+	static void dispatchIceEvent(RtpSession *rtpSession,
+	                             OrtpEventType eventType,
+	                             std::optional<bool> iceProcessingSuccessful = std::nullopt);
 	static std::shared_ptr<IceCandidate> findCandidate(const std::list<std::shared_ptr<IceCandidate>> &candidates,
 	                                                   IceCandidate::Type type,
-	                                                   uint16_t componentId,
+	                                                   ComponentId componentId,
 	                                                   int family);
 	static std::pair<std::optional<StunAddress>, std::optional<StunAddress>>
 	parseStunResponse(const std::shared_ptr<StunMessage> &msg);
 
-	IceSession *mSession = nullptr;                          /**< Pointer to the ICE session */
-	std::shared_ptr<TurnContext> mRtpTurnContext = nullptr;  /**< TURN context for RTP socket */
-	std::shared_ptr<TurnContext> mRtcpTurnContext = nullptr; /**< TURN context for RTCP socket */
+	std::weak_ptr<IceSession> mSession;            /**< Pointer to the ICE session */
+	std::shared_ptr<TurnContext> mRtpTurnContext;  /**< TURN context for RTP socket */
+	std::shared_ptr<TurnContext> mRtcpTurnContext; /**< TURN context for RTCP socket */
 	RtpSession *mRtpSession = nullptr; /**< Pointer to the RTP session associated with this ICE check list */
 	std::optional<IceCredentials>
 	    mRemoteCredentials; /**< Remote credentials for this check list (provided via SDP by the peer) */
@@ -523,26 +543,20 @@ private:
 	std::vector<std::shared_ptr<IceValidCandidatePair>> mValidList;
 	std::deque<std::shared_ptr<IceTransaction>> mTransactionList;
 	std::set<IcePairFoundation> mFoundations;
-	std::set<uint16_t> mLocalComponentsIds;
-	std::set<uint16_t> mRemoteComponentIds;
+	std::set<ComponentId> mLocalComponentIds;
+	std::set<ComponentId> mRemoteComponentIds;
 	State mState = State::Running; /**< Global state of the ICE check list */
+	Phase mPhase = Phase::Initial;
 	std::chrono::steady_clock::time_point mTaTime =
 	    std::chrono::steady_clock::now(); /**< Time when the Ta timer has been processed for the last time */
 	std::chrono::steady_clock::time_point
 	    mKeepAliveTime;                /**< Time when the last keepalive packet has been sent for this stream */
 	uint32_t mFoundationGenerator = 1; /**< Auto-incremented integer to generate unique foundation values */
 	std::chrono::steady_clock::time_point mGatheringStartTime; /**< Time when the gathering process was started */
-	std::chrono::steady_clock::time_point
-	    mNominationDelayStartTime; /**< Time when the nomination process has been delayed */
+	std::optional<std::chrono::steady_clock::time_point> mNominationDelayStartTime =
+	    std::nullopt; /**< Time when the nomination process has been delayed */
 	IceStunRequest::RoundTripTime mRtt;
-	bool mMismatch = false;                  /**< Tells whether there was a mismatch during the answer/offer */
-	bool mGatheringCandidates = false;       /**< Tells whether a candidate gathering
-	      process is running or not */
-	bool mGatheringFinished = false;         /**< Tells whether the candidate gathering process has finished or not */
-	bool mNominationDelayRunning = false;    /**< Tells whether the nomination process has been delayed or not */
-	bool mConnectivityChecksRunning = false; /**< Indicates that check list processing is in progress */
-	bool mNominationInProgress = false;      /**< Substate between State::Running and State::Completed, when the
-	 USE-CANDIDATE requests	are waiting for their responses */
+	bool mMismatch = false; /**< Tells whether there was a mismatch during the answer/offer */
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

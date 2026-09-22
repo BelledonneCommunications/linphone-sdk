@@ -25,7 +25,7 @@
 #include <functional>
 #include <optional>
 
-#include <ortp/port.h>
+#include "ortp/port.h"
 
 #include "mediastreamer2/ice-candidate.h"
 #include "mediastreamer2/ice-checklist.h"
@@ -36,12 +36,12 @@
 #include "mediastreamer2/sockaddr.h"
 #include "mediastreamer2/stun-auth-listener.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 /**
  * Represents an ICE session.
  */
-class MS2_PUBLIC IceSession {
+class MS2_PUBLIC IceSession : public std::enable_shared_from_this<IceSession> {
 public:
 	friend class IceCheckList;
 
@@ -166,7 +166,7 @@ public:
 	 * @param n The index of the check list to access
 	 * @return A pointer to the nth check list of the session if it exists, nullptr otherwise
 	 */
-	[[nodiscard]] std::shared_ptr<IceCheckList> getCheckList(size_t n) const;
+	[[nodiscard]] std::shared_ptr<IceCheckList> getNthCheckList(size_t n) const;
 
 	/**
 	 * Tell the duration of the gathering process for an ICE session in ms.
@@ -204,7 +204,7 @@ public:
 	[[nodiscard]] unsigned int getNbLosingPairs() const;
 
 	/**
-	 * Get the remote username fragment of an ICE session.
+	 * Get the remote credentials of an ICE session.
 	 * @return A reference to the remote credentials of the session
 	 */
 	[[nodiscard]] const std::optional<IceCredentials> &getRemoteCredentials() const {
@@ -238,13 +238,6 @@ public:
 	 * @return true if the session has at least one completed check list, false otherwise
 	 */
 	[[nodiscard]] bool hasCompletedCheckList() const;
-
-	/**
-	 * Tell if remote credentials of an ICE session have changed or not.
-	 * @param newCredentials The new remote credentials
-	 * @return true if the remote credentials of the session have changed, false otherwise.
-	 */
-	[[nodiscard]] bool haveRemoteCredentialsChanged(const IceCredentials &newCredentials) const;
 
 	/**
 	 * Remove an ICE check list from an ICE session.
@@ -379,6 +372,8 @@ private:
 	[[nodiscard]] std::shared_ptr<IceCheckList> findCheckListGatheringCandidates() const;
 	[[nodiscard]] std::shared_ptr<IceCheckList> findRunningCheckList() const;
 	[[nodiscard]] std::shared_ptr<IceCheckList> findUnsuccessfulCheckList() const;
+	void forEachTurnContextOfEachValidCheckList(
+	    const std::function<void(const std::shared_ptr<TurnContext> &)> &callback) const;
 	void forEachValidCheckList(const std::function<void(const std::shared_ptr<IceCheckList> &)> &callback) const;
 	void generateLocalCredentials();
 	void generateTieBreaker();
@@ -391,8 +386,8 @@ private:
 	[[nodiscard]] std::chrono::steady_clock::time_point getEventTime() const {
 		return mEventTime;
 	}
-	[[nodiscard]] int getEventValue() const {
-		return mEventValue;
+	[[nodiscard]] OrtpEventType getEventType() const {
+		return mEventType;
 	}
 	[[nodiscard]] std::shared_ptr<IceCheckList> getFirstCheckList() const;
 	[[nodiscard]] size_t getMaxConnectivityChecks() const {
@@ -401,6 +396,9 @@ private:
 
 	[[nodiscard]] const SockAddr &getSockAddr() const {
 		return mSockAddr;
+	}
+	[[nodiscard]] StunAuthListener *getStunAuthListener() const {
+		return mStunAuthListener;
 	}
 	[[nodiscard]] std::chrono::milliseconds getTa() const {
 		return mTa;
@@ -423,7 +421,7 @@ private:
 	}
 	void notifyProcessingFinished();
 	void pairCandidates() const;
-	void programEventSending(int eventValue, std::chrono::milliseconds delay);
+	void programEventSending(OrtpEventType eventType, std::chrono::milliseconds delay);
 	void setGatheringEndTs(ortpTimeSpec ts);
 	void setState(const State state) {
 		mState = state;
@@ -435,7 +433,7 @@ private:
 		mSendEvent = false;
 	}
 
-	std::array<std::shared_ptr<IceCheckList>, ICE_MAX_NB_CHECK_LISTS> mChecklists; /**< Table of IceChecklist structure
+	std::array<std::shared_ptr<IceCheckList>, kIceMaxNbCheckLists> mChecklists; /**< Table of IceChecklist structure
 	                                                          pointers. Each element represents a media stream */
 	StunAuthListener *mStunAuthListener = nullptr; /**< Listener called when authentication is
 	 requested */
@@ -445,11 +443,9 @@ private:
 	IceRole mRole = IceRole::Controlling; /**< Role played by the agent for this session */
 	State mState = State::Stopped;        /**< State of the session */
 	uint64_t mTieBreaker = 0; /**< Random number used to resolve role conflicts (see paragraph 5.2 of the RFC 5245) */
-
-	std::chrono::milliseconds mTa = ICE_DEFAULT_TA_DURATION; /**< Duration of timer for sending connectivity checks
-	// in ms */
-	int mEventValue = 0;                                     /** Value of the event to send */
-
+	std::chrono::milliseconds mTa =
+	    kIceDefaultTaDuration;                        /**< Duration of timer for sending connectivity checks in ms */
+	OrtpEventType mEventType = 0;                     /** Value of the event to send */
 	std::chrono::steady_clock::time_point mEventTime; /**< Time when an event must be sent */
 	SockAddr mSockAddr; /**< STUN server address to use for the candidates gathering process */
 	std::chrono::steady_clock::time_point mGatheringStartTs;
@@ -458,9 +454,9 @@ private:
 	std::vector<IceCandidate::Type> mDefaultCandidatesTypes;
 	bool mCheckMessageIntegrity = true; /*set to false for backward compatibility only*/
 	bool mSendEvent = false;            /**< Boolean value telling whether an event must be sent or not */
-	uint8_t mMaxConnectivityChecks = ICE_MAX_NB_CANDIDATE_PAIRS; /**< Configuration parameter to limit the number of
-	                                    connectivity checks performed by the agent (default is 100) */
-	std::chrono::seconds mKeepAliveTimeout = ICE_DEFAULT_KEEPALIVE_TIMEOUT; /**< Configuration parameter to define the
+	uint8_t mMaxConnectivityChecks = kIceMaxNbCandidatePairs; /**< Configuration parameter to limit the number of
+	                                    connectivity checks performed by the agent (default is 128) */
+	std::chrono::seconds mKeepAliveTimeout = kIceDefaultKeepaliveTimeout; /**< Configuration parameter to define the
 	                              timeout between each keepalive packets (default is 15s) */
 	bool mForcedRelay = false;                /**< Force use of relay by modifying the local and reflexive
 	           candidates */
@@ -470,4 +466,4 @@ private:
 	                                          equivalent as "default candidate" */
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

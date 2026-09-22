@@ -27,7 +27,7 @@
 #include "mediastreamer2/sockaddr.h"
 #include "mediastreamer2/stun-transaction-id.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 static constexpr uint32_t STUN_MAGIC_COOKIE = 0x2112A442;
 
@@ -81,4 +81,4 @@ private:
 	std::variant<StunAddressV4, StunAddressV6> mAddress = StunAddressV4{};
 };
 
-}; // namespace ms2::nat
+}; // namespace mediastreamer::nat

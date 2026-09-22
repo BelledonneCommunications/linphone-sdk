@@ -135,7 +135,8 @@ void StreamsGroup::createStreams(const OfferAnswerContext &params) {
 				auto localTypeString = sal_stream_type_to_string(localType);
 				auto rtpPort = params.getLocalStreamDescription().getRtpPort();
 				// The RTP port is set to 0 when the stream is inactive
-				// The RTP port is set to SAL_STREAM_DESCRIPTION_PORT_TO_BE_DETERMINED (i.e. 35536) after being configured but before being put down in an SDP
+				// The RTP port is set to SAL_STREAM_DESCRIPTION_PORT_TO_BE_DETERMINED (i.e. 35536) after being
+				// configured but before being put down in an SDP
 				if ((rtpPort == 0) || (rtpPort == SAL_STREAM_DESCRIPTION_PORT_TO_BE_DETERMINED)) {
 					lInfo() << *this << ": Restarting stream at index " << index
 					        << " because its type has changed from " << typeString << " to " << localTypeString << "!";
@@ -691,9 +692,9 @@ void StreamsGroup::setStreamMain(size_t index, const bool force) {
 void StreamsGroup::finish() {
 	if (mFinished) return;
 	lInfo() << *this << ": finishing]";
-	stop();                // For the paranoid: normally it should be done already.
-	mIceService->finish(); // finish ICE first, as it has actions on the streams.
+	stop(); // For the paranoid: normally it should be done already.
 	forEach<Stream>(mem_fn(&Stream::finish));
+	mIceService->finish(); // This potentially deletes the RTP endpoint, so do that after Stream::finish
 	for (auto &ss : mSharedServices)
 		ss.second->checkDestroy();
 	mSharedServices.clear();

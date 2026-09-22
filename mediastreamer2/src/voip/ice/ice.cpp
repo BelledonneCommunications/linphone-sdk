@@ -25,18 +25,18 @@
 extern "C" {
 
 void ice_check_list_set_rtp_session(IceCheckList *cl, RtpSession *rtp_session) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->setRtpSession(rtp_session);
+	reinterpret_cast<mediastreamer::nat::IceCheckList *>(cl)->setRtpSession(rtp_session);
 }
 
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->handleStunPacket(rtp_session, evt_data);
+	reinterpret_cast<mediastreamer::nat::IceCheckList *>(cl)->handleStunPacket(rtp_session, evt_data);
 }
 
 void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session) {
-	reinterpret_cast<ms2::nat::IceCheckList *>(cl)->process(rtp_session);
+	reinterpret_cast<mediastreamer::nat::IceCheckList *>(cl)->process(rtp_session);
 }
 
 void ice_check_list_print_route(const IceCheckList *cl, const char *message) {
-	reinterpret_cast<const ms2::nat::IceCheckList *>(cl)->printRoute(message);
+	reinterpret_cast<const mediastreamer::nat::IceCheckList *>(cl)->printRoute(message);
 }
 }

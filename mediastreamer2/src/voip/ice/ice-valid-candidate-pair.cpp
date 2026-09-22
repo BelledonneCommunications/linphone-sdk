@@ -20,7 +20,7 @@
 
 #include "mediastreamer2/ice-valid-candidate-pair.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 IceValidCandidatePair::IceValidCandidatePair(const std::shared_ptr<IceCandidatePair> &valid,
                                              const std::shared_ptr<IceCandidatePair> &generatedFrom)
@@ -43,4 +43,10 @@ void IceValidCandidatePair::dump(const unsigned int index) const {
 	}
 }
 
-} // namespace ms2::nat
+std::shared_ptr<IceValidCandidatePair>
+IceValidCandidatePair::create(const std::shared_ptr<IceCandidatePair> &valid,
+                              const std::shared_ptr<IceCandidatePair> &generatedFrom) {
+	return std::shared_ptr<IceValidCandidatePair>(new IceValidCandidatePair(valid, generatedFrom));
+}
+
+} // namespace mediastreamer::nat

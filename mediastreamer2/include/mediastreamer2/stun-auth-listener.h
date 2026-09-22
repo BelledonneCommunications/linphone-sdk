@@ -20,11 +20,11 @@
 
 #pragma once
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class MS2_PUBLIC StunAuthResponse {
 public:
@@ -46,4 +46,4 @@ public:
 	}
 };
 
-}; // namespace ms2::nat
+}; // namespace mediastreamer::nat

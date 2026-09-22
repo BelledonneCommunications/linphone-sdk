@@ -39,7 +39,7 @@
 // TODO: Remove me later.
 #include "private.h"
 
-using namespace ms2::nat;
+using namespace mediastreamer::nat;
 
 // =============================================================================
 

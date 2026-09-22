@@ -20,19 +20,27 @@
 
 #pragma once
 
-#include <ortp/rtpsession.h>
+#include <optional>
 
+#include "ortp/rtpsession.h"
+
+#include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/stun-address.h"
 #include "mediastreamer2/stun-error.h"
 #include "mediastreamer2/stun-message.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
-uint16_t getComponentIdFromEventData(const OrtpEventData *eventData);
+[[nodiscard]] std::optional<ComponentId> getComponentIdFromEventData(const OrtpEventData *eventData);
 
-OrtpStream *getOrtpStreamFromRtpSessionAndComponentId(RtpSession *rtpSession, uint16_t componentId);
+[[nodiscard]] MS2_PUBLIC std::optional<ComponentId> getComponentIdFromInt(uint16_t value);
 
-RtpTransport *getTransportFromRtpSession(const RtpSession *rtpSession, const OrtpEventData *eventData);
+[[nodiscard]] SockAddr getLocalSockAddr(const RtpSession *rtpSession, ComponentId componentId);
+
+[[nodiscard]] OrtpStream *getOrtpStreamFromRtpSessionAndComponentId(RtpSession *rtpSession, ComponentId componentId);
+
+[[nodiscard]] RtpTransport *getRtpTransport(const RtpSession *rtpSession, const OrtpEventData *eventData);
+[[nodiscard]] RtpTransport *getRtpTransport(const RtpSession *rtpSession, ComponentId componentId);
 
 void sendErrorResponse(const RtpSession *rtpSession,
                        const OrtpEventData *eventData,
@@ -40,14 +48,14 @@ void sendErrorResponse(const RtpSession *rtpSession,
                        const StunAddress &destStunAddress,
                        const StunError &error);
 
-int sendMessageToSocket(RtpTransport *rtpTransport,
-                        const char *buf,
-                        size_t len,
-                        const struct sockaddr *from,
-                        const struct sockaddr *to,
-                        socklen_t toLen);
+[[nodiscard]] int sendMessageToSocket(RtpTransport *rtpTransport,
+                                      const char *buf,
+                                      size_t len,
+                                      const struct sockaddr *from,
+                                      const struct sockaddr *to,
+                                      socklen_t toLen);
 
-int sendMessageToStunAddress(
+[[nodiscard]] int sendMessageToStunAddress(
     RtpTransport *rtpTransport, const char *buf, size_t len, const StunAddress &source, const StunAddress &dest);
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

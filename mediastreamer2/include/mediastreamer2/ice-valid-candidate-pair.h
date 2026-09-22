@@ -25,7 +25,7 @@
 
 #include "mediastreamer2/ice-candidate-pair.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class IceValidCandidatePair {
 public:
@@ -55,12 +55,15 @@ private:
 		mSelected = selected;
 	}
 
-	std::shared_ptr<IceCandidatePair> mValid =
-	    nullptr; /**< Pointer to a valid candidate pair (it may be in the check list or not */
-	std::shared_ptr<IceCandidatePair> mGeneratedFrom = nullptr; /**< Pointer to the candidate pair that generated the
-	                                     connectivity check producing the valid candidate pair */
-	std::chrono::steady_clock::time_point mLastKeepAlive;       /**< Time at which last keepalive was sent */
+	[[nodiscard]] static std::shared_ptr<IceValidCandidatePair>
+	create(const std::shared_ptr<IceCandidatePair> &valid, const std::shared_ptr<IceCandidatePair> &generatedFrom);
+
+	std::shared_ptr<IceCandidatePair>
+	    mValid; /**< Pointer to a valid candidate pair (it may be in the check list or not */
+	std::shared_ptr<IceCandidatePair> mGeneratedFrom;     /**< Pointer to the candidate pair that generated the
+	                                         connectivity check producing the valid candidate pair */
+	std::chrono::steady_clock::time_point mLastKeepAlive; /**< Time at which last keepalive was sent */
 	bool mSelected = false; /**< Boolean value telling whether this valid candidate pair has been selected or not */
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

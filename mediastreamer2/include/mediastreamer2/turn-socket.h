@@ -51,7 +51,7 @@
 
 #endif
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class TurnContext;
 
@@ -250,7 +250,7 @@ private:
 	ortp_socket_t mSocket = INVALID_SOCKET;
 
 	std::mutex mSslLock;
-	std::unique_ptr<SslContext> mSsl = nullptr;
+	std::unique_ptr<SslContext> mSsl;
 
 	std::mutex mSendingLock;
 	Condition mQueueCond;
@@ -260,7 +260,7 @@ private:
 	std::queue<std::unique_ptr<Packet>> mReceivingQueue;
 
 	PacketReader mPacketReader;
-	static constexpr int defaultPollTimeoutMs = 30000;
+	static constexpr int kDefaultPollTimeoutMs = 30000;
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

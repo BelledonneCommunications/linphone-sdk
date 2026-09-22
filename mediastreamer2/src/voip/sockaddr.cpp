@@ -20,13 +20,13 @@
 
 #include <algorithm>
 
-#include <bctoolbox/port.h>
+#include "bctoolbox/port.h"
 
 #include "mediastreamer2/sockaddr.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
-constexpr size_t IP_STRING_SIZE = 64;
+constexpr size_t kIpStringSize = 64;
 
 SockAddr::SockAddr(const ortp_recv_addr *ortpRecvAddr) {
 	ortp_recvaddr_to_sockaddr(const_cast<ortp_recv_addr *>(ortpRecvAddr), reinterpret_cast<struct sockaddr *>(&mAddr),
@@ -39,7 +39,7 @@ SockAddr::SockAddr(const struct sockaddr *addr, const socklen_t addrLen) : mLen(
 
 std::string SockAddr::asString() const {
 	std::string output;
-	output.resize(IP_STRING_SIZE, '\0');
+	output.resize(kIpStringSize, '\0');
 	bctbx_sockaddr_to_printable_ip_address(
 	    const_cast<struct sockaddr *>(reinterpret_cast<const struct sockaddr *>(&mAddr)), mLen, output.data(),
 	    output.capacity());
@@ -53,7 +53,7 @@ int SockAddr::getFamily() const {
 
 std::pair<std::string, int> SockAddr::getIpPort() const {
 	std::string ip;
-	ip.resize(IP_STRING_SIZE, '\0');
+	ip.resize(kIpStringSize, '\0');
 	int port = 0;
 	bctbx_sockaddr_to_ip_address(asStructSockAddr(), getLen(), ip.data(), ip.capacity(), &port);
 	ip.erase(std::find(ip.begin(), ip.end(), '\0'), ip.end());
@@ -81,4 +81,4 @@ SockAddr SockAddr::removeV4Mapping() const {
 	return result;
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

@@ -27,7 +27,7 @@
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/stun-message.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class MS2_PUBLIC StunRawMessage {
 public:
@@ -37,12 +37,12 @@ public:
 
 	[[nodiscard]] bool
 	checkShortTermIntegrity(const std::string &password,
-	                        const std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> &expectedIntegrity);
+	                        const std::array<uint8_t, StunMessage::kMessageIntegrityLength> &expectedIntegrity);
 	[[nodiscard]] const std::vector<uint8_t> &getData() const {
 		return mData;
 	}
 
-	static constexpr size_t MAX_RAW_MESSAGE_LENGTH = 2048;
+	static constexpr size_t kMaxRawMessageLength = 2048;
 
 private:
 	enum class Attribute {
@@ -83,14 +83,14 @@ private:
 		IceControlling = 0x802A,
 	};
 
-	static constexpr uint32_t FLAG_CHANGE_IP = 0x04;
-	static constexpr uint32_t FLAG_CHANGE_PORT = 0x02;
-	static constexpr size_t MAX_NONCE_LENGTH = 127;
-	static constexpr size_t MAX_REALM_LENGTH = 127;
-	static constexpr size_t MAX_SOFTWARE_LENGTH =
+	static constexpr uint32_t kFlagChangeIp = 0x04;
+	static constexpr uint32_t kFlagChangePort = 0x02;
+	static constexpr size_t kMaxNonceLength = 127;
+	static constexpr size_t kMaxRealmLength = 127;
+	static constexpr size_t kMaxSoftwareLength =
 	    763; // Length in bytes, it is supposed to be less than 128 UTF-8 characters (TODO)
-	static constexpr size_t MAX_USERNAME_LENGTH = 513;
-	static constexpr size_t MESSAGE_HEADER_LENGTH = 20;
+	static constexpr size_t kMaxUsernameLength = 513;
+	static constexpr size_t kMessageHeaderLength = 20;
 
 	StunRawMessage();
 	StunRawMessage(const char *data, size_t len);
@@ -102,7 +102,7 @@ private:
 	void addAttribute(Attribute attribute, uint64_t value);
 	void addAttribute(Attribute attribute, const std::string &value);
 	void addAttribute(Attribute attribute, const std::vector<uint8_t> &value);
-	void addAttribute(Attribute attribute, const std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> &value);
+	void addAttribute(Attribute attribute, const std::array<uint8_t, StunMessage::kMessageIntegrityLength> &value);
 	void addAttribute(Attribute attribute, const StunAddress &address);
 	void addAttribute(Attribute attribute, const StunError &error);
 	void addFingerprint();
@@ -111,11 +111,11 @@ private:
 	void addLongTermIntegrityFromHa1(const std::string &ha1);
 	void addShortTermIntegrity(const std::string &password, bool hasDummyMessageIntegrity);
 	[[nodiscard]] uint32_t calculateFingerprint() const;
-	[[nodiscard]] std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH>
+	[[nodiscard]] std::array<uint8_t, StunMessage::kMessageIntegrityLength>
 	calculateLongTermIntegrityFromHa1(const std::string &ha1) const;
-	[[nodiscard]] std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> calculateLongTermIntegrity(
+	[[nodiscard]] std::array<uint8_t, StunMessage::kMessageIntegrityLength> calculateLongTermIntegrity(
 	    const std::string &realm, const std::string &username, const std::string &password) const;
-	[[nodiscard]] std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH>
+	[[nodiscard]] std::array<uint8_t, StunMessage::kMessageIntegrityLength>
 	calculateShortTermIntegrity(const std::string &password, size_t length = 0) const;
 	[[nodiscard]] const uint8_t *decode(size_t size);
 	[[nodiscard]] std::pair<Attribute, size_t> decodeAttributeHeader();
@@ -130,7 +130,7 @@ private:
 	[[nodiscard]] uint64_t decodeIceControlled(size_t length);
 	[[nodiscard]] uint64_t decodeIceControlling(size_t length);
 	[[nodiscard]] uint32_t decodeLifetime(size_t length);
-	[[nodiscard]] std::array<uint8_t, StunMessage::MESSAGE_INTEGRITY_LENGTH> decodeMessageIntegrity(size_t length);
+	[[nodiscard]] std::array<uint8_t, StunMessage::kMessageIntegrityLength> decodeMessageIntegrity(size_t length);
 	[[nodiscard]] uint32_t decodePriority(size_t length);
 	[[nodiscard]] std::string decodeString(size_t length, size_t maxLength);
 	void encode(const uint8_t *data, size_t size);
@@ -153,4 +153,4 @@ private:
 	size_t mDecodeIndex = 0;
 };
 
-}; // namespace ms2::nat
+}; // namespace mediastreamer::nat

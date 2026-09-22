@@ -23,14 +23,14 @@
 #include <chrono>
 #include <memory>
 
-#include <ortp/rtpsession.h>
+#include "ortp/rtpsession.h"
 
 #include "mediastreamer2/ice-candidate.h"
 #include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-role.h"
 #include "mediastreamer2/mscommon.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 /**
  * Represents an ICE candidate pair.
@@ -47,6 +47,8 @@ public:
 	 */
 	enum class State { Waiting, InProgress, Succeeded, Failed, Frozen };
 
+	enum class Nomination { None, Pending, Failing, Nominated };
+
 	~IceCandidatePair() = default;
 
 	bool operator==(const IceCandidatePair &other) const;
@@ -58,7 +60,7 @@ public:
 		return mIsDefault;
 	}
 	[[nodiscard]] bool isNominated() const {
-		return mIsNominated;
+		return (mNomination == Nomination::Nominated);
 	}
 
 private:
@@ -94,6 +96,7 @@ private:
 	[[nodiscard]] bool hasCanceledTransaction() const {
 		return mHasCanceledTransaction;
 	}
+	[[nodiscard]] bool hasSameComponentIdAndTransportAddress(const std::shared_ptr<IceCandidatePair> &otherPair);
 	[[nodiscard]] bool hasUseCandidate() const {
 		return mUseCandidate;
 	}
@@ -102,12 +105,11 @@ private:
 		mRetransmissions++;
 	}
 	void initializeRetransmissionTimer();
-	void initializeTransmissionTime();
 	[[nodiscard]] bool isNominationFailing() const {
-		return mNominationFailing;
+		return mNomination == Nomination::Failing;
 	}
 	[[nodiscard]] bool isNominationPending() const {
-		return mNominationPending;
+		return mNomination == Nomination::Pending;
 	}
 	[[nodiscard]] bool isRetransmissionPending() const;
 	void replaceSrflxCandidateByBase();
@@ -115,14 +117,8 @@ private:
 	void setHasCanceledTransaction(const bool hasCanceledTransaction) {
 		mHasCanceledTransaction = hasCanceledTransaction;
 	}
-	void setIsNominated(const bool isNominated) {
-		mIsNominated = isNominated;
-	}
-	void setNominationFailing(const bool nominationFailing) {
-		mNominationFailing = nominationFailing;
-	}
-	void setNominationPending(const bool pending) {
-		mNominationPending = pending;
+	void setNomination(const Nomination nomination) {
+		mNomination = nomination;
 	}
 	void setRetryWithDummyMessageIntegrity(const bool retryWithDummyMessageIntegrity) {
 		mRetryWithDummyMessageIntegrity = retryWithDummyMessageIntegrity;
@@ -147,30 +143,31 @@ private:
 		return mUseDummyHmac;
 	}
 
+	[[nodiscard]] static std::shared_ptr<IceCandidatePair> create(const std::shared_ptr<IceCandidate> &localCandidate,
+	                                                              const std::shared_ptr<IceCandidate> &remoteCandidate,
+	                                                              IceRole role,
+	                                                              bool retryWithDummyMessageIntegrity = false);
+
 	IceRole mRole; /**< Role of the agent when the connectivity check has been sent for the candidate pair */
-	std::shared_ptr<IceCandidate> mLocalCandidate = nullptr;  /**< Pointer to the local candidate of the pair */
-	std::shared_ptr<IceCandidate> mRemoteCandidate = nullptr; /**< Pointer to the remote candidate of the pair */
-	State mState = State::Frozen;                             /**< State of the candidate pair */
-	uint64_t mPriority = 0;                                   /**< Priority of the candidate pair */
+	std::shared_ptr<IceCandidate> mLocalCandidate;  /**< Pointer to the local candidate of the pair */
+	std::shared_ptr<IceCandidate> mRemoteCandidate; /**< Pointer to the remote candidate of the pair */
+	State mState = State::Frozen;                   /**< State of the candidate pair */
+	uint64_t mPriority = 0;                         /**< Priority of the candidate pair */
 	std::chrono::steady_clock::time_point
 	    mTransmissionTime; /**< Time when the connectivity check for the candidate pair has been sent */
-	std::chrono::milliseconds mRto = ICE_DEFAULT_RTO_DURATION; /**< Duration of the retransmit timer for the
+	std::chrono::milliseconds mRto = kIceDefaultRtoDuration; /**< Duration of the retransmit timer for the
 	                                        connectivity check sent for the candidate pair in ms */
+	Nomination mNomination = Nomination::None;
 	uint8_t mRetransmissions =
 	    0;                      /**< Number of retransmissions for the connectivity check sent for the candidate pair */
 	bool mIsDefault = false;    /**< Tells whether this candidate pair is a default candidate pair or not. */
 	bool mUseCandidate = false; /**< Tells if the USE-CANDIDATE attribute must be set for the connectivity
 	                         checks send for the candidate pair. */
-	bool mIsNominated = false;  /**< Tells whether this candidate pair is nominated or not. */
-	bool mNominationPending = false;      /** Tells whether this candidate pair was nominated by the remote (in
-	                                   controlled mode), but we could not yet complete the check. */
 	bool mHasCanceledTransaction = false; /**< Tells whether this candidate pair has a cancelled transaction, see
 	                                    RFC5245 7.2.1.4. Triggered Checks. */
-	bool mNominationFailing = false;      /**< Indicates that this pair was nominated but it is apparently failing
-	                                   because no response is received. */
 	bool mRetryWithDummyMessageIntegrity = false; /** Use to tell to retry with dummy message integrity. Useful to keep
 	                                              backward compatibility with older versions. */
 	bool mUseDummyHmac = false;                   /* Don't compute real hmac. Used for backward compatibility. */
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

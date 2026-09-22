@@ -22,7 +22,7 @@
 
 #include "mediastreamer2/ice-utils.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 IceTransaction::IceTransaction(const std::shared_ptr<IceCandidatePair> &pair, const StunTransactionId transactionId)
     : mId(transactionId), mPair(pair) {
@@ -32,4 +32,9 @@ std::string IceTransaction::getIdStr() const {
 	return mId.asString();
 }
 
-} // namespace ms2::nat
+std::shared_ptr<IceTransaction> IceTransaction::create(const std::shared_ptr<IceCandidatePair> &pair,
+                                                       const StunTransactionId transactionId) {
+	return std::shared_ptr<IceTransaction>(new IceTransaction(pair, transactionId));
+}
+
+} // namespace mediastreamer::nat

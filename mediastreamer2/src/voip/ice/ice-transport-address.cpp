@@ -23,16 +23,16 @@
 
 #include "mediastreamer2/ice-transport-address.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
-constexpr size_t IP_STRING_SIZE = 64;
+constexpr size_t kIpStringSize = 64;
 
 IceTransportAddress::IceTransportAddress(const int family, std::string ip, const int port)
     : mIp(std::move(ip)), mPort(port), mFamily(family) {
 }
 
 IceTransportAddress::IceTransportAddress(const struct sockaddr *addr, const socklen_t addrlen)
-    : mIp(IP_STRING_SIZE, '\0') {
+    : mIp(kIpStringSize, '\0') {
 	init(SockAddr(addr, addrlen));
 }
 
@@ -40,7 +40,7 @@ IceTransportAddress::IceTransportAddress(const SockAddr &sockAddr) {
 	init(sockAddr);
 }
 
-IceTransportAddress::IceTransportAddress(const StunAddress &stunAddress) : mIp(IP_STRING_SIZE, '\0') {
+IceTransportAddress::IceTransportAddress(const StunAddress &stunAddress) : mIp(kIpStringSize, '\0') {
 	init(stunAddress.toSockAddr());
 }
 
@@ -51,7 +51,7 @@ bool IceTransportAddress::operator==(const IceTransportAddress &other) const {
 std::string IceTransportAddress::asString() const {
 	struct addrinfo *ai = bctbx_ip_address_to_addrinfo(mFamily, SOCK_DGRAM, mIp.c_str(), mPort);
 	if (ai != nullptr) {
-		std::string strRepr(IP_STRING_SIZE, '\0');
+		std::string strRepr(kIpStringSize, '\0');
 		bctbx_addrinfo_to_printable_ip_address(ai, strRepr.data(), strRepr.capacity());
 		bctbx_freeaddrinfo(ai);
 		strRepr.erase(std::find(strRepr.begin(), strRepr.end(), '\0'), strRepr.end());
@@ -73,4 +73,4 @@ StunAddress IceTransportAddress::toStunAddress() const {
 	return {mFamily, SOCK_DGRAM, mIp, mPort};
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

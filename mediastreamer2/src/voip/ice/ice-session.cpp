@@ -28,7 +28,7 @@
 #include "mediastreamer2/ice-credentials.h"
 #include "mediastreamer2/ice-session.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 IceSession::IceSession() {
 	mChecklists.fill(nullptr);
@@ -50,7 +50,7 @@ void IceSession::addCheckList(const std::shared_ptr<IceCheckList> &checklist, co
 		return;
 	}
 	mChecklists[index] = checklist;
-	checklist->setSession(this);
+	checklist->setSession(shared_from_this());
 	if (checklist->getState() == IceCheckList::State::Running) {
 		mState = State::Running;
 	}
@@ -132,7 +132,7 @@ std::optional<std::chrono::milliseconds> IceSession::getAverageGatheringRoundTri
 	return rtt.getAverage();
 }
 
-std::shared_ptr<IceCheckList> IceSession::getCheckList(const size_t n) const {
+std::shared_ptr<IceCheckList> IceSession::getNthCheckList(const size_t n) const {
 	if (n >= mChecklists.size()) {
 		return nullptr;
 	}
@@ -173,13 +173,6 @@ bool IceSession::hasCompletedCheckList() const {
 		}
 		return checklist->getState() == IceCheckList::State::Completed;
 	});
-}
-
-bool IceSession::haveRemoteCredentialsChanged(const IceCredentials &newCredentials) const {
-	if (!mRemoteCredentials.has_value()) {
-		return true;
-	}
-	return (*mRemoteCredentials != newCredentials);
 }
 
 void IceSession::removeCheckList(const std::shared_ptr<IceCheckList> &checklistToRemove) {
@@ -239,7 +232,7 @@ void IceSession::setBaseForSrflxCandidates() const {
 
 void IceSession::setKeepAliveTimeout(const std::chrono::seconds keepAliveTimeout) {
 	mKeepAliveTimeout =
-	    (keepAliveTimeout < ICE_DEFAULT_KEEPALIVE_TIMEOUT) ? ICE_DEFAULT_KEEPALIVE_TIMEOUT : keepAliveTimeout;
+	    (keepAliveTimeout < kIceDefaultKeepaliveTimeout) ? kIceDefaultKeepaliveTimeout : keepAliveTimeout;
 }
 
 void IceSession::setRole(const IceRole role) {
@@ -251,45 +244,17 @@ void IceSession::setRole(const IceRole role) {
 }
 
 void IceSession::setTurnCn(const std::string &cn) const {
-	if (!mTurnEnabled) {
-		return;
-	}
-
-	forEachValidCheckList([cn](const auto &checklist) {
-		for (const auto &context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
-			if (context != nullptr) {
-				context->setCn(cn);
-			}
-		}
-	});
+	forEachTurnContextOfEachValidCheckList([cn](const auto &turnContext) { turnContext->setCn(cn); });
 }
 
 void IceSession::setTurnRootCertificatePath(const std::string &rootCertificatePath) const {
-	if (!mTurnEnabled) {
-		return;
-	}
-
-	forEachValidCheckList([rootCertificatePath](const auto &checklist) {
-		for (const auto &context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
-			if (context != nullptr) {
-				context->setRootCertificatePath(rootCertificatePath);
-			}
-		}
-	});
+	forEachTurnContextOfEachValidCheckList(
+	    [rootCertificatePath](const auto &turnContext) { turnContext->setRootCertificatePath(rootCertificatePath); });
 }
 
 void IceSession::setTurnTransport(const TurnContext::Transport transport) const {
-	if (!mTurnEnabled) {
-		return;
-	}
-
-	forEachValidCheckList([transport](const auto &checklist) {
-		for (const auto &context : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
-			if (context != nullptr) {
-				context->setTransport(transport);
-			}
-		}
-	});
+	forEachTurnContextOfEachValidCheckList(
+	    [transport](const auto &turnContext) { turnContext->setTransport(transport); });
 }
 
 void IceSession::startConnectivityChecks() {
@@ -334,6 +299,21 @@ std::shared_ptr<IceCheckList> IceSession::findUnsuccessfulCheckList() const {
 		return (checklist != nullptr) && (checklist->getState() != IceCheckList::State::Completed);
 	});
 	return (it == mChecklists.end()) ? nullptr : *it;
+}
+
+void IceSession::forEachTurnContextOfEachValidCheckList(
+    const std::function<void(const std::shared_ptr<TurnContext> &)> &callback) const {
+	if (!mTurnEnabled) {
+		return;
+	}
+
+	forEachValidCheckList([callback](const auto &checklist) {
+		for (const auto &turnContext : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
+			if (turnContext != nullptr) {
+				callback(turnContext);
+			}
+		}
+	});
 }
 
 void IceSession::forEachValidCheckList(
@@ -397,9 +377,9 @@ void IceSession::pairCandidates() const {
 	}
 }
 
-void IceSession::programEventSending(const int eventValue, const std::chrono::milliseconds delay) {
+void IceSession::programEventSending(const OrtpEventType eventType, const std::chrono::milliseconds delay) {
 	mEventTime = std::chrono::steady_clock::now() + delay;
-	mEventValue = eventValue;
+	mEventType = eventType;
 	mSendEvent = true;
 }
 
@@ -409,4 +389,4 @@ void IceSession::setGatheringEndTs(const ortpTimeSpec ts) {
 	    std::chrono::duration_cast<std::chrono::steady_clock::duration>(duration)};
 }
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

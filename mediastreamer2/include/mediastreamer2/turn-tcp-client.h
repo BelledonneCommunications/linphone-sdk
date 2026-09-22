@@ -22,13 +22,13 @@
 
 #include <memory>
 
-#include <bctoolbox/crypto.h>
+#include "bctoolbox/crypto.h"
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/stun-address.h"
 #include "mediastreamer2/turn-socket.h"
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 class TurnContext;
 class TurnSocket;
@@ -57,9 +57,9 @@ private:
 	}
 
 	TurnContext *mContext = nullptr;
-	std::unique_ptr<TurnSocket> mTurnConnection = nullptr;
+	std::unique_ptr<TurnSocket> mTurnConnection;
 	StunAddress mTurnAddress;
 	bctbx_rng_context_t *mRng = nullptr;
 };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat

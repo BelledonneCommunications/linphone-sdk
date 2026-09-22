@@ -20,7 +20,7 @@
 
 #pragma once
 
-namespace ms2::nat {
+namespace mediastreamer::nat {
 
 /**
  * ICE agent role.
@@ -29,4 +29,4 @@ namespace ms2::nat {
  */
 enum class IceRole { Controlling, Controlled };
 
-} // namespace ms2::nat
+} // namespace mediastreamer::nat
