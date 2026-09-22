@@ -50,13 +50,15 @@ public:
 
 	bool forceReconnect();
 
-	virtual void updateSchema();
+	// Return -1 in case of error else 0
+	virtual int updateSchema(bool checkMode);
 
 	Backend getBackend() const;
 
 	virtual bool import(Backend backend, const std::string &parameters);
 
 	bool isInitialized() const;
+	bool needUpgrade();
 	/* This function is to initialize soci backends when used with static linking. */
 	static void registerBackend(Backend backend);
 
@@ -65,7 +67,8 @@ public:
 protected:
 	explicit AbstractDb(AbstractDbPrivate &p);
 
-	virtual void init();
+	// Return -1 in case of error else 0
+	virtual int init(bool checkMode);
 
 private:
 	L_DECLARE_PRIVATE(AbstractDb);

@@ -143,6 +143,7 @@ set(DB_FILES
 	db/chatroom_duplicates.db
 	db/server_chatroom_duplicates.db
 	db/update.db
+	db/missing_columns.db
 )
 
 set(DB_DOWNLOADED_FILES

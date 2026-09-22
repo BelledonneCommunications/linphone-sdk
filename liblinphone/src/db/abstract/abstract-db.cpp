@@ -54,8 +54,8 @@ void AbstractDbPrivate::safeInit() {
 	L_Q();
 	if (updateSchemaAtInitialisation) {
 		dbSession.enableForeignKeys(false);
-		q->init();
-		q->updateSchema();
+		q->init(false);
+		q->updateSchema(false);
 		dbSession.enableForeignKeys(true);
 	}
 	initialized = true;
@@ -180,17 +180,23 @@ void AbstractDb::setUpdateSchemaAtInitialisation(bool updateSchemaAtInitialisati
 
 // -----------------------------------------------------------------------------
 
-void AbstractDb::init() {
+int AbstractDb::init(bool) {
 	// Nothing.
+	return 0;
 }
 
-void AbstractDb::updateSchema() {
+int AbstractDb::updateSchema(bool) {
 	// Nothing.
+	return 0;
 }
 
 bool AbstractDb::isInitialized() const {
 	L_D();
 	return d->initialized;
+}
+
+bool AbstractDb::needUpgrade() {
+	return init(true) != 0 || updateSchema(true) != 0;
 }
 
 std::ostream &operator<<(std::ostream &os, AbstractDb::Backend b) {

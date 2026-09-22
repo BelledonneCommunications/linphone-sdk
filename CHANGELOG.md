@@ -13,6 +13,9 @@ changes made to these components.
 
 ## Unreleased
 
+### Added
+- MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
+
 ### Changes
 - Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
 - Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network

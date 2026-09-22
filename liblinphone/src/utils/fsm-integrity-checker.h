@@ -28,7 +28,7 @@
 LINPHONE_BEGIN_NAMESPACE
 
 /* Template class to ease integrity checking of finite state machines.
- * It has to be brakets initialized, so that all allowed transitions are listed, for example:
+ * It has to be brackets initialized, so that all allowed transitions are listed, for example:
  * FsmIntegrityChecker<State> fsmChecker {
  * 		{
  * 			{StateA, {StateB, StateC}},

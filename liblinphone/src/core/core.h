@@ -466,6 +466,7 @@ public:
 	LinphoneEphemeralChatMessagePolicy getEphemeralChatMessagePolicy() const;
 
 	std::optional<std::reference_wrapper<MainDb>> getDatabase() const;
+	int openDatabase(bool checkUpgrade);
 	void uninitDatabase();
 
 	bool hasAccountWithEchoedPresenceSubscriptionEnabled() const;

@@ -52,7 +52,31 @@ private:
 
 	std::shared_ptr<AbstractChatRoom> findChatRoom(const ConferenceId &conferenceId) const;
 	std::shared_ptr<Conference> findConference(const ConferenceId &conferenceId) const;
+#ifdef HAVE_DB_STORAGE
+	/* Used for creating table in database.
+	 * On difference, create is done. If not then it means that the table exists.
+	 * This detection is done from throwing exception that is caught by the function.
+	 * Depending of checkMode, the function will throw an exception or not.
+	 *
+	 * @param session The Session to make the request.
+	 * @param checkMode On check mode, if CREATE has been done then the function throws a soci_error::unknown.
+	 * @param request The CREATE request without the key "CREATE TABLE IF NOT EXISTS".
+	 * @return true if table has been created.
+	 */
+	bool createTable(soci::session *session, bool checkMode, const std::string &request) const;
 
+	/* Used for altering table in database.
+	 * On difference, ALTER is done. If not then it means that the column exists.
+	 * This detection is done from throwing exception that is caught by the function.
+	 * Depending of checkMode, the function will throw an exception or not.
+	 *
+	 * @param session The Session to make the request.
+	 * @param checkMode On check mode, if ALTER has been done then the function throws a soci_error::unknown.
+	 * @param request The full ALTER request.
+	 * @return true if table has been altered.
+	 */
+	bool alterTable(soci::session *session, bool checkMode, const std::string &request) const;
+#endif
 	// ---------------------------------------------------------------------------
 	// Low level API.
 	// ---------------------------------------------------------------------------
@@ -265,7 +289,8 @@ private:
 
 	unsigned int getModuleVersion(const std::string &name);
 	void updateModuleVersion(const std::string &name, unsigned int version);
-	void updateSchema();
+	void init(bool checkMode);
+	void updateSchema(bool checkMode);
 
 	// ---------------------------------------------------------------------------
 	// Import.

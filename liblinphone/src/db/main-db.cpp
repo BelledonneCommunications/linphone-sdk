@@ -55,9 +55,9 @@
 #include "friend/friend.h"
 #include "main-db-key-p.h"
 #include "main-db-p.h"
+#include "utils/xml-utils.h"
 #include "vcard/vcard-context.h"
 #include "vcard/vcard.h"
-#include "utils/xml-utils.h"
 
 #ifdef HAVE_DB_STORAGE
 #include "internal/db-transaction.h"
@@ -2856,11 +2856,868 @@ void MainDbPrivate::updateModuleVersion(const string &name, unsigned int version
 #endif
 }
 
-void MainDbPrivate::updateSchema() {
+#ifdef HAVE_DB_STORAGE
+
+bool MainDbPrivate::createTable(soci::session *session, bool checkMode, const std::string &request) const {
+	bool changed = false;
+	try {
+		if (checkMode) *session << "CREATE TABLE " << request;
+		else *session << "CREATE TABLE IF NOT EXISTS " << request;
+		changed = true;
+		// If no exception, an alter has been done. That means that there is a difference in database.
+		if (checkMode) throw soci::soci_error("Create table is successful, Database need to be migrated.");
+		return true;
+	} catch (const soci::soci_error &e) {
+		// On check mode, having an exception is expected if not changed.
+		if (!checkMode || (changed && checkMode)) throw e;
+	}
+	return false;
+}
+
+// This is specific to altering database: on difference, alter is done. If not, column exists and it is ok.
+bool MainDbPrivate::alterTable(soci::session *session, bool checkMode, const std::string &request) const {
+	bool altered = false;
+	try {
+		*session << request;
+		// If no exception, an alter has been done. That means that there is a difference in database.
+		altered = true;
+		if (checkMode) throw soci::soci_error("Alter is successful, Database need to be migrated.");
+		return altered;
+	} catch (const soci::soci_error &e) {
+		// Before SOCI 4.0, 'request' is not added in what().
+		// -> On duplicate error and with SQlite, there is only the column in the log.
+		//		To have more data like TABLE, we need to add 'request' for debugging.
+		if (checkMode && altered) throw e; // Propagate the exception on checkMode else catch it(=already exists)
+		lDebug() << "Caught exception " << e.what() << " for " << request;
+	}
+	return false;
+}
+#endif
+
+void MainDbPrivate::init(bool checkMode) {
 #ifdef HAVE_DB_STORAGE
 	L_Q();
 
-	// MySQL : Modified display_name in order to set explicitely this column to utf8mb4, while the default character
+	MainDb::Backend backend = q->getBackend();
+	const string charset = backend == MainDb::Mysql ? "DEFAULT CHARSET=utf8mb4" : "";
+	soci::session *session = dbSession.getBackendSession();
+
+	using namespace placeholders;
+	auto primaryKeyRefStr = bind(&DbSession::primaryKeyRefStr, &dbSession, _1);
+	auto primaryKeyStr = bind(&DbSession::primaryKeyStr, &dbSession, _1);
+	auto timestampType = bind(&DbSession::timestampType, &dbSession);
+	auto varcharPrimaryKeyStr = bind(&DbSession::varcharPrimaryKeyStr, &dbSession, _1);
+
+	/* Enable secure delete - so that erased chat messages are really erased and not just marked as unused.
+	 * See https://sqlite.org/pragma.html#pragma_secure_delete
+	 * This setting is global for the database.
+	 * It is enabled only for sqlite3 backend, which is the one used for liblinphone clients.
+	 * The mysql backend (used server-side) doesn't support this PRAGMA.
+	 */
+	if (backend == MainDb::Sqlite3) *session << string("PRAGMA secure_delete = ON");
+
+	// Charset set to ascii for mysql/mariadb to allow creation of indexed collumns of size > 191. We assume
+	// that for the given fields ascii will not cause any display issue.
+
+	// 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4
+	createTable(session, checkMode,
+	            "sip_address ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+	                "  value VARCHAR(255) UNIQUE NOT NULL"
+	                ") " +
+	                (backend == MainDb::Mysql ? "DEFAULT CHARSET=ascii" : ""));
+
+	createTable(session, checkMode,
+	            "content_type ("
+	            "  id" +
+	                primaryKeyStr("SMALLINT UNSIGNED") +
+	                ","
+	                "  value VARCHAR(255) UNIQUE NOT NULL"
+	                ") " +
+	                (backend == MainDb::Mysql ? "DEFAULT CHARSET=ascii" : ""));
+
+	createTable(session, checkMode,
+	            "event ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+	                "  type TINYINT UNSIGNED NOT NULL,"
+	                "  creation_time" +
+	                timestampType() +
+	                " NOT NULL"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "chat_room ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                // Server (for conference) or user sip address.
+	                "  peer_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  local_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                // Dialog creation time.
+	                "  creation_time" +
+	                timestampType() +
+	                " NOT NULL,"
+
+	                // Last event time (call, message...).
+	                "  last_update_time" +
+	                timestampType() +
+	                " NOT NULL,"
+
+	                // ConferenceChatRoom, BasicChatRoom, RTT...
+	                "  capabilities TINYINT UNSIGNED NOT NULL,"
+
+	                // Chatroom subject.
+	                // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
+	                // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
+	                "  subject VARCHAR(255),"
+
+	                "  last_notify_id INT UNSIGNED DEFAULT 0,"
+
+	                "  flags INT UNSIGNED DEFAULT 0,"
+
+	                "  UNIQUE (peer_sip_address_id, local_sip_address_id),"
+
+	                "  FOREIGN KEY (peer_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (local_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "one_to_one_chat_room ("
+	            "  chat_room_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  participant_a_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  participant_b_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  FOREIGN KEY (chat_room_id)"
+	                "    REFERENCES chat_room(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (participant_a_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (participant_b_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "chat_room_participant ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  chat_room_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+	                "  participant_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  is_admin BOOLEAN NOT NULL,"
+
+	                "  UNIQUE (chat_room_id, participant_sip_address_id),"
+
+	                "  FOREIGN KEY (chat_room_id)"
+	                "    REFERENCES chat_room(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (participant_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "chat_room_participant_device ("
+	            "  chat_room_participant_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+	                "  participant_device_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  PRIMARY KEY (chat_room_participant_id, participant_device_sip_address_id),"
+
+	                "  FOREIGN KEY (chat_room_participant_id)"
+	                "    REFERENCES chat_room_participant(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (participant_device_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  chat_room_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES event(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (chat_room_id)"
+	                "    REFERENCES chat_room(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_notified_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  notify_id INT UNSIGNED NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_event(event_id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_participant_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  participant_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_notified_event(event_id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (participant_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_alternative_conference_address_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                " alternative_conference_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_notified_event(event_id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (alternative_conference_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_participant_device_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  device_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_participant_event(event_id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (device_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_security_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  security_alert TINYINT UNSIGNED NOT NULL,"
+	                // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
+	                // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
+	                "  faulty_device VARCHAR(255) NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_event(event_id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_subject_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
+	                // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
+	                "  subject VARCHAR(255) NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_notified_event(event_id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_chat_message_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  from_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  to_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  time" +
+	                timestampType() +
+	                " ,"
+
+	                // See: https://tools.ietf.org/html/rfc5438#section-6.3
+	                // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
+	                // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
+	                "  imdn_message_id VARCHAR(255) NOT NULL,"
+
+	                "  state TINYINT UNSIGNED NOT NULL,"
+	                "  direction TINYINT UNSIGNED NOT NULL,"
+	                "  is_secured BOOLEAN NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_event(event_id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (from_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (to_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "chat_message_participant ("
+	            "  event_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+	                "  participant_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+	                "  state TINYINT UNSIGNED NOT NULL,"
+
+	                "  PRIMARY KEY (event_id, participant_sip_address_id),"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_chat_message_event(event_id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (participant_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "chat_message_content ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  event_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  content_type_id" +
+	                primaryKeyRefStr("SMALLINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  body TEXT NOT NULL,"
+
+	                "  UNIQUE (id, event_id),"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_chat_message_event(event_id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (content_type_id)"
+	                "    REFERENCES content_type(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "chat_message_file_content ("
+	            "  chat_message_content_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
+	                // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
+	                "  name VARCHAR(256) NOT NULL,"
+	                "  size INT UNSIGNED NOT NULL,"
+
+	                // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
+	                // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
+	                "  path VARCHAR(512) NOT NULL,"
+
+	                "  FOREIGN KEY (chat_message_content_id)"
+	                "    REFERENCES chat_message_content(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "chat_message_content_app_data ("
+	            "  chat_message_content_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  name VARCHAR(191)," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7
+	                                       // with charset utf8mb4
+	                "  data BLOB NOT NULL,"
+
+	                "  PRIMARY KEY (chat_message_content_id, name),"
+	                "  FOREIGN KEY (chat_message_content_id)"
+	                "    REFERENCES chat_message_content(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_message_crypto_data ("
+	            "  event_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  name VARCHAR(191)," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7
+	                                       // with charset utf8mb4
+	                "  data BLOB NOT NULL,"
+
+	                "  PRIMARY KEY (event_id, name),"
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_chat_message_event(event_id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "friends_list ("
+	            "  id" +
+	                primaryKeyStr("INT UNSIGNED") +
+	                ","
+
+	                "  name VARCHAR(191) UNIQUE," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql
+	                                              // < 5.7 with charset utf8mb4
+
+	                // /!\ Warning : if varchar columns > 255 are indexed, their size must be set back to 191 =
+	                // max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both
+	                // here and in migrations)
+	                "  rls_uri VARCHAR(2047),"
+	                "  sync_uri VARCHAR(2047),"
+	                "  revision INT UNSIGNED NOT NULL"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "friend ("
+	            "  id" +
+	                primaryKeyStr("INT UNSIGNED") +
+	                ","
+
+	                "  sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  friends_list_id" +
+	                primaryKeyRefStr("INT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  subscribe_policy TINYINT UNSIGNED NOT NULL,"
+	                "  send_subscribe BOOLEAN NOT NULL,"
+	                "  presence_received BOOLEAN NOT NULL,"
+
+	                "  v_card MEDIUMTEXT,"
+
+	                // /!\ Warning : if these varchar columns are indexed, their size must be set back to 191 =
+	                // max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both
+	                // here and in migrations)
+	                "  v_card_etag VARCHAR(255),"
+	                "  v_card_sync_uri VARCHAR(2047),"
+
+	                "  FOREIGN KEY (sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (friends_list_id)"
+	                "    REFERENCES friends_list(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "friend_app_data ("
+	            "  friend_id" +
+	                primaryKeyRefStr("INT UNSIGNED") +
+	                ","
+
+	                "  name VARCHAR(191)," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7
+	                                       // with charset utf8mb4
+	                "  data BLOB NOT NULL,"
+
+	                "  PRIMARY KEY (friend_id, name),"
+	                "  FOREIGN KEY (friend_id)"
+	                "    REFERENCES friend(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "db_module_version ("
+	            "  name" +
+	                varcharPrimaryKeyStr(191) +
+	                "," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4
+	                "  version INT UNSIGNED NOT NULL"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "chat_message_ephemeral_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+	                "  ephemeral_lifetime DOUBLE NOT NULL,"
+	                "  expired_time" +
+	                timestampType() +
+	                " NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_event(event_id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_ephemeral_message_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  lifetime DOUBLE NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES conference_event(event_id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "one_to_one_chat_room_previous_conference_id ("
+	            "  id" +
+	                primaryKeyStr("INT UNSIGNED") +
+	                ","
+
+	                "  sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  chat_room_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  FOREIGN KEY (sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (chat_room_id)"
+	                "    REFERENCES chat_room(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "expired_conferences ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  uri_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_info ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  organizer_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  uri_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  start_time" +
+	                timestampType() +
+	                ","
+	                "  duration INT UNSIGNED,"
+
+	                // /!\ Warning : if these varchar columns are indexed, their size must be set back to 191 =
+	                // max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both
+	                // here and in migrations)
+	                "  subject VARCHAR(256) NOT NULL,"
+	                "  description VARCHAR(2048),"
+
+	                "  FOREIGN KEY (organizer_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (uri_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_info_participant ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  conference_info_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  participant_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  UNIQUE (conference_info_id, participant_sip_address_id),"
+
+	                "  FOREIGN KEY (conference_info_id)"
+	                "    REFERENCES conference_info(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (participant_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_info_organizer ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  conference_info_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  organizer_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  params VARCHAR(2048) DEFAULT '',"
+
+	                "  UNIQUE (conference_info_id, organizer_sip_address_id),"
+
+	                "  FOREIGN KEY (conference_info_id)"
+	                "    REFERENCES conference_info(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (organizer_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_info_participant_params ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  conference_info_participant_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  name VARCHAR(191) NOT NULL DEFAULT '',"
+	                "  value VARCHAR(191) DEFAULT '',"
+
+	                "  UNIQUE (conference_info_participant_id, name),"
+
+	                "  FOREIGN KEY (conference_info_participant_id)"
+	                "    REFERENCES conference_info_participant(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_call ("
+	            "  id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  from_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  to_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  direction TINYINT UNSIGNED NOT NULL,"
+	                "  duration INT UNSIGNED,"
+	                "  start_time" +
+	                timestampType() +
+	                " NOT NULL,"
+	                "  connected_time" +
+	                timestampType() +
+	                ","
+	                "  status TINYINT UNSIGNED NOT NULL,"
+	                "  video_enabled BOOLEAN NOT NULL,"
+	                "  quality DOUBLE,"
+	                "  call_id VARCHAR(64),"
+	                "  refkey VARCHAR(64),"
+	                "  conference_info_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  FOREIGN KEY (from_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (to_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (conference_info_id)"
+	                "    REFERENCES conference_info(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "conference_call_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  conference_call_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  FOREIGN KEY (event_id)"
+	                "    REFERENCES event(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (conference_call_id)"
+	                "    REFERENCES conference_call(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	*session << "DROP VIEW IF EXISTS conference_call_event_view";
+	*session << "CREATE VIEW conference_call_event_view AS"
+	            "  SELECT event.id, type, creation_time, conference_call_id, from_sip_address_id, "
+	            "to_sip_address_id, direction, conference_call.duration AS call_duration,"
+	            "    conference_call.start_time AS call_start_time, connected_time, status, video_enabled, "
+	            "quality, call_id, refkey, conference_info_id,"
+	            "    organizer_sip_address_id, uri_sip_address_id, conference_info.start_time AS conf_start_time, "
+	            "conference_info.duration AS conf_duration,"
+	            "    subject, description"
+	            "  FROM event"
+	            "  LEFT JOIN conference_call_event ON conference_call_event.event_id = event.id"
+	            "  LEFT JOIN conference_call ON conference_call.id = conference_call_event.conference_call_id"
+	            "  LEFT JOIN conference_info ON conference_info.id = conference_call.conference_info_id";
+
+	createTable(session, checkMode,
+	            "conference_chat_message_reaction_event ("
+	            "  event_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  from_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  to_sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  time" +
+	                timestampType() +
+	                " ,"
+	                "  body TEXT NOT NULL,"
+
+	                // See: https://tools.ietf.org/html/rfc5438#section-6.3
+	                // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
+	                // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
+	                "  imdn_message_id VARCHAR(255) NOT NULL,"
+	                "  call_id VARCHAR(255) NOT NULL,"
+	                "  reaction_to_message_id VARCHAR(191) NOT NULL,"
+
+	                // One reaction maximum per user for a given message
+	                "  UNIQUE (from_sip_address_id, reaction_to_message_id),"
+
+	                "  FOREIGN KEY (from_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (to_sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+
+	createTable(session, checkMode,
+	            "friend_devices ("
+	            "  device_id" +
+	                primaryKeyStr("BIGINT UNSIGNED") +
+	                ","
+
+	                "  sip_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+	                "  device_address_id" +
+	                primaryKeyRefStr("BIGINT UNSIGNED") +
+	                " NOT NULL,"
+
+	                "  display_name TEXT NOT NULL," +
+
+	                "  UNIQUE (sip_address_id, device_address_id),"
+
+	                "  FOREIGN KEY (sip_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE,"
+	                "  FOREIGN KEY (device_address_id)"
+	                "    REFERENCES sip_address(id)"
+	                "    ON DELETE CASCADE"
+	                ") " +
+	                charset);
+#endif
+}
+
+void MainDbPrivate::updateSchema(bool checkMode) {
+#ifdef HAVE_DB_STORAGE
+	L_Q();
+
+	// MySQL : Modified display_name in order to set explicitly this column to utf8mb4, while the default character
 	// set of the table is set to ascii (this allows special characters in display name without breaking
 	// compatibility with mysql 5.5) 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset
 	// utf8mb4
@@ -2876,11 +3733,13 @@ void MainDbPrivate::updateSchema() {
 	lInfo() << "Event table version is " << eventDbVersion.toString();
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 1))
-		*session << "ALTER TABLE chat_room_participant_device ADD COLUMN state TINYINT UNSIGNED DEFAULT 0";
+		alterTable(session, checkMode,
+		           "ALTER TABLE chat_room_participant_device ADD COLUMN state TINYINT UNSIGNED DEFAULT 0");
 	if (eventsDbVersionInt < makeVersion(1, 0, 2)) {
 		*session << "DROP TRIGGER IF EXISTS chat_message_participant_deleter";
-		*session << "ALTER TABLE chat_message_participant ADD COLUMN state_change_time" + dbSession.timestampType() +
-		                " NOT NULL DEFAULT " + dbSession.currentTimestamp();
+		alterTable(session, checkMode,
+		           "ALTER TABLE chat_message_participant ADD COLUMN state_change_time" + dbSession.timestampType() +
+		               " NOT NULL DEFAULT " + dbSession.currentTimestamp());
 	}
 	if (eventsDbVersionInt < makeVersion(1, 0, 3)) {
 		// Remove client group one-on-one chat rooms for the moment as there are still some issues
@@ -2893,10 +3752,12 @@ void MainDbPrivate::updateSchema() {
 		                         TRUE);
 	}
 	if (eventsDbVersionInt < makeVersion(1, 0, 4)) {
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN delivery_notification_required BOOLEAN NOT "
-		            "NULL DEFAULT 0";
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN display_notification_required BOOLEAN NOT "
-		            "NULL DEFAULT 0";
+		alterTable(session, checkMode,
+		           "ALTER TABLE conference_chat_message_event ADD COLUMN delivery_notification_required BOOLEAN NOT "
+		           "NULL DEFAULT 0");
+		alterTable(session, checkMode,
+		           "ALTER TABLE conference_chat_message_event ADD COLUMN display_notification_required BOOLEAN NOT "
+		           "NULL DEFAULT 0");
 	}
 	if (eventsDbVersionInt < makeVersion(1, 0, 5)) {
 		const string queryDelivery = "UPDATE conference_chat_message_event"
@@ -2927,18 +3788,19 @@ void MainDbPrivate::updateSchema() {
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 7)) {
-		*session << "ALTER TABLE chat_room_participant_device ADD COLUMN name VARCHAR(255)";
+		alterTable(session, checkMode, "ALTER TABLE chat_room_participant_device ADD COLUMN name VARCHAR(255)");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 8)) {
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN marked_as_read BOOLEAN NOT NULL DEFAULT 1";
-		recreateConferenceEventView = true;
+		recreateConferenceEventView |= alterTable(
+		    session, checkMode,
+		    "ALTER TABLE conference_chat_message_event ADD COLUMN marked_as_read BOOLEAN NOT NULL DEFAULT 1");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 9)) {
-		*session
-		    << "ALTER TABLE conference_chat_message_event ADD COLUMN forward_info VARCHAR(255) NOT NULL DEFAULT ''";
-		recreateConferenceEventView = true;
+		recreateConferenceEventView |= alterTable(
+		    session, checkMode,
+		    "ALTER TABLE conference_chat_message_event ADD COLUMN forward_info VARCHAR(255) NOT NULL DEFAULT ''");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 10)) {
@@ -2951,45 +3813,53 @@ void MainDbPrivate::updateSchema() {
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 11)) {
-		*session << "ALTER TABLE chat_room ADD COLUMN last_message_id " +
-		                dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " NOT NULL DEFAULT 0";
+		alterTable(session, checkMode,
+		           "ALTER TABLE chat_room ADD COLUMN last_message_id " + dbSession.primaryKeyRefStr("BIGINT UNSIGNED") +
+		               " NOT NULL DEFAULT 0");
 		*session << "UPDATE chat_room SET last_message_id = IFNULL((SELECT id FROM conference_event_simple_view WHERE "
 		            "chat_room_id = chat_room.id AND type = 5 ORDER BY id DESC LIMIT 1), 0)";
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 12)) {
-		*session << "ALTER TABLE chat_room ADD COLUMN ephemeral_enabled BOOLEAN NOT NULL DEFAULT 0";
-		*session << "ALTER TABLE chat_room ADD COLUMN ephemeral_messages_lifetime DOUBLE NOT NULL DEFAULT 86400";
-		recreateConferenceEventView = true;
+		recreateConferenceEventView |= alterTable(
+		    session, checkMode, "ALTER TABLE chat_room ADD COLUMN ephemeral_enabled BOOLEAN NOT NULL DEFAULT 0");
+		recreateConferenceEventView |=
+		    alterTable(session, checkMode,
+		               "ALTER TABLE chat_room ADD COLUMN ephemeral_messages_lifetime DOUBLE NOT NULL DEFAULT 86400");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 13)) {
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN call_id VARCHAR(255) DEFAULT ''";
-		recreateConferenceEventView = true;
+		recreateConferenceEventView |= alterTable(
+		    session, checkMode, "ALTER TABLE conference_chat_message_event ADD COLUMN call_id VARCHAR(255) DEFAULT ''");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 14)) {
-		*session
-		    << "ALTER TABLE chat_message_content ADD COLUMN body_encoding_type TINYINT NOT NULL DEFAULT 0"; // Older
-		                                                                                                    // table
-		                                                                                                    // contains
-		                                                                                                    // Local
-		                                                                                                    // encoding.
+		alterTable(
+		    session, checkMode,
+		    "ALTER TABLE chat_message_content ADD COLUMN body_encoding_type TINYINT NOT NULL DEFAULT 0"); // Older
+		                                                                                                  // table
+		                                                                                                  // contains
+		                                                                                                  // Local
+		                                                                                                  // encoding.
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 15)) {
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN reply_message_id VARCHAR(255) DEFAULT ''";
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN reply_sender_address_id " +
-		                dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " DEFAULT 0";
-		recreateConferenceEventView = true;
+		recreateConferenceEventView |=
+		    alterTable(session, checkMode,
+		               "ALTER TABLE conference_chat_message_event ADD COLUMN reply_message_id VARCHAR(255) DEFAULT ''");
+		recreateConferenceEventView |=
+		    alterTable(session, checkMode,
+		               "ALTER TABLE conference_chat_message_event ADD COLUMN reply_sender_address_id " +
+		                   dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " DEFAULT 0");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 16)) {
-		*session << "ALTER TABLE chat_message_file_content ADD COLUMN duration INT NOT NULL DEFAULT -1";
+		alterTable(session, checkMode,
+		           "ALTER TABLE chat_message_file_content ADD COLUMN duration INT NOT NULL DEFAULT -1");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 17)) {
-		*session << "ALTER TABLE sip_address ADD COLUMN display_name VARCHAR(255)";
+		alterTable(session, checkMode, "ALTER TABLE sip_address ADD COLUMN display_name VARCHAR(255)");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 18)) {
@@ -3004,34 +3874,30 @@ void MainDbPrivate::updateSchema() {
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 19)) {
-		*session << "ALTER TABLE conference_info ADD COLUMN state TINYINT UNSIGNED NOT NULL DEFAULT 0";
-		*session << "ALTER TABLE conference_info ADD COLUMN ics_sequence INT UNSIGNED DEFAULT 0";
-		*session << "ALTER TABLE conference_info ADD COLUMN ics_uid VARCHAR(255) DEFAULT ''";
+		alterTable(session, checkMode,
+		           "ALTER TABLE conference_info ADD COLUMN state TINYINT UNSIGNED NOT NULL DEFAULT 0");
+		alterTable(session, checkMode, "ALTER TABLE conference_info ADD COLUMN ics_sequence INT UNSIGNED DEFAULT 0");
+		alterTable(session, checkMode, "ALTER TABLE conference_info ADD COLUMN ics_uid VARCHAR(255) DEFAULT ''");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 20)) {
-		*session << "ALTER TABLE conference_info_participant ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT 0";
-		*session << "ALTER TABLE conference_info_participant ADD COLUMN params VARCHAR(255) DEFAULT ''";
+		alterTable(session, checkMode,
+		           "ALTER TABLE conference_info_participant ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT 0");
+		alterTable(session, checkMode,
+		           "ALTER TABLE conference_info_participant ADD COLUMN params VARCHAR(255) DEFAULT ''");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 21)) {
-		*session << "ALTER TABLE chat_room_participant_device ADD COLUMN joining_method TINYINT UNSIGNED DEFAULT 0";
-		*session << "ALTER TABLE chat_room_participant_device ADD COLUMN joining_time" + dbSession.timestampType() +
-		                " DEFAULT " + dbSession.currentTimestamp();
+		alterTable(session, checkMode,
+		           "ALTER TABLE chat_room_participant_device ADD COLUMN joining_method TINYINT UNSIGNED DEFAULT 0");
+		alterTable(session, checkMode,
+		           "ALTER TABLE chat_room_participant_device ADD COLUMN joining_time" + dbSession.timestampType() +
+		               " DEFAULT " + dbSession.currentTimestamp());
 	}
 
-	try {
-		*session << "ALTER TABLE conference_info ADD COLUMN security_level INT UNSIGNED DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'security_level' already exists in table 'conference_info'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE conference_info ADD COLUMN security_level INT UNSIGNED DEFAULT 0");
 
-	try {
-		*session << "ALTER TABLE conference_info ADD COLUMN ccmp_uri VARCHAR(255) DEFAULT ''";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'ccmp_uri' already exists in table 'conference_info'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE conference_info ADD COLUMN ccmp_uri VARCHAR(255) DEFAULT ''");
 
 	// Try to insert a participant device with a NULL joining time so that we can test if the 'joining_time' column is
 	// nullable across all database backends
@@ -3140,29 +4006,15 @@ void MainDbPrivate::updateSchema() {
 		}
 	}
 
-	try {
-		*session << "ALTER TABLE conference_info_participant_params RENAME COLUMN \"key\" TO name";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'key' does not exists in table 'conference_info_participant_params' therefore it cannot "
-		            "be renames as 'name'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE conference_info_participant_params RENAME COLUMN \"key\" TO name");
 	// Sanity check
 	*session << "SELECT name FROM conference_info_participant_params";
 
-	try {
-		*session << "ALTER TABLE conference_info_participant ADD COLUMN is_participant BOOLEAN NOT NULL DEFAULT 1";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'is_participant' already exists in table 'conference_info_participant'";
-	}
+	alterTable(session, checkMode,
+	           "ALTER TABLE conference_info_participant ADD COLUMN is_participant BOOLEAN NOT NULL DEFAULT 1");
 
-	try {
-		*session << "ALTER TABLE conference_info_participant ADD COLUMN ccmp_uri VARCHAR(255) DEFAULT ''";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'ccmp_uri' already exists in table 'conference_info_participant'";
-	}
+	alterTable(session, checkMode,
+	           "ALTER TABLE conference_info_participant ADD COLUMN ccmp_uri VARCHAR(255) DEFAULT ''");
 
 	if (backend == MainDb::Backend::Sqlite3) {
 		*session << "DELETE FROM conference_info_participant WHERE id IN (SELECT id FROM conference_info_participant "
@@ -3173,28 +4025,16 @@ void MainDbPrivate::updateSchema() {
 		            "= p2.participant_sip_address_id";
 	}
 
-	try {
-		*session << "ALTER TABLE chat_room ADD COLUMN muted BOOLEAN NOT NULL DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'muted' already exists in table 'chat_room'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE chat_room ADD COLUMN muted BOOLEAN NOT NULL DEFAULT 0");
+
+	alterTable(session, checkMode, "ALTER TABLE friends_list ADD COLUMN type INT NOT NULL DEFAULT -1");
+
+	recreateConferenceEventView |= alterTable(
+	    session, checkMode, "ALTER TABLE conference_chat_message_event ADD COLUMN message_id VARCHAR(255) DEFAULT ''");
 
 	try {
-		*session << "ALTER TABLE friends_list ADD COLUMN type INT NOT NULL DEFAULT -1";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'type' already exists in table 'friends_list'";
-	}
-
-	try {
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN message_id VARCHAR(255) DEFAULT ''";
-		recreateConferenceEventView = true;
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'message_id' already exists in table 'conference_chat_message_event'";
-	}
-
-	try {
-		*session << "ALTER TABLE conference_info_participant ADD COLUMN is_organizer BOOLEAN NOT NULL DEFAULT 0";
+		alterTable(session, checkMode,
+		           "ALTER TABLE conference_info_participant ADD COLUMN is_organizer BOOLEAN NOT NULL DEFAULT 0");
 		// We must recreate table conference_info_participant to change the UNIQUE constraint.
 		*session << "CREATE TABLE IF NOT EXISTS conference_info_participant_clone ("
 		            "  id" +
@@ -3255,121 +4095,58 @@ void MainDbPrivate::updateSchema() {
 		         << ": Column 'is_organizer' already exists in table 'conference_info_participant'";
 	}
 
-	try {
-		*session << "ALTER TABLE friends_list ADD COLUMN ctag VARCHAR(255) NOT NULL DEFAULT ''";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'ctag' already exists in table 'friends_list'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE friends_list ADD COLUMN ctag VARCHAR(255) NOT NULL DEFAULT ''");
 
-	try {
-		*session << "ALTER TABLE conference_info ADD COLUMN audio BOOLEAN NOT NULL DEFAULT 1";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'audio' already exists in table 'conference_info'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE conference_info ADD COLUMN audio BOOLEAN NOT NULL DEFAULT 1");
 
-	try {
-		*session << "ALTER TABLE conference_info ADD COLUMN video BOOLEAN NOT NULL DEFAULT 1";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'video' already exists in table 'conference_info'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE conference_info ADD COLUMN video BOOLEAN NOT NULL DEFAULT 1");
 
-	try {
-		*session << "ALTER TABLE conference_info ADD COLUMN chat BOOLEAN NOT NULL DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'chat' already exists in table 'conference_info'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE conference_info ADD COLUMN chat BOOLEAN NOT NULL DEFAULT 0");
 
-	try {
-		*session << "ALTER TABLE chat_room ADD COLUMN conference_info_id " +
-		                dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " NOT NULL DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'conference_info_id' already exists in table 'chat_room'";
-	}
+	alterTable(session, checkMode,
+	           "ALTER TABLE chat_room ADD COLUMN conference_info_id " + dbSession.primaryKeyRefStr("BIGINT UNSIGNED") +
+	               " NOT NULL DEFAULT 0");
 
-	try {
-		*session << "ALTER TABLE conference_info ADD COLUMN earlier_joining_time " + dbSession.timestampType() +
-		                " NULL DEFAULT NULL";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'earlier_joining_time' already exists in table 'conference_info'";
-	}
+	alterTable(session, checkMode,
+	           "ALTER TABLE conference_info ADD COLUMN earlier_joining_time " + dbSession.timestampType() +
+	               " NULL DEFAULT NULL");
 
-	try {
-		*session << "ALTER TABLE conference_info ADD COLUMN expiry_time " + dbSession.timestampType() +
-		                " NULL DEFAULT NULL";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'expiry_time' already exists in table 'conference_info'";
-	}
+	alterTable(session, checkMode,
+	           "ALTER TABLE conference_info ADD COLUMN expiry_time " + dbSession.timestampType() +
+	               " NULL DEFAULT NULL");
 
-	try {
-		*session << "ALTER TABLE friends_list ADD COLUMN readOnly BOOLEAN NOT NULL DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'readOnly' already exists in table 'friends_list'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE friends_list ADD COLUMN readOnly BOOLEAN NOT NULL DEFAULT 0");
 
-	try {
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN edited BOOLEAN NOT NULL DEFAULT 0";
-		recreateConferenceEventView = true;
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'edited' already exists in table 'conference_chat_message_event'";
-	}
+	recreateConferenceEventView |= alterTable(
+	    session, checkMode, "ALTER TABLE conference_chat_message_event ADD COLUMN edited BOOLEAN NOT NULL DEFAULT 0");
 
-	try {
-		*session << "ALTER TABLE conference_chat_message_event ADD COLUMN retracted BOOLEAN NOT NULL DEFAULT 0";
-		recreateConferenceEventView = true;
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'retracted' already exists in table 'conference_chat_message_event'";
-	}
+	recreateConferenceEventView |=
+	    alterTable(session, checkMode,
+	               "ALTER TABLE conference_chat_message_event ADD COLUMN retracted BOOLEAN NOT NULL DEFAULT 0");
 
-	try {
-		*session << "ALTER TABLE chat_room ADD COLUMN ephemeral_messages_not_read_lifetime DOUBLE NOT NULL DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'ephemeral_messages_not_read_lifetime' already exists in table 'chat_room'";
-	}
+	alterTable(session, checkMode,
+	           "ALTER TABLE chat_room ADD COLUMN ephemeral_messages_not_read_lifetime DOUBLE NOT NULL DEFAULT 0");
 
-	try {
-		*session
-		    << "ALTER TABLE conference_ephemeral_message_event ADD COLUMN not_read_lifetime DOUBLE NOT NULL DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'not_read_lifetime' already exists in table 'conference_ephemeral_message_event'";
-	}
+	alterTable(session, checkMode,
+	           "ALTER TABLE conference_ephemeral_message_event ADD COLUMN not_read_lifetime DOUBLE NOT NULL DEFAULT 0");
 
-	try {
-		*session << "ALTER TABLE chat_message_ephemeral_event ADD COLUMN ephemeral_not_read_lifetime DOUBLE NOT NULL "
-		            "DEFAULT 0";
-		recreateConferenceEventView = true;
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'ephemeral_not_read_lifetime' already exists in table 'chat_message_ephemeral_event'";
-	}
+	recreateConferenceEventView |=
+	    alterTable(session, checkMode,
+	               "ALTER TABLE chat_message_ephemeral_event ADD COLUMN ephemeral_not_read_lifetime DOUBLE NOT NULL "
+	               "DEFAULT 0");
 
 	// ephemeral_enabled is deprecated. Update ephemeral_messages_lifetime from the enable value to keep previous
 	// deactivation.
 	*session << "UPDATE chat_room SET ephemeral_messages_lifetime = 0, ephemeral_messages_not_read_lifetime=0 WHERE "
 	            "ephemeral_enabled = 0;";
 
-	try {
-		*session << "ALTER TABLE chat_room ADD COLUMN alternative_peer_address_id " +
-		                dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " NOT NULL DEFAULT 0";
-		recreateConferenceEventView = true;
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what()
-		         << ": Column 'alternative_peer_address_id' already exists in table 'chat_rooms'";
-	}
+	recreateConferenceEventView |=
+	    alterTable(session, checkMode,
+	               "ALTER TABLE chat_room ADD COLUMN alternative_peer_address_id " +
+	                   dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " NOT NULL DEFAULT 0");
+	alterTable(session, checkMode, "ALTER TABLE chat_room ADD COLUMN to_migrate BOOLEAN NOT NULL DEFAULT 0");
 
-	try {
-		*session << "ALTER TABLE chat_room ADD COLUMN to_migrate BOOLEAN NOT NULL DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'to_migrate' already exists in table 'chat_room'";
-	}
-
-	if (recreateConferenceEventView) {
+	if (recreateConferenceEventView && !checkMode) {
 		*session << "DROP VIEW IF EXISTS conference_event_view";
 		*session << "CREATE VIEW conference_event_view AS"
 		            "  SELECT id, type, creation_time, chat_room_id, from_sip_address_id, to_sip_address_id, time, "
@@ -3396,11 +4173,7 @@ void MainDbPrivate::updateSchema() {
 		            "event.id";
 	}
 
-	try {
-		*session << "ALTER TABLE chat_room ADD COLUMN to_migrate BOOLEAN NOT NULL DEFAULT 0";
-	} catch (const soci::soci_error &e) {
-		lDebug() << "Caught exception " << e.what() << ": Column 'to_migrate' already exists in table 'chat_room'";
-	}
+	alterTable(session, checkMode, "ALTER TABLE chat_room ADD COLUMN to_migrate BOOLEAN NOT NULL DEFAULT 0");
 
 	// /!\ Warning : if varchar columns < 255 were to be indexed, their size must be set back to 191 = max indexable
 	// (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in column creation)
@@ -3821,811 +4594,35 @@ bool MainDbPrivate::importLegacyCallLogs(DbSession &inDbSession) {
 MainDb::MainDb(const shared_ptr<Core> &core) : AbstractDb(*new MainDbPrivate), CoreAccessor(core) {
 }
 
-void MainDb::init() {
+int MainDb::init(bool checkMode) {
 #ifdef HAVE_DB_STORAGE
 	L_D();
-
-	Backend backend = getBackend();
-	const string charset = backend == Mysql ? "DEFAULT CHARSET=utf8mb4" : "";
 	soci::session *session = d->dbSession.getBackendSession();
-
-	using namespace placeholders;
-	auto primaryKeyRefStr = bind(&DbSession::primaryKeyRefStr, &d->dbSession, _1);
-	auto primaryKeyStr = bind(&DbSession::primaryKeyStr, &d->dbSession, _1);
-	auto timestampType = bind(&DbSession::timestampType, &d->dbSession);
-	auto varcharPrimaryKeyStr = bind(&DbSession::varcharPrimaryKeyStr, &d->dbSession, _1);
-
 	session->begin();
 
 	try {
-		/* Enable secure delete - so that erased chat messages are really erased and not just marked as unused.
-		 * See https://sqlite.org/pragma.html#pragma_secure_delete
-		 * This setting is global for the database.
-		 * It is enabled only for sqlite3 backend, which is the one used for liblinphone clients.
-		 * The mysql backend (used server-side) doesn't support this PRAGMA.
-		 */
-		if (backend == Sqlite3) *session << string("PRAGMA secure_delete = ON");
-
-		// Charset set to ascii for mysql/mariadb to allow creation of indexed collumns of size > 191. We assume
-		// that for the given fields ascii will not cause any display issue.
-
-		// 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4
-
-		*session << "CREATE TABLE IF NOT EXISTS sip_address ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-		                "  value VARCHAR(255) UNIQUE NOT NULL"
-		                ") " +
-		                (backend == Mysql ? "DEFAULT CHARSET=ascii" : "");
-
-		*session << "CREATE TABLE IF NOT EXISTS content_type ("
-		            "  id" +
-		                primaryKeyStr("SMALLINT UNSIGNED") +
-		                ","
-		                "  value VARCHAR(255) UNIQUE NOT NULL"
-		                ") " +
-		                (backend == Mysql ? "DEFAULT CHARSET=ascii" : "");
-
-		*session << "CREATE TABLE IF NOT EXISTS event ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-		                "  type TINYINT UNSIGNED NOT NULL,"
-		                "  creation_time" +
-		                timestampType() +
-		                " NOT NULL"
-		                ") " +
-		                charset;
-
-		*session
-		    << "CREATE TABLE IF NOT EXISTS chat_room ("
-		       "  id" +
-		           primaryKeyStr("BIGINT UNSIGNED") +
-		           ","
-
-		           // Server (for conference) or user sip address.
-		           "  peer_sip_address_id" +
-		           primaryKeyRefStr("BIGINT UNSIGNED") +
-		           " NOT NULL,"
-
-		           "  local_sip_address_id" +
-		           primaryKeyRefStr("BIGINT UNSIGNED") +
-		           " NOT NULL,"
-
-		           // Dialog creation time.
-		           "  creation_time" +
-		           timestampType() +
-		           " NOT NULL,"
-
-		           // Last event time (call, message...).
-		           "  last_update_time" +
-		           timestampType() +
-		           " NOT NULL,"
-
-		           // ConferenceChatRoom, BasicChatRoom, RTT...
-		           "  capabilities TINYINT UNSIGNED NOT NULL,"
-
-		           // Chatroom subject.
-		           // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
-		           // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
-		           "  subject VARCHAR(255),"
-
-		           "  last_notify_id INT UNSIGNED DEFAULT 0,"
-
-		           "  flags INT UNSIGNED DEFAULT 0,"
-
-		           "  UNIQUE (peer_sip_address_id, local_sip_address_id),"
-
-		           "  FOREIGN KEY (peer_sip_address_id)"
-		           "    REFERENCES sip_address(id)"
-		           "    ON DELETE CASCADE,"
-		           "  FOREIGN KEY (local_sip_address_id)"
-		           "    REFERENCES sip_address(id)"
-		           "    ON DELETE CASCADE"
-		           ") " +
-		           charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS one_to_one_chat_room ("
-		            "  chat_room_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  participant_a_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  participant_b_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  FOREIGN KEY (chat_room_id)"
-		                "    REFERENCES chat_room(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (participant_a_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (participant_b_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS chat_room_participant ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  chat_room_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-		                "  participant_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  is_admin BOOLEAN NOT NULL,"
-
-		                "  UNIQUE (chat_room_id, participant_sip_address_id),"
-
-		                "  FOREIGN KEY (chat_room_id)"
-		                "    REFERENCES chat_room(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (participant_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS chat_room_participant_device ("
-		            "  chat_room_participant_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-		                "  participant_device_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  PRIMARY KEY (chat_room_participant_id, participant_device_sip_address_id),"
-
-		                "  FOREIGN KEY (chat_room_participant_id)"
-		                "    REFERENCES chat_room_participant(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (participant_device_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_event ("
-		            "  event_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  chat_room_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES event(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (chat_room_id)"
-		                "    REFERENCES chat_room(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_notified_event ("
-		            "  event_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  notify_id INT UNSIGNED NOT NULL,"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_event(event_id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_participant_event ("
-		            "  event_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  participant_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_notified_event(event_id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (participant_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_alternative_conference_address_event ("
-		            "  event_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                " alternative_conference_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_notified_event(event_id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (alternative_conference_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_participant_device_event ("
-		            "  event_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  device_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_participant_event(event_id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (device_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session
-		    << "CREATE TABLE IF NOT EXISTS conference_security_event ("
-		       "  event_id" +
-		           primaryKeyStr("BIGINT UNSIGNED") +
-		           ","
-
-		           "  security_alert TINYINT UNSIGNED NOT NULL,"
-		           // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
-		           // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
-		           "  faulty_device VARCHAR(255) NOT NULL,"
-
-		           "  FOREIGN KEY (event_id)"
-		           "    REFERENCES conference_event(event_id)"
-		           "    ON DELETE CASCADE"
-		           ") " +
-		           charset;
-
-		*session
-		    << "CREATE TABLE IF NOT EXISTS conference_subject_event ("
-		       "  event_id" +
-		           primaryKeyStr("BIGINT UNSIGNED") +
-		           ","
-
-		           // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
-		           // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
-		           "  subject VARCHAR(255) NOT NULL,"
-
-		           "  FOREIGN KEY (event_id)"
-		           "    REFERENCES conference_notified_event(event_id)"
-		           "    ON DELETE CASCADE"
-		           ") " +
-		           charset;
-
-		*session
-		    << "CREATE TABLE IF NOT EXISTS conference_chat_message_event ("
-		       "  event_id" +
-		           primaryKeyStr("BIGINT UNSIGNED") +
-		           ","
-
-		           "  from_sip_address_id" +
-		           primaryKeyRefStr("BIGINT UNSIGNED") +
-		           " NOT NULL,"
-		           "  to_sip_address_id" +
-		           primaryKeyRefStr("BIGINT UNSIGNED") +
-		           " NOT NULL,"
-
-		           "  time" +
-		           timestampType() +
-		           " ,"
-
-		           // See: https://tools.ietf.org/html/rfc5438#section-6.3
-		           // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
-		           // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
-		           "  imdn_message_id VARCHAR(255) NOT NULL,"
-
-		           "  state TINYINT UNSIGNED NOT NULL,"
-		           "  direction TINYINT UNSIGNED NOT NULL,"
-		           "  is_secured BOOLEAN NOT NULL,"
-
-		           "  FOREIGN KEY (event_id)"
-		           "    REFERENCES conference_event(event_id)"
-		           "    ON DELETE CASCADE,"
-		           "  FOREIGN KEY (from_sip_address_id)"
-		           "    REFERENCES sip_address(id)"
-		           "    ON DELETE CASCADE,"
-		           "  FOREIGN KEY (to_sip_address_id)"
-		           "    REFERENCES sip_address(id)"
-		           "    ON DELETE CASCADE"
-		           ") " +
-		           charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS chat_message_participant ("
-		            "  event_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-		                "  participant_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-		                "  state TINYINT UNSIGNED NOT NULL,"
-
-		                "  PRIMARY KEY (event_id, participant_sip_address_id),"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_chat_message_event(event_id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (participant_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS chat_message_content ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  event_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  content_type_id" +
-		                primaryKeyRefStr("SMALLINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  body TEXT NOT NULL,"
-
-		                "  UNIQUE (id, event_id),"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_chat_message_event(event_id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (content_type_id)"
-		                "    REFERENCES content_type(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session
-		    << "CREATE TABLE IF NOT EXISTS chat_message_file_content ("
-		       "  chat_message_content_id" +
-		           primaryKeyStr("BIGINT UNSIGNED") +
-		           ","
-
-		           // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
-		           // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
-		           "  name VARCHAR(256) NOT NULL,"
-		           "  size INT UNSIGNED NOT NULL,"
-
-		           // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
-		           // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
-		           "  path VARCHAR(512) NOT NULL,"
-
-		           "  FOREIGN KEY (chat_message_content_id)"
-		           "    REFERENCES chat_message_content(id)"
-		           "    ON DELETE CASCADE"
-		           ") " +
-		           charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS chat_message_content_app_data ("
-		            "  chat_message_content_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  name VARCHAR(191)," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7
-		                                       // with charset utf8mb4
-		                "  data BLOB NOT NULL,"
-
-		                "  PRIMARY KEY (chat_message_content_id, name),"
-		                "  FOREIGN KEY (chat_message_content_id)"
-		                "    REFERENCES chat_message_content(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_message_crypto_data ("
-		            "  event_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  name VARCHAR(191)," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7
-		                                       // with charset utf8mb4
-		                "  data BLOB NOT NULL,"
-
-		                "  PRIMARY KEY (event_id, name),"
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_chat_message_event(event_id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS friends_list ("
-		            "  id" +
-		                primaryKeyStr("INT UNSIGNED") +
-		                ","
-
-		                "  name VARCHAR(191) UNIQUE," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql
-		                                              // < 5.7 with charset utf8mb4
-
-		                // /!\ Warning : if varchar columns > 255 are indexed, their size must be set back to 191 =
-		                // max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both
-		                // here and in migrations)
-		                "  rls_uri VARCHAR(2047),"
-		                "  sync_uri VARCHAR(2047),"
-		                "  revision INT UNSIGNED NOT NULL"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS friend ("
-		            "  id" +
-		                primaryKeyStr("INT UNSIGNED") +
-		                ","
-
-		                "  sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  friends_list_id" +
-		                primaryKeyRefStr("INT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  subscribe_policy TINYINT UNSIGNED NOT NULL,"
-		                "  send_subscribe BOOLEAN NOT NULL,"
-		                "  presence_received BOOLEAN NOT NULL,"
-
-		                "  v_card MEDIUMTEXT,"
-
-		                // /!\ Warning : if these varchar columns are indexed, their size must be set back to 191 =
-		                // max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both
-		                // here and in migrations)
-		                "  v_card_etag VARCHAR(255),"
-		                "  v_card_sync_uri VARCHAR(2047),"
-
-		                "  FOREIGN KEY (sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (friends_list_id)"
-		                "    REFERENCES friends_list(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS friend_app_data ("
-		            "  friend_id" +
-		                primaryKeyRefStr("INT UNSIGNED") +
-		                ","
-
-		                "  name VARCHAR(191)," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7
-		                                       // with charset utf8mb4
-		                "  data BLOB NOT NULL,"
-
-		                "  PRIMARY KEY (friend_id, name),"
-		                "  FOREIGN KEY (friend_id)"
-		                "    REFERENCES friend(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS db_module_version ("
-		            "  name" +
-		                varcharPrimaryKeyStr(191) +
-		                "," // 191 = max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4
-		                "  version INT UNSIGNED NOT NULL"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS chat_message_ephemeral_event ("
-		            "  event_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-		                "  ephemeral_lifetime DOUBLE NOT NULL,"
-		                "  expired_time" +
-		                timestampType() +
-		                " NOT NULL,"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_event(event_id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_ephemeral_message_event ("
-		            "  event_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  lifetime DOUBLE NOT NULL,"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES conference_event(event_id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS one_to_one_chat_room_previous_conference_id ("
-		            "  id" +
-		                primaryKeyStr("INT UNSIGNED") +
-		                ","
-
-		                "  sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  chat_room_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  FOREIGN KEY (sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (chat_room_id)"
-		                "    REFERENCES chat_room(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS expired_conferences ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  uri_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_info ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  organizer_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  uri_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  start_time" +
-		                timestampType() +
-		                ","
-		                "  duration INT UNSIGNED,"
-
-		                // /!\ Warning : if these varchar columns are indexed, their size must be set back to 191 =
-		                // max indexable (KEY or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both
-		                // here and in migrations)
-		                "  subject VARCHAR(256) NOT NULL,"
-		                "  description VARCHAR(2048),"
-
-		                "  FOREIGN KEY (organizer_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (uri_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_info_participant ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  conference_info_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  participant_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  UNIQUE (conference_info_id, participant_sip_address_id),"
-
-		                "  FOREIGN KEY (conference_info_id)"
-		                "    REFERENCES conference_info(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (participant_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_info_organizer ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  conference_info_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  organizer_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  params VARCHAR(2048) DEFAULT '',"
-
-		                "  UNIQUE (conference_info_id, organizer_sip_address_id),"
-
-		                "  FOREIGN KEY (conference_info_id)"
-		                "    REFERENCES conference_info(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (organizer_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_info_participant_params ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  conference_info_participant_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  name VARCHAR(191) NOT NULL DEFAULT '',"
-		                "  value VARCHAR(191) DEFAULT '',"
-
-		                "  UNIQUE (conference_info_participant_id, name),"
-
-		                "  FOREIGN KEY (conference_info_participant_id)"
-		                "    REFERENCES conference_info_participant(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_call ("
-		            "  id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  from_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  to_sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  direction TINYINT UNSIGNED NOT NULL,"
-		                "  duration INT UNSIGNED,"
-		                "  start_time" +
-		                timestampType() +
-		                " NOT NULL,"
-		                "  connected_time" +
-		                timestampType() +
-		                ","
-		                "  status TINYINT UNSIGNED NOT NULL,"
-		                "  video_enabled BOOLEAN NOT NULL,"
-		                "  quality DOUBLE,"
-		                "  call_id VARCHAR(64),"
-		                "  refkey VARCHAR(64),"
-		                "  conference_info_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  FOREIGN KEY (from_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (to_sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (conference_info_id)"
-		                "    REFERENCES conference_info(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS conference_call_event ("
-		            "  event_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  conference_call_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  FOREIGN KEY (event_id)"
-		                "    REFERENCES event(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (conference_call_id)"
-		                "    REFERENCES conference_call(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
-
-		*session << "DROP VIEW IF EXISTS conference_call_event_view";
-		*session << "CREATE VIEW conference_call_event_view AS"
-		            "  SELECT event.id, type, creation_time, conference_call_id, from_sip_address_id, "
-		            "to_sip_address_id, direction, conference_call.duration AS call_duration,"
-		            "    conference_call.start_time AS call_start_time, connected_time, status, video_enabled, "
-		            "quality, call_id, refkey, conference_info_id,"
-		            "    organizer_sip_address_id, uri_sip_address_id, conference_info.start_time AS conf_start_time, "
-		            "conference_info.duration AS conf_duration,"
-		            "    subject, description"
-		            "  FROM event"
-		            "  LEFT JOIN conference_call_event ON conference_call_event.event_id = event.id"
-		            "  LEFT JOIN conference_call ON conference_call.id = conference_call_event.conference_call_id"
-		            "  LEFT JOIN conference_info ON conference_info.id = conference_call.conference_info_id";
-
-		*session
-		    << "CREATE TABLE IF NOT EXISTS conference_chat_message_reaction_event ("
-		       "  event_id" +
-		           primaryKeyStr("BIGINT UNSIGNED") +
-		           ","
-
-		           "  from_sip_address_id" +
-		           primaryKeyRefStr("BIGINT UNSIGNED") +
-		           " NOT NULL,"
-		           "  to_sip_address_id" +
-		           primaryKeyRefStr("BIGINT UNSIGNED") +
-		           " NOT NULL,"
-
-		           "  time" +
-		           timestampType() +
-		           " ,"
-		           "  body TEXT NOT NULL,"
-
-		           // See: https://tools.ietf.org/html/rfc5438#section-6.3
-		           // /!\ Warning : if this column is indexed, its size must be set back to 191 = max indexable (KEY
-		           // or UNIQUE) varchar size for mysql < 5.7 with charset utf8mb4 (both here and in migrations)
-		           "  imdn_message_id VARCHAR(255) NOT NULL,"
-		           "  call_id VARCHAR(255) NOT NULL,"
-		           "  reaction_to_message_id VARCHAR(191) NOT NULL,"
-
-		           // One reaction maximum per user for a given message
-		           "  UNIQUE (from_sip_address_id, reaction_to_message_id),"
-
-		           "  FOREIGN KEY (from_sip_address_id)"
-		           "    REFERENCES sip_address(id)"
-		           "    ON DELETE CASCADE,"
-		           "  FOREIGN KEY (to_sip_address_id)"
-		           "    REFERENCES sip_address(id)"
-		           "    ON DELETE CASCADE"
-		           ") " +
-		           charset;
-
-		*session << "CREATE TABLE IF NOT EXISTS friend_devices ("
-		            "  device_id" +
-		                primaryKeyStr("BIGINT UNSIGNED") +
-		                ","
-
-		                "  sip_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-		                "  device_address_id" +
-		                primaryKeyRefStr("BIGINT UNSIGNED") +
-		                " NOT NULL,"
-
-		                "  display_name TEXT NOT NULL," +
-
-		                "  UNIQUE (sip_address_id, device_address_id),"
-
-		                "  FOREIGN KEY (sip_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE,"
-		                "  FOREIGN KEY (device_address_id)"
-		                "    REFERENCES sip_address(id)"
-		                "    ON DELETE CASCADE"
-		                ") " +
-		                charset;
+		d->init(checkMode);
 	} catch (const soci::soci_error &e) {
-		lError() << "Exception while creating the database's schema : " << e.what();
-		session->rollback();
-		// Throw exception so that it can be catched by the calling function
-		throw e;
-		return;
+		if (checkMode) {
+			lInfo() << "Exception while initializing the database's schema in check mode: " << e.what();
+			session->rollback();
+			return -1;
+		} else {
+			lError() << "Exception while checkMode the database's schema : " << e.what();
+			session->rollback();
+			// Throw exception so that it can be caught by the calling function
+			throw e;
+		}
 	}
-	session->commit();
+	if (checkMode) session->rollback();
+	else session->commit();
 #endif
+	return 0;
 }
 
-void MainDb::updateSchema() {
+int MainDb::updateSchema(bool checkMode) {
 #ifdef HAVE_DB_STORAGE
 	L_D();
-
 	soci::session *session = d->dbSession.getBackendSession();
 
 	initCleanup();
@@ -4633,23 +4630,30 @@ void MainDb::updateSchema() {
 	session->begin();
 
 	try {
-		d->updateSchema();
+		d->updateSchema(checkMode);
 
 		migrateConferenceInfos();
 
 		d->updateModuleVersion("events", ModuleVersionEvents);
 		d->updateModuleVersion("friends", ModuleVersionFriends);
 	} catch (const soci::soci_error &e) {
-		lError() << "Exception while updating the database's schema : " << e.what();
-		session->rollback();
-		// Throw exception so that it can be catched by the calling function
-		throw e;
-		return;
+		if (checkMode) {
+			lInfo() << "Exception while updating the database's schema in check mode: " << e.what();
+			session->rollback();
+			return -1;
+		} else {
+			lError() << "Exception while updating the database's schema : " << e.what();
+			session->rollback();
+			// Throw exception so that it can be caught by the calling function
+			throw e;
+		}
 	}
-	session->commit();
+	if (checkMode) session->rollback();
+	else session->commit();
 
 	initCleanup();
 #endif
+	return 0;
 }
 
 unsigned int MainDb::getModuleVersion(const std::string &name) {

@@ -60,7 +60,10 @@ public:
 		}
 	};
 	CorePrivate();
-	void init();
+	// Return -1 if it couldn't initialize else 0.
+	int init();
+	// Return -1 if upgrade is needed, 1 if no database is requested, 0 if ok.
+	int openDatabase(bool checkUpgrade);
 	void uninit();
 	void shutdown();
 	void unregisterAccounts();

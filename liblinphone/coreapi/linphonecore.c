@@ -2771,7 +2771,7 @@ static void linphone_core_free_payload_types(LinphoneCore *lc) {
 static FsmIntegrityChecker<LinphoneGlobalState> coreFsmChecker{
     {{LinphoneGlobalOff, {LinphoneGlobalReady}},
      {LinphoneGlobalReady, {LinphoneGlobalStartup, LinphoneGlobalShutdown}},
-     {LinphoneGlobalStartup, {LinphoneGlobalConfiguring, LinphoneGlobalOn}},
+     {LinphoneGlobalStartup, {LinphoneGlobalConfiguring, LinphoneGlobalOn, LinphoneGlobalReady}},
      {LinphoneGlobalConfiguring, {LinphoneGlobalOn, LinphoneGlobalShutdown}},
      {LinphoneGlobalOn, {LinphoneGlobalShutdown}},
      {LinphoneGlobalShutdown, {LinphoneGlobalOff}}}};
@@ -3755,8 +3755,12 @@ LinphoneStatus linphone_core_start(LinphoneCore *lc) {
 		}
 
 		linphone_core_set_state(lc, LinphoneGlobalStartup, "Starting up");
+		if (L_GET_PRIVATE_FROM_C_OBJECT(lc)->init() == -1) {
+			// Restore previous state before Startup. From coreFsmChecker, it should only be Ready.
+			linphone_core_set_state(lc, LinphoneGlobalReady, "Ready");
+			return -1;
+		}
 
-		L_GET_PRIVATE_FROM_C_OBJECT(lc)->init();
 		linphone_core_before_start_apply_settings(lc);
 
 		bool autoNetworkStateMonitoringEnabled = !!lc->auto_net_state_mon;
@@ -10139,13 +10143,31 @@ void linphone_core_enable_account_strict_matching(LinphoneCore *core, bool_t ena
 	linphone_config_set_bool(linphone_core_get_config(core), "sip", "account_strict_matching", enable);
 }
 
-void linphone_core_upgrade_database(LinphoneCore *core) {
-	if (auto db = L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDatabase()) {
-		db.value().get().init();
-		db.value().get().updateSchema();
+void linphone_core_upgrade_database(LinphoneCore *lc) {
+	auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
+	auto db = core->getDatabase();
+	if (!db) { // Not running: Open database.
+		core->openDatabase(false);
+		db = core->getDatabase();
+	}
+	if (db) {
+		if (db.value().get().init(false) != 0 || db.value().get().updateSchema(false) != 0)
+			ms_error("Cannot upgrade database");
+		else ms_message("Database has been upgraded");
 	} else {
-		ms_error("Trying to upgrade database before linphone_core_start() has been called, it has not been initialized "
-		         "yet.");
+		ms_error("Cannot open database for upgrade");
+	}
+}
+
+bool_t linphone_core_need_upgrade_database(LinphoneCore *lc) {
+	auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
+	auto db = core->getDatabase();
+	if (!db) { // not running: try to open and check upgrade at the same time.
+		int status = core->openDatabase(true);
+		core->uninitDatabase(); // Reset state
+		return status == -1;
+	} else {
+		return db.value().get().needUpgrade();
 	}
 }
 

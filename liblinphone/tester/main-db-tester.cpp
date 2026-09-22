@@ -54,7 +54,8 @@ public:
 	               bool_t keep_gruu = TRUE,
 	               bool_t unify_chatroom_address = FALSE,
 	               bool_t is_conference_server = FALSE,
-	               bool_t update_db_at_initialisation = TRUE) {
+	               bool_t update_db_at_initialisation = TRUE,
+	               bool_t start_core = TRUE) {
 		mCoreManager = linphone_core_manager_create("empty_rc");
 		char *roDbPath = bc_tester_res(db_file);
 		char *rwDbPath = bc_tester_file(core_db);
@@ -76,11 +77,13 @@ public:
 		linphone_core_enable_conference_server(mCoreManager->lc, is_conference_server);
 		bc_free(roDbPath);
 		bc_free(rwDbPath);
-		linphone_core_manager_start(mCoreManager, false);
-		auto &mainDb = getMainDb();
-		BC_ASSERT_TRUE(mainDb.isInitialized());
-		if (!is_conference_server) {
-			BC_ASSERT_EQUAL(mainDb.findChatMessagesToBeNotifiedAsDelivered().size(), 0, size_t, "%zu");
+		if (start_core) {
+			linphone_core_manager_start(mCoreManager, false);
+			auto &mainDb = getMainDb();
+			BC_ASSERT_TRUE(mainDb.isInitialized());
+			if (!is_conference_server) {
+				BC_ASSERT_EQUAL(mainDb.findChatMessagesToBeNotifiedAsDelivered().size(), 0, size_t, "%zu");
+			}
 		}
 	}
 
@@ -722,13 +725,28 @@ static void load_database_without_updating_and_update_manually() {
 		// "update.db" should be at 1.0.8.
 		unsigned int eventsVersion = mainDb.getModuleVersion("events");
 		BC_ASSERT_LOWER_STRICT(eventsVersion, upgradedEventsVersion, unsigned int, "%u");
+		BC_ASSERT_TRUE(linphone_core_need_upgrade_database(provider.getCoreManager()->lc));
+		// Core should not start if database need upgrade
+		BC_ASSERT_EQUAL(linphone_core_get_global_state(provider.getCoreManager()->lc), LinphoneGlobalReady, int, "%i");
 
 		// Call the corresponding core function instead of directly the mainDb
 		linphone_core_upgrade_database(provider.getCoreManager()->lc);
 
 		eventsVersion = mainDb.getModuleVersion("events");
 		BC_ASSERT_GREATER(eventsVersion, upgradedEventsVersion, unsigned int, "%u");
+		BC_ASSERT_FALSE(linphone_core_need_upgrade_database(provider.getCoreManager()->lc));
 	}
+}
+
+static void upgrade_database_on_unstarted_core(void) {
+	MainDbProvider provider("db/missing_columns.db", TRUE, FALSE, FALSE, FALSE, FALSE);
+	// Check database when the core didn't do anything and has not been started.
+	BC_ASSERT_TRUE(linphone_core_need_upgrade_database(provider.getCoreManager()->lc));
+	BC_ASSERT_TRUE(linphone_core_need_upgrade_database(
+	    provider.getCoreManager()->lc)); // check twice to ensure that needUpgrade do nothing else than checking.
+	// Make the migration
+	linphone_core_upgrade_database(provider.getCoreManager()->lc);
+	BC_ASSERT_FALSE(linphone_core_need_upgrade_database(provider.getCoreManager()->lc));
 }
 
 static test_t main_db_tests[] = {
@@ -752,7 +770,9 @@ static test_t main_db_tests[] = {
     TEST_NO_TAG("Search messages in chatroom", search_messages_in_chat_room),
     TEST_NO_TAG("Address cache and threads", address_cache_and_threads),
     TEST_NO_TAG("Load database without updating schema and update manually",
-                load_database_without_updating_and_update_manually)};
+                load_database_without_updating_and_update_manually),
+    TEST_NO_TAG("Upgrade database on unstarted core", upgrade_database_on_unstarted_core),
+};
 
 test_suite_t main_db_test_suite = {
     "MainDb",

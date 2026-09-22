@@ -8488,10 +8488,20 @@ LINPHONE_PUBLIC void linphone_core_set_ekt_plugin_loaded(LinphoneCore *core, boo
 
 /**
  * Upgrade the database manually to the latest schema.
+ * It can be done before starting the core.
+ *
  * @param core the #LinphoneCore
  * @ingroup group_misc
  */
 LINPHONE_PUBLIC void linphone_core_upgrade_database(LinphoneCore *core);
+
+/* Check database if an upgrade is needed.
+ * It can be done before starting the core.
+ *
+ * @return TRUE if database has missing tables/columns and needs to be upgraded.
+ * @ingroup group_misc
+ */
+LINPHONE_PUBLIC bool_t linphone_core_need_upgrade_database(LinphoneCore *core);
 
 /**
  * Start the HID devices detection.

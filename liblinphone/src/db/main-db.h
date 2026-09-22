@@ -330,8 +330,8 @@ public:
 	// ---------------------------------------------------------------------------
 
 	unsigned int getModuleVersion(const std::string &name);
-	void init() override;
-	void updateSchema() override;
+	int init(bool checkMode) override;
+	int updateSchema(bool checkMode) override;
 
 	// ---------------------------------------------------------------------------
 	// Other.

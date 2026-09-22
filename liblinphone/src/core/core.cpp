@@ -136,13 +136,71 @@ const std::string Core::limeSpec("lime");
 
 typedef void (*init_func_t)(LinphoneCore *core);
 
-void CorePrivate::init() {
+int CorePrivate::openDatabase(bool checkUpgrade) {
+	L_Q();
+	LinphoneCore *lc = L_GET_C_BACK_PTR(q);
+	mainDb.reset(new MainDb(q->getSharedFromThis()));
+
+	AbstractDb::Backend backend;
+	string uri = L_C_TO_STRING(linphone_config_get_string(linphone_core_get_config(lc), "storage", "uri", nullptr));
+	if (!uri.empty())
+		if (strcmp(linphone_config_get_string(linphone_core_get_config(lc), "storage", "backend", "sqlite3"),
+		           "mysql") == 0) {
+			backend = MainDb::Mysql;
+		} else {
+			backend = MainDb::Sqlite3;
+			if (uri != "null") uri = Utils::quoteStringIfNotAlready(uri);
+		}
+	else {
+		backend = AbstractDb::Sqlite3;
+		string dbPath = Utils::quoteStringIfNotAlready(q->getDataPath() + "/" + LINPHONE_DB);
+		lInfo() << "Using [" << dbPath << "] as default database path";
+		uri = dbPath;
+	}
+
+	if (uri != "null") {
+		// special uri "null" means don't open database. We need this for tests.
+
+		if (backend == MainDb::Mysql && uri.find("charset=") == string::npos) {
+			lInfo() << "No charset defined forcing utf8 4 bytes specially for conference subjet storage";
+			uri += " charset=utf8mb4";
+		}
+		if (backend == MainDb::Sqlite3 &&
+		    linphone_config_get_int(linphone_core_get_config(lc), "misc", "sqlite3_synchronous", 1) == 0) {
+			lInfo() << "Setting sqlite3 synchronous mode to OFF.";
+			uri += " synchronous=OFF";
+		}
+		bool updateDbAtStartup = !!linphone_core_update_db_at_startup_enabled(lc);
+		lInfo() << "Opening linphone database " << uri << " with backend " << backend << " (Update at start up is "
+		        << std::string(updateDbAtStartup ? "enabled" : "disabled") << ")";
+		mainDb->setUpdateSchemaAtInitialisation(updateDbAtStartup);
+		uri = LinphonePrivate::Utils::localeToUtf8(uri); // `mainDb->connect` take a UTF8 string.
+		auto startMs = bctbx_get_cur_time_ms();
+		if (!mainDb->connect(backend, uri)) {
+			ostringstream os;
+			os << "Unable to open linphone database with uri " << uri << " and backend " << backend;
+			throw DatabaseConnectionFailure(os.str());
+		}
+		auto stopMs = bctbx_get_cur_time_ms();
+		auto duration = stopMs - startMs;
+		if (duration >= 1000) {
+			lWarning() << "Opening database took " << duration << " ms !";
+		}
+
+		if ((checkUpgrade || !updateDbAtStartup) && mainDb->needUpgrade()) {
+			lError() << "Database need to be upgraded";
+			return -1;
+		}
+		return 0;
+	} else return 1; // Database explicitly not requested.
+}
+
+int CorePrivate::init() {
 	L_Q();
 
 	coreStartupTask.start(q->getSharedFromThis(), 60);
 	q->initPlugins();
 
-	mainDb.reset(new MainDb(q->getSharedFromThis()));
 	getToneManager(); // Forces instanciation of the ToneManager.
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	clientListEventHandler = makeUnique<ClientConferenceListEventHandler>(q->getSharedFromThis());
@@ -164,53 +222,17 @@ void CorePrivate::init() {
 
 	if (linphone_factory_is_database_storage_available(linphone_factory_get()) &&
 	    !!linphone_core_database_enabled(lc)) {
-		AbstractDb::Backend backend;
-		string uri = L_C_TO_STRING(linphone_config_get_string(linphone_core_get_config(lc), "storage", "uri", nullptr));
-		if (!uri.empty())
-			if (strcmp(linphone_config_get_string(linphone_core_get_config(lc), "storage", "backend", "sqlite3"),
-			           "mysql") == 0) {
-				backend = MainDb::Mysql;
-			} else {
-				backend = MainDb::Sqlite3;
-				if (uri != "null") uri = Utils::quoteStringIfNotAlready(uri);
-			}
-		else {
-			backend = AbstractDb::Sqlite3;
-			string dbPath = Utils::quoteStringIfNotAlready(q->getDataPath() + "/" + LINPHONE_DB);
-			lInfo() << "Using [" << dbPath << "] as default database path";
-			uri = dbPath;
+		switch (openDatabase(false)) {
+			case 0:
+				loadChatRooms();
+				linphone_core_friends_storage_resync_friends_lists(lc); // Load friends from mainDB if any
+				break;
+			case 1:
+				lWarning() << "Database explicitly not requested, this Core is built with no database support.";
+				break;
+			default: // Cannot continue, it need to migrate
+				return -1;
 		}
-
-		if (uri != "null") { // special uri "null" means don't open database. We need this for tests.
-			if (backend == MainDb::Mysql && uri.find("charset=") == string::npos) {
-				lInfo() << "No charset defined forcing utf8 4 bytes specially for conference subjet storage";
-				uri += " charset=utf8mb4";
-			}
-			if (backend == MainDb::Sqlite3 &&
-			    linphone_config_get_int(linphone_core_get_config(lc), "misc", "sqlite3_synchronous", 1) == 0) {
-				lInfo() << "Setting sqlite3 synchronous mode to OFF.";
-				uri += " synchronous=OFF";
-			}
-			bool updateDbAtStartup = !!linphone_core_update_db_at_startup_enabled(lc);
-			lInfo() << "Opening linphone database " << uri << " with backend " << backend << " (Update at start up is "
-			        << std::string(updateDbAtStartup ? "enabled" : "disabled") << ")";
-			mainDb->setUpdateSchemaAtInitialisation(updateDbAtStartup);
-			uri = LinphonePrivate::Utils::localeToUtf8(uri); // `mainDb->connect` take a UTF8 string.
-			auto startMs = bctbx_get_cur_time_ms();
-			if (!mainDb->connect(backend, uri)) {
-				ostringstream os;
-				os << "Unable to open linphone database with uri " << uri << " and backend " << backend;
-				throw DatabaseConnectionFailure(os.str());
-			}
-			auto stopMs = bctbx_get_cur_time_ms();
-			auto duration = stopMs - startMs;
-			if (duration >= 1000) {
-				lWarning() << "Opening database took " << duration << " ms !";
-			}
-
-			loadChatRooms();
-			linphone_core_friends_storage_resync_friends_lists(lc); // Load friends from mainDB if any
-		} else lWarning() << "Database explicitely not requested, this Core is built with no database support.";
 
 		// Leave this part to import the legacy call logs to MainDB
 		string calHistoryDbPath = L_C_TO_STRING(
@@ -219,7 +241,7 @@ void CorePrivate::init() {
 		if (calHistoryDbPath != "null") {
 			lInfo() << "Using [" << calHistoryDbPath << "] as legacy call history database path";
 			linphone_core_set_call_logs_database_path(lc, calHistoryDbPath.c_str());
-		} else lWarning() << "Call logs database explicitely not requested";
+		} else lWarning() << "Call logs database explicitly not requested";
 
 		if (lc->zrtp_secrets_cache == NULL) {
 			string zrtpSecretsDbPath = L_C_TO_STRING(
@@ -228,7 +250,7 @@ void CorePrivate::init() {
 			if (zrtpSecretsDbPath != "null") {
 				lInfo() << "Using [" << zrtpSecretsDbPath << "] as default zrtp secrets database path";
 				linphone_core_set_zrtp_secrets_file(lc, zrtpSecretsDbPath.c_str());
-			} else lWarning() << "ZRTP secrets database explicitely not requested";
+			} else lWarning() << "ZRTP secrets database explicitly not requested";
 		}
 
 		// Leave this part to import the legacy friends to MainDB
@@ -239,10 +261,11 @@ void CorePrivate::init() {
 			if (friendsDbPath != "null") {
 				lInfo() << "Using [" << friendsDbPath << "] as legacy friends database path";
 				linphone_core_set_friends_database_path(lc, friendsDbPath.c_str());
-			} else lWarning() << "Friends database explicitely not requested";
+			} else lWarning() << "Friends database explicitly not requested";
 		}
 	} else {
-		lInfo() << "The Core was explicitely requested not to use any database";
+		mainDb.reset(new MainDb(q->getSharedFromThis()));
+		lInfo() << "The Core was explicitly requested not to use any database";
 	}
 
 	createConferenceCleanupTimer(q->getConferenceCleanupPeriod());
@@ -254,6 +277,7 @@ void CorePrivate::init() {
 	// If not, ActivityMonitor will tell us quickly.
 	isInBackground = true;
 #endif
+	return 0;
 }
 
 void CorePrivate::writeNatPolicyConfigurations() {
@@ -4032,6 +4056,10 @@ LinphoneEphemeralChatMessagePolicy Core::getEphemeralChatMessagePolicy() const {
 
 std::optional<std::reference_wrapper<MainDb>> Core::getDatabase() const {
 	return getPrivate()->getDatabase();
+}
+
+int Core::openDatabase(bool checkUpgrade) {
+	return getPrivate()->openDatabase(checkUpgrade);
 }
 
 void Core::uninitDatabase() {
