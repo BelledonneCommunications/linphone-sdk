@@ -366,6 +366,12 @@ void createChatRooms(int number,
                      bool sendMessage);
 
 std::string get_migration_sql_query(const std::shared_ptr<Address> &address);
+void sendMesageAndCheckHistory(std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
+                               std::initializer_list<std::reference_wrapper<ConfCoreManager>> participants,
+                               std::shared_ptr<AbstractChatRoom> &chatRoom,
+                               const std::string msgText,
+                               std::map<LinphoneCoreManager *, int> historySizeMap,
+                               std::set<std::shared_ptr<Address>> migratedAddresses);
 
 enum class ChatRoomMigrationMethod {
 	AllChatroomsAtStartup,

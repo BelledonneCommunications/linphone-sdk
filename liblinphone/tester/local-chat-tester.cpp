@@ -6866,15 +6866,15 @@ static test_t local_conference_chat_migration_tests[] = {
                  LinphoneTest::legacy_group_chat_migration_client_offline_with_server_restart,
                  "LeaksMemory"),
 #ifdef HAVE_SOCI
-    TEST_NO_TAG("Legacy group chat migrated multiple times (database)",
-                LinphoneTest::legacy_group_chat_migrated_multiple_times_through_database),
+    TEST_ONE_TAG("Legacy group chat migrated multiple times (database)",
+                 LinphoneTest::legacy_group_chat_migrated_multiple_times_through_database,
+                 "LeaksMemory"),
 #endif // HAVE_SOCI
     TEST_ONE_TAG("Legacy group chat migrated multiple times (startup)",
                  LinphoneTest::legacy_group_chat_migrated_multiple_times_at_startup,
                  "LeaksMemory"),
-    TEST_ONE_TAG("Legacy group chat migrated multiple times (on the fly)",
-                 LinphoneTest::legacy_group_chat_migrated_multiple_times_on_the_fly,
-                 "LeaksMemory")};
+    TEST_NO_TAG("Legacy group chat migrated multiple times (on the fly)",
+                LinphoneTest::legacy_group_chat_migrated_multiple_times_on_the_fly)};
 
 test_suite_t local_conference_test_suite_chat_basic = {
     "Local conference tester (Chat Basic)",

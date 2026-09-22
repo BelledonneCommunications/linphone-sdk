@@ -6992,15 +6992,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 					chatRoom->setUtf8Subject(subject);
 				} else if (backend == ChatParams::Backend::FlexisipChat) {
 #ifdef HAVE_ADVANCED_IM
-					const auto &localAddress = conferenceId.getLocalAddress();
-					unsigned int lastNotifyId = d->dbSession.getUnsignedInt(chatRoomRow, 7, 0);
-
-					params->setUtf8Subject(subject);
-					params->getChatParams()->enableEphemeral((long)chatRoomRow.get<double>(11),
-					                                         (long)chatRoomRow.get<double>(12));
 					const auto &conferenceAddress = conferenceId.getPeerAddress();
-					params->setConferenceAddress(conferenceAddress);
-
 					const long long &conferenceInfoId = d->dbSession.resolveId(chatRoomRow, 15);
 					shared_ptr<ConferenceInfo> confInfo;
 					if (conferenceInfoId > 0) {
@@ -7046,6 +7038,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 						}
 					}
 
+					const auto &localAddress = conferenceId.getLocalAddress();
 					shared_ptr<Participant> me;
 					list<shared_ptr<Participant>> participants;
 					try {
@@ -7069,6 +7062,17 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 							lWarning() << "Chatroom [" << *conferenceAddress << "] with database ID set to "
 							           << dbChatRoomId << " has no participants";
 						}
+					}
+
+					unsigned int lastNotifyId = d->dbSession.getUnsignedInt(chatRoomRow, 7, 0);
+
+					params->setUtf8Subject(subject);
+					params->getChatParams()->enableEphemeral((long)chatRoomRow.get<double>(11),
+					                                         (long)chatRoomRow.get<double>(12));
+					params->setConferenceAddress(conferenceAddress);
+					if (auto alternativeAddressId = d->dbSession.resolveId(chatRoomRow, 16); alternativeAddressId > 0) {
+						params->setAlternativeConferenceAddress(
+						    Address::create(d->selectSipAddressFromId(alternativeAddressId), true));
 					}
 
 					std::shared_ptr<Conference> conference = nullptr;
@@ -7158,12 +7162,6 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 					}
 
 					conference->setInvitedParticipants(invitedParticipants);
-
-					if (auto alternativeAddressId = d->dbSession.resolveId(chatRoomRow, 16); alternativeAddressId > 0) {
-						conference->setAlternativeConferenceAddress(
-						    Address::create(d->selectSipAddressFromId(alternativeAddressId), true));
-					}
-
 #else
 					lWarning() << "Advanced IM such as group chat is disabled!";
 #endif

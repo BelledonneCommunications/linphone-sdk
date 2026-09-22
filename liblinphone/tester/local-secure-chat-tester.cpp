@@ -3577,6 +3577,289 @@ static void legacy_secure_one_on_one_chatroom_exhumed_after_migration(void) {
 	legacy_secure_one_on_one_chatroom_exhumed_after_migration_base(params);
 }
 
+// Test the following:
+// - migration of a chatroom with 3 members
+// - send messages after migration before conference server restart
+// - send messages after migration and conference server restart
+// - send messages after migration and both conference server and client restart
+static void legacy_secure_chat_room_migrated_and_messages_sent_after_focus_restart(void) {
+
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+
+		bool encrypted = true;
+		const LinphoneTesterLimeAlgo lime_algo = encrypted ? C25519 : UNSET;
+		linphone_core_enable_lime_x3dh(focus.getLc(), !!encrypted);
+
+		LinphoneAccount *domain_registration_account = add_account_using_domain_registration(focus, true);
+		BC_ASSERT_PTR_NOT_NULL(domain_registration_account);
+		if (domain_registration_account) {
+			linphone_account_ref(domain_registration_account);
+		}
+
+		ClientConference marie("marie_domain_registration_rc", focus.getConferenceFactoryAddress(), lime_algo);
+		ClientConference pauline("pauline_domain_registration_rc", focus.getConferenceFactoryAddress(), lime_algo);
+		ClientConference michelle("michelle_domain_registration_rc", focus.getConferenceFactoryAddress(), lime_algo);
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(pauline);
+		focus.registerAsParticipantDevice(michelle);
+
+		if (encrypted) {
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(marie.getLc()));
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(pauline.getLc()));
+			BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(michelle.getLc()));
+		}
+
+		int subscribe_expires_s = 15;
+		linphone_config_set_int(linphone_core_get_config(marie.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribe_expires_s);
+		linphone_config_set_int(linphone_core_get_config(pauline.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribe_expires_s);
+		linphone_config_set_int(linphone_core_get_config(michelle.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribe_expires_s);
+
+		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
+		coresList = bctbx_list_append(coresList, marie.getLc());
+		coresList = bctbx_list_append(coresList, pauline.getLc());
+		coresList = bctbx_list_append(coresList, michelle.getLc());
+
+		stats initialMarieStats = marie.getStats();
+		stats initialPaulineStats = pauline.getStats();
+		stats initialMichelleStats = michelle.getStats();
+
+		Address paulineAddr = pauline.getIdentity();
+		Address michelleAddr = michelle.getIdentity();
+
+		LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+		linphone_core_cbs_set_chat_room_state_changed(cbs, legacy_server_core_chat_room_state_changed);
+		_linphone_core_add_callbacks(focus.getLc(), cbs, TRUE);
+		linphone_core_cbs_unref(cbs);
+
+		int nbLegacyChatRooms = 3;
+		const std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs{marie, pauline, focus, michelle};
+		const std::initializer_list<std::reference_wrapper<ClientConference>> participants{pauline, michelle};
+		createChatRooms(nbLegacyChatRooms, coreMgrs, participants, focus, marie.getCMgr(), std::string("Legacy"),
+		                encrypted, true, true);
+
+		BC_ASSERT_EQUAL(marie.getCore().getChatRooms().size(), static_cast<size_t>(nbLegacyChatRooms), size_t, "%zu");
+
+		std::list<std::shared_ptr<Address>> addresses;
+		for (auto chatRoom : marie.getCore().getChatRooms()) {
+			const auto &address = chatRoom->getConferenceAddress();
+			BC_ASSERT_PTR_NOT_NULL(address);
+			const auto &alternativeAddress = chatRoom->getAlternativeConferenceAddress();
+			BC_ASSERT_PTR_NULL(alternativeAddress);
+			addresses.push_back(address);
+		}
+
+		std::set<std::shared_ptr<Address>> migratedAddresses;
+
+		initialMarieStats = marie.getStats();
+		initialPaulineStats = pauline.getStats();
+		initialMichelleStats = michelle.getStats();
+		coresList = bctbx_list_remove(coresList, focus.getLc());
+		ms_message("%s reinitializes its core to unify the chat room addresses",
+		           linphone_core_get_identity(focus.getLc()));
+		linphone_core_manager_reinit(focus.getCMgr());
+
+		linphone_core_enable_chat_room_address_unification(focus.getLc(), TRUE);
+		for (const auto &address : addresses) {
+			migratedAddresses.insert(address);
+		}
+
+		if (domain_registration_account) {
+			linphone_core_add_account(focus.getLc(), domain_registration_account);
+			linphone_core_set_default_account(focus.getLc(), domain_registration_account);
+		}
+
+		ms_message("%s configures and starts again its core", linphone_core_get_identity(focus.getLc()));
+		focus.configureFocus();
+		linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
+		linphone_core_manager_start(focus.getCMgr(), TRUE);
+		coresList = bctbx_list_append(coresList, focus.getLc());
+
+		// The chat room address unification flag is cleared after the action takes place
+		BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
+
+		// Wait for all subscription transaction to expire
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
+		                             3 * nbLegacyChatRooms, 80000));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
+		                             initialMarieStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+		                             (subscribe_expires_s * 1000)));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionActive,
+		                             initialMichelleStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+		                             (subscribe_expires_s * 1000)));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionActive,
+		                             initialPaulineStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+		                             (subscribe_expires_s * 1000)));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NotifyFullStateReceived,
+		                             initialMarieStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+		                             (subscribe_expires_s * 1000)));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_NotifyFullStateReceived,
+		                             initialMichelleStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+		                             (subscribe_expires_s * 1000)));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_NotifyFullStateReceived,
+		                             initialPaulineStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+		                             (subscribe_expires_s * 1000)));
+
+		BC_ASSERT_EQUAL(marie.getCore().getChatRooms().size(), nbLegacyChatRooms, size_t, "%zu");
+		auto addressIt = addresses.cbegin();
+		for (auto chatRoom : marie.getCore().getChatRooms()) {
+			const auto assignedAddress = *addressIt;
+			BC_ASSERT_PTR_NOT_NULL(assignedAddress);
+			bool hasMigrated = (migratedAddresses.find(assignedAddress) != migratedAddresses.end());
+			const auto &address = chatRoom->getConferenceAddress();
+			BC_ASSERT_PTR_NOT_NULL(address);
+			const auto &alternativeAddress = chatRoom->getAlternativeConferenceAddress();
+			if (hasMigrated) {
+				BC_ASSERT_PTR_NOT_NULL(alternativeAddress);
+				if (alternativeAddress) {
+					BC_ASSERT_TRUE(alternativeAddress->hasUriParam(Conference::kConfIdParameter));
+				}
+			} else {
+				BC_ASSERT_TRUE(address->toStringUriOnlyOrdered() == assignedAddress->toStringUriOnlyOrdered());
+				BC_ASSERT_PTR_NULL(alternativeAddress);
+			}
+			// ChatRoom::getConferenceAddress must return the migrated address
+			if (address && alternativeAddress) {
+				BC_ASSERT_TRUE(address->toStringUriOnlyOrdered() == alternativeAddress->toStringUriOnlyOrdered());
+			}
+			if (assignedAddress && alternativeAddress) {
+				BC_ASSERT_FALSE(assignedAddress->weakEqual(*alternativeAddress));
+				BC_ASSERT_FALSE(assignedAddress->toStringUriOnlyOrdered() ==
+				                alternativeAddress->toStringUriOnlyOrdered());
+			}
+			addressIt++;
+		}
+
+		int maxIterations = 3;
+		std::initializer_list<std::reference_wrapper<ConfCoreManager>> members{marie, michelle, pauline};
+		int expected_history_size = 1;
+		for (int idx = 0; idx < maxIterations; idx++) {
+			// Send message
+			for (const ConfCoreManager &sendCore : members) {
+				expected_history_size++;
+				std::map<LinphoneCoreManager *, int> historySizeMap;
+				for (const ConfCoreManager &core : members) {
+					historySizeMap.insert(std::make_pair(core.getCMgr(), expected_history_size));
+				}
+				for (auto chatRoom : sendCore.getCore().getChatRooms()) {
+					auto confAddr = chatRoom->getConferenceAddress();
+					auto confAddrString = confAddr->toStringUriOnlyOrdered();
+					std::string msgText = std::string("[Iteration ") + std::to_string(idx) +
+					                      std::string("] Migrated: message in chatroom ") + confAddrString.c_str() +
+					                      std::string(" subject ") + chatRoom->getSubjectUtf8().c_str() +
+					                      std::string(" from ") + sendCore.getIdentity().toString();
+					sendMesageAndCheckHistory(coreMgrs, members, chatRoom, msgText, historySizeMap, migratedAddresses);
+				}
+			}
+
+			initialMarieStats = marie.getStats();
+			initialPaulineStats = pauline.getStats();
+			initialMichelleStats = michelle.getStats();
+
+			ms_message("[Iteration %0d]: %s is restarting its core", idx, linphone_core_get_identity(focus.getLc()));
+			coresList = bctbx_list_remove(coresList, focus.getLc());
+			linphone_core_manager_reinit(focus.getCMgr());
+
+			if (domain_registration_account) {
+				linphone_core_add_account(focus.getLc(), domain_registration_account);
+				linphone_core_set_default_account(focus.getLc(), domain_registration_account);
+			}
+
+			ms_message("[Iteration %0d]: %s configures and starts again its core", idx,
+			           linphone_core_get_identity(focus.getLc()));
+			focus.configureFocus();
+			linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
+			linphone_core_manager_start(focus.getCMgr(), TRUE);
+			coresList = bctbx_list_append(coresList, focus.getLc());
+
+			// Wait for all subscription transaction to expire
+			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
+			                             3 * nbLegacyChatRooms, 80000));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialMarieStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialMichelleStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialPaulineStats.number_of_LinphoneSubscriptionActive + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NotifyFullStateReceived,
+			                             initialMarieStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &michelle.getStats().number_of_NotifyFullStateReceived,
+			                             initialMichelleStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_NotifyFullStateReceived,
+			                             initialPaulineStats.number_of_NotifyFullStateReceived + nbLegacyChatRooms,
+			                             (subscribe_expires_s * 1000)));
+		}
+
+		// Send message
+		for (ConfCoreManager &sendCore : members) {
+			ms_message("%s is restarting its core", linphone_core_get_identity(sendCore.getLc()));
+			stats initialFocusStats = focus.getStats();
+			coresList = bctbx_list_remove(coresList, sendCore.getLc());
+			sendCore.reStart();
+			coresList = bctbx_list_append(coresList, sendCore.getLc());
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive, 1,
+			                             liblinphone_tester_sip_timeout));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
+			                             initialFocusStats.number_of_LinphoneSubscriptionActive + 1,
+			                             liblinphone_tester_sip_timeout));
+			expected_history_size++;
+			std::map<LinphoneCoreManager *, int> historySizeMap;
+			for (const ConfCoreManager &core : members) {
+				historySizeMap.insert(std::make_pair(core.getCMgr(), expected_history_size));
+			}
+			for (auto chatRoom : sendCore.getCore().getChatRooms()) {
+				auto confAddr = chatRoom->getConferenceAddress();
+				auto confAddrString = confAddr->toStringUriOnlyOrdered();
+				std::string msgText = std::string("Migrated: message in chatroom ") + confAddrString.c_str() +
+				                      std::string(" subject ") + chatRoom->getSubjectUtf8().c_str() +
+				                      std::string(" after ") + sendCore.getIdentity().toString() +
+				                      std::string(" restarted its core");
+				sendMesageAndCheckHistory(coreMgrs, members, chatRoom, msgText, historySizeMap, migratedAddresses);
+			}
+		}
+
+		// wait a bit longer to detect side effect if any
+		CoreManagerAssert({focus, marie, michelle, pauline}).waitUntil(chrono::seconds(1), [] { return false; });
+
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			for (auto participant : chatRoom->getParticipants()) {
+				//  force deletion by removing devices
+				std::shared_ptr<Address> participantAddress = participant->getAddress();
+				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
+			}
+		}
+
+		// wait until chatroom is deleted server side
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, pauline}).wait([&focus] {
+			return focus.getCore().getChatRooms().size() == 0;
+		}));
+
+		// wait a bit longer to detect side effect if any
+		CoreManagerAssert({focus, marie, michelle, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
+
+		// to avoid creation attempt of a new chatroom
+		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
+		linphone_proxy_config_edit(config);
+		linphone_proxy_config_set_conference_factory_uri(config, NULL);
+		linphone_proxy_config_done(config);
+
+		if (domain_registration_account) {
+			linphone_account_unref(domain_registration_account);
+		}
+
+		bctbx_list_free(coresList);
+	}
+}
+
 } // namespace LinphoneTest
 
 static test_t local_conference_secure_chat_tests[] = {
@@ -3747,6 +4030,10 @@ static test_t local_conference_secure_chat_migration_tests[] = {
                  "LimeX3DH"),
     TEST_TWO_TAGS("Legacy secure group chat migration with server restart (client offline)",
                   LinphoneTest::legacy_secure_group_chat_migration_client_offline_with_server_restart,
+                  "LimeX3DH",
+                  "LeaksMemory"),
+    TEST_TWO_TAGS("Legacy secure group chat migrated and messages sent after focus restart",
+                  LinphoneTest::legacy_secure_chat_room_migrated_and_messages_sent_after_focus_restart,
                   "LimeX3DH",
                   "LeaksMemory"),
 };
