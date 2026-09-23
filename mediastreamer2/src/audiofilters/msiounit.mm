@@ -260,6 +260,29 @@ static MSSndCardDeviceType deduceDeviceTypeFromAudioPortType(AVAudioSessionPort 
 	return MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
 }
 
+static const char *audio_route_change_reason_to_string(NSInteger reason) {
+	switch (reason) {
+		case AVAudioSessionRouteChangeReasonUnknown:
+			return "Unknown";
+		case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
+			return "NewDeviceAvailable";
+		case AVAudioSessionRouteChangeReasonOldDeviceUnavailable:
+			return "OldDeviceUnavailable";
+		case AVAudioSessionRouteChangeReasonCategoryChange:
+			return "CategoryChange";
+		case AVAudioSessionRouteChangeReasonOverride:
+			return "Override";
+		case AVAudioSessionRouteChangeReasonWakeFromSleep:
+			return "WakeFromSleep";
+		case AVAudioSessionRouteChangeReasonNoSuitableRouteForCategory:
+			return "NoSuitableRouteForCategory";
+		case AVAudioSessionRouteChangeReasonRouteConfigurationChange:
+			return "RouteConfigurationChange";
+		default:
+			return "unexpected value";
+	}
+}
+
 static bool apply_current_route_to_default_snd_card(MSSndCard *card){
 	bool changed = false;
 	if (!(ms_snd_card_get_capabilities(card) & MS_SND_CARD_CAP_FOLLOWS_SYSTEM_POLICY)) return false;
@@ -767,25 +790,30 @@ static bool_t check_audio_unit_up_task(void *user_data){
 	AVAudioSessionRouteDescription *previousRoute = [userInfo valueForKey:AVAudioSessionRouteChangePreviousRouteKey];
 	AVAudioSessionRouteDescription *currentRoute = [audioSession currentRoute];
 
-	std::string previousInputPort("No input");
-	std::string currentInputPort("No input");
-	std::string previousOutputPort("No output");
-	std::string currentOutputPort("No output");
+	std::string previousInputPortName("No input");
+	std::string currentInputPortName("No input");
+	std::string previousOutputPortName("No output");
+	std::string currentOutputPortName("No output");
 	bool currentOutputIsSpeaker = false, currentOutputIsReceiver = false;
+	// A degenerate route may carry no input, or no output at all: audio unit torn down, interruption,
+	// category without a route. The sentinel values above must then never reach the event, because they
+	// name no sound card: liblinphone would warn "could not find the matching device" and do nothing.
+	bool hasCurrentInput = (currentRoute.inputs.count > 0);
+	bool hasCurrentOutput = (currentRoute.outputs.count > 0);
 
 	if (previousRoute.inputs.count > 0)
-		previousInputPort = std::string([previousRoute.inputs[0].portName UTF8String]);
+		previousInputPortName = std::string([previousRoute.inputs[0].portName UTF8String]);
 	if (previousRoute.outputs.count > 0) {
-		previousOutputPort = std::string([previousRoute.outputs[0].portName UTF8String]);
+		previousOutputPortName = std::string([previousRoute.outputs[0].portName UTF8String]);
 		MSSndCardDeviceType portType = deduceDeviceTypeFromAudioPortType(previousRoute.outputs[0].portType);
 		if (portType == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH || portType == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP) {
 			[au_holder setInteracted_with_bluetooth_since_last_devices_reload:TRUE];
 		}
 	}
 	if (currentRoute.inputs.count > 0)
-		currentInputPort = std::string([currentRoute.inputs[0].portName UTF8String]);
+		currentInputPortName = std::string([currentRoute.inputs[0].portName UTF8String]);
 	if (currentRoute.outputs.count > 0) {
-		currentOutputPort = std::string([currentRoute.outputs[0].portName UTF8String]);
+		currentOutputPortName = std::string([currentRoute.outputs[0].portName UTF8String]);
 		currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
 		currentOutputIsReceiver = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInReceiver.UTF8String) == 0);
 
@@ -795,21 +823,22 @@ static bool_t check_audio_unit_up_task(void *user_data){
 		}
 	}
 
-	ms_message("[IOS Audio Route Change] Previous audio route: input=%s, output=%s, New audio route: input=%s, output=%s"
-			   , previousInputPort.c_str(), previousOutputPort.c_str()
-			   , currentInputPort.c_str(), currentOutputPort.c_str());
+	ms_message("[IOS Audio Route Change] Reason: %s (%ld), Previous audio route: input=%s, output=%s, New audio route: input=%s, output=%s"
+			   , audio_route_change_reason_to_string(changeReason), (long)changeReason
+			   , previousInputPortName.c_str(), previousOutputPortName.c_str()
+			   , currentInputPortName.c_str(), currentOutputPortName.c_str());
 
 
 	switch (changeReason)
 	{
 		case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
-			ms_message("[IOS Audio Route Change] new device %s available", currentOutputPort.c_str());
+			ms_message("[IOS Audio Route Change] new device %s available", currentOutputPortName.c_str());
 			[au_holder setRemovedDevice:""];
 			[au_holder setDevices_changed_since_last_reload:TRUE];
 			break;
 		case AVAudioSessionRouteChangeReasonOldDeviceUnavailable:
-			ms_message("[IOS Audio Route Change] old device %s unavailable", previousOutputPort.c_str());
-			[au_holder setRemovedDevice:previousOutputPort];
+			ms_message("[IOS Audio Route Change] old device %s unavailable", previousOutputPortName.c_str());
+			[au_holder setRemovedDevice:previousOutputPortName];
 			[au_holder setDevices_changed_since_last_reload:TRUE];
 			break;
 		default: {}
@@ -826,34 +855,40 @@ static bool_t check_audio_unit_up_task(void *user_data){
 	ev.has_new_input = false;
 	ev.has_new_output = false;
 
-	if (previousInputPort != currentInputPort && AUCard::get(previousCard)->mPortName == currentInputPort) {
+	if (hasCurrentInput && previousInputPortName != currentInputPortName
+		&& AUCard::get(previousCard)->mPortName != currentInputPortName) {
 		ev.has_new_input = true;
-		strncpy(ev.new_input, AUCard::portToName(currentInputPort.c_str()).c_str(), sizeof(ev.new_input)-1);
+		strncpy(ev.new_input, AUCard::portToName(currentInputPortName.c_str()).c_str(), sizeof(ev.new_input)-1);
 	}
 
-	std::string newOutput = AUCard::portToName(currentOutputPort.c_str());
-	if (previousOutputPort != currentOutputPort) {
-		if (currentOutputIsSpeaker) {
-			newOutput = AUCard::portToName(MS_SND_CARD_SPEAKER_PORT_NAME);
-		}
-		else {
-			MSSndCardManager * sndCardManager = ms_factory_get_snd_card_manager(ms_snd_card_get_factory(previousCard));
-			bctbx_list_t *cardIt;
-			for (cardIt=sndCardManager->cards; cardIt!=NULL; cardIt=cardIt->next) {
-				MSSndCard *card = (MSSndCard*)cardIt->data;
-				// Special case : the sndcard matching the IPhoneMicrophone and the IPhoneReceiver is the same.
-				// They are built using the AVAudioSession.availableInputs function, which is why the name will not match
-				if ( currentOutputIsReceiver && card->device_type == MS_SND_CARD_DEVICE_TYPE_MICROPHONE ) {
-					newOutput = card->name;
-					break;
-				}
+	// The built-in speaker and receiver are outputs: they have no entry in AVAudioSession.availableInputs,
+	// hence no sound card carrying their own name, and are resolved by device_type -- which derives from
+	// portType, a non-localized Apple constant. Every other device (bluetooth, headset...) owns an input
+	// port whose portName is exactly the name its card was built with, so matching by name is correct.
+	std::string newOutputName = AUCard::portToName(currentOutputPortName.c_str());
+	if (currentOutputIsSpeaker || currentOutputIsReceiver) {
+		// The sndcard matching the IPhoneReceiver is the IPhoneMicrophone one: both are built from the same
+		// AVAudioSession input port, which is why the receiver name never matches a card.
+		MSSndCardDeviceType wantedType =
+			currentOutputIsSpeaker ? MS_SND_CARD_DEVICE_TYPE_SPEAKER : MS_SND_CARD_DEVICE_TYPE_MICROPHONE;
+		MSSndCardManager * sndCardManager = ms_factory_get_snd_card_manager(ms_snd_card_get_factory(previousCard));
+		bctbx_list_t *cardIt;
+		for (cardIt=sndCardManager->cards; cardIt!=NULL; cardIt=cardIt->next) {
+			MSSndCard *card = (MSSndCard*)cardIt->data;
+			// Skip the "default" card: it follows the system policy, so its device_type mirrors the current
+			// route and it would match here although it designates no specific device. It is also the first
+			// card of the list, so it would win over the real one.
+			if (ms_snd_card_get_capabilities(card) & MS_SND_CARD_CAP_FOLLOWS_SYSTEM_POLICY) continue;
+			if (card->device_type == wantedType) {
+				newOutputName = card->name;
+				break;
 			}
 		}
 	}
 
-	if (strcmp(previousCard->name, newOutput.c_str()) != 0) {
+	if (hasCurrentOutput && strcmp(previousCard->name, newOutputName.c_str()) != 0) {
 		ev.has_new_output = true;
-		strncpy(ev.new_output, newOutput.c_str(), sizeof(ev.new_output)-1);
+		strncpy(ev.new_output, newOutputName.c_str(), sizeof(ev.new_output)-1);
 	}
 
 	switch (changeReason)

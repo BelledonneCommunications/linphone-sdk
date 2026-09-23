@@ -316,16 +316,23 @@ void MS2AudioStream::audioRouteChangeCb(void *userData,
 
 		if (inputRequiresUpdate || outputRequiresUpdate) {
 			auto devices = core->getExtendedAudioDevices();
+			// The output MUST be applied before the input, and the two loops must stay separate.
+			// On iOS a single MSSndCard backs both directions (AudioUnitHolder::_ms_snd_card), so the
+			// last write wins. Applying the input first issues a setPreferredInput(), which cancels a
+			// speaker override still in flight: the route audibly flickers through the receiver before
+			// the output write restores the speaker.
 			for (auto device : devices) {
-				std::string deviceName = device->getDeviceName();
-
-				if (inputRequiresUpdate && newInput == deviceName) {
-					core->setInputAudioDevice(device);
-					inputRequiresUpdate = false;
-				}
-				if (outputRequiresUpdate && newOutput == deviceName) {
+				if (outputRequiresUpdate && newOutput == device->getDeviceName()) {
 					core->setOutputAudioDevice(device);
 					outputRequiresUpdate = false;
+					break;
+				}
+			}
+			for (auto device : devices) {
+				if (inputRequiresUpdate && newInput == device->getDeviceName()) {
+					core->setInputAudioDevice(device);
+					inputRequiresUpdate = false;
+					break;
 				}
 			}
 		}

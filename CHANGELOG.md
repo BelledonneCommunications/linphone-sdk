@@ -11,6 +11,10 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
+## [5.5.29]
+
+### Fixed
+- iOS : fix possible audio route bug when switching audio device during call
 
 ## [5.5.0] 2026-05-25
 
