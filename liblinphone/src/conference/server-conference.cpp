@@ -681,8 +681,8 @@ void ServerConference::modifyCallParamsForConference(MediaSessionParams &params)
 	params.getPrivate()->setEndTime(mConfParams->getEndTime());
 	if (!mConfParams->isHidden()) {
 		params.addCustomContactParameter(Conference::kIsFocusParameter, std::string());
-		if (const auto &conferenceAddress = getConferenceAddress(); conferenceAddress) {
-			for (const auto &[key, value] : conferenceAddress->getUriParams()) {
+		if (const auto &assignedConferenceAddress = getAssignedConferenceAddress(); assignedConferenceAddress) {
+			for (const auto &[key, value] : assignedConferenceAddress->getUriParams()) {
 				params.addCustomContactUriParameter(key, value);
 			}
 		}
@@ -1647,7 +1647,6 @@ shared_ptr<CallSession> ServerConference::makeSession(const std::shared_ptr<Part
 		}
 	}
 	if (!session) {
-		const auto &conferenceAddress = getConferenceAddress();
 		shared_ptr<Participant> participant =
 		    const_pointer_cast<Participant>(device->getParticipant()->getSharedFromThis());
 		MediaSessionParams *currentParams = csp->clone();
@@ -1656,11 +1655,13 @@ shared_ptr<CallSession> ServerConference::makeSession(const std::shared_ptr<Part
 				currentParams->addCustomContactParameter(Conference::kTextParameter, std::string());
 			}
 			currentParams->addCustomContactParameter(Conference::kIsFocusParameter, std::string());
-			if (conferenceAddress) {
-				for (const auto &[key, value] : conferenceAddress->getUriParams()) {
+			if (const auto &assignedConferenceAddress = getAssignedConferenceAddress(); assignedConferenceAddress) {
+				for (const auto &[key, value] : assignedConferenceAddress->getUriParams()) {
 					currentParams->addCustomContactUriParameter(key, value);
 				}
+			}
 
+			if (const auto &conferenceAddress = getConferenceAddress(); conferenceAddress) {
 				const string &confId = conferenceAddress->getUriParamValue(Conference::kConfIdParameter);
 				if (!confId.empty()) {
 					currentParams->getPrivate()->setConferenceId(confId);

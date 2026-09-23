@@ -518,11 +518,10 @@ void Call::onCallSessionStateChanged(const shared_ptr<CallSession> &session,
 						tryToAddToConference(serverConference, session);
 					}
 				} else if (op->getRemoteContactAddress()) {
-					const auto &confId = session->getPrivate()->getConferenceId();
 					// Check if the request was sent by the focus
 					if (remoteContactIsFocus) {
 						createClientConference(session);
-					} else if (!confId.empty()) {
+					} else if (const auto &confId = session->getPrivate()->getConferenceId(); !confId.empty()) {
 						auto localAddress = session->getContactAddress();
 						if (localAddress && localAddress->isValid()) {
 							serverConference = getCore()->searchConference(nullptr, localAddress, localAddress, {});

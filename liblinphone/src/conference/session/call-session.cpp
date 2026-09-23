@@ -1042,15 +1042,22 @@ void CallSessionPrivate::setContactAddressForConference(std::shared_ptr<Address>
 		};
 		std::shared_ptr<Address> conferenceAddress;
 		std::shared_ptr<Conference> conferenceFound;
+		// If a conference is found, use the assigned conference address rather than the actual one. In fact, until
+		// SDK 5.5, clients set the conference address as the contact address of the INVITE session. In the context of
+		// chatroom migration, the assigned address is the address put forward in the From header as well NOTIFY entity
+		// XML tag. The actual conference address is the address used to efficiently route the request and it is mainly
+		// used as SIP message request URI. By setting the contact address as the assigned conference address, old SDKs
+		// will be able to match the NOTIFY XML body to the right chatroom and the entity vs conference address check
+		// will not fail.
 		if (auto conference = core->searchConference(contactAddress); conference) {
 			// The URI returned by getFixedAddress matches a conference
-			conferenceAddress = conference->getConferenceAddress()->clone()->toSharedPtr();
+			conferenceAddress = conference->getAssignedConferenceAddress()->clone()->toSharedPtr();
 			conferenceFound = conference;
 		} else if (auto guessedConference = core->searchConference(guessedConferenceAddress); guessedConference) {
 			// The conference is actually a chatroom in which its conference ID doesn't match the guessed account.
 			// For example, if the chatroom peer address is sip:chatroom-xyz@sip.example.org and the account is
 			// sip:focus@sip.example.org
-			conferenceAddress = guessedConference->getConferenceAddress()->clone()->toSharedPtr();
+			conferenceAddress = guessedConference->getAssignedConferenceAddress()->clone()->toSharedPtr();
 			conferenceFound = guessedConference;
 			lInfo() << "The guessed contact address " << *contactAddress
 			        << " doesn't match the actual chatroom conference address " << *conferenceAddress;
@@ -2257,14 +2264,12 @@ void CallSession::updateContactAddressInOp() {
 		return;
 	}
 	Address contactAddress;
-	const auto &account = d->getDestAccount();
-	if (account) {
-		const auto &accountOp = account->getOp();
-		const auto &accountContactAddress = account->getContactAddress();
-		if (accountOp && accountOp->getContactAddress()) {
+	if (const auto &account = d->getDestAccount(); account) {
+		if (const auto &accountOp = account->getOp(); accountOp && accountOp->getContactAddress()) {
 			/* Give a chance to update the contact address if connectivity has changed */
 			contactAddress.setImpl(accountOp->getContactAddress());
-		} else if (getCore()->conferenceServerEnabled() && accountContactAddress) {
+		} else if (const auto &accountContactAddress = account->getContactAddress();
+		           getCore()->conferenceServerEnabled() && accountContactAddress) {
 			contactAddress = *accountContactAddress;
 		}
 
