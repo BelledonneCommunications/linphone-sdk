@@ -7875,15 +7875,9 @@ void create_conference_with_chat_base(LinphoneConferenceSecurityLevel security_l
 				BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneSubscriptionActive,
 				                             marie_stat.number_of_LinphoneSubscriptionActive + nb_client_subscribes,
 				                             liblinphone_tester_sip_timeout));
-				LinphoneParticipantDeviceIdentity *identity =
-				    linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddress, "");
-				bctbx_list_t *specs = linphone_core_get_linphone_specs_list(marie.getLc());
-				linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
-				bctbx_list_t *devices = NULL;
-				devices = bctbx_list_append(devices, identity);
-				bctbx_list_free_with_data(specs, ms_free);
-				linphone_chat_room_set_participant_devices(chat_room, marie.getIdentity().toC(), devices);
-				bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
+
+				setParticipantDevicesToChatroom({marie}, chat_room);
+
 				BC_ASSERT_FALSE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallOutgoingInit,
 				                              focus_stat.number_of_LinphoneCallOutgoingInit + 1, 500));
 				BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallIncomingReceived,
@@ -7972,16 +7966,8 @@ void create_conference_with_chat_base(LinphoneConferenceSecurityLevel security_l
 						BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(chat_room), 2, int, "%d");
 						BC_ASSERT_EQUAL(linphone_chat_room_get_state(chat_room), LinphoneChatRoomStateTerminated, int,
 						                "%i");
-						LinphoneParticipantDeviceIdentity *identity =
-						    linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddress,
-						                                                        "");
-						bctbx_list_t *specs = linphone_core_get_linphone_specs_list(marie.getLc());
-						linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
-						bctbx_list_t *devices = NULL;
-						devices = bctbx_list_append(devices, identity);
-						bctbx_list_free_with_data(specs, ms_free);
-						linphone_chat_room_set_participant_devices(chat_room, marie.getIdentity().toC(), devices);
-						bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
+
+						setParticipantDevicesToChatroom({marie}, chat_room);
 					}
 					BC_ASSERT_FALSE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallOutgoingInit,
 					                              focus_stat.number_of_LinphoneCallOutgoingInit + 1, 500));
@@ -8244,17 +8230,7 @@ void create_conference_with_chat_base(LinphoneConferenceSecurityLevel security_l
 			                                                                             michelle, berthe};
 			for (auto chatRoom : focus.getCore().getChatRooms()) {
 				for (ClientConference &core : cores2) {
-					LinphoneAccount *account = linphone_core_get_default_account(core.getLc());
-					LinphoneAddress *deviceAddress = linphone_account_get_contact_address(account);
-					LinphoneParticipantDeviceIdentity *identity =
-					    linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddress, "");
-					bctbx_list_t *specs = linphone_core_get_linphone_specs_list(core.getLc());
-					linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
-					bctbx_list_t *devices = NULL;
-					devices = bctbx_list_append(devices, identity);
-					bctbx_list_free_with_data(specs, ms_free);
-					linphone_chat_room_set_participant_devices(chatRoom->toC(), core.getIdentity().toC(), devices);
-					bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
+					setParticipantDevicesToChatroom({core}, chatRoom->toC());
 				}
 			}
 

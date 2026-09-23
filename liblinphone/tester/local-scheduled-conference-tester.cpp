@@ -6246,23 +6246,7 @@ static void create_scheduled_conference_and_chatroom_using_the_same_address() {
 		const bctbx_list_t *calls = linphone_core_get_calls(focus.getLc());
 		BC_ASSERT_EQUAL(bctbx_list_size(calls), 0, size_t, "%zu");
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline, laure, michelle}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		auto focus_account = focus.getDefaultAccount();
-		LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(focus_account));
-		linphone_account_params_set_conference_factory_uri(params, NULL);
-		linphone_account_set_params(focus_account, params);
-		linphone_account_params_unref(params);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline, laure, michelle});
 
 		ms_free(conference_address_str);
 		bctbx_list_free_with_data(participants_info, (bctbx_list_free_func)linphone_participant_info_unref);
@@ -8490,17 +8474,7 @@ static void create_conference_with_chat_with_server_restarted_before_conference_
 				coresList = bctbx_list_remove(coresList, core.getLc());
 				core.reStart();
 				coresList = bctbx_list_append(coresList, core.getLc());
-				LinphoneAccount *account = linphone_core_get_default_account(core.getLc());
-				LinphoneAddress *deviceAddress = linphone_account_get_contact_address(account);
-				LinphoneParticipantDeviceIdentity *identity =
-				    linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddress, "");
-				bctbx_list_t *specs = linphone_core_get_linphone_specs_list(core.getLc());
-				linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
-				bctbx_list_t *devices = NULL;
-				devices = bctbx_list_append(devices, identity);
-				bctbx_list_free_with_data(specs, ms_free);
-				linphone_chat_room_set_participant_devices(chat_room, core.getIdentity().toC(), devices);
-				bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
+				setParticipantDevicesToChatroom({core}, chat_room);
 			}
 		}
 

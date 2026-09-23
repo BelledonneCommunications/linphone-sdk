@@ -417,6 +417,13 @@ void sendMessageAndCheckReception(std::initializer_list<std::reference_wrapper<C
                                   std::string text,
                                   std::shared_ptr<AbstractChatRoom> chatRoom);
 
+void setParticipantDevicesToChatroom(std::initializer_list<std::reference_wrapper<ClientConference>> clientConferences,
+                                     LinphoneChatRoom *chatRoom);
+
+void deleteChatRoomsOnServer(Focus &focus,
+                             std::initializer_list<std::reference_wrapper<CoreManager>> cores,
+                             std::chrono::seconds timeout = std::chrono::seconds(10));
+
 // Conference
 struct SimpleConferenceMergingCallsParams {
 	bool_t enable_ice;

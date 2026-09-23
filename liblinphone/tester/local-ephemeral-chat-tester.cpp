@@ -101,28 +101,7 @@ static void group_chat_room_server_admin_managed_messages_unencrypted() {
 		constexpr int noMsg = 10;
 		sendEphemeralMessageInAdminMode(focus, marie, pauline, marieCr, paulineCr, "Hello ", noMsg);
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		auto config = focus.getDefaultProxyConfig();
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
-
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		bctbx_list_free(coresList);
 	}
 }
@@ -258,29 +237,7 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_enabled_afte
 
 			sendEphemeralMessageInAdminMode(focus, marie, pauline, marieCr, paulineCr, "Back online ", noMsg);
 		}
-
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		auto config = focus.getDefaultProxyConfig();
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
-
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		linphone_address_unref(marieDeviceAddr);
 		linphone_address_unref(confAddr);
 		bctbx_list_free(coresList);
@@ -471,28 +428,7 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_disabled_aft
 			sendEphemeralMessageInAdminMode(focus, marie, pauline, marieCr, paulineCr, "Back online ", noMsg);
 		}
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		auto config = focus.getDefaultProxyConfig();
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
-
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		linphone_address_unref(marieDeviceAddr);
 		linphone_address_unref(confAddr);
 		bctbx_list_free(coresList);
@@ -591,28 +527,7 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_lifetime_upd
 			sendEphemeralMessageInAdminMode(focus, marie, pauline, marieCr, paulineCr, "Hello ", noMsg);
 		}
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		auto config = focus.getDefaultProxyConfig();
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
-
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		linphone_address_unref(marieDeviceAddr);
 		linphone_address_unref(confAddr);
 		bctbx_list_free(coresList);
@@ -783,28 +698,7 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_lifetime_tog
 		// wait a bit longer to detect side effect if any
 		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		auto config = focus.getDefaultProxyConfig();
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
-
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		bctbx_list_free(coresList);
 	}
 }
@@ -971,28 +865,7 @@ static void group_chat_room_server_ephemeral_mode_changed(void) {
 			linphone_chat_message_unref(nonEphemeralMessage);
 		}
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		auto config = focus.getDefaultProxyConfig();
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
-
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		bctbx_list_free(coresList);
 	}
 }

@@ -363,29 +363,7 @@ static void secure_group_chat_room_with_chat_room_deleted_before_server_restart(
 		                             initialMichelle2Stats.number_of_LinphoneMessageDisplayed + 1,
 		                             liblinphone_tester_sip_timeout));
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, marie2, michelle, michelle2}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, marie2, michelle, michelle2}).waitUntil(chrono::seconds(2), [] {
-			return false;
-		});
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, marie2, michelle, michelle2});
 
 		bctbx_list_free(coresList);
 	}
@@ -572,28 +550,7 @@ static void secure_group_chat_room_with_client_with_uppercase_username() {
 			BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(michelleCr), 2, int, "%0d");
 		}
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline, michelle}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		auto focus_account = focus.getDefaultAccount();
-		LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(focus_account));
-		linphone_account_params_set_conference_factory_uri(params, NULL);
-		linphone_account_set_params(focus_account, params);
-		linphone_account_params_unref(params);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline, michelle});
 
 		bctbx_list_free(coresList);
 	}
@@ -788,29 +745,8 @@ static void secure_group_chat_room_with_multi_account_client() {
 		                             liblinphone_tester_sip_timeout));
 
 		linphone_chat_message_unref(msg);
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
 
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, multi_account, michelle, berthe}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, multi_account, michelle, berthe}).waitUntil(chrono::seconds(2), [] {
-			return false;
-		});
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, multi_account, michelle, berthe});
 
 		linphone_address_unref(chatroom_account_identity);
 		bctbx_list_free(coresList);
@@ -1015,26 +951,9 @@ static void secure_one_on_one_chat_room_send_message_after_restart_base(bool_t c
 		linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(pauline2.getLc()));
 
 		// Notify chat room that a participant has registered
-		bctbx_list_t *devices = NULL;
-		const LinphoneAddress *deviceAddr = linphone_account_get_contact_address(pauline.getDefaultAccount());
-		LinphoneParticipantDeviceIdentity *identity =
-		    linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddr, "");
-		bctbx_list_t *specs = linphone_core_get_linphone_specs_list(pauline.getLc());
-		linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
-		bctbx_list_free_with_data(specs, ms_free);
-		devices = bctbx_list_append(devices, identity);
-
-		deviceAddr = linphone_account_get_contact_address(pauline2.getDefaultAccount());
-		identity = linphone_factory_create_participant_device_identity(linphone_factory_get(), deviceAddr, "");
-		specs = linphone_core_get_linphone_specs_list(pauline2.getLc());
-		linphone_participant_device_identity_set_capability_descriptor_2(identity, specs);
-		bctbx_list_free_with_data(specs, ms_free);
-		devices = bctbx_list_append(devices, identity);
-
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			linphone_chat_room_set_participant_devices(chatRoom->toC(), pauline.getCMgr()->identity, devices);
-		}
-		bctbx_list_free_with_data(devices, (bctbx_list_free_func)belle_sip_object_unref);
+		LinphoneChatRoom *focusCr = focus.searchChatRoom(confAddr, confAddr);
+		BC_ASSERT_PTR_NOT_NULL(focusCr);
+		setParticipantDevicesToChatroom({pauline, pauline2}, focusCr);
 
 		LinphoneChatRoom *pauline2Cr = check_creation_chat_room_client_side(
 		    coresList, pauline2.getCMgr(), &initialPauline2Stats, confAddr, initialSubject, 1, FALSE);
@@ -1083,27 +1002,7 @@ static void secure_one_on_one_chat_room_send_message_after_restart_base(bool_t c
 		linphone_chat_message_unref(msg);
 		msg = NULL;
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 
 		bctbx_list_free(participants);
 		linphone_conference_params_unref(conference_params);
@@ -1374,27 +1273,7 @@ static void secure_group_chat_room_sends_request_after_being_removed_from_server
 			msg = NULL;
 		}
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, berthe}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline, berthe}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline, berthe});
 
 		bctbx_list_free(participants);
 		linphone_conference_params_unref(conference_params);
@@ -1690,27 +1569,7 @@ static void secure_one_on_one_chat_room_recreates_chat_room_after_error(bool_t r
 			return focus.getCore().getChatRooms().size() == 1;
 		}));
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 
 		linphone_conference_params_unref(conference_params);
 		linphone_address_unref(confAddr);
@@ -1872,27 +1731,7 @@ static void secure_one_on_one_chat_room_created_twice(void) {
 			return linphone_chat_room_get_unread_messages_count(paulineCr) == 2;
 		}));
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				std::shared_ptr<Address> participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 
 		bctbx_list_free_with_data(participantsAddresses, (bctbx_list_free_func)linphone_address_unref);
 		linphone_address_unref(confAddr);
@@ -1982,27 +1821,7 @@ static void secure_one_on_one_chat_room_with_client_removed_from_server_chatroom
 
 		CoreManagerAssert({focus, marie, pauline}).waitUntil(std::chrono::seconds(2), [] { return false; });
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				auto participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		bctbx_list_free(coresList);
 	}
 }
@@ -2108,27 +1927,7 @@ static void secure_one_on_one_chat_room_with_client_sending_imdn_on_restart(void
 			}));
 		}
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				auto participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait a bit longer to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		bctbx_list_free(coresList);
 	}
 }
@@ -2641,27 +2440,7 @@ static void secure_group_chat_message_cannot_be_sent_immediately_base(bool_t res
 
 		CoreManagerAssert({focus, marie, pauline}).waitUntil(std::chrono::seconds(2), [] { return false; });
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				auto participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait bit more to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		bctbx_list_free(coresList);
 	}
 }
@@ -2782,27 +2561,7 @@ static void secure_group_chat_message_cannot_be_sent_immediately_with_replaces(v
 
 		CoreManagerAssert({focus, marie, pauline}).waitUntil(std::chrono::seconds(2), [] { return false; });
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				auto participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait bit more to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		bctbx_list_free(coresList);
 	}
 }
@@ -2906,27 +2665,7 @@ static void secure_group_chat_message_sent_during_conference_creation(void) {
 
 		CoreManagerAssert({focus, marie, pauline}).waitUntil(std::chrono::seconds(2), [] { return false; });
 
-		for (auto chatRoom : focus.getCore().getChatRooms()) {
-			for (auto participant : chatRoom->getParticipants()) {
-				//  force deletion by removing devices
-				auto participantAddress = participant->getAddress();
-				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
-			}
-		}
-
-		// wait until chatroom is deleted server side
-		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
-			return focus.getCore().getChatRooms().size() == 0;
-		}));
-
-		// wait bit more to detect side effect if any
-		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
-
-		// to avoid creation attempt of a new chatroom
-		LinphoneProxyConfig *config = linphone_core_get_default_proxy_config(focus.getLc());
-		linphone_proxy_config_edit(config);
-		linphone_proxy_config_set_conference_factory_uri(config, NULL);
-		linphone_proxy_config_done(config);
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
 		bctbx_list_free(coresList);
 	}
 }
