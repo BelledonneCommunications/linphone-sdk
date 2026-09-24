@@ -2572,7 +2572,6 @@ std::shared_ptr<Conference> Core::searchConference(const std::shared_ptr<Confere
                                                    const std::list<std::shared_ptr<Address>> &participants) const {
 	L_D();
 	decltype(d->mConferenceById) resultConferences;
-
 	if (remoteAddress && localAddress) {
 		ConferenceId conferenceId(remoteAddress, localAddress, createConferenceIdParams());
 		auto conferenceIt = d->mConferenceById.find(conferenceId);

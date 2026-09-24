@@ -3427,9 +3427,9 @@ static void linphone_core_init(LinphoneCore *lc,
                                LpConfig *config,
                                void *userdata,
                                BCTBX_UNUSED(void *system_context),
-                               bool_t automatically_start) {
+                               bool_t automatically_start,
+                               bool_t is_restart) {
 	LinphoneFactory *lfactory = linphone_factory_get();
-	LinphoneCoreCbs *internal_cbs = _linphone_core_cbs_new();
 	const char *msplugins_dir;
 	const char *image_resources_dir;
 
@@ -3564,14 +3564,16 @@ static void linphone_core_init(LinphoneCore *lc,
 
 	_linphone_core_init_account_creator_service(lc);
 
-	linphone_core_cbs_set_notify_received(internal_cbs, linphone_core_internal_notify_received);
-	linphone_core_cbs_set_subscribe_received(internal_cbs, linphone_core_internal_subscribe_received);
-	linphone_core_cbs_set_subscription_state_changed(internal_cbs, linphone_core_internal_subscription_state_changed);
-	linphone_core_cbs_set_publish_state_changed(internal_cbs, linphone_core_internal_publish_state_changed);
-	if (lc->vtable_refs == NULL) { // Do not add a new listener upon restart
+	if (!is_restart) {
+		LinphoneCoreCbs *internal_cbs = _linphone_core_cbs_new();
+		linphone_core_cbs_set_notify_received(internal_cbs, linphone_core_internal_notify_received);
+		linphone_core_cbs_set_subscribe_received(internal_cbs, linphone_core_internal_subscribe_received);
+		linphone_core_cbs_set_subscription_state_changed(internal_cbs,
+		                                                 linphone_core_internal_subscription_state_changed);
+		linphone_core_cbs_set_publish_state_changed(internal_cbs, linphone_core_internal_publish_state_changed);
 		_linphone_core_add_callbacks(lc, internal_cbs, TRUE);
+		belle_sip_object_unref(internal_cbs);
 	}
-	belle_sip_object_unref(internal_cbs);
 
 	if (cbs != NULL) {
 		_linphone_core_add_callbacks(lc, cbs, FALSE);
@@ -3727,8 +3729,7 @@ LinphoneStatus linphone_core_start(LinphoneCore *lc) {
 
 			case LinphoneGlobalOff:
 				bctbx_warning("Core was Off, before starting it again we need to init it");
-				linphone_core_init(lc, NULL, lc->config, lc->data, NULL, FALSE);
-
+				linphone_core_init(lc, NULL, lc->config, lc->data, NULL, FALSE, TRUE);
 				// Decrement refs to avoid leaking
 				linphone_config_unref(lc->config);
 				linphone_core_deactivate_log_serialization_if_needed();
@@ -3806,7 +3807,7 @@ LinphoneCore *_linphone_core_new_with_config(LinphoneCoreCbs *cbs,
 	LinphoneCore *core = L_INIT(Core);
 	Core::create(core);
 	core->is_main_core = main_core;
-	linphone_core_init(core, cbs, config, userdata, system_context, automatically_start);
+	linphone_core_init(core, cbs, config, userdata, system_context, automatically_start, FALSE);
 	return core;
 }
 

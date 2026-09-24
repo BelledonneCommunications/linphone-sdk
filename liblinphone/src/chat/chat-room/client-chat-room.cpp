@@ -547,9 +547,10 @@ bool ClientChatRoom::canSendMessages() const {
 	}
 	// Chat message can be sent only after the subscription has been finalized and the first NOTIFY received
 	// For encrypted chat rooms, the participant list cannot be empty
-	bool canMessageBeSent = (!subscriptionUnderway && !coreOff && (chatBackend == ChatParams::Backend::FlexisipChat) &&
-	                         (chatRoomState == ConferenceInterface::State::Created) &&
-	                         (!isEncrypted || !mConference->getParticipantDevices(false).empty()));
+	const auto &participantList = mConference->getParticipantDevices(true);
+	bool canMessageBeSent =
+	    (!subscriptionUnderway && !coreOff && (chatBackend == ChatParams::Backend::FlexisipChat) &&
+	     (chatRoomState == ConferenceInterface::State::Created) && (!isEncrypted || !participantList.empty()));
 	if (!canMessageBeSent) {
 		lInfo() << *conference << " cannot yet send messages: ";
 		if (chatRoomState != ConferenceInterface::State::Created) {
@@ -565,6 +566,9 @@ bool ClientChatRoom::canSendMessages() const {
 		if (subscriptionUnderway) {
 			lInfo() << " - subscription is underway (actually subscription is"
 			        << std::string(subscriptionUnderway ? " " : " not ") << "underway)";
+		}
+		if (participantList.empty()) {
+			lInfo() << " - participant device list is empty and the chat room is encrypted";
 		}
 	}
 	return canMessageBeSent;

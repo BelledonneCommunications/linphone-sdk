@@ -430,7 +430,11 @@ void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> not
 					if (cid.empty()) continue;
 					cid = Utils::unquote(cid, '<', '>');
 					map<string, std::shared_ptr<Address>>::const_iterator it = addresses.find(cid);
-					if (it == addresses.cend()) continue;
+					if (it == addresses.cend()) {
+						lWarning() << "ClientConferenceListEventHandler [" << this << "]: Content-ID [" << cid
+						           << " has not been found in the RLMI address list";
+						continue;
+					}
 
 					std::shared_ptr<Address> peer = it->second;
 					if (auto handler = findHandler(from, peer); handler) {
@@ -440,6 +444,10 @@ void ClientConferenceListEventHandler::notifyReceived(std::shared_ptr<Event> not
 						if (result == ClientConferenceEventHandlerBase::NotifyParsingResult::NeedFullState) {
 							needFullState = true;
 						}
+					} else {
+						lError() << "ClientConferenceListEventHandler [" << this
+						         << "]: unable to find handler of a conference whose local address is " << *from
+						         << " and the peer one is " << *peer;
 					}
 				}
 				if (needFullState) {
