@@ -3507,13 +3507,9 @@ void ServerConference::onCallSessionStateChanged(const std::shared_ptr<CallSessi
 				}
 			} break;
 			case CallSession::State::Error:
-				// If the call session ends up with an error, then reset the device to the ScheduledForJoining state to
-				// be retried the next time.
-				if (deviceState == ParticipantDevice::State::Joining) {
-					lWarning() << *session << " errored out while " << *device << " is joining " << *this
-					           << ", setting it back to ScheduledForJoining.";
-					setParticipantDeviceState(device, ParticipantDevice::State::ScheduledForJoining);
-				}
+				session->removeListener(getSharedFromThis());
+				device->setSession(nullptr);
+				lInfo() << *session << " errored out, detaching it from " << *device << ".";
 				break;
 			case CallSession::State::Released:
 				/* Handle the case of participant we've send a BYE. */
