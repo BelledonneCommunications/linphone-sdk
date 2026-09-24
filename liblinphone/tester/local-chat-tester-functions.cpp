@@ -5458,6 +5458,91 @@ void check_media_session_after_migration(LinphoneChatRoom *cr,
 	}
 }
 
+static void linphone_subscribe_received_to_check(LinphoneCore *lc,
+                                                 LinphoneEvent *lev,
+                                                 BCTBX_UNUSED(const char *eventname),
+                                                 const LinphoneContent *content) {
+	if (content) {
+		if (strcmp(linphone_content_get_subtype(content), "resource-lists+xml") == 0) {
+			const LinphoneAddress *to = linphone_event_get_to(lev);
+			char *to_str = linphone_address_as_string(to);
+
+			// Search the account linked to domain registration
+			const LinphoneAddress *conference_factory = nullptr;
+			const bctbx_list_t *accounts = linphone_core_get_account_list(lc);
+			for (; accounts != NULL; accounts = accounts->next) {
+				LinphoneAccount *account = (LinphoneAccount *)accounts->data;
+				const LinphoneAccountParams *params = linphone_account_get_params(account);
+				const LinphoneAddress *identity = linphone_account_params_get_identity_address(params);
+				char *identity_str = linphone_address_as_string(identity);
+				char *domain_registration_substr = strstr(identity_str, test_domain_registration_base_domain);
+				ms_free(identity_str);
+				if (domain_registration_substr) {
+					conference_factory = linphone_account_params_get_conference_factory_address(params);
+				}
+			}
+			ms_free(to_str);
+			BC_ASSERT_PTR_NOT_NULL(conference_factory);
+			if (conference_factory) {
+				BC_ASSERT_FALSE(linphone_address_weak_equal(conference_factory, to));
+			}
+		}
+	}
+}
+
+#ifdef HAVE_SOCI
+static void linphone_subscribe_received_content_check(LinphoneCore *lc,
+                                                      LinphoneEvent *lev,
+                                                      BCTBX_UNUSED(const char *eventname),
+                                                      const LinphoneContent *content) {
+	if (content) {
+		if (strcmp(linphone_content_get_subtype(content), "resource-lists+xml") == 0) {
+			const LinphoneAddress *to = linphone_event_get_to(lev);
+			char *to_str = linphone_address_as_string(to);
+
+			// Search the account linked to domain registration
+			const LinphoneAddress *conference_factory = nullptr;
+			const bctbx_list_t *accounts = linphone_core_get_account_list(lc);
+			for (; accounts != NULL; accounts = accounts->next) {
+				LinphoneAccount *account = (LinphoneAccount *)accounts->data;
+				const LinphoneAccountParams *params = linphone_account_get_params(account);
+				const LinphoneAddress *identity = linphone_account_params_get_identity_address(params);
+				char *identity_str = linphone_address_as_string(identity);
+				char *domain_registration_substr = strstr(identity_str, test_domain_registration_base_domain);
+				ms_free(identity_str);
+				if (domain_registration_substr) {
+					conference_factory = linphone_account_params_get_conference_factory_address(params);
+				}
+			}
+			ms_free(to_str);
+			BC_ASSERT_PTR_NOT_NULL(conference_factory);
+			if (conference_factory) {
+				soci::session sql("sqlite3", get_manager(lc)->database_path); // open the DB
+				int expected_list_size = -1;
+				std::string query("SELECT COUNT(*) FROM chat_room WHERE alternative_peer_address_id ");
+				if (!!linphone_address_weak_equal(conference_factory, to)) {
+					query += "=";
+				} else {
+					query += "!=";
+				}
+				query += " 0";
+				sql << query, soci::into(expected_list_size);
+				int list_size = 0;
+				const char *text = linphone_content_get_utf8_text(content);
+				if (text) {
+					const char *tmp = text;
+					while ((tmp = strstr(tmp, "entry uri"))) {
+						list_size++;
+						tmp++;
+					}
+				}
+				BC_ASSERT_EQUAL(list_size, expected_list_size, int, "%0d");
+			}
+		}
+	}
+}
+#endif // HAVE_SOCI
+
 void linphone_subscribe_received_body_check(LinphoneCore *lc,
                                             BCTBX_UNUSED(LinphoneEvent *lev),
                                             BCTBX_UNUSED(const char *eventname),
@@ -5594,6 +5679,7 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 		linphone_core_cbs_set_subscribe_received(cbs, linphone_subscribe_received_body_check);
 		_linphone_core_add_callbacks(focus.getLc(), cbs, TRUE);
 		linphone_core_cbs_unref(cbs);
+		cbs = NULL;
 
 		int nbLegacyChatRooms = 3;
 		const std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs{marie, pauline, focus, berthe,
@@ -5672,11 +5758,6 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 				BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
 #endif // HAVE_SOCI
 			}
-			if (domain_registration_account) {
-				linphone_core_add_account(focus.getLc(), domain_registration_account);
-				linphone_core_set_default_account(focus.getLc(), domain_registration_account);
-			}
-
 			ms_message("%s configures and starts again its core", linphone_core_get_identity(focus.getLc()));
 			focus.configureFocus();
 			linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
@@ -5684,6 +5765,10 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 				BC_ASSERT_TRUE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
 			} else {
 				BC_ASSERT_FALSE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));
+			}
+			if (domain_registration_account) {
+				linphone_core_add_account(focus.getLc(), domain_registration_account);
+				linphone_core_set_default_account(focus.getLc(), domain_registration_account);
 			}
 			linphone_core_manager_start(focus.getCMgr(), TRUE);
 			coresList = bctbx_list_append(coresList, focus.getLc());
@@ -5848,6 +5933,27 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 			}
 		}
 
+		if (method != ChatRoomMigrationMethod::SelectedChatroomsThroughDatabaseFlag) {
+			cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+			linphone_core_cbs_set_subscribe_received(cbs, linphone_subscribe_received_to_check);
+			_linphone_core_add_callbacks(focus.getLc(), cbs, TRUE);
+			linphone_core_cbs_unref(cbs);
+			cbs = NULL;
+		}
+
+#ifdef HAVE_SOCI
+		cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+		linphone_core_cbs_set_subscribe_received(cbs, linphone_subscribe_received_content_check);
+		_linphone_core_add_callbacks(focus.getLc(), cbs, TRUE);
+		linphone_core_cbs_unref(cbs);
+		cbs = NULL;
+#endif // HAVE_SOCI
+
+		int expected_nb_subscribes = 1;
+		if (method == ChatRoomMigrationMethod::SelectedChatroomsThroughDatabaseFlag) {
+			expected_nb_subscribes++;
+		}
+
 		int maxIterations = 3;
 		// Restart the core multiple time to verify that no database corruption occurs
 		for (int idx = 0; idx < maxIterations; idx++) {
@@ -5864,11 +5970,19 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 				core.reStart();
 				coresList = bctbx_list_append(coresList, core.getLc());
 
-				BC_ASSERT_TRUE(wait_for_list(coresList, &core.getStats().number_of_LinphoneSubscriptionActive, 1,
-				                             liblinphone_tester_sip_timeout));
-				BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
-				                             initialFocusStats.number_of_LinphoneSubscriptionActive + 1,
-				                             liblinphone_tester_sip_timeout));
+				BC_ASSERT_TRUE(wait_for_list(coresList, &core.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
+				                             expected_nb_subscribes, liblinphone_tester_sip_timeout));
+				BC_ASSERT_FALSE(wait_for_list(coresList,
+				                              &core.getStats().number_of_LinphoneSubscriptionOutgoingProgress,
+				                              expected_nb_subscribes + 1, 1000));
+				BC_ASSERT_TRUE(wait_for_list(coresList, &core.getStats().number_of_LinphoneSubscriptionActive,
+				                             expected_nb_subscribes, liblinphone_tester_sip_timeout));
+				BC_ASSERT_TRUE(
+				    wait_for_list(coresList, &focus.getStats().number_of_LinphoneSubscriptionActive,
+				                  initialFocusStats.number_of_LinphoneSubscriptionActive + expected_nb_subscribes,
+				                  liblinphone_tester_sip_timeout));
+				BC_ASSERT_FALSE(
+				    wait_for_list(coresList, &core.getStats().number_of_LinphoneSubscriptionError, 1, 1000));
 				BC_ASSERT_EQUAL(core.getCore().getChatRooms().size(), static_cast<size_t>(nbLegacyChatRooms), size_t,
 				                "%zu");
 
@@ -6030,10 +6144,11 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 				if (core.getCMgr() == focus.getCMgr()) {
 					continue;
 				}
-				BC_ASSERT_EQUAL(core.getStats().number_of_LinphoneSubscriptionActive, 1, int, "%0d");
+				BC_ASSERT_EQUAL(core.getStats().number_of_LinphoneSubscriptionActive, expected_nb_subscribes, int,
+				                "%0d");
 				BC_ASSERT_EQUAL(focus.getStats().number_of_LinphoneSubscriptionActive,
 				                overallInitialFocusStats.number_of_LinphoneSubscriptionActive +
-				                    static_cast<int>(cores.size() - 1),
+				                    static_cast<int>(cores.size() - 1) * expected_nb_subscribes,
 				                int, "%0d");
 			}
 		}

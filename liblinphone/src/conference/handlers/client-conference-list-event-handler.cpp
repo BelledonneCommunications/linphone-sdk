@@ -147,10 +147,9 @@ std::optional<std::shared_ptr<EventSubscribe>> ClientConferenceListEventHandler:
 	for (const auto &handlerWkPtr : handlers) {
 		const std::shared_ptr<ClientConferenceEventHandler> handler(handlerWkPtr.lock());
 		if (!handler) continue;
-		const ConferenceId &conferenceId = handler->getConferenceId();
-		const auto &localAddress = conferenceId.getLocalAddress();
-		if (from->weakEqual(*localAddress)) {
-			auto peerAddress = conferenceId.getPeerAddress()->getUriWithoutGruu();
+		const auto &conference = handler->getConference();
+		if (const auto &conferenceAccount = conference->getAccount(); account && (conferenceAccount == account)) {
+			auto peerAddress = conference->getConferenceAddress()->getUriWithoutGruu();
 			bool hasConfIdParams = peerAddress.hasUriParam(Conference::kConfIdParameter);
 			if (hasConfIdParams) {
 				peerAddress.removeUriParam(Conference::kConfIdParameter);
@@ -166,11 +165,10 @@ std::optional<std::shared_ptr<EventSubscribe>> ClientConferenceListEventHandler:
 			    (hasConfIdParams && (peerAddress.toStringUriOnlyOrdered() == to.toStringUriOnlyOrdered()))) {
 				try {
 					const auto &core = getCore();
-					shared_ptr<AbstractChatRoom> cr = core->findChatRoom(conferenceId, false);
+					shared_ptr<AbstractChatRoom> cr = core->findChatRoom(handler->getConferenceId(), false);
 					if (!cr) {
-						lError() << "ClientConferenceListEventHandler [" << this << "]: Couldn't add chat room "
-						         << conferenceId
-						         << " in the chat room list subscription because chat room couldn't be found";
+						lError() << "ClientConferenceListEventHandler [" << this << "]: Couldn't add " << *conference
+						         << " to the chat room list subscription because chat room couldn't be found";
 						continue;
 					}
 					if (cr->hasBeenLeft()) continue;
@@ -635,20 +633,20 @@ void ClientConferenceListEventHandler::addHandler(std::shared_ptr<ClientConferen
 		return;
 	}
 
-	const ConferenceId &conferenceId = handler->getConferenceId();
-	if (!conferenceId.isValid()) {
+	const auto &conference = handler->getConference();
+	if (!conference) {
 		lError() << "ClientConferenceListEventHandler [" << this << "]: Unable to add handler [" << handler
-		         << "] because its conference id is not valid";
+		         << "] because it isn't attached any conference";
 		return;
 	}
 
 	if (findHandler(handler)) {
-		lWarning() << "Trying to insert an already present handler (" << handler
-		           << ") into the ClientConferenceListEventHandler [" << this << "]: " << conferenceId;
+		lWarning() << "Trying to insert an already present handler [" << handler << "] for " << *conference
+		           << " into the ClientConferenceListEventHandler [" << this << "].";
 		return;
 	}
 
-	const auto &peerAddress = conferenceId.getPeerAddress();
+	const auto &peerAddress = conference->getConferenceAddress();
 	bool hasConfIdParams = peerAddress->hasUriParam(Conference::kConfIdParameter);
 	if (hasConfIdParams) {
 		auto focusUri = peerAddress->getUriWithoutGruu();
@@ -657,14 +655,16 @@ void ClientConferenceListEventHandler::addHandler(std::shared_ptr<ClientConferen
 		mHandlers.insert(handler);
 	} else {
 		try {
-			const auto &localAddress = conferenceId.getLocalAddress();
-			const auto conferenceFactoryUri = Core::getConferenceFactoryAddress(getCore(), localAddress);
-			if (!conferenceFactoryUri || !conferenceFactoryUri->isValid()) {
-				lDebug() << "ClientConferenceListEventHandler [" << this << "]: Account with local address ["
-				         << *localAddress << "] hasn't a conference factory URI defined.";
-				return;
+			if (const auto &account = conference->getAccount(); account) {
+				if (const auto &localAddress = account->getAccountParams()->getIdentityAddress(); localAddress) {
+					const auto conferenceFactoryUri = Core::getConferenceFactoryAddress(getCore(), localAddress);
+					if (!conferenceFactoryUri || !conferenceFactoryUri->isValid()) {
+						lDebug() << "ClientConferenceListEventHandler [" << this << "]: " << *account
+						         << " hasn't a conference factory URI defined.";
+						return;
+					}
+				}
 			}
-
 			mLegacyChatRoomHandlers.insert(handler);
 		} catch (const bad_weak_ptr &) {
 		}
