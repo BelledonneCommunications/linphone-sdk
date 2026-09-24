@@ -1349,43 +1349,43 @@ void group_chat_room_with_sip_errors_base(bool invite_error, bool subscribe_erro
 		                             initialFocusStats.number_of_chat_room_participant_devices_added + 1,
 		                             liblinphone_tester_sip_timeout));
 
-		BC_ASSERT_TRUE(
-		    CoreManagerAssert({focus, marie, michelle, michelle2, pauline, laure, berthe})
-		        .waitUntil(chrono::seconds(40), [&focus, &shutdownNetworkClients, &sipErrorClient] {
-			        LinphoneAddress *sipErrorClient_contact_address =
-			            linphone_account_get_contact_address(linphone_core_get_default_account(sipErrorClient.getLc()));
-			        for (const auto &chatRoom : focus.getCore().getChatRooms()) {
-				        if (chatRoom->getConference()->getParticipantCount() != 5) {
-					        return false;
-				        }
-				        for (const auto &participant : chatRoom->getParticipants()) {
-					        const auto &devices = participant->getDevices();
-					        if (devices.size() == 0) {
-						        return false;
-					        }
-					        for (const auto &device : devices) {
-						        const auto &address = device->getAddress();
-						        bool deviceIsOff = false;
-						        for (const auto &offMgr : shutdownNetworkClients) {
-							        LinphoneAddress *offMgr_contact_address = linphone_account_get_contact_address(
-							            linphone_core_get_default_account(offMgr->lc));
-							        if (!linphone_address_equal(offMgr_contact_address,
-							                                    sipErrorClient_contact_address) &&
-							            linphone_address_equal(offMgr_contact_address, address->toC())) {
-								        deviceIsOff = true;
-								        break;
-							        }
-						        }
-						        auto expectedDeviceState = (deviceIsOff) ? ParticipantDevice::State::ScheduledForJoining
-						                                                 : ParticipantDevice::State::Present;
-						        if (device->getState() != expectedDeviceState) {
-							        return false;
-						        }
-					        }
-				        }
-			        }
-			        return true;
-		        }));
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, michelle2, pauline, laure, berthe})
+		                   .waitUntil(chrono::seconds(40), [&focus, &shutdownNetworkClients, &sipErrorClient] {
+			                   LinphoneAddress *sipErrorClient_contact_address = linphone_account_get_contact_address(
+			                       linphone_core_get_default_account(sipErrorClient.getLc()));
+			                   for (const auto &chatRoom : focus.getCore().getChatRooms()) {
+				                   if (chatRoom->getConference()->getParticipantCount() != 5) {
+					                   return false;
+				                   }
+				                   for (const auto &participant : chatRoom->getParticipants()) {
+					                   const auto &devices = participant->getDevices();
+					                   if (devices.size() == 0) {
+						                   return false;
+					                   }
+					                   for (const auto &device : devices) {
+						                   const auto &address = device->getAddress();
+						                   bool deviceIsOff = false;
+						                   for (const auto &offMgr : shutdownNetworkClients) {
+							                   LinphoneAddress *offMgr_contact_address =
+							                       linphone_account_get_contact_address(
+							                           linphone_core_get_default_account(offMgr->lc));
+							                   if (!linphone_address_equal(offMgr_contact_address,
+							                                               sipErrorClient_contact_address) &&
+							                       linphone_address_equal(offMgr_contact_address, address->toC())) {
+								                   deviceIsOff = true;
+								                   break;
+							                   }
+						                   }
+						                   auto expectedDeviceState = (deviceIsOff) ? ParticipantDevice::State::Joining
+						                                                            : ParticipantDevice::State::Present;
+						                   if (device->getState() != expectedDeviceState) {
+							                   return false;
+						                   }
+					                   }
+				                   }
+			                   }
+			                   return true;
+		                   }));
 
 		msg_text = "message laure blabla";
 		LinphoneChatMessage *msg2 = ClientConference::sendTextMsg(laureCr, msg_text);
@@ -2051,7 +2051,7 @@ void group_chat_room_with_focus_shutdown_during_invitation_base(bool encrypted) 
 					                   bool participantAdditionIncomplete =
 					                       (linphone_address_weak_equal(address->toC(), laure.getCMgr()->identity));
 					                   auto expectedDeviceState = (participantAdditionIncomplete)
-					                                                  ? ParticipantDevice::State::ScheduledForJoining
+					                                                  ? ParticipantDevice::State::Joining
 					                                                  : ParticipantDevice::State::Present;
 					                   const auto &devices = participant->getDevices();
 					                   if (devices.size() == 0) {
@@ -2059,6 +2059,11 @@ void group_chat_room_with_focus_shutdown_during_invitation_base(bool encrypted) 
 					                   }
 					                   for (const auto &device : devices) {
 						                   if (device->getState() != expectedDeviceState) {
+							                   return false;
+						                   }
+						                   // Wait for the INVITE sent to Laure to time out while the focus is offline,
+						                   // and its session to be detached from the device
+						                   if (participantAdditionIncomplete && device->getSession()) {
 							                   return false;
 						                   }
 					                   }
