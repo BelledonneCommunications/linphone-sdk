@@ -27,13 +27,14 @@ shared_ptr<BelCardProperty> BelCardProperty::parse(const string &input, bool v3)
 }
 
 void BelCardProperty::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
-	if (!v3) {
-		parser->setHandler("X-PROPERTY", make_fn(BelCardGeneric::create<BelCardProperty>))
-		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-		    ->setCollector("X-PROPERTY-name", make_sfn(&BelCardProperty::setName))
-		    ->setCollector("X-PROPERTY-value", make_sfn(&BelCardProperty::setValue));
-	}
+	// X-PROPERTY is defined identically in both the vCard3 and vCard4 grammars, so the same
+	// handler/collectors apply regardless of v3.
+	(void)v3;
+	parser->setHandler("X-PROPERTY", make_fn(BelCardGeneric::create<BelCardProperty>))
+	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+	    ->setCollector("X-PROPERTY-name", make_sfn(&BelCardProperty::setName))
+	    ->setCollector("X-PROPERTY-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardProperty::BelCardProperty(bool v3) : BelCardGeneric(v3) {
