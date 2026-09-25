@@ -302,6 +302,9 @@ static void conference_with_server_no_rtp_timeout() {
 			    mgr, add_participant_info_to_list(&participants_info, identity, LinphoneParticipantRoleSpeaker, -1)));
 			linphone_address_unref(identity);
 		}
+		participantList.insert(
+		    std::make_pair(marie.getCMgr(), add_participant_info_to_list(&participants_info, marie.getCMgr()->identity,
+		                                                                 LinphoneParticipantRoleSpeaker, -1)));
 
 		bool_t enable_chat = TRUE;
 		LinphoneAddress *confAddr =
@@ -343,6 +346,18 @@ static void conference_with_server_no_rtp_timeout() {
 		    fill_member_list(members, participantList, marie.getCMgr(), participants_info);
 		wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe, lise}, conferenceMgrs,
 		                            focus.getCMgr(), memberList, confAddr, TRUE, security_level);
+
+		ConferenceId id(Address::toCpp(confAddr)->getSharedFromThis(),
+		                Address::toCpp(marie.getCMgr()->identity)->getSharedFromThis(), ConferenceIdParams());
+		bool participantOrDeviceRemovedEventFound = false;
+		list<shared_ptr<EventLog>> events = marie.getDatabase().value().get().getConferenceNotifiedEvents(id, 1);
+		for (const auto &event : events) {
+			if ((event->getType() == EventLog::Type::ConferenceParticipantRemoved) ||
+			    (event->getType() == EventLog::Type::ConferenceParticipantDeviceRemoved)) {
+				participantOrDeviceRemovedEventFound = true;
+			}
+		}
+		BC_ASSERT_FALSE(participantOrDeviceRemovedEventFound);
 
 		coresList = bctbx_list_remove(coresList, berthe.getLc());
 		// Berthe restarts its core

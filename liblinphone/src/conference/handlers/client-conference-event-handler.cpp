@@ -808,6 +808,9 @@ ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xmlBody
 			// Send participant and participant device removed notifys if the full state has less participants than
 			// the current chat room or conference
 			for (const auto &p : oldParticipants) {
+				if (conference->isMe(p->getAddress())) {
+					continue;
+				}
 				const auto &pIt = std::find_if(currentParticipants.cbegin(), currentParticipants.cend(),
 				                               [&p](const auto &currentParticipant) {
 					                               return (*p->getAddress() == *currentParticipant->getAddress());

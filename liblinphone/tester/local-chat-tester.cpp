@@ -5335,6 +5335,8 @@ static void short_ephemeral_lifetime_messages_test(void) {
 		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(laureAddr.toC()));
 		Address paulineAddr = pauline.getIdentity();
 		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(paulineAddr.toC()));
+		Address marieAddr = marie.getIdentity();
+		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(marieAddr.toC()));
 
 		// Enable IMDN
 		linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(marie.getLc()));
@@ -5375,11 +5377,12 @@ static void short_ephemeral_lifetime_messages_test(void) {
 		participantsAddresses = NULL;
 		linphone_conference_params_unref(marie_params);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
-		const LinphoneAddress *confAddr = marieCr ? linphone_chat_room_get_conference_address(marieCr) : NULL;
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreated,
 		                             initialMarieStats.number_of_LinphoneChatRoomStateCreated + 1,
 		                             liblinphone_tester_sip_timeout));
 		linphone_chat_room_unref(marieCr);
+		const LinphoneAddress *confAddr = marieCr ? linphone_chat_room_get_conference_address(marieCr) : NULL;
+		BC_ASSERT_PTR_NOT_NULL(confAddr);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomStateCreated,
 		                             initialPaulineStats.number_of_LinphoneChatRoomStateCreated + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -5432,6 +5435,19 @@ static void short_ephemeral_lifetime_messages_test(void) {
 				BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(cr), 1, int, "%d");
 			}
 		}
+
+		ConferenceId id(Address::toCpp(confAddr)->getSharedFromThis(),
+		                Address::toCpp(marie.getCMgr()->identity)->getSharedFromThis(), ConferenceIdParams());
+		bool participantOrDeviceRemovedEventFound = false;
+		list<shared_ptr<EventLog>> events = marie.getDatabase().value().get().getConferenceNotifiedEvents(id, 1);
+		BC_ASSERT_GREATER_STRICT(events.size(), 0, size_t, "%zu");
+		for (const auto &event : events) {
+			if ((event->getType() == EventLog::Type::ConferenceParticipantRemoved) ||
+			    (event->getType() == EventLog::Type::ConferenceParticipantDeviceRemoved)) {
+				participantOrDeviceRemovedEventFound = true;
+			}
+		}
+		BC_ASSERT_FALSE(participantOrDeviceRemovedEventFound);
 
 		for (ConfCoreManager &client : clients) {
 			LinphoneCore *core = client.getLc();

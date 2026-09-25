@@ -317,6 +317,7 @@ private:
 	                              const std::shared_ptr<Address> &remoteContactAddress,
 	                              bool incomingReceived) const;
 
+	// It returns a boolean stating whether the conference address has yet to be migrated to the pattern <focus>;conf-id=<random-string>
 	bool canBeMigrated() const;
 
 	bool sessionParamsAllowThumbnails() const override;

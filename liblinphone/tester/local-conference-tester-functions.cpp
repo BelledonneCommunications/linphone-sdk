@@ -2573,6 +2573,7 @@ void create_conference_base(time_t start_time,
 		    fill_member_list(members, participantList, marie.getCMgr(), participants_info);
 		wait_for_conference_streams({focus, marie, pauline, laure, michelle, berthe}, conferenceMgrs, focus.getCMgr(),
 		                            memberList, confAddr, enable_video, security_level);
+
 		auto participantInfos = mapSharedFromThisValues<ParticipantInfo>(memberList);
 		update_sequence_number(&participants_info, {}, 0, -1);
 		for (auto mgr : members) {

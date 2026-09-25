@@ -1043,7 +1043,7 @@ void CallSessionPrivate::setContactAddressForConference(std::shared_ptr<Address>
 		std::shared_ptr<Address> conferenceAddress;
 		std::shared_ptr<Conference> conferenceFound;
 		// If a conference is found, use the assigned conference address rather than the actual one. In fact, until
-		// SDK 5.5, clients set the conference address as the contact address of the INVITE session. In the context of
+		// SDK 5.5, clients expect the contact address of the INVITE to be the conference address. In the context of
 		// chatroom migration, the assigned address is the address put forward in the From header as well NOTIFY entity
 		// XML tag. The actual conference address is the address used to efficiently route the request and it is mainly
 		// used as SIP message request URI. By setting the contact address as the assigned conference address, old SDKs
