@@ -1643,10 +1643,12 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 		BC_ASSERT_TRUE(participant_device_is_me_check);
 		if (!call_check) { // Print expected stream count on error
 			LinphoneCall *call = linphone_core_get_call_by_remote_address2(mgr->lc, confAddr);
-			size_t nb_video_streams = compute_no_video_streams_2(participantCalls, participantInfos,
-			                                                     Call::getSharedFromThis(call), focus->lc->cppPtr);
-			BC_ASSERT_EQUAL(Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeVideo), nb_video_streams, size_t,
-			                "%zu");
+			if (call) {
+				size_t nb_video_streams = compute_no_video_streams_2(participantCalls, participantInfos,
+				                                                     Call::getSharedFromThis(call), focus->lc->cppPtr);
+				BC_ASSERT_EQUAL(Call::toCpp(call)->getMediaStreamsNb(LinphoneStreamTypeVideo), nb_video_streams, size_t,
+				                "%zu");
+			}
 		}
 	}
 #ifdef HAVE_ADVANCED_IM

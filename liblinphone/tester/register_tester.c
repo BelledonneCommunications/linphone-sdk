@@ -319,6 +319,90 @@ static void simple_register_with_custom_refresh_period(void) {
 	linphone_core_manager_destroy(lcm);
 }
 
+
+static void simple_register_expires_zero(void) {
+	LinphoneCoreManager *lcm = create_lcm();
+
+	stats *counters = &lcm->stat;
+	LinphoneAccountParams *account_params = linphone_core_create_account_params(lcm->lc);
+
+	LinphoneAddress *from = create_linphone_address_for_algo(NULL, NULL);
+
+	linphone_account_params_set_identity_address(account_params, from);
+	const char *server_addr = linphone_address_get_domain(from);
+
+	linphone_account_params_enable_register(account_params, TRUE);
+	// Set the Expires header to 0 to force a state transition from RegistrationProgress to Cleared
+	linphone_account_params_set_expires(account_params, 0);
+	linphone_account_params_set_server_addr(account_params, server_addr);
+	linphone_address_unref(from);
+
+	LinphoneAccount *account = linphone_core_create_account(lcm->lc, account_params);
+	linphone_core_add_account(lcm->lc, account);
+	linphone_core_set_default_account(lcm->lc, account);
+
+	linphone_account_unref(account);
+	linphone_account_params_unref(account_params);
+
+	BC_ASSERT_TRUE(
+	    wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationProgress, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationCleared, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_EQUAL(counters->number_of_LinphoneRegistrationNone, 0, int, "%d");
+	BC_ASSERT_EQUAL(counters->number_of_LinphoneRegistrationOk, 0, int, "%d");
+
+	linphone_core_manager_destroy(lcm);
+}
+
+static void account_removed_while_registering(LinphoneCore *lc,
+                                LinphoneAccount *account,
+                                LinphoneRegistrationState cstate,
+                                BCTBX_UNUSED(const char *message)) {
+	if (cstate == LinphoneRegistrationProgress) {
+		linphone_core_remove_account(lc, account);
+	}
+}
+
+static void simple_register_added_removed_quickly(void) {
+	LinphoneCoreManager *lcm = create_lcm();
+
+	LinphoneCoreCbs *cbs = linphone_factory_create_core_cbs(linphone_factory_get());
+	linphone_core_cbs_set_account_registration_state_changed(cbs, account_removed_while_registering);
+	linphone_core_add_callbacks(lcm->lc, cbs);
+	linphone_core_cbs_unref(cbs);
+
+	int expires = 20;     // s;
+	stats *counters = &lcm->stat;
+	LinphoneAccountParams *account_params = linphone_core_create_account_params(lcm->lc);
+
+	LinphoneAddress *from = create_linphone_address_for_algo(NULL, NULL);
+
+	linphone_account_params_set_identity_address(account_params, from);
+	const char *server_addr = linphone_address_get_domain(from);
+
+	linphone_account_params_enable_register(account_params, TRUE);
+	linphone_account_params_set_expires(account_params, expires);
+	linphone_account_params_set_server_addr(account_params, server_addr);
+	linphone_address_unref(from);
+
+	LinphoneAccount *account = linphone_core_create_account(lcm->lc, account_params);
+	linphone_core_add_account(lcm->lc, account);
+	linphone_core_set_default_account(lcm->lc, account);
+
+	linphone_account_unref(account);
+	linphone_account_params_unref(account_params);
+
+	BC_ASSERT_TRUE(
+	    wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationProgress, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationOk, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(
+	    wait_for_until(lcm->lc, NULL, &counters->number_of_LinphoneRegistrationCleared, 1, liblinphone_tester_sip_timeout));
+	BC_ASSERT_EQUAL(counters->number_of_LinphoneRegistrationNone, 0, int, "%d");
+
+	linphone_core_manager_destroy(lcm);
+}
+
 static void register_with_custom_headers(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneProxyConfig *cfg = linphone_core_get_default_proxy_config(marie->lc);
@@ -1915,6 +1999,8 @@ static void register_add_and_remove_custom_headers(void) {
 
 static test_t register_tests[] = {
     TEST_NO_TAG("Simple register", simple_register), TEST_NO_TAG("Simple register unregister", simple_unregister),
+    TEST_NO_TAG("Simple register with expires header set to 0", simple_register_expires_zero),
+    TEST_NO_TAG("Simple register added and quickly removed", simple_register_added_removed_quickly),
     TEST_NO_TAG("TCP register", simple_tcp_register),
     TEST_NO_TAG("TCP register with failover", tcp_register_with_failover),
     TEST_NO_TAG("UDP register with failover", udp_register_with_failover),

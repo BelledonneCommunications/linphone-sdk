@@ -67,7 +67,7 @@ using namespace Xsd::XconConferenceInfo;
 static FsmIntegrityChecker<LinphoneRegistrationState> accountFsmChecker{
     {{LinphoneRegistrationNone, {LinphoneRegistrationProgress, LinphoneRegistrationFailed}},
      {LinphoneRegistrationProgress,
-      {LinphoneRegistrationOk, LinphoneRegistrationRefreshing, LinphoneRegistrationFailed}},
+      {LinphoneRegistrationOk, LinphoneRegistrationRefreshing, LinphoneRegistrationFailed, LinphoneRegistrationCleared}},
      {LinphoneRegistrationOk,
       {
           LinphoneRegistrationNone,
@@ -458,6 +458,9 @@ void Account::handleDeletion() {
 					}
 				}
 			}
+			break;
+		case LinphoneRegistrationProgress:
+			// If the registration is in progress; then wait for the response and then delete the account
 			break;
 		case LinphoneRegistrationNone:
 		default:
