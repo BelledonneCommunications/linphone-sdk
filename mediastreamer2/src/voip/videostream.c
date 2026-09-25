@@ -1044,7 +1044,11 @@ static void configure_recorder_output(VideoStream *stream) {
 
 static void configure_decoder(VideoStream *stream, PayloadType *pt) {
 	bool_t avpf_enabled = !!(pt->flags & PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+	bool_t rpsi_enabled = !!(payload_type_get_avpf_params(pt).features & PAYLOAD_TYPE_AVPF_RPSI);
 	ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_ENABLE_AVPF, &avpf_enabled);
+	if (ms_filter_has_method(stream->ms.decoder, MS_VIDEO_DECODER_ENABLE_RPSI)) {
+		ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_ENABLE_RPSI, &rpsi_enabled);
+	}
 	ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_FREEZE_ON_ERROR, &stream->freeze_on_error);
 
 	if (stream->content == MSVideoContentThumbnail) {
@@ -1570,6 +1574,10 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 				ms_filter_call_method(stream->ms.encoder, MS_FILTER_ADD_FMTP, pt->send_fmtp);
 			}
 			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_ENABLE_AVPF, &avpf_enabled);
+			if (ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_ENABLE_RPSI)) {
+				bool_t rpsi_enabled = !!(payload_type_get_avpf_params(pt).features & PAYLOAD_TYPE_AVPF_RPSI);
+				ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_ENABLE_RPSI, &rpsi_enabled);
+			}
 			if (stream->use_preview_window) {
 				if (stream->rendercb == NULL) {
 					stream->output2 = ms_factory_create_filter_from_name(stream->ms.factory, stream->display_name);
