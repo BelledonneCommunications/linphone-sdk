@@ -26,6 +26,30 @@
 
 namespace mediastreamer {
 
+/**
+ * Reassembles temporal units from RTP packets carrying the "RTP Payload Format
+ * For AV1" (AOMedia specification, v1.0).
+ *
+ * Each packet starts with the aggregation header:
+ *
+ *     0 1 2 3 4 5 6 7
+ *    +-+-+-+-+-+-+-+-+
+ *    |Z|Y| W |N|-|-|-|
+ *    +-+-+-+-+-+-+-+-+
+ *
+ * and carries one or more OBU elements. When W is 0 every element is prefixed
+ * by its leb128 length; when W > 0 the packet holds exactly W elements, the
+ * first W-1 length-prefixed and the last one extending to the end of the
+ * payload. Z flags the first element as the continuation of an OBU started in
+ * the previous packet, Y flags the last element as continuing in the next
+ * packet, and the RTP marker bit closes the temporal unit.
+ *
+ * Senders are recommended to omit obu_size fields (the element length already
+ * carries the size), but may keep them. Whatever the input form, each
+ * reassembled OBU is rewritten with obu_has_size_field set, so the delivered
+ * temporal unit is a self-delimiting low-overhead bitstream that dav1d and
+ * obuparse can consume directly.
+ */
 class ObuUnpacker {
 public:
 	enum Status { NoFrame, FrameAvailable, FrameCorrupted };
@@ -35,12 +59,16 @@ public:
 	Status unpack(mblk_t *im, MSQueue *output);
 	void reset();
 
-protected:
-	mblk_t *feed(mblk_t *packet);
-	bool isAggregating() const;
-	mblk_t *completeAggregation();
+private:
+	void processPacket(mblk_t *packet);
+	void processObuElement(mblk_t *packet, uint8_t *start, size_t size, bool continuesPrevious, bool willContinue);
+	void appendCompleteObu();
+	bool rewriteObu(const uint8_t *data, size_t size);
+	void discardFrame();
 
-	mblk_t *mFrame = nullptr;
+	mblk_t *mFrame = nullptr;           // completed OBUs of the current temporal unit, in low-overhead format
+	mblk_t *mPendingFragment = nullptr; // OBU under reassembly, raw element bytes
+	bool mFrameCorrupted = false;
 	bool mInitializedRefCSeq = false;
 	uint16_t mRefCSeq = 0;
 };
