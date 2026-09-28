@@ -182,7 +182,7 @@ int auGetDeviceSampleRate(AudioDeviceID dev, bool_t isRead, int *rate) {
 	AudioObjectPropertyScope inputScope = isRead ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput;
 	AudioObjectPropertyAddress streamFormatAddress = {kAudioDevicePropertyStreamFormat, inputScope, 0};
 	AudioStreamBasicDescription format = {0};
-	UInt32 slen;
+	UInt32 slen = sizeof(AudioStreamBasicDescription);
 	int err;
 
 	err = AudioObjectGetPropertyData(dev, &streamFormatAddress, 0, NULL, &slen, &format);
