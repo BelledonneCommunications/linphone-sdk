@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/msaudiomixer.h"
 #include "mediastreamer2/msconference.h"
@@ -60,7 +60,7 @@ struct _MSAudioEndpoint {
 	int pin;
 	int samplerate;
 	MSConferenceMode conf_mode;
-	bool_t muted;
+	bool_t muted, is_remote;
 };
 
 MSAudioConference *ms_audio_conference_new(const MSAudioConferenceParams *params, MSFactory *factory) {
@@ -175,6 +175,7 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote) {
 		ep->mixer_in = ep->out_cut_point;
 		ep->mixer_out = ep->in_cut_point;
 	}
+	ep->is_remote = is_remote;
 }
 
 static void redo_audio_stream_graph(MSAudioEndpoint *ep) {
@@ -268,7 +269,7 @@ static int request_volumes(BCTBX_UNUSED(MSFilter *filter), rtp_audio_level_t **a
 	for (it = ep->conference->members; it != NULL; it = it->next) {
 		MSAudioEndpoint *data = (MSAudioEndpoint *)it->data;
 		if (data != NULL && data->st != NULL) {
-			int is_remote = (data->in_cut_point_prev.filter == data->st->volrecv);
+			int is_remote = data->is_remote;
 
 			if (is_remote) {
 				volumes_size += audio_stream_volumes_append(volumes, data->st->participants_volumes);
@@ -319,11 +320,24 @@ static void unconfigure_output(MSAudioEndpoint *ep) {
 	ms_filter_call_method(ep->conference->mixer, MS_PACKET_ROUTER_UNCONFIGURE_OUTPUT, &ep->pin);
 }
 
+/*
+ * The AudioStream's own MSTicker and the MSAudioConference MSTicker have different time origin.
+ * Inform the MSRtpSend filter, because it uses the MSTicker's time information to calculate timestamps.
+ */
+static void compensate_ticker_offset(MSAudioConference *obj, MSAudioEndpoint *ep) {
+	if (ep->is_remote && ep->st->ms.sessions.rtp_session && ep->st->ms.sessions.ticker) {
+		int64_t ticker_offset = obj->ticker->time - ep->st->ms.sessions.ticker->time;
+		ms_filter_call_method(ep->st->ms.rtpsend, MS_RTP_SEND_SET_TICKER_OFFSET, &ticker_offset);
+	}
+}
+
 void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep) {
 	/* now connect to the mixer */
 	ep->conference = obj;
 	if (obj->nmembers > 0) ms_ticker_detach(obj->ticker, obj->mixer);
+
 	plumb_to_conf(ep);
+	compensate_ticker_offset(obj, ep);
 	ms_ticker_attach(obj->ticker, obj->mixer);
 	obj->members = bctbx_list_append(obj->members, ep);
 	obj->nmembers++;
