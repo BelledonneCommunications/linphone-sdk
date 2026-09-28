@@ -38,6 +38,7 @@ static const int default_dtmf_duration_ms = 100; /*in milliseconds*/
 struct SenderData {
 	RtpSession *session;
 	MSBoxPlot processing_delay_stats;
+	uint64_t ticker_offset;
 	uint32_t tsoff;
 	uint32_t last_ts;
 	int64_t last_sent_time;
@@ -322,23 +323,23 @@ static int sender_get_ch(MSFilter *f, void *arg) {
 static uint32_t get_cur_timestamp(MSFilter *f, mblk_t *im) {
 	SenderData *d = (SenderData *)f->data;
 	uint32_t curts = (uint32_t)((f->ticker->time * (uint64_t)d->rate) / (uint64_t)1000);
+	int32_t ticker_offset_ts = (int32_t)((d->ticker_offset * (int64_t)d->rate) / (int64_t)1000);
 	int diffts;
 	uint32_t netts;
 	int difftime_ts;
 
-	if (im &&
-	    d->dtmf ==
-	        0) { /*do not perform timestamp adjustment while a dtmf is being sent, otherwise durations are erroneous */
+	if (im) {
 		uint32_t packet_ts = mblk_get_timestamp_info(im);
 		if (d->rtp_transfer_mode) return packet_ts;
 		if (d->last_sent_time == -1) {
-			d->tsoff = curts - packet_ts;
-		} else if (d->enable_ts_adjustment) {
+			d->tsoff = curts - packet_ts - ticker_offset_ts;
+		} else if (d->enable_ts_adjustment && d->dtmf == 0) {
+			/*do not perform timestamp adjustment while a dtmf is being sent, otherwise durations are erroneous */
 			diffts = packet_ts - d->last_ts;
 			difftime_ts = (int)(((f->ticker->time - d->last_sent_time) * d->rate) / 1000);
 			/* detect timestamp jump in the stream and adjust so that they become continuous on the network*/
 			if (abs(diffts - difftime_ts) > (d->timestamp_adjustment_threshold)) {
-				uint32_t tsoff = curts - packet_ts;
+				uint32_t tsoff = curts - packet_ts - ticker_offset_ts;
 				ms_message("Adjusting output timestamp by %i", (tsoff - d->tsoff));
 				d->tsoff = tsoff;
 			}
@@ -346,7 +347,7 @@ static uint32_t get_cur_timestamp(MSFilter *f, mblk_t *im) {
 		netts = packet_ts + d->tsoff;
 		d->last_sent_time = f->ticker->time;
 		d->last_ts = packet_ts;
-	} else netts = curts;
+	} else netts = curts - ticker_offset_ts;
 	return netts;
 }
 
@@ -779,6 +780,13 @@ static int sender_set_voice_activity(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int sender_set_ticker_offset(MSFilter *f, void *data) {
+	SenderData *d = (SenderData *)f->data;
+	d->ticker_offset = *(int64_t *)data;
+	d->last_sent_time = -1;
+	return 0;
+}
+
 static MSFilterMethod sender_methods[] = {
     {MS_RTP_SEND_MUTE, sender_mute},
     {MS_RTP_SEND_UNMUTE, sender_unmute},
@@ -803,6 +811,7 @@ static MSFilterMethod sender_methods[] = {
     {MS_RTP_SEND_SET_ACTIVE_SPEAKER_SSRC, sender_set_active_speaker_ssrc},
     {MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED, sender_telephone_event_supported},
     {MS_RTP_SEND_SET_VOICE_ACTIVITY, sender_set_voice_activity},
+    {MS_RTP_SEND_SET_TICKER_OFFSET, sender_set_ticker_offset},
     {0, NULL}};
 
 #ifdef _MSC_VER

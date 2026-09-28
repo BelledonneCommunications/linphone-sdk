@@ -114,6 +114,13 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 
 #define MS_RTP_SEND_SET_VOICE_ACTIVITY MS_FILTER_METHOD(MS_RTP_SEND_ID, 19, bool_t)
 
+/*
+ * Used to inform a MSRtpSend filter what its previous ticker "time" value was,
+ * in case it is moved from one ticker to another.
+ * This avoids small undetected timestamp jumps, when the time offset are small.
+ */
+#define MS_RTP_SEND_SET_TICKER_OFFSET MS_FILTER_METHOD(MS_RTP_SEND_ID, 20, uint64_t)
+
 extern MSFilterDesc ms_rtp_send_desc;
 extern MSFilterDesc ms_rtp_recv_desc;
 
