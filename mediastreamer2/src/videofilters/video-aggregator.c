@@ -69,14 +69,16 @@ static void video_aggregator_process(MSFilter *f) {
 		while ((im = ms_queue_get(f->inputs[i])) != NULL) {
 			// Ignore the keyframe check for the first packets received by the aggregator.
 			if (d->first_packets) {
-				d->last_input_sent = i;
-				ms_queue_put(f->outputs[0], im);
-				/* Notify INPUT_CHANGED since as we are starting.
-				 * This will notify the upper layer to keep track of SSRC/CSRC
-				 * to identify the active speaker.
-				 */
-				ms_filter_notify(f, MS_VIDEO_AGGREGATOR_INPUT_CHANGED, &i);
+				if (d->last_input_sent != i) {
+					d->last_input_sent = i;
+					/* Notify INPUT_CHANGED since as we are starting.
+					 * This will notify the upper layer to keep track of SSRC/CSRC
+					 * to identify the active speaker.
+					 */
+					ms_filter_notify(f, MS_VIDEO_AGGREGATOR_INPUT_CHANGED, &i);
+				}
 
+				ms_queue_put(f->outputs[0], im);
 				continue;
 			}
 
