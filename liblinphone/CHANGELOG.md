@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## [5.5.27] 2026-09-30
+
+### Fixed
+- Since the 30th November 2024, Benin's phone number plan moves to ten digits in format EZABPQMCDU https://www.itu.int/dms_pub/itu-t/oth/02/02/T02020000170002PDFE.pdf
+
 ## [5.5.26] 2026-09-29
 
 ### Added

@@ -39,7 +39,8 @@ LINPHONE_BEGIN_NAMESPACE
  * https://www.itu.int/dms_pub/itu-t/opb/sp/T-SP-E.164C-2011-PDF-E.pdf (2011)
  */
 const list<shared_ptr<DialPlan>> DialPlan::sDialPlans = {
-    // Country, iso country code, e164 country calling code, number length, international usual prefix
+    // Country, iso country code, e164 country calling code, minimum phone numbering plan length, maximum phone
+    // numbering plan length, international usual prefix, flag, trunk prefix
     DialPlan::create("Afghanistan", "AF", "93", 9, 9, "00", "🇦🇫", "0"),
     DialPlan::create("Albania", "AL", "355", 3, 9, "00", "🇦🇱", "0"),
     DialPlan::create("Algeria", "DZ", "213", 8, 9, "00", "🇩🇿", "0"),
@@ -61,7 +62,7 @@ const list<shared_ptr<DialPlan>> DialPlan::sDialPlans = {
     DialPlan::create("Belarus", "BY", "375", 9, 9, "00", "🇧🇾", "80"),
     DialPlan::create("Belgium", "BE", "32", 8, 9, "00", "🇧🇪", "0"),
     DialPlan::create("Belize", "BZ", "501", 7, 7, "00", "🇧🇿", ""),
-    DialPlan::create("Benin", "BJ", "229", 8, 8, "00", "🇧🇯", ""),
+    DialPlan::create("Benin", "BJ", "229", 10, 10, "00", "🇧🇯", ""),
     DialPlan::create("Bermuda", "BM", "1", 10, 10, "011", "🇧🇲", "1"),
     DialPlan::create("Bhutan", "BT", "975", 7, 8, "00", "🇧🇹", ""),
     DialPlan::create("Bolivia", "BO", "591", 8, 8, "00", "🇧🇴", "0"),
@@ -141,9 +142,7 @@ const list<shared_ptr<DialPlan>> DialPlan::sDialPlans = {
     DialPlan::create("Italy", "IT", "39", 6, 11, "00", "🇮🇹", ""),
     DialPlan::create("Jamaica", "JM", "1", 10, 10, "011", "🇯🇲", "1"),
     DialPlan::create("Japan", "JP", "81", 8, 10, "010", "🇯🇵", "0"),
-    //	{"Jersey"                       ,"JE"		, "44"      , 10, 10	, "00"	},
     DialPlan::create("Jordan", "JO", "962", 5, 9, "00", "🇯🇴", "0"),
-    // DialPlan::create("Kazakhstan", "KZ", "7", 10, 10, "00"), rusia
     DialPlan::create("Kenya", "KE", "254", 6, 9, "000", "🇰🇪", "0"),
     DialPlan::create("Kiribati", "KI", "686", 5, 5, "00", "🇰🇮", ""),
     DialPlan::create("Korea, North", "KP", "850", 8, 12, "99", "🇰🇵", ""),
@@ -171,11 +170,7 @@ const list<shared_ptr<DialPlan>> DialPlan::sDialPlans = {
     DialPlan::create("Martinique", "MQ", "596", 9, 9, "00", "🇲🇶", "0"),
     DialPlan::create("Mauritania", "MR", "222", 8, 8, "00", "🇲🇷", ""),
     DialPlan::create("Mauritius", "MU", "230", 7, 7, "00", "🇲🇺", ""),
-    // DialPlan::create("Mayotte Island", "YT", "262", 9, 9, "00"), réunion
     DialPlan::create("Mexico", "MX", "52", 10, 11, "00", "🇲🇽", ""),
-    // The following is a pseudo dial plan for Mexican mobile phones. See
-    // https://en.wikipedia.org/wiki/Telephone_numbers_in_Mexico
-    // DialPlan::create("Mexico", "MX", "521", 10, 10, "00"),
     DialPlan::create("Micronesia", "FM", "691", 7, 7, "011", "🇫🇲", "1"),
     DialPlan::create("Moldova", "MD", "373", 8, 8, "00", "🇲🇩", "0"),
     DialPlan::create("Monaco", "MC", "377", 8, 8, "00", "🇲🇨", ""),
@@ -262,7 +257,6 @@ const list<shared_ptr<DialPlan>> DialPlan::sDialPlans = {
     DialPlan::create("Ukraine", "UA", "380", 9, 9, "00", "🇺🇦", "0"),
     DialPlan::create("United Arab Emirates", "AE", "971", 8, 9, "00", "🇦🇪", "0"),
     DialPlan::create("United Kingdom", "GB", "44", 7, 10, "00", "🇬🇧", "0"),
-    //	{"United Kingdom"               ,"UK"		, "44"      , 10, 10	, "00"	},
     DialPlan::create("United States", "US", "1", 10, 10, "011", "🇺🇸", "1"),
     DialPlan::create("Uruguay", "UY", "598", 8, 8, "00", "🇺🇾", "0"),
     DialPlan::create("Uzbekistan", "UZ", "998", 9, 9, "8", "🇺🇿", "0"),

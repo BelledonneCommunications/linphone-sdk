@@ -84,6 +84,8 @@ static void phone_normalization_without_proxy(void) {
 
 	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "003212345678"), "+3212345678"); // Belgium's dial plan
 	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, "0032123456789"), "+32123456789");
+
+	BC_ASSERT_STRING_EQUAL(phone_normalization(NULL, " 002290121365533"), "+2290121365533"); // Benin's dial plan
 }
 
 static void phone_normalization_with_proxy(void) {
@@ -236,8 +238,13 @@ static void phone_normalization_with_proxy(void) {
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "003212345678"), "+3212345678");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0032123456789"), "+32123456789");
 
+	// Phone normalization for Palau dial plan
 	linphone_proxy_config_set_dial_prefix(proxy, "680");
 	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0090992"), "+6800090992");
+
+	// Phone normalization for Benin dial plan
+	linphone_proxy_config_set_dial_prefix(proxy, "229");
+	BC_ASSERT_STRING_EQUAL(phone_normalization(proxy, "0121365533"), "+2290121365533");
 
 	linphone_proxy_config_unref(proxy);
 }
