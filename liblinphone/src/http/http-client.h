@@ -22,7 +22,7 @@
 #define http_client_h
 
 #include "content/content.h"
-#include "core/core.h"
+#include "core/core-accessor.h"
 #include "json/json.h"
 
 #include <functional>
@@ -31,6 +31,8 @@ LINPHONE_BEGIN_NAMESPACE
 
 class HttpClient;
 class HttpRequest;
+
+class Core;
 
 class JsonDocument {
 public:

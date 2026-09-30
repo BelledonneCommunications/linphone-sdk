@@ -27,6 +27,7 @@
 #include "linphone/lpconfig.h"
 #include "linphone/utils/utils.h"
 #include "nat/nat-policy.h"
+#include "private_functions.h"
 #include "push-notification/push-notification-config.h"
 
 // =============================================================================

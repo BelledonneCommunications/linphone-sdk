@@ -19,6 +19,7 @@
  */
 
 #include "account-manager-services-request.h"
+#include "core/core.h"
 #include "c-wrapper/internal/c-tools.h"
 #include "dictionary/dictionary.h"
 #include "linphone/api/c-account-manager-services-request-cbs.h"

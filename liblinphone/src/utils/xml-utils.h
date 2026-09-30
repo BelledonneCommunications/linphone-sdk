@@ -46,7 +46,9 @@ bool sendCcmpRequest(const std::shared_ptr<Core> &core,
                      const std::shared_ptr<const Address> &from,
                      const std::string &body,
                      const std::function<void(const HttpResponse &)> &listener);
-
+#ifdef HAVE_XML2
+int getXmlParsingOptions();
+#endif // HAVE_XML2
 } // namespace XmlUtils
 
 LINPHONE_END_NAMESPACE

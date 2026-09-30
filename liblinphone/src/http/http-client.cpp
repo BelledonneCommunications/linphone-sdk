@@ -19,6 +19,8 @@
  */
 
 #include "http-client.h"
+
+#include "core/core.h"
 #include "private.h"
 
 LINPHONE_BEGIN_NAMESPACE

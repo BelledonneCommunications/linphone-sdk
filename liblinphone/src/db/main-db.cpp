@@ -57,6 +57,7 @@
 #include "main-db-p.h"
 #include "vcard/vcard-context.h"
 #include "vcard/vcard.h"
+#include "utils/xml-utils.h"
 
 #ifdef HAVE_DB_STORAGE
 #include "internal/db-transaction.h"
@@ -3586,7 +3587,7 @@ typedef const xmlChar *XmlCharPtr;
 
 static string extractLegacyFileContentType(const string &xml) {
 #ifdef HAVE_XML2
-	XmlDocObject xmlMessageBody(xmlReadDoc(XmlCharPtr(xml.c_str()), NULL, NULL, XML_PARSE_NO_XXE));
+	XmlDocObject xmlMessageBody(xmlReadDoc(XmlCharPtr(xml.c_str()), NULL, NULL, XmlUtils::getXmlParsingOptions()));
 	xmlNodePtr xmlElement = xmlDocGetRootElement(xmlMessageBody.get());
 	if (!xmlElement) return "";
 

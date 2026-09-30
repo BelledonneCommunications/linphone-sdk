@@ -77,7 +77,8 @@ if (IOS)
 endif()
 
 if(ENABLE_XML2)
-	list(APPEND LINPHONE_SOURCE_FILES_C lpc2xml.c xml2lpc.c)
+	list(APPEND LINPHONE_SOURCE_FILES_C lpc2xml.c)
+	list(APPEND LINPHONE_SOURCE_FILES_CXX xml2lpc.cpp)
 endif()
 
 if(ENABLE_SQLITE)

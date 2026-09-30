@@ -39,6 +39,7 @@
 #include "file-transfer-chat-message-modifier.h"
 #include "linphone/api/c-chat-message.h"
 #include "logger/logger.h"
+#include "utils/xml-utils.h"
 
 // =============================================================================
 
@@ -1249,7 +1250,7 @@ void FileTransferChatMessageModifier::parseFileTransferXmlIntoContent(
 	xmlDocPtr xmlMessageBody;
 	xmlNodePtr cur;
 	/* parse the msg body to get all information from it */
-	xmlMessageBody = xmlReadDoc((const xmlChar *)xml, NULL, NULL, XML_PARSE_NO_XXE);
+	xmlMessageBody = xmlReadDoc((const xmlChar *)xml, NULL, NULL, XmlUtils::getXmlParsingOptions());
 
 	cur = xmlDocGetRootElement(xmlMessageBody);
 	if (cur) {

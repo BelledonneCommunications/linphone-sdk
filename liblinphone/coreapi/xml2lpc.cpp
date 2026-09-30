@@ -23,6 +23,8 @@
 
 #include "xml2lpc.h"
 
+#include "utils/xml-utils.h"
+
 #define XML2LPC_BZ 2048
 
 struct _xml2lpc_context {
@@ -269,7 +271,7 @@ int xml2lpc_set_xml_file(xml2lpc_context *xmlCtx, const char *filename) {
 		xmlFreeDoc(xmlCtx->doc);
 		xmlCtx->doc = NULL;
 	}
-	xmlCtx->doc = xmlReadFile(filename, NULL, XML_PARSE_NO_XXE);
+	xmlCtx->doc = xmlReadFile(filename, NULL, LinphonePrivate::XmlUtils::getXmlParsingOptions());
 	if (xmlCtx->doc == NULL) {
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "Can't open/parse file \"%s\"", filename);
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "%s", xmlCtx->errorBuffer);
@@ -285,7 +287,7 @@ int xml2lpc_set_xml_fd(xml2lpc_context *xmlCtx, int fd) {
 		xmlFreeDoc(xmlCtx->doc);
 		xmlCtx->doc = NULL;
 	}
-	xmlCtx->doc = xmlReadFd(fd, 0, NULL, XML_PARSE_NO_XXE);
+	xmlCtx->doc = xmlReadFd(fd, 0, NULL, LinphonePrivate::XmlUtils::getXmlParsingOptions());
 	if (xmlCtx->doc == NULL) {
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "Can't open/parse fd \"%d\"", fd);
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "%s", xmlCtx->errorBuffer);
@@ -301,7 +303,7 @@ int xml2lpc_set_xml_string(xml2lpc_context *xmlCtx, const char *content) {
 		xmlFreeDoc(xmlCtx->doc);
 		xmlCtx->doc = NULL;
 	}
-	xmlCtx->doc = xmlReadDoc((const unsigned char *)content, 0, NULL, XML_PARSE_NO_XXE);
+	xmlCtx->doc = xmlReadDoc((const unsigned char *)content, 0, NULL, LinphonePrivate::XmlUtils::getXmlParsingOptions());
 	if (xmlCtx->doc == NULL) {
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "Can't parse string");
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "%s", xmlCtx->errorBuffer);
@@ -317,7 +319,7 @@ int xml2lpc_set_xsd_file(xml2lpc_context *xmlCtx, const char *filename) {
 		xmlFreeDoc(xmlCtx->xsd);
 		xmlCtx->xsd = NULL;
 	}
-	xmlCtx->xsd = xmlReadFile(filename, NULL, XML_PARSE_NO_XXE);
+	xmlCtx->xsd = xmlReadFile(filename, NULL, LinphonePrivate::XmlUtils::getXmlParsingOptions());
 	if (xmlCtx->xsd == NULL) {
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "Can't open/parse file \"%s\"", filename);
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "%s", xmlCtx->errorBuffer);
@@ -333,7 +335,7 @@ int xml2lpc_set_xsd_fd(xml2lpc_context *xmlCtx, int fd) {
 		xmlFreeDoc(xmlCtx->xsd);
 		xmlCtx->xsd = NULL;
 	}
-	xmlCtx->xsd = xmlReadFd(fd, 0, NULL, XML_PARSE_NO_XXE);
+	xmlCtx->xsd = xmlReadFd(fd, 0, NULL, LinphonePrivate::XmlUtils::getXmlParsingOptions());
 	if (xmlCtx->xsd == NULL) {
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "Can't open/parse fd \"%d\"", fd);
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "%s", xmlCtx->errorBuffer);
@@ -349,7 +351,7 @@ int xml2lpc_set_xsd_string(xml2lpc_context *xmlCtx, const char *content) {
 		xmlFreeDoc(xmlCtx->xsd);
 		xmlCtx->xsd = NULL;
 	}
-	xmlCtx->xsd = xmlReadDoc((const unsigned char *)content, 0, NULL, XML_PARSE_NO_XXE);
+	xmlCtx->xsd = xmlReadDoc((const unsigned char *)content, 0, NULL, LinphonePrivate::XmlUtils::getXmlParsingOptions());
 	if (xmlCtx->xsd == NULL) {
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "Can't parse string");
 		xml2lpc_log(xmlCtx, XML2LPC_ERROR, "%s", xmlCtx->errorBuffer);

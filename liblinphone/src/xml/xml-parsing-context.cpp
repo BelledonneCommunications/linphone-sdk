@@ -27,6 +27,8 @@
 
 #include "xml-parsing-context.h"
 
+#include "utils/xml-utils.h"
+
 // =============================================================================
 
 using namespace std;
@@ -122,7 +124,7 @@ void XmlParsingContext::initCarddavNs() {
 }
 
 void XmlParsingContext::readDocument(const std::string &body) {
-	mDoc = xmlReadDoc(reinterpret_cast<const unsigned char *>(body.c_str()), 0, nullptr, XML_PARSE_NO_XXE);
+	mDoc = xmlReadDoc(reinterpret_cast<const unsigned char *>(body.c_str()), 0, nullptr, XmlUtils::getXmlParsingOptions());
 }
 
 xmlXPathObjectPtr XmlParsingContext::getXpathObjectForNodeList(const std::string &xpathExpression) {

@@ -19,6 +19,7 @@
  */
 
 #include "account-manager-services.h"
+#include "core/core.h"
 #include "c-wrapper/internal/c-tools.h"
 #include "linphone/core.h"
 #include "linphone/enums/c-enums.h"

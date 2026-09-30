@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <libxml/parser.h>
+
 #include "utils/xml-utils.h"
 
 #include "address/address.h"
@@ -89,5 +91,15 @@ bool XmlUtils::sendCcmpRequest(const std::shared_ptr<Core> &core,
 
 	return true;
 }
+
+#ifdef HAVE_XML2
+int XmlUtils::getXmlParsingOptions() {
+	int options = 0;
+#if LIBXML_VERSION >= 201300
+	options |= XML_PARSE_NO_XXE;
+#endif  // LIBXML_VERSION > 201300
+	return options;
+}
+#endif // HAVE_XML2
 
 LINPHONE_END_NAMESPACE

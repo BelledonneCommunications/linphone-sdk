@@ -21,6 +21,8 @@
 #ifndef _L_C_WRAPPER_H_
 #define _L_C_WRAPPER_H_
 
+#include <algorithm>
+
 #include "linphone/api/c-types.h"
 #include "logger/logger.h"
 
@@ -210,7 +212,7 @@ template <typename _CppCbsType, typename _ListenerType = ListenerBase>
 class LINPHONE_PUBLIC CallbacksHolder : public ListenerHolder<_ListenerType> {
 public:
 	void addCallbacks(const std::shared_ptr<_CppCbsType> &callbacks) {
-		if (find(mCallbacksList.mList.begin(), mCallbacksList.mList.end(), callbacks) == mCallbacksList.mList.end()) {
+		if (std::find(mCallbacksList.mList.begin(), mCallbacksList.mList.end(), callbacks) == mCallbacksList.mList.end()) {
 			mCallbacksList.mList.push_back(callbacks);
 			callbacks->setActive(true);
 			this->addListener(callbacks.get());
@@ -220,7 +222,7 @@ public:
 		}
 	}
 	void removeCallbacks(const std::shared_ptr<_CppCbsType> &callbacks) {
-		auto it = find(mCallbacksList.mList.begin(), mCallbacksList.mList.end(), callbacks);
+		auto it = std::find(mCallbacksList.mList.begin(), mCallbacksList.mList.end(), callbacks);
 		if (it != mCallbacksList.mList.end()) {
 			mCallbacksList.mList.erase(it);
 			callbacks->setActive(false);

@@ -20,6 +20,7 @@
 #include "http/http-client.h"
 #include "liblinphone_tester.h"
 
+#include "core/core.h"
 #include "http-server-utils.h"
 
 // =============================================================================
