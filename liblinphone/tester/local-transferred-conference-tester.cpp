@@ -727,6 +727,205 @@ static void conference_joined_in_early_media() {
 	}
 }
 
+static void call_transfer_via_b2bua() {
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
+		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress());
+		ClientConference berthe("berthe_rc", focus.getConferenceFactoryAddress());
+
+		// A B2BUA doesn't have a factory address
+		LinphoneAccount *account = linphone_core_get_default_account(focus.getLc());
+		LinphoneAccountParams *account_params = linphone_account_params_clone(linphone_account_get_params(account));
+		linphone_account_params_set_conference_factory_address(account_params, nullptr);
+		linphone_account_set_params(account, account_params);
+		linphone_account_params_unref(account_params);
+
+		bctbx_list_t *coresList = nullptr;
+		coresList = bctbx_list_append(coresList, focus.getLc());
+		coresList = bctbx_list_append(coresList, marie.getLc());
+		coresList = bctbx_list_append(coresList, pauline.getLc());
+		coresList = bctbx_list_append(coresList, berthe.getLc());
+
+		stats focus_stat = focus.getStats();
+		stats marie_stat = marie.getStats();
+		stats pauline_stat = pauline.getStats();
+		stats berthe_stat = berthe.getStats();
+
+		// The B2BUA handles two calls, with the default exclusive media resource mode, the incoming call locks the
+		// sound resources and the outgoing call to the callee is rejected ("sound are locked by another call").
+		linphone_core_set_media_resource_mode(focus.getLc(), LinphoneMediaResourceModeShared);
+		LinphoneConfig *focus_config = linphone_core_get_config(focus.getLc());
+		linphone_config_set_int(focus_config, "sound", "conference_mode",
+		                        static_cast<int>(MSConferenceModeRouterFullPacket));
+		linphone_core_set_record_file(focus.getLc(), NULL);
+		linphone_core_set_play_file(focus.getLc(), NULL);
+		linphone_core_set_use_files(focus.getLc(), TRUE);
+
+		// Marie calls the focus
+		LinphoneCallParams *marie_params = linphone_core_create_call_params(marie.getLc(), nullptr);
+		linphone_call_params_enable_video(marie_params, false);
+		ms_message("%s is calling %s", linphone_core_get_identity(marie.getLc()),
+		           linphone_core_get_identity(focus.getLc()));
+		linphone_core_invite_address_with_params_2(marie.getLc(), focus.getIdentity().toC(), marie_params, nullptr,
+		                                           nullptr);
+		linphone_call_params_unref(marie_params);
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallIncomingReceived,
+		                             focus_stat.number_of_LinphoneCallIncomingReceived + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallOutgoingInit,
+		                             marie_stat.number_of_LinphoneCallOutgoingInit + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		// The focus relays the call to Pauline
+		LinphoneCallParams *focus_params = linphone_core_create_call_params(focus.getLc(), nullptr);
+		linphone_call_params_enable_video(focus_params, FALSE);
+		ms_message("%s is calling %s", linphone_core_get_identity(focus.getLc()),
+		           linphone_core_get_identity(pauline.getLc()));
+		linphone_core_invite_address_with_params_2(focus.getLc(), pauline.getIdentity().toC(), focus_params, nullptr,
+		                                           nullptr);
+		linphone_call_params_unref(focus_params);
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallOutgoingInit,
+		                             focus_stat.number_of_LinphoneCallOutgoingInit + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallIncomingReceived,
+		                             pauline_stat.number_of_LinphoneCallIncomingReceived + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		// The focus creates a conference that is hidden to the participants and adds the calls
+		LinphoneConferenceParams *conference_params = linphone_core_create_conference_params_2(focus.getLc(), nullptr);
+		auto *initialSubject = "B2BUA test conference";
+		linphone_conference_params_enable_local_participant(conference_params, FALSE);
+		linphone_conference_params_enable_one_participant_conference(conference_params, TRUE);
+		linphone_conference_params_set_subject(conference_params, initialSubject);
+		linphone_conference_params_set_hidden(conference_params, TRUE);
+		LinphoneConference *conference = linphone_core_create_conference_with_params(focus.getLc(), conference_params);
+		linphone_conference_params_unref(conference_params);
+
+		const bctbx_list_t *calls = linphone_core_get_calls(focus.getLc());
+		BC_ASSERT_EQUAL(bctbx_list_size(calls), 2, size_t, "%zu");
+		for (const bctbx_list_t *it = calls; it; it = bctbx_list_next(it)) {
+			LinphoneCall *call = (LinphoneCall *)it->data;
+			linphone_conference_add_participant(conference, call);
+		}
+
+		// Pauline accepts the call
+		LinphoneCall *pauline_call =
+		    linphone_core_get_call_by_remote_address2(pauline.getLc(), focus.getIdentity().toC());
+		BC_ASSERT_PTR_NOT_NULL(pauline_call);
+		if (pauline_call) {
+			LinphoneCallParams *pauline_params = linphone_core_create_call_params(pauline.getLc(), nullptr);
+			linphone_call_params_enable_video(pauline_params, FALSE);
+			ms_message("%s accepting call to %s", linphone_core_get_identity(pauline.getLc()),
+			           linphone_core_get_identity(focus.getLc()));
+			linphone_call_accept_with_params(pauline_call, pauline_params);
+			linphone_call_params_unref(pauline_params);
+		}
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallStreamsRunning,
+		                             pauline_stat.number_of_LinphoneCallStreamsRunning + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
+		                             focus_stat.number_of_LinphoneCallStreamsRunning + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		// The B2BUA (focus) accepts Marie's call, now that the call with pauline is running.
+		LinphoneCall *focus_call = linphone_core_get_call_by_remote_address2(focus.getLc(), marie.getIdentity().toC());
+		BC_ASSERT_PTR_NOT_NULL(focus_call);
+		if (focus_call) {
+			LinphoneCallParams *focus_params2 = linphone_core_create_call_params(focus.getLc(), nullptr);
+			linphone_call_params_enable_video(focus_params2, FALSE);
+			ms_message("%s accepting call to %s", linphone_core_get_identity(focus.getLc()),
+			           linphone_core_get_identity(marie.getLc()));
+			linphone_call_accept_with_params(focus_call, focus_params2);
+			linphone_call_params_unref(focus_params2);
+		}
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneCallStreamsRunning,
+		                             marie_stat.number_of_LinphoneCallStreamsRunning + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
+		                             focus_stat.number_of_LinphoneCallStreamsRunning + 2,
+		                             liblinphone_tester_sip_timeout));
+
+		// Check that there is no admin in the conference
+		auto participants = linphone_conference_get_participant_list(conference);
+		BC_ASSERT_EQUAL(bctbx_list_size(participants), 2, size_t, "%zu");
+		for (auto *it = participants; it; it = bctbx_list_next(it)) {
+			auto *participant = static_cast<LinphoneParticipant *>(it->data);
+			BC_ASSERT_FALSE(linphone_participant_is_admin(participant));
+		}
+		bctbx_list_free_with_data(participants, (void (*)(void *))linphone_participant_unref);
+
+		focus_stat = focus.getStats();
+		pauline_stat = pauline.getStats();
+		berthe_stat = berthe.getStats();
+		marie_stat = marie.getStats();
+
+		// Pauline transfers Marie to Berthe
+		if (pauline_call) {
+			auto bertheAddress = berthe.getIdentity().toStringCstr();
+			linphone_call_transfer(pauline_call, bertheAddress);
+			bctbx_free(bertheAddress);
+		}
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallRefered,
+		                             focus_stat.number_of_LinphoneCallRefered + 1, liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallPausedByRemote,
+		                             pauline_stat.number_of_LinphoneCallPausedByRemote + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallOutgoingInit,
+		                             focus_stat.number_of_LinphoneCallOutgoingInit + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneTransferCallOutgoingInit,
+		                             pauline_stat.number_of_LinphoneTransferCallOutgoingInit + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_LinphoneCallIncomingReceived,
+		                             berthe_stat.number_of_LinphoneCallIncomingReceived + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		// Berthe accepts the call from the focus (transfer of Pauline)
+		LinphoneCall *berthe_call =
+		    linphone_core_get_call_by_remote_address2(berthe.getLc(), focus.getIdentity().toC());
+		BC_ASSERT_PTR_NOT_NULL(berthe_call);
+		if (berthe_call) {
+			LinphoneCallParams *berthe_params = linphone_core_create_call_params(berthe.getLc(), nullptr);
+			linphone_call_params_enable_video(berthe_params, FALSE);
+			ms_message("%s accepting call to %s", linphone_core_get_identity(berthe.getLc()),
+			           linphone_core_get_identity(focus.getLc()));
+			linphone_call_accept_with_params(berthe_call, berthe_params);
+			linphone_call_params_unref(berthe_params);
+		}
+		BC_ASSERT_TRUE(wait_for_list(coresList, &berthe.getStats().number_of_LinphoneCallStreamsRunning,
+		                             berthe_stat.number_of_LinphoneCallStreamsRunning + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallStreamsRunning,
+		                             focus_stat.number_of_LinphoneCallStreamsRunning + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneTransferCallConnected,
+		                             pauline_stat.number_of_LinphoneTransferCallConnected + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneCallReleased,
+		                             pauline_stat.number_of_LinphoneCallReleased + 1, liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneCallReleased,
+		                             focus_stat.number_of_LinphoneCallReleased + 1, liblinphone_tester_sip_timeout));
+		BC_ASSERT_EQUAL(marie_stat.number_of_LinphoneCallStreamsRunning,
+		                marie.getStats().number_of_LinphoneCallStreamsRunning, int, "%d");
+		BC_ASSERT_EQUAL(marie_stat.number_of_LinphoneCallPausedByRemote,
+		                marie.getStats().number_of_LinphoneCallPausedByRemote, int, "%d");
+		BC_ASSERT_EQUAL(marie_stat.number_of_LinphoneCallRefered, marie.getStats().number_of_LinphoneCallRefered, int,
+		                "%d");
+
+		end_call(marie.getCMgr(), focus.getCMgr());
+		end_call(berthe.getCMgr(), focus.getCMgr());
+		linphone_conference_unref(conference);
+		bctbx_list_free(coresList);
+	}
+}
+
 } // namespace LinphoneTest
 
 static test_t local_conference_transferred_conference_basic_tests[] = {
@@ -736,6 +935,7 @@ static test_t local_conference_transferred_conference_basic_tests[] = {
                  LinphoneTest::create_video_transfer_conference_active_speaker_changed,
                  "shaky"),
     TEST_NO_TAG("Conference joined in early media", LinphoneTest::conference_joined_in_early_media),
+    TEST_NO_TAG("Call transfer via B2BUA", LinphoneTest::call_transfer_via_b2bua),
 #ifdef HAVE_EKT_SERVER_PLUGIN
     TEST_ONE_TAG(
         "Create encrypted video conference", LinphoneTest::create_audio_video_encrypted_conference, "End2EndConf"),
