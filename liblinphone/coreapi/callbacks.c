@@ -761,11 +761,12 @@ static void call_refer_received(SalOp *op,
 	if (session && (method.empty() || (method == "INVITE"))) {
 		auto sessionRef = session->getSharedFromThis();
 		// A REFER received in the dialog of a conference hosted by this core updates its participant list rather
-		// than transferring the call: only the conference can invite the referred address and mix its media. A
-		// client conference is not in charge of its participant list, so it lets the REFER be a call transfer.
+		// than transferring the call: only the conference can invite the referred address and mix its media.
+		// A client conference is not in charge of its participant list, and a hidden conference (e.g. a B2BUA
+		// bridging calls) is invisible to its participants, so both let the REFER be a call transfer.
 		std::shared_ptr<Core> core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
 		auto conference = dynamic_pointer_cast<ServerConference>(core->findConference(sessionRef, false));
-		if (conference) {
+		if (conference && !conference->getCurrentParams()->isHidden()) {
 			conference->handleRefer(nullptr, sessionRef, referToAddr, method);
 			return;
 		}
