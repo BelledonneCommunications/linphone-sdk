@@ -18,6 +18,9 @@ changes made to these components.
 
 ## [5.5.32]
 
+### Added
+- Swift package flavor built with the G729 codec, published to a separate repository for licensees.
+
 ### Fixed
 - Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
 - CSharp Wrapper: Separate getter/setter deprecation and set minimal version on C# for property obsolete features (8.0).

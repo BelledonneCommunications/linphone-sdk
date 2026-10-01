@@ -33,6 +33,9 @@ macos-ninja-spm-upload:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
     SWIFT_PACKAGE_FLAVOR: ""
+    PUBLIC_SPM_GIT_REPO: git@gitlab.linphone.org:BC/public/linphone-sdk-swift-macos.git
+    PRIVATE_SPM_GIT_REPO: git@gitlab.linphone.org:BC/private/private-linphone-sdk-swift-macos.git
+    SPM_PRIVATE: ""
   needs:
     - macos-ninja-spm
 
@@ -41,12 +44,36 @@ macos-ninja-spm-upload:
     - echo $DESCRIBE
     - !reference [.choose_upload_dir, script]
     - |
+      if [ -n "$SPM_PRIVATE" ]; then
+        if [ -z "$SPM_URL_TOKEN" ]; then
+          echo "SPM_URL_TOKEN was not provided by the build job, refusing to deploy to a predictable location."
+          exit 1
+        fi
+        SPM_GIT_REPO="$PRIVATE_SPM_GIT_REPO"
+        SPM_DEPLOY_SERVER="$DEPLOY_SERVER"
+        SPM_UPLOAD_PATH="$UPLOAD_ROOT_DIRECTORY/macos/sdk/private-spm/$SPM_URL_TOKEN"
+        SPM_UPLOAD_SOURCE="build/mac/linphone-sdk-swift-macos/XCFrameworks/"
+        SPM_UPLOAD_SUBPATH="/XCFrameworks"
+      else
+        SPM_GIT_REPO="$PUBLIC_SPM_GIT_REPO"
+        SPM_DEPLOY_SERVER="$DEPLOY_SERVER"
+        SPM_UPLOAD_PATH="$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR"
+        SPM_UPLOAD_SOURCE="build/mac/linphone-sdk-swift-macos/"
+        SPM_UPLOAD_SUBPATH=""
+      fi
+      echo "Deploying Swift package to $SPM_GIT_REPO"
+    - |
         if [[ "$CI_PIPELINE_SOURCE" == "merge_request_event" ]]; then
           TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}$CI_COMMIT_REF_NAME"
         else
           TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}${SPM_DEPLOY_TARGET_BRANCH}"
         fi
     - VERSION=$(tr -d '\n\r' < build/mac/linphone-sdk-swift-macos/VERSION)
+    - |
+      if [ -n "$SPM_PRIVATE" ] && ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        echo "Skipping private spm deployment as version $VERSION is not a final x.y.z release."
+        exit 0
+      fi
     - |
       if [ -n "$SWIFT_PACKAGE_FLAVOR" ]; then
         FLAVOR_SUFFIX="-$(echo "$SWIFT_PACKAGE_FLAVOR" | sed 's/\///g')"
@@ -57,9 +84,9 @@ macos-ninja-spm-upload:
       if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
         VERSION_MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
         TAG_REGEX="^${VERSION_MAJOR_MINOR//./\\.}\\.[0-9]+${FLAVOR_SUFFIX}\$"
-        LATEST_LINE_VERSION=$(git ls-remote --tags --refs git@gitlab.linphone.org:BC/public/linphone-sdk-swift-macos.git \
+        LATEST_LINE_VERSION=$(git ls-remote --tags --refs "$SPM_GIT_REPO" \
           | sed 's#.*refs/tags/##' \
-          | grep -E "$TAG_REGEX" \
+          | { grep -E "$TAG_REGEX" || true; } \
           | sed "s#${FLAVOR_SUFFIX}\$##" \
           | sort -V | tail -n1)
         echo "Latest deployed version on the ${VERSION_MAJOR_MINOR} line: ${LATEST_LINE_VERSION:-none}"
@@ -73,17 +100,18 @@ macos-ninja-spm-upload:
       elif [ "${TARGET_BRANCH#"$SWIFT_PACKAGE_FLAVOR"}" = "stable" ]; then
         echo "Skipping public spm deployment as version $VERSION is not a final x.y.z release and $TARGET_BRANCH only receives final releases."
         exit 0
-      elif [ -n "$(git ls-remote --tags --refs git@gitlab.linphone.org:BC/public/linphone-sdk-swift-macos.git "refs/tags/$SPM_TAG")" ]; then
+      elif [ -n "$(git ls-remote --tags --refs "$SPM_GIT_REPO" "refs/tags/$SPM_TAG")" ]; then
         echo "Skipping public spm deployment as $SPM_TAG is already deployed."
         exit 0
       fi
-    - echo "Uploading SPM $VERSION to $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR"
-    - rsync -ar build/mac/linphone-sdk-swift-macos/ $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macos/sdk/spm/$SWIFT_PACKAGE_FLAVOR/linphone-sdk-swift-macos-$VERSION/
+    - echo "Uploading SPM $VERSION to $SPM_DEPLOY_SERVER:$SPM_UPLOAD_PATH"
+    - ssh $SPM_DEPLOY_SERVER mkdir -p "$SPM_UPLOAD_PATH/linphone-sdk-swift-macos-$VERSION$SPM_UPLOAD_SUBPATH"
+    - rsync -ar "$SPM_UPLOAD_SOURCE" $SPM_DEPLOY_SERVER:$SPM_UPLOAD_PATH/linphone-sdk-swift-macos-$VERSION$SPM_UPLOAD_SUBPATH/
     - rm -rf build/mac/linphone-sdk-swift-macos/XCFrameworks
     - echo "Publishing SPM to branch $TARGET_BRANCH."
     - cd build/mac
-    - git clone git@gitlab.linphone.org:BC/public/linphone-sdk-swift-macos.git public-linphone-sdk-swift-macos
-    - cd public-linphone-sdk-swift-macos
+    - git clone "$SPM_GIT_REPO" deploy-linphone-sdk-swift-macos
+    - cd deploy-linphone-sdk-swift-macos
     - |
       MOVE_BRANCH=1
       if git checkout "$TARGET_BRANCH"; then
@@ -118,4 +146,11 @@ macos-ninja-spm-upload-novideo:
     - macos-ninja-spm-novideo
   variables:
     SWIFT_PACKAGE_FLAVOR: "novideo/"
+  extends: macos-ninja-spm-upload
+
+macos-ninja-spm-upload-private:
+  needs:
+    - macos-ninja-spm-private
+  variables:
+    SPM_PRIVATE: "true"
   extends: macos-ninja-spm-upload

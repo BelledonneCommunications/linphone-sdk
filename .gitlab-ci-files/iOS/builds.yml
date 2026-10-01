@@ -288,6 +288,28 @@ ios-ninja-spm:
       - tester/IOS/LinphoneTester/Podfile
       - build/ios/linphone-sdk-swift-ios
 
+ios-ninja-spm-private:
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_IOS != null && $SKIP_DEPLOY == null
+  variables:
+    CMAKE_OPTIONS: "-DENABLE_CSHARP_WRAPPER=ON -DENABLE_G729=ON -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_NON_FREE_FEATURES=YES"
+    SWIFT_PACKAGE_FLAVOR: ""
+  extends: ios-ninja-spm
+  script:
+    - DESCRIBE=$(git describe)
+    - echo $DESCRIBE
+    - !reference [.choose_url_ios, script]
+    - SPM_URL_TOKEN=$(openssl rand -hex 16)
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}/private-spm/${SPM_URL_TOKEN} -DUPLOAD_SWIFT_PACKAGE=ON"
+    - !reference [.ios, script]
+    - echo "SPM_URL_TOKEN=$SPM_URL_TOKEN" > "$CI_PROJECT_DIR/build/ios/spm_url_token.env"
+  artifacts:
+    access: developer
+    reports:
+      dotenv: build/ios/spm_url_token.env
+
 ios-ninja-spm-novideo:
   rules:
     - !reference [.rules-merge-request-manual, rules]
