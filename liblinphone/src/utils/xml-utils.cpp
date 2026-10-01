@@ -18,7 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_XML2
 #include <libxml/parser.h>
+#endif // HAVE_XML2
 
 #include "utils/xml-utils.h"
 
