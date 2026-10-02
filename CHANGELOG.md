@@ -13,10 +13,19 @@ changes made to these components.
 
 ## Unreleased
 
-### Added
-
 ### Changes
 - Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
+
+## [5.5.30] 2026-10-05
+
+### Fixed
+- MKV: Add checks on buffer to avoid Out-of-bounds reads.
+- VP8: Fix a cast to avoid losing data.
+
+## [5.5.29]
+
+### Fixed
+- iOS : fix possible audio route bug when switching audio device during call
 
 ## [5.5.0] 2026-05-25
 
