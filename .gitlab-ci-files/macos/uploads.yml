@@ -84,11 +84,32 @@ macos-ninja-spm-upload:
     - cd build/mac
     - git clone git@gitlab.linphone.org:BC/public/linphone-sdk-swift-macos.git public-linphone-sdk-swift-macos
     - cd public-linphone-sdk-swift-macos
-    - git checkout "$TARGET_BRANCH" || git checkout -b "$TARGET_BRANCH"
+    - |
+      MOVE_BRANCH=1
+      if git checkout "$TARGET_BRANCH"; then
+        HEAD_VERSION=""
+        if [ -f VERSION ]; then
+          HEAD_VERSION=$(tr -d '\n\r' < VERSION)
+        fi
+        HEAD_MAJOR_MINOR=$(echo "$HEAD_VERSION" | cut -d. -f1,2)
+        VERSION_MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
+        if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
+          && echo "$HEAD_MAJOR_MINOR" | grep -qE '^[0-9]+\.[0-9]+$' \
+          && [ "$HEAD_MAJOR_MINOR" != "$VERSION_MAJOR_MINOR" ] \
+          && [ "$(printf '%s\n%s\n' "$VERSION_MAJOR_MINOR" "$HEAD_MAJOR_MINOR" | sort -V | tail -n1)" = "$HEAD_MAJOR_MINOR" ]; then
+          echo "Branch $TARGET_BRANCH holds the newer $HEAD_MAJOR_MINOR line ($HEAD_VERSION): publishing tag $SPM_TAG only."
+          MOVE_BRANCH=0
+        fi
+      else
+        git checkout -b "$TARGET_BRANCH"
+      fi
     - rsync -ar ../linphone-sdk-swift-macos/* .
     - git add .
     - git commit -a -m "Swift package $VERSION $SWIFT_PACKAGE_FLAVOR"
-    - git push || git push --set-upstream origin $TARGET_BRANCH
+    - |
+      if [ "$MOVE_BRANCH" = "1" ]; then
+        git push || git push --set-upstream origin $TARGET_BRANCH
+      fi
     - git tag -a $SPM_TAG -m "linphone-sdk $VERSION"
     - git push --tags
 
