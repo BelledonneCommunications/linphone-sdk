@@ -324,13 +324,36 @@ void rtcp_APP_get_data(const mblk_t *m, uint8_t **data, int *len) {
 bool_t rtcp_is_XR(const mblk_t *m) {
 	const rtcp_common_header_t *ch = rtcp_get_common_header(m);
 	if ((ch != NULL) && (rtcp_common_header_get_packet_type(ch) == RTCP_XR)) {
-		if (msgdsize(m) < MIN_RTCP_XR_PACKET_SIZE) {
+		if (rtcp_get_size(m) < MIN_RTCP_XR_PACKET_SIZE) {
 			ortp_warning("Too short RTCP XR packet.");
 			return FALSE;
 		}
 		return TRUE;
 	}
 	return FALSE;
+}
+
+static const rtcp_xr_rcvr_rtt_report_block_t *rtcp_XR_get_rcvr_rtt_block(const mblk_t *m) {
+	if (rtcp_get_size(m) < sizeof(rtcp_xr_header_t) + sizeof(rtcp_xr_rcvr_rtt_report_block_t)) return NULL;
+	return (const rtcp_xr_rcvr_rtt_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
+}
+
+static const rtcp_xr_dlrr_report_subblock_t *rtcp_XR_get_dlrr_subblock(const mblk_t *m) {
+	if (rtcp_get_size(m) <
+	    sizeof(rtcp_xr_header_t) + sizeof(rtcp_xr_generic_block_header_t) + sizeof(rtcp_xr_dlrr_report_subblock_t))
+		return NULL;
+	return (const rtcp_xr_dlrr_report_subblock_t *)(m->b_rptr + sizeof(rtcp_xr_header_t) +
+	                                                sizeof(rtcp_xr_generic_block_header_t));
+}
+
+static const rtcp_xr_stat_summary_report_block_t *rtcp_XR_get_stat_summary_block(const mblk_t *m) {
+	if (rtcp_get_size(m) < sizeof(rtcp_xr_header_t) + sizeof(rtcp_xr_stat_summary_report_block_t)) return NULL;
+	return (const rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
+}
+
+static const rtcp_xr_voip_metrics_report_block_t *rtcp_XR_get_voip_metrics_block(const mblk_t *m) {
+	if (rtcp_get_size(m) < sizeof(rtcp_xr_header_t) + sizeof(rtcp_xr_voip_metrics_report_block_t)) return NULL;
+	return (const rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
 }
 
 rtcp_xr_block_type_t rtcp_XR_get_block_type(const mblk_t *m) {
@@ -345,7 +368,8 @@ uint32_t rtcp_XR_get_ssrc(const mblk_t *m) {
 
 uint64_t rtcp_XR_rcvr_rtt_get_ntp_timestamp(const mblk_t *m) {
 	uint64_t ts = 0;
-	rtcp_xr_rcvr_rtt_report_block_t *b = (rtcp_xr_rcvr_rtt_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
+	const rtcp_xr_rcvr_rtt_report_block_t *b = rtcp_XR_get_rcvr_rtt_block(m);
+	if (!b) return 0;
 	ts = ntohl(b->ntp_timestamp_msw);
 	ts <<= 32;
 	ts |= ntohl(b->ntp_timestamp_lsw);
@@ -353,230 +377,193 @@ uint64_t rtcp_XR_rcvr_rtt_get_ntp_timestamp(const mblk_t *m) {
 }
 
 uint32_t rtcp_XR_dlrr_get_ssrc(const mblk_t *m) {
-	rtcp_xr_dlrr_report_subblock_t *b = (rtcp_xr_dlrr_report_subblock_t *)(m->b_rptr + sizeof(rtcp_xr_header_t) +
-	                                                                       sizeof(rtcp_xr_generic_block_header_t));
-	return ntohl(b->ssrc);
+	const rtcp_xr_dlrr_report_subblock_t *b = rtcp_XR_get_dlrr_subblock(m);
+	return b ? ntohl(b->ssrc) : 0;
 }
 
 uint32_t rtcp_XR_dlrr_get_lrr(const mblk_t *m) {
-	rtcp_xr_dlrr_report_subblock_t *b = (rtcp_xr_dlrr_report_subblock_t *)(m->b_rptr + sizeof(rtcp_xr_header_t) +
-	                                                                       sizeof(rtcp_xr_generic_block_header_t));
-	return ntohl(b->lrr);
+	const rtcp_xr_dlrr_report_subblock_t *b = rtcp_XR_get_dlrr_subblock(m);
+	return b ? ntohl(b->lrr) : 0;
 }
 
 uint32_t rtcp_XR_dlrr_get_dlrr(const mblk_t *m) {
-	rtcp_xr_dlrr_report_subblock_t *b = (rtcp_xr_dlrr_report_subblock_t *)(m->b_rptr + sizeof(rtcp_xr_header_t) +
-	                                                                       sizeof(rtcp_xr_generic_block_header_t));
-	return ntohl(b->dlrr);
+	const rtcp_xr_dlrr_report_subblock_t *b = rtcp_XR_get_dlrr_subblock(m);
+	return b ? ntohl(b->dlrr) : 0;
 }
 
 uint8_t rtcp_XR_stat_summary_get_flags(const mblk_t *m) {
-	rtcp_xr_generic_block_header_t *bh = (rtcp_xr_generic_block_header_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return bh->flags;
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? b->bh.flags : 0;
 }
 
 uint32_t rtcp_XR_stat_summary_get_ssrc(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohl(b->ssrc);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohl(b->ssrc) : 0;
 }
 
 uint16_t rtcp_XR_stat_summary_get_begin_seq(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->begin_seq);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohs(b->begin_seq) : 0;
 }
 
 uint16_t rtcp_XR_stat_summary_get_end_seq(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->end_seq);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohs(b->end_seq) : 0;
 }
 
 uint32_t rtcp_XR_stat_summary_get_lost_packets(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohl(b->lost_packets);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohl(b->lost_packets) : 0;
 }
 
 uint32_t rtcp_XR_stat_summary_get_dup_packets(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohl(b->dup_packets);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohl(b->dup_packets) : 0;
 }
 
 uint32_t rtcp_XR_stat_summary_get_min_jitter(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohl(b->min_jitter);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohl(b->min_jitter) : 0;
 }
 
 uint32_t rtcp_XR_stat_summary_get_max_jitter(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohl(b->max_jitter);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohl(b->max_jitter) : 0;
 }
 
 uint32_t rtcp_XR_stat_summary_get_mean_jitter(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohl(b->mean_jitter);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohl(b->mean_jitter) : 0;
 }
 
 uint32_t rtcp_XR_stat_summary_get_dev_jitter(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohl(b->dev_jitter);
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? ntohl(b->dev_jitter) : 0;
 }
 
 uint8_t rtcp_XR_stat_summary_get_min_ttl_or_hl(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->min_ttl_or_hl;
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? b->min_ttl_or_hl : 0;
 }
 
 uint8_t rtcp_XR_stat_summary_get_max_ttl_or_hl(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->max_ttl_or_hl;
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? b->max_ttl_or_hl : 0;
 }
 
 uint8_t rtcp_XR_stat_summary_get_mean_ttl_or_hl(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->mean_ttl_or_hl;
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? b->mean_ttl_or_hl : 0;
 }
 
 uint8_t rtcp_XR_stat_summary_get_dev_ttl_or_hl(const mblk_t *m) {
-	rtcp_xr_stat_summary_report_block_t *b =
-	    (rtcp_xr_stat_summary_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->dev_ttl_or_hl;
+	const rtcp_xr_stat_summary_report_block_t *b = rtcp_XR_get_stat_summary_block(m);
+	return b ? b->dev_ttl_or_hl : 0;
 }
 
 uint32_t rtcp_XR_voip_metrics_get_ssrc(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohl(b->ssrc);
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? ntohl(b->ssrc) : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_loss_rate(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->loss_rate;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->loss_rate : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_discard_rate(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->discard_rate;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->discard_rate : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_burst_density(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->burst_density;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->burst_density : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_gap_density(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->gap_density;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->gap_density : 0;
 }
 
 uint16_t rtcp_XR_voip_metrics_get_burst_duration(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->burst_duration);
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? ntohs(b->burst_duration) : 0;
 }
 
 uint16_t rtcp_XR_voip_metrics_get_gap_duration(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->gap_duration);
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? ntohs(b->gap_duration) : 0;
 }
 
 uint16_t rtcp_XR_voip_metrics_get_round_trip_delay(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->round_trip_delay);
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? ntohs(b->round_trip_delay) : 0;
 }
 
 uint16_t rtcp_XR_voip_metrics_get_end_system_delay(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->end_system_delay);
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? ntohs(b->end_system_delay) : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_signal_level(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->signal_level;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->signal_level : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_noise_level(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->noise_level;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->noise_level : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_rerl(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->rerl;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->rerl : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_gmin(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->gmin;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->gmin : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_r_factor(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->r_factor;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->r_factor : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_ext_r_factor(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->ext_r_factor;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->ext_r_factor : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_mos_lq(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->mos_lq;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->mos_lq : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_mos_cq(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->mos_cq;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->mos_cq : 0;
 }
 
 uint8_t rtcp_XR_voip_metrics_get_rx_config(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return b->rx_config;
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? b->rx_config : 0;
 }
 
 uint16_t rtcp_XR_voip_metrics_get_jb_nominal(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->jb_nominal);
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? ntohs(b->jb_nominal) : 0;
 }
 
 uint16_t rtcp_XR_voip_metrics_get_jb_maximum(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->jb_maximum);
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? ntohs(b->jb_maximum) : 0;
 }
 
 uint16_t rtcp_XR_voip_metrics_get_jb_abs_max(const mblk_t *m) {
-	rtcp_xr_voip_metrics_report_block_t *b =
-	    (rtcp_xr_voip_metrics_report_block_t *)(m->b_rptr + sizeof(rtcp_xr_header_t));
-	return ntohs(b->jb_abs_max);
+	const rtcp_xr_voip_metrics_report_block_t *b = rtcp_XR_get_voip_metrics_block(m);
+	return b ? ntohs(b->jb_abs_max) : 0;
 }
 
 /* RTCP RTPFB accessors */
@@ -701,6 +688,47 @@ rtcp_psfb_type_t rtcp_PSFB_get_type(const mblk_t *m) {
 	return (rtcp_psfb_type_t)rtcp_common_header_get_rc(ch);
 }
 
+bool_t rtcp_is_PSFB_valid(const mblk_t *packet, size_t *header_size) {
+	bool_t result = TRUE;
+	rtcp_psfb_type_t psfb_type = rtcp_PSFB_get_type(packet);
+	size_t rtcp_size = rtcp_get_size(packet);
+	size_t size;
+	switch (psfb_type) {
+		case RTCP_PSFB_PLI: {
+			size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t);
+			if (header_size) *header_size = size;
+			result = (size <= rtcp_size);
+			break;
+		}
+		case RTCP_PSFB_SLI: {
+			size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_sli_fci_t);
+			if (header_size) *header_size = size - sizeof(rtcp_fb_sli_fci_t);
+			result = (size <= rtcp_size);
+			break;
+		}
+		case RTCP_PSFB_RPSI: {
+			size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_rpsi_fci_t);
+			if (header_size) *header_size = size - sizeof(rtcp_fb_rpsi_fci_t);
+			result = (size <= rtcp_size);
+			break;
+		}
+		case RTCP_PSFB_FIR: {
+			size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + sizeof(rtcp_fb_fir_fci_t);
+			if (header_size) *header_size = size - sizeof(rtcp_fb_fir_fci_t);
+			result = (size <= rtcp_size);
+			break;
+		}
+		case RTCP_PSFB_AFB:
+		default: { // Unknown or generic AFB. Use minimal header size.
+			size = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t);
+			if (header_size) *header_size = size;
+			result = (size <= rtcp_size);
+			break;
+		}
+	}
+	return result;
+}
+
 uint32_t rtcp_PSFB_get_packet_sender_ssrc(const mblk_t *m) {
 	rtcp_fb_header_t *fbh = (rtcp_fb_header_t *)(m->b_rptr + sizeof(rtcp_common_header_t));
 	return ntohl(fbh->packet_sender_ssrc);
@@ -730,12 +758,18 @@ rtcp_fb_sli_fci_t *rtcp_PSFB_sli_get_fci(const mblk_t *m, unsigned int idx) {
 }
 
 rtcp_fb_rpsi_fci_t *rtcp_PSFB_rpsi_get_fci(const mblk_t *m) {
-	return (rtcp_fb_rpsi_fci_t *)(m->b_rptr + sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t));
+	size_t header_size;
+	if (!rtcp_is_PSFB_valid(m, &header_size)) return NULL;
+	return (rtcp_fb_rpsi_fci_t *)(m->b_rptr + header_size);
 }
 
 uint16_t rtcp_PSFB_rpsi_get_fci_bit_string_len(const mblk_t *m) {
 	rtcp_fb_rpsi_fci_t *fci = rtcp_PSFB_rpsi_get_fci(m);
-	uint16_t bit_string_len_in_bytes =
-	    (uint16_t)(rtcp_get_size(m) - (sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + 2));
-	return ((bit_string_len_in_bytes * 8) - fci->pb);
+	if (fci == NULL) return 0;
+	size_t header_len = sizeof(rtcp_common_header_t) + sizeof(rtcp_fb_header_t) + 2;
+	size_t pkt_size = rtcp_get_size(m);
+	if (pkt_size <= header_len) return 0;
+	size_t total_bit_len = (pkt_size - header_len) * 8;
+	if (fci->pb >= total_bit_len) return 0;
+	return (uint16_t)(total_bit_len - fci->pb);
 }

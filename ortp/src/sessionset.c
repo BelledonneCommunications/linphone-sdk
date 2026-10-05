@@ -18,9 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ortp/sessionset.h"
+#include "ortp/ortp.h"
 #include "scheduler.h"
-#include <ortp/ortp.h>
-#include <ortp/sessionset.h>
 
 /**
  * Allocates and initialize a new empty session set.

@@ -385,7 +385,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m
 	VideoStream *stream = (VideoStream *)media_stream;
 	int i;
 
-	if (rtcp_is_PSFB(m) && (stream->ms.encoder != NULL)) {
+	if (rtcp_is_PSFB(m) && rtcp_is_PSFB_valid(m, NULL) && (stream->ms.encoder != NULL)) {
 		/* Ignore PSFB goog-remb messages */
 		if (rtcp_PSFB_get_type(m) == RTCP_PSFB_AFB && rtcp_PSFB_is_goog_remb(m)) return;
 
@@ -443,14 +443,16 @@ static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m
 					break;
 				case RTCP_PSFB_RPSI: {
 					rtcp_fb_rpsi_fci_t *fci = rtcp_PSFB_rpsi_get_fci(m);
-					MSVideoCodecRPSI rpsi;
-					rpsi.bit_string = rtcp_fb_rpsi_fci_get_bit_string(fci);
-					rpsi.bit_string_len = rtcp_PSFB_rpsi_get_fci_bit_string_len(m);
-					stream->encoder_control_cb(stream, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi,
-					                           stream->encoder_control_cb_user_data);
-					stream->ms_video_stat.counter_rcvd_rpsi++;
-					ms_message("video_stream_process_rtcp stream [%p] RPSI count %d", stream,
-					           stream->ms_video_stat.counter_rcvd_rpsi);
+					if (fci != NULL) {
+						MSVideoCodecRPSI rpsi;
+						rpsi.bit_string = rtcp_fb_rpsi_fci_get_bit_string(fci);
+						rpsi.bit_string_len = rtcp_PSFB_rpsi_get_fci_bit_string_len(m);
+						stream->encoder_control_cb(stream, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi,
+						                           stream->encoder_control_cb_user_data);
+						stream->ms_video_stat.counter_rcvd_rpsi++;
+						ms_message("video_stream_process_rtcp stream [%p] RPSI count %d", stream,
+						           stream->ms_video_stat.counter_rcvd_rpsi);
+					}
 				} break;
 				default:
 					break;

@@ -21,8 +21,8 @@
 #ifndef RTP_H
 #define RTP_H
 
-#include <ortp/port.h>
-#include <ortp/str_utils.h>
+#include "ortp/port.h"
+#include "ortp/str_utils.h"
 
 #define IPMAXLEN 20
 #define UDP_MAX_SIZE 1500

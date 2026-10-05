@@ -22,8 +22,8 @@
 #include "ortp-config.h"
 #endif
 
+#include "ortp/rtpsession.h"
 #include "utils.h"
-#include <ortp/rtpsession.h>
 
 void rtp_signal_table_init(RtpSignalTable *table, RtpSession *session, const char *signal_name) {
 	memset(table, 0, sizeof(RtpSignalTable));

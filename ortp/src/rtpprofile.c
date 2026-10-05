@@ -18,8 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/port.h"
 #include "ortp/ortp.h"
-#include <bctoolbox/port.h>
 
 int rtp_profile_get_payload_number_from_mime(RtpProfile *profile, const char *mime) {
 	return rtp_profile_get_payload_number_from_mime_and_flag(profile, mime, -1);

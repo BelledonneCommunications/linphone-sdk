@@ -29,12 +29,12 @@
 #ifdef HAVE_CONFIG_H
 #include "ortp-config.h" /*needed for HAVE_SYS_UIO_H and HAVE_ARC4RANDOM */
 #endif
+#include "bctoolbox/defs.h"
+#include "bctoolbox/port.h"
 #include "ortp/ortp.h"
 #include "ortp/str_utils.h"
 #include "rtpsession_priv.h"
 #include "utils.h"
-#include <bctoolbox/defs.h>
-#include <bctoolbox/port.h>
 
 #if (_WIN32_WINNT >= 0x0600)
 #include <delayimp.h>
@@ -1771,9 +1771,11 @@ static void compute_rtcp_xr_statistics(RtpSession *session, const mblk_t *block,
 	switch (rtcp_XR_get_block_type(block)) {
 		case RTCP_XR_RCVR_RTT:
 			ntp_timestamp = rtcp_XR_rcvr_rtt_get_ntp_timestamp(block);
-			stats->last_rcvr_rtt_ts = (ntp_timestamp >> 16) & 0xffffffff;
-			stats->last_rcvr_rtt_time.tv_sec = now->tv_sec;
-			stats->last_rcvr_rtt_time.tv_usec = now->tv_usec;
+			if (ntp_timestamp != 0) {
+				stats->last_rcvr_rtt_ts = (ntp_timestamp >> 16) & 0xffffffff;
+				stats->last_rcvr_rtt_time.tv_sec = now->tv_sec;
+				stats->last_rcvr_rtt_time.tv_usec = now->tv_usec;
+			}
 			break;
 		case RTCP_XR_DLRR:
 			compute_rtt(session, now, rtcp_XR_dlrr_get_lrr(block), rtcp_XR_dlrr_get_dlrr(block));
@@ -1916,7 +1918,8 @@ static int process_rtcp_packet(RtpSession *session, mblk_t *block, struct sockad
 }
 
 static void reply_to_collaborative_rtcp_xr_packet(RtpSession *session, mblk_t *block) {
-	if (rtcp_is_XR(block) && (rtcp_XR_get_block_type(block) == RTCP_XR_RCVR_RTT)) {
+	if (rtcp_is_XR(block) && (rtcp_XR_get_block_type(block) == RTCP_XR_RCVR_RTT) &&
+	    (rtcp_XR_rcvr_rtt_get_ntp_timestamp(block) != 0)) {
 		session->rtcp.rtcp_xr_dlrr_to_send = TRUE;
 	}
 }

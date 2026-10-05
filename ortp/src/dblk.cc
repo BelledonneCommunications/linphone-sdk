@@ -21,9 +21,9 @@
 #ifdef HAVE_CONFIG_H
 #include "ortp-config.h"
 #endif
+#include "ortp/port.h"
+#include "ortp/str_utils.h"
 #include <atomic>
-#include <ortp/port.h>
-#include <ortp/str_utils.h>
 
 using namespace std;
 

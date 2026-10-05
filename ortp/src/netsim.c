@@ -23,11 +23,11 @@
 #ifndef _WIN32
 #include <sys/resource.h>
 #endif
+#include "bctoolbox/port.h"
 #include "ortp/ortp.h"
 #include "ortp/rtpsession.h"
 #include "rtpsession_priv.h"
 #include "utils.h"
-#include <bctoolbox/port.h>
 
 static void rtp_session_schedule_outbound_network_simulator(RtpSession *session, ortpTimeSpec *sleep_until);
 

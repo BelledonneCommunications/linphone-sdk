@@ -21,7 +21,7 @@
 /* this program shows how to send streams in paralel using the SessionSet api
     and two threads only. */
 
-#include <ortp/ortp.h>
+#include "ortp/ortp.h"
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

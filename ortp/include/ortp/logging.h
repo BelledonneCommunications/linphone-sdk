@@ -27,7 +27,7 @@
 #ifndef ORTP_LOGGING_H
 #define ORTP_LOGGING_H
 
-#include <ortp/port.h>
+#include "ortp/port.h"
 
 #define ORTP_LOG_DOMAIN BCTBX_LOG_DOMAIN
 

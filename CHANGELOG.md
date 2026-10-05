@@ -11,18 +11,13 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
-## [Unreleased]
-### Added
-- Add stateful PRACK sending [RFC3262](https://www.rfc-editor.org/info/rfc3262)
-- MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
-- Swift package flavor built with the G729 codec, published to a separate repository for licensees.
-
-### Changes
-- Refactor ICE and STUN/TURN from C to C++
-- Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
 - Updated Sqlite3 dependency to 3.54.0
 - Updated decaf dependency to 1.0.5
 - Updated SRTP library dependency to 2.8.1
+
+### Security
+- Fix vulnerabilities in RTCP PSFB RPSI, RTCP XR and RTP extension header remapping.
+- Bounds validation on RTCP RTPFB packets and RTP extension headers.
 
 [latest]
 ### Fixed

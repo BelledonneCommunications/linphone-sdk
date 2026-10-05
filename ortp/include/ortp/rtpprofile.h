@@ -26,7 +26,7 @@
 
 #ifndef RTPPROFILE_H
 #define RTPPROFILE_H
-#include <ortp/port.h>
+#include "ortp/port.h"
 
 #ifdef __cplusplus
 extern "C" {

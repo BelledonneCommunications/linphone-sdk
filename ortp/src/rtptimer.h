@@ -28,7 +28,7 @@
 #include <time.h>
 #endif
 
-#include <ortp/port.h>
+#include "ortp/port.h"
 
 typedef void (*RtpTimerFunc)(void);
 

@@ -21,8 +21,8 @@
 /* this program shows how to receive streams in paralel using the SessionSet api
     and two threads only. */
 
+#include "ortp/ortp.h"
 #include <assert.h>
-#include <ortp/ortp.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -35,10 +35,10 @@
 #include <unistd.h>
 
 #else
-//#include <time.h>
+// #include <time.h>
 #endif
 
-#include <ortp/telephonyevents.h>
+#include "ortp/telephonyevents.h"
 
 int runcond = 1;
 

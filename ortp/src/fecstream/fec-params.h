@@ -21,8 +21,8 @@
 #ifndef FEC_PARAMS_H
 #define FEC_PARAMS_H
 
+#include "ortp/rtpsession.h"
 #include <array>
-#include <ortp/rtpsession.h>
 #include <vector>
 
 namespace ortp {
@@ -167,7 +167,7 @@ public:
 		return mRepairWindow;
 	}
 
-	~FecParamsController(){};
+	~FecParamsController() {};
 
 private:
 	/**

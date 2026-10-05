@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.39] - 2026-10-26
+
+### Security
+- Fix vulnerabilities in RTCP PSFB RPSI, RTCP XR and RTP extension header remapping.
+- Bounds validation on RTCP RTPFB packets and RTP extension headers.
+
 ## [5.5.0] - 2026-05-25
 
 ### Changed
