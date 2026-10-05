@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(BelCard VERSION 5.5.0 LANGUAGES C CXX)
+project(BelCard VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
 set(BELCARD_SO_VERSION "1")
 
@@ -47,8 +47,8 @@ if(MSVC)
 	add_definitions(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 endif()
 
-find_package(Belr 5.3.0 REQUIRED)
-find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(Belr ${PROJECT_VERSION} REQUIRED)
+find_package(BCToolbox ${PROJECT_VERSION} REQUIRED OPTIONAL_COMPONENTS tester)
 
 if(UNIX AND NOT APPLE)
 	include(CheckIncludeFiles)

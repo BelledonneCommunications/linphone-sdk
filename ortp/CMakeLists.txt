@@ -22,8 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(Ortp VERSION 5.5.0)
-
+project(Ortp VERSION ${PROJECT_VERSION})
 
 set(ORTP_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
 set(ORTP_MINOR_VERSION ${PROJECT_VERSION_MINOR})
@@ -62,7 +61,7 @@ endif()
 find_package(Threads)
 find_library(LIBM NAMES m)
 
-find_package(BCToolbox 5.3.0 REQUIRED)
+find_package(BCToolbox ${PROJECT_VERSION} REQUIRED)
 #Mandatory to init default compilation flags
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
 

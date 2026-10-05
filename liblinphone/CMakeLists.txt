@@ -23,7 +23,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(LibLinphone VERSION 5.5.0 LANGUAGES C CXX)
+project(LibLinphone VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
 set(LINPHONE_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
 set(LINPHONE_MINOR_VERSION ${PROJECT_VERSION_MINOR})
@@ -113,17 +113,17 @@ endif()
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
 if(ENABLE_VCARD)
-	find_package(BelCard 5.3.0 REQUIRED)
+	find_package(BelCard ${PROJECT_VERSION} REQUIRED)
 	add_definitions(-DVCARD_ENABLED)
 endif()
 
-find_package(BelleSIP 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
-find_package(Mediastreamer2 5.3.0 REQUIRED)
-find_package(Ortp 5.3.0 REQUIRED)
-find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(BelleSIP ${PROJECT_VERSION} REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(Mediastreamer2 ${PROJECT_VERSION} REQUIRED)
+find_package(Ortp ${PROJECT_VERSION} REQUIRED)
+find_package(BCToolbox ${PROJECT_VERSION} REQUIRED OPTIONAL_COMPONENTS tester)
 #Mandatory to init default compilation flags
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
-find_package(Belr 5.3.0 REQUIRED)
+find_package(Belr ${PROJECT_VERSION} REQUIRED)
 
 if(ANDROID_BUNDLED)
 	find_package(MsAaudio)
@@ -206,8 +206,8 @@ if(ENABLE_TUNNEL)
 endif()
 
 if(ENABLE_LIME_X3DH)
-	find_package(BZRTP 5.3.0 REQUIRED)
-	find_package(Lime 5.3.0 REQUIRED)
+	find_package(BZRTP ${PROJECT_VERSION} REQUIRED)
+	find_package(Lime ${PROJECT_VERSION} REQUIRED)
 	add_definitions(-DHAVE_LIME_X3DH)
 endif()
 

@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(BZRTP VERSION 5.5.0 LANGUAGES C CXX)
+project(BZRTP VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
 option(ENABLE_ZIDCACHE "Turn on compilation of ZID cache, request sqlite" YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
@@ -46,9 +46,9 @@ include(GNUInstallDirs)
 include(CheckLibraryExists)
 check_library_exists("m" "sqrt" "" HAVE_SQRT)
 
-find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(BCToolbox ${PROJECT_VERSION} REQUIRED OPTIONAL_COMPONENTS tester)
 if(ENABLE_PQCRYPTO)
-	find_package(PostQuantumCryptoEngine 5.3.0 REQUIRED)
+	find_package(PostQuantumCryptoEngine ${PROJECT_VERSION} REQUIRED)
 endif()
 if(ENABLE_ZIDCACHE)
 	bc_find_package(SQLite3 SQLite::SQLite3 sqlite3 REQUIRED)

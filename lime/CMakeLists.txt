@@ -36,7 +36,7 @@ option(ENABLE_PQCRYPTO "Enable Post Quantum Cryptography key agreements algorith
 
 set(LANGUAGES_LIST CXX)
 
-project(Lime VERSION 5.5.0 LANGUAGES ${LANGUAGES_LIST})
+project(Lime VERSION ${PROJECT_VERSION} LANGUAGES ${LANGUAGES_LIST})
 
 set(LIME_SO_VERSION "0")
 set(LIME_VERSION ${PROJECT_VERSION})
@@ -52,9 +52,9 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 if(ENABLE_PQCRYPTO)
-	find_package(PostQuantumCryptoEngine 5.3.0 REQUIRED)
+	find_package(PostQuantumCryptoEngine ${PROJECT_VERSION} REQUIRED)
 endif()
-find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(BCToolbox ${PROJECT_VERSION} REQUIRED OPTIONAL_COMPONENTS tester)
 find_package(Soci REQUIRED COMPONENTS sqlite3)
 
 include_directories(

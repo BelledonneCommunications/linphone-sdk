@@ -23,7 +23,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(Belr VERSION 5.5.0 LANGUAGES C CXX)
+project(Belr VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
 set(BELR_SO_VERSION "1")
 
@@ -51,7 +51,7 @@ endif()
 
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
-find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(BCToolbox ${PROJECT_VERSION} REQUIRED OPTIONAL_COMPONENTS tester)
 #Mandatory to init default compilation flags
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
 

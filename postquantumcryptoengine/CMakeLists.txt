@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(PostQuantumCryptoEngine VERSION 5.5.0)
+project(PostQuantumCryptoEngine VERSION ${PROJECT_VERSION})
 
 set(POSTQUANTUMCRYPTOENGINE_VERSION "${PROJECT_VERSION}")
 set(POSTQUANTUMCRYPTOENGINE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
@@ -43,7 +43,7 @@ if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(BCToolbox ${PROJECT_VERSION} REQUIRED OPTIONAL_COMPONENTS tester)
 bc_find_package(liboqs OQS::oqs oqs 0.7.2 REQUIRED)
 if(TARGET oqs)
 	set(liboqs_USE_BUILD_INTERFACE TRUE)

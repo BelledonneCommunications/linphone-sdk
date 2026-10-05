@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(Mediastreamer2 VERSION 5.5.0 LANGUAGES C CXX)
+project(Mediastreamer2 VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
 if(WIN32)
     if( NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
@@ -165,8 +165,8 @@ else()
   set(WORDS_BIGENDIAN FALSE)
 endif()
 
-find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
-find_package(Ortp 5.3.0 REQUIRED)
+find_package(BCToolbox ${PROJECT_VERSION} REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(Ortp ${PROJECT_VERSION} REQUIRED)
 
 if(ENABLE_PCAP)
 	find_package(PCAP)
@@ -175,7 +175,7 @@ if(ENABLE_SRTP)
 	find_package(SRTP 2 REQUIRED)
 endif()
 if(ENABLE_ZRTP)
-	find_package(BZRTP 5.3.0 REQUIRED)
+	find_package(BZRTP ${PROJECT_VERSION} REQUIRED)
 endif()
 if(ENABLE_G726)
 	find_package(SpanDSP REQUIRED)
