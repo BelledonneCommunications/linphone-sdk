@@ -107,7 +107,7 @@ By grounding discussions in shared references, code reviews should help foster c
 </td>
 </tr>
 <tr>
-<td>Tag added (only for release branches)</td>
+<td>Tag in changelog is up to date (only for release branches)</td>
 <td>
 
 - [ ] done
