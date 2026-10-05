@@ -142,7 +142,7 @@ psa_status_t bctbx_psa_sign_cb(BCTBX_UNUSED(psa_drv_se_context_t *drv_ctx),
 				psa_hash_alg = PSA_ALG_SHA_512;
 				break;
 			default:
-				bctbx_error("Unspecified algorithm and hash_len %ld matching no known algo in bctbx_psa_sign_cb",
+				bctbx_error("Unspecified algorithm and hash_len %zu matching no known algo in bctbx_psa_sign_cb",
 				            hash_len);
 				return PSA_ERROR_INVALID_ARGUMENT;
 		}
@@ -177,7 +177,7 @@ psa_status_t bctbx_psa_sign_cb(BCTBX_UNUSED(psa_drv_se_context_t *drv_ctx),
 
 		auto ret =
 		    ssl_config->callback_ext_signing_function(ssl_config->callback_ext_signing_data, ext_key_ref, key_sign_alg,
-		                                              hash_alg, hash, hash_len, sig_max, sig, sig_len);
+			                                          hash_alg, hash, hash_len, sig_max, sig, sig_len);
 		if (ret != 0) {
 			return PSA_ERROR_INVALID_ARGUMENT;
 		}
@@ -302,7 +302,7 @@ void RNG::randomize(uint8_t *buffer, size_t size) {
 	if (ret != 0) {
 		throw BCTBX_EXCEPTION << ((ret == MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG)
 		                              ? "RNG failure: Request too big"
-		                              : "RNG failure: entropy source failure");
+									  : "RNG failure: entropy source failure");
 	}
 }
 
@@ -312,7 +312,7 @@ std::vector<uint8_t> RNG::randomize(const size_t size) {
 	if (ret != 0) {
 		throw BCTBX_EXCEPTION << ((ret == MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG)
 		                              ? "RNG failure: Request too big"
-		                              : "RNG failure: entropy source failure");
+									  : "RNG failure: entropy source failure");
 	}
 	return buffer;
 }
