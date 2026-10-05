@@ -21,8 +21,8 @@
 #ifndef PACKET_API_H
 #define PACKET_API_H
 
-#include <ortp/logging.h>
-#include <ortp/rtpsession.h>
+#include "ortp/logging.h"
+#include "ortp/rtpsession.h"
 #include <vector>
 
 namespace ortp {
@@ -57,7 +57,7 @@ public:
 	void setLength(uint16_t l);
 	void setTimestamp(uint32_t t);
 	bool equals(Bitstring const &other);
-	~Bitstring(){};
+	~Bitstring() {};
 };
 
 class ORTP_PUBLIC FecSourcePacket {

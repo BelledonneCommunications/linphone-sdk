@@ -17,10 +17,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
+#include "ortp/ortp.h"
 #include "ortp_tester.h"
-#include <ortp/ortp.h>
 
 static RtpSession *session = NULL;
 static RtpSession *bundled_session = NULL;
@@ -821,21 +821,30 @@ static void add_existing_extensions_to_packet(void) {
 }
 
 static void robustness_on_malformed_packet(void) {
-	// Last ID/Length will go to outside of buffer
-	uint8_t raw_packet_bad_length_1byte[20] = {0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0x8a, 0x1a, 0x76
-												, 0xbe, 0xde// profile - 1 byte
-												, 0x00, 0x01//length
-												, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, 0x11};
+	/* Last ID/Length will go to outside of buffer */
+	/* clang-format off */
+	uint8_t raw_packet_bad_length_1byte[20] = {
+		0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0x8a, 0x1a, 0x76,
+		0xbe, 0xde, /* profile - 1 byte */
+		0x00, 0x01, /* length */
+		RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, 0x11
+	};
 
-	uint8_t raw_packet_bad_length_2byte[20] = {0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0x8a, 0x1a, 0x76
-												, 0x00, 0x01// profile - 2 bytes
-												, 0x00, 0x01//length
-												, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, 0x01};
+	uint8_t raw_packet_bad_length_2byte[20] = {
+		0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0x8a, 0x1a, 0x76,
+		0x00, 0x01, /* profile - 2 bytes */
+		0x00, 0x01, /* length */
+		RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, RTP_EXTENSION_NONE, 0x01
+	};
+	/* clang-format on */
 
 	uint8_t *raw_packets[2] = {raw_packet_bad_length_1byte, raw_packet_bad_length_2byte};
 	mblk_t *packet;
 	uint8_t *data;
 	int size;
+
+	int mapping[16] = {0};
+	mapping[1] = 5;
 
 	for (int i = 0; i < 2; ++i) {
 		ortp_message("Run on pattern %d", i);
@@ -849,8 +858,23 @@ static void robustness_on_malformed_packet(void) {
 		BC_ASSERT_GREATER(size, 0, size_t, "%zu");
 		size = rtp_get_extension_header(packet, 1, &data);
 		BC_ASSERT_EQUAL(size, -1, int, "%d");
+
+		/* verify remap on malformed packet doesn't crash or loop */
+		rtp_remap_header_extension_ids(packet, mapping);
 		freemsg(packet);
 	}
+
+	/* 2-byte header with id = 25 (>= 16) and len = 1 */
+	uint8_t raw_packet_2byte_high_id[24] = {0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	                                        0x00, 0xfd, 0x8a, 0x1a, 0x76, 0x10, 0x00, /* profile - 2 bytes RFC 8285 */
+	                                        0x00, 0x01,                               /* length: 1 word = 4 bytes */
+	                                        0x19, 0x01, 0xaa, 0x00}; /* ID=25 (0x19), len=1, data=0xaa, pad=0x00 */
+	packet = rtp_create_packet(raw_packet_2byte_high_id, 24);
+	rtp_remap_header_extension_ids(packet, mapping);
+	/* Extension ID 25 should remain unchanged and not cause OOB or loop */
+	size = rtp_get_extension_header(packet, 25, &data);
+	BC_ASSERT_EQUAL(size, 1, int, "%d");
+	freemsg(packet);
 }
 
 static test_t tests[] = {

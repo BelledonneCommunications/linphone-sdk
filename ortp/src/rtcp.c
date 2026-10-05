@@ -26,8 +26,8 @@
  *  Email simon dot morlat at linphone dot org
  ****************************************************************************/
 
-#include <bctoolbox/defs.h>
-#include <bctoolbox/port.h>
+#include "bctoolbox/defs.h"
+#include "bctoolbox/port.h"
 
 #ifdef HAVE_CONFIG_H
 #include "ortp-config.h"

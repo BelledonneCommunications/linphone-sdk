@@ -21,7 +21,7 @@
 #ifndef rtpsignaltable_h
 #define rtpsignaltable_h
 
-#include <bctoolbox/port.h>
+#include "bctoolbox/port.h"
 
 #define RTP_CALLBACK_TABLE_MAX_ENTRIES 50
 

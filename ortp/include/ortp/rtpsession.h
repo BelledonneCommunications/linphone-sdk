@@ -30,18 +30,18 @@
 #ifndef RTPSESSION_H
 #define RTPSESSION_H
 
-#include <bctoolbox/list.h>
+#include "bctoolbox/list.h"
 
-#include <ortp/event.h>
-#include <ortp/payloadtype.h>
-#include <ortp/port.h>
-#include <ortp/rtcp.h>
-#include <ortp/rtp.h>
-#include <ortp/rtpprofile.h>
-#include <ortp/rtpsignaltable.h>
-#include <ortp/sessionset.h>
-#include <ortp/str_utils.h>
-#include <ortp/utils.h>
+#include "ortp/event.h"
+#include "ortp/payloadtype.h"
+#include "ortp/port.h"
+#include "ortp/rtcp.h"
+#include "ortp/rtp.h"
+#include "ortp/rtpprofile.h"
+#include "ortp/rtpsignaltable.h"
+#include "ortp/sessionset.h"
+#include "ortp/str_utils.h"
+#include "ortp/utils.h"
 
 #define ORTP_AVPF_FEATURE_NONE 0
 #define ORTP_AVPF_FEATURE_TMMBR (1 << 0)

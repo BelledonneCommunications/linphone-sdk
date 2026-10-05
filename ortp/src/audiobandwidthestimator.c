@@ -20,10 +20,10 @@
 
 #include "audiobandwidthestimator.h"
 #include "congestiondetector.h"
+#include "ortp/logging.h"
+#include "ortp/rtpsession.h"
 #include "rtpsession_priv.h"
 #include <math.h>
-#include <ortp/logging.h>
-#include <ortp/rtpsession.h>
 
 // 2 micro seconds diff, we do not really need to be precise, so it is ok to use a very low
 // minimal period, it will just detect that the BW is very high

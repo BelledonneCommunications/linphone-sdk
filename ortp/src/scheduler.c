@@ -20,10 +20,10 @@
 #ifdef HAVE_CONFIG_H
 #include "ortp-config.h"
 #endif
+#include "ortp/ortp.h"
 #include "rtpsession_priv.h"
 #include "scheduler.h"
 #include "utils.h"
-#include <ortp/ortp.h>
 
 // To avoid warning during compile
 extern void rtp_session_process(RtpSession *session, uint32_t time, RtpScheduler *sched);

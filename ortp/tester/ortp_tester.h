@@ -22,9 +22,9 @@
 #ifndef _ORTP_TESTER_H
 #define _ORTP_TESTER_H
 
-#include <bctoolbox/tester.h>
+#include "bctoolbox/tester.h"
 
-#include <ortp/ortp.h>
+#include "ortp/ortp.h"
 
 #ifdef HAVE_CONFIG_H
 #include "ortp-config.h"

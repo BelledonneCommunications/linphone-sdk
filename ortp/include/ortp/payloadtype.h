@@ -26,7 +26,7 @@
 
 #ifndef PAYLOADTYPE_H
 #define PAYLOADTYPE_H
-#include <ortp/port.h>
+#include "ortp/port.h"
 
 #ifdef __cplusplus
 extern "C" {

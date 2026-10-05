@@ -21,9 +21,9 @@
 #ifndef VIDEOBANDWIDTHESTIMATOR_H
 #define VIDEOBANDWIDTHESTIMATOR_H
 
-#include <bctoolbox/list.h>
-#include <ortp/port.h>
-#include <ortp/utils.h>
+#include "bctoolbox/list.h"
+#include "ortp/port.h"
+#include "ortp/utils.h"
 
 typedef struct _OrtpVideoBandwidthEstimator OrtpVideoBandwidthEstimator;
 

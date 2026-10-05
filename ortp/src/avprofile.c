@@ -18,10 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ortp/ortp.h>
-#include <ortp/payloadtype.h>
-#include <ortp/rtcp.h>
-#include <ortp/rtpprofile.h>
+#include "ortp/ortp.h"
+#include "ortp/payloadtype.h"
+#include "ortp/rtcp.h"
+#include "ortp/rtpprofile.h"
 
 char offset127 = 127;
 char offset0xD5 = (char)0xD5;
@@ -81,12 +81,12 @@ char offset0[4] = {0x00, 0x00, 0x00, 0x00};
 	send_fmtp:                                                                                                         \
 	(val)
 #define NO_AVPF                                                                                                        \
-	avpf : {                                                                                                           \
+	avpf: {                                                                                                            \
 	features:                                                                                                          \
 		PAYLOAD_TYPE_AVPF_NONE, trr_interval : 0                                                                       \
 	}
 #define AVPF(feat, intv)                                                                                               \
-	avpf : {                                                                                                           \
+	avpf: {                                                                                                            \
 	features:                                                                                                          \
 		(feat), trr_interval : (intv)                                                                                  \
 	}
@@ -105,10 +105,8 @@ char offset0[4] = {0x00, 0x00, 0x00, 0x00};
 #define CHANNELS(val) (val)
 #define RECV_FMTP(val) (val)
 #define SEND_FMTP(val) (val)
-#define NO_AVPF                                                                                                        \
-	{ PAYLOAD_TYPE_AVPF_NONE, 0 }
-#define AVPF(feat, intv)                                                                                               \
-	{ (feat), FALSE, (intv) }
+#define NO_AVPF {PAYLOAD_TYPE_AVPF_NONE, 0}
+#define AVPF(feat, intv) {(feat), FALSE, (intv)}
 #define FLAGS(val) (val)
 
 #endif

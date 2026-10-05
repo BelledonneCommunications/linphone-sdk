@@ -21,9 +21,9 @@
 #ifndef CONGESTIONDETECTOR_H
 #define CONGESTIONDETECTOR_H
 
-#include <bctoolbox/list.h>
-#include <ortp/port.h>
-#include <ortp/utils.h>
+#include "bctoolbox/list.h"
+#include "ortp/port.h"
+#include "ortp/utils.h"
 struct _JitterControl;
 
 typedef enum _OrtpCongestionState {

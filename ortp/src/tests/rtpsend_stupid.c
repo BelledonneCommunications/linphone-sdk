@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ortp/ortp.h>
+#include "ortp/ortp.h"
 #include <signal.h>
 #include <stdlib.h>
 

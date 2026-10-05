@@ -21,8 +21,8 @@
 #ifndef RTCP_H
 #define RTCP_H
 
+#include "ortp/port.h"
 #include "ortp/str_utils.h"
-#include <ortp/port.h>
 
 #define RTCP_MAX_RECV_BUFSIZE 1500
 
@@ -520,6 +520,7 @@ ORTP_PUBLIC uint32_t rtcp_RTPFB_get_media_source_ssrc(const mblk_t *m);
 /* RTCP PSFB accessors */
 ORTP_PUBLIC bool_t rtcp_is_PSFB(const mblk_t *m);
 ORTP_PUBLIC rtcp_psfb_type_t rtcp_PSFB_get_type(const mblk_t *m);
+ORTP_PUBLIC bool_t rtcp_is_PSFB_valid(const mblk_t *packet, size_t *header_size);
 ORTP_PUBLIC uint32_t rtcp_PSFB_get_packet_sender_ssrc(const mblk_t *m);
 ORTP_PUBLIC uint32_t rtcp_PSFB_get_media_source_ssrc(const mblk_t *m);
 ORTP_PUBLIC rtcp_fb_fir_fci_t *rtcp_PSFB_fir_get_fci(const mblk_t *m, unsigned int idx);

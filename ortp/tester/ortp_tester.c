@@ -20,7 +20,7 @@
 
 #include "ortp_tester.h"
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "ortp_tester_utils.h"
 

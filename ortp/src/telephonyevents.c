@@ -18,17 +18,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #ifdef HAVE_CONFIG_H
 #include "ortp-config.h"
 #endif
+#include "bctoolbox/port.h"
+#include "ortp/ortp.h"
 #include "ortp/str_utils.h"
+#include "ortp/telephonyevents.h"
 #include "rtpsession_priv.h"
 #include "utils.h"
-#include <bctoolbox/port.h>
-#include <ortp/ortp.h>
-#include <ortp/telephonyevents.h>
 
 PayloadType payload_type_telephone_event = {
     PAYLOAD_AUDIO_PACKETIZED, /*type */
@@ -152,10 +152,9 @@ mblk_t *rtp_session_create_telephone_event_packet(RtpSession *session, int start
  *
  *@return 0 on success.
  **/
-int rtp_session_add_telephone_event(RtpSession *session,
-			mblk_t *packet, uint8_t event, int end, uint8_t volume, uint16_t duration)
-{
-	mblk_t *mp=packet;
+int rtp_session_add_telephone_event(
+    RtpSession *session, mblk_t *packet, uint8_t event, int end, uint8_t volume, uint16_t duration) {
+	mblk_t *mp = packet;
 	telephone_event_t *event_hdr;
 
 	(void)session;

@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #ifdef HAVE_CONFIG_H
 #include "ortp-config.h"
@@ -2828,6 +2828,7 @@ void rtp_remap_header_extension_ids(mblk_t *packet, const int mapping[16]) {
 	uint8_t *ext_header, *tmp;
 	uint16_t profile;
 	size_t ext_header_size, size;
+	uint8_t *last_headers;
 	int id = 0;
 
 	if (!rtp_get_extbit(packet)) return;
@@ -2839,8 +2840,9 @@ void rtp_remap_header_extension_ids(mblk_t *packet, const int mapping[16]) {
 	}
 
 	tmp = ext_header;
+	last_headers = ext_header + ext_header_size;
 	if (profile == 0xBEDE) { // 1-byte header
-		while (tmp < ext_header + ext_header_size) {
+		while (tmp < last_headers) {
 			if (*tmp == RTP_EXTENSION_MAX) break;
 
 			if (*tmp == RTP_EXTENSION_NONE) {
@@ -2852,12 +2854,12 @@ void rtp_remap_header_extension_ids(mblk_t *packet, const int mapping[16]) {
 			size = (size_t)(*tmp & 0xF) + 1; // Length is a 4-bit number minus 1
 
 			// Remap the extension id according to the provided array
-			if (mapping[id] > 0) *tmp = (uint8_t)((mapping[id] << 4) | (size - 1));
+			if (id < 16 && mapping[id] > 0) *tmp = (uint8_t)((mapping[id] << 4) | (size - 1));
 
 			tmp += size + 1;
 		}
 	} else { // 2-bytes header
-		while (tmp < ext_header + ext_header_size) {
+		while (tmp + 1 < last_headers) {
 			if (*tmp == RTP_EXTENSION_NONE) {
 				tmp++; // Padding
 				continue;
@@ -2867,7 +2869,7 @@ void rtp_remap_header_extension_ids(mblk_t *packet, const int mapping[16]) {
 			size = (size_t)tmp[1];
 
 			// Remap the extension id according to the provided array
-			if (mapping[id] > 0) tmp[0] = (uint8_t)mapping[id];
+			if (id < 16 && mapping[id] > 0) tmp[0] = (uint8_t)mapping[id];
 
 			tmp += size + 2;
 		}

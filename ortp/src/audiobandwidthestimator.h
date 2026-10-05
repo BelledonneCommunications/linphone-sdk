@@ -21,10 +21,10 @@
 #ifndef AUDIOBANDWIDTHESTIMATOR_H
 #define AUDIOBANDWIDTHESTIMATOR_H
 
-#include <bctoolbox/list.h>
-#include <ortp/port.h>
-#include <ortp/rtpsession.h>
-#include <ortp/utils.h>
+#include "bctoolbox/list.h"
+#include "ortp/port.h"
+#include "ortp/rtpsession.h"
+#include "ortp/utils.h"
 
 typedef struct _OrtpAudioBandwidthEstimatorPacket {
 	struct timeval recv_first_timestamp;

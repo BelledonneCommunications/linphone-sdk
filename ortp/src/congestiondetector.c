@@ -20,10 +20,10 @@
 
 #include "congestiondetector.h"
 
+#include "ortp/logging.h"
 #include <math.h>
-#include <ortp/logging.h>
 
-#include <ortp/rtpsession.h>
+#include "ortp/rtpsession.h"
 
 static const unsigned int congestion_pending_duration_ms = 5000;
 static const float return_from_suspected_max_loss_rate = 5.0;

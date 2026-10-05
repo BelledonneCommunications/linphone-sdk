@@ -18,9 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ortp/ortp.h"
+#include "ortp/telephonyevents.h"
 #include <assert.h>
-#include <ortp/ortp.h>
-#include <ortp/telephonyevents.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/types.h>

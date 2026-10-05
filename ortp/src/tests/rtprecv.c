@@ -18,8 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/vfs.h>
-#include <ortp/ortp.h>
+#include "bctoolbox/vfs.h"
+#include "ortp/ortp.h"
 #include <signal.h>
 #include <stdlib.h>
 #ifndef _WIN32

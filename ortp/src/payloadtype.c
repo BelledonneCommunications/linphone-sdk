@@ -22,10 +22,10 @@
 #include "ortp-config.h"
 #endif
 
+#include "bctoolbox/port.h"
 #include "ortp/logging.h"
 #include "ortp/payloadtype.h"
 #include "ortp/str_utils.h"
-#include <bctoolbox/port.h>
 
 char *payload_type_get_rtpmap(PayloadType *pt) {
 	int len = (int)strlen(pt->mime_type) + 15;

@@ -18,8 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ortp/ortp.h"
 #include "ortp_tester.h"
-#include <ortp/ortp.h>
+#include <inttypes.h>
 
 static int tester_before_all(void) {
 	ortp_init();
@@ -320,8 +321,99 @@ static void change_remote_address(void) {
 	rtp_session_destroy(flore);
 }
 
+static mblk_t *create_rtcp_packet(const uint8_t *data, size_t size) {
+	return appendb(allocb(size, 0), (const char *)data, size, FALSE);
+}
+
+static void robustness_on_malformed_rtcp_packets(void) {
+	/* 1. RTCP PSFB RPSI: 12-byte packet (only common + FB header, no FCI) */
+	uint8_t psfb_12bytes[12] = {
+	    0x83, 206,  0x00, 0x02, /* V=2, P=0, FMT=3 (RPSI), PT=206 (PSFB), len=2 words (12 bytes) */
+	    0x11, 0x22, 0x33, 0x44, /* SSRC of packet sender */
+	    0x55, 0x66, 0x77, 0x88  /* SSRC of media source */
+	};
+	mblk_t *m = create_rtcp_packet(psfb_12bytes, 12);
+
+	BC_ASSERT_TRUE(rtcp_is_PSFB(m));
+	BC_ASSERT_FALSE(rtcp_is_PSFB_valid(m, NULL));
+	BC_ASSERT_PTR_NULL(rtcp_PSFB_rpsi_get_fci(m));
+	BC_ASSERT_EQUAL(rtcp_PSFB_rpsi_get_fci_bit_string_len(m), 0, uint16_t, "%u");
+	freemsg(m);
+
+	/* 2. RTCP PSFB RPSI: 14-byte packet (PB + PT present, but incomplete FCI and PB > 0) */
+	uint8_t psfb_14bytes[14] = {
+	    0x83, 206, 0x00, 0x02, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x04, 0x60 /* PB=4, PT=96 */
+	};
+	m = create_rtcp_packet(psfb_14bytes, 14);
+
+	BC_ASSERT_FALSE(rtcp_is_PSFB_valid(m, NULL));
+	BC_ASSERT_PTR_NULL(rtcp_PSFB_rpsi_get_fci(m));
+	BC_ASSERT_EQUAL(rtcp_PSFB_rpsi_get_fci_bit_string_len(m), 0, uint16_t, "%u");
+	freemsg(m);
+
+	/* 3. RTCP PSFB RPSI: valid 16-byte packet */
+	uint8_t psfb_16bytes[16] = {
+	    0x83, 206,  0x00, 0x03,                                     /* len=3 words (16 bytes) */
+	    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x00, 0x60, /* PB=0, PT=96 */
+	    0x12, 0x34                                                  /* 16-bit native bit string */
+	};
+	m = create_rtcp_packet(psfb_16bytes, 16);
+
+	BC_ASSERT_TRUE(rtcp_is_PSFB(m));
+	BC_ASSERT_TRUE(rtcp_is_PSFB_valid(m, NULL));
+	BC_ASSERT_PTR_NOT_NULL(rtcp_PSFB_rpsi_get_fci(m));
+	BC_ASSERT_EQUAL(rtcp_PSFB_rpsi_get_fci_bit_string_len(m), 16, uint16_t, "%u");
+	freemsg(m);
+
+	/* 4. RTCP XR: 12-byte packet (only XR header + 4-byte generic block header) */
+	uint8_t xr_12bytes[12] = {
+	    0x80,
+	    207,
+	    0x00,
+	    0x02, /* V=2, P=0, RC=0, PT=207 (XR), len=2 words (12 bytes) */
+	    0x11,
+	    0x22,
+	    0x33,
+	    0x44, /* SSRC of packet sender */
+	    RTCP_XR_RCVR_RTT,
+	    0x00,
+	    0x00,
+	    0x00 /* BT=4 (RCVR_RTT), flags=0, block length=0 */
+	};
+	m = create_rtcp_packet(xr_12bytes, 12);
+
+	BC_ASSERT_TRUE(rtcp_is_XR(m));
+	BC_ASSERT_EQUAL(rtcp_XR_get_block_type(m), RTCP_XR_RCVR_RTT, int, "%d");
+	BC_ASSERT_EQUAL(rtcp_XR_rcvr_rtt_get_ntp_timestamp(m), 0, uint64_t, "%" PRIu64);
+	freemsg(m);
+
+	/* 5. RTCP XR: 12-byte packet with DLRR, STAT_SUMMARY, and VOIP_METRICS block types */
+	xr_12bytes[8] = RTCP_XR_DLRR;
+	m = create_rtcp_packet(xr_12bytes, 12);
+	BC_ASSERT_EQUAL(rtcp_XR_dlrr_get_ssrc(m), 0, uint32_t, "%u");
+	BC_ASSERT_EQUAL(rtcp_XR_dlrr_get_lrr(m), 0, uint32_t, "%u");
+	BC_ASSERT_EQUAL(rtcp_XR_dlrr_get_dlrr(m), 0, uint32_t, "%u");
+	freemsg(m);
+
+	xr_12bytes[8] = RTCP_XR_STAT_SUMMARY;
+	m = create_rtcp_packet(xr_12bytes, 12);
+	BC_ASSERT_EQUAL(rtcp_XR_stat_summary_get_ssrc(m), 0, uint32_t, "%u");
+	BC_ASSERT_EQUAL(rtcp_XR_stat_summary_get_lost_packets(m), 0, uint32_t, "%u");
+	BC_ASSERT_EQUAL(rtcp_XR_stat_summary_get_min_jitter(m), 0, uint32_t, "%u");
+	freemsg(m);
+
+	xr_12bytes[8] = RTCP_XR_VOIP_METRICS;
+	m = create_rtcp_packet(xr_12bytes, 12);
+	BC_ASSERT_EQUAL(rtcp_XR_voip_metrics_get_ssrc(m), 0, uint32_t, "%u");
+	BC_ASSERT_EQUAL(rtcp_XR_voip_metrics_get_loss_rate(m), 0, uint8_t, "%u");
+	BC_ASSERT_EQUAL(rtcp_XR_voip_metrics_get_mos_lq(m), 0, uint8_t, "%u");
+	BC_ASSERT_EQUAL(rtcp_XR_voip_metrics_get_round_trip_delay(m), 0, uint16_t, "%u");
+	freemsg(m);
+}
+
 static test_t tests[] = {TEST_NO_TAG("Send packets through a transfer session", send_packets_through_tranfer_session),
-                         TEST_NO_TAG("Change remote address", change_remote_address)};
+                         TEST_NO_TAG("Change remote address", change_remote_address),
+                         TEST_NO_TAG("Robustness on malformed RTCP packets", robustness_on_malformed_rtcp_packets)};
 
 test_suite_t rtp_test_suite = {
     "Rtp",                            // Name of test suite
