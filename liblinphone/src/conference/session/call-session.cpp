@@ -1909,6 +1909,10 @@ LinphoneStatus CallSession::terminate(const LinphoneErrorInfo *ei) {
 
 LinphoneStatus CallSession::transfer(const shared_ptr<CallSession> &dest) {
 	L_D();
+	if (!d->op || !dest->getPrivate()->op) {
+		lError() << *this << " cannot transfer, op has gone.";
+		return -1;
+	}
 	int result = d->op->referWithReplaces(dest->getPrivate()->op);
 	if (result == 0) {
 		d->setTransferState(CallSession::State::OutgoingInit);
