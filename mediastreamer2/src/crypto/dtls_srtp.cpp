@@ -575,6 +575,9 @@ void MSDtlsSrtpContext::start() {
 		bctbx_ssl_context_setup(mDtlsCryptoContext.ssl, mDtlsCryptoContext.ssl_config);
 		bctbx_ssl_set_io_callbacks(mDtlsCryptoContext.ssl, this, ms_dtls_srtp_rtp_sendData, ms_dtls_srtp_rtp_DTLSread);
 		bctbx_ssl_set_mtu(mDtlsCryptoContext.ssl, mtu);
+		if (!mPeerUri.empty()) {
+			bctbx_ssl_set_hostname(mDtlsCryptoContext.ssl, mPeerUri.c_str());
+		}
 		/* and start the handshake */
 		bctbx_ssl_handshake(mDtlsCryptoContext.ssl);
 		rtp_time_reference = bctbx_get_cur_time_ms(); /* arm the timer for retransmission */
@@ -591,6 +594,9 @@ void MSDtlsSrtpContext::start() {
 			bctbx_ssl_set_io_callbacks(mDtlsCryptoContext.ssl, this, ms_dtls_srtp_rtp_sendData,
 			                           ms_dtls_srtp_rtp_DTLSread);
 			bctbx_ssl_set_mtu(mDtlsCryptoContext.ssl, mtu);
+			if (!mPeerUri.empty()) {
+				bctbx_ssl_set_hostname(mDtlsCryptoContext.ssl, mPeerUri.c_str());
+			}
 			mChannelStatus = DtlsStatus::HandshakeOngoing;
 		}
 	}

@@ -1536,7 +1536,7 @@ static void dtls_srtp_call_with_missing_client_certificate(void) {
 }
 
 // Pauline and Marie both use valid client certificates for DTLS-SRTP, but Pauline's certificate does not hold her
-// userrname as SAN or CN
+// username as SAN or CN
 static void dtls_srtp_call_with_unmatching_client_certificates(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
 	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
@@ -1623,7 +1623,7 @@ static void dtls_srtp_call_with_unmatching_client_certificates(void) {
 	BC_ASSERT_FALSE(isCurrentCallUsingDtls(marie));
 	LinphoneCallStats *marie_stats = linphone_call_get_audio_stats(marie_call);
 	BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(marie_stats) ==
-	               LinphoneMediaEncryptionErrorDtlsCertificateSubjectMismatch);
+	               LinphoneMediaEncryptionErrorDtlsCertificateVerificationFail); // Handshake should fail at verification stage as we provided peer's name
 	linphone_call_stats_unref(marie_stats);
 
 	// For Pauline the test may fail as Marie will send an DTLS fatal alert to Pauline but it is not repeated, so
