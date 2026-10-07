@@ -29,7 +29,6 @@ changes made to these components.
 - VP8: Fix a cast to avoid losing data.
 
 ## [5.5.29]
->>>>>>> 0b59879bd8 (In iOS platform helper: getNetworkType() now properly check the current network rather than relying on mCurrentFlags, which is not used when monitoring is off)
 
 ### Fixed
 - iOS : fix possible audio route bug when switching audio device during call
