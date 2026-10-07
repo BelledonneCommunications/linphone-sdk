@@ -546,10 +546,8 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         let marie = LinphoneTestUser(rcFile: "marie_rc")
         let basicPauline = LinphoneTestUser(rcFile: "pauline_rc")
         
-        // ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
+        // ONLY A SINGLE VOIP PUSH REGISTRY EXISTS PER APP. IF YOU INSTANTIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATIONS IS CREATED LAST.
         let pushPauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
-        pushPauline.core.pushIncomingCallTimeout = Int(expectationBaseTimeout)
-        //pushPauline.core.defaultAccount?.params?.conferenceFactoryUri = "sip:conference@fakeserver.com"
         pushPauline.waitForRegistration(registeredExpectation: expectation(description: "testAnswerCallBeforePushIsReceivedOnSecondDevice - Registered with voip token")) {
             self.waitForExpectations(timeout: expectationBaseTimeout)
         }
@@ -559,45 +557,39 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         }
         
         var marieCall : Call?
-        XCTContext.runActivity(named: "Marie calls Pauline. Pauline1 accepts before Pauline2 receives the voip push. Pauline2's call times out.") { _ in
+        XCTContext.runActivity(named: "Marie calls Pauline. basicPauline accepts before pushPauline receives the voip push. pushPauline receives the SIP invite, cancelled as completed elsewhere.") { _ in
             let expectSipInviteAccepted = self.expectation(description: "Sip invite received")
             let basicPaulineIncomingCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
                 if (cstate == .IncomingReceived){
                     try! call.accept()
                 } else if (cstate == .PushIncomingReceived) {
-                    XCTAssertFalse(false, "Should never receive push on this user")
+                    XCTFail("Should never receive push on this user")
                 } else if (cstate == .StreamsRunning) {
                     expectSipInviteAccepted.fulfill()
                 }
             })
             basicPauline.core.addDelegate(delegate: basicPaulineIncomingCallDelegate)
             
+            // The server delivers the invite to a device that registers after the call was answered elsewhere, then cancels it at once.
+            // A push incoming call timeout would end the call as declined instead.
             let expectPushIncoming = self.expectation(description: "Incoming Push Received")
-            let expectPushCallTimedOutTooSoon = self.expectation(description: "Push Call timed out too soon")
-            expectPushCallTimedOutTooSoon.isInverted = true
+            let expectPushCallCompletedElsewhere = self.expectation(description: "Push call ended as completed elsewhere")
             let pushPaulineIncomingCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
                 if (cstate == .PushIncomingReceived){
                     expectPushIncoming.fulfill()
                 } else if (cstate == .End) {
-                    expectPushCallTimedOutTooSoon.fulfill()
+                    XCTAssertEqual(call.reason, Reason.None)
+                    XCTAssertEqual(call.errorInfo?.protocolCode, 200)
+                    XCTAssertEqual(call.errorInfo?.phrase, "Call completed elsewhere")
+                    expectPushCallCompletedElsewhere.fulfill()
                 }
             })
             pushPauline.core.addDelegate(delegate: pushPaulineIncomingCallDelegate)
             
             marieCall = marie.core.invite(url: basicPauline.core.defaultAccount!.params!.identityAddress!.asString())
-            self.waitForExpectations(timeout: TimeInterval(expectationBaseTimeout - 1))
+            self.waitForExpectations(timeout: expectationBaseTimeout)
             basicPauline.core.removeDelegate(delegate: basicPaulineIncomingCallDelegate)
             pushPauline.core.removeDelegate(delegate: pushPaulineIncomingCallDelegate)
-            
-            let expectPushCallTimedOut = self.expectation(description: "Push Call timed out when expected")
-            let pushPaulineTimedOutDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
-                if (cstate == .End) {
-                    expectPushCallTimedOut.fulfill()
-                }
-            })
-            pushPauline.core.addDelegate(delegate: pushPaulineTimedOutDelegate)
-            self.waitForExpectations(timeout: expectationBaseTimeout)
-            pushPauline.core.removeDelegate(delegate: pushPaulineTimedOutDelegate)
         }
         
         XCTContext.runActivity(named: "Marie terminates the call") { _ in
