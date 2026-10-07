@@ -208,6 +208,31 @@ static void push_early_decline_call(void) {
 	simple_push_call_base(TRUE, FALSE, TRUE, TRUE, FALSE);
 }
 
+static void push_incoming_call_timeout(void) {
+	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_rc");
+	LinphoneCall *pauline_call;
+	const int timeout = 5;
+
+	linphone_core_set_push_incoming_call_timeout(pauline->lc, timeout);
+	linphone_core_enter_background(pauline->lc);
+
+	// simulate pushkit for a call whose INVITE never comes
+	linphone_core_start_process_remote_notification(pauline, "push-call-id-without-invite");
+	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneCallPushIncomingReceived, 1, int, "%d");
+	pauline_call = linphone_core_get_current_call(pauline->lc);
+	if (!BC_ASSERT_PTR_NOT_NULL(pauline_call)) goto end;
+
+	// the call must survive until the timeout, then end without ever receiving an INVITE
+	BC_ASSERT_FALSE(
+	    wait_for_until(pauline->lc, NULL, &pauline->stat.number_of_LinphoneCallEnd, 1, (timeout - 2) * 1000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, NULL, &pauline->stat.number_of_LinphoneCallEnd, 1, timeout * 1000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, NULL, &pauline->stat.number_of_LinphoneCallReleased, 1, 2000));
+	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneCallIncomingReceived, 0, int, "%d");
+
+end:
+	linphone_core_manager_destroy(pauline);
+}
+
 #define TEST_GROUP_ID "test group id"
 
 void shared_core_accpet_call(void) {
@@ -263,6 +288,7 @@ static test_t push_incoming_call_tests[] = {
     TEST_NO_TAG("Simple decline call", simple_decline_call),
     TEST_NO_TAG("Push decline call", push_decline_call),
     TEST_NO_TAG("Push early decline call", push_early_decline_call),
+    TEST_NO_TAG("Push incoming call timeout", push_incoming_call_timeout),
     TEST_NO_TAG("Shared core accept call", shared_core_accpet_call),
 };
 
