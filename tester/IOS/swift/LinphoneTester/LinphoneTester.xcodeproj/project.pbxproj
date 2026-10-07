@@ -395,6 +395,8 @@
 				MARKETING_VERSION = 1.0;
                 OTHER_LDFLAGS = (
                     "-framework",
+                    "\"CallKit\"",
+                    "-framework",
                     "\"bctoolbox\"",
                     "-framework",
                     "\"bctoolbox-ios\"",
@@ -460,6 +462,8 @@
 				);
 				MARKETING_VERSION = 1.0;
                 OTHER_LDFLAGS = (
+                    "-framework",
+                    "\"CallKit\"",
                     "-framework",
                     "\"bctoolbox\"",
                     "-framework",
