@@ -42,10 +42,7 @@
 #define PICID_NEWER_THAN(s1, s2) ((uint16_t)((uint16_t)s1 - (uint16_t)s2) < 1 << 15)
 
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus)                                            \
-	{                                                                                                                  \
-		required_bitrate, bitrate_limit, {MS_VIDEO_SIZE_##resolution##_W, MS_VIDEO_SIZE_##resolution##_H}, fps, cpus,  \
-		    NULL                                                                                                       \
-	}
+	{required_bitrate, bitrate_limit, {MS_VIDEO_SIZE_##resolution##_W, MS_VIDEO_SIZE_##resolution##_H}, fps, cpus, NULL}
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
@@ -103,9 +100,17 @@ typedef struct EncState {
 	bool_t force_keyframe;
 	bool_t invalid_frame_reported;
 	bool_t avpf_enabled;
+	bool_t rpsi_enabled;
 	bool_t ready;
 	bool_t screen_content_mode;
 } EncState;
+
+/* The golden/altref reference frame scheme requires the peer to acknowledge
+ * reference frames through RPSI. Without negotiated RPSI it degenerates into
+ * periodic forced keyframes, so it is enabled only when RPSI was negotiated. */
+static bool_t enc_ref_frames_scheme_enabled(EncState *s) {
+	return (s->avpf_enabled == TRUE) && (s->rpsi_enabled == TRUE);
+}
 
 #define MIN_KEY_FRAME_DIST 4 /*since one i-frame is allowed to be 4 times bigger of the target bitrate*/
 
@@ -130,6 +135,7 @@ static void enc_init(MSFilter *f) {
 	s->picture_id = bctbx_random() & 0x007F;
 #endif
 	s->avpf_enabled = FALSE;
+	s->rpsi_enabled = TRUE;
 	enc_reset_frames_state(s);
 	ms_mutex_init(&s->vp8_mutex, NULL);
 	f->data = s;
@@ -174,7 +180,7 @@ static void enc_init_impl(MSFilter *f) {
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = (int)s->vconf.fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
-	if (s->avpf_enabled == TRUE) {
+	if (enc_ref_frames_scheme_enabled(s)) {
 		s->cfg.kf_mode = VPX_KF_DISABLED;
 	} else {
 		s->cfg.kf_mode = VPX_KF_AUTO;                    /* encoder automatically places keyframes */
@@ -506,7 +512,7 @@ static bool_t enc_process_frame_task(void *obj) {
 	if (s->force_keyframe == TRUE) {
 		ms_message("Forcing vp8 key frame for filter [%p]", f);
 		flags = VPX_EFLAG_FORCE_KF;
-	} else if (s->avpf_enabled == TRUE) {
+	} else if (enc_ref_frames_scheme_enabled(s)) {
 		if (s->frame_count == 0) s->force_keyframe = TRUE;
 		enc_fill_encoder_flags(s, &flags);
 	}
@@ -569,7 +575,9 @@ static bool_t enc_process_frame_task(void *obj) {
 				mblk_set_independent_flag(packet->m, (pkt->data.frame.flags & VPX_FRAME_IS_KEY));
 				mblk_set_discardable_flag(packet->m, (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE));
 				packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
-				packet->pd->non_reference_frame = s->avpf_enabled && !is_ref_frame;
+				/* Without the reference frame scheme, any frame may be referenced by the next
+				 * ones, so it must not be advertised as non-reference. */
+				packet->pd->non_reference_frame = enc_ref_frames_scheme_enabled(s) && !is_ref_frame;
 				if (s->avpf_enabled == TRUE) {
 					packet->pd->extended_control_bits_present = TRUE;
 					packet->pd->pictureid_present = TRUE;
@@ -759,7 +767,7 @@ static int enc_notify_pli(MSFilter *f, BCTBX_UNUSED(void *data)) {
 	ms_message("VP8: PLI requested");
 	if (should_generate_key_frame(s, MIN_KEY_FRAME_DIST)) {
 		ms_message("VP8: PLI accepted");
-		if (s->avpf_enabled == TRUE) {
+		if (enc_ref_frames_scheme_enabled(s)) {
 			s->invalid_frame_reported = TRUE;
 		} else {
 			s->force_keyframe = TRUE;
@@ -788,6 +796,11 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 	EncFrameState *fs;
 	int diff;
 	int most_recent;
+
+	if (!enc_ref_frames_scheme_enabled(s)) {
+		/* No acknowledged reference frame to recover from, handle the SLI as a PLI. */
+		return enc_notify_pli(f, NULL);
+	}
 
 	ms_filter_lock(f);
 	/* extend the SLI received picture-id (6 bits) to a normal picture id*/
@@ -831,6 +844,10 @@ static int enc_notify_rpsi(MSFilter *f, void *data) {
 	MSVideoCodecRPSI *rpsi = (MSVideoCodecRPSI *)data;
 	uint16_t picture_id;
 
+	if (!enc_ref_frames_scheme_enabled(s)) {
+		ms_debug("VP8: ignoring RPSI, RPSI feedback has not been negotiated");
+		return 0;
+	}
 	if (rpsi->bit_string_len == 8) {
 		picture_id = *((uint8_t *)rpsi->bit_string);
 	} else if (rpsi->bit_string_len == 16) {
@@ -857,6 +874,12 @@ static int enc_enable_avpf(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int enc_enable_rpsi(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	s->rpsi_enabled = *((bool_t *)data) ? TRUE : FALSE;
+	return 0;
+}
+
 static int enc_enable_screen_content_mode(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	s->screen_content_mode = *(bool_t *)data;
@@ -873,6 +896,7 @@ static MSFilterMethod enc_methods[] = {{MS_FILTER_REQ_VFU, enc_req_vfu},
                                        {MS_VIDEO_ENCODER_GET_CONFIGURATION, enc_get_configuration},
                                        {MS_VIDEO_ENCODER_SET_CONFIGURATION, enc_set_configuration},
                                        {MS_VIDEO_ENCODER_ENABLE_AVPF, enc_enable_avpf},
+                                       {MS_VIDEO_ENCODER_ENABLE_RPSI, enc_enable_rpsi},
                                        {MS_VIDEO_ENCODER_ENABLE_SCREEN_CONTENT_MODE, enc_enable_screen_content_mode},
                                        {0, NULL}};
 
@@ -934,6 +958,7 @@ typedef struct DecState {
 	int output_frames_count;
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
+	bool_t rpsi_enabled;
 	bool_t freeze_on_error;
 	bool_t ready;
 	ms_thread_t thread;
@@ -959,6 +984,7 @@ static void dec_init(MSFilter *f) {
 	ms_yuv_buf_allocator_set_max_frames(s->allocator, 3);
 	s->first_image_decoded = FALSE;
 	s->avpf_enabled = FALSE;
+	s->rpsi_enabled = TRUE;
 	s->freeze_on_error = TRUE;
 	/**
 	 * Default encoder has 4 max threads but for decoder, we don't need more than 1 thread.
@@ -1077,7 +1103,7 @@ static void dec_process_input(MSFilter *f) {
 			mblk_t *yuv_msg;
 
 			if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &reference_updates) == 0) {
-				if (frame_info.pictureid_present &&
+				if (s->rpsi_enabled && frame_info.pictureid_present &&
 				    ((reference_updates & VP8_GOLD_FRAME) || (reference_updates & VP8_ALTR_FRAME))) {
 					vp8rtpfmt_send_rpsi(&s->unpacker, frame_info.pictureid);
 				}
@@ -1220,6 +1246,12 @@ static int dec_enable_avpf(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int dec_enable_rpsi(MSFilter *f, void *data) {
+	DecState *s = (DecState *)f->data;
+	s->rpsi_enabled = *((bool_t *)data) ? TRUE : FALSE;
+	return 0;
+}
+
 static int dec_freeze_on_error(MSFilter *f, void *data) {
 	DecState *s = (DecState *)f->data;
 	s->freeze_on_error = *((bool_t *)data) ? TRUE : FALSE;
@@ -1283,6 +1315,7 @@ static int dec_set_max_threads(MSFilter *f, void *data) {
 
 static MSFilterMethod dec_methods[] = {{MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, dec_reset_first_image},
                                        {MS_VIDEO_DECODER_ENABLE_AVPF, dec_enable_avpf},
+                                       {MS_VIDEO_DECODER_ENABLE_RPSI, dec_enable_rpsi},
                                        {MS_VIDEO_DECODER_FREEZE_ON_ERROR, dec_freeze_on_error},
                                        {MS_VIDEO_DECODER_RESET, dec_reset},
                                        {MS_VIDEO_DECODER_SET_MAX_THREADS, dec_set_max_threads},
