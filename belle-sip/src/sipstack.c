@@ -580,11 +580,11 @@ static belle_sip_custom_dns_entries_t *get_or_create_custom_dns_entries(belle_si
 	return stack->custom_dns_entries;
 }
 
-void belle_sip_stack_add_dns_a_entry(belle_sip_stack_t *stack, const char *name, const char *ip, int ttl) {
+void belle_sip_stack_add_dns_a_entry(belle_sip_stack_t *stack, const char *name, const char *ip, uint32_t ttl) {
 	belle_sip_custom_dns_entries_add_a(get_or_create_custom_dns_entries(stack), name, ip, ttl);
 }
 
-void belle_sip_stack_add_dns_aaaa_entry(belle_sip_stack_t *stack, const char *name, const char *ip, int ttl) {
+void belle_sip_stack_add_dns_aaaa_entry(belle_sip_stack_t *stack, const char *name, const char *ip, uint32_t ttl) {
 	belle_sip_custom_dns_entries_add_aaaa(get_or_create_custom_dns_entries(stack), name, ip, ttl);
 }
 
@@ -596,7 +596,7 @@ void belle_sip_stack_add_dns_srv_entry(belle_sip_stack_t *stack,
                                        int port,
                                        int priority,
                                        int weight,
-                                       int ttl) {
+                                       uint32_t ttl) {
 	belle_sip_custom_dns_entries_add_srv(get_or_create_custom_dns_entries(stack), service, transport, domain, target,
 	                                     port, priority, weight, ttl);
 }

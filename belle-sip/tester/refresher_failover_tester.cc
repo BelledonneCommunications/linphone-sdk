@@ -267,6 +267,143 @@ static void register_retry_backoff_reset_on_200_ok(void) {
 	BC_ASSERT_LOWER((int)resetDelay, 1600, int, "%d");
 }
 
+static void reconnect_to_primary_asap_same_srv_target_keeps_channel(void) {
+	std::string domain = "sip.example.org";
+	std::string target = "proxy.example.org";
+	BasicRegistrar registrar(domain, "TCP");
+	int regPort = belle_sip_uri_get_port(registrar.getAgent().getListeningUri());
+	TestUA ua("TCP", "::");
+
+	belle_sip_stack_enable_reconnect_to_primary_asap(ua.getStack(), 1);
+
+	// SRV record pointing to target.example.org with ttl=1s
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), target.c_str(), regPort, 0, 0, 1);
+	// Two records for target.example.org:
+	// 1st is IPv6 ::1 (head of list for dual-stack, but registrar is on IPv4 127.0.0.1 -> Connection refused)
+	// 2nd is IPv4 127.0.0.1 (registrar listening)
+	belle_sip_stack_add_dns_aaaa_entry(ua.getStack(), target.c_str(), "::1", 1);
+	belle_sip_stack_add_dns_a_entry(ua.getStack(), target.c_str(), "127.0.0.1", 1);
+
+	std::string destUri = "sip:" + domain + ";transport=TCP";
+	ua.sendRegister(destUri);
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 1, 3000));
+	BC_ASSERT_EQUAL(registrar.getRequestCount(), 1, int, "%d");
+
+	int localPortBefore = 0;
+	belle_sip_refresher_get_local_address(ua.getRefresher(), &localPortBefore);
+	BC_ASSERT_GREATER(localPortBefore, 0, int, "%d");
+
+	// Wait 1.5 seconds for DNS TTL to expire and trigger re-resolution
+	belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(ua.getStack()), 1500);
+
+	// Trigger a refresh: should stay on the existing channel to 127.0.0.1 without reconnecting
+	belle_sip_refresher_refresh(ua.getRefresher(), 3600);
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 2, 3000));
+	BC_ASSERT_EQUAL(registrar.getRequestCount(), 2, int, "%d");
+
+	int localPortAfter = 0;
+	belle_sip_refresher_get_local_address(ua.getRefresher(), &localPortAfter);
+	BC_ASSERT_EQUAL(localPortAfter, localPortBefore, int, "%d");
+
+	ua.unregister();
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 3, 3000));
+}
+
+static void reconnect_to_primary_asap_reconnects_to_primary_target(void) {
+	std::string domain = "sip.example.org";
+	std::string primaryTarget = "primary.example.org";
+	std::string secondaryTarget = "secondary.example.org";
+	BasicRegistrar registrarSecondary(domain, "TCP");
+	int secPort = belle_sip_uri_get_port(registrarSecondary.getAgent().getListeningUri());
+	int badPort = get_unused_port();
+	TestUA ua("TCP");
+
+	belle_sip_stack_enable_reconnect_to_primary_asap(ua.getStack(), 1);
+
+	// Primary points to badPort (prio 0), secondary points to secPort (prio 10), ttl = 1s
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), primaryTarget.c_str(), badPort, 0, 0,
+	                                  1);
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), secondaryTarget.c_str(), secPort, 10,
+	                                  0, 1);
+	belle_sip_stack_add_dns_a_entry(ua.getStack(), primaryTarget.c_str(), "127.0.0.1", 1);
+	belle_sip_stack_add_dns_a_entry(ua.getStack(), secondaryTarget.c_str(), "127.0.0.1", 1);
+
+	std::string destUri = "sip:" + domain + ";transport=TCP";
+	ua.sendRegister(destUri);
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 1, 3000));
+	BC_ASSERT_EQUAL(registrarSecondary.getRequestCount(), 1, int, "%d");
+
+	// Now primary comes online
+	BasicRegistrar registrarPrimary(domain, "TCP");
+	int priPort = belle_sip_uri_get_port(registrarPrimary.getAgent().getListeningUri());
+
+	// Update custom DNS entries: primary now points to priPort
+	belle_sip_stack_clear_custom_dns_entries(ua.getStack());
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), primaryTarget.c_str(), priPort, 0, 0,
+	                                  1);
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), secondaryTarget.c_str(), secPort, 10,
+	                                  0, 1);
+	belle_sip_stack_add_dns_a_entry(ua.getStack(), primaryTarget.c_str(), "127.0.0.1", 1);
+	belle_sip_stack_add_dns_a_entry(ua.getStack(), secondaryTarget.c_str(), "127.0.0.1", 1);
+
+	// Sleep 1.5s to let the 1s DNS TTL timer expire and re-resolve
+	belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(ua.getStack()), 1500);
+	BC_ASSERT_EQUAL(registrarPrimary.getRequestCount(), 0, int, "%d");
+
+	// Trigger a refresh: should now reconnect to registrarPrimary!
+	belle_sip_refresher_refresh(ua.getRefresher(), 3600);
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 2, 3000));
+	BC_ASSERT_EQUAL(registrarPrimary.getRequestCount(), 1, int, "%d");
+	BC_ASSERT_EQUAL(registrarSecondary.getRequestCount(), 1, int, "%d");
+
+	ua.unregister();
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 3, 3000));
+}
+
+static void reconnect_to_primary_asap_same_host_different_port(void) {
+	std::string domain = "sip.example.org";
+	std::string target = "target.example.org";
+	BasicRegistrar registrarSecondary(domain, "TCP");
+	int secPort = belle_sip_uri_get_port(registrarSecondary.getAgent().getListeningUri());
+	int badPort = get_unused_port();
+	TestUA ua("TCP");
+
+	belle_sip_stack_enable_reconnect_to_primary_asap(ua.getStack(), 1);
+
+	// Both SRV records point to target.example.org!
+	// Primary points to badPort (prio 0), secondary to secPort (prio 10), ttl = 1s
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), target.c_str(), badPort, 0, 0, 1);
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), target.c_str(), secPort, 10, 0, 1);
+	belle_sip_stack_add_dns_a_entry(ua.getStack(), target.c_str(), "127.0.0.1", 1);
+
+	std::string destUri = "sip:" + domain + ";transport=TCP";
+	ua.sendRegister(destUri);
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 1, 3000));
+	BC_ASSERT_EQUAL(registrarSecondary.getRequestCount(), 1, int, "%d");
+
+	// Now primary comes online on a new port
+	BasicRegistrar registrarPrimary(domain, "TCP");
+	int priPort = belle_sip_uri_get_port(registrarPrimary.getAgent().getListeningUri());
+
+	// Update custom DNS entries: primary now points to priPort (still target.example.org!)
+	belle_sip_stack_clear_custom_dns_entries(ua.getStack());
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), target.c_str(), priPort, 0, 0, 1);
+	belle_sip_stack_add_dns_srv_entry(ua.getStack(), "sip", "tcp", domain.c_str(), target.c_str(), secPort, 10, 0, 1);
+	belle_sip_stack_add_dns_a_entry(ua.getStack(), target.c_str(), "127.0.0.1", 1);
+
+	// Sleep 1.5s to let the 1s DNS TTL timer expire and re-resolve
+	belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(ua.getStack()), 1500);
+
+	// Trigger a refresh: thanks to port comparison, it detects target changed and reconnects to priPort!
+	belle_sip_refresher_refresh(ua.getRefresher(), 3600);
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 2, 3000));
+	BC_ASSERT_EQUAL(registrarPrimary.getRequestCount(), 1, int, "%d");
+	BC_ASSERT_EQUAL(registrarSecondary.getRequestCount(), 1, int, "%d");
+
+	ua.unregister();
+	BC_ASSERT_TRUE(ua.waitCountOf(&ua.mNumberOf2xxResponse, 3, 3000));
+}
+
 static test_t refresher_failover_tests[] = {
     TEST_NO_TAG("Register and unregister UDP", register_and_unregister_udp),
     TEST_NO_TAG("Register and unregister TCP", register_and_unregister_tcp),
@@ -277,6 +414,12 @@ static test_t refresher_failover_tests[] = {
     TEST_NO_TAG("Register retry backoff with Retry-After", register_retry_backoff_with_retry_after),
     TEST_NO_TAG("Register retry backoff after SRV exhaustion", register_retry_backoff_after_srv_exhaustion),
     TEST_NO_TAG("Register retry backoff reset on 200 OK", register_retry_backoff_reset_on_200_ok),
+    TEST_NO_TAG("Reconnect to primary asap: same SRV target keeps channel",
+                reconnect_to_primary_asap_same_srv_target_keeps_channel),
+    TEST_NO_TAG("Reconnect to primary asap: reconnects to primary target",
+                reconnect_to_primary_asap_reconnects_to_primary_target),
+    TEST_NO_TAG("Reconnect to primary asap: same host different port",
+                reconnect_to_primary_asap_same_host_different_port),
 };
 
 test_suite_t refresher_failover_test_suite = {"Refresher failover",

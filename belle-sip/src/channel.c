@@ -1154,8 +1154,8 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj) {
 			                             belle_sip_object_ref(obj));
 			return;
 		} /*else we have already tried all the ip addresses, so give up and notify the error*/
-	}     /*else the channel was previously working good with the current ip address but now fails, so let's notify the
-	         error*/
+	} /*else the channel was previously working good with the current ip address but now fails, so let's notify the
+	     error*/
 
 	obj->state = BELLE_SIP_CHANNEL_ERROR;
 	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
@@ -1191,6 +1191,10 @@ void belle_sip_channel_notify_server_error(belle_sip_channel_t *obj) {
 	                  obj);
 	obj->soft_error = TRUE;
 	channel_set_state(obj, BELLE_SIP_CHANNEL_ERROR);
+}
+
+int belle_sip_channel_has_alternate_peer(const belle_sip_channel_t *obj) {
+	return obj && obj->current_peer && obj->current_peer->ai_next != NULL;
 }
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
@@ -1616,6 +1620,27 @@ static const struct addrinfo *addrinfo_is_first(const struct addrinfo *ai, const
 	return NULL;
 }
 
+/* TRUE when the head of the new resolver results belongs to the same SRV target (hostname and port)
+ * as the currently connected peer, or neither maps to an SRV record (plain A/AAAA name).
+ * reconnect_to_primary_asap must only force a reconnection when a higher-priority SRV target came back,
+ * not when the address ordering within the same target changed (an AAAA answer racing in ahead of
+ * the A record, round-robin A rotation, or an unreachable head address the connect walked past):
+ * closing the channel tears down every dialog the peer bound to it. */
+static int srv_target_unchanged(const belle_sip_resolver_results_t *prev_results,
+                                const struct addrinfo *current_peer,
+                                const belle_sip_resolver_results_t *new_results,
+                                const struct addrinfo *new_head) {
+	const belle_sip_dns_srv_t *cur_srv;
+	const belle_sip_dns_srv_t *new_srv;
+	if (prev_results == NULL || current_peer == NULL || new_head == NULL) return FALSE; /* cannot attribute peer */
+	cur_srv = belle_sip_resolver_results_get_srv_from_addrinfo(prev_results, current_peer);
+	new_srv = belle_sip_resolver_results_get_srv_from_addrinfo(new_results, new_head);
+	if (cur_srv == NULL && new_srv == NULL) return TRUE; /* non-SRV resolution of the same peer name */
+	if (cur_srv == NULL || new_srv == NULL) return FALSE;
+	if (belle_sip_dns_srv_get_port(cur_srv) != belle_sip_dns_srv_get_port(new_srv)) return FALSE;
+	return strcasecmp(belle_sip_dns_srv_get_target(cur_srv), belle_sip_dns_srv_get_target(new_srv)) == 0;
+}
+
 static void channel_res_done(void *data, belle_sip_resolver_results_t *results) {
 	belle_sip_channel_t *obj = (belle_sip_channel_t *)data;
 	const struct addrinfo *ai_list = NULL;
@@ -1647,6 +1672,10 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results) 
 
 			if (belle_sip_stack_reconnect_to_primary_asap_enabled(obj->stack)) {
 				existing_peer = addrinfo_is_first(obj->current_peer, ai_list);
+				if (existing_peer == NULL &&
+				    srv_target_unchanged(prev_dns_results, obj->current_peer, results, ai_list)) {
+					existing_peer = addrinfo_in_list(obj->current_peer, ai_list);
+				}
 			} else {
 				/*find if the current_peer we had is still existing in the new list. If yes, we will keep it*/
 				existing_peer = addrinfo_in_list(obj->current_peer, ai_list);
