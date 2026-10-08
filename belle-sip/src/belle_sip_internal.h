@@ -750,6 +750,9 @@ struct belle_sip_stack {
 	int refresh_window_min; /*lower bound of the refresh window */
 	int refresh_window_max; /*upper bound of the refresh window */
 
+	int register_retry_backoff_base_delay_ms; /*first REGISTER retry delay; 0 = fixed-delay retries (default)*/
+	int register_retry_backoff_max_delay_ms;  /*cap of the exponential REGISTER retry backoff*/
+
 	unsigned char dns_srv_enabled;
 	unsigned char dns_search_enabled;
 	unsigned char reconnect_to_primary_asap;

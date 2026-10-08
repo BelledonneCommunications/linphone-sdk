@@ -500,6 +500,19 @@ int belle_sip_stack_verify_server_cn_against_srv_target_enabled(const belle_sip_
 	return stack->verify_server_cn_against_srv_target;
 }
 
+void belle_sip_stack_set_register_retry_backoff(belle_sip_stack_t *stack, int base_delay_ms, int max_delay_ms) {
+	stack->register_retry_backoff_base_delay_ms = base_delay_ms > 0 ? base_delay_ms : 0;
+	stack->register_retry_backoff_max_delay_ms = max_delay_ms > 0 ? max_delay_ms : 0;
+}
+
+int belle_sip_stack_get_register_retry_backoff_base_delay(const belle_sip_stack_t *stack) {
+	return stack->register_retry_backoff_base_delay_ms;
+}
+
+int belle_sip_stack_get_register_retry_backoff_max_delay(const belle_sip_stack_t *stack) {
+	return stack->register_retry_backoff_max_delay_ms;
+}
+
 void belle_sip_stack_set_digest_authentication_policy(belle_sip_stack_t *stack,
                                                       belle_sip_digest_authentication_policy_t *policy) {
 	SET_OBJECT_PROPERTY(stack, digest_auth_policy, policy);

@@ -56,6 +56,7 @@ struct belle_sip_refresher {
 	unsigned char on_io_error;    /*flag to avoid multiple error notification*/
 	unsigned char contact_fixing; /* flag to indicate that we are submiting an updated REGISTER to fix contact after
 	        learning IP/port from previous response*/
+	unsigned char is_register;
 };
 static void set_or_update_dialog(belle_sip_refresher_t *refresher, belle_sip_dialog_t *dialog);
 static int set_expires_from_trans(belle_sip_refresher_t *refresher);
@@ -87,12 +88,57 @@ static void schedule_timer_at(belle_sip_refresher_t *refresher, int delay, timer
 	                               refresher->timer);
 }
 
+static int get_retry_after_randomized(int duration_ms) {
+	/* randomize between 3/4 and 5/4 of DEFAULT_RETRY_AFTER */
+	return (3 * duration_ms / 4) + (belle_sip_random() % (duration_ms / 2));
+}
+
+/* Exponential REGISTER retry backoff (belle_sip_stack_set_register_retry_backoff()): applies
+ * only to REGISTER refreshers and only when a base delay is configured; every other retry keeps
+ * the stock fixed-delay scheduling. */
+static int register_retry_backoff_enabled(const belle_sip_refresher_t *refresher) {
+	return refresher->is_register &&
+	       belle_sip_stack_get_register_retry_backoff_base_delay(refresher->transaction->base.provider->stack) > 0;
+}
+
+/* number_of_retry is expected to be already incremented for the retry being scheduled, so the
+ * first delayed retry (number_of_retry == 1) gets the base delay: base*2^0 -> base*2^1 -> ...
+ * capped at max, then randomized using get_retry_after_randomized(). */
+static int register_retry_backoff_delay_ms(const belle_sip_refresher_t *refresher) {
+	const belle_sip_stack_t *stack = refresher->transaction->base.provider->stack;
+	int base = belle_sip_stack_get_register_retry_backoff_base_delay(stack);
+	int max = belle_sip_stack_get_register_retry_backoff_max_delay(stack);
+	int exponent = refresher->number_of_retry - 1;
+	int delay = base;
+	if (max < base && max > 0) max = base;
+	while (exponent-- > 0 && (max == 0 || delay < max)) {
+		if (max > 0 && delay > max / 2) {
+			delay = max;
+			break;
+		}
+		delay *= 2;
+	}
+	return get_retry_after_randomized(delay);
+}
+
 static void retry_later(belle_sip_refresher_t *refresher) {
 	refresher->number_of_retry++;
-	schedule_timer_at(refresher, refresher->retry_after, RETRY);
+	if (register_retry_backoff_enabled(refresher)) {
+		schedule_timer_at(refresher, register_retry_backoff_delay_ms(refresher), RETRY);
+	} else {
+		schedule_timer_at(refresher, refresher->retry_after, RETRY);
+	}
 }
 
 static void retry_later_on_io_error(belle_sip_refresher_t *refresher) {
+	/* With the REGISTER backoff active, a 503 handler has typically just booked a retry
+	 * before the channel teardown reports this io error; rescheduling here would double-increment
+	 * the retry counter and overwrite the jittered delay (or a server-supplied Retry-After), so
+	 * let the booked retry stand. The disabled state keeps the stock reschedule below. */
+	if (register_retry_backoff_enabled(refresher) && refresher->timer && refresher->timer_purpose == RETRY) {
+		belle_sip_message("Refresher[%p]: io error notified while a retry is already scheduled, keeping it", refresher);
+		return;
+	}
 	/*if first retry, sent it sooner. */
 	if (refresher->number_of_retry < 1) {
 		schedule_timer_at(refresher, DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR, RETRY);
@@ -171,7 +217,7 @@ static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_
 		switch (belle_sip_channel_get_state(channel)) {
 			case BELLE_SIP_CHANNEL_DISCONNECTED:
 			case BELLE_SIP_CHANNEL_ERROR:
-				if (tr_state == BELLE_SIP_TRANSACTION_TERMINATED) {
+				if (tr_state == BELLE_SIP_TRANSACTION_TERMINATED && !refresher->transaction->base.last_response) {
 					belle_sip_message("refresher [%p]: has channel [%p] in state [%s], reporting error", refresher,
 					                  channel, belle_sip_channel_state_to_string(belle_sip_channel_get_state(channel)));
 					retry_later_on_io_error(refresher);
@@ -265,11 +311,6 @@ static void enable_ping_pong_crlf(belle_sip_refresher_t *refresher,
 			}
 		}
 	}
-}
-
-static int get_retry_after_randomized(int duration_ms) {
-	/* randomize between 3/4 and 5/4 of DEFAULT_RETRY_AFTER */
-	return (3 * duration_ms / 4) + (belle_sip_random() % (duration_ms / 2));
 }
 
 static void process_response_event(belle_sip_listener_t *user_ctx, const belle_sip_response_event_t *event) {
@@ -447,7 +488,11 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 				if (refresher->target_expires > 0) {
 					if (refresher->dialog) retry_later_on_io_error(refresher);
 					else {
-						schedule_timer_at(refresher, retry_after_time_ms, RETRY);
+						if (!retry_after_header && register_retry_backoff_enabled(refresher)) {
+							retry_later(refresher);
+						} else {
+							schedule_timer_at(refresher, retry_after_time_ms, RETRY);
+						}
 					}
 				} else will_retry = FALSE;
 				break;
@@ -935,6 +980,7 @@ belle_sip_refresher_t *belle_sip_refresher_new(belle_sip_client_transaction_t *t
 
 	refresher = (belle_sip_refresher_t *)belle_sip_object_new(belle_sip_refresher_t);
 	refresher->transaction = transaction;
+	refresher->is_register = is_register;
 	refresher->state = stopped;
 	refresher->number_of_retry = 0;
 	belle_sip_object_ref(transaction);

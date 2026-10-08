@@ -133,9 +133,21 @@ bool BasicRegistrar::onRequest(const belle_sip_request_event_t *event) {
 	belle_sip_request_t *req = belle_sip_request_event_get_request(event);
 	if (string(belle_sip_request_get_method(req)) != string("REGISTER")) return true; // skip
 
+	mRequestCount++;
+
 	int response_code = 500;
 	belle_sip_response_t *response_msg;
 	belle_sip_server_transaction_t *trans = belle_sip_provider_create_server_transaction(mAgent.getProv(), req);
+	if (mServiceUnavailable) {
+		response_code = 503;
+		response_msg = belle_sip_response_create_from_request(req, response_code);
+		if (mRetryAfterSeconds >= 0) {
+			belle_sip_header_retry_after_t *retry_after = belle_sip_header_retry_after_create(mRetryAfterSeconds);
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(response_msg), BELLE_SIP_HEADER(retry_after));
+		}
+		belle_sip_server_transaction_send_response(trans, response_msg);
+		return true;
+	}
 	try {
 		belle_sip_header_from_t *from = belle_sip_message_get_header_by_type(req, belle_sip_header_from_t);
 		belle_sip_uri_t *from_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(from));

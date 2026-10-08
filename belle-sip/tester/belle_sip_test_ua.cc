@@ -37,10 +37,12 @@ TestUA::~TestUA() {
 		mRefresher = nullptr;
 	}
 	if (mProvider) {
+		belle_sip_provider_clean_channels(mProvider);
 		belle_sip_object_unref(mProvider);
 		mProvider = nullptr;
 	}
 	if (mStack) {
+		belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(mStack), 50);
 		belle_sip_object_unref(mStack);
 		mStack = nullptr;
 	}
