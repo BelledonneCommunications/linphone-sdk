@@ -302,6 +302,9 @@ public:
 	void enableVerifyServerCnAgainstSrvTarget(bool value) {
 		belle_sip_stack_enable_verify_server_cn_against_srv_target(mStack, value);
 	}
+	void setRegisterRetryBackoff(int baseDelayMs, int maxDelayMs) {
+		belle_sip_stack_set_register_retry_backoff(mStack, baseDelayMs, maxDelayMs);
+	}
 
 	const std::list<SalOp *> &getPendingAuths() const {
 		return mPendingAuths;

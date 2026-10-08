@@ -41,8 +41,8 @@ class BasicSipAgent;
 
 class BELLESIP_EXPORT Module {
 public:
-	Module(){};
-	virtual ~Module(){};
+	Module() {};
+	virtual ~Module() {};
 	virtual bool onRequest(const belle_sip_request_event_t *event);
 	virtual bool onResponse(const belle_sip_response_event_t *event);
 	virtual BasicSipAgent &getAgent() = 0;
@@ -164,11 +164,27 @@ public:
 		return mAgent;
 	};
 
+	void setServiceUnavailable(bool enable, int retryAfterSeconds = -1) {
+		mServiceUnavailable = enable;
+		mRetryAfterSeconds = retryAfterSeconds;
+	}
+
+	int getRequestCount() const {
+		return mRequestCount;
+	}
+
+	void resetRequestCount() {
+		mRequestCount = 0;
+	}
+
 protected:
 	virtual bool onRequest(const belle_sip_request_event_t *event) override;
 
 private:
 	BasicSipAgent mAgent;
+	bool mServiceUnavailable = false;
+	int mRetryAfterSeconds = -1;
+	int mRequestCount = 0;
 };
 /**
  * @brief Basic Authenticated sip registrar server.
@@ -215,7 +231,7 @@ public:
 	 * @param sip transport registrar is listening to. Possible value are either "udp" or "tcp".
 	 */
 	AuthenticatedRegistrar(std::set<std::string> users_uri, std::string domain, std::string transport = "UDP");
-	virtual ~AuthenticatedRegistrar(){};
+	virtual ~AuthenticatedRegistrar() {};
 	/*
 	 Configure auth mode, currently only Digest and Bearer are implemented
 	 */
@@ -239,7 +255,7 @@ private:
  */
 class BELLESIP_EXPORT ProxyRegistrar : BasicRegistrar {
 	ProxyRegistrar(std::string domain, std::string transport = "UDP");
-	virtual ~ProxyRegistrar(){};
+	virtual ~ProxyRegistrar() {};
 };
 
 // HTTP

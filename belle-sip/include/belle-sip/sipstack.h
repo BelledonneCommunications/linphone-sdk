@@ -306,6 +306,36 @@ BELLESIP_EXPORT void belle_sip_stack_enable_verify_server_cn_against_srv_target(
 BELLESIP_EXPORT int belle_sip_stack_verify_server_cn_against_srv_target_enabled(const belle_sip_stack_t *stack);
 
 /**
+ * Configure exponential backoff with jitter for REGISTER refresher retries. When enabled, the
+ * delay before the Nth consecutive retry of a failed REGISTER is min(base_delay_ms * 2^(N-1),
+ * max_delay_ms), randomized uniformly within [0.75 * delay, 1.25 * delay] so that a fleet
+ * of phones facing the same server outage spreads its retries apart instead of storming the
+ * server in lockstep. The retry counter resets on a 2xx response. Scope and precedence:
+ * only REGISTER refreshers are affected (SUBSCRIBE/PUBLISH keep the fixed retry delay); a
+ * server-supplied Retry-After value always takes precedence over the computed backoff; the
+ * immediate first retry after an IO error is kept.
+ * @param stack
+ * @param base_delay_ms delay before the first retry in milliseconds, 0 to disable (default:
+ * disabled, fixed-delay retries)
+ * @param max_delay_ms backoff cap in milliseconds; values lower than base_delay_ms are treated
+ * as base_delay_ms
+ **/
+BELLESIP_EXPORT void
+belle_sip_stack_set_register_retry_backoff(belle_sip_stack_t *stack, int base_delay_ms, int max_delay_ms);
+
+/**
+ * Returns the REGISTER retry backoff base delay in milliseconds, 0 when disabled.
+ * @see belle_sip_stack_set_register_retry_backoff()
+ **/
+BELLESIP_EXPORT int belle_sip_stack_get_register_retry_backoff_base_delay(const belle_sip_stack_t *stack);
+
+/**
+ * Returns the REGISTER retry backoff maximum delay in milliseconds.
+ * @see belle_sip_stack_set_register_retry_backoff()
+ **/
+BELLESIP_EXPORT int belle_sip_stack_get_register_retry_backoff_max_delay(const belle_sip_stack_t *stack);
+
+/**
  * Configure security policies for digest authentication.
  */
 BELLESIP_EXPORT void belle_sip_stack_set_digest_authentication_policy(belle_sip_stack_t *stack,

@@ -1970,6 +1970,10 @@ static void sip_config_read(LinphoneCore *lc) {
 	lc->sal->enableVerifyServerCnAgainstSrvTarget(
 	    !!linphone_config_get_int(lc->config, "sip", "verify_server_cn_against_srv_target", 0));
 
+	/*exponential backoff with jitter for REGISTER retry (0 = stock fixed retry delay)*/
+	lc->sal->setRegisterRetryBackoff(linphone_config_get_int(lc->config, "sip", "register_retry_base_delay_ms", 0),
+	                                 linphone_config_get_int(lc->config, "sip", "register_retry_max_delay_ms", 0));
+
 	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->setSpecs(linphone_config_get_string(lc->config, "sip", "linphone_specs", ""));
 
 	if (!linphone_config_get_int(lc->config, "sip", "ipv6_migration_done", FALSE) &&

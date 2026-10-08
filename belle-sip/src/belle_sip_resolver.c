@@ -1329,19 +1329,18 @@ static int resolver_process_mdns_browse_result(belle_sip_mdns_source_t *source, 
 }
 #endif
 
-static void on_custom_dns_resolved(belle_sip_simple_resolver_context_t *ctx) {
-	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
-	belle_sip_object_unref(ctx);
-}
-
 static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 	if (!ctx->name) return -1;
 	if (ctx->base.stack->custom_dns_entries &&
 	    belle_sip_custom_dns_entries_resolve(ctx->base.stack->custom_dns_entries, ctx)) {
-		ctx->base.use_dns_service = FALSE;
 		ctx->not_using_dns_socket = TRUE;
-		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)on_custom_dns_resolved,
-		                             belle_sip_object_ref(ctx));
+#ifdef HAVE_DNS_SERVICE
+		if (ctx->base.use_dns_service == TRUE) {
+			belle_sip_object_ref(ctx);
+		}
+#endif
+		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify,
+		                             BELLE_SIP_RESOLVER_CONTEXT(ctx));
 		return 0;
 	}
 #ifdef HAVE_DNS_SERVICE
