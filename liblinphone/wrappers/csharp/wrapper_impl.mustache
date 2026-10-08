@@ -465,10 +465,20 @@ namespace Linphone
 		{{/is_deprecated}}
 		public {{name_public}} {{name}}
 		{
+			{{^is_deprecated}}
+			{{#is_get_deprecated}}
+			[ObsoleteAttribute]
+			{{/is_get_deprecated}}
+			{{/is_deprecated}}
 			get
 			{
 				return {{var_public}};
 			}
+			{{^is_deprecated}}
+			{{#is_set_deprecated}}
+			[ObsoleteAttribute]
+			{{/is_set_deprecated}}
+			{{/is_deprecated}}
 			set
 			{
 				{{var_public}} = value;
@@ -770,6 +780,11 @@ namespace Linphone
 		{{property_static}}public {{{property_return}}} {{property_name}}
 		{
 		{{#has_getter}}
+			{{^is_deprecated}}
+			{{#is_get_deprecated}}
+			[ObsoleteAttribute]
+			{{/is_get_deprecated}}
+			{{/is_deprecated}}
 			get
 			{
 				{{#is_string}}
@@ -798,6 +813,11 @@ namespace Linphone
 			}
 		{{/has_getter}}
 		{{#has_setter}}
+			{{^is_deprecated}}
+			{{#is_set_deprecated}}
+			[ObsoleteAttribute]
+			{{/is_set_deprecated}}
+			{{/is_deprecated}}
 			set
 			{
 				{{#is_string}}

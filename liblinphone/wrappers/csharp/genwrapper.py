@@ -51,6 +51,8 @@ class CsharpTranslator:
 		methodDict['is_enum'] = False
 		methodDict['is_generic'] = False
 		methodDict['is_deprecated'] = False
+		methodDict['is_get_deprecated'] = False
+		methodDict['is_set_deprecated'] = False
 		methodDict['takeRef'] = 'true'
 		return methodDict
 
@@ -179,6 +181,7 @@ class CsharpTranslator:
 		methodDict['is_enum'] = self.is_linphone_type(prop.returnType, False, False) and type(prop.returnType) is AbsApi.EnumType
 		methodDict['is_generic'] = self.is_generic(methodDict)
 		methodDict['is_deprecated'] = prop.deprecated
+		methodDict['is_get_deprecated'] = prop.deprecated
 		methodDict['takeRef'] = 'true'
 		if isinstance(prop.returnType.parent, AbsApi.Method) and len(prop.returnType.parent.name.words) >=1:
 			if prop.returnType.parent.name.words == ['new'] or prop.returnType.parent.name.words[0] == 'create':
@@ -211,6 +214,7 @@ class CsharpTranslator:
 		methodDict['is_enum'] = self.is_linphone_type(prop.args[0].type, True, False) and type(prop.args[0].type) is AbsApi.EnumType
 		methodDict['is_generic'] = self.is_generic(methodDict)
 		methodDict['is_deprecated'] = prop.deprecated
+		methodDict['is_set_deprecated'] = prop.deprecated
 
 		return methodDict
 
@@ -225,7 +229,8 @@ class CsharpTranslator:
 		methodDict['exception'] = methodDictSet['exception']
 		methodDict['setter_nativePtr'] = methodDictSet['setter_nativePtr']
 		methodDict['setter_c_name'] = methodDictSet['setter_c_name']
-		methodDict['is_deprecated'] = methodDictSet['is_deprecated']
+		methodDict['is_deprecated'] = methodDict['is_get_deprecated'] and methodDictSet['is_set_deprecated']
+		methodDict['is_set_deprecated'] = methodDictSet['is_set_deprecated']
 
 		return methodDict
 

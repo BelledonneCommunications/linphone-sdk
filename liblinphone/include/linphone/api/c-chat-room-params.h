@@ -176,7 +176,7 @@ LINPHONE_PUBLIC void linphone_chat_room_params_set_ephemeral_mode(LinphoneChatRo
  * Enables or disables encryption for the chat room associated with the given parameters.
  * @param params The #LinphoneChatRoomParams object. @notnil
  * @param encrypted TRUE to enable encryption, FALSE to disable.
- * @deprecated 20/05/2024. Use linphone_conference_params_enable_encryption() instead.
+ * @deprecated 20/05/2024. Use linphone_conference_params_set_security_level() instead.
  **/
 LINPHONE_PUBLIC void linphone_chat_room_params_enable_encryption(LinphoneChatRoomParams *params, bool_t encrypted);
 

@@ -15,6 +15,7 @@ changes made to these components.
 
 ### Fixed
 - Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
+- CSharp Wrapper: Separate getter/setter deprecation and set minimal version on C# for property obsolete features (8.0).
 
 ## [5.5.30] 2026-10-05
 
