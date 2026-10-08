@@ -10,6 +10,7 @@
     <RootNamespace>CsWrapper</RootNamespace>
     <AssemblyName>CsWrapper</AssemblyName>
     <FileAlignment>512</FileAlignment>
+    <LangVersion>8.0</LangVersion>
     <Deterministic>true</Deterministic>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <TargetFrameworkProfile />
