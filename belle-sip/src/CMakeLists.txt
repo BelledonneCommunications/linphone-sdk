@@ -133,6 +133,8 @@ set(BELLE_SIP_SOURCE_FILES_CXX
 	bearer_token.cc
 	channel_bank.cc
 	channel_bank.hh
+	custom_dns_entries.cc
+	custom_dns_entries.hh
 	generic-uri.cc
 	message.cc
 	http-message.cc

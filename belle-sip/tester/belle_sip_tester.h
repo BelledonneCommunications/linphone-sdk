@@ -52,6 +52,7 @@ extern test_suite_t dialog_test_suite;
 extern test_suite_t refresher_test_suite;
 extern test_suite_t http_test_suite;
 extern test_suite_t object_test_suite;
+extern test_suite_t refresher_failover_test_suite;
 extern char *belle_sip_tester_all_leaks_buffer;
 
 BELLESIP_EXPORT const char *belle_sip_tester_get_root_ca_path(void);

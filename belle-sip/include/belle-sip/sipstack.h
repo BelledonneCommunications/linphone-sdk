@@ -375,6 +375,54 @@ BELLESIP_EXPORT void belle_sip_stack_simulate_non_working_srv(belle_sip_stack_t 
  */
 BELLESIP_EXPORT void belle_sip_stack_force_name_addr(int forced);
 
+/**
+ * Add a custom DNS A record to be used by the resolver.
+ * @param stack
+ * @param name Hostname
+ * @param ip IPv4 address string (e.g. "192.168.1.1")
+ * @param ttl Time To Live in seconds
+ **/
+BELLESIP_EXPORT void
+belle_sip_stack_add_dns_a_entry(belle_sip_stack_t *stack, const char *name, const char *ip, int ttl);
+
+/**
+ * Add a custom DNS AAAA record to be used by the resolver.
+ * @param stack
+ * @param name Hostname
+ * @param ip IPv6 address string (e.g. "::1")
+ * @param ttl Time To Live in seconds
+ **/
+BELLESIP_EXPORT void
+belle_sip_stack_add_dns_aaaa_entry(belle_sip_stack_t *stack, const char *name, const char *ip, int ttl);
+
+/**
+ * Add a custom DNS SRV record to be used by the resolver.
+ * @param stack
+ * @param service Service name, typically "sip"
+ * @param transport Transport name, e.g. "udp", "tcp", "tls"
+ * @param domain Domain name
+ * @param target Target hostname
+ * @param port Target port
+ * @param priority Priority
+ * @param weight Weight
+ * @param ttl Time To Live in seconds
+ **/
+BELLESIP_EXPORT void belle_sip_stack_add_dns_srv_entry(belle_sip_stack_t *stack,
+                                                       const char *service,
+                                                       const char *transport,
+                                                       const char *domain,
+                                                       const char *target,
+                                                       int port,
+                                                       int priority,
+                                                       int weight,
+                                                       int ttl);
+
+/**
+ * Clear all custom DNS records configured on this stack.
+ * @param stack
+ **/
+BELLESIP_EXPORT void belle_sip_stack_clear_custom_dns_entries(belle_sip_stack_t *stack);
+
 /*
  * End of test functions.
  */

@@ -18,6 +18,7 @@
  */
 
 #include "belle_sip_internal.h"
+#include "custom_dns_entries.hh"
 #include "listeningpoint_internal.h"
 
 static int belle_sip_well_known_port = 5060;
@@ -179,6 +180,10 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack) {
 	}
 #endif /* HAVE_DNS_SERVICE */
 	bctbx_list_free_with_data(stack->user_host_entries, bctbx_free);
+	if (stack->custom_dns_entries) {
+		belle_sip_object_unref(stack->custom_dns_entries);
+		stack->custom_dns_entries = NULL;
+	}
 	bctbx_uninit_logger();
 }
 
@@ -553,4 +558,38 @@ int belle_sip_stack_get_max_refresh_window(belle_sip_stack_t *stack) {
 void belle_sip_stack_force_name_addr(int forced) {
 	belle_sip_message("belle_sip_stack_force_name_addr(): forced=%i", forced);
 	belle_sip_stack_name_addr_forced = forced;
+}
+
+static belle_sip_custom_dns_entries_t *get_or_create_custom_dns_entries(belle_sip_stack_t *stack) {
+	if (!stack->custom_dns_entries) {
+		stack->custom_dns_entries = belle_sip_custom_dns_entries_new();
+	}
+	return stack->custom_dns_entries;
+}
+
+void belle_sip_stack_add_dns_a_entry(belle_sip_stack_t *stack, const char *name, const char *ip, int ttl) {
+	belle_sip_custom_dns_entries_add_a(get_or_create_custom_dns_entries(stack), name, ip, ttl);
+}
+
+void belle_sip_stack_add_dns_aaaa_entry(belle_sip_stack_t *stack, const char *name, const char *ip, int ttl) {
+	belle_sip_custom_dns_entries_add_aaaa(get_or_create_custom_dns_entries(stack), name, ip, ttl);
+}
+
+void belle_sip_stack_add_dns_srv_entry(belle_sip_stack_t *stack,
+                                       const char *service,
+                                       const char *transport,
+                                       const char *domain,
+                                       const char *target,
+                                       int port,
+                                       int priority,
+                                       int weight,
+                                       int ttl) {
+	belle_sip_custom_dns_entries_add_srv(get_or_create_custom_dns_entries(stack), service, transport, domain, target,
+	                                     port, priority, weight, ttl);
+}
+
+void belle_sip_stack_clear_custom_dns_entries(belle_sip_stack_t *stack) {
+	if (stack->custom_dns_entries) {
+		belle_sip_custom_dns_entries_clear(stack->custom_dns_entries);
+	}
 }

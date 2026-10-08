@@ -107,6 +107,7 @@ void belle_sip_tester_init(void (*ftester_printf)(int level, const char *fmt, va
 	bc_tester_add_suite(&refresher_test_suite);
 	bc_tester_add_suite(&http_test_suite);
 	bc_tester_add_suite(&object_test_suite);
+	bc_tester_add_suite(&refresher_failover_test_suite);
 
 	pool = belle_sip_object_pool_push();
 }

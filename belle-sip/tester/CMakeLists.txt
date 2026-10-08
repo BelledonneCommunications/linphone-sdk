@@ -53,9 +53,12 @@ set(SOURCE_FILES_C
 set(SOURCE_FILES_CXX
 	belle_http_tester.c
 	belle_sip_register_tester.c
+	belle_sip_test_ua.cc
+	belle_sip_test_ua.hh
 	belle_sip_tester_utils.cc
 	belle_sip_tester_utils.h
 	object_tester.cc
+	refresher_failover_tester.cc
 )
 
 set_source_files_properties(${SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
