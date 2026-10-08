@@ -272,29 +272,29 @@
            then
              if [ $SHAKY_TESTS_LIBLINPHONE = "true" ];
              then
-                  $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'shaky' --max-failed 2 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky || EXIT=$?
+                  eval "$PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'shaky' --max-failed 2 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky" || EXIT=$?
              elif [ $PERFORMANCE_TESTS_LIBLINPHONE = "true" ];
              then
                  if [ $NIGHTLY_PERFORMANCE_TESTS_LIBLINPHONE = "true" ];
                  then
-                     $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'Performance' --tag 'NightlyPerformance' --max-failed 0 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky || EXIT=$?
+                     eval "$PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'Performance' --tag 'NightlyPerformance' --max-failed 0 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky" || EXIT=$?
                  else
-                     $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'Performance' --max-failed 0 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky || EXIT=$?
+                     eval "$PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'Performance' --max-failed 0 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedShaky" || EXIT=$?
                  fi
              else
-                 $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag '!shaky' --tag '!NightlyPerformance' --tag '!Performance' $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+                 eval "$PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag '!shaky' --tag '!NightlyPerformance' --tag '!Performance' $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt" || EXIT=$?
 
              fi
           else
              EXIT_CRYPTO_BACKEND_TAG=0;
-             $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag "CRYPTO" --tag '!shaky' $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
+             eval "$PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'CRYPTO' --tag '!shaky' $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS" || EXIT_CRYPTO_BACKEND_TAG=$?
           fi
         else
 
           EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=0;
 
-          $PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag "H264" --tag "End2EndConf" --tag "LimeX3DH" --tag "PQCalls" --tag '!shaky'  $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
+          eval "$PATH_TO_TESTER/$TESTER_BIN --verbose $LIBLINPHONE_TESTER_PARALLEL_OPTIONS --tag 'H264' --tag 'End2EndConf' --tag 'LimeX3DH' --tag 'PQCalls' --tag '!shaky'  $RESOURCES_DIR --log-file $LOG_PATTERN.txt --xml --xml-file BCUnitAutomatedH264PQCallsMessagesConferencesTags $ADDITIONNAL_OPTIONS" || EXIT_H264_CALLS_MESSAGES_CONFERENCES_TAG_OVER_TUNNEL_AND_PQ=$?
 
          # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file $LOG_PATTERN2.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
 
@@ -486,18 +486,14 @@
     TESTER: "bellesip"
 
 
-# .test-bellesip-mr:
-#   extends: .test-bellesip
-#   only:
-#     refs:
-#       - branches
-#       - tags
-#     changes:
-#       - belle-sip
-#     variables:
-#       - $ENABLE_TESTS_IN_MR
-#   except:
-#    - schedules
+.test-bellesip-mr:
+  extends: .test-bellesip
+  allow_failure: false
+  #Only launches mr tests on mr, excepted for wip and draft
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    ADDITIONNAL_OPTIONS: "--suite \"Object inheritance\" --suite \"Object\" --suite \"Core\" --suite \"Generic uri\" --suite \"SIP URI\" --suite \"FAST SIP URI\" --suite \"Headers\" --suite \"SDP\" --suite \"Authentication helper\" --suite \"Refresher failover\""
 
 
 .test-belr:

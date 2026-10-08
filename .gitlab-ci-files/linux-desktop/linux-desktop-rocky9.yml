@@ -333,11 +333,11 @@ bellesip-rocky9-test:
   variables:
     PLATFORM: linux-rocky9
 
-# bellesip-rocky9-test-mr:
-#   extends: .test-bellesip-mr
-#   <<: *docker_image_needs_tag_platform_devtoolset_bs
-#  variables:
-#    PLATFORM: linux-rocky9
+bellesip-rocky9-test-mr:
+  extends: .test-bellesip-mr
+  <<: *docker_image_needs_tag_platform_devtoolset_bs
+  variables:
+    PLATFORM: linux-rocky9
 
 .factorize_ms2_rocky9: &docker_image_needs_platform_devtoolset_ms
   image: !reference [ .rocky9_test_libl_image_version, image ]

@@ -493,7 +493,7 @@ static void test_unescaping_good_chars(void) {
 	// 'ç' needs to be escaped
 	const char *expected2 = "Fran%c3%a7ois";
 	BC_ASSERT_STRING_EQUAL(escaped, expected2);
-	belle_sip_free(unescaped);
+	belle_sip_free(escaped);
 }
 
 static belle_sip_header_address_t *test_header_address_parsing(const char *address, int expect_fail) {
