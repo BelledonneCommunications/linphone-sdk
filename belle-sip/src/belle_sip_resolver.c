@@ -18,6 +18,7 @@
  */
 
 #include "belle_sip_internal.h"
+#include "custom_dns_entries.hh"
 #include <bctoolbox/defs.h>
 
 #ifdef HAVE_MDNS
@@ -51,7 +52,6 @@ static const int belle_sip_aaaa_timeout_after_a_received = 3000;
  */
 static const int belle_sip_srv_timeout_after_a_received = 3000;
 
-typedef struct belle_sip_simple_resolver_context belle_sip_simple_resolver_context_t;
 #define BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj) BELLE_SIP_CAST(obj, belle_sip_simple_resolver_context_t)
 
 typedef struct belle_sip_combined_resolver_context belle_sip_combined_resolver_context_t;
@@ -140,6 +140,25 @@ belle_sip_dns_srv_t *belle_sip_dns_srv_create(struct dns_srv *srv) {
 	obj->weight = srv->weight;
 	obj->port = srv->port;
 	obj->target = belle_sip_strdup(srv->target);
+	/*remove trailing '.' at the end*/
+	end_pos = strlen(obj->target);
+	if (end_pos > 0) {
+		end_pos--;
+		if (obj->target[end_pos] == '.') obj->target[end_pos] = '\0';
+	}
+	return obj;
+}
+
+belle_sip_dns_srv_t *belle_sip_dns_srv_create_custom(unsigned short priority,
+                                                     unsigned short weight,
+                                                     unsigned short port,
+                                                     const char *target) {
+	belle_sip_dns_srv_t *obj = belle_sip_object_new(belle_sip_dns_srv_t);
+	size_t end_pos;
+	obj->priority = priority;
+	obj->weight = weight;
+	obj->port = port;
+	obj->target = belle_sip_strdup(target);
 	/*remove trailing '.' at the end*/
 	end_pos = strlen(obj->target);
 	if (end_pos > 0) {
@@ -519,6 +538,40 @@ static int srv_compare_prio(const void *psrv1, const void *psrv2) {
 	if (srv1->priority < srv2->priority) return -1;
 	if (srv1->priority == srv2->priority) return 0;
 	return 1;
+}
+
+const char *belle_sip_simple_resolver_context_get_name(const belle_sip_simple_resolver_context_t *ctx) {
+	return ctx->name;
+}
+
+int belle_sip_simple_resolver_context_get_type(const belle_sip_simple_resolver_context_t *ctx) {
+	return ctx->type;
+}
+
+int belle_sip_simple_resolver_context_get_port(const belle_sip_simple_resolver_context_t *ctx) {
+	return ctx->port;
+}
+
+int belle_sip_simple_resolver_context_get_family(const belle_sip_simple_resolver_context_t *ctx) {
+	return ctx->family;
+}
+
+int belle_sip_simple_resolver_context_get_flags(const belle_sip_simple_resolver_context_t *ctx) {
+	return ctx->flags;
+}
+
+void belle_sip_simple_resolver_context_add_addrinfo(belle_sip_simple_resolver_context_t *ctx, struct addrinfo *ai) {
+	ctx->ai_list = ai_list_append(ctx->ai_list, ai);
+}
+
+void belle_sip_simple_resolver_context_add_srv(belle_sip_simple_resolver_context_t *ctx, belle_sip_dns_srv_t *srv) {
+	ctx->srv_list = belle_sip_list_insert_sorted(ctx->srv_list, belle_sip_object_ref(srv), srv_compare_prio);
+}
+
+void belle_sip_simple_resolver_context_set_min_ttl(belle_sip_simple_resolver_context_t *ctx, uint32_t ttl) {
+	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl) {
+		BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl = ttl;
+	}
 }
 
 #ifdef HAVE_MDNS
@@ -1276,8 +1329,21 @@ static int resolver_process_mdns_browse_result(belle_sip_mdns_source_t *source, 
 }
 #endif
 
+static void on_custom_dns_resolved(belle_sip_simple_resolver_context_t *ctx) {
+	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
+	belle_sip_object_unref(ctx);
+}
+
 static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 	if (!ctx->name) return -1;
+	if (ctx->base.stack->custom_dns_entries &&
+	    belle_sip_custom_dns_entries_resolve(ctx->base.stack->custom_dns_entries, ctx)) {
+		ctx->base.use_dns_service = FALSE;
+		ctx->not_using_dns_socket = TRUE;
+		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)on_custom_dns_resolved,
+		                             belle_sip_object_ref(ctx));
+		return 0;
+	}
 #ifdef HAVE_DNS_SERVICE
 	if (ctx->base.use_dns_service == TRUE) {
 		// Take a ref on the context so we are sure it will still exists when the notify is called
@@ -2103,7 +2169,7 @@ int belle_sip_get_src_addr_for(
 
 	belle_sip_close_socket(sock);
 	return ret;
-fail : {
+fail: {
 	struct addrinfo *res =
 	    bctbx_ip_address_to_addrinfo(af_type, SOCK_STREAM, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
 	if (res != NULL) {

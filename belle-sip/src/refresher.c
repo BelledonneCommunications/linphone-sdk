@@ -576,7 +576,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t *refresher
 	belle_sip_client_transaction_t *client_transaction;
 	belle_sip_request_t *request;
 	belle_sip_header_expires_t *expires_header;
-	belle_sip_uri_t *preset_route = refresher->transaction->preset_route;
+	belle_sip_uri_t *preset_route = NULL;
 	belle_sip_provider_t *prov = refresher->transaction->base.provider;
 	belle_sip_header_contact_t *contact;
 
@@ -731,6 +731,9 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t *refresher
 		default: /*we preserve the transaction "as is"*/
 			break;
 	}
+	if (refresher->transaction->preset_route) {
+		preset_route = (belle_sip_uri_t *)belle_sip_object_ref(refresher->transaction->preset_route);
+	}
 	/*update reference transaction for next refresh*/
 	belle_sip_object_unref(refresher->transaction);
 	refresher->transaction = client_transaction;
@@ -740,8 +743,10 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t *refresher
 	 * response is received from peer, so in the mean time, we reset it*/
 	set_or_update_dialog(refresher, belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction)));
 
-	if (belle_sip_client_transaction_send_request_to(
-	        client_transaction, requri ? requri : preset_route)) { /*send imediatly to requri in case of redirect*/
+	int send_err = belle_sip_client_transaction_send_request_to(
+	    client_transaction, requri ? requri : preset_route); /*send imediatly to requri in case of redirect*/
+	if (preset_route) belle_sip_object_unref(preset_route);
+	if (send_err) {
 		belle_sip_error("Cannot send refresh method [%s] for refresher [%p]", belle_sip_request_get_method(request),
 		                refresher);
 		return -1;

@@ -153,6 +153,9 @@ typedef struct weak_ref {
 	void *userpointer;
 } weak_ref_t;
 
+typedef struct _belle_sip_custom_dns_entries belle_sip_custom_dns_entries_t;
+typedef struct belle_sip_simple_resolver_context belle_sip_simple_resolver_context_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -292,6 +295,19 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 extern int belle_sip_stack_name_addr_forced;
 
 void belle_sip_resolver_context_notify(belle_sip_resolver_context_t *ctx);
+
+const char *belle_sip_simple_resolver_context_get_name(const belle_sip_simple_resolver_context_t *ctx);
+int belle_sip_simple_resolver_context_get_type(const belle_sip_simple_resolver_context_t *ctx);
+int belle_sip_simple_resolver_context_get_port(const belle_sip_simple_resolver_context_t *ctx);
+int belle_sip_simple_resolver_context_get_family(const belle_sip_simple_resolver_context_t *ctx);
+int belle_sip_simple_resolver_context_get_flags(const belle_sip_simple_resolver_context_t *ctx);
+void belle_sip_simple_resolver_context_add_addrinfo(belle_sip_simple_resolver_context_t *ctx, struct addrinfo *ai);
+void belle_sip_simple_resolver_context_add_srv(belle_sip_simple_resolver_context_t *ctx, belle_sip_dns_srv_t *srv);
+void belle_sip_simple_resolver_context_set_min_ttl(belle_sip_simple_resolver_context_t *ctx, uint32_t ttl);
+belle_sip_dns_srv_t *belle_sip_dns_srv_create_custom(unsigned short priority,
+                                                     unsigned short weight,
+                                                     unsigned short port,
+                                                     const char *target);
 
 struct belle_sip_source {
 	belle_sip_object_t base;
@@ -722,7 +738,8 @@ struct belle_sip_stack {
 	char *dns_resolv_conf;           /*used to load custom resolv.conf, for tests*/
 	bctbx_list_t *user_host_entries; /*list of belle_sip_param_pair_t* storing user provided dns entries name  for
 	                                    hostname, value for ip value*/
-	belle_sip_list_t *dns_servers;   /*used when dns servers are supplied by app layer*/
+	belle_sip_custom_dns_entries_t *custom_dns_entries;
+	belle_sip_list_t *dns_servers; /*used when dns servers are supplied by app layer*/
 	/*http proxy stuff to be used by both http and sip provider*/
 	char *http_proxy_host;
 	int http_proxy_port;
