@@ -413,7 +413,7 @@ BELLESIP_EXPORT void belle_sip_stack_force_name_addr(int forced);
  * @param ttl Time To Live in seconds
  **/
 BELLESIP_EXPORT void
-belle_sip_stack_add_dns_a_entry(belle_sip_stack_t *stack, const char *name, const char *ip, int ttl);
+belle_sip_stack_add_dns_a_entry(belle_sip_stack_t *stack, const char *name, const char *ip, uint32_t ttl);
 
 /**
  * Add a custom DNS AAAA record to be used by the resolver.
@@ -423,7 +423,7 @@ belle_sip_stack_add_dns_a_entry(belle_sip_stack_t *stack, const char *name, cons
  * @param ttl Time To Live in seconds
  **/
 BELLESIP_EXPORT void
-belle_sip_stack_add_dns_aaaa_entry(belle_sip_stack_t *stack, const char *name, const char *ip, int ttl);
+belle_sip_stack_add_dns_aaaa_entry(belle_sip_stack_t *stack, const char *name, const char *ip, uint32_t ttl);
 
 /**
  * Add a custom DNS SRV record to be used by the resolver.
@@ -445,7 +445,7 @@ BELLESIP_EXPORT void belle_sip_stack_add_dns_srv_entry(belle_sip_stack_t *stack,
                                                        int port,
                                                        int priority,
                                                        int weight,
-                                                       int ttl);
+                                                       uint32_t ttl);
 
 /**
  * Clear all custom DNS records configured on this stack.

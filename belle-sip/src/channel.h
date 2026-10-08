@@ -237,6 +237,8 @@ int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj);
  * DNS SRV)*/
 BELLESIP_EXPORT void belle_sip_channel_notify_server_error(belle_sip_channel_t *obj);
 
+BELLESIP_EXPORT int belle_sip_channel_has_alternate_peer(const belle_sip_channel_t *obj);
+
 /*
  * Check if the DNS TTL has expired. If this is the case, set the channel status to RES_IN_PROGRESS.
  */

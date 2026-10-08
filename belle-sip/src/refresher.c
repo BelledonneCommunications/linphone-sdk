@@ -29,7 +29,7 @@ static void belle_sip_refresher_stop_internal(belle_sip_refresher_t *refresher, 
 
 typedef enum belle_sip_refresher_state { started, stopped } belle_sip_refresher_state_t;
 
-typedef enum timer_purpose { NORMAL_REFRESH, RETRY } timer_purpose_t;
+typedef enum timer_purpose { TIMER_PURPOSE_NONE, NORMAL_REFRESH, RETRY } timer_purpose_t;
 
 struct belle_sip_refresher {
 	belle_sip_object_t obj;
@@ -75,13 +75,14 @@ static void cancel_retry(belle_sip_refresher_t *refresher) {
 		belle_sip_object_unref(refresher->timer);
 		refresher->timer = NULL;
 	}
+	refresher->timer_purpose = TIMER_PURPOSE_NONE;
 }
 static void schedule_timer_at(belle_sip_refresher_t *refresher, int delay, timer_purpose_t purpose) {
 	belle_sip_message("Refresher[%p]: scheduling next timer in %i ms for purpose [%s]", refresher, delay,
-	                  purpose == NORMAL_REFRESH ? "normal refresh" : "retry");
-	refresher->timer_purpose = purpose;
+	                  purpose == NORMAL_REFRESH ? "normal refresh" : (purpose == RETRY ? "retry" : "none"));
 	/*cancel timer if any*/
 	cancel_retry(refresher);
+	refresher->timer_purpose = purpose;
 	refresher->timer = belle_sip_timeout_source_new(timer_cb, refresher, delay);
 	belle_sip_object_set_name((belle_sip_object_t *)refresher->timer, "Refresher timeout");
 	belle_sip_main_loop_add_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),
@@ -122,6 +123,10 @@ static int register_retry_backoff_delay_ms(const belle_sip_refresher_t *refreshe
 }
 
 static void retry_later(belle_sip_refresher_t *refresher) {
+	if (refresher->timer && refresher->timer_purpose == RETRY) {
+		belle_sip_message("Refresher[%p]: retry timer already scheduled, keeping it", refresher);
+		return;
+	}
 	refresher->number_of_retry++;
 	if (register_retry_backoff_enabled(refresher)) {
 		schedule_timer_at(refresher, register_retry_backoff_delay_ms(refresher), RETRY);
@@ -216,8 +221,14 @@ static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_
 		if (!channel) return;
 		switch (belle_sip_channel_get_state(channel)) {
 			case BELLE_SIP_CHANNEL_DISCONNECTED:
-			case BELLE_SIP_CHANNEL_ERROR:
-				if (tr_state == BELLE_SIP_TRANSACTION_TERMINATED && !refresher->transaction->base.last_response) {
+			case BELLE_SIP_CHANNEL_ERROR: {
+				int last_status = refresher->transaction->base.last_response
+				                      ? belle_sip_response_get_status_code(refresher->transaction->base.last_response)
+				                      : 0;
+				/* If terminated on an error response (>=300), process_response_event() already handled it.
+				 * Only report an I/O error if the transaction succeeded (<300) or had no response and the channel
+				 * dropped afterwards while registered. */
+				if (tr_state == BELLE_SIP_TRANSACTION_TERMINATED && last_status < 300) {
 					belle_sip_message("refresher [%p]: has channel [%p] in state [%s], reporting error", refresher,
 					                  channel, belle_sip_channel_state_to_string(belle_sip_channel_get_state(channel)));
 					retry_later_on_io_error(refresher);
@@ -227,6 +238,7 @@ static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_
 					refresher->on_io_error = 1;
 				}
 				break;
+			}
 			case BELLE_SIP_CHANNEL_RETRY:
 				if (tr_state == BELLE_SIP_TRANSACTION_COMPLETED) {
 					/* The transaction just completed, but we are now informed that the channel is going to reconnect
@@ -478,14 +490,32 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 			case 404:
 			case 480:
 			case 500: {
-				if (refresher->target_expires > 0 && retry_after_header) {
-					schedule_timer_at(refresher, retry_after_time_ms, RETRY);
-					return; /*do not notify this kind of error*/
+				if (refresher->target_expires > 0) {
+					belle_sip_channel_t *chan = refresher->transaction->base.channel;
+					if (response_code == 500 && refresher->is_register && belle_sip_channel_has_alternate_peer(chan)) {
+						belle_sip_message(
+						    "Refresher[%p]: server error on REGISTER, but channel has alternate peers to try; skipping "
+						    "retry scheduling",
+						    refresher);
+						break;
+					}
+					if (retry_after_header) {
+						schedule_timer_at(refresher, retry_after_time_ms, RETRY);
+						return; /*do not notify this kind of error*/
+					}
 				}
 			} break;
 			case 481:
 			case 503:
 				if (refresher->target_expires > 0) {
+					belle_sip_channel_t *chan = refresher->transaction->base.channel;
+					if (response_code == 503 && refresher->is_register && belle_sip_channel_has_alternate_peer(chan)) {
+						belle_sip_message(
+						    "Refresher[%p]: 503 on REGISTER, but channel has alternate peers to try; skipping retry "
+						    "scheduling",
+						    refresher);
+						break;
+					}
 					if (refresher->dialog) retry_later_on_io_error(refresher);
 					else {
 						if (!retry_after_header && register_retry_backoff_enabled(refresher)) {
@@ -802,8 +832,14 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t *refresher
 
 static int timer_cb(void *user_data, unsigned int events) {
 	belle_sip_refresher_t *refresher = (belle_sip_refresher_t *)user_data;
+	timer_purpose_t purpose = refresher->timer_purpose;
+	if (refresher->timer) {
+		belle_sip_object_unref(refresher->timer);
+		refresher->timer = NULL;
+	}
+	refresher->timer_purpose = TIMER_PURPOSE_NONE;
 
-	if (refresher->timer_purpose == NORMAL_REFRESH && refresher->manual) {
+	if (purpose == NORMAL_REFRESH && refresher->manual) {
 		belle_sip_message("Refresher [%p] is in manual mode, skipping refresh.", refresher);
 		/*call listener with special code 0 to indicate request is about to expire*/
 		if (refresher->listener) refresher->listener(refresher, refresher->user_data, 0, "about to expire", FALSE);

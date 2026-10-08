@@ -46,7 +46,7 @@ static std::string normalizeName(const std::string &name) {
 	return res;
 }
 
-void CustomDnsEntries::addA(const std::string &name, const std::string &ip, int ttl) {
+void CustomDnsEntries::addA(const std::string &name, const std::string &ip, uint32_t ttl) {
 	DnsRecord rec;
 	rec.name = name;
 	rec.type = DNS_T_A;
@@ -55,7 +55,7 @@ void CustomDnsEntries::addA(const std::string &name, const std::string &ip, int 
 	mRecords.push_back(std::move(rec));
 }
 
-void CustomDnsEntries::addAAAA(const std::string &name, const std::string &ip, int ttl) {
+void CustomDnsEntries::addAAAA(const std::string &name, const std::string &ip, uint32_t ttl) {
 	DnsRecord rec;
 	rec.name = name;
 	rec.type = DNS_T_AAAA;
@@ -71,13 +71,11 @@ void CustomDnsEntries::addSrv(const std::string &service,
                               int port,
                               int priority,
                               int weight,
-                              int ttl) {
+                              uint32_t ttl) {
 	std::string s = service.empty() ? "sip" : service;
 	std::string prefix;
 	if (strcasecmp(transport.c_str(), "tls") == 0) {
 		prefix = "_" + s + "s._tcp.";
-	} else if (strcasecmp(transport.c_str(), "tcp") == 0) {
-		prefix = "_" + s + "._tcp.";
 	} else {
 		prefix = "_" + s + "._" + transport + ".";
 	}
@@ -117,8 +115,8 @@ bool CustomDnsEntries::resolve(belle_sip_simple_resolver_context_t *ctx) const {
 			hasHost = true;
 			if (rec.type == queryType) {
 				foundType = true;
-				if (rec.ttl > 0 && (uint32_t)rec.ttl < minTtl) {
-					minTtl = (uint32_t)rec.ttl;
+				if (rec.ttl > 0 && rec.ttl < minTtl) {
+					minTtl = rec.ttl;
 				}
 				if (queryType == DNS_T_A || queryType == DNS_T_AAAA) {
 					struct addrinfo *ai = bctbx_ip_address_to_addrinfo(family, SOCK_STREAM, rec.ip.c_str(), port);
@@ -162,14 +160,14 @@ belle_sip_custom_dns_entries_t *belle_sip_custom_dns_entries_new(void) {
 void belle_sip_custom_dns_entries_add_a(belle_sip_custom_dns_entries_t *entries,
                                         const char *name,
                                         const char *ip,
-                                        int ttl) {
+                                        uint32_t ttl) {
 	CustomDnsEntries::toCpp(entries)->addA(name ? name : "", ip ? ip : "", ttl);
 }
 
 void belle_sip_custom_dns_entries_add_aaaa(belle_sip_custom_dns_entries_t *entries,
                                            const char *name,
                                            const char *ip,
-                                           int ttl) {
+                                           uint32_t ttl) {
 	CustomDnsEntries::toCpp(entries)->addAAAA(name ? name : "", ip ? ip : "", ttl);
 }
 
@@ -181,7 +179,7 @@ void belle_sip_custom_dns_entries_add_srv(belle_sip_custom_dns_entries_t *entrie
                                           int port,
                                           int priority,
                                           int weight,
-                                          int ttl) {
+                                          uint32_t ttl) {
 	CustomDnsEntries::toCpp(entries)->addSrv(service ? service : "sip", transport ? transport : "udp",
 	                                         domain ? domain : "", target ? target : "", port, priority, weight, ttl);
 }

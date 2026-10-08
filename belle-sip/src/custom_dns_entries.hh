@@ -33,7 +33,7 @@ namespace bellesip {
 struct DnsRecord {
 	std::string name;
 	int type = 0; // DNS_T_A, DNS_T_AAAA, DNS_T_SRV
-	int ttl = 0;
+	uint32_t ttl = 0;
 	std::string ip;     // for A / AAAA
 	std::string target; // for SRV
 	int port = 0;       // for SRV
@@ -46,8 +46,8 @@ public:
 	CustomDnsEntries() = default;
 	CustomDnsEntries(const CustomDnsEntries &) = delete;
 
-	void addA(const std::string &name, const std::string &ip, int ttl);
-	void addAAAA(const std::string &name, const std::string &ip, int ttl);
+	void addA(const std::string &name, const std::string &ip, uint32_t ttl);
+	void addAAAA(const std::string &name, const std::string &ip, uint32_t ttl);
 	void addSrv(const std::string &service,
 	            const std::string &transport,
 	            const std::string &domain,
@@ -55,7 +55,7 @@ public:
 	            int port,
 	            int priority,
 	            int weight,
-	            int ttl);
+	            uint32_t ttl);
 	void clear();
 
 	bool resolve(belle_sip_simple_resolver_context_t *ctx) const;
@@ -79,12 +79,12 @@ belle_sip_custom_dns_entries_t *belle_sip_custom_dns_entries_new(void);
 void belle_sip_custom_dns_entries_add_a(belle_sip_custom_dns_entries_t *entries,
                                         const char *name,
                                         const char *ip,
-                                        int ttl);
+                                        uint32_t ttl);
 
 void belle_sip_custom_dns_entries_add_aaaa(belle_sip_custom_dns_entries_t *entries,
                                            const char *name,
                                            const char *ip,
-                                           int ttl);
+                                           uint32_t ttl);
 
 void belle_sip_custom_dns_entries_add_srv(belle_sip_custom_dns_entries_t *entries,
                                           const char *service,
@@ -94,7 +94,7 @@ void belle_sip_custom_dns_entries_add_srv(belle_sip_custom_dns_entries_t *entrie
                                           int port,
                                           int priority,
                                           int weight,
-                                          int ttl);
+                                          uint32_t ttl);
 
 void belle_sip_custom_dns_entries_clear(belle_sip_custom_dns_entries_t *entries);
 
