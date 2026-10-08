@@ -25,7 +25,7 @@ namespace bellesip {
 
 TestUA::TestUA(const std::string &transport, const std::string &ip) {
 	mStack = belle_sip_stack_new(NULL);
-	mListeningPoint = belle_sip_stack_create_listening_point(mStack, ip.c_str(), BELLE_SIP_LISTENING_POINT_RANDOM_PORT,
+	mListeningPoint = belle_sip_stack_create_listening_point(mStack, ip.c_str(), BELLE_SIP_LISTENING_POINT_DONT_BIND,
 	                                                         transport.c_str());
 	mProvider = belle_sip_stack_create_provider(mStack, mListeningPoint);
 }
