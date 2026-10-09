@@ -175,8 +175,15 @@ void ChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &) {
 void ChatRoom::onChatMessageSent(const shared_ptr<ChatMessage> &chatMessage) {
 	LinphoneChatRoom *cr = getCChatRoom();
 	if (auto db = getCore()->getDatabase()) {
-		shared_ptr<EventLog> eventLog = db.value().get().getEvent(chatMessage->getStorageId());
-		_linphone_chat_room_notify_chat_message_sent(cr, L_GET_C_BACK_PTR(eventLog));
+		const auto &storageId = chatMessage->getStorageId();
+		shared_ptr<EventLog> eventLog = db.value().get().getEvent(storageId);
+		if (eventLog) {
+			_linphone_chat_room_notify_chat_message_sent(cr, L_GET_C_BACK_PTR(eventLog));
+		} else if (storageId >= 0) {
+			// A message that is not stored, such as one relayed by a conference server, has no event log
+			lWarning() << "Cannot find eventLog for storage ID [" << storageId << "] associated to message ["
+			           << chatMessage << "]: it is not notified as sent";
+		}
 	}
 	linphone_core_notify_message_sent(getCore()->getCCore(), cr, L_GET_C_BACK_PTR(chatMessage));
 

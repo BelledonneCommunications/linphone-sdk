@@ -1703,7 +1703,12 @@ void ChatMessagePrivate::send() {
 					LinphoneChatRoom *cr = chatRoom->toC();
 					if (auto db = core->getDatabase(); q->isValid() && db) {
 						shared_ptr<EventLog> eventLog = db.value().get().getEvent(q->getStorageId());
-						_linphone_chat_room_notify_chat_message_sending(cr, L_GET_C_BACK_PTR(eventLog));
+						if (eventLog) {
+							_linphone_chat_room_notify_chat_message_sending(cr, L_GET_C_BACK_PTR(eventLog));
+						} else {
+							lWarning() << "Cannot find eventLog for storage ID [" << q->getStorageId()
+							           << "] associated to message [" << q << "]: it is not notified as being sent";
+						}
 					}
 					currentSendStep |= ChatMessagePrivate::Step::Sending;
 				}
@@ -2132,7 +2137,15 @@ void ChatMessage::deleteChatMessageFromCache() {
 	if (isValid()) {
 		// Delete chat message from the cache
 		if (auto db = getCore()->getDatabase(); isValid() && db) {
-			db.value().get().getPrivate()->storageIdToChatMessage.erase(getStorageId());
+			auto &storageIdToChatMessage = db.value().get().getPrivate()->storageIdToChatMessage;
+			auto it = storageIdToChatMessage.find(getStorageId());
+			if (it != storageIdToChatMessage.end()) {
+				// Another instance may be cached with this storage ID, for instance one reloaded from the database
+				// after a core restart while this one was still referenced: leave it. The entry of this instance has
+				// already expired if it is being destroyed.
+				shared_ptr<ChatMessage> cachedChatMessage = it->second.lock();
+				if (!cachedChatMessage || (cachedChatMessage.get() == this)) storageIdToChatMessage.erase(it);
+			}
 		}
 	}
 }

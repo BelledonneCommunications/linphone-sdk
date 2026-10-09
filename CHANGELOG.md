@@ -33,6 +33,9 @@ changes made to these components.
 ### Changed
 - Update to MBedTls v3.6.7
 
+### Fixed
+- Fix potential crash when accessing messages and eventlogs after a core restart
+
 ## [5.5.34] 2026-10-15
 
 ### Fixed

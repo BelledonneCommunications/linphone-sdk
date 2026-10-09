@@ -438,7 +438,12 @@ void ClientChatRoom::chatMessageEarlyFailure(const shared_ptr<ChatMessage> &chat
 	if (storageId >= 0) {
 		if (auto db = getCore()->getDatabase()) {
 			shared_ptr<EventLog> eventLog = db.value().get().getEvent(storageId);
-			_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
+			if (eventLog) {
+				_linphone_chat_room_notify_message_early_failure(toC(), L_GET_C_BACK_PTR(eventLog));
+			} else {
+				lWarning() << "Cannot find eventLog for storage ID [" << storageId << "] associated to message ["
+				           << chatMessage << "]: its early failure is not notified";
+			}
 		}
 	}
 }

@@ -2453,6 +2453,246 @@ static void secure_group_chat_message_cannot_be_sent_immediately_with_client_res
 	secure_group_chat_message_cannot_be_sent_immediately_base(TRUE);
 }
 
+// The application holds the chat room and the message it queued while its core is stopped and started again, as the
+// iOS application does when going to background and back to foreground. Starting the core reloads them from the
+// database into new objects, and the application releases the old ones afterwards. The reloaded message must then be
+// notified as sending and as sent with its event log: language wrappers, such as the Swift one, unwrap it without
+// checking it. When the application reads the history before releasing the old objects, as when refreshing a
+// conversation, the event logs notified must be the very ones it displays: releasing the event logs of the previous run
+// must leave the reloaded ones cached.
+static void secure_group_chat_queued_message_held_across_core_stop_start_base(bool readHistoryBeforeReleasing) {
+	struct EventLogStats {
+		int nullEventLogs = 0;
+		int chatMessageSending = 0;
+		int chatMessageSent = 0;
+		LinphoneChatMessage *sendingMessage = nullptr;
+		LinphoneChatMessage *chatRoomSentMessage = nullptr;
+		LinphoneChatMessage *sentMessage = nullptr;
+		// Addresses only, compared and never dereferenced
+		const void *sendingEventLog = nullptr;
+		const void *chatRoomSentEventLog = nullptr;
+	};
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		EventLogStats eventLogStats;
+		const auto lime_algo = C25519;
+		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress(), lime_algo);
+		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress(), lime_algo);
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(pauline);
+
+		stats initialMarieStats = marie.getStats();
+		stats initialPaulineStats = pauline.getStats();
+		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
+		coresList = bctbx_list_append(coresList, marie.getLc());
+		coresList = bctbx_list_append(coresList, pauline.getLc());
+
+		BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(marie.getLc()));
+		BC_ASSERT_TRUE(linphone_core_lime_x3dh_enabled(pauline.getLc()));
+
+		Address paulineAddr = pauline.getIdentity();
+		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(paulineAddr.toC()));
+
+		LinphoneConferenceParams *params = linphone_conference_params_new(marie.getLc());
+		linphone_conference_params_enable_chat(params, TRUE);
+		linphone_conference_params_set_security_level(params, LinphoneConferenceSecurityLevelEndToEnd);
+		linphone_conference_params_set_subject(params, "Core stopped and started");
+		linphone_conference_params_enable_group(params, TRUE);
+		LinphoneChatParams *chat_params = linphone_conference_params_get_chat_params(params);
+		linphone_chat_params_set_backend(chat_params, LinphoneChatRoomBackendFlexisipChat);
+		LinphoneChatRoom *marieChatRoom =
+		    linphone_core_create_chat_room_7(marie.getLc(), params, participantsAddresses);
+		linphone_conference_params_unref(params);
+		bctbx_list_free_with_data(participantsAddresses, (bctbx_list_free_func)linphone_address_unref);
+		participantsAddresses = NULL;
+		if (!BC_ASSERT_PTR_NOT_NULL(marieChatRoom)) {
+			bctbx_list_free(coresList);
+			return;
+		}
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreated,
+		                             initialMarieStats.number_of_LinphoneChatRoomStateCreated + 1,
+		                             liblinphone_tester_sip_timeout));
+		LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieChatRoom));
+
+		ms_message("%s shuts down its network", linphone_core_get_identity(focus.getLc()));
+		linphone_core_set_network_reachable(focus.getLc(), FALSE);
+		std::string marieMessage("Queued before the core is stopped");
+		LinphoneChatMessage *msg = ClientConference::sendTextMsg(marieChatRoom, marieMessage);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageQueued,
+		                             initialMarieStats.number_of_LinphoneMessageQueued + 1,
+		                             liblinphone_tester_sip_timeout));
+		ms_message("%s shuts down its network", linphone_core_get_identity(marie.getLc()));
+		linphone_core_set_network_reachable(marie.getLc(), FALSE);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_NetworkReachableFalse,
+		                             initialMarieStats.number_of_NetworkReachableFalse + 1,
+		                             liblinphone_tester_sip_timeout));
+		stats initialFocusStats = focus.getStats();
+		ms_message("%s turns its network back on", linphone_core_get_identity(focus.getLc()));
+		linphone_core_set_network_reachable(focus.getLc(), TRUE);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &focus.getStats().number_of_LinphoneRegistrationOk,
+		                             initialFocusStats.number_of_LinphoneRegistrationOk + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		// The application keeps the event logs it displays
+		auto readHistory = [](LinphoneChatRoom *chatRoom) {
+			bctbx_list_t *history =
+			    linphone_chat_room_get_history_2(chatRoom, 0, LinphoneChatRoomHistoryFilterChatMessage);
+			BC_ASSERT_EQUAL((int)bctbx_list_size(history), 1, int, "%d");
+			return history;
+		};
+		bctbx_list_t *previousHistory = NULL;
+		if (readHistoryBeforeReleasing) previousHistory = readHistory(marieChatRoom);
+
+		// Same LinphoneCore stopped then started, unlike ClientConference::reStart() which creates a new one.
+		// The account created by the tester is not read back from the configuration when the core starts: keep it
+		// with its credentials to restore them.
+		LinphoneAccount *marieAccount = linphone_account_ref(marie.getDefaultAccount());
+		LinphoneAuthInfo *marieAuthInfo =
+		    (LinphoneAuthInfo *)bctbx_list_get_data(linphone_core_get_auth_info_list(marie.getLc()));
+		linphone_auth_info_ref(marieAuthInfo);
+		initialMarieStats = marie.getStats();
+		initialPaulineStats = pauline.getStats();
+		ms_message("%s stops and starts its core", linphone_core_get_identity(marie.getLc()));
+		linphone_core_stop(marie.getLc());
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneGlobalOff,
+		                             initialMarieStats.number_of_LinphoneGlobalOff + 1,
+		                             liblinphone_tester_sip_timeout));
+		linphone_core_start(marie.getLc());
+		linphone_core_manager_setup_dns(marie.getCMgr());
+		linphone_core_remove_account(marie.getLc(), marie.getDefaultAccount());
+		linphone_core_add_account(marie.getLc(), marieAccount);
+		linphone_core_set_default_account(marie.getLc(), marieAccount);
+		linphone_account_unref(marieAccount);
+		linphone_core_add_auth_info(marie.getLc(), marieAuthInfo);
+		linphone_auth_info_unref(marieAuthInfo);
+
+		LinphoneChatRoom *marieReloadedChatRoom =
+		    linphone_core_search_chat_room(marie.getLc(), NULL, NULL, confAddr, NULL);
+		BC_ASSERT_PTR_NOT_NULL(marieReloadedChatRoom);
+		BC_ASSERT_PTR_NOT_EQUAL(marieReloadedChatRoom, marieChatRoom);
+		if (marieReloadedChatRoom) {
+			LinphoneChatRoomCbs *cbs = linphone_factory_create_chat_room_cbs(linphone_factory_get());
+			linphone_chat_room_cbs_set_new_event(cbs, [](LinphoneChatRoom *cr, const LinphoneEventLog *eventLog) {
+				auto stats = static_cast<EventLogStats *>(
+				    linphone_chat_room_cbs_get_user_data(linphone_chat_room_get_current_callbacks(cr)));
+				if (!eventLog) stats->nullEventLogs++;
+			});
+			linphone_chat_room_cbs_set_chat_message_sending(
+			    cbs, [](LinphoneChatRoom *cr, const LinphoneEventLog *eventLog) {
+				    auto stats = static_cast<EventLogStats *>(
+				        linphone_chat_room_cbs_get_user_data(linphone_chat_room_get_current_callbacks(cr)));
+				    LinphoneChatMessage *message = eventLog ? linphone_event_log_get_chat_message(eventLog) : nullptr;
+				    if (!message) return;
+				    stats->chatMessageSending++;
+				    if (!stats->sendingMessage) stats->sendingMessage = linphone_chat_message_ref(message);
+				    if (!stats->sendingEventLog) stats->sendingEventLog = eventLog;
+			    });
+			linphone_chat_room_cbs_set_chat_message_sent(
+			    cbs, [](LinphoneChatRoom *cr, const LinphoneEventLog *eventLog) {
+				    auto stats = static_cast<EventLogStats *>(
+				        linphone_chat_room_cbs_get_user_data(linphone_chat_room_get_current_callbacks(cr)));
+				    LinphoneChatMessage *message = eventLog ? linphone_event_log_get_chat_message(eventLog) : nullptr;
+				    if (!message) return;
+				    stats->chatMessageSent++;
+				    if (!stats->chatRoomSentMessage) stats->chatRoomSentMessage = linphone_chat_message_ref(message);
+				    if (!stats->chatRoomSentEventLog) stats->chatRoomSentEventLog = eventLog;
+			    });
+			linphone_chat_room_cbs_set_user_data(cbs, &eventLogStats);
+			linphone_chat_room_add_callbacks(marieReloadedChatRoom, cbs);
+			linphone_chat_room_cbs_unref(cbs);
+		}
+		// The core notifies the message instance actually being sent
+		LinphoneCoreCbs *marieCoreCbs = linphone_factory_create_core_cbs(linphone_factory_get());
+		linphone_core_cbs_set_message_sent(marieCoreCbs, [](LinphoneCore *lc, BCTBX_UNUSED(LinphoneChatRoom * cr),
+		                                                    LinphoneChatMessage *message) {
+			auto stats =
+			    static_cast<EventLogStats *>(linphone_core_cbs_get_user_data(linphone_core_get_current_callbacks(lc)));
+			if (!stats->sentMessage) stats->sentMessage = linphone_chat_message_ref(message);
+		});
+		linphone_core_cbs_set_user_data(marieCoreCbs, &eventLogStats);
+		linphone_core_add_callbacks(marie.getLc(), marieCoreCbs);
+		bctbx_list_t *history = NULL;
+		if (marieReloadedChatRoom && readHistoryBeforeReleasing) {
+			history = readHistory(marieReloadedChatRoom);
+		}
+		// The objects of the previous run are released only now, as a garbage collector would do. The address of the
+		// message is kept to be compared, never dereferenced.
+		const void *queuedMessageAddress = msg;
+		linphone_chat_message_unref(msg);
+		linphone_chat_room_unref(marieChatRoom);
+		bctbx_list_free_with_data(previousHistory, (bctbx_list_free_func)linphone_event_log_unref);
+
+		ms_message("%s turns its network back on", linphone_core_get_identity(marie.getLc()));
+		linphone_core_set_network_reachable(marie.getLc(), TRUE);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneRegistrationOk,
+		                             initialMarieStats.number_of_LinphoneRegistrationOk + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageSent,
+		                             initialMarieStats.number_of_LinphoneMessageSent + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
+		                             initialPaulineStats.number_of_LinphoneMessageReceived + 1,
+		                             liblinphone_tester_sip_timeout));
+		BC_ASSERT_EQUAL(eventLogStats.nullEventLogs, 0, int, "%d");
+		BC_ASSERT_EQUAL(eventLogStats.chatMessageSending, 1, int, "%d");
+		BC_ASSERT_EQUAL(eventLogStats.chatMessageSent, 1, int, "%d");
+		BC_ASSERT_PTR_NOT_NULL(eventLogStats.sentMessage);
+		BC_ASSERT_PTR_EQUAL(eventLogStats.sendingMessage, eventLogStats.sentMessage);
+		BC_ASSERT_PTR_EQUAL(eventLogStats.chatRoomSentMessage, eventLogStats.sentMessage);
+		// It is the message reloaded from the database, not the one queued before the core was stopped
+		BC_ASSERT_PTR_NOT_EQUAL(eventLogStats.sentMessage, queuedMessageAddress);
+		if (history) {
+			// The event logs notified are the very ones the application displays
+			const void *displayedEventLog = bctbx_list_get_data(history);
+			BC_ASSERT_PTR_EQUAL(eventLogStats.sendingEventLog, displayedEventLog);
+			BC_ASSERT_PTR_EQUAL(eventLogStats.chatRoomSentEventLog, displayedEventLog);
+		}
+		if (eventLogStats.sendingMessage) linphone_chat_message_unref(eventLogStats.sendingMessage);
+		if (eventLogStats.chatRoomSentMessage) linphone_chat_message_unref(eventLogStats.chatRoomSentMessage);
+		if (eventLogStats.sentMessage) linphone_chat_message_unref(eventLogStats.sentMessage);
+		bctbx_list_free_with_data(history, (bctbx_list_free_func)linphone_event_log_unref);
+		linphone_core_remove_callbacks(marie.getLc(), marieCoreCbs);
+		linphone_core_cbs_unref(marieCoreCbs);
+		linphone_address_unref(confAddr);
+
+		CoreManagerAssert({focus, marie, pauline}).waitUntil(std::chrono::seconds(2), [] { return false; });
+
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			for (auto participant : chatRoom->getParticipants()) {
+				//  force deletion by removing devices
+				auto participantAddress = participant->getAddress();
+				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
+			}
+		}
+
+		// wait until chatroom is deleted server side
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
+			return focus.getCore().getChatRooms().size() == 0;
+		}));
+
+		// wait bit more to detect side effect if any
+		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(2), [] { return false; });
+
+		// to avoid creation attempt of a new chatroom
+		LinphoneAccount *focusAccount = focus.getDefaultAccount();
+		LinphoneAccountParams *focusAccountParams =
+		    linphone_account_params_clone(linphone_account_get_params(focusAccount));
+		linphone_account_params_set_conference_factory_address(focusAccountParams, NULL);
+		linphone_account_set_params(focusAccount, focusAccountParams);
+		linphone_account_params_unref(focusAccountParams);
+		bctbx_list_free(coresList);
+	}
+}
+
+static void secure_group_chat_queued_message_held_across_core_stop_start(void) {
+	secure_group_chat_queued_message_held_across_core_stop_start_base(false);
+}
+
+static void secure_group_chat_queued_message_held_across_core_stop_start_with_history_read_first(void) {
+	secure_group_chat_queued_message_held_across_core_stop_start_base(true);
+}
+
 static void secure_group_chat_message_cannot_be_sent_immediately_with_replaces(void) {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
@@ -3659,6 +3899,14 @@ static test_t local_conference_secure_chat_tests[] = {
                   "LeaksMemory" /*due to core restart*/),
     TEST_TWO_TAGS("Secure group chat cannot be sent immediately with client restart",
                   LinphoneTest::secure_group_chat_message_cannot_be_sent_immediately_with_client_restart,
+                  "LimeX3DH",
+                  "LeaksMemory" /*due to core restart*/),
+    TEST_TWO_TAGS("Secure group chat queued message held across core stop and start",
+                  LinphoneTest::secure_group_chat_queued_message_held_across_core_stop_start,
+                  "LimeX3DH",
+                  "LeaksMemory" /*due to core restart*/),
+    TEST_TWO_TAGS("Secure group chat queued message held across core stop and start with history read first",
+                  LinphoneTest::secure_group_chat_queued_message_held_across_core_stop_start_with_history_read_first,
                   "LimeX3DH",
                   "LeaksMemory" /*due to core restart*/),
     TEST_TWO_TAGS("Secure group chat cannot be sent immediately with Replaces",

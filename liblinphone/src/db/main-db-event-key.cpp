@@ -20,6 +20,7 @@
 
 #include "main-db-event-key.h"
 #include "core/core-p.h"
+#include "event-log/event-log-p.h"
 #include "main-db-key-p.h"
 #include "main-db-p.h"
 
@@ -47,7 +48,15 @@ void MainDbEventKey::resetStorageId() {
 		auto core = d->core.lock();
 		if (core) {
 			if (auto db = core->getDatabase()) {
-				db.value().get().getPrivate()->storageIdToEvent.erase(d->storageId);
+				auto &storageIdToEvent = db.value().get().getPrivate()->storageIdToEvent;
+				auto it = storageIdToEvent.find(d->storageId);
+				if (it != storageIdToEvent.end()) {
+					// Another event log may be cached with this storage ID, for instance one reloaded from the database
+					// after a core restart while the one carrying this key was still referenced: leave it. The entry of
+					// the event log carrying this key has already expired if it is being destroyed.
+					auto cachedEventLog = it->second.lock();
+					if (!cachedEventLog || (&cachedEventLog->getPrivate()->dbKey == this)) storageIdToEvent.erase(it);
+				}
 			}
 		}
 	}
