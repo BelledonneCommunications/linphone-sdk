@@ -26,6 +26,7 @@
 #include <hidapi/hidapi.h>
 #endif
 
+#include "core/core.h"
 #include "logger/logger.h"
 
 LINPHONE_BEGIN_NAMESPACE
@@ -63,6 +64,12 @@ void Hid::stopDeviceDetection() {
 	mCore = nullptr;
 }
 
+void Hid::updateDevices(const std::shared_ptr<Core> &core) {
+	if (core && mInitialized) {
+		core->updateHidDevices(getDevices(core));
+	}
+}
+
 std::list<std::shared_ptr<HidDevice>> Hid::getDevices(const std::shared_ptr<Core> &core) const {
 	std::list<std::shared_ptr<HidDevice>> result;
 
@@ -70,6 +77,7 @@ std::list<std::shared_ptr<HidDevice>> Hid::getDevices(const std::shared_ptr<Core
 		return result;
 	}
 
+	const auto &currentDevices = core->getHidDevices();
 	const auto devices = hid_enumerate(VENDOR_ID_JABRA, 0);
 	for (auto current_device = devices; current_device; current_device = current_device->next) {
 		std::wstring serialNumber(current_device->serial_number ? current_device->serial_number : L"");
@@ -88,11 +96,24 @@ std::list<std::shared_ptr<HidDevice>> Hid::getDevices(const std::shared_ptr<Core
 			         sizeof(manufacturerStr));
 			wcstombs(productStr, current_device->product_string ? current_device->product_string : L"",
 			         sizeof(productStr));
-			std::ostringstream name;
-			name << manufacturerStr << " " << productStr;
-			const auto hidDevice =
-			    HidDevice::create(core, productId, Utils::trim(name.str()), serialNumberStr, current_device->path);
-			if (hidDevice) result.push_back(hidDevice);
+			const std::string serialStr(serialNumberStr);
+			const std::string pathStr(current_device->path ? current_device->path : "");
+
+			auto existingIt = std::find_if(currentDevices.begin(), currentDevices.end(),
+			                               [&serialStr, &pathStr](const std::shared_ptr<HidDevice> &d) {
+				                               if (!serialStr.empty() && d->getSerialNumber() == serialStr) return true;
+				                               return !pathStr.empty() && d->getPath() == pathStr;
+			                               });
+
+			if (existingIt != currentDevices.end()) {
+				result.push_back(*existingIt);
+			} else {
+				std::ostringstream name;
+				name << manufacturerStr << " " << productStr;
+				const auto hidDevice =
+				    HidDevice::create(core, productId, Utils::trim(name.str()), serialStr, current_device->path);
+				if (hidDevice) result.push_back(hidDevice);
+			}
 		}
 	}
 

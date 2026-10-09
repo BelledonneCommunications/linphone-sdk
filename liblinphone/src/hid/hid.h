@@ -36,6 +36,7 @@ public:
 
 	void startDeviceDetection(const std::shared_ptr<Core> &core);
 	void stopDeviceDetection();
+	void updateDevices(const std::shared_ptr<Core> &core);
 	std::list<std::shared_ptr<HidDevice>> getDevices(const std::shared_ptr<Core> &core) const;
 
 private:
