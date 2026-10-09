@@ -36,6 +36,7 @@ class EventLogPrivate;
 
 class LINPHONE_PUBLIC EventLog : public BaseObject {
 	friend class MainDb;
+	friend class MainDbEventKey;
 	friend class MainDbPrivate;
 
 public:
