@@ -65,6 +65,10 @@ void HidDevice::startPollTimer() {
 }
 
 void HidDevice::stopPollTimer() {
+	if (mDevice != nullptr) {
+		mState = 0;
+		write(mState);
+	}
 	closeDevice();
 	if (mTimer != nullptr) {
 		getCore()->destroyTimer(mTimer);
@@ -173,9 +177,8 @@ void HidDevice::handleEvents() {
 				lInfo() << "HidDevice \"" << mProductName << "\" is requesting to answer a call";
 				currentCall->onHeadsetAnswerCallRequested(currentCall->getActiveSession());
 			} else {
-				// Start of call from headset, end it immediately as we don't know what to do with this...
-				answerCall(false);
-				endCall();
+				lInfo() << "HidDevice \"" << mProductName
+				        << "\" signaled OffHook but no incoming call to answer, ignoring";
 			}
 			return;
 		}
@@ -219,8 +222,7 @@ void HidDevice::answerCall(const bool hasPausedCalls) {
 }
 
 void HidDevice::endCall() {
-	removeFromState(mOutputData.mRinger);
-	removeFromState(mOutputData.mOffHook);
+	mState = 0;
 	lInfo() << "HidDevice \"" << mProductName << "\" endCall: new state = " << stateStr();
 	write(mState);
 }
@@ -374,8 +376,8 @@ void HidDevice::initializeFromReportDescriptor() {
 				break;
 		}
 	}
-	mInputData.mDataSize = inputOffset / 8;
-	mOutputData.mDataSize = outputOffset / 8;
+	mInputData.mDataSize = (inputOffset + 7) / 8;
+	mOutputData.mDataSize = (outputOffset + 7) / 8;
 }
 
 void HidDevice::openDevice() {
@@ -416,14 +418,17 @@ int HidDevice::read(uint32_t &value) const {
 }
 
 void HidDevice::write(const uint32_t data) const {
+	if (mDevice == nullptr) {
+		return;
+	}
 	uint8_t buffer[5] = {0};
 	buffer[0] = mOutputData.mReportId;
-	for (size_t i = 0; i < mOutputData.mDataSize; i++) {
+	for (size_t i = 0; i < mOutputData.mDataSize && i < 4; i++) {
 		buffer[i + 1] = static_cast<uint8_t>((data >> (i * 8)) & 0xFF);
 	}
 	lInfo() << "HidDevice \"" << mProductName << "\" write " << std::hex
 	        << std::setw(static_cast<int>(mOutputData.mDataSize) * 2) << std::setfill('0') << data << std::dec;
-	hid_write(static_cast<hid_device *>(mDevice), buffer, sizeof(buffer));
+	hid_write(static_cast<hid_device *>(mDevice), buffer, mOutputData.mDataSize + 1);
 }
 
 void HidDevice::addToState(const uint32_t bits) {

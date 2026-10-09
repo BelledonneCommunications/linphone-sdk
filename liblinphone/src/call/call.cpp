@@ -1567,6 +1567,9 @@ void Call::setBaudotPauseTimeout(uint8_t seconds) {
  * current call), or it can request to answer an incoming call if its state is ringing.
  */
 void Call::notifyStateChangeToHeadset(const CallSession::State state) {
+	if (state == CallSession::State::IncomingReceived || state == CallSession::State::OutgoingInit) {
+		Factory::toCpp(linphone_factory_get())->getHid().updateDevices(getCore());
+	}
 	const LinphoneCore *lc = getCore()->getCCore();
 	for (const auto &hidDevice : getCore()->getHidDevices()) {
 		switch (state) {

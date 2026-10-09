@@ -3919,8 +3919,11 @@ void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
 	std::list<std::shared_ptr<HidDevice>>::iterator currentIt = d->hidDevices.begin();
 	while (currentIt != d->hidDevices.end()) {
 		const std::shared_ptr<HidDevice> &hidDevice = *currentIt;
-		auto it = std::find_if(devices.begin(), devices.end(), [hidDevice](const std::shared_ptr<HidDevice> &device) {
-			return hidDevice->getSerialNumber() == device->getSerialNumber();
+		auto it = std::find_if(devices.begin(), devices.end(), [&hidDevice](const std::shared_ptr<HidDevice> &device) {
+			if (hidDevice == device) return true;
+			if (!hidDevice->getSerialNumber().empty() && hidDevice->getSerialNumber() == device->getSerialNumber())
+				return true;
+			return !hidDevice->getPath().empty() && hidDevice->getPath() == device->getPath();
 		});
 		if (it == devices.end()) {
 			lInfo() << "HidDevice \"" << (*currentIt)->getProductName() << "\" has been unplugged";
@@ -3938,6 +3941,19 @@ void Core::updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices) {
 		lInfo() << "Detected HidDevice \"" << device->getProductName() << "\"";
 		device->dumpDescriptor();
 		d->hidDevices.push_back(device);
+		if (linphone_core_get_calls_nb(getCCore()) > 0) {
+			device->startPollTimer();
+			const auto currentCall = getCurrentCall();
+			if (currentCall) {
+				const auto callState = currentCall->getState();
+				if (callState == CallSession::State::IncomingReceived) {
+					device->startRinging();
+				} else if (callState == CallSession::State::Connected ||
+				           callState == CallSession::State::StreamsRunning) {
+					device->answerCall(false);
+				}
+			}
+		}
 	}
 }
 #endif /* HAVE_HIDAPI */

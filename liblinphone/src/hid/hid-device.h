@@ -90,6 +90,9 @@ public:
 	[[nodiscard]] const std::string &getSerialNumber() const {
 		return mSerialNumber;
 	}
+	[[nodiscard]] const std::string &getPath() const {
+		return mPath;
+	}
 
 	void dumpDescriptor() const;
 
