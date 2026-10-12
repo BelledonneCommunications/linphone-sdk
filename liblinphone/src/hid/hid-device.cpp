@@ -65,10 +65,6 @@ void HidDevice::startPollTimer() {
 }
 
 void HidDevice::stopPollTimer() {
-	if (mDevice != nullptr) {
-		mState = 0;
-		write(mState);
-	}
 	closeDevice();
 	if (mTimer != nullptr) {
 		getCore()->destroyTimer(mTimer);
@@ -210,6 +206,7 @@ void HidDevice::dumpDescriptor() const {
 
 void HidDevice::answerCall(const bool hasPausedCalls) {
 	addToState(mOutputData.mOffHook);
+	addToState(mOutputData.mHostAvailable);
 	removeFromState(mOutputData.mMute);
 	removeFromState(mOutputData.mRinger);
 	if (hasPausedCalls) {
@@ -222,13 +219,16 @@ void HidDevice::answerCall(const bool hasPausedCalls) {
 }
 
 void HidDevice::endCall() {
-	mState = 0;
+	mState = mOutputData.mHostAvailable;
 	lInfo() << "HidDevice \"" << mProductName << "\" endCall: new state = " << stateStr();
-	write(mState);
+	if (mOutputData.mHostAvailable != 0) {
+		write(mState);
+	}
 }
 
 void HidDevice::holdCall(const bool allCallsPaused) {
 	addToState(mOutputData.mHold);
+	addToState(mOutputData.mHostAvailable);
 	if (allCallsPaused) {
 		removeFromState(mOutputData.mOffHook);
 	} else {
@@ -240,6 +240,7 @@ void HidDevice::holdCall(const bool allCallsPaused) {
 
 void HidDevice::mute() {
 	addToState(mOutputData.mMute);
+	addToState(mOutputData.mHostAvailable);
 	lInfo() << "HidDevice \"" << mProductName << "\" mute: new state = " << stateStr();
 	write(mState);
 }
@@ -247,12 +248,14 @@ void HidDevice::mute() {
 void HidDevice::resumeCall() {
 	removeFromState(mOutputData.mHold);
 	addToState(mOutputData.mOffHook);
+	addToState(mOutputData.mHostAvailable);
 	lInfo() << "HidDevice \"" << mProductName << "\" resumeCall: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::startCall() {
 	addToState(mOutputData.mOffHook);
+	addToState(mOutputData.mHostAvailable);
 	removeFromState(mOutputData.mMute);
 	removeFromState(mOutputData.mRinger);
 	lInfo() << "HidDevice \"" << mProductName << "\" startCall: new state = " << stateStr();
@@ -261,18 +264,21 @@ void HidDevice::startCall() {
 
 void HidDevice::startRinging() {
 	addToState(mOutputData.mRinger);
+	addToState(mOutputData.mHostAvailable);
 	lInfo() << "HidDevice \"" << mProductName << "\" startRinging: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::stopRinging() {
 	removeFromState(mOutputData.mRinger);
+	addToState(mOutputData.mHostAvailable);
 	lInfo() << "HidDevice \"" << mProductName << "\" stopRinging: new state = " << stateStr();
 	write(mState);
 }
 
 void HidDevice::unmute() {
 	removeFromState(mOutputData.mMute);
+	addToState(mOutputData.mHostAvailable);
 	lInfo() << "HidDevice \"" << mProductName << "\" unmute: new state = " << stateStr();
 	write(mState);
 }
@@ -364,6 +370,18 @@ void HidDevice::initializeFromReportDescriptor() {
 								mOutputData.mRinger = 1 << (outputOffset + localOffset);
 							} else if (usage == static_cast<uint32_t>(HidReportDescriptor::LedsUsage::Hold)) {
 								mOutputData.mHold = 1 << (outputOffset + localOffset);
+							} else if (usage == static_cast<uint32_t>(HidReportDescriptor::LedsUsage::OnLine)) {
+								mOutputData.mHostAvailable |= 1 << (outputOffset + localOffset);
+							}
+							localOffset++;
+						}
+					} else if (report->getUsagePage() ==
+					           static_cast<uint32_t>(HidReportDescriptor::UsagePage::Telephony)) {
+						size_t localOffset = 0;
+						for (const auto usage : report->getUsages()) {
+							if (usage == static_cast<uint32_t>(HidReportDescriptor::TelephonyUsage::HostAvailable) ||
+							    usage == static_cast<uint32_t>(HidReportDescriptor::TelephonyUsage::HostControl)) {
+								mOutputData.mHostAvailable |= 1 << (outputOffset + localOffset);
 							}
 							localOffset++;
 						}
@@ -436,11 +454,11 @@ void HidDevice::addToState(const uint32_t bits) {
 }
 
 void HidDevice::removeFromState(const uint32_t bits) {
-	mState &= static_cast<uint8_t>(~bits);
+	mState &= ~bits;
 }
 
 bool HidDevice::stateHas(const uint32_t bits) const {
-	return (mState & bits) == bits;
+	return (bits != 0) && ((mState & bits) == bits);
 }
 
 std::string HidDevice::stateStr() const {
@@ -457,6 +475,9 @@ std::string HidDevice::stateStr() const {
 	}
 	if (stateHas(mOutputData.mHold)) {
 		os << "Held ";
+	}
+	if (stateHas(mOutputData.mHostAvailable)) {
+		os << "HostAvailable ";
 	}
 	os << "]";
 	return os.str();

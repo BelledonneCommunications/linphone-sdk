@@ -40,15 +40,12 @@ public:
 	std::list<std::shared_ptr<HidDevice>> getDevices(const std::shared_ptr<Core> &core) const;
 
 private:
-	static constexpr int DETECTION_POLL_INTERVAL_MS = 500;
-
 	static constexpr unsigned short VENDOR_ID_JABRA = 0x0B0E;
 	static constexpr unsigned short USAGE_PAGE_TELEPHONY = 0x000B;
 	static constexpr unsigned short USAGE_TELEPHONY_HANDSET = 0x0005;
 
 	bool mInitialized;
 	std::shared_ptr<Core> mCore;
-	belle_sip_source_t *mTimer = nullptr;
 };
 
 LINPHONE_END_NAMESPACE
