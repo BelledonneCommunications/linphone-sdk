@@ -2313,6 +2313,13 @@ static IceCandidatePair *ice_trigger_connectivity_check_on_binding_request(IceCh
 	return pair;
 }
 
+static bool_t ice_pair_matches_on_addresses(const IceCandidatePair *p1, const IceCandidatePair *p2) {
+	return (p1 != NULL) && (p2 != NULL) && (p1->local->componentID == p2->local->componentID) &&
+	       (ice_compare_transport_addresses(&p1->local->taddr, &p2->local->taddr) == 0) &&
+	       (p1->remote->componentID == p2->remote->componentID) &&
+	       (ice_compare_transport_addresses(&p1->remote->taddr, &p2->remote->taddr) == 0);
+}
+
 static IceCandidatePair *ice_lookup_possible_valid_pair(const IceCheckList *cl, IceCandidatePair *pair) {
 	const bctbx_list_t *elem;
 
@@ -2325,6 +2332,17 @@ static IceCandidatePair *ice_lookup_possible_valid_pair(const IceCheckList *cl, 
 			ms_message("ice: found the reflexive candidate corresponding to the candidate pair on which the binding "
 			           "request was received.");
 			return valid->valid; /*return the peer reflexive candidate pair*/
+		}
+	}
+	/* Fallback: match by transport addresses. Nomination semantics (RFC 8445 7.3.1.5) are
+	 * about the address pair, not about which IceCandidatePair object represents it. This
+	 * makes nomination robust if distinct pair objects ever represent the same path. */
+	for (elem = cl->valid_list; elem != NULL; elem = elem->next) {
+		IceValidCandidatePair *valid = (IceValidCandidatePair *)elem->data;
+		if (ice_pair_matches_on_addresses(pair, valid->valid) ||
+		    ice_pair_matches_on_addresses(pair, valid->generated_from)) {
+			ms_message("ice: matched valid pair for nomination by transport addresses.");
+			return valid->valid;
 		}
 	}
 	return NULL;
@@ -3683,6 +3701,28 @@ static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCand
 	return (p1->priority < p2->priority);
 }
 
+static const IceCandidate *ice_effective_local_candidate(const IceCandidate *candidate) {
+	/* Mirror ice_replace_srflx_by_base_in_pair(): an srflx pair is equivalent to its base.
+	 * Deliberately NOT applied to peer-reflexive candidates: a prflx local candidate can
+	 * represent a genuinely different path (endpoint-dependent NAT mapping). */
+	if (candidate->type == ICT_ServerReflexiveCandidate && candidate->base != NULL) return candidate->base;
+	return candidate;
+}
+
+static bool_t ice_pair_exists_with_candidates(const bctbx_list_t *pairs,
+                                              const IceCandidate *local,
+                                              const IceCandidate *remote) {
+	const IceCandidate *eff_local = ice_effective_local_candidate(local);
+	const bctbx_list_t *it;
+	for (it = pairs; it != NULL; it = it->next) {
+		const IceCandidatePair *p = (const IceCandidatePair *)it->data;
+		if ((ice_compare_candidates(ice_effective_local_candidate(p->local), eff_local) == 0) &&
+		    (ice_compare_candidates(p->remote, remote) == 0))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 /* Form candidate pairs, compute their priorities and sort them by decreasing priorities according to 5.7.1 and 5.7.2.
  */
 static void ice_form_candidate_pairs(IceCheckList *cl) {
@@ -3698,7 +3738,8 @@ static void ice_form_candidate_pairs(IceCheckList *cl) {
 			local_candidate = (IceCandidate *)local_list->data;
 			remote_candidate = (IceCandidate *)remote_list->data;
 			if ((local_candidate->componentID == remote_candidate->componentID) &&
-			    (local_candidate->taddr.family == remote_candidate->taddr.family)) {
+			    (local_candidate->taddr.family == remote_candidate->taddr.family) &&
+			    !ice_pair_exists_with_candidates(cl->pairs, local_candidate, remote_candidate)) {
 				pair = ice_pair_new(cl, local_candidate, remote_candidate);
 				cl->pairs = bctbx_list_append(cl->pairs, pair);
 			}
@@ -3713,6 +3754,20 @@ static void ice_replace_srflx_by_base_in_pair(IceCandidatePair *pair) {
 	if (pair->local->type == ICT_ServerReflexiveCandidate) {
 		pair->local = pair->local->base;
 	}
+}
+
+static bool_t ice_pair_is_referenced_by_valid_list(const IceCheckList *cl, const IceCandidatePair *pair) {
+	const bctbx_list_t *it;
+	for (it = cl->valid_list; it != NULL; it = it->next) {
+		const IceValidCandidatePair *vp = (const IceValidCandidatePair *)it->data;
+		if ((vp->valid == pair) || (vp->generated_from == pair)) return TRUE;
+	}
+	return FALSE;
+}
+
+static void ice_replace_srflx_by_base_in_pair_if_unreferenced(IceCandidatePair *pair, const IceCheckList *cl) {
+	if (ice_pair_is_referenced_by_valid_list(cl, pair)) return;
+	ice_replace_srflx_by_base_in_pair(pair);
 }
 
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2) {
@@ -3730,7 +3785,10 @@ static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair 
 }
 
 static int ice_prune_duplicate_pair(IceCandidatePair *pair, bctbx_list_t **pairs, IceCheckList *cl) {
-	bctbx_list_t *other_pair = bctbx_list_find_custom(*pairs, (bctbx_compare_func)ice_compare_pairs, pair);
+	bctbx_list_t *other_pair;
+	/* Never prune a pair referenced by the valid list: freeing it would also destroy the valid list entry. */
+	if (ice_pair_is_referenced_by_valid_list(cl, pair)) return 0;
+	other_pair = bctbx_list_find_custom(*pairs, (bctbx_compare_func)ice_compare_pairs, pair);
 	if (other_pair != NULL) {
 		IceCandidatePair *other_candidate_pair = (IceCandidatePair *)other_pair->data;
 		if (other_candidate_pair->priority > pair->priority) {
@@ -3756,7 +3814,10 @@ static void ice_prune_candidate_pairs(IceCheckList *cl) {
 	int nb_pairs_to_remove;
 	int i;
 
-	bctbx_list_for_each(cl->pairs, (void (*)(void *))ice_replace_srflx_by_base_in_pair);
+	/* Skip pairs referenced by the valid list: an un-rebased valid pair keeps its srflx type, and
+	 * ice_compare_candidates() compares types, so it can never compare equal to a (host, ...) pair
+	 * and is thereby immune from dedup/free as well. One guard closes both the mutation and the free. */
+	bctbx_list_for_each2(cl->pairs, (void (*)(void *, void *))ice_replace_srflx_by_base_in_pair_if_unreferenced, cl);
 	/* Do not use bctbx_list_for_each2() here, because ice_prune_duplicate_pair() can remove list elements. */
 	for (list = cl->pairs; list != NULL; list = list->next) {
 		next = list->next;
