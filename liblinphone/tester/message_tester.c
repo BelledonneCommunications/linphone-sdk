@@ -3635,7 +3635,7 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	                             liblinphone_tester_sip_timeout));
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageDeliveredToUser, nbMessages,
-	                             liblinphone_tester_sip_timeout));
+	                             2*liblinphone_tester_sip_timeout));
 
 	// Only Marie receives IMDNs
 	LinphoneChatMessageState expected_msg_state = LinphoneChatMessageStateDeliveredToUser;

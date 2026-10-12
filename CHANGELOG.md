@@ -11,17 +11,20 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
-## [Unreleased]
+## [5.5.34] 2026-10-15
 
 ### Added
 - Swift package flavor built with the G729 codec, published to a separate repository for licensees.
 
-## [5.5.33]
+### Fixed
+- Use the information in the NOTIFY message XML body to set the subject of a conference instead of looking at the INVITE message's Subject header
+
+## [5.5.33] 2026-10-13
 
 ### Fixed
 - Reinitialize encrypton contexts when the encryption keys or the origin address put down in the SDP changes
 
-## [5.5.32]
+## [5.5.32] 2026-10-12
 
 ### Fixed
 - Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network

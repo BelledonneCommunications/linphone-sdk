@@ -270,10 +270,12 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 			case ChatMessage::State::Displayed:
 				if ((currentState == ChatMessage::State::Delivered) &&
 				    (direction == ChatMessage::Direction::Outgoing)) {
-					lInfo() << "Participant is in displayed state, NOT starting ephemeral countdown as it has already "
+					lInfo() << "Chat Message [" << q << "]: Me participant [" << *participantAddress
+					        << "] is in displayed state, NOT starting ephemeral countdown as it has already "
 					           "been started when entering the delivered state";
 				} else {
-					lInfo() << "Participant is in displayed state, starting ephemeral countdown";
+					lInfo() << "Chat Message [" << q << "]: Me participant [" << *participantAddress
+					        << "] is in displayed state, starting ephemeral countdown";
 					startEphemeralCountDown(Normal);
 				}
 				break;
@@ -281,10 +283,12 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 				if (eventLog) {
 					// Only start the countdown if the state has been stored
 					if (direction == ChatMessage::Direction::Outgoing) {
-						lInfo() << "Sender is in delivered state, starting ephemeral countdown";
+						lInfo() << "Chat Message [" << q << "]: Sender [" << *participantAddress
+						        << "] is in delivered state, starting ephemeral countdown";
 						startEphemeralCountDown(Normal);
 					} else {
-						lInfo() << "Participant is in delivered state, starting ephemeral not-read countdown";
+						lInfo() << "Chat Message [" << q << "]: Me participant [" << *participantAddress
+						        << "] is in delivered state, starting ephemeral not-read countdown";
 						startEphemeralCountDown(NotRead);
 					}
 				}
@@ -298,8 +302,8 @@ void ChatMessagePrivate::setParticipantState(const std::shared_ptr<Address> &par
 	                             "enable_simple_group_chat_message_state", FALSE)) {
 		setState(newState, reason);
 	} else {
-		lInfo() << "Chat message " << sharedMessage << ": moving participant '" << *participantAddress << "' state to "
-		        << Utils::toString(newState);
+		lInfo() << "Chat message [" << sharedMessage << "]: moving participant '" << *participantAddress
+		        << "' state to " << Utils::toString(newState);
 		if (eventLog) {
 			db.value().get().setChatMessageParticipantState(eventLog, participantAddress, newState, stateChangeTime);
 		}
@@ -607,7 +611,8 @@ void ChatMessagePrivate::startEphemeralCountDown(const EphemeralCountdownType co
 
 	string countdownTypeStr;
 	if (countdownType == NotRead) countdownTypeStr = "not-read";
-	lInfo() << "Starting ephemeral " << countdownTypeStr << " countdown with life time: " << lifetime;
+	lInfo() << "Chat Message [" << q << "]: Starting ephemeral " << countdownTypeStr
+	        << " countdown with life time: " << lifetime;
 
 	// notify start !
 	const shared_ptr<LinphonePrivate::EventLog> event = db.value().get().getEvent(q->getStorageId());
