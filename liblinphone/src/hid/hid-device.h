@@ -61,6 +61,7 @@ public:
 	uint32_t mMute = 0;
 	uint32_t mRinger = 0;
 	uint32_t mHold = 0;
+	uint32_t mHostAvailable = 0;
 };
 
 class HidDevice : public CoreAccessor {

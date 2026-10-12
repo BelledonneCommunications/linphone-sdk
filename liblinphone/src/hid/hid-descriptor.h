@@ -111,6 +111,8 @@ public:
 		SpeedDial = 0x50,
 		LineBusyTone = 0x97,
 		Ringer = 0x9E,
+		HostControl = 0xF0,
+		HostAvailable = 0xF1,
 	};
 
 	/**
