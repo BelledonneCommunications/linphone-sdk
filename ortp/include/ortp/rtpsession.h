@@ -325,6 +325,7 @@ typedef struct _OrtpStream {
 	queue_t bundleq;                /* For bundle mode */
 	ortp_mutex_t bundleq_lock;
 	bool_t remote_address_adaptation;
+	OrtpTurnTransport turn_transport;
 } OrtpStream;
 
 typedef struct _RtpStream {
@@ -985,8 +986,11 @@ ORTP_PUBLIC mblk_t *rtp_bundle_dispatch(RtpBundle *bundle, bool_t is_rtp, mblk_t
  * Warning: this function current implementation assumes a match MID/SSRC, it may change
  */
 ORTP_PUBLIC RtpSession *rtp_bundle_lookup_session_for_outgoing_packet(RtpBundle *bundle, mblk_t *m);
-ORTP_PUBLIC void
-rtp_session_use_local_addr(RtpSession *session, const char *rtp_local_addr, const char *rtcp_local_addr);
+ORTP_PUBLIC void rtp_session_use_local_addr(RtpSession *session,
+                                            const char *rtp_local_addr,
+                                            const char *rtcp_local_addr,
+                                            OrtpTurnTransport rtp_turn_transport,
+                                            OrtpTurnTransport rtcp_turn_transport);
 
 typedef struct _FecStream FecStream;
 typedef struct _FecParams FecParams;

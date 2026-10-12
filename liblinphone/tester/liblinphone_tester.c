@@ -600,7 +600,7 @@ void liblinphone_tester_add_suites(void) {
 #ifdef HAVE_FLEXIAPI
 	liblinphone_tester_add_suite_with_default_time(&flexiapiclient_suite, 4);
 #endif
-	liblinphone_tester_add_suite_with_default_time(&stun_test_suite, 261);
+	liblinphone_tester_add_suite_with_default_time(&stun_test_suite, 400);
 	liblinphone_tester_add_suite_with_default_time(&event_test_suite, 70);
 #if defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 	liblinphone_tester_add_suite_with_default_time(&conference_event_test_suite, 85);

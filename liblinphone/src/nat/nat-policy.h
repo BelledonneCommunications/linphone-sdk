@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -18,10 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef nat_policy_hh
-#define nat_policy_hh
+#pragma once
 
-#include "auth-info/auth-info.h"
+#include <optional>
+#include <set>
+
+#include "mediastreamer2/turn-transport.h"
+
 #include "c-wrapper/c-wrapper.h"
 #include "core/core-accessor.h"
 #include "http/http-client.h"
@@ -33,9 +36,11 @@ class NatPolicy : public bellesip::HybridObject<LinphoneNatPolicy, NatPolicy>,
                   public std::enable_shared_from_this<NatPolicy>,
                   public CoreAccessor {
 public:
-	using ResolverResultsFn = std::function<void(const struct addrinfo *)>;
+	using ResolverResultsFn = std::function<void(std::map<mediastreamer::nat::TurnTransport, const struct addrinfo *>)>;
 	using AsyncHandle = unsigned;
+
 	enum class ConstructionMethod { Default, FromSectionName, FromRefName };
+
 	explicit NatPolicy(const std::shared_ptr<Core> &core,
 	                   ConstructionMethod method = ConstructionMethod::Default,
 	                   const std::string &value = "");
@@ -59,53 +64,53 @@ public:
 	const std::string &getTurnConfigurationEndpoint() const;
 	void setTurnConfigurationEndpoint(const std::string &endpoint);
 
-	void enableStun(bool enable) {
+	void enableStun(const bool enable) {
 		mStunEnabled = enable;
 	};
 	bool stunEnabled() const {
 		return mStunEnabled;
 	};
 
-	void enableTurn(bool enable) {
+	void enableTurn(const bool enable) {
 		mTurnEnabled = enable;
 	};
 	bool turnEnabled() const {
 		return mTurnEnabled;
 	};
 
-	void enableIce(bool enable) {
+	void enableIce(const bool enable) {
 		mIceEnabled = enable;
 	};
 	bool iceEnabled() const {
 		return mIceEnabled;
 	};
 
-	void enableUpnp(bool enable) {
+	void enableUpnp(const bool enable) {
 		mUpnpEnabled = enable;
 	};
 	bool upnpEnabled() const {
 		return mUpnpEnabled;
 	};
 
-	void enableTurnUdp(bool enable) {
-		mTurnUdpEnabled = enable;
+	void enableTurnUdp(const bool enable) {
+		enableTurnTransport(mediastreamer::nat::TurnTransport::Udp, enable);
 	};
-	bool turnUdpEnabled() const {
-		return mTurnUdpEnabled;
-	};
-
-	void enableTurnTcp(bool enable) {
-		mTurnTcpEnabled = enable;
-	};
-	bool turnTcpEnabled() const {
-		return mTurnTcpEnabled;
+	[[nodiscard]] bool turnUdpEnabled() const {
+		return turnTransportEnabled(mediastreamer::nat::TurnTransport::Udp);
 	};
 
-	void enableTurnTls(bool enable) {
-		mTurnTlsEnabled = enable;
+	void enableTurnTcp(const bool enable) {
+		enableTurnTransport(mediastreamer::nat::TurnTransport::Tcp, enable);
 	};
-	bool turnTlsEnabled() const {
-		return mTurnTlsEnabled;
+	[[nodiscard]] bool turnTcpEnabled() const {
+		return turnTransportEnabled(mediastreamer::nat::TurnTransport::Tcp);
+	};
+
+	void enableTurnTls(const bool enable) {
+		enableTurnTransport(mediastreamer::nat::TurnTransport::Tls, enable);
+	};
+	[[nodiscard]] bool turnTlsEnabled() const {
+		return turnTransportEnabled(mediastreamer::nat::TurnTransport::Tls);
 	};
 
 	void setUserData(void *d) {
@@ -119,7 +124,7 @@ public:
 		return mRef;
 	}
 
-	const struct addrinfo *getStunServerAddrinfo();
+	std::map<mediastreamer::nat::TurnTransport, const struct addrinfo *> getStunServerAddrinfo();
 	/* Resolve stun server asynchronously.
 	 * If results are already available, onResults() is invoked synchronously and the function returns 0.
 	 * Otherwise, it returns a handle to the asynchronous operation, that may be used to later cancel it.
@@ -137,19 +142,27 @@ public:
 
 	void updateTurnConfiguration(const std::optional<std::shared_ptr<Address>> &from,
 	                             const std::function<void(bool)> &iceGathering);
-	bool needToUpdateTurnConfiguration();
+	bool needToUpdateTurnConfiguration() const;
 	void cancelTurnConfigurationUpdate();
 
 private:
-	bool processJsonConfigurationResponse(const std::shared_ptr<NatPolicy> sharedNatPolicy,
-	                                      const HttpResponse &response);
+	bool processJsonConfigurationResponse(const HttpResponse &response);
 	void initFromSection(const LinphoneConfig *config, const char *section);
-	void stunServerResolved(belle_sip_resolver_results_t *results);
+	void stunServerResolved(mediastreamer::nat::TurnTransport transport, belle_sip_resolver_results_t *results);
 	void clearResolverContexts();
+	void enableTurnTransport(mediastreamer::nat::TurnTransport transport, bool enable);
+	[[nodiscard]] bool turnTransportEnabled(mediastreamer::nat::TurnTransport transport) const;
+	[[nodiscard]] bool resolutionCompletedForAllTransports() const;
+	[[nodiscard]] std::map<mediastreamer::nat::TurnTransport, const struct addrinfo *> getResolutionResults() const;
+
+	static constexpr int sDefaultStunServerPort = 3478;
+	static constexpr int sDefaultTurnServerPort = 3478;
+	static constexpr int sDefaultTurnTlsServerPort = 5349;
+
 	void *mUserData = nullptr;
 	std::function<void(bool)> mCompletionRoutine = nullptr;
-	SalResolverContext mStunResolverContext;
-	belle_sip_resolver_results_t *mResolverResults = nullptr;
+	std::map<mediastreamer::nat::TurnTransport, SalResolverContext> mStunResolverContexts;
+	std::map<mediastreamer::nat::TurnTransport, std::optional<belle_sip_resolver_results_t *>> mResolverResults;
 	std::map<AsyncHandle, ResolverResultsFn> mResolverResultsFunctions;
 	static AsyncHandle sAsyncHandleGenerator;
 	std::string mTurnConfigurationEndpoint;
@@ -162,11 +175,7 @@ private:
 	bool mTurnEnabled = false;
 	bool mIceEnabled = false;
 	bool mUpnpEnabled = false;
-	bool mTurnUdpEnabled = false;
-	bool mTurnTcpEnabled = false;
-	bool mTurnTlsEnabled = false;
+	std::set<mediastreamer::nat::TurnTransport> mTurnTransports;
 };
 
 LINPHONE_END_NAMESPACE
-
-#endif

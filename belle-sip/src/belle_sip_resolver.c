@@ -758,7 +758,7 @@ static void append_dns_result(belle_sip_simple_resolver_context_t *ctx,
 	}
 	if (ctx->flags & AI_V4MAPPED) family = AF_INET6;
 	*ai_list = ai_list_append(*ai_list, bctbx_ip_address_to_addrinfo(family, SOCK_STREAM, host, ctx->port));
-	belle_sip_message("%s resolved to %s", ctx->name, host);
+	belle_sip_message("%s resolved to %s:%d", ctx->name, host, ctx->port);
 }
 
 static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsigned int revents) {

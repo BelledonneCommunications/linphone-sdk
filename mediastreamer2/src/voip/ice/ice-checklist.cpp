@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <stdexcept>
 
 #include "mediastreamer2/ice-checklist.h"
 
@@ -32,6 +33,7 @@
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
 #include "mediastreamer2/turn-context.h"
+#include "mediastreamer2/turn-transport.h"
 
 namespace mediastreamer::nat {
 
@@ -42,8 +44,9 @@ IceCheckList::~IceCheckList() {
 std::shared_ptr<IceCandidate> IceCheckList::addLocalCandidate(const IceCandidate::Type type,
                                                               const IceTransportAddress &transportAddress,
                                                               const ComponentId componentId,
+                                                              const TurnTransport turnTransport,
                                                               const std::shared_ptr<IceCandidate> &base) {
-	return addCandidate(type, transportAddress, componentId, mLocalCandidates, mLocalComponentIds,
+	return addCandidate(type, transportAddress, componentId, turnTransport, mLocalCandidates, mLocalComponentIds,
 	                    [base](const auto &candidate) {
 		                    if (candidate->getBase() == nullptr) {
 			                    candidate->setBase(base);
@@ -56,7 +59,6 @@ void IceCheckList::addLosingPair(const ComponentId componentId,
                                  const IceTransportAddress &remoteTransportAddress) {
 	bool addedMissingRelayCandidate = false;
 	std::shared_ptr<IceCandidate> localCandidate;
-	std::shared_ptr<IceCandidate> remoteCandidate;
 	std::shared_ptr<IceCandidatePair> candidatePair;
 	const auto session = getSession();
 	if (session == nullptr) {
@@ -89,8 +91,8 @@ void IceCheckList::addLosingPair(const ComponentId componentId,
 			}
 			BCTBX_SLOGM << "ice: Add missing local candidate " << localTransportAddress.asString() << ":relay";
 			addedMissingRelayCandidate = true;
-			localCandidate =
-			    addLocalCandidate(IceCandidate::Type::Relayed, localTransportAddress, componentId, *itSrflxCandidate);
+			localCandidate = addLocalCandidate(IceCandidate::Type::Relayed, localTransportAddress, componentId,
+			                                   TurnTransport::Udp, *itSrflxCandidate);
 			computeCandidateFoundation(localCandidate);
 		}
 	} else {
@@ -106,7 +108,7 @@ void IceCheckList::addLosingPair(const ComponentId componentId,
 		BCTBX_SLOGW << "ice: Remote candidate " << remoteTransportAddress.asString() << " should have been found";
 		return;
 	}
-	remoteCandidate = *itRemoteCandidate;
+	const std::shared_ptr<IceCandidate> &remoteCandidate = *itRemoteCandidate;
 
 	if (addedMissingRelayCandidate) {
 		// If we just added a missing relay candidate, also add the candidate pair.
@@ -163,7 +165,8 @@ void IceCheckList::addLosingPair(const ComponentId componentId,
 		}
 	} else {
 		setSelectedValidCandidatePair(*itValidCandidatePair);
-		BCTBX_SLOGM << "ice: Select losing valid pair: cl=" << this << ", componentID=" << static_cast<int>(componentId)
+		BCTBX_SLOGM << "ice: Select losing valid pair: cl=" << this
+		            << ", componentID=" << componentIdAsString(componentId)
 		            << ", local_addr=" << localTransportAddress.getIp()
 		            << ", local_port=" << localTransportAddress.getPort()
 		            << ", remote_addr=" << remoteTransportAddress.getIp()
@@ -177,7 +180,7 @@ std::shared_ptr<IceCandidate> IceCheckList::addRemoteCandidate(const IceCandidat
                                                                const uint32_t priority,
                                                                const std::string &foundation,
                                                                const bool isDefault) {
-	return addCandidate(type, transportAddress, componentId, mRemoteCandidates, mRemoteComponentIds,
+	return addCandidate(type, transportAddress, componentId, TurnTransport::Udp, mRemoteCandidates, mRemoteComponentIds,
 	                    [priority, foundation, isDefault](const auto &candidate) {
 		                    // If the priority is 0, compute it. It is used for debugging purpose in mediastream to set
 		                    // priorities of remote candidates.
@@ -236,7 +239,7 @@ void IceCheckList::dumpCheckList() const {
 void IceCheckList::dumpComponentIds() const {
 	BCTBX_SLOGM << "Component IDs:";
 	for (const auto &componentId : mLocalComponentIds) {
-		BCTBX_SLOGM << "\t" << static_cast<int>(componentId);
+		BCTBX_SLOGM << "\t" << componentIdAsString(componentId);
 	}
 }
 
@@ -285,10 +288,18 @@ const IceCredentials &IceCheckList::getLocalCredentials() const {
 }
 
 const std::optional<IceCredentials> &IceCheckList::getRemoteCredentials() const {
-	if (mRemoteCredentials.has_value()) {
+	if (mRemoteCredentials) {
 		return mRemoteCredentials;
 	}
 	return getSession()->getRemoteCredentials();
+}
+
+std::shared_ptr<TurnContext> IceCheckList::getTurnContext(const ComponentId componentId) const {
+	try {
+		return mTurnContexts.at(componentId);
+	} catch (std::out_of_range &) {
+		return nullptr;
+	}
 }
 
 IceCandidate::Type IceCheckList::getSelectedValidCandidateType() const {
@@ -298,7 +309,7 @@ IceCandidate::Type IceCheckList::getSelectedValidCandidateType() const {
 	}
 
 	const auto validPair = validCandidatePair->getValid();
-	auto type = validPair->getRemoteCandidate()->getType();
+	const auto type = validPair->getRemoteCandidate()->getType();
 	// If the pair is reflexive, check if there is a pair with the same addresses and componentID that is of host type
 	// to report host connection instead of reflexive connection. This might happen if the ICE checks discover
 	// reflexives candidates before the signaling layer has communicated the host candidates to the other peer.
@@ -392,6 +403,7 @@ void IceCheckList::handleStunPacket(RtpSession *rtpSession, const OrtpEventData 
 		return;
 	}
 
+	const auto turnTransport = TurnContext::getTurnTransportFromMsg(mp);
 	const auto transactionId = msg->getTransactionId();
 	const auto transactionIdStr = transactionId.asString();
 	const auto recvAddress = SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
@@ -403,50 +415,52 @@ void IceCheckList::handleStunPacket(RtpSession *rtpSession, const OrtpEventData 
 	const auto sourceStunAddress = StunAddress(sourceAddress);
 
 	if (msg->isRequest()) {
-		BCTBX_SLOGM << "ice: Recv binding request: " << recvAddressStr << " <-- " << sourceAddressStr << " ["
-		            << transactionIdStr << "] (flags:" << (msg->getUseCandidate() ? "use-candidate" : "none") << ")";
+		BCTBX_SLOGM << "ice: Recv binding request: " << turnTransportAsString(turnTransport) << " " << recvAddressStr
+		            << " <-- " << sourceAddressStr << " [" << transactionIdStr << "]"
+		            << (msg->getUseCandidate() ? " (use-candidate)" : "");
 		handleReceivedBindingRequest(rtpSession, eventData, msg, sourceStunAddress);
 	} else if (msg->isSuccessResponse()) {
 		setTransactionResponseTime(transactionId, eventData->ts);
 		switch (msg->getMethod()) {
 			case StunMessage::Method::Binding:
-				BCTBX_SLOGM << "ice: Recv binding response: " << recvAddressStr << " <-- " << sourceAddressStr << " ["
-				            << transactionIdStr << "]";
+				BCTBX_SLOGM << "ice: Recv binding response: " << turnTransportAsString(turnTransport) << " "
+				            << recvAddressStr << " <-- " << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedBindingResponse(rtpSession, eventData, msg, sourceStunAddress);
 				break;
 			case StunMessage::Method::TurnAllocate:
-				BCTBX_SLOGM << "ice: Recv TURN allocate success response: " << recvAddressStr << " <-- "
-				            << sourceAddressStr << " [" << transactionIdStr << "]";
+				BCTBX_SLOGM << "ice: Recv TURN allocate success response: " << turnTransportAsString(turnTransport)
+				            << " " << recvAddressStr << " <-- " << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedTurnAllocateSuccessResponse(rtpSession, eventData, msg, sourceStunAddress);
 				break;
 			case StunMessage::Method::TurnCreatePermission:
-				BCTBX_SLOGM << "ice: Recv TURN create permission success response: " << recvAddressStr << " <-- "
+				BCTBX_SLOGM << "ice: Recv TURN create permission success response: "
+				            << turnTransportAsString(turnTransport) << " " << recvAddressStr << " <-- "
 				            << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedTurnCreatePermissionSuccessResponse(eventData, msg);
 				break;
 			case StunMessage::Method::TurnRefresh:
-				BCTBX_SLOGM << "ice: Recv TURN refresh success response: " << recvAddressStr << " <-- "
-				            << sourceAddressStr << " [" << transactionIdStr << "]";
+				BCTBX_SLOGM << "ice: Recv TURN refresh success response: " << turnTransportAsString(turnTransport)
+				            << " " << recvAddressStr << " <-- " << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedTurnRefreshSuccessResponse(eventData, msg);
 				break;
 			case StunMessage::Method::TurnChannelBind:
-				BCTBX_SLOGM << "ice: Recv TURN channel bind success response: " << recvAddressStr << " <-- "
-				            << sourceAddressStr << " [" << transactionIdStr << "]";
+				BCTBX_SLOGM << "ice: Recv TURN channel bind success response: " << turnTransportAsString(turnTransport)
+				            << " " << recvAddressStr << " <-- " << sourceAddressStr << " [" << transactionIdStr << "]";
 				handleReceivedTurnChannelBindSuccessResponse(eventData, msg);
 				break;
 			default:
-				BCTBX_SLOGW << "ice: Recv unknown STUN success response: " << recvAddressStr << " <-- "
-				            << sourceAddressStr << " [" << transactionIdStr << "]";
+				BCTBX_SLOGW << "ice: Recv unknown STUN success response: " << turnTransportAsString(turnTransport)
+				            << " " << recvAddressStr << " <-- " << sourceAddressStr << " [" << transactionIdStr << "]";
 				break;
 		}
 	} else if (msg->isErrorResponse()) {
 		setTransactionResponseTime(transactionId, eventData->ts);
-		BCTBX_SLOGM << "ice: Recv error response: " << recvAddressStr << " <-- " << sourceAddressStr << " ["
-		            << transactionIdStr << "]";
+		BCTBX_SLOGM << "ice: Recv error response: " << turnTransportAsString(turnTransport) << " " << recvAddressStr
+		            << " <-- " << sourceAddressStr << " [" << transactionIdStr << "]";
 		handleReceivedErrorResponse(rtpSession, eventData, msg);
 	} else if (msg->isIndication()) {
-		BCTBX_SLOGM << "ice: Recv indication: " << recvAddressStr << " <-- " << sourceAddressStr << " ["
-		            << transactionIdStr << "]";
+		BCTBX_SLOGM << "ice: Recv indication: " << turnTransportAsString(turnTransport) << " " << recvAddressStr
+		            << " <-- " << sourceAddressStr << " [" << transactionIdStr << "]";
 	} else {
 		BCTBX_SLOGW << "ice: STUN message type not handled";
 	}
@@ -457,24 +471,30 @@ void IceCheckList::printRoute(const std::string &message) const {
 		return;
 	}
 
+	std::string rtpTurnTransport;
+	std::string rtcpTurnTransport;
 	std::string localRtpTransportAddress;
 	std::string localRtcpTransportAddress;
 	std::string remoteRtpTransportAddress;
 	std::string remoteRtcpTransportAddress;
 	for (const auto &validPair : getValidPairs()) {
 		if (validPair->getLocalCandidate()->getComponentId() == ComponentId::Rtp) {
+			rtpTurnTransport = turnTransportAsString(validPair->getLocalCandidate()->getTurnTransport());
 			localRtpTransportAddress = validPair->getLocalCandidate()->getTransportAddress().asString();
 			remoteRtpTransportAddress = validPair->getRemoteCandidate()->getTransportAddress().asString();
 		} else if (validPair->getLocalCandidate()->getComponentId() == ComponentId::Rtcp) {
+			rtcpTurnTransport = turnTransportAsString(validPair->getLocalCandidate()->getTurnTransport());
 			localRtcpTransportAddress = validPair->getLocalCandidate()->getTransportAddress().asString();
 			remoteRtcpTransportAddress = validPair->getRemoteCandidate()->getTransportAddress().asString();
 		}
 	}
 
 	BCTBX_SLOGM << message;
-	BCTBX_SLOGM << "\tRTP: " << localRtpTransportAddress << " --> " << remoteRtpTransportAddress;
+	BCTBX_SLOGM << "\tRTP: " << rtpTurnTransport << " " << localRtpTransportAddress << " --> "
+	            << remoteRtpTransportAddress;
 	if (!localRtcpTransportAddress.empty() || !remoteRtcpTransportAddress.empty()) {
-		BCTBX_SLOGM << "\tRTCP: " << localRtcpTransportAddress << " --> " << remoteRtcpTransportAddress;
+		BCTBX_SLOGM << "\tRTCP: " << rtcpTurnTransport << " " << localRtcpTransportAddress << " --> "
+		            << remoteRtcpTransportAddress;
 	}
 }
 
@@ -485,7 +505,7 @@ void IceCheckList::process(RtpSession *rtpSession) {
 		return;
 	}
 
-	auto currentTime = std::chrono::steady_clock::now();
+	const auto currentTime = std::chrono::steady_clock::now();
 
 	// Check for gathering timeout
 	if ((mPhase == Phase::GatheringCandidates) && checkGatheringTimeout(rtpSession, currentTime)) {
@@ -532,7 +552,7 @@ void IceCheckList::process(RtpSession *rtpSession) {
 			sendKeepAlivePackets(rtpSession);
 
 			// Check nomination delay.
-			if (mNominationDelayStartTime.has_value() &&
+			if (mNominationDelayStartTime &&
 			    ((currentTime - mNominationDelayStartTime.value()) >= kIceNominationDelay)) {
 				BCTBX_SLOGM << "ice: Nomination delay timeout, select the potential relayed candidate anyway";
 				concludeProcessing(rtpSession, true);
@@ -669,8 +689,8 @@ void IceCheckList::checkMismatch() {
 		    });
 		if (it == mRemoteCandidates.end()) {
 			BCTBX_SLOGE << "ICE mismatch for checklist [" << this
-			            << "], due to default remote candidate not found for component ID ["
-			            << static_cast<int>(componentId) << "]";
+			            << "], due to default remote candidate not found for component ID "
+			            << componentIdAsString(componentId);
 			mMismatch = true;
 			mState = State::Failed;
 		}
@@ -724,9 +744,9 @@ bool IceCheckList::checkReceivedBindingRequestIntegrity(const RtpSession *rtpSes
 	if (session == nullptr) {
 		return false;
 	}
-	auto stunRawMessage = msg->getRawMessage();
+	const auto stunRawMessage = msg->getRawMessage();
 	const auto messageIntegrity = msg->getMessageIntegrity();
-	if (messageIntegrity.has_value() &&
+	if (messageIntegrity &&
 	    stunRawMessage->checkShortTermIntegrity(session->getLocalCredentials().getPwd(), messageIntegrity.value())) {
 		return true;
 	}
@@ -750,7 +770,7 @@ bool IceCheckList::checkReceivedBindingRequestRoleConflict(const RtpSession *rtp
 	if (session == nullptr) {
 		return false;
 	}
-	if ((session->getRole() == IceRole::Controlling) && msg->getIceControlling().has_value()) {
+	if ((session->getRole() == IceRole::Controlling) && msg->getIceControlling()) {
 		BCTBX_SLOGW << "ice: Role conflict, both agents are CONTROLLING";
 		if (session->getTieBreaker() >= msg->getIceControlling().value()) {
 			sendErrorResponse(rtpSession, eventData, msg, remoteStunAddress,
@@ -759,7 +779,7 @@ bool IceCheckList::checkReceivedBindingRequestRoleConflict(const RtpSession *rtp
 		}
 		BCTBX_SLOGM << "ice: Switch to the CONTROLLED role";
 		session->setRole(IceRole::Controlled);
-	} else if ((session->getRole() == IceRole::Controlled) && msg->getIceControlled().has_value()) {
+	} else if ((session->getRole() == IceRole::Controlled) && msg->getIceControlled()) {
 		BCTBX_SLOGW << "ice: Role conflict, both agents are CONTROLLED";
 		if (session->getTieBreaker() >= msg->getIceControlled().value()) {
 			BCTBX_SLOGM << "ice: Switch to the CONTROLLING role";
@@ -781,7 +801,7 @@ bool IceCheckList::checkReceivedBindingRequestUsername(const RtpSession *rtpSess
 	if (session == nullptr) {
 		return false;
 	}
-	const std::string username = msg->getUsername().has_value() ? msg->getUsername().value() : "";
+	const std::string username = msg->getUsername() ? msg->getUsername().value() : "";
 	const auto colonPos = username.find(':');
 	if ((colonPos == std::string::npos) ||
 	    (username.substr(0, colonPos) != session->getLocalCredentials().getUfrag())) {
@@ -866,7 +886,7 @@ void IceCheckList::chooseLocalOrRemoteDefaultCandidates(
 		if (candidate != nullptr) {
 			candidate->setDefault(true);
 			if (session->isTurnEnabled()) {
-				getTurnContextFromComponentId(componentId)
+				getTurnContext(componentId)
 				    ->enableForcedRtpSendingViaRelay(candidate->getType() == IceCandidate::Type::Relayed);
 			}
 		}
@@ -887,6 +907,7 @@ void IceCheckList::computeCandidateFoundation(const std::shared_ptr<IceCandidate
 	    std::find_if(mLocalCandidates.begin(), mLocalCandidates.end(), [candidate](const auto &otherCandidate) {
 		    return (candidate != otherCandidate) && candidate->getBase() && otherCandidate->getBase() &&
 		           (candidate->getType() == otherCandidate->getType()) &&
+		           (candidate->getTurnTransport() == otherCandidate->getTurnTransport()) &&
 		           (candidate->getBase()->getTransportAddress().getIp() ==
 		            otherCandidate->getBase()->getTransportAddress().getIp());
 	    });
@@ -935,7 +956,7 @@ void IceCheckList::computePairsStates() const {
 		for (const auto &pair : mCheckList) {
 			if ((pair->getLocalCandidate()->getFoundation() == foundation.getLocal()) &&
 			    (pair->getRemoteCandidate()->getFoundation() == foundation.getRemote()) &&
-			    (!componentId.has_value() ||
+			    (!componentId ||
 			     ((pair->getLocalCandidate()->getComponentId() < *componentId) && (pair->getPriority() > priority)))) {
 				componentId = pair->getLocalCandidate()->getComponentId();
 				priority = pair->getPriority();
@@ -1029,13 +1050,12 @@ void IceCheckList::concludeProcessing(RtpSession *rtpSession, bool nominationDel
 
 	const auto rtpRemoteCandidate = getSelectedValidRemoteCandidateForRtp();
 	const auto optionalRtcpRemoteCandidate = getSelectedValidRemoteCandidateForRtcp();
-	if ((rtpRemoteCandidate == nullptr) ||
-	    (optionalRtcpRemoteCandidate.has_value() && (*optionalRtcpRemoteCandidate == nullptr))) {
+	if ((rtpRemoteCandidate == nullptr) || (optionalRtcpRemoteCandidate && (*optionalRtcpRemoteCandidate == nullptr))) {
 		BCTBX_SLOGE << "Cannot get remote candidate for check list [" << this << "]";
 	} else {
 		// Switch the destination of the mediastream to the destination selected by ICE
 		const std::shared_ptr<IceCandidate> rtcpRemoteCandidate =
-		    optionalRtcpRemoteCandidate.has_value() ? *optionalRtcpRemoteCandidate : rtpRemoteCandidate;
+		    optionalRtcpRemoteCandidate ? *optionalRtcpRemoteCandidate : rtpRemoteCandidate;
 		rtp_session_set_remote_addr_full(rtpSession, rtpRemoteCandidate->getTransportAddress().getIp().c_str(),
 		                                 rtpRemoteCandidate->getTransportAddress().getPort(),
 		                                 rtcpRemoteCandidate->getTransportAddress().getIp().c_str(),
@@ -1047,36 +1067,41 @@ void IceCheckList::concludeProcessing(RtpSession *rtpSession, bool nominationDel
 			rtp_session_use_local_addr(
 			    rtpSession,
 			    (rtpLocalCandidate == nullptr) ? "" : rtpLocalCandidate->getTransportAddress().getIp().c_str(),
-			    (rtcpLocalCandidate == nullptr) ? "" : rtcpLocalCandidate->getTransportAddress().getIp().c_str());
+			    (rtcpLocalCandidate == nullptr) ? "" : rtcpLocalCandidate->getTransportAddress().getIp().c_str(),
+			    toOrtpTurnTransport((rtpLocalCandidate == nullptr) ? TurnTransport::Udp
+			                                                       : rtpLocalCandidate->getTurnTransport()),
+			    toOrtpTurnTransport((rtcpLocalCandidate == nullptr) ? TurnTransport::Udp
+			                                                        : rtcpLocalCandidate->getTurnTransport()));
 		}
 		if (session->isTurnEnabled()) {
 			rtpLocalCandidate = getSelectedValidLocalCandidateForRtp();
 			if (rtpLocalCandidate != nullptr) {
-				getTurnContextFromComponentId(ComponentId::Rtp)
-				    ->enableForcedRtpSendingViaRelay(rtpLocalCandidate->isRelay());
+				getTurnContext(ComponentId::Rtp)->enableForcedRtpSendingViaRelay(rtpLocalCandidate->isRelay());
 				if (rtpLocalCandidate->isRelay()) {
 					RtpTransport *rtpTransport = nullptr;
 					rtp_session_get_transports(mRtpSession, &rtpTransport, nullptr);
-					createTurnChannel(rtpTransport, getLocalSockAddr(mRtpSession, ComponentId::Rtp),
+					createTurnChannel(rtpTransport, rtpLocalCandidate->getTurnTransport(),
+					                  getLocalSockAddr(mRtpSession, ComponentId::Rtp),
 					                  rtpRemoteCandidate->getTransportAddress(), ComponentId::Rtp);
+					deallocateUselessTurnCandidates(ComponentId::Rtp, rtpLocalCandidate->getTurnTransport());
 				} else {
-					deallocateTurnCandidate(ComponentId::Rtp);
+					deallocateTurnCandidates(ComponentId::Rtp);
 				}
 			}
 			rtcpLocalCandidate = getSelectedValidLocalBaseCandidateForRtcp();
 			if (rtcpLocalCandidate != nullptr) {
-				getTurnContextFromComponentId(ComponentId::Rtcp)
-				    ->enableForcedRtpSendingViaRelay(rtcpLocalCandidate->isRelay());
-				if (rtcpLocalCandidate->isRelay() && optionalRtcpRemoteCandidate.has_value() &&
+				getTurnContext(ComponentId::Rtcp)->enableForcedRtpSendingViaRelay(rtcpLocalCandidate->isRelay());
+				if (rtcpLocalCandidate->isRelay() && optionalRtcpRemoteCandidate &&
 				    (*optionalRtcpRemoteCandidate != nullptr)) {
 					RtpTransport *rtpTransport = nullptr;
 					rtp_session_get_transports(mRtpSession, nullptr, &rtpTransport);
-					createTurnChannel(rtpTransport,
+					createTurnChannel(rtpTransport, rtcpLocalCandidate->getTurnTransport(),
 					                  SockAddr(reinterpret_cast<struct sockaddr *>(&mRtpSession->rtcp.gs.loc_addr),
 					                           mRtpSession->rtcp.gs.loc_addrlen),
 					                  (*optionalRtcpRemoteCandidate)->getTransportAddress(), ComponentId::Rtcp);
+					deallocateUselessTurnCandidates(ComponentId::Rtcp, rtcpLocalCandidate->getTurnTransport());
 				} else {
-					deallocateTurnCandidate(ComponentId::Rtcp);
+					deallocateTurnCandidates(ComponentId::Rtcp);
 				}
 			}
 		}
@@ -1134,7 +1159,6 @@ IceCheckList::constructValidPair(RtpSession *rtpSession,
 		BCTBX_SLOGM << "ice: Added pair " << candidatePair.get() << " to the valid list: " << localAddressStr << ":"
 		            << candidatePair->getLocalCandidate()->getTypeStr() << " --> " << remoteAddressStr << ":"
 		            << candidatePair->getRemoteCandidate()->getTypeStr();
-		// dumpValidList();
 		const auto itLosingPair =
 		    std::find_if(mLosingPairs.begin(), mLosingPairs.end(), [candidate, succeededPair](const auto &losingPair) {
 			    return (losingPair->getLocalCandidate() == candidate) &&
@@ -1167,6 +1191,7 @@ std::shared_ptr<IceTransaction> IceCheckList::createTransaction(const std::share
 }
 
 void IceCheckList::createTurnChannel(RtpTransport *rtpTransport,
+                                     const TurnTransport turnTransport,
                                      const SockAddr &localAddress,
                                      const IceTransportAddress &remoteTransportAddress,
                                      const ComponentId componentId) {
@@ -1174,29 +1199,33 @@ void IceCheckList::createTurnChannel(RtpTransport *rtpTransport,
 	if (session == nullptr) {
 		return;
 	}
-	const auto turnContext = getTurnContextFromComponentId(componentId);
+	const auto turnContext = getTurnContext(componentId);
+	auto *turnTransportContext = turnContext->getTransportContext(turnTransport);
+	if (turnTransportContext == nullptr) {
+		return;
+	}
 	const auto transportAddress = IceTransportAddress(localAddress);
-	const auto request =
-	    IceStunRequest::create(turnContext, rtpTransport, transportAddress, StunMessage::Method::TurnChannelBind);
+	const auto request = IceStunRequest::create(turnContext, rtpTransport, turnTransport, transportAddress,
+	                                            StunMessage::Method::TurnChannelBind);
 	if (request == nullptr) {
+		return;
+	}
+	const auto optionalStunServerSockAddr = session->getStunServerSockAddr(turnTransport);
+	if (!optionalStunServerSockAddr) {
 		return;
 	}
 	request->setPeerAddress(remoteTransportAddress.toStunAddress());
 	request->setChannelNumber(StunMessage::kFirstChannelNumber | static_cast<uint16_t>(componentId));
-	turnContext->setChannelNumber(request->getChannelNumber());
-	turnContext->setState(TurnContext::State::BindingChannel);
+	turnTransportContext->setChannelNumber(request->getChannelNumber());
+	turnTransportContext->setState(TurnTransportContext::State::BindingChannel);
 	request->programNextTransmission(std::chrono::steady_clock::now() + kIceDefaultRtoDuration);
-	request->addTransaction(request->send(session->getSockAddr()));
+	request->addTransaction(request->send(optionalStunServerSockAddr.value()));
 	addStunRequest(request);
 }
 
 void IceCheckList::createTurnContexts() {
-	if (mRtpTurnContext == nullptr) {
-		mRtpTurnContext = std::make_shared<TurnContext>(TurnContext::Type::Rtp, mRtpSession);
-	}
-	if (mRtcpTurnContext == nullptr) {
-		mRtcpTurnContext = std::make_shared<TurnContext>(TurnContext::Type::Rtcp, mRtpSession);
-	}
+	mTurnContexts.try_emplace(ComponentId::Rtp, std::make_shared<TurnContext>(TurnContext::Type::Rtp, mRtpSession));
+	mTurnContexts.try_emplace(ComponentId::Rtcp, std::make_shared<TurnContext>(TurnContext::Type::Rtcp, mRtpSession));
 }
 
 void IceCheckList::createTurnPermissions() {
@@ -1210,7 +1239,7 @@ void IceCheckList::createTurnPermissions() {
 		    findCandidate(mLocalCandidates, IceCandidate::Type::Relayed, remoteCandidate->getComponentId(),
 		                  remoteCandidate->getTransportAddress().getFamily());
 		if (localCandidate == nullptr) {
-			BCTBX_SLOGM << "ice: no relay candidate to reach " << remoteCandidate->getTransportAddress().getIp()
+			BCTBX_SLOGM << "ice: No relay candidate to reach " << remoteCandidate->getTransportAddress().getIp()
 			            << " for checklist [" << this << "]";
 		} else {
 			if (localCandidate->getBase() == nullptr) {
@@ -1223,66 +1252,113 @@ void IceCheckList::createTurnPermissions() {
 				BCTBX_SLOGE << "ice: No RTP transport";
 				continue;
 			}
+			const auto turnTransport = localCandidate->getTurnTransport();
+			const auto optionalStunServerSockAddr = session->getStunServerSockAddr(turnTransport);
+			if (!optionalStunServerSockAddr) {
+				continue;
+			}
 
+			auto turnContext = getTurnContext(remoteCandidate->getComponentId());
 			StunAddress peerAddress = remoteCandidate->getTransportAddress().toStunAddress();
 			peerAddress.setPort(0);
-			auto request = IceStunRequest::create(getTurnContextFromComponentId(remoteCandidate->getComponentId()),
-			                                      rtpTransport, localCandidate->getBase()->getTransportAddress(),
+			auto request = IceStunRequest::create(turnContext, rtpTransport, turnTransport,
+			                                      localCandidate->getBase()->getTransportAddress(),
 			                                      StunMessage::Method::TurnCreatePermission);
 			if (request == nullptr) {
-				BCTBX_SLOGE << "ice: could not build turn request for checklist [" << this << "]";
+				BCTBX_SLOGE << "ice: Could not build turn request for checklist [" << this << "]";
 			} else {
 				request->setPeerAddress(peerAddress);
 				request->programNextTransmission(std::chrono::steady_clock::now() + kIceDefaultRtoDuration);
-				request->addTransaction(request->send(session->getSockAddr()));
+				request->addTransaction(request->send(optionalStunServerSockAddr.value()));
 				addStunRequest(request);
 			}
 		}
 	}
 }
 
-void IceCheckList::deallocateTurnCandidate(const ComponentId componentId) const {
+void IceCheckList::deallocateTurnCandidate(const ComponentId componentId, const TurnTransport turnTransport) const {
 	const auto session = getSession();
 	if (session == nullptr) {
 		return;
 	}
-	const auto turnContext = getTurnContextFromComponentId(componentId);
+	const auto turnContext = getTurnContext(componentId);
 	if (turnContext == nullptr) {
+		return;
+	}
+	auto *turnTransportContext = turnContext->getTransportContext(turnTransport);
+	if (turnTransportContext == nullptr) {
 		return;
 	}
 
 	auto *rtpTransport = getRtpTransport(mRtpSession, componentId);
 	if (rtpTransport == nullptr) {
-		BCTBX_SLOGE << "ice: no rtp socket found for session [" << mRtpSession << "]";
+		BCTBX_SLOGE << "ice: No RTP socket found for session [" << mRtpSession << "]";
+		return;
+	}
+	const auto optionalStunServerSockAddr = session->getStunServerSockAddr(turnTransport);
+	if (!optionalStunServerSockAddr) {
 		return;
 	}
 
-	if (turnContext->getState() >= TurnContext::State::AllocationCreated) {
-		turnContext->setLifetime(0);
+	if (turnTransportContext->getState() >= TurnTransportContext::State::AllocationCreated) {
+		turnTransportContext->setLifetime(0);
 		const auto transportAddress = IceTransportAddress(getLocalSockAddr(mRtpSession, componentId));
-		BCTBX_SLOGM << "ice: about to deallocate turn candidate for " << transportAddress.getIp() << ":"
-		            << transportAddress.getPort();
-		const auto request =
-		    IceStunRequest::create(turnContext, rtpTransport, transportAddress, StunMessage::Method::TurnRefresh);
+		BCTBX_SLOGM << "ice: Deallocate " << componentIdAsString(componentId) << " "
+		            << turnTransportAsString(turnTransport) << " turn candidate";
+		const auto request = IceStunRequest::create(turnContext, rtpTransport, turnTransport, transportAddress,
+		                                            StunMessage::Method::TurnRefresh);
 		if (request != nullptr) {
-			const auto _transaction = request->send(session->getSockAddr());
+			turnTransportContext->setState(TurnTransportContext::State::Deallocating);
+			const auto _transaction = request->send(optionalStunServerSockAddr.value());
 		}
 	}
-	meta_rtp_transport_set_endpoint(rtpTransport, nullptr); // Endpoint is later freed
 }
 
 void IceCheckList::deallocateTurnCandidates() const {
-	deallocateTurnCandidate(ComponentId::Rtp);
-	deallocateTurnCandidate(ComponentId::Rtcp);
+	for (const auto componentId : {ComponentId::Rtp, ComponentId::Rtcp}) {
+		deallocateTurnCandidates(componentId);
+		auto *rtpTransport = getRtpTransport(mRtpSession, componentId);
+		if (rtpTransport != nullptr) {
+			meta_rtp_transport_set_endpoint(rtpTransport, nullptr); // Endpoint is later freed
+		}
+	}
+}
+
+void IceCheckList::deallocateTurnCandidates(ComponentId componentId) const {
+	const auto session = getSession();
+	if (session == nullptr) {
+		return;
+	}
+
+	const auto *rtpTransport = getRtpTransport(mRtpSession, componentId);
+	if (rtpTransport == nullptr) {
+		BCTBX_SLOGE << "ice: No " << componentIdAsString(componentId) << " socket found for session [" << mRtpSession
+		            << "]";
+		return;
+	}
+
+	for (const auto turnTransport : session->getTurnTransports()) {
+		deallocateTurnCandidate(componentId, turnTransport);
+	}
+}
+
+void IceCheckList::deallocateUselessTurnCandidates(ComponentId componentId, TurnTransport usedTurnTransport) const {
+	const auto session = getSession();
+	if (session == nullptr) {
+		return;
+	}
+
+	for (const auto turnTransport : session->getTurnTransports()) {
+		if (turnTransport != usedTurnTransport) {
+			deallocateTurnCandidate(componentId, turnTransport);
+		}
+	}
 }
 
 void IceCheckList::destroyTurnContexts() {
 	deallocateTurnCandidates();
-	if (mRtpTurnContext != nullptr) {
-		mRtpTurnContext = nullptr;
-	}
-	if (mRtcpTurnContext != nullptr) {
-		mRtcpTurnContext = nullptr;
+	for (auto it = mTurnContexts.begin(); it != mTurnContexts.end();) {
+		it = mTurnContexts.erase(it);
 	}
 }
 
@@ -1302,9 +1378,9 @@ IceCheckList::discoverPeerReflexiveCandidate(const std::shared_ptr<IceCandidateP
 		BCTBX_SLOGM << "ice: Discovered peer reflexive candidate " << transportAddress.asString() << " for componentID "
 		            << static_cast<int>(candidatePair->getLocalCandidate()->getComponentId());
 		// Add peer reflexive candidate to the local candidates list.
-		candidate =
-		    addLocalCandidate(IceCandidate::Type::PeerReflexive, transportAddress,
-		                      candidatePair->getLocalCandidate()->getComponentId(), candidatePair->getLocalCandidate());
+		candidate = addLocalCandidate(
+		    IceCandidate::Type::PeerReflexive, transportAddress, candidatePair->getLocalCandidate()->getComponentId(),
+		    candidatePair->getLocalCandidate()->getTurnTransport(), candidatePair->getLocalCandidate());
 		computeCandidateFoundation(candidate);
 	} else {
 		candidate = *itCandidate;
@@ -1393,14 +1469,14 @@ bool IceCheckList::gatherCandidates(size_t &checkListIndex) {
 	const auto currentTime = std::chrono::steady_clock::now();
 	mGatheringStartTime = currentTime;
 
-	if (!gatherCandidates(ComponentId::Rtp,
-	                      (checkListIndex == 0) ? (currentTime + kIceDefaultRtoDuration)
-	                                            : (currentTime + std::chrono::duration_cast<std::chrono::milliseconds>(
-	                                                                 2 * checkListIndex * kIceDefaultTaDuration)),
-	                      (checkListIndex == 0)) ||
-	    !gatherCandidates(ComponentId::Rtcp,
-	                      currentTime + (2 * checkListIndex * kIceDefaultTaDuration) + kIceDefaultTaDuration)) {
-		return isGatheringCandidates();
+	gatherCandidates(ComponentId::Rtp,
+	                 (checkListIndex == 0) ? (currentTime + kIceDefaultRtoDuration)
+	                                       : (currentTime + std::chrono::duration_cast<std::chrono::milliseconds>(
+	                                                            2 * checkListIndex * kIceDefaultTaDuration)),
+	                 (checkListIndex == 0));
+	if (isGatheringCandidates()) {
+		gatherCandidates(ComponentId::Rtcp,
+		                 currentTime + (2 * checkListIndex * kIceDefaultTaDuration) + kIceDefaultTaDuration);
 	}
 
 	checkListIndex++;
@@ -1408,49 +1484,67 @@ bool IceCheckList::gatherCandidates(size_t &checkListIndex) {
 	return isGatheringCandidates();
 }
 
-bool IceCheckList::gatherCandidates(const ComponentId componentId,
+void IceCheckList::gatherCandidates(const ComponentId componentId,
                                     const std::chrono::steady_clock::time_point nextTransmissionTime,
                                     bool sendRequest) {
 	const auto session = getSession();
-	if (session == nullptr) {
-		return false;
-	}
 	auto *rtpTransport = getRtpTransport(mRtpSession, componentId);
-	if ((rtpTransport == nullptr) ||
-	    ((componentId == ComponentId::Rtcp) && (rtp_session_rtcp_mux_enabled(mRtpSession) == TRUE))) {
-		BCTBX_SLOGM << "ice: no " << ((componentId == ComponentId::Rtp) ? "RTP" : "RTCP") << " socket for session ["
-		            << mRtpSession << "]";
+	if ((componentId == ComponentId::Rtp) && (rtpTransport == nullptr)) {
+		setPhase(Phase::Failed);
+		return;
 	}
-	const auto turnContext = getTurnContextFromComponentId(componentId);
+	if ((componentId == ComponentId::Rtcp) &&
+	    ((rtpTransport == nullptr) || (rtp_session_rtcp_mux_enabled(mRtpSession) == TRUE))) {
+		BCTBX_SLOGM << "ice: No " << componentIdAsString(componentId) << " socket for session [" << mRtpSession << "]";
+		return;
+	}
+	const auto turnContext = getTurnContext(componentId);
 	if (session->isTurnEnabled()) {
+		if (turnContext == nullptr) {
+			setPhase(Phase::Failed);
+			return;
+		}
+
 		// Define the RTP endpoint that will perform STUN encapsulation/decapsulation for TURN data
 		meta_rtp_transport_set_endpoint(rtpTransport, turnContext->createEndpoint());
-		turnContext->setServerAddress(session->getSockAddr());
 
-		// Start turn tcp client now if needed
-		if (turnContext->getTransport() != TurnContext::Transport::Udp) {
-			turnContext->getOrCreateTcpClient()->connect();
-		}
+		// Start the TURN TCP/TLS client now if needed
+		turnContext->setServerAddresses(session->getStunServerSockAddrMap());
+		turnContext->connect();
 	}
 
+	for (const auto transport : session->getTurnTransports()) {
+		gatherCandidates(componentId, transport, nextTransmissionTime, sendRequest);
+	}
+}
+
+void IceCheckList::gatherCandidates(const ComponentId componentId,
+                                    const TurnTransport turnTransport,
+                                    const std::chrono::steady_clock::time_point nextTransmissionTime,
+                                    const bool sendRequest) {
+	const auto session = getSession();
+	const auto turnContext = getTurnContext(componentId);
+	auto *rtpTransport = getRtpTransport(mRtpSession, componentId);
+
 	const auto transportAddress = IceTransportAddress(getLocalSockAddr(mRtpSession, componentId));
-	const auto request = IceStunRequest::create(turnContext, rtpTransport, transportAddress,
+	const auto request = IceStunRequest::create(turnContext, rtpTransport, turnTransport, transportAddress,
 	                                            session->isTurnEnabled() ? StunMessage::Method::TurnAllocate
 	                                                                     : StunMessage::Method::Binding);
 	if (request == nullptr) {
 		setPhase(Phase::Failed);
-		return isGatheringCandidates();
+		return;
 	}
 	request->setGathering(true);
 	request->programNextTransmission(nextTransmissionTime);
 	if (session->isTurnEnabled()) {
-		mRtpTurnContext->setState(TurnContext::State::CreatingAllocation);
+		auto *turnTransportContext = turnContext->getTransportContext(turnTransport);
+		turnTransportContext->setState(TurnTransportContext::State::CreatingAllocation);
 	}
-	if (sendRequest) {
-		request->addTransaction(request->send(session->getSockAddr()));
+	const auto optionalStunServer = session->getStunServerSockAddr(turnTransport);
+	if (sendRequest && optionalStunServer) {
+		request->addTransaction(request->send(optionalStunServer.value()));
 	}
 	addStunRequest(request);
-	return isGatheringCandidates();
 }
 
 std::string IceCheckList::generateArbitraryFoundation() const {
@@ -1503,16 +1597,6 @@ std::shared_ptr<IceStunRequest> IceCheckList::getStunRequest(const StunTransacti
 		return nullptr;
 	}
 	return *it;
-}
-
-std::shared_ptr<TurnContext> IceCheckList::getTurnContextFromComponentId(const ComponentId componentId) const {
-	switch (componentId) {
-		default:
-		case ComponentId::Rtp:
-			return mRtpTurnContext;
-		case ComponentId::Rtcp:
-			return mRtcpTurnContext;
-	}
 }
 
 [[nodiscard]] std::vector<std::shared_ptr<IceCandidatePair>> IceCheckList::getValidPairs() const {
@@ -1622,7 +1706,7 @@ void IceCheckList::handleReceivedErrorResponse(RtpSession *rtpSession,
 
 		const auto candidatePair = (*itTransaction)->getPair();
 		const auto error = msg->getError();
-		if (error.has_value() && (error.value().getErrorCode() == StunError::Code::StunUnauthorized) &&
+		if (error && (error.value().getErrorCode() == StunError::Code::StunUnauthorized) &&
 		    candidatePair->shouldRetryWithDummyMessageIntegrity()) {
 			BCTBX_SLOGW << "ice pair [" << candidatePair.get()
 			            << "], retry skipping message integrity for compatibility with older version";
@@ -1638,7 +1722,7 @@ void IceCheckList::handleReceivedErrorResponse(RtpSession *rtpSession,
 		            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
 		            << candidatePair->getRemoteCandidate()->getTypeStr();
 
-		if (error.has_value() && (error.value().getErrorCode() == StunError::Code::IceRoleConflict)) {
+		if (error && (error.value().getErrorCode() == StunError::Code::IceRoleConflict)) {
 			// Handle error 487 (Role Conflict) according to 7.1.3.1.
 			switch (candidatePair->getRole()) {
 				case IceRole::Controlling:
@@ -1669,17 +1753,25 @@ bool IceCheckList::handleReceivedTurnAllocateSuccessResponse(RtpSession *rtpSess
 		return false;
 	}
 	bool stunServerResponse = false;
-	const auto servStunAddress = StunAddress(session->getSockAddr().ipv6toIpv4());
-	if (remoteStunAddress != servStunAddress) {
-		return false;
-	}
 
 	const auto transactionId = msg->getTransactionId();
 	const auto request = getStunRequest(transactionId);
 	if (request != nullptr) {
-		const auto componentId = getComponentIdFromEventData(eventData);
+		const auto turnTransport = TurnContext::getTurnTransportFromMsg(eventData->packet);
+		const auto optionalStunServer = session->getStunServerSockAddr(turnTransport);
+		if (optionalStunServer) {
+			const auto servStunAddress = StunAddress(optionalStunServer.value().ipv6toIpv4());
+			if (remoteStunAddress != servStunAddress) {
+				return false;
+			}
+		} else {
+			return false;
+		}
+
+		const auto optionalComponentId = getComponentIdFromEventData(eventData);
 		const auto [serverReflexiveStunAddress, relayStunAddress] = parseStunResponse(msg);
-		if (componentId.has_value() && serverReflexiveStunAddress.has_value()) {
+		if (optionalComponentId && serverReflexiveStunAddress) {
+			const auto componentId = optionalComponentId.value();
 			const auto recvAddr = SockAddr(&eventData->packet->recv_addr).ipv6toIpv4();
 			const auto transportAddress = IceTransportAddress(recvAddr.asStructSockAddr(), recvAddr.getLen());
 			auto itBaseCandidate = std::find_if(mLocalCandidates.begin(), mLocalCandidates.end(),
@@ -1687,25 +1779,31 @@ bool IceCheckList::handleReceivedTurnAllocateSuccessResponse(RtpSession *rtpSess
 				                                    return (candidate->getComponentId() == componentId) &&
 				                                           (candidate->getTransportAddress() == transportAddress);
 			                                    });
-			if ((mRtpTurnContext != nullptr) && (mRtpTurnContext->getTransport() != TurnContext::Transport::Udp)) {
-				// Fallback code for TCP/TLS, where recvAddr is not needed
-				int family =
-				    (serverReflexiveStunAddress.value().getFamily() == StunAddress::Family::IpV6) ? AF_INET6 : AF_INET;
-				itBaseCandidate = std::find_if(mLocalCandidates.begin(), mLocalCandidates.end(),
-				                               [componentId, family](const auto &candidate) {
-					                               return (candidate->getType() == IceCandidate::Type::Host) &&
-					                                      (candidate->getComponentId() == componentId) &&
-					                                      (candidate->getTransportAddress().getFamily() == family);
-				                               });
-				if ((itBaseCandidate == mLocalCandidates.end()) && (family == AF_INET)) {
-					// Handle NAT64 case where the local candidate is IPv6 but the reflexive candidate returned by STUN
-					// is IPv4.
-					itBaseCandidate = std::find_if(
-					    mLocalCandidates.begin(), mLocalCandidates.end(), [componentId](const auto &candidate) {
-						    return (candidate->getType() == IceCandidate::Type::Host) &&
-						           (candidate->getComponentId() == componentId) &&
-						           (candidate->getTransportAddress().getFamily() == AF_INET6);
-					    });
+			if ((turnTransport == TurnTransport::Tcp) || (turnTransport == TurnTransport::Tls)) {
+				const auto turnContext = getTurnContext(componentId);
+				if (turnContext != nullptr) {
+					// Fallback code for TCP/TLS, where recvAddr is not needed
+					int family = (serverReflexiveStunAddress.value().getFamily() == StunAddress::Family::IpV6)
+					                 ? AF_INET6
+					                 : AF_INET;
+					itBaseCandidate = std::find_if(mLocalCandidates.begin(), mLocalCandidates.end(),
+					                               [componentId, family](const auto &candidate) {
+						                               return (candidate->getType() == IceCandidate::Type::Host) &&
+						                                      (candidate->getTurnTransport() == TurnTransport::Udp) &&
+						                                      (candidate->getComponentId() == componentId) &&
+						                                      (candidate->getTransportAddress().getFamily() == family);
+					                               });
+					if ((itBaseCandidate == mLocalCandidates.end()) && (family == AF_INET)) {
+						// Handle NAT64 case where the local candidate is IPv6 but the reflexive candidate returned
+						// by STUN is IPv4.
+						itBaseCandidate = std::find_if(
+						    mLocalCandidates.begin(), mLocalCandidates.end(), [componentId](const auto &candidate) {
+							    return (candidate->getType() == IceCandidate::Type::Host) &&
+							           (candidate->getTurnTransport() == TurnTransport::Udp) &&
+							           (candidate->getComponentId() == componentId) &&
+							           (candidate->getTransportAddress().getFamily() == AF_INET6);
+						    });
+					}
 				}
 			}
 
@@ -1715,24 +1813,28 @@ bool IceCheckList::handleReceivedTurnAllocateSuccessResponse(RtpSession *rtpSess
 				const auto &baseCandidate = *itBaseCandidate;
 				const auto serverReflexiveTransportAddress = IceTransportAddress(serverReflexiveStunAddress.value());
 				if (serverReflexiveTransportAddress.getPort() != 0) {
-					addLocalCandidate(IceCandidate::Type::ServerReflexive, serverReflexiveTransportAddress,
-					                  componentId.value(), baseCandidate);
+					addLocalCandidate(IceCandidate::Type::ServerReflexive, serverReflexiveTransportAddress, componentId,
+					                  turnTransport, baseCandidate);
 					BCTBX_SLOGM << "ice: Add candidate obtained by STUN/TURN: "
 					            << serverReflexiveTransportAddress.asString() << ":srflx";
 
 					if (session->isTurnEnabled()) {
-						request->getTurnContext()->mStatistics.nb_successful_allocate++;
-						scheduleTurnAllocationRefresh(componentId.value(),
-						                              msg->getLifetime().has_value() ? msg->getLifetime().value() : 0);
+						request->getTurnContext()
+						    ->getTransportContext(turnTransport)
+						    ->mStatistics.nbSuccessfulAllocate++;
+						scheduleTurnAllocationRefresh(componentId, turnTransport,
+						                              msg->getLifetime() ? msg->getLifetime().value() : 0);
 					}
-					if (relayStunAddress.has_value()) {
+					if (relayStunAddress) {
 						const auto relayTransportAddress = IceTransportAddress(relayStunAddress.value());
 						if (relayTransportAddress.getPort() != 0) {
 							if (session->isTurnEnabled()) {
-								request->getTurnContext()->setAllocatedRelayAddress(relayStunAddress.value());
+								request->getTurnContext()
+								    ->getTransportContext(turnTransport)
+								    ->setAllocatedRelayAddress(relayStunAddress.value());
 							}
-							addLocalCandidate(IceCandidate::Type::Relayed, relayTransportAddress, componentId.value(),
-							                  baseCandidate);
+							addLocalCandidate(IceCandidate::Type::Relayed, relayTransportAddress, componentId,
+							                  turnTransport, baseCandidate);
 							BCTBX_SLOGM << "ice: Add candidate obtained by STUN/TURN: "
 							            << relayTransportAddress.asString() << ":relay";
 						}
@@ -1741,9 +1843,10 @@ bool IceCheckList::handleReceivedTurnAllocateSuccessResponse(RtpSession *rtpSess
 			}
 			request->setResponded(true);
 			if (session->isTurnEnabled()) {
-				request->getTurnContext()->setState(TurnContext::State::AllocationCreated);
-				if (msg->getLifetime().has_value()) {
-					request->getTurnContext()->setLifetime(msg->getLifetime().value());
+				auto *turnTransportContext = request->getTurnContext()->getTransportContext(turnTransport);
+				turnTransportContext->setState(TurnTransportContext::State::AllocationCreated);
+				if (msg->getLifetime()) {
+					turnTransportContext->setLifetime(msg->getLifetime().value());
 				}
 			}
 		}
@@ -1770,19 +1873,23 @@ void IceCheckList::handleReceivedTurnChannelBindSuccessResponse(const OrtpEventD
 	const auto componentId = getComponentIdFromEventData(eventData);
 	const auto transactionId = msg->getTransactionId();
 	const auto request = getStunRequest(transactionId);
-	if ((request == nullptr) || !componentId.has_value()) {
+	if ((request == nullptr) || !componentId) {
 		return;
 	}
-	const auto turnContext = getTurnContextFromComponentId(componentId.value());
-	turnContext->setState(TurnContext::State::ChannelBound);
+
+	const auto turnContext = getTurnContext(componentId.value());
+	const auto turnTransport = TurnContext::getTurnTransportFromMsg(eventData->packet);
+	auto *turnTransportContext = turnContext->getTransportContext(turnTransport);
+	turnTransportContext->setState(TurnTransportContext::State::ChannelBound);
 	removeStunRequest(transactionId);
-	scheduleTurnChannelBindRefresh(componentId.value(), request->getChannelNumber(), request->getPeerAddress());
+	scheduleTurnChannelBindRefresh(componentId.value(), turnTransport, request->getChannelNumber(),
+	                               request->getPeerAddress());
 }
 
 void IceCheckList::handleReceivedTurnCreatePermissionSuccessResponse(const OrtpEventData *eventData,
                                                                      const std::shared_ptr<StunMessage> &msg) {
 	const auto componentId = getComponentIdFromEventData(eventData);
-	if (!componentId.has_value()) {
+	if (!componentId) {
 		return;
 	}
 	const auto transactionId = msg->getTransactionId();
@@ -1793,48 +1900,70 @@ void IceCheckList::handleReceivedTurnCreatePermissionSuccessResponse(const OrtpE
 
 	const auto peerAddress = request->getPeerAddress();
 	removeStunRequest(transactionId);
-	getTurnContextFromComponentId(componentId.value())->allowPeerAddress(peerAddress);
-	scheduleTurnPermissionRefresh(componentId.value(), peerAddress);
+
+	const auto turnTransport = TurnContext::getTurnTransportFromMsg(eventData->packet);
+	const auto turnContext = getTurnContext(componentId.value());
+	if (turnContext == nullptr) {
+		BCTBX_SLOGW << "ice: no turn context while receiving refresh success response";
+		return;
+	}
+	auto *turnTransportContext = turnContext->getTransportContext(turnTransport);
+	turnTransportContext->allowPeerAddress(peerAddress);
+	scheduleTurnPermissionRefresh(componentId.value(), turnTransport, peerAddress);
 }
 
 void IceCheckList::handleReceivedTurnRefreshSuccessResponse(const OrtpEventData *eventData,
                                                             const std::shared_ptr<StunMessage> &msg) {
 	const auto componentId = getComponentIdFromEventData(eventData);
-	if (!componentId.has_value()) {
+	if (!componentId) {
 		return;
 	}
 
 	// First remove the now terminated STUN transaction
 	const auto transactionId = msg->getTransactionId();
 	removeStunRequest(transactionId);
+
 	// Then Update related TURN context
-	const auto turnContext = getTurnContextFromComponentId(componentId.value());
+	const auto turnContext = getTurnContext(componentId.value());
 	if (turnContext == nullptr) {
 		BCTBX_SLOGW << "ice: no turn context while receiving refresh success response";
 		return;
 	}
 
-	if (turnContext->getLifetime() == 0) {
+	const auto turnTransport = TurnContext::getTurnTransportFromMsg(eventData->packet);
+	auto *turnTransportContext = turnContext->getTransportContext(turnTransport);
+	if (turnTransportContext->getLifetime() == 0) {
 		// TURN deallocation success
-		turnContext->setState(TurnContext::State::Idle);
+		turnTransportContext->setState(TurnTransportContext::State::Idle);
+
+		// Remove the RTP endpoint if it is no longer needed
+		if (turnContext->allStatesAreIdle()) {
+			auto *rtpTransport = getRtpTransport(mRtpSession, componentId.value());
+			if (rtpTransport != nullptr) {
+				meta_rtp_transport_set_endpoint(rtpTransport, nullptr); // Endpoint is later freed
+			}
+		}
 	} else {
-		scheduleTurnAllocationRefresh(componentId.value(),
-		                              msg->getLifetime().has_value() ? msg->getLifetime().value() : 0);
-		turnContext->mStatistics.nb_successful_refresh++;
+		scheduleTurnAllocationRefresh(componentId.value(), turnTransport,
+		                              msg->getLifetime() ? msg->getLifetime().value() : 0);
+		turnTransportContext->mStatistics.nbSuccessfulRefresh++;
 	}
 }
 
 void IceCheckList::handleStunErrorResponse(const RtpSession *rtpSession,
                                            const OrtpEventData *eventData,
-                                           const std::shared_ptr<StunMessage> &msg) {
+                                           const std::shared_ptr<StunMessage> &msg) const {
 	const auto session = getSession();
 	if (session == nullptr) {
 		return;
 	}
+
+	const auto turnTransport = TurnContext::getTurnTransportFromMsg(eventData->packet);
 	auto *rtpTransport = getRtpTransport(rtpSession, eventData);
 	const auto itRequest =
-	    std::find_if(mStunRequests.begin(), mStunRequests.end(),
-	                 [rtpTransport](const auto &request) { return request->getRtpTransport() == rtpTransport; });
+	    std::find_if(mStunRequests.begin(), mStunRequests.end(), [rtpTransport, turnTransport](const auto &request) {
+		    return (request->getRtpTransport() == rtpTransport) && (request->getTurnTransport() == turnTransport);
+	    });
 	if (itRequest == mStunRequests.end()) {
 		return;
 	}
@@ -1842,41 +1971,45 @@ void IceCheckList::handleStunErrorResponse(const RtpSession *rtpSession,
 	const auto &request = *itRequest;
 	const auto error = msg->getError();
 	auto *stunAuthListener = session->getStunAuthListener();
-	if (!error.has_value() || (error.value().getErrorCode() != StunError::Code::StunUnauthorized) ||
+	if (!error || (error.value().getErrorCode() != StunError::Code::StunUnauthorized) ||
 	    (stunAuthListener == nullptr)) {
 		return;
 	}
 
-	const std::string realm = msg->getRealm().has_value() ? msg->getRealm().value() : "";
-	const std::string nonce = msg->getNonce().has_value() ? msg->getNonce().value() : "";
+	const std::string realm = msg->getRealm() ? msg->getRealm().value() : "";
+	const std::string nonce = msg->getNonce() ? msg->getNonce().value() : "";
 	const auto authResponse = stunAuthListener->onStunAuthRequested(realm, nonce);
 	if (authResponse.username.empty() || !session->isTurnEnabled()) {
 		return;
 	}
 
 	const auto componentId = getComponentIdFromEventData(eventData);
-	if (!componentId.has_value()) {
+	if (!componentId) {
 		return;
 	}
 
-	const auto turnContext = getTurnContextFromComponentId(componentId.value());
+	const auto turnContext = getTurnContext(componentId.value());
+	auto *turnTransportContext = turnContext->getTransportContext(turnTransport);
 	if (!realm.empty()) {
-		turnContext->setRealm(realm);
+		turnTransportContext->setRealm(realm);
 	}
 	if (!nonce.empty()) {
-		turnContext->setNonce(nonce);
+		turnTransportContext->setNonce(nonce);
 	}
 	if (!authResponse.username.empty()) {
-		turnContext->setUsername(authResponse.username);
+		turnTransportContext->setUsername(authResponse.username);
 	}
 	if (!authResponse.password.empty()) {
-		turnContext->setPassword(authResponse.password);
+		turnTransportContext->setPassword(authResponse.password);
 	}
 	if (!authResponse.ha1.empty()) {
-		turnContext->setHa1(authResponse.ha1);
+		turnTransportContext->setHa1(authResponse.ha1);
 	}
 	request->programNextTransmission(std::chrono::steady_clock::now() + kIceDefaultRtoDuration);
-	request->addTransaction(request->sendTurnAllocateRequest(session->getSockAddr()));
+	const auto optionalStunServer = session->getStunServerSockAddr(turnTransport);
+	if (optionalStunServer) {
+		request->addTransaction(request->sendTurnAllocateRequest(optionalStunServer.value()));
+	}
 }
 
 bool IceCheckList::hasLocalComponentId(const ComponentId componentId) const {
@@ -1893,7 +2026,7 @@ std::shared_ptr<IceCandidate> IceCheckList::learnPeerReflexiveCandidate(const Or
                                                                         const std::shared_ptr<StunMessage> &msg,
                                                                         const IceTransportAddress &transportAddress) {
 	const auto componentId = getComponentIdFromEventData(eventData);
-	if (!componentId.has_value()) {
+	if (!componentId) {
 		return nullptr;
 	}
 
@@ -1904,11 +2037,11 @@ std::shared_ptr<IceCandidate> IceCheckList::learnPeerReflexiveCandidate(const Or
 	                                            });
 	if (itRemoteCandidate == mRemoteCandidates.end()) {
 		BCTBX_SLOGM << "ice: Learned peer reflexive candidate " << transportAddress.getIp() << ":"
-		            << transportAddress.getPort() << " for componentID " << static_cast<int>(componentId.value());
+		            << transportAddress.getPort() << " for componentID " << componentIdAsString(componentId.value());
 		// Add peer reflexive candidate to the remote candidates list.
 		const auto foundation = generateArbitraryFoundation();
 		return addRemoteCandidate(IceCandidate::Type::PeerReflexive, transportAddress, componentId.value(),
-		                          msg->getPriority().has_value() ? msg->getPriority().value() : 0, foundation, false);
+		                          msg->getPriority() ? msg->getPriority().value() : 0, foundation, false);
 	}
 	return nullptr;
 }
@@ -1920,7 +2053,7 @@ IceCheckList::lookupPossibleValidPair(const std::shared_ptr<IceCandidatePair> &c
 			return candidatePair;
 		}
 		if (validPair->getGeneratedFrom() == candidatePair) {
-			BCTBX_SLOGM << "ice: found the reflexive candidate corresponding to the candidate pair on which the "
+			BCTBX_SLOGM << "ice: Found the reflexive candidate corresponding to the candidate pair on which the "
 			               "binding request was received.";
 			return validPair->getValid();
 		}
@@ -1974,7 +2107,7 @@ void IceCheckList::performNominations(const bool nominationDelayExpired) {
 		             });
 		if (validCandidatePairs.empty()) {
 			BCTBX_SLOGM << "IceCheckList::performNominations(cl=" << this << "): no valid pairs yet for componentID "
-			            << static_cast<int>(componentId);
+			            << componentIdAsString(componentId);
 			concludable = false;
 			break;
 		}
@@ -1994,7 +2127,7 @@ void IceCheckList::performNominations(const bool nominationDelayExpired) {
 		}
 		if (validCandidatePair == nullptr) {
 			BCTBX_SLOGW << "IceCheckList::performNominations(cl=" << this
-			            << "): no more pair to nominate for componentID " << static_cast<int>(componentId);
+			            << "): no more pair to nominate for componentID " << componentIdAsString(componentId);
 		} else {
 			if ((validCandidatePair->getGeneratedFrom()->getRemoteCandidate()->getType() ==
 			     IceCandidate::Type::Relayed) ||
@@ -2011,7 +2144,7 @@ void IceCheckList::performNominations(const bool nominationDelayExpired) {
 
 	if (concludable && (nbNominationsToDo > 0)) {
 		BCTBX_SLOGM << "IceCheckList::performNominations: check list is concludable";
-		if (needMoreTime && !mNominationDelayStartTime.has_value()) {
+		if (needMoreTime && !mNominationDelayStartTime) {
 			BCTBX_SLOGM << "IceCheckList::performNominations(cl=" << this
 			            << "): for a component, the best candidate is a relay one, let's wait a bit before performing "
 			               "nomination";
@@ -2129,7 +2262,8 @@ void IceCheckList::removeTransactionUsingPair(const std::shared_ptr<IceCandidate
 
 void IceCheckList::restart() {
 	mRemoteCredentials = std::nullopt;
-	rtp_session_use_local_addr(mRtpSession, "", ""); // Reset the sources of rtp_session
+	rtp_session_use_local_addr(mRtpSession, "", "", toOrtpTurnTransport(TurnTransport::Udp),
+	                           toOrtpTurnTransport(TurnTransport::Udp)); // Reset the sources of rtp_session
 	mStunRequests.clear();
 	mTransactionList.clear();
 	mFoundations.clear();
@@ -2163,25 +2297,30 @@ void IceCheckList::retransmitConnectivityChecks(const std::chrono::steady_clock:
 	}
 }
 
-void IceCheckList::scheduleTurnAllocationRefresh(const ComponentId componentId, const uint32_t lifetime) {
-	std::ignore = scheduleTurnRequest(componentId, StunMessage::Method::TurnRefresh,
+void IceCheckList::scheduleTurnAllocationRefresh(const ComponentId componentId,
+                                                 const TurnTransport turnTransport,
+                                                 const uint32_t lifetime) {
+	std::ignore = scheduleTurnRequest(componentId, turnTransport, StunMessage::Method::TurnRefresh,
 	                                  std::chrono::milliseconds(static_cast<uint32_t>((lifetime * .9f) * 1000)),
 	                                  std::chrono::seconds(5));
 }
 
 void IceCheckList::scheduleTurnChannelBindRefresh(const ComponentId componentId,
+                                                  const TurnTransport turnTransport,
                                                   const uint16_t channelNumber,
                                                   const StunAddress &peerAddress) {
-	const auto request = scheduleTurnRequest(componentId, StunMessage::Method::TurnChannelBind, std::chrono::minutes(9),
-	                                         std::chrono::seconds(5));
+	const auto request = scheduleTurnRequest(componentId, turnTransport, StunMessage::Method::TurnChannelBind,
+	                                         std::chrono::minutes(9), std::chrono::seconds(5));
 	if (request != nullptr) {
 		request->setChannelNumber(channelNumber);
 		request->setPeerAddress(peerAddress);
 	}
 }
 
-void IceCheckList::scheduleTurnPermissionRefresh(const ComponentId componentId, const StunAddress &peerAddress) {
-	const auto request = scheduleTurnRequest(componentId, StunMessage::Method::TurnCreatePermission,
+void IceCheckList::scheduleTurnPermissionRefresh(const ComponentId componentId,
+                                                 const TurnTransport turnTransport,
+                                                 const StunAddress &peerAddress) {
+	const auto request = scheduleTurnRequest(componentId, turnTransport, StunMessage::Method::TurnCreatePermission,
 	                                         std::chrono::minutes(4), std::chrono::seconds(5));
 	if (request != nullptr) {
 		request->setPeerAddress(peerAddress);
@@ -2190,6 +2329,7 @@ void IceCheckList::scheduleTurnPermissionRefresh(const ComponentId componentId, 
 
 std::shared_ptr<IceStunRequest>
 IceCheckList::scheduleTurnRequest(const ComponentId componentId,
+                                  const TurnTransport turnTransport,
                                   const StunMessage::Method method,
                                   const std::chrono::milliseconds nextTransmission,
                                   const std::chrono::milliseconds shortTurnRefreshNextTransmission) {
@@ -2197,12 +2337,12 @@ IceCheckList::scheduleTurnRequest(const ComponentId componentId,
 	if (session == nullptr) {
 		return nullptr;
 	}
-	const auto turnContext = getTurnContextFromComponentId(componentId);
+	const auto turnContext = getTurnContext(componentId);
 	auto *rtpTransport = getRtpTransport(mRtpSession, componentId);
 	const auto *stream = getOrtpStreamFromRtpSessionAndComponentId(mRtpSession, componentId);
 	const auto transportAddress =
 	    IceTransportAddress(reinterpret_cast<const struct sockaddr *>(&stream->loc_addr), stream->loc_addrlen);
-	auto request = IceStunRequest::create(turnContext, rtpTransport, transportAddress, method);
+	auto request = IceStunRequest::create(turnContext, rtpTransport, turnTransport, transportAddress, method);
 	if (request == nullptr) {
 		return nullptr;
 	}
@@ -2280,9 +2420,9 @@ void IceCheckList::sendBindingRequest(const std::shared_ptr<IceCandidatePair> &c
 	const auto sourceStunAddress = candidatePair->getLocalCandidate()->getTransportAddress().toStunAddress();
 	const auto destStunAddress = candidatePair->getRemoteCandidate()->getTransportAddress().toStunAddress();
 	const auto msg = StunMessage::createStunBindingRequest();
-	msg->setUsername((getRemoteCredentials().has_value() ? getRemoteCredentials()->getUfrag() : "") + ":" +
+	msg->setUsername((getRemoteCredentials() ? getRemoteCredentials()->getUfrag() : "") + ":" +
 	                 getLocalCredentials().getUfrag());
-	msg->setPassword(getRemoteCredentials().has_value() ? getRemoteCredentials()->getPwd().c_str() : "");
+	msg->setPassword(getRemoteCredentials() ? getRemoteCredentials()->getPwd().c_str() : "");
 	msg->enableMessageIntegrity(true);
 	msg->enableFingerprint(true);
 
@@ -2320,35 +2460,37 @@ void IceCheckList::sendBindingRequest(const std::shared_ptr<IceCandidatePair> &c
 	const auto stunRawMessage = msg->encode();
 	const auto data = stunRawMessage->getData();
 	if (!data.empty()) {
+		bool notSendingBecauseOfForcedRelay =
+		    (session->isForcedRelayEnabled() &&
+		     (candidatePair->getRemoteCandidate()->getType() != IceCandidate::Type::Relayed) &&
+		     (candidatePair->getLocalCandidate()->getType() != IceCandidate::Type::Relayed));
+		std::ostringstream oss;
 		if (candidatePair->getState() == IceCandidatePair::State::InProgress) {
-			BCTBX_SLOGM << "ice: Retransmit (" << candidatePair->getNbRetransmissions() << ") binding request for pair "
-			            << candidatePair.get() << ": "
-			            << candidatePair->getLocalCandidate()->getTransportAddress().asString() << ":"
-			            << candidatePair->getLocalCandidate()->getTypeStr() << " --> "
-			            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
-			            << candidatePair->getRemoteCandidate()->getTypeStr() << " [" << transaction->getIdStr() << "]";
+			if (notSendingBecauseOfForcedRelay) {
+				oss << "ice: Forced relay, do not retransmit (" << candidatePair->getNbRetransmissions() << ")";
+			} else {
+				oss << "ice: Retransmit (" << candidatePair->getNbRetransmissions() << ")";
+			}
 		} else {
-			BCTBX_SLOGM << "ice: Send binding request for " << candidatePair->getStateStr() << " pair "
-			            << candidatePair.get() << ": "
-			            << candidatePair->getLocalCandidate()->getTransportAddress().asString() << ":"
-			            << candidatePair->getLocalCandidate()->getTypeStr() << " --> "
-			            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
-			            << candidatePair->getRemoteCandidate()->getTypeStr() << " [" << transaction->getIdStr()
-			            << "] (flags:" << (candidatePair->hasUseCandidate() ? "use-candidate" : "none") << ")";
+			if (notSendingBecauseOfForcedRelay) {
+				oss << "ice: Forced relay, do not send";
+			} else {
+				oss << "ice: Send";
+			}
 		}
+		BCTBX_SLOGM << oss.str() << " binding request for " << candidatePair->getStateStr() << " pair "
+		            << candidatePair.get() << ": "
+		            << turnTransportAsString(candidatePair->getLocalCandidate()->getTurnTransport()) << " "
+		            << candidatePair->getLocalCandidate()->getTransportAddress().asString() << ":"
+		            << candidatePair->getLocalCandidate()->getTypeStr() << " --> "
+		            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
+		            << candidatePair->getRemoteCandidate()->getTypeStr() << " [" << transaction->getIdStr() << "]"
+		            << (candidatePair->hasUseCandidate() ? " (use-candidate)" : "");
 
-		if (session->isForcedRelayEnabled() &&
-		    (candidatePair->getRemoteCandidate()->getType() != IceCandidate::Type::Relayed) &&
-		    (candidatePair->getLocalCandidate()->getType() != IceCandidate::Type::Relayed)) {
-			BCTBX_SLOGM << "ice: Forced relay, did not send binding request for " << candidatePair->getStateStr()
-			            << " pair " << candidatePair.get() << ": "
-			            << candidatePair->getLocalCandidate()->getTransportAddress().asString() << ":"
-			            << candidatePair->getLocalCandidate()->getTypeStr() << " --> "
-			            << candidatePair->getRemoteCandidate()->getTransportAddress().asString() << ":"
-			            << candidatePair->getRemoteCandidate()->getTypeStr() << " [" << transaction->getIdStr() << "]";
-		} else {
-			std::ignore = sendMessageToStunAddress(rtpTransport, reinterpret_cast<const char *>(data.data()),
-			                                       data.size(), sourceStunAddress, destStunAddress);
+		if (!notSendingBecauseOfForcedRelay) {
+			std::ignore = sendMessageToStunAddress(rtpTransport, candidatePair->getLocalCandidate()->getTurnTransport(),
+			                                       reinterpret_cast<const char *>(data.data()), data.size(),
+			                                       sourceStunAddress, destStunAddress);
 		}
 
 		if (candidatePair->getState() != IceCandidatePair::State::InProgress) {
@@ -2376,8 +2518,14 @@ void IceCheckList::sendBindingResponse(const RtpSession *rtpSession,
 		return;
 	}
 
-	// Create the binding response, copying the transaction ID from the request.
+	const auto turnTransport = TurnContext::getTurnTransportFromMsg(eventData->packet);
 	const auto transactionId = msg->getTransactionId();
+	const auto optionalComponentId = getComponentIdFromEventData(eventData);
+	if (!optionalComponentId) {
+		return;
+	}
+
+	// Create the binding response, copying the transaction ID from the request.
 	const auto response = StunMessage::createStunBindingSuccessResponse();
 	response->setTransactionId(transactionId);
 	response->enableMessageIntegrity(true);
@@ -2386,9 +2534,8 @@ void IceCheckList::sendBindingResponse(const RtpSession *rtpSession,
 	response->enableDummyMessageIntegrity(msg->hasDummyMessageIntegrity());
 
 	// Add username for message integrity
-	response->setUsername(
-	    session->getLocalCredentials().getUfrag() + ":" +
-	    (session->getRemoteCredentials().has_value() ? session->getRemoteCredentials()->getUfrag() : ""));
+	response->setUsername(session->getLocalCredentials().getUfrag() + ":" +
+	                      (session->getRemoteCredentials() ? session->getRemoteCredentials()->getUfrag() : ""));
 	if (msg->hasDummyMessageIntegrity() && !session->isMessageIntegrityCheckEnabled()) {
 		// Legacy case, include username for backward compatibility
 	} else {
@@ -2409,7 +2556,7 @@ void IceCheckList::sendBindingResponse(const RtpSession *rtpSession,
 		BCTBX_SLOGM << "ice: Send binding response: " << sourceAddress.asString() << " --> " << destAddress.asString()
 		            << " [" << transactionId.asString() << "]";
 		std::ignore =
-		    sendMessageToSocket(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		    sendMessageToSocket(rtpTransport, turnTransport, reinterpret_cast<const char *>(data.data()), data.size(),
 		                        sourceAddress.asStructSockAddr(), destAddress.asStructSockAddr(), destAddress.getLen());
 	}
 }
@@ -2444,9 +2591,20 @@ void IceCheckList::sendStunRequests() {
 			++it;
 			continue;
 		}
+		if (((stunRequest->getTurnTransport() == TurnTransport::Tcp) ||
+		     (stunRequest->getTurnTransport() == TurnTransport::Tls)) &&
+		    (stunRequest->getNbTransactions() >= 1)) {
+			// Perform retransmissions only for the UDP transport
+			++it;
+			continue;
+		}
 		if (stunRequest->getNbTransactions() < kIceMaxStunRequestRetransmissions) {
+			std::shared_ptr<IceStunRequest::Transaction> transaction;
 			stunRequest->programNextTransmission(currentTime + kIceDefaultRtoDuration);
-			const auto transaction = stunRequest->send(session->getSockAddr());
+			const auto optionalStunServer = session->getStunServerSockAddr(stunRequest->getTurnTransport());
+			if (optionalStunServer) {
+				transaction = stunRequest->send(optionalStunServer.value());
+			}
 			if (transaction == nullptr) {
 				it = mStunRequests.erase(it);
 			} else {
@@ -2615,8 +2773,8 @@ IceCheckList::triggerConnectivityCheckOnBindingRequest(const OrtpEventData *even
 	std::shared_ptr<IceCandidatePair> candidatePair = nullptr;
 	auto itCandidatePair = std::find_if(mCheckList.begin(), mCheckList.end(),
 	                                    [localCandidate, remoteCandidate](const auto &candidatePair) {
-		                                    return (candidatePair->getLocalCandidate() == localCandidate) &&
-		                                           (candidatePair->getRemoteCandidate() == remoteCandidate);
+		                                    return (*candidatePair->getLocalCandidate() == *localCandidate) &&
+		                                           (*candidatePair->getRemoteCandidate() == *remoteCandidate);
 	                                    });
 	if (itCandidatePair == mCheckList.end()) {
 		// The pair is not in the check list yet.
@@ -2658,7 +2816,7 @@ IceCheckList::triggerConnectivityCheckOnBindingRequest(const OrtpEventData *even
 				            << ", for which an outgoing STUN transaction is running.";
 				if (!candidatePair->hasCanceledTransaction()) {
 					// Cancel the transaction, but this may happen only once
-					auto transaction = findTransaction(candidatePair);
+					const auto transaction = findTransaction(candidatePair);
 					if (transaction != nullptr) {
 						BCTBX_SLOGM << "ice: transaction is canceled, a new binding request sent.";
 						transaction->cancel();
@@ -2686,7 +2844,7 @@ void IceCheckList::updateNominatedFlagOnBindingRequest(const std::shared_ptr<Stu
 		return;
 	}
 
-	auto validPair = lookupPossibleValidPair(candidatePair);
+	const auto validPair = lookupPossibleValidPair(candidatePair);
 	switch (candidatePair->getState()) {
 		case IceCandidatePair::State::Succeeded:
 			if (validPair == nullptr) {
@@ -2703,8 +2861,8 @@ void IceCheckList::updateNominatedFlagOnBindingRequest(const std::shared_ptr<Stu
 		case IceCandidatePair::State::InProgress:
 			// Normally valid should be null if go here
 			BCTBX_SLOGM << "ice: receiving a binding request with nominated flag on non-succeeded pair";
-			// We cannot accept the nomination immediately. We will wait for our pair to complete its bind requests, and
-			// then the pair will be officially nominated
+			// We cannot accept the nomination immediately. We will wait for our pair to complete its bind requests,
+			// and then the pair will be officially nominated
 			candidatePair->setNomination(IceCandidatePair::Nomination::Pending);
 			break;
 		case IceCandidatePair::State::Failed:
@@ -2756,6 +2914,7 @@ std::shared_ptr<IceCandidate> IceCheckList::addCandidate(
     const IceCandidate::Type type,
     const IceTransportAddress &transportAddress,
     const ComponentId componentId,
+    const TurnTransport turnTransport,
     std::list<std::shared_ptr<IceCandidate>> &candidatesList,
     std::set<ComponentId> &componentIdsList,
     const std::function<void(const std::shared_ptr<IceCandidate> &)> &setIceCandidateProperties) {
@@ -2764,15 +2923,11 @@ std::shared_ptr<IceCandidate> IceCheckList::addCandidate(
 		return nullptr;
 	}
 
-	auto candidate = IceCandidate::create(type, transportAddress, componentId);
+	auto candidate = IceCandidate::create(type, transportAddress, componentId, turnTransport);
 	setIceCandidateProperties(candidate);
 
-	const auto it = std::find_if(candidatesList.begin(), candidatesList.end(), [candidate](const auto &otherCandidate) {
-		return (candidate->getType() == otherCandidate->getType()) &&
-		       (candidate->getComponentId() == otherCandidate->getComponentId()) &&
-		       (candidate->getPriority() == otherCandidate->getPriority()) &&
-		       (candidate->getTransportAddress() == otherCandidate->getTransportAddress());
-	});
+	const auto it = std::find_if(candidatesList.begin(), candidatesList.end(),
+	                             [candidate](const auto &otherCandidate) { return *candidate == *otherCandidate; });
 	if (it != candidatesList.end()) {
 		// This candidate is already in the list, do not add it again
 		return nullptr;
@@ -2788,7 +2943,7 @@ void IceCheckList::dispatchIceEvent(RtpSession *rtpSession,
                                     const OrtpEventType eventType,
                                     const std::optional<bool> iceProcessingSuccessful) {
 	auto *event = ortp_event_new(eventType);
-	if (iceProcessingSuccessful.has_value()) {
+	if (iceProcessingSuccessful) {
 		ortp_event_get_data(event)->info.ice_processing_successful = iceProcessingSuccessful ? TRUE : FALSE;
 	}
 	rtp_session_dispatch_event(rtpSession, event);

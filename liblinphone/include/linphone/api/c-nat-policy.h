@@ -213,6 +213,9 @@ LINPHONE_PUBLIC void linphone_nat_policy_resolve_stun_server(LinphoneNatPolicy *
 /**
  * Gets the addrinfo representation of the STUN server address.
  * WARNING: This function may block for up to 1 second.
+ * LIMITATION: If TURN is enabled, this function will resolve the server address for all enabled TURN transports, but it
+ * will only return the server address for the first TURN transports for which there has been some results, in the order
+ * UDP - TLS - TCP.
  * @param policy #LinphoneNatPolicy object @notnil
  * @return addrinfo representation of the STUN server address.
  * @donotwrap

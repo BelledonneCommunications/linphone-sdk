@@ -153,9 +153,10 @@ set(VOIP_SOURCE_FILES_CXX
 	voip/stun/stun-message.cpp
 	voip/stun/stun-raw-message.cpp
 	voip/stun/stun-transaction-id.cpp
+	voip/stun/turn-client.cpp
 	voip/stun/turn-context.cpp
 	voip/stun/turn-socket.cpp
-	voip/stun/turn-tcp-client.cpp
+	voip/stun/turn-transport.cpp
 	voip/video-conference.cpp
 	voip/video-endpoint.cpp
 )

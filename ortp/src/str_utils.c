@@ -282,6 +282,7 @@ mblk_t *copyb(const mblk_t *mp) {
 	memcpy(newm->b_wptr, mp->b_rptr, len);
 	newm->b_wptr += len;
 	memcpy(&newm->recv_addr, &mp->recv_addr, sizeof(newm->recv_addr));
+	newm->turn_transport = mp->turn_transport;
 	return newm;
 }
 

@@ -25,6 +25,7 @@
 #include "mediastreamer2/ice-utils.h"
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
+#include "mediastreamer2/turn-transport.h"
 
 namespace mediastreamer::nat {
 
@@ -33,7 +34,7 @@ std::string IceStunRequest::Transaction::getIdStr() const {
 }
 
 std::optional<std::chrono::milliseconds> IceStunRequest::Transaction::getRoundTripTime() const {
-	if (!mResponseTime.has_value()) {
+	if (!mResponseTime) {
 		return std::nullopt;
 	}
 	return std::chrono::duration_cast<std::chrono::milliseconds>(*mResponseTime - mRequestTime);
@@ -53,10 +54,11 @@ IceStunRequest::~IceStunRequest() {
 
 std::shared_ptr<IceStunRequest> IceStunRequest::create(const std::shared_ptr<TurnContext> &turnContext,
                                                        RtpTransport *rtpTransport,
+                                                       const TurnTransport turnTransport,
                                                        const IceTransportAddress &transportAddress,
                                                        const StunMessage::Method stunMethod) {
-	auto request =
-	    std::shared_ptr<IceStunRequest>(new IceStunRequest(turnContext, rtpTransport, transportAddress, stunMethod));
+	auto request = std::shared_ptr<IceStunRequest>(
+	    new IceStunRequest(turnContext, rtpTransport, turnTransport, transportAddress, stunMethod));
 	if (request->getSourceAddrInfo() == nullptr) {
 		BCTBX_SLOGE << "IceStunServerRequest::create(): source address not defined";
 		return nullptr;
@@ -68,9 +70,10 @@ std::shared_ptr<IceStunRequest> IceStunRequest::create(const std::shared_ptr<Tur
 
 IceStunRequest::IceStunRequest(const std::shared_ptr<TurnContext> &turnContext,
                                RtpTransport *rtpTransport,
+                               const TurnTransport turnTransport,
                                const IceTransportAddress &transportAddress,
                                const StunMessage::Method stunMethod)
-    : mRtpTransport(rtpTransport), mTurnContext(turnContext), mStunMethod(stunMethod) {
+    : mRtpTransport(rtpTransport), mTurnContext(turnContext), mStunMethod(stunMethod), mTurnTransport(turnTransport) {
 	mSourceAddrInfo = bctbx_ip_address_to_addrinfo(transportAddress.getFamily(), SOCK_DGRAM,
 	                                               transportAddress.getIp().c_str(), transportAddress.getPort());
 }
@@ -80,22 +83,23 @@ void IceStunRequest::addTransaction(const std::shared_ptr<Transaction> &transact
 }
 
 void IceStunRequest::fillStunMessageAuthenticationFromTurnContext(const std::shared_ptr<StunMessage> &msg) const {
-	if (mTurnContext->getRealm().has_value()) {
-		msg->setRealm(mTurnContext->getRealm().value());
+	const auto *turnTransportContext = mTurnContext->getTransportContext(mTurnTransport);
+	if (turnTransportContext->getRealm()) {
+		msg->setRealm(turnTransportContext->getRealm().value());
 	}
-	if (mTurnContext->getNonce().has_value()) {
-		msg->setNonce(mTurnContext->getNonce().value());
+	if (turnTransportContext->getNonce()) {
+		msg->setNonce(turnTransportContext->getNonce().value());
 	}
-	if (mTurnContext->getUsername().has_value()) {
-		msg->setUsername(mTurnContext->getUsername().value());
+	if (turnTransportContext->getUsername()) {
+		msg->setUsername(turnTransportContext->getUsername().value());
 	}
-	if (mTurnContext->getPassword().has_value()) {
-		msg->setPassword(mTurnContext->getPassword().value());
+	if (turnTransportContext->getPassword()) {
+		msg->setPassword(turnTransportContext->getPassword().value());
 	}
-	if (mTurnContext->getHa1().has_value()) {
-		msg->setHa1(mTurnContext->getHa1().value());
+	if (turnTransportContext->getHa1()) {
+		msg->setHa1(turnTransportContext->getHa1().value());
 	}
-	if (mTurnContext->getPassword().has_value() || mTurnContext->getHa1().has_value()) {
+	if (turnTransportContext->getPassword() || turnTransportContext->getHa1()) {
 		msg->enableMessageIntegrity(true);
 	}
 }
@@ -105,7 +109,7 @@ std::vector<IceStunRequest::RoundTripTime> IceStunRequest::getGatheringRoundTrip
 	if (mGathering) {
 		for (const auto &transaction : mTransactions) {
 			const auto rtt = transaction->getRoundTripTime();
-			if (rtt.has_value()) {
+			if (rtt) {
 				roundTripTimes.emplace_back(*rtt);
 			}
 		}
@@ -163,10 +167,11 @@ std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::send(const SockAddr
 		const auto destAddress = serverAddr.ipv6toIpv4();
 		const auto sourceAddress =
 		    SockAddr(mSourceAddrInfo->ai_addr, static_cast<socklen_t>(mSourceAddrInfo->ai_addrlen));
-		BCTBX_SLOGM << "ice: Send " << requestType << ": " << sourceAddress.asString() << " --> "
-		            << destAddress.asString() << " [" << transaction->getIdStr() << "]";
+		BCTBX_SLOGM << "ice: Send " << requestType << ": " << turnTransportAsString(mTurnTransport) << " "
+		            << sourceAddress.asString() << " --> " << destAddress.asString() << " [" << transaction->getIdStr()
+		            << "]";
 		std::ignore =
-		    sendMessageToSocket(mRtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		    sendMessageToSocket(mRtpTransport, mTurnTransport, reinterpret_cast<const char *>(data.data()), data.size(),
 		                        sourceAddress.asStructSockAddr(), destAddress.asStructSockAddr(), destAddress.getLen());
 	} else {
 		BCTBX_SLOGE << "ice: encoding " << requestType << " failed";
@@ -201,9 +206,10 @@ std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnCreatePermi
 }
 
 std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnRefreshRequest(const SockAddr &server) {
-	if (mTurnContext->getState() != TurnContext::State::Idle) {
+	const auto *turnTransportContext = mTurnContext->getTransportContext(mTurnTransport);
+	if (turnTransportContext->getState() != TurnTransportContext::State::Idle) {
 		const auto msg = StunMessage::createTurnRefreshRequest(
-		    mTurnContext->getLifetime().has_value() ? mTurnContext->getLifetime().value() : 0);
+		    turnTransportContext->getLifetime() ? turnTransportContext->getLifetime().value() : 0);
 		mStunMethod = msg->getMethod();
 		fillStunMessageAuthenticationFromTurnContext(msg);
 		return send(server, msg, "TURN refresh request");

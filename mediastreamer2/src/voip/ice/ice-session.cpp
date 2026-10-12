@@ -20,9 +20,9 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cinttypes>
 #include <iomanip>
 #include <sstream>
+#include <stdexcept>
 
 #include "mediastreamer2/ice-checklist.h"
 #include "mediastreamer2/ice-credentials.h"
@@ -83,8 +83,8 @@ void IceSession::dump() const {
 	            << "\trole=" << getRoleStr() << " tie-breaker=" << mTieBreaker << "\n"
 	            << "\tlocal_ufrag=" << mLocalCredentials.getUfrag() << " local_pwd=" << mLocalCredentials.getPwd()
 	            << "\n"
-	            << "\tremote_ufrag=" << (mRemoteCredentials.has_value() ? mRemoteCredentials->getUfrag().c_str() : "")
-	            << " remote_pwd=" << (mRemoteCredentials.has_value() ? mRemoteCredentials->getPwd().c_str() : "");
+	            << "\tremote_ufrag=" << (mRemoteCredentials ? mRemoteCredentials->getUfrag().c_str() : "")
+	            << " remote_pwd=" << (mRemoteCredentials ? mRemoteCredentials->getPwd().c_str() : "");
 }
 
 void IceSession::eliminateRedundantCandidates() const {
@@ -93,19 +93,19 @@ void IceSession::eliminateRedundantCandidates() const {
 
 void IceSession::enableTurn(const bool enable) {
 	mTurnEnabled = enable;
-	if (mTurnEnabled) {
-		forEachValidCheckList([](const auto &checklist) { checklist->createTurnContexts(); });
-	}
 }
 
-bool IceSession::gatherCandidates(const SockAddr &stunServerAddress) {
+bool IceSession::gatherCandidates(const std::map<TurnTransport, SockAddr> &stunServerAddressMap) {
 	bool gatheringInProgress = false;
 
-	mSockAddr = stunServerAddress;
+	mStunServerSockAddrMap = stunServerAddressMap;
 	mGatheringStartTs = std::chrono::steady_clock::now();
 	if (isGatheringNeeded()) {
 		size_t index = 0;
-		forEachValidCheckList([&index, &gatheringInProgress](const auto &checklist) {
+		forEachValidCheckList([this, &index, &gatheringInProgress](const auto &checklist) {
+			if (mTurnEnabled) {
+				checklist->createTurnContexts();
+			}
 			if (checklist->gatherCandidates(index)) {
 				gatheringInProgress = true;
 			}
@@ -252,11 +252,6 @@ void IceSession::setTurnRootCertificatePath(const std::string &rootCertificatePa
 	    [rootCertificatePath](const auto &turnContext) { turnContext->setRootCertificatePath(rootCertificatePath); });
 }
 
-void IceSession::setTurnTransport(const TurnContext::Transport transport) const {
-	forEachTurnContextOfEachValidCheckList(
-	    [transport](const auto &turnContext) { turnContext->setTransport(transport); });
-}
-
 void IceSession::startConnectivityChecks() {
 	pairCandidates();
 	mState = State::Running;
@@ -308,7 +303,8 @@ void IceSession::forEachTurnContextOfEachValidCheckList(
 	}
 
 	forEachValidCheckList([callback](const auto &checklist) {
-		for (const auto &turnContext : {checklist->getRtpTurnContext(), checklist->getRtcpTurnContext()}) {
+		for (const auto componentId : {ComponentId::Rtp, ComponentId::Rtcp}) {
+			const auto &turnContext = checklist->getTurnContext(componentId);
 			if (turnContext != nullptr) {
 				callback(turnContext);
 			}
@@ -342,6 +338,22 @@ std::shared_ptr<IceCheckList> IceSession::getFirstCheckList() const {
 	const auto it = std::find_if(mChecklists.begin(), mChecklists.end(),
 	                             [](const auto &checklist) { return checklist != nullptr; });
 	return (it == mChecklists.end()) ? nullptr : *it;
+}
+
+std::optional<SockAddr> IceSession::getStunServerSockAddr(TurnTransport transport) const {
+	try {
+		return mStunServerSockAddrMap.at(transport);
+	} catch (std::out_of_range &) {
+		return std::nullopt;
+	}
+}
+
+std::set<TurnTransport> IceSession::getTurnTransports() const {
+	std::set<TurnTransport> turnTransports;
+	for (const auto &stunServer : mStunServerSockAddrMap) {
+		turnTransports.insert(stunServer.first);
+	}
+	return turnTransports;
 }
 
 bool IceSession::isGatheringNeeded() const {

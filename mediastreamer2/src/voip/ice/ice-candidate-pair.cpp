@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <cinttypes>
 
 #include "mediastreamer2/ice-candidate-pair.h"
 
@@ -80,15 +79,15 @@ void IceCandidatePair::dump(const unsigned int index) const {
 	mRemoteCandidate->dump("\t\tRemote: ");
 }
 
-[[nodiscard]] const std::string &IceCandidatePair::getStateStr() const {
+const std::string &IceCandidatePair::getStateStr() const {
 	static const std::array<std::string, 5> stateStrs = {
 	    "Waiting", "In-Progress", "Succeeded", "Failed", "Frozen",
 	};
 	return stateStrs[static_cast<size_t>(mState)];
 }
 
-[[nodiscard]] bool
-IceCandidatePair::hasSameComponentIdAndTransportAddress(const std::shared_ptr<IceCandidatePair> &otherPair) {
+bool
+IceCandidatePair::hasSameComponentIdAndTransportAddress(const std::shared_ptr<IceCandidatePair> &otherPair) const {
 	return (getLocalCandidate()->getComponentId() == otherPair->getLocalCandidate()->getComponentId()) &&
 	       (getRemoteCandidate()->getComponentId() == otherPair->getRemoteCandidate()->getComponentId()) &&
 	       (getLocalCandidate()->getTransportAddress() == otherPair->getLocalCandidate()->getTransportAddress()) &&
@@ -135,7 +134,8 @@ void IceCandidatePair::sendIndication(const RtpSession *rtpSession) {
 		            << ":" << mLocalCandidate->getTypeStr() << " --> " << remoteCandidateTransportAddress.asString()
 		            << ":" << mRemoteCandidate->getTypeStr();
 		const auto data = stunRawMessage->getData();
-		std::ignore = sendMessageToStunAddress(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		std::ignore = sendMessageToStunAddress(rtpTransport, mLocalCandidate->getTurnTransport(),
+		                                       reinterpret_cast<const char *>(data.data()), data.size(),
 		                                       sourceStunAddress, destStunAddress);
 	}
 }

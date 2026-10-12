@@ -19,6 +19,8 @@
  */
 
 #include "linphone/api/c-nat-policy.h"
+#include "mediastreamer2/turn-transport.h"
+
 #include "core/core.h"
 #include "nat/nat-policy.h"
 #include "private_functions.h"
@@ -107,7 +109,27 @@ void linphone_nat_policy_resolve_stun_server(LinphoneNatPolicy *policy) {
 }
 
 const struct addrinfo *linphone_nat_policy_get_stun_server_addrinfo(LinphoneNatPolicy *policy) {
-	return NatPolicy::toCpp(policy)->getStunServerAddrinfo();
+	auto *natPolicy = NatPolicy::toCpp(policy);
+	auto addrInfoMap = natPolicy->getStunServerAddrinfo();
+	if (natPolicy->turnUdpEnabled()) {
+		const auto *result = addrInfoMap[mediastreamer::nat::TurnTransport::Udp];
+		if (result != nullptr) {
+			return result;
+		}
+	}
+	if (natPolicy->turnTlsEnabled()) {
+		const auto *result = addrInfoMap[mediastreamer::nat::TurnTransport::Tls];
+		if (result != nullptr) {
+			return result;
+		}
+	}
+	if (natPolicy->turnTcpEnabled()) {
+		const auto *result = addrInfoMap[mediastreamer::nat::TurnTransport::Tcp];
+		if (result != nullptr) {
+			return result;
+		}
+	}
+	return nullptr;
 }
 
 void linphone_nat_policy_set_stun_server(LinphoneNatPolicy *policy, const char *stun_server) {

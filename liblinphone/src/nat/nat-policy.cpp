@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -20,17 +20,21 @@
 
 #include "nat-policy.h"
 
-#include <cstring>
 #include <regex>
+#include <stdexcept>
 
+#include "auth-info/auth-info.h"
 #include "core/core.h"
+#include "mediastreamer2/turn-transport.h"
 #include "private.h"
+
+using namespace mediastreamer::nat;
 
 LINPHONE_BEGIN_NAMESPACE
 
 NatPolicy::AsyncHandle NatPolicy::sAsyncHandleGenerator = 0;
 
-NatPolicy::NatPolicy(const std::shared_ptr<Core> &core, NatPolicy::ConstructionMethod method, const std::string &value)
+NatPolicy::NatPolicy(const std::shared_ptr<Core> &core, const ConstructionMethod method, const std::string &value)
     : CoreAccessor(core) {
 	LpConfig *config = linphone_core_get_config(core->getCCore());
 	char ref[17] = {0};
@@ -38,15 +42,14 @@ NatPolicy::NatPolicy(const std::shared_ptr<Core> &core, NatPolicy::ConstructionM
 	mRef = ref;
 
 	if (method == ConstructionMethod::Default) {
-
+		enableTurnUdp(true); // If not specified explicitly, activate at least UDP transport for TURN
 	} else if (method == ConstructionMethod::FromSectionName) {
 		initFromSection(config, value.c_str());
 	} else if (method == ConstructionMethod::FromRefName) {
-		int index;
-		for (index = 0;; index++) {
+		for (int index = 0;; index++) {
 			std::ostringstream section;
 			section << "nat_policy_" << index;
-			if (linphone_config_has_section(config, section.str().c_str())) {
+			if (linphone_config_has_section(config, section.str().c_str()) != FALSE) {
 				const char *config_ref = linphone_config_get_string(config, section.str().c_str(), "ref", nullptr);
 				if ((config_ref != nullptr) && (strcmp(config_ref, value.c_str()) == 0)) {
 					initFromSection(config, section.str().c_str());
@@ -76,9 +79,7 @@ NatPolicy::NatPolicy(const NatPolicy &other)
 	mIceEnabled = other.mIceEnabled;
 	mUpnpEnabled = other.mUpnpEnabled;
 	mTurnConfigurationEndpoint = other.mTurnConfigurationEndpoint;
-	mTurnUdpEnabled = other.mTurnUdpEnabled;
-	mTurnTcpEnabled = false;
-	mTurnTlsEnabled = false;
+	mTurnTransports = other.mTurnTransports;
 }
 
 NatPolicy::~NatPolicy() {
@@ -90,17 +91,20 @@ NatPolicy *NatPolicy::clone() const {
 }
 
 void NatPolicy::clearResolverContexts() {
-	if (mStunResolverContext) {
-		mStunResolverContext.cancel();
-		mStunResolverContext.reset();
-	}
-	if (mResolverResults) {
-		belle_sip_object_unref(mResolverResults);
-		mResolverResults = nullptr;
+	for (const auto transport : {TurnTransport::Udp, TurnTransport::Tcp, TurnTransport::Tls}) {
+		const auto itContext = mStunResolverContexts.find(transport);
+		if (itContext != mStunResolverContexts.end()) {
+			itContext->second.cancel();
+			itContext->second.reset();
+		}
+		if (mResolverResults[transport]) {
+			belle_sip_object_unref(mResolverResults[transport].value());
+			mResolverResults[transport] = std::nullopt;
+		}
 	}
 }
 
-/* Simply cancel pending DNS resoltion, as the core is going to shutdown.*/
+/* Simply cancel pending DNS resolution, as the core is going to shutdown.*/
 void NatPolicy::release() {
 	clearResolverContexts();
 	mResolverResultsFunctions.clear();
@@ -111,19 +115,23 @@ bool NatPolicy::stunServerActivated() const {
 }
 
 void NatPolicy::saveToConfig(LinphoneConfig *config, int index) const {
-	char *section;
-	bctbx_list_t *l = nullptr;
-
-	section = belle_sip_strdup_printf("nat_policy_%i", index);
+	char *section = belle_sip_strdup_printf("nat_policy_%i", index);
 	linphone_config_set_string(config, section, "ref", mRef.c_str());
 	linphone_config_set_string(config, section, "stun_server", mStunServer.c_str());
 	linphone_config_set_string(config, section, "stun_server_username", mStunServerUsername.c_str());
+	bctbx_list_t *l = nullptr;
 	if (mUpnpEnabled) {
 		l = bctbx_list_append(l, (void *)"upnp");
 	} else {
-		if (mStunEnabled) l = bctbx_list_append(l, (void *)"stun");
-		if (mTurnEnabled) l = bctbx_list_append(l, (void *)"turn");
-		if (mIceEnabled) l = bctbx_list_append(l, (void *)"ice");
+		if (mStunEnabled) {
+			l = bctbx_list_append(l, (void *)"stun");
+		}
+		if (mTurnEnabled) {
+			l = bctbx_list_append(l, (void *)"turn");
+		}
+		if (mIceEnabled) {
+			l = bctbx_list_append(l, (void *)"ice");
+		}
 	}
 	linphone_config_set_string_list(config, section, "protocols", l);
 	belle_sip_free(section);
@@ -135,14 +143,16 @@ void NatPolicy::clearConfigFromIndex(LinphoneConfig *config, int index) {
 	while (true) {
 		std::ostringstream ostr;
 		ostr << "nat_policy_" << index;
-		if (linphone_config_has_section(config, ostr.str().c_str())) {
+		if (linphone_config_has_section(config, ostr.str().c_str()) != FALSE) {
 			linphone_config_clean_section(config, ostr.str().c_str());
 			++purged;
-		} else break;
+		} else {
+			break;
+		}
 		++index;
 	}
 	/* Warn about suspicious number of orphan NatPolicy sections.
-	 * A bug occured December 2022 caused a massive leak of nat_policy_X sections in configuration file.
+	 * A bug occurred December 2022 caused a massive leak of nat_policy_X sections in configuration file.
 	 */
 	if (purged > 5) {
 		lWarning() << "Purged [" << purged << "] unused NatPolicy sections from config file.";
@@ -157,9 +167,7 @@ void NatPolicy::clear() {
 	mTurnEnabled = false;
 	mIceEnabled = false;
 	mUpnpEnabled = false;
-	mTurnUdpEnabled = false;
-	mTurnTcpEnabled = false;
-	mTurnTlsEnabled = false;
+	mTurnTransports.clear();
 }
 
 void NatPolicy::setStunServer(const std::string &stunServer) {
@@ -193,69 +201,92 @@ const std::string &NatPolicy::getNatV6Address() const {
 	return mNatV6Address;
 }
 
-void NatPolicy::stunServerResolved(belle_sip_resolver_results_t *results) {
-	if (mResolverResults) {
-		belle_sip_object_unref(mResolverResults);
-		mResolverResults = nullptr;
+void NatPolicy::stunServerResolved(const TurnTransport transport, belle_sip_resolver_results_t *results) {
+	if (mResolverResults[transport]) {
+		belle_sip_object_unref(mResolverResults[transport].value());
+		mResolverResults[transport] = std::nullopt;
 	}
 
-	if (belle_sip_resolver_results_get_addrinfos(results)) {
-		ms_message("Stun server resolution successful.");
-		belle_sip_object_ref(results);
-		mResolverResults = results;
+	if (belle_sip_resolver_results_get_addrinfos(results) == nullptr) {
+		lWarning() << (mTurnEnabled ? "Turn" : "Stun") << (mTurnEnabled ? " " + turnTransportAsString(transport) : "")
+		           << " server resolution failed.";
+		mResolverResults[transport] = nullptr;
 	} else {
-		ms_warning("Stun server resolution failed.");
+		lInfo() << (mTurnEnabled ? "Turn" : "Stun") << (mTurnEnabled ? " " + turnTransportAsString(transport) : "")
+		        << " server resolution successful.";
+		belle_sip_object_ref(results);
+		mResolverResults[transport] = results;
 	}
-	if (mStunResolverContext) {
-		mStunResolverContext.reset();
+	if (mStunResolverContexts[transport]) {
+		mStunResolverContexts[transport].reset();
 	}
-	const struct addrinfo *ais =
-	    mResolverResults ? belle_sip_resolver_results_get_addrinfos(mResolverResults) : nullptr;
-	/*
-	 * - Make a copy of the notify functions to invoke, to prevent a risk that the map is being
-	 * modified while being iterated.
-	 * - Protect against a possible deletion of the NatPolicy object while invoking the notify functions.
-	 */
-	ref();
-	auto copyOfResultFunctions = mResolverResultsFunctions;
-	for (auto &p : copyOfResultFunctions)
-		p.second(ais);
-	mResolverResultsFunctions.clear();
-	unref();
+
+	if (resolutionCompletedForAllTransports()) {
+		const auto resolutionResults = getResolutionResults();
+		/*
+		 * - Make a copy of the notify functions to invoke, to prevent a risk that the map is being
+		 * modified while being iterated.
+		 * - Protect against a possible deletion of the NatPolicy object while invoking the notify functions.
+		 */
+		ref();
+		const auto copyOfResultFunctions = mResolverResultsFunctions;
+		for (const auto &[_handle, func] : copyOfResultFunctions) {
+			func(resolutionResults);
+		}
+		mResolverResultsFunctions.clear();
+		unref();
+	}
 }
 
 bool NatPolicy::resolveStunServer() {
 	LinphoneCore *lc = getCore()->getCCore();
-	const char *service = nullptr;
 
-	if (stunServerActivated() && (lc->sal != nullptr) && !mStunResolverContext) {
+	if (stunServerActivated() && (lc->sal != nullptr) && mStunResolverContexts.empty()) {
+		const char *service = nullptr;
 		char host[NI_MAXHOST];
 		int port = 0;
 		linphone_parse_host_port(mStunServer.c_str(), host, sizeof(host), &port);
-		if (mTurnEnabled) service = "turn";
-		else if (mStunEnabled) service = "stun";
+		if (mTurnEnabled) {
+			service = "turn";
+		} else if (mStunEnabled) {
+			service = "stun";
+		}
 		if (service != nullptr) {
 			int family = AF_INET;
-			if (linphone_core_ipv6_enabled(lc) == TRUE) family = AF_INET6;
-			ms_message("Starting stun server resolution [%s]", host);
-			auto lambda = [this](belle_sip_resolver_results_t *results) { this->stunServerResolved(results); };
+			if (linphone_core_ipv6_enabled(lc) == TRUE) {
+				family = AF_INET6;
+			}
+			lInfo() << "Starting " << service << " server resolution [" << host << "]";
+			const auto lambda = [this](belle_sip_resolver_results_t *results) {
+				this->stunServerResolved(TurnTransport::Udp, results);
+			};
 			if (port == 0) {
 				// Use default ports
-				if (mTurnTlsEnabled) port = 5349;
-				else port = 3478;
-				mStunResolverContext = lc->sal->resolve(service, "udp", host, port, family, lambda);
+				if (mTurnEnabled) {
+					for (const auto transport : mTurnTransports) {
+						const auto turnLambda = [this, transport](belle_sip_resolver_results_t *results) {
+							this->stunServerResolved(transport, results);
+						};
+						mStunResolverContexts[transport] = lc->sal->resolve(
+						    service, turnTransportAsString(transport), host,
+						    (transport == TurnTransport::Tls) ? sDefaultTurnTlsServerPort : sDefaultTurnServerPort,
+						    family, turnLambda);
+					}
+				} else if (mStunEnabled) {
+					mStunResolverContexts[TurnTransport::Udp] =
+					    lc->sal->resolve(service, turnTransportAsString(TurnTransport::Udp), host,
+					                     sDefaultStunServerPort, family, lambda);
+				}
 			} else {
-				mStunResolverContext = lc->sal->resolveA(host, port, family, lambda);
+				mStunResolverContexts[TurnTransport::Udp] = lc->sal->resolveA(host, port, family, lambda);
 			}
-			if (mStunResolverContext) {
-				return true;
-			}
+			return true;
 		}
 	}
 	return false;
 }
 
-const struct addrinfo *NatPolicy::getStunServerAddrinfo() {
+std::map<TurnTransport, const struct addrinfo *> NatPolicy::getStunServerAddrinfo() {
 	/*
 	 * It is critical not to block for a long time if it can't be resolved, otherwise this stucks the main thread when
 	 * making a call. On the contrary, a fully asynchronous call initiation is complex to develop. The compromise is
@@ -267,34 +298,35 @@ const struct addrinfo *NatPolicy::getStunServerAddrinfo() {
 	 *  - if no cached value exists, block for a short time; this case must be unprobable because the resolution will be
 	 * asked each time the stun server value is changed.
 	 */
-	if (stunServerActivated() && (mResolverResults == nullptr)) {
+	if (stunServerActivated() && !resolutionCompletedForAllTransports()) {
 		int wait_ms = 0;
-		int wait_limit = 1000;
+		constexpr int wait_limit = 1000;
 		resolveStunServer();
-		while ((mResolverResults == nullptr) && (mStunResolverContext) && (wait_ms < wait_limit)) {
+		while (!resolutionCompletedForAllTransports() && !mStunResolverContexts.empty() && (wait_ms < wait_limit)) {
 			getCore()->getCCore()->sal->iterate();
 			ms_usleep(10000);
 			wait_ms += 10;
 		}
 	}
-	return mResolverResults ? belle_sip_resolver_results_get_addrinfos(mResolverResults) : nullptr;
+	return getResolutionResults();
 }
 
-NatPolicy::AsyncHandle
-NatPolicy::getStunServerAddrinfoAsync(const std::function<void(const struct addrinfo *)> &onResults) {
-	if (stunServerActivated() && (mResolverResults == nullptr)) {
+NatPolicy::AsyncHandle NatPolicy::getStunServerAddrinfoAsync(const ResolverResultsFn &onResults) {
+	if (stunServerActivated() && !resolutionCompletedForAllTransports()) {
 		/* need to request resolution */
 		mResolverResultsFunctions[++sAsyncHandleGenerator] = onResults;
-		if (resolveStunServer()) return sAsyncHandleGenerator;
+		if (resolveStunServer()) {
+			return sAsyncHandleGenerator;
+		}
 	} else {
 		/* results already available, invoke the lambda immediately.*/
-		onResults(mResolverResults ? belle_sip_resolver_results_get_addrinfos(mResolverResults) : nullptr);
+		onResults(getResolutionResults());
 	}
 	return 0;
 }
 
 void NatPolicy::cancelAsync(AsyncHandle h) {
-	auto it = mResolverResultsFunctions.find(h);
+	const auto it = mResolverResultsFunctions.find(h);
 	if (it != mResolverResultsFunctions.end()) {
 		mResolverResultsFunctions.erase(it);
 	} else {
@@ -304,24 +336,30 @@ void NatPolicy::cancelAsync(AsyncHandle h) {
 
 void NatPolicy::initFromSection(const LinphoneConfig *config, const char *section) {
 	const char *ref = linphone_config_get_string(config, section, "ref", nullptr);
-	if (ref != nullptr) mRef = ref;
+	if (ref != nullptr) {
+		mRef = ref;
+	}
 	mStunServer = linphone_config_get_string(config, section, "stun_server", "");
 	mStunServerUsername = linphone_config_get_string(config, section, "stun_server_username", "");
-	mTurnUdpEnabled = !!linphone_config_get_bool(config, section, "turn_enable_udp", TRUE);
-	mTurnTcpEnabled = !!linphone_config_get_bool(config, section, "turn_enable_tcp", FALSE);
-	mTurnTlsEnabled = !!linphone_config_get_bool(config, section, "turn_enable_tls", FALSE);
+	enableTurnUdp(linphone_config_get_bool(config, section, "turn_enable_udp", TRUE) != FALSE);
+	enableTurnTcp(linphone_config_get_bool(config, section, "turn_enable_tcp", FALSE) != FALSE);
+	enableTurnTls(linphone_config_get_bool(config, section, "turn_enable_tls", FALSE) != FALSE);
 	bctbx_list_t *l = linphone_config_get_string_list(config, section, "protocols", nullptr);
 
 	if (l != nullptr) {
-		bctbx_list_t *elem;
-		for (elem = l; elem != nullptr; elem = elem->next) {
-			const char *value = (const char *)elem->data;
-			if (strcmp(value, "stun") == 0) enableStun(true);
-			else if (strcmp(value, "turn") == 0) enableTurn(true);
-			else if (strcmp(value, "ice") == 0) enableIce(true);
-			else if (strcmp(value, "upnp") == 0) mUpnpEnabled = true;
+		for (const bctbx_list_t *elem = l; elem != nullptr; elem = elem->next) {
+			const std::string value(static_cast<const char *>(elem->data));
+			if (value == "stun") {
+				enableStun(true);
+			} else if (value == "turn") {
+				enableTurn(true);
+			} else if (value == "ice") {
+				enableIce(true);
+			} else if (value == "upnp") {
+				mUpnpEnabled = true;
+			}
 		}
-		bctbx_list_free_with_data(l, (bctbx_list_free_func)ms_free);
+		bctbx_list_free_with_data(l, bctbx_free);
 	}
 }
 
@@ -333,8 +371,7 @@ void NatPolicy::setTurnConfigurationEndpoint(const std::string &endpoint) {
 	mTurnConfigurationEndpoint = endpoint;
 }
 
-bool NatPolicy::processJsonConfigurationResponse(const std::shared_ptr<NatPolicy> sharedNatPolicy,
-                                                 const HttpResponse &response) {
+bool NatPolicy::processJsonConfigurationResponse(const HttpResponse &response) {
 	bool ret = true;
 	try {
 		if (response.getHttpStatusCode() != 200) {
@@ -351,10 +388,10 @@ bool NatPolicy::processJsonConfigurationResponse(const std::shared_ptr<NatPolicy
 			throw std::runtime_error("Invalid JSON response for TURN credentials.");
 		}
 
-		constexpr const char *usernameKey = "username";
-		constexpr const char *passwordKey = "password";
-		constexpr const char *timeToLeaveKey = "ttl";
-		constexpr const char *urisKey = "uris";
+		constexpr auto usernameKey = "username";
+		constexpr auto passwordKey = "password";
+		constexpr auto timeToLeaveKey = "ttl";
+		constexpr auto urisKey = "uris";
 
 		if (!root.isMember(usernameKey) || !root[usernameKey].isString() || !root.isMember(passwordKey) ||
 		    !root[passwordKey].isString()) {
@@ -368,12 +405,12 @@ bool NatPolicy::processJsonConfigurationResponse(const std::shared_ptr<NatPolicy
 		if (root.isMember(timeToLeaveKey) && root[timeToLeaveKey].isInt()) {
 			// To avoid potential configuration expiration before a new request can be made, the expiration time
 			// is set to 80% of the given duration. This ensures a buffer period for timely renewal.
-			auto expiration = (int)(root[timeToLeaveKey].asInt() * 0.8);
+			auto expiration = static_cast<int>(root[timeToLeaveKey].asInt() * 0.8);
 			time_t expires = time(nullptr) + expiration;
 			turnConfiguration->setExpires(expires);
 		}
 
-		linphone_core_add_auth_info(sharedNatPolicy->getCore()->getCCore(), turnConfiguration->toC());
+		linphone_core_add_auth_info(getCore()->getCCore(), turnConfiguration->toC());
 
 		if (root.isMember(urisKey) && root[urisKey].isArray() && !root[urisKey].empty()) {
 			auto firstUri = root[urisKey].begin();
@@ -387,12 +424,12 @@ bool NatPolicy::processJsonConfigurationResponse(const std::shared_ptr<NatPolicy
 				std::regex pattern(R"(^turn:([^?]+))");
 				std::smatch match;
 				if (std::regex_search(uri, match, pattern)) {
-					sharedNatPolicy->mStunServer = match[1].str();
+					mStunServer = match[1].str();
 				}
 			}
 		}
 
-		sharedNatPolicy->mStunServerUsername = root[usernameKey].asString();
+		mStunServerUsername = root[usernameKey].asString();
 
 		lInfo() << "TURN credentials successfully updated.";
 
@@ -410,7 +447,7 @@ void NatPolicy::updateTurnConfiguration(const std::optional<std::shared_ptr<Addr
 		auto &httpClient = getCore()->getHttpClient();
 		auto &httpRequest = httpClient.createRequest("GET", mTurnConfigurationEndpoint);
 		if (from) {
-			auto fromAddress = from.value()->clone();
+			auto *fromAddress = from.value()->clone();
 			fromAddress->clean();          // Remove gruu
 			fromAddress->setScheme("sip"); // TODO: FAM v2.0.6 doesn't support sips. Force to sip.
 			httpRequest.setAuthInfo(fromAddress->getUsername(), fromAddress->getDomain());
@@ -421,8 +458,10 @@ void NatPolicy::updateTurnConfiguration(const std::optional<std::shared_ptr<Addr
 		httpRequest.execute([natPolicyRef](const HttpResponse &response) -> void {
 			auto sharedNatPolicy = natPolicyRef.lock();
 			if (sharedNatPolicy) {
-				bool ret = sharedNatPolicy->processJsonConfigurationResponse(sharedNatPolicy, response);
-				if (sharedNatPolicy->mCompletionRoutine) sharedNatPolicy->mCompletionRoutine(ret);
+				bool ret = sharedNatPolicy->processJsonConfigurationResponse(response);
+				if (sharedNatPolicy->mCompletionRoutine) {
+					sharedNatPolicy->mCompletionRoutine(ret);
+				}
 			}
 		});
 	} catch (const std::exception &e) {
@@ -431,9 +470,10 @@ void NatPolicy::updateTurnConfiguration(const std::optional<std::shared_ptr<Addr
 	}
 }
 
-bool NatPolicy::needToUpdateTurnConfiguration() {
+bool NatPolicy::needToUpdateTurnConfiguration() const {
 	if (!mTurnConfigurationEndpoint.empty()) {
-		auto ai = linphone_core_find_auth_info(getCore()->getCCore(), nullptr, mStunServerUsername.c_str(), nullptr);
+		const auto *ai =
+		    linphone_core_find_auth_info(getCore()->getCCore(), nullptr, mStunServerUsername.c_str(), nullptr);
 		if (ai == nullptr) {
 			return true;
 		}
@@ -443,6 +483,60 @@ bool NatPolicy::needToUpdateTurnConfiguration() {
 
 void NatPolicy::cancelTurnConfigurationUpdate() {
 	mCompletionRoutine = nullptr;
+}
+
+void NatPolicy::enableTurnTransport(const TurnTransport transport, const bool enable) {
+	if (enable) {
+		mTurnTransports.insert(transport);
+	} else {
+		const auto it = mTurnTransports.find(transport);
+		if (it != mTurnTransports.end()) {
+			mTurnTransports.erase(it);
+		}
+	}
+}
+
+bool NatPolicy::turnTransportEnabled(const TurnTransport transport) const {
+	return mTurnTransports.find(transport) != mTurnTransports.end();
+}
+
+bool NatPolicy::resolutionCompletedForAllTransports() const {
+	try {
+		if (mTurnEnabled) {
+			return std::all_of(mTurnTransports.begin(), mTurnTransports.end(),
+			                   [this](const auto transport) { return mResolverResults.at(transport).has_value(); });
+		}
+		if (mStunEnabled) {
+			return mResolverResults.at(TurnTransport::Udp).has_value();
+		}
+	} catch (std::out_of_range &) {
+		return false;
+	}
+	return true;
+}
+
+std::map<TurnTransport, const struct addrinfo *> NatPolicy::getResolutionResults() const {
+	std::map<TurnTransport, const struct addrinfo *> results;
+	if (mTurnEnabled) {
+		for (const auto transport : mTurnTransports) {
+			try {
+				if (mResolverResults.at(transport)) {
+					results[transport] =
+					    belle_sip_resolver_results_get_addrinfos(mResolverResults.at(transport).value());
+				}
+			} catch (std::out_of_range &) {
+			}
+		}
+	} else if (mStunEnabled) {
+		try {
+			if (mResolverResults.at(TurnTransport::Udp)) {
+				results[TurnTransport::Udp] =
+				    belle_sip_resolver_results_get_addrinfos(mResolverResults.at(TurnTransport::Udp).value());
+			}
+		} catch (std::out_of_range &) {
+		}
+	}
+	return results;
 }
 
 LINPHONE_END_NAMESPACE

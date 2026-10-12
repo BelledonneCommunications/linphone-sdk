@@ -117,12 +117,14 @@ public:
 	}
 	static std::shared_ptr<IceStunRequest> create(const std::shared_ptr<TurnContext> &turnContext,
 	                                              RtpTransport *rtpTransport,
+	                                              TurnTransport turnTransport,
 	                                              const IceTransportAddress &transportAddress,
 	                                              StunMessage::Method stunMethod);
 
 private:
 	IceStunRequest(const std::shared_ptr<TurnContext> &turnContext,
 	               RtpTransport *rtpTransport,
+	               TurnTransport turnTransport,
 	               const IceTransportAddress &transportAddress,
 	               StunMessage::Method stunMethod);
 
@@ -135,6 +137,9 @@ private:
 		return mNextTransmissionTime;
 	}
 	[[nodiscard]] std::shared_ptr<Transaction> getTransaction(const StunTransactionId &transactionId) const;
+	[[nodiscard]] TurnTransport getTurnTransport() const {
+		return mTurnTransport;
+	}
 	[[nodiscard]] bool needRetransmission() const;
 	void programNextTransmission(const std::chrono::steady_clock::time_point nextTransmissionTime) {
 		mNextTransmissionTime = nextTransmissionTime;
@@ -168,6 +173,7 @@ private:
 	StunAddress mPeerAddress;
 	uint16_t mChannelNumber = 0;
 	StunMessage::Method mStunMethod = StunMessage::Method::Binding;
+	TurnTransport mTurnTransport = TurnTransport::Udp;
 	bool mGathering = false;
 	bool mResponded = false;
 };

@@ -23,7 +23,9 @@
 #include <array>
 #include <chrono>
 #include <functional>
+#include <map>
 #include <optional>
+#include <set>
 
 #include "ortp/port.h"
 
@@ -150,10 +152,10 @@ public:
 
 	/**
 	 * Gather ICE local candidates for an ICE session.
-	 * @param stunServerAddress The STUN server address
+	 * @param stunServerAddressMap The STUN server address for each transport.
 	 * @return true if the gathering is in progress, false if no gathering is happening.
 	 */
-	bool gatherCandidates(const SockAddr &stunServerAddress);
+	bool gatherCandidates(const std::map<TurnTransport, SockAddr> &stunServerAddressMap);
 
 	/**
 	 * Tell the average round trip time during the gathering process for an ICE session in milliseconds.
@@ -355,12 +357,6 @@ public:
 	void setTurnRootCertificatePath(const std::string &rootCertificatePath) const;
 
 	/**
-	 * Set TURN transport.
-	 * @param transport The transport that TURN should use.
-	 */
-	void setTurnTransport(TurnContext::Transport transport) const;
-
-	/**
 	 * Pair the local and the remote candidates for an ICE session and start sending connectivity checks.
 	 */
 	void startConnectivityChecks();
@@ -394,11 +390,12 @@ private:
 		return mMaxConnectivityChecks;
 	}
 
-	[[nodiscard]] const SockAddr &getSockAddr() const {
-		return mSockAddr;
-	}
 	[[nodiscard]] StunAuthListener *getStunAuthListener() const {
 		return mStunAuthListener;
+	}
+	[[nodiscard]] std::optional<SockAddr> getStunServerSockAddr(TurnTransport transport) const;
+	[[nodiscard]] const std::map<TurnTransport, SockAddr> &getStunServerSockAddrMap() const {
+		return mStunServerSockAddrMap;
 	}
 	[[nodiscard]] std::chrono::milliseconds getTa() const {
 		return mTa;
@@ -406,6 +403,7 @@ private:
 	[[nodiscard]] uint64_t getTieBreaker() const {
 		return mTieBreaker;
 	}
+	[[nodiscard]] std::set<TurnTransport> getTurnTransports() const;
 	[[nodiscard]] bool isForcedRelayEnabled() const {
 		return mForcedRelay;
 	}
@@ -447,7 +445,8 @@ private:
 	    kIceDefaultTaDuration;                        /**< Duration of timer for sending connectivity checks in ms */
 	OrtpEventType mEventType = 0;                     /** Value of the event to send */
 	std::chrono::steady_clock::time_point mEventTime; /**< Time when an event must be sent */
-	SockAddr mSockAddr; /**< STUN server address to use for the candidates gathering process */
+	std::map<TurnTransport, SockAddr> mStunServerSockAddrMap; /**< STUN server address for each transport, to use for
+	                                                             the candidates gathering process */
 	std::chrono::steady_clock::time_point mGatheringStartTs;
 	std::chrono::steady_clock::time_point mGatheringEndTs;
 	std::chrono::steady_clock::time_point mConnectivityChecksStartTs;

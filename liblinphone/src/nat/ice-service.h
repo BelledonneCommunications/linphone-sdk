@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -36,6 +36,14 @@ class IceServiceListener;
 
 class IceService : public MediaDescriptionRenderer {
 public:
+	enum class GatheringStatus {
+		InProgress, // STUN gathering is started
+		Done,  // No STUN gathering is started, but it's ok to proceed with ICE anyway (with local candidates only or
+		       // because STUN gathering was already done before)
+		Error, // No gathering started and something went wrong with local candidates. There is no way to start the ICE
+		       // session.
+	};
+
 	explicit IceService(StreamsGroup &sg);
 	~IceService() override;
 
@@ -136,6 +144,8 @@ private:
 	                                     std::string &addr,
 	                                     int &port);
 	[[nodiscard]] static const struct addrinfo *getIcePreferredStunServerAddrinfo(const struct addrinfo *ai);
+	[[nodiscard]] static std::map<mediastreamer::nat::TurnTransport, mediastreamer::nat::SockAddr>
+	getIcePreferredStunServerSockAddrMap(const std::map<mediastreamer::nat::TurnTransport, const struct addrinfo *> &aiMap);
 
 	[[nodiscard]] MediaSessionPrivate &getMediaSessionPrivate() const;
 	[[nodiscard]] LinphoneCore *getCCore() const;
@@ -154,8 +164,9 @@ private:
 	void gatheringFinished();
 	void deleteSession();
 	void checkSession(mediastreamer::nat::IceRole role, bool preferIpv6DefaultCandidates);
-	[[nodiscard]] int gatherIceCandidates();
-	[[nodiscard]] int gatherSflrxIceCandidates(const struct addrinfo *stunServerAi);
+	[[nodiscard]] GatheringStatus gatherIceCandidates();
+	[[nodiscard]] GatheringStatus
+	gatherSflrxIceCandidates(const std::map<mediastreamer::nat::TurnTransport, const struct addrinfo *> &stunServerAiMap);
 	[[nodiscard]] int gatherLocalCandidates() const;
 	void addPredefinedSflrxCandidates(const std::shared_ptr<NatPolicy> &natPolicy) const;
 	void chooseDefaultCandidates(const OfferAnswerContext &ctx) const;
@@ -165,7 +176,7 @@ private:
 	std::shared_ptr<mediastreamer::nat::IceSession> mIceSession;
 	IceServiceListener *mListener = nullptr;
 	NatPolicy::AsyncHandle mAsyncStunResolverHandle{};
-	int mSflrxGatheringStatus = 0;
+	GatheringStatus mSflrxGatheringStatus = GatheringStatus::Done;
 	bool mGatheringFinished = false;
 	bool mAllowLateIce = false;
 	bool mDontDefaultToStunCandidates = false;

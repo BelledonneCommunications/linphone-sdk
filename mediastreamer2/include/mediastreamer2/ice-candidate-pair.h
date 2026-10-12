@@ -96,7 +96,7 @@ private:
 	[[nodiscard]] bool hasCanceledTransaction() const {
 		return mHasCanceledTransaction;
 	}
-	[[nodiscard]] bool hasSameComponentIdAndTransportAddress(const std::shared_ptr<IceCandidatePair> &otherPair);
+	[[nodiscard]] bool hasSameComponentIdAndTransportAddress(const std::shared_ptr<IceCandidatePair> &otherPair) const;
 	[[nodiscard]] bool hasUseCandidate() const {
 		return mUseCandidate;
 	}

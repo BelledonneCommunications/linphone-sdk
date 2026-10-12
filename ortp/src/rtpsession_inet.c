@@ -1479,6 +1479,7 @@ rtp_session_rtp_sendto(RtpSession *session, mblk_t *m, struct sockaddr *destaddr
 	if (m->recv_addr.family == AF_UNSPEC && ostr->used_loc_addrlen != 0)
 		ortp_sockaddr_to_recvaddr((const struct sockaddr *)&ostr->used_loc_addr, &m->recv_addr);
 
+	m->turn_transport = ostr->turn_transport;
 	if (rtp_session_using_transport(send_session, rtp)) {
 		error = (send_session->rtp.gs.tr->t_sendto)(send_session->rtp.gs.tr, m, 0, destaddr, destlen);
 	} else {
@@ -1552,6 +1553,7 @@ rtp_session_rtcp_sendto(RtpSession *session, mblk_t *m, struct sockaddr *destadd
 	if (m->recv_addr.family == AF_UNSPEC && ostr->used_loc_addrlen != 0)
 		ortp_sockaddr_to_recvaddr((const struct sockaddr *)&ostr->used_loc_addr, &m->recv_addr);
 
+	m->turn_transport = ostr->turn_transport;
 	/* Even in RTCP mux, we send through the RTCP RtpTransport, which will itself take in charge to do the sending of
 	 * the packet through the RTP endpoint*/
 	if (rtp_session_using_transport(send_session, rtcp)) {
@@ -2326,7 +2328,24 @@ int rtp_session_update_remote_sock_addr(RtpSession *session, mblk_t *mp, bool_t 
 	return -1;
 }
 
-void rtp_session_use_local_addr(RtpSession *session, const char *rtp_local_addr, const char *rtcp_local_addr) {
+static const char *get_turn_transport_str(const OrtpTurnTransport turn_transport) {
+	switch (turn_transport) {
+		case OrtpTurnTransportUdp:
+			return "udp";
+		case OrtpTurnTransportTcp:
+			return "tcp";
+		case OrtpTurnTransportTls:
+			return "tls";
+		default:
+			return "unknown";
+	}
+}
+
+void rtp_session_use_local_addr(RtpSession *session,
+                                const char *rtp_local_addr,
+                                const char *rtcp_local_addr,
+                                const OrtpTurnTransport rtp_turn_transport,
+                                const OrtpTurnTransport rtcp_turn_transport) {
 	struct addrinfo *session_addr_info;
 	if (rtp_local_addr[0] != '\0') { // rtp_local_addr should not be NULL
 		session_addr_info = bctbx_ip_address_to_addrinfo(session->rtp.gs.sockfamily, SOCK_DGRAM, rtp_local_addr, 0);
@@ -2337,6 +2356,7 @@ void rtp_session_use_local_addr(RtpSession *session, const char *rtp_local_addr,
 		session->rtp.gs.used_loc_addrlen = 0;
 		memset(&session->rtp.gs.used_loc_addr, 0, sizeof(session->rtp.gs.used_loc_addr)); // To not let tracks on memory
 	}
+	session->rtp.gs.turn_transport = rtp_turn_transport;
 	if (rtcp_local_addr[0] != '\0') { // rtcp_local_addr should not be NULL
 		session_addr_info = bctbx_ip_address_to_addrinfo(session->rtcp.gs.sockfamily, SOCK_DGRAM, rtcp_local_addr, 0);
 		memcpy(&session->rtcp.gs.used_loc_addr, session_addr_info->ai_addr, session_addr_info->ai_addrlen);
@@ -2347,5 +2367,9 @@ void rtp_session_use_local_addr(RtpSession *session, const char *rtp_local_addr,
 		memset(&session->rtcp.gs.used_loc_addr, 0,
 		       sizeof(session->rtcp.gs.used_loc_addr)); // To not let tracks on memory
 	}
-	ortp_message("RtpSession set sources to [%s] and [%s]", rtp_local_addr, rtcp_local_addr);
+	session->rtcp.gs.turn_transport = rtcp_turn_transport;
+	const char *rtp_turn_transport_str = get_turn_transport_str(rtp_turn_transport);
+	const char *rtcp_turn_transport_str = get_turn_transport_str(rtcp_turn_transport);
+	ortp_message("RtpSession set sources to [%s %s] and [%s %s]", rtp_turn_transport_str, rtp_local_addr,
+	             rtcp_turn_transport_str, rtcp_local_addr);
 }

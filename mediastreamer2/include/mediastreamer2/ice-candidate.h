@@ -27,6 +27,7 @@
 #include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-transport-address.h"
 #include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/turn-transport.h"
 
 namespace mediastreamer::nat {
 
@@ -92,6 +93,10 @@ public:
 		return mTransportAddress;
 	}
 
+	[[nodiscard]] TurnTransport getTurnTransport() const {
+		return mTurnTransport;
+	}
+
 	/**
 	 * Get the type of an ICE candidate.
 	 * @return The type of the ICE candidate.
@@ -117,13 +122,18 @@ public:
 	[[nodiscard]] bool isRelay() const;
 	void setBase(const std::shared_ptr<IceCandidate> &base);
 
-	[[nodiscard]] static std::shared_ptr<IceCandidate>
-	create(Type type, const IceTransportAddress &transportAddress, ComponentId componentId);
+	[[nodiscard]] static std::shared_ptr<IceCandidate> create(Type type,
+	                                                          const IceTransportAddress &transportAddress,
+	                                                          ComponentId componentId,
+	                                                          TurnTransport turnTransport);
 	[[nodiscard]] static std::optional<Type> getTypeFromStr(const std::string &typeStr);
 	[[nodiscard]] static const std::string &getTypeStr(Type type);
 
 private:
-	IceCandidate(Type type, const IceTransportAddress &transportAddress, ComponentId componentId);
+	IceCandidate(Type type,
+	             const IceTransportAddress &transportAddress,
+	             ComponentId componentId,
+	             TurnTransport turnTransport);
 
 	void computePriority();
 	void dump(const std::string &prefix) const;
@@ -137,6 +147,7 @@ private:
 		mPriority = priority;
 	}
 
+	static uint32_t getLocalPreferenceValue(TurnTransport transport);
 	static uint8_t getTypePreferenceValue(Type type);
 
 	std::string mFoundation; /**< Foundation of the candidate (see paragraph 3 of the RFC 5245 for more details) */
@@ -147,6 +158,7 @@ private:
 	    mComponentId; /**< component ID between 1 and 256: usually 1 for RTP component and 2 for RTCP component */
 	std::weak_ptr<IceCandidate> mBase; /**< Pointer to the candidate that is the base of the current one */
 	bool mIsDefault = false; /**< Boolean value telling whether this candidate is a default candidate or not */
+	TurnTransport mTurnTransport = TurnTransport::Udp;
 };
 
 } // namespace mediastreamer::nat

@@ -24,11 +24,13 @@
 #include <deque>
 #include <functional>
 #include <list>
+#include <map>
 #include <optional>
 #include <set>
 #include <vector>
 
 #include "mediastreamer2/ice-candidate.h"
+#include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-credentials.h"
 #include "mediastreamer2/ice-pair-foundation.h"
 #include "mediastreamer2/ice-stun-request.h"
@@ -87,12 +89,14 @@ public:
 	 * @param type The type of the local candidate to add
 	 * @param transportAddress The transport address of the local candidate to add
 	 * @param componentId The component ID of the local candidate (usually 1 for RTP and 2 for RTCP)
+	 * @param turnTransport The TURN transport used to get the local candidate
 	 * @param base A pointer to the base candidate of the candidate to add.
 	 * This function is to be called when gathering local candidates.
 	 */
 	std::shared_ptr<IceCandidate> addLocalCandidate(IceCandidate::Type type,
 	                                                const IceTransportAddress &transportAddress,
 	                                                ComponentId componentId,
+	                                                TurnTransport turnTransport,
 	                                                const std::shared_ptr<IceCandidate> &base);
 
 	/**
@@ -204,14 +208,6 @@ public:
 	[[nodiscard]] const std::optional<IceCredentials> &getRemoteCredentials() const;
 
 	/**
-	 * Get the TURN context used for RTCP in an ICE check list.
-	 * @return A pointer to the TURN context used for RTCP in the ICE check list
-	 */
-	[[nodiscard]] const std::shared_ptr<TurnContext> &getRtcpTurnContext() const {
-		return mRtcpTurnContext;
-	}
-
-	/**
 	 * Get the RTP session used by an ICE check list.
 	 * @return A pointer to the RTP session used by the ICE check list.
 	 */
@@ -220,12 +216,11 @@ public:
 	}
 
 	/**
-	 * Get the TURN context used for RTP in an ICE check list.
-	 * @return A pointer to the TURN context used for RTP in the ICE check list
+	 * Get the TURN context used for a specific component ID in an ICE check list.
+	 * @parameter componentId The component ID for which to get the TURN context.
+	 * @return A pointer to the TURN context
 	 */
-	[[nodiscard]] const std::shared_ptr<TurnContext> &getRtpTurnContext() const {
-		return mRtpTurnContext;
-	}
+	[[nodiscard]] std::shared_ptr<TurnContext> getTurnContext(ComponentId componentId) const;
 
 	/**
 	 * Get the type of the selected valid candidate for an ICE check list.
@@ -389,13 +384,16 @@ private:
 	std::shared_ptr<IceTransaction> createTransaction(const std::shared_ptr<IceCandidatePair> &candidatePair,
 	                                                  StunTransactionId transactionId);
 	void createTurnChannel(RtpTransport *rtpTransport,
+	                       TurnTransport turnTransport,
 	                       const SockAddr &localAddress,
 	                       const IceTransportAddress &remoteTransportAddress,
 	                       ComponentId componentId);
 	void createTurnContexts();
 	void createTurnPermissions();
-	void deallocateTurnCandidate(ComponentId componentId) const;
+	void deallocateTurnCandidate(ComponentId componentId, TurnTransport turnTransport) const;
 	void deallocateTurnCandidates() const;
+	void deallocateTurnCandidates(ComponentId componentId) const;
+	void deallocateUselessTurnCandidates(ComponentId componentId, TurnTransport usedTurnTransport) const;
 	void destroyTurnContexts();
 	std::shared_ptr<IceCandidate> discoverPeerReflexiveCandidate(const std::shared_ptr<IceCandidatePair> &candidatePair,
 	                                                             const std::shared_ptr<StunMessage> &msg);
@@ -403,9 +401,13 @@ private:
 	std::shared_ptr<IceTransaction> findTransaction(const std::shared_ptr<IceCandidatePair> &candidatePair);
 	void formCandidatePairs();
 	[[nodiscard]] bool gatherCandidates(size_t &checkListIndex);
-	[[nodiscard]] bool gatherCandidates(ComponentId componentId,
-	                                    std::chrono::steady_clock::time_point nextTransmissionTime,
-	                                    bool sendRequest = false);
+	void gatherCandidates(ComponentId componentId,
+	                      std::chrono::steady_clock::time_point nextTransmissionTime,
+	                      bool sendRequest = false);
+	void gatherCandidates(ComponentId componentId,
+	                      TurnTransport turnTransport,
+	                      std::chrono::steady_clock::time_point nextTransmissionTime,
+	                      bool sendRequest);
 	[[nodiscard]] std::string generateArbitraryFoundation() const;
 	[[nodiscard]] std::chrono::steady_clock::time_point getGatheringStartTime() const {
 		return mGatheringStartTime;
@@ -423,7 +425,6 @@ private:
 	    const std::string &errorMessage = "") const;
 	[[nodiscard]] std::shared_ptr<IceValidCandidatePair> getSelectedValidCandidatePair(ComponentId componentId) const;
 	[[nodiscard]] std::shared_ptr<IceStunRequest> getStunRequest(const StunTransactionId &transactionId) const;
-	[[nodiscard]] std::shared_ptr<TurnContext> getTurnContextFromComponentId(ComponentId componentId) const;
 	[[nodiscard]] std::vector<std::shared_ptr<IceCandidatePair>> getValidPairs() const;
 	[[nodiscard]] std::vector<std::shared_ptr<IceCandidatePair>> getValidPairs(ComponentId componentId) const;
 	void handleReceivedBindingRequest(RtpSession *rtpSession,
@@ -449,7 +450,7 @@ private:
 	                                              const std::shared_ptr<StunMessage> &msg);
 	void handleStunErrorResponse(const RtpSession *rtpSession,
 	                             const OrtpEventData *eventData,
-	                             const std::shared_ptr<StunMessage> &msg);
+	                             const std::shared_ptr<StunMessage> &msg) const;
 	[[nodiscard]] bool hasLocalComponentId(ComponentId componentId) const;
 	[[nodiscard]] bool isFrozen() const;
 	[[nodiscard]] bool isGatheringCandidates() const {
@@ -474,12 +475,16 @@ private:
 	void removeTransactionUsingPair(const std::shared_ptr<IceCandidatePair> &pair);
 	void restart();
 	void retransmitConnectivityChecks(std::chrono::steady_clock::time_point currentTime, const RtpSession *rtpSession);
-	void scheduleTurnAllocationRefresh(ComponentId componentId, uint32_t lifetime);
+	void scheduleTurnAllocationRefresh(ComponentId componentId, TurnTransport turnTransport, uint32_t lifetime);
+	void scheduleTurnChannelBindRefresh(ComponentId componentId,
+	                                    TurnTransport turnTransport,
+	                                    uint16_t channelNumber,
+	                                    const StunAddress &peerAddress);
 	void
-	scheduleTurnChannelBindRefresh(ComponentId componentId, uint16_t channelNumber, const StunAddress &peerAddress);
-	void scheduleTurnPermissionRefresh(ComponentId componentId, const StunAddress &peerAddress);
+	scheduleTurnPermissionRefresh(ComponentId componentId, TurnTransport turnTransport, const StunAddress &peerAddress);
 	[[nodiscard]] std::shared_ptr<IceStunRequest>
 	scheduleTurnRequest(ComponentId componentId,
+	                    TurnTransport turnTransport,
 	                    StunMessage::Method method,
 	                    std::chrono::milliseconds nextTransmission,
 	                    std::chrono::milliseconds shortTurnRefreshNextTransmission);
@@ -514,6 +519,7 @@ private:
 	addCandidate(IceCandidate::Type type,
 	             const IceTransportAddress &transportAddress,
 	             ComponentId componentId,
+	             TurnTransport turnTransport,
 	             std::list<std::shared_ptr<IceCandidate>> &candidatesList,
 	             std::set<ComponentId> &componentIdsList,
 	             const std::function<void(const std::shared_ptr<IceCandidate> &)> &setIceCandidateProperties);
@@ -527,9 +533,8 @@ private:
 	static std::pair<std::optional<StunAddress>, std::optional<StunAddress>>
 	parseStunResponse(const std::shared_ptr<StunMessage> &msg);
 
-	std::weak_ptr<IceSession> mSession;            /**< Pointer to the ICE session */
-	std::shared_ptr<TurnContext> mRtpTurnContext;  /**< TURN context for RTP socket */
-	std::shared_ptr<TurnContext> mRtcpTurnContext; /**< TURN context for RTCP socket */
+	std::weak_ptr<IceSession> mSession;                                /**< Pointer to the ICE session */
+	std::map<ComponentId, std::shared_ptr<TurnContext>> mTurnContexts; /**< TURN contexts */
 	RtpSession *mRtpSession = nullptr; /**< Pointer to the RTP session associated with this ICE check list */
 	std::optional<IceCredentials>
 	    mRemoteCredentials; /**< Remote credentials for this check list (provided via SDP by the peer) */

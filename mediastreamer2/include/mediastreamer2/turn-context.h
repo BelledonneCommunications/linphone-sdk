@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <map>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -28,17 +30,18 @@
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/sockaddr.h"
 #include "mediastreamer2/stun-address.h"
-#include "mediastreamer2/stun.h"
-#include "mediastreamer2/turn-tcp-client.h"
+#include "mediastreamer2/turn-transport.h"
 
 namespace mediastreamer::nat {
 
 class IceCheckList;
-class TurnTcpClient;
+class TurnClient;
+class TurnContext;
 
-class MS2_PUBLIC TurnContext {
+class MS2_PUBLIC TurnTransportContext {
 public:
 	friend class IceCheckList;
+	friend class TurnContext;
 
 	enum class State {
 		Idle,
@@ -46,54 +49,44 @@ public:
 		AllocationCreated,
 		CreatingPermissions,
 		PermissionsCreated,
+		Deallocating,
 		BindingChannel,
 		ChannelBound,
 	};
 
-	enum class Transport {
-		Udp,
-		Tcp,
-		Tls,
+	struct Statistics {
+		uint32_t nbSendIndication;
+		uint32_t nbDataIndication;
+		uint32_t nbReceivedChannelMsg;
+		uint32_t nbSentChannelMsg;
+		uint16_t nbSuccessfulAllocate;
+		uint16_t nbSuccessfulRefresh;
+		uint16_t nbSuccessfulCreatePermission;
+		uint16_t nbSuccessfulChannelBind;
 	};
 
-	enum class Type {
-		Rtp,
-		Rtcp,
-	};
-
-	TurnContext(const Type type, RtpSession *rtpSession) : mRtpSession(rtpSession), mType(type) {
+	TurnTransportContext(TurnTransport transport, TurnContext *context) : mTransport(transport), mContext(context) {
 	}
-	~TurnContext();
+	~TurnTransportContext() = default;
 
 	void allowPeerAddress(const StunAddress &address);
-	RtpTransport *createEndpoint();
-	void enableForcedRtpSendingViaRelay(const bool force) {
-		mForcedRtpSendingViaRelay = force;
-	}
 	[[nodiscard]] std::optional<uint16_t> getChannelNumber() const {
 		return mChannelNumber;
 	}
-	[[nodiscard]] const std::optional<std::string> &getCn() const {
-		return mCn;
-	}
-	[[nodiscard]] const std::optional<std::string> &getHa1() const {
+	[[nodiscard]] std::optional<std::string> getHa1() const {
 		return mHa1;
 	}
 	[[nodiscard]] std::optional<uint32_t> getLifetime() const {
 		return mLifetime;
 	}
-	[[nodiscard]] const std::optional<std::string> &getNonce() const {
+	[[nodiscard]] std::optional<std::string> getNonce() const {
 		return mNonce;
 	}
-	[[nodiscard]] const std::shared_ptr<TurnTcpClient> &getOrCreateTcpClient();
-	[[nodiscard]] const std::optional<std::string> &getPassword() const {
+	[[nodiscard]] std::optional<std::string> getPassword() const {
 		return mPassword;
 	}
-	[[nodiscard]] const std::optional<std::string> &getRealm() const {
+	[[nodiscard]] std::optional<std::string> getRealm() const {
 		return mRealm;
-	}
-	[[nodiscard]] const std::optional<std::string> &getRootCertificatePath() const {
-		return mRootCertificatePath;
 	}
 	[[nodiscard]] const SockAddr &getServerSockAddr() const {
 		return mServerSockAddr;
@@ -101,26 +94,17 @@ public:
 	[[nodiscard]] State getState() const {
 		return mState;
 	}
-	[[nodiscard]] const MSTurnContextStatistics &getStatistics() const {
+	[[nodiscard]] const Statistics &getStatistics() const {
 		return mStatistics;
 	}
-	[[nodiscard]] Transport getTransport() const {
-		return mTransport;
-	}
-	[[nodiscard]] const std::optional<std::string> &getUsername() const {
+	[[nodiscard]] std::optional<std::string> getUsername() const {
 		return mUsername;
-	}
-	[[nodiscard]] bool hasForcedRtpSendingViaRelay() const {
-		return mForcedRtpSendingViaRelay;
 	}
 	void setAllocatedRelayAddress(const StunAddress &relayAddress) {
 		mRelayAddress = relayAddress;
 	}
 	void setChannelNumber(const uint16_t channelNumber) {
 		mChannelNumber = channelNumber;
-	}
-	void setCn(const std::string &cn) {
-		mCn = cn;
 	}
 	void setHa1(const std::string &ha1) {
 		mHa1 = ha1;
@@ -137,24 +121,88 @@ public:
 	void setRealm(const std::string &realm) {
 		mRealm = realm;
 	}
-	void setRootCertificatePath(const std::string &rootCertificatePath) {
-		mRootCertificatePath = rootCertificatePath;
-	}
-	void setServerAddress(const SockAddr &sockAddr);
 	void setState(State state);
-	void setTransport(const Transport transport) {
-		mTransport = transport;
-	}
 	void setUsername(const std::string &username) {
 		mUsername = username;
 	}
 
 private:
+	[[nodiscard]] StunAddress getRelayAddress() const {
+		return mRelayAddress;
+	}
 	[[nodiscard]] std::string getStateStr() const;
-	[[nodiscard]] std::string getTypeStr() const;
 	[[nodiscard]] bool isPeerAddressAllowed(const StunAddress &address) const;
-	[[nodiscard]] bool rtpEndpointShouldBeSentToTurnServer(const SockAddr &toAddr) const;
-	[[nodiscard]] bool rtpEndpointShouldSendViaTurnRelay(const SockAddr &fromAddr) const;
+
+	TurnTransport mTransport = TurnTransport::Udp;
+	TurnContext *mContext = nullptr;
+	std::vector<StunAddress> mAllowedPeerAddresses;
+	std::optional<std::string> mRealm;
+	std::optional<std::string> mNonce;
+	std::optional<std::string> mUsername;
+	std::optional<std::string> mPassword;
+	std::optional<std::string> mHa1;
+	std::optional<uint32_t> mLifetime;
+	std::optional<uint16_t> mChannelNumber;
+	State mState = State::Idle;
+	StunAddress mRelayAddress;
+	SockAddr mServerSockAddr;
+	std::shared_ptr<TurnClient> mTurnClient;
+	Statistics mStatistics{};
+};
+
+class MS2_PUBLIC TurnContext {
+public:
+	friend class IceCheckList;
+	friend class TurnTransportContext;
+
+	enum class Type {
+		Rtp,
+		Rtcp,
+	};
+
+	TurnContext(Type type, RtpSession *rtpSession);
+	~TurnContext();
+
+	[[nodiscard]] bool allStatesAreIdle() const;
+	void connect();
+	RtpTransport *createEndpoint();
+	void enableForcedRtpSendingViaRelay(const bool force) {
+		mForcedRtpSendingViaRelay = force;
+	}
+	[[nodiscard]] const std::optional<std::string> &getCn() const {
+		return mCn;
+	}
+	[[nodiscard]] const std::optional<std::string> &getRootCertificatePath() const {
+		return mRootCertificatePath;
+	}
+	[[nodiscard]] RtpSession *getRtpSession() const {
+		return mRtpSession;
+	}
+	[[nodiscard]] TurnTransportContext *getTransportContext(TurnTransport transport) const;
+	[[nodiscard]] Type getType() const {
+		return mType;
+	}
+	[[nodiscard]] bool hasForcedRtpSendingViaRelay() const {
+		return mForcedRtpSendingViaRelay;
+	}
+	void setCn(const std::string &cn) {
+		mCn = cn;
+	}
+	void setRootCertificatePath(const std::string &rootCertificatePath) {
+		mRootCertificatePath = rootCertificatePath;
+	}
+	void setServerAddresses(const std::map<TurnTransport, SockAddr> &serverSockAddrMap);
+
+	static TurnTransport getTurnTransportFromMsg(const mblk_t *msg);
+	static void setTurnTransportInMsg(mblk_t *msg, TurnTransport turnTransport);
+
+private:
+	[[nodiscard]] std::shared_ptr<TurnClient> getTurnClient(TurnTransport transport) const;
+	[[nodiscard]] std::string getTypeStr() const;
+	[[nodiscard]] bool rtpEndpointShouldBeSentToTurnServer(const SockAddr &toAddr, TurnTransport transport) const;
+	[[nodiscard]] bool rtpEndpointShouldSendViaTurnRelay(TurnTransport transport, const SockAddr &fromAddr) const;
+	[[nodiscard]] int recvFrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromLen) const;
+	[[nodiscard]] int sendTo(mblk_t *msg, int flags, const struct sockaddr *to, socklen_t toLen) const;
 
 	static int
 	rtpEndpointRecvfrom(RtpTransport *rtpTransport, mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromLen);
@@ -165,24 +213,11 @@ private:
 
 	RtpSession *mRtpSession = nullptr;
 	RtpTransport *mEndpoint = nullptr;
-	std::vector<StunAddress> mAllowedPeerAddresses;
-	std::optional<std::string> mRealm = std::nullopt;
-	std::optional<std::string> mNonce = std::nullopt;
-	std::optional<std::string> mUsername = std::nullopt;
-	std::optional<std::string> mPassword = std::nullopt;
-	std::optional<std::string> mHa1 = std::nullopt;
 	std::optional<std::string> mRootCertificatePath = std::nullopt;
 	std::optional<std::string> mCn = std::nullopt;
-	std::optional<uint32_t> mLifetime = std::nullopt;
-	std::optional<uint16_t> mChannelNumber = std::nullopt;
-	State mState = State::Idle;
 	Type mType = Type::Rtp;
-	Transport mTransport = Transport::Udp;
-	StunAddress mRelayAddress;
-	SockAddr mServerSockAddr;
+	std::map<TurnTransport, TurnTransportContext> mTransportContextMap;
 	bool mForcedRtpSendingViaRelay = false;
-	MSTurnContextStatistics mStatistics{};
-	std::shared_ptr<TurnTcpClient> mTurnTcpClient;
 };
 
 }; // namespace mediastreamer::nat

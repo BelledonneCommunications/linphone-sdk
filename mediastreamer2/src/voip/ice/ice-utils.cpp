@@ -27,8 +27,19 @@
 #include "mediastreamer2/stun-error.h"
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
+#include "mediastreamer2/turn-context.h"
 
 namespace mediastreamer::nat {
+
+std::string componentIdAsString(const ComponentId componentId) {
+	switch (componentId) {
+		default:
+		case ComponentId::Rtp:
+			return "RTP";
+		case ComponentId::Rtcp:
+			return "RTCP";
+	}
+}
 
 std::optional<ComponentId> getComponentIdFromEventData(const OrtpEventData *eventData) {
 	if (eventData->info.socket_type == OrtpRTPSocket) {
@@ -119,21 +130,24 @@ void sendErrorResponse(const RtpSession *rtpSession,
 		const auto data = rawStunMessage->getData();
 		BCTBX_SLOGM << "IceCheckList::sendErrorResponse: Send error response: " << sourceAddr.asString() << " --> "
 		            << destAddr.asString() << " [" << transactionId.asString() << "]";
+		const auto turnTransport = TurnContext::getTurnTransportFromMsg(eventData->packet);
 		std::ignore =
-		    sendMessageToSocket(rtpTransport, reinterpret_cast<const char *>(data.data()), data.size(),
+		    sendMessageToSocket(rtpTransport, turnTransport, reinterpret_cast<const char *>(data.data()), data.size(),
 		                        sourceAddr.asStructSockAddr(), destAddr.asStructSockAddr(), destAddr.getLen());
 	}
 }
 
 int sendMessageToSocket(RtpTransport *rtpTransport,
+                        const TurnTransport turnTransport,
                         const char *buf,
                         const size_t len,
                         const struct sockaddr *from,
                         const struct sockaddr *to,
                         socklen_t toLen) {
 	mblk_t *m = rtp_session_create_packet_raw(reinterpret_cast<const uint8_t *>(buf), len);
-	struct addrinfo *v6ai = nullptr;
+	TurnContext::setTurnTransportInMsg(m, turnTransport);
 
+	struct addrinfo *v6ai = nullptr;
 	if (from != nullptr) {
 		ortp_sockaddr_to_recvaddr(from, &m->recv_addr);
 	}
@@ -154,12 +168,16 @@ int sendMessageToSocket(RtpTransport *rtpTransport,
 	return err;
 }
 
-int sendMessageToStunAddress(
-    RtpTransport *rtpTransport, const char *buf, const size_t len, const StunAddress &source, const StunAddress &dest) {
+int sendMessageToStunAddress(RtpTransport *rtpTransport,
+                             const TurnTransport turnTransport,
+                             const char *buf,
+                             const size_t len,
+                             const StunAddress &source,
+                             const StunAddress &dest) {
 	const auto sourceAddr = source.toSockAddr();
 	const auto destAddr = dest.toSockAddr();
-	return sendMessageToSocket(rtpTransport, buf, len, sourceAddr.asStructSockAddr(), destAddr.asStructSockAddr(),
-	                           destAddr.getLen());
+	return sendMessageToSocket(rtpTransport, turnTransport, buf, len, sourceAddr.asStructSockAddr(),
+	                           destAddr.asStructSockAddr(), destAddr.getLen());
 }
 
 } // namespace mediastreamer::nat

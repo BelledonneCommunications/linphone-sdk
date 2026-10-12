@@ -697,9 +697,9 @@ void StreamsGroup::setStreamMain(size_t index, const bool force) {
 void StreamsGroup::finish() {
 	if (mFinished) return;
 	lInfo() << *this << ": finishing]";
-	stop(); // For the paranoid: normally it should be done already.
+	stop();                // For the paranoid: normally it should be done already.
+	mIceService->finish(); // Finish ICE first, as it has actions on the streams.
 	forEach<Stream>(mem_fn(&Stream::finish));
-	mIceService->finish(); // This potentially deletes the RTP endpoint, so do that after Stream::finish
 	for (auto &ss : mSharedServices)
 		ss.second->checkDestroy();
 	mSharedServices.clear();

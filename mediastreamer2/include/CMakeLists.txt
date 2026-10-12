@@ -98,9 +98,10 @@ set(HEADER_FILES
 	stun-message.h
 	stun-raw-message.h
 	stun-transaction-id.h
+	turn-client.h
 	turn-context.h
 	turn-socket.h
-	turn-tcp-client.h
+	turn-transport.h
 	upnp_igd.h
 	x11_helper.h
 	zrtp.h

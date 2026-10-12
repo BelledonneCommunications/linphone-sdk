@@ -23,15 +23,4 @@
 
 typedef struct _MSTurnContext MSTurnContext;
 
-typedef struct {
-	uint32_t nb_send_indication;
-	uint32_t nb_data_indication;
-	uint32_t nb_received_channel_msg;
-	uint32_t nb_sent_channel_msg;
-	uint16_t nb_successful_allocate;
-	uint16_t nb_successful_refresh;
-	uint16_t nb_successful_create_permission;
-	uint16_t nb_successful_channel_bind;
-} MSTurnContextStatistics;
-
 #endif /* MS_STUN_H */

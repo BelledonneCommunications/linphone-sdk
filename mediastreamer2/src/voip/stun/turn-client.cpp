@@ -30,12 +30,29 @@
 #include "bctoolbox/crypto.h"
 #include "bctoolbox/defs.h"
 
-#include "mediastreamer2/turn-tcp-client.h"
+#include "mediastreamer2/turn-client.h"
 
 namespace mediastreamer::nat {
 
-TurnTcpClient::TurnTcpClient(TurnContext *context) : mContext(context) {
+TurnClient::~TurnClient() = default;
 
+TurnUdpClient::TurnUdpClient(TurnContext *context) : mContext(context) {
+}
+
+int TurnUdpClient::recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromLen) {
+	const int msgsize =
+	    rtp_session_recvfrom(mContext->getRtpSession(), (mContext->getType() == TurnContext::Type::Rtp) ? TRUE : FALSE,
+	                         msg, flags, from, fromLen);
+	TurnContext::setTurnTransportInMsg(msg, TurnTransport::Udp);
+	return msgsize;
+}
+
+int TurnUdpClient::sendto(mblk_t *msg, int flags, const struct sockaddr *to, socklen_t toLen) {
+	return rtp_session_sendto(mContext->getRtpSession(), (mContext->getType() == TurnContext::Type::Rtp) ? TRUE : FALSE,
+	                          msg, flags, to, toLen);
+}
+
+TurnTcpClient::TurnTcpClient(TurnContext *context) : mContext(context) {
 	mRng = bctbx_rng_context_new();
 }
 
@@ -65,7 +82,7 @@ int TurnTcpClient::recvfrom(mblk_t *msg, BCTBX_UNUSED(int flags), struct sockadd
 	if (mTurnConnection == nullptr) {
 		return 0;
 	}
-
+	const auto serverSockAddr = mContext->getTransportContext(getTransport())->getServerSockAddr();
 	std::unique_ptr<Packet> p = nullptr;
 	mTurnConnection->mReceivingLock.lock();
 	if (!mTurnConnection->mReceivingQueue.empty()) {
@@ -87,8 +104,8 @@ int TurnTcpClient::recvfrom(mblk_t *msg, BCTBX_UNUSED(int flags), struct sockadd
 	memcpy(msg->b_wptr, p->data(), p->length());
 
 	// Set from and fromlen to the turn server address
-	*fromlen = mContext->getServerSockAddr().getLen();
-	memcpy(from, mContext->getServerSockAddr().asStructSockAddr(), *fromlen);
+	*fromlen = serverSockAddr.getLen();
+	memcpy(from, serverSockAddr.asStructSockAddr(), *fromlen);
 
 	// Set the net_addr for the modifiers
 	memcpy(&msg->net_addr, from, *fromlen);
@@ -99,6 +116,8 @@ int TurnTcpClient::recvfrom(mblk_t *msg, BCTBX_UNUSED(int flags), struct sockadd
 	socklen_t addrlen = sizeof(addr);
 	getsockname(mTurnConnection->mSocket, reinterpret_cast<struct sockaddr *>(&addr), &addrlen);
 	ortp_sockaddr_to_recvaddr(reinterpret_cast<struct sockaddr *>(&addr), &msg->recv_addr);
+
+	TurnContext::setTurnTransportInMsg(msg, TurnTransport::Tcp);
 
 	return static_cast<int>(p->length());
 }
@@ -118,6 +137,15 @@ int TurnTcpClient::sendto(mblk_t *msg,
 	mTurnConnection->addToSendingQueue(std::move(p));
 
 	return length;
+}
+
+TurnTlsClient::TurnTlsClient(TurnContext *context) : TurnTcpClient(context) {
+}
+
+int TurnTlsClient::recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen) {
+	const int msgsize = TurnTcpClient::recvfrom(msg, flags, from, fromlen);
+	TurnContext::setTurnTransportInMsg(msg, TurnTransport::Tls);
+	return msgsize;
 }
 
 } // namespace mediastreamer::nat

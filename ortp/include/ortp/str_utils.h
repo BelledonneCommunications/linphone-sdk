@@ -44,6 +44,12 @@
 		return (ret);                                                                                                  \
 	}
 
+typedef enum {
+	OrtpTurnTransportUdp,
+	OrtpTurnTransportTcp,
+	OrtpTurnTransportTls,
+} OrtpTurnTransport;
+
 typedef struct ortp_recv_addr {
 	int family;
 	union {
@@ -75,6 +81,7 @@ typedef struct msgb {
 	socklen_t
 	    net_addrlen; /*source (dest) address of incoming (outgoing) packet length used by simulator and modifiers*/
 	uint8_t ttl_or_hl;
+	OrtpTurnTransport turn_transport;
 } mblk_t;
 
 // Data Block

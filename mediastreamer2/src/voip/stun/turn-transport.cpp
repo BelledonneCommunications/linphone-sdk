@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
+ *
+ * This file is part of mediastreamer2
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <array>
+
+#include "mediastreamer2/turn-transport.h"
+#include "ortp/str_utils.h"
+
+namespace mediastreamer::nat {
+
+std::string turnTransportAsString(const TurnTransport transport) {
+	static const std::array<std::string, 3> transportStrs = {
+	    "udp",
+	    "tcp",
+	    "tls",
+	};
+	return transportStrs[static_cast<size_t>(transport)];
+}
+
+OrtpTurnTransport toOrtpTurnTransport(const TurnTransport transport) {
+	switch (transport) {
+		default:
+		case TurnTransport::Udp:
+			return OrtpTurnTransportUdp;
+		case TurnTransport::Tcp:
+			return OrtpTurnTransportTcp;
+		case TurnTransport::Tls:
+			return OrtpTurnTransportTls;
+	}
+}
+
+TurnTransport fromOrtpTurnTransport(OrtpTurnTransport transport) {
+	switch (transport) {
+		default:
+		case OrtpTurnTransportUdp:
+			return TurnTransport::Udp;
+		case OrtpTurnTransportTcp:
+			return TurnTransport::Tcp;
+		case OrtpTurnTransportTls:
+			return TurnTransport::Tls;
+	}
+}
+
+} // namespace mediastreamer::nat

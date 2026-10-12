@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2025 Belledonne Communications SARL.
+ * Copyright (c) 2010-2026 Belledonne Communications SARL.
  *
  * This file is part of Liblinphone
  * (see https://gitlab.linphone.org/BC/public/liblinphone).
@@ -31,6 +31,7 @@
 #include "conference/session/media-session-p.h"
 #include "conference/session/streams.h"
 #include "ice-service.h"
+
 #include "utils/if-addrs.h"
 
 #if defined(__APPLE__)
@@ -200,7 +201,7 @@ void IceService::createStreams(const OfferAnswerContext &params) {
 
 		/* When rtp bundle is activated or going to be activated, we don't need ICE for the stream.*/
 		if (!params.localIsOfferer) {
-			int bundleOwnerIndex =
+			const int bundleOwnerIndex =
 			    params.remoteMediaDescription->getIndexOfTransportOwner(params.getRemoteStreamDescription());
 			if (params.localMediaDescription->accept_bundles && bundleOwnerIndex != -1 &&
 			    bundleOwnerIndex != static_cast<int>(index)) {
@@ -208,7 +209,7 @@ void IceService::createStreams(const OfferAnswerContext &params) {
 				streamActive = false;
 			}
 		} else {
-			auto *i = dynamic_cast<RtpInterface *>(stream.get());
+			const auto *i = dynamic_cast<RtpInterface *>(stream.get());
 			if (streamDesc.isBundleOnly() || ((i != nullptr) && !i->isTransportOwner())) {
 				lInfo() << *stream << " is currently part of a bundle as secondary stream, ICE not needed.";
 				streamActive = false;
@@ -245,13 +246,13 @@ bool IceService::needIceGathering() {
 	// Start ICE gathering if needed.
 	if (!mIceSession->areCandidatesGathered()) {
 		mInsideGatherIceCandidates = true;
-		int err = gatherIceCandidates();
+		GatheringStatus status = gatherIceCandidates();
 		mInsideGatherIceCandidates = false;
-		if (err == 0) {
+		if (status == GatheringStatus::Done) {
 			// Ice candidates gathering wasn't started, but we can proceed with the call anyway.
 			return false;
 		}
-		if (err == -1) {
+		if (status == GatheringStatus::Error) {
 			deleteSession();
 			return false;
 		}
@@ -320,12 +321,12 @@ int IceService::gatherLocalCandidates() const {
 					}
 					checklist->addLocalCandidate(IceCandidate::Type::Host,
 					                             IceTransportAddress(family, addr, stream->getPortConfig().rtpPort),
-					                             ComponentId::Rtp, nullptr);
+					                             ComponentId::Rtp, TurnTransport::Udp, nullptr);
 					if (rtp_session_rtcp_mux_enabled(checklist->getRtpSession()) == FALSE) {
 						checklist->addLocalCandidate(
 						    IceCandidate::Type::Host,
 						    IceTransportAddress(family, addr, stream->getPortConfig().rtcpPort), ComponentId::Rtcp,
-						    nullptr);
+						    TurnTransport::Udp, nullptr);
 					}
 				}
 			}
@@ -356,23 +357,23 @@ void IceService::addPredefinedSflrxCandidates(const std::shared_ptr<NatPolicy> &
 			if (!ipv4.empty()) {
 				checklist->addLocalCandidate(IceCandidate::Type::ServerReflexive,
 				                             IceTransportAddress(AF_INET, ipv4, stream->getPortConfig().rtpPort),
-				                             ComponentId::Rtp, nullptr);
+				                             ComponentId::Rtp, TurnTransport::Udp, nullptr);
 			}
 			if (!ipv6.empty() && ipv6Allowed) {
 				checklist->addLocalCandidate(IceCandidate::Type::ServerReflexive,
 				                             IceTransportAddress(AF_INET6, ipv6, stream->getPortConfig().rtpPort),
-				                             ComponentId::Rtp, nullptr);
+				                             ComponentId::Rtp, TurnTransport::Udp, nullptr);
 			}
 			if (rtp_session_rtcp_mux_enabled(checklist->getRtpSession()) == FALSE) {
 				if (!ipv4.empty()) {
 					checklist->addLocalCandidate(IceCandidate::Type::ServerReflexive,
 					                             IceTransportAddress(AF_INET, ipv4, stream->getPortConfig().rtcpPort),
-					                             ComponentId::Rtcp, nullptr);
+					                             ComponentId::Rtcp, TurnTransport::Udp, nullptr);
 				}
 				if (!ipv6.empty() && ipv6Allowed) {
 					checklist->addLocalCandidate(IceCandidate::Type::ServerReflexive,
 					                             IceTransportAddress(AF_INET6, ipv6, stream->getPortConfig().rtcpPort),
-					                             ComponentId::Rtcp, nullptr);
+					                             ComponentId::Rtcp, TurnTransport::Udp, nullptr);
 				}
 			}
 		}
@@ -381,31 +382,26 @@ void IceService::addPredefinedSflrxCandidates(const std::shared_ptr<NatPolicy> &
 	lInfo() << "Configuration-defined server reflexive candidates added to check lists.";
 }
 
-int IceService::gatherSflrxIceCandidates(const struct addrinfo *stunServerAi) {
-	int err = 0;
-	const auto &natPolicy = getMediaSessionPrivate().getNatPolicy();
-	if (stunServerAi != nullptr) {
-		stunServerAi = getIcePreferredStunServerAddrinfo(stunServerAi);
-	} else {
+IceService::GatheringStatus
+IceService::gatherSflrxIceCandidates(const std::map<TurnTransport, const struct addrinfo *> &stunServerAiMap) {
+	auto status = GatheringStatus::Done;
+	std::map<TurnTransport, SockAddr> stunServerSockAddrMap;
+	if (stunServerAiMap.empty()) {
 		lWarning() << "Failed to resolve STUN server for ICE gathering, continuing without STUN";
+	} else {
+		stunServerSockAddrMap = getIcePreferredStunServerSockAddrMap(stunServerAiMap);
 	}
-	if (stunServerAi != nullptr) {
+	if (stunServerSockAddrMap.empty()) {
+		lInfo() << "ICE: bypass server-reflexive candidates gathering";
+	} else {
 		LinphoneCore *core = getCCore();
+		const auto &natPolicy = getMediaSessionPrivate().getNatPolicy();
 		const string &server = natPolicy->getStunServer();
 		lInfo() << "ICE: gathering candidates from [" << server << "] using "
 		        << (natPolicy->turnEnabled() ? "TURN" : "STUN");
 		// Gather local srflx candidates.
+		mIceSession->enableTurn(natPolicy->turnEnabled());
 		if (natPolicy->turnEnabled()) {
-			mIceSession->enableTurn(true);
-
-			if (natPolicy->turnTlsEnabled()) {
-				mIceSession->setTurnTransport(TurnContext::Transport::Tls);
-			} else if (natPolicy->turnTcpEnabled()) {
-				mIceSession->setTurnTransport(TurnContext::Transport::Tcp);
-			} else {
-				mIceSession->setTurnTransport(TurnContext::Transport::Udp);
-			}
-
 			mIceSession->setTurnRootCertificatePath(linphone_core_get_root_ca(core));
 
 			char host[NI_MAXHOST];
@@ -414,32 +410,22 @@ int IceService::gatherSflrxIceCandidates(const struct addrinfo *stunServerAi) {
 			mIceSession->setTurnCn(host);
 		}
 		mIceSession->setStunAuthListener(&getMediaSessionPrivate());
-		err = mIceSession->gatherCandidates(
-		          SockAddr(stunServerAi->ai_addr, static_cast<socklen_t>(stunServerAi->ai_addrlen)))
-		          ? 1
-		          : 0;
-	} else {
-		lInfo() << "ICE: bypass server-reflexive candidates gathering";
+		status =
+		    mIceSession->gatherCandidates(stunServerSockAddrMap) ? GatheringStatus::InProgress : GatheringStatus::Done;
 	}
-	if (err == 0) {
+	if (status == GatheringStatus::Done) {
 		gatheringFinished();
 	}
-	return err;
+	return status;
 }
 
-/** Return values:
- *  1: STUN gathering is started
- *  0: no STUN gathering is started, but it's ok to proceed with ICE anyway (with local candidates only or because STUN
- * gathering was already done before) -1: no gathering started and something went wrong with local candidates. There is
- * no way to start the ICE session.
- */
-int IceService::gatherIceCandidates() {
+IceService::GatheringStatus IceService::gatherIceCandidates() {
 	const LinphoneCore *core = getCCore();
 
 	// Gather local host candidates.
 	if (gatherLocalCandidates() == -1) {
 		lError() << "Local network permission is not granted, ICE must be disabled.";
-		return -1;
+		return GatheringStatus::Error;
 	}
 	mIceSession->enableForcedRelay(core->forced_ice_relay != FALSE);
 	mIceSession->enableShortTurnRefresh(core->short_turn_refresh != FALSE);
@@ -447,22 +433,23 @@ int IceService::gatherIceCandidates() {
 	const auto &natPolicy = getMediaSessionPrivate().getNatPolicy();
 	addPredefinedSflrxCandidates(natPolicy);
 	if (natPolicy && natPolicy->stunServerActivated()) {
-		mSflrxGatheringStatus = 1; // Assume gathering is in progress.
-		mAsyncStunResolverHandle = natPolicy->getStunServerAddrinfoAsync([this](const struct addrinfo *stunServerAi) {
-			mAsyncStunResolverHandle = 0;
-			mSflrxGatheringStatus = gatherSflrxIceCandidates(stunServerAi);
-			if (mSflrxGatheringStatus != 1 && !mInsideGatherIceCandidates) {
-				/* case where ICE gathering is finally not in progress, but prepare() returned true to
-				 * indicate an in-progress operation because of the DNS resolution of stun server.*/
-				notifyEndOfPrepare();
-			}
-		});
+		mSflrxGatheringStatus = GatheringStatus::InProgress; // Assume gathering is in progress.
+		mAsyncStunResolverHandle = natPolicy->getStunServerAddrinfoAsync(
+		    [this](const std::map<TurnTransport, const struct addrinfo *> &stunServerAiMap) {
+			    mAsyncStunResolverHandle = 0;
+			    mSflrxGatheringStatus = gatherSflrxIceCandidates(stunServerAiMap);
+			    if ((mSflrxGatheringStatus != GatheringStatus::InProgress) && !mInsideGatherIceCandidates) {
+				    /* case where ICE gathering is finally not in progress, but prepare() returned true to
+				     * indicate an in-progress operation because of the DNS resolution of stun server.*/
+				    notifyEndOfPrepare();
+			    }
+		    });
 		return mSflrxGatheringStatus;
 	}
 
 	lInfo() << "ICE is used without STUN server";
 	gatheringFinished();
-	return 0;
+	return GatheringStatus::Done;
 }
 
 bool IceService::checkForIceRestartAndSetRemoteCredentials(const std::shared_ptr<SalMediaDescription> &md,
@@ -482,7 +469,7 @@ bool IceService::checkForIceRestartAndSetRemoteCredentials(const std::shared_ptr
 			}
 		}
 	}
-	const auto remoteCredentials = IceCredentials(md->ice_ufrag, md->ice_pwd);
+	auto remoteCredentials = IceCredentials(md->ice_ufrag, md->ice_pwd);
 	if (mIceSession->getRemoteCredentials() == std::nullopt) {
 		if (!md->ice_ufrag.empty() && !md->ice_pwd.empty()) {
 			mIceSession->setRemoteCredentials(remoteCredentials);
@@ -500,7 +487,7 @@ bool IceService::checkForIceRestartAndSetRemoteCredentials(const std::shared_ptr
 		const auto &stream = md->streams[i];
 		const auto checklist = mIceSession->getNthCheckList(i);
 		if (checklist && (!stream.getIcePwd().empty()) && (!stream.getIceUfrag().empty())) {
-			const auto remoteCredentials = IceCredentials(stream.getIceUfrag(), stream.getIcePwd());
+			remoteCredentials = IceCredentials(stream.getIceUfrag(), stream.getIcePwd());
 			if (checklist->getRemoteCredentials() != remoteCredentials) {
 				if (!iceRestarted && (checklist->getRemoteCredentials() != std::nullopt)) {
 					// Restart only if remote ufrag/paswd was already set.
@@ -551,8 +538,7 @@ void IceService::createIceCheckListsAndParseIceAttributes(const std::shared_ptr<
 			continue;
 		}
 		if ((!stream.getIcePwd().empty()) && (!stream.getIceUfrag().empty())) {
-			checklist->setRemoteCredentials(
-			    mediastreamer::nat::IceCredentials(stream.getIceUfrag(), stream.getIcePwd()));
+			checklist->setRemoteCredentials(IceCredentials(stream.getIceUfrag(), stream.getIcePwd()));
 		}
 		for (const auto &candidate : stream.ice_candidates) {
 			bool defaultCandidate = false;
@@ -561,7 +547,7 @@ void IceService::createIceCheckListsAndParseIceAttributes(const std::shared_ptr<
 			}
 			const auto optionalComponentId = getComponentIdFromInt(static_cast<uint16_t>(candidate.componentID));
 			const auto optionalCandidateType = IceCandidate::getTypeFromStr(candidate.type);
-			if (!optionalComponentId.has_value() || !optionalCandidateType.has_value()) {
+			if (!optionalComponentId || !optionalCandidateType) {
 				continue;
 			}
 			std::string addr;
@@ -602,7 +588,7 @@ void IceService::createIceCheckListsAndParseIceAttributes(const std::shared_ptr<
 					family = AF_INET6;
 				}
 				const auto optionalComponentId = getComponentIdFromInt(static_cast<uint16_t>(j + 1));
-				if (optionalComponentId.has_value()) {
+				if (optionalComponentId) {
 					checklist->addLosingPair(
 					    optionalComponentId.value(),
 					    IceTransportAddress(remoteFamily, remoteCandidate.addr, remoteCandidate.port),
@@ -736,9 +722,8 @@ void IceService::updateLocalMediaDescriptionFromIce(std::shared_ptr<SalMediaDesc
 		if (checklist->getState() == ::mediastreamer::nat::IceCheckList::State::Completed) {
 			rtpCandidate = checklist->getSelectedValidLocalCandidateForRtp();
 			auto optionalRtcpCandidate = checklist->getSelectedValidLocalCandidateForRtcp();
-			result = ((rtpCandidate != nullptr) &&
-			          (!optionalRtcpCandidate.has_value() || (*optionalRtcpCandidate != nullptr)));
-			if (optionalRtcpCandidate.has_value()) {
+			result = ((rtpCandidate != nullptr) && (!optionalRtcpCandidate || (*optionalRtcpCandidate != nullptr)));
+			if (optionalRtcpCandidate) {
 				rtcpCandidate = *optionalRtcpCandidate;
 			}
 			if (!result) {
@@ -747,9 +732,8 @@ void IceService::updateLocalMediaDescriptionFromIce(std::shared_ptr<SalMediaDesc
 		} else {
 			rtpCandidate = checklist->getDefaultLocalCandidateForRtp();
 			auto optionalRtcpCandidate = checklist->getDefaultLocalCandidateForRtcp();
-			result = ((rtpCandidate != nullptr) &&
-			          (!optionalRtcpCandidate.has_value() || (*optionalRtcpCandidate != nullptr)));
-			if (optionalRtcpCandidate.has_value()) {
+			result = ((rtpCandidate != nullptr) && (!optionalRtcpCandidate || (*optionalRtcpCandidate != nullptr)));
+			if (optionalRtcpCandidate) {
 				rtcpCandidate = *optionalRtcpCandidate;
 			}
 			if (result) {
@@ -821,11 +805,10 @@ void IceService::updateLocalMediaDescriptionFromIce(std::shared_ptr<SalMediaDesc
 			stream.ice_remote_candidates.clear();
 			rtpCandidate = checklist->getSelectedValidRemoteCandidateForRtp();
 			auto optionalRtcpCandidate = checklist->getSelectedValidRemoteCandidateForRtcp();
-			if (optionalRtcpCandidate.has_value()) {
+			if (optionalRtcpCandidate) {
 				rtcpCandidate = *optionalRtcpCandidate;
 			}
-			if ((rtpCandidate != nullptr) &&
-			    (!optionalRtcpCandidate.has_value() || (*optionalRtcpCandidate != nullptr))) {
+			if ((rtpCandidate != nullptr) && (!optionalRtcpCandidate || (*optionalRtcpCandidate != nullptr))) {
 				SalIceRemoteCandidate rtp_remote_candidate;
 				rtp_remote_candidate.addr = rtpCandidate->getTransportAddress().getIp();
 				rtp_remote_candidate.port = rtpCandidate->getTransportAddress().getPort();
@@ -912,6 +895,19 @@ const struct addrinfo *IceService::getIcePreferredStunServerAddrinfo(const struc
 		return ipv6;
 	}
 	return nullptr;
+}
+
+std::map<TurnTransport, SockAddr>
+IceService::getIcePreferredStunServerSockAddrMap(const std::map<TurnTransport, const struct addrinfo *> &aiMap) {
+	std::map<TurnTransport, SockAddr> preferredSockAddrMap;
+	for (const auto [turnTransport, ai] : aiMap) {
+		const auto *preferredAi = getIcePreferredStunServerAddrinfo(ai);
+		if (preferredAi != nullptr) {
+			preferredSockAddrMap[turnTransport] =
+			    SockAddr(preferredAi->ai_addr, static_cast<socklen_t>(preferredAi->ai_addrlen));
+		}
+	}
+	return preferredSockAddrMap;
 }
 
 void IceService::finishPrepare() {
@@ -1084,8 +1080,8 @@ bool IceService::reinviteNeedsDeferedResponse(const std::shared_ptr<SalMediaDesc
 			continue;
 		}
 
-		for (const auto &ice_remote_candidate : stream.ice_remote_candidates) {
-			if (!ice_remote_candidate.addr.empty()) {
+		for (const auto &[addr, _port] : stream.ice_remote_candidates) {
+			if (!addr.empty()) {
 				return true;
 			}
 		}

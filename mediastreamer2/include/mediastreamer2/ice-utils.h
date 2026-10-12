@@ -28,12 +28,15 @@
 #include "mediastreamer2/stun-address.h"
 #include "mediastreamer2/stun-error.h"
 #include "mediastreamer2/stun-message.h"
+#include "mediastreamer2/turn-transport.h"
 
 namespace mediastreamer::nat {
 
 [[nodiscard]] std::optional<ComponentId> getComponentIdFromEventData(const OrtpEventData *eventData);
 
 [[nodiscard]] MS2_PUBLIC std::optional<ComponentId> getComponentIdFromInt(uint16_t value);
+
+[[nodiscard]] std::string componentIdAsString(ComponentId componentId);
 
 [[nodiscard]] SockAddr getLocalSockAddr(const RtpSession *rtpSession, ComponentId componentId);
 
@@ -49,13 +52,18 @@ void sendErrorResponse(const RtpSession *rtpSession,
                        const StunError &error);
 
 [[nodiscard]] int sendMessageToSocket(RtpTransport *rtpTransport,
+                                      TurnTransport turnTransport,
                                       const char *buf,
                                       size_t len,
                                       const struct sockaddr *from,
                                       const struct sockaddr *to,
                                       socklen_t toLen);
 
-[[nodiscard]] int sendMessageToStunAddress(
-    RtpTransport *rtpTransport, const char *buf, size_t len, const StunAddress &source, const StunAddress &dest);
+[[nodiscard]] int sendMessageToStunAddress(RtpTransport *rtpTransport,
+                                           TurnTransport turnTransport,
+                                           const char *buf,
+                                           size_t len,
+                                           const StunAddress &source,
+                                           const StunAddress &dest);
 
 } // namespace mediastreamer::nat

@@ -20,13 +20,52 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
+#include <stdexcept>
 
 #include "mediastreamer2/turn-context.h"
 
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
+#include "mediastreamer2/turn-client.h"
+#include "mediastreamer2/turn-transport.h"
 
 namespace mediastreamer::nat {
+
+void TurnTransportContext::allowPeerAddress(const StunAddress &address) {
+	if (isPeerAddressAllowed(address)) {
+		return;
+	}
+	mAllowedPeerAddresses.push_back(address);
+	mStatistics.nbSuccessfulCreatePermission++;
+}
+
+void TurnTransportContext::setState(const State state) {
+	mState = state;
+	BCTBX_SLOGM << "TurnTransportContext::setState: context=" << mContext << ", type=" << mContext->getTypeStr()
+	            << ", transport=" << turnTransportAsString(mTransport) << ", state=" << getStateStr();
+	if (state == State::AllocationCreated) {
+		mStatistics.nbSuccessfulAllocate++;
+	} else if (state == State::ChannelBound) {
+		mStatistics.nbSuccessfulChannelBind++;
+	}
+}
+
+std::string TurnTransportContext::getStateStr() const {
+	static const std::array<std::string, 8> stateStrs = {
+	    "Idle",         "CreatingAllocation", "AllocationCreated", "CreatingPermissions", "PermissionsCreated",
+	    "Deallocating", "BindingChannel",     "ChannelBound",
+	};
+	return stateStrs[static_cast<size_t>(mState)];
+}
+
+bool TurnTransportContext::isPeerAddressAllowed(const StunAddress &address) const {
+	return std::any_of(mAllowedPeerAddresses.begin(), mAllowedPeerAddresses.end(),
+	                   [address](const auto &stunAddress) { return address == stunAddress; });
+}
+
+TurnContext::TurnContext(const Type type, RtpSession *rtpSession) : mRtpSession(rtpSession), mType(type) {
+}
 
 TurnContext::~TurnContext() {
 	if (mEndpoint != nullptr) {
@@ -35,12 +74,29 @@ TurnContext::~TurnContext() {
 	}
 }
 
-void TurnContext::allowPeerAddress(const StunAddress &address) {
-	if (isPeerAddressAllowed(address)) {
-		return;
+bool TurnContext::allStatesAreIdle() const {
+	return std::none_of(mTransportContextMap.begin(), mTransportContextMap.end(),
+	                    [](const auto &transportContextEntry) {
+		                    return transportContextEntry.second.getState() != TurnTransportContext::State::Idle;
+	                    });
+}
+
+void TurnContext::connect() {
+	for (auto &[transport, transportContext] : mTransportContextMap) {
+		switch (transport) {
+			case TurnTransport::Udp:
+			default:
+				transportContext.mTurnClient = std::make_shared<TurnUdpClient>(this);
+				break;
+			case TurnTransport::Tcp:
+				transportContext.mTurnClient = std::make_shared<TurnTcpClient>(this);
+				break;
+			case TurnTransport::Tls:
+				transportContext.mTurnClient = std::make_shared<TurnTlsClient>(this);
+				break;
+		}
+		transportContext.mTurnClient->connect();
 	}
-	mAllowedPeerAddresses.push_back(address);
-	mStatistics.nb_successful_create_permission++;
 }
 
 RtpTransport *TurnContext::createEndpoint() {
@@ -55,40 +111,44 @@ RtpTransport *TurnContext::createEndpoint() {
 	return mEndpoint;
 }
 
-const std::shared_ptr<TurnTcpClient> &TurnContext::getOrCreateTcpClient() {
-	if (mTurnTcpClient == nullptr) {
-		mTurnTcpClient = std::make_shared<TurnTcpClient>(this);
-	}
-	return mTurnTcpClient;
-}
-
-void TurnContext::setServerAddress(const SockAddr &sockAddr) {
-	// The media sockets are bound in IPv6 so convert the TURN server destination address to IPv6 so that we do not get
-	// errors on MacOS
-	if ((sockAddr.getFamily() == AF_INET) && (mRtpSession->rtp.gs.sockfamily == AF_INET6)) {
-		mServerSockAddr = sockAddr.ipv4ToIpv6();
-	} else {
-		mServerSockAddr = sockAddr;
+TurnTransportContext *TurnContext::getTransportContext(const TurnTransport transport) const {
+	try {
+		return const_cast<TurnTransportContext *>(&mTransportContextMap.at(transport));
+	} catch (std::out_of_range &) {
+		return nullptr;
 	}
 }
 
-void TurnContext::setState(State state) {
-	mState = state;
-	BCTBX_SLOGM << "TurnContext::setState: context=" << this << ", type=" << getTypeStr()
-	            << ", state=" << getStateStr();
-	if (state == State::AllocationCreated) {
-		mStatistics.nb_successful_allocate++;
-	} else if (state == State::ChannelBound) {
-		mStatistics.nb_successful_channel_bind++;
+void TurnContext::setServerAddresses(const std::map<TurnTransport, SockAddr> &serverSockAddrMap) {
+	for (const auto transport : {TurnTransport::Udp, TurnTransport::Tcp, TurnTransport::Tls}) {
+		const auto it = serverSockAddrMap.find(transport);
+		if (it == serverSockAddrMap.end()) {
+			mTransportContextMap.erase(transport);
+			continue;
+		}
+
+		auto *transportContext = getTransportContext(transport);
+		if (transportContext == nullptr) {
+			mTransportContextMap.emplace(transport, TurnTransportContext(transport, this));
+			transportContext = getTransportContext(transport);
+		}
+		// The media sockets are bound in IPv6 so convert the TURN server destination address to IPv6 so that we do not
+		// get errors on MacOS
+		const auto sockAddr = serverSockAddrMap.at(transport);
+		if ((sockAddr.getFamily() == AF_INET) && (mRtpSession->rtp.gs.sockfamily == AF_INET6)) {
+			transportContext->mServerSockAddr = sockAddr.ipv4ToIpv6();
+		} else {
+			transportContext->mServerSockAddr = sockAddr;
+		}
 	}
 }
 
-std::string TurnContext::getStateStr() const {
-	static const std::array<std::string, 7> stateStrs = {
-	    "Idle",           "CreatingAllocation", "AllocationCreated", "CreatingPermissions", "PermissionsCreated",
-	    "BindingChannel", "ChannelBound",
-	};
-	return stateStrs[static_cast<size_t>(mState)];
+std::shared_ptr<TurnClient> TurnContext::getTurnClient(TurnTransport transport) const {
+	const auto *turnTransportContext = getTransportContext(transport);
+	if (turnTransportContext == nullptr) {
+		return nullptr;
+	}
+	return turnTransportContext->mTurnClient;
 }
 
 std::string TurnContext::getTypeStr() const {
@@ -99,23 +159,23 @@ std::string TurnContext::getTypeStr() const {
 	return typeStrs[static_cast<size_t>(mType)];
 }
 
-bool TurnContext::isPeerAddressAllowed(const StunAddress &address) const {
-	return std::any_of(mAllowedPeerAddresses.begin(), mAllowedPeerAddresses.end(),
-	                   [address](const auto &stunAddress) { return address == stunAddress; });
-}
-
-bool TurnContext::rtpEndpointShouldBeSentToTurnServer(const SockAddr &toAddr) const {
-	if (mServerSockAddr.getFamily() != toAddr.getFamily()) {
+bool TurnContext::rtpEndpointShouldBeSentToTurnServer(const SockAddr &toAddr, const TurnTransport transport) const {
+	const auto *transportContext = getTransportContext(transport);
+	if (transportContext == nullptr) {
 		return false;
 	}
-	if (mServerSockAddr.getFamily() == AF_INET) {
-		const auto *turnServerSaIn = reinterpret_cast<const struct sockaddr_in *>(mServerSockAddr.asStructSockAddr());
+	const auto serverSockAddr = transportContext->getServerSockAddr();
+	if (serverSockAddr.getFamily() != toAddr.getFamily()) {
+		return false;
+	}
+	if (serverSockAddr.getFamily() == AF_INET) {
+		const auto *turnServerSaIn = reinterpret_cast<const struct sockaddr_in *>(serverSockAddr.asStructSockAddr());
 		const auto *toSaIn = reinterpret_cast<const struct sockaddr_in *>(toAddr.asStructSockAddr());
 		return (turnServerSaIn->sin_port == toSaIn->sin_port) &&
 		       (turnServerSaIn->sin_addr.s_addr == toSaIn->sin_addr.s_addr);
 	}
-	if (mServerSockAddr.getFamily() == AF_INET6) {
-		const auto *turnServerSaIn6 = reinterpret_cast<const struct sockaddr_in6 *>(mServerSockAddr.asStructSockAddr());
+	if (serverSockAddr.getFamily() == AF_INET6) {
+		const auto *turnServerSaIn6 = reinterpret_cast<const struct sockaddr_in6 *>(serverSockAddr.asStructSockAddr());
 		const auto *toSaIn6 = reinterpret_cast<const struct sockaddr_in6 *>(toAddr.asStructSockAddr());
 		return (turnServerSaIn6->sin6_port == toSaIn6->sin6_port) &&
 		       (memcmp(&turnServerSaIn6->sin6_addr, &toSaIn6->sin6_addr, sizeof(toSaIn6->sin6_addr)) == 0);
@@ -130,12 +190,17 @@ bool TurnContext::rtpEndpointShouldBeSentToTurnServer(const SockAddr &toAddr) co
  * specified by the originator of the packet, then the default policy of the context in mForcedRtpSendingViaRelay is
  * used. The code is a bit complex because we have to take into account that the source address is a V4 mapped address.
  */
-bool TurnContext::rtpEndpointShouldSendViaTurnRelay(const SockAddr &fromAddr) const {
+bool TurnContext::rtpEndpointShouldSendViaTurnRelay(const TurnTransport transport, const SockAddr &fromAddr) const {
+	const auto *transportContext = getTransportContext(transport);
+	if (transportContext == nullptr) {
+		return false;
+	}
+
 	if ((fromAddr.getFamily() == AF_UNSPEC) || (fromAddr.getLen() == 0)) {
 		return mForcedRtpSendingViaRelay;
 	}
 
-	const auto relayAddr = mRelayAddress.toSockAddr();
+	const auto relayAddr = transportContext->getRelayAddress().toSockAddr();
 	if (relayAddr.getFamily() == AF_INET) {
 		const auto *relaySaIn = reinterpret_cast<const struct sockaddr_in *>(relayAddr.asStructSockAddr());
 		if (fromAddr.getFamily() == AF_INET6) {
@@ -164,38 +229,44 @@ bool TurnContext::rtpEndpointShouldSendViaTurnRelay(const SockAddr &fromAddr) co
 	return false;
 }
 
-int TurnContext::rtpEndpointRecvfrom(
-    RtpTransport *rtpTransport, mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromLen) {
-	auto *context = static_cast<TurnContext *>(rtpTransport->data);
-	if ((context == nullptr) || (context->mRtpSession == nullptr)) {
-		return 0;
-	}
-
+int TurnContext::recvFrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromLen) const {
 	int msgsize = 0;
 
-	// Check first if we received a message from turn tcp
-	if ((context->mTransport != Transport::Udp) && (context->mTurnTcpClient != nullptr)) {
-		msgsize = context->mTurnTcpClient->recvfrom(msg, flags, from, fromLen);
+	// Check first if we received a message from the TURN clients (with the priority: TLS - TCP - UDP)
+	if (getTurnClient(TurnTransport::Tls) != nullptr) {
+		msgsize = getTurnClient(TurnTransport::Tls)->recvfrom(msg, flags, from, fromLen);
+	}
+	if ((msgsize == 0) && (getTurnClient(TurnTransport::Tcp) != nullptr)) {
+		msgsize = getTurnClient(TurnTransport::Tcp)->recvfrom(msg, flags, from, fromLen);
+	}
+	if ((msgsize == 0) && (getTurnClient(TurnTransport::Udp) != nullptr)) {
+		msgsize = getTurnClient(TurnTransport::Udp)->recvfrom(msg, flags, from, fromLen);
 	}
 
 	// If not use the common way
 	if (msgsize == 0) {
-		msgsize = rtp_session_recvfrom(context->mRtpSession, (context->mType == Type::Rtp) ? TRUE : FALSE, msg, flags,
-		                               from, fromLen);
+		msgsize = rtp_session_recvfrom(mRtpSession, (mType == Type::Rtp) ? TRUE : FALSE, msg, flags, from, fromLen);
 	}
 
 	if ((msgsize < RTP_FIXED_HEADER_SIZE) || (rtp_get_version(msg) == 2)) {
 		return msgsize;
 	}
 
+	const auto transport = getTurnTransportFromMsg(msg);
+	auto *transportContext = getTransportContext(transport);
+	if (transportContext == nullptr) {
+		return msgsize;
+	}
+
 	// This is not a RTP packet, try to see if it is a TURN ChannelData message
-	if ((context->getState() >= State::BindingChannel) && static_cast<bool>(*msg->b_rptr & 0x40)) {
+	if ((transportContext->getState() >= TurnTransportContext::State::BindingChannel) &&
+	    static_cast<bool>(*msg->b_rptr & 0x40)) {
 		const uint16_t channel = ntohs(*(reinterpret_cast<uint16_t *>(msg->b_rptr)));
 		const uint16_t dataSize = ntohs(*(reinterpret_cast<uint16_t *>(msg->b_rptr) + 1));
 
-		if ((channel == context->getChannelNumber()) && (msgsize >= (dataSize + 4))) {
+		if ((channel == transportContext->getChannelNumber()) && (msgsize >= (dataSize + 4))) {
 			msg->b_rptr += 4; // Unpack the TURN ChannelData message
-			context->mStatistics.nb_received_channel_msg++;
+			transportContext->mStatistics.nbReceivedChannelMsg++;
 		}
 	} else {
 		// This is not a RTP packet and not a TURN ChannelData message, try to see if it is a STUN one
@@ -210,19 +281,19 @@ int TurnContext::rtpEndpointRecvfrom(
 			return msgsize;
 		}
 		const auto data = stunMessage->getData();
-		if (!stunMessage->isIndication() || !data.has_value() || (data->empty())) {
+		if (!stunMessage->isIndication() || !data || (data->empty())) {
 			return msgsize;
 		}
 
 		// This is TURN data indication
 		const auto peerAddress = stunMessage->getXorPeerAddress();
-		if (!peerAddress.has_value()) {
+		if (!peerAddress) {
 			return msgsize;
 		}
 
 		auto permissionAddress = peerAddress.value();
 		permissionAddress.setPort(0);
-		if (!context->isPeerAddressAllowed(permissionAddress)) {
+		if (!transportContext->isPeerAddressAllowed(permissionAddress)) {
 			return msgsize;
 		}
 
@@ -230,7 +301,7 @@ int TurnContext::rtpEndpointRecvfrom(
 		msgsize = static_cast<int>(data->size());
 		memcpy(msg->b_rptr, data->data(), data->size());
 		// Overwrite the ortp_recv_addr of the mblk_t so that ICE source address is correct
-		const auto relaySockAddr = context->mRelayAddress.toSockAddr();
+		const auto relaySockAddr = transportContext->getRelayAddress().toSockAddr();
 		const auto *const relaySa = relaySockAddr.asStructSockAddr();
 		msg->recv_addr.family = relaySa->sa_family;
 		if (relaySa->sa_family == AF_INET) {
@@ -249,45 +320,37 @@ int TurnContext::rtpEndpointRecvfrom(
 		*fromLen = peerSockAddr.getLen();
 		memcpy(from, peerSockAddr.asStructSockAddr(), *fromLen);
 		if (msgsize > 0) {
-			context->mStatistics.nb_data_indication++;
+			transportContext->mStatistics.nbDataIndication++;
 		}
 	}
 	return msgsize;
 }
 
-int TurnContext::rtpEndpointSendto(
-    RtpTransport *rtpTransport, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t toLen) {
-	auto *context = static_cast<TurnContext *>(rtpTransport->data);
-	if ((context == nullptr) || (context->mRtpSession == nullptr)) {
-		return 0;
-	}
-
+int TurnContext::sendTo(mblk_t *msg, int flags, const struct sockaddr *to, socklen_t toLen) const {
 	auto toAddr = SockAddr(to, toLen);
 	const auto sourceAddr = SockAddr(&msg->recv_addr);
 	// msg->recv_addr is internally set to the TURN server for RTP/RTCP packets that need to go through the TURN server.
 	// However, this does not mean that the socket needs to use this address (which makes no sense). Hence, reset the
 	// recv_addr so that it is not taken into account by the transport layer.
 	memset(&msg->recv_addr, 0, sizeof(msg->recv_addr));
+	auto transport = getTurnTransportFromMsg(msg);
+	auto *transportContext = getTransportContext(transport);
 
-	bool sendViaTurnTcp = false;
 	mblk_t *newMsg = nullptr; // If a new mblk_t is forged, it will have to be destroyed at the end of this function.
 	                          // 'msg' itself is freed by the caller.
-	int ret = static_cast<int>(msgdsize(msg));
-	if (context->rtpEndpointShouldBeSentToTurnServer(toAddr)) {
-		if (context->mTransport != Transport::Udp) {
-			sendViaTurnTcp = true;
-		}
-	} else if (context->rtpEndpointShouldSendViaTurnRelay(sourceAddr)) {
-		if (context->getState() >= State::ChannelBound) {
+	const int ret = static_cast<int>(msgdsize(msg));
+	if (rtpEndpointShouldBeSentToTurnServer(toAddr, transport)) {
+	} else if (rtpEndpointShouldSendViaTurnRelay(transport, sourceAddr)) {
+		if (transportContext->getState() >= TurnTransportContext::State::ChannelBound) {
 			// Use a TURN ChannelData message
 			mblk_t *header = allocb(4, 0);
-			*(reinterpret_cast<uint16_t *>(header->b_wptr)) = htons(context->getChannelNumber().value());
+			*(reinterpret_cast<uint16_t *>(header->b_wptr)) = htons(transportContext->getChannelNumber().value());
 			header->b_wptr += 2;
 			*(reinterpret_cast<uint16_t *>(header->b_wptr)) = htons(static_cast<uint16_t>(ret));
 			header->b_wptr += 2;
 			concatb(header, dupmsg(msg));
 			newMsg = msg = header;
-			context->mStatistics.nb_sent_channel_msg++;
+			transportContext->mStatistics.nbSentChannelMsg++;
 		} else {
 			// Use a TURN send indication to encapsulate the data to be sent
 			msgpullup(msg, -1);
@@ -302,20 +365,19 @@ int TurnContext::rtpEndpointSendto(
 			// Allocate a new mblk_t englobing the STUN encoded message.
 			newMsg = msg = esballoc(buf, data.size(), 0, ms_free);
 			msg->b_wptr += data.size();
-			context->mStatistics.nb_send_indication++;
+			transportContext->mStatistics.nbSendIndication++;
 		}
 
-		toAddr = context->mServerSockAddr;
-		if (context->getTransport() != Transport::Udp) {
-			sendViaTurnTcp = true;
-		}
+		toAddr = transportContext->getServerSockAddr();
+	} else {
+		transport = TurnTransport::Udp;
 	}
 
 	int subRet = 0;
-	if (sendViaTurnTcp && (context->mTurnTcpClient != nullptr)) {
-		subRet = context->mTurnTcpClient->sendto(msg, flags, toAddr.asStructSockAddr(), toAddr.getLen());
+	if (getTurnClient(transport) != nullptr) {
+		subRet = getTurnClient(transport)->sendto(msg, flags, toAddr.asStructSockAddr(), toAddr.getLen());
 	} else {
-		subRet = rtp_session_sendto(context->mRtpSession, (context->mType == Type::Rtp) ? TRUE : FALSE, msg, flags,
+		subRet = rtp_session_sendto(mRtpSession, (mType == Type::Rtp) ? TRUE : FALSE, msg, flags,
 		                            toAddr.asStructSockAddr(), toAddr.getLen());
 	}
 
@@ -324,6 +386,32 @@ int TurnContext::rtpEndpointSendto(
 	}
 	return subRet > 0 ? ret : subRet; // The sendto() function shall not return more or less than requested. The same
 	                                  // amount, otherwise an error.
+}
+
+TurnTransport TurnContext::getTurnTransportFromMsg(const mblk_t *msg) {
+	return fromOrtpTurnTransport(msg->turn_transport);
+}
+
+void TurnContext::setTurnTransportInMsg(mblk_t *msg, const TurnTransport turnTransport) {
+	msg->turn_transport = toOrtpTurnTransport(turnTransport);
+}
+
+int TurnContext::rtpEndpointRecvfrom(
+    RtpTransport *rtpTransport, mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromLen) {
+	auto *context = static_cast<TurnContext *>(rtpTransport->data);
+	if ((context == nullptr) || (context->mRtpSession == nullptr)) {
+		return 0;
+	}
+	return context->recvFrom(msg, flags, from, fromLen);
+}
+
+int TurnContext::rtpEndpointSendto(
+    RtpTransport *rtpTransport, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t toLen) {
+	auto *context = static_cast<TurnContext *>(rtpTransport->data);
+	if ((context == nullptr) || (context->mRtpSession == nullptr)) {
+		return 0;
+	}
+	return context->sendTo(msg, flags, to, toLen);
 }
 
 void TurnContext::rtpEndpointClose(RtpTransport *rtpTransport) {

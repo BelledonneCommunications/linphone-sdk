@@ -95,7 +95,7 @@ private:
 
 class PacketReader {
 public:
-	explicit PacketReader(TurnContext *context);
+	explicit PacketReader(TurnTransportContext *turnTransportContext);
 	~PacketReader() = default;
 
 	PacketReader(const PacketReader &) = delete;
@@ -113,7 +113,7 @@ private:
 	int parsePacket(std::unique_ptr<Packet> packet);
 	int processContinuationPacket(std::unique_ptr<Packet> packet);
 
-	TurnContext *mContext = nullptr;
+	TurnTransportContext *mTurnTransportContext = nullptr;
 
 	std::unique_ptr<Packet> mCurPacket = nullptr;
 	std::list<std::unique_ptr<Packet>> mTurnPackets;

@@ -29,7 +29,7 @@ std::shared_ptr<StunRawMessage> StunMessage::encode() {
 	mRawMessage = std::shared_ptr<StunRawMessage>(new StunRawMessage());
 	mRawMessage->addHeader(mType, mMethod, mTransactionId);
 
-	if (mMappedAddress.has_value()) {
+	if (mMappedAddress) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::StunMappedAddress, mMappedAddress.value());
 	}
 	if (mHasChangeIp || mHasChangePort) {
@@ -37,65 +37,63 @@ std::shared_ptr<StunRawMessage> StunMessage::encode() {
 		                          (mHasChangeIp ? StunRawMessage::kFlagChangeIp : 0) |
 		                              (mHasChangePort ? StunRawMessage::kFlagChangePort : 0));
 	}
-	if (mUsername.has_value() && mIncludeUsernameAttribute) {
+	if (mUsername && mIncludeUsernameAttribute) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::StunUsername, mUsername.value());
 	}
-	if (mRealm.has_value()) {
+	if (mRealm) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::StunRealm, mRealm.value());
 	}
-	if (mNonce.has_value()) {
+	if (mNonce) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::StunNonce, mNonce.value());
 	}
-	if (mError.has_value()) {
+	if (mError) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::StunErrorCode, mError.value());
 	}
-	if (mXorMappedAddress.has_value()) {
+	if (mXorMappedAddress) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::StunXorMappedAddress,
 		                          mXorMappedAddress.value().toXor(mTransactionId));
 	}
-	if (mXorPeerAddress.has_value()) {
+	if (mXorPeerAddress) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::TurnXorPeerAddress,
 		                          mXorPeerAddress.value().toXor(mTransactionId));
 	}
-	if (mXorRelayedAddress.has_value()) {
+	if (mXorRelayedAddress) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::TurnXorRelayedAddress,
 		                          mXorRelayedAddress.value().toXor(mTransactionId));
 	}
-	if (mRequestedTransport.has_value()) {
+	if (mRequestedTransport) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::TurnRequestedTransport, mRequestedTransport.value());
 	}
-	if (mRequestedAddressFamily.has_value()) {
+	if (mRequestedAddressFamily) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::TurnRequestedAddressFamily,
 		                          mRequestedAddressFamily.value());
 	}
-	if (mLifetime.has_value()) {
+	if (mLifetime) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::TurnLifetime, mLifetime.value());
 	}
-	if (mChannelNumber.has_value()) {
+	if (mChannelNumber) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::TurnChannelNumber, mChannelNumber.value());
 	}
-	if (mData.has_value()) {
+	if (mData) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::TurnData, mData.value());
 	}
-	if (mPriority.has_value()) {
+	if (mPriority) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::IcePriority, mPriority.value());
 	}
 	if (mHasUseCandidate) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::IceUseCandidate, true);
 	}
-	if (mIceControlled.has_value()) {
+	if (mIceControlled) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::IceControlled, mIceControlled.value());
 	}
-	if (mIceControlling.has_value()) {
+	if (mIceControlling) {
 		mRawMessage->addAttribute(StunRawMessage::Attribute::IceControlling, mIceControlling.value());
 	}
 	if (mHasMessageIntegrity) {
-		if (mHa1.has_value()) {
-			if (mHa1.has_value()) {
-				mRawMessage->addLongTermIntegrityFromHa1(mHa1.value());
-			}
-		} else if (mUsername.has_value() && mPassword.has_value()) {
-			if (mRealm.has_value()) {
+		if (mHa1) {
+			mRawMessage->addLongTermIntegrityFromHa1(mHa1.value());
+		} else if (mUsername && mPassword) {
+			if (mRealm) {
 				mRawMessage->addLongTermIntegrity(mRealm.value(), mUsername.value(), mPassword.value());
 			} else {
 				mRawMessage->addShortTermIntegrity(mPassword.value(), mHasDummyMessageIntegrity);

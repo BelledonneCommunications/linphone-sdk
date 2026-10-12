@@ -35,7 +35,7 @@
 #include "mediastreamer2/turn-socket.h"
 
 #include "mediastreamer2/mscommon.h"
-#include "mediastreamer2/turn-tcp-client.h"
+#include "mediastreamer2/turn-client.h"
 
 static constexpr unsigned int MTU_MAX = 1500;
 static constexpr uint64_t FLOW_CONTROL_MAX_TIME = 3000;
@@ -81,7 +81,8 @@ Packet::~Packet() {
 	freemsg(mMblk);
 }
 
-PacketReader::PacketReader(TurnContext *context) : mState(WaitingHeader), mContext(context) {
+PacketReader::PacketReader(TurnTransportContext *turnTransportContext)
+    : mState(WaitingHeader), mTurnTransportContext(turnTransportContext) {
 }
 
 void PacketReader::reset() {
@@ -123,7 +124,8 @@ int PacketReader::parsePacket(std::unique_ptr<Packet> packet) {
 	bool channelData = false;
 
 	while (p < pEnd) {
-		channelData = (mContext->getState() >= TurnContext::State::BindingChannel) && ((*p & 0x40) != 0);
+		channelData =
+		    (mTurnTransportContext->getState() >= TurnTransportContext::State::BindingChannel) && ((*p & 0x40) != 0);
 
 		uint8_t *header = p;
 		const size_t headerSize = channelData ? 4 : 20;
@@ -137,7 +139,7 @@ int PacketReader::parsePacket(std::unique_ptr<Packet> packet) {
 		}
 
 		p += headerSize;
-		auto remainingSize = static_cast<size_t>(pEnd - p);
+		const auto remainingSize = static_cast<size_t>(pEnd - p);
 
 		if (paddedLen > remainingSize) {
 			mState = Continuation;
@@ -414,7 +416,8 @@ void ControlSocketPair::notifyEvent() const {
 
 // -------------------------------------------------------------------------------------------------------
 
-TurnSocket::TurnSocket(TurnTcpClient *client) : mClient(client), mPacketReader(client->mContext) {
+TurnSocket::TurnSocket(TurnTcpClient *client)
+    : mClient(client), mPacketReader(client->mContext->getTransportContext(client->getTransport())) {
 }
 
 TurnSocket::~TurnSocket() {
@@ -422,7 +425,9 @@ TurnSocket::~TurnSocket() {
 }
 
 int TurnSocket::connect() {
-	const auto [ip, port] = mClient->getContext()->getServerSockAddr().getIpPort();
+	const auto serverSockAddr =
+	    mClient->getContext()->getTransportContext(mClient->getTransport())->getServerSockAddr();
+	const auto [ip, port] = serverSockAddr.getIpPort();
 	struct addrinfo *ai = bctbx_name_to_addrinfo(AF_UNSPEC, SOCK_STREAM, ip.c_str(), port);
 	if (ai == nullptr) {
 		BCTBX_SLOGE << "TurnSocket [" << this << "]: getaddrinfo failed for " << ip << ":" << port;
@@ -489,11 +494,11 @@ int TurnSocket::connect() {
 
 	// TODO: Add HTTP Proxy connection here if needed
 
-	if (mClient->getContext()->getTransport() == TurnContext::Transport::Tls) {
+	if (mClient->getTransport() == TurnTransport::Tls) {
 		const auto rootCertificatePath = mClient->getContext()->getRootCertificatePath();
 		const auto cn = mClient->getContext()->getCn();
-		mSsl = std::make_unique<SslContext>(mSocket, rootCertificatePath.has_value() ? rootCertificatePath.value() : "",
-		                                    cn.has_value() ? cn.value() : "", mClient->getRng());
+		mSsl = std::make_unique<SslContext>(mSocket, rootCertificatePath ? rootCertificatePath.value() : "",
+		                                    cn ? cn.value() : "", mClient->getRng());
 
 		do {
 			error = mSsl->connect();
@@ -539,6 +544,7 @@ int TurnSocket::connect() {
 
 	BCTBX_SLOGM << "TurnSocket [" << this << "]: connected to turn server " << ip << ":" << port;
 	mReady = true;
+	mQueueCond.signal();
 
 	return 0;
 }
@@ -746,40 +752,49 @@ void TurnSocket::runSend() {
 	while (mRunning) {
 		std::unique_lock<std::mutex> lk(mSendingLock);
 		mSendThreadSleeping = false;
-		if (!mSendingQueue.empty()) {
-			auto p = std::move(mSendingQueue.front());
-			mSendingQueue.pop();
-			lk.unlock();
 
-			const uint64_t lPacketAge = ms_get_cur_time_ms() - p->timestamp();
-			if (!purging && (lPacketAge > FLOW_CONTROL_MAX_TIME || mError)) {
-				if (mError) {
-					BCTBX_SLOGW << "TurnSocket [" << this << "]: purging queue on send error";
-				} else {
-					BCTBX_SLOGW << "TurnSocket [" << this << "]: purging queue packet age [" << lPacketAge << "]";
-				}
-				purging = true;
-			}
+		if (mReady) {
+			if (!mSendingQueue.empty()) {
+				auto p = std::move(mSendingQueue.front());
+				mSendingQueue.pop();
+				lk.unlock();
 
-			if (!purging && mReady) {
-				mSslLock.lock();
-				const int error = send(p);
-				mSslLock.unlock();
+				const uint64_t lPacketAge = ms_get_cur_time_ms() - p->timestamp();
+				if (!purging && (lPacketAge > FLOW_CONTROL_MAX_TIME || mError)) {
+					if (mError) {
+						BCTBX_SLOGW << "TurnSocket [" << this << "]: purging queue on send error";
+					} else {
+						BCTBX_SLOGW << "TurnSocket [" << this << "]: purging queue packet age [" << lPacketAge << "]";
+					}
+					purging = true;
+				}
 
-				if (error == -TURN_EWOULDBLOCK) {
-					continue; // Will retry
+				if (!purging && mReady) {
+					mSslLock.lock();
+					const int error = send(p);
+					mSslLock.unlock();
+
+					if (error == -TURN_EWOULDBLOCK) {
+						continue; // Will retry
+					}
+					if (error < 0) {
+						mError = true;
+					}
 				}
-				if (error < 0) {
-					mError = true;
+			} else {
+				purging = false;
+				if (mRunning) {
+					mSendThreadSleeping = true;
+					mQueueCond.wait(lk);
+					mSendThreadSleeping = false;
 				}
+				lk.unlock();
 			}
 		} else {
-			purging = false;
-			if (mRunning) {
-				mSendThreadSleeping = true;
-				mQueueCond.wait(lk);
-				mSendThreadSleeping = false;
-			}
+			// Wait for the connection to complete
+			mSendThreadSleeping = true;
+			mQueueCond.wait(lk);
+			mSendThreadSleeping = false;
 			lk.unlock();
 		}
 	}
@@ -810,7 +825,9 @@ void TurnSocket::runRead() {
 }
 
 int TurnSocket::getPort() const {
-	const auto [_ip, port] = mClient->getContext()->getServerSockAddr().getIpPort();
+	const auto serverSockAddr =
+	    mClient->getContext()->getTransportContext(mClient->getTransport())->getServerSockAddr();
+	const auto [_ip, port] = serverSockAddr.getIpPort();
 	return port;
 }
 

@@ -47,7 +47,6 @@
 #endif /*_WIN32_WCE*/
 
 #undef snprintf
-#include <mediastreamer2/stun.h>
 
 #include <math.h>
 #if _MSC_VER

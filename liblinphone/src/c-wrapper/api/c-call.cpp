@@ -105,8 +105,11 @@ const MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const Linp
 	if (checklist == nullptr) {
 		return nullptr;
 	}
-	return reinterpret_cast<const MSTurnContext *>(
-	    (checklist->getRtpTurnContext() == nullptr) ? nullptr : checklist->getRtpTurnContext().get());
+	const auto turnContext = checklist->getTurnContext(ComponentId::Rtp);
+	if (turnContext != nullptr) {
+		return reinterpret_cast<const MSTurnContext *>(turnContext.get());
+	}
+	return nullptr;
 }
 
 const MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call, unsigned int index) {
@@ -118,8 +121,11 @@ const MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const Lin
 	if (checklist == nullptr) {
 		return nullptr;
 	}
-	return reinterpret_cast<const MSTurnContext *>(
-	    (checklist->getRtcpTurnContext() == nullptr) ? nullptr : checklist->getRtcpTurnContext().get());
+	const auto turnContext = checklist->getTurnContext(ComponentId::Rtcp);
+	if (turnContext != nullptr) {
+		return reinterpret_cast<const MSTurnContext *>(turnContext.get());
+	}
+	return nullptr;
 }
 
 bool_t linphone_call_get_all_muted(const LinphoneCall *call) {
