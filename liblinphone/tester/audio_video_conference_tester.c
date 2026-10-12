@@ -708,6 +708,7 @@ static void simple_conference_base(LinphoneCoreManager *marie,
 		if (marie_participant) {
 			BC_ASSERT_TRUE(linphone_participant_is_admin(marie_participant));
 		}
+		BC_ASSERT_PTR_NULL(linphone_conference_get_subject_utf8(laure_conference));
 	}
 	if (laure_call) {
 		liblinphone_tester_check_rtcp_2(((is_remote_conf) ? focus : marie), laure);
@@ -730,6 +731,7 @@ static void simple_conference_base(LinphoneCoreManager *marie,
 		if (marie_participant) {
 			BC_ASSERT_TRUE(linphone_participant_is_admin(marie_participant));
 		}
+		BC_ASSERT_PTR_NULL(linphone_conference_get_subject_utf8(pauline_conference));
 	}
 	if (pauline_call) {
 		liblinphone_tester_check_rtcp_2(((is_remote_conf) ? focus : marie), pauline);
@@ -748,6 +750,7 @@ static void simple_conference_base(LinphoneCoreManager *marie,
 		if (marie_participant) {
 			BC_ASSERT_TRUE(linphone_participant_is_admin(marie_participant));
 		}
+		BC_ASSERT_PTR_NULL(linphone_conference_get_subject_utf8(l_conference));
 	}
 
 	BC_ASSERT_PTR_NOT_NULL(linphone_core_get_current_call(pauline->lc));

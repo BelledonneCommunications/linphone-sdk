@@ -12,7 +12,6 @@ Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *medias
 changes made to these components.
 
 ## Unreleased
-
 ### Added
 - Add stateful PRACK sending [RFC3262](https://www.rfc-editor.org/info/rfc3262)
 - MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
@@ -23,6 +22,22 @@ changes made to these components.
 - Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
 - CSharp Wrapper: Separate getter/setter deprecation and set minimal version on C# for property obsolete features (8.0).
 - Updated Sqlite3 dependency to 3.54.0
+
+## [5.5.34] 2026-10-15
+
+### Fixed
+- Use the information in the NOTIFY message XML body to set the subject of a conference instead of looking at the INVITE message's Subject header
+
+## [5.5.33] 2026-10-13
+
+### Fixed
+- Reinitialize encrypton contexts when the encryption keys or the origin address put down in the SDP changes
+
+## [5.5.32] 2026-10-12
+
+### Fixed
+- Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
+- CSharp Wrapper: Separate getter/setter deprecation and set minimal version on C# for property obsolete features (8.0).
 
 ## [5.5.30] 2026-10-05
 

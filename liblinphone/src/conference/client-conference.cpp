@@ -104,8 +104,6 @@ void ClientConference::createFocus(const std::shared_ptr<const Address> &focusAd
 }
 
 std::pair<bool, std::shared_ptr<Address>> ClientConference::configure(SalCallOp *op) {
-	mConfParams->setUtf8Subject(op->getSubject());
-
 	std::shared_ptr<Address> organizer = nullptr;
 	const auto sipFrag = op->getContentInRemote(ContentType::SipFrag);
 	bool isEmpty = !sipFrag || sipFrag.value().get().isEmpty();
