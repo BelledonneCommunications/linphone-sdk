@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## [5.5.35] 2026-10-19
+
+### Added
+- Added `[sip]/register_retry_base_delay_ms` and `[sip]/register_retry_max_delay_ms` configuration keys to enable exponential retry backoff with jitter for registrations.
+
+### Fixed
+- Fixed an issue where the refresher was reconnecting to primary server for nothing - just because of IPv4/IPv6 order changed in DNS.
+
+
 ## [5.5.27] 2026-09-30
 
 ### Fixed
