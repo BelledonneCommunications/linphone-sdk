@@ -8355,22 +8355,40 @@ LINPHONE_PUBLIC void linphone_core_set_ekt_plugin_loaded(LinphoneCore *core, boo
 LINPHONE_PUBLIC void linphone_core_upgrade_database(LinphoneCore *core);
 
 /**
+ * Enables or disables the HID (Human Interface Device) support for USB headsets.
+ * @param core #LinphoneCore object @notnil
+ * @param enable TRUE to enable HID support, FALSE to disable it.
+ * @ingroup group_misc
+ **/
+LINPHONE_PUBLIC void linphone_core_enable_hid(LinphoneCore *core, bool_t enable);
+
+/**
+ * Returns whether the HID support for USB headsets is enabled.
+ * @param core #LinphoneCore object @notnil
+ * @return TRUE if HID support is enabled, FALSE otherwise.
+ * @ingroup group_misc
+ **/
+LINPHONE_PUBLIC bool_t linphone_core_hid_enabled(const LinphoneCore *core);
+
+/************ */
+/* DEPRECATED */
+/* ********** */
+
+/**
  * Start the HID devices detection.
  * @param core the #LinphoneCore
  * @ingroup group_misc
+ * @deprecated 14/10/2026 Use linphone_core_enable_hid() instead.
  */
-LINPHONE_PUBLIC void linphone_core_start_hid_devices_detection(LinphoneCore *core);
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_start_hid_devices_detection(LinphoneCore *core);
 
 /**
  * Stop the HID devices detection.
  * @param core the #LinphoneCore
  * @ingroup group_misc
+ * @deprecated 14/10/2026 Use linphone_core_enable_hid() instead.
  */
-LINPHONE_PUBLIC void linphone_core_stop_hid_devices_detection(LinphoneCore *core);
-
-/************ */
-/* DEPRECATED */
-/* ********** */
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_core_stop_hid_devices_detection(LinphoneCore *core);
 
 /**
  * Enable sending of chat message on group chats only after receiving the NOTIFY full state

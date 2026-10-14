@@ -58,7 +58,7 @@ void Hid::stopDeviceDetection() {
 }
 
 void Hid::updateDevices(const std::shared_ptr<Core> &core) {
-	if (core && mInitialized) {
+	if (core && mInitialized && core->hidEnabled()) {
 		core->updateHidDevices(getDevices(core));
 	}
 }
@@ -66,7 +66,7 @@ void Hid::updateDevices(const std::shared_ptr<Core> &core) {
 std::list<std::shared_ptr<HidDevice>> Hid::getDevices(const std::shared_ptr<Core> &core) const {
 	std::list<std::shared_ptr<HidDevice>> result;
 
-	if (!mInitialized) {
+	if (!mInitialized || !core || !core->hidEnabled()) {
 		return result;
 	}
 

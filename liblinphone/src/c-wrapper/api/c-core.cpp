@@ -489,3 +489,15 @@ void linphone_core_set_digest_authentication_policy(LinphoneCore *core, Linphone
 const LinphoneDigestAuthenticationPolicy *linphone_core_get_digest_authentication_policy(const LinphoneCore *core) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->getDigestAuthenticationPolicy();
 }
+
+// ---------------------------------------------------------------------------
+// HID
+// ---------------------------------------------------------------------------
+
+void linphone_core_enable_hid(LinphoneCore *core, bool_t enable) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->enableHid(!!enable);
+}
+
+bool_t linphone_core_hid_enabled(const LinphoneCore *core) {
+	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->hidEnabled();
+}
