@@ -32,6 +32,11 @@
 #include "shared_tester_functions.h"
 #include "tester_utils.h"
 
+// Prevent a GCC false positive warning, see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=122197#c19
+#if defined(__GNUC__) && (__GNUC__ == 16) && (__GNUC_MINOR__ == 1)
+#pragma GCC diagnostic warning "-Warray-bounds"
+#endif
+
 using namespace mediastreamer::nat;
 
 static const char *stun_address = "stun.example.org";
