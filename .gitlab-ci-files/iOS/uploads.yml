@@ -113,12 +113,19 @@ ios-ninja-spm-upload:
           TARGET_BRANCH="${SWIFT_PACKAGE_FLAVOR}${SPM_DEPLOY_TARGET_BRANCH}"
         fi
     - !reference [.factorize_ios_upload, script]
+    - !reference [.choose_url_ios, script]
     - |
       if [ -n "$SPM_PRIVATE" ]; then
-        if [ -z "$SPM_URL_TOKEN" ]; then
-          echo "SPM_URL_TOKEN was not provided by the build job, refusing to deploy to a predictable location."
+        SPM_URL_TOKEN=$(openssl rand -hex 16)
+        if [ ${#SPM_URL_TOKEN} -ne 32 ]; then
+          echo "Failed to generate a random directory name, refusing to deploy to a predictable location."
           exit 1
         fi
+        if ! grep -q '@@PRIVATE_SPM_BASE_URL@@' build/ios/linphone-sdk-swift-ios/Package.swift; then
+          echo "Package.swift holds no private base url placeholder, refusing to deploy."
+          exit 1
+        fi
+        sed -i '' "s|@@PRIVATE_SPM_BASE_URL@@|${IOS_URL}/private-spm/${SPM_URL_TOKEN}|g" build/ios/linphone-sdk-swift-ios/Package.swift
         SPM_GIT_REPO="$PRIVATE_SPM_GIT_REPO"
         SPM_DEPLOY_SERVER="$DEPLOY_SERVER"
         SPM_UPLOAD_PATH="$UPLOAD_ROOT_DIRECTORY/ios/private-spm/$SPM_URL_TOKEN"

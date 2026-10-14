@@ -209,15 +209,10 @@ macos-ninja-spm-private:
   script:
     - DESCRIBE=$(git describe)
     - echo $DESCRIBE
-    - !reference [.choose_url_macos, script]
-    - SPM_URL_TOKEN=$(openssl rand -hex 16)
-    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=${MACOS_URL}/private-spm/${SPM_URL_TOKEN} -DUPLOAD_SWIFT_PACKAGE=ON"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=@@PRIVATE_SPM_BASE_URL@@ -DUPLOAD_SWIFT_PACKAGE=ON"
     - !reference [macos-ninja, script]
-    - echo "SPM_URL_TOKEN=$SPM_URL_TOKEN" > "$CI_PROJECT_DIR/build/mac/spm_url_token.env"
   artifacts:
-    access: developer
-    reports:
-      dotenv: build/mac/spm_url_token.env
+    access: none
 
 macos-ninja-spm-novideo:
   rules:

@@ -300,15 +300,10 @@ ios-ninja-spm-private:
   script:
     - DESCRIBE=$(git describe)
     - echo $DESCRIBE
-    - !reference [.choose_url_ios, script]
-    - SPM_URL_TOKEN=$(openssl rand -hex 16)
-    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}/private-spm/${SPM_URL_TOKEN} -DUPLOAD_SWIFT_PACKAGE=ON"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=@@PRIVATE_SPM_BASE_URL@@ -DUPLOAD_SWIFT_PACKAGE=ON"
     - !reference [.ios, script]
-    - echo "SPM_URL_TOKEN=$SPM_URL_TOKEN" > "$CI_PROJECT_DIR/build/ios/spm_url_token.env"
   artifacts:
-    access: developer
-    reports:
-      dotenv: build/ios/spm_url_token.env
+    access: none
 
 ios-ninja-spm-novideo:
   rules:
