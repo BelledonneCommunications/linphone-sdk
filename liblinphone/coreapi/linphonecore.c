@@ -2793,22 +2793,25 @@ void linphone_core_set_state(LinphoneCore *lc, LinphoneGlobalState gstate, const
 }
 
 void linphone_core_start_hid_devices_detection(LinphoneCore *lc) {
-	linphone_core_stop_hid_devices_detection(lc);
 #ifdef HAVE_HIDAPI
-	const auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
-	Factory::toCpp(linphone_factory_get())->getHid().startDeviceDetection(core);
-#endif /* HAVE_HIDAPI */
+	auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
+	if (!core->hidEnabled()) {
+		lInfo() << "linphone_core_start_hid_devices_detection(): HID is disabled by configuration, ignoring.";
+		return;
+	}
+	core->enableHid(true);
+#else /* HAVE_HIDAPI */
+	(void)lc;
+#endif
 }
 
-void linphone_core_stop_hid_devices_detection(BCTBX_UNUSED(LinphoneCore *lc)) {
+void linphone_core_stop_hid_devices_detection(LinphoneCore *lc) {
 #ifdef HAVE_HIDAPI
-	const auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
-	Factory::toCpp(linphone_factory_get())->getHid().stopDeviceDetection();
-	for (const auto &hidDevice : core->getHidDevices()) {
-		hidDevice->stopPollTimer();
-	}
-	core->clearHidDevices();
-#endif /* HAVE_HIDAPI */
+	auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
+	core->enableHid(false);
+#else /* HAVE_HIDAPI */
+	(void)lc;
+#endif
 }
 
 static void misc_config_read(LinphoneCore *lc) {

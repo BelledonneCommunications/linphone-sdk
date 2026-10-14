@@ -606,6 +606,9 @@ public:
 	// HID devices
 	// ---------------------------------------------------------------------------
 
+	bool hidEnabled() const;
+	void enableHid(bool enable);
+
 #ifdef HAVE_HIDAPI
 	const std::list<std::shared_ptr<HidDevice>> &getHidDevices() const;
 	void clearHidDevices();

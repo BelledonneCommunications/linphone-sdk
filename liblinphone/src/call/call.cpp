@@ -191,11 +191,13 @@ bool Call::getMicrophoneMuted() const {
 
 void Call::setMicrophoneMuted(bool muted) {
 #ifdef HAVE_HIDAPI
-	for (const auto &hidDevice : getCore()->getHidDevices()) {
-		if (muted) {
-			hidDevice->mute();
-		} else {
-			hidDevice->unmute();
+	if (getCore()->hidEnabled()) {
+		for (const auto &hidDevice : getCore()->getHidDevices()) {
+			if (muted) {
+				hidDevice->mute();
+			} else {
+				hidDevice->unmute();
+			}
 		}
 	}
 #endif /* HAVE_HIDAPI */
@@ -1567,6 +1569,9 @@ void Call::setBaudotPauseTimeout(uint8_t seconds) {
  * current call), or it can request to answer an incoming call if its state is ringing.
  */
 void Call::notifyStateChangeToHeadset(const CallSession::State state) {
+	if (!getCore()->hidEnabled()) {
+		return;
+	}
 	if (state == CallSession::State::IncomingReceived || state == CallSession::State::OutgoingInit) {
 		Factory::toCpp(linphone_factory_get())->getHid().updateDevices(getCore());
 	}

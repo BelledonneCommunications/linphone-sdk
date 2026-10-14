@@ -91,6 +91,11 @@
 #include "xml/ekt-linphone-extension.h"
 #endif // defined(HAVE_ADVANCED_IM) && defined(HAVE_XERCESC)
 
+#ifdef HAVE_HIDAPI
+#include "hid/hid-device.h"
+#include "hid/hid.h"
+#endif
+
 // TODO: Remove me later.
 #include "c-wrapper/c-wrapper.h"
 #include "private.h"
@@ -599,10 +604,22 @@ void CorePrivate::notifyGlobalStateChanged(LinphoneGlobalState state) {
 	switch (state) {
 		case LinphoneGlobalOn:
 			q->doLater([this] { stopStartupBgTask(); });
+#ifdef HAVE_HIDAPI
+			if (q->hidEnabled()) {
+				Factory::toCpp(linphone_factory_get())->getHid().startDeviceDetection(q->getSharedFromThis());
+			}
+#endif
 			break;
 		case LinphoneGlobalOff:
 		case LinphoneGlobalShutdown:
 			coreStartupTask.stop();
+#ifdef HAVE_HIDAPI
+			Factory::toCpp(linphone_factory_get())->getHid().stopDeviceDetection();
+			for (const auto &hidDevice : q->getHidDevices()) {
+				hidDevice->stopPollTimer();
+			}
+			q->clearHidDevices();
+#endif
 			break;
 		case LinphoneGlobalStartup:
 		case LinphoneGlobalConfiguring:
@@ -3897,6 +3914,25 @@ bool Core::isEktPluginLoaded() const {
 
 void Core::setEktPluginLoaded(bool ektPluginLoaded) {
 	mEktPluginLoaded = ektPluginLoaded;
+}
+
+bool Core::hidEnabled() const {
+	return !!linphone_config_get_bool(linphone_core_get_config(getCCore()), "hid", "enabled", TRUE);
+}
+
+void Core::enableHid(bool enable) {
+	linphone_config_set_bool(linphone_core_get_config(getCCore()), "hid", "enabled", enable);
+#ifdef HAVE_HIDAPI
+	if (enable) {
+		Factory::toCpp(linphone_factory_get())->getHid().startDeviceDetection(getSharedFromThis());
+	} else {
+		Factory::toCpp(linphone_factory_get())->getHid().stopDeviceDetection();
+		for (const auto &hidDevice : getHidDevices()) {
+			hidDevice->stopPollTimer();
+		}
+		clearHidDevices();
+	}
+#endif /* HAVE_HIDAPI */
 }
 
 #ifdef HAVE_HIDAPI
