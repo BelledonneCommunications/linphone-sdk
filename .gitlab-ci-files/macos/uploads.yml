@@ -77,11 +77,6 @@ macos-ninja-spm-upload:
         fi
     - VERSION=$(tr -d '\n\r' < build/mac/linphone-sdk-swift-macos/VERSION)
     - |
-      if [ -n "$SPM_PRIVATE" ] && ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-        echo "Skipping private spm deployment as version $VERSION is not a final x.y.z release."
-        exit 0
-      fi
-    - |
       if [ -n "$SWIFT_PACKAGE_FLAVOR" ]; then
         FLAVOR_SUFFIX="-$(echo "$SWIFT_PACKAGE_FLAVOR" | sed 's/\///g')"
       else
