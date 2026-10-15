@@ -1091,8 +1091,13 @@ static void receiver_process(MSFilter *f) {
 			mblk_set_cseq(m, rtp_get_seqnumber(m));
 			receiver_check_for_extensions(f, m);
 			if (d->csrc_events_enabled) receiver_check_for_csrc_change(f, m);
-			rtp_get_payload(m, &m->b_rptr);
-			ms_queue_put(f->outputs[0], m);
+			if (rtp_get_payload(m, &m->b_rptr) == -1) {
+				// Malformed RTP packet - usually with inconsistent header extensions.
+				// Do not inject it into the stream.
+				freemsg(m);
+			} else {
+				ms_queue_put(f->outputs[0], m);
+			}
 		} else {
 			freemsg(m);
 		}
