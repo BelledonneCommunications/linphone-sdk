@@ -1394,6 +1394,78 @@ static void local_ringtone_fallback_test(void) {
 	linphone_core_unref(lc);
 }
 
+static void on_hold_music_test(void) {
+	LinphoneCore *lc =
+	    linphone_factory_create_core_3(linphone_factory_get(), NULL, liblinphone_tester_get_empty_rc(), system_context);
+	if (!BC_ASSERT_PTR_NOT_NULL(lc)) return;
+
+	linphone_core_start(lc);
+	BC_ASSERT_TRUE(linphone_core_get_global_state(lc) == LinphoneGlobalOn);
+
+	/* Check default hold music is set and play_file is not modified */
+	const char *hold_music = linphone_core_get_call_on_hold_music_file(lc);
+	BC_ASSERT_PTR_NOT_NULL(hold_music);
+	BC_ASSERT_PTR_NULL(linphone_core_get_play_file(lc));
+
+	/* Check changing hold music updates the config when core is ready */
+	char *custom_sound = bc_tester_res("sounds/ahbahouaismaisbon.wav");
+	linphone_core_set_call_on_hold_music_file(lc, custom_sound);
+	BC_ASSERT_STRING_EQUAL(linphone_core_get_call_on_hold_music_file(lc), custom_sound);
+	const char *cfg_val = linphone_config_get_string(linphone_core_get_config(lc), "sound", "hold_music", NULL);
+	BC_ASSERT_PTR_NOT_NULL(cfg_val);
+	if (cfg_val) {
+		BC_ASSERT_STRING_EQUAL(cfg_val, custom_sound);
+	}
+
+	/* Reset to NULL */
+	linphone_core_set_call_on_hold_music_file(lc, NULL);
+	BC_ASSERT_PTR_NULL(linphone_core_get_call_on_hold_music_file(lc));
+	BC_ASSERT_PTR_NULL(linphone_config_get_string(linphone_core_get_config(lc), "sound", "hold_music", NULL));
+
+	linphone_core_stop(lc);
+	linphone_core_unref(lc);
+	bc_free(custom_sound);
+
+	/* Check fallback to default when configured file does not exist */
+	LinphoneConfig *cfg = linphone_config_new_with_factory(NULL, liblinphone_tester_get_empty_rc());
+	linphone_config_set_string(cfg, "sound", "hold_music", "/path/to/non-existant/hold_music.wav");
+	lc = linphone_factory_create_core_with_config_3(linphone_factory_get(), cfg, system_context);
+	linphone_config_unref(cfg);
+	if (BC_ASSERT_PTR_NOT_NULL(lc)) {
+		linphone_core_start(lc);
+		BC_ASSERT_TRUE(linphone_core_get_global_state(lc) == LinphoneGlobalOn);
+
+		hold_music = linphone_core_get_call_on_hold_music_file(lc);
+		BC_ASSERT_PTR_NOT_NULL(hold_music);
+		BC_ASSERT_TRUE(strstr(hold_music, "toy-mono.wav") != NULL ||
+		               strstr(hold_music, "dont_wait_too_long.mkv") != NULL);
+		BC_ASSERT_PTR_NULL(linphone_core_get_play_file(lc));
+
+		linphone_core_stop(lc);
+		linphone_core_unref(lc);
+	}
+
+	/* Check valid hold_music from config on startup */
+	cfg = linphone_config_new_with_factory(NULL, liblinphone_tester_get_empty_rc());
+	char *valid_sound = bc_tester_res("sounds/ahbahouaismaisbon.wav");
+	linphone_config_set_string(cfg, "sound", "hold_music", valid_sound);
+	lc = linphone_factory_create_core_with_config_3(linphone_factory_get(), cfg, system_context);
+	linphone_config_unref(cfg);
+	if (BC_ASSERT_PTR_NOT_NULL(lc)) {
+		linphone_core_start(lc);
+		BC_ASSERT_TRUE(linphone_core_get_global_state(lc) == LinphoneGlobalOn);
+
+		hold_music = linphone_core_get_call_on_hold_music_file(lc);
+		BC_ASSERT_PTR_NOT_NULL(hold_music);
+		BC_ASSERT_STRING_EQUAL(hold_music, valid_sound);
+		BC_ASSERT_PTR_NULL(linphone_core_get_play_file(lc));
+
+		linphone_core_stop(lc);
+		linphone_core_unref(lc);
+	}
+	bc_free(valid_sound);
+}
+
 static void clean_auth_infos(void) {
 	LinphoneCore *lc =
 	    linphone_factory_create_core_3(linphone_factory_get(), NULL, liblinphone_tester_get_empty_rc(), system_context);
@@ -1453,6 +1525,7 @@ static test_t setup_tests[] = {
     TEST_NO_TAG("Audio devices", audio_devices),
     TEST_NO_TAG("Migrate from call history database", migration_from_call_history_db),
     TEST_NO_TAG("Local ringtone fallback", local_ringtone_fallback_test),
+    TEST_NO_TAG("On-hold music", on_hold_music_test),
     TEST_NO_TAG("Clean auth infos", clean_auth_infos),
 };
 

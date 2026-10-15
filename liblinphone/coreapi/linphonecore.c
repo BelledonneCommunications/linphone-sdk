@@ -1754,19 +1754,24 @@ static void sound_config_read(LinphoneCore *lc) {
 	}
 	linphone_core_set_ringback(lc, tmpbuf);
 
+	string holdMusic;
 	tmpbuf = linphone_config_get_string(lc->config, "sound", "hold_music", NULL);
 	if (tmpbuf) {
 		if (bctbx_file_exist(tmpbuf) == 0) {
-			linphone_core_set_play_file(lc, tmpbuf);
+			holdMusic = tmpbuf;
 		} else {
 			string soundResource = static_cast<PlatformHelpers *>(lc->platform_helper)->getSoundResource(tmpbuf);
-			if (bctbx_file_exist(soundResource.c_str()) == 0) linphone_core_set_play_file(lc, soundResource.c_str());
-			else ms_warning("'%s' on-hold music file does not exist", tmpbuf);
+			if (bctbx_file_exist(soundResource.c_str()) == 0) {
+				holdMusic = soundResource;
+			} else {
+				ms_warning("'%s' on-hold music file does not exist, using default one", tmpbuf);
+				holdMusic = get_default_onhold_music(lc);
+			}
 		}
 	} else {
-		linphone_core_set_play_file(lc, get_default_onhold_music(lc).c_str());
+		holdMusic = get_default_onhold_music(lc);
 	}
-	linphone_core_set_call_on_hold_music_file(lc, get_default_onhold_music(lc).c_str());
+	linphone_core_set_call_on_hold_music_file(lc, holdMusic.c_str());
 
 	lc->sound_conf.latency = 0;
 #if !TARGET_OS_IPHONE
@@ -7714,6 +7719,9 @@ void linphone_core_set_call_on_hold_music_file(LinphoneCore *core, const char *f
 	}
 	if (file != NULL) {
 		core->on_hold_music_file = ms_strdup(file);
+	}
+	if (linphone_core_ready(core)) {
+		linphone_config_set_string(core->config, "sound", "hold_music", core->on_hold_music_file);
 	}
 }
 

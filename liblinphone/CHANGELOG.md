@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## [5.5.36] 2026-10-20
+
+### Added
+- Add linphone_core_enable_hid() and corresponding linphonerc option ([hid]/enabled) so that HID support can be disabled to resolve conflits with other softphones running on the system, which happens with old USB headsets.
+
+### Fixed
+- Fix handling of [sound]/hold_music property, that was never taken int account.
+
+
 ## [5.5.35] 2026-10-19
 
 ### Added
