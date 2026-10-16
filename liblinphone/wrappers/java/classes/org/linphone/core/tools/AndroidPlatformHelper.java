@@ -295,7 +295,12 @@ public class AndroidPlatformHelper {
         // Dump some debugging information to the logs
         dumpDeviceInformation();
         dumpLinphoneInformation();
-        DeviceUtils.logPreviousCrashesIfAny(mContext); // Android 11 only
+
+        try {
+            DeviceUtils.logPreviousCrashesIfAny(mContext); // Android 11 and higher only
+        } catch (Exception exception) {
+            Log.e("[Platform Helper] Failed to gather previous crashes (if any): ", exception);
+        }
 
         mActivityCallbacks = new ActivityMonitor();
         ((Application) mContext).registerActivityLifecycleCallbacks(mActivityCallbacks);
