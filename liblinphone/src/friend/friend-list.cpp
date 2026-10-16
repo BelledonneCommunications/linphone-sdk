@@ -369,10 +369,7 @@ void FriendList::synchronizeFriendsFromServer() {
 			return;
 		}
 
-		ms_message("Starting downloading vCard 4 list using URI [%s], any existing friends will be removed first",
-		           mUri.c_str());
-		// Clear any previously existing friends
-		removeFriends(false);
+		ms_message("Starting downloading vCard 4 list using URI [%s]", mUri.c_str());
 		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_sync_status_changed,
 		                                  LinphoneFriendListSyncStarted, nullptr);
 
@@ -387,23 +384,36 @@ void FriendList::synchronizeFriendsFromServer() {
 			FriendList *friendList = FriendList::toCpp(list);
 			const char *body = belle_sip_message_get_body(BELLE_SIP_MESSAGE(event->response));
 			if (body) {
-				int importedFriends = friendList->importFriendsFromVcard4Buffer(body);
-				if (importedFriends > 0) {
-					ms_message("Successfully downloaded and imported [%i] friends", importedFriends);
-					LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList,
-					                                  linphone_friend_list_cbs_get_sync_status_changed,
-					                                  LinphoneFriendListSyncSuccessful, nullptr);
-				} else {
+				// Parse the downloaded buffer first. The existing friends are cleared only if the server's data is
+				// valid, so that the friend list is preserved in case of synchronization failure.
+				std::list<std::shared_ptr<Vcard>> vcards =
+				    VcardContext::toCpp(friendList->getCore()->getCCore()->vcard_context)->getVcardListFromBuffer(body);
+				if (vcards.empty()) {
 					ms_error("Failed to import downloaded vCards!");
 					LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList,
 					                                  linphone_friend_list_cbs_get_sync_status_changed,
 					                                  LinphoneFriendListSyncFailure, nullptr);
+				} else {
+					// Clear any previously existing friends before importing the new ones
+					friendList->removeFriends(false);
+					int importedFriends = friendList->importFriendsFromVcard4(vcards);
+					if (importedFriends > 0) {
+						ms_message("Successfully downloaded and imported [%i] friends", importedFriends);
+						LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList,
+						                                  linphone_friend_list_cbs_get_sync_status_changed,
+						                                  LinphoneFriendListSyncSuccessful, nullptr);
+					} else {
+						ms_error("Failed to import downloaded vCards!");
+						LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList,
+						                                  linphone_friend_list_cbs_get_sync_status_changed,
+						                                  LinphoneFriendListSyncFailure, nullptr);
+					}
 				}
 			} else {
-				ms_warning("No body was received...");
+				ms_error("No body was received while downloading vCard 4 list");
 				LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList,
 				                                  linphone_friend_list_cbs_get_sync_status_changed,
-				                                  LinphoneFriendListSyncSuccessful, nullptr);
+				                                  LinphoneFriendListSyncFailure, nullptr);
 			}
 		};
 		belle_request_listener.process_io_error = [](void *ctx, BCTBX_UNUSED(const belle_sip_io_error_event_t *event)) {
