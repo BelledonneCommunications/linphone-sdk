@@ -29,7 +29,9 @@
 #include "friend/friend.h"
 #include "vcard-context.h"
 #include "vcard.h"
+#ifdef HAVE_XML2
 #include "xml/xml-parsing-context.h"
+#endif /* HAVE_XML2 */
 
 #include "private.h"
 
