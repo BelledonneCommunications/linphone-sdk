@@ -15,6 +15,7 @@ changes made to these components.
 ### Added
 - Add stateful PRACK sending [RFC3262](https://www.rfc-editor.org/info/rfc3262)
 - MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
+- Swift package flavor built with the G729 codec, published to a separate repository for licensees.
 
 ### Changes
 - Refactor ICE and STUN/TURN from C to C++

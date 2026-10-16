@@ -197,6 +197,23 @@ macos-ninja-spm:
     - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_URL/spm/${SWIFT_PACKAGE_FLAVOR} -DUPLOAD_SWIFT_PACKAGE=ON"
     - !reference [macos-ninja, script]
 
+macos-ninja-spm-private:
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_MACOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_MACOS != null
+  variables:
+    CMAKE_OPTIONS: "-DENABLE_FAT_BINARY=NO -DENABLE_G729=ON -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_NON_FREE_FEATURES=YES"
+    SWIFT_PACKAGE_FLAVOR: ""
+  extends: macos-ninja-spm
+  script:
+    - DESCRIBE=$(git describe)
+    - echo $DESCRIBE
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=@@PRIVATE_SPM_BASE_URL@@ -DUPLOAD_SWIFT_PACKAGE=ON"
+    - !reference [macos-ninja, script]
+  artifacts:
+    access: none
+
 macos-ninja-spm-novideo:
   rules:
     - !reference [.rules-merge-request-manual, rules]
