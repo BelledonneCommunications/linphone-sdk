@@ -269,7 +269,21 @@ static bool_t aaudio_recorder_quick_close(MSFilter *obj) {
 
 	if (ictx->stream) {
 		ictx->streamRunning = false;
-		aaudio_result_t result = AAudioStream_close(ictx->stream);
+
+		// Closing a running stream frees it while the AudioRecord thread can still be inside a data callback;
+		// on Android 9 that callback then hits the freed stream and aborts on a CFI check. Stop it first.
+		aaudio_result_t result = AAudioStream_requestStop(ictx->stream);
+		if (result != AAUDIO_OK) {
+			ms_warning("[AAudio Recorder] Recorder stream stop before restart failed: %i / %s", result, AAudio_convertResultToText(result));
+		} else {
+			aaudio_stream_state_t nextState = AAUDIO_STREAM_STATE_UNINITIALIZED;
+			AAudioStream_waitForStateChange(ictx->stream, AAUDIO_STREAM_STATE_STOPPING, &nextState, 100 * 1000000LL);
+		}
+
+		// https://github.com/google/oboe/pull/970/
+		ms_usleep(10000);
+
+		result = AAudioStream_close(ictx->stream);
 		if (result != AAUDIO_OK) {
 			ms_error("[AAudio Recorder] Recorder stream close failed: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
