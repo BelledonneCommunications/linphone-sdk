@@ -404,22 +404,20 @@ void FriendList::synchronizeFriendsFromServerVcard4() {
 		return;
 	}
 
-	lInfo() << "Starting downloading vCard 4 list using URI [" << mUri
-	        << "], any existing friends will be removed first";
-	// Clear any previously existing friends
-	removeFriends(false);
+	lInfo() << "Starting downloading vCard 4 list using URI [" << mUri << "]";
 	LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, this, linphone_friend_list_cbs_get_sync_status_changed,
 	                                  LinphoneFriendListSyncStarted, nullptr);
 
-	auto notifyFailure = [](auto friendList) {
+	auto notifyFailure = [](const std::shared_ptr<FriendList> &friendList) {
 		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList, linphone_friend_list_cbs_get_sync_status_changed,
 		                                  LinphoneFriendListSyncFailure, nullptr);
 	};
-	auto notifySuccess = [](auto friendList) {
+	auto notifySuccess = [](const std::shared_ptr<FriendList> &friendList) {
 		LINPHONE_HYBRID_OBJECT_INVOKE_CBS(FriendList, friendList, linphone_friend_list_cbs_get_sync_status_changed,
 		                                  LinphoneFriendListSyncSuccessful, nullptr);
 	};
 
+	auto friendList = getSharedFromThis();
 	try {
 		auto &httpRequest = getCore()->getHttpClient().createRequest("GET", mUri);
 		httpRequest.addHeader("User-Agent", linphone_core_get_user_agent(getCore()->getCCore()));
@@ -430,55 +428,58 @@ void FriendList::synchronizeFriendsFromServerVcard4() {
 		if (account != nullptr) {
 			httpRequest.addHeader("From", account->getAccountParams()->getIdentityAddress()->asStringUriOnly());
 		}
-		httpRequest.execute([this, &notifyFailure, &notifySuccess](const HttpResponse &response) {
+		httpRequest.execute([friendList, notifyFailure, notifySuccess](const HttpResponse &response) {
 			switch (response.getStatus()) {
 				case HttpResponse::Timeout:
 				case HttpResponse::InvalidRequest:
 				case HttpResponse::IOError:
-					notifyFailure(this);
+					notifyFailure(friendList);
 					break;
 				case HttpResponse::Valid: {
 					int statusCode = response.getHttpStatusCode();
 					if (statusCode != 200) {
 						lError() << "Failed getting friends from the server, received status code " << statusCode;
-						notifyFailure(this);
+						notifyFailure(friendList);
 						return;
 					}
 
 					const auto &body = response.getBody();
 					if (body.isEmpty()) {
-						lWarning() << "No body was received...";
-						notifySuccess(this);
+						lError() << "No body was received while downloading vCard 4 list";
+						notifyFailure(friendList);
 						return;
 					}
 
 					/// Parse the vcards asynchronously in a background thread, and then import the friends and notify
 					/// the result in the Core thread.
-					getCore()->doAsync([this, body, &notifyFailure, &notifySuccess]() -> void {
-						auto result = getVcardListFromBuffer(body.getBodyAsString());
+					friendList->getCore()->doAsync([friendList, body, notifyFailure, notifySuccess]() -> void {
+						auto result = friendList->getVcardListFromBuffer(body.getBodyAsString());
 						auto status = result.first;
 						auto vcards = result.second;
-						if (status == LinphoneFriendListOK) {
-							getCore()->doLater([this, vcards, &notifyFailure, &notifySuccess]() -> void {
-								int importedFriends = importFriendsFromVcard4(vcards);
-								if (importedFriends > 0) {
-									lInfo()
-									    << "Successfully downloaded and imported [" << importedFriends << "] friends";
-									notifySuccess(this);
-								} else {
-									lError() << "Failed to import downloaded vCards!";
-									notifyFailure(this);
-								}
-							});
+						if (status == LinphoneFriendListOK && !vcards.empty()) {
+							friendList->getCore()->doLater(
+							    [friendList, vcards, notifyFailure, notifySuccess]() -> void {
+								    friendList->removeFriends(false);
+								    int importedFriends = friendList->importFriendsFromVcard4(vcards);
+								    if (importedFriends > 0) {
+									    lInfo() << "Successfully downloaded and imported [" << importedFriends
+									            << "] friends";
+									    notifySuccess(friendList);
+								    } else {
+									    lError() << "Failed to import downloaded vCards!";
+									    notifyFailure(friendList);
+								    }
+							    });
 						} else {
-							getCore()->doLater([&notifyFailure, this]() -> void { notifyFailure(this); });
+							friendList->getCore()->doLater(
+							    [friendList, notifyFailure]() -> void { notifyFailure(friendList); });
 						}
 					});
 				} break;
 			}
 		});
 	} catch (const std::exception &) {
-		notifyFailure(this);
+		notifyFailure(friendList);
 	}
 }
 

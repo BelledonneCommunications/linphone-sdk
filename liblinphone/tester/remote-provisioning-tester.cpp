@@ -154,6 +154,62 @@ static void remote_provisioning_inexistent_contacts_list_fetch_at_startup() {
 	                                                  0);
 }
 
+static void remote_provisioning_contacts_list_fetch_failure_preserves_existing_friends() {
+	LinphoneCoreManager *marie = linphone_core_manager_create("marie_remote_rc");
+	linphone_config_set_string(linphone_core_get_config(marie->lc), "misc", "contacts-vcard-list",
+	                           "http://provisioning.example.org/vcards.vcf");
+
+	// Do not get vcard contact list from remote provisioning at startup
+	linphone_config_set_bool(linphone_core_get_config(marie->lc), "misc", "fetch_contacts_vcard_list_at_startup",
+	                         FALSE);
+
+	linphone_core_manager_start(marie, FALSE);
+	BC_ASSERT_TRUE(wait_for(marie->lc, nullptr, &marie->stat.number_of_LinphoneConfiguringSuccessful, 1));
+	BC_ASSERT_TRUE(wait_for(marie->lc, nullptr, &marie->stat.number_of_LinphoneRegistrationOk, 1));
+
+	std::string url =
+	    linphone_config_get_string(linphone_core_get_config(marie->lc), "misc", "contacts-vcard-list", nullptr);
+	LinphoneFriendList *friendList = linphone_core_get_friend_list_by_name(marie->lc, url.c_str());
+	BC_ASSERT_PTR_NOT_NULL(friendList);
+	if (friendList != nullptr) {
+		LinphoneFriendListCbs *cbs = linphone_factory_create_friend_list_cbs(linphone_factory_get());
+		linphone_friend_list_cbs_set_sync_status_changed(cbs, friend_list_sync_state_changed);
+		linphone_friend_list_add_callbacks(friendList, cbs);
+		linphone_friend_list_cbs_unref(cbs);
+	}
+
+	// 1. Initial successful synchronization with 3 contacts
+	linphone_friend_list_synchronize_friends_from_server(friendList);
+	BC_ASSERT_TRUE(wait_for(marie->lc, nullptr, &marie->stat.number_of_LinphoneFriendListSyncSuccessful, 1));
+	BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneFriendListSyncFailure, 0, int, "%d");
+	BC_ASSERT_EQUAL((int)bctbx_list_size(linphone_friend_list_get_friends(friendList)), 3, int, "%i");
+
+	// Verify that contacts were saved in DB
+	bctbx_list_t *friendsInDb = linphone_core_fetch_friends_from_db(marie->lc, friendList);
+	BC_ASSERT_PTR_NOT_NULL(friendsInDb);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(friendsInDb), 3, int, "%i");
+	if (friendsInDb) {
+		bctbx_list_free_with_data(friendsInDb, (bctbx_list_free_func)linphone_friend_unref);
+	}
+
+	// 2. Set an invalid URI and synchronize again: sync must fail, but existing friends must remain intact
+	linphone_friend_list_set_uri(friendList, "http://provisioning.example.org/inexistent_vcards.vcf");
+	linphone_friend_list_synchronize_friends_from_server(friendList);
+	BC_ASSERT_TRUE(wait_for(marie->lc, nullptr, &marie->stat.number_of_LinphoneFriendListSyncFailure, 1));
+	BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneFriendListSyncSuccessful, 1, int, "%d");
+	BC_ASSERT_EQUAL((int)bctbx_list_size(linphone_friend_list_get_friends(friendList)), 3, int, "%i");
+
+	// Verify that contacts are still present in DB
+	friendsInDb = linphone_core_fetch_friends_from_db(marie->lc, friendList);
+	BC_ASSERT_PTR_NOT_NULL(friendsInDb);
+	BC_ASSERT_EQUAL((int)bctbx_list_size(friendsInDb), 3, int, "%i");
+	if (friendsInDb) {
+		bctbx_list_free_with_data(friendsInDb, (bctbx_list_free_func)linphone_friend_unref);
+	}
+
+	linphone_core_manager_destroy(marie);
+}
+
 static void remote_provisioning_transient(void) {
 	LinphoneCoreManager *marie = linphone_core_manager_new_with_proxies_check("marie_transient_remote_rc", FALSE);
 	BC_ASSERT_TRUE(wait_for(marie->lc, NULL, &marie->stat.number_of_LinphoneConfiguringSuccessful, 1));
@@ -596,7 +652,7 @@ static void remote_provisioning_check_push_params_2(void) {
 	linphone_core_manager_destroy(marie);
 }
 
-test_t remote_provisioning_tests[] = {
+static test_t remote_provisioning_tests[] = {
     TEST_NO_TAG("Remote provisioning skipped", remote_provisioning_skipped),
     TEST_NO_TAG("Remote provisioning successful behind http", remote_provisioning_http),
     TEST_NO_TAG("Remote provisioning successful behind https", remote_provisioning_https),
@@ -615,6 +671,8 @@ test_t remote_provisioning_tests[] = {
                 remote_provisioning_thousand_contacts_list_fetch_at_startup),
     TEST_NO_TAG("Remote Provisioning inexistent contacts list fetch at startup",
                 remote_provisioning_inexistent_contacts_list_fetch_at_startup),
+    TEST_NO_TAG("Remote Provisioning Contacts List fetch failure preserves existing friends",
+                remote_provisioning_contacts_list_fetch_failure_preserves_existing_friends),
 #ifdef HAVE_FLEXIAPI
     TEST_NO_TAG("Remote Provisioning Flow", flexiapi_remote_provisioning_flow),
     TEST_NO_TAG("Remote Provisioning Contacts List Flow", flexiapi_remote_provisioning_contacts_list_flow)
