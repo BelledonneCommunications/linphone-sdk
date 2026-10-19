@@ -3418,7 +3418,8 @@ void ServerConference::onCallSessionStateChanged(const std::shared_ptr<CallSessi
 				lInfo() << "Removing terminated call (local address " << *session->getLocalAddress()
 				        << " remote address " << *remoteAddress << ") from " << *this;
 				const auto &sessionErrorInfo = session->getErrorInfo();
-				if (sessionErrorInfo && (linphone_error_info_get_reason(sessionErrorInfo) == LinphoneReasonBusy)) {
+				if (!mConfParams->isHidden() && sessionErrorInfo &&
+				    (linphone_error_info_get_reason(sessionErrorInfo) == LinphoneReasonBusy)) {
 					removeParticipantDevice(session);
 				} else {
 					removeParticipant(session, false);
