@@ -87,6 +87,8 @@ The <i>sip</i> section represents a general configuration for SIP signaling feat
 		<tr><td>prefer_ipv6</td><td>integer</td><td>0 or 1</td><td>1</td><td>Set IPV6 preference for SIP connections.</td></tr>
 		<tr><td>reconnect_to_primary_asap</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enable the reconnection to the primary server when it is up again asap.</td></tr>
 		<tr><td>refresher_retry_after</td><td>integer</td><td>Milliseconds</td><td>60000</td><td>After a REGISTER connection failure, define the default retry-after period, if not given by server.</td></tr>
+		<tr><td>register_retry_base_delay_ms</td><td>integer</td><td>Milliseconds</td><td>0</td><td>Base delay in milliseconds for the exponential retry backoff with jitter for REGISTER. When set to 0, exponential backoff is disabled and fixed retry delay is used.</td></tr>
+		<tr><td>register_retry_max_delay_ms</td><td>integer</td><td>Milliseconds</td><td>0</td><td>Maximum backoff cap in milliseconds for exponential retry backoff for REGISTER. When set to 0, exponential backoff is disabled.</td></tr>
 		<tr><td>save_auth_info</td><td>integer</td><td>0 or 1</td><td>1</td><td>if true, auth infos will be write in the config file when they are added to the list</td></tr>
 		<tr><td>set_p_asserted_identity_in_responses</td><td>integer</td><td>0 or 1</td><td>0</td><td>Include a P-Asserted-Identity (PAI) header in responses to incoming SIP calls.</td></tr>
 		<tr><td>sip_tls_well_known_port</td><td>integer</td><td>0 - 65535</td><td>5061</td><td>The well known TLS port</td></tr>
