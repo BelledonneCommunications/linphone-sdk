@@ -242,17 +242,18 @@ int belle_sip_get_certificate_and_pkey_in_dir(const char *path,
 	file_list = belle_sip_list_pop_front(file_list, (void **)&filename);
 	while (filename != NULL) {
 		belle_sip_certificates_chain_t *found_certificate = belle_sip_certificates_chain_parse_file(filename, format);
-		if (found_certificate != NULL &&
-		    belle_sip_certificate_subject_match(
-		        found_certificate, subject)) { /* there is a certificate in this file with a matching subject */
-			/* do we have a key too ? */
-			belle_sip_signing_key_t *found_key = belle_sip_signing_key_parse_file(filename, NULL);
-			if (found_key != NULL) {
-				*certificate = found_certificate;
-				*pkey = found_key;
-				belle_sip_free(filename);
-				belle_sip_list_free_with_data(file_list, belle_sip_free); /* free possible rest of list */
-				return 0;
+		if (found_certificate != NULL) {
+			if (belle_sip_certificate_subject_match(found_certificate, subject)) {
+				/* there is a certificate in this file with a matching subject */
+				/* do we have a key too ? */
+				belle_sip_signing_key_t *found_key = belle_sip_signing_key_parse_file(filename, NULL);
+				if (found_key != NULL) {
+					*certificate = found_certificate;
+					*pkey = found_key;
+					belle_sip_free(filename);
+					belle_sip_list_free_with_data(file_list, belle_sip_free); /* free possible rest of list */
+					return 0;
+				}
 			}
 			belle_sip_object_unref(found_certificate);
 		}
