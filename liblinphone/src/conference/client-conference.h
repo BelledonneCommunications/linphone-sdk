@@ -221,6 +221,7 @@ private:
 	void onFocusCallStateChanged(CallSession::State state, const std::string &message);
 	void onPendingCallStateChanged(std::shared_ptr<Call> call, CallSession::State callState);
 	std::list<Address> cleanAddressesList(const std::list<std::shared_ptr<Address>> &addresses) const;
+	void handleCreationFailed(const std::shared_ptr<CallSession> &session);
 
 	virtual std::pair<bool, std::shared_ptr<Address>> configure(SalCallOp *op) override;
 

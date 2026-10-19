@@ -2303,9 +2303,6 @@ static void group_chat_room_with_creator_without_groupchat_capability() {
 		                             initialMarieStats.number_of_LinphoneChatRoomSessionError + 1,
 		                             liblinphone_tester_sip_timeout));
 
-		// Clean db from chat room
-		linphone_core_manager_delete_chat_room(marie.getCMgr(), chatRoom, coresList);
-
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateDeleted,
 		                             initialMarieStats.number_of_LinphoneChatRoomStateDeleted + 1,
 		                             liblinphone_tester_sip_timeout));
@@ -4464,15 +4461,16 @@ group_chat_room_with_only_participant_with_invalid_address_base(ChatRoomInvalidP
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateCreationFailed,
 		                             initialMarieStats.number_of_LinphoneChatRoomStateCreationFailed + 1,
 		                             liblinphone_tester_sip_timeout));
-
-		linphone_core_delete_chat_room(marie.getLc(), marieCr);
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomStateDeleted,
+		                             initialMarieStats.number_of_LinphoneChatRoomStateDeleted + 1,
+		                             liblinphone_tester_sip_timeout));
 
 		// to avoid creation attempt of a new chatroom
 		auto focus_account = focus.getDefaultAccount();
-		LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(focus_account));
-		linphone_account_params_set_conference_factory_uri(params, NULL);
-		linphone_account_set_params(focus_account, params);
-		linphone_account_params_unref(params);
+		LinphoneAccountParams *cloneParams = linphone_account_params_clone(linphone_account_get_params(focus_account));
+		linphone_account_params_set_conference_factory_uri(cloneParams, NULL);
+		linphone_account_set_params(focus_account, cloneParams);
+		linphone_account_params_unref(cloneParams);
 
 		bctbx_list_free(coresList);
 	}

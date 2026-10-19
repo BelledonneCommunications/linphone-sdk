@@ -1512,8 +1512,6 @@ static void group_chat_room_creation_server_network_down(void) {
 	bctbx_list_free_with_data(participantsAddresses, (bctbx_list_free_func)linphone_address_unref);
 	participantsAddresses = NULL;
 
-	// Clean db from chat room
-	linphone_core_manager_delete_chat_room(marie, marieCr, coresList);
 	if (marieCr) linphone_chat_room_unref(marieCr);
 
 	bctbx_list_free(coresList);
@@ -4276,10 +4274,11 @@ static void group_chat_room_creation_fails_if_invited_participants_dont_support_
 	                             liblinphone_tester_sip_timeout));
 	bctbx_list_free_with_data(participantsAddresses, (bctbx_list_free_func)linphone_address_unref);
 	participantsAddresses = NULL;
-	BC_ASSERT_EQUAL(linphone_chat_room_get_state(marieCr), LinphoneChatRoomStateCreationFailed, int, "%d");
 
-	// Clean db from chat room
-	linphone_core_manager_delete_chat_room(marie, marieCr, coresList);
+	// Check that due the creation failed, the chatroom has been deleted
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneChatRoomStateDeleted,
+	                             initialMarieStats.number_of_LinphoneChatRoomStateDeleted + 1,
+	                             liblinphone_tester_sip_timeout));
 
 	bctbx_list_free(coresList);
 	bctbx_list_free(coresManagerList);
@@ -9453,6 +9452,9 @@ static void core_stop_start_with_chat_room_ref(void) {
 	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline1->stat.number_of_LinphoneChatRoomStateCreationFailed,
 	                             initialPauline1Stats.number_of_LinphoneChatRoomStateCreationFailed + 1,
 	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline1->stat.number_of_LinphoneChatRoomStateDeleted,
+	                             initialPauline1Stats.number_of_LinphoneChatRoomStateDeleted + 1,
+	                             liblinphone_tester_sip_timeout));
 	if (chatRoom) linphone_chat_room_unref(chatRoom);
 
 	coresList = bctbx_list_remove(coresList, pauline1->lc);
@@ -9970,7 +9972,28 @@ static void group_chat_room_creation_failure_while_on_a_call(void) {
 
 	end_call(marie, pauline);
 
+	// Keep the conference address: the chat room is gone after the unref and the core restart
+	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
+	BC_ASSERT_PTR_NOT_NULL(confAddr);
 	linphone_chat_room_unref(marieCr);
+
+	ms_message("Restart %s's core", linphone_core_get_identity(marie->lc));
+	coresList = bctbx_list_remove(coresList, marie->lc);
+	linphone_core_manager_reinit(marie);
+	bctbx_list_t *tmpCoresManagerList = bctbx_list_append(NULL, marie);
+	bctbx_list_free(init_core_for_conference(tmpCoresManagerList));
+	bctbx_list_free(tmpCoresManagerList);
+	linphone_config_set_int(linphone_core_get_config(marie->lc), "misc", "hide_empty_chat_rooms", 0);
+	linphone_core_manager_start(marie, TRUE);
+	coresList = bctbx_list_append(coresList, marie->lc);
+
+	// The chat room that failed to be created must not be reloaded from the database
+	BC_ASSERT_EQUAL((int)bctbx_list_size(linphone_core_get_chat_rooms(marie->lc)), 0, int, "%d");
+	if (confAddr) {
+		LinphoneChatRoom *reloadedCr = linphone_core_search_chat_room(marie->lc, NULL, NULL, confAddr, NULL);
+		BC_ASSERT_PTR_NULL(reloadedCr);
+		linphone_address_unref(confAddr);
+	}
 
 	bctbx_list_free(coresList);
 	bctbx_list_free(coresManagerList);

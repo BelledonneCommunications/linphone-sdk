@@ -1151,6 +1151,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 #ifdef HAVE_ADVANCED_IM
 		auto chatRoom = getChatRoom();
 		auto clientGroupChatRoom = dynamic_pointer_cast<ClientChatRoom>(chatRoom);
+		bool creationFailed = false;
 		switch (state) {
 			case CallSession::State::Connected: {
 				mPendingSubject.clear();
@@ -1261,21 +1262,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 				if ((mState == ConferenceInterface::State::Instantiated) ||
 				    (mState == ConferenceInterface::State::CreationPending)) {
 					setState(ConferenceInterface::State::CreationFailed);
-					// If there are chat message pending chat room creation, set state to NotDelivered and remove
-					// them from queue.
-					if (clientGroupChatRoom) {
-						const std::list<std::shared_ptr<ChatMessage>> &pendingCreationMessages =
-						    clientGroupChatRoom->getPendingCreationMessages();
-						for (const auto &msg : pendingCreationMessages) {
-							msg->getPrivate()->setParticipantState(
-							    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
-						}
-						clientGroupChatRoom->clearPendingCreationMessages();
-					}
-					if (reason == LinphoneReasonForbidden) {
-						setState(ConferenceInterface::State::Terminated);
-						chatRoom->deleteFromDb();
-					}
+					creationFailed = true;
 				} else if (mState == ConferenceInterface::State::TerminationPending) {
 					if (reason == LinphoneReasonNotFound) {
 						// Somehow the chat room is no longer known on the server, so terminate it
@@ -1296,6 +1283,10 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 		if (chatRoom) {
 			linphone_chat_room_notify_session_state_changed(chatRoom->toC(), static_cast<LinphoneCallState>(state),
 			                                                L_STRING_TO_C(message));
+		}
+		// Delete the chat room only once the client has been notified of the session error
+		if (creationFailed) {
+			handleCreationFailed(session);
 		}
 #endif // HAVE_ADVANCED_IM
 	} else {
@@ -2735,6 +2726,29 @@ void ClientConference::handleRejectedRefer() {
 	}
 }
 
+void ClientConference::handleCreationFailed(BCTBX_UNUSED(const std::shared_ptr<CallSession> &session)) {
+#ifdef HAVE_ADVANCED_IM
+	if (mState != ConferenceInterface::State::CreationFailed) return;
+
+	auto clientGroupChatRoom = dynamic_pointer_cast<ClientChatRoom>(getChatRoom());
+	if (!clientGroupChatRoom) return;
+	// If there are chat message pending chat room creation, set state to NotDelivered and remove
+	// them from queue.
+	const std::list<std::shared_ptr<ChatMessage>> &pendingCreationMessages =
+	    clientGroupChatRoom->getPendingCreationMessages();
+	for (const auto &msg : pendingCreationMessages) {
+		msg->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
+		                                       ::ms_time(nullptr));
+	}
+	clientGroupChatRoom->clearPendingCreationMessages();
+
+	const auto reason = session ? session->getReason() : LinphoneReasonNone;
+	lInfo() << "Deleting " << *this << " because its creation failed (reason " << linphone_reason_to_string(reason)
+	        << ")";
+	clientGroupChatRoom->deleteFromDbWithoutLeaving();
+#endif // HAVE_ADVANCED_IM
+}
+
 bool ClientConference::sessionParamsAllowThumbnails() const {
 	auto session = dynamic_pointer_cast<MediaSession>(getMainSession());
 	return session ? session->getMediaParams()->rtpBundleEnabled() : false;
@@ -2981,6 +2995,9 @@ void ClientConference::onCallSessionStateChanged(const shared_ptr<CallSession> &
 		if (mConfParams->chatEnabled() && chatRoom) {
 			linphone_chat_room_notify_session_state_changed(chatRoom->toC(), static_cast<LinphoneCallState>(state),
 			                                                L_STRING_TO_C(message));
+		}
+		if (state == CallSession::State::Error) {
+			handleCreationFailed(session);
 		}
 	}
 }
