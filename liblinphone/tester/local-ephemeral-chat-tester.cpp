@@ -47,7 +47,6 @@ static void group_chat_room_server_admin_managed_messages_unencrypted() {
 		Address paulineAddr = pauline.getIdentity();
 		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(paulineAddr.toC()));
 
-		stats chloe_stat = focus.getStats();
 		stats marie_stat = marie.getStats();
 		stats pauline_stat = pauline.getStats();
 
@@ -94,7 +93,6 @@ static void group_chat_room_server_admin_managed_messages_unencrypted() {
 			return true;
 		}));
 
-		chloe_stat = focus.getStats();
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
 
@@ -102,6 +100,133 @@ static void group_chat_room_server_admin_managed_messages_unencrypted() {
 		sendEphemeralMessageInAdminMode(focus, marie, pauline, marieCr, paulineCr, "Hello ", noMsg);
 
 		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
+		bctbx_list_free(coresList);
+	}
+}
+
+static void group_chat_room_server_admin_managed_messages_zero_lifetime() {
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
+		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress());
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(pauline);
+
+		linphone_core_set_default_ephemeral_lifetime(marie.getLc(), 25);
+		linphone_core_set_default_ephemeral_not_read_lifetime(marie.getLc(), 25);
+
+		// Enable IMDN
+		linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(marie.getLc()));
+		linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(pauline.getLc()));
+
+		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
+		coresList = bctbx_list_append(coresList, marie.getLc());
+		coresList = bctbx_list_append(coresList, pauline.getLc());
+		Address paulineAddr = pauline.getIdentity();
+		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(paulineAddr.toC()));
+
+		stats marie_stat = marie.getStats();
+		stats pauline_stat = pauline.getStats();
+
+		// Marie creates a new group chat room
+		const char *initialSubject = "Colleagues (characters: $ £ çà)";
+		const LinphoneChatRoomEphemeralMode adminMode = LinphoneChatRoomEphemeralModeAdminManaged;
+
+		LinphoneConferenceParams *params = linphone_core_create_conference_params_2(marie.getLc(), NULL);
+		linphone_conference_params_set_security_level(params, LinphoneConferenceSecurityLevelNone);
+		linphone_conference_params_enable_chat(params, TRUE);
+		linphone_conference_params_enable_group(params, TRUE);
+		LinphoneChatParams *chat_params = linphone_conference_params_get_chat_params(params);
+		linphone_chat_params_set_ephemeral_mode(chat_params, adminMode);
+		linphone_chat_params_set_backend(chat_params, LinphoneChatRoomBackendFlexisipChat);
+		BC_ASSERT_FALSE(linphone_chat_params_activate_ephemeral_2(chat_params, 0, 5));
+
+		LinphoneChatRoom *marieCr = create_chat_room_client_side_with_params(
+		    coresList, marie.getCMgr(), &marie_stat, participantsAddresses, initialSubject, params);
+		linphone_chat_room_params_unref(params);
+		BC_ASSERT_PTR_NOT_NULL(marieCr);
+		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
+
+		// Check that the chat room is correctly created on Pauline's side and that the participants are added
+		LinphoneChatRoom *paulineCr = check_creation_chat_room_client_side(coresList, pauline.getCMgr(), &pauline_stat,
+		                                                                   confAddr, initialSubject, 1, FALSE);
+
+		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_mode(marieCr), adminMode, int, "%d");
+		BC_ASSERT_FALSE(linphone_chat_room_ephemeral_enabled(marieCr));
+		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(marieCr), 0, int, "%d");
+		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_not_read_lifetime(marieCr), 5, int, "%d");
+		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_mode(paulineCr), adminMode, int, "%d");
+		BC_ASSERT_FALSE(linphone_chat_room_ephemeral_enabled(paulineCr));
+		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(paulineCr), 0, int, "%d");
+		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_not_read_lifetime(paulineCr), 5, int, "%d");
+
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline}).wait([&focus] {
+			for (auto chatRoom : focus.getCore().getChatRooms()) {
+				for (auto participant : chatRoom->getParticipants()) {
+					for (auto device : participant->getDevices())
+						if (device->getState() != ParticipantDevice::State::Present) {
+							return false;
+						}
+				}
+			}
+			return true;
+		}));
+
+		marie_stat = marie.getStats();
+		pauline_stat = pauline.getStats();
+
+		LinphoneChatMessage *nonEphemeralMessage =
+		    _send_message_ephemeral(marieCr, "I have disabled ephemeral messages", TRUE);
+		BC_ASSERT_PTR_NOT_NULL(nonEphemeralMessage);
+
+		auto marieHistory = linphone_chat_room_get_history(marieCr, 0);
+		BC_ASSERT_EQUAL((int)bctbx_list_size(marieHistory), 1, int, "%i");
+		bctbx_list_free_with_data(marieHistory, (bctbx_list_free_func)linphone_chat_message_unref);
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneMessageReceived,
+		                             pauline_stat.number_of_LinphoneMessageReceived + 1,
+		                             liblinphone_tester_sip_timeout));
+
+		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomEphemeralTimerStarted,
+		                              marie_stat.number_of_LinphoneChatRoomEphemeralTimerStarted + 1, 2000));
+
+		BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomEphemeralTimerStarted,
+		                              pauline_stat.number_of_LinphoneChatRoomEphemeralTimerStarted + 1, 2000));
+
+		if (nonEphemeralMessage) {
+			linphone_chat_message_unref(nonEphemeralMessage);
+		}
+
+		// wait a bit longer to detect side effect if any
+		CoreManagerAssert({focus, marie, pauline}).waitUntil(chrono::seconds(5), [] { return false; });
+
+		marie_stat = marie.getStats();
+		pauline_stat = pauline.getStats();
+
+		nonEphemeralMessage = _send_message_ephemeral(
+		    paulineCr, "You're right and I cannot enable them coz I'm not an administrator....", TRUE);
+		BC_ASSERT_PTR_NOT_NULL(nonEphemeralMessage);
+
+		auto paulineHistory = linphone_chat_room_get_history(paulineCr, 0);
+		BC_ASSERT_EQUAL((int)bctbx_list_size(paulineHistory), 2, int, "%i");
+		bctbx_list_free_with_data(paulineHistory, (bctbx_list_free_func)linphone_chat_message_unref);
+
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneMessageReceived,
+		                             marie_stat.number_of_LinphoneMessageReceived + 1, liblinphone_tester_sip_timeout));
+
+		BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_LinphoneChatRoomEphemeralTimerStarted,
+		                              marie_stat.number_of_LinphoneChatRoomEphemeralTimerStarted + 1, 2000));
+
+		BC_ASSERT_FALSE(wait_for_list(coresList, &pauline.getStats().number_of_LinphoneChatRoomEphemeralTimerStarted,
+		                              pauline_stat.number_of_LinphoneChatRoomEphemeralTimerStarted + 1, 2000));
+
+		if (nonEphemeralMessage) {
+			linphone_chat_message_unref(nonEphemeralMessage);
+		}
+
+		deleteChatRoomsOnServer(focus, {focus, marie, pauline});
+
 		bctbx_list_free(coresList);
 	}
 }
@@ -125,7 +250,6 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_enabled_afte
 		Address paulineAddr = pauline.getIdentity();
 		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(paulineAddr.toC()));
 
-		stats chloe_stat = focus.getStats();
 		stats marie_stat = marie.getStats();
 		stats pauline_stat = pauline.getStats();
 
@@ -192,7 +316,6 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_enabled_afte
 			return true;
 		}));
 
-		chloe_stat = focus.getStats();
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
 
@@ -265,7 +388,6 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_disabled_aft
 		Address paulineAddr = pauline.getIdentity();
 		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(paulineAddr.toC()));
 
-		stats chloe_stat = focus.getStats();
 		stats marie_stat = marie.getStats();
 		stats pauline_stat = pauline.getStats();
 
@@ -321,7 +443,6 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_disabled_aft
 			return true;
 		}));
 
-		chloe_stat = focus.getStats();
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
 
@@ -555,7 +676,6 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_lifetime_tog
 		Address paulineAddr = pauline.getIdentity();
 		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(paulineAddr.toC()));
 
-		stats chloe_stat = focus.getStats();
 		stats marie_stat = marie.getStats();
 		stats pauline_stat = pauline.getStats();
 
@@ -604,7 +724,6 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_lifetime_tog
 		BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(paulineCr));
 		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(paulineCr), 10, int, "%d");
 
-		chloe_stat = focus.getStats();
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
 
@@ -626,7 +745,6 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_lifetime_tog
 		BC_ASSERT_FALSE(linphone_chat_room_ephemeral_enabled(paulineCr));
 		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(paulineCr), 0, int, "%d");
 
-		chloe_stat = focus.getStats();
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
 
@@ -685,7 +803,6 @@ static void group_chat_room_server_admin_managed_messages_ephemeral_lifetime_tog
 		BC_ASSERT_EQUAL(linphone_chat_room_get_ephemeral_lifetime(paulineCr),
 		                linphone_core_get_default_ephemeral_lifetime(marie.getLc()), int, "%d");
 
-		chloe_stat = focus.getStats();
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
 
@@ -722,7 +839,6 @@ static void group_chat_room_server_ephemeral_mode_changed(void) {
 		Address paulineAddr = pauline.getIdentity();
 		bctbx_list_t *participantsAddresses = bctbx_list_append(NULL, linphone_address_ref(paulineAddr.toC()));
 
-		stats chloe_stat = focus.getStats();
 		stats marie_stat = marie.getStats();
 		stats pauline_stat = pauline.getStats();
 
@@ -789,7 +905,6 @@ static void group_chat_room_server_ephemeral_mode_changed(void) {
 			return true;
 		}));
 
-		chloe_stat = focus.getStats();
 		marie_stat = marie.getStats();
 		pauline_stat = pauline.getStats();
 
@@ -875,6 +990,8 @@ static void group_chat_room_server_ephemeral_mode_changed(void) {
 static test_t local_conference_ephemeral_chat_tests[] = {
     TEST_NO_TAG("Unencrypted group chat server chat room with admin managed ephemeral messages",
                 LinphoneTest::group_chat_room_server_admin_managed_messages_unencrypted),
+    TEST_NO_TAG("Unencrypted group chat server chat room with zero ephemeral lifetime",
+                LinphoneTest::group_chat_room_server_admin_managed_messages_zero_lifetime),
     TEST_ONE_TAG("Group chat Server chat room with admin managed ephemeral messages disabled after creation",
                  LinphoneTest::group_chat_room_server_admin_managed_messages_ephemeral_disabled_after_creation,
                  "LeaksMemory"), /* because of coreMgr restart*/

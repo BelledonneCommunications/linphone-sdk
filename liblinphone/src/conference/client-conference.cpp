@@ -365,10 +365,12 @@ MediaSessionParams ClientConference::createDefaultMediaParams(const std::shared_
 			}
 			if (chatParams->getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged) {
 				msp.addCustomHeader(ChatRoom::kEphemerableHeader, "true");
+				msp.addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
+				                    to_string(chatParams->ephemeralEnabled() ? chatParams->getEphemeralLifetime() : 0));
+				msp.addCustomHeader(
+				    ChatRoom::kEphemeralNotReadLifeTimeHeader,
+				    to_string(chatParams->ephemeralEnabled() ? chatParams->getEphemeralNotReadLifetime() : 0));
 			}
-			msp.addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader, to_string(chatParams->getEphemeralLifetime()));
-			msp.addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
-			                    to_string(chatParams->getEphemeralNotReadLifetime()));
 		}
 	}
 

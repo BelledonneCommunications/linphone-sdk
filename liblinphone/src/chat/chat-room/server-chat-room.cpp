@@ -486,13 +486,12 @@ void ServerChatRoom::handleEphemeralSettingsChange(const shared_ptr<CallSession>
 	}
 	if (getCurrentParams()->getChatParams()->ephemeralAllowed()) {
 		const auto op = session->getPrivate()->getOp();
+		const string ephemerable = L_C_TO_STRING(sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemerableHeader.c_str()));
 		const string ephemeralLifetime = L_C_TO_STRING(
 		    sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemeralLifeTimeHeader.c_str()));
 		const string ephemeralNotReadLifetime = L_C_TO_STRING(
 		    sal_custom_header_find(op->getRecvCustomHeaders(), ChatRoom::kEphemeralNotReadLifeTimeHeader.c_str()));
-		if (ephemeralLifetime.empty() && ephemeralNotReadLifetime.empty()) {
-			setEphemeralModeForDevice(AbstractChatRoom::EphemeralMode::DeviceManaged, session);
-		} else {
+		if (ephemerable == "true") {
 			long lifetime = 0;
 			long notReadLifetime = 0;
 			if (!ephemeralLifetime.empty()) {
@@ -502,6 +501,8 @@ void ServerChatRoom::handleEphemeralSettingsChange(const shared_ptr<CallSession>
 				notReadLifetime = std::stol(ephemeralNotReadLifetime, nullptr);
 			}
 			setEphemeralLifetimeForDevice(lifetime, notReadLifetime, session);
+		} else {
+			setEphemeralModeForDevice(AbstractChatRoom::EphemeralMode::DeviceManaged, session);
 		}
 	}
 }

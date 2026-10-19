@@ -248,6 +248,9 @@ The <i>misc</i> section represents unspecific options.
 	<tr><td>max_calls</td><td>integer</td><td>0 - INT_MAX</td><td>10</td><td>linphone_core_set_max_calls()</td><td>\copybrief linphone_core_set_max_calls</td></tr>
 	<tr><td>user_agent</td><td>string</td><td>RFC3261 compatible user-agent value</td><td>""</td><td>linphone_core_set_user_agent()</td><td>\copybrief linphone_core_set_user_agent</td></tr>
 	<tr><td>empty_chat_room_deletion</td><td>integer</td><td>0 or 1</td><td>0</td><td>linphone_core_enable_empty_chatrooms_deletion()</td><td>\copybrief linphone_core_enable_empty_chatrooms_deletion</td></tr>
+	<tr><td>chat_room_ephemeral_mode</td><td>integer</td><td>enumeration #LinphoneChatRoomEphemeralMode</td><td>LinphoneChatRoomEphemeralModeDeviceManaged</td><td>linphone_core_set_default_ephemeral_mode()</td><td>\copybrief linphone_core_set_default_ephemeral_mode</td></tr>
+	<tr><td>ephemeral_lifetime</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>linphone_core_set_default_ephemeral_lifetime()</td><td>\copybrief linphone_core_set_default_ephemeral_lifetime</td></tr>
+	<tr><td>ephemeral_not_read_lifetime</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>linphone_core_set_default_ephemeral_not_read_lifetime()</td><td>\copybrief linphone_core_set_default_ephemeral_not_read_lifetime</td></tr>
 </table>
 
 <h2>SIP accounts - section [<i>proxy_N</i>]</h2>

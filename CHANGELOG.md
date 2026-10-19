@@ -20,9 +20,14 @@ changes made to these components.
 ### Changes
 - Refactor ICE and STUN/TURN from C to C++
 - Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
-- Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
-- CSharp Wrapper: Separate getter/setter deprecation and set minimal version on C# for property obsolete features (8.0).
 - Updated Sqlite3 dependency to 3.54.0
+- Updated decaf dependency to 1.0.5
+- Updated SRTP library dependency to 2.8.1
+
+## [5.5.35] 2026-10-19
+
+### Changed
+- Update to MBedTls v3.6.7
 
 ## [5.5.34] 2026-10-15
 

@@ -120,6 +120,7 @@ private:
 	virtual void sendPendingMessages() override;
 
 	void sendEphemeralUpdate();
+	void updateEphemeralHeaders(MediaSessionParams *params) const;
 
 	void deleteChatRoomFromDb(bool leaveChatRoom);
 

@@ -189,7 +189,7 @@ LINPHONE_PUBLIC void linphone_chat_room_mark_as_read(LinphoneChatRoom *chat_room
  * - at sender side, when the message enters the state LinphoneChatMessageStateDisplayed (when receiving the displayed
  * IMDN).
  *
- * At least one from lifetime or notReadLifetime must be strictly positive.
+ * The feature will only be enabled if argument \a lifetime is a strictly positive integer.
  *
  * @param chat_room #LinphoneChatRoom object @notnil
  * @param lifetime The ephemeral lifetime strictly positive. To disable the feature, use
