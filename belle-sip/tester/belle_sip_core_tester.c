@@ -265,6 +265,7 @@ static void test_presence_marshal(void) {
 
 	belle_sip_object_unref(mpbh);
 	belle_sip_object_unref(memory_mpbh);
+	belle_sip_free(desc);
 }
 
 static void test_compressed_body(void) {

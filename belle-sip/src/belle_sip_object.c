@@ -352,7 +352,7 @@ int belle_sip_object_data_remove(belle_sip_object_t *obj, const char *name) {
 		if (entry->destroy_func) entry->destroy_func(entry->data);
 		belle_sip_free(entry);
 	}
-	if (list_entry) obj->data_store = belle_sip_list_remove_link(obj->data_store, list_entry);
+	if (list_entry) obj->data_store = belle_sip_list_delete_link(obj->data_store, list_entry);
 	return !(list_entry != NULL);
 }
 
@@ -369,7 +369,7 @@ void *belle_sip_object_data_grab(belle_sip_object_t *obj, const char *name) {
 		belle_sip_free(entry->name);
 		data = entry->data;
 	}
-	obj->data_store = belle_sip_list_remove_link(obj->data_store, list_entry);
+	if (list_entry) obj->data_store = belle_sip_list_delete_link(obj->data_store, list_entry);
 	belle_sip_free(entry);
 
 	return data;

@@ -374,6 +374,8 @@ int belle_sip_memory_body_handler_unapply_encoding(belle_sip_memory_body_handler
 					 * input content */
 					if (strm.avail_out > 0) {
 						belle_sip_error("%s: truncated compressed body. Cannot uncompress it...", __FUNCTION__);
+						inflateEnd(&strm);
+						belle_sip_free(outbuf);
 						return -1;
 					}
 					break;
