@@ -11,6 +11,11 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
+## [5.5.35] 2026-10-19
+
+### Changed
+- Update to MBedTls v3.6.7
+
 ## [5.5.34] 2026-10-15
 
 ### Added

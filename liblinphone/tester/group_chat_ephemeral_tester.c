@@ -50,20 +50,35 @@ void set_ephemeral_cbs(bctbx_list_t *history) {
 	}
 }
 
-static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy policy,
-                                   const bool_t encrypted,
-                                   const bool_t remained,
-                                   const bool_t expired,
-                                   const bool_t read,
-                                   const bool_t use_not_read_lifetime,
-                                   const int curveId) {
+struct ephemeral_message_test_configuration {
+	LinphoneEphemeralChatMessagePolicy policy;
+	bool_t encrypted;
+	bool_t remained;
+	bool_t expired;
+	bool_t read;
+	bool_t use_not_read_lifetime;
+	bool_t zero_normal_lifetime;
+	int curveId;
+};
+
+static void ephemeral_message_test(struct ephemeral_message_test_configuration params) {
+	const LinphoneEphemeralChatMessagePolicy policy = params.policy;
+	const bool_t encrypted = params.encrypted;
+	const bool_t remained = params.remained;
+	const bool_t expired = params.expired;
+	const bool_t read = params.read;
+	const bool_t use_not_read_lifetime = params.use_not_read_lifetime;
+	// Ephemeral messages are disabled if the normal ephemeral time is 0
+	const bool_t zero_normal_lifetime = params.zero_normal_lifetime;
+	const int curveId = params.curveId;
 	LinphoneCoreManager *marie = linphone_core_manager_create("marie_rc");
 	LinphoneCoreManager *pauline = linphone_core_manager_create("pauline_rc");
 	bctbx_list_t *coresManagerList = NULL;
 	bctbx_list_t *participantsAddresses = NULL;
 	coresManagerList = bctbx_list_append(coresManagerList, marie);
 	coresManagerList = bctbx_list_append(coresManagerList, pauline);
-	int size;
+	int ephemeral_messages_counter;
+	int non_ephemeral_messages_counter;
 	static const int ephemeral_long_time = 20;
 
 	set_lime_server_and_curve_list(curveId, coresManagerList);
@@ -109,8 +124,13 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 
 	LinphoneChatMessage *message[10];
 	if (remained) {
-		linphone_chat_room_activate_ephemeral_3(marieCr, ephemeral_long_time,
+		initialMarieStats = marie->stat;
+		linphone_chat_room_activate_ephemeral_3(marieCr, zero_normal_lifetime ? 0 : ephemeral_long_time,
 		                                        use_not_read_lifetime ? ephemeral_long_time : 0);
+
+		// Check that the client doesn't send a reINVITE when ephemeral settings have changed
+		BC_ASSERT_FALSE(wait_for_list(coresList, &marie->stat.number_of_LinphoneChatRoomSessionUpdating,
+		                              initialMarieStats.number_of_LinphoneChatRoomSessionUpdating + 1, 2000));
 
 		// Marie sends messages
 		for (int i = 0; i < 10; i++) {
@@ -118,48 +138,59 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 		}
 	}
 
-	// Marie disable ephemeral in the group chat room
+	// Marie disables ephemeral in the group chat room
 	linphone_chat_room_deactivate_ephemeral(marieCr);
 	LinphoneChatMessage *messageNormal = _send_message(marieCr, "See you later");
 
 	static const int ephemeral_short_time = 5;
 	LinphoneChatMessage *messagef[10];
-	linphone_chat_room_activate_ephemeral_3(marieCr, ephemeral_short_time,
-	                                        use_not_read_lifetime ? liblinphone_tester_sip_timeout / 2000 : 0);
+	linphone_chat_room_activate_ephemeral_3(marieCr, zero_normal_lifetime ? 0 : ephemeral_short_time,
+	                                        zero_normal_lifetime
+	                                            ? ephemeral_short_time
+	                                            : (use_not_read_lifetime ? liblinphone_tester_sip_timeout / 2000 : 0));
 
-	BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(marieCr));
+	BC_ASSERT_TRUE(linphone_chat_room_ephemeral_enabled(marieCr) == !zero_normal_lifetime);
 
 	// Marie sends messages
 	for (int i = 0; i < 10; i++) {
 		messagef[i] = _send_message_ephemeral(marieCr, "This is Marie", TRUE);
 	}
 
-	size = remained ? 20 : 10;
+	ephemeral_messages_counter = remained ? 20 : 10;
+	non_ephemeral_messages_counter = 1;
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageReceived,
-	                             initialPaulineStats.number_of_LinphoneMessageReceived + size + 1, 30000));
+	                             initialPaulineStats.number_of_LinphoneMessageReceived + ephemeral_messages_counter +
+	                                 non_ephemeral_messages_counter,
+	                             30000));
 
 	bctbx_list_t *history = linphone_chat_room_get_history(paulineCr, 0);
 	set_ephemeral_cbs(history);
 
 	// Check that the message has been delivered to Pauline
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageDeliveredToUser,
-	                             initialMarieStats.number_of_LinphoneMessageDeliveredToUser + size + 1,
+	                             initialMarieStats.number_of_LinphoneMessageDeliveredToUser +
+	                                 ephemeral_messages_counter + non_ephemeral_messages_counter,
 	                             liblinphone_tester_sip_timeout));
 
-	int marie_nb_ephemeral_timers = size;
-	int pauline_nb_ephemeral_timers = size;
+	int marie_nb_ephemeral_timers = 0;
+	int pauline_nb_ephemeral_timers = 0;
+	if (!zero_normal_lifetime) {
+		marie_nb_ephemeral_timers += ephemeral_messages_counter;
+		pauline_nb_ephemeral_timers += ephemeral_messages_counter;
+	}
 	if (read) {
 		// Pauline marks the message as read, check that the state is now displayed on Marie's side
 		linphone_chat_room_mark_as_read(paulineCr);
 		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageDisplayed,
-		                             initialMarieStats.number_of_LinphoneMessageDisplayed + size + 1,
+		                             initialMarieStats.number_of_LinphoneMessageDisplayed + ephemeral_messages_counter +
+		                                 non_ephemeral_messages_counter,
 		                             liblinphone_tester_sip_timeout));
-		if (use_not_read_lifetime) {
-			pauline_nb_ephemeral_timers *= 2; // For not-read and normal timers
+		if (!zero_normal_lifetime && use_not_read_lifetime) {
+			pauline_nb_ephemeral_timers += ephemeral_messages_counter; // For not-read and normal timers
 			if (policy == LinphoneEphemeralChatMessagePolicyDefault) {
 				// If policy is individual the ephemeral not-read countdowns will not be started
-				marie_nb_ephemeral_timers *= 2;
+				marie_nb_ephemeral_timers += ephemeral_messages_counter;
 			}
 		}
 	}
@@ -176,35 +207,49 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 	    wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageEphemeralTimerStarted,
 	                  initialMarieStats.number_of_LinphoneMessageEphemeralTimerStarted + marie_nb_ephemeral_timers,
 	                  liblinphone_tester_sip_timeout));
-	// Use 'size' instead of 'nb_ephemeral_timers' here because the ephemeral callbacks are set too late to catch the
-	// ephemeral not-read timers, and only test that if 'read' is true
-	if (read) {
+	// Use 'ephemeral_messages_counter' instead of 'nb_ephemeral_timers' here because the ephemeral callbacks are set
+	// too late to catch the ephemeral not-read timers, and only test that if 'read' is true
+	if (read && !zero_normal_lifetime) {
 		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageEphemeralTimerStarted,
-		                             initialPaulineStats.number_of_LinphoneMessageEphemeralTimerStarted + size,
+		                             initialPaulineStats.number_of_LinphoneMessageEphemeralTimerStarted +
+		                                 ephemeral_messages_counter,
 		                             liblinphone_tester_sip_timeout));
 	}
 
+	// If the normal ephemeral counter is 0, then the not-read ephemeral counter is triggered
 	const int ephemeral_short_timer_timeout_ms = (ephemeral_short_time + 1) * 1000;
-	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneChatRoomEphemeralDeleted,
-	                             initialMarieStats.number_of_LinphoneChatRoomEphemeralDeleted + 10,
-	                             ephemeral_short_timer_timeout_ms));
-	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneChatRoomEphemeralDeleted,
-	                             initialPaulineStats.number_of_LinphoneChatRoomEphemeralDeleted + 10,
-	                             ephemeral_short_timer_timeout_ms));
-	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageEphemeralDeleted,
-	                             initialMarieStats.number_of_LinphoneMessageEphemeralDeleted + 10,
-	                             ephemeral_short_timer_timeout_ms));
-	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageEphemeralDeleted,
-	                             initialPaulineStats.number_of_LinphoneMessageEphemeralDeleted + 10,
-	                             ephemeral_short_timer_timeout_ms));
+	if (marie_nb_ephemeral_timers > 0) {
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneChatRoomEphemeralDeleted,
+		                             initialMarieStats.number_of_LinphoneChatRoomEphemeralDeleted + 10,
+		                             ephemeral_short_timer_timeout_ms));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageEphemeralDeleted,
+		                             initialMarieStats.number_of_LinphoneMessageEphemeralDeleted + 10,
+		                             ephemeral_short_timer_timeout_ms));
+		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr),
+		                ephemeral_messages_counter - 10 + non_ephemeral_messages_counter, int, "%d");
+	} else {
+		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr),
+		                ephemeral_messages_counter + non_ephemeral_messages_counter, int, "%d");
+	}
+	if (pauline_nb_ephemeral_timers > 0) {
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneChatRoomEphemeralDeleted,
+		                             initialPaulineStats.number_of_LinphoneChatRoomEphemeralDeleted + 10,
+		                             ephemeral_short_timer_timeout_ms));
+		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageEphemeralDeleted,
+		                             initialPaulineStats.number_of_LinphoneMessageEphemeralDeleted + 10,
+		                             ephemeral_short_timer_timeout_ms));
+		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr),
+		                ephemeral_messages_counter - 10 + non_ephemeral_messages_counter, int, "%d");
+	} else {
+		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr),
+		                ephemeral_messages_counter + non_ephemeral_messages_counter, int, "%d");
+	}
 
-	size = size - 9;
-	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), size, int, "%d");
-	BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), size, int, "%d");
 	if (remained) {
 		LinphoneChatMessage *msg = linphone_chat_room_get_last_message_in_history(paulineCr);
 		if (BC_ASSERT_PTR_NOT_NULL(msg)) {
-			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_text(msg), "See you later");
+			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_text(msg),
+			                       (zero_normal_lifetime) ? "This is Marie" : "See you later");
 			linphone_chat_message_unref(msg);
 		}
 	}
@@ -231,18 +276,23 @@ static void ephemeral_message_test(const LinphoneEphemeralChatMessagePolicy poli
 		linphone_address_unref(peerAddr);
 
 		const int ephemeral_long_timer_timeout_ms = (ephemeral_long_time + 1) * 1000;
-		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneChatRoomEphemeralDeleted,
-		                             initialMarieStats.number_of_LinphoneChatRoomEphemeralDeleted + 20,
-		                             ephemeral_long_timer_timeout_ms));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneChatRoomEphemeralDeleted,
-		                             initialPaulineStats.number_of_LinphoneChatRoomEphemeralDeleted + 10,
-		                             ephemeral_long_timer_timeout_ms));
-		BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageEphemeralDeleted,
-		                             initialMarieStats.number_of_LinphoneMessageEphemeralDeleted + 20,
-		                             ephemeral_long_timer_timeout_ms));
-
-		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), 1, int, "%d");
-		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), 1, int, "%d");
+		int nb_remaining_messages = 0;
+		if (zero_normal_lifetime) {
+			nb_remaining_messages = ephemeral_messages_counter + non_ephemeral_messages_counter;
+		} else {
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneChatRoomEphemeralDeleted,
+			                             initialMarieStats.number_of_LinphoneChatRoomEphemeralDeleted + 20,
+			                             ephemeral_long_timer_timeout_ms));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneChatRoomEphemeralDeleted,
+			                             initialPaulineStats.number_of_LinphoneChatRoomEphemeralDeleted + 10,
+			                             ephemeral_long_timer_timeout_ms));
+			BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageEphemeralDeleted,
+			                             initialMarieStats.number_of_LinphoneMessageEphemeralDeleted + 20,
+			                             ephemeral_long_timer_timeout_ms));
+			nb_remaining_messages = non_ephemeral_messages_counter;
+		}
+		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(marieCr), nb_remaining_messages, int, "%d");
+		BC_ASSERT_EQUAL(linphone_chat_room_get_history_size(paulineCr), nb_remaining_messages, int, "%d");
 
 		if (!expired)
 			BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageEphemeralDeleted,
@@ -281,11 +331,40 @@ end:
 }
 
 static void encrypted_chat_room_ephemeral_message_test_with_policy(const LinphoneEphemeralChatMessagePolicy policy) {
-	// To test that messages are correctly deleted with the ephemeral not-read timers
-	ephemeral_message_test(policy, TRUE, FALSE, FALSE, FALSE, TRUE, C25519);
+	struct ephemeral_message_test_configuration params0;
+	params0.policy = policy;
+	params0.encrypted = TRUE;
+	params0.remained = FALSE;
+	params0.expired = FALSE;
+	params0.read = FALSE;
+	params0.use_not_read_lifetime = TRUE;
+	params0.zero_normal_lifetime = FALSE;
+	params0.curveId = C25519;
 
-	ephemeral_message_test(policy, TRUE, FALSE, FALSE, TRUE, FALSE, C25519);
-	ephemeral_message_test(policy, TRUE, FALSE, FALSE, TRUE, TRUE, C448);
+	// To test that messages are correctly deleted with the ephemeral not-read timers
+	ephemeral_message_test(params0);
+
+	struct ephemeral_message_test_configuration params1;
+	params1.policy = policy;
+	params1.encrypted = TRUE;
+	params1.remained = FALSE;
+	params1.expired = FALSE;
+	params1.read = TRUE;
+	params1.use_not_read_lifetime = FALSE;
+	params1.zero_normal_lifetime = FALSE;
+	params1.curveId = C25519;
+	ephemeral_message_test(params1);
+
+	struct ephemeral_message_test_configuration params2;
+	params2.policy = policy;
+	params2.encrypted = TRUE;
+	params2.remained = FALSE;
+	params2.expired = FALSE;
+	params2.read = TRUE;
+	params2.use_not_read_lifetime = TRUE;
+	params2.zero_normal_lifetime = FALSE;
+	params2.curveId = C25519;
+	ephemeral_message_test(params2);
 }
 
 static void encrypted_chat_room_ephemeral_message_default_policy_test(void) {
@@ -297,11 +376,40 @@ static void encrypted_chat_room_ephemeral_message_individual_policy_test(void) {
 }
 
 static void unencrypted_chat_room_ephemeral_message_test_with_policy(const LinphoneEphemeralChatMessagePolicy policy) {
-	// To test that messages are correctly deleted with the ephemeral not-read timers
-	ephemeral_message_test(policy, FALSE, FALSE, FALSE, FALSE, TRUE, C25519);
+	struct ephemeral_message_test_configuration params0;
+	params0.policy = policy;
+	params0.encrypted = FALSE;
+	params0.remained = FALSE;
+	params0.expired = FALSE;
+	params0.read = FALSE;
+	params0.use_not_read_lifetime = TRUE;
+	params0.zero_normal_lifetime = FALSE;
+	params0.curveId = C25519;
 
-	ephemeral_message_test(policy, FALSE, FALSE, FALSE, TRUE, FALSE, C25519);
-	ephemeral_message_test(policy, FALSE, FALSE, FALSE, TRUE, TRUE, C448);
+	// To test that messages are correctly deleted with the ephemeral not-read timers
+	ephemeral_message_test(params0);
+
+	struct ephemeral_message_test_configuration params1;
+	params1.policy = policy;
+	params1.encrypted = FALSE;
+	params1.remained = FALSE;
+	params1.expired = FALSE;
+	params1.read = TRUE;
+	params1.use_not_read_lifetime = TRUE;
+	params1.zero_normal_lifetime = FALSE;
+	params1.curveId = C25519;
+	ephemeral_message_test(params1);
+
+	struct ephemeral_message_test_configuration params2;
+	params2.policy = policy;
+	params2.encrypted = TRUE;
+	params2.remained = FALSE;
+	params2.expired = FALSE;
+	params2.read = TRUE;
+	params2.use_not_read_lifetime = TRUE;
+	params2.zero_normal_lifetime = FALSE;
+	params2.curveId = C448;
+	ephemeral_message_test(params2);
 }
 
 static void unencrypted_chat_room_ephemeral_message_default_policy_test(void) {
@@ -313,11 +421,40 @@ static void unencrypted_chat_room_ephemeral_message_individual_policy_test(void)
 }
 
 static void chat_room_remaining_ephemeral_message_test_with_policy(const LinphoneEphemeralChatMessagePolicy policy) {
-	// To test that messages are correctly deleted with the ephemeral not-read timers
-	ephemeral_message_test(policy, TRUE, TRUE, FALSE, FALSE, TRUE, C25519);
+	struct ephemeral_message_test_configuration params0;
+	params0.policy = policy;
+	params0.encrypted = TRUE;
+	params0.remained = TRUE;
+	params0.expired = FALSE;
+	params0.read = FALSE;
+	params0.use_not_read_lifetime = TRUE;
+	params0.zero_normal_lifetime = FALSE;
+	params0.curveId = C25519;
 
-	ephemeral_message_test(policy, TRUE, TRUE, FALSE, TRUE, FALSE, C25519);
-	ephemeral_message_test(policy, TRUE, TRUE, FALSE, TRUE, TRUE, C448);
+	// To test that messages are correctly deleted with the ephemeral not-read timers
+	ephemeral_message_test(params0);
+
+	struct ephemeral_message_test_configuration params1;
+	params1.policy = policy;
+	params1.encrypted = TRUE;
+	params1.remained = TRUE;
+	params1.expired = FALSE;
+	params1.read = TRUE;
+	params1.use_not_read_lifetime = FALSE;
+	params1.zero_normal_lifetime = FALSE;
+	params1.curveId = C25519;
+	ephemeral_message_test(params1);
+
+	struct ephemeral_message_test_configuration params2;
+	params2.policy = policy;
+	params2.encrypted = TRUE;
+	params2.remained = TRUE;
+	params2.expired = FALSE;
+	params2.read = TRUE;
+	params2.use_not_read_lifetime = TRUE;
+	params2.zero_normal_lifetime = FALSE;
+	params2.curveId = C448;
+	ephemeral_message_test(params2);
 }
 
 static void chat_room_remaining_ephemeral_message_default_policy_test(void) {
@@ -329,11 +466,40 @@ static void chat_room_remaining_ephemeral_message_individual_policy_test(void) {
 }
 
 static void chat_room_expired_ephemeral_message_test_with_policy(const LinphoneEphemeralChatMessagePolicy policy) {
-	// To test that messages are correctly deleted with the ephemeral not-read timers
-	ephemeral_message_test(policy, TRUE, TRUE, TRUE, FALSE, TRUE, C25519);
+	struct ephemeral_message_test_configuration params0;
+	params0.policy = policy;
+	params0.encrypted = TRUE;
+	params0.remained = TRUE;
+	params0.expired = TRUE;
+	params0.read = FALSE;
+	params0.use_not_read_lifetime = TRUE;
+	params0.zero_normal_lifetime = FALSE;
+	params0.curveId = C25519;
 
-	ephemeral_message_test(policy, TRUE, TRUE, TRUE, TRUE, FALSE, C25519);
-	ephemeral_message_test(policy, TRUE, TRUE, TRUE, TRUE, TRUE, C448);
+	// To test that messages are correctly deleted with the ephemeral not-read timers
+	ephemeral_message_test(params0);
+
+	struct ephemeral_message_test_configuration params1;
+	params1.policy = policy;
+	params1.encrypted = TRUE;
+	params1.remained = TRUE;
+	params1.expired = TRUE;
+	params1.read = TRUE;
+	params1.use_not_read_lifetime = FALSE;
+	params1.zero_normal_lifetime = FALSE;
+	params1.curveId = C25519;
+	ephemeral_message_test(params1);
+
+	struct ephemeral_message_test_configuration params2;
+	params2.policy = policy;
+	params2.encrypted = TRUE;
+	params2.remained = TRUE;
+	params2.expired = TRUE;
+	params2.read = TRUE;
+	params2.use_not_read_lifetime = TRUE;
+	params2.zero_normal_lifetime = FALSE;
+	params2.curveId = C448;
+	ephemeral_message_test(params2);
 }
 
 static void chat_room_expired_ephemeral_message_default_policy_test(void) {
@@ -342,6 +508,40 @@ static void chat_room_expired_ephemeral_message_default_policy_test(void) {
 
 static void chat_room_expired_ephemeral_message_individual_policy_test(void) {
 	chat_room_expired_ephemeral_message_test_with_policy(LinphoneEphemeralChatMessagePolicyIndividual);
+}
+
+static void chat_room_with_zero_normal_lifetime_test_with_policy(const LinphoneEphemeralChatMessagePolicy policy) {
+	struct ephemeral_message_test_configuration params0;
+	params0.policy = policy;
+	params0.encrypted = TRUE;
+	params0.remained = TRUE;
+	params0.expired = TRUE;
+	params0.read = TRUE;
+	params0.use_not_read_lifetime = TRUE;
+	params0.zero_normal_lifetime = TRUE;
+	params0.curveId = C25519;
+
+	// To test that messages are correctly deleted with the ephemeral not-read timers
+	ephemeral_message_test(params0);
+
+	struct ephemeral_message_test_configuration params1;
+	params1.policy = policy;
+	params1.encrypted = TRUE;
+	params1.remained = TRUE;
+	params1.expired = TRUE;
+	params1.read = TRUE;
+	params1.use_not_read_lifetime = TRUE;
+	params1.zero_normal_lifetime = TRUE;
+	params1.curveId = C448;
+	ephemeral_message_test(params1);
+}
+
+static void chat_room_with_zero_normal_lifetime_default_policy_test(void) {
+	chat_room_with_zero_normal_lifetime_test_with_policy(LinphoneEphemeralChatMessagePolicyDefault);
+}
+
+static void chat_room_with_zero_normal_lifetime_individual_policy_test(void) {
+	chat_room_with_zero_normal_lifetime_test_with_policy(LinphoneEphemeralChatMessagePolicyIndividual);
 }
 
 static void send_msg_from_no_ephemeral_chat_room_to_ephemeral_chat_room_curve(const int curveId) {
@@ -808,7 +1008,7 @@ static void ephemeral_group_message_test_curve_with_policy(const int curveId,
 		goto end;
 	BC_ASSERT_FALSE(linphone_chat_room_ephemeral_enabled(marieCr));
 
-	// Marie disable ephemeral in the group chat room
+	// Marie disables ephemeral in the group chat room
 	LinphoneChatMessage *messageNormal = _send_message(marieCr, "See you later");
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageReceived,
@@ -985,6 +1185,14 @@ static test_t ephemeral_group_chat_tests[] = {
                   "LeaksMemory"), /*due to core restart*/
     TEST_TWO_TAGS("Chat room remaining ephemeral individual policy messages",
                   chat_room_remaining_ephemeral_message_individual_policy_test,
+                  "Ephemeral",
+                  "LeaksMemory"), /*due to core restart*/
+    TEST_TWO_TAGS("Chat room with zero normal lifetime default policy messages",
+                  chat_room_with_zero_normal_lifetime_default_policy_test,
+                  "Ephemeral",
+                  "LeaksMemory"), /*due to core restart*/
+    TEST_TWO_TAGS("Chat room with zero normal lifetime individual policy messages",
+                  chat_room_with_zero_normal_lifetime_individual_policy_test,
                   "Ephemeral",
                   "LeaksMemory"), /*due to core restart*/
     TEST_TWO_TAGS("Chat room expired ephemeral individual policy messages",

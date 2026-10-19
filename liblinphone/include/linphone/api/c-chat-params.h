@@ -145,6 +145,8 @@ LINPHONE_PUBLIC long linphone_chat_params_get_ephemeral_lifetime(const LinphoneC
  * @see linphone_chat_room_activate_ephemeral_2()
  * @param params The #LinphoneChatParams object. @notnil
  * @return The ephemeral not read lifetime (in seconds)
+ * @warning this value is only taken into account if linphone_chat_params_get_ephemeral_lifetime() returns a positive
+ * integer.
  */
 LINPHONE_PUBLIC long linphone_chat_params_get_ephemeral_not_read_lifetime(const LinphoneChatParams *params);
 

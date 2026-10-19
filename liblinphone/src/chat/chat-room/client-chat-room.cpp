@@ -579,24 +579,40 @@ void ClientChatRoom::sendPendingMessages() {
 }
 
 void ClientChatRoom::sendEphemeralUpdate() {
+	if (getEphemeralMode() == AbstractChatRoom::EphemeralMode::DeviceManaged) {
+		// If the ephemeral lifetime is handled by each device, there is no need to pass the information on to the
+		// server
+		return;
+	}
 	auto conference = static_pointer_cast<ClientConference>(getConference());
 	auto utf8Subject = conference->getUtf8Subject();
-	lInfo() << "Sending an INVITE message because ephemeral settings of " << *conference << " have changed";
-	auto focus = conference->mFocus;
-	shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(focus->getSession());
+	long normalEphemeralLifetime = getEphemeralLifetime();
+	long notReadEphemeralLifetime = getEphemeralNotReadLifetime();
+	lInfo() << "Sending an INVITE message because ephemeral settings of " << *conference << " have changed: ";
+	lInfo() << "- normal ephemeral lifetime: " << normalEphemeralLifetime;
+	lInfo() << "- not-read ephemeral lifetime: " << notReadEphemeralLifetime;
+	shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(conference->mFocus->getSession());
 	if (session) {
 		auto csp = session->getMediaParams()->clone();
-		csp->removeCustomHeader(ChatRoom::kEphemeralLifeTimeHeader);
-		csp->removeCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader);
-		csp->addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
-		                     (ephemeralEnabled() ? to_string(getEphemeralLifetime()) : "0"));
-		csp->addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
-		                     (ephemeralEnabled() ? to_string(getEphemeralNotReadLifetime()) : "0"));
+		updateEphemeralHeaders(csp);
 		session->update(csp, CallSession::UpdateMethod::Default, false, utf8Subject);
 		delete csp;
 	} else {
 		session = dynamic_pointer_cast<MediaSession>(conference->createSession());
 		session->startInvite(nullptr, utf8Subject, nullptr);
+	}
+}
+
+void ClientChatRoom::updateEphemeralHeaders(MediaSessionParams *params) const {
+	params->removeCustomHeader(ChatRoom::kEphemerableHeader);
+	params->removeCustomHeader(ChatRoom::kEphemeralLifeTimeHeader);
+	params->removeCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader);
+	if (getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged) {
+		params->addCustomHeader(ChatRoom::kEphemerableHeader, "true");
+		params->addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader,
+		                        to_string(ephemeralEnabled() ? getEphemeralLifetime() : 0));
+		params->addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader,
+		                        to_string(ephemeralEnabled() ? getEphemeralNotReadLifetime() : 0));
 	}
 }
 
@@ -619,29 +635,26 @@ void ClientChatRoom::setEphemeralMode(AbstractChatRoom::EphemeralMode mode, bool
 		return;
 	}
 
+	if (getState() != ConferenceInterface::State::Created) {
+		lError() << *conference << ": Cannot change the ephemeral mode in a state other than Created";
+		return;
+	}
+
 	getCurrentParams()->getChatParams()->setEphemeralMode(mode);
 
 	const auto &lifetime = getEphemeralLifetime();
 	const auto &notReadLifetime = getEphemeralNotReadLifetime();
 
-	if (getState() == ConferenceInterface::State::Created) {
-		auto utf8Subject = conference->getUtf8Subject();
-		auto focus = conference->mFocus;
-		shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(focus->getSession());
-		auto csp = session->getMediaParams()->clone();
-		csp->removeCustomHeader(ChatRoom::kEphemeralLifeTimeHeader);
-		csp->removeCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader);
-		if (mode == AbstractChatRoom::EphemeralMode::AdminManaged) {
-			csp->addCustomHeader(ChatRoom::kEphemeralLifeTimeHeader, to_string(lifetime));
-			csp->addCustomHeader(ChatRoom::kEphemeralNotReadLifeTimeHeader, to_string(notReadLifetime));
-		}
-		lInfo() << *conference << ": Changing ephemeral mode to " << Utils::toString(mode);
-		session->update(csp, CallSession::UpdateMethod::Default, false, utf8Subject);
-		delete csp;
-	} else {
-		lError() << *conference
-		         << ": Cannot change the ClientConference ephemeral lifetime in a state other than Created";
-	}
+	auto utf8Subject = conference->getUtf8Subject();
+	auto focus = conference->mFocus;
+	shared_ptr<MediaSession> session = dynamic_pointer_cast<MediaSession>(focus->getSession());
+	auto csp = session->getMediaParams()->clone();
+	updateEphemeralHeaders(csp);
+	lInfo() << *conference << ": Changing ephemeral mode to " << Utils::toString(mode) << ":";
+	lInfo() << "- normal ephemeral lifetime: " << lifetime;
+	lInfo() << "- not-read ephemeral lifetime: " << notReadLifetime;
+	session->update(csp, CallSession::UpdateMethod::Default, false, utf8Subject);
+	delete csp;
 
 	if (updateDb) {
 		shared_ptr<ConferenceEphemeralMessageEvent> event;
@@ -686,14 +699,19 @@ LinphoneStatus ClientChatRoom::enableEphemeral(long lifetime, long notReadLifeti
 		lWarning() << *conference << ": Ephemeral messages may not work correctly because IMDN messages are disabled";
 	}
 
-	lDebug() << *conference << ": Ephemeral message try to change from " << (currentEnabled ? "enabled" : "disabled")
-	         << "/" << currentLifetime << " to " << (toEnable ? "enabled" : "disabled") << "/" << lifetime;
+	lInfo() << *conference << ": Ephemeral message setting: change from " << (currentEnabled ? "enabled" : "disabled")
+	        << "/" << currentLifetime << " to " << (toEnable ? "enabled" : "disabled") << "/" << lifetime;
 
 	if (initiated && getEphemeralMode() == AbstractChatRoom::EphemeralMode::AdminManaged) {
 		if (!conference->getMe()->isAdmin()) {
 			lError() << *conference << ": Only admins can manage ephemeral messages";
 			return -1;
 		}
+	}
+
+	if (lifetime == 0 && notReadLifetime > 0) {
+		lInfo() << *conference << ": Ephemeral messages will not be enabled even though the not-read lifetime is "
+		        << notReadLifetime << " because the normal lifetime is set to 0";
 	}
 
 	if ((getState() == ConferenceInterface::State::Instantiated) ||

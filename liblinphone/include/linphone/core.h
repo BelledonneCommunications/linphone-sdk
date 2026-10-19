@@ -7522,6 +7522,7 @@ LINPHONE_PUBLIC long linphone_core_get_default_ephemeral_lifetime(const Linphone
  * @param core the #LinphoneCore. @notnil
  * @param value lifetime of ephemeral messages in seconds when not read
  * @ingroup group_chatroom
+ * @warning this value is only taken into account if regular ephemeral lifetime is a positive integer.
  */
 LINPHONE_PUBLIC void linphone_core_set_default_ephemeral_not_read_lifetime(LinphoneCore *core, long value);
 
