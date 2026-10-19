@@ -72,8 +72,7 @@ BDEPEND="${PYTHON_DEPS}
 	dev-python/six[${PYTHON_USEDEP}]
 	dev-vcs/git
 	virtual/libudev
-	virtual/pkgconfig
-	doc? ( dev-python/sphinx[${PYTHON_USEDEP}] )"
+	virtual/pkgconfig"
 
 src_configure() {
 	local mycmakeargs=(
