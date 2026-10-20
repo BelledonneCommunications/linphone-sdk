@@ -368,6 +368,19 @@ Table \ref storage_parameters "storage parameters" lists all parameters one may 
 	<tr><td>update_db_at_initialisation</td><td>boolean</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_update_db_at_startup()</td><td>\copybrief linphone_core_enable_update_db_at_startup</td></tr>
 </table>
 
+<h2>HID - section [<i>hid</i>]</h2>
+The <i>hid</i> section represents configuration for USB HID audio headset controls.
+Table \ref hid_parameters "HID parameters" lists all parameters one may find under section [<i>hid</i>] of a Linphone RC file.<br/>
+<table>
+	<caption id="hid_parameters">HID parameters</caption>
+	<tr><th>Key<th>Value type<th>Possible values<th>Default value<th>API</th>
+	\if DOXYFILE_USE_COPYBRIEF
+		<th>Description</th>
+	\endif
+	</tr>
+	<tr><td>enabled</td><td>boolean</td><td>0 or 1</td><td>1</td><td>linphone_core_enable_hid()</td><td>\copybrief linphone_core_enable_hid</td></tr>
+</table>
+
 
 <!--
 @internal
