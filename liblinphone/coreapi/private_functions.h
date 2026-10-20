@@ -359,9 +359,18 @@ LinphoneProxyConfig *linphone_core_lookup_proxy_by_identity_strict(LinphoneCore 
 LinphoneProxyConfig *linphone_core_lookup_proxy_by_identity(LinphoneCore *lc, const LinphoneAddress *uri);
 
 // FIXME: Remove this declaration, use LINPHONE_PUBLIC as ugly workaround, already defined in tester_utils.h
+/*	Lookup rules:
+ *	From username@domain search, return at first:
+ *		1) the full matching on default account
+ *		2) a full matching on registered account
+ *		3) a full matching on unregistered account
+ *		4) the matching domain on default account
+ *		5) a matching domain on registered account
+ *		6) a matching domain on unregistered account
+ *		7) the default account if fallback is TRUE, else NULL
+ */
 LINPHONE_PUBLIC LinphoneAccount *linphone_core_lookup_known_account(LinphoneCore *lc, const LinphoneAddress *uri);
-
-LinphoneAccount *
+LINPHONE_PUBLIC LinphoneAccount *
 linphone_core_lookup_known_account_2(LinphoneCore *lc, const LinphoneAddress *uri, bool_t fallback_to_default);
 
 LINPHONE_PUBLIC LinphoneAccount *linphone_core_lookup_account_by_identity_strict(LinphoneCore *lc,

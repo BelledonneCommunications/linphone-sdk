@@ -23,6 +23,9 @@
 #include <map>
 #include <string>
 
+#include "account/account.h"
+#include "address/address.h"
+#include "core/core.h"
 #include "liblinphone_tester.h"
 #include "linphone/api/c-account-cbs.h"
 #include "linphone/api/c-account-params.h"
@@ -30,6 +33,8 @@
 #include "linphone/api/c-address.h"
 #include "linphone/api/c-chat-room.h"
 #include "tester_utils.h"
+
+using namespace LinphonePrivate;
 
 //---------------------------------------	TOOLS	-------------------------------------------------------------
 
@@ -54,6 +59,22 @@ static void check_contact_parameters(LinphoneAccountParams *params,
 	check_dictionary(linphone_account_params_get_contact_uri_parameters_dictionary(params), uriParamsMap);
 }
 
+// And an account with minimal options
+static void
+addAccount(LinphoneCoreManager *manager, const std::string &username, const std::string &domain, bool toRegister) {
+	// Add an account with same username but different domain
+	LinphoneAccountParams *newAccountParams = linphone_account_params_new(manager->lc, TRUE);
+	LinphoneAddress *newAddress = linphone_address_new(("sip:" + username + "@" + domain).c_str());
+	linphone_account_params_set_identity_address(newAccountParams, newAddress);
+	linphone_address_unref(newAddress);
+	linphone_account_params_set_server_addr(newAccountParams, domain.c_str());
+	linphone_account_params_set_realm(newAccountParams, domain.c_str());
+	linphone_account_params_enable_register(newAccountParams, toRegister);
+	LinphoneAccount *newAccount = linphone_core_create_account(manager->lc, newAccountParams);
+	linphone_account_params_unref(newAccountParams);
+	BC_ASSERT_TRUE(linphone_core_add_account(manager->lc, newAccount) == 0);
+	linphone_account_unref(newAccount);
+}
 //-----------------------------------------------------------------------------------------------------
 
 static void
@@ -889,6 +910,162 @@ static void account_params_push_config_parsing(void) {
 	linphone_core_manager_destroy(marie);
 }
 
+/*
+ *	Lookup rules:
+ *	From username@domain search, return at first:
+ *		1) the full matching on default account
+ *		2) a full matching on registered account
+ *		3) a full matching on unregistered account
+ *		4) the matching domain on default account
+ *		5) a matching domain on registered account
+ *		6) a matching domain on unregistered account
+ *		7) the default account if fallback is TRUE, else NULL
+ */
+static void lookup_multi_accounts(void) {
+
+	LinphoneCoreManager *manager = linphone_core_manager_create("multi_account3_rc");
+	std::string secondDomainStr = "auth2.example.org";
+	auto core = std::shared_ptr<Core>(L_GET_CPP_PTR_FROM_C_OBJECT(manager->lc));
+	linphone_core_manager_start(manager, FALSE);
+	std::list<std::shared_ptr<Account>> accountsToTest;
+	std::shared_ptr<Account> ax, ay, bx, cx; // u[sername]d[omain]
+	// a=eric, b=roger, c=andre
+	// x=sip.example.org, y=auth2.example.org
+
+	for (auto a : core->getAccounts()) {
+		auto p = a->getAccountParams();
+		auto addr = p->getIdentityAddress();
+		auto username = addr->getUsername();
+		auto domain = addr->getDomain();
+		if (username.substr(0, 4) == "eric" && domain == "sip.example.org") {
+			ax = a;
+			break;
+		}
+	}
+
+	const auto aAddress = ax->getAccountParams()->getIdentityAddress();
+	addAccount(manager, aAddress->getUsername(), secondDomainStr, false);
+	std::list<std::shared_ptr<Account>> toRemove;
+	for (auto a : core->getAccounts()) {
+		if (a == ax) continue;
+		auto p = a->getAccountParams();
+		auto addr = p->getIdentityAddress();
+		auto username = addr->getUsername();
+		auto domain = addr->getDomain();
+		bool activateRegister = true;
+		if (username.substr(0, 5) == "roger" && domain == "sip.example.org") bx = a;
+		else if (username.substr(0, 5) == "andre" && domain == "sip.example.org") cx = a;
+		else if (domain == secondDomainStr) {
+			if (username.substr(0, 4) == "eric") ay = a;
+			else {
+				// Ensure that there are only one account on secondDomainStr and it should be eric.
+				toRemove.push_back(a);
+				continue;
+			}
+		} else // Unregister it to "ignore" by decreasing priority while keeping unexpecting multi-account cases.
+			activateRegister = false;
+		auto params = a->getAccountParams()->clone()->toSharedPtr();
+		params->setRegisterEnabled(activateRegister);
+		a->setAccountParams(params);
+	}
+	for (auto a : toRemove) {
+		core->removeAccount(a);
+	}
+	accountsToTest.push_back(ax);
+	accountsToTest.push_back(bx);
+	accountsToTest.push_back(cx);
+	accountsToTest.push_back(ay);
+
+	// 1) the full matching on default account:
+	//-> Set default each account and search them
+	for (auto a : accountsToTest) {
+		linphone_core_set_default_account(manager->lc, a->toC());
+		auto address = a->getAccountParams()->getIdentityAddress();
+		LinphoneAccount *lAccount = linphone_core_lookup_known_account_2(manager->lc, address->toC(), FALSE);
+		BC_ASSERT_PTR_EQUAL(lAccount, a->toC());
+	}
+	// 2) a full matching on registered account
+	// -> search on each registered account
+	for (auto a : accountsToTest) {
+		if (auto params = a->getAccountParams(); params && params->getRegisterEnabled()) {
+			auto address = params->getIdentityAddress();
+			LinphoneAccount *lAccount = linphone_core_lookup_known_account(manager->lc, address->toC());
+			BC_ASSERT_PTR_EQUAL(lAccount, a->toC());
+		}
+	}
+	linphone_core_set_default_account(manager->lc, NULL);
+	// 3)  a full matching on unregistered account
+	// -> unregister each account and search them
+	for (auto a : accountsToTest) {
+		auto params = a->getAccountParams()->clone()->toSharedPtr();
+		params->setRegisterEnabled(false);
+		a->setAccountParams(params);
+		auto address = params->getIdentityAddress();
+		LinphoneAccount *lAccount = linphone_core_lookup_known_account(manager->lc, address->toC());
+		BC_ASSERT_PTR_EQUAL(lAccount, a->toC());
+	}
+	// From here: all accounts are unregistered
+	// 4) the matching domain on default account
+	// -> Set default each account and search the domain. It should be always the current default account.
+	for (auto a : accountsToTest) {
+		linphone_core_set_default_account(manager->lc, a->toC());
+		auto address = a->getAccountParams()->getIdentityAddress();
+		address->setUsername("toto");
+		LinphoneAccount *lAccount = linphone_core_lookup_known_account(manager->lc, address->toC());
+		BC_ASSERT_PTR_EQUAL(lAccount, a->toC());
+	}
+	// 5) a matching domain on registered account
+	// -> On each account, register it and search the domain. As all other are unregistered and not default, the result
+	// should always be the registered account. Unregister it at the end to keep the same hypothesis.
+	linphone_core_set_default_account(manager->lc, NULL);
+	for (auto a : accountsToTest) {
+		// Register this account
+		auto params = a->getAccountParams()->clone()->toSharedPtr();
+		params->setRegisterEnabled(true);
+		a->setAccountParams(params);
+		auto address = params->getIdentityAddress()->clone()->toSharedPtr();
+		address->setUsername("totolito");
+		LinphoneAccount *lAccount = linphone_core_lookup_known_account(manager->lc, address->toC());
+		BC_ASSERT_PTR_EQUAL(lAccount, a->toC());
+		// Unregister it
+		params->setRegisterEnabled(false);
+		a->setAccountParams(params);
+	}
+	// 6) a matching domain on unregistered account
+	//-> Register all accounts and unregister only one that should be the only one on domain
+	for (auto a : accountsToTest) {
+		auto params = a->getAccountParams()->clone()->toSharedPtr();
+		params->setRegisterEnabled(true);
+		a->setAccountParams(params);
+	}
+	// Unregister the test account
+	auto params = ay->getAccountParams()->clone()->toSharedPtr();
+	params->setRegisterEnabled(false);
+	ay->setAccountParams(params);
+
+	auto address = params->getIdentityAddress()->clone()->toSharedPtr();
+	address->setUsername("totolito");
+	LinphoneAccount *lAccount = linphone_core_lookup_known_account(manager->lc, address->toC());
+	BC_ASSERT_PTR_EQUAL(lAccount, ay->toC());
+
+	// 7) the default account if fallback is TRUE, else NULL
+	address->setDomain("gare.au.gorille");
+	// Default is NULL => result is NULL
+	lAccount = linphone_core_lookup_known_account_2(manager->lc, address->toC(), TRUE);
+	BC_ASSERT_PTR_NULL(lAccount);
+	lAccount = linphone_core_lookup_known_account_2(manager->lc, address->toC(), FALSE);
+	BC_ASSERT_PTR_NULL(lAccount);
+
+	// Default is ay => result is ay with fallback
+	linphone_core_set_default_account(manager->lc, ay->toC());
+	lAccount = linphone_core_lookup_known_account_2(manager->lc, address->toC(), TRUE);
+	BC_ASSERT_PTR_EQUAL(lAccount, linphone_core_get_default_account(manager->lc));
+	lAccount = linphone_core_lookup_known_account_2(manager->lc, address->toC(), FALSE);
+	BC_ASSERT_PTR_NULL(lAccount);
+
+	linphone_core_manager_destroy(manager);
+}
+
 static test_t account_tests[] = {
     TEST_NO_TAG("Simple account creation", simple_account_creation),
     TEST_NO_TAG("Simple account creation with removal", simple_account_creation_with_removal),
@@ -920,6 +1097,7 @@ static test_t account_tests[] = {
     TEST_NO_TAG("Load a config with Android push parameters set", account_params_android_push_config_loaded),
     TEST_NO_TAG("Load a config with unordered, partial or malformed push parameters",
                 account_params_push_config_parsing),
+    TEST_NO_TAG("Lookup multi accounts", lookup_multi_accounts),
 };
 
 test_suite_t account_test_suite = {"Account",

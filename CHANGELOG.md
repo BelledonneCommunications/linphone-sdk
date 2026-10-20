@@ -37,9 +37,9 @@ changes made to these components.
 ## [5.5.33] 2026-10-13
 
 ### Fixed
-- Reinitialize encrypton contexts when the encryption keys or the origin address put down in the SDP changes
+- Reinitialize encryption contexts when the encryption keys or the origin address put down in the SDP changes
 
-## [5.5.32] 2026-10-12
+## [5.5.32] 2026-10-08
 
 ### Fixed
 - Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network

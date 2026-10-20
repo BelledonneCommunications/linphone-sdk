@@ -214,6 +214,7 @@ set(RC_FILES
 	rcfiles/michelle_rc_udp
 	rcfiles/multi_account_rc
 	rcfiles/multi_account2_rc
+	rcfiles/multi_account3_rc
 	rcfiles/pauline_alt_rc
 	rcfiles/pauline_as_friend_rc
 	rcfiles/pauline_bad_srv_target_rc

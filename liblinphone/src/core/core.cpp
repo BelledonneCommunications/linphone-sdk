@@ -3617,14 +3617,16 @@ end:
 	// Default account fallback
 	if (foundAccount && foundAccount != defaultAccount) {
 		ms_debug("Overriding default account setting for this call/message/subscribe operation.");
-	} else if (fallbackToDefault && !foundAccount) {
-		foundAccount = defaultAccount; /*when no matching account is found, use the default account*/
 	}
 
 	// Account matched by identity address domain comparison
 	if (!foundAccount && foundAccountDomainMatch) foundAccount = foundAccountDomainMatch;
 	else if (!foundAccount && foundRegAccountDomainMatch) foundAccount = foundRegAccountDomainMatch;
 	else if (!foundAccount && foundNoRegAccountDomainMatch) foundAccount = foundNoRegAccountDomainMatch;
+
+	if (fallbackToDefault && !foundAccount) {
+		foundAccount = defaultAccount; /*when no matching account is found, use the default account*/
+	}
 
 	if (foundAccount) {
 		lInfo() << "Looking up for an account matching " << uri << " ended up finding " << *foundAccount;
