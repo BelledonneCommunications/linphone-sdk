@@ -193,7 +193,7 @@ LINPHONE_PUBLIC const LinphoneErrorInfo *linphone_account_get_error_info(Linphon
 /**
  * Return the contact address of the account.
  * @param account The #LinphoneAccount object. @notnil
- * @return a #LinphoneAddress correspong to the contact address of the account. @maybenil
+ * @return a #LinphoneAddress corresponds to the contact address of the account. @maybenil
  **/
 LINPHONE_PUBLIC LinphoneAddress *linphone_account_get_contact_address(LinphoneAccount *account);
 

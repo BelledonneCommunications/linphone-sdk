@@ -2494,7 +2494,7 @@ LINPHONE_PUBLIC LinphoneAccountParams *linphone_core_create_account_params(Linph
  * messages etc. Use linphone_core_add_account() to add it to the #LinphoneCore.
  * @param core #LinphoneCore object @notnil
  * @param params #LinphoneAccountParams object @notnil
- * @return #LinphoneAccount with default values set @notnil
+ * @return #LinphoneAccount with default values set @notnil @tobefreed
  */
 LINPHONE_PUBLIC LinphoneAccount *linphone_core_create_account(LinphoneCore *core, LinphoneAccountParams *params);
 
