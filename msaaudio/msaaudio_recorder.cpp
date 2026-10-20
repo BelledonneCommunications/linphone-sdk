@@ -274,13 +274,14 @@ static bool_t aaudio_recorder_quick_close(MSFilter *obj) {
 		// on Android 9 that callback then hits the freed stream and aborts on a CFI check. Stop it first.
 		aaudio_result_t result = AAudioStream_requestStop(ictx->stream);
 		if (result != AAUDIO_OK) {
-			ms_warning("[AAudio Recorder] Recorder stream stop before restart failed: %i / %s", result, AAudio_convertResultToText(result));
+			ms_error("[AAudio Recorder] Failed to stop the recorder stream before restarting: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
 			aaudio_stream_state_t nextState = AAUDIO_STREAM_STATE_UNINITIALIZED;
 			AAudioStream_waitForStateChange(ictx->stream, AAUDIO_STREAM_STATE_STOPPING, &nextState, 100 * 1000000LL);
 		}
 
 		// https://github.com/google/oboe/pull/970/
+		// Wait a bit (10 ms) to prevent a callback from being dispatched after stop
 		ms_usleep(10000);
 
 		result = AAudioStream_close(ictx->stream);
