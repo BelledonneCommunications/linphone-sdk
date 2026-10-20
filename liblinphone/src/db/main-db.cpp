@@ -6790,8 +6790,7 @@ size_t MainDb::getChatRoomCount() const {
 // src/db/main-db.cpp:6073:102: error: passing ‘const LinphonePrivate::MainDbPrivate’ as ‘this’ argument discards
 // qualifiers [-fpermissive] 6073 |                                         shared_ptr<ConferenceInfo> confInfo =
 // d->selectConferenceInfo(row);
-
-list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
+list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms(const std::string &filter) {
 #ifdef HAVE_DB_STORAGE
 	shared_ptr<Core> core = getCore();
 	LinphoneCore *cCore = getCore()->getCCore();
@@ -6805,7 +6804,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 
 		soci::session *session = d->dbSession.getBackendSession();
 		int nbChatRooms = 0;
-		*session << "SELECT COUNT(*) FROM chat_room", soci::into(nbChatRooms);
+		*session << "SELECT COUNT(*) FROM chat_room " << filter, soci::into(nbChatRooms);
 
 		// SOCI uses a hack for sqlite3:
 		// "sqlite3 type system does not have a date or time field.  Also it does not reliably id other data types.
@@ -6866,7 +6865,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms() {
 				offsetLimitString = limitString + " OFFSET " + Utils::toString(offset);
 			}
 			// Because of SOCI limitation, we cannot loops twice on previous query
-			const string idsQuery = "SELECT id, capabilities FROM chat_room" + offsetLimitString;
+			const string idsQuery = "SELECT id, capabilities FROM chat_room " + filter + " " + offsetLimitString;
 			soci::rowset<soci::row> idsRows = (session->prepare << idsQuery);
 			dbChatRoomIds.clear();
 			dbFlexisipChatRoomIds.clear();
@@ -7652,6 +7651,17 @@ MainDb::selectChatRoomParticipants(const std::shared_ptr<AbstractChatRoom> &chat
 	}
 #endif
 	return participants;
+}
+
+std::list<std::shared_ptr<AbstractChatRoom>> MainDb::selectJoiningParticipantChatRooms() {
+	std::string filter = "WHERE EXISTS( SELECT 1"
+	                     "  FROM chat_room_participant AS crp"
+	                     "  JOIN chat_room_participant_device AS crpd ON crpd.chat_room_participant_id = crp.id"
+	                     "  WHERE crp.chat_room_id = chat_room.id"
+	                     "  AND crpd.state IN (" +
+	                     std::to_string(static_cast<int>(ParticipantDevice::State::Joining)) + "," +
+	                     std::to_string(static_cast<int>(ParticipantDevice::State::ScheduledForJoining)) + "))";
+	return getChatRooms(filter);
 }
 
 void MainDb::insertChatRoomParticipant(const std::shared_ptr<AbstractChatRoom> &chatRoom,

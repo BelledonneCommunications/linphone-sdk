@@ -220,7 +220,8 @@ public:
 	// ---------------------------------------------------------------------------
 
 	size_t getChatRoomCount() const;
-	std::list<std::shared_ptr<AbstractChatRoom>> getChatRooms();
+	// Get chat rooms with where-clause criteria (eg: "Where chat_room.chat_room_id = 1")
+	std::list<std::shared_ptr<AbstractChatRoom>> getChatRooms(const std::string &filter = "");
 	void insertChatRoom(const std::shared_ptr<AbstractChatRoom> &chatRoom,
 	                    unsigned int notifyId = 0,
 	                    bool rewriteAllInformations = false);
@@ -248,6 +249,8 @@ public:
 	std::list<std::shared_ptr<Participant>> selectChatRoomParticipants(long long chatRoomId) const;
 	std::map<long long, std::list<std::shared_ptr<Participant>>>
 	selectChatRoomParticipants(const std::vector<long long> &chatRoomIds) const;
+	std::list<std::shared_ptr<AbstractChatRoom>> selectJoiningParticipantChatRooms();
+
 	void insertChatRoomParticipant(const std::shared_ptr<AbstractChatRoom> &chatRoom,
 	                               const std::shared_ptr<Participant> &participant);
 	void deleteChatRoomParticipant(const std::shared_ptr<AbstractChatRoom> &chatRoom,

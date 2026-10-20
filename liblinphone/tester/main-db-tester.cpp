@@ -393,6 +393,40 @@ static void get_chat_rooms() {
 	}
 }
 
+static void get_chat_rooms_with_joining_participants(void) {
+	MainDbProvider provider;
+	MainDb &mainDb = provider.getMainDb();
+	if (mainDb.isInitialized()) {
+		list<shared_ptr<AbstractChatRoom>> chatRooms = mainDb.selectJoiningParticipantChatRooms();
+		// We got one chat room with Joining and ScheduledForJoining, one with Joining, and one with
+		// ScheduledForJoining.
+		BC_ASSERT_EQUAL(chatRooms.size(), 3, size_t, "%zu");
+		// Check if all retrieved chatrooms have joining participants.
+		bool haveJoining = false, haveScheduledJoining = false;
+		for (auto chatRoom : chatRooms) {
+			bool haveJoiningParticipants = false;
+			for (auto participant : chatRoom->getParticipants()) {
+				for (auto device : participant->getDevices()) {
+					if (device->getState() == ParticipantDevice::State::Joining) {
+						haveJoining = true;
+						haveJoiningParticipants = true;
+						break;
+					} else if (device->getState() == ParticipantDevice::State::ScheduledForJoining) {
+						haveScheduledJoining = true;
+						haveJoiningParticipants = true;
+						break;
+					}
+				}
+			}
+			BC_ASSERT_TRUE(haveJoiningParticipants);
+		}
+		// Must get joining and scheduled joining.
+		BC_ASSERT_TRUE(haveJoining && haveScheduledJoining);
+	} else {
+		BC_FAIL("Database not initialized");
+	}
+}
+
 static void load_a_lot_of_chatrooms_base(bool_t keep_gruu) {
 	long expectedLoadDurationMs;
 	long loadMs;
@@ -756,6 +790,7 @@ static test_t main_db_tests[] = {
     TEST_NO_TAG("Get history", get_history),
     TEST_NO_TAG("Get conference events", get_conference_notified_events),
     TEST_NO_TAG("Get chat rooms", get_chat_rooms),
+    TEST_NO_TAG("Get chat rooms with joining participants", get_chat_rooms_with_joining_participants),
     TEST_NO_TAG("Set/get conference info", set_get_conference_info),
     TEST_NO_TAG("Load chatroom and conference", load_chatroom_conference),
     TEST_NO_TAG("Load chatroom and conference cleaning gruu", load_chatroom_conference_cleaning_gruu),
