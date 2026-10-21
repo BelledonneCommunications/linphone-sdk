@@ -76,7 +76,7 @@ android {
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 34
-        versionCode 5400
+        versionCode 5600
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"

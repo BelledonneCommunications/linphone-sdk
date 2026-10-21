@@ -414,7 +414,7 @@ public class MediastreamerAndroidContext {
 		return false;
 	}
 
-	private static String getHumanReadableAudioDeviceType(int type) {
+	public static String getHumanReadableAudioDeviceType(int type) {
 		if (type == 19/*AudioDeviceInfo.TYPE_AUX_LINE*/) {
 			return "Auxiliary line";
 		} else if (type == 8/*AudioDeviceInfo.TYPE_BLUETOOTH_A2DP*/) {
@@ -476,6 +476,6 @@ public class MediastreamerAndroidContext {
 		} else if (type == 30/*TYPE_BLE_BROADCAST*/) {
 			return "BLE Broadcast";
 		}
-		return "UNEXPECTED";
+		return "UNEXPECTED: " + type;
 	}
 }

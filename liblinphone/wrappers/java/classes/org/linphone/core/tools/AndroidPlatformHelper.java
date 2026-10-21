@@ -37,6 +37,8 @@ import android.content.pm.ServiceInfo;
 import android.content.res.Resources;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
+import android.media.AudioDeviceCallback;
+import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -171,6 +173,7 @@ public class AndroidPlatformHelper {
     private AudioHelper mAudioHelper;
     private BluetoothHelper mBluetoothHelper;
     private ShutdownReceiver mShutdownReceiver;
+    private AudioDeviceCallback mAudioDeviceCallback;
     private boolean mReloadSoundDevicesScheduled;
 
     private DisplayManager mDisplayManager;
@@ -338,6 +341,36 @@ public class AndroidPlatformHelper {
         };
         mDisplayManager = (DisplayManager) mContext.getSystemService(Context.DISPLAY_SERVICE);
         mDisplayManager.registerDisplayListener(mDisplayListener, mHandler);
+
+        mAudioDeviceCallback = new AudioDeviceCallback() {
+            @Override
+            public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
+                Log.i("[Platform Helper] [" + addedDevices.length + "] audio device(s) have been added:");
+                for (AudioDeviceInfo device : addedDevices) {
+                    int intType = device.getType();
+                    String type = MediastreamerAndroidContext.getHumanReadableAudioDeviceType(intType);
+                    Log.i(
+                        "[Platform Helper] Added audio device [" + device.getProductName() + "] with ID [" + device.getId() + "] and type [" + type + " (" + intType + ")]"
+                    );
+                }
+                reloadSoundDevices(500);
+            }
+
+            @Override
+            public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
+                Log.i("[Platform Helper] [" + removedDevices.length + "] audio device(s) have been removed:");
+                for (AudioDeviceInfo device : removedDevices) {
+                    int intType = device.getType();
+                    String type = MediastreamerAndroidContext.getHumanReadableAudioDeviceType(intType);
+                    Log.i(
+                        "[Platform Helper] Removed audio device [" + device.getProductName() + "] with ID [" + device.getId() + "] and type [" + type + " (" + intType + ")]"
+                    );
+                }
+                reloadSoundDevices(500);
+            }
+        };
+        AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+        audioManager.registerAudioDeviceCallback(mAudioDeviceCallback, mHandler);
 
         IntentFilter shutdownIntentFilter = new IntentFilter(Intent.ACTION_SHUTDOWN);
         // Without that the broadcast timeout might be reached before we were called
@@ -558,6 +591,12 @@ public class AndroidPlatformHelper {
             mDisplayManager.unregisterDisplayListener(mDisplayListener);
             mDisplayListener = null;
             mDisplayManager = null;
+        }
+
+        if (mAudioDeviceCallback != null) {
+            AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+            audioManager.unregisterAudioDeviceCallback(mAudioDeviceCallback);
+            mAudioDeviceCallback = null;
         }
 
         if (mHandler != null) {
@@ -1601,47 +1640,47 @@ public class AndroidPlatformHelper {
         }
     }
 
-    public void onBluetoothAdapterTurnedOn() {
-        if (DeviceUtils.isBluetoothConnectPermissionGranted(mContext)) {
-            onBluetoothHeadsetStateChanged();
-        } else {
-            Log.w("[Platform Helper] Bluetooth Connect permission isn't granted, waiting longer before reloading sound devices to increase chances to get bluetooth device");
-            onBluetoothHeadsetStateChanged(5000);
-        }
-    }
+    private void reloadSoundDevices(int delay) {
+        GlobalState globalState = mCore.getGlobalState();
+        if (globalState == GlobalState.On || globalState == GlobalState.Ready) {
+            Log.i("[Platform Helper] Waiting for " + delay + " ms before reloading sound devices");
+            if (mReloadSoundDevicesScheduled) {
+                Log.w("[Platform Helper] Sound devices reload is already pending, skipping...");
+                return;
+            }
+            mReloadSoundDevicesScheduled = true;
 
-    public void onBluetoothHeadsetStateChanged() {
-        onBluetoothHeadsetStateChanged(500);
+            Runnable reloadRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    Log.i("[Platform Helper] Reloading sound devices");
+                    if (mCore != null) {
+                        reloadSoundDevices(mCore.getNativePointer());
+                        mReloadSoundDevicesScheduled = false;
+                    }
+                }
+            };
+            dispatchOnCoreThreadAfter(reloadRunnable, delay);
+        } else {
+            Log.w("[Platform Helper] Current global state is ", globalState.name(), ", not reloading sound devices now");
+        }
     }
 
     private void onAudioStateChangedOnCoreThread(int delay, String deviceType) {
         if (mCore != null) {
             if (mCore.getConfig().getInt("audio", "android_monitor_audio_devices", 1) == 0) return;
-            
-            GlobalState globalState = mCore.getGlobalState();
-            if (globalState == GlobalState.On || globalState == GlobalState.Ready) {
-                Log.i("[Platform Helper] " + deviceType + " state changed, waiting for " + delay + " ms before reloading sound devices");
-                if (mReloadSoundDevicesScheduled) {
-                    Log.w("[Platform Helper] Sound devices reload is already pending, skipping...");
-                    return;
-                }
-                mReloadSoundDevicesScheduled = true;
-
-                Runnable reloadRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.i("[Platform Helper] Reloading sound devices");
-                        if (mCore != null) {
-                            reloadSoundDevices(mCore.getNativePointer());
-                            mReloadSoundDevicesScheduled = false;
-                        }
-                    }
-                };
-                dispatchOnCoreThreadAfter(reloadRunnable, delay);
-            } else {
-                Log.w("[Platform Helper] " + deviceType + " state changed but current global state is ", globalState.name(), ", skipping...");
-            }
+            Log.i("[Platform Helper] " + deviceType + " state changed, waiting for onAudioDevicesAdded() or onAudioDevicesRemoved() callback to trigger");
         }
+    }
+
+    public void onBluetoothAdapterTurnedOn() {
+        if (DeviceUtils.isBluetoothConnectPermissionGranted(mContext)) {
+            onBluetoothHeadsetStateChanged();
+        }
+    }
+
+    public void onBluetoothHeadsetStateChanged() {
+        onBluetoothHeadsetStateChanged(500);
     }
 
     private void onBluetoothHeadsetStateChanged(int delay) {

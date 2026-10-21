@@ -13,6 +13,7 @@ It has been updated until the 5.5 SDK release. Please refer to the changelog at 
 
 ### Added
 - API to get authenticated method with `linphone_auth_info_get_requested_method`
+- Reworked how Android trigger core.reloadSoundDevices() method in the Platform Helper
 
 ## [5.5.42] - 2026-11-24
 
