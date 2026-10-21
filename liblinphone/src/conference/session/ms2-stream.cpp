@@ -977,8 +977,10 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 		bctbx_ext_signing_key_ref_t *key_ref = nullptr;
 
 		char *fingerprint = nullptr;
-		auto localAddr = getMediaSession().getLocalAddress();
-		auto localAddrUri = localAddr->asStringUriOnlyCstr();
+		const auto &localAccount = getMediaSessionPrivate().getDestAccount();
+		auto localAddr =
+		    localAccount ? localAccount->getAccountParams()->getIdentityAddress() : getMediaSession().getLocalAddress();
+		auto localAddrUri = localAddr ? localAddr->asStringUriOnlyCstr() : nullptr;
 
 		/* first: do we have a certificate and key in our auth info matching the current local address */
 		if (auto tlsCertificate = getCore().findTlsCertInIndexedAuthInfosWithSubject(
@@ -993,8 +995,8 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 			 * path set in core */
 			auto user_certificates_path = linphone_core_get_user_certificates_path(getCCore());
 			if (bctbx_get_certificate_and_pkey_in_dir(user_certificates_path, localAddrUri, &certificate, &key) != 0) {
-				lInfo() << "DTLS-SRTP : No client certificate found for user " << localAddrUri
-				        << " fallback on linphone-dtls-default-identity";
+				lInfo() << "DTLS-SRTP : No client certificate found for user " << localAddrUri << " in folder "
+				        << user_certificates_path << " fallback on linphone-dtls-default-identity";
 				/* third: fallback on the default selfsigned certificate in the user certificate path set in core */
 				if (bctbx_get_certificate_and_pkey_in_dir(user_certificates_path, "linphone-dtls-default-identity",
 				                                          &certificate, &key) != 0) {
@@ -1034,8 +1036,7 @@ void MS2Stream::initDtlsParams(MediaStream *ms) {
 			bctbx_free(fingerprint);
 		}
 		if (certificate && (key || key_ref)) {
-			auto remoteUri = getMediaSession().getRemoteAddress()->asStringUriOnlyCstr();
-			const auto &localAccount = getMediaSessionPrivate().getDestAccount();
+			auto remoteUri = getMediaSession().getRemoteAddress()->getUriWithoutGruu().asStringUriOnlyCstr();
 			MSDtlsSrtpParams dtlsParams = {0};
 			dtlsParams.certificate = certificate;
 			dtlsParams.key = key;

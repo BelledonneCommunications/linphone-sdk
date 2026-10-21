@@ -210,9 +210,9 @@ ekt_call(MSEKTCipherType ekt_cipher, MSCryptoSuite crypto_suite, bool unmatching
 	mgr_calling_each_other(
 	    marie, pauline,
 	    ([marie, pauline, ekt_cipher, crypto_suite, unmatching_ekt, update_ekt](LinphoneCall *marieCall,
-	                                                                            LinphoneCall *paulineCall) {
+		                                                                        LinphoneCall *paulineCall) {
 		    BC_ASSERT_TRUE(srtp_check_call_stats(marieCall, paulineCall, MS_AEAD_AES_128_GCM,
-		                                         MSSrtpKeySourceSDES)); // Default crypto suite is MS_AEAD_AES_128_GCM
+			                                     MSSrtpKeySourceSDES)); // Default crypto suite is MS_AEAD_AES_128_GCM
 
 		    MSEKTParametersSet ekt_params;
 		    generate_ekt(&ekt_params, ekt_cipher, crypto_suite, 0x1234);
@@ -452,7 +452,7 @@ static void srtp_call_with_different_crypto_suite(void) {
 	// same test using mgr_calling_each_other so we can check during the call that the correct suite are used
 	LinphoneCoreManager *marie =
 	    linphone_core_manager_new("marie_rc"); // marie_rc does not specify any srtp crypto suite, propose all
-	                                           // availables, default is AES128_GCM
+		                                       // availables, default is AES128_GCM
 	linphone_core_set_media_encryption(marie->lc, LinphoneMediaEncryptionSRTP);
 	LinphoneCoreManager *pauline =
 	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
@@ -494,7 +494,7 @@ static void srtp_call_with_crypto_suite_parameters(void) {
 			    BC_ASSERT_TRUE(srtp_check_call_stats(marieCall, paulineCall, MS_AES_128_SHA1_80, MSSrtpKeySourceSDES));
 		    } else { // When Pauline is placing the call, we shall use AES_CM_128_HMAC_SHA1_80 UNENCRYPTED_SRTCP
 			    BC_ASSERT_TRUE(srtp_check_call_stats(marieCall, paulineCall, MS_AES_128_SHA1_80_SRTCP_NO_CIPHER,
-			                                         MSSrtpKeySourceSDES));
+				                                     MSSrtpKeySourceSDES));
 		    }
 	    }));
 
@@ -790,7 +790,7 @@ int zrtp_params_call2(ZrtpAlgoString marieAlgo, ZrtpAlgoString paulineAlgo, Zrtp
 				BC_ASSERT_EQUAL(marieZrtpInfo->key_agreement_algo,
 				                marieZrtpInfo->key_agreement_algo == res.key_agreement_algo.at(0)
 				                    ? res.key_agreement_algo.at(0)
-				                    : res.key_agreement_algo.at(1),
+									: res.key_agreement_algo.at(1),
 				                int, "%d");
 			}
 			BC_ASSERT_EQUAL(marieZrtpInfo->key_agreement_algo, paulineZrtpInfo->key_agreement_algo, int, "%d");
@@ -1286,7 +1286,9 @@ static bool isCurrentCallUsingDtls(LinphoneCoreManager *mgr) {
 }
 
 // Pauline and Marie both use valid client certificates for DTLS-SRTP and they verify peer certificates
-static void dtls_srtp_call_with_clients_certificates_base(LinphoneCoreManager *marie, LinphoneCoreManager *pauline) {
+static void dtls_srtp_call_with_clients_certificates_base(LinphoneCoreManager *marie,
+                                                          LinphoneCoreManager *pauline,
+                                                          bool_t call_contact_address) {
 	setDtlsSrtpVerifyCertInDefaultAccount(marie->lc, TRUE);
 	setDtlsSrtpVerifyCertInDefaultAccount(pauline->lc, TRUE);
 
@@ -1312,7 +1314,16 @@ static void dtls_srtp_call_with_clients_certificates_base(LinphoneCoreManager *m
 	auto initial_marie_stats = marie->stat;
 	auto initial_pauline_stats = pauline->stat;
 
-	linphone_core_invite_address(marie->lc, pauline->identity);
+	LinphoneAddress *pauline_addr = NULL;
+	if (call_contact_address) {
+		pauline_addr = linphone_account_get_contact_address(linphone_core_get_default_account(pauline->lc));
+	} else {
+		pauline_addr = pauline->identity;
+	}
+	if (BC_ASSERT_PTR_NOT_NULL(pauline_addr)) {
+		BC_ASSERT_TRUE(linphone_address_has_uri_param(pauline_addr, "gr") == call_contact_address);
+	}
+	linphone_core_invite_address(marie->lc, pauline_addr);
 	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallOutgoingRinging, 1));
 	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallIncomingReceived, 1));
 	// Call is received by pauline but not yet accepted
@@ -1361,7 +1372,23 @@ static void dtls_srtp_call_with_clients_certificates_in_SAN_DNS(void) {
 	                        "sip:sip.example.org; transport=tls", "secret");
 	add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_cert.pem",
 	                           "certificates/client/user2_key.pem", CertProviderConfigAuthInfoPath);
-	dtls_srtp_call_with_clients_certificates_base(marie, pauline);
+	dtls_srtp_call_with_clients_certificates_base(marie, pauline, FALSE);
+}
+
+static void dtls_srtp_call_to_address_with_gruu(void) {
+	LinphoneCoreManager *marie = linphone_core_manager_create(NULL);
+	LinphoneCoreManager *pauline = linphone_core_manager_create(NULL);
+
+	add_user_to_core_config(marie->lc, "sip:user_1@sip.example.org", "user_1", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
+	                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBuffer);
+
+	add_user_to_core_config(pauline->lc, "sip:user_2@sip.example.org", "user_2", "sip.example.org",
+	                        "sip:sip.example.org; transport=tls", "secret");
+	add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_cert.pem",
+	                           "certificates/client/user2_key.pem", CertProviderConfigAuthInfoPath);
+	dtls_srtp_call_with_clients_certificates_base(marie, pauline, TRUE);
 }
 
 static void dtls_srtp_call_with_clients_certificates_in_SAN_DNS_and_ext_signing(void) {
@@ -1377,16 +1404,16 @@ static void dtls_srtp_call_with_clients_certificates_in_SAN_DNS_and_ext_signing(
 	                        "sip:sip.example.org; transport=tls", "secret");
 	auto key_ref_m =
 	    add_tls_client_certificate(marie->lc, "user_1", "sip.example.org", "certificates/client/user1_cert.pem",
-	                               "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBufferExtKeyRef);
+		                           "certificates/client/user1_key.pem", CertProviderConfigAuthInfoBufferExtKeyRef);
 	LinphoneCoreCbs *cbs_m = linphone_factory_create_core_cbs(linphone_factory_get());
 	linphone_core_cbs_set_tls_ext_signature(
-	    cbs_m, [](BCTBX_UNUSED(LinphoneCore * core), const void *key_ref, LinphoneKeySignAlgo sign_algo,
-	              LinphoneHashAlgo hash_algo, const uint8_t *hash_ptr, size_t hash_size, size_t signature_buffer_size,
-	              uint8_t *signature_ptr, size_t *signature_size_out, int *ret_out) {
+	    cbs_m, [](BCTBX_UNUSED(LinphoneCore *core), const void *key_ref, LinphoneKeySignAlgo sign_algo,
+		          LinphoneHashAlgo hash_algo, const uint8_t *hash_ptr, size_t hash_size, size_t signature_buffer_size,
+		          uint8_t *signature_ptr, size_t *signature_size_out, int *ret_out) {
 		    auto key = Linphone::Tester::KeyStore::getInstance().getKey((const char *)key_ref);
 		    if (Linphone::Tester::KeyStore::getInstance().sign((const char *)key_ref, sign_algo, hash_algo, hash_ptr,
-		                                                       hash_size, signature_buffer_size, signature_ptr,
-		                                                       signature_size_out)) {
+			                                                   hash_size, signature_buffer_size, signature_ptr,
+			                                                   signature_size_out)) {
 			    *ret_out = 0;
 		    } else {
 			    *ret_out = -1;
@@ -1400,16 +1427,16 @@ static void dtls_srtp_call_with_clients_certificates_in_SAN_DNS_and_ext_signing(
 	                        "sip:sip.example.org; transport=tls", "secret");
 	auto key_ref_p =
 	    add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_cert.pem",
-	                               "certificates/client/user2_key.pem", CertProviderConfigAuthInfoBufferExtKeyRef);
+		                           "certificates/client/user2_key.pem", CertProviderConfigAuthInfoBufferExtKeyRef);
 	LinphoneCoreCbs *cbs_p = linphone_factory_create_core_cbs(linphone_factory_get());
 	linphone_core_cbs_set_tls_ext_signature(
-	    cbs_p, [](BCTBX_UNUSED(LinphoneCore * core), const void *key_ref, LinphoneKeySignAlgo sign_algo,
-	              LinphoneHashAlgo hash_algo, const uint8_t *hash_ptr, size_t hash_size, size_t signature_buffer_size,
-	              uint8_t *signature_ptr, size_t *signature_size_out, int *ret_out) {
+	    cbs_p, [](BCTBX_UNUSED(LinphoneCore *core), const void *key_ref, LinphoneKeySignAlgo sign_algo,
+		          LinphoneHashAlgo hash_algo, const uint8_t *hash_ptr, size_t hash_size, size_t signature_buffer_size,
+		          uint8_t *signature_ptr, size_t *signature_size_out, int *ret_out) {
 		    auto key = Linphone::Tester::KeyStore::getInstance().getKey((const char *)key_ref);
 		    if (Linphone::Tester::KeyStore::getInstance().sign((const char *)key_ref, sign_algo, hash_algo, hash_ptr,
-		                                                       hash_size, signature_buffer_size, signature_ptr,
-		                                                       signature_size_out)) {
+			                                                   hash_size, signature_buffer_size, signature_ptr,
+			                                                   signature_size_out)) {
 			    *ret_out = 0;
 		    } else {
 			    *ret_out = -1;
@@ -1419,7 +1446,7 @@ static void dtls_srtp_call_with_clients_certificates_in_SAN_DNS_and_ext_signing(
 	linphone_core_add_callbacks(pauline->lc, cbs_p);
 	linphone_core_cbs_unref(cbs_p);
 
-	dtls_srtp_call_with_clients_certificates_base(marie, pauline);
+	dtls_srtp_call_with_clients_certificates_base(marie, pauline, FALSE);
 
 	if (key_ref_p) {
 		Linphone::Tester::KeyStore::getInstance().deleteKey(key_ref_p);
@@ -1444,7 +1471,7 @@ static void dtls_srtp_call_with_clients_certificates_in_SAN_URI(void) {
 	add_tls_client_certificate(pauline->lc, "user_2", "sip.example.org", "certificates/client/user2_SAN_URI.pem",
 	                           "certificates/client/user2_SAN_URI_key.pem", CertProviderConfigAuthInfoPath);
 
-	dtls_srtp_call_with_clients_certificates_base(marie, pauline);
+	dtls_srtp_call_with_clients_certificates_base(marie, pauline, FALSE);
 }
 
 // Marie uses a client certificate and verify Pauline's one but Pauline uses a self-signed one
@@ -1622,8 +1649,10 @@ static void dtls_srtp_call_with_unmatching_client_certificates(void) {
 	                              initial_marie_stats.number_of_LinphoneCallMediaEncryptionFailed + 1, 4000));
 	BC_ASSERT_FALSE(isCurrentCallUsingDtls(marie));
 	LinphoneCallStats *marie_stats = linphone_call_get_audio_stats(marie_call);
-	BC_ASSERT_TRUE(linphone_call_stats_get_media_encryption_error(marie_stats) ==
-	               LinphoneMediaEncryptionErrorDtlsCertificateVerificationFail); // Handshake should fail at verification stage as we provided peer's name
+	BC_ASSERT_TRUE(
+	    linphone_call_stats_get_media_encryption_error(marie_stats) ==
+	    LinphoneMediaEncryptionErrorDtlsCertificateVerificationFail); // Handshake should fail at verification stage as
+		                                                              // we provided peer's name
 	linphone_call_stats_unref(marie_stats);
 
 	// For Pauline the test may fail as Marie will send an DTLS fatal alert to Pauline but it is not repeated, so
@@ -2800,13 +2829,13 @@ static test_t call_secure_tests[] = {
     TEST_NO_TAG("SRTP call with crypto suite parameters", srtp_call_with_crypto_suite_parameters),
     TEST_NO_TAG("SRTP call with crypto suite parameters 2", srtp_call_with_crypto_suite_parameters_2),
     TEST_NO_TAG("SRTP call with crypto suite parameters and mandatory encryption",
-                srtp_call_with_crypto_suite_parameters_and_mandatory_encryption),
+	            srtp_call_with_crypto_suite_parameters_and_mandatory_encryption),
     TEST_NO_TAG("SRTP call with crypto suite parameters and mandatory encryption 2",
-                srtp_call_with_crypto_suite_parameters_and_mandatory_encryption_2),
+	            srtp_call_with_crypto_suite_parameters_and_mandatory_encryption_2),
     TEST_NO_TAG("SRTP call with crypto suite parameters and mandatory encryption 3",
-                srtp_call_with_crypto_suite_parameters_and_mandatory_encryption_3),
+	            srtp_call_with_crypto_suite_parameters_and_mandatory_encryption_3),
     TEST_NO_TAG("SRTP call with crypto suite parameters and mandatory encryption 4",
-                srtp_call_with_crypto_suite_parameters_and_mandatory_encryption_4),
+	            srtp_call_with_crypto_suite_parameters_and_mandatory_encryption_4),
     TEST_NO_TAG("SRTP call with Replaces", srtp_call_with_replaces),
     TEST_ONE_TAG("ZRTP call", zrtp_call, "CRYPTO"),
 #ifdef VIDEO_ENABLED
@@ -2823,14 +2852,15 @@ static test_t call_secure_tests[] = {
     TEST_ONE_TAG("ZRTP Authentication tag call", zrtp_authtag_call, "CRYPTO"),
     TEST_NO_TAG("ZRTP call with Replaces", zrtp_call_with_replaces),
     TEST_TWO_TAGS("DTLS SRTP call", dtls_srtp_call, "DTLS", "CRYPTO"),
+    TEST_TWO_TAGS("DTLS SRTP call to address with GRUU", dtls_srtp_call_to_address_with_gruu, "DTLS", "CRYPTO"),
 #ifdef VIDEO_ENABLED
     TEST_ONE_TAG("DTLS SRTP call with several video switches", dtls_srtp_call_with_several_video_switches, "DTLS"),
     TEST_ONE_TAG("DTLS SRTP to none call with several video switches",
-                 dtls_srtp_to_none_call_with_several_video_switches,
-                 "DTLS"),
+	             dtls_srtp_to_none_call_with_several_video_switches,
+	             "DTLS"),
     TEST_ONE_TAG("None to DTLS SRTP call with several video switches",
-                 none_to_dtls_srtp_call_with_several_video_switches,
-                 "DTLS"),
+	             none_to_dtls_srtp_call_with_several_video_switches,
+	             "DTLS"),
 #endif // VIDEO_ENABLED
 };
 
@@ -2852,7 +2882,7 @@ static test_t call_secure2_tests[] = {
     TEST_NO_TAG("Check correct ZRTP short code with latency", check_correct_zrtp_short_code_with_latency_test),
     TEST_NO_TAG("Check incorrect ZRTP short code", check_incorrect_zrtp_short_code_test),
     TEST_NO_TAG("Check incorrect ZRTP short code and pause/resume/update",
-                check_incorrect_zrtp_short_code_pause_resume_update_test),
+	            check_incorrect_zrtp_short_code_pause_resume_update_test),
     TEST_NO_TAG("Call declined with mandatory encryption on both sides", call_declined_encryption_mandatory_both_sides),
     TEST_NO_TAG("ZRTP mandatory called by non ZRTP", zrtp_mandatory_called_by_non_zrtp),
     TEST_NO_TAG("SRTP mandatory called by non SRTP", srtp_mandatory_called_by_non_srtp),
@@ -2862,25 +2892,25 @@ static test_t call_secure2_tests[] = {
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux", dtls_srtp_audio_call_with_rtcp_mux, "DTLS"),
     TEST_ONE_TAG("DTLS-SRTP call with rtcp-mux not accepted", dtls_srtp_audio_call_with_rtcp_mux_not_accepted, "DTLS"),
     TEST_TWO_TAGS("DTLS SRTP call with valid client certificates, ID in SAN DNS",
-                  dtls_srtp_call_with_clients_certificates_in_SAN_DNS,
-                  "DTLS",
-                  "CRYPTO"),
+	              dtls_srtp_call_with_clients_certificates_in_SAN_DNS,
+	              "DTLS",
+	              "CRYPTO"),
     TEST_TWO_TAGS("DTLS SRTP call with valid client certificates external signing, ID in SAN DNS",
-                  dtls_srtp_call_with_clients_certificates_in_SAN_DNS_and_ext_signing,
-                  "DTLS",
-                  "CRYPTO"),
+	              dtls_srtp_call_with_clients_certificates_in_SAN_DNS_and_ext_signing,
+	              "DTLS",
+	              "CRYPTO"),
     TEST_TWO_TAGS("DTLS SRTP call with valid client certificates, ID in SAN URI",
-                  dtls_srtp_call_with_clients_certificates_in_SAN_URI,
-                  "DTLS",
-                  "CRYPTO"),
+	              dtls_srtp_call_with_clients_certificates_in_SAN_URI,
+	              "DTLS",
+	              "CRYPTO"),
     TEST_TWO_TAGS("DTLS SRTP call with missing client certificate",
-                  dtls_srtp_call_with_missing_client_certificate,
-                  "DTLS",
-                  "CRYPTO"),
+	              dtls_srtp_call_with_missing_client_certificate,
+	              "DTLS",
+	              "CRYPTO"),
     TEST_TWO_TAGS("DTLS SRTP call with client certificate holding unmatching name",
-                  dtls_srtp_call_with_unmatching_client_certificates,
-                  "DTLS",
-                  "CRYPTO"),
+	              dtls_srtp_call_with_unmatching_client_certificates,
+	              "DTLS",
+	              "CRYPTO"),
     TEST_NO_TAG("Call accepting all encryptions", call_accepting_all_encryptions),
     TEST_NO_TAG("SRTP call updated as soon as it is accepted", srtp_call_updated_as_soon_as_it_is_accepted),
     TEST_ONE_TAG("EKT call", ekt_call, "CRYPTO"),
