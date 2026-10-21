@@ -655,6 +655,7 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&bearer_auth_test_suite, 10);
 	liblinphone_tester_add_suite_with_default_time(&call_twisted_cases_suite, 11);
 	liblinphone_tester_add_suite_with_default_time(&http_client_test_suite, 5);
+	liblinphone_tester_add_suite_with_default_time(&backup_http_client_test_suite, 5);
 	liblinphone_tester_add_suite_with_default_time(&turn_server_test_suite, 20);
 	liblinphone_tester_add_suite_with_default_time(&dtmf_test_suite, 27);
 }

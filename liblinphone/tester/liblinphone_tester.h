@@ -181,6 +181,7 @@ extern test_suite_t mwi_test_suite;
 extern test_suite_t bearer_auth_test_suite;
 extern test_suite_t call_twisted_cases_suite;
 extern test_suite_t http_client_test_suite;
+extern test_suite_t backup_http_client_test_suite;
 extern test_suite_t turn_server_test_suite;
 extern test_suite_t refer_test_suite;
 extern test_suite_t dtmf_test_suite;

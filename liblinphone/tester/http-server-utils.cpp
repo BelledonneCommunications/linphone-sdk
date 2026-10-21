@@ -79,3 +79,58 @@ std::string HttpServerWithBearerAuth::loadFile(const std::string &resource) {
 	}
 	return "";
 }
+
+void BackupHttpServer::addResource(const std::string &urlPath) {
+	// Returns:
+	// - 200 with a JSON payload
+	Get(urlPath, [this](const httplib::Request &req, httplib::Response &res) {
+			const auto &sender = req.path;
+			const auto body = getBody(sender);
+			res.status = 200;
+			res.set_content(body.value_or("[]"), "application/json");
+	});
+	// Returns:
+	// - 415 if the body is not json.
+	// - 406 if the sender is empty or /
+	// - 200 if body can be set
+	Post(urlPath, [this](const httplib::Request &req, httplib::Response &res) {
+		if (req.get_header_value("Content-Type").rfind("application/json", 0) != 0) {
+			res.status = 415;
+			return;
+		}
+		if (const auto &sender = req.path; !sender.empty() && (sender != "/")) {
+			setBody(sender, req.body);
+			res.status = 200;
+		} else {
+			res.status = 406;
+		}
+	});
+}
+
+const std::string &BackupHttpServer::getUrl() const {
+	return mRootUrl;
+}
+
+std::optional<std::string> BackupHttpServer::getBody(const std::string &sender) const {
+	std::lock_guard<std::mutex> lock(mMutex);
+	if (sender.empty()) return std::nullopt;
+	const auto it = mBodies.find(sender);
+	if (it == mBodies.end()) {
+		return std::nullopt;
+	}
+	return it->second;
+}
+
+bool BackupHttpServer::setBody(const std::string &sender, const std::string &body) {
+	std::lock_guard<std::mutex> lock(mMutex);
+	if (sender.empty()) return false;
+	const auto it = mBodies.find(sender);
+	if (it == mBodies.end()) {
+		BCTBX_SLOGI << "Adding a new backup for " << sender;
+		mBodies.insert(std::make_pair(sender, body));
+	} else {
+		BCTBX_SLOGI << "Updating an existing backup for " << sender;
+		it->second = body;
+	}
+	return true;
+}

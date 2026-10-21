@@ -391,6 +391,162 @@ static void digest_with_double_challenge() {
 	linphone_core_manager_destroy(lcm);
 }
 
+struct BackupResponse {
+	int code = 0;
+	std::string body;
+	std::string subType;
+};
+
+/*
+ * Sends a request to the backup server and waits for the response.
+ */
+static BackupResponse sendBackupRequest(LinphoneCoreManager *lcm,
+                                        const BackupHttpServer &server,
+                                        const std::string &method,
+                                        const std::optional<std::string> &path,
+                                        const std::optional<Content> &body = std::nullopt) {
+	BackupResponse result;
+	int gotResponse = 0;
+	HttpClient &httpClient = L_GET_CPP_PTR_FROM_C_OBJECT(lcm->lc)->getHttpClient();
+	auto &httpRequest = httpClient.createRequest(method, server.getUrl() + path.value_or(""));
+	if (body) httpRequest.setBody(*body);
+	httpRequest.execute([&](const HttpResponse &response) {
+		result.code = response.getHttpStatusCode();
+		result.body = response.getBody().getBodyAsString();
+		result.subType = response.getBody().getContentType().getSubType();
+		gotResponse = 1;
+	});
+	BC_ASSERT_TRUE(wait_for(lcm->lc, NULL, &gotResponse, 1));
+	return result;
+}
+
+static Content jsonContent(const std::string &json) {
+	return Content(ContentType("application", "json"), json);
+}
+
+static void post_and_get_chatroom_backup() {
+	BackupHttpServer backupHttpServer;
+	LinphoneCoreManager *lcm = linphone_core_manager_new("empty_rc");
+	const std::string sender = "sip:marie@sip.example.org";
+	const std::string backup = R"({"chatrooms":["sip:chatroom-1@sip.example.org"]})";
+
+	auto urlPath = std::string("/") + sender;
+	backupHttpServer.addResource(urlPath);
+
+	auto res = sendBackupRequest(lcm, backupHttpServer, "POST", urlPath, jsonContent(backup));
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+	const auto stored = backupHttpServer.getBody(urlPath);
+	BC_ASSERT_TRUE(stored.has_value());
+	if (stored) BC_ASSERT_STRING_EQUAL(stored->c_str(), backup.c_str());
+
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", urlPath);
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+	BC_ASSERT_STRING_EQUAL(res.body.c_str(), backup.c_str());
+	BC_ASSERT_STRING_EQUAL(res.subType.c_str(), "json");
+
+
+	auto urlPath2 = std::string("/sip:fake@sip.example.org");
+	backupHttpServer.addResource(urlPath2);
+
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", urlPath2);
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+	BC_ASSERT_STRING_EQUAL(res.body.c_str(), "[]");
+	BC_ASSERT_STRING_EQUAL(res.subType.c_str(), "json");
+
+	linphone_core_manager_destroy(lcm);
+}
+
+static void chatroom_backup_errors() {
+	BackupHttpServer backupHttpServer;
+	LinphoneCoreManager *lcm = linphone_core_manager_new("empty_rc");
+	const std::string sender = "sip:marie@sip.example.org";
+	const std::string sender2 = "sip:john@sip.example.org";
+	const std::string backup = R"({"chatrooms":["sip:chatroom-1@sip.example.org"]})";
+
+	auto urlPath = std::string("/") + sender;
+	backupHttpServer.addResource(urlPath);
+	backupHttpServer.addResource("/");
+	auto urlPath2 = std::string("^") + sender2;
+	backupHttpServer.addResource(urlPath2);
+
+	// POST without path
+	auto res = sendBackupRequest(lcm, backupHttpServer, "POST", std::nullopt, jsonContent(backup));
+	BC_ASSERT_EQUAL(res.code, 406, int, "%i");
+	BC_ASSERT_FALSE(backupHttpServer.getBody(urlPath).has_value());
+
+	// GET without path (defined in belle-sip/tester/belle_sip_tester_utils.cc)
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", std::nullopt);
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+	BC_ASSERT_STRING_EQUAL(res.body.c_str(), "Hello World!");
+
+	// POST with a non json body
+	res = sendBackupRequest(lcm, backupHttpServer, "POST", urlPath, Content(ContentType("text", "plain"), "hello"));
+	BC_ASSERT_EQUAL(res.code, 415, int, "%i");
+	BC_ASSERT_FALSE(backupHttpServer.getBody(urlPath).has_value());
+
+	// GET from an unsupported path
+	bool exception_thrown = false;
+	try {
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", std::string("sip:unsupported_url_path@sip.example.org"));
+	} catch (std::invalid_argument &) {
+		exception_thrown = true;
+	}
+	BC_ASSERT_TRUE(exception_thrown);
+
+	// GET from an unknown sender
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", std::string("/sip:unknown@sip.example.org"));
+	BC_ASSERT_EQUAL(res.code, 404, int, "%i");
+
+	// POST to / is not supported
+	res = sendBackupRequest(lcm, backupHttpServer, "POST", std::string("/"), jsonContent(backup));
+	BC_ASSERT_EQUAL(res.code, 406, int, "%i");
+
+	// GET from / is defined in belle-sip/tester/belle_sip_tester_utils.cc
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", std::string("/"));
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+	BC_ASSERT_STRING_EQUAL(res.body.c_str(), "Hello World!");
+
+	// POST to a path not starting with ? is not supported
+	res = sendBackupRequest(lcm, backupHttpServer, "POST", urlPath2, jsonContent(backup));
+	BC_ASSERT_EQUAL(res.code, 406, int, "%i");
+
+	// GET from a path not starting with ? defined in belle-sip/tester/belle_sip_tester_utils.cc
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", urlPath2);
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+	BC_ASSERT_STRING_EQUAL(res.body.c_str(), "Hello World!");
+
+	linphone_core_manager_destroy(lcm);
+}
+
+static void chatroom_backup_updated() {
+	BackupHttpServer backupHttpServer;
+	LinphoneCoreManager *lcm = linphone_core_manager_new("empty_rc");
+	const std::string sender = "sip:marie@sip.example.org";
+	const std::string backup = R"({"chatrooms":["sip:chatroom-1@sip.example.org"]})";
+	const std::string backupUpdated =
+	    R"({"chatrooms":["sip:chatroom-2@sip.example.org","sip:chatroom-3@sip.example.org"]})";
+
+	auto urlPath = std::string("/") + sender;
+	backupHttpServer.addResource(urlPath);
+
+	auto res = sendBackupRequest(lcm, backupHttpServer, "POST", urlPath, jsonContent(backup));
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", urlPath);
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+	BC_ASSERT_STRING_EQUAL(res.body.c_str(), backup.c_str());
+
+	// Update chatroom list
+	res = sendBackupRequest(lcm, backupHttpServer, "POST", urlPath, jsonContent(backupUpdated));
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+
+	res = sendBackupRequest(lcm, backupHttpServer, "GET", urlPath);
+	BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+	BC_ASSERT_STRING_EQUAL(res.body.c_str(), backupUpdated.c_str());
+
+	linphone_core_manager_destroy(lcm);
+}
+
 static test_t http_client_tests[] = {
     {"Http get", http_get},
     {"Bad http uri", http_bad_uri},
@@ -403,6 +559,12 @@ static test_t http_client_tests[] = {
     {"Digest with double challenge", digest_with_double_challenge},
 };
 
+static test_t backup_http_client_tests[] = {
+    {"Post and get chatroom backup", post_and_get_chatroom_backup},
+    {"Chatroom backup errors", chatroom_backup_errors},
+    {"Chatroom backup updated", chatroom_backup_updated},
+};
+
 test_suite_t http_client_test_suite = {"HTTP Client",
                                        before_suite,
                                        after_suite,
@@ -410,5 +572,15 @@ test_suite_t http_client_test_suite = {"HTTP Client",
                                        liblinphone_tester_after_each,
                                        sizeof(http_client_tests) / sizeof(http_client_tests[0]),
                                        http_client_tests,
+                                       3,
+                                       0};
+
+test_suite_t backup_http_client_test_suite = {"Backup HTTP Client",
+                                       before_suite,
+                                       after_suite,
+                                       liblinphone_tester_before_each,
+                                       liblinphone_tester_after_each,
+                                       sizeof(backup_http_client_tests) / sizeof(backup_http_client_tests[0]),
+                                       backup_http_client_tests,
                                        3,
                                        0};

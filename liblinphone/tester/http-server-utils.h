@@ -19,6 +19,10 @@
  */
 
 #include "belle_sip_tester_utils.h"
+#include <map>
+#include <mutex>
+#include <optional>
+#include <string>
 
 /*
  * Fake Http server class simulating bearer authentication.
@@ -40,4 +44,27 @@ private:
 	std::string mToken;
 	std::string mBaseUrl;
 	std::string mRealm;
+};
+
+/*
+ * Fake http server simulating the backup server that stores the chatroom list of users.
+ * POST /backup stores the request body (application/json) for the sender given in the "From" header.
+ * GET /backup returns the body previously stored for the sender given in the "From" header.
+ */
+class BackupHttpServer : public bellesip::HttpServer {
+public:
+	/* Initialize the http server and register the POST and GET /backup routes. */
+	BackupHttpServer() = default;
+	// Add a resource file to serve at given url
+	void addResource(const std::string &urlPath);
+	/* Returns the base url of the server */
+	const std::string &getUrl() const;
+	/* Returns the body stored for the given sender, or std::nullopt if none. */
+	std::optional<std::string> getBody(const std::string &sender) const;
+	/* Stores the body for the given sender, replacing any previous one. Returns false if sender is empty. */
+	bool setBody(const std::string &sender, const std::string &body);
+
+private:
+	mutable std::mutex mMutex;
+	std::map<std::string, std::string> mBodies;
 };
