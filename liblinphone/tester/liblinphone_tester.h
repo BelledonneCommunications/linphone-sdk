@@ -1392,6 +1392,15 @@ int liblinphone_tester_audio_diff(const char *ref_file,
                                   MSAudioDiffProgressNotify func,
                                   void *user_data);
 
+/**
+ * Copy the database and rename it with a random name. Set the new database in the core's config.
+ *
+ * @param core
+ * @param dbBasename The prefix of database. Eg: user_
+ * @param dbPath The path of the database. Eg: bc_tester_res("db/chatrooms.db")
+ */
+void liblinphone_tester_generate_database(LinphoneCore *core, const char *dbBasename, const char *dbPath);
+
 // enum the different methods for the client to retrieve the certificate
 typedef enum _certProvider {
 	CertProviderConfigSip = 0, /**< in the sip section (client_cert_chain and client_cert_key) of the config file */

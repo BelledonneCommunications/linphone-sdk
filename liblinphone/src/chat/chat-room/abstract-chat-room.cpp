@@ -20,6 +20,7 @@
 
 #include "abstract-chat-room.h"
 #include "linphone/utils/utils.h"
+#include <json/json.h>
 
 // =============================================================================
 
@@ -129,6 +130,21 @@ void AbstractChatRoom::setSubject(const std::string &subject) {
 const std::string &AbstractChatRoom::getSubject() const {
 	mSubject = Utils::utf8ToLocale(getSubjectUtf8());
 	return mSubject;
+}
+
+Json::Value AbstractChatRoom::toJson() const {
+	Json::Value json;
+	auto address = getConferenceAddress();
+	json["conference_address"] = address ? address->asString() : "";
+	return json;
+}
+
+Json::Value AbstractChatRoom::toJson(const list<shared_ptr<AbstractChatRoom>> &chatRooms) {
+	Json::Value json(Json::arrayValue);
+	for (auto cr : chatRooms) {
+		json.append(cr->toJson());
+	}
+	return json;
 }
 
 LINPHONE_END_NAMESPACE

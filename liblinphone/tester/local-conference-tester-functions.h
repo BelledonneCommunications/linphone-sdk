@@ -231,15 +231,7 @@ public:
 		linphone_core_enable_rtp_bundle(getLc(), TRUE);
 		linphone_core_set_conference_cleanup_period(getLc(), 1);
 		if (!source_db.empty()) {
-			const char *db_basename = "focus_";
-			char random_db_filename[50];
-			belle_sip_random_token(random_db_filename, sizeof(random_db_filename));
-			char core_db[256];
-			sprintf(core_db, "%s_%s.db", db_basename, random_db_filename);
-			char *rwDbPath = bc_tester_file(core_db);
-			BC_ASSERT_FALSE(liblinphone_tester_copy_file(source_db.c_str(), rwDbPath));
-			linphone_config_set_string(linphone_core_get_config(getLc()), "storage", "uri", rwDbPath);
-			ms_free(rwDbPath);
+			liblinphone_tester_generate_database(getLc(), "focus_", source_db.c_str());
 		}
 
 		const bctbx_list_t *accounts = linphone_core_get_account_list(getLc());

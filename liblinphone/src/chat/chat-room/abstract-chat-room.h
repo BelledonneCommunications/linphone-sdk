@@ -21,7 +21,7 @@
 #ifndef _L_ABSTRACT_CHAT_ROOM_H_
 #define _L_ABSTRACT_CHAT_ROOM_H_
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "belle-sip/object++.hh"
 
@@ -36,6 +36,10 @@
 // =============================================================================
 
 L_DECL_C_STRUCT_PREFIX_LESS(SalMessage);
+
+namespace Json {
+class Value;
+}
 
 LINPHONE_BEGIN_NAMESPACE
 
@@ -297,6 +301,9 @@ public:
 
 	virtual bool unifyConferenceAddress() = 0;
 	virtual void scheduleAddressUnification() = 0;
+
+	virtual Json::Value toJson() const;
+	static Json::Value toJson(const std::list<std::shared_ptr<AbstractChatRoom>> &chatRooms);
 
 protected:
 	explicit AbstractChatRoom(const std::shared_ptr<Core> &core);

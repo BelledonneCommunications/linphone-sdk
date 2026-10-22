@@ -2568,7 +2568,6 @@ char *list_subscribe_with_a_lot_of_chatrooms_from_existing_database_base(
     const char *source_db, size_t nbServerChatRooms, size_t nbClientChatRooms, bool save, const char *backend) {
 	LinphoneCoreManager *pauline =
 	    linphone_core_manager_create(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
-	char core_db[256];
 	const char *db_basename = "server_chatroom";
 	char *rwDbPath = NULL;
 	linphone_config_set_string(linphone_core_get_config(pauline->lc), "storage", "backend", backend);
@@ -2578,12 +2577,9 @@ char *list_subscribe_with_a_lot_of_chatrooms_from_existing_database_base(
 	bool mysql_backend = (strcmp(backend, "mysql") == 0);
 	if (sqlite3_backend) {
 		if (source_db) {
-			char random_db_filename[50];
-			belle_sip_random_token(random_db_filename, sizeof(random_db_filename));
-			sprintf(core_db, "%s_%s.db", db_basename, random_db_filename);
-			rwDbPath = bc_tester_file(core_db);
-			BC_ASSERT_FALSE(liblinphone_tester_copy_file(source_db, rwDbPath));
-			linphone_config_set_string(linphone_core_get_config(pauline->lc), "storage", "uri", rwDbPath);
+			liblinphone_tester_generate_database(pauline->lc, db_basename, source_db);
+			rwDbPath =
+			    ms_strdup(linphone_config_get_string(linphone_core_get_config(pauline->lc), "storage", "uri", ""));
 		} else {
 			rwDbPath = ms_strdup(pauline->database_path);
 		}

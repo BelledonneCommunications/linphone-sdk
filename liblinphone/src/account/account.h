@@ -34,6 +34,10 @@
 #include "linphone/api/c-types.h"
 #include "sal/register-op.h"
 
+namespace Json {
+class Value;
+}
+
 // =============================================================================
 
 LINPHONE_BEGIN_NAMESPACE
@@ -128,6 +132,7 @@ public:
 	const std::list<std::shared_ptr<AbstractChatRoom>> &getChatRooms() const;
 	const bctbx_list_t *getChatRoomsCList() const;
 	std::list<std::shared_ptr<AbstractChatRoom>> filterChatRooms(const std::string &filter) const;
+	Json::Value getChatRoomsJson(bool onlyGroups) const;
 
 	int getMissedCallsCount() const;
 	std::list<std::shared_ptr<CallLog>> getCallLogs() const;

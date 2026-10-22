@@ -817,3 +817,14 @@ int liblinphone_tester_sound_detection(LinphoneCoreManager *a,
 	}
 	return have_sound_count >= 2 ? 0 : -1;
 }
+
+void liblinphone_tester_generate_database(LinphoneCore *core, const char *dbBasename, const char *dbPath) {
+	char randomDbFilename[50];
+	belle_sip_random_token(randomDbFilename, sizeof(randomDbFilename));
+	char coreDb[256];
+	sprintf(coreDb, "%s_%s.db", dbBasename, randomDbFilename);
+	char *rwDbPath = bc_tester_file(coreDb);
+	BC_ASSERT_FALSE(liblinphone_tester_copy_file(dbPath, rwDbPath));
+	linphone_config_set_string(linphone_core_get_config(core), "storage", "uri", rwDbPath);
+	ms_free(rwDbPath);
+}

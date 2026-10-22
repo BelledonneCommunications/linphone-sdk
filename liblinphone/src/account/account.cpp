@@ -57,7 +57,8 @@ using namespace Xsd::XconConferenceInfo;
 static FsmIntegrityChecker<LinphoneRegistrationState> accountFsmChecker{
     {{LinphoneRegistrationNone, {LinphoneRegistrationProgress, LinphoneRegistrationFailed}},
      {LinphoneRegistrationProgress,
-      {LinphoneRegistrationOk, LinphoneRegistrationRefreshing, LinphoneRegistrationFailed, LinphoneRegistrationCleared}},
+      {LinphoneRegistrationOk, LinphoneRegistrationRefreshing, LinphoneRegistrationFailed,
+       LinphoneRegistrationCleared}},
      {LinphoneRegistrationOk,
       {
           LinphoneRegistrationNone,
@@ -1106,6 +1107,18 @@ list<shared_ptr<AbstractChatRoom>> Account::filterChatRooms(const string &filter
 
 	oneOnOneResults.splice(oneOnOneResults.end(), groupResults);
 	return oneOnOneResults;
+}
+
+Json::Value Account::getChatRoomsJson(bool onlyGroups) const {
+	std::list<std::shared_ptr<AbstractChatRoom>> filteredChatRooms;
+	Json::Value json;
+	for (auto cr : getChatRooms()) {
+		if (!onlyGroups || cr->getCurrentParams()->isGroup()) {
+			filteredChatRooms.push_back(cr);
+		}
+	}
+	json["chat_rooms"] = AbstractChatRoom::toJson(filteredChatRooms);
+	return json;
 }
 
 int Account::getMissedCallsCount() const {

@@ -25,6 +25,8 @@
 
 #include "account/account.h"
 #include "address/address.h"
+#include "chat/chat-room/abstract-chat-room.h"
+#include "conference/conference-params.h"
 #include "core/core.h"
 #include "liblinphone_tester.h"
 #include "linphone/api/c-account-cbs.h"
@@ -1066,6 +1068,71 @@ static void lookup_multi_accounts(void) {
 	linphone_core_manager_destroy(manager);
 }
 
+static void get_chat_rooms_in_json(void) {
+	char *dbPath = bc_tester_res("db/linphone.db");
+	LinphoneCoreManager *manager = linphone_core_manager_create("empty_rc");
+	auto core = std::shared_ptr<Core>(L_GET_CPP_PTR_FROM_C_OBJECT(manager->lc));
+
+	// Generate database
+	liblinphone_tester_generate_database(manager->lc, "user_", dbPath);
+	ms_free(dbPath);
+
+	// Show all chat rooms
+	linphone_config_set_int(linphone_core_get_config(manager->lc), "misc", "hide_empty_chat_rooms", 0);
+
+	linphone_core_manager_start(manager, FALSE);
+
+	// Add a not random user to match addresses in database. Do not register it to keep this test standalone.
+	addAccount(manager, "test-1", "sip.linphone.org", false);
+	addAccount(manager, "empty_user", "sip.example.org", false); // Check with no data
+
+	auto account = core->getAccounts().front();
+
+	// Generate JSON
+	// Step == 0 -> only groups
+	// Step == 1 -> all chat rooms
+	Json::Value json;
+	for (int step = 0; step < 2; ++step) {
+		json = account->getChatRoomsJson(step == 0);
+		std::list<std::shared_ptr<Address>> chatRoomsAddresses;
+		BC_ASSERT_TRUE(json.isMember("chat_rooms"));
+		BC_ASSERT_TRUE(json["chat_rooms"].isArray());
+		Json::Value chatRomsJson = json["chat_rooms"];
+		for (Json::ArrayIndex i = 0; i < chatRomsJson.size(); i++) {
+			Json::Value r = chatRomsJson[i];
+			if (r.isMember("conference_address")) {
+				auto addr = Address::create(r["conference_address"].asString());
+				if (addr && addr->isValid()) // An address have been parsed
+					chatRoomsAddresses.push_back(addr);
+			}
+		}
+		auto chatRoomsAddressesIt = chatRoomsAddresses.begin();
+		for (auto chatRoom : account->getChatRooms()) {
+			if (chatRoomsAddressesIt == chatRoomsAddresses.end() ||
+			    !chatRoom->getConferenceAddress()->weakEqual(*chatRoomsAddressesIt)) {
+				if (step == 0) BC_ASSERT_FALSE(chatRoom->getCurrentParams()->isGroup());
+				else BC_FAIL("Chat rooms lists doesn't match");
+			} else {
+				if (step == 0) BC_ASSERT_TRUE(chatRoom->getCurrentParams()->isGroup());
+				++chatRoomsAddressesIt;
+			}
+		}
+		BC_ASSERT_TRUE(chatRoomsAddressesIt == chatRoomsAddresses.end());
+	}
+	// Empty db
+	account = core->getAccounts().back();
+	BC_ASSERT_TRUE(account->getChatRooms().size() == 0);
+	for (int step = 0; step < 2; ++step) {
+		json = account->getChatRoomsJson(step == 0);
+		BC_ASSERT_TRUE(json.isMember("chat_rooms"));
+		BC_ASSERT_TRUE(json["chat_rooms"].isArray());
+		BC_ASSERT_TRUE(json["chat_rooms"].empty());
+		BC_ASSERT_EQUAL(json["chat_rooms"].size(), 0, size_t, "%zu");
+	}
+
+	linphone_core_manager_destroy(manager);
+}
+
 static test_t account_tests[] = {
     TEST_NO_TAG("Simple account creation", simple_account_creation),
     TEST_NO_TAG("Simple account creation with removal", simple_account_creation_with_removal),
@@ -1098,6 +1165,7 @@ static test_t account_tests[] = {
     TEST_NO_TAG("Load a config with unordered, partial or malformed push parameters",
                 account_params_push_config_parsing),
     TEST_NO_TAG("Lookup multi accounts", lookup_multi_accounts),
+    TEST_NO_TAG("Get chat rooms in json", get_chat_rooms_in_json),
 };
 
 test_suite_t account_test_suite = {"Account",
