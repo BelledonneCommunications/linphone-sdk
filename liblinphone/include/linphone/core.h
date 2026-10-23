@@ -2304,6 +2304,56 @@ LINPHONE_PUBLIC void linphone_core_set_dns_servers_app(LinphoneCore *core, const
 LINPHONE_PUBLIC void linphone_core_set_dns_servers(LinphoneCore *core, const bctbx_list_t *servers);
 
 /**
+ * Add a custom DNS A record to be used by the internal DNS resolver.
+ * @param core #LinphoneCore object. @notnil
+ * @param name Hostname. @notnil
+ * @param ip IPv4 address string (e.g. "192.168.1.1"). @notnil
+ * @param ttl Time To Live in seconds (0 for default).
+ * @ingroup group_network_parameters
+ */
+LINPHONE_PUBLIC void linphone_core_add_dns_a_entry(LinphoneCore *core, const char *name, const char *ip, int ttl);
+
+/**
+ * Add a custom DNS AAAA record to be used by the internal DNS resolver.
+ * @param core #LinphoneCore object. @notnil
+ * @param name Hostname. @notnil
+ * @param ip IPv6 address string (e.g. "::1"). @notnil
+ * @param ttl Time To Live in seconds (0 for default).
+ * @ingroup group_network_parameters
+ */
+LINPHONE_PUBLIC void linphone_core_add_dns_aaaa_entry(LinphoneCore *core, const char *name, const char *ip, int ttl);
+
+/**
+ * Add a custom DNS SRV record to be used by the internal DNS resolver.
+ * @param core #LinphoneCore object. @notnil
+ * @param service Service name, typically "sip". @notnil
+ * @param transport Transport name, e.g. "udp", "tcp", "tls". @notnil
+ * @param domain Domain name. @notnil
+ * @param target Target hostname. @notnil
+ * @param port Target port.
+ * @param priority Priority.
+ * @param weight Weight.
+ * @param ttl Time To Live in seconds (0 for default).
+ * @ingroup group_network_parameters
+ */
+LINPHONE_PUBLIC void linphone_core_add_dns_srv_entry(LinphoneCore *core,
+                                                     const char *service,
+                                                     const char *transport,
+                                                     const char *domain,
+                                                     const char *target,
+                                                     int port,
+                                                     int priority,
+                                                     int weight,
+                                                     int ttl);
+
+/**
+ * Clear all custom DNS records configured on the core's SIP stack.
+ * @param core #LinphoneCore object. @notnil
+ * @ingroup group_network_parameters
+ */
+LINPHONE_PUBLIC void linphone_core_clear_custom_dns_entries(LinphoneCore *core);
+
+/**
  * Returns the list of the available audio payload types.
  * @param core The core. @notnil
  * @return A freshly allocated list of the available payload types.

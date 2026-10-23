@@ -4127,4 +4127,35 @@ bool Core::hasAccountWithEchoedPresenceSubscriptionEnabled() const {
 	});
 }
 
+// ---------------------------------------------------------------------------
+// DNS
+// ---------------------------------------------------------------------------
+
+void Core::addDnsAEntry(const std::string &name, const std::string &ip, int ttl) {
+	Sal *sal = getPrivate()->getSal();
+	if (sal) sal->addDnsAEntry(name, ip, ttl);
+}
+
+void Core::addDnsAaaaEntry(const std::string &name, const std::string &ip, int ttl) {
+	Sal *sal = getPrivate()->getSal();
+	if (sal) sal->addDnsAaaaEntry(name, ip, ttl);
+}
+
+void Core::addDnsSrvEntry(const std::string &service,
+                          const std::string &transport,
+                          const std::string &domain,
+                          const std::string &target,
+                          int port,
+                          int priority,
+                          int weight,
+                          int ttl) {
+	Sal *sal = getPrivate()->getSal();
+	if (sal) sal->addDnsSrvEntry(service, transport, domain, target, port, priority, weight, ttl);
+}
+
+void Core::clearCustomDnsEntries() {
+	Sal *sal = getPrivate()->getSal();
+	if (sal) sal->clearCustomDnsEntries();
+}
+
 LINPHONE_END_NAMESPACE

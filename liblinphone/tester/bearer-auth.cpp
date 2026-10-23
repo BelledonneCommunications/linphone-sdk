@@ -48,10 +48,16 @@ static void test_bearer_auth(void) {
 	registrar.setAuthzServer("auth.example.org");
 
 	LinphoneCoreManager *lcm = linphone_core_manager_new("empty_rc");
+	int reg_port = belle_sip_uri_get_port(registrar.getAgent().getListeningUri());
+
+	linphone_core_add_dns_srv_entry(lcm->lc, "sip", "tcp", "local.example.org", "server.local.example.org", reg_port, 0,
+	                                0, 600);
+	linphone_core_add_dns_a_entry(lcm->lc, "server.local.example.org", "127.0.0.1", 600);
+
 	LinphoneAccountParams *account_params = linphone_core_create_account_params(lcm->lc);
 	LinphoneAddress *identity = linphone_factory_create_address(linphone_factory_get(), "sip:bob@sip.example.com");
 	LinphoneAddress *server_addr =
-	    linphone_factory_create_address(linphone_factory_get(), registrar.getAgent().getListeningUriAsString().c_str());
+	    linphone_factory_create_address(linphone_factory_get(), "sip:local.example.org;transport=tcp");
 	linphone_account_params_set_identity_address(account_params, identity);
 	linphone_account_params_set_server_address(account_params, server_addr);
 	linphone_account_params_enable_register(account_params, TRUE);
@@ -80,6 +86,7 @@ static void test_bearer_auth(void) {
 		proposedAuthInfo = nullptr;
 	}
 
+	linphone_core_clear_custom_dns_entries(lcm->lc);
 	linphone_core_manager_destroy(lcm);
 	linphone_core_cbs_unref(cbs);
 }

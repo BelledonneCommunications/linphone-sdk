@@ -615,6 +615,22 @@ public:
 	void updateHidDevices(std::list<std::shared_ptr<HidDevice>> devices);
 #endif /* HAVE_HIDAPI */
 
+	// ---------------------------------------------------------------------------
+	// DNS
+	// ---------------------------------------------------------------------------
+
+	void addDnsAEntry(const std::string &name, const std::string &ip, int ttl = 0);
+	void addDnsAaaaEntry(const std::string &name, const std::string &ip, int ttl = 0);
+	void addDnsSrvEntry(const std::string &service,
+	                    const std::string &transport,
+	                    const std::string &domain,
+	                    const std::string &target,
+	                    int port,
+	                    int priority,
+	                    int weight,
+	                    int ttl = 0);
+	void clearCustomDnsEntries();
+
 private:
 	Core();
 	void updateChatRoomList() const;

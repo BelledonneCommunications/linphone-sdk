@@ -419,6 +419,18 @@ public:
 	void setDnsUserHostsFile(const std::string &value);
 	const std::string &getDnsUserHostsFile() const;
 
+	void addDnsAEntry(const std::string &name, const std::string &ip, int ttl = 0);
+	void addDnsAaaaEntry(const std::string &name, const std::string &ip, int ttl = 0);
+	void addDnsSrvEntry(const std::string &service,
+	                    const std::string &transport,
+	                    const std::string &domain,
+	                    const std::string &target,
+	                    int port,
+	                    int priority,
+	                    int weight,
+	                    int ttl = 0);
+	void clearCustomDnsEntries();
+
 	/* to deprecate, use prototype with lambda function, more convenient*/
 	belle_sip_resolver_context_t *
 	resolveA(const std::string &name, int port, int family, belle_sip_resolver_callback_t cb, void *data);

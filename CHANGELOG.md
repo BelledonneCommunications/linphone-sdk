@@ -18,6 +18,8 @@ changes made to these components.
 - MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
 - Swift package flavor built with the G729 codec, published to a separate repository for licensees.
 - [sip]/call_accept_handles_replaces property so that is possible to disable the automatic termination of a replaces-pointed call upon accepting the INVITE.
+- Add new methods linphone_core_add_dns_srv_entry(), linphone_core_add_dns_a_entry() and linphone_core_add_dns_aaaa_entry() to assign custom
+  DNS entry overrides. These are intended for testing or workaround DNS server issues.
 
 
 ### Changed

@@ -908,6 +908,30 @@ const string &Sal::getDnsUserHostsFile() const {
 	return mDnsUserHostsFile;
 }
 
+void Sal::addDnsAEntry(const string &name, const string &ip, int ttl) {
+	belle_sip_stack_add_dns_a_entry(mStack, L_STRING_TO_C(name), L_STRING_TO_C(ip), (uint32_t)ttl);
+}
+
+void Sal::addDnsAaaaEntry(const string &name, const string &ip, int ttl) {
+	belle_sip_stack_add_dns_aaaa_entry(mStack, L_STRING_TO_C(name), L_STRING_TO_C(ip), (uint32_t)ttl);
+}
+
+void Sal::addDnsSrvEntry(const string &service,
+                         const string &transport,
+                         const string &domain,
+                         const string &target,
+                         int port,
+                         int priority,
+                         int weight,
+                         int ttl) {
+	belle_sip_stack_add_dns_srv_entry(mStack, L_STRING_TO_C(service), L_STRING_TO_C(transport), L_STRING_TO_C(domain),
+	                                  L_STRING_TO_C(target), port, priority, weight, (uint32_t)ttl);
+}
+
+void Sal::clearCustomDnsEntries() {
+	belle_sip_stack_clear_custom_dns_entries(mStack);
+}
+
 belle_sip_resolver_context_t *
 Sal::resolveA(const string &name, int port, int family, belle_sip_resolver_callback_t cb, void *data) {
 	return belle_sip_stack_resolve_a(mStack, L_STRING_TO_C(name), port, family, cb, data);

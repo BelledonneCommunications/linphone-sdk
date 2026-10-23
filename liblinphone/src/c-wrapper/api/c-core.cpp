@@ -470,3 +470,33 @@ void linphone_core_enable_hid(LinphoneCore *core, bool_t enable) {
 bool_t linphone_core_hid_enabled(const LinphoneCore *core) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(core)->hidEnabled();
 }
+
+// ---------------------------------------------------------------------------
+// DNS
+// ---------------------------------------------------------------------------
+
+void linphone_core_add_dns_a_entry(LinphoneCore *core, const char *name, const char *ip, int ttl) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->addDnsAEntry(L_C_TO_STRING(name), L_C_TO_STRING(ip), ttl);
+}
+
+void linphone_core_add_dns_aaaa_entry(LinphoneCore *core, const char *name, const char *ip, int ttl) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->addDnsAaaaEntry(L_C_TO_STRING(name), L_C_TO_STRING(ip), ttl);
+}
+
+void linphone_core_add_dns_srv_entry(LinphoneCore *core,
+                                     const char *service,
+                                     const char *transport,
+                                     const char *domain,
+                                     const char *target,
+                                     int port,
+                                     int priority,
+                                     int weight,
+                                     int ttl) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->addDnsSrvEntry(L_C_TO_STRING(service), L_C_TO_STRING(transport),
+	                                                  L_C_TO_STRING(domain), L_C_TO_STRING(target), port, priority,
+	                                                  weight, ttl);
+}
+
+void linphone_core_clear_custom_dns_entries(LinphoneCore *core) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(core)->clearCustomDnsEntries();
+}
