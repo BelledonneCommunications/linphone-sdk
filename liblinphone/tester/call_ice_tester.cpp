@@ -993,6 +993,103 @@ end:
 	linphone_core_manager_destroy(marie);
 }
 
+static void call_with_ice_and_asymmetric_video(void) {
+#ifdef VIDEO_ENABLED
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *pauline =
+	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
+	LinphoneCallParams *marie_call_params = NULL;
+	LinphoneCall *marie_call = NULL;
+	LinphoneCall *pauline_call = NULL;
+	const LinphoneCallParams *pauline_params = NULL;
+	const LinphoneCallParams *marie_params = NULL;
+
+	if (!linphone_core_video_supported(marie->lc)) {
+		ms_warning("not tested because video not available");
+		goto end;
+	}
+
+	linphone_core_enable_video_capture(marie->lc, TRUE);
+	linphone_core_enable_video_display(marie->lc, TRUE);
+	linphone_core_enable_video_capture(pauline->lc, TRUE);
+	linphone_core_enable_video_display(pauline->lc, TRUE);
+
+	linphone_core_set_video_device(marie->lc, liblinphone_tester_mire_id);
+	linphone_core_set_video_device(pauline->lc, liblinphone_tester_mire_id);
+
+	enable_stun_in_mgr(marie, TRUE, TRUE, TRUE, TRUE);
+	enable_stun_in_mgr(pauline, TRUE, TRUE, TRUE, TRUE);
+
+	linphone_core_set_audio_port(marie->lc, -1);
+	linphone_core_set_video_port(marie->lc, -1);
+	linphone_core_set_audio_port(pauline->lc, -1);
+	linphone_core_set_video_port(pauline->lc, -1);
+
+	marie_call_params = linphone_core_create_call_params(marie->lc, NULL);
+	linphone_call_params_enable_video(marie_call_params, TRUE);
+	linphone_call_params_set_video_direction(marie_call_params, LinphoneMediaDirectionSendRecv);
+
+	marie_call =
+	    linphone_core_invite_address_with_params_2(marie->lc, pauline->identity, marie_call_params, NULL, NULL);
+	linphone_call_params_unref(marie_call_params);
+	if (!BC_ASSERT_PTR_NOT_NULL(marie_call)) goto end;
+
+	if (!BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallIncomingReceived, 1)))
+		goto end;
+	pauline_call = linphone_core_get_current_call(pauline->lc);
+	if (!BC_ASSERT_PTR_NOT_NULL(pauline_call)) goto end;
+
+	{
+		LinphoneCallParams *pauline_accept_params = linphone_core_create_call_params(pauline->lc, pauline_call);
+		linphone_call_params_enable_video(pauline_accept_params, TRUE);
+		linphone_call_params_set_video_direction(pauline_accept_params, LinphoneMediaDirectionRecvOnly);
+		linphone_call_accept_with_params(pauline_call, pauline_accept_params);
+		linphone_call_params_unref(pauline_accept_params);
+	}
+
+	if (!BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallStreamsRunning, 1)))
+		goto end;
+	if (!BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallStreamsRunning, 1)))
+		goto end;
+
+	pauline_params = linphone_call_get_current_params(pauline_call);
+	BC_ASSERT_PTR_NOT_NULL(pauline_params);
+	BC_ASSERT_TRUE(linphone_call_params_video_enabled(pauline_params));
+	BC_ASSERT_EQUAL(linphone_call_params_get_video_direction(pauline_params), LinphoneMediaDirectionRecvOnly, int,
+	                "%d");
+
+	marie_params = linphone_call_get_current_params(marie_call);
+	BC_ASSERT_PTR_NOT_NULL(marie_params);
+	BC_ASSERT_TRUE(linphone_call_params_video_enabled(marie_params));
+	BC_ASSERT_EQUAL(linphone_call_params_get_video_direction(marie_params), LinphoneMediaDirectionSendOnly, int, "%d");
+
+	/* Wait for ICE reINVITE to complete */
+	if (!BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneCallStreamsRunning, 2)))
+		goto end;
+	if (!BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallStreamsRunning, 2)))
+		goto end;
+	BC_ASSERT_TRUE(check_ice(marie, pauline, LinphoneIceStateHostConnection));
+
+	/* Check that video direction has not become SendRecv after ICE reINVITE */
+	pauline_params = linphone_call_get_current_params(pauline_call);
+	BC_ASSERT_PTR_NOT_NULL(pauline_params);
+	BC_ASSERT_TRUE(linphone_call_params_video_enabled(pauline_params));
+	BC_ASSERT_EQUAL(linphone_call_params_get_video_direction(pauline_params), LinphoneMediaDirectionRecvOnly, int,
+	                "%d");
+
+	marie_params = linphone_call_get_current_params(marie_call);
+	BC_ASSERT_PTR_NOT_NULL(marie_params);
+	BC_ASSERT_TRUE(linphone_call_params_video_enabled(marie_params));
+	BC_ASSERT_EQUAL(linphone_call_params_get_video_direction(marie_params), LinphoneMediaDirectionSendOnly, int, "%d");
+
+	end_call(marie, pauline);
+
+end:
+	linphone_core_manager_destroy(pauline);
+	linphone_core_manager_destroy(marie);
+#endif
+}
+
 static test_t call_with_ice_tests[] = {
     TEST_ONE_TAG("Call with ICE in IPv4 with IPv6 enabled", call_with_ice_in_ipv4_with_v6_enabled, "ICE"),
     TEST_ONE_TAG("Call with ICE IPv4 to IPv6", call_with_ice_ipv4_to_ipv6, "ICE"),
@@ -1065,7 +1162,8 @@ static test_t call_with_ice_tests[] = {
                   "DTLS"),
     TEST_ONE_TAG("Call terminated during ICE re-INVITE", call_terminated_during_ice_reinvite, "ICE"),
     TEST_ONE_TAG("Call with ICE using dual-stack stun server", call_with_ice_and_dual_stack_stun_server, "ICE"),
-    TEST_ONE_TAG("SRTP ice call to no encryption", srtp_ice_call_to_no_encryption, "ICE")};
+    TEST_ONE_TAG("SRTP ice call to no encryption", srtp_ice_call_to_no_encryption, "ICE"),
+    TEST_ONE_TAG("Call with ICE and asymmetric video", call_with_ice_and_asymmetric_video, "ICE")};
 
 test_suite_t call_with_ice_test_suite = {"Call with ICE",
                                          NULL,

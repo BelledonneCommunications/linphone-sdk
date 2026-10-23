@@ -11,17 +11,31 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.
 
+
+
+
+
+## unreleased
+
+### Changed
 - Updated Sqlite3 dependency to 3.54.0
 - Updated decaf dependency to 1.0.5
 - Updated SRTP library dependency to 2.8.1
+
+### Fixed
+- unexpected video direction change from recvonly to sendrecv, resulting in camera activation, when an application accepts a video stream as recvonly and subsequently receives a ICE re-INVITE.
+
+
+## [5.5.39] - 2026-10-26
+
+### Fixed
+- Remove provisioning configuration keys parsing if generation of documentation has not been requested.
+- Fix potential crash when accessing messages and eventlogs after a core restart
 
 ### Security
 - Fix vulnerabilities in RTCP PSFB RPSI, RTCP XR and RTP extension header remapping.
 - Bounds validation on RTCP RTPFB packets and RTP extension headers.
 
-[latest]
-### Fixed
-- Remove provisioning configuration keys parsing if generation of documentation has not been requested.
 
 ## [5.5.35] 2026-10-19
 

@@ -359,8 +359,6 @@ private:
 	void queueIceCompletionTask(const std::function<LinphoneStatus()> &lambda);
 	void runIceCompletionTasks();
 
-	LinphoneMediaDirection computeNewVideoDirection(LinphoneMediaDirection acceptVideoDirection);
-
 	bool tryEnterConference();
 	void fillRtpParameters(SalStreamDescription &stream) const;
 	void fillVideoRptParameters(SalStreamDescription &newStream) const;

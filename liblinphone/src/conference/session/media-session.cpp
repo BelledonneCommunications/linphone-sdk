@@ -952,12 +952,11 @@ MediaSessionParams *MediaSessionPrivate::createMediaSessionParams() {
 	L_Q();
 	MediaSessionParams *msp = new MediaSessionParams(*getParams());
 
-	auto videoDir = computeNewVideoDirection(q->getCore()->getCCore()->video_policy->accept_media_direction);
 	const auto &conference = q->getCore()->findConference(q->getSharedFromThis(), false);
 	if (conference) {
-		videoDir = conference->verifyVideoDirection(q->getSharedFromThis(), videoDir);
+		auto videoDir = conference->verifyVideoDirection(q->getSharedFromThis(), msp->getVideoDirection());
+		msp->setVideoDirection(videoDir);
 	}
-	msp->setVideoDirection(videoDir);
 
 	return msp;
 }
@@ -1153,12 +1152,15 @@ void MediaSessionPrivate::fixCallParams(std::shared_ptr<SalMediaDescription> &rm
 			}
 		} else {
 			if (rcp->videoEnabled() && cCore->video_policy->automatically_accept &&
-			    linphone_core_video_enabled(cCore) && !getParams()->videoEnabled()) {
-				lInfo() << "CallSession [" << q
-				        << "]: re-enabling video in our call params because the remote wants it and the policy allows "
-				           "to automatically accept";
-				getParams()->setVideoDirection(cCore->video_policy->accept_media_direction);
-				getParams()->enableVideo(true);
+			    linphone_core_video_enabled(cCore)) {
+				if (!getParams()->videoEnabled()) {
+					lInfo()
+					    << "CallSession [" << q
+					    << "]: re-enabling video in our call params because the remote wants it and the policy allows "
+					       "to automatically accept";
+					getParams()->setVideoDirection(cCore->video_policy->accept_media_direction);
+					getParams()->enableVideo(true);
+				}
 			}
 		}
 
@@ -4354,41 +4356,6 @@ LinphoneStatus MediaSessionPrivate::startAccept() {
 	}
 
 	return 0;
-}
-
-LinphoneMediaDirection MediaSessionPrivate::computeNewVideoDirection(LinphoneMediaDirection acceptVideoDirection) {
-	L_Q();
-	auto paramsVideoDirection = getParams()->getVideoDirection();
-	auto state = q->getState();
-	if (op &&
-	    ((op->getRemoteMediaDescription() &&
-	      ((state == CallSession::State::IncomingReceived) || (state == CallSession::State::UpdatedByRemote) ||
-	       (state == CallSession::State::EarlyUpdatedByRemote) || (state == CallSession::State::IncomingEarlyMedia))) ||
-	     (state == CallSession::State::StreamsRunning &&
-	      (q->getCore()->getCCore()->sip_conf.sdp_200_ack || op->getSal()->mediaDisabled())))) {
-		// We are accepting an offer
-		auto videoEnabled = getParams()->videoEnabled();
-		if (!videoEnabled) {
-			return acceptVideoDirection;
-		} else if (paramsVideoDirection == acceptVideoDirection) {
-			return paramsVideoDirection;
-		} else if (paramsVideoDirection == LinphoneMediaDirectionSendRecv ||
-		           acceptVideoDirection == LinphoneMediaDirectionSendRecv) {
-			return LinphoneMediaDirectionSendRecv;
-		} else if ((paramsVideoDirection == LinphoneMediaDirectionSendOnly &&
-		            acceptVideoDirection == LinphoneMediaDirectionRecvOnly) ||
-		           (paramsVideoDirection == LinphoneMediaDirectionRecvOnly &&
-		            acceptVideoDirection == LinphoneMediaDirectionSendOnly)) {
-			return LinphoneMediaDirectionSendRecv;
-		} else if (paramsVideoDirection == LinphoneMediaDirectionInactive) {
-			return acceptVideoDirection;
-		} else if (acceptVideoDirection == LinphoneMediaDirectionInactive) {
-			return paramsVideoDirection;
-		}
-	} else {
-		return paramsVideoDirection;
-	}
-	return LinphoneMediaDirectionInactive;
 }
 
 LinphoneStatus MediaSessionPrivate::accept(const MediaSessionParams *msp, BCTBX_UNUSED(bool wasRinging)) {
