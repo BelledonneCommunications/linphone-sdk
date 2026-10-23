@@ -47,6 +47,7 @@ recache-ubuntu2004:
 #################################################
 
 ubuntu2004-makefile-clang:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [.ubuntu2004_image_version, image]
   variables:
@@ -61,6 +62,7 @@ ubuntu2004-makefile-clang:
     - wait-cache-synchro-ubuntu2004
 
 ubuntu2004-makefile-clang-pqc:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=ON
   extends: ubuntu2004-makefile-clang
@@ -70,6 +72,7 @@ ubuntu2004-makefile-clang-pqc:
 #################################################
 
 ubuntu2004-ninja-gcc:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [.ubuntu2004_image_version, image]
   variables:
@@ -94,16 +97,19 @@ ubuntu2004-ninja-gcc:
     - wait-cache-synchro-ubuntu2004
 
 ubuntu2004-ninja-gcc-pqc:
+  artifacts: !reference [.linux-desktop, artifacts] # inherits from a job whose artifacts are dropped: restore them
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=ON
   extends: ubuntu2004-ninja-gcc
 
 ubuntu2004-ninja-gcc-smallsdk:
+  artifacts: null # no job uses the artifacts of this build
   extends:
     - ubuntu2004-ninja-gcc
     - .smallsdk-cmake-options
 
 ubuntu2004-ninja-gcc-tunnel-pq:
+  artifacts: !reference [.linux-desktop, artifacts] # inherits from a job whose artifacts are dropped: restore them
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

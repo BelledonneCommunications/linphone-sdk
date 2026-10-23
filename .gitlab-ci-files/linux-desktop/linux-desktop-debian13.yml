@@ -82,6 +82,7 @@ recache-debian13-ninja-clang-python-wheel:
 
 
 debian13-makefile-gcc:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-flat" ]
   image: !reference [.debian13_image_version, image]
@@ -96,6 +97,7 @@ debian13-makefile-gcc:
 
 
 debian13-makefile-clang:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-flat" ]
   image: !reference [.debian13_image_version, image]
@@ -128,6 +130,7 @@ debian13-ninja-gcc:
     - wait-cache-synchro-debian13
 
 debian13-ninja-gcc-novideo:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian13-ninja-gcc
@@ -138,6 +141,7 @@ debian13-ninja-gcc-pqc:
   extends: debian13-ninja-gcc
 
 debian13-ninja-gcc-smallsdk:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
@@ -173,6 +177,7 @@ debian13-ninja-gcc-openssl:
     - wait-cache-synchro-debian13-ninja-gcc-openssl
 
 debian13-ninja-clang:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [.debian13_image_version, image]
   variables:
@@ -185,17 +190,20 @@ debian13-ninja-clang:
     - wait-cache-synchro-debian13
 
 debian13-ninja-clang-sanitizer:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=ON -DCMAKE_BUILD_TYPE=Debug
     ADDITIONAL_BUILD_OPTIONS: "-j 4"
   extends: debian13-ninja-clang
 
 debian13-ninja-clang-novideo:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian13-ninja-clang
 
 debian13-ninja-clang-pqc:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian13-ninja-clang

@@ -63,26 +63,32 @@ arch-image-docker-rebuild-liblinphone-test:
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated
 
 arch-makefile-gcc-newdocker:
+  artifacts: !reference [.linux-desktop, artifacts] # inherits from a job whose artifacts are dropped: restore them
   extends: arch-latest-makefile-gcc
   <<: *docker_image_rule_no_cache
 
 arch-ninja-gcc-newdocker:
+  artifacts: null # no job uses the artifacts of this build
   extends: arch-latest-ninja-gcc
   <<: *docker_image_rule_no_cache
 
 arch-ninja-gcc-newdocker-novideo:
+  artifacts: null # no job uses the artifacts of this build
   extends: arch-latest-ninja-gcc-novideo
   <<: *docker_image_rule_no_cache
 
 arch-makefile-clang-newdocker:
+  artifacts: null # no job uses the artifacts of this build
   extends: arch-latest-makefile-clang
   <<: *docker_image_rule_no_cache
 
 arch-ninja-clang-newdocker:
+  artifacts: null # no job uses the artifacts of this build
   extends: arch-latest-ninja-clang
   <<: *docker_image_rule_no_cache
 
 arch-ninja-clang-newdocker-novideo:
+  artifacts: null # no job uses the artifacts of this build
   extends: arch-latest-ninja-clang-novideo
   <<: *docker_image_rule_no_cache
 

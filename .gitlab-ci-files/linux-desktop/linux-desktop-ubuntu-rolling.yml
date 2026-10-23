@@ -29,6 +29,7 @@ recache-ubuntu-rolling:
 
 
 ubuntu-rolling-makefile-gcc:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-flat" ]
   image: !reference [.ubuntu-rolling_image_version, image]
@@ -48,6 +49,7 @@ ubuntu-rolling-makefile-gcc:
 
 
 ubuntu-rolling-makefile-clang:
+ artifacts: null # no job uses the artifacts of this build
  tags: [ "docker-flat" ]
  image: !reference [.ubuntu-rolling_image_version, image]
  variables:
@@ -67,6 +69,7 @@ ubuntu-rolling-makefile-clang:
 
 
 ubuntu-rolling-ninja-gcc:
+ artifacts: null # no job uses the artifacts of this build
 
  tags: [ "docker-flat" ]
  image: !reference [.ubuntu-rolling_image_version, image]
@@ -80,6 +83,7 @@ ubuntu-rolling-ninja-gcc:
 
 
 ubuntu-rolling-ninja-gcc-novideo:
+ artifacts: null # no job uses the artifacts of this build
  variables:
    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
  extends: ubuntu-rolling-ninja-gcc
@@ -102,6 +106,7 @@ ubuntu-rolling-ninja-clang-pqc:
   extends: ubuntu-rolling-ninja-clang
 
 ubuntu-rolling-ninja-clang-novideo:
+ artifacts: null # no job uses the artifacts of this build
  variables:
    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
  extends: ubuntu-rolling-ninja-clang

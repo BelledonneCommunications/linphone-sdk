@@ -34,6 +34,7 @@ recache-rocky10:
 
 
 rocky10-ninja-gcc:
+  artifacts: null # no job uses the artifacts of this build
   stage: build
   tags: [ "docker-flat" ]
   image: !reference [ .rocky10_image_version, image ]

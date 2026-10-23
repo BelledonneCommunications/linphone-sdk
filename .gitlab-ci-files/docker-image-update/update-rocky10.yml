@@ -45,5 +45,6 @@ rocky10-image-docker-rebuild-ms-test:
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky10-test-mediastreamer:latestupdated
 
 rocky10-ninja-gcc-newdocker:
+  artifacts: null # no job uses the artifacts of this build
   extends: rocky10-ninja-gcc
   <<: *docker_image_rule_no_cache

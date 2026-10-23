@@ -110,6 +110,7 @@ ios-ninja:
   extends: .ios
 
 ios-ninja-allcodecs:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $ALL_IOS_BUILDS != null
@@ -122,6 +123,7 @@ ios-ninja-allcodecs:
 
 
 ios-ninja-g729:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
@@ -131,6 +133,7 @@ ios-ninja-g729:
 
 
 ios-ninja-novideo:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
@@ -140,6 +143,7 @@ ios-ninja-novideo:
 
 
 ios-ninja-smallsdk:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
@@ -149,6 +153,7 @@ ios-ninja-smallsdk:
 
 
 ios-ninja-pqc:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
@@ -222,6 +227,7 @@ ios-xcode-novideo:
   extends: .ios
 
 ios-xcode-pqc:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null

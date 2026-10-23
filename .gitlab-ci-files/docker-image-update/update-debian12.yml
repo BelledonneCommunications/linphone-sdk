@@ -62,6 +62,7 @@ debian12-image-docker-rebuild-liblinphone-test:
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:latestupdated
 
 debian12-makefile-gcc-newdocker:
+  artifacts: null # no job uses the artifacts of this build
   extends: debian12-makefile-gcc
   <<: *docker_image_rule_no_cache
 
@@ -71,18 +72,22 @@ debian12-ninja-gcc-newdocker:
   <<: *docker_image_rule_no_cache
 
 debian12-ninja-gcc-newdocker-novideo:
+  artifacts: null # no job uses the artifacts of this build
   extends: debian12-ninja-gcc-novideo
   <<: *docker_image_rule_no_cache
 
 debian12-makefile-clang-newdocker:
+  artifacts: null # no job uses the artifacts of this build
   extends: debian12-makefile-clang
   <<: *docker_image_rule_no_cache
 
 debian12-ninja-clang-newdocker:
+  artifacts: null # no job uses the artifacts of this build
   extends: debian12-ninja-clang
   <<: *docker_image_rule_no_cache
 
 debian12-ninja-clang-newdocker-novideo:
+  artifacts: null # no job uses the artifacts of this build
   extends: debian12-ninja-clang-novideo
   <<: *docker_image_rule_no_cache
 

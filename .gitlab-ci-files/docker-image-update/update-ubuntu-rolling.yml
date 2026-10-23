@@ -62,26 +62,32 @@ ubuntu-rolling-image-docker-rebuild-liblinphone-test:
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:latestupdated
 
 ubuntu-rolling-makefile-gcc-newdocker:
+  artifacts: !reference [.linux-desktop, artifacts] # inherits from a job whose artifacts are dropped: restore them
   extends: ubuntu-rolling-makefile-gcc
   <<: *docker_image_rule_no_cache
 
 ubuntu-rolling-ninja-gcc-newdocker:
+ artifacts: null # no job uses the artifacts of this build
  extends: ubuntu-rolling-ninja-gcc
  <<: *docker_image_rule_no_cache
 
 ubuntu-rolling-ninja-gcc-newdocker-novideo:
+ artifacts: null # no job uses the artifacts of this build
  extends: ubuntu-rolling-ninja-gcc-novideo
  <<: *docker_image_rule_no_cache
 
 ubuntu-rolling-makefile-clang-newdocker:
+ artifacts: null # no job uses the artifacts of this build
  extends: ubuntu-rolling-makefile-clang
  <<: *docker_image_rule_no_cache
 
 ubuntu-rolling-ninja-clang-newdocker:
+  artifacts: null # no job uses the artifacts of this build
   extends: ubuntu-rolling-ninja-clang
   <<: *docker_image_rule_no_cache
 
 ubuntu-rolling-ninja-clang-newdocker-novideo:
+ artifacts: null # no job uses the artifacts of this build
  extends: ubuntu-rolling-ninja-clang-novideo
  <<: *docker_image_rule_no_cache
 

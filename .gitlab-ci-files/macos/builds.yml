@@ -70,6 +70,7 @@
 #################################################
 
 macos-m1-multiarch-makefile:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $ALL_MACOS_BUILDS != null
@@ -95,6 +96,7 @@ macos-m1-multiarch-makefile:
   extends: .macos-m1-multiarch-desktop
 
 macos-m1-multiarch-makefile-pqc:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_SCREENSHARING=OFF
   extends: macos-m1-multiarch-makefile
@@ -112,6 +114,7 @@ macos-ninja:
   extends: .macos-desktop
 
 macos-m1-multiarch-ninja:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON -DENABLE_SCREENSHARING=OFF
@@ -119,6 +122,7 @@ macos-m1-multiarch-ninja:
   extends: .macos-m1-multiarch-desktop
 
 macos-m1-ninja-pqc-multiarch:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_UNIT_TESTS=ON -DENABLE_SCREENSHARING=OFF
   rules:
@@ -127,11 +131,13 @@ macos-m1-ninja-pqc-multiarch:
   extends: macos-m1-multiarch-ninja
 
 macos-ninja-novideo:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=ON
   extends: macos-ninja
 
 macos-m1-multiarch-ninja-smallsdk:
+  artifacts: null # no job uses the artifacts of this build
   extends:
     - .macos-m1-multiarch-desktop
     - .smallsdk-cmake-options
@@ -170,6 +176,7 @@ macos-xcode:
     - !reference [macos-m1-multiarch-makefile, script]
 
 macos-xcode-pqc:
+  artifacts: null # no job uses the artifacts of this build
   extends: macos-xcode
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON

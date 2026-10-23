@@ -70,6 +70,7 @@ recache-rocky8-ninja-clang-mysql:
 
 
 rocky8-makefile-gcc:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   variables:
@@ -89,6 +90,7 @@ rocky8-makefile-gcc:
 
 
 rocky8-ninja-gcc:
+  artifacts: null # no job uses the artifacts of this build
   stage: build
   tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
@@ -107,6 +109,7 @@ rocky8-ninja-gcc:
     - wait-cache-synchro-rocky8
 
 rocky8-ninja-clang:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   rules:
@@ -123,6 +126,7 @@ rocky8-ninja-clang:
     - wait-cache-synchro-rocky8
 
 rocky8-ninja-gcc-tunnel-pq-h264-ekt:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
@@ -140,6 +144,7 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
     - wait-cache-synchro-rocky8-ninja-gcc-tunnel-pq-h264-ekt
 
 rocky8-ninja-clang-mysql:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [ .rocky8_image_version, image ]
   rules:

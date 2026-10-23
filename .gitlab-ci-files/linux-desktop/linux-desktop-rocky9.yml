@@ -96,6 +96,7 @@ recache-rocky9-ninja-clang-coverage:
 
 
 rocky9-makefile-gcc:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [ .rocky9_image_version, image ]
   variables:
