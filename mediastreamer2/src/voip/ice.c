@@ -165,6 +165,7 @@ static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str,
 static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, bool_t nomination_delay_expired);
 static void ice_check_list_stop_gathering(IceCheckList *cl);
 static void ice_check_list_remove_stun_server_request(IceCheckList *cl, UInt96 *tr_id);
+static void ice_discard_candidate_pair(IceCheckList *cl, IceCandidatePair *pair);
 static IceStunServerRequest *ice_check_list_get_stun_server_request(IceCheckList *cl, UInt96 *tr_id);
 static void ice_transport_address_to_printable_ip_address(const IceTransportAddress *taddr,
                                                           char *printable_ip,
@@ -1497,7 +1498,7 @@ ice_send_stun_server_binding_request(IceStunServerRequest *request, const struct
 	MSStunMessage *msg = ms_stun_binding_request_create();
 	transaction =
 	    ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen,
-	                          server, addrlen, msg, "STUN binding request");
+		                      server, addrlen, msg, "STUN binding request");
 	ms_stun_message_destroy(msg);
 	return transaction;
 }
@@ -1562,7 +1563,7 @@ static IceStunServerRequestTransaction *ice_send_turn_server_create_permission_r
 	request->stun_method = ms_stun_message_get_method(msg);
 	transaction =
 	    ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen,
-	                          server, addrlen, msg, "TURN create permission request");
+		                      server, addrlen, msg, "TURN create permission request");
 	ms_stun_message_destroy(msg);
 	return transaction;
 }
@@ -1576,7 +1577,7 @@ static IceStunServerRequestTransaction *ice_send_turn_server_channel_bind_reques
 	request->stun_method = ms_stun_message_get_method(msg);
 	transaction =
 	    ice_send_stun_request(request->rtptp, request->source_ai->ai_addr, (socklen_t)request->source_ai->ai_addrlen,
-	                          server, addrlen, msg, "TURN channel bind request");
+		                      server, addrlen, msg, "TURN channel bind request");
 	ms_stun_message_destroy(msg);
 	return transaction;
 }
@@ -3794,7 +3795,7 @@ static int ice_prune_duplicate_pair(IceCandidatePair *pair, bctbx_list_t **pairs
 		if (other_candidate_pair->priority > pair->priority) {
 			/* Found duplicate with higher priority so prune current pair. */
 			*pairs = bctbx_list_remove(*pairs, pair);
-			ice_free_candidate_pair(pair, cl);
+			ice_discard_candidate_pair(cl, pair);
 			return 1;
 		}
 	}
@@ -3842,7 +3843,7 @@ static void ice_prune_candidate_pairs(IceCheckList *cl) {
 		for (i = 0; i < nb_pairs_to_remove; i++) {
 			cl->pairs = bctbx_list_remove(cl->pairs, list->data);
 			prev = list->prev;
-			ice_free_candidate_pair(list->data, cl); // this function remove list in cl too
+			ice_discard_candidate_pair(cl, list->data); // this function remove list in cl too
 			list = prev;
 		}
 	}
@@ -4731,6 +4732,24 @@ static void ice_remove_transaction_with_pair(IceCheckList *cl, IceCandidatePair 
 	}
 }
 
+/*
+ * Free a pair while the check list stays alive: drop every reference to it first, so that no
+ * transaction, triggered check or losing pair can later dereference the freed pair.
+ * The caller is responsible for removing the pair from cl->pairs.
+ */
+static void ice_discard_candidate_pair(IceCheckList *cl, IceCandidatePair *pair) {
+	/* remove possible transaction using this pair*/
+	ice_remove_transaction_with_pair(cl, pair);
+	/* remove pair from triggered check queue */
+	cl->triggered_checks_queue = remove_from_list(cl->triggered_checks_queue, pair);
+	/* remove from losing pair */
+	cl->losing_pairs = remove_from_list(cl->losing_pairs, pair);
+	/*
+	 * ice_free_candidate_pair() will also remove pair from check list and valid list.
+	 */
+	ice_free_candidate_pair(pair, cl);
+}
+
 static void ice_clean_rtcp_candidate_pairs(IceCheckList *cl) {
 	bctbx_list_t *elem;
 	bctbx_list_t *next_elem;
@@ -4739,16 +4758,7 @@ static void ice_clean_rtcp_candidate_pairs(IceCheckList *cl) {
 		IceCandidatePair *pair = (IceCandidatePair *)elem->data;
 		next_elem = elem->next;
 		if (pair->local->componentID == ICE_RTCP_COMPONENT_ID) {
-			/* remove possible transaction using this pair*/
-			ice_remove_transaction_with_pair(cl, pair);
-			/* remove pair from triggered check queue */
-			cl->triggered_checks_queue = remove_from_list(cl->triggered_checks_queue, pair);
-			/* remove from losing pair */
-			cl->losing_pairs = remove_from_list(cl->losing_pairs, pair);
-			/*
-			 * ice_free_candidate_pair() will also remove pair from check list and valid list.
-			 */
-			ice_free_candidate_pair(pair, cl);
+			ice_discard_candidate_pair(cl, pair);
 			cl->pairs = bctbx_list_erase_link(cl->pairs, elem);
 		}
 		elem = next_elem;
@@ -4773,7 +4783,7 @@ void ice_check_list_remove_rtcp_candidates(IceCheckList *cl) {
 	ice_remove_componentID(&cl->remote_componentIDs, rtcp_componentID);
 	while (
 	    (elem = bctbx_list_find_custom(cl->remote_candidates, (bctbx_compare_func)ice_find_candidate_with_componentID,
-	                                   &rtcp_componentID)) != NULL) {
+		                               &rtcp_componentID)) != NULL) {
 		IceCandidate *candidate = (IceCandidate *)elem->data;
 		cl->remote_candidates = bctbx_list_remove(cl->remote_candidates, candidate);
 		ice_free_candidate(candidate);
