@@ -191,7 +191,7 @@ public:
 	const std::string &getRemoteContact() const {
 		return mRemoteContact;
 	}
-	const SalAddress *getRemoteContactAddress() const {
+	virtual const SalAddress *getRemoteContactAddress() const {
 		return mRemoteContactAddress;
 	}
 	const std::string &getRemoteUserAgent() const {

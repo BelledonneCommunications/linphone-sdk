@@ -1913,7 +1913,15 @@ LinphoneStatus CallSession::transfer(const shared_ptr<CallSession> &dest) {
 		lError() << *this << " cannot transfer, op has gone.";
 		return -1;
 	}
-	int result = d->op->referWithReplaces(dest->getPrivate()->op);
+	std::shared_ptr<Address> referToAddress;
+	auto contactAddress = dest->getRemoteContactAddress();
+	if (contactAddress && contactAddress->hasUriParam("gr")) {
+		referToAddress = contactAddress;
+	} else if (linphone_config_get_int(linphone_core_get_config(getCore()->getCCore()), "sip", "refer_to_uses_aor",
+	                                   0)) {
+		referToAddress = dest->getRemoteAddress();
+	}
+	int result = d->op->referWithReplaces(dest->getPrivate()->op, referToAddress ? referToAddress->getImpl() : nullptr);
 	if (result == 0) {
 		d->setTransferState(CallSession::State::OutgoingInit);
 	} else {

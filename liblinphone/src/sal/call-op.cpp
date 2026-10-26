@@ -1635,7 +1635,7 @@ int SalCallOp::refer(const string &referToUri) {
 	return referTo(referToHeader, belle_sip_header_referred_by_create(referredByHeader));
 }
 
-int SalCallOp::referWithReplaces(SalCallOp *otherCallOp) {
+int SalCallOp::referWithReplaces(SalCallOp *otherCallOp, const SalAddress *referToAddr) {
 	// First, build refer to
 	auto otherCallDialogState =
 	    otherCallOp->mDialog ? belle_sip_dialog_get_state(otherCallOp->mDialog) : BELLE_SIP_DIALOG_NULL;
@@ -1651,9 +1651,12 @@ int SalCallOp::referWithReplaces(SalCallOp *otherCallOp) {
 		return -1;
 	}
 
-	auto refer_to = belle_sip_dialog_get_remote_target(otherCallOp->mDialog);
+	const belle_sip_header_address_t *refer_to = BELLE_SIP_HEADER_ADDRESS(referToAddr);
 	if (!refer_to) {
-		refer_to = belle_sip_dialog_get_remote_party(otherCallOp->mDialog);
+		refer_to = belle_sip_dialog_get_remote_target(otherCallOp->mDialog);
+		if (!refer_to) {
+			refer_to = belle_sip_dialog_get_remote_party(otherCallOp->mDialog);
+		}
 	}
 	auto referToHeader = belle_sip_header_refer_to_create(refer_to);
 	belle_sip_parameters_clean(BELLE_SIP_PARAMETERS(referToHeader));
@@ -1685,6 +1688,15 @@ int SalCallOp::setReferrer(SalCallOp *referredCall) {
 	if (referredCall->mReplaces) SalOp::setReplaces(referredCall->mReplaces);
 	if (referredCall->mReferredBy) setReferredBy(referredCall->mReferredBy);
 	return 0;
+}
+
+const SalAddress *SalCallOp::getRemoteContactAddress() const {
+	if (mRemoteContactAddress) return mRemoteContactAddress;
+	if (mDialog) {
+		auto remoteTarget = belle_sip_dialog_get_remote_target(mDialog);
+		if (remoteTarget) return reinterpret_cast<const SalAddress *>(remoteTarget);
+	}
+	return nullptr;
 }
 
 SalCallOp *SalCallOp::getReplaces() const {
