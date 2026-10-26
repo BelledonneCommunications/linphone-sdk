@@ -787,14 +787,17 @@ LinphoneStatus CallSessionPrivate::checkForAcceptation() {
 	}
 	q->notifyCheckForAcceptation();
 
-	/* Check if this call is supposed to replace an already running one */
-	SalOp *replaced = op->getReplaces();
-	if (replaced) {
-		CallSession *session = static_cast<CallSession *>(replaced->getUserPointer());
-		if (session) {
-			lInfo() << "CallSession " << q << " replaces CallSession " << session
-			        << ". This last one is going to be terminated automatically";
-			session->terminate();
+	if (linphone_config_get_int(linphone_core_get_config(q->getCore()->getCCore()), "sip",
+	                            "call_accept_handles_replaces", 1)) {
+		/* Check if this call is supposed to replace an already running one */
+		SalOp *replaced = op->getReplaces();
+		if (replaced) {
+			CallSession *session = static_cast<CallSession *>(replaced->getUserPointer());
+			if (session) {
+				lInfo() << "CallSession " << q << " replaces CallSession " << session
+				        << ". This last one is going to be terminated automatically";
+				session->terminate();
+			}
 		}
 	}
 	return 0;
