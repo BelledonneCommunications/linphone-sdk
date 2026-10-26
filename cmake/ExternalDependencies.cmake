@@ -93,13 +93,21 @@ cmake_dependent_option(BUILD_OPUS_SHARED_LIBS "Choose to build shared or static 
 cmake_dependent_option(BUILD_RNNOISE "Build rnnoise library source code from submodule instead of searching it in system libraries." ON "ENABLE_RNNOISE" OFF)
 
 cmake_dependent_option(BUILD_SOCI "Build soci library source code from submodule instead of searching it in system libraries." ON "ENABLE_SOCI" OFF)
-cmake_dependent_option(BUILD_SOCI_SHARED_LIBS "Choose to build shared or static soci library." ${BUILD_SHARED_LIBS} "BUILD_SOCI" OFF)
+if(APPLE)
+	set(BUILD_SOCI_SHARED_LIBS_DEFAULT ON)
+else()
+	set(BUILD_SOCI_SHARED_LIBS_DEFAULT ${BUILD_SHARED_LIBS})
+endif()
+cmake_dependent_option(BUILD_SOCI_SHARED_LIBS "Choose to build shared or static soci library." ${BUILD_SOCI_SHARED_LIBS_DEFAULT} "BUILD_SOCI" OFF)
 set(BUILD_SOCI_BACKENDS "sqlite3" CACHE STRING "List of soci backends to build.")
 
 cmake_dependent_option(BUILD_SPEEX "Build speex and speexdsp library source code from submodule instead of searching it in system libraries." ON "ENABLE_SPEEX" OFF)
-cmake_dependent_option(BUILD_SPEEX_SHARED_LIBS "Choose to build shared or static speex and speexdsp libraries." ${BUILD_SHARED_LIBS} "BUILD_SPEEX" OFF)
-
-option(BUILD_SQLITE3 "Build sqlite3 library source code from submodule instead of searching it in system libraries." ON)
+if(APPLE)
+	set(BUILD_SQLITE3_DEFAULT OFF)
+else()
+	set(BUILD_SQLITE3_DEFAULT ON)
+endif()
+option(BUILD_SQLITE3 "Build sqlite3 library source code from submodule instead of searching it in system libraries." ${BUILD_SQLITE3_DEFAULT})
 cmake_dependent_option(BUILD_SQLITE3_SHARED_LIBS "Choose to build shared or static sqlite3 library." ${BUILD_SHARED_LIBS} "BUILD_SQLITE3" OFF)
 
 cmake_dependent_option(BUILD_VO_AMRWBENC "Build vo-amrwbenc library source code from submodule instead of searching it in system libraries." ON "ENABLE_AMRWB" OFF)
