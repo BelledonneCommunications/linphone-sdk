@@ -3516,6 +3516,63 @@ static void video_call_with_mire_and_analyse(void) {
 	linphone_core_manager_destroy(caller);
 }
 
+static void video_call_with_video_devices_reload(void) {
+	LinphoneCoreManager *callee = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *caller =
+	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
+
+	LinphoneCall *callee_call;
+	LinphoneCall *caller_call;
+
+	LinphoneVideoActivationPolicy *vpol = linphone_factory_create_video_activation_policy(linphone_factory_get());
+	vpol->automatically_accept = TRUE;
+	linphone_core_set_video_activation_policy(callee->lc, vpol);
+	linphone_video_activation_policy_unref(vpol);
+
+	linphone_core_set_video_device(callee->lc, liblinphone_tester_mire_id);
+	linphone_core_set_video_device(caller->lc, liblinphone_tester_mire_id);
+	linphone_core_enable_video_display(callee->lc, TRUE);
+	linphone_core_enable_video_capture(callee->lc, TRUE);
+	linphone_core_enable_video_display(caller->lc, TRUE);
+	linphone_core_enable_video_capture(caller->lc, TRUE);
+
+	LinphoneCallParams *callee_params = linphone_core_create_call_params(callee->lc, NULL);
+	linphone_call_params_enable_video(callee_params, TRUE);
+	LinphoneCallParams *caller_params = linphone_core_create_call_params(caller->lc, NULL);
+	linphone_call_params_enable_video(caller_params, TRUE);
+
+	BC_ASSERT_TRUE(call_with_params(caller, callee, caller_params, callee_params));
+	callee_call = linphone_core_get_current_call(callee->lc);
+	caller_call = linphone_core_get_current_call(caller->lc);
+
+	linphone_call_params_unref(caller_params);
+	linphone_call_params_unref(callee_params);
+
+	BC_ASSERT_TRUE(wait_for(caller->lc, callee->lc, &caller->stat.number_of_LinphoneCallStreamsRunning, 1));
+	BC_ASSERT_TRUE(wait_for(callee->lc, caller->lc, &callee->stat.number_of_LinphoneCallStreamsRunning, 1));
+
+	if (callee_call && caller_call) {
+		BC_ASSERT_TRUE(liblinphone_tester_call_check_video_source_filter(callee_call, MS_MIRE_ID, 1));
+		BC_ASSERT_TRUE(liblinphone_tester_call_check_video_source_filter(caller_call, MS_MIRE_ID, 1));
+		// linphone_call_enable_camera() makes the SDK to use the StaticImage, a.k.a NoWebCam, camera for the call. A
+		// call to linphone_core_reload_video_devices() must allow the SDK to handle the last few video events while
+		// moving over to the camera pointer.
+		linphone_call_enable_camera(callee_call, FALSE);
+		linphone_call_enable_camera(caller_call, FALSE);
+		BC_ASSERT_TRUE(liblinphone_tester_call_check_video_source_filter(callee_call, MS_STATIC_IMAGE_ID, 1));
+		BC_ASSERT_TRUE(liblinphone_tester_call_check_video_source_filter(caller_call, MS_STATIC_IMAGE_ID, 1));
+		linphone_core_reload_video_devices(callee->lc);
+		linphone_core_reload_video_devices(caller->lc);
+		BC_ASSERT_TRUE(liblinphone_tester_call_check_video_source_filter(callee_call, MS_STATIC_IMAGE_ID, 1));
+		BC_ASSERT_TRUE(liblinphone_tester_call_check_video_source_filter(caller_call, MS_STATIC_IMAGE_ID, 1));
+		wait_for_until(callee->lc, caller->lc, NULL, 5, 1000);
+	}
+
+	end_call(caller, callee);
+	linphone_core_manager_destroy(callee);
+	linphone_core_manager_destroy(caller);
+}
+
 static void on_eof(LinphonePlayer *player) {
 	LinphonePlayerCbs *cbs = linphone_player_get_current_callbacks(player);
 	LinphoneCoreManager *marie = (LinphoneCoreManager *)linphone_player_cbs_get_user_data(cbs);
@@ -4425,6 +4482,7 @@ static void video_call_with_preferred_definitions(void) {
 }
 
 static test_t call_video_tests[] = {
+    TEST_NO_TAG("Simple video call with video devices reload", video_call_with_video_devices_reload),
     TEST_NO_TAG("Call paused resumed with video", call_paused_resumed_with_video),
     TEST_NO_TAG("Call paused resumed with video enabled", call_paused_resumed_with_video_enabled),
     TEST_NO_TAG("Call paused resumed with video send-only", call_paused_resumed_with_video_send_only),

@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 It has been updated until the 5.5 SDK release. Please refer to the changelog at root of the linphone-sdk project for changes from the 5.6 SDK release onwards.
 
-
-## [Latest]
-
+## [5.5.41] - 2026-11-08
 ### Added
 - add API to get the `Replaces` header's serialized value: linphone_call_get_replaces()
+
+### Fixed
+- Keep using the StaticImage camera after reloading video devices
 
 ## [5.5.40] - 2026-11-05
 

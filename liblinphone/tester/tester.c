@@ -6420,3 +6420,20 @@ bool_t liblinphone_tester_call_check_video_source_filter(const LinphoneCall *cal
 	BC_ASSERT_EQUAL(counter, expected_counter, int, "%0d");
 	return (counter == expected_counter);
 }
+
+bool_t liblinphone_tester_check_subject_in_conferences(bctbx_list_t *coreManagers,
+                                                       const LinphoneAddress *conferenceAddress,
+                                                       const char *subject) {
+	bool_t ok = TRUE;
+	while (coreManagers) {
+		LinphoneCoreManager *manager = (LinphoneCoreManager *)bctbx_list_get_data(coreManagers);
+		LinphoneConference *conference = linphone_core_search_conference_2(manager->lc, conferenceAddress);
+
+		if (conference && strcmp(linphone_conference_get_subject(conference), subject)) {
+			BC_ASSERT_STRING_EQUAL(linphone_conference_get_subject(conference), subject);
+			ok = FALSE;
+		}
+		coreManagers = bctbx_list_next(coreManagers);
+	}
+	return ok;
+}

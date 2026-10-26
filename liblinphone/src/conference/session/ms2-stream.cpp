@@ -1678,7 +1678,7 @@ void MS2Stream::handleEvents() {
 			case MSVideo:
 #ifdef VIDEO_ENABLED
 				video_stream_iterate((VideoStream *)ms);
-#endif
+#endif // VIDEO_ENABLED
 				break;
 			case MSText:
 				text_stream_iterate((TextStream *)ms);
