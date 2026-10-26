@@ -36,6 +36,7 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
 - Allow Baudot to be used in local conferences (each call keeps its baudot encoder and decoders)
 
 ### Fixed
+- Fix ICE getting stuck in progress if a re-INVITE is received during the connectivity checks.
 - Fix various TURN issues:
   * TURN request retransmissions now keep the same transaction ID as the initial request.
   * Handle the 438 Stale Nonce error from the TURN server.

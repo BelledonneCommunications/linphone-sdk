@@ -34,7 +34,7 @@ namespace mediastreamer::nat {
 /**
  * Represents an ICE candidate.
  */
-class MS2_PUBLIC IceCandidate {
+class MS2_PUBLIC IceCandidate : public std::enable_shared_from_this<IceCandidate> {
 public:
 	friend class IceCandidatePair;
 	friend class IceCheckList;
@@ -68,6 +68,14 @@ public:
 	[[nodiscard]] ComponentId getComponentId() const {
 		return mComponentId;
 	}
+
+	/**
+	 * Get the candidate that will be used to send connectivity checks.
+	 * If this is a server-reflexive candidate, it will return its base candidate if is has been set.
+	 * Otherwise, just return itself.
+	 * NOTE: Only useful for local candidates.
+	 */
+	[[nodiscard]] std::shared_ptr<IceCandidate> getEffectiveCandidate();
 
 	/**
 	 * Get the foundation of an ICE candidate.

@@ -127,6 +127,17 @@ std::shared_ptr<IceCandidate> IceCandidate::getBase() const {
 	return mBase.lock();
 }
 
+std::shared_ptr<IceCandidate> IceCandidate::getEffectiveCandidate() {
+	// Mirror IceCandidatePair::replaceSrflxCandidateByBase(): an srflx pair is equivalent to its base.
+	// Deliberately NOT applied to peer-reflexive candidates: a prflx local candidate can represent a genuinely
+	// different path (endpoint-dependent NAT mapping).
+	const auto base = getBase();
+	if ((mType == Type::ServerReflexive) && (base != nullptr)) {
+		return base;
+	}
+	return shared_from_this();
+}
+
 uint32_t IceCandidate::getLocalPreferenceValue(const TurnTransport transport) {
 	return kLocalPreferenceValues[static_cast<int>(transport)];
 }

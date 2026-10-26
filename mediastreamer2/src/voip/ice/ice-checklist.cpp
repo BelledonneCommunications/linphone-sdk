@@ -1443,7 +1443,7 @@ void IceCheckList::formCandidatePairs() {
 			     remoteCandidate->getTransportAddress().getFamily())) {
 				const auto itCandidate =
 				    std::find_if(mPairs.begin(), mPairs.end(), [localCandidate, remoteCandidate](const auto &pair) {
-					    return (*pair->getLocalCandidate() == *localCandidate) &&
+					    return (*pair->getLocalCandidate()->getEffectiveCandidate() == *localCandidate) &&
 					           (*pair->getRemoteCandidate() == *remoteCandidate);
 				    });
 				if (itCandidate == mPairs.end()) {
@@ -2095,6 +2095,13 @@ bool IceCheckList::isFrozen() const {
 	});
 }
 
+bool IceCheckList::isCandidatePairReferencedInValidList(const std::shared_ptr<IceCandidatePair> &candidatePair) const {
+	return std::any_of(mValidList.begin(), mValidList.end(), [candidatePair](const auto &validCandidatePair) {
+		return (validCandidatePair->getValid() == candidatePair) ||
+		       (validCandidatePair->getGeneratedFrom() == candidatePair);
+	});
+}
+
 std::shared_ptr<IceCandidate> IceCheckList::learnPeerReflexiveCandidate(const OrtpEventData *eventData,
                                                                         const std::shared_ptr<StunMessage> &msg,
                                                                         const IceTransportAddress &transportAddress) {
@@ -2131,6 +2138,26 @@ IceCheckList::lookupPossibleValidPair(const std::shared_ptr<IceCandidatePair> &c
 			return validPair->getValid();
 		}
 	}
+
+	// Fallback: Match by transport address. Nomination semantics (RFC 8445 7.3.1.5) are about the address pair, not
+	// about which candidatePair object represents it. This makes nomination robust if distinct pair objects ever
+	// represent the same path.
+	const auto doPairsMatchOnTransportAddresses = [](const auto &pair1, const auto &pair2) {
+		return (pair1->getLocalCandidate()->getComponentId() == pair2->getLocalCandidate()->getComponentId()) &&
+		       (pair1->getLocalCandidate()->getTransportAddress() ==
+		        pair2->getLocalCandidate()->getTransportAddress()) &&
+		       (pair1->getRemoteCandidate()->getComponentId() == pair2->getRemoteCandidate()->getComponentId()) &&
+		       (pair1->getRemoteCandidate()->getTransportAddress() ==
+		        pair2->getRemoteCandidate()->getTransportAddress());
+	};
+	for (const auto &validPair : mValidList) {
+		if (doPairsMatchOnTransportAddresses(validPair->getValid(), candidatePair) ||
+		    doPairsMatchOnTransportAddresses(validPair->getGeneratedFrom(), candidatePair)) {
+			BCTBX_SLOGM << "ice: Matched valid pair for nomination by transport addresses.";
+			return validPair->getValid();
+		}
+	}
+
 	return nullptr;
 }
 
@@ -2239,20 +2266,30 @@ void IceCheckList::pruneCandidatePairs() {
 		return;
 	}
 
-	for_each(mPairs.begin(), mPairs.end(), [](const auto &pair) { pair->replaceSrflxCandidateByBase(); });
+	for_each(mPairs.begin(), mPairs.end(), [this](const auto &pair) {
+		// Skip pairs referenced in the valid list.
+		if (!isCandidatePairReferencedInValidList(pair)) {
+			pair->replaceSrflxCandidateByBase();
+		}
+	});
 	for (auto it = mPairs.begin(); it != mPairs.end();) {
 		const auto pair = *it;
-		const auto itOther =
-		    std::find_if(mPairs.begin(), mPairs.end(), [pair](const auto &otherPair) { return *pair == *otherPair; });
-		if (itOther == mPairs.end()) {
+		if (isCandidatePairReferencedInValidList(pair)) {
+			// Never prune a pair referenced in the valid list.
 			++it;
 		} else {
-			const auto &otherPair = *itOther;
-			if (otherPair->getPriority() > pair->getPriority()) {
-				// Found duplicate with higher priority so prune current pair.
-				it = mPairs.erase(it);
-			} else {
+			const auto itOther = std::find_if(mPairs.begin(), mPairs.end(),
+			                                  [pair](const auto &otherPair) { return *pair == *otherPair; });
+			if (itOther == mPairs.end()) {
 				++it;
+			} else {
+				const auto &otherPair = *itOther;
+				if (otherPair->getPriority() > pair->getPriority()) {
+					// Found duplicate with higher priority so prune current pair.
+					it = mPairs.erase(it);
+				} else {
+					++it;
+				}
 			}
 		}
 	}

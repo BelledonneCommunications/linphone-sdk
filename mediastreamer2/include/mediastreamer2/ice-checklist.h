@@ -461,6 +461,7 @@ private:
 	[[nodiscard]] bool isGatheringNeeded() const {
 		return (mPhase == Phase::Initial);
 	}
+	[[nodiscard]] bool isCandidatePairReferencedInValidList(const std::shared_ptr<IceCandidatePair> &pair) const;
 	std::shared_ptr<IceCandidate> learnPeerReflexiveCandidate(const OrtpEventData *eventData,
 	                                                          const std::shared_ptr<StunMessage> &msg,
 	                                                          const IceTransportAddress &transportAddress);
