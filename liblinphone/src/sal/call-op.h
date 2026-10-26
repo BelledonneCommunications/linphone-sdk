@@ -72,8 +72,9 @@ public:
 	int cancelInvite(const SalErrorInfo *info = nullptr);
 
 	int refer(const std::string &referToUri);
-	int referWithReplaces(SalCallOp *otherCallOp);
+	int referWithReplaces(SalCallOp *otherCallOp, const SalAddress *referToAddr = nullptr);
 	int setReferrer(SalCallOp *referredCall);
+	const SalAddress *getRemoteContactAddress() const override;
 	const SalAddress *getReferredBy() const;
 	SalCallOp *getReplaces() const;
 	int sendDtmf(char dtmf);

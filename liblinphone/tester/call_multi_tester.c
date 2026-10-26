@@ -525,12 +525,19 @@ void linphone_call_create_cbs_refer_requested(LinphoneCall *call) {
 	linphone_call_cbs_unref(call_cbs);
 }
 
-static void call_transfer_existing_call(bool_t outgoing_call,
-                                        bool_t auto_answer_replacing_calls,
-                                        bool_t security_level_downgraded) {
+static void call_transfer_existing_call_2(bool_t outgoing_call,
+                                          bool_t auto_answer_replacing_calls,
+                                          bool_t security_level_downgraded,
+                                          bool_t refer_to_uses_aor,
+                                          bool_t target_with_gruu) {
 	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
 	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_tcp_rc");
-	LinphoneCoreManager *laure = linphone_core_manager_new(get_laure_rc());
+	LinphoneCoreManager *laure = ms_new0(LinphoneCoreManager, 1);
+	linphone_core_manager_init(laure, get_laure_rc(), NULL);
+	if (!target_with_gruu) {
+		linphone_core_remove_supported_tag(laure->lc, "gruu");
+	}
+	linphone_core_manager_start(laure, TRUE);
 	LinphoneCall *marie_call_pauline;
 	LinphoneCall *pauline_called_by_marie;
 	LinphoneCall *marie_call_laure;
@@ -543,6 +550,24 @@ static void call_transfer_existing_call(bool_t outgoing_call,
 	bctbx_list_t *lcs = bctbx_list_append(NULL, marie->lc);
 	lcs = bctbx_list_append(lcs, pauline->lc);
 	lcs = bctbx_list_append(lcs, laure->lc);
+
+	LinphoneProxyConfig *cfg = linphone_core_get_default_proxy_config(laure->lc);
+	BC_ASSERT_PTR_NOT_NULL(cfg);
+	if (cfg) {
+		const LinphoneAddress *addr = linphone_proxy_config_get_contact(cfg);
+		BC_ASSERT_PTR_NOT_NULL(addr);
+		if (addr) {
+			if (target_with_gruu) {
+				BC_ASSERT_TRUE(linphone_address_has_uri_param(addr, "gr"));
+			} else {
+				BC_ASSERT_FALSE(linphone_address_has_uri_param(addr, "gr"));
+			}
+		}
+	}
+
+	if (refer_to_uses_aor) {
+		linphone_config_set_int(linphone_core_get_config(marie->lc), "sip", "refer_to_uses_aor", 1);
+	}
 
 	if (!auto_answer_replacing_calls)
 		linphone_config_set_int(linphone_core_get_config(laure->lc), "sip", "auto_answer_replacing_calls", 0);
@@ -616,6 +641,20 @@ static void call_transfer_existing_call(bool_t outgoing_call,
 		BC_ASSERT_TRUE(
 		    wait_for_list(lcs, &pauline->stat.number_of_LinphoneCallRefered, 1, liblinphone_tester_sip_timeout));
 
+		const LinphoneAddress *refer_to_addr = linphone_call_get_refer_to_address(pauline_called_by_marie);
+		BC_ASSERT_PTR_NOT_NULL(refer_to_addr);
+		if (refer_to_addr) {
+			if (target_with_gruu) {
+				BC_ASSERT_TRUE(linphone_address_has_uri_param(refer_to_addr, "gr"));
+			} else if (refer_to_uses_aor) {
+				BC_ASSERT_TRUE(linphone_address_weak_equal(refer_to_addr, laure->identity));
+				BC_ASSERT_FALSE(linphone_address_has_uri_param(refer_to_addr, "gr"));
+			} else {
+				BC_ASSERT_FALSE(linphone_address_weak_equal(refer_to_addr, laure->identity));
+				BC_ASSERT_FALSE(linphone_address_has_uri_param(refer_to_addr, "gr"));
+			}
+		}
+
 		pauline_call_laure = linphone_core_get_current_call(pauline->lc);
 		laure_called_by_pauline = linphone_core_get_current_call(laure->lc);
 		linphone_call_create_cbs_security_level_downgraded(pauline_call_laure);
@@ -684,6 +723,12 @@ end:
 	bctbx_list_free(lcs);
 }
 
+static void call_transfer_existing_call(bool_t outgoing_call,
+                                        bool_t auto_answer_replacing_calls,
+                                        bool_t security_level_downgraded) {
+	call_transfer_existing_call_2(outgoing_call, auto_answer_replacing_calls, security_level_downgraded, FALSE, TRUE);
+}
+
 static void call_transfer_existing_call_outgoing_call(void) {
 	call_transfer_existing_call(TRUE, TRUE, FALSE);
 }
@@ -702,6 +747,18 @@ static void call_transfer_existing_call_outgoing_call_no_auto_answer_security_le
 
 static void call_transfer_existing_call_incoming_call_no_auto_answer_security_level_downgraded(void) {
 	call_transfer_existing_call(FALSE, FALSE, TRUE);
+}
+
+static void call_transfer_existing_call_with_refer_to_uses_aor(void) {
+	call_transfer_existing_call_2(TRUE, TRUE, FALSE, TRUE, TRUE);
+}
+
+static void call_transfer_existing_call_without_gruu(void) {
+	call_transfer_existing_call_2(TRUE, TRUE, FALSE, FALSE, FALSE);
+}
+
+static void call_transfer_existing_call_without_gruu_and_refer_to_uses_aor(void) {
+	call_transfer_existing_call_2(TRUE, TRUE, FALSE, TRUE, FALSE);
 }
 
 void linphone_start_transfer_on_state_changed(LinphoneCall *call,
@@ -1905,6 +1962,11 @@ static test_t multi_call_tests[] = {
     TEST_NO_TAG("Unattended call transfer", unattended_call_transfer),
     TEST_NO_TAG("Unattended call transfer with error", unattended_call_transfer_with_error),
     TEST_NO_TAG("Call transfer existing outgoing call", call_transfer_existing_call_outgoing_call),
+    TEST_NO_TAG("Call transfer existing outgoing call with refer_to_uses_aor",
+                call_transfer_existing_call_with_refer_to_uses_aor),
+    TEST_NO_TAG("Call transfer existing outgoing call without GRUU", call_transfer_existing_call_without_gruu),
+    TEST_NO_TAG("Call transfer existing outgoing call without GRUU and with refer_to_uses_aor",
+                call_transfer_existing_call_without_gruu_and_refer_to_uses_aor),
     TEST_NO_TAG("Call transfer existing outgoing call without auto answer of replacing call",
                 call_transfer_existing_call_outgoing_call_no_auto_answer),
     TEST_NO_TAG("Call transfer existing incoming call", call_transfer_existing_call_incoming_call),
