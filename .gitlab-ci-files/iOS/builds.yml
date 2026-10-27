@@ -268,7 +268,8 @@ ios-xcode-doc-arm64:
 
 ios-ninja-spm:
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_IOS == null
+    - !reference [.rules-merge-request-manual, rules] # for consumers launched by hand; ios-ninja-spm-mr is the automatic MR build
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_IOS == null
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: "arm64,x86_64"
@@ -293,6 +294,12 @@ ios-ninja-spm:
       - build/ios/docs
       - tester/IOS/LinphoneTester/Podfile
       - build/ios/linphone-sdk-swift-ios
+
+ios-ninja-spm-mr:
+  artifacts: null # no automatic MR job uses the artifacts of this build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_IOS == null
+  extends: ios-ninja-spm
 
 ios-ninja-spm-private:
   rules:

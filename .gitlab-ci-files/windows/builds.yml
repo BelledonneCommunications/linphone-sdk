@@ -356,7 +356,7 @@ vs2017-ninja-win32-windows:
 
 vs2022-uwp-windows:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
+    - !reference [.rules-merge-request-manual, rules] # for consumers launched by hand; vs2022-uwp-windows-mr is the automatic MR build
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
     - &nuget_deploy_rule
@@ -372,6 +372,12 @@ vs2022-uwp-windows:
   extends:
     - .windows-vs2022-msvc
     - .vs-uwp-windows
+
+vs2022-uwp-windows-mr:
+  artifacts: null # no automatic MR job uses the artifacts of this build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
+  extends: vs2022-uwp-windows
 
 vs2022-windows-java:
   extends: .windows-vs2022-msvc

@@ -112,10 +112,16 @@ ubuntu2004-ninja-gcc-tunnel-pq:
   artifacts: !reference [.linux-desktop, artifacts] # inherits from a job whose artifacts are dropped: restore them
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - !reference [.rules-merge-request-manual, rules] # for consumers launched by hand; ubuntu2004-ninja-gcc-tunnel-pq-mr is the automatic MR build
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
   extends: ubuntu2004-ninja-gcc
+
+ubuntu2004-ninja-gcc-tunnel-pq-mr:
+  artifacts: null # no automatic MR job uses the artifacts of this build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  extends: ubuntu2004-ninja-gcc-tunnel-pq
 
 #################################################
 # TESTS
