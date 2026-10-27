@@ -22,7 +22,8 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
   DNS entry overrides. These are intended for testing or workaround DNS server issues.
 - Exponential retry backoff with jitter for REGISTER.
 - New linphone_conference_get_play_volume()/linphone_conference_get_record_volume() to obtain volumes for local participant.
-
+- Support of permanent activities in the presence. This enables the ability for the presence server to store
+  activities permanently, even if the PUBLISH expires.
 
 ### Changed
 - Refactor ICE and STUN/TURN from C to C++

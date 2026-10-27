@@ -2867,6 +2867,11 @@ void permanent_activities_publish() {
 	linphone_presence_person_clear_activities(linphone_presence_model_get_nth_person(presence_model, 0));
 	check_permanent_activities("<rpid-pa:permanent-activities>", false);
 
+	// Check that the permanent activities section is present but empty in the XML when clearing the permanent
+	// activities.
+	linphone_presence_person_clear_permanent_activities(linphone_presence_model_get_nth_person(presence_model, 0));
+	check_permanent_activities("<rpid-pa:permanent-activities/>", true);
+
 	linphone_presence_model_unref(presence_model);
 
 	linphone_core_manager_destroy(laure);

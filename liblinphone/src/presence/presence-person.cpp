@@ -183,17 +183,13 @@ void PresencePerson::clearNotes() {
 }
 
 void PresencePerson::clearPermanentActivities() {
-	if (!mPermanentActivities.empty()) {
-		mPermanentActivities.clear();
-		mPermanentActivitiesToBePublished = true;
-	}
+	mPermanentActivities.clear();
+	mPermanentActivitiesToBePublished = true;
 }
 
 void PresencePerson::clearPermanentActivitiesNotes() {
-	if (!mPermanentActivitiesNotes.empty()) {
-		mPermanentActivitiesNotes.clear();
-		mPermanentActivitiesToBePublished = true;
-	}
+	mPermanentActivitiesNotes.clear();
+	mPermanentActivitiesToBePublished = true;
 }
 
 bool PresencePerson::hasActivities() const {
