@@ -41,11 +41,10 @@ endif()
 #APPLE_LIBS is mandatory for apple compilation
 if(APPLE)
 	list(APPEND APPLE_LIBS "-framework CFNetwork -framework Foundation -framework AVFoundation -framework SystemConfiguration -framework CoreLocation")
+	list(APPEND APPLE_LIBS "-framework Network")
 	if(IOS)
 		list(APPEND APPLE_LIBS "-framework UIKit")
 		list(APPEND APPLE_LIBS "$<LINK_LIBRARY:WEAK_FRAMEWORK,PushKit>")
-	else()
-		list(APPEND APPLE_LIBS "-framework Network")
 	endif()
 endif()
 

@@ -27,11 +27,14 @@
 #include <AVFoundation/AVAudioSession.h>
 #include <CoreLocation/CoreLocation.h>
 #include <Foundation/Foundation.h>
+#include <Network/Network.h>
 #include <SystemConfiguration/CaptiveNetwork.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #include <belr/grammarbuilder.h>
-#include <netinet/in.h>
+#include <future>
+#include <mutex>
 #include <notify_keys.h>
+#include <optional>
 
 #include "c-wrapper/c-wrapper.h"
 #include "core/core-p.h"
@@ -59,7 +62,10 @@ class IosPlatformHelpers : public MacPlatformHelpers, public CoreListener {
 public:
   IosPlatformHelpers(std::shared_ptr<LinphonePrivate::Core> core,
                      void *systemContext);
-  ~IosPlatformHelpers() { [mAppDelegate dealloc]; }
+  ~IosPlatformHelpers() {
+    stopPathMonitor();
+    [mAppDelegate dealloc];
+  }
 
   void acquireCpuLock() override;
   void releaseCpuLock() override;
@@ -114,16 +120,30 @@ public:
   void setDeviceRotation(int orientation) const override;
 
 private:
+  // Snapshot of the default network path, as delivered by the path monitor.
+  struct NetworkPath {
+    nw_path_status_t status;
+    bool cellular;
+  };
+
   void kickOffConnectivity();
   void bgTaskTimeout();
   static void sBgTaskTimeout(void *data);
   void onGlobalStateChanged(LinphoneGlobalState state) override;
+  void startPathMonitor();
+  void stopPathMonitor();
+  void onPathUpdate(nw_path_t nwPath);
 
   long int mCpuLockTaskId;
   int mCpuLockCount;
   SCNetworkReachabilityRef reachabilityRef = NULL;
   SCNetworkReachabilityFlags mCurrentFlags = 0;
   bool mNetworkMonitoringEnabled = false;
+  nw_path_monitor_t mPathMonitor = nullptr;
+  dispatch_queue_t mPathMonitorQueue = nullptr;
+  std::future<void> mPathMonitorCancelled;
+  mutable std::mutex mPathMutex;
+  std::optional<NetworkPath> mLastPath; // Guarded by mPathMutex, written on mPathMonitorQueue.
 
   IosAppDelegate *mAppDelegate =
       NULL; /* auto didEnterBackground/didEnterForeground and other callbacks */
@@ -156,6 +176,7 @@ void IosPlatformHelpers::start(std::shared_ptr<LinphonePrivate::Core> core) {
   mCpuLockTaskId = 0;
   mNetworkReachable = 0; // wait until monitor to give a status;
   mSharedCoreHelpers = createIosSharedCoreHelpers(core);
+  startPathMonitor();
 
   ms_message("IosPlatformHelpers is fully started");
   mStart = true;
@@ -660,33 +681,108 @@ void IosPlatformHelpers::kickOffConnectivity() {
       });
 }
 
-// Reachability flags of the zero address, a special token describing the general routing status of the device (IPv4
-// and IPv6). Unlike a host name, it needs no DNS resolution, so the query does not block.
-static bool getDefaultRouteFlags(SCNetworkReachabilityFlags *flags) {
-	struct sockaddr_in zeroAddress = {};
-	zeroAddress.sin_len = sizeof(zeroAddress);
-	zeroAddress.sin_family = AF_INET;
-
-	SCNetworkReachabilityRef reachability =
-	    SCNetworkReachabilityCreateWithAddress(NULL, (const struct sockaddr *)&zeroAddress);
-	if (!reachability) return false;
-	bool result = SCNetworkReachabilityGetFlags(reachability, flags);
-	CFRelease(reachability);
-	return result;
+static const char *pathStatusToString(nw_path_status_t status) {
+	switch (status) {
+		case nw_path_status_satisfied:
+			return "satisfied";
+		case nw_path_status_unsatisfied:
+			return "unsatisfied";
+		case nw_path_status_satisfiable:
+			return "satisfiable";
+		case nw_path_status_invalid:
+			break;
+	}
+	return "invalid";
 }
 
-PlatformHelpers::NetworkType IosPlatformHelpers::getNetworkType()const{
-	// Read the default route flags on each call: mCurrentFlags lags behind network changes and is never updated with
-	// auto_net_state_mon=0, so it would report Wifi while the addresses probed by the local network permission check
-	// are already cellular ones. It is only a fallback if the flags cannot be read (then Wifi, as before).
-	SCNetworkReachabilityFlags flags;
-	if (!getDefaultRouteFlags(&flags)) {
-		ms_warning("[IosPlatformHelpers] Cannot get the default route reachability flags, using the last known ones");
-		flags = mCurrentFlags;
+static const char *interfaceTypeToString(nw_interface_type_t type) {
+	switch (type) {
+		case nw_interface_type_wifi:
+			return "wifi";
+		case nw_interface_type_cellular:
+			return "cellular";
+		case nw_interface_type_wired:
+			return "wired";
+		case nw_interface_type_loopback:
+			return "loopback";
+		case nw_interface_type_other:
+			break;
 	}
-	NetworkType type = (flags & kSCNetworkReachabilityFlagsIsWWAN) ? NetworkType::MobileData : NetworkType::Wifi;
-	ms_message("[IosPlatformHelpers] Network type is [%s] (reachability flags [0x%x])",
-	           type == NetworkType::MobileData ? "MobileData" : "Wifi", (unsigned int)flags);
+	return "other";
+}
+
+static void logNetworkPath(nw_path_t path) {
+	string interfaces;
+	// In Objective-C++, the compiler converts a lambda to the block type expected by the Network framework.
+	nw_path_enumerate_interfaces(path, [&interfaces](nw_interface_t interface) -> bool {
+		if (!interfaces.empty()) interfaces += ", ";
+		interfaces += string(nw_interface_get_name(interface)) + " (" +
+		              interfaceTypeToString(nw_interface_get_type(interface)) + ")";
+		return true;
+	});
+	nw_path_status_t status = nw_path_get_status(path);
+	ms_message(
+	    "[IosPlatformHelpers] Network path: status [%s], unsatisfied reason [%d], interfaces [%s], expensive [%d], "
+	    "constrained [%d], IPv4 [%d], IPv6 [%d]",
+	    pathStatusToString(status),
+	    status == nw_path_status_unsatisfied ? (int)nw_path_get_unsatisfied_reason(path) : 0, interfaces.c_str(),
+	    (int)nw_path_is_expensive(path), (int)nw_path_is_constrained(path), (int)nw_path_has_ipv4(path),
+	    (int)nw_path_has_ipv6(path));
+}
+
+// The path monitor lives as long as this object, whatever auto_net_state_mon: getNetworkType() relies on it. Its
+// handlers run on a private serial queue.
+void IosPlatformHelpers::startPathMonitor() {
+	if (mPathMonitor) return;
+
+	mPathMonitorQueue = dispatch_queue_create("org.linphone.liblinphone.path-monitor", DISPATCH_QUEUE_SERIAL);
+	mPathMonitor = nw_path_monitor_create();
+	nw_path_monitor_set_queue(mPathMonitor, mPathMonitorQueue);
+	nw_path_monitor_set_update_handler(mPathMonitor, [this](nw_path_t nwPath) { onPathUpdate(nwPath); });
+	// The handler is copied when it becomes a block, and a promise cannot be copied: hence the shared_ptr.
+	auto cancelled = std::make_shared<std::promise<void>>();
+	mPathMonitorCancelled = cancelled->get_future();
+	nw_path_monitor_set_cancel_handler(mPathMonitor, [cancelled]() { cancelled->set_value(); });
+	nw_path_monitor_start(mPathMonitor);
+	ms_message("[IosPlatformHelpers] Network path monitor started");
+}
+
+void IosPlatformHelpers::stopPathMonitor() {
+	if (!mPathMonitor) return;
+
+	nw_path_monitor_cancel(mPathMonitor);
+	// The update handler uses this object. Once the cancel handler has run, the update handler cannot fire again.
+	mPathMonitorCancelled.wait();
+	nw_release(mPathMonitor);
+	mPathMonitor = nullptr;
+	dispatch_release(mPathMonitorQueue);
+	mPathMonitorQueue = nullptr;
+}
+
+// Runs on mPathMonitorQueue.
+void IosPlatformHelpers::onPathUpdate(nw_path_t nwPath) {
+	logNetworkPath(nwPath);
+	NetworkPath path{nw_path_get_status(nwPath), nw_path_uses_interface_type(nwPath, nw_interface_type_cellular)};
+	std::lock_guard<std::mutex> lock(mPathMutex);
+	mLastPath = path;
+}
+
+PlatformHelpers::NetworkType IosPlatformHelpers::getNetworkType() const {
+	// Read the last path delivered by the path monitor. It runs even with auto_net_state_mon=0, so the type matches the
+	// network whose addresses the local network permission check probes. Its first update arrives a few milliseconds
+	// after start(); until then, assume Wifi as before.
+	std::optional<NetworkPath> path;
+	{
+		std::lock_guard<std::mutex> lock(mPathMutex);
+		path = mLastPath;
+	}
+	if (!path) {
+		ms_warning("[IosPlatformHelpers] No network path received yet, assuming the network type is Wifi");
+		return NetworkType::Wifi;
+	}
+	NetworkType type = path->cellular ? NetworkType::MobileData : NetworkType::Wifi;
+	ms_message("[IosPlatformHelpers] Network type is [%s] (path status [%s])",
+	           type == NetworkType::MobileData ? "MobileData" : "Wifi", pathStatusToString(path->status));
 	return type;
 }
 
