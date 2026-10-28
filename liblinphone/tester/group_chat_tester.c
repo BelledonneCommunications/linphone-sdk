@@ -516,6 +516,16 @@ LinphoneChatMessage *_send_file_plus_text_return_message(
 	linphone_chat_message_cbs_set_file_transfer_progress_indication(cbs, file_transfer_progress_indication_2);
 	linphone_chat_message_add_callbacks(msg, cbs);
 	linphone_chat_message_cbs_unref(cbs);
+	ms_message("%s is sending message with:", linphone_core_get_identity(linphone_chat_room_get_core(cr)));
+	if (sendFilepath) {
+		ms_message("- file: %s", sendFilepath);
+	}
+	if (sendFilepath2) {
+		ms_message("- file: %s", sendFilepath2);
+	}
+	if (text) {
+		ms_message("- text: %s", text);
+	}
 	linphone_chat_message_send(msg);
 	return msg;
 }
@@ -1250,7 +1260,7 @@ static void group_chat_room_creation_server(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -1638,7 +1648,7 @@ static void group_chat_room_add_participant(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *paulineCr =
 	    create_chat_room_client_side(coresList, pauline, &initialPaulineStats, participantsAddresses, initialSubject,
-	                                 FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(paulineCr));
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -1909,7 +1919,7 @@ static void group_chat_room_message(bool_t encrypt,
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -2133,7 +2143,7 @@ static void group_chat_room_invite_multi_register_account(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2186,7 +2196,7 @@ static void group_chat_room_add_admin(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2251,7 +2261,7 @@ static void group_chat_room_add_admin_lately_notified(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2326,7 +2336,7 @@ static void group_chat_room_add_admin_non_admin(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2384,7 +2394,7 @@ static void group_chat_room_remove_admin(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2468,7 +2478,7 @@ static void group_chat_room_admin_creator_leaves_the_room(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2542,7 +2552,7 @@ static void group_chat_room_change_subject(void) {
 	const char *newSubject = "New subject";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2616,7 +2626,7 @@ static void group_chat_room_change_subject_non_admin(void) {
 	const char *newSubject = "New subject";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2680,7 +2690,7 @@ static void group_chat_room_remove_participant_base(bool_t restart) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
 
@@ -2790,7 +2800,7 @@ static void group_chat_room_send_message_with_participant_removed(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2876,7 +2886,7 @@ static void group_chat_room_leave(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -2939,7 +2949,7 @@ static void group_chat_room_delete_twice(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -3012,7 +3022,7 @@ static void group_chat_room_come_back_after_disconnection(void) {
 	const char *newSubject = "New subject";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -3098,7 +3108,7 @@ static void group_chat_room_create_room_with_disconnected_friends_base(bool_t in
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -3195,7 +3205,7 @@ static void group_chat_room_reinvited_after_removed_base(bool_t offline_when_rem
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	participantsAddresses = NULL;
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 	char *conference_address_str = (confAddr) ? linphone_address_as_string(confAddr) : ms_strdup("sip:");
@@ -3425,7 +3435,7 @@ static void group_chat_room_reinvited_after_removed_with_several_devices(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marie1Cr =
 	    create_chat_room_client_side(coresList, marie1, &initialMarie1Stats, participantsAddresses, initialSubject,
-	                                 FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 	LinphoneChatRoom *marie2Cr = NULL;
 	participantsAddresses = NULL;
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marie1Cr);
@@ -3535,7 +3545,7 @@ static void group_chat_room_notify_after_disconnection(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_PTR_NOT_NULL(marieCr);
 
 	participantsAddresses = NULL;
@@ -3699,7 +3709,7 @@ static void group_chat_room_notify_after_core_restart(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_PTR_NOT_NULL(marieCr);
 
 	participantsAddresses = NULL;
@@ -3812,7 +3822,7 @@ static void group_chat_room_send_refer_to_all_devices(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie1, &initialMarie1Stats, participantsAddresses, initialSubject,
-	                                 FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 	participantsAddresses = NULL;
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -3917,7 +3927,7 @@ static void group_chat_room_add_device(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie1, &initialMarie1Stats, participantsAddresses, initialSubject,
-	                                 FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 	participantsAddresses = NULL;
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -4046,7 +4056,7 @@ static void multiple_is_composing_notification(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	participantsAddresses = NULL;
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -4373,7 +4383,7 @@ static void group_chat_room_send_file_with_or_without_text(bool_t with_text, boo
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -4455,7 +4465,7 @@ static void group_chat_room_send_multipart_custom_content_types(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -4559,7 +4569,7 @@ static void group_chat_room_unique_one_on_one_chat_room_base(bool_t secondDevice
 	const char *initialSubject = "Pauline";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_TRUE(linphone_chat_room_get_capabilities(marieCr) & LinphoneChatRoomCapabilitiesOneToOne);
 
 	const LinphoneAddress *tmpConfAddr = linphone_chat_room_get_conference_address(marieCr);
@@ -4695,7 +4705,7 @@ static void group_chat_room_unique_one_on_one_chat_room_with_forward_message_rec
 	const char *initialSubject = "Pauline";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_TRUE(linphone_chat_room_get_capabilities(marieCr) & LinphoneChatRoomCapabilitiesOneToOne);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
@@ -4964,7 +4974,7 @@ static void group_chat_room_unique_one_on_one_chat_room_recreated_from_message_2
 	const char *initialSubject = "Pauline";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_TRUE(linphone_chat_room_get_capabilities(marieCr) & LinphoneChatRoomCapabilitiesOneToOne);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
@@ -5075,7 +5085,7 @@ static void group_chat_room_join_one_on_one_chat_room_with_a_new_device(void) {
 	const char *initialSubject = "Pauline";
 	LinphoneChatRoom *marie1Cr =
 	    create_chat_room_client_side(coresList, marie1, &initialMarie1Stats, participantsAddresses, initialSubject,
-	                                 FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_TRUE(linphone_chat_room_get_capabilities(marie1Cr) & LinphoneChatRoomCapabilitiesOneToOne);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marie1Cr));
@@ -5186,7 +5196,7 @@ static void group_chat_room_new_unique_one_on_one_chat_room_after_both_participa
 	const char *initialSubject = "Pauline";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_TRUE(linphone_chat_room_get_capabilities(marieCr) & LinphoneChatRoomCapabilitiesOneToOne);
 
 	LinphoneAddress *firstConfAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
@@ -7185,7 +7195,7 @@ static void exhume_one_on_one_chat_room_3_base(bool_t core_restart) {
 		ms_message("%s is exhuming chat room %s", linphone_core_get_identity(marie->lc), conference_address_str);
 		marieOneOnOneCr =
 		    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject,
-		                                 FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		wait_for_until(marie->lc, NULL, &marie->stat.number_of_LinphoneChatRoomStateCreated, 2,
 		               liblinphone_tester_sip_timeout);
 		if (!BC_ASSERT_PTR_NOT_NULL(marieOneOnOneCr)) goto end;
@@ -8226,7 +8236,7 @@ static void group_chat_room_participant_devices_name(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
 
@@ -9505,7 +9515,7 @@ static void group_chat_room_device_unregistered(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	participantsAddresses = NULL;
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -9660,7 +9670,7 @@ static void group_chat_room_admin_creator_leaves_and_is_reinvited(void) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -9753,7 +9763,7 @@ static void group_chat_forward_file_transfer_message_url(const char *file_transf
 	const char *initialSubject = "Pauline";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	participantsAddresses = bctbx_list_append(NULL, linphone_address_new(linphone_core_get_identity(pauline->lc)));
@@ -9880,7 +9890,7 @@ static void group_chat_room_message_sync_between_devices_with_same_identity(void
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marie1Cr =
 	    create_chat_room_client_side(coresList, marie1, &initialMarie1Stats, participantsAddresses, initialSubject,
-	                                 FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_PTR_NOT_NULL(marie1Cr);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marie1Cr);
 
@@ -10014,14 +10024,14 @@ test_t group_chat_tests[] = {
     TEST_NO_TAG("Send message", group_chat_room_send_message),
     TEST_NO_TAG("Send message IM encryption mandatory", group_chat_room_send_message_im_encryption_mandatory),
     TEST_NO_TAG("Send message IM encryption mandatory and core",
-                group_chat_room_send_message_im_encryption_mandatory_and_core),
+	            group_chat_room_send_message_im_encryption_mandatory_and_core),
     TEST_NO_TAG("Send encrypted message", group_chat_room_send_message_encrypted),
     TEST_NO_TAG("Send encrypted message IM encryption mandatory",
-                group_chat_room_send_message_encrypted_im_encryption_mandatory),
+	            group_chat_room_send_message_encrypted_im_encryption_mandatory),
     TEST_NO_TAG("Send message with error", group_chat_room_send_message_with_error),
     TEST_NO_TAG("Send invite on a multi register account", group_chat_room_invite_multi_register_account),
     TEST_NO_TAG("Send message check sync between devices",
-                group_chat_room_message_sync_between_devices_with_same_identity),
+	            group_chat_room_message_sync_between_devices_with_same_identity),
     TEST_NO_TAG("Add admin", group_chat_room_add_admin),
     TEST_NO_TAG("Add admin lately notified", group_chat_room_add_admin_lately_notified),
     TEST_NO_TAG("Add admin with a non admin", group_chat_room_add_admin_non_admin),
@@ -10031,50 +10041,50 @@ test_t group_chat_tests[] = {
     TEST_NO_TAG("Change subject with a non admin", group_chat_room_change_subject_non_admin),
     TEST_NO_TAG("Remove participant", group_chat_room_remove_participant),
     TEST_ONE_TAG("Remove participant and restart",
-                 group_chat_room_remove_participant_and_restart,
-                 "LeaksMemory"), // Due to core restart
+	             group_chat_room_remove_participant_and_restart,
+	             "LeaksMemory"), // Due to core restart
     TEST_NO_TAG("Send message with a participant removed", group_chat_room_send_message_with_participant_removed),
     TEST_NO_TAG("Leave group chat room", group_chat_room_leave),
     TEST_NO_TAG("Delete group chat room successful if it's already removed by server", group_chat_room_delete_twice),
     TEST_NO_TAG("Come back on a group chat room after a disconnection", group_chat_room_come_back_after_disconnection),
     TEST_NO_TAG("Create chat room with disconnected friends", group_chat_room_create_room_with_disconnected_friends),
     TEST_NO_TAG("Create chat room with disconnected friends and initial message",
-                group_chat_room_create_room_with_disconnected_friends_and_initial_message),
+	            group_chat_room_create_room_with_disconnected_friends_and_initial_message),
     TEST_NO_TAG("Reinvited after removed from group chat room", group_chat_room_reinvited_after_removed),
     TEST_NO_TAG("Chat room creation failure with invalid subject",
-                group_chat_room_creation_failure_with_invalid_subject)};
+	            group_chat_room_creation_failure_with_invalid_subject)};
 
 test_t group_chat2_tests[] = {
     TEST_NO_TAG("Send file + text", group_chat_room_send_file_plus_text),
     TEST_NO_TAG("Send 2 files + text", group_chat_room_send_two_files_plus_text),
     TEST_NO_TAG("Send multipart message with custom content types",
-                group_chat_room_send_multipart_custom_content_types),
+	            group_chat_room_send_multipart_custom_content_types),
     TEST_NO_TAG("Unique one-on-one chatroom", group_chat_room_unique_one_on_one_chat_room),
     TEST_NO_TAG("Unique one-on-one chatroom with dual sender device",
-                group_chat_room_unique_one_on_one_chat_room_dual_sender_device),
+	            group_chat_room_unique_one_on_one_chat_room_dual_sender_device),
     TEST_NO_TAG("Unique one-on-one chatroom recreated from message",
-                group_chat_room_unique_one_on_one_chat_room_recreated_from_message),
+	            group_chat_room_unique_one_on_one_chat_room_recreated_from_message),
     TEST_ONE_TAG("Unique one-on-one chatroom recreated from message with app restart",
-                 group_chat_room_unique_one_on_one_chat_room_recreated_from_message_with_app_restart,
-                 "LeaksMemory"),
+	             group_chat_room_unique_one_on_one_chat_room_recreated_from_message_with_app_restart,
+	             "LeaksMemory"),
     TEST_NO_TAG("Join one-on-one chat room with a new device",
-                group_chat_room_join_one_on_one_chat_room_with_a_new_device),
+	            group_chat_room_join_one_on_one_chat_room_with_a_new_device),
     TEST_NO_TAG("New unique one-on-one chatroom after both participants left",
-                group_chat_room_new_unique_one_on_one_chat_room_after_both_participants_left),
+	            group_chat_room_new_unique_one_on_one_chat_room_after_both_participants_left),
     TEST_NO_TAG("Unique one-on-one chatroom re-created from the party that deleted it, with inactive devices",
-                group_chat_room_unique_one_on_one_chat_room_recreated_from_message_2),
+	            group_chat_room_unique_one_on_one_chat_room_recreated_from_message_2),
     TEST_ONE_TAG("Group chat room notify participant devices name",
-                 group_chat_room_participant_devices_name,
-                 "LeaksMemory" /* Core restarts */),
+	             group_chat_room_participant_devices_name,
+	             "LeaksMemory" /* Core restarts */),
     TEST_NO_TAG("Add device in one-on-one chat room where other participant left",
-                add_device_one_on_one_chat_room_other_left),
+	            add_device_one_on_one_chat_room_other_left),
     TEST_NO_TAG("IMDN for group chat room", imdn_for_group_chat_room),
     TEST_NO_TAG("Aggregated IMDN for group chat room", aggregated_imdn_for_group_chat_room),
     TEST_NO_TAG("Aggregated IMDN for group chat room read while offline",
-                aggregated_imdn_for_group_chat_room_read_while_offline),
+	            aggregated_imdn_for_group_chat_room_read_while_offline),
     TEST_ONE_TAG("IMDN sent from DB state", imdn_sent_from_db_state, "LeaksMemory"),
     TEST_NO_TAG("IMDN updated for group chat room with one participant offline",
-                imdn_updated_for_group_chat_room_with_one_participant_offline),
+	            imdn_updated_for_group_chat_room_with_one_participant_offline),
     TEST_NO_TAG("Basic chat room with CPIM and GRUU", basic_chat_room_with_cpim_gruu),
     TEST_NO_TAG("Basic chat room with CPIM, GRUU and IMDN", basic_chat_room_with_cpim_gruu_imdn),
     TEST_NO_TAG("Basic chat room with CPIM and without GRUU", basic_chat_room_with_cpim_without_gruu),
@@ -10083,8 +10093,8 @@ test_t group_chat2_tests[] = {
     TEST_NO_TAG("Exhumed one-on-one chat room 2", exhume_one_on_one_chat_room_2),
     TEST_NO_TAG("Exhumed one-on-one chat room 3", exhume_one_on_one_chat_room_3),
     TEST_ONE_TAG("Exhumed one-on-one chat room 3 with core restart",
-                 exhume_one_on_one_chat_room_3_core_restart,
-                 "LeaksMemory" /*due to core restart*/),
+	             exhume_one_on_one_chat_room_3_core_restart,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_NO_TAG("Exhumed one-on-one chat room 4", exhume_one_on_one_chat_room_4),
     TEST_NO_TAG("New device after group chat room creation", group_chat_room_new_device_after_creation),
     TEST_ONE_TAG("Chat room list subscription", group_chat_room_list_subscription, "LeaksMemory"),
@@ -10098,66 +10108,66 @@ test_t group_chat3_tests[] = {
     TEST_ONE_TAG(
         "Participant removed then added", participant_removed_then_added, "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("Check if participant device are removed",
-                 group_chat_room_join_one_on_one_chat_room_with_a_new_device_not_notified,
-                 "LeaksMemory" /*due to core restart*/),
+	             group_chat_room_join_one_on_one_chat_room_with_a_new_device_not_notified,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("Subscribe successful after set chat database path",
-                 subscribe_test_after_set_chat_database_path,
-                 "LeaksMemory" /*due to core restart*/),
+	             subscribe_test_after_set_chat_database_path,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_NO_TAG("Send forward message", one_on_one_chat_room_send_forward_message),
     TEST_ONE_TAG("Send forward message with restart",
-                 one_on_one_chat_room_send_forward_message_with_restart,
-                 "LeaksMemory" /*due to core restart*/),
+	             one_on_one_chat_room_send_forward_message_with_restart,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_NO_TAG("Send reply message", one_on_one_chat_room_reply_forward_message),
     TEST_ONE_TAG("Send reply message with core restart",
-                 one_on_one_chat_room_reply_forward_message_with_restart,
-                 "LeaksMemory" /*due to core restart*/),
+	             one_on_one_chat_room_reply_forward_message_with_restart,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("Linphone core stop/start and chatroom ref",
-                 core_stop_start_with_chat_room_ref,
-                 "LeaksMemory" /*due to core restart*/),
+	             core_stop_start_with_chat_room_ref,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("Subscribe successful after set chat database path",
-                 subscribe_test_after_set_chat_database_path,
-                 "LeaksMemory" /*due to core restart*/),
+	             subscribe_test_after_set_chat_database_path,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_NO_TAG("Make sure device unregistration does not trigger user to be removed from a group",
-                group_chat_room_device_unregistered),
+	            group_chat_room_device_unregistered),
     TEST_NO_TAG("Admin leaves the room and is reinvited", group_chat_room_admin_creator_leaves_and_is_reinvited),
     TEST_NO_TAG("Forward file transfer message", group_chat_forward_file_transfer_message),
     TEST_NO_TAG("Forward file transfer message using digest auth on server",
-                group_chat_forward_file_transfer_message_digest_auth_server),
+	            group_chat_forward_file_transfer_message_digest_auth_server),
     TEST_NO_TAG("Forward file transfer message using digest auth on server and encrypted FS",
-                group_chat_forward_file_transfer_message_digest_auth_server_encryptedFS),
+	            group_chat_forward_file_transfer_message_digest_auth_server_encryptedFS),
 };
 
 test_t group_chat4_tests[] = {
     TEST_ONE_TAG(
         "Reinvited after removed from group chat room 2", group_chat_room_reinvited_after_removed_2, "LeaksMemory"),
     TEST_ONE_TAG("Reinvited after removed from group chat room while offline",
-                 group_chat_room_reinvited_after_removed_while_offline,
-                 "LeaksMemory"),
+	             group_chat_room_reinvited_after_removed_while_offline,
+	             "LeaksMemory"),
     TEST_ONE_TAG("Reinvited after removed from group chat room while offline 2",
-                 group_chat_room_reinvited_after_removed_while_offline_2,
-                 "LeaksMemory"),
+	             group_chat_room_reinvited_after_removed_while_offline_2,
+	             "LeaksMemory"),
     TEST_NO_TAG("Reinvited after removed from group chat room with several devices",
-                group_chat_room_reinvited_after_removed_with_several_devices),
+	            group_chat_room_reinvited_after_removed_with_several_devices),
     TEST_NO_TAG("Notify after disconnection", group_chat_room_notify_after_disconnection),
     TEST_ONE_TAG("Notify after core restart",
-                 group_chat_room_notify_after_core_restart,
-                 "LeaksMemory"), /* due to Core restart */
+	             group_chat_room_notify_after_core_restart,
+	             "LeaksMemory"), /* due to Core restart */
     TEST_NO_TAG("Send refer to all participants devices", group_chat_room_send_refer_to_all_devices),
     TEST_NO_TAG("Admin add device and doesn't lose admin status", group_chat_room_add_device),
     TEST_NO_TAG("Send multiple is composing", multiple_is_composing_notification),
     TEST_NO_TAG("Group chat room creation fails if invited participants don't support it",
-                group_chat_room_creation_fails_if_invited_participants_dont_support_it),
+	            group_chat_room_creation_fails_if_invited_participants_dont_support_it),
     TEST_NO_TAG("Group chat room creation successful if at least one invited participant supports it",
-                group_chat_room_creation_successful_if_at_least_one_invited_participant_supports_it),
+	            group_chat_room_creation_successful_if_at_least_one_invited_participant_supports_it),
     TEST_NO_TAG("Send file", group_chat_room_send_file),
     TEST_NO_TAG("Group chat with IMDN sent only to sender", group_chat_with_imdn_sent_only_to_sender),
     TEST_NO_TAG("Group chat with IMDN sent only to sender with participant offline",
-                group_chat_with_imdn_sent_only_to_sender_with_participant_offline),
+	            group_chat_with_imdn_sent_only_to_sender_with_participant_offline),
     TEST_NO_TAG("Group chat with IMDN sent only to sender after the number of participants goes above threshold",
-                group_chat_with_imdn_sent_only_to_sender_after_participant_number_goes_above_threshold),
+	            group_chat_with_imdn_sent_only_to_sender_after_participant_number_goes_above_threshold),
     TEST_NO_TAG("Send file using buffer", group_chat_room_send_file_2),
     TEST_NO_TAG("Chatroom creation failure while a core is on a call",
-                group_chat_room_creation_failure_while_on_a_call),
+	            group_chat_room_creation_failure_while_on_a_call),
 };
 
 test_suite_t group_chat_test_suite = {"Group Chat",

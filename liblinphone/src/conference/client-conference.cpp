@@ -285,7 +285,7 @@ void ClientConference::createEventHandler(BCTBX_UNUSED(ConferenceListener *confL
 
 void ClientConference::initializeHandlers(ConferenceListener *confListener, bool addToListEventHandler) {
 	addListener(std::shared_ptr<ConferenceListenerInterface>(static_cast<ConferenceListenerInterface *>(this),
-	                                                         [](BCTBX_UNUSED(ConferenceListenerInterface * p)) {}));
+	                                                         [](BCTBX_UNUSED(ConferenceListenerInterface *p)) {}));
 	createEventHandler(confListener, addToListEventHandler);
 }
 
@@ -2693,7 +2693,7 @@ SalReferOp *ClientConference::createReferOp() {
 		if (alternativeConferenceAddressUriString != getAssignedConferenceAddress()->toStringUriOnlyOrdered()) {
 			auto customHeaders =
 			    sal_custom_header_append(nullptr, Conference::kXAlternativeAddressClientHeaderName.c_str(),
-			                             alternativeConferenceAddressUriString.c_str());
+				                         alternativeConferenceAddressUriString.c_str());
 			referOp->setSentCustomHeaders(customHeaders);
 		}
 	}
@@ -2734,9 +2734,8 @@ void ClientConference::handleCreationFailed(BCTBX_UNUSED(const std::shared_ptr<C
 	if (!clientGroupChatRoom) return;
 	// If there are chat message pending chat room creation, set state to NotDelivered and remove
 	// them from queue.
-	const std::list<std::shared_ptr<ChatMessage>> &pendingCreationMessages =
-	    clientGroupChatRoom->getPendingCreationMessages();
-	for (const auto &msg : pendingCreationMessages) {
+	const std::list<std::shared_ptr<ChatMessage>> &pendingMessages = clientGroupChatRoom->getPendingMessages();
+	for (const auto &msg : pendingMessages) {
 		msg->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
 		                                       ::ms_time(nullptr));
 	}
@@ -2941,7 +2940,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 				const auto &confAccount = mConfParams->getAccount();
 				const auto &account =
 				    confAccount ? confAccount
-				                : Account::toCpp(linphone_core_get_default_account(cCore))->getSharedFromThis();
+					            : Account::toCpp(linphone_core_get_default_account(cCore))->getSharedFromThis();
 				const auto &from = account ? account->getAccountParams()->getIdentityAddress() : nullptr;
 				if (!from) {
 					lError() << "Unable to find account used to join " << *this;
@@ -2971,7 +2970,7 @@ void ClientConference::onCallSessionStateChanged(const shared_ptr<CallSession> &
 		else {
 			list<std::shared_ptr<Call>>::iterator it =
 			    find_if(mPendingCalls.begin(), mPendingCalls.end(),
-			            [&session](const auto &call) { return session == call->getActiveSession(); });
+				        [&session](const auto &call) { return session == call->getActiveSession(); });
 			if (it != mPendingCalls.end()) {
 				onPendingCallStateChanged(*it, state);
 			}

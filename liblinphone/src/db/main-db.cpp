@@ -215,35 +215,35 @@ constexpr auto ConferenceChatMessageFilter = SqlEventFilterBuilder<EventLog::Typ
 
 constexpr auto ConferenceInfoNoDeviceFilter =
     SqlEventFilterBuilder<EventLog::Type::ConferenceCreated,
-                          EventLog::Type::ConferenceTerminated,
-                          EventLog::Type::ConferenceParticipantAdded,
-                          EventLog::Type::ConferenceParticipantRemoved,
-                          EventLog::Type::ConferenceParticipantSetAdmin,
-                          EventLog::Type::ConferenceParticipantUnsetAdmin,
-                          EventLog::Type::ConferenceSubjectChanged,
-                          EventLog::Type::ConferenceSecurityEvent,
-                          EventLog::Type::ConferenceEphemeralMessageLifetimeChanged,
-                          EventLog::Type::ConferenceEphemeralMessageManagedByAdmin,
-                          EventLog::Type::ConferenceEphemeralMessageManagedByParticipants,
-                          EventLog::Type::ConferenceEphemeralMessageEnabled,
-                          EventLog::Type::ConferenceEphemeralMessageDisabled>::get();
+	                      EventLog::Type::ConferenceTerminated,
+	                      EventLog::Type::ConferenceParticipantAdded,
+	                      EventLog::Type::ConferenceParticipantRemoved,
+	                      EventLog::Type::ConferenceParticipantSetAdmin,
+	                      EventLog::Type::ConferenceParticipantUnsetAdmin,
+	                      EventLog::Type::ConferenceSubjectChanged,
+	                      EventLog::Type::ConferenceSecurityEvent,
+	                      EventLog::Type::ConferenceEphemeralMessageLifetimeChanged,
+	                      EventLog::Type::ConferenceEphemeralMessageManagedByAdmin,
+	                      EventLog::Type::ConferenceEphemeralMessageManagedByParticipants,
+	                      EventLog::Type::ConferenceEphemeralMessageEnabled,
+	                      EventLog::Type::ConferenceEphemeralMessageDisabled>::get();
 
 constexpr auto ConferenceInfoFilter =
     ConferenceInfoNoDeviceFilter + "," +
     SqlEventFilterBuilder<EventLog::Type::ConferenceParticipantDeviceAdded,
-                          EventLog::Type::ConferenceParticipantDeviceRemoved,
-                          EventLog::Type::ConferenceParticipantDeviceStatusChanged,
-                          EventLog::Type::ConferenceParticipantDeviceMediaCapabilityChanged,
-                          EventLog::Type::ConferenceParticipantDeviceMediaAvailabilityChanged>::get();
+	                      EventLog::Type::ConferenceParticipantDeviceRemoved,
+	                      EventLog::Type::ConferenceParticipantDeviceStatusChanged,
+	                      EventLog::Type::ConferenceParticipantDeviceMediaCapabilityChanged,
+	                      EventLog::Type::ConferenceParticipantDeviceMediaAvailabilityChanged>::get();
 
 constexpr auto ConferenceChatMessageSecurityFilter =
     ConferenceChatMessageFilter + "," +
     SqlEventFilterBuilder<EventLog::Type::ConferenceSecurityEvent,
-                          EventLog::Type::ConferenceEphemeralMessageLifetimeChanged,
-                          EventLog::Type::ConferenceEphemeralMessageEnabled,
-                          EventLog::Type::ConferenceEphemeralMessageDisabled,
-                          EventLog::Type::ConferenceEphemeralMessageManagedByAdmin,
-                          EventLog::Type::ConferenceEphemeralMessageManagedByParticipants>::get();
+	                      EventLog::Type::ConferenceEphemeralMessageLifetimeChanged,
+	                      EventLog::Type::ConferenceEphemeralMessageEnabled,
+	                      EventLog::Type::ConferenceEphemeralMessageDisabled,
+	                      EventLog::Type::ConferenceEphemeralMessageManagedByAdmin,
+	                      EventLog::Type::ConferenceEphemeralMessageManagedByParticipants>::get();
 #endif // ifdef _WIN32
 
 constexpr EnumToSql<MainDb::Filter> EventFilterToSql[] = {
@@ -1641,7 +1641,7 @@ shared_ptr<EventLog> MainDbPrivate::selectConferenceParticipantEvent(const Confe
 
 shared_ptr<EventLog> MainDbPrivate::selectConferenceAlternativeConferenceAddressChangedEvent(
     const ConferenceId &conferenceId, BCTBX_UNUSED(EventLog::Type type), const soci::row &row) const {
-	std::shared_ptr<Address> alternativeConferenceAddress = Address::create(row.get<string>(30));
+	std::shared_ptr<Address> alternativeConferenceAddress = Address::create(row.get<string>(32));
 	shared_ptr<ConferenceAlternativeAddressEvent> event = make_shared<ConferenceAlternativeAddressEvent>(
 	    getConferenceEventCreationTimeFromRow(row), conferenceId, alternativeConferenceAddress);
 	event->setNotifyId(getConferenceEventNotifyIdFromRow(row));
@@ -1967,8 +1967,8 @@ void MainDbPrivate::updateConferenceChatMessageEvent(const shared_ptr<EventLog> 
 		// Do not store transfer state.
 		const int stateInt =
 		    int(state == ChatMessage::State::InProgress || state == ChatMessage::State::FileTransferDone ||
-		                state == ChatMessage::State::FileTransferInProgress ||
-		                state == ChatMessage::State::FileTransferError
+			            state == ChatMessage::State::FileTransferInProgress ||
+			            state == ChatMessage::State::FileTransferError
 		            ? dbState
 		            : state);
 		const int markedAsReadInt = markedAsRead ? 1 : 0;
@@ -2012,7 +2012,7 @@ void MainDbPrivate::updateConferenceChatMessageEvent(const shared_ptr<EventLog> 
 	// 5. Update participants.
 	bool updateParticipants =
 	    (isOutgoing && stateRequiresUpdatingParticipants &&
-	     (chatRoom->getCapabilities() & AbstractChatRoom::Capabilities::Conference) && chatMessage->isValid());
+		 (chatRoom->getCapabilities() & AbstractChatRoom::Capabilities::Conference) && chatMessage->isValid());
 	if (updateParticipants) {
 		static const string query = "SELECT sip_address.value"
 		                            " FROM sip_address, chat_message_participant"
@@ -2459,7 +2459,7 @@ shared_ptr<ConferenceInfo> MainDbPrivate::selectConferenceInfo(const soci::row &
 	conferenceInfo->setUtf8Description(row.get<string>(6));
 	conferenceInfo->setState(
 	    ConferenceInfo::State(row.get<int>(7))); // state is a TinyInt in database, don't cast it to unsigned,
-	                                             // otherwise you'll get a std::bad_cast from soci.
+		                                         // otherwise you'll get a std::bad_cast from soci.
 	unsigned int icsSequence = dbSession.getUnsignedInt(row, 8, 0);
 	conferenceInfo->setIcsSequence(icsSequence);
 
@@ -2626,7 +2626,7 @@ std::list<std::shared_ptr<Friend>> MainDbPrivate::getFriends(const std::shared_p
 	            "FROM friend "
 	            "WHERE friends_list_id = :dbFriendListId "
 	            "ORDER BY id",
-	     soci::use(dbFriendListId));
+		 soci::use(dbFriendListId));
 	for (const auto &row : rows) {
 		auto f = selectFriend(row);
 		f->mFriendList = list.get();
@@ -3825,7 +3825,7 @@ void MainDbPrivate::updateSchema(bool checkMode) {
 		    session, checkMode, "ALTER TABLE chat_room ADD COLUMN ephemeral_enabled BOOLEAN NOT NULL DEFAULT 0");
 		recreateConferenceEventView |=
 		    alterTable(session, checkMode,
-		               "ALTER TABLE chat_room ADD COLUMN ephemeral_messages_lifetime DOUBLE NOT NULL DEFAULT 86400");
+			           "ALTER TABLE chat_room ADD COLUMN ephemeral_messages_lifetime DOUBLE NOT NULL DEFAULT 86400");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 13)) {
@@ -3837,20 +3837,20 @@ void MainDbPrivate::updateSchema(bool checkMode) {
 		alterTable(
 		    session, checkMode,
 		    "ALTER TABLE chat_message_content ADD COLUMN body_encoding_type TINYINT NOT NULL DEFAULT 0"); // Older
-		                                                                                                  // table
-		                                                                                                  // contains
-		                                                                                                  // Local
-		                                                                                                  // encoding.
+			                                                                                              // table
+			                                                                                              // contains
+			                                                                                              // Local
+			                                                                                              // encoding.
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 15)) {
 		recreateConferenceEventView |=
 		    alterTable(session, checkMode,
-		               "ALTER TABLE conference_chat_message_event ADD COLUMN reply_message_id VARCHAR(255) DEFAULT ''");
+			           "ALTER TABLE conference_chat_message_event ADD COLUMN reply_message_id VARCHAR(255) DEFAULT ''");
 		recreateConferenceEventView |=
 		    alterTable(session, checkMode,
-		               "ALTER TABLE conference_chat_message_event ADD COLUMN reply_sender_address_id " +
-		                   dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " DEFAULT 0");
+			           "ALTER TABLE conference_chat_message_event ADD COLUMN reply_sender_address_id " +
+			               dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " DEFAULT 0");
 	}
 
 	if (eventsDbVersionInt < makeVersion(1, 0, 16)) {
@@ -3941,7 +3941,7 @@ void MainDbPrivate::updateSchema(bool checkMode) {
 
 		soci::rowset<soci::row> originalParticipantDeviceRows =
 		    (session->prepare << "SELECT chat_room_participant_id, participant_device_sip_address_id, state, name, "
-		                         "joining_method, joining_time FROM chat_room_participant_device");
+			                     "joining_method, joining_time FROM chat_room_participant_device");
 		for (const auto &row : originalParticipantDeviceRows) {
 			const auto participantId = dbSession.resolveId(row, 0);
 			const auto deviceId = dbSession.resolveId(row, 1);
@@ -3988,7 +3988,7 @@ void MainDbPrivate::updateSchema(bool checkMode) {
 
 		soci::rowset<soci::row> participantDeviceRows =
 		    (session->prepare << "SELECT chat_room_participant_id, participant_device_sip_address_id, state, name, "
-		                         "joining_method, joining_time FROM chat_room_participant_device_clone");
+			                     "joining_method, joining_time FROM chat_room_participant_device_clone");
 		for (const auto &row : participantDeviceRows) {
 			const auto participantId = dbSession.resolveId(row, 0);
 			const auto deviceId = dbSession.resolveId(row, 1);
@@ -4122,7 +4122,7 @@ void MainDbPrivate::updateSchema(bool checkMode) {
 
 	recreateConferenceEventView |=
 	    alterTable(session, checkMode,
-	               "ALTER TABLE conference_chat_message_event ADD COLUMN retracted BOOLEAN NOT NULL DEFAULT 0");
+		           "ALTER TABLE conference_chat_message_event ADD COLUMN retracted BOOLEAN NOT NULL DEFAULT 0");
 
 	alterTable(session, checkMode,
 	           "ALTER TABLE chat_room ADD COLUMN ephemeral_messages_not_read_lifetime DOUBLE NOT NULL DEFAULT 0");
@@ -4132,8 +4132,8 @@ void MainDbPrivate::updateSchema(bool checkMode) {
 
 	recreateConferenceEventView |=
 	    alterTable(session, checkMode,
-	               "ALTER TABLE chat_message_ephemeral_event ADD COLUMN ephemeral_not_read_lifetime DOUBLE NOT NULL "
-	               "DEFAULT 0");
+		           "ALTER TABLE chat_message_ephemeral_event ADD COLUMN ephemeral_not_read_lifetime DOUBLE NOT NULL "
+		           "DEFAULT 0");
 
 	// ephemeral_enabled is deprecated. Update ephemeral_messages_lifetime from the enable value to keep previous
 	// deactivation.
@@ -4142,8 +4142,8 @@ void MainDbPrivate::updateSchema(bool checkMode) {
 
 	recreateConferenceEventView |=
 	    alterTable(session, checkMode,
-	               "ALTER TABLE chat_room ADD COLUMN alternative_peer_address_id " +
-	                   dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " NOT NULL DEFAULT 0");
+		           "ALTER TABLE chat_room ADD COLUMN alternative_peer_address_id " +
+		               dbSession.primaryKeyRefStr("BIGINT UNSIGNED") + " NOT NULL DEFAULT 0");
 	alterTable(session, checkMode, "ALTER TABLE chat_room ADD COLUMN to_migrate BOOLEAN NOT NULL DEFAULT 0");
 
 	if (recreateConferenceEventView && !checkMode) {
@@ -4930,8 +4930,8 @@ int MainDb::getEventCount(FilterMask mask) const {
 #ifdef HAVE_DB_STORAGE
 	const string query =
 	    "SELECT COUNT(*) FROM event" + buildSqlEventFilter({ConferenceCallFilter, ConferenceChatMessageFilter,
-	                                                        ConferenceInfoFilter, ConferenceInfoNoDeviceFilter},
-	                                                       mask);
+		                                                    ConferenceInfoFilter, ConferenceInfoNoDeviceFilter},
+		                                                   mask);
 
 	// DurationLogger durationLogger("Get event count with mask=" + Utils::toString(mask) + ".");
 
@@ -4962,13 +4962,15 @@ shared_ptr<EventLog> MainDb::getEvent(const long long &storageId) {
 	shared_ptr<EventLog> event = d->getEventFromCache(storageId);
 	if (event) return event;
 
+	const string query =
+	    Statements::get(Statements::SelectConferenceEvents) + string(" WHERE conference_event_view.id = :1");
+
 	return L_DB_TRANSACTION_C(this) {
 		// TODO: Improve. Deal with all events in the future.
 		soci::row row;
-		*d->dbSession.getBackendSession() << Statements::get(Statements::SelectConferenceEvent), soci::into(row),
-		    soci::use(storageId);
+		*d->dbSession.getBackendSession() << query, soci::into(row), soci::use(storageId);
 
-		ConferenceId conferenceId(Address(row.get<string>(16)), Address(row.get<string>(17)),
+		ConferenceId conferenceId(Address(row.get<string>(30)), Address(row.get<string>(31)),
 		                          getCore()->createConferenceIdParams());
 		shared_ptr<AbstractChatRoom> chatRoom = d->findChatRoom(conferenceId);
 		if (!chatRoom) return shared_ptr<EventLog>();
@@ -4999,7 +5001,8 @@ list<shared_ptr<EventLog>> MainDb::getConferenceNotifiedEvents(const ConferenceI
                                                                unsigned int lastNotifyId) const {
 #ifdef HAVE_DB_STORAGE
 	// TODO: Optimize.
-	const string query = Statements::get(Statements::SelectConferenceEvents) + string(" AND notify_id > :lastNotifyId");
+	const string query = Statements::get(Statements::SelectConferenceEvents) +
+	                     string(" WHERE chat_room_id = :1 AND notify_id > :lastNotifyId");
 
 	/*
 	DurationLogger durationLogger(
@@ -5180,7 +5183,8 @@ void MainDb::updateEphemeralMessageInfos(const long long &eventId, const time_t 
 list<shared_ptr<ChatMessage>> MainDb::getUnreadChatMessages(const ConferenceId &conferenceId) const {
 #ifdef HAVE_DB_STORAGE
 	// TODO: Optimize.
-	static const string query = Statements::get(Statements::SelectConferenceEvents) + string(" AND marked_as_read = 0");
+	static const string query =
+	    Statements::get(Statements::SelectConferenceEvents) + string(" WHERE chat_room_id = :1 AND marked_as_read = 0");
 
 	DurationLogger durationLogger(
 	    "Get unread chat messages: (peer=" + conferenceId.getPeerAddress()->toStringUriOnlyOrdered() +
@@ -5212,28 +5216,9 @@ list<shared_ptr<ChatMessage>> MainDb::getUnreadChatMessages(const ConferenceId &
 list<shared_ptr<ChatMessage>> MainDb::getEphemeralMessages() const {
 #ifdef HAVE_DB_STORAGE
 	// Keep chat_room_id at the end of the query !!!
-	string query =
-	    "SELECT conference_event_view.id, type, creation_time, from_sip_address.value, to_sip_address.value, time, "
-	    "imdn_message_id, state, direction, is_secured, notify_id, device_sip_address.value, "
-	    "participant_sip_address.value, subject, delivery_notification_required, display_notification_required, "
-	    "security_alert, faulty_device, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
-	    "reply_message_id, reply_sender_address.value, message_id, edited, retracted, ephemeral_not_read_lifetime, "
-	    "not_read_lifetime, alternative_conference_address.value, "
-	    "chat_room_id"
-	    " FROM conference_event_view"
-	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
-	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
-	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
-	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
-	    "participant_sip_address_id"
-	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
-	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
-	    "alternative_conference_address_id"
-	    " WHERE conference_event_view.id in ("
-	    " SELECT event_id"
-	    " FROM chat_message_ephemeral_event"
-	    " WHERE expired_time > :nullTime"
-	    " ORDER BY expired_time ASC";
+	string query = Statements::get(Statements::SelectConferenceEvents) +
+	               string(" WHERE conference_event_view.id in (SELECT event_id FROM chat_message_ephemeral_event WHERE "
+	                      "expired_time > :nullTime ORDER BY expired_time ASC");
 	query += getBackend() == MainDb::Backend::Sqlite3 ? " LIMIT :maxMessages) ORDER BY expired_time ASC"
 	                                                  : " ) ORDER BY expired_time ASC";
 
@@ -5588,28 +5573,8 @@ bool MainDb::isChatRoomEmpty(const ConferenceId &conferenceId) const {
 
 shared_ptr<ChatMessage> MainDb::getLastChatMessage(const ConferenceId &conferenceId) const {
 #ifdef HAVE_DB_STORAGE
-	static const string query =
-	    "SELECT conference_event_view.id AS event_id, type, conference_event_view.creation_time, "
-	    "from_sip_address.value, to_sip_address.value, time, imdn_message_id, state, direction, is_secured, "
-	    "notify_id, "
-	    "device_sip_address.value, participant_sip_address.value, conference_event_view.subject, "
-	    "delivery_notification_required, display_notification_required, peer_sip_address.value, "
-	    "local_sip_address.value, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
-	    "reply_message_id, reply_sender_address.value, message_id, edited, retracted, ephemeral_not_read_lifetime, "
-	    "not_read_lifetime, alternative_conference_address.value"
-	    " FROM conference_event_view"
-	    " JOIN chat_room ON chat_room.id = chat_room_id"
-	    " JOIN sip_address AS peer_sip_address ON peer_sip_address.id = peer_sip_address_id"
-	    " JOIN sip_address AS local_sip_address ON local_sip_address.id = local_sip_address_id"
-	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
-	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
-	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
-	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
-	    "participant_sip_address_id"
-	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
-	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
-	    "alternative_conference_address_id"
-	    " WHERE event_id = (SELECT last_message_id FROM chat_room WHERE id = :1)";
+	static const string query = Statements::get(Statements::SelectConferenceEvents) +
+	                            string(" WHERE event_id = (SELECT last_message_id FROM chat_room WHERE id = :1)");
 
 	return L_DB_TRANSACTION {
 		L_D();
@@ -5650,8 +5615,8 @@ void MainDb::invalidateChatMessageImdn(const std::shared_ptr<ChatMessage> &messa
 shared_ptr<EventLog> MainDb::findEventLog(const ConferenceId &conferenceId, const string &imdnMessageId) const {
 #ifdef HAVE_DB_STORAGE
 	// TODO: Optimize.
-	static const string query =
-	    Statements::get(Statements::SelectConferenceEvents) + string(" AND imdn_message_id = :imdnMessageId");
+	static const string query = Statements::get(Statements::SelectConferenceEvents) +
+	                            string(" WHERE chat_room_id = :1 AND imdn_message_id = :imdnMessageId");
 
 	/*
 	DurationLogger durationLogger(
@@ -5684,8 +5649,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessages(const ConferenceId &confe
                                                        const string &imdnMessageId) const {
 #ifdef HAVE_DB_STORAGE
 	// TODO: Optimize.
-	static const string query =
-	    Statements::get(Statements::SelectConferenceEvents) + string(" AND imdn_message_id = :imdnMessageId");
+	static const string query = Statements::get(Statements::SelectConferenceEvents) +
+	                            string(" WHERE chat_room_id = :1 AND imdn_message_id = :imdnMessageId");
 
 	/*
 	DurationLogger durationLogger(
@@ -5722,8 +5687,8 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessages(const ConferenceId &confe
                                                        const list<string> &imdnMessageIds) const {
 #ifdef HAVE_DB_STORAGE
 	// TODO: Optimize.
-	static const string query =
-	    Statements::get(Statements::SelectConferenceEvents) + string(" AND ( imdn_message_id = ");
+	static const string query = Statements::get(Statements::SelectConferenceEvents) +
+	                            string(" WHERE chat_room_id = :1 AND ( imdn_message_id = ");
 
 	/*
 	DurationLogger durationLogger(
@@ -5774,23 +5739,7 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessages(const ConferenceId &confe
 list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromMessageId(const std::string &messageId) const {
 #ifdef HAVE_DB_STORAGE
 	// Keep chat_room_id at the end of the query !!!
-	static const string query =
-	    "SELECT conference_event_view.id AS event_id, type, creation_time, from_sip_address.value, "
-	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
-	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
-	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
-	    "chat_room_id"
-	    " FROM conference_event_view"
-	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
-	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
-	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
-	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = participant_sip_address_id"
-	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
-	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
-	    "alternative_conference_address_id"
-	    " WHERE message_id = :messageId";
+	string query = Statements::get(Statements::SelectConferenceEvents) + string(" WHERE message_id = :messageId");
 
 	return L_DB_TRANSACTION {
 		L_D();
@@ -5831,22 +5780,7 @@ MainDb::findChatMessagesFromImdnMessageId(const std::list<std::string> &imdnMess
 #ifdef HAVE_DB_STORAGE
 	// Keep chat_room_id at the end of the query !!!
 	static const string query =
-	    "SELECT conference_event_view.id AS event_id, type, creation_time, from_sip_address.value, "
-	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
-	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
-	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
-	    "chat_room_id"
-	    " FROM conference_event_view"
-	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
-	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
-	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
-	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = participant_sip_address_id"
-	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
-	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
-	    "alternative_conference_address_id"
-	    " WHERE (imdn_message_id = ";
+	    Statements::get(Statements::SelectConferenceEvents) + string(" WHERE (imdn_message_id = ");
 
 	return L_DB_TRANSACTION {
 		L_D();
@@ -5900,23 +5834,7 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesFromCallId(const std::stri
 #ifdef HAVE_DB_STORAGE
 	// Keep chat_room_id at the end of the query !!!
 	static const string query =
-	    "SELECT conference_event_view.id AS event_id, type, creation_time, from_sip_address.value, "
-	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
-	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
-	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
-	    "chat_room_id"
-	    " FROM conference_event_view"
-	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
-	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
-	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
-	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
-	    "participant_sip_address_id"
-	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
-	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
-	    "alternative_conference_address_id"
-	    " WHERE call_id = :callId";
+	    Statements::get(Statements::SelectConferenceEvents) + string(" WHERE call_id = :callId");
 
 	return L_DB_TRANSACTION {
 		L_D();
@@ -5962,25 +5880,10 @@ list<shared_ptr<ChatMessage>> MainDb::findQueuedChatMessages() const {
 	const std::string integerCastType = (getBackend() == MainDb::Backend::Sqlite3) ? "Integer" : "SIGNED";
 
 	static const string query =
-	    "SELECT conference_event_view.id AS event_id, type, creation_time, from_sip_address.value, "
-	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
-	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
-	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
-	    "chat_room_id"
-	    " FROM conference_event_view"
-	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
-	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
-	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
-	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
-	    "participant_sip_address_id"
-	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
-	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
-	    "alternative_conference_address_id"
-	    " WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE "
-	    "state = :queuedState AND direction = :direction AND CAST(" +
-	    timediffExpression + " As " + integerCastType + ") >= 0)";
+	    Statements::get(Statements::SelectConferenceEvents) +
+	    string(" WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE state = "
+		       ":queuedState AND direction = :direction AND CAST(") +
+	    timediffExpression + std::string(" As ") + integerCastType + std::string(") >= 0)");
 
 	/*
 	DurationLogger durationLogger(
@@ -6040,25 +5943,10 @@ list<shared_ptr<ChatMessage>> MainDb::findChatMessagesToBeNotifiedAsDelivered() 
 	const std::string integerCastType = (getBackend() == MainDb::Backend::Sqlite3) ? "Integer" : "SIGNED";
 
 	static const string query =
-	    "SELECT conference_event_view.id AS event_id, type, creation_time, from_sip_address.value, "
-	    "to_sip_address.value, time, imdn_message_id, state, direction, is_secured, notify_id, "
-	    "device_sip_address.value, participant_sip_address.value, subject, delivery_notification_required, "
-	    "display_notification_required, security_alert, faulty_device, marked_as_read, forward_info, "
-	    "ephemeral_lifetime, expired_time, lifetime, reply_message_id, reply_sender_address.value, message_id, edited, "
-	    "retracted, ephemeral_not_read_lifetime, not_read_lifetime, alternative_conference_address.value, "
-	    "chat_room_id"
-	    " FROM conference_event_view"
-	    " LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id"
-	    " LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id"
-	    " LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id"
-	    " LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
-	    "participant_sip_address_id"
-	    " LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id"
-	    " LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
-	    "alternative_conference_address_id"
-	    " WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE "
-	    "delivery_notification_required <> 0 AND direction = :direction AND CAST(" +
-	    timediffExpression + " As " + integerCastType + ") >= 0)";
+	    Statements::get(Statements::SelectConferenceEvents) +
+	    string(" WHERE conference_event_view.id IN (SELECT event_id FROM conference_chat_message_event WHERE "
+		       "delivery_notification_required <> 0 AND direction = :direction AND CAST(") +
+	    timediffExpression + std::string(" As ") + integerCastType + std::string(") >= 0)");
 
 	/*
 	DurationLogger durationLogger(
@@ -6126,7 +6014,7 @@ MainDb::getHistoryRange(const ConferenceId &conferenceId, int begin, int end, Fi
 		return events;
 	}
 
-	string query = Statements::get(Statements::SelectConferenceEvents) +
+	string query = Statements::get(Statements::SelectConferenceEvents) + string(" WHERE chat_room_id = :1") +
 	               buildSqlEventFilter({ConferenceCallFilter, ConferenceChatMessageFilter, ConferenceInfoFilter,
 	                                    ConferenceInfoNoDeviceFilter, ConferenceChatMessageSecurityFilter},
 	                                   mask, "AND");
@@ -6181,11 +6069,11 @@ list<shared_ptr<EventLog>> MainDb::getHistoryRangeNear(const ConferenceId &confe
 	}
 
 	// Build the base query
-	const string baseQuery = Statements::get(Statements::SelectConferenceEvents);
+	const string baseQuery = Statements::get(Statements::SelectConferenceEvents) + string(" WHERE chat_room_id = :1");
 	const string baseFilter =
 	    buildSqlEventFilter({ConferenceCallFilter, ConferenceChatMessageFilter, ConferenceInfoFilter,
-	                         ConferenceInfoNoDeviceFilter, ConferenceChatMessageSecurityFilter},
-	                        mask, "AND");
+		                     ConferenceInfoNoDeviceFilter, ConferenceChatMessageSecurityFilter},
+		                    mask, "AND");
 
 	string query;
 	if (event == nullptr) {
@@ -6271,11 +6159,11 @@ list<shared_ptr<EventLog>> MainDb::getHistoryRangeBetween(const ConferenceId &co
 	}
 
 	// Build the base query
-	const string baseQuery = Statements::get(Statements::SelectConferenceEvents);
+	const string baseQuery = Statements::get(Statements::SelectConferenceEvents) + string(" WHERE chat_room_id = :1");
 	const string baseFilter =
 	    buildSqlEventFilter({ConferenceCallFilter, ConferenceChatMessageFilter, ConferenceInfoFilter,
-	                         ConferenceInfoNoDeviceFilter, ConferenceChatMessageSecurityFilter},
-	                        mask, "AND");
+		                     ConferenceInfoNoDeviceFilter, ConferenceChatMessageSecurityFilter},
+		                    mask, "AND");
 
 	string query = "SELECT * FROM (" + baseQuery + baseFilter +
 	               " AND event_id > :2 AND event_id < :3) "
@@ -6514,10 +6402,24 @@ void MainDb::removeConferenceChatMessageReactionEvent(const string &messageId,
 		from->clean();
 		const long long &fromSipAddressId = d->selectSipAddressId(from, true);
 
+		int id = -1;
+		*d->dbSession.getBackendSession()
+		    << "SELECT event_id FROM conference_chat_message_reaction_event WHERE"
+		       " from_sip_address_id = :from_sip_address_id AND reaction_to_message_id = :messageId",
+		    soci::use(fromSipAddressId), soci::use(messageId), soci::into(id);
+
+		if (id > 0) {
+			*d->dbSession.getBackendSession() << "DELETE FROM event WHERE id = :id", soci::use(id);
+		} else {
+			lWarning() << "Unable to delete reaction event for message [" << messageId << "] from " << *fromAddress
+			           << " because its event ID is unknown";
+		}
+
 		*d->dbSession.getBackendSession()
 		    << "DELETE FROM conference_chat_message_reaction_event WHERE"
 		       " from_sip_address_id = :from_sip_address_id AND reaction_to_message_id = :messageId",
 		    soci::use(fromSipAddressId), soci::use(messageId);
+
 		tr.commit();
 	};
 #endif
@@ -6539,8 +6441,8 @@ void MainDb::enableAllDeliveryNotificationRequired() {
 			    soci::use(state), soci::use(eventId);
 			soci::rowset<soci::row> participantRows =
 			    (session->prepare << "SELECT participant_sip_address_id FROM conference_chat_message_event WHERE "
-			                         "event_id = :eventId",
-			     soci::use(eventId));
+				                     "event_id = :eventId",
+				 soci::use(eventId));
 			for (const auto &participantRow : participantRows) {
 				const long long participantId = d->dbSession.resolveId(participantRow, 0);
 				*session << "UPDATE chat_message_participant SET state = :messageState WHERE (event_id = :eventId) AND "
@@ -6737,8 +6639,8 @@ shared_ptr<AbstractChatRoom> MainDb::mergeChatRooms(const shared_ptr<AbstractCha
 	            "WHERE "
 	            "event.id = conference_event.event_id AND conference_event.chat_room_id = :chatRoomId AND "
 	            "event.creation_time > :creationTimeMin AND event.creation_time < :creationTimeMax",
-	     soci::use(dbChatRoomToRemoveId), soci::use(oldestCreationTimeSoci.first, oldestCreationTimeSoci.second),
-	     soci::use(newestCreationTimeSoci.first, newestCreationTimeSoci.second));
+		 soci::use(dbChatRoomToRemoveId), soci::use(oldestCreationTimeSoci.first, oldestCreationTimeSoci.second),
+		 soci::use(newestCreationTimeSoci.first, newestCreationTimeSoci.second));
 
 	// Update row one by one to avoid disk IO Errors from SQL
 	for (const auto &row : rows) {
@@ -7135,7 +7037,7 @@ list<shared_ptr<AbstractChatRoom>> MainDb::getChatRooms(const std::string &filte
 							for (const auto &previousIdRow : previousIdRows) {
 								ConferenceId previousId =
 								    ConferenceId(Address::create(previousIdRow.get<string>(0), true), localAddress,
-								                 conferenceIdParams);
+									             conferenceIdParams);
 								if (previousId != conferenceId) {
 									lInfo() << "Keeping around previous chat room ID [" << previousId
 									        << "] in case BYE is received for exhumed chat room " << *conference << " ["
@@ -7621,7 +7523,7 @@ MainDb::selectChatRoomParticipants(const vector<long long> &chatRoomIds) const {
 				     ++participants, ++allParticipantsIdsIt) {
 					auto participantPos =
 					    std::find_if(allParticipantsIdsIt->second.begin(), allParticipantsIdsIt->second.end(),
-					                 [participantId](const long long &id) { return id == participantId; });
+						             [participantId](const long long &id) { return id == participantId; });
 					if (participantPos != allParticipantsIdsIt->second.end()) {
 						auto participantIt = participants->second.begin();
 						advance(participantIt, distance(allParticipantsIdsIt->second.begin(), participantPos));
@@ -7722,30 +7624,11 @@ shared_ptr<EventLog> MainDb::searchChatMessagesByText(const ConferenceId &confer
                                                       LinphoneSearchDirection direction) {
 #ifdef HAVE_DB_STORAGE
 	std::string patternToFind = Utils::replaceAll(text, "'", "''"); // replace all ' by ''
-	string query =
-	    "SELECT conference_event_view.id AS event_id, type, conference_event_view.creation_time, "
-	    "  from_sip_address.value, to_sip_address.value, time, imdn_message_id, state, direction, is_secured, "
-	    "  notify_id, device_sip_address.value, participant_sip_address.value, conference_event_view.subject, "
-	    "  delivery_notification_required, display_notification_required, peer_sip_address.value, "
-	    "  local_sip_address.value, marked_as_read, forward_info, ephemeral_lifetime, expired_time, lifetime, "
-	    "  reply_message_id, reply_sender_address.value, message_id, edited, retracted, ephemeral_not_read_lifetime, "
-	    " not_read_lifetime, alternative_conference_address.value "
-	    "FROM conference_event_view "
-	    "JOIN chat_room ON chat_room.id = chat_room_id "
-	    "JOIN sip_address AS peer_sip_address ON peer_sip_address.id = peer_sip_address_id "
-	    "JOIN sip_address AS local_sip_address ON local_sip_address.id = local_sip_address_id "
-	    "LEFT JOIN sip_address AS from_sip_address ON from_sip_address.id = from_sip_address_id "
-	    "LEFT JOIN sip_address AS to_sip_address ON to_sip_address.id = to_sip_address_id "
-	    "LEFT JOIN sip_address AS device_sip_address ON device_sip_address.id = device_sip_address_id "
-	    "LEFT JOIN sip_address AS participant_sip_address ON participant_sip_address.id = "
-	    "participant_sip_address_id "
-	    "LEFT JOIN sip_address AS reply_sender_address ON reply_sender_address.id = reply_sender_address_id "
-	    "LEFT JOIN chat_message_content ON chat_message_content.event_id = conference_event_view.id "
-	    "LEFT JOIN sip_address AS alternative_conference_address ON alternative_conference_address.id = "
-	    "alternative_conference_address_id "
-	    "WHERE chat_room_id = :chatRoomId AND chat_message_content.content_type_id = 1 "
-	    "  AND chat_message_content.body LIKE '%" +
-	    patternToFind + "%' ";
+	string query = Statements::get(Statements::SelectConferenceEvents) +
+	               string(" LEFT JOIN chat_message_content ON chat_message_content.event_id = conference_event_view.id "
+	                      "WHERE chat_room_id = :chatRoomId AND chat_message_content.content_type_id = 1 AND "
+	                      "chat_message_content.body LIKE '%") +
+	               patternToFind + std::string("%' ");
 
 	if (from != nullptr) {
 		const EventLogPrivate *dEventLog = from->getPrivate();

@@ -286,6 +286,7 @@ public:
 	virtual bool canSendMessages() const = 0;
 	virtual void addPendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
 	virtual void deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
+	virtual bool isMessagePending(const std::shared_ptr<ChatMessage> &chatMessage) = 0;
 
 	virtual void addCapability(AbstractChatRoom::CapabilitiesMask capability) = 0;
 

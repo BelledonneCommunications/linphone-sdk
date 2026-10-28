@@ -199,6 +199,13 @@ public:
 
 	virtual void addPendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
 	virtual void deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
+	virtual bool isMessagePending(const std::shared_ptr<ChatMessage> &chatMessage) override;
+	void clearPendingCreationMessages() {
+		mPendingMessages.clear();
+	}
+	const std::list<std::shared_ptr<ChatMessage>> &getPendingMessages() const {
+		return mPendingMessages;
+	}
 
 	std::shared_ptr<ChatMessage> createChatMessage(ChatMessage::Direction direction);
 	std::list<std::shared_ptr<ImdnMessage>>
@@ -303,6 +310,8 @@ private:
 	std::string mRemoteComposingContentType;
 
 	std::list<ConferenceId> mPreviousConferenceIds;
+
+	std::list<std::shared_ptr<ChatMessage>> mPendingMessages;
 
 	L_DISABLE_COPY(ChatRoom);
 };

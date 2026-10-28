@@ -34,7 +34,6 @@ enum Select {
 	SelectChatRoomId,
 	SelectChatRoomParticipantId,
 	SelectOneOnOneChatRoomId,
-	SelectConferenceEvent,
 	SelectConferenceEvents,
 	SelectConferenceInfoId,
 	SelectConferenceInfoParticipantId,

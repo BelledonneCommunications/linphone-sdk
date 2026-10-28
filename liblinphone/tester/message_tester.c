@@ -443,7 +443,7 @@ void text_message_base_with_text_and_forward(LinphoneCoreManager *marie,
 					if (pauline->stat.last_received_chat_message != NULL) {
 						LinphoneContent *content =
 						    (LinphoneContent
-						         *)(linphone_chat_message_get_contents(pauline->stat.last_received_chat_message)->data);
+							     *)(linphone_chat_message_get_contents(pauline->stat.last_received_chat_message)->data);
 						char *content_type_header = ms_strdup_printf("Content-Type: %s", content_type);
 						belle_sip_header_content_type_t *belle_sip_content_type =
 						    belle_sip_header_content_type_parse(content_type_header);
@@ -509,7 +509,7 @@ void text_message_base_with_text_and_forward(LinphoneCoreManager *marie,
 					linphone_chat_message_add_utf8_text_content(rmsg, "<3");
 					BC_ASSERT_TRUE(
 					    linphone_address_weak_equal(linphone_chat_message_get_reply_message_sender_address(rmsg),
-					                                linphone_chat_message_get_from_address(recv_msg)));
+						                            linphone_chat_message_get_from_address(recv_msg)));
 					BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_reply_message_id(rmsg),
 					                       linphone_chat_message_get_message_id(recv_msg));
 					const bctbx_list_t *contents = linphone_chat_message_get_contents(msg);
@@ -1980,7 +1980,8 @@ void transfer_message_base4(LinphoneCoreManager *marie,
 					/* simulate network error */
 					belle_http_provider_set_recv_error(linphone_core_get_http_provider(marie->lc), -1);
 					BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc,
-					                              &marie->stat.number_of_LinphoneMessageFileTransferError, 1, 10000));
+					                              &marie->stat.number_of_LinphoneMessageFileTransferError, 1,
+					                              liblinphone_tester_sip_timeout));
 					belle_http_provider_set_recv_error(linphone_core_get_http_provider(marie->lc), 1);
 					if (linphone_factory_is_imdn_available(linphone_factory_get())) {
 						BC_ASSERT_FALSE(wait_for_until(pauline->lc, marie->lc,
@@ -2391,8 +2392,8 @@ static void message_with_voice_recording_base(bool_t create_message_from_recorde
 	linphone_recorder_params_unref(params);
 
 	linphone_chat_room_compose_voice_message(paulineToMarieRoom);
-	BC_ASSERT_TRUE(
-	    wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneIsComposingActiveReceived, 1, 10000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneIsComposingActiveReceived, 1,
+	                              liblinphone_tester_sip_timeout));
 	const char *composingContentType = linphone_chat_room_get_remote_composing_content_type(marieToPaulineRoom);
 	BC_ASSERT_PTR_NOT_NULL(composingContentType);
 	BC_ASSERT_STRING_EQUAL(composingContentType, "audio/wav");
@@ -2533,18 +2534,21 @@ static void transfer_message_auto_download_failure(void) {
 	linphone_chat_message_cbs_unref(cbs);
 
 	belle_http_provider_set_recv_error(linphone_core_get_http_provider(pauline->lc), -1);
-	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneMessageReceived, 1, 10000));
+	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneMessageReceived, 1,
+	                              liblinphone_tester_sip_timeout));
 	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneFileTransferDownloadSuccessful, 0, int, "%i");
 	recv_msg = pauline->stat.last_received_chat_message;
 	if (BC_ASSERT_PTR_NOT_NULL(recv_msg)) {
 	}
 	BC_ASSERT_EQUAL(pauline->stat.number_of_LinphoneMessageDelivered, 0, int, "%i");
 	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc,
-	                              &pauline->stat.number_of_LinphoneMessageFileTransferInProgress, 1, 10000));
+	                              &pauline->stat.number_of_LinphoneMessageFileTransferInProgress, 1,
+	                              liblinphone_tester_sip_timeout));
 	// as file transfer is going to fail, the message shall return to Delivered state.
-	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneMessageDelivered, 1, 10000));
-	BC_ASSERT_TRUE(
-	    wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneMessageDeliveredToUser, 1, 10000));
+	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneMessageDelivered, 1,
+	                              liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneMessageDeliveredToUser, 1,
+	                              liblinphone_tester_sip_timeout));
 	BC_ASSERT_EQUAL(linphone_chat_message_get_state(recv_msg), LinphoneChatMessageStateDelivered, int, "%i");
 	linphone_chat_room_unref(chat_room);
 	linphone_chat_message_unref(sent_msg);
@@ -2761,9 +2765,10 @@ static void transfer_message_upload_cancelled(void) {
 		// Resend message
 		linphone_chat_message_send(msg);
 		BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
-		                              &pauline->stat.number_of_LinphoneFileTransferDownloadSuccessful, 1, 10000));
-		BC_ASSERT_TRUE(
-		    wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceivedWithFile, 1, 10000));
+		                              &pauline->stat.number_of_LinphoneFileTransferDownloadSuccessful, 1,
+		                              liblinphone_tester_sip_timeout));
+		BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &marie->stat.number_of_LinphoneMessageReceivedWithFile, 1,
+		                              liblinphone_tester_sip_timeout));
 
 		// When C pointer is unreffed first, callbacks will be removed,
 		// potentially during file upload causing issue in FileTransferChatMessageModifier::onSendBody
@@ -2952,7 +2957,8 @@ static void transfer_message_core_stopped_async(bool_t remote_available) {
 	linphone_chat_message_send(msg);
 	linphone_core_stop_async(pauline->lc);
 
-	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageDelivered, 1, 10000));
+	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneMessageDelivered, 1,
+	                              liblinphone_tester_sip_timeout));
 	linphone_chat_message_unref(msg);
 
 	BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc, &pauline->stat.number_of_LinphoneGlobalOff, 1, 5000));
@@ -3403,7 +3409,7 @@ static void im_notification_policy(void) {
 	linphone_im_notif_policy_clear(pauline_policy);
 	marie_chat_room =
 	    linphone_core_get_chat_room(marie->lc, pauline->identity); /* Make marie create the chatroom with pauline, which
-	                                                                  is necessary for receiving the is-composing */
+		                                                              is necessary for receiving the is-composing */
 
 	/* Test is_composing sending */
 	linphone_chat_room_compose(pauline_chat_room);
@@ -3574,7 +3580,7 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject,
-	                                 encrypted, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             encrypted, LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -5402,24 +5408,24 @@ static test_t message_tests[] = {
     TEST_NO_TAG("Text message", text_message),
     TEST_NO_TAG("Text forward message", text_forward_message),
     TEST_NO_TAG("Text forward message with CPIM enabled with backward compat",
-                text_forward_message_cpim_enabled_backward_compat),
+	            text_forward_message_cpim_enabled_backward_compat),
     TEST_NO_TAG("Text forward message with CPIM enabled", text_forward_message_cpim_enabled),
     TEST_NO_TAG("Text forward transfer message not downloaded", text_forward_transfer_message_not_downloaded),
     TEST_NO_TAG("Text reply message", text_reply_message),
     TEST_NO_TAG("Text reply message with CPIM enabled with backward compat",
-                text_reply_message_cpim_enabled_backward_compat),
+	            text_reply_message_cpim_enabled_backward_compat),
     TEST_NO_TAG("Text reply message with CPIM enabled", text_reply_message_cpim_enabled),
     TEST_NO_TAG("Text edit message", text_edit_message),
     TEST_NO_TAG("Text edit message with CPIM enabled with backward compat",
-                text_edit_message_cpim_enabled_backward_compat),
+	            text_edit_message_cpim_enabled_backward_compat),
     TEST_NO_TAG("Text edit message with CPIM enabled", text_edit_message_cpim_enabled),
     TEST_NO_TAG("Text retract message", text_retract_message),
     TEST_NO_TAG("Text retract message with CPIM enabled with backward compat",
-                text_retract_message_cpim_enabled_backward_compat),
+	            text_retract_message_cpim_enabled_backward_compat),
     TEST_NO_TAG("Text retract message with CPIM enabled", text_retract_message_cpim_enabled),
     TEST_NO_TAG("Text reaction message", text_reaction_message),
     TEST_NO_TAG("Text reaction message with CPIM enabled with backward compat",
-                text_reaction_message_cpim_enabled_backward_compat),
+	            text_reaction_message_cpim_enabled_backward_compat),
     TEST_NO_TAG("Text reaction message with CPIM enabled", text_reaction_message_cpim_enabled),
     TEST_NO_TAG("Text message UTF8", text_message_with_utf8),
     TEST_NO_TAG("Text message with credentials from auth callback", text_message_with_credential_from_auth_callback),
@@ -5432,15 +5438,15 @@ static test_t message_tests[] = {
     TEST_NO_TAG("Text message reply from non default proxy config", text_message_reply_from_non_default_proxy_config),
     TEST_NO_TAG("Text message in call chat room", text_message_in_call_chat_room),
     TEST_NO_TAG("Text message in call chat room from denied text offer",
-                text_message_in_call_chat_room_from_denied_text_offer),
+	            text_message_in_call_chat_room_from_denied_text_offer),
     TEST_NO_TAG("Text message in call chat room when room exists", text_message_in_call_chat_room_when_room_exists),
     TEST_NO_TAG("Text message in call chat room from denied text offer when room exists",
-                text_message_in_call_chat_room_from_denied_text_offer_when_room_exists),
+	            text_message_in_call_chat_room_from_denied_text_offer_when_room_exists),
     TEST_NO_TAG("Text message duplication", text_message_duplication),
     TEST_NO_TAG("Text message auto resent after failure", text_message_auto_resent_after_failure),
     TEST_NO_TAG("Text message with crappy TO header", text_message_crappy_to_header),
     TEST_NO_TAG("Text message with crappy TO header from existing chat room",
-                text_message_crappy_to_header_existing_chat_room),
+	            text_message_crappy_to_header_existing_chat_room),
     TEST_ONE_TAG("Transfer message", transfer_message, "Transfer"),
     TEST_ONE_TAG("Transfer message 2", transfer_message_2, "Transfer"),
     TEST_ONE_TAG("Transfer message 3", transfer_message_3, "Transfer"),
@@ -5458,8 +5464,8 @@ static test_t message_tests[] = {
     TEST_ONE_TAG(
         "Transfer message auto download existing file", transfer_message_auto_download_existing_file, "Transfer"),
     TEST_ONE_TAG("Transfer messages same file auto download",
-                 transfer_message_auto_download_two_files_same_name_same_time,
-                 "Transfer"),
+	             transfer_message_auto_download_two_files_same_name_same_time,
+	             "Transfer"),
     TEST_ONE_TAG("Transfer message from history", transfer_message_from_history, "Transfer"),
     TEST_ONE_TAG("Transfer message with http proxy", file_transfer_with_http_proxy, "Transfer"),
     TEST_ONE_TAG("Transfer message with upload io error", transfer_message_with_upload_io_error, "Transfer"),
@@ -5476,29 +5482,29 @@ static test_t message_tests[] = {
     TEST_ONE_TAG("Transfer using external body URL 2", file_transfer_using_external_body_url_2, "Transfer"),
     TEST_ONE_TAG("Transfer using external body URL 404", file_transfer_using_external_body_url_404, "Transfer"),
     TEST_ONE_TAG("Transfer message - file transfer server authenticates client using certificate",
-                 transfer_message_tls_client_auth,
-                 "Transfer"),
+	             transfer_message_tls_client_auth,
+	             "Transfer"),
     TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth",
-                 transfer_message_digest_auth,
-                 "Transfer"),
+	             transfer_message_digest_auth,
+	             "Transfer"),
     TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
-                 "multiple auth domain",
-                 transfer_message_digest_auth_any_domain,
-                 "Transfer"),
+	             "multiple auth domain",
+	             transfer_message_digest_auth_any_domain,
+	             "Transfer"),
     TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth - upload auth fail",
-                 transfer_message_digest_auth_fail_up,
-                 "Transfer"),
+	             transfer_message_digest_auth_fail_up,
+	             "Transfer"),
     TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth - download auth fail",
-                 transfer_message_digest_auth_fail_down,
-                 "Transfer"),
+	             transfer_message_digest_auth_fail_down,
+	             "Transfer"),
     TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
-                 "multiple auth domain - upload auth fail",
-                 transfer_message_digest_auth_fail_any_domain_up,
-                 "Transfer"),
+	             "multiple auth domain - upload auth fail",
+	             transfer_message_digest_auth_fail_any_domain_up,
+	             "Transfer"),
     TEST_ONE_TAG("Transfer message - file transfer server authenticates client using digest auth server accepting "
-                 "multiple auth domain - download auth fail",
-                 transfer_message_digest_auth_fail_any_domain_down,
-                 "Transfer"),
+	             "multiple auth domain - download auth fail",
+	             transfer_message_digest_auth_fail_any_domain_down,
+	             "Transfer"),
     TEST_ONE_TAG("Transfer message - file size limited pass", transfer_message_small_files_pass, "Transfer"),
     TEST_ONE_TAG("Transfer message - file size limited fail", transfer_message_small_files_fail, "Transfer"),
     TEST_ONE_TAG("Transfer message auto resent after failure", transfer_message_auto_resent_after_failure, "Transfer"),
@@ -5538,8 +5544,8 @@ static test_t message_tests[] = {
 static test_t rtt_message_tests[] = {
     TEST_ONE_TAG("Real Time Text message", real_time_text_message, "RTT"),
     TEST_ONE_TAG("Real Time Text message with existing basic chat room",
-                 real_time_text_message_with_existing_basic_chat_room,
-                 "RTT"),
+	             real_time_text_message_with_existing_basic_chat_room,
+	             "RTT"),
     TEST_ONE_TAG("Real Time Text SQL storage", real_time_text_sql_storage, "RTT"),
     TEST_ONE_TAG(
         "Real Time Text SQL storage with RTT messages not stored", real_time_text_sql_storage_rtt_disabled, "RTT"),
@@ -5554,11 +5560,11 @@ static test_t rtt_message_tests[] = {
     TEST_ONE_TAG("Real Time Text message compatibility lf", real_time_text_message_compat_lf, "RTT"),
     TEST_ONE_TAG("Real Time Text message with accented characters", real_time_text_message_accented_chars, "RTT"),
     TEST_ONE_TAG("Real Time Text offer answer with different payload numbers (sender side)",
-                 real_time_text_message_different_text_codecs_payload_numbers_sender_side,
-                 "RTT"),
+	             real_time_text_message_different_text_codecs_payload_numbers_sender_side,
+	             "RTT"),
     TEST_ONE_TAG("Real Time Text offer answer with different payload numbers (receiver side)",
-                 real_time_text_message_different_text_codecs_payload_numbers_receiver_side,
-                 "RTT"),
+	             real_time_text_message_different_text_codecs_payload_numbers_receiver_side,
+	             "RTT"),
     TEST_ONE_TAG("Real Time Text copy paste", real_time_text_copy_paste, "RTT"),
     TEST_ONE_TAG("Real Time Text and early media", real_time_text_and_early_media, "RTT")};
 

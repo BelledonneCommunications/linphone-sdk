@@ -63,54 +63,55 @@ LINPHONE_BEGIN_NAMESPACE
 
 static FsmIntegrityChecker<ChatMessage::State> chatMessageFsmChecker{
     {{ChatMessage::State::Idle,
-      {ChatMessage::State::PendingDelivery, ChatMessage::State::Queued, ChatMessage::State::InProgress,
-       ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
-       ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
-       ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::InProgress,
-      {ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
-       ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
-       ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::Delivered,
-      {ChatMessage::State::InProgress, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
-       ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
-       ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::Queued,
-      {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::PendingDelivery,
-       ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
-       ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
-       ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::PendingDelivery,
-      {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::Queued,
-       ChatMessage::State::PendingDelivery, ChatMessage::State::Delivered, ChatMessage::State::NotDelivered,
-       ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
-       ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::NotDelivered,
-      {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::PendingDelivery,
-       ChatMessage::State::Queued, ChatMessage::State::Delivered, ChatMessage::State::DeliveredToUser,
-       ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
-       ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::DeliveredToUser,
-      {ChatMessage::State::InProgress, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
-       ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::Displayed,
-      {ChatMessage::State::InProgress, ChatMessage::State::FileTransferInProgress,
-       ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::FileTransferCancelling,
-      {ChatMessage::State::NotDelivered, ChatMessage::State::FileTransferError}},
-     {ChatMessage::State::FileTransferInProgress,
-      {ChatMessage::State::PendingDelivery, ChatMessage::State::InProgress, ChatMessage::State::NotDelivered,
-       ChatMessage::State::Delivered, ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed,
-       ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferCancelling,
-       ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::FileTransferError,
-      {ChatMessage::State::InProgress, ChatMessage::State::NotDelivered, ChatMessage::State::Delivered,
-       ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
-       ChatMessage::State::FileTransferDone}},
-     {ChatMessage::State::FileTransferDone,
-      {ChatMessage::State::InProgress, ChatMessage::State::NotDelivered, ChatMessage::State::Delivered,
-       ChatMessage::State::PendingDelivery, ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed,
-       ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError}}}};
+	  {ChatMessage::State::PendingDelivery, ChatMessage::State::Queued, ChatMessage::State::InProgress,
+	   ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
+	   ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
+	   ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::InProgress,
+	  {ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
+	   ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
+	   ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::Delivered,
+	  {ChatMessage::State::InProgress, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
+	   ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
+	   ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::Queued,
+	  {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::PendingDelivery,
+	   ChatMessage::State::Delivered, ChatMessage::State::NotDelivered, ChatMessage::State::DeliveredToUser,
+	   ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
+	   ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::PendingDelivery,
+	  {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::Queued,
+	   ChatMessage::State::PendingDelivery, ChatMessage::State::Delivered, ChatMessage::State::NotDelivered,
+	   ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
+	   ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::NotDelivered,
+	  {ChatMessage::State::Idle, ChatMessage::State::InProgress, ChatMessage::State::PendingDelivery,
+	   ChatMessage::State::Queued, ChatMessage::State::Delivered, ChatMessage::State::DeliveredToUser,
+	   ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError,
+	   ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::DeliveredToUser,
+	  {ChatMessage::State::InProgress, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
+	   ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::Displayed,
+	  {ChatMessage::State::InProgress, ChatMessage::State::FileTransferInProgress,
+	   ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::FileTransferCancelling,
+	  {ChatMessage::State::NotDelivered, ChatMessage::State::FileTransferError}},
+	 {ChatMessage::State::FileTransferInProgress,
+	  {ChatMessage::State::PendingDelivery, ChatMessage::State::InProgress, ChatMessage::State::NotDelivered,
+	   ChatMessage::State::Delivered, ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed,
+	   ChatMessage::State::FileTransferError, ChatMessage::State::FileTransferCancelling,
+	   ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::FileTransferError,
+	  {ChatMessage::State::InProgress, ChatMessage::State::NotDelivered, ChatMessage::State::Delivered,
+	   ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
+	   ChatMessage::State::FileTransferDone}},
+	 {ChatMessage::State::FileTransferDone,
+	  {ChatMessage::State::Queued, ChatMessage::State::InProgress, ChatMessage::State::NotDelivered,
+	   ChatMessage::State::Delivered, ChatMessage::State::PendingDelivery, ChatMessage::State::DeliveredToUser,
+	   ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
+	   ChatMessage::State::FileTransferError}}}};
 
 ChatMessagePrivate::ChatMessagePrivate(const std::shared_ptr<AbstractChatRoom> &chatRoom, ChatMessage::Direction dir)
     : fileTransferChatMessageModifier(chatRoom->getCore()->getHttpClient().getProvider()) {
@@ -412,6 +413,14 @@ void ChatMessagePrivate::setAutomaticallyResent(bool enable) {
 	mAutomaticallyResent = enable;
 }
 
+void ChatMessagePrivate::forceState(ChatMessage::State newState) {
+	L_Q();
+	state = newState;
+	if ((state == ChatMessage::State::PendingDelivery) || (state == ChatMessage::State::Queued)) {
+		q->getChatRoom()->addPendingMessage(q->getSharedFromThis());
+	}
+}
+
 void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason reason) {
 	L_Q();
 
@@ -440,6 +449,10 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 	        << " to " << Utils::toString(newState);
 	ChatMessage::State oldState = state;
 	state = newState;
+
+	if ((state == ChatMessage::State::PendingDelivery) || (state == ChatMessage::State::Queued)) {
+		chatRoom->addPendingMessage(sharedMessage);
+	}
 
 	if (direction == ChatMessage::Direction::Outgoing) {
 		// Delivered state isn't triggered by IMDN, so participants state won't be set unless we manually do so here
@@ -475,11 +488,11 @@ void ChatMessagePrivate::setState(ChatMessage::State newState, LinphoneReason re
 
 	bool needsToBeStored =
 	    ((state != ChatMessage::State::InProgress) && (state != ChatMessage::State::FileTransferError) &&
-	     (state != ChatMessage::State::FileTransferInProgress) &&
-	     (state != ChatMessage::State::FileTransferCancelling) &&
-	     !((state == ChatMessage::State::NotDelivered) &&
-	       ((reason == LinphoneReasonUnsupportedContent) || (reason == LinphoneReasonNotAcceptable)) &&
-	       (direction == ChatMessage::Direction::Incoming)));
+		 (state != ChatMessage::State::FileTransferInProgress) &&
+		 (state != ChatMessage::State::FileTransferCancelling) &&
+		 !((state == ChatMessage::State::NotDelivered) &&
+		   ((reason == LinphoneReasonUnsupportedContent) || (reason == LinphoneReasonNotAcceptable)) &&
+		   (direction == ChatMessage::Direction::Incoming)));
 	// 3. Specific case, upon reception do not attempt to store in db before asking the user if he wants to do so or not
 	if (state == ChatMessage::State::FileTransferDone && direction == ChatMessage::Direction::Incoming) {
 		if (!hasFileTransferContent() && isMarkedAsRead()) {
@@ -1730,7 +1743,7 @@ void ChatMessagePrivate::send() {
 	}
 
 	if (!chatRoom->canSendMessages()) {
-		chatRoom->addPendingMessage(ref);
+		setParticipantState(meAddress, ChatMessage::State::Queued, ::ms_time(nullptr));
 		return;
 	}
 
@@ -2891,8 +2904,10 @@ int ChatMessage::handleAutomaticResend() {
 	// be terminated (state TerminationPending, Terminated, Deleted)
 	auto ref = getSharedFromThis();
 	lInfo() << "Message [" << this << "] is automatically resent right now";
-	d->setAutomaticallyResent(true);
-	send();
+	if (const auto chatRoom = getChatRoom(); chatRoom && chatRoom->isMessagePending(ref)) {
+		d->setAutomaticallyResent(true);
+		send();
+	}
 	stopResendTimer();
 	return 0;
 }

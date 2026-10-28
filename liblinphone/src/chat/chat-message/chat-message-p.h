@@ -85,9 +85,7 @@ public:
 	                         time_t stateChangeTime,
 	                         LinphoneReason reason = LinphoneReasonNone);
 
-	void forceState(ChatMessage::State newState) {
-		state = newState;
-	}
+	void forceState(ChatMessage::State newState);
 
 	void setTime(time_t time);
 
