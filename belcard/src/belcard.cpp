@@ -17,6 +17,7 @@
 */
 
 #include "belcard/belcard.hpp"
+#include "bctoolbox/utils.hh"
 #include "belcard/belcard_utils.hpp"
 
 using namespace ::std;
@@ -113,17 +114,37 @@ bool BelCard::getSkipFieldValidation() {
 	return _skipFieldValidation;
 }
 
+// On V3, PREF is into TYPE
+static std::string getPrefValue(const shared_ptr<BelCardProperty> &prop) {
+	if (prop->isUsingV3Grammar()) {
+		shared_ptr<BelCardTypeParam> t = prop->getTypeParam();
+		auto values = bctoolbox::Utils::split(t->getValue(), ',');
+		for (auto v : values) {
+			transform(v.begin(), v.end(), v.begin(), ::toupper);
+			if (v == "PREF") {
+				return "1";
+				break;
+			}
+		}
+		return "";
+	} else {
+		shared_ptr<BelCardPrefParam> pref = prop->getPrefParam();
+		if (pref) return pref->getValue();
+		else return "";
+	}
+}
+
 bool comparePropertiesUsingPrefParam(const shared_ptr<BelCardProperty> &prop1,
                                      const shared_ptr<BelCardProperty> &prop2) {
-	shared_ptr<BelCardPrefParam> pref1 = prop1->getPrefParam();
-	shared_ptr<BelCardPrefParam> pref2 = prop2->getPrefParam();
-	if ((pref1 == nullptr) && (pref2 == nullptr)) return false;
-	if (pref2 == nullptr) {
+	std::string value1 = getPrefValue(prop1);
+	std::string value2 = getPrefValue(prop2);
+	if (value1.empty() && value2.empty()) return false;
+	if (value2.empty()) {
 		return true;
-	} else if (pref1 == nullptr) {
+	} else if (value1.empty()) {
 		return false;
 	} else {
-		return pref1->getValue() < pref2->getValue();
+		return value1 < value2;
 	}
 }
 

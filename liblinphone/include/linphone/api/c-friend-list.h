@@ -438,22 +438,23 @@ LINPHONE_PUBLIC void linphone_friend_list_update_dirty_friends(LinphoneFriendLis
 LINPHONE_PUBLIC LinphoneCore *linphone_friend_list_get_core(const LinphoneFriendList *friend_list);
 
 /**
- * Creates and adds #LinphoneFriend objects to #LinphoneFriendList from a file that contains the vCard(s) to parse
+ * Creates and adds #LinphoneFriend objects to #LinphoneFriendList from a file that contains the vCard(s) to parse.
+ * The file must contains only one version of vCard: 4.0 or 3.0
  * @param friend_list the #LinphoneFriendList object @notnil
  * @param vcard_file the path to a file that contains the vCard(s) to parse @notnil
  * @return the amount of linphone friends created
  */
-LINPHONE_PUBLIC int linphone_friend_list_import_friends_from_vcard4_file(LinphoneFriendList *friend_list,
-                                                                         const char *vcard_file);
-
+LINPHONE_PUBLIC int linphone_friend_list_import_friends_from_vcard_file(LinphoneFriendList *friend_list,
+                                                                        const char *vcard_file);
 /**
- * Creates and adds #LinphoneFriend objects to #LinphoneFriendList from a buffer that contains the vCard(s) to parse
+ * Creates and adds #LinphoneFriend objects to #LinphoneFriendList from a buffer that contains the vCard(s) to parse.
+ * The buffer must contains only one version of vCard: 4.0 or 3.0
  * @param friend_list the #LinphoneFriendList object @notnil
  * @param vcard_buffer the buffer that contains the vCard(s) to parse @notnil
  * @return the amount of linphone friends created
  */
-LINPHONE_PUBLIC int linphone_friend_list_import_friends_from_vcard4_buffer(LinphoneFriendList *friend_list,
-                                                                           const char *vcard_buffer);
+LINPHONE_PUBLIC int linphone_friend_list_import_friends_from_vcard_buffer(LinphoneFriendList *friend_list,
+                                                                          const char *vcard_buffer);
 
 /**
  * Creates and export #LinphoneFriend objects from #LinphoneFriendList to a file using vCard 4 format
@@ -506,6 +507,26 @@ LINPHONE_PUBLIC bool_t linphone_friend_list_get_is_read_only(const LinphoneFrien
  * @param read_only TRUE to make this friend list "read only", FALSE otherwise.
  */
 LINPHONE_PUBLIC void linphone_friend_list_set_is_read_only(LinphoneFriendList *list, bool_t read_only);
+
+/**
+ * Creates and adds #LinphoneFriend objects to #LinphoneFriendList from a file that contains the vCard(s) to parse.
+ * @param friend_list the #LinphoneFriendList object @notnil
+ * @param vcard_file the path to a file that contains the vCard(s) to parse @notnil
+ * @return the amount of linphone friends created
+ * @deprecated 2026/10/29 use linphone_friend_list_import_friends_from_vcard_file() instead
+ */
+LINPHONE_PUBLIC LINPHONE_DEPRECATED int
+linphone_friend_list_import_friends_from_vcard4_file(LinphoneFriendList *friend_list, const char *vcard_file);
+
+/**
+ * Creates and adds #LinphoneFriend objects to #LinphoneFriendList from a buffer that contains the vCard(s) to parse.
+ * @param friend_list the #LinphoneFriendList object @notnil
+ * @param vcard_buffer the buffer that contains the vCard(s) to parse @notnil
+ * @return the amount of linphone friends created
+ * @deprecated 2026/10/29 use linphone_friend_list_import_friends_from_vcard_buffer() instead
+ */
+LINPHONE_PUBLIC LINPHONE_DEPRECATED int
+linphone_friend_list_import_friends_from_vcard4_buffer(LinphoneFriendList *friend_list, const char *vcard_buffer);
 
 /**
  * @}

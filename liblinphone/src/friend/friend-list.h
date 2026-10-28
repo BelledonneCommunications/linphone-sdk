@@ -125,8 +125,8 @@ public:
 	std::shared_ptr<Friend> findFriendByUri(const std::string &uri) const;
 	std::list<std::shared_ptr<Friend>> findFriendsByAddress(const std::shared_ptr<const Address> &address) const;
 	std::list<std::shared_ptr<Friend>> findFriendsByUri(const std::string &uri) const;
-	LinphoneStatus importFriendsFromVcard4Buffer(const std::string &vcardBuffer);
-	LinphoneStatus importFriendsFromVcard4File(const std::string &vcardFile);
+	LinphoneStatus importFriendsFromVcardBuffer(const std::string &vcardBuffer);
+	LinphoneStatus importFriendsFromVcardFile(const std::string &vcardFile);
 	void notifyPresence(const std::shared_ptr<PresenceModel> &model) const;
 	LinphoneFriendListStatus removeFriend(const std::shared_ptr<Friend> &lf);
 	void removeFriends();
@@ -154,7 +154,7 @@ private:
 	std::shared_ptr<Address> getRlsAddressWithCoreFallback() const;
 	bool hasSubscribeInactive() const;
 	LinphoneFriendListStatus importFriend(const std::shared_ptr<Friend> &lf, bool synchronize);
-	LinphoneStatus importFriendsFromVcard4(const std::list<std::shared_ptr<Vcard>> &vcards);
+	LinphoneStatus importFriendsFromVcard(const std::list<std::shared_ptr<Vcard>> &vcards);
 	void invalidateFriendsMaps();
 	void invalidateSubscriptions();
 	void notifyPresenceReceived(const std::shared_ptr<const Content> &content);

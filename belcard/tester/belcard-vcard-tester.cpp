@@ -128,29 +128,37 @@ static void create_vcard_from_api(void) {
 }
 
 static void property_sort_using_pref_param(void) {
-	shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
-	BC_ASSERT_TRUE(belCard != NULL);
+	for (int version = 3; version <= 4; ++version) {
+		shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
+		BC_ASSERT_TRUE(belCard != NULL);
+		shared_ptr<BelCardImpp> impp1, impp2;
+		if (version == 3) {
+			impp1 = BelCardImpp::parse("IMPP;TYPE=home:sip:viish@sip.linphone.org\r\n", true);
+			BC_ASSERT_TRUE(impp1 != NULL);
+			impp2 = BelCardImpp::parse("IMPP;TYPE=work,PRef:sip:sylvain@sip.linphone.org\r\n", true);
+			BC_ASSERT_TRUE(impp2 != NULL);
+		} else {
+			impp1 = BelCardImpp::parse("IMPP;TYPE=home;PrEF=2:sip:viish@sip.linphone.org\r\n", false);
+			BC_ASSERT_TRUE(impp1 != NULL);
+			impp2 = BelCardImpp::parse("IMPP;PREF=1;TYPE=work:sip:sylvain@sip.linphone.org\r\n", false);
+			BC_ASSERT_TRUE(impp2 != NULL);
+		}
 
-	shared_ptr<BelCardImpp> impp1 = BelCardImpp::parse("IMPP;TYPE=home;PREF=2:sip:viish@sip.linphone.org\r\n", true);
-	BC_ASSERT_TRUE(impp1 != NULL);
+		belCard->addImpp(impp1);
+		belCard->addImpp(impp2);
 
-	shared_ptr<BelCardImpp> impp2 = BelCardImpp::parse("IMPP;PREF=1;TYPE=work:sip:sylvain@sip.linphone.org\r\n", true);
-	BC_ASSERT_TRUE(impp2 != NULL);
+		const list<shared_ptr<BelCardImpp>> imppList = belCard->getImpp();
+		BC_ASSERT_EQUAL((unsigned int)imppList.size(), 2, unsigned int, "%u");
+		BC_ASSERT_TRUE(imppList.front() == impp2);
+		BC_ASSERT_TRUE(imppList.back() == impp1);
 
-	belCard->addImpp(impp1);
-	belCard->addImpp(impp2);
+		const list<shared_ptr<BelCardProperty>> propertiesList = belCard->getProperties();
+		BC_ASSERT_EQUAL((unsigned int)propertiesList.size(), 2, unsigned int, "%u");
 
-	const list<shared_ptr<BelCardImpp>> imppList = belCard->getImpp();
-	BC_ASSERT_EQUAL((unsigned int)imppList.size(), 2, unsigned int, "%u");
-	BC_ASSERT_TRUE(imppList.front() == impp2);
-	BC_ASSERT_TRUE(imppList.back() == impp1);
-
-	const list<shared_ptr<BelCardProperty>> propertiesList = belCard->getProperties();
-	BC_ASSERT_EQUAL((unsigned int)propertiesList.size(), 2, unsigned int, "%u");
-
-	belCard->removeImpp(impp1);
-	BC_ASSERT_EQUAL((unsigned int)belCard->getImpp().size(), 1, unsigned int, "%u");
-	BC_ASSERT_EQUAL((unsigned int)belCard->getProperties().size(), 1, unsigned int, "%u");
+		belCard->removeImpp(impp1);
+		BC_ASSERT_EQUAL((unsigned int)belCard->getImpp().size(), 1, unsigned int, "%u");
+		BC_ASSERT_EQUAL((unsigned int)belCard->getProperties().size(), 1, unsigned int, "%u");
+	}
 }
 
 static void vcard3_parsing(void) {

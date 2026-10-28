@@ -251,6 +251,7 @@ set(IMAGE_FILES
 set(VCARD_FILES
 	vcards/thousand_vcards.vcf
 	vcards/vcards.vcf
+	vcards/vcards_v3.vcf
 )
 
 set(OTHER_FILES

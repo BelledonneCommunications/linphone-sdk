@@ -1,0 +1,13 @@
+BEGIN:VCARD
+VERSION:3.0
+KIND:individual
+FN:François Grisez
+N:Grisez;François;;;
+IMPP;TYPE=work:sip:francois@sip.linphone.org
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+KIND:individual
+FN:Margaux Clerc
+IMPP:sip:margaux@sip.linphone.org
+END:VCARD
