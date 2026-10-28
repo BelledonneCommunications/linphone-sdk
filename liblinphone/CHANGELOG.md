@@ -9,15 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 It has been updated until the 5.5 SDK release. Please refer to the changelog at root of the linphone-sdk project for changes from the 5.6 SDK release onwards.
 
-## unreleased
+
+## [Latest]
 
 ### Added
 - [sip]/call_accept_handles_replaces property so that is possible to disable the automatic termination of a replaces-pointed call upon accepting the INVITE.
 
 ### Fixed
-- during attended transfer, allow using the remote AOR uri rather than contact URI to forge the Refer-to header, when [sip]/refer_to_uses_aor is set to 1
-- unexpected video direction change from recvonly to sendrecv, resulting in camera activation, when an application accepts a video stream as recvonly and subsequently receives a ICE re-INVITE.
+- During attended transfer, allow using the remote AOR uri rather than contact URI to forge the Refer-to header, when [sip]/refer_to_uses_aor is set to 1
+- Unexpected video direction change from recvonly to sendrecv, resulting in camera activation, when an application accepts a video stream as recvonly and subsequently receives a ICE re-INVITE.
 - macOS: fix no audio on local network calls when the Local Network privacy permission is denied (macOS 15+): the permission is now checked with Network.framework and ICE is disabled when it is not granted.
+- Support VCard3 and VCard4 without configuration and centralize API under `linphone_friend_list_import_friends_from_vcard_file`/`linphone_friend_list_import_friends_from_vcard_buffer`
+- VCard3 PREF is taken into account
+
+### Removed
+- Deprecated configuration: [misc]use_vcard_3.0
 
 ## [5.5.39] - 2026-10-26
 

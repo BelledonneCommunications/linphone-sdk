@@ -49,11 +49,12 @@ static void linphone_vcard_import_export_friends_test(void) {
 	LinphoneFriendList *lfl = linphone_core_get_default_friend_list(manager->lc);
 	const bctbx_list_t *friends = linphone_friend_list_get_friends(lfl);
 	char *import_filepath = bc_tester_res("vcards/vcards.vcf");
+	char *import_v3_filepath = bc_tester_res("vcards/vcards_v3.vcf");
 	char *export_filepath = bc_tester_file("export_vcards.vcf");
 	int count = 0;
 	BC_ASSERT_EQUAL((unsigned int)bctbx_list_size(friends), 0, unsigned int, "%u");
 
-	count = linphone_friend_list_import_friends_from_vcard4_file(lfl, import_filepath);
+	count = linphone_friend_list_import_friends_from_vcard_file(lfl, import_filepath);
 	BC_ASSERT_EQUAL(count, 3, int, "%d");
 	friends = linphone_friend_list_get_friends(lfl);
 	BC_ASSERT_EQUAL((unsigned int)bctbx_list_size(friends), 3, unsigned int, "%u");
@@ -71,7 +72,7 @@ static void linphone_vcard_import_export_friends_test(void) {
 	linphone_friend_list_export_friends_as_vcard4_file(lfl, export_filepath);
 
 	lfl = linphone_core_create_friend_list(manager->lc);
-	count = linphone_friend_list_import_friends_from_vcard4_file(lfl, export_filepath);
+	count = linphone_friend_list_import_friends_from_vcard_file(lfl, export_filepath);
 	BC_ASSERT_EQUAL(count, 3, int, "%d");
 	friends = linphone_friend_list_get_friends(lfl);
 	BC_ASSERT_EQUAL((unsigned int)bctbx_list_size(friends), 3, unsigned int, "%u");
@@ -81,7 +82,16 @@ static void linphone_vcard_import_export_friends_test(void) {
 	}
 	linphone_friend_list_unref(lfl);
 
+	// VERSION 3 check
+	lfl = linphone_core_create_friend_list(manager->lc);
+	count = linphone_friend_list_import_friends_from_vcard_file(lfl, import_v3_filepath);
+	BC_ASSERT_EQUAL(count, 2, int, "%d");
+	friends = linphone_friend_list_get_friends(lfl);
+	BC_ASSERT_EQUAL((unsigned int)bctbx_list_size(friends), 2, unsigned int, "%u");
+	linphone_friend_list_unref(lfl);
+
 	remove(export_filepath);
+	bc_free(import_v3_filepath);
 	bc_free(import_filepath);
 	bc_free(export_filepath);
 	linphone_core_manager_destroy(manager);
@@ -100,7 +110,7 @@ static void linphone_vcard_import_a_lot_of_friends_test(void) {
 	size_t readbytes;
 
 	start = clock();
-	linphone_friend_list_import_friends_from_vcard4_file(lfl, import_filepath);
+	linphone_friend_list_import_friends_from_vcard_file(lfl, import_filepath);
 	end = clock();
 
 	friends = linphone_friend_list_get_friends(lfl);
@@ -123,7 +133,7 @@ static void linphone_vcard_import_a_lot_of_friends_test(void) {
 		buffer[readbytes] = '\0';
 
 		start = clock();
-		linphone_friend_list_import_friends_from_vcard4_buffer(lfl, buffer);
+		linphone_friend_list_import_friends_from_vcard_buffer(lfl, buffer);
 		end = clock();
 		ms_free(buffer);
 	}
@@ -693,9 +703,9 @@ static void carddav_clean(void) {
 	stats->sync_done_count = 0;
 
 	lvc = linphone_vcard_context_get_vcard_from_buffer(linphone_core_get_vcard_context(manager->lc),
-													   "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:François "
-													   "Grisez\r\nIMPP:sip:francois.grisez@sip.linphone.org\r\nUID:"
-													   "4d8b9e0a-69b0-4da1-8364-26e8d00a0de8\r\nEND:VCARD\r\n");
+	                                                   "BEGIN:VCARD\r\nVERSION:4.0\r\nFN:François "
+	                                                   "Grisez\r\nIMPP:sip:francois.grisez@sip.linphone.org\r\nUID:"
+	                                                   "4d8b9e0a-69b0-4da1-8364-26e8d00a0de8\r\nEND:VCARD\r\n");
 	linphone_vcard_set_url(lvc, ME_VCF_4);
 	lf = linphone_core_create_friend_from_vcard(manager->lc, lvc);
 	linphone_vcard_unref(lvc);
@@ -703,7 +713,6 @@ static void carddav_clean(void) {
 	linphone_friend_unref(lf);
 	// Wait here to synchronize creation order.
 	BC_ASSERT_TRUE(wait_for_until(manager->lc, NULL, &stats->sync_done_count, 1, CARDDAV_SYNC_TIMEOUT));
-
 
 	lvc = linphone_vcard_context_get_vcard_from_buffer(
 	    linphone_core_get_vcard_context(manager->lc),
@@ -940,7 +949,7 @@ static void magic_search_carddav_query_from_api(void) {
 			                       "François Grisez");
 			result = (LinphoneSearchResult *)bctbx_list_get_data(bctbx_list_next(resultList));
 			BC_ASSERT_STRING_EQUAL(linphone_friend_get_name(linphone_search_result_get_friend(result)),
-								   "Sylvain Berfini");
+			                       "Sylvain Berfini");
 
 			bctbx_list_free_with_data(resultList, (bctbx_list_free_func)linphone_search_result_unref);
 		}

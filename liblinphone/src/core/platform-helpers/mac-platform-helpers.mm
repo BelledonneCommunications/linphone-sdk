@@ -68,6 +68,7 @@ void MacPlatformHelpers::initializeBelrPaths(){
 	addBelrPath(Framework, "mwi_grammar.belr");
 #ifdef VCARD_ENABLED
 	addBelrPath("org.linphone.belcard", "vcard_grammar.belr");
+	addBelrPath("org.linphone.belcard", "vcard3_grammar.belr");
 #endif
 	addBelrPath("org.linphone.belle-sip", "sdp_grammar.belr");
 	addBelrPath("org.linphone.belle-sip", "sip_grammar.belr");

@@ -39,19 +39,11 @@ class Vcard;
 class LINPHONE_PUBLIC VcardContext : public bellesip::HybridObject<LinphoneVcardContext, VcardContext>,
                                      public UserDataAccessor {
 public:
-	VcardContext(bool useVCard3Grammar = false);
+	VcardContext();
 	VcardContext(const VcardContext &other) = delete;
 	~VcardContext() override = default;
 
 	VcardContext *clone() const override;
-
-	bool isUsingVCard3Grammar() const {
-#ifdef VCARD_ENABLED
-		return mParser->isUsingV3Grammar();
-#else
-		return false;
-#endif
-	}
 
 	// Getters
 	std::shared_ptr<Vcard> getVcardFromBuffer(const std::string &buffer) const;
@@ -60,7 +52,8 @@ public:
 
 private:
 #ifdef VCARD_ENABLED
-	std::shared_ptr<belcard::BelCardParser> mParser;
+	std::shared_ptr<belcard::BelCardParser> mParserV4;
+	std::shared_ptr<belcard::BelCardParser> mParserV3;
 #endif /* VCARD_ENABLED */
 };
 

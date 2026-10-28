@@ -317,7 +317,7 @@ FriendList::getVcardListFromBuffer(const std::string &vcardBuffer) const {
 }
 
 std::pair<LinphoneStatus, std::vector<std::shared_ptr<Vcard>>>
-FriendList::getVcardListFromVcard4File(const std::string &vcardFile) const {
+FriendList::getVcardListFromVcardFile(const std::string &vcardFile) const {
 	std::vector<std::shared_ptr<Vcard>> vcards =
 	    VcardContext::toCpp(getCore()->getCCore()->vcard_context)->getVcardListFromFile(vcardFile);
 	if (vcards.empty()) {
@@ -327,7 +327,7 @@ FriendList::getVcardListFromVcard4File(const std::string &vcardFile) const {
 	return std::make_pair(LinphoneFriendListOK, vcards);
 }
 
-LinphoneStatus FriendList::importFriendsFromVcard4Buffer(const std::string &vcardBuffer) {
+LinphoneStatus FriendList::importFriendsFromVcardBuffer(const std::string &vcardBuffer) {
 	// We need this method to add friends for LinphoneFriendListTypeVCard4 lists
 	if (isReadOnly() && mType != LinphoneFriendListTypeVCard4) {
 		return LinphoneFriendListReadOnly;
@@ -339,21 +339,20 @@ LinphoneStatus FriendList::importFriendsFromVcard4Buffer(const std::string &vcar
 		lError() << "Failed to parse the buffer";
 		return -1;
 	}
-	return importFriendsFromVcard4(vcards);
+	return importFriendsFromVcard(vcards);
 }
 
-LinphoneStatus FriendList::importFriendsFromVcard4File(const std::string &vcardFile) {
+LinphoneStatus FriendList::importFriendsFromVcardFile(const std::string &vcardFile) {
 	if (isReadOnly()) {
 		return LinphoneFriendListReadOnly;
 	}
-
 	std::vector<std::shared_ptr<Vcard>> vcards =
 	    VcardContext::toCpp(getCore()->getCCore()->vcard_context)->getVcardListFromFile(vcardFile);
 	if (vcards.empty()) {
 		lError() << "Failed to parse the file " << vcardFile;
 		return -1;
 	}
-	return importFriendsFromVcard4(vcards);
+	return importFriendsFromVcard(vcards);
 }
 
 void FriendList::notifyPresence(const std::shared_ptr<PresenceModel> &model) const {
@@ -386,7 +385,7 @@ void FriendList::createCardDavContextIfNotDoneYet() {
 void FriendList::synchronizeFriendsFromServer() {
 	switch (mType) {
 		case LinphoneFriendListTypeVCard4:
-			synchronizeFriendsFromServerVcard4();
+			synchronizeFriendsFromServerVcard();
 			break;
 		case LinphoneFriendListTypeCardDAV:
 			synchronizeFriendsFromServerCardDav();
@@ -397,10 +396,10 @@ void FriendList::synchronizeFriendsFromServer() {
 	}
 }
 
-// Vcard4.0 list synchronisation
-void FriendList::synchronizeFriendsFromServerVcard4() {
+// vCard4.0 and vCard3.0 list synchronisation
+void FriendList::synchronizeFriendsFromServerVcard() {
 	if (mUri.empty()) {
-		lError() << "Can't synchronize vCard4 list [" << toC() << "](" << getDisplayName() << ") without an URI";
+		lError() << "Can't synchronize vCard list [" << toC() << "](" << getDisplayName() << ") without an URI";
 		return;
 	}
 
@@ -460,7 +459,7 @@ void FriendList::synchronizeFriendsFromServerVcard4() {
 							friendList->getCore()->doLater(
 							    [friendList, vcards, notifyFailure, notifySuccess]() -> void {
 								    friendList->removeFriends(false);
-								    int importedFriends = friendList->importFriendsFromVcard4(vcards);
+								    int importedFriends = friendList->importFriendsFromVcard(vcards);
 								    if (importedFriends > 0) {
 									    lInfo() << "Successfully downloaded and imported [" << importedFriends
 									            << "] friends";
@@ -733,7 +732,7 @@ LinphoneFriendListStatus FriendList::importFriend(const std::shared_ptr<Friend> 
 	return LinphoneFriendListOK;
 }
 
-LinphoneStatus FriendList::importFriendsFromVcard4(const std::vector<std::shared_ptr<Vcard>> &vcards) {
+LinphoneStatus FriendList::importFriendsFromVcard(const std::vector<std::shared_ptr<Vcard>> &vcards) {
 	if (linphone_core_vcard_supported() == FALSE) {
 		lError() << "vCard support wasn't enabled at compilation time";
 		return -1;

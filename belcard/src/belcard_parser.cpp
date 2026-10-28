@@ -30,8 +30,13 @@ using namespace ::belr;
 using namespace ::belcard;
 
 shared_ptr<BelCardParser> BelCardParser::getInstance(bool useVCard3Grammar) {
-	static shared_ptr<BelCardParser> parser(new BelCardParser(useVCard3Grammar));
-	return parser;
+	if (useVCard3Grammar) {
+		static shared_ptr<BelCardParser> parserV3(new BelCardParser(useVCard3Grammar));
+		return parserV3;
+	} else {
+		static shared_ptr<BelCardParser> parserV4(new BelCardParser(useVCard3Grammar));
+		return parserV4;
+	}
 }
 
 BelCardParser::BelCardParser(bool useVCard3Grammar) {

@@ -324,20 +324,29 @@ LinphoneCore *linphone_friend_list_get_core(const LinphoneFriendList *list) {
 }
 
 LinphoneStatus linphone_friend_list_import_friends_from_vcard4_file(LinphoneFriendList *list, const char *vcard_file) {
+	return linphone_friend_list_import_friends_from_vcard_file(list, vcard_file);
+}
+
+LinphoneStatus linphone_friend_list_import_friends_from_vcard_file(LinphoneFriendList *list, const char *vcard_file) {
 	if (!list) {
 		ms_error("Can't import into a NULL list");
 		return -1;
 	}
-	return FriendList::toCpp(list)->importFriendsFromVcard4File(L_C_TO_STRING(vcard_file));
+	return FriendList::toCpp(list)->importFriendsFromVcardFile(L_C_TO_STRING(vcard_file));
 }
 
 LinphoneStatus linphone_friend_list_import_friends_from_vcard4_buffer(LinphoneFriendList *list,
                                                                       const char *vcard_buffer) {
+	return linphone_friend_list_import_friends_from_vcard_buffer(list, vcard_buffer);
+}
+
+LinphoneStatus linphone_friend_list_import_friends_from_vcard_buffer(LinphoneFriendList *list,
+                                                                     const char *vcard_buffer) {
 	if (!list) {
 		ms_error("Can't import into a NULL list");
 		return -1;
 	}
-	return FriendList::toCpp(list)->importFriendsFromVcard4Buffer(L_C_TO_STRING(vcard_buffer));
+	return FriendList::toCpp(list)->importFriendsFromVcardBuffer(L_C_TO_STRING(vcard_buffer));
 }
 
 void linphone_friend_list_export_friends_as_vcard4_file(LinphoneFriendList *list, const char *vcard_file) {
