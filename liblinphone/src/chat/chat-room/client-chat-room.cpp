@@ -64,20 +64,6 @@ ClientChatRoom::ClientChatRoom(const shared_ptr<Core> &core, const std::shared_p
 }
 
 // -----------------------------------------------------------------------------
-void ClientChatRoom::addPendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) {
-	chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::Queued,
-	                                               ::ms_time(nullptr));
-	auto it = std::find(mPendingCreationMessages.begin(), mPendingCreationMessages.end(), chatMessage);
-	if (it == mPendingCreationMessages.end()) {
-		mPendingCreationMessages.push_back(chatMessage);
-	}
-}
-
-void ClientChatRoom::deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) {
-	auto it = std::find(mPendingCreationMessages.begin(), mPendingCreationMessages.end(), chatMessage);
-	if (it != mPendingCreationMessages.end()) mPendingCreationMessages.erase(it);
-}
-
 void ClientChatRoom::onChatRoomCreated(const std::shared_ptr<Address> &remoteAddress,
                                        const std::shared_ptr<Address> &remoteContact) {
 	auto conference = dynamic_pointer_cast<ClientConference>(getConference());
@@ -257,8 +243,8 @@ list<shared_ptr<EventLog>> ClientChatRoom::getHistory(int nLast) const {
 			return db.value().get().getHistory(getConferenceId(), nLast,
 			                                   getCurrentParams()->isGroup()
 			                                       ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-			                                                             MainDb::Filter::ConferenceInfoNoDeviceFilter})
-			                                       : MainDb::Filter::ConferenceChatMessageSecurityFilter);
+												                         MainDb::Filter::ConferenceInfoNoDeviceFilter})
+												   : MainDb::Filter::ConferenceChatMessageSecurityFilter);
 		} catch (const bad_weak_ptr &) {
 		}
 	}
@@ -276,8 +262,8 @@ list<shared_ptr<EventLog>> ClientChatRoom::getHistoryRange(int begin, int end) c
 			return db.value().get().getHistoryRange(
 			    getConferenceId(), begin, end,
 			    getCurrentParams()->isGroup() ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-			                                                        MainDb::Filter::ConferenceInfoNoDeviceFilter})
-			                                  : MainDb::Filter::ConferenceChatMessageSecurityFilter);
+				                                                    MainDb::Filter::ConferenceInfoNoDeviceFilter})
+				                              : MainDb::Filter::ConferenceChatMessageSecurityFilter);
 		} catch (const bad_weak_ptr &) {
 		}
 	}
@@ -294,8 +280,8 @@ int ClientChatRoom::getHistorySize() const {
 			return db.value().get().getHistorySize(
 			    getConferenceId(), getCurrentParams()->isGroup()
 			                           ? MainDb::FilterMask({MainDb::Filter::ConferenceChatMessageFilter,
-			                                                 MainDb::Filter::ConferenceInfoNoDeviceFilter})
-			                           : MainDb::Filter::ConferenceChatMessageSecurityFilter);
+									                         MainDb::Filter::ConferenceInfoNoDeviceFilter})
+									   : MainDb::Filter::ConferenceChatMessageSecurityFilter);
 		} catch (const bad_weak_ptr &) {
 		}
 	}
@@ -376,7 +362,7 @@ void ClientChatRoom::onLocallyExhumedConference(const std::shared_ptr<Address> &
 	setState(ConferenceInterface::State::Created);
 	conference->subscribe(false);
 
-	lInfo() << "Found " << mPendingCreationMessages.size() << " messages waiting for exhume";
+	lInfo() << "Found " << getPendingMessages().size() << " messages waiting for exhume";
 	sendPendingMessages();
 	mLocalExhumePending = false;
 }
@@ -519,7 +505,8 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 	}
 
 	if (queueMessage) {
-		addPendingMessage(chatMessage);
+		chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::Queued,
+		                                               ::ms_time(nullptr));
 	}
 }
 
@@ -568,9 +555,10 @@ bool ClientChatRoom::canSendMessages() const {
 void ClientChatRoom::sendPendingMessages() {
 	const auto &conference = getConference();
 	// This loop is done with iterators and a while statement because sendChatMessage may delete an item of the
-	// mPendingCreationMessages list
-	auto it = mPendingCreationMessages.begin();
-	while (it != mPendingCreationMessages.end()) {
+	// pending message list
+	const auto &pendingMessages = getPendingMessages();
+	auto it = pendingMessages.begin();
+	while (it != pendingMessages.end()) {
 		// Retrieve the message from the iterator
 		auto message = (*it);
 		// Increment the iterator in case the list is modified when sending the message

@@ -86,10 +86,6 @@ public:
 		return mDeletionOnTerminationEnabled;
 	}
 
-	const std::list<std::shared_ptr<ChatMessage>> &getPendingCreationMessages() const {
-		return mPendingCreationMessages;
-	}
-
 	std::pair<bool, std::shared_ptr<AbstractChatRoom>> needToMigrate() const;
 
 	unsigned int getLastNotifyId() const;
@@ -100,11 +96,6 @@ public:
 	void sendChatMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
 	void chatMessageEarlyFailure(const std::shared_ptr<ChatMessage> &chatMessage) override;
 
-	virtual void addPendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
-	virtual void deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) override;
-	void clearPendingCreationMessages() {
-		mPendingCreationMessages.clear();
-	}
 	virtual void handleMessageRejected(const std::shared_ptr<ChatMessage> &chatMessage) override;
 
 	void onExhumedConference(const ConferenceId &oldConfId, const ConferenceId &newConfId);
@@ -127,8 +118,6 @@ private:
 	bool mDeletionOnTerminationEnabled = false;
 	bool mListHandlerUsed = false;
 	BackgroundTask mBgTask{"Subscribe/notify of full state conference"};
-
-	std::list<std::shared_ptr<ChatMessage>> mPendingCreationMessages;
 
 	// 1-1 exhume related
 	bool mLocalExhumePending = false;

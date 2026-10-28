@@ -285,7 +285,7 @@ void ClientConference::createEventHandler(BCTBX_UNUSED(ConferenceListener *confL
 
 void ClientConference::initializeHandlers(ConferenceListener *confListener, bool addToListEventHandler) {
 	addListener(std::shared_ptr<ConferenceListenerInterface>(static_cast<ConferenceListenerInterface *>(this),
-	                                                         [](BCTBX_UNUSED(ConferenceListenerInterface * p)) {}));
+	                                                         [](BCTBX_UNUSED(ConferenceListenerInterface *p)) {}));
 	createEventHandler(confListener, addToListEventHandler);
 }
 
@@ -1231,8 +1231,7 @@ void ClientConference::onFocusCallStateChanged(CallSession::State state, BCTBX_U
 					// If there are chat message pending chat room creation, set state to NotDelivered and remove
 					// them from queue.
 					if (clientGroupChatRoom) {
-						const std::list<std::shared_ptr<ChatMessage>> &pendingCreationMessages =
-						    clientGroupChatRoom->getPendingCreationMessages();
+						const auto &pendingCreationMessages = clientGroupChatRoom->getPendingMessages();
 						for (const auto &msg : pendingCreationMessages) {
 							msg->getPrivate()->setParticipantState(
 							    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
@@ -2857,7 +2856,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 				const auto &confAccount = mConfParams->getAccount();
 				const auto &account =
 				    confAccount ? confAccount
-				                : Account::toCpp(linphone_core_get_default_account(cCore))->getSharedFromThis();
+					            : Account::toCpp(linphone_core_get_default_account(cCore))->getSharedFromThis();
 				const auto &from = account ? account->getAccountParams()->getIdentityAddress() : nullptr;
 				if (!from) {
 					lError() << "Unable to find account used to join " << *this;
@@ -2887,7 +2886,7 @@ void ClientConference::onCallSessionStateChanged(const shared_ptr<CallSession> &
 		else {
 			list<std::shared_ptr<Call>>::iterator it =
 			    find_if(mPendingCalls.begin(), mPendingCalls.end(),
-			            [&session](const auto &call) { return session == call->getActiveSession(); });
+				        [&session](const auto &call) { return session == call->getActiveSession(); });
 			if (it != mPendingCalls.end()) {
 				onPendingCallStateChanged(*it, state);
 			}

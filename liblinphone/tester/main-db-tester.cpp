@@ -18,6 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_SOCI
+#include <soci/soci.h>
+#endif // HAVE_SOCI
+
 #include "address/address.h"
 #include "c-wrapper/internal/c-tools.h"
 #include "core/core-p.h"
@@ -55,9 +59,14 @@ public:
 	               bool_t unify_chatroom_address = FALSE,
 	               bool_t is_conference_server = FALSE,
 	               bool_t update_db_at_initialisation = TRUE) {
+
+		char token[20];
+		belle_sip_random_token(token, sizeof(token));
+		core_db = std::string("linphone_") + token + std::string(".db");
+
 		mCoreManager = linphone_core_manager_create("empty_rc");
 		char *roDbPath = bc_tester_res(db_file);
-		char *rwDbPath = bc_tester_file(core_db);
+		char *rwDbPath = bc_tester_file(core_db.c_str());
 		BC_ASSERT_FALSE(liblinphone_tester_copy_file(roDbPath, rwDbPath));
 		linphone_im_notif_policy_enable_all(linphone_core_get_im_notif_policy(mCoreManager->lc));
 		linphone_config_set_string(linphone_core_get_config(mCoreManager->lc), "storage", "uri", rwDbPath);
@@ -86,7 +95,7 @@ public:
 
 	void reStart(bool check_for_proxies = TRUE) {
 		linphone_core_manager_reinit(mCoreManager);
-		char *rwDbPath = bc_tester_file(core_db);
+		char *rwDbPath = bc_tester_file(core_db.c_str());
 		linphone_config_set_string(linphone_core_get_config(mCoreManager->lc), "storage", "uri", rwDbPath);
 		bc_free(rwDbPath);
 		linphone_core_manager_start(mCoreManager, check_for_proxies);
@@ -106,7 +115,7 @@ public:
 
 private:
 	LinphoneCoreManager *mCoreManager;
-	const char *core_db = "linphone.db";
+	std::string core_db;
 };
 
 // -----------------------------------------------------------------------------
@@ -132,7 +141,7 @@ static void get_messages_count(void) {
 		BC_ASSERT_EQUAL(mainDb.getChatMessageGlobalCount(), 5157, int, "%d");
 		BC_ASSERT_EQUAL(mainDb.getChatMessageCount(
 		                    ConferenceId(Address::create("sip:test-3@sip.linphone.org")->getSharedFromThis(),
-		                                 Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams())),
+							             Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams())),
 		                861, int, "%d");
 	} else {
 		BC_FAIL("Database not initialized");
@@ -146,7 +155,7 @@ static void get_unread_messages_count(void) {
 		BC_ASSERT_EQUAL(mainDb.getUnreadChatMessageGlobalCount(), 2, int, "%d");
 		BC_ASSERT_EQUAL(mainDb.getUnreadChatMessageCount(
 		                    ConferenceId(Address::create("sip:test-3@sip.linphone.org")->getSharedFromThis(),
-		                                 Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams())),
+							             Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams())),
 		                0, int, "%d");
 	} else {
 		BC_FAIL("Database not initialized");
@@ -160,29 +169,29 @@ static void get_history(void) {
 		BC_ASSERT_EQUAL(
 		    mainDb
 		        .getHistoryRange(ConferenceId(Address::create("sip:test-4@sip.linphone.org")->getSharedFromThis(),
-		                                      Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams()),
-		                         0, -1, MainDb::Filter::ConferenceChatMessageFilter)
+				                              Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams()),
+				                 0, -1, MainDb::Filter::ConferenceChatMessageFilter)
 		        .size(),
 		    54, size_t, "%zu");
 		BC_ASSERT_EQUAL(
 		    mainDb
 		        .getHistoryRange(ConferenceId(Address::create("sip:test-7@sip.linphone.org")->getSharedFromThis(),
-		                                      Address::create("sip:test-7@sip.linphone.org"), ConferenceIdParams()),
-		                         0, -1, MainDb::Filter::ConferenceCallFilter)
+				                              Address::create("sip:test-7@sip.linphone.org"), ConferenceIdParams()),
+				                 0, -1, MainDb::Filter::ConferenceCallFilter)
 		        .size(),
 		    0, size_t, "%zu");
 		BC_ASSERT_EQUAL(
 		    mainDb
 		        .getHistoryRange(ConferenceId(Address::create("sip:test-1@sip.linphone.org")->getSharedFromThis(),
-		                                      Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams()),
-		                         0, -1, MainDb::Filter::ConferenceChatMessageFilter)
+				                              Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams()),
+				                 0, -1, MainDb::Filter::ConferenceChatMessageFilter)
 		        .size(),
 		    804, size_t, "%zu");
 		BC_ASSERT_EQUAL(
 		    mainDb
 		        .getHistory(ConferenceId(Address::create("sip:test-1@sip.linphone.org")->getSharedFromThis(),
-		                                 Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams()),
-		                    100, MainDb::Filter::ConferenceChatMessageFilter)
+				                         Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams()),
+				            100, MainDb::Filter::ConferenceChatMessageFilter)
 		        .size(),
 		    100, size_t, "%zu");
 	} else {
@@ -196,7 +205,7 @@ static void get_conference_notified_events(void) {
 	if (mainDb.isInitialized()) {
 		list<shared_ptr<EventLog>> events = mainDb.getConferenceNotifiedEvents(
 		    ConferenceId(Address::create("sip:test-44@sip.linphone.org")->getSharedFromThis(),
-		                 Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams()),
+			             Address::create("sip:test-1@sip.linphone.org"), ConferenceIdParams()),
 		    1);
 		BC_ASSERT_EQUAL(events.size(), 3, size_t, "%zu");
 		if (events.size() != 3) return;
@@ -240,6 +249,201 @@ static void get_conference_notified_events(void) {
 		}
 	} else {
 		BC_FAIL("Database not initialized");
+	}
+}
+
+bool check_event_count(std::string dbPath, std::string table, std::string column, int id, int expected_count) {
+#ifdef HAVE_SOCI
+	try {
+		soci::session sql("sqlite3", dbPath); // open the DB
+		int count = -1;
+		sql << "SELECT COUNT(*) FROM " + table + " WHERE " + column + " = :eventId", soci::use(id), soci::into(count);
+		return (count == expected_count);
+	} catch (std::exception &e) { // swallow any error on DB
+		lWarning() << "Cannot count the number of rows linked to event ID " << id << " in table '" << table
+		           << "' of database " << dbPath << ". Error is " << e.what();
+		return false;
+	}
+#else  // HAVE_SOCI
+	lWarning() << "Cannot count the number of rows linked to event ID " << id << " in table '" << table
+	           << "' of database " << dbPath << " because SOCI library is not found.";
+	return false;
+#endif // HAVE_SOCI
+}
+
+static void delete_events() {
+	MainDbProvider provider("db/conference_event.db", TRUE, FALSE, FALSE, TRUE);
+	MainDb &mainDb = provider.getMainDb();
+	if (mainDb.isInitialized()) {
+		const char *coreDbPath =
+		    linphone_config_get_string(linphone_core_get_config(provider.getCoreManager()->lc), "storage", "uri", NULL);
+		BC_ASSERT_PTR_NOT_NULL(coreDbPath);
+		for (auto id = 1; id < mainDb.getEventCount(); id++) {
+			lInfo() << "Processing event with ID " << id;
+			auto eventLog = mainDb.getEvent(id);
+			if (eventLog) {
+				auto type = eventLog->getType();
+				int content_id = -1;
+				if (type == EventLog::Type::ConferenceChatMessage) {
+#ifdef HAVE_SOCI
+					try {
+						soci::session sql("sqlite3", coreDbPath); // open the DB
+						sql << "SELECT id FROM chat_message_content WHERE event_id = :eventId", soci::use(id),
+						    soci::into(content_id);
+					} catch (std::exception &e) { // swallow any error on DB
+						lWarning() << "Cannot chat message content ID linked to event ID " << id
+						           << " in table 'chat_message_content' of database " << coreDbPath << ". Error is "
+						           << e.what();
+						BC_FAIL("Cannot retrieve chat message content ID");
+					}
+#else  // HAVE_SOCI
+					lWarning() << "Cannot retrieve chat message content ID linked to event ID " << id
+					           << " in table 'chat_message_content' of database " << coreDbPath
+					           << " because SOCI library is not found.";
+#endif // HAVE_SOCI
+				}
+
+				mainDb.deleteEvent(eventLog);
+				BC_ASSERT_TRUE(check_event_count(coreDbPath, "event", "id", id, 0));
+				BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_call_event_view", "id", id, 0));
+				BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event_view", "id", id, 0));
+				BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event_simple_view", "id", id, 0));
+				switch (type) {
+					case EventLog::Type::None:
+					case EventLog::Type::ConferenceAllowedParticipantListChanged:
+						break;
+
+					case EventLog::Type::ConferenceCreated:
+					case EventLog::Type::ConferenceTerminated:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						break;
+
+					case EventLog::Type::ConferenceCallStarted:
+					case EventLog::Type::ConferenceCallConnected:
+					case EventLog::Type::ConferenceCallEnded:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_call_event", "event_id", id, 0));
+						break;
+
+					case EventLog::Type::ConferenceChatMessage: {
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						BC_ASSERT_GREATER_STRICT(content_id, 0, int, "%0d");
+						if (content_id > 0) {
+							BC_ASSERT_TRUE(check_event_count(coreDbPath, "chat_message_file_content",
+							                                 "chat_message_content_id", content_id, 0));
+							BC_ASSERT_TRUE(check_event_count(coreDbPath, "chat_message_content_app_data",
+							                                 "chat_message_content_id", content_id, 0));
+						}
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "chat_message_content", "event_id", id, 0));
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "chat_message_participant", "event_id", id, 0));
+						BC_ASSERT_TRUE(
+						    check_event_count(coreDbPath, "conference_chat_message_event", "event_id", id, 0));
+						shared_ptr<ChatMessage> chatMessage =
+						    static_pointer_cast<ConferenceChatMessageEvent>(eventLog)->getChatMessage();
+						if (chatMessage->isEphemeral()) {
+							BC_ASSERT_TRUE(
+							    check_event_count(coreDbPath, "chat_message_ephemeral_event", "event_id", id, 0));
+						}
+					} break;
+
+					case EventLog::Type::ConferenceChatMessageReaction:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						BC_ASSERT_TRUE(
+						    check_event_count(coreDbPath, "conference_chat_message_reaction_event", "event_id", id, 0));
+						break;
+
+					case EventLog::Type::ConferenceParticipantAdded:
+					case EventLog::Type::ConferenceParticipantRemoved:
+					case EventLog::Type::ConferenceParticipantRoleUnknown:
+					case EventLog::Type::ConferenceParticipantRoleSpeaker:
+					case EventLog::Type::ConferenceParticipantRoleListener:
+					case EventLog::Type::ConferenceParticipantSetAdmin:
+					case EventLog::Type::ConferenceParticipantUnsetAdmin:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						BC_ASSERT_TRUE(
+						    check_event_count(coreDbPath, "conference_participant_event", "event_id", id, 0));
+						break;
+
+					case EventLog::Type::ConferenceParticipantDeviceAdded:
+					case EventLog::Type::ConferenceParticipantDeviceRemoved:
+					case EventLog::Type::ConferenceParticipantDeviceJoiningRequest:
+					case EventLog::Type::ConferenceParticipantDeviceMediaCapabilityChanged:
+					case EventLog::Type::ConferenceParticipantDeviceMediaAvailabilityChanged:
+					case EventLog::Type::ConferenceParticipantDeviceStatusChanged:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						BC_ASSERT_TRUE(
+						    check_event_count(coreDbPath, "conference_participant_event", "event_id", id, 0));
+						BC_ASSERT_TRUE(
+						    check_event_count(coreDbPath, "conference_participant_device_event", "event_id", id, 0));
+						break;
+
+					case EventLog::Type::ConferenceSecurityEvent:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_security_event", "event_id", id, 0));
+						break;
+
+					case EventLog::Type::ConferenceAvailableMediaChanged:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						BC_ASSERT_TRUE(
+						    check_event_count(coreDbPath, "conference_available_media_event", "event_id", id, 0));
+						break;
+
+					case EventLog::Type::ConferenceSubjectChanged:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_subject_event", "event_id", id, 0));
+						break;
+
+					case EventLog::Type::ConferenceEphemeralMessageLifetimeChanged:
+					case EventLog::Type::ConferenceEphemeralMessageEnabled:
+					case EventLog::Type::ConferenceEphemeralMessageDisabled:
+					case EventLog::Type::ConferenceEphemeralMessageManagedByAdmin:
+					case EventLog::Type::ConferenceEphemeralMessageManagedByParticipants:
+						BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+						BC_ASSERT_TRUE(
+						    check_event_count(coreDbPath, "conference_ephemeral_message_event", "event_id", id, 0));
+						break;
+				}
+			} else {
+#ifdef HAVE_SOCI
+				shared_ptr<Address> fromAddress;
+				std::string messageId;
+				try {
+					soci::session sql("sqlite3", coreDbPath); // open the DB
+					int typeInt = -1;
+					sql << "SELECT type FROM event WHERE id = :eventId", soci::use(id), soci::into(typeInt);
+					// Unable to retrieve conference chat message reaction by calling MainDb::getEvent()
+					BC_ASSERT_EQUAL(typeInt, LinphoneEventLogTypeConferenceChatMessageReaction, int, "%i");
+					if (static_cast<EventLog::Type>(typeInt) == EventLog::Type::ConferenceChatMessageReaction) {
+						const std::string query(
+						    "SELECT reaction_to_message_id, from_sip_address.value FROM "
+						    "conference_chat_message_reaction_event LEFT JOIN sip_address AS from_sip_address ON "
+						    "from_sip_address.id = from_sip_address_id WHERE event_id = :eventId");
+						soci::rowset<soci::row> rows = (sql.prepare << query, soci::use(id));
+						for (const auto &row : rows) {
+							messageId = row.get<string>(0);
+							fromAddress = make_shared<Address>(row.get<string>(1));
+						}
+					}
+				} catch (std::exception &e) { // swallow any error on DB
+					lWarning() << "Cannot retrieve event type linked to event ID " << id
+					           << " in table 'event' of database " << coreDbPath << ". Error is " << e.what();
+					BC_FAIL("Cannot retrieve event");
+				}
+				if (!messageId.empty() && fromAddress && fromAddress->isValid()) {
+					mainDb.removeConferenceChatMessageReactionEvent(messageId, fromAddress);
+					BC_ASSERT_TRUE(check_event_count(coreDbPath, "event", "id", id, 0));
+					BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_call_event_view", "id", id, 0));
+					BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event_view", "id", id, 0));
+					BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event_simple_view", "id", id, 0));
+					BC_ASSERT_TRUE(check_event_count(coreDbPath, "conference_event", "event_id", id, 0));
+					BC_ASSERT_TRUE(
+					    check_event_count(coreDbPath, "conference_chat_message_reaction_event", "event_id", id, 0));
+				}
+#else  // HAVE_SOCI
+				lWarning() << "Cannot retrieve event type linked to event ID " << id << " in table 'event' of database "
+				           << coreDbPath << " because SOCI library is not found.";
+#endif // HAVE_SOCI
+			}
+		}
 	}
 }
 
@@ -442,7 +646,7 @@ static void load_a_lot_of_chatrooms_base(bool_t keep_gruu) {
 		LinphoneAddress *local_address = linphone_address_new("sip:notfound@sip.example.org");
 		LinphoneAddress *conference_address =
 		    linphone_address_new("sip:conference_server_not_found@sip.example.org;gr=urn:uuid:459797d6-40f9-0072-a3ad-"
-		                         "e9237e042437;conf-id=abcdef");
+			                     "e9237e042437;conf-id=abcdef");
 
 		start = chrono::high_resolution_clock::now();
 		LinphoneChatRoom *chatRoom = linphone_core_search_chat_room_2(provider.getCoreManager()->lc, NULL,
@@ -558,7 +762,7 @@ static void database_with_chatroom_duplicates_base(bool_t keep_gruu, bool_t is_c
 				                ((subject == "new test subject for chatroom idx 3") ||
 				                 (subject == "new test subject for chatroom idx 4"))
 				                    ? 4
-				                    : 3,
+									: 3,
 				                int, "%0d");
 				BC_ASSERT_EQUAL(chatRoom->getConference()->getLastNotify(), 25, size_t, "%zu");
 			}
@@ -737,22 +941,23 @@ static test_t main_db_tests[] = {
     TEST_NO_TAG("Get unread messages count", get_unread_messages_count),
     TEST_NO_TAG("Get history", get_history),
     TEST_NO_TAG("Get conference events", get_conference_notified_events),
+    TEST_NO_TAG("Delete events", delete_events),
     TEST_NO_TAG("Get chat rooms", get_chat_rooms),
     TEST_NO_TAG("Set/get conference info", set_get_conference_info),
     TEST_NO_TAG("Load chatroom and conference", load_chatroom_conference),
     TEST_NO_TAG("Load chatroom and conference cleaning gruu", load_chatroom_conference_cleaning_gruu),
     TEST_NO_TAG("Database with chatroom duplicates", database_with_chatroom_duplicates),
     TEST_NO_TAG("Database with chatroom duplicates in conference server",
-                database_with_chatroom_duplicates_conference_server),
+	            database_with_chatroom_duplicates_conference_server),
     TEST_NO_TAG("Database with chatroom duplicates and GRUU pruned", database_with_chatroom_duplicates_gruu_pruned),
     TEST_NO_TAG("Database with chatroom duplicates and GRUU pruned in conference server",
-                database_with_chatroom_duplicates_gruu_pruned_conference_server),
+	            database_with_chatroom_duplicates_gruu_pruned_conference_server),
     TEST_ONE_TAG("Load a lot of chatrooms", load_a_lot_of_chatrooms, "shaky"),
     TEST_ONE_TAG("Load a lot of chatrooms cleaning GRUU", load_a_lot_of_chatrooms_cleaning_gruu, "shaky"),
     TEST_NO_TAG("Search messages in chatroom", search_messages_in_chat_room),
     TEST_NO_TAG("Address cache and threads", address_cache_and_threads),
     TEST_NO_TAG("Load database without updating schema and update manually",
-                load_database_without_updating_and_update_manually)};
+	            load_database_without_updating_and_update_manually)};
 
 test_suite_t main_db_test_suite = {
     "MainDb",
@@ -763,6 +968,6 @@ test_suite_t main_db_test_suite = {
     sizeof(main_db_tests) / sizeof(main_db_tests[0]),
     main_db_tests,
     59, /* It usually runs faster, but since we allow retries for the "Load a lot of chatrooms" tests, it can take
-           longer. */
+	       longer. */
     4   /*cpu weight: to preserve speed for "Load a lot of chatrooms"*/
 };

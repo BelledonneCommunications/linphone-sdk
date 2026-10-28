@@ -416,7 +416,7 @@ list<shared_ptr<ImdnMessage>> ChatRoom::createImdnMessages(const list<shared_ptr
 		for (const auto &[peerAddress, messagePair] : messagesByImdnChatRoom) {
 			imdns.push_back(
 			    shared_ptr<ImdnMessage>(new ImdnMessage(getImdnChatRoom(Address::create(peerAddress)),
-			                                            messagePair.deliveredMessages, messagePair.displayedMessages)));
+				                                        messagePair.deliveredMessages, messagePair.displayedMessages)));
 		}
 	} else {
 		for (const auto &message : deliveredMessages) {
@@ -831,12 +831,21 @@ void ChatRoom::onIsRemoteComposingStateChanged(const std::shared_ptr<Address> &r
 	notifyIsComposingReceived(remoteAddress, isComposing, contentType);
 }
 
-void ChatRoom::addPendingMessage(BCTBX_UNUSED(const std::shared_ptr<ChatMessage> &chatMessage)) {
-	lDebug() << __func__ << ": not implemented";
+void ChatRoom::addPendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) {
+	auto it = std::find(mPendingMessages.begin(), mPendingMessages.end(), chatMessage);
+	if (it == mPendingMessages.end()) {
+		mPendingMessages.push_back(chatMessage);
+	}
 }
 
-void ChatRoom::deletePendingMessage(BCTBX_UNUSED(const std::shared_ptr<ChatMessage> &chatMessage)) {
-	lDebug() << __func__ << ": not implemented";
+void ChatRoom::deletePendingMessage(const std::shared_ptr<ChatMessage> &chatMessage) {
+	auto it = std::find(mPendingMessages.begin(), mPendingMessages.end(), chatMessage);
+	if (it != mPendingMessages.end()) mPendingMessages.erase(it);
+}
+
+bool ChatRoom::isMessagePending(BCTBX_UNUSED(const std::shared_ptr<ChatMessage> &chatMessage)) {
+	auto it = std::find(mPendingMessages.begin(), mPendingMessages.end(), chatMessage);
+	return (it != mPendingMessages.end());
 }
 
 // -----------------------------------------------------------------------------
@@ -1019,6 +1028,8 @@ void ChatRoom::deleteHistory() {
 }
 
 void ChatRoom::deleteMessageFromHistory(const shared_ptr<ChatMessage> &message) {
+	// The message may be queued and it must be deleted from this list as well
+	deletePendingMessage(message);
 	if (auto db = getCore()->getDatabase()) {
 		shared_ptr<LinphonePrivate::EventLog> event = message->getEventLog();
 		if (event) {

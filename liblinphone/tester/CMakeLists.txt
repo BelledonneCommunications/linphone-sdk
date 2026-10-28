@@ -131,6 +131,7 @@ set(DB_FILES
 	db/friends.db
 	db/linphone.db
 	db/messages.db
+	db/conference_event.db
 	db/chatrooms.db
 	db/chatroom_conference.db
 	db/chatroom_duplicates.db
