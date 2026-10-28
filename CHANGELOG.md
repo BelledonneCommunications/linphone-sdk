@@ -12,9 +12,7 @@ Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *medias
 changes made to these components.
 
 
-
-## unreleased
-
+## [Unreleased]
 ### Added
 - Add stateful PRACK sending [RFC3262](https://www.rfc-editor.org/info/rfc3262)
 - MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
@@ -31,8 +29,8 @@ changes made to these components.
 - Updated SRTP library dependency to 2.8.1
 
 ### Fixed
-- during attended transfer, allow using the remote AOR uri rather than contact URI to forge the Refer-to header, when [sip]/refer_to_uses_aor is set to 1
-- unexpected video direction change from recvonly to sendrecv, resulting in camera activation, when an application accepts a video stream as recvonly and subsequently receives a ICE re-INVITE.
+- During attended transfer, allow using the remote AOR uri rather than contact URI to forge the Refer-to header, when [sip]/refer_to_uses_aor is set to 1
+- Unexpected video direction change from recvonly to sendrecv, resulting in camera activation, when an application accepts a video stream as recvonly and subsequently receives a ICE re-INVITE.
 
 ## [5.5.39] - 2026-10-26
 

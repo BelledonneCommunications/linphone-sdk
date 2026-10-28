@@ -10158,7 +10158,8 @@ void linphone_core_enable_account_strict_matching(LinphoneCore *core, bool_t ena
 	linphone_config_set_bool(linphone_core_get_config(core), "sip", "account_strict_matching", enable);
 }
 
-void linphone_core_upgrade_database(LinphoneCore *lc) {
+int linphone_core_upgrade_database(LinphoneCore *lc) {
+	int result = 0;
 	auto core = L_GET_CPP_PTR_FROM_C_OBJECT(lc);
 	auto db = core->getDatabase();
 	if (!db) { // Not running: Open database.
@@ -10166,12 +10167,21 @@ void linphone_core_upgrade_database(LinphoneCore *lc) {
 		db = core->getDatabase();
 	}
 	if (db) {
-		if (db.value().get().init(false) != 0 || db.value().get().updateSchema(false) != 0)
-			ms_error("Cannot upgrade database");
-		else ms_message("Database has been upgraded");
+		try {
+			if (db.value().get().init(false) != 0 || db.value().get().updateSchema(false) != 0) {
+				ms_error("Couldn't upgrade database");
+				result = -2;
+			} else ms_message("Database has been upgraded");
+		} catch (...) {
+			ms_error("Couldn't upgrade database with caught exception");
+			result = -3;
+		}
 	} else {
 		ms_error("Cannot open database for upgrade");
+		result = -1;
 	}
+
+	return result;
 }
 
 bool_t linphone_core_need_upgrade_database(LinphoneCore *lc) {

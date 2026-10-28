@@ -8492,9 +8492,13 @@ LINPHONE_PUBLIC void linphone_core_set_ekt_plugin_loaded(LinphoneCore *core, boo
  * It can be done before starting the core.
  *
  * @param core the #LinphoneCore
+ * @return 0 if database has been upgraded else negative value :
+ *	-1: Cannot open database
+ *	-2: Couldn't upgrade database (should not happen)
+ *	-3: Couldn't upgrade database with caught exception
  * @ingroup group_misc
  */
-LINPHONE_PUBLIC void linphone_core_upgrade_database(LinphoneCore *core);
+LINPHONE_PUBLIC int linphone_core_upgrade_database(LinphoneCore *core);
 
 /** Check database if an upgrade is needed.
  * It can be done before starting the core.
