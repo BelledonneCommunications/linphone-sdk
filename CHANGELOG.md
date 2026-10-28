@@ -26,6 +26,7 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
 ### Changed
 - Refactor ICE and STUN/TURN from C to C++
 - Handle multiple transports for TURN at the same time during ICE processing
+- iOS: network changes and the network type are now detected with Network.framework (nw_path_monitor) instead of the deprecated SCNetworkReachability API.
 - Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
 - Updated Sqlite3 dependency to 3.54.0
 - Updated decaf dependency to 1.0.5

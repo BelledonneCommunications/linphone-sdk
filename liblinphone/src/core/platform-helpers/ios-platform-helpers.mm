@@ -29,11 +29,9 @@
 #include <Foundation/Foundation.h>
 #include <Network/Network.h>
 #include <SystemConfiguration/CaptiveNetwork.h>
-#include <SystemConfiguration/SystemConfiguration.h>
 #include <belr/grammarbuilder.h>
 #include <future>
 #include <mutex>
-#include <notify_keys.h>
 #include <optional>
 
 #include "c-wrapper/c-wrapper.h"
@@ -104,8 +102,6 @@ public:
   void stop(void) override;
 
   // IosHelper specific
-  bool isReachable(SCNetworkReachabilityFlags flags);
-  void networkChangeCallback(void);
   void onNetworkChanged(bool reachable, bool force);
 
   void didRegisterForRemotePush(void *token) override;
@@ -124,6 +120,10 @@ private:
   struct NetworkPath {
     nw_path_status_t status;
     bool cellular;
+
+    bool operator!=(const NetworkPath &other) const {
+      return status != other.status || cellular != other.cellular;
+    }
   };
 
   void kickOffConnectivity();
@@ -133,17 +133,21 @@ private:
   void startPathMonitor();
   void stopPathMonitor();
   void onPathUpdate(nw_path_t nwPath);
+  void networkChangeCallback(const NetworkPath &path);
+  bool isReachable(const NetworkPath &path);
 
   long int mCpuLockTaskId;
   int mCpuLockCount;
-  SCNetworkReachabilityRef reachabilityRef = NULL;
-  SCNetworkReachabilityFlags mCurrentFlags = 0;
   bool mNetworkMonitoringEnabled = false;
   nw_path_monitor_t mPathMonitor = nullptr;
   dispatch_queue_t mPathMonitorQueue = nullptr;
   std::future<void> mPathMonitorCancelled;
   mutable std::mutex mPathMutex;
   std::optional<NetworkPath> mLastPath; // Guarded by mPathMutex, written on mPathMonitorQueue.
+  bool mNotifyPathChanges = false; // Guarded by mPathMutex, set while network monitoring is started.
+  // Last path handled by networkChangeCallback(), on the core thread. Starts
+  // as "no network", so that the first usable path forces a reinit.
+  NetworkPath mCurrentPath{nw_path_status_unsatisfied, false};
 
   IosAppDelegate *mAppDelegate =
       NULL; /* auto didEnterBackground/didEnterForeground and other callbacks */
@@ -152,11 +156,6 @@ private:
   bool mUseAppDelgate = false; /* app delegate is only used by main core*/
   dispatch_source_t mIterateTimer = NULL;
 };
-
-static void sNetworkChangeCallback(CFNotificationCenterRef center,
-                                   void *observer, CFStringRef name,
-                                   const void *object,
-                                   CFDictionaryRef userInfo);
 
 // =============================================================================
 
@@ -385,7 +384,7 @@ void IosPlatformHelpers::onWifiOnlyEnabled(bool enabled) {
   mWifiOnly = enabled;
   if (isNetworkReachable()) {
     // Nothing to do if we have no connection
-    if (enabled && (mCurrentFlags & kSCNetworkReachabilityFlagsIsWWAN)) {
+    if (enabled && mCurrentPath.cellular) {
       onNetworkChanged(false, true);
     }
   }
@@ -395,121 +394,55 @@ void IosPlatformHelpers::setDnsServers() {
   // Nothing to do here, already handled by core for IOS platforms
 }
 
-static void showNetworkFlags(SCNetworkReachabilityFlags flags) {
-  ms_message("Network connection flags:");
-
-  if (flags == 0)
-    ms_message("no flags.");
-  if (flags & kSCNetworkReachabilityFlagsTransientConnection)
-    ms_message("kSCNetworkReachabilityFlagsTransientConnection, ");
-  if (flags & kSCNetworkReachabilityFlagsReachable)
-    ms_message("kSCNetworkReachabilityFlagsReachable, ");
-  if (flags & kSCNetworkReachabilityFlagsConnectionRequired)
-    ms_message("kSCNetworkReachabilityFlagsConnectionRequired, ");
-  if (flags & kSCNetworkReachabilityFlagsConnectionOnTraffic)
-    ms_message("kSCNetworkReachabilityFlagsConnectionOnTraffic, ");
-  if (flags & kSCNetworkReachabilityFlagsConnectionOnDemand)
-    ms_message("kSCNetworkReachabilityFlagsConnectionOnDemand, ");
-  if (flags & kSCNetworkReachabilityFlagsIsLocalAddress)
-    ms_message("kSCNetworkReachabilityFlagsIsLocalAddress, ");
-  if (flags & kSCNetworkReachabilityFlagsIsDirect)
-    ms_message("kSCNetworkReachabilityFlagsIsDirect, ");
-  if (flags & kSCNetworkReachabilityFlagsIsWWAN)
-    ms_message("kSCNetworkReachabilityFlagsIsWWAN, ");
-  ms_message("\n");
-}
-
+// The path monitor runs all along: starting the monitoring only makes its updates reach networkChangeCallback().
 bool IosPlatformHelpers::startNetworkMonitoring(void) {
-  if (!mStart)
-    return false;
+	if (!mStart || !mPathMonitor) return false;
 
-  if (reachabilityRef != NULL) {
-    stopNetworkMonitoring();
-  }
-  // Trying to reach captive.apple.com by default.	Apple uses it already to
-  // check if wifi is a captive network See
-  // /Library/Preferences/SystemConfiguration/CaptiveNetworkSupport/Settings.plist
-  // for more URL examples
-  string reachabilityTargetHost = "captive.apple.com";
-  LinphoneProxyConfig *proxy =
-      linphone_core_get_default_proxy_config(getCore()->getCCore());
-
-  // Try to reach default proxy config server if defined
-  if (proxy) {
-    reachabilityTargetHost = linphone_proxy_config_get_server_addr(proxy);
-  }
-
-  reachabilityRef =
-      SCNetworkReachabilityCreateWithName(NULL, reachabilityTargetHost.c_str());
-  if (reachabilityRef == NULL) {
-    return false;
-  }
-  CFNotificationCenterAddObserver(
-      CFNotificationCenterGetDarwinNotifyCenter(), (void *)this,
-      sNetworkChangeCallback, CFSTR(kNotifySCNetworkChange), NULL,
-      CFNotificationSuspensionBehaviorDeliverImmediately /*Ignored*/);
-
-  // Load and trigger initial state
-  networkChangeCallback();
-  return true;
+	std::optional<NetworkPath> lastPath;
+	{
+		std::lock_guard<std::mutex> lock(mPathMutex);
+		mNotifyPathChanges = true;
+		lastPath = mLastPath;
+	}
+	// Load and trigger initial state. If no path has been delivered yet, the first update of the monitor will.
+	if (lastPath) networkChangeCallback(*lastPath);
+	return true;
 }
 
 void IosPlatformHelpers::stopNetworkMonitoring(void) {
-  if (!mStart)
-    return;
+	if (!mStart) return;
 
-  if (reachabilityRef) {
-    CFRelease(reachabilityRef);
-    reachabilityRef = NULL;
-  }
-  CFNotificationCenterRemoveObserver(
-      CFNotificationCenterGetDarwinNotifyCenter(), (void *)this,
-      CFSTR(kNotifySCNetworkChange), NULL);
+	std::lock_guard<std::mutex> lock(mPathMutex);
+	mNotifyPathChanges = false;
 }
 
-// This callback keeps tracks of wifi SSID changes
-static void sNetworkChangeCallback(BCTBX_UNUSED(CFNotificationCenterRef center),
-                                   void *observer,
-                                   BCTBX_UNUSED(CFStringRef name),
-                                   BCTBX_UNUSED(const void *object),
-                                   BCTBX_UNUSED(CFDictionaryRef userInfo)) {
-  if (!observer) {
-    return;
-  }
-  IosPlatformHelpers *iosHelper = (IosPlatformHelpers *)observer;
-
-  iosHelper->getCore()->doLater(
-      [iosHelper]() { iosHelper->networkChangeCallback(); });
-}
-
-void IosPlatformHelpers::networkChangeCallback() {
+// Runs on the core thread.
+void IosPlatformHelpers::networkChangeCallback(const NetworkPath &path) {
   if (!mStart)
     return;
+  {
+    // Drop an update posted just before stopNetworkMonitoring()
+    std::lock_guard<std::mutex> lock(mPathMutex);
+    if (!mNotifyPathChanges)
+      return;
+  }
 
-  // We receive this notification multiple time for possibly unknown reasons
-  // So take actions only if state changed of our internal network-related
-  // properties
+  // The path monitor also delivers updates for changes not relevant here
+  // (IPv6, DNS, expensive...). So take actions only if state changed of our
+  // internal network-related properties
 
-  bool reachable = isNetworkReachable(), changed = false, force = false;
-
-  SCNetworkReachabilityFlags flags;
-  if (SCNetworkReachabilityGetFlags(reachabilityRef, &flags)) {
-    showNetworkFlags(flags);
-
-    reachable = isReachable(flags);
-    if (flags != mCurrentFlags || reachable != isNetworkReachable()) {
-      changed = true;
-      if (mCurrentFlags == 0 ||
-          /*check if moving from Wifi to cellular*/
-          (mCurrentFlags & kSCNetworkReachabilityFlagsIsWWAN) !=
-              (flags & kSCNetworkReachabilityFlagsIsWWAN)) {
-        // Force reinit after network down
-        force = true;
-      }
+  bool reachable = isReachable(path), changed = false, force = false;
+  if (mCurrentPath != path || reachable != isNetworkReachable()) {
+    changed = true;
+    if (mCurrentPath.status == nw_path_status_unsatisfied ||
+        /*check if moving from Wifi to cellular*/
+        mCurrentPath.cellular != path.cellular) {
+      // Force reinit after network down
+      force = true;
     }
-    mCurrentFlags = flags;
   }
-  if (!(flags & kSCNetworkReachabilityFlagsIsWWAN)) {
+  mCurrentPath = path;
+  if (!path.cellular) {
 /*
  * CHECK_SSID is undefined by default. Previously we are monitoring SSID changes
  * to notify liblinphone of possible network changes. Since iOS 12, it requires
@@ -569,30 +502,22 @@ void IosPlatformHelpers::networkChangeCallback() {
   }
 }
 
-// Get reachability state from given flags
-bool IosPlatformHelpers::isReachable(SCNetworkReachabilityFlags flags) {
-  if (flags) {
-    if (flags & kSCNetworkReachabilityFlagsConnectionOnDemand) {
-      // Assume unreachable for now. Wait for kickoff and for later network
-      // change events
-      kickOffConnectivity();
-      return false;
-    }
-    if (flags & (kSCNetworkReachabilityFlagsConnectionRequired |
-                 kSCNetworkReachabilityFlagsInterventionRequired)) {
-      return false;
-    }
-    if (!(flags & kSCNetworkReachabilityFlagsReachable)) {
-      return false;
-    }
-    bool isWifiOnly = linphone_core_wifi_only_enabled(getCore()->getCCore());
-    if (isWifiOnly && (flags & kSCNetworkReachabilityFlagsIsWWAN)) {
-      return false;
-    }
-  } else {
-    return false;
-  }
-  return true;
+// Get reachability state from given path
+bool IosPlatformHelpers::isReachable(const NetworkPath &path) {
+	switch (path.status) {
+		case nw_path_status_satisfied:
+			break;
+		case nw_path_status_satisfiable:
+			// No usable route yet, but a connection attempt will bring one up (VPN On Demand, for instance). Assume
+			// unreachable for now. Wait for kickoff and for later network change events
+			kickOffConnectivity();
+			return false;
+		case nw_path_status_unsatisfied:
+		case nw_path_status_invalid:
+			return false;
+	}
+	bool isWifiOnly = linphone_core_wifi_only_enabled(getCore()->getCCore());
+	return !(isWifiOnly && path.cellular);
 }
 
 bool IosPlatformHelpers::isActiveNetworkWifiOnlyCompliant() const {
@@ -614,8 +539,9 @@ void IosPlatformHelpers::onNetworkChanged(bool reachable, bool force) {
   }
 }
 
-// In case reachability flag "kSCNetworkReachabilityFlagsConnectionOnDemand" is
-// set, we have to use CFStream APIs for the connection to be opened Start
+// In case the network path is only satisfiable (no usable route until a
+// connection attempt, as with VPN On Demand), we have to use CFStream APIs for
+// the connection to be opened Start
 // asynchronously the connection kickoff and do not change reachability status.
 // We assume we will be notified via callbacks if connection changes state
 // afterwards 192.168.0.200	is just an arbitrary address. It should	still
@@ -765,6 +691,14 @@ void IosPlatformHelpers::onPathUpdate(nw_path_t nwPath) {
 	NetworkPath path{nw_path_get_status(nwPath), nw_path_uses_interface_type(nwPath, nw_interface_type_cellular)};
 	std::lock_guard<std::mutex> lock(mPathMutex);
 	mLastPath = path;
+	// Post under the lock: once stopNetworkMonitoring() has returned, no update can reach the core until restarted.
+	if (!mNotifyPathChanges) return;
+	try {
+		getCore()->doLater([this, path]() { networkChangeCallback(path); });
+	} catch (const std::bad_weak_ptr &) {
+		// Not on the core thread: an exception must not escape the dispatch queue.
+		ms_warning("[IosPlatformHelpers] Network path update ignored, the core is gone");
+	}
 }
 
 PlatformHelpers::NetworkType IosPlatformHelpers::getNetworkType() const {
