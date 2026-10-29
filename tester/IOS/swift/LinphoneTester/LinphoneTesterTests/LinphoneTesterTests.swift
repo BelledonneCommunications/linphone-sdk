@@ -145,17 +145,19 @@ class LinphoneTestUser {
         }
         XCTContext.runActivity(named: activityName) { _ in
             registeredExpectation.assertForOverFulfill = false
-            var registeredDelegate: AccountDelegate? = nil
-            registeredDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
+            // Removed after waitFn, not from its own callback: a delegate capturing itself or this user would keep the
+            // user and its core alive until the end of the test process.
+            let registeredDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
                 if (state == .Ok) {
                     if (!requireVoipToken || !(account.params!.pushNotificationConfig!.voipToken?.isEmpty ?? true)) {
                         registeredExpectation.fulfill()
-                        self.core.defaultAccount!.removeDelegate(delegate: registeredDelegate!)
                     }
                 }
             })
-            core.defaultAccount!.addDelegate(delegate: registeredDelegate!)
+            let account = core.defaultAccount!
+            account.addDelegate(delegate: registeredDelegate)
             waitFn()
+            account.removeDelegate(delegate: registeredDelegate)
         }
     }
     
