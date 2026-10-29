@@ -121,6 +121,19 @@ recache-get-from-branch:
 #         - ccache/
 #       policy: pull-push
 
+.enable-gcc-toolset: &enable-gcc-toolset
+  - |
+    if [[ -f /opt/rh/gcc-toolset-15/enable ]]; then
+      source /opt/rh/gcc-toolset-15/enable
+    elif [[ -f /opt/rh/gcc-toolset-12/enable ]]; then
+      source /opt/rh/gcc-toolset-12/enable
+    else
+      echo "No GCC Toolset found"
+    fi
+
+.linux-enable-gcc-toolset:
+  before_script:
+    - *enable-gcc-toolset
 
 .linux-prepare:
   variables:
@@ -142,7 +155,8 @@ recache-get-from-branch:
       paths:
         - ccache/
 
-  extends: .job-prepare
+  extends:
+    - .job-prepare
 
   before_script:
 
@@ -178,13 +192,8 @@ recache-get-from-branch:
     ## Set max number of jobs
     ##
     - !reference [.set-max-jobs-unix, script]
+    - *enable-gcc-toolset
 
-    #Configure dev-toolset for rocky 8
-
-    - ROCKY_VERSION=$(cat /etc/rocky-release) || true
-    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 8')" ]; then source /opt/rh/gcc-toolset-12/enable; fi
-    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 9')" ]; then source /opt/rh/gcc-toolset-15/enable; fi
-    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 10')" ]; then gcc-toolset-15-env bash -c 'declare -px' > /tmp/gcc-toolset-env; source /tmp/gcc-toolset-env; fi
     - export GRADLE_USER_HOME=`pwd`/.gradle
 
     #debug empty value on updated arch

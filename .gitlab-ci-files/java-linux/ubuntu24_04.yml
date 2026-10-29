@@ -1,6 +1,6 @@
 .java_linux_ubuntu24_04_image:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-lw-ubuntu24:20241024_sdk_upload
-
+  # Docker files is in the Linphone-Web project
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-lw-ubuntu24:20250116_remove_node
 
 java-linux-package_ubuntu24_04:
   extends:

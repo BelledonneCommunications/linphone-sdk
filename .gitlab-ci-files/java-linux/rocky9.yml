@@ -1,6 +1,6 @@
 .java_linux_rocky9_image:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-lw-rocky9:20241024_init
-
+  # Docker files is in the Linphone-Web project
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-lw-rocky9:20250116_remove_node
 
 java-linux-package_rocky9:
   extends:
