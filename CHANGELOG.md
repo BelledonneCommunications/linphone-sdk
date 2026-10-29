@@ -13,14 +13,18 @@ changes made to these components.
 
 
 
-
-
 ## unreleased
 
 ### Added
+- Add stateful PRACK sending [RFC3262](https://www.rfc-editor.org/info/rfc3262)
+- MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
+- Swift package flavor built with the G729 codec, published to a separate repository for licensees.
 - [sip]/call_accept_handles_replaces property so that is possible to disable the automatic termination of a replaces-pointed call upon accepting the INVITE.
 
+
 ### Changed
+- Refactor ICE and STUN/TURN from C to C++
+- Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
 - Updated Sqlite3 dependency to 3.54.0
 - Updated decaf dependency to 1.0.5
 - Updated SRTP library dependency to 2.8.1

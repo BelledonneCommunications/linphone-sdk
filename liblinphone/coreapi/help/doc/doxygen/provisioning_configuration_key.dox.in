@@ -76,6 +76,7 @@ The <i>sip</i> section represents a general configuration for SIP signaling feat
 		<tr><td>auto_net_state_mon</td><td>integer</td><td>0 or 1</td><td>1</td><td>Enable automatic network state monitoring</td></tr>
 		<tr><td>bind_address</td><td>string</td><td>IP address</td><td>::0</td><td>Set SIP listening address</td></tr>
 		<tr><td>bodyless_lists</td><td>string</td><td>SIP URI separated by ','</td><td>""</td><td>Bodyless friend list</td></tr>
+		<tr><td>call_accept_handles_replaces</td><td>integer</td><td>0 or 1</td><td>1</td><td>For server applications (e.g. B2BUA), it may be useful to disable automatic termination of a replaces-pointed call upon accepting the INVITE. Set to 0 to disable automatic termination.</td></tr>
 		<tr><td>cnx_ip_to_0000_if_sendonly_enabled</td><td>integer</td><td>0 or 1</td><td>0</td><td>Use legacy method for send-only streams (use of 0.0.0.0 connection address)</td></tr>
 		<tr><td>disable_media</td><td>integer</td><td>0 or 1</td><td>0</td><td>Disable media by ignoring SDP</td></tr>
 		<tr><td>force_name_addr</td><td>integer</td><td>0 or 1</td><td>0</td><td>Force all SIP headers enclosing addresses to use the name-addr ABNF serialization</td></tr>
@@ -86,6 +87,7 @@ The <i>sip</i> section represents a general configuration for SIP signaling feat
 		<tr><td>pong_timeout</td><td>integer</td><td>seconds</td><td>10</td><td>Pong Timeout.</td></tr>
 		<tr><td>prefer_ipv6</td><td>integer</td><td>0 or 1</td><td>1</td><td>Set IPV6 preference for SIP connections.</td></tr>
 		<tr><td>reconnect_to_primary_asap</td><td>integer</td><td>0 or 1</td><td>0</td><td>Enable the reconnection to the primary server when it is up again asap.</td></tr>
+		<tr><td>refer_to_uses_aor</td><td>integer</td><td>0 or 1</td><td>0</td><td>During attended transfer (RFC 5589 section 7.3), if the target Contact URI is not a GRUU, forge the Refer-To header with the target AOR instead of the Contact URI.</td></tr>
 		<tr><td>refresher_retry_after</td><td>integer</td><td>Milliseconds</td><td>60000</td><td>After a REGISTER connection failure, define the default retry-after period, if not given by server.</td></tr>
 		<tr><td>register_retry_base_delay_ms</td><td>integer</td><td>Milliseconds</td><td>0</td><td>Base delay in milliseconds for the exponential retry backoff with jitter for REGISTER. When set to 0, exponential backoff is disabled and fixed retry delay is used.</td></tr>
 		<tr><td>register_retry_max_delay_ms</td><td>integer</td><td>Milliseconds</td><td>0</td><td>Maximum backoff cap in milliseconds for exponential retry backoff for REGISTER. When set to 0, exponential backoff is disabled.</td></tr>
