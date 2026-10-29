@@ -95,7 +95,7 @@ arch-latest-ninja-clang:
   tags: [ "docker-flat" ]
   image: !reference [.archlinux_image_version, image]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - !reference [.rules-merge-request-manual, rules] # for consumers launched by hand; arch-latest-ninja-clang-mr is the automatic MR build
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_OPTIONS: -DENABLE_CXX_WRAPPER=ON
@@ -106,6 +106,12 @@ arch-latest-ninja-clang:
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-archlinux
+
+arch-latest-ninja-clang-mr:
+  artifacts: null # no automatic MR job uses the artifacts of this build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  extends: arch-latest-ninja-clang
 
 
 arch-latest-ninja-clang-novideo:

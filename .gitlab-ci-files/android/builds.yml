@@ -74,7 +74,7 @@ recache-android:
 
 android-ninja-r27:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules] # for consumers launched by hand; android-ninja-r27-mr is the automatic MR build
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
   image: !reference [.android_r30_image_version, image]
   variables:
@@ -88,9 +88,15 @@ android-ninja-r27:
   needs:
     - wait-cache-synchro-android
 
-bundled-android-ninja-r27:
+android-ninja-r27-mr:
+  artifacts: null # no automatic MR job uses the artifacts of this build
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  extends: android-ninja-r27
+
+bundled-android-ninja-r27:
+  rules:
+    - !reference [.rules-merge-request-manual, rules] # for consumers launched by hand; bundled-android-ninja-r27-mr is the automatic MR build
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
   image: !reference [.android_r30_image_version, image]
   variables:
@@ -104,6 +110,12 @@ bundled-android-ninja-r27:
   extends: .android
   needs:
     - wait-cache-synchro-android
+
+bundled-android-ninja-r27-mr:
+  artifacts: null # no automatic MR job uses the artifacts of this build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  extends: bundled-android-ninja-r27
 
 android-makefile-r27-g729-ldap-post-quantum:
   rules:
