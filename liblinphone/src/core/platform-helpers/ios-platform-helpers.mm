@@ -683,6 +683,7 @@ void IosPlatformHelpers::stopPathMonitor() {
 	mPathMonitor = nullptr;
 	dispatch_release(mPathMonitorQueue);
 	mPathMonitorQueue = nullptr;
+	ms_message("[IosPlatformHelpers] Network path monitor stopped");
 }
 
 // Runs on mPathMonitorQueue.
