@@ -117,6 +117,25 @@ class LinphoneTestUser {
         }
     }
     
+    // Stops and starts the core, as the application does when it goes to the background and comes back. The account
+    // created by the tester is not read back from the configuration when the core starts: it is restored with its
+    // credentials before the core iterates, so that the account read from the configuration never registers.
+    // The expectations are only created when needed, since waitFn waits for all the expectations of the test.
+    func restartCore(stoppedCoreExpectation: @autoclosure () -> XCTestExpectation, startedCoreExpectation: @autoclosure () -> XCTestExpectation, waitFn : @escaping()->Void) {
+        let account = core.defaultAccount!
+        let authInfo = core.authInfoList.first!
+        stopCore(stoppedCoreExpectation: stoppedCoreExpectation(), waitFn: waitFn)
+        startCore(startedCoreExpectation: startedCoreExpectation()) {
+            if let reloadedAccount = self.core.defaultAccount {
+                self.core.removeAccount(account: reloadedAccount)
+            }
+            try! self.core.addAccount(account: account)
+            self.core.defaultAccount = account
+            self.core.addAuthInfo(info: authInfo)
+            waitFn()
+        }
+    }
+
     func waitForRegistration(registeredExpectation: XCTestExpectation, requireVoipToken : Bool = true, isInverted: Bool = false, waitFn : @escaping()->Void) {
         var activityName : String
         if (isInverted) {
@@ -198,20 +217,17 @@ class LinphoneTesterEnvironment {    var rawFlexisipTesterDnsServer: UnsafeMutab
     }
 }
 
-class PhysicalDeviceIncomingPushTests: XCTestCase {
+// Base of the test classes that create LinphoneTestUser: one log file per test, attached to the results when the test
+// fails, and the cleanup of the test users.
+class LinphoneTesterTestCase: XCTestCase {
     var currentTestName : String!
-    
-    override class func setUp() {
-        super.setUp()
-        Log.info("Setup PhysicalDeviceIncomingPushTests")
-    }
     
     override func setUp() {
         super.setUp()
         
         if LinphoneTesterEnvironment.shared.verbose {
             // get the name and remove the class name and what comes before the class name
-            currentTestName = self.name.replacingOccurrences(of: "-[PhysicalDeviceIncomingPushTests ", with: "")
+            currentTestName = self.name.replacingOccurrences(of: "-[\(type(of: self)) ", with: "")
             // And then you'll need to remove the closing square bracket at the end of the test name
             currentTestName = currentTestName.replacingOccurrences(of: "]", with: "_logs.txt")
             
@@ -278,6 +294,13 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
                 core.defaultAccount!.removeDelegate(delegate: clearedDelegate)
             }
         }
+    }
+}
+
+class PhysicalDeviceIncomingPushTests: LinphoneTesterTestCase {
+    override class func setUp() {
+        super.setUp()
+        Log.info("Setup PhysicalDeviceIncomingPushTests")
     }
     
     func testSimpleVoipPushCall() {
@@ -854,6 +877,89 @@ class PhysicalDeviceIncomingPushTests: XCTestCase {
         stopAndStart(clearedExpect: expectClear, shouldClear: true)
         
         cleanupTestUser(tester: pauline)
+    }
+}
+
+// Network monitoring of the iOS platform helper (nw_path_monitor). The device of the CI job has no SIM card: these
+// tests only see Wi-Fi, and do not change the network. Switching networks is checked by hand.
+class PhysicalDeviceNetworkTests: LinphoneTesterTestCase {
+    override class func setUp() {
+        super.setUp()
+        Log.info("Setup PhysicalDeviceNetworkTests")
+    }
+
+    override func setUp() {
+        super.setUp()
+        // A destruction blocked on the monitor would otherwise hang the whole job. Requires testTimeoutsEnabled in the test plan.
+        executionTimeAllowance = 300
+    }
+
+    // Runs the main run loop, which iterates the cores, for the given duration.
+    func runMainLoop(for duration: TimeInterval) {
+        let deadline = Date().addingTimeInterval(duration)
+        while Date() < deadline {
+            RunLoop.current.run(until: min(deadline, Date().addingTimeInterval(0.1)))
+        }
+    }
+
+    // Runs the main run loop until the condition holds or the timeout expires.
+    func waitUntil(timeout: TimeInterval, _ condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        return condition()
+    }
+
+    // The first path delivered by the monitor makes the network reachable, once: no DOWN/UP pair at start-up.
+    func testNetworkReachableOnStart() {
+        let marie = LinphoneTestUser(rcFile: "marie_rc")
+        XCTAssertTrue(waitUntil(timeout: expectationBaseTimeout) { marie.manager.pointee.stat.number_of_LinphoneRegistrationOk >= 1 }, "Marie did not register")
+        XCTAssertTrue(marie.core.isNetworkReachable)
+        XCTAssertEqual(marie.manager.pointee.stat.number_of_NetworkReachableTrue, 1)
+        XCTAssertEqual(marie.manager.pointee.stat.number_of_NetworkReachableFalse, 0)
+        cleanupTestUser(tester: marie)
+    }
+
+    // The monitor also reports changes that do not matter here (DNS, IPv6...): none of them may reset the network.
+    func testNoNetworkResetWhileIdle() {
+        let marie = LinphoneTestUser(rcFile: "marie_rc")
+        XCTAssertTrue(waitUntil(timeout: expectationBaseTimeout) { marie.manager.pointee.stat.number_of_LinphoneRegistrationOk >= 1 }, "Marie did not register")
+        let reachableTrue = marie.manager.pointee.stat.number_of_NetworkReachableTrue
+        let reachableFalse = marie.manager.pointee.stat.number_of_NetworkReachableFalse
+
+        XCTContext.runActivity(named: "Marie stays idle for 30 seconds") { _ in
+            runMainLoop(for: 30)
+        }
+
+        XCTAssertEqual(marie.manager.pointee.stat.number_of_NetworkReachableTrue, reachableTrue)
+        XCTAssertEqual(marie.manager.pointee.stat.number_of_NetworkReachableFalse, reachableFalse, "The network was reset while idle")
+        XCTAssertTrue(marie.core.isNetworkReachable)
+        XCTAssertEqual(marie.core.defaultAccount?.state, .Ok)
+        cleanupTestUser(tester: marie)
+    }
+
+    // The application stops the core when going to the background and starts it again in the foreground. The monitor
+    // outlives the core stop: each start must make the network reachable once, without a DOWN/UP pair.
+    func testNetworkReachableAfterStopStart() {
+        let marie = LinphoneTestUser(rcFile: "marie_rc")
+        XCTAssertTrue(waitUntil(timeout: expectationBaseTimeout) { marie.manager.pointee.stat.number_of_LinphoneRegistrationOk >= 1 }, "Marie did not register")
+
+        for cycle in 1...5 {
+            XCTContext.runActivity(named: "Stop and start Marie core, cycle \(cycle)") { _ in
+                let reachableTrue = marie.manager.pointee.stat.number_of_NetworkReachableTrue
+                let registrationOk = marie.manager.pointee.stat.number_of_LinphoneRegistrationOk
+                marie.restartCore(stoppedCoreExpectation: expectation(description: "Marie Core Stopped"), startedCoreExpectation: expectation(description: "Marie Core Started")) {
+                    self.waitForExpectations(timeout: expectationBaseTimeout)
+                }
+                XCTAssertTrue(waitUntil(timeout: expectationBaseTimeout) { marie.manager.pointee.stat.number_of_LinphoneRegistrationOk > registrationOk }, "Marie did not register again")
+
+                XCTAssertTrue(marie.core.isNetworkReachable)
+                XCTAssertEqual(marie.manager.pointee.stat.number_of_NetworkReachableTrue, reachableTrue + 1)
+                XCTAssertEqual(marie.manager.pointee.stat.number_of_NetworkReachableFalse, 0)
+            }
+        }
+        cleanupTestUser(tester: marie)
     }
 }
 

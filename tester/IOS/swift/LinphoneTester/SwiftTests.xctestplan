@@ -22,7 +22,8 @@
       "containerPath" : "container:LinphoneTester.xcodeproj",
       "identifier" : "663F0EE22D6CBB8D001D5643",
       "name" : "LinphoneTesterTests"
-    }
+    },
+    "testTimeoutsEnabled" : true
   },
   "testTargets" : [
     {
