@@ -30,6 +30,7 @@ recache-archlinux:
 
 
 arch-latest-makefile-gcc:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-flat" ]
   image: !reference [.archlinux_image_version, image]
@@ -44,6 +45,7 @@ arch-latest-makefile-gcc:
 
 
 arch-latest-makefile-clang:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-flat" ]
   image: !reference [.archlinux_image_version, image]
@@ -63,6 +65,7 @@ arch-latest-makefile-clang:
 
 
 arch-latest-ninja-gcc:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [.archlinux_image_version, image]
   variables:
@@ -75,11 +78,13 @@ arch-latest-ninja-gcc:
     - wait-cache-synchro-archlinux
 
 arch-latest-ninja-gcc-novideo:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: arch-latest-ninja-gcc
 
 arch-latest-ninja-gcc-pqc:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: arch-latest-ninja-gcc
@@ -104,6 +109,7 @@ arch-latest-ninja-clang:
 
 
 arch-latest-ninja-clang-novideo:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]

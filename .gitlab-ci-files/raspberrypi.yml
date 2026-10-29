@@ -51,6 +51,7 @@ recache-raspberrypi:
     - wait-cache-synchro-raspberrypi
 
 raspberrypi-0-1-ninja:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-raspberrypi" ]
   image: !reference [.raspios_image_version, image]
@@ -61,6 +62,7 @@ raspberrypi-0-1-ninja:
   extends: .raspberrypi
 
 raspberrypi-2-3-ninja:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-raspberrypi" ]
   image: !reference [.raspios_image_version, image]
@@ -72,6 +74,7 @@ raspberrypi-2-3-ninja:
 
 
 raspberrypi-3plus-ninja:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-raspberrypi" ]
   image: !reference [.raspios_image_version, image]

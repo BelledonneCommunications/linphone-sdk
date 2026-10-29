@@ -156,6 +156,7 @@ android-ninja-r27-no-video:
 #  extends: .android
 
 android-ninja-r27-smallsdk:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
@@ -164,6 +165,7 @@ android-ninja-r27-smallsdk:
     - .smallsdk-cmake-options
 
 android-ninja-r27-allcodecs:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
@@ -177,6 +179,7 @@ android-ninja-r27-allcodecs:
 #  extends: android-ninja-r27
 #
 android-ninja-r27-pqc:
+  artifacts: null # no job uses the artifacts of this build
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null

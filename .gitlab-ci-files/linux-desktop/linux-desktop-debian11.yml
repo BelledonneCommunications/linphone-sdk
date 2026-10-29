@@ -28,6 +28,7 @@ recache-debian11:
 
 
 debian11-makefile-gcc:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
@@ -42,6 +43,7 @@ debian11-makefile-gcc:
 
 
 debian11-makefile-clang:
+  artifacts: null # no job uses the artifacts of this build
 
   tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
@@ -74,6 +76,7 @@ debian11-ninja-gcc:
     - wait-cache-synchro-debian11
 
 debian11-ninja-gcc-sequential:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
   variables:
@@ -87,6 +90,7 @@ debian11-ninja-gcc-sequential:
 
 
 debian11-ninja-gcc-novideo:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian11-ninja-gcc
@@ -97,12 +101,14 @@ debian11-ninja-gcc-pqc:
   extends: debian11-ninja-gcc
 
 debian11-ninja-gcc-smallsdk:
+  artifacts: null # no job uses the artifacts of this build
   extends:
     - debian11-ninja-gcc
     - .smallsdk-cmake-options
 
 
 debian11-ninja-clang:
+  artifacts: null # no job uses the artifacts of this build
   tags: [ "docker-flat" ]
   image: !reference [.debian11_image_version, image]
   variables:
@@ -115,17 +121,20 @@ debian11-ninja-clang:
     - wait-cache-synchro-debian11
 
 debian11-ninja-clang-sanitizer:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=ON -DCMAKE_BUILD_TYPE=Debug
     ADDITIONAL_BUILD_OPTIONS: "-j 4"
   extends: debian11-ninja-clang
 
 debian11-ninja-clang-novideo:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian11-ninja-clang
 
 debian11-ninja-clang-pqc:
+  artifacts: null # no job uses the artifacts of this build
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian11-ninja-clang
