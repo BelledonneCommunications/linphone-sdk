@@ -36,6 +36,9 @@
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
+#if TARGET_OS_OSX
+#include <Network/Network.h>
+#endif
 #endif
 
 using namespace ::std;
@@ -295,8 +298,8 @@ int IceService::gatherLocalCandidates() const {
 		localAddrs.push_back(mediaLocalIp);
 	}
 
-#if defined(__APPLE__) && TARGET_OS_IPHONE
-	if (getPlatformHelpers(getCCore())->getNetworkType() == PlatformHelpers::NetworkType::Wifi &&
+#if defined(__APPLE__) && TARGET_OS_MAC
+	if ((TARGET_OS_OSX || getPlatformHelpers(getCCore())->getNetworkType() == PlatformHelpers::NetworkType::Wifi) &&
 	    !hasLocalNetworkPermission(localAddrs))
 		return -1;
 #endif
@@ -1167,10 +1170,66 @@ end:
 	return result;
 }
 
+#if defined(__APPLE__) && TARGET_OS_OSX
+static bool hasMacOSLocalNetworkPermission() {
+	if (__builtin_available(macOS 15.0, *)) {
+		nw_endpoint_t endpoint = nw_endpoint_create_host("169.254.1.1", "9");
+		nw_parameters_t parameters =
+		    nw_parameters_create_secure_udp(NW_PARAMETERS_DISABLE_PROTOCOL, NW_PARAMETERS_DEFAULT_CONFIGURATION);
+		nw_connection_t connection = nw_connection_create(endpoint, parameters);
+		nw_release(endpoint);
+		nw_release(parameters);
+		dispatch_queue_t queue = dispatch_queue_create("org.linphone.local-network-permission", DISPATCH_QUEUE_SERIAL);
+		dispatch_semaphore_t evaluated = dispatch_semaphore_create(0);
+		dispatch_semaphore_t cancelled = dispatch_semaphore_create(0);
+		dispatch_retain(evaluated);
+		dispatch_retain(cancelled);
+		__block bool denied = false;
+		nw_connection_set_queue(connection, queue);
+		dispatch_release(queue);
+		nw_connection_set_state_changed_handler(connection, ^(nw_connection_state_t state, nw_error_t) {
+		  if (state == nw_connection_state_cancelled) {
+			  dispatch_semaphore_signal(cancelled);
+			  dispatch_release(evaluated);
+			  dispatch_release(cancelled);
+			  return;
+		  }
+		  if (state == nw_connection_state_waiting) {
+			  nw_path_t path = nw_connection_copy_current_path(connection);
+			  denied = path && nw_path_get_unsatisfied_reason(path) == nw_path_unsatisfied_reason_local_network_denied;
+			  if (path) nw_release(path);
+		  } else if (state != nw_connection_state_ready && state != nw_connection_state_failed) {
+			  return;
+		  }
+		  dispatch_semaphore_signal(evaluated);
+		});
+		nw_connection_start(connection);
+		bool evaluationTimedOut =
+		    dispatch_semaphore_wait(evaluated, dispatch_time(DISPATCH_TIME_NOW, 500 * NSEC_PER_MSEC)) != 0;
+		nw_connection_cancel(connection);
+		bool cancelTimedOut = dispatch_semaphore_wait(cancelled, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC)) != 0;
+		nw_release(connection);
+		dispatch_release(evaluated);
+		dispatch_release(cancelled);
+		if (evaluationTimedOut) lWarning() << "Local network permission check timed out, assuming granted.";
+		return cancelTimedOut || !denied;
+	}
+	return true;
+}
+#endif
+
 /*
  * The local network permission check is done by simply sending a packet to itself.
  */
 bool IceService::hasLocalNetworkPermission(const std::list<std::string> &localAddrs) {
+#if defined(__APPLE__) && TARGET_OS_OSX
+	(void)localAddrs;
+	/* Unlike on iOS, packets sent to own address are never blocked on macOS: asking Network.framework instead. */
+	bool granted = hasMacOSLocalNetworkPermission();
+	if (granted) lInfo() << "Local network permission is apparently granted (checked with Network.framework)";
+	else lInfo() << "Local network permission seems not granted.";
+	return granted;
+#else
 	string localAddr4;
 	string localAddr6;
 
@@ -1197,6 +1256,7 @@ bool IceService::hasLocalNetworkPermission(const std::list<std::string> &localAd
 	}
 	lInfo() << "Local network permission seems not granted.";
 	return false;
+#endif
 }
 
 LINPHONE_END_NAMESPACE
