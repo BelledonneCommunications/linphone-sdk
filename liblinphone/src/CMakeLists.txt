@@ -44,6 +44,8 @@ if(APPLE)
 	if(IOS)
 		list(APPEND APPLE_LIBS "-framework UIKit")
 		list(APPEND APPLE_LIBS "$<LINK_LIBRARY:WEAK_FRAMEWORK,PushKit>")
+	else()
+		list(APPEND APPLE_LIBS "-framework Network")
 	endif()
 endif()
 

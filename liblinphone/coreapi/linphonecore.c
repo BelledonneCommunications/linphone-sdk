@@ -8225,10 +8225,12 @@ bool_t linphone_core_callkit_enabled(const LinphoneCore *core) {
 
 bool_t linphone_core_local_permission_enabled(const LinphoneCore *core) {
 	CoreLogContextualizer logContextualizer(core);
+#if !TARGET_OS_OSX
 	if (getPlatformHelpers(core)->getNetworkType() != PlatformHelpers::NetworkType::Wifi) {
 		lInfo() << "IceService::hasLocalNetworkPermission() assuming true when network is not wifi";
 		return TRUE;
 	}
+#endif
 	return (bool_t)IceService::hasLocalNetworkPermission();
 }
 

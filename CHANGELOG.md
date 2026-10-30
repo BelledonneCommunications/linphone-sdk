@@ -20,6 +20,7 @@ changes made to these components.
 ### Fixed
 - during attended transfer, allow using the remote AOR uri rather than contact URI to forge the Refer-to header, when [sip]/refer_to_uses_aor is set to 1
 - unexpected video direction change from recvonly to sendrecv, resulting in camera activation, when an application accepts a video stream as recvonly and subsequently receives a ICE re-INVITE.
+- macOS: fix no audio on local network calls when the Local Network privacy permission is denied (macOS 15+): the permission is now checked with Network.framework and ICE is disabled when it is not granted.
 
 ## [5.5.39] - 2026-10-26
 
