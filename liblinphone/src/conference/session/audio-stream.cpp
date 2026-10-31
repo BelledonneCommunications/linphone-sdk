@@ -628,6 +628,9 @@ void MS2AudioStream::render(const OfferAnswerContext &params, CallSession::State
 		if (mStream->baudot_detector) {
 			ms_filter_add_notify_callback(mStream->baudot_detector, sBaudotDetectorEventNotified, this, false);
 		}
+		applyBaudotModeAndStandard();
+		audio_stream_enable_baudot_detection(mStream, mBaudotDetectionEnabled ? TRUE : FALSE);
+		audio_stream_set_baudot_pause_timeout(mStream, mBaudotPauseTimeout);
 #endif /* HAVE_BAUDOT */
 	}
 
@@ -1157,6 +1160,7 @@ static MSBaudotMode linphone_call_baudot_standard_to_ms_baudot_mode(LinphoneBaud
 }
 
 void MS2AudioStream::enableBaudotDetection(bool enabled) {
+	mBaudotDetectionEnabled = enabled;
 	if (mStream) audio_stream_enable_baudot_detection(mStream, enabled ? TRUE : FALSE);
 }
 
@@ -1171,6 +1175,7 @@ void MS2AudioStream::setBaudotSendingStandard(LinphoneBaudotStandard standard) {
 }
 
 void MS2AudioStream::setBaudotPauseTimeout(uint8_t seconds) {
+	mBaudotPauseTimeout = seconds;
 	if (mStream) audio_stream_set_baudot_pause_timeout(mStream, seconds);
 }
 

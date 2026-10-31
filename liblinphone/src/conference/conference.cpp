@@ -2210,6 +2210,15 @@ void Conference::setMicrophoneMuted(bool muted) {
 	}
 }
 
+float Conference::getPlayVolume() const {
+	AudioControlInterface *aci = getAudioControlInterface();
+	if (aci) {
+		return aci->getPlayVolume();
+	}
+	lError() << "Unable to get play volume because the audio control interface of " << *this << " cannot be found";
+	return 0.0;
+}
+
 float Conference::getRecordVolume() const {
 	AudioControlInterface *aci = getAudioControlInterface();
 	if (aci) {

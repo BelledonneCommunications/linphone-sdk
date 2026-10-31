@@ -5324,7 +5324,7 @@ LINPHONE_DEPRECATED LINPHONE_PUBLIC LinphoneStatus linphone_core_leave_conferenc
  * Returns the input volume of the local participant
  * @param core #LinphoneCore
  * @return A value inside [0.0 ; 1.0]
- * @deprecated 23/01/2025 Use linphone_conference_get_input_volume() instead.
+ * @deprecated 23/01/2025 Use linphone_conference_get_record_volume() instead.
  */
 LINPHONE_DEPRECATED LINPHONE_PUBLIC float linphone_core_get_conference_local_input_volume(LinphoneCore *core);
 

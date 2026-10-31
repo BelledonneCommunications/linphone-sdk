@@ -314,6 +314,8 @@ private:
 	static constexpr const char *ecStateStore = ".linphone.ecstate";
 	LinphoneBaudotMode mBaudotMode = LinphoneBaudotModeVoice;
 	LinphoneBaudotStandard mBaudotSendingStandard = LinphoneBaudotStandardUs;
+	bool mBaudotDetectionEnabled = true;
+	uint8_t mBaudotPauseTimeout = 5;
 
 	static void
 	audioRouteChangeCb(void *userData, bool_t needReloadSoundDevices, char *newInputDevice, char *newOutputDevice);

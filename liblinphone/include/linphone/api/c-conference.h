@@ -460,14 +460,16 @@ LINPHONE_PUBLIC bool_t linphone_conference_is_recording(const LinphoneConference
 LINPHONE_PUBLIC LinphoneCall *linphone_conference_get_call(const LinphoneConference *conference);
 
 /**
- * Retrieves the volume of a specific participant
+ * Gets the microphone muted state in the conference.
+ * Note that the microphone may be disabled globally if FALSE was given to
+ * linphone_core_enable_mic().
  * @param conference A #LinphoneConference object @notnil
  * @return TRUE if the microphone is muted, FALSE otherwise
  */
 LINPHONE_PUBLIC bool_t linphone_conference_get_microphone_muted(const LinphoneConference *conference);
 
 /**
- * Get microphone muted state.
+ * Sets the microphone muted state in the conference.
  * Note that the microphone may be disabled globally if FALSE was given to
  * linphone_core_enable_mic().
  * @param conference A #LinphoneConference object @notnil
@@ -476,11 +478,26 @@ LINPHONE_PUBLIC bool_t linphone_conference_get_microphone_muted(const LinphoneCo
 LINPHONE_PUBLIC void linphone_conference_set_microphone_muted(LinphoneConference *conference, bool_t muted);
 
 /**
- * Retrieves the volume of a specific participant
+ * Gets the measured play (output) volume level of the local participant in the conference, in dbm0.
  * @param conference A #LinphoneConference object @notnil
- * @return The volume of the participant expressed in dbm0.
+ * @return The play volume level expressed in dbm0.
  */
-LINPHONE_PUBLIC float linphone_conference_get_input_volume(const LinphoneConference *conference);
+LINPHONE_PUBLIC float linphone_conference_get_play_volume(const LinphoneConference *conference);
+
+/**
+ * Gets the measured record (input) volume level of the local participant in the conference, in dbm0.
+ * @param conference A #LinphoneConference object @notnil
+ * @return The record volume level expressed in dbm0.
+ */
+LINPHONE_PUBLIC float linphone_conference_get_record_volume(const LinphoneConference *conference);
+
+/**
+ * Gets the measured input (record) volume level of the local participant in the conference, in dbm0.
+ * @param conference A #LinphoneConference object @notnil
+ * @return The input volume level expressed in dbm0.
+ * @deprecated 03/11/2026 Use linphone_conference_get_record_volume() instead.
+ */
+LINPHONE_PUBLIC LINPHONE_DEPRECATED float linphone_conference_get_input_volume(const LinphoneConference *conference);
 
 /**
  * Add a listener in order to be notified of #LinphoneConference events. Once an event is received, registred

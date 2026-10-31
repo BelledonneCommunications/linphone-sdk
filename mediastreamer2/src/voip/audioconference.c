@@ -141,8 +141,9 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote) {
 	                 ep->in_cut_point.pin);
 
 	if (ep->conf_mode == MSConferenceModeMixer) {
-		ep->out_cut_point = just_before(st->ms.encoder);
-		ep->out_cut_point_next.filter = st->ms.encoder;
+		MSFilter *out_cut_filter = (is_remote && st->baudot_generator) ? st->baudot_generator : st->ms.encoder;
+		ep->out_cut_point = just_before(out_cut_filter);
+		ep->out_cut_point_next.filter = out_cut_filter;
 		ep->out_cut_point_next.pin = 0;
 	} else {
 		ep->out_cut_point = just_before(st->ms.rtpsend);

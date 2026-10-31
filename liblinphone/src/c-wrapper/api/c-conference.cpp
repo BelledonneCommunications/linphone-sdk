@@ -269,9 +269,18 @@ int linphone_conference_get_participant_device_volume(LinphoneConference *confer
 	    ->getParticipantDeviceVolume(ParticipantDevice::toCpp(device)->getSharedFromThis());
 }
 
-float linphone_conference_get_input_volume(const LinphoneConference *conference) {
+float linphone_conference_get_play_volume(const LinphoneConference *conference) {
+	ConferenceLogContextualizer logContextualizer(conference);
+	return Conference::toCpp(conference)->getPlayVolume();
+}
+
+float linphone_conference_get_record_volume(const LinphoneConference *conference) {
 	ConferenceLogContextualizer logContextualizer(conference);
 	return Conference::toCpp(conference)->getRecordVolume();
+}
+
+float linphone_conference_get_input_volume(const LinphoneConference *conference) {
+	return linphone_conference_get_record_volume(conference);
 }
 
 bool_t linphone_conference_get_microphone_muted(const LinphoneConference *conference) {

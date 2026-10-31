@@ -380,6 +380,7 @@ public:
 
 	bool getMicrophoneMuted() const;
 	void setMicrophoneMuted(bool muted);
+	float getPlayVolume() const;
 	float getRecordVolume() const;
 
 	bool supportsConferenceEventPackage() const;

@@ -97,7 +97,7 @@ extern test_suite_t log_collection_test_suite;
 extern test_suite_t message_test_suite;
 extern test_suite_t rtt_message_test_suite;
 #ifdef HAVE_BAUDOT
-extern test_suite_t baudot_message_test_suite;
+extern test_suite_t baudot_test_suite;
 #endif /* HAVE_BAUDOT */
 extern test_suite_t session_timers_test_suite;
 extern test_suite_t multi_call_test_suite;
