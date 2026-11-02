@@ -12,60 +12,10 @@ Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *medias
 changes made to these components.
 
 
-## unreleased
-
-### Added
-- [sip]/call_accept_handles_replaces property so that is possible to disable the automatic termination of a replaces-pointed call upon accepting the INVITE.
-
-### Fixed
-- during attended transfer, allow using the remote AOR uri rather than contact URI to forge the Refer-to header, when [sip]/refer_to_uses_aor is set to 1
-- unexpected video direction change from recvonly to sendrecv, resulting in camera activation, when an application accepts a video stream as recvonly and subsequently receives a ICE re-INVITE.
-- macOS: fix no audio on local network calls when the Local Network privacy permission is denied (macOS 15+): the permission is now checked with Network.framework and ICE is disabled when it is not granted.
-
-## [5.5.39] - 2026-10-26
-
-### Fixed
-- Remove provisioning configuration keys parsing if generation of documentation has not been requested.
-- Fix potential crash when accessing messages and eventlogs after a core restart
-
-### Security
-- Fix vulnerabilities in RTCP PSFB RPSI, RTCP XR and RTP extension header remapping.
-- Bounds validation on RTCP RTPFB packets and RTP extension headers.
-
 ## [5.5.35] 2026-10-19
 
 ### Changed
 - Update to MBedTls v3.6.7
-
-## [5.5.34] 2026-10-15
-
-### Added
-- Swift package flavor built with the G729 codec, published to a separate repository for licensees.
-
-### Fixed
-- Use the information in the NOTIFY message XML body to set the subject of a conference instead of looking at the INVITE message's Subject header
-
-## [5.5.33] 2026-10-13
-
-### Fixed
-- Reinitialize encryption contexts when the encryption keys or the origin address put down in the SDP changes
-
-## [5.5.32] 2026-10-08
-
-### Fixed
-- Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
-- CSharp Wrapper: Separate getter/setter deprecation and set minimal version on C# for property obsolete features (8.0).
-
-## [5.5.30] 2026-10-05
-
-### Fixed
-- MKV: Add checks on buffer to avoid Out-of-bounds reads.
-- VP8: Fix a cast to avoid losing data.
-
-## [5.5.29] 2026-09-30
-
-### Fixed
-- iOS : fix possible audio route bug when switching audio device during call
 
 ## [5.5.0] 2026-05-25
 
