@@ -170,7 +170,7 @@ public:
 	                   key */
 	std::map<uint32_t, std::shared_ptr<EktTagCipherText>>
 	    tagCache; /**< maps of ROC and current cipher text in use indexed by SSRC - as a session can bundle several SSRC
-	               */
+		           */
 	std::map<uint32_t, uint64_t> mTimeStamp; /**< a map of the last timestamp - computed locally in ms not the one from
 	                                            packet header when a full EKT tag is inserted, indexed by SSRC **/
 	uint64_t mFullTagPeriod; /**< how many ms can pass between two sending of full EKT tag - default to 100 ms as
@@ -888,6 +888,10 @@ int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m) {
 			                                                    includes the outer encryption auth tag and OHB */
 			payload_size =
 			    slen - (RTP_FIXED_HEADER_SIZE + 4 * cc + extsize); /* slen is the size of header(with ext) + payload */
+			if (payload_size < 0) {
+				ms_warning("srtp_unprotect inner decryption failed (unable to get payload) for stream ctx [%p]", ctx);
+				return -1;
+			}
 			/* create a synthetic packet, it holds:
 			 * RTP header + size of CSRC if any - No extensions
 			 * payload (includes inner SRTP auth tag) */
