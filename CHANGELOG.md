@@ -6,13 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Preamble
 
-This changelog file keeps track of changes made to the linphone-sdk project, which is a only an unbrella project
-that bundles liblinphone and its dependencies as git submodules.
-Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
-changes made to these components.
-
+This changelog file keeps track of changes made to the linphone-sdk project.
+Please refer to CHANGELOG.md files of subprojects (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
+changes made to these components until the 5.5 SDK release.
+From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs in each individual component will not be updated anymore.
 
 ## [Unreleased]
+
 ### Added
 - Add stateful PRACK sending [RFC3262](https://www.rfc-editor.org/info/rfc3262)
 - MainDb: An API to check tables and schemas in order to know if an upgrade is needed. Forbid to start the core if upgrade is not done.
@@ -20,7 +20,8 @@ changes made to these components.
 - [sip]/call_accept_handles_replaces property so that is possible to disable the automatic termination of a replaces-pointed call upon accepting the INVITE.
 - Add new methods linphone_core_add_dns_srv_entry(), linphone_core_add_dns_a_entry() and linphone_core_add_dns_aaaa_entry() to assign custom
   DNS entry overrides. These are intended for testing or workaround DNS server issues.
-
+- Exponential retry backoff with jitter for REGISTER.
+- Stack-level custom DNS entries API for automated testing.
 
 ### Changed
 - Refactor ICE and STUN/TURN from C to C++
@@ -29,57 +30,16 @@ changes made to these components.
 - Updated Sqlite3 dependency to 3.54.0
 - Updated decaf dependency to 1.0.5
 - Updated SRTP library dependency to 2.8.1
+- Improved refresher failover and channel retention on SRV targets with `reconnect_to_primary_asap`.
 
 ### Fixed
-- During attended transfer, allow using the remote AOR uri rather than contact URI to forge the Refer-to header, when [sip]/refer_to_uses_aor is set to 1
-- Unexpected video direction change from recvonly to sendrecv, resulting in camera activation, when an application accepts a video stream as recvonly and subsequently receives a ICE re-INVITE.
-- macOS: fix no audio on local network calls when the Local Network privacy permission is denied (macOS 15+): the permission is now checked with Network.framework and ICE is disabled when it is not granted.
-
-## [5.5.39] - 2026-10-26
-
-### Fixed
-- Remove provisioning configuration keys parsing if generation of documentation has not been requested.
-- Fix potential crash when accessing messages and eventlogs after a core restart
-
-### Security
-- Fix vulnerabilities in RTCP PSFB RPSI, RTCP XR and RTP extension header remapping.
-- Bounds validation on RTCP RTPFB packets and RTP extension headers.
-
+- Fixed refresher connection loss detection after a successful registration.
+- Memory leak fixes.
 
 ## [5.5.35] 2026-10-19
 
 ### Changed
 - Update to MBedTls v3.6.7
-
-### Fixed
-- Fix potential crash when accessing messages and eventlogs after a core restart
-
-## [5.5.34] 2026-10-15
-
-### Fixed
-- Use the information in the NOTIFY message XML body to set the subject of a conference instead of looking at the INVITE message's Subject header
-
-## [5.5.33] 2026-10-13
-
-### Fixed
-- Reinitialize encryption contexts when the encryption keys or the origin address put down in the SDP changes
-
-## [5.5.32] 2026-10-08
-
-### Fixed
-- Fix bug on iOS that could lead the SDK to wrongfully identify a cellular network as a Wifi network
-- CSharp Wrapper: Separate getter/setter deprecation and set minimal version on C# for property obsolete features (8.0).
-
-## [5.5.30] 2026-10-05
-
-### Fixed
-- MKV: Add checks on buffer to avoid Out-of-bounds reads.
-- VP8: Fix a cast to avoid losing data.
-
-## [5.5.29] 2026-09-30
-
-### Fixed
-- iOS : fix possible audio route bug when switching audio device during call
 
 ## [5.5.0] 2026-05-25
 

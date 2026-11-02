@@ -4,25 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+# Preamble
 
-### Added
-- Exponential retry backoff with jitter for REGISTER.
-- Stack-level custom DNS entries API for automated testing.
-
-### Changed
-- Improved refresher failover and channel retention on SRV targets with `reconnect_to_primary_asap`.
-
-### Fixed
-- Fixed refresher connection loss detection after a successful registration.
-- Memory leak fixes.
-
+It has been updated until the 5.5 SDK release. Please refer to the changelog at root of the linphone-sdk project for changes from the 5.6 SDK release onwards.
 
 ## [5.5.0] - 2026-05-25
 
 ### Fixed
 - various grammar and protocol syntax fixes, see commits for details.
-
 
 ## [5.4.0] - 2025-03-11
 

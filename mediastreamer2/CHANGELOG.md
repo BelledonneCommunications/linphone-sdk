@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Preamble
+
+It has been updated until the 5.5 SDK release. Please refer to the changelog at root of the linphone-sdk project for changes from the 5.6 SDK release onwards.
+
+## [5.5.30] 2026-10-05
+
+### Fixed
+- MKV: Add checks on buffer to avoid Out-of-bounds reads.
+- VP8: Fix a cast to avoid losing data.
+
 ## [5.5.0] - 2026-05-25
 
 ### Added
