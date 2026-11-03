@@ -136,14 +136,18 @@ private:
 	[[nodiscard]] std::chrono::steady_clock::time_point getNextTransmissionTime() const {
 		return mNextTransmissionTime;
 	}
+	[[nodiscard]] std::chrono::milliseconds getRto() const;
 	[[nodiscard]] std::shared_ptr<Transaction> getTransaction(const StunTransactionId &transactionId) const;
 	[[nodiscard]] TurnTransport getTurnTransport() const {
 		return mTurnTransport;
 	}
+	void keepTransactionIdForRetransmission(const std::shared_ptr<StunMessage> &msg) const;
 	[[nodiscard]] bool needRetransmission() const;
 	void programNextTransmission(const std::chrono::steady_clock::time_point nextTransmissionTime) {
 		mNextTransmissionTime = nextTransmissionTime;
 	}
+	void restart();
+	[[nodiscard]] bool restartable() const;
 	[[nodiscard]] std::shared_ptr<Transaction> send(const SockAddr &server);
 	[[nodiscard]] std::shared_ptr<Transaction>
 	send(const SockAddr &server, const std::shared_ptr<StunMessage> &msg, const std::string &requestType) const;

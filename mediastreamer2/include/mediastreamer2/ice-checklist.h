@@ -451,6 +451,8 @@ private:
 	void handleStunErrorResponse(const RtpSession *rtpSession,
 	                             const OrtpEventData *eventData,
 	                             const std::shared_ptr<StunMessage> &msg) const;
+	[[nodiscard]] bool handleStunStaleNonceError(const OrtpEventData *eventData,
+	                                             const std::shared_ptr<StunMessage> &msg) const;
 	[[nodiscard]] bool hasLocalComponentId(ComponentId componentId) const;
 	[[nodiscard]] bool isFrozen() const;
 	[[nodiscard]] bool isGatheringCandidates() const {

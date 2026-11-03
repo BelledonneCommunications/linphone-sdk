@@ -22,6 +22,7 @@
 
 #include "mediastreamer2/ice-stun-request.h"
 
+#include "mediastreamer2/ice-constants.h"
 #include "mediastreamer2/ice-utils.h"
 #include "mediastreamer2/stun-message.h"
 #include "mediastreamer2/stun-raw-message.h"
@@ -117,6 +118,20 @@ std::vector<IceStunRequest::RoundTripTime> IceStunRequest::getGatheringRoundTrip
 	return roundTripTimes;
 }
 
+// Requests made during a call (TURN refresh, permission, channel bind) are not limited by the gathering timeout, so
+// they back off like RFC 5389 instead of giving up after 1.4s. Gathering requests keep the short fixed interval.
+std::chrono::milliseconds IceStunRequest::getRto() const {
+	auto rto = kIceDefaultRtoDuration;
+	if (mGathering) {
+		return rto;
+	}
+	auto sent = getNbTransactions();
+	while ((sent-- > 0) && (rto < std::chrono::milliseconds(6400))) {
+		rto *= 2;
+	}
+	return rto;
+}
+
 std::shared_ptr<IceStunRequest::Transaction>
 IceStunRequest::getTransaction(const StunTransactionId &transactionId) const {
 	const auto it = std::find_if(mTransactions.begin(), mTransactions.end(), [transactionId](const auto &transaction) {
@@ -128,8 +143,41 @@ IceStunRequest::getTransaction(const StunTransactionId &transactionId) const {
 	return *it;
 }
 
+// RFC 5389 section 7.2.1: a retransmitted request keeps its transaction ID.
+void IceStunRequest::keepTransactionIdForRetransmission(const std::shared_ptr<StunMessage> &msg) const {
+	if (mTransactions.empty()) {
+		return;
+	}
+	msg->setTransactionId(mTransactions.back()->getId());
+}
+
 bool IceStunRequest::needRetransmission() const {
 	return std::chrono::steady_clock::now() >= mNextTransmissionTime;
+}
+
+void IceStunRequest::restart() {
+	mTransactions.clear();
+	// Send as soon as possible, with a new transaction ID.
+	programNextTransmission(std::chrono::steady_clock::now());
+}
+
+// A refresh, permission or channel bind that got no answer at all must not end the chain of refreshes, or the relay
+// dies a few minutes later. A deallocation is not worth repeating.
+bool IceStunRequest::restartable() const {
+	const auto turnContext = getTurnContext();
+	if (mGathering || (turnContext == nullptr)) {
+		return false;
+	}
+	const auto *turnTransportContext = turnContext->getTransportContext(getTurnTransport());
+	if (turnTransportContext == nullptr) {
+		return false;
+	}
+	if ((mStunMethod == StunMessage::Method::TurnRefresh) && (turnTransportContext->getLifetime() == 0)) {
+		return false;
+	}
+	return (mStunMethod == StunMessage::Method::TurnRefresh) ||
+	       (mStunMethod == StunMessage::Method::TurnCreatePermission) ||
+	       (mStunMethod == StunMessage::Method::TurnChannelBind);
 }
 
 std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::send(const SockAddr &server) {
@@ -180,12 +228,15 @@ std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::send(const SockAddr
 }
 
 std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendStunBindingRequest(const SockAddr &server) const {
+	const auto msg = StunMessage::createStunBindingRequest();
+	keepTransactionIdForRetransmission(msg);
 	return send(server, StunMessage::createStunBindingRequest(), "STUN binding request");
 }
 
 std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnAllocateRequest(const SockAddr &server) {
 	const auto msg = StunMessage::createTurnAllocateRequest();
 	mStunMethod = msg->getMethod();
+	keepTransactionIdForRetransmission(msg);
 	fillStunMessageAuthenticationFromTurnContext(msg);
 	return send(server, msg,
 	            ((msg->getUsername() == std::nullopt) ? "TURN allocate request" : "TURN allocate request with auth"));
@@ -194,6 +245,7 @@ std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnAllocateReq
 std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnChannelBindRequest(const SockAddr &server) {
 	const auto msg = StunMessage::createTurnChannelBindRequest(mPeerAddress, mChannelNumber);
 	mStunMethod = msg->getMethod();
+	keepTransactionIdForRetransmission(msg);
 	fillStunMessageAuthenticationFromTurnContext(msg);
 	return send(server, msg, "TURN channel bind request");
 }
@@ -201,6 +253,7 @@ std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnChannelBind
 std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnCreatePermissionRequest(const SockAddr &server) {
 	const auto msg = StunMessage::createTurnCreatePermissionRequest(mPeerAddress);
 	mStunMethod = msg->getMethod();
+	keepTransactionIdForRetransmission(msg);
 	fillStunMessageAuthenticationFromTurnContext(msg);
 	return send(server, msg, "TURN create permission request");
 }
@@ -211,6 +264,7 @@ std::shared_ptr<IceStunRequest::Transaction> IceStunRequest::sendTurnRefreshRequ
 		const auto msg = StunMessage::createTurnRefreshRequest(
 		    turnTransportContext->getLifetime() ? turnTransportContext->getLifetime().value() : 0);
 		mStunMethod = msg->getMethod();
+		keepTransactionIdForRetransmission(msg);
 		fillStunMessageAuthenticationFromTurnContext(msg);
 		return send(server, msg, "TURN refresh request");
 	}

@@ -34,6 +34,11 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
 - Improved refresher failover and channel retention on SRV targets with `reconnect_to_primary_asap`.
 
 ### Fixed
+- Fix various TURN issues:
+  * TURN request retransmissions now keep the same transaction ID as the initial request.
+  * Handle the 438 Stale Nonce error from the TURN server.
+  * Retry sending of TURN messages if the maximum number of retransmissions has been reached without response from the server.
+    Also increase the time between each retransmission.
 - Fixed refresher connection loss detection after a successful registration.
 - Memory leak fixes.
 

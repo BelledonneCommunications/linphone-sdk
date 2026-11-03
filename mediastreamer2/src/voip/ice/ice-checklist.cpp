@@ -1692,6 +1692,11 @@ void IceCheckList::handleReceivedErrorResponse(RtpSession *rtpSession,
 	if (session == nullptr) {
 		return;
 	}
+
+	if (handleStunStaleNonceError(eventData, msg)) {
+		return;
+	}
+
 	if (isGatheringCandidates()) {
 		handleStunErrorResponse(rtpSession, eventData, msg);
 	} else {
@@ -1976,20 +1981,34 @@ void IceCheckList::handleStunErrorResponse(const RtpSession *rtpSession,
 		return;
 	}
 
-	const std::string realm = msg->getRealm() ? msg->getRealm().value() : "";
-	const std::string nonce = msg->getNonce() ? msg->getNonce().value() : "";
-	const auto authResponse = stunAuthListener->onStunAuthRequested(realm, nonce);
-	if (authResponse.username.empty() || !session->isTurnEnabled()) {
-		return;
-	}
-
 	const auto componentId = getComponentIdFromEventData(eventData);
 	if (!componentId) {
 		return;
 	}
 
-	const auto turnContext = getTurnContext(componentId.value());
-	auto *turnTransportContext = turnContext->getTransportContext(turnTransport);
+	TurnTransportContext *turnTransportContext = nullptr;
+	if (session->isTurnEnabled()) {
+		const auto turnContext = getTurnContext(componentId.value());
+		if (turnContext != nullptr) {
+			turnTransportContext = turnContext->getTransportContext(turnTransport);
+		}
+	}
+
+	const std::string realm = msg->getRealm() ? msg->getRealm().value() : "";
+	const std::string nonce = msg->getNonce() ? msg->getNonce().value() : "";
+	if ((turnTransportContext != nullptr) && turnTransportContext->getUsername() && turnTransportContext->getNonce() &&
+	    !nonce.empty() && (turnTransportContext->getNonce().value() == nonce)) {
+		// This is a 401 for a retransmitted unauthenticated request, the authenticated request has already been sent,
+		// and sending another one with a new ID would get a 437 error.
+		BCTBX_SLOGM << "ice: Ignoring duplicate 401 for TURN request";
+		return;
+	}
+
+	const auto authResponse = stunAuthListener->onStunAuthRequested(realm, nonce);
+	if (authResponse.username.empty() || !session->isTurnEnabled()) {
+		return;
+	}
+
 	if (!realm.empty()) {
 		turnTransportContext->setRealm(realm);
 	}
@@ -2010,6 +2029,60 @@ void IceCheckList::handleStunErrorResponse(const RtpSession *rtpSession,
 	if (optionalStunServer) {
 		request->addTransaction(request->sendTurnAllocateRequest(optionalStunServer.value()));
 	}
+}
+
+bool IceCheckList::handleStunStaleNonceError(const OrtpEventData *eventData,
+                                             const std::shared_ptr<StunMessage> &msg) const {
+	const auto session = getSession();
+	if (session == nullptr) {
+		return false;
+	}
+	const auto error = msg->getError();
+	if (!error || (error.value().getErrorCode() != StunError::Code::StunStaleNonce)) {
+		return false;
+	}
+	const auto componentId = getComponentIdFromEventData(eventData);
+	if (!componentId) {
+		return false;
+	}
+	const auto request = getStunRequest(msg->getTransactionId());
+	if (request == nullptr) {
+		return false;
+	}
+
+	const auto turnTransport = TurnContext::getTurnTransportFromMsg(eventData->packet);
+	TurnTransportContext *turnTransportContext = nullptr;
+	if (session->isTurnEnabled()) {
+		const auto turnContext = getTurnContext(componentId.value());
+		if (turnContext != nullptr) {
+			turnTransportContext = turnContext->getTransportContext(turnTransport);
+		}
+	}
+	if (turnTransportContext == nullptr) {
+		return false;
+	}
+
+	const auto nonce = msg->getNonce();
+	if (!nonce) {
+		return true;
+	}
+	if (turnTransportContext->getNonce() && (turnTransportContext->getNonce().value() == nonce)) {
+		// Already resent with this nonce.
+		return true;
+	}
+
+	BCTBX_SLOGM << "ice: TURN server sent 438 Stale Nonce, sending the request again with the new nonce";
+	turnTransportContext->setNonce(nonce.value());
+	const auto realm = msg->getRealm();
+	if (realm) {
+		turnTransportContext->setRealm(realm.value());
+	}
+	request->programNextTransmission(std::chrono::steady_clock::now() + kIceDefaultRtoDuration);
+	const auto optionalStunServer = session->getStunServerSockAddr(turnTransport);
+	if (optionalStunServer) {
+		request->addTransaction(request->send(optionalStunServer.value()));
+	}
+	return true;
 }
 
 bool IceCheckList::hasLocalComponentId(const ComponentId componentId) const {
@@ -2600,17 +2673,26 @@ void IceCheckList::sendStunRequests() {
 		}
 		if (stunRequest->getNbTransactions() < kIceMaxStunRequestRetransmissions) {
 			std::shared_ptr<IceStunRequest::Transaction> transaction;
-			stunRequest->programNextTransmission(currentTime + kIceDefaultRtoDuration);
+			stunRequest->programNextTransmission(currentTime + stunRequest->getRto());
 			const auto optionalStunServer = session->getStunServerSockAddr(stunRequest->getTurnTransport());
 			if (optionalStunServer) {
 				transaction = stunRequest->send(optionalStunServer.value());
+				if (stunRequest->getNbTransactions() == 0) {
+					// Add the transaction to the transaction list if it has not been done yet.
+					// It will usually be the case the request is restarted.
+					stunRequest->addTransaction(transaction);
+				}
 			}
 			if (transaction == nullptr) {
 				it = mStunRequests.erase(it);
 			} else {
-				stunRequest->addTransaction(transaction);
 				++it;
 			}
+		} else if (stunRequest->restartable()) {
+			BCTBX_SLOGW << "ice: No answer from the TURN server after " << kIceMaxStunRequestRetransmissions
+			            << " tries, starting the request again";
+			stunRequest->restart();
+			// Do not increment `it`, so that the new transaction for the request is sent immediately.
 		} else {
 			++it;
 		}
