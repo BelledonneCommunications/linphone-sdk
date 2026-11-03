@@ -213,6 +213,7 @@ public:
 	                                                               bool includeConference = true) const;
 	std::list<std::shared_ptr<AbstractChatRoom>> &getChatRooms() const;
 	const bctbx_list_t *getChatRoomsCList() const;
+	void postHttpBackup() const;
 
 	std::shared_ptr<AbstractChatRoom>
 	searchBasicChatRoom(const std::shared_ptr<ConferenceParams> &params,

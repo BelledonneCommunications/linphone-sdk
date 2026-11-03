@@ -47,21 +47,21 @@ private:
 };
 
 /*
- * Fake http server simulating the backup server that stores the chatroom list of users.
- * POST /backup stores the request body (application/json) for the sender given in the "From" header.
- * GET /backup returns the body previously stored for the sender given in the "From" header.
+ * Fake http server simulating a backup server. Each body is stored at the url path of its request, for instance
+ * "/<sip uri>", and only the paths given to addResource() are served:
+ * - POST stores the request body, which must be application/json, replacing any previous one.
+ * - GET returns the body stored at this path, or "[]" if none.
  */
 class BackupHttpServer : public bellesip::HttpServer {
 public:
-	/* Initialize the http server and register the POST and GET /backup routes. */
 	BackupHttpServer() = default;
-	// Add a resource file to serve at given url
+	/* Registers the GET and POST routes of the given url path */
 	void addResource(const std::string &urlPath);
 	/* Returns the base url of the server */
 	const std::string &getUrl() const;
-	/* Returns the body stored for the given sender, or std::nullopt if none. */
+	/* Returns the body stored at the given url path, or std::nullopt if none. */
 	std::optional<std::string> getBody(const std::string &sender) const;
-	/* Stores the body for the given sender, replacing any previous one. Returns false if sender is empty. */
+	/* Stores the body at the given url path, replacing any previous one. Returns false if the path is empty. */
 	bool setBody(const std::string &sender, const std::string &body);
 
 private:

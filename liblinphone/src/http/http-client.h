@@ -34,7 +34,7 @@ class HttpRequest;
 
 class Core;
 
-class JsonDocument {
+class LINPHONE_PUBLIC JsonDocument {
 public:
 	JsonDocument(const Content &content);
 	const Json::Value &getRoot() const {

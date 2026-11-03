@@ -169,6 +169,7 @@ AccountParams::AccountParams(LinphoneCore *lc, bool useDefaultValues) {
 
 	mCcmpServerUrl =
 	    useDefaultValues ? linphone_config_get_default_string(lc->config, "proxy", "ccmp_server_url", "") : "";
+	mBackupServerUrl = useDefaultValues ? L_C_TO_STRING(linphone_core_get_backup_server_url(lc)) : "";
 
 	if (lc && lc->push_config) {
 		mPushNotificationConfig = PushNotificationConfig::toCpp(lc->push_config)->clone();
@@ -345,6 +346,7 @@ AccountParams::AccountParams(LinphoneCore *lc, int index) : AccountParams(lc, fa
 	}
 
 	mCcmpServerUrl = linphone_config_get_string(config, key, "ccmp_server_url", "");
+	mBackupServerUrl = linphone_config_get_string(config, key, "backup_server_url", "");
 
 	mRtpBundleEnabled = !!linphone_config_get_bool(config, key, "rtp_bundle", linphone_core_rtp_bundle_enabled(lc));
 	mRtpBundleAssumption = !!linphone_config_get_bool(config, key, "rtp_bundle_assumption", FALSE);
@@ -434,6 +436,7 @@ AccountParams::AccountParams(const AccountParams &other) : HybridObject(other), 
 
 	mCcmpServerUrl = other.mCcmpServerUrl;
 	mCcmpUserId = other.mCcmpUserId;
+	mBackupServerUrl = other.mBackupServerUrl;
 
 	mFileTransferServer = other.mFileTransferServer;
 
@@ -728,6 +731,10 @@ void AccountParams::setCcmpServerUrl(const std::string &ccmpServerUrl) {
 	mCcmpServerUrl = ccmpServerUrl;
 }
 
+void AccountParams::setBackupServerUrl(const std::string &backupServerUrl) {
+	mBackupServerUrl = backupServerUrl;
+}
+
 void AccountParams::setFileTransferServer(const std::string &fileTransferServer) {
 	mFileTransferServer = fileTransferServer;
 }
@@ -1012,6 +1019,10 @@ const char *AccountParams::getCcmpServerUrlCstr() const {
 
 const std::string &AccountParams::getCcmpServerUrl() const {
 	return mCcmpServerUrl;
+}
+
+const std::string &AccountParams::getBackupServerUrl() const {
+	return mBackupServerUrl;
 }
 
 const std::string &AccountParams::getFileTransferServer() const {
@@ -1342,6 +1353,10 @@ void AccountParams::writeToConfigFile(LinphoneConfig *config, int index) {
 
 	if (!mCcmpServerUrl.empty()) {
 		linphone_config_set_string(config, key, "ccmp_server_url", mCcmpServerUrl.c_str());
+	}
+
+	if (!mBackupServerUrl.empty()) {
+		linphone_config_set_string(config, key, "backup_server_url", mBackupServerUrl.c_str());
 	}
 
 	linphone_config_set_int(config, key, "rtp_bundle", mRtpBundleEnabled);

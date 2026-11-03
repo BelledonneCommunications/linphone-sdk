@@ -776,6 +776,12 @@ const bctbx_list_t *Core::getChatRoomsCList() const {
 	return mChatRooms.getCList();
 }
 
+void Core::postHttpBackup() const {
+	for (const auto &account : getAccounts()) {
+		account->postHttpBackup();
+	}
+}
+
 std::shared_ptr<AbstractChatRoom> Core::searchChatRoom(const std::shared_ptr<ConferenceParams> &params,
                                                        const std::shared_ptr<const Address> &localAddress,
                                                        const std::shared_ptr<const Address> &remoteAddress,

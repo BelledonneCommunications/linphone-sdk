@@ -90,6 +90,10 @@ const char *linphone_core_get_lime_x3dh_server_url(LinphoneCore *lc) {
 	return L_STRING_TO_C(lc->cache.lime_server_url);
 }
 
+void linphone_core_post_http_backup(LinphoneCore *lc) {
+	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->postHttpBackup();
+}
+
 // Deprecated
 const char *linphone_core_get_linphone_specs(const LinphoneCore *lc) {
 	return linphone_config_get_string(linphone_core_get_config(lc), "sip", "linphone_specs", NULL);

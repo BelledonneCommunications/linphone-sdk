@@ -253,6 +253,7 @@ The <i>misc</i> section represents unspecific options.
 	<tr><td>chat_room_ephemeral_mode</td><td>integer</td><td>enumeration #LinphoneChatRoomEphemeralMode</td><td>LinphoneChatRoomEphemeralModeDeviceManaged</td><td>linphone_core_set_default_ephemeral_mode()</td><td>\copybrief linphone_core_set_default_ephemeral_mode</td></tr>
 	<tr><td>ephemeral_lifetime</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>linphone_core_set_default_ephemeral_lifetime()</td><td>\copybrief linphone_core_set_default_ephemeral_lifetime</td></tr>
 	<tr><td>ephemeral_not_read_lifetime</td><td>integer</td><td>any positive integer or 0</td><td>0</td><td>linphone_core_set_default_ephemeral_not_read_lifetime()</td><td>\copybrief linphone_core_set_default_ephemeral_not_read_lifetime</td></tr>
+	<tr><td>backup_server_url</td><td>string</td><td>HTTP or HTTPS URL</td><td>""</td><td>linphone_core_set_backup_server_url()</td><td>\copybrief linphone_core_set_backup_server_url</td></tr>
 </table>
 
 <h2>SIP accounts - section [<i>proxy_N</i>]</h2>
@@ -268,6 +269,7 @@ by the #LinphoneAccount and #LinphoneAccountParams object, but the linphonerc se
 	</tr>
 	<tr><td>reg_identity</td><td>string</td><td>SIP address</td><td>""</td><td>linphone_account_params_set_identity_address()</td><td>\copybrief linphone_account_params_set_identity_address</td></tr>
 	<tr><td>reg_proxy</td><td>string</td><td>SIP address</td><td>""</td><td>linphone_account_params_set_server_address()</td><td>\copybrief linphone_account_params_set_server_address</td></tr>
+	<tr><td>backup_server_url</td><td>string</td><td>HTTP or HTTPS URL</td><td>""</td><td>linphone_account_params_set_backup_server_url()</td><td>\copybrief linphone_account_params_set_backup_server_url</td></tr>
 	<tr><td>reg_route</td><td>string</td><td>SIP address</td><td>""</td><td>linphone_account_params_set_routes_addresses()</td><td>\copybrief linphone_account_params_set_routes_addresses</td></tr>
 	<tr><td>reg_sendregister</td><td>boolean</td><td>0 or 1</td><td>1</td><td>linphone_account_params_enable_register()</td><td>\copybrief linphone_account_params_enable_register</td></tr>
 	<tr><td>reg_expires</td><td>integer</td><td>any strictly positive integer</td><td>3600</td><td>linphone_account_params_set_expires()</td><td>\copybrief linphone_account_params_set_expires</td></tr>

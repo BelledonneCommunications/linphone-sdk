@@ -86,6 +86,7 @@ public:
 	void
 	setAudioVideoConferenceFactoryAddress(const std::shared_ptr<const Address> &audioVideoConferenceFactoryAddress);
 	void setCcmpServerUrl(const std::string &ccmpServerAddress);
+	void setBackupServerUrl(const std::string &backupServerUrl);
 	void setFileTransferServer(const std::string &fileTransferServer);
 	void setPrivacy(LinphonePrivacyMask privacy);
 	void setAvpfMode(LinphoneAVPFMode avpfMode);
@@ -146,6 +147,7 @@ public:
 	std::shared_ptr<const Address> getAudioVideoConferenceFactoryAddress() const;
 	const char *getCcmpServerUrlCstr() const;
 	const std::string &getCcmpServerUrl() const;
+	const std::string &getBackupServerUrl() const;
 	const char *getCcmpUserIdCstr() const;
 	const std::string &getCcmpUserId() const;
 	const std::string &getFileTransferServer() const;
@@ -252,6 +254,7 @@ private:
 	std::string mPictureUri;
 	std::string mCcmpServerUrl;
 	mutable std::string mCcmpUserId;
+	std::string mBackupServerUrl;
 
 	std::list<std::shared_ptr<Address>> mRoutes;
 	bctbx_list_t *mRoutesCString = nullptr;

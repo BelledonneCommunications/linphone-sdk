@@ -408,6 +408,14 @@ const char *linphone_account_params_get_ccmp_server_url(const LinphoneAccountPar
 	return AccountParams::toCpp(params)->getCcmpServerUrlCstr();
 }
 
+void linphone_account_params_set_backup_server_url(LinphoneAccountParams *params, const char *url) {
+	AccountParams::toCpp(params)->setBackupServerUrl(L_C_TO_STRING(url));
+}
+
+const char *linphone_account_params_get_backup_server_url(const LinphoneAccountParams *params) {
+	return L_STRING_TO_C(AccountParams::toCpp(params)->getBackupServerUrl());
+}
+
 void linphone_account_params_set_push_notification_allowed(LinphoneAccountParams *params, bool_t allow) {
 	AccountParams::toCpp(params)->setPushNotificationAllowed(allow);
 }

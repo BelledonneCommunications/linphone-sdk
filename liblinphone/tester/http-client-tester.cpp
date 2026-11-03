@@ -20,8 +20,15 @@
 #include "http/http-client.h"
 #include "liblinphone_tester.h"
 
+#include "account/account-params.h"
+#include "address/address.h"
 #include "core/core.h"
 #include "http-server-utils.h"
+#include "liblinphone_tester++.h"
+#include "linphone/api/c-account-params.h"
+#include "linphone/api/c-account.h"
+
+#include <set>
 
 // =============================================================================
 
@@ -546,6 +553,208 @@ static void chatroom_backup_updated() {
 	linphone_core_manager_destroy(lcm);
 }
 
+/*
+ * Creates a started core whose database is a copy of the given one. The core manager removes this copy when it is
+ * destroyed.
+ */
+static LinphoneCoreManager *createCoreManagerWithChatRooms(const char *database) {
+	char *dbPath = bc_tester_res(database);
+	LinphoneCoreManager *lcm = linphone_core_manager_create("empty_rc");
+	BC_ASSERT_FALSE(liblinphone_tester_copy_file(dbPath, lcm->database_path));
+	ms_free(dbPath);
+	// Conference events play no part in a backup: the loaded chat rooms stay out of the list event handler
+	linphone_config_set_bool(linphone_core_get_config(lcm->lc), "misc", "conference_event_log_enabled", FALSE);
+	linphone_core_manager_start(lcm, FALSE);
+	return lcm;
+}
+
+/*
+ * Adds an account that does not register. Its backup server is the given one or, when empty, the default one of the
+ * core. The core holds the returned account.
+ */
+static LinphoneAccount *
+addBackupAccount(LinphoneCoreManager *lcm, const std::string &identity, const std::string &backupServerUrl = "") {
+	LinphoneAccountParams *params = linphone_account_params_new(lcm->lc, TRUE);
+	LinphoneAddress *identityAddress = linphone_address_new(identity.c_str());
+	linphone_account_params_set_identity_address(params, identityAddress);
+	LinphoneAddress *serverAddress =
+	    linphone_address_new(("sip:" + std::string(linphone_address_get_domain(identityAddress))).c_str());
+	linphone_account_params_set_server_address(params, serverAddress);
+	linphone_address_unref(serverAddress);
+	linphone_address_unref(identityAddress);
+	linphone_account_params_enable_register(params, FALSE);
+	if (!backupServerUrl.empty()) {
+		linphone_account_params_set_backup_server_url(params, backupServerUrl.c_str());
+	}
+	LinphoneAccount *account = linphone_core_create_account(lcm->lc, params);
+	linphone_account_params_unref(params);
+	BC_ASSERT_EQUAL(linphone_core_add_account(lcm->lc, account), 0, int, "%d");
+	linphone_account_unref(account);
+	return account;
+}
+
+/*
+ * Iterates the core until the server has stored a backup at the given path.
+ */
+static bool waitForBackup(LinphoneCoreManager *lcm, const BackupHttpServer &server, const std::string &path) {
+	return Linphone::Tester::CoreAssert({L_GET_CPP_PTR_FROM_C_OBJECT(lcm->lc)->getSharedFromThis()})
+	    .wait([&server, &path] { return server.getBody(path).has_value(); });
+}
+
+/*
+ * Returns the URI of each conference address listed in a backup, with its parameters such as the GRUU.
+ */
+static std::set<std::string> getBackupChatRooms(const std::string &backup) {
+	const JsonDocument document(jsonContent(backup));
+	const Json::Value &chatRoomsJson = document.getRoot()["chat_rooms"];
+	BC_ASSERT_TRUE(chatRoomsJson.isArray());
+	std::set<std::string> chatRooms;
+	for (const auto &chatRoom : chatRoomsJson) {
+		const auto address = Address::create(chatRoom["conference_address"].asString());
+		if (address) chatRooms.insert(address->asStringUriOnly());
+	}
+	return chatRooms;
+}
+
+static void push_chatroom_list() {
+	BackupHttpServer backupHttpServer;
+	LinphoneCoreManager *lcm = createCoreManagerWithChatRooms("db/linphone.db");
+	const std::string identity = "sip:test-1@sip.linphone.org";
+	const std::string urlPath = "/" + identity;
+	const std::set<std::string> groupChatRooms = {"sip:test-43@sip.linphone.org", "sip:test-44@sip.linphone.org",
+	                                              "sip:test-45@sip.linphone.org", "sip:test-46@sip.linphone.org"};
+	backupHttpServer.addResource(urlPath);
+	// Show all chat rooms, so that those missing from the backup were excluded by the push itself
+	linphone_config_set_int(linphone_core_get_config(lcm->lc), "misc", "hide_empty_chat_rooms", 0);
+
+	const LinphoneAccount *account = addBackupAccount(lcm, identity, backupHttpServer.getUrl());
+	// The account also has basic chat rooms, that are not part of the backup
+	BC_ASSERT_GREATER_STRICT(bctbx_list_size(linphone_account_get_chat_rooms(account)), groupChatRooms.size(), size_t,
+	                         "%zu");
+
+	linphone_core_post_http_backup(lcm->lc);
+	BC_ASSERT_TRUE(waitForBackup(lcm, backupHttpServer, urlPath));
+
+	const auto stored = backupHttpServer.getBody(urlPath);
+	BC_ASSERT_TRUE(stored.has_value());
+	if (stored) {
+		BC_ASSERT_TRUE(getBackupChatRooms(*stored) == groupChatRooms);
+
+		const auto res = sendBackupRequest(lcm, backupHttpServer, "GET", urlPath);
+		BC_ASSERT_EQUAL(res.code, 200, int, "%i");
+		BC_ASSERT_STRING_EQUAL(res.subType.c_str(), "json");
+		BC_ASSERT_STRING_EQUAL(res.body.c_str(), stored->c_str());
+	}
+
+	linphone_core_manager_destroy(lcm);
+}
+
+static void push_chatroom_list_multiple_accounts() {
+	BackupHttpServer backupHttpServer;
+	LinphoneCoreManager *lcm = createCoreManagerWithChatRooms("db/chatrooms.db");
+	const std::string firstIdentity = "sip:user_124@sip.example.org";
+	const std::string secondIdentity = "sip:user_146@sip.example.org";
+	const std::string noServerIdentity = "sip:user_157@sip.example.org";
+	const std::string noChatRoomIdentity = "sip:no_chat_room@sip.example.org";
+	for (const auto &identity : {firstIdentity, secondIdentity, noServerIdentity, noChatRoomIdentity}) {
+		backupHttpServer.addResource("/" + identity);
+	}
+
+	addBackupAccount(lcm, firstIdentity, backupHttpServer.getUrl());
+	addBackupAccount(lcm, noServerIdentity);
+	addBackupAccount(lcm, secondIdentity, backupHttpServer.getUrl());
+	addBackupAccount(lcm, noChatRoomIdentity, backupHttpServer.getUrl());
+
+	linphone_core_post_http_backup(lcm->lc);
+	BC_ASSERT_TRUE(waitForBackup(lcm, backupHttpServer, "/" + firstIdentity));
+	BC_ASSERT_TRUE(waitForBackup(lcm, backupHttpServer, "/" + secondIdentity));
+	BC_ASSERT_TRUE(waitForBackup(lcm, backupHttpServer, "/" + noChatRoomIdentity));
+
+	// Each request contains only the chat rooms of its account, with their GRUU
+	const std::set<std::string> firstChatRooms = {
+	    "sip:chatroom-1d~jyR59Fl~gxhbC@conf.example.org;gr=b3ab8653-8a3e-00d3-973f-dd158e277bdf",
+	    "sip:chatroom-WtRDzvBYXZSYK9sL@conf.example.org;gr=b3ab8653-8a3e-00d3-973f-dd158e277bdf"};
+	const std::set<std::string> secondChatRooms = {
+	    "sip:chatroom-4ikGiuRbMvTNTaSc@conf.example.org;gr=b3ab8653-8a3e-00d3-973f-dd158e277bdf",
+	    "sip:chatroom-DMopHf8Bo6KweVc8@conf.example.org;gr=b3ab8653-8a3e-00d3-973f-dd158e277bdf"};
+	BC_ASSERT_TRUE(getBackupChatRooms(backupHttpServer.getBody("/" + firstIdentity).value_or("")) == firstChatRooms);
+	BC_ASSERT_TRUE(getBackupChatRooms(backupHttpServer.getBody("/" + secondIdentity).value_or("")) == secondChatRooms);
+	BC_ASSERT_TRUE(getBackupChatRooms(backupHttpServer.getBody("/" + noChatRoomIdentity).value_or("")).empty());
+
+	// Leave time for a request that should not be sent to reach the server
+	int dummy = 0;
+	wait_for_until(lcm->lc, NULL, &dummy, 1, 500);
+	BC_ASSERT_FALSE(backupHttpServer.getBody("/" + noServerIdentity).has_value());
+
+	linphone_core_manager_destroy(lcm);
+}
+
+static void backup_server_of_core_and_account() {
+	BackupHttpServer coreServer;
+	BackupHttpServer accountServer;
+	LinphoneCoreManager *lcm = createCoreManagerWithChatRooms("db/chatrooms.db");
+	// The URL of the core ends with a slash and the one of the account does not: no request may double it
+	const std::string coreUrl = coreServer.getUrl() + "/";
+	const std::string corePath = "/sip:user_124@sip.example.org";
+	const std::string accountPath = "/sip:user_146@sip.example.org";
+	const std::string disabledPath = "/sip:user_157@sip.example.org";
+	for (const auto &path : {corePath, accountPath, disabledPath}) {
+		coreServer.addResource(path);
+		accountServer.addResource(path);
+	}
+
+	linphone_core_set_backup_server_url(lcm->lc, coreUrl.c_str());
+	BC_ASSERT_STRING_EQUAL(linphone_core_get_backup_server_url(lcm->lc), coreUrl.c_str());
+
+	// The first account gets the server of the core as default value, the second one overrides it
+	const LinphoneAccount *coreAccount = addBackupAccount(lcm, corePath.substr(1));
+	const LinphoneAccount *account = addBackupAccount(lcm, accountPath.substr(1), accountServer.getUrl());
+	BC_ASSERT_STRING_EQUAL(linphone_account_params_get_backup_server_url(linphone_account_get_params(coreAccount)),
+	                       coreUrl.c_str());
+	BC_ASSERT_STRING_EQUAL(linphone_account_params_get_backup_server_url(linphone_account_get_params(account)),
+	                       accountServer.getUrl().c_str());
+
+	// The third account also gets the server of the core, then the application disables its backup
+	LinphoneAccount *disabledAccount = addBackupAccount(lcm, disabledPath.substr(1));
+	LinphoneAccountParams *disabledParams = linphone_account_params_clone(linphone_account_get_params(disabledAccount));
+	linphone_account_params_set_backup_server_url(disabledParams, "");
+	linphone_account_set_params(disabledAccount, disabledParams);
+	linphone_account_params_unref(disabledParams);
+	BC_ASSERT_PTR_NULL(linphone_account_params_get_backup_server_url(linphone_account_get_params(disabledAccount)));
+
+	linphone_core_post_http_backup(lcm->lc);
+	BC_ASSERT_TRUE(waitForBackup(lcm, coreServer, corePath));
+	BC_ASSERT_TRUE(waitForBackup(lcm, accountServer, accountPath));
+
+	// Leave time for requests that should not be sent to reach a server
+	int dummy = 0;
+	wait_for_until(lcm->lc, NULL, &dummy, 1, 500);
+	BC_ASSERT_FALSE(coreServer.getBody(accountPath).has_value());
+	BC_ASSERT_FALSE(accountServer.getBody(corePath).has_value());
+	BC_ASSERT_FALSE(coreServer.getBody(disabledPath).has_value());
+	BC_ASSERT_FALSE(accountServer.getBody(disabledPath).has_value());
+
+	// The server of an account survives its params being written to the configuration and read back, as at start-up.
+	// Written over the same section, the disabled account does not get any server back.
+	const auto writeAndReadBackServerUrl = [lcm](const LinphoneAccount *writtenAccount) {
+		const int configIndex = 10;
+		LinphoneAccountParams *writtenParams =
+		    linphone_account_params_clone(linphone_account_get_params(writtenAccount));
+		AccountParams::toCpp(writtenParams)->writeToConfigFile(linphone_core_get_config(lcm->lc), configIndex);
+		linphone_account_params_unref(writtenParams);
+		LinphoneAccountParams *readParams = linphone_account_params_new_with_config(lcm->lc, configIndex);
+		const char *url = linphone_account_params_get_backup_server_url(readParams);
+		const std::string readUrl = url ? url : "";
+		linphone_account_params_unref(readParams);
+		return readUrl;
+	};
+	const std::string readAccountUrl = writeAndReadBackServerUrl(account);
+	BC_ASSERT_STRING_EQUAL(readAccountUrl.c_str(), accountServer.getUrl().c_str());
+	BC_ASSERT_TRUE(writeAndReadBackServerUrl(disabledAccount).empty());
+
+	linphone_core_manager_destroy(lcm);
+}
+
 static test_t http_client_tests[] = {
     {"Http get", http_get},
     {"Bad http uri", http_bad_uri},
@@ -562,6 +771,9 @@ static test_t backup_http_client_tests[] = {
     {"Post and get chatroom backup", post_and_get_chatroom_backup},
     {"Chatroom backup errors", chatroom_backup_errors},
     {"Chatroom backup updated", chatroom_backup_updated},
+    {"Push chatroom list", push_chatroom_list},
+    {"Push chatroom list with multiple accounts", push_chatroom_list_multiple_accounts},
+    {"Backup server of core and account", backup_server_of_core_and_account},
 };
 
 test_suite_t http_client_test_suite = {"HTTP Client",

@@ -5933,6 +5933,34 @@ LINPHONE_PUBLIC void linphone_core_set_file_transfer_server(LinphoneCore *core, 
 LINPHONE_PUBLIC const char *linphone_core_get_file_transfer_server(LinphoneCore *core);
 
 /**
+ * Globally sets the default URL of the HTTP backup server used by linphone_core_post_http_backup().
+ * Account params created afterwards with linphone_core_create_account_params() start with this URL. An account can use
+ * another server, or none, with linphone_account_params_set_backup_server_url().
+ * @param core #LinphoneCore to be modified @notnil
+ * @param url URL of the backup server. @maybenil
+ * @ingroup group_misc
+ */
+LINPHONE_PUBLIC void linphone_core_set_backup_server_url(LinphoneCore *core, const char *url);
+
+/**
+ * Gets the default URL of the HTTP backup server, set with linphone_core_set_backup_server_url().
+ * @param core #LinphoneCore from which to get the URL @notnil
+ * @return URL of the backup server. @maybenil
+ * @ingroup group_misc
+ */
+LINPHONE_PUBLIC const char *linphone_core_get_backup_server_url(LinphoneCore *core);
+
+/**
+ * Backs up the list of group chat rooms of each account on its HTTP backup server.
+ * One HTTP POST request is sent per account having a backup server, and it contains only the group chat rooms of this
+ * account. The server of an account is the one set with linphone_account_params_set_backup_server_url(), and accounts
+ * without a server are skipped.
+ * @param core #LinphoneCore object @notnil
+ * @ingroup group_misc
+ */
+LINPHONE_PUBLIC void linphone_core_post_http_backup(LinphoneCore *core);
+
+/**
  * Returns a list of strings containing the file format types supported for call recording.
  * @param core the core @notnil
  * @return The supported formats, typically 'wav', 'mka', 'mkv', 'smff'. \bctbx_list{char *} @notnil @tobefreed

@@ -1121,6 +1121,38 @@ Json::Value Account::getChatRoomsJson(bool onlyGroups) const {
 	return json;
 }
 
+void Account::postHttpBackup() const {
+	if (!mParams) {
+		lWarning() << "postHttpBackup is called but no AccountParams is set on " << *this;
+		return;
+	}
+	string serverUrl = mParams->getBackupServerUrl();
+	const auto identity = mParams->getIdentityAddress();
+	if (serverUrl.empty() || !identity) return;
+
+	if (serverUrl.back() != '/') serverUrl += '/';
+	const string url = serverUrl + identity->asStringUriOnly();
+	Json::StreamWriterBuilder builder;
+	builder["indentation"] = "";
+	try {
+		auto &request = getCore()->getHttpClient().createRequest("POST", url);
+		request.setAuthInfo(identity->getUsername(), identity->getDomain());
+		request.setBody(
+		    Content(ContentType("application/json"), string(Json::writeString(builder, getChatRoomsJson(true)))));
+		request.execute([url](const HttpResponse &response) {
+			int code = response.getHttpStatusCode();
+			if (response.getStatus() == HttpResponse::Valid && code >= 200 && code < 300) {
+				lInfo() << "HTTP backup posted to " << url;
+			} else {
+				lError() << "Failed to post HTTP backup to " << url << ": status [" << response.getStatus()
+				         << "], HTTP code [" << code << "]";
+			}
+		});
+	} catch (const std::exception &e) {
+		lError() << "Cannot post HTTP backup to " << url << ": " << e.what();
+	}
+}
+
 int Account::getMissedCallsCount() const {
 	return mMissedCalls;
 }

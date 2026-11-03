@@ -20,6 +20,7 @@ It has been updated until the 5.5 SDK release. Please refer to the changelog at 
 
 ### Added
 - [sip]/call_accept_handles_replaces property so that is possible to disable the automatic termination of a replaces-pointed call upon accepting the INVITE.
+- Manual backup of the list of group chat rooms of each account on an HTTP backup server: linphone_core_post_http_backup(), with the server of each account set by linphone_account_params_set_backup_server_url(), whose default value is set by linphone_core_set_backup_server_url().
 
 ### Fixed
 - During attended transfer, allow using the remote AOR uri rather than contact URI to forge the Refer-to header, when [sip]/refer_to_uses_aor is set to 1

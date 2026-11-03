@@ -738,6 +738,15 @@ LINPHONE_PUBLIC void linphone_account_params_set_audio_video_conference_factory_
 LINPHONE_PUBLIC void linphone_account_params_set_ccmp_server_url(LinphoneAccountParams *params, const char *url);
 
 /**
+ * Set the URL of the HTTP backup server used by linphone_core_post_http_backup() for this account.
+ * An empty or NULL URL disables the backup of this account. Params created with linphone_core_create_account_params()
+ * start with the URL set with linphone_core_set_backup_server_url().
+ * @param params The #LinphoneAccountParams object @notnil
+ * @param url The URL of the backup server. @maybenil
+ */
+LINPHONE_PUBLIC void linphone_account_params_set_backup_server_url(LinphoneAccountParams *params, const char *url);
+
+/**
  * If enabled, the proxy will be used as the only route.
  * @param params The #LinphoneAccountParams object. @notnil
  * @param enable TRUE to enable, FALSE otherwise.
@@ -812,6 +821,13 @@ LINPHONE_PUBLIC const char *linphone_account_params_get_ccmp_user_id(const Linph
  * @return The URL of the CCMP server. @maybenil
  */
 LINPHONE_PUBLIC const char *linphone_account_params_get_ccmp_server_url(const LinphoneAccountParams *params);
+
+/**
+ * Get the URL of the HTTP backup server used by linphone_core_post_http_backup() for this account.
+ * @param params The #LinphoneAccountParams object @notnil
+ * @return The URL of the backup server set on this account. @maybenil
+ */
+LINPHONE_PUBLIC const char *linphone_account_params_get_backup_server_url(const LinphoneAccountParams *params);
 
 /**
  * Indicates whether to add to the contact parameters the push notification information. For IOS, it indicates for VOIP

@@ -9115,6 +9115,14 @@ const char *linphone_core_get_file_transfer_server(LinphoneCore *core) {
 	return linphone_config_get_string(core->config, "misc", "file_transfer_server_url", NULL);
 }
 
+void linphone_core_set_backup_server_url(LinphoneCore *core, const char *url) {
+	linphone_config_set_string(core->config, "misc", "backup_server_url", url);
+}
+
+const char *linphone_core_get_backup_server_url(LinphoneCore *core) {
+	return linphone_config_get_string(core->config, "misc", "backup_server_url", NULL);
+}
+
 void linphone_core_set_supported_tag(LinphoneCore *lc, const char *tags) {
 	lc->sal->setSupportedTags(tags);
 	linphone_config_set_string(lc->config, "sip", "supported", tags);
