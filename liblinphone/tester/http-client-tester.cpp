@@ -444,7 +444,6 @@ static void post_and_get_chatroom_backup() {
 	BC_ASSERT_STRING_EQUAL(res.body.c_str(), backup.c_str());
 	BC_ASSERT_STRING_EQUAL(res.subType.c_str(), "json");
 
-
 	auto urlPath2 = std::string("/sip:fake@sip.example.org");
 	backupHttpServer.addResource(urlPath2);
 
@@ -487,7 +486,7 @@ static void chatroom_backup_errors() {
 	// GET from an unsupported path
 	bool exception_thrown = false;
 	try {
-	res = sendBackupRequest(lcm, backupHttpServer, "GET", std::string("sip:unsupported_url_path@sip.example.org"));
+		res = sendBackupRequest(lcm, backupHttpServer, "GET", std::string("sip:unsupported_url_path@sip.example.org"));
 	} catch (std::invalid_argument &) {
 		exception_thrown = true;
 	}
@@ -576,11 +575,11 @@ test_suite_t http_client_test_suite = {"HTTP Client",
                                        0};
 
 test_suite_t backup_http_client_test_suite = {"Backup HTTP Client",
-                                       before_suite,
-                                       after_suite,
-                                       liblinphone_tester_before_each,
-                                       liblinphone_tester_after_each,
-                                       sizeof(backup_http_client_tests) / sizeof(backup_http_client_tests[0]),
-                                       backup_http_client_tests,
-                                       3,
-                                       0};
+                                              before_suite,
+                                              after_suite,
+                                              liblinphone_tester_before_each,
+                                              liblinphone_tester_after_each,
+                                              sizeof(backup_http_client_tests) / sizeof(backup_http_client_tests[0]),
+                                              backup_http_client_tests,
+                                              3,
+                                              0};
