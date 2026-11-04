@@ -214,11 +214,28 @@ static void recovered_call_on_network_switch_in_early_state(LinphoneCoreManager 
 		                       repared_callid);
 
 		incoming_call = linphone_core_get_current_call(pauline->lc);
+		BC_ASSERT_PTR_NOT_NULL(incoming_call);
+		if (!incoming_call) {
+			goto end;
+		}
 		remote_params = linphone_call_get_remote_params(incoming_call);
 		BC_ASSERT_PTR_NOT_NULL(remote_params);
+
+		const char *replaces_header_incoming_call = linphone_call_get_replaces(incoming_call);
+		BC_ASSERT_PTR_NOT_NULL(replaces_header_incoming_call);
 		if (remote_params != NULL) {
-			const char *replaces_header = linphone_call_params_get_custom_header(remote_params, "Replaces");
-			BC_ASSERT_PTR_NOT_NULL(replaces_header);
+			const char *replaces_header_from_params = linphone_call_params_get_custom_header(remote_params, "Replaces");
+			BC_ASSERT_PTR_NOT_NULL(replaces_header_from_params);
+			if (replaces_header_from_params && replaces_header_incoming_call) {
+				BC_ASSERT_STRING_EQUAL(replaces_header_incoming_call, replaces_header_from_params);
+			}
+		}
+		if (outgoing_call) {
+			const char *replaces_header_outgoing_call = linphone_call_get_replaces(outgoing_call);
+			BC_ASSERT_PTR_NOT_NULL(replaces_header_outgoing_call);
+			if (replaces_header_outgoing_call && replaces_header_incoming_call) {
+				BC_ASSERT_STRING_EQUAL(replaces_header_outgoing_call, replaces_header_incoming_call);
+			}
 		}
 
 		linphone_call_accept(incoming_call);

@@ -162,7 +162,7 @@ static void create_conference() {
 	std::list<std::shared_ptr<linphone::Address>> participants;
 
 	participants.push_back(
-	    marieCore->createAddress(linphone::Object::cPtrToSharedPtr<linphone::Address>(pauline->identity)->asString()));
+	    linphone::Factory::get()->createAddress(linphone::Object::cPtrToSharedPtr<linphone::Address>(pauline->identity)->asString()));
 
 	auto callParams = marieCore->createCallParams(nullptr);
 	callParams->enableVideo(false);
@@ -218,6 +218,38 @@ static void various_api_checks(void) {
 	BC_ASSERT_EQUAL(participants.size(), testList.size(), size_t, "%zu");
 
 	linphone_core_manager_destroy(marie);
+}
+
+static void call_api_checks() {
+	std::shared_ptr<AutoAcceptHandler> handler = std::make_shared<AutoAcceptHandler>();
+	// Init from C
+	LinphoneCoreManager *marie = linphone_core_manager_new("marie_rc");
+	LinphoneCoreManager *pauline = linphone_core_manager_new("pauline_tcp_rc");
+
+	// Get C++ and start working from it.
+	auto marieCore = linphone::Object::cPtrToSharedPtr<linphone::Core>(marie->lc, TRUE);
+	auto paulineCore = linphone::Object::cPtrToSharedPtr<linphone::Core>(pauline->lc, TRUE);
+
+	paulineCore->addListener(handler);
+
+	marieCore->inviteAddress(linphone::Factory::get()->createAddress(linphone::Object::cPtrToSharedPtr<linphone::Address>(pauline->identity)->asString()));
+
+	wait_for_until(marie->lc, pauline->lc, NULL, 0, 2000);
+
+	const std::shared_ptr<linphone::Call> &paulineCall = paulineCore->getCurrentCall();
+	if (paulineCall) {
+		BC_ASSERT_TRUE(paulineCall->getReplaces().empty());
+		paulineCall->terminate();
+	}
+
+	paulineCore = nullptr; // C++ Core deletion
+	marieCore = nullptr;
+	wait_for_until(marie->lc, pauline->lc, NULL, 0, 500);
+
+	// C clean
+	linphone_core_manager_destroy(pauline);
+	linphone_core_manager_destroy(marie);
+
 }
 
 static void displaying_payload_type(void) {
@@ -313,6 +345,7 @@ test_t wrapper_cpp_tests[] = {TEST_NO_TAG("Create account", create_account),
                               TEST_NO_TAG("Create chat room", create_chat_room),
                               TEST_NO_TAG("Create conference", create_conference),
                               TEST_NO_TAG("Various API checks", various_api_checks),
+                              TEST_NO_TAG("Call API checks", call_api_checks),
                               TEST_NO_TAG("Subscribe replaced", subscribe_replaced),
                               TEST_NO_TAG("Displaying PayloadType", displaying_payload_type)};
 

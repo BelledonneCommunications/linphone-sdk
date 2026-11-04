@@ -13,6 +13,11 @@ It has been updated until the 5.5 SDK release. Please refer to the changelog at 
 ## [Latest]
 
 ### Added
+- add API to get the `Replaces` header's serialized value: linphone_call_get_replaces()
+
+## [5.5.40] - 2026-11-05
+
+### Added
 - [sip]/call_accept_handles_replaces property so that is possible to disable the automatic termination of a replaces-pointed call upon accepting the INVITE.
 
 ### Fixed

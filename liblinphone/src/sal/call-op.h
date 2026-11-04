@@ -76,7 +76,8 @@ public:
 	int setReferrer(SalCallOp *referredCall);
 	const SalAddress *getRemoteContactAddress() const override;
 	const SalAddress *getReferredBy() const;
-	SalCallOp *getReplaces() const;
+	SalCallOp *getReplacesOp() const;
+	const std::string &getReplacesHeaderValue() const;
 	int sendDtmf(char dtmf);
 	int terminate(const SalErrorInfo *info = nullptr);
 	bool autoAnswerAsked() const {
@@ -187,6 +188,7 @@ private:
 	bool capabilityNegotiation = false;
 	bool mNotifyAllRingings = false;
 	bool mIsCancelled = false;
+	mutable std::string mReplacesHeaderValue;
 };
 
 LINPHONE_END_NAMESPACE

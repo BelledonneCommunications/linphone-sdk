@@ -85,7 +85,7 @@ void CorePrivate::addReleasingCall(const shared_ptr<Call> &call) {
 
 bool CorePrivate::inviteReplacesABrokenCall(SalCallOp *op) {
 	CallSession *replacedSession = nullptr;
-	SalCallOp *replacedOp = op->getReplaces();
+	SalCallOp *replacedOp = op->getReplacesOp();
 	if (replacedOp) replacedSession = static_cast<CallSession *>(replacedOp->getUserPointer());
 	for (const auto &call : calls) {
 		shared_ptr<CallSession> session = call->getActiveSession();
