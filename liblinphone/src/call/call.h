@@ -183,6 +183,7 @@ public:
 	const std::string &getRemoteContact() const;
 	const MediaSessionParams *getRemoteParams() const;
 	const std::string &getRemoteUserAgent();
+	const std::string &getReplacesHeaderValue() const;
 	std::shared_ptr<Call> getReplacedCall() const;
 	float getSpeakerVolumeGain() const;
 	CallSession::State getState() const;

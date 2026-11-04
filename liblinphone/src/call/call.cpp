@@ -1346,6 +1346,10 @@ const string &Call::getRemoteUserAgent() {
 	return getActiveSession()->getRemoteUserAgent();
 }
 
+const std::string &Call::getReplacesHeaderValue() const {
+	return  getOp()->getReplacesHeaderValue();
+}
+
 shared_ptr<Call> Call::getReplacedCall() const {
 	shared_ptr<CallSession> replacedCallSession = getActiveSession()->getReplacedCallSession();
 	if (!replacedCallSession) return nullptr;

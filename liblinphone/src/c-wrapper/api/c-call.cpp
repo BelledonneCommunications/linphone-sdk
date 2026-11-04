@@ -314,6 +314,10 @@ LinphoneCall *linphone_call_get_replaced_call(LinphoneCall *call) {
 	return replacedCall->toC();
 }
 
+const char* linphone_call_get_replaces(const LinphoneCall *call) {
+	return L_STRING_TO_C(Call::toCpp(call)->getReplacesHeaderValue());
+}
+
 int linphone_call_get_duration(const LinphoneCall *call) {
 	return Call::toCpp(call)->getDuration();
 }

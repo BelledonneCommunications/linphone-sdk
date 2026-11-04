@@ -1699,7 +1699,18 @@ const SalAddress *SalCallOp::getRemoteContactAddress() const {
 	return nullptr;
 }
 
-SalCallOp *SalCallOp::getReplaces() const {
+const std::string &SalCallOp::getReplacesHeaderValue() const {
+	if (mReplaces) {
+		auto replacesHeaderCString = belle_sip_header_replaces_value_to_escaped_string(mReplaces);
+		mReplacesHeaderValue = replacesHeaderCString;
+		ms_free(replacesHeaderCString);
+	} else {
+		mReplacesHeaderValue.clear();
+	}
+	return mReplacesHeaderValue;
+}
+
+SalCallOp *SalCallOp::getReplacesOp() const {
 	if (!mReplaces) return nullptr;
 	const char *from_tag = belle_sip_header_replaces_get_from_tag(mReplaces);
 	const char *to_tag = belle_sip_header_replaces_get_to_tag(mReplaces);

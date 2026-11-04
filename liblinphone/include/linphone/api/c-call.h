@@ -204,6 +204,15 @@ LINPHONE_PUBLIC LinphoneCall *linphone_call_get_transfer_target_call(const Linph
 LINPHONE_PUBLIC LinphoneCall *linphone_call_get_replaced_call(LinphoneCall *call);
 
 /**
+ * Returns the serialized value of the `Replaces` header or URI parameters.
+ * In the case of a call transfer, this method returns the `Refer-To`'s `Replaces` URI parameter of the incoming `REFER` message.
+ * Otherwise, the `Replaces`'s header value is returned for INVITEs if set.
+ * @param call #LinphoneCall object. @notnil
+ * @return the `Replaces` header value set or NULL. @maybenil
+ **/
+LINPHONE_PUBLIC const char* linphone_call_get_replaces(const LinphoneCall *call);
+
+/**
  * Returns call's duration in seconds.
  * @param call #LinphoneCall object. @notnil
  * @return the call's duration in seconds.
@@ -1093,7 +1102,7 @@ LINPHONE_PUBLIC const LinphoneVideoSourceDescriptor *linphone_call_get_video_sou
 LINPHONE_PUBLIC void linphone_call_confirm_go_clear(const LinphoneCall *call);
 
 /**
- * Accepts and execute a transfer (ie an incoming REFER request), to use when [sip] 'auto_accept_refer' property is
+ * Accepts and execute a transfer (ie an incoming `REFER` request), to use when [sip] 'auto_accept_refer' property is
  * false. Default behaviour is to accept and execute the transfer automatically.
  * @param call The #LinphoneCall to be transferred @notnil
  */
