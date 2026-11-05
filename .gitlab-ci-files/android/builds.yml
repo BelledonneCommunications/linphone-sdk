@@ -140,6 +140,13 @@ android-ninja-r27-minimal-size:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_VCARD=OFF -DENABLE_MKV=OFF -DENABLE_CAMERA2=OFF -DENABLE_ASSETS=OFF -DENABLE_LIME_X3DH=OFF -DENABLE_QRCODE=OFF -DENABLE_JPEG=OFF -DENABLE_ZLIB=OFF -DENABLE_SQLITE=OFF -DENABLE_XML2=OFF -DENABLE_ZRTP=OFF
   extends: android-ninja-r27
 
+android-ninja-r27-minimal-size-mr:
+  artifacts: null # no automatic MR job uses the artifacts of this build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  extends: android-ninja-r27-minimal-size
+
+
 
 #################################################
 # Ninja

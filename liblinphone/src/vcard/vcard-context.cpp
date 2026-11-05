@@ -86,7 +86,7 @@ list<shared_ptr<Vcard>> VcardContext::getVcardListFromFile(const string &filenam
 
 #else
 
-VcardContext::VcardContext(bool) {
+VcardContext::VcardContext() {
 }
 
 VcardContext *VcardContext::clone() const {
