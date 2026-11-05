@@ -107,9 +107,10 @@ static FsmIntegrityChecker<ChatMessage::State> chatMessageFsmChecker{
 	   ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
 	   ChatMessage::State::FileTransferDone}},
 	 {ChatMessage::State::FileTransferDone,
-	  {ChatMessage::State::InProgress, ChatMessage::State::NotDelivered, ChatMessage::State::Delivered,
-	   ChatMessage::State::PendingDelivery, ChatMessage::State::DeliveredToUser, ChatMessage::State::Displayed,
-	   ChatMessage::State::FileTransferInProgress, ChatMessage::State::FileTransferError}}}};
+	  {ChatMessage::State::Queued, ChatMessage::State::InProgress, ChatMessage::State::NotDelivered,
+	   ChatMessage::State::Delivered, ChatMessage::State::PendingDelivery, ChatMessage::State::DeliveredToUser,
+	   ChatMessage::State::Displayed, ChatMessage::State::FileTransferInProgress,
+	   ChatMessage::State::FileTransferError}}}};
 
 ChatMessagePrivate::ChatMessagePrivate(const std::shared_ptr<AbstractChatRoom> &chatRoom, ChatMessage::Direction dir)
     : fileTransferChatMessageModifier(chatRoom->getCore()->getHttpClient().getProvider()) {
