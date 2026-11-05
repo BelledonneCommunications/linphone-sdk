@@ -67,10 +67,12 @@ MS2_PUBLIC MSDtlsSrtpContext *ms_dtls_srtp_context_new(struct _MSMediaStreamSess
                                                        MSDtlsSrtpParams *params);
 
 /**
- * Start the DTLS-SRTP channel: send DTLS ClientHello if we are client
+ * Start the DTLS-SRTP channel and set the local role: send DTLS ClientHello if we are client
+ * ignore if the context was already ongoing
  * @param[in/out]	context		the DTLS-SRTP context
+ * @param[in]		role		Client/Server/Invalid/Unset according to SDP INVITE processing
  */
-MS2_PUBLIC void ms_dtls_srtp_start(MSDtlsSrtpContext *context);
+MS2_PUBLIC void ms_dtls_srtp_start(MSDtlsSrtpContext *context, MSDtlsSrtpRole role);
 
 /**
  * Free ressources used by DTLS-SRTP context
@@ -83,20 +85,6 @@ MS2_PUBLIC void ms_dtls_srtp_context_destroy(MSDtlsSrtpContext *ctx);
  * @param[in/out]	context		the DTLS-SRTP context
  */
 MS2_PUBLIC void ms_dtls_srtp_reset_context(MSDtlsSrtpContext *context);
-
-/**
- * Set DTLS role: server or client, called when SDP exchange reach the point where we can determine self role
- * @param[in/out]	context		the DTLS-SRTP context
- * @param[in]		role		Client/Server/Invalid/Unset according to SDP INVITE processing
- */
-MS2_PUBLIC void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role);
-
-/**
- * Get DTLS role: server or client, called when SDP exchange reach the point where we can determine self role
- * @param[in/out]	context		the DTLS-SRTP context
- * @return		role		Client/Server/Invalid/Unset according to SDP INVITE processing
- */
-MS2_PUBLIC MSDtlsSrtpRole ms_dtls_srtp_get_role(const MSDtlsSrtpContext *context);
 
 /**
  * Give to the DTLS-SRTP context the peer certificate fingerprint extracted from trusted SDP INVITE,

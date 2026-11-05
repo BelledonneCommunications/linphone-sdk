@@ -354,7 +354,7 @@ int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_t 
 	if ((ret == 0) &&
 	    (ctx->mChannelStatus ==
 	     DtlsStatus::HandshakeOngoing)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128
-		                                      bits server write - 112 bits client salt - 112 server salt */
+	                                          bits server write - 112 bits client salt - 112 server salt */
 		ctx->mChannelStatus = DtlsStatus::HandshakeOver;
 
 		/* check the srtp profile get selected during handshake */
@@ -392,7 +392,7 @@ int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, mblk_t 
 		}
 
 		if (ctx->mRole != MSDtlsSrtpRoleIsServer) { /* close the connection only if we are client, if we are server,
-			                                          the client may ask again for last packets */
+		                                              the client may ask again for last packets */
 			/*FireFox version 43 requires DTLS channel to be kept openned, probably a bug in FireFox ret =
 			 * ssl_close_notify( &(ctx->mDtlsCryptoContext.ssl) );*/
 		}
@@ -460,7 +460,7 @@ int MSDtlsSrtpContext::initialiseDtlsCryptoContext(MSDtlsSrtpParams *params) {
 	if (params->role == MSDtlsSrtpRoleIsClient) {
 		bctbx_ssl_config_defaults(mDtlsCryptoContext.ssl_config, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_DATAGRAM);
 	} else { /* configure it by default as server, nothing is actually performed until we start the channel but this
-		        helps to get correct defaults settings */
+	            helps to get correct defaults settings */
 		bctbx_ssl_config_defaults(mDtlsCryptoContext.ssl_config, BCTBX_SSL_IS_SERVER, BCTBX_SSL_TRANSPORT_DATAGRAM);
 	}
 
@@ -645,7 +645,7 @@ int MSDtlsSrtpContext::processDtlsPacket(mblk_t *msg) {
 	        0x01) { // If the first fragment(there may be only one) is of a DTLS Handshake Client Hello message
 		while (base_index + Handshake_Header_Length <
 		       msgLength) { // loop on the message, parsing all fragments it may contain (loop until we have at
-			                // least enough unparsed byte to read a handshake header)
+		                    // least enough unparsed byte to read a handshake header)
 			if (frag[Content_Type_Index] == 0x16) {       // Type index 0x16 is DLTS Handshake message
 				if (frag[Handshake_Type_Index] == 0x01) { // Handshake type 0x01 is Client Hello
 					// Get message length
@@ -673,7 +673,7 @@ int MSDtlsSrtpContext::processDtlsPacket(mblk_t *msg) {
 					        msgLength // we will read frag_length starting at base_index (frag in the code)+ header
 					    && frag_length + frag_offset <=
 					           message_length) { // we will write in the reassembled buffer frag_length byte,
-						                         // starting at frag_offset, the buffer is message_length long
+					                             // starting at frag_offset, the buffer is message_length long
 
 						// If message length and fragment length differs, we have a fragmented Client Hello
 						// Check they are part of the same message (message_seq)
@@ -832,23 +832,12 @@ extern "C" void ms_dtls_srtp_reset_context(MSDtlsSrtpContext *context) {
 	}
 }
 
-extern "C" MSDtlsSrtpRole ms_dtls_srtp_get_role(const MSDtlsSrtpContext *context) {
-	return context->mRole;
-}
-
-extern "C" void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
-	if (context) {
-		std::lock_guard<std::mutex> lock(context->mtx);
-		context->setRole(role);
-	}
-}
-
 extern "C" MSDtlsSrtpContext *ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSDtlsSrtpParams *params) {
 
 	ms_message("Creating DTLS-SRTP engine on stream sessions [%p] as %s, RTCP mux is %s", sessions,
 	           params->role == MSDtlsSrtpRoleIsServer
 	               ? "server"
-	               : (params->role == MSDtlsSrtpRoleIsClient ? "client" : "unset role"),
+				   : (params->role == MSDtlsSrtpRoleIsClient ? "client" : "unset role"),
 	           rtp_session_rtcp_mux_enabled(sessions->rtp_session) ? "enabled" : "disabled");
 
 	/* create context and link it to the rtp session */
@@ -866,13 +855,19 @@ extern "C" MSDtlsSrtpContext *ms_dtls_srtp_context_new(MSMediaStreamSessions *se
 	return context;
 }
 
-extern "C" void ms_dtls_srtp_start(MSDtlsSrtpContext *context) {
+extern "C" void ms_dtls_srtp_start(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
 
 	if (context == NULL) {
 		ms_warning("DTLS start but no context\n");
 		return;
 	}
 	std::lock_guard<std::mutex> lock(context->mtx);
+	// if the context is already started, just do nothing
+	if (context->mChannelStatus >= DtlsStatus::HandshakeOngoing) {
+		ms_warning("DTLS start but context already ongoing\n");
+		return;
+	}
+	context->setRole(role);
 	context->start();
 }
 
