@@ -123,12 +123,14 @@ recache-get-from-branch:
 
 .enable-gcc-toolset: &enable-gcc-toolset
   - |
-    if [[ -f /opt/rh/gcc-toolset-15/enable ]]; then
-      source /opt/rh/gcc-toolset-15/enable
-    elif [[ -f /opt/rh/gcc-toolset-12/enable ]]; then
-      source /opt/rh/gcc-toolset-12/enable
-    else
-      echo "No GCC Toolset found"
+    if ! [ -z ${GCC_TOOLSET_VERSION+x} ]; then
+      if [[ -f /opt/rh/gcc-toolset-${GCC_TOOLSET_VERSION}/enable ]]; then
+        source /opt/rh/gcc-toolset-${GCC_TOOLSET_VERSION}/enable
+      elif command -v gcc-toolset-${GCC_TOOLSET_VERSION}-env > /dev/null 2>&1; then
+        gcc-toolset-${GCC_TOOLSET_VERSION}-env bash -c 'declare -px' > /tmp/gcc-toolset-env; source /tmp/gcc-toolset-env;
+      else
+        echo "GCC ${GCC_TOOLSET_VERSION} Toolset cannot be found"
+      fi
     fi
 
 .linux-enable-gcc-toolset:

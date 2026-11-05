@@ -79,6 +79,7 @@ rocky8-makefile-gcc:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     CC: gcc
     CXX: g++
+    GCC_TOOLSET_VERSION: 12
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-rocky8
@@ -104,6 +105,7 @@ rocky8-ninja-gcc:
     CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON
     CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZER=ON
+    GCC_TOOLSET_VERSION: 12
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-rocky8
@@ -121,6 +123,7 @@ rocky8-ninja-clang:
     CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON
     CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZER=ON
+    GCC_TOOLSET_VERSION: 12
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-rocky8
@@ -131,6 +134,7 @@ rocky8-ninja-gcc-tunnel-pq-h264-ekt:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local -DENABLE_EKT_SERVER_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
+    GCC_TOOLSET_VERSION: 12
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
     CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
@@ -155,6 +159,7 @@ rocky8-ninja-clang-mysql:
     CXX: clang++
     CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    GCC_TOOLSET_VERSION: 12
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
     CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
@@ -176,6 +181,7 @@ rocky8-python-wheel:
     CC: clang
     CXX: clang++
     ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.12 -DENABLE_VIDEO=OFF -DENABLE_SOUND=OFF
+    GCC_TOOLSET_VERSION: 12
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
     CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"

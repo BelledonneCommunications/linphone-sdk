@@ -105,6 +105,7 @@ rocky9-makefile-gcc:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     CC: gcc
     CXX: g++
+    GCC_TOOLSET_VERSION: 15
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-rocky9
@@ -129,6 +130,7 @@ rocky9-ninja-gcc:
     CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON
     CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZER=ON
+    GCC_TOOLSET_VERSION: 15
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-rocky9
@@ -145,6 +147,7 @@ rocky9-ninja-clang:
     CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=ON
     CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZER=ON
+    GCC_TOOLSET_VERSION: 15
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-rocky9
@@ -165,6 +168,7 @@ rocky9-ninja-clang-coverage:
     CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZER=ON
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
     CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
+    GCC_TOOLSET_VERSION: 15
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
@@ -180,6 +184,7 @@ rocky9-ninja-gcc-tunnel-pq-h264-ekt:
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
     CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
+    GCC_TOOLSET_VERSION: 15
   cache:
     - key: $CI_JOB_IMAGE-$CI_JOB_NAME-$CI_COMMIT_REF_SLUG
       paths:
@@ -201,6 +206,7 @@ rocky9-ninja-clang-mysql:
     CXX: clang++
     CCACHE_SIZE: 15G
     CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    GCC_TOOLSET_VERSION: 15
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
     CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
@@ -222,6 +228,7 @@ rocky9-python-wheel:
     CC: clang
     CXX: clang++
     ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DWITH_MYSQL=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.12 -DENABLE_VIDEO=OFF -DENABLE_SOUND=OFF
+    GCC_TOOLSET_VERSION: 15
 
  #Used to split cache name of frequently run jobs which run in parallel wich the same docker image
     CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-6-non_protected"
