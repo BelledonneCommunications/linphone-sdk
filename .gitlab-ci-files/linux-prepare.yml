@@ -80,8 +80,17 @@ recache-get-from-branch:
     - echo $CACHE_JOB_NAME
     - if [ ! -z "$CACHE_JOB_NAME" ]; then CACHE_JOB_NAME=$CACHE_JOB_NAME-; fi;
     - echo $CACHE_JOB_NAME
-    - ssh $LINUX_BUILD_MACHINE_ADMIN cp -rp "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CACHE_SOURCE_BRANCH-6-non_protected" "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CI_COMMIT_REF_SLUG-6-non_protected"
-    - if [ $SHOULD_DELETE_OLD_CACHE = true ]; then ssh $LINUX_BUILD_MACHINE_ADMIN rm -rf "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CACHE_SOURCE_BRANCH-6-non_protected"; fi
+    - CP_DESTINATION_FOLDER="$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CI_COMMIT_REF_SLUG-6-non_protected"
+    - CP_SOURCE_FOLDER="$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CACHE_SOURCE_BRANCH-6-non_protected"
+    - |
+     ssh $LINUX_BUILD_MACHINE_ADMIN "set -e
+     if [ ! -d '$CP_SOURCE_FOLDER' ]; then echo 'No cache for the source branch, keeping the current one'; exit 0; fi
+     rm -rf '${CP_DESTINATION_FOLDER}.tmp' # in case the previous job got interrupted before finishing the cleanup
+     cp -rp '$CP_SOURCE_FOLDER' '${CP_DESTINATION_FOLDER}.tmp'
+     rm -rf '$CP_DESTINATION_FOLDER'
+     mv '${CP_DESTINATION_FOLDER}.tmp' '$CP_DESTINATION_FOLDER'"
+    # Clean up the source folder if needed
+    - if [ "$SHOULD_DELETE_OLD_CACHE" = true ]; then ssh $LINUX_BUILD_MACHINE_ADMIN rm -rf ${CP_SOURCE_FOLDER}; fi
 
 # When the cache is updated, we don't want an old version to overwrite the new one.
 # We could have a newly created branch launching its jobs in the same time as the cache is being updated (just after a merge). In this case, the merge-request pipeline of the newly created branch could overwrite the updated cache if one job launches just before the cache udpate step is finished. In the worst scenario, cache could be corrupted...
