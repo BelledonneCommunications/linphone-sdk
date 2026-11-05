@@ -89,7 +89,7 @@ vector<shared_ptr<Vcard>> VcardContext::getVcardListFromFile(const string &filen
 
 #else
 
-VcardContext::VcardContext(bool) {
+VcardContext::VcardContext() {
 }
 
 VcardContext *VcardContext::clone() const {
