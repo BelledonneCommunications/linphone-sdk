@@ -1058,8 +1058,8 @@ LinphoneStatus add_participant_to_local_conference_through_invite(bctbx_list_t *
 				if (linphone_core_is_network_reachable(m->lc)) {
 					BC_ASSERT_TRUE(
 					    wait_for_list(lcs, &m->stat.number_of_LinphoneCallIncomingReceived,
-					                  (participants_initial_stats[idx].number_of_LinphoneCallIncomingReceived + 1),
-					                  liblinphone_tester_sip_timeout));
+						              (participants_initial_stats[idx].number_of_LinphoneCallIncomingReceived + 1),
+						              liblinphone_tester_sip_timeout));
 				}
 			}
 			idx++;
@@ -1188,17 +1188,17 @@ void check_conference_medias(LinphoneConference *local_conference, LinphoneConfe
 							check_participant_media_direction(
 							    linphone_participant_device_get_stream_capability(d, LinphoneStreamTypeAudio),
 							    linphone_participant_device_get_stream_capability(remote_device,
-							                                                      LinphoneStreamTypeAudio),
+								                                                  LinphoneStreamTypeAudio),
 							    _linphone_participant_device_get_audio_enabled(d));
 							check_participant_media_direction(
 							    linphone_participant_device_get_stream_capability(d, LinphoneStreamTypeVideo),
 							    linphone_participant_device_get_stream_capability(remote_device,
-							                                                      LinphoneStreamTypeVideo),
+								                                                  LinphoneStreamTypeVideo),
 							    _linphone_participant_device_get_video_enabled(d));
 							check_participant_media_direction(
 							    linphone_participant_device_get_stream_capability(d, LinphoneStreamTypeText),
 							    linphone_participant_device_get_stream_capability(remote_device,
-							                                                      LinphoneStreamTypeText),
+								                                                  LinphoneStreamTypeText),
 							    _linphone_participant_device_get_real_time_text_enabled(d));
 
 							BC_ASSERT_TRUE(
@@ -1268,8 +1268,8 @@ void check_participant_added_to_conference(bctbx_list_t *lcs,
 		// Remote conference creation
 		BC_ASSERT_TRUE(
 		    wait_for_list(lcs, &m->stat.number_of_LinphoneConferenceStateCreationPending,
-		                  new_participant_initial_stats[idx].number_of_LinphoneConferenceStateCreationPending + 1,
-		                  liblinphone_tester_sip_timeout));
+			              new_participant_initial_stats[idx].number_of_LinphoneConferenceStateCreationPending + 1,
+			              liblinphone_tester_sip_timeout));
 
 		bool_t p_event_log_enabled =
 		    linphone_config_get_bool(linphone_core_get_config(m->lc), "misc", "conference_event_log_enabled", TRUE);
@@ -1277,8 +1277,8 @@ void check_participant_added_to_conference(bctbx_list_t *lcs,
 			// Check subscriptions
 			BC_ASSERT_TRUE(
 			    wait_for_list(lcs, &m->stat.number_of_LinphoneSubscriptionOutgoingProgress,
-			                  (new_participant_initial_stats[idx].number_of_LinphoneSubscriptionOutgoingProgress + 1),
-			                  liblinphone_tester_sip_timeout));
+				              (new_participant_initial_stats[idx].number_of_LinphoneSubscriptionOutgoingProgress + 1),
+				              liblinphone_tester_sip_timeout));
 			if (conf_event_log_enabled) {
 				BC_ASSERT_TRUE(wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneSubscriptionIncomingReceived,
 				                             (conf_initial_stats.number_of_LinphoneSubscriptionIncomingReceived + idx -
@@ -1289,12 +1289,12 @@ void check_participant_added_to_conference(bctbx_list_t *lcs,
 				                             liblinphone_tester_sip_timeout));
 				BC_ASSERT_TRUE(
 				    wait_for_list(lcs, &m->stat.number_of_LinphoneSubscriptionActive,
-				                  new_participant_initial_stats[idx].number_of_LinphoneSubscriptionActive + 1,
-				                  liblinphone_tester_sip_timeout));
+					              new_participant_initial_stats[idx].number_of_LinphoneSubscriptionActive + 1,
+					              liblinphone_tester_sip_timeout));
 				BC_ASSERT_TRUE(
 				    wait_for_list(lcs, &m->stat.number_of_LinphoneConferenceStateCreated,
-				                  new_participant_initial_stats[idx].number_of_LinphoneConferenceStateCreated + 1,
-				                  liblinphone_tester_sip_timeout));
+					              new_participant_initial_stats[idx].number_of_LinphoneConferenceStateCreated + 1,
+					              liblinphone_tester_sip_timeout));
 			}
 
 		} else {
@@ -1329,8 +1329,8 @@ void check_participant_added_to_conference(bctbx_list_t *lcs,
 				// Participant device added
 				BC_ASSERT_TRUE(
 				    wait_for_list(lcs, &m2->stat.number_of_participants_added,
-				                  (participant_initial_stats[idx2].number_of_participants_added + no_new_participants),
-				                  liblinphone_tester_sip_timeout));
+					              (participant_initial_stats[idx2].number_of_participants_added + no_new_participants),
+					              liblinphone_tester_sip_timeout));
 				BC_ASSERT_TRUE(wait_for_list(
 				    lcs, &m2->stat.number_of_participant_devices_added,
 				    (participant_initial_stats[idx2].number_of_participant_devices_added + no_new_participants),
@@ -1589,8 +1589,8 @@ LinphoneStatus add_calls_to_remote_conference(bctbx_list_t *lcs,
 		    liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(
 		    wait_for_list(lcs, &m->stat.number_of_LinphoneConferenceStateCreated,
-		                  new_participants_initial_stats[counter - 1].number_of_LinphoneConferenceStateCreated + 1,
-		                  liblinphone_tester_sip_timeout));
+			              new_participants_initial_stats[counter - 1].number_of_LinphoneConferenceStateCreated + 1,
+			              liblinphone_tester_sip_timeout));
 
 		BC_ASSERT_TRUE(wait_for_list(
 		    lcs, &m->stat.number_of_LinphoneSubscriptionOutgoingProgress,
@@ -1601,8 +1601,8 @@ LinphoneStatus add_calls_to_remote_conference(bctbx_list_t *lcs,
 
 		BC_ASSERT_TRUE(
 		    wait_for_list(lcs, &m->stat.number_of_LinphoneSubscriptionActive,
-		                  new_participants_initial_stats[counter - 1].number_of_LinphoneSubscriptionActive + 1,
-		                  liblinphone_tester_sip_timeout));
+			              new_participants_initial_stats[counter - 1].number_of_LinphoneSubscriptionActive + 1,
+			              liblinphone_tester_sip_timeout));
 		//		BC_ASSERT_TRUE(wait_for_list(lcs,&focus_mgr->stat.number_of_LinphoneSubscriptionActive,(focus_initial_stats.number_of_LinphoneSubscriptionActive
 		//+ counter),liblinphone_tester_sip_timeout));
 
@@ -1771,12 +1771,12 @@ LinphoneStatus add_calls_to_remote_conference(bctbx_list_t *lcs,
 							if (call_video_enabled) {
 								BC_ASSERT_TRUE(
 								    wait_for_list(lcs, &m->stat.number_of_LinphoneCallUpdating,
-								                  (participants_initial_stats[idx].number_of_LinphoneCallUpdating + 1),
-								                  liblinphone_tester_sip_timeout));
+									              (participants_initial_stats[idx].number_of_LinphoneCallUpdating + 1),
+									              liblinphone_tester_sip_timeout));
 								BC_ASSERT_TRUE(wait_for_list(
 								    lcs, &m->stat.number_of_LinphoneCallStreamsRunning,
 								    (participants_initial_stats[idx].number_of_LinphoneCallStreamsRunning +
-								     (bctbx_list_find(new_participants, m) ? 2 : 1)),
+									 (bctbx_list_find(new_participants, m) ? 2 : 1)),
 								    liblinphone_tester_sip_timeout));
 							} else if (bctbx_list_find(new_participants, m)) {
 								BC_ASSERT_TRUE(wait_for_list(
@@ -1955,8 +1955,8 @@ LinphoneStatus add_calls_to_local_conference(bctbx_list_t *lcs,
 					if (p_event_log_enabled && c_event_log_enabled) {
 						BC_ASSERT_TRUE(
 						    wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneCallUpdatedByRemote,
-						                  (conf_initial_stats.number_of_LinphoneCallUpdatedByRemote + updated),
-						                  liblinphone_tester_sip_timeout));
+							              (conf_initial_stats.number_of_LinphoneCallUpdatedByRemote + updated),
+							              liblinphone_tester_sip_timeout));
 						BC_ASSERT_TRUE(wait_for_list(lcs, &m->stat.number_of_LinphoneCallUpdating,
 						                             initial_stats.number_of_LinphoneCallUpdating + 1,
 						                             liblinphone_tester_sip_timeout));
@@ -2136,16 +2136,16 @@ static LinphoneStatus check_participant_removal(bctbx_list_t *lcs,
 					                             liblinphone_tester_sip_timeout));
 					BC_ASSERT_TRUE(
 					    wait_for_list(lcs, &m->stat.number_of_LinphoneCallUpdatedByRemote,
-					                  (participants_initial_stats[idx].number_of_LinphoneCallUpdatedByRemote + 1),
-					                  liblinphone_tester_sip_timeout));
+						              (participants_initial_stats[idx].number_of_LinphoneCallUpdatedByRemote + 1),
+						              liblinphone_tester_sip_timeout));
 					if (participants_initial_state[idx] == LinphoneCallStreamsRunning) {
 						BC_ASSERT_TRUE(wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneCallStreamsRunning,
 						                             (conf_initial_stats.number_of_LinphoneCallStreamsRunning + 1),
 						                             liblinphone_tester_sip_timeout));
 						BC_ASSERT_TRUE(
 						    wait_for_list(lcs, &m->stat.number_of_LinphoneCallStreamsRunning,
-						                  (participants_initial_stats[idx].number_of_LinphoneCallStreamsRunning + 1),
-						                  liblinphone_tester_sip_timeout));
+							              (participants_initial_stats[idx].number_of_LinphoneCallStreamsRunning + 1),
+							              liblinphone_tester_sip_timeout));
 					} else if (participants_initial_state[idx] == LinphoneCallPaused) {
 						BC_ASSERT_TRUE(wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneCallPausedByRemote,
 						                             (conf_initial_stats.number_of_LinphoneCallPausedByRemote + 1),
@@ -2159,8 +2159,8 @@ static LinphoneStatus check_participant_removal(bctbx_list_t *lcs,
 						                             liblinphone_tester_sip_timeout));
 						BC_ASSERT_TRUE(
 						    wait_for_list(lcs, &m->stat.number_of_LinphoneCallPausedByRemote,
-						                  (participants_initial_stats[idx].number_of_LinphoneCallPausedByRemote + 1),
-						                  liblinphone_tester_sip_timeout));
+							              (participants_initial_stats[idx].number_of_LinphoneCallPausedByRemote + 1),
+							              liblinphone_tester_sip_timeout));
 					} else {
 						char str[200];
 						sprintf(str, "%s - Unhandled participant call remove from conference going to state %s\n",
@@ -2173,8 +2173,8 @@ static LinphoneStatus check_participant_removal(bctbx_list_t *lcs,
 					                             liblinphone_tester_sip_timeout));
 					BC_ASSERT_TRUE(
 					    wait_for_list(lcs, &m->stat.number_of_LinphoneCallPausedByRemote,
-					                  (participants_initial_stats[idx].number_of_LinphoneCallPausedByRemote + 1),
-					                  liblinphone_tester_sip_timeout));
+						              (participants_initial_stats[idx].number_of_LinphoneCallPausedByRemote + 1),
+						              liblinphone_tester_sip_timeout));
 					BC_ASSERT_TRUE(wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneCallPaused,
 					                             (conf_initial_stats.number_of_LinphoneCallPaused + 1),
 					                             liblinphone_tester_sip_timeout));
@@ -2182,8 +2182,8 @@ static LinphoneStatus check_participant_removal(bctbx_list_t *lcs,
 
 				BC_ASSERT_TRUE(
 				    wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneConferenceStateTerminationPending,
-				                  (conf_initial_stats.number_of_LinphoneConferenceStateTerminationPending + 1),
-				                  liblinphone_tester_sip_timeout));
+					              (conf_initial_stats.number_of_LinphoneConferenceStateTerminationPending + 1),
+					              liblinphone_tester_sip_timeout));
 				BC_ASSERT_TRUE(wait_for_list(lcs, &conf_mgr->stat.number_of_LinphoneConferenceStateTerminated,
 				                             (conf_initial_stats.number_of_LinphoneConferenceStateTerminated + 1),
 				                             liblinphone_tester_sip_timeout));
@@ -2219,8 +2219,8 @@ static LinphoneStatus check_participant_removal(bctbx_list_t *lcs,
 				if (m_event_log_enabled) {
 					BC_ASSERT_TRUE(
 					    wait_for_list(lcs, &m->stat.number_of_LinphoneSubscriptionTerminated,
-					                  participants_initial_stats[idx].number_of_LinphoneSubscriptionTerminated + 1,
-					                  liblinphone_tester_sip_timeout));
+						              participants_initial_stats[idx].number_of_LinphoneSubscriptionTerminated + 1,
+						              liblinphone_tester_sip_timeout));
 				}
 			} else {
 
@@ -2230,8 +2230,8 @@ static LinphoneStatus check_participant_removal(bctbx_list_t *lcs,
 				                             liblinphone_tester_sip_timeout));
 				BC_ASSERT_TRUE(
 				    wait_for_list(lcs, &m->stat.number_of_participant_devices_removed,
-				                  (participants_initial_stats[idx].number_of_participant_devices_removed + 1),
-				                  liblinphone_tester_sip_timeout));
+					              (participants_initial_stats[idx].number_of_participant_devices_removed + 1),
+					              liblinphone_tester_sip_timeout));
 
 				LinphoneAddress *participant_uri = linphone_address_new(linphone_core_get_identity(m->lc));
 				LinphoneConference *participant_conference =
@@ -2248,8 +2248,8 @@ static LinphoneStatus check_participant_removal(bctbx_list_t *lcs,
 					if ((conf_video_enabled == TRUE) && (call_video_enabled == TRUE)) {
 						BC_ASSERT_TRUE(
 						    wait_for_list(lcs, &m->stat.number_of_LinphoneCallStreamsRunning,
-						                  (participants_initial_stats[idx].number_of_LinphoneCallStreamsRunning + 1),
-						                  liblinphone_tester_sip_timeout));
+							              (participants_initial_stats[idx].number_of_LinphoneCallStreamsRunning + 1),
+							              liblinphone_tester_sip_timeout));
 					}
 				}
 			}
@@ -3750,7 +3750,7 @@ void new_subscription_requested(LinphoneCore *lc, LinphoneFriend *lf, const char
 	ai = bctbx_ip_address_to_addrinfo(strchr(domain, ':') != NULL ? AF_INET6 : AF_INET, SOCK_DGRAM, ipaddr, 4444);
 	ms_free(ipaddr);
 	if (ai) { /* this SUBSCRIBE comes from friend without registered SIP account, don't attempt to subscribe, it will
-		         fail*/
+	             fail*/
 		ms_message("Disabling subscription because friend has numeric host.");
 		linphone_friend_enable_subscribes(lf, FALSE);
 		bctbx_freeaddrinfo(ai);
@@ -4452,14 +4452,14 @@ void liblinphone_tester_chat_message_msg_state_changed(LinphoneChatMessage *msg,
 					    linphone_chat_message_get_participants_by_imdn_state(msg, LinphoneChatMessageStateDisplayed);
 					bctbx_list_t *participants_in_delivered_to_user_state =
 					    linphone_chat_message_get_participants_by_imdn_state(msg,
-					                                                         LinphoneChatMessageStateDeliveredToUser);
+						                                                     LinphoneChatMessageStateDeliveredToUser);
 
 					size_t delivered_or_displayed = 0;
 					delivered_or_displayed +=
 					    ((participants_in_delivered_state) ? bctbx_list_size(participants_in_delivered_state) : 0);
 					delivered_or_displayed += ((participants_in_delivered_to_user_state)
 					                               ? bctbx_list_size(participants_in_delivered_to_user_state)
-					                               : 0);
+												   : 0);
 					delivered_or_displayed +=
 					    ((participants_in_displayed_state) ? bctbx_list_size(participants_in_displayed_state) : 0);
 
@@ -4952,7 +4952,7 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
 	// test ios simulator needs more time, 3s plus for connecting the network
 	did_receive_call =
 	    wait_for_until(callee_mgr->lc, caller_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallIncomingReceived,
-	                   initial_callee.number_of_LinphoneCallIncomingReceived + 1, 12000);
+		               initial_callee.number_of_LinphoneCallIncomingReceived + 1, 12000);
 	BC_ASSERT_EQUAL(did_receive_call, !callee_test_params->sdp_simulate_error, int, "%d");
 
 	sal_default_set_sdp_handling(linphone_core_get_sal(caller_mgr->lc), SalOpSDPNormal);
@@ -5157,10 +5157,10 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
 		if ((matched_enc == LinphoneMediaEncryptionDTLS) || (matched_enc == LinphoneMediaEncryptionZRTP)) {
 			BC_ASSERT_TRUE(
 			    wait_for_until(callee_mgr->lc, caller_mgr->lc, &caller_mgr->stat.number_of_LinphoneCallEncryptedOn,
-			                   initial_caller.number_of_LinphoneCallEncryptedOn + 1, liblinphone_tester_sip_timeout));
+				               initial_caller.number_of_LinphoneCallEncryptedOn + 1, liblinphone_tester_sip_timeout));
 			BC_ASSERT_TRUE(
 			    wait_for_until(callee_mgr->lc, caller_mgr->lc, &callee_mgr->stat.number_of_LinphoneCallEncryptedOn,
-			                   initial_callee.number_of_LinphoneCallEncryptedOn + 1, liblinphone_tester_sip_timeout));
+				               initial_callee.number_of_LinphoneCallEncryptedOn + 1, liblinphone_tester_sip_timeout));
 		}
 
 		caller_call = linphone_core_get_current_call(caller_mgr->lc);
