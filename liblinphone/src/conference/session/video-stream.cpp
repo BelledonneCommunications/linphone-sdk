@@ -494,8 +494,8 @@ void MS2VideoStream::render(const OfferAnswerContext &ctx, CallSession::State ta
 	}
 
 	if (localScreenSharingChanged) { // We need to stop this stream and the thumbnail stream because of
-		                             // source filter concurrency, and
-		                             // display mode replumbing
+	                                 // source filter concurrency, and
+	                                 // display mode replumbing
 		lInfo() << "Screen sharing mode changed : ScreenSharing=" << isScreenSharing << ". Stopping current stream ("
 		        << mStream << ") and auxiliary stream(" << auxStream << ")";
 		stop();

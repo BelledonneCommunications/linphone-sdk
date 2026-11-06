@@ -402,7 +402,7 @@ bool_t request_video(LinphoneCoreManager *caller, LinphoneCoreManager *callee, b
 		    "1");
 		BC_ASSERT_STRING_EQUAL(
 		    linphone_call_params_get_custom_header(linphone_call_get_params(linphone_core_get_current_call(callee->lc)),
-		                                           "VIDEO-REINVITE"),
+			                                       "VIDEO-REINVITE"),
 		    "1");
 
 		if (linphone_core_get_media_encryption(caller->lc) != LinphoneMediaEncryptionNone &&
@@ -736,7 +736,7 @@ void video_call_base_2(LinphoneCoreManager *caller,
 	linphone_core_enable_video_capture(caller->lc, caller_video_enabled);
 
 	if (mode == LinphoneMediaEncryptionDTLS) { /* for DTLS we must access certificates or at least have a directory to
-		                                          store them */
+	                                              store them */
 		char *path = bc_tester_file("certificates-marie");
 		linphone_core_set_user_certificates_path(callee->lc, path);
 		bc_free(path);
@@ -868,7 +868,7 @@ void video_call_base_3(LinphoneCoreManager *caller,
 	linphone_core_enable_video_capture(caller->lc, caller_video_enabled);
 
 	if (mode == LinphoneMediaEncryptionDTLS) { /* for DTLS we must access certificates or at least have a directory to
-		                                          store them */
+	                                              store them */
 		char *path = bc_tester_file("certificates-marie");
 		linphone_core_set_user_certificates_path(callee->lc, path);
 		bc_free(path);
@@ -1504,9 +1504,9 @@ static void call_with_ice_video_added_2(void) {
 }
 
 static void call_with_ice_video_added_3(void) { /*
-	                                             * Scenario: video is not active at the beginning of the call, caller
-	                                             * requests it and callee accepts. Finally caller removes it.
-	                                             */
+                                                 * Scenario: video is not active at the beginning of the call, caller
+                                                 * requests it and callee accepts. Finally caller removes it.
+                                                 */
 	LinphoneVideoActivationPolicy *caller_vpol =
 	    linphone_factory_create_video_activation_policy(linphone_factory_get());
 	linphone_video_activation_policy_set_automatically_initiate(caller_vpol, FALSE);
@@ -4444,9 +4444,9 @@ static test_t call_video_tests[] = {
     TEST_ONE_TAG("Simple DTLS video call", video_call_dtls, "DTLS"),
     TEST_NO_TAG("Simple video call using policy", video_call_using_policy),
     TEST_NO_TAG("Video call using policy with callee video disabled",
-                video_call_using_policy_with_callee_video_disabled),
+	            video_call_using_policy_with_callee_video_disabled),
     TEST_NO_TAG("Video call using policy with caller video disabled",
-                video_call_using_policy_with_caller_video_disabled),
+	            video_call_using_policy_with_caller_video_disabled),
     TEST_NO_TAG("Video call without SDP", video_call_no_sdp),
     TEST_ONE_TAG("SRTP ice video call", srtp_video_ice_call, "ICE"),
     TEST_ONE_TAG("ZRTP ice video call", zrtp_video_ice_call, "ICE"),
@@ -4471,14 +4471,14 @@ static test_t call_video_tests[] = {
     TEST_ONE_TAG("Call with ICE, video only", call_with_ice_video_only, "ICE"),
     TEST_ONE_TAG("Video call with ICE accepted using call params", video_call_ice_params, "ICE"),
     TEST_ONE_TAG("Audio call with ICE paused with caller video policy enabled",
-                 audio_call_with_ice_with_video_policy_enabled,
-                 "ICE"),
+	             audio_call_with_ice_with_video_policy_enabled,
+	             "ICE"),
     TEST_ONE_TAG("Video call recording (H264)", video_call_recording_h264_test, "H264"),
     TEST_ONE_TAG("Video call recording (VP8)", video_call_recording_vp8_test, "shaky"),
     TEST_NO_TAG("Snapshot", video_call_snapshot),
     TEST_NO_TAG("Snapshots", video_call_snapshots),
     TEST_NO_TAG("Video call with early media and no matching audio codecs",
-                video_call_with_early_media_no_matching_audio_codecs),
+	            video_call_with_early_media_no_matching_audio_codecs),
     TEST_ONE_TAG("DTLS SRTP video call", dtls_srtp_video_call, "DTLS"),
     TEST_TWO_TAGS("DTLS SRTP ice video call", dtls_srtp_ice_video_call, "ICE", "DTLS"),
     TEST_TWO_TAGS("DTLS SRTP ice video call with relay", dtls_srtp_ice_video_call_with_relay, "ICE", "DTLS"),
@@ -4487,28 +4487,28 @@ static test_t call_video_tests[] = {
     TEST_TWO_TAGS("Video call accepted in send only with ice", accept_call_in_send_only_with_ice, "ICE", "H264"),
     TEST_ONE_TAG("2 Video call accepted in send only", two_accepted_call_in_send_only, "H264"),
     /*
-     * These two tests below are unreliable, possibly because of a bug in rocky8 libc:
-     * https://sourceware.org/bugzilla/show_bug.cgi?id=25847
-     */
+	 * These two tests below are unreliable, possibly because of a bug in rocky8 libc:
+	 * https://sourceware.org/bugzilla/show_bug.cgi?id=25847
+	 */
     TEST_TWO_TAGS(
         "Classic video entry phone setup (sendrecv)", classic_video_entry_phone_setup_sendrecv, "H264", "shaky"),
     TEST_TWO_TAGS(
         "Classic video entry phone setup (recvonly)", classic_video_entry_phone_setup_recvonly, "H264", "shaky"),
     TEST_NO_TAG("Video call with no audio and no video codec", video_call_with_no_audio_and_no_video_codec),
     TEST_NO_TAG("Video call with automatic video acceptance disabled on one end only",
-                video_call_with_auto_video_accept_disabled_on_one_end),
+	            video_call_with_auto_video_accept_disabled_on_one_end),
     TEST_NO_TAG("Asymmetrical video call starts with video", asymmetrical_video_call_starts_with_video),
     TEST_NO_TAG("Asymmetrical video call starts without video", asymmetrical_video_call_starts_without_video),
     TEST_NO_TAG("Asymmetrical video call with flexfec starts with video",
-                asymmetrical_video_call_with_flexfec_starts_with_video),
+	            asymmetrical_video_call_with_flexfec_starts_with_video),
     TEST_NO_TAG("Asymmetrical video call with callee enabled video first",
-                asymmetrical_video_call_with_callee_enabled_video_first),
+	            asymmetrical_video_call_with_callee_enabled_video_first),
     TEST_NO_TAG("Asymmetrical video call 2", asymmetrical_video_call_2),
     TEST_NO_TAG("Asymmetrical video call with recording", asymmetrical_video_call_with_recording),
     TEST_NO_TAG("Call with early media and no SDP in 200 Ok with video",
-                call_with_early_media_and_no_sdp_in_200_with_video),
+	            call_with_early_media_and_no_sdp_in_200_with_video),
     TEST_NO_TAG("Video call with fallback to Static Picture when no fps",
-                video_call_with_fallback_to_static_picture_when_no_fps),
+	            video_call_with_fallback_to_static_picture_when_no_fps),
     TEST_NO_TAG("Video call with mire and analyse", video_call_with_mire_and_analyse),
 
     TEST_NO_TAG("Video call recv-only", call_with_video_recvonly),
@@ -4523,30 +4523,30 @@ static test_t call_video_tests[] = {
 static test_t call_video_advanced_scenarios_tests[] = {
     TEST_NO_TAG("Call paused resumed with video no sdp ack", call_paused_resumed_with_no_sdp_ack),
     TEST_NO_TAG("Call paused resumed with video no sdk ack using video policy for resume offers",
-                call_paused_resumed_with_no_sdp_ack_using_video_policy),
+	            call_paused_resumed_with_no_sdp_ack_using_video_policy),
     TEST_NO_TAG("Call paused, updated and resumed with video no sdk ack using video policy for resume offers",
-                call_paused_updated_resumed_with_no_sdp_ack_using_video_policy),
+	            call_paused_updated_resumed_with_no_sdp_ack_using_video_policy),
     TEST_NO_TAG("Call paused, updated and resumed with video no sdk ack using video policy for resume offers with "
-                "accept call update",
-                call_paused_updated_resumed_with_no_sdp_ack_using_video_policy_and_accept_call_update),
+	            "accept call update",
+	            call_paused_updated_resumed_with_no_sdp_ack_using_video_policy_and_accept_call_update),
     TEST_ONE_TAG("Video call with re-invite(inactive) followed by re-invite",
-                 video_call_with_re_invite_inactive_followed_by_re_invite,
-                 "H264"),
+	             video_call_with_re_invite_inactive_followed_by_re_invite,
+	             "H264"),
     TEST_ONE_TAG("Video call with re-invite(inactive) followed by re-invite(no sdp)",
-                 video_call_with_re_invite_inactive_followed_by_re_invite_no_sdp,
-                 "H264"),
+	             video_call_with_re_invite_inactive_followed_by_re_invite_no_sdp,
+	             "H264"),
     TEST_ONE_TAG("SRTP Video call with re-invite(inactive) followed by re-invite",
-                 srtp_video_call_with_re_invite_inactive_followed_by_re_invite,
-                 "H264"),
+	             srtp_video_call_with_re_invite_inactive_followed_by_re_invite,
+	             "H264"),
     TEST_ONE_TAG("SRTP Video call with re-invite(inactive) followed by re-invite(no sdp)",
-                 srtp_video_call_with_re_invite_inactive_followed_by_re_invite_no_sdp,
-                 "H264"),
+	             srtp_video_call_with_re_invite_inactive_followed_by_re_invite_no_sdp,
+	             "H264"),
     TEST_NO_TAG("Incoming REINVITE with invalid SDP in ACK", incoming_reinvite_with_invalid_ack_sdp),
     TEST_NO_TAG("Outgoing REINVITE with invalid SDP in ACK", outgoing_reinvite_with_invalid_ack_sdp),
     TEST_NO_TAG("Video call with file streaming", call_with_video_mkv_file_player),
     TEST_NO_TAG("Video call with video forwarding", video_call_with_video_forwarding),
     TEST_NO_TAG("Video call with video forwarding forwardee ends first",
-                video_call_with_video_forwarding_forwardee_ends_first),
+	            video_call_with_video_forwarding_forwardee_ends_first),
     TEST_NO_TAG("Video call set image as video source", video_call_set_image_as_video_source)};
 
 static int init_msogl_call_suite() {

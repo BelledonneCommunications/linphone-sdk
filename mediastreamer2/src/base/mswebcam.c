@@ -63,7 +63,9 @@ MSWebCam *ms_web_cam_manager_get_default_cam(MSWebCamManager *m) {
 	if (!m) {
 		return NULL;
 	}
-	if (m->cams != NULL) return (MSWebCam *)m->cams->data;
+	if (m->cams != NULL) {
+		return (MSWebCam *)m->cams->data;
+	}
 	return NULL;
 }
 

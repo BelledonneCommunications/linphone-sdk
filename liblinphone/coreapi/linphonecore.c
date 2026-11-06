@@ -1261,13 +1261,13 @@ static void process_response_from_post_file_log_collection(void *data, const bel
 			/* Temporary storage for the Content-disposition header value */
 			first_part_header =
 			    belle_sip_strdup_printf("form-data; name=\"File\"; filename=\"%s\"",
-			                            linphone_content_get_name(core->log_collection_upload_information));
+				                        linphone_content_get_name(core->log_collection_upload_information));
 
 			/* Create a user body handler to take care of the file and add the content disposition and content-type
 			 * headers */
 			first_part_bh =
 			    belle_sip_user_body_handler_new(linphone_content_get_size(core->log_collection_upload_information),
-			                                    NULL, NULL, NULL, log_collection_upload_on_send_body, NULL, core);
+				                                NULL, NULL, NULL, log_collection_upload_on_send_body, NULL, core);
 			belle_sip_body_handler_add_header((belle_sip_body_handler_t *)first_part_bh,
 			                                  belle_sip_header_create("Content-disposition", first_part_header));
 			belle_sip_free(first_part_header);
@@ -1935,7 +1935,7 @@ static void bodyless_config_read(LinphoneCore *lc) {
 		linphone_friend_list_set_rls_address(friendList, addr);
 		linphone_friend_list_set_display_name(friendList, linphone_address_get_display_name(addr)
 		                                                      ? linphone_address_get_display_name(addr)
-		                                                      : linphone_address_get_username(addr));
+															  : linphone_address_get_username(addr));
 		if (!linphone_friend_list_subscriptions_enabled(friendList)) {
 			ms_warning("Newly created bodyless friend list [%p](%s) subscriptions are disabled...", friendList,
 			           linphone_friend_list_get_display_name(friendList));
@@ -2027,7 +2027,7 @@ static void sip_config_read(LinphoneCore *lc) {
 			char *utf8_username = bctbx_locale_to_utf8(system_username);
 			system_username = belle_sip_uri_to_escaped_username(
 			    utf8_username); // Currently, only Windows can have special characters but we try escaping in all case
-			                    // to be plateform independent
+				                // to be plateform independent
 			bctbx_free(utf8_username);
 		}
 		username = system_username;
@@ -2758,7 +2758,7 @@ static void linphone_core_register_static_payloads(LinphoneCore *lc) {
 			if (find_payload_type_from_list(pt->mime_type, pt->clock_rate,
 			                                pt->type == PAYLOAD_VIDEO || pt->type == PAYLOAD_TEXT
 			                                    ? LINPHONE_FIND_PAYLOAD_IGNORE_CHANNELS
-			                                    : pt->channels,
+												: pt->channels,
 			                                pt->type == PAYLOAD_VIDEO  ? lc->default_video_codecs
 			                                : pt->type == PAYLOAD_TEXT ? lc->default_text_codecs
 			                                                           : lc->default_audio_codecs) == NULL) {
@@ -3507,11 +3507,11 @@ static void linphone_core_init(LinphoneCore *lc,
 
 	linphone_core_set_imdn_to_everybody_threshold(
 	    lc, linphone_config_get_int(lc->config, "chat", "imdn_to_everybody_threshold",
-	                                linphone_core_get_imdn_to_everybody_threshold(lc)));
+		                            linphone_core_get_imdn_to_everybody_threshold(lc)));
 
 	linphone_core_enable_empty_chatrooms_deletion(
 	    lc, linphone_config_get_bool(lc->config, "misc", "empty_chat_room_deletion",
-	                                 linphone_core_empty_chatrooms_deletion_enabled(lc)));
+		                             linphone_core_empty_chatrooms_deletion_enabled(lc)));
 
 	L_GET_CPP_PTR_FROM_C_OBJECT(lc)->initEphemeralChatMessagePolicy();
 
@@ -5673,7 +5673,7 @@ LinphoneConsolidatedPresence linphone_core_get_consolidated_presence(const Linph
 	LinphonePresenceModel *model = linphone_core_get_presence_model(lc);
 	return ((account && !(linphone_account_params_get_publish_enabled(linphone_account_get_params(account)))) || !model)
 	           ? LinphoneConsolidatedPresenceOffline
-	           : linphone_presence_model_get_consolidated_presence(model);
+			   : linphone_presence_model_get_consolidated_presence(model);
 }
 
 void linphone_core_set_consolidated_presence(LinphoneCore *lc, LinphoneConsolidatedPresence presence) {
@@ -6858,14 +6858,18 @@ LinphoneStatus linphone_core_set_video_device(LinphoneCore *lc, const char *id) 
 			ms_warning("Could not find video device %s", id);
 		}
 	}
-	if (lc->video_conf.device == NULL)
+
+	if (lc->video_conf.device == NULL) {
 		lc->video_conf.device = ms_web_cam_manager_get_default_cam(ms_factory_get_web_cam_manager(lc->factory));
+	}
+
 	if (lc->previewstream && lc->previewstream->cam != lc->video_conf.device) {
 		relaunch_video_preview(lc);
 		L_GET_PRIVATE_FROM_C_OBJECT(lc)->updateVideoDevice();
 	} else if (olddev != NULL && olddev != lc->video_conf.device) {
 		L_GET_PRIVATE_FROM_C_OBJECT(lc)->updateVideoDevice();
 	}
+
 	if (linphone_core_ready(lc) && lc->video_conf.device) {
 		vd = ms_web_cam_get_string_id(lc->video_conf.device);
 		if (vd && strstr(vd, "Static picture") != NULL) {
@@ -7340,7 +7344,7 @@ void linphone_core_set_preview_video_definition(LinphoneCore *lc, LinphoneVideoD
 void linphone_core_set_preview_video_size(LinphoneCore *lc, MSVideoSize vsize) {
 	linphone_core_set_preview_video_definition(
 	    lc, linphone_factory_find_supported_video_definition(linphone_factory_get(), (unsigned int)vsize.width,
-	                                                         (unsigned int)vsize.height));
+		                                                     (unsigned int)vsize.height));
 }
 
 const LinphoneVideoDefinition *linphone_core_get_preview_video_definition(const LinphoneCore *lc) {
