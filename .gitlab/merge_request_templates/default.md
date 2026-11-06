@@ -1,19 +1,21 @@
 # Review guidelines
 
-Produced code must conform to:
-* [Coding style](https://wiki.linphone.org/xwiki/bin/view/Engineering/Coding%20Style/) for liblinphone project
-* [Liblinphone API design guide](https://wiki.linphone.org/xwiki/bin/view/Engineering/Liblinphone%20API%20design%20guide/) for liblinphone public API addons or changes
-* [Software development good practice BC's guide](https://wiki.linphone.org/xwiki/bin/view/Bienvenue%20%C3%A0%20Belledonne%20Communications/Pratique%20de%20d%C3%A9veloppement%20recommand%C3%A9es/#)
+The SDK team has established a set of guidelines that all merge requests must follow. They can be found [here](https://linphone.atlassian.net/wiki/spaces/SDK/pages/1794801669/Merge+requests).
+This document outlines a process for ensuring smooth peer reviews, quality and consistent coding style practices across the projet. It covers the following points:
+- Coding style
+- Peer review
+- Changelog
+- Merging process
 
-In addition, from a pure C++ usage, it is recommended to follow the [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines).
-
-Review comments should, whenever possible, be supported by references to relevant documents mentionned above.
-All comments and discussions between reviewers and developers must remain respectful and constructive.
-By grounding discussions in shared references, code reviews should help foster constructive debate and contribute to the collective adoption and dissemination of good practices across the team.
-
+You are encouraged to read it before submitting a merge request for peer review.
 
 <table>
 <tbody>
+  <tr>
+    <th>Checklist item</th>
+    <th colspan="2">Developper</th>
+    <th>Reviewer</th>
+  </tr>
 <tr>
 <td>JIRA ticket number in title</td>
 <td>
@@ -24,6 +26,11 @@ By grounding discussions in shared references, code reviews should help foster c
 <td>
 
 - [ ] N.A.
+
+</td>
+<td>
+
+- [ ]  Validated</td>
 
 </td>
 </tr>
@@ -39,6 +46,11 @@ By grounding discussions in shared references, code reviews should help foster c
 - [ ] N.A.
 
 </td>
+<td>
+
+- [ ]  Validated</td>
+
+</td>
 </tr>
 <tr>
 <td>Tests added</td>
@@ -52,6 +64,11 @@ By grounding discussions in shared references, code reviews should help foster c
 - [ ] N.A.
 
 </td>
+<td>
+
+- [ ]  Validated</td>
+
+</td>
 </tr>
 <tr>
 <td>CHANGELOG updated</td>
@@ -63,6 +80,11 @@ By grounding discussions in shared references, code reviews should help foster c
 <td>
 
 - [ ] N.A.
+
+</td>
+<td>
+
+- [ ]  Validated</td>
 
 </td>
 </tr>
@@ -79,6 +101,11 @@ By grounding discussions in shared references, code reviews should help foster c
 - [ ] N.A.
 
 </td>
+<td>
+
+- [ ]  Validated</td>
+
+</td>
 </tr>
 <tr>
 <td>Internal documentation updated</td>
@@ -90,6 +117,11 @@ By grounding discussions in shared references, code reviews should help foster c
 <td>
 
 - [ ] N.A.
+
+</td>
+<td>
+
+- [ ]  Validated</td>
 
 </td>
 </tr>
@@ -105,6 +137,11 @@ By grounding discussions in shared references, code reviews should help foster c
 - [ ] N.A.
 
 </td>
+<td>
+
+- [ ]  Validated</td>
+
+</td>
 </tr>
 <tr>
 <td>Tag in changelog is up to date (only for release branches)</td>
@@ -116,6 +153,11 @@ By grounding discussions in shared references, code reviews should help foster c
 <td>
 
 - [ ] N.A.
+
+</td>
+<td>
+
+- [ ]  Validated</td>
 
 </td>
 </tr>
