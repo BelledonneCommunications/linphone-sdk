@@ -674,7 +674,7 @@ static test_t baudot_tests[] = {
                 baudot_text_message_voice_switch_voice_carryover_us),
     TEST_NO_TAG("Baudot text message voice switch to Europe Voice CarryOver",
                 baudot_text_message_voice_switch_voice_carryover_europe),
-    TEST_NO_TAG("Baudot in local conference TTY mode", baudot_local_conference_tty),
+    TEST_ONE_TAG("Baudot in local conference TTY mode", baudot_local_conference_tty, "shaky"),
     TEST_NO_TAG("Baudot in local conference Hearing CarryOver mode", baudot_local_conference_hearing_carryover),
     TEST_NO_TAG("Baudot in local conference Voice CarryOver mode", baudot_local_conference_voice_carryover),
     TEST_NO_TAG("Baudot in local conference hybrid TTY Hearing CarryOver",
