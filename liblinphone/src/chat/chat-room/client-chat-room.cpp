@@ -460,31 +460,21 @@ void ClientChatRoom::sendChatMessage(const shared_ptr<ChatMessage> &chatMessage)
 				chatMessage->getPrivate()->setParticipantState(getMe()->getAddress(), ChatMessage::State::NotDelivered,
 				                                               ::ms_time(nullptr));
 			} else if (encryptionEngine->participantListRequired()) {
-				LinphoneGlobalState coreGlobalState = linphone_core_get_global_state(getCore()->getCCore());
 				auto eventSubscribeState = LinphoneSubscriptionNone;
 				bool subscriptionUnderway = true;
 				if (eventHandler) {
 					eventSubscribeState = eventHandler->getSubscriptionState();
 					subscriptionUnderway = eventHandler->getInitialSubscriptionUnderWayFlag();
 				}
-				bool coreRunning = (coreGlobalState == LinphoneGlobalOn);
 				if (!conference->supportsConferenceEventPackage()) {
 					lError() << *this << ": Unable to send chat message [" << chatMessage
 					         << "] because RFC4575 is not supported in this chatroom therefore it is not possible to "
 					            "retrieve the list of participants";
 					chatMessage->getPrivate()->setParticipantState(
 					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
-				} else if (coreRunning && (!eventHandler || (eventSubscribeState == LinphoneSubscriptionError) ||
-				                           (eventSubscribeState == LinphoneSubscriptionTerminated))) {
-					lError() << *this << ": Unable to send chat message [" << chatMessage
-					         << "] because the subscription to retrieve the list of participant devices errored out "
-					            "(current state is "
-					         << linphone_subscription_state_to_string(eventSubscribeState)
-					         << ") or the event handler has not been instantiated (event handler [" << eventHandler
-					         << "])";
-					chatMessage->getPrivate()->setParticipantState(
-					    getMe()->getAddress(), ChatMessage::State::NotDelivered, ::ms_time(nullptr));
-				} else if (eventSubscribeState != LinphoneSubscriptionActive) {
+				} else if ((eventSubscribeState == LinphoneSubscriptionNone) ||
+				           (eventSubscribeState == LinphoneSubscriptionOutgoingProgress) ||
+				           (eventSubscribeState == LinphoneSubscriptionPending)) {
 					lInfo() << *this << ": Delaying sending of message [" << chatMessage
 					        << "] in an encrypted chat room because subscription is not active yet";
 					queueMessage = true;
