@@ -259,7 +259,7 @@ static void group_chat_lime_x3dh_encrypted_chatrooms_curve(const LinphoneTesterL
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *mariePlainCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	LinphoneAddress *plainConfAddr = linphone_address_clone(linphone_chat_room_get_conference_address(mariePlainCr));
 	BC_ASSERT_FALSE(linphone_chat_room_get_capabilities(mariePlainCr) & LinphoneChatRoomCapabilitiesBasic);
 	BC_ASSERT_TRUE(linphone_chat_room_get_capabilities(mariePlainCr) & LinphoneChatRoomCapabilitiesOneToOne);
@@ -574,10 +574,10 @@ static void group_chat_lime_x3dh_basic_chat_rooms_curve(const LinphoneTesterLime
 	} else {
 		BC_ASSERT_TRUE(
 		    wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneMessageDelivered,
-		             initialMarieStats.number_of_LinphoneMessageReceived + numberOfReceivedMessagesExpected));
+			         initialMarieStats.number_of_LinphoneMessageReceived + numberOfReceivedMessagesExpected));
 		BC_ASSERT_TRUE(
 		    wait_for(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneMessageReceived,
-		             initialPaulineStats.number_of_LinphoneMessageReceived + numberOfReceivedMessagesExpected));
+			         initialPaulineStats.number_of_LinphoneMessageReceived + numberOfReceivedMessagesExpected));
 		BC_ASSERT_PTR_NOT_NULL(pauline->stat.last_received_chat_message);
 		if (pauline->stat.last_received_chat_message != NULL) {
 			BC_ASSERT_STRING_EQUAL(linphone_chat_message_get_content_type(pauline->stat.last_received_chat_message),
@@ -600,7 +600,7 @@ static void group_chat_lime_x3dh_basic_chat_rooms_curve(const LinphoneTesterLime
 	    bctbx_list_append(participantsAddresses, linphone_address_new(linphone_core_get_identity(pauline->lc)));
 	LinphoneChatRoom *marieEncryptedCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *marieConferenceAddress = linphone_chat_room_get_conference_address(marieEncryptedCr);
 	if (!BC_ASSERT_PTR_NOT_NULL(marieConferenceAddress)) goto end;
 	LinphoneAddress *encryptedConfAddr = linphone_address_clone(marieConferenceAddress);
@@ -621,7 +621,7 @@ static void group_chat_lime_x3dh_basic_chat_rooms_curve(const LinphoneTesterLime
 	LinphoneChatMessage *msg = _send_message(marieEncryptedCr, marieEncryptedMessage1);
 	BC_ASSERT_TRUE(
 	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageReceived,
-	                  initialPaulineStats.number_of_LinphoneMessageReceived + numberOfReceivedMessagesExpected, 10000));
+		              initialPaulineStats.number_of_LinphoneMessageReceived + numberOfReceivedMessagesExpected, 10000));
 	LinphoneChatMessage *paulineLastMsg = pauline->stat.last_received_chat_message;
 	BC_ASSERT_TRUE(wait_for(marie->lc, pauline->lc, &marie->stat.number_of_LinphoneMessageDelivered,
 	                        initialMarieStats.number_of_LinphoneMessageDelivered + numberOfReceivedMessagesExpected));
@@ -754,7 +754,7 @@ static void lime_x3dh_message_test(bool_t with_composing,
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 	BC_ASSERT_TRUE(linphone_chat_room_is_empty(marieCr));
 
@@ -947,6 +947,10 @@ static void group_chat_lime_x3dh_send_encrypted_message_offline_curve(const Linp
 	stats initialPaulineStats = pauline->stat;
 	stats initialLaureStats = laure->stat;
 
+	setup_mgr_for_conference(marie, NULL);
+	setup_mgr_for_conference(pauline, NULL);
+	setup_mgr_for_conference(laure, NULL);
+
 	coresManagerList = bctbx_list_append(coresManagerList, marie);
 	coresManagerList = bctbx_list_append(coresManagerList, pauline);
 	coresManagerList = bctbx_list_append(coresManagerList, laure);
@@ -1010,34 +1014,57 @@ static void group_chat_lime_x3dh_send_encrypted_message_offline_curve(const Linp
 	BC_ASSERT_EQUAL(linphone_account_get_unread_chat_message_count(linphone_core_get_default_account(laure->lc)), 1,
 	                int, "%d");
 
+	initialLaureStats = laure->stat;
+	initialMarieStats = marie->stat;
+	initialPaulineStats = pauline->stat;
 	sal_set_send_error(linphone_core_get_sal(pauline->lc), -1);
 	// Pauline is offline and tries to send a chat message
 	message = _send_message(paulineOneOnOneCr, "Help me, Obi-Wan Kenobi. You’re my only hope.");
 	linphone_chat_message_send(message);
-	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessagePendingDelivery, 1,
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent,
+	                             initialPaulineStats.number_of_LinphoneMessageSent + 1,
 	                             liblinphone_tester_sip_timeout));
-	BC_ASSERT_FALSE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived, 2, 3000));
-	BC_ASSERT_FALSE(wait_for_list(coresList, &laure->stat.number_of_LinphoneMessageReceived, 2, 300));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessagePendingDelivery,
+	                             initialPaulineStats.number_of_LinphoneMessagePendingDelivery + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_FALSE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived,
+	                              initialMarieStats.number_of_LinphoneMessageReceived + 1, 3000));
+	BC_ASSERT_FALSE(wait_for_list(coresList, &laure->stat.number_of_LinphoneMessageReceived,
+	                              initialLaureStats.number_of_LinphoneMessageReceived + 1, 300));
 
 	sal_set_send_error(linphone_core_get_sal(pauline->lc), 0);
+	initialLaureStats = laure->stat;
+	initialMarieStats = marie->stat;
+	initialPaulineStats = pauline->stat;
 	linphone_core_refresh_registers(pauline->lc);
-	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneRegistrationOk, 2, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneRegistrationOk,
+	                             initialPaulineStats.number_of_LinphoneRegistrationOk + 1,
+	                             liblinphone_tester_sip_timeout));
 
 	// Pauline comes back online and retries to send a chat message
 	linphone_chat_message_send(message);
-	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent, 2, liblinphone_tester_sip_timeout));
-	BC_ASSERT_TRUE(
-	    // To be fixed : waiting 1 minute for subscription refresher to be tried again, since it failed when network was
-	    // shutdown
-	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageDelivered, 2,
-	                  60000 + liblinphone_tester_sip_timeout));
-	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived, 2, liblinphone_tester_sip_timeout));
-	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &laure->stat.number_of_LinphoneMessageReceived, 2, liblinphone_tester_sip_timeout));
-	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageNotDelivered, 2, 3000));
+	// The refresher retries the subscription after a random time between 45s and 75s since it failed when network was
+	// shutdown
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneSubscriptionActive,
+	                             initialPaulineStats.number_of_LinphoneSubscriptionActive + 1,
+	                             75000 + liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent,
+	                             initialPaulineStats.number_of_LinphoneMessageSent + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageDelivered,
+	                             initialPaulineStats.number_of_LinphoneMessageDelivered + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived,
+	                             initialMarieStats.number_of_LinphoneMessageReceived + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_LinphoneMessageReceived,
+	                             initialLaureStats.number_of_LinphoneMessageReceived + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageNotDelivered,
+	                              initialPaulineStats.number_of_LinphoneMessageNotDelivered + 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent,
+	                             initialPaulineStats.number_of_LinphoneMessageSent + 1,
+	                             liblinphone_tester_sip_timeout));
 
 	linphone_chat_message_unref(message);
 
@@ -1107,7 +1134,7 @@ group_chat_lime_x3dh_encrypted_message_to_devices_with_and_without_keys_curve(co
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -1216,7 +1243,7 @@ static void group_chat_lime_x3dh_send_encrypted_file_with_or_without_text(
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -1428,7 +1455,7 @@ static void group_chat_lime_x3dh_unique_one_on_one_chat_room_with_forward_messag
 	const char *initialSubject = "Pauline";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, FALSE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_TRUE(linphone_chat_room_get_capabilities(marieCr) & LinphoneChatRoomCapabilitiesOneToOne);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
@@ -1756,7 +1783,7 @@ static void group_chat_lime_x3dh_chat_room_reaction_message_base(const LinphoneT
 	const char *initialSubject = "Pauline & Laure";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
 
@@ -2093,7 +2120,7 @@ static void group_chat_lime_x3dh_chat_room_multiple_reactions_from_same_identity
 	const char *initialSubject = "Emojis <3";
 	LinphoneChatRoom *marie1Cr =
 	    create_chat_room_client_side(coresList, marie1, &initialMarie1Stats, participantsAddresses, initialSubject,
-	                                 TRUE, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             TRUE, LinphoneChatRoomEphemeralModeDeviceManaged);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marie1Cr));
 
@@ -2767,7 +2794,7 @@ static void group_chat_lime_x3dh_message_before_reject_sas_curve(const LinphoneT
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	if (!BC_ASSERT_PTR_NOT_NULL(marieCr)) goto end;
@@ -3027,7 +3054,7 @@ static void group_chat_lime_x3dh_chatroom_security_level_upgrade_curve(const Lin
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline and Laure sides and that the participants are added
@@ -3195,7 +3222,7 @@ group_chat_lime_x3dh_chatroom_security_level_downgrade_adding_participant_curve(
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline and Laure sides and that the participants are added
@@ -3272,11 +3299,11 @@ group_chat_lime_x3dh_chatroom_security_level_downgrade_adding_participant_curve(
 	BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_participants_added,
 	                             initialLaureStats.number_of_participants_added + 1, 3000));
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_participant_devices_added,
-	                            initialMarieStats.number_of_participant_devices_added + 1, 3000));
+	                             initialMarieStats.number_of_participant_devices_added + 1, 3000));
 	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_participant_devices_added,
-	                            initialPaulineStats.number_of_participant_devices_added + 1, 3000));
+	                             initialPaulineStats.number_of_participant_devices_added + 1, 3000));
 	BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_participant_devices_added,
-	                            initialLaureStats.number_of_participant_devices_added + 1, 3000));
+	                             initialLaureStats.number_of_participant_devices_added + 1, 3000));
 
 	BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(marieCr), 3, int, "%d");
 	BC_ASSERT_EQUAL(linphone_chat_room_get_nb_participants(paulineCr), 3, int, "%d");
@@ -3364,7 +3391,7 @@ group_chat_lime_x3dh_chatroom_security_level_downgrade_resetting_zrtp_arg(const 
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline and Laure sides and that the participants are added
@@ -3537,7 +3564,7 @@ static void group_chat_lime_x3dh_chatroom_security_level_self_multidevices_curve
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline1 and Laure sides and that the participants are added
@@ -3779,7 +3806,7 @@ static void group_chat_lime_x3dh_chatroom_security_alert_curve(const LinphoneTes
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline1 and Laure sides and that the participants are added
@@ -4005,7 +4032,7 @@ static void group_chat_lime_x3dh_call_security_alert_curve(const LinphoneTesterL
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -4700,7 +4727,7 @@ group_chat_lime_x3dh_send_multiple_successive_encrypted_messages_curve(const Lin
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -4841,7 +4868,7 @@ group_chat_lime_x3dh_send_encrypted_message_to_disabled_lime_x3dh_curve(const Li
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -4936,7 +4963,7 @@ group_chat_lime_x3dh_send_encrypted_message_to_unable_to_decrypt_lime_x3dh_curve
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -5031,7 +5058,7 @@ static void group_chat_lime_x3dh_send_plain_message_to_enabled_lime_x3dh_curve(c
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -5140,7 +5167,7 @@ group_chat_lime_x3dh_send_encrypted_message_to_multidevice_participants_curve(co
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr1 =
 	    create_chat_room_client_side(coresList, marie1, &initialMarie1Stats, participantsAddresses, initialSubject,
-	                                 TRUE, LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             TRUE, LinphoneChatRoomEphemeralModeDeviceManaged);
 	participantsAddresses = NULL;
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr1);
 
@@ -5318,7 +5345,7 @@ static void group_chat_lime_x3dh_message_while_network_unreachable_curve(const L
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	if (!unreachable_during_setup) {
@@ -5446,7 +5473,7 @@ static void imdn_for_group_chat_room_curve(const LinphoneTesterLimeAlgo curveId)
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -5611,7 +5638,7 @@ group_chat_room_unique_one_on_one_chat_room_recreated_from_message_curve(const L
 	const char *initialSubject = "Pauline";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	BC_ASSERT_TRUE(linphone_chat_room_get_capabilities(marieCr) & LinphoneChatRoomCapabilitiesOneToOne);
 
 	LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
@@ -5759,7 +5786,7 @@ static void group_chat_lime_x3dh_session_corrupted_curve(const LinphoneTesterLim
 	const char *initialSubject = "Colleagues";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 	// Check that the chat room is correctly created on Pauline's and Laure's side and that the participants are added
@@ -5806,7 +5833,7 @@ static void group_chat_lime_x3dh_session_corrupted_curve(const LinphoneTesterLim
 	lime_delete_DRSessions(
 	    pauline->lime_database_path,
 	    " WHERE Did = (SELECT Did FROM lime_PeerDevices WHERE DeviceId LIKE 'sip:marie%')"); // Delete only the session
-	                                                                                         // linked to Marie
+		                                                                                     // linked to Marie
 	linphone_core_manager_reinit(pauline);
 	bctbx_list_t *tmpCoresManagerList = bctbx_list_append(NULL, pauline);
 	set_lime_server_and_curve_list(curveId, tmpCoresManagerList);
@@ -6006,7 +6033,7 @@ static void group_chat_lime_x3dh_message_content_edition_and_retract(const Linph
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 	BC_ASSERT_TRUE(linphone_chat_room_is_empty(marieCr));
 
@@ -6239,7 +6266,7 @@ static void group_chat_lime_x3dh_edit_sent_message_with_file_base(const Linphone
 	const char *initialSubject = "Friends";
 	LinphoneChatRoom *marieCr =
 	    create_chat_room_client_side(coresList, marie, &initialMarieStats, participantsAddresses, initialSubject, TRUE,
-	                                 LinphoneChatRoomEphemeralModeDeviceManaged);
+		                             LinphoneChatRoomEphemeralModeDeviceManaged);
 	const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 	BC_ASSERT_TRUE(linphone_chat_room_is_empty(marieCr));
 
@@ -6409,56 +6436,56 @@ static void group_chat_lime_x3dh_edit_sent_message_with_file(void) {
 static test_t secure_group_chat_tests[] = {
     TEST_ONE_TAG("LIME X3DH create lime user", group_chat_lime_x3dh_create_lime_user, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH create multiple lime user using different base algorithm",
-                 group_chat_lime_x3dh_create_multialgo_users,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_create_multialgo_users,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH change server url", group_chat_lime_x3dh_change_server_url, "LimeX3DH"),
     TEST_TWO_TAGS("LIME X3DH encrypted chatrooms", group_chat_lime_x3dh_encrypted_chatrooms, "LimeX3DH", "CRYPTO"),
     TEST_ONE_TAG("LIME X3DH encrypted chatrooms, Lime server URL set at core level(legacy)",
-                 group_chat_lime_x3dh_encrypted_chatrooms_corelevel_lime_server_url,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_encrypted_chatrooms_corelevel_lime_server_url,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH basic chatrooms", group_chat_lime_x3dh_basic_chat_rooms, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH basic chatrooms IM encryption mandatory",
-                 group_chat_lime_x3dh_basic_chat_rooms_im_encryption_mandatory,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_basic_chat_rooms_im_encryption_mandatory,
+	             "LimeX3DH"),
     TEST_ONE_TAG(
         "LIME X3DH chatroom security level upgrade", group_chat_lime_x3dh_chatroom_security_level_upgrade, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH chatroom security level downgrade adding participant",
-                 group_chat_lime_x3dh_chatroom_security_level_downgrade_adding_participant,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_chatroom_security_level_downgrade_adding_participant,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH chatroom security level downgrade resetting zrtp",
-                 group_chat_lime_x3dh_chatroom_security_level_downgrade_resetting_zrtp,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_chatroom_security_level_downgrade_resetting_zrtp,
+	             "LimeX3DH"),
 };
 
 static test_t secure_group_chat2_tests[] = {
     TEST_ONE_TAG("Lime Unique one-on-one chatroom recreated from message",
-                 group_chat_room_unique_one_on_one_chat_room_recreated_from_message,
-                 "LimeX3DH"), // First in the list because of the CLS history
+	             group_chat_room_unique_one_on_one_chat_room_recreated_from_message,
+	             "LimeX3DH"), // First in the list because of the CLS history
     TEST_ONE_TAG("LIME X3DH chatroom security level self multidevices",
-                 group_chat_lime_x3dh_chatroom_security_level_self_multidevices,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_chatroom_security_level_self_multidevices,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH chatroom security alert", group_chat_lime_x3dh_chatroom_security_alert, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH call security alert", group_chat_lime_x3dh_call_security_alert, "LimeX3DH"),
     TEST_ONE_TAG("Imdn", imdn_for_group_chat_room, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH stop/start core", group_chat_lime_x3dh_stop_start_core, "LimeX3DH"),
     TEST_TWO_TAGS("LIME X3DH session corrupted",
-                  group_chat_lime_x3dh_session_corrupted,
-                  "LimeX3DH",
-                  "LeaksMemory" /*due to core restart*/),
+	              group_chat_lime_x3dh_session_corrupted,
+	              "LimeX3DH",
+	              "LeaksMemory" /*due to core restart*/),
     TEST_TWO_TAGS("LIME X3DH session corrupted without delivery IMDN",
-                  group_chat_lime_x3dh_session_corrupted_no_imdn,
-                  "LimeX3DH",
-                  "LeaksMemory" /*due to core restart*/),
+	              group_chat_lime_x3dh_session_corrupted_no_imdn,
+	              "LimeX3DH",
+	              "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("LIME X3DH group chat with IMDN sent only to sender",
-                 group_chat_lime_x3dh_with_imdn_sent_only_to_sender,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_with_imdn_sent_only_to_sender,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH group chat with IMDN sent only to sender after going over threshold",
-                 group_chat_lime_x3dh_with_imdn_sent_only_to_sender_after_going_over_threshold,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_with_imdn_sent_only_to_sender_after_going_over_threshold,
+	             "LimeX3DH"),
     TEST_TWO_TAGS("LIME X3DH session corrupted with delivery error IMDN only",
-                  group_chat_lime_x3dh_session_corrupted_error_imdn_only,
-                  "LimeX3DH",
-                  "LeaksMemory" /*due to core restart*/)};
+	              group_chat_lime_x3dh_session_corrupted_error_imdn_only,
+	              "LimeX3DH",
+	              "LeaksMemory" /*due to core restart*/)};
 
 static test_t secure_group_chat_exhume_tests[] = {
     TEST_ONE_TAG(
@@ -6481,46 +6508,46 @@ static test_t secure_message_tests[] = {
     TEST_ONE_TAG(
         "LIME X3DH message with response", group_chat_lime_x3dh_send_encrypted_message_with_response, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH message with response and composing",
-                 group_chat_lime_x3dh_send_encrypted_message_with_response_and_composing,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_send_encrypted_message_with_response_and_composing,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH message to devices with and without keys on server",
-                 group_chat_lime_x3dh_encrypted_message_to_devices_with_and_without_keys,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_encrypted_message_to_devices_with_and_without_keys,
+	             "LimeX3DH"),
     TEST_TWO_TAGS("LIME X3DH send encrypted file", group_chat_lime_x3dh_send_encrypted_file, "LimeX3DH", "CRYPTO"),
     TEST_TWO_TAGS("LIME X3DH send encrypted file with core restart",
-                  group_chat_lime_x3dh_send_encrypted_file_with_core_restart,
-                  "LimeX3DH",
-                  "LeaksMemory"),
+	              group_chat_lime_x3dh_send_encrypted_file_with_core_restart,
+	              "LimeX3DH",
+	              "LeaksMemory"),
     TEST_ONE_TAG("LIME X3DH send encrypted file using buffer", group_chat_lime_x3dh_send_encrypted_file_2, "LimeX3DH"),
     TEST_ONE_TAG(
         "LIME X3DH send encrypted file + text", group_chat_lime_x3dh_send_encrypted_file_plus_text, "LimeX3DH"),
     TEST_ONE_TAG(
         "LIME X3DH send 2 encrypted files + text", group_chat_lime_x3dh_send_two_encrypted_files_plus_text, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH send forward message",
-                 group_chat_lime_x3dh_unique_one_on_one_chat_room_send_forward_message,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_unique_one_on_one_chat_room_send_forward_message,
+	             "LimeX3DH"),
     TEST_TWO_TAGS("LIME X3DH send forward message with restart",
-                  group_chat_lime_x3dh_unique_one_on_one_chat_room_send_forward_message_with_restart,
-                  "LimeX3DH",
-                  "LeaksMemory" /*due to core restart*/),
+	              group_chat_lime_x3dh_unique_one_on_one_chat_room_send_forward_message_with_restart,
+	              "LimeX3DH",
+	              "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("LIME X3DH send reply message",
-                 group_chat_lime_x3dh_unique_one_on_one_chat_room_reply_forward_message,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_unique_one_on_one_chat_room_reply_forward_message,
+	             "LimeX3DH"),
     TEST_TWO_TAGS("LIME X3DH send reply message with core restart",
-                  group_chat_lime_x3dh_unique_one_on_one_chat_room_reply_forward_message_with_restart,
-                  "LimeX3DH",
-                  "LeaksMemory" /*due to core restart*/),
+	              group_chat_lime_x3dh_unique_one_on_one_chat_room_reply_forward_message_with_restart,
+	              "LimeX3DH",
+	              "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("LIME X3DH send reaction message", group_chat_lime_x3dh_chat_room_reaction_message, "LimeX3DH"),
     TEST_TWO_TAGS("LIME X3DH send reaction message with core restart",
-                  group_chat_lime_x3dh_chat_room_reaction_message_with_core_restart,
-                  "LimeX3DH",
-                  "LeaksMemory" /*due to core restart*/),
+	              group_chat_lime_x3dh_chat_room_reaction_message_with_core_restart,
+	              "LimeX3DH",
+	              "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("LIME X3DH send reaction message from two device with same identity",
-                 group_chat_lime_x3dh_chat_room_multiple_reactions_from_same_identity_but_different_gruu,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_chat_room_multiple_reactions_from_same_identity_but_different_gruu,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH edit and retract already sent message",
-                 group_chat_lime_x3dh_edit_and_retract_sent_message,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_edit_and_retract_sent_message,
+	             "LimeX3DH"),
     TEST_ONE_TAG(
         "LIME X3DH edit already sent message with file", group_chat_lime_x3dh_edit_sent_message_with_file, "LimeX3DH")};
 
@@ -6530,29 +6557,29 @@ static test_t secure_message2_tests[] = {
     TEST_ONE_TAG("LIME X3DH message before verify SAS", group_chat_lime_x3dh_message_before_verify_sas, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH message before reject SAS", group_chat_lime_x3dh_message_before_reject_sas, "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH message before verify SAS from a device with ZRTP configured called side only",
-                 group_chat_lime_x3dh_message_before_verify_sas_with_call_from_device_with_zrtp_de_activated,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_message_before_verify_sas_with_call_from_device_with_zrtp_de_activated,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH multiple successive messages",
-                 group_chat_lime_x3dh_send_multiple_successive_encrypted_messages,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_send_multiple_successive_encrypted_messages,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH encrypted message to disabled LIME X3DH",
-                 group_chat_lime_x3dh_send_encrypted_message_to_disabled_lime_x3dh,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_send_encrypted_message_to_disabled_lime_x3dh,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH encrypted message to unable to decrypt LIME X3DH",
-                 group_chat_lime_x3dh_send_encrypted_message_to_unable_to_decrypt_lime_x3dh,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_send_encrypted_message_to_unable_to_decrypt_lime_x3dh,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH plain message to enabled LIME X3DH",
-                 group_chat_lime_x3dh_send_plain_message_to_enabled_lime_x3dh,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_send_plain_message_to_enabled_lime_x3dh,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH message to multidevice participants",
-                 group_chat_lime_x3dh_send_encrypted_message_to_multidevice_participants,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_send_encrypted_message_to_multidevice_participants,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH messages while network unreachable",
-                 group_chat_lime_x3dh_message_while_network_unreachable,
-                 "LimeX3DH"),
+	             group_chat_lime_x3dh_message_while_network_unreachable,
+	             "LimeX3DH"),
     TEST_ONE_TAG("LIME X3DH messages while network unreachable 2",
-                 group_chat_lime_x3dh_message_while_network_unreachable_2,
-                 "LimeX3DH")};
+	             group_chat_lime_x3dh_message_while_network_unreachable_2,
+	             "LimeX3DH")};
 
 test_suite_t secure_group_chat_test_suite = {"Secure group chat",
                                              NULL,
