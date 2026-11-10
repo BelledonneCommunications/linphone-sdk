@@ -955,6 +955,10 @@ static void group_chat_lime_x3dh_send_encrypted_message_offline_curve(const Linp
 	stats initialPaulineStats = pauline->stat;
 	stats initialLaureStats = laure->stat;
 
+	setup_mgr_for_conference(marie, NULL);
+	setup_mgr_for_conference(pauline, NULL);
+	setup_mgr_for_conference(laure, NULL);
+
 	coresManagerList = bctbx_list_append(coresManagerList, marie);
 	coresManagerList = bctbx_list_append(coresManagerList, pauline);
 	coresManagerList = bctbx_list_append(coresManagerList, laure);
@@ -1020,34 +1024,57 @@ static void group_chat_lime_x3dh_send_encrypted_message_offline_curve(const Linp
 	BC_ASSERT_EQUAL(linphone_account_get_unread_chat_message_count(linphone_core_get_default_account(laure->lc)), 1,
 	                int, "%d");
 
+	initialLaureStats = laure->stat;
+	initialMarieStats = marie->stat;
+	initialPaulineStats = pauline->stat;
 	sal_set_send_error(linphone_core_get_sal(pauline->lc), -1);
 	// Pauline is offline and tries to send a chat message
 	message = _send_message(paulineOneOnOneCr, "Help me, Obi-Wan Kenobi. You’re my only hope.");
 	linphone_chat_message_send(message);
-	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessagePendingDelivery, 1,
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent,
+	                             initialPaulineStats.number_of_LinphoneMessageSent + 1,
 	                             liblinphone_tester_sip_timeout));
-	BC_ASSERT_FALSE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived, 2, 3000));
-	BC_ASSERT_FALSE(wait_for_list(coresList, &laure->stat.number_of_LinphoneMessageReceived, 2, 300));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessagePendingDelivery,
+	                             initialPaulineStats.number_of_LinphoneMessagePendingDelivery + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_FALSE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived,
+	                              initialMarieStats.number_of_LinphoneMessageReceived + 1, 3000));
+	BC_ASSERT_FALSE(wait_for_list(coresList, &laure->stat.number_of_LinphoneMessageReceived,
+	                              initialLaureStats.number_of_LinphoneMessageReceived + 1, 300));
 
 	sal_set_send_error(linphone_core_get_sal(pauline->lc), 0);
+	initialLaureStats = laure->stat;
+	initialMarieStats = marie->stat;
+	initialPaulineStats = pauline->stat;
 	linphone_core_refresh_registers(pauline->lc);
-	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneRegistrationOk, 2, liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneRegistrationOk,
+	                             initialPaulineStats.number_of_LinphoneRegistrationOk + 1,
+	                             liblinphone_tester_sip_timeout));
 
 	// Pauline comes back online and retries to send a chat message
 	linphone_chat_message_send(message);
-	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent, 2, liblinphone_tester_sip_timeout));
-	BC_ASSERT_TRUE(
-	    // To be fixed : waiting 1 minute for subscription refresher to be tried again, since it failed when network was
-	    // shutdown
-	    wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageDelivered, 2,
-		              60000 + liblinphone_tester_sip_timeout));
-	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived, 2, liblinphone_tester_sip_timeout));
-	BC_ASSERT_TRUE(
-	    wait_for_list(coresList, &laure->stat.number_of_LinphoneMessageReceived, 2, liblinphone_tester_sip_timeout));
-	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageNotDelivered, 2, 3000));
+	// The refresher retries the subscription after a random time between 45s and 75s since it failed when network was
+	// shutdown
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneSubscriptionActive,
+	                             initialPaulineStats.number_of_LinphoneSubscriptionActive + 1,
+	                             75000 + liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent,
+	                             initialPaulineStats.number_of_LinphoneMessageSent + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageDelivered,
+	                             initialPaulineStats.number_of_LinphoneMessageDelivered + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageReceived,
+	                             initialMarieStats.number_of_LinphoneMessageReceived + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &laure->stat.number_of_LinphoneMessageReceived,
+	                             initialLaureStats.number_of_LinphoneMessageReceived + 1,
+	                             liblinphone_tester_sip_timeout));
+	BC_ASSERT_FALSE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageNotDelivered,
+	                              initialPaulineStats.number_of_LinphoneMessageNotDelivered + 1, 3000));
+	BC_ASSERT_TRUE(wait_for_list(coresList, &pauline->stat.number_of_LinphoneMessageSent,
+	                             initialPaulineStats.number_of_LinphoneMessageSent + 1,
+	                             liblinphone_tester_sip_timeout));
 
 	linphone_chat_message_unref(message);
 
@@ -1523,7 +1550,6 @@ static void transfer_message_upload_core_enters_background_base(const LinphoneTe
 	if (sendFilepath2) bc_free(sendFilepath2);
 	bc_free(receivePaulineFilepath);
 	bc_free(receiveChloeFilepath);
-
 }
 
 static void transfer_message_upload_core_enters_background(void) {
