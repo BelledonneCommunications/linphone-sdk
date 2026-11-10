@@ -1164,9 +1164,9 @@ bool_t check_screen_sharing_call(LinphoneCoreManager *mgr1, LinphoneCoreManager 
 		int expected_screen_sharing_filter_counter = 0;
 		if (!!video_enabled) {
 			LinphoneMediaDirection video_direction = linphone_call_params_get_video_direction(cparams);
-			bool_t camera_enabled =
-			    linphone_call_params_camera_enabled(cparams) && ((video_direction == LinphoneMediaDirectionSendRecv) ||
-			                                                     (video_direction == LinphoneMediaDirectionSendOnly));
+			bool_t camera_enabled = linphone_call_params_sending_camera_stream_enabled(cparams) &&
+			                        ((video_direction == LinphoneMediaDirectionSendRecv) ||
+			                         (video_direction == LinphoneMediaDirectionSendOnly));
 			if (!!screen_sharing_enabled) {
 				expected_screen_sharing_filter_counter = 1;
 				if (camera_enabled) {

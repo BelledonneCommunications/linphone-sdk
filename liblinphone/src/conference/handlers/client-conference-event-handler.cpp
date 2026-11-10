@@ -648,7 +648,7 @@ ClientConferenceEventHandler::conferenceInfoNotifyReceived(const string &xmlBody
 								const auto &ms = dynamic_pointer_cast<MediaSession>(mainSession);
 								if (ms) {
 									const auto &params = ms->getMediaParams();
-									thumbnailEnabled = params->cameraEnabled();
+									thumbnailEnabled = params->sendingCameraStreamEnabled();
 								}
 							} else {
 								const auto &deviceCapability = device->getStreamCapability(LinphoneStreamTypeVideo);

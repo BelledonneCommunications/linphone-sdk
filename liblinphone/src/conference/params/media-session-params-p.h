@@ -126,7 +126,7 @@ public:
 	bool audioMulticastEnabled = false;
 	std::shared_ptr<PayloadType> usedAudioCodec;
 
-	bool cameraEnabled = true;
+	bool sendingCameraStreamEnabled = true;
 	bool screenSharingEnabled = false;
 	bool videoEnabled = false;
 	LinphoneMediaDirection videoDirection = LinphoneMediaDirectionSendRecv;

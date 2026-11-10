@@ -38,7 +38,7 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
 - Improved refresher failover and channel retention on SRV targets with `reconnect_to_primary_asap`.
 - Allow Baudot to be used in local conferences (each call keeps its baudot encoder and decoders)
 - `linphone_chat_message_get_event_log()` now returns a non-const `LinphoneEventLog *` with an incremented reference count (`@tobefreed`). C callers must call `linphone_event_log_unref()` on the returned pointer when non-NULL.
-
+- Use of `linphone_call_params_enable_sending_camera_stream()/linphone_call_params_sending_camera_stream_enabled()` instead of `linphone_call_params_enable_camera()/linphone_call_params_camera_enabled()`
 
 ### Fixed
 - Fix ICE getting stuck in progress if a re-INVITE is received during the connectivity checks.

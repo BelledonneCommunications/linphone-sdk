@@ -2290,7 +2290,7 @@ void MediaSessionPrivate::addConferenceLocalParticipantStreams(bool add,
 								}
 							} else {
 								// Do not offer own thumbnail if the camera is disabled
-								if (q->getMediaParams()->cameraEnabled() &&
+								if (q->getMediaParams()->sendingCameraStreamEnabled() &&
 								    ((mediaDirection == LinphoneMediaDirectionSendOnly) ||
 								     (mediaDirection == LinphoneMediaDirectionSendRecv))) {
 									dir = SalStreamSendOnly;
@@ -2876,6 +2876,10 @@ void MediaSessionPrivate::makeLocalMediaDescription(bool localIsOfferer,
 			}
 		} else {
 			videoDir = getParams()->getPrivate()->getSalVideoDirection();
+			if (!getParams()->sendingCameraStreamEnabled()) {
+				if (videoDir == SalStreamRecvOnly || videoDir == SalStreamSendRecv) videoDir = SalStreamRecvOnly;
+				else videoDir = SalStreamInactive;
+			} // else videoDir stay the same.
 			enableVideoStream = addVideoStream;
 		}
 
@@ -4243,10 +4247,10 @@ void MediaSessionPrivate::updateCurrentParams() const {
 		} else {
 			thumbnailStreamDirection = SalStreamSendRecv;
 		}
-		// The camera is enabled if:
+		// The camera stream is sent if:
 		// - the thumbnail stream is enabled
 		// - the thumbnail stream's direction is sendrecv or sendonly
-		getCurrentParams()->enableCamera(
+		getCurrentParams()->enableSendingCameraStream(
 		    ((thumbnailStreamDirection == SalStreamSendRecv) || (thumbnailStreamDirection == SalStreamSendOnly)) &&
 		    getCurrentParams()->videoEnabled());
 
@@ -5447,7 +5451,6 @@ bool MediaSession::cameraEnabled() const {
 void MediaSession::enableCamera(BCTBX_UNUSED(bool value)) {
 #ifdef VIDEO_ENABLED
 	L_D();
-	const_cast<MediaSessionParams *>(getMediaParams())->enableCamera(value);
 	auto iface = d->getStreamsGroup().lookupMainStreamInterface<MS2VideoControl>(SalVideo);
 	if (iface) {
 		auto vs = iface->getVideoStream();
@@ -5824,10 +5827,10 @@ const MediaSessionParams *MediaSession::getRemoteParams() const {
 			} else {
 				thumbnailStreamDirection = mainStreamDirection;
 			}
-			// The camera is enabled if:
+			// The camera stream is sent if:
 			// - the thumbnail stream is enabled
 			// - the thumbnail stream's direction is sendrecv or sendonly
-			params->enableCamera(
+			params->enableSendingCameraStream(
 			    ((thumbnailStreamDirection == SalStreamSendRecv) || (thumbnailStreamDirection == SalStreamSendOnly)) &&
 			    params->videoEnabled());
 

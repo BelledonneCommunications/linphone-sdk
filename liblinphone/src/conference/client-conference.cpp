@@ -285,7 +285,7 @@ void ClientConference::createEventHandler(BCTBX_UNUSED(ConferenceListener *confL
 
 void ClientConference::initializeHandlers(ConferenceListener *confListener, bool addToListEventHandler) {
 	addListener(std::shared_ptr<ConferenceListenerInterface>(static_cast<ConferenceListenerInterface *>(this),
-	                                                         [](BCTBX_UNUSED(ConferenceListenerInterface *p)) {}));
+	                                                         [](BCTBX_UNUSED(ConferenceListenerInterface * p)) {}));
 	createEventHandler(confListener, addToListEventHandler);
 }
 
@@ -2693,7 +2693,7 @@ SalReferOp *ClientConference::createReferOp() {
 		if (alternativeConferenceAddressUriString != getAssignedConferenceAddress()->toStringUriOnlyOrdered()) {
 			auto customHeaders =
 			    sal_custom_header_append(nullptr, Conference::kXAlternativeAddressClientHeaderName.c_str(),
-				                         alternativeConferenceAddressUriString.c_str());
+			                             alternativeConferenceAddressUriString.c_str());
 			referOp->setSentCustomHeaders(customHeaders);
 		}
 	}
@@ -2767,7 +2767,7 @@ std::pair<bool, LinphoneMediaDirection> ClientConference::getMainStreamVideoDire
 	    ((videoDirInParams == LinphoneMediaDirectionSendRecv) || (videoDirInParams == LinphoneMediaDirectionSendOnly));
 	bool isScreenSharing = ms->getMediaParams()->screenSharingEnabled();
 	ConferenceLayout confLayout = ms->getMediaParams()->getConferenceVideoLayout();
-	const auto &cameraEnabled = ms->getMediaParams()->cameraEnabled();
+	const auto &sendingCameraStreamEnabled = ms->getMediaParams()->sendingCameraStreamEnabled();
 	LinphoneMediaDirection videoDir = LinphoneMediaDirectionInactive;
 	if (isScreenSharing) {
 		// Set the video direction to inactive if the participant has enabled screen sharing but the video
@@ -2776,7 +2776,7 @@ std::pair<bool, LinphoneMediaDirection> ClientConference::getMainStreamVideoDire
 	} else {
 		switch (confLayout) {
 			case ConferenceLayout::ActiveSpeaker:
-				if (cameraEnabled) {
+				if (sendingCameraStreamEnabled) {
 					videoDir = videoDirInParams;
 				} else {
 					videoDir = LinphoneMediaDirectionRecvOnly;
@@ -2784,7 +2784,7 @@ std::pair<bool, LinphoneMediaDirection> ClientConference::getMainStreamVideoDire
 				break;
 			case ConferenceLayout::Grid:
 				if (sendingVideo) {
-					if (cameraEnabled) {
+					if (sendingCameraStreamEnabled) {
 						videoDir = LinphoneMediaDirectionSendOnly;
 					} else {
 						videoDir = LinphoneMediaDirectionInactive;
@@ -2940,7 +2940,7 @@ void ClientConference::onCallSessionSetTerminated(const shared_ptr<CallSession> 
 				const auto &confAccount = mConfParams->getAccount();
 				const auto &account =
 				    confAccount ? confAccount
-					            : Account::toCpp(linphone_core_get_default_account(cCore))->getSharedFromThis();
+				                : Account::toCpp(linphone_core_get_default_account(cCore))->getSharedFromThis();
 				const auto &from = account ? account->getAccountParams()->getIdentityAddress() : nullptr;
 				if (!from) {
 					lError() << "Unable to find account used to join " << *this;
@@ -2970,7 +2970,7 @@ void ClientConference::onCallSessionStateChanged(const shared_ptr<CallSession> &
 		else {
 			list<std::shared_ptr<Call>>::iterator it =
 			    find_if(mPendingCalls.begin(), mPendingCalls.end(),
-				        [&session](const auto &call) { return session == call->getActiveSession(); });
+			            [&session](const auto &call) { return session == call->getActiveSession(); });
 			if (it != mPendingCalls.end()) {
 				onPendingCallStateChanged(*it, state);
 			}

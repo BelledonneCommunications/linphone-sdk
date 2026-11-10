@@ -43,7 +43,7 @@ void MediaSessionParamsPrivate::clone(const MediaSessionParamsPrivate *src) {
 	mRingingDisabled = src->mRingingDisabled;
 	toneIndications = src->toneIndications;
 	usedAudioCodec = src->usedAudioCodec;
-	cameraEnabled = src->cameraEnabled;
+	sendingCameraStreamEnabled = src->sendingCameraStreamEnabled;
 	screenSharingEnabled = src->screenSharingEnabled;
 	videoEnabled = src->videoEnabled;
 	videoDirection = src->videoDirection;
@@ -264,7 +264,7 @@ void MediaSessionParams::initDefault(const std::shared_ptr<Core> &core, Linphone
 	LinphoneCore *cCore = core->getCCore();
 	d->audioEnabled = true;
 	d->screenSharingEnabled = false;
-	d->cameraEnabled = true;
+	d->sendingCameraStreamEnabled = true;
 	d->fecEnabled = false;
 
 	LinphoneConference *conference = linphone_core_get_conference(cCore);
@@ -386,9 +386,9 @@ void MediaSessionParams::setAudioDirection(LinphoneMediaDirection direction) {
 
 // -----------------------------------------------------------------------------
 
-void MediaSessionParams::enableCamera(bool value) {
+void MediaSessionParams::enableSendingCameraStream(bool value) {
 	L_D();
-	d->cameraEnabled = value;
+	d->sendingCameraStreamEnabled = value;
 }
 
 void MediaSessionParams::enableScreenSharing(bool value) {
@@ -445,9 +445,9 @@ void MediaSessionParams::setVideoDirection(LinphoneMediaDirection direction) {
 	d->videoDirection = direction;
 }
 
-bool MediaSessionParams::cameraEnabled() const {
+bool MediaSessionParams::sendingCameraStreamEnabled() const {
 	L_D();
-	return d->cameraEnabled;
+	return d->sendingCameraStreamEnabled;
 }
 
 bool MediaSessionParams::screenSharingEnabled() const {

@@ -1049,7 +1049,7 @@ size_t compute_no_video_streams_2(const std::list<std::shared_ptr<Call>> &calls,
 	size_t nbVideoStreams = 0;
 	auto currentCallParams = currentCall->getCurrentParams();
 	if (currentCallParams->videoEnabled()) {
-		bool currentCameraEnabled = currentCallParams->cameraEnabled();
+		bool currentSendingCameraStreamEnabled = currentCallParams->sendingCameraStreamEnabled();
 		auto currentCore = currentCall->getCore();
 		auto currentAddress = currentCore->getIdentityAddress();
 		auto itCurrentParticipant = std::find_if(participants.begin(), participants.end(),
@@ -1086,11 +1086,11 @@ size_t compute_no_video_streams_2(const std::list<std::shared_ptr<Call>> &calls,
 			    (!(isLocalScreenSharing && currentRole == Participant::Role::Listener) || !remoteFocusScreenSharing))
 				++nbVideoStreams; // Main
 			if (currentRole == Participant::Role::Speaker && (currentVideoDirection & LinphoneMediaDirectionSendOnly) &&
-			    // Special case for screen sharing: add thumbnail stream only if camera is activated
-			    (!isScreenSharing || currentCameraEnabled))
+			    // Special case for screen sharing: add thumbnail stream only if sending video stream is enabled
+			    (!isScreenSharing || currentSendingCameraStreamEnabled))
 				++nbVideoStreams; // Thumbnail
 		} else {                  // Grid
-			if (currentRole != Participant::Role::Listener && (isScreenSharing || currentCameraEnabled) &&
+			if (currentRole != Participant::Role::Listener && (isScreenSharing || currentSendingCameraStreamEnabled) &&
 			    (currentVideoDirection & LinphoneMediaDirectionSendOnly))
 				nbVideoStreams += 2; // Main Stream + Thumbnail
 		}
@@ -1109,7 +1109,7 @@ size_t compute_no_video_streams_2(const std::list<std::shared_ptr<Call>> &calls,
 			const auto participantCurrentParams = call->getCurrentParams();
 			if (((participantRole != Participant::Role::Listener) &&
 			     (localCallParams->getVideoDirection() & LinphoneMediaDirectionSendOnly) &&
-			     participantCurrentParams->cameraEnabled()) ||
+			     participantCurrentParams->sendingCameraStreamEnabled()) ||
 			    (isConferenceServer &&
 			     (participantCurrentParams->getVideoDirection() & LinphoneMediaDirectionRecvOnly))) {
 				++nbVideoStreams;
@@ -1311,7 +1311,7 @@ void wait_for_conference_streams(std::initializer_list<std::reference_wrapper<Co
 			BC_ASSERT_PTR_NOT_NULL(participant_call);
 			if (participant_call) {
 				const LinphoneCallParams *local_params = linphone_call_get_params(participant_call);
-				camera_enabled_map[mgr] = linphone_call_params_camera_enabled(local_params);
+				camera_enabled_map[mgr] = linphone_call_params_sending_camera_stream_enabled(local_params);
 			}
 		}
 	}
@@ -5207,7 +5207,7 @@ void create_conference_with_screen_sharing_base(time_t start_time,
 		if (berthe_call) {
 			LinphoneCallParams *new_params = linphone_core_create_call_params(berthe.getLc(), berthe_call);
 			linphone_call_params_enable_video(new_params, TRUE);
-			linphone_call_params_enable_camera(new_params, enable_camera);
+			linphone_call_params_enable_sending_camera_stream(new_params, enable_camera);
 			linphone_call_params_enable_screen_sharing(new_params, TRUE);
 			toggle_screen_sharing({focus, marie, pauline, laure, michelle, berthe}, focus.getCMgr(), members,
 			                      berthe.getCMgr(), new_params, confAddr, berthe_can_screen_share);
@@ -5261,7 +5261,8 @@ void create_conference_with_screen_sharing_base(time_t start_time,
 				const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(focus_call);
 				BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_rparams), 1, int, "%0d");
 				BC_ASSERT_EQUAL(linphone_call_params_screen_sharing_enabled(call_rparams), 1, int, "%0d");
-				BC_ASSERT_EQUAL(linphone_call_params_camera_enabled(call_rparams), enable_camera, int, "%0d");
+				BC_ASSERT_EQUAL(linphone_call_params_sending_camera_stream_enabled(call_rparams), enable_camera, int,
+				                "%0d");
 			}
 		} else {
 			if (berthe_call) {
@@ -5301,7 +5302,7 @@ void create_conference_with_screen_sharing_base(time_t start_time,
 		if (laure_call) {
 			LinphoneCallParams *new_params = linphone_core_create_call_params(laure.getLc(), laure_call);
 			linphone_call_params_enable_video(new_params, TRUE);
-			linphone_call_params_enable_camera(new_params, enable_camera);
+			linphone_call_params_enable_sending_camera_stream(new_params, enable_camera);
 			linphone_call_params_enable_screen_sharing(new_params, TRUE);
 			toggle_screen_sharing({focus, marie, pauline, laure, michelle, berthe}, focus.getCMgr(), members,
 			                      laure.getCMgr(), new_params, confAddr, FALSE);
@@ -5338,7 +5339,7 @@ void create_conference_with_screen_sharing_base(time_t start_time,
 			BC_ASSERT_EQUAL(linphone_call_params_screen_sharing_enabled(call_rparams), laure_can_screen_share, int,
 			                "%0d");
 			if (video_enabled) {
-				BC_ASSERT_EQUAL(linphone_call_params_camera_enabled(call_rparams),
+				BC_ASSERT_EQUAL(linphone_call_params_sending_camera_stream_enabled(call_rparams),
 				                laure_can_screen_share ? enable_camera : clients_have_video_send_component, int, "%0d");
 			}
 		}
@@ -5360,7 +5361,7 @@ void create_conference_with_screen_sharing_base(time_t start_time,
 			BC_ASSERT_EQUAL(linphone_call_params_screen_sharing_enabled(call_rparams), berthe_can_screen_share, int,
 			                "%0d");
 			if (video_enabled) {
-				BC_ASSERT_EQUAL(linphone_call_params_camera_enabled(call_rparams),
+				BC_ASSERT_EQUAL(linphone_call_params_sending_camera_stream_enabled(call_rparams),
 				                berthe_can_screen_share ? enable_camera : clients_have_video_send_component, int,
 				                "%0d");
 			}
@@ -5685,8 +5686,8 @@ void create_conference_with_screen_sharing_base(time_t start_time,
 				    params_ok = (linphone_call_params_screen_sharing_enabled(call_rparams) ==
 					             (turn_off_screen_sharing && laure_can_screen_share));
 				    if (video_enabled) {
-					    params_ok &= (linphone_call_params_camera_enabled(call_rparams) ==
-						              (laure_can_screen_share ? enable_camera : clients_have_video_send_component));
+					    params_ok &= (linphone_call_params_sending_camera_stream_enabled(call_rparams) ==
+					                  (laure_can_screen_share ? enable_camera : clients_have_video_send_component));
 				    }
 				    return params_ok;
 			    });
@@ -5704,7 +5705,7 @@ void create_conference_with_screen_sharing_base(time_t start_time,
 			BC_ASSERT_EQUAL(linphone_call_params_video_enabled(call_cparams), video_enabled, int, "%0d");
 			BC_ASSERT_EQUAL(linphone_call_params_screen_sharing_enabled(call_rparams), 0, int, "%0d");
 			if (video_enabled) {
-				BC_ASSERT_EQUAL(linphone_call_params_camera_enabled(call_rparams),
+				BC_ASSERT_EQUAL(linphone_call_params_sending_camera_stream_enabled(call_rparams),
 				                berthe_can_screen_share && enable_camera, int, "%0d");
 			}
 		}
@@ -6011,7 +6012,7 @@ void create_conference_with_screen_sharing_chat_base(time_t start_time,
 				           +linphone_core_get_identity(mgr->lc), conference_address_str,
 				           !!enable_camera ? "on" : "off");
 				linphone_call_params_enable_screen_sharing(new_params, TRUE);
-				linphone_call_params_enable_camera(new_params, enable_camera);
+				linphone_call_params_enable_sending_camera_stream(new_params, enable_camera);
 				linphone_video_source_descriptor_set_screen_sharing(descriptor, LinphoneVideoSourceScreenSharingDisplay,
 				                                                    NULL);
 			} else {
@@ -6095,7 +6096,7 @@ void create_conference_with_screen_sharing_chat_base(time_t start_time,
 				LinphoneCallParams *screen_sharing_new_params =
 				    linphone_core_create_call_params(pauline.getLc(), pauline_call);
 				linphone_call_params_enable_video(screen_sharing_new_params, TRUE);
-				linphone_call_params_enable_camera(screen_sharing_new_params, TRUE);
+				linphone_call_params_enable_sending_camera_stream(screen_sharing_new_params, TRUE);
 				linphone_call_params_enable_screen_sharing(screen_sharing_new_params, TRUE);
 				linphone_call_update(pauline_call, screen_sharing_new_params);
 				linphone_call_params_unref(screen_sharing_new_params);
@@ -6354,7 +6355,7 @@ void create_conference_with_screen_sharing_chat_base(time_t start_time,
 				LinphoneCallParams *screen_sharing_new_params =
 				    linphone_core_create_call_params(pauline.getLc(), pauline_call);
 				linphone_call_params_enable_video(screen_sharing_new_params, TRUE);
-				linphone_call_params_enable_camera(screen_sharing_new_params, TRUE);
+				linphone_call_params_enable_sending_camera_stream(screen_sharing_new_params, TRUE);
 				linphone_call_params_enable_screen_sharing(screen_sharing_new_params, TRUE);
 				toggle_screen_sharing({focus, marie, pauline, laure, michelle, berthe}, focus.getCMgr(), members,
 				                      pauline.getCMgr(), screen_sharing_new_params, confAddr, TRUE);
@@ -6365,7 +6366,7 @@ void create_conference_with_screen_sharing_chat_base(time_t start_time,
 				BC_ASSERT_PTR_NOT_NULL(focus_call);
 				if (focus_call) {
 					const LinphoneCallParams *call_rparams = linphone_call_get_remote_params(focus_call);
-					BC_ASSERT_EQUAL(linphone_call_params_camera_enabled(call_rparams), 1, int, "%0d");
+					BC_ASSERT_EQUAL(linphone_call_params_sending_camera_stream_enabled(call_rparams), 1, int, "%0d");
 				}
 			}
 		}

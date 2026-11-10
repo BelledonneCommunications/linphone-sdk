@@ -72,7 +72,7 @@ public:
 	void setAudioDirection(SalStreamDir direction);
 	void setAudioDirection(LinphoneMediaDirection direction);
 
-	void enableCamera(bool value);
+	void enableSendingCameraStream(bool value);
 	void enableScreenSharing(bool value);
 	void enableVideo(bool value);
 	void enableVideoMulticast(bool value);
@@ -84,7 +84,7 @@ public:
 	LinphoneMediaDirection getVideoDirection() const;
 	void setVideoDirection(SalStreamDir direction);
 	void setVideoDirection(LinphoneMediaDirection direction);
-	bool cameraEnabled() const;
+	bool sendingCameraStreamEnabled() const;
 	bool screenSharingEnabled() const;
 	bool videoEnabled() const;
 	bool videoMulticastEnabled() const;

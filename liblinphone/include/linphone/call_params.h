@@ -247,11 +247,11 @@ LINPHONE_PUBLIC bctbx_list_t *linphone_call_params_get_srtp_suites(const Linphon
 LINPHONE_PUBLIC void linphone_call_params_set_srtp_suites(LinphoneCallParams *call_params, bctbx_list_t *srtpSuites);
 
 /**
- * Enable camera stream.
+ * Enable sending camera stream.
  * @param call_params #LinphoneCallParams object @notnil
- * @param enabled A boolean value telling whether to enable camera or not.
+ * @param enabled A boolean value telling whether to send the camera stream or not.
  **/
-LINPHONE_PUBLIC void linphone_call_params_enable_camera(LinphoneCallParams *call_params, bool_t enabled);
+LINPHONE_PUBLIC void linphone_call_params_enable_sending_camera_stream(LinphoneCallParams *call_params, bool_t enabled);
 
 /**
  * Enable screen sharing stream.
@@ -460,15 +460,15 @@ LINPHONE_PUBLIC void linphone_call_params_set_session_name(LinphoneCallParams *c
 LINPHONE_PUBLIC bool_t linphone_call_params_audio_enabled(const LinphoneCallParams *call_params);
 
 /**
- * Tell whether camera is enabled or not. The value returned by this function has a different meaning whether it is from
- *local or remote parameters. The former states the will of the user to use the camera of his/her device. On the other
- *hand, the latter is just a guess to know whether the remote party enabled its camera or not. For example, while the
- *call is part of a conference a core will understand that the remote party disabled its camera if the thumbnail
- *stream's direction is inactive.
+ * Tell whether camera stream is sent or not. The value returned by this function has a different meaning whether it is
+ * from local or remote parameters. The former states the will of the user to use the camera stream. On the other hand,
+ * the latter is just a guess to know whether the remote party enabled its camera stream or not. For example, while the
+ * call is part of a conference a core will understand that the remote party disabled its camera stream if the thumbnail
+ * stream's direction is inactive.
  * @param call_params #LinphoneCallParams object @notnil
- * @return A boolean value telling whether camera is enabled or not.
+ * @return A boolean value telling whether camera stream is sent or not.
  **/
-LINPHONE_PUBLIC bool_t linphone_call_params_camera_enabled(const LinphoneCallParams *call_params);
+LINPHONE_PUBLIC bool_t linphone_call_params_sending_camera_stream_enabled(const LinphoneCallParams *call_params);
 
 /**
  * Tell whether screen sharing is enabled or not.
@@ -924,6 +924,27 @@ LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_call_params_set_proxy_config(L
  **/
 LINPHONE_PUBLIC LINPHONE_DEPRECATED LinphoneProxyConfig *
 linphone_call_params_get_proxy_config(const LinphoneCallParams *params);
+
+/**
+ * Enable camera stream.
+ * @param call_params #LinphoneCallParams object @notnil
+ * @param enabled A boolean value telling whether to enable camera or not.
+ * @deprecated 25/11/2026 Use linphone_call_params_enable_sending_camera_stream
+ **/
+LINPHONE_PUBLIC LINPHONE_DEPRECATED void linphone_call_params_enable_camera(LinphoneCallParams *call_params,
+                                                                            bool_t enabled);
+
+/**
+ * Tell whether camera is enabled or not. The value returned by this function has a different meaning whether it is from
+ *local or remote parameters. The former states the will of the user to use the camera of his/her device. On the other
+ *hand, the latter is just a guess to know whether the remote party enabled its camera or not. For example, while the
+ *call is part of a conference a core will understand that the remote party disabled its camera if the thumbnail
+ *stream's direction is inactive.
+ * @param call_params #LinphoneCallParams object @notnil
+ * @return A boolean value telling whether camera is enabled or not.
+ * @deprecated 25/11/2026 Use linphone_call_params_sending_camera_stream_enabled
+ **/
+LINPHONE_PUBLIC LINPHONE_DEPRECATED bool_t linphone_call_params_camera_enabled(const LinphoneCallParams *call_params);
 
 /**
  * @}
