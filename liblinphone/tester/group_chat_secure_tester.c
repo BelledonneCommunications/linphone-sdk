@@ -6809,7 +6809,7 @@ test_suite_t secure_message_test_suite = {"Secure Message",
                                           liblinphone_tester_after_each,
                                           sizeof(secure_message_tests) / sizeof(secure_message_tests[0]),
                                           secure_message_tests,
-                                          512};
+                                          0};
 
 test_suite_t secure_message2_test_suite = {"Secure Message2",
                                            NULL,
