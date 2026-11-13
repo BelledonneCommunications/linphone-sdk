@@ -50,10 +50,20 @@ static void xml_property(void) {
 	    "xsi:schemaLocation=\"http://www.linphone.org/xsds/lpconfig.xsd lpconfig.xsd\"></config>\r\n");
 }
 
+static void x_property(void) {
+	// Reproduces the vCard3 CardDAV round-trip parse failure on Linphone's own
+	// X-LINPHONE-STARRED extension property, echoed back unchanged by the server.
+	test_property<BelCardProperty>("X-LINPHONE-STARRED:0\r\n", true);
+
+	// Generic, unrelated extension property from an arbitrary CardDAV server.
+	test_property<BelCardProperty>("X-CUSTOM-FIELD:some value\r\n", true);
+}
+
 static test_t tests[] = {
     TEST_NO_TAG("Kind", kind_property),
     TEST_NO_TAG("Source", source_property),
     TEST_NO_TAG("XML", xml_property),
+    TEST_NO_TAG("Extended property (X-PROPERTY)", x_property),
 };
 
 test_suite_t vcard_general_properties_test_suite = {"General", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]),
