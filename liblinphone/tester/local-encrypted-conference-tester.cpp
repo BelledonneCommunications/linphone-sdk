@@ -1669,7 +1669,9 @@ static test_t local_conference_end_to_end_encryption_scheduled_conference_tests[
                   "End2EndConf"),
     TEST_ONE_TAG("Create simple end-to-end encrypted conference with screen sharing override",
                  LinphoneTest::create_simple_end_to_end_encrypted_conference_with_screen_sharing,
-                 "End2EndConf"),
+                 "End2EndConf")};
+
+static test_t local_conference_end_to_end_encryption_scheduled_conference2_tests[] = {
     TEST_ONE_TAG("Create end-to-end encrypted conference with uninvited participant",
                  LinphoneTest::create_end_to_end_encrypted_conference_with_uninvited_participant,
                  "End2EndConf"),
@@ -1726,7 +1728,9 @@ static test_t local_conference_end_to_end_encryption_scheduled_conference_with_c
                  "End2EndConf"),
     TEST_ONE_TAG("End-to-End Conference joined multiple times with chat keeping client EKT manager refs",
                  LinphoneTest::encrypted_conference_joined_multiple_times_with_chat_keeping_client_ekt_refs,
-                 "End2EndConf"),
+                 "End2EndConf")};
+
+static test_t local_conference_end_to_end_encryption_scheduled_conference_with_chat2_tests[] = {
     TEST_ONE_TAG("Admin removes and reinvites participant to encrypted conference with chat",
                  LinphoneTest::admin_removes_and_reinvite_participant_to_encrypted_conference_with_chat,
                  "End2EndConf"),
@@ -1780,6 +1784,18 @@ test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_confere
     0,
     6};
 
+test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_conference2 = {
+    "Local conference tester (Scheduled Conference End to end encryption 2)",
+    nullptr,
+    nullptr,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(local_conference_end_to_end_encryption_scheduled_conference2_tests) /
+        sizeof(local_conference_end_to_end_encryption_scheduled_conference2_tests[0]),
+    local_conference_end_to_end_encryption_scheduled_conference2_tests,
+    0,
+    6};
+
 test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_conference_audio_only_participant = {
     "Local conference tester (Audio only participants End to end encryption)",
     nullptr,
@@ -1801,6 +1817,19 @@ test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_confere
     sizeof(local_conference_end_to_end_encryption_scheduled_conference_with_chat_tests) /
         sizeof(local_conference_end_to_end_encryption_scheduled_conference_with_chat_tests[0]),
     local_conference_end_to_end_encryption_scheduled_conference_with_chat_tests,
+    0,
+    6 /*cpu_weight : video conference uses more resources */
+};
+
+test_suite_t local_conference_test_suite_end_to_end_encryption_scheduled_conference_with_chat2 = {
+    "Local conference tester (End to end encryption Conference with chat 2)",
+    NULL,
+    NULL,
+    liblinphone_tester_before_each,
+    liblinphone_tester_after_each,
+    sizeof(local_conference_end_to_end_encryption_scheduled_conference_with_chat2_tests) /
+        sizeof(local_conference_end_to_end_encryption_scheduled_conference_with_chat2_tests[0]),
+    local_conference_end_to_end_encryption_scheduled_conference_with_chat2_tests,
     0,
     6 /*cpu_weight : video conference uses more resources */
 };

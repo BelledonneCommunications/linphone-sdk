@@ -496,17 +496,20 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&cpim_test_suite, 3);
 	liblinphone_tester_add_suite_with_default_time(&ics_test_suite, 23);
 #ifdef HAVE_LIME_X3DH
+	/* When post-quantum lime is available, these suites run their scenarios on post-quantum curves instead of the
+	 * classic ones, which makes them much slower: they get their own average time. */
+	const bool_t lime_pq = liblinphone_tester_is_lime_PQ_available();
 	liblinphone_tester_add_suite_with_default_time(&lime_db_test_suite, 11);
-	liblinphone_tester_add_suite_with_default_time(&secure_group_chat_test_suite, 158);
-	liblinphone_tester_add_suite_with_default_time(&secure_group_chat2_test_suite, 291);
-	liblinphone_tester_add_suite_with_default_time(&secure_group_chat_exhume_test_suite, 92);
-	liblinphone_tester_add_suite_with_default_time(&secure_message_test_suite, 391);
-	liblinphone_tester_add_suite_with_default_time(&secure_message2_test_suite, 151);
-	if (liblinphone_tester_is_lime_PQ_available()) {
+	liblinphone_tester_add_suite_with_default_time(&secure_group_chat_test_suite, lime_pq ? 262 : 158);
+	liblinphone_tester_add_suite_with_default_time(&secure_group_chat2_test_suite, lime_pq ? 442 : 291);
+	liblinphone_tester_add_suite_with_default_time(&secure_group_chat_exhume_test_suite, lime_pq ? 153 : 92);
+	liblinphone_tester_add_suite_with_default_time(&secure_message_test_suite, lime_pq ? 597 : 391);
+	liblinphone_tester_add_suite_with_default_time(&secure_message2_test_suite, lime_pq ? 245 : 151);
+	if (lime_pq) {
 		liblinphone_tester_add_suite_with_default_time(&secure_group_chat_migration_test_suite, 130);
 		liblinphone_tester_add_suite_with_default_time(&secure_group_chat_multialgos_test_suite, 72);
 	}
-	liblinphone_tester_add_suite_with_default_time(&lime_server_auth_test_suite, 173);
+	liblinphone_tester_add_suite_with_default_time(&lime_server_auth_test_suite, lime_pq ? 426 : 173);
 	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_test_suite, 395);
 	liblinphone_tester_add_suite_with_default_time(&ephemeral_group_chat_basic_test_suite, 273);
 #endif // HAVE_LIME_X3DH
@@ -614,13 +617,17 @@ void liblinphone_tester_add_suites(void) {
 	liblinphone_tester_add_suite_with_default_time(&multipart_test_suite, 13);
 #ifdef HAVE_EKT_SERVER_PLUGIN
 	liblinphone_tester_add_suite_with_default_time(
-	    &local_conference_test_suite_end_to_end_encryption_scheduled_conference, 516);
+	    &local_conference_test_suite_end_to_end_encryption_scheduled_conference, 378);
 	liblinphone_tester_add_suite_with_default_time(
-	    &local_conference_test_suite_end_to_end_encryption_scheduled_conference_audio_only_participant, 337);
+	    &local_conference_test_suite_end_to_end_encryption_scheduled_conference2, 370);
 	liblinphone_tester_add_suite_with_default_time(
-	    &local_conference_test_suite_end_to_end_encryption_impromptu_conference, 155);
+	    &local_conference_test_suite_end_to_end_encryption_scheduled_conference_audio_only_participant, 226);
 	liblinphone_tester_add_suite_with_default_time(
-	    &local_conference_test_suite_end_to_end_encryption_scheduled_conference_with_chat, 155);
+	    &local_conference_test_suite_end_to_end_encryption_impromptu_conference, 203);
+	liblinphone_tester_add_suite_with_default_time(
+	    &local_conference_test_suite_end_to_end_encryption_scheduled_conference_with_chat, 509);
+	liblinphone_tester_add_suite_with_default_time(
+	    &local_conference_test_suite_end_to_end_encryption_scheduled_conference_with_chat2, 406);
 #endif // HAVE_EKT_SERVER_PLUGIN
 	liblinphone_tester_add_suite_with_default_time(&clonable_object_test_suite, 0);
 #ifdef HAVE_DB_STORAGE
