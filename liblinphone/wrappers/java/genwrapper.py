@@ -293,7 +293,11 @@ class JavaTranslator:
         methodDict['classCast'] = type(_method.returnType) is AbsApi.ClassType
 
         if self.platform == "android" or self.platform == "bundled-android":
-            methodDict['params'] = ', '.join(['{0}{1}'.format('@Nullable ' if arg.maybenil else '@NonNull ' if arg.notnil else '', arg.translate(self.langTranslator, namespace=namespace)) for arg in _method.args])
+            # Wrapper takes care or never use a null array even if the doc says it can get a null list
+            # We need to have the same annotations to allow changing functions into properties (like for Kotlin).
+            methodDict['params'] = ', '.join(['{0}{1}'.format('@NonNull ' if arg.notnil or arg.translate(self.langTranslator, jni=True, namespace=namespace, hideArgName=True) in ('jobjectArray', 'jintArray')
+                else '@Nullable ' if arg.maybenil
+                else '', arg.translate(self.langTranslator, namespace=namespace)) for arg in _method.args])
         else:
             methodDict['params'] = ', '.join(['{0}'.format(arg.translate(self.langTranslator, namespace=namespace)) for arg in _method.args])
         methodDict['native_params'] = ', '.join(['long nativePtr'] + [arg.translate(self.langTranslator, native=True, namespace=namespace) for arg in _method.args])
