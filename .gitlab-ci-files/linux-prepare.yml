@@ -86,7 +86,7 @@ recache-get-from-branch:
      ssh $LINUX_BUILD_MACHINE_ADMIN "set -e
      if [ ! -d '$CP_SOURCE_FOLDER' ]; then echo 'No cache for the source branch, keeping the current one'; exit 0; fi
      rm -rf '${CP_DESTINATION_FOLDER}.tmp' # in case the previous job got interrupted before finishing the cleanup
-     cp -rp '$CP_SOURCE_FOLDER' '${CP_DESTINATION_FOLDER}.tmp'
+     cp --reflink=auto -rp '$CP_SOURCE_FOLDER' '${CP_DESTINATION_FOLDER}.tmp'
      rm -rf '$CP_DESTINATION_FOLDER'
      mv '${CP_DESTINATION_FOLDER}.tmp' '$CP_DESTINATION_FOLDER'"
     # Clean up the source folder if needed
