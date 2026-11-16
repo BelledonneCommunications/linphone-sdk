@@ -1240,8 +1240,16 @@ public class AndroidPlatformHelper {
 
         int currentNetworkType = networkInfo.getType();
         if (mLastNetworkType != -1 && mLastNetworkType != currentNetworkType) {
-            Log.i("[Platform Helper] Network type has changed (last one was " + networkTypeToString(mLastNetworkType) + "), disabling network reachability first");
-            setNetworkReachable(mNativePtr, false);
+            if (mLastNetworkType == ConnectivityManager.TYPE_VPN) {
+                // This may happen when a call is started due to Telecom Manager switching from a metered network to one that isn't.
+                // If we notify network reachability is false at this moment it will abort the outgoing call.
+                // If really the underlying network has changed then we will be notified in ConnectivityManager's onLost() callback
+                // that will do the network reachability update.
+                Log.w("[Platform Helper] Network type has changed from VPN to " + networkTypeToString(currentNetworkType) + ", not disabling network reachability");
+            } else {
+                Log.i("[Platform Helper] Network type has changed (last one was " + networkTypeToString(mLastNetworkType) + "), disabling network reachability first");
+                setNetworkReachable(mNativePtr, false);
+            }
 
             // When switching from WiFi to Mobile, update Cell signal strength if possible
             if (mLastNetworkType == ConnectivityManager.TYPE_WIFI) {
