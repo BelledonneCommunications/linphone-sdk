@@ -266,6 +266,13 @@ public class MediastreamerAndroidContext {
 		Log.i("[Audio Manager] Trying to workaround no sound issue on stream [" + streamName + "] until volume has changed...");
 		try {
 			AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
+
+			int mode = audioManager.getMode();
+			if (mode == AudioManager.MODE_NORMAL) {
+				Log.w("[Audio Manager] Android AudioManager is in MODE_NORMAL, do not apply workaround!");
+				return;
+			}
+
 			if (stream == AudioManager.STREAM_RING || stream == AudioManager.STREAM_DTMF) {
 				int ringerMode = audioManager.getRingerMode();
 				if (ringerMode == AudioManager.RINGER_MODE_SILENT || ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
@@ -296,6 +303,10 @@ public class MediastreamerAndroidContext {
 				Log.i("[Audio Manager] Volume is at it's maximum, lowering it, waiting [" + timeInMills + "]ms and then raising it");
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0);
 				SystemClock.sleep(timeInMills);
+
+				int volumeAfterLower = audioManager.getStreamVolume(stream);
+				Log.i("[Audio Manager] Volume has been lowered to [" + volumeAfterLower + "]");
+
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0);
 				SystemClock.sleep(timeInMills);
 			} else {
@@ -311,6 +322,10 @@ public class MediastreamerAndroidContext {
 				Log.i("[Audio Manager] Volume is not at it's maximum, raising it, waiting [" + timeInMills + "]ms and then lowering it");
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0);
 				SystemClock.sleep(timeInMills);
+
+				int volumeAfterRaise = audioManager.getStreamVolume(stream);
+				Log.i("[Audio Manager] Volume has been raised to [" + volumeAfterRaise + "]");
+
 				audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0);
 				SystemClock.sleep(timeInMills);
 			}
@@ -322,6 +337,9 @@ public class MediastreamerAndroidContext {
 				if (newCurrentVolume == 0) {
 					Log.w("[Audio Manager] Newly detected volume is 0, trying to restore previous volume to prevent device in silent mode");
 					audioManager.setStreamVolume(stream, currentVolume, 0);
+					SystemClock.sleep(timeInMills);
+					int afterRestoreVolume = audioManager.getStreamVolume(stream);
+					Log.w("[Audio Manager] Attempt to restore volume to [" + currentVolume + "] result is [" + afterRestoreVolume + "]");
 				}
 			}
 		} catch (Exception e) {
