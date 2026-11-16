@@ -45,8 +45,7 @@ static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_
 bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	int i;
 	/*** create and intialise the context structure ***/
-	bzrtpContext_t *context = (bzrtpContext_t *)malloc(sizeof(bzrtpContext_t));
-	memset(context, 0, sizeof(bzrtpContext_t));
+	bzrtpContext_t *context = (bzrtpContext_t *)bctbx_malloc0(sizeof(bzrtpContext_t));
 
 	/* start the random number generator */
 	context->RNGContext = bctbx_rng_context_new(); /* TODO: give a seed for the RNG? */
@@ -137,12 +136,12 @@ int bzrtp_setZIDCache(bzrtpContext_t *context, void *zidCache, const char *selfU
 	/* zidCache pointer is actually a pointer to sqlite3 db, store it in context */
 	context->zidCache = (sqlite3 *)zidCache;
 	if (context->selfURI != NULL) {
-		free(context->selfURI);
+		bctbx_free(context->selfURI);
 	}
 	context->selfURI = strdup(selfURI);
 
 	if (context->peerURI != NULL) {
-		free(context->peerURI);
+		bctbx_free(context->peerURI);
 	}
 	context->peerURI = strdup(peerURI);
 
@@ -233,8 +232,7 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	}
 
 	/* allocate 1 channel context, set all the others pointers to NULL */
-	context->channelContext[0] = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
-	memset(context->channelContext[0], 0, sizeof(bzrtpChannelContext_t));
+	context->channelContext[0] = (bzrtpChannelContext_t *)bctbx_malloc0(sizeof(bzrtpChannelContext_t));
 	return bzrtp_initChannelContext(context, context->channelContext[0], selfSSRC, 1);
 }
 
@@ -291,51 +289,51 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	/* rs1, rs2, pbxsecret and auxsecret shall already been destroyed, just in case */
 	if (context->cachedSecret.rs1!=NULL) {
 		bzrtp_DestroyKey(context->cachedSecret.rs1, context->cachedSecret.rs1Length, context->RNGContext);
-		free(context->cachedSecret.rs1);
+		bctbx_free(context->cachedSecret.rs1);
 		context->cachedSecret.rs1 = NULL;
 	}
 	if (context->cachedSecret.rs2!=NULL) {
 		bzrtp_DestroyKey(context->cachedSecret.rs2, context->cachedSecret.rs2Length, context->RNGContext);
-		free(context->cachedSecret.rs2);
+		bctbx_free(context->cachedSecret.rs2);
 		context->cachedSecret.rs2 = NULL;
 	}
 	if (context->cachedSecret.auxsecret!=NULL) {
 		bzrtp_DestroyKey(context->cachedSecret.auxsecret, context->cachedSecret.auxsecretLength, context->RNGContext);
-		free(context->cachedSecret.auxsecret);
+		bctbx_free(context->cachedSecret.auxsecret);
 		context->cachedSecret.auxsecret = NULL;
 	}
 	if (context->cachedSecret.pbxsecret!=NULL) {
 		bzrtp_DestroyKey(context->cachedSecret.pbxsecret, context->cachedSecret.pbxsecretLength, context->RNGContext);
-		free(context->cachedSecret.pbxsecret);
+		bctbx_free(context->cachedSecret.pbxsecret);
 		context->cachedSecret.pbxsecret = NULL;
 	}
 
 	if (context->ZRTPSess!=NULL) {
 		bzrtp_DestroyKey(context->ZRTPSess, context->ZRTPSessLength, context->RNGContext);
-		free(context->ZRTPSess);
+		bctbx_free(context->ZRTPSess);
 		context->ZRTPSess=NULL;
 	}
 
 	if (context->exportedKey!=NULL) {
 		bzrtp_DestroyKey(context->exportedKey, context->exportedKeyLength, context->RNGContext);
-		free(context->exportedKey);
+		bctbx_free(context->exportedKey);
 		context->ZRTPSess=NULL;
 	}
 
-	free(context->selfURI);
-	free(context->peerURI);
+	bctbx_free(context->selfURI);
+	bctbx_free(context->peerURI);
 
 	/* transient shared auxiliary secret */
 	if (context->transientAuxSecret != NULL) {
 		bzrtp_DestroyKey(context->transientAuxSecret, context->transientAuxSecretLength, context->RNGContext);
-		free(context->transientAuxSecret);
+		bctbx_free(context->transientAuxSecret);
 		context->transientAuxSecret=NULL;
 	}
 
 	/* destroy the RNG context at the end because it may be needed to destroy some keys */
 	bctbx_rng_context_free(context->RNGContext);
 	context->RNGContext = NULL;
-	free(context);
+	bctbx_free(context);
 	return 0;
 }
 
@@ -382,11 +380,10 @@ int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	while(i<ZRTP_MAX_CHANNEL_NUMBER && zrtpChannelContext==NULL) {
 		if (zrtpContext->channelContext[i] == NULL) {
 			int retval;
-			zrtpChannelContext = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
-			memset(zrtpChannelContext, 0, sizeof(bzrtpChannelContext_t));
+			zrtpChannelContext = (bzrtpChannelContext_t *)bctbx_malloc0(sizeof(bzrtpChannelContext_t));
 			retval = bzrtp_initChannelContext(zrtpContext, zrtpChannelContext, selfSSRC, 0);
 			if (retval != 0) {
-				free(zrtpChannelContext);
+				bctbx_free(zrtpChannelContext);
 				return retval;
 			}
 		} else {
@@ -666,7 +663,7 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
 		/* if we didn't already computed the master exported key, do it now */
 		if (zrtpContext->exportedKey == NULL) {
 			zrtpContext->exportedKeyLength = zrtpChannelContext->hashLength;
-			zrtpContext->exportedKey = (uint8_t *)malloc(zrtpContext->exportedKeyLength*sizeof(uint8_t));
+			zrtpContext->exportedKey = (uint8_t *)bctbx_malloc0(zrtpContext->exportedKeyLength*sizeof(uint8_t));
 			bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Exported key", 12, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->exportedKeyLength, zrtpChannelContext->hmacFunction, zrtpContext->exportedKey);
 		}
 
@@ -857,9 +854,9 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 
 	/* allocate memory to store the hash, length will be hexa string length/2 - check it wasn't already allocated */
 	if (zrtpChannelContext->peerHelloHash) {
-		free(zrtpChannelContext->peerHelloHash);
+		bctbx_free(zrtpChannelContext->peerHelloHash);
 	}
-	zrtpChannelContext->peerHelloHash = (uint8_t *)malloc(hexHashStringLength/2*sizeof(uint8_t));
+	zrtpChannelContext->peerHelloHash = (uint8_t *)bctbx_malloc0(hexHashStringLength/2*sizeof(uint8_t));
 
 	/* convert to uint8 the hex string */
 	bctbx_str_to_uint8(zrtpChannelContext->peerHelloHash, hexHashString, hexHashStringLength);
@@ -891,12 +888,12 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 			bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyi, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
 			bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyr, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
 
-			free(zrtpChannelContext->s0);
-			free(zrtpChannelContext->KDFContext);
-			free(zrtpChannelContext->mackeyi);
-			free(zrtpChannelContext->mackeyr);
-			free(zrtpChannelContext->zrtpkeyi);
-			free(zrtpChannelContext->zrtpkeyr);
+			bctbx_free(zrtpChannelContext->s0);
+			bctbx_free(zrtpChannelContext->KDFContext);
+			bctbx_free(zrtpChannelContext->mackeyi);
+			bctbx_free(zrtpChannelContext->mackeyr);
+			bctbx_free(zrtpChannelContext->zrtpkeyi);
+			bctbx_free(zrtpChannelContext->zrtpkeyr);
 
 			zrtpChannelContext->s0=NULL;
 			zrtpChannelContext->KDFContext=NULL;
@@ -922,11 +919,11 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 			bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpSalt, zrtpChannelContext->srtpSecrets.peerSrtpSaltLength, zrtpContext->RNGContext);
 			bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
 
-			free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
-			free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
-			free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
-			free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
-			free(zrtpChannelContext->srtpSecrets.sas);
+			bctbx_free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
+			bctbx_free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
+			bctbx_free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
+			bctbx_free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
+			bctbx_free(zrtpChannelContext->srtpSecrets.sas);
 			for (i = 0; i < 3; i++) {
 				bctbx_free(zrtpChannelContext->srtpSecrets.incorrectSas[i]);
 				zrtpChannelContext->srtpSecrets.incorrectSas[i] = NULL;
@@ -1042,9 +1039,9 @@ int bzrtp_setAuxiliarySharedSecret(bzrtpContext_t *zrtpContext, const uint8_t *a
 
 	/* allocate memory to store the secret - check it wasn't already allocated */
 	if (zrtpContext->transientAuxSecret) {
-		free(zrtpContext->transientAuxSecret);
+		bctbx_free(zrtpContext->transientAuxSecret);
 	}
-	zrtpContext->transientAuxSecret = (uint8_t *)malloc(auxSecretLength*sizeof(uint8_t));
+	zrtpContext->transientAuxSecret = (uint8_t *)bctbx_malloc(auxSecretLength*sizeof(uint8_t));
 
 	/* copy the aux secret and length */
 	memcpy(zrtpContext->transientAuxSecret, auxSecret, auxSecretLength);
@@ -1280,7 +1277,7 @@ static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChanne
 		zrtpChannelContext->selfPackets[i] = NULL;
 		zrtpChannelContext->peerPackets[i] = NULL;
 	}
-	free(zrtpChannelContext->peerHelloHash);
+	bctbx_free(zrtpChannelContext->peerHelloHash);
 	zrtpChannelContext->peerHelloHash = NULL;
 
 	/* free possible fragment management buffers */
@@ -1290,7 +1287,7 @@ static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChanne
 	zrtpChannelContext->incomingFragmentedPacket.packetString = NULL;
 
 	/* free the channel context */
-	free(zrtpChannelContext);
+	bctbx_free(zrtpChannelContext);
 }
 
 static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_t size)

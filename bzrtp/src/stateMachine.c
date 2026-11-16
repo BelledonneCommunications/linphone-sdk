@@ -483,7 +483,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 					/* they don't match but self rs1 may match peer rs2 */
 					if (memcmp(zrtpContext->responderCachedSecretHash.rs1ID, dhPart1Message->rs2ID,8) != 0) {
 						/* They don't match either : erase rs1 and set the cache mismatch flag(which may be unset if self rs2 match peer rs1 or peer rs2 */
-						free(zrtpContext->cachedSecret.rs1);
+						bctbx_free(zrtpContext->cachedSecret.rs1);
 						zrtpContext->cachedSecret.rs1= NULL;
 						zrtpContext->cachedSecret.rs1Length = 0;
 						zrtpContext->cacheMismatchFlag = 1; /* Do not trigger cache mismatch message for now as it may match rs2 */
@@ -497,7 +497,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 				if (memcmp(zrtpContext->responderCachedSecretHash.rs2ID, dhPart1Message->rs1ID,8) != 0) {
 					/* it doesn't match rs1 but may match rs2 */
 					if (memcmp(zrtpContext->responderCachedSecretHash.rs2ID, dhPart1Message->rs2ID,8) != 0) {
-						free(zrtpContext->cachedSecret.rs2);
+						bctbx_free(zrtpContext->cachedSecret.rs2);
 						zrtpContext->cachedSecret.rs2= NULL;
 						zrtpContext->cachedSecret.rs2Length = 0;
 					} else { /* it matches rs2, reset the cache mismatch flag */
@@ -511,7 +511,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			/* if we have an aux secret check it match peer's one */
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
 				if (memcmp(zrtpChannelContext->responderAuxsecretID, dhPart1Message->auxsecretID,8) != 0) { // they do not match, set flag to MISMATCH, delete the aux secret as we must not use it
-					free(zrtpContext->cachedSecret.auxsecret);
+					bctbx_free(zrtpContext->cachedSecret.auxsecret);
 					zrtpContext->cachedSecret.auxsecret= NULL;
 					zrtpContext->cachedSecret.auxsecretLength = 0;
 					zrtpChannelContext->srtpSecrets.auxSecretMismatch = BZRTP_AUXSECRET_MISMATCH;
@@ -522,7 +522,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 
 			if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
 				if (memcmp(zrtpContext->responderCachedSecretHash.pbxsecretID, dhPart1Message->pbxsecretID,8) != 0) {
-					free(zrtpContext->cachedSecret.pbxsecret);
+					bctbx_free(zrtpContext->cachedSecret.pbxsecret);
 					zrtpContext->cachedSecret.pbxsecret= NULL;
 					zrtpContext->cachedSecret.pbxsecretLength = 0;
 				}
@@ -552,12 +552,12 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpContext->keyAgreementAlgo, MSGTYPE_DHPART1);
 			if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 				bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)(zrtpContext->keyAgreementContext);
-				DHMContext->peer = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+				DHMContext->peer = (uint8_t *)bctbx_malloc(pvLength*sizeof(uint8_t));
 				memcpy (DHMContext->peer, dhPart1Message->pv, pvLength);
 				bctbx_DHMComputeSecret(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
 			} else if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 				bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)(zrtpContext->keyAgreementContext);
-				ECDHContext->peerPublic = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+				ECDHContext->peerPublic = (uint8_t *)bctbx_malloc(pvLength*sizeof(uint8_t));
 				memcpy (ECDHContext->peerPublic, dhPart1Message->pv, pvLength);
 				bctbx_ECDHComputeSecret(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
 			} else if (bzrtp_isKem(zrtpContext->keyAgreementAlgo)) {
@@ -773,7 +773,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 						if (memcmp(zrtpContext->initiatorCachedSecretHash.rs2ID, dhPart2Message->rs1ID,8) == 0) {
 							/* responder rs2 match initiator rs1, erase responder rs1 */
 							cacheMatchFlag = 1;
-							free(zrtpContext->cachedSecret.rs1);
+							bctbx_free(zrtpContext->cachedSecret.rs1);
 							zrtpContext->cachedSecret.rs1= NULL;
 							zrtpContext->cachedSecret.rs1Length = 0;
 						}
@@ -788,14 +788,14 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 				/* does it match initiator rs2 */
 				if (memcmp(zrtpContext->initiatorCachedSecretHash.rs1ID, dhPart2Message->rs2ID,8) != 0) {
 					/* it doesn't match rs1 (erase it) but may match rs2 */
-					free(zrtpContext->cachedSecret.rs1);
+					bctbx_free(zrtpContext->cachedSecret.rs1);
 					zrtpContext->cachedSecret.rs1= NULL;
 					zrtpContext->cachedSecret.rs1Length = 0;
 
 					if (zrtpContext->cachedSecret.rs2!=NULL) {
 						if (memcmp(zrtpContext->initiatorCachedSecretHash.rs2ID, dhPart2Message->rs2ID,8) != 0) {
 							/* no match found erase rs2 and set the cache mismatch flag */
-							free(zrtpContext->cachedSecret.rs2);
+							bctbx_free(zrtpContext->cachedSecret.rs2);
 							zrtpContext->cachedSecret.rs2= NULL;
 							zrtpContext->cachedSecret.rs2Length = 0;
 							zrtpContext->cacheMismatchFlag = 1;
@@ -809,7 +809,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			/* if we have an auxiliary secret, check it match peer's one */
 			if (zrtpContext->cachedSecret.auxsecret!=NULL) {
 				if (memcmp(zrtpChannelContext->initiatorAuxsecretID, dhPart2Message->auxsecretID,8) != 0) {  // they do not match, set flag to MISMATCH, delete the aux secret as we must not use it
-					free(zrtpContext->cachedSecret.auxsecret);
+					bctbx_free(zrtpContext->cachedSecret.auxsecret);
 					zrtpContext->cachedSecret.auxsecret= NULL;
 					zrtpContext->cachedSecret.auxsecretLength = 0;
 					zrtpChannelContext->srtpSecrets.auxSecretMismatch = BZRTP_AUXSECRET_MISMATCH;
@@ -820,7 +820,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 
 			if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
 				if (memcmp(zrtpContext->initiatorCachedSecretHash.pbxsecretID, dhPart2Message->pbxsecretID,8) != 0) {
-					free(zrtpContext->cachedSecret.pbxsecret);
+					bctbx_free(zrtpContext->cachedSecret.pbxsecret);
 					zrtpContext->cachedSecret.pbxsecret= NULL;
 					zrtpContext->cachedSecret.pbxsecretLength = 0;
 				}
@@ -856,13 +856,13 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpContext->keyAgreementAlgo, MSGTYPE_DHPART2);
 			if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 				bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)(zrtpContext->keyAgreementContext);
-				DHMContext->peer = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+				DHMContext->peer = (uint8_t *)bctbx_malloc(pvLength*sizeof(uint8_t));
 				memcpy (DHMContext->peer, dhPart2Message->pv, pvLength);
 				bctbx_DHMComputeSecret(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
 			}
 			if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 				bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)(zrtpContext->keyAgreementContext);
-				ECDHContext->peerPublic = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+				ECDHContext->peerPublic = (uint8_t *)bctbx_malloc(pvLength*sizeof(uint8_t));
 				memcpy (ECDHContext->peerPublic, dhPart2Message->pv, pvLength);
 				bctbx_ECDHComputeSecret(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
 			}
@@ -2089,7 +2089,7 @@ static int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 			memcpy(selfDHPart1Packet->pbxsecretID, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
 
 			/* free the packet string */
-			free(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
+			bctbx_free(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
 			zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString = NULL;
 		}
 		/* (re)build the packet */
@@ -2325,7 +2325,7 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 				+ zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength
 				+ zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
 
-		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
+		dataToHash = (uint8_t *)bctbx_malloc(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
 
 		memcpy(dataToHash+hashDataIndex, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
@@ -2346,7 +2346,7 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 				+ zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength
 				+ zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
 
-		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
+		dataToHash = (uint8_t *)bctbx_malloc(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
 
 		memcpy(dataToHash+hashDataIndex, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
@@ -2361,19 +2361,19 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 		ZIDr = zrtpContext->peerZID;
 	}
 
-	totalHash = (uint8_t *)malloc(zrtpChannelContext->hashLength);
+	totalHash = (uint8_t *)bctbx_malloc(zrtpChannelContext->hashLength);
 	zrtpChannelContext->hashFunction(dataToHash, hashDataLength, zrtpChannelContext->hashLength, totalHash);
 
-	free(dataToHash);
+	bctbx_free(dataToHash);
 
 	/* compute KDFContext = (ZIDi || ZIDr || total_hash) and set it in the channel context */
 	zrtpChannelContext->KDFContextLength = 24+zrtpChannelContext->hashLength; /* 24 for two 12 bytes ZID */
-	zrtpChannelContext->KDFContext = (uint8_t *)malloc(zrtpChannelContext->KDFContextLength*sizeof(uint8_t));
+	zrtpChannelContext->KDFContext = (uint8_t *)bctbx_malloc(zrtpChannelContext->KDFContextLength*sizeof(uint8_t));
 	memcpy(zrtpChannelContext->KDFContext, ZIDi, 12); /* ZIDi*/
 	memcpy(zrtpChannelContext->KDFContext+12, ZIDr, 12); /* ZIDr */
 	memcpy(zrtpChannelContext->KDFContext+24, totalHash, zrtpChannelContext->hashLength); /* total Hash*/
 
-	free(totalHash); /* total hash is not needed anymore, get it from KDF Context in s0 computation */
+	bctbx_free(totalHash); /* total hash is not needed anymore, get it from KDF Context in s0 computation */
 
 	/* compute s0 = hash(counter || DHResult || "ZRTP-HMAC-KDF" || ZIDi || ZIDr || total_hash || len(s1) || s1 || len(s2) || s2 || len(s3) || s3)
 	 * counter is a fixed 32 bits integer in big endian set to 1 : 0x00000001
@@ -2399,7 +2399,7 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 	uint16_t sharedSecretLength = bzrtp_computeKeyAgreementSharedSecretLength(zrtpChannelContext->keyAgreementAlgo, zrtpChannelContext->hashLength);
 	hashDataLength = 4/*counter*/ + sharedSecretLength/*DHResult*/+13/*ZRTP-HMAC-KDF string*/ + 12/*ZIDi*/ + 12/*ZIDr*/ + zrtpChannelContext->hashLength/*total_hash*/ + 4/*len(s1)*/ +s1Length/*s1*/ + 4/*len(s2)*/ +s2Length/*s2*/ + 4/*len(s3)*/ + s3Length/*s3*/;
 
-	dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
+	dataToHash = (uint8_t *)bctbx_malloc(hashDataLength*sizeof(uint8_t));
 	/* counter */
 	dataToHash[0] = 0x00;
 	dataToHash[1] = 0x00;
@@ -2457,15 +2457,15 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 	s2=NULL;
 	s3=NULL;
 
-	zrtpChannelContext->s0 = (uint8_t *)malloc(zrtpChannelContext->hashLength*sizeof(uint8_t));
+	zrtpChannelContext->s0 = (uint8_t *)bctbx_malloc0(zrtpChannelContext->hashLength*sizeof(uint8_t));
 	zrtpChannelContext->hashFunction(dataToHash, hashDataLength, zrtpChannelContext->hashLength, zrtpChannelContext->s0);
 
-	free(dataToHash);
+	bctbx_free(dataToHash);
 
 	/* now compute the ZRTPSession key : section 4.5.2
 	 * ZRTPSess = KDF(s0, "ZRTP Session Key", KDF_Context, negotiated hash length)*/
 	zrtpContext->ZRTPSessLength=zrtpChannelContext->hashLength; /* must be set to the length of negotiated hash */
-	zrtpContext->ZRTPSess = (uint8_t *)malloc(zrtpContext->ZRTPSessLength*sizeof(uint8_t));
+	zrtpContext->ZRTPSess = (uint8_t *)bctbx_malloc0(zrtpContext->ZRTPSessLength*sizeof(uint8_t));
 	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength,
 								(uint8_t *)"ZRTP Session Key", 16,
 								zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
@@ -2521,7 +2521,7 @@ static int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChan
 	/* compute the total hash as in rfc section 4.4.3.2 total_hash = hash(Hello of responder || Commit) */
 	if (zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) { /* if we are responder */
 		hashDataLength = zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength + zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
-		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
+		dataToHash = (uint8_t *)bctbx_malloc0(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
 
 		memcpy(dataToHash, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
@@ -2532,7 +2532,7 @@ static int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChan
 		ZIDr = zrtpContext->selfZID;
 	} else { /* if we are initiator */
 		hashDataLength = zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength + zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
-		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
+		dataToHash = (uint8_t *)bctbx_malloc0(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
 
 		memcpy(dataToHash, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
@@ -2543,22 +2543,22 @@ static int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChan
 		ZIDr = zrtpContext->peerZID;
 	}
 
-	totalHash = (uint8_t *)malloc(zrtpChannelContext->hashLength);
+	totalHash = (uint8_t *)bctbx_malloc0(zrtpChannelContext->hashLength);
 	zrtpChannelContext->hashFunction(dataToHash, hashDataLength, zrtpChannelContext->hashLength, totalHash);
 
-	free(dataToHash);
+	bctbx_free(dataToHash);
 
 	/* compute KDFContext = (ZIDi || ZIDr || total_hash) and set it in the channel context */
 	zrtpChannelContext->KDFContextLength = 24+zrtpChannelContext->hashLength; /* 24 for two 12 bytes ZID */
-	zrtpChannelContext->KDFContext = (uint8_t *)malloc(zrtpChannelContext->KDFContextLength*sizeof(uint8_t));
+	zrtpChannelContext->KDFContext = (uint8_t *)bctbx_malloc0(zrtpChannelContext->KDFContextLength*sizeof(uint8_t));
 	memcpy(zrtpChannelContext->KDFContext, ZIDi, 12); /* ZIDi*/
 	memcpy(zrtpChannelContext->KDFContext+12, ZIDr, 12); /* ZIDr */
 	memcpy(zrtpChannelContext->KDFContext+24, totalHash, zrtpChannelContext->hashLength); /* total Hash*/
 
-	free(totalHash); /* total hash is not needed anymore, get it from KDF Context in s0 computation */
+	bctbx_free(totalHash); /* total hash is not needed anymore, get it from KDF Context in s0 computation */
 
 	/* compute s0 as in rfc section 4.4.3.2  s0 = KDF(ZRTPSess, "ZRTP MSK", KDF_Context, negotiated hash length) */
-	zrtpChannelContext->s0 = (uint8_t *)malloc(zrtpChannelContext->hashLength*sizeof(uint8_t));
+	zrtpChannelContext->s0 = (uint8_t *)bctbx_malloc0(zrtpChannelContext->hashLength*sizeof(uint8_t));
 	retval = bzrtp_keyDerivationFunction(zrtpContext->ZRTPSess, zrtpContext->ZRTPSessLength,
 										 (uint8_t *)"ZRTP MSK", 8,
 										 zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
@@ -2588,10 +2588,10 @@ static int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChan
 static int bzrtp_deriveKeysFromS0(BCTBX_UNUSED(bzrtpContext_t *zrtpContext), bzrtpChannelContext_t *zrtpChannelContext) {
 	int retval = 0;
 	/* allocate memory for mackeyi, mackeyr, zrtpkeyi, zrtpkeyr */
-	zrtpChannelContext->mackeyi = (uint8_t *)malloc(zrtpChannelContext->hashLength*(sizeof(uint8_t)));
-	zrtpChannelContext->mackeyr = (uint8_t *)malloc(zrtpChannelContext->hashLength*(sizeof(uint8_t)));
-	zrtpChannelContext->zrtpkeyi = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*(sizeof(uint8_t)));
-	zrtpChannelContext->zrtpkeyr = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*(sizeof(uint8_t)));
+	zrtpChannelContext->mackeyi = (uint8_t *)bctbx_malloc0(zrtpChannelContext->hashLength*(sizeof(uint8_t)));
+	zrtpChannelContext->mackeyr = (uint8_t *)bctbx_malloc0(zrtpChannelContext->hashLength*(sizeof(uint8_t)));
+	zrtpChannelContext->zrtpkeyi = (uint8_t *)bctbx_malloc0(zrtpChannelContext->cipherKeyLength*(sizeof(uint8_t)));
+	zrtpChannelContext->zrtpkeyr = (uint8_t *)bctbx_malloc0(zrtpChannelContext->cipherKeyLength*(sizeof(uint8_t)));
 
 	/* derive the keys according to rfc section 4.5.3 */
 	/* mackeyi = KDF(s0, "Initiator HMAC key", KDF_Context, negotiated hash length)*/
@@ -2620,13 +2620,13 @@ static int bzrtp_deriveKeysFromS0(BCTBX_UNUSED(bzrtpContext_t *zrtpContext), bzr
 static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
 	int retval = 0;
 	/* allocate memory */
-	uint8_t *srtpkeyi = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
-	uint8_t *srtpkeyr = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
+	uint8_t *srtpkeyi = (uint8_t *)bctbx_malloc0(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
+	uint8_t *srtpkeyr = (uint8_t *)bctbx_malloc0(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
 	/* master salt size for srtp GCM auth tag in srtp is 12 bytes when using GCM authentication
 	 * 14 otherwise (RFC section 4.5.3) - GCM support is not in the original RFC */
 	uint8_t srtpsaltlength = (zrtpChannelContext->authTagAlgo == ZRTP_AUTHTAG_GCM)?12:14;
-	uint8_t *srtpsalti = (uint8_t *)malloc(srtpsaltlength*sizeof(uint8_t));
-	uint8_t *srtpsaltr = (uint8_t *)malloc(srtpsaltlength*sizeof(uint8_t));
+	uint8_t *srtpsalti = (uint8_t *)bctbx_malloc0(srtpsaltlength*sizeof(uint8_t));
+	uint8_t *srtpsaltr = (uint8_t *)bctbx_malloc0(srtpsaltlength*sizeof(uint8_t));
 	/* compute keys and salts according to rfc section 4.5.3 */
 	/* srtpkeyi = KDF(s0, "Initiator SRTP master key", KDF_Context, negotiated AES key length) */
 	retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, zrtpChannelContext->hmacFunction, srtpkeyi);
@@ -2639,10 +2639,10 @@ static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelC
 	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, srtpsaltlength, zrtpChannelContext->hmacFunction, srtpsaltr);
 
 	if (retval!=0) {
-		free(srtpkeyi);
-		free(srtpkeyr);
-		free(srtpsalti);
-		free(srtpsaltr);
+		bctbx_free(srtpkeyi);
+		bctbx_free(srtpkeyr);
+		bctbx_free(srtpsalti);
+		bctbx_free(srtpsaltr);
 		return retval;
 	}
 
@@ -2694,7 +2694,7 @@ static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelC
 		/* now get it into a char according to the selected algo */
 		sasValue = ((uint32_t)sasHash[0]<<24) | ((uint32_t)sasHash[1]<<16) | ((uint32_t)sasHash[2]<<8) | ((uint32_t)(sasHash[3]));
 		zrtpChannelContext->srtpSecrets.sasLength = zrtpChannelContext->sasLength;
-		zrtpChannelContext->srtpSecrets.sas = (char *)malloc((zrtpChannelContext->sasLength)*sizeof(char)); /*this shall take in account the selected representation algo for SAS */
+		zrtpChannelContext->srtpSecrets.sas = (char *)bctbx_malloc0((zrtpChannelContext->sasLength)*sizeof(char)); /*this shall take in account the selected representation algo for SAS */
 
 		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->sasLength);
 
@@ -2763,7 +2763,7 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) {
 		/* destroy s0 */
 		bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
-		free(zrtpChannelContext->s0);
+		bctbx_free(zrtpChannelContext->s0);
 		zrtpChannelContext->s0 = NULL;
 		return 0;
 	}
@@ -2782,7 +2782,7 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	}
 
 	/* compute rs1  = KDF(s0, "retained secret", KDF_Context, 256) */
-	zrtpContext->cachedSecret.rs1 = (uint8_t *)malloc(RETAINED_SECRET_LENGTH); /* Allocate a new buffer for rs1, the old one if exists if still pointed at by colValues[1] */
+	zrtpContext->cachedSecret.rs1 = (uint8_t *)bctbx_malloc0(RETAINED_SECRET_LENGTH); /* Allocate a new buffer for rs1, the old one if exists if still pointed at by colValues[1] */
 	zrtpContext->cachedSecret.rs1Length = RETAINED_SECRET_LENGTH;
 
 	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"retained secret", 15, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, RETAINED_SECRET_LENGTH, zrtpChannelContext->hmacFunction, zrtpContext->cachedSecret.rs1);
@@ -2803,39 +2803,39 @@ int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		/* destroy exportedKey if we computed one */
 		if (zrtpContext->exportedKey!=NULL) {
 			bzrtp_DestroyKey(zrtpContext->exportedKey, zrtpContext->exportedKeyLength, zrtpContext->RNGContext);
-			free(zrtpContext->exportedKey);
+			bctbx_free(zrtpContext->exportedKey);
 			zrtpContext->exportedKey=NULL;
 		}
 	}
 	/* destroy s0 */
 	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
-	free(zrtpChannelContext->s0);
+	bctbx_free(zrtpChannelContext->s0);
 	zrtpChannelContext->s0 = NULL;
 
 	/* destroy all cached keys in context they are not needed anymore (multistream mode doesn't use them to compute s0) */
 	if (colValues[1] != NULL) { /* destroy the old rs1 whose pointer was saved in colValues[1] before secrets.rs1 being crushed by the new rs1 */
 		bzrtp_DestroyKey(colValues[1], zrtpContext->cachedSecret.rs1Length, zrtpContext->RNGContext);
-		free(colValues[1]);
+		bctbx_free(colValues[1]);
 		colValues[1]=NULL;
 	}
 	if (zrtpContext->cachedSecret.rs1!=NULL) {
 		bzrtp_DestroyKey(zrtpContext->cachedSecret.rs1, zrtpContext->cachedSecret.rs1Length, zrtpContext->RNGContext);
-		free(zrtpContext->cachedSecret.rs1);
+		bctbx_free(zrtpContext->cachedSecret.rs1);
 		zrtpContext->cachedSecret.rs1 = NULL;
 	}
 	if (zrtpContext->cachedSecret.rs2!=NULL) {
 		bzrtp_DestroyKey(zrtpContext->cachedSecret.rs2, zrtpContext->cachedSecret.rs2Length, zrtpContext->RNGContext);
-		free(zrtpContext->cachedSecret.rs2);
+		bctbx_free(zrtpContext->cachedSecret.rs2);
 		zrtpContext->cachedSecret.rs2 = NULL;
 	}
 	if (zrtpContext->cachedSecret.auxsecret!=NULL) {
 		bzrtp_DestroyKey(zrtpContext->cachedSecret.auxsecret, zrtpContext->cachedSecret.auxsecretLength, zrtpContext->RNGContext);
-		free(zrtpContext->cachedSecret.auxsecret);
+		bctbx_free(zrtpContext->cachedSecret.auxsecret);
 		zrtpContext->cachedSecret.auxsecret = NULL;
 	}
 	if (zrtpContext->cachedSecret.pbxsecret!=NULL) {
 		bzrtp_DestroyKey(zrtpContext->cachedSecret.pbxsecret, zrtpContext->cachedSecret.pbxsecretLength, zrtpContext->RNGContext);
-		free(zrtpContext->cachedSecret.pbxsecret);
+		bctbx_free(zrtpContext->cachedSecret.pbxsecret);
 		zrtpContext->cachedSecret.pbxsecret = NULL;
 	}
 

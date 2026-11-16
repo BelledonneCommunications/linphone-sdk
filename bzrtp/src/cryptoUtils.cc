@@ -263,7 +263,7 @@ int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t keyLength,
 	size_t inputLength = 4 + labelLength + 1 + contextLength + 4;
 
 	/* create the hmac function input */
-	uint8_t *input = (uint8_t *)malloc(inputLength*sizeof(uint8_t));
+	uint8_t *input = (uint8_t *)bctbx_malloc(inputLength*sizeof(uint8_t));
 
 	/* fill the input starting by the 32-bits big-endian interger set to 0x00000001 */
 	size_t index = 0;
@@ -292,7 +292,7 @@ int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t keyLength,
 	/* call the hmac function */
 	hmacFunction(key, keyLength, input, inputLength, hmacLength, output);
 
-	free(input);
+	bctbx_free(input);
 
 	return 0;
 }
@@ -1188,12 +1188,12 @@ void bzrtp_destroyKeyMaterial(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyi, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
 	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyr, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
 
-	free(zrtpChannelContext->s0);
-	free(zrtpChannelContext->KDFContext);
-	free(zrtpChannelContext->mackeyi);
-	free(zrtpChannelContext->mackeyr);
-	free(zrtpChannelContext->zrtpkeyi);
-	free(zrtpChannelContext->zrtpkeyr);
+	bctbx_free(zrtpChannelContext->s0);
+	bctbx_free(zrtpChannelContext->KDFContext);
+	bctbx_free(zrtpChannelContext->mackeyi);
+	bctbx_free(zrtpChannelContext->mackeyr);
+	bctbx_free(zrtpChannelContext->zrtpkeyi);
+	bctbx_free(zrtpChannelContext->zrtpkeyr);
 
 	zrtpChannelContext->s0=NULL;
 	zrtpChannelContext->KDFContext=NULL;
@@ -1210,11 +1210,11 @@ void bzrtp_destroyKeyMaterial(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
 
 
-	free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
-	free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
-	free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
-	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
-	free(zrtpChannelContext->srtpSecrets.sas);
+	bctbx_free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
+	bctbx_free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
+	bctbx_free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
+	bctbx_free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
+	bctbx_free(zrtpChannelContext->srtpSecrets.sas);
 
 	for (size_t i = 0; i < 3; i++) {
 		bctbx_free(zrtpChannelContext->srtpSecrets.incorrectSas[i]);
