@@ -46,7 +46,7 @@ static int callback_getSelfZID(void *data, BCTBX_UNUSED(int argc), char **argv, 
 
 	/* we selected zid only, it must then be in argv[0] */
 	if (argv[0]) {
-		*selfZID = (uint8_t *)malloc(12*sizeof(uint8_t));
+		*selfZID = (uint8_t *)bctbx_malloc(12*sizeof(uint8_t));
 		memcpy(*selfZID, argv[0], 12);
 	}
 
@@ -345,10 +345,10 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	}
 
 	/* resert cached secret buffer */
-	free(context->cachedSecret.rs1);
-	free(context->cachedSecret.rs2);
-	free(context->cachedSecret.pbxsecret);
-	free(context->cachedSecret.auxsecret);
+	bctbx_free(context->cachedSecret.rs1);
+	bctbx_free(context->cachedSecret.rs2);
+	bctbx_free(context->cachedSecret.pbxsecret);
+	bctbx_free(context->cachedSecret.auxsecret);
 	context->cachedSecret.rs1 = NULL;
 	context->cachedSecret.rs1Length = 0;
 	context->cachedSecret.rs2 = NULL;
@@ -405,28 +405,28 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	length = sqlite3_column_bytes(sqlStmt, 1);
 	if (length>0) { /* we have rs1 */
 		context->cachedSecret.rs1Length = length;
-		context->cachedSecret.rs1 = (uint8_t *)malloc(length*sizeof(uint8_t));
+		context->cachedSecret.rs1 = (uint8_t *)bctbx_malloc(length*sizeof(uint8_t));
 		memcpy(context->cachedSecret.rs1, sqlite3_column_blob(sqlStmt, 1), length);
 	}
 
 	length = sqlite3_column_bytes(sqlStmt, 2);
 	if (length>0) { /* we have rs2 */
 		context->cachedSecret.rs2Length = length;
-		context->cachedSecret.rs2 = (uint8_t *)malloc(length*sizeof(uint8_t));
+		context->cachedSecret.rs2 = (uint8_t *)bctbx_malloc(length*sizeof(uint8_t));
 		memcpy(context->cachedSecret.rs2, sqlite3_column_blob(sqlStmt, 2), length);
 	}
 
 	length = sqlite3_column_bytes(sqlStmt, 3);
 	if (length>0) { /* we have aux */
 		context->cachedSecret.auxsecretLength = length;
-		context->cachedSecret.auxsecret = (uint8_t *)malloc(length*sizeof(uint8_t));
+		context->cachedSecret.auxsecret = (uint8_t *)bctbx_malloc(length*sizeof(uint8_t));
 		memcpy(context->cachedSecret.auxsecret, sqlite3_column_blob(sqlStmt, 3), length);
 	}
 
 	length = sqlite3_column_bytes(sqlStmt, 4);
 	if (length>0) { /* we have pbx */
 		context->cachedSecret.pbxsecretLength = length;
-		context->cachedSecret.pbxsecret = (uint8_t *)malloc(length*sizeof(uint8_t));
+		context->cachedSecret.pbxsecret = (uint8_t *)bctbx_malloc(length*sizeof(uint8_t));
 		memcpy(context->cachedSecret.pbxsecret, sqlite3_column_blob(sqlStmt, 4), length);
 	}
 
@@ -624,7 +624,7 @@ static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableNa
 	for (i=0; i<columnsCount; i++) {
 		insertColumnsStringLength += strlen(columns[i])+5; /* +5 for =?, */
 	}
-	insertColumnsString = (char *)malloc(++insertColumnsStringLength); /*+1 to add NULL termination */
+	insertColumnsString = (char *)bctbx_malloc(++insertColumnsStringLength); /*+1 to add NULL termination */
 	sqlite3_snprintf((int)insertColumnsStringLength,insertColumnsString,"%w=?",columns[0]);
 	j=strlen(insertColumnsString);
 	for (i=1; i<columnsCount; i++) {
@@ -633,7 +633,7 @@ static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableNa
 	}
 
 	stmt = sqlite3_mprintf("UPDATE %w SET %s WHERE zuid=%d;", tableName, insertColumnsString, zuid);
-	free(insertColumnsString);
+	bctbx_free(insertColumnsString);
 	ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
 	sqlite3_free(stmt);
 	if (ret != SQLITE_OK) {
@@ -656,7 +656,7 @@ static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableNa
 	if (sqlite3_changes(db)==0) { /* update failed: we must insert the row */
 		char *valuesBindingString = alloca(2*columnsCount+3);
 		insertColumnsStringLength+=6; /* +6 to add the initial 'zuid, ' to column list */
-		insertColumnsString = (char *)malloc(insertColumnsStringLength+6);
+		insertColumnsString = (char *)bctbx_malloc(insertColumnsStringLength+6);
 		sqlite3_snprintf((int)insertColumnsStringLength,insertColumnsString,"%w","zuid");
 		sprintf(valuesBindingString,"?");
 
@@ -880,7 +880,7 @@ static int bzrtp_cache_read_impl(void *dbPointer, int zuid, const char *tableNam
 	for (i=0; i<columnsCount; i++) {
 		readColumnsStringLength += (int)(strlen(columns[i])+5); /* +2 for ', '*/
 	}
-	readColumnsString = (char *)malloc(++readColumnsStringLength); /*+1 to add NULL termination */
+	readColumnsString = (char *)bctbx_malloc(++readColumnsStringLength); /*+1 to add NULL termination */
 	sqlite3_snprintf(readColumnsStringLength,readColumnsString,"%w",columns[0]);
 	j=(int)(strlen(readColumnsString));
 	for (i=1; i<columnsCount; i++) {
@@ -889,7 +889,7 @@ static int bzrtp_cache_read_impl(void *dbPointer, int zuid, const char *tableNam
 	}
 
 	stmt = sqlite3_mprintf("SELECT %s FROM %w WHERE zuid=%d LIMIT 1;", readColumnsString, tableName, zuid);
-	free(readColumnsString);
+	bctbx_free(readColumnsString);
 	ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
 	sqlite3_free(stmt);
 	if (ret != SQLITE_OK) {
@@ -910,7 +910,7 @@ static int bzrtp_cache_read_impl(void *dbPointer, int zuid, const char *tableNam
 
 		if (length>0) { /* we have rs1 */
 			lengths[i] = length;
-			values[i] = (uint8_t *)malloc(length*sizeof(uint8_t));
+			values[i] = (uint8_t *)bctbx_malloc(length*sizeof(uint8_t));
 			memcpy(values[i], sqlite3_column_blob(sqlStmt, i), length);
 		} else { /* data is null in DB */
 			values[i] = NULL;
@@ -1054,10 +1054,10 @@ int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t peerZID[12])
 	}
 
 	/* resert cached secret buffer */
-	free(context->cachedSecret.rs1);
-	free(context->cachedSecret.rs2);
-	free(context->cachedSecret.pbxsecret);
-	free(context->cachedSecret.auxsecret);
+	bctbx_free(context->cachedSecret.rs1);
+	bctbx_free(context->cachedSecret.rs2);
+	bctbx_free(context->cachedSecret.pbxsecret);
+	bctbx_free(context->cachedSecret.auxsecret);
 	context->cachedSecret.rs1 = NULL;
 	context->cachedSecret.rs1Length = 0;
 	context->cachedSecret.rs2 = NULL;
