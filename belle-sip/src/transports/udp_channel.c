@@ -18,7 +18,7 @@
  */
 
 #include "belle_sip_internal.h"
-#include "channel.h"
+#include "channel_private.h"
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_udp_channel_t, belle_sip_channel_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END

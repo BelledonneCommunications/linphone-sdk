@@ -43,6 +43,21 @@ BELLESIP_EXPORT void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p
 
 BELLESIP_EXPORT void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 
+BELLESIP_EXPORT void belle_sip_provider_enable_request_hooks(belle_sip_provider_t *p, int enabled);
+
+BELLESIP_EXPORT int belle_sip_provider_request_hooks_enabled(const belle_sip_provider_t *p);
+
+BELLESIP_EXPORT void belle_sip_provider_enable_proxy_mode(belle_sip_provider_t *p, int enabled);
+
+BELLESIP_EXPORT int belle_sip_provider_proxy_mode_enabled(const belle_sip_provider_t *p);
+
+/**
+ * Returns the next hop for sending the given request.
+ * Note: if proxy mode is enabled (belle_sip_provider_enable_proxy_mode()), this function may alter the request
+ * by removing any Route header field(s) whose URI indicates this provider (RFC 3261 section 16.4).
+ */
+BELLESIP_EXPORT belle_sip_hop_t *belle_sip_provider_get_next_hop(belle_sip_provider_t *prov, belle_sip_request_t *req);
+
 BELLESIP_EXPORT belle_sip_header_call_id_t *belle_sip_provider_create_call_id(const belle_sip_provider_t *prov);
 
 BELLESIP_EXPORT belle_sip_dialog_t *belle_sip_provider_create_dialog(belle_sip_provider_t *prov,

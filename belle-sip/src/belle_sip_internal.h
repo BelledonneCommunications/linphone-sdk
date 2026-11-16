@@ -353,7 +353,7 @@ void belle_sip_source_reset(belle_sip_source_t *s);
 void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t func);
 
 /* include private headers */
-#include "channel.h"
+#include "channel_private.h"
 
 #define belle_sip_new(type) (type *)belle_sip_malloc(sizeof(type))
 #define belle_sip_new0(type) (type *)belle_sip_malloc0(sizeof(type))
@@ -773,7 +773,6 @@ BELLESIP_EXPORT belle_sip_hop_t *belle_sip_hop_new_from_generic_uri(const belle_
 void belle_sip_hop_set_channel_bank_identifier(belle_sip_hop_t *hop, const char *channel_bank_identifier);
 const char *belle_sip_hop_get_channel_bank_identifier(const belle_sip_hop_t *hop);
 
-BELLESIP_EXPORT belle_sip_hop_t *belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
 /* Return -1 if requested authentication is not compatible with local digest authentication security policy, 0 if
  * compatible. */
 BELLESIP_EXPORT int belle_sip_stack_check_digest_compatibility(const belle_sip_stack_t *stack,
@@ -798,6 +797,8 @@ struct belle_sip_provider {
 	unsigned char nat_helper;
 	unsigned char unconditional_answer_enabled;
 	unsigned char response_integrity_checking_enabled;
+	unsigned char request_hooks_enabled;
+	unsigned char proxy_mode_enabled;
 };
 
 BELLESIP_EXPORT belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
@@ -840,6 +841,9 @@ typedef struct listener_ctx {
 
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(listeners, callback, event)                                                \
 	BELLE_SIP_INVOKE_LISTENERS_ARG((listeners), belle_sip_listener_t, callback, (event))
+
+#define BELLE_SIP_PROVIDER_INVOKE_LISTENERS_ARG1_ARG2(listeners, callback, arg1, arg2)                                 \
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2((listeners), belle_sip_listener_t, callback, (arg1), (arg2))
 
 /*
  * http provider

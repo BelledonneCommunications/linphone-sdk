@@ -112,8 +112,10 @@ LINPHONE_PUBLIC void linphone_core_set_zrtp_not_available_simulation(LinphoneCor
 LINPHONE_PUBLIC belle_http_provider_t *linphone_core_get_http_provider(LinphoneCore *lc);
 LINPHONE_PUBLIC bool_t linphone_call_has_ice_session(const LinphoneCall *call);
 LINPHONE_PUBLIC bool_t linphone_call_has_ice_check_list(const LinphoneCall *call, unsigned int index);
-LINPHONE_PUBLIC const MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call, unsigned int index);
-LINPHONE_PUBLIC const MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call, unsigned int index);
+LINPHONE_PUBLIC const MSTurnContext *linphone_call_get_ice_checklist_rtp_turn_context(const LinphoneCall *call,
+                                                                                      unsigned int index);
+LINPHONE_PUBLIC const MSTurnContext *linphone_call_get_ice_checklist_rtcp_turn_context(const LinphoneCall *call,
+                                                                                       unsigned int index);
 LINPHONE_PUBLIC const struct addrinfo *linphone_core_get_stun_server_addrinfo(LinphoneCore *lc);
 LINPHONE_PUBLIC void linphone_core_enable_send_call_stats_periodical_updates(LinphoneCore *lc, bool_t enabled);
 LINPHONE_PUBLIC LinphoneAccount *linphone_core_lookup_known_account(LinphoneCore *lc, const LinphoneAddress *uri);
@@ -366,6 +368,12 @@ LINPHONE_PUBLIC void sal_default_set_sdp_handling(Sal *h, SalOpSDPHandling handl
 /* simulate transport errors. 0: normal, -1: socket error, positive value: discard silently */
 LINPHONE_PUBLIC void sal_set_send_error(Sal *sal, int value);
 LINPHONE_PUBLIC void sal_set_recv_error(Sal *sal, int value);
+
+/* For testing purposes only */
+typedef void (*SalRequestHookCb)(void *user_ctx, belle_sip_request_t *req, belle_sip_channel_t *chan);
+LINPHONE_PUBLIC void
+sal_set_request_hooks(Sal *sal, SalRequestHookCb incoming_hook, SalRequestHookCb outgoing_hook, void *user_ctx);
+LINPHONE_PUBLIC void sal_enable_proxy_mode(Sal *sal, bool_t enable);
 LINPHONE_PUBLIC void sal_set_client_bind_port(Sal *sal, int port);
 LINPHONE_PUBLIC int sal_enable_pending_trans_checking(Sal *sal, bool_t value);
 LINPHONE_PUBLIC void sal_enable_unconditional_answer(Sal *sal, bool_t value);
@@ -425,6 +433,13 @@ LINPHONE_PUBLIC LinphoneCore *linphone_participant_device_get_core(const Linphon
 LINPHONE_PUBLIC LinphonePrivate::Sal *linphone_core_get_sal(const LinphoneCore *lc);
 LINPHONE_PUBLIC void sal_default_set_sdp_handling(LinphonePrivate::Sal *h, SalOpSDPHandling handling_method);
 LINPHONE_PUBLIC void sal_set_send_error(LinphonePrivate::Sal *sal, int value);
+/* For testing purposes only */
+typedef void (*SalRequestHookCb)(void *user_ctx, belle_sip_request_t *req, belle_sip_channel_t *chan);
+LINPHONE_PUBLIC void sal_set_request_hooks(LinphonePrivate::Sal *sal,
+                                           SalRequestHookCb incoming_hook,
+                                           SalRequestHookCb outgoing_hook,
+                                           void *user_ctx = nullptr);
+LINPHONE_PUBLIC void sal_enable_proxy_mode(LinphonePrivate::Sal *sal, bool_t enable);
 #endif // !defined(__cplusplus)
 
 LINPHONE_PUBLIC bool_t linphone_tunnel_is_tunnel_rtp_transport(const LinphoneTunnel *tunnel, const RtpTransport *tp);

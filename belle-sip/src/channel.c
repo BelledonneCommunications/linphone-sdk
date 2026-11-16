@@ -965,8 +965,12 @@ const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *p
 
 const char *belle_sip_channel_get_public_address(belle_sip_channel_t *obj, int *port) {
 	const char *ret = obj->public_ip ? obj->public_ip : obj->local_ip;
-	if (*port) *port = obj->public_port;
+	if (port) *port = obj->public_port ? obj->public_port : obj->local_port;
 	return ret;
+}
+
+belle_sip_channel_state_t belle_sip_channel_get_state(const belle_sip_channel_t *chan) {
+	return chan->state;
 }
 
 belle_sip_uri_t *belle_sip_channel_create_routable_uri(belle_sip_channel_t *chan) {
@@ -981,8 +985,9 @@ belle_sip_uri_t *belle_sip_channel_create_routable_uri(belle_sip_channel_t *chan
 
 		belle_sip_uri_set_host(uri, chan->local_ip);
 		// With streamed protocols listening port is what we want
-		if (chan->lp) belle_sip_uri_set_port(uri, belle_sip_uri_get_port(chan->lp->listening_uri));
-		else belle_sip_uri_set_port(uri, chan->local_port);
+		int port = chan->lp ? belle_sip_uri_get_port(chan->lp->listening_uri) : 0;
+		if (port <= 0) port = chan->local_port;
+		belle_sip_uri_set_port(uri, port);
 	}
 
 	belle_sip_uri_set_transport_param(uri, transport);

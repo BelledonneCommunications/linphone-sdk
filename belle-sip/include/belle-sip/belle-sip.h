@@ -23,6 +23,7 @@
 #include "belle-sip/auth-helper.h"
 #include "belle-sip/belle-sdp.h"
 #include "belle-sip/bodyhandler.h"
+#include "belle-sip/channel.h"
 #include "belle-sip/dialog.h"
 #include "belle-sip/generic-uri.h"
 #include "belle-sip/headers.h"

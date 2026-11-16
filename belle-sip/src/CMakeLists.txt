@@ -81,7 +81,7 @@ set(BELLE_SIP_SOURCE_FILES_C
 	belle_sip_resolver.c
 	bodyhandler.c
 	channel.c
-	channel.h
+	channel_private.h
 	dialog.c
 	dns/dns.c
 	dns/dns.h

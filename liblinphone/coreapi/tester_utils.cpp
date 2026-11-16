@@ -34,6 +34,7 @@
 #include "call/call.h"
 #include "chat/chat-room/chat-room.h"
 #include "private.h"
+#include "sal/sal.h"
 #include "tester_utils.h"
 #ifdef HAVE_ADVANCED_IM
 #include "chat/chat-room/client-chat-room.h"
@@ -352,4 +353,12 @@ linphone_core_create_basic_chat_room(LinphoneCore *core, const char *localSipUri
 	return L_GET_CPP_PTR_FROM_C_OBJECT(core)
 	    ->getOrCreateBasicChatRoomFromUri(L_C_TO_STRING(localSipUri), L_C_TO_STRING(remoteSipUri))
 	    ->toC();
+}
+
+void sal_set_request_hooks(Sal *sal, SalRequestHookCb incoming_hook, SalRequestHookCb outgoing_hook, void *user_ctx) {
+	sal->setRequestHooks(incoming_hook, outgoing_hook, user_ctx);
+}
+
+void sal_enable_proxy_mode(Sal *sal, bool_t enable) {
+	sal->enableProxyMode(enable ? true : false);
 }

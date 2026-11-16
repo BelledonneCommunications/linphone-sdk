@@ -84,18 +84,11 @@ private:
 	subscribe(const std::shared_ptr<Event> &eventSubscribe,
 	          const std::map<std::string, std::shared_ptr<Address>> &addresses);
 
-	struct ClientConferenceEventHandlerCompare {
-		bool operator()(const std::weak_ptr<ClientConferenceEventHandler> &handler1WeakPtr,
-		                const std::weak_ptr<ClientConferenceEventHandler> &handler2WeakPtr) const {
-			auto handler1 = handler1WeakPtr.lock();
-			auto handler2 = handler2WeakPtr.lock();
-			return ((handler1 < handler2) || ((handler1 == handler2) && (*handler1 < *handler2)));
-		}
-	};
-
 	// The ClientConferenceEventHandler object is handled by the SDK and for a given conference only one exists and it
 	// cannot be copied
-	typedef std::set<std::weak_ptr<ClientConferenceEventHandler>, ClientConferenceEventHandlerCompare> handlerMap;
+	typedef std::set<std::weak_ptr<ClientConferenceEventHandler>,
+	                 std::owner_less<std::weak_ptr<ClientConferenceEventHandler>>>
+	    handlerMap;
 	handlerMap mHandlers;
 	handlerMap mLegacyChatRoomHandlers;
 

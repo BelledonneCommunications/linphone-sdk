@@ -34,7 +34,13 @@ public:
 	int mNumberOf6xxResponse = 0;
 	int mResponseCount = 0;
 
-	TestUA(const std::string &transport = "UDP", const std::string &ip = "127.0.0.1");
+	TestUA(const std::string &transport = "UDP",
+	       const std::string &ip = "127.0.0.1",
+	       int port = BELLE_SIP_LISTENING_POINT_DONT_BIND);
+	TestUA(belle_sip_stack_t *stack,
+	       const std::string &transport = "UDP",
+	       const std::string &ip = "127.0.0.1",
+	       int port = BELLE_SIP_LISTENING_POINT_DONT_BIND);
 	virtual ~TestUA();
 
 	void sendRegister(const std::string &destUri, int expires = 3600, const std::string &domain = "");
@@ -53,12 +59,22 @@ public:
 	belle_sip_refresher_t *getRefresher() const {
 		return mRefresher;
 	}
+	const belle_sip_uri_t *getListeningUri() const;
+	std::string getListeningUriAsString() const;
+
+	void setListenerCallbacks(const belle_sip_listener_callbacks_t &callbacks, void *userData = nullptr);
+	void enableRequestHooks(bool enable);
+	belle_sip_request_t *createRequest(const std::string &method, const std::string &destUriStr);
+	void sendRequest(belle_sip_request_t *req, const belle_sip_uri_t *destUri = nullptr);
 
 private:
+	bool mOwnsStack = true;
 	belle_sip_stack_t *mStack = nullptr;
 	belle_sip_listening_point_t *mListeningPoint = nullptr;
 	belle_sip_provider_t *mProvider = nullptr;
 	belle_sip_refresher_t *mRefresher = nullptr;
+	belle_sip_listener_t *mListener = nullptr;
+	belle_sip_listener_callbacks_t mListenerCallbacks{};
 
 	static void onRefresherListener(belle_sip_refresher_t *refresher,
 	                                void *userData,

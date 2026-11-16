@@ -613,8 +613,8 @@ static void destroy(belle_sip_refresher_t *refresher) {
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_refresher_t, belle_sip_listener_t)
 process_dialog_terminated, process_io_error, process_request_event, process_response_event, process_timeout,
-    process_transaction_terminated,
-    process_auth_requested BELLE_SIP_IMPLEMENT_INTERFACE_END
+    process_transaction_terminated, process_auth_requested, NULL,
+    NULL BELLE_SIP_IMPLEMENT_INTERFACE_END
 
         BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_refresher_t, belle_sip_listener_t);
 

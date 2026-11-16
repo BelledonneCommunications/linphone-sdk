@@ -58,6 +58,7 @@ set(SOURCE_FILES_CXX
 	belle_sip_tester_utils.cc
 	belle_sip_tester_utils.h
 	object_tester.cc
+	provider_tester.cc
 	refresher_failover_tester.cc
 )
 

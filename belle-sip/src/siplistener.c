@@ -111,12 +111,22 @@ static void process_auth_requested(belle_sip_listener_t *l, belle_sip_auth_event
 	if (obj->cbs.process_auth_requested) obj->cbs.process_auth_requested(obj->user_ctx, event);
 }
 
+static void incoming_request_hook(belle_sip_listener_t *l, belle_sip_request_t *req, belle_sip_channel_t *chan) {
+	belle_sip_callbacks_t *obj = (belle_sip_callbacks_t *)l;
+	if (obj->cbs.incoming_request_hook) obj->cbs.incoming_request_hook(obj->user_ctx, req, chan);
+}
+
+static void outgoing_request_hook(belle_sip_listener_t *l, belle_sip_request_t *req, belle_sip_channel_t *chan) {
+	belle_sip_callbacks_t *obj = (belle_sip_callbacks_t *)l;
+	if (obj->cbs.outgoing_request_hook) obj->cbs.outgoing_request_hook(obj->user_ctx, req, chan);
+}
+
 BELLE_SIP_DECLARE_VPTR(belle_sip_callbacks_t);
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_callbacks_t, belle_sip_listener_t)
 process_dialog_terminated, process_io_error, process_request_event, process_response_event, process_timeout,
-    process_transaction_terminated,
-    process_auth_requested BELLE_SIP_IMPLEMENT_INTERFACE_END
+    process_transaction_terminated, process_auth_requested, incoming_request_hook,
+    outgoing_request_hook BELLE_SIP_IMPLEMENT_INTERFACE_END
 
         BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_callbacks_t, belle_sip_listener_t);
 

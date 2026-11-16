@@ -202,6 +202,11 @@ public:
 		belle_sip_stack_set_client_bind_port(mStack, port);
 	}
 
+	using RequestHookCb = void (*)(void *user_ctx, belle_sip_request_t *req, belle_sip_channel_t *chan);
+	// For testing purposes only
+	void setRequestHooks(RequestHookCb incomingHook, RequestHookCb outgoingHook, void *userCtx = nullptr);
+	void enableProxyMode(bool enable);
+
 	// ---------------------------------------------------------------------------
 	// SIP parameters
 	// ---------------------------------------------------------------------------
@@ -514,6 +519,7 @@ private:
 	belle_sip_provider_t *mProvider = nullptr;
 	belle_sip_header_user_agent_t *mUserAgentHeader = nullptr;
 	belle_sip_listener_t *mListener = nullptr;
+	belle_sip_listener_t *mRequestHooksListener = nullptr;
 	void *mTunnelClient = nullptr;
 	void *mUserPointer = nullptr; // User pointer
 

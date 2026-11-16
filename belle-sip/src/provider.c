@@ -478,8 +478,13 @@ channel_on_message_headers(belle_sip_channel_listener_t *obj, belle_sip_channel_
 }
 
 static void channel_on_message(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg) {
+	belle_sip_provider_t *prov = BELLE_SIP_PROVIDER(obj);
 	belle_sip_object_ref(msg);
-	belle_sip_provider_dispatch_message(BELLE_SIP_PROVIDER(obj), msg);
+	if (prov->request_hooks_enabled && belle_sip_message_is_request(msg)) {
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS_ARG1_ARG2(prov->listeners, incoming_request_hook, BELLE_SIP_REQUEST(msg),
+		                                              chan);
+	}
+	belle_sip_provider_dispatch_message(prov, msg);
 }
 
 static int channel_on_auth_requested(belle_sip_channel_listener_t *obj,
@@ -550,14 +555,14 @@ fix_automatic_header_address(belle_sip_provider_t *prov, belle_sip_channel_t *ch
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg) {
 	belle_sip_header_address_t *contact;
-	belle_sip_header_content_length_t *content_length =
-	    (belle_sip_header_content_length_t *)belle_sip_message_get_header(msg, "Content-Length");
+	belle_sip_header_content_length_t *content_length;
 	const belle_sip_list_t *contacts;
 	belle_sip_header_refer_to_t *refer_to;
 	belle_sip_provider_t *prov = BELLE_SIP_PROVIDER(obj);
 
 	if (belle_sip_message_is_request(msg)) {
 		const belle_sip_list_t *rroutes;
+
 		/*probably better to be in channel*/
 		if (strcmp("CANCEL", belle_sip_request_get_method(BELLE_SIP_REQUEST(msg))) != 0)
 			fix_outgoing_via(prov, chan, msg);
@@ -585,6 +590,7 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 	 * transport. However some servers (opensips) are confused when they receive a SIP/UDP packet without Content-Length
 	 * (they shouldn't).
 	 */
+	content_length = (belle_sip_header_content_length_t *)belle_sip_message_get_header(msg, "Content-Length");
 	if (!content_length &&
 	    belle_sip_message_get_body_size(msg) ==
 	        0 /*if body present, content_length is automatically added at channel level*/
@@ -594,6 +600,12 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 	) {
 		content_length = belle_sip_header_content_length_create(0);
 		belle_sip_message_add_header(msg, (belle_sip_header_t *)content_length);
+	}
+	if (belle_sip_message_is_request(msg)) {
+		if (prov->request_hooks_enabled) {
+			BELLE_SIP_PROVIDER_INVOKE_LISTENERS_ARG1_ARG2(prov->listeners, outgoing_request_hook,
+			                                              BELLE_SIP_REQUEST(msg), chan);
+		}
 	}
 }
 
@@ -611,6 +623,7 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 	p->rport_enabled = 1;
 	p->unconditional_answer = 480;
 	p->response_integrity_checking_enabled = TRUE;
+	p->proxy_mode_enabled = 0;
 	if (lp) belle_sip_provider_add_listening_point(p, lp);
 	return p;
 }
@@ -632,6 +645,7 @@ static belle_sip_channel_t *_belle_sip_provider_find_channel_using_routable(bell
 	if (!routable_uri) return NULL;
 
 	transport = belle_sip_uri_is_secure(routable_uri) ? "TLS" : belle_sip_uri_get_transport_param(routable_uri);
+	if (transport == NULL) transport = "UDP";
 	lp = belle_sip_provider_get_listening_point(p, transport);
 	if (!lp) return NULL;
 
@@ -673,6 +687,7 @@ void belle_sip_provider_remove_listening_point(belle_sip_provider_t *p, belle_si
 
 belle_sip_listening_point_t *belle_sip_provider_get_listening_point(belle_sip_provider_t *p, const char *transport) {
 	belle_sip_list_t *l;
+	if (transport == NULL) return NULL;
 	for (l = p->lps; l != NULL; l = l->next) {
 		belle_sip_listening_point_t *lp = (belle_sip_listening_point_t *)l->data;
 		if (strcasecmp(belle_sip_listening_point_get_transport(lp), transport) == 0) return lp;
@@ -699,6 +714,22 @@ void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_list
 
 void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l) {
 	p->listeners = belle_sip_list_remove(p->listeners, l);
+}
+
+void belle_sip_provider_enable_request_hooks(belle_sip_provider_t *p, int enabled) {
+	p->request_hooks_enabled = (unsigned char)enabled;
+}
+
+int belle_sip_provider_request_hooks_enabled(const belle_sip_provider_t *p) {
+	return p->request_hooks_enabled;
+}
+
+void belle_sip_provider_enable_proxy_mode(belle_sip_provider_t *p, int enabled) {
+	p->proxy_mode_enabled = (unsigned char)enabled;
+}
+
+int belle_sip_provider_proxy_mode_enabled(const belle_sip_provider_t *p) {
+	return p->proxy_mode_enabled;
 }
 
 belle_sip_header_call_id_t *belle_sip_provider_create_call_id(const belle_sip_provider_t *prov) {
@@ -940,10 +971,46 @@ void belle_sip_provider_clean_unreliable_channels(belle_sip_provider_t *p) {
 	}
 }
 
+belle_sip_hop_t *belle_sip_provider_get_next_hop(belle_sip_provider_t *prov, belle_sip_request_t *req) {
+	belle_sip_header_route_t *route = NULL;
+	belle_sip_uri_t *uri = NULL;
+	belle_sip_hop_t *hop;
+
+	if (prov->proxy_mode_enabled) {
+		const belle_sip_list_t *routes;
+		while ((routes = belle_sip_message_get_headers(BELLE_SIP_MESSAGE(req), "route")) != NULL) {
+			route = BELLE_SIP_HEADER_ROUTE(routes->data);
+			uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(route));
+			if (belle_sip_provider_is_us(prov, uri)) {
+				belle_sip_message(
+				    "belle_sip_provider_get_next_hop(): top Route header indicates this proxy, removing it");
+				belle_sip_message_remove_header_from_ptr(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(route));
+				route = NULL;
+				uri = NULL;
+			} else {
+				break;
+			}
+		}
+	} else {
+		route = BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), "route"));
+		if (route != NULL) {
+			uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(route));
+		}
+	}
+
+	if (route == NULL) {
+		uri = belle_sip_request_get_uri(req);
+	}
+	hop = belle_sip_hop_new_from_uri(uri);
+	belle_sip_hop_set_channel_bank_identifier(hop,
+	                                          belle_sip_message_get_channel_bank_identifier(BELLE_SIP_MESSAGE(req)));
+	return hop;
+}
+
 void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req) {
 	belle_sip_hop_t *hop;
 	belle_sip_channel_t *chan;
-	hop = belle_sip_stack_get_next_hop(p->stack, req);
+	hop = belle_sip_provider_get_next_hop(p, req);
 	chan = belle_sip_provider_get_channel(p, hop);
 	if (chan) {
 		belle_sip_channel_queue_message(chan, BELLE_SIP_MESSAGE(req));

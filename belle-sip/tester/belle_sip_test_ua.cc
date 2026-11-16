@@ -23,14 +23,25 @@
 
 namespace bellesip {
 
-TestUA::TestUA(const std::string &transport, const std::string &ip) {
+TestUA::TestUA(const std::string &transport, const std::string &ip, int port) {
 	mStack = belle_sip_stack_new(NULL);
-	mListeningPoint = belle_sip_stack_create_listening_point(mStack, ip.c_str(), BELLE_SIP_LISTENING_POINT_DONT_BIND,
-	                                                         transport.c_str());
+	mListeningPoint = belle_sip_stack_create_listening_point(mStack, ip.c_str(), port, transport.c_str());
+	mProvider = belle_sip_stack_create_provider(mStack, mListeningPoint);
+}
+
+TestUA::TestUA(belle_sip_stack_t *stack, const std::string &transport, const std::string &ip, int port) {
+	mOwnsStack = false;
+	mStack = stack;
+	mListeningPoint = belle_sip_stack_create_listening_point(mStack, ip.c_str(), port, transport.c_str());
 	mProvider = belle_sip_stack_create_provider(mStack, mListeningPoint);
 }
 
 TestUA::~TestUA() {
+	if (mListener) {
+		belle_sip_provider_remove_sip_listener(mProvider, mListener);
+		belle_sip_object_unref(mListener);
+		mListener = nullptr;
+	}
 	if (mRefresher) {
 		belle_sip_refresher_stop(mRefresher);
 		belle_sip_object_unref(mRefresher);
@@ -42,8 +53,10 @@ TestUA::~TestUA() {
 		mProvider = nullptr;
 	}
 	if (mStack) {
-		belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(mStack), 50);
-		belle_sip_object_unref(mStack);
+		if (mOwnsStack) {
+			belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(mStack), 50);
+			belle_sip_object_unref(mStack);
+		}
 		mStack = nullptr;
 	}
 }
@@ -110,6 +123,62 @@ void TestUA::unregister() {
 	}
 }
 
+const belle_sip_uri_t *TestUA::getListeningUri() const {
+	return mListeningPoint ? belle_sip_listening_point_get_uri(mListeningPoint) : nullptr;
+}
+
+std::string TestUA::getListeningUriAsString() const {
+	const belle_sip_uri_t *uri = getListeningUri();
+	if (!uri) return "";
+	char *str = belle_sip_uri_to_string(uri);
+	std::string res = str ? str : "";
+	if (str) belle_sip_free(str);
+	return res;
+}
+
+void TestUA::setListenerCallbacks(const belle_sip_listener_callbacks_t &callbacks, void *userData) {
+	if (mListener) {
+		belle_sip_provider_remove_sip_listener(mProvider, mListener);
+		belle_sip_object_unref(mListener);
+		mListener = nullptr;
+	}
+	mListenerCallbacks = callbacks;
+	mListener = belle_sip_listener_create_from_callbacks(&mListenerCallbacks, userData ? userData : this);
+	belle_sip_provider_add_sip_listener(mProvider, mListener);
+}
+
+void TestUA::enableRequestHooks(bool enable) {
+	belle_sip_provider_enable_request_hooks(mProvider, enable ? TRUE : FALSE);
+}
+
+belle_sip_request_t *TestUA::createRequest(const std::string &method, const std::string &destUriStr) {
+	belle_sip_uri_t *destUri = belle_sip_uri_parse(destUriStr.c_str());
+	if (!destUri) {
+		belle_sip_fatal("TestUA::createRequest: Invalid destination URI [%s]", destUriStr.c_str());
+		return nullptr;
+	}
+	const char *host = belle_sip_uri_get_host(destUri);
+	std::string domain = host ? host : "127.0.0.1";
+	std::string fromStr = "Tester <sip:tester@" + domain + ">";
+	std::string toStr = "<sip:dest@" + domain + ">";
+
+	belle_sip_request_t *req =
+	    belle_sip_request_create(destUri, method.c_str(), belle_sip_provider_create_call_id(mProvider),
+	                             belle_sip_header_cseq_create(20, method.c_str()),
+	                             belle_sip_header_from_create2(fromStr.c_str(), BELLE_SIP_RANDOM_TAG),
+	                             belle_sip_header_to_create2(toStr.c_str(), NULL), belle_sip_header_via_new(), 70);
+	return req;
+}
+
+void TestUA::sendRequest(belle_sip_request_t *req, const belle_sip_uri_t *destUri) {
+	belle_sip_client_transaction_t *trans = belle_sip_provider_create_client_transaction(mProvider, req);
+	if (destUri) {
+		belle_sip_client_transaction_send_request_to(trans, const_cast<belle_sip_uri_t *>(destUri));
+	} else {
+		belle_sip_client_transaction_send_request(trans);
+	}
+}
+
 bool TestUA::waitCountOf(const int *counter, int expectedValue, int timeoutMs) {
 	belle_sip_main_loop_t *ml = belle_sip_stack_get_main_loop(mStack);
 	uint64_t startTime = bctbx_get_cur_time_ms();
@@ -119,7 +188,8 @@ bool TestUA::waitCountOf(const int *counter, int expectedValue, int timeoutMs) {
 			return false;
 		}
 		int remainingMs = static_cast<int>(timeoutMs - elapsed);
-		belle_sip_main_loop_sleep(ml, remainingMs);
+		int sleepTime = (std::min)(remainingMs, 20);
+		belle_sip_main_loop_sleep(ml, sleepTime);
 	}
 	return (*counter >= expectedValue);
 }

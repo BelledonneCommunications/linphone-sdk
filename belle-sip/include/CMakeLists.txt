@@ -26,6 +26,7 @@ set(HEADER_FILES
 	belle-sip.h
 	bearer-token.h
 	bodyhandler.h
+	channel.h
 	defs.h
 	dialog.h
 	generic-uri.h

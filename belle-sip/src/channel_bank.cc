@@ -92,15 +92,21 @@ belle_sip_channel_t *ChannelBank::findChannel(const belle_sip_hop_t *hop, const 
 }
 
 belle_sip_channel_t *ChannelBank::findChannel(const belle_sip_uri_t *uri) const {
+	const char *uri_host = belle_sip_uri_get_host(uri);
+	int uri_port = belle_sip_uri_get_port(uri);
+	if (!uri_host) return nullptr;
+
 	for (auto &p : mChannelsById) {
 		for (auto &elem : p.second) {
-			belle_sip_uri_t *chan_uri = belle_sip_channel_create_routable_uri(elem.get());
-			if (belle_sip_uri_get_port(uri) == belle_sip_uri_get_port(chan_uri) &&
-			    0 == strcmp(belle_sip_uri_get_host(uri), belle_sip_uri_get_host(chan_uri))) {
-				belle_sip_object_unref(chan_uri);
-				return elem.get();
+			belle_sip_channel_t *c = elem.get();
+			int lp_port = c->lp ? belle_sip_uri_get_port(c->lp->listening_uri) : 0;
+			bool host_matches = (c->local_ip && strcmp(uri_host, c->local_ip) == 0) ||
+			                    (c->public_ip && strcmp(uri_host, c->public_ip) == 0);
+			bool port_matches = (uri_port == c->local_port) || (c->public_port && uri_port == c->public_port) ||
+			                    (lp_port && uri_port == lp_port);
+			if (host_matches && port_matches) {
+				return c;
 			}
-			belle_sip_object_unref(chan_uri);
 		}
 	}
 	return nullptr;

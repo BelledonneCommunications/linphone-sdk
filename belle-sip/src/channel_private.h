@@ -17,8 +17,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BELLE_SIP_CHANNEL_H
-#define BELLE_SIP_CHANNEL_H
+#ifndef BELLE_SIP_CHANNEL_PRIVATE_H
+#define BELLE_SIP_CHANNEL_PRIVATE_H
 
 #ifndef _WIN32
 #include <sys/socket.h>
@@ -26,6 +26,7 @@
 #endif
 
 #include "belle-sip/auth-helper.h"
+#include "belle-sip/channel.h"
 #include "belle-sip/listener.h"
 #include "belle-sip/mainloop.h"
 #include "belle-sip/sipstack.h"
@@ -33,26 +34,6 @@
 #define belle_sip_network_buffer_size 65535
 #define belle_sip_send_network_buffer_size 16384
 #define belle_sip_max_network_data_size_per_iterate 1000000 /* 1Mo */
-
-typedef enum belle_sip_channel_state {
-	BELLE_SIP_CHANNEL_INIT,
-	BELLE_SIP_CHANNEL_RES_IN_PROGRESS,
-	BELLE_SIP_CHANNEL_RES_DONE,
-	BELLE_SIP_CHANNEL_CONNECTING,
-	BELLE_SIP_CHANNEL_RETRY,
-	BELLE_SIP_CHANNEL_READY,
-	BELLE_SIP_CHANNEL_ERROR,
-	BELLE_SIP_CHANNEL_DISCONNECTED
-} belle_sip_channel_state_t;
-
-const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state);
-
-/**
- * belle_sip_channel_t is an object representing a single communication channel ( socket or file descriptor),
- * unlike the belle_sip_listening_point_t that can owns several channels for TCP or TLS (incoming server child sockets
- *or outgoing client sockets).
- **/
-typedef struct belle_sip_channel belle_sip_channel_t;
 
 BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_channel_listener_t)
 void (*on_state_changed)(belle_sip_channel_listener_t *l, belle_sip_channel_t *, belle_sip_channel_state_t state);
@@ -209,8 +190,6 @@ const char *belle_sip_channel_get_public_address(belle_sip_channel_t *obj, int *
  * If the channel is not natted, it will return the listening port of the listening point corresponding to the channel.
  **/
 belle_sip_uri_t *belle_sip_channel_create_routable_uri(belle_sip_channel_t *chan);
-
-#define belle_sip_channel_get_state(chan) ((chan)->state)
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state);
 

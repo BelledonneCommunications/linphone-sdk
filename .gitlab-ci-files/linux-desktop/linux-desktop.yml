@@ -489,7 +489,7 @@
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
-    ADDITIONNAL_OPTIONS: "--suite \"Object inheritance\" --suite \"Object\" --suite \"Core\" --suite \"Generic uri\" --suite \"SIP URI\" --suite \"FAST SIP URI\" --suite \"Headers\" --suite \"SDP\" --suite \"Authentication helper\" --suite \"Refresher failover\""
+    ADDITIONNAL_OPTIONS: "--suite \"Object inheritance\" --suite \"Object\" --suite \"Core\" --suite \"Generic uri\" --suite \"SIP URI\" --suite \"FAST SIP URI\" --suite \"Headers\" --suite \"SDP\" --suite \"Authentication helper\" --suite \"Refresher failover\" --suite \"Provider\""
 
 
 .test-belr:

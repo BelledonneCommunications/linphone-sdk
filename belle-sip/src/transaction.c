@@ -572,7 +572,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 			belle_sip_hop_set_channel_bank_identifier(
 			    t->next_hop, belle_sip_message_get_channel_bank_identifier(BELLE_SIP_MESSAGE(req)));
 		} else {
-			t->next_hop = belle_sip_stack_get_next_hop(prov->stack, t->base.request);
+			t->next_hop = belle_sip_provider_get_next_hop(prov, t->base.request);
 		}
 		belle_sip_object_ref(t->next_hop);
 	} else {

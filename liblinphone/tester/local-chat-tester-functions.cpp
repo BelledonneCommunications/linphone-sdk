@@ -24,6 +24,7 @@
 #include <soci/soci.h>
 #endif // HAVE_SOCI
 
+#include "belle-sip/belle-sip.h"
 #include "chat/chat-message/chat-message-p.h"
 #include "chat/encryption/encryption-engine.h"
 #include "conference/conference.h"
@@ -35,6 +36,7 @@
 #include "linphone/api/c-participant.h"
 #include "linphone/chat.h"
 #include "local-conference-tester-functions.h"
+#include "tester_utils.h"
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4996)
@@ -5395,6 +5397,51 @@ std::string get_migration_sql_query(const std::shared_ptr<Address> &address) {
 	       addressString + std::string("\"");
 }
 
+static bool is_dialog_establishing_request(belle_sip_request_t *req) {
+	const char *method = belle_sip_request_get_method(req);
+	if (!method || (strcmp(method, "INVITE") != 0 && strcmp(method, "SUBSCRIBE") != 0)) {
+		return false;
+	}
+	belle_sip_header_to_t *to = belle_sip_message_get_header_by_type(req, belle_sip_header_to_t);
+	if (!to || belle_sip_header_to_get_tag(to) != nullptr) {
+		return false;
+	}
+	return true;
+}
+
+static void add_record_route_from_channel(belle_sip_request_t *req, belle_sip_channel_t *chan) {
+	if (!chan) return;
+	int port = 0;
+	const char *ip = belle_sip_channel_get_public_address(chan, &port);
+	const char *transport = belle_sip_channel_get_transport_name_lower_case(chan);
+	if (ip) {
+		belle_sip_header_record_route_t *rr = belle_sip_header_record_route_new();
+		belle_sip_uri_t *rr_uri = belle_sip_uri_new();
+		belle_sip_uri_set_host(rr_uri, ip);
+		belle_sip_uri_set_port(rr_uri, port);
+		if (transport) {
+			belle_sip_uri_set_transport_param(rr_uri, transport);
+		}
+		belle_sip_uri_set_lr_param(rr_uri, TRUE);
+		belle_sip_header_address_set_uri(BELLE_SIP_HEADER_ADDRESS(rr), rr_uri);
+		belle_sip_message_add_first(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(rr));
+	}
+}
+
+static void chloe_incoming_request_hook(void *user_ctx, belle_sip_request_t *req, belle_sip_channel_t *chan) {
+	(void)user_ctx;
+	if (is_dialog_establishing_request(req)) {
+		add_record_route_from_channel(req, chan);
+	}
+}
+
+static void chloe_outgoing_request_hook(void *user_ctx, belle_sip_request_t *req, belle_sip_channel_t *chan) {
+	(void)user_ctx;
+	if (is_dialog_establishing_request(req)) {
+		add_record_route_from_channel(req, chan);
+	}
+}
+
 // Test the following:
 // - migration of a chatroom with 3 members
 // - addition of a participant after migration
@@ -5407,6 +5454,9 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 	ChatRoomMigrationMethod method = params.migration_method;
 
 	Focus focus("chloe_rc");
+	sal_enable_proxy_mode(linphone_core_get_sal(focus.getLc()), TRUE);
+	sal_set_request_hooks(linphone_core_get_sal(focus.getLc()), chloe_incoming_request_hook,
+	                      chloe_outgoing_request_hook, &focus);
 	{ // to make sure focus is destroyed after clients.
 
 		const LinphoneTesterLimeAlgo lime_algo = encrypted ? C25519 : UNSET;
@@ -5544,6 +5594,9 @@ void legacy_chat_room_migration_base(ChatRoomMigrationParams const &params) {
 			}
 			ms_message("%s configures and starts again its core", linphone_core_get_identity(focus.getLc()));
 			focus.configureFocus();
+			sal_enable_proxy_mode(linphone_core_get_sal(focus.getLc()), TRUE);
+			sal_set_request_hooks(linphone_core_get_sal(focus.getLc()), chloe_incoming_request_hook,
+			                      chloe_outgoing_request_hook, &focus);
 			linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
 			if (method == ChatRoomMigrationMethod::AllChatroomsAtStartup) {
 				BC_ASSERT_TRUE(linphone_core_chat_room_address_unification_enabled(focus.getLc()));

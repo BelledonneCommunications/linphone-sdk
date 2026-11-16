@@ -495,11 +495,38 @@ Sal::~Sal() {
 	for (auto &[callId, op] : mOpByCallId) {
 		op->resetSal();
 	}
+	if (mRequestHooksListener) {
+		belle_sip_provider_remove_sip_listener(mProvider, mRequestHooksListener);
+		belle_sip_object_unref(mRequestHooksListener);
+		mRequestHooksListener = nullptr;
+	}
 	belle_sip_object_unref(mUserAgentHeader);
 	belle_sip_object_unref(mProvider);
 	belle_sip_object_unref(mStack);
 	belle_sip_object_unref(mListener);
 	if (mSupportedHeader) belle_sip_object_unref(mSupportedHeader);
+}
+
+void Sal::setRequestHooks(RequestHookCb incomingHook, RequestHookCb outgoingHook, void *userCtx) {
+	if (mRequestHooksListener) {
+		belle_sip_provider_remove_sip_listener(mProvider, mRequestHooksListener);
+		belle_sip_object_unref(mRequestHooksListener);
+		mRequestHooksListener = nullptr;
+	}
+	if (incomingHook || outgoingHook) {
+		belle_sip_listener_callbacks_t cbs = {0};
+		cbs.incoming_request_hook = incomingHook;
+		cbs.outgoing_request_hook = outgoingHook;
+		mRequestHooksListener = belle_sip_listener_create_from_callbacks(&cbs, userCtx);
+		belle_sip_provider_add_sip_listener(mProvider, mRequestHooksListener);
+		belle_sip_provider_enable_request_hooks(mProvider, TRUE);
+	} else {
+		belle_sip_provider_enable_request_hooks(mProvider, FALSE);
+	}
+}
+
+void Sal::enableProxyMode(bool enable) {
+	belle_sip_provider_enable_proxy_mode(mProvider, enable ? TRUE : FALSE);
 }
 
 void Sal::setCallbacks(const Callbacks *cbs) {

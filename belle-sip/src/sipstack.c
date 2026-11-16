@@ -354,23 +354,6 @@ void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds) 
 	belle_sip_main_loop_sleep(stack->ml, milliseconds);
 }
 
-belle_sip_hop_t *belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req) {
-	belle_sip_header_route_t *route =
-	    BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), "route"));
-	belle_sip_uri_t *uri;
-	belle_sip_hop_t *hop;
-
-	if (route != NULL) {
-		uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(route));
-	} else {
-		uri = belle_sip_request_get_uri(req);
-	}
-	hop = belle_sip_hop_new_from_uri(uri);
-	belle_sip_hop_set_channel_bank_identifier(hop,
-	                                          belle_sip_message_get_channel_bank_identifier(BELLE_SIP_MESSAGE(req)));
-	return hop;
-}
-
 void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms) {
 	stack->tx_delay = delay_ms;
 }

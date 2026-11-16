@@ -18,7 +18,7 @@
  */
 
 #include "belle_sip_internal.h"
-#include "channel.h"
+#include "channel_private.h"
 
 #define TUNNEL_POLLING_DURATION 20 /* in ms */
 
