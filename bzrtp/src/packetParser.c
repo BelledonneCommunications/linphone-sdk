@@ -186,9 +186,13 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
 
 		/* Reject any fragment whose write window escapes the allocation that
 		 * was (or will be) sized from messageTotalLength. */
-		if (messageTotalLength == 0 ||
-		    (uint32_t)4u * offset + ((uint32_t)*inputLength - ZRTP_FRAGMENTEDPACKET_OVERHEAD) >
-		        (uint32_t)messageTotalLength * 4u) {
+		/* The fragment must carry exactly fragmentLength words and fit inside the announced message */
+		if (*inputLength < ZRTP_FRAGMENTEDPACKET_OVERHEAD
+			|| messageTotalLength == 0
+			|| fragmentLength == 0
+			|| (uint32_t)fragmentLength*4 != (uint32_t)(*inputLength - ZRTP_FRAGMENTEDPACKET_OVERHEAD)
+			|| (uint32_t)offset + fragmentLength > messageTotalLength) {
+
 			*exitCode = BZRTP_PARSER_ERROR_INVALIDPACKET;
 			return NULL;
 		}
@@ -198,29 +202,40 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
 			*exitCode = BZRTP_PARSER_ERROR_OUTOFORDER;
 			return NULL;
 		}
-		if (storedMessageId < messageId) { /* We had old fragments but this is a new message.
-			Discard the old one and start collecting new */
+
+		/* get the SSRC */
+		uint32_t sourceIdentifier = ((((uint32_t)input[8])<<24)&0xFF000000) | ((((uint32_t)input[9])<<16)&0x00FF0000) | ((((uint32_t)input[10])<<8)&0x0000FF00) | (((uint32_t)input[11])&0x000000FF);
+
+		// when the incomming fragment is a part of a message already allocated, check all its informations match
+		if (storedMessageId == messageId && zrtpChannelContext->incomingFragmentedPacket.packetString != NULL && zrtpChannelContext->incomingFragmentedPacket.fragments != NULL) {
+			if ((messageTotalLength != zrtpChannelContext->incomingFragmentedPacket.messageLength) /* same message, different size: cannot be trusted */
+				|| sourceIdentifier != zrtpChannelContext->incomingFragmentedPacket.sourceIdentifier) { /* same message, different SSRC: something is fishy */
+			
+				*exitCode = BZRTP_PARSER_ERROR_INVALIDPACKET;
+				return NULL;
+			}
+		}
+
+		if (storedMessageId < messageId /* we had old fragments */
+				|| zrtpChannelContext->incomingFragmentedPacket.packetString == NULL /* we never had any message */
+				|| zrtpChannelContext->incomingFragmentedPacket.fragments == NULL) { /* we have no current message */
+			/* Discard the old one(if any) and start collecting new fragments */
 			bctbx_list_free_with_data(zrtpChannelContext->incomingFragmentedPacket.fragments, bctbx_free);
 			zrtpChannelContext->incomingFragmentedPacket.fragments = NULL;
 			bctbx_free(zrtpChannelContext->incomingFragmentedPacket.packetString);
 			// allocate the packet string: packetHeader + messageLength (convert in bytes) + CRC
-			zrtpChannelContext->incomingFragmentedPacket.packetString = (uint8_t *)bctbx_malloc(ZRTP_PACKET_OVERHEAD + messageTotalLength*4);
+			zrtpChannelContext->incomingFragmentedPacket.packetString = (uint8_t *)bctbx_malloc0(ZRTP_PACKET_OVERHEAD + messageTotalLength*4);
+			/* the reassembled packet keeps this packet's header (sequence number, magic cookie, SSRC), unfragmented */
+			memcpy(zrtpChannelContext->incomingFragmentedPacket.packetString, input, ZRTP_PACKET_HEADER_LENGTH);
+			zrtpChannelContext->incomingFragmentedPacket.packetString[0] = 0x10;
 			storedMessageId = messageId; // This will trigger the insertion of this fragment in current packet
 			zrtpChannelContext->incomingFragmentedPacket.messageId = messageId;
 			zrtpChannelContext->incomingFragmentedPacket.messageLength = messageTotalLength;
-		}
-
-		bool_t fragmentInserted = FALSE;
-		/* SECURITY: a fragment for the current message id can arrive before the
-		 * allocation branch above has run (e.g. the very first fragment carries
-		 * messageId == the initial stored id 0), leaving packetString NULL.
-		 * Guard the destination buffer before the memcpy() calls below. */
-		if (zrtpChannelContext->incomingFragmentedPacket.packetString == NULL) {
-			*exitCode = BZRTP_PARSER_ERROR_INVALIDPACKET;
-			return NULL;
+			zrtpChannelContext->incomingFragmentedPacket.sourceIdentifier = sourceIdentifier;
 		}
 
 		if (storedMessageId == messageId) { /* This is a fragment of the message we are re-assembling */
+			bool_t fragmentInserted = FALSE;
 			bctbx_list_t *fragment = zrtpChannelContext->incomingFragmentedPacket.fragments;
 			while (fragment != NULL && fragmentInserted == FALSE) {
 				fragmentInfo_t *fragInfo = (fragmentInfo_t *)bctbx_list_get_data(fragment);
@@ -233,8 +248,9 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
 					memcpy(zrtpChannelContext->incomingFragmentedPacket.packetString+ZRTP_PACKET_HEADER_LENGTH+4*offset, input+ZRTP_FRAGMENTEDPACKET_HEADER_LENGTH,*inputLength-ZRTP_FRAGMENTEDPACKET_OVERHEAD);
 					fragmentInserted = TRUE;
 				}
-				if (offset == fragInfo->offset) { /* we already have that fragment, do nothing */
-					fragmentInserted = TRUE;
+				if (offset == fragInfo->offset) { /* we already have that fragment, nothing to do */
+					*exitCode = BZRTP_PARSER_INFO_PACKETFRAGMENT;
+					return NULL;
 				}
 				fragment = fragment->next;
 			}
@@ -249,9 +265,12 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
 
 		/* Do we have a complete packet now? Compute the total length already received */
 		bctbx_list_t *fragment = zrtpChannelContext->incomingFragmentedPacket.fragments;
-		uint16_t receivedLength = 0;
+		uint32_t receivedLength = 0;
 		while (fragment != NULL) {
 			fragmentInfo_t *fragInfo = (fragmentInfo_t *)bctbx_list_get_data(fragment);
+			if (fragInfo->offset != receivedLength) { // make sure we have no overlap and no gap
+				break;
+			}
 			receivedLength += fragInfo->length;
 			fragment=fragment->next;
 		}
@@ -262,6 +281,7 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
 			bctbx_list_free_with_data(zrtpChannelContext->incomingFragmentedPacket.fragments, bctbx_free);
 			zrtpChannelContext->incomingFragmentedPacket.fragments = NULL;
 			zrtpChannelContext->incomingFragmentedPacket.messageId = 0;
+			zrtpChannelContext->incomingFragmentedPacket.sourceIdentifier = 0;
 		} else {
 			*exitCode = BZRTP_PARSER_INFO_PACKETFRAGMENT;
 			return NULL;
