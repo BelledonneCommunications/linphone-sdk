@@ -38,7 +38,7 @@ static const int default_dtmf_duration_ms = 100; /*in milliseconds*/
 struct SenderData {
 	RtpSession *session;
 	MSBoxPlot processing_delay_stats;
-	uint64_t ticker_offset;
+	int64_t ticker_offset;
 	uint32_t tsoff;
 	uint32_t last_ts;
 	int64_t last_sent_time;
@@ -128,6 +128,7 @@ static void sender_init(MSFilter *f) {
 #endif
 
 	d->session = NULL;
+	d->ticker_offset = 0;
 	d->tsoff = 0;
 	d->skip_until = 0;
 	d->skip = FALSE;
@@ -782,8 +783,11 @@ static int sender_set_voice_activity(MSFilter *f, void *data) {
 
 static int sender_set_ticker_offset(MSFilter *f, void *data) {
 	SenderData *d = (SenderData *)f->data;
-	d->ticker_offset = *(int64_t *)data;
-	d->last_sent_time = -1;
+	int64_t new_offset = *(int64_t *)data;
+	if (d->last_sent_time != -1) {
+		d->last_sent_time += (new_offset - d->ticker_offset);
+	}
+	d->ticker_offset = new_offset;
 	return 0;
 }
 
@@ -849,6 +853,7 @@ MSFilterDesc ms_rtp_send_desc = {.id = MS_RTP_SEND_ID,
 
 struct ReceiverData {
 	RtpSession *session;
+	int64_t ticker_offset;
 	int current_pt;
 	int rate;
 	bool_t starting;
@@ -866,6 +871,7 @@ typedef struct ReceiverData ReceiverData;
 static void receiver_init(MSFilter *f) {
 	ReceiverData *d = (ReceiverData *)ms_new0(ReceiverData, 1);
 	d->session = NULL;
+	d->ticker_offset = 0;
 	d->rate = 8000;
 	d->mixer_to_client_extension_id = 0;
 	d->client_to_mixer_extension_id = 0;
@@ -1078,7 +1084,8 @@ static void receiver_process(MSFilter *f) {
 		d->starting = FALSE;
 	}
 
-	timestamp = (uint32_t)(f->ticker->time * (d->rate / 1000));
+	int64_t adjusted_time = (int64_t)f->ticker->time - d->ticker_offset;
+	timestamp = (uint32_t)((adjusted_time * (int64_t)d->rate) / (int64_t)1000);
 	while ((m = rtp_session_recvm_with_ts(d->session, timestamp)) != NULL) {
 		if (d->rtp_transfer_mode) {
 			ms_queue_put(f->outputs[0], m);
@@ -1131,6 +1138,12 @@ static int receiver_enable_csrc_events(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int receiver_set_ticker_offset(MSFilter *f, void *data) {
+	ReceiverData *d = (ReceiverData *)f->data;
+	d->ticker_offset = *(int64_t *)data;
+	return 0;
+}
+
 static MSFilterMethod receiver_methods[] = {
     {MS_RTP_RECV_SET_SESSION, receiver_set_session},
     {MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer},
@@ -1139,6 +1152,7 @@ static MSFilterMethod receiver_methods[] = {
     {MS_RTP_RECV_SET_FRAME_MARKING_EXTENSION_ID, receiver_set_frame_marking_extension_id},
     {MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, receiver_enable_rtp_transfer_mode},
     {MS_RTP_RECV_ENABLE_CSRC_EVENTS, receiver_enable_csrc_events},
+    {MS_RTP_RECV_SET_TICKER_OFFSET, receiver_set_ticker_offset},
     {MS_FILTER_GET_SAMPLE_RATE, receiver_get_sr},
     {MS_FILTER_GET_NCHANNELS, receiver_get_ch},
     {MS_FILTER_GET_OUTPUT_FMT, get_receiver_output_fmt},

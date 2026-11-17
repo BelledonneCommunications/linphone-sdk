@@ -2772,14 +2772,14 @@ void video_stream_enable_display_filter_auto_rotate(VideoStream *stream, bool_t 
 }
 
 bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *stream, uint32_t ms) {
-	if (((stream->ms.sessions.ticker->time - stream->last_reported_decoding_error_time) > ms) ||
+	if (((ms_ticker_get_time(stream->ms.sessions.ticker) - stream->last_reported_decoding_error_time) > ms) ||
 	    (stream->last_reported_decoding_error_time == 0))
 		return TRUE;
 	else return FALSE;
 }
 
 void video_stream_decoding_error_reported(VideoStream *stream) {
-	stream->last_reported_decoding_error_time = stream->ms.sessions.ticker->time;
+	stream->last_reported_decoding_error_time = ms_ticker_get_time(stream->ms.sessions.ticker);
 }
 
 void video_stream_decoding_error_recovered(VideoStream *stream) {

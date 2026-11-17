@@ -7199,6 +7199,18 @@ static void remove_participant_from_video_conference_grid_layout(void) {
 	remove_participant_from_video_conference_base(LinphoneConferenceLayoutGrid);
 }
 
+static void check_call_jitter_buffer_size(LinphoneCall *call, const char *participant_name, float max_jb_size) {
+	LinphoneCallStats *stats = linphone_call_get_audio_stats(call);
+	BC_ASSERT_PTR_NOT_NULL(stats);
+	if (stats) {
+		float jb_size = linphone_call_stats_get_jitter_buffer_size_ms(stats);
+		ms_message("%s jitter buffer size: %f ms", participant_name, jb_size);
+		BC_ASSERT_GREATER(jb_size, 0.0f, float, "%f");
+		BC_ASSERT_LOWER(jb_size, max_jb_size, float, "%f");
+		linphone_call_stats_unref(stats);
+	}
+}
+
 static void conference_created_by_merging_video_calls_base(bool_t event_package_enabled,
                                                            bool_t enable_video,
                                                            const LinphoneConferenceLayout layout,
@@ -7207,6 +7219,7 @@ static void conference_created_by_merging_video_calls_base(bool_t event_package_
                                                            bool_t participants_exit_conference) {
 	LinphoneCoreManager *marie = create_mgr_for_conference("marie_rc", TRUE, NULL);
 	linphone_core_enable_conference_server(marie->lc, TRUE);
+	linphone_core_set_use_files(marie->lc, TRUE);
 	LinphoneCoreManager *pauline = create_mgr_for_conference("pauline_tcp_rc", TRUE, NULL);
 	LinphoneCoreManager *laure =
 	    create_mgr_for_conference(liblinphone_tester_ipv6_available() ? "laure_tcp_rc" : "laure_rc_udp", TRUE, NULL);
@@ -7338,6 +7351,15 @@ static void conference_created_by_merging_video_calls_base(bool_t event_package_
 		check_ice(marie, laure, LinphoneIceStateHostConnection);
 	}
 
+	/*
+	 * Let the calls run established for several seconds before merging them into a conference.
+	 * This ensures that the AudioStream graphs and their respective MSTickers are running and have advanced,
+	 * creating a significant time origin discrepancy with the conference MSTicker that will be created next.
+	 * This difference in time origins is what tests the ticker offset compensation (MS_RTP_SEND_SET_TICKER_OFFSET
+	 * and MS_RTP_RECV_SET_TICKER_OFFSET).
+	 */
+	wait_for_list(lcs, NULL, 0, 5000);
+
 	const char *subject = "Weekly team meeting";
 	conf_params = linphone_core_create_conference_params_2(marie->lc, NULL);
 	linphone_conference_params_set_subject(conf_params, subject);
@@ -7394,7 +7416,24 @@ static void conference_created_by_merging_video_calls_base(bool_t event_package_
 	negotiated_call_params = linphone_call_get_current_params(michelle_called_by_marie);
 	BC_ASSERT_TRUE(linphone_call_params_video_enabled(negotiated_call_params) == enable_video);
 
+	/*
+	 * Wait a couple seconds after adding the calls to the conference so that RTP media streams run
+	 * under the conference MSTicker and RTCP statistics are updated.
+	 *
+	 * When calls are merged into a conference, their AudioStream graphs switch from their call-specific MSTicker
+	 * to the conference MSTicker. Because the two tickers have different time origins, MSRtpSend and MSRtpRecv
+	 * must compensate for this ticker offset (via MS_RTP_SEND_SET_TICKER_OFFSET and MS_RTP_RECV_SET_TICKER_OFFSET).
+	 * If compensation is missing or erroneous:
+	 * - on receiver side (e.g. marie_call_michelle): rtp_session_recvm_with_ts() receives jumped timestamps,
+	 *   causing the jitter buffer size to skyrocket (latency in reception for the conference host).
+	 * - on sender side (e.g. michelle_called_by_marie, pauline_called_by_marie): emitted RTP timestamps jump by
+	 *   several seconds, causing the remote endpoints to discard packets as too old and bloat their jitter buffer.
+	 * We assert here that jitter buffer sizes remain nominal (< 100 ms) in all directions.
+	 */
 	wait_for_list(lcs, NULL, 0, 2000);
+	check_call_jitter_buffer_size(marie_call_michelle, "marie_call_michelle", 100.0f);
+	check_call_jitter_buffer_size(michelle_called_by_marie, "michelle_called_by_marie", 100.0f);
+	check_call_jitter_buffer_size(pauline_called_by_marie, "pauline_called_by_marie", 100.0f);
 	bool_t event_log_enabled =
 	    linphone_config_get_bool(linphone_core_get_config(marie->lc), "misc", "conference_event_log_enabled", TRUE);
 	if (linphone_conference_params_video_enabled(current_conf_params) && event_log_enabled) {

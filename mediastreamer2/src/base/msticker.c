@@ -604,6 +604,10 @@ float ms_ticker_get_average_load(MSTicker *ticker) {
 	return (float)ticker->av_load;
 }
 
+uint64_t ms_ticker_get_time(const MSTicker *ticker) {
+	return ticker->time;
+}
+
 void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev) {
 	bool_t need_lock = ms_thread_self() != ticker->thread_id;
 	if (need_lock) ms_mutex_lock(&ticker->lock);
