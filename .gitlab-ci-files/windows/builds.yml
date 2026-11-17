@@ -10,7 +10,6 @@
     BUILD_DIR: build/win
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     CMAKE_PRESET: windows-sdk
-    OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
   script:
     - If ( Test-Path -Path "build" ) {Remove-Item -recurse -force -path "build" }
@@ -167,7 +166,6 @@
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     CMAKE_PRESET: windows-sdk
-    OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
     PARALLEL_OPTIONS: "-- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false"
     EXITS_ON_ERROR_MSVC: 'if (-not ($$LastExitCode -eq 0)) {throw "Error: Build failed"}'
@@ -223,7 +221,6 @@
     CMAKE_RC_COMPILER : rc.exe
     CMAKE_PRESET: windows-ninja-64bits
     MINGW_TYPE: mingw64
-    OUTPUT_ZIP_FOLDER: win64
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
     CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
@@ -264,7 +261,6 @@ vs2022-ninja-win64-windows-smallsdk :
     - .vs-ninja-win64-windows
     - .smallsdk-cmake-options
   variables:
-    OUTPUT_ZIP_FOLDER: win64-smallsdk
     PARALLEL_OPTIONS: --verbose
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -350,7 +346,6 @@ vs2017-ninja-win32-windows:
     BUILD_DIR: build/uwp
     CMAKE_PRESET: uwp-sdk
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF
-    OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
 
 
@@ -383,7 +378,6 @@ vs2022-windows-java:
   extends: .windows-vs2022-msvc
   variables:
     CMAKE_PRESET: java-sdk-windows
-    OUTPUT_ZIP_FOLDER: java
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=OFF -DENABLE_JAVA_WRAPPER_TESTER=ON
     PARALLEL_OPTIONS: --verbose
   rules:
@@ -459,7 +453,6 @@ vs2017-uwp-scheduled-windows-pqc:
   variables:
     CMAKE_PRESET: windows-sdk
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON
-    OUTPUT_ZIP_FOLDER: win32
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
@@ -524,7 +517,6 @@ vs2017-win3264-scheduled-windows-pqc:
     BUILD_DIR: build/winstore
     CMAKE_PRESET: windows-store-sdk
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON
-    OUTPUT_ZIP_FOLDER: win32store
 
 vs2022-win64store-scheduled-windows:
   extends:

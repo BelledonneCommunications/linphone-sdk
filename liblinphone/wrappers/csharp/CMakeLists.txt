@@ -156,4 +156,10 @@ if(ENABLE_DOC OR ENABLE_CSHARP_WRAPPER)
 					DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/liblinphone-${LINPHONE_VERSION}")
 		endif()
 	endif()
+	configure_file(
+		"${CMAKE_CURRENT_SOURCE_DIR}/version.txt.in"
+		"${CMAKE_CURRENT_BINARY_DIR}/version.txt")
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/version.txt"
+		DESTINATION "${CMAKE_INSTALL_DATADIR}/")
+
 endif()
