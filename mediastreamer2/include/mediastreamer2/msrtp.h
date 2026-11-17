@@ -58,6 +58,13 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 
 #define MS_RTP_RECV_SET_FRAME_MARKING_EXTENSION_ID MS_FILTER_METHOD(MS_RTP_RECV_ID, 6, int)
 
+/*
+ * Used to inform a MSRtpRecv filter what its previous ticker "time" value was,
+ * in case it is moved from one ticker to another.
+ * This avoids timestamp jumps in rtp_session_recvm_with_ts.
+ */
+#define MS_RTP_RECV_SET_TICKER_OFFSET MS_FILTER_METHOD(MS_RTP_RECV_ID, 7, int64_t)
+
 #define MS_RTP_RECV_GENERIC_CN_RECEIVED MS_FILTER_EVENT(MS_RTP_RECV_ID, 0, MSCngData)
 
 #define MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED                                                               \
@@ -119,7 +126,7 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
  * in case it is moved from one ticker to another.
  * This avoids small undetected timestamp jumps, when the time offset are small.
  */
-#define MS_RTP_SEND_SET_TICKER_OFFSET MS_FILTER_METHOD(MS_RTP_SEND_ID, 20, uint64_t)
+#define MS_RTP_SEND_SET_TICKER_OFFSET MS_FILTER_METHOD(MS_RTP_SEND_ID, 20, int64_t)
 
 #ifdef __cplusplus
 extern "C" {

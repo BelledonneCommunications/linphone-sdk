@@ -181,12 +181,20 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote) {
 
 static void redo_audio_stream_graph(MSAudioEndpoint *ep) {
 	AudioStream *st = ep->st;
+	int64_t zero_offset = 0;
 
 	if (ep->conf_mode == MSConferenceModeRouterFullPacket) {
 		bool_t enable = FALSE;
 		ms_filter_call_method(st->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
 		ms_filter_call_method(st->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
 		rtp_session_enable_transfer_mode(st->ms.sessions.rtp_session, FALSE);
+	}
+
+	if (st->ms.rtpsend) {
+		ms_filter_call_method(st->ms.rtpsend, MS_RTP_SEND_SET_TICKER_OFFSET, &zero_offset);
+	}
+	if (st->ms.rtprecv) {
+		ms_filter_call_method(st->ms.rtprecv, MS_RTP_RECV_SET_TICKER_OFFSET, &zero_offset);
 	}
 
 	ms_filter_link(ep->in_cut_point_prev.filter, ep->in_cut_point_prev.pin, ep->in_cut_point.filter,
@@ -323,12 +331,18 @@ static void unconfigure_output(MSAudioEndpoint *ep) {
 
 /*
  * The AudioStream's own MSTicker and the MSAudioConference MSTicker have different time origin.
- * Inform the MSRtpSend filter, because it uses the MSTicker's time information to calculate timestamps.
+ * Inform the MSRtpSend and MSRtpRecv filters, because they use the MSTicker's time information to calculate timestamps.
  */
 static void compensate_ticker_offset(MSAudioConference *obj, MSAudioEndpoint *ep) {
 	if (ep->is_remote && ep->st->ms.sessions.rtp_session && ep->st->ms.sessions.ticker) {
-		int64_t ticker_offset = obj->ticker->time - ep->st->ms.sessions.ticker->time;
-		ms_filter_call_method(ep->st->ms.rtpsend, MS_RTP_SEND_SET_TICKER_OFFSET, &ticker_offset);
+		int64_t ticker_offset =
+		    (int64_t)ms_ticker_get_time(obj->ticker) - (int64_t)ms_ticker_get_time(ep->st->ms.sessions.ticker);
+		if (ep->st->ms.rtpsend) {
+			ms_filter_call_method(ep->st->ms.rtpsend, MS_RTP_SEND_SET_TICKER_OFFSET, &ticker_offset);
+		}
+		if (ep->st->ms.rtprecv) {
+			ms_filter_call_method(ep->st->ms.rtprecv, MS_RTP_RECV_SET_TICKER_OFFSET, &ticker_offset);
+		}
 	}
 }
 

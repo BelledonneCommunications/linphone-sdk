@@ -250,6 +250,15 @@ MS2_PUBLIC float ms_ticker_get_average_load(MSTicker *ticker);
 MS2_PUBLIC void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev);
 
 /**
+ * Get the current time of the ticker in milliseconds since its start.
+ *
+ * @param ticker A #MSTicker object.
+ *
+ * Returns: The ticker time in milliseconds.
+ **/
+MS2_PUBLIC uint64_t ms_ticker_get_time(const MSTicker *ticker);
+
+/**
  * Round a time in milliseconds to the internal ticker interval.
  * @param[in] ms The time in milliseconds to round
  * @return The rounded time in milliseconds

@@ -45,6 +45,7 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
   * Retry sending of TURN messages if the maximum number of retransmissions has been reached without response from the server.
     Also increase the time between each retransmission.
 - Fixed refresher connection loss detection after a successful registration.
+- Compensate ticker offset on MSRtpRecv, typically when merging calls to a local conference.
 - Memory leak fixes.
 
 ## [5.5.35] 2026-10-19
