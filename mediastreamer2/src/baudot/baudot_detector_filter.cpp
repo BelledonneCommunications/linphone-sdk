@@ -89,6 +89,8 @@ public:
 				// Mute the output
 				size_t s = msgdsize(m);
 				mblk_t *silenceM = allocb(s, 0);
+				memset(silenceM->b_wptr, 0, s);
+				silenceM->b_wptr += s;
 				ms_queue_put(f->outputs[0], silenceM);
 				ms_bufferizer_put(mBufferizer, m);
 			} else {

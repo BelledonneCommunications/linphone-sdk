@@ -566,7 +566,7 @@ MSFilterDesc ms_volume_desc = {MS_VOLUME_ID,
 MS_FILTER_DESC_EXPORT(ms_volume_desc)
 
 float ms_volume_linear_to_dbm0(float linear) {
-	if (linear == 0) return MS_VOLUME_DB_LOWEST;
+	if (linear <= 0 || isnan(linear)) return MS_VOLUME_DB_LOWEST;
 	return 10 * ortp_log10f(linear);
 }
 

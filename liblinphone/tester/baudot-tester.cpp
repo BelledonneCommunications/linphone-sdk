@@ -20,6 +20,8 @@
 
 #include <cctype>
 #include <cstring>
+#include <functional>
+#include <vector>
 
 #include "liblinphone_tester.h"
 #include "tester_utils.h"
@@ -232,93 +234,6 @@ static void baudot_call_state_changed_cb(LinphoneCore *lc,
 	}
 }
 
-static bool_t wait_for_voice_received(bctbx_list_t *lcs, LinphoneCall *receiver_call, int timeout_ms) {
-	const float silence_threshold = -20.0f;
-	int have_sound_count = 0;
-	MSTimeSpec start;
-
-	liblinphone_tester_clock_start(&start);
-	while (have_sound_count < 2 && !liblinphone_tester_clock_elapsed(&start, timeout_ms)) {
-		float play_level = linphone_call_get_play_volume(receiver_call);
-		if (play_level > silence_threshold) {
-			++have_sound_count;
-		} else {
-			have_sound_count = 0;
-		}
-		wait_for_list(lcs, NULL, 0, 50);
-	}
-	return have_sound_count >= 2;
-}
-
-static bool_t wait_for_silence_received(bctbx_list_t *lcs, LinphoneCall *receiver_call, int timeout_ms) {
-	const float silence_threshold = -20.0f;
-	int silence_count = 0;
-	MSTimeSpec start;
-
-	liblinphone_tester_clock_start(&start);
-	while (silence_count < 2 && !liblinphone_tester_clock_elapsed(&start, timeout_ms)) {
-		float play_level = linphone_call_get_play_volume(receiver_call);
-		if (play_level <= silence_threshold) {
-			++silence_count;
-		} else {
-			silence_count = 0;
-		}
-		wait_for_list(lcs, NULL, 0, 50);
-	}
-	return silence_count >= 2;
-}
-
-static bool_t wait_for_conf_voice_received(bctbx_list_t *lcs, LinphoneConference *conf, int timeout_ms) {
-	const float silence_threshold = -20.0f;
-	int have_sound_count = 0;
-	MSTimeSpec start;
-
-	liblinphone_tester_clock_start(&start);
-	while (have_sound_count < 2 && !liblinphone_tester_clock_elapsed(&start, timeout_ms)) {
-		float play_level = linphone_conference_get_play_volume(conf);
-		if (play_level > silence_threshold) {
-			++have_sound_count;
-		} else {
-			have_sound_count = 0;
-		}
-		wait_for_list(lcs, NULL, 0, 50);
-	}
-	return have_sound_count >= 2;
-}
-
-static bool_t wait_for_conf_silence_received(bctbx_list_t *lcs, LinphoneConference *conf, int timeout_ms) {
-	const float silence_threshold = -20.0f;
-	int silence_count = 0;
-	MSTimeSpec start;
-
-	liblinphone_tester_clock_start(&start);
-	while (silence_count < 2 && !liblinphone_tester_clock_elapsed(&start, timeout_ms)) {
-		float play_level = linphone_conference_get_play_volume(conf);
-		if (play_level <= silence_threshold) {
-			++silence_count;
-		} else {
-			silence_count = 0;
-		}
-		wait_for_list(lcs, NULL, 0, 50);
-	}
-	return silence_count >= 2;
-}
-
-static bool_t check_no_voice_received(bctbx_list_t *lcs, LinphoneCall *receiver_call, int duration_ms) {
-	const float silence_threshold = -20.0f;
-	MSTimeSpec start;
-
-	liblinphone_tester_clock_start(&start);
-	while (!liblinphone_tester_clock_elapsed(&start, duration_ms)) {
-		float play_level = linphone_call_get_play_volume(receiver_call);
-		if (play_level > silence_threshold) {
-			return FALSE;
-		}
-		wait_for_list(lcs, NULL, 0, 50);
-	}
-	return TRUE;
-}
-
 static bool_t baudot_mode_can_hear(LinphoneBaudotMode mode) {
 	return mode == LinphoneBaudotModeVoice || mode == LinphoneBaudotModeHearingCarryOver;
 }
@@ -332,9 +247,19 @@ static bool_t baudot_mode_can_speak(LinphoneBaudotMode mode) {
  * or a LinphoneConference) and asserts whether each receiver (call1, call2, and/or conf_receiver)
  * correctly detects voice (playback volume above silence threshold) or remains in silence, depending
  * on the expected Baudot modes (TTY, HCO, VCO, Voice).
+ * All active receivers are sampled concurrently while the file is playing to prevent timeouts.
  * Once playback is stopped, it also verifies that audio levels return to silence on receiving ends
  * before proceeding, preventing audio leakage into subsequent test steps.
  */
+struct VoiceReceiver {
+	std::function<float()> get_volume;
+	bool_t expect_voice = FALSE;
+	int voice_streak = 0;
+	bool_t voice_detected = FALSE;
+	bool_t unexpected_voice = FALSE;
+	int silence_count = 0;
+};
+
 static void play_voice_and_check_reception(bctbx_list_t *lcs,
                                            LinphonePlayer *speaker_player,
                                            const char *voice_file,
@@ -349,36 +274,95 @@ static void play_voice_and_check_reception(bctbx_list_t *lcs,
 	BC_ASSERT_EQUAL(open_status, 0, int, "%d");
 	if (open_status != 0) return;
 
+	std::vector<VoiceReceiver> receivers;
+	if (call1) receivers.push_back({[call1]() { return linphone_call_get_play_volume(call1); }, expect_voice1});
+	if (call2) receivers.push_back({[call2]() { return linphone_call_get_play_volume(call2); }, expect_voice2});
+	if (conf_receiver)
+		receivers.push_back(
+		    {[conf_receiver]() { return linphone_conference_get_play_volume(conf_receiver); }, expect_conf_voice});
+
+	const float silence_threshold = -20.0f;
 	LinphoneStatus start_status = linphone_player_start(speaker_player);
 	BC_ASSERT_EQUAL(start_status, 0, int, "%d");
 	if (start_status == 0) {
-		if (call1) {
-			if (expect_voice1) {
-				BC_ASSERT_TRUE(wait_for_voice_received(lcs, call1, 3000));
-			} else {
-				BC_ASSERT_TRUE(check_no_voice_received(lcs, call1, 1500));
+		MSTimeSpec start;
+		liblinphone_tester_clock_start(&start);
+
+		while (!liblinphone_tester_clock_elapsed(&start, 5000)) {
+			bool_t all_expected_done = TRUE;
+
+			for (auto &r : receivers) {
+				float lvl = r.get_volume();
+				if (r.expect_voice) {
+					if (lvl > silence_threshold) {
+						r.voice_streak++;
+						if (r.voice_streak >= 2) r.voice_detected = TRUE;
+					} else {
+						r.voice_streak = 0;
+					}
+					if (!r.voice_detected) all_expected_done = FALSE;
+				} else {
+					if (lvl > silence_threshold) r.unexpected_voice = TRUE;
+				}
 			}
-		}
-		if (call2) {
-			if (expect_voice2) {
-				BC_ASSERT_TRUE(wait_for_voice_received(lcs, call2, 3000));
-			} else {
-				BC_ASSERT_TRUE(check_no_voice_received(lcs, call2, 1500));
+
+			bool_t min_silence_duration_passed = liblinphone_tester_clock_elapsed(&start, 1500);
+			bool_t has_silence_checks = FALSE;
+			for (const auto &r : receivers) {
+				if (!r.expect_voice) {
+					has_silence_checks = TRUE;
+					break;
+				}
 			}
+
+			if (all_expected_done && (!has_silence_checks || min_silence_duration_passed)) {
+				break;
+			}
+
+			wait_for_list(lcs, NULL, 0, 50);
 		}
-		if (conf_receiver && expect_conf_voice) {
-			BC_ASSERT_TRUE(wait_for_conf_voice_received(lcs, conf_receiver, 3000));
+
+		for (const auto &r : receivers) {
+			if (r.expect_voice) {
+				BC_ASSERT_TRUE(r.voice_detected);
+			} else {
+				BC_ASSERT_FALSE(r.unexpected_voice);
+			}
 		}
 	}
 	linphone_player_close(speaker_player);
-	if (call1 && expect_voice1) {
-		BC_ASSERT_TRUE(wait_for_silence_received(lcs, call1, 2000));
+
+	// Concurrent silence drain check: ensure all active voice receivers return to silence
+	bool has_voice_receiver = FALSE;
+	for (const auto &r : receivers) {
+		if (r.expect_voice) {
+			has_voice_receiver = TRUE;
+			break;
+		}
 	}
-	if (call2 && expect_voice2) {
-		BC_ASSERT_TRUE(wait_for_silence_received(lcs, call2, 2000));
-	}
-	if (conf_receiver && expect_conf_voice) {
-		BC_ASSERT_TRUE(wait_for_conf_silence_received(lcs, conf_receiver, 2000));
+
+	if (has_voice_receiver) {
+		MSTimeSpec start;
+		liblinphone_tester_clock_start(&start);
+
+		while (!liblinphone_tester_clock_elapsed(&start, 2000)) {
+			bool_t all_silent = TRUE;
+			for (auto &r : receivers) {
+				if (!r.expect_voice) continue;
+				float lvl = r.get_volume();
+				if (lvl <= silence_threshold) r.silence_count++;
+				else r.silence_count = 0;
+				if (r.silence_count < 2) all_silent = FALSE;
+			}
+			if (all_silent) break;
+			wait_for_list(lcs, NULL, 0, 50);
+		}
+
+		for (const auto &r : receivers) {
+			if (r.expect_voice) {
+				BC_ASSERT_TRUE(r.silence_count >= 2);
+			}
+		}
 	}
 }
 
@@ -466,6 +450,9 @@ static void baudot_local_conference_relay_service(LinphoneBaudotMode pauline_mod
 		linphone_call_cbs_unref(marie_pauline_cbs);
 	}
 
+	// Wait for media streams and jitter buffers to stabilize before sending Baudot tones
+	wait_for_list(lcs, NULL, 0, 500);
+
 	if (pauline_mode == LinphoneBaudotModeTty || pauline_mode == LinphoneBaudotModeHearingCarryOver) {
 		send_and_check_baudot_text(lcs, pauline_call, marie, marie_call_pauline, "Hi");
 		BC_ASSERT_EQUAL(marie->stat.number_of_LinphoneBaudotDetected, 1, int, "%d");
@@ -491,6 +478,9 @@ static void baudot_local_conference_relay_service(LinphoneBaudotMode pauline_mod
 		                                                           : baudot_detected_cb_tty);
 		linphone_call_add_callbacks(marie_call_laure, marie_laure_cbs);
 		linphone_call_cbs_unref(marie_laure_cbs);
+
+		// Wait for media streams and jitter buffers to stabilize before sending Baudot tones
+		wait_for_list(lcs, NULL, 0, 500);
 
 		int initial_marie_baudot = marie->stat.number_of_LinphoneBaudotDetected;
 		if (laure_mode == LinphoneBaudotModeTty || laure_mode == LinphoneBaudotModeHearingCarryOver) {
@@ -530,6 +520,9 @@ static void baudot_local_conference_relay_service(LinphoneBaudotMode pauline_mod
 		BC_ASSERT_TRUE(linphone_conference_is_in(conf));
 	}
 	BC_ASSERT_PTR_NOT_NULL(linphone_call_get_conference(marie_call_laure));
+
+	// Wait for conference mixer and audio streams to stabilize before sending Baudot tones
+	wait_for_list(lcs, NULL, 0, 500);
 
 	// 4. Verify Baudot text exchange between the Baudot participants and the agent (marie)
 	expected_marie_baudot = marie->stat.number_of_LinphoneBaudotDetected;
