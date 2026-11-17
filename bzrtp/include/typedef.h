@@ -148,6 +148,7 @@ typedef struct fragmentReassembly_struct {
 	uint16_t messageId; /**< message ID of the current message */
 	uint16_t messageLength; /**< total length (in 32 bits words) of the current message */
 	uint8_t *packetString; /**< Storage for the packet - it includes the not used packet header */
+	uint32_t sourceIdentifier; /**< the SSRC given in the ZRTP header */
 	bctbx_list_t *fragments; /**< list of fragmentInfo_t on all what we already have */
 } fragmentReassembly_t;
 /**
