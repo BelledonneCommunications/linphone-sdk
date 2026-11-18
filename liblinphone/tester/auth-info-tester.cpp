@@ -38,6 +38,15 @@ static const string wildcardDomain = "*.linphone.org";
 static const string subDomain = "subdomain.linphone.org";
 static const string maliciousWildcardDomain = "maliciouslinphone.org";
 
+static void auth_info_basics(void) {
+	const shared_ptr<AuthInfo> authInfo = AuthInfo::create("", "", "", "", "", "");
+	for (LinphoneAuthMethod method : {LinphoneAuthHttpDigest, LinphoneAuthTls, LinphoneAuthBearer, LinphoneAuthBasic}) {
+		linphone_auth_info_set_requested_method(authInfo->toC(), method);
+		BC_ASSERT_EQUAL(static_cast<int>(linphone_auth_info_get_requested_method(authInfo->toC())),
+		                static_cast<int>(method), int, "%d");
+	}
+}
+
 static void empty_parameters() {
 	const shared_ptr<AuthInfo> authInfo = AuthInfo::create("", "", "", "", "", "");
 	const int score = authInfo->isSuitableForChallenge(LinphoneAuthBasic, "", "", "", "");
@@ -237,6 +246,7 @@ static void tls_auth_method_scoring() {
 }
 
 static test_t auth_info_tests[] = {
+    TEST_NO_TAG("Basics", auth_info_basics),
     TEST_NO_TAG("Empty auth info", empty_parameters),
     TEST_NO_TAG("Handle expiration", expiration_handling),
     TEST_NO_TAG("Domain and realm matching", domain_and_realm_matching),

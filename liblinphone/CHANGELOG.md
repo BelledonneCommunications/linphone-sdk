@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 It has been updated until the 5.5 SDK release. Please refer to the changelog at root of the linphone-sdk project for changes from the 5.6 SDK release onwards.
 
+## [Latest]
+
+### Added
+- API to get authenticated method with `linphone_auth_info_get_requested_method`
+
 ## [5.5.42] - 2026-11-24
 
 ### Changed
