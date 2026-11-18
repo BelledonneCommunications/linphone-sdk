@@ -60,6 +60,7 @@ class LINPHONE_PUBLIC ServerConferenceEventHandler : public std::enable_shared_f
 #endif
 public:
 	ServerConferenceEventHandler(std::shared_ptr<Conference> conf, ConferenceListener *listener = nullptr);
+	~ServerConferenceEventHandler();
 
 	void publishStateChanged(const std::shared_ptr<EventPublish> &ev, LinphonePublishState state);
 
@@ -256,6 +257,7 @@ private:
 	                                   Xsd::ConferenceInfo::ConferenceDescriptionType &confDescr);
 
 	void fillParticipantFields(const std::shared_ptr<Participant> &participant, Xsd::ConferenceInfo::UserType &user);
+	void resetAllDeviceSubscriptions();
 	Xsd::XmlSchema::DateTime timeTToDateTime(const time_t &unixTime) const;
 
 	std::shared_ptr<Conference> getConference() const;

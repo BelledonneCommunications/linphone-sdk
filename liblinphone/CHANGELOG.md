@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
-## [Latest]
+## [5.5.42] - 2026-11-24
 
 ### Changed
 - `linphone_chat_message_get_event_log()` now returns a non-const `LinphoneEventLog *` with an incremented reference count (`@tobefreed`). C callers must call `linphone_event_log_unref()` on the returned pointer when non-NULL.

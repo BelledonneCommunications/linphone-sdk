@@ -138,6 +138,10 @@ bool ParticipantDevice::isChangingSubscribeEvent() const {
 void ParticipantDevice::setConferenceSubscribeEvent(const shared_ptr<EventSubscribe> &ev) {
 	if (mConferenceSubscribeEvent) {
 		mChangingSubscribeEvent = true;
+		// The subscription is not terminated because it may be reused by another participant device.
+		// Indeed, a client that loses its network may retry to rejoin the conference before having registered. The
+		// conference will therefore hold two ParticipantDevice object for the same client until it sends an INVITE
+		// whose contact address is the use found in the 200Ok REGISTER response.
 		mConferenceSubscribeEvent = nullptr;
 	}
 	mConferenceSubscribeEvent = ev;
