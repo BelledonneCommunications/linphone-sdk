@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 
+## [Latest]
+
+### Added
+- API to get authenticated method with `linphone_auth_info_get_requested_method`
+
 ## [5.5.42] - 2026-11-24
 
 ### Changed

@@ -387,6 +387,20 @@ LINPHONE_PUBLIC time_t linphone_auth_info_get_expires(const LinphoneAuthInfo *au
  */
 LINPHONE_PUBLIC void linphone_auth_info_set_expires(LinphoneAuthInfo *auth_info, time_t expires);
 
+/**
+ * Gets the requested method for the current authentication information.
+ * @param auth_info The #LinphoneAuthInfo object. @notnil
+ * @return the #LinphoneAuthMethod requested method.
+ */
+LINPHONE_PUBLIC LinphoneAuthMethod linphone_auth_info_get_requested_method(const LinphoneAuthInfo *auth_info);
+
+/**
+ * Set the requested method for the current authentication information.
+ * @param auth_info The #LinphoneAuthInfo object. @notnil
+ * @param method The #LinphoneAuthMethod requested method.
+ */
+LINPHONE_PUBLIC void linphone_auth_info_set_requested_method(LinphoneAuthInfo *auth_info, LinphoneAuthMethod method);
+
 /************ */
 /* DEPRECATED */
 /* ********** */

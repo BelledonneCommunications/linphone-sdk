@@ -296,6 +296,14 @@ void linphone_auth_info_destroy(LinphoneAuthInfo *auth_info) {
 	belle_sip_object_unref(auth_info);
 }
 
+LinphoneAuthMethod linphone_auth_info_get_requested_method(const LinphoneAuthInfo *auth_info) {
+	return AuthInfo::toCpp(auth_info)->getRequestedMethod();
+}
+
+void linphone_auth_info_set_requested_method(LinphoneAuthInfo *auth_info, LinphoneAuthMethod method) {
+	AuthInfo::toCpp(auth_info)->setRequestedMethod(method);
+}
+
 const char *linphone_auth_method_to_string(LinphoneAuthMethod method) {
 	switch (method) {
 		case LinphoneAuthBasic:
