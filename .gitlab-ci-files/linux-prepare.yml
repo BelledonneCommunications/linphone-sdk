@@ -81,7 +81,7 @@ recache-get-from-branch:
     - if [ ! -z "$CACHE_JOB_NAME" ]; then CACHE_JOB_NAME=$CACHE_JOB_NAME-; fi;
     - echo $CACHE_JOB_NAME
     - CP_DESTINATION_FOLDER="$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CI_COMMIT_REF_SLUG-6-non_protected"
-    - CP_SOURCE_FOLDER="$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CACHE_SOURCE_BRANCH-6-non_protected"
+    - CP_SOURCE_FOLDER="$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_JOB_NAME$CACHE_SOURCE_BRANCH-6-protected"
     - |
      ssh $LINUX_BUILD_MACHINE_ADMIN "set -e
      if [ ! -d '$CP_SOURCE_FOLDER' ]; then echo 'No cache for the source branch, keeping the current one'; exit 0; fi
