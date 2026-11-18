@@ -58,7 +58,26 @@ ServerConferenceEventHandler::ServerConferenceEventHandler(std::shared_ptr<Confe
     : conference(conf), confListener(listener) {
 }
 
+ServerConferenceEventHandler::~ServerConferenceEventHandler() {
+	resetAllDeviceSubscriptions();
+}
+
 // -----------------------------------------------------------------------------
+
+void ServerConferenceEventHandler::resetAllDeviceSubscriptions() {
+	auto conf = getConference();
+	if (!conf) {
+		return;
+	}
+	for (const auto &participant : conf->getParticipants()) {
+		for (const auto &device : participant->getDevices()) {
+			if (auto event = device->getConferenceSubscribeEvent()) {
+				event->terminate();
+				device->setConferenceSubscribeEvent(nullptr);
+			}
+		}
+	}
+}
 
 void ServerConferenceEventHandler::notifyFullState(const std::shared_ptr<Content> &notify,
                                                    const shared_ptr<ParticipantDevice> &device) {
@@ -1297,7 +1316,7 @@ LinphoneStatus ServerConferenceEventHandler::subscribeReceived(const shared_ptr<
 			        << " to: " << *participant;
 			const int fullStateTrigger =
 			    linphone_config_get_int(linphone_core_get_config(conf->getCore()->getCCore()), "misc",
-			                            "full_state_trigger_due_to_missing_updates", 10);
+				                        "full_state_trigger_due_to_missing_updates", 10);
 			bool forceFullState = static_cast<int>(lastNotify - evLastNotify) > fullStateTrigger;
 			// Every subscribe sent for a conference will be answered by a notify full state as events are
 			// not stored in the database
@@ -1667,7 +1686,9 @@ void ServerConferenceEventHandler::onStateChanged(LinphonePrivate::ConferenceInt
 		case ConferenceInterface::State::Instantiated:
 		case ConferenceInterface::State::Created:
 		case ConferenceInterface::State::TerminationFailed:
+			break;
 		case ConferenceInterface::State::Deleted:
+			resetAllDeviceSubscriptions();
 			break;
 		case ConferenceInterface::State::CreationFailed:
 			conf->getCore()->doLater([conf] {

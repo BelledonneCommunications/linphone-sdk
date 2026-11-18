@@ -1552,6 +1552,178 @@ static void group_chat_room_with_client_restart_and_focus_changing_contact_addre
 	group_chat_room_with_client_restart_base(false, false, true);
 }
 
+static void group_chat_room_with_quick_server_deletion() {
+	Focus focus("chloe_rc");
+	{ // to make sure focus is destroyed after clients.
+		ClientConference marie("marie_rc", focus.getConferenceFactoryAddress());
+		ClientConference marie2("marie_rc", focus.getConferenceFactoryAddress());
+		ClientConference michelle("michelle_rc", focus.getConferenceFactoryAddress());
+		ClientConference michelle2("michelle_rc", focus.getConferenceFactoryAddress());
+		ClientConference pauline("pauline_rc", focus.getConferenceFactoryAddress());
+		ClientConference pauline2("pauline_rc", focus.getConferenceFactoryAddress());
+		ClientConference laure("laure_tcp_rc", focus.getConferenceFactoryAddress());
+		ClientConference laure2("laure_tcp_rc", focus.getConferenceFactoryAddress());
+
+		focus.registerAsParticipantDevice(marie);
+		focus.registerAsParticipantDevice(marie2);
+		focus.registerAsParticipantDevice(michelle);
+		focus.registerAsParticipantDevice(michelle2);
+		focus.registerAsParticipantDevice(pauline);
+		focus.registerAsParticipantDevice(pauline2);
+		focus.registerAsParticipantDevice(laure);
+		focus.registerAsParticipantDevice(laure2);
+
+		linphone_core_enable_gruu_in_conference_address(marie.getLc(), TRUE);
+		linphone_core_enable_gruu_in_conference_address(michelle.getLc(), TRUE);
+		linphone_core_enable_gruu_in_conference_address(pauline.getLc(), TRUE);
+
+		int subscribeExpiresValueS = 15;
+		linphone_config_set_int(linphone_core_get_config(marie.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribeExpiresValueS);
+		linphone_config_set_int(linphone_core_get_config(marie2.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribeExpiresValueS);
+		linphone_config_set_int(linphone_core_get_config(michelle.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribeExpiresValueS);
+		linphone_config_set_int(linphone_core_get_config(michelle2.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribeExpiresValueS);
+		linphone_config_set_int(linphone_core_get_config(pauline.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribeExpiresValueS);
+		linphone_config_set_int(linphone_core_get_config(pauline2.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribeExpiresValueS);
+		linphone_config_set_int(linphone_core_get_config(laure.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribeExpiresValueS);
+		linphone_config_set_int(linphone_core_get_config(laure2.getLc()), "sip", "conference_subscribe_expires",
+		                        subscribeExpiresValueS);
+
+		bctbx_list_t *coresList = bctbx_list_append(NULL, focus.getLc());
+		coresList = bctbx_list_append(coresList, marie.getLc());
+		coresList = bctbx_list_append(coresList, marie2.getLc());
+		coresList = bctbx_list_append(coresList, michelle.getLc());
+		coresList = bctbx_list_append(coresList, michelle2.getLc());
+		coresList = bctbx_list_append(coresList, pauline.getLc());
+		coresList = bctbx_list_append(coresList, pauline2.getLc());
+		coresList = bctbx_list_append(coresList, laure.getLc());
+		coresList = bctbx_list_append(coresList, laure2.getLc());
+
+		bctbx_list_t *participantsAddresses = NULL;
+		Address michelleAddr = michelle.getIdentity();
+		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(michelleAddr.toC()));
+		Address paulineAddr = pauline.getIdentity();
+		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(paulineAddr.toC()));
+		Address laureAddr = laure.getIdentity();
+		participantsAddresses = bctbx_list_append(participantsAddresses, linphone_address_ref(laureAddr.toC()));
+
+		LinphoneConferenceParams *marie_params = linphone_core_create_conference_params(marie.getLc());
+		linphone_conference_params_enable_chat(marie_params, TRUE);
+		linphone_conference_params_enable_group(marie_params, TRUE);
+		linphone_conference_params_set_subject(marie_params, "Short lived chatroom");
+
+		LinphoneChatRoom *marieCr =
+		    linphone_core_create_chat_room_7(marie.getLc(), marie_params, participantsAddresses);
+		bctbx_list_free_with_data(participantsAddresses, (bctbx_list_free_func)linphone_address_unref);
+		participantsAddresses = NULL;
+		linphone_conference_params_unref(marie_params);
+
+		BC_ASSERT_PTR_NOT_NULL(marieCr);
+
+		// Each device must have knowledge of the conference and have received the NOTIFY full state
+		for (auto lc : {focus.getLc(), marie.getLc(), marie2.getLc(), pauline.getLc(), pauline2.getLc(),
+		                michelle.getLc(), michelle2.getLc(), laure.getLc(), laure2.getLc()}) {
+			auto coreCpp = lc->cppPtr;
+			bool is_focus = focus.getLc() == lc;
+			BC_ASSERT_TRUE(
+			    CoreManagerAssert({focus, marie, marie2, pauline, pauline2, michelle, michelle2, laure, laure2})
+			        .wait([&coreCpp, &is_focus] {
+				        auto chatRooms = coreCpp->getChatRooms();
+				        if (chatRooms.size() == 0) {
+					        return false;
+				        }
+				        for (auto chatRoom : chatRooms) {
+					        if (chatRoom->getState() != ConferenceInterface::State::Created) {
+						        return false;
+					        }
+					        auto participants = chatRoom->getParticipants();
+					        if (participants.size() == 0) {
+						        return false;
+					        }
+					        for (auto participant : participants) {
+						        auto devices = participant->getDevices();
+						        if (devices.size() == 0) {
+							        return false;
+						        }
+						        for (auto device : devices) {
+							        // The focus must have all devices in the Present state to ensure that thre is an
+							        // important NOTIFY message traffic over the network
+							        if (is_focus) {
+								        if (device->getState() != ParticipantDevice::State::Present) {
+									        return false;
+								        }
+							        } else {
+								        if ((device->getState() != ParticipantDevice::State::Present) &&
+										    (device->getState() != ParticipantDevice::State::Joining)) {
+									        return false;
+								        }
+							        }
+						        }
+					        }
+				        }
+				        return true;
+			        }));
+		}
+
+		// Verify that some clients have still one or more devices in the joining state. It means that some NOTIFYs have
+		// not yet reached them.
+		bool joining = false;
+		for (auto lc : {marie.getLc(), marie2.getLc(), pauline.getLc(), pauline2.getLc(), michelle.getLc(),
+		                michelle2.getLc(), laure.getLc(), laure2.getLc()}) {
+			auto coreCpp = lc->cppPtr;
+			for (auto chatRoom : coreCpp->getChatRooms()) {
+				for (auto participant : chatRoom->getParticipants()) {
+					for (auto device : participant->getDevices()) {
+						joining |= (device->getState() == ParticipantDevice::State::Joining);
+					}
+				}
+			}
+		}
+		BC_ASSERT_TRUE(joining);
+
+		// Here there is still a bunch of NOTIFYs floating around (mainly about devices joining the conference) but the
+		// server abruptly deletes the chatroom before receiving all NOTIFY responses
+
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			linphone_core_delete_chat_room(focus.getLc(), chatRoom->toC());
+			BC_ASSERT_TRUE(
+			    CoreManagerAssert({focus, marie, marie2, pauline, pauline2, michelle, michelle2, laure, laure2})
+			        .wait([&chatRoom] { return chatRoom->getState() == ConferenceInterface::State::Deleted; }));
+		}
+
+		for (auto chatRoom : focus.getCore().getChatRooms()) {
+			for (auto participant : chatRoom->getParticipants()) {
+				//  force deletion by removing devices
+				std::shared_ptr<Address> participantAddress = participant->getAddress();
+				linphone_chat_room_set_participant_devices(chatRoom->toC(), participantAddress->toC(), NULL);
+			}
+		}
+
+		// wait until chatroom is deleted server side
+		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, laure}).wait([&focus] {
+			return focus.getCore().getChatRooms().size() == 0;
+		}));
+
+		// wait a bit longer to detect side effect if any
+		CoreManagerAssert({focus, marie, pauline, laure}).waitUntil(chrono::seconds(2), [] { return false; });
+
+		// to avoid creation attempt of a new chatroom
+		auto focus_account = focus.getDefaultAccount();
+		LinphoneAccountParams *params = linphone_account_params_clone(linphone_account_get_params(focus_account));
+		linphone_account_params_set_conference_factory_uri(params, NULL);
+		linphone_account_set_params(focus_account, params);
+		linphone_account_params_unref(params);
+
+		bctbx_list_free(coresList);
+	}
+}
+
 static void group_chat_room_with_conference_server_restarting_with_new_uuid() {
 	Focus focus("chloe_rc");
 	{ // to make sure focus is destroyed after clients.
@@ -6343,6 +6515,9 @@ static test_t local_conference_chat_basic_tests[] = {
 	             "LeaksMemory"), /* because of coreMgr restart*/
     TEST_ONE_TAG("Group chat with client restart and focus changing contact address",
 	             LinphoneTest::group_chat_room_with_client_restart_and_focus_changing_contact_address,
+	             "LeaksMemory"), /* because of coreMgr restart*/
+    TEST_ONE_TAG("Group chat room with quick server deletion",
+	             LinphoneTest::group_chat_room_with_quick_server_deletion,
 	             "LeaksMemory"), /* because of coreMgr restart*/
     TEST_ONE_TAG("Group chat room with conference server restarting with a new uuid",
 	             LinphoneTest::group_chat_room_with_conference_server_restarting_with_new_uuid,
