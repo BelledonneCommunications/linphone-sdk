@@ -59,7 +59,7 @@ static void group_chat_room_creation_server_base(bool_t restart_before_changing_
 		const char *initialSubject = "Colleagues @work";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -259,7 +259,7 @@ static void participant_invited_when_offline() {
 		const char *initialSubject = "Chatroom with Michelle offline";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 		// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -356,7 +356,7 @@ static void group_chat_room_server_deletion() {
 		const char *initialSubject = "Colleagues #together";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 		// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -447,7 +447,7 @@ static void group_chat_room_server_deletion_with_rmt_lst_event_handler() {
 		const char *initialSubject = "Colleagues (characters: $ £ çà)";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 		// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -562,7 +562,7 @@ static void group_chat_room_with_no_participants_following_database_corruption()
 		const char *initialSubject = "Happy days";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
 
 		// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -953,8 +953,8 @@ static void group_chat_room_with_client_removed_added_base(bool offline_before_d
 		    CoreManagerAssert({focus, marie, pauline, michelle, michelle2}).wait([&michelle, &offline_before_deletion] {
 			    for (auto chatRoom : michelle.getCore().getChatRooms()) {
 				    ConferenceInterface::State expected_state = (offline_before_deletion)
-				                                                    ? ConferenceInterface::State::Created
-				                                                    : ConferenceInterface::State::Terminated;
+					                                                ? ConferenceInterface::State::Created
+					                                                : ConferenceInterface::State::Terminated;
 				    if (chatRoom->getState() != expected_state) {
 					    return false;
 				    }
@@ -1017,8 +1017,8 @@ static void group_chat_room_with_client_removed_added_base(bool offline_before_d
 		                             liblinphone_tester_sip_timeout));
 		BC_ASSERT_TRUE(
 		    wait_for_list(coresList, &pauline.getStats().number_of_participant_devices_present,
-		                  initialPaulineStats.number_of_participant_devices_present + michelle_devices_present,
-		                  liblinphone_tester_sip_timeout));
+			              initialPaulineStats.number_of_participant_devices_present + michelle_devices_present,
+			              liblinphone_tester_sip_timeout));
 
 		initialMarieStats = marie.getStats();
 		initialMichelleStats = michelle.getStats();
@@ -2802,7 +2802,7 @@ static void group_chat_room_with_invite_error_when_updating_subject() {
 		for (const ConfCoreManager &core : cores3) {
 			CoreManagerAssert({focus, marie, marie2, michelle, laure, berthe})
 			    .waitUntil(std::chrono::seconds(10),
-			               [&core, &newSubject] { return checkChatroomCreation(core, 1, 3, newSubject); });
+				           [&core, &newSubject] { return checkChatroomCreation(core, 1, 3, newSubject); });
 		}
 
 		for (auto chatRoom : focus.getCore().getChatRooms()) {
@@ -3008,7 +3008,7 @@ static void group_chat_room_bulk_notify_to_participant_base(bool_t trigger_full_
 		const char *initialSubject = "Colleagues (characters: $ £ çà)";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
 		// Check that the chat room is correctly created on Pauline's side and that the participants are added
@@ -3320,7 +3320,7 @@ static void group_chat_room_admin_closes_the_group_base(bool_t admin_closes) {
 		const char *initialSubject = "Colleagues (characters: $ £ çà)";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 		const LinphoneAddress *confAddr = marieCr ? linphone_chat_room_get_conference_address(marieCr) : NULL;
 
@@ -3450,7 +3450,7 @@ static void group_chat_room_admin_closes_the_group_base(bool_t admin_closes) {
 			    CoreManagerAssert({focus, marie, pauline, michelle, laure}).wait([&coreCpp, &chatroom_terminated] {
 				    for (auto chatRoom : coreCpp->getChatRooms()) {
 					    auto expectedState = (chatroom_terminated) ? ConferenceInterface::State::Terminated
-					                                               : ConferenceInterface::State::Created;
+						                                           : ConferenceInterface::State::Created;
 					    if (chatRoom->getState() != expectedState) {
 						    return false;
 					    }
@@ -3563,7 +3563,7 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 		const char *initialSubject = "Colleagues (characters: $ £ çà)";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 		const LinphoneAddress *confAddr = marieCr ? linphone_chat_room_get_conference_address(marieCr) : NULL;
 		BC_ASSERT_PTR_NOT_NULL(confAddr);
@@ -3675,16 +3675,16 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &marie.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialMarieStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
+				              initialMarieStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &michelle.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialMichelleStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
+				              initialMichelleStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &pauline.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialPaulineStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
+				              initialPaulineStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &laure.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialLaureStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
+				              initialLaureStats.number_of_chat_room_participant_admin_statuses_changed + 1, 100));
 
 			BC_ASSERT_FALSE(wait_for_list(coresList, &marie.getStats().number_of_chat_room_participants_removed,
 			                              initialMarieStats.number_of_chat_room_participants_removed + 1, 100));
@@ -3699,17 +3699,17 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 			                              initialMarieStats.number_of_chat_room_participant_devices_removed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &michelle.getStats().number_of_chat_room_participant_devices_removed,
-			                  initialMichelleStats.number_of_chat_room_participant_devices_removed + 1, 100));
+				              initialMichelleStats.number_of_chat_room_participant_devices_removed + 1, 100));
 			BC_ASSERT_FALSE(
 			    wait_for_list(coresList, &pauline.getStats().number_of_chat_room_participant_devices_removed,
-			                  initialPaulineStats.number_of_chat_room_participant_devices_removed + 1, 100));
+				              initialPaulineStats.number_of_chat_room_participant_devices_removed + 1, 100));
 			BC_ASSERT_FALSE(wait_for_list(coresList, &laure.getStats().number_of_chat_room_participant_devices_removed,
 			                              initialLaureStats.number_of_chat_room_participant_devices_removed + 1, 100));
 		} else {
 			BC_ASSERT_TRUE(
 			    wait_for_list(coresList, &michelle.getStats().number_of_chat_room_participant_admin_statuses_changed,
-			                  initialMichelleStats.number_of_chat_room_participant_admin_statuses_changed + 1,
-			                  liblinphone_tester_sip_timeout));
+				              initialMichelleStats.number_of_chat_room_participant_admin_statuses_changed + 1,
+				              liblinphone_tester_sip_timeout));
 			BC_ASSERT_TRUE(wait_for_list(coresList,
 			                             &pauline.getStats().number_of_chat_room_participant_admin_statuses_changed,
 			                             initialPaulineStats.number_of_chat_room_participant_admin_statuses_changed + 1,
@@ -3754,7 +3754,7 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 			BC_ASSERT_TRUE(
 			    CoreManagerAssert({focus, marie, pauline, michelle, laure})
 			        .wait([&coreCpp, lc, termination_failed, new_admin_mgr, leaving_mgr,
-			               focusCoreCpp = focus.getLc()->cppPtr] {
+					       focusCoreCpp = focus.getLc()->cppPtr] {
 				        for (auto chatRoom : coreCpp->getChatRooms()) {
 					        if ((lc == leaving_mgr->lc) && !termination_failed) {
 						        if (chatRoom->getState() != ConferenceInterface::State::Terminated) {
@@ -3766,8 +3766,8 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 						        }
 						        auto newAdminParticipant =
 						            (coreCpp == new_admin_mgr->lc->cppPtr)
-						                ? chatRoom->getMe()
-						                : chatRoom->findParticipant(
+								        ? chatRoom->getMe()
+								        : chatRoom->findParticipant(
 						                      Address::toCpp(new_admin_mgr->identity)->getSharedFromThis());
 						        if (!newAdminParticipant) {
 							        return false;
@@ -3778,7 +3778,7 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 						        bool isLeavingCore = (coreCpp == leaving_mgr->lc->cppPtr);
 						        auto leavingParticipant =
 						            (isLeavingCore) ? chatRoom->getMe()
-						                            : chatRoom->findParticipant(
+									                : chatRoom->findParticipant(
 						                                  Address::toCpp(leaving_mgr->identity)->getSharedFromThis());
 						        bool leavingCoreFound = (leavingParticipant != nullptr);
 						        if (leavingCoreFound == (!isLeavingCore && !termination_failed)) {
@@ -3788,7 +3788,7 @@ static void group_chat_room_admin_leaves_after_nominating_new_admin_base(bool_t 
 							        return false;
 						        }
 						        int expectedParticipantCount = ((isLeavingCore || !!termination_failed) ? 3 : 2) +
-						                                       ((coreCpp == focusCoreCpp) ? 1 : 0);
+								                               ((coreCpp == focusCoreCpp) ? 1 : 0);
 						        if (chatRoom->getConference()->getParticipantCount() != expectedParticipantCount) {
 							        return false;
 						        }
@@ -3937,7 +3937,7 @@ static void one_on_one_chatroom_backward_compatibility_base(const char *groupcha
 		const char *initialSubject = "one-on-one with Pauline";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 		BC_ASSERT_PTR_NOT_NULL(confAddr);
@@ -4032,7 +4032,7 @@ static void one_on_one_chatroom_exhumed_while_offline() {
 		const char *initialSubject = "one-on-one with Pauline";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 		LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
 		BC_ASSERT_PTR_NOT_NULL(confAddr);
@@ -4285,7 +4285,7 @@ static void one_on_one_chatroom_not_rejoined_after_leaving() {
 		const char *initialSubject = "one-on-one with Pauline";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 		LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
 		BC_ASSERT_PTR_NOT_NULL(confAddr);
@@ -4395,7 +4395,7 @@ static void multidomain_group_chat_room() {
 		const char *initialSubject = "Colleagues";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		LinphoneAddress *confAddr = linphone_address_clone(linphone_chat_room_get_conference_address(marieCr));
 		char *confAddrStr = linphone_address_as_string(confAddr);
 
@@ -4455,7 +4455,7 @@ static void multidomain_group_chat_room() {
 		           focusAuth1DotExampleDotOrgFactoryAddress.toString().c_str());
 		LinphoneChatRoom *marieCrfocusAuth1DotExampleDotOrg =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		LinphoneAddress *confAddrfocusAuth1DotExampleDotOrg =
 		    linphone_address_clone(linphone_chat_room_get_conference_address(marieCrfocusAuth1DotExampleDotOrg));
 		char *confAddrfocusAuth1DotExampleDotOrgStr = linphone_address_as_string(confAddrfocusAuth1DotExampleDotOrg);
@@ -4463,11 +4463,11 @@ static void multidomain_group_chat_room() {
 		// Check that the chat room is correctly created on Pauline's side and that the participants are added
 		LinphoneChatRoom *paulineCrfocusAuth1DotExampleDotOrg =
 		    check_creation_chat_room_client_side(coresList, pauline.getCMgr(), &initialPaulineStats,
-		                                         confAddrfocusAuth1DotExampleDotOrg, initialSubject, 2, FALSE);
+			                                     confAddrfocusAuth1DotExampleDotOrg, initialSubject, 2, FALSE);
 		BC_ASSERT_PTR_NOT_NULL(paulineCrfocusAuth1DotExampleDotOrg);
 		LinphoneChatRoom *michelleCrfocusAuth1DotExampleDotOrg =
 		    check_creation_chat_room_client_side(coresList, michelle.getCMgr(), &initialMichelleStats,
-		                                         confAddrfocusAuth1DotExampleDotOrg, initialSubject, 2, FALSE);
+			                                     confAddrfocusAuth1DotExampleDotOrg, initialSubject, 2, FALSE);
 		BC_ASSERT_PTR_NOT_NULL(michelleCrfocusAuth1DotExampleDotOrg);
 
 		BC_ASSERT_TRUE(CoreManagerAssert({focusAuth1DotExampleDotOrg, marie, pauline, michelle})
@@ -4552,8 +4552,8 @@ static void multidomain_group_chat_room() {
 						        return false;
 					        }
 					        if ((chatRoom->getConference()->getConferenceAddress() ==
-					             Address::toCpp(confAddr)->getSharedFromThis()) &&
-					            (chatRoom->getConference()->getParticipantCount() != 3)) {
+							     Address::toCpp(confAddr)->getSharedFromThis()) &&
+							    (chatRoom->getConference()->getParticipantCount() != 3)) {
 						        return false;
 					        }
 				        }
@@ -4587,7 +4587,7 @@ static void multidomain_group_chat_room() {
 
 		LinphoneChatRoom *laureCrfocusAuth1DotExampleDotOrg =
 		    check_creation_chat_room_client_side(coresList, laure.getCMgr(), &initialLaureStats,
-		                                         confAddrfocusAuth1DotExampleDotOrg, initialSubject, 3, FALSE);
+			                                     confAddrfocusAuth1DotExampleDotOrg, initialSubject, 3, FALSE);
 		BC_ASSERT_PTR_NOT_NULL(laureCrfocusAuth1DotExampleDotOrg);
 		for (const ConfCoreManager &core : cores) {
 			BC_ASSERT_TRUE(
@@ -5044,7 +5044,7 @@ static void high_number_of_group_chat_rooms_with_client_restart_base(int nbChatR
 							BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, pauline, michelle, laure})
 							                   .waitUntil(chrono::seconds(10), [&subject, &cChatRoom] {
 								                   return (strcmp(linphone_chat_room_get_subject(cChatRoom),
-								                                  subject.c_str()) == 0);
+												                  subject.c_str()) == 0);
 							                   }));
 						}
 					}
@@ -5588,7 +5588,7 @@ static void group_chat_room_unreachable_devices_dont_receive_invite(void) {
 		const char *initialSubject = "Colleagues @work";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &initialMarieStats, participantsAddresses,
-		                                 initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             initialSubject, FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 		const LinphoneAddress *confAddr = linphone_chat_room_get_conference_address(marieCr);
 
@@ -5732,7 +5732,7 @@ void one_on_one_chat_room_recovery_after_404(void) {
 		const char *initialSubject = "One on one";
 		LinphoneChatRoom *marieCr =
 		    create_chat_room_client_side(coresList, marie.getCMgr(), &marie_stat, participantsAddresses, initialSubject,
-		                                 FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
+			                             FALSE, LinphoneChatRoomEphemeralModeDeviceManaged);
 		BC_ASSERT_PTR_NOT_NULL(marieCr);
 
 		if (marieCr) {
@@ -5846,166 +5846,166 @@ void one_on_one_chat_room_recovery_after_404(void) {
 
 static test_t local_conference_chat_basic_tests[] = {
     TEST_NO_TAG("Group chat room creation local server without restarts",
-                LinphoneTest::group_chat_room_creation_server_without_restarts),
+	            LinphoneTest::group_chat_room_creation_server_without_restarts),
     TEST_ONE_TAG("Group chat room creation local server with client restart",
-                 LinphoneTest::group_chat_room_creation_server_with_client_restart,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_creation_server_with_client_restart,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat room creation local server with server restart",
-                 LinphoneTest::group_chat_room_creation_server_with_server_restart,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_creation_server_with_server_restart,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_NO_TAG("Group chat Server chat room deletion", LinphoneTest::group_chat_room_server_deletion),
     TEST_NO_TAG("Participant invited when offline", LinphoneTest::participant_invited_when_offline),
     TEST_ONE_TAG("Group chat with no participants following database corruption",
-                 LinphoneTest::group_chat_room_with_no_participants_following_database_corruption,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_no_participants_following_database_corruption,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat with duplications",
-                 LinphoneTest::group_chat_room_with_duplications,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_duplications,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_TWO_TAGS("Create 200 chatrooms and create events with client restart",
-                  LinphoneTest::create_200_chatrooms_and_create_events_with_client_restart,
-                  "LeaksMemory",
-                  "NightlyPerformance"), /* beacause of coreMgr restart*/
+	              LinphoneTest::create_200_chatrooms_and_create_events_with_client_restart,
+	              "LeaksMemory",
+	              "NightlyPerformance"), /* beacause of coreMgr restart*/
     TEST_TWO_TAGS("Create 10 chatrooms and create events with client restart (1k chatrooms in database)",
-                  LinphoneTest::create_10_chatrooms_and_create_events_with_client_restart_1k_database,
-                  "LeaksMemory",
-                  "Performance"), /* beacause of coreMgr restart*/
+	              LinphoneTest::create_10_chatrooms_and_create_events_with_client_restart_1k_database,
+	              "LeaksMemory",
+	              "Performance"), /* beacause of coreMgr restart*/
     TEST_TWO_TAGS("Create 10 chatrooms and create events with client restart (30k chatrooms in database)",
-                  LinphoneTest::create_10_chatrooms_and_create_events_with_client_restart_30k_database,
-                  "LeaksMemory",
-                  "Performance"), /* beacause of coreMgr restart*/
+	              LinphoneTest::create_10_chatrooms_and_create_events_with_client_restart_30k_database,
+	              "LeaksMemory",
+	              "Performance"), /* beacause of coreMgr restart*/
     TEST_TWO_TAGS("Create 10 chatrooms and create events with client restart (100k chatrooms in database)",
-                  LinphoneTest::create_10_chatrooms_and_create_events_with_client_restart_100k_database,
-                  "LeaksMemory",
-                  "NightlyPerformance"), /* beacause of coreMgr restart*/
+	              LinphoneTest::create_10_chatrooms_and_create_events_with_client_restart_100k_database,
+	              "LeaksMemory",
+	              "NightlyPerformance"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat with client removed added",
-                 LinphoneTest::group_chat_room_with_client_removed_added,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_removed_added,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat with client removed added (offline before deletion)",
-                 LinphoneTest::group_chat_room_with_client_removed_added_offline_before_deletion,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_removed_added_offline_before_deletion,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat room with participant removal after server restart",
-                 LinphoneTest::group_chat_room_with_participant_removal_chatroom_after_server_restart,
-                 "LeaksMemory"), /* because of network up and down */
+	             LinphoneTest::group_chat_room_with_participant_removal_chatroom_after_server_restart,
+	             "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("Group chat room with client reinvited after server restart (conference corrupted)",
-                 LinphoneTest::group_chat_room_with_client_reinvited_after_server_restart,
-                 "LeaksMemory"), /* because of network up and down */
+	             LinphoneTest::group_chat_room_with_client_reinvited_after_server_restart,
+	             "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("Group chat room with subject change after server restart",
-                 LinphoneTest::group_chat_room_with_subject_change_after_server_restart,
-                 "LeaksMemory"), /* because of network up and down */
+	             LinphoneTest::group_chat_room_with_subject_change_after_server_restart,
+	             "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("Group chat with client restart",
-                 LinphoneTest::group_chat_room_with_client_restart,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_restart,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat with client restart and focus changing contact address",
-                 LinphoneTest::group_chat_room_with_client_restart_and_focus_changing_contact_address,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_restart_and_focus_changing_contact_address,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat room with conference server restarting with a new uuid",
-                 LinphoneTest::group_chat_room_with_conference_server_restarting_with_new_uuid,
-                 "LeaksMemory"), /* because of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_conference_server_restarting_with_new_uuid,
+	             "LeaksMemory"), /* because of coreMgr restart*/
     TEST_ONE_TAG("Group chat room bulk notify to participant",
-                 LinphoneTest::group_chat_room_bulk_notify_to_participant,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_bulk_notify_to_participant,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat room bulk notify full state to participant",
-                 LinphoneTest::group_chat_room_bulk_notify_full_state_to_participant,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_bulk_notify_full_state_to_participant,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_NO_TAG("One-on-one chatroom exhumed while participant is offline",
-                LinphoneTest::one_on_one_chatroom_exhumed_while_offline),
+	            LinphoneTest::one_on_one_chatroom_exhumed_while_offline),
     TEST_NO_TAG("Group chat room admin closes the group", LinphoneTest::group_chat_room_admin_closes_the_group),
     TEST_NO_TAG("Group chat room participant tries to close the group",
-                LinphoneTest::group_chat_room_participant_try_to_close_the_group),
+	            LinphoneTest::group_chat_room_participant_try_to_close_the_group),
     TEST_NO_TAG("Group chat room admin leaves after nominating a new admin",
-                LinphoneTest::group_chat_room_admin_leaves_after_nominating_new_admin),
+	            LinphoneTest::group_chat_room_admin_leaves_after_nominating_new_admin),
     TEST_NO_TAG("Group chat room admin leaves after nominating an non-member as new admin",
-                LinphoneTest::group_chat_room_admin_leaves_after_nominating_non_member_as_new_admin),
+	            LinphoneTest::group_chat_room_admin_leaves_after_nominating_non_member_as_new_admin),
     TEST_ONE_TAG("Group chat room admin nominates a new admin with unresponsive server",
-                 LinphoneTest::group_chat_room_admin_nominates_new_admin_with_unresponsive_server,
-                 "LeaksMemory"), /* because the conference server shuts down its network */
+	             LinphoneTest::group_chat_room_admin_nominates_new_admin_with_unresponsive_server,
+	             "LeaksMemory"), /* because the conference server shuts down its network */
     TEST_NO_TAG("Group chat room non admin nominates a new admin",
-                LinphoneTest::group_chat_room_non_admin_nominates_new_admin),
+	            LinphoneTest::group_chat_room_non_admin_nominates_new_admin),
     TEST_NO_TAG("One-on-one chatroom not rejoined after leaving",
-                LinphoneTest::one_on_one_chatroom_not_rejoined_after_leaving),
+	            LinphoneTest::one_on_one_chatroom_not_rejoined_after_leaving),
     TEST_NO_TAG("One-on-one chatroom (backward compatibility)",
-                LinphoneTest::one_on_one_chatroom_backward_compatibility),
+	            LinphoneTest::one_on_one_chatroom_backward_compatibility),
     TEST_ONE_TAG(
         "Short ephemeral lifetime messages", LinphoneTest::short_ephemeral_lifetime_messages_test, "Ephemeral"),
     TEST_ONE_TAG("Chat with deletion spaced out",
-                 LinphoneTest::chat_rooms_with_deletion_spaced_out,
-                 "LeaksMemory"), /* because of coreMgr restart*/
+	             LinphoneTest::chat_rooms_with_deletion_spaced_out,
+	             "LeaksMemory"), /* because of coreMgr restart*/
     TEST_ONE_TAG("Group chat Server chat room deletion with remote list event handler",
-                 LinphoneTest::group_chat_room_server_deletion_with_rmt_lst_event_handler,
-                 "LeaksMemory") /* because of coreMgr restart*/
+	             LinphoneTest::group_chat_room_server_deletion_with_rmt_lst_event_handler,
+	             "LeaksMemory") /* because of coreMgr restart*/
 };
 
 static test_t local_conference_chat_advanced_tests[] = {
     TEST_ONE_TAG("Group chat with client registering with a short REGISTER expires",
-                 LinphoneTest::group_chat_room_with_client_registering_with_short_register_expires,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_registering_with_short_register_expires,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat with client restart and removed from server",
-                 LinphoneTest::group_chat_room_with_client_restart_removed_from_server,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_restart_removed_from_server,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat with client removed while stopped (Remote Conference List Event Handler)",
-                 LinphoneTest::group_chat_room_with_client_removed_while_stopped_remote_list_event_handler,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_removed_while_stopped_remote_list_event_handler,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_ONE_TAG("Group chat with client removed while stopped (No Remote Conference List Event Handler)",
-                 LinphoneTest::group_chat_room_with_client_removed_while_stopped_no_remote_list_event_handler,
-                 "LeaksMemory"), /* beacause of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_removed_while_stopped_no_remote_list_event_handler,
+	             "LeaksMemory"), /* beacause of coreMgr restart*/
     TEST_NO_TAG("Group chat with creator without groupchat capability",
-                LinphoneTest::group_chat_room_with_creator_without_groupchat_capability),
+	            LinphoneTest::group_chat_room_with_creator_without_groupchat_capability),
     TEST_NO_TAG("Group chat with creator without groupchat capability in register",
-                LinphoneTest::group_chat_room_with_creator_without_groupchat_capability_in_register),
+	            LinphoneTest::group_chat_room_with_creator_without_groupchat_capability_in_register),
     TEST_ONE_TAG("One-on-one chat deletion initiated by server and client",
-                 LinphoneTest::one_on_one_chat_room_deletion_by_server_client,
-                 "LeaksMemory"), /* because of network up and down */
+	             LinphoneTest::one_on_one_chat_room_deletion_by_server_client,
+	             "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("Group chat room deletes chatroom after restart",
-                 LinphoneTest::group_chat_room_with_client_deletes_chatroom_after_restart,
-                 "LeaksMemory"), /* because of coreMgr restart*/
+	             LinphoneTest::group_chat_room_with_client_deletes_chatroom_after_restart,
+	             "LeaksMemory"), /* because of coreMgr restart*/
     TEST_ONE_TAG("Multi domain chatroom",
-                 LinphoneTest::multidomain_group_chat_room,
-                 "LeaksMemory"), /* because of coreMgr restart*/
+	             LinphoneTest::multidomain_group_chat_room,
+	             "LeaksMemory"), /* because of coreMgr restart*/
     TEST_NO_TAG("Group chat with client removed and then reinvited",
-                LinphoneTest::group_chat_room_with_client_removed_and_reinvinted),
+	            LinphoneTest::group_chat_room_with_client_removed_and_reinvinted),
     TEST_NO_TAG("Group chat with client removed and then reinvited after database corruption",
-                LinphoneTest::group_chat_room_with_client_removed_and_reinvinted_after_database_corruption),
+	            LinphoneTest::group_chat_room_with_client_removed_and_reinvinted_after_database_corruption),
     TEST_ONE_TAG("One on one chat room deleted before 200Ok",
-                 LinphoneTest::one_on_one_chat_room_deleted_before_200ok,
-                 "LeaksMemory" /*due to core restart*/),
+	             LinphoneTest::one_on_one_chat_room_deleted_before_200ok,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG("One on one chat room deleted before 200Ok with server restart",
-                 LinphoneTest::one_on_one_chat_room_deleted_before_200ok_with_server_restart,
-                 "LeaksMemory" /*due to core restart*/),
+	             LinphoneTest::one_on_one_chat_room_deleted_before_200ok_with_server_restart,
+	             "LeaksMemory" /*due to core restart*/),
     TEST_ONE_TAG(
         "Group chat with client removed and then reinvited after database corruption and core restart",
         LinphoneTest::group_chat_room_with_client_removed_and_reinvinted_after_database_corruption_and_core_restart,
         "LeaksMemory" /*due to core restart*/),
     TEST_NO_TAG("Group chat unreachable devices don't receive invite",
-                LinphoneTest::group_chat_room_unreachable_devices_dont_receive_invite),
+	            LinphoneTest::group_chat_room_unreachable_devices_dont_receive_invite),
 };
 
 static test_t local_conference_chat_error_tests[] = {
     TEST_NO_TAG("Group chat with INVITE session error (organizer)",
-                LinphoneTest::group_chat_room_with_invite_error_organizer),
+	            LinphoneTest::group_chat_room_with_invite_error_organizer),
     TEST_NO_TAG("Group chat with SUBSCRIBE session error (organizer)",
-                LinphoneTest::group_chat_room_with_subscribe_error_organizer),
+	            LinphoneTest::group_chat_room_with_subscribe_error_organizer),
     TEST_NO_TAG("Group chat with INVITE session error (participant)",
-                LinphoneTest::group_chat_room_with_invite_error_participant),
+	            LinphoneTest::group_chat_room_with_invite_error_participant),
     TEST_NO_TAG("Group chat with SUBSCRIBE session error (participant)",
-                LinphoneTest::group_chat_room_with_subscribe_error_participant),
+	            LinphoneTest::group_chat_room_with_subscribe_error_participant),
     TEST_NO_TAG("Group chat with focus shutdown during invitation",
-                LinphoneTest::group_chat_room_with_focus_shutdown_during_invitation),
+	            LinphoneTest::group_chat_room_with_focus_shutdown_during_invitation),
     TEST_NO_TAG("Group chat add participant with invalid address",
-                LinphoneTest::group_chat_room_add_participant_with_invalid_address),
+	            LinphoneTest::group_chat_room_add_participant_with_invalid_address),
     TEST_NO_TAG("Group chat only participant with invalid address",
-                LinphoneTest::group_chat_room_with_only_participant_with_invalid_address),
+	            LinphoneTest::group_chat_room_with_only_participant_with_invalid_address),
     TEST_ONE_TAG("Group chat with INVITE session error when updating subject",
-                 LinphoneTest::group_chat_room_with_invite_error_when_updating_subject,
-                 "LeaksMemory"), /* because of network up and down */
+	             LinphoneTest::group_chat_room_with_invite_error_when_updating_subject,
+	             "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("Group chat with server database corruption",
-                 LinphoneTest::group_chat_room_with_server_database_corruption,
-                 "LeaksMemory"), /* because of network up and down */
+	             LinphoneTest::group_chat_room_with_server_database_corruption,
+	             "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("Group chat with server unstable network",
-                 LinphoneTest::group_chat_with_server_unstable_network,
-                 "LeaksMemory"), /* because of network up and down */
+	             LinphoneTest::group_chat_with_server_unstable_network,
+	             "LeaksMemory"), /* because of network up and down */
     TEST_ONE_TAG("One-to-one chat recovery when server answers 404",
-                 LinphoneTest::one_on_one_chat_room_recovery_after_404,
-                 "LeaksMemory")};
+	             LinphoneTest::one_on_one_chat_room_recovery_after_404,
+	             "LeaksMemory")};
 
 test_suite_t local_conference_test_suite_chat_basic = {
     "Local conference tester (Chat Basic)",
