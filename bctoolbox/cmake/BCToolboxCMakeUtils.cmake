@@ -252,6 +252,25 @@ function(bc_parse_full_version version major minor patch)
 	endif()
 endfunction()
 
+# Compute the version given to the linphone-sdk project by its root CMakeLists.txt, as 'major.minor.patch':
+# from LINPHONESDK_VERSION if it is set, from `git describe` otherwise.
+# The SDK projects inherit that version through PROJECT_VERSION when configured from the root; this function
+# is for a project configured on its own, which must compute it before its project() command.
+function(bc_compute_linphone_sdk_version OUTPUT_VERSION)
+	set(full_version "${LINPHONESDK_VERSION}")
+	if(NOT full_version)
+		bc_compute_full_version(full_version)
+	endif()
+	if(NOT full_version)
+		message(FATAL_ERROR
+			"Cannot compute the version of '${CMAKE_CURRENT_SOURCE_DIR}': git was not found. "
+			"Configure it from the root of linphone-sdk, or pass -DLINPHONESDK_VERSION=<major.minor.patch>."
+		)
+	endif()
+	bc_parse_full_version("${full_version}" major minor patch)
+	set(${OUTPUT_VERSION} "${major}.${minor}.${patch}" PARENT_SCOPE)
+endfunction()
+
 # Translate the full semantic version into version numbers suitable for GNU/Linux packages (RPM/DEB)
 # Parameters:
 # * full_version_in     [input]  : the full version which has been computed by bc_compute_full_version().

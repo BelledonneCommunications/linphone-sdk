@@ -23,6 +23,11 @@
 
 cmake_minimum_required(VERSION 3.22)
 
+if(NOT PROJECT_VERSION)
+	# Configured on its own rather than from linphone-sdk, whose version it inherits otherwise
+	include("${CMAKE_CURRENT_SOURCE_DIR}/../bctoolbox/cmake/BCToolboxCMakeUtils.cmake")
+	bc_compute_linphone_sdk_version(PROJECT_VERSION)
+endif()
 project(Belr VERSION ${PROJECT_VERSION} LANGUAGES C CXX)
 
 set(BELR_SO_VERSION "1")

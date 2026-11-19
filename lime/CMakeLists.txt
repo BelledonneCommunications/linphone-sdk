@@ -36,6 +36,11 @@ option(ENABLE_PQCRYPTO "Enable Post Quantum Cryptography key agreements algorith
 
 set(LANGUAGES_LIST CXX)
 
+if(NOT PROJECT_VERSION)
+	# Configured on its own rather than from linphone-sdk, whose version it inherits otherwise
+	include("${CMAKE_CURRENT_SOURCE_DIR}/../bctoolbox/cmake/BCToolboxCMakeUtils.cmake")
+	bc_compute_linphone_sdk_version(PROJECT_VERSION)
+endif()
 project(Lime VERSION ${PROJECT_VERSION} LANGUAGES ${LANGUAGES_LIST})
 
 set(LIME_SO_VERSION "0")
