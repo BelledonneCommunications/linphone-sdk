@@ -3085,7 +3085,7 @@ static void secure_chatroom_loading_from_different_conference_servers() {
 		linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
 		linphone_core_set_chat_rooms_handling_set(focus.getLc(), LinphoneChatRoomHandlingSetAll);
 		if (domain_registration_account) {
-			linphone_core_add_account(focus.getLc(), domain_registration_account);
+			add_domain_registration_account_and_hooks(focus, domain_registration_account, FALSE);
 		}
 
 		linphone_core_manager_start(focus.getCMgr(), TRUE);
@@ -3108,7 +3108,7 @@ static void secure_chatroom_loading_from_different_conference_servers() {
 		linphone_core_enable_lime_x3dh(focus.getLc(), encrypted);
 		linphone_core_set_chat_rooms_handling_set(focus.getLc(), LinphoneChatRoomHandlingSetAssociatedToFocusOnly);
 		if (domain_registration_account) {
-			linphone_core_add_account(focus.getLc(), domain_registration_account);
+			add_domain_registration_account_and_hooks(focus, domain_registration_account, FALSE);
 		}
 
 		linphone_core_manager_start(focus.getCMgr(), TRUE);
@@ -3676,8 +3676,7 @@ static void legacy_secure_chat_room_migrated_and_messages_sent_after_focus_resta
 		}
 
 		if (domain_registration_account) {
-			linphone_core_add_account(focus.getLc(), domain_registration_account);
-			linphone_core_set_default_account(focus.getLc(), domain_registration_account);
+			add_domain_registration_account_and_hooks(focus, domain_registration_account, TRUE);
 		}
 
 		ms_message("%s configures and starts again its core", linphone_core_get_identity(focus.getLc()));
@@ -3772,8 +3771,7 @@ static void legacy_secure_chat_room_migrated_and_messages_sent_after_focus_resta
 			linphone_core_manager_reinit(focus.getCMgr());
 
 			if (domain_registration_account) {
-				linphone_core_add_account(focus.getLc(), domain_registration_account);
-				linphone_core_set_default_account(focus.getLc(), domain_registration_account);
+				add_domain_registration_account_and_hooks(focus, domain_registration_account, TRUE);
 			}
 
 			ms_message("[Iteration %0d]: %s configures and starts again its core", idx,

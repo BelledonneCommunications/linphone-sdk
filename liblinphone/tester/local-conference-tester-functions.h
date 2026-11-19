@@ -316,18 +316,6 @@ private:
 };
 
 // Chat rooms
-void legacy_server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state);
-LinphoneAccount *add_account_using_domain_registration(ConfCoreManager &core, bool set_as_default);
-void createChatRooms(int number,
-                     std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
-                     std::initializer_list<std::reference_wrapper<ClientConference>> participantMgrs,
-                     Focus &focus,
-                     LinphoneCoreManager *organizer,
-                     std::string baseSubject,
-                     bool encrypted,
-                     bool isLegacy,
-                     bool sendMessage);
-
 void group_chat_room_lime_server_message(bool encrypted);
 void group_chat_room_with_client_restart_base(bool encrypted,
                                               bool server_restart_before_participant_addition,
@@ -346,6 +334,9 @@ void chat_rooms_with_deletion_spaced_out_base(bool encrypted);
 void legacy_and_new_chatrooms_mixed_up_base(bool encrypted);
 
 LinphoneAccount *add_account_using_domain_registration(ConfCoreManager &core, bool set_as_default);
+void add_domain_registration_account_and_hooks(ConfCoreManager &core,
+                                               LinphoneAccount *domain_registration_account,
+                                               bool set_as_default);
 void legacy_server_core_chat_room_state_changed(LinphoneCore *core, LinphoneChatRoom *cr, LinphoneChatRoomState state);
 void createChatRooms(int number,
                      std::initializer_list<std::reference_wrapper<CoreManager>> coreMgrs,
