@@ -40,6 +40,7 @@ set(HEADER_FILES
 	ice-constants.h
 	ice-credentials.h
 	ice-pair-foundation.h
+	ice-role.h
 	ice-session.h
 	ice-stun-request.h
 	ice-transaction.h
