@@ -932,8 +932,10 @@ static void video_call_dummy_codec(void) {
 	LpConfig *lp;
 	LinphoneCoreManager *pauline =
 	    linphone_core_manager_new(transport_supported(LinphoneTransportTls) ? "pauline_rc" : "pauline_tcp_rc");
-	if (linphone_core_get_payload_type(pauline->lc, "h264", -1, -1) != NULL) {
+	LinphonePayloadType *pauline_pt = linphone_core_get_payload_type(pauline->lc, "h264", -1, -1);
+	if (pauline_pt) {
 		bctbx_warning("Test skipped: this test is enabled only when h264 is not available");
+		linphone_payload_type_unref(pauline_pt);
 		linphone_core_manager_destroy(pauline);
 		return;
 	}
