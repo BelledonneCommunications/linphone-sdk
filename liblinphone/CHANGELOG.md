@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This changelog file was started on October 2019. Previous changes were more or less tracked in the *NEWS* file.
 It has been updated until the 5.5 SDK release. Please refer to the changelog at root of the linphone-sdk project for changes from the 5.6 SDK release onwards.
 
+## [Latest]
+
+### Changed
+- `linphone_chat_message_get_event_log()` now returns a non-const `LinphoneEventLog *` with an incremented reference count (`@tobefreed`). C callers must call `linphone_event_log_unref()` on the returned pointer when non-NULL.
+
+### Fixed
+- Fix use-after-free crash in `linphone_chat_message_get_event_log()` / `linphone_event_log_get_type()` when the `EventLog` was not kept alive in `MainDb`'s cache.
+
 ## [5.5.41] - 2026-11-08
 ### Added
 - add API to get the `Replaces` header's serialized value: linphone_call_get_replaces()

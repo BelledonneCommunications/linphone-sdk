@@ -569,9 +569,9 @@ LINPHONE_PUBLIC bool_t linphone_chat_message_is_editable(LinphoneChatMessage *me
 /**
  * Returns the event log associated to the chat message
  * @param message the message you want to retrieve the event log for @notnil
- * @return The event log, if exists, NULL otherwise @maybenil
+ * @return The event log, if exists, NULL otherwise @maybenil @tobefreed
  */
-LINPHONE_PUBLIC const LinphoneEventLog *linphone_chat_message_get_event_log(LinphoneChatMessage *message);
+LINPHONE_PUBLIC LinphoneEventLog *linphone_chat_message_get_event_log(LinphoneChatMessage *message);
 
 /************ */
 /* DEPRECATED */

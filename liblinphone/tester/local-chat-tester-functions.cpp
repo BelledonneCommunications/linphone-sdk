@@ -743,7 +743,9 @@ void group_chat_room_with_client_restart_base(bool encrypted,
 			BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, michelle2, laure, berthe})
 			                   .waitUntil(chrono::seconds(10),
 			                              [msg, expected_msg_state] { return msg->getState() == expected_msg_state; }));
-			BC_ASSERT_PTR_NOT_NULL(linphone_chat_message_get_event_log(L_GET_C_BACK_PTR(msg)));
+			LinphoneEventLog *eventLog = linphone_chat_message_get_event_log(L_GET_C_BACK_PTR(msg));
+			BC_ASSERT_PTR_NOT_NULL(eventLog);
+			if (eventLog) linphone_event_log_unref(eventLog);
 		}
 
 		BC_ASSERT_TRUE(CoreManagerAssert({focus, marie, michelle, michelle2, laure, berthe})
