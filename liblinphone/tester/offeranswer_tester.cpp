@@ -996,7 +996,18 @@ static void call_with_two_audio_streams(void) {
 	linphone_core_manager_destroy(laure);
 }
 
-static void _call_with_unknown_stream(bool_t accepted, bool_t unknown_at_end) {
+typedef struct _CallWithUnknownStreamParams {
+	bool_t accepted = FALSE;
+	bool_t unknown_at_end = FALSE;
+	bool_t enable_video = FALSE;
+} CallWithUnknownStreamParams;
+
+static void _call_with_unknown_stream(CallWithUnknownStreamParams params) {
+
+	bool_t accepted = params.accepted;
+	bool_t unknown_at_end = params.unknown_at_end;
+	bool_t enable_video = params.enable_video;
+
 	const char *unsupported_invite_base =
 	    "INVITE sip:3827m@192.168.50.222:54989;transport=udp SIP/2.0\r\n"
 	    "Via: SIP/2.0/UDP 5.135.31.160:5060;branch=z9hG4bKsAOMEtSQmuUlZRFV268653\r\n"
@@ -1038,13 +1049,38 @@ static void _call_with_unknown_stream(bool_t accepted, bool_t unknown_at_end) {
 	    "a=fmtp:100 profile-level-id=64001f; packetization-mode=1; max-mbps=108000; max-fs=3600\r\n"
 	    "a=rtpmap:113 H264/90000\r\n"
 	    "a=fmtp:113 profile-level-id=64001f; packetization-mode=0; max-mbps=108000; max-fs=3600\r\n"
-	    "a=rtpmap:109 H264/90000\r\n"
-	    "a=fmtp:109 profile-level-id=42801f; packetization-mode=1; max-mbps=108000; max-fs=3600\r\n"
 	    "a=rtpmap:99 H264/90000\r\n"
 	    "a=fmtp:99 profile-level-id=42801f; packetization-mode=0; max-mbps=108000; max-fs=3600\r\n"
+	    "a=rtpmap:109 H264/90000\r\n"
+	    "a=fmtp:109 profile-level-id=42801f; packetization-mode=1; max-mbps=108000; max-fs=3600\r\n"
 	    "a=rtcp-fb:* ccm fir\r\n";
 
 	LinphoneCoreManager *laure = linphone_core_manager_new("laure_rc_udp");
+
+	if (enable_video) {
+
+		LinphonePayloadType *laure_pt = linphone_core_get_payload_type(laure->lc, "h264", -1, -1);
+		if (!laure_pt) {
+			bctbx_warning("Test skipped: this test is enabled only when h264 is not available");
+			linphone_core_manager_destroy(laure);
+			return;
+		}
+		linphone_payload_type_unref(laure_pt);
+
+		LinphoneVideoActivationPolicy *laure_vpol =
+		    linphone_factory_create_video_activation_policy(linphone_factory_get());
+		linphone_video_activation_policy_set_automatically_initiate(laure_vpol, TRUE);
+		linphone_video_activation_policy_set_automatically_accept(laure_vpol, TRUE);
+		linphone_core_set_video_activation_policy(laure->lc, laure_vpol);
+		linphone_video_activation_policy_unref(laure_vpol);
+
+		linphone_core_enable_video_display(laure->lc, TRUE);
+		linphone_core_enable_video_capture(laure->lc, TRUE);
+
+		linphone_core_set_video_device(laure->lc, liblinphone_tester_mire_id);
+
+		disable_all_video_codecs_except_one(laure->lc, "h264");
+	}
 
 	LinphoneTransports *tp = linphone_core_get_transports_used(laure->lc);
 
@@ -1069,11 +1105,19 @@ static void _call_with_unknown_stream(bool_t accepted, bool_t unknown_at_end) {
 		BC_ASSERT_TRUE(wait_for(laure->lc, NULL, &laure->stat.number_of_LinphoneCallStreamsRunning, 1));
 		auto resultDesc = _linphone_call_get_result_desc(linphone_core_get_current_call(laure->lc));
 		std::string streamType;
-		auto stream = resultDesc->getStreamAtIdx(unknown_at_end ? 2 : 1);
-		if (stream.has_value()) {
-			streamType = (*stream)->getTypeAsString();
+		auto application_stream = resultDesc->getStreamAtIdx(unknown_at_end ? 2 : 1);
+		if (application_stream.has_value()) {
+			streamType = (*application_stream)->getTypeAsString();
 		}
 		BC_ASSERT_STRING_EQUAL(streamType.c_str(), "application");
+		auto video_stream = resultDesc->getStreamAtIdx(unknown_at_end ? 1 : 2);
+		BC_ASSERT_EQUAL((*video_stream)->enabled(), enable_video, bool_t, "%0d");
+		if (enable_video) {
+			auto cfg = (*video_stream)->getActualConfiguration();
+			for (const auto &pt : cfg.getPayloads()) {
+				BC_ASSERT_EQUAL(payload_type_get_number(pt), 109, int, "%0d");
+			}
+		}
 		linphone_call_terminate(linphone_core_get_current_call(laure->lc));
 	} else {
 		linphone_call_decline(linphone_core_get_current_call(laure->lc), LinphoneReasonDeclined);
@@ -1085,16 +1129,38 @@ static void _call_with_unknown_stream(bool_t accepted, bool_t unknown_at_end) {
 }
 
 static void call_with_unknown_stream(void) {
-	_call_with_unknown_stream(FALSE, FALSE);
+	CallWithUnknownStreamParams params;
+	params.accepted = FALSE;
+	params.unknown_at_end = FALSE;
+	params.enable_video = FALSE;
+	_call_with_unknown_stream(params);
 }
 
 static void call_with_unknown_stream_accepted(void) {
-	_call_with_unknown_stream(TRUE, FALSE);
+	CallWithUnknownStreamParams params;
+	params.accepted = TRUE;
+	params.unknown_at_end = FALSE;
+	params.enable_video = FALSE;
+	_call_with_unknown_stream(params);
 }
 
 static void call_with_unknown_stream_accepted_2(void) {
-	_call_with_unknown_stream(TRUE, TRUE);
+	CallWithUnknownStreamParams params;
+	params.accepted = TRUE;
+	params.unknown_at_end = TRUE;
+	params.enable_video = FALSE;
+	_call_with_unknown_stream(params);
 }
+
+#ifdef VIDEO_ENABLED
+static void call_with_unknown_stream_accepted_with_video(void) {
+	CallWithUnknownStreamParams params;
+	params.accepted = TRUE;
+	params.unknown_at_end = FALSE;
+	params.enable_video = TRUE;
+	_call_with_unknown_stream(params);
+}
+#endif // ifdef VIDEO_ENABLED
 
 static void activate_video_and_ice(LinphoneCoreManager *m) {
 	LinphoneVideoActivationPolicy *pol = linphone_factory_create_video_activation_policy(linphone_factory_get());
@@ -1230,7 +1296,7 @@ static test_t offeranswer_tests[] = {
     TEST_NO_TAG("Start with no config", start_with_no_config),
     TEST_NO_TAG("Call failed because of codecs", call_failed_because_of_codecs),
     TEST_NO_TAG("Simple call with different codec mappings and config-supplied sdp address",
-                simple_call_with_different_codec_mappings_and_config_supplied_sdp_addresses),
+	            simple_call_with_different_codec_mappings_and_config_supplied_sdp_addresses),
     TEST_NO_TAG("Simple call with fmtps", simple_call_with_fmtps),
     TEST_NO_TAG("AVP to AVP call", avp_to_avp_call),
     TEST_NO_TAG("AVP to AVPF call", avp_to_avpf_call),
@@ -1250,8 +1316,8 @@ static test_t offeranswer_tests[] = {
     TEST_NO_TAG("SAVPF to SAVPF call", savpf_to_savpf_call),
     TEST_ONE_TAG("SAVPF/DTLS to SAVPF/DTLS call", savpf_dtls_to_savpf_dtls_call, "DTLS"),
     TEST_ONE_TAG("SAVPF/DTLS to SAVPF/DTLS encryption mandatory call",
-                 savpf_dtls_to_savpf_dtls_encryption_mandatory_call,
-                 "DTLS"),
+	             savpf_dtls_to_savpf_dtls_encryption_mandatory_call,
+	             "DTLS"),
     TEST_ONE_TAG("SAVPF/DTLS to SAVPF call", savpf_dtls_to_savpf_call, "DTLS"),
     TEST_ONE_TAG(
         "SAVPF/DTLS to SAVPF encryption mandatory call", savpf_dtls_to_savpf_encryption_mandatory_call, "DTLS"),
@@ -1275,12 +1341,12 @@ static test_t offeranswer_tests[] = {
     TEST_NO_TAG("SAVPF to SAVPF video call", savpf_to_savpf_video_call),
     TEST_ONE_TAG("SAVPF/DTLS to SAVPF/DTLS video call", savpf_dtls_to_savpf_dtls_video_call, "DTLS"),
     TEST_ONE_TAG("SAVPF/DTLS to SAVPF/DTLS encryption mandatory video call",
-                 savpf_dtls_to_savpf_dtls_encryption_mandatory_video_call,
-                 "DTLS"),
+	             savpf_dtls_to_savpf_dtls_encryption_mandatory_video_call,
+	             "DTLS"),
     TEST_ONE_TAG("SAVPF/DTLS to SAVPF video call", savpf_dtls_to_savpf_video_call, "DTLS"),
     TEST_ONE_TAG("SAVPF/DTLS to SAVPF encryption mandatory video call",
-                 savpf_dtls_to_savpf_encryption_mandatory_video_call,
-                 "DTLS"),
+	             savpf_dtls_to_savpf_encryption_mandatory_video_call,
+	             "DTLS"),
     TEST_ONE_TAG("SAVPF/DTLS to AVPF video call", savpf_dtls_to_avpf_video_call, "DTLS"),
 
     TEST_NO_TAG("Compatible AVPF features", compatible_avpf_features),
@@ -1296,6 +1362,9 @@ static test_t offeranswer_tests[] = {
     TEST_NO_TAG("flexfec only fec proposed and accepted", flexfec_test_only_fec_proposed_and_accepted),
     TEST_NO_TAG("Call with unknown stream", call_with_unknown_stream),
     TEST_NO_TAG("Call with unknown stream, accepted", call_with_unknown_stream_accepted),
+#ifdef VIDEO_ENABLED
+    TEST_NO_TAG("Call with unknown stream, accepted with video", call_with_unknown_stream_accepted_with_video),
+#endif // ifdef VIDEO_ENABLED
     TEST_NO_TAG("Call with unknown stream, accepted 2", call_with_unknown_stream_accepted_2),
     TEST_NO_TAG("Call with 2 audio streams", call_with_two_audio_streams),
     TEST_NO_TAG("Call with video codec priority policy auto", call_with_video_codec_priority_policy)
