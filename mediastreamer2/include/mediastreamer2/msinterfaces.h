@@ -200,6 +200,8 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_VIDEO_DECODER_RESET MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 10)
 #define MS_VIDEO_DECODER_FREEZE_ON_ERROR_ENABLED MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 11, bool_t)
 #define MS_VIDEO_DECODER_SET_MAX_THREADS MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 12, int)
+/** tells the decoder whether RPSI feedback was negotiated, so that it can refrain from emitting RPSI when not */
+#define MS_VIDEO_DECODER_ENABLE_RPSI MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 13, bool_t)
 
 /**
  * Interface definitions for video capture
@@ -242,6 +244,9 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_VIDEO_ENCODER_ENABLE_DIVIDE_PACKETS_EQUAL_SIZE MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 12, bool_t)
 /* Optimize encoding for screen content (i.e when doing screen sharing) */
 #define MS_VIDEO_ENCODER_ENABLE_SCREEN_CONTENT_MODE MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 13, bool_t)
+/** tells the encoder whether RPSI feedback was negotiated; without it the encoder must not rely on
+ * RPSI acknowledgements of its reference frames (golden/altref for VP8) */
+#define MS_VIDEO_ENCODER_ENABLE_RPSI MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 14, bool_t)
 
 /** Interface definitions for audio capture */
 
