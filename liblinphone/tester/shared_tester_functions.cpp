@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/tester.h>
+#include "bctoolbox/tester.h"
 
 #include "mediastreamer2/msmire.h"
 
@@ -47,7 +47,9 @@
 #endif // HAVE_LIME_X3DH
 
 using namespace std;
+#include <algorithm>
 #include <sstream>
+#include <vector>
 
 using namespace LinphonePrivate;
 #ifdef HAVE_LIME_X3DH
@@ -794,29 +796,32 @@ static void check_expected_candidate_type(LinphoneCoreManager *m,
                                           const bctbx_list_t *local_addresses) {
 	std::string ip = get_ice_default_candidate(m);
 	const struct addrinfo *ai = linphone_core_get_stun_server_addrinfo(m->lc);
-	std::string relayIP;
+	std::vector<std::string> relayIPs;
 
 	// bctbx_message("default-candidate=%s", ip.c_str());
-	if (ai) {
+	for (const struct addrinfo *it = ai; it != nullptr; it = it->ai_next) {
 		char rawip[64] = {0};
 		struct sockaddr_storage ss;
-		socklen_t slen = (socklen_t)ai->ai_addrlen;
-		memcpy(&ss, ai->ai_addr, ai->ai_addrlen);
+		socklen_t slen = (socklen_t)it->ai_addrlen;
+		memcpy(&ss, it->ai_addr, it->ai_addrlen);
 		bctbx_sockaddr_remove_v4_mapping((struct sockaddr *)&ss, (struct sockaddr *)&ss, &slen);
 		bctbx_sockaddr_to_ip_address((struct sockaddr *)&ss, slen, rawip, sizeof(rawip), NULL);
-		relayIP = rawip;
+		if (rawip[0] != '\0') {
+			relayIPs.emplace_back(rawip);
+		}
 	}
+	bool isRelayIP = !ip.empty() && std::find(relayIPs.begin(), relayIPs.end(), ip) != relayIPs.end();
 	switch (expected_type) {
 		case TesterIceCandidateHost:
 			BC_ASSERT_TRUE(address_in_list(ip, local_addresses));
 			break;
 		case TesterIceCandidateSflrx:
+			BC_ASSERT_FALSE(ip.empty());
 			BC_ASSERT_FALSE(address_in_list(ip, local_addresses));
-			BC_ASSERT_STRING_NOT_EQUAL(ip.c_str(), relayIP.c_str());
-			BC_ASSERT_TRUE(ip != relayIP);
+			BC_ASSERT_FALSE(isRelayIP);
 			break;
 		case TesterIceCandidateRelay:
-			BC_ASSERT_STRING_EQUAL(ip.c_str(), relayIP.c_str());
+			BC_ASSERT_TRUE(isRelayIP);
 			break;
 	}
 }
