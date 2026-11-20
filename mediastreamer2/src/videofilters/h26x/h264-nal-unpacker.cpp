@@ -37,7 +37,7 @@ mblk_t *H264FuaAggregator::feed(mblk_t *im) {
 	bool_t marker = mblk_get_marker_info(im);
 
 	fu_header = im->b_rptr[1];
-	type = fu_header & 0x17;
+	type = fu_header & 0x1f;
 	start = fu_header >> 7;
 	end = (fu_header >> 6) & 0x1;
 	if (start) {
@@ -95,6 +95,10 @@ mblk_t *H264FuaAggregator::completeAggregation() {
 void H264StapaSpliter::feed(mblk_t *im) {
 	uint16_t sz;
 	for (uint8_t *p = im->b_rptr + 1; p < im->b_wptr;) {
+		if (p + 2 > im->b_wptr) {
+			ms_error("Malformed STAP-A packet");
+			break;
+		}
 		memcpy(&sz, p, 2);
 		sz = ntohs(sz);
 		mblk_t *nal = dupb(im);
