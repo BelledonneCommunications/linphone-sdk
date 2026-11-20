@@ -82,8 +82,9 @@ create_message_from_sintel_trailer_legacy(LinphoneChatRoom *chat_room, const cha
 
 	msg = linphone_chat_room_create_file_transfer_message(chat_room, content);
 	BC_ASSERT_TRUE(linphone_chat_message_get_to_be_stored(msg));
-	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(msg);
+	LinphoneEventLog *event_log = linphone_chat_message_get_event_log(msg);
 	BC_ASSERT_PTR_NULL(event_log);
+	if (event_log) linphone_event_log_unref(event_log);
 
 	cbs = linphone_chat_message_get_callbacks(msg);
 	linphone_chat_message_cbs_set_file_transfer_send(cbs, tester_file_transfer_send);
@@ -121,8 +122,9 @@ LinphoneChatMessage *_create_message_from_sintel_trailer(LinphoneChatRoom *chat_
 
 	msg = linphone_chat_room_create_file_transfer_message(chat_room, content);
 	BC_ASSERT_TRUE(linphone_chat_message_get_to_be_stored(msg));
-	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(msg);
+	LinphoneEventLog *event_log = linphone_chat_message_get_event_log(msg);
 	BC_ASSERT_PTR_NULL(event_log);
+	if (event_log) linphone_event_log_unref(event_log);
 	cbs = linphone_factory_create_chat_message_cbs(linphone_factory_get());
 	linphone_chat_message_cbs_set_file_transfer_send_chunk(cbs, tester_file_transfer_send_2);
 	linphone_chat_message_cbs_set_msg_state_changed(cbs, liblinphone_tester_chat_message_msg_state_changed);
@@ -682,8 +684,9 @@ static void message_with_two_attachments(void) {
 
 	LinphoneChatMessage *message = linphone_chat_room_create_empty_message(chat_room);
 	BC_ASSERT_TRUE(linphone_chat_message_get_to_be_stored(message));
-	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(message);
+	LinphoneEventLog *event_log = linphone_chat_message_get_event_log(message);
 	BC_ASSERT_PTR_NULL(event_log);
+	if (event_log) linphone_event_log_unref(event_log);
 
 	LinphoneContent *file_transfer_content1 = linphone_core_create_content(linphone_chat_room_get_core(chat_room));
 	linphone_content_set_file_path(file_transfer_content1, send_filepath1);
@@ -780,8 +783,9 @@ static void message_with_xxe_injection(void) {
 
 	LinphoneChatMessage *message = linphone_chat_room_create_empty_message(chat_room);
 	BC_ASSERT_TRUE(linphone_chat_message_get_to_be_stored(message));
-	const LinphoneEventLog *event_log = linphone_chat_message_get_event_log(message);
+	LinphoneEventLog *event_log = linphone_chat_message_get_event_log(message);
 	BC_ASSERT_PTR_NULL(event_log);
+	if (event_log) linphone_event_log_unref(event_log);
 
 	LinphoneContent *file_transfer_content_malformed =
 	    linphone_core_create_content(linphone_chat_room_get_core(chat_room));
@@ -3635,7 +3639,7 @@ void aggregated_imdns_in_group_chat_base(const LinphoneTesterLimeAlgo curveId) {
 	                             liblinphone_tester_sip_timeout));
 
 	BC_ASSERT_TRUE(wait_for_list(coresList, &marie->stat.number_of_LinphoneMessageDeliveredToUser, nbMessages,
-	                             2*liblinphone_tester_sip_timeout));
+	                             2 * liblinphone_tester_sip_timeout));
 
 	// Only Marie receives IMDNs
 	LinphoneChatMessageState expected_msg_state = LinphoneChatMessageStateDeliveredToUser;

@@ -32,6 +32,7 @@
 #include "core/core-p.h"
 #include "linphone/api/c-chat-room.h"
 #include "linphone/api/c-content.h"
+#include "linphone/api/c-event-log.h"
 #include "linphone/utils/utils.h"
 #include "linphone/wrapper_utils.h"
 
@@ -700,10 +701,10 @@ bool_t linphone_chat_message_is_editable(LinphoneChatMessage *message) {
 	return L_GET_CPP_PTR_FROM_C_OBJECT(message)->canBeEdited();
 }
 
-const LinphoneEventLog *linphone_chat_message_get_event_log(LinphoneChatMessage *message) {
+LinphoneEventLog *linphone_chat_message_get_event_log(LinphoneChatMessage *message) {
 	const auto eventLog = L_GET_CPP_PTR_FROM_C_OBJECT(message)->getEventLog();
 	if (eventLog) {
-		return L_GET_C_BACK_PTR(eventLog);
+		return linphone_event_log_ref(L_GET_C_BACK_PTR(eventLog));
 	}
 	return NULL;
 }
