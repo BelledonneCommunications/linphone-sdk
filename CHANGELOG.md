@@ -31,14 +31,18 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
 - Handle multiple transports for TURN at the same time during ICE processing
 - iOS: network changes and the network type are now detected with Network.framework (nw_path_monitor) instead of the deprecated SCNetworkReachability API.
 - Upgrade of Opus source code to version 1.5.2 to activate OSCE (deep PLC and LACE/noLACE).
+- Update to MBedTls v3.6.7
 - Updated Sqlite3 dependency to 3.54.0
 - Updated decaf dependency to 1.0.5
 - Updated SRTP library dependency to 2.8.1
 - Improved refresher failover and channel retention on SRV targets with `reconnect_to_primary_asap`.
 - Allow Baudot to be used in local conferences (each call keeps its baudot encoder and decoders)
+- `linphone_chat_message_get_event_log()` now returns a non-const `LinphoneEventLog *` with an incremented reference count (`@tobefreed`). C callers must call `linphone_event_log_unref()` on the returned pointer when non-NULL.
+
 
 ### Fixed
 - Fix ICE getting stuck in progress if a re-INVITE is received during the connectivity checks.
+- Fix use-after-free crash in `linphone_chat_message_get_event_log()` / `linphone_event_log_get_type()` when the `EventLog` was not kept alive in `MainDb`'s cache.
 - Fix various TURN issues:
   * TURN request retransmissions now keep the same transaction ID as the initial request.
   * Handle the 438 Stale Nonce error from the TURN server.
@@ -48,10 +52,7 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
 - Compensate ticker offset on MSRtpRecv, typically when merging calls to a local conference.
 - Memory leak fixes.
 
-## [5.5.35] 2026-10-19
 
-### Changed
-- Update to MBedTls v3.6.7
 
 ## [5.5.0] 2026-05-25
 
