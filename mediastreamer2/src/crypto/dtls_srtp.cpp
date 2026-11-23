@@ -609,25 +609,6 @@ int MSDtlsSrtpContext::processDtlsPacket(mblk_t *msg) {
 	bctbx_ssl_context_t *ssl = mDtlsCryptoContext.ssl;
 	int ret = 0;
 
-	/* UGLY PATCH CLIENT HELLO PACKET PARSING */
-	const int Content_Type_Index = 0;
-	const int Content_Length_Index = 11;
-	const int Handshake_Type_Index = 13;
-	const int Handshake_Message_Length_Index = 14;
-	const int Handshake_Message_Seq_Index = 17;
-	const int Handshake_Frag_Offset_Index = 19;
-	const int Handshake_Frag_Length_Index = 22;
-	const size_t Handshake_Header_Length = 25;
-	unsigned char *frag = msg->b_rptr;
-	size_t base_index = 0;
-	int message_length = 0;
-	int message_seq = 0;
-	int current_message_seq = -1;
-	int frag_offset = 0;
-	int frag_length = 0;
-	unsigned char *reassembled_packet = NULL;
-	/* end of UGLY PATCH CLIENT HELLO PACKET PARSING */
-
 	/*required by webrtc in server case when ice is not completed yet*/
 	/* no more required because change is performed by ice.c once a check list is ready
 	 * rtp_session_update_remote_sock_addr(rtp_session, msg,is_rtp,FALSE);*/
@@ -635,101 +616,7 @@ int MSDtlsSrtpContext::processDtlsPacket(mblk_t *msg) {
 	ms_message("DTLS Receive RTP packet len %d sessions: %p rtp session %p", (int)msgLength, mStreamSessions,
 	           mStreamSessions->rtp_session);
 
-	/* UGLY PATCH CLIENT HELLO PACKET PARSING */
-	/* Parse the DTLS packet to check if we have a Client Hello packet fragmented at DTLS level but all set in one
-	 * datagram (some kind of bug in certain versions openssl produce that and mbedtls does not support Client Hello
-	 * fragmentation ) This patch is not very resistant to any change and target that very particular situation, a
-	 * better solution should be to implement support of Client Hello Fragmentation in mbedtls */
-	if (msgLength > Handshake_Header_Length && frag[Content_Type_Index] == 0x16 &&
-	    frag[Handshake_Type_Index] ==
-	        0x01) { // If the first fragment(there may be only one) is of a DTLS Handshake Client Hello message
-		while (base_index + Handshake_Header_Length <
-		       msgLength) { // loop on the message, parsing all fragments it may contain (loop until we have at
-		                    // least enough unparsed byte to read a handshake header)
-			if (frag[Content_Type_Index] == 0x16) {       // Type index 0x16 is DLTS Handshake message
-				if (frag[Handshake_Type_Index] == 0x01) { // Handshake type 0x01 is Client Hello
-					// Get message length
-					message_length = frag[Handshake_Message_Length_Index] << 16 |
-					                 frag[Handshake_Message_Length_Index + 1] << 8 |
-					                 frag[Handshake_Message_Length_Index + 2];
-
-					// message sequence number
-					message_seq = frag[Handshake_Message_Seq_Index] << 8 | frag[Handshake_Message_Seq_Index + 1];
-					if (current_message_seq == -1) {
-						current_message_seq = message_seq;
-					}
-
-					// fragment offset
-					frag_offset = frag[Handshake_Frag_Offset_Index] << 16 | frag[Handshake_Frag_Offset_Index + 1] << 8 |
-					              frag[Handshake_Frag_Offset_Index + 2];
-
-					// and fragment length
-					frag_length = frag[Handshake_Frag_Length_Index] << 16 | frag[Handshake_Frag_Length_Index + 1] << 8 |
-					              frag[Handshake_Frag_Length_Index + 2];
-
-					// check the message is not malformed and would lead us to read after the message buffer
-					// or write after our reassembled packet buffer
-					if (base_index + Handshake_Header_Length + frag_length <=
-					        msgLength // we will read frag_length starting at base_index (frag in the code)+ header
-					    && frag_length + frag_offset <=
-					           message_length) { // we will write in the reassembled buffer frag_length byte,
-					                             // starting at frag_offset, the buffer is message_length long
-
-						// If message length and fragment length differs, we have a fragmented Client Hello
-						// Check they are part of the same message (message_seq)
-						// We will just collect all fragments (in our very particuliar case, they are all in the
-						// same datagram so we do not need long term storage, juste parsing this packet)
-						if (message_length != frag_length && message_seq == current_message_seq) {
-							if (reassembled_packet == NULL) { // this is first fragment we get
-								reassembled_packet =
-								    (unsigned char *)ms_malloc(Handshake_Header_Length + message_length);
-								// copy the header
-								memcpy(reassembled_packet, msg->b_rptr, Handshake_Header_Length);
-								// set the message length to be in line with reassembled fragments
-								reassembled_packet[Content_Length_Index] = ((message_length + 12) >> 8) & 0xFF;
-								reassembled_packet[Content_Length_Index + 1] = (message_length + 12) & 0xFF;
-
-								// set the frag length to be the same than message length
-								reassembled_packet[Handshake_Frag_Length_Index] =
-								    reassembled_packet[Handshake_Message_Length_Index];
-								reassembled_packet[Handshake_Frag_Length_Index + 1] =
-								    reassembled_packet[Handshake_Message_Length_Index + 1];
-								reassembled_packet[Handshake_Frag_Length_Index + 2] =
-								    reassembled_packet[Handshake_Message_Length_Index + 2];
-							}
-							// copy the received fragment
-							memcpy(reassembled_packet + Handshake_Header_Length + frag_offset,
-							       frag + Handshake_Header_Length, frag_length);
-						}
-
-						// read what is next in the datagram
-						base_index += Handshake_Header_Length + frag_length; // bytes parsed so far
-						frag += Handshake_Header_Length + frag_length; // point to the begining of the next fragment
-					} else {                                           // message is malformed in a nasty way
-						ms_warning("DTLS Received RTP packet len %d sessions: %p rtp session %p is malformed in an "
-						           "agressive way",
-						           (int)msgLength, mStreamSessions, mStreamSessions->rtp_session);
-						base_index = msgLength; // get out of the while
-						ms_free(reassembled_packet);
-						reassembled_packet = NULL;
-					}
-				} else {
-					base_index = msgLength; // get out of the while
-					ms_free(reassembled_packet);
-					reassembled_packet = NULL;
-				}
-			}
-		}
-	}
-	/* end of UGLY PATCH CLIENT HELLO PACKET PARSING */
-	// if we made a reassembled client hello packet, use this one as incoming dlts packet
-	if (reassembled_packet != NULL) {
-		ms_message("DTLS re-assembled a fragmented Client Hello packet");
-		mRtpIncomingBuffer.emplace(reassembled_packet, reassembled_packet + Handshake_Header_Length + message_length);
-		ms_free(reassembled_packet);
-	} else { // otherwise enqueue the one we received
-		mRtpIncomingBuffer.emplace(msg->b_rptr, msg->b_rptr + msgLength);
-	}
+	mRtpIncomingBuffer.emplace(msg->b_rptr, msg->b_rptr + msgLength);
 
 	/* while DTLS handshake is on going route DTLS packets to bctoolbox engine through ssl_handshake() */
 	if (mChannelStatus < DtlsStatus::HandshakeOver) {
